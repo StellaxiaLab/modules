@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.terra.dev/modules/manifest/v2/module.schema.json",
+  "title": "Terra Module Manifest v2",
+  "description": "Canonical Manifest v2 for Terra modules (common design §10.2, ADR-P0-004). Owned by terra-module-runtime; the embedded release copy in the package is kept byte-identical by a parity test. This schema fixes identity, entrypoints, dependencies, provides, contracts, permissions, readiness and update. The Go validator remains the runtime authority for presence rules it enforces beyond structure — notably that every module declares an entrypoint or a contribution naming its implementation.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "version", "kind"],
+  "additionalProperties": false,
+  "properties": {
+    "$comment": {
+      "type": "string",
+      "description": "Free-form note for readers of this file. Carried by several shipped manifests and ignored by the runtime; declared here so additionalProperties: false does not reject a JSON convention."
+    },
+    "schemaVersion": {
+      "const": 2,
+      "description": "Manifest format version. v2 is canonical; v1 manifests are normalized to v2 before validation."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$",
+      "description": "Stable reverse-DNS module identity."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Module version. Semantic versioning is expected so dependency version ranges can match."
+    },
+    "kind": {
+      "enum": ["application", "runtime", "scene", "service", "adapter", "extension"],
+      "description": "Execution kind. A scene module may omit entrypoints (its entry is data the Player loads), an adapter may omit them when contributions.service names the external service it wraps, and an extension may omit them when contributions.gui.extensions names its bundle; every other kind requires at least one entrypoint."
+    },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Terra, Keeper, product, host role, OS and architecture compatibility.",
+      "properties": {
+        "products": { "type": "array", "items": { "type": "string" } },
+        "hostRoles": { "type": "array", "items": { "type": "string" } },
+        "keeper": { "type": "string" },
+        "os": { "type": "array", "items": { "type": "string" } },
+        "arch": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Module id or capability dependencies, optionally constrained by a semver version range.",
+      "items": { "$ref": "#/$defs/dependency" }
+    },
+    "entrypoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Process, Worker, Library, Runtime and Scene entry declarations.",
+      "properties": {
+        "process": { "$ref": "#/$defs/targetMap" },
+        "worker": { "$ref": "#/$defs/targetMap" },
+        "library": { "$ref": "#/$defs/targetMap" },
+        "runtime": { "$ref": "#/$defs/targetMap" },
+        "scene": { "type": "string" }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Digests for binary entrypoints, stamped by the release build when it packages the module so hosts can verify the on-disk file before launch. A signed manifest must be signed after stamping.",
+      "properties": {
+        "process": {
+          "type": "object",
+          "description": "Normalized target (e.g. linux-amd64) to the lowercase hex SHA-256 of that target's process entrypoint file.",
+          "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    },
+    "provides": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Runtime capabilities other modules may depend on.",
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "version": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "contracts": {
+      "type": "object",
+      "description": "Package-relative fixed paths to canonical contracts (e.g. api).",
+      "additionalProperties": { "type": "string" }
+    },
+    "contributions": {
+      "type": "object",
+      "description": "Public contribution points bound to product surfaces (cli, gui, ...). Detailed shape is owned by the common design."
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Core operation, storage, network, secret and native permission requests.",
+      "properties": {
+        "coreOperations": { "type": "array", "items": { "$ref": "#/$defs/dependency" } },
+        "storage": { "type": "array", "items": { "type": "string" } },
+        "network": { "type": "array", "items": { "type": "string" } },
+        "secret": { "type": "array", "items": { "type": "string" } },
+        "native": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Readiness contract checked before route publication.",
+      "properties": {
+        "operationId": { "type": "string" },
+        "versionRange": { "type": "string" },
+        "timeoutMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "workloadIdentity": {
+      "type": "object",
+      "description": "Module subject and token policy. Shape is owned by the common design."
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Drain, migration and rollback policy.",
+      "properties": {
+        "strategy": { "type": "string" },
+        "drainTimeoutMs": { "type": "integer", "minimum": 0 },
+        "rollback": { "type": "boolean" }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "description": "Hash, issuer and trust chain. Shape is owned by the common design."
+    },
+    "legacy": {
+      "type": "object",
+      "description": "v1-only fields preserved losslessly during v1->v2 normalization."
+    }
+  },
+  "$defs": {
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "capability": { "type": "string" },
+        "versionRange": { "type": "string" }
+      }
+    },
+    "targetMap": {
+      "type": "object",
+      "description": "Normalized target (e.g. linux-amd64) to a package-relative path.",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}
