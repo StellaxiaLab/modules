@@ -1,0 +1,13 @@
+{
+  "$comment": "Scene Function. 화면 전환도 Function을 거친다 — 버튼이 목적지를 input.route로 넘기면 Player의 Navigation seam으로 전달되고 (§10.3 navigate), 그래서 이동이 Trace에 남는다.",
+  "schemaVersion": "1.0.0",
+  "id": "terra.nav.go",
+  "version": "0.1.0",
+  "concurrency": { "mode": "takeLatest" },
+  "graph": {
+    "nodes": [
+      { "id": "move", "type": "navigate", "route": "$input.route" },
+      { "id": "done", "type": "return", "value": "$input.route" }
+    ]
+  }
+}

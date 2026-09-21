@@ -1,0 +1,79 @@
+{
+  "$comment": "Terra 통합 base Scene — leaf와 tree를 가르지 않는 하나의 GUI (Scene·Player 설계 §9).\n\n이 패키지의 규칙은 하나다: **requiredOperations에 terra.gateway.* 만 적는다.** 그 Operation들은 계약에서 availability.products: [\"common\"] 으로 선언되어 있어 두 제품의 Gateway에 똑같이 존재한다. 제품별 Operation(terra.master.* / terra.daemon.*)을 하나라도 부르는 순간 그 화면은 반대쪽 제품에서 실패하므로, 노드의 성격은 호출로 묻지 않고 terra.gateway.health.get 과 카탈로그가 답하는 대로 관측한다.\n\n그래서 이 Scene은 io.terra.scene.leaf 와 io.terra.scene.tree 를 대체한다. 둘은 지워지지 않고 게이트웨이가 application 으로 강등해 /apps/<module-id> 에 남긴다 — 이관 중에 옛 셸이 열려야 하기 때문이다.",
+  "schemaVersion": "0.1.0",
+  "id": "io.terra.scene.terra",
+  "version": "0.1.0",
+  "name": "Terra Scene",
+  "defaultLocale": "ko-KR",
+  "entryRoute": "/login",
+  "routes": [
+    { "path": "/login", "fragment": "terra.login" },
+    { "path": "/", "fragment": "terra.home" },
+    { "path": "/modules", "fragment": "terra.modules" },
+    { "path": "/apps", "fragment": "terra.apps" },
+    { "path": "/catalog", "fragment": "terra.catalog" },
+    { "path": "/nodes", "fragment": "terra.nodes" },
+    { "path": "/diagnostics", "fragment": "terra.diagnostics" },
+    { "path": "/settings", "fragment": "terra.settings" }
+  ],
+  "functions": [
+    "functions/session.field.function.json",
+    "functions/session.login.function.json",
+    "functions/session.logout.function.json",
+    "functions/nav.go.function.json",
+    "functions/node.refresh.function.json",
+    "functions/modules.refresh.function.json",
+    "functions/modules.start.function.json",
+    "functions/modules.stop.function.json",
+    "functions/apps.refresh.function.json",
+    "functions/scenes.refresh.function.json",
+    "functions/app.launch.function.json",
+    "functions/catalog.field.function.json",
+    "functions/catalog.refresh.function.json",
+    "functions/remote.refresh.function.json",
+    "functions/diagnostics.refresh.function.json",
+    "functions/settings.field.function.json",
+    "functions/settings.save.function.json"
+  ],
+  "stores": [
+    "stores/session.store.json",
+    "stores/login-form.store.json",
+    "stores/credentials.store.json",
+    "stores/node.store.json",
+    "stores/modules.store.json",
+    "stores/apps.store.json",
+    "stores/catalog.store.json",
+    "stores/remote.store.json",
+    "stores/diagnostics.store.json",
+    "stores/settings.store.json"
+  ],
+  "fragments": [
+    "fragments/nav.fragment.json",
+    "fragments/login.fragment.json",
+    "fragments/home.fragment.json",
+    "fragments/modules.fragment.json",
+    "fragments/apps.fragment.json",
+    "fragments/catalog.fragment.json",
+    "fragments/nodes.fragment.json",
+    "fragments/diagnostics.fragment.json",
+    "fragments/settings.fragment.json"
+  ],
+  "schemas": [
+    "schemas/settings.schema.json"
+  ],
+  "slotContributions": [
+    { "slot": "shell.nav", "fragment": "terra.nav" }
+  ],
+  "requiredOperations": [
+    { "operationId": "terra.gateway.health.get", "versionRange": ">=1.0.0 <2.0.0" },
+    { "operationId": "terra.gateway.catalog.get", "versionRange": ">=1.0.0 <2.0.0" },
+    { "operationId": "terra.gateway.gui.modules.get", "versionRange": ">=1.0.0 <2.0.0" },
+    { "operationId": "terra.gateway.gui.apps.get", "versionRange": ">=1.0.0 <2.0.0" },
+    { "operationId": "terra.gateway.gui.scenes.get", "versionRange": ">=1.0.0 <2.0.0" },
+    { "operationId": "terra.gateway.gui.remote.nodes.get", "versionRange": ">=1.0.0 <2.0.0" },
+    { "operationId": "terra.gateway.gui.diagnostics.get", "versionRange": ">=1.0.0 <2.0.0" },
+    { "operationId": "terra.gateway.modules.by-id.start.post", "versionRange": ">=1.0.0 <2.0.0" },
+    { "operationId": "terra.gateway.modules.by-id.stop.post", "versionRange": ">=1.0.0 <2.0.0" }
+  ],
+  "recoveryFragment": "terra.home"
+}

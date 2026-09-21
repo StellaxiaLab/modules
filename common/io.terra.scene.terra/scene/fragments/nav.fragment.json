@@ -1,0 +1,48 @@
+{
+  "$comment": "Scene Fragment. 셸의 네비게이션 — **한 번 선언하고 모든 화면이 Slot으로 받는다** (§12.3 Slot 기여). 출하 Scene 둘은 화면마다 navbar를 복제했고, 그래서 화면을 하나 더하면 그 복사본이 하나 더 늘었다. 여기서는 화면이 `shell.nav` Slot을 선언하기만 하면 되고, 매니페스트의 slotContributions 한 줄이 이 Fragment를 거기 꽂는다.\n\n로그인 화면은 이 Slot을 선언하지 않는다 — 인증 전에 갈 곳이 없기 때문이고, 그것이 Slot을 '선언한 화면만 받는다'로 만든 이유다.",
+  "schemaVersion": "0.1.0",
+  "id": "terra.nav",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Terra",
+  "stores": ["session", "node"],
+  "functions": ["terra.nav.go", "terra.session.logout"],
+  "root": {
+    "type": "column",
+    "id": "nav",
+    "layout": "wrap",
+    "gap": "sm",
+    "a11y": { "role": "navigation", "label": "화면 이동" },
+    "children": [
+      { "type": "text", "id": "brand", "variant": "heading", "text": "Terra" },
+      { "type": "button", "id": "navHome", "text": "홈", "onClick": { "function": "terra.nav.go", "input": { "route": "/" } } },
+      { "type": "button", "id": "navModules", "text": "모듈", "onClick": { "function": "terra.nav.go", "input": { "route": "/modules" } } },
+      { "type": "button", "id": "navApps", "text": "앱", "onClick": { "function": "terra.nav.go", "input": { "route": "/apps" } } },
+      { "type": "button", "id": "navCatalog", "text": "명령", "onClick": { "function": "terra.nav.go", "input": { "route": "/catalog" } } },
+      { "type": "button", "id": "navNodes", "text": "노드", "onClick": { "function": "terra.nav.go", "input": { "route": "/nodes" } } },
+      { "type": "button", "id": "navDiagnostics", "text": "진단", "onClick": { "function": "terra.nav.go", "input": { "route": "/diagnostics" } } },
+      { "type": "button", "id": "navSettings", "text": "설정", "onClick": { "function": "terra.nav.go", "input": { "route": "/settings" } } },
+      {
+        "type": "text",
+        "id": "principal",
+        "bind": { "store": "session", "path": "/principal" },
+        "empty": "익명 세션",
+        "a11y": { "label": "현재 세션" }
+      },
+      {
+        "type": "button",
+        "id": "logout",
+        "text": "로그아웃",
+        "visible": { "store": "session", "path": "/authenticated", "is": { "const": true } },
+        "onClick": { "function": "terra.session.logout" }
+      },
+      {
+        "type": "button",
+        "id": "login",
+        "text": "로그인",
+        "visible": { "store": "session", "path": "/authenticated", "is": { "const": false } },
+        "onClick": { "function": "terra.nav.go", "input": { "route": "/login" } }
+      }
+    ]
+  }
+}

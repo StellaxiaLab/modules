@@ -1,0 +1,73 @@
+{
+  "$comment": "Scene Fragment. 이 노드가 할 줄 아는 일 전부 — CLI의 `terra api`가 보는 목록을 화면으로 낸 것.\n\n**통합 GUI가 CLI와 기능을 맞추는 방법이 이 화면이다.** 명령 목록을 화면이 들고 있지 않다. 노드에게 물어서 그리므로, 모듈이 하나 설치되면 이 화면을 고치지 않아도 그 모듈의 Operation이 여기 나타난다 — CLI에 어떤 모듈 id도 박히지 않는 것과 같은 이유이고, 같은 카탈로그다.\n\n목록은 호출자 권한으로 이미 좁혀져 온다. 그래서 여기에 권한 필터가 없는 것이 맞다 — 표시 조건은 보안 수단이 아니고(§6-3 ②), 실제 차단은 Gateway가 호출 시점에 다시 한다.",
+  "schemaVersion": "0.1.0",
+  "id": "terra.catalog",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "명령",
+  "stores": ["catalog", "session"],
+  "functions": ["terra.nav.go", "terra.catalog.field", "terra.catalog.refresh"],
+  "slots": [{ "id": "shell.nav", "single": true }],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "gap": "md",
+    "a11y": { "role": "region", "label": "Operation 카탈로그" },
+    "children": [
+      { "type": "slot", "id": "navSlot", "slot": "shell.nav" },
+      {
+        "type": "column",
+        "id": "header",
+        "layout": "row",
+        "gap": "sm",
+        "align": "center",
+        "children": [
+          { "type": "text", "id": "heading", "variant": "heading", "text": "명령" },
+          { "type": "text", "id": "count", "bind": { "store": "catalog", "path": "/count" }, "empty": "0" }
+        ]
+      },
+      {
+        "type": "form",
+        "id": "searchForm",
+        "onSubmit": { "function": "terra.catalog.refresh" },
+        "children": [
+          {
+            "type": "input",
+            "id": "search",
+            "placeholder": "이름이나 설명으로 찾기 (예: node, module, network)",
+            "bind": { "store": "catalog", "path": "/query" },
+            "onChange": { "function": "terra.catalog.field" },
+            "onSubmit": { "function": "terra.catalog.refresh" },
+            "a11y": { "label": "명령 검색" }
+          },
+          { "type": "button", "id": "searchButton", "text": "찾기", "onClick": { "function": "terra.catalog.refresh" } }
+        ]
+      },
+      {
+        "type": "table",
+        "id": "operationTable",
+        "bind": { "store": "catalog", "path": "/items" },
+        "empty": "조건에 맞는 Operation이 없습니다",
+        "a11y": { "role": "table", "label": "게시된 Operation", "live": "polite" },
+        "columns": [
+          { "id": "operationId", "header": "Operation", "path": "/operationId" },
+          { "id": "summary", "header": "하는 일", "path": "/summary", "empty": "-" },
+          { "id": "category", "header": "분류", "path": "/category", "empty": "-" },
+          { "id": "provider", "header": "제공", "path": "/providerId", "empty": "-" },
+          { "id": "risk", "header": "위험도", "path": "/execution/risk", "align": "center", "empty": "unknown" }
+        ]
+      },
+      {
+        "type": "text",
+        "id": "generation",
+        "bind": { "store": "catalog", "path": "/generation" },
+        "empty": "",
+        "a11y": { "label": "카탈로그 generation" }
+      },
+      { "type": "text", "id": "error", "bind": { "store": "catalog", "path": "/error" }, "empty": "", "a11y": { "role": "alert", "live": "assertive" } }
+    ]
+  },
+  "triggers": [
+    { "on": "lifecycle:enter", "function": "terra.catalog.refresh" }
+  ]
+}

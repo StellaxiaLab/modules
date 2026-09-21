@@ -1,0 +1,31 @@
+{
+  "$comment": "Scene Function. 이 노드가 스스로 무엇인지 묻는다 — terra.gateway.health.get 하나로. 이것이 통합 Scene의 가장 중요한 호출이다: 제품별 Operation(terra.master.* / terra.daemon.*)을 하나도 부르지 않으므로 leaf에서도 tree에서도 같은 그래프가 돈다. 인증을 요구하지 않는 Operation이라 로그인 전에도 답이 온다.",
+  "schemaVersion": "1.0.0",
+  "id": "terra.node.refresh",
+  "version": "0.1.0",
+  "timeoutMs": 5000,
+  "concurrency": { "mode": "takeLatest" },
+  "output": {
+    "type": "object",
+    "properties": { "published": { "type": "boolean" } }
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "request",
+        "type": "call",
+        "operationId": "terra.gateway.health.get",
+        "versionRange": ">=1.0.0 <2.0.0",
+        "input": {},
+        "onError": [
+          { "id": "showError", "type": "store.write", "storeId": "node", "path": "/error", "value": "$request.error.message" },
+          { "id": "stop", "type": "return", "value": false }
+        ]
+      },
+      { "id": "clearError", "type": "store.write", "storeId": "node", "path": "/error", "value": "" },
+      { "id": "save", "type": "store.write", "storeId": "node", "path": "/current", "value": "$request.output" },
+      { "id": "announce", "type": "emit", "signal": "terra.node:refreshed", "payload": "$request.output" },
+      { "id": "done", "type": "return", "value": "$request.output" }
+    ]
+  }
+}

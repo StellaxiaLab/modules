@@ -1,0 +1,11 @@
+{
+  "$comment": "Scene Store. 로그인 세션의 표시용 view model (Scene·Player 설계 §11). 실 토큰은 여기 두지 않는다 — 자격은 secret Store(Credential Handle) 소관이고, 이 Store는 인증 여부와 오류 문구만 갖는다.",
+  "schemaVersion": "0.1.0",
+  "id": "session",
+  "kind": "session",
+  "initial": {
+    "authenticated": false,
+    "principal": "",
+    "error": ""
+  }
+}

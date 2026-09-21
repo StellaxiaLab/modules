@@ -1,0 +1,119 @@
+{
+  "$comment": "Scene Fragment. 통합 셸의 홈이자 런처다.\n\n이 화면이 '어느 제품인가'를 묻지 않는 것이 통합 GUI의 핵심이다. 노드 카드에 나오는 것은 전부 terra.gateway.health.get이 스스로 말한 것 — 게시된 generation, Operation 수, 카탈로그 유효성, 세션 발급처, 상위 Master — 이고, 그 어느 것도 leaf인지 tree인지 묻지 않는다. 상위 Master가 배선돼 있으면 그 줄이 보이고, 없으면 사라진다. 역할은 선언이 아니라 **관측되는 것**이다.",
+  "schemaVersion": "0.1.0",
+  "id": "terra.home",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Terra",
+  "stores": ["node", "modules", "apps", "remote", "session"],
+  "functions": ["terra.nav.go", "terra.node.refresh", "terra.modules.refresh", "terra.apps.refresh", "terra.app.launch"],
+  "slots": [{ "id": "shell.nav", "single": true }],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "gap": "lg",
+    "a11y": { "role": "region", "label": "Terra 노드 홈" },
+    "children": [
+      { "type": "slot", "id": "navSlot", "slot": "shell.nav" },
+      {
+        "type": "card",
+        "id": "nodeCard",
+        "children": [
+          { "type": "text", "id": "nodeHeading", "variant": "heading", "text": "이 노드" },
+          {
+            "type": "column",
+            "id": "nodeFacts",
+            "layout": "grid",
+            "columns": 2,
+            "gap": "sm",
+            "children": [
+              { "type": "text", "id": "generationLabel", "text": "게시 generation" },
+              { "type": "text", "id": "generation", "bind": { "store": "node", "path": "/current/generation" }, "empty": "게시되지 않음" },
+              { "type": "text", "id": "operationLabel", "text": "Operation" },
+              { "type": "text", "id": "operationCount", "bind": { "store": "node", "path": "/current/operationCount" }, "empty": "0" },
+              { "type": "text", "id": "providerLabel", "text": "Provider" },
+              { "type": "text", "id": "providerCount", "bind": { "store": "node", "path": "/current/providerCount" }, "empty": "0" },
+              { "type": "text", "id": "authLabel", "text": "세션 발급처" },
+              { "type": "text", "id": "authMaster", "bind": { "store": "node", "path": "/current/auth/masterUrl" }, "empty": "이 노드가 직접 발급" }
+            ]
+          },
+          {
+            "type": "text",
+            "id": "upstream",
+            "bind": { "store": "node", "path": "/current/upstream/origin" },
+            "empty": "",
+            "visible": { "not": { "store": "node", "path": "/current/upstream/origin", "is": { "const": "" } } },
+            "a11y": { "label": "상위 Master" }
+          },
+          {
+            "type": "text",
+            "id": "catalogWarning",
+            "text": "카탈로그가 유효하지 않습니다 — 진단을 확인하세요.",
+            "visible": { "store": "node", "path": "/current/catalogValid", "is": { "const": false } },
+            "a11y": { "role": "alert", "live": "polite" }
+          },
+          { "type": "text", "id": "nodeError", "bind": { "store": "node", "path": "/error" }, "empty": "", "a11y": { "role": "alert", "live": "assertive" } },
+          { "type": "button", "id": "refreshNode", "text": "새로 고침", "onClick": { "function": "terra.node.refresh" } }
+        ]
+      },
+      {
+        "type": "card",
+        "id": "launcherCard",
+        "children": [
+          { "type": "text", "id": "launcherHeading", "variant": "heading", "text": "설치된 앱" },
+          {
+            "type": "list",
+            "id": "appTiles",
+            "bind": { "store": "apps", "path": "/items" },
+            "empty": "이 노드에 설치된 GUI 앱이 없습니다",
+            "a11y": { "role": "list", "label": "설치된 앱", "live": "polite" },
+            "item": {
+              "type": "column",
+              "id": "appTile",
+              "layout": "row",
+              "gap": "sm",
+              "align": "center",
+              "children": [
+                { "type": "text", "id": "appName", "variant": "heading", "itemBind": { "path": "/name" }, "empty": "(이름 없음)" },
+                { "type": "text", "id": "appId", "itemBind": { "path": "/id" } },
+                { "type": "text", "id": "appMode", "itemBind": { "path": "/mode" }, "empty": "static" },
+                {
+                  "type": "button",
+                  "id": "openApp",
+                  "text": "열기",
+                  "itemBind": { "path": "/id" },
+                  "onClick": { "function": "terra.app.launch" }
+                }
+              ]
+            }
+          },
+          { "type": "text", "id": "appsError", "bind": { "store": "apps", "path": "/error" }, "empty": "", "a11y": { "role": "alert", "live": "assertive" } }
+        ]
+      },
+      {
+        "type": "card",
+        "id": "summaryCard",
+        "children": [
+          {
+            "type": "column",
+            "id": "summaryRow",
+            "layout": "row",
+            "gap": "md",
+            "children": [
+              { "type": "text", "id": "moduleSummaryLabel", "text": "설치된 모듈" },
+              { "type": "text", "id": "moduleSummary", "bind": { "store": "modules", "path": "/count" }, "empty": "0" },
+              { "type": "button", "id": "toModules", "text": "모듈 보기", "onClick": { "function": "terra.nav.go", "input": { "route": "/modules" } } },
+              { "type": "button", "id": "toCatalog", "text": "명령 찾기", "onClick": { "function": "terra.nav.go", "input": { "route": "/catalog" } } },
+              { "type": "button", "id": "toNodes", "text": "다른 노드", "onClick": { "function": "terra.nav.go", "input": { "route": "/nodes" } } }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "triggers": [
+    { "on": "lifecycle:enter", "function": "terra.node.refresh" },
+    { "on": "lifecycle:enter", "function": "terra.modules.refresh" },
+    { "on": "lifecycle:enter", "function": "terra.apps.refresh" }
+  ]
+}

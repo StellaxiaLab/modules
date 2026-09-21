@@ -1,0 +1,56 @@
+{
+  "$comment": "Scene Fragment. 통합 셸의 로그인. 자격 입력은 input 엘리먼트가 받고 값은 Function을 거쳐야만 Store에 닿는다. 비밀번호는 secret 입력으로 마스킹되며 로그인 성공 시 Function이 즉시 비운다.\n\n이 화면은 `shell.nav` Slot을 선언하지 않는다 — 인증 전에는 갈 곳이 없다.",
+  "schemaVersion": "0.1.0",
+  "id": "terra.login",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Terra 로그인",
+  "stores": ["loginForm", "session", "node"],
+  "functions": ["terra.session.field", "terra.session.login", "terra.node.refresh"],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "gap": "md",
+    "a11y": { "role": "form", "label": "Terra 로그인" },
+    "children": [
+      { "type": "text", "id": "heading", "variant": "heading", "text": "Terra" },
+      { "type": "text", "id": "subtitle", "text": "이 노드를 관장하는 Master 계정으로 로그인하세요." },
+      {
+        "type": "text",
+        "id": "master",
+        "bind": { "store": "node", "path": "/current/auth/masterUrl" },
+        "empty": "로그인처를 아직 확인하지 못했습니다",
+        "a11y": { "label": "세션 발급처" }
+      },
+      {
+        "type": "input",
+        "id": "email",
+        "placeholder": "admin@terra.local",
+        "bind": { "store": "loginForm", "path": "/email" },
+        "onChange": { "function": "terra.session.field", "input": { "field": "email" } },
+        "a11y": { "label": "이메일" }
+      },
+      {
+        "type": "input",
+        "id": "password",
+        "inputType": "secret",
+        "placeholder": "비밀번호",
+        "bind": { "store": "loginForm", "path": "/password" },
+        "onChange": { "function": "terra.session.field", "input": { "field": "password" } },
+        "onSubmit": { "function": "terra.session.login" },
+        "a11y": { "label": "비밀번호" }
+      },
+      { "type": "button", "id": "submit", "text": "로그인", "onClick": { "function": "terra.session.login" } },
+      {
+        "type": "text",
+        "id": "error",
+        "bind": { "store": "session", "path": "/error" },
+        "empty": "",
+        "a11y": { "role": "alert", "live": "assertive" }
+      }
+    ]
+  },
+  "triggers": [
+    { "on": "lifecycle:enter", "function": "terra.node.refresh" }
+  ]
+}

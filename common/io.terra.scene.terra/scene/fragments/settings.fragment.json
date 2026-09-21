@@ -1,0 +1,187 @@
+{
+  "$comment": "Scene Fragment. 이 화면이 기억하는 것. 연결 주소가 여기 없는 것이 의도다 — 게이트웨이 origin은 호스트가 발견하는 것이고, Scene이 그것을 소유하면 화면이 자기가 붙을 곳을 정하는 순환이 된다 (§5.1 경계).\n\n기본 화면은 이 Scene이 실제로 가진 Route만 고를 수 있다. 없는 경로를 저장하면 다음 부팅에서 빈 화면이 되고, 그때는 설정을 고칠 화면조차 열리지 않는다 — schema가 그것을 막는다.",
+  "schemaVersion": "0.1.0",
+  "id": "terra.settings",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "설정",
+  "stores": [
+    "settings",
+    "node",
+    "session"
+  ],
+  "functions": [
+    "terra.nav.go",
+    "terra.settings.field",
+    "terra.settings.save"
+  ],
+  "slots": [
+    {
+      "id": "shell.nav",
+      "single": true
+    }
+  ],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "gap": "md",
+    "a11y": {
+      "role": "region",
+      "label": "설정"
+    },
+    "children": [
+      {
+        "type": "slot",
+        "id": "navSlot",
+        "slot": "shell.nav"
+      },
+      {
+        "type": "text",
+        "id": "heading",
+        "variant": "heading",
+        "text": "설정"
+      },
+      {
+        "type": "form",
+        "id": "settingsForm",
+        "onSubmit": {
+          "function": "terra.settings.save"
+        },
+        "children": [
+          {
+            "type": "text",
+            "id": "defaultRouteLabel",
+            "text": "시작 화면"
+          },
+          {
+            "type": "select",
+            "id": "defaultRoute",
+            "bind": {
+              "store": "settings",
+              "path": "/defaultRoute"
+            },
+            "onChange": {
+              "function": "terra.settings.field",
+              "input": {
+                "field": "defaultRoute"
+              }
+            },
+            "options": [
+              {
+                "value": "/",
+                "label": "홈"
+              },
+              {
+                "value": "/modules",
+                "label": "모듈"
+              },
+              {
+                "value": "/apps",
+                "label": "앱과 화면"
+              },
+              {
+                "value": "/catalog",
+                "label": "명령"
+              },
+              {
+                "value": "/nodes",
+                "label": "노드"
+              },
+              {
+                "value": "/diagnostics",
+                "label": "진단"
+              }
+            ],
+            "a11y": {
+              "label": "시작 화면"
+            }
+          },
+          {
+            "type": "checkbox",
+            "id": "autoRefresh",
+            "label": "화면에 들어갈 때 자동으로 새로 고침",
+            "bind": {
+              "store": "settings",
+              "path": "/autoRefresh"
+            },
+            "onChange": {
+              "function": "terra.settings.field",
+              "input": {
+                "field": "autoRefresh"
+              }
+            },
+            "a11y": {
+              "label": "자동 새로 고침"
+            }
+          },
+          {
+            "type": "button",
+            "id": "save",
+            "text": "저장",
+            "onClick": {
+              "function": "terra.settings.save"
+            }
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "id": "saved",
+        "text": "저장되었습니다.",
+        "visible": {
+          "store": "settings",
+          "path": "/saved",
+          "is": {
+            "const": true
+          }
+        },
+        "a11y": {
+          "role": "status",
+          "live": "polite"
+        }
+      },
+      {
+        "type": "text",
+        "id": "error",
+        "bind": {
+          "store": "settings",
+          "path": "/error"
+        },
+        "empty": "",
+        "a11y": {
+          "role": "alert",
+          "live": "assertive"
+        }
+      },
+      {
+        "type": "divider",
+        "id": "split"
+      },
+      {
+        "type": "text",
+        "id": "aboutHeading",
+        "variant": "heading",
+        "text": "이 화면에 대하여"
+      },
+      {
+        "type": "text",
+        "id": "about",
+        "text": "Terra 통합 Scene — leaf와 tree를 가르지 않는 하나의 GUI입니다. 모든 화면은 제품 중립 Gateway Operation만 사용하므로, 이 패키지 어디에도 이 노드가 어느 역할인지 묻는 자리가 없습니다."
+      },
+      {
+        "type": "text",
+        "id": "generationLabel",
+        "text": "이 노드의 카탈로그 generation"
+      },
+      {
+        "type": "text",
+        "id": "generation",
+        "bind": {
+          "store": "node",
+          "path": "/current/generation"
+        },
+        "empty": "게시되지 않음"
+      }
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "$comment": "Scene Fragment. 이 노드가 수집한 Scene 진단 (진단 채널 R1).\n\n두 손실 수치를 나란히 그린다 — dropped는 수집기가 자리에 쫓겨 버린 것, clientDropped는 호스트가 이미 버렸다고 알린 것이다. 합쳐 그리면 어느 쪽이 모자랐는지가 사라지고, 그러면 버퍼를 키울지 보고 주기를 줄일지 고를 수 없다.",
+  "schemaVersion": "0.1.0",
+  "id": "terra.diagnostics",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "진단",
+  "stores": ["diagnostics", "session"],
+  "functions": ["terra.nav.go", "terra.diagnostics.refresh"],
+  "slots": [{ "id": "shell.nav", "single": true }],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "gap": "md",
+    "a11y": { "role": "region", "label": "수집된 Scene 진단" },
+    "children": [
+      { "type": "slot", "id": "navSlot", "slot": "shell.nav" },
+      {
+        "type": "column",
+        "id": "header",
+        "layout": "row",
+        "gap": "sm",
+        "align": "center",
+        "children": [
+          { "type": "text", "id": "heading", "variant": "heading", "text": "진단" },
+          { "type": "text", "id": "count", "bind": { "store": "diagnostics", "path": "/count" }, "empty": "0" },
+          { "type": "button", "id": "refresh", "text": "새로 고침", "onClick": { "function": "terra.diagnostics.refresh" } }
+        ]
+      },
+      {
+        "type": "column",
+        "id": "losses",
+        "layout": "row",
+        "gap": "md",
+        "children": [
+          { "type": "text", "id": "droppedLabel", "text": "수집기가 버림" },
+          { "type": "text", "id": "dropped", "bind": { "store": "diagnostics", "path": "/dropped" }, "empty": "0" },
+          { "type": "text", "id": "clientDroppedLabel", "text": "호스트가 버림" },
+          { "type": "text", "id": "clientDropped", "bind": { "store": "diagnostics", "path": "/clientDropped" }, "empty": "0" }
+        ]
+      },
+      {
+        "type": "table",
+        "id": "diagnosticTable",
+        "bind": { "store": "diagnostics", "path": "/items" },
+        "empty": "올라온 진단이 없습니다",
+        "a11y": { "role": "table", "label": "수집된 진단", "live": "polite" },
+        "columns": [
+          { "id": "level", "header": "등급", "path": "/level", "align": "center", "empty": "-" },
+          { "id": "code", "header": "코드", "path": "/code" },
+          { "id": "subject", "header": "대상", "path": "/subject", "empty": "-" },
+          { "id": "message", "header": "내용", "path": "/message", "empty": "-" },
+          { "id": "product", "header": "출처", "path": "/product", "align": "center", "empty": "-" }
+        ]
+      },
+      { "type": "text", "id": "error", "bind": { "store": "diagnostics", "path": "/error" }, "empty": "", "a11y": { "role": "alert", "live": "assertive" } }
+    ]
+  },
+  "triggers": [
+    { "on": "lifecycle:enter", "function": "terra.diagnostics.refresh" }
+  ]
+}

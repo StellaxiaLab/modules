@@ -1,0 +1,13 @@
+{
+  "$comment": "Scene Store. 이 노드에서 둘러볼 수 있는 원격 노드와 그 노드가 보고한 GUI 앱 (§11). 목록은 호출자 토큰으로 Master에서 오므로 로그인 전에는 비어 있는 것이 정상이다.",
+  "schemaVersion": "0.1.0",
+  "id": "remote",
+  "kind": "session",
+  "initial": {
+    "nodes": [],
+    "count": 0,
+    "selected": "",
+    "apps": [],
+    "error": ""
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "$comment": "Scene Fragment. 설치된 모듈과 그 수명주기 — 런처의 제어 축이다.\n\n표(table)가 아니라 목록(list)인 이유가 있다: table은 행에 버튼을 놓을 수 없고, 여기서 필요한 것이 정확히 그것이다. 목록 항목 안의 button은 itemBind가 가리킨 값을 함께 dispatch하므로, 행의 모듈 id가 Function 입력이 된다 — 그래서 이 화면에도 Function에도 어떤 모듈 id가 박혀 있지 않다.",
+  "schemaVersion": "0.1.0",
+  "id": "terra.modules",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "모듈",
+  "stores": ["modules", "session"],
+  "functions": ["terra.nav.go", "terra.modules.refresh", "terra.modules.start", "terra.modules.stop"],
+  "slots": [{ "id": "shell.nav", "single": true }],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "gap": "md",
+    "a11y": { "role": "region", "label": "설치된 모듈" },
+    "children": [
+      { "type": "slot", "id": "navSlot", "slot": "shell.nav" },
+      {
+        "type": "column",
+        "id": "header",
+        "layout": "row",
+        "gap": "sm",
+        "align": "center",
+        "children": [
+          { "type": "text", "id": "heading", "variant": "heading", "text": "모듈" },
+          { "type": "text", "id": "count", "bind": { "store": "modules", "path": "/count" }, "empty": "0" },
+          { "type": "button", "id": "refresh", "text": "새로 고침", "onClick": { "function": "terra.modules.refresh" } }
+        ]
+      },
+      {
+        "type": "list",
+        "id": "moduleList",
+        "bind": { "store": "modules", "path": "/items" },
+        "empty": "설치된 모듈이 없습니다",
+        "a11y": { "role": "list", "label": "설치된 모듈", "live": "polite" },
+        "item": {
+          "type": "card",
+          "id": "moduleRow",
+          "children": [
+            {
+              "type": "column",
+              "id": "moduleHead",
+              "layout": "row",
+              "gap": "sm",
+              "align": "center",
+              "children": [
+                { "type": "text", "id": "moduleName", "variant": "heading", "itemBind": { "path": "/name" }, "empty": "(이름 없음)" },
+                { "type": "text", "id": "moduleId", "itemBind": { "path": "/id" } },
+                { "type": "text", "id": "moduleVersion", "itemBind": { "path": "/version" }, "empty": "-" },
+                { "type": "text", "id": "moduleKind", "itemBind": { "path": "/kind" }, "empty": "unknown" }
+              ]
+            },
+            { "type": "text", "id": "moduleDescription", "itemBind": { "path": "/description" }, "empty": "" },
+            {
+              "type": "column",
+              "id": "moduleActions",
+              "layout": "row",
+              "gap": "sm",
+              "children": [
+                {
+                  "type": "button",
+                  "id": "startModule",
+                  "text": "시작",
+                  "itemBind": { "path": "/id" },
+                  "visible": { "not": { "item": { "path": "/kind" }, "is": { "const": "scene" } } },
+                  "onClick": { "function": "terra.modules.start" }
+                },
+                {
+                  "type": "button",
+                  "id": "stopModule",
+                  "text": "정지",
+                  "itemBind": { "path": "/id" },
+                  "visible": { "not": { "item": { "path": "/kind" }, "is": { "const": "scene" } } },
+                  "onClick": { "function": "terra.modules.stop" }
+                },
+                {
+                  "type": "text",
+                  "id": "dataOnly",
+                  "text": "데이터 패키지 — 시작할 프로세스가 없습니다",
+                  "visible": { "item": { "path": "/kind" }, "is": { "const": "scene" } }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      { "type": "text", "id": "error", "bind": { "store": "modules", "path": "/error" }, "empty": "", "a11y": { "role": "alert", "live": "assertive" } }
+    ]
+  },
+  "triggers": [
+    { "on": "lifecycle:enter", "function": "terra.modules.refresh" }
+  ]
+}

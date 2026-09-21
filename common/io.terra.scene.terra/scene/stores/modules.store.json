@@ -1,0 +1,12 @@
+{
+  "$comment": "Scene Store. 이 노드에 설치된 모듈 인벤토리의 view model (§11). 재조회 가능한 표시용 사본이며 진실의 원천이 아니다 — 원천은 Module Runtime이다.",
+  "schemaVersion": "0.1.0",
+  "id": "modules",
+  "kind": "session",
+  "initial": {
+    "items": [],
+    "count": 0,
+    "notice": "",
+    "error": ""
+  }
+}
