@@ -1,0 +1,14 @@
+{
+  "$comment": "이 디렉터리의 스키마는 이 저장소가 쓴 것이 아니라 Terra에서 복사해 온 사본이다. tools/check-schema-drift.mjs 가 원본과 바이트 대조한다.",
+  "manifest-v2.schema.json": {
+    "sourceRepository": "StellaxiaLab/Terra",
+    "sourcePath": "products/common/packages/terra-module-runtime/schemas/manifest-v2.schema.json",
+    "mirrorPath": "docs/contracts/manifest/schemas/manifest-v2.schema.json",
+    "owner": "terra-module-runtime",
+    "authority": "Go 검증기가 런타임 권위다. 이 스키마는 구조를 고정하고, 스키마가 표현하지 못하는 존재 규칙(모든 모듈은 entrypoint 또는 구현을 지목하는 contribution 을 선언한다)은 Go 쪽이 소유한다.",
+    "vendoredFromCommit": "30b53e05059e7d9b3c303ed97df6f36698cc55ec",
+    "schemaLastChangedIn": "392236ddfe2ddcdba063eafef69e5612e4994c38",
+    "sha256": "cb65f5fa7e1a090ecccedce270235ba183d62b1ed146696361720184e58c1a24",
+    "vendoredAt": "2026-09-21"
+  }
+}

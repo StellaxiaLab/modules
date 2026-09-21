@@ -1,0 +1,14 @@
+{
+  "name": "terra-modules",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Terra 모듈 소스 저장소의 검증 도구",
+  "type": "module",
+  "scripts": {
+    "validate": "node tools/validate-modules.mjs",
+    "check:schema": "node tools/check-schema-drift.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.12.0"
+  }
+}
