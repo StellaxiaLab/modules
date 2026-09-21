@@ -13,9 +13,10 @@
 # 어떤 사고를 내는지는 Terra 의 G-7(모듈 0개 번들이 오류 없이 출하되던 것)이
 # 이미 보여 줬다.
 #
-# 러너가 ubuntu-latest 인 이유 — Terra 는 청구서 때문에 self-hosted 풀로 옮겼지만
-# (ci.yml 의 주석 참고) 그쪽은 Go·Node·.NET·Docker 를 굽는 파이프라인이고, 여기는
-# JSON 을 읽는 수십 초짜리다. 조직 러너가 이 저장소에도 공유되면 그때 옮기면 된다.
+# 러너가 self-hosted 인 이유 — 처음에 ubuntu-latest 로 적었다가 첫 실행에서 두 잡
+# 모두 3초 만에 러너를 못 받고 죽었다(runner_id 0, 로그 없음). Terra 의 ci.yml 이
+# 적어 둔 사정이 이 저장소에도 그대로다: 호스티드 러너의 지출 한도가 소진돼
+# 조직 전체가 self-hosted 풀로 옮겨 갔다. 라벨은 Terra 의 리눅스 잡과 같은 것을 쓴다.
 
 name: CI
 
@@ -35,7 +36,7 @@ concurrency:
 jobs:
   validate:
     name: Manifest and layout
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, docker, homelab]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -58,7 +59,7 @@ jobs:
 
   pack:
     name: Pack against Terra
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, docker, homelab]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -89,6 +90,13 @@ jobs:
         with:
           go-version-file: terra/go.work
           cache: false
+
+      # 드리프트 대조 스크립트는 node 로 돈다. 이 잡에는 npm 의존이 없으므로
+      # 캐시는 두지 않고 런타임만 고정한다.
+      - if: steps.guard.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       # 벤더링한 스키마가 원본에서 떨어져 나갔는지는 여기서만 볼 수 있다.
       - name: Check the vendored schema against Terra
