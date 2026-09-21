@@ -1,0 +1,126 @@
+# 모듈 소스 저장소 CI.
+#
+# 잡이 둘이고, 둘이 보는 것이 다르다.
+#
+#   validate  이 저장소만으로 볼 수 있는 것 — 매니페스트 형식, 배치 규칙,
+#             참조 경로의 실재, 벤더링한 스키마 사본의 자기 해시.
+#   pack      Terra 쪽 권위에게 물어야 하는 것 — Scene 무결성과 포장이 실제로
+#             열리는지. `terra module pack` 이 자기 출력을 설치기와 같은
+#             검사로 되열기 때문에, 이 잡이 초록이면 그 패키지는 설치된다.
+#
+# pack 은 Terra 체크아웃이 필요해서 토큰이 있을 때만 돈다. 없으면 건너뛰되
+# **조용히 건너뛰지는 않는다** — 건너뛴 사실을 notice 로 남긴다. 조용한 통과가
+# 어떤 사고를 내는지는 Terra 의 G-7(모듈 0개 번들이 오류 없이 출하되던 것)이
+# 이미 보여 줬다.
+#
+# 러너가 ubuntu-latest 인 이유 — Terra 는 청구서 때문에 self-hosted 풀로 옮겼지만
+# (ci.yml 의 주석 참고) 그쪽은 Go·Node·.NET·Docker 를 굽는 파이프라인이고, 여기는
+# JSON 을 읽는 수십 초짜리다. 조직 러너가 이 저장소에도 공유되면 그때 옮기면 된다.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  validate:
+    name: Manifest and layout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # --allow-empty 는 첫 모듈이 들어올 때까지만이다. 빈 모듈 집합을 조용히
+      # 통과시키지 않는 것이 L-9 의 존재 이유이므로, 모듈이 하나라도 생기는
+      # 커밋에서 이 플래그를 뺀다.
+      - name: Validate every module
+        run: node tools/validate-modules.mjs --allow-empty
+
+      # Terra 체크아웃 없이도 볼 수 있는 절반: 사본이 PROVENANCE.json 에 적힌
+      # 해시 그대로인가. 손으로 고친 스키마를 여기서 잡는다.
+      - name: Check the vendored schema against its recorded hash
+        run: node tools/check-schema-drift.mjs
+
+  pack:
+    name: Pack against Terra
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: modules
+
+      # secrets 는 job 수준 if 에서 읽히지 않으므로 스텝에서 판정한다.
+      - name: Is a Terra checkout reachable
+        id: guard
+        env:
+          TOKEN: ${{ secrets.TERRA_CHECKOUT_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::TERRA_CHECKOUT_TOKEN 이 없어 pack 검증을 건너뛴다 — Scene 무결성과 포장 열림은 이번 실행에서 확인되지 않았다"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.guard.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: StellaxiaLab/Terra
+          token: ${{ secrets.TERRA_CHECKOUT_TOKEN }}
+          path: terra
+
+      - if: steps.guard.outputs.present == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: terra/go.work
+          cache: false
+
+      # 벤더링한 스키마가 원본에서 떨어져 나갔는지는 여기서만 볼 수 있다.
+      - name: Check the vendored schema against Terra
+        if: steps.guard.outputs.present == 'true'
+        run: node modules/tools/check-schema-drift.mjs --terra "$GITHUB_WORKSPACE/terra"
+
+      - name: Build the terra CLI
+        if: steps.guard.outputs.present == 'true'
+        working-directory: terra/products/common/apps/terra-cli
+        run: go build -o "$RUNNER_TEMP/terra" .
+
+      # pack 은 자기 출력을 설치기와 같은 검사(OpenPackageManifest → Extract →
+      # VerifyPayload)로 되연다. 그래서 이 루프가 통과하면 "포장은 됐는데 설치가
+      # 안 되는" 상태가 남지 않는다.
+      - name: Pack every module
+        if: steps.guard.outputs.present == 'true'
+        working-directory: modules
+        run: |
+          set -uo pipefail
+          failed=0
+          found=0
+          for manifest in common/*/module.json leaf/*/module.json tree/*/module.json; do
+            [ -e "$manifest" ] || continue
+            found=$((found + 1))
+            dir="$(dirname "$manifest")"
+            id="$(basename "$dir")"
+            echo "::group::terra module pack $dir"
+            if ! "$RUNNER_TEMP/terra" module pack "$dir" --out "$RUNNER_TEMP/$id.tmod"; then
+              echo "::error file=$manifest::terra module pack 이 거절했다"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          echo "포장한 모듈 $found개"
+          exit $failed
