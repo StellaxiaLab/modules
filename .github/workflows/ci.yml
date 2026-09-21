@@ -103,10 +103,12 @@ jobs:
         if: steps.guard.outputs.present == 'true'
         run: node modules/tools/check-schema-drift.mjs --terra "$GITHUB_WORKSPACE/terra"
 
+      # main 패키지는 모듈 루트가 아니라 cmd/terra 에 있다 — 루트에는 go.mod 와
+      # internal/ 뿐이라 `go build .` 는 "no Go files" 로 죽는다.
       - name: Build the terra CLI
         if: steps.guard.outputs.present == 'true'
         working-directory: terra/products/common/apps/terra-cli
-        run: go build -o "$RUNNER_TEMP/terra" .
+        run: go build -o "$RUNNER_TEMP/terra" ./cmd/terra
 
       # pack 은 자기 출력을 설치기와 같은 검사(OpenPackageManifest → Extract →
       # VerifyPayload)로 되연다. 그래서 이 루프가 통과하면 "포장은 됐는데 설치가
