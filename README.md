@@ -27,9 +27,13 @@ Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 
 바뀌지 않게. 규약 전문과 규칙 번호는 [`docs/layout.md`](docs/layout.md)에 있다.
 
 > [!NOTE]
-> 플랫폼이 소유하는 kind 셋(`scene-runtime` · `player` · `virtual-device`)은 여기 오지 않는다.
-> `terra module new`가 그 이름들을 거절한다 — 우리가 정한 경계가 아니라 도구가 이름으로
-> 부르는 경계다.
+> 플랫폼이 소유하는 **kind 둘**(`application` · `runtime`)은 여기 오지 않는다. 오늘 그
+> kind 로 출하된 것이 `io.terra.player` · `io.terra.scene-runtime` ·
+> `io.terra.virtual-device` 셋이고, `terra module new --kind application|runtime` 이
+> 이유를 말하며 거절한다.
+>
+> 거절하는 것은 **kind 이지 이름이 아니다** — `terra module new io.terra.player` 는
+> 그냥 통과한다. 경계는 도구가 아니라 사람이 지킨다.
 
 ## 모듈 하나 만들기
 
@@ -37,18 +41,28 @@ Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 
 
 ```bash
 # 1. CLI 준비 (Terra 체크아웃에서 한 번)
-cd <terra>/products/common/apps/terra-cli && go build -o ~/bin/terra .
+#    main 은 모듈 루트가 아니라 cmd/terra 에 있다.
+cd <terra>/products/common/apps/terra-cli && go build -o ~/bin/terra ./cmd/terra
 
-# 2. 뼈대 — kind는 service · adapter · extension 중에서
-cd <modules>/leaf
-terra module new com.acme.hello --kind service
+# 2. 뼈대 — 저장소 루트에서, 소유권 루트를 이름으로 지정해서
+#    --owner 가 leaf/·common/·tree/ 중 어디에 놓일지 정하고,
+#    --root . 이 이 저장소에 없는 module/ 한 겹을 빼 준다.
+cd <modules>
+terra module new com.acme.hello --owner leaf --root . --kind service
+#  → leaf/com.acme.hello/
 
 # 3. 검증 — 이 저장소의 규약
-cd <modules> && npm ci && npm run validate
+npm ci && npm run validate
 
 # 4. 포장 — Scene 무결성과 "설치가 되는가"까지 여기서 판정된다
 terra module pack leaf/com.acme.hello --out /tmp/hello.tmod
 ```
+
+> [!IMPORTANT]
+> `--owner` 와 `--root .` 를 빼면 `leaf/module/common/com.acme.hello` 가 만들어진다 —
+> 기본값이 `--owner common --root module` 이기 때문이고, 그 `module/` 한 겹은
+> [`docs/layout.md`](docs/layout.md)가 "여기에는 없다"고 적은 바로 그 겹이다.
+> 그렇게 만들면 `npm run validate` 가 **L-1 · L-9** 로 거절한다.
 
 `pack`은 자기 출력을 설치기와 같은 검사로 되연다. 그래서 `pack`이 통과한 패키지는
 설치 시점에 수수께끼를 내지 않는다.
@@ -62,7 +76,7 @@ Go 의존은 0으로도 된다.
 
 | 명령 | 보는 것 |
 | --- | --- |
-| `npm run validate` | 매니페스트 형식(Manifest v2), 배치 규약 L-1~L-9, 참조 경로의 실재 |
+| `npm run validate` | 매니페스트 형식(Manifest v2), 배치 규약 L-1~L-10, 참조 경로의 실재 |
 | `npm run check:schema` | 벤더링한 스키마 사본이 기록된 해시 그대로인가 |
 | `npm run check:schema -- --terra <path>` | 그 사본이 Terra의 원본과 바이트까지 같은가 |
 | `terra module pack <dir>` | Scene 무결성과 포장이 실제로 열리는지 (**권위**) |

@@ -215,6 +215,34 @@ for (const module of modules) {
     fail(label, "L-7", `kind ${manifest.kind} 인데 entrypoint 도, 구현을 지목하는 contribution 도 없다`);
   }
 
+  // L-10 Scene 안쪽의 두 층
+  //
+  // scene/ 은 계약(contract/: 화면을 모른다)과 표면(surface/: Operation 도 Gateway 도
+  // 모른다)으로 갈린다. 이 모양의 권위는 Terra 의 스캐폴더다 — gui new 와 module new 가
+  // 이 모양으로 굽고 자기 출력을 되읽어 층이 섞이면 실패한다.
+  //
+  // 그런데 그 검사는 **굽는 자리에만** 있다. 로더는 scene.json 이 적은 경로를 읽고
+  // pack 도 층을 보지 않으므로, 손으로 쓴 모듈은 아무 모양이나 될 수 있다. 그 사각이
+  // 이 규칙이 여기 있는 이유다.
+  //
+  // 경고인 이유는 docs/layout.md 의 L-10 절에 있다 — 첫 모듈이 평면 배치이고, 규칙을
+  // 세우자고 이미 도는 모듈을 막지 않는다. 그 모듈이 옮겨지면 오류로 승격한다.
+  const sceneDir = join(module.dir, "scene");
+  if (isDir(sceneDir)) {
+    const layered = { contract: ["functions", "stores"], surface: ["fragments"] };
+    for (const [layer, kinds] of Object.entries(layered)) {
+      for (const kind of kinds) {
+        if (isDir(join(sceneDir, kind)) && !isDir(join(sceneDir, layer, kind))) {
+          warn(
+            `${module.root}/${module.name}/scene/${kind}`,
+            "L-10",
+            `scene/${layer}/${kind}/ 로 옮긴다 — 스캐폴더가 굽는 모양이고 docs/layout.md L-10 이 정본으로 적은 것이다`,
+          );
+        }
+      }
+    }
+  }
+
   // L-8 최상위 항목 — 포장되는 것과 개발 전용을 뺀 나머지는 알린다
   for (const entry of readdirSync(module.dir)) {
     if (entry.startsWith(".")) continue;
