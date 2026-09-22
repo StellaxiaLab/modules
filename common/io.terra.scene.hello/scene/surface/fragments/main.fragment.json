@@ -1,0 +1,23 @@
+{
+  "$comment": "화면 전부. 글 한 줄이라 bind도 핸들러도 없다 — 이 Fragment에는 Store를 읽는 자리도 Function을 쏘는 자리도 없고, 그래서 stores와 functions를 선언하지 않는다. 가운데로 모으는 것은 root column의 align(가로축)과 justify(세로축) 두 줄이 전부이고, 세로가 실제로 가운데가 되는지는 셸이 이 Scene에 준 높이가 정한다.",
+  "schemaVersion": "0.1.0",
+  "id": "hello.main",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Hello Terra",
+  "root": {
+    "type": "column",
+    "id": "root",
+    "align": "center",
+    "justify": "center",
+    "a11y": { "role": "region", "label": "Hello Terra" },
+    "children": [
+      {
+        "type": "text",
+        "id": "greeting",
+        "variant": "heading",
+        "text": "Hello Terra"
+      }
+    ]
+  }
+}

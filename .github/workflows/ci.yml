@@ -46,11 +46,11 @@ jobs:
 
       - run: npm ci
 
-      # --allow-empty 는 첫 모듈이 들어올 때까지만이다. 빈 모듈 집합을 조용히
-      # 통과시키지 않는 것이 L-9 의 존재 이유이므로, 모듈이 하나라도 생기는
-      # 커밋에서 이 플래그를 뺀다.
+      # --allow-empty 는 첫 모듈(io.terra.scene.hello)이 들어오면서 빠졌다. 빈 모듈
+      # 집합을 조용히 통과시키지 않는 것이 L-9 의 존재 이유이고, 이제 지킬 모듈이
+      # 있으므로 그 예외를 둘 이유도 없다.
       - name: Validate every module
-        run: node tools/validate-modules.mjs --allow-empty
+        run: node tools/validate-modules.mjs
 
       # Terra 체크아웃 없이도 볼 수 있는 절반: 사본이 PROVENANCE.json 에 적힌
       # 해시 그대로인가. 손으로 고친 스키마를 여기서 잡는다.
