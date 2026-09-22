@@ -1,0 +1,30 @@
+{
+  "$comment": "Scene Function. 로그아웃은 Handle을 폐기하고(§11.3) 화면 상태를 되돌린다. Store만 비우면 그 Handle이 가리키던 토큰은 만료될 때까지 Gateway에서 살아 있다. 폐기가 실패해도 화면은 로그아웃된 상태로 간다 — 폐기 실패를 이유로 로그인된 화면에 사람을 붙잡아 두는 것이 더 나쁘고, 잊는 것은 이쪽에서 할 수 있는 일이다.",
+  "schemaVersion": "1.0.0",
+  "id": "terra.session.logout",
+  "version": "0.1.0",
+  "timeoutMs": 5000,
+  "concurrency": { "mode": "exhaust" },
+  "graph": {
+    "nodes": [
+      { "id": "held", "type": "store.read", "storeId": "credentials", "path": "/session" },
+      {
+        "id": "revoke",
+        "type": "credential.revoke",
+        "handle": "$held.output",
+        "onError": [
+          { "id": "noteRevokeFailure", "type": "store.write", "storeId": "session", "path": "/error", "value": "$revoke.error.message" }
+        ]
+      },
+      { "id": "forget", "type": "store.write", "storeId": "credentials", "path": "/session", "value": null },
+      { "id": "clearAuthenticated", "type": "store.write", "storeId": "session", "path": "/authenticated", "value": false },
+      { "id": "clearPrincipal", "type": "store.write", "storeId": "session", "path": "/principal", "value": "" },
+      { "$comment": "권한을 즉시 닫는다. 남겨 두면 로그아웃한 화면에 잠시나마 열린 동작이 보인다 — 낙관적으로 여는 것과 낙관적으로 닫는 것은 위험이 반대라서 닫는 쪽만 여기서 한다.", "id": "lock", "type": "store.write", "storeId": "session", "path": "/can", "value": { "moduleManage": false, "nodeRead": false, "agentGrant": false } },
+      { "id": "clearState", "type": "store.write", "storeId": "session", "path": "/state", "value": "anonymous" },
+      { "id": "announce", "type": "emit", "signal": "session:closed" },
+      { "id": "rememberRoute", "type": "store.write", "storeId": "nav", "path": "/route", "value": "/" },
+      { "$comment": "로그인 화면이 아니라 입구로 돌아간다. 익명으로 볼 수 있는 것이 28개이므로 로그아웃이 빈 화면이 되어서는 안 된다 (세션 모델 §3).", "id": "leave", "type": "navigate", "route": "/" },
+      { "id": "done", "type": "return", "value": true }
+    ]
+  }
+}

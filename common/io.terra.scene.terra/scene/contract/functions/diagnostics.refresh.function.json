@@ -1,0 +1,81 @@
+{
+  "$comment": "Scene Function. 이 노드가 수집한 Scene 진단을 읽는다 (진단 채널 R1). 두 손실을 가른 채로 받는다 — dropped(수집기가 자리에 쫓겨 버린 것)와 clientDropped(호스트가 이미 버렸다고 알린 것)를 합치면 어느 쪽이 모자랐는지가 사라진다.",
+  "schemaVersion": "1.0.0",
+  "id": "terra.diagnostics.refresh",
+  "version": "0.1.0",
+  "timeoutMs": 5000,
+  "concurrency": {
+    "mode": "takeLatest"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "request",
+        "type": "call",
+        "operationId": "terra.gateway.gui.diagnostics.get",
+        "versionRange": ">=1.0.0 <2.0.0",
+        "input": {},
+        "onError": [
+          {
+            "id": "showError",
+            "type": "store.write",
+            "storeId": "diagnostics",
+            "path": "/error",
+            "value": "$request.error.message"
+          },
+          {
+            "id": "stop",
+            "type": "return",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "clearError",
+        "type": "store.write",
+        "storeId": "diagnostics",
+        "path": "/error",
+        "value": ""
+      },
+      {
+        "id": "save0",
+        "type": "store.write",
+        "storeId": "diagnostics",
+        "path": "/items",
+        "value": "$request.output.records"
+      },
+      {
+        "id": "save1",
+        "type": "store.write",
+        "storeId": "diagnostics",
+        "path": "/count",
+        "value": "$request.output.count"
+      },
+      {
+        "id": "save2",
+        "type": "store.write",
+        "storeId": "diagnostics",
+        "path": "/dropped",
+        "value": "$request.output.dropped"
+      },
+      {
+        "id": "save3",
+        "type": "store.write",
+        "storeId": "diagnostics",
+        "path": "/clientDropped",
+        "value": "$request.output.clientDropped"
+      },
+      {
+        "id": "announce",
+        "type": "emit",
+        "signal": "terra.diagnostics:refreshed",
+        "payload": "$request.output.count"
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": "$request.output.count"
+      }
+    ]
+  }
+}

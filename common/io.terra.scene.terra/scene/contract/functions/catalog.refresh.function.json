@@ -1,0 +1,84 @@
+{
+  "$comment": "Scene Function. 이 노드가 게시한 Operation 카탈로그를 읽는다 — CLI의 `terra api`가 보는 바로 그 목록이다. **이것이 통합 GUI가 CLI와 기능을 맞추는 방식이다**: 화면이 어떤 명령이 있는지 미리 알고 있는 것이 아니라, 노드에게 무엇을 할 줄 아는지 물어서 그린다. 그래서 모듈이 설치되면 화면을 고치지 않아도 그 모듈의 Operation이 여기 나타난다.\n\n결과는 호출자 권한으로 이미 좁혀져 오므로 화면이 따로 거르지 않고, 정렬도 하지 않는다 — 게이트웨이가 operationId로 정렬해 보낸다.",
+  "schemaVersion": "1.0.0",
+  "id": "terra.catalog.refresh",
+  "version": "0.1.0",
+  "timeoutMs": 8000,
+  "concurrency": {
+    "mode": "takeLatest"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "typed",
+        "type": "store.read",
+        "storeId": "catalog",
+        "path": "/query"
+      },
+      {
+        "id": "request",
+        "type": "call",
+        "operationId": "terra.gateway.catalog.get",
+        "versionRange": ">=1.0.0 <2.0.0",
+        "input": {
+          "query": {
+            "search": "$typed.output"
+          }
+        },
+        "onError": [
+          {
+            "id": "showError",
+            "type": "store.write",
+            "storeId": "catalog",
+            "path": "/error",
+            "value": "$request.error.message"
+          },
+          {
+            "id": "stop",
+            "type": "return",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "clearError",
+        "type": "store.write",
+        "storeId": "catalog",
+        "path": "/error",
+        "value": ""
+      },
+      {
+        "id": "saveItems",
+        "type": "store.write",
+        "storeId": "catalog",
+        "path": "/items",
+        "value": "$request.output.operations"
+      },
+      {
+        "id": "saveCount",
+        "type": "store.write",
+        "storeId": "catalog",
+        "path": "/count",
+        "value": "$request.output.count"
+      },
+      {
+        "id": "saveGeneration",
+        "type": "store.write",
+        "storeId": "catalog",
+        "path": "/generation",
+        "value": "$request.output.generation"
+      },
+      {
+        "id": "announce",
+        "type": "emit",
+        "signal": "terra.catalog:refreshed",
+        "payload": "$request.output.count"
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": "$request.output.count"
+      }
+    ]
+  }
+}

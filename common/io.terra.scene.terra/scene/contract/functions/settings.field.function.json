@@ -1,0 +1,56 @@
+{
+  "$comment": "Scene Function. 설정 입력을 Store에 반영하고 저장 표시를 지운다 — 값을 고친 순간 '저장됨'은 더 이상 참이 아니다.",
+  "schemaVersion": "1.0.0",
+  "id": "terra.settings.field",
+  "version": "0.1.0",
+  "concurrency": {
+    "mode": "parallel"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "route",
+        "type": "branch",
+        "cases": [
+          {
+            "when": {
+              "left": "$input.field",
+              "op": "eq",
+              "right": "autoRefresh"
+            },
+            "then": [
+              {
+                "id": "saveAuto",
+                "type": "store.write",
+                "storeId": "settings",
+                "path": "/autoRefresh",
+                "value": "$input.value"
+              }
+            ]
+          }
+        ],
+        "else": [
+          {
+            "id": "saveRoute",
+            "type": "store.write",
+            "storeId": "settings",
+            "path": "/defaultRoute",
+            "value": "$input.value"
+          }
+        ]
+      },
+      {
+        "id": "unsave",
+        "type": "store.write",
+        "storeId": "settings",
+        "path": "/saved",
+        "value": false
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": "$input.value"
+      }
+    ]
+  }
+}
