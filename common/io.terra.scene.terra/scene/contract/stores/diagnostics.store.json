@@ -1,0 +1,13 @@
+{
+  "$comment": "Scene Store. 이 노드가 수집한 Scene 진단의 view model (진단 채널 설계 §5). 화면이 살아 있을 때 사람이 볼 수 있어야 한다는 것이 이 Store의 존재 이유다.",
+  "schemaVersion": "0.1.0",
+  "id": "diagnostics",
+  "kind": "session",
+  "initial": {
+    "items": [],
+    "count": 0,
+    "dropped": 0,
+    "clientDropped": 0,
+    "error": ""
+  }
+}

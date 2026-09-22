@@ -1,0 +1,14 @@
+{
+  "$comment": "Scene Function. 화면 전환도 Function을 거친다 — 버튼이 목적지를 input.route로 넘기면 Player의 Navigation seam으로 전달되고 (§10.3 navigate), 그래서 이동이 Trace에 남는다.",
+  "schemaVersion": "1.0.0",
+  "id": "terra.nav.go",
+  "version": "0.1.0",
+  "concurrency": { "mode": "takeLatest" },
+  "graph": {
+    "nodes": [
+      { "$comment": "navigate 보다 **먼저** 적는다. 이동이 마운트를 갈아치우므로 그 뒤에 적으면 새 화면이 옛 값으로 한 번 그려진다.", "id": "remember", "type": "store.write", "storeId": "nav", "path": "/route", "value": "$input.route" },
+      { "id": "move", "type": "navigate", "route": "$input.route" },
+      { "id": "done", "type": "return", "value": "$input.route" }
+    ]
+  }
+}

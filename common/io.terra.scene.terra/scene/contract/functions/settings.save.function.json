@@ -1,0 +1,64 @@
+{
+  "$comment": "Scene Function. 설정을 검증한 뒤 저장 표시를 세운다. persistent Store는 Storage Adapter가 주입돼 있으면 스스로 영속화하므로 여기서 따로 쓸 것이 없다 — 이 함수가 하는 일은 **유효한지 판정하는 것**이다. validate가 던지면 onError가 이유를 화면에 적고, 저장 표시는 서지 않는다.",
+  "schemaVersion": "1.0.0",
+  "id": "terra.settings.save",
+  "version": "0.1.0",
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "current",
+        "type": "store.read",
+        "storeId": "settings",
+        "path": ""
+      },
+      {
+        "id": "check",
+        "type": "validate",
+        "schema": "terra.settings",
+        "onError": [
+          {
+            "id": "showError",
+            "type": "store.write",
+            "storeId": "settings",
+            "path": "/error",
+            "value": "$check.error.message"
+          },
+          {
+            "id": "stop",
+            "type": "return",
+            "value": false
+          }
+        ],
+        "input": "$current.output"
+      },
+      {
+        "id": "clearError",
+        "type": "store.write",
+        "storeId": "settings",
+        "path": "/error",
+        "value": ""
+      },
+      {
+        "id": "mark",
+        "type": "store.write",
+        "storeId": "settings",
+        "path": "/saved",
+        "value": true
+      },
+      {
+        "id": "announce",
+        "type": "emit",
+        "signal": "terra.settings:saved",
+        "payload": "$current.output"
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}

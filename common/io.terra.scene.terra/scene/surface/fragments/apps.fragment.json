@@ -1,0 +1,287 @@
+{
+  "$comment": "Scene Fragment. GUI 기여 전부 — 웹앱과 Scene — 를 한 화면에서 본다. 통합 셸이 자기 자신을 포함해 무엇이 base이고 무엇이 application으로 붙어 있는지 보여 주는 자리이고, 제품 base가 강등되어 앱으로 남는 것도 여기서 보인다.\n\n모듈이 기여하는 화면의 목록이 여기 있다 — 메뉴 구성도의 **유동 메뉴**가 지금 사는 자리다. 네비게이션 줄에 유동 그룹을 따로 두는 것은 화면 설계가 정해진 뒤의 일이다.",
+  "schemaVersion": "0.1.0",
+  "id": "terra.apps",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "앱과 화면",
+  "stores": [
+    "apps",
+    "session"
+  ],
+  "functions": [
+    "terra.context.refresh",
+    "terra.nav.go",
+    "terra.apps.refresh",
+    "terra.scenes.refresh",
+    "terra.app.launch"
+  ],
+  "slots": [
+    {
+      "id": "shell.nav",
+      "single": true
+    }
+  ],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "gap": "lg",
+    "a11y": {
+      "role": "region",
+      "label": "설치된 GUI 기여"
+    },
+    "children": [
+      {
+        "type": "slot",
+        "id": "navSlot",
+        "slot": "shell.nav"
+      },
+      {
+        "type": "column",
+        "id": "pageHead",
+        "gap": "xs",
+        "children": [
+          {
+            "type": "text",
+            "id": "heading",
+            "variant": "heading",
+            "text": "앱과 화면"
+          },
+          {
+            "type": "text",
+            "id": "headingCaption",
+            "variant": "caption",
+            "text": "이 노드에 설치된 GUI 기여 전부 — 웹앱과 Scene."
+          }
+        ]
+      },
+      {
+        "type": "card",
+        "id": "webAppCard",
+        "title": "웹앱",
+        "children": [
+          {
+            "type": "column",
+            "id": "appActions",
+            "layout": "row",
+            "gap": "sm",
+            "align": "center",
+            "children": [
+              {
+                "type": "button",
+                "id": "refreshApps",
+                "text": "새로 고침",
+                "onClick": {
+                  "function": "terra.apps.refresh"
+                }
+              }
+            ]
+          },
+          {
+            "type": "list",
+            "id": "appList",
+            "bind": {
+              "store": "apps",
+              "path": "/items"
+            },
+            "empty": "설치된 웹앱이 없습니다",
+            "a11y": {
+              "role": "list",
+              "label": "설치된 웹앱",
+              "live": "polite"
+            },
+            "item": {
+              "type": "column",
+              "id": "appRow",
+              "layout": "row",
+              "gap": "sm",
+              "align": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "appName",
+                  "itemBind": {
+                    "path": "/name"
+                  },
+                  "empty": "(이름 없음)"
+                },
+                {
+                  "type": "text",
+                  "id": "appId",
+                  "variant": "caption",
+                  "itemBind": {
+                    "path": "/id"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "appMode",
+                  "variant": "caption",
+                  "itemBind": {
+                    "path": "/mode"
+                  },
+                  "empty": "static"
+                },
+                {
+                  "type": "text",
+                  "id": "appIsolation",
+                  "variant": "caption",
+                  "itemBind": {
+                    "path": "/isolation"
+                  },
+                  "empty": "sandboxed"
+                },
+                {
+                  "type": "button",
+                  "id": "openApp",
+                  "text": "열기",
+                  "itemBind": {
+                    "path": "/id"
+                  },
+                  "onClick": {
+                    "function": "terra.app.launch"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "type": "card",
+        "id": "sceneCard",
+        "title": "화면 (Scene)",
+        "children": [
+          {
+            "type": "column",
+            "id": "sceneActions",
+            "layout": "row",
+            "gap": "sm",
+            "align": "center",
+            "children": [
+              {
+                "type": "button",
+                "id": "refreshScenes",
+                "text": "새로 고침",
+                "onClick": {
+                  "function": "terra.scenes.refresh"
+                }
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "id": "sceneTable",
+            "bind": {
+              "store": "apps",
+              "path": "/scenes"
+            },
+            "empty": "설치된 Scene이 없습니다",
+            "a11y": {
+              "role": "table",
+              "label": "설치된 Scene",
+              "live": "polite"
+            },
+            "columns": [
+              {
+                "id": "id",
+                "header": "Scene ID",
+                "path": "/id"
+              },
+              {
+                "id": "module",
+                "header": "모듈",
+                "path": "/moduleId"
+              },
+              {
+                "id": "role",
+                "header": "역할",
+                "path": "/role",
+                "align": "center",
+                "empty": "application"
+              },
+              {
+                "id": "route",
+                "header": "경로",
+                "path": "/route",
+                "empty": "-"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "card",
+        "id": "scanCard",
+        "title": "스캔 진단",
+        "children": [
+          {
+            "type": "text",
+            "id": "scanNote",
+            "variant": "caption",
+            "text": "기여가 거절된 것과 기여가 애초에 없는 것은 목록 밖에서 보면 똑같습니다 — 그래서 여기 함께 그립니다."
+          },
+          {
+            "type": "table",
+            "id": "scanDiagnostics",
+            "bind": {
+              "store": "apps",
+              "path": "/diagnostics"
+            },
+            "empty": "거절된 기여가 없습니다",
+            "a11y": {
+              "role": "table",
+              "label": "GUI 기여 스캔 진단",
+              "live": "polite"
+            },
+            "columns": [
+              {
+                "id": "code",
+                "header": "코드",
+                "path": "/code"
+              },
+              {
+                "id": "module",
+                "header": "모듈",
+                "path": "/moduleId"
+              },
+              {
+                "id": "message",
+                "header": "내용",
+                "path": "/message"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "id": "error",
+            "variant": "caption",
+            "bind": {
+              "store": "apps",
+              "path": "/error"
+            },
+            "empty": "",
+            "a11y": {
+              "role": "alert",
+              "live": "assertive"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "triggers": [
+    {
+      "on": "lifecycle:enter",
+      "function": "terra.context.refresh"
+    },
+    {
+      "on": "lifecycle:enter",
+      "function": "terra.apps.refresh"
+    },
+    {
+      "on": "lifecycle:enter",
+      "function": "terra.scenes.refresh"
+    }
+  ]
+}

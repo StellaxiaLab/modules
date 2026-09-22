@@ -1,0 +1,13 @@
+{
+  "$comment": "Scene Store. 설치된 GUI 기여 — 웹앱과 Scene — 의 view model. 런처가 무엇을 열 수 있는지가 여기 있다 (§11).",
+  "schemaVersion": "0.1.0",
+  "id": "apps",
+  "kind": "session",
+  "initial": {
+    "items": [],
+    "count": 0,
+    "scenes": [],
+    "diagnostics": [],
+    "error": ""
+  }
+}
