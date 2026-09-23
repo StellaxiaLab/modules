@@ -4,8 +4,8 @@ doc_type: "readme"
 scope: "repository"
 target: "stellaxialab/modules"
 status: "active"
-version: "v0.1"
-last_updated: "2026-09-21"
+version: "v0.2"
+last_updated: "2026-09-23"
 ---
 
 # modules
@@ -26,6 +26,13 @@ tree/     tree 제품 전용
 Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 사이를 오가도 경로 모양이
 바뀌지 않게. 규약 전문과 규칙 번호는 [`docs/layout.md`](docs/layout.md)에 있다.
 
+> [!IMPORTANT]
+> **접두사는 `lab.stellaxia.*` 다** (2026-09-23 확정). 경계는 **저장소**다 — 여기서
+> 태어나는 모듈은 `lab.stellaxia.*`, Terra 코어가 소유하는 것은 `io.terra.*`.
+> 확정 경위는 Terra 의 `docs/ideas/module-repository-split-ideas.md` §7.1.
+>
+> 접두사 없이 `publish` 하면 `PREFIX_NOT_OWNED`(exit 20)로 선다 — 취향이 아니라 관문이다.
+
 > [!NOTE]
 > 플랫폼이 소유하는 **kind 둘**(`application` · `runtime`)은 여기 오지 않는다. 오늘 그
 > kind 로 출하된 것이 `io.terra.player` · `io.terra.scene-runtime` ·
@@ -34,6 +41,13 @@ Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 
 >
 > 거절하는 것은 **kind 이지 이름이 아니다** — `terra module new io.terra.player` 는
 > 그냥 통과한다. 경계는 도구가 아니라 사람이 지킨다.
+>
+> **kind 로 표현되지 않는 예외가 하나 있다** — `io.terra.scene.terra`(통합 base Scene).
+> `kind=scene` 이지만 게이트웨이가 base 역할을 **그 id 에만** 준다
+> (`gui.go` `UnifiedBaseSceneID` · `baseConvention`). 개명하면 `role=application` 으로
+> 강등되고 매니페스트가 `role: "base"` 를 직접 선언해도 `GUI_SCENE_BASE_DENIED` 다.
+> 그래서 이 모듈은 여기 잠시 살았다가(2026-09-22) **코어로 돌아갔다**(2026-09-23).
+> id 가 곧 권한이면 저장소를 고를 자유가 없다.
 
 ## 모듈 하나 만들기
 
