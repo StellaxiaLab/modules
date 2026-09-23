@@ -4,14 +4,22 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "active"
-version: "v0.1"
-last_updated: "2026-09-22"
+version: "v0.2"
+last_updated: "2026-09-23"
 ---
 
 # Hello Terra
 
 화면 한가운데에 `Hello Terra` 한 줄만 띄우는 Scene 모듈. **코드가 한 줄도 없다** —
 JSON 셋이 전부이고, Player가 그것을 읽어 화면을 세운다.
+
+> [!NOTE] id는 `lab.stellaxia.scene.hello`다 (2026-09-23 개명)
+> 태어날 때는 `io.terra.scene.hello`였다. `io.terra.*`는 Terra 예약이라 tree 레지스트리로
+> 나갈 수 없고(`PREFIX_RESERVED`), 이 모듈은 제품에 동봉되는 쪽이 아니라 **배포되는** 쪽이다.
+> 규칙은 [저장소 README의 접두사 절](../../README.md)에 있다.
+>
+> **아직 `publish` 전이라 개명 비용이 0이었다.** 한 번 게시되면 id는 digest와 서명에 묶여
+> 바꿀 수 없다 — 승격(promote)이 id를 건드리지 않는 이유도 같다.
 
 ## 왜 이렇게까지 작은가
 
@@ -26,7 +34,7 @@ JSON 셋이 전부이고, Player가 그것을 읽어 화면을 세운다.
 ## 구성
 
 ```text
-common/io.terra.scene.hello/
+common/lab.stellaxia.scene.hello/
 ├─ module.json                              kind=scene, gui.scenes 기여
 └─ scene/
    ├─ scene.json                            두 층을 묶는 자리
@@ -63,7 +71,15 @@ common/io.terra.scene.hello/
 | 명령 | 결과 |
 | --- | --- |
 | `npm run validate` | 오류 0 · 경고 0 |
-| `terra module pack common/io.terra.scene.hello` | 통과 (`verified`, 파일 3개) |
+| `terra module pack common/lab.stellaxia.scene.hello` | 통과 (`verified: true`) |
+
+포장물에는 파일 **3개**가 들어간다 — `module.json` · `scene/scene.json` ·
+`scene/surface/fragments/main.fragment.json`. `README.md`는 화이트리스트 밖이라 빠진다.
+
+> [!NOTE] `pack` 요약의 `FILES` 열은 **2**라고 적는다
+> 그 열은 payload만 세고 매니페스트를 빼기 때문이다(`stagePackFiles`가 `module.json`을
+> 건너뛰고 따로 싣는다). 아카이브를 열면 3개다. 두 수가 하나씩 다른 것은 개명 전에도
+> 같았다.
 
 `pack`은 Scene 무결성까지 본다 — route가 가리키는 fragment가 있는지, fragment가 부르는
 store·function이 선언돼 있는지. 이 모듈은 부르는 것이 없어서 그 검사가 조용히 통과한다.
