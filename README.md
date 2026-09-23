@@ -96,25 +96,26 @@ id를 바꾸지 않는다 — 바꾸면 digest와 서명이 깨지기 때문이�
 StellaxiaLab이 **tree로 배포할** 새 모듈은 `lab.stellaxia.*`를 쓴다. 우리가 만든 것이어도
 `io.terra.*`를 쓸 수 없다 — 예약은 만든 사람이 아니라 배포 경로를 보기 때문이다.
 
-> [!IMPORTANT] 남은 예외는 하나이고, 그것도 떠나는 중이다
-> `io.terra.scene.terra`가 예약 접두사를 달고 있다. 플랫폼이 소유하는 통합 base 셸이라
-> **`publish`로 나갈 수 없다** — 노드에 닿는 길은 사이드로드(`terra module install <tmod> --root`)나
-> 제품 번들뿐이다.
+> [!NOTE] 예약 접두사를 단 모듈은 이제 여기 없다 (2026-09-23)
+> 둘이 있었고 둘 다 정리됐다. 길이 서로 달랐던 것이 §2-6을 그대로 보여 준다.
 >
-> **개명으로는 풀리지 않는다.** 게이트웨이가 base 역할을 `UnifiedBaseSceneID` 문자열로 주므로
-> id를 바꾸면 그 Scene은 `role=application`으로 강등되고, 매니페스트가 `role: "base"`를 직접
-> 선언해도 `GUI_SCENE_BASE_DENIED`로 거절된다. id가 곧 권한이라 저장소를 고를 자유가 없다.
-> 그래서 이 모듈은 Terra 코어로 돌아간다([modules#9](https://github.com/StellaxiaLab/modules/pull/9) ·
-> [Terra#80](https://github.com/StellaxiaLab/Terra/pull/80)).
+> | 모듈 | 어떻게 정리됐나 |
+> | --- | --- |
+> | `io.terra.scene.terra` | **코어로 돌아갔다.** 제품 동봉으로 나가므로 `io.terra.*`가 맞는 칸이다 — 예외를 둔 것이 아니라 배포 경로가 바뀌어 접두사가 다시 맞게 됐다 ([modules#9](https://github.com/StellaxiaLab/modules/pull/9) · [Terra#80](https://github.com/StellaxiaLab/Terra/pull/80)) |
+> | `io.terra.scene.hello` | **개명했다** → `lab.stellaxia.scene.hello`. tree 레지스트리로 나가므로 자기 도메인 역순이 맞다. 게시 전이라 비용이 0이었다 |
 >
-> 나머지 하나는 정리됐다 — `io.terra.scene.hello`는 **2026-09-23에
-> `lab.stellaxia.scene.hello`로 개명했다.** 게시 전이라 비용이 0이었다.
+> 그래서 지금 이 저장소에 있는 모듈은 **`publish`로 나갈 수 있다.**
 
 ### 셸만은 제3자가 가져갈 수 없다
 
 **base 역할**(노드의 기본 화면)을 가질 수 있는 Scene id는 `io.terra.scene.<product>`와
 `io.terra.scene.terra`뿐이다. 게이트웨이의 `baseConvention`이 그것을 본다 — *"어디서나 돈다"*가
 *"어디서나 셸을 갈아치운다"*가 되지 않게 하는 자리다.
+
+그 규칙은 그대로이고, 대상만 옮겼다. `io.terra.scene.terra`는 Terra 코어의
+`module/common/`에 살고, `io.terra.scene.<product>` 쪽은 **오늘 출하되는 것이 하나도 없다** —
+`io.terra.scene.leaf`·`io.terra.scene.tree`가 삭제되고 통합 셸 하나가 그 자리를 대신했다
+([Terra#80](https://github.com/StellaxiaLab/Terra/pull/80)).
 
 임시 조치다. 서명과 Product Policy가 들어오면 이름 규약 대신 그것이 판정하고, 그때 제3자도
 셸을 낼 수 있게 된다. 지금은 서명된 모듈이 0개라 이름이 대역을 서고 있다.
