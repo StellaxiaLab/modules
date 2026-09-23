@@ -35,6 +35,60 @@ Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 
 > 거절하는 것은 **kind 이지 이름이 아니다** — `terra module new io.terra.player` 는
 > 그냥 통과한다. 경계는 도구가 아니라 사람이 지킨다.
 
+## 접두사 — 어떤 id를 쓰나
+
+**배포 경로가 정한다.** 누가 만들었는지가 아니다
+(Terra `docs/architecture/ADR-MD-002-module-id-prefix-ownership.md` §2-6).
+
+| 어떻게 나가나 | 접두사 |
+| --- | --- |
+| **제품 동봉** — 릴리스 빌드가 번들에 싣고 설치기가 깐다 | `io.terra.*` |
+| **tree 레지스트리** — `pack` → `publish` → 노드가 설치 | **자기 도메인 역순** |
+
+`io.terra.*`는 허용 목록이 아니라 **예약어**다. 외부 조직이 막혀 있는 것이 아니라, 그 접두사로
+tree 배포를 하려는 **모든 주체**가 막힌다 — Terra 프로젝트 자신을 포함해서.
+
+```text
+terra module prefix grant io.terra.acme   →  PREFIX_RESERVED   (발급 자체를 거부)
+terra module publish io.terra.foo.tmod    →  PREFIX_RESERVED   (게시 경로에서 한 번 더)
+terra module publish com.acme.foo.tmod    →  PREFIX_NOT_OWNED  (접두사를 아직 등록하지 않았다)
+```
+
+### 다른 조직이 모듈을 내는 길
+
+도메인을 뒤집어 접두사로 쓴다 — `acme.com` → `com.acme`, `terrallo.dev` → `dev.terrallo`.
+Java 패키지·안드로이드 앱 ID와 같은 규칙이고, **도메인을 가진 쪽이 그 접두사를 가진다.**
+
+```bash
+terra module prefix grant com.acme            # tree 운영자가 한 번 등록한다
+terra module new com.acme.hello --owner leaf --root . --kind service
+terra module pack leaf/com.acme.hello --out /tmp/hello.tmod
+terra module publish /tmp/hello.tmod --policy recommended
+```
+
+등록된 접두사는 그 cluster 안에서 유일하고, 게시자의 신원으로 감사에 남는다. 승격(promote)은
+id를 바꾸지 않는다 — 바꾸면 digest와 서명이 깨지기 때문이다.
+
+### 이 저장소의 접두사는 `lab.stellaxia`다
+
+StellaxiaLab이 **tree로 배포할** 새 모듈은 `lab.stellaxia.*`를 쓴다. 우리가 만든 것이어도
+`io.terra.*`를 쓸 수 없다 — 예약은 만든 사람이 아니라 배포 경로를 보기 때문이다.
+
+> [!IMPORTANT] 지금 여기 있는 둘은 예외이고, 그 대가가 있다
+> `io.terra.scene.terra`와 `io.terra.scene.hello`는 예약 접두사를 달고 있다. 플랫폼 모듈의
+> 정본을 옮겨 온 것과, 플랫폼이 만든 GUI 시험대다. 그래서 **이 둘은 `publish`로 나갈 수 없다** —
+> 노드에 닿는 길은 사이드로드(`terra module install <tmod> --root`)나 제품 번들뿐이다.
+> 어느 쪽으로 정리할지는 Terra의 분리 검토 문서 §7.1이 갈래 둘로 적어 두었다.
+
+### 셸만은 제3자가 가져갈 수 없다
+
+**base 역할**(노드의 기본 화면)을 가질 수 있는 Scene id는 `io.terra.scene.<product>`와
+`io.terra.scene.terra`뿐이다. 게이트웨이의 `baseConvention`이 그것을 본다 — *"어디서나 돈다"*가
+*"어디서나 셸을 갈아치운다"*가 되지 않게 하는 자리다.
+
+임시 조치다. 서명과 Product Policy가 들어오면 이름 규약 대신 그것이 판정하고, 그때 제3자도
+셸을 낼 수 있게 된다. 지금은 서명된 모듈이 0개라 이름이 대역을 서고 있다.
+
 ## 모듈 하나 만들기
 
 뼈대는 손으로 쓰지 않는다. Terra 체크아웃에서 CLI를 굽고, 그것이 굽게 한다.
@@ -47,6 +101,7 @@ cd <terra>/products/common/apps/terra-cli && go build -o ~/bin/terra ./cmd/terra
 # 2. 뼈대 — 저장소 루트에서, 소유권 루트를 이름으로 지정해서
 #    --owner 가 leaf/·common/·tree/ 중 어디에 놓일지 정하고,
 #    --root . 이 이 저장소에 없는 module/ 한 겹을 빼 준다.
+#    id 는 위 "접두사" 절을 따른다 — io.terra.* 는 예약이다.
 cd <modules>
 terra module new com.acme.hello --owner leaf --root . --kind service
 #  → leaf/com.acme.hello/
