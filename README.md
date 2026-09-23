@@ -26,6 +26,21 @@ tree/     tree 제품 전용
 Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 사이를 오가도 경로 모양이
 바뀌지 않게. 규약 전문과 규칙 번호는 [`docs/layout.md`](docs/layout.md)에 있다.
 
+> [!IMPORTANT]
+> **접두사는 `lab.stellaxia.*` 다** (2026-09-23 확정). 경계는 저장소도 소유자도 아니라
+> **배포 경로**다(Terra `docs/architecture/ADR-MD-002-module-id-prefix-ownership.md` §2-6):
+>
+> | 배포 경로 | 접두사 |
+> | --- | --- |
+> | 제품 동봉 (`build-release` → 설치기) | `io.terra.*` |
+> | **tree 레지스트리** (`pack` → `publish` → 설치) | **자기 도메인 역순** — 이 조직은 `lab.stellaxia` |
+>
+> 이 저장소의 모듈은 tree 로 나가는 쪽이므로 `lab.stellaxia.*` 다. `io.terra.*` 는 허용
+> 목록이 아니라 **예약어**여서, 그 접두사로 tree 배포를 하려는 주체는 Terra 프로젝트
+> 자신을 포함해 전부 거부된다 — `GrantPrefix` 와 publish 양쪽에서 `PREFIX_RESERVED`.
+>
+> 접두사를 발급받지 않고 `publish` 하면 `PREFIX_NOT_OWNED`(exit 20)로 선다.
+
 > [!NOTE]
 > 플랫폼이 소유하는 **kind 둘**(`application` · `runtime`)은 여기 오지 않는다. 오늘 그
 > kind 로 출하된 것이 `io.terra.player` · `io.terra.scene-runtime` ·
@@ -34,6 +49,13 @@ Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 
 >
 > 거절하는 것은 **kind 이지 이름이 아니다** — `terra module new io.terra.player` 는
 > 그냥 통과한다. 경계는 도구가 아니라 사람이 지킨다.
+>
+> **kind 로 표현되지 않는 예외가 하나 있다** — `io.terra.scene.terra`(통합 base Scene).
+> `kind=scene` 이지만 게이트웨이가 base 역할을 **그 id 에만** 준다
+> (`gui.go` `UnifiedBaseSceneID` · `baseConvention`). 개명하면 `role=application` 으로
+> 강등되고 매니페스트가 `role: "base"` 를 직접 선언해도 `GUI_SCENE_BASE_DENIED` 다.
+> 그래서 이 모듈은 여기 잠시 살았다가(2026-09-22) **코어로 돌아갔다**(2026-09-23).
+> id 가 곧 권한이면 저장소를 고를 자유가 없다.
 
 ## 접두사 — 어떤 id를 쓰나
 
