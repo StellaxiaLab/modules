@@ -169,7 +169,7 @@ Terra 체크아웃이 있으면 원본과 바이트로, 없으면 적어도 기�
 
 ## 관련 문서
 
-- [README](../README.md) — 저장소 소개와 명령
+- [README](../README.md) — 저장소 소개와 명령, 그리고 **접두사**(어떤 id를 쓰나)
 - Terra `module/README.md` — 레이아웃의 원본
 - Terra `docs/manual/06-usage/modules-develop.md` — 모듈 개발 절차
 - Terra `docs/contracts/module-host-http-contract.md` — 모듈이 되기 위해 구현할 것의 전부
