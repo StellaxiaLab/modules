@@ -1,7 +1,7 @@
 {
   "$comment": "Manifest v2, kind=scene. 데이터만으로 이루어진 Scene 패키지 — 코드가 한 줄도 없고, Player가 읽어 화면을 세운다. 이 저장소가 실제로 도는 모듈을 담을 수 있는지 확인하는 GUI 시험대이기도 하다: 화면에 한 줄만 있으면 무엇이 깨졌을 때 그것이 배선의 문제임이 분명해진다.",
   "schemaVersion": 2,
-  "id": "io.terra.scene.hello",
+  "id": "lab.stellaxia.scene.hello",
   "name": "Hello Terra",
   "version": "0.1.0",
   "kind": "scene",
@@ -17,7 +17,7 @@
     "gui": {
       "scenes": [
         {
-          "id": "io.terra.scene.hello",
+          "id": "lab.stellaxia.scene.hello",
           "entry": "scene/scene.json",
           "role": "application"
         }

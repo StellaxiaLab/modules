@@ -4,8 +4,8 @@ doc_type: "readme"
 scope: "repository"
 target: "stellaxialab/modules"
 status: "active"
-version: "v0.1"
-last_updated: "2026-09-21"
+version: "v0.2"
+last_updated: "2026-09-23"
 ---
 
 # modules
@@ -74,11 +74,19 @@ id를 바꾸지 않는다 — 바꾸면 digest와 서명이 깨지기 때문이�
 StellaxiaLab이 **tree로 배포할** 새 모듈은 `lab.stellaxia.*`를 쓴다. 우리가 만든 것이어도
 `io.terra.*`를 쓸 수 없다 — 예약은 만든 사람이 아니라 배포 경로를 보기 때문이다.
 
-> [!IMPORTANT] 지금 여기 있는 둘은 예외이고, 그 대가가 있다
-> `io.terra.scene.terra`와 `io.terra.scene.hello`는 예약 접두사를 달고 있다. 플랫폼 모듈의
-> 정본을 옮겨 온 것과, 플랫폼이 만든 GUI 시험대다. 그래서 **이 둘은 `publish`로 나갈 수 없다** —
-> 노드에 닿는 길은 사이드로드(`terra module install <tmod> --root`)나 제품 번들뿐이다.
-> 어느 쪽으로 정리할지는 Terra의 분리 검토 문서 §7.1이 갈래 둘로 적어 두었다.
+> [!IMPORTANT] 남은 예외는 하나이고, 그것도 떠나는 중이다
+> `io.terra.scene.terra`가 예약 접두사를 달고 있다. 플랫폼이 소유하는 통합 base 셸이라
+> **`publish`로 나갈 수 없다** — 노드에 닿는 길은 사이드로드(`terra module install <tmod> --root`)나
+> 제품 번들뿐이다.
+>
+> **개명으로는 풀리지 않는다.** 게이트웨이가 base 역할을 `UnifiedBaseSceneID` 문자열로 주므로
+> id를 바꾸면 그 Scene은 `role=application`으로 강등되고, 매니페스트가 `role: "base"`를 직접
+> 선언해도 `GUI_SCENE_BASE_DENIED`로 거절된다. id가 곧 권한이라 저장소를 고를 자유가 없다.
+> 그래서 이 모듈은 Terra 코어로 돌아간다([modules#9](https://github.com/StellaxiaLab/modules/pull/9) ·
+> [Terra#80](https://github.com/StellaxiaLab/Terra/pull/80)).
+>
+> 나머지 하나는 정리됐다 — `io.terra.scene.hello`는 **2026-09-23에
+> `lab.stellaxia.scene.hello`로 개명했다.** 게시 전이라 비용이 0이었다.
 
 ### 셸만은 제3자가 가져갈 수 없다
 

@@ -46,7 +46,8 @@ jobs:
 
       - run: npm ci
 
-      # --allow-empty 는 첫 모듈(io.terra.scene.hello)이 들어오면서 빠졌다. 빈 모듈
+      # --allow-empty 는 첫 모듈(lab.stellaxia.scene.hello, 당시 io.terra.scene.hello)이
+      # 들어오면서 빠졌다. 빈 모듈
       # 집합을 조용히 통과시키지 않는 것이 L-9 의 존재 이유이고, 이제 지킬 모듈이
       # 있으므로 그 예외를 둘 이유도 없다.
       - name: Validate every module
