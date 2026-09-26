@@ -165,11 +165,34 @@ Go 의존은 0으로도 된다.
 | `npm run validate` | 매니페스트 형식(Manifest v2), 배치 규약 L-1~L-10, 참조 경로의 실재 |
 | `npm run check:schema` | 벤더링한 스키마 사본이 기록된 해시 그대로인가 |
 | `npm run check:schema -- --terra <path>` | 그 사본이 Terra의 원본과 바이트까지 같은가 |
+| `npm run build -- --terra <path>` | Go 소스를 가진 모듈이 선언한 타깃으로 굽히는가 |
 | `terra module pack <dir>` | Scene 무결성과 포장이 실제로 열리는지 (**권위**) |
 
-앞의 셋은 이 저장소만으로 돌고, 마지막 하나는 Terra 체크아웃이 필요하다. CI도 같은 선으로
+앞의 셋은 이 저장소만으로 돌고, 뒤의 둘은 Terra 체크아웃이 필요하다. CI도 같은 선으로
 갈라져 있다 — `validate` 잡은 항상 돌고, `pack` 잡은 `TERRA_CHECKOUT_TOKEN`이 있을 때만
 돈다. 없으면 건너뛰되 **건너뛴 사실을 남긴다.**
+
+### Go 소스를 가진 모듈은 굽고 나서 포장한다
+
+`terra module pack`은 **바이너리 반쪽까지 본다.** `entrypoints.process`에 타깃을 적고
+`bin/`이 빈 모듈은 `MODULE_ENTRYPOINT_MISSING`으로 거절된다. 소스 트리의 `bin/`은 원래
+비어 있으므로(빌드 산출물이다) 순서가 정해져 있다:
+
+```bash
+npm run build -- --terra ../terra          # src/ → bin/<target>/
+terra module pack leaf/com.acme.hello      # 그다음에 포장
+```
+
+실측으로 양쪽을 확인했다 — `bin` 없이 포장하면 `MODULE_ENTRYPOINT_MISSING`, 굽고 나면
+통과한다.
+
+빌드에 Terra 체크아웃이 필요한 이유는 하나다: 모듈의 `src/go.mod`가 `terra-module-sdk`
+등을 `replace`로 끌어쓰고 **그 SDK는 공개 레지스트리에 없다**(Terra가 private이고 module
+path도 실제 remote와 다르다). 그 `replace`는 Terra 안을 가리키는 상대경로라 이 저장소에서는
+풀리지 않으므로, 스크립트가 `go.work`를 임시로 만들어 덮는다 — 모듈의 `go.mod`는 손대지
+않는다. 이주가 파일 수정을 동반하지 않게 하려는 것이다.
+
+Go 소스가 없는 모듈(Scene·extension)은 빌드할 것이 없고, 스크립트가 그 사실을 적고 통과한다.
 
 ## Terra와의 관계
 
