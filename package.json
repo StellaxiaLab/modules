@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "validate": "node tools/validate-modules.mjs",
-    "check:schema": "node tools/check-schema-drift.mjs"
+    "check:schema": "node tools/check-schema-drift.mjs",
+    "build": "node tools/build-modules.mjs"
   },
   "devDependencies": {
     "ajv": "^8.12.0"

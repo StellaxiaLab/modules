@@ -3,3 +3,8 @@ node_modules/
 # 포장 산출물 — terra module pack 이 낸 것은 저장소에 담지 않는다.
 *.tmod
 dist/
+
+# 타깃별 바이너리는 빌드 산출물이다 — tools/build-modules.mjs 가 src/ 를 굽어
+# bin/<target>/ 에 놓는다. 정본은 src/ + module.json + contracts/ 이고 바이너리가
+# 아니다. 모듈마다 자기 .gitignore 를 들고 오지만, 없이 온 모듈도 막는다.
+bin/
