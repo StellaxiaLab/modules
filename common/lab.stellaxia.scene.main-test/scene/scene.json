@@ -1,0 +1,14 @@
+{
+  "$comment": "두 층을 묶는 자리. functions와 stores가 빈 것은 빠뜨린 것이 아니라 이 Scene의 전부다 — 화면에 붙일 상태가 없으므로 contract/ 층 자체가 없고, surface/ 한 층만 선다. requiredOperations가 빈 것도 같은 이유라 어느 제품의 계약에도 매이지 않고, base의 outlet 안에서 로그인 없이 뜬다.",
+  "schemaVersion": "0.1.0",
+  "id": "lab.stellaxia.scene.main-test",
+  "version": "0.1.0",
+  "name": "MAIN Test",
+  "entryRoute": "/",
+  "routes": [{ "path": "/", "fragment": "main-test.main" }],
+  "functions": [],
+  "stores": [],
+  "fragments": ["surface/fragments/main.fragment.json"],
+  "requiredOperations": [],
+  "recoveryFragment": "main-test.main"
+}

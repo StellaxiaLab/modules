@@ -1,0 +1,23 @@
+{
+  "$comment": "화면 전부. 글 한 줄이라 bind도 핸들러도 없다. 가운데로 모으는 것은 root column의 align(가로축)과 justify(세로축) 두 줄이고, 크게 만드는 것은 text의 display 변형 하나다 — 화면에 하나뿐인 큰 제목이라는 뜻이고 크기(clamp 40~88px)는 scene.css가 갖는다. 흰 바탕은 Scene이 칠하지 않는다: 엘리먼트에 색 필드가 없고, 라이트 테마의 바탕(--scene-surface #ffffff)이 그 흰색이다.",
+  "schemaVersion": "0.1.0",
+  "id": "main-test.main",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "MAIN Test",
+  "root": {
+    "type": "column",
+    "id": "root",
+    "align": "center",
+    "justify": "center",
+    "a11y": { "role": "region", "label": "MAIN Test" },
+    "children": [
+      {
+        "type": "text",
+        "id": "title",
+        "variant": "display",
+        "text": "MAIN Test"
+      }
+    ]
+  }
+}
