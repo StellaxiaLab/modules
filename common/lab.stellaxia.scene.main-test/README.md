@@ -1,108 +1,112 @@
 ---
-title: "MAIN Test — base 분기 main 시험 Scene 모듈"
+title: "MAIN Test — base 분기 main 시험 모듈 (웹 프로그램)"
 doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "active"
-version: "v0.1"
+version: "v0.2"
 last_updated: "2026-09-28"
 ---
 
 # MAIN Test
 
-흰 바탕 한가운데에 `MAIN Test`를 크게 띄우는 Scene 모듈. **코드가 한 줄도 없다** —
-JSON 셋이 전부이고, 그중 이 모듈을 이 모듈로 만드는 것은 `module.json`의 한 줄이다.
-
-```json
-{ "id": "lab.stellaxia.scene.main-test", "entry": "scene/scene.json", "role": "application", "branch": "main" }
-```
+흰 바탕 한가운데에 `MAIN Test`를 크게 띄우는 main 모듈. 화면은 **평범한 웹 프로그램**
+(`ui/index.html` + `ui/style.css`)이고, Scene은 그 웹을 감싸는 얇은 껍데기 하나다.
 
 ## 왜 있나
 
 Terra 0.5.8부터 base Scene(`io.terra.scene.terra`)은 자기 화면이 없는 **진입점**이다
 (Terra#92, 설계 `docs/modules/terra-gui/design/terra-base-scene-branch-design.md`).
-사람이 쓰는 화면은 모듈이 `contributions.gui.scenes[]`에 `"branch": "main"`으로 스스로
-선언하고, base는 설치된 GUI를 세어 무엇을 띄울지 정한다.
+사람이 쓰는 화면은 모듈이 `contributions.gui.scenes[]`에 `"branch": "main"`으로 선언하고,
+base는 main이 하나이고 dev가 없으면 BASE를 그리지 않고 곧장 그것을 띄운다. 0.5.8 번들에는
+main이 없어 노드가 `MAIN_NOT_FOUND`부터 보인다 — 이 모듈이 그 자리를 채운다.
 
-| 설치된 GUI | base가 하는 일 |
-| --- | --- |
-| main 1개, dev 없음 | 곧장 main. BASE는 한 프레임도 그려지지 않는다 |
-| main 없음 | `MAIN_NOT_FOUND` 오류 화면 |
-| main 2개 이상, 또는 dev가 있음 | `/choose` 목록 |
+### 왜 Scene이 아니라 웹인가
 
-0.5.8 번들에는 main을 선언한 모듈이 **하나도 없다**. 그래서 0.5.8 노드는 GUI를 열면
-`MAIN_NOT_FOUND`부터 본다. 이 모듈은 그 자리를 채우는 가장 작은 main이다 — 깔면 노드가
-`MAIN Test`로 열리고, 빼면 다시 `MAIN_NOT_FOUND`로 돌아간다.
-
-[`lab.stellaxia.scene.hello`](../lab.stellaxia.scene.hello/README.md)와 같은 이유로 작다.
-Store도 Function도 Operation도 없으므로, 화면이 뜨지 않으면 의심할 자리가 Scene 내용에는
-없다. 남는 것은 base의 main 판정, 로드, 포장 셋뿐이다.
+Scene만으로 만들면 표현에 상한이 있다(엘리먼트 19종, 토큰 22종, 색·일반 `style` 필드 없음).
+v0.1은 Scene만으로 만들었고, 바탕을 칠할 수 없어 셸 테마의 `#eef1ec`가 그대로 보였다.
+자유도와 확장성을 위해 **화면은 일반 웹 프로그램으로 만든다**고 정했고(2026-09-28), 그
+길이 0.5.8의 `terra.web/frame`이다(Terra#91·#93, 설계 `terra-scene-web-frame-design.md`).
+진입은 여전히 Scene이 갖고, 웹은 그 Scene의 알맹이다.
 
 ## 구성
 
 ```text
 common/lab.stellaxia.scene.main-test/
-├─ module.json                              kind=scene, gui.scenes 기여 + branch: main
-└─ scene/
-   ├─ scene.json                            두 층을 묶는 자리
-   └─ surface/
-      └─ fragments/
-         └─ main.fragment.json              화면 전부
+├─ module.json                              scenes[]: branch main · apps[]: embed scene
+├─ scene/
+│  ├─ scene.json                            얇은 껍데기 — Route 1 · Fragment 1 · Function/Store 0
+│  └─ surface/fragments/main.fragment.json  루트 = custom terra.web/frame { app: <모듈>.ui }
+└─ ui/
+   ├─ index.html                            화면 전부
+   └─ style.css                             흰 바탕 · 가운데 · 큰 글자
 ```
 
-`terra gui new`로 뼈대를 굽고 예제 Store·Function(입력창과 버튼)을 걷어냈다.
-붙일 상태가 없으므로 `contract/` 층이 서지 않고, [`docs/layout.md`](../../docs/layout.md)의
-**L-10**이 적은 계층 배치의 surface 한 층만 남는다.
+```json
+"apps": [{ "id": "lab.stellaxia.scene.main-test.ui", "mode": "static", "entry": "ui/index.html",
+           "isolation": "sandboxed", "embed": "scene" }]
+```
 
-## 화면
+## 어떻게 뜨나
 
-- **가운데** — root `column`의 `align: center`(가로)와 `justify: center`(세로) 두 줄.
-- **크게** — `text`의 `display` 변형. 화면 하나에 하나뿐인 큰 제목이라는 뜻이고,
-  크기는 Scene이 아니라 `scene.css`가 갖는다(`clamp(40px, 9vw, 88px)`, 굵기 800).
-- **흰 바탕** — Scene은 바탕을 칠하지 않는다. 엘리먼트에 색 필드가 없는 것이 계약이고
-  (정체성은 셸이 정한다), 제품 셸의 밝은 테마가 그 바탕이다. 실측한 색은 **`#eef1ec`**
-  (셸 페이지 배경, 순백에 가까운 밝은 회녹색)이다. 제품 셸은 OS 다크 설정을 따르지 않으므로
-  어느 기계에서나 같다. 순백 `#ffffff`가 꼭 필요하면 Scene이 아니라 `terra.web/frame`으로
-  웹을 감싸는 모듈이어야 한다.
+1. base가 GUI 목록에서 main 하나를 보고 이 Scene을 연다.
+2. Fragment 루트의 `terra.web/frame`이 `/api/v1/gui/apps`에서 `props.app`을 찾는다 —
+   **같은 모듈의** static·proxied 앱이어야 하고, `embed: "scene"`이 붙은 앱은 dock에 뜨지 않는다.
+3. 앱은 **앱별 origin**에서 뜬다: `http://app-lab--stellaxia--scene--main-test--ui.localhost:<게이트웨이 포트>`
+   (id의 점이 `--`가 된다 — 그래서 앱 id에 `--`를 쓸 수 없다). 게이트웨이가 리슨 주소로 origin을
+   만들므로 iframe은 셸을 거치지 않고 게이트웨이에서 직접 자산을 받는다. sandbox는
+   `allow-scripts allow-forms allow-same-origin allow-downloads`.
+4. frame이 Fragment 루트라서 호스트 틀(1120px·여백)이 벗겨지고 웹이 화면 전체를 쓴다.
+
+게이트웨이는 `entry`를 앱 디렉터리(`ui/`) 기준으로 정규화한다 — 자산 주소는
+`/api/v1/gui/apps/<앱 id>/files/index.html`이다(`files/ui/index.html`이 아니다).
+
+## 웹을 쓸 때 지킬 것
+
+- **앱 자산 CSP**: `script-src 'self'` — 인라인 스크립트는 막히고 스크립트는 같은 origin 파일로
+  둔다. 스타일은 인라인도 된다. 외부 글꼴·이미지·API는 안 된다(`default-src`·`connect-src 'self'`).
+  감싸는 쪽은 `127.0.0.1:*`·`localhost:*`만 된다(`frame-ancestors`).
+- **API 호출**: 웹이 `parent`에 `{ type: 'terra.frame.hello', protocol: 1 }`을 보내면 frame이
+  `terra.frame.init`으로 답한다. 로그인된 세션이면 스코프 토큰(사용자 권한 ∩ 앱이 선언한
+  `permissions`, 15분)이 실리고, 웹은 `fetch('/api/modules/<id>/v1/...')`에 그 토큰을 붙인다.
+  참조 클라이언트는 Terra의 `@terra/frame-client`(`connectTerra()` → `terra.fetch()`).
+  이 모듈은 호출이 없으므로 `permissions`를 선언하지 않고 hello도 보내지 않는다. hello가 오지
+  않으면 frame은 `WEB_FRAME_HANDSHAKE_TIMEOUT` 진단만 남기고 화면은 그대로 둔다
+  (Terra `web-frame.ts` — "토큰이 필요 없는 페이지면 무시해도 됩니다"; 실측 중 콘솔에는 나오지 않았다).
 
 ## 시험
 
-### 정적 — 이 저장소와 Terra의 권위
+### 정적
 
 | 명령 | 결과 (2026-09-28) |
 | --- | --- |
 | `npm run validate` | 모듈 2개 · 오류 0 · 경고 0 |
-| `npm run check:schema -- --terra <terra>` | 스키마 대조 통과 (Terra v0.5.8) |
-| `terra module pack common/lab.stellaxia.scene.main-test` | `verified: true` (terra 0.5.8, `eafdaa6`) |
+| `npm run check:schema -- --terra <terra v0.5.8>` | 스키마 대조 통과 |
+| `terra module pack common/lab.stellaxia.scene.main-test` | `verified: true` — payload 4파일(scene 2 · ui 2) |
 
-### 실물 — 제품 셸에서 base가 이것을 main으로 여는가
+### 실물 — 빌드된 제품 셸 + Product Host
 
-Terra 0.5.8 릴리스 번들의 바이너리와 셸을 그대로 썼다. 게이트웨이에 `--scene-root`를 둘
-주고(번들의 `modules/` — base가 거기 있다 — 와 이 모듈을 둔 폴더), 그 앞에 Product Host를
-세워 빌드된 제품 셸(`ui/leaf`·`ui/tree`)을 서빙했다. 헤드리스 Chromium으로 열었다.
-
-```bash
-terra-gateway --addr 127.0.0.1:18787 \
-  --scene-root <bundle>/modules --scene-root <폴더>/  \
-  --module-state-root <state>
-terra-host --config host.json   # gateway_base_url=http://127.0.0.1:18787, ui_root=<bundle>/ui/leaf
-```
+Terra 0.5.8 릴리스 번들의 게이트웨이·Product Host·제품 셸(`ui/leaf`·`ui/tree`)을 그대로 썼다.
+게이트웨이 `--scene-root` 둘(번들 `modules/` — base 포함 — 과 이 모듈), 앞에 Product Host,
+헤드리스 Chromium. 웹 프레임을 **개발 셸이 아닌 제품 셸·Product Host 경로에서 본 첫 실측**이다.
 
 | 경우 | 본 것 |
 | --- | --- |
-| 게이트웨이 GUI 목록 | `lab.stellaxia.scene.main-test` — `role: application`, `branch: main`, 진단 없음 |
-| leaf 셸, 1280×800 | base가 `terra.gateway.gui.scenes.get` → `/open` → 이 Scene 적재. `MAIN Test` 88px·800, 중심 (640, 396). 콘솔 오류 0 |
-| leaf 셸, 375×667 | 40px, 중심 (188, 330) |
-| tree 셸 | 같은 화면 |
-| OS 다크 설정 흉내 (`prefers-color-scheme: dark`) | 바탕 `#eef1ec`·글자 `#17201d` 그대로 — 셸이 OS 다크를 따르지 않는다 |
-| 이 모듈을 빼고 `POST /api/v1/gui/scenes/scan` | `MAIN_NOT_FOUND` — 셸이 "`branch: main`을 적으면 이 화면 대신 그 GUI가 뜬다"고 안내 |
-| 다시 넣고 scan | 곧장 `MAIN Test` |
+| `GET /api/v1/gui/apps` | `mode: static` · `embed: scene` · `origin: http://app-lab--stellaxia--scene--main-test--ui.localhost:18787` |
+| 앱 origin으로 자산 | `index.html`·`style.css` 200, CSP·`nosniff` 붙음. **다른 앱의 origin으로는 404** |
+| leaf 셸 1280×800 | base → 이 Scene → frame `ready` → 앱 origin iframe이 (0, 0, 1280×800) 전체. 웹 바탕 **`#ffffff`**, `MAIN Test` 153.6px·800, 중심 (640, 400). 바깥 scene-root 둘 다 `max-width: none`·`padding: 0`. 콘솔 오류·경고 0 |
+| leaf 셸 375×667 | 48px, 중심 (188, 334), iframe 전체 |
+| tree 셸 | 같은 결과 |
+| 웹이 hello를 보냄 | `terra.frame.init` — `apiBase: /api/modules/lab.stellaxia.scene.main-test`, `permissions: []`, **`reason: NO_SESSION`**, 토큰 없음, `/token` 요청 0 |
+
+**확인하지 못한 것**: 토큰이 실리는 경로. 시험 환경에 Master 로그인이 없어 frame이 토큰을
+청하지 않았다(`NO_SESSION`). 웹에서 API를 부르려면 로그인된 세션이 필요하고, 그 흐름
+(Handle 경로)은 Master가 있는 실제 노드에서 확인해야 한다.
 
 > [!NOTE] 브라우저로 열 때는 제품 세션부터
-> 빌드된 셸은 첫 요청 전에 Product Host의 로컬 세션(`POST /api/product/session`)을
-> 가져야 한다. 세션 없이 연 탭은 첫 게이트웨이 요청이 401이 되어 레거시 콘솔로 내려가고,
-> 이 Scene은 그 콘솔의 미리보기 칸 안에 작게 뜬다. 데스크톱 셸은 실행 토큰으로 세션을 먼저
-> 쥐므로 이 일이 없다(Terra 알려진 문제, #82). 시험에서는 세션을 만든 뒤 다시 열었다.
+> 빌드된 셸은 첫 요청 전에 Product Host의 로컬 세션(`POST /api/product/session`)을 가져야
+> 한다. 세션 없이 연 탭은 첫 게이트웨이 요청이 401이 되어 레거시 콘솔로 내려간다(Terra 알려진
+> 문제, #82). 데스크톱 셸은 실행 토큰으로 세션을 먼저 쥐므로 해당 없다.
 
 ## 노드에 깔기
 

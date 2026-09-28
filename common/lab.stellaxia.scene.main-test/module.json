@@ -1,11 +1,11 @@
 {
-  "$comment": "Manifest v2, kind=scene. base Scene 분기(Terra#92)의 main 시험대 — Scene 기여에 branch: main을 단 것이 이 모듈의 전부다. base(io.terra.scene.terra)는 설치된 GUI 가운데 main이 하나이고 dev가 없으면 BASE를 그리지 않고 곧장 그것을 띄우므로, 이 모듈 하나를 깐 노드는 MAIN_NOT_FOUND 대신 MAIN Test 화면으로 열린다. branch의 뜻은 base가 정하고 게이트웨이는 철자(main·dev)만 본다.",
+  "$comment": "Manifest v2, kind=scene. base Scene 분기(Terra#92)의 main 시험대를 웹 프로그램으로 만든 것 — 진입은 Scene(branch: main)이 갖고, 화면은 같은 모듈의 embed 앱(ui/)이 그린다(웹 프로그램 감싸기, Terra#91·#93). Scene은 terra.web/frame 하나만 든 얇은 껍데기이고, 모양과 로직은 전부 ui/의 평범한 HTML·CSS다. base는 main이 하나이고 dev가 없으면 곧장 이 Scene을 띄우고, frame이 앱별 origin(app-<id>.localhost)의 sandbox iframe으로 웹을 화면 전체에 편다.",
   "schemaVersion": 2,
   "id": "lab.stellaxia.scene.main-test",
   "name": "MAIN Test",
   "version": "0.1.0",
   "kind": "scene",
-  "description": "흰 바탕 한가운데에 MAIN Test를 크게 띄우는 main 분기 시험 Scene. Store도 Function도 Operation도 없어서, 이것이 뜨지 않으면 원인은 Scene 내용이 아니라 base의 main 판정·로드·포장 중 하나다.",
+  "description": "흰 바탕 한가운데에 MAIN Test를 크게 띄우는 main 분기 시험 모듈. 얇은 Scene이 같은 모듈의 웹(ui/index.html)을 terra.web/frame으로 감싼다. 웹은 호출을 하지 않으므로 권한을 선언하지 않는다.",
   "compatibility": {
     "products": ["leaf", "tree"],
     "os": ["linux", "windows"]
@@ -21,6 +21,16 @@
           "entry": "scene/scene.json",
           "role": "application",
           "branch": "main"
+        }
+      ],
+      "apps": [
+        {
+          "id": "lab.stellaxia.scene.main-test.ui",
+          "name": "MAIN Test",
+          "mode": "static",
+          "entry": "ui/index.html",
+          "isolation": "sandboxed",
+          "embed": "scene"
         }
       ]
     }
