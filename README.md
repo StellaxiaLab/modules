@@ -169,8 +169,23 @@ Go 의존은 0으로도 된다.
 | `terra module pack <dir>` | Scene 무결성과 포장이 실제로 열리는지 (**권위**) |
 
 앞의 셋은 이 저장소만으로 돌고, 뒤의 둘은 Terra 체크아웃이 필요하다. CI도 같은 선으로
-갈라져 있다 — `validate` 잡은 항상 돌고, `pack` 잡은 `TERRA_CHECKOUT_TOKEN`이 있을 때만
-돈다. 없으면 건너뛰되 **건너뛴 사실을 남긴다.**
+갈라져 있다 — `validate` 잡은 항상 돌고, `pack` 잡은 `TERRA_CHECKOUT_SSH_KEY`가 있을 때만
+돈다. 없으면 건너뛰되 **건너뛴 사실을 warning으로 남긴다.**
+
+그 시크릿은 **`StellaxiaLab/Terra`의 읽기 전용 deploy key의 개인키**다. PAT가 아닌 이유는
+셋이다 — 조직이 fine-grained PAT를 허용해야 하고, 허용해도 만료 갱신이 따라오며, 발행한
+사람에게 묶인다. deploy key는 저장소 하나·읽기 전용이고 만료가 없다. 세우는 순서:
+
+```bash
+ssh-keygen -t ed25519 -N '' -C 'modules-ci@StellaxiaLab' -f terra-ci
+```
+
+| 산출물 | 어디에 |
+| --- | --- |
+| `terra-ci.pub` (공개키) | `StellaxiaLab/Terra` → Settings → Deploy keys → Add deploy key. **Allow write access는 끈 채로** |
+| `terra-ci` (개인키) | `StellaxiaLab/modules` → Settings → Secrets and variables → Actions → `TERRA_CHECKOUT_SSH_KEY` |
+
+넣은 뒤 로컬 사본(`terra-ci`)은 지운다 — 개인키가 두 곳에 있을 이유가 없다.
 
 ### Go 소스를 가진 모듈은 굽고 나서 포장한다
 
