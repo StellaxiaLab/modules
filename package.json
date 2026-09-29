@@ -7,7 +7,9 @@
   "scripts": {
     "validate": "node tools/validate-modules.mjs",
     "check:schema": "node tools/check-schema-drift.mjs",
-    "build": "node tools/build-modules.mjs"
+    "build": "node tools/build-modules.mjs",
+    "pack": "node tools/pack-modules.mjs",
+    "release": "node tools/publish-release.mjs"
   },
   "devDependencies": {
     "ajv": "^8.12.0"

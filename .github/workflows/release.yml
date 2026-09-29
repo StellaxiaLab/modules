@@ -1,0 +1,125 @@
+# 태그를 찍으면 이 저장소의 모든 모듈을 `.tmod` 로 구워 릴리스 자산으로 올린다.
+#
+# 코어(Terra)는 이 릴리스를 **받아서 전개할 뿐 컴파일하지 않는다** — `pack` 이 이미
+# `integrity.process.<target>` 을 찍어 두기 때문이다(분리 검토 D-21). 그래서 코어
+# 릴리스 빌드가 모듈 소스도, Go 툴체인도, 이 저장소의 체크아웃도 필요로 하지 않는다.
+#
+# **왜 사람이 태그를 찍나** (Q-14) — 릴리스는 의도적 행위여야 하고 되돌리기가 비싸다.
+# 버튼 하나로 태그까지 만들면 실수로 찍기 쉽다. 태그 형식은 날짜형이다(Q-11):
+#
+#     git tag v2026.09.29 && git push origin v2026.09.29
+#     # 같은 날 다시 찍어야 하면 v2026.09.29-2
+#
+# 모듈별 버전은 매니페스트가 이미 들고 있다. 저장소 태그가 말해야 하는 것은 "언제
+# 찍은 묶음인가" 하나뿐이고, 모듈 여럿의 semver 를 하나로 합치면 그 숫자는 거짓말이
+# 된다.
+#
+# **태그가 main 위에 있는지는 강제하지 않는다.** 지난 커밋에 찍는 재발행이 정당한
+# 경우가 있고, 이 잡이 무엇을 굽든 그 자리에서 validate·schema·pack 을 전부 다시
+# 돌기 때문에 검사받지 않은 것이 실리지는 않는다.
+#
+# 서명은 아직 하지 않는다(Q-13). `terra module pack` 에 `--sign-key` 가 있지만,
+# 검증하는 쪽(코어 설치기)에 신뢰 앵커가 없는 동안의 서명은 보안이 아니라 장식이고
+# "서명돼 있으니 안전하다"는 오해를 만든다. 이번 단계는 modules.json 의 sha256 으로
+# 덮는다.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Pack and publish
+    runs-on: [self-hosted, linux, x64, docker, homelab]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: modules
+
+      # CI 의 pack 잡은 시크릿이 없으면 건너뛴다 — 포크에서 온 PR 에는 시크릿이
+      # 가지 않으므로 거기서 실패로 올리면 기여를 막는다. **여기는 다르다.**
+      # 릴리스는 검증이 아니라 출하다: Terra 없이는 pack 자체가 불가능하고,
+      # 자산 없는 릴리스는 그 태그를 핀한 코어를 빌드 때 세운다.
+      - name: Require a Terra checkout
+        env:
+          KEY: ${{ secrets.TERRA_CHECKOUT_SSH_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::TERRA_CHECKOUT_SSH_KEY 가 없다 — 릴리스는 Terra 체크아웃 없이 만들 수 없다(README 의 \"검증\" 절)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          repository: StellaxiaLab/Terra
+          ssh-key: ${{ secrets.TERRA_CHECKOUT_SSH_KEY }}
+          path: terra
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: terra/go.work
+          cache: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # 출하 전에 이 저장소의 규약을 다시 본다. CI 가 main 에서 이미 봤지만
+      # 태그는 main 이 아닌 커밋에도 찍힌다 — 위 주석 참고.
+      - name: Validate every module
+        working-directory: modules
+        run: node tools/validate-modules.mjs
+
+      - name: Check the vendored schema against Terra
+        working-directory: modules
+        run: node tools/check-schema-drift.mjs --terra "$GITHUB_WORKSPACE/terra"
+
+      # main 패키지는 모듈 루트가 아니라 cmd/terra 에 있다.
+      - name: Build the terra CLI
+        working-directory: terra/products/common/apps/terra-cli
+        run: go build -o "$RUNNER_TEMP/terra" ./cmd/terra
+
+      # `bin/` 을 채운다. 이 단계가 없으면 Go 소스를 가진 모듈이 다음 줄에서
+      # MODULE_ENTRYPOINT_MISSING 으로 거절된다 — 조용히 빠지지 않고 선다.
+      - name: Build modules that carry Go source
+        working-directory: modules
+        run: node tools/build-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
+
+      # 타깃마다 따로 굽는다. 실측: 타깃 셋을 선언한 모듈을 안 좁히고 포장하면
+      # 자산 하나가 4.9 MB → 14.3 MB 로 2.9배가 되고, 리눅스 노드가 윈도우·arm
+      # 바이너리까지 받는다.
+      - name: Pack every module
+        working-directory: modules
+        run: |
+          node tools/pack-modules.mjs \
+            --cli "$RUNNER_TEMP/terra" \
+            --terra "$GITHUB_WORKSPACE/terra" \
+            --tag "$GITHUB_REF_NAME" \
+            --out "$RUNNER_TEMP/dist"
+
+      # 독립적으로 한 번 더 센다. pack-modules 의 훑기가 조용히 한 tier 를
+      # 빠뜨려도 여기서 걸린다 — 셸이 세는 수와 스크립트가 적은 수가 달라진다.
+      # G-10 이 코어 번들에서 당한 것(모듈 15개가 5개가 되고도 exit 0)의 릴리스판이다.
+      - name: Count what shipped against what exists
+        working-directory: modules
+        run: |
+          on_disk=$(find common leaf tree -mindepth 2 -maxdepth 2 -name module.json 2>/dev/null | wc -l)
+          in_listing=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).moduleCount)' "$RUNNER_TEMP/dist/modules.json")
+          echo "디스크 ${on_disk}개 · 목록 ${in_listing}개"
+          if [ "$on_disk" -ne "$in_listing" ]; then
+            echo "::error::릴리스에 오를 모듈 수가 저장소의 모듈 수와 다르다 — 릴리스를 만들지 않는다"
+            exit 1
+          fi
+
+      # draft 로 만들어 전부 올린 뒤 발행한다 — 업로드가 중간에 실패해도
+      # 반쪽짜리 공개 릴리스가 남지 않는다.
+      - name: Publish the release
+        working-directory: modules
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/publish-release.mjs --dist "$RUNNER_TEMP/dist"
