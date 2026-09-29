@@ -163,26 +163,24 @@ jobs:
         run: node tools/build-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
 
       # pack 은 자기 출력을 설치기와 같은 검사(OpenPackageManifest → Extract →
-      # VerifyPayload)로 되연다. 그래서 이 루프가 통과하면 "포장은 됐는데 설치가
+      # VerifyPayload)로 되연다. 그래서 이 단계가 통과하면 "포장은 됐는데 설치가
       # 안 되는" 상태가 남지 않는다.
+      #
+      # 여기서 부르는 것이 **릴리스가 부르는 바로 그 스크립트**다. 셸 루프를
+      # 따로 들고 있었지만 둘로 나눌 이유가 없었다 — 같은 일("모든 모듈을
+      # 포장한다")을 두 벌로 쓰면 사본은 말없이 늙고, 무엇보다 **릴리스 경로의
+      # 도구가 PR 에서 한 번도 돌지 않는다.** 검증 잡이 도구를 비켜 가는 것은
+      # G-12 가 막으려던 그 모양이다.
+      #
+      # 릴리스보다 더 보기도 한다: 타깃별로 좁혀 굽고, modules.json 을 쓰고,
+      # 모듈 하나라도 자산을 못 내면 목록을 쓰지 않고 선다. 태그는 PR 에 없으니
+      # 커밋으로 채운다 — 이 실행의 산출물은 버려지고 형식만 지키면 된다.
       - name: Pack every module
         if: steps.guard.outputs.present == 'true'
         working-directory: modules
         run: |
-          set -uo pipefail
-          failed=0
-          found=0
-          for manifest in common/*/module.json leaf/*/module.json tree/*/module.json; do
-            [ -e "$manifest" ] || continue
-            found=$((found + 1))
-            dir="$(dirname "$manifest")"
-            id="$(basename "$dir")"
-            echo "::group::terra module pack $dir"
-            if ! "$RUNNER_TEMP/terra" module pack "$dir" --out "$RUNNER_TEMP/$id.tmod"; then
-              echo "::error file=$manifest::terra module pack 이 거절했다"
-              failed=1
-            fi
-            echo "::endgroup::"
-          done
-          echo "포장한 모듈 $found개"
-          exit $failed
+          node tools/pack-modules.mjs \
+            --cli "$RUNNER_TEMP/terra" \
+            --terra "$GITHUB_WORKSPACE/terra" \
+            --tag "ci-${GITHUB_SHA}" \
+            --out "$RUNNER_TEMP/dist"
