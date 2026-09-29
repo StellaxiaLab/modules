@@ -162,8 +162,9 @@ scene/
 | 계약 JSON의 내용이 Terra API Contract 표준을 지키는지 | Terra 쪽 계약 검증 |
 
 여기서 다시 구현하면 사본이 하나 더 생기고, 사본은 말없이 늙는다. 그래서 CI의 `pack` 잡이
-Terra를 체크아웃해 진짜 `terra module pack`을 부른다 — 토큰이 있을 때만이고, 없으면
-건너뛴 사실을 notice로 남긴다.
+Terra를 체크아웃해 진짜 `terra module pack`을 부른다 — Terra의 읽기 전용 deploy key
+(`TERRA_CHECKOUT_SSH_KEY`)가 있을 때다. 없으면 PR에서는 건너뛰되 **warning**으로 남기고,
+`main` 푸시에서는 **실패한다**: main은 이 저장소가 "검증됐다"고 말하는 자리다.
 
 ## 4. 벤더링한 스키마
 
