@@ -68,22 +68,40 @@ jobs:
 
       # secrets 는 job 수준 if 에서 읽히지 않으므로 스텝에서 판정한다.
       #
-      # notice 가 아니라 warning 인 이유 — 이 잡은 이 저장소의 검증 절반을 혼자
+      # 없을 때의 처분이 두 갈래인 이유 — 이 잡은 이 저장소의 검증 절반을 혼자
       # 들고 있다(Scene 무결성 · 포장이 실제로 열리는지 · Go 모듈 빌드). 그것이
-      # 매 실행 건너뛰는데 초록 옆 notice 로 묻혀 있으면, L-9 가 막으려는 침묵과
-      # 같은 모양이 CI 자체에 생긴다. 시크릿이 붙은 뒤에는 `main` 푸시에서 아예
-      # 실패로 올린다 — 지금 그렇게 하면 시크릿이 오기 전까지 main 이 빨갛다.
+      # 조용히 건너뛰면, L-9 가 막으려는 침묵과 같은 모양이 CI 자체에 생긴다
+      # (분리 검토 G-12).
+      #
+      #   PR · 수동 실행   warning 을 남기고 건너뛴다. 포크에서 온 PR 에는
+      #                    시크릿이 가지 않으므로, 여기서 실패로 올리면 기여를
+      #                    막게 된다.
+      #   main 푸시        실패한다. main 은 이 저장소가 "검증됐다"고 말하는
+      #                    자리이고, 검증 절반이 빠진 초록은 그 말을 거짓으로
+      #                    만든다.
+      #
+      # main 갈래를 이제야 켠 이유: 시크릿이 오기 전에 켰으면 main 이 그때까지
+      # 빨갰다. 2026-09-29 에 deploy key 가 붙어 이 잡이 처음으로 실제 검증을
+      # 돌았고(`VERIFIED true` · 포장한 모듈 1개), 그 뒤에 켰다.
       - name: Is a Terra checkout reachable
         id: guard
         env:
           KEY: ${{ secrets.TERRA_CHECKOUT_SSH_KEY }}
         run: |
-          if [ -z "$KEY" ]; then
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::TERRA_CHECKOUT_SSH_KEY 가 없어 pack 검증을 건너뛴다 — Scene 무결성·포장 열림·Go 빌드는 이번 실행에서 확인되지 않았다"
-          else
+          if [ -n "$KEY" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          echo "present=false" >> "$GITHUB_OUTPUT"
+          skipped="TERRA_CHECKOUT_SSH_KEY 가 없어 pack 검증을 건너뛴다 — Scene 무결성·포장 열림·Go 빌드는 이번 실행에서 확인되지 않았다"
+
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "::error::$skipped. main 에서는 건너뛸 수 없다 — 저장소 시크릿 TERRA_CHECKOUT_SSH_KEY 를 세운다(README 의 \"검증\" 절)"
+            exit 1
+          fi
+
+          echo "::warning::$skipped"
 
       # 자격증명이 PAT 가 아니라 **Terra 의 읽기 전용 deploy key** 인 이유: 조직이
       # fine-grained PAT 를 허용해야 하고, 허용해도 만료 갱신이 따라오며 발행한
