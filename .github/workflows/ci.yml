@@ -8,10 +8,10 @@
 #             열리는지. `terra module pack` 이 자기 출력을 설치기와 같은
 #             검사로 되열기 때문에, 이 잡이 초록이면 그 패키지는 설치된다.
 #
-# pack 은 Terra 체크아웃이 필요해서 토큰이 있을 때만 돈다. 없으면 건너뛰되
-# **조용히 건너뛰지는 않는다** — 건너뛴 사실을 notice 로 남긴다. 조용한 통과가
-# 어떤 사고를 내는지는 Terra 의 G-7(모듈 0개 번들이 오류 없이 출하되던 것)이
-# 이미 보여 줬다.
+# pack 은 Terra 체크아웃이 필요해서 `TERRA_CHECKOUT_SSH_KEY`(Terra 의 읽기 전용
+# deploy key) 가 있을 때만 돈다. 없으면 건너뛰되 **조용히 건너뛰지는 않는다** —
+# 건너뛴 사실을 warning 으로 남긴다. 조용한 통과가 어떤 사고를 내는지는 Terra 의
+# G-7(모듈 0개 번들이 오류 없이 출하되던 것)이 이미 보여 줬다.
 #
 # 러너가 self-hosted 인 이유 — 처음에 ubuntu-latest 로 적었다가 첫 실행에서 두 잡
 # 모두 3초 만에 러너를 못 받고 죽었다(runner_id 0, 로그 없음). Terra 의 ci.yml 이
@@ -67,23 +67,59 @@ jobs:
           path: modules
 
       # secrets 는 job 수준 if 에서 읽히지 않으므로 스텝에서 판정한다.
+      #
+      # 없을 때의 처분이 두 갈래인 이유 — 이 잡은 이 저장소의 검증 절반을 혼자
+      # 들고 있다(Scene 무결성 · 포장이 실제로 열리는지 · Go 모듈 빌드). 그것이
+      # 조용히 건너뛰면, L-9 가 막으려는 침묵과 같은 모양이 CI 자체에 생긴다
+      # (분리 검토 G-12).
+      #
+      #   PR · 수동 실행   warning 을 남기고 건너뛴다. 포크에서 온 PR 에는
+      #                    시크릿이 가지 않으므로, 여기서 실패로 올리면 기여를
+      #                    막게 된다.
+      #   main 푸시        실패한다. main 은 이 저장소가 "검증됐다"고 말하는
+      #                    자리이고, 검증 절반이 빠진 초록은 그 말을 거짓으로
+      #                    만든다.
+      #
+      # main 갈래를 이제야 켠 이유: 시크릿이 오기 전에 켰으면 main 이 그때까지
+      # 빨갰다. 2026-09-29 에 deploy key 가 붙어 이 잡이 처음으로 실제 검증을
+      # 돌았고(`VERIFIED true` · 포장한 모듈 1개), 그 뒤에 켰다.
       - name: Is a Terra checkout reachable
         id: guard
         env:
-          TOKEN: ${{ secrets.TERRA_CHECKOUT_TOKEN }}
+          KEY: ${{ secrets.TERRA_CHECKOUT_SSH_KEY }}
         run: |
-          if [ -z "$TOKEN" ]; then
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::TERRA_CHECKOUT_TOKEN 이 없어 pack 검증을 건너뛴다 — Scene 무결성과 포장 열림은 이번 실행에서 확인되지 않았다"
-          else
+          if [ -n "$KEY" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
+          echo "present=false" >> "$GITHUB_OUTPUT"
+          skipped="TERRA_CHECKOUT_SSH_KEY 가 없어 pack 검증을 건너뛴다 — Scene 무결성·포장 열림·Go 빌드는 이번 실행에서 확인되지 않았다"
+
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "::error::$skipped. main 에서는 건너뛸 수 없다 — 저장소 시크릿 TERRA_CHECKOUT_SSH_KEY 를 세운다(README 의 \"검증\" 절)"
+            exit 1
+          fi
+
+          echo "::warning::$skipped"
+
+      # 자격증명이 PAT 가 아니라 **Terra 의 읽기 전용 deploy key** 인 이유: 조직이
+      # fine-grained PAT 를 허용해야 하고, 허용해도 만료 갱신이 따라오며 발행한
+      # 사람에게 묶인다. deploy key 는 저장소 하나 · 읽기 전용이고 만료가 없다.
+      #
+      # 처음 돌 때 걸릴 수 있는 것 둘 (둘 다 시끄럽게 실패하므로 조용한 통과는 아니다):
+      #   1. "Host key verification failed" — 러너의 known_hosts 에 github.com 이
+      #      없다. 처방은 `ssh-known-hosts` 에 github.com 의 공개 호스트 키를 적는
+      #      것이다(https://api.github.com/meta 의 ssh_keys). `ssh-strict: false`
+      #      로 검증을 끄는 것은 처방이 아니다.
+      #   2. 22번 포트가 막혔다 — 홈랩 러너의 아웃바운드 정책. 처방은 ssh 설정에
+      #      github.com 을 ssh.github.com:443 으로 보내는 항목을 두는 것이다.
+      # 실제로 어느 쪽인지 보고 고친다. 돌려보지 않은 값을 미리 박아 두지 않는다.
       - if: steps.guard.outputs.present == 'true'
         uses: actions/checkout@v4
         with:
           repository: StellaxiaLab/Terra
-          token: ${{ secrets.TERRA_CHECKOUT_TOKEN }}
+          ssh-key: ${{ secrets.TERRA_CHECKOUT_SSH_KEY }}
           path: terra
 
       - if: steps.guard.outputs.present == 'true'
