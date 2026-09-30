@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "id": "io.terra.webapp-host",
+  "name": "Terra Apps",
+  "version": "0.1.0",
+  "kind": "service",
+  "description": "The web-app launcher: lists every installed GUI app with its mode, isolation and declared permissions, shows scan diagnostics, and demonstrates the shell bridge handshake. Its own UI is served through the same contributions.gui.apps path it curates - the first real tenant of the surface.",
+  "compatibility": {
+    "products": ["leaf", "tree"],
+    "os": ["linux", "windows"]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-webapp-host",
+      "linux-arm64": "bin/linux-arm64/terra-webapp-host",
+      "windows-amd64": "bin/windows-amd64/terra-webapp-host.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      { "id": "io.terra.webapp-host", "version": "0.1.0" }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "gui": {
+      "apps": [
+        {
+          "id": "io.terra.webapp-host",
+          "name": "Terra Apps",
+          "mode": "static",
+          "entry": "ui/index.html",
+          "isolation": "sandboxed",
+          "permissions": []
+        }
+      ]
+    }
+  },
+  "readiness": {
+    "operationId": "io.terra.webapp-host.status.get",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}

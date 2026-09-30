@@ -1,0 +1,27 @@
+{
+  "$comment": "처음 상태로 되돌린다. Store를 비우는 것만으로는 부족하다 — Handle 뒤의 토큰은 Gateway에서 스스로 만료할 때까지 살아 있으므로, credential.revoke로 실제 폐기까지 간다 (§11.3 로그아웃). 쥔 Handle이 없을 때 revoke는 오류가 아니라 revoked:false다.",
+  "schemaVersion": "1.0.0",
+  "id": "logindemo.reset",
+  "version": "0.1.0",
+  "concurrency": { "mode": "exhaust" },
+  "graph": {
+    "nodes": [
+      { "id": "held", "type": "store.read", "storeId": "credential", "path": "/session" },
+      { "id": "drop", "type": "credential.revoke", "handle": "$held.output" },
+      { "id": "forget", "type": "store.write", "storeId": "credential", "path": "/session", "value": null },
+      {
+        "id": "clearResult",
+        "type": "store.write",
+        "storeId": "result",
+        "value": { "state": "idle", "headline": "", "detail": "" }
+      },
+      {
+        "id": "clearForm",
+        "type": "store.write",
+        "storeId": "form",
+        "value": { "email": "", "password": "" }
+      },
+      { "id": "done", "type": "return", "value": true }
+    ]
+  }
+}

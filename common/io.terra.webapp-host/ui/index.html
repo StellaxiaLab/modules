@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terra</title>
+  <!-- The asset CSP forbids inline script (script-src 'self'), so everything
+       lives in launcher.js — this file is the bundling discipline every app
+       on this surface has to follow. -->
+  <link rel="stylesheet" href="launcher.css" />
+</head>
+<body>
+  <main class="launcher">
+    <header class="launcher-head">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">▲</span>
+        <div>
+          <h1>Terra</h1>
+          <p class="sub" id="head-sub">Tree와 Leaf, 그리고 그 위의 확장 모듈</p>
+        </div>
+      </div>
+      <p class="bridge" id="bridge-state" data-state="probing">셸 브리지 확인 중…</p>
+      <!-- 하위 장면에서만 보인다: 첫 화면으로 돌아가는 유일한 길. -->
+      <nav class="crumb" id="crumb" hidden>
+        <button type="button" id="crumb-home">← Terra</button>
+        <span id="crumb-here"></span>
+      </nav>
+    </header>
+
+    <!-- 로그인: 데스크톱·브라우저 모드에서 이 페이지가 스스로 세션을 쥔다
+         (embedded 모드는 부모 셸의 세션을 쓰므로 숨김). 세션이 있어야 원격
+         노드 조회·동기화와 창 앱의 스코프 토큰 발급이 된다. -->
+    <section id="session-wrap" hidden>
+      <form id="login" class="login" autocomplete="on">
+        <label>이메일 <input type="email" id="login-email" autocomplete="username" required></label>
+        <label>비밀번호 <input type="password" id="login-password" autocomplete="current-password" required></label>
+        <button type="submit" id="login-submit">로그인</button>
+        <span id="login-state" class="sub"></span>
+      </form>
+      <p id="session-state" class="sub" hidden>
+        <span id="session-who"></span>
+        <button type="button" id="logout">로그아웃</button>
+      </p>
+    </section>
+
+    <!-- 장면 ①: Terra — 무엇이 있는지 고르는 자리. -->
+    <section class="scene" id="scene-terra">
+      <section id="entries" class="cards entries" aria-live="polite"></section>
+      <!-- 데스크톱 런처(최상위 창)로 열렸을 때만 채워진다: GUI 환경의 진입점은
+           런처이므로 제품 셸(Leaf/Tree)도 여기서 연다. -->
+      <section id="products-wrap" hidden>
+        <h2>제품 셸 실행</h2>
+        <section id="products" class="cards" aria-live="polite"></section>
+      </section>
+    </section>
+
+    <!-- 장면 ②: 제품(tree | leaf | common) — 앱과 설치된 모듈. -->
+    <section class="scene" id="scene-product" hidden>
+      <h2 id="product-title"></h2>
+      <p class="sub" id="product-sub"></p>
+      <h3 class="group-heading">앱</h3>
+      <section id="product-apps" class="cards" aria-live="polite"></section>
+      <h3 class="group-heading">설치된 모듈</h3>
+      <p class="sub" id="product-modules-note"></p>
+      <section id="product-modules" class="cards" aria-live="polite"></section>
+    </section>
+
+    <!-- 장면 ③: 원격 노드. -->
+    <section class="scene" id="scene-remote" hidden>
+      <h2>원격 노드 앱</h2>
+      <p class="sub" id="remote-note"></p>
+      <section id="remote" class="cards" aria-live="polite"></section>
+    </section>
+
+    <section id="diagnostics-wrap" hidden>
+      <h2>진단</h2>
+      <table class="diagnostics">
+        <thead><tr><th>모듈</th><th>대상</th><th>코드</th><th>메시지</th></tr></thead>
+        <tbody id="diagnostics"></tbody>
+      </table>
+    </section>
+
+    <footer class="foot">
+      <button type="button" id="refresh">새로 고침</button>
+      <span id="summary"></span>
+    </footer>
+  </main>
+  <script src="launcher.js"></script>
+</body>
+</html>

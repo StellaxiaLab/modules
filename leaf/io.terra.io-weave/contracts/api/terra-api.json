@@ -1,0 +1,1116 @@
+{
+  "$schema": "../../../../../docs/contracts/api/schemas/terra-api-contract-v1.schema.json",
+  "authentication": {
+    "workload-identity": {
+      "description": "Module Runtime이 실행 instance에 발급한 단기 Workload Identity를 사용합니다.",
+      "type": "workload-identity"
+    }
+  },
+  "contractId": "io.terra.io-weave.api",
+  "contractVersion": "0.1.0",
+  "defaultLocale": "ko-KR",
+  "description": "이 계약이 Gateway route의 단일 원본입니다. operation의 bindings에 적은 method·path가 그대로 게시되고 security.permissions가 route 권한이 되므로, 표면을 바꿀 때는 코드가 아니라 이 파일을 먼저 고칩니다.",
+  "errors": {
+    "IO_WEAVE_INVALID_SETTINGS": {
+      "description": "요청한 번역 프로파일이 이 빌드에 없습니다. 기본값으로 되돌리지 않고 거절합니다 — 아무도 고르지 않은 방식으로 제스처에 답하는 노드가 되기 때문입니다.",
+      "retryable": false,
+      "title": "설정이 올바르지 않음"
+    },
+    "IO_WEAVE_POINTER_BUSY": {
+      "description": "투영된 포인터에 이미 다른 노드의 Binding이 붙어 있습니다. sink는 원격 Lease를 하나만 발급합니다(D-23).",
+      "retryable": true,
+      "title": "포인터 사용 중"
+    },
+    "IO_WEAVE_UNAVAILABLE": {
+      "description": "모듈이 아직 준비되지 않았거나 내부 상태가 손상되어 요청을 처리할 수 없습니다.",
+      "retryable": true,
+      "title": "모듈 사용 불가"
+    }
+  },
+  "operations": {
+    "io.terra.io-weave.pointer.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "IO Weave",
+        "keywords": [
+          "pointer",
+          "projection",
+          "포인터",
+          "투영"
+        ],
+        "outputPorts": [
+          {
+            "name": "bound",
+            "pointer": "/bound"
+          },
+          {
+            "name": "appliedFrames",
+            "pointer": "/applied_frames"
+          },
+          {
+            "name": "refusedFrames",
+            "pointer": "/refused_frames"
+          }
+        ],
+        "recommendedLabel": "포인터 투영 상태",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-weave/v1/pointer",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "status",
+      "description": "read-only Operation입니다. 적용된 프레임과 거절된 프레임을 함께 셉니다 — 번역되지 못한 제스처가 조용히 사라지면 제스처를 한 사람이 가장 늦게 알게 되기 때문입니다.",
+      "errors": [
+        "IO_WEAVE_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "상태 조회는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "description": "tmux 프로파일에서 휠을 위로 한 칸. 먼저 copy-mode에 들어가고(Ctrl-B [) 그 다음 방향키가 나갑니다 — 맨 셸이었다면 두 동작 모두 사유와 함께 거절됩니다.",
+            "name": "tmux 노드에서 휠 위로",
+            "value": {
+              "applied_frames": 1,
+              "binding_id": "bnd-1",
+              "bound": true,
+              "injection": {
+                "available": false,
+                "detail": "/dev/uinput is not writable by this user; run the module's install/linux/install-uinput-access.sh as root (it installs /etc/udev/rules.d/70-terra-uinput.rules and the terra-input group) and restart the daemon so the group membership takes effect",
+                "implemented": false,
+                "platform": "linux/uinput"
+              },
+              "last_position": {
+                "x": 32768,
+                "y": 32768
+              },
+              "last_seen": "2026-09-07T00:00:00Z",
+              "mode": "translate",
+              "mode_detail": "profile=tmux layout=us",
+              "profile": "tmux",
+              "recent_actions": [
+                {
+                  "bytes": "\u0002[",
+                  "intent": "tmux-enter-copy-mode",
+                  "kind": "keys",
+                  "sequence": 2
+                },
+                {
+                  "bytes": "\u001b[A",
+                  "intent": "scroll-up",
+                  "kind": "keys",
+                  "sequence": 2
+                }
+              ],
+              "refused_frames": 1
+            }
+          },
+          {
+            "description": "주입 중이던 노드에서 워치독이 만료된 직후. mode가 translate로 돌아와 있고 escape가 왜인지 말합니다 — 커서가 돌아온 것만으로는 이유를 알 수 없습니다.",
+            "name": "워치독이 장치를 걷어간 뒤",
+            "value": {
+              "applied_frames": 412,
+              "binding_id": "bnd-7",
+              "bound": true,
+              "escape": {
+                "at": "2026-09-15T04:12:33.481Z",
+                "detail": "an injected frame did not complete within 2s; the virtual input device was destroyed so the node's own input works again",
+                "reason": "watchdog_expired"
+              },
+              "injection": {
+                "available": true,
+                "detail": "/dev/uinput is openable",
+                "implemented": true,
+                "platform": "linux/uinput"
+              },
+              "last_position": {
+                "x": 40000,
+                "y": 12000
+              },
+              "last_seen": "2026-09-15T04:12:31.204Z",
+              "mode": "translate",
+              "mode_detail": "profile=shell layout=us",
+              "profile": "shell",
+              "recent_actions": [],
+              "refused_frames": 1
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "applied_frames": {
+              "description": "동작으로 번역된 프레임 수.",
+              "minimum": 0,
+              "title": "적용된 프레임",
+              "type": "integer"
+            },
+            "binding_id": {
+              "title": "Binding ID",
+              "type": "string"
+            },
+            "bound": {
+              "title": "연결됨",
+              "type": "boolean"
+            },
+            "escape": {
+              "additionalProperties": false,
+              "description": "주입이 마지막으로 멈춘 이유. 커서가 돌아온 것만으로는 이유를 알 수 없어서(§6.5) 사유 코드로 남깁니다 — 잠긴 화면·멈춘 쓰기·애초에 허락되지 않은 노드가 전부 같은 침묵으로 보입니다.",
+              "properties": {
+                "at": {
+                  "description": "멈춘 시각(RFC3339).",
+                  "title": "시각",
+                  "type": "string"
+                },
+                "detail": {
+                  "description": "무엇을 보고 그렇게 판단했는지 — 고칠 사람에게 하는 말.",
+                  "title": "사유",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "released=Binding이 끝남, watchdog_expired=주입 한 건이 시간 안에 끝나지 않아 워치독이 장치를 걷어감(D-22 4층), device_failed=장치가 쓰기를 거절하거나 애초에 만들어지지 않음, lock_screen=이 노드의 세션이 잠겨 있어 주입하지 않음(D-15).",
+                  "enum": [
+                    "released",
+                    "watchdog_expired",
+                    "device_failed",
+                    "lock_screen"
+                  ],
+                  "title": "사유 코드",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "reason"
+              ],
+              "title": "탈출 기록",
+              "type": "object"
+            },
+            "injection": {
+              "additionalProperties": false,
+              "description": "이 노드가 OS 포인터를 실제로 움직일 수 있는가. implemented(이 빌드에 백엔드가 있는가)와 available(플랫폼이 허락하는가)은 원인도 고치는 사람도 달라서 따로 답합니다.",
+              "properties": {
+                "available": {
+                  "description": "플랫폼 전제조건(리눅스 /dev/uinput 열기, 윈도우 세션 0 아님)이 충족되는가.",
+                  "title": "가능",
+                  "type": "boolean"
+                },
+                "detail": {
+                  "description": "왜 그런지 — 고칠 사람에게 하는 말.",
+                  "title": "사유",
+                  "type": "string"
+                },
+                "implemented": {
+                  "description": "이 빌드에 OS 주입 백엔드가 있는가.",
+                  "title": "구현됨",
+                  "type": "boolean"
+                },
+                "platform": {
+                  "description": "무엇을 확인했는가(linux/uinput, windows/sendinput).",
+                  "title": "플랫폼",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "implemented",
+                "available",
+                "detail",
+                "platform"
+              ],
+              "title": "주입 가능 여부",
+              "type": "object"
+            },
+            "last_buttons": {
+              "items": {
+                "enum": [
+                  "left",
+                  "right",
+                  "middle"
+                ],
+                "type": "string"
+              },
+              "title": "눌린 버튼",
+              "type": "array"
+            },
+            "last_error": {
+              "title": "마지막 오류",
+              "type": "string"
+            },
+            "last_position": {
+              "additionalProperties": false,
+              "description": "정규 좌표(0..65535). 픽셀이 아닙니다 — 화면 크기가 다른 두 노드 사이에서 살아남는 것은 정규 좌표뿐입니다.",
+              "properties": {
+                "x": {
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "title": "x",
+                  "type": "integer"
+                },
+                "y": {
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "title": "y",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ],
+              "title": "정규 좌표",
+              "type": "object"
+            },
+            "last_seen": {
+              "format": "date-time",
+              "title": "마지막 수신 시각",
+              "type": "string"
+            },
+            "mode": {
+              "enum": [
+                "translate",
+                "inject"
+              ],
+              "title": "투영 방식",
+              "type": "string"
+            },
+            "mode_detail": {
+              "title": "투영 설명",
+              "type": "string"
+            },
+            "profile": {
+              "title": "프로파일",
+              "type": "string"
+            },
+            "recent_actions": {
+              "description": "최근 번역 결과(창, 전체 기록이 아님).",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "bytes": {
+                    "description": "터미널에 쓸 바이트. 아직 아무것도 쓰지 않습니다 — 어느 tty에 쓸지가 미결입니다.",
+                    "title": "바이트",
+                    "type": "string"
+                  },
+                  "intent": {
+                    "description": "사람이 한 일을 바이트가 아니라 말로.",
+                    "title": "의도",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "description": "keys=터미널에 쓸 바이트, clipboard=클립보드가 필요함, unsupported=이 프로파일이 표현할 수 없음.",
+                    "enum": [
+                      "keys",
+                      "clipboard",
+                      "unsupported"
+                    ],
+                    "title": "종류",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "description": "unsupported인 이유.",
+                    "title": "사유",
+                    "type": "string"
+                  },
+                  "sequence": {
+                    "minimum": 0,
+                    "title": "프레임 순번",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "sequence",
+                  "kind",
+                  "intent"
+                ],
+                "title": "번역된 동작",
+                "type": "object"
+              },
+              "title": "최근 동작",
+              "type": "array"
+            },
+            "refused_frames": {
+              "description": "번역 결과가 없었던 프레임 수. 이동만 있는 프레임은 터미널에서 아무 일도 일으키지 않으며, 그것은 결함이 아니라 결과입니다.",
+              "minimum": 0,
+              "title": "거절된 프레임",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "mode",
+            "mode_detail",
+            "profile",
+            "bound",
+            "applied_frames",
+            "refused_frames",
+            "recent_actions",
+            "injection"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "투영된 포인터의 현재 상태와 최근 번역 결과를 읽습니다.",
+            "id": "read-projection",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "이 노드에 투영된 원격 포인터의 현재 상태를 조회합니다.",
+      "tags": [
+        "io-weave",
+        "pointer",
+        "read"
+      ],
+      "title": "투영된 포인터 상태 조회",
+      "version": "1.0.0"
+    },
+    "io.terra.io-weave.settings.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "IO Weave",
+        "keywords": [
+          "settings",
+          "profile",
+          "설정",
+          "프로파일"
+        ],
+        "outputPorts": [
+          {
+            "name": "profile",
+            "pointer": "/profile"
+          }
+        ],
+        "recommendedLabel": "투영 설정 조회",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-weave/v1/settings",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "configuration",
+      "description": "read-only Operation입니다. 무엇에 답하는 노드인가는 이 노드의 성질이지 source의 성질이 아니므로 전선에 싣지 않고 여기에 둡니다.",
+      "errors": [
+        "IO_WEAVE_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "설정 조회는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "tmux 노드",
+            "value": {
+              "injection": "off",
+              "profile": "tmux",
+              "source_layout": "us"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "injection": {
+              "description": "이 노드가 원격 포인터에 자기 포인터를 내줄 것인가. off=OS 장치를 열지 않습니다(그래도 제스처는 번역합니다), auto=플랫폼이 허락하면 열고 아니면 사유와 함께 번역으로 내려갑니다. 기본은 off — 다른 기계가 이 기계의 커서를 움직이는 것은 이 노드에 대한 결정이고, /dev/uinput이 열린다는 사실이 그 승인은 아니기 때문입니다.",
+              "enum": [
+                "off",
+                "auto"
+              ],
+              "title": "주입",
+              "type": "string"
+            },
+            "profile": {
+              "description": "제스처에 답하는 번역 프로파일. shell=맨 셸, tmux=tmux 페인. 같은 휠이 tmux에서는 스크롤이고 맨 셸에서는 스크롤이 아닙니다.",
+              "enum": [
+                "shell",
+                "tmux"
+              ],
+              "title": "프로파일",
+              "type": "string"
+            },
+            "source_layout": {
+              "description": "source가 레이아웃을 밝히지 않을 때 가정할 키보드 레이아웃. source가 밝히면 그쪽이 이깁니다.",
+              "minLength": 1,
+              "title": "기본 소스 레이아웃",
+              "type": "string"
+            }
+          },
+          "required": [
+            "profile"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "저장된 투영 설정을 읽습니다.",
+            "id": "read-settings",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "이 노드의 투영 설정(번역 프로파일, 기본 소스 레이아웃)을 조회합니다.",
+      "tags": [
+        "io-weave",
+        "settings",
+        "read"
+      ],
+      "title": "투영 설정 조회",
+      "version": "1.0.0"
+    },
+    "io.terra.io-weave.settings.set": {
+      "authoring": {
+        "functionNode": false,
+        "group": "IO Weave",
+        "keywords": [
+          "settings",
+          "profile",
+          "설정",
+          "프로파일"
+        ],
+        "outputPorts": [
+          {
+            "name": "profile",
+            "pointer": "/profile"
+          }
+        ],
+        "recommendedLabel": "투영 설정 변경",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "PUT",
+          "path": "/api/modules/io.terra.io-weave/v1/settings",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "configuration",
+      "description": "프로파일을 바꾸면 번역기가 새로 만들어지고, 지금 눌려 있는 버튼은 놓입니다 — 한 프로파일에서 시작된 드래그는 다른 프로파일에서 뜻이 없고, 눌린 채로 넘어가면 아무도 놓지 않는 버튼이 남습니다.",
+      "errors": [
+        "IO_WEAVE_INVALID_SETTINGS",
+        "IO_WEAVE_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "write",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "tmux를 돌리는 노드로 바꿉니다.",
+            "name": "tmux로",
+            "value": {
+              "injection": "off",
+              "profile": "tmux",
+              "source_layout": "us"
+            }
+          },
+          {
+            "description": "이 노드의 커서를 원격이 움직여도 좋다고 켭니다. 기본이 off인 이유는 §8.9와 같습니다 — /dev/uinput이 열린다는 사실은 운영자의 승인이 아닙니다. 켜도 잠긴 세션(D-15)과 워치독(D-22 4층)은 그대로 적용됩니다.",
+            "name": "주입 켜기",
+            "value": {
+              "injection": "auto",
+              "profile": "shell",
+              "source_layout": "us"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "injection": {
+              "description": "이 노드가 원격 포인터에 자기 포인터를 내줄 것인가. off=OS 장치를 열지 않습니다(그래도 제스처는 번역합니다), auto=플랫폼이 허락하면 열고 아니면 사유와 함께 번역으로 내려갑니다. 기본은 off — 다른 기계가 이 기계의 커서를 움직이는 것은 이 노드에 대한 결정이고, /dev/uinput이 열린다는 사실이 그 승인은 아니기 때문입니다.",
+              "enum": [
+                "off",
+                "auto"
+              ],
+              "title": "주입",
+              "type": "string"
+            },
+            "profile": {
+              "description": "제스처에 답하는 번역 프로파일. shell=맨 셸, tmux=tmux 페인. 같은 휠이 tmux에서는 스크롤이고 맨 셸에서는 스크롤이 아닙니다.",
+              "enum": [
+                "shell",
+                "tmux"
+              ],
+              "title": "프로파일",
+              "type": "string"
+            },
+            "source_layout": {
+              "description": "source가 레이아웃을 밝히지 않을 때 가정할 키보드 레이아웃. source가 밝히면 그쪽이 이깁니다.",
+              "minLength": 1,
+              "title": "기본 소스 레이아웃",
+              "type": "string"
+            }
+          },
+          "required": [
+            "profile"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "tmux 노드",
+            "value": {
+              "injection": "off",
+              "profile": "tmux",
+              "source_layout": "us"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "injection": {
+              "description": "이 노드가 원격 포인터에 자기 포인터를 내줄 것인가. off=OS 장치를 열지 않습니다(그래도 제스처는 번역합니다), auto=플랫폼이 허락하면 열고 아니면 사유와 함께 번역으로 내려갑니다. 기본은 off — 다른 기계가 이 기계의 커서를 움직이는 것은 이 노드에 대한 결정이고, /dev/uinput이 열린다는 사실이 그 승인은 아니기 때문입니다.",
+              "enum": [
+                "off",
+                "auto"
+              ],
+              "title": "주입",
+              "type": "string"
+            },
+            "profile": {
+              "description": "제스처에 답하는 번역 프로파일. shell=맨 셸, tmux=tmux 페인. 같은 휠이 tmux에서는 스크롤이고 맨 셸에서는 스크롤이 아닙니다.",
+              "enum": [
+                "shell",
+                "tmux"
+              ],
+              "title": "프로파일",
+              "type": "string"
+            },
+            "source_layout": {
+              "description": "source가 레이아웃을 밝히지 않을 때 가정할 키보드 레이아웃. source가 밝히면 그쪽이 이깁니다.",
+              "minLength": 1,
+              "title": "기본 소스 레이아웃",
+              "type": "string"
+            }
+          },
+          "required": [
+            "profile"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [
+          {
+            "description": "요청한 프로파일이 저장되고, 이후 도착하는 프레임이 그 프로파일로 번역된다.",
+            "enforcedBy": "provider",
+            "id": "profile-applied",
+            "kind": "resource-state",
+            "title": "프로파일이 적용됨"
+          }
+        ],
+        "preconditions": [
+          {
+            "description": "요청한 프로파일이 이 빌드에 있어야 한다. 없으면 기본값으로 되돌리지 않고 거절한다.",
+            "enforcedBy": "provider",
+            "id": "known-profile",
+            "kind": "input",
+            "onFailure": "IO_WEAVE_INVALID_SETTINGS",
+            "title": "아는 프로파일"
+          }
+        ],
+        "processing": [
+          {
+            "description": "설정을 검증하고 모듈 데이터에 저장한 뒤 번역기를 다시 만듭니다.",
+            "id": "write-settings",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "update",
+            "description": "모듈 데이터 디렉터리의 settings.json을 교체한다.",
+            "resourceId": "io-weave.settings"
+          },
+          {
+            "action": "update",
+            "description": "번역기가 새로 만들어지면서 현재 붙어 있는 원격 포인터의 눌린 버튼이 놓인다.",
+            "resourceId": "io-weave.pointer"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "이 노드의 투영 설정을 바꾸고 저장합니다.",
+      "tags": [
+        "io-weave",
+        "settings",
+        "write"
+      ],
+      "title": "투영 설정 변경",
+      "version": "1.0.0"
+    },
+    "io.terra.io-weave.status.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Status/Health",
+        "keywords": [
+          "status",
+          "health",
+          "상태"
+        ],
+        "outputPorts": [
+          {
+            "name": "status",
+            "pointer": "/status"
+          },
+          {
+            "name": "mode",
+            "pointer": "/mode"
+          },
+          {
+            "name": "injectionAvailable",
+            "pointer": "/injection/available"
+          }
+        ],
+        "recommendedLabel": "상태 확인",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-weave/v1/status",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "status",
+      "description": "read-only Operation입니다. status는 모듈이 제 일을 하고 있는가만 답하고, 주입 가능 여부는 injection에 따로 싣습니다 — 디스플레이 서버가 없는 노드를 영구 degraded로 만들면 degraded라는 말이 아무 뜻도 갖지 못하게 됩니다.",
+      "errors": [
+        "IO_WEAVE_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "상태 조회는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "헤드리스 노드",
+            "value": {
+              "bound": false,
+              "injection": {
+                "available": false,
+                "detail": "/dev/uinput is not writable by this user; run the module's install/linux/install-uinput-access.sh as root (it installs /etc/udev/rules.d/70-terra-uinput.rules and the terra-input group) and restart the daemon so the group membership takes effect",
+                "implemented": true,
+                "platform": "linux/uinput"
+              },
+              "mode": "translate",
+              "profile": "shell",
+              "status": "ok",
+              "version": "0.1.0"
+            }
+          },
+          {
+            "description": "udev 규칙이 들어가 있고 운영자가 주입을 켠 노드. implemented(빌드에 백엔드가 있다)와 available(이 기계가 허락한다)이 둘 다 참일 때만 mode가 inject가 됩니다.",
+            "name": "주입 중인 노드",
+            "value": {
+              "bound": true,
+              "injection": {
+                "available": true,
+                "detail": "/dev/uinput is openable",
+                "implemented": true,
+                "platform": "linux/uinput"
+              },
+              "mode": "inject",
+              "profile": "shell",
+              "status": "ok",
+              "version": "0.1.0"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "bound": {
+              "description": "원격 Binding이 붙어 있는가.",
+              "title": "연결됨",
+              "type": "boolean"
+            },
+            "escape": {
+              "additionalProperties": false,
+              "description": "주입이 마지막으로 멈춘 이유. 커서가 돌아온 것만으로는 이유를 알 수 없어서(§6.5) 사유 코드로 남깁니다 — 잠긴 화면·멈춘 쓰기·애초에 허락되지 않은 노드가 전부 같은 침묵으로 보입니다.",
+              "properties": {
+                "at": {
+                  "description": "멈춘 시각(RFC3339).",
+                  "title": "시각",
+                  "type": "string"
+                },
+                "detail": {
+                  "description": "무엇을 보고 그렇게 판단했는지 — 고칠 사람에게 하는 말.",
+                  "title": "사유",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "released=Binding이 끝남, watchdog_expired=주입 한 건이 시간 안에 끝나지 않아 워치독이 장치를 걷어감(D-22 4층), device_failed=장치가 쓰기를 거절하거나 애초에 만들어지지 않음, lock_screen=이 노드의 세션이 잠겨 있어 주입하지 않음(D-15).",
+                  "enum": [
+                    "released",
+                    "watchdog_expired",
+                    "device_failed",
+                    "lock_screen"
+                  ],
+                  "title": "사유 코드",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "reason"
+              ],
+              "title": "탈출 기록",
+              "type": "object"
+            },
+            "injection": {
+              "additionalProperties": false,
+              "description": "이 노드가 OS 포인터를 실제로 움직일 수 있는가. implemented(이 빌드에 백엔드가 있는가)와 available(플랫폼이 허락하는가)은 원인도 고치는 사람도 달라서 따로 답합니다.",
+              "properties": {
+                "available": {
+                  "description": "플랫폼 전제조건(리눅스 /dev/uinput 열기, 윈도우 세션 0 아님)이 충족되는가.",
+                  "title": "가능",
+                  "type": "boolean"
+                },
+                "detail": {
+                  "description": "왜 그런지 — 고칠 사람에게 하는 말.",
+                  "title": "사유",
+                  "type": "string"
+                },
+                "implemented": {
+                  "description": "이 빌드에 OS 주입 백엔드가 있는가.",
+                  "title": "구현됨",
+                  "type": "boolean"
+                },
+                "platform": {
+                  "description": "무엇을 확인했는가(linux/uinput, windows/sendinput).",
+                  "title": "플랫폼",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "implemented",
+                "available",
+                "detail",
+                "platform"
+              ],
+              "title": "주입 가능 여부",
+              "type": "object"
+            },
+            "mode": {
+              "description": "프레임이 도착했을 때 이 노드가 하는 일. translate=터미널 의도로 번역, inject=OS 포인터 구동.",
+              "enum": [
+                "translate",
+                "inject"
+              ],
+              "title": "투영 방식",
+              "type": "string"
+            },
+            "profile": {
+              "description": "번역 프로파일(shell/tmux).",
+              "title": "프로파일",
+              "type": "string"
+            },
+            "status": {
+              "description": "모듈의 현재 상태입니다.",
+              "enum": [
+                "ok",
+                "degraded"
+              ],
+              "title": "상태",
+              "type": "string"
+            },
+            "version": {
+              "description": "모듈의 semantic 버전입니다.",
+              "minLength": 1,
+              "title": "버전",
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "version",
+            "mode",
+            "profile",
+            "bound",
+            "injection"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "모듈의 현재 상태와 버전을 읽습니다.",
+            "id": "read-status",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "io-weave 모듈의 상태와 이 노드의 주입 가능 여부를 조회합니다.",
+      "tags": [
+        "status",
+        "health",
+        "read"
+      ],
+      "title": "상태 조회",
+      "version": "1.0.0"
+    }
+  },
+  "provider": {
+    "hostRoles": [
+      "leaf-node"
+    ],
+    "id": "io.terra.io-weave",
+    "kind": "module",
+    "moduleId": "io.terra.io-weave",
+    "name": "Terra IO Weave",
+    "ownership": {
+      "source": "module/leaf/io.terra.io-weave"
+    },
+    "products": [
+      "leaf"
+    ],
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.0.0",
+  "summary": "io.terra.io-weave가 제공하는 Operation 계약입니다 — 이 노드에 투영된 원격 포인터의 상태.",
+  "title": "Terra IO Weave API"
+}

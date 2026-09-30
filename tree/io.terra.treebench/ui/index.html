@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Treebench</title>
+<link rel="stylesheet" href="treebench.css">
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">Tree<em>bench</em></span>
+  <span id="gateway-pill" class="pill dim">게이트웨이 확인 중</span>
+  <span id="session-pill" class="pill dim">세션 없음</span>
+  <span class="spacer"></span>
+  <span id="coverage-pill" class="pill dim" title="계약 operation 중 한 번이라도 호출한 비율">커버리지 –</span>
+  <button id="reset-ledger" class="btn" type="button">원장 비우기</button>
+</header>
+
+<div class="shell">
+  <nav class="nav" id="nav" aria-label="화면"></nav>
+
+  <main class="main" id="main">
+    <div class="loading" id="loading">카탈로그를 읽는 중…</div>
+  </main>
+
+  <aside class="env" aria-label="호출 봉투">
+    <h2>마지막 호출</h2>
+    <div id="envelope" class="env-empty">아직 호출하지 않았습니다.</div>
+    <h2>원장</h2>
+    <div id="ledger-summary" class="ledger-summary"></div>
+    <div id="ledger-recent" class="ledger-recent"></div>
+  </aside>
+</div>
+
+<!-- Generated from the Master contract; see tools/generate-contract-map.mjs. -->
+<script src="derive.js"></script>
+<script src="contract-map.js"></script>
+<script src="treebench.js"></script>
+</body>
+</html>

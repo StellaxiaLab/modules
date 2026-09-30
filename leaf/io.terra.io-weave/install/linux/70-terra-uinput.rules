@@ -1,0 +1,20 @@
+# Terra io-weave: access to the kernel's virtual input device factory.
+#
+# io-weave reproduces another node's approved pointer here by asking the kernel
+# to create a virtual input device through /dev/uinput. That node is owned by
+# root and mode 0600 by default, so without this rule the module installs
+# perfectly and then quietly cannot do the one thing it was installed for.
+#
+# D-25: the permission is the module install's to arrange, not a prerequisite
+# the operator is expected to have guessed. Choosing an optional module IS the
+# act of approving what that module needs.
+#
+# static_node is not optional here. uinput is built into most kernels rather
+# than loaded as a module, so there may be no add event for this rule to match:
+# the node already exists by the time udev reads the rules, and a rule without
+# static_node would apply to a device nobody is going to announce again.
+#
+# TAG+="uaccess" is deliberately NOT used. It grants access to the user logged
+# in at a graphical seat, and the nodes this axis targets run at a tty with no
+# seat at all.
+KERNEL=="uinput", GROUP="terra-input", MODE="0660", OPTIONS+="static_node=uinput"

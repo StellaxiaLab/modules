@@ -1,0 +1,11 @@
+{
+  "$comment": "로그인 결과의 표시용 view model. state는 기계가 읽고(idle·pending·success·failure), headline·detail은 사람이 읽는다. 화면은 이 Store만 바라보므로 성공도 실패도 같은 자리에 같은 방식으로 나타난다 — 실패가 예외가 아니라 하나의 상태다.",
+  "schemaVersion": "0.1.0",
+  "id": "result",
+  "kind": "view",
+  "initial": {
+    "state": "idle",
+    "headline": "",
+    "detail": ""
+  }
+}

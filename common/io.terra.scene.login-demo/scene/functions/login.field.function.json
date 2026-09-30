@@ -1,0 +1,39 @@
+{
+  "$comment": "입력 칸의 값을 Store에 반영한다. 레거시의 양방향 State Binding 대체: 입력 이벤트는 이 Function만 부르고, Store 쓰기는 여기서만 일어난다 (§11 규칙). 어느 칸인지는 엘리먼트가 input.field로 알려준다 — 그래서 칸이 둘이어도 Function은 하나다.",
+  "schemaVersion": "1.0.0",
+  "id": "logindemo.field",
+  "version": "0.1.0",
+  "concurrency": { "mode": "parallel" },
+  "graph": {
+    "nodes": [
+      {
+        "id": "route",
+        "type": "branch",
+        "cases": [
+          {
+            "when": { "left": "$input.field", "op": "eq", "right": "password" },
+            "then": [
+              {
+                "id": "savePassword",
+                "type": "store.write",
+                "storeId": "form",
+                "path": "/password",
+                "value": "$input.value"
+              }
+            ]
+          }
+        ],
+        "else": [
+          {
+            "id": "saveEmail",
+            "type": "store.write",
+            "storeId": "form",
+            "path": "/email",
+            "value": "$input.value"
+          }
+        ]
+      },
+      { "id": "done", "type": "return", "value": "$input.value" }
+    ]
+  }
+}

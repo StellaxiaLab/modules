@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node Talk</title>
+<link rel="stylesheet" href="nodetalk.css">
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">Node Talk</span>
+  <span id="module-pill" class="pill dim">모듈 확인 중…</span>
+  <span id="view-pill" class="pill dim" hidden></span>
+  <span class="spacer"></span>
+  <button id="refresh" class="btn" type="button">새로고침</button>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="노드와 대화">
+    <section>
+      <h2>노드 <span class="hint">— 행을 고르면 그 노드의 저장소를, 체크는 새 대화 멤버</span></h2>
+      <div id="node-list" class="list"><p class="empty">읽는 중…</p></div>
+      <form id="add-node" class="inline-form">
+        <input id="add-node-id" type="text" placeholder="목록에 없는 node id 직접 추가" autocomplete="off">
+        <button class="btn small" type="submit">추가</button>
+      </form>
+    </section>
+    <section>
+      <h2>대화</h2>
+      <div id="conversation-list" class="list"><p class="empty">읽는 중…</p></div>
+      <form id="create-conversation" class="stack-form">
+        <input id="create-name" type="text" placeholder="대화 이름" autocomplete="off">
+        <p id="create-hint" class="empty">멤버를 고르지 않으면 나 혼자인 대화가 된다 (나중에 초대 가능).</p>
+        <button class="btn small" type="submit">대화 만들기</button>
+      </form>
+    </section>
+  </nav>
+
+  <main class="main">
+    <div id="transcript" class="transcript">
+      <p class="empty">대화를 선택하십시오.</p>
+    </div>
+    <form id="composer" class="composer" hidden>
+      <input id="composer-text" type="text" placeholder="메시지" autocomplete="off">
+      <button class="btn primary" type="submit">보내기</button>
+      <button id="delete-conversation" class="btn danger" type="button" title="메인만 삭제를 확정할 수 있다">삭제</button>
+    </form>
+    <footer class="statusline" id="statusline">경로 — · main — · epoch —</footer>
+  </main>
+</div>
+
+<details class="diag">
+  <summary>진단 — 마지막 응답 봉투</summary>
+  <pre id="diag-body">아직 없음</pre>
+</details>
+
+<script src="nodetalk.js"></script>
+</body>
+</html>

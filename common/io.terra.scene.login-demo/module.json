@@ -1,0 +1,27 @@
+{
+  "$comment": "Terra 로그인 데모 (Manifest v2, kind=scene). 데이터만으로 이루어진 Scene 패키지 — 코드가 한 줄도 없고, Player가 읽어 화면을 세운다. 로그인은 Gateway Credential Service로 가고(§11.3), 성공과 실패가 둘 다 Store 값이 되어 화면에 붙는다.",
+  "schemaVersion": 2,
+  "id": "io.terra.scene.login-demo",
+  "name": "Terra 로그인 데모",
+  "version": "0.1.0",
+  "kind": "scene",
+  "description": "id·비밀번호를 받아 Gateway Credential Service로 인증하고 성공·실패를 표시하는 최소 Scene 모듈. Scene Function의 onError 실패 경로를 보여주는 참조 구현이다.",
+  "compatibility": {
+    "products": ["leaf", "tree"],
+    "os": ["linux", "windows"]
+  },
+  "entrypoints": {
+    "scene": "scene/scene.json"
+  },
+  "contributions": {
+    "gui": {
+      "scenes": [
+        {
+          "id": "io.terra.scene.login-demo",
+          "entry": "scene/scene.json",
+          "role": "application"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "$comment": "화면 전부. 엘리먼트는 Store를 읽고(bind) Function을 쏘기만(onClick·onChange·onSubmit) 하며, 쓰기는 Function만 한다 — 이 Fragment 어디에도 fetch도 토큰도 없다. 성공과 실패는 같은 두 줄(headline·detail)에 나타난다: 실패가 예외 처리가 아니라 result Store의 한 상태이기 때문이다.",
+  "schemaVersion": "0.1.0",
+  "id": "logindemo.login",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Terra 로그인",
+  "stores": ["form", "result"],
+  "functions": ["logindemo.field", "logindemo.submit", "logindemo.reset"],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "a11y": { "role": "form", "label": "Terra 로그인" },
+    "children": [
+      { "type": "text", "id": "heading", "variant": "heading", "text": "Terra 로그인" },
+      {
+        "type": "text",
+        "id": "subtitle",
+        "text": "Gateway Credential Service로 인증합니다. 토큰은 Gateway가 쥐고, 이 화면은 그것을 가리키는 이름만 받습니다."
+      },
+      {
+        "type": "input",
+        "id": "email",
+        "placeholder": "admin@terra.local",
+        "bind": { "store": "form", "path": "/email" },
+        "onChange": { "function": "logindemo.field", "input": { "field": "email" } },
+        "a11y": { "label": "아이디" }
+      },
+      {
+        "type": "input",
+        "id": "password",
+        "inputType": "secret",
+        "placeholder": "비밀번호",
+        "bind": { "store": "form", "path": "/password" },
+        "onChange": { "function": "logindemo.field", "input": { "field": "password" } },
+        "onSubmit": { "function": "logindemo.submit" },
+        "a11y": { "label": "비밀번호" }
+      },
+      {
+        "type": "column",
+        "id": "actions",
+        "direction": "horizontal",
+        "children": [
+          { "type": "button", "id": "submit", "text": "로그인", "onClick": { "function": "logindemo.submit" } },
+          { "type": "button", "id": "reset", "text": "초기화", "onClick": { "function": "logindemo.reset" } }
+        ]
+      },
+      { "type": "divider", "id": "rule" },
+      {
+        "type": "card",
+        "id": "outcome",
+        "title": "결과",
+        "children": [
+          {
+            "type": "text",
+            "id": "headline",
+            "variant": "heading",
+            "bind": { "store": "result", "path": "/headline" },
+            "empty": "아직 로그인하지 않았습니다",
+            "a11y": { "role": "status", "live": "polite" }
+          },
+          {
+            "type": "text",
+            "id": "detail",
+            "bind": { "store": "result", "path": "/detail" },
+            "empty": ""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+# Build output. The release build compiles src/ into these paths and
+# stamps the digests into module.json integrity.
+bin/
+# go build artifacts in src/ (the release build compiles to bin/, never here)
+src/*.exe
+src/io.terra.nodetalk

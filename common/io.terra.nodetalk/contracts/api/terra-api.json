@@ -1,0 +1,4062 @@
+{
+  "$schema": "../../../../../docs/contracts/api/schemas/terra-api-contract-v1.schema.json",
+  "authentication": {
+    "workload-identity": {
+      "description": "Module Runtime이 실행 instance에 발급한 단기 Workload Identity를 사용합니다.",
+      "type": "workload-identity"
+    }
+  },
+  "contractId": "io.terra.nodetalk.api",
+  "contractVersion": "0.3.0",
+  "defaultLocale": "ko-KR",
+  "description": "이 계약이 Gateway route의 단일 원본입니다. operation의 bindings에 적은 method·path가 그대로 게시되고 security.permissions가 route 권한이 되므로, 표면을 바꿀 때는 코드가 아니라 이 파일을 먼저 고칩니다. 설계 결정 D-1(메인은 순서·보존 권한자)과 D-3(방의 이름은 conversation)이 이 계약의 모양을 정합니다 — docs/ideas/node-comms-test-module-ideas.md 참조.",
+  "errors": {
+    "CATCH_UP_INCOMPLETE": {
+      "description": "승격을 주장한 노드가 현 메인의 보유 수위를 전부 갖고 있지 않다. 따라잡기 증명 없이는 승격이 곧 전사 절단이므로 거절한다.",
+      "httpStatus": 409,
+      "retryable": true,
+      "title": "따라잡기 미완료",
+      "userAction": "replica.pull로 부족한 구간을 채운 뒤 다시 주장하십시오."
+    },
+    "CONVERSATION_DELETED": {
+      "description": "대화가 삭제됐고 묘비가 남아 있다. 보존 창 안에서는 이 응답이 부활을 막는다.",
+      "httpStatus": 410,
+      "retryable": false,
+      "title": "삭제된 대화",
+      "userAction": "삭제된 대화입니다. 필요하면 새로 만드십시오."
+    },
+    "CONVERSATION_NOT_FOUND": {
+      "description": "지정한 대화를 이 노드가 모른다. 아직 초대가 도달하지 않았거나 id가 틀렸다.",
+      "httpStatus": 404,
+      "retryable": false,
+      "title": "대화 없음",
+      "userAction": "대화 ID를 확인하거나, 초대가 이 노드에 도달할 때까지 기다리십시오."
+    },
+    "EPOCH_STALE": {
+      "description": "요청이 현재보다 낮은 epoch를 달고 왔다. 인수인계 전에 출발한 옛 메인의 지시일 수 있으므로 거절한다.",
+      "httpStatus": 409,
+      "retryable": false,
+      "title": "낡은 epoch",
+      "userAction": "conversations.get으로 현재 epoch를 다시 읽고 재시도하십시오."
+    },
+    "FAULTS_NOT_AVAILABLE": {
+      "description": "이 조립에는 고장 주입 표면이 없다. 출하 조립에서 항상 이 응답이다.",
+      "httpStatus": 404,
+      "retryable": false,
+      "title": "고장 주입 불가",
+      "userAction": "개발 조립에서만 사용할 수 있습니다."
+    },
+    "INVALID_REQUEST": {
+      "description": "요청의 형태가 계약과 다르다. 본문을 읽을 수 없거나 필수 항목이 빠졌다.",
+      "httpStatus": 400,
+      "retryable": false,
+      "title": "잘못된 요청",
+      "userAction": "입력 스키마와 대조해 다시 보내십시오."
+    },
+    "MEMBER_NOT_FOUND": {
+      "description": "지정한 노드가 이 대화의 멤버가 아니다.",
+      "httpStatus": 404,
+      "retryable": false,
+      "title": "멤버 없음",
+      "userAction": "conversations.get으로 멤버 목록을 확인하십시오."
+    },
+    "NODETALK_UNAVAILABLE": {
+      "description": "모듈이 아직 준비되지 않았거나 내부 상태가 손상되어 요청을 처리할 수 없습니다.",
+      "httpStatus": 503,
+      "retryable": true,
+      "title": "모듈 사용 불가",
+      "userAction": "잠시 후 다시 시도하십시오."
+    },
+    "NODE_UNREACHABLE": {
+      "description": "대상 노드에 어느 사다리 칸으로도 닿지 못했다. 상대가 꺼져 있거나 경로가 끊겼다.",
+      "httpStatus": 503,
+      "retryable": true,
+      "title": "노드 도달 불가",
+      "userAction": "대상 노드의 상태를 확인하고 다시 시도하십시오."
+    },
+    "NOT_MAIN": {
+      "description": "메인만 할 수 있는 일을 백업 노드에 요청했다. 순서 발행·멤버십 변경·삭제 확정이 여기 해당한다. 메시지 append는 여기 해당하지 않는다.",
+      "httpStatus": 409,
+      "retryable": false,
+      "title": "메인이 아님",
+      "userAction": "conversations.get이 알려 주는 main_node_id로 다시 호출하십시오."
+    }
+  },
+  "operations": {
+    "io.terra.nodetalk.conversations.create": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Conversation",
+        "recommendedLabel": "대화 만들기",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node",
+          "cluster"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations",
+          "successStatus": 201,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "conversation",
+      "description": "만든 노드가 epoch 0의 메인이 된다. 메인은 쓰기 권한자가 아니라 순서·보존 권한자다 — 메시지 append는 모든 멤버가 언제나 할 수 있다. members 배열의 순서가 그대로 우선순위(rank)가 되며, 이 순서가 나중에 인수인계 대상을 정한다.",
+      "errors": [
+        "INVALID_REQUEST",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "keyInputPointer": "/body/idempotency_key",
+          "mode": "idempotent",
+          "retentionSeconds": 3600
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "idempotency-key-only"
+        },
+        "risk": "write",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "자신이 rank 0이 되고 node-b가 rank 1이 된다.",
+            "name": "2자 대화",
+            "value": {
+              "display_name": "릴레이 점검",
+              "members": [
+                "node-a",
+                "node-b"
+              ]
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "display_name": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "표시 이름",
+              "type": "string"
+            },
+            "idempotency_key": {
+              "description": "같은 키의 재시도는 대화를 하나만 만든다.",
+              "minLength": 1,
+              "title": "멱등 키",
+              "type": "string"
+            },
+            "members": {
+              "description": "초대할 노드. 배열 순서가 그대로 우선순위가 된다. 생략하면 만든 노드 혼자인 대화가 되고, 이후 members.add로 채운다.",
+              "items": {
+                "description": "노드 식별자.",
+                "minLength": 1,
+                "title": "노드 ID",
+                "type": "string"
+              },
+              "title": "멤버(우선순위 순)",
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "display_name"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "생성됨",
+            "value": {
+              "conversation": {
+                "conversation_id": "cv-1",
+                "created_by": "node-a",
+                "display_name": "릴레이 점검",
+                "epoch": 0,
+                "main_node_id": "node-a",
+                "members": [
+                  {
+                    "joined_epoch": 0,
+                    "node_id": "node-a",
+                    "rank": 0,
+                    "state": "active"
+                  },
+                  {
+                    "joined_epoch": 0,
+                    "node_id": "node-b",
+                    "rank": 1,
+                    "state": "active"
+                  }
+                ],
+                "role": "main"
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "conversation": {
+              "additionalProperties": false,
+              "description": "대화 하나의 제어 상태. 메시지 본문은 담지 않는다.",
+              "properties": {
+                "conversation_id": {
+                  "description": "대화 식별자.",
+                  "minLength": 1,
+                  "title": "대화 ID",
+                  "type": "string"
+                },
+                "created_by": {
+                  "description": "노드 식별자.",
+                  "minLength": 1,
+                  "title": "노드 ID",
+                  "type": "string"
+                },
+                "display_name": {
+                  "minLength": 1,
+                  "title": "표시 이름",
+                  "type": "string"
+                },
+                "epoch": {
+                  "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                  "minimum": 0,
+                  "title": "epoch",
+                  "type": "integer"
+                },
+                "main_node_id": {
+                  "description": "현재 순서·보존 권한자. 쓰기 권한자가 아니다.",
+                  "minLength": 1,
+                  "title": "노드 ID",
+                  "type": "string"
+                },
+                "main_node_name": {
+                  "type": "string",
+                  "description": "메인 노드의 이름"
+                },
+                "members": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "joined_epoch": {
+                        "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                        "minimum": 0,
+                        "title": "epoch",
+                        "type": "integer"
+                      },
+                      "node_id": {
+                        "description": "노드 식별자.",
+                        "minLength": 1,
+                        "title": "노드 ID",
+                        "type": "string"
+                      },
+                      "display_name": {
+                        "type": "string",
+                        "description": "멤버 노드의 이름"
+                      },
+                      "rank": {
+                        "description": "우선순위. 낮을수록 먼저 메인이 된다.",
+                        "minimum": 0,
+                        "title": "우선순위",
+                        "type": "integer"
+                      },
+                      "state": {
+                        "enum": [
+                          "active",
+                          "removed"
+                        ],
+                        "title": "상태",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "node_id",
+                      "rank",
+                      "state"
+                    ],
+                    "type": "object"
+                  },
+                  "title": "멤버",
+                  "type": "array"
+                },
+                "role": {
+                  "description": "이 노드가 이 대화에서 갖는 자리.",
+                  "enum": [
+                    "main",
+                    "backup"
+                  ],
+                  "title": "이 노드의 자리",
+                  "type": "string"
+                },
+                "members_rev": {
+                  "description": "메인이 멤버를 더하거나 뺀 횟수. epoch는 인수인계의 시계라 멤버가 들어와도 움직이지 않으므로, 어느 멤버 목록이 더 새것인지는 이 값이 답한다.",
+                  "minimum": 0,
+                  "title": "멤버십 개정",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "conversation_id",
+                "display_name",
+                "epoch",
+                "main_node_id",
+                "members",
+                "role"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "conversation"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.control"
+        ]
+      },
+      "semantics": {
+        "postconditions": [
+          {
+            "description": "생성 노드가 epoch 0의 메인이고, members 순서가 rank로 굳는다.",
+            "enforcedBy": "provider",
+            "id": "creator-is-main",
+            "kind": "invariant",
+            "title": "생성자가 초대 epoch의 메인"
+          }
+        ],
+        "processing": [
+          {
+            "description": "대화 메타를 쓰고 생성 엔트리를 자기 로그에 append한다.",
+            "id": "create-conversation",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "create",
+            "description": "대화 디렉터리와 메타를 만든다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "대화를 만들고 초대 순서를 우선순위로 굳힌다.",
+      "tags": [
+        "conversation",
+        "write"
+      ],
+      "title": "대화 생성",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.conversations.delete": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Conversation",
+        "recommendedLabel": "대화 삭제",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node",
+          "cluster"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "DELETE",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "conversation",
+      "description": "삭제는 로컬 행동이 아니라 복제되는 의도다. 이 노드의 내용은 즉시 사라지지만 묘비는 보존 창 동안 남아, 삭제 시점에 꺼져 있던 노드가 돌아와 대화를 부활시키는 것을 막는다. 메인만 발행할 수 있고 epoch가 함께 실린다. 미도달 노드는 응답에 그대로 보고된다.",
+      "errors": [
+        "CONVERSATION_NOT_FOUND",
+        "EPOCH_STALE",
+        "NOT_MAIN",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "keyInputPointer": "/path/conversation_id",
+          "limit": 1,
+          "mode": "per-resource"
+        },
+        "confirmation": {
+          "mode": "required"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "idempotent-only"
+        },
+        "risk": "dangerous",
+        "timeoutMs": {
+          "default": 10000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "name": "삭제",
+            "value": {
+              "conversation_id": "cv-1"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "conversation_by_name": {
+              "type": "boolean",
+              "description": "conversation_id 자리의 값을 반드시 표시 이름으로 읽으라는 선언. 없어도 이름은 통한다 — 이 노드가 가진 id를 먼저 보고, 없으면 이름으로 찾는다"
+            }
+          },
+          "required": [
+            "conversation_id"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "2/3 도달",
+            "value": {
+              "acknowledged_by": [
+                "node-a",
+                "node-b"
+              ],
+              "deleted_at_epoch": 3,
+              "pending_nodes": [
+                "node-c"
+              ]
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "acknowledged_by": {
+              "description": "삭제를 확인한 노드.",
+              "items": {
+                "description": "노드 식별자.",
+                "minLength": 1,
+                "title": "노드 ID",
+                "type": "string"
+              },
+              "title": "삭제 확인",
+              "type": "array"
+            },
+            "deleted_at_epoch": {
+              "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+              "minimum": 0,
+              "title": "epoch",
+              "type": "integer"
+            },
+            "pending_nodes": {
+              "description": "아직 묘비가 닿지 않은 노드. 화면에 그대로 보여 준다.",
+              "items": {
+                "description": "노드 식별자.",
+                "minLength": 1,
+                "title": "노드 ID",
+                "type": "string"
+              },
+              "title": "미도달 노드",
+              "type": "array"
+            }
+          },
+          "required": [
+            "acknowledged_by",
+            "deleted_at_epoch",
+            "pending_nodes"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.control"
+        ]
+      },
+      "semantics": {
+        "preconditions": [
+          {
+            "description": "삭제 확정은 메인만 할 수 있다. 백업의 삭제는 NOT_MAIN으로 거절된다.",
+            "enforcedBy": "provider",
+            "id": "main-only",
+            "kind": "resource-state",
+            "title": "메인만 삭제 확정"
+          }
+        ],
+        "processing": [
+          {
+            "description": "묘비를 남기고 로그 디렉터리를 지운 뒤 멤버에 전파한다.",
+            "id": "tombstone-and-propagate",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "delete",
+            "description": "대화 디렉터리와 그 안의 모든 로그를 지운다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "삭제 의도를 발행하고 묘비를 남긴다.",
+      "tags": [
+        "conversation",
+        "delete",
+        "dangerous"
+      ],
+      "title": "대화 삭제",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.conversations.get": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Conversation",
+        "recommendedLabel": "대화 상세",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "conversation",
+      "description": "인수인계와 동기화의 판단 근거가 되는 오퍼레이션이다. high_water_marks는 이 노드가 저자별로 어디까지 갖고 있는지를 답하며, replica.pull의 재개점이자 main.claim의 따라잡기 증명 재료다. 부수효과가 없다.",
+      "errors": [
+        "CONVERSATION_DELETED",
+        "CONVERSATION_NOT_FOUND",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "name": "대화 하나",
+            "value": {
+              "conversation_id": "cv-1"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "conversation_by_name": {
+              "type": "boolean",
+              "description": "conversation_id 자리의 값을 반드시 표시 이름으로 읽으라는 선언. 없어도 이름은 통한다 — 이 노드가 가진 id를 먼저 보고, 없으면 이름으로 찾는다"
+            }
+          },
+          "required": [
+            "conversation_id"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "조회됨",
+            "value": {
+              "conversation": {
+                "conversation_id": "cv-1",
+                "display_name": "릴레이 점검",
+                "epoch": 3,
+                "main_node_id": "node-b",
+                "members": [
+                  {
+                    "node_id": "node-a",
+                    "rank": 0,
+                    "state": "active"
+                  },
+                  {
+                    "node_id": "node-b",
+                    "rank": 1,
+                    "state": "active"
+                  }
+                ],
+                "role": "backup"
+              },
+              "high_water_marks": {
+                "node-a": 17,
+                "node-b": 42
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "conversation": {
+              "additionalProperties": false,
+              "description": "대화 하나의 제어 상태. 메시지 본문은 담지 않는다.",
+              "properties": {
+                "conversation_id": {
+                  "description": "대화 식별자.",
+                  "minLength": 1,
+                  "title": "대화 ID",
+                  "type": "string"
+                },
+                "created_by": {
+                  "description": "노드 식별자.",
+                  "minLength": 1,
+                  "title": "노드 ID",
+                  "type": "string"
+                },
+                "display_name": {
+                  "minLength": 1,
+                  "title": "표시 이름",
+                  "type": "string"
+                },
+                "epoch": {
+                  "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                  "minimum": 0,
+                  "title": "epoch",
+                  "type": "integer"
+                },
+                "main_node_id": {
+                  "description": "현재 순서·보존 권한자. 쓰기 권한자가 아니다.",
+                  "minLength": 1,
+                  "title": "노드 ID",
+                  "type": "string"
+                },
+                "main_node_name": {
+                  "type": "string",
+                  "description": "메인 노드의 이름"
+                },
+                "members": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "joined_epoch": {
+                        "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                        "minimum": 0,
+                        "title": "epoch",
+                        "type": "integer"
+                      },
+                      "node_id": {
+                        "description": "노드 식별자.",
+                        "minLength": 1,
+                        "title": "노드 ID",
+                        "type": "string"
+                      },
+                      "display_name": {
+                        "type": "string",
+                        "description": "멤버 노드의 이름"
+                      },
+                      "rank": {
+                        "description": "우선순위. 낮을수록 먼저 메인이 된다.",
+                        "minimum": 0,
+                        "title": "우선순위",
+                        "type": "integer"
+                      },
+                      "state": {
+                        "enum": [
+                          "active",
+                          "removed"
+                        ],
+                        "title": "상태",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "node_id",
+                      "rank",
+                      "state"
+                    ],
+                    "type": "object"
+                  },
+                  "title": "멤버",
+                  "type": "array"
+                },
+                "role": {
+                  "description": "이 노드가 이 대화에서 갖는 자리.",
+                  "enum": [
+                    "main",
+                    "backup"
+                  ],
+                  "title": "이 노드의 자리",
+                  "type": "string"
+                },
+                "members_rev": {
+                  "description": "메인이 멤버를 더하거나 뺀 횟수. epoch는 인수인계의 시계라 멤버가 들어와도 움직이지 않으므로, 어느 멤버 목록이 더 새것인지는 이 값이 답한다.",
+                  "minimum": 0,
+                  "title": "멤버십 개정",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "conversation_id",
+                "display_name",
+                "epoch",
+                "main_node_id",
+                "members",
+                "role"
+              ],
+              "type": "object"
+            },
+            "high_water_marks": {
+              "additionalProperties": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "description": "저자 노드 id → 이 노드가 보유한 마지막 seq. 동기화의 재개점이다.",
+              "propertyNames": {
+                "minLength": 1
+              },
+              "title": "저자별 보유 수위",
+              "type": "object"
+            },
+            "on_node_id": {
+              "type": "string",
+              "description": "이 목록/답을 낸 노드의 id. 한 기계가 여러 노드를 돌릴 수 있으므로, 어느 노드의 답인지가 답의 일부다"
+            },
+            "on_node_name": {
+              "type": "string",
+              "description": "그 노드의 표시 이름"
+            }
+          },
+          "required": [
+            "conversation",
+            "high_water_marks"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.read"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "대화 메타와 저자별 보유 수위를 읽는다.",
+            "id": "read-conversation",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "read",
+            "description": "대화 메타와 로그 수위를 읽는다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "대화 하나를 멤버·epoch·저자별 보유 수위와 함께 조회한다.",
+      "tags": [
+        "conversation",
+        "read"
+      ],
+      "title": "대화 상세",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.conversations.list": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Conversation",
+        "recommendedLabel": "대화 목록",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "conversation",
+      "description": "화면 좌측 목록의 원본이다. 대화마다 이 노드의 자리(메인·백업), 현재 epoch, 아직 못 받은 엔트리 수를 함께 답한다. 부수효과가 없다.",
+      "errors": [
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "목록 조회는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "두 대화",
+            "value": {
+              "conversations": [
+                {
+                  "behind": 0,
+                  "conversation": {
+                    "conversation_id": "cv-1",
+                    "display_name": "릴레이 점검",
+                    "epoch": 3,
+                    "main_node_id": "node-a",
+                    "members": [
+                      {
+                        "node_id": "node-a",
+                        "rank": 0,
+                        "state": "active"
+                      },
+                      {
+                        "node_id": "node-b",
+                        "rank": 1,
+                        "state": "active"
+                      }
+                    ],
+                    "role": "main"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "conversations": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "behind": {
+                    "description": "다른 멤버가 갖고 있는데 이 노드에는 아직 없는 엔트리 수.",
+                    "minimum": 0,
+                    "title": "미동기 건수",
+                    "type": "integer"
+                  },
+                  "conversation": {
+                    "additionalProperties": false,
+                    "description": "대화 하나의 제어 상태. 메시지 본문은 담지 않는다.",
+                    "properties": {
+                      "conversation_id": {
+                        "description": "대화 식별자.",
+                        "minLength": 1,
+                        "title": "대화 ID",
+                        "type": "string"
+                      },
+                      "created_by": {
+                        "description": "노드 식별자.",
+                        "minLength": 1,
+                        "title": "노드 ID",
+                        "type": "string"
+                      },
+                      "display_name": {
+                        "minLength": 1,
+                        "title": "표시 이름",
+                        "type": "string"
+                      },
+                      "epoch": {
+                        "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                        "minimum": 0,
+                        "title": "epoch",
+                        "type": "integer"
+                      },
+                      "main_node_id": {
+                        "description": "현재 순서·보존 권한자. 쓰기 권한자가 아니다.",
+                        "minLength": 1,
+                        "title": "노드 ID",
+                        "type": "string"
+                      },
+                      "main_node_name": {
+                        "type": "string",
+                        "description": "메인 노드의 이름"
+                      },
+                      "members": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "joined_epoch": {
+                              "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                              "minimum": 0,
+                              "title": "epoch",
+                              "type": "integer"
+                            },
+                            "node_id": {
+                              "description": "노드 식별자.",
+                              "minLength": 1,
+                              "title": "노드 ID",
+                              "type": "string"
+                            },
+                            "display_name": {
+                              "type": "string",
+                              "description": "멤버 노드의 이름"
+                            },
+                            "rank": {
+                              "description": "우선순위. 낮을수록 먼저 메인이 된다.",
+                              "minimum": 0,
+                              "title": "우선순위",
+                              "type": "integer"
+                            },
+                            "state": {
+                              "enum": [
+                                "active",
+                                "removed"
+                              ],
+                              "title": "상태",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "node_id",
+                            "rank",
+                            "state"
+                          ],
+                          "type": "object"
+                        },
+                        "title": "멤버",
+                        "type": "array"
+                      },
+                      "role": {
+                        "description": "이 노드가 이 대화에서 갖는 자리.",
+                        "enum": [
+                          "main",
+                          "backup"
+                        ],
+                        "title": "이 노드의 자리",
+                        "type": "string"
+                      },
+                      "members_rev": {
+                        "description": "메인이 멤버를 더하거나 뺀 횟수. epoch는 인수인계의 시계라 멤버가 들어와도 움직이지 않으므로, 어느 멤버 목록이 더 새것인지는 이 값이 답한다.",
+                        "minimum": 0,
+                        "title": "멤버십 개정",
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "conversation_id",
+                      "display_name",
+                      "epoch",
+                      "main_node_id",
+                      "members",
+                      "role"
+                    ],
+                    "type": "object"
+                  },
+                  "on_node_id": {
+                    "type": "string",
+                    "description": "이 목록/답을 낸 노드의 id. 한 기계가 여러 노드를 돌릴 수 있으므로, 어느 노드의 답인지가 답의 일부다"
+                  },
+                  "on_node_name": {
+                    "type": "string",
+                    "description": "그 노드의 표시 이름"
+                  },
+                  "lost_own": {
+                    "type": "integer",
+                    "description": "Behind 중 이 노드가 직접 쓴 줄의 수. 복제로는 절대 안 돌아온다 — 노드는 자기 로그의 권위자라 자기 줄을 피어에게서 되받지 않는다. 0이 아니면 그 줄들은 여기에서만 사라진 것이고, 피어에는 남아 있다"
+                  }
+                },
+                "required": [
+                  "behind",
+                  "conversation"
+                ],
+                "type": "object"
+              },
+              "title": "대화 목록",
+              "type": "array"
+            }
+          },
+          "required": [
+            "conversations"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.read"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "로컬 대화 메타와 저자별 수위를 읽어 미동기 건수를 셈한다.",
+            "id": "read-conversations",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "read",
+            "description": "로컬 대화 메타를 읽는다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "이 노드가 아는 대화를 동기화 상태와 함께 조회한다.",
+      "tags": [
+        "conversation",
+        "read"
+      ],
+      "title": "대화 목록",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.faults.set": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Diagnostics",
+        "recommendedLabel": "고장 주입",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresFeatureFlags": [
+          "nodetalk.faults"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "PUT",
+          "path": "/api/modules/io.terra.nodetalk/v1/faults",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "diagnostics",
+      "description": "개발 조립 전용이다. 이게 없으면 인수인계와 묘비 경로는 사고가 나야만 도는 코드로 남고, 사고는 데모 중에 나지 않는다. 출하 조립에서는 이 표면이 없어 항상 FAULTS_NOT_AVAILABLE을 답한다.",
+      "errors": [
+        "FAULTS_NOT_AVAILABLE",
+        "INVALID_REQUEST",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "required"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "idempotent-only"
+        },
+        "risk": "dangerous",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "node-c로 가는 호출에 300ms를 더하고 10%를 떨어뜨린다.",
+            "name": "지연·드롭 주입",
+            "value": {
+              "delay_ms": 300,
+              "drop_rate": 0.1,
+              "target_node_id": "node-c"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "delay_ms": {
+              "description": "대상 노드로 나가는 호출에 더할 지연.",
+              "maximum": 60000,
+              "minimum": 0,
+              "title": "지연(ms)",
+              "type": "integer"
+            },
+            "drop_rate": {
+              "description": "전달을 실패시킬 확률.",
+              "maximum": 1,
+              "minimum": 0,
+              "title": "드롭율",
+              "type": "number"
+            },
+            "force_offline": {
+              "description": "대상 노드에 대해 죽은 척한다. 인수인계를 눈앞에서 만든다.",
+              "title": "강제 오프라인",
+              "type": "boolean"
+            },
+            "handover_hysteresis_ms": {
+              "description": "0으로 내리면 flapping을 재현할 수 있다.",
+              "minimum": 0,
+              "title": "인수인계 히스테리시스(ms)",
+              "type": "integer"
+            },
+            "settle_ms": {
+              "description": "복귀 노드가 승격 자격을 얻기까지의 연속 도달 시간.",
+              "minimum": 0,
+              "title": "settle 타이머(ms)",
+              "type": "integer"
+            },
+            "target_node_id": {
+              "description": "생략하면 모든 대상에 적용한다.",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "적용됨",
+            "value": {
+              "active_faults": 1,
+              "applied": true
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "active_faults": {
+              "minimum": 0,
+              "title": "활성 주입 수",
+              "type": "integer"
+            },
+            "applied": {
+              "title": "적용됨",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "active_faults",
+            "applied"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.control"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "주입 설정을 프로세스 메모리에 반영한다. 디스크에 남기지 않는다.",
+            "id": "apply-faults",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "experimental",
+      "summary": "지연·드롭·분단을 일부러 만든다.",
+      "tags": [
+        "diagnostics",
+        "fault-injection",
+        "dangerous"
+      ],
+      "title": "고장 주입 설정",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.main.claim": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Handover",
+        "recommendedLabel": "메인 인수인계",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node",
+          "cluster"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}/main",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "handover",
+      "description": "인수인계 4단계 중 ③이다. 호출자는 현 메인의 보유 수위를 전부 갖고 있음을 high_water_marks로 증명해야 하며, 하나라도 모자라면 CATCH_UP_INCOMPLETE로 거절된다 — 따라잡기 전 승격은 곧 전사 절단이기 때문이다. 성공하면 epoch가 1 오르고, 그보다 낮은 epoch를 단 이후 요청은 모두 거절된다.",
+      "errors": [
+        "CATCH_UP_INCOMPLETE",
+        "CONVERSATION_DELETED",
+        "CONVERSATION_NOT_FOUND",
+        "EPOCH_STALE",
+        "INVALID_REQUEST",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "keyInputPointer": "/path/conversation_id",
+          "limit": 1,
+          "mode": "per-resource"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "idempotent-only"
+        },
+        "risk": "privileged",
+        "timeoutMs": {
+          "default": 15000,
+          "maximum": 60000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "epoch 3을 4로 올리며 node-a가 메인을 가져간다.",
+            "name": "복귀 노드의 승격 주장",
+            "value": {
+              "claimant_node_id": "node-a",
+              "claimed_epoch": 4,
+              "conversation_id": "cv-1",
+              "high_water_marks": {
+                "node-a": 18,
+                "node-b": 43
+              }
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "claimant_node_id": {
+              "description": "메인을 가져갈 노드.",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            },
+            "claimed_epoch": {
+              "description": "주장하는 새 epoch. 현재보다 정확히 1 커야 한다.",
+              "minimum": 0,
+              "title": "epoch",
+              "type": "integer"
+            },
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "high_water_marks": {
+              "additionalProperties": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "description": "주장자가 보유한 저자별 수위. 따라잡기 증명이다.",
+              "propertyNames": {
+                "minLength": 1
+              },
+              "title": "저자별 보유 수위",
+              "type": "object"
+            }
+          },
+          "required": [
+            "claimant_node_id",
+            "claimed_epoch",
+            "conversation_id",
+            "high_water_marks"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "인수인계 완료",
+            "value": {
+              "epoch": 4,
+              "main_node_id": "node-a",
+              "previous_main_node_id": "node-b"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "epoch": {
+              "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+              "minimum": 0,
+              "title": "epoch",
+              "type": "integer"
+            },
+            "main_node_id": {
+              "description": "노드 식별자.",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            },
+            "previous_main_node_id": {
+              "description": "노드 식별자.",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            }
+          },
+          "required": [
+            "epoch",
+            "main_node_id"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.control"
+        ],
+        "workloadPermissions": [
+          "nodetalk.replicate"
+        ]
+      },
+      "semantics": {
+        "invariants": [
+          "증명 없는 승격 금지 — 따라잡기가 증명되기 전에는 epoch가 오르지 않는다. 이것이 인수인계가 전사를 자르지 않게 막는 유일한 장치다."
+        ],
+        "preconditions": [
+          {
+            "description": "주장자의 high_water_marks가 현 메인의 수위를 저자별로 모두 덮어야 한다.",
+            "enforcedBy": "provider",
+            "id": "catch-up-proven",
+            "kind": "resource-state",
+            "title": "따라잡기 증명"
+          }
+        ],
+        "processing": [
+          {
+            "description": "수위를 대조하고 epoch를 올린 뒤 멤버에 새 메인을 알린다.",
+            "id": "verify-and-promote",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "update",
+            "description": "대화의 메인과 epoch를 바꾼다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "따라잡기를 증명하고 다음 epoch의 메인을 주장한다.",
+      "tags": [
+        "handover",
+        "epoch",
+        "privileged"
+      ],
+      "title": "메인 인수인계",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.members.add": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Conversation",
+        "recommendedLabel": "멤버 초대",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node",
+          "cluster"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}/members",
+          "successStatus": 201,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "membership",
+      "description": "메인만 발행한다. 초대는 로그 엔트리로 기록되므로 상대가 그 순간 켜져 있을 필요가 없다 — 다음 접촉 때 자기가 멤버가 된 사실을 알게 된다. rank를 생략하면 목록 맨 뒤에 붙는다.",
+      "errors": [
+        "CONVERSATION_DELETED",
+        "CONVERSATION_NOT_FOUND",
+        "EPOCH_STALE",
+        "INVALID_REQUEST",
+        "NOT_MAIN",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "keyInputPointer": "/path/conversation_id",
+          "limit": 1,
+          "mode": "per-resource"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "idempotent-only"
+        },
+        "risk": "write",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "name": "node-c 초대",
+            "value": {
+              "conversation_id": "cv-1",
+              "node_id": "node-c"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "node_id": {
+              "description": "노드 식별자.",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            },
+            "rank": {
+              "description": "생략하면 맨 뒤에 붙는다.",
+              "minimum": 0,
+              "title": "우선순위",
+              "type": "integer"
+            },
+            "conversation_by_name": {
+              "type": "boolean",
+              "description": "conversation_id 자리의 값을 반드시 표시 이름으로 읽으라는 선언. 없어도 이름은 통한다 — 이 노드가 가진 id를 먼저 보고, 없으면 이름으로 찾는다"
+            },
+            "node_by_name": {
+              "type": "boolean",
+              "description": "node_id 자리의 값을 반드시 표시 이름으로 읽으라는 선언. 없어도 이름은 통한다 — 참조는 node_id·cluster_address·display_name을 모두 받고 id를 먼저 본다. 다른 노드의 id를 이름으로 가진 노드처럼 그 순서가 틀리는 경우에만 필요하다"
+            }
+          },
+          "required": [
+            "conversation_id",
+            "node_id"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "초대됨",
+            "value": {
+              "member": {
+                "joined_epoch": 3,
+                "node_id": "node-c",
+                "rank": 2,
+                "state": "active"
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "member": {
+              "additionalProperties": false,
+              "properties": {
+                "joined_epoch": {
+                  "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                  "minimum": 0,
+                  "title": "epoch",
+                  "type": "integer"
+                },
+                "node_id": {
+                  "description": "노드 식별자.",
+                  "minLength": 1,
+                  "title": "노드 ID",
+                  "type": "string"
+                },
+                "rank": {
+                  "description": "우선순위. 낮을수록 먼저 메인이 된다.",
+                  "minimum": 0,
+                  "title": "우선순위",
+                  "type": "integer"
+                },
+                "state": {
+                  "enum": [
+                    "active",
+                    "removed"
+                  ],
+                  "title": "상태",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "node_id",
+                "rank",
+                "state"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "member"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.control"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "멤버십 엔트리를 메인의 로그에 append한다.",
+            "id": "append-member-added",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "update",
+            "description": "대화의 멤버 목록을 바꾼다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "노드를 대화에 초대한다.",
+      "tags": [
+        "conversation",
+        "membership",
+        "write"
+      ],
+      "title": "멤버 초대",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.members.remove": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Conversation",
+        "recommendedLabel": "멤버 제거",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node",
+          "cluster"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "DELETE",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}/members/{node_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "membership",
+      "description": "메인만 발행한다. 제거된 노드의 로컬 사본은 즉시 사라지지 않는다 — 제품이라면 문제지만 테스트 모듈에서는 보여야 할 사실이므로, 화면은 그 상태를 '추방됨 · 로컬 사본 잔존'으로 표시한다.",
+      "errors": [
+        "CONVERSATION_DELETED",
+        "CONVERSATION_NOT_FOUND",
+        "EPOCH_STALE",
+        "MEMBER_NOT_FOUND",
+        "NOT_MAIN",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "keyInputPointer": "/path/conversation_id",
+          "limit": 1,
+          "mode": "per-resource"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "idempotent-only"
+        },
+        "risk": "write",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "name": "node-c 제거",
+            "value": {
+              "conversation_id": "cv-1",
+              "node_id": "node-c"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "node_id": {
+              "description": "노드 식별자.",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            },
+            "conversation_by_name": {
+              "type": "boolean",
+              "description": "conversation_id 자리의 값을 반드시 표시 이름으로 읽으라는 선언. 없어도 이름은 통한다 — 이 노드가 가진 id를 먼저 보고, 없으면 이름으로 찾는다"
+            },
+            "node_by_name": {
+              "type": "boolean",
+              "description": "node_id 자리의 값을 반드시 표시 이름으로 읽으라는 선언. 없어도 이름은 통한다 — 참조는 node_id·cluster_address·display_name을 모두 받고 id를 먼저 본다. 다른 노드의 id를 이름으로 가진 노드처럼 그 순서가 틀리는 경우에만 필요하다"
+            }
+          },
+          "required": [
+            "conversation_id",
+            "node_id"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "제거됨",
+            "value": {
+              "member": {
+                "joined_epoch": 3,
+                "node_id": "node-c",
+                "rank": 2,
+                "state": "removed"
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "member": {
+              "additionalProperties": false,
+              "properties": {
+                "joined_epoch": {
+                  "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                  "minimum": 0,
+                  "title": "epoch",
+                  "type": "integer"
+                },
+                "node_id": {
+                  "description": "노드 식별자.",
+                  "minLength": 1,
+                  "title": "노드 ID",
+                  "type": "string"
+                },
+                "rank": {
+                  "description": "우선순위. 낮을수록 먼저 메인이 된다.",
+                  "minimum": 0,
+                  "title": "우선순위",
+                  "type": "integer"
+                },
+                "state": {
+                  "enum": [
+                    "active",
+                    "removed"
+                  ],
+                  "title": "상태",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "node_id",
+                "rank",
+                "state"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "member"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.control"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "멤버십 엔트리를 메인의 로그에 append한다.",
+            "id": "append-member-removed",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "update",
+            "description": "대화의 멤버 목록을 바꾼다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "노드를 대화에서 뺀다.",
+      "tags": [
+        "conversation",
+        "membership",
+        "write"
+      ],
+      "title": "멤버 제거",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.messages.list": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Conversation",
+        "recommendedLabel": "전사 조회",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}/messages",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "message",
+      "description": "정렬은 (lamport, author_node_id) 전순서다. 시계가 틀어진 노드가 있어도 모든 멤버가 같은 순서를 본다. 각 엔트리는 이 노드에 도착한 경로 계측(transport)을 달고 온다 — 원본 저자 노드에서는 비어 있다. 부수효과가 없다.",
+      "errors": [
+        "CONVERSATION_DELETED",
+        "CONVERSATION_NOT_FOUND",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "lamport 100 이후만 받는다.",
+            "name": "증분 조회",
+            "value": {
+              "after_lamport": 100,
+              "conversation_id": "cv-1",
+              "limit": 50
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "after_lamport": {
+              "minimum": 0,
+              "title": "이 논리 시계 이후",
+              "type": "integer"
+            },
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "limit": {
+              "maximum": 500,
+              "minimum": 1,
+              "title": "최대 건수",
+              "type": "integer"
+            },
+            "conversation_by_name": {
+              "type": "boolean",
+              "description": "conversation_id 자리의 값을 반드시 표시 이름으로 읽으라는 선언. 없어도 이름은 통한다 — 이 노드가 가진 id를 먼저 보고, 없으면 이름으로 찾는다"
+            }
+          },
+          "required": [
+            "conversation_id"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "한 줄",
+            "value": {
+              "entries": [
+                {
+                  "author_node_id": "node-b",
+                  "kind": "message",
+                  "lamport": 101,
+                  "seq": 42,
+                  "text": "L1로 갑니다",
+                  "transport": {
+                    "attempts": 1,
+                    "rtt_ms": 41,
+                    "rung": "L1"
+                  },
+                  "wall_ms": 1756100000000
+                }
+              ],
+              "has_more": false
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "entries": {
+              "items": {
+                "additionalProperties": false,
+                "description": "로그 한 줄. 메시지·멤버십 변경·삭제 의도가 모두 같은 모양으로 들어온다.",
+                "properties": {
+                  "author_node_id": {
+                    "description": "이 줄을 쓴 노드. 저자만 자기 로그에 append한다.",
+                    "minLength": 1,
+                    "title": "노드 ID",
+                    "type": "string"
+                  },
+                  "author_name": {
+                    "type": "string",
+                    "description": "저자를 사람이 읽는 이름. 모르면 node id가 그대로 들어간다 — 항상 무언가가 있다"
+                  },
+                  "epoch": {
+                    "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                    "minimum": 0,
+                    "title": "epoch",
+                    "type": "integer"
+                  },
+                  "kind": {
+                    "enum": [
+                      "message",
+                      "member-added",
+                      "member-removed",
+                      "deleted"
+                    ],
+                    "title": "엔트리 종류",
+                    "type": "string"
+                  },
+                  "member_node_id": {
+                    "type": "string",
+                    "description": "kind=member-added/member-removed가 가리키는 노드 id"
+                  },
+                  "member_name": {
+                    "type": "string",
+                    "description": "멤버십 항목이 가리키는 노드의 이름. 아무도 안 가리키는 줄에는 없다"
+                  },
+                  "lamport": {
+                    "description": "논리 시계. 정렬은 (lamport, author_node_id)로 전순서를 만든다.",
+                    "minimum": 0,
+                    "title": "논리 시계",
+                    "type": "integer"
+                  },
+                  "seq": {
+                    "description": "저자 노드 안에서만 단조 증가하는 순번.",
+                    "minimum": 0,
+                    "title": "저자 순번",
+                    "type": "integer"
+                  },
+                  "text": {
+                    "description": "kind=message일 때의 본문.",
+                    "title": "본문",
+                    "type": "string"
+                  },
+                  "transport": {
+                    "additionalProperties": false,
+                    "description": "이 줄이 이 노드에 도착한 경로의 계측. 원본 저자 노드에서는 비어 있다.",
+                    "properties": {
+                      "attempts": {
+                        "minimum": 1,
+                        "title": "시도 횟수",
+                        "type": "integer"
+                      },
+                      "fell_back_from": {
+                        "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                        "enum": [
+                          "L0",
+                          "L1",
+                          "L2",
+                          "L3"
+                        ],
+                        "title": "전송 단계",
+                        "type": "string"
+                      },
+                      "rtt_ms": {
+                        "minimum": 0,
+                        "title": "왕복 시간(ms)",
+                        "type": "integer"
+                      },
+                      "rung": {
+                        "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                        "enum": [
+                          "L0",
+                          "L1",
+                          "L2",
+                          "L3"
+                        ],
+                        "title": "전송 단계",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "rung"
+                    ],
+                    "type": "object"
+                  },
+                  "wall_ms": {
+                    "description": "저자 노드의 벽시계(표시 전용). 정렬에 쓰지 않는다.",
+                    "minimum": 0,
+                    "title": "벽시계(ms)",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "author_node_id",
+                  "kind",
+                  "lamport",
+                  "seq"
+                ],
+                "type": "object"
+              },
+              "title": "엔트리",
+              "type": "array"
+            },
+            "has_more": {
+              "title": "더 있음",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "entries",
+            "has_more"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.read"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "저자별 로그를 병합해 논리 시계 순으로 정렬한다.",
+            "id": "merge-and-sort",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "read",
+            "description": "저자별 로그를 읽는다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "대화의 엔트리를 논리 시계 순으로 조회한다.",
+      "tags": [
+        "conversation",
+        "message",
+        "read"
+      ],
+      "title": "전사 조회",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.messages.post": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Conversation",
+        "recommendedLabel": "메시지 보내기",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}/messages",
+          "successStatus": 201,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "message",
+      "description": "메인 여부와 무관하게 모든 멤버가 언제나 성공한다 — 다른 노드에 닿지 못하는 동안에도 마찬가지다(D-1). 저자는 자기 로그에만 쓰므로 두 노드가 같은 자리를 다툴 수 없고, 나중의 병합은 합집합이라 충돌이 없다. 전파는 이 오퍼레이션의 응답을 기다리지 않는다.",
+      "errors": [
+        "CONVERSATION_DELETED",
+        "CONVERSATION_NOT_FOUND",
+        "INVALID_REQUEST",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "keyInputPointer": "/path/conversation_id",
+          "limit": 1,
+          "mode": "per-resource"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "keyInputPointer": "/body/idempotency_key",
+          "mode": "idempotent",
+          "retentionSeconds": 3600
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "idempotency-key-only"
+        },
+        "risk": "write",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "name": "한 줄 게시",
+            "value": {
+              "conversation_id": "cv-1",
+              "text": "L1로 갑니다"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "idempotency_key": {
+              "description": "같은 키의 재시도는 한 줄만 남긴다. 손실이 잦은 경로에서 중복을 막는 자리다.",
+              "minLength": 1,
+              "title": "멱등 키",
+              "type": "string"
+            },
+            "text": {
+              "maxLength": 4000,
+              "minLength": 1,
+              "title": "본문",
+              "type": "string"
+            },
+            "conversation_by_name": {
+              "type": "boolean",
+              "description": "conversation_id 자리의 값을 반드시 표시 이름으로 읽으라는 선언. 없어도 이름은 통한다 — 이 노드가 가진 id를 먼저 보고, 없으면 이름으로 찾는다"
+            }
+          },
+          "required": [
+            "conversation_id",
+            "text"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "게시됨",
+            "value": {
+              "entry": {
+                "author_node_id": "node-a",
+                "kind": "message",
+                "lamport": 102,
+                "seq": 18,
+                "text": "L1로 갑니다",
+                "wall_ms": 1756100000500
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "entry": {
+              "additionalProperties": false,
+              "description": "로그 한 줄. 메시지·멤버십 변경·삭제 의도가 모두 같은 모양으로 들어온다.",
+              "properties": {
+                "author_node_id": {
+                  "description": "이 줄을 쓴 노드. 저자만 자기 로그에 append한다.",
+                  "minLength": 1,
+                  "title": "노드 ID",
+                  "type": "string"
+                },
+                "author_name": {
+                  "type": "string",
+                  "description": "저자를 사람이 읽는 이름. 모르면 node id가 그대로 들어간다 — 항상 무언가가 있다"
+                },
+                "epoch": {
+                  "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                  "minimum": 0,
+                  "title": "epoch",
+                  "type": "integer"
+                },
+                "kind": {
+                  "enum": [
+                    "message",
+                    "member-added",
+                    "member-removed",
+                    "deleted"
+                  ],
+                  "title": "엔트리 종류",
+                  "type": "string"
+                },
+                "member_node_id": {
+                  "type": "string",
+                  "description": "kind=member-added/member-removed가 가리키는 노드 id"
+                },
+                "member_name": {
+                  "type": "string",
+                  "description": "멤버십 항목이 가리키는 노드의 이름. 아무도 안 가리키는 줄에는 없다"
+                },
+                "lamport": {
+                  "description": "논리 시계. 정렬은 (lamport, author_node_id)로 전순서를 만든다.",
+                  "minimum": 0,
+                  "title": "논리 시계",
+                  "type": "integer"
+                },
+                "seq": {
+                  "description": "저자 노드 안에서만 단조 증가하는 순번.",
+                  "minimum": 0,
+                  "title": "저자 순번",
+                  "type": "integer"
+                },
+                "text": {
+                  "description": "kind=message일 때의 본문.",
+                  "title": "본문",
+                  "type": "string"
+                },
+                "transport": {
+                  "additionalProperties": false,
+                  "description": "이 줄이 이 노드에 도착한 경로의 계측. 원본 저자 노드에서는 비어 있다.",
+                  "properties": {
+                    "attempts": {
+                      "minimum": 1,
+                      "title": "시도 횟수",
+                      "type": "integer"
+                    },
+                    "fell_back_from": {
+                      "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                      "enum": [
+                        "L0",
+                        "L1",
+                        "L2",
+                        "L3"
+                      ],
+                      "title": "전송 단계",
+                      "type": "string"
+                    },
+                    "rtt_ms": {
+                      "minimum": 0,
+                      "title": "왕복 시간(ms)",
+                      "type": "integer"
+                    },
+                    "rung": {
+                      "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                      "enum": [
+                        "L0",
+                        "L1",
+                        "L2",
+                        "L3"
+                      ],
+                      "title": "전송 단계",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "rung"
+                  ],
+                  "type": "object"
+                },
+                "wall_ms": {
+                  "description": "저자 노드의 벽시계(표시 전용). 정렬에 쓰지 않는다.",
+                  "minimum": 0,
+                  "title": "벽시계(ms)",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "author_node_id",
+                "kind",
+                "lamport",
+                "seq"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "entry"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.control"
+        ]
+      },
+      "semantics": {
+        "invariants": [
+          "append에 메인 자격이 필요 없다 — 게시는 모든 멤버가 언제나, 오프라인에서도 성공한다. 이 불변식이 깨지면 분단 중 쓰기가 막히고 failover가 손실이 된다."
+        ],
+        "processing": [
+          {
+            "description": "자기 저자 로그에 한 줄 append하고 논리 시계를 올린다.",
+            "id": "append-own-log",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "create",
+            "description": "자기 저자 로그에 엔트리를 추가한다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "자기 로그에 메시지 한 줄을 append한다.",
+      "tags": [
+        "conversation",
+        "message",
+        "write"
+      ],
+      "title": "메시지 게시",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.messages.stream": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Conversation",
+        "recommendedLabel": "전사 구독",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}/stream",
+          "successStatus": 200,
+          "type": "gateway-http"
+        },
+        {
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}/stream",
+          "type": "sse"
+        }
+      ],
+      "category": "message",
+      "description": "로컬 GUI 전용 푸시 경로다. 원격 홉은 이 스트림을 탈 수 없다 — Master 릴레이는 상관 응답 하나를 기다리는 요청/응답이라 스트림이 살아남지 못한다. 원격에서 온 엔트리는 상대 모듈이 replica.push로 밀어넣고, 이 노드가 받아서 이 스트림으로 흘린다. 부수효과가 없다.",
+      "errors": [
+        "CONVERSATION_DELETED",
+        "CONVERSATION_NOT_FOUND",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 3600000,
+          "maximum": 86400000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "name": "구독",
+            "value": {
+              "conversation_id": "cv-1"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "conversation_by_name": {
+              "type": "boolean",
+              "description": "conversation_id 자리의 값을 반드시 표시 이름으로 읽으라는 선언. 없어도 이름은 통한다 — 이 노드가 가진 id를 먼저 보고, 없으면 이름으로 찾는다"
+            }
+          },
+          "required": [
+            "conversation_id"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "엔트리 도착",
+            "value": {
+              "entry": {
+                "author_node_id": "node-b",
+                "kind": "message",
+                "lamport": 103,
+                "seq": 43,
+                "text": "받았습니다",
+                "transport": {
+                  "attempts": 2,
+                  "fell_back_from": "L2",
+                  "rtt_ms": 310,
+                  "rung": "L1"
+                }
+              },
+              "event": "entry"
+            }
+          }
+        ],
+        "mode": "stream",
+        "schema": {
+          "additionalProperties": false,
+          "description": "SSE 이벤트 하나의 payload.",
+          "properties": {
+            "entry": {
+              "additionalProperties": false,
+              "description": "로그 한 줄. 메시지·멤버십 변경·삭제 의도가 모두 같은 모양으로 들어온다.",
+              "properties": {
+                "author_node_id": {
+                  "description": "이 줄을 쓴 노드. 저자만 자기 로그에 append한다.",
+                  "minLength": 1,
+                  "title": "노드 ID",
+                  "type": "string"
+                },
+                "author_name": {
+                  "type": "string",
+                  "description": "저자를 사람이 읽는 이름. 모르면 node id가 그대로 들어간다 — 항상 무언가가 있다"
+                },
+                "epoch": {
+                  "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                  "minimum": 0,
+                  "title": "epoch",
+                  "type": "integer"
+                },
+                "kind": {
+                  "enum": [
+                    "message",
+                    "member-added",
+                    "member-removed",
+                    "deleted"
+                  ],
+                  "title": "엔트리 종류",
+                  "type": "string"
+                },
+                "member_node_id": {
+                  "type": "string",
+                  "description": "kind=member-added/member-removed가 가리키는 노드 id"
+                },
+                "member_name": {
+                  "type": "string",
+                  "description": "멤버십 항목이 가리키는 노드의 이름. 아무도 안 가리키는 줄에는 없다"
+                },
+                "lamport": {
+                  "description": "논리 시계. 정렬은 (lamport, author_node_id)로 전순서를 만든다.",
+                  "minimum": 0,
+                  "title": "논리 시계",
+                  "type": "integer"
+                },
+                "seq": {
+                  "description": "저자 노드 안에서만 단조 증가하는 순번.",
+                  "minimum": 0,
+                  "title": "저자 순번",
+                  "type": "integer"
+                },
+                "text": {
+                  "description": "kind=message일 때의 본문.",
+                  "title": "본문",
+                  "type": "string"
+                },
+                "transport": {
+                  "additionalProperties": false,
+                  "description": "이 줄이 이 노드에 도착한 경로의 계측. 원본 저자 노드에서는 비어 있다.",
+                  "properties": {
+                    "attempts": {
+                      "minimum": 1,
+                      "title": "시도 횟수",
+                      "type": "integer"
+                    },
+                    "fell_back_from": {
+                      "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                      "enum": [
+                        "L0",
+                        "L1",
+                        "L2",
+                        "L3"
+                      ],
+                      "title": "전송 단계",
+                      "type": "string"
+                    },
+                    "rtt_ms": {
+                      "minimum": 0,
+                      "title": "왕복 시간(ms)",
+                      "type": "integer"
+                    },
+                    "rung": {
+                      "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                      "enum": [
+                        "L0",
+                        "L1",
+                        "L2",
+                        "L3"
+                      ],
+                      "title": "전송 단계",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "rung"
+                  ],
+                  "type": "object"
+                },
+                "wall_ms": {
+                  "description": "저자 노드의 벽시계(표시 전용). 정렬에 쓰지 않는다.",
+                  "minimum": 0,
+                  "title": "벽시계(ms)",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "author_node_id",
+                "kind",
+                "lamport",
+                "seq"
+              ],
+              "type": "object"
+            },
+            "epoch": {
+              "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+              "minimum": 0,
+              "title": "epoch",
+              "type": "integer"
+            },
+            "event": {
+              "enum": [
+                "entry",
+                "membership",
+                "main-changed",
+                "deleted"
+              ],
+              "title": "이벤트 종류",
+              "type": "string"
+            },
+            "main_node_id": {
+              "description": "노드 식별자.",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            },
+            "main_node_name": {
+              "type": "string",
+              "description": "메인 노드의 이름"
+            }
+          },
+          "required": [
+            "event"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.read"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "구독을 등록하고 이후 도착하는 엔트리를 이벤트로 흘린다.",
+            "id": "subscribe",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "이 노드의 대화 변경을 SSE로 흘린다.",
+      "tags": [
+        "conversation",
+        "message",
+        "stream",
+        "read"
+      ],
+      "title": "전사 구독",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.probe.post": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Diagnostics",
+        "recommendedLabel": "노드 계측",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node",
+          "cluster"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/io.terra.nodetalk/v1/probe",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "diagnostics",
+      "description": "대화 없이도 두 노드 사이 통신을 잴 수 있는 표면이다. 페이로드를 나르지 않고 왕복만 하며, 칸마다 성공 여부·왕복시간·실패 코드를 따로 답한다. 이 모듈이 채팅이 아니라 계측기인 이유가 이 오퍼레이션이다. 상태를 바꾸지 않는다.",
+      "errors": [
+        "INVALID_REQUEST",
+        "NODE_UNREACHABLE",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "L1까지만 잰다.",
+            "name": "릴레이 계측",
+            "value": {
+              "rungs": [
+                "L0",
+                "L1"
+              ],
+              "target_node_id": "node-b"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "payload_bytes": {
+              "description": "왕복에 실을 더미 바이트 수. 0이면 빈 왕복.",
+              "maximum": 65536,
+              "minimum": 0,
+              "title": "페이로드 크기",
+              "type": "integer"
+            },
+            "rungs": {
+              "description": "잴 사다리 칸. 생략하면 가용한 칸을 모두 잰다.",
+              "items": {
+                "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                "enum": [
+                  "L0",
+                  "L1",
+                  "L2",
+                  "L3"
+                ],
+                "title": "전송 단계",
+                "type": "string"
+              },
+              "title": "대상 단계",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "target_node_id": {
+              "description": "대상 노드. node_id·cluster_address·display_name 중 무엇으로도 지정한다 — 이름은 이 노드가 이야기해 본 적 있는 노드만 안다",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            }
+          },
+          "required": [
+            "target_node_id"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "L1 성공·L2 불가",
+            "value": {
+              "results": [
+                {
+                  "ok": true,
+                  "rtt_ms": 41,
+                  "rung": "L1"
+                },
+                {
+                  "error_code": "NODE_UNREACHABLE",
+                  "ok": false,
+                  "rung": "L2"
+                }
+              ],
+              "target_node_id": "node-b"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "results": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "error_code": {
+                    "description": "실패한 칸의 원인 코드.",
+                    "title": "실패 코드",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "title": "성공",
+                    "type": "boolean"
+                  },
+                  "rtt_ms": {
+                    "minimum": 0,
+                    "title": "왕복 시간(ms)",
+                    "type": "integer"
+                  },
+                  "rung": {
+                    "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                    "enum": [
+                      "L0",
+                      "L1",
+                      "L2",
+                      "L3"
+                    ],
+                    "title": "전송 단계",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ok",
+                  "rung"
+                ],
+                "type": "object"
+              },
+              "title": "단계별 결과",
+              "type": "array"
+            },
+            "target_node_id": {
+              "description": "탐침이 실제로 향한 노드의 node_id. 입력이 이름이나 주소였어도 여기에는 언제나 id가 온다",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            }
+          },
+          "required": [
+            "results",
+            "target_node_id"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.read"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "요청받은 각 사다리 칸으로 왕복을 시도하고 시간을 잰다.",
+            "id": "measure-rungs",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "대상 노드에 사다리 각 칸으로 왕복을 시도하고 결과를 답한다.",
+      "tags": [
+        "probe",
+        "transport",
+        "diagnostics",
+        "read"
+      ],
+      "title": "전송 사다리 계측",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.replica.pull": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Replication",
+        "recommendedLabel": "복제 받기",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node",
+          "cluster"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}/replica",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "replication",
+      "description": "이 계약의 심장이다. 호출자는 '저자 X의 seq N 이후를 주세요' 한 줄만 보내면 되므로 동기화가 재개 가능하고 멱등하다. 같은 구간을 두 번 받아도 키가 같아 무해하다. 사용자 세션이 아니라 피어 모듈의 워크로드가 부르는 것이 정상 경로이며, 그 호출에는 nodetalk.replicate 워크로드 권한이 필요하다. 부수효과가 없다.",
+      "errors": [
+        "CONVERSATION_DELETED",
+        "CONVERSATION_NOT_FOUND",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 10000,
+          "maximum": 60000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "node-a가 쓴 seq 17 이후를 받는다.",
+            "name": "증분 복제",
+            "value": {
+              "after_seq": 17,
+              "author_node_id": "node-a",
+              "conversation_id": "cv-1"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "after_seq": {
+              "minimum": 0,
+              "title": "이 순번 이후",
+              "type": "integer"
+            },
+            "author_node_id": {
+              "description": "생략하면 모든 저자를 대상으로 한다.",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            },
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "limit": {
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "최대 건수",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "conversation_id"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "3건",
+            "value": {
+              "entries": [
+                {
+                  "author_node_id": "node-a",
+                  "kind": "message",
+                  "lamport": 104,
+                  "seq": 18,
+                  "text": "따라잡는 중"
+                }
+              ],
+              "epoch": 3,
+              "has_more": false,
+              "high_water_marks": {
+                "node-a": 18,
+                "node-b": 42
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "entries": {
+              "items": {
+                "additionalProperties": false,
+                "description": "로그 한 줄. 메시지·멤버십 변경·삭제 의도가 모두 같은 모양으로 들어온다.",
+                "properties": {
+                  "author_node_id": {
+                    "description": "이 줄을 쓴 노드. 저자만 자기 로그에 append한다.",
+                    "minLength": 1,
+                    "title": "노드 ID",
+                    "type": "string"
+                  },
+                  "epoch": {
+                    "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                    "minimum": 0,
+                    "title": "epoch",
+                    "type": "integer"
+                  },
+                  "kind": {
+                    "enum": [
+                      "message",
+                      "member-added",
+                      "member-removed",
+                      "deleted"
+                    ],
+                    "title": "엔트리 종류",
+                    "type": "string"
+                  },
+                  "member_node_id": {
+                    "type": "string",
+                    "description": "kind=member-added/member-removed가 가리키는 노드 id"
+                  },
+                  "lamport": {
+                    "description": "논리 시계. 정렬은 (lamport, author_node_id)로 전순서를 만든다.",
+                    "minimum": 0,
+                    "title": "논리 시계",
+                    "type": "integer"
+                  },
+                  "seq": {
+                    "description": "저자 노드 안에서만 단조 증가하는 순번.",
+                    "minimum": 0,
+                    "title": "저자 순번",
+                    "type": "integer"
+                  },
+                  "text": {
+                    "description": "kind=message일 때의 본문.",
+                    "title": "본문",
+                    "type": "string"
+                  },
+                  "transport": {
+                    "additionalProperties": false,
+                    "description": "이 줄이 이 노드에 도착한 경로의 계측. 원본 저자 노드에서는 비어 있다.",
+                    "properties": {
+                      "attempts": {
+                        "minimum": 1,
+                        "title": "시도 횟수",
+                        "type": "integer"
+                      },
+                      "fell_back_from": {
+                        "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                        "enum": [
+                          "L0",
+                          "L1",
+                          "L2",
+                          "L3"
+                        ],
+                        "title": "전송 단계",
+                        "type": "string"
+                      },
+                      "rtt_ms": {
+                        "minimum": 0,
+                        "title": "왕복 시간(ms)",
+                        "type": "integer"
+                      },
+                      "rung": {
+                        "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                        "enum": [
+                          "L0",
+                          "L1",
+                          "L2",
+                          "L3"
+                        ],
+                        "title": "전송 단계",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "rung"
+                    ],
+                    "type": "object"
+                  },
+                  "wall_ms": {
+                    "description": "저자 노드의 벽시계(표시 전용). 정렬에 쓰지 않는다.",
+                    "minimum": 0,
+                    "title": "벽시계(ms)",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "author_node_id",
+                  "kind",
+                  "lamport",
+                  "seq"
+                ],
+                "type": "object"
+              },
+              "title": "엔트리",
+              "type": "array"
+            },
+            "epoch": {
+              "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+              "minimum": 0,
+              "title": "epoch",
+              "type": "integer"
+            },
+            "has_more": {
+              "title": "더 있음",
+              "type": "boolean"
+            },
+            "high_water_marks": {
+              "additionalProperties": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "description": "저자 노드 id → 이 노드가 보유한 마지막 seq. 동기화의 재개점이다.",
+              "propertyNames": {
+                "minLength": 1
+              },
+              "title": "저자별 보유 수위",
+              "type": "object"
+            }
+          },
+          "required": [
+            "entries",
+            "epoch",
+            "has_more",
+            "high_water_marks"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.read"
+        ],
+        "workloadPermissions": [
+          "nodetalk.replicate"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "요청 구간의 엔트리를 저자 로그에서 읽어 답한다.",
+            "id": "read-range",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "read",
+            "description": "저자별 로그의 한 구간을 읽는다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "피어가 부르는 동기화 창구 — 요청한 저자의 seq 이후 엔트리를 답한다.",
+      "tags": [
+        "replication",
+        "sync",
+        "read"
+      ],
+      "title": "복제 받기",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.replica.push": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Replication",
+        "recommendedLabel": "복제 밀어넣기",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node",
+          "cluster"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/io.terra.nodetalk/v1/conversations/{conversation_id}/replica",
+          "successStatus": 202,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "replication",
+      "description": "원격 홉이 스트림을 못 타기 때문에 필요한 반대 방향이다. 받은 엔트리는 (대화, 저자, seq) 키로 병합되므로 중복 수신이 무해하고, 이 노드가 남의 저자 로그를 고치는 일은 없다 — 받아 적기만 한다. 받은 뒤에는 로컬 SSE 구독자에게 그대로 흘린다.",
+      "errors": [
+        "CONVERSATION_DELETED",
+        "CONVERSATION_NOT_FOUND",
+        "EPOCH_STALE",
+        "INVALID_REQUEST",
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "keyInputPointer": "/path/conversation_id",
+          "limit": 1,
+          "mode": "per-resource"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "idempotent-only"
+        },
+        "risk": "write",
+        "timeoutMs": {
+          "default": 10000,
+          "maximum": 60000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "name": "1건 밀어넣기",
+            "value": {
+              "conversation_id": "cv-1",
+              "entries": [
+                {
+                  "author_node_id": "node-b",
+                  "kind": "message",
+                  "lamport": 105,
+                  "seq": 43,
+                  "text": "받았습니다"
+                }
+              ],
+              "sender_epoch": 3
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "operation의 논리 입력. Gateway가 binding의 path 자리표시자를 채우고 남은 항목을 body 또는 query로 보낸다.",
+          "properties": {
+            "conversation_id": {
+              "description": "대화 식별자.",
+              "minLength": 1,
+              "title": "대화 ID",
+              "type": "string"
+            },
+            "entries": {
+              "items": {
+                "additionalProperties": false,
+                "description": "로그 한 줄. 메시지·멤버십 변경·삭제 의도가 모두 같은 모양으로 들어온다.",
+                "properties": {
+                  "author_node_id": {
+                    "description": "이 줄을 쓴 노드. 저자만 자기 로그에 append한다.",
+                    "minLength": 1,
+                    "title": "노드 ID",
+                    "type": "string"
+                  },
+                  "epoch": {
+                    "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                    "minimum": 0,
+                    "title": "epoch",
+                    "type": "integer"
+                  },
+                  "kind": {
+                    "enum": [
+                      "message",
+                      "member-added",
+                      "member-removed",
+                      "deleted"
+                    ],
+                    "title": "엔트리 종류",
+                    "type": "string"
+                  },
+                  "member_node_id": {
+                    "type": "string",
+                    "description": "kind=member-added/member-removed가 가리키는 노드 id"
+                  },
+                  "lamport": {
+                    "description": "논리 시계. 정렬은 (lamport, author_node_id)로 전순서를 만든다.",
+                    "minimum": 0,
+                    "title": "논리 시계",
+                    "type": "integer"
+                  },
+                  "seq": {
+                    "description": "저자 노드 안에서만 단조 증가하는 순번.",
+                    "minimum": 0,
+                    "title": "저자 순번",
+                    "type": "integer"
+                  },
+                  "text": {
+                    "description": "kind=message일 때의 본문.",
+                    "title": "본문",
+                    "type": "string"
+                  },
+                  "transport": {
+                    "additionalProperties": false,
+                    "description": "이 줄이 이 노드에 도착한 경로의 계측. 원본 저자 노드에서는 비어 있다.",
+                    "properties": {
+                      "attempts": {
+                        "minimum": 1,
+                        "title": "시도 횟수",
+                        "type": "integer"
+                      },
+                      "fell_back_from": {
+                        "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                        "enum": [
+                          "L0",
+                          "L1",
+                          "L2",
+                          "L3"
+                        ],
+                        "title": "전송 단계",
+                        "type": "string"
+                      },
+                      "rtt_ms": {
+                        "minimum": 0,
+                        "title": "왕복 시간(ms)",
+                        "type": "integer"
+                      },
+                      "rung": {
+                        "description": "메시지가 실제로 탄 전송 사다리 칸.",
+                        "enum": [
+                          "L0",
+                          "L1",
+                          "L2",
+                          "L3"
+                        ],
+                        "title": "전송 단계",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "rung"
+                    ],
+                    "type": "object"
+                  },
+                  "wall_ms": {
+                    "description": "저자 노드의 벽시계(표시 전용). 정렬에 쓰지 않는다.",
+                    "minimum": 0,
+                    "title": "벽시계(ms)",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "author_node_id",
+                  "kind",
+                  "lamport",
+                  "seq"
+                ],
+                "type": "object"
+              },
+              "maxItems": 1000,
+              "minItems": 1,
+              "title": "엔트리",
+              "type": "array"
+            },
+            "sender_epoch": {
+              "description": "보내는 쪽이 아는 epoch. 이보다 낮으면 EPOCH_STALE로 거절한다.",
+              "minimum": 0,
+              "title": "epoch",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "conversation_id",
+            "entries",
+            "sender_epoch"
+          ],
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "1건 수용·0건 중복",
+            "value": {
+              "accepted": 1,
+              "duplicates": 0,
+              "high_water_marks": {
+                "node-a": 18,
+                "node-b": 43
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "accepted": {
+              "minimum": 0,
+              "title": "수용",
+              "type": "integer"
+            },
+            "duplicates": {
+              "description": "이미 갖고 있어 무시한 건수. 멱등의 증거다.",
+              "minimum": 0,
+              "title": "중복",
+              "type": "integer"
+            },
+            "high_water_marks": {
+              "additionalProperties": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "description": "저자 노드 id → 이 노드가 보유한 마지막 seq. 동기화의 재개점이다.",
+              "propertyNames": {
+                "minLength": 1
+              },
+              "title": "저자별 보유 수위",
+              "type": "object"
+            }
+          },
+          "required": [
+            "accepted",
+            "duplicates",
+            "high_water_marks"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.control"
+        ],
+        "workloadPermissions": [
+          "nodetalk.replicate"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "엔트리를 (저자, seq) 키로 병합하고 로컬 구독자에게 흘린다.",
+            "id": "merge-entries",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "update",
+            "description": "남의 저자 로그를 받아 적는다.",
+            "resourceId": "io.terra.nodetalk.conversation"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "피어가 보낸 엔트리를 받아 적는다.",
+      "tags": [
+        "replication",
+        "sync",
+        "write"
+      ],
+      "title": "복제 밀어넣기",
+      "version": "0.1.0"
+    },
+    "io.terra.nodetalk.status.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Status/Health",
+        "recommendedLabel": "상태 확인",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/io.terra.nodetalk/v1/status",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "status",
+      "description": "readiness probe이자 화면 하단 상태줄의 원본이다. 이 노드가 메인인 대화 수와 뒤처진 대화 수를 함께 답한다. 부수효과가 없다.",
+      "errors": [
+        "NODETALK_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "상태 조회는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "정상",
+            "value": {
+              "behind_count": 1,
+              "conversation_count": 3,
+              "faults_enabled": false,
+              "main_of_count": 1,
+              "node_id": "node-a",
+              "status": "ok",
+              "version": "0.1.0"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "behind_count": {
+              "description": "다른 노드보다 뒤처진 대화 수.",
+              "minimum": 0,
+              "title": "뒤처진 대화",
+              "type": "integer"
+            },
+            "conversation_count": {
+              "minimum": 0,
+              "title": "대화 수",
+              "type": "integer"
+            },
+            "faults_enabled": {
+              "description": "이 조립에 고장 주입 표면이 있는지.",
+              "title": "고장 주입 가용",
+              "type": "boolean"
+            },
+            "main_of_count": {
+              "description": "이 노드가 메인인 대화 수.",
+              "minimum": 0,
+              "title": "메인인 대화",
+              "type": "integer"
+            },
+            "node_id": {
+              "description": "노드 식별자.",
+              "minLength": 1,
+              "title": "노드 ID",
+              "type": "string"
+            },
+            "display_name": {
+              "type": "string",
+              "description": "이 노드의 이름. peer는 이것으로 서로를 부른다"
+            },
+            "status": {
+              "enum": [
+                "ok",
+                "degraded"
+              ],
+              "title": "상태",
+              "type": "string"
+            },
+            "version": {
+              "minLength": 1,
+              "title": "버전",
+              "type": "string"
+            },
+            "lost_own_count": {
+              "type": "integer",
+              "description": "모든 대화를 통틀어 Behind 중 이 노드가 직접 쓴 줄의 수. 복제로는 절대 안 돌아온다 — 노드는 자기 로그의 권위자라 자기 줄을 피어에게서 되받지 않는다. 0이 아니면 그 줄들은 여기에서만 사라진 것이고, 피어에는 남아 있다"
+            }
+          },
+          "required": [
+            "conversation_count",
+            "faults_enabled",
+            "node_id",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "node.read"
+        ]
+      },
+      "semantics": {
+        "processing": [
+          {
+            "description": "모듈 상태와 대화별 동기화 수위를 읽는다.",
+            "id": "read-status",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "모듈의 상태와 이 노드의 동기화 요약을 조회한다.",
+      "tags": [
+        "status",
+        "health",
+        "read"
+      ],
+      "title": "상태 조회",
+      "version": "0.1.0"
+    }
+  },
+  "permissions": {
+    "node.control": {
+      "description": "대화 생성·초대·메시지 게시·삭제 등 이 모듈의 상태를 바꿉니다.",
+      "risk": "write",
+      "title": "노드 제어"
+    },
+    "node.read": {
+      "description": "대화 목록·전사·동기화 상태를 읽습니다. 부수효과가 없습니다.",
+      "risk": "read",
+      "title": "노드 조회"
+    },
+    "nodetalk.replicate": {
+      "description": "피어 노드의 복제 창구를 호출합니다. 사용자 세션이 아니라 모듈 워크로드가 드는 권한입니다.",
+      "risk": "write",
+      "title": "대화 복제"
+    }
+  },
+  "provider": {
+    "hostRoles": [
+      "leaf-node",
+      "tree-control"
+    ],
+    "id": "io.terra.nodetalk",
+    "kind": "module",
+    "moduleId": "io.terra.nodetalk",
+    "name": "Node Talk",
+    "ownership": {
+      "source": "module/common/io.terra.nodetalk",
+      "team": "terra-platform"
+    },
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "version": "0.1.0"
+  },
+  "resources": {
+    "io.terra.nodetalk.conversation": {
+      "access": "read-write",
+      "description": "이 노드가 보유한 대화 하나. 제어 상태(meta)와 저자별 append-only 로그로 이루어지며, 삭제되면 로그가 함께 사라진다.",
+      "identityPointers": [
+        "/conversation_id"
+      ],
+      "owner": "provider",
+      "schema": {
+        "additionalProperties": false,
+        "description": "대화 하나의 제어 상태. 메시지 본문은 담지 않는다.",
+        "properties": {
+          "conversation_id": {
+            "description": "대화 식별자.",
+            "minLength": 1,
+            "title": "대화 ID",
+            "type": "string"
+          },
+          "created_by": {
+            "description": "노드 식별자.",
+            "minLength": 1,
+            "title": "노드 ID",
+            "type": "string"
+          },
+          "display_name": {
+            "minLength": 1,
+            "title": "표시 이름",
+            "type": "string"
+          },
+          "epoch": {
+            "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+            "minimum": 0,
+            "title": "epoch",
+            "type": "integer"
+          },
+          "main_node_id": {
+            "description": "현재 순서·보존 권한자. 쓰기 권한자가 아니다.",
+            "minLength": 1,
+            "title": "노드 ID",
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "joined_epoch": {
+                  "description": "대화의 세대 번호. 인수인계마다 1씩 오른다.",
+                  "minimum": 0,
+                  "title": "epoch",
+                  "type": "integer"
+                },
+                "node_id": {
+                  "description": "노드 식별자.",
+                  "minLength": 1,
+                  "title": "노드 ID",
+                  "type": "string"
+                },
+                "rank": {
+                  "description": "우선순위. 낮을수록 먼저 메인이 된다.",
+                  "minimum": 0,
+                  "title": "우선순위",
+                  "type": "integer"
+                },
+                "state": {
+                  "enum": [
+                    "active",
+                    "removed"
+                  ],
+                  "title": "상태",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "node_id",
+                "rank",
+                "state"
+              ],
+              "type": "object"
+            },
+            "title": "멤버",
+            "type": "array"
+          },
+          "role": {
+            "description": "이 노드가 이 대화에서 갖는 자리.",
+            "enum": [
+              "main",
+              "backup"
+            ],
+            "title": "이 노드의 자리",
+            "type": "string"
+          },
+          "members_rev": {
+            "description": "메인이 멤버를 더하거나 뺀 횟수. epoch는 인수인계의 시계라 멤버가 들어와도 움직이지 않으므로, 어느 멤버 목록이 더 새것인지는 이 값이 답한다.",
+            "minimum": 0,
+            "title": "멤버십 개정",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "display_name",
+          "epoch",
+          "main_node_id",
+          "members",
+          "role"
+        ],
+        "type": "object"
+      },
+      "scope": "node",
+      "title": "대화",
+      "version": "0.1.0"
+    }
+  },
+  "schemaVersion": "1.0.0",
+  "summary": "노드끼리의 통신을 대화형으로 계측하는 테스트 모듈의 Operation 계약입니다.",
+  "title": "Node Talk API"
+}

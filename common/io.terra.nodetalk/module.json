@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 2,
+  "id": "io.terra.nodetalk",
+  "version": "0.1.0",
+  "kind": "service",
+  "name": "Node Talk",
+  "description": "Node-to-node communication test bench shaped as a chat. Conversations replicate as per-author append-only logs, so every member may append at any time and a main handover never loses transcript; the main is the ordering and retention authority, not the write authority. Every entry carries the transport rung, round-trip time and attempt count it arrived over -- the chat is the payload, the instrument is the point.",
+  "compatibility": {
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "os": [
+      "linux",
+      "windows"
+    ]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-nodetalk",
+      "linux-arm64": "bin/linux-arm64/terra-nodetalk",
+      "windows-amd64": "bin/windows-amd64/terra-nodetalk.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "io.terra.nodetalk",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "permissions": {
+    "coreOperations": [
+      {
+        "id": "terra.node.identity.get"
+      },
+      {
+        "id": "terra.node.peer.invoke"
+      }
+    ],
+    "storage": [
+      "module-data"
+    ]
+  },
+  "contributions": {
+    "gui": {
+      "apps": [
+        {
+          "id": "io.terra.nodetalk",
+          "name": "Node Talk",
+          "mode": "static",
+          "entry": "ui/index.html",
+          "isolation": "sandboxed",
+          "permissions": [
+            "node.read",
+            "node.control"
+          ]
+        }
+      ]
+    },
+    "cli": {
+      "commands": [
+        {
+          "name": "nodetalk join",
+          "kind": "session",
+          "summary": "대화방에 들어가 실시간으로 주고받습니다",
+          "args": [
+            {
+              "name": "conversation",
+              "pointer": "/conversation_id",
+              "required": true,
+              "summary": "들어갈 대화 id"
+            }
+          ],
+          "session": {
+            "identity": {
+              "operationId": "io.terra.nodetalk.status.get",
+              "pointer": "/node_id",
+              "input": "none"
+            },
+            "title": {
+              "operationId": "io.terra.nodetalk.conversations.get",
+              "pointer": "/conversation/display_name"
+            },
+            "history": {
+              "operationId": "io.terra.nodetalk.messages.list",
+              "itemsPointer": "/entries"
+            },
+            "stream": {
+              "operationId": "io.terra.nodetalk.messages.stream",
+              "itemPointer": "/entry",
+              "kindPointer": "/event"
+            },
+            "send": {
+              "operationId": "io.terra.nodetalk.messages.post",
+              "textPointer": "/text"
+            },
+            "item": {
+              "authorPointer": "/author_node_id",
+              "authorLabelPointer": "/author_name",
+              "textPointer": "/text",
+              "timePointer": "/wall_ms",
+              "notePointer": "/transport",
+              "kindPointer": "/kind",
+              "seqPointer": "/seq",
+              "subjectPointer": "/member_name"
+            },
+            "labels": {
+              "member-added": "님이 초대되었습니다",
+              "member-removed": "님이 나갔습니다",
+              "main-changed": "메인이 바뀌었습니다",
+              "deleted": "대화가 삭제되었습니다"
+            }
+          },
+          "flags": [
+            {
+              "name": "cv-name",
+              "pointer": "/conversation_by_name",
+              "type": "boolean",
+              "summary": "(폐기) 대화를 id가 아니라 이름으로 지정한다",
+              "deprecated": "이제 필요 없다 — 대화 인자는 id와 이름을 모두 받는다"
+            }
+          ]
+        },
+        {
+          "name": "nodetalk status",
+          "operationId": "io.terra.nodetalk.status.get",
+          "summary": "이 노드의 nodetalk 상태와 동기화 요약을 조회합니다"
+        },
+        {
+          "name": "nodetalk probe",
+          "operationId": "io.terra.nodetalk.probe.post",
+          "summary": "대상 노드까지의 전송 사다리를 계측합니다",
+          "args": [
+            {
+              "name": "target-node",
+              "pointer": "/target_node_id",
+              "required": true,
+              "summary": "계측 대상 노드 (id·주소·이름)",
+              "ref": "node"
+            }
+          ]
+        },
+        {
+          "name": "nodetalk list",
+          "operationId": "io.terra.nodetalk.conversations.list",
+          "summary": "이 노드가 아는 대화를 동기화 상태와 함께 나열합니다"
+        },
+        {
+          "name": "nodetalk show",
+          "operationId": "io.terra.nodetalk.conversations.get",
+          "summary": "대화 하나를 멤버·epoch·저자별 보유 수위와 함께 조회합니다",
+          "args": [
+            {
+              "name": "conversation",
+              "pointer": "/conversation_id",
+              "required": true,
+              "summary": "대화 id"
+            }
+          ],
+          "flags": [
+            {
+              "name": "cv-name",
+              "pointer": "/conversation_by_name",
+              "type": "boolean",
+              "summary": "(폐기) 대화를 id가 아니라 이름으로 지정한다",
+              "deprecated": "이제 필요 없다 — 대화 인자는 id와 이름을 모두 받는다"
+            }
+          ]
+        },
+        {
+          "name": "nodetalk create",
+          "operationId": "io.terra.nodetalk.conversations.create",
+          "summary": "대화를 만듭니다 — 만든 노드가 메인이 되고, 멤버는 nodetalk invite로 더합니다",
+          "args": [
+            {
+              "name": "name",
+              "pointer": "/display_name",
+              "required": true,
+              "summary": "대화 표시 이름"
+            }
+          ]
+        },
+        {
+          "name": "nodetalk delete",
+          "operationId": "io.terra.nodetalk.conversations.delete",
+          "summary": "대화를 삭제합니다 — 메인만 확정할 수 있고 삭제 의도가 멤버에 전파됩니다",
+          "args": [
+            {
+              "name": "conversation",
+              "pointer": "/conversation_id",
+              "required": true,
+              "summary": "대화 id"
+            }
+          ],
+          "flags": [
+            {
+              "name": "cv-name",
+              "pointer": "/conversation_by_name",
+              "type": "boolean",
+              "summary": "(폐기) 대화를 id가 아니라 이름으로 지정한다",
+              "deprecated": "이제 필요 없다 — 대화 인자는 id와 이름을 모두 받는다"
+            }
+          ]
+        },
+        {
+          "name": "nodetalk send",
+          "operationId": "io.terra.nodetalk.messages.post",
+          "summary": "대화에 메시지를 보냅니다 — 메인 여부와 무관하게 항상 성공합니다",
+          "args": [
+            {
+              "name": "conversation",
+              "pointer": "/conversation_id",
+              "required": true,
+              "summary": "대화 id"
+            },
+            {
+              "name": "text",
+              "pointer": "/text",
+              "required": true,
+              "summary": "보낼 본문"
+            }
+          ],
+          "flags": [
+            {
+              "name": "cv-name",
+              "pointer": "/conversation_by_name",
+              "type": "boolean",
+              "summary": "(폐기) 대화를 id가 아니라 이름으로 지정한다",
+              "deprecated": "이제 필요 없다 — 대화 인자는 id와 이름을 모두 받는다"
+            }
+          ]
+        },
+        {
+          "name": "nodetalk read",
+          "operationId": "io.terra.nodetalk.messages.list",
+          "summary": "대화의 전사를 논리 시계 순으로 조회합니다",
+          "args": [
+            {
+              "name": "conversation",
+              "pointer": "/conversation_id",
+              "required": true,
+              "summary": "대화 id"
+            }
+          ],
+          "flags": [
+            {
+              "name": "after",
+              "pointer": "/after_lamport",
+              "type": "integer",
+              "summary": "이 논리 시계 이후만"
+            },
+            {
+              "name": "limit",
+              "pointer": "/limit",
+              "type": "integer",
+              "summary": "최대 건수"
+            },
+            {
+              "name": "cv-name",
+              "pointer": "/conversation_by_name",
+              "type": "boolean",
+              "summary": "(폐기) 대화를 id가 아니라 이름으로 지정한다",
+              "deprecated": "이제 필요 없다 — 대화 인자는 id와 이름을 모두 받는다"
+            }
+          ]
+        },
+        {
+          "name": "nodetalk invite",
+          "operationId": "io.terra.nodetalk.members.add",
+          "summary": "노드를 대화에 초대합니다 (메인 전용)",
+          "args": [
+            {
+              "name": "conversation",
+              "pointer": "/conversation_id",
+              "required": true,
+              "summary": "대화 id"
+            },
+            {
+              "name": "node",
+              "pointer": "/node_id",
+              "required": true,
+              "summary": "초대할 노드 (id·주소·이름)",
+              "ref": "node"
+            }
+          ],
+          "flags": [
+            {
+              "name": "rank",
+              "pointer": "/rank",
+              "type": "integer",
+              "summary": "우선순위 지정 (생략하면 맨 뒤)"
+            },
+            {
+              "name": "cv-name",
+              "pointer": "/conversation_by_name",
+              "type": "boolean",
+              "summary": "(폐기) 대화를 id가 아니라 이름으로 지정한다",
+              "deprecated": "이제 필요 없다 — 대화 인자는 id와 이름을 모두 받는다"
+            },
+            {
+              "name": "display-name",
+              "pointer": "/node_by_name",
+              "type": "boolean",
+              "summary": "(폐기) 노드를 id가 아니라 이름으로 지정한다",
+              "deprecated": "이제 필요 없다 — 노드 인자는 node_id·cluster_address·display_name을 모두 받는다"
+            }
+          ]
+        },
+        {
+          "name": "nodetalk remove",
+          "operationId": "io.terra.nodetalk.members.remove",
+          "summary": "노드를 대화에서 제거합니다 (메인 전용)",
+          "args": [
+            {
+              "name": "conversation",
+              "pointer": "/conversation_id",
+              "required": true,
+              "summary": "대화 id"
+            },
+            {
+              "name": "node",
+              "pointer": "/node_id",
+              "required": true,
+              "summary": "제거할 노드 (id·주소·이름)",
+              "ref": "node"
+            }
+          ],
+          "flags": [
+            {
+              "name": "cv-name",
+              "pointer": "/conversation_by_name",
+              "type": "boolean",
+              "summary": "(폐기) 대화를 id가 아니라 이름으로 지정한다",
+              "deprecated": "이제 필요 없다 — 대화 인자는 id와 이름을 모두 받는다"
+            },
+            {
+              "name": "display-name",
+              "pointer": "/node_by_name",
+              "type": "boolean",
+              "summary": "(폐기) 노드를 id가 아니라 이름으로 지정한다",
+              "deprecated": "이제 필요 없다 — 노드 인자는 node_id·cluster_address·display_name을 모두 받는다"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "readiness": {
+    "operationId": "io.terra.nodetalk.status.get",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}

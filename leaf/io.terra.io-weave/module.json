@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 2,
+  "id": "io.terra.io-weave",
+  "version": "0.1.0",
+  "kind": "service",
+  "name": "Terra IO Weave",
+  "description": "Subscribes to another node's approved input device and projects it here. The consumer half of the virtual I/O track: io.terra.io-inventory owns the node's own devices and publishes them, this module borrows a remote one and reproduces it. Optional -- a node without it behaves as if the axis did not exist.",
+  "compatibility": {
+    "products": [
+      "leaf"
+    ],
+    "hostRoles": [
+      "leaf-node"
+    ],
+    "os": [
+      "linux",
+      "windows"
+    ]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-io-weave",
+      "linux-arm64": "bin/linux-arm64/terra-io-weave",
+      "windows-amd64": "bin/windows-amd64/terra-io-weave.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "io.terra.io-weave",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "readiness": {
+    "operationId": "io.terra.io-weave.status.get",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  },
+  "contributions": {
+    "svi": {
+      "resources": true,
+      "sink": true
+    }
+  },
+  "permissions": {
+    "storage": [
+      "module-data"
+    ]
+  }
+}

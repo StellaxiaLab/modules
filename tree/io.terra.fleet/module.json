@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 2,
+  "id": "io.terra.fleet",
+  "name": "Terra Fleet",
+  "version": "0.1.0",
+  "kind": "service",
+  "description": "Fleet management extension: declares container-node fleets, issues join codes, and ends member registrations. Enrolment validation itself stays in the Master core — this module manages, it never authenticates.",
+  "compatibility": {
+    "products": ["tree"],
+    "hostRoles": ["tree-control"],
+    "os": ["linux", "windows"]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-fleet",
+      "linux-arm64": "bin/linux-arm64/terra-fleet",
+      "windows-amd64": "bin/windows-amd64/terra-fleet.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      { "id": "io.terra.fleet", "version": "0.1.0" }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "gui": {
+      "apps": [
+        {
+          "id": "io.terra.fleet",
+          "name": "Fleet",
+          "mode": "static",
+          "entry": "ui/index.html",
+          "isolation": "sandboxed",
+          "permissions": ["node.read", "node.control"]
+        }
+      ]
+    }
+  },
+  "permissions": {
+    "coreOperations": [
+      { "id": "terra.fleet.fleets.list" },
+      { "id": "terra.fleet.fleets.get" },
+      { "id": "terra.fleet.fleets.create" },
+      { "id": "terra.fleet.slots.add" },
+      { "id": "terra.fleet.slots.start" },
+      { "id": "terra.fleet.slots.stop" },
+      { "id": "terra.fleet.codes.list" },
+      { "id": "terra.fleet.codes.issue" },
+      { "id": "terra.fleet.codes.revoke" },
+      { "id": "terra.fleet.slots.delete" }
+    ]
+  },
+  "readiness": {
+    "operationId": "io.terra.fleet.fleets.list",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}

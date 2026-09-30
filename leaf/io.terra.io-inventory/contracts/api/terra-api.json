@@ -1,0 +1,2738 @@
+{
+  "$schema": "../../../../../docs/contracts/api/schemas/terra-api-contract-v1.schema.json",
+  "$id": "https://contracts.terra.dev/modules/io.terra.io-inventory/0.1.0/terra-api.json",
+  "schemaVersion": "1.0.0",
+  "contractId": "io.terra.io-inventory.api",
+  "contractVersion": "0.1.0",
+  "defaultLocale": "ko-KR",
+  "title": "Terra I/O Inventory API",
+  "summary": "노드 로컬 I/O 장치 인벤토리와 승인 정책을 관리합니다.",
+  "description": "daemon의 data_plane/io_gateway에서 확장 모듈로 분리된 코어 축소 파일럿입니다. 장치 목록·사용량 조회와 승인/거부/활성/비활성/별칭 정책, OS 장치 열거(scan)와 단일 장치 재확인(probe), 장치 망각(forget)을 제공합니다. 장치 id는 장치가 스스로 말하는 것(serial·model·부착 위치)에서 파생하므로 재부팅과 포트 변경을 넘어 같은 장치가 같은 id로 열거됩니다.",
+  "provider": {
+    "id": "io.terra.io-inventory",
+    "name": "Terra I/O Inventory",
+    "version": "0.1.0",
+    "kind": "module",
+    "products": [
+      "leaf"
+    ],
+    "hostRoles": [
+      "leaf-node"
+    ],
+    "moduleId": "io.terra.io-inventory",
+    "ownership": {
+      "source": "module/leaf/io.terra.io-inventory",
+      "team": "terra-platform"
+    }
+  },
+  "authentication": {
+    "workload-identity": {
+      "type": "workload-identity",
+      "description": "Module Runtime이 실행 instance에 발급한 단기 Workload Identity를 사용합니다."
+    }
+  },
+  "errors": {
+    "IO_DEVICE_NOT_FOUND": {
+      "title": "장치 없음",
+      "description": "그 id의 I/O 장치가 이 노드의 인벤토리에 없다. 사라진 장치는 삭제하지 않고 presence=missing으로 남으므로(IO-3), 이 오류는 '연결이 끊겼다'가 아니라 '그런 id를 등재한 적이 없거나 사람이 forget으로 지웠다'는 뜻이다.",
+      "retryable": false,
+      "httpStatus": 404,
+      "userAction": "devices.list로 현재 id를 확인하십시오."
+    },
+    "IO_DEVICE_NOT_APPROVED": {
+      "title": "승인되지 않은 장치",
+      "description": "대상 I/O 장치가 승인(approve) 상태가 아니어서 요청한 작업을 수행할 수 없다.",
+      "retryable": false,
+      "httpStatus": 409,
+      "userAction": "먼저 devices.approve로 장치를 승인한 뒤 다시 시도하십시오."
+    },
+    "IO_SCAN_UNAVAILABLE": {
+      "title": "재탐색 미지원 플랫폼",
+      "description": "이 운영체제의 discovery adapter가 아직 구현되지 않았다. 장치가 없다는 뜻이 아니라 열거할 수 없다는 뜻이다.",
+      "retryable": false,
+      "httpStatus": 501,
+      "userAction": "해당 플랫폼의 adapter가 추가될 때까지 기존 목록을 사용하십시오."
+    },
+    "IO_SCAN_FAILED": {
+      "title": "재탐색 실패",
+      "description": "운영체제 장치 열거가 실패했다. 빈 목록으로 응답하지 않는 이유는 '장치 없음'과 '못 봤음'이 구분되어야 하기 때문이다.",
+      "retryable": true,
+      "httpStatus": 500,
+      "userAction": "잠시 후 다시 시도하고, 반복되면 노드 로그를 확인하십시오."
+    },
+    "IO_DEVICE_NOT_PROBEABLE": {
+      "title": "재확인할 수 없는 장치",
+      "description": "대상 장치가 플랫폼 discovery adapter의 것이 아니다. 모듈이 등록한 논리 provider 슬롯(screen-default 등)이 여기에 해당하며, 열거기가 볼 수 없는 것을 probe하면 결과는 언제나 '사라짐'이 되어 하드웨어라고 주장한 적 없는 슬롯에 대해 거짓을 말하게 된다.",
+      "retryable": false,
+      "httpStatus": 409,
+      "userAction": "adapter_id가 adapter.os-discovery인 장치에만 probe를 사용하십시오."
+    },
+    "IO_STATE_PERSISTENCE": {
+      "title": "정책 영속 실패",
+      "description": "장치 정책을 module-data에 쓰지 못했다. 쓰지 못한 변경은 적용하지 않는다 — 적용된 것처럼 보이고 재시작 뒤 사라지는 정책이 가장 나쁜 결과이기 때문이다.",
+      "retryable": true,
+      "httpStatus": 500,
+      "userAction": "module-data 디렉터리의 권한과 남은 디스크 공간을 확인하고 다시 시도하십시오."
+    },
+    "IO_INVALID_REQUEST": {
+      "title": "요청이 잘못됨",
+      "description": "요청 본문이나 질의 문자열이 이 operation의 입력 스키마와 맞지 않는다. 장치의 상태와는 무관한, 요청 자체의 문제다.",
+      "retryable": false,
+      "httpStatus": 400,
+      "userAction": "입력 스키마에 맞게 요청을 고쳐 다시 보내십시오."
+    }
+  },
+  "operations": {
+    "io.terra.io-inventory.devices.list": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "장치 목록",
+      "summary": "노드의 I/O 장치 인벤토리를 나열합니다.",
+      "description": "등록된 모든 I/O 장치와 presence·approval·enabled 상태를 반환합니다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "device",
+        "read"
+      ],
+      "useCases": [
+        "운영자가 노드의 I/O 장치와 정책 상태를 확인합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "빈 요청",
+            "value": {}
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "list",
+            "description": "레지스트리의 장치 스냅샷을 반환합니다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "devices",
+            "count"
+          ],
+          "properties": {
+            "devices": {
+              "type": "array",
+              "title": "장치",
+              "description": "장치 목록입니다.",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "title": "개수",
+              "description": "장치 수입니다."
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "기본 슬롯",
+            "value": {
+              "devices": [],
+              "count": 0
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "장치 목록",
+        "keywords": [
+          "io",
+          "device",
+          "장치"
+        ],
+        "outputPorts": [
+          {
+            "name": "devices",
+            "pointer": "/devices"
+          }
+        ]
+      }
+    },
+    "io.terra.io-inventory.devices.get": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "장치 조회",
+      "summary": "I/O 장치 하나를 조회합니다.",
+      "description": "장치 id로 단일 장치의 상태를 반환합니다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "device",
+        "read"
+      ],
+      "useCases": [
+        "운영자가 특정 장치의 정책 상태를 확인합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "deviceId"
+          ],
+          "properties": {
+            "deviceId": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "조회할 장치의 id입니다.",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "기본 카메라",
+            "value": {
+              "deviceId": "camera-default"
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "get",
+            "description": "장치를 조회합니다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "title": "장치",
+          "description": "장치 상태입니다."
+        },
+        "examples": [
+          {
+            "name": "장치",
+            "value": {
+              "id": "camera-default"
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices/{deviceId}",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "장치 조회",
+        "keywords": [
+          "io",
+          "device"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.devices.usage.get": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "장치 사용량",
+      "summary": "장치 하나의 사용량을 조회합니다.",
+      "description": "장치의 활성 세션 수를 반환합니다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "usage",
+        "read"
+      ],
+      "useCases": [
+        "운영자가 장치 사용 현황을 확인합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "deviceId"
+          ],
+          "properties": {
+            "deviceId": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "조회할 장치의 id입니다.",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "기본 카메라",
+            "value": {
+              "deviceId": "camera-default"
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "usage",
+            "description": "장치 사용량을 조회합니다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "title": "사용량",
+          "description": "장치 사용량입니다."
+        },
+        "examples": [
+          {
+            "name": "유휴",
+            "value": {
+              "device_id": "camera-default",
+              "sessions": 0
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices/{deviceId}/usage",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "장치 사용량",
+        "keywords": [
+          "io",
+          "usage"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.usage.list": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "사용량 목록",
+      "summary": "모든 장치의 사용량을 나열합니다.",
+      "description": "노드의 장치별 활성 세션 수를 반환합니다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "usage",
+        "read"
+      ],
+      "useCases": [
+        "운영자가 노드 전체 I/O 사용 현황을 확인합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "빈 요청",
+            "value": {}
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "usage-list",
+            "description": "장치 사용량 스냅샷을 반환합니다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "usage",
+            "count"
+          ],
+          "properties": {
+            "usage": {
+              "type": "array",
+              "title": "사용량",
+              "description": "장치별 사용량입니다.",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "title": "개수",
+              "description": "항목 수입니다."
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "빈 노드",
+            "value": {
+              "usage": [],
+              "count": 0
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-inventory/v1/usage",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "사용량 목록",
+        "keywords": [
+          "io",
+          "usage"
+        ],
+        "outputPorts": [
+          {
+            "name": "usage",
+            "pointer": "/usage"
+          }
+        ]
+      }
+    },
+    "io.terra.io-inventory.devices.approve": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "장치 승인",
+      "summary": "I/O 장치를 승인합니다.",
+      "description": "장치의 approval을 approved로 전이합니다. 승인은 사용 가능(available)의 필요 조건입니다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "policy",
+        "write"
+      ],
+      "useCases": [
+        "운영자가 새 장치의 사용을 허가합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "deviceId"
+          ],
+          "properties": {
+            "deviceId": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "승인할 장치의 id입니다.",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "기본 카메라",
+            "value": {
+              "deviceId": "camera-default"
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "approve",
+            "description": "approval을 approved로 저장합니다.",
+            "transaction": "required"
+          }
+        ],
+        "postconditions": [
+          {
+            "id": "approve-applied",
+            "title": "정책 반영",
+            "description": "장치 approval이 approved입니다.",
+            "kind": "invariant",
+            "enforcedBy": "provider"
+          }
+        ],
+        "sideEffects": [
+          {
+            "resourceId": "io.terra.io-inventory.policy",
+            "action": "update",
+            "description": "정책이 module-data에 영속됩니다."
+          }
+        ]
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "title": "장치",
+          "description": "갱신된 장치 상태입니다."
+        },
+        "examples": [
+          {
+            "name": "승인됨",
+            "value": {
+              "id": "camera-default",
+              "approval": "approved"
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 3000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "never",
+          "maximumAttempts": 1
+        },
+        "concurrency": {
+          "mode": "per-resource"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "POST",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices/{deviceId}/approve",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Policy",
+        "recommendedLabel": "장치 승인",
+        "keywords": [
+          "io",
+          "approve",
+          "승인"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.devices.deny": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "장치 거부",
+      "summary": "I/O 장치를 거부하고 비활성화합니다.",
+      "description": "장치의 approval을 denied로 전이하고 enabled를 내립니다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "policy",
+        "write"
+      ],
+      "useCases": [
+        "운영자가 장치 사용을 차단합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "deviceId"
+          ],
+          "properties": {
+            "deviceId": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "거부할 장치의 id입니다.",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "기본 카메라",
+            "value": {
+              "deviceId": "camera-default"
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "deny",
+            "description": "approval을 denied로 저장하고 enabled를 내립니다.",
+            "transaction": "required"
+          }
+        ],
+        "postconditions": [
+          {
+            "id": "deny-applied",
+            "title": "정책 반영",
+            "description": "장치 approval이 denied이고 enabled가 false입니다.",
+            "kind": "invariant",
+            "enforcedBy": "provider"
+          }
+        ],
+        "sideEffects": [
+          {
+            "resourceId": "io.terra.io-inventory.policy",
+            "action": "update",
+            "description": "정책이 module-data에 영속됩니다."
+          }
+        ]
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "title": "장치",
+          "description": "갱신된 장치 상태입니다."
+        },
+        "examples": [
+          {
+            "name": "거부됨",
+            "value": {
+              "id": "camera-default",
+              "approval": "denied"
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 3000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "never",
+          "maximumAttempts": 1
+        },
+        "concurrency": {
+          "mode": "per-resource"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "POST",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices/{deviceId}/deny",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Policy",
+        "recommendedLabel": "장치 거부",
+        "keywords": [
+          "io",
+          "deny",
+          "거부"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.devices.enable": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "장치 활성화",
+      "summary": "승인된 I/O 장치를 활성화합니다.",
+      "description": "장치의 enabled를 올립니다. 승인되지 않은 장치는 활성화할 수 없습니다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "policy",
+        "write"
+      ],
+      "useCases": [
+        "운영자가 승인된 장치의 사용을 켭니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "deviceId"
+          ],
+          "properties": {
+            "deviceId": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "활성화할 장치의 id입니다.",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "기본 카메라",
+            "value": {
+              "deviceId": "camera-default"
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [
+          {
+            "id": "approved-required",
+            "title": "승인 선행",
+            "description": "장치 approval이 approved여야 합니다.",
+            "kind": "resource-state",
+            "enforcedBy": "provider",
+            "onFailure": "IO_DEVICE_NOT_APPROVED"
+          }
+        ],
+        "processing": [
+          {
+            "id": "enable",
+            "description": "enabled를 올립니다.",
+            "transaction": "required"
+          }
+        ],
+        "postconditions": [
+          {
+            "id": "enable-applied",
+            "title": "정책 반영",
+            "description": "장치 enabled가 true입니다.",
+            "kind": "invariant",
+            "enforcedBy": "provider"
+          }
+        ],
+        "sideEffects": [
+          {
+            "resourceId": "io.terra.io-inventory.policy",
+            "action": "update",
+            "description": "정책이 module-data에 영속됩니다."
+          }
+        ]
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "title": "장치",
+          "description": "갱신된 장치 상태입니다."
+        },
+        "examples": [
+          {
+            "name": "활성",
+            "value": {
+              "id": "camera-default",
+              "enabled": true
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 3000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "never",
+          "maximumAttempts": 1
+        },
+        "concurrency": {
+          "mode": "per-resource"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "POST",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices/{deviceId}/enable",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Policy",
+        "recommendedLabel": "장치 활성화",
+        "keywords": [
+          "io",
+          "enable"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.devices.disable": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "장치 비활성화",
+      "summary": "I/O 장치를 비활성화합니다.",
+      "description": "장치의 enabled를 내립니다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "policy",
+        "write"
+      ],
+      "useCases": [
+        "운영자가 장치 사용을 일시 중단합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "deviceId"
+          ],
+          "properties": {
+            "deviceId": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "비활성화할 장치의 id입니다.",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "기본 카메라",
+            "value": {
+              "deviceId": "camera-default"
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "disable",
+            "description": "enabled를 내립니다.",
+            "transaction": "required"
+          }
+        ],
+        "postconditions": [
+          {
+            "id": "disable-applied",
+            "title": "정책 반영",
+            "description": "장치 enabled가 false입니다.",
+            "kind": "invariant",
+            "enforcedBy": "provider"
+          }
+        ],
+        "sideEffects": [
+          {
+            "resourceId": "io.terra.io-inventory.policy",
+            "action": "update",
+            "description": "정책이 module-data에 영속됩니다."
+          }
+        ]
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "title": "장치",
+          "description": "갱신된 장치 상태입니다."
+        },
+        "examples": [
+          {
+            "name": "비활성",
+            "value": {
+              "id": "camera-default",
+              "enabled": false
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 3000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "never",
+          "maximumAttempts": 1
+        },
+        "concurrency": {
+          "mode": "per-resource"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "POST",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices/{deviceId}/disable",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Policy",
+        "recommendedLabel": "장치 비활성화",
+        "keywords": [
+          "io",
+          "disable"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.devices.alias.set": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "장치 별칭",
+      "summary": "I/O 장치의 별칭을 설정합니다.",
+      "description": "장치 표시 이름으로 쓰이는 별칭을 설정하거나 지웁니다(빈 문자열).",
+      "category": "io",
+      "tags": [
+        "io",
+        "policy",
+        "write"
+      ],
+      "useCases": [
+        "운영자가 장치에 사람이 읽을 이름을 붙입니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "deviceId",
+            "alias"
+          ],
+          "properties": {
+            "deviceId": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "대상 장치의 id입니다.",
+              "minLength": 1
+            },
+            "alias": {
+              "type": "string",
+              "title": "별칭",
+              "description": "설정할 별칭입니다. 빈 문자열은 별칭을 지웁니다.",
+              "maxLength": 128
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "거실 카메라",
+            "value": {
+              "deviceId": "camera-default",
+              "alias": "거실 카메라"
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "alias",
+            "description": "별칭을 저장합니다.",
+            "transaction": "required"
+          }
+        ],
+        "postconditions": [
+          {
+            "id": "set-applied",
+            "title": "정책 반영",
+            "description": "장치 alias가 요청 값입니다.",
+            "kind": "invariant",
+            "enforcedBy": "provider"
+          }
+        ],
+        "sideEffects": [
+          {
+            "resourceId": "io.terra.io-inventory.policy",
+            "action": "update",
+            "description": "정책이 module-data에 영속됩니다."
+          }
+        ]
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "title": "장치",
+          "description": "갱신된 장치 상태입니다."
+        },
+        "examples": [
+          {
+            "name": "별칭 설정",
+            "value": {
+              "id": "camera-default",
+              "alias": "거실 카메라"
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 3000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "never",
+          "maximumAttempts": 1
+        },
+        "concurrency": {
+          "mode": "per-resource"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "POST",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices/{deviceId}/alias",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Policy",
+        "recommendedLabel": "장치 별칭",
+        "keywords": [
+          "io",
+          "alias",
+          "별칭"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.devices.probe": {
+      "version": "0.1.0",
+      "status": "experimental",
+      "title": "장치 재확인",
+      "summary": "장치 하나를 다시 읽어 presence와 capability를 갱신합니다.",
+      "description": "플랫폼 adapter로 장치 하나를 다시 읽어 presence·이름·capability를 갱신한다. scan과 다른 점은 대조 범위다 — scan은 이 adapter가 아는 장치 중 열거되지 않은 것을 전부 missing으로 바꾸지만, probe는 요청한 장치 하나만 건드린다. 열거되지 않으면 presence=missing이며 삭제하지 않는다(IO-3): 승인·별칭은 그대로 남고, 지우는 것은 사람이 forget을 부를 때뿐이다. adapter가 없는 플랫폼은 501(IO_SCAN_UNAVAILABLE), 열거 실패는 500(IO_SCAN_FAILED), 논리 슬롯처럼 discovery adapter의 것이 아닌 장치는 409(IO_DEVICE_NOT_PROBEABLE)다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "device",
+        "scan"
+      ],
+      "useCases": [
+        "운영자가 장치 하나가 돌아왔는지 나머지 인벤토리를 건드리지 않고 확인합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "deviceId"
+          ],
+          "properties": {
+            "deviceId": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "다시 읽을 장치의 id입니다.",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "연결이 끊긴 마우스",
+            "value": {
+              "deviceId": "mouse-046d-c534-2f417bd9"
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [
+          {
+            "id": "adapter-owned",
+            "title": "discovery adapter의 장치",
+            "description": "대상 장치의 adapter_id가 플랫폼 discovery adapter여야 한다.",
+            "kind": "resource-state",
+            "enforcedBy": "provider",
+            "onFailure": "IO_DEVICE_NOT_PROBEABLE"
+          }
+        ],
+        "processing": [
+          {
+            "id": "enumerate",
+            "description": "플랫폼 adapter가 현재 연결된 장치를 열거합니다.",
+            "transaction": "none"
+          },
+          {
+            "id": "apply",
+            "description": "요청한 장치 하나의 presence·이름·capability를 갱신합니다.",
+            "transaction": "required"
+          }
+        ],
+        "postconditions": [
+          {
+            "id": "probe-applied",
+            "title": "단일 장치 반영",
+            "description": "요청한 장치의 presence는 열거 결과와 같고, 다른 장치의 presence는 이 호출로 바뀌지 않습니다.",
+            "kind": "invariant",
+            "enforcedBy": "provider"
+          }
+        ],
+        "sideEffects": [
+          {
+            "resourceId": "io.terra.io-inventory.devices",
+            "action": "update",
+            "description": "대상 장치의 presence·이름·capability가 갱신됩니다. 승인 정책은 변경하지 않습니다."
+          }
+        ]
+      },
+      "errors": [
+        "IO_DEVICE_NOT_FOUND",
+        "IO_DEVICE_NOT_PROBEABLE",
+        "IO_SCAN_UNAVAILABLE",
+        "IO_SCAN_FAILED"
+      ],
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "device_id",
+            "adapter",
+            "presence",
+            "changed",
+            "device"
+          ],
+          "properties": {
+            "device_id": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "다시 읽은 장치의 id입니다."
+            },
+            "adapter": {
+              "type": "string",
+              "title": "어댑터",
+              "description": "재확인을 수행한 adapter id입니다."
+            },
+            "presence": {
+              "type": "string",
+              "title": "presence",
+              "description": "재확인 뒤의 presence입니다.",
+              "enum": [
+                "unknown",
+                "present",
+                "missing"
+              ]
+            },
+            "changed": {
+              "type": "array",
+              "title": "바뀐 항목",
+              "description": "이번 재확인이 실제로 바꾼 필드입니다. 비어 있으면 확인만 된 것이고, 확인과 정정은 다른 답이므로 구분해 돌려줍니다.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "device": {
+              "type": "object",
+              "title": "장치",
+              "description": "갱신된 장치 상태입니다."
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "돌아온 마우스",
+            "value": {
+              "device_id": "mouse-046d-c534-2f417bd9",
+              "adapter": "adapter.os-discovery",
+              "presence": "present",
+              "changed": [
+                "presence",
+                "available"
+              ],
+              "device": {
+                "id": "mouse-046d-c534-2f417bd9",
+                "presence": "present"
+              }
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 10000,
+          "maximum": 30000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "never",
+          "maximumAttempts": 1
+        },
+        "concurrency": {
+          "mode": "per-resource"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "POST",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices/{deviceId}/probe",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "장치 재확인",
+        "keywords": [
+          "io",
+          "probe",
+          "재확인"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.devices.forget": {
+      "version": "0.1.0",
+      "status": "experimental",
+      "title": "장치 망각",
+      "summary": "장치와 그 정책을 지우고 tombstone을 남깁니다.",
+      "description": "사람이 '이 장치는 더 이상 내가 관리하지 않는다'고 말하는 자리다. 장치 항목과 저장된 정책(alias·approval·enabled)을 지우고, 그 사실을 tombstone으로 남긴다. 사라진 장치의 presence=missing(IO-3)과는 다른 동작이다 — missing은 *장치*가 떠난 것이라 승인·별칭을 그대로 지키지만, forget은 *사람*이 떠난 것이라 정책을 지운다. tombstone은 차단 목록이 아니다: 같은 하드웨어가 다시 열거되면 다음 scan이 approval=pending인 새 장치로 등재하고 tombstone은 이력으로 남는다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "policy",
+        "write"
+      ],
+      "useCases": [
+        "운영자가 다시 쓰지 않을 장치를 인벤토리에서 내립니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "deviceId"
+          ],
+          "properties": {
+            "deviceId": {
+              "type": "string",
+              "title": "장치 ID",
+              "description": "잊을 장치의 id입니다.",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "교체한 키보드",
+            "value": {
+              "deviceId": "keyboard-046d-c548-a4f12d43"
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "forget",
+            "description": "장치 항목과 저장된 정책을 지우고 tombstone을 기록합니다.",
+            "transaction": "required"
+          }
+        ],
+        "postconditions": [
+          {
+            "id": "forget-applied",
+            "title": "망각 반영",
+            "description": "장치는 목록에 없고, 그 id의 정책은 저장소에 없으며, tombstone이 남아 '정책이 없다'와 '사람이 정책을 지웠다'를 구분합니다.",
+            "kind": "invariant",
+            "enforcedBy": "provider"
+          }
+        ],
+        "sideEffects": [
+          {
+            "resourceId": "io.terra.io-inventory.policy",
+            "action": "delete",
+            "description": "장치 정책이 module-data에서 삭제되고 tombstone이 같은 파일에 영속됩니다."
+          }
+        ]
+      },
+      "errors": [
+        "IO_DEVICE_NOT_FOUND",
+        "IO_STATE_PERSISTENCE"
+      ],
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "forgotten",
+            "tombstone"
+          ],
+          "properties": {
+            "forgotten": {
+              "type": "boolean",
+              "title": "망각됨",
+              "description": "장치와 정책이 지워졌는지입니다."
+            },
+            "tombstone": {
+              "type": "object",
+              "title": "tombstone",
+              "description": "무엇을 언제 잊었는지에 대한 기록입니다.",
+              "required": [
+                "device_id",
+                "forgotten_at"
+              ],
+              "properties": {
+                "device_id": {
+                  "type": "string",
+                  "title": "장치 ID",
+                  "description": "잊은 장치의 id입니다."
+                },
+                "name": {
+                  "type": "string",
+                  "title": "이름",
+                  "description": "잊을 때의 장치 이름입니다."
+                },
+                "alias": {
+                  "type": "string",
+                  "title": "별칭",
+                  "description": "잊을 때의 별칭입니다."
+                },
+                "kind": {
+                  "type": "string",
+                  "title": "종류",
+                  "description": "잊을 때의 장치 종류입니다."
+                },
+                "adapter_id": {
+                  "type": "string",
+                  "title": "어댑터",
+                  "description": "그 장치를 보고하던 adapter id입니다."
+                },
+                "approval": {
+                  "type": "string",
+                  "title": "승인 상태",
+                  "description": "잊을 때의 approval입니다."
+                },
+                "last_seen_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "title": "마지막 목격",
+                  "description": "마지막으로 present였던 시점입니다."
+                },
+                "forgotten_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "title": "망각 시점",
+                  "description": "사람이 이 장치를 잊은 시점입니다."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "교체한 키보드",
+            "value": {
+              "forgotten": true,
+              "tombstone": {
+                "device_id": "keyboard-046d-c548-a4f12d43",
+                "name": "Logitech USB Receiver",
+                "kind": "keyboard",
+                "adapter_id": "adapter.os-discovery",
+                "approval": "approved",
+                "forgotten_at": "2026-09-15T04:21:09Z"
+              }
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "dangerous",
+        "idempotency": {
+          "mode": "none"
+        },
+        "confirmation": {
+          "mode": "required"
+        },
+        "timeoutMs": {
+          "default": 3000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "never",
+          "maximumAttempts": 1
+        },
+        "concurrency": {
+          "mode": "per-resource"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "POST",
+          "path": "/api/modules/io.terra.io-inventory/v1/devices/{deviceId}/forget",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "장치 망각",
+        "keywords": [
+          "io",
+          "forget",
+          "tombstone",
+          "망각"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.tombstones.list": {
+      "version": "0.1.0",
+      "status": "experimental",
+      "title": "잊은 장치 목록",
+      "summary": "사람이 forget으로 지운 장치의 기록을 최신순으로 나열합니다.",
+      "description": "tombstone은 사람이 장치를 더 이상 관리하지 않겠다고 선언한 기록이다. presence=missing(IO-3)과 다른 사실을 답한다 — missing은 *장치*가 떠난 것이라 승인·별칭을 그대로 지키고, forget은 *사람*이 떠난 것이라 정책과 항목이 사라진다. 남는 것이 이 기록인데, '그 장치에 정책이 없다'와 '사람이 그 장치의 정책을 지웠다'는 다른 사실이고 운영자는 둘을 구분할 수 있어야 하기 때문이다. 차단 목록이 아니다 — 같은 하드웨어가 다시 열거되면 approval=pending의 새 장치로 돌아오고 이 기록은 이력으로 남는다. 노드당 최신 64건까지만 보관한다(장치가 드나드는 노드에서 상태 파일이 무한히 자라면 안 된다).",
+      "category": "io",
+      "tags": [
+        "io",
+        "device",
+        "tombstone"
+      ],
+      "useCases": [
+        "운영자가 이 노드에서 무엇을 지웠는지 확인합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "빈 요청",
+            "value": {}
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "read",
+            "description": "보관 중인 tombstone을 최신순으로 읽습니다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "tombstones",
+            "count"
+          ],
+          "properties": {
+            "tombstones": {
+              "type": "array",
+              "title": "tombstone",
+              "description": "최신순입니다. 잊은 적이 없는 노드는 빈 배열이며 null이 아닙니다.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "device_id",
+                  "forgotten_at"
+                ],
+                "properties": {
+                  "device_id": {
+                    "type": "string",
+                    "title": "장치 ID",
+                    "description": "지운 장치의 id입니다."
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "이름",
+                    "description": "지울 당시의 이름. 일부러 버린 id를 기억하지 않아도 되도록 함께 남깁니다."
+                  },
+                  "alias": {
+                    "type": "string",
+                    "title": "별칭",
+                    "description": "지울 당시 사람이 준 별칭입니다."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "title": "종류",
+                    "description": "지울 당시의 DeviceKind입니다."
+                  },
+                  "adapter_id": {
+                    "type": "string",
+                    "title": "어댑터",
+                    "description": "그 장치를 등재한 adapter id입니다."
+                  },
+                  "approval": {
+                    "type": "string",
+                    "title": "승인 상태",
+                    "description": "지울 당시의 승인 상태입니다."
+                  },
+                  "last_seen_at": {
+                    "type": "string",
+                    "title": "마지막 목격",
+                    "description": "지우기 전 마지막으로 열거된 시각입니다."
+                  },
+                  "forgotten_at": {
+                    "type": "string",
+                    "title": "지운 시각",
+                    "description": "사람이 forget을 부른 시각입니다."
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "count": {
+              "type": "integer",
+              "title": "개수",
+              "description": "보관 중인 tombstone 수입니다."
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "마우스 하나를 지웠다",
+            "value": {
+              "tombstones": [
+                {
+                  "device_id": "mouse-046d-c534-2f417bd9",
+                  "name": "Logitech USB Receiver Mouse",
+                  "kind": "mouse",
+                  "adapter_id": "adapter.os-discovery",
+                  "approval": "approved",
+                  "forgotten_at": "2026-09-15T12:40:11Z"
+                }
+              ],
+              "count": 1
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-inventory/v1/tombstones",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "잊은 장치",
+        "keywords": [
+          "io",
+          "tombstone",
+          "forget"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.scan": {
+      "version": "0.1.0",
+      "status": "experimental",
+      "title": "장치 재탐색",
+      "summary": "I/O 장치를 다시 열거해 인벤토리에 반영합니다.",
+      "description": "플랫폼 discovery adapter로 현재 연결된 장치를 열거해 인벤토리를 갱신한다. 새로 발견된 장치는 approval=pending으로 들어와 승인 전까지 사용할 수 없고, 더 이상 보이지 않는 장치는 삭제하지 않고 presence=missing으로 남긴다 — 사용자가 정한 승인·별칭이 케이블보다 오래 살아야 하기 때문이다. adapter가 없는 플랫폼은 501(IO_SCAN_UNAVAILABLE), 열거 실패는 500(IO_SCAN_FAILED)이며 어느 쪽도 빈 목록으로 응답하지 않는다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "scan"
+      ],
+      "useCases": [
+        "운영자가 하드웨어 변경 후 인벤토리 갱신을 요청합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "빈 요청",
+            "value": {}
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "enumerate",
+            "description": "플랫폼 adapter가 현재 연결된 장치를 열거합니다.",
+            "transaction": "none"
+          },
+          {
+            "id": "sync",
+            "description": "열거 결과를 인벤토리에 반영하고, 보이지 않는 장치를 missing으로 표시합니다.",
+            "transaction": "required"
+          }
+        ],
+        "postconditions": [
+          {
+            "id": "scan-applied",
+            "title": "인벤토리 반영",
+            "description": "열거된 장치는 presence=present이고, 이 adapter의 장치 중 열거되지 않은 것은 presence=missing입니다.",
+            "kind": "invariant",
+            "enforcedBy": "provider"
+          }
+        ],
+        "sideEffects": [
+          {
+            "resourceId": "io.terra.io-inventory.devices",
+            "action": "update",
+            "description": "장치 presence가 갱신되고 새 장치가 등록됩니다. 승인 정책은 변경하지 않습니다."
+          }
+        ]
+      },
+      "errors": [
+        "IO_SCAN_UNAVAILABLE",
+        "IO_SCAN_FAILED"
+      ],
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "adapter",
+            "scanned",
+            "added",
+            "updated",
+            "missing"
+          ],
+          "properties": {
+            "adapter": {
+              "type": "string",
+              "title": "어댑터",
+              "description": "열거를 수행한 adapter id입니다."
+            },
+            "scanned": {
+              "type": "integer",
+              "title": "열거 수",
+              "description": "이번 스캔이 본 장치 수입니다."
+            },
+            "added": {
+              "type": "array",
+              "title": "추가",
+              "description": "처음 발견된 장치 id입니다.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "updated": {
+              "type": "array",
+              "title": "갱신",
+              "description": "이미 알고 있던 장치 id입니다.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "missing": {
+              "type": "array",
+              "title": "사라짐",
+              "description": "이번에 보이지 않아 missing으로 바뀐 장치 id입니다. 이미 missing이던 장치는 포함하지 않습니다.",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "마우스 하나가 빠진 재탐색",
+            "value": {
+              "adapter": "adapter.os-discovery",
+              "scanned": 2,
+              "added": [],
+              "updated": [
+                "keyboard-046d-c548-a4f12d43"
+              ],
+              "missing": [
+                "mouse-046d-c542-2f417bd9"
+              ]
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 10000,
+          "maximum": 30000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "never",
+          "maximumAttempts": 1
+        },
+        "concurrency": {
+          "mode": "serial"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "POST",
+          "path": "/api/modules/io.terra.io-inventory/v1/scan",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "장치 재탐색",
+        "keywords": [
+          "io",
+          "scan",
+          "재탐색"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.watch.get": {
+      "version": "0.1.0",
+      "status": "experimental",
+      "title": "하드웨어 변경 감시 상태",
+      "summary": "이 노드가 하드웨어 변경을 따라가는지, 어떤 방식으로 따라가는지 조회합니다.",
+      "description": "인벤토리가 스스로 갱신되는지를 답한다. mode가 event면 커널이 알려주는 것이고(리눅스 netlink uevent), poll이면 주기적으로 다시 열거하는 것이며, none이면 따라가지 않는다 — 열거 adapter가 없는 플랫폼이거나, 감시가 실패해 멈춘 뒤다. 셋은 목록이 낡아 보일 때 뜻이 서로 다르므로 구분해 보고한다. scans와 failures를 함께 내는 이유도 같다: 계속 깨어나지만 매번 열거에 실패하는 노드는 성공만 세면 한가한 노드와 구분되지 않는다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "watch",
+        "hotplug"
+      ],
+      "useCases": [
+        "운영자가 장치 목록이 갱신되지 않는 이유를 확인합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "빈 요청",
+            "value": {}
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "read",
+            "description": "감시자의 현재 상태와 창에 남은 사건을 읽습니다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "watch",
+            "scans",
+            "failures",
+            "events"
+          ],
+          "properties": {
+            "watch": {
+              "type": "object",
+              "required": [
+                "mode",
+                "detail",
+                "platform"
+              ],
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "title": "감시 방식",
+                  "description": "event는 운영체제가 알려주는 것, poll은 주기적으로 물어보는 것, none은 감시하지 않는 것입니다. 목록이 갱신되지 않을 때 그 이유가 셋 중 무엇인지가 달라집니다.",
+                  "enum": [
+                    "event",
+                    "poll",
+                    "none"
+                  ]
+                },
+                "detail": {
+                  "type": "string",
+                  "title": "사유",
+                  "description": "왜 이 방식인지를 고칠 사람이 읽을 말로 적습니다."
+                },
+                "platform": {
+                  "type": "string",
+                  "title": "플랫폼",
+                  "description": "무엇을 검사했는지 — 예: linux/netlink-uevent."
+                },
+                "poll_interval_seconds": {
+                  "type": "integer",
+                  "title": "폴링 주기",
+                  "description": "poll일 때 목록이 최대 몇 초까지 틀릴 수 있는지입니다. 다른 방식에서는 생략됩니다."
+                }
+              },
+              "additionalProperties": false,
+              "title": "감시 상태"
+            },
+            "scans": {
+              "type": "integer",
+              "title": "스캔 수",
+              "description": "감시가 일으켜 완료된 재대조 횟수입니다."
+            },
+            "failures": {
+              "type": "integer",
+              "title": "실패 수",
+              "description": "열거하지 못한 횟수입니다."
+            },
+            "last_scan": {
+              "type": "string",
+              "title": "마지막 시도",
+              "description": "성공·실패를 가리지 않는 마지막 시도 시각(RFC3339)."
+            },
+            "last_error": {
+              "type": "string",
+              "title": "마지막 오류",
+              "description": "가장 최근 스캔이 열거하지 못한 이유. 다음 성공이 지웁니다 — 지금 상태를 말하지, 여태 있었던 최악을 말하지 않습니다."
+            },
+            "events": {
+              "type": "array",
+              "title": "사건",
+              "description": "창에 남아 있는 사건입니다.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "sequence",
+                  "at",
+                  "kind",
+                  "device_id"
+                ],
+                "properties": {
+                  "sequence": {
+                    "type": "integer",
+                    "title": "순번",
+                    "description": "1부터 시작합니다. 0을 들고 있는 독자는 아무것도 보지 않은 것입니다."
+                  },
+                  "at": {
+                    "type": "string",
+                    "title": "시각",
+                    "description": "이 사건을 낸 스캔의 시각(RFC3339)."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "title": "종류",
+                    "description": "device.added는 처음 본 장치, device.missing은 있다가 응답하지 않는 장치입니다. 삭제는 없습니다 — 정책은 케이블보다 오래 삽니다(IO-3).",
+                    "enum": [
+                      "device.added",
+                      "device.missing"
+                    ]
+                  },
+                  "device_id": {
+                    "type": "string",
+                    "title": "장치 ID"
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "이름",
+                    "description": "사라진 장치를 따로 조회하지 않아도 되도록 함께 싣습니다."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "리눅스 이벤트 감시",
+            "value": {
+              "watch": {
+                "mode": "event",
+                "detail": "listening to kernel uevents on netlink group 1",
+                "platform": "linux/netlink-uevent"
+              },
+              "scans": 3,
+              "failures": 0,
+              "last_scan": "2026-09-15T09:12:44Z",
+              "events": [
+                {
+                  "sequence": 1,
+                  "at": "2026-09-15T09:12:44Z",
+                  "kind": "device.added",
+                  "device_id": "mouse-046d-c534-2f417bd9",
+                  "name": "Logitech USB Receiver Mouse"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-inventory/v1/watch",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "감시 상태",
+        "keywords": [
+          "io",
+          "watch",
+          "hotplug"
+        ],
+        "outputPorts": []
+      }
+    },
+    "io.terra.io-inventory.watch.events.list": {
+      "version": "0.1.0",
+      "status": "experimental",
+      "title": "하드웨어 변경 사건 조회",
+      "summary": "아직 보지 않은 장치 추가·사라짐 사건을 순번 이후로 가져옵니다.",
+      "description": "감시가 일으킨 재대조가 결론 내린 것만 낸다 — 처음 본 장치와, 있다가 응답하지 않는 장치. 스캔이 '봤다'고 표시한 나머지는 사건이 아니다: 그것까지 내면 폴링 노드에서는 몇 초마다 장치 목록 전체가 사건으로 나와, 정작 중요한 둘이 묻힌다. 창은 유한하다. 독자가 요청한 순번이 이미 창 밖으로 밀렸으면 missed=true로 알린다 — 다시 물어도 복구되지 않으므로, 그때는 사건이 아니라 장치 목록을 읽어야 한다.",
+      "category": "io",
+      "tags": [
+        "io",
+        "watch",
+        "hotplug"
+      ],
+      "useCases": [
+        "클라이언트가 마지막으로 본 순번 이후의 장치 변경만 따라갑니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf"
+        ],
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "since": {
+              "type": "integer",
+              "title": "순번",
+              "description": "이 순번보다 큰 사건만 돌려줍니다. 생략하면 창에 남은 전부입니다.",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "마지막으로 본 순번 이후",
+            "value": {
+              "since": 12
+            }
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "read",
+            "description": "창에서 요청한 순번 이후의 사건을 고릅니다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "errors": [
+        "IO_INVALID_REQUEST"
+      ],
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "events",
+            "latest",
+            "missed",
+            "watch"
+          ],
+          "properties": {
+            "events": {
+              "type": "array",
+              "title": "사건",
+              "description": "요청한 순번 이후의 사건입니다.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "sequence",
+                  "at",
+                  "kind",
+                  "device_id"
+                ],
+                "properties": {
+                  "sequence": {
+                    "type": "integer",
+                    "title": "순번",
+                    "description": "1부터 시작합니다. 0을 들고 있는 독자는 아무것도 보지 않은 것입니다."
+                  },
+                  "at": {
+                    "type": "string",
+                    "title": "시각",
+                    "description": "이 사건을 낸 스캔의 시각(RFC3339)."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "title": "종류",
+                    "description": "device.added는 처음 본 장치, device.missing은 있다가 응답하지 않는 장치입니다. 삭제는 없습니다 — 정책은 케이블보다 오래 삽니다(IO-3).",
+                    "enum": [
+                      "device.added",
+                      "device.missing"
+                    ]
+                  },
+                  "device_id": {
+                    "type": "string",
+                    "title": "장치 ID"
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "이름",
+                    "description": "사라진 장치를 따로 조회하지 않아도 되도록 함께 싣습니다."
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "latest": {
+              "type": "integer",
+              "title": "최신 순번",
+              "description": "다음에 이 값을 since로 주면 됩니다."
+            },
+            "missed": {
+              "type": "boolean",
+              "title": "놓침",
+              "description": "요청한 순번이 창 밖으로 밀려 일부 사건을 돌려줄 수 없으면 true입니다. 침묵하면 독자가 전부 봤다고 믿게 됩니다."
+            },
+            "watch": {
+              "type": "object",
+              "required": [
+                "mode",
+                "detail",
+                "platform"
+              ],
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "title": "감시 방식",
+                  "description": "event는 운영체제가 알려주는 것, poll은 주기적으로 물어보는 것, none은 감시하지 않는 것입니다. 목록이 갱신되지 않을 때 그 이유가 셋 중 무엇인지가 달라집니다.",
+                  "enum": [
+                    "event",
+                    "poll",
+                    "none"
+                  ]
+                },
+                "detail": {
+                  "type": "string",
+                  "title": "사유",
+                  "description": "왜 이 방식인지를 고칠 사람이 읽을 말로 적습니다."
+                },
+                "platform": {
+                  "type": "string",
+                  "title": "플랫폼",
+                  "description": "무엇을 검사했는지 — 예: linux/netlink-uevent."
+                },
+                "poll_interval_seconds": {
+                  "type": "integer",
+                  "title": "폴링 주기",
+                  "description": "poll일 때 목록이 최대 몇 초까지 틀릴 수 있는지입니다. 다른 방식에서는 생략됩니다."
+                }
+              },
+              "additionalProperties": false,
+              "title": "감시 상태"
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "마우스 하나가 빠졌다",
+            "value": {
+              "events": [
+                {
+                  "sequence": 13,
+                  "at": "2026-09-15T09:20:02Z",
+                  "kind": "device.missing",
+                  "device_id": "mouse-046d-c542-2f417bd9",
+                  "name": "Logitech USB Receiver Mouse"
+                }
+              ],
+              "latest": 13,
+              "missed": false,
+              "watch": {
+                "mode": "event",
+                "detail": "listening to kernel uevents on netlink group 1",
+                "platform": "linux/netlink-uevent"
+              }
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/io.terra.io-inventory/v1/watch/events",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "IO/Inventory",
+        "recommendedLabel": "감시 사건",
+        "keywords": [
+          "io",
+          "watch",
+          "hotplug",
+          "event"
+        ],
+        "outputPorts": []
+      }
+    }
+  }
+}

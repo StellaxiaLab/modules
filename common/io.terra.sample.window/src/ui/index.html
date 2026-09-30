@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sample Window App</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; min-height: 100vh;
+           display: grid; place-items: center; background: #1d2f26; color: #f2f4f3; }
+    main { text-align: center; max-width: 34rem; padding: 2rem; }
+    h1 { font-size: 1.6rem; margin-bottom: .4rem; }
+    p { color: #b9c4bf; line-height: 1.6; }
+    code { background: #14211b; padding: .1rem .4rem; border-radius: 4px; }
+    .fact { margin-top: 1.4rem; padding: .8rem 1rem; background: #14211b; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Sample Window App</h1>
+    <p>창 모드 GUI 앱의 참조 구현입니다. 이 화면은 모듈 프로세스가 스스로 연
+       웹 서버에서 서빙되고, 그 origin이 핸드셰이크로 게시되어 런처가 이 창을
+       열었습니다.</p>
+    <div class="fact">
+      <p>내 origin: <code id="origin"></code></p>
+      <p>opener: <code id="opener"></code></p>
+      <p>스코프 토큰: <code id="token"></code></p>
+      <p>게이트웨이 호출(<code>GET /api/v1/catalog</code>, 토큰 권한으로 좁혀진 목록): <code id="api"></code></p>
+    </div>
+  </main>
+  <script>
+    document.getElementById('origin').textContent = window.location.origin;
+    document.getElementById('opener').textContent =
+      window.opener === null ? 'null (noopener 성립)' : '연결됨(!)';
+
+    // W-D2 — 앱 스코프 토큰은 URL fragment로 한 번 도착한다. 읽자마자 주소창과
+    // 히스토리에서 지운다; 이후에는 메모리에만 있다. 토큰은 사용자 토큰이
+    // 아니라 (사용자 ∩ 이 앱의 선언 권한)으로 얼려진 1시간짜리 게이트웨이
+    // 한정 토큰이다.
+    var fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    var token = fragment.get('terra_token') || '';
+    var gateway = fragment.get('terra_gateway') || '';
+    if (window.location.hash) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    document.getElementById('token').textContent =
+      token ? token.slice(0, 8) + '… (주소창에서 제거됨)' : '없음 — 셸 밖에서 열렸거나 권한 교집합이 비었음';
+
+    var api = document.getElementById('api');
+    if (!token || !gateway) {
+      api.textContent = '토큰 없음, 호출 안 함';
+    } else {
+      fetch(gateway + '/api/v1/catalog', { headers: { Authorization: 'Bearer ' + token } })
+        .then(function (response) { return response.text().then(function (body) {
+          api.textContent = response.status + ' ' + body.slice(0, 120);
+        }); })
+        .catch(function (error) { api.textContent = '실패: ' + error; });
+    }
+  </script>
+</body>
+</html>

@@ -106,6 +106,23 @@ StellaxiaLab이 **tree로 배포할** 새 모듈은 `lab.stellaxia.*`를 쓴다.
 >
 > 그래서 지금 이 저장소에 있는 모듈은 **`publish`로 나갈 수 있다.**
 
+> [!IMPORTANT] 그리고 2026-09-30에 `io.terra.*`가 **돌아왔다** — 규칙이 바뀐 것이 아니다
+> 이주(분리 검토 Phase E)가 코어의 `module/`에서 **11개**를 가져왔고 전부 `io.terra.*`(와
+> `dev.terrallo`)다. 위 표와 어긋나 보이지만 어긋나지 않는다 — **저장소가 경계가 아니기
+> 때문이다.** §2-6이 정하는 것은 *배포 경로*이고, 이 11개는 여전히 **제품 동봉**으로 나간다:
+> 코어가 `bundled-modules.json`으로 선언하고 릴리스 자산에서 받아 번들에 싣는다.
+>
+> 그래서 이 저장소는 이제 **두 경로의 소스를 함께 들고 있다.**
+>
+> | 여기 있는 모듈 | 어떻게 나가나 | 접두사 |
+> | --- | --- | --- |
+> | 이주해 온 11개 | **제품 동봉** — 코어가 선언하고 릴리스에서 받아 번들에 싣는다 | `io.terra.*` · `dev.terrallo` |
+> | `lab.stellaxia.scene.hello` | **tree 레지스트리** — `pack` → `publish` → 노드가 설치 | `lab.stellaxia.*` |
+>
+> `publish`는 여전히 `io.terra.*`를 `PREFIX_RESERVED`로 거절하고, **그것이 맞다** — 동봉
+> 모듈은 publish로 나가지 않는다. 새로 만드는 모듈이 어느 접두사를 쓸지는 위 표가 그대로
+> 정한다: tree로 배포할 것이면 `lab.stellaxia.*`다.
+
 ### 셸만은 제3자가 가져갈 수 없다
 
 **base 역할**(노드의 기본 화면)을 가질 수 있는 Scene id는 `io.terra.scene.<product>`와

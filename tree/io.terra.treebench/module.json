@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "id": "io.terra.treebench",
+  "name": "Treebench",
+  "version": "0.1.0",
+  "kind": "service",
+  "description": "A test console for the Tree control plane: every operation the Master contract declares gets a place to be called from, an envelope view of what came back, and a coverage ledger that knows which ones have never been run. The UI is a sandboxed static GUI app; this process is the half that reaches the machine-channel surfaces a browser session cannot address.",
+  "compatibility": {
+    "products": ["tree"],
+    "os": ["linux", "windows"]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-treebench",
+      "linux-arm64": "bin/linux-arm64/terra-treebench",
+      "windows-amd64": "bin/windows-amd64/terra-treebench.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      { "id": "io.terra.treebench", "version": "0.1.0" }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "gui": {
+      "apps": [
+        {
+          "id": "io.terra.treebench",
+          "name": "Treebench",
+          "mode": "static",
+          "entry": "ui/index.html",
+          "isolation": "sandboxed",
+          "permissions": ["node.read", "node.control", "master.admin"]
+        }
+      ]
+    }
+  },
+  "readiness": {
+    "operationId": "io.terra.treebench.status.get",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}
