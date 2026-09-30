@@ -68,8 +68,32 @@ var channelName = map[string]string{
 // Treebench calls them through the relay with tester credentials.
 var relayOnlyChannels = []string{"d", "v"}
 
-func masterContractPath() string {
-	return filepath.Join("..", "..", "..", "..", "products", "tree", "master", "contracts", "api", "terra-api.json")
+// masterContractPath locates Master's shipped contract.
+//
+// The default is four levels up, which is where it sits when this module lives
+// inside the Terra tree. Once the module moved to its own repository that path
+// resolves outside the checkout, so a sibling Terra checkout is named by
+// TERRA_CHECKOUT - the same variable tools/build-modules.mjs and
+// tools/pack-modules.mjs already take (module split review Q-8, G-14).
+//
+// No copy is kept. What this file measures is whether the generated
+// contract-map still matches Master's *actual* contract, so a fixture copy
+// would delete the question: the copy ages silently and the test stays green
+// against it.
+func masterContractPath(t *testing.T) string {
+	t.Helper()
+	relative := filepath.Join("products", "tree", "master", "contracts", "api", "terra-api.json")
+	if checkout := strings.TrimSpace(os.Getenv("TERRA_CHECKOUT")); checkout != "" {
+		return filepath.Join(checkout, relative)
+	}
+	candidate := filepath.Join("..", "..", "..", "..", relative)
+	if _, err := os.Stat(candidate); err != nil {
+		// Do not skip. This test is the tripwire for contract drift, and a
+		// tripwire that quietly stands down ships the drift it was put there
+		// to catch.
+		t.Fatalf("Master contract not reachable at %s: set TERRA_CHECKOUT to a Terra checkout (e.g. TERRA_CHECKOUT=../terra), which is what CI does", candidate)
+	}
+	return candidate
 }
 
 func loadGeneratedMap(t *testing.T) map[string]mapEntry {
@@ -95,7 +119,7 @@ func loadGeneratedMap(t *testing.T) map[string]mapEntry {
 
 func expectedMap(t *testing.T) map[string]mapEntry {
 	t.Helper()
-	raw, err := os.ReadFile(masterContractPath())
+	raw, err := os.ReadFile(masterContractPath(t))
 	if err != nil {
 		t.Fatalf("read Master contract: %v", err)
 	}
@@ -194,7 +218,7 @@ func compareFields(t *testing.T, id, label string, got, want []string) {
 // dictionary alone would miss.
 func contractAuthenticationSchemes(t *testing.T) []string {
 	t.Helper()
-	raw, err := os.ReadFile(masterContractPath())
+	raw, err := os.ReadFile(masterContractPath(t))
 	if err != nil {
 		t.Fatalf("read Master contract: %v", err)
 	}

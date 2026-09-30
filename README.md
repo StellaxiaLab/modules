@@ -183,12 +183,20 @@ Go 의존은 0으로도 된다.
 | `npm run check:schema` | 벤더링한 스키마 사본이 기록된 해시 그대로인가 |
 | `npm run check:schema -- --terra <path>` | 그 사본이 Terra의 원본과 바이트까지 같은가 |
 | `npm run build -- --terra <path>` | Go 소스를 가진 모듈이 선언한 타깃으로 굽히는가 |
+| `npm run test -- --terra <path>` | Go 소스를 가진 모듈의 **시험이 도는가** — `go test` 와 goroutine 을 가진 패키지의 `-race` |
 | `terra module pack <dir>` | Scene 무결성과 포장이 실제로 열리는지 (**권위**) |
 | `npm run pack -- --cli <terra> --terra <path> --tag <tag>` | 저장소 전체를 타깃별로 포장하고 릴리스 목록을 낸다 |
 
-앞의 셋은 이 저장소만으로 돌고, 뒤의 둘은 Terra 체크아웃이 필요하다. CI도 같은 선으로
+앞의 둘은 이 저장소만으로 돌고, 나머지는 Terra 체크아웃이 필요하다. CI도 같은 선으로
 갈라져 있다 — `validate` 잡은 항상 돌고, `pack` 잡은 `TERRA_CHECKOUT_SSH_KEY`가 있을 때만
-돈다. 시크릿이 없을 때의 처분은 **어디서 도느냐로 갈린다:**
+돈다.
+
+`npm run test`가 있는 이유는 **이주가 그것을 떨어뜨렸기 때문**이다(분리 검토 G-14). 모듈이
+Terra 안에 있을 때는 Terra의 CI가 `git ls-files '*go.mod'`로 저장소의 모든 Go 모듈을 훑어
+시험을 돌리고 있었고, 모듈이 여기로 오면 그 훑기에서 **말없이 빠진다** — 없어진 경로를 세지
+않으므로 코어 CI는 그대로 초록이다. `npm run build`로는 대신할 수 없다: 컴파일이 되는지만
+본다. 첫 실행이 바로 하나를 잡았다 — `io.terra.treebench`가 Master의 계약을 Terra 트리
+기준 상대경로로 읽고 있었다(G-15). 그래서 시험 환경에는 `TERRA_CHECKOUT`이 함께 간다. 시크릿이 없을 때의 처분은 **어디서 도느냐로 갈린다:**
 
 | 어디서 | 시크릿이 없으면 |
 | --- | --- |

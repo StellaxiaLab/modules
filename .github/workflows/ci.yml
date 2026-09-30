@@ -162,6 +162,22 @@ jobs:
         working-directory: modules
         run: node tools/build-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
 
+      # 모듈의 Go 시험을 돈다 (분리 검토 G-14).
+      #
+      # 이주 전에는 **코어의 CI 가 이것을 돌고 있었다** — Terra 의 go 잡이
+      # `git ls-files '*go.mod'` 로 저장소의 모든 Go 모듈을 훑는데 거기에
+      # `module/<tier>/<id>/src` 가 들어 있었다. 모듈이 이 저장소로 오면 그
+      # 훑기에서 **말없이 빠진다**: 없어진 경로를 세지 않으므로 코어 CI 는
+      # 그대로 초록이고, 줄어든 것은 시험의 수뿐이다. 실측(2026-09-30):
+      # 이주하는 모듈 열에 시험 파일 55개 · Test 함수 347개.
+      #
+      # 위의 build 단계로는 대신할 수 없다 — 컴파일이 되는지만 본다.
+      # 그리고 이것이 코어가 `module/` 을 지우기 전에 서야 하는 이유다.
+      - name: Test modules that carry Go source
+        if: steps.guard.outputs.present == 'true'
+        working-directory: modules
+        run: node tools/test-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
+
       # pack 은 자기 출력을 설치기와 같은 검사(OpenPackageManifest → Extract →
       # VerifyPayload)로 되연다. 그래서 이 단계가 통과하면 "포장은 됐는데 설치가
       # 안 되는" 상태가 남지 않는다.

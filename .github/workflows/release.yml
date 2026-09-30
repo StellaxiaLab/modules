@@ -90,6 +90,15 @@ jobs:
         working-directory: modules
         run: node tools/build-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
 
+      # 시험도 여기서 다시 돈다. 위 주석이 *"태그가 main 위에 있는지는 강제하지
+      # 않는다 — 이 잡이 무엇을 굽든 validate·schema·pack 을 전부 다시 돌기
+      # 때문에 검사받지 않은 것이 실리지는 않는다"* 라고 적었다. 시험이 생긴
+      # 뒤로는 시험도 그 "검사" 에 든다 — 안 돌면 그 문장이 거짓이 된다
+      # (분리 검토 G-14).
+      - name: Test modules that carry Go source
+        working-directory: modules
+        run: node tools/test-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
+
       # 타깃마다 따로 굽는다. 실측: 타깃 셋을 선언한 모듈을 안 좁히고 포장하면
       # 자산 하나가 4.9 MB → 14.3 MB 로 2.9배가 되고, 리눅스 노드가 윈도우·arm
       # 바이너리까지 받는다.
