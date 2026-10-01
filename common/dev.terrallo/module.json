@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 2,
+  "id": "dev.terrallo",
+  "version": "0.1.0",
+  "kind": "service",
+  "name": "Terrallo",
+  "description": "terra hello 를 hello terra 로 답하는 수동 테스트용 모듈입니다.",
+  "compatibility": {
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "os": [
+      "linux",
+      "windows"
+    ]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-terrallo",
+      "linux-arm64": "bin/linux-arm64/terra-terrallo",
+      "windows-amd64": "bin/windows-amd64/terra-terrallo.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "dev.terrallo",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "cli": {
+      "commands": [
+        {
+          "name": "hello",
+          "operationId": "dev.terrallo.hello.get",
+          "summary": "hello terra 를 출력합니다"
+        }
+      ]
+    }
+  },
+  "readiness": {
+    "operationId": "dev.terrallo.status.get",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}

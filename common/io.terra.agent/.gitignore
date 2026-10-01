@@ -1,0 +1,7 @@
+# Build output. The release build compiles src/ into these paths and
+# stamps the digests into module.json integrity.
+bin/
+
+# `go build` in src/ without -o writes the executable next to the sources.
+/src/io.terra.agent
+/src/io.terra.agent.exe

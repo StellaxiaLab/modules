@@ -1,0 +1,338 @@
+{
+  "$schema": "../../../../../docs/contracts/api/schemas/terra-api-contract-v1.schema.json",
+  "authentication": {
+    "workload-identity": {
+      "description": "Module Runtime이 실행 instance에 발급한 단기 Workload Identity를 사용합니다.",
+      "type": "workload-identity"
+    }
+  },
+  "contractId": "dev.terrallo.api",
+  "contractVersion": "0.1.0",
+  "defaultLocale": "ko-KR",
+  "description": "이 계약이 Gateway route의 단일 원본입니다. operation의 bindings에 적은 method·path가 그대로 게시되고 security.permissions가 route 권한이 되므로, 표면을 바꿀 때는 코드가 아니라 이 파일을 먼저 고칩니다.",
+  "errors": {
+    "TERRALLO_UNAVAILABLE": {
+      "description": "모듈이 아직 준비되지 않았거나 내부 상태가 손상되어 요청을 처리할 수 없습니다.",
+      "retryable": true,
+      "title": "모듈 사용 불가"
+    }
+  },
+  "operations": {
+    "dev.terrallo.hello.get": {
+      "authoring": {
+        "functionNode": true,
+        "group": "Terrallo",
+        "keywords": [
+          "hello",
+          "greeting",
+          "인사"
+        ],
+        "outputPorts": [
+          {
+            "name": "message",
+            "pointer": "/message"
+          }
+        ],
+        "recommendedLabel": "인사 받기",
+        "studioVisible": true
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/dev.terrallo/v1/hello",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "greeting",
+      "description": "고정된 인사말 한 줄을 돌려주는 read-only Operation입니다. 부수효과가 없고 입력도 받지 않으므로, 등록·배포·설치가 끝까지 갔는지를 확인하는 용도로 쓰입니다.",
+      "errors": [
+        "TERRALLO_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "인사에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "정상",
+            "value": {
+              "message": "hello terra"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "description": "모듈이 돌려주는 인사말입니다. 언제나 \"hello terra\"입니다.",
+              "minLength": 1,
+              "title": "인사말",
+              "type": "string"
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "고정된 인사말을 구성합니다.",
+            "id": "build-greeting",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "hello terra 를 돌려줍니다.",
+      "tags": [
+        "hello",
+        "greeting",
+        "read"
+      ],
+      "title": "인사",
+      "version": "1.0.0"
+    },
+    "dev.terrallo.status.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Status/Health",
+        "keywords": [
+          "status",
+          "health",
+          "상태"
+        ],
+        "outputPorts": [
+          {
+            "name": "status",
+            "pointer": "/status"
+          },
+          {
+            "name": "version",
+            "pointer": "/version"
+          }
+        ],
+        "recommendedLabel": "상태 확인",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/dev.terrallo/v1/status",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "status",
+      "description": "readiness probe와 Gateway 라우팅을 확인하기 위한 read-only Operation입니다. 부수효과가 없습니다.",
+      "errors": [
+        "TERRALLO_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "상태 조회는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "정상",
+            "value": {
+              "status": "ok",
+              "version": "0.1.0"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "description": "모듈의 현재 상태입니다.",
+              "enum": [
+                "ok",
+                "degraded"
+              ],
+              "title": "상태",
+              "type": "string"
+            },
+            "version": {
+              "description": "모듈의 semantic 버전입니다.",
+              "minLength": 1,
+              "title": "버전",
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "version"
+          ],
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "모듈의 현재 상태와 버전을 읽습니다.",
+            "id": "read-status",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "Terrallo 모듈의 현재 상태를 조회합니다.",
+      "tags": [
+        "status",
+        "health",
+        "read"
+      ],
+      "title": "상태 조회",
+      "version": "1.0.0"
+    }
+  },
+  "provider": {
+    "hostRoles": [
+      "leaf-node",
+      "tree-control"
+    ],
+    "id": "dev.terrallo",
+    "kind": "module",
+    "moduleId": "dev.terrallo",
+    "name": "Terrallo",
+    "ownership": {
+      "source": "module/common/dev.terrallo"
+    },
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.0.0",
+  "summary": "Terrallo 모듈이 제공하는 Operation 계약입니다. terra hello 가 이 계약의 hello operation을 부릅니다.",
+  "title": "Terrallo API"
+}

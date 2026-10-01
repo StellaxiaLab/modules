@@ -1,0 +1,105 @@
+{
+  "$comment": "이 모듈의 요점. 로그인은 call이 아니라 credential.login으로 간다 — call의 답은 토큰이고, 토큰은 §11.3이 Scene에 두기를 금지한 바로 그것이다. 이 노드의 답은 가려진 세션과 Credential Handle뿐이다. 실패는 onError 블록이 받는다: 던져진 것이 $auth.error라는 값이 되어 Store에 쓰이고, 블록 끝의 return이 Function을 끝내므로 아래 성공 경로는 돌지 않는다. onError가 없으면 실패한 로그인은 아무 흔적도 남기지 못한다.",
+  "schemaVersion": "1.0.0",
+  "id": "logindemo.submit",
+  "version": "0.1.0",
+  "timeoutMs": 10000,
+  "concurrency": { "mode": "exhaust" },
+  "graph": {
+    "nodes": [
+      { "id": "form", "type": "store.read", "storeId": "form", "path": "" },
+      {
+        "id": "pending",
+        "type": "store.write",
+        "storeId": "result",
+        "value": { "state": "pending", "headline": "인증 중…", "detail": "" }
+      },
+      {
+        "id": "auth",
+        "type": "credential.login",
+        "input": {
+          "email": "$form.output.email",
+          "password": "$form.output.password"
+        },
+        "onError": [
+          {
+            "id": "diagnose",
+            "type": "branch",
+            "cases": [
+              {
+                "when": {
+                  "left": "$auth.error.code",
+                  "op": "eq",
+                  "right": "CREDENTIAL_SERVICE_UNAVAILABLE"
+                },
+                "then": [
+                  {
+                    "id": "markUnavailable",
+                    "type": "store.write",
+                    "storeId": "result",
+                    "value": {
+                      "state": "failure",
+                      "headline": "로그인 실패 — Credential Service를 쓸 수 없습니다",
+                      "detail": "$auth.error.message"
+                    }
+                  }
+                ]
+              }
+            ],
+            "else": [
+              {
+                "id": "markRejected",
+                "type": "store.write",
+                "storeId": "result",
+                "value": {
+                  "state": "failure",
+                  "headline": "로그인 실패",
+                  "detail": "$auth.error.message"
+                }
+              }
+            ]
+          },
+          {
+            "id": "clearPasswordOnFailure",
+            "type": "store.write",
+            "storeId": "form",
+            "path": "/password",
+            "value": ""
+          },
+          { "id": "bail", "type": "return", "value": false }
+        ]
+      },
+      {
+        "id": "keepHandle",
+        "type": "store.write",
+        "storeId": "credential",
+        "path": "/session",
+        "value": "$auth.output.handle"
+      },
+      {
+        "id": "markSuccess",
+        "type": "store.write",
+        "storeId": "result",
+        "value": {
+          "state": "success",
+          "headline": "로그인 성공",
+          "detail": "$auth.output.session.principal"
+        }
+      },
+      {
+        "id": "clearPassword",
+        "type": "store.write",
+        "storeId": "form",
+        "path": "/password",
+        "value": ""
+      },
+      {
+        "id": "announce",
+        "type": "emit",
+        "signal": "logindemo:authenticated",
+        "payload": "$auth.output.session.principal"
+      },
+      { "id": "done", "type": "return", "value": true }
+    ]
+  }
+}

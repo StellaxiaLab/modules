@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "id": "io.terra.sample.window",
+  "name": "Terra Sample Window App",
+  "version": "0.1.0",
+  "kind": "service",
+  "description": "The reference window-mode GUI app: a module that opens its own web server for its UI and reports that origin through the SDK handshake, so the launcher can health-gate it and open it as its own top-level window. The pattern any main program with an existing web-server GUI follows to become an extension module.",
+  "compatibility": {
+    "products": ["leaf", "tree"],
+    "os": ["linux", "windows"]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-sample-window",
+      "linux-arm64": "bin/linux-arm64/terra-sample-window",
+      "windows-amd64": "bin/windows-amd64/terra-sample-window.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      { "id": "io.terra.sample.window", "version": "0.1.0" }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "gui": {
+      "apps": [
+        {
+          "id": "io.terra.sample.window",
+          "name": "Sample Window App",
+          "mode": "window",
+          "window": { "health": "/live", "singleInstance": true },
+          "permissions": ["node.read"]
+        }
+      ]
+    }
+  },
+  "readiness": {
+    "operationId": "io.terra.sample.window.status.get",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}

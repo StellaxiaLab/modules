@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "io.terra.io-inventory",
+  "name": "Terra I/O Inventory",
+  "version": "0.1.0",
+  "kind": "service",
+  "description": "Node-local I/O device inventory and approval policy, extracted from the daemon as the core-slimming pilot.",
+  "compatibility": {
+    "products": ["leaf"],
+    "os": ["linux", "windows"]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-io-inventory",
+      "linux-arm64": "bin/linux-arm64/terra-io-inventory",
+      "windows-amd64": "bin/windows-amd64/terra-io-inventory.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      { "id": "io.terra.io-inventory", "version": "0.1.0" }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "svi": { "resources": true }
+  },
+  "permissions": {
+    "storage": ["module-data"]
+  },
+  "readiness": {
+    "operationId": "io.terra.io-inventory.devices.list",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}

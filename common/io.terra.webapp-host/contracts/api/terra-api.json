@@ -1,0 +1,120 @@
+{
+  "$schema": "https://schemas.terra.dev/contracts/api/v1/contract.schema.json",
+  "$id": "https://contracts.terra.dev/io.terra.webapp-host/terra-api.json",
+  "schemaVersion": "1.0.0",
+  "contractId": "io.terra.webapp-host.api",
+  "contractVersion": "0.1.0",
+  "defaultLocale": "ko",
+  "title": "Terra Apps API",
+  "summary": "웹 앱 런처 모듈의 상태 오퍼레이션.",
+  "description": "런처의 서버 절반은 아직 얇다: 상태 하나를 답한다. 앱 목록·자산은 Gateway가 직접 서빙하고(/api/v1/gui/apps), 원격 앱 자산 동기화(W-M5)가 이 프로세스의 다음 업무다.",
+  "provider": {
+    "id": "io.terra.webapp-host",
+    "name": "Terra Apps",
+    "version": "0.1.0",
+    "kind": "module",
+    "products": ["leaf", "tree"],
+    "hostRoles": ["leaf-node", "tree-control"],
+    "moduleId": "io.terra.webapp-host",
+    "ownership": {
+      "source": "module/common/io.terra.webapp-host",
+      "team": "terra-platform"
+    }
+  },
+  "authentication": {
+    "workload-identity": {
+      "type": "workload-identity",
+      "description": "Gateway/Master가 포워딩 시 부착하는 워크로드 크리덴셜."
+    }
+  },
+  "operations": {
+    "io.terra.webapp-host.status.get": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "런처 상태",
+      "summary": "런처 모듈의 버전과 가동 상태를 반환한다.",
+      "description": "런처 모듈 프로세스가 살아 있는지와 그 버전을 확인하는 read-only 오퍼레이션이다. 부수효과 없이 즉시 응답한다.",
+      "category": "webapp",
+      "tags": ["webapp", "read"],
+      "useCases": [
+        "Module Runtime이 readiness probe로 런처 모듈 상태를 확인한다."
+      ],
+      "availability": {
+        "products": ["leaf", "tree"],
+        "hostRoles": ["leaf-node", "tree-control"],
+        "scopes": ["local"],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": ["workload-identity"],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": { "required": false }
+      },
+      "input": {
+        "schema": { "type": "object", "additionalProperties": false },
+        "examples": [
+          { "name": "빈 요청", "description": "status 조회는 입력이 없다.", "value": {} }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "read-status",
+            "description": "런처 모듈의 현재 상태와 버전을 조회한다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": ["status", "version"],
+          "properties": {
+            "status": { "type": "string", "title": "상태", "description": "런처 모듈의 현재 상태입니다." },
+            "version": { "type": "string", "title": "버전", "description": "런처 모듈의 semantic 버전입니다.", "minLength": 1 },
+            "started_at": { "type": "string", "title": "기동 시각", "description": "모듈 프로세스가 기동한 시각입니다." }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          { "name": "정상", "value": { "status": "ok", "version": "0.1.0" } }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": { "mode": "safe" },
+        "confirmation": { "mode": "none" },
+        "timeoutMs": { "default": 2000, "maximum": 5000 },
+        "cancellation": "before-dispatch",
+        "retry": { "mode": "safe-only", "maximumAttempts": 3, "backoff": "exponential" },
+        "concurrency": { "mode": "unlimited" }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/io.terra.webapp-host/v1/status",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "Status/Health",
+        "recommendedLabel": "런처 상태",
+        "keywords": ["status", "webapp", "런처"],
+        "outputPorts": [
+          { "name": "status", "pointer": "/status" },
+          { "name": "version", "pointer": "/version" }
+        ]
+      },
+      "errors": []
+    }
+  }
+}

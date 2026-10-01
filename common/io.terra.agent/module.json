@@ -1,0 +1,465 @@
+{
+  "schemaVersion": 2,
+  "id": "io.terra.agent",
+  "version": "0.1.0",
+  "kind": "service",
+  "name": "Terra Agent",
+  "description": "Terra Agent — 사람의 요청을 받아 이 노드의 Gateway 카탈로그로 계획하고, 계약이 정한 승인 규칙 아래 operation을 부르는 모듈. 상시 권한은 0이다: 매니페스트가 선언하는 코어 operation은 위임 관문 terra.gateway.delegate 하나이고, 관문은 사람이 terra agent grant로 발급해 맡긴 위임 자격 없이는 아무것도 하지 못한다. 모델 provider의 API key는 모듈 데이터 영역의 0600 파일에만 있다.",
+  "compatibility": {
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "os": [
+      "linux",
+      "windows"
+    ]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-agent",
+      "linux-arm64": "bin/linux-arm64/terra-agent",
+      "windows-amd64": "bin/windows-amd64/terra-agent.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "io.terra.agent",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "permissions": {
+    "coreOperations": [
+      {
+        "id": "terra.gateway.delegate",
+        "versionRange": ">=1.0.0 <2.0.0"
+      }
+    ],
+    "storage": [
+      "module-data"
+    ],
+    "network": [
+      "api.anthropic.com"
+    ]
+  },
+  "contributions": {
+    "cli": {
+      "commands": [
+        {
+          "name": "agent run",
+          "operationId": "io.terra.agent.runs.post",
+          "summary": "요청 하나를 끝까지 실행하고 기록을 돌려준다 (모드 A)",
+          "args": [
+            {
+              "name": "prompt",
+              "pointer": "/prompt",
+              "required": true,
+              "summary": "사람의 요청"
+            }
+          ],
+          "flags": [
+            {
+              "name": "autonomy",
+              "pointer": "/autonomy",
+              "summary": "자율성 — plan(기본, 제안만)·ask(쓰기마다 확인)·auto(되돌릴 수 있는 쓰기까지 자동)·unattended"
+            },
+            {
+              "name": "simulate",
+              "pointer": "/simulate",
+              "type": "boolean",
+              "summary": "어떤 operation도 부르지 않는다 — 카탈로그만 읽고 계획만 기록한다"
+            },
+            {
+              "name": "max-steps",
+              "pointer": "/max_steps",
+              "type": "integer",
+              "summary": "모델을 부를 최대 횟수 (기본 24)"
+            },
+            {
+              "name": "provider",
+              "pointer": "/provider",
+              "summary": "쓸 모델 provider (생략하면 기본)"
+            },
+            {
+              "name": "max-seconds",
+              "pointer": "/max_seconds",
+              "type": "integer",
+              "summary": "한 차례가 넘을 수 없는 벽시계 초 (기본 900)"
+            },
+            {
+              "name": "token-budget",
+              "pointer": "/token_budget",
+              "type": "integer",
+              "summary": "이 세션이 누적으로 쓸 토큰 상한 (생략하면 제한 없음)"
+            },
+            {
+              "name": "mcp",
+              "pointer": "/mcp_servers",
+              "type": "string-list",
+              "summary": "이 세션이 쓸 등록된 외부 MCP 서버 이름 (여러 번 줄 수 있다). unattended와는 함께 쓸 수 없다"
+            }
+          ]
+        },
+        {
+          "name": "agent open",
+          "operationId": "io.terra.agent.sessions.post",
+          "summary": "세션을 만든다 — 자율성 등은 이때 정해진다",
+          "args": [
+            {
+              "name": "session",
+              "pointer": "/session_id",
+              "required": true,
+              "summary": "세션 id (영문·숫자·._-)"
+            }
+          ],
+          "flags": [
+            {
+              "name": "autonomy",
+              "pointer": "/autonomy",
+              "summary": "자율성 — plan(기본, 제안만)·ask(쓰기마다 확인)·auto(되돌릴 수 있는 쓰기까지 자동)·unattended"
+            },
+            {
+              "name": "simulate",
+              "pointer": "/simulate",
+              "type": "boolean",
+              "summary": "어떤 operation도 부르지 않는다 — 카탈로그만 읽고 계획만 기록한다"
+            },
+            {
+              "name": "provider",
+              "pointer": "/provider",
+              "summary": "쓸 모델 provider (생략하면 기본)"
+            },
+            {
+              "name": "topic",
+              "pointer": "/topic",
+              "summary": "화면 제목"
+            },
+            {
+              "name": "max-seconds",
+              "pointer": "/max_seconds",
+              "type": "integer",
+              "summary": "한 차례가 넘을 수 없는 벽시계 초 (기본 900)"
+            },
+            {
+              "name": "token-budget",
+              "pointer": "/token_budget",
+              "type": "integer",
+              "summary": "이 세션이 누적으로 쓸 토큰 상한 (생략하면 제한 없음)"
+            },
+            {
+              "name": "mcp",
+              "pointer": "/mcp_servers",
+              "type": "string-list",
+              "summary": "이 세션이 쓸 등록된 외부 MCP 서버 이름 (여러 번 줄 수 있다). unattended와는 함께 쓸 수 없다"
+            }
+          ]
+        },
+        {
+          "name": "agent chat",
+          "kind": "session",
+          "summary": "세션에 들어가 대화한다 — 승인 요청에는 approve / deny 로 답한다",
+          "args": [
+            {
+              "name": "session",
+              "pointer": "/session_id",
+              "required": true,
+              "summary": "세션 id (없으면 기본 자율성으로 만든다)"
+            }
+          ],
+          "session": {
+            "identity": {
+              "operationId": "io.terra.agent.sessions.post",
+              "pointer": "/viewer"
+            },
+            "title": {
+              "operationId": "io.terra.agent.sessions.get",
+              "pointer": "/topic"
+            },
+            "history": {
+              "operationId": "io.terra.agent.messages.list",
+              "itemsPointer": "/entries"
+            },
+            "stream": {
+              "operationId": "io.terra.agent.messages.stream",
+              "itemPointer": "/entry",
+              "kindPointer": "/event"
+            },
+            "send": {
+              "operationId": "io.terra.agent.messages.post",
+              "textPointer": "/text"
+            },
+            "item": {
+              "authorPointer": "/author",
+              "authorLabelPointer": "/author_label",
+              "textPointer": "/text",
+              "timePointer": "/time_ms",
+              "notePointer": "/note",
+              "kindPointer": "/kind",
+              "seqPointer": "/seq",
+              "subjectPointer": "/subject"
+            },
+            "labels": {
+              "call": "호출",
+              "planned": "호출 예정 (시뮬레이션)",
+              "approved": "승인됨",
+              "denied": "거부됨",
+              "done": "차례가 끝났습니다",
+              "cancelled": "세션이 취소되었습니다",
+              "model": "모델을 불렀습니다",
+              "error": "멈췄습니다"
+            }
+          }
+        },
+        {
+          "name": "agent list",
+          "operationId": "io.terra.agent.sessions.list",
+          "summary": "세션 목록"
+        },
+        {
+          "name": "agent show",
+          "operationId": "io.terra.agent.sessions.get",
+          "summary": "세션 하나의 상태와 대기 중 승인",
+          "args": [
+            {
+              "name": "session",
+              "pointer": "/session_id",
+              "required": true,
+              "summary": "세션 id"
+            }
+          ]
+        },
+        {
+          "name": "agent log",
+          "operationId": "io.terra.agent.messages.list",
+          "summary": "세션 기록",
+          "args": [
+            {
+              "name": "session",
+              "pointer": "/session_id",
+              "required": true,
+              "summary": "세션 id"
+            }
+          ],
+          "flags": [
+            {
+              "name": "after",
+              "pointer": "/after_seq",
+              "type": "integer",
+              "summary": "이 순번 이후만"
+            },
+            {
+              "name": "limit",
+              "pointer": "/limit",
+              "type": "integer",
+              "summary": "최대 건수"
+            }
+          ]
+        },
+        {
+          "name": "agent say",
+          "operationId": "io.terra.agent.messages.post",
+          "summary": "세션에 한 줄을 보낸다 (화면 없이)",
+          "args": [
+            {
+              "name": "session",
+              "pointer": "/session_id",
+              "required": true,
+              "summary": "세션 id"
+            },
+            {
+              "name": "text",
+              "pointer": "/text",
+              "required": true,
+              "summary": "보낼 본문"
+            }
+          ]
+        },
+        {
+          "name": "agent cancel",
+          "operationId": "io.terra.agent.sessions.cancel",
+          "summary": "진행 중인 차례를 멈추고 세션을 취소한다",
+          "args": [
+            {
+              "name": "session",
+              "pointer": "/session_id",
+              "required": true,
+              "summary": "세션 id"
+            }
+          ]
+        },
+        {
+          "name": "agent approve",
+          "operationId": "io.terra.agent.approvals.post",
+          "summary": "다른 세션이 기다리는 승인에 답한다",
+          "args": [
+            {
+              "name": "request",
+              "pointer": "/request_id",
+              "required": true,
+              "summary": "승인 요청 id"
+            }
+          ],
+          "flags": [
+            {
+              "name": "deny",
+              "pointer": "/deny",
+              "type": "boolean",
+              "summary": "거부한다"
+            }
+          ]
+        },
+        {
+          "name": "agent credential set",
+          "operationId": "io.terra.agent.credentials.put",
+          "summary": "terra agent grant가 발급한 위임 자격을 표준 입력으로 맡긴다",
+          "flags": [
+            {
+              "name": "token-stdin",
+              "pointer": "/credential",
+              "source": "stdin",
+              "summary": "자격 값을 표준 입력에서 읽는다 (인자로 주지 않는다)"
+            }
+          ]
+        },
+        {
+          "name": "agent credential show",
+          "operationId": "io.terra.agent.credentials.get",
+          "summary": "맡긴 위임 자격의 사실 — 값은 보이지 않는다"
+        },
+        {
+          "name": "agent credential clear",
+          "operationId": "io.terra.agent.credentials.delete",
+          "summary": "맡긴 위임 자격을 지운다"
+        },
+        {
+          "name": "agent model add",
+          "operationId": "io.terra.agent.models.put",
+          "summary": "모델 provider를 등록한다 — API key는 표준 입력으로",
+          "args": [
+            {
+              "name": "provider",
+              "pointer": "/provider",
+              "required": true,
+              "summary": "provider 이름 (anthropic)"
+            }
+          ],
+          "flags": [
+            {
+              "name": "api-key-stdin",
+              "pointer": "/api_key",
+              "source": "stdin",
+              "summary": "API key를 표준 입력에서 읽는다 (인자로 주지 않는다)"
+            },
+            {
+              "name": "model",
+              "pointer": "/model",
+              "summary": "모델 id (기본 claude-opus-5)"
+            },
+            {
+              "name": "base-url",
+              "pointer": "/base_url",
+              "summary": "API 엔드포인트 (프록시·테스트용)"
+            },
+            {
+              "name": "default",
+              "pointer": "/default",
+              "type": "boolean",
+              "summary": "기본 provider로 둔다"
+            }
+          ]
+        },
+        {
+          "name": "agent model list",
+          "operationId": "io.terra.agent.models.list",
+          "summary": "등록된 provider와 모델 — key 값은 보이지 않는다"
+        },
+        {
+          "name": "agent model remove",
+          "operationId": "io.terra.agent.models.delete",
+          "summary": "provider 등록과 API key를 지운다",
+          "args": [
+            {
+              "name": "provider",
+              "pointer": "/provider",
+              "required": true,
+              "summary": "provider 이름"
+            }
+          ]
+        },
+        {
+          "name": "agent mcp add",
+          "operationId": "io.terra.agent.mcp.put",
+          "summary": "외부 MCP 서버를 등록한다 — 등록할 때 실제로 붙여 보고, 무슨 도구를 제공하는지 받아 적는다",
+          "args": [
+            {
+              "name": "server",
+              "pointer": "/server",
+              "required": true,
+              "summary": "등록 이름 (영문·숫자·._-). 도구는 ext__<서버>__<도구>로 보인다"
+            },
+            {
+              "name": "command",
+              "pointer": "/command",
+              "required": true,
+              "summary": "실행할 명령. 셸을 거치지 않는다"
+            },
+            {
+              "name": "args",
+              "pointer": "/args",
+              "variadic": true,
+              "summary": "명령의 인자 — `--` 뒤에 그대로 적는다"
+            }
+          ],
+          "flags": [
+            {
+              "name": "read-only",
+              "pointer": "/read_only",
+              "type": "string-list",
+              "summary": "묻지 않고 실행해도 좋다고 사람이 인정하는 도구 이름 (여러 번 줄 수 있다)"
+            },
+            {
+              "name": "env-stdin",
+              "pointer": "/env",
+              "type": "string-map",
+              "source": "stdin",
+              "summary": "서버 자신의 비밀을 표준 입력에서 KEY=VALUE 줄로 읽는다 (인자로 주지 않는다)"
+            }
+          ]
+        },
+        {
+          "name": "agent mcp list",
+          "operationId": "io.terra.agent.mcp.list",
+          "summary": "등록된 외부 MCP 서버와 그 도구 — 환경 변수 값은 보이지 않는다"
+        },
+        {
+          "name": "agent mcp remove",
+          "operationId": "io.terra.agent.mcp.delete",
+          "summary": "외부 MCP 서버 등록과 그 비밀을 지운다",
+          "args": [
+            {
+              "name": "server",
+              "pointer": "/server",
+              "required": true,
+              "summary": "등록 이름"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "readiness": {
+    "operationId": "io.terra.agent.status.get",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}

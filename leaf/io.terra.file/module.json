@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "id": "io.terra.file",
+  "name": "Terra File",
+  "version": "0.1.0",
+  "kind": "service",
+  "description": "Shared-folder listing and, from F3, resumable chunked file transfer. The second core-slimming extraction after io.terra.io-inventory.",
+  "compatibility": {
+    "products": ["leaf"],
+    "os": ["linux", "windows"]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-file",
+      "linux-arm64": "bin/linux-arm64/terra-file",
+      "windows-amd64": "bin/windows-amd64/terra-file.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      { "id": "io.terra.file", "version": "0.1.0" }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "permissions": {
+    "storage": ["module-data", "shared-roots"]
+  },
+  "readiness": {
+    "operationId": "io.terra.file.roots.list",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}

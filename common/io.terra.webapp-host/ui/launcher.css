@@ -1,0 +1,60 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 1rem; background: Canvas; color: CanvasText; }
+.launcher { max-width: 60rem; margin: 0 auto; }
+.launcher-head h1 { margin: 0 0 0.25rem; font-size: 1.4rem; }
+.launcher-head .sub { margin: 0; opacity: 0.75; font-size: 0.9rem; }
+.launcher-head code { font-size: 0.85em; }
+.bridge { font-size: 0.85rem; margin: 0.5rem 0 0; }
+.bridge[data-state="ready"] { color: #2e7d32; }
+.bridge[data-state="absent"] { opacity: 0.6; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+.card { border: 1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius: 0.5rem; padding: 0.75rem; }
+.card-title { margin: 0 0 0.35rem; font-size: 1.05rem; }
+.card-meta, .card-perms { margin: 0.25rem 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.card-line { margin: 0.2rem 0; font-size: 0.85rem; opacity: 0.85; }
+.card-line button { padding: 0.25rem 0.7rem; border-radius: 0.35rem; border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); background: transparent; color: inherit; font: inherit; font-size: 0.8rem; cursor: pointer; }
+.card-line button:hover:not(:disabled) { background: color-mix(in srgb, CanvasText 8%, transparent); }
+.card-line button:disabled { opacity: 0.5; cursor: default; }
+.window-open-status { font-size: 0.8rem; opacity: 0.75; }
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }
+.badge { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 999px; font-size: 0.72rem; border: 1px solid transparent; }
+.badge-mode { background: #1976d21a; border-color: #1976d266; }
+.badge-isolation { background: #6a1b9a1a; border-color: #6a1b9a66; }
+.badge-perm { background: #2e7d321a; border-color: #2e7d3266; }
+.badge-none { background: #9e9e9e1a; border-color: #9e9e9e66; }
+.badge-self { background: #ef6c001a; border-color: #ef6c0066; }
+.diagnostics { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.diagnostics th, .diagnostics td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid color-mix(in srgb, CanvasText 15%, transparent); }
+.foot { display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; }
+.foot button { padding: 0.35rem 0.9rem; border-radius: 0.4rem; border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); background: transparent; color: inherit; cursor: pointer; }
+.foot button:hover { background: color-mix(in srgb, CanvasText 8%, transparent); }
+#summary { font-size: 0.85rem; opacity: 0.75; }
+
+.login { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; margin: 0.8rem 0; }
+.login label { display: flex; flex-direction: column; font-size: 0.85rem; gap: 0.2rem; }
+.login input { padding: 0.3rem 0.5rem; }
+#session-state button { margin-left: 0.6rem; }
+
+/* --- 장면 구조 ------------------------------------------------------------ */
+.brand { display: flex; align-items: center; gap: 0.7rem; }
+.brand .logo { font-size: 1.8rem; line-height: 1; color: #2e7d32; }
+.crumb { display: flex; align-items: center; gap: 0.6rem; margin: 0.7rem 0 0; font-size: 0.9rem; }
+.crumb button { padding: 0.25rem 0.7rem; border-radius: 0.35rem; border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); background: transparent; color: inherit; font: inherit; font-size: 0.8rem; cursor: pointer; }
+.crumb button:hover { background: color-mix(in srgb, CanvasText 8%, transparent); }
+.crumb #crumb-here { opacity: 0.75; }
+.group-heading { margin: 1.2rem 0 0; font-size: 1rem; }
+.entries .card-title { font-size: 1.15rem; }
+.entry { border-color: color-mix(in srgb, CanvasText 30%, transparent); }
+.card-line.sub { opacity: 0.65; }
+
+/* --- 관리 패널 ------------------------------------------------------------ */
+.card-line button.manage { border-style: dashed; }
+.manage-panel { margin-top: 0.5rem; border-top: 1px solid color-mix(in srgb, CanvasText 15%, transparent); padding-top: 0.5rem; }
+.properties { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.properties th { text-align: left; vertical-align: top; padding: 0.3rem 0.5rem 0.3rem 0; white-space: nowrap; opacity: 0.75; font-weight: 600; }
+.properties td { padding: 0.3rem 0; word-break: break-all; }
+.properties p { margin: 0 0 0.2rem; }

@@ -1,0 +1,150 @@
+/* Fleet — the Tree control plane's fleet console.
+ *
+ * Served under the Gateway's app CSP (script-src 'self', font-src 'self'),
+ * so there is no web font here: the system UI stack carries prose and the
+ * mono stack carries every identifier, which is most of what this shows.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --ground: #f6f8f5;
+  --surface: #ffffff;
+  --surface-2: #eef2ec;
+  --ink: #1e2a22;
+  --muted: #5d6d62;
+  --line: #dce3da;
+
+  --accent: #2e6b4e;
+  --accent-ink: #ffffff;
+
+  --ok: #2e6b4e;
+  --ok-soft: #e3eee7;
+  --warn: #8a6d1f;
+  --warn-soft: #f5eed7;
+  --bad: #a33a2a;
+  --bad-soft: #f6e2de;
+
+  --ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #141a16;
+    --surface: #1b221d;
+    --surface-2: #222b25;
+    --ink: #e6ede8;
+    --muted: #9bab9f;
+    --line: #2e3a32;
+
+    --accent: #7fc2a0;
+    --accent-ink: #10231a;
+
+    --ok: #7fc2a0;
+    --ok-soft: #1d3228;
+    --warn: #d9bd6a;
+    --warn-soft: #332c14;
+    --bad: #e29184;
+    --bad-soft: #3a201c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 14px/1.5 var(--ui);
+}
+
+.topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 650; letter-spacing: .02em; }
+.spacer { flex: 1; }
+
+.pill {
+  font: 12px/1 var(--mono);
+  padding: 5px 9px; border-radius: 999px;
+  background: var(--surface-2); color: var(--muted);
+  border: 1px solid var(--line);
+}
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+
+.btn {
+  font: inherit;
+  padding: 6px 12px; border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--ink);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.btn.danger { color: var(--bad); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.btn[disabled]:hover { border-color: var(--line); }
+
+.shell { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 49px); }
+@media (max-width: 720px) { .shell { grid-template-columns: 1fr; } }
+
+.side {
+  background: var(--surface); border-right: 1px solid var(--line);
+  padding: 14px 12px;
+}
+.side h2 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+.list { display: flex; flex-direction: column; gap: 4px; }
+.list button {
+  font: inherit; text-align: left; cursor: pointer;
+  padding: 8px 10px; border-radius: 7px;
+  border: 1px solid transparent; background: transparent; color: var(--ink);
+}
+.list button:hover { background: var(--surface-2); }
+.list button[aria-current="true"] { background: var(--surface-2); border-color: var(--accent); }
+.list .slug { display: block; font-weight: 600; }
+.list .sub { display: block; font: 11px/1.4 var(--mono); color: var(--muted); }
+
+.main { padding: 18px 20px; min-width: 0; }
+.main h1 { margin: 0 0 2px; font-size: 20px; }
+.main h2 { margin: 26px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.meta { font: 12px/1.6 var(--mono); color: var(--muted); margin: 0 0 6px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.scroll { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font: 11px/1.4 var(--ui); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+td.id, td.num { font: 12px/1.5 var(--mono); }
+
+.state { font: 11px/1 var(--mono); padding: 4px 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.state.run { background: var(--ok-soft); color: var(--ok); }
+.state.stop { background: var(--warn-soft); color: var(--warn); }
+.state.gone { background: var(--bad-soft); color: var(--bad); }
+
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row input { font: inherit; padding: 6px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 130px; }
+
+.empty { color: var(--muted); }
+.note {
+  margin: 26px 0 0; padding: 10px 12px;
+  border-left: 3px solid var(--line); background: var(--surface);
+  color: var(--muted); font-size: 13px;
+}
+.note code { font: 12px/1.5 var(--mono); }
+
+.toast {
+  position: fixed; inset: auto 16px 16px auto;
+  max-width: 380px; padding: 10px 14px; border-radius: 9px;
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 6px 20px rgb(0 0 0 / .16);
+  font-size: 13px;
+}
+.toast.bad { border-color: var(--bad); color: var(--bad); }

@@ -1,0 +1,228 @@
+/* Node Talk — the node-to-node communication test bench.
+ *
+ * Served under the Gateway's app CSP (script-src 'self', font-src 'self'):
+ * system UI stack for prose, mono for identifiers and measurements — which is
+ * most of what an instrument shows.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --ground: #f5f7f9;
+  --surface: #ffffff;
+  --surface-2: #ecf0f4;
+  --ink: #1d2530;
+  --muted: #5b6a7c;
+  --line: #d9e0e8;
+
+  --accent: #2c5f8a;
+  --accent-ink: #ffffff;
+
+  --ok: #2e6b4e;
+  --ok-soft: #e3eee7;
+  --warn: #8a6d1f;
+  --warn-soft: #f5eed7;
+  --bad: #a33a2a;
+  --bad-soft: #f6e2de;
+
+  --ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #131920;
+    --surface: #1a2129;
+    --surface-2: #212a34;
+    --ink: #e5ebf1;
+    --muted: #97a6b7;
+    --line: #2c3743;
+
+    --accent: #7fb3dc;
+    --accent-ink: #0f2233;
+
+    --ok: #7fc2a0;
+    --ok-soft: #1d3228;
+    --warn: #d9bd6a;
+    --warn-soft: #332c14;
+    --bad: #e29184;
+    --bad-soft: #3a201c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 14px/1.5 var(--ui);
+}
+
+.topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 650; letter-spacing: .02em; }
+.spacer { flex: 1; }
+
+.pill {
+  font: 12px/1 var(--mono);
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.pill.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.pill.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.pill.dim { color: var(--muted); }
+
+.btn {
+  font: inherit;
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn:hover { background: var(--surface-2); }
+
+/* Requested layout: left = nodes & conversations, right = the chat pane. */
+.shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  min-height: calc(100vh - 96px);
+}
+
+.side {
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.side h2 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.list { display: flex; flex-direction: column; gap: 2px; }
+
+.row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px;
+  border-radius: 7px;
+}
+.row:hover { background: var(--surface-2); }
+.row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .self { color: var(--muted); font-size: 12px; }
+
+/* Transport rung badges — the instrument's unit of honesty. */
+.badge {
+  font: 11px/1 var(--mono);
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.bad { background: var(--bad-soft); color: var(--bad); }
+
+.main { display: flex; flex-direction: column; }
+.transcript { flex: 1; padding: 16px; overflow-y: auto; }
+
+.statusline {
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  font: 12px/1.4 var(--mono);
+  color: var(--muted);
+}
+
+.empty { color: var(--muted); margin: 6px 2px; }
+
+.diag {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  padding: 8px 16px;
+}
+.diag summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.diag pre {
+  margin: 8px 0 4px;
+  padding: 10px;
+  background: var(--surface-2);
+  border-radius: 7px;
+  font: 12px/1.5 var(--mono);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.toast-hidden { display: none; }
+
+/* ---- M1: rows, bubbles, composer, forms ---- */
+
+.hint { font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+.row.selectable { cursor: pointer; }
+.row.selected { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--accent); }
+
+.inline-form { display: flex; gap: 6px; margin-top: 8px; }
+.inline-form input { flex: 1; min-width: 0; }
+.stack-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+
+input[type="text"] {
+  font: inherit;
+  padding: 6px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+.btn.small { padding: 5px 10px; font-size: 12px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+
+.bubble {
+  max-width: 720px;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.bubble.mine {
+  background: var(--surface-2);
+  border-color: transparent;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.bubble .meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 3px;
+  font: 11px/1.2 var(--mono);
+  color: var(--muted);
+}
+.bubble .meta .author { font-weight: 600; color: var(--ink); }
+.bubble .text { white-space: pre-wrap; word-break: break-word; }
+
+.composer {
+  display: flex; gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.composer input { flex: 1; }
+
+.btn.danger { color: var(--bad); border-color: var(--bad-soft); }
+.btn.danger:hover { background: var(--bad-soft); }
+
+/* Member selection lives on the node row itself — no id is ever typed. */
+.row .pick { margin: 0 2px 0 0; cursor: pointer; flex: none; }
+#create-hint { margin: 2px 2px 4px; font-size: 12px; line-height: 1.4; }

@@ -1,0 +1,1083 @@
+{
+  "$schema": "https://schemas.terra.dev/contracts/api/v1/contract.schema.json",
+  "$id": "https://contracts.terra.dev/io.terra.fleet/terra-api.json",
+  "schemaVersion": "1.0.0",
+  "contractId": "io.terra.fleet.api",
+  "contractVersion": "0.1.0",
+  "defaultLocale": "ko",
+  "title": "Terra Fleet API",
+  "summary": "컨테이너 노드 Fleet의 관리 오퍼레이션.",
+  "description": "Fleet 조회, 가입 코드 발급·폐기, 자리(slot) 삭제를 제공한다. 등록 인증(코드 검증·자가등록)은 Master core의 몫이며 이 모듈의 계약에 없다 — 모듈이 내려가도 신규 등록은 계속된다.",
+  "provider": {
+    "id": "io.terra.fleet",
+    "name": "Terra Fleet Service",
+    "version": "0.1.0",
+    "kind": "service",
+    "products": [
+      "tree"
+    ],
+    "hostRoles": [
+      "tree-control"
+    ],
+    "moduleId": "io.terra.fleet",
+    "ownership": {
+      "source": "module/tree/io.terra.fleet",
+      "team": "terra-platform"
+    }
+  },
+  "authentication": {
+    "workload-identity": {
+      "type": "workload-identity",
+      "description": "Gateway/Master가 포워딩 시 부착하는 워크로드 크리덴셜. 호출자 권한은 포워딩 전에 검증된다."
+    }
+  },
+  "permissions": {
+    "node.read": {
+      "title": "노드 조회",
+      "description": "노드·Fleet 등 제어면 리소스를 읽습니다. 부수효과 없는 조회 권한입니다.",
+      "risk": "read"
+    },
+    "node.control": {
+      "title": "노드 제어",
+      "description": "Fleet·슬롯·join code 등 제어면 리소스를 생성·변경·삭제합니다.",
+      "risk": "write"
+    }
+  },
+  "errors": {
+    "FLEET_PRINCIPAL_REQUIRED": {
+      "title": "호출자 principal 필요",
+      "description": "Fleet 오퍼레이션은 소유자 principal이 포워딩돼야 한다. principal이 없으면 거부된다.",
+      "retryable": false,
+      "httpStatus": 403,
+      "userAction": "인증된 principal로 다시 호출하십시오."
+    },
+    "FLEET_NOT_FOUND": {
+      "title": "Fleet 또는 슬롯 없음",
+      "description": "지정한 Fleet·슬롯이 존재하지 않거나 호출자 소유가 아니다.",
+      "retryable": false,
+      "httpStatus": 404,
+      "userAction": "Fleet/슬롯 ID와 소유권을 확인하십시오."
+    },
+    "FLEET_CORE_UNAVAILABLE": {
+      "title": "Fleet core operation 불가",
+      "description": "Master의 terra.fleet.* core operation을 현재 사용할 수 없다(모듈 미탑재·일시 장애 등).",
+      "retryable": true,
+      "httpStatus": 503,
+      "userAction": "잠시 후 다시 시도하십시오."
+    }
+  },
+  "operations": {
+    "io.terra.fleet.fleets.list": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "Fleet 목록",
+      "summary": "호출자의 Fleet 목록을 조회한다.",
+      "description": "소유자의 클러스터에 속한 Fleet 목록을 조회합니다. 부수효과 없는 read-only 조회입니다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "read"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.read"
+        ],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "fleets"
+          ],
+          "properties": {
+            "fleets": {
+              "type": "array"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets",
+          "method": "GET",
+          "successStatus": 200
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    },
+    "io.terra.fleet.fleets.get": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "Fleet 상세",
+      "summary": "Fleet 하나를 자리(slot) 목록과 함께 조회한다.",
+      "description": "지정한 Fleet의 상세(슬롯·정책·이미지 참조)를 조회합니다. 부수효과 없는 read-only 조회입니다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "read"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.read"
+        ],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "fleet",
+            "slots"
+          ],
+          "properties": {
+            "fleet": {
+              "type": "object"
+            },
+            "slots": {
+              "type": "array"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets/{fleet_id}",
+          "method": "GET",
+          "successStatus": 200
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_NOT_FOUND",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    },
+    "io.terra.fleet.fleets.create": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "Fleet 선언",
+      "summary": "멤버가 실행할 이미지와 정책을 담은 Fleet을 선언한다.",
+      "description": "slug는 클러스터 안에서 유일하며 멤버 표시 이름의 어간이 된다. profile이 tree면 cell 블록이 각 멤버(Cell)가 품을 Leaf 이미지와 개수를 정하고, 다른 profile에서는 무시된다. max_nodes는 코드가 새더라도 자리가 늘어날 수 있는 상한이다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "write"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.control"
+        ],
+        "dataClassification": "internal",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "slug"
+          ],
+          "properties": {
+            "slug": {
+              "type": "string",
+              "minLength": 1
+            },
+            "display_name": {
+              "type": "string"
+            },
+            "profile": {
+              "type": "string",
+              "enum": [
+                "node",
+                "app",
+                "tree"
+              ]
+            },
+            "image_ref": {
+              "type": "string"
+            },
+            "max_nodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "cell": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "fleet"
+          ],
+          "properties": {
+            "fleet": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "key-supported"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "idempotency-key-only",
+          "maximumAttempts": 2,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets",
+          "method": "POST",
+          "successStatus": 201
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_NOT_FOUND",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    },
+    "io.terra.fleet.slots.add": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "자리 추가",
+      "summary": "Fleet에 자리(slot)를 만들고 원하면 호스트에 배치한다.",
+      "description": "count만큼 자리를 만든다. host_node_id를 주면 그 호스트에 배치되어 바로 기동할 수 있고, 비우면 배치되지 않은 자리로 남는다. 자리는 컨테이너보다 오래 사는 등록 수명의 주체다. 같은 호출을 반복하면 자리가 더 생긴다 — 수렴이 아니라 생성이다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "slot",
+        "write"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.control"
+        ],
+        "dataClassification": "internal",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "host_node_id": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "slots"
+          ],
+          "properties": {
+            "slots": {
+              "type": "array"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "key-supported"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "idempotency-key-only",
+          "maximumAttempts": 2,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets/{fleet_id}/slots",
+          "method": "POST",
+          "successStatus": 201
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_NOT_FOUND",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    },
+    "io.terra.fleet.slots.start": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "자리 기동",
+      "summary": "자리의 desired 상태를 running으로 둔다.",
+      "description": "호스트의 수렴 루프가 곧 컨테이너를 띄운다. 배치되지 않은 자리는 host_node_id로 배치를 함께 지정해야 하며, 이미 다른 호스트에 배치된 자리를 옮기는 것은 거부된다. 승격된 릴리스를 쓰는 Fleet은 그 이미지를 만든 빌더 노드에만 배치할 수 있다. 이미 기동한 자리에 다시 불러도 같은 상태로 수렴한다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "slot",
+        "write"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.control"
+        ],
+        "dataClassification": "internal",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "host_node_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "desired"
+          ],
+          "properties": {
+            "desired": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "idempotent-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets/{fleet_id}/slots/{slot_id}/start",
+          "method": "POST",
+          "successStatus": 200
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_NOT_FOUND",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    },
+    "io.terra.fleet.slots.stop": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "자리 정지",
+      "summary": "자리의 desired 상태를 stopped로 두어 컨테이너를 내린다.",
+      "description": "정지는 등록을 끝내지 않는다. 자리와 그 신원은 그대로 남아 다시 기동하면 같은 node_id로 돌아온다. 등록을 끝내려면 자리 삭제를 쓴다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "slot",
+        "write"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.control"
+        ],
+        "dataClassification": "internal",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "desired"
+          ],
+          "properties": {
+            "desired": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "idempotent-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets/{fleet_id}/slots/{slot_id}/stop",
+          "method": "POST",
+          "successStatus": 200
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_NOT_FOUND",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    },
+    "io.terra.fleet.slots.delete": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "자리 삭제",
+      "summary": "자리(slot)를 삭제한다 — 멤버 등록을 끝내는 유일한 명시적 이벤트.",
+      "description": "연결된 daemon에 등록 해제를 통지하고 노드를 삭제한 뒤 자리를 은퇴시키고 그 자리의 코드를 폐기한다. 꺼져 있기만 한 컨테이너의 자리는 이 이벤트 없이는 사라지지 않는다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "slot",
+        "dangerous"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.control"
+        ],
+        "dataClassification": "confidential",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "slot_id",
+            "fleet_id",
+            "node_deleted"
+          ],
+          "properties": {
+            "slot_id": {
+              "type": "string"
+            },
+            "fleet_id": {
+              "type": "string"
+            },
+            "node_id": {
+              "type": "string"
+            },
+            "node_deleted": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "dangerous",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "required"
+        },
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "never",
+          "maximumAttempts": 1,
+          "backoff": "none"
+        },
+        "concurrency": {
+          "mode": "serial"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets/{fleet_id}/slots/{slot_id}",
+          "method": "DELETE",
+          "successStatus": 200
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_NOT_FOUND",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    },
+    "io.terra.fleet.codes.list": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "가입 코드 목록",
+      "summary": "Fleet 가입 코드의 메타데이터를 조회한다. 평문은 발급 응답에서만 노출된다.",
+      "description": "지정한 Fleet의 발급된 join code 목록(해시·만료·사용 한도)을 조회합니다. read-only입니다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "code",
+        "read"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.read"
+        ],
+        "dataClassification": "confidential",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "codes"
+          ],
+          "properties": {
+            "codes": {
+              "type": "array"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets/{fleet_id}/codes",
+          "method": "GET",
+          "successStatus": 200
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_NOT_FOUND",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    },
+    "io.terra.fleet.codes.issue": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "가입 코드 발급",
+      "summary": "Fleet 또는 특정 자리(slot)에 묶인 가입 코드를 발급한다.",
+      "description": "slot_id를 지정하면 그 자리 하나만 다시 클레임할 수 있는 재사용 코드가 된다. 지정하지 않으면 자리를 만들 수 있는 Fleet 코드가 되며 항상 만료와 사용 횟수로 제한된다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "code",
+        "write"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.control"
+        ],
+        "dataClassification": "restricted",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "slot_id": {
+              "type": "string"
+            },
+            "expires_in_sec": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_uses": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "code",
+            "code_id"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "code_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "key-supported"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "idempotency-key-only",
+          "maximumAttempts": 2,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets/{fleet_id}/codes",
+          "method": "POST",
+          "successStatus": 201
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_NOT_FOUND",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    },
+    "io.terra.fleet.codes.revoke": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "가입 코드 폐기",
+      "summary": "코드를 폐기해 신규 등록을 차단한다. 기존 멤버의 자격증명에는 영향이 없다.",
+      "description": "발급된 join code를 무효화합니다. 신규 등록만 차단하며 기존 노드에는 영향을 주지 않습니다. 이미 무효인 코드에 대한 재호출은 같은 상태로 수렴합니다.",
+      "category": "fleet",
+      "tags": [
+        "fleet",
+        "code",
+        "write"
+      ],
+      "availability": {
+        "products": [
+          "tree"
+        ],
+        "hostRoles": [
+          "tree-control"
+        ],
+        "scopes": [
+          "cluster"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [
+          "node.control"
+        ],
+        "dataClassification": "confidential",
+        "audit": {
+          "required": true
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "code_id",
+            "revoked"
+          ],
+          "properties": {
+            "code_id": {
+              "type": "string"
+            },
+            "revoked": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "execution": {
+        "risk": "write",
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 10000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "idempotent-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "path": "/api/modules/io.terra.fleet/v1/fleets/{fleet_id}/codes/{code_id}",
+          "method": "DELETE",
+          "successStatus": 200
+        }
+      ],
+      "errors": [
+        "FLEET_PRINCIPAL_REQUIRED",
+        "FLEET_NOT_FOUND",
+        "FLEET_CORE_UNAVAILABLE"
+      ]
+    }
+  }
+}

@@ -1,0 +1,201 @@
+{
+  "$schema": "../../../../../docs/contracts/api/schemas/terra-api-contract-v1.schema.json",
+  "$id": "https://contracts.terra.dev/modules/io.terra.sample.window/0.1.0/terra-api.json",
+  "schemaVersion": "1.0.0",
+  "contractId": "io.terra.sample.window.api",
+  "contractVersion": "0.1.0",
+  "defaultLocale": "ko-KR",
+  "title": "Terra Sample Window App API",
+  "summary": "창 모드 GUI 앱 참조 구현의 상태를 조회합니다.",
+  "description": "자기 웹 서버로 UI를 열고 그 origin을 핸드셰이크로 게시하는 창 모드 앱(창 모드 앱 런처 설계 §5.1)의 참조 구현입니다. API 표면은 readiness를 위한 단일 status 조회뿐이며, UI는 이 계약 밖의 자체 origin에서 서빙됩니다.",
+  "provider": {
+    "id": "io.terra.sample.window",
+    "name": "Terra Sample Window App",
+    "version": "0.1.0",
+    "kind": "module",
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "hostRoles": [
+      "leaf-node",
+      "tree-control"
+    ],
+    "moduleId": "io.terra.sample.window",
+    "ownership": {
+      "source": "module/common/io.terra.sample.window",
+      "team": "terra-platform"
+    }
+  },
+  "authentication": {
+    "workload-identity": {
+      "type": "workload-identity",
+      "description": "Module Runtime이 실행 instance에 발급한 단기 Workload Identity를 사용합니다."
+    }
+  },
+  "operations": {
+    "io.terra.sample.window.status.get": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "상태 조회",
+      "summary": "창 모드 앱 모듈의 현재 상태와 UI origin 게시 여부를 조회합니다.",
+      "description": "Module Runtime의 readiness probe와 Gateway 라우팅을 검증하기 위한 read-only 상태 조회 Operation입니다. 부수효과 없이 즉시 응답합니다.",
+      "category": "status",
+      "tags": [
+        "status",
+        "health",
+        "read"
+      ],
+      "useCases": [
+        "Module Runtime이 readiness probe로 Module 상태를 확인합니다.",
+        "창 모드 앱의 UI origin이 게시 가능한 상태인지 확인합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "빈 요청",
+            "description": "status 조회는 입력 파라미터가 없습니다.",
+            "value": {}
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "read-status",
+            "description": "Module의 현재 상태와 UI origin을 조회합니다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "status",
+            "version"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "title": "상태",
+              "description": "Module의 현재 상태입니다.",
+              "enum": [
+                "ok",
+                "degraded"
+              ]
+            },
+            "version": {
+              "type": "string",
+              "title": "버전",
+              "description": "Module의 semantic 버전입니다.",
+              "minLength": 1
+            },
+            "uiOrigin": {
+              "type": "string",
+              "title": "UI origin",
+              "description": "이 모듈이 게시한 창 UI origin입니다.",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "정상",
+            "value": {
+              "status": "ok",
+              "version": "0.1.0",
+              "uiOrigin": "http://127.0.0.1:49731"
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/io.terra.sample.window/v1/status",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "Status/Health",
+        "recommendedLabel": "상태 확인",
+        "keywords": [
+          "status",
+          "health",
+          "상태"
+        ],
+        "outputPorts": [
+          {
+            "name": "status",
+            "pointer": "/status"
+          },
+          {
+            "name": "version",
+            "pointer": "/version"
+          }
+        ]
+      }
+    }
+  }
+}

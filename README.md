@@ -106,6 +106,23 @@ StellaxiaLab이 **tree로 배포할** 새 모듈은 `lab.stellaxia.*`를 쓴다.
 >
 > 그래서 지금 이 저장소에 있는 모듈은 **`publish`로 나갈 수 있다.**
 
+> [!IMPORTANT] 그리고 2026-09-30에 `io.terra.*`가 **돌아왔다** — 규칙이 바뀐 것이 아니다
+> 이주(분리 검토 Phase E)가 코어의 `module/`에서 **11개**를 가져왔고 전부 `io.terra.*`(와
+> `dev.terrallo`)다. 위 표와 어긋나 보이지만 어긋나지 않는다 — **저장소가 경계가 아니기
+> 때문이다.** §2-6이 정하는 것은 *배포 경로*이고, 이 11개는 여전히 **제품 동봉**으로 나간다:
+> 코어가 `bundled-modules.json`으로 선언하고 릴리스 자산에서 받아 번들에 싣는다.
+>
+> 그래서 이 저장소는 이제 **두 경로의 소스를 함께 들고 있다.**
+>
+> | 여기 있는 모듈 | 어떻게 나가나 | 접두사 |
+> | --- | --- | --- |
+> | 이주해 온 11개 | **제품 동봉** — 코어가 선언하고 릴리스에서 받아 번들에 싣는다 | `io.terra.*` · `dev.terrallo` |
+> | `lab.stellaxia.scene.hello` | **tree 레지스트리** — `pack` → `publish` → 노드가 설치 | `lab.stellaxia.*` |
+>
+> `publish`는 여전히 `io.terra.*`를 `PREFIX_RESERVED`로 거절하고, **그것이 맞다** — 동봉
+> 모듈은 publish로 나가지 않는다. 새로 만드는 모듈이 어느 접두사를 쓸지는 위 표가 그대로
+> 정한다: tree로 배포할 것이면 `lab.stellaxia.*`다.
+
 ### 셸만은 제3자가 가져갈 수 없다
 
 **base 역할**(노드의 기본 화면)을 가질 수 있는 Scene id는 `io.terra.scene.<product>`와
@@ -166,12 +183,20 @@ Go 의존은 0으로도 된다.
 | `npm run check:schema` | 벤더링한 스키마 사본이 기록된 해시 그대로인가 |
 | `npm run check:schema -- --terra <path>` | 그 사본이 Terra의 원본과 바이트까지 같은가 |
 | `npm run build -- --terra <path>` | Go 소스를 가진 모듈이 선언한 타깃으로 굽히는가 |
+| `npm run test -- --terra <path>` | Go 소스를 가진 모듈의 **시험이 도는가** — `go test` 와 goroutine 을 가진 패키지의 `-race` |
 | `terra module pack <dir>` | Scene 무결성과 포장이 실제로 열리는지 (**권위**) |
 | `npm run pack -- --cli <terra> --terra <path> --tag <tag>` | 저장소 전체를 타깃별로 포장하고 릴리스 목록을 낸다 |
 
-앞의 셋은 이 저장소만으로 돌고, 뒤의 둘은 Terra 체크아웃이 필요하다. CI도 같은 선으로
+앞의 둘은 이 저장소만으로 돌고, 나머지는 Terra 체크아웃이 필요하다. CI도 같은 선으로
 갈라져 있다 — `validate` 잡은 항상 돌고, `pack` 잡은 `TERRA_CHECKOUT_SSH_KEY`가 있을 때만
-돈다. 시크릿이 없을 때의 처분은 **어디서 도느냐로 갈린다:**
+돈다.
+
+`npm run test`가 있는 이유는 **이주가 그것을 떨어뜨렸기 때문**이다(분리 검토 G-14). 모듈이
+Terra 안에 있을 때는 Terra의 CI가 `git ls-files '*go.mod'`로 저장소의 모든 Go 모듈을 훑어
+시험을 돌리고 있었고, 모듈이 여기로 오면 그 훑기에서 **말없이 빠진다** — 없어진 경로를 세지
+않으므로 코어 CI는 그대로 초록이다. `npm run build`로는 대신할 수 없다: 컴파일이 되는지만
+본다. 첫 실행이 바로 하나를 잡았다 — `io.terra.treebench`가 Master의 계약을 Terra 트리
+기준 상대경로로 읽고 있었다(G-15). 그래서 시험 환경에는 `TERRA_CHECKOUT`이 함께 간다. 시크릿이 없을 때의 처분은 **어디서 도느냐로 갈린다:**
 
 | 어디서 | 시크릿이 없으면 |
 | --- | --- |
