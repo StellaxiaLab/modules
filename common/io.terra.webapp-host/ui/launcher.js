@@ -236,6 +236,13 @@
     return 'common';
   }
 
+  // embed 앱은 자기 모듈의 Scene 안에서 terra.web/frame으로만 열린다(웹 프로그램
+  // 감싸기 설계 §3.2). 런처가 따로 내놓으면 Scene 없이, 토큰 없이 뜬다 — 그래서
+  // 이 목록에도 원격 목록에도 싣지 않는다. 원격 노드의 앱도 embed를 싣고 온다.
+  function listable(app) {
+    return !app.embed;
+  }
+
   function countFor(product) {
     var apps = 0;
     var modules = 0;
@@ -625,7 +632,7 @@
   }
 
   function renderRemoteApps(node, apps) {
-    apps.forEach(function (app) {
+    apps.filter(listable).forEach(function (app) {
       var card = el('article', 'card');
       card.appendChild(el('h3', 'card-title', app.name || app.id));
       var meta = el('p', 'card-meta');
@@ -818,7 +825,7 @@
     };
     return Promise.all([readJSON('/api/v1/gui/apps'), readJSON('/api/v1/gui/modules')])
       .then(function (results) {
-        catalog.apps = results[0].apps || [];
+        catalog.apps = (results[0].apps || []).filter(listable);
         catalog.modules = results[1].modules || [];
         catalog.diagnostics = results[0].diagnostics || [];
         summary.textContent = catalog.apps.length + ' app(s) · ' + catalog.modules.length + ' module(s)';
