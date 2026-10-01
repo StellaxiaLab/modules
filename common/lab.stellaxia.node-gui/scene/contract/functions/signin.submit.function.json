@@ -1,0 +1,93 @@
+{
+  "$comment": "로그인은 call이 아니라 credential.login으로 간다. 답은 가려진 세션과 Credential Handle뿐이다. 실패는 onError가 받아 message에 쓴다. 비밀번호는 성공하든 실패하든 지운다. 성공하면 session에 상태를 적고 frame이 있는 / 로 돌아간다 — 호스트가 credentials /session의 Handle을 따라가 frame에 새 토큰을 준다.",
+  "schemaVersion": "1.0.0",
+  "id": "node-gui.signin.submit",
+  "version": "0.1.0",
+  "timeoutMs": 10000,
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "form",
+        "type": "store.read",
+        "storeId": "signin",
+        "path": ""
+      },
+      {
+        "id": "pending",
+        "type": "store.write",
+        "storeId": "signin",
+        "path": "/message",
+        "value": "인증 중…"
+      },
+      {
+        "id": "auth",
+        "type": "credential.login",
+        "input": {
+          "email": "$form.output.email",
+          "password": "$form.output.password"
+        },
+        "onError": [
+          {
+            "id": "markFailed",
+            "type": "store.write",
+            "storeId": "signin",
+            "path": "/message",
+            "value": "$auth.error.message"
+          },
+          {
+            "id": "clearPasswordOnFailure",
+            "type": "store.write",
+            "storeId": "signin",
+            "path": "/password",
+            "value": ""
+          },
+          {
+            "id": "bail",
+            "type": "return",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "keepHandle",
+        "type": "store.write",
+        "storeId": "credentials",
+        "path": "/session",
+        "value": "$auth.output.handle"
+      },
+      {
+        "id": "markSignedIn",
+        "type": "store.write",
+        "storeId": "signin",
+        "value": {
+          "email": "$form.output.email",
+          "password": "",
+          "state": "signedIn",
+          "message": "$auth.output.session.principal"
+        }
+      },
+      {
+        "id": "keepSession",
+        "type": "store.write",
+        "storeId": "session",
+        "value": {
+          "state": "signedIn",
+          "principal": "$auth.output.session.principal"
+        }
+      },
+      {
+        "id": "back",
+        "type": "navigate",
+        "route": "/"
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}

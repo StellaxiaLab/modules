@@ -1,0 +1,38 @@
+{
+  "$comment": "엘리먼트는 custom 하나이고 Fragment 루트다. 그래야 셸 styles.css의 [data-scene-root]:has(> [data-component='terra.web/frame']) 규칙이 1120px 틀을 벗겨 화면 전체를 준다. terra.web/frame이 props.app의 앱을 앱별 origin의 sandbox iframe으로 띄우고 스코프 토큰을 건넨다. bind는 session Store 전체(state·principal)를 웹에 terra.frame.value로 보내고, on은 웹의 login·logout 이벤트를 Function으로 받는다.",
+  "schemaVersion": "0.1.0",
+  "id": "node-gui.main",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Terra 노드",
+  "stores": [
+    "session"
+  ],
+  "functions": [
+    "node-gui.login.open",
+    "node-gui.signout"
+  ],
+  "root": {
+    "type": "custom",
+    "id": "frame",
+    "component": "terra.web/frame",
+    "props": {
+      "app": "lab.stellaxia.node-gui.web"
+    },
+    "bind": {
+      "store": "session",
+      "path": ""
+    },
+    "on": {
+      "login": {
+        "function": "node-gui.login.open"
+      },
+      "logout": {
+        "function": "node-gui.signout"
+      }
+    },
+    "a11y": {
+      "label": "Terra 노드"
+    }
+  }
+}

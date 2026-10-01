@@ -1,0 +1,3 @@
+# ui/ 는 web/ 의 빌드 산출물이다 — tools/build-web.mjs 가 web/ 을 구워 여기에 놓는다.
+# 정본은 web/ + scene/ + module.json 이고, 빌드 결과는 커밋하지 않는다(bin/ 과 같은 이유).
+/ui/

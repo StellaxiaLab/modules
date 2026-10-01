@@ -1,0 +1,30 @@
+{
+  "$comment": "로그인하지 않고 노드 화면으로 돌아간다. 입력하던 비밀번호는 지운다.",
+  "schemaVersion": "1.0.0",
+  "id": "node-gui.login.close",
+  "version": "0.1.0",
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "clearPassword",
+        "type": "store.write",
+        "storeId": "signin",
+        "path": "/password",
+        "value": ""
+      },
+      {
+        "id": "go",
+        "type": "navigate",
+        "route": "/"
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}

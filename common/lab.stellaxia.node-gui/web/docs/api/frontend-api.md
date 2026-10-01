@@ -1,0 +1,351 @@
+---
+title: "노드 화면 프론트엔드 API"
+aliases:
+  - "프론트엔드 API"
+  - "Frontend API"
+  - "화면 API"
+doc_type: "api-reference"
+scope: "project"
+target: "terra-gui"
+status: "draft"
+version: "0.3.0"
+last_updated: "2026-10-01"
+language: "ko-KR"
+source: "src/screens/node.js · src/api/* · src/model/*"
+os_priority:
+  - Linux
+  - Windows
+  - macOS
+related:
+  - "[[docs/README|개발 문서 MOC]]"
+  - "[[architecture|구조]]"
+  - "[[helm-apps-integration|조타륜 앱 · 폴더 보관함 연동]]"
+  - "[[node-screen-api-integration|노드 화면 API 연동 가이드]]"
+  - "[[node-screen-data-model|노드 화면 데이터 모델]]"
+  - "[[implementation-guide|구현 가이드]]"
+  - "[[architecture#7. Terra 안에서 — frame|Terra 안에서 — frame]]"
+---
+
+# 노드 화면 프론트엔드 API
+
+이 문서의 "API"는 두 가지다.
+
+1. **화면 API** — 노드 화면 객체(`src/screens/node.js`의 `Component`)가 내놓는 메서드와 상태. 화면 안의 버튼도, 연동 코드도, 시험 코드도 이것을 부른다.
+2. **연동 층 API** — `src/api` · `src/model`. 화면과 Gateway 사이에서 호출 · 응답 변환 · 권한 · 배지를 맡는다.
+
+Gateway 쪽 operation 목록과 세션 흐름은 [[node-screen-api-integration|API 연동 가이드]], 앱별 대응은 [[helm-apps-integration|조타륜 앱 · 폴더 보관함 연동]].
+
+## 1. 화면 객체 얻기
+
+```js
+import { mount } from './src/runtime/dc.js';
+import Screen from './src/screens/node.js';
+
+const screen = mount(Screen, { template, target: document.getElementById('stage'), props: { skin: 'grass' } });
+// node.html 은 window.__screen 에 넣어 둔다 — 개발자 도구 · 시험에서 바로 쓴다
+window.__screen.goMap('nas-01');
+```
+
+| 규칙 | 이유 |
+| --- | --- |
+| 상태는 `screen.state`로 **읽기만**, 바꾸기는 메서드나 `setState` | `setState`가 다시 그리기를 건다 |
+| `renderVals()`는 부르지 않는다 | 런타임이 부른다. 템플릿에 줄 값을 계산하는 곳일 뿐 |
+| `_`로 시작하는 필드(`_hx` · `_mapGoal` …)는 내부 | 렌더 밖 루프의 상태 |
+| 노드는 지금 **이름**이 키다 | 연동 때 id로 바꾼다([[node-screen-data-model\|데이터 모델]] §2.1) |
+
+## 2. 상태 키
+
+| 영역 | 키 | 모양 |
+| --- | --- | --- |
+| 맵 | `map` | 지금 맵의 주인 노드 이름 |
+| | `maps` | `{ [노드]: 맵 스냅숏 }` 다녀온 맵 |
+| | `nodes` · `fields` · `mat` · `placed` · `grounds` · `gmat` | 지금 맵의 칸 · 재질 · 건물 |
+| | `looks` | `{ [노드]: { skin, bid, rot } }` 노드 모습(한 벌) |
+| | `sel` | 고른 칸 `'c-r'` |
+| | `editMode` · `view` | 편집 모드 · 확대/이동 |
+| 세션 | `localNode` | `{ name, role, local: true }` 이 GUI가 도는 노드 |
+| | `curTree` · `trees` · `shown` · `auth` · `login` | 로그인한 tree · 고를 수 있는 tree · 프사 |
+| 조타륜 앱 | `hb` | 열린 앱 키(`svi` · `decl` · `grant` · `io` · `folder` · `xfer` · `tunnel` · `wg` · `job` · `mod`) 또는 `null` |
+| | `hbd` | `{ ['노드\|앱']: 자원[] }` — 동작 · 연동이 넣은 목록. 없으면 `hbSeed` |
+| | `io` | 로컬 노드 I/O 장치 원장(예시) |
+| | `hbMsg` · `hbBusy` · `hbArm` · `hbPath` | 글줄 · 도는 중인 카드 · 두 번 누르기 대기 · 공유 폴더 경로 |
+| 전체 화면 | `fs` | 전체 화면 id(창 키 또는 `'hb:<앱>'`) 또는 `null` |
+| | `fsHist` | 전체 화면으로 한 번 연 id들 — 전체 창 리스트 |
+| | `fsList` | 리스트 펼침 |
+| 폴더 보관함 | `fb` | `{ open, mode: 'repo'\|'local'\|'memo'\|null, path }` |
+| | `fbMsg` · `fbArm` | 알림 띠 · 지우기 확인 대기 |
+| 메모장 | `memos` | `Memo[]` (`{ id, parent, name, dir?, text?, size?, info? }`) |
+| | `memoCur` · `memoDraft` · `memoNote` | 연 메모 id · 고치는 중인 `{ name, text, dir, dirty }` · 저장 알림 |
+| 창 | `wins` · `winOpen` · `winZ` · `drawer` | 창 자리 · 열림 · 앞뒤 순서 · 서랍 |
+| | `utilItems` | 유틸 서랍 칸 순서 |
+| 알림 | `alarms` · `notif` | 알림 목록 · 기능별 안 읽은 수 |
+
+모양의 정식 정의는 `src/model/types.js`(JSDoc), 출처는 [[node-screen-data-model|데이터 모델]].
+
+## 3. 메서드 레퍼런스
+
+표기: `→` 바뀌는 상태, **seam** = 연동 때 바꿔 끼우는 지점(§5).
+
+### 3.1 맵
+
+| 메서드 | 하는 일 |
+| --- | --- |
+| `goMap(name, note?)` | 그 노드의 맵으로 미끄러져 간다(아래로 · 위로 · 점프). 지금 맵을 `maps`에 저장. 전환 중(`mt`)이면 무시 → `map` · `maps` · 칸 상태 |
+| `enterNode(nd)` | 노드 칸 두 번 누르기. tree면 로그인(`beginSwitch`) 뒤 그 맵, leaf면 바로 `goMap` |
+| `onLocalMap()` | 지금(가는) 맵이 로컬 노드 맵인가 |
+| `helmDest()` | 조타륜을 홀드해 내렸을 때 갈 곳 — 로컬이 아니면 `{ name: 로컬, local: true }`, 로컬이면 로컬의 부모 tree |
+| `parentOfNode(name)` · `pathOf(name)` | 관계 — **seam**(`NET`) |
+| `lookOf(name)` · `setLook(name, patch)` | 노드 모습 읽기 · 바꾸기 (부모 맵 · 자기 맵 · 프사가 함께 바뀐다) |
+| `viewSet(V, commit)` · `zoomBy(f, px, py)` · `viewReset()` | 맵 보기 이동 · 확대 |
+
+### 3.2 관리 노드 창 · 세션
+
+| 메서드 | 하는 일 |
+| --- | --- |
+| `mgToggle(v?)` | 펼치기 · 접기 (클릭) |
+| `tlOpen(mode)` · `tlClose(commit)` | tree 목록(나침반 부채) 열기 · 닫기 (Ctrl · 프사 홀드) |
+| `beginSwitch(tree)` | tree 전환 시작 — 저장된 로그인이면 바로, 아니면 로그인 창 |
+| `startLogin(target, password, auto)` | **seam** — 지금은 가짜 성공/실패. `auth.credentials.post`로 바꾼다 |
+| `flipTo(tree, dir, done)` | 프사 교체 애니메이션 |
+| `hxAvatar()` | 프사를 지금 맵 쪽(로컬/tree)에 맞춘다 |
+
+### 3.3 조타륜 앱 바
+
+| 메서드 | 하는 일 |
+| --- | --- |
+| `hbOpen(app)` · `hbClose()` | 앱 바 열기 · 닫기 → `hb` |
+| `hbNode()` | 바가 다루는 노드 = **지금(가는) 맵의 노드** |
+| `hbApp()` | 지금 보이는 앱 (바 또는 앱 전체 화면) |
+| `hbPerm(node)` | **seam** — `{ role, has[], why? }` 내 자리와 권한 |
+| `HBAPP()` | 앱별 보여 줄 권한 칸 · 목록에 필요한 권한(`see`) |
+| `hbSeed(node, app)` | **seam** — 예시 자원 목록 (같은 노드면 늘 같은 목록) |
+| `hbItems(node, app)` | 지금 목록 = `hbd['노드\|앱']` 또는 `hbSeed` |
+| `hbPut(node, app, list)` | 목록 바꾸기 → `hbd` (로컬 I/O는 `io`) |
+| `hbAct(app, id, op)` | **seam** — 동작 하나. 0.35초 돌고 목록을 바꾼 뒤 `hbSay` |
+| `hbSay(text, color)` | 바 왼쪽 글줄에 2.6초 |
+| `hbVals(app?)` | 바 · 앱 전체 화면이 그리는 값(카드 · 권한 칸 · 머리 버튼) |
+
+`hbAct`의 `op` (앱별):
+
+| 앱 | op |
+| --- | --- |
+| `svi` | `open` · `close` |
+| `decl` | `add` · `undeclare` · `redeclare` · `forget` |
+| `grant` | `add` · `revoke` · `unbind` |
+| `io` | `approve` · `deny` · `enable` · `disable` · `forget` · `scan` |
+| `folder` | `open`(폴더로 들어가기 — 화면만) · `get` · `del` · `mkdir` |
+| `xfer` | `push` · `abort` · `resume` · `clear` |
+| `tunnel` | `open` · `close` · `del` |
+| `wg` | `sync` · `revoke`(두 번) |
+| `job` | `run` · `rerun` · `cancel` · `out` |
+| `mod` | `start` · `stop` · `restart` · `log` · `check` |
+
+카드 하나의 값(`hbVals().cards[i]`): `id · name · sub · icon · chip · cbg · cfg · meta · prog · acts[] · busy · op · bstyle · bline · bg · raw`. 동작 버튼(`acts[i]`): `label · tip · go · bg · fg · line` — 잠긴 버튼은 `label`이 `🔒 …`, `go`는 이유를 글줄에 띄운다.
+
+### 3.4 전체 화면 · 전체 창 리스트
+
+| 메서드 | 하는 일 |
+| --- | --- |
+| `fsEnter(id)` | 창 키 또는 `'hb:<앱>'`을 전체 화면으로. 닫혀 있던 창은 연다. `fsHist`에 더한다 → `fs` · `fsHist` |
+| `fsExit()` | 맵 화면으로 (파인 곳 · Esc · ⛶). 리스트에 보관된 창은 맵에서 **사라진 채** 남는다 |
+| `fsDrop(id)` | 리스트에서 빼기 — 창이면 닫는다 |
+| `fsName(id)` | 표시 이름 |
+| `FS_TOP` | 전체 화면 위 끝(필드 y 56) |
+
+### 3.5 폴더 보관함 · 메모장
+
+| 메서드 | 하는 일 |
+| --- | --- |
+| `fbToggle(mode?)` | 사이드 바 열기 · 닫기. `mode`를 주면 그 바로가기로 바로 → `fb` |
+| `FBMODES()` | 바로가기 셋 정의(이름 · 루트 · 읽기 전용 여부 · OS 경로) |
+| `FBDATA()` | **seam** — 저장소 · 탐색기 예시 트리 |
+| `fbList(mode)` | 그 모드의 항목들 (메모장은 `memos`) |
+| `fbOpenItem(entry)` | 폴더면 들어가기, 읽기 전용 파일이면 로컬 프로그램으로 열기(**seam**), 메모면 메모장 칸 |
+| `fbApp(name)` | 확장자 → 로컬 기본 프로그램 이름 |
+| `fbOS()` | 지금 폴더를 OS 파일 관리자로 (**seam** — API 없음) |
+| `memoNew(dir?)` · `memoOpen(id)` | 메모장 칸 열기 (새 메모 · 그 메모) |
+| `memoSave()` | 이름 · 본문 저장(같은 이름이면 막음) → `memos` (**seam**) |
+| `memoDel(id)` | 두 번 눌러 지우기(폴더면 안까지) (**seam**) |
+| `memoMkdir()` | 지금 폴더에 새 폴더 (**seam**) |
+
+### 3.6 창 · 서랍 · 알림
+
+| 메서드 | 하는 일 |
+| --- | --- |
+| `WDEF()` | 창 정의 `{ [키]: { title, emoji, color, pa, pb, ink, href? } }` — `href`가 있으면 전체 화면에서 그 보드를 통째로 띄운다 |
+| `openWin(id, x, y)` · `winFront(id)` | 열기 · 앞으로 |
+| `storeWin(id, instant?)` · `closeWin(id)` | 서랍에 넣기 · 닫기 (전체 화면이면 끝낸다) |
+| `pushAlarm(glyph, color, text)` | 알림 하나 더하기 — 작업 추적 · SSE가 부른다 |
+| `udOpen()` · `udClose()` | 유틸 서랍 |
+
+## 4. 화면 → 연동 흐름
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant S as 화면 (node.js)
+  participant W as wire.js
+  participant L as LiveSource
+  participant G as Gateway
+  U->>S: 조타륜 앱 열기 (hbOpen)
+  W->>S: hbApp() · hbNode() 바뀜 감지 (0.4초)
+  W->>L: list(node, app)
+  L->>G: invoke(HELM_APPS[app].list.op)
+  G-->>L: 응답
+  L-->>W: ADAPT[app](응답) → 자원[]
+  W->>S: hbPut(node, app, 자원[])
+  U->>S: 카드 버튼 (hbAct)
+  S->>W: (바꿔 끼운 hbAct)
+  W->>L: act(node, app, id, op)
+  L->>G: invoke(HELM_APPS[app].acts[op].op)
+  G-->>W: Result (ok · accepted · forbidden …)
+  W->>S: hbSay(resultText) → 목록 다시 받기 (작업이면 trackJob 뒤)
+```
+
+## 5. 연동 지점 (seam)
+
+화면 코드를 고치지 않고 아래 메서드를 바꿔 끼우면 실데이터로 돈다. `src/api/wire.js`의 `wireHelm`이 조타륜 앱 부분을 이미 이렇게 한다.
+
+| seam | 지금 | 바꿀 것 | 연동 층 |
+| --- | --- | --- | --- |
+| `hbSeed(node, app)` | 예시 목록 | 빈 목록(받기 전) | `wireHelm` ✅ |
+| `hbItems` · `hbPut` | `hbd` 저장소 | 그대로 — 받은 목록을 `hbPut`으로 넣는다 | `wireHelm` ✅ |
+| `hbAct(app, id, op)` | 예시로 목록을 바꿈 | `source.act` → 글줄 → 다시 받기 | `wireHelm` ✅ |
+| `hbPerm(node)` | 예시 권한표 | `nodePerm(node, ctx)` (whoami · tree 로그인 · 노드 권한) | `src/model/permissions.js` |
+| `NET` · `parentOfNode` | 예시 관계 | `terra.master.nodes.get` → 상태로 | [[node-screen-api-integration\|연동 가이드]] §4.1 |
+| `startLogin` | 가짜 성공/실패 | `auth.credentials.post` → `whoami` → `catalog`. **frame 안에서는 셸이 로그인한다** — 웹은 비밀번호를 보지 않는다(§6.5) | 〃 §3 |
+| `beginSwitch(pick)` | tree 전환 연출 | frame 안: 전환은 예시로 남기고 한 번 알린다 — 다른 tree의 게이트웨이에는 이 화면이 닿지 않는다 | `frame-session.js` ✅ |
+| `FBDATA()` · `fbList('repo')` | 예시 트리 | `files.list.get` (저장소) · 로컬 루트 op(⚠ 없음) | [[helm-apps-integration\|앱 연동]] §4 |
+| `fbOpenItem` · `fbOS` | 안내 글만 | Daemon 로컬 열기 op(⚠ 없음 — 제안) | 〃 §4 |
+| `memoSave` · `memoDel` · `memoMkdir` · `memos` | 메모리 | 메모 루트 쓰기 · 지우기 · 만들기 | 〃 §4.3 |
+| `pushAlarm` | 그대로 | 작업 추적 · SSE에서 부른다 | `trackJob` · `client.events` |
+
+## 6. 연동 층 API (`src/api`)
+
+### 6.1 `TerraClient` (`client.js`)
+
+```js
+import { TerraClient, resultText } from './src/api/index.js';
+
+// 단독 실행 — 연습용 가짜 Gateway(tools/mock-gateway.mjs). 쿠키(credentials: 'include')로 부른다
+const client = new TerraClient('http://127.0.0.1:8790');
+// Terra frame 안 — 앱 origin 이 곧 이 노드의 게이트웨이다. 스코프 토큰은 terra.fetch 가 붙인다(§6.5)
+const framed = new TerraClient('', { fetch: terra.fetch.bind(terra), delegated: true });
+
+await client.refreshCatalog();                              // 로그인 · 토큰이 바뀐 뒤마다
+const r = await client.invoke('terra.daemon.io.devices.get', {});
+if (r.kind === 'ok') use(r.data); else showReason(resultText(r));
+const stop = client.events((ev) => screen.pushAlarm('●', '#1f7a4d', ev.type));   // leaf SSE
+```
+
+| 메서드 | 하는 일 |
+| --- | --- |
+| `new TerraClient(base, { fetch, delegated })` | `fetch` — 부르는 함수(frame 안에서는 `terra.fetch`, 없으면 쿠키를 싣는 `fetch`). `delegated` — 자격이 **위임**(앱 스코프 토큰)이다: Master의 401을 "로그인 필요"가 아니라 `unavailable · master-delegation`으로 읽고 그 뒤로 Master operation을 다시 부르지 않는다 |
+| `refreshCatalog()` | `GET /api/v1/catalog` → 부를 수 있는 operation 집합 |
+| `has(id)` · `entry(id)` | 카탈로그에 있나 · 항목(확인 모드 · 위험) |
+| `invoke(id, input?, { signal, node })` | `POST /api/v1/operations/{id}/invoke`. 봉투를 벗겨 `Result`로 — Daemon `{ status, data }` · Master `{ ok, data }` · 오류 `{ error: { code } }`의 `code`가 `reason`이 된다. `node`를 주면 **부르지 않고** `unavailable · remote-node` — 다른 노드의 operation을 부르는 게이트웨이 경로가 없다 |
+| `events(onEvent)` | leaf `terra.daemon.events.get` SSE를 **fetch 스트림**으로 읽는다(`Accept: text/event-stream`) — `EventSource`는 Authorization을 붙이지 못한다. 끊기면 1→2→4…30초 재연결. 끄는 함수를 돌려준다 |
+
+`Result.kind`: `ok` · `accepted`(작업 번호) · `needs-confirm` · `unauthenticated` · `forbidden` · `unsupported`(501) · `down`(503) · `unreachable` · `unavailable` · `error`. `unavailable`은 `reason`이 가른다 — `not-in-catalog` · `remote-node` · `master-delegation` · `no-operation`. 화면 처리는 [[node-screen-api-integration|연동 가이드]] §2.3.
+
+> [!NOTE] 확인 신호는 보내지 않는다
+> 게이트웨이에는 `X-Terra-Confirm` 같은 확인 규약이 없다. 그래서 `needs-confirm`은 지금 만들어지지 않고,
+> 되돌릴 수 없는 동작의 확인은 화면이 맡는다(두 번 누르기 — `hbArm`).
+
+`trackJob(client, jobOp, job, onTick)` — 접수된 작업을 1초 → 최대 5초 간격으로 끝날 때까지 본다.
+
+### 6.2 `HELM_APPS` · `FOLDER_STORAGE` · `SESSION` (`operations.js`)
+
+화면 기능 ↔ operation 대응표. 앱 하나의 모양:
+
+```js
+HELM_APPS.io = {
+  name: 'I/O 장치', see: 'node.read',
+  list: { op: 'terra.daemon.io.devices.get', where: 'L', perm: 'node.read', resp: 'now' },
+  extra: [ /* 카드에 더 필요한 목록 */ ],
+  acts: { approve: { op: 'terra.daemon.io.devices.by-device-id.approve.post', where: 'L', perm: 'node.control', resp: 'now' }, … }
+};
+```
+
+`where`: `L` leaf(Daemon) · `T` tree(Master) · `∀` Gateway 양쪽 · `M` 모듈 namespace. `verify: true`는 operationId 표기를 원본에서 확인하지 못한 것 — 카탈로그로 확인한다.
+
+### 6.3 `ADAPT` (`adapters.js`)
+
+`ADAPT[app](응답, ctx) → 화면 모양[]`. `ctx`는 `{ local, grants, bindings, declarations }`(앱의 `extra` 결과). ⚠ 응답 필드 이름은 자원 목록 문서의 필드 표를 따른 추정 — 실제 응답으로 맞춘다.
+
+### 6.4 데이터 소스 · 연결 (`source.js` · `wire.js`)
+
+| 이름 | 하는 일 |
+| --- | --- |
+| `MockSource(screen)` | 예시 데이터(화면의 `hbSeed`) — 기본 |
+| `LiveSource(client, { localNode })` | `list(node, app)` · `act(node, app, id, op, item)`. L · M op을 다른 노드에 부르면 `unavailable · remote-node`(경로가 없다). T op은 `node_id`를 본문에 싣는다 |
+| `fillNode(input, node)` | 대응표 `input`의 `'<노드>'` 자리를 실제 노드 이름으로 채운다 — 자리 표시자가 `node_id`를 덮어쓰지 않게 |
+| `wireHelm(screen, source)` | seam 바꿔 끼우기 · 앱/노드가 바뀌면 받기 · 열려 있는 동안 10초 폴링. **되돌리는 함수**를 돌려준다(바꿔 낀 seam과 예시 데이터를 원래대로) |
+| `wireFromUrl(screen)` | frame 안이면 frame 토큰으로 위를 건다(§6.5). 밖이면 `node.html?live=1&gw=…`일 때만 (node.html이 부른다) |
+
+### 6.5 Terra frame 안에서 (`frame-boot.js` · `frame-session.js` · `frame-boards.js`)
+
+이 웹은 Terra 모듈 `lab.stellaxia.node-gui`의 앱으로 출하되고, 셸 Scene의 `terra.web/frame`이 감싼다.
+구조와 이유는 [[architecture#7. Terra 안에서 — frame|구조 §7]].
+
+| 이름 | 하는 일 |
+| --- | --- |
+| `role` · `frameRole(win?)` | `'frame'`(다른 origin의 부모 = Terra 셸) · `'board'`(같은 origin의 부모 = 노드 화면이 연 보드) · `'standalone'` |
+| `frameReady` | frame이면 **첫 import에서** `connectTerra()`를 시작한 약속. init을 못 받으면 `null`로 풀린다(예시 데이터로 연다) |
+| `terra-frame-client.js` | Terra 웹 스캐폴드(`terra module new --web`)의 frame 클라이언트 **사본 그대로** — `token()` · `permissions()` · `session()` · `onToken()` · `onValue()` · `fetch()` · `emit()` |
+| `wireFrameSession(screen, terra)` | 세션 띠 — 로그인 전 안내 + [로그인](`emit('login')`), 권한 없음, 로그인 뒤 principal + [로그아웃](`emit('logout')`). `beginSwitch`를 바꿔 끼운다 |
+| `wireFrameBoards(screen)` | 보드(편집기 · 디자인 노트)를 `src` 대신 **`srcdoc`**으로 연다. 보드 안의 링크를 가로채 `fsEnter` · `fsExit`로 바꾼다 |
+| `pageOf(href, base?)` | 보드 링크에서 페이지 이름(`building.html` …)을 꺼낸다 |
+
+```mermaid
+sequenceDiagram
+  participant Sh as 셸 Scene (terra.web/frame)
+  participant B as frame-boot.js
+  participant W as wire.js
+  participant C as TerraClient (delegated)
+  participant G as Gateway (이 노드)
+  B->>Sh: terra.frame.hello (첫 import — 마운트 전)
+  Sh-->>B: terra.frame.init (토큰 · 권한 · value)
+  W->>C: new TerraClient('', { fetch: terra.fetch, delegated: true })
+  C->>G: GET /api/v1/catalog (Bearer tsa_…)
+  W->>C: invoke(terra.daemon.io.devices.get)
+  C->>G: POST /api/v1/operations/…/invoke
+  G-->>C: { status: 'ok', data } → Result ok
+  W->>C: invoke(terra.master.svi.resources.get)
+  G-->>C: 401 — 위임 자격은 Master에 닿지 않는다
+  C-->>W: unavailable · master-delegation (그 뒤로 Master는 부르지 않는다)
+```
+
+## 7. 모델 (`src/model`)
+
+| 파일 | 내보내는 것 |
+| --- | --- |
+| `types.js` | JSDoc 타입 — `NetNode` · `NodePerm` · `Badge` · 앱별 자원(`SviResource` · `IoDevice` · `Transfer` · `Job` · `ModuleInfo` …) · `FolderEntry` · `Memo` |
+| `permissions.js` | `nodePerm(node, ctx)` · `lockReason(perm, need, other)` · `sviOpenLock(r)` · `delegationLock(…)` · `PERM_LABEL` · `STAR` |
+| `badges.js` | `badge(area, state)` · `ioBadge(d)` · `BADGE_COLORS` — 배지 다섯(정상 · 진행 중 · 꺼짐·대기 · 문제 · 끝남) |
+
+```js
+import { nodePerm, lockReason } from './src/model/permissions.js';
+const perm = nodePerm('nas-01', { localNode: 'edge-01', whoami: ['node.read', 'file.read', 'file.write'], loggedIn: () => true, treeOf: (n) => screen.parentOfNode(n) });
+lockReason(perm, ['node.control']);   // → 'node.control 권한 없음'
+```
+
+## 관련 문서
+
+- [[docs/README|개발 문서 MOC]]
+- [[architecture|구조]]
+- [[helm-apps-integration|조타륜 앱 · 폴더 보관함 연동]]
+- [[node-screen-api-integration|노드 화면 API 연동 가이드]]
+- [[node-screen-data-model|노드 화면 데이터 모델]]
+- [[implementation-guide|구현 가이드]]
+- [[architecture#7. Terra 안에서 — frame|구조 §7 — Terra 안에서]]
+
+## 관련 모듈
+
+- `src/screens/node.js` · `src/api/*` · `src/model/*` · `tools/mock-gateway.mjs`
+- `src/api/frame-boot.js` · `src/api/frame-session.js` · `src/api/frame-boards.js` · `src/api/terra-frame-client.js`
+- Terra 모듈 `lab.stellaxia.node-gui` — 이 웹을 감싸는 셸 Scene (`common/lab.stellaxia.node-gui/scene/`)
+
+## 관련 흐름
+
+- §4 화면 → 연동 흐름 · §6.5 frame 안의 흐름 · [[node-screen-api-integration|연동 가이드]] §3 세션 · §5 갱신

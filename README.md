@@ -117,7 +117,7 @@ StellaxiaLab이 **tree로 배포할** 새 모듈은 `lab.stellaxia.*`를 쓴다.
 > | 여기 있는 모듈 | 어떻게 나가나 | 접두사 |
 > | --- | --- | --- |
 > | 이주해 온 11개 | **제품 동봉** — 코어가 선언하고 릴리스에서 받아 번들에 싣는다 | `io.terra.*` · `dev.terrallo` |
-> | `lab.stellaxia.scene.hello` | **tree 레지스트리** — `pack` → `publish` → 노드가 설치 | `lab.stellaxia.*` |
+> | `lab.stellaxia.scene.hello` · `lab.stellaxia.node-gui` | **tree 레지스트리** — `pack` → `publish` → 노드가 설치 | `lab.stellaxia.*` |
 >
 > `publish`는 여전히 `io.terra.*`를 `PREFIX_RESERVED`로 거절하고, **그것이 맞다** — 동봉
 > 모듈은 publish로 나가지 않는다. 새로 만드는 모듈이 어느 접두사를 쓸지는 위 표가 그대로

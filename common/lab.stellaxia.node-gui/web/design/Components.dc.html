@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 공통 부품</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif;background:#f4f6f9}
+@keyframes ring-march{to{stroke-dashoffset:-24}}
+.cp-march{animation:ring-march 900ms linear infinite}
+@keyframes cp-spin{to{transform:rotate(360deg)}}
+.cp-spin{animation:cp-spin 900ms linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes lg-pop{0%{transform:translateY(105%)}70%{transform:translateY(-4%)}100%{transform:translateY(0)}}
+.cp-pop{animation:lg-pop 360ms cubic-bezier(.2,.8,.3,1) both}
+@keyframes cp-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.cp-in{animation:cp-in 220ms cubic-bezier(.2,.8,.3,1) both}
+.cp-btn{transition:background 120ms,border-color 120ms,color 120ms,box-shadow 120ms}
+.cp-btn:hover{box-shadow:0 2px 8px rgba(22,25,31,0.10)}
+.cp-badge{transition:transform 220ms cubic-bezier(.2,.8,.3,1),opacity 180ms}
+</style>
+</helmet>
+<div style="width: 1600px; height: 2600px; box-sizing: border-box; padding: 32px 40px; background: #f4f6f9; color: #16191f; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.55; display: flex; flex-direction: column; gap: 20px; overflow: hidden;">
+
+  <header style="display: flex; align-items: flex-end; gap: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <span style="font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">terra · 노드 화면 문법</span>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em;">공통 부품</h1>
+    </div>
+    <span style="font-size: 13px; color: #5b6472; padding-bottom: 4px;">잠김 · 위험 확인 · 작업 진행 · 빈 상태 · 자동 폼 — 노드 화면의 창·링·타일을 그대로 빌려 쓴다</span>
+    <span style="flex-grow: 1;"></span>
+    <div style="display: flex; gap: 10px; padding-bottom: 4px;">
+      <sc-for list="{{swatches}}" as="s" hint-placeholder-count="7">
+        <span style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #5b6472;"><span style="width: 14px; height: 14px; border-radius: 4px; background: {{s.c}}; border: 1px solid rgba(22,25,31,0.08);"></span>{{s.n}}</span>
+      </sc-for>
+    </div>
+  </header>
+
+
+  <!-- ─────────── 0. 브랜드: Terra 로고 ─────────── -->
+  <section aria-label="브랜드 로고" style="background: #ffffff; border: 1px solid #d8dde5; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="width: 24px; height: 24px; border-radius: 50%; background: #16191f; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">0</span>
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600;">브랜드 로고</h2>
+      <span style="font-size: 12.5px; color: #5b6472;">메인 = 거친 붓 질감 · 둘레 조각 · 별 / 벡터 = 같은 실루엣을 면으로 정리, 별은 줄기에 파냄</span>
+    </div>
+    <div style="display: flex; gap: 20px; align-items: flex-start;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="width: 150px; height: 150px; box-sizing: border-box; border-radius: 12px; background: #ffffff; border: 1px solid #d8dde5; display: flex; align-items: center; justify-content: center;"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48ZmlsdGVyIGlkPSJyb3VnaCIgeD0iLTEwJSIgeT0iLTEwJSIgd2lkdGg9IjEyMCUiIGhlaWdodD0iMTIwJSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjEuMSIgbnVtT2N0YXZlcz0iMiIgc2VlZD0iNyIgcmVzdWx0PSJuIj48L2ZlVHVyYnVsZW5jZT48ZmVEaXNwbGFjZW1lbnRNYXAgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0ibiIgc2NhbGU9IjIuNCI+PC9mZURpc3BsYWNlbWVudE1hcD48L2ZpbHRlcj48L2RlZnM+PGcgZmlsdGVyPSJ1cmwoI3JvdWdoKSI+PHBhdGggZmlsbD0iIzEzMTMxMyIgZD0iTTggMjIgTDUwIDMxIEw0MCAxOCBMNzAgMjggTDc4IDI2IEw4MCA5IEw5MCAyNCBMMTE2IDMwIEwxNTAgMjkgTDE1OCAzNCBMMTg0IDE5IEwxNjggNDYgTDE1MCA0MiBMMTM4IDQ3IEwxMjMgNTcgTDExOSA5OCBMMTM2IDEwMCBMMTIxIDExMiBMMTE3IDEyNSBMMTIzIDE1OCBMMTQyIDE3NCBMNTIgMTc0IEw3NiAxNDggTDg2IDExOCBMODggMTA2IEw4MyA4MSBMOTMgODggTDk4IDcyIEw5NSA2MCBMNjQgNDUgTDI2IDQ5IEwzOCA0MFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNMTkxLjIgNzcuMyBMMTk3LjkgOTQuOSBMMTkzLjEgMTEzLjEgTDE5Mi4zIDk1LjJaIj48L3BhdGg+PHBhdGggZmlsbD0iIzEzMTMxMyIgZD0iTTE4Ny4yIDEzNS4yIEwxODUuNiAxNDUuNSBMMTc3LjkgMTUyLjYgTDE4MS45IDE0My42WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMxMzEzMTMiIGQ9Ik0xNjIuOSAxNjkuOSBMMTUwLjcgMTg0LjQgTDEzMi4xIDE4OC4zIEwxNDcuNSAxNzkuMFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNNjQuOCAxODcuMiBMNTEuMyAxODQuNCBMNDIuMSAxNzQuMSBMNTMuNyAxODAuMloiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNMjguMCAxNjAuNCBMMTMuOCAxNDcuOCBMMTAuNiAxMjkuMCBMMTkuNCAxNDQuN1oiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNMTEuNyA2Ny45IEwxMy42IDU2LjAgTDIyLjEgNDcuNCBMMTcuMyA1Ny45WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMxMzEzMTMiIGQ9Ik0zNy4xIDMwLjEgTDQ1LjIgMTguOCBMNTguOCAxNS41IEw0OC4zIDIzLjRaIj48L3BhdGg+PC9nPjxwYXRoIGZpbGw9IiMxMzEzMTMiIGQ9Ik0xMTggMiBDMTE4LjM4IDguNDYgMTE5LjU0IDkuNjIgMTI2IDEwIEMxMTkuNTQgMTAuMzggMTE4LjM4IDExLjU0IDExOCAxOCBDMTE3LjYyIDExLjU0IDExNi40NiAxMC4zOCAxMTAgMTAgQzExNi40NiA5LjYyIDExNy42MiA4LjQ2IDExOCAyWiI+PC9wYXRoPjwvc3ZnPgo=" alt="Terra" width="112" height="112" style="width: 112px; height: 112px;"></div><span style="font-size: 11.5px; color: #5b6472;">메인 · 검정</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="width: 150px; height: 150px; box-sizing: border-box; border-radius: 12px; background: #16191f; border: 1px solid #d8dde5; display: flex; align-items: center; justify-content: center;"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48ZmlsdGVyIGlkPSJyb3VnaCIgeD0iLTEwJSIgeT0iLTEwJSIgd2lkdGg9IjEyMCUiIGhlaWdodD0iMTIwJSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjEuMSIgbnVtT2N0YXZlcz0iMiIgc2VlZD0iNyIgcmVzdWx0PSJuIj48L2ZlVHVyYnVsZW5jZT48ZmVEaXNwbGFjZW1lbnRNYXAgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0ibiIgc2NhbGU9IjIuNCI+PC9mZURpc3BsYWNlbWVudE1hcD48L2ZpbHRlcj48L2RlZnM+PGcgZmlsdGVyPSJ1cmwoI3JvdWdoKSI+PHBhdGggZmlsbD0iI0RDREFENSIgZD0iTTggMjIgTDUwIDMxIEw0MCAxOCBMNzAgMjggTDc4IDI2IEw4MCA5IEw5MCAyNCBMMTE2IDMwIEwxNTAgMjkgTDE1OCAzNCBMMTg0IDE5IEwxNjggNDYgTDE1MCA0MiBMMTM4IDQ3IEwxMjMgNTcgTDExOSA5OCBMMTM2IDEwMCBMMTIxIDExMiBMMTE3IDEyNSBMMTIzIDE1OCBMMTQyIDE3NCBMNTIgMTc0IEw3NiAxNDggTDg2IDExOCBMODggMTA2IEw4MyA4MSBMOTMgODggTDk4IDcyIEw5NSA2MCBMNjQgNDUgTDI2IDQ5IEwzOCA0MFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjRENEQUQ1IiBkPSJNMTkxLjIgNzcuMyBMMTk3LjkgOTQuOSBMMTkzLjEgMTEzLjEgTDE5Mi4zIDk1LjJaIj48L3BhdGg+PHBhdGggZmlsbD0iI0RDREFENSIgZD0iTTE4Ny4yIDEzNS4yIEwxODUuNiAxNDUuNSBMMTc3LjkgMTUyLjYgTDE4MS45IDE0My42WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiNEQ0RBRDUiIGQ9Ik0xNjIuOSAxNjkuOSBMMTUwLjcgMTg0LjQgTDEzMi4xIDE4OC4zIEwxNDcuNSAxNzkuMFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjRENEQUQ1IiBkPSJNNjQuOCAxODcuMiBMNTEuMyAxODQuNCBMNDIuMSAxNzQuMSBMNTMuNyAxODAuMloiPjwvcGF0aD48cGF0aCBmaWxsPSIjRENEQUQ1IiBkPSJNMjguMCAxNjAuNCBMMTMuOCAxNDcuOCBMMTAuNiAxMjkuMCBMMTkuNCAxNDQuN1oiPjwvcGF0aD48cGF0aCBmaWxsPSIjRENEQUQ1IiBkPSJNMTEuNyA2Ny45IEwxMy42IDU2LjAgTDIyLjEgNDcuNCBMMTcuMyA1Ny45WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiNEQ0RBRDUiIGQ9Ik0zNy4xIDMwLjEgTDQ1LjIgMTguOCBMNTguOCAxNS41IEw0OC4zIDIzLjRaIj48L3BhdGg+PC9nPjxwYXRoIGZpbGw9IiNEQ0RBRDUiIGQ9Ik0xMTggMiBDMTE4LjM4IDguNDYgMTE5LjU0IDkuNjIgMTI2IDEwIEMxMTkuNTQgMTAuMzggMTE4LjM4IDExLjU0IDExOCAxOCBDMTE3LjYyIDExLjU0IDExNi40NiAxMC4zOCAxMTAgMTAgQzExNi40NiA5LjYyIDExNy42MiA4LjQ2IDExOCAyWiI+PC9wYXRoPjwvc3ZnPgo=" alt="Terra" width="112" height="112" style="width: 112px; height: 112px;"></div><span style="font-size: 11.5px; color: #5b6472;">메인 · 흰색</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="width: 150px; height: 150px; box-sizing: border-box; border-radius: 12px; background: #ffffff; border: 1px solid #d8dde5; display: flex; align-items: center; justify-content: center;"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48bWFzayBpZD0ic3Rhci1jdXQiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNOCAyMiBMNTAgMzEgTDQwIDE4IEw3MCAyOCBMNzggMjYgTDgwIDkgTDkwIDI0IEwxMTYgMzAgTDE1MCAyOSBMMTU4IDM0IEwxODQgMTkgTDE2OCA0NiBMMTUwIDQyIEwxMzggNDcgTDEyMyA1NyBMMTE5IDk4IEwxMzYgMTAwIEwxMjEgMTEyIEwxMTcgMTI1IEwxMjMgMTU4IEwxNDIgMTc0IEw1MiAxNzQgTDc2IDE0OCBMODYgMTE4IEw4OCAxMDYgTDgzIDgxIEw5MyA4OCBMOTggNzIgTDk1IDYwIEw2NCA0NSBMMjYgNDkgTDM4IDQwWiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0xMDYgMzIgQzEwNi40MCA0MC40MCAxMDcuNjAgNDEuNjAgMTE2IDQyIEMxMDcuNjAgNDIuNDAgMTA2LjQwIDQzLjYwIDEwNiA1MiBDMTA1LjYwIDQzLjYwIDEwNC40MCA0Mi40MCA5NiA0MiBDMTA0LjQwIDQxLjYwIDEwNS42MCA0MC40MCAxMDYgMzJaIj48L3BhdGg+PC9tYXNrPjwvZGVmcz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzEzMTMxMyIgbWFzaz0idXJsKCNzdGFyLWN1dCkiPjwvcmVjdD48L3N2Zz4K" alt="Terra" width="104" height="104" style="width: 104px; height: 104px;"></div><span style="font-size: 11.5px; color: #5b6472;">벡터 · 검정</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><div style="width: 150px; height: 150px; box-sizing: border-box; border-radius: 12px; background: #16191f; border: 1px solid #d8dde5; display: flex; align-items: center; justify-content: center;"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48bWFzayBpZD0ic3Rhci1jdXQiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNOCAyMiBMNTAgMzEgTDQwIDE4IEw3MCAyOCBMNzggMjYgTDgwIDkgTDkwIDI0IEwxMTYgMzAgTDE1MCAyOSBMMTU4IDM0IEwxODQgMTkgTDE2OCA0NiBMMTUwIDQyIEwxMzggNDcgTDEyMyA1NyBMMTE5IDk4IEwxMzYgMTAwIEwxMjEgMTEyIEwxMTcgMTI1IEwxMjMgMTU4IEwxNDIgMTc0IEw1MiAxNzQgTDc2IDE0OCBMODYgMTE4IEw4OCAxMDYgTDgzIDgxIEw5MyA4OCBMOTggNzIgTDk1IDYwIEw2NCA0NSBMMjYgNDkgTDM4IDQwWiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0xMDYgMzIgQzEwNi40MCA0MC40MCAxMDcuNjAgNDEuNjAgMTE2IDQyIEMxMDcuNjAgNDIuNDAgMTA2LjQwIDQzLjYwIDEwNiA1MiBDMTA1LjYwIDQzLjYwIDEwNC40MCA0Mi40MCA5NiA0MiBDMTA0LjQwIDQxLjYwIDEwNS42MCA0MC40MCAxMDYgMzJaIj48L3BhdGg+PC9tYXNrPjwvZGVmcz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI0RDREFENSIgbWFzaz0idXJsKCNzdGFyLWN1dCkiPjwvcmVjdD48L3N2Zz4K" alt="Terra" width="104" height="104" style="width: 104px; height: 104px;"></div><span style="font-size: 11.5px; color: #5b6472;">벡터 · 흰색</span></div>
+      <div style="width: 1px; align-self: stretch; background: #eef1f5;"></div>
+      <div style="display: flex; flex-direction: column; gap: 10px; min-width: 0; flex-grow: 1;">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472;">크기 (벡터)</span>
+        <div style="display: flex; gap: 18px; align-items: flex-end; height: 72px;"><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end;"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48bWFzayBpZD0ic3Rhci1jdXQiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNOCAyMiBMNTAgMzEgTDQwIDE4IEw3MCAyOCBMNzggMjYgTDgwIDkgTDkwIDI0IEwxMTYgMzAgTDE1MCAyOSBMMTU4IDM0IEwxODQgMTkgTDE2OCA0NiBMMTUwIDQyIEwxMzggNDcgTDEyMyA1NyBMMTE5IDk4IEwxMzYgMTAwIEwxMjEgMTEyIEwxMTcgMTI1IEwxMjMgMTU4IEwxNDIgMTc0IEw1MiAxNzQgTDc2IDE0OCBMODYgMTE4IEw4OCAxMDYgTDgzIDgxIEw5MyA4OCBMOTggNzIgTDk1IDYwIEw2NCA0NSBMMjYgNDkgTDM4IDQwWiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0xMDYgMzIgQzEwNi40MCA0MC40MCAxMDcuNjAgNDEuNjAgMTE2IDQyIEMxMDcuNjAgNDIuNDAgMTA2LjQwIDQzLjYwIDEwNiA1MiBDMTA1LjYwIDQzLjYwIDEwNC40MCA0Mi40MCA5NiA0MiBDMTA0LjQwIDQxLjYwIDEwNS42MCA0MC40MCAxMDYgMzJaIj48L3BhdGg+PC9tYXNrPjwvZGVmcz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzEzMTMxMyIgbWFzaz0idXJsKCNzdGFyLWN1dCkiPjwvcmVjdD48L3N2Zz4K" alt="" width="16" height="16" style="width: 16px; height: 16px;"><span style="font-size: 11px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">16</span></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end;"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48bWFzayBpZD0ic3Rhci1jdXQiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNOCAyMiBMNTAgMzEgTDQwIDE4IEw3MCAyOCBMNzggMjYgTDgwIDkgTDkwIDI0IEwxMTYgMzAgTDE1MCAyOSBMMTU4IDM0IEwxODQgMTkgTDE2OCA0NiBMMTUwIDQyIEwxMzggNDcgTDEyMyA1NyBMMTE5IDk4IEwxMzYgMTAwIEwxMjEgMTEyIEwxMTcgMTI1IEwxMjMgMTU4IEwxNDIgMTc0IEw1MiAxNzQgTDc2IDE0OCBMODYgMTE4IEw4OCAxMDYgTDgzIDgxIEw5MyA4OCBMOTggNzIgTDk1IDYwIEw2NCA0NSBMMjYgNDkgTDM4IDQwWiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0xMDYgMzIgQzEwNi40MCA0MC40MCAxMDcuNjAgNDEuNjAgMTE2IDQyIEMxMDcuNjAgNDIuNDAgMTA2LjQwIDQzLjYwIDEwNiA1MiBDMTA1LjYwIDQzLjYwIDEwNC40MCA0Mi40MCA5NiA0MiBDMTA0LjQwIDQxLjYwIDEwNS42MCA0MC40MCAxMDYgMzJaIj48L3BhdGg+PC9tYXNrPjwvZGVmcz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzEzMTMxMyIgbWFzaz0idXJsKCNzdGFyLWN1dCkiPjwvcmVjdD48L3N2Zz4K" alt="" width="18" height="18" style="width: 18px; height: 18px;"><span style="font-size: 11px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">18</span></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end;"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48bWFzayBpZD0ic3Rhci1jdXQiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNOCAyMiBMNTAgMzEgTDQwIDE4IEw3MCAyOCBMNzggMjYgTDgwIDkgTDkwIDI0IEwxMTYgMzAgTDE1MCAyOSBMMTU4IDM0IEwxODQgMTkgTDE2OCA0NiBMMTUwIDQyIEwxMzggNDcgTDEyMyA1NyBMMTE5IDk4IEwxMzYgMTAwIEwxMjEgMTEyIEwxMTcgMTI1IEwxMjMgMTU4IEwxNDIgMTc0IEw1MiAxNzQgTDc2IDE0OCBMODYgMTE4IEw4OCAxMDYgTDgzIDgxIEw5MyA4OCBMOTggNzIgTDk1IDYwIEw2NCA0NSBMMjYgNDkgTDM4IDQwWiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0xMDYgMzIgQzEwNi40MCA0MC40MCAxMDcuNjAgNDEuNjAgMTE2IDQyIEMxMDcuNjAgNDIuNDAgMTA2LjQwIDQzLjYwIDEwNiA1MiBDMTA1LjYwIDQzLjYwIDEwNC40MCA0Mi40MCA5NiA0MiBDMTA0LjQwIDQxLjYwIDEwNS42MCA0MC40MCAxMDYgMzJaIj48L3BhdGg+PC9tYXNrPjwvZGVmcz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzEzMTMxMyIgbWFzaz0idXJsKCNzdGFyLWN1dCkiPjwvcmVjdD48L3N2Zz4K" alt="" width="22" height="22" style="width: 22px; height: 22px;"><span style="font-size: 11px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">22</span></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end;"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48bWFzayBpZD0ic3Rhci1jdXQiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNOCAyMiBMNTAgMzEgTDQwIDE4IEw3MCAyOCBMNzggMjYgTDgwIDkgTDkwIDI0IEwxMTYgMzAgTDE1MCAyOSBMMTU4IDM0IEwxODQgMTkgTDE2OCA0NiBMMTUwIDQyIEwxMzggNDcgTDEyMyA1NyBMMTE5IDk4IEwxMzYgMTAwIEwxMjEgMTEyIEwxMTcgMTI1IEwxMjMgMTU4IEwxNDIgMTc0IEw1MiAxNzQgTDc2IDE0OCBMODYgMTE4IEw4OCAxMDYgTDgzIDgxIEw5MyA4OCBMOTggNzIgTDk1IDYwIEw2NCA0NSBMMjYgNDkgTDM4IDQwWiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0xMDYgMzIgQzEwNi40MCA0MC40MCAxMDcuNjAgNDEuNjAgMTE2IDQyIEMxMDcuNjAgNDIuNDAgMTA2LjQwIDQzLjYwIDEwNiA1MiBDMTA1LjYwIDQzLjYwIDEwNC40MCA0Mi40MCA5NiA0MiBDMTA0LjQwIDQxLjYwIDEwNS42MCA0MC40MCAxMDYgMzJaIj48L3BhdGg+PC9tYXNrPjwvZGVmcz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzEzMTMxMyIgbWFzaz0idXJsKCNzdGFyLWN1dCkiPjwvcmVjdD48L3N2Zz4K" alt="" width="32" height="32" style="width: 32px; height: 32px;"><span style="font-size: 11px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">32</span></div><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: flex-end;"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48bWFzayBpZD0ic3Rhci1jdXQiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNOCAyMiBMNTAgMzEgTDQwIDE4IEw3MCAyOCBMNzggMjYgTDgwIDkgTDkwIDI0IEwxMTYgMzAgTDE1MCAyOSBMMTU4IDM0IEwxODQgMTkgTDE2OCA0NiBMMTUwIDQyIEwxMzggNDcgTDEyMyA1NyBMMTE5IDk4IEwxMzYgMTAwIEwxMjEgMTEyIEwxMTcgMTI1IEwxMjMgMTU4IEwxNDIgMTc0IEw1MiAxNzQgTDc2IDE0OCBMODYgMTE4IEw4OCAxMDYgTDgzIDgxIEw5MyA4OCBMOTggNzIgTDk1IDYwIEw2NCA0NSBMMjYgNDkgTDM4IDQwWiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0xMDYgMzIgQzEwNi40MCA0MC40MCAxMDcuNjAgNDEuNjAgMTE2IDQyIEMxMDcuNjAgNDIuNDAgMTA2LjQwIDQzLjYwIDEwNiA1MiBDMTA1LjYwIDQzLjYwIDEwNC40MCA0Mi40MCA5NiA0MiBDMTA0LjQwIDQxLjYwIDEwNS42MCA0MC40MCAxMDYgMzJaIj48L3BhdGg+PC9tYXNrPjwvZGVmcz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzEzMTMxMyIgbWFzaz0idXJsKCNzdGFyLWN1dCkiPjwvcmVjdD48L3N2Zz4K" alt="" width="48" height="48" style="width: 48px; height: 48px;"><span style="font-size: 11px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">48</span></div></div>
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472; margin-top: 4px;">쓰는 자리</span>
+        <div style="display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: #3a4049;">
+          <span><b>벡터</b> — 48px 아래 전부: 상태 줄 22px · 유틸 서랍 줄 18px · 파비콘 · 탭 아이콘</span>
+          <span><b>메인</b> — 44px 이상, 브랜드가 드러나야 하는 곳: tree 로그인 창 머리 44px · 로딩 · 소개 화면</span>
+          <span><b>색</b> — 밝은 바탕엔 검정, 어두운 바탕(부두 테 · 어두운 창)엔 흰색. 로고에 색을 입히지 않는다</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 1행: 잠김 · 작업 진행 ─────────── -->
+  <div style="display: flex; gap: 20px;">
+
+    <!-- 1. 권한 잠금 -->
+    <section aria-label="권한 잠금" style="flex: 1 1 0; min-width: 0; background: #ffffff; border: 1px solid #d8dde5; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 18px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 24px; height: 24px; border-radius: 50%; background: #16191f; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">1</span>
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600;">권한 잠금</h2>
+        <span style="font-size: 12.5px; color: #5b6472;">카탈로그에 없으면 그리지 않고, 있는데 권한이 모자라면 자물쇠</span>
+        <span style="flex-grow: 1;"></span>
+        <button type="button" class="cp-btn" onClick="{{toggleGrant}}" style="height: 30px; padding: 0 12px; border: 1px solid {{grantBorder}}; border-radius: 15px; background: {{grantBg}}; color: {{grantFg}}; font: inherit; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{grantDot}};"></span>module.manage {{grantLabel}}</button>
+      </div>
+
+      <!-- 버튼 5상태 -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472;">버튼</span>
+        <div style="display: flex; gap: 20px; align-items: flex-start;">
+          <sc-for list="{{btns}}" as="b" hint-placeholder-count="5">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative;">
+              <div style="position: relative;" onPointerEnter="{{b.enter}}" onPointerLeave="{{b.leave}}">
+                <button type="button" class="cp-btn" aria-disabled="{{b.dis}}" style="height: 36px; min-width: 104px; padding: 0 14px; border: {{b.border}}; border-radius: 8px; background: {{b.bg}}; color: {{b.fg}}; font: inherit; font-size: 13px; font-weight: {{b.fw}}; cursor: {{b.cursor}}; display: flex; align-items: center; justify-content: center; gap: 6px;">{{b.text}}</button>
+                <span class="cp-badge" aria-hidden="true" style="position: absolute; right: -7px; top: -7px; width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; background: #a65f00; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; transform: scale({{b.badgeS}}); opacity: {{b.badgeO}};">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z"></path></svg>
+                </span>
+                <sc-if value="{{b.tipOn}}" hint-placeholder-val="{{false}}">
+                  <div class="cp-in" role="tooltip" style="position: absolute; left: 50%; top: 44px; transform: translateX(-50%); z-index: 3; white-space: nowrap; padding: 5px 10px; border-radius: 12px; background: #16191f; color: #ffffff; font-size: 12px; pointer-events: none;">{{b.tip}}</div>
+                </sc-if>
+              </div>
+              <span style="font-size: 12px; color: #5b6472; margin-top: {{b.capGap}}px;">{{b.cap}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 28px; align-items: stretch;">
+        <!-- 원형 메뉴에 적용 -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472;">원형 메뉴</span>
+          <div style="position: relative; width: 236px; height: 236px;">
+            <div aria-hidden="true" style="position: absolute; left: 10px; top: 10px; width: 216px; height: 216px; border-radius: 50%; background: radial-gradient(circle, rgba(22,25,31,0.10) 0%, rgba(22,25,31,0.04) 60%, rgba(22,25,31,0) 72%);"></div>
+            <sc-for list="{{rmItems}}" as="it" hint-placeholder-count="6">
+              <div style="position: absolute; left: {{it.x}}px; top: {{it.y}}px; width: {{it.size}}px; height: {{it.size}}px; transform: translate(-50%,-50%);">
+                <span style="width: 100%; height: 100%; box-sizing: border-box; border-radius: 50%; border: {{it.border}}; background: {{it.bg}}; color: {{it.fg}}; box-shadow: {{it.shadow}}; display: flex; align-items: center; justify-content: center;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{it.icon}}"></path></svg>
+                </span>
+                <span class="cp-badge" aria-hidden="true" style="position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; background: {{it.badgeBg}}; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; transform: scale({{it.badgeS}}); opacity: {{it.badgeO}};">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{it.badgeIcon}}"></path></svg>
+                </span>
+              </div>
+            </sc-for>
+            <span style="position: absolute; left: 118px; top: 118px; width: 34px; height: 34px; transform: translate(-50%,-50%); border-radius: 50%; background: #c0303f; color: #ffffff; box-shadow: 0 2px 8px rgba(22,25,31,0.25); display: flex; align-items: center; justify-content: center; font-size: 15px;">×</span>
+          </div>
+          <span style="align-self: center; margin-top: -6px; white-space: nowrap; padding: 3px 10px; border-radius: 12px; background: #16191f; color: #ffffff; font-size: 12px;">{{rmLabel}}</span>
+        </div>
+
+        <!-- 권한 칩 + 규칙 -->
+        <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472;">권한 칩 — 관리 노드 창 펼침 영역</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <sc-for list="{{perms}}" as="p" hint-placeholder-count="6">
+                <span style="height: 26px; box-sizing: border-box; padding: 0 10px; border-radius: 13px; border: 1px solid {{p.border}}; background: {{p.bg}}; color: {{p.fg}}; font-size: 12px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; display: flex; align-items: center; gap: 6px; transition: background 200ms, border-color 200ms, color 200ms;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{p.icon}}"></path></svg>{{p.name}}
+                </span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 8px; background: #f4f6f9; font-size: 12.5px; color: #16191f;">
+            <sc-for list="{{lockRules}}" as="r" hint-placeholder-count="4">
+              <div style="display: flex; gap: 8px;"><span style="flex-shrink: 0; width: 64px; color: {{r.c}}; font-weight: 600;">{{r.k}}</span><span style="color: #5b6472;">{{r.v}}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 작업 진행 -->
+    <section aria-label="작업 진행" style="width: 620px; flex-shrink: 0; background: #ffffff; border: 1px solid #d8dde5; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 18px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 24px; height: 24px; border-radius: 50%; background: #16191f; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">3</span>
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600;">작업 진행</h2>
+        <span style="font-size: 12.5px; color: #5b6472;">로그인 링을 작게 — 접수 뒤엔 링이 결과를 들고 온다</span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <sc-for list="{{rings}}" as="r" hint-placeholder-count="5">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 96px;">
+            <svg width="64" height="64" viewBox="-32 -32 64 64" aria-hidden="true">
+              <circle r="26" fill="none" stroke="{{r.track}}" stroke-width="5"></circle>
+              <g class="{{r.spin}}"><circle r="26" fill="none" stroke="{{r.c}}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{r.dash}}" class="{{r.march}}" transform="rotate(-90)"></circle></g>
+              <path d="{{r.glyph}}" fill="none" stroke="{{r.c}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path>
+              <text x="0" y="4.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="{{r.c}}" font-family="ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace">{{r.txt}}</text>
+            </svg>
+            <span style="font-size: 13px; font-weight: 600;">{{r.name}}</span>
+            <span style="font-size: 11.5px; color: #5b6472; text-align: center; line-height: 1.4;">{{r.say}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; gap: 16px; align-items: center; padding: 14px 16px; border: 1px solid #d8dde5; border-radius: 10px;">
+        <svg width="72" height="72" viewBox="-36 -36 72 72" aria-label="작업 진행률">
+          <circle r="30" fill="none" stroke="{{job.track}}" stroke-width="6"></circle>
+          <g class="{{job.spin}}"><circle r="30" fill="none" stroke="{{job.c}}" stroke-width="6" stroke-linecap="round" stroke-dasharray="{{job.dash}}" class="{{job.march}}" transform="rotate(-90)" style="transition: stroke-dasharray 260ms ease-out, stroke 200ms;"></circle></g>
+          <path d="{{job.glyph}}" fill="none" stroke="{{job.c}}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+          <text x="0" y="5" text-anchor="middle" font-size="14" font-weight="700" fill="{{job.c}}" font-family="ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace">{{job.txt}}</text>
+        </svg>
+        <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">modules.by-module-id.restart.post · #J-2032</span>
+          <span style="font-weight: 600;">chat 재시작 — <span style="color: {{job.c}};">{{job.state}}</span></span>
+          <span style="font-size: 12.5px; color: #5b6472;">{{job.say}}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button type="button" class="cp-btn" onClick="{{runJob}}" style="height: 32px; padding: 0 14px; border: 0; border-radius: 8px; background: #2563eb; color: #ffffff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">{{job.runLabel}}</button>
+          <button type="button" class="cp-btn" onClick="{{toggleFail}}" style="height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 8px; background: #ffffff; color: {{failFg}}; font: inherit; font-size: 12px; cursor: pointer;">{{failLabel}}</button>
+          <button type="button" class="cp-btn" onClick="{{cancelJob}}" style="display: {{job.cancelDisp}}; height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 8px; background: #ffffff; color: #d33d52; font: inherit; font-size: 12px; cursor: pointer;">취소</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472;">목록 안의 작은 표시 · 최근 알림 줄</span>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+            <span style="height: 26px; box-sizing: border-box; padding: 0 10px 0 6px; border-radius: 13px; border: 1px solid #d8dde5; background: #ffffff; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+              <svg width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true"><circle r="6" fill="none" stroke="{{c.track}}" stroke-width="2.4"></circle><circle r="6" fill="none" stroke="{{c.c}}" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="{{c.dash}}" class="{{c.march}}" transform="rotate(-90)"></circle></svg>
+              <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: #5b6472;">{{c.id}}</span><span style="color: {{c.c}}; font-weight: 600;">{{c.t}}</span>
+            </span>
+          </sc-for>
+        </div>
+        <div aria-live="polite" style="border-top: 1px solid #d8dde5; padding-top: 8px; display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; min-height: 84px;">
+          <sc-for list="{{log}}" as="l" hint-placeholder-count="3">
+            <span class="cp-in"><span style="color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{l.t}}</span>&nbsp;&nbsp;<span style="color: {{l.c}};">{{l.g}}</span> {{l.m}}</span>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ─────────── 2. 위험 확인 창 ─────────── -->
+  <section aria-label="위험 확인 창" style="background: #ffffff; border: 1px solid #d8dde5; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="width: 24px; height: 24px; border-radius: 50%; background: #16191f; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">2</span>
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600;">위험 확인 창</h2>
+      <span style="font-size: 12.5px; color: #5b6472;">로그인 창과 같은 창 — 누른 자리 뒤에서 위로 튀어 나오고, 닫으면 다시 내려간다. 무게에 따라 확인 방식만 바뀐다</span>
+      <span style="flex-grow: 1;"></span>
+      <button type="button" class="cp-btn" onClick="{{replayPop}}" style="height: 30px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 15px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">↻ 등장 다시 보기</button>
+    </div>
+    <div style="display: flex; gap: 24px; align-items: flex-end; padding: 24px 24px 0; border-radius: 10px; background: linear-gradient(#f4f6f9, #eef1f5); overflow: hidden;">
+      <sc-for list="{{dialogs}}" as="d" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 336px; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 13px; font-weight: 600;">{{d.mode}}</span>
+            <span style="font-size: 12px; color: #5b6472;">{{d.when}}</span>
+          </div>
+          <div style="height: {{d.boxH}}px; position: relative; overflow: hidden;">
+            <div class="{{popClass}}" role="dialog" aria-label="{{d.title}}" style="position: absolute; left: 0; bottom: 0; width: 336px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 20px; background: #ffffff; border: 1px solid #d8dde5; border-bottom: 0; border-radius: 12px 12px 0 0; box-shadow: 0 12px 32px rgba(22,25,31,0.18); animation-delay: {{d.delay}};">
+              <div style="display: flex; align-items: center; gap: 10px; padding-right: 24px;">
+                <span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: {{d.iconBg}}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px;">!</span>
+                <span style="font-size: 15px; font-weight: 700;">{{d.title}}</span>
+              </div>
+              <span style="position: absolute; right: 8px; top: 8px; width: 28px; height: 28px; border-radius: 6px; color: #5b6472; font-size: 18px; display: flex; align-items: center; justify-content: center;">×</span>
+              <div style="display: grid; grid-template-columns: 64px 1fr; row-gap: 6px; column-gap: 10px; font-size: 13px;">
+                <sc-for list="{{d.rows}}" as="r" hint-placeholder-count="4">
+                  <span style="color: #5b6472; font-size: 12px; padding-top: 1px;">{{r.k}}</span>
+                  <span><span style="color: {{r.gc}};">{{r.g}}</span> {{r.v}}</span>
+                </sc-for>
+              </div>
+
+              <sc-if value="{{d.isA}}" hint-placeholder-val="{{true}}">
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;">
+                  <sc-if value="{{d.accepted}}" hint-placeholder-val="{{false}}">
+                    <span class="cp-in" style="flex-grow: 1; align-self: center; font-size: 12.5px; color: #2563eb;">◇ 접수됨 — 작업 #J-2033</span>
+                  </sc-if>
+                  <button type="button" class="cp-btn" style="height: 44px; padding: 0 16px; border: 1px solid #d8dde5; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; font-size: 14px; cursor: pointer;">취소</button>
+                  <button type="button" class="cp-btn" onClick="{{d.go}}" style="height: 44px; min-width: 104px; padding: 0 18px; border: 0; border-radius: 8px; background: #d33d52; color: #ffffff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;">{{d.action}}</button>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{d.isB}}" hint-placeholder-val="{{false}}">
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #5b6472;">
+                  <span>확인하려면 <b style="color: #16191f; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">agent</b> 입력</span>
+                  <input type="text" value="{{typed}}" onChange="{{setTyped}}" spellcheck="false" style="height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{typedBorder}}; border-radius: 8px; font: inherit; font-size: 14px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: #16191f; outline: none;">
+                </label>
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                  <button type="button" class="cp-btn" style="height: 44px; padding: 0 16px; border: 1px solid #d8dde5; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; font-size: 14px; cursor: pointer;">취소</button>
+                  <button type="button" class="cp-btn" aria-disabled="{{typedDis}}" style="height: 44px; min-width: 104px; padding: 0 18px; border: 0; border-radius: 8px; background: #d33d52; color: #ffffff; font: inherit; font-size: 14px; font-weight: 600; cursor: {{typedCursor}}; opacity: {{typedOp}}; transition: opacity 160ms;">{{d.action}}</button>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{d.isC}}" hint-placeholder-val="{{false}}">
+                <button type="button" onPointerDown="{{holdDown}}" onPointerUp="{{holdUp}}" onPointerLeave="{{holdUp}}" style="position: relative; overflow: hidden; height: 48px; width: 100%; border: 1px solid #d33d52; border-radius: 8px; background: #ffffff; color: {{holdFg}}; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; touch-action: none; margin-top: 4px;">
+                  <span aria-hidden="true" style="position: absolute; left: 0; top: 0; bottom: 0; width: {{holdW}}; background: #d33d52; transition: {{holdTrans}};"></span>
+                  <span style="position: relative;">{{holdText}}</span>
+                </button>
+                <span style="font-size: 12px; color: #5b6472; margin-top: -4px;">손을 떼면 멈추고 처음으로 돌아간다</span>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="flex: 1 1 0; min-width: 0; align-self: stretch; display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; font-size: 12.5px;">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472;">창 안의 네 줄 — 항상 같은 순서</span>
+        <sc-for list="{{confirmRules}}" as="r" hint-placeholder-count="4">
+          <div style="display: flex; gap: 8px;"><span style="flex-shrink: 0; width: 64px; font-weight: 600;">{{r.k}}</span><span style="color: #5b6472;">{{r.v}}</span></div>
+        </sc-for>
+        <div style="margin-top: 6px; padding: 10px 12px; border-radius: 8px; background: #ffffff; border: 1px solid #d8dde5; color: #5b6472; line-height: 1.6;">
+          확인 방식은 카탈로그의 <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: #16191f;">confirmationMode</span>로 고른다. 선언이 없는 위험 operation <b style="color: #16191f;">8건</b>은 GUI가 기본으로 <b style="color: #16191f;">확인 한 번</b>을 붙인다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 4. 빈 상태 · 오류 상태 ─────────── -->
+  <section aria-label="빈 상태와 오류 상태" style="background: #ffffff; border: 1px solid #d8dde5; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="width: 24px; height: 24px; border-radius: 50%; background: #16191f; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">4</span>
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600;">빈 상태 · 오류 상태</h2>
+      <span style="font-size: 12.5px; color: #5b6472;">필드의 빈 타일 자리 — 왜 비었는지와 할 수 있는 한 가지만 적는다</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px;">
+      <sc-for list="{{empties}}" as="e" hint-placeholder-count="6">
+        <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 22px 14px 18px; border: 1px {{e.lineStyle}} {{e.line}}; border-radius: 10px; background: {{e.bg}};">
+          <svg width="64" height="64" viewBox="-32 -32 64 64" aria-hidden="true">
+            <path d="M0 -27 L23.4 -13.5 L23.4 13.5 L0 27 L-23.4 13.5 L-23.4 -13.5 Z" fill="{{e.hexFill}}" stroke="{{e.c}}" stroke-width="2" stroke-dasharray="{{e.hexDash}}" stroke-linejoin="round"></path>
+            <path d="{{e.icon}}" fill="none" stroke="{{e.c}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(-12 -12)"></path>
+          </svg>
+          <span style="font-size: 14px; font-weight: 600;">{{e.title}}</span>
+          <span style="font-size: 11.5px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: {{e.c}};">{{e.code}}</span>
+          <span style="font-size: 12.5px; color: #5b6472; line-height: 1.5; min-height: 56px;">{{e.say}}</span>
+          <button type="button" class="cp-btn" style="display: {{e.btnDisp}}; height: 30px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{e.btnFg}}; font: inherit; font-size: 12.5px; cursor: pointer;">{{e.btn}}</button>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ─────────── 5. 스키마 기반 자동 폼 ─────────── -->
+  <section aria-label="자동 폼" style="flex-grow: 1; background: #ffffff; border: 1px solid #d8dde5; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="width: 24px; height: 24px; border-radius: 50%; background: #16191f; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">5</span>
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600;">스키마 기반 자동 폼</h2>
+      <span style="font-size: 12.5px; color: #5b6472;">config.schema · catalog 입력 스키마 · cli 명령 명세를 같은 부품으로 그린다</span>
+    </div>
+    <div style="display: flex; gap: 24px; align-items: flex-start;">
+
+      <div style="width: 700px; flex-shrink: 0; border: 1px solid #d8dde5; border-radius: 10px; box-shadow: 0 4px 16px rgba(22,25,31,0.08); display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #d8dde5;">
+          <span style="font-size: 15px; font-weight: 700;">Daemon 설정</span>
+          <span style="font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">leaf-desk-01 · config.get</span>
+          <span style="flex-grow: 1;"></span>
+          <span style="font-size: 12px; color: {{f.changedC}};">{{f.changedTxt}}</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px; padding: 16px 20px;">
+          <!-- string -->
+          <div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: start; padding-left: 10px; border-left: 3px solid {{f.name.bar}};">
+            <span style="font-size: 13px; padding-top: 8px;">장치 이름 <span style="color: #d33d52;">*</span></span>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <input type="text" value="{{f.name.v}}" onChange="{{f.name.set}}" spellcheck="false" style="height: 36px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{f.name.border}}; border-radius: 8px; font: inherit; font-size: 14px; color: #16191f; outline: none;">
+              <span style="font-size: 12px; color: {{f.name.msgC}};">{{f.name.msg}}</span>
+            </div>
+          </div>
+          <!-- integer + unit -->
+          <div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: start; padding-left: 10px; border-left: 3px solid {{f.port.bar}};">
+            <span style="font-size: 13px; padding-top: 8px;">Local API 포트</span>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; height: 36px; box-sizing: border-box; border: 1px solid {{f.port.border}}; border-radius: 8px; overflow: hidden;">
+                  <button type="button" onClick="{{f.port.dec}}" style="width: 32px; border: 0; border-right: 1px solid #d8dde5; background: #f4f6f9; color: #5b6472; font: inherit; font-size: 16px; cursor: pointer;">−</button>
+                  <input type="text" inputmode="numeric" value="{{f.port.v}}" onChange="{{f.port.set}}" style="width: 88px; border: 0; padding: 0 10px; font: inherit; font-size: 14px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: #16191f; text-align: center; outline: none;">
+                  <button type="button" onClick="{{f.port.inc}}" style="width: 32px; border: 0; border-left: 1px solid #d8dde5; background: #f4f6f9; color: #5b6472; font: inherit; font-size: 16px; cursor: pointer;">+</button>
+                </div>
+                <span style="font-size: 12px; color: #5b6472;">1024 – 65535</span>
+                <span style="flex-grow: 1;"></span>
+                <button type="button" onClick="{{f.port.reset}}" style="display: {{f.port.resetDisp}}; height: 26px; padding: 0 8px; border: 0; background: transparent; color: #2563eb; font: inherit; font-size: 12px; cursor: pointer;">기본값 7780으로</button>
+              </div>
+              <span style="font-size: 12px; color: {{f.port.msgC}};">{{f.port.msg}}</span>
+            </div>
+          </div>
+          <!-- enum -->
+          <div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; padding-left: 10px; border-left: 3px solid {{f.level.bar}};">
+            <span style="font-size: 13px;">로그 수준</span>
+            <div role="radiogroup" aria-label="로그 수준" style="display: flex; width: fit-content; height: 36px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 8px; padding: 3px; gap: 2px; background: #f4f6f9;">
+              <sc-for list="{{f.level.opts}}" as="o" hint-placeholder-count="4">
+                <button type="button" role="radio" aria-checked="{{o.on}}" onClick="{{o.pick}}" style="height: 28px; padding: 0 14px; border: 0; border-radius: 6px; background: {{o.bg}}; color: {{o.fg}}; font: inherit; font-size: 13px; font-weight: {{o.fw}}; box-shadow: {{o.sh}}; cursor: pointer; transition: background 140ms, color 140ms;">{{o.v}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <!-- boolean -->
+          <div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; padding-left: 10px; border-left: 3px solid {{f.auto.bar}};">
+            <span style="font-size: 13px;">자동 재연결</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button type="button" role="switch" aria-checked="{{f.auto.on}}" onClick="{{f.auto.toggle}}" style="position: relative; width: 40px; height: 22px; border: 0; border-radius: 11px; background: {{f.auto.bg}}; cursor: pointer; padding: 0; transition: background 160ms;">
+                <span style="position: absolute; top: 3px; left: {{f.auto.x}}px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 3px rgba(22,25,31,0.3); transition: left 160ms cubic-bezier(.2,.8,.3,1);"></span>
+              </button>
+              <span style="font-size: 13px; color: #5b6472;">{{f.auto.txt}}</span>
+            </div>
+          </div>
+          <!-- array -->
+          <div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: start; padding-left: 10px; border-left: 3px solid {{f.hosts.bar}};">
+            <span style="font-size: 13px; padding-top: 8px;">허용 주소</span>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 36px; box-sizing: border-box; padding: 4px 6px; border: 1px solid #c3cad5; border-radius: 8px;">
+              <sc-for list="{{f.hosts.items}}" as="h" hint-placeholder-count="2">
+                <span style="height: 26px; box-sizing: border-box; padding: 0 4px 0 10px; border-radius: 6px; background: #eef3fb; border: 1px solid #c7d7f5; font-size: 12.5px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; display: flex; align-items: center; gap: 4px;">{{h.v}}<button type="button" aria-label="{{h.v}} 빼기" onClick="{{h.rm}}" style="width: 20px; height: 20px; border: 0; border-radius: 4px; background: transparent; color: #5b6472; font: inherit; font-size: 14px; cursor: pointer; padding: 0;">×</button></span>
+              </sc-for>
+              <input type="text" value="{{f.hosts.draft}}" onChange="{{f.hosts.setDraft}}" onKeyDown="{{f.hosts.key}}" placeholder="주소 입력 후 Enter" spellcheck="false" style="flex: 1 1 120px; min-width: 120px; height: 26px; border: 0; padding: 0 4px; font: inherit; font-size: 13px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: #16191f; outline: none;">
+            </div>
+          </div>
+          <!-- secret -->
+          <div style="display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; padding-left: 10px; border-left: 3px solid transparent;">
+            <span style="font-size: 13px;">등록 토큰</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="height: 36px; flex: 1 1 0; box-sizing: border-box; padding: 0 12px; border: 1px solid #c3cad5; border-radius: 8px; background: #f4f6f9; display: flex; align-items: center; font-size: 13.5px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: #5b6472; letter-spacing: {{f.secret.ls}};">{{f.secret.v}}</span>
+              <button type="button" onClick="{{f.secret.toggle}}" style="height: 36px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">{{f.secret.btn}}</button>
+              <button type="button" style="height: 36px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">새로 쓰기</button>
+            </div>
+          </div>
+          <!-- object group + managed(read-only) -->
+          <fieldset style="margin: 0; padding: 10px 14px 12px; border: 1px solid #d8dde5; border-radius: 8px; display: flex; flex-direction: column; gap: 10px;">
+            <legend style="padding: 0 6px; font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">heartbeat</legend>
+            <div style="display: grid; grid-template-columns: 136px 1fr; gap: 12px; align-items: center;">
+              <span style="font-size: 13px;">주기</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="height: 36px; width: 96px; box-sizing: border-box; padding: 0 12px; border: 1px solid #c3cad5; border-radius: 8px; display: flex; align-items: center; font-size: 14px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">15</span>
+                <span style="font-size: 13px; color: #5b6472;">초</span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 136px 1fr; gap: 12px; align-items: center;">
+              <span style="font-size: 13px; color: #5b6472;">보고 대상</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="height: 36px; flex: 1 1 0; box-sizing: border-box; padding: 0 12px; border: 1px dashed #c3cad5; border-radius: 8px; display: flex; align-items: center; font-size: 13.5px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: #5b6472;">tree-home (Master가 정함)</span>
+                <span style="font-size: 12px; color: #5b6472; white-space: nowrap;">읽기 전용</span>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+
+        <sc-if value="{{f.applyAsk}}" hint-placeholder-val="{{false}}">
+          <div class="cp-in" style="margin: 0 20px 12px; padding: 10px 14px; border: 1px solid #d33d52; border-radius: 8px; background: #fcf1f2; display: flex; align-items: center; gap: 10px; font-size: 13px;">
+            <span style="color: #d33d52; font-weight: 700;">!</span>
+            <span style="flex-grow: 1;">적용하면 런타임에 바로 반영됩니다 — Local API가 잠깐 끊길 수 있음</span>
+            <button type="button" onClick="{{f.applyNo}}" style="height: 30px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">취소</button>
+            <button type="button" onClick="{{f.applyYes}}" style="height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: #d33d52; color: #ffffff; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">적용</button>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-top: 1px solid #d8dde5; background: #f4f6f9; border-radius: 0 0 10px 10px;">
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <sc-for list="{{f.steps}}" as="s" hint-placeholder-count="4">
+              <span style="display: flex; align-items: center; gap: 4px; font-size: 12.5px; color: {{s.fg}}; font-weight: {{s.fw}};"><span style="width: 18px; height: 18px; border-radius: 50%; background: {{s.dotBg}}; color: {{s.dotFg}}; font-size: 11px; display: flex; align-items: center; justify-content: center; border: 1px solid {{s.dotLine}};">{{s.n}}</span>{{s.label}}<span style="color: #c3cad5; margin: 0 4px; display: {{s.sepDisp}};">—</span></span>
+            </sc-for>
+          </div>
+          <span style="flex-grow: 1;"></span>
+          <button type="button" onClick="{{f.revert}}" style="height: 32px; padding: 0 12px; border: 0; background: transparent; color: #5b6472; font: inherit; font-size: 13px; cursor: pointer;">모두 되돌리기</button>
+          <button type="button" class="cp-btn" onClick="{{f.validate}}" style="height: 32px; padding: 0 14px; border: 1px solid #d8dde5; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer;">검증</button>
+          <button type="button" class="cp-btn" onClick="{{f.save}}" aria-disabled="{{f.saveDis}}" style="height: 32px; padding: 0 14px; border: 0; border-radius: 8px; background: #2563eb; color: #ffffff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; opacity: {{f.saveOp}};">저장</button>
+          <button type="button" class="cp-btn" onClick="{{f.apply}}" aria-disabled="{{f.applyDis}}" style="height: 32px; padding: 0 14px; border: 1px solid #d33d52; border-radius: 8px; background: #ffffff; color: #d33d52; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; opacity: {{f.applyOp}};">적용</button>
+        </div>
+      </div>
+
+      <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472;">스키마 → 부품</span>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <sc-for list="{{schemaMap}}" as="m" hint-placeholder-count="8">
+              <tr>
+                <td style="padding: 6px 10px 6px 0; border-top: 1px solid #eef1f5; width: 190px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 12px; color: #5b6472;">{{m.k}}</td>
+                <td style="padding: 6px 0; border-top: 1px solid #eef1f5;">{{m.v}}</td>
+              </tr>
+            </sc-for>
+          </table>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472;">칸의 표식</span>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <sc-for list="{{marks}}" as="m" hint-placeholder-count="6">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid #eef1f5; border-radius: 8px; font-size: 12.5px;">
+                <span style="width: 3px; height: 22px; border-radius: 2px; background: {{m.c}};"></span>
+                <span style="font-weight: 600; width: 64px; flex-shrink: 0;">{{m.k}}</span>
+                <span style="color: #5b6472;">{{m.v}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="padding: 10px 12px; border-radius: 8px; background: #f4f6f9; color: #5b6472; font-size: 12.5px; line-height: 1.6;">
+          <b style="color: #16191f;">node.config★</b>가 없으면 폼 전체가 읽기 전용이 되고, 아래 막대의 저장·적용 자리에 자물쇠 버튼(1번)이 선다. 검증은 권한 없이(node.read) 부를 수 있어 그대로 남는다.
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":2600}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      grant: false, tip: null, popKey: 0,
+      typed: 'agen', acceptedA: false,
+      hold: 'idle', // idle | holding | done
+      job: { phase: 'idle', pct: 0 }, failNext: false,
+      log: [
+        { t: '18:58:40', g: '◇', c: '#2563eb', m: 'chat 재시작 접수됨 — 작업 #J-2031' },
+        { t: '18:41:02', g: '■', c: '#d33d52', m: 'vdevice 시작 실패 — 로그 보기' }
+      ],
+      form: this.formDefaults(), step: 1, touched: false, applyAsk: false,
+      draft: '', reveal: false
+    };
+  }
+  formDefaults() { return { name: 'leaf-desk-01', port: '7780', level: 'info', auto: true, hosts: ['127.0.0.1', '10.8.0.0/24'] }; }
+  componentWillUnmount() { clearInterval(this._jt); clearTimeout(this._ht); clearTimeout(this._at); clearTimeout(this._jt2); }
+
+  now() { const d = new Date(); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((n) => String(n).padStart(2, '0')).join(':'); }
+  pushLog(g, c, m) { this.setState({ log: [{ t: this.now(), g, c, m }].concat(this.state.log).slice(0, 4) }); }
+
+  ring(phase, pct, R) {
+    const L = 2 * Math.PI * R;
+    const s = {
+      idle:     { c: '#c3cad5', track: '#eef1f5', dash: '0 ' + L, glyph: '', txt: '', spin: '', march: '', name: '대기', state: '대기' },
+      accepted: { c: '#2563eb', track: '#e6eefc', dash: '4 4', glyph: '', txt: '', spin: '', march: 'cp-march', name: '접수됨', state: '접수됨' },
+      running:  { c: '#2563eb', track: '#e6eefc', dash: (L * pct).toFixed(1) + ' ' + L.toFixed(1), glyph: '', txt: Math.round(pct * 100) + '', spin: '', march: '', name: '진행 중', state: '진행 중 ' + Math.round(pct * 100) + '%' },
+      done:     { c: '#1f7a4d', track: '#e3f1e8', dash: L.toFixed(1) + ' 0', glyph: 'M-8 0 L-2.5 5.5 L8.5 -5.5', txt: '', spin: '', march: '', name: '완료', state: '완료' },
+      failed:   { c: '#d33d52', track: '#fcf1f2', dash: L.toFixed(1) + ' 0', glyph: 'M-6 -6 L6 6 M6 -6 L-6 6', txt: '', spin: '', march: '', name: '실패', state: '실패' },
+      canceled: { c: '#8b95a6', track: '#eef1f5', dash: '2 5', glyph: 'M-6 0 L6 0', txt: '', spin: '', march: '', name: '취소됨', state: '취소됨' }
+    }[phase];
+    return s;
+  }
+
+  runJob() {
+    if (this.state.job.phase === 'accepted' || this.state.job.phase === 'running') return;
+    clearInterval(this._jt); clearTimeout(this._jt2);
+    this.setState({ job: { phase: 'accepted', pct: 0 } });
+    this.pushLog('◇', '#2563eb', 'chat 재시작 접수됨 — 작업 #J-2032');
+    this._jt2 = setTimeout(() => {
+      this.setState({ job: { phase: 'running', pct: 0 } });
+      this._jt = setInterval(() => {
+        const j = this.state.job;
+        if (j.phase !== 'running') { clearInterval(this._jt); return; }
+        const fail = this.state.failNext;
+        const pct = Math.min(fail ? 0.62 : 1, j.pct + 0.04 + Math.random() * 0.05);
+        if ((fail && pct >= 0.62) || pct >= 1) {
+          clearInterval(this._jt);
+          this.setState({ job: { phase: fail ? 'failed' : 'done', pct } });
+          if (fail) this.pushLog('■', '#d33d52', '#J-2032 실패 — chat 시작 시간 초과 · 로그 보기');
+          else this.pushLog('●', '#1f7a4d', '#J-2032 완료 — chat 재시작됨 (4.1초)');
+        } else this.setState({ job: { phase: 'running', pct } });
+      }, 140);
+    }, 900);
+  }
+  cancelJob() {
+    const j = this.state.job;
+    if (j.phase !== 'accepted' && j.phase !== 'running') return;
+    clearInterval(this._jt); clearTimeout(this._jt2);
+    this.setState({ job: { phase: 'canceled', pct: j.pct } });
+    this.pushLog('–', '#8b95a6', '#J-2032 취소됨 — tasks.by-task-id.cancel.post');
+  }
+
+  validate(F) {
+    const e = {};
+    if (!F.name.trim()) e.name = '비울 수 없습니다';
+    else if (/\s/.test(F.name)) e.name = '공백 없이 — 영문·숫자·- 만';
+    const p = Number(F.port);
+    if (!/^\d+$/.test(F.port)) e.port = '숫자만 입력';
+    else if (p < 1024 || p > 65535) e.port = '1024 – 65535 사이여야 합니다';
+    return e;
+  }
+
+  renderVals() {
+    const S = this.state, grant = S.grant;
+    const lockIcon = 'M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z';
+
+    // ── 1. 버튼 5상태
+    const tipSet = (id) => () => this.setState({ tip: id });
+    const tipOff = () => this.setState({ tip: null });
+    const btnDefs = [
+      { id: 'ok', text: '모듈 목록', cap: '사용 가능', kind: 'ok' },
+      { id: 'lock', text: '모듈 재스캔', cap: grant ? '잠김 → 풀림' : '잠김 · 권한 모자람', kind: grant ? 'ok' : 'lock', tip: 'module.manage 권한 필요 · 관리자에게 요청' },
+      { id: 'off', text: '모듈 시작', cap: '비활성 · 조건', kind: 'off', tip: '노드 오프라인 — 연결되면 다시 켜짐' },
+      { id: 'danger', text: '롤백', cap: '위험 · 확인 창', kind: grant ? 'danger' : 'dlock', tip: 'module.manage 권한 필요 · 위험 동작' },
+      { id: 'hide', text: '카탈로그에 없음', cap: '숨김 · 그리지 않음', kind: 'hide' }
+    ];
+    const btns = btnDefs.map((b) => {
+      const k = b.kind, locked = k === 'lock' || k === 'dlock';
+      return {
+        text: b.text, cap: b.cap, capGap: 0,
+        border: k === 'hide' ? '1px dashed #c3cad5' : k === 'danger' ? '1px solid #d33d52' : k === 'dlock' ? '1px solid #efc2c9' : '1px solid #d8dde5',
+        bg: k === 'hide' ? 'transparent' : k === 'off' || locked ? '#f4f6f9' : '#ffffff',
+        fg: k === 'hide' ? '#b6bfcc' : k === 'danger' ? '#d33d52' : k === 'dlock' ? '#e3a0aa' : k === 'off' || locked ? '#8b95a6' : '#16191f',
+        fw: k === 'danger' || k === 'dlock' ? 600 : 400,
+        cursor: k === 'ok' || k === 'danger' ? 'pointer' : 'default',
+        dis: k === 'ok' || k === 'danger' ? 'false' : 'true',
+        badgeS: locked ? 1 : 0.2, badgeO: locked ? 1 : 0,
+        tipOn: S.tip === b.id && !!b.tip && (locked || k === 'off'), tip: b.tip || '',
+        enter: tipSet(b.id), leave: tipOff
+      };
+    });
+
+    // 원형 메뉴 미니
+    const icons = {
+      list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+      scan: 'M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5',
+      play: 'M6 4l14 8-14 8z',
+      undo: 'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3',
+      log: 'M4 4h16v16H4zM8 9h8M8 13h8M8 17h5',
+      stop: 'M6 6h12v12H6z'
+    };
+    const rmDefs = [
+      { k: 'ok', icon: icons.list, hover: true, label: '모듈 목록' },
+      { k: grant ? 'ok' : 'lock', icon: icons.scan },
+      { k: 'off', icon: icons.play },
+      { k: grant ? 'danger' : 'lock', icon: icons.undo },
+      { k: 'ok', icon: icons.log },
+      { k: grant ? 'ok' : 'lock', icon: icons.stop }
+    ];
+    const rmItems = rmDefs.map((d, i) => {
+      const a = (i * 60 - 90) * Math.PI / 180, on = !!d.hover, R = 70;
+      const locked = d.k === 'lock';
+      return {
+        x: Math.round(118 + Math.cos(a) * R), y: Math.round(118 + Math.sin(a) * R), size: on ? 50 : 44,
+        bg: on ? '#2563eb' : locked || d.k === 'off' ? '#f4f6f9' : '#ffffff',
+        fg: on ? '#ffffff' : d.k === 'danger' ? '#d33d52' : locked ? '#8b95a6' : d.k === 'off' ? '#b6bfcc' : '#16191f',
+        border: on ? '0' : d.k === 'danger' ? '1px solid #d33d52' : '1px solid #d8dde5',
+        shadow: on ? '0 4px 14px rgba(37,99,235,0.35)' : '0 2px 8px rgba(22,25,31,0.14)',
+        icon: d.icon, badgeBg: '#a65f00', badgeIcon: lockIcon, badgeS: locked ? 1 : 0.2, badgeO: locked ? 1 : 0
+      };
+    });
+
+    const P = (name, ok, star) => {
+      const lockedP = star && !ok;
+      return {
+        name: name + (star ? ' ★' : ''),
+        border: lockedP ? '#f0d9a8' : '#c7d7f5', bg: lockedP ? '#fff7e8' : '#f3f7ff', fg: lockedP ? '#a65f00' : '#2563eb',
+        icon: lockedP ? lockIcon : 'M5 12l5 5L20 7'
+      };
+    };
+    const perms = [P('node.read', true), P('node.control', true), P('process.execute', true), P('module.manage', grant, true), P('node.config', false, true), P('core.publish', false, true)];
+
+    // ── 3. 작업 링
+    const rings = [
+      Object.assign(this.ring('accepted', 0, 26), { say: '작업 id를 받음 · 줄이 흐른다' }),
+      Object.assign(this.ring('running', 0.42, 26), { say: '진행률이 오면 호로, 없으면 도는 호' }),
+      Object.assign(this.ring('done', 1, 26), { say: '초록 원 · 알림 줄에 남김' }),
+      Object.assign(this.ring('failed', 1, 26), { say: '빨간 원 · 로그로 이어짐' }),
+      Object.assign(this.ring('canceled', 0, 26), { say: '회색 점선 · 멈춘 자리 유지' })
+    ];
+    const J = S.job, jr = this.ring(J.phase, J.pct, 30);
+    const job = Object.assign({}, jr, {
+      say: {
+        idle: '실행하면 접수 → 진행 → 완료/실패 순으로 링이 바뀐다',
+        accepted: 'Daemon이 Task를 만들었다 — 아직 시작 전',
+        running: 'tasks.by-task-id.get 폴링 · 1초마다',
+        done: '끝난 작업은 알림 줄에 한 줄로 남는다',
+        failed: '실패 사유와 로그 보기 링크를 같이 남긴다',
+        canceled: '취소도 작업 — 취소 요청이 접수되면 회색'
+      }[J.phase],
+      runLabel: J.phase === 'accepted' || J.phase === 'running' ? '진행 중…' : J.phase === 'idle' ? '실행해 보기' : '다시 실행',
+      cancelDisp: J.phase === 'accepted' || J.phase === 'running' ? 'block' : 'none'
+    });
+    const chip = (ph, pct, id, t) => { const r = this.ring(ph, pct, 6); return { c: r.c, track: r.track, dash: r.dash, march: r.march, id, t }; };
+    const chips = [chip('accepted', 0, '#J-2031', '접수됨'), chip('running', 0.66, '#J-2029', '66%'), chip('done', 1, '#J-2027', '완료'), chip('failed', 1, '#J-2024', '실패')];
+
+    // ── 2. 확인 창
+    const dRows = (target, change, undoOk, undo) => [
+      { k: '대상', g: '', gc: '', v: target },
+      { k: '바뀌는 것', g: '', gc: '', v: change },
+      { k: '되돌리기', g: undoOk ? '●' : '■', gc: undoOk ? '#1f7a4d' : '#d33d52', v: undo },
+      { k: '응답', g: '◇', gc: '#2563eb', v: '작업 접수 → 진행 링' }
+    ];
+    const H = S.hold;
+    const dialogs = [
+      { mode: '확인 한 번', when: '위험 · 되돌릴 수 있음', title: 'agent 모듈 정지', action: '정지', iconBg: '#a65f00', isA: true, isB: false, isC: false,
+        rows: dRows('agent 1.4.2 · leaf-desk-01', '멈춘 동안 이 모듈의 화면과 명령이 메뉴에서 빠짐', true, '가능 — 다시 시작하면 됨'),
+        boxH: 292, delay: '0ms', accepted: S.acceptedA,
+        go: () => { this.setState({ acceptedA: true }); clearTimeout(this._at); this._at = setTimeout(() => this.setState({ acceptedA: false }), 1800); } },
+      { mode: '이름 입력', when: '위험 · 되돌리기 어려움', title: 'agent 롤백', action: '롤백', iconBg: '#d33d52', isA: false, isB: true, isC: false,
+        rows: dRows('agent 1.4.2 → 1.3.9', '재시작 동안 화면·명령이 잠시 빠짐', true, '가능 — 1.4.2로 다시 올릴 수 있음'),
+        boxH: 372, delay: '80ms' },
+      { mode: '누르고 있기', when: '위험 · 되돌릴 수 없음', title: 'WireGuard 키 교체', action: '교체', iconBg: '#d33d52', isA: false, isB: false, isC: true,
+        rows: dRows('wg0 · leaf-desk-01', '기존 키로 맺은 peer 연결이 모두 끊김', false, '불가 — 이전 키는 지워짐'),
+        boxH: 318, delay: '160ms' }
+    ];
+    const typedOk = S.typed === 'agent';
+
+    // ── 4. 빈 상태
+    const E = (o) => Object.assign({ lineStyle: 'solid', line: '#eef1f5', bg: '#ffffff', hexFill: 'none', hexDash: '0', btnDisp: 'inline-block', btnFg: '#16191f' }, o);
+    const empties = [
+      E({ title: '비어 있음', code: '200 · 0건', c: '#8b95a6', hexDash: '4 4', lineStyle: 'dashed', line: '#d8dde5', icon: 'M12 5v14M5 12h14', say: '아직 열린 터널이 없습니다', btn: '터널 열기', btnFg: '#2563eb' }),
+      E({ title: '모듈 내려감', code: '503 · io.terra.file', c: '#a65f00', hexFill: '#fff7e8', icon: 'M12 7v6M12 17h.01', say: '파일 모듈이 멈춰 있어 목록을 못 읽습니다', btn: '모듈 시작' }),
+      E({ title: '이 노드엔 없음', code: '501 · 파일 경계 없음', c: '#8b95a6', icon: 'M5 5l14 14M9 4h10v10M5 9v10h10', say: '파일 경계 없이 조립된 노드 — 여기선 쓸 수 없는 기능', btnDisp: 'none' }),
+      E({ title: 'Master 연결 없음', code: 'upstream 없음', c: '#8b95a6', hexFill: '#f4f6f9', icon: 'M4 4l16 16M9 5.5A9 9 0 0 1 21 9M3 9a9 9 0 0 1 3-2M7 13a5 5 0 0 1 3-1.5M17 13a5 5 0 0 0-1.5-1M12 18h.01', say: '노드 요약은 Master를 거쳐 옵니다 — 이 장치만 보입니다', btn: '다시 연결' }),
+      E({ title: '권한 없음', code: 'node.config ★', c: '#a65f00', hexFill: '#fff7e8', icon: lockIcon, say: '설정을 바꾸려면 node.config 권한이 필요합니다', btn: '권한 요청 방법' }),
+      E({ title: '불러오지 못함', code: '네트워크 · 18:59:04', c: '#d33d52', hexFill: '#fcf1f2', icon: 'M12 7v6M12 17h.01', say: '직전 값은 흐리게 두고, 다시 시도를 붙인다', btn: '다시 시도' })
+    ];
+
+    // ── 5. 자동 폼
+    const F = S.form, D = this.formDefaults(), err = S.touched ? this.validate(F) : {};
+    const liveErr = this.validate(F);
+    const setF = (k, v) => this.setState({ form: Object.assign({}, this.state.form, { [k]: v }), step: 1, applyAsk: false });
+    const changed = (k) => JSON.stringify(F[k]) !== JSON.stringify(D[k]);
+    const bar = (k) => err[k] ? '#d33d52' : changed(k) ? '#2563eb' : 'transparent';
+    const nChanged = ['name', 'port', 'level', 'auto', 'hosts'].filter(changed).length;
+    const nErr = Object.keys(liveErr).length;
+    const step = S.step;
+    const stepNames = ['편집', '검증', '저장', '적용'];
+    const f = {
+      changedTxt: nChanged ? '● ' + nChanged + '칸 바뀜 · 아직 저장 안 됨' : step >= 3 ? '저장됨' : '바뀐 칸 없음',
+      changedC: nChanged && step < 3 ? '#2563eb' : '#5b6472',
+      name: { v: F.name, set: (e) => setF('name', e.target.value), bar: bar('name'), border: err.name ? '#d33d52' : '#c3cad5',
+        msg: err.name || '노드 목록과 필드 타일에 보이는 이름', msgC: err.name ? '#d33d52' : '#5b6472' },
+      port: { v: F.port, set: (e) => setF('port', e.target.value.replace(/[^\d]/g, '')), bar: bar('port'), border: err.port ? '#d33d52' : '#c3cad5',
+        dec: () => setF('port', String(Math.max(0, (Number(this.state.form.port) || 0) - 1))),
+        inc: () => setF('port', String((Number(this.state.form.port) || 0) + 1)),
+        reset: () => setF('port', D.port), resetDisp: changed('port') ? 'inline-block' : 'none',
+        msg: err.port || (changed('port') ? '바뀜 — 저장 전까지 이 폼에만 있음' : 'integer · 기본값 7780'), msgC: err.port ? '#d33d52' : changed('port') ? '#2563eb' : '#5b6472' },
+      level: { bar: bar('level'), opts: ['debug', 'info', 'warn', 'error'].map((v) => ({ v, on: F.level === v ? 'true' : 'false', bg: F.level === v ? '#ffffff' : 'transparent', fg: F.level === v ? '#16191f' : '#5b6472', fw: F.level === v ? 600 : 400, sh: F.level === v ? '0 1px 3px rgba(22,25,31,0.14)' : 'none', pick: () => setF('level', v) })) },
+      auto: { bar: bar('auto'), on: F.auto ? 'true' : 'false', bg: F.auto ? '#2563eb' : '#c3cad5', x: F.auto ? 21 : 3, txt: F.auto ? '켜짐 — 끊기면 15초마다 다시 붙음' : '꺼짐', toggle: () => setF('auto', !this.state.form.auto) },
+      hosts: { bar: bar('hosts'), items: F.hosts.map((v, i) => ({ v, rm: () => setF('hosts', this.state.form.hosts.filter((_, j) => j !== i)) })),
+        draft: S.draft, setDraft: (e) => this.setState({ draft: e.target.value }),
+        key: (e) => { if (e.key === 'Enter' && this.state.draft.trim()) { e.preventDefault(); const v = this.state.draft.trim(); this.setState({ draft: '' }); setF('hosts', this.state.form.hosts.concat([v])); } } },
+      secret: { v: S.reveal ? 'tre_9f2c…a71d' : '••••••••••••', ls: S.reveal ? '0' : '0.1em', btn: S.reveal ? '가리기' : '보기', toggle: () => this.setState({ reveal: !this.state.reveal }) },
+      steps: stepNames.map((label, i) => {
+        const n = i + 1, done = n < step || (n === step && n > 1), cur = n === step;
+        return { n: done && !cur ? '✓' : String(n), label, fg: cur ? '#16191f' : done ? '#1f7a4d' : '#8b95a6', fw: cur ? 600 : 400,
+          dotBg: cur ? '#16191f' : done ? '#e3f1e8' : '#ffffff', dotFg: cur ? '#ffffff' : done ? '#1f7a4d' : '#8b95a6', dotLine: cur ? '#16191f' : done ? '#bfe0cb' : '#c3cad5', sepDisp: i < 3 ? 'inline' : 'none' };
+      }),
+      revert: () => this.setState({ form: this.formDefaults(), touched: false, step: 1, applyAsk: false, draft: '' }),
+      validate: () => this.setState({ touched: true, step: nErr ? 1 : 2 }),
+      saveOp: step >= 2 && step < 3 ? 1 : 0.45, saveDis: step === 2 ? 'false' : 'true',
+      save: () => { if (this.state.step === 2) this.setState({ step: 3 }); },
+      applyOp: step === 3 ? 1 : 0.45, applyDis: step === 3 ? 'false' : 'true',
+      apply: () => { if (this.state.step === 3) this.setState({ applyAsk: true }); },
+      applyAsk: S.applyAsk,
+      applyNo: () => this.setState({ applyAsk: false }),
+      applyYes: () => this.setState({ applyAsk: false, step: 4 })
+    };
+    if (step === 4) { f.changedTxt = '● 적용됨 — 런타임 반영'; f.changedC = '#1f7a4d'; }
+
+    return {
+      swatches: [
+        { n: '글자', c: '#16191f' }, { n: '보조', c: '#5b6472' }, { n: '선', c: '#d8dde5' },
+        { n: '강조', c: '#2563eb' }, { n: '잠김', c: '#a65f00' }, { n: '위험', c: '#d33d52' }, { n: '완료', c: '#1f7a4d' }
+      ],
+      grantLabel: grant ? '있음' : '없음 (눌러서 받기)', grantBg: grant ? '#f3f7ff' : '#fff7e8', grantBorder: grant ? '#c7d7f5' : '#f0d9a8', grantFg: grant ? '#2563eb' : '#a65f00', grantDot: grant ? '#2563eb' : '#a65f00',
+      toggleGrant: () => this.setState({ grant: !this.state.grant, tip: null }),
+      btns, rmItems, rmLabel: grant ? '모듈 목록 · 재스캔·롤백 열림' : '모듈 목록 · 자물쇠 3개는 module.manage',
+      perms,
+      lockRules: [
+        { k: '숨김', c: '#8b95a6', v: '카탈로그에 operation이 없음 — 자리도 남기지 않는다' },
+        { k: '잠김', c: '#a65f00', v: '있지만 권한 모자람(★) — 호박색 자물쇠 + 필요한 권한 이름' },
+        { k: '비활성', c: '#8b95a6', v: '권한은 있지만 지금은 못 함 — 흐린 글자 + 이유 한 줄' },
+        { k: '위험', c: '#d33d52', v: '빨간 테두리 — 누르면 2번 확인 창' }
+      ],
+      rings, job, chips, log: S.log,
+      runJob: () => this.runJob(), cancelJob: () => this.cancelJob(),
+      toggleFail: () => this.setState({ failNext: !this.state.failNext }),
+      failLabel: S.failNext ? '결과: 실패로' : '결과: 성공으로', failFg: S.failNext ? '#d33d52' : '#1f7a4d',
+
+      dialogs, popClass: S.popKey % 2 ? 'cp-pop' : 'cp-pop ',
+      replayPop: () => {
+        const els = document.querySelectorAll('[role=dialog].cp-pop');
+        els.forEach((el) => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
+      },
+      typed: S.typed, setTyped: (e) => this.setState({ typed: e.target.value }),
+      typedBorder: typedOk ? '#1f7a4d' : '#c3cad5', typedOp: typedOk ? 1 : 0.45, typedDis: typedOk ? 'false' : 'true', typedCursor: typedOk ? 'pointer' : 'default',
+      holdDown: () => { if (this.state.hold === 'done') { this.setState({ hold: 'idle' }); return; } this.setState({ hold: 'holding' }); clearTimeout(this._ht); this._ht = setTimeout(() => this.setState({ hold: 'done' }), 1200); },
+      holdUp: () => { if (this.state.hold === 'holding') { clearTimeout(this._ht); this.setState({ hold: 'idle' }); } },
+      holdW: H === 'idle' ? '0%' : '100%', holdTrans: H === 'holding' ? 'width 1200ms linear' : H === 'done' ? 'none' : 'width 200ms ease-out',
+      holdFg: H === 'idle' ? '#d33d52' : '#ffffff', holdText: H === 'done' ? '교체 접수됨 — 다시 누르면 처음으로' : H === 'holding' ? '계속 누르고 있기…' : '누르고 있으면 교체 (1.2초)',
+      confirmRules: [
+        { k: '대상', v: '무엇을 · 어느 노드에서 — 버전이 바뀌면 전→후' },
+        { k: '바뀌는 것', v: '누르면 사용자가 바로 느끼는 결과 한 줄' },
+        { k: '되돌리기', v: '● 가능 / ■ 불가 — 불가면 확인이 한 단계 무거워짐' },
+        { k: '응답', v: '즉시 / ◇ 작업 — 작업이면 3번 진행 링으로 넘어감' }
+      ],
+
+      empties, f,
+      schemaMap: [
+        { k: 'string', v: '입력칸 — pattern이 있으면 즉시 검사' },
+        { k: 'integer · min/max', v: '− 숫자 + 단계 버튼, 범위를 옆에' },
+        { k: 'enum (≤ 4)', v: '세그먼트 — 5개 이상이면 선택 목록' },
+        { k: 'boolean', v: '스위치 + 지금 뜻 한 줄' },
+        { k: 'array<string>', v: '태그 — Enter로 더하고 ×로 뺌' },
+        { k: 'writeOnly · secret', v: '가림 · 보기 · 새로 쓰기(값은 되읽지 않음)' },
+        { k: 'object', v: '묶음 테두리 + 키 이름' },
+        { k: 'readOnly', v: '점선 칸 · 누가 정하는지 적음' },
+        { k: 'default · example', v: '바뀌면 “기본값으로” 링크' }
+      ],
+      marks: [
+        { k: '변경됨', c: '#2563eb', v: '왼쪽 파란 막대' },
+        { k: '오류', c: '#d33d52', v: '빨간 막대 + 테두리 + 이유' },
+        { k: '필수', c: '#d33d52', v: '이름 옆 *' },
+        { k: '읽기 전용', c: '#c3cad5', v: '점선 칸' },
+        { k: '잠김', c: '#a65f00', v: '자물쇠 배지 (1번)' },
+        { k: '위험 적용', c: '#d33d52', v: '빨간 테두리 버튼 → 확인 줄' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

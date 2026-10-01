@@ -1,0 +1,4621 @@
+// 노드 화면 — 디자인 캔버스 원본 design/Artboard-qcfu.dc.html 에서 옮긴 화면 로직 (tools/gen-pages.py로 다시 만든다)
+// 데이터 연동 지점은 docs/api/frontend-api.md 참고
+import { DCLogic } from '../runtime/dc.js';
+
+export default class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      // 이너 도움말(설정 › 일반) — 끄면 회색 설명 글을 숨긴다. 끄는 중 · 드래그 중 안내와 오류 · 상태는 남긴다
+      help: this.readHelp(),
+      sel: '3-2',
+      mat: {
+        '2-1': 'concrete', '3-1': 'concrete', '2-2': 'concrete', '4-2': 'concrete',
+        '0-1': 'soil', '0-2': 'soil', '0-3': 'soil', '1-4': 'soil',
+        '5-3': 'water', '6-3': 'water', '3-2': 'concrete', '2-3': 'paver', '2-4': 'paver', '3-3': 'paver'
+      },
+      tab: 'bldg',
+      // 그라운드(높이 0인 바닥 필드): 필드가 없는 리전에 따로 깐 그라운드 칸. 필드가 놓인 칸에는 늘 그라운드가 깔린다(따로 적지 않음)
+      grounds: ['7-1', '7-2', '7-3', '6-4', '5-4', '0-0'],
+      gmat: { '5-3': 'tide', '6-3': 'tide', '6-4': 'sand', '7-3': 'sand', '5-4': 'sand', '7-1': 'meadow', '0-0': 'plaza', '2-1': 'gravel', '3-1': 'gravel', '2-2': 'gravel', '4-2': 'gravel', '3-2': 'gravel' },  // 칸별 그라운드 재질 (없으면 풀밭)
+      grot: { '6-4': 2 },   // 칸별 그라운드 무늬 회전 (× 60°)
+      frot: { '2-3': 1, '2-4': 1 },   // 칸별 필드 무늬(스킨) 회전 (× 60°)
+      // 노드가 아닌 필드에 놓인 건물 (노드 필드의 건물은 looks에) — 예시: 동네처럼 집 · 가게 · 나무 · 정원
+      placed: { '1-2': { bid: 'cottage', rot: 1 }, '2-3': { bid: 'shop', rot: 1 }, '0-3': { bid: 'tree', rot: 0 }, '2-4': { bid: 'townhouse', rot: 1 }, '3-4': { bid: 'garden', rot: 0 }, '4-1': { bid: 'cabin', rot: 1 }, '6-2': { bid: 'tree', rot: 1 }, '0-2': { bid: 'tree', rot: 2 }, '4-4': { bid: 'windmill', rot: 2 }, '7-2': { bid: 'tree', rot: 0 }, '6-4': { bid: 'garden', rot: 1 } },
+      // 노드 모습 = 노드마다 한 벌만 둔다: 필드 재질 · 건물 · 회전. 부모 맵의 해당 노드 필드 · 자기 맵의 자기 필드 · 프사가 모두 이것을 참조한다
+      looks: {
+        'tree-home': { skin: 'concrete', bid: 'tower', rot: 0 },
+        'edge-01': { skin: 'grass', bid: 'warehouse', rot: 1 },
+        'nas-01': { skin: 'grass', bid: 'relay', rot: 2 }
+      },
+      self: null,   // leaf 맵에서 그 leaf 자신이 놓인 칸 (tree 맵은 부모 노드 필드가 자신)
+      // 노드가 지정된 필드 = 노드 필드 (디자인은 그 타일의 스킨 그대로, 윗면 테두리 + 높이로만 구분)
+      // 클러스터 화면의 맵 = 부모 노드(현재 클러스터의 tree) 하나 + 부모에 직접 붙은 자식 노드들. 부모 필드는 더 높고, 전용 띠 · 테두리를 두른다
+      nodes: { '3-2': { name: 'tree-home', role: 'Tree · Leaf', parent: true }, '1-1': { name: 'edge-01', role: 'Leaf' }, '5-2': { name: 'nas-01', role: 'Leaf' }, '4-3': { name: 'tree-lab', role: 'Tree' } },
+      // 새로 붙은 컴퓨터 — 아직 필드가 없다
+      pending: [{ name: 'laptop-03', role: 'Leaf', at: '00:38' }, { name: 'build-srv', role: 'Tree', at: '00:36' }],
+      drag: null,
+      editMode: false,
+      // 로그인한 tree와, 로그인할 수 있는 다른 tree (예시). bid = 프사로 쓸 건물 (없으면 기본 건물)
+      curTree: { name: 'tree-home', role: 'Tree · Leaf', bid: 'tower' },
+      trees: [
+        // auth: 'saved' = 자동 로그인 저장됨 · 'password' = 로그인 창 필요 · 'offline' = 응답 없음(예시로 늘 실패)
+        { name: 'tree-lab', role: 'Tree', bid: 'relay', auth: 'saved' }, { name: 'tree-office', role: 'Tree · Leaf', bid: 'warehouse', auth: 'password' },
+        { name: 'tree-parents', role: 'Tree', bid: null, auth: 'password' }, { name: 'tree-cloud', role: 'Tree', bid: 'tower', auth: 'password' },
+        { name: 'tree-studio', role: 'Tree · Leaf', bid: null, auth: 'saved' }, { name: 'tree-backup', role: 'Tree', bid: 'warehouse', auth: 'offline' }
+      ],
+      shown: null,   // 프사에 보이는 tree (로그인 중엔 고른 tree)
+      localNode: { name: 'edge-01', role: 'Leaf', local: true },   // 이 GUI가 도는 로컬 노드 — 조타륜(로컬 자원)이 올라와 있는 동안 프사가 이 노드로 바뀐다
+      swap: null,    // 프사 교체: { phase: 'shrink' | 'turn0' | 'turn' | 'grow', from, to, dir }
+      auth: null,    // 로그인 진행: { phase: 'loading' | 'success' | 'fail' | 'done', target }
+      login: null,   // 노드 로그인 창: { target, username, password, auto, msg }
+      tl: null,
+      rmenu: null,
+      map: 'tree-home',   // 지금 보고 있는 맵의 주인 노드
+      maps: {},           // 다녀온 맵들의 배치 (주인 노드 이름 → 필드 · 재질 · 건물 · 노드)
+      mt: null,
+      // 서브 창: 자리 · 너비. open = 화면에 떠 있음 · drawer = 서랍에 보관된 순서 · z = 앞뒤 순서
+      wins: {
+        props: { x: 1127, y: 72, w: 288 }, edit: { x: 1115, y: 72, w: 312 }, alarm: { x: 820, y: 150, w: 340 }, map: { x: 640, y: 110, w: 420 },
+        bld: { x: 300, y: 140, w: 400 }, fld: { x: 360, y: 180, w: 400 }, mat: { x: 420, y: 220, w: 400 },
+        net: { x: 480, y: 160, w: 380 }, mod: { x: 540, y: 200, w: 380 }, user: { x: 600, y: 240, w: 360 }, set: { x: 560, y: 180, w: 380 }, memo: { x: 600, y: 120, w: 480 }
+      },
+      winOpen: {},
+      drawer: [],
+      // 유틸 서랍: 전체 속성을 다루는 기능 칸 (빼낸 칸은 창을 닫을 때까지 빈칸)
+      utilItems: ['props', 'edit', 'alarm', 'memo', 'net', 'set', 'bld', 'fld', 'mat', 'mod', 'user'],
+      ud: { mode: 'closed', s: 0, scroll: 0, anim: false },   // mode: closed · cycle(순환) · list(이름 목록)
+      winZ: [],
+      wdrag: null,        // { id, mode: 'window' | 'card' | 'pull', x, y, over }
+      winDrop: null,      // 서랍으로 내려가는 중인 창
+      // 기능별 알림 (작업 완료 · 오류 등). 창을 열면 읽은 것으로 보고 지운다
+      notif: { alarm: 2, mod: 1, bld: 1 },
+      // 조타륜 앱 바 — hb = 열린 앱(px 키) · io = I/O 장치 원장 예시 (presence × approval × enabled · 논리 자리는 presence unknown)
+      fb: { open: false, mode: null, path: '' }, fbMsg: null, fbArm: null,   // 폴더 보관함 사이드 바 (mode: repo · local · memo)
+      memoCur: null, memoDraft: null, memoNote: null,
+      memos: [
+        { id: '오늘 할 일.md', parent: '', name: '오늘 할 일.md', text: '- nas-01 백업 확인\n- gpu-02 배포 거절 원인 보기\n- 조타륜 앱 권한 표 다듬기', size: '1 KB', info: '오늘 09:12' },
+        { id: '회의 메모.md', parent: '', name: '회의 메모.md', text: '# 10/1 회의\n- 오버헤드 패널 시안 공유\n- 전체 화면 리스트 동작 정리', size: '1 KB', info: '어제 17:40' },
+        { id: '아이디어', parent: '', name: '아이디어', dir: true, info: '항목 1' },
+        { id: '아이디어/맵 아이디어.md', parent: '아이디어', name: '맵 아이디어.md', text: '바다 위 섬 사이를 다리로 잇기?', size: '1 KB', info: '9월 28일' }
+      ],
+      fs: null, fsList: false, fsHist: [],   // fsHist = 전체 화면으로 한 번 연 화면 (리스트에 모인다)   // 전체 화면 창 · 전체 창 리스트 박스 펼침
+      hb: null, hbMsg: null, hbBusy: null, hbScanned: null, hbd: {}, hbPath: '', hbArm: null,   // hbd = 노드|앱별로 동작이 바꾼 예시 자원
+      io: [
+        { id: 'mouse-046d-c52b-3fa1c2d0', kind: 'mouse', name: 'MX Master 3', presence: 'present', approval: 'approved', enabled: true },
+        { id: 'keyboard-04d9-0169-9be0a1f3', kind: 'keyboard', name: '기계식 키보드', presence: 'present', approval: 'approved', enabled: false },
+        { id: 'raw_bus-1a86-7523-51c0de77', kind: 'raw_bus', name: 'USB 시리얼 (CH340)', presence: 'present', approval: 'pending', enabled: false },
+        { id: 'camera-default', kind: 'camera', name: '기본 카메라', presence: 'unknown', approval: 'approved', enabled: true },
+        { id: 'microphone-default', kind: 'microphone', name: '기본 마이크', presence: 'unknown', approval: 'pending', enabled: false },
+        { id: 'screen-default', kind: 'screen', name: '기본 화면', presence: 'unknown', approval: 'denied', enabled: false },
+        { id: 'mouse-093a-2510-77ab10ce', kind: 'mouse', name: '예전 마우스', presence: 'missing', approval: 'approved', enabled: false }
+      ],
+      cardRise: null,     // 서랍에 막 들어와 아래에서 올라오는 카드
+      drawerNear: false, drawerHover: null,
+      alarms: [
+        { t: '18:58', g: '◇', c: '#2563eb', m: 'chat 재시작 접수됨 — #J-2031' },
+        { t: '18:41', g: '■', c: '#d33d52', m: 'vdevice 시작 실패' },
+        { t: '18:30', g: '●', c: '#1f7a4d', m: 'laptop-03 · build-srv가 새로 붙었습니다' },
+        { t: '18:12', g: '●', c: '#1f7a4d', m: 'nas-01 백업 작업 완료 — #T-118' },
+        { t: '17:55', g: '◐', c: '#a65f00', m: 'nas-01 디스크 사용량 85%' }
+      ],
+      // 네트워크 요약 (예시 — 유틸 카드 · 창 요약용). 네트워크 화면 자체는 별도 보드 network.html
+      netPolled: '18:58',
+      netTunnels: [
+        { id: 't1', name: 'SMB 공유', node: 'nas-01', port: 445, to: 'tree-home', proto: 'tcp', open: true, busy: false },
+        { id: 't2', name: 'RTSP 카메라', node: 'edge-01', port: 554, to: 'tree-home', proto: 'tcp', open: true, busy: false },
+        { id: 't3', name: 'Jupyter', node: 'gpu-01', port: 8888, to: 'tree-home', proto: 'http', open: false, busy: false },
+        { id: 't4', name: '벤치 대시보드', node: 'bench-pi', port: 3000, to: 'tree-home', proto: 'http', open: true, busy: false }
+      ],
+      alarmF: 'all',      // 알림 창 거르기: all · bad · job · done
+      alarmNew: 0,        // 알림 창을 열었을 때 새로 온 것 수 (창을 닫을 때까지 '새' 표시)           // 맵 전환 애니메이션 { dir: 'down' | 'up' | 'jump', phase: 'out' | 'pre' | 'move' | 'in', keep, from }
+      // 필드가 놓인 칸 (c-r). 추가 · 삭제 · 이동 · 교환으로 바뀐다
+      fields: [[1, 3], [0, 4], [0, 4], [0, 4], [1, 4], [1, 3], [2, 3]].reduce((a, [r0, r1], c) => { for (let r = r0; r <= r1; r++) a.push(c + '-' + r); return a; }, [])
+    };
+    // 노드 관계 (예시): tree는 자식(tree · leaf)을 두고, leaf는 자기가 관리하는 자원을 둔다
+    const T = (role, kids, bid, auth) => ({ role, kids, bid: bid || null, auth: auth || 'saved' });
+    const L = (res) => ({ role: 'Leaf', kids: [], res: res || [] });
+    this.NET = {
+      'tree-home': T('Tree · Leaf', ['edge-01', 'nas-01', 'tree-lab'], 'tower'),
+      'edge-01': L([['카메라 2대', '장치'], ['센서 허브', '장치'], ['edge-agent', '모듈']]),
+      'nas-01': L([['공유 폴더 3', '파일'], ['디스크 4', '장치'], ['백업 작업', '모듈']]),
+      'tree-lab': T('Tree', ['gpu-01', 'gpu-02', 'bench-pi', 'tree-field'], 'relay'),
+      'gpu-01': L([['GPU 2장', '장치'], ['학습 큐', '모듈']]),
+      'gpu-02': L([['GPU 2장', '장치'], ['추론 서버', '모듈']]),
+      'bench-pi': L([['GPIO 보드', '장치'], ['측정 스크립트', '파일']]),
+      'tree-field': T('Tree', ['sensor-01', 'sensor-02', 'gate-cam'], null),
+      'sensor-01': L([['온습도 센서', '장치']]),
+      'sensor-02': L([['조도 센서', '장치']]),
+      'gate-cam': L([['출입 카메라', '장치'], ['녹화 폴더', '파일']]),
+      'tree-office': T('Tree · Leaf', ['office-pc-01', 'office-nas', 'printer-2f'], 'warehouse', 'password'),
+      'office-pc-01': L([['업무 PC', '장치']]), 'office-nas': L([['문서 보관', '파일']]), 'printer-2f': L([['프린터', '장치']]),
+      'tree-parents': T('Tree', ['living-tv', 'parents-pc'], null, 'password'),
+      'living-tv': L([['화면 공유', '모듈']]), 'parents-pc': L([['사진 폴더', '파일']]),
+      'tree-cloud': T('Tree', ['vm-web', 'vm-db', 'vm-ci'], 'tower', 'password'),
+      'vm-web': L([['웹 서버', '모듈']]), 'vm-db': L([['DB 볼륨', '파일']]), 'vm-ci': L([['CI 러너', '모듈']]),
+      'tree-studio': T('Tree · Leaf', ['studio-mac', 'audio-if'], null),
+      'studio-mac': L([['작업 폴더', '파일']]), 'audio-if': L([['오디오 입출력', '장치']]),
+      'tree-backup': T('Tree', ['backup-nas-01', 'backup-nas-02'], 'warehouse', 'offline'),
+      'backup-nas-01': L([['백업 볼륨', '파일']]), 'backup-nas-02': L([['백업 볼륨', '파일']])
+    };
+    // 건물 데이터 = 편집기 설계도를 내보내기로 변환한 2D 벡터 4장 (필드와 같은 투시)
+    this.MATS = this.makeMats().concat(this.animMats());
+    this.buildings = this.samples().map((b) => this.buildAnimBldg(b));
+    // 건물이 할당되지 않은 노드의 프사에 쓰는 기본 건물
+    // 기본 건물 = 깃발: 돌 받침 위 깃대, 깃대 끝의 금속 꼭지, 파란 깃발 한 장 (16칸 격자)
+    const db = { id: 'default', name: '깃발', N: 16, blocks: [].concat(
+      this.box(6, 9, 6, 9, 0, 0, 'm1'), this.box(7, 8, 7, 8, 1, 1, 'm1'),
+      this.box(7, 7, 7, 7, 2, 12, 'm9'), this.box(7, 7, 7, 7, 13, 13, 'm7'),
+      this.box(8, 12, 7, 7, 9, 12, 'm8'), this.box(13, 13, 7, 7, 10, 12, 'm8')
+    ) };
+    this.defaultBldg = Object.assign({ id: db.id, name: db.name }, this.exportModel(db, 'b-default'));
+  }
+  // ───── 애니메이션 (자재 · 건물 · 필드) ─────
+  // 한 시계(초당 16프레임)를 모든 것이 같이 쓴다: 틱 g = ⌊시각 / 62.5ms⌋. 주기 T틱 동안 seq[g % T]번째 구운 이미지를 보인다
+  // 건물: 16fps 한 주기(건물 주기 1~4초 · 자재 주기 1초) 동안 (건물 프레임, 쓰인 애니메이션 자재의 프레임) 조합이 바뀌는 순간만 모아 굽는다
+  buildAnimBldg(b) {
+    const base = Object.assign({ id: b.id, name: b.name }, this.exportModel(b, 'b-' + b.id));
+    // 건물 칸 배열(16 × 초, 최대 64). 빈 칸은 앞 프레임 · 자재는 자기 16칸을 1초마다 되풀이 — 모두 같은 틱에 맞춰진다
+    const frames = b.frames && b.frames.length ? b.frames : [b.blocks], T = b.frames && b.frames.length ? b.frames.length : 16;
+    const used = new Set();
+    frames.forEach((f) => f && f.forEach((q) => used.add(q[3])));
+    const am = this.MATS.filter((m) => used.has(m.id) && m.frames && this.keyCount(m.frames) > 1);
+    const keys = [], seq = [], combos = [];
+    for (let t = 0; t < T; t++) {
+      const bi = this.holdAt(frames, t), bf = frames.indexOf(frames[bi]), mf = {};
+      am.forEach((m) => { mf[m.id] = this.holdAt(m.frames, t % 16); });
+      const key = bf + '|' + am.map((m) => mf[m.id]).join(',');
+      let i = keys.indexOf(key);
+      if (i < 0) { i = keys.length; keys.push(key); combos.push({ bf, mf }); }
+      seq.push(i);
+    }
+    return Object.assign(base, {
+      anim: combos.length > 1, nFrames: this.keyCount(frames), period: T / 16, seq, T,
+      fviews: combos.map((c, i) => i === 0 ? base.views : this.exportModel({ N: b.N, blocks: frames[c.bf] }, 'b-' + b.id + '-f' + i, c.mf).views)
+    });
+  }
+  animNow() { return Math.floor((typeof performance !== 'undefined' ? performance.now() : Date.now()) / 62.5); }
+  animUrl(k) { const a = this._anims && this._anims[k]; return a ? a.urls[a.seq[this.animNow() % a.T]] : null; }
+  // 매 틱: data-anim이 붙은 이미지의 그림만 바꾼다 (다시 그리지 않음) — 맵 전환 · 프사 교체 · 끌기 중에도 끊기지 않는다
+  animTick() {
+    const g = this.animNow();
+    if (g === this._animG) return;
+    // 그라운드 애니메이션: 무늬(fill)만 칸에 맞는 프레임의 패턴으로 바꾼다
+    if (this.GSK) {
+      const ge = document.querySelectorAll('[data-ganim]:not([data-ganim=""])');
+      for (let i = 0; i < ge.length; i++) {
+        const [sid, rot] = ge[i].getAttribute('data-ganim').split('|'), sk = this.GSK.find((x) => x.id === sid);
+        if (!sk) continue;
+        const u = 'url(#gp-' + sid + '-' + rot + '-' + this.holdAt(sk.frames, g % sk.frames.length) + ')';
+        if (ge[i].getAttribute('fill') !== u) ge[i].setAttribute('fill', u);
+      }
+    }
+    if (!this._anims) return;
+    this._animG = g;
+    const els = document.querySelectorAll('[data-anim]:not([data-anim=""])');
+    for (let i = 0; i < els.length; i++) { const u = this.animUrl(els[i].getAttribute('data-anim')); if (u && els[i].getAttribute('href') !== u) els[i].setAttribute('href', u); }
+  }
+  // ───── 공용: 필드와 같은 투시 (건물 편집기와 같은 코드) ─────
+  geo() {
+    const K = 38 / (80 * Math.sqrt(3) / 2);
+    return { K, C: Math.sqrt(1 - K * K) };
+  }
+  mats() {
+    return [
+      { id: 'm1', name: '#1 기본', top: '#dcdfdb', left: '#bcc0bc', front: '#a6aaa6', right: '#8d918e' },
+      { id: 'm2', name: '#2 기본', top: '#cc7b5c', left: '#ab6146', front: '#94523b', right: '#7a4330' },
+      { id: 'm3', name: '#3 기본', top: '#86bccf', left: '#649db2', front: '#54889c', right: '#437182' },
+      { id: 'm4', name: '#4 기본', top: '#586474', left: '#46505e', front: '#3c4450', right: '#313842' }
+    ];
+  }
+  mix(a, b, t) {
+    const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const X = rgb(a), Y = rgb(b);
+    return '#' + X.map((v, i) => Math.round(v + (Y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  }
+  shade(m, nx, ny, top) {
+    if (top) return m.top;
+    const t = ((nx * -0.8 + ny * 0.6) + 1) / 2;
+    return t >= 0.5 ? this.mix(m.front, m.left, (t - 0.5) * 2) : this.mix(m.right, m.front, t * 2);
+  }
+  dirs() {
+    return [
+      { id: 'pz', n: [0, 0, 1] },
+      { id: 'px', n: [1, 0, 0] },
+      { id: 'nx', n: [-1, 0, 0] },
+      { id: 'py', n: [0, 1, 0] },
+      { id: 'ny', n: [0, -1, 0] }
+    ];
+  }
+  box(x0, x1, y0, y1, z0, z1, m) {
+    const out = [];
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) out.push([x, y, z, m]);
+    return out;
+  }
+  // 기본 설계도 (16칸 격자). 집 · 가게 · 나무 · 정원과 노드용 건물 3종. 블록 = [x, y, z, 자재]
+  // 앞 = y가 작은 쪽. 지붕은 계단식(블록만으로), 박공 벽은 지붕 안쪽으로 한 칸 들여 회벽을 채운다
+  samples() {
+    const mk = () => {
+      const M = new Map();
+      const api = {
+        box: (x0, x1, y0, y1, z0, z1, m) => { for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) M.set(x + ',' + y + ',' + z, m); return api; },
+        del: (x0, x1, y0, y1, z0, z1) => { for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) M.delete(x + ',' + y + ',' + z); return api; },
+        // 박공 지붕 — 용마루가 x축을 따라간다(앞뒤로 경사). y0..y1 = 처마 포함 폭, x0..x1 = 길이, z0 = 첫 단
+        gableX: (x0, x1, y0, y1, z0, roof, wall) => {
+          for (let k = 0; y0 + k <= y1 - k; k++) {
+            const a = y0 + k, b = y1 - k, z = z0 + k, top = b - a <= 1;
+            api.box(x0, x1, a, a, z, z, roof).box(x0, x1, b, b, z, z, roof);
+            if (top) api.box(x0, x1, a, b, z, z, roof);
+            else api.box(x0 + 1, x1 - 1, a + 1, b - 1, z, z, wall);
+          }
+          return api;
+        },
+        // 박공 지붕 — 용마루가 y축을 따라간다(좌우로 경사)
+        gableY: (x0, x1, y0, y1, z0, roof, wall) => {
+          for (let k = 0; x0 + k <= x1 - k; k++) {
+            const a = x0 + k, b = x1 - k, z = z0 + k, top = b - a <= 1;
+            api.box(a, a, y0, y1, z, z, roof).box(b, b, y0, y1, z, z, roof);
+            if (top) api.box(a, b, y0, y1, z, z, roof);
+            else api.box(a + 1, b - 1, y0 + 1, y1 - 1, z, z, wall);
+          }
+          return api;
+        },
+        // 모임 지붕 — 사방으로 경사
+        hip: (x0, x1, y0, y1, z0, roof) => { for (let k = 0; x0 + k <= x1 - k && y0 + k <= y1 - k; k++) api.box(x0 + k, x1 - k, y0 + k, y1 - k, z0 + k, z0 + k, roof); return api; },
+        // 타일 위 팔각 영역(건물 편집기의 영역과 같다) 밖의 블록은 뺀다
+        out: () => Array.from(M, ([k, m]) => k.split(',').map(Number).concat([m])).filter(([x, y]) => { const dx = Math.abs(x - 7.5), dy = Math.abs(y - 7.5); return dx <= 5.5 && dy <= 5.5 && dx + dy <= 8; })
+      };
+      return api;
+    };
+    // 오두막: 돌 기단 · 회벽 · 모서리 기둥 · 기와 박공 지붕 · 벽돌 굴뚝 · 앞마당 꽃밭과 돌길
+    const cottage = mk()
+      .box(4, 11, 4, 11, 0, 0, 'm15').box(4, 11, 4, 11, 1, 4, 'm10')
+      .box(4, 4, 4, 4, 1, 4, 'm5').box(11, 11, 4, 4, 1, 4, 'm5').box(4, 4, 11, 11, 1, 4, 'm5').box(11, 11, 11, 11, 1, 4, 'm5')
+      .box(7, 8, 4, 4, 1, 2, 'm14').box(5, 5, 4, 4, 2, 3, 'm13').box(10, 10, 4, 4, 2, 3, 'm13')
+      .box(4, 4, 7, 8, 2, 3, 'm13').box(11, 11, 7, 8, 2, 3, 'm13').box(6, 6, 11, 11, 2, 3, 'm13').box(9, 9, 11, 11, 2, 3, 'm13')
+      .gableX(3, 12, 3, 12, 5, 'm11', 'm10')
+      .box(9, 9, 9, 9, 5, 10, 'm2')
+      .box(7, 8, 2, 3, 0, 0, 'm15').box(5, 6, 2, 3, 0, 0, 'm19').box(9, 10, 2, 3, 0, 0, 'm19');
+    // 통나무집: 통나무 벽 · 마루 현관과 기둥 · 나무 박공 지붕 · 돌 굴뚝
+    const cabin = mk()
+      .box(5, 10, 5, 11, 0, 3, 'm17')
+      .box(7, 8, 5, 5, 0, 1, 'm14').box(5, 5, 7, 8, 1, 2, 'm13').box(10, 10, 7, 8, 1, 2, 'm13').box(5, 5, 5, 5, 2, 2, 'm13').box(10, 10, 5, 5, 2, 2, 'm13')
+      .box(5, 10, 2, 4, 0, 0, 'm20').box(5, 5, 2, 2, 1, 3, 'm5').box(10, 10, 2, 2, 1, 3, 'm5')
+      .gableY(4, 11, 2, 12, 4, 'm5', 'm17')
+      .box(11, 11, 9, 10, 0, 8, 'm15');
+    // 2층 주택: 돌 기단 · 1층 회벽 · 나무 띠 · 2층 회벽 · 발코니 · 슬레이트 모임 지붕
+    const townhouse = mk()
+      .box(4, 11, 5, 11, 0, 0, 'm15').box(4, 11, 5, 11, 1, 3, 'm10').box(4, 11, 5, 11, 4, 4, 'm5').box(4, 11, 5, 11, 5, 7, 'm10')
+      .box(7, 8, 5, 5, 1, 2, 'm14').box(5, 5, 5, 5, 2, 3, 'm13').box(10, 10, 5, 5, 2, 3, 'm13')
+      .box(5, 6, 5, 5, 6, 7, 'm13').box(9, 10, 5, 5, 6, 7, 'm13')
+      .box(4, 4, 7, 7, 2, 3, 'm13').box(4, 4, 9, 9, 2, 3, 'm13').box(4, 4, 7, 7, 6, 7, 'm13').box(4, 4, 9, 9, 6, 7, 'm13')
+      .box(11, 11, 7, 7, 2, 3, 'm13').box(11, 11, 9, 9, 2, 3, 'm13').box(11, 11, 8, 8, 6, 7, 'm13')
+      .box(6, 9, 3, 4, 4, 4, 'm20').box(6, 6, 3, 3, 5, 5, 'm5').box(9, 9, 3, 3, 5, 5, 'm5').box(7, 8, 3, 3, 5, 5, 'm5')
+      .hip(3, 12, 4, 12, 8, 'm12');
+    // 가게: 벽돌 · 큰 유리 진열창 · 줄무늬 차양 · 평지붕과 난간 · 옥상 물탱크
+    const shop = mk()
+      .box(3, 12, 5, 11, 0, 4, 'm2')
+      .box(4, 6, 5, 5, 0, 2, 'm3').box(9, 11, 5, 5, 0, 2, 'm3').box(7, 8, 5, 5, 0, 2, 'm14')
+      .box(5, 6, 5, 5, 3, 3, 'm13').box(9, 10, 5, 5, 3, 3, 'm13').box(3, 3, 7, 9, 2, 3, 'm13').box(12, 12, 7, 9, 2, 3, 'm13')
+      .box(3, 12, 3, 4, 3, 3, 'm18')
+      .box(3, 12, 5, 11, 5, 5, 'm1').box(4, 11, 6, 10, 5, 5, 'm4').del(4, 11, 6, 10, 5, 5).box(4, 11, 6, 10, 4, 4, 'm4')
+      .box(8, 10, 8, 9, 5, 6, 'm7');
+    // 나무: 통나무 줄기 + 나뭇잎 덩어리
+    const tree = mk().box(7, 8, 7, 8, 0, 5, 'm17');
+    for (let x = 3; x <= 12; x++) for (let y = 3; y <= 12; y++) for (let z = 4; z <= 12; z++) {
+      const d = ((x - 7.5) ** 2 + (y - 7.5) ** 2) / 20 + ((z - 8) ** 2) / 14;
+      if (d <= 1 && !((x === 3 || x === 12) && (y === 3 || y === 12))) tree.box(x, x, y, y, z, z, 'm16');
+    }
+    tree.box(7, 8, 7, 8, 0, 5, 'm17');
+    // 정원: 잔디 판 · 꽃밭 두 줄 · 돌길 · 나무 울타리 · 벤치
+    const garden = mk()
+      .box(3, 12, 3, 12, 0, 0, 'm6').box(7, 8, 3, 12, 0, 0, 'm15')
+      .box(4, 5, 5, 10, 1, 1, 'm19').box(10, 11, 5, 10, 1, 1, 'm19');
+    for (let i = 3; i <= 12; i += 3) garden.box(i, i, 3, 3, 1, 1, 'm5').box(i, i, 12, 12, 1, 1, 'm5').box(3, 3, i, i, 1, 1, 'm5').box(12, 12, i, i, 1, 1, 'm5');
+    garden.box(4, 6, 12, 12, 1, 1, 'm5').box(9, 11, 12, 12, 1, 1, 'm5').box(9, 10, 11, 11, 1, 1, 'm20');
+    // 노드용: 관제탑 · 창고 · 중계소 (예전 8칸 설계도를 16칸으로 다시)
+    const tower = mk()
+      .box(4, 11, 4, 11, 0, 0, 'm1').box(6, 9, 6, 9, 1, 9, 'm1')
+      .box(7, 8, 6, 6, 2, 3, 'm13').box(7, 8, 6, 6, 6, 7, 'm13').box(6, 6, 7, 8, 4, 5, 'm13').box(9, 9, 7, 8, 4, 5, 'm13')
+      .box(7, 8, 6, 6, 1, 1, 'm14')
+      .box(5, 10, 5, 10, 10, 11, 'm3').box(5, 10, 5, 10, 12, 12, 'm7').box(7, 7, 7, 7, 13, 15, 'm9');
+    const warehouse = mk()
+      .box(3, 12, 5, 11, 0, 3, 'm2').box(6, 9, 5, 5, 0, 2, 'm7').box(4, 4, 5, 5, 2, 2, 'm13').box(11, 11, 5, 5, 2, 2, 'm13')
+      .box(3, 12, 5, 11, 4, 4, 'm7').box(3, 12, 6, 10, 5, 5, 'm7').box(3, 12, 7, 9, 6, 6, 'm7')
+      .box(3, 12, 3, 4, 0, 0, 'm1');
+    const relay = mk()
+      .box(3, 12, 3, 12, 0, 0, 'm6').box(4, 9, 5, 10, 1, 3, 'm1').box(4, 9, 5, 10, 4, 4, 'm7')
+      .box(6, 7, 5, 5, 1, 2, 'm14').box(8, 8, 5, 5, 2, 2, 'm3').box(4, 4, 7, 8, 2, 2, 'm3');
+    for (let z = 1; z <= 13; z++) relay.box(10, 10, 10, 10, z, z, 'm7').box(11, 11, 11, 11, z, z, 'm7').box(z % 2 ? 11 : 10, z % 2 ? 11 : 10, z % 2 ? 10 : 11, z % 2 ? 10 : 11, z, z, 'm9');
+    relay.box(9, 12, 9, 12, 14, 14, 'm7').box(10, 11, 10, 11, 15, 15, 'm3');
+    // 풍차 (애니메이션 건물 예시): 날개를 11.25°씩 돌린 배치 8장을 2칸마다 → 초당 8프레임 (날개 4개라 90°마다 같은 모양 = 한 바퀴 4초)
+    // 날개 = 나무 살(m5) + 한쪽 돛천(m10). 지붕 위 깃발은 애니메이션 자재(m21)
+    const millBase = () => mk().box(4, 11, 4, 11, 0, 0, 'm15').box(5, 10, 5, 10, 1, 1, 'm15').box(6, 9, 6, 9, 2, 8, 'm10')
+      .box(5, 10, 5, 10, 5, 5, 'm20').box(7, 8, 6, 6, 2, 3, 'm14').box(6, 6, 7, 8, 6, 7, 'm13').box(9, 9, 7, 8, 6, 7, 'm13').box(7, 8, 9, 9, 6, 7, 'm13')
+      .hip(5, 10, 5, 10, 9, 'm11').box(7, 8, 5, 5, 7, 8, 'm7')
+      .box(7, 7, 7, 7, 12, 15, 'm9').box(8, 10, 7, 7, 14, 15, 'm21');
+    const millAt = (deg) => {
+      const a = millBase();
+      for (let x = 2; x <= 13; x++) for (let z = 2; z <= 14; z++) {
+        const px = x + 0.5 - 8, pz = z + 0.5 - 8;
+        for (let q = 0; q < 4; q++) {
+          const th = (deg + q * 90) * Math.PI / 180, dx = Math.cos(th), dz = Math.sin(th);
+          const al = px * dx + pz * dz, ac = -px * dz + pz * dx;
+          if (al < 1.1 || al > 4.7) continue;
+          if (Math.abs(ac) < 0.55) a.box(x, x, 4, 4, z, z, 'm5');
+          else if (ac >= 0.55 && ac < 1.85 && al > 1.6) a.box(x, x, 4, 4, z, z, 'm10');
+        }
+      }
+      return a.box(7, 8, 4, 4, 7, 8, 'm7').out();
+    };
+    const mill = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => millAt(k * 11.25));
+    const millA = mill[0], millFrames = new Array(16).fill(null);
+    mill.forEach((f, k) => { millFrames[k * 2] = f; });
+    return [
+      { id: 'tower', name: '관제탑', N: 16, blocks: tower.out() },
+      { id: 'warehouse', name: '창고', N: 16, blocks: warehouse.out() },
+      { id: 'relay', name: '중계소', N: 16, blocks: relay.out() },
+      { id: 'cottage', name: '오두막', N: 16, blocks: cottage.out() },
+      { id: 'cabin', name: '통나무집', N: 16, blocks: cabin.out() },
+      { id: 'townhouse', name: '2층 주택', N: 16, blocks: townhouse.out() },
+      { id: 'shop', name: '가게', N: 16, blocks: shop.out() },
+      { id: 'tree', name: '나무', N: 16, blocks: tree.out() },
+      { id: 'garden', name: '정원', N: 16, blocks: garden.out() },
+      // 1초 16칸 중 짝수 칸마다 프레임(초당 8프레임), 홀수 칸은 빈 칸(앞 프레임 유지)
+      { id: 'windmill', name: '풍차', N: 16, period: 1, blocks: millA, frames: millFrames }
+    ];
+  }
+
+  rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  hexRgb(h) { return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); }
+  rgbHex(c) { return '#' + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join(''); }
+  tone(h, d) { return this.rgbHex(this.hexRgb(h).map((v) => v + d)); }
+  scaleC(h, f) { return this.rgbHex(this.hexRgb(h).map((v) => v * f)); }
+  avgC(arr) {
+    const s = [0, 0, 0];
+    arr.forEach((h) => this.hexRgb(h).forEach((v, i) => { s[i] += v; }));
+    return this.rgbHex(s.map((v) => v / arr.length));
+  }
+  tex(kind, seed) {
+    const r = this.rng(seed), out = [];
+    for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
+      let c;
+      if (kind === 'concrete') c = r() < 0.08 ? this.tone('#c4c7c3', -30) : this.tone('#c4c7c3', (r() - 0.5) * 18);
+      else if (kind === 'brick') {
+        const mortar = j === 3 || j === 7 || (j < 3 && i === 3) || (j > 3 && j < 7 && i === 7);
+        c = mortar ? this.tone('#d9d2c7', (r() - 0.5) * 8) : this.tone('#b0603f', (r() - 0.5) * 24);
+      } else if (kind === 'glass') {
+        if (i === 0 || j === 0 || i === 7 || j === 7) c = '#4d6b7a';
+        else if ((i + j === 5 || i + j === 6) && i > 1) c = '#d4ecf4';
+        else c = this.tone('#8cc3d6', (r() - 0.5) * 8);
+      } else if (kind === 'roof') c = this.tone('#505b6a', (j % 2 === 1 ? -18 : 0) + (r() - 0.5) * 10);
+      else if (kind === 'wood') c = j === 2 || j === 5 ? '#6f4a2a' : this.tone('#a8784a', (r() - 0.5) * 20);
+      else if (kind === 'grassTop') c = this.tone('#5aa85f', (r() - 0.5) * 26);
+      else if (kind === 'grassSide') c = j < 2 && !(j === 1 && r() < 0.45) ? this.tone('#5aa85f', (r() - 0.5) * 20) : this.tone('#8a5a36', (r() - 0.5) * 20);
+      else if (kind === 'dirt') c = this.tone('#8a5a36', (r() - 0.5) * 20);
+      else if (kind === 'flag') c = (j === 3 || j === 4) ? this.tone('#f4f7ff', (r() - 0.5) * 6) : this.tone('#2563eb', (i % 2 === j % 2 ? 8 : -6) + (r() - 0.5) * 8);
+      else if (kind === 'pole') c = this.tone(i === 0 || i === 7 ? '#5f6772' : i < 4 ? '#c9d0d8' : '#9aa4b0', (r() - 0.5) * 6);
+      else if (kind === 'metal') {
+        if ((i === 1 || i === 6) && (j === 1 || j === 6)) c = '#6d7884';
+        else c = this.tone('#9ca7b2', (j === 0 || j === 7 ? -20 : 0) + (r() - 0.5) * 8);
+      }
+      // ── 집 짓기용 자재 (8×8 · 옆면은 j가 아래로) ──
+      else if (kind === 'plaster') c = r() < 0.06 ? this.tone('#e6dcc6', -14) : this.tone('#efe6d2', (r() - 0.5) * 10);
+      else if (kind === 'tile') c = j % 2 === 1 ? this.tone('#8f3a26', (r() - 0.5) * 8) : ((i + (j >> 1) * 2) % 4 === 0 ? this.tone('#a94a31', (r() - 0.5) * 8) : this.tone('#c85c3c', (r() - 0.5) * 14));
+      else if (kind === 'slate') c = j % 2 === 1 ? this.tone('#33475f', (r() - 0.5) * 6) : ((i + (j >> 1) * 3) % 4 === 0 ? this.tone('#3e5776', (r() - 0.5) * 6) : this.tone('#4f6d91', (r() - 0.5) * 12));
+      else if (kind === 'window') {
+        if (j === 7) c = this.tone('#8a6a4a', (r() - 0.5) * 8);
+        else if (i === 0 || i === 7 || j === 0 || j === 3) c = this.tone('#f4f1ea', (r() - 0.5) * 4);
+        else if (i + j === 4 || i + j === 5 || i + j === 9) c = '#d6eef7';
+        else c = this.tone('#6fa8c6', (r() - 0.5) * 8);
+      } else if (kind === 'door') {
+        if (i === 0 || i === 7 || j === 0) c = this.tone('#5e3b20', (r() - 0.5) * 6);
+        else if (i === 5 && j === 4) c = '#e3bb4c';
+        else if (i === 3) c = this.tone('#6e4526', (r() - 0.5) * 6);
+        else c = this.tone('#935f35', (r() - 0.5) * 12);
+      } else if (kind === 'stone') {
+        const row = j >> 2, mortar = j % 4 === 3 || (i + row * 2) % 4 === 3;
+        c = mortar ? this.tone('#6c6f72', (r() - 0.5) * 6) : this.tone('#a3a6a8', (r() - 0.5) * 22);
+      } else if (kind === 'leaves') { const q = r(); c = q < 0.15 ? this.tone('#2d6a34', (r() - 0.5) * 10) : q < 0.3 ? this.tone('#67b86b', (r() - 0.5) * 10) : this.tone('#45944a', (r() - 0.5) * 16); }
+      else if (kind === 'log') c = (i % 3 === 0) ? this.tone('#553621', (r() - 0.5) * 8) : this.tone('#7a5232', (r() - 0.5) * 14);
+      else if (kind === 'logTop') { const d = Math.max(Math.abs(i - 3.5), Math.abs(j - 3.5)); c = d > 3 ? '#5a3a22' : (Math.floor(d) % 2 === 0 ? this.tone('#d8b27c', (r() - 0.5) * 6) : this.tone('#b98f5a', (r() - 0.5) * 6)); }
+      else if (kind === 'awning') c = j === 7 ? ((i >> 1) % 2 ? '#a8332a' : '#d8cfc2') : ((i >> 1) % 2 ? this.tone('#d94c3d', (r() - 0.5) * 6) : this.tone('#fbf5ec', (r() - 0.5) * 4));
+      else if (kind === 'flowers') { const q = r(); c = q < 0.1 ? '#f25f7a' : q < 0.18 ? '#ffd24a' : q < 0.23 ? '#ffffff' : q < 0.28 ? '#9b7bf2' : this.tone('#4f9e55', (r() - 0.5) * 22); }
+      else if (kind === 'plank') c = j % 3 === 2 ? this.tone('#8a6038', (r() - 0.5) * 6) : ((i + j * 3) % 8 === 0 ? this.tone('#9c6f43', 0) : this.tone('#c39461', (r() - 0.5) * 14));
+      else c = '#cccccc';
+      out.push(c);
+    }
+    return out;
+  }
+  // ───── 애니메이션 자재 (노드 화면 · 건물 편집기 · 자재 편집기가 같은 코드) ─────
+  // 모든 애니메이션은 1초 = 16칸(틱) 고정. frames = 칸 배열(길이 16 × 초), 빈 칸(null)은 앞 프레임을 그대로 보인다
+  // 자재는 1초(16칸) 고정 · 필드 · 건물은 4초(64칸)까지. 1프레임 = 일반 타입
+  lerpC(a, b, t) { const A = this.hexRgb(a), B = this.hexRgb(b); return this.rgbHex(A.map((v, i) => v + (B[i] - v) * t)); }
+  animTex(kind, seed, k, n, id) {
+    const r = this.rng(seed), out = [];
+    for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
+      let c;
+      if (kind === 'flagWave') {
+        // 깃발 천: 가로로 흐르는 물결(한 폭 = 8픽셀, 8프레임에 한 칸씩). 흰 띠는 물결 따라 오르내리고, 빛을 받는 비탈은 밝게 · 반대쪽은 어둡게
+        const ph = (i / 8 - k / n) * Math.PI * 2, w = Math.sin(ph) * 1.25, lit = Math.cos(ph);
+        const jj = j - Math.round(w), fold = Math.abs(lit) < 0.25 && j > 0 && j < 7;
+        const base = (jj === 3 || jj === 4) ? '#f4f7ff' : (jj === 2 || jj === 5) ? '#9bb8f5' : '#2563eb';
+        c = this.tone(base, lit * 20 - (fold ? 10 : 0) + (r() - 0.5) * 6);
+      } else if (kind === 'beacon') {
+        // 경광등: 불빛이 한 바퀴 돈다(8프레임). 옆면은 빛이 그 면을 지날 때 밝아지고, 윗면은 가운데 전구가 늘 빛난다
+        const face = { px: 0, py: 90, nx: 180, ny: 270 }[id], beam = k / n * 360;
+        const d = Math.hypot(i - 3.5, j - 3.5), frameC = i === 0 || i === 7 || j === 0 || j === 7;
+        let on;
+        if (face === undefined) on = 0.55 + 0.45 * Math.cos(k / n * Math.PI * 4);
+        else { const dd = ((beam - face + 540) % 360) - 180; on = Math.pow(Math.max(0, Math.cos(dd * Math.PI / 180)), 3); }
+        const sweep = face === undefined ? 0 : Math.max(0, 1 - Math.abs(i - 3.5 - (((beam - face + 540) % 360) - 180) / 30) / 2.5);
+        c = frameC ? this.tone('#3a4049', (r() - 0.5) * 8)
+          : d < 1.3 ? this.lerpC('#7a1a14', '#fff1ea', on)
+          : d < 2.6 ? this.lerpC('#521612', '#ff5a4d', Math.min(1, on + sweep * 0.4))
+          : this.lerpC('#3a1d1d', '#ff9a8a', Math.min(1, on * 0.55 + sweep * 0.5));
+      } else c = '#cccccc';
+      out.push(c);
+    }
+    return out;
+  }
+  animMats() {
+    const fr = (kind, seed, n) => Array.from({ length: n }, (_, k) => { const f = {}; ['pz', 'nz', 'px', 'nx', 'py', 'ny'].forEach((id, q) => { f[id] = this.animTex(kind, seed + q, k, n, id); }); return f; });
+    // 8프레임을 2칸마다 → 1초 16칸
+    const slots = (list, step) => { const out = new Array(16).fill(null); list.forEach((f, k) => { out[k * step] = f; }); return out; };
+    const wave = slots(fr('flagWave', 210, 8), 2), bea = slots(fr('beacon', 220, 8), 2);
+    return [
+      { id: 'm21', name: '깃발 천 (펄럭)', set: '애니메이션 자재', type: 'anim', faces: wave[0], frames: wave },
+      { id: 'm22', name: '경광등', set: '애니메이션 자재', type: 'anim', faces: bea[0], frames: bea }
+    ];
+  }
+  // 칸 i에 보이는 프레임의 칸 번호: i부터 거꾸로 첫 프레임 (빈 칸 = 앞 프레임 유지)
+  holdAt(fr, i) { const n = fr.length; let k = ((i || 0) % n + n) % n; while (k > 0 && !fr[k]) k--; return k; }
+  keyCount(fr) { return fr ? fr.filter(Boolean).length : 1; }
+  // 자재의 칸 f에 보이는 6면 (프레임이 없으면 일반 자재)
+  matFrame(m, f) { return m.frames && m.frames.length ? m.frames[this.holdAt(m.frames, f)] : m.faces; }
+  makeMats() {
+    const all = (kind, seed) => ({ pz: this.tex(kind, seed), nz: this.tex(kind, seed + 1), px: this.tex(kind, seed + 2), nx: this.tex(kind, seed + 3), py: this.tex(kind, seed + 4), ny: this.tex(kind, seed + 5) });
+    const grass = Object.assign(all('grassSide', 60), { pz: this.tex('grassTop', 66), nz: this.tex('dirt', 67) });
+    return [
+      { id: 'm1', name: '콘크리트', faces: all('concrete', 10) },
+      { id: 'm2', name: '벽돌', faces: all('brick', 20) },
+      { id: 'm3', name: '유리', faces: all('glass', 30) },
+      { id: 'm4', name: '지붕', faces: all('roof', 40) },
+      { id: 'm5', name: '목재', faces: all('wood', 50) },
+      { id: 'm6', name: '잔디 블록', faces: grass },
+      { id: 'm7', name: '금속', faces: all('metal', 70) },
+      { id: 'm8', name: '깃발 천', faces: all('flag', 80) },
+      { id: 'm9', name: '깃대', faces: all('pole', 90) },
+      { id: 'm10', name: '회벽', faces: all('plaster', 100) },
+      { id: 'm11', name: '기와', faces: all('tile', 110) },
+      { id: 'm12', name: '슬레이트', faces: all('slate', 120) },
+      { id: 'm13', name: '창문', faces: all('window', 130) },
+      { id: 'm14', name: '나무 문', faces: all('door', 140) },
+      { id: 'm15', name: '돌', faces: all('stone', 150) },
+      { id: 'm16', name: '나뭇잎', faces: all('leaves', 160) },
+      { id: 'm17', name: '통나무', faces: Object.assign(all('log', 170), { pz: this.tex('logTop', 176), nz: this.tex('logTop', 177) }) },
+      { id: 'm18', name: '차양', faces: all('awning', 180) },
+      { id: 'm19', name: '꽃밭', faces: Object.assign(all('grassSide', 190), { pz: this.tex('flowers', 196) }) },
+      { id: 'm20', name: '마루', faces: all('plank', 200) }
+    ];
+  }
+  dirMap() {
+    return {
+      pz: { n: [0, 0, 1], c0: [0, 0, 1], U: [1, 0, 0], V: [0, 1, 0] },
+      nz: { n: [0, 0, -1], c0: [1, 0, 0], U: [-1, 0, 0], V: [0, 1, 0] },
+      py: { n: [0, 1, 0], c0: [0, 1, 1], U: [1, 0, 0], V: [0, 0, -1] },
+      px: { n: [1, 0, 0], c0: [1, 1, 1], U: [0, -1, 0], V: [0, 0, -1] },
+      ny: { n: [0, -1, 0], c0: [1, 0, 1], U: [-1, 0, 0], V: [0, 0, -1] },
+      nx: { n: [-1, 0, 0], c0: [0, 0, 1], U: [0, 1, 0], V: [0, 0, -1] }
+    };
+  }
+  rotations() {
+    if (this._rots) return this._rots;
+    const mul = (A, B) => A.map((row) => [0, 1, 2].map((j) => row[0] * B[0][j] + row[1] * B[1][j] + row[2] * B[2][j]));
+    const RZ = [[0, -1, 0], [1, 0, 0], [0, 0, 1]], RX = [[1, 0, 0], [0, 0, -1], [0, 1, 0]];
+    const list = [[[1, 0, 0], [0, 1, 0], [0, 0, 1]]], key = (M) => M.map((r) => r.join(',')).join(';');
+    const seen = new Set([key(list[0])]);
+    for (let i = 0; i < list.length; i++) [RZ, RX].forEach((G) => {
+      const M = mul(G, list[i]);
+      if (!seen.has(key(M))) { seen.add(key(M)); list.push(M); }
+    });
+    this._rots = { list };
+    return this._rots;
+  }
+  vecKey(v) { return v[2] === 1 ? 'pz' : v[2] === -1 ? 'nz' : v[0] === 1 ? 'px' : v[0] === -1 ? 'nx' : v[1] === 1 ? 'py' : 'ny'; }
+  frameFor(o, id) {
+    const M = this.rotations().list[o || 0], DM = this.dirMap();
+    const ap = (v) => [0, 1, 2].map((i) => M[i][0] * v[0] + M[i][1] * v[1] + M[i][2] * v[2]);
+    const apT = (v) => [0, 1, 2].map((i) => M[0][i] * v[0] + M[1][i] * v[1] + M[2][i] * v[2]);
+    const L = this.vecKey(apT(DM[id].n)), d = DM[L];
+    const c = ap(d.c0.map((v) => v - 0.5)).map((v) => v + 0.5);
+    return { L, c0: c, U: ap(d.U), V: ap(d.V) };
+  }
+  lightF(id, nx, ny) {
+    if (id === 'pz') return 1;
+    const t = ((nx * -0.8 + ny * 0.6) + 1) / 2;
+    return 0.55 + 0.45 * t;
+  }
+  planeOf(id, x, y, z) { return { pz: z + 1, px: x + 1, nx: x, py: y + 1, ny: y }[id]; }
+  uvOf(id, x, y, z) { return id === 'pz' ? [x, y] : (id === 'px' || id === 'nx') ? [y, z] : [x, z]; }
+  to3(id, plane, u, v) { return id === 'pz' ? [u, v, plane] : (id === 'px' || id === 'nx') ? [plane, u, v] : [u, plane, v]; }
+  blockOnPlane(id, p) { return { pz: [0, 0, p - 1], px: [p - 1, 0, 0], nx: [p, 0, 0], py: [0, p - 1, 0], ny: [0, p, 0] }[id]; }
+  pattern(id, px, f, O, U, V) {
+    const r3 = (v) => Math.round(v * 1000) / 1000;
+    const rects = [];
+    for (let j = 0; j < 8; j++) {
+      let i = 0;
+      while (i < 8) {
+        const col = this.scaleC(px[j * 8 + i], f);
+        let k = i + 1;
+        while (k < 8 && this.scaleC(px[j * 8 + k], f) === col) k++;
+        rects.push({ x: i / 8, y: j / 8, w: r3((k - i) / 8 + 0.008), h: 0.133, fill: col });
+        i = k;
+      }
+    }
+    return { id, m: 'matrix(' + [U[0], U[1], V[0], V[1], O[0], O[1]].map(r3).join(' ') + ')', rects, cols: px.map((c) => this.scaleC(c, f)) };
+  }
+  outline(cells) {
+    const key = (p) => p[0] + ',' + p[1];
+    const edges = new Map();
+    const add = (a, b) => {
+      const rk = key(b) + '>' + key(a);
+      if (edges.has(rk)) edges.delete(rk); else edges.set(key(a) + '>' + key(b), [a, b]);
+    };
+    cells.forEach(([u, v]) => {
+      add([u, v], [u + 1, v]); add([u + 1, v], [u + 1, v + 1]);
+      add([u + 1, v + 1], [u, v + 1]); add([u, v + 1], [u, v]);
+    });
+    const out = new Map();
+    edges.forEach(([a, b]) => { const k = key(a); if (!out.has(k)) out.set(k, []); out.get(k).push(b); });
+    const loops = [];
+    out.forEach((list, start) => {
+      while (list.length) {
+        const s = start.split(',').map(Number);
+        const pts = [s];
+        let cur = list.pop();
+        let guard = 0;
+        while (key(cur) !== start && guard++ < 999) {
+          pts.push(cur);
+          cur = out.get(key(cur)).pop();
+        }
+        loops.push(pts.filter((p, i) => {
+          const a = pts[(i - 1 + pts.length) % pts.length], c = pts[(i + 1) % pts.length];
+          return (p[0] - a[0]) * (c[1] - p[1]) - (p[1] - a[1]) * (c[0] - p[0]) !== 0;
+        }));
+      }
+    });
+    return loops;
+  }
+  exportModel(bp, prefix, mf) {
+    const { K, C } = this.geo();
+    const N = bp.N, s = 160 / N, c = N / 2, blocks = bp.blocks;
+    const mat = (id) => this.MATS.find((m) => m.id === id) || this.MATS[0];
+    const occ = new Set(blocks.map((b) => b[0] + ',' + b[1] + ',' + b[2]));
+    const has = (x, y, z) => occ.has(x + ',' + y + ',' + z);
+    const DM = this.dirMap(), ids = ['pz', 'px', 'nx', 'py', 'ny'];
+    const f2 = (v) => Math.round(v * 100) / 100;
+    const views = [];
+    for (let r = 0; r < 4; r++) {
+      const th = (45 + 90 * r) * Math.PI / 180, ct = Math.cos(th), st = Math.sin(th);
+      const proj = (X, Y, Z) => {
+        const wx = (X - c) * s, wy = (Y - c) * s, wz = Z * s;
+        const xr = wx * ct - wy * st, yr = wx * st + wy * ct;
+        return [xr, yr * K - wz * C, yr * C + wz * K];
+      };
+      const groups = new Map();
+      blocks.forEach(([x, y, z, m, o]) => ids.forEach((id) => {
+        const [dx, dy, dz] = DM[id].n;
+        if (has(x + dx, y + dy, z + dz)) return;
+        if (id !== 'pz' && dx * st + dy * ct <= 0.001) return;
+        const plane = this.planeOf(id, x, y, z), gk = id + '|' + plane + '|' + m + '|' + (o || 0);
+        if (!groups.has(gk)) groups.set(gk, { id, plane, m, o: o || 0, cells: [] });
+        groups.get(gk).cells.push(this.uvOf(id, x, y, z));
+      }));
+      const polys = [], patterns = [];
+      let minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9, gi = 0;
+      groups.forEach((g) => {
+        const d = DM[g.id], fr = this.frameFor(g.o, g.id), pid = prefix + '-' + r + '-' + (gi++);
+        const b0 = this.blockOnPlane(g.id, g.plane);
+        const c0 = [b0[0] + fr.c0[0], b0[1] + fr.c0[1], b0[2] + fr.c0[2]];
+        const O = proj(...c0);
+        const Up = proj(c0[0] + fr.U[0], c0[1] + fr.U[1], c0[2] + fr.U[2]);
+        const Vp = proj(c0[0] + fr.V[0], c0[1] + fr.V[1], c0[2] + fr.V[2]);
+        const lf = this.lightF(g.id, d.n[0] * ct - d.n[1] * st, d.n[0] * st + d.n[1] * ct);
+        const px = this.matFrame(mat(g.m), mf ? mf[g.m] : 0)[fr.L];
+        patterns.push(this.pattern(pid, px, lf, O, [Up[0] - O[0], Up[1] - O[1]], [Vp[0] - O[0], Vp[1] - O[1]]));
+        const edge = this.scaleC(this.avgC(px), lf);
+        const set = new Set(g.cells.map((q) => q[0] + ',' + q[1])), seen = new Set();
+        g.cells.forEach((q0) => {
+          const k0 = q0[0] + ',' + q0[1];
+          if (seen.has(k0)) return;
+          const comp = [], stack = [q0];
+          seen.add(k0);
+          while (stack.length) {
+            const q = stack.pop();
+            comp.push(q);
+            [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => {
+              const k = (q[0] + a) + ',' + (q[1] + b);
+              if (set.has(k) && !seen.has(k)) { seen.add(k); stack.push([q[0] + a, q[1] + b]); }
+            });
+          }
+          let near = 0, cnt = 0, dd = '';
+          this.outline(comp).forEach((loop) => {
+            loop.forEach((p, i) => {
+              const q = proj(...this.to3(g.id, g.plane, p[0], p[1]));
+              near += q[2]; cnt++;
+              minx = Math.min(minx, q[0]); maxx = Math.max(maxx, q[0]);
+              miny = Math.min(miny, q[1]); maxy = Math.max(maxy, q[1]);
+              dd += (i === 0 ? 'M' : 'L') + f2(q[0]) + ' ' + f2(q[1]) + ' ';
+            });
+            dd += 'Z ';
+          });
+          polys.push({ d: dd.trim(), fill: 'url(#' + pid + ')', edge, near: near / cnt });
+        });
+      });
+      polys.sort((a, b) => a.near - b.near);
+      // 그림자 — 건물 데이터에 함께 담긴다 (빛은 필드에 고정: 왼쪽 앞 위)
+      const SH = [0.8 * 0.84, -0.6 * 0.84];
+      const colMap = new Map();
+      blocks.forEach(([x, y, z]) => {
+        const k = x + ',' + y, cc = colMap.get(k);
+        if (!cc) colMap.set(k, [x, y, z, z]); else { cc[2] = Math.min(cc[2], z); cc[3] = Math.max(cc[3], z); }
+      });
+      let shadow = '';
+      colMap.forEach(([x, y, z0, z1]) => {
+        const pts = [];
+        [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]].forEach(([X, Y]) => {
+          const wx = (X - c) * s, wy = (Y - c) * s;
+          const xr = wx * ct - wy * st, yr = wx * st + wy * ct;
+          [z0 * s, (z1 + 1) * s].forEach((h) => pts.push([xr + SH[0] * h, (yr + SH[1] * h) * K]));
+        });
+        const hl = this.hull(pts);
+        hl.forEach((p) => { minx = Math.min(minx, p[0]); maxx = Math.max(maxx, p[0]); miny = Math.min(miny, p[1]); maxy = Math.max(maxy, p[1]); });
+        shadow += hl.map((p, i) => (i ? 'L' : 'M') + f2(p[0]) + ' ' + f2(p[1])).join(' ') + ' Z ';
+      });
+      views.push({ paths: polys.map((p) => ({ d: p.d, fill: p.fill, edge: p.edge })), patterns, shadow: shadow.trim() || 'M0 0', count: polys.length, bbox: [minx, miny, maxx, maxy] });
+    }
+    return { views, blocks: blocks.length, merged: views[0].count };
+  }
+  // ───── 필드 타일 (노드 화면 · 필드 편집기가 같은 코드) ─────
+  // 스킨 = 픽셀 데이터 3개: 윗면 16×16 · 띠 16×2 · 옆면 16×16
+  // 부모 필드 기본 디자인 — 모든 필드 스킨이 따로 정하지 않으면 이것을 쓴다 (필드 편집기와 같은 값)
+  parentDefault() {
+    const gen = (w, h, seed, fn) => { const r = this.rng(seed), out = []; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) out.push(fn(i, j, r)); return out; };
+    return {
+      lift: 58,
+      // 전용 띠: 보라 바탕에 밝은 마름모 점 — 옆면 맨 위를 한 바퀴 두른다
+      band: gen(16, 2, 910, (i, j) => j === 0 ? (i % 4 === 1 ? '#ede9fe' : i % 4 === 3 ? '#a78bfa' : '#7c3aed') : (i % 4 === 1 ? '#a78bfa' : '#5b21b6')),
+      // 전용 테두리: 밝은 보라 · 보라를 번갈아, 안쪽 줄은 짙은 보라
+      rim: gen(16, 2, 911, (i, j) => j === 0 ? (i % 4 === 0 ? '#ddd6fe' : '#8b5cf6') : (i % 8 === 4 ? '#c4b5fd' : '#6d28d9'))
+    };
+  }
+  // 스킨의 부모 디자인: 스킨이 따로 가진 것이 있으면 그것, 없으면 기본 디자인
+  parentOf(sk) { return sk.parent || this.PARENT_DEF || (this.PARENT_DEF = this.parentDefault()); }
+  // 필드 프레임: 칸 배열(1초 = 16칸, 4초 = 64칸까지). 프레임 = 윗면 · 띠 · 옆면 · 확장면 · 테두리, 빈 칸(null) = 앞 프레임 유지
+  normFrames(sk) {
+    const src = sk.frames && sk.frames.length ? sk.frames : [{}].concat(new Array(15).fill(null));
+    const fr = src.map((f) => !f ? null : ({
+      top: f.top || sk.top, band: f.band || sk.band, side: f.side || sk.side,
+      fill: f.fill || (f.side ? f.side.map((c) => this.scaleC(c, 0.72)) : sk.fill),
+      rim: f.rim || sk.rim
+    }));
+    return Object.assign(sk, { frames: fr, top: fr[0].top, band: fr[0].band, side: fr[0].side, fill: fr[0].fill, rim: fr[0].rim });
+  }
+  fieldSkins() {
+    const gen = (w, h, seed, fn) => { const r = this.rng(seed), out = []; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) out.push(fn(i, j, r)); return out; };
+    return [
+      { id: 'grass', name: '잔디',
+        top: gen(16, 16, 101, (i, j, r) => r() < 0.1 ? this.tone('#86d690', (r() - 0.5) * 16) : this.tone('#58b066', (r() - 0.5) * 20)),
+        band: gen(16, 2, 102, (i, j, r) => this.tone(j === 0 ? '#4c9d5a' : '#3f8a4e', (r() - 0.5) * 10)),
+        side: gen(16, 16, 103, (i, j, r) => (j < 3 && r() < 0.5 - j * 0.15) ? this.tone('#3f8a4e', (r() - 0.5) * 10) : this.tone('#2f6b42', (r() - 0.5) * 14)) },
+      { id: 'soil', name: '흙',
+        top: gen(16, 16, 201, (i, j, r) => { const q = r(); return q < 0.06 ? '#d2a174' : q < 0.13 ? '#6e4424' : this.tone('#a8744a', (r() - 0.5) * 18); }),
+        band: gen(16, 2, 202, (i, j, r) => this.tone(j === 0 ? '#b98559' : '#9e6b41', (r() - 0.5) * 10)),
+        side: gen(16, 16, 203, (i, j, r) => r() < 0.04 ? '#8e6a4a' : this.tone(j === 5 || j === 11 ? '#5a391f' : '#6f4729', (r() - 0.5) * 14)) },
+      { id: 'concrete', name: '콘크리트',
+        top: gen(16, 16, 301, (i, j, r) => (i === 0 || j === 0) ? '#9fa29f' : r() < 0.07 ? '#8e918e' : this.tone('#b8bbb7', (r() - 0.5) * 10)),
+        band: gen(16, 2, 302, (i, j, r) => this.tone(j === 0 ? '#cdd0cc' : '#aeb1ad', (r() - 0.5) * 6)),
+        side: gen(16, 16, 303, (i, j, r) => this.tone(j === 7 ? '#6a6d6b' : '#838684', (r() - 0.5) * 10)) },
+      { id: 'metal', name: '금속 판',
+        top: gen(16, 16, 401, (i, j, r) => (i + j) % 8 === 0 ? '#b3c0cc' : (i + j) % 8 === 1 ? '#6b7885' : ((i % 8 === 2 || i % 8 === 6) && (j % 8 === 2 || j % 8 === 6)) ? '#5d6875' : this.tone('#8795a3', (r() - 0.5) * 6)),
+        band: gen(16, 2, 402, (i, j, r) => this.tone(j === 0 ? '#b3c0cc' : '#98a5b2', (r() - 0.5) * 4)),
+        side: gen(16, 16, 403, (i, j, r) => (i % 8 === 3 && (j === 3 || j === 12)) ? '#39424d' : this.tone('#56616e', (j === 0 ? 12 : 0) + (r() - 0.5) * 6)) },
+      // 보도블록: 집 · 가게 앞에 까는 포장 — 엇갈려 쌓은 연한 벽돌 판
+      { id: 'paver', name: '보도블록',
+        top: gen(16, 16, 501, (i, j, r) => { const row = j >> 2, seam = j % 4 === 3 || (i + (row % 2) * 4) % 8 === 7; return seam ? this.tone('#8f887c', (r() - 0.5) * 6) : this.tone(row % 2 ? '#d9cdb8' : '#cbbfa8', (r() - 0.5) * 12); }),
+        band: gen(16, 2, 502, (i, j, r) => this.tone(j === 0 ? '#b9ad97' : '#9d927e', (r() - 0.5) * 6)),
+        side: gen(16, 16, 503, (i, j, r) => j < 2 ? this.tone('#8f887c', (r() - 0.5) * 6) : r() < 0.06 ? '#6e5a44' : this.tone('#7d6650', (r() - 0.5) * 14)) },
+      // 물 (애니메이션 필드 예시): 윗면 물결 · 띠 물거품 · 옆면 기포가 흐른다 (1초 16칸 · 초당 8프레임)
+      ...(() => {
+        // 8프레임을 2칸마다 → 초당 8프레임. 무늬는 16픽셀마다 되풀이되므로 한 프레임에 2픽셀씩 흘러 1초에 딱 한 바퀴 (이음매 없음)
+        const mix = (a, b, t) => { const A = this.hexRgb(a), B = this.hexRgb(b), u = Math.max(0, Math.min(1, t)); return this.rgbHex(A.map((v, q) => v + (B[q] - v) * u)); };
+        const TAU = Math.PI * 2;
+        const frames = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => ({
+          // 윗면: 엇갈린 두 물결을 겹쳐 밝고 어두운 결 · 마루에는 반짝임
+          top: gen(16, 16, 601, (i, j, r) => {
+            const v = Math.sin(TAU * ((i + j) / 16 - k / 8)) + 0.6 * Math.sin(TAU * ((i - 2 * j) / 16 + k / 8)) + (r() - 0.5) * 0.35;
+            return v > 1.25 ? '#e2f4ff' : v > 0.95 ? '#9fd0f5' : mix('#236aae', '#4f9ade', (v + 1.6) / 3.2);
+          }),
+          // 띠: 물가의 거품이 옆으로 흐른다
+          band: gen(16, 2, 602, (i, j, r) => j === 0 ? ((i + k * 2) % 8 < 3 ? '#f2fbff' : (i + k * 2) % 8 === 3 ? '#cbe9fb' : mix('#8fc9f0', '#a9d8f5', r())) : mix('#4f97d4', '#5ea6de', r())),
+          // 옆면: 아래로 갈수록 깊은 물빛 · 기포가 위로 오른다
+          side: gen(16, 16, 603, (i, j, r) => {
+            const bub = i % 4 === 1 && ((j + k * 2 + i * 5) % 16 === 0), tail = i % 4 === 1 && ((j + k * 2 + i * 5) % 16 === 1);
+            return bub ? '#a9d6f7' : tail ? '#5f9fd6' : mix('#2d6bab', '#16406f', j / 15 + (r() - 0.5) * 0.12);
+          })
+        }));
+        const slots = new Array(16).fill(null); frames.forEach((f, k) => { slots[k * 2] = f; });
+        return [{ id: 'water', name: '물', top: frames[0].top, band: frames[0].band, side: frames[0].side, frames: slots }];
+      })(),
+    ].map((sk) => Object.assign({
+      lift: 26,
+      fill: sk.side.map((c) => this.scaleC(c, 0.72)),
+      // 노드 역할별 테두리: Leaf 파랑 · Tree 호박색 · Tree·Leaf 둘을 번갈아
+      rim: {
+        leaf: gen(16, 2, 900, (i, j) => j === 0 ? (i % 4 === 0 ? '#9cc0ff' : '#6f9cf0') : '#4f7fd9'),
+        tree: gen(16, 2, 901, (i, j) => j === 0 ? (i % 4 === 0 ? '#ffd88a' : '#f0b442') : '#c98a1c'),
+        both: gen(16, 2, 902, (i, j) => (Math.floor(i / 2) % 2 === 0) ? (j === 0 ? '#6f9cf0' : '#4f7fd9') : (j === 0 ? '#f0b442' : '#c98a1c'))
+      },
+      // 부모 디자인: null = 기본 디자인을 따름. 금속 판은 예시로 전용 디자인(청록 띠 · 흰 테두리)을 가진다
+      parent: sk.id === 'metal' ? {
+        lift: 64,
+        band: gen(16, 2, 920, (i, j) => j === 0 ? (i % 2 === 0 ? '#5eead4' : '#0f766e') : '#115e59'),
+        rim: gen(16, 2, 921, (i, j) => j === 0 ? (i % 4 === 0 ? '#ffffff' : '#ccfbf1') : '#14b8a6')
+      } : null,
+      pattern: { type: 'grid', scale: 1 }
+    }, sk)).map((sk) => this.normFrames(sk));
+  }
+  // ───── 그라운드: 높이가 0인 바닥 필드 (리전과 같은 높이 — 필드 바닥면) ─────
+  // 리전(육각 칸)마다 깔 수 있고, 필드가 놓인 칸에는 늘 깔린다. 건물은 놓을 수 있지만 노드는 둘 수 없다
+  // 스킨 = 윗면 16×16 무늬 + 가장자리 두께 색(edge). 애니메이션은 필드와 같은 칸 모델(1초 16칸 · 빈 칸은 앞 프레임) — 4초까지
+  groundSkins() {
+    const gen = (w, h, seed, fn) => { const r = this.rng(seed), out = []; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) out.push(fn(i, j, r)); return out; };
+    const mix = (a, b, t) => { const A = this.hexRgb(a), B = this.hexRgb(b), u = Math.max(0, Math.min(1, t)); return this.rgbHex(A.map((v, q) => v + (B[q] - v) * u)); };
+    const TAU = Math.PI * 2;
+    const list = [
+      { id: 'meadow', name: '풀밭', edge: '#5f8f48',
+        top: gen(16, 16, 1101, (i, j, r) => { const q = r(); return q < 0.04 ? '#f3efb0' : q < 0.08 ? '#b9dc8e' : this.tone('#93c775', (r() - 0.5) * 18); }) },
+      { id: 'sand', name: '모래', edge: '#cfad73',
+        top: gen(16, 16, 1201, (i, j, r) => { const q = r(); return q < 0.05 ? '#fff6dc' : q < 0.09 ? '#d2b07a' : this.tone('#efdcb0', (r() - 0.5) * 12); }) },
+      { id: 'gravel', name: '자갈', edge: '#85817a',
+        top: gen(16, 16, 1301, (i, j, r) => { const q = r(); return q < 0.16 ? this.tone('#a9a59c', (r() - 0.5) * 18) : q < 0.26 ? '#8d897f' : this.tone('#c8c4bb', (r() - 0.5) * 10); }) },
+      { id: 'soilg', name: '맨땅', edge: '#8b6440',
+        top: gen(16, 16, 1501, (i, j, r) => { const q = r(); return q < 0.05 ? '#c79a6c' : q < 0.1 ? '#7b5331' : this.tone('#b08459', (r() - 0.5) * 14); }) },
+      // 광장 (육각 통째 예시): 리전 한 칸을 한 장으로 — 가운데 원형 문양 · 바퀴살 · 둘레 포석
+      (() => {
+        const G = this.gHexGrid(), r0 = this.rng(1601), hexTop = [];
+        for (let j = 0; j < G.GH; j++) for (let i = 0; i < G.GW; i++) {
+          const x = i + 0.5 - G.GW / 2, y = (j + 0.5 - G.GH / 2) * 1.1, d = Math.hypot(x, y), a = Math.atan2(y, x), q = r0();
+          const spoke = Math.abs(Math.sin(a * 4)) < 0.12 && d > 5 && d < 15;
+          hexTop.push(d < 2.2 ? '#c98a1c' : d < 4 ? '#f0d58a' : spoke ? '#b9a27a' : Math.abs(d - 15.5) < 1 ? '#8f7c5c' : d < 15 ? this.tone('#e6d6b2', (q - 0.5) * 12)
+            : ((i + (j >> 1)) % 4 === 0 || j % 3 === 0) ? this.tone('#a79e8f', (q - 0.5) * 8) : this.tone('#cdc4b3', (q - 0.5) * 14));
+        }
+        const top = gen(16, 16, 1602, (i, j, r) => this.tone('#cdc4b3', (r() - 0.5) * 14));
+        return { id: 'plaza', name: '광장 (육각 통째)', edge: '#8f7c5c', mode: 'hex', top, frames: [{ top, hexTop }].concat(new Array(15).fill(null)) };
+      })(),
+      // 물가 모래 (애니메이션 예시): 젖은 모래 위로 얇은 물막이 비스듬히 밀려온다 — 8프레임을 2칸마다 (초당 8프레임), 16픽셀마다 한 바퀴라 이음매 없음
+      (() => {
+        const frames = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => ({
+          top: gen(16, 16, 1401, (i, j, r) => {
+            const w = Math.sin(TAU * ((i + 2 * j) / 16 - k / 8)), n = r();
+            return w > 0.9 ? '#f4fbfa' : w > 0.62 ? '#a8dcd6' : w > 0.45 ? '#cfe3d4' : mix('#d8bf8e', '#c7a877', n * 0.6);
+          })
+        }));
+        const slots = new Array(16).fill(null); frames.forEach((f, k) => { slots[k * 2] = f; });
+        return { id: 'tide', name: '물가 모래', edge: '#b8966a', top: frames[0].top, frames: slots };
+      })()
+    ];
+    return list.map((s) => Object.assign({}, s, { frames: s.frames && s.frames.length ? s.frames : [{ top: s.top }].concat(new Array(15).fill(null)) }));
+  }
+  // 그라운드 윤곽: 칸마다 리전 격자의 보로노이 칸(= 리전보다 사방으로 리전 사이 간격의 절반만큼 큰 육각) 그대로 — 이웃 그라운드와 틈 · 겹침 없이 맞붙는다
+  // 꼭짓점은 그 꼭짓점을 함께 쓰는 이웃 칸에 그라운드가 하나도 없을 때만 둥글게 깎는다 (이웃이 있는 곳은 곧은 이음 그대로 — 부드러운 이음 패딩 없음)
+  // 칸 윤곽은 모두 같은 방향으로 돌아, 한 경로(path)에 모아 칠하면 맞닿은 변에 이음 선이 생기지 않는다. 칸 목록이 같으면 다시 계산하지 않는다
+  groundGeo(keys) {
+    const sig = keys.slice().sort().join(',');
+    if (this._gg && this._gg.sig === sig) return this._gg;
+    const K = this.tileModel().K, D = 56, RC = 18, SEG = 6;
+    const f1 = (v) => Math.round(v * 10) / 10;
+    const has = new Set(keys);
+    const NB = [[0, 92 / K], [0, -92 / K], [130, 46 / K], [130, -46 / K], [-130, 46 / K], [-130, -46 / K]];
+    // 보로노이 칸 (세계 좌표에서 이웃 6칸과의 수직 이등분선으로 자른 사각형) — 모든 칸이 같은 모양
+    let cell = [[-200, -200], [200, -200], [200, 200], [-200, 200]];
+    NB.forEach(([ax, ay]) => {
+      const mx = ax / 2, my = ay / 2, inside = (p) => (p[0] - mx) * ax + (p[1] - my) * ay <= 0, out = [];
+      for (let i = 0; i < cell.length; i++) {
+        const a = cell[i], b = cell[(i + 1) % cell.length], ia = inside(a), ib = inside(b);
+        if (ia) out.push(a);
+        if (ia !== ib) { const da = (a[0] - mx) * ax + (a[1] - my) * ay, db = (b[0] - mx) * ax + (b[1] - my) * ay, t = da / (da - db); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+      }
+      cell = out;
+    });
+    // 꼭짓점마다 그 꼭짓점을 함께 쓰는 이웃 방향(2개)
+    const shareOf = cell.map((v) => NB.map((n, i) => ({ i, d: Math.abs(Math.hypot(v[0] - n[0], v[1] - n[1]) - Math.hypot(v[0], v[1])) })).filter((o) => o.d < 1).map((o) => o.i));
+    const nbKey = (c, r, i) => {
+      // 세계 좌표 이웃 방향 → 칸 키 (홀수 열은 반 칸 아래)
+      const odd = (c % 2 + 2) % 2 === 1, [ax, ay] = NB[i], dc = ax > 0 ? 1 : ax < 0 ? -1 : 0;
+      if (!dc) return c + '-' + (r + (ay > 0 ? 1 : -1));
+      const dr = ay > 0 ? (odd ? 1 : 0) : (odd ? 0 : -1);
+      return (c + dc) + '-' + (r + dr);
+    };
+    const cells = {}, raw = {};
+    let all = '', allW = '';
+    keys.forEach((k) => {
+      const [c, r] = this.ck(k), p = this.cellXY(k), cx = p.cx, cy = p.cy / K, n = cell.length, pts = [];
+      cell.forEach((v, i) => {
+        const lonely = !shareOf[i].some((j) => has.has(nbKey(c, r, j)));
+        if (!lonely) { pts.push(v); return; }
+        const a = cell[(i - 1 + n) % n], b = cell[(i + 1) % n];
+        const cut = (q) => { const dx = q[0] - v[0], dy = q[1] - v[1], l = Math.hypot(dx, dy), t = Math.min(RC / l, 0.5); return [v[0] + dx * t, v[1] + dy * t]; };
+        const s = cut(a), e = cut(b);
+        for (let j = 0; j <= SEG; j++) { const t = j / SEG, u = 1 - t; pts.push([u * u * s[0] + 2 * u * t * v[0] + t * t * e[0], u * u * s[1] + 2 * u * t * v[1] + t * t * e[1]]); }
+      });
+      const d = 'M' + pts.map((q) => f1(cx + q[0]) + ' ' + f1((cy + q[1]) * K + D)).join(' L') + ' Z';
+      cells[k] = d; all += d + ' '; raw[k] = { cx, cy, pts };
+      allW += 'M' + pts.map((q) => f1(cx + q[0]) + ' ' + f1(cy + q[1])).join(' L') + ' Z ';   // 같은 윤곽의 세계 좌표판 (바다 수심 띠용 — 화면에선 matrix(1 0 0 K 0 D)로 눕힌다)
+    });
+    this._gg = { sig, d: all.trim(), dw: allW.trim(), cells, raw, cell, NB, nbKey };
+    return this._gg;
+  }
+  // ── 해안선: 그라운드(필드가 선 칸 포함) 덩어리의 바깥 윤곽을 한 줄(고리)로 잇고 부드럽게 다듬는다 ──
+  // 세계 좌표. 칸 경계 변 중 이웃이 그라운드가 아닌 변만 모아 고리로 잇고(섬 · 호수 모두), 차이킨 3번으로 모서리를 둥글린다
+  coastLoop(base) {
+    const sig = base.slice().sort().join(',');
+    if (this._coast && this._coast.sig === sig) return this._coast;
+    const G = this.groundGeo(base), K = this.tileModel().K, has = new Set(base), cell = G.cell, n = cell.length;
+    const edgeNb = cell.map((a, j) => { const b = cell[(j + 1) % n], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; let best = 0, bd = -1e9; G.NB.forEach((v, i) => { const dd = (v[0] * mx + v[1] * my) / Math.hypot(v[0], v[1]); if (dd > bd) { bd = dd; best = i; } }); return best; });
+    const key = (p) => Math.round(p[0] * 10) + ',' + Math.round(p[1] * 10), next = new Map(), pt = new Map();
+    base.forEach((k) => {
+      const [c, r] = this.ck(k), q = this.cellXY(k), cx = q.cx, cy = q.cy / K;
+      for (let j = 0; j < n; j++) {
+        if (has.has(G.nbKey(c, r, edgeNb[j]))) continue;
+        const a = [cx + cell[j][0], cy + cell[j][1]], b = [cx + cell[(j + 1) % n][0], cy + cell[(j + 1) % n][1]];
+        next.set(key(a), key(b)); pt.set(key(a), a); pt.set(key(b), b);
+      }
+    });
+    const loops = [], seen = new Set();
+    next.forEach((_, s0) => {
+      if (seen.has(s0)) return;
+      const lp = []; let cur = s0, guard = 0;
+      while (cur && !seen.has(cur) && guard++ < 5000) { seen.add(cur); lp.push(pt.get(cur)); cur = next.get(cur); }
+      if (lp.length > 2) loops.push(lp);
+    });
+    const chaikin = (P) => { const o = []; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; o.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25], [a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]); } return o; };
+    const f1 = (v) => Math.round(v * 10) / 10;
+    const sm = loops.map((lp) => { let q = lp; for (let it = 0; it < 3; it++) q = chaikin(q); return q; });
+    const d = sm.map((q) => 'M' + q.map((p) => f1(p[0]) + ' ' + f1(p[1])).join(' L') + ' Z').join(' ');
+    this._coast = { sig, d, loops: sm };
+    return this._coast;
+  }
+  // 파도: 해안선(그라운드 가장자리에서 바다 쪽으로 δ = 둘레 칸 가운데 → 면 거리의 1/4, 즉 칸 가운데 기준 3/4 자리)에서
+  // 그라운드 쪽으로 δ(= 전체 길이의 1/4)까지 밀려온다. 해안 전체가 한 줄로 이어져 같이 움직이고, 곡선을 따라 휜다.
+  // 물의 앞머리 u(그라운드 가장자리에서의 거리)를 매 프레임 계산해 가림막 · 거품 선의 굵기(stroke-width = 2u)만 바꾼다 (렌더 밖)
+  // 해안 그라운드(둘레 칸) = 그라운드 가장자리에서 칸 하나(가운데까지 d ≈ 80, 바깥 면까지 2d). 땅을 늘리는 칸이 아니라 파도 칸 — 거의 늘 물에 덮여 있다.
+  // 해안선(물이 가장 빠졌을 때의 물가) = 그라운드 쪽 면에서 칸 가운데 쪽으로 3/4 → 가장자리에서 0.75d. 그 바깥은 늘 물
+  // 파도는 해안선에서 그라운드 쪽으로 칸 전체 길이(2d)의 1/4만큼 밀려온다 → 가장 높이 오르면 가장자리에서 0.25d. 윗면은 물이 빠질 때만 드러난다
+  get COAST() { const d = 80.6; return { DELTA: Math.round(0.75 * d), REACH: Math.round(0.5 * d), T: 4.6 }; }
+  // 바다: 깊은 바다 → 해안 쪽으로 14겹 색 계단(가까울수록 얕다). 겹마다 해안선 고리를 바깥으로 dist만큼 두껍게 칠하되,
+  // 고리 점을 법선 방향으로 물결(겹마다 다른 주기 · 속도의 사인 합)만큼 밀어 경계가 출렁인다. 바깥 겹일수록 크게 출렁인다
+  seaStart() {
+    const cv = document.querySelector('[data-sea-cv]');
+    if (!cv || this._seaRaf) return;
+    const W = 1447, H = 901, DPR = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+    cv.width = W * DPR; cv.height = H * DPR;
+    const g = cv.getContext('2d');
+    const hex = (c) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+    const STOPS = [[0, '#58cbd8'], [50, '#4dc5d4'], [120, '#3dbbcb'], [210, '#30b1c2'], [300, '#27a8ba'], [380, '#2299ad']];   // 물가 거품 바깥 얕은 물(#4dc5d4) → 깊은 바다로 한 줄기
+    const colAt = (d) => { for (let i = 1; i < STOPS.length; i++) if (d <= STOPS[i][0]) { const [d0, c0] = STOPS[i - 1], [d1, c1] = STOPS[i], t = (d - d0) / (d1 - d0), a = hex(c0), b = hex(c1); return 'rgb(' + a.map((v, k) => Math.round(v + (b[k] - v) * t)).join(',') + ')'; } return STOPS[STOPS.length - 1][1]; };
+    // 띠는 거품 띠 안쪽(D0)부터 바깥으로 — 거품이 안쪽을 덮는다
+    const N = 12, BANDS = [], D0 = this.COAST.DELTA + 20; for (let i = N; i >= 1; i--) { const d = 380 * Math.pow(i / N, 1.25); BANDS.push({ i, d, col: colAt(d), amp: 2 + d * 0.035, k1: 2 + (i % 3), k2: 5 + (i % 4), w1: 0.35 + i * 0.03, w2: -0.22 - i * 0.02, ph: i * 1.7 }); }
+    let last = 0, lastKey = '', bc = null;
+    const RS = 0.6;   // 수심 띠 캔버스 해상도 (세계 1 → 0.6픽셀, 색 계단이라 흐려도 티 나지 않는다)
+    const draw = (now) => {
+      if (this._unmounted) return;
+      this._seaRaf = requestAnimationFrame(draw);
+      const C = this._coast, grp = document.querySelector('[data-fx-g]'), svg = document.querySelector('[data-field-svg]');
+      // 평소엔 30fps. 단, 맵이 움직이는 프레임(끌어 이동 · 확대 · 전환 미끄러짐)은 바로 그린다 — 그라운드(svg)와 같은 프레임에 맞춰 따로 놀지 않게
+      const m0 = grp && grp.getCTM ? grp.getCTM() : null, sl = this._slide || { x: 0, y: 0 };
+      const key = m0 ? m0.a + ',' + m0.d + ',' + m0.e + ',' + m0.f + ',' + sl.x + ',' + sl.y : '';
+      if (now - last < 33 && key === lastKey) return; last = now; lastKey = key;
+      const deep = this.state.editMode ? '#1f93a8' : '#2299ad';
+      g.setTransform(DPR, 0, 0, DPR, 0, 0); g.fillStyle = deep; g.fillRect(0, 0, W, H);
+      if (!C || !C.loops || !grp || !svg) return;
+      // 세계(해안 고리) → 그룹(seaT: 세로 K, 아래로 D) → 화면(그룹의 변환)
+      const m = grp.getCTM(), ms = svg.getCTM(), K = this.tileModel().K;
+      if (!m || !ms) return;
+      const inv = ms.inverse(), M = inv.multiply(m);
+      g.setTransform(DPR * M.a, DPR * M.b, DPR * M.c * K, DPR * M.d * K, DPR * (M.c * 56 + M.e + sl.x), DPR * (M.d * 56 + M.f + sl.y));   // sl = 맵 전환 때 섬이 미끄러지는 만큼
+      // 수심 띠는 따로 둔 캔버스(세계 좌표, 해상도 RS)에 미리 그려 두고 매 프레임엔 그 그림을 한 번 붙이기만 한다.
+      // 띠 그리기(굵은 선 12겹)가 가장 무거워서 — 해안선이 바뀔 때와 0.3초마다(느린 출렁임)만 다시 그린다
+      const t = now / 1000;
+      if (!bc || bc.sig !== C.sig || now - bc.at > 300) {
+        if (!bc || bc.sig !== C.sig) {
+          let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+          C.loops.forEach((lp) => lp.forEach((p) => { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; }));
+          const pad = 380 + D0 + 30 + 120 / this.tileModel().K; x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;   // 여유: 아래로 내려간 수심 층(최대 화면 120px)까지 담는다
+          const cvb = (bc && bc.cv) || document.createElement('canvas'); cvb.width = Math.ceil((x1 - x0) * RS); cvb.height = Math.ceil((y1 - y0) * RS);
+          bc = { cv: cvb, g: cvb.getContext('2d'), sig: C.sig, x0, y0, w: x1 - x0, h: y1 - y0, at: 0 };
+        }
+        const q = bc.g; bc.at = now;
+        q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, bc.cv.width, bc.cv.height);
+        q.setTransform(RS, 0, 0, RS, -bc.x0 * RS, -bc.y0 * RS); q.lineJoin = 'round'; q.lineCap = 'round';
+        const Kq = this.tileModel().K;
+        BANDS.forEach((B) => {
+          // 수심 층은 바다 쪽으로 갈수록 누적으로 조금씩 내려간다 (물가에서 i번째 층 = 화면 약 i px 아래) — 계단처럼 입체적으로. 거품 층은 그대로
+          q.save(); q.translate(0, B.i * 10 / Kq);   // 층마다 화면 10px씩
+          q.beginPath();
+          C.loops.forEach((lp) => {
+            const n = lp.length;
+            for (let i = 0; i < n; i++) {
+              const a = lp[(i - 1 + n) % n], b = lp[(i + 1) % n], p = lp[i];
+              let nx = b[1] - a[1], ny = -(b[0] - a[0]); const L = Math.hypot(nx, ny) || 1; nx /= L; ny /= L;
+              const s = i / n * Math.PI * 2;
+              const o = B.amp * (Math.sin(s * B.k1 * 3 + t * B.w1 * 2 + B.ph) * 0.6 + Math.sin(s * B.k2 * 4 - t * B.w2 * 3 + B.ph * 2) * 0.4);
+              const x = p[0] + nx * o, y = p[1] + ny * o;
+              if (i === 0) q.moveTo(x, y); else q.lineTo(x, y);
+            }
+            q.closePath();
+          });
+          q.fillStyle = B.col; q.strokeStyle = B.col; q.lineWidth = (B.d + D0) * 2;
+          q.stroke(); q.fill('evenodd');
+          q.restore();
+        });
+      }
+      g.imageSmoothingEnabled = true; g.drawImage(bc.cv, bc.x0, bc.y0, bc.w, bc.h);
+      // 잔물결 (세계 좌표에 고정)
+      if (!this._ripPat) { const rc = document.createElement('canvas'); rc.width = 150; rc.height = 86; const q = rc.getContext('2d'); q.strokeStyle = 'rgba(255,255,255,0.26)'; q.lineWidth = 2.2; q.lineCap = 'round';
+        [[12, 22, 8], [86, 60, 8], [120, 18, 6], [46, 74, 6]].forEach(([x, y, w]) => { q.beginPath(); q.moveTo(x, y); q.quadraticCurveTo(x + w, y - 6, x + 2 * w, y); q.stroke(); }); this._ripPat = g.createPattern(rc, 'repeat'); }
+      g.save(); g.setTransform(DPR * M.a, DPR * M.b, DPR * M.c, DPR * M.d, DPR * M.e, DPR * M.f); g.fillStyle = this._ripPat; g.fillRect(-6000, -6000, 12000, 12000); g.restore();
+      // beach-foam 해안 (coastStart가 만든 경로)
+      const CE = this._ceD;
+      if (CE) {
+        const fill = (pa, col, rule) => { if (!pa) return; g.fillStyle = col; g.fill(pa, rule || 'nonzero'); };
+        CE.foam.forEach((pa, m) => fill(pa, m === CE.foam.length - 1 ? '#d9f2f7' : 'rgba(217,242,247,0.45)'));   // 바깥 절반: 겹칠수록 진해진다 → 바다 쪽으로 옅어진다 / 마지막(0.5) 안쪽은 불투명
+        // 물가 안쪽은 지운다 → 아래 층의 해변(해안 그라운드 윗면) · 그라운드가 보인다
+        g.globalCompositeOperation = 'destination-out'; fill(CE.E, '#000'); g.globalCompositeOperation = 'source-over';
+        // 젖은 모래: 물가(E) ~ 가장 높이 올라온 자리(W)
+        fill(CE.wet, 'rgba(90,58,24,0.14)', 'evenodd');
+      } else if (C.d) { g.globalCompositeOperation = 'destination-out'; g.fill(new Path2D(C.d)); g.globalCompositeOperation = 'source-over'; }
+    };
+    this._seaRaf = requestAnimationFrame(draw);
+  }
+  // ── 해안 파도: beach-foam 엔진(관리 노드 창 해변과 같은 것)을 섬 해안선을 따라 그대로 돌린다 ──
+  // 엔진의 로컬 좌표 a(해안선 방향) · b(해안선 수직, +가 모래 쪽)를 해안 곡선(coastLoop) 위에 감는다:
+  //   세계 점 = 고리 점 P(a·s) + 바깥 법선 n × (δ − s·(b + 8))   (s = 엔진 1 → 세계 0.6, δ = 해안선 거리)
+  // 그려지는 층(뒤 → 앞): 거품(Sh ~ E, 물가에 붙은 좁은 띠) · [해변 = 해안 그라운드 윗면, E 안쪽만] · 젖은 모래(E~W). 거품 구멍은 없다
+  coastEngine() {
+    const C = this._coast;
+    if (!C || !C.loops) return null;
+    if (this._ce && this._ce.sig === C.sig) return this._ce;
+    const TAU = Math.PI * 2, s = 0.6, DS = 3;
+    // 고리를 일정 간격(DS)으로 다시 찍고, 바깥 법선을 구한다 (모든 고리가 같은 방향으로 돌므로 바깥 = 가장 큰 고리의 넓이 부호로 정한다)
+    const area = (P) => { let A = 0; for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length]; A += p[0] * q[1] - q[0] * p[1]; } return A / 2; };
+    const big = C.loops.reduce((m, l) => (Math.abs(area(l)) > Math.abs(area(m)) ? l : m), C.loops[0]);
+    const sgn = area(big) > 0 ? 1 : -1;
+    const loops = C.loops.map((P) => {
+      const n = P.length, cum = [0];
+      for (let i = 0; i < n; i++) { const p = P[i], q = P[(i + 1) % n]; cum.push(cum[i] + Math.hypot(q[0] - p[0], q[1] - p[1])); }
+      const Lw = cum[n], M = Math.max(8, Math.round(Lw / DS)), X = new Float32Array(M), Y = new Float32Array(M), NX = new Float32Array(M), NY = new Float32Array(M);
+      let j = 0;
+      for (let k = 0; k < M; k++) {
+        const t = k / M * Lw; while (j < n - 1 && cum[j + 1] < t) j++;
+        const p = P[j], q = P[(j + 1) % n], f = (t - cum[j]) / Math.max(1e-6, cum[j + 1] - cum[j]);
+        X[k] = p[0] + (q[0] - p[0]) * f; Y[k] = p[1] + (q[1] - p[1]) * f;
+      }
+      for (let k = 0; k < M; k++) {
+        const a = (k - 3 + M) % M, b = (k + 3) % M, tx = X[b] - X[a], ty = Y[b] - Y[a], L = Math.hypot(tx, ty) || 1;
+        NX[k] = sgn * ty / L; NY[k] = -sgn * tx / L;   // 바깥(바다 쪽) 법선
+      }
+      return { M, Lw, Le: Lw / s, X, Y, NX, NY };
+    });
+    // 엔진의 물결 주파수를 고리 길이에 맞춰 반올림 (한 바퀴 돌아 이음매가 생기지 않게)
+    loops.forEach((L) => { L.fq = (f) => Math.max(1, Math.round(f * L.Le / TAU)) * TAU / L.Le; });
+    this._ce = { sig: C.sig, s, loops, t: 0 };   // 거품 구멍은 없다 (처리량 때문에 뺐다) — 물가 · 거품 띠 · 젖은 모래 경계만 움직인다
+    return this._ce;
+  }
+  coastStart() {
+    if (this._ceRaf || typeof requestAnimationFrame !== 'function') return;
+    const TAU = Math.PI * 2, S = Math.sin;
+    const OPT = { reach: 66, period: 8, off: 0 };
+    const f1 = (v) => Math.round(v * 10) / 10;
+    let last = 0, acc = 0;
+    const frame = (now) => {
+      if (this._unmounted) return;
+      this._ceRaf = requestAnimationFrame(frame);
+      const dt0 = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now; acc += dt0;
+      if (acc < 1 / 30) return;
+      const dt = Math.min(0.033, acc); acc = 0;
+      const E0 = this.coastEngine(); if (!E0) return;
+      const { s, loops } = E0, DELTA = this.COAST.DELTA;
+      E0.t += dt; const t = E0.t, P = OPT.period, reach = OPT.reach, off = OPT.off;
+      let ph = (t / P) % 1; ph += 0.1 * S(TAU * ph);
+      const wv = -8 + reach * (0.5 - 0.5 * Math.cos(TAU * ph)), sw = off + wv;
+      // 엔진의 경계선들 (고리마다 주파수만 맞춘다)
+      const fnE = (L, a) => sw + 5.5 * S(a * L.fq(0.045) - 1.9 * t) + 3.5 * S(a * L.fq(0.083) + 1.3 * t + 1) + 2.2 * S(a * L.fq(0.17) - 2.6 * t + 2) + 4 * S(a * L.fq(0.02) + 0.45 * t);
+      const fnW = (L, a) => off + reach + 3 * S(a * L.fq(0.03) + 0.15 * t) + 2 * S(a * L.fq(0.08) - 0.25 * t + 1);
+      // 거품 띠: 물가(E)에서 바다 쪽으로 이전 폭(약 70 + 0.7·wv)의 1/4만 — E를 따라 같이 출렁이고, 폭만 따로 살짝 일렁인다 (E를 넘지 않는다)
+      // 폭은 2배로 넓혔다(이전 띠의 1/2). 바다 쪽으로 갈수록 옅어지게 — 폭의 몇 단계 비율로 겹쳐 칠한다 (물가에 가까울수록 여러 겹 = 진하게)
+      const fW = (L, a) => 2 * (17.5 + 0.175 * wv + 3 * (1 + S(a * L.fq(0.028) - 0.7 * t)) + 1.5 * (1 + S(a * L.fq(0.066) + 1.0 * t + 2)));
+      const FOAMF = [1, 0.83, 0.66, 0.5];   // 안쪽 절반(0 ~ 0.5)은 옅어짐 없이 꽉 차게, 바깥 절반만 겹쳐 옅어진다
+      // (a, b) → 세계 좌표
+      const at = (L, a) => { const u = ((a * s) % L.Lw + L.Lw) % L.Lw / L.Lw * L.M, i = Math.floor(u) % L.M, j = (i + 1) % L.M, f = u - Math.floor(u);
+        return [L.X[i] + (L.X[j] - L.X[i]) * f, L.Y[i] + (L.Y[j] - L.Y[i]) * f, L.NX[i] + (L.NX[j] - L.NX[i]) * f, L.NY[i] + (L.NY[j] - L.NY[i]) * f]; };
+      const W2 = (L, a, b) => { const q = at(L, a), dist = DELTA - s * (b + 8); return [q[0] + q[2] * dist, q[1] + q[3] * dist]; };
+      const curve = (fn) => loops.map((L) => { let d = ''; const ST = 8; for (let a = 0; a < L.Le; a += ST) { const p = W2(L, a, fn(L, a)); d += (d ? ' L' : 'M') + f1(p[0]) + ' ' + f1(p[1]); } return d + ' Z'; }).join(' ');
+      // 바다 캔버스(seaStart)가 그린다 — 세계 좌표 경로
+      const dE = curve(fnE);
+      // 겹 경계를 한 번에 — 점마다 해안선 틀 · E · 폭을 한 번만 구하고 비율만 바꿔 찍는다
+      const fd = FOAMF.map(() => '');
+      loops.forEach((L) => { const st = FOAMF.map(() => '');
+        for (let a = 0; a < L.Le; a += 8) { const q = at(L, a), e = fnE(L, a), w = fW(L, a), cmd = st[0] ? ' L' : 'M';
+          for (let m = 0; m < FOAMF.length; m++) { const dist = DELTA - s * (e - FOAMF[m] * w + 8); st[m] += cmd + f1(q[0] + q[2] * dist) + ' ' + f1(q[1] + q[3] * dist); } }
+        for (let m = 0; m < FOAMF.length; m++) fd[m] += st[m] + ' Z '; });
+      const foam = fd.map((d) => new Path2D(d));
+      this._ceD = { foam, E: new Path2D(dE), wet: new Path2D(dE + ' ' + curve(fnW)) };   // 거품 구멍 · 바깥 흰 띠(리본) · 따로 칠한 얕은 물은 쓰지 않는다 — 수심은 바다 캔버스의 한 줄기 색 계단이 맡는다
+    };
+    this._ceRaf = requestAnimationFrame(frame);
+  }
+  // ── 맵 둘레 특수 그라운드: 그라운드 · 필드 바깥 한 칸을 빙 두른다 ──
+  // 둘레 칸의 윗면 = 붙어 있는 그라운드의 윗면. 서로 다른 그라운드가 붙어 있으면 칸 가운데를 중심으로 면(변)을 기준으로 나눠 가진다 —
+  // 칸을 반 변 12조각(가운데 → 반 변)으로 보고, 조각마다 가장 가까운 '그라운드와 맞닿은 변'의 그라운드를 따른다 (같은 거리면 반씩 → 똑같이 나뉨)
+  ringKeys(base) {
+    const has = new Set(base), out = new Set(), G = this.groundGeo(base);
+    base.forEach((k) => { const [c, r] = this.ck(k); for (let i = 0; i < 6; i++) { const n = G.nbKey(c, r, i); if (!has.has(n)) out.add(n); } });
+    return Array.from(out);
+  }
+  // GG = groundGeo(base ∪ ring). ownerOf(nbKey) → 칸 키를 받아 그 그라운드의 무리 키(재질|회전)를 준다. 반환: [{ gk, d }] (화면 좌표 경로)
+  ringParts(GG, ring, baseSet, ownerOf) {
+    const K = this.tileModel().K, D = 56, f1 = (v) => Math.round(v * 10) / 10, cell = GG.cell, n = cell.length, out = [];
+    // 변 j(cell[j] → cell[j+1])가 마주 보는 이웃 방향
+    const edgeNb = cell.map((a, j) => { const b = cell[(j + 1) % n], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; let best = 0, bd = -1e9; GG.NB.forEach((v, i) => { const dd = (v[0] * mx + v[1] * my) / Math.hypot(v[0], v[1]); if (dd > bd) { bd = dd; best = i; } }); return best; });
+    // 볼록 다각형을 반평면(원점을 지나는 직선, 법선 nx · ny ≥ 0 쪽)으로 자른다
+    const clip = (poly, nx, ny) => { const o = []; for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length], da = a[0] * nx + a[1] * ny, db = b[0] * nx + b[1] * ny; if (da >= 0) o.push(a); if ((da >= 0) !== (db >= 0)) { const t = da / (da - db); o.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); } } return o; };
+    // 반 변 경계점: h = 0..11 → 꼭짓점(짝수) · 변 가운데(홀수)
+    const bp = (h) => { const j = Math.floor(h / 2) % n; if (h % 2 === 0) return cell[j]; const a = cell[j], b = cell[(j + 1) % n]; return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; };
+    const wedge = (poly, h0, h1) => {   // h0 → h1 (반 변 단위, 시계 방향으로 h1 - h0 ≤ 6)
+      const A = bp(h0 % 12), B = bp(h1 % 12);
+      // A 쪽에서 B 방향으로 도는 쪽만 남긴다: A를 지나는 직선의 한쪽 · B를 지나는 직선의 한쪽
+      const cr = (u, v) => u[0] * v[1] - u[1] * v[0], s = cr(A, B) >= 0 ? 1 : -1;
+      let q = clip(poly, -A[1] * s, A[0] * s);
+      q = clip(q, B[1] * s, -B[0] * s);
+      return q;
+    };
+    ring.forEach((k) => {
+      const R = GG.raw[k]; if (!R) return;
+      const [c, r] = this.ck(k);
+      const owners = cell.map((_, j) => { const nk = GG.nbKey(c, r, edgeNb[j]); return baseSet.has(nk) ? ownerOf(nk) : null; });
+      const hit = owners.map((o, j) => (o ? j : -1)).filter((j) => j >= 0);
+      if (!hit.length) return;
+      // 반 변 조각 h(0..11)의 주인: 가장 가까운 맞닿은 변 (조각 가운데 h+0.5 와 변 가운데 2j+1 의 원형 거리)
+      const half = []; for (let h = 0; h < 12; h++) { let best = null, bd = 1e9; hit.forEach((j) => { let d = Math.abs(h + 0.5 - (2 * j + 1)); d = Math.min(d, 12 - d); if (d < bd - 1e-6) { bd = d; best = owners[j]; } }); half.push(best); }
+      // 같은 주인이 이어진 조각끼리 묶는다 (한 바퀴가 다 같으면 칸 통째)
+      const same = half.every((o) => o === half[0]);
+      const poly = R.pts, toD = (q) => 'M' + q.map((p) => f1(R.cx + p[0]) + ' ' + f1((R.cy + p[1]) * K + D)).join(' L') + ' Z';
+      if (same) { out.push({ gk: half[0], d: toD(poly) }); return; }
+      let st = 0; while (half[st] === half[(st + 11) % 12]) st++;
+      for (let i = 0; i < 12;) {
+        const o = half[(st + i) % 12]; let len = 1; while (i + len < 12 && half[(st + i + len) % 12] === o) len++;
+        // 쐐기는 볼록이어야 하므로 120°(4조각)씩 나눠 자른다
+        for (let a = 0; a < len; a += 4) { const b = Math.min(len, a + 4), q = wedge(poly, st + i + a, st + i + b); if (q.length > 2) out.push({ gk: o, d: toD(q) }); }
+        i += len;
+      }
+    });
+    return out;
+  }
+  // 그라운드 '육각 통째' 격자: 보로노이 칸(가로 ±92 · 세로 ±83.85, 세계 단위) 전체를 한 장으로 — GW × GH 칸, 칸 한 변 = P
+  gHexGrid() { return { P: this.tileModel().P, GW: 50, GH: 46 }; }
+  gHexIn(i, j) {
+    const { P, GW, GH } = this.gHexGrid(), K = this.tileModel().K, x = Math.abs((i + 0.5 - GW / 2) * P), y = Math.abs((j + 0.5 - GH / 2) * P), m = P * 0.6;
+    return y <= 46 / K + m && x * 130 + y * 46 / K <= (130 * 130 + (46 / K) * (46 / K)) / 2 + m * 154;
+  }
+  gHexFromTile(top) {
+    const { GW, GH } = this.gHexGrid(), out = [], m = (v) => ((v % 16) + 16) % 16;
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) out.push(top[m(j - GH / 2) * 16 + m(i - GW / 2)]);
+    return out;
+  }
+  // 육각 통째 그림을 rot × 60° 돌린 칸 배열 (칸 중심을 거꾸로 돌려 원래 칸에서 읽는다 — 칸 밖이면 제자리 색)
+  gHexRot(arr, rot) {
+    if (!rot) return arr;
+    const { GW, GH } = this.gHexGrid(), a = -rot * Math.PI / 3, c = Math.cos(a), s = Math.sin(a), K = this.tileModel().K, out = arr.slice();
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+      const x = i + 0.5 - GW / 2, y = (j + 0.5 - GH / 2), sx = Math.round(x * c - y * s - 0.5 + GW / 2), sy = Math.round(x * s + y * c - 0.5 + GH / 2);
+      if (sx >= 0 && sx < GW && sy >= 0 && sy < GH && this.gHexIn(sx, sy)) out[j * GW + i] = arr[sy * GW + sx];
+    }
+    return out;
+  }
+  // 칸 배열 → 투명 바탕 PNG (육각 밖은 비움). 같은 그림은 다시 굽지 않는다
+  gHexImg(arr) {
+    if (typeof document === 'undefined') return '';
+    const key = arr.join('');
+    this._ghImg = this._ghImg || new Map();
+    if (this._ghImg.has(key)) return this._ghImg.get(key);
+    const { GW, GH } = this.gHexGrid(), cv = document.createElement('canvas'); cv.width = GW; cv.height = GH;
+    const q = cv.getContext('2d');
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) if (this.gHexIn(i, j)) { q.fillStyle = arr[j * GW + i]; q.fillRect(i, j, 1, 1); }
+    const url = cv.toDataURL('image/png');
+    this._ghImg.set(key, url);
+    return url;
+  }
+  // 그라운드 윗면 무늬 (세계 좌표에 고정 · 회전 rot × 60°): 한 스킨 · 회전 · 프레임마다 패턴 하나
+  //   16×16 되풀이: 픽셀 사각형 무늬 · 육각 통째: 리전 격자 주기(가로 260 × 세로 92/K)의 무늬 한 장에 칸 그림 5장(가운데 · 네 모서리)을 놓는다
+  groundPattern(sk, rot, k) {
+    const M = this.tileModel(), K = M.K, P = M.P, a = rot * Math.PI / 3, ca = Math.cos(a), sa = Math.sin(a), f = (v) => Math.round(v * 1000) / 1000;
+    const fr = sk.frames[k] || sk.frames[0], id = 'gp-' + sk.id + '-' + rot + '-' + k;
+    if (sk.mode === 'hex' && fr.hexTop) {
+      const G = this.gHexGrid(), href = this.gHexImg(this.gHexRot(fr.hexTop, rot)), w = G.GW * P, h = G.GH * P, TH = 92 / K;
+      const imgs = [[0, 0], [260, 0], [0, TH], [260, TH], [130, TH / 2]].map(([x, y]) => ({ href, x: f(x - w / 2), y: f(y - h / 2), w: f(w), h: f(h) }));
+      return { id, w: 260, h: f(TH), m: 'matrix(1 0 0 ' + f(K) + ' 183 206)', rects: [], imgs };
+    }
+    return { id, w: 16, h: 16, m: 'matrix(' + [P * ca, P * sa * K, -P * sa, P * ca * K, 0, 56].map(f).join(' ') + ')', rects: this.pixRects(fr.top, 16, 16), imgs: [] };
+  }
+
+
+  roundedPoints(pts, r, seg) {
+    const n = pts.length, out = [];
+    const cut = (from, to) => {
+      const dx = to[0] - from[0], dy = to[1] - from[1], len = Math.hypot(dx, dy);
+      const t = Math.min(r / len, 0.5);
+      return [from[0] + dx * t, from[1] + dy * t];
+    };
+    for (let i = 0; i < n; i++) {
+      const p = pts[i], a = cut(p, pts[(i - 1 + n) % n]), b = cut(p, pts[(i + 1) % n]);
+      for (let j = 0; j <= seg; j++) {
+        const t = j / seg, u = 1 - t;
+        out.push([u * u * a[0] + 2 * u * t * p[0] + t * t * b[0], u * u * a[1] + 2 * u * t * p[1] + t * t * b[1]]);
+      }
+    }
+    return out;
+  }
+  hull(points) {
+    const P = points.slice().sort((p, q) => (p[0] - q[0]) || (p[1] - q[1]));
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lower = [], upper = [];
+    P.forEach((p) => { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop(); lower.push(p); });
+    P.slice().reverse().forEach((p) => { while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop(); upper.push(p); });
+    return lower.slice(0, -1).concat(upper.slice(0, -1));
+  }
+  // 타일 하나의 모양 (중심 0,0 기준). 모든 타일이 같은 모양을 쓰고 위치만 옮긴다 → 무늬도 타일마다 똑같이 맞는다
+  // 옆면은 세 방향(왼 L · 앞 F · 오른 R)으로 나눠, 무늬의 가로줄이 그 면의 윗모서리를 따라 기울게 한다
+  tileGeo() {
+    if (this._tg) return this._tg;
+    const A = 80, B = 36, H = 38, D = 56, R = 12, BH = 6;
+    const K = H / (A * Math.sqrt(3) / 2), sL = H / (A - B);
+    const f = (v) => Math.round(v * 100) / 100;
+    const str = (arr) => arr.map((p) => f(p[0]) + ',' + f(p[1])).join(' ');
+    const top = this.roundedPoints([[-B, -H], [B, -H], [A, 0], [B, H], [-B, H], [-A, 0]], R, 8);
+    const n = top.length, dn = (p, d) => [p[0], p[1] + d];
+    const segs = [];
+    for (let i = 0; i < n; i++) {
+      const p = top[i], q = top[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1];
+      if (dx > -0.001) continue;
+      const mx = (p[0] + q[0]) / 2;
+      segs.push({ i, p, q, face: mx < -B ? 'L' : (mx > B ? 'R' : 'F'), dx, dy });
+    }
+    const idx = new Set(segs.map((s) => s.i));
+    const start = segs.findIndex((s) => !idx.has((s.i - 1 + n) % n));
+    const ordered = segs.slice(start).concat(segs.slice(0, start));
+    const strips = [];
+    ordered.forEach((s) => {
+      const last = strips[strips.length - 1];
+      if (last && last.face === s.face) last.edge.push(s.q); else strips.push({ face: s.face, edge: [s.p, s.q] });
+    });
+    const edge = [ordered[0].p].concat(ordered.map((s) => s.q));
+    const band = (e) => str(e.concat(e.slice().reverse().map((p) => dn(p, BH))));
+    const side = (e) => str(e.map((p) => dn(p, BH)).concat(e.slice().reverse().map((p) => dn(p, D))));
+    // 옆면 명암: 한 장의 가로 그라데이션 — 조각 경계선이 생기지 않는다
+    const stops = ordered.map((s) => {
+      const nx = s.dy / K, ny = -s.dx, len = Math.hypot(nx, ny) || 1;
+      const t = ((nx / len) * -0.8 + (ny / len) * 0.6 + 1) / 2;
+      return { o: f(((s.p[0] + s.q[0]) / 2 + A) / (2 * A)), a: f(0.42 * (1 - t)) };
+    }).sort((a, b) => a.o - b.o);
+    // 픽셀 한 칸 = 세계 길이 P (윗면 · 띠 · 옆면 모두 같은 크기의 정사각형). 옆면 16줄이 옆면 높이에 꼭 맞게 P를 정한다
+    const C = Math.sqrt(1 - K * K), P = (D - BH) / (16 * C), SV = P * C, BV = BH / 2;
+    // 각 옆면의 가로 방향 = 그 면 윗모서리를 따라 세계 길이 P만큼 (왼·오른 면은 비스듬히 짧아 보인다)
+    const eL = 80, ux = (A - B) / eL * P, uy = H / eL * P;
+    const m = (a, b, c, d, e, g) => 'matrix(' + [a, b, c, d, e, g].map(f).join(' ') + ')';
+    this._tg = {
+      A, B, H, D, BH,
+      top: str(top),
+      base: str(this.hull(top.concat(top.map((p) => dn(p, D))))),
+      area: str(edge.concat(edge.slice().reverse().map((p) => dn(p, D)))),
+      strips: strips.map((s) => ({ face: s.face, band: band(s.edge), side: side(s.edge) })),
+      stops,
+      T: {
+        top: m(P, 0, 0, P * K, 0, 0),
+        // 무늬 시작점 = 각 면의 왼쪽 위 꼭짓점 → 면이 바뀌는 꼭짓점에서 가로줄이 끊기지 않고 이어진다
+        bL: m(ux, uy, 0, BV, -A, 0), sL: m(ux, uy, 0, SV, -A, BH),
+        bF: m(P, 0, 0, BV, -B, H), sF: m(P, 0, 0, SV, -B, H + BH),
+        bR: m(ux, -uy, 0, BV, B, H), sR: m(ux, -uy, 0, SV, B, H + BH)
+      }
+    };
+    return this._tg;
+  }
+  pixRects(px, w, h) {
+    const rects = [];
+    for (let j = 0; j < h; j++) {
+      let i = 0;
+      while (i < w) {
+        const c = px[j * w + i];
+        let k = i + 1;
+        while (k < w && px[j * w + k] === c) k++;
+        rects.push({ x: i, y: j, w: k - i + 0.04, h: 1.04, fill: c });
+        i = k;
+      }
+    }
+    return rects;
+  }
+  // 스킨 하나 = 패턴 7개 (윗면 1 · 띠 3방향 · 옆면 3방향)
+  fieldPatterns(sk, prefix) {
+    const T = this.tileGeo().T, out = [];
+    out.push({ id: prefix + '-top', w: 16, h: 16, m: T.top, rects: this.pixRects(sk.top, 16, 16) });
+    const bandR = this.pixRects(sk.band, 16, 2), sideR = this.pixRects(sk.side, 16, 16);
+    ['F', 'L', 'R'].forEach((fc) => {
+      out.push({ id: prefix + '-b' + fc, w: 16, h: 2, m: T['b' + fc], rects: bandR });
+      out.push({ id: prefix + '-s' + fc, w: 16, h: 16, m: T['s' + fc], rects: sideR });
+    });
+    return out;
+  }
+  tileFill(sk, prefix) {
+    const g = this.tileGeo();
+    return {
+      baseFill: this.avgC(sk.side),
+      topFill: 'url(#' + prefix + '-top)',
+      strips: g.strips.map((s) => ({ band: s.band, side: s.side, bf: 'url(#' + prefix + '-b' + s.face + ')', sf: 'url(#' + prefix + '-s' + s.face + ')', bs: this.avgC(sk.band) }))
+    };
+  }
+  // ───── 필드 타일 3D 모델 → 2D 데이터 (노드 화면 · 필드 편집기가 같은 코드) ─────
+  // 타일은 3D로 정의한다: 둥근 정육각 윤곽(세계 좌표) × 높이. 띠 · 옆면 무늬는 윤곽을 따라 잰 길이(u)와 깊이(v)로 붙는다
+  // → 둥근 모서리에서도 윗면 · 띠 · 옆면의 픽셀 줄이 같이 휜다. 보이는 쪽만 골라 같은 색 칸을 이어 붙여 2D 다각형으로 굽는다
+  tileModel() {
+    if (this._tm) return this._tm;
+    const A = 80, B = 36, H = 38, D = 56, R = 12, BH = 6;
+    const K = H / (A * Math.sqrt(3) / 2), C = Math.sqrt(1 - K * K);
+    const scr = this.roundedPoints([[-B, -H], [B, -H], [A, 0], [B, H], [-B, H], [-A, 0]], R, 8);
+    let w = scr.map((p) => [p[0], p[1] / K]).reverse();
+    let s0 = 0;
+    w.forEach((p, i) => { if (Math.abs(p[0]) < Math.abs(w[s0][0]) + 1e-9 && p[1] < 0) s0 = i; });
+    w = w.slice(s0).concat(w.slice(0, s0));
+    const cum = [0];
+    for (let i = 1; i <= w.length; i++) cum.push(cum[i - 1] + Math.hypot(w[i % w.length][0] - w[i - 1][0], w[i % w.length][1] - w[i - 1][1]));
+    const L = cum[w.length];
+    const BHw = BH / C, Dw = D / C, P = (Dw - BHw) / 16;
+    this._tm = { A, B, H, D, BH, K, C, w, cum, L, BHw, Dw, P };
+    return this._tm;
+  }
+  // 윤곽을 안쪽으로 d만큼 들인 윤곽 (꼭짓점마다 바깥 법선 방향으로) — 노드 테두리용
+  insetOutline(d) {
+    const M = this.tileModel();
+    M.insets = M.insets || {};
+    if (M.insets[d]) return M.insets[d];
+    const w = M.w, n = w.length;
+    const nrm = (a, b) => { let x = b[1] - a[1], y = -(b[0] - a[0]); const l = Math.hypot(x, y) || 1; x /= l; y /= l; const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; return x * mx + y * my < 0 ? [-x, -y] : [x, y]; };
+    M.insets[d] = w.map((p, i) => {
+      const n1 = nrm(w[(i - 1 + n) % n], p), n2 = nrm(p, w[(i + 1) % n]);
+      let x = n1[0] + n2[0], y = n1[1] + n2[1];
+      const l = Math.hypot(x, y) || 1;
+      return [p[0] - x / l * d, p[1] - y / l * d];
+    });
+    return M.insets[d];
+  }
+  arcPts(u1, u2, wAlt) {
+    const { cum } = this.tileModel(), w = wAlt || this.tileModel().w, n = w.length;
+    const at = (u) => {
+      let i = 0;
+      while (i < n - 1 && cum[i + 1] < u) i++;
+      const t = (u - cum[i]) / ((cum[i + 1] - cum[i]) || 1), a = w[i], b = w[(i + 1) % n];
+      return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+    };
+    const out = [at(u1)];
+    for (let i = 0; i < n; i++) if (cum[i] > u1 && cum[i] < u2) out.push(w[i]);
+    out.push(at(u2));
+    return out;
+  }
+  // ───── 윗면 '육각 통째' (16×16 되풀이 대신 윗면 전체를 한 장으로 그리기) ─────
+  // 격자 HW × HH 칸, 칸 한 변 = 무늬 픽셀과 같은 세계 길이 P. 가운데가 타일 중심. 육각 밖 칸은 편집하지 않는다(가장자리 둥근 부분은 안쪽 칸 색이 이어짐)
+  hexGrid() { return { P: this.tileModel().P, HW: 44, HH: 38 }; }
+  hexIn(i, j) {
+    const { P, HW, HH } = this.hexGrid(), x = (i + 0.5 - HW / 2) * P, y = (j + 0.5 - HH / 2) * P, ap = 38 / this.tileModel().K + P * 0.5;
+    return Math.abs(y) <= ap && Math.abs(x) * 0.866 + Math.abs(y) * 0.5 <= ap;
+  }
+  // 16×16 되풀이 무늬를 육각 한 장으로 옮긴다 (보이는 모습 그대로 — 중심을 맞춰 칸을 이어 붙인다)
+  hexFromTile(top) {
+    const { HW, HH } = this.hexGrid(), out = [], m = (v) => ((v % 16) + 16) % 16;
+    for (let j = 0; j < HH; j++) for (let i = 0; i < HW; i++) out.push(top[m(j - HH / 2) * 16 + m(i - HW / 2)]);
+    return out;
+  }
+  // 윗면 패턴: 격자 · 벽돌 엇갈림 · 거울 대칭 · 45° 회전 × 크기 · 육각 통째
+  topPattern(sk, proj, prefix, rotA) {
+    const M = this.tileModel(), f = (v) => Math.round(v * 1000) / 1000;
+    const pt = sk.pattern || { type: 'grid', scale: 1 }, P = M.P * (pt.scale || 1), px = sk.top;
+    let w = 16, h = 16, arr = px;
+    if (pt.type === 'brick') {
+      h = 32; arr = [];
+      for (let j = 0; j < 32; j++) for (let i = 0; i < 16; i++) arr.push(j < 16 ? px[j * 16 + i] : px[(j - 16) * 16 + (i + 8) % 16]);
+    } else if (pt.type === 'mirror') {
+      w = 32; h = 32; arr = [];
+      for (let j = 0; j < 32; j++) for (let i = 0; i < 32; i++) arr.push(px[(j < 16 ? j : 31 - j) * 16 + (i < 16 ? i : 31 - i)]);
+    }
+    // 육각 통째: 윗면 전체가 한 장 — 무늬 원점을 타일 중심에서 반 장만큼 당겨 가운데를 맞춘다 (크기 배율은 쓰지 않음)
+    if (pt.type === 'hex' && sk.hexTop) {
+      const G = this.hexGrid(), Ph = G.P, ra = rotA || 0, c1 = Math.cos(ra), s1 = Math.sin(ra), ox = -G.HW * Ph / 2, oy = -G.HH * Ph / 2;
+      const O0 = proj(0, 0, 0), Uh = proj(Ph * c1, Ph * s1, 0), Vh = proj(-Ph * s1, Ph * c1, 0), Oh = proj(ox * c1 - oy * s1, ox * s1 + oy * c1, 0);
+      return { id: prefix + '-top', w: G.HW, h: G.HH, m: 'matrix(' + [Uh[0] - O0[0], Uh[1] - O0[1], Vh[0] - O0[0], Vh[1] - O0[1], Oh[0], Oh[1]].map(f).join(' ') + ')', rects: this.pixRects(sk.hexTop, G.HW, G.HH) };
+    }
+    const a = (pt.type === 'diamond' ? Math.PI / 4 : 0) + (rotA || 0), ca = Math.cos(a), sa = Math.sin(a);   // rotA: 필드 무늬 회전(60° 단위)
+    const O = proj(0, 0, 0), U = proj(P * ca, P * sa, 0), V = proj(-P * sa, P * ca, 0);
+    return { id: prefix + '-top', w, h, m: 'matrix(' + [U[0] - O[0], U[1] - O[1], V[0] - O[0], V[1] - O[1], O[0], O[1]].map(f).join(' ') + ')', rects: this.pixRects(arr, w, h) };
+  }
+  // role: false(일반) · 'leaf' · 'tree' · 'both' — 노드 역할별 테두리 · 'parent' — 부모 필드(더 높고, 전용 띠 · 테두리)
+  bakeTile(sk, view, prefix, role) {
+    const M = this.tileModel(), f = (v) => Math.round(v * 100) / 100;
+    const ya = (view.yaw || 0) * Math.PI / 180, cy = Math.cos(ya), sy = Math.sin(ya);
+    const sp = view.pitch === undefined ? M.K : Math.sin(view.pitch * Math.PI / 180), cp = Math.sqrt(1 - sp * sp);
+    const sc = view.scale || 1;
+    const proj = (x, y, z) => { const xr = x * cy - y * sy, yr = x * sy + y * cy; return [xr * sc, (yr * sp - z * cp) * sc]; };
+    const str = (arr) => arr.map((p) => f(p[0]) + ',' + f(p[1])).join(' ');
+    // 명암은 0.04 단계로 끊는다 — 곧은 면은 한 단계, 둥근 모서리는 몇 단계로만 넘어가 같은 색이 늘어난다
+    const light = (nx, ny) => Math.round((0.58 + 0.42 * ((nx * -0.8 + ny * 0.6) + 1) / 2) * 25) / 25;
+    // 무늬 회전(view.srot × 60°): 윗면 무늬는 세계 좌표에서 돌리고, 띠 · 옆면 · 테두리는 윤곽을 따라 1/6 바퀴씩 민다 (둥근 육각은 60°마다 겹치므로)
+    const srot = view.srot || 0;
+    const topPat = this.topPattern(sk, proj, prefix, srot * Math.PI / 3);
+    const top = str(M.w.map((p) => proj(p[0], p[1], 0)));
+    // 기본 높이보다 솟은 만큼(lift)은 옆면 아래로 '높이 채움' 무늬를 16줄씩 되풀이해 메운다 (끝은 잘림)
+    const pd = role === 'parent' ? this.parentOf(sk) : null;
+    const bottom = -M.Dw - (pd ? pd.lift : role ? (sk.lift || 0) : 0) / M.C;
+    const base = str(this.hull(M.w.map((p) => proj(p[0], p[1], 0)).concat(M.w.map((p) => proj(p[0], p[1], bottom)))));
+    const rows = [];
+    for (let j = 0; j < 2; j++) rows.push({ px: pd ? pd.band : sk.band, j, z0: -j * M.BHw / 2, z1: -(j + 1) * M.BHw / 2 });
+    for (let j = 0; j < 16; j++) rows.push({ px: sk.side, j, z0: -M.BHw - j * M.P, z1: -M.BHw - (j + 1) * M.P });
+    for (let j = 0; -M.Dw - j * M.P > bottom + 1e-6; j++) rows.push({ px: sk.fill, j: j % 16, z0: -M.Dw - j * M.P, z1: Math.max(bottom, -M.Dw - (j + 1) * M.P) });
+    const nCol = Math.ceil(M.L / M.P - 1e-9), ks = Math.round(srot * nCol / 6), col = (k) => ((k + ks) % nCol) % 16;
+    const cols = [];
+    for (let k = 0; k < nCol; k++) {
+      const u0 = k * M.P, u1 = Math.min(M.L, (k + 1) * M.P), pts = this.arcPts(u0, u1);
+      const a = pts[0], b = pts[pts.length - 1], mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      let nx = b[1] - a[1], ny = -(b[0] - a[0]);
+      if (nx * mid[0] + ny * mid[1] < 0) { nx = -nx; ny = -ny; }
+      const len = Math.hypot(nx, ny) || 1;
+      nx /= len; ny /= len;
+      cols.push({ k, u0, u1, vis: nx * sy + ny * cy > 0.001, lf: light(nx, ny) });
+    }
+    const polys = [];
+    let cells = 0;
+    rows.forEach((r) => {
+      let run = null;
+      const flush = () => {
+        if (!run) return;
+        const edge = this.arcPts(run.u0, run.u1);
+        polys.push({ pts: str(edge.map((p) => proj(p[0], p[1], r.z0)).concat(edge.slice().reverse().map((p) => proj(p[0], p[1], r.z1)))), c: run.c });
+        run = null;
+      };
+      cols.forEach((cl) => {
+        if (!cl.vis) { flush(); return; }
+        cells++;
+        const c = this.scaleC(r.px[r.j * 16 + col(cl.k)], cl.lf);
+        if (run && run.c === c) run.u1 = cl.u1; else { flush(); run = { u0: cl.u0, u1: cl.u1, c }; }
+      });
+      flush();
+    });
+    // 노드 테두리: 윗면 가장자리를 따라 안쪽으로 2줄 (윤곽 길이 u로 무늬를 붙이고, 같은 색은 이어 붙인다)
+    const rimPolys = [];
+    if (role) {
+      const rimPx = pd ? pd.rim : sk.rim[role];
+      for (let j = 0; j < 2; j++) {
+        const wo = this.insetOutline(j * M.P), wi = this.insetOutline((j + 1) * M.P);
+        let run = null;
+        const flush = () => {
+          if (!run) return;
+          const a = this.arcPts(run.u0, run.u1, wo), b = this.arcPts(run.u0, run.u1, wi);
+          rimPolys.push({ pts: str(a.map((p) => proj(p[0], p[1], 0)).concat(b.reverse().map((p) => proj(p[0], p[1], 0)))), c: run.c });
+          run = null;
+        };
+        cols.forEach((cl) => {
+          const c = rimPx[j * 16 + col(cl.k)];
+          if (run && run.c === c) run.u1 = cl.u1; else { flush(); run = { u0: cl.u0, u1: cl.u1, c }; }
+        });
+        flush();
+      }
+    }
+    // 같은 색 다각형을 경로 하나로 묶는다 — 그림은 같고, 브라우저가 다룰 요소 수가 색 개수만큼으로 준다
+    const byC = new Map();
+    polys.forEach((p) => byC.set(p.c, (byC.get(p.c) || '') + 'M' + p.pts.split(' ').join(' L') + ' Z '));
+    const paths = Array.from(byC, ([c, d]) => ({ c, d: d.trim() }));
+    const rimC = new Map();
+    rimPolys.forEach((p) => rimC.set(p.c, (rimC.get(p.c) || '') + 'M' + p.pts.split(' ').join(' L') + ' Z '));
+    const rim = Array.from(rimC, ([c, d]) => ({ c, d: d.trim() }));
+    const hb = this.hull(M.w.map((p) => proj(p[0], p[1], 0)).concat(M.w.map((p) => proj(p[0], p[1], bottom))));
+    const bbox = [Math.min(...hb.map((p) => p[0])) - 1, Math.min(...hb.map((p) => p[1])) - 1, Math.max(...hb.map((p) => p[0])) + 1, Math.max(...hb.map((p) => p[1])) + 1].map(f);
+    return { top, topPat, base, baseFill: this.scaleC(this.avgC(sk.side), 0.8), paths, rim, cells, count: polys.length + rimPolys.length, els: paths.length + rim.length, bbox };
+  }
+  // ───── 표시용 이미지 캐시 ─────
+  // 벡터 데이터(this.BT)는 그대로 보관하고, 화면에 깔 때만 스킨마다 한 번 이미지로 그려 둔다 (3배 해상도)
+  ensureBake() {
+    if (this.FSK) return;
+    this.FSK = this.fieldSkins();
+    this.GSK = this.groundSkins();
+    // 스킨마다 다섯 벌: 일반 필드 · 노드 필드 Leaf · Tree · Tree·Leaf (솟음 + 확장 옆면 + 역할별 테두리) · 부모 필드. 모두 벡터로 보관
+    this.BT = []; this.BTF = [];
+    this.FSK.forEach((sk) => [false, 'leaf', 'tree', 'both', 'parent'].forEach((nd) => {
+      const id = 'tile-' + sk.id + (nd ? '-' + nd : '');
+      this.BT.push(Object.assign({ sid: sk.id, node: nd, key: id, id, topFill: 'url(#fs-' + sk.id + '-top)' }, this.bakeTile(sk, {}, 'fs-' + sk.id, nd)));
+      // 애니메이션 필드: 2번째 프레임부터는 이미지로만 굽는다 (벡터 예비 그림은 첫 프레임만)
+      (sk.frames || []).forEach((fr, k) => { if (fr && k > 0) this.BTF.push(Object.assign({ sid: sk.id, node: nd, key: id + '@' + k, id: id + '@' + k }, this.bakeTile(Object.assign({}, sk, fr), {}, 'fs-' + sk.id + '-f' + k, nd))); });
+    }));
+    this.FP = this.BT.filter((b) => !b.node).map((b) => b.topPat);
+    // 프사 전용 받침 필드: 필드에는 깔리지 않고 프사에만 쓰인다. 역할 테두리(Leaf · Tree · Tree·Leaf)는 두르되 솟지 않는다
+    const pf = this.profileSkin();
+    this.PFT = [false, 'leaf', 'tree', 'both'].map((r) => Object.assign({ id: 'pf-' + (r || 'plain'), role: r }, this.bakeTile(pf, {}, 'pf', r)));
+  }
+  // 필드 무늬 회전 벌: 처음 쓰일 때 굽는다 (벡터 → 이미지). 키 = 'tile-스킨[-역할]-r회전'
+  ensureRot(sid, role, rot) {
+    const base = 'tile-' + sid + (role ? '-' + role : ''), key = base + '-r' + rot;
+    if (this.BT.find((b) => b.key === key)) return key;
+    const sk = this.FSK.find((x) => x.id === sid) || this.FSK[0], pre = 'fs-' + sk.id + '-r' + rot;
+    const bt = Object.assign({ sid: sk.id, node: role || false, rot, key, id: key, topFill: 'url(#' + pre + '-top)' }, this.bakeTile(sk, { srot: rot }, pre, role || false));
+    this.BT.push(bt);
+    const more = [bt];
+    (sk.frames || []).forEach((fr, k) => { if (fr && k > 0) { const b2 = Object.assign({ sid: sk.id, node: role || false, rot, key: key + '@' + k, id: key + '@' + k }, this.bakeTile(Object.assign({}, sk, fr), { srot: rot }, pre + '-f' + k, role || false)); this.BTF.push(b2); more.push(b2); } });
+    clearTimeout(this._rotBakeT);
+    this._rotQ = (this._rotQ || []).concat(more);
+    this._rotBakeT = setTimeout(() => { const q = this._rotQ; this._rotQ = []; this.bakeImgs(q); }, 0);
+    return key;
+  }
+  profileSkin() {
+    const gen = (w, h, seed, fn) => { const r = this.rng(seed), out = []; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) out.push(fn(i, j, r)); return out; };
+    const side = gen(16, 16, 953, (i, j, r) => j === 0 ? '#46536a' : (j === 7 || j === 8) ? (i % 4 === 1 ? '#8fb3f5' : '#3b475b') : (i % 8 === 4 && (j === 3 || j === 12)) ? '#56647c' : this.tone('#2b3442', (r() - 0.5) * 6));
+    return {
+      id: 'profile', name: '프사 받침', lift: 0, pattern: { type: 'grid', scale: 1 },
+      // 윗면: 옅은 석판 — 4칸 격자 무늬에 가는 줄눈
+      top: gen(16, 16, 951, (i, j, r) => (i % 8 === 0 || j % 8 === 0) ? '#d5deea' : (((i >> 2) + (j >> 2)) % 2 ? '#edf2f9' : '#e4ebf5')),
+      // 띠: 브랜드 파랑
+      band: gen(16, 2, 952, (i, j) => j === 0 ? (i % 4 === 0 ? '#8fb3f5' : '#4f86f0') : '#1d4fd0'),
+      side, fill: side.slice(),
+      rim: this.FSK[0].rim
+    };
+  }
+  // 전체화면(재생)에서 창 크기가 화면 크기와 다르면, 화면 전체를 창에 맞춰 줄이거나 키우고 가운데에 둔다 (스크롤 없음)
+  fitScreen() {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    const el = document.querySelector('[data-node-root]');
+    if (!el) return;
+    const W = 1447, H = 945, vw = window.innerWidth, vh = window.innerHeight;
+    // 화면 크기와 상관없이 페이지 스크롤은 늘 막는다 (화면에 딱 맞을 때도 문서 밖에 붙은 요소 때문에 스크롤 막대가 생기던 문제)
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.margin = '0';
+    if (Math.abs(vw - W) < 3 && Math.abs(vh - H) < 3) {
+      el.style.position = ''; el.style.transform = ''; el.style.left = ''; el.style.top = '';
+      return;
+    }
+    const k = Math.min(vw / W, vh / H);
+    el.style.position = 'fixed';
+    el.style.left = '0px'; el.style.top = '0px';
+    el.style.transformOrigin = '0 0';
+    el.style.transform = 'translate(' + Math.round((vw - W * k) / 2) + 'px, ' + Math.round((vh - H * k) / 2) + 'px) scale(' + k + ')';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.background = '#eef1f5';
+  }
+  // ───── 건물 무늬: 이미지로 한 번 굽기 ─────
+  // 블록 면 무늬(8×8 픽셀)를 SVG 사각형 64개 대신 작은 PNG 한 장으로 굽고, 템플릿 밖의 숨은 <svg>에 한 번만 붙인다.
+  // → 화면 요소가 수만 개 줄고, 상태가 바뀌어도 무늬는 다시 만들거나 비교하지 않는다. 건물이 바뀌면 다시 부른다.
+  bakePx(cols) {
+    const key = cols.join('');
+    this._pxCache = this._pxCache || new Map();
+    if (this._pxCache.has(key)) return this._pxCache.get(key);
+    const Z = 4, cv = document.createElement('canvas');   // 한 픽셀 = 4×4 (부드럽게 늘려도 흐려지지 않게)
+    cv.width = cv.height = 8 * Z;
+    const g = cv.getContext('2d');
+    cols.forEach((c, i) => { g.fillStyle = c; g.fillRect((i % 8) * Z, Math.floor(i / 8) * Z, Z, Z); });
+    const url = cv.toDataURL('image/png');
+    this._pxCache.set(key, url);
+    return url;
+  }
+  mountBldgDefs() {
+    if (typeof document === 'undefined') return;
+    const NS = 'http://www.w3.org/2000/svg';
+    document.querySelectorAll('svg[data-bldg-defs]').forEach((n) => n.remove());
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('data-bldg-defs', '1'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('width', '0'); svg.setAttribute('height', '0');
+    svg.style.cssText = 'position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none;';   // display: none이면 무늬를 못 쓰는 브라우저가 있다
+    const defs = document.createElementNS(NS, 'defs');
+    this.buildings.concat([this.defaultBldg]).forEach((b) => b.views.forEach((v) => v.patterns.forEach((pt) => {
+      const pat = document.createElementNS(NS, 'pattern');
+      pat.setAttribute('id', pt.id); pat.setAttribute('patternUnits', 'userSpaceOnUse');
+      pat.setAttribute('width', '1'); pat.setAttribute('height', '1'); pat.setAttribute('patternTransform', pt.m);
+      const im = document.createElementNS(NS, 'image');
+      im.setAttribute('href', this.bakePx(pt.cols)); im.setAttribute('width', '1.004'); im.setAttribute('height', '1.004');
+      im.setAttribute('preserveAspectRatio', 'none'); im.style.imageRendering = 'pixelated';
+      pat.appendChild(im); defs.appendChild(pat);
+    })));
+    svg.appendChild(defs);
+    document.body.appendChild(svg);
+    this._bldgDefs = svg;
+  }
+  // 건물 한 방향 = 이미지 한 장으로 굽기 (타일 굽기와 같은 방식: SVG 문자열 → 캔버스 → PNG).
+  // 필드가 움직일 때(맵 전환 · 높이 변경 · 끌기) 벡터 경로 수백 개 + 무늬를 매 프레임 다시 그리지 않도록
+  // 애니메이션 건물은 프레임(조합)마다 한 장씩 — 모든 프레임을 같은 테두리(합집합)로 구워 자리가 흔들리지 않게 한다
+  bakeBuildings() {
+    if (typeof document === 'undefined' || typeof Image === 'undefined') return;
+    const SCALE = 3, PAD = 2, f2 = (v) => Math.round(v * 100) / 100;
+    const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const bake = (v, X, Y, W, H) => {
+      const pats = v.patterns.map((pt) => '<pattern id="' + pt.id + '" patternUnits="userSpaceOnUse" width="1" height="1" patternTransform="' + pt.m + '">' +
+        pt.rects.map((q) => '<rect x="' + q.x + '" y="' + q.y + '" width="' + q.w + '" height="' + q.h + '" fill="' + q.fill + '"/>').join('') + '</pattern>').join('');
+      const paths = v.paths.map((q) => '<path d="' + esc(q.d) + '" fill="' + q.edge + '" fill-rule="evenodd" stroke="' + q.edge + '" stroke-width="0.5" stroke-linejoin="round"/><path d="' + esc(q.d) + '" fill="' + q.fill + '" fill-rule="evenodd"/>').join('');
+      const cw = Math.ceil(W * SCALE), ch = Math.ceil(H * SCALE);
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + cw + '" height="' + ch + '" viewBox="' + [f2(X), f2(Y), f2(W), f2(H)].join(' ') + '"><defs>' + pats + '</defs>' + paths + '</svg>';
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try { const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; cv.getContext('2d').drawImage(img, 0, 0, cw, ch); resolve(cv.toDataURL('image/png')); } catch (err) { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      });
+    };
+    const jobs = [];
+    this.buildings.forEach((b) => [0, 1, 2, 3].forEach((r) => {
+      const vs = b.fviews.map((fv) => fv[r]);
+      const x0 = Math.min(...vs.map((v) => v.bbox[0])), y0 = Math.min(...vs.map((v) => v.bbox[1])), x1 = Math.max(...vs.map((v) => v.bbox[2])), y1 = Math.max(...vs.map((v) => v.bbox[3]));
+      const X = x0 - PAD, Y = y0 - PAD, W = x1 - x0 + PAD * 2, H = y1 - y0 + PAD * 2;
+      jobs.push(Promise.all(vs.map((v) => bake(v, X, Y, W, H))).then((urls) => [b, r, urls.some((u) => !u) ? null : { url: urls[0], urls, x: f2(X), y: f2(Y), w: f2(W), h: f2(H) }]));
+    }));
+    Promise.all(jobs).then((list) => {
+      if (this._unmounted) return;
+      const out = {};
+      this._anims = this._anims || {};
+      list.forEach(([b, r, v]) => {
+        if (!v) return;
+        out[b.id + '-' + r] = v;
+        if (b.anim) this._anims['b:' + b.id + '-' + r] = { urls: v.urls, seq: b.seq, T: b.T };
+      });
+      this.setState({ bldImg: out });
+    });
+  }
+  readHelp() { try { return window.localStorage.getItem('terra.gui.innerHelp') === '1'; } catch (e) { return false; } }
+  componentDidMount() {
+    this._onStore = (e) => { if (e.key === 'terra.gui.innerHelp') this.setState({ help: e.newValue === '1' }); };
+    try { window.addEventListener('storage', this._onStore); } catch (e) { /* 무시 */ }
+    this.mountBldgDefs();
+    this.bakeBuildings();
+    this._animI = setInterval(() => this.animTick(), 1000 / 32);   // 16fps 틱을 놓치지 않게 두 배로 살핀다
+    this.fitScreen();
+    if (typeof window !== 'undefined') { this._fit = () => this.fitScreen(); window.addEventListener('resize', this._fit); }
+    this.tlBind();
+    this.ensureBake();
+    this.mgBeachStart();
+    this.fsBind();
+    this.hxStart();
+    this.coastStart();
+    this.seaStart();
+    this.bakeImgs(this.BT.concat(this.BTF));
+  }
+  // ───── 조타륜 (화면 아래 가운데): 평소엔 거의 직선으로 바닥에 숨어 있다가, 마우스가 오면 위로 올라오며 둥글게 휜다 ─────
+  // 돌리기: 누른 채 좌우로 끌기(손가락 밑 눈금이 따라온다) · 올라온 상태에서 휠. 놓으면 관성으로 돌다 가장 가까운 1°에 멈춘다
+  // 눈금 간격은 곡률과 상관없이 1° = 23px. 바탕 없이 검은 선만. 캔버스에 직접 그린다(렌더 밖 — 다시 렌더돼도 지워지지 않게)
+  // ── 조타륜 앱 바 ──
+  HBICON() { return {"mouse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAcElEQVR4nGNgIBEwInPEJOX/oyt49fwhI7oYXPG7j1//v/v49T86G1kdEzbNe1WMcToJqwbnO2dxaoC7D5v7YQDZHyzIEjduXMNQrKGhRdhJ+ABeDSfOXcevGzk4t+0/gxGkDAxoEQfTBGPjjDRSAAAPJTUwTnv5FwAAAABJRU5ErkJggg==", "keyboard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAOUlEQVR4nGNgGHSAUUxS/j8pGpgYGBgYbty4xkAMPUhtYBCTlP//7uPX/zAaHSPLi0nK/yfdBpoDAAFeP78nahjJAAAAAElFTkSuQmCC", "camera": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAbUlEQVR4nGNgoDVgROaIScr/R+a/ev6QkQENMKIrwgdePX/IyMLAwMBQWtMOF+xuqYSzsYkzIZvQ3VLJwO91Bo6RNcMAE4YIAwPDll4hnM7CqsGn+B1ODSzInNKadobuFhMUPjogOZSIVUs+AAAKUB/EtSyn5QAAAABJRU5ErkJggg==", "microphone": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAZ0lEQVR4nGNgIBEwoguIScr/R+a/ev4QRQ0juuKWrn4UA2rKClE0MWGztqaskKGmrBCrk1iwCaLbggxItgEOYJ4Vk5T/P2vxuv+zFq/7jyyGUwOMjc7HaQs+jXidh0shhqeJcgopAAB1tizagNyQyQAAAABJRU5ErkJggg==", "screen": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAATElEQVR4nGNgoDVgFJOU/0+KBhYGBgYGpd6TRCm+V2zOwATjLPQSJUoTXEP8ttekaSAWkOxprEBMUv4/LoMY0RViU/Tq+UNGbOK0AQBIzw9CmaeDRQAAAABJRU5ErkJggg==", "raw_bus": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAYklEQVR4nGNgIBEwoguIScr/R+a/ev4QRQ0TNlNu3LjGcOPGNcI2oJuOzRYWdMlbs5VR+Gqpd1H4WJ2klnoXQyFOG7DZQtAGkoCYpPz/D1uc/n/Y4vQfVyBg1YRLMeVOIgQAAi8fhb+zry4AAAAASUVORK5CYII=", "app": {"svi": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAn0lEQVR4nGNgwAHEJOX/i0nK/8clz4hNAwMDA0PL/gcMDAwMDDWOCgwMDAwMr54/RFHLiEsDOkA3gJGQBlwGsDAwMDCoNh6CCxCykTNsGsP3VVkQjTDNyArQ/cgZNg3FIBYGNIBuALoGGGDC5Rd8mghqxAco03i73o5oDd9XZTEwMDAwsMBTRL3dfwYGRODg0gBTDw9VdANwaSAICCVyANl2QbR0fQ9YAAAAAElFTkSuQmCC", "decl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAcUlEQVR4nGNkgAIxSfn/DHjAq+cPGZH5cI6YpPz/pw+vYdUkLa+FoZkJny3I4OnDayiuIlojzFaYZhZ0BY3d87Hahm4Ahsb60kSiXECUjdgMHU421pcmMqgsTmBgYGBguBO7gHIbUZIcUToYMNMtSQAAQAgqwdbeIjoAAAAASUVORK5CYII=", "grant": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAiUlEQVR4nNWRMQrDMAxFv0rOUOjUwaCb6VS5WUCDJoEukQ5FtZM4zpKlf7FB/vqPb+BvRHl5vt5rOwg3Oj6vmtK0zGUzYME6Mj9aE4uCRQEAy1wOFBtjTVCEG4UbpfkSdaReargR7VETcyQW/bbaK2e/iEV/Z7jRlNEs6CKdFTT8q6TpLbzy3a8PoRtAkXaAxvAAAAAASUVORK5CYII=", "io": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAc0lEQVR4nGNgIBMwoguIScr/x6bw1fOHGGpRNL37+BWOkfnoBjIha7px4xqKQXtVjOHsGzeuobiGiYFMgFej852zOOXgHsYVKOgAFkgsyILofkQHGhpacDZt/EgVjSfOXcctiZ4AYHjb/jMYCYA6SY4UAAATJEwmt7R2AgAAAABJRU5ErkJggg==", "folder": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAdUlEQVR4nGNgIBMwMjAwMIhJyv9Hl3j1/CEjXo1ikvL/X+6OwpAQd12GVzMLLomXu6MYxF2XYbgE5hqcGmGasbkE7lR8mnEBFgYGBoYzE2QYZLXtiNLw+OohBpOCJwxM5NjGwMAwABrhofr46iGSNJIdqvQHALMDH+GivpOoAAAAAElFTkSuQmCC", "xfer": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAjklEQVR4nGNgQAJikvL/GYgETMiaOFvMiNbMhKyJgYGBgVjNTMiaYIAYzYzICjhbzBi+15yCS756/pAR5iJ0MaZXzx8ywjjIkuhi/F5nMP1IDiBbIwsyB9l/DAzY4xUmxoguga4I3W8MDAwMH7eZ4Hfqq+cPGT9uM8HQhB5weG1WTX79n5QkiaKZZE3YAAA2yjyJne97XgAAAABJRU5ErkJggg==", "tunnel": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAmklEQVR4nGNgIBMwoguIScr/x6bw1fOHKGrhHJiGlq5+rDbUlBWiGMAI0wTToKetwXDp6g0UTchiNWWFDK+eP2RkQTfZz9sTq40YLhGTlP8/a/G6/7MWr/uPy3/Y1DEh+wE9AJDBq+cPGWH+ZGBgYMBwKgMDA8P/B10oNjMqlGEYyIQugK4JlxiGRmIBhlOxOQsbYMQXkoMLAAB0DUBTf9fzKAAAAABJRU5ErkJggg==", "wg": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAcElEQVR4nGNgoASIScr/F5OU/0+KOhYxSfn/e1WMGRgYGBicGRj+v3r+kBGXJmR1LOgKolOKsNq8e+ta3E7ApQlmIIpTGRgYGJCch9efuLyB06n4XIJTIdGaYIBQFGGEKkwToShiIskZxABiUxP9AAA7ojfQB69kFQAAAABJRU5ErkJggg==", "job": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAb0lEQVR4nGNgIBMwiknK/ydHIwsDAwODq3cwQYUVNx8wdK/1YJh0agWDWupdCm3k4BUkSdOPz+8ZmGAchyNZJGmGazxgM40kzUzIHFI0o2h0OJLFcMBmGlEaWXBpQrcZ3UBGMUn5/+SEKguMMfgBALqqJUuy3PLuAAAAAElFTkSuQmCC", "mod": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAj0lEQVR4nGNgoDYQk5T/LyYp/x+XPAsuTbdmKzMwMDAwqKUy/H/1/CEjTo34TEeWgxnCiCwJswUXUEu9C9fIhFclHttZ8DkRHSD7mwVZgBhw89pNBgYGFohT1VLvMqil3iXBwQwMLDDPEuNkiOEsDK+eP2QkOnAgTsQRHZsL/xA0wLcfYiOKRmJtx5aSiAYAcDE7MUcZcyQAAAAASUVORK5CYII="}}; }
+  // ── 조타륜 앱 바: 다루는 자원은 "지금(가는) 맵의 노드"의 것이다 — 로컬 맵이면 로컬 노드, 다른 노드 맵이면 그 노드 ──
+  // 남의 노드 자원이라 늘 권한을 같이 본다: 노드 권한(node.read · control · config★ · process.execute · file.read · write)과
+  // SVI 자원별 허가. 잠긴 동작은 숨기지 않고 자물쇠와 이유를 단다 (누르면 이유가 왼쪽 글줄에 뜬다)
+  hbOpen(px) { this.setState({ hb: px, hbMsg: null, hbBusy: null, hbPath: '', hbArm: null }); if (!this._hbX) this._hbX = setInterval(() => this.hbTick(), 500); }
+  hbClose() {
+    this.setState({ hb: null, hbBusy: null, hbArm: null });
+  }
+  hbSay(t, c) { clearTimeout(this._hbT); this.setState({ hbMsg: { t, c: c || '#1f7a4d' } }); this._hbT = setTimeout(() => this.setState({ hbMsg: null }), 2600); }
+  hbNode() { const g = this._mapGoal != null ? this._mapGoal : this.state.map; return g || this.state.localNode.name; }
+  // 노드 권한 (예시). 로컬 노드 = 소유자(전부). 로그인한 tree 아래는 역할마다 다르고, 로그인 안 된 tree(비밀번호 · 오프라인) 아래는 권한이 없다
+  hbPerm(node) {
+    const S = this.state, ALL = ['node.read', 'node.control', 'node.config', 'process.execute', 'process.cancel', 'file.read', 'file.write', 'module.manage'];
+    if (node === S.localNode.name) return { role: '소유자', rc: '#1f7a4d', has: ALL, owner: true };
+    let t = this.NET[node] && this.isTree(this.NET[node].role) ? node : this.parentOfNode(node), guard = 0;
+    while (t && guard++ < 8) { const a = (this.NET[t] || {}).auth; if (a === 'password' || a === 'offline') return { role: '권한 없음', rc: '#d33d52', has: [], why: t + ' 로그인 필요' }; t = this.parentOfNode(t); }
+    const P = { 'tree-home': ['node.read', 'node.control', 'process.execute', 'file.read', 'file.write'], 'nas-01': ['node.read', 'file.read', 'file.write'],
+      'tree-lab': ['node.read', 'node.control'], 'gpu-01': ['node.read', 'process.execute'] };
+    const has = P[node] || ['node.read'];
+    return { role: has.indexOf('node.control') >= 0 ? '관리자' : '읽기 전용', rc: has.indexOf('node.control') >= 0 ? '#2563eb' : '#a65f00', has };
+  }
+  // 앱마다 보여 줄 권한 칸 · 목록을 보는 데 필요한 권한
+  HBAPP() { return {
+    svi: { perms: ['node.read'], see: 'node.read', grant: true }, decl: { perms: ['node.read', 'node.config'], see: 'node.read' },
+    grant: { perms: ['node.read', 'node.control'], see: 'node.read' }, io: { perms: ['node.read', 'node.control'], see: 'node.read' },
+    folder: { perms: ['file.read', 'file.write'], see: 'file.read' }, xfer: { perms: ['file.read', 'file.write'], see: 'file.read' },
+    tunnel: { perms: ['node.read', 'node.control'], see: 'node.read' }, wg: { perms: ['node.read', 'node.control'], see: 'node.read' },
+    job: { perms: ['node.read', 'process.execute'], see: 'node.read' }, mod: { perms: ['node.read', 'module.manage'], see: 'node.read' } }; }
+  // 예시 자원: 노드 이름으로 만든다(같은 노드는 늘 같은 목록). 동작으로 바뀌면 hbd에 저장된 쪽을 쓴다
+  hbSeed(n, app) {
+    const loc = n === this.state.localNode.name, res = ((this.NET[n] || {}).res || []), devs = res.filter((r) => r[1] === '장치').map((r) => r[0]);
+    const h = [...n].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7), pick = (k) => (h >> k) & 1;
+    if (app === 'io') return [
+      { id: 'keyboard-04d9-0169-' + (h % 65536).toString(16).padStart(4, '0') + '9be0', kind: 'keyboard', name: '키보드', presence: 'present', approval: 'approved', enabled: true }
+    ].concat(devs.map((d, i) => ({ id: (/카메라/.test(d) ? 'camera-' : 'raw_bus-') + (h + i * 977).toString(16).slice(-8), kind: /카메라/.test(d) ? 'camera' : 'raw_bus', name: d,
+      presence: i === 1 ? 'missing' : 'present', approval: pick(i) ? 'pending' : 'approved', enabled: !pick(i) && i !== 1 })))
+      .concat([{ id: 'screen-default', kind: 'screen', name: '기본 화면', presence: 'unknown', approval: 'denied', enabled: false }]);
+    if (app === 'svi') return [
+      { id: 'svi.' + n + '.process.metrics', kind: 'process', name: 'metrics', ep: 'stdout · source · stream', status: 'available', grant: loc ? 'own' : ['read', 'subscribe'] },
+      { id: 'svi.' + n + '.fs.applog', kind: 'filesystem', name: 'applog', ep: 'read · source · 이어받기', status: 'available', grant: loc ? 'own' : null },
+      { id: 'svi.' + n + '.net.collector', kind: 'net', name: 'collector', ep: 'rx · source · stream', status: 'unavailable', grant: loc ? 'own' : ['read'], last: '4분 전' },
+      { id: 'svi.' + n + '.io.' + (devs.length ? 'camera-default' : 'screen-default'), kind: devs.length ? 'io.camera' : 'io.screen', name: devs.length ? '기본 카메라' : '기본 화면', ep: 'output · source · stream', status: devs.length ? 'available' : 'disabled', grant: loc ? 'own' : ['read'] }
+    ];
+    if (app === 'decl') return [
+      { id: 'process/metrics', fam: 'process', name: 'metrics', dir: 'source', origin: 'runtime', state: 'applied', what: '/usr/bin/node-metrics --json' },
+      { id: 'file/applog', fam: 'file', name: 'applog', dir: 'source', origin: 'file', state: 'applied', what: '/var/log/' + n + '/app.log' },
+      { id: 'net/collector', fam: 'net', name: 'collector', dir: 'source', origin: 'runtime', state: 'refused_by_policy', what: 'tcp://10.0.0.8:9100', reason: '울타리 net = off' },
+      { id: 'process/backup', fam: 'process', name: 'backup', dir: 'sink', origin: 'runtime', state: 'shadowed', what: '/opt/backup/recv', reason: '같은 이름이 설정 파일에 있다' },
+      { id: 'process/old-sync', fam: 'process', name: 'old-sync', dir: 'source', origin: 'runtime', state: 'retired', what: '퇴역 원장' }
+    ];
+    if (app === 'grant') return [
+      { id: 'g-1', type: 'grant', who: 'maru', res: 'process.metrics', ops: 'read · subscribe', ttl: '23시간 남음', alive: true },
+      { id: 'g-2', type: 'grant', who: 'ci-bot', res: 'fs.applog', ops: 'read', ttl: '어제 만료', alive: false },
+      { id: 'svib-7c1', type: 'bind', from: 'process.metrics', to: (loc ? 'nas-01' : 'edge-01') + ' · fs.archive', state: 'active', qos: 'reliable_ordered' },
+      { id: 'svib-9e4', type: 'bind', from: 'net.collector', to: 'gpu-01 · process.ingest', state: 'failed', reason: 'source unavailable — 30초마다 다시' }
+    ];
+    if (app === 'folder') return [
+      { id: 'share-0', parent: '', name: 'share-0', dir: true, root: true, info: '~/TerraShare' },
+      { id: 'share-0/docs', parent: 'share-0', name: 'docs', dir: true, info: '항목 2' },
+      { id: 'share-0/report.pdf', parent: 'share-0', name: 'report.pdf', size: '2.4 MB', info: '어제 18:20' },
+      { id: 'share-0/notes.md', parent: 'share-0', name: 'notes.md', size: '12 KB', info: '오늘 09:02' },
+      { id: 'share-0/docs/plan.md', parent: 'share-0/docs', name: 'plan.md', size: '8 KB', info: '3일 전' },
+      { id: 'share-0/docs/budget.xlsx', parent: 'share-0/docs', name: 'budget.xlsx', size: '64 KB', info: '지난주' }
+    ].concat(res.filter((r) => r[1] === '파일').map((r, i) => ({ id: 'share-' + (i + 1), parent: '', name: 'share-' + (i + 1), dir: true, root: true, info: r[0] })));
+    if (app === 'xfer') return [
+      { id: 'tr-41-1', dir: 'push', name: 'firmware.bin', total: 48, off: 0.62, state: 'transferring' },
+      { id: 'tr-41-2', dir: 'pull', name: 'backup.tar', total: 1200, off: 0.18, state: 'transferring' },
+      { id: 'tr-41-3', dir: 'push', name: 'logs.zip', total: 96, off: 0.4, state: 'failed', reason: 'CHUNK_OUT_OF_ORDER — 40%부터 이어 보낼 수 있다' },
+      { id: 'tr-41-4', dir: 'pull', name: 'notes.md', total: 0.01, off: 1, state: 'completed' }
+    ];
+    if (app === 'tunnel') return [
+      { id: 'stdecl-1', type: 'decl', name: 'ssh → nas-01', to: 'nas-01:22', bind: '127.0.0.1:2222', on: true },
+      { id: 'tun-a1', type: 'tun', name: 'ssh → nas-01', to: 'nas-01:22', bind: '127.0.0.1:2222', state: 'active', conn: '1 / 16', bytes: '4.2 MB' },
+      { id: 'tun-b7', type: 'tun', name: 'http → gpu-01', to: 'gpu-01:8888', bind: '127.0.0.1:8888', state: 'failed', conn: '0 / 16', err: 'dial timeout' }
+    ];
+    if (app === 'wg') return [
+      { id: 'tree-home', ip: '100.80.0.1', ep: '192.168.0.2:51820', hs: '12초 전', health: 'healthy' },
+      { id: 'nas-01', ip: '100.80.0.4', ep: '192.168.0.14:51820', hs: '48초 전', health: 'healthy' },
+      { id: 'gpu-01', ip: '100.80.0.7', ep: '10.2.0.31:51820', hs: '6분 전', health: 'stale' },
+      { id: 'laptop-03', ip: '100.80.0.9', ep: '—', hs: '없음', health: 'never' }
+    ].filter((p) => p.id !== n);
+    if (app === 'mod') {
+      // 모듈: 코어 모듈 넷(io.terra.*) + 이 노드 고유 모듈(관계도의 '모듈' 자원). state = running · degraded · failed · stopped
+      const own = res.filter((r) => r[1] === '모듈').map((r, i) => ({ id: 'local.' + n + '.m' + i, name: r[0], ver: '0.' + (3 + i) + '.' + (h % 7), state: pick(i + 2) ? 'running' : 'degraded', svi: 0, trust: 'local', note: pick(i + 2) ? '' : '응답 느림 — 재시도 3회' }));
+      return [
+        { id: 'io.terra.file', name: '파일', ver: '1.4.0', state: 'running', svi: 0, trust: 'core', note: '공유 폴더 1 · 전송 2' },
+        { id: 'io.terra.io-inventory', name: 'I/O 장치 원장', ver: '1.2.1', state: 'running', svi: 4, trust: 'core', note: 'SVI 자원 4 기여' },
+        { id: 'io.terra.io-weave', name: 'io-weave', ver: '0.9.2', state: loc ? 'running' : 'stopped', svi: 1, trust: 'core', note: 'pointer 입력 1' },
+        { id: 'io.terra.virtual-device', name: '가상 장치', ver: '0.6.0', state: 'failed', svi: 0, trust: 'core', note: 'vdevice 시작 실패 — uinput 권한' }
+      ].concat(own);
+    }
+    if (app === 'job') return [
+      { id: 'job_8812', cmd: 'rsync -a /data nas-01:/backup', state: 'running', t: 42 },
+      { id: 'job_8807', cmd: 'apt-get update', state: 'success', code: 0, out: 'Reading package lists... Done' },
+      { id: 'job_8799', cmd: 'pytest -q tests/', state: 'failed', code: 1, out: '2 failed, 41 passed in 8.31s' },
+      { id: 'job_8815', cmd: '/opt/backup.sh --full', state: 'queued' }
+    ];
+    return [];
+  }
+  hbItems(node, app) {
+    const S = this.state;
+    if (app === 'io' && node === S.localNode.name) return S.io;
+    const k = node + '|' + app; return (S.hbd && S.hbd[k]) || this.hbSeed(node, app);
+  }
+  hbPut(node, app, list) {
+    if (app === 'io' && node === this.state.localNode.name) { this.setState({ io: list }); return; }
+    this.setState({ hbd: Object.assign({}, this.state.hbd, { [node + '|' + app]: list }) });
+  }
+  // 전송 진행 · 작업 실행을 0.5초마다 움직인다 (보고 있는 노드만)
+  hbApp() { const S = this.state; return S.hb || (S.fs && S.fs.indexOf('hb:') === 0 ? S.fs.slice(3) : null); }
+  hbTick() {
+    const S0 = this.state, app = this.hbApp();
+    if (app !== 'xfer' && app !== 'job') return;
+    const S = Object.assign({}, S0, { hb: app });
+    const node = this.hbNode(), list = this.hbItems(node, S.hb);
+    let ch = false;
+    const next = list.map((x) => {
+      if (S.hb === 'xfer' && x.state === 'transferring') { ch = true; const off = Math.min(1, x.off + 0.6 / Math.max(8, x.total)); return Object.assign({}, x, off >= 1 ? { off: 1, state: 'verifying' } : { off }); }
+      if (S.hb === 'xfer' && x.state === 'verifying') { ch = true; return Object.assign({}, x, { state: 'completed' }); }
+      if (S.hb === 'job' && x.state === 'running') { ch = true; const t = x.t + 0.5; return Object.assign({}, x, x.fin && t >= x.fin ? { t, state: 'success', code: 0, out: x.fout || '완료' } : { t }); }
+      return x;
+    });
+    if (ch) this.hbPut(node, S.hb, next);
+  }
+  // 동작 하나 — 한 박자(0.35초) 돌고 바뀐다. 잠긴 동작은 여기까지 오지 않는다
+  hbAct(app, id, op) {
+    if (this.state.hbBusy) return;
+    const node = this.hbNode();
+    // 되돌릴 수 없는 것(피어 회수)은 두 번 눌러야 한다
+    if (op === 'revoke' && app === 'wg' && this.state.hbArm !== id) { this.setState({ hbArm: id }); this.hbSay('한 번 더 누르면 회수 — 되돌릴 수 없다', '#d33d52'); return; }
+    if (app === 'folder' && op === 'open') { this.setState({ hbPath: id, hbArm: null }); return; }
+    this.setState({ hbBusy: id || app, hbArm: null });
+    clearTimeout(this._hbA);
+    this._hbA = setTimeout(() => {
+      const list = this.hbItems(node, app), d = list.find((x) => x.id === id) || {}, nm = d.name || d.cmd || d.id || '';
+      const up = (patch) => list.map((x) => x.id === id ? Object.assign({}, x, patch) : x), drop = () => list.filter((x) => x.id !== id);
+      let next = list, say = '', c = '#1f7a4d';
+      const W = '#a65f00';
+      switch (app + ':' + op) {
+        case 'io:approve': next = up({ approval: 'approved' }); say = nm + ' 승인 — 켜야 쓸 수 있다'; break;
+        case 'io:enable': next = up({ enabled: true }); say = nm + ' 켜짐'; break;
+        case 'io:disable': next = up({ enabled: false }); say = nm + ' 꺼짐'; break;
+        case 'io:deny': next = up({ approval: 'denied', enabled: false }); say = nm + ' 거부 — 꺼졌다'; c = W; break;
+        case 'io:forget': next = drop(); say = nm + ' 잊음 — 다시 보이면 새 대기 장치'; c = W; break;
+        case 'io:scan':
+          if (this.state.hbScanned === node) { say = '스캔 — 변화 없음'; c = '#5b6472'; break; }
+          next = [{ id: 'raw_bus-0403-6001-' + (node.length * 4099).toString(16).padStart(8, '0'), kind: 'raw_bus', name: 'FTDI 시리얼', presence: 'present', approval: 'pending', enabled: false, fresh: true }].concat(list);
+          this.setState({ hbScanned: node }); say = '스캔 — 새 장치 1 · 사라짐 0'; c = '#2563eb'; break;
+        case 'svi:open': next = up({ handle: 'svih_' + id.length.toString(16) + 'a3' }); say = nm + ' 핸들 열림 — 임대 2분, 흐르는 중'; c = '#2563eb'; break;
+        case 'svi:close': next = up({ handle: null }); say = nm + ' 핸들 닫음'; c = '#5b6472'; break;
+        case 'decl:undeclare': next = up({ state: 'retired', what: '퇴역 원장', reason: null }); say = nm + ' 철회 — 핸들 · 바인딩이 닫혔다. 이름은 원장에 남는다'; c = W; break;
+        case 'decl:redeclare': next = up({ state: 'applied', what: '같은 내용으로 다시 선언 (reuse_name)' }); say = nm + ' 다시 선언 — revision +1'; break;
+        case 'decl:forget': next = drop(); say = nm + ' 잊음 — 이름이 풀렸다'; c = W; break;
+        case 'decl:add': { const k = list.filter((x) => /^probe/.test(x.name)).length + 1;
+          next = list.concat([{ id: 'process/probe-' + k, fam: 'process', name: 'probe-' + k, dir: 'source', origin: 'runtime', state: 'applied', what: '/usr/bin/probe --stdout', fresh: true }]); say = 'probe-' + k + ' 선언 — created'; break; }
+        case 'grant:revoke': next = up({ alive: false, ttl: '방금 철회' }); say = d.who + ' 허가 철회 — 그 허가로 연 핸들이 닫혔다'; c = W; break;
+        case 'grant:unbind': next = drop(); say = '바인딩 ' + id + ' 끊음'; c = W; break;
+        case 'grant:add': next = [{ id: 'g-' + (list.length + 1), type: 'grant', who: 'guest', res: 'process.metrics', ops: 'read', ttl: '1시간 남음', alive: true, fresh: true }].concat(list); say = 'guest에게 metrics 읽기 허가 — 1시간'; break;
+        case 'folder:get': {
+          const xs = this.hbItems(node, 'xfer');
+          this.hbPut(node, 'xfer', [{ id: 'tr-' + (xs.length + 42) + '-p', dir: 'pull', name: nm, total: parseFloat(d.size) || 1, off: 0, state: 'transferring', fresh: true }].concat(xs));
+          say = nm + ' 내려받기 시작 — 파일 전송에서 보인다'; c = '#2563eb'; this.setState({ hbBusy: null }); this.hbSay(say, c); return; }
+        case 'folder:del': next = list.filter((x) => x.id !== id && x.parent.indexOf(id + '/') !== 0 && x.parent !== id); say = nm + ' 지움'; c = W; break;
+        case 'folder:mkdir': { const p = this.state.hbPath, k = list.filter((x) => x.parent === p && /^새 폴더/.test(x.name)).length + 1, nmk = '새 폴더' + (k > 1 ? ' ' + k : '');
+          next = list.concat([{ id: p + '/' + nmk, parent: p, name: nmk, dir: true, info: '비어 있음', fresh: true }]); say = nmk + ' 만듦'; break; }
+        case 'xfer:abort': next = up({ state: 'aborted', reason: '받은 부분은 남김 (keep_partial)' }); say = nm + ' 중단'; c = W; break;
+        case 'xfer:resume': next = up({ state: 'transferring', reason: null }); say = nm + ' ' + Math.round(d.off * 100) + '%부터 이어 보냄'; c = '#2563eb'; break;
+        case 'xfer:clear': next = drop(); say = nm + ' 치움'; c = '#5b6472'; break;
+        case 'xfer:push': next = [{ id: 'tr-' + (list.length + 42) + '-u', dir: 'push', name: 'upload-' + (list.length + 1) + '.dat', total: 24, off: 0, state: 'transferring', fresh: true }].concat(list); say = '올리기 준비 — prepared → 청크'; c = '#2563eb'; break;
+        case 'tunnel:close': next = up({ state: 'draining' }); say = nm + ' 터널 닫는 중'; c = W;
+          setTimeout(() => { const L2 = this.hbItems(node, 'tunnel'); this.hbPut(node, 'tunnel', L2.filter((x) => x.id !== id)); }, 900); break;
+        case 'tunnel:del': next = drop(); say = nm + ' 선언 지움 — 60초 안에 리스너가 닫힌다'; c = W; break;
+        case 'tunnel:open': next = list.concat([{ id: 'tun-' + (list.length + 1) + 'x', type: 'tun', name: 'ssh → ' + (node === 'tree-home' ? 'nas-01' : 'tree-home'), to: (node === 'tree-home' ? 'nas-01' : 'tree-home') + ':22', bind: '127.0.0.1:0 → 41873', state: 'listening', conn: '0 / 16', fresh: true }]); say = '즉석 열기 — 저장되지 않는다(재시작하면 사라짐)'; c = '#2563eb'; break;
+        case 'wg:revoke': next = drop(); say = id + ' 피어 회수 — 되돌릴 수 없다'; c = '#d33d52'; break;
+        case 'wg:sync': next = list.map((p) => p.health === 'never' ? p : Object.assign({}, p, { hs: '방금', health: 'healthy' })); say = '동기화 — 핸드셰이크 갱신'; break;
+        case 'mod:start': next = up({ state: 'running', note: '방금 시작' }); say = nm + ' 시작'; break;
+        case 'mod:stop': next = up({ state: 'stopped', note: '멈춤 — 기여한 SVI 자원은 unavailable' }); say = nm + ' 멈춤'; c = W; break;
+        case 'mod:restart': next = up({ state: 'running', note: '재시작함' }); say = nm + ' 재시작 — 실행 중'; break;
+        case 'mod:log': say = nm + ' · ' + (d.note || '최근 로그 없음'); c = '#16191f'; break;
+        case 'mod:check': next = list.map((x) => x.state === 'degraded' ? Object.assign({}, x, { note: '방금 확인 — 아직 느림' }) : x); say = '상태 확인 — 실행 ' + list.filter((x) => x.state === 'running').length + ' · 저하 ' + list.filter((x) => x.state === 'degraded').length + ' · 실패 ' + list.filter((x) => x.state === 'failed').length; c = '#2563eb'; break;
+        case 'job:cancel': next = up({ state: 'failed', code: null, out: 'canceled' }); say = id + ' 취소 — Master엔 failed로 남는다'; c = W; break;
+        case 'job:out': say = id + ' · ' + (d.out || '출력 없음'); c = '#16191f'; break;
+        case 'job:rerun': next = [{ id: 'job_' + (8816 + list.length), cmd: d.cmd, state: 'running', t: 0, fin: 3, fout: d.state === 'failed' ? '43 passed in 8.02s' : '완료', fresh: true }].concat(list); say = d.cmd + ' 다시 실행'; c = '#2563eb'; break;
+        case 'job:run': next = [{ id: 'job_' + (8816 + list.length), cmd: 'uptime', state: 'running', t: 0, fin: 2, fout: 'up 12 days, load 0.21', fresh: true }].concat(list); say = 'uptime 실행 — 202 접수'; c = '#2563eb'; break;
+        default: break;
+      }
+      if (next !== list) this.hbPut(node, app, next);
+      this.setState({ hbBusy: null });
+      if (say) this.hbSay(say, c);
+    }, op === 'scan' ? 900 : 350);
+  }
+  hbVals(pxArg) {
+    const S = this.state, px = pxArg || S.hb;
+    if (!px || !this._hxRes) return { on: false };
+    const r = this._hxRes.find((x) => x.px === px) || { name: '', sub: '' }, IC = this.HBICON(), A = this.HBAPP()[px] || { perms: [], see: 'node.read' };
+    const node = this.hbNode(), loc = node === S.localNode.name, P = this.hbPerm(node), has = (p) => P.has.indexOf(p) >= 0;
+    const PN = { 'module.manage': '모듈 관리★', 'node.read': '읽기', 'node.control': '제어', 'node.config': '설정★', 'process.execute': '실행', 'process.cancel': '취소', 'file.read': '파일 읽기', 'file.write': '파일 쓰기' };
+    // 배지 다섯 — 정상 · 진행 중 · 꺼짐·대기 · 문제 · 끝남
+    const BG = { ok: ['#e3f4ea', '#1f7a4d'], run: ['#e6efff', '#2563eb'], wait: ['#fbf0cc', '#a65f00'], off: ['#eef1f5', '#5b6472'], bad: ['#fde1e5', '#d33d52'], end: ['#f4f6f9', '#8b95a6'] };
+    const chip = (t, k) => ({ chip: t, cbg: BG[k][0], cfg: BG[k][1] });
+    // 동작 버튼. need = 필요한 권한들, lock = 권한 말고 다른 이유로 잠김
+    const B = (label, op, id, primary, need, lock) => {
+      const miss = (need || []).filter((p) => !has(p)), why = lock || (miss.length ? miss.join(' · ') + ' 권한 없음' + (P.why ? ' — ' + P.why : '') : null);
+      return { label: why ? '🔒 ' + label : label, tip: why || label, go: why ? () => this.hbSay('🔒 ' + label + ' — ' + why, '#d33d52') : () => this.hbAct(px, id, op),
+        bg: why ? '#f4f6f9' : primary ? '#16191f' : '#ffffff', fg: why ? '#9aa3ae' : primary ? '#ffffff' : '#16191f', line: why ? '#e6e9ee' : primary ? '#16191f' : '#d8dde5' };
+    };
+    const card = (o, i) => Object.assign({ icon: IC.app[px], sub: '', meta: '', metaOn: !!o.meta, prog: 0, progOn: o.prog != null, acts: [], busy: S.hbBusy === o.id, op: 1, bstyle: 'solid',
+      bline: o.fresh ? '#2563eb' : '#e0e5ec', bg: o.fresh ? '#f3f7ff' : '#ffffff', delay: Math.min(i, 8) * 30, raw: '' }, o, { progOn: o.prog != null, metaOn: !!o.meta, prog: o.prog != null ? Math.round(o.prog * 100) : 0 });
+    const canSee = has(A.see), list = canSee ? this.hbItems(node, px) : [];
+    let cards = [], sum = '', heads = [];
+    const KL = { mouse: '마우스', keyboard: '키보드', camera: '카메라', microphone: '마이크', screen: '화면', raw_bus: '원시 버스' };
+    const CTL = ['node.control'];
+    if (px === 'io') {
+      cards = list.map((d, i) => {
+        const miss = d.presence === 'missing';
+        const c = miss ? chip('사라짐', 'bad') : d.approval === 'denied' ? chip('거부됨', 'bad') : d.approval === 'pending' ? chip('승인 대기', 'wait') : !d.enabled ? chip('꺼짐', 'off') : chip('켜짐', 'ok');
+        const acts = miss ? [B('잊기', 'forget', d.id, false, CTL)]
+          : d.approval === 'pending' ? [B('승인', 'approve', d.id, true, CTL), B('거부', 'deny', d.id, false, CTL)]
+          : d.approval === 'denied' ? [B('승인', 'approve', d.id, true, CTL)]
+          : !d.enabled ? [B('켜기', 'enable', d.id, true, CTL), B('거부', 'deny', d.id, false, CTL)]
+          : [B('끄기', 'disable', d.id, false, CTL)];
+        return card(Object.assign({ id: d.id, name: d.name, icon: IC[d.kind] || IC.raw_bus, sub: KL[d.kind] + (d.presence === 'unknown' ? ' · 논리 자리' : ''), fresh: d.fresh,
+          raw: 'presence ' + d.presence + ' · approval ' + d.approval + ' · ' + (d.enabled ? 'enabled' : 'disabled'), acts, op: miss ? 0.62 : 1, bstyle: miss ? 'dashed' : 'solid' }, c), i);
+      });
+      const on = list.filter((d) => d.enabled && d.presence !== 'missing').length, wait = list.filter((d) => d.approval === 'pending').length;
+      sum = list.length + '개 · 켜짐 ' + on + (wait ? ' · 대기 ' + wait : '');
+      heads = [B(S.hbBusy === 'io' ? '스캔 중' : '⟳ 스캔', 'scan', null, false, CTL)];
+    } else if (px === 'svi') {
+      const ST = { available: ['쓸 수 있음', 'ok'], busy: ['사용 중', 'run'], disabled: ['꺼짐', 'off'], unavailable: ['보고 끊김', 'bad'], unsupported: ['지원 안 함', 'end'] };
+      cards = list.map((d, i) => {
+        const g = d.grant, gOk = g === 'own' || (g && g.indexOf('read') >= 0), io = /^io\./.test(d.kind);
+        const st = d.handle ? ['흐르는 중', 'run'] : ST[d.status];
+        const lock = io ? '데이터 백엔드가 없다 — io 자원은 열 수 없다' : d.status !== 'available' ? '자원이 ' + ST[d.status][0] + ' 상태' : !gOk ? '이 자원의 허가가 없다 — 소유자 · 관리자에게 받아야' : null;
+        const acts = d.handle ? [B('닫기', 'close', d.id, false, ['node.read'])] : [B('열기', 'open', d.id, true, ['node.read'], lock)];
+        return card(Object.assign({ id: d.id, name: d.name, sub: d.kind + ' · ' + d.ep, raw: d.id, acts, icon: io ? (IC[d.kind.slice(3)] || IC.app.svi) : IC.app.svi,
+          meta: g === 'own' ? '허가 · 소유자' : g ? '허가 · ' + g.join(' · ') : '🔒 허가 없음', op: d.status === 'unavailable' ? 0.75 : 1 }, chip(st[0], st[1])), i);
+      });
+      const nG = loc ? list.length : list.filter((d) => d.grant).length;
+      sum = list.length + '개 · 허가 ' + nG + '/' + list.length;
+    } else if (px === 'decl') {
+      const ST = { applied: ['적용됨', 'ok'], shadowed: ['가려짐', 'wait'], refused_by_policy: ['울타리 밖', 'bad'], retired: ['퇴역', 'end'] };
+      const CFG = ['node.config'];
+      cards = list.map((d, i) => {
+        const file = d.origin === 'file', ret = d.state === 'retired';
+        const acts = ret ? [B('다시 선언', 'redeclare', d.id, true, CFG), B('잊기', 'forget', d.id, false, CFG)]
+          : [B('철회', 'undeclare', d.id, false, CFG, file ? '설정 파일 선언 — 파일 편집으로만 바꾼다' : null)];
+        return card(Object.assign({ id: d.id, name: d.name, sub: d.fam + ' · ' + d.dir + ' · ' + (file ? '설정 파일' : '런타임'), meta: d.reason || d.what, raw: d.what, acts, fresh: d.fresh,
+          op: ret ? 0.7 : 1, bstyle: ret ? 'dashed' : 'solid' }, chip(ST[d.state][0], ST[d.state][1])), i);
+      });
+      sum = '울타리 process allowlist · ' + list.filter((d) => d.origin === 'runtime' && d.state !== 'retired').length + '/256';
+      heads = [B('+ 선언', 'add', null, false, CFG)];
+    } else if (px === 'grant') {
+      // 허가를 주거나 거두는 건 자원의 소유자 · 관리자만 (node.control) — 바인딩은 node.read로 끊을 수 있다
+      cards = list.map((d, i) => d.type === 'grant'
+        ? card(Object.assign({ id: d.id, name: d.who + ' → ' + d.res, sub: '허가 · ' + d.ops, meta: d.ttl, raw: d.id, fresh: d.fresh, op: d.alive ? 1 : 0.7, bstyle: d.alive ? 'solid' : 'dashed',
+            icon: IC.app.grant, acts: d.alive ? [B('철회', 'revoke', d.id, false, CTL)] : [] }, d.alive ? chip('유효', 'ok') : chip('만료', 'end')), i)
+        : card(Object.assign({ id: d.id, name: d.from, sub: '바인딩 → ' + d.to, meta: d.reason || d.qos, raw: d.id, icon: IC.app.decl,
+            acts: [B('끊기', 'unbind', d.id, false, ['node.read'])] }, d.state === 'active' ? chip('흐르는 중', 'run') : chip('실패 · 재시도', 'bad')), i));
+      sum = '허가 ' + list.filter((d) => d.type === 'grant' && d.alive).length + ' · 바인딩 ' + list.filter((d) => d.type === 'bind').length;
+      heads = [B('+ 허가', 'add', null, false, CTL)];
+    } else if (px === 'folder') {
+      const path = S.hbPath && list.some((x) => x.id === S.hbPath) ? S.hbPath : '', here = list.filter((x) => x.parent === path), RW = ['file.write'];
+      cards = here.map((d, i) => card(Object.assign({ id: d.id, name: d.name + (d.dir ? '/' : ''), sub: d.root ? '공유 폴더 · ' + d.info : d.dir ? '폴더 · ' + d.info : d.size + ' · ' + d.info, raw: (loc ? '' : '/api/nodes/' + node + '/modules/io.terra.file/v1 · ') + d.id,
+        icon: IC.app.folder, fresh: d.fresh,
+        acts: d.dir ? [B('열기', 'open', d.id, true, ['file.read'])].concat(d.root ? [] : [B('지우기', 'del', d.id, false, RW)])
+          : [B('받기', 'get', d.id, true, ['file.read']), B('지우기', 'del', d.id, false, RW)] }, d.root ? chip('루트', 'off') : d.dir ? chip('폴더', 'off') : chip('파일', 'ok')), i));
+      sum = (path ? path : '공유 폴더 ' + here.length + '개') + (loc ? '' : ' · Gateway 경유');
+      heads = path ? [Object.assign(B('↑ 위로', 'up', null, false, []), { go: () => this.setState({ hbPath: path.indexOf('/') > 0 ? path.slice(0, path.lastIndexOf('/')) : '' }) }), B('+ 폴더', 'mkdir', null, false, RW)] : [];
+    } else if (px === 'xfer') {
+      const sz = (v) => v >= 1000 ? (v / 1000).toFixed(1) + ' GB' : v >= 1 ? Math.round(v) + ' MB' : Math.round(v * 1000) + ' KB';
+      cards = list.map((d, i) => {
+        const need = [d.dir === 'push' ? 'file.write' : 'file.read'];
+        const st = d.state === 'transferring' ? chip(Math.round(d.off * 100) + '%', 'run') : d.state === 'verifying' ? chip('검사 중', 'run') : d.state === 'completed' ? chip('끝남', 'end') : d.state === 'aborted' ? chip('중단됨', 'off') : chip('어긋남', 'bad');
+        const acts = d.state === 'transferring' ? [B('중단', 'abort', d.id, false, need)] : d.state === 'failed' ? [B('이어서', 'resume', d.id, true, need), B('중단', 'abort', d.id, false, need)]
+          : d.state === 'completed' || d.state === 'aborted' ? [B('치우기', 'clear', d.id, false, [])] : [];
+        return card(Object.assign({ id: d.id, name: d.name, sub: (d.dir === 'push' ? '↑ 올리기' : '↓ 내려받기') + ' · ' + sz(d.total), raw: d.id, fresh: d.fresh, acts, icon: IC.app.xfer,
+          prog: d.state === 'completed' ? null : d.off, meta: d.reason || (d.state === 'completed' ? '완료된 전송은 기록이 남지 않는다' : ''), op: d.state === 'completed' ? 0.7 : 1, bstyle: d.state === 'completed' ? 'dashed' : 'solid' }, st), i);
+      });
+      sum = '진행 ' + list.filter((d) => d.state === 'transferring' || d.state === 'verifying').length + ' · 최대 10 GiB';
+      heads = [B('↑ 올리기', 'push', null, false, ['file.write'])];
+    } else if (px === 'tunnel') {
+      cards = list.map((d, i) => d.type === 'decl'
+        ? card(Object.assign({ id: d.id, name: d.name, sub: '선언 · ' + d.bind + ' → ' + d.to, meta: '고치는 API 없음 — 지우고 다시', raw: d.id, icon: IC.app.tunnel,
+            acts: [B('선언 지우기', 'del', d.id, false, CTL)] }, chip('늘 열기', 'ok')), i)
+        : card(Object.assign({ id: d.id, name: d.name, sub: '터널 · ' + d.bind + ' → ' + d.to, meta: d.err ? '마지막 오류 · ' + d.err : '연결 ' + d.conn + (d.bytes ? ' · ' + d.bytes : ''), raw: d.id, icon: IC.app.tunnel, fresh: d.fresh,
+            acts: d.state === 'draining' ? [] : [B('닫기', 'close', d.id, false, CTL)] },
+            d.state === 'active' ? chip('연결 중', 'run') : d.state === 'listening' ? chip('대기 중', 'ok') : d.state === 'draining' ? chip('닫는 중', 'off') : chip('실패', 'bad')), i));
+      sum = '선언 ' + list.filter((d) => d.type === 'decl').length + ' · 터널 ' + list.filter((d) => d.type === 'tun').length;
+      heads = [B('+ 즉석 열기', 'open', null, false, CTL)];
+    } else if (px === 'wg') {
+      cards = list.map((d, i) => card(Object.assign({ id: d.id, name: d.id, sub: d.ip + ' · ' + d.ep, meta: '핸드셰이크 ' + d.hs, raw: 'allowed_ips ' + d.ip + '/32', icon: IC.app.wg,
+        acts: [B(S.hbArm === d.id ? '정말 회수' : '회수', 'revoke', d.id, S.hbArm === d.id, CTL)], bline: S.hbArm === d.id ? '#d33d52' : '#e0e5ec' },
+        d.health === 'healthy' ? chip('정상', 'ok') : d.health === 'stale' ? chip('오래됨', 'wait') : chip('본 적 없음', 'off')), i));
+      sum = 'wg0 · ' + (loc ? '100.80.0.3' : '100.80.0.' + (node.length + 2)) + ' · 피어 ' + list.length;
+      heads = [B('⟳ 동기화', 'sync', null, false, CTL)];
+    } else if (px === 'job') {
+      // 실행은 process.execute + 다른 노드면 로그인한 tree의 직계 자식이어야 한다 (아니면 DELEGATION_REQUIRED). 취소는 process.cancel(기본 권한 밖)도 있어야
+      const deleg = !loc && node !== S.curTree.name && this.parentOfNode(node) !== S.curTree.name ? '직계 자식이 아니다 — 위임 필요 (DELEGATION_REQUIRED)' : null;
+      const EX = ['process.execute'];
+      const ST = { queued: ['대기', 'wait'], sent: ['보냄', 'run'], running: ['실행 중', 'run'], success: ['성공', 'ok'], failed: ['실패', 'bad'] };
+      cards = list.map((d, i) => {
+        const live = d.state === 'running' || d.state === 'queued' || d.state === 'sent';
+        const acts = live ? [B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, ['node.read']), B('다시', 'rerun', d.id, true, EX, deleg)];
+        const mm = Math.floor((d.t || 0) / 60), ss = Math.floor((d.t || 0) % 60);
+        return card(Object.assign({ id: d.id, name: d.cmd, sub: d.id, raw: d.cmd, icon: IC.app.job, fresh: d.fresh, acts,
+          meta: d.state === 'running' ? mm + ':' + String(ss).padStart(2, '0') + ' 경과' : d.code != null ? 'exit ' + d.code : d.out === 'canceled' ? '취소됨' : '' }, chip(ST[d.state][0], ST[d.state][1])), i);
+      });
+      sum = '실행 중 ' + list.filter((d) => d.state === 'running').length + ' · 끝남 ' + list.filter((d) => d.state === 'success' || d.state === 'failed').length;
+      heads = [B('+ 실행', 'run', null, false, EX, deleg)];
+    }
+    if (px === 'mod') {
+      // 목록은 node.read, 시작 · 멈춤 · 재시작은 module.manage★(기본 권한 밖)
+      const MM = ['module.manage'], ST = { running: ['실행 중', 'ok'], degraded: ['저하', 'wait'], failed: ['실패', 'bad'], stopped: ['멈춤', 'off'] };
+      cards = list.map((d, i) => card(Object.assign({ id: d.id, name: d.name, sub: d.id + ' · v' + d.ver, raw: d.id + ' · trust ' + d.trust, icon: IC.app.mod, meta: d.note || (d.svi ? 'SVI 자원 ' + d.svi + ' 기여' : d.trust === 'core' ? '코어 모듈' : '노드 모듈'),
+        op: d.state === 'stopped' ? 0.75 : 1,
+        acts: d.state === 'running' ? [B('멈춤', 'stop', d.id, false, MM), B('재시작', 'restart', d.id, false, MM)]
+          : d.state === 'stopped' ? [B('시작', 'start', d.id, true, MM)]
+          : [B('재시작', 'restart', d.id, true, MM), B('로그', 'log', d.id, false, ['node.read'])] }, chip(ST[d.state][0], ST[d.state][1])), i));
+      sum = list.length + '개 · 실행 ' + list.filter((d) => d.state === 'running').length + (list.some((d) => d.state === 'failed') ? ' · 실패 ' + list.filter((d) => d.state === 'failed').length : '');
+      heads = [B('⟳ 상태 확인', 'check', null, false, ['node.read'])];
+    }
+    const perms = A.perms.map((p) => ({ label: PN[p], tip: p + (has(p) ? ' 있음' : ' 없음'), mark: has(p) ? '✓' : '🔒', bg: has(p) ? '#e3f4ea' : '#fde1e5', fg: has(p) ? '#1f7a4d' : '#d33d52' }));
+    if (A.grant && canSee) { const g = loc ? list.length : list.filter((d) => d.grant).length; perms.push({ label: '허가 ' + g + '/' + list.length, tip: 'SVI 자원별 허가 — 자원마다 따로 본다', mark: '', bg: '#eef1f5', fg: '#5b6472' }); }
+    return {
+      on: true, app: px, name: r.name, sub: r.sub, logo: IC.app[px] || '', node, role: P.role, roleC: P.rc, isLocal: loc, nodeTag: loc ? '로컬' : '원격',
+      perms, cards, list: canSee, locked: !canSee,
+      lockMsg: '🔒 ' + node + '의 ' + r.name + '을(를) 볼 권한이 없다 — ' + A.see + ' 필요' + (P.why ? ' · ' + P.why : ''),
+      msg: S.hbMsg ? S.hbMsg.t : canSee ? sum : '권한 없음',
+      msgC: S.hbMsg ? S.hbMsg.c : '#5b6472', heads, hasHeads: heads.length > 0,
+      close: () => this.hbClose(), stop: (e) => e.stopPropagation(),
+      fsGo: () => this.fsEnter('hb:' + px), fsExit: () => this.fsExit(),
+      wheel: (e) => { const row = document.querySelector('[data-hb-row]'); if (row) { row.scrollLeft += (e.deltaY || e.deltaX); } e.stopPropagation(); }
+    };
+  }
+  hxStart() {
+    const cv = document.querySelector('[data-hx-cv]'), zone = document.querySelector('[data-hx-zone]');
+    if (!cv || this._hx) return;
+    const W = 600, H = 285, CX = W / 2, TOP = 139, DPX = 23, R_FLAT = 650, R_UP = 960, PEEK = 82, DPR = 2, TRAVEL = H - TOP - PEEK;
+    // 로컬 자원 관리: 눈금판 위의 로고 띠 = 세로축으로 도는 원통(드럼)에 붙은 자원 로고. 조타륜을 돌리면 드럼이 돈다
+    //   조타륜 10° = 로고 한 칸(드럼 40°). 가운데(정면) 로고가 고른 자원 — 이름이 방위 자리에 뜬다. 로고는 늘 정면을 보고, 나를 둘러싼 고리처럼 옆으로 갈수록 커지며 희미해진다
+    // 로고 = 픽셀 그림: 20×20 칸 타일(모서리 한 칸씩 깎은 네모 + 검은 테) 안에 14칸 너비 그림. 앞 = 정면(밝은 바탕) 한 장 · 옆 한 장을 미리 굽는다
+    const PX = {"svi": {"rows": ["......kk......", "....kkttkk....", "..kkttttttkk..", "kkttttttttttkk", "kLkkttttttkkRk", "kLLLkkttkkRRRk", "kLLLLLkkRRRRRk", "kLLLLLkRRRRRRk", "kLLLLLkRRRRRRk", "kLLLLLkRRRRRRk", "kkLLLLkRRRRRkk", "..kkLLkRRRkk..", "....kkkRkk....", "......kk......"], "pal": {"k": "#16191f", "t": "#9ad8ff", "L": "#3b9ae1", "R": "#1f6fb5"}}, "decl": {"rows": ["..kkkkkkkk....", "..kWWWWWWkk...", "..kWWWWWWkWk..", "..kWWWWWWkkkk.", "..kWbbbbbWWWk.", "..kWWWWWWWWWk.", "..kWbbbbbbbWk.", "..kWWWWWWWWWk.", "..kWbbbbbbbWk.", "..kWWWWWWWWWk.", "..kWbbbbWggWk.", "..kWWWWWWggWk.", "..kkkkkkkkkkk."], "pal": {"k": "#16191f", "W": "#fbfaf5", "b": "#7c8594", "g": "#1f9d55"}}, "grant": {"rows": ["..............", "..kkkk........", ".kGGGGk.......", "kGGkkGGk......", "kGk..kGk......", "kGk..kGkkkkkk.", "kGGkkGGGGGGGGk", ".kGGGGGkkGkGk.", "..kkkkk.kGkGk.", "........kkkkk."], "pal": {"k": "#16191f", "G": "#f0b442"}}, "io": {"rows": ["....kkkkkk....", "...kWWWkWWk...", "..kWWWWrWWWk..", "..kWWWWrWWWk..", "..kWWWWkWWWk..", "..kkkkkkkkkk..", "..kWWWWWWWWk..", "..kWWWWWWWWk..", "..kWWWWWWWWk..", "..kWWWWWWWSk..", "...kWWWWWSk...", "....kkkkkk...."], "pal": {"k": "#16191f", "W": "#eef1f5", "S": "#b6bfcc", "r": "#d33d52"}}, "folder": {"rows": [".kkkkk........", "kYYYYYk.......", "kYYYYYYkkkkkk.", "kYYYYYYYYYYYk.", "kkkkkkkkkkkkkk", "kyYYYYYYYYYYyk", "kyYYYYYYYYYYyk", "kyYYYYYYYYYYyk", "kyYYYYYYYYYYyk", "kyyyyyyyyyyyyk", "kkkkkkkkkkkkkk"], "pal": {"k": "#16191f", "Y": "#ffd479", "y": "#e2a93b"}}, "xfer": {"rows": ["...k..........", "..kGk.........", ".kGGGk........", "kGGGGGk.......", "kkkGkkk..kkk..", "..kGk....kBk..", "..kGk....kBk..", "..kGk....kBk..", "..kkk..kkkBkkk", ".......kBBBBBk", "........kBBBk.", ".........kBk..", "..........k..."], "pal": {"k": "#16191f", "G": "#1f9d55", "B": "#2563eb"}}, "tunnel": {"rows": ["....kkkkkk....", "..kkSSSSSSkk..", ".kSSsSSSSsSSk.", ".kSSkkkkkkSSk.", "kSSk......kSSk", "kSk........kSk", "kSk..yyyy..kSk", "kSk.yyyyyy.kSk", "kSk.yyyyyy.kSk", "kSk........kSk", "kkkkkkkkkkkkkk"], "pal": {"k": "#16191f", "S": "#9aa3ae", "s": "#c8ced6", "y": "#ffe08a"}}, "wg": {"rows": [".kk........kk.", "kRRk......kRRk", "kRRkllllllkRRk", ".kkl......lkk.", "...l......l...", "....l....l....", ".....l..l.....", "......kk......", ".....kRRk.....", ".....kRRk.....", "......kk......"], "pal": {"k": "#16191f", "R": "#d33d52", "l": "#5b6472"}}, "job": {"rows": ["kkkkkkkkkkkkkk", "kbbbbbbbbbrgyk", "kkkkkkkkkkkkkk", "kDDDDDDDDDDDDk", "kDgDDDDDDDDDDk", "kDDgDDDDDDDDDk", "kDDDgDDDDDDDDk", "kDDgDDDDDDDDDk", "kDgDDDggggDDDk", "kDDDDDDDDDDDDk", "kkkkkkkkkkkkkk"], "pal": {"k": "#16191f", "b": "#5b6472", "D": "#1e2630", "g": "#5eea9a", "r": "#d33d52", "y": "#f0b442"}}, "mod": {"rows": ["......kk......", ".....kPPk.....", "..kkkkPPkkkk..", "..kPPPPPPPPk..", "..kPPPPPPPPkk.", "kkkPPPPPPPPPPk", "kPPPPPPPPPPPpk", "kkkPPPPPPPPPpk", "..kPPPPPPPPkk.", "..kPPPPPPPpk..", "..kpppppppppk.", "..kkkkkkkkkkk."], "pal": {"k": "#16191f", "P": "#f0b442", "p": "#c98a1b"}}};
+    const pxTile = (ic, on) => {
+      if (typeof document === 'undefined') return null;
+      const c = document.createElement('canvas'); c.width = c.height = 20;
+      const q = c.getContext('2d'), put = (x, y, col) => { q.fillStyle = col; q.fillRect(x, y, 1, 1); };
+      for (let y = 0; y < 20; y++) for (let x = 0; x < 20; x++) {
+        const corner = (x === 0 || x === 19) && (y === 0 || y === 19);
+        if (corner) continue;
+        const edge = x === 0 || x === 19 || y === 0 || y === 19 || ((x === 1 || x === 18) && (y === 1 || y === 18));
+        put(x, y, edge ? '#16191f' : on ? '#ffffff' : '#e9edf2');
+      }
+      if (on) for (let x = 2; x < 18; x++) put(x, 18, '#c9d1dc');   // 정면 타일: 아래 한 줄 그늘
+      const oy = Math.floor((20 - ic.rows.length) / 2);
+      ic.rows.forEach((row, j) => { for (let i = 0; i < 14; i++) { const ch = row[i]; if (ch !== '.') put(3 + i, oy + j, ic.pal[ch]); } });
+      return c;
+    };
+    const RES = [
+      { name: 'SVI 자원', sub: '공통 모델로 등록된 이 노드의 입출력 · 파일 · 소켓 · 장치', px: 'svi' },
+      { name: '자원 선언', sub: '이 노드가 내놓을 SVI 자원의 정의 · 퇴역 원장', px: 'decl' },
+      { name: '허가 · 연결', sub: '허가 · 핸들 · 바인딩', px: 'grant' },
+      { name: 'I/O 장치', sub: '마우스 · 키보드 · 카메라 — 승인 · 켜기 · 별칭', px: 'io' },
+      { name: '공유 폴더', sub: '사용자가 내놓은 폴더와 그 안의 파일', px: 'folder' },
+      { name: '파일 전송', sub: '청크 올리기 · 내려받기', px: 'xfer' },
+      { name: '서비스 터널', sub: '이 노드의 로컬 리스너와 연결', px: 'tunnel' },
+      { name: 'WireGuard 피어', sub: '이 노드의 메시 연결', px: 'wg' },
+      { name: '명령 · 작업', sub: '이 노드에서 돈 프로세스', px: 'job' },
+      { name: '모듈', sub: '이 노드에 설치된 모듈 · 상태 · 시작 · 멈춤', px: 'mod' }
+    ].map((r) => Object.assign(r, { img: [0, 1].map((on) => pxTile(PX[r.px], on)) }));
+    this._hxRes = RES;
+    const STEP = 10, DRUM = 20, BT = 30, BH = 70, RD = 290, TILE = 52;   // 로고 띠 폭 ≈ 조타륜 폭(600) — 드럼 간격 20°라 한 번에 7~9개. 로고는 드럼을 따라 되풀이된다   // TILE = 픽셀 20칸 × 3
+    const C = '#1c2129', D = '#0f1216', L = '#4b5260', RED = '#8a2f22';   // 선은 검은색
+    cv.width = W * DPR; cv.height = H * DPR;
+    const g = cv.getContext('2d');
+    // 눈금판은 네 겹(위에서부터): ① 바깥 고리 · 눈금  ② 숫자  ③ 점 고리  ④ 빗금 띠
+    // 겹마다 올라온 정도(s)와 속도(v)가 따로 있다 — 올라올 땐 ①부터 차례로(겹마다 70ms씩 늦게), 목표보다 살짝 더 올라갔다 내려앉는다(스프링)
+    // 내려갈 땐 네 겹이 동시에, 튀지 않고 내려간다
+    // 겹: ⓪ 로고 띠(맨 위) · ① 바깥 고리 · 눈금 · ② 숫자 · ③ 점 고리 · ④ 빗금 띠
+    const LAYERS = 5, STAGGER = 0.07;
+    const hx = this._hx = { rot: 0, vel: 0, want: 0, wantAt: 0, drag: null, raf: 0, dirty: true, s: [0, 0, 0, 0, 0], v: [0, 0, 0, 0, 0] };
+    const NAMES = ['북 N', '북북동 NNE', '북동 NE', '동북동 ENE', '동 E', '동남동 ESE', '남동 SE', '남남동 SSE', '남 S', '남남서 SSW', '남서 SW', '서남서 WSW', '서 W', '서북서 WNW', '북서 NW', '북북서 NNW'];
+    const CARD = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }, nm = (d) => ((d % 360) + 360) % 360, cl = (x) => Math.min(1, Math.max(0, x));
+    const draw = () => {
+      // 곡률은 네 겹 평균(0~1로 자른 값)을 따른다 — 숨었을 땐 거의 직선(R 6000), 다 올라오면 R 960
+      const eAvg = cl(hx.s.slice(1).reduce((a, b) => a + b, 0) / (LAYERS - 1)), e = eAvg * eAvg * (3 - 2 * eAvg);
+      const R = R_FLAT * Math.pow(R_UP / R_FLAT, e), sc = DPX / R;
+      const N = Math.min(40, Math.floor(Math.PI * R / DPX) - 2), c = Math.round(-hx.rot);
+      const ang = (d) => (d + hx.rot) * sc - Math.PI / 2;
+      let cy = 0;
+      const lay = (i) => { cy = TOP + (1 - hx.s[i]) * TRAVEL + R; };   // 이 겹의 원 중심
+      const P = (d, r) => { const t = ang(d); return [CX + Math.cos(t) * r, cy + Math.sin(t) * r]; };
+      g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, W, H);
+      const circ = (r, w, col) => { g.beginPath(); g.arc(CX, cy, r, 0, Math.PI * 2); g.lineWidth = w; g.strokeStyle = col; g.stroke(); };
+      const seg = (d0, r0, d1, r1, w, col) => { const [x0, y0] = P(d0, r0), [x1, y1] = P(d1, r1); g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineWidth = w; g.strokeStyle = col; g.stroke(); };
+      g.lineCap = 'round';
+      const band = 26, r0 = R - 7, fs = 15, rN = r0 - band - 3, rD = rN - fs * 1.9, gap = 7, rH = rD - gap * 2, hw = 12;
+      // ① 바깥 고리 · 눈금
+      lay(1);
+      circ(R, 2.4, D); circ(R - 5, 1, C);
+      for (let d = c - N; d <= c + N; d++) {
+        const big = nm(d) % 10 === 0, mid = nm(d) % 5 === 0;
+        seg(d, r0, d, r0 - (big ? band : mid ? band * 0.62 : band * 0.36), big ? 1.9 : mid ? 1.35 : 1, big ? D : C);
+      }
+      const cy0 = cy;
+      hx.bgR = R + 16; hx.bgCy = cy0;   // 조타륜 배경 원판: 바깥 고리보다 16px 큰 반지름, 같은 중심 (hxBg가 매 프레임 붙인다)
+      // ② 숫자
+      lay(2);
+      circ(rN, 1.1, C);
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      for (let d = Math.ceil((c - N) / 5) * 5; d <= c + N; d += 5) {
+        const [x, y] = P(d, rN - fs * 0.95), cd = CARD[nm(d)];
+        g.save(); g.translate(x, y); g.rotate(ang(d) + Math.PI / 2);
+        g.font = '700 ' + (cd ? fs * 1.35 : fs) + "px 'Cormorant Garamond', Georgia, serif"; g.fillStyle = cd ? D : C;
+        g.fillText(cd || String(nm(d)), 0, 0); g.restore();
+      }
+      // ③ 점 고리
+      lay(3);
+      circ(rD, 1.1, C);
+      for (let d = Math.ceil((c - N) / 2) * 2; d <= c + N; d += 2) {
+        const [x, y] = P(d, rD - gap);
+        if (nm(d) % 10 === 0) { g.save(); g.translate(x, y); g.rotate(ang(d) + Math.PI / 4); g.fillStyle = D; g.fillRect(-2, -2, 4, 4); g.restore(); }
+        else { g.beginPath(); g.arc(x, y, 1.5, 0, Math.PI * 2); g.fillStyle = C; g.fill(); }
+      }
+      // ④ 빗금 띠
+      lay(4);
+      circ(rH, 1.1, C);
+      for (let d = c - N; d <= c + N; d += 1.2) seg(d, rH, d + 1.92, rH - hw, 0.8, L);
+      circ(rH - hw, 1.3, D);
+      const cy3 = cy;
+      // 양옆은 부드럽게 사라진다
+      g.globalCompositeOperation = 'destination-in';
+      const fade = g.createLinearGradient(0, 0, W, 0);
+      fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(0.16, 'rgba(0,0,0,1)'); fade.addColorStop(0.84, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = fade; g.fillRect(0, 0, W, H);
+      g.globalCompositeOperation = 'source-over';
+      // 가운데 고정 바늘(① 과 함께) · 방위(④ 아래) — 올라올수록 또렷하게
+      const top0 = cy0 - R;
+      g.globalAlpha = cl(hx.s[1]);
+      g.strokeStyle = RED; g.lineWidth = 1.6; g.beginPath(); g.moveTo(CX, top0 - 14); g.lineTo(CX, top0 + 76); g.stroke();
+      g.fillStyle = RED; g.beginPath(); g.moveTo(CX - 7, top0 - 26); g.lineTo(CX + 7, top0 - 26); g.lineTo(CX, top0 - 12); g.closePath(); g.fill();
+      const h = nm(-Math.round(hx.rot));
+      // 가운데(정면) 로고의 자원 이름 — 방위는 작게 곁들인다
+      const fpos = -hx.rot / STEP, cur = RES[((Math.round(fpos) % RES.length) + RES.length) % RES.length];
+      if (hx.cur !== cur.px) { hx.cur = cur.px; if (this.state.hb && this.state.hb !== cur.px) setTimeout(() => { if (this.state.hb && this._hx) this.setState({ hb: this._hx.cur, hbMsg: null, hbBusy: null, hbPath: '', hbArm: null }); }, 0); }
+      // 정면 로고의 이름은 캔버스가 아니라 테이블 네임 박스(테이블 가운데 흰 박스)에만 쓴다 — 조타륜은 테이블 뒤라 가려지므로
+      { const nb = document.querySelector('[data-hx-name-t]'); if (nb) { if (nb.textContent !== cur.name) nb.textContent = cur.name; const op = String(0.45 + 0.55 * cl(hx.s[0])); if (nb.style.opacity !== op) nb.style.opacity = op; } }
+      // ⓪ 로고 띠: 세로축 드럼. 정면에서 멀어질수록 좁아지고(cos) 희미해진다. 뒤쪽 반은 안 보인다
+      g.globalAlpha = 1;
+      const by = BT + (1 - hx.s[0]) * (H - BT + 10), items = [];
+      for (let k = Math.floor(fpos) - 5; k <= Math.ceil(fpos) + 5; k++) {
+        const phi = (k - fpos) * DRUM * Math.PI / 180;
+        if (Math.abs(phi) >= Math.PI / 2) continue;
+        items.push({ k, phi, cs: Math.cos(phi) });
+      }
+      items.sort((a, b) => b.cs - a.cs);   // 옆(가까운) 로고가 위에 그려진다
+      // 로고는 따로 둔 층에 그린 뒤, 조타륜 눈금판과 같은 '자리' 기준 페이드를 씌워 붙인다 — 아이콘 자체가 아니라 띠 양끝 영역을 넘어가는 부분이 희미해진다
+      if (!hx.lc) { hx.lc = document.createElement('canvas'); hx.lc.width = W * DPR; hx.lc.height = H * DPR; }
+      const lg = hx.lc.getContext('2d'); lg.setTransform(1, 0, 0, 1, 0, 0); lg.clearRect(0, 0, hx.lc.width, hx.lc.height); lg.setTransform(DPR, 0, 0, DPR, 0, 0);
+      lg.save(); lg.beginPath(); lg.rect(CX - 300, 0, 600, H); lg.clip();   // 로고 띠 폭 600 (조타륜과 비슷하게)
+      items.forEach((it) => {
+        const r = RES[((it.k % RES.length) + RES.length) % RES.length], x = CX + RD * Math.sin(it.phi), y = by + BH / 2;
+        // 로고는 늘 정면을 본다(빌보드). 나를 가운데 두고 둘러싼 고리처럼 — 가운데(멀리)는 작고, 옆으로 돌아 나올수록(가까이) 커진다. 멀어진 로고는 희미해진다
+        const sz = 1 / (0.66 + 0.34 * it.cs), w = TILE, near = cl(1 - Math.abs(it.phi) / (DRUM * Math.PI / 180) * 1.0);
+        lg.save();
+        lg.globalAlpha = cl(hx.s[0]) * Math.pow(it.cs, 1.3);
+        lg.translate(x, y); lg.scale(sz, sz);
+        // 픽셀 로고 (정면이면 밝은 타일). 픽셀이 번지지 않게 부드럽게 늘이기를 끈다
+        const im = r.img[near > 0.5 ? 1 : 0];
+        if (im) { lg.imageSmoothingEnabled = false; lg.drawImage(im, -w / 2, -w / 2, w, w); }
+        lg.restore();
+      });
+      lg.restore();
+      lg.globalCompositeOperation = 'destination-in'; lg.fillStyle = fade; lg.fillRect(0, 0, W, H); lg.globalCompositeOperation = 'source-over';
+      g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(hx.lc, 0, 0); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+      g.globalAlpha = 1;
+      g.globalAlpha = 1;
+      // 인식 범위: 숨었을 땐 보이는 눈금판 높이만, 올라와 있으면 로고 띠 위까지
+      if (zone) { zone.style.height = zoneH() + 'px'; zone.setAttribute('aria-valuenow', String(h)); }
+    };
+    // 인식 범위 높이 (조타륜 좌표). 다시 그리기(setState)가 템플릿 높이로 되돌려도 매 프레임 맞춘다
+    const zoneH = () => (hx.want || hx.s[0] > 0.02 ? H - BT + 6 : PEEK + 6);
+    // 마우스가 지금 인식 범위 안인가 — 요소 경계 이벤트(pointerleave)를 놓쳐도 이 판정으로 내린다
+    const inZone = (x, y) => {
+      if (!zone) return false;
+      const r = zone.getBoundingClientRect(), k = (r.width / W) || 1;
+      return x >= r.left && x <= r.right && y <= r.bottom && y >= r.bottom - zoneH() * k;
+    };
+    const setWant = (w, force) => {
+      if (!w && this.state.hb && !force) return;   // 앱 바가 열려 있는 동안은 올라와 있다 (네임 박스로 내릴 땐 앱 바도 닫는다)
+      if (hx.want !== w) { hx.want = w; hx.wantAt = performance.now(); hx.dirty = true; this.hxAvatar(!!w); } };
+    // 조타륜은 호버가 아니라 클릭으로 올린다 · 밖을 누르면 내려간다 (앱 바가 열려 있으면 그대로)
+    hx.enter = () => {};
+    hx.leave = () => {};
+    // 안전망: 문서 어디서든 마우스가 움직이면 범위 밖인지 확인 · 창 밖으로 나가거나 창이 포커스를 잃어도 내린다
+    hx.docMove = (e) => { hx.lx = e.clientX; hx.ly = e.clientY; };
+    hx.check = () => {};
+    hx.key = (e) => { if (e.key === 'Escape' && this.state.hb) this.hbClose(); };
+    window.addEventListener('keydown', hx.key);
+    hx.docOut = () => {};
+    hx.blur = () => { hx.drag = null; };
+    // 올라온 조타륜 · 앱 바 밖을 누르면 내려간다
+    // 올리고 내리기는 테이블 네임 박스(테이블 가운데 흰 박스)를 눌러서만 (hx.toggle)
+    hx.docDown = () => {};
+    hx.toggle = () => { if (hx.drag) return; if (hx.want) { if (this.state.hb) this.hbClose(); setWant(0, true); } else setWant(1); };
+    document.addEventListener('pointerdown', hx.docDown, true);
+    document.addEventListener('pointermove', hx.docMove, true);
+    document.addEventListener('pointerout', hx.docOut, true);
+    window.addEventListener('blur', hx.blur);
+    hx.down = (e) => {
+      if (e.button !== 0) return;
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
+      // 내려가 있으면: 누르기 = 올리기만 (돌리거나 고르지 않는다)
+      if (!hx.want) return;   // 내려가 있을 땐 조타륜을 눌러도 아무 일 없음 — 올리기는 테이블 네임 박스로
+      hx.drag = { x: e.clientX, y: e.clientY, t0: performance.now(), rot: hx.rot, t: performance.now(), lx: e.clientX }; hx.vel = 0; hx.goal = null;
+    };
+    hx.move = (e) => {
+      const Dg = hx.drag; if (!Dg) return;
+      const k = (cv.getBoundingClientRect().width / W) || 1, now = performance.now();
+      // 끄는 방향을 처음 10px에서 정한다: 올라온 상태에서 아래로(세로가 가로의 1.5배 넘게) 끌면 '내리기' — 돌리지 않고, 떼면 로컬 노드 맵으로
+      if (!Dg.axis) {
+        const dx = (e.clientX - Dg.x) / k, dy = (e.clientY - Dg.y) / k;
+        if (Math.hypot(dx, dy) >= 10) Dg.axis = dy > 0 && dy > Math.abs(dx) * 1.5 && hx.s[0] > 0.6 ? 'down' : 'turn';
+        else return;
+      }
+      if (Dg.axis === 'down') {
+        hx.rot = Dg.rot; hx.vel = 0; Dg.pull = Math.max(0, (e.clientY - Dg.y) / k);
+        // 내리는 동안 조타륜이 마우스를 따라 내려간다 (캔버스만 옮긴다 — 그림은 그대로)
+        cv.style.transition = 'none'; cv.style.transform = 'translateY(' + Math.round(Math.min(Dg.pull, H)) + 'px)'; hx.pullY = Math.round(Math.min(Dg.pull, H));
+        return;
+      }
+      hx.rot = Dg.rot + (e.clientX - Dg.x) / k / DPX;
+      const inst = (e.clientX - Dg.lx) / k / DPX / Math.max(0.008, (now - Dg.t) / 1000);
+      hx.vel = hx.vel * 0.7 + inst * 0.3; Dg.t = now; Dg.lx = e.clientX; hx.dirty = true;
+    };
+    hx.release = (e) => {
+      if (!hx.drag) return;
+      const Dg = hx.drag;
+      hx.drag = null;
+      // 홀드해서 아래로 내렸다 놓기 → 로컬 노드 맵으로 이동 (40px 넘게 내렸을 때만)
+      if (Dg.axis === 'down') {
+        cv.style.transition = 'transform 260ms cubic-bezier(.3,.7,.2,1)'; cv.style.transform = 'translateY(0px)'; hx.pullBack = performance.now();   // 놓으면 제자리로 (내려가는 건 조타륜 자체가 맡는다)
+        if ((Dg.pull || 0) > 40) {
+          // 올라온 조타륜의 프사가 가리키는 쪽으로 간다: 일반 맵이면 로컬 노드 맵, 로컬 맵이면 부모 tree 맵
+          const dest = this.helmDest();
+          if (this.state.hb) this.hbClose();
+          this.goMap(dest.name, dest.local ? dest.name + ' 맵 — 로컬 노드' : null);
+          setWant(0); return;
+        }
+      }
+      // 거의 안 움직인 짧은 누름 = 클릭. 가운데 로고 · 눈금판 → 앱 바 열기 · 닫기, 옆 로고 → 그 로고로 돌리기
+      if (Math.abs(e.clientX - Dg.x) + Math.abs(e.clientY - Dg.y) < 6 && performance.now() - Dg.t0 < 450 && hx.s[0] > 0.6) {
+        const r = cv.getBoundingClientRect(), k = (r.width / W) || 1, px = (e.clientX - r.left) / k, py = (e.clientY - r.top) / k;
+        if (py >= BT - 4 && py <= BT + BH + 4) {
+          hx.rot = Dg.rot; hx.vel = 0;
+          const off = Math.round(Math.asin(Math.max(-1, Math.min(1, (px - CX) / RD))) * 180 / Math.PI / DRUM);
+          if (off === 0 && Math.abs(px - CX) < TILE * 0.6) { if (this.state.hb) this.hbClose(); else this.hbOpen(hx.cur); }
+          else if (off !== 0) { const base = Math.round(hx.rot / STEP) * STEP; hx.goal = base - off * STEP; }
+          hx.dirty = true;
+        } else if (py > BT + BH + 4) {
+          // 눈금판(조타륜 몸통)을 눌러도 가운데 로고를 누른 것과 같다 — 앱 바 열기 · 닫기
+          hx.rot = Dg.rot; hx.vel = 0;
+          if (this.state.hb) this.hbClose(); else this.hbOpen(hx.cur);
+          hx.dirty = true;
+        }
+      }
+    };
+    hx.wheel = (e) => {
+      if (this.state.tl || hx.s[0] < 0.5) return;
+      if (e.cancelable) e.preventDefault();
+      const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      // 휠 한 칸 = 로고 한 칸. 바로 바꾸지 않고 목표(goal)를 정해 두면 루프가 부드럽게 돌려 간다 (빠르게 여러 칸 굴리면 목표가 쌓인다)
+      const base = hx.goal != null ? hx.goal : Math.round(hx.rot / STEP) * STEP;
+      hx.vel = 0; hx.goal = base - Math.sign(d) * STEP; hx.dirty = true;
+    };
+    let last = performance.now();
+    // 조타륜 배경 원판을 조타륜 중심 · 반지름에 맞춘다 (다시 그리기가 스타일을 되돌려도 매 프레임 다시 맞춘다)
+    const hxBg = () => {
+      const el = document.querySelector('[data-hx-bg]'); if (!el || hx.bgR == null) return;
+      const RB = hx.bgR, ox = 423 - 288 + CX - RB, oy = 901 - H + hx.bgCy - RB + (hx.pullY || 0), k = RB + '|' + ox + '|' + oy;   // 표시 영역(x 288 ~ 1160) 기준 · 내리는 중이면 조타륜과 같이 내려간다
+      if (el.__k === k && el.style.width) return; el.__k = k;
+      el.style.width = el.style.height = Math.round(2 * RB) + 'px'; el.style.transform = 'translate(' + ox.toFixed(1) + 'px, ' + oy.toFixed(1) + 'px)';
+    };
+    const loop = (now) => {
+      if (this._unmounted || !this._hx) return;
+      if (hx.pullBack && !hx.drag) { hx.pullY = (hx.pullY || 0) * 0.78; if (hx.pullY < 0.5) { hx.pullY = 0; hx.pullBack = 0; } }   // 놓으면 배경도 조타륜 캔버스와 같이 제자리로
+      hxBg();
+      const dt = Math.min(0.033, (now - last) / 1000); last = now;
+      const since = (now - hx.wantAt) / 1000;
+      for (let i = 0; i < LAYERS; i++) {
+        // 올라올 땐 겹마다 차례로 출발 · 살짝 넘쳤다 내려앉는 스프링(ζ≈0.5). 내려갈 땐 다 같이, 튀지 않게(ζ=1)
+        const up = hx.want === 1, tgt = up ? (since >= i * STAGGER ? 1 : hx.s[i] > 0.5 ? 1 : 0) : 0;
+        const k = up ? 170 : 120, damp = up ? 2 * 0.5 * Math.sqrt(k) : 2 * Math.sqrt(k);
+        const a = (tgt - hx.s[i]) * k - hx.v[i] * damp;
+        if (Math.abs(tgt - hx.s[i]) > 0.0005 || Math.abs(hx.v[i]) > 0.001) {
+          hx.v[i] += a * dt; hx.s[i] += hx.v[i] * dt;
+          if (!up && hx.s[i] < 0) { hx.s[i] = 0; hx.v[i] = 0; }
+          hx.dirty = true;
+        } else { hx.s[i] = tgt; hx.v[i] = 0; }
+      }
+      if (!hx.drag && hx.goal != null) {
+        // 휠로 정한 목표까지 감속하며 돈다 (약 0.3초)
+        const d = hx.goal - hx.rot;
+        if (Math.abs(d) < 0.02) { hx.rot = hx.goal; hx.goal = null; } else hx.rot += d * Math.min(1, dt * 11);
+        hx.dirty = true;
+      } else if (!hx.drag) {
+        if (Math.abs(hx.vel) > 4) { hx.rot += hx.vel * dt; hx.vel *= Math.exp(-dt * 2.6); hx.dirty = true; }
+        else { hx.vel = 0; const d = Math.round(hx.rot / STEP) * STEP - hx.rot; if (Math.abs(d) > 0.002) { hx.rot += d * Math.min(1, dt * 10); hx.dirty = true; } }   // 멈추면 가장 가까운 로고(10°)에 붙는다
+      }
+      if (hx.dirty) { hx.dirty = false; draw(); }
+      else if (zone && zone.style.height !== zoneH() + 'px') zone.style.height = zoneH() + 'px';
+      hx.raf = requestAnimationFrame(loop);
+    };
+    draw();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { hx.dirty = true; });
+    hx.raf = requestAnimationFrame(loop);
+  }
+  // ───── 관리 노드 창 배경: 위에서 내려다본 해변 (beach-foam 알고리즘을 가로 방향 캔버스로 옮김) ─────
+  // 로컬 좌표: a = 해안선 방향(창의 세로), b = 해안선 수직(+는 모래 쪽 = 오른쪽). 캔버스 x = b·s, y = a·s
+  // 캔버스는 창 왼쪽에 고정. 해안선(off + ext)이 움직인다 — 젖은 선이 창 너비의 2/3 지점을 목표로, 바다 전체가 함께 따라간다
+  // 해안선 오른쪽이 모래, 왼쪽으로 갈수록 거품 → 얕은 물 → 깊은 물. 파도는 좌우로 밀려왔다 빠진다
+  mgBeachStart() {
+    const cv = document.querySelector('[data-mg-beach]');
+    if (!cv || this._mgb) return;
+    const TAU = Math.PI * 2, S = Math.sin, cl = (x) => Math.min(1, Math.max(0, x));
+    const CW = 1000, CH = 128, s = 0.5, DPR = 2, host = cv.parentElement;
+    const A0 = -40, A1 = CH / s + 40, BT = -3000;          // 그리는 범위 (a 방향 위아래 여유, b는 창 왼쪽 끝까지)
+    const C = { sand: '#f6e4c8', wetSand: '#e8cfa6', wet: '#d9b183', foam: '#d9f2f7', water: '#4dc5d4', deep: '#27b0c1', patch: '#3cbccc' };
+    cv.width = CW * DPR; cv.height = CH * DPR;
+    const g = cv.getContext('2d');
+    // 거품 배치: 해안선 가까이는 작고 드물게, 바다 쪽으로 갈수록 크고 촘촘하게 (시드 고정)
+    let sd = 7 >>> 0;
+    const rand = () => { sd = (sd + 0x6d2b79f5) >>> 0; let t = sd; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const gauss = () => Math.sqrt(-2 * Math.log(rand() || 1e-9)) * Math.cos(TAU * rand());
+    const lay = [];
+    for (let n = 0; n < 60000; n++) {
+      const d = 10 + rand() * 200;
+      if (rand() > 0.012 + 0.988 * Math.min(1, (d / 170) ** 3)) continue;
+      const a = -20 + rand() * (A1 - A0 - 40), r = Math.max(3, Math.min(38, 3.5 * Math.exp(d / 72) * Math.exp(gauss() * 0.25)));
+      if (d - r * 0.5 < 8) continue;
+      let ok = true;
+      for (const c of lay) {
+        const dx = c[0] - a; if (dx > 110 || dx < -110) continue;
+        const dm = Math.max(d, -c[1]);
+        const lim = Math.max((c[2] + r) * 0.95 + (30 - dm * 0.3), (c[2] + r) * (0.6 - 0.45 * cl((dm - 110) / 70)));
+        if (Math.hypot(dx, -c[1] - d) < lim) { ok = false; break; }
+      }
+      if (ok) lay.push([a, -d, r, rand() * TAU, 0]);
+    }
+    for (let a = -10; a < A1 - 20;) { const r = (3.5 + rand() * 2.5) * Math.exp(gauss() * 0.35); lay.push([a, -250 + (rand() * 10 - 5), r, rand() * TAU, 1]); a += 2 * r + (-Math.log(rand() || 1e-9) * 16) + 3; }
+    const cells = lay.map((c) => ({ a0: c[0], b0: c[1], R: c[2], ph: c[3], band: c[4], a: c[0], b: c[1], va: 0, vb: 0, rc: c[2], fa: 0, fb: 0, nb: [], L: 0, sq: 0 }));
+    // 거품 구멍은 배치된 자리가 '집'이다: 해안선 방향 a0, 경계와의 거리 d0. 밀리거나 밀쳐져도 그 자리로 돌아가려 한다 (넓은 영역을 떠다니지 않는다)
+    cells.filter((c) => c.band === 0).forEach((c) => {
+      c.d0 = -c.b0; c.k = 2.2 / (0.5 + c.R / 18);   // 큰 구멍일수록 파도를 늦게 따라온다
+      c.f1 = 0.12 + rand() * 0.3; c.f3 = 0.2 + rand() * 0.4;
+    });
+    // 서로 밀칠 수 있는 짝은 집 근처끼리뿐 — 한 번만 구해 둔다 (매 프레임 전체 비교 없음)
+    const pr = [];
+    for (let i = 0; i < cells.length; i++) for (let j = i + 1; j < cells.length; j++) {
+      const ci = cells[i], cj = cells[j]; if (ci.band !== cj.band) continue;
+      if (Math.hypot(cj.a0 - ci.a0, cj.b0 - ci.b0) < (ci.R + cj.R) * 1.5 + 24) pr.push(i, j);
+    }
+    const pairs = Int32Array.from(pr);
+    // 깊은 물 위의 옅은 얼룩 · 흰 물보라 (창 왼쪽 끝까지 흩어 둔다)
+    const blob = (r, seed, st) => {
+      let q = seed * 9301 + 49297; const rn = () => { q = (q * 9301 + 49297) % 233280; return q / 233280; };
+      const p0 = rn() * 6.28, p1 = rn() * 6.28, pts = [];
+      for (let i = 0; i < 9; i++) { const t = TAU * i / 9, rr = r * (1 + 0.15 * S(2 * t + p0) + 0.08 * S(3 * t + p1)); pts.push([S(t) * rr * 0.8, Math.cos(t) * rr * st]); }
+      return pts;
+    };
+    const patches = [], flecks = [];
+    for (let b = -420, i = 0; b > -2400; b -= 150 + (i % 3) * 40, i++) patches.push({ a: 40 + ((i * 97) % 180), b, ph: i * 1.9, dur: 11, pts: blob(16 + (i % 4) * 5, 50 + i, 1.6) });
+    for (let b = -380, i = 0; b > -2400; b -= 260, i++) flecks.push({ a: 30 + ((i * 131) % 200), b, ph: i * 2.3, dur: 7, pts: blob(3.4, 80 + i, 2.2) });
+    const K = 16, cs = [], sn = [];
+    for (let k = 0; k < K; k++) { cs.push(Math.cos(TAU * k / K)); sn.push(S(TAU * k / K)); }
+    const P = 8, gap = 2.5, margin = 12;
+    const step = (dt, t, sw, rb, E) => {
+      const N = cells.length;
+      for (let i = 0; i < N; i++) {
+        const c = cells[i]; c.nb.length = 0;
+        const sq = c.band === 0 ? cl((c.L - c.b - 40) / 130) : 0; c.sq = sq;
+        c.rc = c.R * (1 + (0.06 + 0.12 * sq) * S((1.2 - 0.4 * sq) * t + c.ph));
+        if (c.band === 0) {
+          const prev = c.L; c.L += (sw - c.L) * Math.min(1, c.k * dt); c.b += c.L - prev;
+          // 집으로 돌아가려는 용수철 (살짝 흔들리기만 한다)
+          c.fa = (c.a0 + 4 * S(t * c.f1 + c.ph) - c.a) * 6 - c.va * 3;
+          c.fb = (c.L - c.d0 + 3 * S(t * c.f3 + c.ph) - c.b) * 8 - c.vb * 3.5;
+          const ex = E(c.a) - c.b - c.rc; if (ex < margin) c.fb -= (margin - ex) * 60;
+        } else {
+          const ta = c.a0 + 22 * S(0.13 * t + c.ph), tb = c.b0 + off + eM + rb + 2.5 * S(0.5 * t + c.ph * 1.7);
+          c.fa = (ta - c.a) * 5 - c.va * 3; c.fb = (tb - c.b) * 7 - c.vb * 4;
+        }
+      }
+      for (let p = 0; p < pairs.length; p += 2) {
+        const i = pairs[p], j = pairs[p + 1], ci = cells[i], cj = cells[j];
+        {
+          const dx = cj.a - ci.a, dy = cj.b - ci.b;
+          const d = Math.hypot(dx, dy) || 0.01, sum = ci.rc + cj.rc;
+          if (d < sum + gap + 2) { ci.nb.push(j); cj.nb.push(i); }
+          const dm = ci.band === 0 ? (ci.L - ci.b + cj.L - cj.b) / 2 : 0;
+          const sp = ci.band === 0 ? Math.max(0, 18 - 0.16 * dm) : 4, soft = ci.band === 0 ? cl((dm - 40) / 130) : 0;
+          const tgt = sum * (0.92 - 0.24 * soft) + sp;
+          if (d < tgt) { const f = (tgt - d) * (25 - 17 * soft), fx = dx / d * f, fy = dy / d * f; ci.fa -= fx; ci.fb -= fy; cj.fa += fx; cj.fb += fy; }
+        }
+      }
+      for (let i = 0; i < N; i++) {
+        const c = cells[i];
+        c.va += c.fa * dt; c.vb += c.fb * dt;
+        const v = Math.hypot(c.va, c.vb); if (v > 160) { c.va *= 160 / v; c.vb *= 160 / v; }
+        c.a += c.va * dt; c.b += c.vb * dt;
+        if (c.band === 0) { const lim = E(c.a) - c.rc - margin * 0.4; if (c.b > lim) { c.b = lim; if (c.vb > 0) c.vb = 0; } }
+      }
+    };
+    const edge = (f, close) => { g.beginPath(); g.moveTo(A0, f(A0)); for (let a = A0 + 8; a <= A1 + 0.01; a += 8) g.lineTo(a, f(a)); if (close) { g.lineTo(A1, BT - 40); g.lineTo(A0, BT - 40); g.closePath(); } };
+    // 움직임 설정
+    //   접힌 창: 해안선은 창 길이의 1/2, 밀려오는 거리는 나머지의 절반(창 길이의 1/4) — 파도가 3/4 지점까지 올라온다. 밀려오는 거리는 펼쳐도 그대로
+    //   펼칠 때(순서대로, 전체 시간 = 창이 커지는 시간 — 창 너비 진행도 p를 그대로 따른다):
+    //     ① p 0 → 0.5 : 파도 자체(바다 전체, 거품 구멍 포함)가 해안선이 펼친 창의 1/2에 올 때까지 한 몸으로 옮겨간다
+    //     ② p 0.5 → 1 : 그다음 해안선이 나머지 절반의 1/4(창 길이의 1/8)만큼 늘어나 5/8 지점에 닿는다 (거품 구멍은 한 박자 늦게 따라온다)
+    //   접을 땐 창이 줄어드는 대로 ② → ① 순서로 되돌아간다
+    const WE = 965;                                                        // 펼친 창 너비
+    const wc = () => Math.max(120, this._mgPillW || 200);                  // 접힌 창 너비
+    let t = 0, last = 0, warm = false, eS = 0, eM = 0, eD = 0, lay0 = null, off = 100;
+    const rr = new Array(K), rs = new Array(K);
+    const render = (dt) => {
+      t += dt;
+      const Wc = wc(), w = (host && host.offsetWidth) || Wc;
+      const p = cl((w - Wc) / (WE - Wc));                                  // 펼침 진행도 0 → 1
+      const p1 = cl(p / 0.5), p2 = cl((p - 0.5) / 0.5);
+      off = Wc / 2 / s; const reach = Wc / 4 / s;
+      const lay = p1 * (WE / 2 - Wc / 2) / s, shore = p2 * (WE / 8) / s;
+      if (lay0 === null) lay0 = lay;
+      if (warm) { const d = lay - lay0; for (const c of cells) { c.b += d; c.L += d; } }   // ① 바다 전체가 한 몸으로
+      lay0 = lay;
+      const ext = lay + shore;
+      eS = eM = eD = ext;
+      const far = off + ext;
+      let ph = (t / P) % 1; ph += 0.1 * S(TAU * ph);
+      const wv = -8 + reach * (0.5 - 0.5 * Math.cos(TAU * ph)), sw = far + wv, rb = 9 * S(TAU * t / (P * 1.6));
+      const E = (a) => sw + 5.5 * S(a * 0.045 - 1.9 * t) + 3.5 * S(a * 0.083 + 1.3 * t + 1) + 2.2 * S(a * 0.17 - 2.6 * t + 2) + 4 * S(a * 0.02 + 0.45 * t);
+      const W = (a) => far + reach + 3 * S(a * 0.03 + 0.15 * t) + 2 * S(a * 0.08 - 0.25 * t + 1);
+      const Sh = (a) => off - 178 + eS + wv * 0.3 + 13 * S(a * 0.028 - 0.7 * t) + 7 * S(a * 0.066 + 1.0 * t + 2) + 3.5 * S(a * 0.14 - 1.5 * t);
+      const M = (a) => off - 250 + eM + rb + 10 * S(a * 0.022 - 0.5 * t) + 4 * S(a * 0.06 + 0.8 * t + 1);
+      const Hh = (a) => Math.max(2.5, 11 + 8 * S(a * 0.015 + 0.3 * t + 0.5) + 3 * S(a * 0.05 - 0.7 * t));
+      const D = (a) => off - 335 + eD + rb * 0.5 + 20 * S(a * 0.017 + 0.3 * t) + 11 * S(a * 0.047 - 0.55 * t + 1) + 5 * S(a * 0.1 + 0.9 * t + 2);
+      if (!warm) { warm = true; for (const c of cells) if (c.band === 0) { c.L = sw; c.b = c.b0 + sw; } for (let n = 0; n < 20; n++) step(0.02, t, sw, rb, E); }
+      step(dt, t, sw, rb, E);
+      g.setTransform(0, DPR * s, DPR * s, 0, 0, 0);                     // (a, b) → (x = b·s, y = a·s)
+      g.fillStyle = C.sand; g.fillRect(A0, BT - 40, A1 - A0, 6000);
+      // 젖은 모래: 파도가 올라오는 끝(젖은 선)까지 모래를 한 톤 어둡게 칠한다
+      g.fillStyle = C.wetSand; edge(W, true); g.fill();
+      g.fillStyle = C.foam; edge(E, true); g.fill();
+      const hole = (c) => {
+        let hi, lo = null;
+        if (c.band === 0) hi = E(c.a) - margin * 0.5; else { const m = M(c.a), h = Hh(c.a); hi = m + h - 1.5; lo = m - h + 1.5; }
+        for (let k = 0; k < K; k++) {
+          const th = TAU * k / K;
+          let r = c.rc * (1 + (0.08 + 0.08 * c.sq) * S(2 * th + c.ph + 0.6 * t) + (0.05 + 0.05 * c.sq) * S(3 * th + 2 * c.ph - 0.4 * t));
+          for (let n = 0; n < c.nb.length; n++) {
+            const o = cells[c.nb[n]], dx = o.a - c.a, dy = o.b - c.b, d = Math.hypot(dx, dy) || 0.01, cp = (cs[k] * dx + sn[k] * dy) / d;
+            if (cp > 0.02) {
+              const w = c.band === 0 ? gap * cl(1 - ((c.L - c.b + o.L - o.b) / 2 - 60) / 80) : gap;
+              const v = ((d * d + c.rc * c.rc - o.rc * o.rc) / (2 * d) - w / 2) / cp; if (v < r) r = v;
+            }
+          }
+          if (sn[k] > 0.02) { const v = (hi - c.b) / sn[k]; if (v < r) r = v; }
+          if (lo !== null && sn[k] < -0.02) { const v = (lo - c.b) / sn[k]; if (v < r) r = v; }
+          rr[k] = Math.max(0.2, r);
+        }
+        for (let k = 0; k < K; k++) rs[k] = Math.min(rr[k], 0.25 * rr[(k + K - 1) % K] + 0.5 * rr[k] + 0.25 * rr[(k + 1) % K]);
+        const px = (k) => c.a + cs[k % K] * rs[k % K], py = (k) => c.b + sn[k % K] * rs[k % K];
+        g.moveTo((px(0) + px(1)) / 2, (py(0) + py(1)) / 2);
+        for (let k = 1; k <= K; k++) g.quadraticCurveTo(px(k), py(k), (px(k) + px(k + 1)) / 2, (py(k) + py(k + 1)) / 2);
+        g.closePath();
+      };
+      g.fillStyle = C.water; g.beginPath(); cells.forEach((c) => { if (c.band === 0) hole(c); }); g.fill();
+      edge(Sh, true); g.fill();
+      g.fillStyle = C.foam; g.beginPath(); g.moveTo(A0, M(A0) + Hh(A0));
+      for (let a = A0 + 8; a <= A1 + 0.01; a += 8) g.lineTo(a, M(a) + Hh(a));
+      for (let a = A1; a >= A0 - 0.01; a -= 8) g.lineTo(a, M(a) - Hh(a));
+      g.closePath(); g.fill();
+      g.fillStyle = C.water; g.beginPath(); cells.forEach((c) => { if (c.band === 1) hole(c); }); g.fill();
+      g.fillStyle = C.deep; edge(D, true); g.fill();
+      const drift = (p, col) => {
+        const k = 0.5 - 0.5 * Math.cos(TAU * (t / p.dur) + p.ph), sc = 1 + 0.08 * k, ca = p.a - 4 * k, cb = off + eD + p.b + 8 * k;
+        g.fillStyle = col; g.beginPath();
+        p.pts.forEach(([u, v], i) => { const x = ca + u * sc, y = cb + v * sc; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+        g.closePath(); g.fill();
+      };
+      patches.forEach((p) => drift(p, C.patch)); flecks.forEach((p) => drift(p, C.foam));
+    };
+    const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    render(0.016);
+    const loop = (ts) => {
+      if (this._unmounted || !this._mgb) return;
+      const dt = last ? Math.min(0.033, (ts - last) / 1000) : 0.016; last = ts;
+      if (!document.hidden) render(dt);
+      this._mgb.raf = requestAnimationFrame(loop);
+    };
+    this._mgb = { raf: 0 };
+    if (!still) this._mgb.raf = requestAnimationFrame(loop);
+  }
+  // 벡터 타일 목록을 이미지(3배 해상도)로 굽고 캐시에 더한다. 애니메이션 필드는 칸마다 쓸 그림 순서(_anims)도 만든다
+  bakeImgs(list) {
+    const SCALE = 3;
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const jobs = list.map((bt) => new Promise((resolve) => {
+      const [x0, y0, x1, y1] = bt.bbox, w = x1 - x0, h = y1 - y0;
+      const rects = bt.topPat.rects.map((r) => '<rect x="' + r.x + '" y="' + r.y + '" width="' + r.w + '" height="' + r.h + '" fill="' + r.fill + '"/>').join('');
+      const pathEl = (p) => '<path d="' + esc(p.d) + '" fill="' + p.c + '" stroke="' + p.c + '" stroke-width="0.35" stroke-linejoin="round"/>';
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + Math.ceil(w * SCALE) + '" height="' + Math.ceil(h * SCALE) + '" viewBox="' + [x0, y0, w, h].join(' ') + '">' +
+        '<defs><pattern id="p" patternUnits="userSpaceOnUse" width="' + bt.topPat.w + '" height="' + bt.topPat.h + '" patternTransform="' + bt.topPat.m + '">' + rects + '</pattern></defs>' +
+        '<polygon points="' + bt.base + '" fill="' + bt.baseFill + '"/>' + bt.paths.map(pathEl).join('') + '<polygon points="' + bt.top + '" fill="url(#p)"/>' + bt.rim.map(pathEl).join('') + '</svg>';
+      const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const cv = document.createElement('canvas');
+          cv.width = Math.ceil(w * SCALE); cv.height = Math.ceil(h * SCALE);
+          cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+          resolve([bt.key, cv.toDataURL('image/png')]);
+        } catch (err) {
+          resolve([bt.key, svgUrl]); // 캔버스로 못 굽는 브라우저: SVG 이미지 그대로 (그래도 DOM 요소는 한 장)
+        }
+      };
+      img.onerror = () => resolve([bt.key, null]);
+      img.src = svgUrl;
+    }));
+    Promise.all(jobs).then((done) => {
+      const cache = Object.assign({}, this.state.tileImg || {});
+      done.forEach(([k, v]) => { if (v) cache[k] = v; });
+      if (this._unmounted) return;
+      // 애니메이션 필드: 칸마다 (빈 칸이면 앞 프레임의) 그림
+      this._anims = this._anims || {};
+      list.filter((bt) => bt.key.indexOf('@') < 0).forEach((bt) => {
+        const sk = this.FSK.find((x) => x.id === bt.sid);
+        if (!sk || !sk.frames || this.keyCount(sk.frames) < 2) return;
+        const ks = [], urls = [];
+        sk.frames.forEach((f, k) => { if (f) { ks.push(k); urls.push(k === 0 ? cache[bt.key] : cache[bt.key + '@' + k]); } });
+        if (urls.every(Boolean)) this._anims[bt.key] = { urls, seq: sk.frames.map((f, t) => ks.indexOf(this.holdAt(sk.frames, t))), T: sk.frames.length };
+      });
+      this.setState({ tileImg: cache });
+    });
+  }
+  componentWillUnmount() {
+    try { window.removeEventListener('storage', this._onStore); } catch (e) { /* 무시 */ }
+    if (this._hbX) { clearInterval(this._hbX); this._hbX = null; }
+    if (this._fsB) { window.removeEventListener('pointerdown', this._fsB.down); window.removeEventListener('keydown', this._fsB.key); this._fsB = null; }
+    if (this._mgb) { cancelAnimationFrame(this._mgb.raf); this._mgb = null; }
+    if (this._ceRaf) { cancelAnimationFrame(this._ceRaf); this._ceRaf = null; }
+    if (this._seaRaf) { cancelAnimationFrame(this._seaRaf); this._seaRaf = null; }
+    if (this._hx) { cancelAnimationFrame(this._hx.raf); document.removeEventListener('pointermove', this._hx.docMove, true); document.removeEventListener('pointerout', this._hx.docOut, true); document.removeEventListener('pointerdown', this._hx.docDown, true); window.removeEventListener('blur', this._hx.blur); window.removeEventListener('keydown', this._hx.key); this._hx = null; }
+    if (this._bldgDefs) this._bldgDefs.remove();
+    clearInterval(this._animI);
+    this._unmounted = true;
+    (this._liftTs || []).forEach(clearTimeout);
+    [this._dropT, this._riseT2, this._mtT1, this._mtT2, this._mtT3, this._seqT1, this._seqT2, this._restoreT1, this._restoreT2, this._restoreT3].forEach(clearTimeout);
+    if (this._fit) window.removeEventListener('resize', this._fit);
+    if (this._tlKeys) { window.removeEventListener('keydown', this._tlKeys.down); window.removeEventListener('keyup', this._tlKeys.up); window.removeEventListener('wheel', this._tlKeys.wheel); window.removeEventListener('pointerdown', this._tlKeys.click, true); }
+  }
+  // ───── tree 로그인 목록 ─────
+  // 프사(가운데)를 중심으로 반지름이 고정된 원 위에 목록이 놓인다. 관리 노드 창 아래(레이어)에 숨어 있다가
+  // 열릴 때 반시계 방향으로 돌아 나오고(빠름→느림), 닫힐 때 시계 방향으로 돌아 들어간다(느림→빠름). 둘 다 0.7초
+  // 진행도 p(0 = 숨음, 1 = 다 나옴)를 시간에 따라 목표(0/1)로 움직이고, 매 프레임 위치를 직접 그린다.
+  // 도중에 목표가 바뀌면 그 자리에서 그대로 되돌아간다. 나올 때 빠름→느림, 같은 곡선을 거꾸로 밟아 들어갈 때 느림→빠름
+  // 부채: 가운데(-90°)가 포인터 자리. 목록 간격 36°, 양 끝 긴 눈금은 왼쪽 -145° · 오른쪽 -35°
+  tlGeo() { return { STEP: 36, R: 168, DUR: 700, FAN_L: -145, FAN_R: -35, FAN_R0: 108, FAN_R1: 212 }; }
+  tlEase(x) { // cubic-bezier(0, .55, .45, 1): 시간 비율 x → 진행 비율
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    const cb = (a, b, t) => 3 * a * t * (1 - t) * (1 - t) + 3 * b * t * t * (1 - t) + t * t * t;
+    let lo = 0, hi = 1;
+    for (let k = 0; k < 24; k++) { const m = (lo + hi) / 2; if (cb(0, 0.45, m) < x) lo = m; else hi = m; }
+    return cb(0.55, 1, (lo + hi) / 2);
+  }
+  tlSpikeDefs() {
+    return [45, 90, 135, 180, 225, 270, 315, 0].map((a) => { // 큰 바늘(0°)은 맨 마지막 = 맨 위 레이어. 길이는 부채 눈금 안쪽까지로 줄였다
+      const big = a === 0, mid = a % 90 === 0 && !big;
+      return { a, big, len: big ? 40 : mid ? 34 : 20, w: big ? 14 : mid ? 13 : 5 };
+    });
+  }
+  tlApply() {
+    const A = this._tla;
+    if (!A || typeof document === 'undefined') return;
+    const G = this.tlGeo(), E = this.tlEase(A.p);
+    // 두 긴 눈금은 오른쪽 수평(0°, 관리 노드 창 뒤)에 접혀 있다가 반시계로 돌며 제자리로 — 왼쪽 눈금이 더 멀리 돈다
+    const aL = G.FAN_L * E, aR = G.FAN_R * E;
+    const pts = ['300px 300px'];
+    for (let a = aR; a >= aL - 0.01; a -= 4) pts.push((300 + Math.cos(a * Math.PI / 180) * 290).toFixed(1) + 'px ' + (300 + Math.sin(a * Math.PI / 180) * 290).toFixed(1) + 'px');
+    pts.push((300 + Math.cos(aL * Math.PI / 180) * 290).toFixed(1) + 'px ' + (300 + Math.sin(aL * Math.PI / 180) * 290).toFixed(1) + 'px');
+    const fan = document.querySelector('[data-tl-fan]');
+    if (fan) fan.style.clipPath = 'polygon(' + pts.join(', ') + ')';
+    document.querySelectorAll('[data-tl-needle]').forEach((el) => {
+      el.style.transform = 'rotate(' + (el.getAttribute('data-tl-needle') === 'l' ? aL : aR).toFixed(2) + 'deg)';
+    });
+    // 목록과 그 아래 눈금은 휠로 함께 돈다 (가운데 -90°에 오는 것이 로그인할 tree)
+    document.querySelectorAll('[data-tl-item]').forEach((el) => {
+      const i = Number(el.getAttribute('data-tl-item')), ang = (-90 + (i - 1 - A.rDisp) * G.STEP) * Math.PI / 180;
+      el.style.transform = 'translate(' + (Math.cos(ang) * G.R).toFixed(2) + 'px, ' + (Math.sin(ang) * G.R).toFixed(2) + 'px)';
+    });
+    const ticks = document.querySelector('[data-tl-ticks]');
+    if (ticks) ticks.setAttribute('transform', 'rotate(' + (-A.rDisp * G.STEP).toFixed(2) + ')');
+    // 나침반
+    const clamp = (v) => Math.max(0, Math.min(1, v)), smooth = (v) => v * v * (3 - 2 * v);
+    // 큰 바늘(포인터)은 안에서 나오면서 시계 방향으로 한 바퀴 돌고, 나머지 바늘은 큰 바늘이 지나간 뒤 천천히(70°) 안에서 밖으로 나온다. 닫을 땐 역순
+    const bigOut = smooth(clamp(A.p / 0.3)), bigAng = 360 * E;
+    const defs = this.tlSpikeDefs();
+    document.querySelectorAll('[data-tl-spike]').forEach((el) => {
+      const d = defs[Number(el.getAttribute('data-tl-spike'))];
+      const out = d.big ? bigOut : smooth(clamp((bigAng - d.a) / Math.min(70, 360 - d.a)));
+      el.style.transform = 'rotate(' + (d.big ? bigAng : d.a).toFixed(2) + 'deg) translateY(' + ((1 - out) * d.len).toFixed(2) + 'px)';
+    });
+  }
+  tlRun() {
+    if (this._tlRaf || !this._tla) return;
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(() => f(Date.now()), 16);
+    let last = null;
+    const step = (ts) => {
+      const A = this._tla;
+      if (!A) { this._tlRaf = null; return; }
+      const dt = last === null ? 16 : Math.min(50, ts - last);
+      last = ts;
+      const G = this.tlGeo();
+      A.p = Math.max(0, Math.min(1, A.p + (A.target ? 1 : -1) * dt / G.DUR));
+      const r = this.state.tl ? this.state.tl.r : 0;
+      A.rDisp += (r - A.rDisp) * Math.min(1, dt / 70);
+      if (Math.abs(r - A.rDisp) < 0.002) A.rDisp = r;
+      this.tlApply();
+      const tl = this.state.tl;
+      if (A.target === 1 && A.p === 1 && tl && !tl.ready) this.setState({ tl: Object.assign({}, tl, { ready: true }) });
+      if (tl && tl.moving && A.rDisp === r) this.setState({ tl: Object.assign({}, this.state.tl, { moving: false }) }); // 완전히 멈춘 뒤에 활성화
+      if (A.target === 0 && A.p === 0) {
+        this._tlRaf = null;
+        this._tla = null;
+        const pick = this._tlPick;
+        this._tlPick = null;
+        this.setState({ tl: null });
+        if (pick) this.beginSwitch(pick);
+        return;
+      }
+      const moving = (A.target === 1 ? A.p < 1 : A.p > 0) || A.rDisp !== r;
+      this._tlRaf = moving ? raf(step) : null;
+    };
+    this._tlRaf = raf(step);
+  }
+  // ───── 맵 이동: 노드를 두 번 누르면 해당 노드의 맵으로 ─────
+  isTree(role) { return /tree/i.test(role || ''); }
+  // 노드 모습 (없으면 기본: tree = 콘크리트 + 관계도의 건물, leaf = 잔디 · 건물 없음)
+  lookOf(name) {
+    const L = this.state.looks[name];
+    if (L) return L;
+    const n = this.NET[name] || {};
+    return this.isTree(n.role) ? { skin: 'concrete', bid: n.bid || null, rot: 0 } : { skin: this.props.skin || 'grass', bid: null, rot: 0 };
+  }
+  setLook(name, patch) { this.setState({ looks: Object.assign({}, this.state.looks, { [name]: Object.assign({}, this.lookOf(name), patch) }) }); }
+  ownerIn(m, mapName, key) { return m.nodes[key] ? m.nodes[key].name : (m.self === key ? mapName : null); }
+  parentOfNode(name) { return Object.keys(this.NET).find((k) => this.NET[k].kids.indexOf(name) >= 0) || null; }
+  pathOf(name) { const out = [name]; let p = this.parentOfNode(name); while (p && out.length < 12) { out.unshift(p); p = this.parentOfNode(p); } return out; }
+  // 기본 맵: 반지름 5인 육각형 필드 (가운데 칸 + 4겹 = 61칸). tree 맵은 가운데에 자신(부모)을, 둘레에 자식 노드를 둔다. leaf 맵엔 노드가 없다
+  defaultMap(name) {
+    const R = 5, C0 = 4, R0 = 4, base = this.props.skin || 'grass';
+    const cube = (c, r) => { const q = c, rr = r - (c - (c & 1)) / 2; return [q, rr, -q - rr]; };
+    const [q0, r0, s0] = cube(C0, R0);
+    const dist = (c, r) => { const [q, rr, ss] = cube(c, r); return Math.max(Math.abs(q - q0), Math.abs(rr - r0), Math.abs(ss - s0)); };
+    const fields = [];
+    for (let c = 0; c <= 2 * (R - 1); c++) for (let r = 0; r <= 2 * (R - 1) + 1; r++) if (dist(c, r) <= R - 1) fields.push(c + '-' + r);
+    const net = this.NET[name] || { role: 'Leaf', kids: [] }, tree = this.isTree(net.role);
+    const nodes = {}, placed = {}, mat = {};
+    const center = C0 + '-' + R0;
+    if (tree) {
+      nodes[center] = { name, role: net.role, parent: true };
+      // 자식은 가운데를 둘러싼 칸에 위에서부터 시계 방향으로
+      const ring = (d) => fields.filter((k) => { const [c, r] = k.split('-').map(Number); return dist(c, r) === d; })
+        .map((k) => { const [c, r] = k.split('-').map(Number); const x = (c - C0) * 130, y = (r - R0) * 92 + ((c & 1) - (C0 & 1)) * 46; return { k, a: (Math.atan2(x, -y) + 2 * Math.PI) % (2 * Math.PI) }; })
+        .sort((u, v) => u.a - v.a).map((o) => o.k);
+      const spots = ring(1).concat(ring(2));
+      net.kids.forEach((kid, i) => { const k = spots[i]; if (!k) return; const kn = this.NET[kid] || { role: 'Leaf' }; nodes[k] = { name: kid, role: kn.role }; });
+    }
+    fields.forEach((k) => { if (!mat[k] && base !== 'grass') mat[k] = base; });
+    return { fields, mat, placed, nodes, pending: [], sel: tree ? center : null, self: tree ? null : center, grounds: [], gmat: {}, grot: {}, frot: {} };
+  }
+  snapshotMap() { const S = this.state; return { fields: S.fields, mat: S.mat, placed: S.placed, nodes: S.nodes, pending: S.pending, sel: S.sel, self: S.self || null, grounds: S.grounds || [], gmat: S.gmat || {}, grot: S.grot || {}, frot: S.frot || {} }; }
+  // 맵 바꾸기 — 관계에 따라 필드가 움직인다
+  //   부모 → 자식(down): 왼쪽 위부터 오른쪽 아래 순으로 필드가 위로 떠오르며 사라진다(들어갈 자식 필드만 남음)
+  //                      → 남은 자식 필드가 자기 맵의 자기 자리로 옮겨 간다 → 자식 맵의 필드가 아래에서 올라온다
+  //   자식 → 부모(up):   거꾸로 — 자기(지금 맵의 주인)만 남고 필드는 오른쪽 아래부터 아래로 가라앉으며 사라진다
+  //                      → 자기가 부모 맵의 자기 자리로 옮겨 간다 → 부모 맵의 필드가 위에서 내려온다
+  //   그 밖(형제 등 jump): 모든 필드가 아래로 내려가 사라지고 → 새 맵의 필드가 아래에서 올라온다
+  // 칸 키 'c-r' 읽기 — 음수 열 · 행('-1-3', '4--1')도 바르게 (맵 밖 해안 그라운드)
+  ck(k) { const m = /^(-?\d+)-(-?\d+)$/.exec(k); return m ? [+m[1], +m[2]] : k.split('-').map(Number); }
+  cellXY(key) { const [c, r] = this.ck(key); return { cx: 183 + c * 130, cy: 150 + r * 92 + ((c % 2 + 2) % 2 === 1 ? 46 : 0) }; }   // 음수 열(맵 둘레 칸)도 홀수 열은 반 칸 아래
+  mapSkin(m, mapName, key) { const o = this.ownerIn(m, mapName, key); return o ? this.lookOf(o).skin : (m.mat[key] || this.props.skin || 'grass'); }
+  mapLift(m, mapName, key) { const sk = this.FSK.find((x) => x.id === this.mapSkin(m, mapName, key)) || this.FSK[0]; return this.cellLift(m, sk, key); }
+  selfKey(m, name) {   // 맵 m에서 노드 name이 놓인 칸 (leaf 맵이면 가운데 칸)
+    const k = Object.keys(m.nodes).find((x) => m.nodes[x].name === name);
+    if (k) return k;
+    return m.self && !this.isTree((this.NET[name] || {}).role) ? m.self : null;
+  }
+  goMap(name, note) {
+    if (this.state.mt) return;
+    if (name === this.state.map) { if (note) this.setState({ tlNote: note }); return; }
+    this._mapGoal = name; setTimeout(() => this.hxAvatar(), 0);   // 프사(로컬/tree)는 가는 맵을 기준으로 맞춘다
+    const curName = this.state.map, cur = this.snapshotMap();
+    const maps = Object.assign({}, this.state.maps, { [curName]: Object.assign({}, cur, { sel: null }) });
+    const next = maps[name] || this.defaultMap(name);
+    const dir = this.parentOfNode(name) === curName ? 'down' : this.parentOfNode(curName) === name ? 'up' : 'jump';
+    // 남는 필드: down = 지금 맵의 그 자식 · up = 지금 맵의 주인(자기)
+    const keepOld = dir === 'down' ? this.selfKey(cur, name) : dir === 'up' ? this.selfKey(cur, curName) : null;
+    const keepNew = dir === 'down' ? this.selfKey(next, name) : dir === 'up' ? this.selfKey(next, curName) : null;
+    const keep = keepOld && keepNew ? keepOld : null;
+    let from = null;
+    // 남는 필드는 옮겨 가는 동안 원래 모습(테두리 · 높이)을 지키고, 도착한 뒤에 새 맵의 모습으로 바뀐다 (재질 · 건물은 노드 모습 한 벌이라 그대로)
+    let keepKind = false, keepLift = 0;
+    if (keep) {
+      const p = this.cellXY(keep), F = this._fx || { s: 1, tx: 0, ty: 0 };
+      keepKind = this.cellKind(cur, keep); keepLift = this.mapLift(cur, curName, keep);
+      from = { x: F.tx + F.s * p.cx, y: F.ty + F.s * (p.cy - keepLift), s: F.s, kind: keepKind, lift: keepLift };
+    }
+    const OUT = 1300, MOVE = 840, IN = 1380;
+    clearTimeout(this._mtT1); clearTimeout(this._mtT2); clearTimeout(this._mtT3);
+    this.setState({ mt: { dir, phase: 'out', keep }, sel: null, rmenu: null, drag: null, tlNote: '' });
+    // 섬(그라운드 · 해안 · 파도)이 미끄러지는 방향: 부모 → 자식 = 왼쪽으로 나가고 오른쪽에서 들어옴 · 자식 → 부모 = 그 반대 · 그 밖 = 아래로 나가고 위에서 들어옴
+    const SW = 1600, SH = 1100, ex = dir === 'down' ? { x: -SW, y: 0 } : dir === 'up' ? { x: SW, y: 0 } : { x: 0, y: SH };
+    const SL_OUT = 520, SL_IN = 640;
+    this._mtT1 = setTimeout(() => this.mapSlide({ x: 0, y: 0 }, ex, SL_OUT, 'in', () => {
+      const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+      const keepN = keep ? keepNew : null;
+      const en = { x: -ex.x, y: -ex.y };
+      this.mapSlideSet(en);   // 새 섬은 반대쪽 화면 밖에서 시작
+      this.setState(Object.assign({ maps, map: name, self: null }, next, { sel: null, mt: { dir, phase: 'pre', keep: keepN, from } }));
+      raf(() => this.mapSlide(en, { x: 0, y: 0 }, SL_IN, 'out', () => raf(() => {
+        // 순서: ① 노드 이동 → ② 맵 생성(필드가 올라옴 · 노드 필드는 아직 바닥 높이) → ③ 높이 변경(모든 노드, 왼쪽 위 → 오른쪽 아래)
+        if (keepN) {
+          this.setState({ mt: { dir, phase: 'move', keep: keepN, from } });
+          this._mtT2 = setTimeout(() => this.setState({ mt: { dir, phase: 'in', keep: keepN, from } }), MOVE);
+        } else this.setState({ mt: { dir, phase: 'in', keep: null, from: null } });
+        this._mtT3 = setTimeout(() => {
+          // 높이 바뀔 칸: 노드 필드 + (leaf 맵이면) 자기 칸 — 왼쪽 위부터
+          const S2 = this.state, keys = S2.fields.filter((k) => S2.nodes[k] || S2.self === k)
+            .map((k) => { const p = this.cellXY(k); return { k, r: p.cx + p.cy }; }).sort((a, b) => a.r - b.r).map((o) => o.k);
+          const STEP = 170, RISE = 560;
+          const base = { dir, phase: 'lift', keep: keepN, from, lifted: [], kinded: [] };
+          this.setState({ mt: base });
+          (this._liftTs || []).forEach(clearTimeout);
+          this._liftTs = [];
+          keys.forEach((k, i) => {
+            this._liftTs.push(setTimeout(() => {
+              const m = this.state.mt;
+              if (!m || m.phase !== 'lift') return;
+              // 내려앉는 칸(주인 → 자식)은 옛 모습으로 먼저 내려앉고, 다 내려앉은 뒤 모습을 바꾼다
+              const sink = k === keepN && from && this.mapLift(this.state, name, k) < from.lift;
+              this.setState({ mt: Object.assign({}, m, { lifted: m.lifted.concat([k]), kinded: sink ? m.kinded : m.kinded.concat([k]) }) });
+              if (sink) this._liftTs.push(setTimeout(() => { const m2 = this.state.mt; if (m2 && m2.phase === 'lift') this.setState({ mt: Object.assign({}, m2, { kinded: m2.kinded.concat([k]) }) }); }, RISE));
+            }, i * STEP));
+          });
+          this._liftTs.push(setTimeout(() => {
+            this.setState({ mt: null, sel: next.sel, tlNote: note || '' });
+            this.pushAlarm('◇', '#0f766e', name + ' 맵으로 이동' + (dir === 'down' ? ' (자식)' : dir === 'up' ? ' (부모)' : ''));
+          }, Math.max(0, keys.length - 1) * STEP + RISE + 80));
+        }, (keepN ? MOVE : 0) + IN);
+      })));
+    }), OUT);
+  }
+  // 섬 미끄러짐: 아래 층 svg(그라운드 · 해변)와 바다 캔버스(해안 · 파도 · 수심 띠)를 같은 만큼 옮긴다. 필드 · 건물(위 층)은 그대로
+  mapSlideSet(v) {
+    this._slide = { x: Math.round(v.x), y: Math.round(v.y) };
+    const low = document.querySelector('[data-field-low]');
+    if (low) low.style.transform = this._slide.x || this._slide.y ? 'translate(' + this._slide.x + 'px, ' + this._slide.y + 'px)' : '';
+  }
+  mapSlide(a, b, dur, ease, done) {
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16), t0 = Date.now();
+    const E = ease === 'in' ? (t) => t * t * t : (t) => 1 - Math.pow(1 - t, 3);
+    const step = () => {
+      if (this._unmounted) return;
+      const t = Math.min(1, (Date.now() - t0) / dur), k = E(t);
+      this.mapSlideSet({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
+      if (t < 1) raf(step); else if (done) done();
+    };
+    raf(step);
+  }
+  treeObj(name) {
+    const t = this.state.trees.find((x) => x.name === name);
+    if (t) return t;
+    if (this.state.curTree.name === name) return this.state.curTree;
+    const n = this.NET[name] || {};
+    return { name, role: n.role || 'Tree', bid: n.bid || null, auth: n.auth || 'saved' };
+  }
+  // 노드 필드를 두 번 누름: tree → 프사 창이 노드 전환(로그인)을 하고, 성공하면 그 tree의 맵으로. leaf → (권한이 있다는 전제로) 바로 그 leaf의 맵으로
+  enterNode(nd) {
+    if (!nd) return;
+    if (nd.parent) { this.setState({ tlNote: nd.name + ' — 지금 보고 있는 맵입니다' }); return; }
+    if (this.state.login || (this.state.auth && this.state.auth.phase !== 'done') || this.state.tl) return;
+    if (this.isTree(nd.role)) {
+      if (this.state.curTree.name === nd.name) { this.goMap(nd.name); return; }
+      this._navTree = nd.name;
+      this.beginSwitch(this.treeObj(nd.name));
+    } else this.goMap(nd.name, nd.name + ' 맵 — 이 leaf가 관리하는 자원');
+  }
+  // ───── 서브 창 · 서랍 ─────
+  // 유틸 기능 로고 — 16×16 픽셀 (bld/ud_icons.py). 창에는 색을 칠하지 않고, 기능의 대표 색은 로고가 맡는다
+  UDLOGO() { return this._udLogo || (this._udLogo = {"memo": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR4nGNgoBAwwhhikvL/idHw6vlDRmQ+CzLn6cNreDVLy2thiLGgCzR2z8equb40Ec6GuRbFNWKS8v9///qKF4tJyv8Xk5T//2GL03+YIUS5ANn2W7OVUeRQAhFfGEjLa8E1q6XehTufZBcga0YB+MIA3d/IAK8LkG1+3CmA1WskhQEDA2ZCYsKpAw3gMhzFC9hS2ggAAFdFd/Cf+COdAAAAAElFTkSuQmCC", "props": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAeElEQVR4nGNgwAHEJOX/I2Nc6nACkCbrpm9gTJQByDYha0Y3BKeLYJpgCrAZgKwGr5MJYZxeQjcEm2swNCOHNLpCGMBlMNgwXP5FBzgDlioGUOQFigORatGInpBk/W7ANYDYRCUk5OQK0oSMCSZlbAaiayYJEJudAV2EbHAK7wMNAAAAAElFTkSuQmCC", "alarm": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAZ0lEQVR4nGNgwAPEJOX/gzA+NXg1f93pBMYkGwKzGR0Trfm9SwQK3qxiBaYJGoJNM0mGwAz4f+EaTkMGsQHI/sdlAF5D8AUgQQOI1YzTEFwJhxBGMQCWbInF1HUBrlghOzOhuwyfGgA89i9gGzSPWgAAAABJRU5ErkJggg==", "map": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAbklEQVR4nGNgoBSIScr/pwSDDYg/uQ0Fg8RefP+MgdHVohigNbcLqwEwm5ANgKkl6AIQfdk2CIxhBuF0AbrJ6AbADEFWCzcA2fnYvEC0C3AFIrKL0MOKYCASHQukRCPOWEAPRJq5AMMAipLy0AcA+4jDQ6XIBTcAAAAASUVORK5CYII=", "bld": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdklEQVR4nGNgwAPEJOX/gzA+NXg1f6jSA2NkQ4gyFFkzuiEgunvqMtyGYNOMbAheA/BpRjYEqwHEaEZ3CVmaMQIWZhq5GMUVv989IArjDECYJDbDkMUJGlBz5ANWA2DiRLsAHxunAei2zjIRwvAS7QwgK/ooBQAN/3v3Rdcy7QAAAABJRU5ErkJggg==", "fld": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAeUlEQVR4nGNgQANikvL/8WF09Ria/Q5V4cU4DUHWrNcfhFUzTBzDEHw24zIMbggxNuMyEGwILtuJMQyrK0iyHT0c2u7OJwpjjQmQ4IosWzAGKYKxsYkRNIAQxmtAlZcGhgZ0MaJdgMswggZg00jQBTBDiMFYNQ8YAAAAjXWIzixPTgAAAABJRU5ErkJggg==", "mat": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAQ0lEQVR4nGNgoBSIScr/pwSDDVhW8wkrxicHk4cbUON7GwUjG4BNDsUAqnqBFC/BDSDkbHQDYOK08cJoLAxELAw4AACSmbLYH2lOhwAAAABJRU5ErkJggg==", "net": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAZklEQVR4nGNgwAHEJOX/I2Nc6nBqtlj2AgWTZAjMgJsf/lJmAAgzZy4k3QCYIRSFAbIhyGJEa0Y3gChD0BVgcz5OQ7D5GRsba5jgindkjDdd4Ip3dANwpgtC8U5UuiAU7xSli8ENAHq/spYrEEyrAAAAAElFTkSuQmCC", "edit": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAT0lEQVR4nGNgoDcQk5T/D8Nkaf6+4iQck2QIzFayDAApfOM/5T+yISRrhmGS/I+uGWbAcNf8+eZW8jQjGwAzhKyEAjOA5KSKnMbJSucDBgBglJjcsvLWrwAAAABJRU5ErkJggg==", "mod": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAUUlEQVR4nGNgoBUQk5T/j4xJ1vzpkAEKJskQsgxAdzKyIdjkiLIVF6aKARiGkGIATpeg+x0fPtQlQL5X8AYksQbQJhZA/iIG43U+sRjDgAEDAASaOUpfjfSKAAAAAElFTkSuQmCC", "user": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAR0lEQVR4nGNgoAUQk5T/jw0Trfn01YdYMUFD8GkmypBhYADFgYhsCFnRCFOYUtKNFeM1CJ9GbAaRrRmrIVQxgBxMVIzQHAAAB7830LHeNIwAAAAASUVORK5CYII=", "set": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAVElEQVR4nGNgoBYQk5T/D8NkaVbafB6MSTYAphmmkSoGkGQIuvPRDSTZEGRMsiHYDKI4VgafIWRHM0WuQTaEr2QCGJMd1TDNIJoil5AVqDBDkDUDAH5CmJ+UE6kYAAAAAElFTkSuQmCC"}); }
+  WDEF() {
+    return {
+      // color = 창 표식 · pa / pb = 서랍 카드 파스텔 · ink = 카드 글자
+      props: { title: '속성', emoji: '⚙️', color: '#2563eb', pa: '#dde8fd', pb: '#c9dafb', ink: '#1d4ed8' },
+      alarm: { title: '알림', emoji: '🔔', color: '#d33d52', pa: '#fde1e5', pb: '#f9cdd4', ink: '#a8243a' },
+      map: { title: '지도', emoji: '🗺️', color: '#0f766e', pa: '#d5f3ed', pb: '#c0ebe2', ink: '#115e59' },
+      bld: { title: '건물 편집기', emoji: '🏗️', color: '#c2410c', pa: '#fde6d4', pb: '#fad5bb', ink: '#9a3412', href: 'building.html' },
+      fld: { title: '필드 편집기', emoji: '🟩', color: '#1f7a4d', pa: '#d8f2e2', pb: '#c3e9d1', ink: '#166534', href: 'field.html' },
+      mat: { title: '자재 편집기', emoji: '🧱', color: '#6d28d9', pa: '#e9e1fc', pb: '#dacefa', ink: '#5b21b6', href: 'material.html' },
+      net: { title: '네트워크', emoji: '🔗', color: '#0369a1', pa: '#d9eefb', pb: '#c4e3f7', ink: '#075985', href: 'network.html' },
+      edit: { title: '편집', emoji: '✏️', color: '#be185d', pa: '#fde2ef', pb: '#f9cde3', ink: '#9d174d' },
+      mod: { title: '모듈', emoji: '🧩', color: '#a16207', pa: '#fbf0cc', pb: '#f6e5ae', ink: '#854d0e' },
+      user: { title: '사용자', emoji: '👤', color: '#475569', pa: '#e7ebf0', pb: '#d9dfe7', ink: '#334155' },
+      memo: { title: '메모장', emoji: '📝', color: '#b45309', pa: '#fdf0d9', pb: '#fae3b8', ink: '#92400e' },
+      set: { title: '설정', emoji: '🛠️', color: '#0e7490', pa: '#d6f1f6', pb: '#bfe6ee', ink: '#155e75', href: 'settings.html' }
+    };
+  }
+  // 서랍 구역 (필드 영역 좌표): 오른쪽 아래
+  drawerZone() { return { x: 1447 - 560, y: 901 - 250, w: 560, h: 250 }; }
+  // 서랍창 인식 범위: 오른쪽 아래 구석, 화면 가로 · 세로의 1/4 (카드 자리 drawerZone과 따로). 호버로 올라오기 · 끌어 넣기가 같이 쓴다
+  drawerHit() { return { x: 1447 * 3 / 4, y: 901 * 3 / 4, w: 1447 / 4, h: 901 / 4 }; }
+  inDrawer(x, y) { const z = this.drawerHit(); return x >= z.x && y >= z.y; }
+  // ───── 폴더 보관함 (오버헤드 패널 오른쪽): 누르면 사이드 바가 상단 테이블 뒤에서 위 → 아래로 내려온다 ─────
+  // 바로가기 셋: Terra 저장소(terra가 관리하는 폴더 · 읽기만) · 폴더 탐색기(권한 안의 로컬 최상위 루트 · 읽기만) · 메모장(만들기 · 고치기 · 지우기 · 탐색)
+  // 읽기만인 곳의 파일은 로컬에서 지원하는 프로그램으로 연다. 세 곳 모두 로컬 OS 파일 관리자로 열 수 있다 (예시 — 실제로는 Daemon 열기 요청)
+  FBMODES() { return {
+    repo: { name: 'Terra 저장소', root: 'terra://', rootLabel: 'Terra 저장소', desc: 'Terra가 관리하는 공유 폴더 · 백업 · 모듈 데이터', ro: true, os: '~/TerraShare', icon: '🗄️' },
+    local: { name: '폴더 탐색기', root: '/', rootLabel: '/', desc: '권한 안에서 들어갈 수 있는 로컬 최상위 루트', ro: true, os: '/', icon: '🧭' },
+    memo: { name: '메모장', root: '~/.terra/memos', rootLabel: 'memos', desc: '임시 메모 — 만들기 · 고치기 · 지우기 · 탐색', ro: false, os: '~/.terra/memos', icon: '📝' }
+  }; }
+  FBDATA() { return this._fbData || (this._fbData = {
+    repo: [
+      { id: 'TerraShare', parent: '', name: 'TerraShare', dir: true, info: 'share-0 · ~/TerraShare' },
+      { id: 'TerraShare/docs', parent: 'TerraShare', name: 'docs', dir: true, info: '항목 2' },
+      { id: 'TerraShare/docs/plan.md', parent: 'TerraShare/docs', name: 'plan.md', size: '8 KB', info: '3일 전' },
+      { id: 'TerraShare/docs/budget.xlsx', parent: 'TerraShare/docs', name: 'budget.xlsx', size: '64 KB', info: '지난주' },
+      { id: 'TerraShare/report.pdf', parent: 'TerraShare', name: 'report.pdf', size: '2.4 MB', info: '어제 18:20' },
+      { id: 'TerraShare/notes.md', parent: 'TerraShare', name: 'notes.md', size: '12 KB', info: '오늘 09:02' },
+      { id: 'TerraShare/photo-0412.jpg', parent: 'TerraShare', name: 'photo-0412.jpg', size: '3.1 MB', info: '4월 12일' },
+      { id: '백업', parent: '', name: '백업', dir: true, info: 'share-1 · /srv/terra/backup' },
+      { id: '백업/2026-09-30.tar.zst', parent: '백업', name: '2026-09-30.tar.zst', size: '1.2 GB', info: '어제' },
+      { id: '백업/2026-09-23.tar.zst', parent: '백업', name: '2026-09-23.tar.zst', size: '1.1 GB', info: '지난주' },
+      { id: '모듈 데이터', parent: '', name: '모듈 데이터', dir: true, info: 'Daemon 데이터 · 모듈 원장' },
+      { id: '모듈 데이터/io-inventory', parent: '모듈 데이터', name: 'io-inventory', dir: true, info: '항목 1' },
+      { id: '모듈 데이터/io-inventory/devices.json', parent: '모듈 데이터/io-inventory', name: 'devices.json', size: '6 KB', info: '방금' }
+    ],
+    local: [
+      { id: 'home', parent: '', name: 'home', dir: true, info: '사용자 폴더' },
+      { id: 'home/maru', parent: 'home', name: 'maru', dir: true, info: '내 홈' },
+      { id: 'home/maru/Documents', parent: 'home/maru', name: 'Documents', dir: true, info: '항목 1' },
+      { id: 'home/maru/Documents/이력서.pdf', parent: 'home/maru/Documents', name: '이력서.pdf', size: '410 KB', info: '9월 2일' },
+      { id: 'home/maru/Downloads', parent: 'home/maru', name: 'Downloads', dir: true, info: '항목 1' },
+      { id: 'home/maru/Downloads/terra-cli.tar.gz', parent: 'home/maru/Downloads', name: 'terra-cli.tar.gz', size: '18 MB', info: '어제' },
+      { id: 'home/maru/Pictures', parent: 'home/maru', name: 'Pictures', dir: true, info: '항목 1' },
+      { id: 'home/maru/Pictures/screen.png', parent: 'home/maru/Pictures', name: 'screen.png', size: '840 KB', info: '오늘' },
+      { id: 'mnt', parent: '', name: 'mnt', dir: true, info: '마운트' },
+      { id: 'mnt/usb-01', parent: 'mnt', name: 'usb-01', dir: true, info: 'USB 저장 장치' },
+      { id: 'mnt/usb-01/firmware.bin', parent: 'mnt/usb-01', name: 'firmware.bin', size: '48 MB', info: '9월 28일' },
+      { id: 'tmp', parent: '', name: 'tmp', dir: true, info: '임시' },
+      { id: 'root', parent: '', name: 'root', dir: true, lock: true, info: '권한 밖' },
+      { id: 'etc', parent: '', name: 'etc', dir: true, lock: true, info: '권한 밖' }
+    ]
+  }); }
+  fbToggle(mode) {
+    const F = this.state.fb;
+    if (mode) { this.setState({ fb: { open: true, mode, path: '' }, fbMsg: null, fbArm: null }); return; }
+    this.setState({ fb: Object.assign({}, F, { open: !F.open }), fbMsg: null, fbArm: null });
+  }
+  fbSay(t, c) { clearTimeout(this._fbT); this.setState({ fbMsg: { t, c: c || '#1f7a4d' } }); this._fbT = setTimeout(() => this.setState({ fbMsg: null }), 3200); }
+  fbList(mode) { return mode === 'memo' ? this.state.memos : (this.FBDATA()[mode] || []); }
+  // 확장자별 로컬 기본 프로그램 (예시). Linux는 xdg-open, Windows는 기본 앱, macOS는 open
+  fbApp(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    return { pdf: '문서 뷰어', md: '텍스트 편집기', txt: '텍스트 편집기', json: '텍스트 편집기', xlsx: '스프레드시트', jpg: '이미지 뷰어', png: '이미지 뷰어', zst: '압축 관리자', gz: '압축 관리자', bin: '헥스 뷰어' }[ext] || '기본 프로그램';
+  }
+  fbOpenItem(d) {
+    const F = this.state.fb;
+    if (d.lock) { this.fbSay('🔒 ' + d.name + ' — 권한 밖이라 들어갈 수 없다', '#d33d52'); return; }
+    if (d.dir) { this.setState({ fb: Object.assign({}, F, { path: d.id }), fbArm: null }); return; }
+    if (F.mode === 'memo') { this.memoOpen(d.id); return; }
+    this.fbSay(d.name + ' — 로컬 ' + this.fbApp(d.name) + '(으)로 연다 · 읽기 전용', '#2563eb');
+  }
+  fbOS() {
+    const F = this.state.fb, M = this.FBMODES()[F.mode];
+    const p = F.mode === 'local' ? '/' + F.path : F.mode === 'repo' ? (F.path ? '~/' + F.path : M.os) : M.os + (F.path ? '/' + F.path : '');
+    this.fbSay('파일 관리자로 ' + p + ' 열기 — Linux xdg-open · Windows 탐색기 · macOS Finder', '#2563eb');
+  }
+  // ── 메모장: 파일 만들기 · 고치기 · 지우기 · 탐색. 쓰기는 메모장 기능칸(창)에서 ──
+  memoNew(dir) {
+    const F = this.state.fb, base = dir != null ? dir : (F.mode === 'memo' ? F.path : '');
+    this.setState({ memoCur: null, memoDraft: { name: '새 메모.md', text: '', dir: base, dirty: false } });
+    const W = this.state.wins.memo; if (!this.state.winOpen.memo || this.state.fsHist.indexOf('memo') >= 0) this.openWin('memo', W.x, W.y); else this.winFront('memo');
+  }
+  memoOpen(id) {
+    const m = this.state.memos.find((x) => x.id === id); if (!m) return;
+    this.setState({ memoCur: id, memoDraft: { name: m.name, text: m.text || '', dir: m.parent, dirty: false } });
+    const W = this.state.wins.memo; if (!this.state.winOpen.memo) this.openWin('memo', W.x, W.y); else this.winFront('memo');
+  }
+  memoSave() {
+    const S = this.state, D = S.memoDraft; if (!D) return;
+    let name = (D.name || '').trim() || '이름 없음.md'; if (!/\.[a-z0-9]+$/i.test(name)) name += '.md';
+    const id = (D.dir ? D.dir + '/' : '') + name, now = new Date(), t = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    if (S.memos.some((x) => x.id === id && x.id !== S.memoCur)) { this.setState({ memoNote: { t: '같은 이름이 이미 있다 — ' + name, c: '#d33d52' } }); return; }
+    const rest = S.memos.filter((x) => x.id !== S.memoCur);
+    const item = { id, parent: D.dir, name, text: D.text, size: Math.max(1, Math.ceil((D.text || '').length * 3 / 1024)) + ' KB', info: '오늘 ' + t };
+    const at = S.memos.findIndex((x) => x.id === S.memoCur);
+    const memos = at >= 0 ? rest.slice(0, at).concat([item], rest.slice(at)) : rest.concat([item]);
+    this.setState({ memos, memoCur: id, memoDraft: Object.assign({}, D, { name, dirty: false }), memoNote: { t: (at >= 0 ? '저장함 · ' : '만듦 · ') + t, c: '#1f7a4d' } });
+  }
+  memoDel(id) {
+    const S = this.state;
+    if (S.fbArm !== id) { this.setState({ fbArm: id }); this.fbSay('한 번 더 누르면 지운다', '#d33d52'); return; }
+    const gone = (x) => x.id === id || x.parent === id || x.parent.indexOf(id + '/') === 0;
+    const d = S.memos.find((x) => x.id === id);
+    this.setState({ memos: S.memos.filter((x) => !gone(x)), fbArm: null });
+    if (S.memoCur && (S.memoCur === id || S.memoCur.indexOf(id + '/') === 0)) this.setState({ memoCur: null, memoDraft: Object.assign({}, S.memoDraft, { dirty: true }) });
+    this.fbSay((d ? d.name : id) + ' 지움', '#a65f00');
+  }
+  memoMkdir() {
+    const S = this.state, base = S.fb.path, k = S.memos.filter((x) => x.parent === base && /^새 폴더/.test(x.name)).length + 1, nm = '새 폴더' + (k > 1 ? ' ' + k : '');
+    this.setState({ memos: S.memos.concat([{ id: (base ? base + '/' : '') + nm, parent: base, name: nm, dir: true, info: '비어 있음' }]) });
+    this.fbSay(nm + ' 만듦');
+  }
+  fbVals() {
+    const S = this.state, F = S.fb, M = this.FBMODES(), mode = F.mode, md = mode ? M[mode] : null;
+    const memoN = S.memos.filter((x) => !x.dir).length;
+    const shortcuts = Object.keys(M).map((k) => ({ id: k, name: M[k].name, desc: M[k].desc, icon: M[k].icon, badge: M[k].ro ? '읽기만' : '쓰기', bc: M[k].ro ? '#5b6472' : '#1f7a4d', bbg: M[k].ro ? '#eef1f5' : '#e3f4ea',
+      go: () => this.setState({ fb: Object.assign({}, F, { mode: k, path: '' }), fbArm: null, fbMsg: null }) }));
+    // 오른쪽 계기판 램프 (보관함 바로가기 셋)
+    const LC = { repo: '#8ec5ff', local: '#ffc861', memo: '#7cf2b0' };
+    const lamps = Object.keys(M).map((k) => { const on = F.open && mode === k; return { id: k, label: k === 'memo' ? '메모 ' + memoN : k === 'repo' ? '저장소' : '탐색기', tip: M[k].name + ' 열기',
+      fg: on ? LC[k] : '#7d8794', ts: on ? '0 0 4px ' + LC[k] : 'none', glow: on ? 'inset 0 0 8px rgba(255,255,255,0.12), 0 0 6px rgba(255,255,255,0.1)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+      go: (e) => { e.stopPropagation(); this.fbToggle(k); } }; });
+    let rows = [], crumbs = [];
+    if (mode) {
+      const all = this.fbList(mode), path = F.path;
+      rows = all.filter((x) => x.parent === path).sort((a, b) => (b.dir ? 1 : 0) - (a.dir ? 1 : 0) || a.name.localeCompare(b.name)).map((d) => {
+        const ext = d.dir ? '' : (d.name.split('.').pop() || '').toLowerCase();
+        return { id: d.id, name: d.name, dir: !!d.dir, lock: !!d.lock, glyph: d.lock ? '🔒' : d.dir ? '📁' : { pdf: '📕', md: '📄', xlsx: '📊', jpg: '🖼️', png: '🖼️', json: '🧾', zst: '🗜️', gz: '🗜️', bin: '💾' }[ext] || '📄',
+          sub: d.dir ? (d.info || '폴더') : (d.size ? d.size + ' · ' : '') + (d.info || ''), op: d.lock ? 0.5 : 1, cur: mode === 'memo' && S.winOpen.memo && S.memoCur === d.id,
+          bg: mode === 'memo' && S.memoCur === d.id ? '#f3f7ff' : 'transparent',
+          open: () => this.fbOpenItem(d), canDel: mode === 'memo', armed: S.fbArm === d.id,
+          delLabel: S.fbArm === d.id ? '정말?' : '지우기', del: (e) => { e.stopPropagation(); this.memoDel(d.id); },
+          act: d.dir ? (d.lock ? '권한 밖' : '열기') : mode === 'memo' ? '고치기' : this.fbApp(d.name) };
+      });
+      const parts = path ? path.split('/') : [];
+      crumbs = [{ label: md.rootLabel, go: () => this.setState({ fb: Object.assign({}, F, { path: '' }) }) }].concat(parts.map((p, i) => ({ label: p, go: () => this.setState({ fb: Object.assign({}, F, { path: parts.slice(0, i + 1).join('/') }) }) })));
+    }
+    return {
+      open: !!F.open, home: !mode, browse: !!mode, shortcuts, lamps, rows, empty: !!mode && rows.length === 0, crumbs,
+      title: md ? md.name : '폴더 보관함', icon: md ? md.icon : '🗄️', ro: !!(md && md.ro), rw: !!(md && !md.ro),
+      note: md ? (md.ro ? '읽기 전용 — 파일은 로컬 프로그램으로 연다' : '만들기 · 고치기 · 지우기 — 쓰기는 메모장 칸에서') : '바로가기를 고르세요',
+      msg: S.fbMsg ? S.fbMsg.t : '', msgC: S.fbMsg ? S.fbMsg.c : '#5b6472', hasMsg: !!S.fbMsg,
+      podState: F.open ? '열림' : '닫힘', podChev: F.open ? '▴' : '▾', podLamp: F.open ? '#ffc861' : '#3b434e', podGlow: F.open ? '0 0 6px #f0b442' : 'none',
+      toggle: (e) => { e.stopPropagation(); this.fbToggle(); }, close: () => this.setState({ fb: Object.assign({}, F, { open: false }) }),
+      back: () => this.setState({ fb: Object.assign({}, F, F.path ? { path: F.path.indexOf('/') > 0 ? F.path.slice(0, F.path.lastIndexOf('/')) : '' } : { mode: null }), fbArm: null }),
+      home2: () => this.setState({ fb: Object.assign({}, F, { mode: null, path: '' }), fbArm: null }),
+      os: () => this.fbOS(), newMemo: () => this.memoNew(), mkdir: () => this.memoMkdir()
+    };
+  }
+  memoVals() {
+    const S = this.state, D = S.memoDraft || { name: '', text: '', dir: '', dirty: false };
+    return {
+      name: D.name, text: D.text, path: '~/.terra/memos/' + (D.dir ? D.dir + '/' : ''), isNew: !S.memoCur, state: !S.memoCur ? '새 메모 — 아직 저장 안 됨' : D.dirty ? '고침 — 저장 안 됨' : '저장됨',
+      stateC: D.dirty || !S.memoCur ? '#a65f00' : '#1f7a4d', note: S.memoNote ? S.memoNote.t : '', noteC: S.memoNote ? S.memoNote.c : '#5b6472',
+      onName: (e) => this.setState({ memoDraft: Object.assign({}, D, { name: e.target.value, dirty: true }), memoNote: null }),
+      onText: (e) => this.setState({ memoDraft: Object.assign({}, D, { text: e.target.value, dirty: true }), memoNote: null }),
+      save: () => this.memoSave(), fresh: () => this.memoNew(D.dir),
+      del: () => { if (S.memoCur) { this.memoDel(S.memoCur); if (S.fbArm === S.memoCur) this.setState({ memoNote: { t: '지움', c: '#a65f00' } }); else this.setState({ memoNote: { t: '한 번 더 누르면 지운다', c: '#d33d52' } }); } },
+      delLabel: S.memoCur && S.fbArm === S.memoCur ? '정말 지우기' : '지우기', canDel: !!S.memoCur,
+      browse: () => this.fbToggle('memo'),
+      list: S.memos.filter((x) => !x.dir).map((m) => ({ id: m.id, name: m.id, on: m.id === S.memoCur, bg: m.id === S.memoCur ? '#16191f' : '#ffffff', fg: m.id === S.memoCur ? '#ffffff' : '#16191f', go: () => this.memoOpen(m.id) }))
+    };
+  }
+  // ───── 전체 화면: 창 하나가 오버헤드 패널 계기판 아래(필드 y 84)부터 화면 맨 아래까지 덮는다. 가운데 파인 곳으로 맵이 보이고, 누르면 맵으로 ─────
+  get FS_TOP() { return 56; }   // 오버헤드 패널 계기판의 가장 낮은 선 (화면 y 100)
+  // 리스트 박스 밖을 누르면 접고, Esc = 리스트 접기 → (앱 바가 없을 때) 전체 화면 끝
+  fsBind() {
+    if (typeof window === 'undefined' || this._fsB) return;
+    this._fsB = {
+      down: () => { if (this.state.fsList) this.setState({ fsList: false }); },
+      key: (e) => { if (e.key !== 'Escape') return; if (this.state.fb.open) this.setState({ fb: Object.assign({}, this.state.fb, { open: false }) }); else if (this.state.fsList) this.setState({ fsList: false }); else if (this.state.fs && !this.state.hb) this.fsExit(); }
+    };
+    window.addEventListener('pointerdown', this._fsB.down);
+    window.addEventListener('keydown', this._fsB.key);
+  }
+  // id = 창 키(props · bld …) 또는 조타륜 앱 'hb:<앱>' — 전체 화면은 기능창만이 아니다
+  fsEnter(id) {
+    const S = this.state, hist = S.fsHist.indexOf(id) >= 0 ? S.fsHist : S.fsHist.concat([id]);
+    if (id.indexOf('hb:') === 0) {
+      if (S.hb) this.hbClose();
+      this.setState({ fs: id, fsList: false, fsHist: hist, hbMsg: null, hbBusy: null, hbArm: null });
+      if (!this._hbX) this._hbX = setInterval(() => this.hbTick(), 500);
+      return;
+    }
+    const W = S.wins[id];
+    if (!S.winOpen[id]) this.openWin(id, W.x, W.y);
+    this.setState({ fs: id, fsList: false, fsHist: hist, winZ: this.state.winZ.filter((k) => k !== id).concat([id]) });
+  }
+  // 리스트에서 빼기: 창이면 닫는다(맵 화면에서 사라진 채 보관 중이었으므로), 조타륜 앱이면 리스트에서만 뺀다
+  fsDrop(id) { if (this.state.fs === id) this.fsExit(); this.setState({ fsHist: this.state.fsHist.filter((k) => k !== id) }); if (id.indexOf('hb:') !== 0) this.closeWin(id); }
+  fsName(id) { if (id.indexOf('hb:') === 0) { const r = (this._hxRes || []).find((x) => x.px === id.slice(3)); return r ? r.name : id; } return (this.WDEF()[id] || {}).title || id; }
+  fsExit() { this.setState({ fs: null, fsList: false }); }
+  // 오버헤드 패널 창 목록에서 누름 (전체 화면 중이면 그 창을 전체 화면으로)
+  ovWin(id) {
+    const S = this.state, W = S.wins[id], front = S.winZ.filter((k) => S.winOpen[k]).slice(-1)[0];
+    if (S.fs) { if (S.fs !== id) this.fsEnter(id); return; }
+    if (!S.winOpen[id]) { this.openWin(id, W.x, W.y); return; }
+    if (id === front) { this.storeWin(id); return; }
+    this.winFront(id);
+  }
+  winFront(id) { const z = this.state.winZ.filter((k) => k !== id).concat([id]); if (z.join() !== this.state.winZ.join()) this.setState({ winZ: z }); }
+  openWin(id, x, y) {
+    const W = this.state.wins[id];
+    if (id === 'alarm' && !this.state.winOpen.alarm) this.setState({ alarmNew: this.state.notif.alarm || 0 });
+    if (this.state.notif[id]) { const nf = Object.assign({}, this.state.notif); delete nf[id]; this.setState({ notif: nf }); }
+    const nx = Math.max(8, Math.min(1447 - W.w - 8, Math.round(x))), ny = Math.max(8, Math.min(901 - 80, Math.round(y)));
+    this.setState({
+      wins: Object.assign({}, this.state.wins, { [id]: Object.assign({}, W, { x: nx, y: ny }) }),
+      winOpen: Object.assign({}, this.state.winOpen, { [id]: true }),
+      drawer: this.state.drawer.filter((k) => k !== id), drawerHover: null,
+      winZ: this.state.winZ.filter((k) => k !== id).concat([id])
+    });
+  }
+  // 서랍에 넣기: 창이 수직으로 화면 밖(아래)으로 내려간 뒤 → 서랍 카드가 아래에서 위로 올라온다
+  storeWin(id, instant) {
+    if (this.state.fs === id) this.setState({ fs: null });
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+    const put = () => {
+      this.setState({ winOpen: Object.assign({}, this.state.winOpen, { [id]: false }), drawer: this.state.drawer.filter((k) => k !== id).concat([id]), drawerHover: null, winDrop: null, cardRise: id });
+      raf(() => raf(() => { clearTimeout(this._riseT2); this._riseT2 = setTimeout(() => this.setState({ cardRise: null }), 30); }));
+    };
+    if (instant) { put(); return; }
+    if (this.state.winDrop) return;
+    this.setState({ winDrop: id });
+    clearTimeout(this._dropT);
+    this._dropT = setTimeout(put, 460);
+  }
+  pushAlarm(g, c, m) {
+    const d = new Date(), t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const nf = this.state.winOpen.alarm ? this.state.notif : Object.assign({}, this.state.notif, { alarm: (this.state.notif.alarm || 0) + 1 });
+    this.setState({ alarms: [{ t, g, c, m }].concat(this.state.alarms).slice(0, 30), notif: nf, alarmNew: this.state.winOpen.alarm ? this.state.alarmNew + 1 : this.state.alarmNew });
+  }
+  // 창 끌기: window = 제목 막대 · card = 서랍 카드 · pull = 관리 노드 창의 지도. 6px 넘게 움직여야 끌기로 본다
+  startWinDrag(id, e, mode) {
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    const root = (e.currentTarget && e.currentTarget.closest && e.currentTarget.closest('[data-field-root]')) || document.querySelector('[data-field-root]');
+    if (!root) return;
+    const r = root.getBoundingClientRect(), k = (r.width / (root.offsetWidth || r.width)) || 1;
+    const loc = (ev) => [(ev.clientX - r.left) / k, (ev.clientY - r.top) / k];
+    const W0 = this.state.wins[id], [px, py] = loc(e), sx = e.clientX, sy = e.clientY;
+    const off = mode === 'window' ? [px - W0.x, py - W0.y] : (mode === 'card' || mode === 'util') ? [84, 22] : [24, 24];
+    let moved = false;
+    this.winFront(id);
+    try { if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+    const mv = (ev) => {
+      if (ev.buttons === 0) { up(); return; }
+      if (!moved && Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 6) return;
+      moved = true;
+      const [x, y] = loc(ev);
+      const back = mode !== 'pull' && this.udSlotHit(id, x, y);
+      this.setState({ wdrag: { id, mode, x: x - off[0], y: y - off[1], over: !back && this.inDrawer(x, y), back }, drawerNear: false });
+    };
+    let done = false;
+    const up = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      const d = this.state.wdrag;
+      if (!moved || !d) {   // 끌지 않고 누르기만: 카드 · 지도는 창을 연다
+        if (mode === 'util') { const c = this.centerSpot(id); this.openWin(id, c.x, c.y); }   // 유틸 서랍에서 누르기: 화면 가운데에
+        else if (mode !== 'window') this.openWin(id, W0.x, W0.y);
+        this.setState({ wdrag: null });
+        return;
+      }
+      if (d.back) { this.closeWin(id); this.setState({ wdrag: null }); return; }   // 제 칸에 놓음: 창을 닫고 칸으로 돌아간다
+      if (d.over) this.storeWin(id, true);
+      else if (mode === 'pull') this.openWin(id, d.x + 24 - W0.w / 2, d.y + 24 - 19); // 네모를 놓은 자리가 지도 창 제목 막대 가운데
+      else this.openWin(id, d.x, d.y);
+      this.setState({ wdrag: null });
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  }
+  // 유틸 서랍 카드 · 빈칸을 누른 채 끌기
+  //   위아래 = 스크롤처럼 순환 (손가락을 따라 칸이 움직인다 · 떼면 그 자리에 정지)
+  //   옆으로 서랍 기둥 밖(왼쪽 PULL px 넘게 · 오른쪽 16px 넘게)으로 나가면 = 그 카드를 빼내 창으로 (id가 있는 카드만)
+  //   움직이지 않고 떼면 = 누르기 (카드면 화면 가운데에 창을 연다)
+  udCardDrag(id, e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    const root = document.querySelector('[data-field-root]');
+    if (!root) return;
+    const r = root.getBoundingClientRect(), k = (r.width / (root.offsetWidth || r.width)) || 1;
+    const loc = (ev) => [(ev.clientX - r.left) / k, (ev.clientY - r.top) / k];
+    const G = this.UD(), PULL = 40, STEP = G.CH + 12;
+    const [, y0] = loc(e), s0 = this.state.ud.s;
+    let phase = 'idle';   // idle → scroll | pull
+    try { if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+    this._udGoal = null; this.udStopAnim();
+    const mv = (ev) => {
+      if (ev.buttons === 0) { up(); return; }
+      const [x, y] = loc(ev), out = x < G.X - PULL || x > G.X + G.W + 16;
+      if (id && out && phase !== 'pull') { phase = 'pull'; if (id) this.winFront(id); }
+      if (phase === 'pull') {
+        const back = this.udSlotHit(id, x, y);
+        this.setState({ wdrag: { id, mode: 'util', x: x - 84, y: y - 22, over: !back && this.inDrawer(x, y), back }, drawerNear: false });
+        return;
+      }
+      if (phase === 'idle' && Math.abs(y - y0) < 6) return;
+      phase = 'scroll';
+      this.udSet({ s: s0 - (y - y0) / STEP, anim: false });   // 위로 끌면 칸이 위로 나아간다
+    };
+    let done = false;
+    const up = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); window.removeEventListener('blur', up);
+      if (phase === 'scroll') return;
+      if (phase === 'idle') { if (id) { const c = this.centerSpot(id); this.openWin(id, c.x, c.y); } return; }
+      const d = this.state.wdrag;
+      if (d && d.back) { this.setState({ wdrag: null }); return; }   // 빼내다가 제 칸으로 되돌림
+      if (d && d.over) this.storeWin(id, true);
+      else if (d) this.openWin(id, d.x, d.y);
+      this.setState({ wdrag: null });
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up); window.addEventListener('blur', up);
+  }
+  // 끌고 있는 기능 창(또는 서랍 카드)이 유틸 서랍의 제 칸 위에 있나 (필드 좌표).
+  // 서랍이 열려 있으면 그 기능의 빈칸 위 · 닫혀 있으면 서랍 머리(유틸 줄) 위 → 놓으면 제자리로 돌아간다
+  udSlotHit(id, x, y) {
+    if (!id || this.state.utilItems.indexOf(id) < 0) return false;
+    const G = this.UD(), R = this._udRects;
+    if (x < G.X - 8 || x > G.X + G.W + 8) return false;
+    if (!R || R.mode === 'closed') return y >= G.SB - 48 && y <= G.SB;
+    const c = R.rects.find((q) => q.id === id);
+    if (!c) return false;
+    const near = 40 + Math.max(0, c.y), far = 40 + Math.min(R.H, c.y + c.h);   // 서랍 줄 아래 끝(SB)에서 위로 떨어진 거리
+    return far - near > 12 && y <= G.SB - near && y >= G.SB - far;
+  }
+  // 화면 가운데 자리. 이미 열린 창과 (거의) 같은 자리면 오른쪽 아래 대각선으로 28px씩 비켜 난다
+  centerSpot(id) {
+    const W = this.state.wins[id], S = this.state;
+    let x = Math.round((1447 - W.w) / 2), y = Math.round(901 / 2 - 200);
+    const taken = Object.keys(S.winOpen).filter((k) => S.winOpen[k] && k !== id).map((k) => S.wins[k]);
+    // 가운데를 기준으로 비교 (창 너비가 달라도 거의 같은 자리면 겹친 것으로 본다)
+    const cx = () => x + W.w / 2;
+    for (let g = 0; g < 20 && taken.some((o) => Math.abs(o.x + o.w / 2 - cx()) < 20 && Math.abs(o.y - y) < 20); g++) { x += 28; y += 28; }
+    return { x, y };
+  }
+  closeWin(id) {
+    if (this.state.fs === id) this.setState({ fs: null });
+    if (this.state.fsHist.indexOf(id) >= 0) this.setState({ fsHist: this.state.fsHist.filter((k) => k !== id) });   // 닫힌 창은 리스트에서도 빠진다
+    if (id === 'alarm') this.setState({ alarmNew: 0 });
+    this.setState({ winOpen: Object.assign({}, this.state.winOpen, { [id]: false }), drawer: this.state.drawer.filter((k) => k !== id), winZ: this.state.winZ.filter((k) => k !== id) });
+  }
+  // ───── 유틸 서랍 ─────
+  // 서랍 높이 한계 = 화면의 2/3 지점 (머리 40px 포함). CH = 기능칸 높이, LROW = 목록 한 줄
+  // Q = 한 번에 내려오는 칸 수 (이 칸들이 한 줄로 이어져 cos 경향으로 내려오고, 나머지는 바닥에 완전히 겹쳐 있다가 순환)
+  get MG_PILL() { return 247; }   // 관리 노드 창 접힌 너비 (이름 9자 기준)
+  UD() { return { W: 280, X: 1447 - 30 - 280, SB: 901 - 180 + 12, HC: 500, CH: 150, LROW: 40, Q: 5 }; }   // HC = 서랍 높이 한계(맵 제목 · 범례를 가리지 않게) · X · SB = 테이블 오른쪽 위(서랍 줄의 왼쪽 · 아래 끝), 위로 연다
+  udSet(patch) { this.setState({ ud: Object.assign({}, this.state.ud, patch) }); }
+  udListH() { const G = this.UD(); return Math.min(this.state.utilItems.length * G.LROW, G.HC); }
+  udClose() { this._udGoal = null; this.udStopAnim(); clearTimeout(this._udSnapT); this.udSet({ mode: 'closed', s: 0, scroll: 0, anim: true, base: null, css: false }); }
+  udStopAnim() {
+    if (this._udRaf) { (typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame : clearTimeout)(this._udRaf); this._udRaf = null; }
+    clearTimeout(this._udCssT);
+    if (this.state.ud.css || this.state.ud.base != null) this.udSet({ css: false, base: null });
+  }
+  // 순환 값 s를 target까지 움직인다 (칸 하나 = 1). 칸의 내려오는 거리는 한계거리 × cos(남은 위상)이라 도착할 때 저절로 느려진다
+  udAnimS(target, per) {
+    this.udStopAnim();
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+    const s0 = this.state.ud.s, dur = Math.max(120, Math.abs(target - s0) * (per || 620)), t0 = Date.now();
+    const step = () => {
+      const t = Math.min(1, (Date.now() - t0) / dur);
+      this.udSet({ s: s0 + (target - s0) * t });
+      this._udRaf = t < 1 ? raf(step) : null;
+    };
+    this._udRaf = raf(step);
+  }
+  // 홀드해서 내리면(또는 휠을 내리면) 한계 지점까지 한 번에 열리고, 첫 칸이 내려와 한계(0 지점)에 도착해 선다
+  // 열기는 CSS 전환으로: 시작 자리(s = Q - 1.2)를 한 번 그린 뒤, 다음 프레임에 도착 자리(s = Q)를 주면 브라우저가 transform으로 옮긴다
+  // → 프레임마다 화면 전체를 다시 계산하지 않는다. base = 도착 값 (그 사이 칸의 위상을 도착 기준으로 펴서, 한 바퀴 넘어가는 칸이 스택을 가로지르지 않게)
+  udOpen() {
+    const Q = this.UD().Q, DUR = 560;
+    this.udStopAnim();
+    this.udSet({ mode: 'cycle', s: Q - 1.2, base: Q, css: false, anim: true });
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+    this._udRaf = raf(() => { this._udRaf = raf(() => {
+      this._udRaf = null;
+      this.udSet({ s: Q, css: true });
+      this._udCssT = setTimeout(() => this.udSet({ css: false, base: null }), DUR + 60);
+    }); });
+  }
+  // 손잡이(또는 서랍 머리)를 홀드: 닫혀 있으면 내리는 순간 열림 · 열려 있으면 올리면 닫힘 · 움직이지 않고 떼면 누르기
+  udGrab(e, part) {
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    try { if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+    const sy = e.clientY, root = document.querySelector('[data-field-root]');
+    const k = root ? ((root.getBoundingClientRect().width / (root.offsetWidth || 1)) || 1) : 1;
+    let moved = false, acted = false, done = false;
+    const mv = (ev) => {
+      if (ev.buttons === 0) { up(); return; }
+      const dy = (ev.clientY - sy) / k;
+      if (Math.abs(dy) >= 6) moved = true;
+      if (acted) return;
+      const mode = this.state.ud.mode;
+      if (dy < -14 && mode !== 'cycle') { acted = true; this.udOpen(); }   // 위로 올리면 열림
+      else if (dy > 24 && mode !== 'closed') { acted = true; this.udClose(); }
+    };
+    const up = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); window.removeEventListener('blur', up);
+      if (moved) return;
+      // 누르기도 홀드해서 내리기와 같다: 닫혀 있으면 한계까지 열리며 순환, 열려 있으면 닫는다
+      if (this.state.ud.mode === 'closed') this.udOpen(); else this.udClose();
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up); window.addEventListener('blur', up);
+  }
+  // 휠: 닫혀 있으면 내릴 때 열림 · 순환이면 칸을 넘김(멈추면 가까운 도착 지점으로) · 목록이면 목록을 넘김
+  udWheel(e) {
+    const U = this.state.ud, G = this.UD();
+    if (e.preventDefault) e.preventDefault();
+    if (U.mode === 'closed') { if (e.deltaY < 0) this.udOpen(); return; }   // 휠을 위로 굴리면 열림
+    if (U.mode === 'list') {
+      const max = Math.max(0, this.state.utilItems.length * G.LROW - this.udListH());
+      if (max > 0) { this.udSet({ scroll: Math.max(0, Math.min(max, U.scroll - e.deltaY * 0.6)), anim: false }); return; }
+      if (e.deltaY > 0) this.udClose();
+      return;
+    }
+    // x는 굴린 만큼 늘고 줄어든다 — 바로 바꾸지 않고 목표(_udGoal)까지 감속하며 굴러간다 (빠르게 굴리면 목표가 쌓인다) · 멈추면 그 자리에 정지
+    const goal = (this._udGoal != null ? this._udGoal : U.s) - e.deltaY / 240;
+    this.udStopAnim();
+    this._udGoal = goal;
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+    let last = Date.now();
+    const step = () => {
+      const now = Date.now(), dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const cur = this.state.ud.s, d = this._udGoal - cur;
+      if (Math.abs(d) < 0.002) { this.udSet({ s: this._udGoal, anim: false }); this._udGoal = null; this._udRaf = null; return; }
+      this.udSet({ s: cur + d * Math.min(1, dt * 12), anim: false });
+      this._udRaf = raf(step);
+    };
+    this._udRaf = raf(step);
+  }
+  // tree 지도: tree만 모아 왼쪽 → 오른쪽으로 깊어지는 나무. 뿌리는 서로 다른 tree
+  forestLayout() {
+    const isT = (n) => this.isTree((this.NET[n] || {}).role);
+    const trees = Object.keys(this.NET).filter(isT);
+    const tpar = (n) => { const p = this.parentOfNode(n); return p && isT(p) ? p : null; };
+    const kids = (n) => this.NET[n].kids.filter(isT);
+    const pos = {};
+    let slot = 0;
+    const place = (n, d) => { const ks = kids(n); if (!ks.length) pos[n] = { s: slot++, d }; else { ks.forEach((k) => place(k, d + 1)); pos[n] = { s: (pos[ks[0]].s + pos[ks[ks.length - 1]].s) / 2, d }; } };
+    trees.filter((n) => !tpar(n)).forEach((n) => place(n, 0));
+    return { trees, pos, tpar, slots: slot, depth: Math.max(...trees.map((n) => pos[n].d)) + 1 };
+  }
+  goNode(nm) {
+    if (nm === this.state.map || this.state.mt) return;
+    const n = this.NET[nm] || {};
+    if (this.isTree(n.role) && this.state.curTree.name !== nm) {
+      if (this.state.login || (this.state.auth && this.state.auth.phase !== 'done') || this.state.tl) return;
+      this._navTree = nm; this.beginSwitch(this.treeObj(nm));
+    } else this.goMap(nm);
+  }
+  // ───── tree 전환 · 로그인 ─────
+  beginSwitch(pick) {
+    if (pick.auth === 'password') { this.setState({ login: { target: pick, username: 'admin', password: '', auto: false, msg: '' } }); return; }
+    this.startLogin(pick, '', false);
+  }
+  // 프사 교체: 프사가 90%로 줄고(배경 회색) → 프사 한 칸 아래를 축으로 한 회전판 위에서 이전 프사는 나가고 새 프사가 들어온다 → 원래 크기로
+  // 다음 노드로 갈 때는 반시계(ccw), 실패해서 돌아갈 때는 시계(cw)
+  flipTo(tree, dir, done) {
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+    const from = this.state.shown || this.state.curTree;
+    this.setState({ swap: { phase: 'shrink', from, to: tree, dir } });
+    setTimeout(() => {
+      this.setState({ swap: { phase: 'turn0', from, to: tree, dir } });
+      raf(() => raf(() => {
+        this.setState({ swap: { phase: 'turn', from, to: tree, dir } });
+        setTimeout(() => {
+          this.setState({ shown: tree, swap: { phase: 'grow', from, to: tree, dir } });
+          setTimeout(() => { this.setState({ swap: null }); if (done) done(); }, 170);
+        }, 420);
+      }));
+    }, 160);
+  }
+  // 조타륜이 올라오면 프사를 로컬 노드로, 내려가면 tree로 되돌린다. 교체 애니메이션 중에 또 바뀌면 끝난 뒤 마지막 상태로 맞춘다
+  // tree 목록 · 로그인 창 · 로그인 중에는 건드리지 않는다 (끝나면 다시 맞춘다)
+  // 지금(또는 가는 중인) 맵이 로컬 노드 맵인가
+  onLocalMap() { const g = this._mapGoal != null ? this._mapGoal : this.state.map; return g === this.state.localNode.name; }
+  // 조타륜을 홀드해서 내렸을 때 갈 곳: 로컬 노드가 아닌 맵 → 로컬 노드 맵, 로컬 노드 맵 → 로컬 노드의 부모 tree 맵
+  helmDest() { const loc = this.state.localNode; return this.onLocalMap() ? { name: this.parentOfNode(loc.name) || this.state.curTree.name, local: false } : { name: loc.name, local: true }; }
+  // 프사: 지금(가는) 맵 쪽 — 로컬 맵이면 로컬 노드, 아니면 tree. 조타륜을 내려 맵이 바뀔 때만 바뀐다
+  hxAvatar(up) {
+    if (up != null) this._avUp = !!up;
+    if (this._avBusy) return;
+    const S = this.state, loc = S.localNode, sh = S.shown;
+    if (S.tl || S.login || (S.auth && S.auth.phase !== 'done') || S.swap) { clearTimeout(this._avT); this._avT = setTimeout(() => this.hxAvatar(), 300); return; }
+    const showingLocal = !!(sh && sh.local), wantLocal = this.onLocalMap();   // 프사는 조타륜을 올려도 바뀌지 않는다 — 지금(가는) 맵 쪽만 따른다
+    if (wantLocal && !showingLocal) { this._avBusy = true; this.flipTo(loc, 'ccw', () => { this._avBusy = false; this.hxAvatar(); }); }
+    else if (!wantLocal && showingLocal) { this._avBusy = true; this.flipTo(S.curTree, 'cw', () => { this.setState({ shown: null }); this._avBusy = false; this.hxAvatar(); }); }
+  }
+  lgClose(then) { // 로그인 창을 관리 노드 창 아래로 내려 숨긴 뒤 치운다
+    const L = this.state.login;
+    if (!L || L.closing) return;
+    this.setState({ login: Object.assign({}, L, { closing: true }) });
+    setTimeout(() => { this.setState({ login: null }); if (then) then(); }, 270);
+  }
+  startLogin(target, password, auto) {
+    const prev = this.state.curTree;
+    this.setState({ login: null, auth: { phase: 'loading', target }, tlNote: '' });
+    this.flipTo(target, 'ccw');
+    setTimeout(() => {
+      const ok = target.auth !== 'offline' && password !== 'wrong';
+      if (ok) {
+        this.setState({ auth: { phase: 'success', target } });
+        setTimeout(() => {
+          // 로그아웃한 tree는 고른 tree가 있던 자리로 (목록에 없던 tree — 맵에서 두 번 눌러 들어간 자식 tree — 면 목록 맨 앞에)
+          const inList = this.state.trees.some((t) => t.name === target.name);
+          const trees = inList ? this.state.trees.map((t) => t.name === target.name ? prev : t) : [prev].concat(this.state.trees);
+          const cur = auto && target.auth === 'password' ? Object.assign({}, target, { auth: 'saved' }) : target;
+          this._navTree = null;
+          this.setState({ curTree: cur, shown: null, trees, auth: { phase: 'done', target, ok: true } });
+          this.goMap(target.name, target.name + '(으)로 로그인했습니다 — ' + target.name + ' 클러스터 맵');
+          setTimeout(() => { if (this.state.auth && this.state.auth.phase === 'done') this.setState({ auth: null }); }, 420);
+        }, 650);
+      } else {
+        this._navTree = null;
+        this.pushAlarm('■', '#d33d52', target.name + ' 로그인 실패');
+        this.setState({ auth: { phase: 'fail', target } });
+        setTimeout(() => {
+          this.flipTo(prev, 'cw', () => {
+            this.setState({ shown: null, auth: { phase: 'done', target, ok: false }, tlNote: target.name + ' 로그인 실패 — ' + (target.auth === 'offline' ? '응답이 없습니다' : '비밀번호를 확인하세요') + '. ' + prev.name + '(으)로 돌아왔습니다' });
+            setTimeout(() => { if (this.state.auth && this.state.auth.phase === 'done') this.setState({ auth: null }); }, 420);
+          });
+        }, 700);
+      }
+    }, 1500);
+  }
+  tlOpen(mode) {
+    if (this.state.login || (this.state.auth && this.state.auth.phase !== 'done')) return;
+    if (this.state.rmenu || this.state.drag || !this.state.trees.length) return;
+    const tl = this.state.tl;
+    if (tl) { // 들어가던 중이면 그 자리에서 다시 나온다
+      if (!tl.closing) return;
+      this._tla.target = 1;
+      this._tlPick = null;
+      this.setState({ tl: Object.assign({}, tl, { mode, closing: false }) });
+    } else {
+      this._tla = { p: 0, target: 1, rDisp: 0 };
+      this.setState({ tl: { mode, r: 0, ready: false, closing: false } });
+      // 접힌 채(Ctrl)로 열면: 이름이 프사 밑으로 숨고 프사가 오른쪽 자리로 옮긴 뒤에 목록이 돌아 나온다
+      if (!this.state.mgHover) {
+        clearTimeout(this._tlDelay);
+        this._tlDelay = setTimeout(() => this.tlRun(), 300);
+        return;
+      }
+    }
+    this.tlRun();
+  }
+  // 다 나온 뒤(ready)에 떼야 로그인. 나오는 도중에 떼거나 취소하면 그 자리에서 되돌아 들어간다
+  tlClose(commit) {
+    const tl = this.state.tl;
+    if (!tl || tl.closing || !this._tla) return;
+    this._tlPick = commit && tl.ready ? this.state.trees[tl.r + 1] || null : null;
+    this._tla.target = 0;
+    this.setState({ tl: Object.assign({}, tl, { closing: true, ready: false }) });
+    this.tlRun();
+  }
+  tlWheel(dir) {
+    const tl = this.state.tl;
+    if (!tl || !tl.ready) return;
+    const r = Math.max(-1, Math.min(this.state.trees.length - 2, tl.r + dir));
+    if (r !== tl.r) { this.setState({ tl: Object.assign({}, tl, { r, moving: true }) }); this.tlRun(); } // 돌아가는 동안엔 이름 · 강조를 끈다
+  }
+  // 관리 노드 창 펼치기 · 접기 — 클릭으로만 (호버로는 움직이지 않는다). tree 목록 · 로그인 중엔 건드리지 않는다
+  mgToggle(v) {
+    const S = this.state;
+    if (S.tl || S.login || (S.auth && S.auth.phase !== 'done')) return;
+    const next = v != null ? !!v : !S.mgHover;
+    if (next !== !!S.mgHover) this.setState({ mgHover: next, drawerNear: false, drawerHover: null });
+  }
+  tlBind() {
+    if (this._tlKeys || typeof window === 'undefined') return;
+    const k = {
+      // 키: Space = 누른 채 끌면 맵 이동 (손바닥) · Ctrl = 누르고 있는 동안 tree 목록 (떼면 로그인). 목록 모드 이름은 예전 그대로 'space'
+      down: (e) => {
+        if (e.key === 'Escape' && this.state.login) { this.lgClose(); return; }
+        const tag = e.target && e.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) return;
+        if (e.code === 'Space' || e.key === ' ') {
+          e.preventDefault();
+          if (!this._spaceHeld) { this._spaceHeld = true; const r = document.querySelector('[data-field-root]'); if (r && !this._pan) r.style.cursor = 'grab'; }
+          return;
+        }
+        if (e.key === 'Control') {
+          if (this.state.login) return;
+          if (!e.repeat) this.tlOpen('space');
+          return;
+        }
+        // Ctrl을 누른 채 다른 키(Ctrl+C 등)를 누르면 목록은 취소
+        if (e.ctrlKey && this.state.tl && this.state.tl.mode === 'space') this.tlClose(false);
+      },
+      up: (e) => {
+        if (e.code === 'Space' || e.key === ' ') {
+          this._spaceHeld = false; const r = document.querySelector('[data-field-root]'); if (r && !(this._pan && this._pan.on)) r.style.cursor = '';
+          return;
+        }
+        if (e.key !== 'Control') return;
+        if (this.state.tl && this.state.tl.mode === 'space') { e.preventDefault(); this.tlClose(true); }
+      },
+      blur: () => { this._spaceHeld = false; const r = document.querySelector('[data-field-root]'); if (r) r.style.cursor = ''; },
+      wheel: (e) => { if (this.state.tl) { e.preventDefault(); this.tlWheel(e.deltaY > 0 ? 1 : -1); } },
+      // Ctrl로 연 동안 프사가 아닌 곳을 좌클릭하면 취소
+      click: (e) => {
+        const tl = this.state.tl;
+        if (!tl || tl.mode !== 'space' || e.button !== 0) return;
+        if (e.target && e.target.closest && e.target.closest('[aria-label$="다른 tree로 로그인"]')) return;
+        e.preventDefault(); e.stopPropagation();
+        this.tlClose(false);
+      }
+    };
+    window.addEventListener('keydown', k.down);
+    window.addEventListener('keyup', k.up);
+    window.addEventListener('blur', k.blur);
+    window.addEventListener('wheel', k.wheel, { passive: false });
+    window.addEventListener('pointerdown', k.click, true);
+    // 펼친 관리 노드 창은 창 · 프사 · MAP 탭 · 로그인 창 · tree 목록 밖을 누르면 접힌다
+    k.mgOut = (e) => {
+      if (!this.state.mgHover || !e.target || !e.target.closest) return;
+      if (e.target.closest('section[aria-label^="관리 노드 창"], [aria-label$="다른 tree로 로그인"], [aria-label^="지도 —"], .lg-pop, [data-tl-fan]')) return;
+      this.mgToggle(false);
+    };
+    window.addEventListener('pointerdown', k.mgOut, true);
+    this._tlKeys = k;
+  }
+  // 필드에 놓인 노드의 모양: 부모면 'parent', 아니면 역할(Leaf · Tree · Tree·Leaf)
+  nodeKind(nd) { return !nd ? false : nd.parent ? 'parent' : this.roleKey(nd.role); }
+  nodeLift(sk, nd) { return !nd ? 0 : nd.parent ? this.parentOf(sk).lift : (sk.lift || 0); }
+  // 높이 3단계: 1 = 일반 필드 · 2 = 자식 노드 필드 · 3 = 맵의 주인 (tree 맵의 부모 노드 · leaf 맵의 그 leaf 자신) — 주인은 부모 모양(전용 띠 · 테두리)
+  cellKind(m, key) { return m.nodes[key] ? this.nodeKind(m.nodes[key]) : (m.self === key ? 'parent' : false); }
+  cellLift(m, sk, key) { return m.nodes[key] ? this.nodeLift(sk, m.nodes[key]) : (m.self === key ? this.parentOf(sk).lift : 0); }
+  roleKey(label) { return !label ? false : /tree/i.test(label) && /leaf/i.test(label) ? 'both' : /tree/i.test(label) ? 'tree' : 'leaf'; }
+  tileView(sid, role, rot) {
+    const rk = rot ? this.ensureRot(sid, role, rot) : null;
+    const bt = (rk ? this.BT.find((b) => b.key === rk) : this.BT.find((b) => b.sid === sid && b.node === (role || false) && !b.rot)) || this.BT[0];
+    const src = this.state.tileImg ? this.state.tileImg[bt.key] : null;
+    const [x0, y0, x1, y1] = bt.bbox;
+    const an = this._anims && this._anims[bt.key] ? bt.key : '';
+    return { anim: an, img: (an && this.animUrl(an)) || src || '', href: '#' + bt.id, ix: x0, iy: y0, iw: x1 - x0, ih: y1 - y0, imgDisp: src ? 'inline' : 'none', useDisp: src ? 'none' : 'inline' };
+  }
+  // ───── 원형 메뉴 항목 ─────
+  // 아직 무엇을 넣을지 정하지 않아 빈 슬롯 8개. 항목 = { id, label, icon(svg path), edit(편집 모드에서만), run(target) }
+  // target = { kind: 'tile' | 'field', key, mode: 'edit' | 'view' }
+  radialItems(target) {
+    const dot = 'M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0';
+    return [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
+      id: 'slot' + n, label: '슬롯 ' + n + ' (비어 있음)', icon: dot, edit: false,
+      run: (t) => this.setState({ rmNote: '슬롯 ' + n + ' 선택 — 대상: ' + (t.kind === 'tile' ? '타일 ' + t.key : '빈 필드') })
+    }));
+  }
+  // 기능 칸 · 서랍 카드가 함께 쓰는 기능 요약 (예시 — 연동 시 각 기능의 요약 값으로)
+  utilInfo() {
+    const S = this.state;
+    // 알림 수는 책갈피가 맡으므로 칩에는 넣지 않는다 (칩 = 기능의 상태)
+    // 기능 칸 내용 (예시 — 연동 시 각 기능의 요약 값으로 바꾼다): sub = 한 줄 설명 · chip = 상태 · stats = 핵심 수치 3칸 [값, 이름, 색] · foot = 최근 한 줄
+    const OK = '#1f7a4d', WARN = '#a65f00', BAD = '#d33d52', INK = '#16191f', BLUE = '#2563eb';
+    const selK = S.sel, selN = selK && S.nodes[selK], selSk = selK ? (this.FSK.find((x) => x.id === this.mapSkin(S, S.map, selK)) || {}).name : '';
+    const fails = S.alarms.filter((a) => a.c === BAD).length;
+    const INFO = {
+      props: { sub: '선택한 타일 · 노드 살펴보기', chip: selK ? '선택됨' : '', tone: 'blue',
+        stats: [[selK ? 'C' + (+selK.split('-')[0] + 1) + '·R' + (+selK.split('-')[1] + 1) : '—', '타일', INK], [selSk || '—', '재질', INK], [selN ? selN.name : '—', '노드', selN ? '#7c3aed' : INK]],
+        foot: ['◆', BLUE, selN ? selN.name + ' · ' + selN.role : '필드의 타일을 누르면 여기에 나타납니다'] },
+      edit: { sub: '필드 · 건물 · 재질 · 노드 배치', chip: S.editMode ? '켜짐' : '꺼짐', tone: S.editMode ? 'ok' : 'off',
+        stats: [[S.fields.length, '필드', INK], [Object.keys(S.nodes).length, '노드 칸', INK], [S.pending.length, '대기 노드', S.pending.length ? WARN : INK]],
+        foot: S.pending.length ? ['◇', BLUE, S.pending.map((n) => n.name).join(' · ') + ' — 칸 지정 대기'] : ['○', '#8b95a6', '대기 중인 새 노드 없음'] },
+      alarm: { sub: '작업 완료 · 실패 · 새 노드', chip: fails ? '실패 ' + fails : '', tone: 'bad',
+        stats: [[S.alarms.length, '전체', INK], [fails, '실패', fails ? BAD : INK], [S.alarms[0] ? S.alarms[0].t : '—', '최근', INK]],
+        foot: S.alarms[0] ? [S.alarms[0].g, S.alarms[0].c, S.alarms[0].m] : ['○', '#8b95a6', '알림 없음'] },
+      net: { sub: 'mesh · 진단 · 터널 · WireGuard', chip: '일부 실패', tone: 'warn',
+        stats: [['7/8', '배포 적용', WARN], ['2', '터널 세션', INK], ['2', 'desired≠observed', WARN]],
+        foot: ['◐', WARN, 'gpu-02 배포 거절 · 폴링 10초 · 마지막 ' + S.netPolled] },
+      bld: { sub: '노드 프사 · 필드 위 건물 설계', chip: '', tone: 'off',
+        stats: [[this.buildings.length, '설계도', INK], [Object.values(S.looks).filter((l) => l.bid).length, '노드에 씀', INK], ['16³', '격자', INK]],
+        foot: ['✎', '#5b6472', this.buildings.map((b) => b.name).join(' · ')] },
+      fld: { sub: '타일 스킨 · 부모 필드 디자인', chip: '', tone: 'off',
+        stats: [[this.FSK.length, '스킨', INK], ['기본', '부모 디자인', INK], [this.FSK.filter((k) => k.parent).length, '전용', INK]],
+        foot: ['⬢', OK, this.FSK.map((k) => k.name).join(' · ')] },
+      mat: { sub: '건물에 쓰는 블록 자재', chip: '', tone: 'off',
+        stats: [[this.MATS.length, '자재', INK], ['6', '면', INK], ['8²', '텍스처', INK]],
+        foot: ['▤', '#6d28d9', '새 집 자재: 회벽 · 기와 · 슬레이트 · 창문 · 문 · 돌 …'] },
+      mod: { sub: '설치된 모듈 · 수명 제어', chip: '주의', tone: 'warn',
+        stats: [['3', '실행', OK], ['1', '저하', WARN], ['1', '실패', BAD]],
+        foot: ['■', BAD, 'vdevice 시작 실패 — 로그 보기'] },
+      set: { sub: '현재 GUI · 계정 · 로컬 노드 · 클러스터', chip: '', tone: 'off',
+        stats: [['135', 'Daemon 키', INK], ['96', '편집 가능', INK], ['0', '재시작 대기', INK]],
+        foot: ['ⓘ', BLUE, '저장 뒤 대부분 재시작 필요 — 재시작 API는 없다'] },
+      memo: { sub: '임시 메모 쓰기 · 저장', chip: S.memoDraft && S.memoDraft.dirty ? '저장 안 됨' : '', tone: 'warn',
+        stats: [[S.memos.filter((m) => !m.dir).length, '메모', INK], [S.memos.filter((m) => m.dir).length, '폴더', INK], [S.memos.filter((m) => !m.dir)[0] ? S.memos.filter((m) => !m.dir)[0].info.replace(/^.* /, '') : '—', '최근', INK]],
+        foot: ['✎', '#b45309', S.memos.filter((m) => !m.dir).map((m) => m.name).join(' · ') || '메모 없음'] },
+      user: { sub: '계정 · 세션 · 권한', chip: '로그인', tone: 'ok',
+        stats: [['admin', '계정', INK], ['21:40', '만료', INK], ['3★', '잠긴 권한', WARN]],
+        foot: ['★', WARN, 'node.config · module.manage · master.admin 잠김'] }
+    };
+    const TONE = { ok: ['#e3f4ea', OK], bad: ['#fde1e5', BAD], blue: ['#dde8fd', BLUE], off: ['#eef1f5', '#5b6472'], warn: ['#fbf0cc', WARN] };
+    INFO.map = { sub: '노드 관계 지도', chip: '', tone: 'off',
+      stats: [[Object.keys(this.NET).filter((k) => this.isTree(this.NET[k].role)).length, 'tree', INK], [Object.keys(this.NET).length, '노드', INK], [S.map, '지금 맵', '#0f766e']],
+      foot: ['◇', '#0f766e', this.pathOf(S.map).join(' › ')] };
+    return { INFO, TONE, INK };
+  }
+  // ── 맵 보기: 이동(홀드 후 끌기) · 확대(스크롤) ──
+  // 한계: 배율 0.5 ~ 3. 이동은 맵 중심이 "지금 배율의 맵 경계 사각형 × 면적 2배(각 변 √2배)" 사각형 안에 머문다
+  viewFx() { const F = this._fxBase || { s: 1, tx: 0, ty: 0 }, V = this._view || { k: 1, x: 0, y: 0 }; return { s: V.k * F.s, tx: V.x + V.k * F.tx, ty: V.y + V.k * F.ty }; }
+  fxT(F) { return 'translate(' + F.tx.toFixed(1) + ' ' + F.ty.toFixed(1) + ') scale(' + F.s.toFixed(4) + ')'; }
+  viewClamp(V) {
+    const F = this._fxBase, k = Math.max(0.5, Math.min(3, V.k));
+    if (!F || !F.bb) return { k, x: V.x, y: V.y };
+    const [x0, y0, x1, y1] = F.bb, w = (x1 - x0) * F.s, h = (y1 - y0) * F.s, cx = F.tx + F.s * (x0 + x1) / 2, cy = F.ty + F.s * (y0 + y1) / 2;
+    const mx = Math.SQRT1_2 * w * k, my = Math.SQRT1_2 * h * k; // 범위 사각형의 반폭 · 반높이 (면적 2배)
+    const dx = Math.max(-mx, Math.min(mx, V.x + k * cx - cx)), dy = Math.max(-my, Math.min(my, V.y + k * cy - cy));
+    return { k, x: dx + cx - k * cx, y: dy + cy - k * cy };
+  }
+  // 끄는 동안에는 다시 그리지 않고 필드 그룹의 transform만 바꾼다 (전체 렌더를 피해 60fps)
+  viewSet(V, commit) {
+    this._view = this.viewClamp(V);
+    this._fx = this.viewFx();
+    try { const T = this.fxT(this._fx); document.querySelectorAll('[data-fx-g]').forEach((g) => g.setAttribute('transform', T)); } catch (e) { /* 무시 */ }
+    if (commit) this.setState({ viewTick: (this.state.viewTick || 0) + 1 });
+    else { clearTimeout(this._viewT); this._viewT = setTimeout(() => this.setState({ viewTick: (this.state.viewTick || 0) + 1 }), 160); }
+  }
+  viewReset() { this.viewSet({ k: 1, x: 0, y: 0 }, true); }
+  zoomVals() {
+    const V = this._view || { k: 1, x: 0, y: 0 }, moved = Math.abs(V.k - 1) > 0.005 || Math.abs(V.x) > 0.5 || Math.abs(V.y) > 0.5;
+    return { disp: moved ? 'flex' : 'none', pct: Math.round(V.k * 100) + '%', reset: () => this.viewReset(), minus: () => this.zoomBy(1 / 1.25), plus: () => this.zoomBy(1.25) };
+  }
+  zoomBy(f, px, py) {
+    const V = this._view || { k: 1, x: 0, y: 0 }, k2 = Math.max(0.5, Math.min(3, V.k * f));
+    const ax = px == null ? 1447 / 2 : px, ay = py == null ? 901 / 2 : py;
+    this.viewSet({ k: k2, x: ax - (ax - V.x) * k2 / V.k, y: ay - (ay - V.y) * k2 / V.k }, px == null);
+  }
+  renderVals() {
+    this.ensureBake();
+    const cached = !!(this.state.tileImg && this.BT.every((b) => this.state.tileImg[b.key]));
+    const nodes = this.state.nodes;
+    const SKINS = this.FSK;
+    const TG = { top: this.BT[0].top };
+    const drag = this.state.drag;
+    // 칸의 주인 노드(노드 필드 · leaf 맵의 자기 칸)는 재질 · 건물을 노드 모습(looks)에서 읽는다 — 부모 맵 · 자기 맵 · 프사가 같은 값
+    const ownerOf = (key) => this.ownerIn(this.state, this.state.map, key);
+    const placed = Object.assign({}, this.state.placed), matD = Object.assign({}, this.state.mat);
+    this.state.fields.forEach((k) => {
+      const o = ownerOf(k);
+      if (!o) return;
+      const L = this.lookOf(o);
+      matD[k] = L.skin;
+      if (L.bid) placed[k] = { bid: L.bid, rot: L.rot || 0 }; else delete placed[k];
+    });
+    const bldOf = (id) => this.buildings.find((b) => b.id === id) || this.buildings[0];
+    const base = this.props.skin || 'grass';
+    const byId = (id) => SKINS.find((s) => s.id === id) || SKINS[0];
+    const matOf = (key) => matD[key] || base;
+
+    const A = 80, B = 36, H = 38, D = 56, PX = 130, PY = 92, X0 = 183, Y0 = 150;
+    const at = (c, r) => ({ c, r, cx: X0 + c * PX, cy: Y0 + r * PY + (c % 2 === 1 ? PY / 2 : 0) });
+    const fieldSet = new Set(this.state.fields);
+    const anim = this.state.anim;
+    const cells = this.state.fields.map((k) => { const [c, r] = k.split('-').map(Number); return at(c, r); });
+    // 그라운드만 깔린 칸 (필드가 놓인 칸의 그라운드는 따로 적지 않는다 — 필드가 있으면 늘 깔림)
+    const grounds = (this.state.grounds || []).filter((k) => !fieldSet.has(k));
+    const groundSet = new Set(grounds);
+    const gcells = grounds.map((k) => { const [c, r] = k.split('-').map(Number); return Object.assign(at(c, r), { gnd: true }); });
+    const GSK = this.GSK, gById = (id) => GSK.find((g) => g.id === id) || GSK[0];
+    const gmatOf = (k) => (this.state.gmat || {})[k] || 'meadow';
+    const grotOf = (k) => ((this.state.grot || {})[k] || 0) % 6;
+    const frotOf = (k) => ((this.state.frot || {})[k] || 0) % 6;
+    // 필드 · 그라운드를 끌 때만 보이는 빈 칸 (지금 맵을 한 칸씩 넘는 범위). 칸 표시는 바닥면(리전 높이 = 필드 바닥)에 둔다
+    const fdrag = drag && (drag.kind === 'newField' || drag.kind === 'field' || drag.kind === 'newGround') ? drag : null;
+    const dragGround = !!(fdrag && fdrag.kind === 'field' && groundSet.has(fdrag.from));
+    const slots = [];
+    const occ = cells.concat(gcells);
+    const maxC = Math.max(6, ...occ.map((p) => p.c)) + 1, maxR = Math.max(4, ...occ.map((p) => p.r)) + 1;
+    if (fdrag) for (let c = 0; c <= maxC; c++) for (let r = 0; r <= maxR; r++) {
+      const k = c + '-' + r;
+      if (fieldSet.has(k)) continue;
+      if ((fdrag.kind === 'newGround' || dragGround) && groundSet.has(k)) continue;   // 그라운드는 빈 리전에만
+      const p = at(c, r);
+      slots.push({ key: k, T: 'translate(' + p.cx + ' ' + (p.cy + D) + ')', on: fdrag.over === k ? 1 : 0 });
+    }
+    // 맵은 늘 화면 가운데에 둔다 — 가로는 필드 영역(1447) 한가운데, 세로는 제목 아래 ~ 바닥 사이 띠의 가운데.
+    // 띠보다 크면(기본 육각 맵 등) 줄여서 맞춘다. 줄이지 않을 때도 옮기기만 한다(s = 1)
+    const fx = (() => {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      cells.forEach((p) => { const lf = this.cellLift(this.state, byId(matOf(p.c + '-' + p.r)), p.c + '-' + p.r); x0 = Math.min(x0, p.cx - A - 12); x1 = Math.max(x1, p.cx + A + 12); y0 = Math.min(y0, p.cy - H - lf - 40); y1 = Math.max(y1, p.cy + H + D + 14); });
+      gcells.forEach((p) => { x0 = Math.min(x0, p.cx - A - 12); x1 = Math.max(x1, p.cx + A + 12); y0 = Math.min(y0, p.cy + D - H - 60); y1 = Math.max(y1, p.cy + H + D + 14); });
+      if (!cells.length) return { s: 1, tx: 0, ty: 0, cx: 573, rx: 560 };
+      const bx0 = 60, bx1 = 1447 - 60, by0 = 120, by1 = 790;
+      const sc = Math.min(1, (bx1 - bx0) / (x1 - x0), (by1 - by0) / (y1 - y0));
+      return { bb: [x0, y0, x1, y1], cx: Math.round((x0 + x1) / 2), rx: Math.round((x1 - x0) / 2 + 60), s: sc, tx: Math.round(bx0 + ((bx1 - bx0) - (x1 - x0) * sc) / 2 - x0 * sc), ty: Math.round(by0 + ((by1 - by0) - (y1 - y0) * sc) / 2 - y0 * sc) };
+    })();
+    // 보기(이동 · 확대): 맞춘 배치(fx) 위에 사용자 보기(_view)를 얹는다. 맵이 바뀌면 처음 보기로
+    this._fxBase = fx;
+    if (this._viewMap !== this.state.map) { this._viewMap = this.state.map; this._view = { k: 1, x: 0, y: 0 }; }
+    const fxv = this.viewFx();
+    this._fx = fxv;
+    cells.sort((p, q) => (p.cy - q.cy) || (p.cx - q.cx));
+    let maxBottom = 0;
+    // 맵 전환: 필드마다 왼쪽 위(0) → 오른쪽 아래(1) 순번
+    const mt = this.state.mt;
+    const dMin = Math.min(...cells.map((p) => p.cx + p.cy)), dMax = Math.max(...cells.map((p) => p.cx + p.cy));
+    const rankOf = (p) => dMax > dMin ? (p.cx + p.cy - dMin) / (dMax - dMin) : 0;
+    const ID = 'translate(0px, 0px) translate(0px, 0px) scale(1) translate(0px, 0px)';
+    const mtStyle = (p, key, nd, s) => {
+      if (!mt) return null;
+      const keep = mt.keep === key, rk = mt.dir === 'up' ? 1 - rankOf(p) : rankOf(p), d = Math.round(rk * 700) + 'ms';
+      const outDy = mt.dir === 'down' ? -200 : 200, inDy = mt.dir === 'up' ? -200 : 200;
+      const shift = (dy) => 'translate(0px, ' + dy + 'px) translate(0px, 0px) scale(1) translate(0px, 0px)';
+      if (keep) {
+        if ((mt.phase === 'pre' || mt.phase === 'move') && mt.from && this._fx) {
+          const F = this._fx, X = p.cx, Y = p.cy - mt.from.lift;
+          if (mt.phase === 'move') return { xf: 'translate(0px, 0px) translate(' + X + 'px, ' + Y + 'px) scale(1) translate(' + (-X) + 'px, ' + (-Y) + 'px)', mop: 1, atr: 'transform 820ms cubic-bezier(.45,0,.2,1)' };
+          const ax = (mt.from.x - F.tx) / F.s - X, ay = (mt.from.y - F.ty) / F.s - Y, k = mt.from.s / F.s;
+          return { xf: 'translate(' + ax.toFixed(1) + 'px, ' + ay.toFixed(1) + 'px) translate(' + X + 'px, ' + Y + 'px) scale(' + k.toFixed(4) + ') translate(' + (-X) + 'px, ' + (-Y) + 'px)', mop: 1, atr: 'none' };
+        }
+        return { xf: ID, mop: 1, atr: 'none' };
+      }
+      if (mt.phase === 'out') return { xf: shift(outDy), mop: 0, atr: 'transform 560ms cubic-bezier(.5,0,.8,.4) ' + d + ', opacity 520ms ease-in ' + d };
+      if (mt.phase === 'pre' || mt.phase === 'move') return { xf: shift(inDy), mop: 0, atr: 'none' };
+      return { xf: ID, mop: 1, atr: 'transform 640ms cubic-bezier(.2,.8,.3,1) ' + d + ', opacity 480ms ease-out ' + d };
+    };
+    if (!this._risen && !this._riseT) this._riseT = setTimeout(() => { this._risen = true; }, 2200);
+    // 그라운드 층: 필드 칸 + 그라운드만 깔린 칸. 윤곽은 칸 목록이 바뀔 때만 다시 계산 (groundGeo)
+    const gAll = this.state.fields.concat(grounds);
+    const gRing = this.ringKeys(gAll);                       // 맵 둘레 특수 그라운드 칸
+    const GG = this.groundGeo(gAll.concat(gRing));
+    const gPatMap = new Map();
+    const addPat = (sk, rot) => sk.frames.forEach((f, k) => { if (!f) return; const id = 'gp-' + sk.id + '-' + rot + '-' + k; if (!gPatMap.has(id)) gPatMap.set(id, this.groundPattern(sk, rot, k)); });
+    GSK.forEach((sk) => addPat(sk, 0));   // 팔레트 · 새 그라운드 미리보기
+    const gGroups = new Map();
+    gAll.forEach((k) => { const gk = gmatOf(k) + '|' + grotOf(k); gGroups.set(gk, (gGroups.get(gk) || '') + (GG.cells[k] || '') + ' '); });
+    // 해안 그라운드(둘레 칸, 파도 칸): 붙어 있는 그라운드의 윗면을 그대로, 여럿이면 면 기준으로 나눠 가진다. 해변 가림막으로 해안선 안쪽만 보인다
+    const rGroups = new Map();
+    this.ringParts(GG, gRing, new Set(gAll), (k) => gmatOf(k) + '|' + grotOf(k)).forEach((pt) => rGroups.set(pt.gk, (rGroups.get(pt.gk) || '') + pt.d + ' '));
+    const coast = this.coastLoop(gAll);
+    const gFrame = (sk) => this.keyCount(sk.frames) > 1 ? this.holdAt(sk.frames, this.animNow() % sk.frames.length) : 0;
+    const gnd = {
+      d: GG.d,
+      seaD: coast.d, seaT: 'matrix(1 0 0 ' + this.tileModel().K + ' 0 ' + D + ')',
+      coastD: coast.d, beachW: 2 * this.COAST.DELTA, waterW: 2 * this.COAST.DELTA + 6, laceIn: 2 * (this.COAST.DELTA - this.COAST.REACH), laceW: 2 * (this.COAST.DELTA - this.COAST.REACH) + 14,
+      beach: Array.from(rGroups, ([gk, d]) => { const [sid, rs] = gk.split('|'), sk = gById(sid), r = Number(rs); addPat(sk, r); return { d: d.trim(), fill: 'url(#gp-' + sk.id + '-' + r + '-' + gFrame(sk) + ')', anim: this.keyCount(sk.frames) > 1 ? sk.id + '|' + r : '' }; }),
+      op: 1,   // 그라운드는 맵 전환 때도 사라지지 않는다 — 섬째로 옆(또는 아래)으로 미끄러져 나가고 새 섬이 반대쪽에서 들어온다 (mapSlide)
+      parts: Array.from(gGroups, ([gk, clip], i) => {
+        const [sid, rs] = gk.split('|'), sk = gById(sid), r = Number(rs);
+        addPat(sk, r);
+        return { d: clip.trim(), fill: 'url(#gp-' + sk.id + '-' + r + '-' + gFrame(sk) + ')', anim: this.keyCount(sk.frames) > 1 ? sk.id + '|' + r : '' };
+      })
+    };
+    const gEmpty = { anim: '', img: '', href: '', ix: 0, iy: 0, iw: 0, ih: 0, imgDisp: 'none', useDisp: 'none' };
+    const allCells = cells.concat(gcells).sort((p, q) => ((p.cy + (p.gnd ? D : 0)) - (q.cy + (q.gnd ? D : 0))) || (p.cx - q.cx));
+    const tiles = allCells.map((p, i) => {
+      const key = p.c + '-' + p.r, gndOnly = !!p.gnd;
+      const selected = this.state.sel === key;
+      maxBottom = Math.max(maxBottom, p.cy + H + D);
+      const s = gndOnly ? null : byId(matOf(key));
+      const nd = gndOnly ? null : nodes[key];
+      // 남는 필드: 옮겨 가는 동안은 원래 모습 · 높이. 도착하면 높이가 새 단계로 바뀐다 — 솟을 땐 새 모습으로 바꾼 뒤 솟고(바닥 아래는 잘림), 내려앉을 땐 다 내려앉은 뒤 바꾼다
+      let kind = gndOnly ? false : this.cellKind(this.state, key), lift = gndOnly ? 0 : this.cellLift(this.state, s, key);
+      if (mt && mt.phase !== 'out' && kind) {
+        // 높이 변경 전: 주인으로 옮겨 온 칸은 옛 모습 · 높이, 나머지 노드 칸은 바닥 높이의 일반 모습. 차례가 오면 새 높이로
+        const kf = mt.keep === key && mt.from ? mt.from : null, lifted = mt.phase === 'lift' && mt.lifted.indexOf(key) >= 0, kinded = mt.phase === 'lift' && mt.kinded.indexOf(key) >= 0;
+        if (!lifted) { kind = kf ? kf.kind : false; lift = kf ? kf.lift : 0; }
+        else if (!kinded && kf) kind = kf.kind;
+      }
+      return Object.assign(gndOnly ? Object.assign({}, gEmpty) : this.tileView(s.id, kind, frotOf(key)), {
+        key,
+        s,
+        T0: 'translate(' + p.cx + ' ' + p.cy + ')',
+        // 그라운드만 깔린 칸은 바닥면(필드 바닥 = 리전 높이)에 선택 테두리 · 건물이 놓인다
+        ly: gndOnly ? D : -lift,
+        gDisp: gndOnly ? 'inline' : 'none', gPe: gndOnly && !fdrag ? 'fill' : 'none',
+        label: gndOnly ? '그라운드 C' + (p.c + 1) + ' · R' + (p.r + 1) + ' · ' + gById(gmatOf(key)).name : '타일 C' + (p.c + 1) + ' · R' + (p.r + 1) + ' · ' + s.name + (nd ? (nd.parent ? ' · 부모 노드 ' : ' · 노드 ') + nd.name : ''),
+        delay: (i * 22) + 'ms',
+        dy: selected ? '-12px' : '0px',
+        ring: selected || (drag && drag.over === key && !(fdrag && fdrag.from === key)) ? 1 : 0,
+        // 점선 행진 애니메이션은 보일 때만 — 모든 타일에 늘 걸어 두면 가만히 있어도 필드 전체를 매 프레임 다시 그린다
+        ringCls: selected || (drag && drag.over === key && !(fdrag && fdrag.from === key)) ? 'tile-ring' : '',
+        op: fdrag && fdrag.from === key ? 0.3 : (fdrag && fdrag.kind === 'field' && fdrag.over === key && fdrag.over !== fdrag.from ? 0.3 : 1),
+        ...(mtStyle(p, key, nd, s) || {
+          xf: 'translate(' + (anim && anim[key] && !this.state.animRun ? anim[key].dx : 0) + 'px, ' + (anim && anim[key] && !this.state.animRun ? anim[key].dy : 0) + 'px)',
+          mop: 1,
+          atr: anim && anim[key] && this.state.animRun ? 'transform 440ms cubic-bezier(.3,.7,.2,1)' : 'none'
+        }),
+        rise: this._risen ? '' : 'tile-rise',
+        grab: (e) => { if (e.button === 0 && this.state.editMode) this.pendField = { key, x: e.clientX, y: e.clientY }; },
+        bT: 'translate(' + p.cx + ' ' + p.cy + ')',
+        // 건물: 구운 이미지가 있으면 그림 한 장, 아직이면 벡터 경로
+        ...(() => {
+          const pl = placed[key], bv = pl ? bldOf(pl.bid) : null, im = pl && this.state.bldImg && this.state.bldImg[bv.id + '-' + pl.rot];
+          if (!im) return { banim: '', bpaths: pl ? bv.views[pl.rot].paths : [], bimg: '', bimgDisp: 'none', bix: 0, biy: 0, biw: 0, bih: 0, bhit: 'M0 0' };
+          const vw = bv.views[pl.rot];
+          const ak = 'b:' + bv.id + '-' + pl.rot, an = this._anims && this._anims[ak] ? ak : '';
+          return { banim: an, bpaths: [], bimg: (an && this.animUrl(an)) || im.url, bimgDisp: 'inline', bix: im.x, biy: im.y, biw: im.w, bih: im.h, bhit: vw.hit || (vw.hit = vw.paths.map((q) => q.d).join(' ')) };
+        })(),
+        bshadow: placed[key] ? bldOf(placed[key].bid).views[placed[key].rot].shadow : 'M0 0',
+        pick: () => {
+          if (this.justDragged) { this.justDragged = false; return; }
+          if (this.state.mt) return;
+          // 두 번 누름(0.35초 안에 같은 타일): 노드 필드면 해당 노드의 맵으로
+          const now = Date.now(), lp = this._lastPick;
+          this._lastPick = { key, t: now };
+          if (lp && lp.key === key && now - lp.t < 350 && nd) { this._lastPick = null; this.setState({ sel: key }); this.enterNode(nd); return; }
+          this.setState({ sel: selected ? null : key });
+        }
+      });
+    });
+
+    // 끌어 놓기: 카드에서 누른 채 필드로 → 타일 위면 그 타일에 맞춰 미리보기, R로 90° 회전
+    let ghost = { t: 'translate(0 0)', paths: [], shadow: 'M0 0', op: 0 };
+    if (drag && drag.kind === 'bldg') {
+      const b = bldOf(drag.bid);
+      const overCell = drag.over ? cells.find((p) => p.c + '-' + p.r === drag.over) : null;
+      if (overCell) {
+        const lift = this.state.sel === drag.over ? -12 : 0;
+        const nodeLift = this.nodeLift(byId(matOf(drag.over)), nodes[drag.over]);
+        ghost = { t: 'translate(' + overCell.cx + ' ' + (overCell.cy + lift - nodeLift) + ')', paths: b.views[drag.rot].paths, shadow: b.views[drag.rot].shadow, op: 0.72 };
+      } else if (drag.x !== null) {
+        ghost = { t: 'translate(' + Math.round(drag.x) + ' ' + Math.round(drag.y) + ')', paths: b.views[drag.rot].paths, shadow: b.views[drag.rot].shadow, op: 0.45 };
+      }
+    }
+    // 끄는 필드의 미리보기: 빈 칸 · 다른 필드 위면 그 자리에 맞추고, 아니면 포인터를 따라간다
+    let fghost = { disp: 'none', T: 'translate(0 0)', href: '', anim: '', img: '', ix: 0, iy: 0, iw: 0, ih: 0, imgDisp: 'none', useDisp: 'none', op: 0 };
+    let fghost2 = Object.assign({}, fghost);
+    // 설치 미리보기: 놓을 수 있는 자리(빈 칸 · 교환할 필드) 위에서만 그 자리에 보인다. 교환이면 상대 필드도 원래 자리에 미리 보인다
+    const ghostAt = (key, sid, nd, op) => {
+      const [c, r] = key.split('-').map(Number), p = at(c, r), lift = this.nodeLift(byId(sid), nd);
+      return Object.assign(this.tileView(sid, this.nodeKind(nd)), { disp: 'inline', T: 'translate(' + p.cx + ' ' + (p.cy - lift) + ')', op });
+    };
+    if (fdrag && fdrag.over && fdrag.over !== fdrag.from && fdrag.kind !== 'newGround' && !dragGround) {
+      const sid = fdrag.kind === 'field' ? matOf(fdrag.from) : base;
+      const nd = fdrag.kind === 'field' ? nodes[fdrag.from] : null;
+      fghost = ghostAt(fdrag.over, sid, nd, 0.82);
+      if (fdrag.kind === 'field' && fieldSet.has(fdrag.over)) fghost2 = ghostAt(fdrag.from, matOf(fdrag.over), nodes[fdrag.over], 0.82);
+    }
+    // 칸 하나의 내용(재질 · 건물 · 노드 · 선택)을 옮기거나 두 칸끼리 바꾼다
+    const moveField = (from, to) => {
+      const swap = fieldSet.has(to), onGround = groundSet.has(to);
+      const remap = (obj) => {
+        const out = Object.assign({}, obj), a = obj[from], b = obj[to];
+        delete out[from]; delete out[to];
+        if (a !== undefined) out[to] = a;
+        if (swap && b !== undefined) out[from] = b;
+        return out;
+      };
+      const fields = swap ? this.state.fields : this.state.fields.map((k) => k === from ? to : k);
+      const sel = this.state.sel === from ? to : (swap && this.state.sel === to ? from : this.state.sel);
+      // 옮긴 필드는 원래 자리에서 새 자리로 미끄러져 간다 (교환이면 두 필드가 엇갈려 간다)
+      const [fc, fr] = from.split('-').map(Number), [tc, tr] = to.split('-').map(Number), pf = at(fc, fr), pt = at(tc, tr);
+      const anim = { [to]: { dx: pf.cx - pt.cx, dy: pf.cy - pt.cy } };
+      if (swap) anim[from] = { dx: pt.cx - pf.cx, dy: pt.cy - pf.cy };
+      const self = this.state.self === from ? to : (swap && this.state.self === to ? from : this.state.self);
+      // 그라운드만 깔린 칸으로 옮기면: 그 칸의 그라운드(재질 · 회전)는 그대로 두고 필드가 올라선다. 필드에 건물이 없으면 그라운드의 건물이 남는다
+      const keepTo = (obj) => onGround ? Object.assign({}, obj || {}) : remap(obj || {});
+      const placedN = onGround && this.state.placed[from] === undefined ? Object.assign({}, this.state.placed) : remap(this.state.placed);
+      this.setState({ fields, self, mat: remap(this.state.mat), placed: placedN, nodes: remap(this.state.nodes), frot: remap(this.state.frot || {}), gmat: keepTo(this.state.gmat), grot: keepTo(this.state.grot),
+        grounds: onGround ? (this.state.grounds || []).filter((k) => k !== to) : (this.state.grounds || []),
+        sel, drag: null, anim, animRun: false, fieldNote: swap ? '두 필드의 자리를 바꿨습니다' : onGround ? '필드를 그라운드 위로 옮겼습니다' : '필드를 옮겼습니다' });
+      const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+      raf(() => raf(() => this.setState({ animRun: true })));
+      clearTimeout(this._animT);
+      this._animT = setTimeout(() => this.setState({ anim: null, animRun: false }), 520);
+    };
+    const deleteField = (k) => {
+      const strip = (obj) => { const o = Object.assign({}, obj); delete o[k]; return o; };
+      const nd = this.state.nodes[k];
+      this.setState({
+        fields: this.state.fields.filter((x) => x !== k), mat: strip(this.state.mat), placed: strip(this.state.placed), nodes: strip(this.state.nodes), frot: strip(this.state.frot || {}),
+        pending: nd ? [{ name: nd.name, role: nd.role, at: '방금' }].concat(this.state.pending) : this.state.pending,
+        sel: this.state.sel === k ? null : this.state.sel, drag: null,
+        fieldNote: nd ? '필드를 지웠습니다 — 노드 ' + nd.name + '는 새 노드 목록으로 돌아갔습니다' : '필드를 지웠습니다'
+      });
+    };
+    // ───── 원형 메뉴 ─────
+    const RM = { R: 66, DEAD: 22, SIZE: 44 };
+    const rmenu = this.state.rmenu;
+    const localXY = (e) => {
+      const el = e.currentTarget, r = el.getBoundingClientRect(), k = (r.width / (el.offsetWidth || r.width)) || 1;
+      return [(e.clientX - r.left) / k, (e.clientY - r.top) / k];
+    };
+    const rmItems = rmenu ? this.radialItems(rmenu.target) : [];
+    const rmHit = (x, y) => {
+      if (!rmenu) return null;
+      const dx = x - rmenu.x, dy = y - rmenu.y;
+      if (Math.hypot(dx, dy) < RM.DEAD) return null;
+      const n = rmItems.length, a = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360; // 위쪽이 0°, 시계 방향
+      return Math.round(a / (360 / n)) % n;
+    };
+    const rmRun = (i) => {
+      const it = rmItems[i];
+      const t = this.state.rmenu.target;
+      this.setState({ rmenu: null });
+      if (!it || (it.edit && t.mode !== 'edit')) return;
+      it.run(t);
+    };
+    const fieldCtx = (e) => { e.preventDefault(); };
+    // 필드 위 좌표(svg 단위)와 화면 배율
+    const svgXY = (e) => {
+      const svg = e.currentTarget.querySelector('[data-field-svg]');
+      if (!svg || !svg.getScreenCTM) return null;
+      const m = svg.getScreenCTM(), pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      const q = pt.matrixTransform(m.inverse()); return { x: q.x, y: q.y, sc: m.a || 1 };
+    };
+    const onMap = (e) => !!(e.target && e.target.closest && e.target.closest('[data-field-svg]'));
+    const fieldWheel = (e) => {
+      // tree 목록(프사 누름 · Ctrl, 펼침 · 접힘 모두)이 떠 있으면 휠은 목록 고르기만 — 맵은 확대하지 않는다
+      if (this.state.tl) return;
+      if (!onMap(e) || this.state.mt || this.state.drag || rmenu || this._pan) return;
+      if (e.cancelable) e.preventDefault();
+      const q = svgXY(e); if (!q) return;
+      const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      this.zoomBy(Math.exp(-Math.max(-120, Math.min(120, d)) * 0.0022), q.x, q.y);
+    };
+    const fieldDown = (e) => {
+      if (e.button === 0 && this._spaceHeld && !rmenu && !this.state.drag && !this.state.mt && onMap(e)) {
+        // 맵 이동은 Space를 누른 채 홀드해서 끌 때만 — 그냥 홀드해서 끄는 건 필드 · 그라운드 · 건물 작업용이라 맵을 움직이지 않는다
+        this.pendField = null;   // Space를 누르고 있으면 타일 끌기는 시작하지 않는다
+        const q = svgXY(e); if (q) this._pan = { cx: e.clientX, cy: e.clientY, sc: q.sc, v: Object.assign({}, this._view), on: false, id: e.pointerId, el: e.currentTarget };
+        e.preventDefault();
+      }
+      if (e.button !== 2) { if (rmenu && !(e.target.closest && e.target.closest('[data-rm-item], [role=menu]'))) this.setState({ rmenu: null }); return; }
+      if (this.state.drag) return;
+      e.preventDefault();
+      e.currentTarget.tabIndex = -1; e.currentTarget.focus({ preventScroll: true });
+      const [x0, y0] = localXY(e);
+      const W = e.currentTarget.offsetWidth || 1447, Hh = e.currentTarget.offsetHeight || 901, m = RM.R + RM.SIZE / 2 + 6;
+      const x = Math.max(m, Math.min(W - m, x0)), y = Math.max(m, Math.min(Hh - m - 24, y0));
+      const hit = e.target && e.target.closest ? e.target.closest('[data-key]') : null;
+      const key = hit ? hit.getAttribute('data-key') : null;
+      this.pendField = null;
+      this.setState({ rmenu: { x, y, hover: null, holding: true, moved: false, target: { kind: key ? 'tile' : 'field', key, mode: this.state.editMode ? 'edit' : 'view' } }, sel: key || this.state.sel });
+    };
+    const fieldMove = (e) => {
+      // 조타륜을 돌리는 중: 다른 반응(관리 노드 창 펼침 · 서랍 · 호버)은 전부 건너뛴다
+      if (this._hx && this._hx.drag) { if (this.state.drawerNear) this.setState({ drawerNear: false, drawerHover: null }); return; }
+      // 맵 이동 중: 다른 반응(관리 노드 창 · 서랍 · 호버)은 전부 건너뛴다
+      if (this._pan) {
+        const P = this._pan, dx = e.clientX - P.cx, dy = e.clientY - P.cy;
+        if (!P.on && e.buttons === 0) { this._pan = null; return; }
+        if (!P.on) {
+          if (Math.abs(dx) + Math.abs(dy) < 5) return;
+          P.on = true;
+          try { P.el.setPointerCapture(P.id); } catch (er) { /* 무시 */ }
+          P.el.style.cursor = 'grabbing';
+          try { P.el.tabIndex = -1; P.el.focus({ preventScroll: true }); } catch (er) { /* 무시 */ }
+          if (this.state.drawerNear) this.setState({ drawerNear: false, drawerHover: null });
+        }
+        this.viewSet({ k: P.v.k, x: P.v.x + dx / P.sc, y: P.v.y + dy / P.sc }, false);
+        return;
+      }
+      // 관리 노드 창은 호버가 아니라 클릭으로 펼친다(mgToggle). 여기서는 펼친 창이 차지한 영역만 판단해 서랍창이 겹쳐 반응하지 않게 한다
+      {
+        const [hx, hy] = localXY(e), Hh = e.currentTarget.offsetHeight || 901;
+        const pillW = this.MG_PILL;
+        // 레이어 우선: 포인터 바로 아래(가장 위 레이어)가 편집창 · 유틸 서랍 · 로그인 창이면 그 아래 컴포넌트(관리 노드 창 · 서랍창)는 호버로 치지 않는다
+        const top = e.target && e.target.closest ? e.target : null;
+        const covered = !!(top && top.closest('section[role="dialog"], [aria-label="유틸 서랍"], .lg-pop'));
+        const inside = !covered && !!this.state.mgHover && hy > Hh - 170 && hx < 59 + 965 + 44 + 6;
+        // 서랍: 구역 가까이(80px) 오면 카드가 70%까지 올라온다
+        // 관리 노드 창이 펼쳐져 있으면(겹치는 영역에서 위에 있는 컴포넌트가 우선) 서랍은 반응하지 않는다
+        const near = this.state.drawer.length > 0 && !this.state.wdrag && !inside && !covered && this.inDrawer(hx, hy);
+        if (near !== !!this.state.drawerNear) this.setState({ drawerNear: near, drawerHover: near ? this.state.drawerHover : null });
+      }
+      if (rmenu) {
+        const [x, y] = localXY(e), h = rmHit(x, y);
+        if (h !== rmenu.hover) this.setState({ rmenu: Object.assign({}, rmenu, { hover: h, moved: rmenu.moved || h !== null }) });
+        return;
+      }
+      if (this.pendField && !this.state.drag) {
+        if (Math.abs(e.clientX - this.pendField.x) + Math.abs(e.clientY - this.pendField.y) < 6) return;
+        e.currentTarget.tabIndex = -1; e.currentTarget.focus({ preventScroll: true });
+        this.setState({ drag: { kind: 'field', from: this.pendField.key, over: null, x: null, y: null, trash: false } });
+        this.pendField = null;
+        return;
+      }
+      const d = this.state.drag;
+      if (!d) return;
+      const svg = e.currentTarget.querySelector('svg');
+      let x = null, y = null;
+      if (svg && svg.getScreenCTM) {
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX; pt.y = e.clientY;
+        const q = pt.matrixTransform(svg.getScreenCTM().inverse()), F = this._fx || { s: 1, tx: 0, ty: 0 };
+        x = (q.x - F.tx) / F.s; y = (q.y - F.ty) / F.s + 20; // 줄인 필드 그룹 안의 좌표로
+      }
+      const hit = e.target && e.target.closest ? e.target.closest('[data-key]') : null;
+      const slot = (d.kind === 'field' || d.kind === 'newField' || d.kind === 'newGround') && e.target && e.target.closest ? e.target.closest('[data-slot]') : null;
+      const trash = d.kind === 'field' && e.target && e.target.closest ? !!e.target.closest('[data-trash]') : false;
+      const over = slot ? slot.getAttribute('data-slot') : (hit && d.kind !== 'newField' && d.kind !== 'newGround' ? hit.getAttribute('data-key') : null);
+      this.setState({ drag: Object.assign({}, d, { x, y, over: trash ? null : over, trash }) });
+    };
+    const fieldUp = (e) => {
+      if (this._pan) {
+        const P = this._pan; this._pan = null;
+        if (P.on) {
+          try { P.el.releasePointerCapture(P.id); } catch (er) { /* 무시 */ }
+          P.el.style.cursor = this._spaceHeld ? 'grab' : '';
+          this.justDragged = true; setTimeout(() => { this.justDragged = false; }, 0);
+          clearTimeout(this._viewT); this.setState({ viewTick: (this.state.viewTick || 0) + 1 });
+          return;
+        }
+        // Space를 누른 채 움직이지 않고 뗐으면: 타일을 누른 것으로 치지 않는다
+        this.justDragged = true; setTimeout(() => { this.justDragged = false; }, 0);
+        return;
+      }
+      if (rmenu) {
+        // 누른 채 방향을 골라 떼면 바로 실행. 가운데에서 떼면 메뉴가 열린 채로 남는다
+        if (e && e.button === 2 && rmenu.holding) {
+          if (rmenu.hover !== null) rmRun(rmenu.hover);
+          else this.setState({ rmenu: Object.assign({}, rmenu, { holding: false }) });
+        }
+        return;
+      }
+      this.pendField = null;
+      const d = this.state.drag;
+      if (!d) return;
+      // 그라운드만 깔린 칸을 끌었을 때: 삭제 칸이면 지우고, 빈 리전이면 옮긴다 (필드 · 다른 그라운드 위엔 못 놓음)
+      if (d.kind === 'field' && groundSet.has(d.from)) {
+        this.justDragged = true;
+        setTimeout(() => { this.justDragged = false; }, 0);
+        const strip = (obj) => { const o = Object.assign({}, obj || {}); delete o[d.from]; return o; };
+        if (d.trash) { this.setState({ grounds: (this.state.grounds || []).filter((k) => k !== d.from), placed: strip(this.state.placed), sel: this.state.sel === d.from ? null : this.state.sel, drag: null, fieldNote: '그라운드를 지웠습니다' }); return; }
+        if (d.over && d.over !== d.from && !fieldSet.has(d.over) && !groundSet.has(d.over)) {
+          const mv = (obj) => { const o = Object.assign({}, obj || {}); if (o[d.from] !== undefined) { o[d.over] = o[d.from]; delete o[d.from]; } return o; };
+          this.setState({ grounds: (this.state.grounds || []).map((k) => k === d.from ? d.over : k), placed: mv(this.state.placed), gmat: mv(this.state.gmat), grot: mv(this.state.grot), sel: d.over, drag: null, fieldNote: '그라운드를 옮겼습니다' });
+          return;
+        }
+        this.setState({ drag: null });
+        return;
+      }
+      if (d.kind === 'field') {
+        this.justDragged = true;
+        setTimeout(() => { this.justDragged = false; }, 0);
+        if (d.trash) { deleteField(d.from); return; }
+        if (d.over && d.over !== d.from) { moveField(d.from, d.over); return; }
+        this.setState({ drag: null });
+        return;
+      }
+      if (d.kind === 'newField') {
+        if (d.over && !fieldSet.has(d.over)) {
+          this.setState({ fields: this.state.fields.concat([d.over]), grounds: (this.state.grounds || []).filter((k) => k !== d.over), mat: Object.assign({}, this.state.mat, { [d.over]: base }), sel: d.over, drag: null, fieldNote: groundSet.has(d.over) ? '그라운드 위에 필드를 올렸습니다' : '필드를 추가했습니다 — 그라운드도 함께 깔렸습니다' });
+        } else this.setState({ drag: null });
+        return;
+      }
+      if (d.kind === 'newGround') {
+        if (d.over && !fieldSet.has(d.over) && !groundSet.has(d.over)) this.setState({ grounds: (this.state.grounds || []).concat([d.over]), sel: d.over, drag: null, fieldNote: '그라운드를 깔았습니다' });
+        else this.setState({ drag: null });
+        return;
+      }
+      if (d.over && d.kind === 'node' && !fieldSet.has(d.over)) { this.setState({ drag: null, fieldNote: '그라운드에는 노드를 둘 수 없습니다 — 필드 위에 놓으세요' }); return; }
+      if (d.over && d.kind === 'node') {
+        // 새 노드를 필드에 놓으면 그 필드가 노드 필드가 된다 (이미 노드가 있던 필드면 자리를 바꾸지 않는다)
+        if (this.state.nodes[d.over]) { this.setState({ drag: null, sel: d.over }); return; }
+        // 새 노드는 놓인 필드의 재질 · 건물을 자기 모습으로 삼는다 (이미 모습이 있는 노드면 그 모습으로 필드가 바뀐다)
+        if (!this.state.looks[d.name]) {
+          const pl = placed[d.over];
+          this.setState({ looks: Object.assign({}, this.state.looks, { [d.name]: { skin: matOf(d.over), bid: pl ? pl.bid : null, rot: pl ? pl.rot : 0 } }) });
+        }
+        const plain = Object.assign({}, this.state.placed); delete plain[d.over];
+        this.setState({
+          drag: null, sel: d.over, placed: plain,
+          nodes: Object.assign({}, this.state.nodes, { [d.over]: { name: d.name, role: d.role } }),
+          pending: this.state.pending.filter((n) => n.name !== d.name)
+        });
+      } else if (d.over) {
+        const o = ownerOf(d.over);
+        if (o) { this.setLook(o, { bid: d.bid, rot: d.rot }); this.setState({ drag: null, sel: d.over }); }
+        else this.setState({ drag: null, sel: d.over, placed: Object.assign({}, this.state.placed, { [d.over]: { bid: d.bid, rot: d.rot } }) });
+      } else {
+        this.setState({ drag: null });
+      }
+    };
+    const fieldLeave = () => {
+      if (this._pan && this._pan.on) return; this._pan = null; if (this.state.drawerNear) this.setState({ drawerNear: false, drawerHover: null }); if (rmenu) this.setState({ rmenu: null }); this.pendField = null; if (this.state.drag) this.setState({ drag: null }); };
+    const rotateSel = () => {
+      const k = this.state.sel, cur = k ? placed[k] : null;
+      if (!cur) return;
+      const o = ownerOf(k);
+      if (o) this.setLook(o, { rot: (cur.rot + 1) % 4 });
+      else this.setState({ placed: Object.assign({}, this.state.placed, { [k]: { bid: cur.bid, rot: (cur.rot + 1) % 4 } }) });
+    };
+    const fieldKey = (e) => {
+      // 입력칸에서 친 글자는 단축키로 쓰지 않는다 (로그인 창에서 r이 막히던 문제)
+      const tg = e.target && e.target.tagName;
+      if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;
+      if (rmenu) { if (e.key === 'Escape') this.setState({ rmenu: null }); return; }
+      if (e.key === '0' && !e.ctrlKey && !e.metaKey) { this.viewReset(); return; }
+      if (!(e.key === 'r' || e.key === 'R' || e.key === 'ㄱ')) return;
+      e.preventDefault();
+      const d = this.state.drag;
+      if (d && d.kind === 'bldg') this.setState({ drag: Object.assign({}, d, { rot: (d.rot + 1) % 4 }) });
+      else if (d) return;
+      else if (this.state.editMode) rotateSel();
+    };
+    const buildings = this.buildings.map((b) => {
+      const v = b.views[0], pad = 6;
+      const w = v.bbox[2] - v.bbox[0] + pad * 2, h = v.bbox[3] - v.bbox[1] + pad * 2;
+      return {
+        name: b.name,
+        playDisp: b.anim ? 'inline' : 'none', playTip: '애니메이션 · 프레임 ' + b.nFrames + '개 · ' + b.period + '초 (' + b.T + '칸)',
+        meta: '블록 ' + b.blocks + ' · 면 ' + b.merged + ' · 회전 4장',
+        vb: (v.bbox[0] - pad) + ' ' + (v.bbox[1] - pad) + ' ' + w + ' ' + h,
+        paths: v.paths,
+        shadow: v.shadow,
+        dragging: drag && drag.bid === b.id ? '1px dashed #2563eb' : '1px solid #d8dde5',
+        grab: (e) => {
+          e.preventDefault();
+          const root = e.currentTarget.closest ? e.currentTarget.closest('[data-field-root]') : null;
+          if (root) { root.tabIndex = -1; root.focus({ preventScroll: true }); }
+          this.setState({ drag: { kind: 'bldg', bid: b.id, rot: 0, over: null, x: null, y: null } });
+        }
+      };
+    });
+    // 새로 붙은 컴퓨터: 필드 지정 창 아래에 알림으로 뜨고, 끌어서 필드에 놓으면 그 필드가 노드 필드가 된다
+    const pendingNodes = this.state.pending.map((n) => ({
+      name: n.name, role: n.role, at: n.at,
+      border: drag && drag.kind === 'node' && drag.name === n.name ? '1px dashed #2563eb' : '1px solid #c7d7f5',
+      grab: (e) => {
+        e.preventDefault();
+        this.setState({ drag: { kind: 'node', name: n.name, role: n.role, over: null, x: null, y: null } });
+      }
+    }));
+    const selNodeInfo = (() => {
+      const k = this.state.sel;
+      return k && nodes[k] ? nodes[k] : null;
+    })();
+
+    const sel = allCells.find((p) => p.c + '-' + p.r === this.state.sel);
+    const selKey = sel ? sel.c + '-' + sel.r : null;
+    const selField = !!(selKey && fieldSet.has(selKey));
+    const current = selField ? matOf(selKey) : null;
+    const gCurrent = selKey ? gmatOf(selKey) : null;
+    const rotField = () => { const k = this.state.sel; if (!k || !fieldSet.has(k)) return; const fr = Object.assign({}, this.state.frot || {}); fr[k] = ((fr[k] || 0) + 1) % 6; this.setState({ frot: fr }); };
+    const rotGround = () => { const k = this.state.sel; if (!k || !(fieldSet.has(k) || groundSet.has(k))) return; const gr = Object.assign({}, this.state.grot || {}); gr[k] = ((gr[k] || 0) + 1) % 6; this.setState({ grot: gr }); };
+    const gskins = GSK.map((g) => ({
+      name: g.name, edge: g.edge,
+      fill: 'url(#gp-' + g.id + '-0-' + gFrame(g) + ')', anim: this.keyCount(g.frames) > 1 ? g.id + '|0' : '',
+      playDisp: this.keyCount(g.frames) > 1 ? 'inline' : 'none', playTip: '애니메이션 · 프레임 ' + this.keyCount(g.frames) + '개 · ' + (g.frames.length / 16) + '초 (' + g.frames.length + '칸)',
+      pressed: g.id === gCurrent ? 'true' : 'false', border: g.id === gCurrent ? '2px solid #2563eb' : '1px solid #d8dde5', fw: g.id === gCurrent ? 600 : 400,
+      pick: () => { if (!selKey) return; this.setState({ gmat: Object.assign({}, this.state.gmat || {}, { [selKey]: g.id }) }); }
+    }));
+    const gFillAll = () => { if (!gCurrent) return; const gm = {}; gAll.forEach((k) => { gm[k] = gCurrent; }); this.setState({ gmat: gm }); };
+    const skins = SKINS.map((s) => ({
+      ...s,
+      tv: this.tileView(s.id),
+      playDisp: this.keyCount(s.frames) > 1 ? 'inline' : 'none', playTip: '애니메이션 · 프레임 ' + this.keyCount(s.frames) + '개 · ' + ((s.frames || []).length / 16 || 1) + '초 (' + (s.frames || []).length + '칸)',
+      pressed: s.id === current ? 'true' : 'false',
+      border: s.id === current ? '2px solid #2563eb' : '1px solid #d8dde5',
+      fw: s.id === current ? 600 : 400,
+      pick: () => {
+        if (!selField) return;
+        const o = ownerOf(selKey);
+        if (o) this.setLook(o, { skin: s.id });
+        else this.setState({ mat: Object.assign({}, this.state.mat, { [selKey]: s.id }) });
+      }
+    }));
+    const fillAll = () => {
+      if (!current) return;
+      const mat = {};
+      cells.forEach((p) => { mat[p.c + '-' + p.r] = current; }); // 노드 칸은 노드 모습이 정하므로 바뀌지 않는다
+      this.setState({ mat });
+    };
+    return {
+      skins,
+      fillAll,
+      gskins, gFillAll, gnd, gPats: Array.from(gPatMap.values()),
+      gPaletteHint: selKey ? '누르면 선택한 칸의 그라운드에만 적용 — 필드 칸이면 필드 아래 그라운드' : '먼저 칸을 고르세요',
+      selGround: selKey ? gById(gCurrent).name + ' · 무늬 ' + grotOf(selKey) * 60 + '°' : '',
+      rotField, rotGround, rotFieldDisp: selField ? 'inline-block' : 'none',
+      paletteOpacity: sel ? 1 : 0.45,
+      paletteHint: sel ? '누르면 선택한 타일에만 적용 — 옆 타일은 그대로' : '먼저 타일을 고르세요',
+      selSkin: current ? byId(current).name + ' · 무늬 ' + frotOf(selKey) * 60 + '°' : selKey ? '없음 — 그라운드만 깔린 칸' : '',
+      tiles,
+      tg: { top: TG.top },
+      // 이미지가 준비되면 벡터 타일은 화면(DOM)에서만 빠지고, 데이터는 this.BT에 그대로 남는다
+      // 아직 이미지가 없는 타일(처음 쓰는 무늬 회전 등)만 벡터로 문서에 둔다
+      fieldPats: (() => { const seen = new Set(), out = []; this.BT.forEach((b) => { if ((this.state.tileImg && this.state.tileImg[b.key]) || seen.has(b.topPat.id)) return; seen.add(b.topPat.id); out.push(b.topPat); }); return out; })(),
+      tileDefs: this.BT.filter((b) => !(this.state.tileImg && this.state.tileImg[b.key])),
+      cacheNote: cached ? '타일 표시: 이미지 캐시 (벡터 데이터 보관 중)' : '타일 표시: 벡터 (이미지 준비 중)',
+      shadowY: maxBottom - 10,
+      shadowX: fx.cx, shadowRx: fx.rx,
+      hasSel: !!sel,
+      noSel: !sel,
+      selLabel: sel ? (sel.gnd ? '그라운드 C' : '타일 C') + (sel.c + 1) + ' · R' + (sel.r + 1) : '',
+      selHasB: !!(selKey && placed[selKey]),
+      selEmpty: !!(selKey && !placed[selKey]),
+      selNode: selKey && placed[selKey] ? '건물 · ' + bldOf(placed[selKey].bid).name + ' · 회전 ' + placed[selKey].rot + '/3' : '',
+      pendingNodes,
+      hasPending: pendingNodes.length > 0 && this.isTree((this.NET[this.state.map] || {}).role),
+      editOffDisp: this.state.help || (pendingNodes.length > 0 && this.isTree((this.NET[this.state.map] || {}).role)) ? 'flex' : 'none',
+      noPending: pendingNodes.length === 0,
+      fsOn: !!this.state.fs, ovhZ: this.state.fsList || this.state.fb.open ? 80 : 8, fb: this.fbVals(), memo: this.memoVals(),
+      fsHb: this.state.fs && this.state.fs.indexOf('hb:') === 0 ? this.hbVals(this.state.fs.slice(3)) : { on: false },
+      stopEv: (e) => e.stopPropagation(), fsExitEv: () => this.fsExit(), fsNotchDown: (e) => e.stopPropagation(),
+      // 오버헤드 패널 (화면 위 · 조종실 천장): 왼쪽 = 선택 상태(무엇을 골랐나 · tree/leaf · 부모/자식), 오른쪽 = 전체 창 목록
+      ovh: (() => {
+        const S = this.state, nd = selNodeInfo, kind = nd ? 'node' : selKey && fieldSet.has(selKey) ? 'field' : selKey && groundSet.has(selKey) ? 'ground' : null;
+        const role = nd ? nd.role || '' : '', isT = /tree/i.test(role), isL = /leaf/i.test(role);
+        const bid = nd ? this.lookOf(nd.name).bid : selKey && placed[selKey] ? placed[selKey].bid : null;
+        const isLocal = !!(nd && nd.name === S.localNode.name), net = nd ? this.NET[nd.name] || {} : {};
+        // 램프: 켜짐 = 그 색으로 빛남, 꺼짐 = 검은 판에 어두운 글자
+        const LC = { w: ['#e8f6ff', 'rgba(140,200,255,0.35)'], g: ['#7cf2b0', 'rgba(94,234,154,0.35)'], a: ['#ffc861', 'rgba(240,180,66,0.35)'], b: ['#8ec5ff', 'rgba(80,150,255,0.35)'] };
+        const off = !!S.fs;   // 맵 화면이 아니면(전체 화면 중) 불 꺼진 계기판
+        const lamp = (label, on0, c, tip) => { const on = on0 && !off; return { label, tip: tip + (on ? ' — 켜짐' : ''), fg: on ? LC[c][0] : '#3b434e', glow: on ? '0 0 6px ' + LC[c][1] + ', inset 0 0 8px ' + LC[c][1] : 'inset 0 1px 0 rgba(255,255,255,0.04)', ts: on ? '0 0 4px ' + LC[c][0] : 'none', bg: on ? '#1d2630' : '#14181d' }; };
+        const lamps = [
+          lamp('노드', kind === 'node', 'w', '고른 칸이 노드 필드'), lamp('필드', kind === 'field' || kind === 'node', 'w', '필드(높이 있는 칸)'), lamp('그라운드', kind === 'ground', 'w', '그라운드만 깔린 칸'),
+          lamp('TREE', isT, 'g', '노드 역할 tree'), lamp('LEAF', isL, 'g', '노드 역할 leaf'), lamp('건물', !!bid, 'w', '칸에 건물이 있다'),
+          lamp('부모', !!(nd && nd.parent), 'a', '이 맵의 주인 노드'), lamp('자식', !!(nd && !nd.parent), 'a', '이 맵 주인의 자식 노드'), lamp('로컬', isLocal, 'b', '이 GUI가 도는 로컬 노드')
+        ];
+        const pos = sel ? 'C' + (sel.c + 1) + ' · R' + (sel.r + 1) : '';
+        const head = kind === 'node' ? '노드 · ' + pos : kind === 'field' ? '필드 · ' + pos : kind === 'ground' ? '그라운드 · ' + pos : '선택 없음';
+        const name = nd ? nd.name : kind === 'field' ? byId(matOf(selKey)).name : kind === 'ground' ? gById(gmatOf(selKey)).name : '—';
+        const detail = nd ? (role || 'Leaf') + ' · ' + (isT ? '자식 ' + (net.kids || []).length : '자원 ' + (net.res || []).length) + (bid ? ' · ' + bldOf(bid).name : '')
+          : kind === 'field' ? (bid ? '건물 ' + bldOf(bid).name : '빈 필드') + ' · 무늬 ' + frotOf(selKey) * 60 + '°'
+          : kind === 'ground' ? '높이 0 · 무늬 ' + grotOf(selKey) * 60 + '°' : '맵에서 칸을 고르면 여기 뜬다';
+        // 창 목록: 닫힘(어두움) · 서랍(호박색) · 열림(초록) · 맨 앞(밝게 켜짐). 누르면 닫힘/서랍 → 열기, 열림 → 앞으로, 맨 앞 → 서랍으로
+        const D = this.WDEF(), front = S.fs || S.winZ.filter((k) => S.winOpen[k]).slice(-1)[0];
+        const wins = Object.keys(D).map((id) => {
+          const open = !!S.winOpen[id], inD = S.drawer.indexOf(id) >= 0, top = open && id === front, n = S.notif[id] || 0;
+          const st = S.fs ? (top ? '전체 화면' : '누르면 이 창을 전체 화면으로') : top ? '맨 앞 — 누르면 서랍으로' : open ? '열림 — 누르면 앞으로' : inD ? '서랍에 있음 — 누르면 꺼내기' : '닫힘 — 누르면 열기';
+          return { id, label: D[id].title, tick: D[id].color, tip: D[id].title + ' · ' + st,
+            fg: top ? '#0f2a1c' : open ? '#7cf2b0' : inD ? '#ffc861' : '#59626e', bg: top ? 'linear-gradient(180deg,#d9fbe8,#9fe8c0)' : '#14181d',
+            glow: top ? '0 0 8px rgba(94,234,154,0.55)' : open ? 'inset 0 0 8px rgba(94,234,154,0.28)' : inD ? 'inset 0 0 8px rgba(240,180,66,0.25)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+            ts: top || (!open && !inD) ? 'none' : '0 0 4px ' + (open ? '#5eea9a' : '#f0b442'),
+            badge: n > 0, n, go: () => this.ovWin(id) };
+        });
+        const nOpen = wins.filter((w) => S.winOpen[w.id]).length, nD = S.drawer.length;
+        // 전체 창 리스트 (가운데 흰 박스를 누르면 내려온다): 맵 + 창 11개. 누르면 그 화면으로
+        // 전체 화면 리스트: 전체 화면으로 한 번 연 화면만 (처음엔 빈 칸). 기능창 · 조타륜 앱. 누르면 그 화면으로
+        const UL = this.UDLOGO(), IC = this.HBICON(), cur = S.fs;
+        const fsl = S.fsHist.map((id) => {
+          const hb = id.indexOf('hb:') === 0, on = id === cur;
+          return { id, label: this.fsName(id), logo: hb ? IC.app[id.slice(3)] : UL[id] || '', tick: hb ? '#1e3a5f' : D[id].color,
+            bg: on ? '#16191f' : '#f7f8f6', fg: on ? '#ffffff' : '#16191f', line: on ? '#16191f' : '#d8dde5', tip: on ? '지금 화면' : this.fsName(id) + ' 전체 화면으로',
+            go: () => this.fsEnter(id), drop: (e) => { e.stopPropagation(); this.fsDrop(id); } };
+        });
+        return { off, lcdOp: off ? 0.07 : 1, lcdGlow: off ? 'none' : '0 0 6px rgba(94,234,154,0.55)', stripC: off ? '#3b434e' : '#8b95a6',
+          fsl, fslEmpty: fsl.length === 0, fsList: !!S.fsList, boxCur: cur ? this.fsName(cur) : '맵', boxChev: S.fsList ? '▴' : '▾',
+          boxToggle: (e) => { e.stopPropagation(); this.setState({ fsList: !S.fsList }); },
+          lamps, head: off ? '' : head, name: off ? '' : name, detail: off ? '' : detail, strip: off ? '맵 화면이 아님 — 꺼짐' : '맵 ' + this.pathOf(S.map).join(' › ') + (S.editMode ? ' · 편집 켬' : ''), wins, count: '열림 ' + nOpen + ' · 서랍 ' + nD };
+      })(),
+      selIsNode: !!selNodeInfo,
+      selNodeName: selNodeInfo ? selNodeInfo.name : '',
+      selNodeRole: selNodeInfo ? selNodeInfo.role : '',
+      fx: { T: this.fxT(fxv), op: 1 },
+      zoom: this.zoomVals(),
+      ...(() => {
+        const mapName = this.state.map, net = this.NET[mapName] || { role: 'Leaf', kids: [] }, leaf = !this.isTree(net.role);
+        const path = this.pathOf(mapName);
+        const crumbs = path.map((nm, i) => {
+          const last = i === path.length - 1, n = this.NET[nm] || {}, tree = this.isTree(n.role);
+          return {
+            name: nm, cur: last ? 'page' : 'false', bg: last ? '#ffffff' : 'transparent', fg: last ? '#16191f' : '#5b6472', fw: last ? 600 : 400,
+            cursor: last ? 'default' : 'pointer', dot: tree ? '#f0b442' : '#6f9cf0', sepDisp: last ? 'none' : 'inline',
+            go: () => {
+              if (last) return;
+              if (tree && this.state.curTree.name !== nm) { if (this.state.login || (this.state.auth && this.state.auth.phase !== 'done')) return; this._navTree = nm; this.beginSwitch(this.treeObj(nm)); }
+              else this.goMap(nm);
+            }
+          };
+        });
+        return {
+          crumbs,
+          mapTitle: leaf ? mapName + ' 자원 맵' : mapName + ' 클러스터',
+          isLeafMap: leaf,
+          leafRes: (net.res || []).map(([name, kind]) => ({ name, kind, g: kind === '장치' ? '■' : kind === '모듈' ? '◆' : '▤', c: kind === '장치' ? '#4f7fd9' : kind === '모듈' ? '#7c3aed' : '#a65f00' })),
+          leafResCount: (net.res || []).length
+        };
+      })(),
+      ...(() => {
+        const WD = this.WDEF(), S = this.state, dg = S.wdrag, ids = ['props', 'edit', 'alarm', 'map', 'memo', 'bld', 'fld', 'mat', 'net', 'set', 'mod', 'user'];
+        const SUM = {
+          props: '선택한 타일 · 재질 · 건물 · 노드', edit: '편집 모드 · 건물 · 타일 재질 · 필드 추가/삭제', alarm: '알림 ' + S.alarms.length + '건',
+          net: '사설망 · 연결 진단 · 서비스 터널 · 로컬 WireGuard — 배포 8 중 1 거절 · probe 대기 없음', bld: '설계도 4 · 관제탑 편집 중', fld: '필드 스킨 4 · 부모 디자인: 기본',
+          set: 'edge-01 Daemon 설정 135키 · 재시작 대기 0 · node.config★ 있음', mat: '자재 9종', memo: '메모 ' + S.memos.filter((m) => !m.dir).length + '개', mod: '설치 5 · 저하 1 · 실패 1', user: 'admin · 권한 5 · 세션 만료 21:40', map: 'tree 지도'
+        };
+        // 창
+        const wins = ids.map((id) => {
+          const d = WD[id], W = S.wins[id], dragging = dg && dg.id === id;
+          const fsOn = S.fs === id;
+          const show = dragging ? dg.mode === 'window' : !!S.winOpen[id] && (S.fs ? fsOn : S.fsHist.indexOf(id) < 0);   // 전체 화면 동안 다른 창은 숨기고, 전체 화면 리스트에 보관된 창은 맵 화면에서 사라진다
+          const zi = S.winZ.indexOf(id);
+          return {
+            id, show, title: d.title, emoji: d.emoji, color: d.color, href: d.href || '#',
+            x: fsOn ? 0 : dragging ? Math.round(dg.x) : W.x, y: fsOn ? this.FS_TOP : dragging ? Math.round(dg.y) : W.y, w: fsOn ? 1447 : W.w,
+            maxH: fsOn ? 901 - this.FS_TOP : id === 'props' || id === 'edit' ? 749 : 560, z: fsOn ? 70 : dragging ? 40 : 10 + Math.max(0, zi),
+            h: fsOn ? (901 - this.FS_TOP) + 'px' : 'auto', bg: fsOn ? '#ffffff' : 'rgba(255,255,255,0.97)', rad: fsOn ? '0' : '12px', cls: fsOn ? 'win-fs' : '',
+            fsTip: fsOn ? '전체 화면 끝 — 맵으로' : '전체 화면', fsIcon: fsOn ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+            fsToggle: () => (fsOn ? this.fsExit() : this.fsEnter(id)),
+            fsFrame: fsOn && !!d.href, isEdBox: ['props', 'edit', 'alarm', 'map', 'memo'].indexOf(id) < 0 && !(fsOn && d.href), isMemo: id === 'memo',
+            line: dragging && dg.back ? d.color : dragging && dg.over ? '#2563eb' : '#d8dde5', head: dragging && (dg.over || dg.back) ? '#eef3fb' : '#ffffff',
+            shadow: dragging ? '0 18px 40px rgba(22,25,31,0.24)' : '0 6px 20px rgba(22,25,31,0.10)',
+            sc: dragging && (dg.over || dg.back) ? 0.55 : 1, op: dragging && (dg.over || dg.back) ? 0.8 : 1, origin: '24px 19px',
+            ty: S.winDrop === id ? 901 - W.y + 40 : 0, trans: S.winDrop === id ? 'transform 440ms cubic-bezier(.55,0,.9,.45)' : 'transform 160ms ease-out, opacity 160ms ease-out, box-shadow 160ms',
+            isProps: id === 'props', isAlarm: id === 'alarm', isMap: id === 'map', isEd: ['props', 'edit', 'alarm', 'map'].indexOf(id) < 0, isEdit: id === 'edit',
+            sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none',
+            close: () => this.closeWin(id), closeTip: id === 'map' ? '닫기 — 관리 노드 창의 MAP 탭으로' : '닫기 — 유틸 서랍의 제자리로',
+            front: () => this.winFront(id),
+            grab: (e) => { if (fsOn) return; this.startWinDrag(id, e, 'window'); },
+            stop: (e) => e.stopPropagation(),
+            store: () => this.storeWin(id)
+          };
+        });
+        // 서랍 카드
+        const Z = this.drawerZone(), CW = 168, CH = 230, n = S.drawer.length, step = 46;
+        const list = S.drawer.filter((id) => !(dg && dg.id === id && dg.mode === 'card'));
+        const hv = S.drawerHover, hi = list.indexOf(hv);
+        const vis = (on) => Math.round(CH * (on ? 0.9 : S.drawerNear ? 0.7 : 0.3));
+        const right = 1447 - 28;
+        const UI = this.utilInfo();
+        const sumOf = (id) => { const f = UI.INFO[id] || { sub: '', chip: '', tone: 'off', stats: [], foot: ['', UI.INK, ''] }, t = UI.TONE[f.tone] || UI.TONE.off;
+          return { color: WD[id].color, sub: f.sub, chip: f.chip, chipDisp: f.chip ? 'flex' : 'none', chipFg: t[1], stats: f.stats.map(([v, k, cc]) => ({ v: String(v), k, c: cc })), foot: { g: f.foot[0], c: f.foot[1], t: f.foot[2] } }; };
+        const cards = list.map((id, i) => {
+          const d = WD[id], on = i === hi, push = hi < 0 ? 0 : i < hi ? -52 : i > hi ? 52 : 0;
+          return Object.assign(sumOf(id), {
+            id, title: d.title, emoji: d.emoji, logo: this.UDLOGO()[id] || '', c1: d.pa, c2: d.pb, ink: d.ink, w: CW, h: CH, line: on ? d.pb : '#d8dde5',
+            bmDisp: S.notif[id] ? 'flex' : 'none', bmN: S.notif[id] || '', bmC: d.color, bmLabel: d.title + ' 알림 ' + (S.notif[id] || 0) + '건',
+            bmx: right - CW - (list.length - 1 - i) * step + push + CW - 34, bmy: (S.cardRise === id ? 901 + 6 : 901 - vis(on)) - 24,
+            x: right - CW - (list.length - 1 - i) * step + push, y: S.cardRise === id ? 901 + 6 : 901 - vis(on),
+            z: list.length - i,   // 왼쪽 카드가 위 — 튀어나와도 층 순서는 그대로
+            shadow: on ? '0 -8px 24px rgba(22,25,31,0.18), 0 1px 2px rgba(22,25,31,0.06)' : '0 -3px 10px rgba(22,25,31,0.10), 0 1px 2px rgba(22,25,31,0.05)',
+            grab: (e) => this.startWinDrag(id, e, 'card'),
+            enter: () => { if (!this.state.wdrag && !this.state.mgHover) this.setState({ drawerHover: id, drawerNear: true }); },
+            leave: () => { if (this.state.drawerHover === id) this.setState({ drawerHover: null }); }
+          });
+        });
+        // 끌려 나오는 카드: 전부 튀어나온 채 포인터를 따라간다
+        if (dg && (dg.mode === 'card' || dg.mode === 'util')) {
+          const d = WD[dg.id];
+          cards.push(Object.assign(sumOf(dg.id), { id: dg.id, bmDisp: 'none', bmx: 0, bmy: 0, bmN: '', bmC: 'transparent', bmLabel: '', line: d.pb, title: d.title, emoji: d.emoji, logo: this.UDLOGO()[dg.id] || '', c1: d.pa, c2: d.pb, ink: d.ink, w: CW, h: CH, x: Math.round(dg.x), y: Math.round(dg.y), z: 60,
+            shadow: '0 18px 40px rgba(22,25,31,0.30)', grab: () => {}, enter: () => {}, leave: () => {} }));
+        }
+        const dragging = !!dg;
+        const dz = { x: Z.x, y: Z.y, w: Z.w, h: Z.h, op: dragging ? 1 : 0, line: dg && dg.over ? '#2563eb' : '#c3cad5', bg: dg && dg.over ? 'rgba(37,99,235,0.10)' : 'rgba(22,25,31,0.03)', label: dg && dg.over ? '놓으면 서랍에 보관' : '여기에 놓으면 서랍에 보관' };
+        // tree 지도: 이어진 나무는 위(뿌리) → 아래로, 이어지지 않은 tree는 나무 옆에 한 줄씩. 노드 아래에 이름 (9자 넘으면 …, 마우스를 올리면 전체)
+        const isT = (n) => this.isTree((this.NET[n] || {}).role);
+        const allT = Object.keys(this.NET).filter(isT);
+        const tpar = (n) => { const p = this.parentOfNode(n); return p && isT(p) ? p : null; };
+        const tkids = (n) => this.NET[n].kids.filter(isT);
+        const roots = allT.filter((n) => !tpar(n)), grown = roots.filter((n) => tkids(n).length), alone = roots.filter((n) => !tkids(n).length);
+        const XS = 84, YS = 74, PX0 = 38, PY0 = 16, pos = {};
+        let slot = 0, depth = 0;
+        const place = (n, d) => { depth = Math.max(depth, d); const ks = tkids(n); if (!ks.length) pos[n] = { x: slot++, d }; else { ks.forEach((k) => place(k, d + 1)); pos[n] = { x: (pos[ks[0]].x + pos[ks[ks.length - 1]].x) / 2, d }; } };
+        grown.forEach((n) => place(n, 0));
+        const treeW = Math.max(1, slot), COLS = 3, sepSlot = treeW + 0.35;
+        alone.forEach((n, i) => { pos[n] = { x: treeW + 0.7 + (i % COLS), d: Math.floor(i / COLS) }; depth = Math.max(depth, Math.floor(i / COLS)); });
+        const mapOwner = isT(S.map) ? S.map : this.parentOfNode(S.map);
+        const cxOf = (n) => PX0 + pos[n].x * XS, cyOf = (n) => PY0 + 12 + pos[n].d * YS;
+        const nodes2 = allT.map((nm) => {
+          const here = nm === mapOwner, login = nm === S.curTree.name, cx = cxOf(nm), cy = cyOf(nm);
+          return {
+            name: nm, short: nm.length > 9 ? nm.slice(0, 8) + '…' : nm, bx: cx - 38, by: cy - 12,
+            fill: here ? '#8b5cf6' : '#f6d38a', ring: here ? '#5b21b6' : '#d9a441', rw: here ? 2.4 : 1.4,
+            fw: here ? 700 : 500, fg: here ? '#5b21b6' : '#16191f', cur: here ? 'page' : 'false', loginDisp: login ? 'block' : 'none',
+            go: () => this.goNode(nm)
+          };
+        });
+        const edges = allT.filter((nm) => tpar(nm)).map((nm) => {
+          const p = tpar(nm), ax = cxOf(p), ay = cyOf(p) + 12, bx = cxOf(nm), by = cyOf(nm) - 12, my = (ay + by) / 2 + 8;
+          return { d: 'M' + ax + ' ' + ay + ' V' + my + ' H' + bx + ' V' + by };
+        });
+        const cols = alone.length ? treeW + 0.7 + Math.min(COLS, alone.length) : treeW;
+        const fw = PX0 * 2 + (cols - 1) * XS, fh = PY0 * 2 + 24 + depth * YS + 22;
+        const sep = { sepX: PX0 + (sepSlot - 0.35 + 0.35) * XS - XS / 2 - 4, sepH: fh - 4, sepDisp: alone.length && grown.length ? 'inline' : 'none' };
+        const pulling = dg && dg.id === 'map';
+        return {
+          ud: (() => {
+            const G = this.UD(), U = S.ud, items = S.utilItems, n = items.length;
+            const out = (id) => !!S.winOpen[id] || S.drawer.indexOf(id) >= 0 || (dg && dg.id === id);
+            const { INFO, TONE, INK } = this.utilInfo();
+            let H, tr = U.anim ? '300ms cubic-bezier(.2,.8,.3,1)' : '0ms';
+            let cards;
+            if (U.mode === 'list') {
+              H = this.udListH();
+              cards = items.map((id, i) => ({ id, y: i * G.LROW - U.scroll, h: G.LROW - 2, z: 1 }));
+            } else {
+              // 순환: 모든 칸은 한 줄로 이어져 있다. x(= s)는 선형으로 움직이고, 칸 i의 위상 q = (x - i) mod n.
+              // 0 ≤ q ≤ Q 인 칸이 내려오는 길 위에 있고, 위치 = 한계거리 × cos((1 - q/Q) × π/2) — 위에선 빠르고 바닥(0 지점)에 가까울수록 느려져 촘촘히 겹친다.
+              // q > Q 인 칸은 바닥에 완전히 겹쳐 있다가, 한 바퀴 돌아 q = 0(맨 위)으로 — 리스트 끝으로 돌아간다. 먼저 나온 칸(q 큰 칸)이 아래층
+              H = U.mode === 'cycle' ? G.HC : 0;
+              cards = items.map((id, i) => {
+                // 화면의 1/4 지점까지는 선형(같은 속도), 그 뒤로는 같은 속도에서 이어 cos 경향으로 느려지며 바닥에 닿는다
+                // 선형 구간에서 이웃 칸 사이가 칸 높이 + 12px(살짝 떨어짐)가 되도록, 한 번에 내려오는 칸 수 Qd를 속도에서 정한다
+                const D = G.HC, d1 = Math.max(0, Math.round(901 / 4) - 40) + G.CH, R = D - d1, t1 = d1 / (d1 + R * Math.PI / 2);
+                const Qd = (d1 / t1) / (G.CH + 12);
+                // 열리는 중(base 있음): 도착 위상에서 남은 만큼 뺀 값 — 음수면 아직 위에 숨어 있다(0으로)
+                const q = U.base != null ? Math.max(0, ((((U.base - i) % n) + n) % n) - (U.base - U.s)) : (((U.s - i) % n) + n) % n, t = Math.min(1, q / Qd);
+                const dist = t <= t1 ? d1 * t / t1 : d1 + R * Math.cos((1 - (t - t1) / (1 - t1)) * Math.PI / 2);
+                const y = -G.CH + dist;
+                return { id, y: Math.round(y), h: G.CH, z: Math.round((n - q) * 10) };
+              });
+              tr = U.anim ? '300ms cubic-bezier(.2,.8,.3,1)' : '0ms';
+            }
+            const list = U.mode === 'list';
+            cards = cards.map((c) => {
+              const d = WD[c.id], empty = out(c.id);
+              return Object.assign(c, {
+                title: d.title, emoji: d.emoji, c1: d.pa, c2: d.pb, ink: d.ink, color: d.color, full: !empty, empty, backOn: !!(dg && dg.back && dg.id === c.id), eLine: dg && dg.back && dg.id === c.id ? d.color : '#c3cad5', eBg: dg && dg.back && dg.id === c.id ? d.pa : '#f4f6f9', eMsg: dg && dg.back && dg.id === c.id ? '놓으면 이 칸으로 돌아갑니다' : '창으로 나가 있음 · 창을 닫거나 여기로 끌어 오면 돌아옵니다',
+                ...(() => { const f = INFO[c.id] || { sub: '', chip: '', tone: 'off', stats: [], foot: ['', INK, ''] }, t = TONE[f.tone] || TONE.off;
+                  return { sub: f.sub, chip: f.chip, chipBg: t[0], chipFg: t[1], stats: f.stats.map(([v, k, cc]) => ({ v: String(v), k, c: cc })), foot: { g: f.foot[0], c: f.foot[1], t: f.foot[2] } }; })(),
+                logo: this.UDLOGO()[c.id] || '', s1: (INFO[c.id] || { stats: [] }).stats[0] ? { v: String(INFO[c.id].stats[0][0]), k: INFO[c.id].stats[0][1], c: INFO[c.id].stats[0][2] } : { v: '—', k: '', c: INK }, s2: (INFO[c.id] || { stats: [] }).stats[1] ? { v: String(INFO[c.id].stats[1][0]), k: INFO[c.id].stats[1][1], c: INFO[c.id].stats[1][2] } : { v: '—', k: '', c: INK },
+                nf: !!S.notif[c.id], nfN: S.notif[c.id] || 0, nfC: d.color, nfT: c.id === 'alarm' && S.alarms[0] ? S.alarms[0].m : (INFO[c.id] ? INFO[c.id].foot[2] : ''),
+                bm: !!S.notif[c.id] && !empty && !list, bmN: S.notif[c.id] || '', bmC: d.color, bmLabel: d.title + ' 알림 ' + (S.notif[c.id] || 0) + '건',
+                ny: -c.y, grab: (e) => this.udCardDrag(c.id, e), scrollGrab: (e) => this.udCardDrag(null, e)
+              });
+            });
+            this._udRects = { mode: U.mode, H: Math.round(H), rects: cards.map((c) => ({ id: c.id, y: c.y, h: c.h })) };   // 끌어 넣기 판정용 (udSlotHit)
+            const nOut = items.filter(out).length;
+            return {
+              w2: G.W + 28,
+              stripLine: dg && dg.back && U.mode === 'closed' ? WD[dg.id].color : '#d8dde5', stripOutline: dg && dg.back && U.mode === 'closed' ? '3px solid ' + WD[dg.id].pa : 'none',
+              bms: items.some((id) => S.notif[id] && !out(id)) ? [{ w: G.W - 12, a: '2.6', z: 1, c: '#e5484d', label: '알림이 있습니다' }] : [],
+              bmDisp: U.mode === 'closed' ? 'block' : 'none',
+              x: G.X, sb: G.SB, z: 1,   // 유틸 서랍은 테이블(2) 뒤 층 — 줄 아래 끝이 테이블 테두리 밑으로 들어간다
+              w: G.W, H: Math.round(H), tr, ctr: U.css ? '560ms cubic-bezier(.22,.7,.3,1)' : U.mode === 'cycle' ? '0ms' : tr, wc: U.css || U.base != null ? 'transform' : 'auto', cards, row: list ? G.LROW - 2 : 32,
+              hx: G.W / 2 - 38, hy: 40 + Math.round(H) - 1,
+              count: n + '개' + (nOut ? ' · 나감 ' + nOut : ''),
+              hint: dg && dg.back && U.mode === 'closed' ? '놓으면 ' + WD[dg.id].title + ' 칸으로' : !this.state.help ? '' : U.mode === 'closed' ? '누르거나 올리면 열림' : list ? (n * G.LROW > H ? '휠로 넘기기' : '') : '휠로 순환',
+              grabStrip: (e) => this.udGrab(e, 'strip'), grabHandle: (e) => this.udGrab(e, 'handle'), wheel: (e) => this.udWheel(e)
+            };
+          })(),
+          al: (() => {
+            // 알림 종류는 색으로 나눈다 (연동 시에는 알림에 kind 필드를 둔다)
+            const KIND = { '#d33d52': ['bad', '실패', '#fde1e5', '#f9cdd4'], '#a65f00': ['bad', '주의', '#fbf0cc', '#f6e5ae'], '#2563eb': ['job', '작업', '#dde8fd', '#c9dafb'], '#0f766e': ['job', '이동', '#d5f3ed', '#c0ebe2'], '#1f7a4d': ['done', '완료', '#e3f4ea', '#c9e9d5'] };
+            const kindOf = (a) => KIND[a.c] || ['job', '알림', '#eef1f5', '#e0e5ec'];
+            const F = S.alarmF, list = S.alarms.map((a, i) => ({ a, i, k: kindOf(a) }));
+            const cnt = (f) => f === 'all' ? list.length : list.filter((x) => x.k[0] === f).length;
+            const shown = list.filter((x) => F === 'all' || x.k[0] === F);
+            const item = (x) => ({ t: x.a.t, g: x.a.g, c: x.a.c, m: x.a.m, kind: x.k[1], tint: x.k[2], tintLine: x.k[3], isNew: x.i < S.alarmNew, fw: x.i < S.alarmNew ? 700 : 500, bg: x.i < S.alarmNew ? '#f5f8ff' : 'transparent' });
+            const fresh = shown.filter((x) => x.i < S.alarmNew), old = shown.filter((x) => x.i >= S.alarmNew);
+            const groups = [];
+            if (fresh.length) groups.push({ label: '새 알림 ' + fresh.length, items: fresh.map(item) });
+            if (old.length) groups.push({ label: fresh.length ? '이전' : '최근', items: old.map(item) });
+            return {
+              filters: [['all', '전체'], ['bad', '실패·주의'], ['job', '작업'], ['done', '완료']].map(([f, label]) => ({ label, n: cnt(f), on: F === f ? 'true' : 'false',
+                bg: F === f ? '#16191f' : '#ffffff', fg: F === f ? '#ffffff' : '#3a4049', line: F === f ? '#16191f' : '#d8dde5', pick: () => this.setState({ alarmF: f }) })),
+              groups, empty: !shown.length
+            };
+          })(),
+          wins, cards, dz, alarms: S.alarms,
+          drawerZ: S.mgHover ? 3 : 9, drawerPe: S.mgHover ? 'none' : 'auto',
+          pullSq: dg && dg.mode === 'pull' ? { on: true, x: Math.round(dg.x), y: Math.round(dg.y), sc: dg.over ? 0.8 : 1 } : { on: false, x: 0, y: 0, sc: 1 },
+          forest: Object.assign({ nodes: nodes2, edges, w: fw, h: fh }, sep),
+          mini: { vb: '0 0 ' + fw + ' ' + fh, grab: (e) => this.startWinDrag('map', e, 'pull'), line: S.winOpen.map ? '#c3cad5' : '#0f766e', op: pulling || S.winOpen.map ? 0.45 : 1 }
+        };
+      })(),
+      selNodeKind: selNodeInfo && selNodeInfo.parent ? '부모' : '자식',
+      selNodeLine: selNodeInfo && selNodeInfo.parent ? '#ddd6fe' : '#c7d7f5',
+      selNodeBg: selNodeInfo && selNodeInfo.parent ? '#f5f3ff' : '#f3f7ff',
+      selNodeDot: selNodeInfo && selNodeInfo.parent ? '#7c3aed' : '#4f7fd9',
+      clusterKey: (() => {
+        if (!this.isTree((this.NET[this.state.map] || {}).role)) return [{ c: '#6f9cf0', d: '#4f7fd9', t: 'Leaf 맵 — 노드 없음 · 자원만' }];
+        const all = Object.values(nodes), par = all.find((n) => n.parent), kids = all.filter((n) => !n.parent);
+        const nLeaf = kids.filter((n) => this.roleKey(n.role) === 'leaf').length, nTree = kids.length - nLeaf;
+        return [
+          { c: '#8b5cf6', d: '#5b21b6', t: '부모 ' + (par ? par.name : '없음') },
+          { c: '#6f9cf0', d: '#4f7fd9', t: '자식 Leaf ' + nLeaf },
+          { c: '#f0b442', d: '#c98a1c', t: '자식 Tree ' + nTree }
+        ];
+      })(),
+      unassignDisp: this.state.editMode && selNodeInfo && !selNodeInfo.parent ? 'inline-block' : 'none',
+      unassignNode: () => {
+        const k = this.state.sel;
+        if (!k || !this.state.nodes[k] || this.state.nodes[k].parent) return; // 부모는 현재 클러스터 자체라 내려놓을 수 없다
+        const nd = this.state.nodes[k], next = Object.assign({}, this.state.nodes), L = this.lookOf(nd.name);
+        delete next[k];
+        // 노드를 내려놓으면 필드는 해당 노드의 모습을 그대로 물려받아 일반 필드로 남는다
+        this.setState({ nodes: next, mat: Object.assign({}, this.state.mat, { [k]: L.skin }), placed: L.bid ? Object.assign({}, this.state.placed, { [k]: { bid: L.bid, rot: L.rot || 0 } }) : this.state.placed, pending: [{ name: nd.name, role: nd.role, at: '방금' }].concat(this.state.pending) });
+      },
+      rotateSel,
+      removeSel: () => {
+        const k = this.state.sel;
+        if (!k || !placed[k]) return;
+        const o = ownerOf(k);
+        if (o) { this.setLook(o, { bid: null }); return; }
+        const next = Object.assign({}, this.state.placed);
+        delete next[k];
+        this.setState({ placed: next });
+      },
+      ghost, slots, fghost, fghost2,
+      pfPats: [this.PFT[0].topPat], pfDefs: this.PFT,
+      ...(() => {
+        // 프사 = 프사 전용 받침 필드(역할 테두리) + 그 위의 건물. 둘을 함께 감싸는 정사각형으로 맞춘다
+        const bView = (bid, role) => {
+          const bl = bid ? bldOf(bid) : this.defaultBldg, v = bl.views[0];
+          const pt = this.PFT.find((q) => q.role === (this.roleKey(role) || false)) || this.PFT[0];
+          // 그림자를 뺀 건물 윤곽의 가운데에 맞추고, 건물이 프사를 채우도록 키운다 (받침은 둘레로 잘려도 됨)
+          this._bbx = this._bbx || {};
+          const key = bl.id;
+          if (!this._bbx[key]) {
+            const nums = v.paths.map((q) => q.d).join(' ').match(/-?\d+(\.\d+)?/g).map(Number);
+            let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+            for (let k = 0; k + 1 < nums.length; k += 2) { bx0 = Math.min(bx0, nums[k]); bx1 = Math.max(bx1, nums[k]); by0 = Math.min(by0, nums[k + 1]); by1 = Math.max(by1, nums[k + 1]); }
+            this._bbx[key] = [bx0, by0, bx1, by1];
+          }
+          const [x0, y0, x1, y1] = this._bbx[key];
+          const sz = Math.max(x1 - x0, y1 - y0, 60) * 1.3, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+          // 구운 이미지(애니메이션이면 프레임)가 있으면 그것을 — 프사 교체 · 로그인 중에도 같은 시계로 움직인다
+          const im = this.state.bldImg && this.state.bldImg[bl.id + '-0'], ak = 'b:' + bl.id + '-0', an = im && this._anims && this._anims[ak] ? ak : '';
+          return { vb: [cx - sz / 2, cy - sz / 2, sz, sz].map((q) => Math.round(q * 10) / 10).join(' '), paths: im ? [] : v.paths, shadow: v.shadow, tile: '#' + pt.id,
+            anim: an, img: im ? (an && this.animUrl(an)) || im.url : '', imgDisp: im ? 'inline' : 'none', ix: im ? im.x : 0, iy: im ? im.y : 0, iw: im ? im.w : 0, ih: im ? im.h : 0 };
+        };
+        const ct = this.state.curTree, tl = this.state.tl, trees = this.state.trees, shownT = this.state.shown || ct;
+        const cur = Object.assign({ name: ct.name, role: ct.role, nodeCount: Object.keys(nodes).length }, bView(this.lookOf(shownT.name).bid, shownT.role));
+        const G = this.tlGeo();
+        const live = !!tl && !tl.closing, ready = !!tl && tl.ready && !tl.moving;
+        const selI = tl ? tl.r + 1 : -1;
+        const items = tl ? trees.map((t, i) => {
+          const a0 = (-90 + (i - 1) * G.STEP) * Math.PI / 180; // 부채 속 자리 (휠 회전은 tlApply가 그린다)
+          return Object.assign({ i, name: t.name, x0: (Math.cos(a0) * G.R).toFixed(2), y0: (Math.sin(a0) * G.R).toFixed(2),
+            border: i === selI && ready ? '3px solid #2563eb' : '2px solid #ffffff', tagOp: i === selI && ready ? 1 : 0,
+            lockDisp: t.auth === 'password' || t.auth === 'offline' ? 'flex' : 'none', lockBg: t.auth === 'offline' ? '#8b95a6' : '#a65f00',
+            lockIcon: t.auth === 'offline' ? 'M4 4l16 16M9 5.5A9 9 0 0 1 21 9M3 9a9 9 0 0 1 3-2M7 13a5 5 0 0 1 3-1.5M17 13a5 5 0 0 0-1.5-1' : 'M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z' }, bView(this.lookOf(t.name).bid, t.role));
+        }) : [];
+        const target = ready && trees[selI] ? trees[selI] : null;
+        const au = this.state.auth, sw = this.state.swap, lgS = this.state.login;
+        const C = 2 * Math.PI * 79;
+        const av = {
+          scale: sw && sw.phase !== 'grow' ? 0.9 : 1,
+          layers: (() => {
+            const lay = (t, rot, trans) => Object.assign({ rot, trans }, bView(this.lookOf(t.name).bid, t.role));
+            if (!sw || sw.phase === 'shrink' || sw.phase === 'grow') return [lay(sw && sw.phase === 'shrink' ? sw.from : shownT, 0, 'none')];
+            const OUT = 62, sgn = sw.dir === 'ccw' ? -1 : 1, moving = sw.phase === 'turn';
+            const tr = moving ? 'transform 420ms cubic-bezier(.45,0,.3,1)' : 'none';
+            return [lay(sw.from, moving ? sgn * OUT : 0, tr), lay(sw.to, moving ? 0 : -sgn * OUT, tr)];
+          })(),
+          filter: au && (au.phase === 'loading' || au.phase === 'fail') ? 'grayscale(1) brightness(0.9)' : 'none',
+          ringOp: au && au.phase !== 'done' ? 1 : 0,
+          spinClass: au && au.phase === 'loading' ? 'tl-spin' : '',
+          track: au && au.phase === 'loading' ? 'rgba(37,99,235,0.15)' : 'transparent',
+          ring: !au || au.phase === 'loading' ? '#2563eb' : au.phase === 'success' || (au.phase === 'done' && au.ok) ? '#1f9d55' : '#d33d52',
+          dash: au && au.phase === 'loading' ? (C * 0.28).toFixed(1) + ' ' + C.toFixed(1) : C.toFixed(1) + ' 0'
+        };
+        const lgSubmit = () => {
+          const L = this.state.login;
+          if (!L || L.closing) return;
+          if (!L.username || !L.password) { this.setState({ login: Object.assign({}, L, { msg: 'username과 password를 입력하세요' }) }); return; }
+          this.lgClose(() => this.startLogin(L.target, L.password, L.auto));
+        };
+        const lg = lgS ? {
+          open: true, closeStyle: lgS.closing ? 'animation: lg-drop 260ms cubic-bezier(.55,0,1,.45) both;' : '', name: lgS.target.name, title: lgS.target.name + ' 노드 로그인',
+          username: lgS.username, password: lgS.password, autoAttr: lgS.auto ? 'checked' : null,
+          msg: lgS.msg || '예시: 비밀번호에 wrong을 넣으면 실패합니다', msgColor: lgS.msg ? '#d33d52' : '#8b95a6',
+          passBorder: lgS.msg ? '#d33d52' : '#c3cad5', btnBg: '#2563eb',
+          setUser: (e) => this.setState({ login: Object.assign({}, this.state.login, { username: e.target.value, msg: '' }) }),
+          setPass: (e) => this.setState({ login: Object.assign({}, this.state.login, { password: e.target.value, msg: '' }) }),
+          toggleAuto: (e) => this.setState({ login: Object.assign({}, this.state.login, { auto: !!e.target.checked }) }),
+          submit: (e) => lgSubmit(e),
+          cancel: () => this.lgClose(),
+          key: (e) => { if (e.key === 'Enter') { e.preventDefault(); lgSubmit(); } }
+        } : { open: false };
+        // 관리 노드 창 펼침: 마우스가 창이나 프사 위에 있거나, tree 목록 · 로그인 창 · 로그인 진행 중일 때
+        // 펼침은 마우스가 올라와 있을 때만. 접힌 채로 tree를 바꾸는 중이면(Ctrl · 로그인 창 · 로그인 중) 펼치지 않고 프사만 옆으로 옮긴다
+        // tree 변경 흐름(목록 · 로그인 창 · 로그인 중)은 시작할 때의 모양(펼침/접힘)을 끝날 때까지 유지한다 — 도중에 서로 바뀌지 않게
+        const flow = !!(tl || lgS || (au && au.phase !== 'done'));
+        if (flow && !this._flowMode) this._flowMode = this.state.mgHover ? 'open' : 'closed';
+        if (!flow) this._flowMode = null;
+        const open = flow ? this._flowMode === 'open' : !!this.state.mgHover;
+        const shift = flow && !open;
+        // 접힌 흐름에서 이름: 처음에 프사 밑으로 숨은 뒤로는 프사 자리에 붙어 안 보인다. 로그인 중엔 프사 오른쪽에 보이고, 끝나면 원래 자리로
+        const loginShow = shift && !!au && au.phase !== 'done';
+        // 접힌 채 움직일 땐 한 번에 하나씩, 나머지는 자기 차례까지 제자리에 멈춰 있는다
+        //   시작(접힘 → tree 변경): ① 이름 → ② 배경(창) → ③ 프사
+        //   끝(원래대로):           ① 프사 → ② 배경(창) → ③ 이름
+        const now = Date.now();
+        if (!this._prevShift && shift) {                    // 접힘 → tree 변경 흐름
+          this._shiftAt = now; this._shiftNameAbs = this._lastNameAbs;
+          clearTimeout(this._seqT1); clearTimeout(this._seqT2);
+          this._seqT1 = setTimeout(() => this.setState({}), 490);
+          this._seqT2 = setTimeout(() => this.setState({}), 780);
+        }
+        if (this._prevShift && !shift) {                    // 흐름 끝 → 원래대로
+          this._restoreAt = now;
+          this._restoreHidden = !this._prevLoginShow;
+          this._restoreNameAbs = this._lastNameAbs;
+          clearTimeout(this._restoreT1); clearTimeout(this._restoreT2); clearTimeout(this._restoreT3);
+          this._restoreT1 = setTimeout(() => this.setState({}), 250);
+          this._restoreT2 = setTimeout(() => this.setState({}), 510);
+          this._restoreT3 = setTimeout(() => this.setState({}), 870);
+        }
+        this._prevShift = shift;
+        this._prevLoginShow = loginShow;
+        const sinceS = now - (this._shiftAt || 0);
+        const shiftBgWait = shift && sinceS < 480;                   // 시작: 이름(①)이 들어가는 동안 창은 기다린다
+        const shiftAvWait = shift && sinceS < 770;                   // 시작: 창(②)이 다 움직일 때까지 프사는 기다린다
+        const since = now - (this._restoreAt || 0);
+        const restoring = !shift && !open && since < 860;
+        const restoreHold = restoring && since < 500;                // ①② 동안 이름은 멈춤(숨은 이름은 안 보인 채)
+        const nameStr = String(au && au.phase !== 'done' ? au.target.name : (tl && tl.ready && !tl.moving && trees[tl.r + 1] ? trees[tl.r + 1].name : shownT && shownT.local ? shownT.name : ct.name));
+        // 관리 노드 창 모양은 전부 여기서 계산한다 (로그인 창 위치도 이 값에서 나온다)
+        const LGW = 336;                                   // 로그인 창 너비
+        const avLeft = open || shift ? 94 : 20;            // 접힘: 프사는 바닥 · 왼쪽 벽과 같은 거리(20). 펼치거나 tree를 바꾸는 중엔 옆으로
+        const pillW = this.MG_PILL;                          // 접힌 너비는 고정 — 이름 길이에 맞추지 않는다 (긴 이름은 …)
+        this._mgPillW = pillW;                              // 관리 노드 창 배경(해변)이 접힌 너비를 기준으로 쓴다
+        const lgOn = !!lgS;                                // 로그인 창이 떠 있는 동안 창 모양을 로그인 창에 맞춘다
+        // 펼침: 테이블 왼쪽 검은 좌석을 꽉 채우도록 뒤(왼쪽)로도 늘어난다 — 테두리가 좌석 외곽선(x 24 ~)과 겹친다. 오른쪽 끝은 그대로(1024)
+        const OPEN_L = 24, OPEN_R = 59 + 965;
+        let pLeft = open ? OPEN_L : 59, pWidth = open ? OPEN_R - OPEN_L : pillW;
+        if (!open && shift) {                              // 접힌 채 tree 변경: 프사 왼쪽엔 아무것도 없게 — 창 왼쪽 끝을 프사 뒤로
+          pLeft = avLeft + 39; pWidth = Math.max(140, 59 + pillW - pLeft);
+        }
+        if (loginShow) pWidth = avLeft + 140 + 14 + nameStr.length * 11 + 32 - pLeft; // 로그인 중: 프사 오른쪽 이름까지
+        if (lgOn && !open) pWidth = LGW;                   // 접힌 창은 로그인 창 너비만큼 늘어난다
+        // 높이는 테이블 왼쪽 검은(벨벳) 좌석에 맞춘다: 좌석 = 필드 y 749 ~ 877 (가운데 813).
+        // 접힘 = 좌석 가운데에 96px · 펼침 = 좌석 윗면 ~ 바닥면과 일치(128px) — 가운데가 같아 위아래로 같이 늘어난다
+        const pBottom = open ? 21 : 40, pHeight = open ? 133 : 96;   // 펼침 = 좌석 외곽선 · 그림자 선(필드 y 747 ~ 880)까지 테두리가 덮는다
+        // 이름 자리 · 투명도 · 움직임 (①프사 → ②배경 → ③이름 순서)
+        let padL, nameOp, nameTrans;
+        if (shift && loginShow) {                          // 로그인 중: 창이 늘어난 뒤 프사 오른쪽에 나타난다
+          padL = avLeft + 154 - pLeft; nameOp = 1; nameTrans = 'opacity 220ms ease-out 280ms';
+        } else if (shift) {                                // 시작 ① : 이름이 먼저 지금 프사 밑으로 들어가며 사라진다 (창 · 프사는 아직 그대로)
+          padL = avLeft + 40 - pLeft; nameOp = 0; nameTrans = 'left 220ms ease-in-out, opacity 160ms ease-in 60ms';
+        } else if (restoreHold) {
+          if (this._restoreHidden) { padL = avLeft + 40 - pLeft; nameOp = 0; nameTrans = 'none'; }
+          else {                                            // 보이던 이름은 창이 줄어드는 동안 화면에서 제자리
+            padL = (this._restoreNameAbs != null ? this._restoreNameAbs : 175) - pLeft; nameOp = 1;
+            nameTrans = 'left 260ms cubic-bezier(.3,.7,.2,1) 240ms';
+          }
+        } else if (restoring) {                            // ③ : 이름이 마지막에 제자리로
+          padL = 116; nameOp = 1;
+          nameTrans = this._restoreHidden ? 'opacity 120ms ease-out, left 320ms ease-in-out' : 'left 320ms ease-in-out';
+        } else {
+          // 이름은 프사에 붙어 다닌다: 가로는 프사와 같은 거리 · 같은 시간으로 함께 옮기고(프사가 움직이기 전엔 대기),
+          // 펼칠 땐 프사가 다 옮긴 뒤에 높이만 올린다. 접을 땐 프사와 함께 옮기며 높이를 내린다
+          padL = (open ? 175 + (94 - 20) : 175) - pLeft; nameOp = 1;
+          nameTrans = open
+            ? 'left 260ms cubic-bezier(.3,.7,.2,1) 600ms, top 260ms ease-in-out 860ms, height 260ms ease-in-out 860ms'
+            : 'left 240ms cubic-bezier(.5,0,.7,.4) 0ms, top 260ms ease-in-out 0ms, height 260ms ease-in-out 0ms';
+        }
+        // 보이던 이름을 붙든 채 창이 줄어들 땐, 이름이 잘리지 않게 창 너비를 이름 끝까지만 줄였다가 ③에서 마저 줄인다
+        if (restoreHold && !this._restoreHidden && this._restoreNameAbs != null) pWidth = Math.max(pWidth, this._restoreNameAbs + nameStr.length * 11 + 24 - pLeft);
+        this._lastNameAbs = pLeft + padL;
+        const mg = {
+          left: pLeft, bottom: pBottom, height: pHeight, width: pWidth,
+          avLeft, cx: avLeft + 70, ringLeft: avLeft - 14,
+          // 로그인 창: 관리 노드 창과 왼쪽 · 너비를 맞추고, 창 바닥 높이에서 창 뒤로 솟아오른다
+          lgLeft: pLeft, lgBottom: pBottom, lgBoxH: 440 + pHeight, lgPadB: pHeight + 16,
+          // 순서 — 펼칠 때: 창이 다 커진 뒤(0.44초) 오른쪽 것부터 — 세부 내용 → 이름 → 프사.
+          //        접을 때: 왼쪽 것부터 — 프사 → 이름 → 세부 내용, 그 뒤에 창이 줄어든다. 서로 겹치지 않게
+          avDur: shift ? '280ms cubic-bezier(.3,.7,.2,1) ' + (shiftAvWait ? '480ms' : '0ms') : open ? '260ms cubic-bezier(.3,.7,.2,1) 600ms' : '240ms cubic-bezier(.5,0,.7,.4) 0ms',
+          avTrans: shift ? 'left 280ms cubic-bezier(.3,.7,.2,1) ' + (shiftAvWait ? '480ms' : '0ms') : open ? 'left 260ms cubic-bezier(.3,.7,.2,1) 600ms' : 'left 240ms cubic-bezier(.5,0,.7,.4) 0ms',
+          radius: lgOn && !open ? '12px' : lgOn ? '12px 52px 8px 8px' : open ? '20px 52px 8px 16px' : '8px 52px 8px 8px',   // 접힌 창 오른쪽 끝도 펼친 모양과 같게 · 펼친 왼쪽 모서리는 좌석 모서리와 같게
+          // 지도 탭: 펼쳤을 때만 창 오른쪽 끝에서 44px 튀어나온다 (지도 창이 나와 있으면 숨김)
+          tabL: pLeft + pWidth - 140 + 44, tabPad: 96,
+          tabOp: open && !flow && !this.state.winOpen.map ? 1 : 0, tabX: open && !flow && !this.state.winOpen.map ? 0 : -44,
+          tabPe: open && !flow && !this.state.winOpen.map ? 'auto' : 'none', tabDelay: open ? '520ms' : '0ms',
+          tabGrab: (e) => this.startWinDrag('map', e, 'pull'),
+          toggle: () => this.mgToggle(),
+          trans: restoreHold
+            ? 'left 260ms cubic-bezier(.3,.7,.2,1) 240ms, width 260ms cubic-bezier(.3,.7,.2,1) 240ms, border-radius 260ms 240ms, bottom 180ms 240ms, height 180ms 240ms'
+            : restoring ? 'width 320ms ease-in-out, left 320ms ease-in-out'
+            : shift && shiftBgWait
+              ? 'left 260ms cubic-bezier(.3,.7,.2,1) 220ms, width 260ms cubic-bezier(.3,.7,.2,1) 220ms, border-radius 260ms 220ms, bottom 180ms 220ms, height 180ms 220ms'
+            : lgOn || shift
+              ? 'left 260ms cubic-bezier(.3,.7,.2,1), width 260ms cubic-bezier(.3,.7,.2,1), border-radius 260ms, bottom 180ms, height 180ms'
+            : open
+              ? 'bottom 200ms ease-out, height 200ms ease-out, left 320ms cubic-bezier(.3,.7,.2,1) 200ms, width 320ms cubic-bezier(.3,.7,.2,1) 200ms, border-radius 320ms 200ms'   // 펼침: ① 위아래로 높이 → ② 오른쪽으로
+              : 'left 260ms cubic-bezier(.5,0,.8,.4) 480ms, width 260ms cubic-bezier(.5,0,.8,.4) 480ms, border-radius 220ms 480ms, bottom 200ms ease-in 740ms, height 200ms ease-in 740ms',   // 접음: 역순 — ② 왼쪽으로 줄고 → ① 높이
+          padL, nameX: pLeft + padL, nameTop: 901 - pBottom - pHeight + 3, nameH: open ? 60 : 96, nameOp, nameTrans, detL: 175 + (94 - 20) - pLeft,   // 설명은 펼친 이름과 같은 줄에서 시작
+          detailOp: open ? 1 : 0, detailY: open ? 0 : 8, detailDelay: open ? '1000ms' : '0ms',   // 펼침: 이름이 올라간 뒤 · 접음: 먼저 사라짐 detailPe: open ? 'auto' : 'none',
+        };
+        return {
+          cur, av, lg, mg,
+          tlDown: (e) => {
+            if (e.button !== 0) return;
+            clearTimeout(this._tlHold);
+            this._tlDownAt = Date.now();
+            this._tlHold = setTimeout(() => this.tlOpen('mouse'), 180);
+          },
+          tlUp: () => {
+            clearTimeout(this._tlHold);
+            if (this.state.tl && this.state.tl.mode === 'mouse') { this.tlClose(true); return; }
+            // 짧게 누르기(목록이 나오기 전에 뗌) = 클릭 → 프사의 노드(조타륜이 올라와 있으면 로컬 노드, 아니면 tree)의 맵으로
+            const S2 = this.state;
+            if (this._tlDownAt && Date.now() - this._tlDownAt < 180 && !S2.tl && !S2.login && !(S2.auth && S2.auth.phase !== 'done')) {
+              const nd = S2.shown && S2.shown.local ? S2.shown.name : S2.curTree.name;
+              this.goMap(nd, nd === S2.map ? nd + ' — 지금 보고 있는 맵입니다' : null);
+            }
+            this._tlDownAt = 0;
+          },
+          tlLeave: () => {
+            clearTimeout(this._tlHold);
+            if (this.state.tl && this.state.tl.mode === 'mouse') this.tlClose(false);
+          },
+          tl: {
+            hidden: tl ? 'false' : 'true', items,
+            caption: au && au.phase === 'loading' ? au.target.name + '에 로그인하는 중…' : live ? (tl.ready ? '로그인할 tree' : 'tree 목록을 여는 중') : '관리 노드 · 로그인 중',
+            name: nameStr,
+            // 접힘: 9자를 넘으면 8자 + … · 펼침(또는 tree 목록 · 로그인 중): 전부
+            nameShow: open || live || (au && au.phase !== 'done') ? nameStr : (nameStr.length > 9 ? nameStr.slice(0, 8) + '…' : nameStr),
+            nameColor: target ? '#2563eb' : '#16191f',
+            sub: target ? target.role + ' · 떼면 이 tree로 로그인' : shownT && shownT.local ? shownT.role + ' · 로컬 노드 — 조타륜 자원' : ct.role + ' · 노드 ' + cur.nodeCount + '개',
+            avatarRing: '#16191f',   // 프사 테두리는 늘 검은색
+            // 목록 아래 눈금: 목록 자리마다 중간 눈금, 그 사이 작은 눈금 (휠로 목록과 함께 돈다)
+            ticks: (() => {
+              const out = [];
+              for (let k = -24; k <= 24; k++) {
+                const mid = k % 2 === 0, a = (-90 + k * G.STEP / 2) * Math.PI / 180, r0 = G.FAN_R0 + 12, r1 = G.FAN_R0 + 12 + (mid ? 22 : 12); // 긴 눈금 안쪽 끝보다 조금 바깥에서 시작
+                out.push({ x1: (Math.cos(a) * r0).toFixed(1), y1: (Math.sin(a) * r0).toFixed(1), x2: (Math.cos(a) * r1).toFixed(1), y2: (Math.sin(a) * r1).toFixed(1), w: mid ? 3 : 2 });
+              }
+              return out;
+            })(),
+            spikes: this.tlSpikeDefs().map((d, i) => {
+              const R0 = 60, tip = R0 + d.len, c = R0 + d.len * 0.42, w = d.w;
+              return {
+                i, a: d.a, len0: d.len, fill: d.big ? '#2563eb' : '#1c2733',
+                d: 'M' + (-w) + ' ' + (-R0) + ' Q ' + (-w * 0.22) + ' ' + (-c) + ' 0 ' + (-tip) + ' Q ' + (w * 0.22) + ' ' + (-c) + ' ' + w + ' ' + (-R0) + ' Z',
+                w2: w * 2, len: tip, vb: (-w) + ' ' + (-tip) + ' ' + (w * 2) + ' ' + tip, left: -w, top: -tip
+              };
+            }),
+            // 양 끝 긴 눈금: 오른쪽 먼저, 왼쪽이 맨 위 레이어
+            needles: [{ side: 'r', fill: '#1c2733' }, { side: 'l', fill: '#1c2733' }],
+            hint: live
+              ? (!tl.ready ? '다 나오면 고를 수 있습니다 · 지금 떼면 되돌아 들어갑니다' : tl.mode === 'mouse' ? '휠로 돌려 포인터에 맞추고 떼면 로그인 · 누른 채 프사 밖으로 나가면 취소' : '휠로 돌려 포인터에 맞추고 Ctrl을 떼면 로그인 · 다른 곳을 좌클릭하면 취소')
+              : !this.state.help ? '' : '프사를 누르고 있거나 Ctrl을 누르고 있으면 로그인할 수 있는 다른 tree ' + trees.length + '개가 나옵니다',
+            note: this.state.tlNote || this.state.rmNote || ''
+          }
+        };
+      })(),
+      fieldDown, fieldCtx,
+      rm: rmenu ? (() => {
+        const n = rmItems.length, hv = rmenu.hover;
+        const items = rmItems.map((it, i) => {
+          const a = (i * 360 / n - 90) * Math.PI / 180, on = hv === i, off = it.edit && rmenu.target.mode !== 'edit';
+          return {
+            i, label: it.label, icon: it.icon, x: Math.round(Math.cos(a) * RM.R), y: Math.round(Math.sin(a) * RM.R),
+            size: on ? RM.SIZE + 6 : RM.SIZE, delay: (i * 18) + 'ms',
+            bg: on ? '#2563eb' : '#ffffff', fg: on ? '#ffffff' : (off ? '#b6bfcc' : '#16191f'),
+            border: on ? '0' : '1px solid #d8dde5', shadow: on ? '0 4px 14px rgba(37,99,235,0.35)' : '0 2px 8px rgba(22,25,31,0.14)',
+            disabledA: off ? 'true' : 'false',
+            pick: () => rmRun(i)
+          };
+        });
+        const t = rmenu.target;
+        return {
+          open: true, x: Math.round(rmenu.x), y: Math.round(rmenu.y), ring: RM.R + 40, ring2: (RM.R + 40) * 2, items,
+          title: '원형 메뉴 — ' + (t.kind === 'tile' ? '타일 ' + t.key : '필드'),
+          label: hv !== null ? rmItems[hv].label : (t.kind === 'tile' ? '타일 ' + t.key : '필드') + ' · 방향으로 밀어 고르기',
+          labelOp: 1, labelY: RM.R + RM.SIZE / 2 + 12,
+          centerBg: hv === null ? '#c0303f' : '#8f2430',
+          close: () => this.setState({ rmenu: null })
+        };
+      })() : { open: false, x: 0, y: 0, ring: 0, ring2: 0, items: [], title: '', label: '', labelOp: 0, labelY: 0, centerBg: '#c0303f', close: () => {} },
+      editOn: !!this.state.editMode,
+      editOff: !this.state.editMode,
+      editChecked: this.state.editMode ? 'true' : 'false',
+      toggleEdit: () => { this.pendField = null; this.setState({ editMode: !this.state.editMode, drag: null }); },
+      sw: this.state.editMode
+        ? { border: '#2563eb', bg: '#e6eefc', track: '#2563eb', knob: '16px', state: '켜짐', stateColor: '#2563eb' }
+        : { border: '#d8dde5', bg: '#ffffff', track: '#c3cad5', knob: '2px', state: '꺼짐', stateColor: '#5b6472' },
+      editDisp: this.state.editMode ? 'inline-block' : 'none',
+      editFlex: this.state.editMode ? 'flex' : 'none',
+      helpDisp: this.state.help ? 'inline' : 'none',
+      helpBlockDisp: this.state.help ? 'flex' : 'none',
+      modeLine: !this.state.help ? '' : this.state.editMode ? '편집 모드 — 필드를 끌어 옮기고, 건물 · 노드 · 재질을 배치합니다' : '타일을 눌러 살펴보고, 노드 필드를 두 번 누르면 해당 노드의 맵으로 들어갑니다',
+      fieldBg: this.state.editMode ? '#4aa3b6' : '#4cacbe',   // 깊은 바다
+      pendingCount: this.state.pending.length,
+      rmNote: this.state.rmNote || '',
+      selEmptyText: selKey && groundSet.has(selKey) ? (this.state.editMode ? '빈 그라운드 — 건물은 놓을 수 있고, 노드는 둘 수 없습니다' : '빈 그라운드') : this.state.editMode ? '비어 있음 — 건물을 끌어 놓으면 이 타일에 설치됩니다' : '비어 있음',
+      fieldDrag: !!fdrag,
+      newFieldTv: this.tileView(base),
+      newFieldBorder: drag && drag.kind === 'newField' ? '1px dashed #2563eb' : '1px solid #d8dde5',
+      newGroundBorder: drag && drag.kind === 'newGround' ? '1px dashed #2563eb' : '1px solid #d8dde5',
+      grabNewGround: (e) => {
+        e.preventDefault();
+        const root = e.currentTarget.closest ? e.currentTarget.closest('[data-field-root]') : null;
+        if (root) { root.tabIndex = -1; root.focus({ preventScroll: true }); }
+        this.setState({ drag: { kind: 'newGround', over: null, x: null, y: null } });
+      },
+      grabNewField: (e) => {
+        e.preventDefault();
+        const root = e.currentTarget.closest ? e.currentTarget.closest('[data-field-root]') : null;
+        if (root) { root.tabIndex = -1; root.focus({ preventScroll: true }); }
+        this.setState({ drag: { kind: 'newField', over: null, x: null, y: null } });
+      },
+      trashBg: drag && drag.kind === 'field' && drag.trash ? '#fdecee' : '#ffffff',
+      trashBorder: drag && drag.kind === 'field' ? (drag.trash ? '1px solid #d33d52' : '1px dashed #d33d52') : '1px dashed #c3cad5',
+      trashColor: drag && drag.kind === 'field' ? '#d33d52' : '#5b6472',
+      fieldHint: drag && drag.kind === 'newGround' ? '빈 리전(점선)에 놓으면 그라운드가 깔립니다 — 붙은 그라운드끼리는 이어집니다'
+        : drag && drag.kind === 'field' && groundSet.has(drag.from) ? (drag.trash ? '놓으면 이 그라운드를 지웁니다' : '빈 리전(점선)에 놓으면 그라운드를 옮깁니다')
+        : drag && drag.kind === 'newField' ? '빈 칸(점선) · 그라운드에 놓으면 그 자리에 생깁니다'
+        : drag && drag.kind === 'field' ? (drag.trash ? '놓으면 이 필드를 지웁니다' : drag.over && fieldSet.has(drag.over) && drag.over !== drag.from ? '놓으면 두 필드의 자리를 바꿉니다' : drag.over && drag.over !== drag.from ? '놓으면 이 빈 칸으로 옮깁니다' : '빈 칸 · 다른 필드 · 삭제 칸에 놓기')
+        : (this.state.fieldNote || (this.state.help ? '필드를 누른 채 끌면 옮기기 · 다른 필드에 놓으면 자리 교환' : '')),
+      fieldMove, fieldUp, fieldLeave, fieldKey, fieldWheel,
+      hb: this.hbVals(),
+      hxToggle: () => this._hx && this._hx.toggle(), hxEnter: (e) => this._hx && this._hx.enter(e), hxLeave: (e) => this._hx && this._hx.leave(e), hxDown: (e) => this._hx && this._hx.down(e),
+      hxMove: (e) => this._hx && this._hx.move(e), hxUp: (e) => this._hx && this._hx.release(e), hxWheel: (e) => this._hx && this._hx.wheel(e),
+      fieldCursor: drag ? 'grabbing' : 'default',
+      dragHint: drag && drag.kind === 'bldg' ? '회전 ' + drag.rot + '/3 — R로 돌리고 타일 위에서 놓기' : this.state.help ? '카드를 끌어 타일에 놓기 · 끄는 중 R로 90° 회전' : '',
+      buildings,
+      tabTile: this.state.tab === 'tile',
+      tabGnd: this.state.tab === 'gnd',
+      tgn: this.state.tab === 'gnd' ? { b: '#2563eb', c: '#16191f', w: 600 } : { b: 'transparent', c: '#5b6472', w: 400 },
+      tabGndSel: this.state.tab === 'gnd' ? 'true' : 'false',
+      goGnd: () => this.setState({ tab: 'gnd' }),
+      tabBldg: this.state.tab === 'bldg',
+      tt: this.state.tab === 'tile' ? { b: '#2563eb', c: '#16191f', w: 600 } : { b: 'transparent', c: '#5b6472', w: 400 },
+      tb: this.state.tab === 'bldg' ? { b: '#2563eb', c: '#16191f', w: 600 } : { b: 'transparent', c: '#5b6472', w: 400 },
+      tabTileSel: this.state.tab === 'tile' ? 'true' : 'false',
+      tabBldgSel: this.state.tab === 'bldg' ? 'true' : 'false',
+      goTile: () => this.setState({ tab: 'tile' }),
+      goBldg: () => this.setState({ tab: 'bldg' })
+    };
+  }
+}
