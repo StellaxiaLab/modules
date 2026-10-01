@@ -1,0 +1,23 @@
+{
+  "$comment": "웹이 로그인이 필요하다고 알려 왔다(terra.frame.emit('login')). 로그인 카드가 있는 Route로 간다. 웹 안에는 로그인 화면을 두지 않는다 — 모듈 JS가 사용자의 Terra 비밀번호를 보게 되기 때문이다(웹 프로그램 감싸기 설계 §3.3.1).",
+  "schemaVersion": "1.0.0",
+  "id": "node-gui.login.open",
+  "version": "0.1.0",
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "go",
+        "type": "navigate",
+        "route": "/login"
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}

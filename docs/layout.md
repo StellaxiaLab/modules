@@ -4,8 +4,8 @@ doc_type: "contract"
 scope: "repository"
 target: "stellaxialab/modules"
 status: "active"
-version: "v1.0"
-last_updated: "2026-09-21"
+version: "v1.1"
+last_updated: "2026-10-01"
 ---
 
 # 모듈 저장소 레이아웃 규약
@@ -38,6 +38,7 @@ last_updated: "2026-09-21"
 │     ├─ scene/            # GUI 기여(Scene)
 │     ├─ ui/               # Scene Extension 번들, 창 모드 앱의 정적 자산
 │     ├─ src/              # 소스 (포장에서 제외된다)
+│     ├─ web/              # 웹 화면 소스 — 빌드 결과가 ui/ 로 간다 (포장에서 제외된다)
 │     ├─ licenses/
 │     └─ signature/
 └─ tree/
@@ -80,11 +81,25 @@ last_updated: "2026-09-21"
 | `contracts.*` | 모양 + **실재** |
 | `entrypoints.scene` | 모양 + **실재** |
 | `contributions.…​.entry` (기여가 지목하는 번들) | 모양 + **실재** |
+| `contributions.gui.apps[].entry` 가 `ui/` 아래 — **웹 모듈**에서 | 모양만 (실재는 `build-web` · `pack-modules` 가 본다) |
 | `entrypoints.process` · `worker` · `library` · `runtime` | 모양만 |
 
 컴파일 산출물(`bin/<target>/…`, `dist/…`)은 릴리스 빌드가 낳는다. 소스 트리에 없는 것이 정상이고,
 그것까지 요구하면 출하 모듈 21개 중 18개가 빨개진다 — 그건 발견이 아니라 소음이다.
 반대로 계약 JSON·Scene·기여 번들은 사람이 써서 커밋하는 것이므로 없으면 그건 빠진 것이다.
+
+**웹 모듈**(`web/package.json`이 있는 모듈)의 GUI 앱 entry는 그 둘 사이에 있다. `terra module new --web`이
+굽는 모양이 그것이고 — 화면 소스는 `web/`, 빌드 결과는 `ui/`(Vite `outDir: '../ui'`) — 그래서 `ui/`는
+`bin/`처럼 **빌드 산출물**이고 커밋하지 않는다. 검증기는 그 entry의 모양만 보고, 실재는 두 자리가 따로 본다.
+
+| 어디서 | 무엇을 |
+| --- | --- |
+| [`tools/build-web.mjs`](../tools/build-web.mjs) | 구운 직후 — entry가 생겼는가, 스캐폴드의 자리 표시자(*"웹 빌드가 아직 없습니다"*)가 아닌가 |
+| [`tools/pack-modules.mjs`](../tools/pack-modules.mjs) | 포장 직전 — 같은 판정. 굽기를 빠뜨린 릴리스가 여기서 선다 |
+
+두 자리가 필요한 이유는 실측이다: **`terra module pack`은 `gui.apps`의 entry를 보지 않는다.** `ui/`가
+아예 없어도, 자리 표시자만 있어도 `VERIFIED true`로 포장되고 설치된다 — 화면이 빈 채로.
+`web/package.json`이 없는 모듈의 `ui/` entry는 지금처럼 사람이 쓴 것으로 보고 실재를 요구한다.
 
 > 이 경계를 Terra의 출하 모듈 전체에 돌렸을 때 걸린 것은 `io.terra.scene-studio` 하나
 > (`ui/index.html`이 Studio 빌드의 스테이징 산출물)였고, 적합성 판정서
@@ -103,8 +118,11 @@ last_updated: "2026-09-21"
 ### L-8 — 무엇이 포장되는가
 
 `terra module pack`은 화이트리스트로 담는다: `module.json` · `contracts/` · `ui/` · `bin/` ·
-`config/` · `scene/`. 소스 트리에 있어도 되지만 포장되지 않는 것: `src/` · `README.md` ·
+`config/` · `scene/`. 소스 트리에 있어도 되지만 포장되지 않는 것: `src/` · `web/` · `README.md` ·
 `licenses/` · `signature/` · 점으로 시작하는 것.
+
+`web/`은 웹 화면의 소스다(`terra module new --web`이 두는 자리). 출하되는 것은 그 빌드 결과인 `ui/`뿐이다 —
+L-6의 웹 모듈 절.
 
 그 밖의 최상위 항목은 **경고**로 알린다. 빌드 보조물이라 포장되지 않는 것이 맞을 수도 있고,
 배포에 필요한데 빠질 자리일 수도 있어서 — 판단은 사람이 한다.
@@ -158,6 +176,7 @@ scene/
 | --- | --- |
 | Scene 무결성 — fragment가 모르는 store·function을 부르는지, `scene.json`의 id가 기여 id와 같은지 | `terra module pack` |
 | Scene 안쪽의 **층 규칙** — `pack` 도 이것은 보지 않는다(스캐폴더의 자기 검증이다). 그래서 L-10 이 여기 있다 | 이 저장소 |
+| GUI 앱 entry 가 실재하는지 · 자리 표시자가 아닌지 — `pack` 도 이것은 보지 않는다(실측). 웹 모듈은 굽기 전에 그 파일이 없는 것이 정상이라 검증기가 아니라 굽기·포장 단계가 본다 | 이 저장소 (`build-web` · `pack-modules`) |
 | 포장이 실제로 열리는지 — 설치기와 같은 검사로 자기 출력을 되여는 것 | `terra module pack` |
 | 계약 JSON의 내용이 Terra API Contract 표준을 지키는지 | Terra 쪽 계약 검증 |
 

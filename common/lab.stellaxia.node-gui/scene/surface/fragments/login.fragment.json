@@ -1,0 +1,152 @@
+{
+  "$comment": "로그인 카드. 내장 엘리먼트로 그린다 — 이 화면은 자유 디자인이 아니다. 웹이 비밀번호를 받으면 모듈 코드가 사용자의 Terra 비밀번호를 보게 된다(웹 프로그램 감싸기 설계 §3.3.1). 로그인에 성공하면 signin.submit이 / 로 돌려보낸다. 이미 로그인한 채 들어오면 로그아웃과 돌아가기만 보인다.",
+  "schemaVersion": "0.1.0",
+  "id": "node-gui.login",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Terra 노드 — 로그인",
+  "stores": [
+    "signin"
+  ],
+  "functions": [
+    "node-gui.signin.field",
+    "node-gui.signin.submit",
+    "node-gui.signout",
+    "node-gui.login.close"
+  ],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "children": [
+      {
+        "type": "card",
+        "id": "signin",
+        "title": "Terra 로그인",
+        "visible": {
+          "not": {
+            "store": "signin",
+            "path": "/state",
+            "is": {
+              "const": "signedIn"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "text",
+            "id": "signinHint",
+            "text": "노드 화면이 이 노드의 자원을 실데이터로 보이려면 Terra 로그인이 필요합니다. 비밀번호는 게이트웨이의 Credential Service로만 가고, 화면이 받는 것은 그것을 가리키는 이름뿐입니다."
+          },
+          {
+            "type": "input",
+            "id": "email",
+            "placeholder": "아이디",
+            "bind": {
+              "store": "signin",
+              "path": "/email"
+            },
+            "onChange": {
+              "function": "node-gui.signin.field",
+              "input": {
+                "field": "email"
+              }
+            },
+            "a11y": {
+              "label": "아이디"
+            }
+          },
+          {
+            "type": "input",
+            "id": "password",
+            "inputType": "secret",
+            "placeholder": "비밀번호",
+            "bind": {
+              "store": "signin",
+              "path": "/password"
+            },
+            "onChange": {
+              "function": "node-gui.signin.field",
+              "input": {
+                "field": "password"
+              }
+            },
+            "onSubmit": {
+              "function": "node-gui.signin.submit"
+            },
+            "a11y": {
+              "label": "비밀번호"
+            }
+          },
+          {
+            "type": "button",
+            "id": "submit",
+            "text": "로그인",
+            "onClick": {
+              "function": "node-gui.signin.submit"
+            }
+          },
+          {
+            "type": "text",
+            "id": "signinMessage",
+            "bind": {
+              "store": "signin",
+              "path": "/message"
+            },
+            "empty": "",
+            "a11y": {
+              "role": "status",
+              "live": "polite"
+            }
+          },
+          {
+            "type": "button",
+            "id": "cancel",
+            "text": "로그인하지 않고 돌아가기",
+            "onClick": {
+              "function": "node-gui.login.close"
+            }
+          }
+        ]
+      },
+      {
+        "type": "card",
+        "id": "session",
+        "title": "로그인되어 있습니다",
+        "visible": {
+          "store": "signin",
+          "path": "/state",
+          "is": {
+            "const": "signedIn"
+          }
+        },
+        "children": [
+          {
+            "type": "text",
+            "id": "principal",
+            "bind": {
+              "store": "signin",
+              "path": "/message"
+            },
+            "empty": ""
+          },
+          {
+            "type": "button",
+            "id": "signout",
+            "text": "로그아웃",
+            "onClick": {
+              "function": "node-gui.signout"
+            }
+          },
+          {
+            "type": "button",
+            "id": "back",
+            "text": "노드 화면으로",
+            "onClick": {
+              "function": "node-gui.login.close"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

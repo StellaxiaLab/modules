@@ -69,6 +69,13 @@ jobs:
         with:
           node-version: 24
 
+      # 검증기는 ajv 를 쓴다(Manifest v2 스키마). CI 의 validate 잡은 `npm ci` 를 돌지만
+      # 이 잡에는 그 줄이 없었다 — 그대로 태그를 찍으면 첫 릴리스가 바로 아래 단계에서
+      # `ERR_MODULE_NOT_FOUND: ajv` 로 선다. 태그가 한 번도 찍히지 않아 드러나지 않았다.
+      - name: Install the validator's dependencies
+        working-directory: modules
+        run: npm ci --no-audit --no-fund
+
       # 출하 전에 이 저장소의 규약을 다시 본다. CI 가 main 에서 이미 봤지만
       # 태그는 main 이 아닌 커밋에도 찍힌다 — 위 주석 참고.
       - name: Validate every module
@@ -98,6 +105,18 @@ jobs:
       - name: Test modules that carry Go source
         working-directory: modules
         run: node tools/test-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
+
+      # `ui/` 를 채운다. 웹 모듈의 화면은 `web/` 소스의 빌드 산출물이고(`bin/` 과 같다)
+      # `web/` 은 포장되지 않는다. `terra module pack` 은 앱 entry 를 보지 않으므로
+      # (없어도 `VERIFIED true` — 실측) 이 단계를 빠뜨리면 pack-modules 의 entry
+      # 검사가 다음 단계에서 세운다. 시험은 위의 Go 시험과 같은 이유로 여기서 다시 돈다.
+      - name: Build modules that carry a web UI
+        working-directory: modules
+        run: node tools/build-web.mjs
+
+      - name: Test modules that carry a web UI
+        working-directory: modules
+        run: node tools/test-web.mjs
 
       # 타깃마다 따로 굽는다. 실측: 타깃 셋을 선언한 모듈을 안 좁히고 포장하면
       # 자산 하나가 4.9 MB → 14.3 MB 로 2.9배가 되고, 리눅스 노드가 윈도우·arm

@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terra · 자재 편집기</title>
+<style>
+.face-hit:hover{filter:brightness(1.05)}
+body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif;background:#ffffff}
+a{color:#2563eb}a:hover{color:#1d4ed8}
+.px:hover{stroke:#2563eb;stroke-width:1.5}
+@keyframes ants{to{stroke-dashoffset:-8}}
+.sel-rect{animation:ants 600ms linear infinite}
+</style>
+<style>
+html,body{margin:0;background:#dfe3ea}
+.frame{margin:12px auto;overflow:hidden;box-shadow:0 6px 24px rgba(22,25,31,0.16);border-radius:6px}
+#stage{width:1440px;height:900px;transform-origin:0 0;background:#ffffff}
+</style>
+</head>
+<body>
+<div class="frame"><div id="stage"></div></div>
+<script type="text/x-template" id="view">
+<div style="width: 1440px; height: 900px; display: flex; flex-direction: column; background: #ffffff; color: #16191f; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+
+  <header style="height: 52px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #d8dde5;">
+    <a href="building.html" style="font-size: 13px; color: #5b6472; text-decoration: none; white-space: nowrap;">← 건물 편집기</a>
+    <h1 style="margin: 0; font-size: 17px; font-weight: 600; white-space: nowrap;">자재 편집기</h1>
+    <input type="text" value="{{name}}" onChange="{{setName}}" aria-label="자재 이름" style="height: 30px; width: 140px; box-sizing: border-box; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; font: inherit; font-size: 13px; color: #16191f;">
+    <span title="{{kindTip}}" style="height: 24px; padding: 0 9px; border-radius: 12px; background: {{kindBg}}; color: {{kindFg}}; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; white-space: nowrap;">{{kindLabel}}</span>
+    <div role="radiogroup" aria-label="{{an.typeLabel}} 타입" style="display: flex; gap: 2px; padding: 2px; border-radius: 7px; background: #eef1f5;">
+      <sc-for list="{{an.types}}" as="ty" hint-placeholder-count="2">
+        <button type="button" role="radio" aria-checked="{{ty.on}}" onClick="{{ty.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 5px; background: {{ty.bg}}; color: {{ty.fg}}; box-shadow: {{ty.sh}}; font: inherit; font-size: 12.5px; font-weight: {{ty.fw}}; cursor: pointer; white-space: nowrap;">{{ty.label}}</button>
+      </sc-for>
+    </div>
+    <span style="font-size: 12px; color: {{saveColor}}; white-space: nowrap;">{{saveText}}</span>
+    <span style="flex-grow: 1;"></span>
+    <nav aria-label="자재 편집기 메뉴" style="display: flex; align-items: center; gap: 4px;">
+      <button type="button" onClick="{{save}}" style="height: 32px; padding: 0 12px; border: 1px solid #2563eb; border-radius: 6px; background: #2563eb; color: #ffffff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">자재 저장</button>
+      <button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;">내보내기</button>
+      <button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;">불러오기</button>
+      <button type="button" onClick="{{saveAs}}" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;">다른 이름으로 저장</button>
+      <button type="button" onClick="{{newMat}}" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;">새로 만들기</button>
+      <button type="button" onClick="{{newCustom}}" title="8 × 8 × 8 칸에 색 블럭을 쌓아 만드는 자재 — 울타리 · 작은 도구처럼 블럭보다 작은 물건용" style="height: 32px; padding: 0 12px; border: 1px solid #7b4fa0; border-radius: 6px; background: #ffffff; color: #5b2f7e; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">새 커스텀 자재</button>
+    </nav>
+  </header>
+
+  <div style="flex-grow: 1; display: {{cubeFlex}}; min-height: 0;">
+    <main onKeyDown="{{key}}" style="outline: none; flex-grow: 1; min-width: 0; background: #eef1f5; display: flex; flex-direction: column; gap: 14px; padding: 18px 24px; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          <span style="color: #5b6472;">편집 중</span>
+          <select value="{{curId}}" onChange="{{pickMat}}" aria-label="편집할 자재" style="height: 32px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 13px; color: #16191f;">
+            <sc-for list="{{matOptions}}" as="o" hint-placeholder-count="7">
+              <option value="{{o.id}}">{{o.label}}</option>
+            </sc-for>
+          </select>
+        </label>
+        <span style="width: 1px; height: 22px; background: #d8dde5;"></span>
+        <div role="group" aria-label="도구" style="display: flex; gap: 4px;">
+          <sc-for list="{{tools}}" as="t" hint-placeholder-count="6">
+            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" title="{{t.tip}}" style="height: 32px; padding: 0 10px; border: {{t.border}}; border-radius: 6px; background: {{t.bg}}; color: #16191f; font: inherit; font-size: 13px; font-weight: {{t.fw}}; cursor: pointer;">{{t.label}}</button>
+          </sc-for>
+        </div>
+        <span style="width: 1px; height: 22px; background: #d8dde5;"></span>
+        <button type="button" onClick="{{copy}}" title="Ctrl+C" style="display: {{cubeInline}}; height: 32px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{copyColor}}; font: inherit; font-size: 13px; cursor: pointer;">복사</button>
+        <button type="button" onClick="{{pasteMode}}" title="Ctrl+V — 누른 뒤 놓을 칸을 클릭" style="display: {{cubeInline}}; height: 32px; padding: 0 10px; border: {{pasteBorder}}; border-radius: 6px; background: {{pasteBg}}; color: {{pasteColor}}; font: inherit; font-size: 13px; cursor: pointer;">붙여넣기</button>
+        <button type="button" onClick="{{fillSel}}" style="display: {{cubeInline}}; height: 32px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{copyColor}}; font: inherit; font-size: 13px; cursor: pointer;">선택 영역 칠하기</button>
+        <button type="button" onClick="{{undo}}" title="Ctrl+Z" style="height: 32px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{undoColor}}; font: inherit; font-size: 13px; cursor: pointer;">되돌리기</button>
+        <span style="font-size: 12px; color: #5b6472;">{{status}}</span>
+      </div>
+
+      <div style="flex-grow: 1; display: {{cubeFlex}}; align-items: center; justify-content: center;">
+        <svg width="640" height="500" viewBox="0 0 640 500" role="img" aria-label="자재 전개도 — 6면 각 8 × 8 픽셀" style="touch-action: none; user-select: none; cursor: {{netCursor}};" onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerLeave="{{up}}">
+          <sc-for list="{{net}}" as="fc" hint-placeholder-count="6">
+            <g>
+              <rect x="{{fc.ox}}" y="{{fc.oy}}" width="{{fc.size}}" height="{{fc.size}}" fill="none" stroke="{{fc.ring}}" stroke-width="3" rx="2"></rect>
+              <sc-for list="{{fc.px}}" as="p" hint-placeholder-count="64">
+                <rect class="px" x="{{p.x}}" y="{{p.y}}" width="{{cell}}" height="{{cell}}" fill="{{p.c}}" stroke="rgba(22,25,31,0.08)" stroke-width="0.5" data-px="{{p.key}}"></rect>
+              </sc-for>
+              <rect class="sel-rect" x="{{fc.sx}}" y="{{fc.sy}}" width="{{fc.sw}}" height="{{fc.sh}}" fill="rgba(37,99,235,0.08)" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 4" opacity="{{fc.sop}}" style="pointer-events: none;"></rect>
+              <text x="{{fc.lx}}" y="{{fc.ly}}" text-anchor="middle" font-size="12" fill="#5b6472" style="pointer-events: none;">{{fc.label}}</text>
+            </g>
+          </sc-for>
+        </svg>
+      </div>
+      <!-- 애니메이션 확장: 1초 = 16칸 고정. 칸마다 프레임을 넣거나 비워 두고, 빈 칸은 앞 프레임을 그대로 보인다 (한 줄 = 1초) -->
+      <section aria-label="애니메이션 칸" style="display: {{an.disp}}; flex-direction: column; gap: 8px; box-sizing: border-box; background: #ffffff; border: 1px solid #d8dde5; border-radius: 10px; padding: 10px 12px;">
+        <div style="display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; font-size: 12.5px;">
+          <button type="button" onClick="{{an.toggle}}" aria-label="{{an.playLabel}}" title="{{an.playLabel}}" style="width: 32px; height: 28px; border: 1px solid {{an.playLine}}; border-radius: 6px; background: {{an.playBg}}; color: {{an.playFg}}; font: inherit; font-size: 13px; cursor: pointer;">{{an.playIcon}}</button>
+          <b style="font-size: 13px; font-variant-numeric: tabular-nums;">칸 {{an.cur}} / {{an.len}}</b>
+          <span style="color: {{an.slotFg}};">{{an.slotInfo}}</span>
+          <span style="flex-grow: 1;"></span>
+          <label style="display: {{an.lenDisp}}; align-items: center; gap: 4px; color: #5b6472;">길이
+            <select value="{{an.lenVal}}" onChange="{{an.setLen}}" aria-label="애니메이션 길이" style="height: 26px; padding: 0 4px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12.5px; color: #16191f;">
+              <sc-for list="{{an.lens}}" as="lo" hint-placeholder-count="4"><option value="{{lo.v}}">{{lo.t}}</option></sc-for>
+            </select></label>
+          <span style="display: {{an.lenFixDisp}}; color: #5b6472;">길이 1초 고정 (16칸)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px;">
+          <span style="color: #5b6472;">복제 간격</span>
+          <div role="radiogroup" aria-label="복제 간격" style="display: flex; gap: 2px; padding: 2px; border-radius: 6px; background: #eef1f5;">
+            <sc-for list="{{an.steps}}" as="sp" hint-placeholder-count="3">
+              <button type="button" role="radio" aria-checked="{{sp.on}}" title="{{sp.tip}}" onClick="{{sp.pick}}" style="height: 22px; padding: 0 7px; border: 0; border-radius: 4px; background: {{sp.bg}}; color: {{sp.fg}}; box-shadow: {{sp.sh}}; font: inherit; font-size: 11.5px; font-weight: {{sp.fw}}; cursor: pointer;">{{sp.label}}</button>
+            </sc-for>
+          </div>
+          <button type="button" onClick="{{an.dup}}" title="{{an.dupTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #2563eb; border-radius: 6px; background: #ffffff; color: {{an.dupFg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">+ 복제 → {{an.stepLabel}} 뒤</button>
+          <button type="button" onClick="{{an.fill}}" title="{{an.fillTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">{{an.fillLabel}}</button>
+          <span style="flex-grow: 1;"></span>
+          <button type="button" onClick="{{an.left}}" title="이 프레임을 한 칸 앞으로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.leftFg}}; font: inherit; font-size: 12px; cursor: pointer;">◀</button>
+          <button type="button" onClick="{{an.right}}" title="이 프레임을 한 칸 뒤로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.rightFg}}; font: inherit; font-size: 12px; cursor: pointer;">▶</button>
+        </div>
+        <div role="listbox" aria-label="칸 (한 줄 = 1초)" style="display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px;">
+          <sc-for list="{{an.slots}}" as="fs" hint-placeholder-count="16">
+            <button type="button" role="option" aria-selected="{{fs.sel}}" aria-label="{{fs.label}}" title="{{fs.label}}" onClick="{{fs.pick}}" style="position: relative; height: {{an.slotH}}px; padding: 0; box-sizing: border-box; border: {{fs.border}}; border-radius: 5px; background: {{fs.bg}}; cursor: pointer; overflow: hidden; box-shadow: {{fs.ring}};">
+              <img src="{{fs.img}}" alt="" style="display: {{fs.imgDisp}}; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
+              <span style="display: {{fs.holdDisp}}; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1px; background: #b9cdf5;"></span>
+              <span style="position: absolute; left: 3px; top: 0; font-size: 9.5px; font-weight: 700; color: {{fs.numFg}};">{{fs.num}}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display: {{an.confirmDisp}}; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: #fff7e6; border: 1px solid #f0d59a; font-size: 12.5px; color: #7a4d00;">
+          <span style="flex-grow: 1;">일반 타입은 프레임 하나 · 1초입니다 — 지금 보이는 프레임만 남기고 나머지 프레임 {{an.dropN}}개를 지웁니다.</span>
+          <button type="button" onClick="{{an.confirmYes}}" style="height: 26px; padding: 0 10px; border: 1px solid #d33d52; border-radius: 6px; background: #ffffff; color: #b4283c; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">지우고 일반으로</button>
+          <button type="button" onClick="{{an.confirmNo}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">취소</button>
+        </div>
+      </section>
+      <span style="font-size: 12px; color: #5b6472;">{{helpText}}</span>
+    </main>
+
+    <aside style="width: 340px; flex-shrink: 0; box-sizing: border-box; border-left: 1px solid #d8dde5; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto;">
+      <section aria-label="팔레트" style="display: flex; flex-direction: column; gap: 8px;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">팔레트</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #d8dde5; background: {{color}};"></span>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 13px;">{{color}}</span>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5b6472;">직접 고르기 <input type="color" value="{{color}}" onChange="{{setColor}}" aria-label="색 직접 고르기" style="width: 36px; height: 24px; padding: 0; border: 1px solid #d8dde5; border-radius: 4px; background: #ffffff;"></label>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px;">
+          <sc-for list="{{palette}}" as="c" hint-placeholder-count="32">
+            <button type="button" aria-label="{{c.hex}}" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="height: 26px; border: {{c.border}}; border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;"></button>
+          </sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; min-height: 22px;">
+          <sc-for list="{{recent}}" as="c" hint-placeholder-count="0">
+            <button type="button" aria-label="{{c.hex}}" onClick="{{c.pick}}" style="height: 22px; border: 1px solid #d8dde5; border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;" aria-description="최근 색"></button>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-label="{{faceLabel}} 기능" style="display: {{cubeFlex}}; flex-direction: column; gap: 8px; border-top: 1px solid #d8dde5; padding-top: 10px; font-size: 12.5px;">
+        <div style="display: flex; align-items: baseline; gap: 6px;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">{{faceLabel}}</h3>
+          <span style="color: #5b6472;">선택한 면 기능</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" onClick="{{copySides}}" style="flex: 1; height: 28px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">→ 옆면 4개로 복사</button>
+          <button type="button" onClick="{{copyAll}}" style="flex: 1; height: 28px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">→ 6면 전부로 복사</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 600;">색 한꺼번에 바꾸기</span>
+          <span style="flex-grow: 1;"></span>
+          <div role="tablist" aria-label="바꿀 범위" style="display: flex; gap: 2px; background: #f4f6f9; border-radius: 6px; padding: 2px;">
+            <sc-for list="{{scopes}}" as="k" hint-placeholder-count="2">
+              <button type="button" role="tab" aria-selected="{{k.sel}}" onClick="{{k.pick}}" style="height: 24px; padding: 0 8px; border: 0; border-radius: 5px; background: {{k.bg}}; color: {{k.fg}}; font: inherit; font-size: 12px; font-weight: {{k.fw}}; cursor: pointer; box-shadow: {{k.sh}};">{{k.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <sc-for list="{{hues}}" as="hu" hint-placeholder-count="8">
+            <button type="button" aria-label="{{hu.name}}으로" title="{{hu.name}}" onClick="{{hu.pick}}" style="flex: 1; height: 20px; border: 1px solid rgba(22,25,31,0.15); border-radius: 4px; background: {{hu.c}}; cursor: pointer; padding: 0;"></button>
+          </sc-for>
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px;"><span style="color: #5b6472; width: 30px;">색상</span><input type="range" min="-180" max="180" step="2" value="{{adjH}}" onChange="{{setH}}" style="flex-grow: 1; min-width: 0; accent-color: #2563eb;"><span style="width: 40px; text-align: right; font-family: ui-monospace,monospace;">{{adjH}}°</span></label>
+        <label style="display: flex; align-items: center; gap: 8px;"><span style="color: #5b6472; width: 30px;">채도</span><input type="range" min="-100" max="100" step="2" value="{{adjS}}" onChange="{{setS}}" style="flex-grow: 1; min-width: 0; accent-color: #2563eb;"><span style="width: 40px; text-align: right; font-family: ui-monospace,monospace;">{{adjS}}%</span></label>
+        <label style="display: flex; align-items: center; gap: 8px;"><span style="color: #5b6472; width: 30px;">명도</span><input type="range" min="-50" max="50" step="1" value="{{adjL}}" onChange="{{setL}}" style="flex-grow: 1; min-width: 0; accent-color: #2563eb;"><span style="width: 40px; text-align: right; font-family: ui-monospace,monospace;">{{adjL}}</span></label>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" onClick="{{commitAdj}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{adjBtn}}; font: inherit; font-size: 12.5px; cursor: pointer;">확정</button>
+          <button type="button" onClick="{{cancelAdj}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{adjBtn}}; font: inherit; font-size: 12.5px; cursor: pointer;">원래대로</button>
+        </div>
+      </section>
+
+      <section aria-label="미리보기" style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #f4f6f9; border-radius: 10px; padding: 8px; margin-top: auto;">
+        <svg width="260" height="200" viewBox="10 25 280 215" role="img" aria-label="큐브 미리보기 — 끌어서 돌려 봄" style="cursor: grab; touch-action: none;" onPointerDown="{{pDown}}" onPointerMove="{{pMove}}" onPointerUp="{{pUp}}" onPointerLeave="{{pUp}}">
+          <sc-for list="{{preview}}" as="q" hint-placeholder-count="192">
+            <polygon points="{{q.pts}}" fill="{{q.c}}" stroke="{{q.c}}" stroke-width="0.4" stroke-linejoin="round"></polygon>
+          </sc-for>
+        </svg>
+        <div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">방위 {{yawLabel}} · 기울기 {{pitchLabel}}</span>
+        <button type="button" onClick="{{resetView}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">필드 시점으로</button></div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- 커스텀 자재 화면: 건물 편집기와 같은 모양 — 왼쪽 자재 리스트 · 가운데 설계 화면(8 × 8 판 · 높이 8, 끌어서 돌려 봄) · 오른쪽 시점 큐브와 색(= 자재).
+       조작도 같다: 좌클릭 끌기 회전 · 우클릭 누르고 있기 설치 준비 · 떼면 설치 · 블록 좌클릭 제거 · Ctrl+Z 되돌리기 -->
+  <div style="flex-grow: 1; display: {{vx.disp}}; min-height: 0;">
+    <aside aria-label="자재 리스트" style="width: 232px; flex-shrink: 0; box-sizing: border-box; border-right: 1px solid #d8dde5; background: #f4f6f9; padding: 14px 10px; display: flex; flex-direction: column; gap: 8px; min-height: 0;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 0 4px;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">자재</h3>
+        <span style="flex-grow: 1;"></span>
+        <span style="font-size: 11.5px; color: #5b6472;">누르면 열기</span>
+      </div>
+      <div role="tree" aria-label="자재 셋" style="display: flex; flex-direction: column; gap: 1px; overflow-y: auto; min-height: 0;">
+        <sc-for list="{{vx.tree}}" as="row" hint-placeholder-count="8">
+          <sc-if value="{{row.isSet}}" hint-placeholder-val="{{false}}">
+            <div role="treeitem" style="padding: 6px 6px 2px; font-size: 13px; font-weight: 600;">{{row.label}}</div>
+          </sc-if>
+          <sc-if value="{{row.isMat}}" hint-placeholder-val="{{true}}">
+            <button type="button" role="treeitem" aria-selected="{{row.pressed}}" onClick="{{row.pick}}" style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 14px; border: {{row.border}}; border-radius: 6px; background: {{row.bg}}; color: #16191f; font: inherit; text-align: left; cursor: pointer;">
+              <img src="{{row.img}}" alt="" width="30" height="30" style="width: 30px; height: 30px; image-rendering: pixelated; flex-shrink: 0;">
+              <span style="display: flex; flex-direction: column; min-width: 0;">
+                <span style="font-size: 13px; font-weight: {{row.fw}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.label}} <span style="display: {{row.playDisp}}; font-size: 11px;">▶️</span></span>
+                <span style="font-size: 11.5px; color: #5b6472; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.meta}}</span>
+              </span>
+              <span style="flex-grow: 1;"></span>
+              <span style="font-size: 11.5px; color: #2563eb; white-space: nowrap;">{{row.state}}</span>
+            </button>
+          </sc-if>
+        </sc-for>
+      </div>
+      <button type="button" onClick="{{newCustom}}" style="height: 32px; flex-shrink: 0; border: 1px dashed #b6bfcc; border-radius: 8px; background: transparent; color: #5b6472; font: inherit; font-size: 13px; cursor: pointer;">+ 새 커스텀 자재</button>
+    </aside>
+
+    <main onKeyDown="{{vx.key}}" style="position: relative; flex-grow: 1; min-width: 0; background: #eef1f5; outline: none;">
+      <svg width="936" height="848" viewBox="0 0 936 848" role="img" aria-label="설계 화면 — {{name}}, 끌어서 돌려 봄" style="display: block; cursor: {{vx.cursor}}; touch-action: none; user-select: none;" onPointerDown="{{vx.down}}" onPointerMove="{{vx.move}}" onPointerUp="{{vx.up}}" onPointerLeave="{{vx.leave}}" onContextMenu="{{vx.ctx}}">
+        <polygon points="{{vx.rim}}" fill="#dfe4eb"></polygon>
+        <sc-for list="{{vx.plate}}" as="c" hint-placeholder-count="64">
+          <polygon class="face-hit" points="{{c.pts}}" fill="{{c.fill}}" stroke="#c3cad5" stroke-width="1" data-target="{{c.target}}"></polygon>
+        </sc-for>
+        <polygon points="{{vx.outline}}" fill="none" stroke="#5b6472" stroke-width="1.5" stroke-dasharray="6 6" opacity="0.8" style="pointer-events: none;"></polygon>
+        <sc-for list="{{vx.faces}}" as="f" hint-placeholder-count="40">
+          <polygon points="{{f.pts}}" fill="{{f.fill}}" stroke="{{f.stroke}}" stroke-width="{{f.sw}}" stroke-linejoin="round" opacity="{{f.op}}" data-target="{{f.target}}" data-block="{{f.block}}" style="pointer-events: {{f.pe}};"></polygon>
+        </sc-for>
+      </svg>
+
+      <div style="position: absolute; left: 16px; top: 14px; display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,0.92); border: 1px solid #d8dde5; border-radius: 8px; padding: 10px 12px; width: 300px; box-sizing: border-box;">
+        <span style="font-size: 13px; font-weight: 600;">가로 · 세로 · 높이 8 × 8 × 8 <span style="font-weight: 400; color: #5b6472;">(블럭 하나 = 자재 한 칸의 1/8)</span></span>
+        <span style="font-size: 12px; color: #5b6472;">블럭 {{vx.total}}개 · 아래 판이 바닥 · 블럭 크기보다 작은 물건(울타리 · 작은 도구)을 만든다</span>
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #16191f;">놓을 색 <span style="width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(22,25,31,0.2); background: {{color}};"></span> <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{color}}</span></span>
+      </div>
+
+          <!-- 애니메이션 확장: 1초 = 16칸 고정. 칸마다 프레임을 넣거나 비워 두고, 빈 칸은 앞 프레임을 그대로 보인다 (한 줄 = 1초) -->
+          <section aria-label="애니메이션 칸" style="position: absolute; left: 16px; top: 206px; width: 380px; display: {{an.disp}}; flex-direction: column; gap: 8px; box-sizing: border-box; background: #ffffff; border: 1px solid #d8dde5; border-radius: 10px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; font-size: 12.5px;">
+              <button type="button" onClick="{{an.toggle}}" aria-label="{{an.playLabel}}" title="{{an.playLabel}}" style="width: 32px; height: 28px; border: 1px solid {{an.playLine}}; border-radius: 6px; background: {{an.playBg}}; color: {{an.playFg}}; font: inherit; font-size: 13px; cursor: pointer;">{{an.playIcon}}</button>
+              <b style="font-size: 13px; font-variant-numeric: tabular-nums;">칸 {{an.cur}} / {{an.len}}</b>
+              <span style="color: {{an.slotFg}};">{{an.slotInfo}}</span>
+              <span style="flex-grow: 1;"></span>
+              <label style="display: {{an.lenDisp}}; align-items: center; gap: 4px; color: #5b6472;">길이
+                <select value="{{an.lenVal}}" onChange="{{an.setLen}}" aria-label="애니메이션 길이" style="height: 26px; padding: 0 4px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12.5px; color: #16191f;">
+                  <sc-for list="{{an.lens}}" as="lo" hint-placeholder-count="4"><option value="{{lo.v}}">{{lo.t}}</option></sc-for>
+                </select></label>
+              <span style="display: {{an.lenFixDisp}}; color: #5b6472;">길이 1초 고정 (16칸)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px;">
+              <span style="color: #5b6472;">복제 간격</span>
+              <div role="radiogroup" aria-label="복제 간격" style="display: flex; gap: 2px; padding: 2px; border-radius: 6px; background: #eef1f5;">
+                <sc-for list="{{an.steps}}" as="sp" hint-placeholder-count="3">
+                  <button type="button" role="radio" aria-checked="{{sp.on}}" title="{{sp.tip}}" onClick="{{sp.pick}}" style="height: 22px; padding: 0 7px; border: 0; border-radius: 4px; background: {{sp.bg}}; color: {{sp.fg}}; box-shadow: {{sp.sh}}; font: inherit; font-size: 11.5px; font-weight: {{sp.fw}}; cursor: pointer;">{{sp.label}}</button>
+                </sc-for>
+              </div>
+              <button type="button" onClick="{{an.dup}}" title="{{an.dupTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #2563eb; border-radius: 6px; background: #ffffff; color: {{an.dupFg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">+ 복제 → {{an.stepLabel}} 뒤</button>
+              <button type="button" onClick="{{an.fill}}" title="{{an.fillTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">{{an.fillLabel}}</button>
+              <span style="flex-grow: 1;"></span>
+              <button type="button" onClick="{{an.left}}" title="이 프레임을 한 칸 앞으로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.leftFg}}; font: inherit; font-size: 12px; cursor: pointer;">◀</button>
+              <button type="button" onClick="{{an.right}}" title="이 프레임을 한 칸 뒤로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.rightFg}}; font: inherit; font-size: 12px; cursor: pointer;">▶</button>
+            </div>
+            <div role="listbox" aria-label="칸 (한 줄 = 1초)" style="display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px;">
+              <sc-for list="{{an.slots}}" as="fs" hint-placeholder-count="16">
+                <button type="button" role="option" aria-selected="{{fs.sel}}" aria-label="{{fs.label}}" title="{{fs.label}}" onClick="{{fs.pick}}" style="position: relative; height: {{an.slotH}}px; padding: 0; box-sizing: border-box; border: {{fs.border}}; border-radius: 5px; background: {{fs.bg}}; cursor: pointer; overflow: hidden; box-shadow: {{fs.ring}};">
+                  <img src="{{fs.img}}" alt="" style="display: {{fs.imgDisp}}; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
+                  <span style="display: {{fs.holdDisp}}; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1px; background: #b9cdf5;"></span>
+                  <span style="position: absolute; left: 3px; top: 0; font-size: 9.5px; font-weight: 700; color: {{fs.numFg}};">{{fs.num}}</span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="display: {{an.confirmDisp}}; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: #fff7e6; border: 1px solid #f0d59a; font-size: 12.5px; color: #7a4d00;">
+              <span style="flex-grow: 1;">일반 타입은 프레임 하나 · 1초입니다 — 지금 보이는 프레임만 남기고 나머지 프레임 {{an.dropN}}개를 지웁니다.</span>
+              <button type="button" onClick="{{an.confirmYes}}" style="height: 26px; padding: 0 10px; border: 1px solid #d33d52; border-radius: 6px; background: #ffffff; color: #b4283c; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">지우고 일반으로</button>
+              <button type="button" onClick="{{an.confirmNo}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">취소</button>
+            </div>
+          </section>
+
+      <div style="position: absolute; left: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; max-width: 640px; font-size: 12px; color: #5b6472; background: rgba(255,255,255,0.92); border: 1px solid #d8dde5; border-radius: 8px; padding: 8px 12px; box-sizing: border-box;">
+        <span><b style="color: #16191f; font-weight: 600;">좌클릭 끌기</b> 회전</span>
+        <span><b style="color: #16191f; font-weight: 600;">색 클릭</b> 놓을 색</span>
+        <span><b style="color: #16191f; font-weight: 600;">우클릭 누르고 있기</b> 설치 준비</span>
+        <span><b style="color: #16191f; font-weight: 600;">떼기</b> 설치</span>
+        <span><b style="color: #16191f; font-weight: 600;">좌클릭</b> 블록 제거</span>
+        <span><b style="color: #16191f; font-weight: 600;">Ctrl+Z</b> 되돌리기</span>
+      </div>
+    </main>
+
+    <aside style="width: 272px; flex-shrink: 0; box-sizing: border-box; border-left: 1px solid #d8dde5; padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow: hidden;">
+      <section aria-label="시점" style="display: flex; flex-direction: column; align-items: center; gap: 6px; background: #f4f6f9; border-radius: 10px; padding: 12px;">
+        <svg width="140" height="132" viewBox="0 0 140 132" role="group" aria-label="시점 큐브 — 면을 누르면 그 방향으로 봅니다" style="cursor: pointer;" onClick="{{vx.cubeClick}}">
+          <sc-for list="{{vx.cube}}" as="q" hint-placeholder-count="3">
+            <g data-face="{{q.id}}">
+              <polygon points="{{q.pts}}" fill="{{q.fill}}" stroke="#16191f" stroke-opacity="0.25" stroke-width="1" stroke-linejoin="round"></polygon>
+              <text x="{{q.lx}}" y="{{q.ly}}" text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="600" fill="#ffffff" style="pointer-events: none;">{{q.label}}</text>
+            </g>
+          </sc-for>
+        </svg>
+        <span style="font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">방위 {{yawLabel}} · 기울기 {{pitchLabel}}</span>
+        <button type="button" onClick="{{resetView}}" style="height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">필드 시점으로</button>
+      </section>
+
+      <section aria-label="색 (자재)" style="display: flex; flex-direction: column; gap: 8px; min-height: 0;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">색</h3>
+          <span style="font-size: 12px; color: #5b6472;">커스텀 자재의 블럭 = 색 하나</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 40px; height: 40px; border-radius: 8px; border: 1px solid #d8dde5; background: {{color}};"></span>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5b6472;">직접 고르기 <input type="color" value="{{color}}" onChange="{{setColor}}" aria-label="색 직접 고르기" style="width: 36px; height: 24px; padding: 0; border: 1px solid #d8dde5; border-radius: 4px; background: #ffffff;"></label>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px;">
+          <sc-for list="{{palette}}" as="c" hint-placeholder-count="32">
+            <button type="button" aria-label="{{c.hex}}" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="height: 24px; border: {{c.border}}; border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;"></button>
+          </sc-for>
+        </div>
+        <span style="font-size: 12px; color: #5b6472;">최근 쓴 색</span>
+        <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; min-height: 22px;">
+          <sc-for list="{{recent}}" as="c" hint-placeholder-count="0">
+            <button type="button" aria-label="{{c.hex}}" onClick="{{c.pick}}" style="height: 22px; border: 1px solid #d8dde5; border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;"></button>
+          </sc-for>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+</script>
+<script type="module">
+import './src/api/frame-boot.js';   // 첫 import — Terra 안이면 마운트보다 먼저 frame에 hello를 보낸다
+import { mount, fit } from './src/runtime/dc.js';
+import Screen from './src/screens/material.js';
+const stage = document.getElementById('stage');
+window.__screen = mount(Screen, { template: document.getElementById('view').textContent, target: stage, props: {} });
+fit(stage, 1440, 900);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "$comment": "얇은 껍데기다(웹 프로그램 감싸기 설계 §3.3). 화면은 같은 모듈의 embed 앱(lab.stellaxia.node-gui.web)이 그린다. Route가 둘인 이유: frame이 Fragment 루트여야 셸의 틀을 벗고 1447×945 화면이 창 전체를 쓴다. 그래서 로그인 카드는 frame 위에 얹지 않고 /login 으로 뗐다. 웹이 로그인이 필요하면 terra.frame.emit('login'), 로그아웃은 emit('logout')을 보낸다(main Fragment의 on). 웹의 호출은 Scene Function을 거치지 않으므로 requiredOperations는 비어 있다.",
+  "schemaVersion": "0.1.0",
+  "id": "lab.stellaxia.node-gui.ui",
+  "version": "0.1.0",
+  "name": "Terra 노드",
+  "entryRoute": "/",
+  "routes": [
+    {
+      "path": "/",
+      "fragment": "node-gui.main"
+    },
+    {
+      "path": "/login",
+      "fragment": "node-gui.login"
+    }
+  ],
+  "functions": [
+    "contract/functions/signin.field.function.json",
+    "contract/functions/signin.submit.function.json",
+    "contract/functions/signout.function.json",
+    "contract/functions/login.open.function.json",
+    "contract/functions/login.close.function.json"
+  ],
+  "stores": [
+    "contract/stores/credentials.store.json",
+    "contract/stores/signin.store.json",
+    "contract/stores/session.store.json"
+  ],
+  "fragments": [
+    "surface/fragments/main.fragment.json",
+    "surface/fragments/login.fragment.json"
+  ],
+  "requiredOperations": []
+}

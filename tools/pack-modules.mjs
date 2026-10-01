@@ -31,6 +31,8 @@ import { spawn } from 'node:child_process';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { appEntryProblems } from './web-workspace.mjs';
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const TIERS = ['common', 'leaf', 'tree'];
 
@@ -161,6 +163,17 @@ async function main() {
     const manifest = JSON.parse(await readFile(join(module.dir, 'module.json'), 'utf8'));
     if (manifest.id !== module.id) {
       console.error(`::error::${module.tier}/${module.id}: 매니페스트 id 가 다르다 (${manifest.id})`);
+      failedModules += 1;
+      continue;
+    }
+    // GUI 앱의 entry 를 포장 전에 본다. `terra module pack` 은 그것을 보지 않는다 — entry 가 아예
+    // 없어도, 스캐폴드의 자리 표시자("웹 빌드가 아직 없습니다")만 있어도 `VERIFIED true` 다(실측).
+    // 웹 모듈의 ui/ 는 빌드 산출물이므로 tools/build-web.mjs 를 빠뜨린 릴리스가 여기서 선다.
+    const entryProblems = appEntryProblems(module.dir, manifest);
+    if (entryProblems.length > 0) {
+      for (const problem of entryProblems) {
+        console.error(`::error file=${module.tier}/${module.id}/module.json::${problem}`);
+      }
       failedModules += 1;
       continue;
     }

@@ -1,0 +1,49 @@
+{
+  "$comment": "입력 칸의 값을 signin Store에 쓴다. 어느 칸인지는 엘리먼트가 input.field로 알려 준다.",
+  "schemaVersion": "1.0.0",
+  "id": "node-gui.signin.field",
+  "version": "0.1.0",
+  "concurrency": {
+    "mode": "parallel"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "route",
+        "type": "branch",
+        "cases": [
+          {
+            "when": {
+              "left": "$input.field",
+              "op": "eq",
+              "right": "password"
+            },
+            "then": [
+              {
+                "id": "savePassword",
+                "type": "store.write",
+                "storeId": "signin",
+                "path": "/password",
+                "value": "$input.value"
+              }
+            ]
+          }
+        ],
+        "else": [
+          {
+            "id": "saveEmail",
+            "type": "store.write",
+            "storeId": "signin",
+            "path": "/email",
+            "value": "$input.value"
+          }
+        ]
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": "$input.value"
+      }
+    ]
+  }
+}

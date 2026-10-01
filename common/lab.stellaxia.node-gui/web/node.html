@@ -1,0 +1,1141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terra · 노드 화면</title>
+<style>
+body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif;background:#ffffff}
+a{color:#2563eb}a:hover{color:#1d4ed8}
+@keyframes tile-rise{from{transform:translateY(-28px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes ring-march{to{stroke-dashoffset:-24}}
+@keyframes sea-wash{0%,100%{stroke-width:52px}50%{stroke-width:76px}}
+.sea-wash{animation:sea-wash 4.6s ease-in-out infinite}
+@keyframes sea-foam{0%,100%{stroke-width:20px;opacity:.95}50%{stroke-width:36px;opacity:.55}}
+.sea-foam{animation:sea-foam 4.6s ease-in-out infinite}
+@keyframes hb-in{0%{transform:translateY(26px) scaleX(.9);opacity:0}70%{transform:translateY(-3px) scaleX(1.005);opacity:1}100%{transform:translateY(0) scaleX(1);opacity:1}}
+.hb-in{animation:hb-in 300ms cubic-bezier(.2,.8,.3,1) both;transform-origin:50% 100%}
+@keyframes hb-card{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+.hb-card{animation:hb-card 240ms cubic-bezier(.2,.8,.3,1) both}
+.hb-row::-webkit-scrollbar{display:none}
+.hb-btn{transition:background 120ms,border-color 120ms}
+.hb-btn:hover{filter:brightness(0.96)}
+.tile-rise{animation:tile-rise 520ms cubic-bezier(.2,.8,.2,1) both}
+@keyframes lg-pop{0%{transform:translateY(105%)}70%{transform:translateY(-4%)}100%{transform:translateY(0)}}
+.lg-pop{animation:lg-pop 360ms cubic-bezier(.2,.8,.3,1) both}
+@keyframes lg-drop{0%{transform:translateY(0)}25%{transform:translateY(-3%)}100%{transform:translateY(105%)}}
+@keyframes tl-spin{to{transform:rotate(360deg)}}
+.tl-spin{animation:tl-spin 900ms linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes rmenu-pop{from{transform:translate(-50%,-50%) scale(.35);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.rmenu-item{position:absolute;transform:translate(-50%,-50%);animation:rmenu-pop 170ms cubic-bezier(.2,.8,.2,1) both;transition:box-shadow 120ms,background 120ms,width 120ms,height 120ms}
+.tile{cursor:pointer}
+.tile .tile-top{transition:filter 160ms ease}
+.tile:hover .tile-top{filter:brightness(1.12)}
+.tile .tile-body{transition:filter 160ms ease}
+.tile:hover .tile-body{filter:brightness(1.07)}
+.tile-lift{transition:transform 220ms cubic-bezier(.2,.8,.2,1)}
+.tile-ring{animation:ring-march 900ms linear infinite}
+.fmap-node .fm-full{display:none}
+.fmap-node:hover .fm-full{display:block}
+.fmap-node:hover .fm-short{visibility:hidden}
+.fmap-node:hover{z-index:5}
+.win-fs>:not(header){width:min(820px,100%);align-self:center}
+.win-fs>.win-fs-full{width:100%;flex-grow:1;min-height:0}
+@keyframes fs-in{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:scale(1)}}
+.win-fs,.fs-hb{animation:fs-in 220ms cubic-bezier(.2,.8,.3,1) both}
+@keyframes fsl-drop{from{transform:translateY(-58px)}to{transform:translateY(0)}}
+.fsl-drop{animation:fsl-drop 240ms cubic-bezier(.2,.8,.3,1) both}
+.fb-row:hover{background:#f4f6f9 !important}
+@keyframes fb-drop{from{transform:translateY(-690px)}to{transform:translateY(0)}}
+.fb-drop{animation:fb-drop 380ms cubic-bezier(.2,.8,.3,1) both}
+.fsl-item{transition:background 120ms,border-color 120ms,transform 120ms}
+.fsl-item:hover{background:#ffffff;border-color:#9fb3cc;transform:translateY(-1px)}
+.fs-notch .fs-notch-tag{opacity:.0;transition:opacity 160ms}
+.fs-notch:hover .fs-notch-tag{opacity:1}
+.fs-notch:hover{background:rgba(255,255,255,0.12)}
+</style>
+<style>
+html,body{margin:0;background:#dfe3ea}
+#stage{width:1447px;height:945px}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script type="text/x-template" id="view">
+<div data-node-root="1" style="width: 1447px; height: 945px; display: flex; background: #ffffff; color: #16191f; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+
+  <!-- 왼쪽 주 메뉴는 없앴다 — 기능은 유틸 서랍 · 서브 창으로 연다 -->
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+    <!-- 오버헤드 패널(화면 위): 조종실 천장 패널. 테이블과 같은 흰 FRP 선체 · 남색 테두리 · 남색 줄(아래쪽을 5px 위로)로 테이블을 위아래로 뒤집은 모양 —
+         가운데는 얇은 띠(세션 정보), 양옆은 맵 위로 내려온 검은 계기판. 왼쪽 = 선택 상태(램프 + 표시창), 오른쪽 = 전체 창 목록(램프 버튼) -->
+    <div role="status" aria-label="오버헤드 패널" style="height: 44px; flex-shrink: 0; position: relative; z-index: {{ovhZ}}; background: #eef1f5;">
+      <svg width="1447" height="104" viewBox="0 0 1447 104" aria-hidden="true" style="position: absolute; left: 0; top: 0; z-index: 1; overflow: visible; pointer-events: none; filter: drop-shadow(0 3px 10px rgba(22,25,31,0.2));">
+        <defs>
+          <linearGradient id="ovh-gel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6e9e6"></stop><stop offset="1" stop-color="#fdfdfb"></stop></linearGradient>
+          <linearGradient id="ovh-pan" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3038"></stop><stop offset="1" stop-color="#181c21"></stop></linearGradient>
+          <linearGradient id="ovh-ss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f6f8"></stop><stop offset="0.5" stop-color="#b9c0c9"></stop><stop offset="1" stop-color="#e3e7ec"></stop></linearGradient>
+        </defs>
+        <path d="M-2 -2 L1449 -2 L1449 100 L1108.5 100 Q1093 100 1081.7 89.6 L1040 57 Q1028 46 1012 46 L435 46 Q419 46 407 57 L365.3 89.6 Q354 100 338.5 100 L-2 100 Z" fill="url(#ovh-gel)" stroke="#1f2a37" stroke-width="2.2" style="pointer-events: visiblePainted;"></path>
+        <!-- 남색 줄: 아래쪽(맵 쪽)을 5px 위로 올려 아랫면 두께처럼 -->
+        <path d="M-2 -2 L1449 -2 L1449 100 L1108.5 100 Q1093 100 1081.7 89.6 L1040 57 Q1028 46 1012 46 L435 46 Q419 46 407 57 L365.3 89.6 Q354 100 338.5 100 L-2 100 Z" fill="none" stroke="#1e3a5f" stroke-width="1.6" opacity="0.85" transform="translate(0 -5)"></path>
+        <!-- 계기판 두 장: 무광 검은 판 + 위쪽 그늘 선 -->
+        <path d="M18 12 L428 12 Q438 12 432 19 L352 82 Q345 88 334 88 L34 88 Q18 88 18 72 Z" fill="url(#ovh-pan)" stroke="#0f1114" stroke-width="2"></path>
+        <path d="M1429 12 L1019 12 Q1009 12 1015 19 L1095 82 Q1102 88 1113 88 L1413 88 Q1429 88 1429 72 Z" fill="url(#ovh-pan)" stroke="#0f1114" stroke-width="2"></path>
+        <path d="M18 12 L428 12 Q438 12 432 19 L352 82 Q345 88 334 88 L34 88 Q18 88 18 72 Z" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="3" transform="translate(0 1.5)"></path>
+        <path d="M1429 12 L1019 12 Q1009 12 1015 19 L1095 82 Q1102 88 1113 88 L1413 88 Q1429 88 1429 72 Z" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="3" transform="translate(0 1.5)"></path>
+        <!-- 판 고정 나사 -->
+        <g fill="url(#ovh-ss)" stroke="#5b6472" stroke-width="0.7">
+          <circle cx="25" cy="19" r="2.6"></circle><circle cx="25" cy="81" r="2.6"></circle><circle cx="418" cy="19" r="2.6"></circle><circle cx="334" cy="81" r="2.6"></circle>
+          <circle cx="1422" cy="19" r="2.6"></circle><circle cx="1422" cy="81" r="2.6"></circle><circle cx="1029" cy="19" r="2.6"></circle><circle cx="1113" cy="81" r="2.6"></circle>
+        </g>
+        <!-- 가운데 띠: 테이블 네임 박스와 같은 흰 홈 -->
+        <rect x="452" y="7" width="543" height="26" rx="8" fill="#f7f8f6" stroke="#d3d8dd" stroke-width="1"></rect>
+        <g transform="translate(470 41)"><rect x="-13" y="-2.6" width="26" height="5.2" rx="2.6" fill="url(#ovh-ss)" stroke="#6b7480" stroke-width="0.8"></rect></g>
+        <g transform="translate(977 41)"><rect x="-13" y="-2.6" width="26" height="5.2" rx="2.6" fill="url(#ovh-ss)" stroke="#6b7480" stroke-width="0.8"></rect></g>
+      </svg>
+      <!-- 전체 화면 리스트: 상단 테이블(선체) 뒤에서 내려와 가운데 파인 곳을 다 메운다 (양옆 계기판 깊이 y 100까지).
+           전체 화면으로 한 번 연 화면만 모인다 — 처음엔 빈 칸. 누르면 그 화면으로, ×는 리스트에서 빼기 -->
+      <sc-if value="{{ovh.fsList}}" hint-placeholder-val="{{false}}">
+        <div data-fs-list="1" class="fsl-drop" role="menu" aria-label="전체 화면 리스트" onPointerDown="{{stopEv}}" style="position: absolute; left: 300px; top: 30px; width: 847px; height: 70px; z-index: 0; box-sizing: border-box; background: linear-gradient(180deg, #e6e9e6, #fdfdfb); border-bottom: 2.2px solid #1f2a37; box-shadow: 0 4px 10px rgba(22,25,31,0.2);">
+          <span aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 3.4px; height: 1.6px; background: #1e3a5f; opacity: 0.85;"></span>
+          <div style="position: absolute; left: 112px; top: 20px; width: 623px; height: 42px; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 4px 5px; overflow: hidden;">
+            <sc-for list="{{ovh.fsl}}" as="fi" hint-placeholder-count="0">
+              <div role="menuitem" class="fsl-item" data-fsl="{{fi.id}}" title="{{fi.tip}}" onClick="{{fi.go}}" style="position: relative; width: 140px; height: 19px; box-sizing: border-box; padding: 0 3px 0 9px; border: 1px solid {{fi.line}}; border-radius: 6px; background: {{fi.bg}}; color: {{fi.fg}}; font-size: 10.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden;">
+                <span aria-hidden="true" style="position: absolute; left: 3px; top: 4px; bottom: 4px; width: 2.5px; border-radius: 2px; background: {{fi.tick}};"></span>
+                <img src="{{fi.logo}}" alt="" width="13" height="13" style="width: 13px; height: 13px; image-rendering: pixelated; flex-shrink: 0;">
+                <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;">{{fi.label}}</span>
+                <button type="button" aria-label="{{fi.label}} 리스트에서 빼기" title="리스트에서 빼기" onClick="{{fi.drop}}" style="width: 14px; height: 14px; flex-shrink: 0; border: 0; border-radius: 7px; background: transparent; color: inherit; opacity: 0.55; font: inherit; font-size: 11px; line-height: 1; cursor: pointer; padding: 0;">×</button>
+              </div>
+            </sc-for>
+            <sc-if value="{{ovh.fslEmpty}}" hint-placeholder-val="{{true}}">
+              <span data-fsl-empty="1" style="align-self: center; font-size: 11px; color: #8b95a6; line-height: 38px;">비어 있음 — 창을 전체 화면으로 열면 여기 모인다</span>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+      <!-- 가운데: 전체 창 리스트 박스 (세션 정보 + 지금 화면). 누르면 리스트가 내려온다 -->
+      <button type="button" data-fs-box="1" data-z="2" aria-label="전체 창 리스트 박스 — 지금 화면 {{ovh.boxCur}}" aria-expanded="{{ovh.fsList}}" onPointerDown="{{stopEv}}" onClick="{{ovh.boxToggle}}" style="position: absolute; z-index: 2; left: 452px; top: 7px; width: 543px; height: 26px; box-sizing: border-box; padding: 0 8px 0 12px; border: 0; border-radius: 8px; background: transparent; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 9px; font-size: 12px; color: #16191f; white-space: nowrap; text-align: left;">
+        <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48bWFzayBpZD0ic3Rhci1jdXQiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNOCAyMiBMNTAgMzEgTDQwIDE4IEw3MCAyOCBMNzggMjYgTDgwIDkgTDkwIDI0IEwxMTYgMzAgTDE1MCAyOSBMMTU4IDM0IEwxODQgMTkgTDE2OCA0NiBMMTUwIDQyIEwxMzggNDcgTDEyMyA1NyBMMTE5IDk4IEwxMzYgMTAwIEwxMjEgMTEyIEwxMTcgMTI1IEwxMjMgMTU4IEwxNDIgMTc0IEw1MiAxNzQgTDc2IDE0OCBMODYgMTE4IEw4OCAxMDYgTDgzIDgxIEw5MyA4OCBMOTggNzIgTDk1IDYwIEw2NCA0NSBMMjYgNDkgTDM4IDQwWiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0xMDYgMzIgQzEwNi40MCA0MC40MCAxMDcuNjAgNDEuNjAgMTE2IDQyIEMxMDcuNjAgNDIuNDAgMTA2LjQwIDQzLjYwIDEwNiA1MiBDMTA1LjYwIDQzLjYwIDEwNC40MCA0Mi40MCA5NiA0MiBDMTA0LjQwIDQxLjYwIDEwNS42MCA0MC40MCAxMDYgMzJaIj48L3BhdGg+PC9tYXNrPjwvZGVmcz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzEzMTMxMyIgbWFzaz0idXJsKCNzdGFyLWN1dCkiPjwvcmVjdD48L3N2Zz4K" alt="Terra" title="Terra" width="18" height="18" style="width: 18px; height: 18px; flex-shrink: 0;">
+        <span style="color: #1f7a4d; font-size: 10px;">●</span>
+        <span style="font-weight: 700;">admin</span>
+        <span style="color: #5b6472; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; min-width: 0;">만료 21:40 · 권한: 모듈 관리 · 노드 조회</span>
+        <span style="flex-grow: 1;"></span>
+        <span style="font-size: 11px; font-weight: 700; color: #a65f00; border: 1px solid #a65f00; border-radius: 4px; padding: 0 5px; line-height: 16px;">예시 데이터</span>
+        <span style="width: 1px; height: 14px; background: #d3d8dd;"></span>
+        <span data-fs-cur="1" style="font-size: 11.5px; font-weight: 700; color: #1e3a5f;">{{ovh.boxCur}}</span>
+        <span aria-hidden="true" style="font-size: 10px; color: #1e3a5f;">{{ovh.boxChev}}</span>
+      </button>
+      <!-- 왼쪽 계기판: 선택 상태 -->
+      <div data-ovh-status="1" aria-label="선택 상태" style="position: absolute; left: 0; top: 0; z-index: 2; width: 440px; height: 88px; pointer-events: none; font-family: 'Noto Sans KR', system-ui, sans-serif;">
+        <div style="position: absolute; left: 32px; top: 18px; width: 164px; height: 60px; box-sizing: border-box; padding: 4px 9px; border-radius: 6px; background: linear-gradient(180deg, #0a120e, #0f1a14); border: 1px solid #05080a; box-shadow: inset 0 2px 6px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 1px; overflow: hidden;">
+          <span data-ovh-head="1" style="opacity: {{ovh.lcdOp}}; font-size: 10px; line-height: 13px; color: #4fbf82; letter-spacing: 0.02em; white-space: nowrap;">{{ovh.head}}</span>
+          <span data-ovh-name="1" style="font-size: 15px; line-height: 20px; font-weight: 700; color: #a8f7cb; text-shadow: {{ovh.lcdGlow}}; opacity: {{ovh.lcdOp}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;">{{ovh.name}}</span>
+          <span style="opacity: {{ovh.lcdOp}}; font-size: 10px; line-height: 13px; color: #6fd29c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ovh.detail}}</span>
+        </div>
+        <div style="position: absolute; left: 204px; top: 18px; width: 132px; display: grid; grid-template-columns: repeat(3, 40px); grid-auto-rows: 18px; gap: 3px 4px;">
+          <sc-for list="{{ovh.lamps}}" as="lp" hint-placeholder-count="9">
+            <span title="{{lp.tip}}" style="pointer-events: auto; box-sizing: border-box; border-radius: 3px; border: 1px solid #07090b; background: {{lp.bg}}; box-shadow: {{lp.glow}}; color: {{lp.fg}}; text-shadow: {{lp.ts}}; font-size: 9px; font-weight: 700; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; white-space: nowrap; transition: color 160ms, box-shadow 160ms;">{{lp.label}}</span>
+          </sc-for>
+        </div>
+      </div>
+      <!-- 오른쪽 계기판: 폴더 보관함. 누르면 사이드 바가 상단 테이블 뒤에서 위 → 아래로 내려온다. 램프 셋 = 바로가기(누르면 그곳으로 바로) -->
+      <div data-fb-pod="1" role="button" aria-label="폴더 보관함 — {{fb.podState}}" aria-expanded="{{fb.open}}" onPointerDown="{{stopEv}}" onClick="{{fb.toggle}}" style="position: absolute; left: 1100px; top: 10px; z-index: 2; width: 326px; height: 78px; cursor: pointer; font-family: 'Noto Sans KR', system-ui, sans-serif; clip-path: polygon(0 0, 100% 0, 100% 100%, 13px 100%, 0 68px);">
+        <svg width="30" height="28" viewBox="0 0 30 28" aria-hidden="true" style="position: absolute; left: 22px; top: 6px;">
+          <rect x="2" y="1" width="26" height="26" rx="3" fill="#3a424d" stroke="#0b0d10" stroke-width="1.2"></rect>
+          <rect x="5" y="4" width="20" height="9" rx="1.5" fill="#262c34" stroke="#0b0d10" stroke-width="1"></rect>
+          <rect x="5" y="15" width="20" height="9" rx="1.5" fill="#262c34" stroke="#0b0d10" stroke-width="1"></rect>
+          <rect x="11" y="7.5" width="8" height="2.4" rx="1.2" fill="url(#ovh-ss)"></rect>
+          <rect x="11" y="18.5" width="8" height="2.4" rx="1.2" fill="url(#ovh-ss)"></rect>
+        </svg>
+        <span style="position: absolute; left: 60px; top: 5px; font-size: 12.5px; font-weight: 800; color: #e3e7ec; letter-spacing: 0.02em;">폴더 보관함</span>
+        <span style="position: absolute; left: 60px; top: 21px; font-size: 9.5px; color: #8b95a6;">저장소 · 탐색기 · 메모장</span>
+        <span style="position: absolute; right: 14px; top: 8px; display: flex; align-items: center; gap: 5px; font-size: 10px; color: #c3cad5; font-weight: 700;"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{fb.podLamp}}; box-shadow: {{fb.podGlow}};"></span>{{fb.podState}} {{fb.podChev}}</span>
+        <div style="position: absolute; left: 22px; top: 40px; width: 290px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
+          <sc-for list="{{fb.lamps}}" as="fl" hint-placeholder-count="3">
+            <button type="button" data-fb-lamp="{{fl.id}}" title="{{fl.tip}}" onPointerDown="{{stopEv}}" onClick="{{fl.go}}" style="height: 18px; box-sizing: border-box; border-radius: 3px; border: 1px solid #07090b; background: #14181d; box-shadow: {{fl.glow}}; color: {{fl.fg}}; text-shadow: {{fl.ts}}; font: inherit; font-size: 9.5px; font-weight: 700; cursor: pointer; padding: 0;">{{fl.label}}</button>
+          </sc-for>
+        </div>
+        <span aria-hidden="true" style="position: absolute; left: 117px; top: 64px; width: 110px; height: 6px; border-radius: 3px; background: linear-gradient(180deg, #f4f6f8, #b9c0c9 55%, #e3e7ec); border: 1px solid #5b6472; box-shadow: 0 1px 0 rgba(0,0,0,0.5);"></span>
+      </div>
+      <!-- 폴더 보관함 사이드 바: 상단 테이블(선체) 뒤에서 위 → 아래로 내려온다 -->
+      <sc-if value="{{fb.open}}" hint-placeholder-val="{{false}}">
+        <aside data-fb-side="1" class="fb-drop" aria-label="폴더 보관함 — {{fb.title}}" onPointerDown="{{stopEv}}" style="position: absolute; left: 1112px; top: 40px; width: 327px; height: 716px; z-index: 0; box-sizing: border-box; padding: 66px 0 0; display: flex; flex-direction: column; background: #ffffff; border: 2.2px solid #1f2a37; border-top: 0; border-radius: 0 0 18px 18px; box-shadow: 0 10px 28px rgba(22,25,31,0.22); overflow: hidden; font-family: 'Noto Sans KR', system-ui, sans-serif;">
+          <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 10px 8px 14px; border-bottom: 1px solid #eef1f5;">
+            <sc-if value="{{fb.browse}}" hint-placeholder-val="{{false}}">
+              <button type="button" aria-label="뒤로" title="뒤로" onClick="{{fb.back}}" style="width: 26px; height: 26px; border: 1px solid #d8dde5; border-radius: 13px; background: #ffffff; cursor: pointer; font: inherit; font-size: 13px; padding: 0;">←</button>
+            </sc-if>
+            <span aria-hidden="true" style="font-size: 17px;">{{fb.icon}}</span>
+            <span data-fb-title="1" style="font-size: 14px; font-weight: 800;">{{fb.title}}</span>
+            <sc-if value="{{fb.ro}}" hint-placeholder-val="{{false}}"><span style="height: 16px; padding: 0 6px; border-radius: 8px; background: #eef1f5; color: #5b6472; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center;">읽기만</span></sc-if>
+            <sc-if value="{{fb.rw}}" hint-placeholder-val="{{false}}"><span style="height: 16px; padding: 0 6px; border-radius: 8px; background: #e3f4ea; color: #1f7a4d; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center;">쓰기</span></sc-if>
+            <span style="flex-grow: 1;"></span>
+            <button type="button" aria-label="폴더 보관함 닫기" onClick="{{fb.close}}" style="width: 26px; height: 26px; border: 0; border-radius: 13px; background: #f4f6f9; color: #5b6472; cursor: pointer; font: inherit; font-size: 14px; padding: 0;">×</button>
+          </div>
+          <sc-if value="{{fb.home}}" hint-placeholder-val="{{true}}">
+            <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 10px; padding: 14px;">
+              <span style="font-size: 11px; color: #8b95a6;">바로가기</span>
+              <sc-for list="{{fb.shortcuts}}" as="sc" hint-placeholder-count="3">
+                <button type="button" class="fsl-item" data-fb-go="{{sc.id}}" onClick="{{sc.go}}" style="display: flex; align-items: center; gap: 12px; padding: 12px 12px; border: 1px solid #d8dde5; border-radius: 12px; background: #f7f8f6; cursor: pointer; font: inherit; text-align: left;">
+                  <span aria-hidden="true" style="width: 40px; height: 40px; border-radius: 10px; background: #16191f; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">{{sc.icon}}</span>
+                  <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1;">
+                    <span style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 13.5px; font-weight: 800; color: #16191f;">{{sc.name}}</span><span style="height: 15px; padding: 0 5px; border-radius: 7px; background: {{sc.bbg}}; color: {{sc.bc}}; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center;">{{sc.badge}}</span></span>
+                    <span style="font-size: 11px; color: #5b6472; line-height: 15px;">{{sc.desc}}</span>
+                  </span>
+                  <span aria-hidden="true" style="color: #8b95a6;">›</span>
+                </button>
+              </sc-for>
+              <span style="margin-top: auto; font-size: 10.5px; color: #8b95a6; line-height: 15px;">세 곳 모두 로컬 OS 파일 관리자로 열 수 있다 — Linux xdg-open · Windows 탐색기 · macOS Finder</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{fb.browse}}" hint-placeholder-val="{{false}}">
+            <div style="flex-shrink: 0; display: flex; align-items: center; gap: 2px; padding: 8px 12px 4px; flex-wrap: wrap; font-size: 11.5px;">
+              <sc-for list="{{fb.crumbs}}" as="cb" hint-placeholder-count="2">
+                <button type="button" onClick="{{cb.go}}" style="border: 0; background: transparent; padding: 1px 3px; font: inherit; font-size: 11.5px; color: #1e3a5f; font-weight: 700; cursor: pointer;">{{cb.label}} ›</button>
+              </sc-for>
+            </div>
+            <div style="flex-shrink: 0; display: flex; gap: 5px; padding: 4px 12px 8px;">
+              <button type="button" data-fb-os="1" class="hb-btn" onClick="{{fb.os}}" title="로컬 OS 파일 관리자로 이 폴더 열기" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 13px; background: #ffffff; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer;">⧉ 파일 관리자</button>
+              <sc-if value="{{fb.rw}}" hint-placeholder-val="{{false}}">
+                <button type="button" data-fb-new="1" class="hb-btn" onClick="{{fb.newMemo}}" style="height: 26px; padding: 0 10px; border: 1px solid #16191f; border-radius: 13px; background: #16191f; color: #ffffff; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer;">+ 메모</button>
+                <button type="button" class="hb-btn" onClick="{{fb.mkdir}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 13px; background: #ffffff; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer;">+ 폴더</button>
+              </sc-if>
+            </div>
+            <div data-fb-rows="1" style="flex-grow: 1; min-height: 0; overflow-y: auto; padding: 0 8px 8px;">
+              <sc-for list="{{fb.rows}}" as="r" hint-placeholder-count="4">
+                <div data-fb-row="{{r.id}}" role="button" onClick="{{r.open}}" style="display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; background: {{r.bg}}; opacity: {{r.op}}; cursor: pointer;" class="fb-row">
+                  <span aria-hidden="true" style="font-size: 17px; width: 22px; text-align: center; flex-shrink: 0;">{{r.glyph}}</span>
+                  <span style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1;">
+                    <span style="font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{r.name}}</span>
+                    <span style="font-size: 10.5px; color: #8b95a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{r.sub}}</span>
+                  </span>
+                  <span style="font-size: 10px; color: #5b6472; white-space: nowrap; flex-shrink: 0;">{{r.act}}</span>
+                  <sc-if value="{{r.canDel}}" hint-placeholder-val="{{false}}">
+                    <button type="button" data-fb-del="{{r.id}}" onClick="{{r.del}}" style="height: 22px; padding: 0 7px; border: 1px solid #f3c2ca; border-radius: 11px; background: #ffffff; color: #d33d52; font: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer; flex-shrink: 0;">{{r.delLabel}}</button>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{fb.empty}}" hint-placeholder-val="{{false}}">
+                <span style="display: block; padding: 22px 8px; text-align: center; font-size: 12px; color: #8b95a6;">비어 있음</span>
+              </sc-if>
+            </div>
+            <span style="flex-shrink: 0; padding: 7px 14px; border-top: 1px solid #eef1f5; font-size: 10.5px; color: #8b95a6;">{{fb.note}}</span>
+          </sc-if>
+          <sc-if value="{{fb.hasMsg}}" hint-placeholder-val="{{false}}">
+            <span data-fb-msg="1" style="position: absolute; left: 10px; right: 10px; bottom: 34px; padding: 7px 10px; border-radius: 8px; background: #16191f; color: #ffffff; font-size: 11px; line-height: 15px; box-shadow: 0 4px 12px rgba(22,25,31,0.25);"><span style="color: {{fb.msgC}};">●</span> {{fb.msg}}</span>
+          </sc-if>
+        </aside>
+      </sc-if>
+    </div>
+
+    <div data-field-root="1" onWheel="{{fieldWheel}}" onPointerDown="{{fieldDown}}" onContextMenu="{{fieldCtx}}" onPointerMove="{{fieldMove}}" onPointerUp="{{fieldUp}}" onPointerLeave="{{fieldLeave}}" onKeyDown="{{fieldKey}}" style="position: relative; flex-grow: 1; min-height: 0; background: #eef1f5; cursor: {{fieldCursor}}; user-select: none; outline: none;">
+      <!-- 전체 화면 중: 오버헤드 패널 가운데 파인 곳(양옆 계기판 사이)으로 맵이 보인다. 누르면 맵 화면으로 -->
+      <sc-if value="{{fsOn}}" hint-placeholder-val="{{false}}">
+        <div data-fs-notch="1" class="fs-notch" role="button" aria-label="맵 화면으로 돌아가기" title="맵 화면으로" onPointerDown="{{fsNotchDown}}" onClick="{{fsExitEv}}" style="position: absolute; left: 0; top: 0; width: 1447px; height: 56px; z-index: 71; cursor: pointer; clip-path: polygon(338px 56px, 365px 45.6px, 407px 13px, 435px 2px, 1012px 2px, 1040px 13px, 1082px 45.6px, 1109px 56px); transition: background 160ms;">
+          <span class="fs-notch-tag" style="position: absolute; left: 50%; top: 22px; transform: translateX(-50%); height: 24px; padding: 0 12px; border-radius: 12px; background: rgba(15,18,22,0.78); color: #ffffff; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; white-space: nowrap;">🗺️ 맵으로 돌아가기</span>
+        </div>
+      </sc-if>
+      <!-- 조타륜 앱 전체 화면: 앱 바의 자원 카드를 화면 가득 늘어놓는다 (지금 맵 노드의 자원 · 권한 표시 그대로) -->
+      <sc-if value="{{fsHb.on}}" hint-placeholder-val="{{false}}">
+        <section data-win="hb:{{fsHb.app}}" class="fs-hb" role="dialog" aria-label="{{fsHb.name}} 전체 화면" onPointerDown="{{fsHb.stop}}" style="position: absolute; left: 0; top: 56px; width: 1447px; height: 845px; z-index: 70; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; border-top: 1px solid #d8dde5;">
+          <header style="height: 64px; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; gap: 14px; padding: 0 12px 0 22px; border-bottom: 1px solid #eef1f5;">
+            <img src="{{fsHb.logo}}" alt="" width="30" height="30" style="width: 30px; height: 30px; image-rendering: pixelated;">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <h2 style="margin: 0; font-size: 16px; font-weight: 800;">{{fsHb.name}}</h2>
+              <span style="font-size: 11.5px; color: #8b95a6;">{{fsHb.sub}}</span>
+            </div>
+            <span style="width: 1px; height: 30px; background: #eef1f5;"></span>
+            <span style="height: 18px; padding: 0 6px; border-radius: 4px; background: #16191f; color: #ffffff; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center;">{{fsHb.nodeTag}}</span>
+            <span style="font-size: 14px; font-weight: 700;">{{fsHb.node}}</span>
+            <span style="height: 18px; padding: 0 7px; border-radius: 9px; border: 1px solid {{fsHb.roleC}}; color: {{fsHb.roleC}}; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center;">{{fsHb.role}}</span>
+            <sc-for list="{{fsHb.perms}}" as="pm" hint-placeholder-count="2">
+              <span title="{{pm.tip}}" style="height: 18px; padding: 0 7px; border-radius: 9px; background: {{pm.bg}}; color: {{pm.fg}}; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">{{pm.mark}} {{pm.label}}</span>
+            </sc-for>
+            <span data-hb-msg="1" style="font-size: 12px; color: {{fsHb.msgC}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1;">{{fsHb.msg}}</span>
+            <span style="flex-grow: 1;"></span>
+            <sc-for list="{{fsHb.heads}}" as="h" hint-placeholder-count="1">
+              <button type="button" class="hb-btn" onClick="{{h.go}}" title="{{h.tip}}" style="height: 28px; padding: 0 12px; border: 1px solid {{h.line}}; border-radius: 14px; background: {{h.bg}}; color: {{h.fg}}; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;">{{h.label}}</button>
+            </sc-for>
+            <button type="button" data-fs-btn="hb" aria-label="전체 화면 끝 — 맵으로" title="전체 화면 끝 — 맵으로" onClick="{{fsHb.fsExit}}" style="width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: #5b6472; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"></path></svg></button>
+          </header>
+          <sc-if value="{{fsHb.list}}" hint-placeholder-val="{{true}}">
+            <div style="flex-grow: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; padding: 20px 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); grid-auto-rows: 132px; gap: 12px; align-content: start;">
+              <sc-for list="{{fsHb.cards}}" as="d" hint-placeholder-count="4">
+                <div class="hb-card" title="{{d.raw}}" style="animation-delay: {{d.delay}}ms; box-sizing: border-box; padding: 12px 13px; border: 1px {{d.bstyle}} {{d.bline}}; border-radius: 14px; background: {{d.bg}}; opacity: {{d.op}}; display: flex; flex-direction: column; gap: 6px; position: relative; min-width: 0;">
+                  <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                    <img src="{{d.icon}}" alt="" width="28" height="28" style="width: 28px; height: 28px; image-rendering: pixelated; flex-shrink: 0;">
+                    <div style="display: flex; flex-direction: column; min-width: 0;">
+                      <span style="font-size: 13.5px; line-height: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{d.name}}</span>
+                      <span style="font-size: 11px; line-height: 14px; color: #8b95a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{d.sub}}</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                    <span style="flex-shrink: 0; height: 20px; padding: 0 8px; border-radius: 10px; background: {{d.cbg}}; color: {{d.cfg}}; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{d.cfg}};"></span>{{d.chip}}</span>
+                    <span style="font-size: 11px; color: #5b6472; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">{{d.meta}}</span>
+                  </div>
+                  <sc-if value="{{d.progOn}}" hint-placeholder-val="{{false}}">
+                    <div style="height: 4px; border-radius: 2px; background: #eef1f5; overflow: hidden;"><div style="width: {{d.prog}}%; height: 4px; background: {{d.cfg}}; transition: width 450ms linear;"></div></div>
+                  </sc-if>
+                  <div style="display: flex; gap: 5px; margin-top: auto;">
+                    <sc-for list="{{d.acts}}" as="a" hint-placeholder-count="2">
+                      <button type="button" class="hb-btn" onClick="{{a.go}}" title="{{a.tip}}" style="flex: 1 1 0; min-width: 0; height: 26px; padding: 0 6px; border: 1px solid {{a.line}}; border-radius: 13px; background: {{a.bg}}; color: {{a.fg}}; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{a.label}}</button>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{d.busy}}" hint-placeholder-val="{{false}}">
+                    <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 14px; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center;"><span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid #c3cad5; border-top-color: #2563eb; animation: tl-spin 700ms linear infinite;"></span></span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{fsHb.locked}}" hint-placeholder-val="{{false}}">
+            <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #5b6472; font-size: 14px;">
+              <span style="font-weight: 700; color: #d33d52;">{{fsHb.lockMsg}}</span>
+              <span>다른 노드의 자원이다 — 그 노드를 관리하는 tree에 로그인하거나 권한을 받아야 보인다</span>
+            </div>
+          </sc-if>
+        </section>
+      </sc-if>
+      <svg data-field-svg="1" data-field-low="1" width="1447" height="901" viewBox="0 0 1447 901" aria-hidden="true" style="display: block; position: relative; pointer-events: none;">
+        <defs>
+          <!-- 건물 무늬(pattern)는 템플릿에 두지 않는다 — componentDidMount에서 이미지로 한 번 구워 문서에 따로 붙인다 (mountBldgDefs) -->
+            </pattern>
+          </sc-for>
+          <radialGradient id="soft-shadow"><stop offset="0" stop-color="#1c2733" stop-opacity="0.2"></stop><stop offset="0.55" stop-color="#1c2733" stop-opacity="0.17"></stop><stop offset="0.8" stop-color="#1c2733" stop-opacity="0.07"></stop><stop offset="1" stop-color="#1c2733" stop-opacity="0"></stop></radialGradient>
+          <filter id="soft" x="-20%" y="-50%" width="140%" height="200%">
+            <feGaussianBlur stdDeviation="22"></feGaussianBlur>
+          </filter>
+          <sc-for list="{{fieldPats}}" as="pt" hint-placeholder-count="0">
+            <pattern id="{{pt.id}}" patternUnits="userSpaceOnUse" width="{{pt.w}}" height="{{pt.h}}" patternTransform="{{pt.m}}">
+              <sc-for list="{{pt.rects}}" as="r" hint-placeholder-count="0">
+                <rect x="{{r.x}}" y="{{r.y}}" width="{{r.w}}" height="{{r.h}}" fill="{{r.fill}}"></rect>
+              </sc-for>
+            </pattern>
+          </sc-for>
+          <!-- 그라운드 윗면 무늬: 스킨 · 회전 · 프레임마다 하나 (세계 좌표에 고정 — 이웃 칸과 이음매 없이 이어진다) -->
+          <sc-for list="{{gPats}}" as="pt" hint-placeholder-count="0">
+            <pattern id="{{pt.id}}" patternUnits="userSpaceOnUse" width="{{pt.w}}" height="{{pt.h}}" patternTransform="{{pt.m}}">
+              <sc-for list="{{pt.rects}}" as="r" hint-placeholder-count="0">
+                <rect x="{{r.x}}" y="{{r.y}}" width="{{r.w}}" height="{{r.h}}" fill="{{r.fill}}"></rect>
+              </sc-for>
+              <sc-for list="{{pt.imgs}}" as="im" hint-placeholder-count="0">
+                <image href="{{im.href}}" x="{{im.x}}" y="{{im.y}}" width="{{im.w}}" height="{{im.h}}" preserveAspectRatio="none" style="image-rendering: pixelated;"></image>
+              </sc-for>
+            </pattern>
+          </sc-for>
+          <sc-for list="{{pfPats}}" as="pt" hint-placeholder-count="0">
+            <pattern id="{{pt.id}}" patternUnits="userSpaceOnUse" width="{{pt.w}}" height="{{pt.h}}" patternTransform="{{pt.m}}">
+              <sc-for list="{{pt.rects}}" as="r" hint-placeholder-count="0">
+                <rect x="{{r.x}}" y="{{r.y}}" width="{{r.w}}" height="{{r.h}}" fill="{{r.fill}}"></rect>
+              </sc-for>
+            </pattern>
+          </sc-for>
+          <sc-for list="{{pfDefs}}" as="pd" hint-placeholder-count="0">
+            <g id="{{pd.id}}">
+              <polygon points="{{pd.base}}" fill="{{pd.baseFill}}"></polygon>
+              <sc-for list="{{pd.paths}}" as="pp" hint-placeholder-count="0">
+                <path d="{{pp.d}}" fill="{{pp.c}}" stroke="{{pp.c}}" stroke-width="0.35" stroke-linejoin="round"></path>
+              </sc-for>
+              <polygon points="{{pd.top}}" fill="url(#pf-top)"></polygon>
+              <sc-for list="{{pd.rim}}" as="rp" hint-placeholder-count="0">
+                <path d="{{rp.d}}" fill="{{rp.c}}" stroke="{{rp.c}}" stroke-width="0.35" stroke-linejoin="round"></path>
+              </sc-for>
+            </g>
+          </sc-for>
+          <clipPath id="clip-tile"><polygon points="{{tg.top}}"></polygon></clipPath>
+          <clipPath id="clip-ground" clipPathUnits="userSpaceOnUse"><rect x="-130" y="-520" width="260" height="615"></rect></clipPath>
+          <sc-for list="{{tileDefs}}" as="td" hint-placeholder-count="0">
+            <g id="{{td.id}}">
+              <polygon points="{{td.base}}" fill="{{td.baseFill}}"></polygon>
+              <sc-for list="{{td.paths}}" as="pp" hint-placeholder-count="0">
+                <path d="{{pp.d}}" fill="{{pp.c}}" stroke="{{pp.c}}" stroke-width="0.35" stroke-linejoin="round"></path>
+              </sc-for>
+              <polygon points="{{td.top}}" fill="{{td.topFill}}"></polygon>
+              <sc-for list="{{td.rim}}" as="rp" hint-placeholder-count="0">
+                <path d="{{rp.d}}" fill="{{rp.c}}" stroke="{{rp.c}}" stroke-width="0.35" stroke-linejoin="round"></path>
+              </sc-for>
+            </g>
+          </sc-for>
+          <pattern id="foam-a" patternUnits="userSpaceOnUse" width="140" height="120"><rect width="140" height="120" fill="#f4fbfb"></rect><g fill="#7fd0d8"><ellipse cx="76.2" cy="44.4" rx="3.6" ry="3.2"></ellipse><ellipse cx="9.2" cy="1.6" rx="5.8" ry="5.6"></ellipse><ellipse cx="9.2" cy="121.6" rx="5.8" ry="4.8"></ellipse><ellipse cx="-0.6" cy="56.4" rx="3.6" ry="3.4"></ellipse><ellipse cx="139.4" cy="56.4" rx="3.6" ry="3.1"></ellipse><ellipse cx="21.1" cy="76.2" rx="5.9" ry="5.7"></ellipse><ellipse cx="103.8" cy="80.6" rx="5.1" ry="3.9"></ellipse><ellipse cx="82.8" cy="36.2" rx="6.9" ry="5.2"></ellipse><ellipse cx="66.2" cy="86.3" rx="7.8" ry="7.5"></ellipse><ellipse cx="129.0" cy="47.4" rx="6.5" ry="6.2"></ellipse><ellipse cx="131.0" cy="105.5" rx="4.6" ry="3.6"></ellipse><ellipse cx="30.4" cy="115.9" rx="3.2" ry="2.8"></ellipse><ellipse cx="42.1" cy="60.9" rx="5.8" ry="4.9"></ellipse><ellipse cx="81.9" cy="70.1" rx="4.1" ry="4.0"></ellipse><ellipse cx="130.1" cy="102.8" rx="6.3" ry="6.2"></ellipse><ellipse cx="22.8" cy="103.3" rx="6.2" ry="6.1"></ellipse><ellipse cx="79.7" cy="85.7" rx="8.1" ry="6.5"></ellipse><ellipse cx="80.3" cy="34.2" rx="7.5" ry="5.7"></ellipse><ellipse cx="-1.4" cy="10.6" rx="7.7" ry="7.3"></ellipse><ellipse cx="138.6" cy="10.6" rx="7.7" ry="6.5"></ellipse><ellipse cx="41.1" cy="92.3" rx="3.3" ry="3.2"></ellipse><ellipse cx="86.0" cy="5.4" rx="3.0" ry="2.8"></ellipse><ellipse cx="123.3" cy="-2.3" rx="4.0" ry="3.5"></ellipse><ellipse cx="123.3" cy="117.7" rx="4.0" ry="4.0"></ellipse><ellipse cx="10.8" cy="72.0" rx="3.9" ry="3.0"></ellipse><ellipse cx="57.1" cy="73.3" rx="3.4" ry="2.7"></ellipse><ellipse cx="121.5" cy="37.7" rx="3.0" ry="3.0"></ellipse><ellipse cx="52.9" cy="55.2" rx="8.0" ry="7.1"></ellipse><ellipse cx="83.4" cy="67.1" rx="6.0" ry="5.4"></ellipse><ellipse cx="71.0" cy="51.7" rx="8.4" ry="7.9"></ellipse></g></pattern>
+          <pattern id="foam-b" patternUnits="userSpaceOnUse" width="160" height="140"><rect width="160" height="140" fill="#e2f6f6"></rect><g fill="#5fc0cc"><ellipse cx="48.2" cy="-3.1" rx="8.0" ry="7.0"></ellipse><ellipse cx="48.2" cy="136.9" rx="8.0" ry="7.1"></ellipse><ellipse cx="66.4" cy="81.2" rx="7.0" ry="5.3"></ellipse><ellipse cx="101.1" cy="8.4" rx="11.6" ry="10.5"></ellipse><ellipse cx="101.1" cy="148.4" rx="11.6" ry="10.1"></ellipse><ellipse cx="56.4" cy="99.0" rx="12.4" ry="11.6"></ellipse><ellipse cx="9.7" cy="94.6" rx="7.0" ry="7.0"></ellipse><ellipse cx="73.0" cy="83.0" rx="8.1" ry="6.7"></ellipse><ellipse cx="50.0" cy="51.7" rx="9.0" ry="8.1"></ellipse><ellipse cx="60.3" cy="108.1" rx="8.5" ry="6.4"></ellipse><ellipse cx="117.6" cy="43.4" rx="11.1" ry="8.9"></ellipse><ellipse cx="38.2" cy="26.2" rx="14.1" ry="12.1"></ellipse><ellipse cx="16.3" cy="45.1" rx="12.6" ry="10.5"></ellipse><ellipse cx="70.1" cy="119.8" rx="14.5" ry="11.5"></ellipse><ellipse cx="104.0" cy="123.9" rx="8.8" ry="7.6"></ellipse><ellipse cx="19.3" cy="74.1" rx="7.9" ry="6.3"></ellipse><ellipse cx="134.2" cy="25.7" rx="14.1" ry="11.6"></ellipse><ellipse cx="102.7" cy="112.9" rx="14.1" ry="11.8"></ellipse></g></pattern>
+          <pattern id="foam-d" patternUnits="userSpaceOnUse" width="150" height="130"><g fill="#ffffff"><circle cx="19.5" cy="38.0" r="2.8"></circle><circle cx="40.7" cy="45.0" r="2.0"></circle><circle cx="63.0" cy="53.2" r="3.0"></circle><circle cx="23.4" cy="0.6" r="3.1"></circle><circle cx="132.0" cy="128.3" r="2.1"></circle><circle cx="142.5" cy="120.6" r="1.6"></circle><circle cx="111.8" cy="108.8" r="2.5"></circle><circle cx="77.9" cy="37.6" r="1.9"></circle><circle cx="34.1" cy="8.8" r="2.4"></circle><circle cx="43.1" cy="105.3" r="1.3"></circle><circle cx="135.5" cy="90.2" r="3.0"></circle><circle cx="134.5" cy="117.0" r="2.4"></circle><circle cx="2.0" cy="96.9" r="1.5"></circle><circle cx="45.0" cy="86.2" r="2.2"></circle><circle cx="62.1" cy="122.1" r="2.4"></circle><circle cx="51.2" cy="32.8" r="2.9"></circle><circle cx="71.6" cy="101.7" r="1.9"></circle><circle cx="29.6" cy="69.5" r="2.8"></circle><circle cx="25.7" cy="102.9" r="3.0"></circle><circle cx="120.9" cy="107.1" r="1.2"></circle><circle cx="94.3" cy="112.1" r="1.3"></circle><circle cx="40.7" cy="34.9" r="2.3"></circle></g></pattern>
+          <pattern id="sea-ripple" patternUnits="userSpaceOnUse" width="150" height="86">
+            <path d="M12 22 q8 -6 16 0 M86 60 q8 -6 16 0 M120 18 q6 -4 12 0 M46 74 q6 -4 12 0" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" opacity="0.28"></path>
+          </pattern>
+        </defs>
+
+        <rect width="1447" height="901" fill="none"></rect>
+        <g data-fx-g="1" transform="{{fx.T}}" style="opacity: {{fx.op}}; transition: opacity 180ms ease-out;">
+
+        <!-- 바다: 맵 배경 전체는 깊은 바다(화면 칸 fieldBg), 그 위 세계 좌표에 잔물결 무늬. 그라운드 둘레는 가까울수록 얕다 —
+             그라운드 윤곽(세계 좌표)을 굵기가 다른 선으로 겹쳐 그려 수심 띠를 만든다(바깥부터 깊음 → 얕음 → 물가 거품). 세로는 K로 눕혀 아이소 바닥에 붙는다
+             물가 띠와 거품은 천천히 밀려왔다 빠진다(sea-wash · sea-foam). 바다 유체 킷(Ocean 보드)의 물 · 거품 색을 따른다 -->
+        <g data-sea="1" style="pointer-events: none; opacity: {{gnd.op}}; transition: opacity 420ms ease-out;">
+          <g transform="{{gnd.seaT}}">
+</g>
+        </g>
+
+        <!-- 그라운드: 높이 0인 바닥 필드 (필드 바닥면 = 리전 높이). 칸 = 리전 격자의 보로노이 칸이라 이웃과 틈 없이 맞붙고, 이웃이 없는 꼭짓점만 둥글다
+             재질 · 무늬 회전이 같은 칸끼리 경로 하나로 칠한다. 애니메이션 재질은 animTick이 무늬(fill)만 바꾼다 -->
+        <g data-ground="1" style="pointer-events: none; opacity: {{gnd.op}}; transition: opacity 420ms ease-out;">
+          <!-- 해안: 관리 노드 창 해변과 같은 beach-foam 엔진을 해안선을 따라 감아 돌린다 (coastStart가 매 프레임 d만 바꾼다, 세계 좌표 → seaT).
+               뒤 → 앞: 얕은 물 · 거품 띠(리본) · 리본 구멍 · 거품 · 거품 구멍 → 해변(해안 그라운드 윗면, 물가 E 안쪽만) → 젖은 모래(E ~ W) → 그라운드 -->
+          <g>
+            <sc-for list="{{gnd.beach}}" as="bp" hint-placeholder-count="0">
+              <path data-ganim="{{bp.anim}}" d="{{bp.d}}" fill="{{bp.fill}}"></path>
+            </sc-for>
+          </g>
+          <sc-for list="{{gnd.parts}}" as="gp" hint-placeholder-count="0">
+            <path data-ganim="{{gp.anim}}" d="{{gp.d}}" fill="{{gp.fill}}"></path>
+          </sc-for>
+        </g>
+        </g>
+      </svg>
+      <!-- 바다 · 해안(캔버스): 아래 층 svg(해변 = 해안 그라운드 윗면 · 그라운드) 위, 위 층 svg(필드 · 건물) 아래.
+           깊은 바다 · 수심 띠 · beach-foam 해안(얕은 물 · 리본 · 거품 · 거품 구멍)을 그린 뒤, 물가(E) 안쪽을 지워 해변 · 그라운드가 보이게 한다. 젖은 모래(E ~ W)는 그 위에 옅게.
+           맵 이동 · 확대는 매 프레임 [data-fx-g]의 변환을 읽어 맞춘다 (seaStart · coastStart, 렌더 밖) -->
+      <canvas data-sea-cv="1" aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 1447px; height: 901px; pointer-events: none;"></canvas>
+      <!-- 위 층 svg: 필드 · 건물 · 노드 · 칸. 해안 파도가 매 프레임 바뀌어도 이 층은 다시 그리지 않도록 아래 층(바다 · 그라운드 · 해안)과 나눴다. 두 층은 같은 변환([data-fx-g])을 쓴다 -->
+      <svg data-field-svg="1" width="1447" height="901" viewBox="0 0 1447 901" role="img" aria-label="필드 — 타일마다 재질이 다른 클러스터 바닥" style="display: block; position: absolute; left: 0; top: 0;">
+        <g data-fx-g="1" transform="{{fx.T}}" style="opacity: {{fx.op}}; transition: opacity 180ms ease-out;">
+
+
+        <sc-for list="{{slots}}" as="sl" hint-placeholder-count="0">
+          <g transform="{{sl.T}}" data-slot="{{sl.key}}">
+            <polygon points="{{tg.top}}" fill="rgba(37,99,235,0.06)" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="8 7" stroke-linejoin="round" opacity="0.55"></polygon>
+            <polygon points="{{tg.top}}" fill="rgba(37,99,235,0.16)" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" opacity="{{sl.on}}"></polygon>
+          </g>
+        </sc-for>
+
+        <sc-for list="{{tiles}}" as="t" hint-placeholder-count="29">
+          <g class="{{t.rise}}" style="animation-delay: {{t.delay}};">
+            <g class="tile tile-lift" data-key="{{t.key}}" style="transform: translateY({{t.dy}}); opacity: {{t.op}}; cursor: grab;" onPointerDown="{{t.grab}}" onClick="{{t.pick}}">
+              <title>{{t.label}}</title>
+              <g style="transform: {{t.xf}}; opacity: {{t.mop}}; transition: {{t.atr}};">
+              <g transform="{{t.T0}}" clip-path="url(#clip-ground)"><g style="transform: translateY({{t.ly}}px); transition: transform 520ms cubic-bezier(.3,.7,.2,1);">
+              <image class="tile-body" data-anim="{{t.anim}}" href="{{t.img}}" x="{{t.ix}}" y="{{t.iy}}" width="{{t.iw}}" height="{{t.ih}}" preserveAspectRatio="none" style="display: {{t.imgDisp}};"></image>
+              <use class="tile-body" href="{{t.href}}" style="display: {{t.useDisp}};"></use>
+              <!-- 그라운드만 깔린 칸: 몸통이 없으니 바닥면의 윤곽으로 누른다 (필드를 끄는 동안엔 아래 빈 칸 표시가 받도록 비킨다) -->
+              <polygon points="{{tg.top}}" fill="#1c2733" fill-opacity="0.001" style="display: {{t.gDisp}}; pointer-events: {{t.gPe}};"></polygon>
+              <polygon class="{{t.ringCls}}" points="{{tg.top}}" fill="none" stroke="#2563eb" stroke-width="3" stroke-dasharray="14 10" stroke-linejoin="round" opacity="{{t.ring}}"></polygon>
+              <g clip-path="url(#clip-tile)" style="pointer-events: none;">
+                <path d="{{t.bshadow}}" fill="#1c2733" opacity="0.26"></path>
+              </g>
+              <image data-anim="{{t.banim}}" href="{{t.bimg}}" x="{{t.bix}}" y="{{t.biy}}" width="{{t.biw}}" height="{{t.bih}}" preserveAspectRatio="none" style="display: {{t.bimgDisp}}; pointer-events: none;"></image>
+              <!-- 누르기 판정: 건물 윤곽 한 장 (그리지 않음 — 이미지의 투명한 테두리가 뒤 타일을 가리지 않게) -->
+              <path d="{{t.bhit}}" fill="none" style="pointer-events: fill;"></path>
+              <g>
+                <sc-for list="{{t.bpaths}}" as="bp" hint-placeholder-count="0">
+                  <path d="{{bp.d}}" fill="{{bp.edge}}" fill-rule="evenodd" stroke="{{bp.edge}}" stroke-width="0.5" stroke-linejoin="round"></path>
+                  <path d="{{bp.d}}" fill="{{bp.fill}}" fill-rule="evenodd"></path>
+                </sc-for>
+              </g>
+              </g></g>
+              </g>
+            </g>
+          </g>
+        </sc-for>
+
+        <g transform="{{fghost2.T}}" opacity="{{fghost2.op}}" style="pointer-events: none; display: {{fghost2.disp}};">
+          <image data-anim="{{fghost2.anim}}" href="{{fghost2.img}}" x="{{fghost2.ix}}" y="{{fghost2.iy}}" width="{{fghost2.iw}}" height="{{fghost2.ih}}" preserveAspectRatio="none" style="display: {{fghost2.imgDisp}};"></image>
+          <use href="{{fghost2.href}}" style="display: {{fghost2.useDisp}};"></use>
+          <polygon points="{{tg.top}}" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 8" stroke-linejoin="round"></polygon>
+        </g>
+        <g transform="{{fghost.T}}" opacity="{{fghost.op}}" style="pointer-events: none; display: {{fghost.disp}};">
+          <image data-anim="{{fghost.anim}}" href="{{fghost.img}}" x="{{fghost.ix}}" y="{{fghost.iy}}" width="{{fghost.iw}}" height="{{fghost.ih}}" preserveAspectRatio="none" style="display: {{fghost.imgDisp}};"></image>
+          <use href="{{fghost.href}}" style="display: {{fghost.useDisp}};"></use>
+          <polygon points="{{tg.top}}" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="10 8" stroke-linejoin="round"></polygon>
+        </g>
+
+        <g transform="{{ghost.t}}" opacity="{{ghost.op}}" style="pointer-events: none;">
+          <path d="{{ghost.shadow}}" fill="#1c2733" opacity="0.26"></path>
+          <sc-for list="{{ghost.paths}}" as="gp" hint-placeholder-count="0">
+            <path d="{{gp.d}}" fill="{{gp.edge}}" fill-rule="evenodd" stroke="{{gp.edge}}" stroke-width="0.5" stroke-linejoin="round"></path>
+            <path d="{{gp.d}}" fill="{{gp.fill}}" fill-rule="evenodd"></path>
+          </sc-for>
+        </g>
+        </g>
+      </svg>
+
+      <!-- 보기 배율: 옮기거나 확대했을 때만 보인다. 가운데 = 처음 보기로 (키 0) -->
+      <div role="group" aria-label="맵 보기" style="display: {{zoom.disp}}; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 12; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,0.92); border: 1px solid #d8dde5; box-shadow: 0 4px 14px rgba(22,25,31,0.10); font-size: 12px;">
+        <button type="button" aria-label="축소" onClick="{{zoom.minus}}" style="width: 26px; height: 26px; border: 0; border-radius: 7px; background: transparent; font: inherit; font-size: 15px; cursor: pointer;">−</button>
+        <button type="button" aria-label="처음 보기로 (0)" title="처음 보기로 (0)" onClick="{{zoom.reset}}" style="min-width: 58px; height: 26px; border: 0; border-radius: 7px; background: #eef1f5; font: inherit; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer;">{{zoom.pct}} ⟲</button>
+        <button type="button" aria-label="확대" onClick="{{zoom.plus}}" style="width: 26px; height: 26px; border: 0; border-radius: 7px; background: transparent; font: inherit; font-size: 15px; cursor: pointer;">+</button>
+      </div>
+
+      <!-- 맵 제목 · 경로 · 모드 설명 · 범례는 없앴다 -->
+
+      <!-- 테이블(프사 · 조타륜 · 서랍창 뒤 받침): 요트 조종실. 흰 FRP(젤코트) 선체 테두리 안에 짙은 차콜 골덴 벨벳 좌석 둘, 가운데 파인 자리는 조타륜이 서는 흰 계기판.
+           관리 노드 창(해변)은 왼쪽 벨벳 위, 서랍창은 오른쪽 벨벳 위. 스테인리스 클리트 · 남색 줄무늬로 꾸민다. 유틸 서랍은 테이블 오른쪽 위에 붙어 위로 열린다 (맵보다 앞, 조작부보다 뒤)
+           벨벳 타일은 bld/velvet_tex.py(사선 골, 이음매 없는 96×96 → 48×48로 표시), 모양은 bld/cockpit.py가 만든다 -->
+      <!-- 조타륜 배경: 조타륜(바깥 고리)보다 반지름이 살짝 큰 원판. 조타륜과 함께 올라오고 내려간다 (hxStart가 매 프레임 자리 · 크기를 맞춘다).
+           테이블보다 아래 층이고, 테이블 바닥 아래(필드 y 893 밑)로는 잘려 나오지 않는다 -->
+      <div aria-hidden="true" style="position: absolute; left: 288px; top: 0; width: 872px; height: 893px; overflow: hidden; z-index: 1; pointer-events: none;">
+        <div data-hx-bg="1" style="position: absolute; left: 0; top: 0; box-sizing: border-box; border-radius: 50%; background: linear-gradient(180deg, #fdfdfb, #e6e9e6 18%); border: 1.5px solid #c9ced4; box-shadow: 0 -3px 10px rgba(22,25,31,0.18), inset 0 6px 0 -4.4px rgba(30,58,95,0.85);"></div>
+      </div>
+      <svg width="1447" height="180" viewBox="0 0 1447 180" aria-hidden="true" style="position: absolute; left: 0; bottom: 0; z-index: 2; pointer-events: none; overflow: visible; filter: drop-shadow(0 -3px 10px rgba(22,25,31,0.18));">
+        <defs>
+          <clipPath id="tbl-top" clipPathUnits="userSpaceOnUse"><rect x="-20" y="-20" width="1490" height="170"></rect></clipPath>
+          <clipPath id="tbl-bot" clipPathUnits="userSpaceOnUse"><rect x="-20" y="150" width="1490" height="60"></rect></clipPath>
+          <linearGradient id="gel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdfdfb"></stop><stop offset="1" stop-color="#e6e9e6"></stop></linearGradient>
+          <linearGradient id="ss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f6f8"></stop><stop offset="0.5" stop-color="#b9c0c9"></stop><stop offset="1" stop-color="#e3e7ec"></stop></linearGradient>
+          <pattern id="velvet" patternUnits="userSpaceOnUse" width="48" height="48" x="0" y="28">
+            <image href="data:image/png;base64,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kFVVEUJTSkopSul5eq31uq7HccQYKWVSCuT4um6+vj4pZVqb83SllPM8p2nU2rRti2xFKb1criH4nLMQIoQ4z1OMiTFOKWmapq5r3CkplbXWOSeWZUkpAYNobaSUKcWu62JM3ocQwnE4zvmyLPu+931/uVz3fff+jDFIqQghdV19fX3hMpdSrLVN03jvgW4JKVVVI36ttcfhGGPIXIwxRAfOEdmEc76uqxDSWota4f1Z13Up5Twd3tOyzDlnpbRSUkpljNVaPx53zjnAEc56HMeqsn0/4HQYY03TOucoJQgu547z9FIKSlldN5zzEIKUUimltXHueDyeDLegaRqtjZTCe4+XtizLcezee6XkcRzruvR9f71ez/M8jh0lBpXu+Xzi2lNKrDXX6xWYBRe1rpt5nnGbvPdaKzxtzklKSQhRSgshj2NHjG/byjmvqsoYI4SIMdR1wxhHdDjntm39gRfW2qqua63V8/mglBpj9n0nhORcxnE0xhhTIZejq0gp4q0QQvd9O44Dv9baUkpLKZwLzrlS2jn3+fm5bauo67rve+TmdV2HYZBS3u/349hyLoyxaZqO4xiGy+12897/IFrLGK/rel1X4PdScl03TdOep5NSci6OY+/7/vG4r+tS1/V5noRQayvkY611CF5KxTnD3UFSQ0OH09m2rWlaIDrOeYxxWZZSiLUVYwzfOca4rivyDoAf52yapqapra1QVQBEkP68Pyml3vtpmn7qrE4pc86FkJRSKdWyzPM8H8dRShFN0yilOBfrulhbEUL+/PkNQIkjQ97put7//KOUQiJf19X7EyDVGHu73dZ1RdRs2/r29oaOpqqqbduUUl3XneeJmPI+SKkQvKhQ5+mqqkZiVkrN84SE6P3JGI0xzfMSY2ia7wKitUavg7u879txOELIOI5N01hblUK0NohltAExBqS5dV2FENZaIURKUWujtfH+NMZu2zJNMyHEe980DWvbDhlUSiUE//z82LYNSXRZlhBC27Zt24bgQwjopI0x1lbTNK3rmlKWUhhj399/IfiNMc65vh9+mkDlvdda9/3AGBdCaG2cc1IKzjneUgjhPE9jLM5OSrksszG2qmpg3Bjjtu0ppa7rSylSKqRq4BIhpHPuPH0pZV0XrTWYAKUkeojzPIUQIQRc/+fzyTmv6wo9mtZGKRWCF0Lu+zaOIyFkXZeq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" x="0" y="0" width="48" height="48" preserveAspectRatio="none"></image>
+          </pattern>
+        </defs>
+        <path d="M8.0 44.0 Q8.0 10.0 42.0 10.0 L302.5 10.0 Q318.0 10.0 329.4 20.4 L428.6 110.6 Q440.0 121.0 455.5 121.0 L991.5 121.0 Q1007.0 121.0 1018.4 110.6 L1117.6 20.4 Q1129.0 10.0 1144.5 10.0 L1405.0 10.0 Q1439.0 10.0 1439.0 44.0 L1439.0 146.0 Q1439.0 172.0 1413.0 172.0 L34.0 172.0 Q8.0 172.0 8.0 146.0 Z" fill="url(#gel)" stroke="#1f2a37" stroke-width="2.2"></path>
+        <!-- 남색 줄: 위쪽은 5px 아래로 내려 입체감(윗면 두께처럼), 아래쪽은 선체 테두리와 일치 -->
+        <path d="M8.0 44.0 Q8.0 10.0 42.0 10.0 L302.5 10.0 Q318.0 10.0 329.4 20.4 L428.6 110.6 Q440.0 121.0 455.5 121.0 L991.5 121.0 Q1007.0 121.0 1018.4 110.6 L1117.6 20.4 Q1129.0 10.0 1144.5 10.0 L1405.0 10.0 Q1439.0 10.0 1439.0 44.0 L1439.0 146.0 Q1439.0 172.0 1413.0 172.0 L34.0 172.0 Q8.0 172.0 8.0 146.0 Z" fill="none" stroke="#1e3a5f" stroke-width="1.6" opacity="0.85" transform="translate(0 5)" clip-path="url(#tbl-top)"></path>
+        <path d="M8.0 44.0 Q8.0 10.0 42.0 10.0 L302.5 10.0 Q318.0 10.0 329.4 20.4 L428.6 110.6 Q440.0 121.0 455.5 121.0 L991.5 121.0 Q1007.0 121.0 1018.4 110.6 L1117.6 20.4 Q1129.0 10.0 1144.5 10.0 L1405.0 10.0 Q1439.0 10.0 1439.0 44.0 L1439.0 146.0 Q1439.0 172.0 1413.0 172.0 L34.0 172.0 Q8.0 172.0 8.0 146.0 Z" fill="none" stroke="#1e3a5f" stroke-width="1.6" opacity="0.85" clip-path="url(#tbl-bot)"></path>
+        <path d="M26.0 46.0 Q26.0 28.0 44.0 28.0 L295.4 28.0 Q304.0 28.0 310.3 33.8 L419.5 133.8 Q424.0 138.0 424.0 144.2 L424.0 147.0 Q424.0 156.0 415.0 156.0 L40.0 156.0 Q26.0 156.0 26.0 142.0 Z" fill="url(#velvet)" stroke="#0f1114" stroke-width="2"></path>
+        <path d="M1421.0 142.0 Q1421.0 156.0 1407.0 156.0 L1032.0 156.0 Q1023.0 156.0 1023.0 147.0 L1023.0 144.2 Q1023.0 138.0 1027.5 133.8 L1136.7 33.8 Q1143.0 28.0 1151.6 28.0 L1403.0 28.0 Q1421.0 28.0 1421.0 46.0 Z" fill="url(#velvet)" stroke="#0f1114" stroke-width="2"></path>
+        <path d="M26.0 46.0 Q26.0 28.0 44.0 28.0 L295.4 28.0 Q304.0 28.0 310.3 33.8 L419.5 133.8 Q424.0 138.0 424.0 144.2 L424.0 147.0 Q424.0 156.0 415.0 156.0 L40.0 156.0 Q26.0 156.0 26.0 142.0 Z" fill="none" stroke="rgba(0,0,0,0.22)" stroke-width="3" transform="translate(0 1.5)" style="mix-blend-mode: multiply;"></path>
+        <path d="M1421.0 142.0 Q1421.0 156.0 1407.0 156.0 L1032.0 156.0 Q1023.0 156.0 1023.0 147.0 L1023.0 144.2 Q1023.0 138.0 1027.5 133.8 L1136.7 33.8 Q1143.0 28.0 1151.6 28.0 L1403.0 28.0 Q1421.0 28.0 1421.0 46.0 Z" fill="none" stroke="rgba(0,0,0,0.22)" stroke-width="3" transform="translate(0 1.5)" style="mix-blend-mode: multiply;"></path>
+        <path d="M444.0 148.0 Q444.0 138.0 454.0 138.0 L993.0 138.0 Q1003.0 138.0 1003.0 148.0 L1003.0 152.0 Q1003.0 160.0 995.0 160.0 L452.0 160.0 Q444.0 160.0 444.0 152.0 Z" fill="#f7f8f6" stroke="#d3d8dd" stroke-width="1"></path>
+        <g transform="translate(250 17)"><rect x="-13" y="-2.6" width="26" height="5.2" rx="2.6" fill="url(#ss)" stroke="#6b7480" stroke-width="0.8"></rect><rect x="-5" y="-1.6" width="3" height="6" rx="1" fill="#8b95a6"></rect><rect x="2" y="-1.6" width="3" height="6" rx="1" fill="#8b95a6"></rect></g><g transform="translate(1197 17)"><rect x="-13" y="-2.6" width="26" height="5.2" rx="2.6" fill="url(#ss)" stroke="#6b7480" stroke-width="0.8"></rect><rect x="-5" y="-1.6" width="3" height="6" rx="1" fill="#8b95a6"></rect><rect x="2" y="-1.6" width="3" height="6" rx="1" fill="#8b95a6"></rect></g><g transform="translate(470 130)"><rect x="-13" y="-2.6" width="26" height="5.2" rx="2.6" fill="url(#ss)" stroke="#6b7480" stroke-width="0.8"></rect><rect x="-5" y="-1.6" width="3" height="6" rx="1" fill="#8b95a6"></rect><rect x="2" y="-1.6" width="3" height="6" rx="1" fill="#8b95a6"></rect></g><g transform="translate(977 130)"><rect x="-13" y="-2.6" width="26" height="5.2" rx="2.6" fill="url(#ss)" stroke="#6b7480" stroke-width="0.8"></rect><rect x="-5" y="-1.6" width="3" height="6" rx="1" fill="#8b95a6"></rect><rect x="2" y="-1.6" width="3" height="6" rx="1" fill="#8b95a6"></rect></g>
+      </svg>
+      <!-- 테이블 네임 박스(테이블 가운데 흰 박스): 조타륜 정면 로고의 이름을 보여 주고, 누르면 조타륜이 올라오고 · 들어간다 -->
+      <button type="button" data-hx-name="1" aria-label="테이블 네임 박스 — 누르면 조타륜 올리기 · 내리기" onClick="{{hxToggle}}" style="position: absolute; left: 444px; top: 859px; width: 559px; height: 22px; z-index: 3; box-sizing: border-box; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; font: inherit; font-size: 13px; font-weight: 700; color: #0f1216;"><span data-hx-name-t="1" style="pointer-events: none;"></span></button>
+
+      <!-- 조타륜: 화면 아래 가운데. 평소엔 거의 직선인 눈금 끝만 바닥에서 살짝 보이고, 누르면(클릭) 위로 올라오며 둥글게 휜다
+           누른 채 좌우로 끌거나, 올라온 상태에서 휠로 돌린다. 그림 · 위치 · 곡률은 hxStart가 캔버스에 직접 그린다 (렌더 밖) -->
+      <div data-hx-wrap="1" style="position: absolute; left: 423px; bottom: 0; width: 600px; height: 285px; z-index: 1; overflow: hidden; clip-path: inset(0 0 8px 0); pointer-events: none;">
+        <canvas data-hx-cv="1" aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 600px; height: 285px; pointer-events: none;"></canvas>
+        <div data-hx-zone="1" role="slider" aria-label="조타륜 — 누르면 올라옴 · 올라온 상태에서 누른 채 좌우로 끌거나 휠로 돌리기 · 누른 채 아래로 내리면 로컬 노드 맵으로(로컬 맵에선 부모 tree 맵으로) · 밖을 누르면 내려감" aria-valuemin="0" aria-valuemax="359" onPointerEnter="{{hxEnter}}" onPointerLeave="{{hxLeave}}" onPointerDown="{{hxDown}}" onPointerMove="{{hxMove}}" onPointerUp="{{hxUp}}" onPointerCancel="{{hxUp}}" onWheel="{{hxWheel}}" style="position: absolute; left: 0; bottom: 0; width: 600px; height: 30px; pointer-events: auto; cursor: grab; touch-action: none;"></div>
+      </div>
+
+      <!-- 조타륜 앱 바: 가운데 로고를 누르면 조타륜 위로 떠오른다. 창이 아니라 바 — 그 앱의 자원이 가로로 늘어서고 여기서 바로 조작한다.
+           열려 있는 동안 조타륜은 내려가지 않고, 조타륜을 돌리면 바의 앱이 바뀐다. × · Esc · 가운데 로고를 다시 누르면 닫힌다 -->
+      <sc-if value="{{hb.on}}" hint-placeholder-val="{{false}}">
+        <div aria-label="{{hb.name}} — {{hb.node}}의 자원 · 조타륜 앱" onPointerDown="{{hb.stop}}" onWheel="{{hb.wheel}}" class="hb-in" data-hb-key="{{hb.app}}" style="position: absolute; left: 413px; bottom: 271px; width: 620px; height: 158px; z-index: 5; box-sizing: border-box; border: 1px solid #d8dde5; border-radius: 22px; background: #ffffff; box-shadow: 0 10px 28px rgba(22,25,31,0.16), 0 2px 4px rgba(22,25,31,0.06); display: flex; align-items: stretch; overflow: hidden;">
+          <div style="width: 156px; flex-shrink: 0; box-sizing: border-box; padding: 11px 10px 10px 14px; border-right: 1px solid #eef1f5; display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+              <img src="{{hb.logo}}" alt="" width="24" height="24" style="width: 24px; height: 24px; image-rendering: pixelated; flex-shrink: 0;">
+              <span style="font-size: 13.5px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap;">{{hb.name}}</span>
+            </div>
+            <div data-hb-node="1" title="이 바가 다루는 자원의 노드 — 지금 맵의 노드" style="display: flex; align-items: center; gap: 5px; min-width: 0;">
+              <span style="height: 16px; padding: 0 5px; border-radius: 4px; background: #16191f; color: #ffffff; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; flex-shrink: 0;">{{hb.nodeTag}}</span>
+              <span style="font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">{{hb.node}}</span>
+            </div>
+            <div data-hb-perms="1" style="display: flex; flex-wrap: wrap; gap: 3px;">
+              <span title="이 노드에서 내 자리" style="height: 14px; padding: 0 5px; border-radius: 8px; border: 1px solid {{hb.roleC}}; color: {{hb.roleC}}; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; white-space: nowrap;">{{hb.role}}</span>
+              <sc-for list="{{hb.perms}}" as="pm" hint-placeholder-count="2">
+                <span title="{{pm.tip}}" style="height: 16px; padding: 0 5px; border-radius: 8px; background: {{pm.bg}}; color: {{pm.fg}}; font-size: 9.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap;">{{pm.mark}} {{pm.label}}</span>
+              </sc-for>
+            </div>
+            <span data-hb-msg="1" style="font-size: 10.5px; color: {{hb.msgC}}; line-height: 14px; max-height: 28px; overflow: hidden;">{{hb.msg}}</span>
+            <sc-if value="{{hb.hasHeads}}" hint-placeholder-val="{{true}}">
+              <div style="display: flex; gap: 4px; margin-top: auto;">
+                <sc-for list="{{hb.heads}}" as="h" hint-placeholder-count="1">
+                  <button type="button" class="hb-btn" onClick="{{h.go}}" title="{{h.tip}}" style="height: 22px; padding: 0 9px; border: 1px solid {{h.line}}; border-radius: 11px; background: {{h.bg}}; color: {{h.fg}}; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;">{{h.label}}</button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <sc-if value="{{hb.list}}" hint-placeholder-val="{{true}}">
+            <div class="hb-row" style="flex-grow: 1; min-width: 0; display: flex; gap: 8px; padding: 12px 72px 12px 12px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; align-items: stretch;" data-hb-row="1">
+              <sc-for list="{{hb.cards}}" as="d" hint-placeholder-count="4">
+                <div class="hb-card" title="{{d.raw}}" style="animation-delay: {{d.delay}}ms; width: 146px; flex-shrink: 0; box-sizing: border-box; padding: 8px 9px; border: 1px {{d.bstyle}} {{d.bline}}; border-radius: 14px; background: {{d.bg}}; opacity: {{d.op}}; display: flex; flex-direction: column; gap: 4px; position: relative;">
+                  <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                    <img src="{{d.icon}}" alt="" width="22" height="22" style="width: 22px; height: 22px; image-rendering: pixelated; flex-shrink: 0;">
+                    <div style="display: flex; flex-direction: column; min-width: 0;">
+                      <span style="font-size: 12px; line-height: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{d.name}}</span>
+                      <span style="font-size: 9.5px; line-height: 12px; color: #8b95a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{d.sub}}</span>
+                    </div>
+                  </div>
+                  <span style="align-self: flex-start; height: 18px; padding: 0 7px; border-radius: 9px; background: {{d.cbg}}; color: {{d.cfg}}; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: {{d.cfg}};"></span>{{d.chip}}</span>
+                  <sc-if value="{{d.progOn}}" hint-placeholder-val="{{false}}">
+                    <div style="height: 4px; border-radius: 2px; background: #eef1f5; overflow: hidden;"><div style="width: {{d.prog}}%; height: 4px; background: {{d.cfg}}; transition: width 450ms linear;"></div></div>
+                  </sc-if>
+                  <sc-if value="{{d.metaOn}}" hint-placeholder-val="{{true}}">
+                    <span style="font-size: 10px; line-height: 13px; color: #5b6472; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{d.meta}}</span>
+                  </sc-if>
+                  <div style="display: flex; gap: 4px; margin-top: auto;">
+                    <sc-for list="{{d.acts}}" as="a" hint-placeholder-count="2">
+                      <button type="button" class="hb-btn" onClick="{{a.go}}" title="{{a.tip}}" style="flex: 1 1 0; min-width: 0; height: 22px; padding: 0 4px; border: 1px solid {{a.line}}; border-radius: 11px; background: {{a.bg}}; color: {{a.fg}}; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{a.label}}</button>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{d.busy}}" hint-placeholder-val="{{false}}">
+                    <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 14px; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center;"><span style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid #c3cad5; border-top-color: #2563eb; animation: tl-spin 700ms linear infinite;"></span></span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{hb.locked}}" hint-placeholder-val="{{false}}">
+            <div data-hb-locked="1" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 0 48px 0 18px; color: #5b6472; font-size: 12.5px;">
+              <span style="font-weight: 700; color: #d33d52;">{{hb.lockMsg}}</span>
+              <span>다른 노드의 자원이다 — 그 노드를 관리하는 tree에 로그인하거나 권한을 받아야 보인다</span>
+            </div>
+          </sc-if>
+          <button type="button" data-hb-fs="1" aria-label="{{hb.name}} 전체 화면" title="전체 화면" onClick="{{hb.fsGo}}" style="position: absolute; right: 40px; top: 10px; width: 26px; height: 26px; border: 0; border-radius: 13px; background: #f4f6f9; color: #5b6472; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
+          <button type="button" aria-label="{{hb.name}} 바 닫기" onClick="{{hb.close}}" style="position: absolute; right: 10px; top: 10px; width: 26px; height: 26px; border: 0; border-radius: 13px; background: #f4f6f9; color: #5b6472; font: inherit; font-size: 14px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">×</button>
+        </div>
+      </sc-if>
+
+
+      <!-- 관리 노드 창: 지금 로그인한 tree. 프사를 누르고 있거나 Ctrl을 누르고 있으면 로그인할 수 있는 다른 tree가 돌아 나온다 -->
+      <div aria-hidden="{{tl.hidden}}" style="position: absolute; left: 0; top: 0; width: 560px; height: 760px; overflow: hidden; z-index: 6; pointer-events: none;">
+        <div style="position: absolute; left: {{mg.cx}}px; top: 811px; width: 0; height: 0; transition: {{mg.avTrans}};">
+         <!-- 부채: 양 끝 긴 눈금 사이만 보인다. 열 때 두 눈금이 반시계로 돌며 펼쳐지고(왼쪽 눈금이 맨 위), 닫을 땐 거꾸로 접힌다 -->
+         <div data-tl-fan="1" style="position: absolute; left: -300px; top: -300px; width: 600px; height: 600px; clip-path: polygon(300px 300px, 300px 300px, 300px 300px);">
+          <svg width="600" height="600" viewBox="-300 -300 600 600" aria-hidden="true" style="position: absolute; left: 0; top: 0;">
+            <g data-tl-ticks="1">
+              <sc-for list="{{tl.ticks}}" as="tk" hint-placeholder-count="0">
+                <line x1="{{tk.x1}}" y1="{{tk.y1}}" x2="{{tk.x2}}" y2="{{tk.y2}}" stroke="#1c2733" stroke-width="{{tk.w}}" stroke-linecap="round"></line>
+              </sc-for>
+            </g>
+          </svg>
+          <sc-for list="{{tl.items}}" as="ti" hint-placeholder-count="0">
+            <div data-tl-item="{{ti.i}}" style="position: absolute; left: 270px; top: 270px; width: 60px; height: 60px; transform: translate({{ti.x0}}px, {{ti.y0}}px);">
+              <div style="width: 60px; height: 60px; box-sizing: border-box; border-radius: 50%; border: {{ti.border}}; background: #eef3fb; box-shadow: 0 3px 10px rgba(22,25,31,0.18); overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <svg width="50" height="50" viewBox="{{ti.vb}}" aria-hidden="true">
+                  <path d="{{ti.shadow}}" fill="#1c2733" opacity="0.2"></path>
+                  <image data-anim="{{ti.anim}}" href="{{ti.img}}" x="{{ti.ix}}" y="{{ti.iy}}" width="{{ti.iw}}" height="{{ti.ih}}" preserveAspectRatio="none" style="display: {{ti.imgDisp}};"></image>
+                  <sc-for list="{{ti.paths}}" as="p" hint-placeholder-count="0">
+                    <path d="{{p.d}}" fill="{{p.edge}}" fill-rule="evenodd" stroke="{{p.edge}}" stroke-width="0.5" stroke-linejoin="round"></path>
+                    <path d="{{p.d}}" fill="{{p.fill}}" fill-rule="evenodd"></path>
+                  </sc-for>
+                </svg>
+              </div>
+              <span aria-hidden="true" style="position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%; background: {{ti.lockBg}}; border: 2px solid #ffffff; display: {{ti.lockDisp}}; align-items: center; justify-content: center;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="{{ti.lockIcon}}"></path></svg>
+              </span>
+              <span style="position: absolute; left: 50%; top: -24px; transform: translateX(-50%); white-space: nowrap; padding: 1px 8px; border-radius: 10px; background: #2563eb; color: #ffffff; font-size: 11.5px; font-weight: 600; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; opacity: {{ti.tagOp}}; transition: opacity 120ms;">{{ti.name}}</span>
+            </div>
+          </sc-for>
+         </div>
+         <sc-for list="{{tl.needles}}" as="nd" hint-placeholder-count="0">
+          <div data-tl-needle="{{nd.side}}" style="position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; transform: rotate(0deg);">
+            <svg width="104" height="14" viewBox="0 -7 104 14" aria-hidden="true" style="position: absolute; left: 108px; top: -7px; overflow: visible;">
+              <path d="M0 -3.2 L96 -0.8 Q104 0 96 0.8 L0 3.2 Z" fill="{{nd.fill}}"></path>
+            </svg>
+          </div>
+         </sc-for>
+        </div>
+      </div>
+
+      <!-- 관리 노드 창: 평소엔 이름만 보이게 접혀 있다가, 창을 누르면(클릭) 펼쳐지고 다시 누르거나 밖을 누르면 접힌다. 접혀도 펼쳐도 벽에서 살짝 떨어져 있다 -->
+      <!-- 지도 탭: 관리 노드 창 뒤에 깔려 오른쪽 끝만 살짝 튀어나온다 (끝 모양은 창과 같음). 누른 채 끌면 작은 네모가 따라오고, 놓은 자리에 지도 창이 켜진다 -->
+      <button type="button" aria-label="지도 — 누른 채 끌어 꺼내기" onPointerDown="{{mg.tabGrab}}" style="position: absolute; left: {{mg.tabL}}px; bottom: {{mg.bottom}}px; width: 140px; height: {{mg.height}}px; box-sizing: border-box; z-index: 4; padding: 0 0 0 {{mg.tabPad}}px; border: 1px solid #9fd8cb; border-radius: {{mg.radius}}; background: #c8efe7; color: #115e59; cursor: grab; touch-action: none; opacity: {{mg.tabOp}}; transform: translateX({{mg.tabX}}px); pointer-events: {{mg.tabPe}}; transition: {{mg.trans}}, opacity 200ms {{mg.tabDelay}}, transform 260ms cubic-bezier(.2,.8,.3,1) {{mg.tabDelay}}; display: flex; align-items: center; justify-content: center; font: inherit;">
+        <span style="display: block; transform: rotate(90deg); font-size: 13px; font-weight: 700; letter-spacing: 0.24em; white-space: nowrap;">MAP</span>
+      </button>
+      <section aria-label="관리 노드 창 — 누르면 펼치기 · 접기" onClick="{{mg.toggle}}" style="cursor: pointer; position: absolute; left: {{mg.left}}px; bottom: {{mg.bottom}}px; width: {{mg.width}}px; height: {{mg.height}}px; box-sizing: border-box; z-index: 5; background: #f6e4c8; border: 3px solid #ffffff; border-radius: {{mg.radius}}; box-shadow: 0 6px 20px rgba(22,25,31,0.10); overflow: hidden; transition: {{mg.trans}};">
+        <!-- 배경: 위에서 내려다본 해변. 해안선은 창 너비 2/3 지점을 따라 흐르고, 파도는 좌우로 밀려왔다 빠진다 (mgBeachStart가 캔버스에 직접 그린다) -->
+        <canvas data-mg-beach="1" aria-hidden="true" style="position: absolute; left: 0; top: 50%; width: 1000px; height: 128px; transform: translateY(-50%); pointer-events: none;"></canvas>
+      </section>
+      <!-- 이름 · 설명: 프사(노드)의 정보라 배경(관리 노드 창)이 아니라 프사 층에 둔다 — 배경에 잘리지 않고, 배경 너비도 이름에 맞추지 않는다.
+           자리 · 움직임은 예전과 같도록 배경과 같은 틀(같은 위치 · 크기 · 전환)을 투명하게 따라간다. 프사(6)보다 아래 · 배경(5) 위 -->
+      <div aria-label="관리 노드 이름 · 설명" style="position: absolute; left: {{mg.left}}px; bottom: {{mg.bottom}}px; width: {{mg.width}}px; height: {{mg.height}}px; box-sizing: border-box; z-index: 5; border: 3px solid transparent; pointer-events: none; transition: {{mg.trans}};">
+        <div style="position: absolute; left: {{mg.detL}}px; right: 24px; top: 58px; height: 64px; display: flex; align-items: center; gap: 24px; opacity: {{mg.detailOp}}; transform: translateY({{mg.detailY}}px); transition: opacity 200ms {{mg.detailDelay}}, transform 240ms cubic-bezier(.2,.8,.3,1) {{mg.detailDelay}}; pointer-events: none;">
+          <span style="font-size: 12px; color: #0b3440; font-weight: 500; white-space: nowrap;">{{tl.caption}} · {{tl.sub}}</span>
+          <span style="font-size: 12.5px; color: #0b3440; line-height: 1.5;">{{tl.hint}}</span>
+          <span style="flex-grow: 1;"></span>
+          <span style="font-size: 12.5px; color: #ffffff; font-weight: 600; text-align: right;">{{tl.note}}</span>
+        </div>
+      </div>
+      <!-- 이름: 화면 좌표에 따로 둔다 — 배경 틀이 늘고 줄어도 흔들리지 않고, 프사와 함께만 움직인다 -->
+      <div aria-label="관리 노드 이름" style="position: absolute; left: {{mg.nameX}}px; top: {{mg.nameTop}}px; height: {{mg.nameH}}px; z-index: 5; pointer-events: none; display: flex; align-items: center; opacity: {{mg.nameOp}}; transition: {{mg.nameTrans}};">
+          <span style="font-size: 18px; font-weight: 700; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; white-space: nowrap; color: {{tl.nameColor}};">{{tl.nameShow}}</span>
+      </div>
+
+      <!-- 나침반: 큰 바늘(포인터)은 안에서 나오면서 시계 방향으로 한 바퀴 돌고, 나머지 바늘은 큰 바늘이 지나갈 때 안에서 밖으로 나온다 -->
+      <div aria-hidden="true" style="position: absolute; left: {{mg.cx}}px; top: 811px; width: 0; height: 0; z-index: 6; pointer-events: none; transition: {{mg.avTrans}};">
+        <sc-for list="{{tl.spikes}}" as="sp" hint-placeholder-count="0">
+          <div data-tl-spike="{{sp.i}}" style="position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; transform: rotate({{sp.a}}deg) translateY({{sp.len0}}px);">
+            <svg width="{{sp.w2}}" height="{{sp.len}}" viewBox="{{sp.vb}}" style="position: absolute; left: {{sp.left}}px; top: {{sp.top}}px; overflow: visible;">
+              <path d="{{sp.d}}" fill="{{sp.fill}}"></path>
+            </svg>
+          </div>
+        </sc-for>
+      </div>
+      <button type="button" aria-label="{{cur.name}} — 누르고 있으면 다른 tree로 로그인" onPointerDown="{{tlDown}}" onPointerUp="{{tlUp}}" onPointerLeave="{{tlLeave}}" style="position: absolute; left: {{mg.avLeft}}px; bottom: 20px; width: 140px; height: 140px; z-index: 6; box-sizing: border-box; border-radius: 50%; border: 6px solid {{tl.avatarRing}}; background: #ffffff; box-shadow: 0 6px 20px rgba(22,25,31,0.18); padding: 6px; cursor: pointer; touch-action: none; transition: border-color 160ms, left {{mg.avDur}};">
+        <span style="position: relative; display: block; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; background: #c3c8d0; filter: {{av.filter}}; transition: filter 400ms;">
+          <sc-for list="{{av.layers}}" as="ly" hint-placeholder-count="1">
+            <span style="position: absolute; left: 0; top: 0; width: 116px; height: 116px; transform-origin: 58px 198px; transform: rotate({{ly.rot}}deg); transition: {{ly.trans}};">
+             <span style="display: block; width: 116px; height: 116px; border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 50% 40%, #f4f8ff, #dfe8f7); transform: scale({{av.scale}}); transition: transform 150ms ease-in-out;">
+              <svg width="116" height="116" viewBox="{{ly.vb}}" aria-hidden="true" style="display: block;">
+                <use href="{{ly.tile}}"></use>
+                <path d="{{ly.shadow}}" fill="#1c2733" opacity="0.2"></path>
+                <image data-anim="{{ly.anim}}" href="{{ly.img}}" x="{{ly.ix}}" y="{{ly.iy}}" width="{{ly.iw}}" height="{{ly.ih}}" preserveAspectRatio="none" style="display: {{ly.imgDisp}};"></image>
+                <sc-for list="{{ly.paths}}" as="p" hint-placeholder-count="0">
+                  <path d="{{p.d}}" fill="{{p.edge}}" fill-rule="evenodd" stroke="{{p.edge}}" stroke-width="0.5" stroke-linejoin="round"></path>
+                  <path d="{{p.d}}" fill="{{p.fill}}" fill-rule="evenodd"></path>
+                </sc-for>
+              </svg>
+             </span>
+            </span>
+          </sc-for>
+        </span>
+      </button>
+      <!-- 로그인 링: 로그인 중엔 돌고(프사는 회색), 성공하면 초록 원이 되며 프사가 밝아지고 사라진다. 실패하면 빨간 원이 되고 이전 노드로 돌아간다 -->
+      <svg width="168" height="168" viewBox="-84 -84 168 168" aria-hidden="true" style="position: absolute; left: {{mg.ringLeft}}px; bottom: 6px; z-index: 7; pointer-events: none; opacity: {{av.ringOp}}; transition: opacity 400ms, left {{mg.avDur}};">
+        <g class="{{av.spinClass}}">
+          <circle r="79" fill="none" stroke="{{av.track}}" stroke-width="6"></circle>
+          <circle r="79" fill="none" stroke="{{av.ring}}" stroke-width="6" stroke-linecap="round" stroke-dasharray="{{av.dash}}" transform="rotate(-90)" style="transition: stroke-dasharray 320ms ease-out, stroke 200ms;"></circle>
+        </g>
+      </svg>
+
+      <!-- 노드 로그인 창: 프사 뒤(레이어)에서 위로 튀어 나온다. 닫을 땐 다시 내려가 숨는다 -->
+      <sc-if value="{{lg.open}}" hint-placeholder-val="{{false}}">
+       <div style="position: absolute; left: {{mg.lgLeft}}px; bottom: {{mg.lgBottom}}px; width: 352px; height: {{mg.lgBoxH}}px; overflow: hidden; z-index: 4; pointer-events: none;">
+        <div class="lg-pop" role="dialog" aria-label="{{lg.title}}" onKeyDown="{{lg.key}}" style="position: absolute; left: 0; bottom: 0; width: 336px; animation-delay: 260ms; box-sizing: border-box; pointer-events: auto; transition: transform 220ms cubic-bezier(.5,0,.9,.5); {{lg.closeStyle}} display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 20px; background: #ffffff; border: 1px solid #d8dde5; border-radius: 12px; box-shadow: 0 12px 32px rgba(22,25,31,0.18);">
+          <div style="display: flex; align-items: center; gap: 10px; padding-right: 30px;">
+            <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48ZmlsdGVyIGlkPSJyb3VnaCIgeD0iLTEwJSIgeT0iLTEwJSIgd2lkdGg9IjEyMCUiIGhlaWdodD0iMTIwJSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjEuMSIgbnVtT2N0YXZlcz0iMiIgc2VlZD0iNyIgcmVzdWx0PSJuIj48L2ZlVHVyYnVsZW5jZT48ZmVEaXNwbGFjZW1lbnRNYXAgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0ibiIgc2NhbGU9IjIuNCI+PC9mZURpc3BsYWNlbWVudE1hcD48L2ZpbHRlcj48L2RlZnM+PGcgZmlsdGVyPSJ1cmwoI3JvdWdoKSI+PHBhdGggZmlsbD0iIzEzMTMxMyIgZD0iTTggMjIgTDUwIDMxIEw0MCAxOCBMNzAgMjggTDc4IDI2IEw4MCA5IEw5MCAyNCBMMTE2IDMwIEwxNTAgMjkgTDE1OCAzNCBMMTg0IDE5IEwxNjggNDYgTDE1MCA0MiBMMTM4IDQ3IEwxMjMgNTcgTDExOSA5OCBMMTM2IDEwMCBMMTIxIDExMiBMMTE3IDEyNSBMMTIzIDE1OCBMMTQyIDE3NCBMNTIgMTc0IEw3NiAxNDggTDg2IDExOCBMODggMTA2IEw4MyA4MSBMOTMgODggTDk4IDcyIEw5NSA2MCBMNjQgNDUgTDI2IDQ5IEwzOCA0MFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNMTkxLjIgNzcuMyBMMTk3LjkgOTQuOSBMMTkzLjEgMTEzLjEgTDE5Mi4zIDk1LjJaIj48L3BhdGg+PHBhdGggZmlsbD0iIzEzMTMxMyIgZD0iTTE4Ny4yIDEzNS4yIEwxODUuNiAxNDUuNSBMMTc3LjkgMTUyLjYgTDE4MS45IDE0My42WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMxMzEzMTMiIGQ9Ik0xNjIuOSAxNjkuOSBMMTUwLjcgMTg0LjQgTDEzMi4xIDE4OC4zIEwxNDcuNSAxNzkuMFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNNjQuOCAxODcuMiBMNTEuMyAxODQuNCBMNDIuMSAxNzQuMSBMNTMuNyAxODAuMloiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNMjguMCAxNjAuNCBMMTMuOCAxNDcuOCBMMTAuNiAxMjkuMCBMMTkuNCAxNDQuN1oiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNMTEuNyA2Ny45IEwxMy42IDU2LjAgTDIyLjEgNDcuNCBMMTcuMyA1Ny45WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMxMzEzMTMiIGQ9Ik0zNy4xIDMwLjEgTDQ1LjIgMTguOCBMNTguOCAxNS41IEw0OC4zIDIzLjRaIj48L3BhdGg+PC9nPjxwYXRoIGZpbGw9IiMxMzEzMTMiIGQ9Ik0xMTggMiBDMTE4LjM4IDguNDYgMTE5LjU0IDkuNjIgMTI2IDEwIEMxMTkuNTQgMTAuMzggMTE4LjM4IDExLjU0IDExOCAxOCBDMTE3LjYyIDExLjU0IDExNi40NiAxMC4zOCAxMTAgMTAgQzExNi40NiA5LjYyIDExNy42MiA4LjQ2IDExOCAyWiI+PC9wYXRoPjwvc3ZnPgo=" alt="Terra" width="44" height="44" style="width: 44px; height: 44px; flex-shrink: 0;">
+            <div style="display: flex; flex-direction: column; min-width: 0;">
+              <span style="font-size: 15px; font-weight: 700; color: #16191f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{lg.name}}</span>
+              <span style="font-size: 11.5px; color: #5b6472;">tree 로그인</span>
+            </div>
+          </div>
+          <button type="button" aria-label="닫기" onClick="{{lg.cancel}}" style="position: absolute; right: 8px; top: 8px; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #5b6472; font: inherit; font-size: 18px; cursor: pointer;">×</button>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #5b6472;">
+            username
+            <input type="text" name="username" autocomplete="username" value="{{lg.username}}" onChange="{{lg.setUser}}" style="height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #c3cad5; border-radius: 8px; font: inherit; font-size: 14px; color: #16191f;">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #5b6472;">
+            password
+            <input type="password" name="password" autocomplete="current-password" value="{{lg.password}}" onChange="{{lg.setPass}}" style="height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid {{lg.passBorder}}; border-radius: 8px; font: inherit; font-size: 14px; color: #16191f;">
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #16191f; cursor: pointer;">
+            <input type="checkbox" checked="{{lg.autoAttr}}" onChange="{{lg.toggleAuto}}" style="width: 18px; height: 18px; margin: 0; accent-color: #2563eb;">
+            자동 로그인
+          </label>
+          <span style="font-size: 12px; color: {{lg.msgColor}}; min-height: 16px;">{{lg.msg}}</span>
+          <div style="display: flex; justify-content: flex-end; padding-bottom: {{mg.lgPadB}}px;">
+            <button type="button" onClick="{{lg.submit}}" style="height: 44px; min-width: 120px; padding: 0 18px; border: 0; border-radius: 8px; background: {{lg.btnBg}}; color: #ffffff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;">로그인</button>
+          </div>
+        </div>
+       </div>
+      </sc-if>
+
+
+      <!-- 원형 메뉴 (우클릭) — 누른 채 방향으로 밀고 떼면 선택 · 짧게 누르면 열린 채로 남아 클릭으로 선택 -->
+      <sc-if value="{{rm.open}}" hint-placeholder-val="{{false}}">
+        <div role="menu" aria-label="{{rm.title}}" style="position: absolute; left: {{rm.x}}px; top: {{rm.y}}px; width: 0; height: 0; z-index: 20;">
+          <div aria-hidden="true" style="position: absolute; left: -{{rm.ring}}px; top: -{{rm.ring}}px; width: {{rm.ring2}}px; height: {{rm.ring2}}px; border-radius: 50%; background: radial-gradient(circle, rgba(22,25,31,0.10) 0%, rgba(22,25,31,0.04) 60%, rgba(22,25,31,0) 72%); pointer-events: none;"></div>
+          <sc-for list="{{rm.items}}" as="it" hint-placeholder-count="8">
+            <button type="button" role="menuitem" class="rmenu-item" aria-label="{{it.label}}" aria-disabled="{{it.disabledA}}" data-rm-item="{{it.i}}" onClick="{{it.pick}}" style="left: {{it.x}}px; top: {{it.y}}px; width: {{it.size}}px; height: {{it.size}}px; animation-delay: {{it.delay}}; border-radius: 50%; border: {{it.border}}; background: {{it.bg}}; color: {{it.fg}}; box-shadow: {{it.shadow}}; display: flex; align-items: center; justify-content: center; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{it.icon}}"></path></svg>
+            </button>
+          </sc-for>
+          <button type="button" class="rmenu-item" aria-label="닫기" onClick="{{rm.close}}" style="left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%; border: 0; background: {{rm.centerBg}}; color: #ffffff; box-shadow: 0 2px 8px rgba(22,25,31,0.25); font: inherit; font-size: 15px; cursor: pointer; padding: 0;">×</button>
+          <div aria-live="polite" style="position: absolute; left: 0; top: {{rm.labelY}}px; transform: translateX(-50%); white-space: nowrap; padding: 3px 10px; border-radius: 12px; background: #16191f; color: #ffffff; font-size: 12px; pointer-events: none; opacity: {{rm.labelOp}};">{{rm.label}}</div>
+        </div>
+      </sc-if>
+
+
+      <!-- 서브 창: 속성 · 알림 · 지도 · 편집기. 제목 막대를 누른 채 끌어 옮기고, 오른쪽 아래 서랍 구역에 놓으면 보관된다 -->
+      <sc-for list="{{wins}}" as="w" hint-placeholder-count="0">
+       <sc-if value="{{w.show}}" hint-placeholder-val="{{false}}">
+        <section role="dialog" aria-label="{{w.title}}" class="{{w.cls}}" data-win="{{w.id}}" onPointerDown="{{w.front}}" style="position: absolute; left: {{w.x}}px; top: {{w.y}}px; width: {{w.w}}px; max-height: {{w.maxH}}px; height: {{w.h}}; z-index: {{w.z}}; box-sizing: border-box; display: flex; flex-direction: column; background: {{w.bg}}; border: 1px solid {{w.line}}; border-radius: {{w.rad}}; box-shadow: {{w.shadow}}; overflow: hidden; transform: translateY({{w.ty}}px) scale({{w.sc}}); transform-origin: {{w.origin}}; opacity: {{w.op}}; transition: {{w.trans}};">
+          <header onPointerDown="{{w.grab}}" style="height: 38px; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 12px; border-bottom: 1px solid #eef1f5; background: {{w.head}}; cursor: grab; touch-action: none; user-select: none;">
+            <span style="width: 10px; height: 10px; border-radius: 3px; background: {{w.color}};"></span>
+            <h2 style="margin: 0; font-size: 13.5px; font-weight: 600;">{{w.title}}</h2>
+            <span style="flex-grow: 1;"></span>
+            <button type="button" data-fs-btn="{{w.id}}" aria-label="{{w.title}} {{w.fsTip}}" title="{{w.fsTip}}" onPointerDown="{{w.stop}}" onClick="{{w.fsToggle}}" style="width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #5b6472; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{w.fsIcon}}"></path></svg>
+            </button>
+            <button type="button" aria-label="{{w.title}} 서랍에 넣기" title="서랍에 넣기" onPointerDown="{{w.stop}}" onClick="{{w.store}}" style="width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #5b6472; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14h16v6H4zM12 3v8M8 7l4 4 4-4"></path></svg>
+            </button>
+            <button type="button" aria-label="{{w.title}} 닫기" title="{{w.closeTip}}" onPointerDown="{{w.stop}}" onClick="{{w.close}}" style="width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #5b6472; cursor: pointer; font: inherit; font-size: 17px; line-height: 1; padding: 0;">×</button>
+          </header>
+          <sc-if value="{{w.isProps}}" hint-placeholder-val="{{false}}">
+      <div style="overflow-y: auto; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+        <section style="display: flex; flex-direction: column; gap: 6px;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">선택한 타일</h3>
+          <sc-if value="{{hasSel}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 13px;">
+              <span style="font-weight: 600; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{selLabel}}</span>
+              <span style="color: #5b6472;">재질 {{selSkin}}</span>
+              <span style="color: #5b6472;">그라운드 {{selGround}}</span>
+              <div style="display: {{editFlex}}; gap: 6px; flex-wrap: wrap; margin-top: 2px;">
+                <button type="button" onClick="{{rotField}}" title="필드 무늬(스킨)를 60°씩 돌립니다" style="display: {{rotFieldDisp}}; height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">필드 무늬 ↻ 60°</button>
+                <button type="button" onClick="{{rotGround}}" title="그라운드 무늬를 60°씩 돌립니다" style="height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">그라운드 무늬 ↻ 60°</button>
+              </div>
+              <sc-if value="{{selIsNode}}" hint-placeholder-val="{{false}}">
+                <div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid {{selNodeLine}}; border-radius: 6px; background: {{selNodeBg}};">
+                  <span style="width: 8px; height: 8px; border-radius: 2px; background: {{selNodeDot}};"></span>
+                  <span style="font-weight: 600;">{{selNodeKind}} · {{selNodeName}}</span>
+                  <span style="font-size: 12px; color: #5b6472;">{{selNodeRole}}</span>
+                  <span style="flex-grow: 1;"></span>
+                  <button type="button" onClick="{{unassignNode}}" style="display: {{unassignDisp}}; height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 5px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">지정 해제</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{selHasB}}" hint-placeholder-val="{{true}}">
+                <span style="font-weight: 600; color: #2563eb;">{{selNode}}</span>
+                <div style="display: {{editFlex}}; gap: 6px; margin-top: 2px;">
+                  <button type="button" onClick="{{rotateSel}}" style="height: 30px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">↻ 90° 회전 (R)</button>
+                  <button type="button" onClick="{{removeSel}}" style="height: 30px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #d33d52; font: inherit; font-size: 12.5px; cursor: pointer;">건물 치우기</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{selEmpty}}" hint-placeholder-val="{{false}}">
+                <span style="color: #5b6472;">{{selEmptyText}}</span>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{noSel}}" hint-placeholder-val="{{false}}">
+            <span style="font-size: 13px; color: #5b6472;">필드의 타일을 누르면 여기에 나타납니다</span>
+          </sc-if>
+        </section>
+        <sc-if value="{{isLeafMap}}" hint-placeholder-val="{{false}}">
+          <section aria-label="이 leaf의 자원" style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #d8dde5; padding-top: 12px;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <h3 style="margin: 0; font-size: 14px; font-weight: 600;">관리하는 자원</h3>
+              <span style="font-size: 12px; color: #5b6472;">{{leafResCount}}개 · 예시</span>
+            </div>
+            <sc-for list="{{leafRes}}" as="rs" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; font-size: 13px;">
+                <span style="color: {{rs.c}};">{{rs.g}}</span>
+                <span style="font-weight: 600;">{{rs.name}}</span>
+                <span style="flex-grow: 1;"></span>
+                <span style="font-size: 11.5px; color: #5b6472;">{{rs.kind}}</span>
+              </div>
+            </sc-for>
+            <span style="display: {{helpDisp}}; font-size: 12px; color: #5b6472;">leaf 맵에는 노드를 둘 수 없습니다 — 필드 · 건물로 자원을 놓습니다</span>
+          </section>
+        </sc-if>
+      </div>
+          </sc-if>
+          <sc-if value="{{w.isEdit}}" hint-placeholder-val="{{false}}">
+            <div style="overflow-y: auto; box-sizing: border-box; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px;">
+              <button type="button" role="switch" aria-checked="{{editChecked}}" onClick="{{toggleEdit}}" style="display: flex; align-items: center; gap: 8px; align-self: flex-start; height: 30px; padding: 0 10px 0 8px; border: 1px solid {{sw.border}}; border-radius: 15px; background: {{sw.bg}}; color: #16191f; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">
+        <span style="position: relative; width: 34px; height: 20px; border-radius: 10px; background: {{sw.track}}; transition: background 160ms;">
+          <span style="position: absolute; top: 2px; left: {{sw.knob}}; width: 16px; height: 16px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 2px rgba(22,25,31,0.3); transition: left 160ms;"></span>
+        </span>
+        편집 모드 <span style="font-weight: 400; color: {{sw.stateColor}};">{{sw.state}}</span>
+      </button>
+        <sc-if value="{{editOn}}" hint-placeholder-val="{{false}}">
+        <div role="tablist" style="display: flex; gap: 4px; border-bottom: 1px solid #d8dde5;">
+          <button type="button" role="tab" aria-selected="{{tabBldgSel}}" onClick="{{goBldg}}" style="height: 34px; padding: 0 12px; border: 0; border-bottom: 2px solid {{tb.b}}; margin-bottom: -1px; background: transparent; color: {{tb.c}}; font: inherit; font-size: 13px; font-weight: {{tb.w}}; cursor: pointer;">건물</button>
+          <button type="button" role="tab" aria-selected="{{tabTileSel}}" onClick="{{goTile}}" style="height: 34px; padding: 0 12px; border: 0; border-bottom: 2px solid {{tt.b}}; margin-bottom: -1px; background: transparent; color: {{tt.c}}; font: inherit; font-size: 13px; font-weight: {{tt.w}}; cursor: pointer;">타일 재질</button>
+          <button type="button" role="tab" aria-selected="{{tabGndSel}}" onClick="{{goGnd}}" style="height: 34px; padding: 0 12px; border: 0; border-bottom: 2px solid {{tgn.b}}; margin-bottom: -1px; background: transparent; color: {{tgn.c}}; font: inherit; font-size: 13px; font-weight: {{tgn.w}}; cursor: pointer;">그라운드</button>
+        </div>
+        <sc-if value="{{tabBldg}}" hint-placeholder-val="{{true}}">
+          <section aria-label="건물 리스트" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; gap: 6px;">
+              <button type="button" style="flex-grow: 1; height: 32px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">가져오기</button>
+              <a href="building.html" style="flex-grow: 1; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid #2563eb; border-radius: 6px; background: #2563eb; color: #ffffff; font-size: 12.5px; font-weight: 600; text-decoration: none;">새로 만들기</a>
+            </div>
+            <sc-for list="{{buildings}}" as="b" hint-placeholder-count="3">
+              <button type="button" aria-label="{{b.name}} — 끌어서 타일에 놓기" onPointerDown="{{b.grab}}" style="display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 6px; border: {{b.dragging}}; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; text-align: left; cursor: grab; touch-action: none;">
+                <svg width="76" height="64" viewBox="{{b.vb}}" aria-hidden="true" style="flex-shrink: 0; background: #f4f6f9; border-radius: 6px;">
+                  <path d="{{b.shadow}}" fill="#1c2733" opacity="0.2"></path>
+                  <sc-for list="{{b.paths}}" as="p" hint-placeholder-count="8">
+                    <path d="{{p.d}}" fill="{{p.edge}}" fill-rule="evenodd" stroke="{{p.edge}}" stroke-width="0.5" stroke-linejoin="round"></path>
+                    <path d="{{p.d}}" fill="{{p.fill}}" fill-rule="evenodd"></path>
+                  </sc-for>
+                </svg>
+                <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+                  <span style="font-weight: 600; font-size: 13.5px;">{{b.name}} <span title="{{b.playTip}}" style="display: {{b.playDisp}}; font-size: 12px;">▶️</span></span>
+                  <span style="font-size: 11.5px; color: #5b6472;">{{b.meta}}</span>
+                </span>
+              </button>
+            </sc-for>
+            <span style="font-size: 12px; color: #5b6472;">{{dragHint}}</span>
+          </section>
+        </sc-if>
+        <sc-if value="{{tabTile}}" hint-placeholder-val="{{false}}">
+        <section style="display: flex; flex-direction: column; gap: 10px; opacity: {{paletteOpacity}};">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h3 style="margin: 0; font-size: 14px; font-weight: 600;">이 타일의 재질</h3>
+            <a href="field.html" style="font-size: 12.5px; color: #2563eb;">필드 편집기</a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <sc-for list="{{skins}}" as="s" hint-placeholder-count="4">
+              <button type="button" aria-pressed="{{s.pressed}}" onClick="{{s.pick}}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px 8px; border: {{s.border}}; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">
+                <svg width="60" height="52" viewBox="-84 -42 168 168" aria-hidden="true">
+                  <image data-anim="{{s.tv.anim}}" href="{{s.tv.img}}" x="{{s.tv.ix}}" y="{{s.tv.iy}}" width="{{s.tv.iw}}" height="{{s.tv.ih}}" preserveAspectRatio="none" style="display: {{s.tv.imgDisp}};"></image>
+                  <use href="{{s.tv.href}}" style="display: {{s.tv.useDisp}};"></use>
+                </svg>
+                <span style="font-weight: {{s.fw}};">{{s.name}} <span title="{{s.playTip}}" style="display: {{s.playDisp}}; font-size: 11px;">▶️</span></span>
+              </button>
+            </sc-for>
+          </div>
+          <span style="font-size: 12px; color: #5b6472;">{{paletteHint}}</span>
+          <button type="button" onClick="{{fillAll}}" style="height: 32px; border: 1px solid #d8dde5; border-radius: 6px; background: transparent; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">필드 전체를 이 재질로</button>
+        </section>
+        </sc-if>
+        <sc-if value="{{tabGnd}}" hint-placeholder-val="{{false}}">
+        <section aria-label="그라운드 재질" style="display: flex; flex-direction: column; gap: 10px; opacity: {{paletteOpacity}};">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h3 style="margin: 0; font-size: 14px; font-weight: 600;">이 칸의 그라운드</h3>
+            <a href="ground.html" style="font-size: 12.5px; color: #2563eb;">그라운드 편집기</a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <sc-for list="{{gskins}}" as="g" hint-placeholder-count="4">
+              <button type="button" aria-pressed="{{g.pressed}}" onClick="{{g.pick}}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px 8px; border: {{g.border}}; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">
+                <svg width="60" height="40" viewBox="-90 -6 180 124" aria-hidden="true">
+                  <polygon data-ganim="{{g.anim}}" points="{{tg.top}}" transform="translate(0 56)" fill="{{g.fill}}"></polygon>
+                </svg>
+                <span style="font-weight: {{g.fw}};">{{g.name}} <span title="{{g.playTip}}" style="display: {{g.playDisp}}; font-size: 11px;">▶️</span></span>
+              </button>
+            </sc-for>
+          </div>
+          <span style="font-size: 12px; color: #5b6472;">{{gPaletteHint}}</span>
+          <button type="button" onClick="{{gFillAll}}" style="height: 32px; border: 1px solid #d8dde5; border-radius: 6px; background: transparent; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">그라운드 전체를 이 재질로</button>
+        </section>
+        </sc-if>
+        <sc-if value="{{hasPending}}" hint-placeholder-val="{{true}}">
+          <section aria-label="새 노드" aria-live="polite" style="display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #d8dde5; padding-top: 12px;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <h3 style="margin: 0; font-size: 14px; font-weight: 600;">새 노드가 추가되었습니다</h3>
+              <span style="display: {{helpDisp}}; font-size: 12px; color: #5b6472;">필드에 끌어다 놓으면 노드 필드가 됩니다</span>
+            </div>
+            <sc-for list="{{pendingNodes}}" as="n" hint-placeholder-count="2">
+              <button type="button" aria-label="{{n.name}} — 끌어서 필드에 놓기" onPointerDown="{{n.grab}}" style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 10px; border: {{n.border}}; border-radius: 8px; background: #f3f7ff; color: #16191f; font: inherit; text-align: left; cursor: grab; touch-action: none;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4f7fd9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg>
+                <span style="display: flex; flex-direction: column; min-width: 0;">
+                  <span style="font-weight: 600; font-size: 13.5px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{n.name}}</span>
+                  <span style="font-size: 11.5px; color: #5b6472;">{{n.role}} · {{n.at}} 연결</span>
+                </span>
+                <span style="flex-grow: 1;"></span>
+                <span style="font-size: 11.5px; color: #2563eb;">끌어 놓기</span>
+              </button>
+            </sc-for>
+          </section>
+        </sc-if>
+        <section aria-label="필드 추가 · 삭제" style="display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #d8dde5; padding-top: 12px;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">필드 · 그라운드 추가 · 삭제</h3>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+            <button type="button" aria-label="새 필드 — 끌어서 빈 칸에 놓기" onPointerDown="{{grabNewField}}" style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px; border: {{newFieldBorder}}; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: grab; touch-action: none;">
+              <svg width="56" height="46" viewBox="-84 -42 168 150" aria-hidden="true">
+                <image data-anim="{{newFieldTv.anim}}" href="{{newFieldTv.img}}" x="{{newFieldTv.ix}}" y="{{newFieldTv.iy}}" width="{{newFieldTv.iw}}" height="{{newFieldTv.ih}}" preserveAspectRatio="none" style="display: {{newFieldTv.imgDisp}};"></image>
+                <use href="{{newFieldTv.href}}" style="display: {{newFieldTv.useDisp}};"></use>
+              </svg>
+              <span style="font-weight: 600;">+ 새 필드</span>
+              <span style="display: {{helpDisp}}; font-size: 11px; color: #5b6472;">끌어서 빈 칸에</span>
+            </button>
+            <button type="button" aria-label="새 그라운드 — 끌어서 빈 칸에 놓기" onPointerDown="{{grabNewGround}}" style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px; border: {{newGroundBorder}}; border-radius: 8px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: grab; touch-action: none;">
+              <svg width="56" height="46" viewBox="-90 -10 180 150" aria-hidden="true">
+                <polygon points="{{tg.top}}" transform="translate(0 62)" fill="url(#gp-meadow-0-0)"></polygon>
+              </svg>
+              <span style="font-weight: 600;">+ 그라운드</span>
+              <span style="display: {{helpDisp}}; font-size: 11px; color: #5b6472;">높이 0 · 건물만</span>
+            </button>
+            <div data-trash="1" role="region" aria-label="삭제 칸 — 필드를 끌어다 놓으면 지워짐" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 6px; border: {{trashBorder}}; border-radius: 8px; background: {{trashBg}}; color: {{trashColor}}; font-size: 12.5px;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"></path></svg>
+              <span style="font-weight: 600;">삭제</span>
+              <span style="display: {{helpDisp}}; font-size: 11px; color: #5b6472;">필드 · 그라운드를 여기에</span>
+            </div>
+          </div>
+          <span style="font-size: 12px; color: #5b6472;">{{fieldHint}}</span>
+        </section>
+        </sc-if>
+        <sc-if value="{{editOff}}" hint-placeholder-val="{{false}}">
+          <div style="display: {{editOffDisp}}; flex-direction: column; gap: 6px; border-top: 1px solid #d8dde5; padding-top: 12px; font-size: 12.5px; color: #5b6472;">
+            <span style="display: {{helpDisp}};">보기 모드 — 필드 편집 · 건물 배치 · 노드 할당은 위의 <b style="color: #16191f;">편집 모드</b> 스위치를 켜면 할 수 있습니다.</span>
+            <sc-if value="{{hasPending}}" hint-placeholder-val="{{false}}">
+              <span style="display: flex; align-items: center; gap: 6px; color: #2563eb;"><span style="width: 7px; height: 7px; border-radius: 50%; background: #2563eb;"></span>새 노드 {{pendingCount}}개가 배치를 기다립니다</span>
+            </sc-if>
+          </div>
+        </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{w.isAlarm}}" hint-placeholder-val="{{false}}">
+            <!-- 알림: 거르기 칩 → 새 알림 / 이전 알림. 줄 = 종류 아이콘 · 메시지 · 시각 · 종류 -->
+            <div style="display: flex; gap: 6px; padding: 10px 14px 8px; border-bottom: 1px solid #edf0f4; flex-shrink: 0;">
+              <sc-for list="{{al.filters}}" as="fl" hint-placeholder-count="4">
+                <button type="button" aria-pressed="{{fl.on}}" onClick="{{fl.pick}}" style="display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{fl.line}}; background: {{fl.bg}}; color: {{fl.fg}}; font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;">{{fl.label}}<span style="font-size: 10.5px; font-weight: 700; opacity: 0.7;">{{fl.n}}</span></button>
+              </sc-for>
+            </div>
+            <div aria-live="polite" style="overflow-y: auto; padding: 4px 8px 10px; display: flex; flex-direction: column;">
+              <sc-for list="{{al.groups}}" as="gr" hint-placeholder-count="2">
+                <div style="padding: 10px 6px 4px; font-size: 10.5px; font-weight: 700; color: #8b95a6; letter-spacing: 0.04em;">{{gr.label}}</div>
+                <sc-for list="{{gr.items}}" as="it" hint-placeholder-count="3">
+                  <div style="position: relative; display: flex; gap: 10px; align-items: flex-start; padding: 8px 8px 8px 8px; border-radius: 9px; background: {{it.bg}};">
+                    <span aria-hidden="true" style="width: 28px; height: 28px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; background: {{it.tint}}; border: 1px solid {{it.tintLine}}; color: {{it.c}}; display: flex; align-items: center; justify-content: center; font-size: 12px;">{{it.g}}</span>
+                    <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1;">
+                      <span style="font-size: 12.5px; font-weight: {{it.fw}}; color: #16191f; line-height: 17px;">{{it.m}}</span>
+                      <span style="font-size: 11px; color: #5b6472;"><span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{it.t}}</span> · {{it.kind}}</span>
+                    </span>
+                    <sc-if value="{{it.isNew}}" hint-placeholder-val="{{false}}">
+                      <span aria-label="새 알림" style="width: 8px; height: 8px; margin-top: 6px; flex-shrink: 0; border-radius: 50%; background: #d33d52; box-shadow: 0 0 0 3px #fde1e5;"></span>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </sc-for>
+              <sc-if value="{{al.empty}}" hint-placeholder-val="{{false}}">
+                <div style="padding: 28px 10px; text-align: center; color: #8b95a6; font-size: 12px;">이 종류의 알림이 없습니다</div>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{w.isMap}}" hint-placeholder-val="{{false}}">
+            <div style="padding: 14px 14px 12px; display: flex; justify-content: center;">
+              <div style="position: relative; width: {{forest.w}}px; height: {{forest.h}}px;">
+                <svg width="{{forest.w}}" height="{{forest.h}}" viewBox="0 0 {{forest.w}} {{forest.h}}" aria-hidden="true" style="position: absolute; left: 0; top: 0;">
+                  <sc-for list="{{forest.edges}}" as="fe" hint-placeholder-count="0">
+                    <path d="{{fe.d}}" fill="none" stroke="#c3cad5" stroke-width="2" stroke-linejoin="round"></path>
+                  </sc-for>
+                  <line x1="{{forest.sepX}}" y1="4" x2="{{forest.sepX}}" y2="{{forest.sepH}}" stroke="#e4e8ee" stroke-width="1.5" stroke-dasharray="3 4" style="display: {{forest.sepDisp}};"></line>
+                </svg>
+                <sc-for list="{{forest.nodes}}" as="fn" hint-placeholder-count="0">
+                  <button type="button" class="fmap-node" onClick="{{fn.go}}" aria-label="{{fn.name}}" aria-current="{{fn.cur}}" style="position: absolute; left: {{fn.bx}}px; top: {{fn.by}}px; width: 76px; padding: 0; border: 0; background: transparent; font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                    <span style="position: relative; display: block; width: 36px; height: 24px;">
+                      <svg width="36" height="24" viewBox="-18 -12 36 24" aria-hidden="true" style="display: block;"><path d="M-9 -10 L9 -10 L17 0 L9 10 L-9 10 L-17 0 Z" fill="{{fn.fill}}" stroke="{{fn.ring}}" stroke-width="{{fn.rw}}" stroke-linejoin="round"></path></svg>
+                      <span style="position: absolute; right: -2px; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: #1f7a4d; border: 1.5px solid #ffffff; display: {{fn.loginDisp}};"></span>
+                    </span>
+                    <span class="fm-short" style="font-size: 11.5px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-weight: {{fn.fw}}; color: {{fn.fg}}; white-space: nowrap;">{{fn.short}}</span>
+                    <span class="fm-full" style="position: absolute; top: 27px; left: 50%; transform: translateX(-50%); padding: 1px 6px; border-radius: 6px; background: #16191f; color: #ffffff; font-size: 11.5px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; white-space: nowrap;">{{fn.name}}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{w.isMemo}}" hint-placeholder-val="{{false}}">
+            <div data-memo="1" style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
+              <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                <sc-for list="{{memo.list}}" as="ml" hint-placeholder-count="2">
+                  <button type="button" onClick="{{ml.go}}" style="height: 22px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 11px; background: {{ml.bg}}; color: {{ml.fg}}; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ml.name}}</button>
+                </sc-for>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: #8b95a6; white-space: nowrap;">{{memo.path}}</span>
+                <input data-memo-name="1" type="text" value="{{memo.name}}" onChange="{{memo.onName}}" aria-label="메모 이름" style="flex-grow: 1; min-width: 0; height: 28px; box-sizing: border-box; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 700;">
+              </div>
+              <textarea data-memo-text="1" value="{{memo.text}}" onChange="{{memo.onText}}" aria-label="메모 내용" placeholder="여기에 메모를 쓰세요" style="flex-grow: 1; min-height: 220px; box-sizing: border-box; padding: 10px 12px; border: 1px solid #d8dde5; border-radius: 8px; background: #fffdf6; font: inherit; font-size: 13px; line-height: 20px; resize: vertical; font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;"></textarea>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="display: flex; flex-direction: column; min-width: 0;"><span style="font-size: 11px; font-weight: 700; color: {{memo.stateC}}; white-space: nowrap;">{{memo.state}}</span><span style="font-size: 10.5px; color: {{memo.noteC}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{memo.note}}</span></span>
+                <span style="flex-grow: 1;"></span>
+                <button type="button" onClick="{{memo.browse}}" style="height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0;">보관함</button>
+                <button type="button" onClick="{{memo.fresh}}" style="height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0;">새 메모</button>
+                <sc-if value="{{memo.canDel}}" hint-placeholder-val="{{true}}">
+                  <button type="button" data-memo-del="1" onClick="{{memo.del}}" style="height: 28px; padding: 0 10px; border: 1px solid #f3c2ca; border-radius: 6px; background: #ffffff; color: #d33d52; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0;">{{memo.delLabel}}</button>
+                </sc-if>
+                <button type="button" data-memo-save="1" onClick="{{memo.save}}" style="height: 28px; padding: 0 14px; border: 1px solid #16191f; border-radius: 6px; background: #16191f; color: #ffffff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0;">저장</button>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{w.fsFrame}}" hint-placeholder-val="{{false}}">
+            <iframe class="win-fs-full" src="{{w.href}}" title="{{w.title}} 보드" style="display: block; border: 0; background: #ffffff;"></iframe>
+          </sc-if>
+          <sc-if value="{{w.isEdBox}}" hint-placeholder-val="{{false}}">
+            <div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+              <div style="height: 150px; border: 1px dashed #c3cad5; border-radius: 8px; background: #f7f8fb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #5b6472;">
+                <span>{{w.title}} 화면이 이 창 안에 들어옵니다</span>
+              </div>
+              <span style="font-size: 12.5px; color: #5b6472;">{{w.sum}}</span>
+              <a href="{{w.href}}" style="align-self: flex-end; font-size: 12.5px; color: #2563eb; display: {{w.hrefDisp}};">보드에서 열기 →</a>
+            </div>
+          </sc-if>
+        </section>
+       </sc-if>
+      </sc-for>
+
+      <!-- 유틸 서랍: 테이블 오른쪽 위에 붙어 있다. 아래에서 위로 — 손잡이를 홀드해서 올리면(휠도) 기능 칸이 올라온다 — 올라갈수록 느려지고 한계에서 멈춤, 막 나온 칸은 자세히 · 나머지는 겹쳐 보관.
+           칸을 홀드해 빼내 놓으면 창이 되고, 그 자리는 창을 닫을 때까지 빈칸으로 기다린다. 손잡이를 누르거나 홀드해 내리면 들어간다.
+           좌표는 위에서 내려오던 서랍을 뒤집은 것 — 칸의 y는 '서랍 줄에서 위로 떨어진 거리'다 -->
+      <div aria-label="유틸 서랍" onWheel="{{ud.wheel}}" style="position: absolute; left: {{ud.x}}px; top: {{ud.sb}}px; width: {{ud.w}}px; height: 0; z-index: {{ud.z}};">
+        <div style="position: absolute; left: -28px; bottom: 40px; width: {{ud.w2}}px; height: {{ud.H}}px; overflow: hidden; transition: height {{ud.tr}};">
+          <sc-for list="{{ud.cards}}" as="uc" hint-placeholder-count="0">
+            <div style="position: absolute; left: 28px; bottom: 0; transform: translateY({{uc.ny}}px); width: {{ud.w}}px; height: {{uc.h}}px; z-index: {{uc.z}}; transition: transform {{ud.ctr}}, height {{ud.ctr}}; will-change: {{ud.wc}};">
+              <sc-if value="{{uc.full}}" hint-placeholder-val="{{true}}">
+                <!-- 기능 칸 (창 색 없음 — 색은 로고가 맡는다): 윗줄 · 왼쪽 픽셀 로고 + 큰 이름 · 오른쪽 요약 데이터 2칸 · 알림 칸(알림이 있을 때만) -->
+                <button type="button" class="ucard" aria-label="{{uc.title}} — 누르면 창 · 위아래로 끌면 넘기기 · 옆으로 끌어내면 창이 됩니다" onPointerDown="{{uc.grab}}" style="position: absolute; inset: 0; box-sizing: border-box; padding: 0; border: 1px solid #d8dde5; border-radius: 12px; background: #ffffff; color: #16191f; font: inherit; text-align: left; cursor: grab; touch-action: none; box-shadow: 0 4px 14px rgba(22,25,31,0.10), 0 -1px 2px rgba(22,25,31,0.06); overflow: hidden; display: flex; flex-direction: column;">
+                  <span aria-hidden="true" style="height: 14px; flex-shrink: 0; background: #eef1f5; border-bottom: 1px solid #e0e5ec; display: flex; align-items: center; justify-content: center;"><span style="width: 26px; height: 3px; border-radius: 2px; background: #c3cad5;"></span></span>
+                  <span style="flex-grow: 1; display: flex; gap: 10px; padding: 8px 10px 10px 12px; min-height: 0;">
+                    <span style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
+                      <img src="{{uc.logo}}" alt="" width="48" height="48" draggable="false" style="width: 48px; height: 48px; image-rendering: pixelated; pointer-events: none;">
+                      <span style="max-width: 100%; text-align: center; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; line-height: 24px; color: #16191f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{uc.title}}</span>
+                    </span>
+                    <span style="width: 136px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px;">
+                      <span style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 3px 9px 0; border-radius: 8px; background: #f4f6f9; border: 1px solid #e6eaf0; display: flex; flex-direction: column;">
+                        <span style="font-size: 15px; font-weight: 700; line-height: 19px; color: {{uc.s1.c}}; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{uc.s1.v}}</span>
+                        <span style="font-size: 10.5px; color: #5b6472; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{uc.s1.k}}</span>
+                      </span>
+                      <span style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 3px 9px 0; border-radius: 8px; background: #f4f6f9; border: 1px solid #e6eaf0; display: flex; flex-direction: column;">
+                        <span style="font-size: 15px; font-weight: 700; line-height: 19px; color: {{uc.s2.c}}; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{uc.s2.v}}</span>
+                        <span style="font-size: 10.5px; color: #5b6472; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{uc.s2.k}}</span>
+                      </span>
+                      <sc-if value="{{uc.nf}}" hint-placeholder-val="{{false}}">
+                        <span style="height: 22px; flex-shrink: 0; box-sizing: border-box; padding: 0 8px; border-radius: 6px; background: #16191f; color: #ffffff; display: flex; align-items: center; gap: 6px; font-size: 11px; white-space: nowrap; overflow: hidden;">
+                          <span style="flex-shrink: 0; min-width: 16px; height: 16px; box-sizing: border-box; padding: 0 4px; border-radius: 8px; background: {{uc.nfC}}; font-size: 10.5px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center;">{{uc.nfN}}</span>
+                          <span style="overflow: hidden; text-overflow: ellipsis;">{{uc.nfT}}</span>
+                        </span>
+                      </sc-if>
+                    </span>
+                  </span>
+                </button>
+              </sc-if>
+              <sc-if value="{{uc.empty}}" hint-placeholder-val="{{false}}">
+                <!-- 빈칸: 창으로 나간 기능의 자리. 창을 닫으면 돌아온다 -->
+                <div onPointerDown="{{uc.scrollGrab}}" style="touch-action: none; cursor: grab; position: absolute; inset: 0; box-sizing: border-box; border: 1.5px dashed {{uc.eLine}}; border-radius: 14px; background: repeating-linear-gradient(135deg, {{uc.eBg}} 0 8px, #eef1f5 8px 16px); transition: border-color 140ms, background 140ms; color: #8b95a6; display: flex; flex-direction: column;">
+                  <span style="display: flex; align-items: center; gap: 10px; padding: 12px 12px 0 16px; height: 40px;">
+                    <span style="display: flex; flex-direction: column; gap: 2px;">
+                      <span style="font-size: 13px; font-weight: 700; color: #5b6472;">{{uc.title}}</span>
+                      <span style="font-size: 11px;">{{uc.eMsg}}</span>
+                    </span>
+                  </span>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div aria-label="알림이 있는 기능" style="position: absolute; left: 0; bottom: 0; width: {{ud.w}}px; height: 0; z-index: 0; pointer-events: none; display: {{ud.bmDisp}};">
+          <sc-for list="{{ud.bms}}" as="bk" hint-placeholder-count="0">
+            <!-- 서랍이 닫혀 있을 때: 알림이 하나라도 있으면 칸 하나가 줄 위로 비스듬히 삐져나온다 (왼쪽 끝은 줄에 붙고 오른쪽으로 갈수록 드러남). 알림이 있다는 것만 알린다 -->
+            <span aria-label="{{bk.label}}" title="{{bk.label}}" style="position: absolute; left: 6px; bottom: 8px; width: {{bk.w}}px; height: 32px; box-sizing: border-box; border-radius: 0 12px 0 0; background: {{bk.c}}; box-shadow: 0 -2px 4px rgba(22,25,31,0.18); transform-origin: 0 0; transform: rotate(-{{bk.a}}deg); z-index: {{bk.z}};"></span>
+          </sc-for>
+        </div>
+        <button type="button" aria-label="유틸 서랍 — 누르거나 홀드해 올리면 열림" onPointerDown="{{ud.grabStrip}}" style="position: absolute; z-index: 2; left: 0; bottom: 0; width: {{ud.w}}px; height: 40px; box-sizing: border-box; border: 1px solid {{ud.stripLine}}; outline: {{ud.stripOutline}}; border-bottom: 0; border-radius: 12px 12px 0 0; background: #ffffff; box-shadow: 0 -4px 14px rgba(22,25,31,0.10); color: #16191f; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; touch-action: none; display: flex; align-items: center; gap: 8px; padding: 0 14px;">
+          <!-- 로고 · "유틸" · 개수는 없앴다 -->
+          <span style="flex-grow: 1;"></span>
+          <span style="font-size: 11.5px; font-weight: 400; color: #8b95a6; white-space: nowrap;">{{ud.hint}}</span>
+        </button>
+        <button type="button" aria-label="유틸 서랍 손잡이 — 홀드해서 올리기 · 누르면 닫기" onPointerDown="{{ud.grabHandle}}" style="position: absolute; z-index: 3; left: {{ud.hx}}px; bottom: {{ud.hy}}px; width: 76px; height: 38px; box-sizing: border-box; border: 1px solid #d8dde5; border-bottom: 0; border-radius: 38px 38px 0 0; background: #ffffff; box-shadow: 0 -4px 10px rgba(22,25,31,0.12); cursor: grab; touch-action: none; padding: 8px 0 0; display: flex; align-items: center; justify-content: center; transition: bottom {{ud.tr}};">
+          <span aria-hidden="true" style="width: 22px; height: 4px; border-radius: 2px; background: #b6bfcc; box-shadow: 0 5px 0 #d8dde5;"></span>
+        </button>
+      </div>
+
+      <sc-if value="{{pullSq.on}}" hint-placeholder-val="{{false}}">
+        <div aria-hidden="true" style="position: absolute; left: {{pullSq.x}}px; top: {{pullSq.y}}px; width: 48px; height: 48px; box-sizing: border-box; z-index: 60; border: 1px solid #9fd8cb; border-radius: 10px; background: #c8efe7; color: #115e59; box-shadow: 0 8px 20px rgba(22,25,31,0.22); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; pointer-events: none; transform: scale({{pullSq.sc}}); transition: transform 140ms;">MAP</div>
+      </sc-if>
+      <!-- 서랍: 오른쪽 아래. 보관된 창은 그리지 않고 색 · 이모지 카드로만. 평소 30% · 마우스가 다가오면 70% · 카드 위면 그 카드만 90%(나머지는 양옆으로 비킴) -->
+      <div aria-label="서랍 구역" style="position: absolute; left: {{dz.x}}px; top: {{dz.y}}px; width: {{dz.w}}px; height: {{dz.h}}px; box-sizing: border-box; border: 2px dashed {{dz.line}}; border-radius: 14px 14px 0 0; background: {{dz.bg}}; opacity: {{dz.op}}; transition: opacity 160ms, background 160ms; pointer-events: none; z-index: 8; display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; font-size: 12.5px; font-weight: 600; color: #2563eb;">{{dz.label}}</div>
+      <nav aria-label="서랍 — 보관된 창" style="position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: {{drawerZ}}; pointer-events: {{drawerPe}};">
+        <sc-for list="{{cards}}" as="cd" hint-placeholder-count="0">
+          <!-- 책갈피: 카드 윗가장자리에 꽂힌 리본 (위쪽 V 홈) -->
+          <span aria-label="{{cd.bmLabel}}" style="position: absolute; left: {{cd.bmx}}px; top: {{cd.bmy}}px; width: 22px; height: 36px; box-sizing: border-box; clip-path: polygon(0 0, 50% 7px, 100% 0, 100% 100%, 0 100%); background: linear-gradient(90deg, rgba(255,255,255,0.22) 0 3px, rgba(0,0,0,0) 3px), {{cd.bmC}}; filter: drop-shadow(0 -1px 2px rgba(22,25,31,0.25)); color: #ffffff; font-size: 11px; font-weight: 800; display: {{cd.bmDisp}}; align-items: flex-start; justify-content: center; padding-top: 9px; z-index: {{cd.z}}; transition: left 240ms cubic-bezier(.2,.8,.3,1), top 360ms cubic-bezier(.2,.8,.3,1);">{{cd.bmN}}</span>
+          <!-- 서랍 카드: 기능 칸과 같은 흰 카드를 세로로. 30%면 머리(아이콘 · 제목), 70%면 수치, 90%면 최근 줄까지 보인다 -->
+          <button type="button" aria-label="{{cd.title}} — 누른 채 끌어 꺼내기" onPointerDown="{{cd.grab}}" onPointerEnter="{{cd.enter}}" onPointerLeave="{{cd.leave}}" style="position: absolute; left: {{cd.x}}px; top: {{cd.y}}px; width: {{cd.w}}px; height: {{cd.h}}px; box-sizing: border-box; padding: 0; border: 1px solid {{cd.line}}; border-radius: 14px; background: #ffffff; box-shadow: {{cd.shadow}}; cursor: grab; touch-action: none; z-index: {{cd.z}}; transition: left 240ms cubic-bezier(.2,.8,.3,1), top 360ms cubic-bezier(.2,.8,.3,1), box-shadow 200ms, border-color 200ms; display: flex; flex-direction: column; align-items: stretch; text-align: left; font: inherit; color: #16191f; overflow: hidden;">
+            <span aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 4px; background: {{cd.color}};"></span>
+            <span aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 4px; height: 72px; background: linear-gradient(180deg, {{cd.c1}} 0%, rgba(255,255,255,0) 100%); opacity: 0.8;"></span>
+            <span style="position: relative; display: flex; align-items: center; gap: 8px; padding: 14px 10px 0 10px; flex-shrink: 0;">
+              <img src="{{cd.logo}}" alt="" width="32" height="32" draggable="false" style="width: 32px; height: 32px; flex-shrink: 0; image-rendering: pixelated; pointer-events: none;">
+              <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+                <span style="font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{cd.title}}</span>
+                <span style="font-size: 10.5px; color: {{cd.chipFg}}; font-weight: 600; white-space: nowrap; display: {{cd.chipDisp}}; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{cd.chipFg}};"></span>{{cd.chip}}</span>
+              </span>
+            </span>
+            <span style="position: relative; padding: 8px 10px 0; font-size: 10.5px; color: #5b6472; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0;">{{cd.sub}}</span>
+            <span style="position: relative; display: flex; flex-direction: column; gap: 4px; padding: 8px 10px 0; flex-shrink: 0;">
+              <sc-for list="{{cd.stats}}" as="st" hint-placeholder-count="3">
+                <span style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: 7px; background: #f4f6f9; border: 1px solid #e6eaf0;">
+                  <span style="font-size: 10.5px; color: #5b6472; white-space: nowrap;">{{st.k}}</span>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="font-size: 12px; font-weight: 700; color: {{st.c}}; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 88px;">{{st.v}}</span>
+                </span>
+              </sc-for>
+            </span>
+            <span style="position: relative; display: flex; gap: 5px; margin: 8px 10px 0; padding-top: 6px; border-top: 1px dashed #e0e5ec; font-size: 10.5px; line-height: 14px; color: #3a4049;">
+              <span style="color: {{cd.foot.c}}; flex-shrink: 0;">{{cd.foot.g}}</span><span style="overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{cd.foot.t}}</span>
+            </span>
+          </button>
+        </sc-for>
+      </nav>
+    </div>
+  </div>
+</div>
+</script>
+<script type="module">
+import './src/api/frame-boot.js';   // 첫 import — Terra 안이면 마운트보다 먼저 frame에 hello를 보낸다
+import { mount, fit } from './src/runtime/dc.js';
+import Screen from './src/screens/node.js';
+const stage = document.getElementById('stage');
+window.__screen = mount(Screen, { template: document.getElementById('view').textContent, target: stage, props: {"skin": "grass"} });
+
+import('./src/api/wire.js').then((m) => m.wireFromUrl(window.__screen));   // Terra 안이면 frame 토큰으로, 밖이면 ?live=1&gw=… 일 때만 Gateway에 연결
+</script>
+</body>
+</html>

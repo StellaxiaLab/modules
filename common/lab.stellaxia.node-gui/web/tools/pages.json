@@ -1,0 +1,62 @@
+[
+  {
+    "page": "node.html",
+    "title": "노드 화면",
+    "desc": "육각 필드 맵 · 관리 노드 창 · 조타륜 · 오버헤드 패널 · 유틸 서랍 · 서브 창 · 전체 화면",
+    "src": "Artboard-qcfu"
+  },
+  {
+    "page": "building.html",
+    "title": "건물 편집기",
+    "desc": "16³ 블록 설계 · 설계도 트리 · 2D 벡터 4방향 내보내기",
+    "src": "BuildingEditor"
+  },
+  {
+    "page": "material.html",
+    "title": "자재 편집기",
+    "desc": "6면 8×8 픽셀 자재 · 8×8×8 커스텀 복셀 자재 · 애니메이션",
+    "src": "MaterialEditor"
+  },
+  {
+    "page": "field.html",
+    "title": "필드 편집기",
+    "desc": "타일 스킨 — 테두리 · 윗면 · 옆면 띠",
+    "src": "FieldEditor"
+  },
+  {
+    "page": "ground.html",
+    "title": "그라운드 편집기",
+    "desc": "높이 0 바닥 무늬",
+    "src": "GroundEditor"
+  },
+  {
+    "page": "network.html",
+    "title": "네트워크",
+    "desc": "mesh · 진단 · 터널 · WireGuard",
+    "src": "Network"
+  },
+  {
+    "page": "settings.html",
+    "title": "설정",
+    "desc": "GUI · 계정 · 로컬 노드 · 클러스터 설정",
+    "src": "Settings"
+  },
+  {
+    "page": "components.html",
+    "title": "공통 부품 (디자인 노트)",
+    "desc": "버튼 · 칩 · 배지 등 공통 부품",
+    "src": "Components"
+  },
+  {
+    "page": "helm.html",
+    "title": "조타륜 (디자인 노트)",
+    "desc": "조타륜 단독 시안",
+    "src": "Helm"
+  },
+  {
+    "page": "helm-apps.html",
+    "title": "조타륜 앱 노트 (디자인 노트)",
+    "desc": "조타륜 앱별 자원 · 동작 노트",
+    "src": "HelmApps"
+  }
+]

@@ -1,9 +1,11 @@
 # 모듈 소스 저장소 CI.
 #
-# 잡이 둘이고, 둘이 보는 것이 다르다.
+# 잡이 셋이고, 셋이 보는 것이 다르다.
 #
 #   validate  이 저장소만으로 볼 수 있는 것 — 매니페스트 형식, 배치 규칙,
 #             참조 경로의 실재, 벤더링한 스키마 사본의 자기 해시.
+#   web       웹 화면을 가진 모듈(web/package.json)의 빌드와 시험. 이것도 이
+#             저장소만으로 돈다 — Terra 체크아웃도 시크릿도 필요 없다.
 #   pack      Terra 쪽 권위에게 물어야 하는 것 — Scene 무결성과 포장이 실제로
 #             열리는지. `terra module pack` 이 자기 출력을 설치기와 같은
 #             검사로 되열기 때문에, 이 잡이 초록이면 그 패키지는 설치된다.
@@ -57,6 +59,32 @@ jobs:
       # 해시 그대로인가. 손으로 고친 스키마를 여기서 잡는다.
       - name: Check the vendored schema against its recorded hash
         run: node tools/check-schema-drift.mjs
+
+  web:
+    name: Web UI build and test
+    runs-on: [self-hosted, linux, x64, docker, homelab]
+    steps:
+      - uses: actions/checkout@v4
+
+      # 웹 모듈의 의존은 모듈마다 자기 잠금 파일을 갖는다(web/package-lock.json).
+      # 저장소 루트의 잠금 파일과 다르므로 setup-node 의 npm 캐시는 두지 않는다.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # 이 잡이 pack 잡과 따로 있는 이유 — pack 잡은 시크릿이 없으면 건너뛰고, 포크에서
+      # 온 PR 에는 시크릿이 가지 않는다. 화면 소스가 깨졌는지는 Terra 없이도 알 수
+      # 있으므로 그것까지 시크릿 뒤에 숨기지 않는다.
+      #
+      # 굽기가 먼저인 이유: build-web 이 `npm ci` 로 의존을 받고, test-web 은
+      # node_modules 가 있으면 그것을 그대로 쓴다. 순서를 뒤집으면 의존을 두 번 받는다.
+      - name: Build modules that carry a web UI
+        run: node tools/build-web.mjs
+
+      # 시험을 가진 웹 모듈은 여기서 돈다. test-modules.mjs 는 Go 시험만 보므로,
+      # 이 단계가 없으면 웹 시험은 "아무도 돌리지 않는 시험" 이 된다(G-14 와 같은 모양).
+      - name: Test modules that carry a web UI
+        run: node tools/test-web.mjs
 
   pack:
     name: Pack against Terra
@@ -177,6 +205,17 @@ jobs:
         if: steps.guard.outputs.present == 'true'
         working-directory: modules
         run: node tools/test-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
+
+      # 웹 화면을 가진 모듈의 `ui/` 를 굽는다 — `bin/` 과 같은 빌드 산출물이다.
+      #
+      # `terra module pack` 은 gui.apps 의 entry 를 보지 않는다: ui/ 가 아예 없어도,
+      # 스캐폴드의 자리 표시자만 있어도 `VERIFIED true` 다(실측). 그래서 이 단계를
+      # 빠뜨린 포장은 설치는 되는데 화면이 빈 패키지를 낸다. 다음 단계의
+      # pack-modules 가 포장 전에 entry 를 보고 서므로 그렇게 조용히 나가지는 않는다.
+      - name: Build modules that carry a web UI
+        if: steps.guard.outputs.present == 'true'
+        working-directory: modules
+        run: node tools/build-web.mjs
 
       # pack 은 자기 출력을 설치기와 같은 검사(OpenPackageManifest → Extract →
       # VerifyPayload)로 되연다. 그래서 이 단계가 통과하면 "포장은 됐는데 설치가

@@ -9,6 +9,8 @@
     "check:schema": "node tools/check-schema-drift.mjs",
     "build": "node tools/build-modules.mjs",
     "test": "node tools/test-modules.mjs",
+    "build:web": "node tools/build-web.mjs",
+    "test:web": "node tools/test-web.mjs",
     "pack": "node tools/pack-modules.mjs",
     "release": "node tools/publish-release.mjs"
   },
