@@ -35,8 +35,14 @@ Master 계약을 고쳤다면 함께 돌린다. 안 돌리면 `src/contract_map_
 실패한다 — 조용히 낡는 것을 막는 것이 그 테스트의 일이다.
 
 ```bash
-node module/tree/io.terra.treebench/tools/generate-contract-map.mjs
+# 이 저장소 뿌리에서. Terra 체크아웃이 있어야 Master 계약을 읽는다.
+TERRA_CHECKOUT=../Terra node tree/io.terra.treebench/tools/generate-contract-map.mjs
 ```
+
+`tools/` 는 **포장되지 않는다.** 검증기가 L-8 경고로 알리는데, 이 모듈에서는 그게
+맞는 답이다 — 생성기는 개발 중에 `ui/contract-map.js` 를 굽는 도구이고, 노드에
+실려야 하는 것은 그 **산출물**(`ui/` 안에 있어 포장된다)이지 도구가 아니다.
+배포에 필요해지면 `contracts · ui · bin · config · scene` 중 하나로 옮긴다.
 
 ## 이 콘솔이 부를 수 없는 것, 그리고 그 이유
 

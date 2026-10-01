@@ -127,7 +127,7 @@
               "bound": true,
               "injection": {
                 "available": false,
-                "detail": "/dev/uinput is not writable by this user; run the module's install/linux/install-uinput-access.sh as root (it installs /etc/udev/rules.d/70-terra-uinput.rules and the terra-input group) and restart the daemon so the group membership takes effect",
+                "detail": "/dev/uinput is not writable by this user; run the module's config/install/linux/install-uinput-access.sh as root (it installs /etc/udev/rules.d/70-terra-uinput.rules and the terra-input group) and restart the daemon so the group membership takes effect",
                 "implemented": false,
                 "platform": "linux/uinput"
               },
@@ -916,7 +916,7 @@
               "bound": false,
               "injection": {
                 "available": false,
-                "detail": "/dev/uinput is not writable by this user; run the module's install/linux/install-uinput-access.sh as root (it installs /etc/udev/rules.d/70-terra-uinput.rules and the terra-input group) and restart the daemon so the group membership takes effect",
+                "detail": "/dev/uinput is not writable by this user; run the module's config/install/linux/install-uinput-access.sh as root (it installs /etc/udev/rules.d/70-terra-uinput.rules and the terra-input group) and restart the daemon so the group membership takes effect",
                 "implemented": true,
                 "platform": "linux/uinput"
               },
