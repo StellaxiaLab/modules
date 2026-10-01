@@ -6,8 +6,8 @@
 // service surfaces at all), and the field names inside its input areas. Both
 // live in the contract, so they are baked here rather than guessed at runtime.
 //
-// Run from the repository root:
-//   node module/tree/io.terra.treebench/tools/generate-contract-map.mjs
+// Run from this repository's root, with a Terra checkout reachable:
+//   TERRA_CHECKOUT=../Terra node tree/io.terra.treebench/tools/generate-contract-map.mjs
 //
 // src/contract_map_test.go fails if the checked-in file drifts from the
 // contract, so regenerating is part of changing the Master API — not optional.
@@ -19,13 +19,29 @@
 // point of checking a generated file in. Failing loudly at the moment of the
 // change is the behaviour we want; rewriting it quietly is not.
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const moduleDir = join(dirname(fileURLToPath(import.meta.url)), '..');
-const repoRoot = join(moduleDir, '..', '..', '..');
-const contractPath = join(repoRoot, 'products', 'tree', 'master', 'contracts', 'api', 'terra-api.json');
+
+// TERRA_CHECKOUT is the same seam src/contract_map_test.go uses. The fallback —
+// three levels above the module — was this repository's root back when the
+// module lived in Terra's module/tree/; from a sibling checkout it climbs out
+// of the tree entirely and finds nothing. So the variable is the path that
+// works, and the fallback only serves a module still sitting inside Terra.
+const relativeContract = join('products', 'tree', 'master', 'contracts', 'api', 'terra-api.json');
+const checkout = (process.env.TERRA_CHECKOUT ?? '').trim();
+const contractPath = checkout
+  ? join(checkout, relativeContract)
+  : join(moduleDir, '..', '..', '..', relativeContract);
+if (!existsSync(contractPath)) {
+  console.error(
+    `Master contract not reachable at ${contractPath}: set TERRA_CHECKOUT to a Terra checkout ` +
+      `(e.g. TERRA_CHECKOUT=../Terra), which is what src/contract_map_test.go does.`,
+  );
+  process.exit(1);
+}
 const outputPath = join(moduleDir, 'ui', 'contract-map.js');
 
 const CHANNEL = {

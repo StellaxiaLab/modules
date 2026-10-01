@@ -117,7 +117,7 @@ func requireUinput(t *testing.T) {
 	case errors.Is(err, fs.ErrNotExist):
 		t.Skipf("%s does not exist on this machine (modprobe uinput); the creation path is unmeasured here", uinputDevice)
 	case errors.Is(err, fs.ErrPermission):
-		t.Skipf("%s is not writable by this user (run install/linux/install-uinput-access.sh as root); the creation path is unmeasured here", uinputDevice)
+		t.Skipf("%s is not writable by this user (run config/install/linux/install-uinput-access.sh as root); the creation path is unmeasured here", uinputDevice)
 	default:
 		t.Skipf("cannot open %s: %v", uinputDevice, err)
 	}
