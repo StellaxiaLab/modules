@@ -69,6 +69,13 @@ jobs:
         with:
           node-version: 24
 
+      # 검증기는 ajv 를 쓴다(Manifest v2 스키마). CI 의 validate 잡은 `npm ci` 를 돌지만
+      # 이 잡에는 그 줄이 없었다 — 그대로 태그를 찍으면 첫 릴리스가 바로 아래 단계에서
+      # `ERR_MODULE_NOT_FOUND: ajv` 로 선다. 태그가 한 번도 찍히지 않아 드러나지 않았다.
+      - name: Install the validator's dependencies
+        working-directory: modules
+        run: npm ci --no-audit --no-fund
+
       # 출하 전에 이 저장소의 규약을 다시 본다. CI 가 main 에서 이미 봤지만
       # 태그는 main 이 아닌 커밋에도 찍힌다 — 위 주석 참고.
       - name: Validate every module
