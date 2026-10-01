@@ -18,10 +18,16 @@ const uinputDevice = "/dev/uinput"
 // is named in the failure message because the message is the only place
 // anybody reads: a module that reports "permission denied" and leaves the
 // operator to find the rule is the shape of install this decision exists to
-// stop. The path is relative to the installed module directory, and the file
-// really ships there — build-release copies everything in a module package
-// except its Go source.
-const uinputAccessScript = "install/linux/install-uinput-access.sh"
+// stop. The path is relative to the installed module directory.
+//
+// It lives under config/ because that is what ships. The earlier path was
+// install/, true when this module lived in Terra's module/ tree and
+// build-release copied everything but src/; `terra module pack` carries a
+// whitelist instead — contracts, ui, bin, config, scene — so the move to a
+// sibling repository dropped install/ from the package while this message kept
+// naming it. Naming a file the operator does not have is worse than naming
+// none, so the path and the whitelist have to agree.
+const uinputAccessScript = "config/install/linux/install-uinput-access.sh"
 
 // injectionImplemented says this build carries a backend. It is a constant per
 // platform rather than a runtime answer because the question it answers is
