@@ -99,6 +99,17 @@ Master 401은 "쓸 수 없다"로 바꾸고 그 뒤로 Master를 부르지 않�
 | **Q-5** | 여러 tree 전환 | **(가) 뺀다** — 전환 연출은 예시로 남기고 한 번 알린다(*"다른 tree의 게이트웨이에는 이 화면이 닿지 않는다"*) | (나) 셸 수준의 기능으로 따로 설계한다 |
 | **Q-6** | 폰트 | **(나) 시스템 글꼴** — Google Fonts를 뺐다(CSP `font-src 'self' data:`). 글꼴 스택의 `Noto Sans KR` → `system-ui` … 로 떨어진다 | (가) 서브셋을 `web/public/`에 넣어 번들 |
 
+> [!NOTE] `branch`는 처음부터 `main`이다 — 판정서 §6과 다른 점
+> 판정서 §6은 `branch: "dev"`로 시작해 마지막 단계에서 `main`으로 올리자고 적었다. 예시 데이터뿐인 화면이 설치만으로
+> 노드의 main 자리를 차지하지 않게 하려는 순서였다. 이 모듈은 처음부터 `main`으로 간다.
+>
+> - 그 순서가 기다리던 것 중 1~3단계(frame · 로컬 실데이터)와 P-4(웹 빌드 단계)가 이 모듈과 함께 들어왔다. 남은 것은
+>   Q-1이고, 기본값(tree 레지스트리)에서는 **설치 자체가 운영자의 선택**이다.
+> - base는 main을 조용히 갈아치우지 않는다 — main이 이미 있으면 둘이 되어 고르는 화면(CHOOSE)이 뜬다. 그리고 오늘
+>   코어는 main을 동봉하지 않아 새 노드가 `MAIN_NOT_FOUND`로 시작한다. `dev`로 두면 이 모듈은 그 오류 화면의 dev
+>   버튼으로만 열린다(Terra `docs/modules/terra-gui/design/terra-base-scene-branch-design.md` §4의 표).
+> - 시험 설치에서 main 자리를 비워 두고 싶으면 `contributions.gui.scenes[0].branch`를 `"dev"`로 바꾼다.
+
 ## 개발
 
 ```bash
