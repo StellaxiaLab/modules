@@ -4,8 +4,8 @@ doc_type: "readme"
 scope: "repository"
 target: "stellaxialab/modules"
 status: "active"
-version: "v0.2"
-last_updated: "2026-09-23"
+version: "v0.3"
+last_updated: "2026-10-01"
 ---
 
 # modules
@@ -184,12 +184,14 @@ Go 의존은 0으로도 된다.
 | `npm run check:schema -- --terra <path>` | 그 사본이 Terra의 원본과 바이트까지 같은가 |
 | `npm run build -- --terra <path>` | Go 소스를 가진 모듈이 선언한 타깃으로 굽히는가 |
 | `npm run test -- --terra <path>` | Go 소스를 가진 모듈의 **시험이 도는가** — `go test` 와 goroutine 을 가진 패키지의 `-race` |
+| `npm run build:web` | 웹 화면을 가진 모듈의 `web/`을 `ui/`로 굽고, 앱 entry가 생겼는지 · 자리 표시자가 아닌지 |
+| `npm run test:web` | 그 모듈의 웹 시험(`web/package.json`의 `scripts.test`)이 도는가 |
 | `terra module pack <dir>` | Scene 무결성과 포장이 실제로 열리는지 (**권위**) |
 | `npm run pack -- --cli <terra> --terra <path> --tag <tag>` | 저장소 전체를 타깃별로 포장하고 릴리스 목록을 낸다 |
 
-앞의 둘은 이 저장소만으로 돌고, 나머지는 Terra 체크아웃이 필요하다. CI도 같은 선으로
-갈라져 있다 — `validate` 잡은 항상 돌고, `pack` 잡은 `TERRA_CHECKOUT_SSH_KEY`가 있을 때만
-돈다.
+`validate` · `check:schema` · `build:web` · `test:web`은 이 저장소만으로 돌고, 나머지는 Terra
+체크아웃이 필요하다. CI도 같은 선으로 갈라져 있다 — `validate` 잡과 `web` 잡은 항상 돌고,
+`pack` 잡은 `TERRA_CHECKOUT_SSH_KEY`가 있을 때만 돈다.
 
 `npm run test`가 있는 이유는 **이주가 그것을 떨어뜨렸기 때문**이다(분리 검토 G-14). 모듈이
 Terra 안에 있을 때는 Terra의 CI가 `git ls-files '*go.mod'`로 저장소의 모든 Go 모듈을 훑어
@@ -240,6 +242,31 @@ path도 실제 remote와 다르다). 그 `replace`는 Terra 안을 가리키는 
 
 Go 소스가 없는 모듈(Scene·extension)은 빌드할 것이 없고, 스크립트가 그 사실을 적고 통과한다.
 
+### 웹 화면을 가진 모듈도 굽고 나서 포장한다
+
+`terra module new --web`이 굽는 모양 — 화면 소스는 `web/`, 빌드 결과는 `ui/`(Vite
+`outDir: '../ui'`) — 을 따르는 모듈이 있다. `web/`은 포장 허용 목록 밖이라 출하되지 않으므로
+**포장되는 것은 `ui/`뿐이고**, `ui/`는 `bin/`처럼 빌드 산출물이라 커밋하지 않는다.
+
+```bash
+npm run build:web                                   # web/ → ui/ (npm ci 후 npm run build)
+npm run test:web                                    # web/ 의 scripts.test
+terra module pack common/lab.stellaxia.node-gui     # 그다음에 포장
+```
+
+여기에는 Go 쪽과 다른 함정이 하나 있다. **`terra module pack`은 `gui.apps`의 entry를 보지
+않는다** — `ui/`가 아예 없어도, 스캐폴드가 첫 빌드 전에 두는 자리 표시자(*"웹 빌드가 아직
+없습니다"*)만 있어도 `VERIFIED true`로 포장되고, 설치하면 빈 화면이 뜬다(실측). Go 모듈처럼
+`MODULE_ENTRYPOINT_MISSING`으로 서 주지 않으므로 이 저장소가 두 자리에서 대신 본다:
+`build-web`이 구운 직후에, `pack-modules`가 포장 직전에. 그래서 굽기를 빠뜨린 릴리스는
+조용히 나가지 않고 선다.
+
+검증기(`npm run validate`)는 그 entry의 **모양만** 본다 — 굽기 전에는 없는 것이 정상이다
+([`docs/layout.md`](docs/layout.md) L-6). 웹 빌드에는 Terra 체크아웃이 필요 없어서 CI의 `web`
+잡은 시크릿 없이 돌고, 포크에서 온 PR에서도 화면 소스가 깨졌는지는 보인다. 의존은 모듈마다
+`web/package-lock.json`으로 잠그고 `npm ci`로만 받는다 — 잠금 없이 굽는 릴리스는 같은 소스로
+다른 결과를 낸다.
+
 ## 릴리스
 
 모듈은 **GitHub 릴리스 자산**으로 나간다(분리 검토 D-21). 코어는 그것을 받아 전개할 뿐
@@ -258,7 +285,7 @@ git push origin v2026.09.29        # 같은 날 다시 찍어야 하면 v2026.09
 거짓말이 된다.
 
 `.github/workflows/release.yml`이 받아서 validate → 스키마 대조 → CLI 빌드 → `bin/` 굽기
-→ 타깃별 포장 → 개수 대조 → 발행을 순서대로 돈다.
+→ Go 시험 → `ui/` 굽기 → 웹 시험 → 타깃별 포장 → 개수 대조 → 발행을 순서대로 돈다.
 
 ### 타깃마다 따로 굽는다
 

@@ -32,7 +32,8 @@ const OWNERSHIP_ROOTS = {
 // terra module pack 이 기본으로 담는 것 + 매니페스트 자신.
 const PACKED = new Set(["module.json", "contracts", "ui", "bin", "config", "scene"]);
 // 포장되지 않지만 소스 트리에 있는 것이 당연한 것들.
-const DEV_ONLY = new Set(["src", "README.md", "licenses", "signature"]);
+// web 은 `terra module new --web` 이 굽는 화면 소스다 — 빌드 결과가 ui/ 로 가고 web/ 은 출하되지 않는다.
+const DEV_ONLY = new Set(["src", "web", "README.md", "licenses", "signature"]);
 
 const args = process.argv.slice(2);
 const allowEmpty = args.includes("--allow-empty");
@@ -173,6 +174,11 @@ for (const module of modules) {
   }
   // 기여는 표면마다 모양이 다르고 공통설계가 소유한다. 경로를 들고 있는 자리는
   // 어디든 `entry` 라는 이름이므로, 모양을 가정하지 않고 그 키만 훑는다.
+  //
+  // 예외 하나 — 웹 모듈(web/package.json 이 있다)의 GUI 앱 entry 가 ui/ 아래면 그것은 web/ 의
+  // **빌드 산출물**이다(tools/build-web.mjs 가 굽는다). bin/ 처럼 소스 트리에 없는 것이 정상이므로
+  // 모양만 본다. 실재는 build-web 이 구운 뒤에, 그리고 pack-modules 가 포장 전에 다시 본다.
+  const webModule = existsSync(join(module.dir, "web", "package.json"));
   const walkEntries = (node, path) => {
     if (Array.isArray(node)) {
       node.forEach((item, index) => walkEntries(item, `${path}[${index}]`));
@@ -180,8 +186,10 @@ for (const module of modules) {
     }
     if (!node || typeof node !== "object") return;
     for (const [key, value] of Object.entries(node)) {
-      if (key === "entry") pushPath(value, `${path}.entry`, { mustExist: true });
-      else walkEntries(value, `${path}.${key}`);
+      if (key === "entry") {
+        const built = webModule && /^contributions\.gui\.apps\[/.test(path) && typeof value === "string" && /^(\.\/)?ui\//.test(value);
+        pushPath(value, `${path}.entry`, { mustExist: !built });
+      } else walkEntries(value, `${path}.${key}`);
     }
   };
   walkEntries(manifest.contributions, "contributions");
