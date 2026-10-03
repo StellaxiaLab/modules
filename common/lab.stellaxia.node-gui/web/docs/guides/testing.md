@@ -7,14 +7,15 @@ doc_type: "guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-01"
+version: "0.4.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 related:
   - "[[docs/README|개발 문서 MOC]]"
   - "[[getting-started|시작하기]]"
   - "[[frontend-api|프론트엔드 API]]"
   - "[[architecture#7. Terra 안에서 — frame|Terra 안에서 — frame]]"
+  - "[[real-data-layer|실데이터 층]]"
 ---
 
 # 시험
@@ -46,14 +47,21 @@ await page.evaluate(() => window.__screen.fsEnter('alarm'));
 const fs = await page.evaluate(() => window.__screen.state.fs);   // 'alarm'
 ```
 
-## 3. 연동 시험
+## 3. 연동 · 실데이터 층 시험 (`npm test`)
 
 ```bash
-node tools/mock-gateway.mjs 8790
-# node.html?live=1&gw=http://127.0.0.1:8790 → I/O 장치 앱에서 승인을 누르면 가짜 Gateway 로그에 approve 가 찍히고 카드가 '꺼짐'으로
+# Linux — web/ 에서. Windows(PowerShell) · macOS 도 같은 명령이다
+npm test        # node --test tests/*.test.mjs — 브라우저 없이 돈다
 ```
 
-가짜 Gateway에 op을 더하려면 `tools/mock-gateway.mjs`의 `ops`에 `'operationId': (본문) => 응답`.
+| 파일 | 지키는 것 |
+| --- | --- |
+| `tests/api.test.mjs` | 봉투 벗기기 · 위임 자격의 Master 401 · 다른 노드 · frame 역할 · 보드 링크 |
+| `tests/data.test.mjs` | 노드 이름 · 관계도 · 알림 · 보관함 칸 |
+| `tests/live.test.mjs` | 노드 화면 · 보드 · 편집기를 브라우저 없이 만들어 **상태와 렌더 값 전체에 예시 표식이 없는지**, 실제 응답 모양 → 화면 모양, 모듈 · Daemon 이 모르는 키를 싣지 않는지, WireGuard 꺼짐, 18칸을 넘는 자식, 권한 |
+
+실제 응답 모양은 진짜 스택(Master · Daemon · 게이트웨이 · `io.terra.file` · `io.terra.io-inventory`)에서 받은 것을 줄였다.
+진짜 스택 위에서 끝까지 돌린 결과는 [[real-data-layer|실데이터 층]] §5.
 
 ## 4. 알아 둘 것
 

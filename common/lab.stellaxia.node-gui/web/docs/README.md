@@ -8,8 +8,8 @@ doc_type: "moc"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-01"
+version: "0.4.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -20,16 +20,18 @@ related:
   - "[[architecture|구조]]"
   - "[[frontend-api|프론트엔드 API]]"
   - "[[helm-apps-integration|조타륜 앱 · 폴더 보관함 연동]]"
+  - "[[real-data-layer|실데이터 층]]"
   - "[[implementation-guide|구현 가이드]]"
 ---
 
 # Terra 노드 GUI 개발 문서 MOC
 
 이 프로젝트(`terra-node-gui`)는 디자인 캔버스의 **노드 화면 프로토타입**과 편집기 보드를 그대로 돌리는 웹 프로젝트에,
-실데이터로 옮기기 위한 **연동 층**(`src/api` · `src/model`)과 이 문서들을 더한 것이다. 단독으로 돌리면 데이터는 전부 예시값이다.
+실데이터로 옮기기 위한 **연동 층**(`src/api` · `src/model`), 예시 데이터를 지우는 **실데이터 층**(`src/data`)과 이 문서들을 더한 것이다.
+디자인 원본의 예시 세계는 화면에 나오지 않는다 — 단독으로 돌리면 데이터가 없는 빈 세계다.
 
 출하는 Terra 모듈 `lab.stellaxia.node-gui`의 웹 앱으로 한다. 노드에서 셸 Scene의 `terra.web/frame` 안에 뜨면 이 노드의
-Daemon operation을 부르는 조타륜 앱이 실데이터로 바뀐다 — [[architecture#7. Terra 안에서 — frame|구조 §7]].
+값(노드 · 부모 tree · 자원 · 알림 · 폴더 · 네트워크 · 설정)으로 채워진다 — [[real-data-layer|실데이터 층]] · [[architecture#7. Terra 안에서 — frame|구조 §7]].
 
 ## 읽는 순서
 
@@ -37,6 +39,7 @@ Daemon operation을 부르는 조타륜 앱이 실데이터로 바뀐다 — [[a
 flowchart LR
   A["시작하기"] --> B["구조"] --> C["UI 명세"]
   B --> D["프론트엔드 API"] --> E["조타륜 앱 · 폴더 보관함 연동"]
+  D --> R["실데이터 층"]
   D --> F["API 연동 가이드"]
   E --> G["구현 가이드"]
   F --> G
@@ -48,6 +51,7 @@ flowchart LR
 | 띄워 보기 · 폴더 구조 · 다시 생성 | [[getting-started\|시작하기]] |
 | 화면이 어떻게 돌아가는지 (런타임 · 구역 · 층 · 렌더 밖 루프) | [[architecture\|구조]] |
 | Terra 안에서 — frame · 로그인 · 무엇이 실데이터인가 | [[architecture#7. Terra 안에서 — frame\|구조 §7]] · [[frontend-api\|프론트엔드 API]] §6.5 |
+| 예시 데이터를 어떻게 지웠나 · 무엇을 어디서 읽나 · 무엇이 왜 비어 있나 | [[real-data-layer\|실데이터 층]] |
 | 화면 모양 · 동작 · 시간 | [[node-screen-ui-spec\|노드 화면 UI 명세]] |
 | 화면 객체의 메서드 · 상태 · seam · 연동 층 API | [[frontend-api\|프론트엔드 API]] |
 | 조타륜 앱 10개 · 폴더 보관함 · 메모장의 operation · 권한 · 응답 | [[helm-apps-integration\|조타륜 앱 · 폴더 보관함 연동]] |
@@ -63,7 +67,7 @@ flowchart LR
 | --- | --- |
 | `docs/` | 이 MOC · [[architecture\|구조]] |
 | `docs/screens/` | [[node-screen-ui-spec\|UI 명세]] |
-| `docs/api/` | [[frontend-api\|프론트엔드 API]] · [[helm-apps-integration\|조타륜 앱 연동]] · [[node-screen-api-integration\|API 연동 가이드]] |
+| `docs/api/` | [[frontend-api\|프론트엔드 API]] · [[helm-apps-integration\|조타륜 앱 연동]] · [[node-screen-api-integration\|API 연동 가이드]] · [[real-data-layer\|실데이터 층]] |
 | `docs/data/` | [[node-screen-data-model\|데이터 모델]] |
 | `docs/guides/` | [[getting-started\|시작하기]] · [[implementation-guide\|구현 가이드]] · [[node-screen-code-structure\|이식 가이드]] · [[testing\|시험]] |
 

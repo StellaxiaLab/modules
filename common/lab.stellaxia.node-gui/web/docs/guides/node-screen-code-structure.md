@@ -7,8 +7,8 @@ doc_type: "implementation-guide"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.1.0"
-last_updated: "2026-10-01"
+version: "0.2.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 source: "project/Artboard-qcfu.dc.html (약 2870줄)"
 os_priority:
@@ -137,11 +137,11 @@ npm run gen          # design/*.dc.html 을 고친 뒤 화면 페이지 · src/s
 ```
 
 - 이 프로젝트의 `src/screens/*.js`는 `design/*.dc.html`(디자인 캔버스 원본)에서 **생성**된다 — [[getting-started|시작하기]] §3.
-- Gateway에 붙일 때는 `node.html?live=1&gw=http://127.0.0.1:8787`(leaf) 또는 `:8788`(tree) — [[frontend-api|프론트엔드 API]] §6. 가짜 Gateway는 `node tools/mock-gateway.mjs`. ⚠ Gateway의 CORS · 자격 쿠키 정책 확인.
+- Gateway에는 Terra 안(셸의 `terra.web/frame`)에서만 붙는다 — 모듈로 포장해 설치한다([[getting-started|시작하기]] §4.2). 단독 실행은 데이터가 없는 빈 세계다([[real-data-layer|실데이터 층]]).
 
 ## 6. 완료 점검표
 
-- [ ] 상태줄에서 "예시 데이터" 표식이 사라졌다
+- [x] 상태줄에서 "예시 데이터" 표식이 사라졌다 — 생성기 템플릿 패치 · [[real-data-layer|실데이터 층]]
 - [ ] 로그인 전(익명)에도 화면이 선다 · 미등록 leaf는 등록 안내가 뜬다
 - [ ] 카탈로그에 없는 기능 카드는 숨겨지고, 권한 없는 동작은 잠김으로 보인다
 - [ ] 노드를 추가/삭제하면 폴링 뒤 `pending` · 맵에 반영된다(전환 중이면 끝난 뒤)

@@ -7,8 +7,8 @@ doc_type: "implementation-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.2.0"
-last_updated: "2026-10-01"
+version: "0.3.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -69,7 +69,7 @@ export function wireSession(screen, client) {
 ```
 
 3. 권한: seam `hbPerm(node)`을 `nodePerm(node, ctx)`(`src/model/permissions.js`)로. `ctx.whoami` = whoami의 permissions, `ctx.loggedIn(tree)` = 그 tree Gateway에 로그인했는지.
-4. 오버헤드 패널 가운데 띠의 `admin · 만료 · 권한 · 예시 데이터`를 whoami 값으로(템플릿의 고정 글자 → `renderVals` 값으로 바꿔 원본에서 고친다).
+4. 오버헤드 패널 가운데 띠의 `admin · 만료 · 권한 · 예시 데이터`를 whoami 값으로 — ✅ 생성기의 템플릿 패치(`{{who.*}}`)와 실데이터 층의 `renderVals().who`가 한다([[real-data-layer|실데이터 층]]).
 
 ### 2.2 맵 데이터
 
@@ -80,12 +80,12 @@ export function wireSession(screen, client) {
 
 ### 2.3 조타륜 앱
 
-`src/api/wire.js`의 `wireHelm`이 이미 seam(`hbSeed` · `hbAct`)을 바꿔 끼우고 목록 받기 · 폴링 · 작업 추적을 한다. 남은 일:
+`src/api/wire.js`의 `wireHelm`이 seam(`hbAct`)을 바꿔 끼우고 목록 받기 · 폴링 · 작업 추적을 한다. 이 노드(leaf)에서 쓰는 것은 끝났다:
 
-1. `node tools/mock-gateway.mjs` + `node.html?live=1&gw=http://127.0.0.1:8790`로 흐름을 먼저 본다.
-2. 진짜 Gateway에서 `client.catalog`를 열어 `src/api/operations.js`의 `verify: true` 항목을 확인한다.
-3. 실제 응답을 보고 `src/api/adapters.js`의 필드 이름을 맞춘다.
-4. `LiveSource.act`의 입력 키(`device_id` · `grant_id` …)를 op마다 필요한 것만 남긴다(지금은 후보를 다 싣는다).
+1. ✅ 진짜 게이트웨이의 카탈로그로 이 노드에서 쓰는 operation을 확인했다 — 게이트웨이 모듈 op 이름을 바로잡고, 작업 · 모듈 수명은 Daemon 길로.
+2. ✅ 실제 응답으로 `src/api/adapters.js`의 필드 이름을 맞추고, 상태를 화면 낱말로 옮긴다.
+3. ✅ `LiveSource.act`는 op 이름의 `by-…` 자리만 싣는다(`pathInput`) — 모듈 op은 대응표의 `in`으로.
+4. 남은 것: Master(T) 앱 — 위임 경계가 열린 뒤 `verify: true` 항목을 확인한다.
 5. 위험 동작(피어 회수 · 선언 철회 · 노드 삭제)은 카탈로그 `confirmationMode`와 상관없이 화면이 확인을 건다 — `needs-confirm`이면 `invoke(…, { confirm: true })`로 다시.
 
 ### 2.4 폴더 보관함 · 메모장
@@ -179,7 +179,7 @@ npm run test:smoke   # 흐름 확인
 
 ## 6. 완료 점검표
 
-- [ ] "예시 데이터" 표식이 사라졌다 · 익명에서도 화면이 선다
+- [x] "예시 데이터" 표식이 사라졌다 · 익명에서도 화면이 선다 — [[real-data-layer|실데이터 층]]
 - [ ] 다른 노드 맵에서 조타륜 앱이 그 노드의 자원을 보이고, 권한 없는 동작은 🔒 + 이유
 - [ ] 동작 결과가 글줄 · 배지로 보이고, 접수형은 작업 추적 → 알림
 - [ ] 카탈로그에 없는 기능은 숨기거나 잠긴다
@@ -199,4 +199,4 @@ npm run test:smoke   # 흐름 확인
 
 ## 관련 모듈
 
-- `src/api/wire.js` (조타륜 앱 연결 — 다른 연결의 본보기) · `tools/gen-pages.py` · `tools/mock-gateway.mjs`
+- `src/api/wire.js` (조타륜 앱 연결 — 다른 연결의 본보기) · `src/data/*-live.js` (실데이터 층) · `tools/gen-pages.py`

@@ -7,8 +7,8 @@ doc_type: "ui-spec"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.1.0"
-last_updated: "2026-09-30"
+version: "0.1.1"
+last_updated: "2026-10-03"
 language: "ko-KR"
 source: "project/Artboard-qcfu.dc.html"
 related:
@@ -16,6 +16,7 @@ related:
   - "[[node-screen-data-model|노드 화면 데이터 모델]]"
   - "[[node-screen-api-integration|노드 화면 API 연동 가이드]]"
   - "[[node-screen-code-structure|코드 구조와 이식 가이드]]"
+  - "[[real-data-layer|실데이터 층]]"
 ---
 
 # 노드 화면 UI 명세
@@ -23,6 +24,10 @@ related:
 원본은 캔버스 보드 `Artboard-qcfu.dc.html`(1447×945)이다. 이 문서는 **보이는 것과 움직임**만
 적는다. 각 값의 출처는 [[node-screen-data-model|데이터 모델]], 호출은
 [[node-screen-api-integration|API 연동 가이드]]가 소유한다.
+
+> [!NOTE] 예시 값은 원본 미리보기의 것이다
+> 이 문서에 나오는 노드 이름(`edge-01` · `tree-home` …) · 시각 · 개수 · "예시 데이터" 표식 · 보드의 "시연" 스위치는 디자인 캔버스
+> 미리보기의 값이다. 출하 화면에서는 실데이터 층이 지우고 이 노드의 값으로 채운다 — [[real-data-layer|실데이터 층]].
 
 > [!NOTE] 좌표계
 > 필드 영역은 **1447×901** 논리 좌표다(왼쪽 내비 232px · 위 오버헤드 패널 띠 44px 제외 — 패널 양옆 계기판은 필드 위로 56px 내려온다). 모든 창 · 서랍 좌표는
