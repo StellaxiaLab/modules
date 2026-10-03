@@ -4,7 +4,7 @@ doc_type: "contract"
 scope: "repository"
 target: "stellaxialab/modules"
 status: "active"
-version: "v1.2"
+version: "v1.3"
 last_updated: "2026-10-03"
 ---
 
@@ -61,7 +61,7 @@ last_updated: "2026-10-03"
 | **L-7** | `kind`가 요구하는 실행 선언이 있다 | 오류 |
 | **L-8** | 최상위 항목은 포장 대상이거나 개발 전용이다 | 경고 |
 | **L-9** | 모듈이 하나도 없으면 실패한다 | 오류 |
-| **L-10** | `scene/` 안은 계약과 표면 두 층으로 가른다 | 경고 |
+| **L-10** | `scene/` 안은 계약과 표면 두 층으로 가른다 | 오류 |
 
 ### L-4 — 소유권 루트가 products를 정한다
 
@@ -156,7 +156,7 @@ scene/
 평면 배치도 로드되고 `terra module pack` 도 통과한다. 그래서 이것은 "틀렸다"가 아니라
 "둘이 섞이면 판정할 근거가 없다"의 문제이고, 근거를 여기 적어 둔다.
 
-> **왜 아직 오류가 아닌가 — 그리고 승격 조건은 이미 충족됐다**
+> **오류로 올렸다 (2026-10-03)**
 >
 > 이 절을 쓸 때의 사정은 *"들어오는 첫 모듈(`io.terra.scene.terra`)이 평면 배치라
 > 규칙을 세우자고 이미 도는 모듈을 막을 수 없다"* 였다. 그 사정은 둘 다 끝났다 —
@@ -164,15 +164,21 @@ scene/
 > (게이트웨이가 base 역할을 `io.terra.scene.terra` 라는 id 로만 주기 때문이고,
 > 그래서 저장소가 아니라 코어가 그 셸을 소유한다).
 >
-> 지금 Scene 모듈은 셋이고(`io.terra.scene.login-demo` · `lab.stellaxia.node-gui`
-> · `lab.stellaxia.scene.hello`) 전부 이 모양이라, `npm run validate` 의 L-10
-> 경고가 **0**이다. 이 절이 적어 둔 승격 조건이 그것이었으므로, 오류로 올리는
-> 것을 막는 것은 이제 사정이 아니라 **아직 아무도 올리지 않았다는 사실**뿐이다.
+> 승격의 실제 근거는 그 사정이 끝난 것이 아니라 **경고가 막지 못했다는 것**이다.
+> 이 절을 쓴 뒤 `io.terra.scene.login-demo` 가 **평면 배치로 머지됐고**, 경고
+> 셋(`functions` · `stores` · `fragments`)이 그것을 세우지 못했다. 그 셋을
+> 계층형으로 옮겨 0으로 돌린 뒤([modules#19](https://github.com/StellaxiaLab/modules/pull/19)),
+> 같은 일이 또 조용히 들어오지 않도록 등급을 올렸다.
 >
-> 그 0은 한동안 0이 아니었다 — 이 절을 쓴 뒤 `io.terra.scene.login-demo` 가
-> **평면 배치로** 들어와 경고가 셋(`functions` · `stores` · `fragments`)이었고,
-> 그것을 계층형으로 옮기면서 돌아온 0이다. 경고로 두는 동안은 같은 일이 또
-> 조용히 들어온다는 것을, 그 한동안이 보여 줬다.
+> 지금 Scene 모듈은 셋이고(`io.terra.scene.login-demo` · `lab.stellaxia.node-gui`
+> · `lab.stellaxia.scene.hello`) 전부 이 모양이라 승격은 **지금 상태를 바꾸지
+> 않는다** — 오류 0 · 경고 1(판단으로 남긴 `treebench/tools` L-8)은 그대로다.
+> 바뀌는 것은 다음에 평면 배치가 들어올 때다. 실측: `scene/contract/functions/`
+> 를 `scene/functions/` 로 되돌리면 `✗ … [L-10]` 과 **exit 1**, 되돌리면 exit 0.
+>
+> 다른 모양이 로더에서 **깨지지 않는다는 것은 그대로다**(위 문단). 그래서 이
+> 오류가 말하는 것은 *"틀렸다"* 가 아니라 여전히 *"둘이 섞이면 판정할 근거가
+> 없다"* 이고, 근거를 여기 둔 채 등급만 올린 것이다.
 
 ## 3. 이 저장소가 볼 수 없는 것
 
