@@ -11,6 +11,7 @@
     "test": "node tools/test-modules.mjs",
     "build:web": "node tools/build-web.mjs",
     "test:web": "node tools/test-web.mjs",
+    "test:scenes": "node tools/test-scenes.mjs",
     "pack": "node tools/pack-modules.mjs",
     "release": "node tools/publish-release.mjs"
   },
