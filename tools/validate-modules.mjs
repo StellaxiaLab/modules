@@ -233,15 +233,19 @@ for (const module of modules) {
   // pack 도 층을 보지 않으므로, 손으로 쓴 모듈은 아무 모양이나 될 수 있다. 그 사각이
   // 이 규칙이 여기 있는 이유다.
   //
-  // 경고인 이유는 docs/layout.md 의 L-10 절에 있다 — 첫 모듈이 평면 배치이고, 규칙을
-  // 세우자고 이미 도는 모듈을 막지 않는다. 그 모듈이 옮겨지면 오류로 승격한다.
+  // **오류다 (2026-10-03 승격).** 경고였던 이유는 사정이었다 — 규칙을 세울 때 들어온
+  // 첫 모듈이 평면 배치라, 규칙을 세우자고 이미 도는 모듈을 막지 않았다. 이 자리의
+  // 앞 판이 *"그 모듈이 옮겨지면 오류로 승격한다"* 고 적어 뒀고, 그 조건이 충족됐다:
+  // modules#19 가 io.terra.scene.login-demo 를 계층형으로 옮기면서 경고가 셋에서
+  // 0 이 됐다. 경고로 둔 동안 같은 일이 한 번 더 조용히 들어왔다는 것이
+  // (그 모듈이 평면으로 머지된 것이) 승격의 실제 근거다 — 경고는 막지 못한다.
   const sceneDir = join(module.dir, "scene");
   if (isDir(sceneDir)) {
     const layered = { contract: ["functions", "stores"], surface: ["fragments"] };
     for (const [layer, kinds] of Object.entries(layered)) {
       for (const kind of kinds) {
         if (isDir(join(sceneDir, kind)) && !isDir(join(sceneDir, layer, kind))) {
-          warn(
+          fail(
             `${module.root}/${module.name}/scene/${kind}`,
             "L-10",
             `scene/${layer}/${kind}/ 로 옮긴다 — 스캐폴더가 굽는 모양이고 docs/layout.md L-10 이 정본으로 적은 것이다`,
