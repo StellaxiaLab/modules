@@ -186,6 +186,7 @@ Go 의존은 0으로도 된다.
 | `npm run test -- --terra <path>` | Go 소스를 가진 모듈의 **시험이 도는가** — `go test` 와 goroutine 을 가진 패키지의 `-race` |
 | `npm run build:web` | 웹 화면을 가진 모듈의 `web/`을 `ui/`로 굽고, 앱 entry가 생겼는지 · 자리 표시자가 아닌지 |
 | `npm run test:web` | 그 모듈의 웹 시험(`web/package.json`의 `scripts.test`)이 도는가 |
+| `npm run test:scenes -- --terra <path>` | 출하 Scene 이 Terra 의 **실 런타임에서 마운트되는가** — `pack` 이 보는 정적 무결성 너머 (분리 검토 G-23) |
 | `terra module pack <dir>` | Scene 무결성과 포장이 실제로 열리는지 (**권위**) |
 | `npm run pack -- --cli <terra> --terra <path> --tag <tag>` | 저장소 전체를 타깃별로 포장하고 릴리스 목록을 낸다 |
 
@@ -204,6 +205,24 @@ Terra 안에 있을 때는 Terra의 CI가 `git ls-files '*go.mod'`로 저장소�
 | --- | --- |
 | PR · 수동 실행 | 건너뛰되 **warning으로 남긴다.** 포크에서 온 PR에는 시크릿이 가지 않으므로, 여기서 실패로 올리면 기여를 막게 된다 |
 | `main` 푸시 | **실패한다.** main은 이 저장소가 "검증됐다"고 말하는 자리이고, 검증 절반이 빠진 초록은 그 말을 거짓으로 만든다 |
+
+`npm run test:scenes`가 있는 이유는 **이 저장소의 머지가 저쪽을 깨뜨렸기 때문**이다(분리 검토
+G-23). `terra module pack`은 Scene의 **정적** 무결성을 본다 — fragment가 모르는 store를 부르는지,
+id가 기여 id와 같은지. 그것이 통과해도 실 DOM에서 서는 Scene이 있다: `custom` 요소의 실체를
+등록하는 것은 제품 앱(호스트 계층)이고 이 저장소는 그것을 모른다. 2026-10-01에 실제로 당했다 —
+[modules#17](https://github.com/StellaxiaLab/modules/pull/17)이 `lab.stellaxia.node-gui`를 머지한
+것만으로 Terra의 모든 PR과 main이 빨개졌다. 그 Scene의 루트가 `terra.web/frame`이고, 그 component는
+`terra-runtime-core`에 산다. Terra의 `shipped-scenes.test.ts`는 `TERRA_MODULES_ROOT`로 **이 저장소의
+main을 라이브로** 걷기 때문에, 여기서 머지하는 순간이 저쪽의 빌드 시점이다 — 그리고 그때까지
+**양쪽 어디에도 막을 문이 없었다.**
+
+G-14의 거울상이다. G-14는 *이 저장소가 가져온 시험을 아무도 돌리지 않게 되는 것*이었고, 이것은
+*이 저장소의 내용이 저쪽 시험을 깨뜨리는 것*이다. 처방은 같다 — **그 시험을 여기서 돈다.** 시험을
+사본으로 들고 오지 않는 이유는 그 시험의 권위가 Terra라는 것이다: 사본은 말없이 늙고, 저쪽이
+호스트 component를 하나 더 등록하면 사본은 그것을 모른다. 대가 하나는 적어 둔다 — 그 시험은 뿌리를
+**둘** 걷는다(저쪽의 `module/`에 남는 base Scene `io.terra.scene.terra`와 이 저장소). 그래서 저쪽
+Scene이 깨지면 이 저장소의 PR도 빨개진다. 뿌리를 좁히는 것은 처방이 아니다 — 좁히면 base Scene이
+목록에서 **조용히 빠진다.**
 
 그 시크릿은 **`StellaxiaLab/Terra`의 읽기 전용 deploy key의 개인키**다. PAT가 아닌 이유는
 셋이다 — 조직이 fine-grained PAT를 허용해야 하고, 허용해도 만료 갱신이 따라오며, 발행한

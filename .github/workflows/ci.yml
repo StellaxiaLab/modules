@@ -7,8 +7,10 @@
 #   web       웹 화면을 가진 모듈(web/package.json)의 빌드와 시험. 이것도 이
 #             저장소만으로 돈다 — Terra 체크아웃도 시크릿도 필요 없다.
 #   pack      Terra 쪽 권위에게 물어야 하는 것 — Scene 무결성과 포장이 실제로
-#             열리는지. `terra module pack` 이 자기 출력을 설치기와 같은
-#             검사로 되열기 때문에, 이 잡이 초록이면 그 패키지는 설치된다.
+#             열리는지, 그리고 **출하 Scene 이 Terra 의 실 런타임에서 마운트되는지**.
+#             `terra module pack` 이 자기 출력을 설치기와 같은 검사로 되열기
+#             때문에, 이 잡이 초록이면 그 패키지는 설치된다. 마운트까지 보는
+#             이유는 분리 검토 G-23 이다 — 아래 그 단계의 주석에 적었다.
 #
 # pack 은 Terra 체크아웃이 필요해서 `TERRA_CHECKOUT_SSH_KEY`(Terra 의 읽기 전용
 # deploy key) 가 있을 때만 돈다. 없으면 건너뛰되 **조용히 건너뛰지는 않는다** —
@@ -122,7 +124,7 @@ jobs:
           fi
 
           echo "present=false" >> "$GITHUB_OUTPUT"
-          skipped="TERRA_CHECKOUT_SSH_KEY 가 없어 pack 검증을 건너뛴다 — Scene 무결성·포장 열림·Go 빌드는 이번 실행에서 확인되지 않았다"
+          skipped="TERRA_CHECKOUT_SSH_KEY 가 없어 pack 검증을 건너뛴다 — Scene 무결성·포장 열림·Go 빌드·Scene 마운트는 이번 실행에서 확인되지 않았다"
 
           if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
             echo "::error::$skipped. main 에서는 건너뛸 수 없다 — 저장소 시크릿 TERRA_CHECKOUT_SSH_KEY 를 세운다(README 의 \"검증\" 절)"
@@ -156,12 +158,16 @@ jobs:
           go-version-file: terra/go.work
           cache: false
 
-      # 드리프트 대조 스크립트는 node 로 돈다. 이 잡에는 npm 의존이 없으므로
-      # 캐시는 두지 않고 런타임만 고정한다.
+      # 드리프트 대조 스크립트가 node 로 돌고, 아래 마운트 단계가 Terra 의 npm
+      # 의존을 받는다. 그래서 캐시를 둔다 — 잠금 파일은 이 저장소가 아니라
+      # **받아 온 Terra 쪽**이므로 경로를 그쪽으로 적는다(기본값은 저장소 루트를
+      # 보고, 거기엔 이 잡이 쓰는 잠금 파일이 없다).
       - if: steps.guard.outputs.present == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
+          cache-dependency-path: terra/package-lock.json
 
       # 벤더링한 스키마가 원본에서 떨어져 나갔는지는 여기서만 볼 수 있다.
       - name: Check the vendored schema against Terra
@@ -239,3 +245,36 @@ jobs:
             --terra "$GITHUB_WORKSPACE/terra" \
             --tag "ci-${GITHUB_SHA}" \
             --out "$RUNNER_TEMP/dist"
+
+      # ── 출하 Scene 이 Terra 의 실 런타임에서 마운트되는지 (분리 검토 G-23) ──
+      #
+      # 위의 pack 은 Scene 의 **정적 무결성**을 본다 — fragment 가 모르는 store 를
+      # 부르는지, id 가 기여 id 와 같은지. 그것이 통과해도 **실 DOM 에서 서는**
+      # Scene 이 있다: `custom` 요소의 실체를 등록하는 것은 제품 앱이고(호스트
+      # 계층), 이 저장소는 그것을 모른다.
+      #
+      # **실제로 당했다 (2026-10-01).** modules#17 이 `lab.stellaxia.node-gui` 를
+      # 머지한 것만으로 Terra 의 모든 PR 과 main 이 빨개졌다. 그 Scene 의 main
+      # Fragment 는 루트가 `terra.web/frame` 이고, 그 component 는
+      # `terra-runtime-core` 에 산다. Terra 의 `shipped-scenes.test.ts` 는
+      # `TERRA_MODULES_ROOT` 로 **이 저장소의 main 을 라이브로** 걷기 때문에,
+      # 여기서 머지하는 순간이 저쪽의 빌드 시점이다 — 그리고 그때까지
+      # **양쪽 어디에도 막을 문이 없었다.** 이 단계가 그 문이다.
+      #
+      # 거울상이다: Terra 의 frontend 잡은 이 저장소를 체크아웃해 자기 시험이
+      # 조용히 건너뛰는 것을 막는다(G-17). 이쪽은 저쪽 시험을 받아 이 저장소의
+      # 머지가 저쪽을 깨뜨리는 것을 막는다. 둘이 같은 결합의 양쪽 끝이다.
+      #
+      # 무엇을 돌리는지와 왜인지는 `tools/test-scenes.mjs` 가 들고 있다 — 여기에
+      # 셸로 적어 두면 사본이 둘이 되고, 기여자는 이 검사를 로컬에서 돌릴 수
+      # 없다(`npm run test:scenes -- --terra <path>`). 그 사정은 pack 단계가
+      # 릴리스와 같은 스크립트를 부르는 이유와 같다.
+      - name: Install Terra's npm deps
+        if: steps.guard.outputs.present == 'true'
+        working-directory: terra
+        run: npm ci
+
+      - name: Mount the shipped Scenes in Terra's runtime
+        if: steps.guard.outputs.present == 'true'
+        working-directory: modules
+        run: node tools/test-scenes.mjs --terra "$GITHUB_WORKSPACE/terra"
