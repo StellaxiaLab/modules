@@ -32,7 +32,7 @@ export const role = frameRole();
  */
 export const frameReady = role === 'frame'
   ? connectTerra({ timeoutMs: 15000 }).catch((error) => {
-    console.warn('[terra] frame의 init을 받지 못했다 — 예시 데이터로 연다', error);
+    console.warn('[terra] frame의 init을 받지 못했다 — 데이터 없이 연다', error);
     return null;
   })
   : Promise.resolve(null);

@@ -337,8 +337,9 @@ html,body{margin:0;background:#dfe3ea}
 import './src/api/frame-boot.js';   // 첫 import — Terra 안이면 마운트보다 먼저 frame에 hello를 보낸다
 import { mount, fit } from './src/runtime/dc.js';
 import Screen from './src/screens/material.js';
+import { realMaterial } from './src/data/editors-live.js';   // 실데이터 층 — 이 노드의 게이트웨이에서 읽은 값만 보인다
 const stage = document.getElementById('stage');
-window.__screen = mount(Screen, { template: document.getElementById('view').textContent, target: stage, props: {} });
+window.__screen = mount(realMaterial(Screen), { template: document.getElementById('view').textContent, target: stage, props: {} });
 fit(stage, 1440, 900);
 
 </script>

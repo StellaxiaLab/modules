@@ -1,10 +1,11 @@
-// frame 안의 세션 — 로그인 띠와 tree 전환 seam.
+// frame 안의 세션 — 로그인 띠.
 //
 // 웹 안에는 로그인 화면을 두지 않는다(웹 프로그램 감싸기 설계 §3.3.1). 웹이 비밀번호를 받으면 모듈 JS가
 // 사용자의 Terra 비밀번호를 보게 되고, 그 JS는 비밀번호를 들고 토큰의 교집합을 우회할 수 있다. 그래서
 //   로그인    웹은 terra.emit('login')만 보낸다 → Scene의 /login Route(내장 엘리먼트 카드)가 받는다
 //   로그아웃  terra.emit('logout') → Scene의 signout Function. 이 Scene이 쥔 Handle이 있을 때만(session.state)
 // frame이 건네는 값(terra.value())은 Scene의 session Store다: { state: 'signedIn' | 'signedOut', principal }.
+// tree 전환은 여기서 다루지 않는다 — 실데이터 층(src/data/node-live.js beginSwitch)이 다른 tree로 가지 않게 막는다.
 //
 // 띠는 생성되는 화면(#stage) 밖, body에 붙인다 — dc.js는 #stage의 자식 중 템플릿에 없는 것을 지운다.
 // 자리는 오버헤드 패널 가운데 띠 바로 아래이고, 화면 맞춤(fitScreen)이 [data-node-root]를 줄이면 따라 줄어든다.
@@ -16,21 +17,6 @@ const W = 1447;
  * @param {import('./terra-frame-client.js').TerraFrame} terra
  */
 export function wireFrameSession(screen, terra, doc = document) {
-  // ── seam: tree 전환 ─────────────────────────────────────
-  // 예시 tree 중 'password'는 관리 노드 창 아래로 로그인 창(비밀번호 칸)을 띄운다. frame 안에서는 띄우지 않는다 —
-  // 진짜 로그인과 구별되지 않는 비밀번호 칸을 모듈이 그리는 것이 웹 프로그램 감싸기 설계 §8의 남는 위험이다.
-  // 맵은 예시이고 다른 tree의 게이트웨이에는 이 화면이 닿지 않으므로, 전환 자체는 예시로 그대로 둔다.
-  const origBegin = screen.beginSwitch.bind(screen);
-  let noted = false;
-  screen.beginSwitch = (pick) => {
-    if (!noted) {
-      noted = true;
-      screen.pushAlarm('◇', '#5b6472', 'tree 전환은 예시다 — 다른 tree의 게이트웨이에는 이 화면이 닿지 않는다');
-    }
-    if (pick && pick.auth === 'password') return screen.startLogin(Object.assign({}, pick, { auth: 'saved' }), '', false);
-    return origBegin(pick);
-  };
-
   // ── 로그인 띠 ───────────────────────────────────────────
   const bar = doc.createElement('div');
   bar.setAttribute('data-terra-session', '');
@@ -68,7 +54,7 @@ export function wireFrameSession(screen, terra, doc = document) {
     if (!token) {
       const reason = terra.absence() || 'NO_SESSION';
       if (reason === 'NO_SESSION') {
-        return { key: reason, parts: [text('●', '#a65f00'), text('Terra에 로그인하지 않았습니다 — 지금 보이는 것은 예시 데이터입니다'),
+        return { key: reason, parts: [text('●', '#a65f00'), text('Terra에 로그인하지 않았습니다 — 로그인하면 이 노드의 데이터가 보입니다'),
           button('로그인', () => terra.emit('login'), true)] };
       }
       if (reason === 'SCOPE_TOKEN_DENIED') {
@@ -114,7 +100,6 @@ export function wireFrameSession(screen, terra, doc = document) {
       offToken(); offValue();
       win.removeEventListener('resize', place);
       bar.remove();
-      screen.beginSwitch = origBegin;
     }
   };
 }
