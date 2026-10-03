@@ -7,8 +7,8 @@ doc_type: "data-model"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.1.0"
-last_updated: "2026-10-01"
+version: "0.2.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 source: "design/Artboard-qcfu.dc.html (= src/screens/node.js) — constructor(), renderVals()"
 related:
@@ -137,6 +137,10 @@ looks = { 'tree-home': { skin: 'concrete', bid: 'tower', rot: 0 }, … }
 - 글리프 약속: `●` 초록 = 성공/새 노드 · `■` 빨강 = 실패 · `◇` 파랑/청록 = 접수·이동.
 
 ### 2.8 예시로만 존재하는 것 (반드시 교체)
+
+> [!NOTE] 출하 화면에서는 교체됐다 (2026-10-03)
+> 아래 예시는 디자인 원본(`design/*.dc.html`)과 생성물에 그대로 남아 있지만, 출하 화면은 실데이터 층이 첫 렌더 전에 지운다.
+> 무엇으로 바뀌었고 무엇이 비어 있는지는 [[real-data-layer|실데이터 층]] §2 · §3.
 
 | 예시 | 위치 | 교체 방법 |
 | --- | --- | --- |

@@ -7,14 +7,15 @@ doc_type: "architecture"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-01"
+version: "0.4.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 related:
   - "[[docs/README|개발 문서 MOC]]"
   - "[[frontend-api|프론트엔드 API]]"
   - "[[node-screen-code-structure|코드 구조와 이식 가이드]]"
   - "[[node-screen-ui-spec|노드 화면 UI 명세]]"
+  - "[[real-data-layer|실데이터 층]]"
 ---
 
 # Terra 노드 GUI 구조
@@ -33,11 +34,13 @@ flowchart LR
   end
   SC -->|"setState"| RT
   LOOP["렌더 밖 루프<br/>조타륜 · 바다 · 해안 · 애니메이션"] -->|"캔버스 · 속성 직접"| DOM
-  WIRE["src/api/wire.js<br/>frame 안 · ?live=1"] -->|"seam 바꿔 끼우기"| SC
+  REAL["src/data/*-live.js<br/>화면을 이어받아 예시를 지운다"] -->|"extends"| SC
+  WIRE["src/api/wire.js<br/>frame 안"] -->|"loadWorld · seam 바꿔 끼우기"| REAL
   WIRE --> CL["TerraClient"] -->|"invoke"| GW["Gateway"]
 ```
 
 - 페이지 하나 = 템플릿 + 화면 클래스 하나. `tools/gen-pages.py`가 `design/*.dc.html`(디자인 캔버스 원본)에서 둘을 떼어 만든다.
+- 페이지는 화면 클래스를 그대로 마운트하지 않고 **실데이터 층이 이어받은 클래스**(`realNode(Screen)` …)를 마운트한다 — 원본의 예시 세계는 첫 렌더 전에 지워진다([[real-data-layer|실데이터 층]]).
 - 화면 클래스는 React 컴포넌트와 비슷한 모양(`state` · `setState` · `componentDidMount` · `renderVals`)이지만 React가 아니다 — 작은 런타임(§2)이 돌린다.
 - 데이터 연동은 화면 코드를 고치지 않고 **연동 지점(seam)** 메서드를 바꿔 끼운다(§6, [[frontend-api|프론트엔드 API]] §5).
 - 출하는 Terra 모듈 `lab.stellaxia.node-gui`의 웹 앱으로 한다 — 셸 Scene의 `terra.web/frame`이 감싼다(§7).
@@ -107,7 +110,7 @@ flowchart LR
 | `seaStart` · `coastStart` | 〃 | 바다 · 해안 거품 캔버스. 수심 띠는 0.3초마다 따로 구워 둔다 |
 | `mgBeachStart` | 〃 | 관리 노드 창 배경 해변 |
 | `animTick` | 31ms 간격 | 애니메이션 자재 · 건물 이미지의 `href`만 바꾼다(`data-anim`) |
-| `hbTick` | 앱 바 · 앱 전체 화면을 열 때 | 전송 진행 · 실행 중 작업을 0.5초마다 (예시 데이터) |
+| `hbTick` | 앱 바 · 앱 전체 화면을 열 때 | 전송 진행 · 실행 중 작업을 0.5초마다 흉내 낸다 — 실데이터 층에서는 아무것도 안 한다(진짜 목록은 폴링) |
 | `fsBind` | `componentDidMount` | 바깥 누르기 · Esc — 리스트 · 사이드 바 접기, 전체 화면 끝 |
 
 ## 6. 상태 소유
@@ -115,10 +118,10 @@ flowchart LR
 | 어디 | 무엇 | 비고 |
 | --- | --- | --- |
 | `this.state` | 화면에 보이는 모든 값 | `setState`로만 바꾼다 |
-| `this.NET` | 노드 관계(예시) | 상태 밖 — 연동 때 상태로 옮긴다([[node-screen-data-model\|데이터 모델]] §2.1) |
+| `this.NET` | 노드 관계 — 원본은 예시, 실데이터 층은 이 노드 · 부모 tree · `agent/nodes` | 상태 밖 — 바꾼 뒤 `setState({})`([[node-screen-data-model\|데이터 모델]] §2.1) |
 | `this._hx` · `this._hxRes` | 조타륜 내부 · 앱 목록 | 렌더 밖 루프 전용 |
 | `this._mapGoal` | 가는 중인 맵 | 맵 전환 중 판단(`onLocalMap` · `hbNode`)에 쓴다 |
-| `this.FBDATA()` | 폴더 보관함 예시 트리 | 연동 때 API로([[helm-apps-integration\|조타륜 앱 연동]] §4) |
+| `this.FBDATA()` | 폴더 보관함 트리 — 원본은 예시, 실데이터 층은 `io.terra.file` 의 공유 폴더 | [[helm-apps-integration\|조타륜 앱 연동]] §4 · [[real-data-layer\|실데이터 층]] §2.1 |
 
 ## 7. Terra 안에서 — frame
 
@@ -153,15 +156,17 @@ flowchart LR
 
 ### 7.2 무엇이 실데이터인가
 
+예시 데이터는 하나도 보이지 않는다. 영역마다의 출처와 비어 있는 이유는 [[real-data-layer|실데이터 층]] §2 · §3에 있다. 요약:
+
 | 영역 | frame 안에서 |
 | --- | --- |
-| 조타륜 앱 중 **Daemon operation**(L)을 부르는 목록 — I/O 장치 · 선언 · 폴더 · 터널 · WireGuard · 모듈 | 실데이터 — 맵의 로컬 노드(`state.localNode`)가 이 노드를 대신한다 |
-| 조타륜 앱 중 **Master operation**(T) — 공유 자원 · 허가 · 작업 · 추가 목록(`extra`) | `쓸 수 없다 · Master를 거치는 기능은 이 화면에 아직 열리지 않았다` — 첫 401 뒤로 다시 부르지 않는다 |
-| 모듈 namespace operation(M) — 전송 · 폴더 동작 | 이 노드의 카탈로그에 있으면 실데이터, 없으면 `이 노드의 게이트웨이에 없다` |
-| 맵의 다른 노드 | 예시 — 그 노드의 자원은 `다른 노드의 자원은 아직 이 화면에서 볼 수 없다` |
-| 맵 · 관리 노드 창 · tree 목록 · 폴더 보관함 · 메모 | 예시 (메모는 메모리) |
+| 맵 · 세션 띠 · 속성 창 · 유틸 카드 · 알림 | 이 노드(`terra.daemon.node.get`) · 부모 tree(등록 정보의 Master 주소) · `agent/nodes` · 자원 개수 · Daemon 작업 폴링 |
+| 조타륜 앱 중 **Daemon operation**(L) — I/O 장치 · 선언 · 폴더 · 터널 · WireGuard · 작업 · 모듈 | 실데이터 — 처음 맵이 이 노드의 맵이고, 조타륜은 진짜 로컬 노드 이름으로 붙는다 |
+| 모듈 namespace operation(M) — 폴더 항목 · 전송 | 실데이터(`io.terra.file`) |
+| **Master operation**(T) — SVI 자원 · 허가 · mesh · 라우트 · 클러스터 | `쓸 수 없다` · "닿지 않음" — 첫 401 뒤로 다시 부르지 않는다 |
+| 다른 노드 · 다른 tree · 맵 배치 · 메모 · 로컬 파일 탐색 | 비어 있다 — 출처가 없다(메모는 화면 메모리) |
 
-로그인하지 않았거나 토큰을 잃으면 seam을 되돌려 **예시 데이터로 돌아간다** — 화면이 빈 채로 남지 않는다.
+로그인하지 않았거나 토큰을 잃으면 받아 둔 것을 지우고 **빈 세계로 돌아간다** — 예시로 돌아가지 않는다.
 
 ## 관련 문서
 
@@ -170,6 +175,7 @@ flowchart LR
 - [[node-screen-code-structure|코드 구조와 이식 가이드]] — 성능 함정 · 분할안
 - [[node-screen-ui-spec|노드 화면 UI 명세]]
 - [[getting-started|시작하기]] — §4 Terra 안에서 띄워 보기
+- [[real-data-layer|실데이터 층]] — 예시를 지운 방법 · 출처 · 빈 자리 · 실측
 
 ## 관련 모듈
 

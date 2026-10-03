@@ -6,8 +6,8 @@ doc_type: "readme"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-01"
+version: "0.4.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 ---
 
@@ -15,7 +15,8 @@ language: "ko-KR"
 
 게임 GUI 형태의 Terra 노드 화면과 편집기들을 브라우저에서 바로 돌리는 웹 프로젝트다.
 디자인 캔버스에서 만든 화면(`design/*.dc.html`)을 그대로 옮겼고, 외부 UI 라이브러리 없이 순수 JavaScript(ES 모듈)로 동작한다.
-데이터는 지금 **예시값**이고, Gateway에 붙이는 연동 층(`src/api` · `src/model`)과 개발 문서(`docs/`)가 함께 들어 있다.
+디자인 원본의 예시 데이터는 화면에 나오지 않는다 — 실데이터 층(`src/data`)이 첫 렌더 전에 지우고, Terra 안에서는 이 노드의 값으로 채운다
+([[real-data-layer|실데이터 층]]). Gateway에 붙이는 연동 층(`src/api` · `src/model`)과 개발 문서(`docs/`)가 함께 들어 있다.
 
 이 디렉터리는 Terra 모듈 `lab.stellaxia.node-gui`의 **`web/`**이다. 빌드 결과는 모듈의 `ui/`로 가고, 노드에서는 셸 Scene의
 `terra.web/frame`이 이 화면을 감싼다 — 그때 무엇이 실데이터가 되는지는 [[architecture#7. Terra 안에서 — frame|구조 §7]],
@@ -30,7 +31,7 @@ npm ci
 npm run dev          # http://localhost:5173 — 첫 화면에서 각 화면으로
 npm run build        # ../ui/ 에 정적 파일 — 모듈이 싣는 것 (상대 경로라 어느 경로에 올려도 동작)
 npm run gen          # design/*.dc.html 을 고친 뒤 화면 페이지를 다시 만든다 (python3 필요)
-npm test             # 연동 층 시험 (node:test — 브라우저 없이)
+npm test             # 연동 층 · 실데이터 층 시험 (node:test — 브라우저 없이)
 npm run test:smoke   # 연기 시험 (playwright 브라우저 필요: npx playwright install chromium)
 ```
 
@@ -40,15 +41,8 @@ npm run test:smoke   # 연기 시험 (playwright 브라우저 필요: npx playwr
 python3 -m http.server 8000      # http://localhost:8000
 ```
 
-Gateway에 붙이기 (조타륜 앱이 실데이터를 받는다):
-
-```bash
-node tools/mock-gateway.mjs 8790                     # 가짜 Gateway (연습용)
-# 브라우저: http://localhost:5173/node.html?live=1&gw=http://127.0.0.1:8790
-```
-
-진짜 노드에는 모듈로 포장해 설치한다 — 앱은 게이트웨이가 정한 앱 origin에서 서빙되고 frame이 스코프 토큰을 건넨다
-([[getting-started|시작하기]] §4.2).
+단독으로 띄운 화면은 Terra 밖이라 데이터가 없다(빈 세계). 실데이터는 노드에 모듈로 포장해 설치해서 본다 — 앱은 게이트웨이가
+정한 앱 origin에서 서빙되고 frame이 스코프 토큰을 건넨다([[getting-started|시작하기]] §4.2).
 
 ## 화면
 
@@ -72,11 +66,12 @@ web/                         # 모듈 lab.stellaxia.node-gui 의 웹 소스 (포
 │   ├── screens/*.js         # 화면 로직 (design/*.dc.html 에서 생성)
 │   ├── api/                 # 연동 층: TerraClient · operation 대응표 · 응답 변환 · 데이터 소스 · 화면 연결
 │   │                        #   frame-boot · frame-session · frame-boards · terra-frame-client — Terra frame 안에서
+│   ├── data/                # 실데이터 층: 화면 클래스를 이어받아 예시를 지운다 (*-live.js) · 순수 변환(world · alarms · files)
 │   └── model/               # 데이터 모양(JSDoc) · 권한 · 배지 규칙
 ├── design/                  # 디자인 캔버스 원본 (.dc.html · canvas.json · 로고)
 ├── docs/                    # 개발 문서 (Obsidian 호환 — docs/README.md 부터)
-├── tools/                   # gen-pages.py · mock-gateway.mjs · pages.json
-├── tests/api.test.mjs       # 연동 층 시험 (npm test)
+├── tools/                   # gen-pages.py(실데이터 층 마운트 · 템플릿 패치) · pages.json
+├── tests/*.test.mjs         # 연동 층 · 실데이터 층 시험 (npm test)
 ├── tests/smoke.mjs          # 연기 시험 (npm run test:smoke — 브라우저 필요)
 └── public/pages.json        # 첫 화면 목록
 ```

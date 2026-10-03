@@ -19,6 +19,45 @@ screens=[('Artboard-qcfu','node','노드 화면',False,'육각 필드 맵 · 관
  ('Helm','helm','조타륜 (디자인 노트)',True,'조타륜 단독 시안'),
  ('HelmApps','helm-apps','조타륜 앱 노트 (디자인 노트)',True,'조타륜 앱별 자원 · 동작 노트')]
 links={f'{a}.dc.html':f'{b}.html' for a,b,*_ in screens}
+# 실데이터 층 — 화면 클래스를 이어받아 예시 데이터를 지운 클래스(src/data/*-live.js). 없는 화면은 디자인 그대로 마운트한다
+REAL={'node':('./src/data/node-live.js','realNode'),'network':('./src/data/network-live.js','realNetwork'),
+ 'settings':('./src/data/settings-live.js','realSettings'),'material':('./src/data/editors-live.js','realMaterial'),
+ 'field':('./src/data/editors-live.js','realField')}
+# 템플릿에 박힌 예시 문구 → 바인딩 · 삭제 (원본 design/*.dc.html 은 그대로 둔다). 대상이 정확히 한 번 있어야 한다 — 원본이 바뀌면 여기서 멈춘다
+SIMUL_SWITCHES_NET='''    <span style="font-size: 11.5px; color: #8b95a6;">시연</span>
+    <div role="group" aria-label="GUI를 연 노드 (시연)" style="display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: #eef1f5;">
+      <sc-for list="{{hdr.roles}}" as="ro" hint-placeholder-count="2">
+        <button type="button" aria-pressed="{{ro.on}}" onClick="{{ro.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: {{ro.bg}}; color: {{ro.fg}}; box-shadow: {{ro.sh}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">{{ro.label}}</button>
+      </sc-for>
+    </div>
+'''
+DEMO_SELECT='''    <select aria-label="상태 시연" onChange="{{hdr.setDemo}}" style="height: 30px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12px; color: #16191f;">
+      <sc-for list="{{hdr.demos}}" as="dm" hint-placeholder-count="4">
+        <option value="{{dm.v}}" selected="{{dm.sel}}">{{dm.label}}</option>
+      </sc-for>
+    </select>
+    <span style="font-size: 12px; font-weight: 600; color: #a65f00; border: 1px solid #a65f00; border-radius: 4px; padding: 1px 6px;">예시 데이터</span>
+'''
+TEMPLATE_PATCHES={
+ 'node':[
+  ('<span style="color: #1f7a4d; font-size: 10px;">●</span>\n        <span style="font-weight: 700;">admin</span>\n        <span style="color: #5b6472; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; min-width: 0;">만료 21:40 · 권한: 모듈 관리 · 노드 조회</span>',
+   '<span style="color: {{who.dotC}}; font-size: 10px;">●</span>\n        <span style="font-weight: 700;">{{who.name}}</span>\n        <span title="{{who.sub}}" style="color: #5b6472; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; min-width: 0;">{{who.sub}}</span>'),
+  ('\n        <span style="font-size: 11px; font-weight: 700; color: #a65f00; border: 1px solid #a65f00; border-radius: 4px; padding: 0 5px; line-height: 16px;">예시 데이터</span>', ''),
+  ('{{leafResCount}}개 · 예시', '{{leafResCount}}개')],
+ 'network':[
+  ('이 보드는 머리의 "열린 곳" 전환으로 tree GUI · leaf GUI를 둘 다 보여 준다. 데이터는 전부 예시 -->', '역할(tree · leaf)은 카탈로그로 정하고, 데이터는 이 노드의 게이트웨이에서 읽는다(src/data/network-live.js) -->'),
+  (SIMUL_SWITCHES_NET+DEMO_SELECT, ''),
+  ('<div>권한 <span class="mono">node.read</span> · <span class="mono">node.control</span> ✓</div>', '<div>{{sess.perm}}</div>')],
+ 'settings':[
+  ('데이터는 예시 -->', '데이터는 이 노드의 게이트웨이에서 읽는다(src/data/settings-live.js) -->'),
+  (SIMUL_SWITCHES_NET, ''),
+  ('<button type="button" onClick="{{hdr.togglePerm}}" aria-pressed="{{hdr.permOn}}" title="node.config★는 기본 권한 밖 — 관리자도 명시해야 열린다" style="height: 30px; padding: 0 10px; border: 1px solid {{hdr.permLine}}; border-radius: 6px; background: {{hdr.permBg}}; color: {{hdr.permFg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">{{hdr.permLabel}}</button>',
+   '<span title="node.config★는 기본 권한 밖 — 관리자도 명시해야 열린다" style="display: inline-flex; align-items: center; height: 30px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{hdr.permLine}}; border-radius: 6px; background: {{hdr.permBg}}; color: {{hdr.permFg}}; font-size: 12px; font-weight: 600;">{{hdr.permLabel}}</span>'),
+  ('\n'+DEMO_SELECT.rstrip('\n'), ''),
+  ('title="시연: 재시작을 마친 것으로"', 'title="Daemon을 재시작한 뒤 실행 중인 값을 다시 읽는다 (config.get)"'),
+  ('>재시작함 (시연)</button>', '>다시 읽기</button>')],
+ 'components':[('tree-home (Master가 정함)', '상위 tree (Master가 정함)')]
+}
 for src,name,title,dofit,desc in screens:
     s=open(SRC+src+'.dc.html').read()
     body=s.split('<x-dc>')[1].split('</x-dc>')[0]
@@ -33,12 +72,17 @@ for src,name,title,dofit,desc in screens:
     W,H=props['$preview']['width'],props['$preview']['height']
     defaults={k:v.get('default') for k,v in props.items() if not k.startswith('$') and isinstance(v,dict) and 'default' in v}
     for a,b in links.items(): tpl=tpl.replace(a,b); js=js.replace(a,b)
+    for old,new in TEMPLATE_PATCHES.get(name,[]):
+        n=tpl.count(old)
+        if n!=1: sys.exit(f'{src}.dc.html: 템플릿 패치 대상이 {n}번 있다 — tools/gen-pages.py TEMPLATE_PATCHES 를 원본에 맞춰 고친다: {old[:60]!r}')
+        tpl=tpl.replace(old,new)
     assert '</script' not in tpl
     open(OUT+f'src/screens/{name}.js','w').write(
         f"// {title} — 디자인 캔버스 원본 design/{src}.dc.html 에서 옮긴 화면 로직 (tools/gen-pages.py로 다시 만든다)\n// 데이터 연동 지점은 docs/api/frontend-api.md 참고\nimport {{ DCLogic }} from '../runtime/dc.js';\n\n"+
         js.replace('class Component extends DCLogic','export default class Component extends DCLogic',1)+'\n')
     stage_css = f"#stage{{width:{W}px;height:{H}px}}" if not dofit else f".frame{{margin:12px auto;overflow:hidden;box-shadow:0 6px 24px rgba(22,25,31,0.16);border-radius:6px}}\n#stage{{width:{W}px;height:{H}px;transform-origin:0 0;background:#ffffff}}"
     stage_html = '<div id="stage"></div>' if not dofit else '<div class="frame"><div id="stage"></div></div>'
+    real_imp = ("import { %s } from '%s';   // 실데이터 층 — 이 노드의 게이트웨이에서 읽은 값만 보인다\n" % (REAL[name][1], REAL[name][0])) if name in REAL else ''
     page=f'''<!doctype html>
 <html lang="ko">
 <head>
@@ -60,10 +104,10 @@ html,body{{margin:0;background:#dfe3ea}}
 import './src/api/frame-boot.js';   // 첫 import — Terra 안이면 마운트보다 먼저 frame에 hello를 보낸다
 import {{ mount, fit }} from './src/runtime/dc.js';
 import Screen from './src/screens/{name}.js';
-const stage = document.getElementById('stage');
-window.__screen = mount(Screen, {{ template: document.getElementById('view').textContent, target: stage, props: {json.dumps(defaults, ensure_ascii=False)} }});
+{real_imp}const stage = document.getElementById('stage');
+window.__screen = mount({(REAL[name][1]+'(Screen)') if name in REAL else 'Screen'}, {{ template: document.getElementById('view').textContent, target: stage, props: {json.dumps(defaults, ensure_ascii=False)} }});
 {'fit(stage, %d, %d);' % (W, H) if dofit else ''}
-{"import('./src/api/wire.js').then((m) => m.wireFromUrl(window.__screen));   // Terra 안이면 frame 토큰으로, 밖이면 ?live=1&gw=… 일 때만 Gateway에 연결" if name=='node' else ''}
+{"import('./src/api/wire.js').then((m) => m.wireFromUrl(window.__screen));   // Terra 안이면 frame 토큰으로 이 노드의 게이트웨이에 연결" if name=='node' else ''}
 </script>
 </body>
 </html>

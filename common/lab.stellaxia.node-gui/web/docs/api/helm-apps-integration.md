@@ -7,8 +7,8 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-01"
+version: "0.4.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 based_on: "terra-gui-resource-inventory (자원 목록) · terra-gui-api-priority"
 related:
@@ -16,6 +16,7 @@ related:
   - "[[frontend-api|프론트엔드 API]]"
   - "[[node-screen-api-integration|노드 화면 API 연동 가이드]]"
   - "[[node-screen-ui-spec|노드 화면 UI 명세]]"
+  - "[[real-data-layer|실데이터 층]]"
   - "[[docs/modules/terra-gui/design/unified-gui-ux/terra-gui-resource-inventory|GUI 자원 목록]]"
 ---
 
@@ -26,6 +27,7 @@ related:
 
 > [!IMPORTANT] ⚠ 표시
 > 원본 문서에서 operationId 표기나 응답 필드를 확인하지 못한 것이다. 코드 세션은 `catalog.get`과 실제 응답으로 확인하고 `operations.js` · `adapters.js`를 고친다.
+> 이 노드(leaf)에서 쓰는 것은 2026-10-03 진짜 스택의 카탈로그와 응답으로 확인했다 — 이 노드에서 무엇을 부르는지는 [[real-data-layer|실데이터 층]] §2.2가 기준이다.
 
 ## 1. 공통 규칙
 
@@ -163,9 +165,11 @@ flowchart LR
 
 | | operation | 권한 |
 | --- | --- | --- |
-| 목록 · 출력 | `terra.master.jobs.get` · `jobs.by-job-id.get` (T ⚠) / leaf 자신은 `terra.daemon.tasks.*` | `node.read` |
+| 목록 · 출력 | `terra.master.jobs.get` · `jobs.by-job-id.get` (T ⚠) / **이 노드 자신은 `terra.daemon.tasks.get` · `tasks.by-task-id.get`**(대응표 `local`) — 종류(type)와 상태만 온다. 명령 · 출력은 오지 않는다 | `node.read` |
 | 실행 · 다시 | `terra.master.commands.post {type: process.execute.request}` (작업) | `process.execute` + **직계 자식만**(아니면 `DELEGATION_REQUIRED`) |
-| 취소 | `commands.post {type: process.cancel.request}` | + `process.cancel`★ |
+| 취소 | `commands.post {type: process.cancel.request}` / 이 노드 자신은 `terra.daemon.tasks.by-task-id.cancel.post` | + `process.cancel`★ / `node.control` |
+
+이 노드에는 `terra.daemon.commands.execute.post`(`process.execute`)도 있지만, 명령을 적을 칸이 화면에 없어 실행 · 다시는 부르지 않는다(`none: 'no-command'`).
 
 Master는 canceled · timed_out을 `failed`로 접는다 — 이유는 `result.state` · `exit_code`. 출력은 폴링(64 KiB).
 
@@ -174,16 +178,16 @@ Master는 canceled · timed_out을 `failed`로 접는다 — 이유는 `result.s
 | | operation | 권한 |
 | --- | --- | --- |
 | 목록 | `terra.daemon.modules.get` (L) · tree에서 볼 때 `terra.master.nodes.by-node-id.modules.get` | `node.read` |
-| 시작 · 멈춤 · 재시작 | `terra.gateway.modules.*` (∀ ⚠, tree Gateway에선 501) · leaf는 `terra.daemon.modules.*`(`node.control`)도 있다 | `module.manage`★ |
-| 로그 | `terra.gateway.modules.by-module-id.logs.get` ⚠ | `node.read` |
+| 시작 · 멈춤 · 재시작 | **이 노드는 `terra.daemon.modules.by-module-id.{start,stop,restart}.post`**(`node.control`, 작업으로 접수 → `tasks.by-task-id.get`으로 끝까지 본다). 게이트웨이 쪽 이름은 `terra.gateway.modules.by-id.{start,stop}.post` — 재시작이 없다 | `node.control` |
+| 로그 | `terra.gateway.modules.by-id.logs.get` — leaf 게이트웨이에서는 500 `MODULE_MANAGEMENT_FAILED`("not supported by the daemon local API", 실측) | `node.read` |
 
-자물쇠가 둘이다(Gateway `module.manage`★ / Daemon `node.control`). 어느 길을 쓸지는 결정 필요 — 지금 화면은 `module.manage`로 잠근다.
+자물쇠가 둘이다(Gateway `module.manage`★ / Daemon `node.control`). 이 노드의 모듈은 Daemon 길로 가므로 실데이터 층은 화면의 `모듈 관리★` 자물쇠를 `node.control`로 푼다.
 
 ## 3. 새 앱을 더할 때
 
 1. `RES`(조타륜 드럼)에 `{ name, sub, px }` · 픽셀 로고(`PX`) · 앱 로고(`HBICON().app`)
 2. `HBAPP()`에 권한 칸 · `see`
-3. `hbSeed`에 예시 목록 · `hbAct`에 `case '앱:op'` · `hbVals`에 카드 분기
+3. `hbAct`에 `case '앱:op'` · `hbVals`에 카드 분기 (`hbSeed`의 예시 목록은 디자인 미리보기용 — 실데이터 층은 쓰지 않는다)
 4. `src/api/operations.js`에 `list` · `acts` · `src/api/adapters.js`에 `ADAPT[앱]`
 5. 이 문서 §2와 [[node-screen-ui-spec|UI 명세]] §5.3 표에 한 줄
 

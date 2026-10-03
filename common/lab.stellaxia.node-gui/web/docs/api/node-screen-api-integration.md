@@ -7,8 +7,8 @@ doc_type: "integration-guide"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.2.0"
-last_updated: "2026-10-01"
+version: "0.3.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 based_on: "terra-gui-api-priority v0.2.0 (main 0642568)"
 os_priority:
@@ -270,12 +270,12 @@ sequenceDiagram
 ## 8. 연동 순서 (체크리스트)
 
 1. [x] `TerraClient` 뼈대 — `src/api/client.js` (`invoke` · `refreshCatalog` · `Result` 변환 · SSE · 작업 추적). ⚠ 표시는 Gateway 소스로 확인
-1. [x] 조타륜 앱 연결 — `src/api/wire.js` (`?live=1`) · 대응표 확인은 남음
-2. [ ] 세션 흐름 · 로그인 창 · 상태줄 실데이터(§3) — "예시 데이터" 표식 제거
+1. [x] 조타륜 앱 연결 — `src/api/wire.js` · 이 노드에서 쓰는 대응표는 진짜 스택으로 확인([[real-data-layer|실데이터 층]] §2.2)
+2. [x] 세션 흐름 · 상태줄 실데이터(§3) — "예시 데이터" 표식 제거. 로그인은 셸이 한다(frame)
 3. [ ] `LayoutStore`(IndexedDB) — `looks` · `maps` 저장/복원
-4. [ ] tree 노드 목록 → `NET` · `pending` 계산 · 폴링(§4.1 · §5)
+4. [~] tree 노드 목록 → `NET` — 이 노드 · 부모 tree · `GET /api/v1/agent/nodes`(평평한 목록). 계층 · 폴링은 Master 위임 뒤(§4.1 · §5)
 5. [ ] 속성 창 노드 상세 · 이름/부모 수정 · 삭제(확인)
-6. [ ] 알림: 작업 추적 → `pushAlarm`, leaf SSE
+6. [x] 알림: Daemon 작업 폴링(10초) → 알림 목록. leaf 이벤트(`/events`)는 WebSocket 이라 frame 토큰으로 열 수 없다
 7. [ ] 모듈 창 · 실행 창(작업 링) · 설정 창(자동 폼)
 8. [ ] `AssetStore` — 편집기 3종 연결
 9. [ ] tree 전환(§7 결정 후)

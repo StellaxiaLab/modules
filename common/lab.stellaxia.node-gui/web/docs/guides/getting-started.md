@@ -6,8 +6,8 @@ doc_type: "guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-01"
+version: "0.4.0"
+last_updated: "2026-10-03"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -73,15 +73,13 @@ flowchart LR
 
 ## 4. Gateway에 붙이기
 
-### 4.1 단독 — 연습용 가짜 Gateway
+### 4.1 단독 — 데이터 없음
 
-```bash
-node tools/mock-gateway.mjs 8790     # 가짜 Gateway — I/O 장치 · 모듈 몇 개만 답한다
-# 브라우저: http://localhost:5173/node.html?live=1&gw=http://127.0.0.1:8790
-```
+`npm run dev`로 띄운 화면은 Terra 밖이라 닿을 곳이 없다. **빈 세계**(`이 노드` 한 칸의 맵 · 로그인 전)로 뜬다 —
+예시 데이터는 보이지 않는다([[real-data-layer|실데이터 층]]). 화면 모양 · 동작을 고칠 때는 이것으로 충분하다.
 
-`?live=1`이 없으면 예시 데이터 그대로다. 진짜 게이트웨이(leaf `:8787` · tree `:8788`)에는 이 길로 붙이지 않는다 —
-앱은 게이트웨이가 정한 앱 origin에서만 서빙되고, 그 밖에서 부르면 CORS와 쿠키 정책에 막힌다. 진짜는 §4.2다.
+예전의 가짜 Gateway(`tools/mock-gateway.mjs` · `?live=1`)는 예시 장치를 들고 있어 함께 뺐다. 진짜 게이트웨이(leaf `:8787` · tree `:8788`)에
+밖에서 붙이는 길은 없다 — 앱은 게이트웨이가 정한 앱 origin에서만 서빙되고, 그 밖에서 부르면 CORS와 쿠키 정책에 막힌다. 데이터는 §4.2다.
 
 ### 4.2 Terra 안에서 — 모듈로
 

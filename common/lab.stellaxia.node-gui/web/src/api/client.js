@@ -4,7 +4,7 @@
 // 두 모드가 같은 클라이언트를 쓴다. 다른 것은 fetch 하나다.
 //   frame 안   base '' (앱별 origin = 이 노드의 게이트웨이) · fetchImpl = terra.fetch (스코프 토큰을 붙이고
 //              401이면 한 번 재발급해 다시 보낸다). 쿠키는 게이트웨이를 지나지 않는다
-//   단독 실행  base = ?gw= 주소 · fetchImpl 없음 → credentials:'include' (연습용 가짜 Gateway, tools/mock-gateway.mjs)
+//   주소 지정  base = 게이트웨이 주소 · fetchImpl 없음 → credentials:'include' (시험 · 도구용. 화면은 frame 길만 쓴다)
 
 /**
  * @typedef {{ kind: 'ok', data: any }
@@ -75,6 +75,19 @@ export class TerraClient {
     return r;
   }
 
+  /**
+   * 게이트웨이 자신의 경로를 GET 으로 — operation 이 아니라 경로로만 맞게 답하는 것들.
+   *   /api/v1/agent/whoami  invoke(terra.gateway.agent.whoami.get)로 부르면 호출자가 중계에서 빠져 'anonymous' 가 온다(실측)
+   *   /api/v1/agent/nodes   Master 세션으로 노드 목록 — 위임 자격이 노드 id 를 아는 길
+   * @param {string} path  '/api/v1/…' @returns {Promise<Result>}
+   */
+  async get(path) {
+    let res;
+    try { res = await this.fetch(`${this.base}${path}`, { headers: { Accept: 'application/json' } }); }
+    catch (e) { return { kind: 'unreachable', reason: String(e) }; }
+    return toResult(res);
+  }
+
   /** leaf SSE (terra.daemon.events.get) — 끊기면 1 → 2 → 4 … 30초 재연결
    *  EventSource는 Authorization을 붙이지 못하므로 fetch 스트림으로 읽는다. Accept가 없으면 일반 호출로 가 15초에서 끊긴다. */
   events(onEvent) {
@@ -130,7 +143,9 @@ export async function toResult(res) {
   let body = null;
   try { body = await res.json(); } catch { /* 본문 없음 */ }
   const data = unwrap(body);
-  if (res.status === 202 || (body && body.status === 'accepted') || (data && (data.job_id || data.task_id))) {
+  // 작업 기록(tasks.by-task-id.get 등)도 job_id · task_id 를 싣는다 — 상태(state · status)가 있으면 접수가 아니라 기록이다
+  const record = data && typeof data === 'object' && ('state' in data || 'status' in data);
+  if (res.status === 202 || (body && body.status === 'accepted') || (data && (data.job_id || data.task_id) && !record)) {
     return { kind: 'accepted', job: data && (data.job_id || data.task_id) };
   }
   if (res.ok) return { kind: 'ok', data };
@@ -155,7 +170,10 @@ const REASON = {
   'remote-node': '다른 노드의 자원은 아직 이 화면에서 볼 수 없다',
   'master-delegation': 'Master를 거치는 기능은 이 화면에 아직 열리지 않았다',
   'not-in-catalog': '이 노드의 게이트웨이에 없다',
-  'no-operation': '대응하는 API가 없다'
+  'no-operation': '대응하는 API가 없다',
+  'no-download': '받기는 아직 이 화면에 없다 — 청크를 끝까지 당겨 저장해야 한다',
+  'no-upload': '올리기는 아직 이 화면에 없다 — 보낼 파일을 고를 칸이 없다',
+  'no-command': '명령을 적을 칸이 화면에 없다 — 터미널에서 terra 명령으로'
 };
 
 /** Result → 화면 글줄 (앱 바 왼쪽 msg) */
@@ -168,16 +186,18 @@ export function resultText(r) {
   return head + (r.reason ? ' · ' + (REASON[r.reason] || r.reason) : '');
 }
 
-/** 작업(job/task) 추적 — 접수 직후 1초 → 최대 5초 backoff. 끝나면 resolve */
-export async function trackJob(client, jobOp, job, onTick) {
+/** 작업(job/task) 추적 — 접수 직후 1초 → 최대 5초 backoff. 끝나면 resolve.
+ *  key = 작업 id 를 싣는 입력 키 (Master 작업 job_id · Daemon 작업 task_id) */
+export async function trackJob(client, jobOp, job, onTick, key = 'job_id') {
   let wait = 1000;
-  for (;;) {
+  for (let n = 0; n < 60; n++) {
     await new Promise((r) => setTimeout(r, wait));
-    const r = await client.invoke(jobOp, { job_id: job });
+    const r = await client.invoke(jobOp, { [key]: job });
     if (onTick) onTick(r);
     const st = r.kind === 'ok' && r.data && (r.data.status || r.data.state);
-    if (st && /success|succeeded|failed|canceled|cancelled|completed|timed_out/.test(st)) return r;
+    if (st && /success|succeeded|failed|canceled|cancelled|completed|timed_out|dead_letter/.test(st)) return r;
     if (r.kind !== 'ok' && r.kind !== 'accepted') return r;
     wait = Math.min(5000, wait * 1.6);
   }
+  return { kind: 'unavailable', reason: 'job-timeout' };
 }
