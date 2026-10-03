@@ -7,16 +7,16 @@
   "entryRoute": "/",
   "routes": [{ "path": "/", "fragment": "logindemo.login" }],
   "functions": [
-    "functions/login.field.function.json",
-    "functions/login.submit.function.json",
-    "functions/login.reset.function.json"
+    "contract/functions/login.field.function.json",
+    "contract/functions/login.submit.function.json",
+    "contract/functions/login.reset.function.json"
   ],
   "stores": [
-    "stores/form.store.json",
-    "stores/result.store.json",
-    "stores/credential.store.json"
+    "contract/stores/form.store.json",
+    "contract/stores/result.store.json",
+    "contract/stores/credential.store.json"
   ],
-  "fragments": ["fragments/login.fragment.json"],
+  "fragments": ["surface/fragments/login.fragment.json"],
   "requiredOperations": [],
   "recoveryFragment": "logindemo.login"
 }

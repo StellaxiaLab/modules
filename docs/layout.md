@@ -4,8 +4,8 @@ doc_type: "contract"
 scope: "repository"
 target: "stellaxialab/modules"
 status: "active"
-version: "v1.1"
-last_updated: "2026-10-01"
+version: "v1.2"
+last_updated: "2026-10-03"
 ---
 
 # 모듈 저장소 레이아웃 규약
@@ -164,9 +164,15 @@ scene/
 > (게이트웨이가 base 역할을 `io.terra.scene.terra` 라는 id 로만 주기 때문이고,
 > 그래서 저장소가 아니라 코어가 그 셸을 소유한다).
 >
-> 남은 모듈은 계층형 하나뿐이라 `npm run validate` 의 L-10 경고가 **0**이다.
-> 이 절이 적어 둔 승격 조건이 그것이었으므로, 오류로 올리는 것을 막는 것은
-> 이제 사정이 아니라 **아직 아무도 올리지 않았다는 사실**뿐이다.
+> 지금 Scene 모듈은 셋이고(`io.terra.scene.login-demo` · `lab.stellaxia.node-gui`
+> · `lab.stellaxia.scene.hello`) 전부 이 모양이라, `npm run validate` 의 L-10
+> 경고가 **0**이다. 이 절이 적어 둔 승격 조건이 그것이었으므로, 오류로 올리는
+> 것을 막는 것은 이제 사정이 아니라 **아직 아무도 올리지 않았다는 사실**뿐이다.
+>
+> 그 0은 한동안 0이 아니었다 — 이 절을 쓴 뒤 `io.terra.scene.login-demo` 가
+> **평면 배치로** 들어와 경고가 셋(`functions` · `stores` · `fragments`)이었고,
+> 그것을 계층형으로 옮기면서 돌아온 0이다. 경고로 두는 동안은 같은 일이 또
+> 조용히 들어온다는 것을, 그 한동안이 보여 줬다.
 
 ## 3. 이 저장소가 볼 수 없는 것
 
