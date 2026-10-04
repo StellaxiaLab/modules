@@ -7,8 +7,8 @@ doc_type: "data-model"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.2.0"
-last_updated: "2026-10-03"
+version: "0.3.0"
+last_updated: "2026-10-04"
 language: "ko-KR"
 source: "design/Artboard-qcfu.dc.html (= src/screens/node.js) — constructor(), renderVals()"
 related:
@@ -16,6 +16,8 @@ related:
   - "[[node-screen-ui-spec|노드 화면 UI 명세]]"
   - "[[node-screen-api-integration|노드 화면 API 연동 가이드]]"
   - "[[node-screen-code-structure|코드 구조와 이식 가이드]]"
+  - "[[road-editor-spec|도로 편집기]]"
+  - "[[module-profile|모듈 프로필]]"
 ---
 
 # 노드 화면 데이터 모델
@@ -187,12 +189,30 @@ looks = { 'tree-home': { skin: 'concrete', bid: 'tower', rot: 0 }, … }
 
 | 필드 | 뜻 | 와야 할 곳 |
 | --- | --- | --- |
-| `memos` | `{ id(경로), parent, name, dir?, text?, size?, info? }[]` | 메모 루트(공유 폴더) 또는 `LayoutStore` — 결정 필요 |
+| `memos` | `{ id(경로), parent, name, dir?, text?, size?, info? }[]` | 지금(모듈): `LayoutStore`(이 브라우저 · 노드 · 주체마다). 서버 쪽 — 메모 루트(공유 폴더) 또는 서버 `LayoutStore` — 결정 필요 |
 | `memoCur` · `memoDraft` · `memoNote` | 연 메모 · 고치는 중 `{ name, text, dir, dirty }` · 저장 알림 | 메모리 |
 
 ### 2.13 오버헤드 패널 (파생)
 
 `renderVals().ovh` — 선택 상태 램프(`sel` · `nodes` · `NET` · `looks`에서 계산) · 전체 창 리스트(`fsHist`) · 맵 화면이 아니면 꺼짐(`fs`). 저장할 것이 없다.
+
+### 2.14 노드 자원 · 표지 · 도로 🟩 + ⬜
+
+| 상태 | 출처 | 모양 | 비고 |
+| --- | --- | --- | --- |
+| `rsrc` | 🟩 로컬 (맵마다 — `maps[이름].rsrc`) | `{ 칸: { app, id, name, node, emoji, type, io, at } }` | 필드에 설치한 노드 자원. `io = null` = 모니터링 전용. 모니터링 값은 원본 앱 목록(`hbItems(node, app)`)에서 그때그때 읽는다 — 모듈은 그 앱이 닫혀 있어도 `pollSec`마다 다시 받는다 · [[node-screen-ui-spec#2.8 노드 자원 설치\|UI 명세 §2.8]] |
+| `place` · `placeMsg` | ⬜ 화면 | 설치하려고 고른 자원 · 안내 | 필드를 누르면 `rsrc`로 옮겨 가고 지워진다. Esc = 취소 |
+| `rcfgKey` | ⬜ 화면 | 칸 키 | 자원 설정 창이 보여 주는 칸 |
+| `markStyle` | 🟩 로컬 (사용자 설정) | `flag` · `flat` · `none` | 건물 없는 노드 · 자원 필드의 표지 — [[node-screen-ui-spec#2.9 건물 없는 필드의 표지 (편집 창에서 고름)\|UI 명세 §2.9]] |
+| `evView` | ⬜ 화면 | `real` · `run` · `wait` · `stop` · `fail` | 이벤트 보기 (실제 상태 대신 한 이벤트로) — [[node-screen-ui-spec#2.11 이벤트 — 상태에 따라 다른 모습\|UI 명세 §2.11]]. 실제 상태: 노드 = `NET[이름].auth`(Master 가 오프라인으로 보면 `offline` → 정지) · 자원 = 원본 항목의 상태 |
+| `roadsOn` | 🟩 로컬 (사용자 설정) | boolean | 도로 그림 표시 |
+| `links` | 🟩 로컬 (맵마다 — `maps[이름].links`) | `[{ id, from, to, start, path[], road }]` | 연결하기로 만든 연결. 도로의 팔은 이것으로만 정해진다(`[start, …path, to]`의 이웃 칸 쌍). `to`는 합류 도로 칸일 수도 있다(입력 더하기) — [[node-screen-ui-spec#2.10 연결하기 — 도로 배치\|UI 명세 §2.10]] |
+| `conn` · `pillOpen` · `pillSrc` · `roadPick` | ⬜ 화면 (`roadPick`은 🟩) | 끄는 중인 연결 · 펼친 설정 창 · 합류에서 고른 출발 자원 · 새로 깔 도로 종류 | |
+| `roads` (`this.roads`) | 🟩 로컬 (`localStorage` `terra.gui.roads` → 나중에 `AssetStore`) | 도로 설계 목록 | [[road-editor-spec#4. 데이터\|도로 편집기 §4]]. 놓인 도로는 `placed[칸].bid = 'road:<id>'` |
+| `scr` | ⬜ 화면 | `{ W, H }` | 화면 크기 — 창을 따라 바뀐다(`fitScreen` → `lay()`) |
+
+> [!NOTE] 입출력 연결은 아직 데이터 모양이 없다
+> 연결 자체는 `links`에 있다(자원 설정 창의 입력 · 출력이 여기서 나온다). 무엇을 어떤 형식으로 주고받는지(세부 입출력 설정)는 아직 모양이 없다 — 설정 화면 디자인이 나오면 SVI 바인딩(`허가 · 연결` 앱의 bind)과 맞춰 정한다.
 
 ## 3. 저장 위치가 정해지지 않은 데이터
 
@@ -227,7 +247,16 @@ interface AssetStore {             // 편집기 3종이 만드는 것
 **권장:** 1차는 ①로 인터페이스를 세우고, ②를 설계 결정 사항으로 올린다. 키는 반드시
 `treeId + nodeId`(이름 아님).
 
+> [!NOTE] 지금 구현 (2026-10-04)
+> ①을 `localStorage`로 세웠다 — `src/store/layout.js`(짝 프로젝트와 같은 모양). 모듈의 키는 `terra.gui.layout|<node_id>|<주체>`이고
+> `looks` · `maps`(노드 자원 `rsrc` · 연결 `links` 포함) · 표시 설정 · `memos` · `wins`를 한 덩어리로 담는다. 단, 맵 **안의** 노드는 아직 이름이 키다.
+> 서버 저장으로 바꿀 때는 `loadLayout` · `saveLayout` 두 함수만 바꾼다 — [[module-profile|모듈 프로필]] §4.
+
 ### 3.1 편집기 ↔ 노드 화면 연결
+
+> [!TIP] 도로 · 건물 편집기는 이미 이어져 있다
+> 도로 편집기 · 건물 편집기는 내보내기 때 `localStorage['terra.gui.roads']` · `['terra.gui.buildings']`에 쓰고, 노드 화면은 `storage` 이벤트로 받아
+> 다시 굽는다 — 다른 편집기를 `AssetStore`로 옮길 때 같은 모양(쓰기 → 구독 → 다시 굽기)을 따른다. [[road-editor-spec|도로 편집기]]
 
 지금 편집기 3종은 각자 예시 데이터를 들고 따로 돈다(`BuildingEditor.state.bps`,
 `FieldEditor.state.skins · parentDef`, `MaterialEditor.state.mats`). 노드 화면도 같은 데이터를
