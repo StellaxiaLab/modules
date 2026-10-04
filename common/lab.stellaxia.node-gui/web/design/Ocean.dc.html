@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 바다 유체 킷</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif;background:#ffffff}
+.mono{font-family:ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace}
+.oc-rng{width:100%;accent-color:#3fa3b3}
+</style>
+</helmet>
+<!-- 바다 유체 킷 (테스트): 납작한 캡슐 — 왼쪽 바다(청록) · 오른쪽 반원 모래 · 물가의 굵은 흰 거품 선
+     움직임은 물리 계산: 물가를 위아래 32줄로 나눠 줄마다 밀려온 물이 모래를 오르다 중력 · 마찰로 멈추고 되돌아간다. 거품 그물은 물가를 늦게 따라온다 -->
+<div style="width: 1077px; height: 579px; display: flex; flex-direction: column; background: #ffffff; color: #16191f; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 13px; line-height: 1.5; overflow: hidden; box-sizing: border-box; border: 1px solid #d8dde5; border-radius: 12px;">
+  <header style="height: 48px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 16px; box-sizing: border-box;">
+    <span aria-hidden="true" style="width: 26px; height: 26px; border-radius: 7px; background: #d7eff2; display: flex; align-items: center; justify-content: center; font-size: 14px;">🌊</span>
+    <b style="font-size: 15px;">바다 유체 킷</b>
+    <span style="height: 20px; padding: 0 8px; border-radius: 10px; background: #fef3c7; color: #8a5a00; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center;">테스트</span>
+    <span style="color: #5b6472; font-size: 12px;">파도가 모래를 오르내리고 거품 선이 따라 움직인다</span>
+    <span style="flex-grow: 1;"></span>
+    <button type="button" onClick="{{togglePlay}}" style="height: 30px; padding: 0 12px; border: 1px solid {{playLine}}; border-radius: 7px; background: {{playBg}}; color: {{playFg}}; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">{{playLabel}}</button>
+    <button type="button" onClick="{{resetAll}}" style="height: 30px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 7px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">처음으로</button>
+  </header>
+
+  <div style="flex-grow: 1; min-height: 0; display: flex; gap: 16px; padding: 0 16px 16px; box-sizing: border-box;">
+    <!-- 캡슐 세 크기: 큰 것 · 중간 · 작은 칩. 모두 같은 물리를 같이 쓴다 -->
+    <div style="width: 790px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; border-radius: 12px; background: #5a5a5a;">
+      <canvas data-oc-cap="L" width="1440" height="560" style="display: block; width: 720px; height: 280px;"></canvas>
+      <div style="display: flex; align-items: center; gap: 28px;">
+        <canvas data-oc-cap="M" width="560" height="220" style="display: block; width: 280px; height: 110px;"></canvas>
+        <canvas data-oc-cap="S" width="240" height="94" style="display: block; width: 120px; height: 47px;"></canvas>
+      </div>
+    </div>
+
+    <aside style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+      <section aria-label="바다 값" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid #e3e7ed; border-radius: 10px;">
+        <sc-for list="{{sliders}}" as="sl" hint-placeholder-count="3">
+          <label style="display: flex; flex-direction: column; gap: 1px; font-size: 12px;">
+            <span style="display: flex; justify-content: space-between;"><span style="color: #5b6472;">{{sl.label}}</span><span class="mono" style="font-size: 11.5px;">{{sl.txt}}</span></span>
+            <input type="range" class="oc-rng" min="{{sl.min}}" max="{{sl.max}}" step="{{sl.step}}" value="{{sl.v}}" onChange="{{sl.set}}" aria-label="{{sl.label}}">
+          </label>
+        </sc-for>
+      </section>
+      <section style="padding: 10px 12px; border-radius: 10px; background: #effafb; font-size: 11.5px; color: #134e4a; line-height: 1.6;">
+        <b style="display: block; font-size: 12px; margin-bottom: 2px;">움직이는 원리</b>
+        파도는 주기마다 물가에 닿아 모래를 오른다(밀어 올리는 힘 − 중력 − 마찰). 물가를 위아래로 나눈 줄마다 따로 계산하고 이웃 줄과 섞어 물가가 부드럽게 휜다. 흰 거품 그물은 물가를 조금 늦게 따라와, 물이 빠질 때 뒤에 남는다.
+      </section>
+      <span data-oc-hud="1" class="mono" style="font-size: 11px; color: #5b6472;">—</span>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1077,"height":579}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { playing: true, amp: 0.6, period: 3.5, foam: 0.7 };
+  }
+
+  // ───── 물리: 물가 올라옴 (위아래 32줄) ─────
+  // x = 캡슐 너비 1 기준의 물가 위치. r = 기본 물가에서 모래 쪽으로 올라온 거리, u = 속도
+  initSim() {
+    const N = 32;
+    this.sim = { N, r: new Float32Array(N), u: new Float32Array(N), foam: new Float32Array(N).fill(0.6), lace: new Float32Array(N), last: new Int32Array(N).fill(-9), t: 0 };
+  }
+  step(dt) {
+    const S = this.sim, st = this.state, N = S.N;
+    S.t += dt;
+    for (let i = 0; i < N; i++) {
+      // 비스듬히 들어오는 파도: 위쪽 줄부터 조금씩 늦게 닿는다
+      const ph = S.t / st.period - (i / N) * 0.35, k = Math.floor(ph);
+      if (k !== S.last[i]) {
+        if (S.last[i] !== -9) { S.u[i] += (0.06 + 0.11 * st.amp) * (0.85 + 0.3 * Math.abs(Math.sin(k * 5.1 + i * 0.3))); S.foam[i] = Math.min(1.2, S.foam[i] + 0.5 + st.amp * 0.5); }
+        S.last[i] = k;
+      }
+      S.u[i] += (-0.28 - 9 * S.u[i] * Math.abs(S.u[i])) * dt;      // 중력(비탈) · 마찰
+      S.r[i] += S.u[i] * dt;
+      if (S.r[i] < 0) { S.r[i] = 0; S.u[i] = Math.max(0, S.u[i]); }
+      S.foam[i] *= Math.exp(-dt * (S.u[i] < 0 ? 0.7 : 0.25));
+      // 거품 그물의 물가: 오를 땐 바로 따라가고, 빠질 땐 천천히 따라간다 → 물러난 물 뒤에 거품이 남는다
+      const tgt = S.r[i];
+      S.lace[i] += (tgt - S.lace[i]) * Math.min(1, dt * (tgt > S.lace[i] ? 14 : 1.6));
+    }
+    for (let p = 0; p < 3; p++) for (let i = 1; i < N - 1; i++) {
+      S.r[i] = S.r[i] * 0.8 + (S.r[i - 1] + S.r[i + 1]) * 0.1; S.u[i] = S.u[i] * 0.8 + (S.u[i - 1] + S.u[i + 1]) * 0.1;
+      S.lace[i] = S.lace[i] * 0.8 + (S.lace[i - 1] + S.lace[i + 1]) * 0.1; S.foam[i] = S.foam[i] * 0.9 + (S.foam[i - 1] + S.foam[i + 1]) * 0.05;
+    }
+  }
+  // y(0~1)에서 줄 값을 선형으로 읽는다
+  at(arr, y) { const N = this.sim.N, f = Math.max(0, Math.min(N - 1, y * (N - 1))), i = Math.floor(f), j = Math.min(N - 1, i + 1), w = f - i; return arr[i] * (1 - w) + arr[j] * w; }
+
+  // ───── 그리기: 캡슐 하나 ─────
+  drawCap(cv) {
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height, R = H / 2, S = this.sim, t = S.t, st = this.state;
+    const WATER = '#55b1c0', SAND = '#f5ebcc', WET = '#ebdcb2', FOAM = '#ffffff';
+    const L = W - R;                                  // 반원이 시작하는 x
+    // 물가 x(y): 반원 시작보다 조금 안쪽 + 물결 모양 + 올라온 만큼 모래 쪽으로
+    const base = (y) => L + R * 0.06 + R * (0.1 * Math.sin(y * 7.0 + 0.8) + 0.06 * Math.sin(y * 15.0 + 2.1));
+    const edgeX = (y) => base(y) + this.at(S.r, y) * W * 1.6 - R * 0.12;
+    const laceX = (y) => base(y) + this.at(S.lace, y) * W * 1.6 - R * 0.12;
+    g.clearRect(0, 0, W, H);
+    g.save();
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(L, 0); g.arc(L, R, R, -Math.PI / 2, Math.PI / 2); g.lineTo(0, H); g.closePath(); g.clip();
+    g.fillStyle = WATER; g.fillRect(0, 0, W, H);
+    const Y = 24, pts = [];
+    for (let k = 0; k <= Y; k++) { const y = k / Y; pts.push([edgeX(y), y * H]); }
+    const trace = (arr) => { g.moveTo(arr[0][0], arr[0][1]); for (let k = 1; k < arr.length - 1; k++) { const mx = (arr[k][0] + arr[k + 1][0]) / 2, my = (arr[k][1] + arr[k + 1][1]) / 2; g.quadraticCurveTo(arr[k][0], arr[k][1], mx, my); } g.lineTo(arr[arr.length - 1][0], arr[arr.length - 1][1]); };
+    // 모래 (젖은 띠 → 마른 모래)
+    g.beginPath(); trace(pts); g.lineTo(W, H); g.lineTo(W, 0); g.closePath(); g.fillStyle = WET; g.fill();
+    const dry = pts.map(([x, y]) => [x + R * 0.1 + R * 0.05 * Math.sin(y / H * 9 + 1), y]);
+    g.beginPath(); trace(dry); g.lineTo(W, H); g.lineTo(W, 0); g.closePath(); g.fillStyle = SAND; g.fill();
+    // 거품: 굵은 흰 선 (둥근 끝) — 물가 선 + 그 뒤의 그물 + 물 쪽으로 휘어 나간 가닥
+    const lw = Math.max(2, H * 0.032);
+    g.strokeStyle = FOAM; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.lineWidth = lw * 1.25;
+    g.beginPath(); trace(pts.map(([x, y]) => [x - lw * 0.3, y])); g.stroke();
+    g.lineWidth = lw;
+    const amt = st.foam, cw = R * (0.2 + 0.18 * amt);      // 그물 칸 너비
+    const ROWS = 6, COLS = 3;
+    const node = (r, c) => {
+      const y = (r + 0.5) / ROWS, jy = 0.035 * Math.sin(r * 3.7 + c * 1.9 + t * 0.8), yy = Math.max(0.02, Math.min(0.98, y + jy));
+      const fo = this.at(S.foam, yy);
+      const x = laceX(yy) - lw * 0.6 - (c + 0.55 + 0.25 * Math.sin(r * 2.3 + c * 4.1)) * cw * (0.7 + 0.5 * Math.min(1, fo)) + cw * 0.18 * Math.sin(t * 1.1 + r + c * 2);
+      return [x, yy * H, fo];
+    };
+    const nodes = [];
+    for (let r = 0; r < ROWS; r++) { nodes.push([]); for (let c = 0; c < COLS; c++) nodes[r].push(node(r, c)); }
+    const curve = (a, b, bend) => { const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1]; g.moveTo(a[0], a[1]); g.quadraticCurveTo(mx - dy * bend, my + dx * bend, b[0], b[1]); };
+    const h = (r, c, k) => Math.abs(Math.sin(r * 12.9898 + c * 78.233 + k * 3.1)) % 1;
+    g.beginPath();
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const a = nodes[r][c], vis = Math.min(1, a[2] * 1.4) * amt;
+      if (vis < 0.25 + 0.5 * h(r, c, 0) * (c / COLS)) continue;            // 거품이 적으면 바깥 칸부터 사라진다
+      // 물가 쪽 이음 (첫 줄은 물가 선에 붙는다)
+      if (c === 0) { const ex = pts[Math.round(a[1] / H * Y)]; curve(a, [ex[0] - lw * 0.3, a[1] + (h(r, c, 1) - 0.5) * cw * 0.6], 0.25); }
+      else if (h(r, c, 2) > 0.2) curve(a, nodes[r][c - 1], 0.3 * Math.sin(t * 0.7 + r));
+      if (r + 1 < ROWS && h(r, c, 3) > 0.25) curve(a, nodes[r + 1][c], 0.22 * Math.sin(t * 0.6 + c + r * 0.5));
+      // 바깥 가닥: 물 쪽으로 뻗어 끝이 갈고리처럼 휜다
+      if (c === COLS - 1 && h(r, c, 4) > 0.45) {
+        const len = cw * (0.6 + 0.6 * h(r, c, 5)) * vis, dir = h(r, c, 6) > 0.5 ? 1 : -1;
+        g.moveTo(a[0], a[1]);
+        g.bezierCurveTo(a[0] - len * 0.6, a[1] + dir * len * 0.15, a[0] - len * 0.9, a[1] - dir * len * 0.45, a[0] - len * 0.55, a[1] - dir * len * 0.6);
+      }
+    }
+    g.stroke();
+    g.restore();
+  }
+
+  componentDidMount() {
+    this.initSim();
+    for (let k = 0; k < 90; k++) this.step(1 / 30);          // 처음부터 파도가 한 번 들어온 모습
+    let last = performance.now(), hudT = 0, frames = 0;
+    const loop = (now) => {
+      if (this._dead) return;
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (this.state.playing) this.step(dt);
+      document.querySelectorAll('canvas[data-oc-cap]').forEach((cv) => this.drawCap(cv));
+      frames++; hudT += dt;
+      if (hudT > 0.4) { const el = document.querySelector('[data-oc-hud]'); if (el) el.textContent = Math.round(frames / hudT) + 'fps · 파도 ' + this.state.period.toFixed(1) + '초마다'; hudT = 0; frames = 0; }
+      this._raf = requestAnimationFrame(loop);
+    };
+    this._raf = requestAnimationFrame(loop);
+  }
+  componentWillUnmount() { this._dead = true; cancelAnimationFrame(this._raf); }
+
+  renderVals() {
+    const S = this.state;
+    const sl = (label, key, min, max, step, txt) => ({ label, min, max, step, v: S[key], txt: txt(S[key]), set: (e) => this.setState({ [key]: Number(e.target.value) }) });
+    return {
+      togglePlay: () => this.setState({ playing: !S.playing }),
+      playLabel: S.playing ? '❚❚ 멈춤' : '▶ 재생', playLine: S.playing ? '#d8dde5' : '#3fa3b3', playBg: S.playing ? '#ffffff' : '#3fa3b3', playFg: S.playing ? '#16191f' : '#ffffff',
+      resetAll: () => { this.initSim(); this.setState({ amp: 0.6, period: 3.5, foam: 0.7 }); },
+      sliders: [
+        sl('파도 세기', 'amp', 0, 1, 0.05, (v) => Math.round(v * 100) + '%'),
+        sl('파도 주기', 'period', 1.5, 8, 0.5, (v) => v.toFixed(1) + '초'),
+        sl('거품 양', 'foam', 0, 1, 0.05, (v) => Math.round(v * 100) + '%')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terra · 화면 목록</title>
+<style>
+:root{--ink:#16191f;--sub:#5b6472;--line:#d8dde5;--bg:#eef1f5;--navy:#1f2a37}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',sans-serif}
+header{background:linear-gradient(180deg,#e6e9e6,#fdfdfb);border-bottom:2.2px solid var(--navy);box-shadow:inset 0 -5px 0 -3.4px #1e3a5f}
+.wrap{width:min(960px,calc(100% - 32px));margin:0 auto}
+header .wrap{display:flex;align-items:center;gap:12px;padding:18px 0}
+header h1{margin:0;font-size:20px;font-weight:800}
+header span{color:var(--sub);font-size:13px}
+main{padding:24px 0 48px;display:flex;flex-direction:column;gap:24px}
+h2{margin:0 0 10px;font-size:14px;color:var(--sub);font-weight:700}
+ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+a.card{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);text-decoration:none}
+a.card:hover{border-color:#2563eb}
+a.card b{font-size:15px}
+a.card span{font-size:12.5px;color:var(--sub)}
+a.card.main{grid-column:1/-1;background:#16191f;color:#fff;border-color:#16191f}
+a.card.main span{color:#c3cad5}
+p.note{margin:0;font-size:12.5px;color:var(--sub)}
+code{font-size:12px;background:#fff;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Terra 노드 GUI</h1><span id="variant"></span></div></header>
+<main class="wrap">
+  <section><h2>화면</h2><ul id="screens"></ul></section>
+  <section><h2>디자인 노트</h2><ul id="notes"></ul></section>
+  <p class="note">시작은 <code>index.html</code>(시작 화면 — 로그인은 Terra가 받는다). 개발 문서는 <code>docs/README.md</code>(Obsidian으로 열면 위키 링크가 이어진다), 화면 API는 <code>docs/api/frontend-api.md</code>.</p>
+</main>
+<script type="module">
+fetch('./config.json').then((r) => r.json()).then((c) => { document.getElementById('variant').textContent = c.variant === 'module' ? '모듈 lab.stellaxia.node-gui · Terra 안에서 이 노드의 게이트웨이에 붙는다' : c.variant; }).catch(() => {});
+fetch('./pages.json').then((r) => r.json()).then((pages) => { for (const p of pages) {
+  const li = document.createElement('li');
+  const a = document.createElement('a');
+  a.className = 'card' + (p.page === 'index.html' ? ' main' : '');
+  a.href = './' + p.page;
+  a.innerHTML = '<b></b><span></span>';
+  a.querySelector('b').textContent = p.title;
+  a.querySelector('span').textContent = p.desc;
+  li.appendChild(a);
+  document.getElementById(/디자인 노트/.test(p.title) ? 'notes' : 'screens').appendChild(li);
+} });
+</script>
+</body>
+</html>

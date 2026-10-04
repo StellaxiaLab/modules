@@ -1,8 +1,8 @@
 {
   "name": "terra-node-gui",
   "private": true,
-  "version": "0.2.0",
-  "description": "Terra 노드 화면 GUI — 게임형 필드 맵 · 조타륜 · 오버헤드 패널 · 편집기. 모듈 lab.stellaxia.node-gui 의 embed 웹 앱(빌드 결과는 ../ui)",
+  "version": "1.0.0",
+  "description": "Terra 노드 화면 GUI — 시작 화면 · 게임형 필드 맵 · 조타륜 · 노드 자원 · 연결 · 도로 · 편집기 (디자인 캔버스에서 생성, module 변형). 모듈 lab.stellaxia.node-gui 의 embed 웹 앱(빌드 결과는 ../ui)",
   "type": "module",
   "scripts": {
     "dev": "vite",

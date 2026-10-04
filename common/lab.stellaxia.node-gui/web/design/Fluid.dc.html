@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 유동 확장</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif}
+a{color:#2563eb}a:hover{color:#1d4ed8}
+</style>
+</helmet>
+<div style="width: 1440px; height: 960px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 20px; background: {{c.raise}}; color: {{c.ink}}; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.55;">
+  <div style="display: flex; align-items: baseline; gap: 16px;">
+    <h1 style="margin: 0; font-size: 20px; font-weight: 600;">유동 확장 — 같은 레이아웃이 0 · 3 · 20을 받는다</h1>
+    <span style="font-size: 13px; color: {{c.dim}};">위: 사이드바의 유동 영역 · 아래: 자원 화면의 slot resource.extensions</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; flex-grow: 1;">
+    <sc-for list="{{cols}}" as="col" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}};">{{col.title}}</span>
+
+        <nav aria-label="주 메뉴 예시" style="height: 520px; box-sizing: border-box; background: {{c.surface}}; border: 1px solid {{c.line}}; border-radius: 8px; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 16px; font-weight: 700; padding: 0 10px 8px;">Terra</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}}; padding: 2px 10px;">코어</span>
+          <span style="padding: 3px 10px; font-size: 13px; color: {{c.dim}};">홈 · 노드 · 실행 · 네트워크 · 자원 · 모듈 · 진단 · 설정·계정</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}}; padding: 8px 10px 2px;">경계</span>
+          <span style="padding: 3px 10px; font-size: 13px;">명령 카탈로그</span>
+          <div style="margin-top: 10px; border-top: 1px dashed {{c.line}}; padding-top: 8px; display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-height: 0;">
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}}; padding: 2px 10px;">모듈이 더한 화면</span>
+            <sc-if value="{{col.filter}}" hint-placeholder-val="{{false}}">
+              <input type="search" aria-label="모듈 화면 찾기" placeholder="모듈 화면 찾기" style="margin: 4px 6px; height: 30px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{c.line}}; border-radius: 6px; background: {{c.surface}}; color: {{c.ink}}; font: inherit; font-size: 12.5px;">
+            </sc-if>
+            <sc-if value="{{col.empty}}" hint-placeholder-val="{{false}}">
+              <div style="margin: 6px; padding: 12px; border: 1px dashed {{c.line}}; border-radius: 6px; font-size: 12.5px; color: {{c.dim}}; display: flex; flex-direction: column; gap: 4px;">
+                <span>설치된 모듈 화면이 없습니다. 정상입니다.</span>
+                <a href="#" style="color: {{c.accent}}; font-weight: 600;">모듈 카탈로그 보기</a>
+              </div>
+            </sc-if>
+            <div style="display: flex; flex-direction: column; gap: 0; overflow-y: auto; min-height: 0; flex-grow: 1;">
+              <sc-for list="{{col.items}}" as="it" hint-placeholder-count="3">
+                <a href="#" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 10px; border-radius: 6px; text-decoration: none; color: {{c.ink}}; font-size: 13px;"><span>{{it.label}}</span><span style="font-size: 11px; color: {{c.dim}}; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{it.id}}</span></a>
+              </sc-for>
+            </div>
+            <sc-if value="{{col.filter}}" hint-placeholder-val="{{false}}">
+              <span style="font-size: 11.5px; color: {{c.dim}}; padding: 4px 10px 0;">20개 · 이 영역만 스크롤, 코어는 고정</span>
+            </sc-if>
+          </div>
+        </nav>
+
+        <section style="background: {{c.surface}}; border: 1px solid {{c.line}}; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">자원</h3>
+          <div style="display: flex; gap: 8px; font-size: 12.5px;">
+            <span style="padding: 2px 8px; border: 1px solid {{c.line}}; border-radius: 6px;">자원 목록</span>
+            <span style="padding: 2px 8px; border: 1px solid {{c.line}}; border-radius: 6px;">장치</span>
+            <span style="padding: 2px 8px; border: 1px solid {{c.line}}; border-radius: 6px;">파일 루트</span>
+          </div>
+          <sc-if value="{{col.slotFilled}}" hint-placeholder-val="{{false}}">
+            <div style="border: 1px solid {{c.line}}; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600;"><span>파일 전송</span><span style="font-size: 11px; font-weight: 400; color: {{c.dim}};">모듈 · files</span></span>
+              <span style="font-size: 12.5px; color: {{c.dim}};">공유 루트 3 · 진행 중 전송 1</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{col.slotEmpty}}" hint-placeholder-val="{{true}}">
+            <div style="border: 1px dashed {{c.line}}; border-radius: 6px; padding: 10px 12px; font-size: 12.5px; color: {{c.dim}};">확장 자리 · 파일 모듈이 설치되면 여기에 조각이 들어옵니다</div>
+          </sc-if>
+        </section>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = !!this.props.dark;
+    const c = dark
+      ? { ink: '#dfe4ec', dim: '#8b95a6', line: '#2b323d', surface: '#14181e', raise: '#1b2027', accent: '#5aa9ff' }
+      : { ink: '#16191f', dim: '#5b6472', line: '#d8dde5', surface: '#ffffff', raise: '#f4f6f9', accent: '#2563eb' };
+    const named = [
+      { label: '에이전트', id: 'agent' },
+      { label: '대화', id: 'chat' },
+      { label: '장치 인벤토리', id: 'inventory' },
+      { label: '파일 전송', id: 'files' },
+      { label: '가상 장치', id: 'vdevice' }
+    ];
+    const twenty = named.concat(Array.from({ length: 15 }, (_, i) => ({ label: '[모듈 화면 ' + String(i + 6).padStart(2, '0') + ']', id: 'mod-' + String(i + 6).padStart(2, '0') })));
+    return {
+      c,
+      cols: [
+        { title: '모듈 0개', items: [], empty: true, filter: false, slotFilled: false, slotEmpty: true },
+        { title: '모듈 3개', items: named.slice(0, 3), empty: false, filter: false, slotFilled: false, slotEmpty: true },
+        { title: '모듈 20개', items: twenty, empty: false, filter: true, slotFilled: true, slotEmpty: false }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

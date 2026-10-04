@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 홈</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif}
+a{color:#2563eb}a:hover{color:#1d4ed8}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; background: {{c.surface}}; color: {{c.ink}}; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+
+  <nav aria-label="주 메뉴" style="width: 232px; flex-shrink: 0; box-sizing: border-box; background: {{c.raise}}; border-right: 1px solid {{c.line}}; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px;">
+    <div style="display: flex; flex-direction: column; padding: 4px 10px 14px;">
+      <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em;">Terra</span>
+      <span style="font-size: 12px; color: {{c.dim}}; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">tree-home</span>
+    </div>
+    <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}}; padding: 6px 10px 2px;">코어</span>
+    <sc-for list="{{core}}" as="n" hint-placeholder-count="8">
+      <a href="#" style="display: block; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: {{n.fg}}; background: {{n.bg}}; font-weight: {{n.fw}};">{{n.label}}</a>
+    </sc-for>
+    <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}}; padding: 12px 10px 2px;">경계</span>
+    <a href="#" style="display: block; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: {{c.ink}};">명령 카탈로그</a>
+    <div style="margin-top: 12px; border-top: 1px dashed {{c.line}}; padding-top: 8px; display: flex; flex-direction: column; gap: 2px;">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}}; padding: 4px 10px 2px;">모듈이 더한 화면</span>
+      <sc-for list="{{fluid}}" as="f" hint-placeholder-count="3">
+        <a href="#" style="display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: {{c.ink}};"><span>{{f.label}}</span><span style="font-size: 11px; color: {{c.dim}}; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{f.id}}</span></a>
+      </sc-for>
+      <a href="#" style="display: block; padding: 5px 10px; font-size: 12px; color: {{c.dim}}; text-decoration: none;">모든 앱 · 스캔 진단</a>
+    </div>
+  </nav>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+    <div role="status" style="height: 44px; flex-shrink: 0; box-sizing: border-box; padding: 0 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid {{c.line}};">
+      <span style="color: {{c.dim}};">○</span>
+      <span style="font-weight: 600;">익명</span>
+      <span style="color: {{c.dim}}; font-size: 13px;">목록을 보고 앱을 여는 것까지 됩니다. 무언가를 바꾸려면 로그인하세요.</span>
+      <span style="flex-grow: 1;"></span>
+      <span style="font-size: 12px; font-weight: 600; color: {{c.warn}}; border: 1px solid {{c.warn}}; border-radius: 4px; padding: 1px 6px;">예시 데이터</span>
+      <a href="#" style="display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 6px; background: {{c.accent}}; color: {{c.onAccent}}; text-decoration: none; font-weight: 600; font-size: 13px;">로그인 · tree-home 서버</a>
+    </div>
+
+    <div style="flex-grow: 1; box-sizing: border-box; padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; overflow: hidden;">
+      <div style="display: flex; align-items: baseline; gap: 12px;">
+        <h1 style="margin: 0; font-size: 20px; font-weight: 600;">홈</h1>
+        <span style="font-size: 12px; color: {{c.dim}};">마지막 조회 18:59:12 · 다음 갱신 30초 후</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+        <section style="border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">이 노드</h3>
+          <div style="display: grid; grid-template-columns: 84px 1fr; gap: 4px 12px; font-size: 13px;">
+            <span style="color: {{c.dim}};">상태</span><span><span style="color: {{c.ok}};">●</span> 응답함</span>
+            <span style="color: {{c.dim}};">관측된 역할</span><span>Tree · Leaf</span>
+            <span style="color: {{c.dim}};">인증</span><span>서버 연결됨</span>
+          </div>
+          <span style="font-size: 12px; color: {{c.dim}};">공개 상태 조회의 답 — 선언이 아니라 관측</span>
+        </section>
+        <section style="border: 1px dashed {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; background: {{c.raise}};">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>원격 노드</h3>
+          <span style="font-size: 13px; color: {{c.dim}};">노드 요약은 로그인한 뒤 서버에서 조회됩니다. 없는 것이 아니라 아직 묻지 못한 것입니다.</span>
+          <a href="#" style="font-size: 13px; font-weight: 600; color: {{c.accent}};">로그인하고 노드 보기</a>
+        </section>
+        <section style="border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">화면 진단</h3>
+          <div style="display: flex; gap: 16px; font-size: 13px;">
+            <span><span style="color: {{c.danger}};">■</span> 오류 1</span>
+            <span><span style="color: {{c.warn}};">◐</span> 경고 2</span>
+          </div>
+          <span style="font-size: 12px; color: {{c.dim}};">가장 최근 · 앱 스캔 실패 — vdevice</span>
+          <a href="#" style="font-size: 13px; font-weight: 600; color: {{c.accent}};">진단 열기</a>
+        </section>
+      </div>
+
+      <section style="border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">앱</h3>
+          <a href="#" style="font-size: 13px; color: {{c.accent}};">모든 앱 · 스캔 진단</a>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+          <sc-for list="{{apps}}" as="a" hint-placeholder-count="4">
+            <a href="#" style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border: 1px solid {{c.line}}; border-radius: 8px; text-decoration: none; color: {{c.ink}}; background: {{c.surface}};">
+              <span style="font-weight: 600;">{{a.label}}</span>
+              <span style="font-size: 12px; color: {{c.dim}};">{{a.meta}}</span>
+            </a>
+          </sc-for>
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border: 1px dashed {{c.danger}}; border-radius: 8px;">
+            <span style="font-weight: 600;"><span style="color: {{c.danger}};">■</span> vdevice</span>
+            <span style="font-size: 12px; color: {{c.dim}};">화면을 읽지 못했습니다 · 스캔 실패</span>
+            <a href="#" style="font-size: 12px; color: {{c.accent}};">진단에서 보기</a>
+          </div>
+        </div>
+      </section>
+
+      <section style="border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">자주 쓰는 명령</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <sc-for list="{{ops}}" as="o" hint-placeholder-count="5">
+            <a href="#" style="display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border: 1px solid {{c.line}}; border-radius: 6px; text-decoration: none; color: {{c.ink}}; font-size: 13px;"><span>{{o.label}}</span><span style="font-size: 11px; color: {{o.tagColor}};">{{o.tag}}</span></a>
+          </sc-for>
+        </div>
+        <span style="font-size: 12px; color: {{c.dim}};">카탈로그에서 고른 Operation. 쓰기·위험 항목은 누르면 로그인 단계로 이어집니다.</span>
+      </section>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  palette(dark) {
+    return dark
+      ? { ink: '#dfe4ec', dim: '#8b95a6', line: '#2b323d', surface: '#14181e', raise: '#1b2027', accent: '#5aa9ff', onAccent: '#0b1220', accentBg: '#172538', danger: '#e5697a', ok: '#4cc38a', warn: '#e0a23a' }
+      : { ink: '#16191f', dim: '#5b6472', line: '#d8dde5', surface: '#ffffff', raise: '#f4f6f9', accent: '#2563eb', onAccent: '#ffffff', accentBg: '#e6eefc', danger: '#d33d52', ok: '#1f7a4d', warn: '#a65f00' };
+  }
+  renderVals() {
+    const c = this.palette(!!this.props.dark);
+    const active = '홈';
+    const core = ['홈', '노드', '실행', '네트워크', '자원', '모듈', '진단', '설정·계정'].map((label) => ({
+      label,
+      bg: label === active ? c.accentBg : 'transparent',
+      fg: label === active ? c.accent : c.ink,
+      fw: label === active ? 600 : 400
+    }));
+    return {
+      c,
+      core,
+      fluid: [
+        { label: '에이전트', id: 'agent' },
+        { label: '대화', id: 'chat' },
+        { label: '장치 인벤토리', id: 'inventory' }
+      ],
+      apps: [
+        { label: '에이전트', meta: 'agent · 모듈 화면' },
+        { label: '대화', meta: 'chat · 모듈 화면' },
+        { label: '장치 인벤토리', meta: 'inventory · 모듈 화면' }
+      ],
+      ops: [
+        { label: '노드 목록', tag: '읽기', tagColor: c.dim },
+        { label: '원격 명령 실행', tag: '쓰기 · 작업', tagColor: c.accent },
+        { label: '서비스 터널 열기', tag: '쓰기', tagColor: c.accent },
+        { label: '파일 전송', tag: '작업 · 모듈', tagColor: c.accent },
+        { label: '모듈 롤백', tag: '위험', tagColor: c.danger }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

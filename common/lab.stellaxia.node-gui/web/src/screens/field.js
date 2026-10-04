@@ -1,5 +1,5 @@
-// 필드 편집기 — 디자인 캔버스 원본 design/FieldEditor.dc.html 에서 옮긴 화면 로직 (tools/gen-pages.py로 다시 만든다)
-// 데이터 연동 지점은 docs/api/frontend-api.md 참고
+// 필드 편집기 — 디자인 캔버스 원본 design/FieldEditor.dc.html 에서 옮긴 화면 로직 (module 변형 · tools/gen-pages.py로 다시 만든다)
+// 데이터를 바꿔 끼우는 곳은 src/boot/module.js · src/data/*.js — 이 파일은 손으로 고치지 않는다
 import { DCLogic } from '../runtime/dc.js';
 
 export default class Component extends DCLogic {

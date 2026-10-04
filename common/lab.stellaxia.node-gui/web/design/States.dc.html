@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 상태 매트릭스</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif}
+a{color:#2563eb}a:hover{color:#1d4ed8}
+</style>
+</helmet>
+<div style="width: 1440px; height: 960px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 20px; background: {{c.raise}}; color: {{c.ink}}; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.55;">
+  <div style="display: flex; align-items: baseline; gap: 16px;">
+    <h1 style="margin: 0; font-size: 20px; font-weight: 600;">상태 매트릭스</h1>
+    <span style="font-size: 13px; color: {{c.dim}};">다섯이 서로 다른 처리로 보여야 한다 — 같은 붉은 박스는 하나도 없다</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; flex-grow: 1;">
+
+    <section style="background: {{c.surface}}; border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}};">1 · EMPTY — 정상적인 빈 상태</span>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px; border: 1px dashed {{c.line}}; border-radius: 8px; padding: 24px;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">등록된 노드가 없습니다</h3>
+        <span style="color: {{c.dim}}; font-size: 13px;">오류가 아닙니다. 장치에서 등록을 요청하면 이 목록에 나타납니다.</span>
+        <a href="#" style="font-size: 13px; font-weight: 600; color: {{c.accent}};">노드 등록 방법</a>
+      </div>
+      <span style="font-size: 12px; color: {{c.dim}};">중립색 · 점선 테두리 · 다음 행동 하나. 색 없음.</span>
+    </section>
+
+    <section style="background: {{c.surface}}; border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}};">2 · UNREACHABLE — 묻지 못했다</span>
+      <div role="alert" style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px; border: 1px solid {{c.danger}}; border-radius: 8px; padding: 16px 20px; background: {{c.dangerBg}};">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600;"><span style="color: {{c.danger}};">×</span> tree-home 서버에 닿지 못했습니다</h3>
+        <span style="font-size: 13px;">로그인으로는 풀리지 않습니다. 서버 프로세스와 네트워크를 확인하세요.</span>
+        <div style="display: grid; grid-template-columns: 96px 1fr; gap: 2px 12px; font-size: 12.5px;">
+          <span style="color: {{c.dim}};">마지막 성공</span><span>18:41:10</span>
+          <span style="color: {{c.dim}};">다음 시도</span><span>20초 후 · 간격 늘어나는 중</span>
+        </div>
+        <div><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid {{c.line}}; border-radius: 6px; background: {{c.surface}}; color: {{c.ink}}; font: inherit; font-size: 13px;">지금 다시 시도</button></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: {{c.dim}}; border: 1px dashed {{c.line}}; border-radius: 6px; padding: 6px 12px;"><span>–</span> 비교: <b style="color: {{c.ink}}; font-weight: 600;">unknown</b> — 아직 묻지 않음 · 조회 중</div>
+      <span style="font-size: 12px; color: {{c.dim}};">로그인 버튼을 내밀지 않는다. 마지막 성공 시각이 남는다.</span>
+    </section>
+
+    <section style="background: {{c.surface}}; border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}};">3 · 잠긴 동작 — 감추지 않고 잠근다</span>
+      <div style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 12px; color: {{c.dim}};">익명 → unauthorized</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" disabled style="height: 30px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px dashed {{c.dim}}; border-radius: 6px; background: {{c.raise}}; color: {{c.dim}}; font: inherit; font-size: 13px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>정지</button>
+            <span style="font-size: 12.5px;">로그인 필요 · <a href="#" style="color: {{c.accent}}; font-weight: 600;">로그인</a></span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 12px; color: {{c.dim}};">로그인됨, 권한 없음 → forbidden</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" disabled style="height: 30px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px dashed {{c.dim}}; border-radius: 6px; background: {{c.raise}}; color: {{c.dim}}; font: inherit; font-size: 13px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>정지</button>
+            <span style="font-size: 12.5px;">'모듈 관리' 권한 필요 · 관리자에게 요청</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 12px; color: {{c.dim}};">노드가 서버에 붙지 않음 → unavailable</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" disabled style="height: 30px; padding: 0 12px; border: 1px dashed {{c.dim}}; border-radius: 6px; background: {{c.raise}}; color: {{c.dim}}; font: inherit; font-size: 13px;">로그인</button>
+            <span style="font-size: 12.5px;">이 노드는 아직 서버에 연결되지 않았습니다</span>
+          </div>
+        </div>
+      </div>
+      <span style="font-size: 12px; color: {{c.dim}};">점선 + 자물쇠 + 옆 줄의 이유. <b style="color: {{c.ink}};">disabled 필드가 들어온다는 가정</b>.</span>
+    </section>
+
+    <section style="background: {{c.surface}}; border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}};">4 · 위험 확인 — 같은 자리에서 펼친다</span>
+      <div style="display: flex; flex-direction: column; gap: 10px; border: 1px solid {{c.danger}}; border-radius: 8px; padding: 14px 16px; flex-grow: 1;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: {{c.danger}};">모듈 롤백</h3>
+        <div style="display: grid; grid-template-columns: 72px 1fr; gap: 4px 12px; font-size: 13px;">
+          <span style="color: {{c.dim}};">대상</span><span>agent 1.4.2 → 1.3.9</span>
+          <span style="color: {{c.dim}};">바뀌는 것</span><span>재시작 동안 화면·명령이 빠짐</span>
+          <span style="color: {{c.dim}};">되돌리기</span><span><span style="color: {{c.ok}};">●</span> 가능</span>
+        </div>
+        <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: {{c.dim}};">확인하려면 agent 입력<input type="text" value="agent" style="height: 30px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{c.line}}; border-radius: 6px; background: {{c.surface}}; color: {{c.ink}}; font: inherit; font-size: 13px;"></label>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button type="button" style="height: 30px; padding: 0 12px; border: 1px solid {{c.line}}; border-radius: 6px; background: {{c.surface}}; color: {{c.ink}}; font: inherit; font-size: 13px;">취소</button>
+          <button type="button" style="height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: {{c.danger}}; color: #ffffff; font: inherit; font-size: 13px; font-weight: 600;">롤백 실행</button>
+        </div>
+      </div>
+      <span style="font-size: 12px; color: {{c.dim}};">card + text + input + button + visible로 환원 — <b style="color: {{c.ink}};">dialog 없이</b> 선다. 되돌리기 불가면 입력 확인이 필수.</span>
+    </section>
+
+    <section style="background: {{c.surface}}; border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}};">5 · 작업 진행 — 접수 ≠ 완료</span>
+      <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0;">
+        <li style="display: flex; gap: 10px; padding: 6px 0;"><span style="color: {{c.accent}}; width: 16px;">◇</span><span style="flex-grow: 1;">접수됨 <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 12px; color: {{c.dim}};">#J-2044</span></span><span style="font-size: 12px; color: {{c.dim}};">18:51:03</span></li>
+        <li style="display: flex; flex-direction: column; gap: 6px; padding: 6px 0;">
+          <div style="display: flex; gap: 10px;"><span style="color: {{c.accent}}; width: 16px;">▶</span><span style="flex-grow: 1; font-weight: 600;">실행 중 — 파일 전송</span><span style="font-size: 12px; color: {{c.dim}};">62%</span></div>
+          <progress value="62" max="100" aria-label="전송 진행률" style="width: 100%; height: 8px; accent-color: {{c.accent}};"></progress>
+          <span style="font-size: 12px; color: {{c.dim}}; padding-left: 26px;">/photos → nas-01</span>
+        </li>
+        <li style="display: flex; gap: 10px; padding: 6px 0; color: {{c.dim}};"><span style="width: 16px;">○</span><span>완료 — 아직 아님</span></li>
+      </ol>
+      <div aria-live="polite" style="border-top: 1px solid {{c.line}}; padding-top: 8px; display: flex; flex-direction: column; gap: 2px; font-size: 12px;">
+        <span style="color: {{c.dim}};"><span style="color: {{c.ok}};">●</span> 스트림 연결됨 · 마지막 수신 18:59:12</span>
+        <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: {{c.dim}};">… 312/504 files</span>
+      </div>
+      <span style="font-size: 12px; color: {{c.dim}};">접수는 파랑 ◇, 완료만 초록 ●. 흐르는 값은 live=polite.</span>
+    </section>
+
+    <section style="background: {{c.surface}}; border: 1px solid {{c.line}}; border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px;">
+      <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{c.dim}};">세션 표시줄 — 7상태</span>
+      <sc-for list="{{sessions}}" as="s" hint-placeholder-count="7">
+        <div style="display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border: 1px solid {{c.line}}; border-radius: 6px; font-size: 12.5px;">
+          <span style="width: 14px; color: {{s.color}};">{{s.glyph}}</span>
+          <span style="width: 108px; font-weight: 600; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 12px;">{{s.name}}</span>
+          <span style="color: {{c.dim}};">{{s.say}}</span>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = !!this.props.dark;
+    const c = dark
+      ? { ink: '#dfe4ec', dim: '#8b95a6', line: '#2b323d', surface: '#14181e', raise: '#1b2027', accent: '#5aa9ff', danger: '#e5697a', dangerBg: '#241519', ok: '#4cc38a', warn: '#e0a23a' }
+      : { ink: '#16191f', dim: '#5b6472', line: '#d8dde5', surface: '#ffffff', raise: '#f4f6f9', accent: '#2563eb', danger: '#d33d52', dangerBg: '#fcf1f2', ok: '#1f7a4d', warn: '#a65f00' };
+    return {
+      c,
+      sessions: [
+        { glyph: '–', color: c.dim, name: 'unknown', say: '확인 중…' },
+        { glyph: '×', color: c.danger, name: 'unreachable', say: '서버에 닿지 못함 · 다시 시도' },
+        { glyph: '○', color: c.dim, name: 'anonymous', say: '익명 · 바꾸려면 로그인' },
+        { glyph: '●', color: c.ok, name: 'authenticated', say: 'admin · 만료 21:40' },
+        { glyph: '○', color: c.warn, name: 'unavailable', say: '서버 미연결 노드 · 로그인 불가' },
+        { glyph: '■', color: c.danger, name: 'rejected', say: '셸 자격 거부됨 · 사용자 탓 아님' },
+        { glyph: '◐', color: c.warn, name: 'open', say: '개발 모드 · 인증 없음' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

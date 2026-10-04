@@ -55,7 +55,9 @@ function compileNode(node) {
   for (const a of Array.from(node.attributes)) {
     const n = a.name;
     if (n.startsWith('hint-')) continue;
-    const ev = EVENTS[n.toLowerCase()];
+    let ev = EVENTS[n.toLowerCase()];
+    // 글자 입력칸의 onChange는 칠 때마다(input) — 디자인 캔버스 런타임과 같게. 체크 · 범위 · 선택은 change 그대로
+    if (ev === 'change' && (tag === 'textarea' || (tag === 'input' && !/^(checkbox|radio|range|file|color)$/i.test(node.getAttribute('type') || 'text')))) ev = 'input';
     if (ev) { events.push({ name: ev, react: n.toLowerCase(), path: hole(a.value) }); continue; }
     attrs.push({ name: n, ns: a.namespaceURI, parts: split(a.value) });
   }

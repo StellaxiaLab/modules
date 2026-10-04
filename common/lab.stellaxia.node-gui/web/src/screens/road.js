@@ -1,286 +1,12 @@
-<!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<title>Terra 건물 편집기</title>
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-<style>
-body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif;background:#ffffff}
-a{color:#2563eb}a:hover{color:#1d4ed8}
-.face-hit:hover{filter:brightness(1.05)}
-</style>
-</helmet>
-<div onPointerMove="{{rootMove}}" onPointerUp="{{rootUp}}" onPointerLeave="{{rootCancel}}" onKeyDown="{{rootKey}}" style="position: relative; outline: none; width: 1440px; height: 900px; display: flex; flex-direction: column; background: #ffffff; color: #16191f; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+// 도로 편집기 — 디자인 캔버스 원본 design/RoadEditor.dc.html 에서 옮긴 화면 로직 (module 변형 · tools/gen-pages.py로 다시 만든다)
+// 데이터를 바꿔 끼우는 곳은 src/boot/module.js · src/data/*.js — 이 파일은 손으로 고치지 않는다
+import { DCLogic } from '../runtime/dc.js';
 
-  <header style="height: 52px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #d8dde5;">
-    <a href="Artboard-qcfu.dc.html" style="font-size: 13px; color: #5b6472; text-decoration: none;">← 노드 화면</a>
-    <h1 style="margin: 0; font-size: 17px; font-weight: 600;">건물 편집기</h1>
-    <span style="font-size: 13px; color: #5b6472;">{{curName}}</span>
-    <div role="radiogroup" aria-label="{{an.typeLabel}} 타입" style="display: flex; gap: 2px; padding: 2px; border-radius: 7px; background: #eef1f5;">
-      <sc-for list="{{an.types}}" as="ty" hint-placeholder-count="2">
-        <button type="button" role="radio" aria-checked="{{ty.on}}" onClick="{{ty.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 5px; background: {{ty.bg}}; color: {{ty.fg}}; box-shadow: {{ty.sh}}; font: inherit; font-size: 12.5px; font-weight: {{ty.fw}}; cursor: pointer;">{{ty.label}}</button>
-      </sc-for>
-    </div>
-    <span style="font-size: 12px; color: {{saveColor}};">{{saveText}}</span>
-    <span style="flex-grow: 1;"></span>
-    <nav aria-label="편집기 메뉴" style="display: flex; align-items: center; gap: 4px;">
-      <button type="button" onClick="{{save}}" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer;">저장</button>
-      <button type="button" onClick="{{exportNow}}" style="height: 32px; padding: 0 12px; border: 1px solid #2563eb; border-radius: 6px; background: #2563eb; color: #ffffff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">내보내기</button>
-      <button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer;">불러오기</button>
-      <a href="MaterialEditor.dc.html" style="height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font-size: 13px; text-decoration: none;">자재</a>
-    </nav>
-  </header>
-
-  <div style="flex-grow: 1; display: flex; min-height: 0;">
-
-    <aside aria-label="설계도 리스트" style="width: 232px; flex-shrink: 0; box-sizing: border-box; border-right: 1px solid #d8dde5; background: #f4f6f9; padding: 14px 10px; display: flex; flex-direction: column; gap: 8px; min-height: 0;">
-      <div style="display: flex; align-items: center; gap: 4px; padding: 0 4px; font-size: 12.5px;">
-        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">설계도</h3>
-        <span style="flex-grow: 1;"></span>
-        <button type="button" onClick="{{newFolder}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">새 폴더</button>
-        <button type="button" onClick="{{delBp}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{delBpColor}}; font: inherit; font-size: 12.5px; cursor: pointer;">삭제</button>
-      </div>
-      <div role="tree" aria-label="설계도 셋" style="display: flex; flex-direction: column; gap: 1px; overflow-y: auto; min-height: 0;">
-        <sc-for list="{{bpTree}}" as="row" hint-placeholder-count="7">
-          <sc-if value="{{row.isSet}}" hint-placeholder-val="{{false}}">
-            <div role="treeitem" data-bpdrop="{{row.drop}}" style="padding: 6px 6px 2px; font-size: 13px; font-weight: 600; border-radius: 6px; background: {{row.dropBg}}; outline: {{row.dropLine}};">{{row.label}}</div>
-          </sc-if>
-          <sc-if value="{{row.isFolder}}" hint-placeholder-val="{{false}}">
-            <button type="button" role="treeitem" aria-expanded="{{row.expanded}}" data-bpdrop="{{row.drop}}" onClick="{{row.toggle}}" style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px 0 {{row.indent}}; border: 0; border-radius: 6px; background: {{row.dropBg}}; outline: {{row.dropLine}}; color: #16191f; font: inherit; font-size: 13px; text-align: left; cursor: pointer;"><span style="color: #8b95a6;">└</span><span style="width: 12px; color: #5b6472;">{{row.caret}}</span>{{row.label}}</button>
-          </sc-if>
-          <sc-if value="{{row.isBp}}" hint-placeholder-val="{{true}}">
-            <button type="button" role="treeitem" aria-selected="{{row.pressed}}" onPointerDown="{{row.grab}}" onClick="{{row.load}}" title="눌러서 열기 · 끌어서 설계 화면에 놓으면 현재 설계도에 추가 · 폴더에 놓으면 옮기기" style="display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px {{row.indent}}; border: {{row.border}}; border-radius: 6px; background: {{row.bg}}; color: #16191f; font: inherit; text-align: left; cursor: grab; touch-action: none; opacity: {{row.op}};">
-              <span style="color: #8b95a6;">└</span>
-              <span style="display: flex; flex-direction: column; min-width: 0;">
-                <span style="font-size: 13px; font-weight: {{row.fw}};">{{row.label}} <span title="{{row.playTip}}" style="display: {{row.playDisp}}; font-size: 11px;">▶️</span></span>
-                <span style="font-size: 11.5px; color: #5b6472;">{{row.meta}}</span>
-              </span>
-              <span style="flex-grow: 1;"></span>
-              <span style="font-size: 11.5px; color: #2563eb;">{{row.state}}</span>
-            </button>
-          </sc-if>
-        </sc-for>
-      </div>
-      <button type="button" onClick="{{newBp}}" style="height: 32px; flex-shrink: 0; border: 1px dashed #b6bfcc; border-radius: 8px; background: transparent; color: #5b6472; font: inherit; font-size: 13px; cursor: pointer;">+ 새 설계도</button>
-      <span style="font-size: 11.5px; color: #5b6472; padding: 0 4px;">설계도를 끌어 설계 화면에 놓으면 지금 설계도에 합쳐집니다 (끄는 중 R = 90° 회전). 폴더·셋 이름 위에 놓으면 그리로 옮겨집니다.</span>
-    </aside>
-
-    <main onKeyDown="{{key}}" style="position: relative; flex-grow: 1; min-width: 0; background: #eef1f5; outline: none;">
-      <svg width="960" height="848" viewBox="0 0 960 848" role="img" aria-label="설계 화면 — {{curName}}, 끌어서 돌려 봄" style="display: block; cursor: {{cursor}}; touch-action: none; user-select: none;" onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerLeave="{{leave}}" onContextMenu="{{ctx}}">
-        <defs>
-          <sc-for list="{{pats}}" as="pt" hint-placeholder-count="0">
-            <pattern id="{{pt.id}}" patternUnits="userSpaceOnUse" width="1" height="1" patternTransform="{{pt.m}}">
-              <sc-for list="{{pt.rects}}" as="r" hint-placeholder-count="0">
-                <rect x="{{r.x}}" y="{{r.y}}" width="{{r.w}}" height="{{r.h}}" fill="{{r.fill}}"></rect>
-              </sc-for>
-            </pattern>
-          </sc-for>
-        </defs>
-        <polygon points="{{plateRim}}" fill="#dfe4eb"></polygon>
-        <sc-for list="{{plate}}" as="c" hint-placeholder-count="16">
-          <polygon class="face-hit" points="{{c.pts}}" fill="{{c.fill}}" stroke="#c3cad5" stroke-width="{{gridW}}" data-target="{{c.target}}"></polygon>
-        </sc-for>
-        <polygon points="{{hexOutline}}" fill="none" stroke="#5b6472" stroke-width="1.5" stroke-dasharray="6 6" opacity="0.8" style="pointer-events: none;"></polygon>
-        <sc-for list="{{faces}}" as="f" hint-placeholder-count="40">
-          <polygon points="{{f.pts}}" fill="{{f.fill}}" stroke="{{f.stroke}}" stroke-width="{{f.sw}}" stroke-linejoin="round" opacity="{{f.op}}" data-target="{{f.target}}" data-block="{{f.block}}" style="pointer-events: {{f.pe}};"></polygon>
-        </sc-for>
-      </svg>
-
-      <div style="position: absolute; left: 16px; top: 14px; display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,0.92); border: 1px solid #d8dde5; border-radius: 8px; padding: 10px 12px; width: 300px; box-sizing: border-box;">
-        <label style="display: flex; align-items: center; gap: 10px; font-size: 13px;">
-          <span style="font-weight: 600; white-space: nowrap;">가로 · 세로</span>
-          <input type="range" min="4" max="64" step="2" value="{{N}}" onChange="{{setN}}" aria-label="가로 세로 칸 수" style="flex-grow: 1; accent-color: #2563eb;">
-          <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 12.5px; min-width: 56px; text-align: right;">{{N}} × {{N}}</span>
-        </label>
-        <span style="font-size: 12px; color: #5b6472;">최대 64 · 설치 범위는 타일 육각형 안 {{cap}}칸 · 높이 {{N}}단</span>
-        <span style="font-size: 12px; color: #a65f00;">{{warnText}}</span>
-        <span style="font-size: 12px; color: #5b6472;">{{activeText}}</span>
-        <span style="font-size: 12px; color: #16191f;">블록 방향 · {{orientLabel}}</span>
-      </div>
-
-      <!-- 애니메이션 확장: 1초 = 16칸 고정. 칸마다 프레임을 넣거나 비워 두고, 빈 칸은 앞 프레임을 그대로 보인다 (한 줄 = 1초) -->
-      <section aria-label="애니메이션 칸" style="position: absolute; left: 16px; top: 236px; width: 330px; display: {{an.disp}}; flex-direction: column; gap: 8px; box-sizing: border-box; background: #ffffff; border: 1px solid #d8dde5; border-radius: 10px; padding: 10px 12px;">
-        <div style="display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; font-size: 12.5px;">
-          <button type="button" onClick="{{an.toggle}}" aria-label="{{an.playLabel}}" title="{{an.playLabel}}" style="width: 32px; height: 28px; border: 1px solid {{an.playLine}}; border-radius: 6px; background: {{an.playBg}}; color: {{an.playFg}}; font: inherit; font-size: 13px; cursor: pointer;">{{an.playIcon}}</button>
-          <b style="font-size: 13px; font-variant-numeric: tabular-nums;">칸 {{an.cur}} / {{an.len}}</b>
-          <span style="color: {{an.slotFg}};">{{an.slotInfo}}</span>
-          <span style="flex-grow: 1;"></span>
-          <label style="display: {{an.lenDisp}}; align-items: center; gap: 4px; color: #5b6472;">길이
-            <select value="{{an.lenVal}}" onChange="{{an.setLen}}" aria-label="애니메이션 길이" style="height: 26px; padding: 0 4px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12.5px; color: #16191f;">
-              <sc-for list="{{an.lens}}" as="lo" hint-placeholder-count="4"><option value="{{lo.v}}">{{lo.t}}</option></sc-for>
-            </select></label>
-          <span style="display: {{an.lenFixDisp}}; color: #5b6472;">길이 1초 고정 (16칸)</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px;">
-          <span style="color: #5b6472;">복제 간격</span>
-          <div role="radiogroup" aria-label="복제 간격" style="display: flex; gap: 2px; padding: 2px; border-radius: 6px; background: #eef1f5;">
-            <sc-for list="{{an.steps}}" as="sp" hint-placeholder-count="3">
-              <button type="button" role="radio" aria-checked="{{sp.on}}" title="{{sp.tip}}" onClick="{{sp.pick}}" style="height: 22px; padding: 0 7px; border: 0; border-radius: 4px; background: {{sp.bg}}; color: {{sp.fg}}; box-shadow: {{sp.sh}}; font: inherit; font-size: 11.5px; font-weight: {{sp.fw}}; cursor: pointer;">{{sp.label}}</button>
-            </sc-for>
-          </div>
-          <button type="button" onClick="{{an.dup}}" title="{{an.dupTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #2563eb; border-radius: 6px; background: #ffffff; color: {{an.dupFg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">+ 복제 → {{an.stepLabel}} 뒤</button>
-          <button type="button" onClick="{{an.fill}}" title="{{an.fillTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">{{an.fillLabel}}</button>
-          <span style="flex-grow: 1;"></span>
-          <button type="button" onClick="{{an.left}}" title="이 프레임을 한 칸 앞으로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.leftFg}}; font: inherit; font-size: 12px; cursor: pointer;">◀</button>
-          <button type="button" onClick="{{an.right}}" title="이 프레임을 한 칸 뒤로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.rightFg}}; font: inherit; font-size: 12px; cursor: pointer;">▶</button>
-        </div>
-        <div role="listbox" aria-label="칸 (한 줄 = 1초)" style="display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px;">
-          <sc-for list="{{an.slots}}" as="fs" hint-placeholder-count="16">
-            <button type="button" role="option" aria-selected="{{fs.sel}}" aria-label="{{fs.label}}" title="{{fs.label}}" onClick="{{fs.pick}}" style="position: relative; height: {{an.slotH}}px; padding: 0; box-sizing: border-box; border: {{fs.border}}; border-radius: 5px; background: {{fs.bg}}; cursor: pointer; overflow: hidden; box-shadow: {{fs.ring}};">
-              <img src="{{fs.img}}" alt="" style="display: {{fs.imgDisp}}; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
-              <span style="display: {{fs.holdDisp}}; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1px; background: #b9cdf5;"></span>
-              <span style="position: absolute; left: 3px; top: 0; font-size: 9.5px; font-weight: 700; color: {{fs.numFg}};">{{fs.num}}</span>
-            </button>
-          </sc-for>
-        </div>
-        <div style="display: {{an.confirmDisp}}; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: #fff7e6; border: 1px solid #f0d59a; font-size: 12.5px; color: #7a4d00;">
-          <span style="flex-grow: 1;">일반 타입은 프레임 하나 · 1초입니다 — 지금 보이는 프레임만 남기고 나머지 프레임 {{an.dropN}}개를 지웁니다.</span>
-          <button type="button" onClick="{{an.confirmYes}}" style="height: 26px; padding: 0 10px; border: 1px solid #d33d52; border-radius: 6px; background: #ffffff; color: #b4283c; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">지우고 일반으로</button>
-          <button type="button" onClick="{{an.confirmNo}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">취소</button>
-        </div>
-      </section>
-
-      <!-- 이벤트: 상태(동작 · 대기 · 정지 · 실패) · 사용자 이벤트마다 다른 모습. 고르면 그 디자인을 편집한다 -->
-      <section aria-label="이벤트" data-ev-bar="1" style="position: absolute; left: 16px; right: 16px; bottom: 86px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; background: rgba(255,255,255,0.95); border: 1px solid #d8dde5; border-radius: 10px; padding: 8px 10px; box-shadow: 0 4px 14px rgba(22,25,31,0.06);">
-        <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
-          <b style="font-size: 12.5px; margin-right: 2px;">이벤트</b>
-          <sc-for list="{{evb.common}}" as="ec" hint-placeholder-count="5">
-            <button type="button" role="radio" aria-checked="{{ec.on}}" data-ev="{{ec.id}}" title="{{ec.tip}}" onClick="{{ec.pick}}" style="height: 26px; padding: 0 9px; border: 1px {{ec.style}} {{ec.line}}; border-radius: 13px; background: {{ec.bg}}; color: {{ec.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: {{ec.dot}}; opacity: {{ec.dotOp}}; margin-right: 5px; vertical-align: 1px;"></span>{{ec.label}}</button>
-          </sc-for>
-          <span style="display: {{evb.dirDisp}}; align-items: center; gap: 5px; padding-left: 8px; margin-left: 2px; border-left: 1px solid #e3e8ef;">
-            <span style="font-size: 11.5px; color: #5b6472;">방향</span>
-            <sc-for list="{{evb.dirs}}" as="ed" hint-placeholder-count="0">
-              <button type="button" role="radio" aria-checked="{{ed.on}}" data-ev="{{ed.id}}" title="{{ed.tip}}" onClick="{{ed.pick}}" style="height: 26px; padding: 0 9px; border: 1px {{ed.style}} {{ed.line}}; border-radius: 13px; background: {{ed.bg}}; color: {{ed.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;">{{ed.label}}</button>
-            </sc-for>
-          </span>
-          <span style="display: inline-flex; align-items: center; gap: 5px; padding-left: 8px; margin-left: 2px; border-left: 1px solid #e3e8ef;">
-            <sc-for list="{{evb.custom}}" as="eu" hint-placeholder-count="0">
-              <button type="button" role="radio" aria-checked="{{eu.on}}" data-ev="{{eu.id}}" title="{{eu.tip}}" onClick="{{eu.pick}}" style="height: 26px; padding: 0 9px; border: 1px {{eu.style}} {{eu.line}}; border-radius: 13px; background: {{eu.bg}}; color: {{eu.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background: {{eu.dot}}; opacity: {{eu.dotOp}}; margin-right: 5px; vertical-align: 1px;"></span>{{eu.label}}</button>
-            </sc-for>
-            <sc-if value="{{evb.newOff}}" hint-placeholder-val="{{true}}">
-              <button type="button" data-ev-add="1" onClick="{{evb.newStart}}" title="사용자 이벤트 만들기 (예: 점검 중 · 백업 중)" style="height: 26px; padding: 0 9px; border: 1px dashed #be185d; border-radius: 13px; background: #ffffff; color: #be185d; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">+ 이벤트</button>
-            </sc-if>
-            <sc-if value="{{evb.newOn}}" hint-placeholder-val="{{false}}">
-              <input type="text" data-ev-name="1" value="{{evb.newVal}}" onChange="{{evb.newInput}}" onKeyDown="{{evb.newKey}}" placeholder="이벤트 이름" aria-label="새 이벤트 이름" style="width: 120px; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid #be185d; border-radius: 13px; font: inherit; font-size: 12px;">
-              <button type="button" data-ev-ok="1" onClick="{{evb.newOk}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 13px; background: #be185d; color: #ffffff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">만들기</button>
-              <button type="button" onClick="{{evb.newCancel}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 13px; background: #ffffff; font: inherit; font-size: 12px; cursor: pointer;">취소</button>
-            </sc-if>
-          </span>
-          <span style="flex-grow: 1;"></span>
-          <button type="button" onClick="{{evb.drop}}" style="display: {{evb.dropDisp}}; height: 26px; padding: 0 10px; border: 1px solid #f3c2ca; border-radius: 6px; background: #ffffff; color: #d33d52; font: inherit; font-size: 12px; cursor: pointer;">{{evb.dropLabel}}</button>
-        </div>
-        <span style="font-size: 11.5px; color: {{evb.infoC}};">{{evb.info}}</span>
-      </section>
-
-      <div style="position: absolute; left: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; max-width: 640px; font-size: 12px; color: #5b6472; background: rgba(255,255,255,0.92); border: 1px solid #d8dde5; border-radius: 8px; padding: 8px 12px; pointer-events: none;">
-        <span><b style="color: #16191f; font-weight: 600;">좌클릭 끌기</b> 회전</span>
-        <span><b style="color: #16191f; font-weight: 600;">자재 클릭</b> 활성화</span>
-        <span><b style="color: #16191f; font-weight: 600;">우클릭 누르고 있기</b> 설치 준비</span>
-        <span><b style="color: #16191f; font-weight: 600;">R</b> 옆으로 · <b style="color: #16191f; font-weight: 600;">T</b> 위로 90°</span>
-        <span><b style="color: #16191f; font-weight: 600;">떼기</b> 설치</span>
-        <span><b style="color: #16191f; font-weight: 600;">좌클릭</b> 설치 취소(블록 제거)</span>
-      </div>
-
-      <sc-if value="{{hasExport}}" hint-placeholder-val="{{false}}">
-        <section aria-label="내보내기 결과" style="position: absolute; left: 16px; right: 16px; bottom: 64px; background: #ffffff; border: 1px solid #d8dde5; border-radius: 10px; box-shadow: 0 6px 20px rgba(22,25,31,0.10); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
-          <svg width="0" height="0" aria-hidden="true" style="position: absolute;">
-            <defs>
-              <sc-for list="{{ex.patterns}}" as="pt" hint-placeholder-count="0">
-                <pattern id="{{pt.id}}" patternUnits="userSpaceOnUse" width="1" height="1" patternTransform="{{pt.m}}">
-                  <sc-for list="{{pt.rects}}" as="r" hint-placeholder-count="0">
-                    <rect x="{{r.x}}" y="{{r.y}}" width="{{r.w}}" height="{{r.h}}" fill="{{r.fill}}"></rect>
-                  </sc-for>
-                </pattern>
-              </sc-for>
-            </defs>
-          </svg>
-          <div style="display: flex; align-items: baseline; gap: 12px;">
-            <h3 style="margin: 0; font-size: 14px; font-weight: 600;">내보내기 결과 — {{ex.name}}</h3>
-            <span style="font-size: 12px; color: #5b6472;">2D 벡터 · 필드와 같은 투시(기울기 {{pitchField}}°) · 회전 4장</span>
-            <span style="flex-grow: 1;"></span>
-            <button type="button" onClick="{{closeExport}}" style="height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">닫기</button>
-          </div>
-          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
-            <sc-for list="{{ex.views}}" as="v" hint-placeholder-count="4">
-              <figure style="margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #f4f6f9; border-radius: 8px; padding: 8px;">
-                <svg width="150" height="120" viewBox="{{v.vb}}" aria-label="{{v.label}}">
-                  <path d="{{v.shadow}}" fill="#1c2733" opacity="0.22"></path>
-                  <sc-for list="{{v.paths}}" as="p" hint-placeholder-count="8">
-                    <path d="{{p.d}}" fill="{{p.edge}}" fill-rule="evenodd" stroke="{{p.edge}}" stroke-width="0.5" stroke-linejoin="round"></path>
-                    <path d="{{p.d}}" fill="{{p.fill}}" fill-rule="evenodd"></path>
-                  </sc-for>
-                </svg>
-                <figcaption style="font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{v.label}} · 면 {{v.count}}</figcaption>
-              </figure>
-            </sc-for>
-          </div>
-          <span style="font-size: 12.5px;">블록 <b>{{ex.blocks}}</b> · 보이는 단위면 <b>{{ex.unit}}</b> → 내보낸 면 <b>{{ex.merged}}</b> <span style="color: #5b6472;">(회전 0 기준 — 같은 평면 · 같은 자재로 이어진 면은 하나로 합치고, 자재 픽셀은 그 면의 무늬로 들어감)</span></span>
-        </section>
-      </sc-if>
-    </main>
-
-    <aside style="width: 272px; flex-shrink: 0; box-sizing: border-box; border-left: 1px solid #d8dde5; padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow: hidden;">
-      <section aria-label="시점" style="display: flex; flex-direction: column; align-items: center; gap: 6px; background: #f4f6f9; border-radius: 10px; padding: 12px;">
-        <svg width="140" height="132" viewBox="0 0 140 132" role="group" aria-label="시점 큐브 — 면을 누르면 그 방향으로 봅니다" style="cursor: pointer;" onClick="{{cubeClick}}">
-          <sc-for list="{{cube}}" as="q" hint-placeholder-count="3">
-            <g data-face="{{q.id}}">
-              <polygon points="{{q.pts}}" fill="{{q.fill}}" stroke="#16191f" stroke-opacity="0.25" stroke-width="1" stroke-linejoin="round"></polygon>
-              <text x="{{q.lx}}" y="{{q.ly}}" text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="600" fill="#ffffff" style="pointer-events: none;">{{q.label}}</text>
-            </g>
-          </sc-for>
-        </svg>
-        <span style="font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">방위 {{yawLabel}} · 기울기 {{pitchLabel}}</span>
-        <button type="button" onClick="{{resetView}}" style="height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">필드 시점으로</button>
-      </section>
-
-      <section aria-label="자재" style="display: flex; flex-direction: column; gap: 8px; min-height: 0;">
-        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 12.5px;">
-          <h3 style="margin: 0 6px 0 0; font-size: 14px; font-weight: 600;">자재</h3>
-          <a href="MaterialEditor.dc.html" style="height: 26px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; color: #16191f; text-decoration: none;">편집기</a>
-          <button type="button" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">자재 불러오기</button>
-          <button type="button" onClick="{{delMat}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{delColor}}; font: inherit; font-size: 12.5px; cursor: pointer;">삭제</button>
-        </div>
-        <div role="tree" aria-label="자재 셋" style="display: flex; flex-direction: column; gap: 1px; overflow-y: auto;">
-          <sc-for list="{{tree}}" as="row" hint-placeholder-count="10">
-            <sc-if value="{{row.isSet}}" hint-placeholder-val="{{false}}">
-              <div role="treeitem" style="padding: 6px 4px 2px; font-size: 13px; font-weight: 600;">{{row.label}}</div>
-            </sc-if>
-            <sc-if value="{{row.isFolder}}" hint-placeholder-val="{{false}}">
-              <button type="button" role="treeitem" aria-expanded="{{row.expanded}}" onClick="{{row.toggle}}" style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px 0 {{row.indent}}; border: 0; background: transparent; color: #16191f; font: inherit; font-size: 13px; text-align: left; cursor: pointer;"><span style="color: #8b95a6;">└</span><span style="width: 12px; color: #5b6472;">{{row.caret}}</span>{{row.label}}</button>
-            </sc-if>
-            <sc-if value="{{row.isMat}}" hint-placeholder-val="{{true}}">
-              <button type="button" role="treeitem" aria-selected="{{row.pressed}}" onClick="{{row.pick}}" style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 6px 0 {{row.indent}}; border: {{row.border}}; border-radius: 6px; background: {{row.bg}}; color: #16191f; font: inherit; font-size: 13px; text-align: left; cursor: pointer;">
-                <span style="color: #8b95a6;">└</span>
-                <svg width="22" height="22" viewBox="0 0 26 26" aria-hidden="true">
-                  <polygon points="13,3 23,8 13,13 3,8" fill="{{row.top}}"></polygon>
-                  <polygon points="3,8 13,13 13,24 3,19" fill="{{row.left}}"></polygon>
-                  <polygon points="13,13 23,8 23,19 13,24" fill="{{row.right}}"></polygon>
-                </svg>
-                <span style="font-weight: {{row.fw}};">{{row.label}} <span title="{{row.playTip}}" style="display: {{row.playDisp}}; font-size: 11px;">▶️</span></span>
-                <span style="flex-grow: 1;"></span>
-                <span style="font-size: 11.5px; color: #2563eb;">{{row.state}}</span>
-              </button>
-            </sc-if>
-          </sc-for>
-        </div>
-      </section>
-    </aside>
-  </div>
-  <div aria-hidden="true" style="position: absolute; left: {{chip.x}}px; top: {{chip.y}}px; display: {{chip.disp}}; pointer-events: none; padding: 6px 10px; border: 1px solid #2563eb; border-radius: 8px; background: rgba(255,255,255,0.95); box-shadow: 0 4px 14px rgba(22,25,31,0.16); font-size: 12.5px; white-space: nowrap;"><b>{{chip.name}}</b> <span style="color: #5b6472;">{{chip.hint}}</span></div>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
-class Component extends DCLogic {
+export default class Component extends DCLogic {
   constructor(props) {
     super(props);
     this.MATS = this.makeMats().concat(this.animMats());
-    const bps = this.samples();
+    const bps = this.loadRoads();
     this.state = {
       bps,
       cur: 0,
@@ -301,8 +27,9 @@ class Component extends DCLogic {
       dropped: 0,
       orient: 0,
       placing: false,
-      bpSets: this.bpSets(),
-      bpOpen: { '저장 시설': true },
+      bpSets: this.bpSets(bps),
+      bpOpen: {},
+      hub: Object.assign({}, bps[0].hub), mask: 63, ghost: true, exportNote: '', noteC: '#5b6472',
       bpDrag: null,
       note: '',
       // 이벤트: ev = 지금 편집 중인 것('base' = 기본 모습) · evs = 이벤트별 디자인 · custom = 사용자 이벤트 · baseD = 이벤트를 고치는 동안 맡아 둔 기본 모습
@@ -418,16 +145,17 @@ class Component extends DCLogic {
       confirmNo: () => this.setState({ confirmBasic: false })
     };
   }
-  // ───── 이벤트 (건물 · 도로 공통) — 동작 · 대기 · 정지 · 실패 + 사용자 이벤트 ─────
-  //   이벤트마다 디자인 한 벌(블록 · 프레임). 디자인이 없는 이벤트는 맵에서 기본 모습에 효과를 입힌다
+  // ───── 이벤트 (건물 · 도로 공통) — 동작 · 대기 · 정지 · 실패 + 사용자 이벤트 + 도로 방향(들어옴 · 나감 · 양방향) ─────
+  //   이벤트마다 디자인 한 벌(블록 · 프레임 · 합류). 디자인이 없는 이벤트는 맵에서 기본 모습에 효과를 입힌다
   evtCommonE() { return [{ id: 'run', name: '동작', c: '#1f9d55' }, { id: 'wait', name: '대기', c: '#e0a100' }, { id: 'stop', name: '정지', c: '#8b95a6' }, { id: 'fail', name: '실패', c: '#d33d52' }]; }
-  evtDirsE() { return []; }
+  evtDirsE() { return [{ id: 'dir-in', name: '들어옴', c: '#2563eb', g: '→◎' }, { id: 'dir-out', name: '나감', c: '#7c3aed', g: '◎→' }, { id: 'dir-both', name: '양방향', c: '#0e7490', g: '⇄' }]; }
   evCurD() {
     const fr = this.framesNow(), anim = this.state.anim && (this.keyCount(fr) > 1 || fr.length > 16);
     const d = { blocks: fr[0].map((b) => b.slice()), frames: anim ? fr.map((f) => (f ? f.map((b) => b.slice()) : null)) : null, period: anim ? fr.length / 16 : 1 };
+    d.hub = Object.assign({}, this.state.hub);
     return d;
   }
-  evNorm(d) { return JSON.stringify([d.blocks || [], d.frames || null]); }
+  evNorm(d) { return JSON.stringify([d.blocks || [], d.frames || null, d.hub || null]); }
   // 지금 칸들을 그 자리(기본 / 이벤트)에 되돌려 넣는다. 아직 디자인이 없는 이벤트는 고쳤을 때만 생긴다
   evCommit() {
     const S = this.state, cur = this.evCurD(), evs = Object.assign({}, S.evs || {});
@@ -438,8 +166,8 @@ class Component extends DCLogic {
   evLoad(id, base, evs) {
     const d = id === 'base' ? base : (evs[id] || base);
     const fr = d.frames && d.frames.length ? d.frames.map((f) => (f ? f.map((b) => b.slice()) : null)) : [(d.blocks || []).map((b) => b.slice())].concat(new Array(15).fill(null));
-    this._evSnap = this.evNorm({ blocks: fr[0], frames: d.frames && d.frames.length && (this.keyCount(fr) > 1 || fr.length > 16) ? fr : null });
-    this.setState(Object.assign({ ev: id, evs, baseD: id === 'base' ? null : base, frames: fr, fi: 0, anim: this.keyCount(fr) > 1, confirmBasic: false, hover: null }, this.frameLoad(fr[0])));
+    this._evSnap = this.evNorm({ blocks: fr[0], frames: d.frames && d.frames.length && (this.keyCount(fr) > 1 || fr.length > 16) ? fr : null, hub: Object.assign({}, base.hub, d.hub || {}) });
+    this.setState(Object.assign({ ev: id, evs, baseD: id === 'base' ? null : base, frames: fr, fi: 0, anim: this.keyCount(fr) > 1, confirmBasic: false, hover: null }, this.frameLoad(fr[0]), { hub: Object.assign({}, base.hub, d.hub || {}) }));
   }
   evSwitch(id) {
     if (this.state.playing) this.animPlay(false);
@@ -473,7 +201,7 @@ class Component extends DCLogic {
       : cur.label + ' — 아직 디자인이 없다. 기본 모습을 복사해 보여 주는 중 · 고치면 이 이벤트 디자인이 생긴다';
     return {
       common: all.filter((c) => c.grp === 'base' || c.grp === 'common'), dirs: all.filter((c) => c.grp === 'dir'), custom: all.filter((c) => c.grp === 'custom'),
-      dirDisp: 'none', info, infoC: S.ev === 'base' ? '#5b6472' : has(S.ev) ? '#1f7a4d' : '#a65f00',
+      dirDisp: 'flex', info, infoC: S.ev === 'base' ? '#5b6472' : has(S.ev) ? '#1f7a4d' : '#a65f00',
       dropDisp: S.ev !== 'base' && (has(S.ev) || isCustom) ? 'inline-block' : 'none', dropLabel: isCustom ? '이벤트 삭제' : '디자인 지우기 (기본 사용)', drop: () => this.evDrop(S.ev),
       newOn: S.evNew !== null && S.evNew !== undefined, newOff: !(S.evNew !== null && S.evNew !== undefined), newVal: S.evNew || '',
       newStart: () => this.setState({ evNew: '' }), newInput: (e) => this.setState({ evNew: e.target.value }), newKey: (e) => { if (e.key === 'Enter') this.evAdd(e.target.value); else if (e.key === 'Escape') this.setState({ evNew: null }); },
@@ -836,26 +564,20 @@ class Component extends DCLogic {
     return { views, blocks: blocks.length, unit: unit0, merged: views[0].count };
   }
   // 육각형 설치 범위: 타일 육각형을 설계도 좌표로 옮긴 것 (회전 0 = 45°)
+  // 설치 범위 = 팔 하나: 그라운드 육각형(가운데 → 변 80)을 6등분한 정삼각형. safe = 합류에 덮이지 않는 칸
+  //   hex = 그라운드 육각형 윤곽(점선) · tri = 팔 삼각형 (바닥판)
   region(N) {
-    if (this._region && this._region.N === N) return this._region;
-    const s = 160 / N, c = N / 2;
-    const hexAt = (rot) => [0, 1, 2, 3, 4, 5].map((k) => {
-      const a = (k * 60 - rot) * Math.PI / 180;
-      return [80 * Math.cos(a), 80 * Math.sin(a)];
-    });
-    const inside = (poly, p) => poly.every((a, i) => {
-      const b = poly[(i + 1) % poly.length];
-      return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) >= -1e-6;
-    });
-    const h0 = hexAt(45), h1 = hexAt(135);
+    const hr = (this.state && this.state.hub && this.state.hub.r) || 40;
+    if (this._region && this._region.N === N && this._region.hr === hr) return this._region;
     const cells = new Map();
-    for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) {
-      const cs = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]].map(([a, b]) => [(a - c) * s, (b - c) * s]);
-      if (cs.every((p) => inside(h0, p))) cells.set(x + ',' + y, { safe: cs.every((p) => inside(h1, p)) });
-    }
-    this._region = { N, cells, hex: h0 };
+    this.roadCells(N).forEach((k) => { const [x, y] = k.split(',').map(Number); cells.set(k, { safe: !this.roadUnderHub(x, y, N, hr) }); });
+    const RG = 80 / Math.cos(Math.PI / 6), t30 = Math.tan(Math.PI / 6);
+    const hex = [0, 1, 2, 3, 4, 5].map((k) => [RG * Math.cos(k * Math.PI / 3), RG * Math.sin(k * Math.PI / 3)]);
+    const tri = [[0, 0], [80 * t30, 80], [-80 * t30, 80]];
+    this._region = { N, hr, cells, hex, tri };
     return this._region;
   }
+
   box(x0, x1, y0, y1, z0, z1, m) {
     const out = [];
     for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) out.push([x, y, z, m]);
@@ -996,14 +718,18 @@ class Component extends DCLogic {
     ];
   }
 
-  bpSets() {
-    return [
-      { name: '기본 설계도', items: ['tower', { folder: '저장 시설', items: ['warehouse'] }] },
-      { name: '통신 설계도', items: ['relay'] },
-      { name: '집 설계도', items: ['cottage', 'cabin', 'townhouse', 'shop', { folder: '조경', items: ['tree', 'garden'] }] },
-      { name: '움직이는 설계도', items: ['windmill'] }
-    ];
+  bpSets(bps) {
+    const base = ['stone', 'garden', 'rail'], mine = (bps || []).map((b) => b.id).filter((id) => base.indexOf(id) < 0);
+    return [{ name: '기본 도로', items: base }, { name: '내 도로', items: mine }];
   }
+  // 도로 목록 = 기본 설계 + 내보낸 것(localStorage 'terra.gui.roads', 같은 id면 내보낸 것)
+  loadRoads() {
+    let mine = [];
+    try { mine = JSON.parse(window.localStorage.getItem('terra.gui.roads') || '[]') || []; } catch (e) { mine = []; }
+    mine = mine.filter((r) => r && r.id && (r.frames || r.blocks)).map((r) => this.roadNorm(r));
+    return this.roadSamples().filter((r) => !mine.some((m) => m.id === r.id)).concat(mine).map((r) => Object.assign({}, r, { blocks: r.blocks || [] }));
+  }
+
   // 다른 설계도를 지금 설계도에 합칠 자리: 끝 칸(tx, ty, tz)에 바닥 가운데를 맞추고 r번 90° 돌린다
   placeBp(src, t, r) {
     if (!src.length) return [];
@@ -1056,10 +782,10 @@ class Component extends DCLogic {
       plate.push({
         pts: str([PG(x, y, 0), PG(x + 1, y, 0), PG(x + 1, y + 1, 0), PG(x, y + 1, 0)]),
         target: t,
-        fill: hover === t && !has(x, y, 0) ? '#dbe6fb' : (info.safe ? '#f8f9fb' : '#fbefdc')
+        fill: hover === t && !has(x, y, 0) ? '#dbe6fb' : (info.safe ? '#f8f9fb' : '#e9e5de')
       });
     });
-    const plateRim = str(reg.hex.map(([a, b]) => PW(a * 1.05, b * 1.05, 0)));
+    const plateRim = str(reg.tri.map(([a, b]) => PW(a * 1.06, b * 1.03 - 1, 0)));
     const hexOutline = str(reg.hex.map(([a, b]) => PW(a, b, 0)));
 
     // 면: 자재 픽셀 무늬를 (자재, 방향, 평면)마다 패턴 하나로
@@ -1109,6 +835,45 @@ class Component extends DCLogic {
       });
     });
     blocks.forEach(([x, y, z, mid, o]) => pushCube(x, y, z, mid, o, false));
+    // 나머지 다섯 팔 (흐리게 · 단색) — 맵에서 여러 방향으로 놓였을 때의 모습. 합류에 덮이는 칸은 뺀다
+    if (this.state.ghost) {
+      const vis = blocks.filter(([x, y]) => !this.roadUnderHub(x, y, N, (this.state.hub || {}).r || 40));
+      for (let k = 1; k < 6; k++) {
+        const th = k * Math.PI / 3, ct = Math.cos(th), st = Math.sin(th);
+        const PR = (X, Y, Z) => { const wx = (X - cN) * s, wy = (Y - cN) * s; return PW(wx * ct - wy * st, wx * st + wy * ct, Z * s); };
+        vis.forEach(([x, y, z, mid]) => ids.forEach((id) => {
+          const [dx, dy, dz] = DM[id].n;
+          if (has(x + dx, y + dy, z + dz)) return;
+          const rx = dx * ct - dy * st, ry = dx * st + dy * ct;
+          if (id !== 'pz' && rx * sy + ry * cy <= 0.001) return;
+          const pts = cornersOf(id, x, y, z).map((q) => PR(...q)), m = mat(mid);
+          const lf = this.lightF(id, rx * cy - ry * sy, rx * sy + ry * cy), col = this.scaleC(this.avgC(this.matFrame(m, 0)[id]), lf);
+          faces.push({ pts: str(pts), fill: col, stroke: 'rgba(22,25,31,0.12)', sw: 0.5, op: 0.42, pe: 'none', target: '', block: '', near: pts.reduce((a, q) => a + q[2], 0) / 4 });
+        }));
+      }
+    }
+    // 합류: 가운데 정육각 기둥 (높이 = 블록 단, 무늬 = 윗면 · 옆면 자재)
+    {
+      const hb = this.state.hub || { h: 1, top: 'm1', side: 'm1' }, H = Math.max(0, hb.h || 0) * s, rh = hb.r || 40;
+      if (hb.h > 0) {
+        const V = [0, 1, 2, 3, 4, 5].map((k) => [rh * Math.cos(k * Math.PI / 3), rh * Math.sin(k * Math.PI / 3)]), TS = 20;
+        const pxS = this.matFrame(mat(hb.side), 0).py, pxT = this.matFrame(mat(hb.top), 0).pz;
+        for (let k = 0; k < 6; k++) {
+          const a = V[k], b = V[(k + 1) % 6], na = k * Math.PI / 3 + Math.PI / 6, nx = Math.cos(na), ny = Math.sin(na);
+          if (nx * sy + ny * cy <= 0.001) continue;
+          const lf = this.lightF('px', nx * cy - ny * sy, nx * sy + ny * cy), pid = 'hs' + k;
+          const ex = (b[0] - a[0]) / rh * TS, ey = (b[1] - a[1]) / rh * TS;
+          const O = PW(a[0], a[1], H), Up = PW(a[0] + ex, a[1] + ey, H), Vp = PW(a[0], a[1], H - TS);
+          pats.push(this.pattern(pid, pxS, lf, O, [Up[0] - O[0], Up[1] - O[1]], [Vp[0] - O[0], Vp[1] - O[1]]));
+          const q = [PW(a[0], a[1], 0), PW(b[0], b[1], 0), PW(b[0], b[1], H), PW(a[0], a[1], H)];
+          faces.push({ pts: str(q), fill: 'url(#' + pid + ')', stroke: 'rgba(22,25,31,0.3)', sw: 0.8, op: 1, pe: 'none', target: '', block: '', near: q.reduce((u, p) => u + p[2], 0) / 4 });
+        }
+        const O = PW(-rh, -rh, H), Up = PW(-rh + TS, -rh, H), Vp = PW(-rh, -rh + TS, H);
+        pats.push(this.pattern('ht', pxT, 1, O, [Up[0] - O[0], Up[1] - O[1]], [Vp[0] - O[0], Vp[1] - O[1]]));
+        const top = V.map((v) => PW(v[0], v[1], H));
+        faces.push({ pts: str(top), fill: 'url(#ht)', stroke: 'rgba(22,25,31,0.3)', sw: 0.8, op: 1, pe: 'none', target: '', block: '', near: top.reduce((u, p) => u + p[2], 0) / 6 + 0.02 });
+      }
+    }
     if (hover) {
       const [hx, hy, hz] = hover.split(',').map(Number);
       if (inB(hx, hy, hz) && !has(hx, hy, hz)) pushCube(hx, hy, hz, this.state.active, this.state.orient, true);
@@ -1239,8 +1004,16 @@ class Component extends DCLogic {
     const setN = (e) => {
       const nN = Math.max(4, Math.min(64, Math.round(Number(e.target.value) / 2) * 2));
       if (nN === N) return;
-      const nReg = this.region(nN), off = (nN - N) / 2;
-      const shift = (bl) => bl.map(([x, y, z, m, o]) => [x + off, y + off, z, m, o || 0]).filter(([x, y, z]) => z < nN && nReg.cells.has(x + ',' + y));
+      // 도로는 화소 수만 바꾼다: 팔 모양(실제 크기)을 그대로 두고 새 격자로 다시 뽑는다 (16 → 32면 블록 하나가 2×2×2)
+      const nReg = this.region(nN), k = nN / N;
+      const shift = (bl) => {
+        const M = new Map(bl.map((b) => [b[0] + ',' + b[1] + ',' + b[2], b])), out = [];
+        nReg.cells.forEach((info, key) => {
+          const [x, y] = key.split(',').map(Number), ox = Math.floor((x + 0.5) / k), oy = Math.floor((y + 0.5) / k);
+          for (let z = 0; z < nN; z++) { const b = M.get(ox + ',' + oy + ',' + Math.floor((z + 0.5) / k)); if (b) out.push([x, y, z, b[3], b[4] || 0]); }
+        });
+        return out;
+      };
       const moved = this.state.blocks.length, kept = shift(this.state.blocks);
       // 모든 프레임을 같이 옮긴다
       const fr = this.framesNow().map((f) => f ? shift(f) : null);
@@ -1248,7 +1021,8 @@ class Component extends DCLogic {
       const shD = (d) => (d ? Object.assign({}, d, { blocks: shift(d.blocks || []), frames: d.frames ? d.frames.map((f) => (f ? shift(f) : null)) : null }) : d);
       const evsN = {}; Object.keys(this.state.evs || {}).forEach((e) => { evsN[e] = shD(this.state.evs[e]); });
       this.setState({ evs: evsN, baseD: shD(this.state.baseD) });
-      this.setState({ N: nN, blocks: kept, frames: fr, dropped: moved - kept.length, saved: false, hover: null });
+      const hb = this.state.hub || {};
+      this.setState({ N: nN, blocks: kept, frames: fr, dropped: 0, saved: false, hover: null, hub: Object.assign({}, hb, { h: Math.round((hb.h || 0) * k) }) });   // 합류 높이도 같은 실제 높이로
     };
 
     const bpsState = this.state.bps, cur = this.state.cur;
@@ -1257,12 +1031,12 @@ class Component extends DCLogic {
       if (this.state.playing) this.animPlay(false);
       this._evSnap = null; this.setState({ ev: 'base', evs: Object.assign({}, bpsState[i].events || {}), custom: (bpsState[i].customEvents || []).slice(), baseD: null, evNew: null });
       const fr = this.bpFrames(bpsState[i]);
-      this.setState({ cur: i, N: bpsState[i].N, blocks: this._loadedRef = fr[0].map((b) => b.slice()), frames: fr, fi: 0, anim: this.keyCount(fr) > 1, confirmBasic: false, exported: null, saved: true, hover: null, dropped: 0, note: '' });
+      this.setState({ hub: Object.assign({ h: 1, top: 'm1', side: 'm1' }, bpsState[i].hub), cur: i, N: bpsState[i].N, blocks: this._loadedRef = fr[0].map((b) => b.slice()), frames: fr, fi: 0, anim: this.keyCount(fr) > 1, confirmBasic: false, exported: null, saved: true, hover: null, dropped: 0, note: '' });
     };
     // 저장: 지금 편집 중인 것(기본 / 이벤트)을 제자리에 넣고 설계 전체(기본 + 이벤트 + 사용자 이벤트)를 목록에
     const save = () => {
       const next = bpsState.slice(), r = this.evCommit();
-      next[cur] = Object.assign({}, next[cur], { N: this.state.N, blocks: r.base.blocks, frames: r.base.frames, period: r.base.period }, { events: r.evs, customEvents: this.state.custom.slice() });
+      next[cur] = Object.assign({}, next[cur], { N: this.state.N, blocks: r.base.blocks, frames: r.base.frames, period: r.base.period }, { hub: Object.assign({}, r.base.hub || this.state.hub) }, { events: r.evs, customEvents: this.state.custom.slice() });
       this.setState({ bps: next, saved: true, evs: r.evs });
       return next;
     };
@@ -1282,10 +1056,10 @@ class Component extends DCLogic {
     const stripId = (sets, id) => sets.map((st) => Object.assign({}, st, { items: st.items.filter((it) => it !== id).map((it) => typeof it === 'string' ? it : Object.assign({}, it, { items: it.items.filter((x) => x !== id) })) }));
     const newBp = () => {
       this._evSnap = null; this.setState({ ev: 'base', evs: {}, custom: [], baseD: null, evNew: null });
-      const id = 'bp' + Date.now().toString(36);
-      const next = bpsState.concat([{ id, name: '새 설계도 ' + (bpsState.length - 2), N: 24, blocks: [] }]);
+      const id = 'road' + Date.now().toString(36);
+      const next = bpsState.concat([{ id, name: '새 도로 ' + (bpsState.length - 2), N: 48, blocks: [], hub: { h: 3, top: 'm1', side: 'm15', r: 40 } }]);
       if (this.state.playing) this.animPlay(false);
-      this.setState({ bps: next, bpSets: insertAt(this.state.bpSets, where(bpsState[cur].id), id), cur: next.length - 1, N: 24, blocks: this._loadedRef = [], frames: [[]].concat(new Array(15).fill(null)), fi: 0, anim: false, confirmBasic: false, exported: null, saved: true, dropped: 0, note: '' });
+      this.setState({ bps: next, bpSets: insertAt(this.state.bpSets, where(bpsState[cur].id), id), hub: { h: 3, top: 'm1', side: 'm15', r: 40 }, cur: next.length - 1, N: 48, blocks: this._loadedRef = [], frames: [[]].concat(new Array(15).fill(null)), fi: 0, anim: false, confirmBasic: false, exported: null, saved: true, dropped: 0, note: '' });
     };
     const newFolder = () => {
       const loc = where(bpsState[cur].id), n = this.state.bpSets.reduce((a, st) => a + st.items.filter((it) => typeof it !== 'string').length, 0) + 1;
@@ -1373,11 +1147,12 @@ class Component extends DCLogic {
       x: Math.round(drag.x + 14), y: Math.round(drag.y + 12), disp: 'block', name: dragBp ? dragBp.name : '',
       hint: drag.dropOn ? '→ 여기로 옮기기' : drag.over ? (dropInfo ? '블록 ' + dropInfo.ok.length + '개 합치기' : '') + ' · ' + (90 * (drag.rot || 0)) + '° (R)' : '설계 화면에 놓으면 합치기 · 폴더에 놓으면 옮기기'
     } : { x: 0, y: 0, disp: 'none', name: '', hint: '' };
-    // 내보내기: 2D 벡터 결과를 보이고, 설계 전체(기본 + 이벤트)를 localStorage 'terra.gui.buildings'에 — 열려 있는 노드 화면이 바로 받아 다시 굽는다
+    // 내보내기 = 저장 + localStorage 'terra.gui.roads' (기본 도로도 고쳤으면 같은 id로) — 열려 있는 노드 화면이 storage 이벤트로 바로 받는다
     const exportNow = () => {
-      const all = save(), res = this.exportModel({ N: this.state.N, blocks: this.state.blocks }, 'x');
-      try { window.localStorage.setItem('terra.gui.buildings', JSON.stringify(all.map((b) => ({ id: b.id, name: b.name, N: b.N, blocks: b.blocks, frames: b.frames || null, period: b.period || 1, events: b.events || {}, customEvents: b.customEvents || [] })))); } catch (e) { /* 저장 막힘 — 결과만 보인다 */ }
-      this.setState({ exported: Object.assign(res, { name: bpsState[cur].name }), note: '노드 화면으로 내보냈습니다 (이벤트 포함)' });
+      const all = save().map((b, i) => (i === cur ? Object.assign({}, b, { v: (b.v || 0) + 1 }) : b));
+      const out = all.filter((b, i) => i === cur || b.v || ['stone', 'garden', 'rail'].indexOf(b.id) < 0).map((b) => ({ id: b.id, name: b.name, N: b.N, blocks: b.blocks, frames: b.frames || null, period: b.period || 1, hub: b.hub, events: b.events || {}, customEvents: b.customEvents || [], v: b.v || 0 }));
+      try { window.localStorage.setItem('terra.gui.roads', JSON.stringify(out)); } catch (e) { this.setState({ exportNote: '브라우저 저장이 막혀 내보내지 못했습니다', noteC: '#d33d52' }); return; }
+      this.setState({ bps: all, exportNote: new Date().toTimeString().slice(0, 5) + ' 노드 화면으로 내보냄 — 도로 ' + out.length + '개', noteC: '#1f7a4d', bpSets: this.bpSets(all) });
     };
 
     let ex = null;
@@ -1429,18 +1204,36 @@ class Component extends DCLogic {
     };
 
     const active = this.state.active ? mat(this.state.active) : null;
+    // 미리보기 (맵과 같은 투시). 재생 중이면 그 칸
+    const hubS = this.state.hub || { h: 1, top: 'm1', side: 'm1' };
+    const rdNow = { id: 'pv', N, blocks, frames: null, hub: hubS };
+    const pvKey = N + '|' + this.state.mask + '|' + JSON.stringify(blocks) + '|' + JSON.stringify(hubS);
+    if (this._pvKey !== pvKey) { this._pvKey = pvKey; const v = this.roadModel(rdNow, this.state.mask, 0, null, 'pv'); this._pvSrc = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(this.roadSvg(v, -130, -100, 260, 188, 2)); }
+    const { K } = this.geo(), pvs = 276 / 260;
+    const pv = {
+      src: this._pvSrc, vb: '-130 -100 260 188', n: [0, 1, 2, 3, 4, 5].filter((i) => this.state.mask & (1 << i)).length,
+      ground: [0, 1, 2, 3, 4, 5].map((k) => (92.4 * Math.cos(k * Math.PI / 3)) + ',' + (92.4 * Math.sin(k * Math.PI / 3) * K)).join(' '),
+      dirs: this.roadDirs().map((d) => { const on = !!(this.state.mask & (1 << d.i)), x = Math.cos(d.phi) * (d.len - 6), y = Math.sin(d.phi) * (d.len - 6) * K;
+        return { x: Math.round((x + 130) * pvs), y: Math.round((y + 100) * pvs), label: this.roadNames()[d.i].slice(0, 2), tip: this.roadNames()[d.i] + (on ? ' — 팔 있음' : ' — 팔 없음'),
+          bg: on ? '#2563eb' : 'rgba(255,255,255,0.92)', fg: on ? '#ffffff' : '#5b6472', line: on ? '#2563eb' : '#c6ced8', toggle: () => this.setState({ mask: this.state.mask ^ (1 << d.i) }) }; }),
+      toggleGhost: () => this.setState({ ghost: !this.state.ghost }), ghostBg: this.state.ghost ? '#16191f' : '#ffffff', ghostFg: this.state.ghost ? '#ffffff' : '#16191f', ghostLine: this.state.ghost ? '#16191f' : '#d8dde5'
+    };
+    const setHub = (p) => this.setState({ hub: Object.assign({}, hubS, p), saved: false });
+    const hub = { r: hubS.r || 40, rUp: () => setHub({ r: Math.min(70, (hubS.r || 40) + 4) }), rDown: () => setHub({ r: Math.max(12, (hubS.r || 40) - 4) }), h: hubS.h, up: () => setHub({ h: Math.min(N, (hubS.h || 0) + 1) }), down: () => setHub({ h: Math.max(0, (hubS.h || 0) - 1) }),
+      topC: this.avgC(mat(hubS.top).faces.pz), topName: mat(hubS.top).name, sideC: this.avgC(mat(hubS.side).faces.py), sideName: mat(hubS.side).name,
+      setTop: () => { if (this.state.active) setHub({ top: this.state.active }); }, setSide: () => { if (this.state.active) setHub({ side: this.state.active }); } };
     const yawN = ((Math.round(this.state.yaw) % 360) + 360) % 360;
     const unsafe = blocks.some(([x, y]) => { const i = reg.cells.get(x + ',' + y); return i && !i.safe; });
     return {
-      evb: this.evBar(), curName: bpsState[cur].name,
+      evb: this.evBar(), curName: bpsState[cur].name, pv, hub, exportNote: this.state.exportNote, noteC: this.state.noteC,
       saveText: this.state.saved ? '저장됨' : '● 저장 안 됨',
       saveColor: this.state.saved ? '#5b6472' : '#a65f00',
       save, exportNow, newBp, newFolder, delBp,
-      an: this.animVals({ typeLabel: '건물', basicLabel: '일반 건물', animLabel: '애니메이션 건물', thumb: null, copy: (f) => f.map((b) => b.slice()), slotH: 26, slotHM: 22, slotHS: 18, maxLen: 4 }),
+      an: this.animVals({ typeLabel: '도로', basicLabel: '일반 도로', animLabel: '애니메이션 도로', thumb: null, copy: (f) => f.map((b) => b.slice()), slotH: 26, slotHM: 22, slotHS: 18, maxLen: 4 }),
       bpTree, rootMove, rootUp, rootCancel, rootKey, chip,
       delBpColor: bpsState.length > 1 ? '#d33d52' : '#8b95a6',
       N, setN, cap: reg.cells.size,
-      warnText: (this.state.note ? this.state.note + '. ' : '') + (this.state.dropped ? '칸 수를 줄여 범위 밖 블록 ' + this.state.dropped + '개를 뺐습니다. ' : '') + (unsafe ? '주황 칸의 블록은 90° 돌린 방향에서 타일 밖으로 나갑니다' : ''),
+      warnText: (this.state.note ? this.state.note + '. ' : '') + (this.state.dropped ? '칸 수를 줄여 범위 밖 블록 ' + this.state.dropped + '개를 뺐습니다. ' : '') + (unsafe ? '회색 칸의 블록은 합류에 덮여 맵에서 보이지 않습니다' : ''),
       pats, plate, plateRim, hexOutline, faces,
       gridW: f(Math.min(1, cellPx / 12)),
       cursor: this.state.bpDrag ? 'copy' : this.state.dragging ? 'grabbing' : (active ? 'crosshair' : 'grab'),
@@ -1459,7 +1252,212 @@ class Component extends DCLogic {
       closeExport: () => this.setState({ exported: null })
     };
   }
+  // ───── 도로 (건물 타입 · 도로) — 도로 편집기 · 노드 화면이 같은 코드 ─────
+  // 도로 = 가운데 합류(작은 정육각 기둥) + 여섯 방향의 팔.
+  //   팔 하나의 설치 범위 = 그라운드 크기의 정육각형을 6등분한 정삼각형(중심 + 한 변). 블록(정육면체)으로 쌓고 프레임으로 움직일 수 있다
+  //   정육면체 격자로는 6방향을 한 격자에 맞출 수 없다 → 팔은 자기 방향으로 돌린 격자를 쓰고, 격자가 어긋나는 가운데는 합류가 덮는다
+  //   합류 = 한 변이 필드 한 변의 1/2인 정육각 기둥. 높이(블록 단위) · 윗면 · 옆면 자재를 정한다 — 모든 방향의 입출력을 받아 보내는 자리
+  //   팔은 이웃(노드 · 노드 자원 · 다른 도로)이 있는 방향에만 그린다 → 이웃과 경계에서 자연스럽게 이어진다
+  // 격자: 건물과 같이 그라운드 폭 160을 N칸으로 (N = 4~64, 기본 16). 칸 한 변 S = 160 / N, 가운데 c = N / 2
+  //   팔 격자 (x, y): u = (x + 0.5 − c)·S (가로) · v = (y + 0.5 − c)·S (가운데에서 바깥으로). 블록 = [x, y, z, 자재, 방향]
+  ROAD(N, r) { const n = N || 16; return { N: n, S: 160 / n, c: n / 2, AP: 80, HUB: r || 40 }; }
+  // 이벤트 (건물 · 도로 공통): 노드 · 자원 상태에 따라 다른 모습. 디자인이 없는 이벤트는 기본 모습에 효과(빛 · 색)를 입힌다.
+  //   방향 이벤트(도로 전용): 연결의 흐름이 합류로 들어오는 팔 · 나가는 팔 · 양방향 팔의 모습 (팔만)
+  evtCommon() { return [{ id: 'run', name: '동작', c: '#1f9d55' }, { id: 'wait', name: '대기', c: '#e0a100' }, { id: 'stop', name: '정지', c: '#8b95a6' }, { id: 'fail', name: '실패', c: '#d33d52' }]; }
+  evtDirs() { return [{ id: 'dir-in', name: '들어옴', c: '#2563eb', g: '→◎' }, { id: 'dir-out', name: '나감', c: '#7c3aed', g: '◎→' }, { id: 'dir-both', name: '양방향', c: '#0e7490', g: '⇄' }]; }
+  // 상태 이벤트 디자인을 적용한 도로 (디자인이 있으면 팔 · 합류 · 애니메이션이 그것으로)
+  roadEff(rd, ev) {
+    const d = ev && rd.events && rd.events[ev];
+    if (!d) return rd;
+    return Object.assign({}, rd, { blocks: d.blocks || [], frames: d.frames || null, period: d.period || 1, hub: Object.assign({}, rd.hub, d.hub || {}) });
+  }
+  // 화소 수 바꾸기: 실제 크기는 그대로 새 격자로 다시 뽑는다 (기본 · 이벤트 디자인 모두, 합류 높이도)
+  roadResample(rd, nN) {
+    const N = rd.N || 16; if (N === nN) return rd;
+    const k = nN / N, cells = this.roadCells(nN);
+    const rs = (bl) => {
+      if (!bl) return bl;
+      const M = new Map(bl.map((b) => [b[0] + ',' + b[1] + ',' + b[2], b])), out = [], zs = new Set(bl.map((b) => b[2]));
+      const zMax = zs.size ? Math.ceil((Math.max(...zs) + 1) * k) : 0;
+      cells.forEach((key) => { const [x, y] = key.split(',').map(Number), ox = Math.floor((x + 0.5) / k), oy = Math.floor((y + 0.5) / k);
+        for (let z = 0; z < zMax; z++) { const b = M.get(ox + ',' + oy + ',' + Math.floor((z + 0.5) / k)); if (b) out.push([x, y, z, b[3], b[4] || 0]); } });
+      return out;
+    };
+    const des = (d) => Object.assign({}, d, { blocks: rs(d.blocks || []), frames: d.frames ? d.frames.map((f) => (f ? rs(f) : null)) : d.frames, hub: d.hub ? Object.assign({}, d.hub, { h: Math.round((d.hub.h || 0) * k) }) : d.hub });
+    const o = des(rd); o.N = nN;
+    if (rd.events) { o.events = {}; Object.keys(rd.events).forEach((e) => { o.events[e] = des(rd.events[e]); }); }
+    return o;
+  }
+  roadUV(x, y, N) { const R = this.ROAD(N); return [(x + 0.5 - R.c) * R.S, (y + 0.5 - R.c) * R.S]; }
+  // 설계할 수 있는 칸 = 칸 가운데가 정삼각형(중심 + 그라운드 육각형의 한 변) 안
+  roadCells(N) {
+    this._rcells = this._rcells || {};
+    const n = N || 16; if (this._rcells[n]) return this._rcells[n];
+    const R = this.ROAD(n), t30 = Math.tan(Math.PI / 6), out = new Set();
+    for (let x = 0; x < n; x++) for (let y = 0; y < n; y++) { const [u, v] = this.roadUV(x, y, n); if (v > 0 && Math.abs(u) <= v * t30 + 1e-6 && v <= R.AP + 1e-6) out.add(x + ',' + y); }
+    return (this._rcells[n] = out);
+  }
+  // 합류(정육각, 한 변 = HUB, 꼭짓점이 팔의 가로 방향) 안에 가운데가 들어가는 칸 — 합류에 덮여 그리지 않는다
+  roadUnderHub(x, y, N, r) { const R = this.ROAD(N, r), [u, v] = this.roadUV(x, y, N), au = Math.abs(u), av = Math.abs(v), h = R.HUB - 0.5; return av <= h * Math.sqrt(3) / 2 && Math.sqrt(3) * au + av <= Math.sqrt(3) * h; }
+  // 여섯 방향 (지도 세계 좌표, 북쪽부터 시계 방향 — nbKeys와 같은 차례). len = 이웃 칸 중심까지의 절반
+  roadDirs() {
+    const K = this.geo().K;
+    return [[0, -92 / K], [130, -46 / K], [130, 46 / K], [0, 92 / K], [-130, 46 / K], [-130, -46 / K]].map(([x, y], i) => ({ i, phi: Math.atan2(y, x), len: Math.hypot(x, y) / 2 }));
+  }
+  roadNames() { return ['북', '북동', '남동', '남', '남서', '북서']; }
+  // 예전 모양(가로 10 · 세로 8 격자 · 키프레임 + fps)을 지금 모양(N 격자 · 칸 배열 16×초)으로
+  roadNorm(rd) {
+    if (!rd) return rd;
+    const o = Object.assign({}, rd, { hub: Object.assign({ h: 1, top: 'm1', side: 'm1' }, rd.hub || {}) });
+    if (!o.N) {
+      o.N = 16;
+      const mv = (f) => f ? f.map(([x, y, z, m, r]) => [x + 3, y + 8, z, m, r || 0]) : f;
+      if (o.blocks) o.blocks = mv(o.blocks);
+      if (o.frames) o.frames = o.frames.map(mv);
+    }
+    if (o.fps) {
+      const keys = (o.frames || [[]]).filter(Boolean), n = keys.length, fps = Math.max(1, o.fps), T = Math.max(16, Math.ceil(16 * n / fps / 16) * 16);
+      const slots = new Array(T).fill(null); keys.forEach((f, k) => { slots[Math.min(T - 1, Math.round(k * 16 / fps))] = f; });
+      o.blocks = keys[0] || []; o.frames = n > 1 ? slots : null; o.period = T / 16; delete o.fps;
+    }
+    if (!o.blocks) o.blocks = (o.frames && o.frames[0]) || [];
+    return o;
+  }
+  // 기본 도로 설계 (팔 한 개 · 합류). 16칸 격자 · 예전 좌표(ox = x − 3, oy = y − 8)로 그린다
+  roadSamples() {
+    const ok = this.roadCells(16);
+    const fill = (pred, z, m) => { const out = []; ok.forEach((k) => { const [x, y] = k.split(',').map(Number); if (pred(x - 3, y - 8)) out.push([x, y, z, m, 0]); }); return out; };
+    const stone = fill((x) => x >= 3 && x <= 6, 0, 'm15').map((b) => (b[0] - 3 === 4 || b[0] - 3 === 5 ? [b[0], b[1], 0, 'm1', 0] : b));
+    const garden = fill((x) => x >= 4 && x <= 5, 0, 'm20').concat(fill((x, y) => (x === 3 || x === 6) && y >= 4 && y % 2 === 0, 0, 'm19'), fill((x, y) => (x === 2 || x === 7) && y === 6, 0, 'm16'), fill((x, y) => (x === 2 || x === 7) && y === 6, 1, 'm16'));
+    const rail = (py) => fill((x) => x === 4 || x === 5, 0, 'm7').concat(fill((x, y) => (x === 3 || x === 6) && y >= 3, 0, 'm12'), py >= 0 ? fill((x, y) => (x === 4 || x === 5) && y === py, 1, 'm3') : []);
+    const railSlots = new Array(32).fill(null); [3, 4, 5, 6, 7].forEach((py, k) => { railSlots[k * 4] = rail(py); });
+    // 16칸으로 그린 뒤 기본 화소 48로 다시 뽑는다. 데이터 레일은 상태 · 방향 이벤트 예시를 함께 든다
+    const failRail = rail(-1).map((b) => [b[0], b[1], b[2], b[3] === 'm7' ? 'm2' : b[3], 0]);
+    const dirIn = rail(-1).concat(fill((x, y) => (x === 4 || x === 5) && y === 4, 1, 'm13')), dirOut = rail(-1).concat(fill((x, y) => (x === 4 || x === 5) && y === 6, 1, 'm18'));
+    if (this._rsamp) return this._rsamp.map((r) => Object.assign({}, r));
+    return (this._rsamp = [
+      { id: 'stone', name: '돌길', N: 16, blocks: stone, frames: null, period: 1, hub: { h: 1, top: 'm15', side: 'm15', r: 40 } },
+      { id: 'garden', name: '정원길', N: 16, blocks: garden, frames: null, period: 1, hub: { h: 1, top: 'm19', side: 'm20', r: 34 } },
+      { id: 'rail', name: '데이터 레일', N: 16, blocks: railSlots[0], frames: railSlots, period: 2, hub: { h: 2, top: 'm22', side: 'm12', r: 40 },
+        events: { fail: { blocks: failRail, frames: null, period: 1, hub: { top: 'm2' } }, 'dir-in': { blocks: dirIn, frames: null, period: 1 }, 'dir-out': { blocks: dirOut, frames: null, period: 1 } } }
+    ].map((r) => this.roadResample(r, 48))).map((r) => Object.assign({}, r));
+  }
+  // 칸 배열 (16 × 초, 빈 칸 = 앞 프레임). 움직이지 않는 도로는 [blocks]
+  roadFrames(rd) { return rd.frames && rd.frames.length ? rd.frames : [rd.blocks || []]; }
+  roadFrameAt(rd, t) { const fr = this.roadFrames(rd); return fr[this.holdAt(fr, t || 0)] || rd.blocks || []; }
+  // 블록 → 화면 다각형 (exportModel과 같은 면 합치기 · 무늬). proj(X, Y, Z) → [화면 x, 화면 y, 깊이], (ct, st) = 격자의 돌림
+  voxFaces(blocks, proj, ct, st, prefix, mf, polys, patterns) {
+    const mat = (id) => this.MATS.find((m) => m.id === id) || this.MATS[0];
+    const occ = new Set(blocks.map((b) => b[0] + ',' + b[1] + ',' + b[2]));
+    const has = (x, y, z) => occ.has(x + ',' + y + ',' + z);
+    const DM = this.dirMap(), ids = ['pz', 'px', 'nx', 'py', 'ny'];
+    const f2 = (v) => Math.round(v * 100) / 100;
+    const groups = new Map();
+    blocks.forEach(([x, y, z, m, o]) => ids.forEach((id) => {
+      const [dx, dy, dz] = DM[id].n;
+      if (has(x + dx, y + dy, z + dz)) return;
+      if (id !== 'pz' && dx * st + dy * ct <= 0.001) return;
+      const plane = this.planeOf(id, x, y, z), gk = id + '|' + plane + '|' + m + '|' + (o || 0);
+      if (!groups.has(gk)) groups.set(gk, { id, plane, m, o: o || 0, cells: [] });
+      groups.get(gk).cells.push(this.uvOf(id, x, y, z));
+    }));
+    let gi = 0;
+    groups.forEach((g) => {
+      const d = DM[g.id], fr = this.frameFor(g.o, g.id), pid = prefix + '-' + (gi++);
+      const b0 = this.blockOnPlane(g.id, g.plane), c0 = [b0[0] + fr.c0[0], b0[1] + fr.c0[1], b0[2] + fr.c0[2]];
+      const O = proj(...c0), Up = proj(c0[0] + fr.U[0], c0[1] + fr.U[1], c0[2] + fr.U[2]), Vp = proj(c0[0] + fr.V[0], c0[1] + fr.V[1], c0[2] + fr.V[2]);
+      const lf = this.lightF(g.id, d.n[0] * ct - d.n[1] * st, d.n[0] * st + d.n[1] * ct);
+      const px = this.matFrame(mat(g.m), mf ? mf[g.m] : 0)[fr.L];
+      patterns.push(this.pattern(pid, px, lf, O, [Up[0] - O[0], Up[1] - O[1]], [Vp[0] - O[0], Vp[1] - O[1]]));
+      const edge = this.scaleC(this.avgC(px), lf);
+      const set = new Set(g.cells.map((q) => q[0] + ',' + q[1])), seen = new Set();
+      g.cells.forEach((q0) => {
+        const k0 = q0[0] + ',' + q0[1];
+        if (seen.has(k0)) return;
+        const comp = [], stack = [q0]; seen.add(k0);
+        while (stack.length) {
+          const q = stack.pop(); comp.push(q);
+          [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const k = (q[0] + a) + ',' + (q[1] + b); if (set.has(k) && !seen.has(k)) { seen.add(k); stack.push([q[0] + a, q[1] + b]); } });
+        }
+        let near = 0, cnt = 0, dd = '';
+        this.outline(comp).forEach((loop) => {
+          loop.forEach((p, i) => { const q = proj(...this.to3(g.id, g.plane, p[0], p[1])); near += q[2]; cnt++; dd += (i === 0 ? 'M' : 'L') + f2(q[0]) + ' ' + f2(q[1]) + ' '; });
+          dd += 'Z ';
+        });
+        // 층: 윗면 = 그 면의 높이, 옆면 = 블록 높이 + 0.5 — 낮은 것부터 그려 납작한 길 위의 블록이 가려지지 않게
+        const lvl = g.id === 'pz' ? g.plane : Math.min(...comp.map((q) => q[1])) + 0.5;
+        polys.push({ d: dd.trim(), fill: 'url(#' + pid + ')', edge, near: near / cnt, lvl });
+      });
+    });
+  }
+  // 도로 한 장: mask = 팔을 그릴 방향(비트 i = roadDirs()[i]). opts.rot = 보기 돌림(라디안) · opts.uniform = 팔 길이를 이웃 거리에 맞추지 않음
+  roadModel(rd, mask, fi, mf, prefix, opts) {
+    const o = opts || {}, N = rd.N || 16, hr = (rd.hub && rd.hub.r) || 40, R = this.ROAD(N, hr), s = R.S, { K, C } = this.geo(), f2 = (v) => Math.round(v * 100) / 100;
+    const mat = (id) => this.MATS.find((m) => m.id === id) || this.MATS[0];
+    const cells = this.roadCells(N), keep = (bl) => bl.filter((b) => cells.has(b[0] + ',' + b[1]) && !this.roadUnderHub(b[0], b[1], N, hr));
+    const blocks = keep(this.roadFrameAt(rd, fi || 0));
+    // 방향 이벤트: 팔마다 흐름(들어옴 · 나감 · 양방향)에 맞는 디자인이 있으면 그 팔은 그것으로 (같은 칸 번호의 프레임)
+    const armBlocks = (i) => { const k = o.kinds && o.kinds[i], d = k && rd.events && rd.events['dir-' + k]; if (!d) return blocks; const fr = d.frames && d.frames.length ? d.frames : [d.blocks || []]; return keep(fr[this.holdAt(fr, fi || 0)] || d.blocks || []); };
+    const polys = [], patterns = [];
+    this.roadDirs().forEach((dd) => {
+      if (!(mask & (1 << dd.i))) return;
+      const phi = dd.phi + (o.rot || 0), kv = o.uniform ? 1 : dd.len / R.AP, th = phi - Math.PI / 2, ct = Math.cos(th), st = Math.sin(th);
+      const proj = (X, Y, Z) => { const wx = (X - R.c) * s, wy = (Y - R.c) * s * kv, wz = Z * s, xr = wx * ct - wy * st, yr = wx * st + wy * ct; return [xr, yr * K - wz * C, yr * C + wz * K]; };
+      this.voxFaces(armBlocks(dd.i), proj, ct, st, prefix + '-a' + dd.i, mf, polys, patterns);
+    });
+    // 합류: 정육각 기둥 (평평한 위아래 · 꼭짓점이 좌우 — 필드와 같은 방향)
+    const hub = rd.hub || { h: 1, top: 'm1', side: 'm1' }, H = Math.max(0, hub.h || 0) * s, rh = R.HUB, rot = o.rot || 0;
+    if (hub.h > 0) {
+      const P = (x, y, z) => { const xr = x * Math.cos(rot) - y * Math.sin(rot), yr = x * Math.sin(rot) + y * Math.cos(rot); return [xr, yr * K - z * C, yr * C + z * K]; };
+      const V = [0, 1, 2, 3, 4, 5].map((k) => [rh * Math.cos(k * Math.PI / 3), rh * Math.sin(k * Math.PI / 3)]);
+      const tm = mat(hub.top), sm = mat(hub.side), TS = 2 * s;
+      for (let k = 0; k < 6; k++) {
+        const a = V[k], b = V[(k + 1) % 6], na = k * Math.PI / 3 + Math.PI / 6 + rot, ny = Math.sin(na);
+        if (ny <= 0.001) continue;
+        const lf = this.lightF('px', Math.cos(na), ny), px = this.matFrame(sm, mf ? mf[sm.id] : 0).py, pid = prefix + '-hs' + k;
+        const ex = (b[0] - a[0]) / rh * TS, ey = (b[1] - a[1]) / rh * TS;
+        const O = P(a[0], a[1], H), Up = P(a[0] + ex, a[1] + ey, H), Vp = P(a[0], a[1], H - TS);
+        patterns.push(this.pattern(pid, px, lf, O, [Up[0] - O[0], Up[1] - O[1]], [Vp[0] - O[0], Vp[1] - O[1]]));
+        const q = [P(a[0], a[1], 0), P(b[0], b[1], 0), P(b[0], b[1], H), P(a[0], a[1], H)];
+        polys.push({ d: q.map((p, i) => (i ? 'L' : 'M') + f2(p[0]) + ' ' + f2(p[1])).join(' ') + ' Z', fill: 'url(#' + pid + ')', edge: this.scaleC(this.avgC(px), lf), near: q.reduce((u, p) => u + p[2], 0) / 4 + 1e3 });
+      }
+      const tp = this.matFrame(tm, mf ? mf[tm.id] : 0).pz, tid = prefix + '-ht';
+      const O = P(-rh, -rh, H), Up = P(-rh + TS, -rh, H), Vp = P(-rh, -rh + TS, H);
+      patterns.push(this.pattern(tid, tp, 1, O, [Up[0] - O[0], Up[1] - O[1]], [Vp[0] - O[0], Vp[1] - O[1]]));
+      const top = V.map((v) => P(v[0], v[1], H));
+      polys.push({ d: top.map((p, i) => (i ? 'L' : 'M') + f2(p[0]) + ' ' + f2(p[1])).join(' ') + ' Z', fill: 'url(#' + tid + ')', edge: this.scaleC(this.avgC(tp), 0.86), near: 2e3 });
+    }
+    // 그리는 차례: 팔(뒤 → 앞) 중 합류 뒤에 있는 것 → 합류 → 합류 앞의 팔. 합류의 깊이 = 가운데(0)
+    const back = polys.filter((p) => p.near < 0), hubP = polys.filter((p) => p.near >= 1e3), front = polys.filter((p) => p.near >= 0 && p.near < 1e3);
+    const byL = (a, b) => (a.lvl - b.lvl) || (a.near - b.near);
+    back.sort(byL); front.sort(byL); hubP.sort((a, b) => a.near - b.near);
+    const all = back.concat(hubP, front);
+    let minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
+    all.forEach((p) => { const n = p.d.match(/-?\d+(\.\d+)?/g) || []; for (let i = 0; i + 1 < n.length; i += 2) { const x = +n[i], y = +n[i + 1]; minx = Math.min(minx, x); maxx = Math.max(maxx, x); miny = Math.min(miny, y); maxy = Math.max(maxy, y); } });
+    if (!all.length) { minx = -10; miny = -10; maxx = 10; maxy = 10; }
+    return { paths: all.map((p) => ({ d: p.d, fill: p.fill, edge: p.edge })), patterns, bbox: [minx, miny, maxx, maxy], count: all.length, shadow: 'M0 0' };
+  }
+  // 한 벌을 그림 한 장(svg 문자열)으로 — 노드 화면은 이 문자열을 PNG로 굽고, 도로 편집기는 그대로 보인다
+  roadSvg(v, X, Y, W, H, scale) {
+    const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;'), f2 = (q) => Math.round(q * 100) / 100;
+    const pats = v.patterns.map((pt) => '<pattern id="' + pt.id + '" patternUnits="userSpaceOnUse" width="1" height="1" patternTransform="' + pt.m + '">' +
+      pt.rects.map((q) => '<rect x="' + q.x + '" y="' + q.y + '" width="' + q.w + '" height="' + q.h + '" fill="' + q.fill + '"/>').join('') + '</pattern>').join('');
+    const paths = v.paths.map((q) => '<path d="' + esc(q.d) + '" fill="' + q.edge + '" fill-rule="evenodd" stroke="' + q.edge + '" stroke-width="0.5" stroke-linejoin="round"/><path d="' + esc(q.d) + '" fill="' + q.fill + '" fill-rule="evenodd"/>').join('');
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + Math.ceil(W * scale) + '" height="' + Math.ceil(H * scale) + '" viewBox="' + [f2(X), f2(Y), f2(W), f2(H)].join(' ') + '"><defs>' + pats + '</defs>' + paths + '</svg>';
+  }
+  // 애니메이션 차례: 1초 = 16틱. 팔 칸 배열(건물과 같은 모양) × 쓰인 애니메이션 자재(16틱)의 조합이 바뀌는 순간만 모은다. fi = 칸 번호
+  roadSeq(rd) {
+    const frames = this.roadFrames(rd);
+    const used = new Set(); frames.forEach((f) => f && f.forEach((q) => used.add(q[3]))); if (rd.hub) { used.add(rd.hub.top); used.add(rd.hub.side); }
+    const am = this.MATS.filter((m) => used.has(m.id) && m.frames && this.keyCount(m.frames) > 1);
+    const T = rd.frames && rd.frames.length ? Math.max(16, rd.frames.length) : 16, keys = [], seq = [], combos = [];
+    for (let t = 0; t < T; t++) {
+      const fi = rd.frames && rd.frames.length ? this.holdAt(rd.frames, t) : 0, mf = {};
+      am.forEach((m) => { mf[m.id] = this.holdAt(m.frames, t % 16); });
+      const key = fi + '|' + am.map((m) => mf[m.id]).join(',');
+      let i = keys.indexOf(key); if (i < 0) { i = keys.length; keys.push(key); combos.push({ fi, mf }); }
+      seq.push(i);
+    }
+    return { T, seq, combos, anim: combos.length > 1 };
+  }
 }
-</script>
-</body>
-</html>

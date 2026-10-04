@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Terra · 건물 편집기</title>
+<title>Terra · 도로 편집기</title>
 <style>
 body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif;background:#ffffff}
 a{color:#2563eb}a:hover{color:#1d4ed8}
@@ -22,7 +22,7 @@ html,body{margin:0;background:#dfe3ea}
 
   <header style="height: 52px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #d8dde5;">
     <a href="node.html" style="font-size: 13px; color: #5b6472; text-decoration: none;">← 노드 화면</a>
-    <h1 style="margin: 0; font-size: 17px; font-weight: 600;">건물 편집기</h1>
+    <h1 style="margin: 0; font-size: 17px; font-weight: 600;">도로 편집기</h1>
     <span style="font-size: 13px; color: #5b6472;">{{curName}}</span>
     <div role="radiogroup" aria-label="{{an.typeLabel}} 타입" style="display: flex; gap: 2px; padding: 2px; border-radius: 7px; background: #eef1f5;">
       <sc-for list="{{an.types}}" as="ty" hint-placeholder-count="2">
@@ -33,8 +33,7 @@ html,body{margin:0;background:#dfe3ea}
     <span style="flex-grow: 1;"></span>
     <nav aria-label="편집기 메뉴" style="display: flex; align-items: center; gap: 4px;">
       <button type="button" onClick="{{save}}" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer;">저장</button>
-      <button type="button" onClick="{{exportNow}}" style="height: 32px; padding: 0 12px; border: 1px solid #2563eb; border-radius: 6px; background: #2563eb; color: #ffffff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">내보내기</button>
-      <button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer;">불러오기</button>
+      <button type="button" onClick="{{exportNow}}" style="height: 32px; padding: 0 12px; border: 1px solid #2563eb; border-radius: 6px; background: #2563eb; color: #ffffff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">노드 화면으로 내보내기</button>
       <a href="material.html" style="height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font-size: 13px; text-decoration: none;">자재</a>
     </nav>
   </header>
@@ -43,7 +42,7 @@ html,body{margin:0;background:#dfe3ea}
 
     <aside aria-label="설계도 리스트" style="width: 232px; flex-shrink: 0; box-sizing: border-box; border-right: 1px solid #d8dde5; background: #f4f6f9; padding: 14px 10px; display: flex; flex-direction: column; gap: 8px; min-height: 0;">
       <div style="display: flex; align-items: center; gap: 4px; padding: 0 4px; font-size: 12.5px;">
-        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">설계도</h3>
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">도로 설계</h3>
         <span style="flex-grow: 1;"></span>
         <button type="button" onClick="{{newFolder}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">새 폴더</button>
         <button type="button" onClick="{{delBp}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{delBpColor}}; font: inherit; font-size: 12.5px; cursor: pointer;">삭제</button>
@@ -69,8 +68,8 @@ html,body{margin:0;background:#dfe3ea}
           </sc-if>
         </sc-for>
       </div>
-      <button type="button" onClick="{{newBp}}" style="height: 32px; flex-shrink: 0; border: 1px dashed #b6bfcc; border-radius: 8px; background: transparent; color: #5b6472; font: inherit; font-size: 13px; cursor: pointer;">+ 새 설계도</button>
-      <span style="font-size: 11.5px; color: #5b6472; padding: 0 4px;">설계도를 끌어 설계 화면에 놓으면 지금 설계도에 합쳐집니다 (끄는 중 R = 90° 회전). 폴더·셋 이름 위에 놓으면 그리로 옮겨집니다.</span>
+      <button type="button" onClick="{{newBp}}" style="height: 32px; flex-shrink: 0; border: 1px dashed #b6bfcc; border-radius: 8px; background: transparent; color: #5b6472; font: inherit; font-size: 13px; cursor: pointer;">+ 새 도로</button>
+      <span style="font-size: 11.5px; color: #5b6472; padding: 0 4px;">편집하는 건 <b>팔 하나</b>(정육각형의 1/6 정삼각형). 맵에서는 연결이 지나는 방향마다 이 팔이 돌아가 놓이고, 가운데는 합류가 덮는다. 다른 도로를 끌어 놓으면 지금 팔에 합쳐진다</span>
     </aside>
 
     <main onKeyDown="{{key}}" style="position: relative; flex-grow: 1; min-width: 0; background: #eef1f5; outline: none;">
@@ -100,11 +99,51 @@ html,body{margin:0;background:#dfe3ea}
           <input type="range" min="4" max="64" step="2" value="{{N}}" onChange="{{setN}}" aria-label="가로 세로 칸 수" style="flex-grow: 1; accent-color: #2563eb;">
           <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 12.5px; min-width: 56px; text-align: right;">{{N}} × {{N}}</span>
         </label>
-        <span style="font-size: 12px; color: #5b6472;">최대 64 · 설치 범위는 타일 육각형 안 {{cap}}칸 · 높이 {{N}}단</span>
+        <span style="font-size: 12px; color: #5b6472;">최대 64 · 팔 범위는 그라운드 육각형의 1/6 정삼각형 안 {{cap}}칸 · 높이 {{N}}단</span>
         <span style="font-size: 12px; color: #a65f00;">{{warnText}}</span>
         <span style="font-size: 12px; color: #5b6472;">{{activeText}}</span>
         <span style="font-size: 12px; color: #16191f;">블록 방향 · {{orientLabel}}</span>
       </div>
+
+      <!-- 도로 미리보기: 맵과 같은 투시 · 방향 버튼 = 그 쪽으로 연결이 지난다고 보고 팔을 놓는다 · 아래는 합류 -->
+      <section aria-label="도로 미리보기와 합류" data-road-side="1" style="position: absolute; right: 16px; top: 14px; width: 300px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; background: rgba(255,255,255,0.95); border: 1px solid #d8dde5; border-radius: 10px; padding: 10px 12px; box-shadow: 0 4px 14px rgba(22,25,31,0.06);">
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px;">
+          <b style="font-size: 13px;">미리보기</b>
+          <span style="color: #8b95a6; flex-grow: 1;">맵 투시 · 팔 {{pv.n}}개</span>
+          <button type="button" onClick="{{pv.toggleGhost}}" title="편집 화면에 나머지 다섯 팔을 흐리게 보인다" style="height: 24px; padding: 0 8px; border: 1px solid {{pv.ghostLine}}; border-radius: 12px; background: {{pv.ghostBg}}; color: {{pv.ghostFg}}; font: inherit; font-size: 11.5px; cursor: pointer;">다른 팔</button>
+        </div>
+        <div style="position: relative; width: 276px; height: 200px; border-radius: 8px; background: linear-gradient(#cfe7f3, #e3f1f7); overflow: hidden;">
+          <svg width="276" height="200" viewBox="{{pv.vb}}" style="position: absolute; left: 0; top: 0;">
+            <polygon points="{{pv.ground}}" fill="#cdbf9b" stroke="#a89770" stroke-width="0.8"></polygon>
+          </svg>
+          <img data-road-pv="1" src="{{pv.src}}" alt="도로 미리보기" style="position: absolute; left: 0; top: 0; width: 276px; height: 200px; pointer-events: none;">
+          <sc-for list="{{pv.dirs}}" as="d" hint-placeholder-count="6">
+            <button type="button" onClick="{{d.toggle}}" title="{{d.tip}}" style="position: absolute; left: {{d.x}}px; top: {{d.y}}px; transform: translate(-50%,-50%); width: 22px; height: 22px; padding: 0; border: 1px solid {{d.line}}; border-radius: 50%; background: {{d.bg}}; color: {{d.fg}}; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer;">{{d.label}}</button>
+          </sc-for>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; border-top: 1px solid #eef1f5; padding-top: 8px;">
+          <b style="font-size: 13px; white-space: nowrap;">합류</b>
+          <span style="color: #8b95a6; font-size: 11.5px; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">정육각 기둥 · 변 = 필드 변의 ½</span>
+          <button type="button" onClick="{{hub.down}}" style="width: 24px; height: 24px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; cursor: pointer;">−</button>
+          <b data-hub-h="1" style="min-width: 34px; text-align: center; font-size: 12.5px;">{{hub.h}}단</b>
+          <button type="button" onClick="{{hub.up}}" style="width: 24px; height: 24px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; cursor: pointer;">+</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+          <span style="color: #5b6472; flex-grow: 1;">크기 <span style="color: #8b95a6;">(한 변 · 필드 변 80 기준)</span></span>
+          <button type="button" onClick="{{hub.rDown}}" style="width: 24px; height: 24px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; cursor: pointer;">−</button>
+          <b data-hub-r="1" style="min-width: 34px; text-align: center; font-size: 12.5px;">{{hub.r}}</b>
+          <button type="button" onClick="{{hub.rUp}}" style="width: 24px; height: 24px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; cursor: pointer;">+</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+          <span style="width: 30px; color: #5b6472;">윗면</span><span style="width: 22px; height: 18px; border-radius: 4px; border: 1px solid #d8dde5; background: {{hub.topC}};"></span><span style="flex-grow: 1;">{{hub.topName}}</span>
+          <button type="button" onClick="{{hub.setTop}}" title="활성 자재를 합류 윗면에" style="height: 24px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 11.5px; cursor: pointer;">← 활성 자재</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+          <span style="width: 30px; color: #5b6472;">옆면</span><span style="width: 22px; height: 18px; border-radius: 4px; border: 1px solid #d8dde5; background: {{hub.sideC}};"></span><span style="flex-grow: 1;">{{hub.sideName}}</span>
+          <button type="button" onClick="{{hub.setSide}}" title="활성 자재를 합류 옆면에" style="height: 24px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 11.5px; cursor: pointer;">← 활성 자재</button>
+        </div>
+        <span style="font-size: 11.5px; color: {{noteC}};">{{exportNote}}</span>
+      </section>
 
       <!-- 애니메이션 확장: 1초 = 16칸 고정. 칸마다 프레임을 넣거나 비워 두고, 빈 칸은 앞 프레임을 그대로 보인다 (한 줄 = 1초) -->
       <section aria-label="애니메이션 칸" style="position: absolute; left: 16px; top: 236px; width: 330px; display: {{an.disp}}; flex-direction: column; gap: 8px; box-sizing: border-box; background: #ffffff; border: 1px solid #d8dde5; border-radius: 10px; padding: 10px 12px;">
@@ -148,7 +187,7 @@ html,body{margin:0;background:#dfe3ea}
         </div>
       </section>
 
-      <!-- 이벤트: 상태(동작 · 대기 · 정지 · 실패) · 사용자 이벤트마다 다른 모습. 고르면 그 디자인을 편집한다 -->
+      <!-- 이벤트: 상태(동작 · 대기 · 정지 · 실패) · 방향(들어옴 · 나감 · 양방향) · 사용자 이벤트마다 다른 모습. 고르면 그 디자인을 편집한다 -->
       <section aria-label="이벤트" data-ev-bar="1" style="position: absolute; left: 16px; right: 16px; bottom: 86px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; background: rgba(255,255,255,0.95); border: 1px solid #d8dde5; border-radius: 10px; padding: 8px 10px; box-shadow: 0 4px 14px rgba(22,25,31,0.06);">
         <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
           <b style="font-size: 12.5px; margin-right: 2px;">이벤트</b>
@@ -280,13 +319,13 @@ html,body{margin:0;background:#dfe3ea}
 <script type="module">
 import './src/api/frame-boot.js';   // 첫 import — Terra 안이면 마운트보다 먼저 frame에 hello를 보낸다
 import { mount, fit } from './src/runtime/dc.js';
-import Screen from './src/screens/building.js';
+import Screen from './src/screens/road.js';
 import * as Boot from './src/boot/module.js';
 const stage = document.getElementById('stage');
-const View = (Boot.prep && Boot.prep('building', Screen)) || Screen;   // 프로필이 예시를 지운 클래스를 돌려주면 그것을 띄운다
+const View = (Boot.prep && Boot.prep('road', Screen)) || Screen;   // 프로필이 예시를 지운 클래스를 돌려주면 그것을 띄운다
 window.__screen = mount(View, { template: document.getElementById('view').textContent, target: stage, props: {} });
 fit(stage, 1440, 900);
-Boot.boot && Boot.boot('building', window.__screen);
+Boot.boot && Boot.boot('road', window.__screen);
 </script>
 </body>
 </html>

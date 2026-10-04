@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 토큰 시트</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif;background:#f4f6f9;color:#16191f}
+a{color:#2563eb}a:hover{color:#1d4ed8}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1040px; box-sizing: border-box; padding: 48px 56px; display: flex; flex-direction: column; gap: 28px; background: #f4f6f9; color: #16191f; font-size: 14px; line-height: 1.55;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #5b6472;">TERRA GUI · 산출물 1</div>
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em;">토큰 시트</h1>
+    </div>
+    <div style="max-width: 560px; font-size: 13px; color: #5b6472; text-align: right;">정체성 9종(색·글꼴)은 제품 셸의 것이다. 이 시트의 정체성 값은 <b style="color: #16191f;">셸에 제안하는 값</b>이고, 구조 13종은 화면이 정한다.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;">
+    <section style="background: #ffffff; border: 1px solid #d8dde5; border-radius: 8px; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;">
+      <h3 style="margin: 0; font-size: 15px; font-weight: 600;">색 — 7 + 제안 2 = 9 <span style="font-weight: 400; color: #5b6472; font-size: 12px;">· 결정 A</span></h3>
+      <div style="display: grid; grid-template-columns: 120px 1fr 1fr 1fr; gap: 8px; font-size: 12px; color: #5b6472; border-bottom: 1px solid #d8dde5; padding-bottom: 6px;">
+        <span>토큰</span><span>light</span><span>dark</span><span>쓰임</span>
+      </div>
+      <sc-for list="{{colors}}" as="t" hint-placeholder-count="9">
+        <div style="display: grid; grid-template-columns: 120px 1fr 1fr 1fr; gap: 8px; align-items: center; min-height: 30px;">
+          <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 12.5px; font-weight: 600;">{{t.name}} <sc-if value="{{t.proposed}}" hint-placeholder-val="{{false}}"><span style="font-family: 'Noto Sans KR',sans-serif; font-size: 11px; font-weight: 600; color: #2563eb; border: 1px solid #2563eb; border-radius: 4px; padding: 0 4px; margin-left: 4px;">제안</span></sc-if></span>
+          <span style="display: flex; align-items: center; gap: 8px;"><span style="width: 28px; height: 20px; border-radius: 4px; border: 1px solid #d8dde5; background: {{t.light}};"></span><span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 12px;">{{t.light}}</span></span>
+          <span style="display: flex; align-items: center; gap: 8px;"><span style="width: 28px; height: 20px; border-radius: 4px; border: 1px solid #2b323d; background: {{t.dark}};"></span><span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 12px;">{{t.dark}}</span></span>
+          <span style="font-size: 12.5px; color: #5b6472;">{{t.use}}</span>
+        </div>
+      </sc-for>
+      <div style="font-size: 12px; color: #5b6472; border-top: 1px solid #d8dde5; padding-top: 8px;">옅은 배경(선택 행, 경고 띠)은 새 토큰이 아니라 파생값: <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">color-mix(in srgb, &lt;상태색&gt; 10%, surface)</span>. 셸이 덮어야 할 색은 9개로 끝난다.</div>
+    </section>
+
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+      <section style="background: #ffffff; border: 1px solid #d8dde5; border-radius: 8px; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
+        <h3 style="margin: 0; font-size: 15px; font-weight: 600;">상태 표식 — 모양 + 글 + 색, 셋 중 둘만 보여도 읽힌다</h3>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 16px;">
+          <sc-for list="{{marks}}" as="m" hint-placeholder-count="8">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;"><span style="width: 16px; text-align: center; color: {{m.color}}; font-size: 14px;">{{m.glyph}}</span><span style="font-weight: 500;">{{m.label}}</span></div>
+          </sc-for>
+        </div>
+        <div style="font-size: 12px; color: #5b6472;">아이콘 체계 없이(결정 E) 문자 모양으로 환원. ok/warn/danger는 명도가 달라 색각 차이에도 구분된다.</div>
+      </section>
+
+      <section style="background: #ffffff; border: 1px solid #d8dde5; border-radius: 8px; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
+        <h3 style="margin: 0; font-size: 15px; font-weight: 600;">글꼴 순서 — Linux 먼저 <span style="font-weight: 400; color: #5b6472; font-size: 12px;">· 결정 B</span></h3>
+        <div style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 12px; background: #f4f6f9; border-radius: 6px; padding: 8px 12px; line-height: 1.7;">
+          <div><span style="color: #5b6472;">현재</span>  'Segoe UI', system-ui, -apple-system, sans-serif</div>
+          <div><span style="color: #2563eb;">제안</span>  'Noto Sans KR', 'Noto Sans', system-ui, 'Segoe UI', 'Apple SD Gothic Neo', -apple-system, sans-serif</div>
+          <div><span style="color: #2563eb;">고정폭</span> ui-monospace, 'DejaVu Sans Mono', Consolas, Menlo, monospace  <span style="color: #5b6472;">— ID·버전·작업 번호 전용</span></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #d8dde5; padding-top: 10px;">
+          <div style="display: flex; align-items: baseline; gap: 16px;"><span style="width: 120px; font-size: 12px; color: #5b6472;">heading · 20/600</span><span style="font-size: 20px; font-weight: 600;">모듈</span></div>
+          <div style="display: flex; align-items: baseline; gap: 16px;"><span style="width: 120px; font-size: 12px; color: #5b6472;">card 제목 · 14/600</span><span style="font-size: 14px; font-weight: 600;">이 노드</span></div>
+          <div style="display: flex; align-items: baseline; gap: 16px;"><span style="width: 120px; font-size: 12px; color: #5b6472;">body · 14/400</span><span style="font-size: 14px;">agent 1.4.2 · 실행 중</span></div>
+          <div style="display: flex; align-items: baseline; gap: 16px;"><span style="width: 120px; font-size: 12px; color: #5b6472;">caption · 12/400</span><span style="font-size: 12px; color: #5b6472;">마지막 조회 18:59:04 · 다음 갱신 30초 후</span></div>
+        </div>
+        <div style="font-size: 12px; color: #5b6472;">결정 C: variant 3종 유지. 두 번째 위계는 <b style="color: #16191f;">card의 h3</b>가 맡는다 — 어휘 확장 없음.</div>
+      </section>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;">
+    <section style="background: #ffffff; border: 1px solid #d8dde5; border-radius: 8px; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 15px; font-weight: 600;">간격 gap — 값 유지</h3>
+      <sc-for list="{{gaps}}" as="g" hint-placeholder-count="6">
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 12px;"><span style="width: 64px; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{g.name}}</span><span style="height: 10px; width: {{g.w}}; background: #2563eb; border-radius: 2px;"></span><span style="color: #5b6472;">{{g.v}}</span></div>
+      </sc-for>
+    </section>
+    <section style="background: #ffffff; border: 1px solid #d8dde5; border-radius: 8px; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 15px; font-weight: 600;">여백 · 모서리 · 행간 — 값 유지</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <span style="padding: 4px 8px; border: 1px dashed #5b6472; border-radius: 6px; font-size: 12px;">pad-xs 4·8</span>
+        <span style="padding: 8px 12px; border: 1px dashed #5b6472; border-radius: 6px; font-size: 12px;">pad-sm 8·12</span>
+        <span style="padding: 12px 16px; border: 1px dashed #5b6472; border-radius: 8px; font-size: 12px;">pad-md 12·16</span>
+        <span style="padding: 16px 20px; border: 1px dashed #5b6472; border-radius: 8px; font-size: 12px;">pad-lg 16·20</span>
+      </div>
+      <div style="font-size: 12px; color: #5b6472;">radius-sm 6 (컨트롤) · radius 8 (컨테이너) · line-height 1.55</div>
+    </section>
+    <section style="background: #ffffff; border: 1px solid #d8dde5; border-radius: 8px; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
+      <h3 style="margin: 0; font-size: 15px; font-weight: 600;">밀도 — 기본을 촘촘히 <span style="font-weight: 400; color: #5b6472; font-size: 12px;">· 결정 D</span></h3>
+      <div style="display: flex; flex-direction: column; border: 1px solid #d8dde5; border-radius: 6px; overflow: hidden; font-size: 13px;">
+        <div style="height: 32px; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #d8dde5;"><span style="color: #1f7a4d; width: 20px;">●</span>촘촘 32px · pad-xs — 기본</div>
+        <div style="height: 40px; display: flex; align-items: center; padding: 0 12px; background: #f4f6f9;"><span style="color: #5b6472; width: 20px;">○</span>보통 40px · pad-sm — 폼·설정</div>
+      </div>
+      <div style="font-size: 12px; color: #5b6472;">목록 행은 32px, 누르는 컨트롤은 최소 32px 높이 + 행 전체가 대상.</div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      colors: [
+        { name: 'ink', light: '#16191f', dark: '#dfe4ec', use: '본문 글자' },
+        { name: 'ink-dim', light: '#5b6472', dark: '#8b95a6', use: '보조 글자' },
+        { name: 'line', light: '#d8dde5', dark: '#2b323d', use: '경계선' },
+        { name: 'surface', light: '#ffffff', dark: '#14181e', use: '바탕' },
+        { name: 'raise', light: '#f4f6f9', dark: '#1b2027', use: '올라온 면 · 사이드바' },
+        { name: 'accent', light: '#2563eb', dark: '#5aa9ff', use: '주요 동작 · 접수됨' },
+        { name: 'danger', light: '#d33d52', dark: '#e5697a', use: '위험 · 실패' },
+        { name: 'ok', light: '#1f7a4d', dark: '#4cc38a', use: '실행 중 · 온라인', proposed: true },
+        { name: 'warn', light: '#a65f00', dark: '#e0a23a', use: '저하 · 부분 · 주의', proposed: true }
+      ],
+      marks: [
+        { glyph: '●', label: '실행 중 · 온라인', color: '#1f7a4d' },
+        { glyph: '◐', label: '저하 · 부분', color: '#a65f00' },
+        { glyph: '■', label: '실패', color: '#d33d52' },
+        { glyph: '○', label: '정지 · 오프라인', color: '#5b6472' },
+        { glyph: '◇', label: '접수됨', color: '#2563eb' },
+        { glyph: '▶', label: '실행 중(작업)', color: '#2563eb' },
+        { glyph: '–', label: 'unknown 조회 전', color: '#5b6472' },
+        { glyph: '×', label: 'unreachable', color: '#d33d52' }
+      ],
+      gaps: [
+        { name: 'none', v: '0', w: '1px' },
+        { name: 'xs', v: '4px', w: '16px' },
+        { name: 'sm', v: '8px', w: '32px' },
+        { name: 'md', v: '12px', w: '48px' },
+        { name: 'lg', v: '16px', w: '64px' },
+        { name: 'xl', v: '24px', w: '96px' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

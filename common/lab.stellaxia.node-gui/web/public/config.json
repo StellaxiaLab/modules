@@ -1,0 +1,6 @@
+{
+  "variant": "module",
+  "appTitle": "Terra",
+  "layoutStore": "local",
+  "pollSec": 10
+}

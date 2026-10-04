@@ -1,5 +1,5 @@
-// 건물 편집기 — 디자인 캔버스 원본 design/BuildingEditor.dc.html 에서 옮긴 화면 로직 (tools/gen-pages.py로 다시 만든다)
-// 데이터 연동 지점은 docs/api/frontend-api.md 참고
+// 건물 편집기 — 디자인 캔버스 원본 design/BuildingEditor.dc.html 에서 옮긴 화면 로직 (module 변형 · tools/gen-pages.py로 다시 만든다)
+// 데이터를 바꿔 끼우는 곳은 src/boot/module.js · src/data/*.js — 이 파일은 손으로 고치지 않는다
 import { DCLogic } from '../runtime/dc.js';
 
 export default class Component extends DCLogic {
@@ -30,7 +30,9 @@ export default class Component extends DCLogic {
       bpSets: this.bpSets(),
       bpOpen: { '저장 시설': true },
       bpDrag: null,
-      note: ''
+      note: '',
+      // 이벤트: ev = 지금 편집 중인 것('base' = 기본 모습) · evs = 이벤트별 디자인 · custom = 사용자 이벤트 · baseD = 이벤트를 고치는 동안 맡아 둔 기본 모습
+      ev: 'base', evs: Object.assign({}, bps[0].events || {}), custom: (bps[0].customEvents || []).slice(), baseD: null, evNew: null
     };
   }
 
@@ -140,6 +142,68 @@ export default class Component extends DCLogic {
         this.setState(Object.assign({ frames: nf, fi: 0, anim: false, confirmBasic: false, saved: false }, this.frameLoad(keep)));
       },
       confirmNo: () => this.setState({ confirmBasic: false })
+    };
+  }
+  // ───── 이벤트 (건물 · 도로 공통) — 동작 · 대기 · 정지 · 실패 + 사용자 이벤트 ─────
+  //   이벤트마다 디자인 한 벌(블록 · 프레임). 디자인이 없는 이벤트는 맵에서 기본 모습에 효과를 입힌다
+  evtCommonE() { return [{ id: 'run', name: '동작', c: '#1f9d55' }, { id: 'wait', name: '대기', c: '#e0a100' }, { id: 'stop', name: '정지', c: '#8b95a6' }, { id: 'fail', name: '실패', c: '#d33d52' }]; }
+  evtDirsE() { return []; }
+  evCurD() {
+    const fr = this.framesNow(), anim = this.state.anim && (this.keyCount(fr) > 1 || fr.length > 16);
+    const d = { blocks: fr[0].map((b) => b.slice()), frames: anim ? fr.map((f) => (f ? f.map((b) => b.slice()) : null)) : null, period: anim ? fr.length / 16 : 1 };
+    return d;
+  }
+  evNorm(d) { return JSON.stringify([d.blocks || [], d.frames || null]); }
+  // 지금 칸들을 그 자리(기본 / 이벤트)에 되돌려 넣는다. 아직 디자인이 없는 이벤트는 고쳤을 때만 생긴다
+  evCommit() {
+    const S = this.state, cur = this.evCurD(), evs = Object.assign({}, S.evs || {});
+    const base = S.ev === 'base' ? cur : (S.baseD || cur);
+    if (S.ev !== 'base' && (evs[S.ev] || this.evNorm(cur) !== this._evSnap)) evs[S.ev] = cur;
+    return { base, evs };
+  }
+  evLoad(id, base, evs) {
+    const d = id === 'base' ? base : (evs[id] || base);
+    const fr = d.frames && d.frames.length ? d.frames.map((f) => (f ? f.map((b) => b.slice()) : null)) : [(d.blocks || []).map((b) => b.slice())].concat(new Array(15).fill(null));
+    this._evSnap = this.evNorm({ blocks: fr[0], frames: d.frames && d.frames.length && (this.keyCount(fr) > 1 || fr.length > 16) ? fr : null });
+    this.setState(Object.assign({ ev: id, evs, baseD: id === 'base' ? null : base, frames: fr, fi: 0, anim: this.keyCount(fr) > 1, confirmBasic: false, hover: null }, this.frameLoad(fr[0])));
+  }
+  evSwitch(id) {
+    if (this.state.playing) this.animPlay(false);
+    if (id === this.state.ev) return;
+    const r = this.evCommit();
+    this.evLoad(id, r.base, r.evs);
+  }
+  // 이벤트 디자인 지우기 (공통 · 방향 = 디자인만 지워 기본 모습 사용 · 사용자 이벤트 = 이벤트째 삭제)
+  evDrop(id) {
+    const r = this.evCommit(), evs = Object.assign({}, r.evs); delete evs[id];
+    const custom = this.state.custom.filter((c) => c.id !== id);
+    this.setState({ custom, saved: false, note: '' });
+    this.evLoad('base', r.base, evs);
+  }
+  evAdd(name) {
+    const nm = String(name || '').trim(); if (!nm) { this.setState({ evNew: null }); return; }
+    const id = 'c-' + Date.now().toString(36), r = this.evCommit();
+    this.setState({ custom: this.state.custom.concat([{ id, name: nm }]), evNew: null, saved: false });
+    this.evLoad(id, r.base, r.evs);
+  }
+  evBar() {
+    const S = this.state, evs = S.evs || {}, modified = S.ev !== 'base' && !evs[S.ev] && this._evSnap && this.evNorm(this.evCurD()) !== this._evSnap;
+    const has = (id) => id === 'base' || !!evs[id] || (id === S.ev && modified);
+    const chip = (e, grp) => { const on = S.ev === e.id, d = has(e.id);
+      return { id: e.id, label: (e.g ? e.g + ' ' : '') + e.name, grp, on: on ? 'true' : 'false', bg: on ? '#16191f' : d ? '#ffffff' : '#f4f6f9', fg: on ? '#ffffff' : d ? '#16191f' : '#8b95a6',
+        line: on ? '#16191f' : d ? (e.c || '#d8dde5') : '#e3e8ef', style: d ? 'solid' : 'dashed', dot: e.c || '#16191f', dotOp: d ? 1 : 0.35, tip: e.name + (d ? ' — 디자인 있음' : ' — 디자인 없음 (기본 모습 + 효과)'), pick: () => this.evSwitch(e.id) }; };
+    const all = [chip({ id: 'base', name: '기본', c: '#16191f' }, 'base')].concat(this.evtCommonE().map((e) => chip(e, 'common')), this.evtDirsE().map((e) => chip(e, 'dir')), S.custom.map((e) => chip(Object.assign({ c: '#be185d' }, e), 'custom')));
+    const cur = all.find((c) => c.id === S.ev) || all[0], isCustom = S.custom.some((c) => c.id === S.ev), isDir = /^dir-/.test(S.ev);
+    const info = S.ev === 'base' ? '기본 모습 — 이벤트에 디자인이 없으면 이 모습에 효과(대기 = 호박빛 · 정지 = 잿빛 · 실패 = 붉은 깜빡임)를 입힌다'
+      : has(S.ev) ? cur.label + ' 디자인' + (isDir ? ' — 흐름이 그 방향인 팔만 이 모습 (합류는 기본)' : ' — 이 상태일 때 맵에서 이 모습')
+      : cur.label + ' — 아직 디자인이 없다. 기본 모습을 복사해 보여 주는 중 · 고치면 이 이벤트 디자인이 생긴다';
+    return {
+      common: all.filter((c) => c.grp === 'base' || c.grp === 'common'), dirs: all.filter((c) => c.grp === 'dir'), custom: all.filter((c) => c.grp === 'custom'),
+      dirDisp: 'none', info, infoC: S.ev === 'base' ? '#5b6472' : has(S.ev) ? '#1f7a4d' : '#a65f00',
+      dropDisp: S.ev !== 'base' && (has(S.ev) || isCustom) ? 'inline-block' : 'none', dropLabel: isCustom ? '이벤트 삭제' : '디자인 지우기 (기본 사용)', drop: () => this.evDrop(S.ev),
+      newOn: S.evNew !== null && S.evNew !== undefined, newOff: !(S.evNew !== null && S.evNew !== undefined), newVal: S.evNew || '',
+      newStart: () => this.setState({ evNew: '' }), newInput: (e) => this.setState({ evNew: e.target.value }), newKey: (e) => { if (e.key === 'Enter') this.evAdd(e.target.value); else if (e.key === 'Escape') this.setState({ evNew: null }); },
+      newOk: () => this.evAdd(S.evNew), newCancel: () => this.setState({ evNew: null })
     };
   }
   // 설계도의 칸 배열 (프레임이 없으면 1초 16칸에 프레임 하나)
@@ -906,6 +970,10 @@ export default class Component extends DCLogic {
       const moved = this.state.blocks.length, kept = shift(this.state.blocks);
       // 모든 프레임을 같이 옮긴다
       const fr = this.framesNow().map((f) => f ? shift(f) : null);
+      // 이벤트 디자인 · 맡아 둔 기본 모습도 같이
+      const shD = (d) => (d ? Object.assign({}, d, { blocks: shift(d.blocks || []), frames: d.frames ? d.frames.map((f) => (f ? shift(f) : null)) : null }) : d);
+      const evsN = {}; Object.keys(this.state.evs || {}).forEach((e) => { evsN[e] = shD(this.state.evs[e]); });
+      this.setState({ evs: evsN, baseD: shD(this.state.baseD) });
       this.setState({ N: nN, blocks: kept, frames: fr, dropped: moved - kept.length, saved: false, hover: null });
     };
 
@@ -913,15 +981,18 @@ export default class Component extends DCLogic {
     const bpById = (id) => bpsState.find((b) => b.id === id);
     const loadBp = (i) => {
       if (this.state.playing) this.animPlay(false);
+      this._evSnap = null; this.setState({ ev: 'base', evs: Object.assign({}, bpsState[i].events || {}), custom: (bpsState[i].customEvents || []).slice(), baseD: null, evNew: null });
       const fr = this.bpFrames(bpsState[i]);
       this.setState({ cur: i, N: bpsState[i].N, blocks: this._loadedRef = fr[0].map((b) => b.slice()), frames: fr, fi: 0, anim: this.keyCount(fr) > 1, confirmBasic: false, exported: null, saved: true, hover: null, dropped: 0, note: '' });
     };
+    // 저장: 지금 편집 중인 것(기본 / 이벤트)을 제자리에 넣고 설계 전체(기본 + 이벤트 + 사용자 이벤트)를 목록에
     const save = () => {
-      const next = bpsState.slice();
-      const fr = this.framesNow(), anim = this.state.anim && (this.keyCount(fr) > 1 || fr.length > 16);
-      next[cur] = Object.assign({}, next[cur], { N: this.state.N, blocks: fr[0].map((b) => b.slice()), frames: anim ? fr : null, period: anim ? fr.length / 16 : 1 });
-      this.setState({ bps: next, saved: true });
+      const next = bpsState.slice(), r = this.evCommit();
+      next[cur] = Object.assign({}, next[cur], { N: this.state.N, blocks: r.base.blocks, frames: r.base.frames, period: r.base.period }, { events: r.evs, customEvents: this.state.custom.slice() });
+      this.setState({ bps: next, saved: true, evs: r.evs });
+      return next;
     };
+
     // 새 설계도 · 새 폴더는 지금 설계도가 든 셋(과 폴더)에 만든다
     const where = (id) => {
       let found = null;
@@ -936,6 +1007,7 @@ export default class Component extends DCLogic {
     }));
     const stripId = (sets, id) => sets.map((st) => Object.assign({}, st, { items: st.items.filter((it) => it !== id).map((it) => typeof it === 'string' ? it : Object.assign({}, it, { items: it.items.filter((x) => x !== id) })) }));
     const newBp = () => {
+      this._evSnap = null; this.setState({ ev: 'base', evs: {}, custom: [], baseD: null, evNew: null });
       const id = 'bp' + Date.now().toString(36);
       const next = bpsState.concat([{ id, name: '새 설계도 ' + (bpsState.length - 2), N: 24, blocks: [] }]);
       if (this.state.playing) this.animPlay(false);
@@ -947,6 +1019,7 @@ export default class Component extends DCLogic {
       this.setState({ bpSets: insertAt(this.state.bpSets, { si: loc.si, fi: -1 }, { folder: name, items: [] }), bpOpen: Object.assign({}, this.state.bpOpen, { [name]: true }) });
     };
     const delBp = () => {
+      this._evSnap = null; this.setState({ ev: 'base', evs: {}, custom: [], baseD: null, evNew: null });
       if (bpsState.length <= 1) return;
       const id = bpsState[cur].id, next = bpsState.filter((b) => b.id !== id);
       if (this.state.playing) this.animPlay(false);
@@ -1026,9 +1099,11 @@ export default class Component extends DCLogic {
       x: Math.round(drag.x + 14), y: Math.round(drag.y + 12), disp: 'block', name: dragBp ? dragBp.name : '',
       hint: drag.dropOn ? '→ 여기로 옮기기' : drag.over ? (dropInfo ? '블록 ' + dropInfo.ok.length + '개 합치기' : '') + ' · ' + (90 * (drag.rot || 0)) + '° (R)' : '설계 화면에 놓으면 합치기 · 폴더에 놓으면 옮기기'
     } : { x: 0, y: 0, disp: 'none', name: '', hint: '' };
+    // 내보내기: 2D 벡터 결과를 보이고, 설계 전체(기본 + 이벤트)를 localStorage 'terra.gui.buildings'에 — 열려 있는 노드 화면이 바로 받아 다시 굽는다
     const exportNow = () => {
-      const res = this.exportModel({ N: this.state.N, blocks: this.state.blocks }, 'x');
-      this.setState({ exported: Object.assign(res, { name: bpsState[cur].name }) });
+      const all = save(), res = this.exportModel({ N: this.state.N, blocks: this.state.blocks }, 'x');
+      try { window.localStorage.setItem('terra.gui.buildings', JSON.stringify(all.map((b) => ({ id: b.id, name: b.name, N: b.N, blocks: b.blocks, frames: b.frames || null, period: b.period || 1, events: b.events || {}, customEvents: b.customEvents || [] })))); } catch (e) { /* 저장 막힘 — 결과만 보인다 */ }
+      this.setState({ exported: Object.assign(res, { name: bpsState[cur].name }), note: '노드 화면으로 내보냈습니다 (이벤트 포함)' });
     };
 
     let ex = null;
@@ -1083,7 +1158,7 @@ export default class Component extends DCLogic {
     const yawN = ((Math.round(this.state.yaw) % 360) + 360) % 360;
     const unsafe = blocks.some(([x, y]) => { const i = reg.cells.get(x + ',' + y); return i && !i.safe; });
     return {
-      curName: bpsState[cur].name,
+      evb: this.evBar(), curName: bpsState[cur].name,
       saveText: this.state.saved ? '저장됨' : '● 저장 안 됨',
       saveColor: this.state.saved ? '#5b6472' : '#a65f00',
       save, exportNow, newBp, newFolder, delBp,
