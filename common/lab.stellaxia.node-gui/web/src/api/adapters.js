@@ -73,6 +73,21 @@ export const ADAPT = {
     const raw = m.state || m.status || '';
     const st = modState(raw);
     const note = m.last_error || (m.kind === 'scene' && raw === 'discovered' ? 'Scene 모듈 — 프로세스 없이 화면만 기여한다' : raw && raw !== st ? 'state ' + raw : '');
-    return { id: m.id || m.module_id, name: m.name || m.id, ver: m.version || '', state: st, svi: m.svi_resources || 0, trust: m.trust || 'local', note };
+    // 빈 값은 싣지 않는다 — 상태 화면이 키마다 줄을 그린다(빈 '메모' 줄)
+    return { id: m.id || m.module_id, name: m.name || m.id, ver: m.version || '', state: st, svi: m.svi_resources || 0, trust: m.trust || 'local', note: note || undefined, kind: m.kind || undefined, gui: false };
   })
 };
+
+/**
+ * 모듈 목록에 GUI 표시를 붙인다 — 게이트웨이의 설치된 앱(/api/v1/gui/apps)에 그 모듈의 앱이 있으면 gui · ui(앱 경로 route).
+ * 앱 목록을 못 읽었으면(null) 그대로 둔다 — GUI 가 없다고 단정하지 않는다
+ * @param {any[]} items  ADAPT.mod 의 결과
+ * @param {any[]|null} apps
+ */
+export function withGui(items, apps) {
+  if (!Array.isArray(apps)) return items;
+  return items.map((m) => {
+    const mine = apps.filter((a) => a && a.moduleId === m.id);
+    return mine.length ? Object.assign({}, m, { gui: true, ui: mine[0].route || '', apps: mine.map((a) => ({ id: a.id, name: a.name || a.id, route: a.route || '', embed: a.embed || '' })) }) : m;
+  });
+}

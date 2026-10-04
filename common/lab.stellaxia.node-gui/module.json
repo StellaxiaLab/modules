@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "id": "lab.stellaxia.node-gui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "kind": "scene",
   "name": "Terra 노드",
-  "description": "게임 GUI 형태의 Terra 노드 화면(육각 필드 맵 · 조타륜 · 오버헤드 패널 · 편집기). base가 곧장 띄우는 main GUI다. 얇은 Scene(frame + 로그인 Route)이 같은 모듈의 embed 웹 앱(ui/node.html)을 terra.web/frame으로 감싼다.",
+  "description": "게임 GUI 형태의 Terra 노드 화면(시작 화면 · 육각 필드 맵 · 조타륜 · 노드 자원 · 연결 · 도로 · 오버헤드 패널 · 편집기). base가 곧장 띄우는 main GUI다. 얇은 Scene(frame + 로그인 Route)이 같은 모듈의 embed 웹 앱(ui/index.html 시작 화면 → 노드 화면)을 terra.web/frame으로 감싼다.",
   "compatibility": {
     "products": ["leaf", "tree"],
     "os": ["linux", "windows"]
@@ -27,7 +27,7 @@
           "id": "lab.stellaxia.node-gui.web",
           "name": "Terra 노드",
           "mode": "static",
-          "entry": "ui/node.html",
+          "entry": "ui/index.html",
           "isolation": "sandboxed",
           "embed": "scene",
           "permissions": [

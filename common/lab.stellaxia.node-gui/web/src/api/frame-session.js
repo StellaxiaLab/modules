@@ -73,7 +73,8 @@ export function wireFrameSession(screen, terra, doc = document) {
   const place = () => {
     const root = doc.querySelector('[data-node-root]');
     const r = root ? root.getBoundingClientRect() : { left: 0, top: 0, width: W };
-    const k = Math.min(1, (r.width || W) / W);
+    // 화면은 창 크기를 따라 늘고 준다(fitScreen). 최소(1180×280)보다 작을 때만 통째로 줄인다 — 그 배율을 그대로 따른다
+    const k = Math.min(1, (r.width || W) / ((root && root.offsetWidth) || r.width || W));
     bar.style.left = Math.round(r.left + (r.width || W) / 2) + 'px';
     bar.style.top = Math.round(r.top + 54 * k) + 'px';
     bar.style.transform = 'translateX(-50%) scale(' + k + ')';

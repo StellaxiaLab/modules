@@ -260,11 +260,12 @@ html,body{margin:0;background:#dfe3ea}
 import './src/api/frame-boot.js';   // 첫 import — Terra 안이면 마운트보다 먼저 frame에 hello를 보낸다
 import { mount, fit } from './src/runtime/dc.js';
 import Screen from './src/screens/settings.js';
-import { realSettings } from './src/data/settings-live.js';   // 실데이터 층 — 이 노드의 게이트웨이에서 읽은 값만 보인다
+import * as Boot from './src/boot/module.js';
 const stage = document.getElementById('stage');
-window.__screen = mount(realSettings(Screen), { template: document.getElementById('view').textContent, target: stage, props: {} });
+const View = (Boot.prep && Boot.prep('settings', Screen)) || Screen;   // 프로필이 예시를 지운 클래스를 돌려주면 그것을 띄운다
+window.__screen = mount(View, { template: document.getElementById('view').textContent, target: stage, props: {} });
 fit(stage, 1440, 900);
-
+Boot.boot && Boot.boot('settings', window.__screen);
 </script>
 </body>
 </html>

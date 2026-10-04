@@ -3,14 +3,20 @@
 //   LiveSource : Gateway (TerraClient + operations.js + adapters.js)
 // 화면과는 src/api/wire.js 가 잇는다.
 
-import { HELM_APPS } from './operations.js';
-import { ADAPT } from './adapters.js';
+import { HELM_APPS, HELM_CRUD, GUI_APPS, scanLine } from './operations.js';
+import { ADAPT, withGui } from './adapters.js';
 
 /**
  * @typedef {Object} HelmSource
  * @property {boolean} mock
- * @property {(node: string, app: string, ctx?: { path?: string }) => Promise<any[]>} list
+ * @property {(node: string, app: string, ctx?: { path?: string|string[] }) => Promise<any[]>} list  폴더 앱은 경로 여럿을 받는다
  * @property {(node: string, app: string, id: string|null, op: string, item?: any, ctx?: { path?: string }) => Promise<import('./client.js').Result & { say?: string, where?: string }>} act
+ * @property {(node: string, app: string, mode: 'create'|'update'|'del', vals: any, item: any, ctx?: CrudCtx) => Promise<CrudResult|null>} [crud]
+ */
+
+/**
+ * @typedef {{ path?: string, nodeIdOf?: (name: string) => string|null }} CrudCtx
+ * @typedef {import('./client.js').Result & { say?: string, where?: string, id?: string, screen?: boolean, same?: boolean, keep?: boolean, verb?: string }} CrudResult
  */
 
 /** @implements {HelmSource} */
@@ -54,13 +60,18 @@ export class LiveSource {
   /** @param {import('./client.js').TerraClient} client @param {{ localNode: string, localId?: string|null }} opts */
   constructor(client, opts) { this.mock = false; this.client = client; this.localNode = opts.localNode; this.localId = opts.localId || null; }
 
+  /** 화면의 노드 이름 → 진짜 node_id (이 노드면 localId) */
+  nodeIdOf(node) { return node === this.localNode && this.localId ? this.localId : node; }
+
   // L(Daemon) · M(모듈) op은 이 노드의 것만 부를 수 있다 — 다른 노드로 가는 operation 경로가 없다(client.invoke의 node).
-  // T(Master) op만 node_id를 본문에 싣는다(화면 이름이 아니라 진짜 node_id — 로컬 노드면 localId).
+  // T(Master) 의 읽기 · 지우기(GET · DELETE)는 node_id 를 query 로 싣는다(화면 이름이 아니라 진짜 node_id — 로컬 노드면 localId).
+  // 본문이 있는 Master 호출(POST)에는 싣지 않는다 — Master 의 본문 해석기도 모르는 키를 거절한다(decodeJSON DisallowUnknownFields)
   call(spec, node, input) {
     const scoped = spec.where === 'L' || spec.where === 'M';
     const remote = scoped && node !== this.localNode;
-    const nodeId = node === this.localNode && this.localId ? this.localId : node;
-    const base = spec.where === 'T' ? Object.assign({ node_id: nodeId }, fillNode(spec.input, nodeId)) : fillNode(spec.input, nodeId);
+    const nodeId = this.nodeIdOf(node);
+    const query = spec.where === 'T' && /\.(get|delete)$/.test(spec.op || '');
+    const base = query ? Object.assign({ node_id: nodeId }, fillNode(spec.input, nodeId)) : fillNode(spec.input, nodeId);
     return this.client.invoke(spec.op, Object.assign(base, input || {}), remote ? { node } : {});
   }
 
@@ -87,21 +98,40 @@ export class LiveSource {
     }
     const adapt = ADAPT[A.adapt || app] || ((d) => d);
     const items = adapt(r.data, actx);
-    if (app === 'folder') return items.concat(await this.folderLevels(node, ctx.path));
+    if (app === 'folder') {
+      // 경로 여럿(보고 있는 곳 + 맵에 설치한 칸들의 위 칸) — 겹치는 단계는 한 번만 읽는다. 첫 경로 밖의 실패(지워진 폴더)는 건너뛴다
+      const paths = [].concat(ctx.path == null ? [] : ctx.path), seen = new Set(), more = [];
+      for (let i = 0; i < paths.length; i++) more.push(...await this.folderLevels(node, paths[i], seen, i > 0));
+      return items.concat(more);
+    }
+    if (app === 'mod' && local) return withGui(items, await this.guiApps());
     return items;
   }
 
-  /** 폴더 앱 — 지금 경로까지 각 단계의 항목. 화면은 지금 경로가 목록에 있어야 그 안을 보여 준다 */
-  async folderLevels(node, at) {
+  /** 이 노드에 설치된 GUI 앱(게이트웨이 /api/v1/gui/apps — 공개). 못 읽으면 null — 모듈은 GUI 표시 없이 보인다 */
+  async guiApps() {
+    if (!this.client.get) return null;
+    const r = await this.client.get(GUI_APPS.path);
+    return r.kind === 'ok' && r.data && Array.isArray(r.data.apps) ? r.data.apps : null;
+  }
+
+  /**
+   * 폴더 앱 — 지금 경로까지 각 단계의 항목. 화면은 지금 경로가 목록에 있어야 그 안을 보여 준다
+   * @param {Set<string>} [seen]  이미 읽은 단계('공유 폴더/경로') — 여러 경로를 읽을 때 겹치는 단계를 건너뛴다
+   * @param {boolean} [lenient]   맨 위 단계가 실패해도 던지지 않는다(설치한 칸이 가리키는 폴더가 지워졌을 때)
+   */
+  async folderLevels(node, at, seen = new Set(), lenient = false) {
     const s = String(at || '');
     if (!s) return [];
     const i = s.indexOf('/'), root = i < 0 ? s : s.slice(0, i), rel = i < 0 ? '' : s.slice(i + 1);
     const parts = rel ? rel.split('/') : [];
     const out = [];
     for (let k = 0; k <= parts.length; k++) {
-      const path = parts.slice(0, k).join('/');
+      const path = parts.slice(0, k).join('/'), key = root + '/' + path;
+      if (seen.has(key)) continue;
+      seen.add(key);
       const r = await this.call({ op: 'io.terra.file.entries.list', where: 'M' }, node, path ? { root, path } : { root });
-      if (r.kind !== 'ok') { if (k === 0) throw r; break; }
+      if (r.kind !== 'ok') { if (k === 0 && !lenient) throw r; break; }
       out.push(...ADAPT.folderEntries(root, path, r.data));
     }
     return out;
@@ -112,10 +142,46 @@ export class LiveSource {
     const spec = (A && A.acts[op]) || null;
     if (!spec || !spec.op) return { kind: 'ok', data: null };   // 화면에서만 하는 동작 (치우기 등)
     if (spec.none) return { kind: 'unavailable', reason: spec.none };
-    const input = spec.in ? spec.in(id, item || {}, ctx) : pathInput(spec.op, id, item);
+    const input = spec.in ? spec.in(id, item || {}, Object.assign({ nodeId: this.nodeIdOf(node) }, ctx)) : pathInput(spec.op, id, item);
+    if (input && input.none) return { kind: 'unavailable', reason: input.none };
     const r = await this.call(spec, node, Object.assign({}, spec.body || {}, input));
     if (r.kind === 'ok' && spec.say) r.say = spec.say(r.data, item);
     r.where = spec.where;
+    return r;
+  }
+
+  /**
+   * 추가(create) · 수정(update) · 삭제(del) — operations.js HELM_CRUD. 돌려주는 것:
+   *   null                          서버에 길이 없다 — 화면은 항목을 지어내지 않는다(wire.js 가 그렇다고 말한다)
+   *   { kind: 'unavailable', reason } 부르지 않았다(값이 맞지 않거나 길이 닫혔다)
+   *   { kind: 'ok', screen: true }   서버에 지울 것이 없다 — 화면 목록에서만 걷는다
+   *   { kind: 'ok', same: true }     바뀐 것이 없다
+   *   그 밖                          마지막 호출의 Result (+ where · 칸 id 가 바뀌면 id · 스캔이면 say)
+   * @param {CrudCtx} [ctx]
+   * @returns {Promise<CrudResult|null>}
+   */
+  async crud(node, app, mode, vals, item, ctx = {}) {
+    const C = HELM_CRUD[app];
+    if (!C) return null;
+    const v = vals || {}, it = item || {}, cx = Object.assign({ nodeId: this.nodeIdOf(node) }, ctx);
+    let spec = node === this.localNode && C.local && C.local[mode] !== undefined ? C.local[mode] : C[mode];
+    if (typeof spec === 'function') spec = spec(v, it, cx);
+    if (!spec) return null;
+    if (spec.none) return { kind: 'unavailable', reason: spec.none };
+    if (spec.screen) return { kind: 'ok', data: null, screen: true, verb: spec.verb };
+    const steps = spec.steps ? spec.steps(v, it, cx) : [{ op: spec.op, body: spec.body ? spec.body(v, it, cx) : {} }];
+    if (!Array.isArray(steps)) return { kind: 'unavailable', reason: (steps && steps.none) || 'no-operation' };
+    if (!steps.length) return { kind: 'ok', data: null, same: true };
+    let r = null;
+    for (const s of steps) {   // 여러 번이면 차례로 — 하나가 실패하면 거기서 멈춘다(앞의 것은 이미 바뀌었다 — 목록을 다시 받아 보인다)
+      r = await this.call({ op: s.op, where: spec.where }, node, s.body);
+      if (r.kind !== 'ok' && r.kind !== 'accepted') break;
+    }
+    r.where = spec.where;
+    if (spec.id) r.id = spec.id;
+    if (spec.keep) r.keep = true;
+    if (spec.verb) r.verb = spec.verb;
+    if (spec.scan && r.kind === 'ok') r.say = scanLine(r.data);
     return r;
   }
 }

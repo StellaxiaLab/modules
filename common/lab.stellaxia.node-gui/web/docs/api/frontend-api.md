@@ -8,8 +8,8 @@ doc_type: "api-reference"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.4.0"
-last_updated: "2026-10-03"
+version: "0.6.0"
+last_updated: "2026-10-04"
 language: "ko-KR"
 source: "src/screens/node.js · src/api/* · src/data/* · src/model/*"
 os_priority:
@@ -122,7 +122,13 @@ window.__screen.goMap('nas-01');
 | `hbSeed(node, app)` | **seam** — 원본은 예시 자원 목록(같은 노드면 늘 같은 목록). 실데이터 층은 늘 빈 목록 |
 | `hbItems(node, app)` | 지금 목록 = `hbd['노드\|앱']` 또는 `hbSeed` |
 | `hbPut(node, app, list)` | 목록 바꾸기 → `hbd` (로컬 I/O는 `io`) |
-| `hbAct(app, id, op)` | **seam** — 동작 하나. 0.35초 돌고 목록을 바꾼 뒤 `hbSay` |
+| `hbAct(app, id, op, node?)` | **seam** — 동작 하나. 0.35초 돌고 목록을 바꾼 뒤 `hbSay`. `node`를 주면 그 노드의 자원(상태 화면은 지금 맵이 아닌 노드도 다룬다) |
+| `HBCRUD()` · `hbFields(app, item)` · `hbCan(app, node)` | 앱마다 추가 · 수정 폼의 칸 · 열쇠 칸(`key`) · 필요한 권한(`need`) · API 줄(`api`) · 원본의 지어 넣기(`make`) |
+| `hbFormOpen(app, mode, id, node, where)` · `hbFormSet(k, v)` | 폼 열기(`mode` `add` · `edit`, `where` `fs` 앱 전체 화면 · `rst` 상태 화면) · 칸 바꾸기 → `hbForm` |
+| `hbFormSave()` | **seam** — 폼 저장. 원본은 자기 목록에 항목을 지어 넣는다 |
+| `hbDel(app, id, node)` | **seam** — 두 번 누르는 삭제(첫 누름 `hbArm = 'del:'+id`). 두 번째에 목록 · 맵 자리 · 연결을 걷는다 |
+| `rstOpen(spec)` · `rstVals()` | 상태 화면(창 `rst`) — `{ kind: 'res', node, app, id }` · `{ kind: 'node', key }` · `{ kind: 'road', key }` |
+| `mguiOpen(node, id)` · `mguiVals()` | 모듈 GUI 창(창 `mgui`) |
 | `hbSay(text, color)` | 바 왼쪽 글줄에 2.6초 |
 | `hbVals(app?)` | 바 · 앱 전체 화면이 그리는 값(카드 · 권한 칸 · 머리 버튼) |
 
@@ -212,7 +218,9 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | `hbSeed(node, app)` | 예시 목록 | 빈 목록 | `realNode` ✅ |
 | `hbItems` · `hbPut` | `hbd` 저장소 | 그대로 — 받은 목록을 `hbPut`으로 넣는다 | `wireHelm` ✅ |
-| `hbAct(app, id, op)` | 예시로 목록을 바꿈 | 연결 전: "로그인해야 쓸 수 있다" · 연결 뒤: `source.act` → 글줄 → (작업이면 끝날 때까지) → 다시 받기 | `realNode` · `wireHelm` ✅ |
+| `hbAct(app, id, op, node?)` | 예시로 목록을 바꿈 | 연결 전: "로그인해야 쓸 수 있다" · 연결 뒤: `source.act` → 글줄 → (작업이면 끝날 때까지) → 다시 받기. 값을 적어야 하는 동작(`acts.*.form`)은 앱 전체 화면의 폼을 연다 | `realNode` · `wireHelm` ✅ |
+| `hbFormSave()` · `hbDel(app, id, node)` | 자기 목록에 지어 넣기 · 화면에서만 지우기 | 서버에 길이 없으면 폼 · 확인 대기를 열기 전에 말한다(`crudWhy`) · 연결 전 저장은 지어내지 않는다 · 연결 뒤: 값 다듬기 → `source.crud` → 받으면 목록 다시 받기(삭제는 그 뒤에 목록 · 맵 자리 걷기, 상태만 바뀌는 것은 남기기) | `realNode` · `wireHelm` ✅ |
+| `HBCRUD()` · `rstVals()` · `mguiVals()` · `memoVals()` | 원본 설계의 API 글 · 예시 자리 표시자 · `auth` 없음 = 로그인됨 · "이 창 안에 뜬다" · `~/.terra/memos` | 실제 부르는 것(`CRUD_TEXT`, 없는 op 는 ⚠) · 중립 자리 표시자 · 이 화면의 세션 · 띄울 수 없다는 이유 · `메모/` | `realNode` ✅ |
 | `hbTick()` | 전송 · 작업 진행 흉내 | 아무것도 안 한다 | `realNode` ✅ |
 | `hbPerm(node)` | 예시 권한표 | 이 노드 = 토큰 권한(모듈 수명 · 작업 취소는 `node.control`), 다른 노드 = 닿지 않음, 로그인 전 = 로그인 필요 | `realNode` ✅ |
 | `NET` · `parentOfNode` | 예시 관계 | 이 노드 · 부모 tree · `GET /api/v1/agent/nodes` | `loadWorld` ✅ |
@@ -277,26 +285,42 @@ HELM_APPS.io = {
 | 칸 | 뜻 |
 | --- | --- |
 | `in(id, item, ctx)` | 입력을 만든다. 없으면 op 이름의 `by-…` 자리만 채운다(`pathInput`) — 모듈 op · Daemon 본문 해석기는 모르는 키를 거절한다 |
-| `none` | 부르지 않고 그 이유(`client.js` `REASON`)를 낸다 — 받기 · 올리기 · 명령 실행처럼 화면이 아직 하지 않는 것 |
+| `none` | 부르지 않고 그 이유(`client.js` `REASON`)를 낸다 — 받기 · 올리기 · 다시 실행처럼 화면이 아직 하지 않는 것 |
+| `form` | 부르지 않고 앱 전체 화면의 추가(`add`) · 수정(`edit`) 폼을 연다 — `+ 선언` · `+ 허가` · `+ 즉석 열기`(`preset: { type: 'tun' }`) · `+ 실행` · `다시 선언` |
 | `say(data, item)` | 성공 글줄을 응답으로 만든다(모듈 상태 확인 · 작업 보기 · 로그) |
 | `local` | 이 노드에서 볼 때만 쓰는 대응 — 작업 앱은 Master 작업 대신 Daemon 작업(`tasks.*`) |
 | `guard` | 목록을 부르기 전에 볼 상태 — WireGuard 가 꺼져 있으면 피어를 부르지 않는다 |
+
+`HELM_CRUD[app]`은 추가(`create`) · 수정(`update`) · 삭제(`del`)의 실제 호출이다 — 앱마다 본문은 [[real-data-layer|실데이터 층]] §2.4의 표.
+
+| 모양 | 뜻 |
+| --- | --- |
+| `{ op, where, body(v, item, ctx) }` | 한 번 부른다. `ctx = { path, nodeId, nodeIdOf }` |
+| `{ where, steps(v, item, ctx) }` | 여러 번 차례로(장치 고치기 — 별명 · 승인 · 켜기 가운데 바뀐 것만). 하나가 실패하면 멈춘다 |
+| `{ none }` · `{ screen: true }` · `keep` · `verb` · `scan` · `id` | 부르지 않고 이유 · 서버에 지울 것이 없다(화면에서만) · 삭제해도 목록에 남는다 · 글줄 낱말 · 결과를 스캔 글줄로 · 바뀐 칸 id |
+| `(v, item, ctx) => spec` | 값 · 항목에 따라 길이 다르다(파일/폴더 · 선언 · 즉석 터널 · 바인딩) |
+| `null` | 서버에 길이 없다 — 화면은 지어내지 않는다. 이유 글은 `CRUD_TEXT[app]`의 ⚠ 줄 |
+| `local` | 이 노드에서 볼 때의 대응(작업 — Daemon `commands.execute.post` · `tasks.by-task-id.cancel.post`) |
+
+`CRUD_TEXT[app]` = `{ list, add, edit, del }` — 폼 · 상태 화면의 API 줄. `GUI_APPS.path` = `/api/v1/gui/apps`(공개 — 모듈 앱의 GUI 표시).
 
 ### 6.3 `ADAPT` (`adapters.js`)
 
 `ADAPT[app](응답, ctx) → 화면 모양[]`. `ctx`는 `{ local, grants, bindings, declarations }`(앱의 `extra` 결과). 필드 이름은 실제 응답(Daemon local API · `io.terra.file` 계약)으로 맞췄다.
 상태는 화면의 낱말로 옮긴다(`modState` · `jobState` · `xferState` · `tunnelState` · `sviState` · `declState`) — 화면의 상태 표(`ST`)에 없는 값이 오면 렌더 전체가 멈추기 때문이다.
+`withGui(items, apps)` — 모듈 목록에 게이트웨이의 설치된 GUI 앱을 붙인다(`gui` · `ui` = 앱 `route` · `apps[]`). 앱 목록을 못 읽었으면 그대로 둔다.
 
 ### 6.4 데이터 소스 · 연결 (`source.js` · `wire.js`)
 
 | 이름 | 하는 일 |
 | --- | --- |
 | `MockSource(screen)` | 화면의 `hbSeed` 그대로 (실데이터 층에서는 빈 목록) |
-| `LiveSource(client, { localNode, localId })` | `list(node, app, { path })` · `act(node, app, id, op, item, { path })`. L · M op을 다른 노드에 부르면 `unavailable · remote-node`(경로가 없다). T op만 `node_id`(진짜 id)를 본문에 싣는다. 폴더 앱은 들어간 경로까지 단계마다 항목을 읽는다 |
+| `LiveSource(client, { localNode, localId })` | `list(node, app, { path })` · `act(node, app, id, op, item, { path })` · `crud(node, app, mode, vals, item, { path, nodeIdOf })`. L · M op을 다른 노드에 부르면 `unavailable · remote-node`(경로가 없다). T op은 읽기 · 지우기(GET · DELETE)만 `node_id`(진짜 id)를 query로 싣는다 — Master의 본문 해석기는 모르는 키를 거절한다. 폴더 앱은 경로 여럿(보고 있는 곳 + 설치한 칸들의 위 칸)까지 단계마다 항목을 읽는다(겹치는 단계는 한 번). 모듈 앱은 `/api/v1/gui/apps`로 GUI 표시를 붙인다 |
 | `appFor(app, local)` · `pathInput(op, id, item)` | 로컬 노드면 `local` 대응으로 · op 이름의 `by-…` 자리만 입력으로 |
 | `fillNode(input, node)` | 대응표 `input`의 `'<노드>'` 자리를 실제 노드 이름으로 채운다 — 자리 표시자가 `node_id`를 덮어쓰지 않게 |
-| `wireHelm(screen, source)` | seam 바꿔 끼우기 · 앱/노드(폴더는 경로까지)가 바뀌면 받기 · 열려 있는 동안 10초 폴링 · 볼 권한이 없으면 부르지 않기. **되돌리는 함수**를 돌려준다(바꿔 낀 seam을 원래대로, 받은 목록은 비운다) |
-| `wireFromUrl(screen)` | frame 안이면 frame 토큰으로 위를 건다(§6.5): 카탈로그 → `loadWorld` → `wireHelm` → 알림 · 네트워크 폴링. 밖(단독 실행)에서는 아무것도 하지 않는다 — 빈 세계 그대로 |
+| `wireHelm(screen, source, { pollMs })` | seam 바꿔 끼우기(`hbSeed` · `hbAct` · `hbFormSave` · `hbDel`) · 앱/노드(폴더는 경로까지)가 바뀌면 받기 · 열려 있는 동안 `pollSec`(기본 10초) 폴링 · **맵에 설치한 노드 자원(`state.rsrc`) · 상태 화면이 보는 자원의 앱도 닫혀 있어도 같은 간격으로** 받기 · 볼 권한이 없으면 부르지 않기. **되돌리는 함수**를 돌려준다(바꿔 낀 seam을 원래대로, 받은 목록 · 폼은 비운다) |
+| `formValues(screen, form, item)` | 폼 값 다듬기 — 원본 저장과 같은 규칙(글 앞뒤 빈칸 · 수 · 열쇠 칸이 비면 `{ err }`) |
+| `wireFromUrl(screen)` | 부트 프로필 `boot('node')`가 부른다. frame 안(또는 시작 화면이 미리 읽은 보드 자리 — 시작 화면의 연결을 빌린다)이면 frame 토큰으로 위를 건다(§6.5): 카탈로그 → `loadWorld`(+ LayoutStore) → `wireHelm` → 알림 · 네트워크 폴링. 밖(단독 실행)에서는 데이터 없이 전체 화면 보드만 연다(`src`) |
 
 ### 6.5 Terra frame 안에서 (`frame-boot.js` · `frame-session.js` · `frame-boards.js`)
 
@@ -305,12 +329,15 @@ HELM_APPS.io = {
 
 | 이름 | 하는 일 |
 | --- | --- |
-| `role` · `frameRole(win?)` | `'frame'`(다른 origin의 부모 = Terra 셸) · `'board'`(같은 origin의 부모 = 노드 화면이 연 보드) · `'standalone'` |
-| `frameReady` | frame이면 **첫 import에서** `connectTerra()`를 시작한 약속. init을 못 받으면 `null`로 풀린다(데이터 없이 연다) |
+| `role` · `frameRole(win?)` | `'frame'`(다른 origin의 부모 = Terra 셸) · `'board'`(같은 origin의 부모 = 시작 화면이 미리 읽은 노드 화면 · 노드 화면이 연 보드) · `'standalone'` |
+| `frameReady` | frame이면 **첫 import에서** `connectTerra()`를 시작한 약속. init을 못 받으면 `null`로 풀린다(데이터 없이 연다). 보드 자리면 부모가 내놓은 약속(`window.__terraFrameReady`)을 빌린다 — `hello`는 한 번만 |
+| `borrowFrame(win?)` | 같은 origin 부모의 `__terraFrameReady`(없으면 `null`) |
 | `terra-frame-client.js` | Terra 웹 스캐폴드(`terra module new --web`)의 frame 클라이언트 **사본 그대로** — `token()` · `permissions()` · `session()` · `onToken()` · `onValue()` · `fetch()` · `emit()` |
 | `wireFrameSession(screen, terra)` | 세션 띠 — 로그인 전 안내 + [로그인](`emit('login')`), 권한 없음, 로그인 뒤 principal + [로그아웃](`emit('logout')`) |
 | `liveHub(win)` · `connectLive(onChange)` (`src/data/live-host.js`) | 노드 화면이 쥔 클라이언트를 같은 창의 보드(네트워크 · 설정)에 나눠 준다. 보드가 frame에 직접 열렸으면 스스로 토큰을 받는다 |
-| `wireFrameBoards(screen)` | 보드(편집기 · 디자인 노트)를 `src` 대신 **`srcdoc`**으로 연다. 보드 안의 링크를 가로채 `fsEnter` · `fsExit`로 바꾼다 |
+| `wireFrameBoards(screen, { direct? })` | 보드(편집기 · 네트워크 · 설정)를 **`srcdoc`**으로 연다 — 템플릿은 `src` 대신 `data-board`를 쓴다(막힐 탐색 · CSP 거절이 없다). `direct`(단독)면 `src`로. 보드 안의 링크를 가로채 `fsEnter` · `fsExit`로 바꾼다 |
+| `realIntro(Screen)` · `bootIntro(screen)` · `watchMapFrame(screen)` (`src/data/intro-live.js`) | 시작 화면 — 비밀번호 없이 frame 세션을 보이고 [Terra 로그인] = `emit('login')`, 토큰이 있으면 내려간다. 미리 읽는 노드 화면 창(`[data-in-map]`)에 Terra 안은 srcdoc · 밖은 src — [[module-profile\|모듈 프로필]] §3 |
+| `prep(name, Screen)` · `boot(name, screen)` (`src/boot/module.js`) | 부트 프로필 — 페이지가 마운트 전 · 후에 부른다 |
 | `pageOf(href, base?)` | 보드 링크에서 페이지 이름(`building.html` …)을 꺼낸다 |
 
 ```mermaid

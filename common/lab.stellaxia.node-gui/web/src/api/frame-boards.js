@@ -1,12 +1,14 @@
 // 전체 화면 보드 — frame 안에서도 창 안에 띄운다.
 //
-// 노드 화면은 유틸 서랍의 건물 · 필드 · 자재 편집기, 네트워크, 설정 창을 전체 화면으로 열면 그 보드를
-// <iframe class="win-fs-full" src="building.html">로 통째로 띄운다(node.html 템플릿). frame 안에서는 그
-// 중첩 iframe이 막힌다 — 게이트웨이의 앱 자산 CSP가 frame-ancestors에 루프백 셸만 적고, 앱 자신의 origin
-// (app-<id>.localhost)은 거기에 없기 때문이다. 조상인 노드 화면이 그 origin이다.
+// 노드 화면은 유틸 서랍의 건물 · 도로 · 필드 · 자재 편집기, 네트워크, 설정 창을 전체 화면으로 열면 그 보드를
+// iframe(class="win-fs-full")으로 통째로 띄운다(node.html 템플릿). frame 안에서는 그 중첩 iframe이 src로는 막힌다 —
+// 게이트웨이의 앱 자산 CSP가 frame-ancestors에 루프백 셸만 적고, 앱 자신의 origin(app-<id>.localhost)은
+// 거기에 없기 때문이다. 조상인 노드 화면(또는 시작 화면)이 그 origin이다.
 //
 // srcdoc 문서는 응답 헤더가 없어 frame-ancestors가 걸리지 않고, 부모의 origin · CSP · 기준 URL을 물려받는다.
-// 그래서 같은 보드 HTML을 받아 srcdoc으로 넣는다. src가 이미 있어도 srcdoc이 앞선다.
+// 그래서 같은 보드 HTML을 받아 srcdoc으로 넣는다. 템플릿은 src 대신 data-board를 쓴다(tools/gen-pages.py) —
+// src가 있으면 srcdoc이 들어가기 전에 막힐 탐색이 먼저 나가 콘솔에 CSP 거절이 남는다.
+// Terra 밖(단독 실행)에서는 막는 것이 없으니 data-board를 그대로 src로 옮긴다(opts.direct).
 //
 // 보드 안에서 다른 페이지로 가는 길("← 노드 화면" 링크, 설정 → 네트워크)은 중첩 탐색이라 역시 막힌다.
 // 그 길은 노드 화면 쪽으로 돌린다: node.html → 전체 화면 끝, 다른 보드 → 그 보드의 창.
@@ -24,7 +26,8 @@ export function pageOf(href, base) {
 
 /**
  * @param {any} screen 노드 화면
- * @param {{ doc?: Document, fetchText?: (page: string) => Promise<string> }} [opts]
+ * @param {{ doc?: Document, fetchText?: (page: string) => Promise<string>, direct?: boolean }} [opts]
+ *        direct = Terra 밖 — srcdoc 대신 src 로 연다
  */
 export function wireFrameBoards(screen, opts = {}) {
   const doc = opts.doc || document;
@@ -70,19 +73,20 @@ export function wireFrameBoards(screen, opts = {}) {
   };
 
   const swap = (iframe) => {
-    const src = iframe.getAttribute('src');
+    const src = iframe.getAttribute('data-board') || iframe.getAttribute('src');
     const page = pageOf(src);
-    if (!page || iframe.dataset.boardSrc === src) return;
-    iframe.dataset.boardSrc = src;
-    // 막힐 src 탐색을 곧장 끊는다 — srcdoc 속성이 생기는 순간 src보다 앞선다.
-    iframe.srcdoc = note('보드를 불러오는 중…', page);
+    if (!page || iframe.dataset.boardLoaded === src) return;
+    iframe.dataset.boardLoaded = src;
     if (!iframe.__terraBoardLoad) {
       iframe.__terraBoardLoad = true;
       iframe.addEventListener('load', () => hook(iframe));
     }
+    if (opts.direct) { iframe.setAttribute('src', src); return; }
+    // srcdoc 속성이 생기는 순간 src보다 앞선다 — 템플릿이 src를 쓰더라도 막힐 탐색을 곧장 끊는다
+    iframe.srcdoc = note('보드를 불러오는 중…', page);
     load(page)
-      .then((html) => { if (iframe.dataset.boardSrc === src) iframe.srcdoc = html; })
-      .catch((e) => { if (iframe.dataset.boardSrc === src) iframe.srcdoc = note('보드를 불러오지 못했습니다', page + ' — ' + e.message); });
+      .then((html) => { if (iframe.dataset.boardLoaded === src) iframe.srcdoc = html; })
+      .catch((e) => { if (iframe.dataset.boardLoaded === src) iframe.srcdoc = note('보드를 불러오지 못했습니다', page + ' — ' + e.message); });
   };
 
   const scan = (root) => {
@@ -95,7 +99,7 @@ export function wireFrameBoards(screen, opts = {}) {
       else r.addedNodes.forEach((n) => { if (n.nodeType === 1) scan(n); });
     }
   });
-  observer.observe(stage, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
+  observer.observe(stage, { subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'data-board'] });
   scan(stage);
   return () => observer.disconnect();
 }

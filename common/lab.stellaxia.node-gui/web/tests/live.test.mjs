@@ -43,7 +43,8 @@ test('로컬 노드의 작업 앱은 Master 가 아니라 Daemon 작업을 본�
   assert.equal(A.list.op, 'terra.daemon.tasks.get');
   assert.equal(A.adapt, 'jobLocal');
   assert.equal(A.acts.cancel.op, 'terra.daemon.tasks.by-task-id.cancel.post');
-  assert.ok(A.acts.run.none, '명령을 적을 칸이 없으니 실행은 부르지 않는다');
+  assert.equal(A.acts.run.form, 'add', '명령은 추가 폼에 적는다 — 실행 단추는 폼을 연다');
+  assert.ok(A.acts.rerun.none, 'Daemon 작업 목록은 명령을 돌려주지 않으니 다시 실행은 부르지 않는다');
 });
 
 test('Daemon 동작은 node_id 를 싣지 않고, 이름 자리만 채운다', async () => {

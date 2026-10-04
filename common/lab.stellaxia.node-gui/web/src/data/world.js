@@ -43,7 +43,8 @@ export function nameNodes(nodes) {
  */
 export function buildNet({ tree, nodes, local }) {
   const NET = {};
-  const leaf = (n) => ({ role: 'Leaf', kids: [], res: [], id: n.id || null, status: n.status || 'unknown' });
+  // auth 'offline' = Master 가 오프라인으로 본 노드 — 화면은 이것으로 그 노드 필드의 건물에 "정지" 이벤트를 입힌다(UI 명세 §2.11)
+  const leaf = (n) => Object.assign({ role: 'Leaf', kids: [], res: [], id: n.id || null, status: n.status || 'unknown' }, n.status === 'offline' ? { auth: 'offline' } : {});
   const known = Array.isArray(nodes) ? nodes : [];
   // 로컬 노드는 목록에 없어도(아직 Master 가 모른다) 맵에 있어야 한다
   const localEntry = known.find((n) => local.id && n.id === local.id) || { id: local.id || null, name: local.name, status: 'online', roles: [] };

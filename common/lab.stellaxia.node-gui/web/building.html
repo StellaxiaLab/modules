@@ -148,6 +148,38 @@ html,body{margin:0;background:#dfe3ea}
         </div>
       </section>
 
+      <!-- 이벤트: 상태(동작 · 대기 · 정지 · 실패) · 사용자 이벤트마다 다른 모습. 고르면 그 디자인을 편집한다 -->
+      <section aria-label="이벤트" data-ev-bar="1" style="position: absolute; left: 16px; right: 16px; bottom: 86px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; background: rgba(255,255,255,0.95); border: 1px solid #d8dde5; border-radius: 10px; padding: 8px 10px; box-shadow: 0 4px 14px rgba(22,25,31,0.06);">
+        <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+          <b style="font-size: 12.5px; margin-right: 2px;">이벤트</b>
+          <sc-for list="{{evb.common}}" as="ec" hint-placeholder-count="5">
+            <button type="button" role="radio" aria-checked="{{ec.on}}" data-ev="{{ec.id}}" title="{{ec.tip}}" onClick="{{ec.pick}}" style="height: 26px; padding: 0 9px; border: 1px {{ec.style}} {{ec.line}}; border-radius: 13px; background: {{ec.bg}}; color: {{ec.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: {{ec.dot}}; opacity: {{ec.dotOp}}; margin-right: 5px; vertical-align: 1px;"></span>{{ec.label}}</button>
+          </sc-for>
+          <span style="display: {{evb.dirDisp}}; align-items: center; gap: 5px; padding-left: 8px; margin-left: 2px; border-left: 1px solid #e3e8ef;">
+            <span style="font-size: 11.5px; color: #5b6472;">방향</span>
+            <sc-for list="{{evb.dirs}}" as="ed" hint-placeholder-count="0">
+              <button type="button" role="radio" aria-checked="{{ed.on}}" data-ev="{{ed.id}}" title="{{ed.tip}}" onClick="{{ed.pick}}" style="height: 26px; padding: 0 9px; border: 1px {{ed.style}} {{ed.line}}; border-radius: 13px; background: {{ed.bg}}; color: {{ed.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;">{{ed.label}}</button>
+            </sc-for>
+          </span>
+          <span style="display: inline-flex; align-items: center; gap: 5px; padding-left: 8px; margin-left: 2px; border-left: 1px solid #e3e8ef;">
+            <sc-for list="{{evb.custom}}" as="eu" hint-placeholder-count="0">
+              <button type="button" role="radio" aria-checked="{{eu.on}}" data-ev="{{eu.id}}" title="{{eu.tip}}" onClick="{{eu.pick}}" style="height: 26px; padding: 0 9px; border: 1px {{eu.style}} {{eu.line}}; border-radius: 13px; background: {{eu.bg}}; color: {{eu.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;"><span style="display: inline-block; width: 7px; height: 7px; border-radius: 2px; background: {{eu.dot}}; opacity: {{eu.dotOp}}; margin-right: 5px; vertical-align: 1px;"></span>{{eu.label}}</button>
+            </sc-for>
+            <sc-if value="{{evb.newOff}}" hint-placeholder-val="{{true}}">
+              <button type="button" data-ev-add="1" onClick="{{evb.newStart}}" title="사용자 이벤트 만들기 (예: 점검 중 · 백업 중)" style="height: 26px; padding: 0 9px; border: 1px dashed #be185d; border-radius: 13px; background: #ffffff; color: #be185d; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">+ 이벤트</button>
+            </sc-if>
+            <sc-if value="{{evb.newOn}}" hint-placeholder-val="{{false}}">
+              <input type="text" data-ev-name="1" value="{{evb.newVal}}" onChange="{{evb.newInput}}" onKeyDown="{{evb.newKey}}" placeholder="이벤트 이름" aria-label="새 이벤트 이름" style="width: 120px; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid #be185d; border-radius: 13px; font: inherit; font-size: 12px;">
+              <button type="button" data-ev-ok="1" onClick="{{evb.newOk}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 13px; background: #be185d; color: #ffffff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">만들기</button>
+              <button type="button" onClick="{{evb.newCancel}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 13px; background: #ffffff; font: inherit; font-size: 12px; cursor: pointer;">취소</button>
+            </sc-if>
+          </span>
+          <span style="flex-grow: 1;"></span>
+          <button type="button" onClick="{{evb.drop}}" style="display: {{evb.dropDisp}}; height: 26px; padding: 0 10px; border: 1px solid #f3c2ca; border-radius: 6px; background: #ffffff; color: #d33d52; font: inherit; font-size: 12px; cursor: pointer;">{{evb.dropLabel}}</button>
+        </div>
+        <span style="font-size: 11.5px; color: {{evb.infoC}};">{{evb.info}}</span>
+      </section>
+
       <div style="position: absolute; left: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; max-width: 640px; font-size: 12px; color: #5b6472; background: rgba(255,255,255,0.92); border: 1px solid #d8dde5; border-radius: 8px; padding: 8px 12px; pointer-events: none;">
         <span><b style="color: #16191f; font-weight: 600;">좌클릭 끌기</b> 회전</span>
         <span><b style="color: #16191f; font-weight: 600;">자재 클릭</b> 활성화</span>
@@ -249,10 +281,12 @@ html,body{margin:0;background:#dfe3ea}
 import './src/api/frame-boot.js';   // 첫 import — Terra 안이면 마운트보다 먼저 frame에 hello를 보낸다
 import { mount, fit } from './src/runtime/dc.js';
 import Screen from './src/screens/building.js';
+import * as Boot from './src/boot/module.js';
 const stage = document.getElementById('stage');
-window.__screen = mount(Screen, { template: document.getElementById('view').textContent, target: stage, props: {} });
+const View = (Boot.prep && Boot.prep('building', Screen)) || Screen;   // 프로필이 예시를 지운 클래스를 돌려주면 그것을 띄운다
+window.__screen = mount(View, { template: document.getElementById('view').textContent, target: stage, props: {} });
 fit(stage, 1440, 900);
-
+Boot.boot && Boot.boot('building', window.__screen);
 </script>
 </body>
 </html>

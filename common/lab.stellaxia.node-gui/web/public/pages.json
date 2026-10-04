@@ -1,15 +1,27 @@
 [
   {
+    "page": "index.html",
+    "title": "시작",
+    "desc": "시작 화면 — Terra 로그인(비밀번호는 Terra가 받는다) · 노드 화면으로 내려가기",
+    "src": "Intro"
+  },
+  {
     "page": "node.html",
     "title": "노드 화면",
-    "desc": "육각 필드 맵 · 관리 노드 창 · 조타륜 · 오버헤드 패널 · 유틸 서랍 · 서브 창 · 전체 화면",
+    "desc": "육각 필드 맵 · 관리 노드 창 · 조타륜 · 오버헤드 패널 · 노드 자원 · 연결 · 도로",
     "src": "Artboard-qcfu"
   },
   {
     "page": "building.html",
     "title": "건물 편집기",
-    "desc": "16³ 블록 설계 · 설계도 트리 · 2D 벡터 4방향 내보내기",
+    "desc": "블록 설계 · 이벤트(동작 · 대기 · 정지 · 실패 · 사용자) · 노드 화면으로 내보내기",
     "src": "BuildingEditor"
+  },
+  {
+    "page": "road.html",
+    "title": "도로 편집기",
+    "desc": "팔(1/6 정삼각형) · 합류 · 화소 48 · 상태 · 방향 이벤트",
+    "src": "RoadEditor"
   },
   {
     "page": "material.html",
@@ -40,23 +52,5 @@
     "title": "설정",
     "desc": "GUI · 계정 · 로컬 노드 · 클러스터 설정",
     "src": "Settings"
-  },
-  {
-    "page": "components.html",
-    "title": "공통 부품 (디자인 노트)",
-    "desc": "버튼 · 칩 · 배지 등 공통 부품",
-    "src": "Components"
-  },
-  {
-    "page": "helm.html",
-    "title": "조타륜 (디자인 노트)",
-    "desc": "조타륜 단독 시안",
-    "src": "Helm"
-  },
-  {
-    "page": "helm-apps.html",
-    "title": "조타륜 앱 노트 (디자인 노트)",
-    "desc": "조타륜 앱별 자원 · 동작 노트",
-    "src": "HelmApps"
   }
 ]

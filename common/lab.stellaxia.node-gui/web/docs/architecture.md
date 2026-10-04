@@ -7,8 +7,8 @@ doc_type: "architecture"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.4.0"
-last_updated: "2026-10-03"
+version: "0.6.0"
+last_updated: "2026-10-04"
 language: "ko-KR"
 related:
   - "[[docs/README|개발 문서 MOC]]"
@@ -16,6 +16,8 @@ related:
   - "[[node-screen-code-structure|코드 구조와 이식 가이드]]"
   - "[[node-screen-ui-spec|노드 화면 UI 명세]]"
   - "[[real-data-layer|실데이터 층]]"
+  - "[[module-profile|모듈 프로필]]"
+  - "[[road-editor-spec|도로 편집기]]"
 ---
 
 # Terra 노드 GUI 구조
@@ -34,13 +36,17 @@ flowchart LR
   end
   SC -->|"setState"| RT
   LOOP["렌더 밖 루프<br/>조타륜 · 바다 · 해안 · 애니메이션"] -->|"캔버스 · 속성 직접"| DOM
-  REAL["src/data/*-live.js<br/>화면을 이어받아 예시를 지운다"] -->|"extends"| SC
-  WIRE["src/api/wire.js<br/>frame 안"] -->|"loadWorld · seam 바꿔 끼우기"| REAL
+  BOOT["src/boot/module.js<br/>prep · boot"] -->|"prep: 이어받은 클래스"| REAL["src/data/*-live.js<br/>화면을 이어받아 예시를 지운다"]
+  REAL -->|"extends"| SC
+  BOOT -->|"boot: 띄운 직후"| WIRE["src/api/wire.js<br/>frame 안"]
+  WIRE -->|"loadWorld · seam 바꿔 끼우기"| REAL
   WIRE --> CL["TerraClient"] -->|"invoke"| GW["Gateway"]
+  REAL -->|"맵 배치 · 자원 · 연결 · 메모"| LS["src/store/layout.js<br/>LayoutStore"]
 ```
 
 - 페이지 하나 = 템플릿 + 화면 클래스 하나. `tools/gen-pages.py`가 `design/*.dc.html`(디자인 캔버스 원본)에서 둘을 떼어 만든다.
-- 페이지는 화면 클래스를 그대로 마운트하지 않고 **실데이터 층이 이어받은 클래스**(`realNode(Screen)` …)를 마운트한다 — 원본의 예시 세계는 첫 렌더 전에 지워진다([[real-data-layer|실데이터 층]]).
+- 페이지는 화면 클래스를 그대로 마운트하지 않고 **부트 프로필**(`src/boot/module.js`)의 `prep(이름, Screen)`이 돌려준 클래스 — 실데이터 층이 이어받은 클래스(`realNode(Screen)` …) — 를 마운트하고, 띄운 직후 `boot(이름, 화면)`을 부른다. 원본의 예시 세계는 첫 렌더 전에 지워진다([[real-data-layer|실데이터 층]] · [[module-profile|모듈 프로필]] · §8).
+- 앱 entry는 **시작 화면**(`index.html`)이다. 로그인(Terra가 받는다) 뒤 구름을 지나 미리 읽어 둔 노드 화면으로 내려간다(§7).
 - 화면 클래스는 React 컴포넌트와 비슷한 모양(`state` · `setState` · `componentDidMount` · `renderVals`)이지만 React가 아니다 — 작은 런타임(§2)이 돌린다.
 - 데이터 연동은 화면 코드를 고치지 않고 **연동 지점(seam)** 메서드를 바꿔 끼운다(§6, [[frontend-api|프론트엔드 API]] §5).
 - 출하는 Terra 모듈 `lab.stellaxia.node-gui`의 웹 앱으로 한다 — 셸 Scene의 `terra.web/frame`이 감싼다(§7).
@@ -69,6 +75,9 @@ flowchart LR
 | ├ 전체 창 리스트 박스 (가운데) | 가운데 흰 박스 | `fsList` · `fsHist` | `fsEnter` · `fsExit` · `fsDrop` |
 | └ 폴더 보관함 (오른쪽) | 오른쪽 계기판 + 사이드 바 | `fb` · `fbMsg` · `fbArm` · `memos` | `fbToggle` · `fbOpenItem` · `fbOS` · `memo*` |
 | 필드 맵 | 가운데 | `map` · `nodes` · `fields` · `mat` · `placed` · `looks` · `sel` · `view` | `goMap` · `enterNode` · `snapshotMap` · `mapSlide` |
+| ├ 노드 자원 설치 | 맵 위 · 자원 설정 창 `rcfg` | `rsrc` · `place` · `placeMsg` · `rcfgKey` | `placeStart` · `resDragStart` · `placeAt` · `rsrcRemove` · `rcfgVals` |
+| ├ 연결하기 · 도로 | 맵 위 · 상태 창(캡슐) | `links` · `conn` · `pillOpen` · `pillSrc` · `roadPick` | `connStart` · `connSet` · `connSeg` · `connEnd` · `routeRemove` · `roadOf` · `roadImgOf` |
+| └ 표지 · 도로 표시 · 이벤트 보기 | 편집 창 · 맵 왼쪽 위 칩 | `markStyle` · `roadsOn` · `evView` | `evtCommon` · `evtDirs` · `roadEff` |
 | 관리 노드 창 | 왼쪽 아래 좌석 | `curTree` · `trees` · `shown` · `tl` · `login` · `auth` | `mgToggle` · `tlOpen` · `beginSwitch` · `flipTo` · `startLogin` · `hxAvatar` |
 | 조타륜 | 가운데 아래 (테이블 뒤) | (렌더 밖 `this._hx`) | `hxStart` · `helmDest` · `onLocalMap` |
 | 조타륜 앱 바 | 조타륜 위 | `hb` · `hbMsg` · `hbBusy` · `hbd` · `io` · `hbPath` · `hbArm` | `hbOpen` · `hbAct` · `hbVals` · `hbSeed` · `hbItems` · `hbPut` · `hbPerm` |
@@ -79,7 +88,12 @@ flowchart LR
 
 ## 4. 층과 좌표
 
-화면은 **1447 × 945** 고정이고 창 크기에 맞춰 통째로 줄인다(`fitScreen`). 위 44px은 오버헤드 패널 띠, 아래 **1447 × 901**이 필드 영역(창 · 서랍 좌표의 기준).
+화면 크기는 **창을 따라 늘고 준다**(`fitScreen` → 상태 `scr` → `lay()`). 기준은 1447 × 945, 최소는 1180 × 280이고 그보다 작은 창에서만 통째로 줄인다.
+위 44px은 오버헤드 패널 띠, 나머지가 필드 영역이다(아래 좌표는 기준 크기 값 — 늘어나면 가운데 파인 부분 · 오른쪽 날개가 늘어난 만큼 옮겨진다, [[node-screen-ui-spec#1.1 화면 크기 — 늘고 주는 곳|UI 명세 §1.1]]).
+
+> [!NOTE] 페이지 무대
+> `node.html`의 `#stage`는 창 크기(`100vw × 100vh`)다. 미리보기 크기(1447 × 945)로 박아 두면 `fitScreen`이 `html` · `body`에 건
+> `overflow: hidden` 때문에 body가 무대 높이에서 화면을 잘라, 창이 945보다 높으면 아래 테이블이 잘린다(디자인 원본 생성 규칙 그대로면 그렇다 — `tools/gen-pages.py`가 고친다).
 
 | 층 (z-index) | 무엇 |
 | --- | --- |
@@ -122,6 +136,8 @@ flowchart LR
 | `this._hx` · `this._hxRes` | 조타륜 내부 · 앱 목록 | 렌더 밖 루프 전용 |
 | `this._mapGoal` | 가는 중인 맵 | 맵 전환 중 판단(`onLocalMap` · `hbNode`)에 쓴다 |
 | `this.FBDATA()` | 폴더 보관함 트리 — 원본은 예시, 실데이터 층은 `io.terra.file` 의 공유 폴더 | [[helm-apps-integration\|조타륜 앱 연동]] §4 · [[real-data-layer\|실데이터 층]] §2.1 |
+| `this.roads` · `this.buildings` | 도로 · 건물 설계 — 기본 라이브러리 + 편집기에서 내보낸 것(`localStorage` `terra.gui.roads` · `terra.gui.buildings`) | 편집기가 내보내면 `storage` 이벤트로 다시 읽고 굽는다([[road-editor-spec\|도로 편집기]] §2) |
+| LayoutStore (`localStorage`) | 맵 배치 · 노드 모습 · 노드 자원 · 연결 · 표시 설정 · 메모 · 창 자리 | 노드 · 주체마다. 로그인한 동안만 저장한다([[module-profile\|모듈 프로필]] §4) |
 
 ## 7. Terra 안에서 — frame
 
@@ -132,7 +148,9 @@ base Scene은 main이 하나면 그것을 곧장 띄운다.
 ```mermaid
 flowchart LR
   BASE["base Scene<br/>io.terra.scene.terra"] -->|"main 하나 → 곧장 연다"| SH["셸 Scene<br/>lab.stellaxia.node-gui.ui"]
-  SH -->|"/ — terra.web/frame"| APP["이 웹<br/>ui/node.html"]
+  SH -->|"/ — terra.web/frame"| APP["이 웹 — 시작 화면<br/>ui/index.html"]
+  APP -->|"구름 뒤에 미리 읽기 (srcdoc)<br/>frame 연결을 빌린다"| NODE["노드 화면<br/>node.html"]
+  NODE -->|"전체 화면 보드 (srcdoc)"| BOARD["편집기 · 네트워크 · 설정"]
   SH -->|"/login"| LG["로그인 Route<br/>자격 → Handle"]
   APP -- "emit login · logout" --> SH
   SH -- "init · token · value(session)" --> APP
@@ -150,7 +168,9 @@ flowchart LR
 | `TerraClient`가 `terra.fetch`로 부른다 | 쿠키는 게이트웨이의 앱 origin을 지나지 않는다. 스코프 토큰(사용자 권한 ∩ 앱 권한)이 유일한 자격이다 |
 | Master는 "쓸 수 없다"로 | 스코프 토큰은 Bearer를 싣지 않으므로 forward-auth인 Master는 401이다 — **설계상 경계**다. 401을 "로그인 필요"로 읽으면 사용자를 헛되이 로그인 화면으로 보낸다 |
 | 다른 노드도 "쓸 수 없다"로 | 다른 노드의 operation을 부르는 게이트웨이 경로가 없다. 원격은 모듈 경로(`/api/nodes/{node}/modules/…`)뿐이다 |
-| 보드를 `srcdoc`으로 | 게이트웨이 CSP의 `frame-ancestors`가 루프백 호스트(`127.0.0.1` · `localhost`)만 적고 앱 자신의 origin(`app-….localhost`)을 빼고 있다 — 같은 앱의 페이지를 `src`로 끼우면 막힌다. `srcdoc` 문서는 부모의 origin · CSP · 기준 URL을 이어받아 그 검사를 타지 않는다 |
+| 보드를 `srcdoc`으로 | 게이트웨이 CSP의 `frame-ancestors`가 루프백 호스트(`127.0.0.1` · `localhost`)만 적고 앱 자신의 origin(`app-….localhost`)을 빼고 있다 — 같은 앱의 페이지를 `src`로 끼우면 막힌다. `srcdoc` 문서는 부모의 origin · CSP · 기준 URL을 이어받아 그 검사를 타지 않는다. 템플릿은 `src` 대신 `data-board`를 쓴다 — `src`가 있으면 srcdoc이 들어가기 전에 막힐 탐색이 먼저 나가 콘솔에 CSP 거절이 남는다 |
+| 시작 화면이 비밀번호를 받지 않는다 | 원본(maingui service 판)의 시작 화면은 아이디 · 비밀번호 판이다. 모듈은 그 자리에 세션 줄과 [Terra 로그인] 단추를 둔다 → `emit('login')` → 셸의 `/login` 카드. 토큰이 이미 있으면 "자동 로그인"처럼 곧장 내려간다 |
+| 노드 화면을 시작 화면이 미리 읽는다 | 구름 뒤에서 `node.html`을 받아 `srcdoc`으로 넣는다(같은 `frame-ancestors` 사정). 그 문서는 `hello`를 보내지 않고 시작 화면의 frame 연결(`__terraFrameReady`)을 빌린다 — 셸 쪽에서 보면 웹은 하나다. 미리 읽기가 실패하면 구름이 걷힌 뒤 `노드 화면으로` 길(앱 frame 안의 이동 → 새 `hello`)이 보인다 |
 | Google Fonts를 뺐다 | CSP가 `style-src 'self'` · `font-src 'self' data:`라 외부 글꼴은 막힌다. 글꼴 스택의 시스템 글꼴로 떨어진다 |
 | SSE를 fetch 스트림으로 | `EventSource`는 Authorization 헤더를 붙이지 못한다 |
 
@@ -162,15 +182,38 @@ flowchart LR
 | --- | --- |
 | 맵 · 세션 띠 · 속성 창 · 유틸 카드 · 알림 | 이 노드(`terra.daemon.node.get`) · 부모 tree(등록 정보의 Master 주소) · `agent/nodes` · 자원 개수 · Daemon 작업 폴링 |
 | 조타륜 앱 중 **Daemon operation**(L) — I/O 장치 · 선언 · 폴더 · 터널 · WireGuard · 작업 · 모듈 | 실데이터 — 처음 맵이 이 노드의 맵이고, 조타륜은 진짜 로컬 노드 이름으로 붙는다 |
+| 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버의 입력으로 부른다 — 서버에 길이 없으면 항목을 지어 넣지 않고 말한다([[real-data-layer\|실데이터 층]] §2.4) |
 | 모듈 namespace operation(M) — 폴더 항목 · 전송 | 실데이터(`io.terra.file`) |
 | **Master operation**(T) — SVI 자원 · 허가 · mesh · 라우트 · 클러스터 | `쓸 수 없다` · "닿지 않음" — 첫 401 뒤로 다시 부르지 않는다 |
-| 다른 노드 · 다른 tree · 맵 배치 · 메모 · 로컬 파일 탐색 | 비어 있다 — 출처가 없다(메모는 화면 메모리) |
+| 맵 배치 · 노드 모습 · 설치한 노드 자원 · 연결 · 표시 설정 · 메모 | LayoutStore — 이 브라우저(앱 origin)에 노드 · 주체마다. 처음엔 비어 있고 사용자가 만든 것만 쌓인다 |
+| 설치한 노드 자원의 상태 점 · 이벤트 · 모니터링 값 | 그 자원의 원본 앱 목록 — 조타륜에서 그 앱이 닫혀 있어도 `pollSec`마다 다시 받는다 |
+| 다른 노드 · 다른 tree · 로컬 파일 탐색 | 비어 있다 — 출처가 없다 |
 
 로그인하지 않았거나 토큰을 잃으면 받아 둔 것을 지우고 **빈 세계로 돌아간다** — 예시로 돌아가지 않는다.
+
+## 8. 변형과 부트 프로필
+
+같은 디자인 원본으로 세 변형을 만든다. 갈림은 `public/config.json`의 `variant` 하나이고, 이 모듈은 `module`만 만든다.
+
+```mermaid
+flowchart LR
+  CFG["public/config.json<br/>variant"] --> GEN["tools/gen-pages.py"]
+  DES["design/*.dc.html"] --> GEN
+  GEN -->|"module: 글귀 바꿔 끼우기 · frame-boot 첫 import"| PG["*.html · src/screens/*.js"]
+  PG -->|"import"| BOOT{"src/boot/module.js"}
+  BOOT -->|"prep"| RL["예시를 지운 클래스<br/>src/data/*.js"]
+  BOOT -->|"boot"| WR["frame 연결 · 실데이터<br/>시작 화면 세션"]
+  FX["src/boot/fixes.js<br/>공통 보정"] --> BOOT
+  SV["GUI 원본 maingui<br/>service · demo(examples)"] -. "같은 원본 · 같은 생성 규칙" .- GEN
+```
+
+- 페이지는 `prep(이름, Screen)` → `mount()` → `boot(이름, 화면)` 순서로 부른다. 짝 프로젝트와 같은 자리지만, 모듈의 `prep`은 프로토타입을 고치는 대신 **이어받은 클래스를 돌려준다**(페이지가 그것을 띄운다).
+- 짝 프로젝트의 서비스 층(`src/api/session.js` 로그인 · `/gw` 프록시 · `deploy/`)은 모듈에 없다 — 로그인 · 게이트웨이는 Terra 셸이 건넨다. 자세한 것은 [[module-profile|모듈 프로필]].
 
 ## 관련 문서
 
 - [[docs/README|개발 문서 MOC]]
+- [[module-profile|모듈 프로필]] — 변형 · 부트 프로필 · 시작 화면 · LayoutStore
 - [[frontend-api|프론트엔드 API]] — §6.5 frame 안의 연동 층
 - [[node-screen-code-structure|코드 구조와 이식 가이드]] — 성능 함정 · 분할안
 - [[node-screen-ui-spec|노드 화면 UI 명세]]
@@ -180,10 +223,12 @@ flowchart LR
 ## 관련 모듈
 
 - `src/runtime/dc.js` · `src/screens/node.js` · `src/api/wire.js`
+- `src/boot/module.js` · `src/boot/fixes.js` · `src/store/layout.js` · `src/data/intro-live.js`
 - `src/api/frame-boot.js` · `src/api/frame-session.js` · `src/api/frame-boards.js`
 - Terra 모듈 `lab.stellaxia.node-gui` — 셸 Scene · 매니페스트 · 모듈 README (modules 저장소 `common/lab.stellaxia.node-gui/`의 `scene/` · `module.json` · `README.md`)
 
 ## 관련 흐름
 
-- §7 그림 — base Scene → 셸 Scene → frame → 이 웹 → Gateway
+- §7 그림 — base Scene → 셸 Scene → frame → 시작 화면 → 노드 화면(srcdoc) → 보드(srcdoc) · Gateway
+- §8 그림 — 원본 → 생성 → 부트 프로필(prep · boot)
 - [[frontend-api|프론트엔드 API]] §6.5 — frame handshake와 Master 경계

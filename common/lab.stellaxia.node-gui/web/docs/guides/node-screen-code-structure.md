@@ -8,7 +8,7 @@ scope: "module"
 target: "terra-gui"
 status: "draft"
 version: "0.2.0"
-last_updated: "2026-10-03"
+last_updated: "2026-10-04"
 language: "ko-KR"
 source: "project/Artboard-qcfu.dc.html (약 2870줄)"
 os_priority:
@@ -132,7 +132,7 @@ flowchart TB
 # Linux (Windows는 PowerShell에서 같은 명령, macOS 동일)
 cd terra-node-gui
 npm install
-npm run dev          # Vite. index.html = 화면 목록 · node.html = 노드 화면
+npm run dev          # Vite. index.html = 시작 화면 · node.html = 노드 화면 · screens.html = 화면 목록
 npm run gen          # design/*.dc.html 을 고친 뒤 화면 페이지 · src/screens/*.js 를 다시 만든다
 ```
 

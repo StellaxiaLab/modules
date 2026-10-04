@@ -7,8 +7,8 @@ doc_type: "implementation-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-03"
+version: "0.3.1"
+last_updated: "2026-10-04"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -112,11 +112,16 @@ export function wireFolder(screen, client) {
 
 ### 2.5 로컬 저장 (`LayoutStore` · `AssetStore`)
 
-API에 자리가 없는 사용자 데이터 — IndexedDB 권장. 키는 노드 id.
+API에 자리가 없는 사용자 데이터 — 키는 노드 id.
+
+> [!NOTE] 1차 구현이 들어갔다 (2026-10-04)
+> `src/store/layout.js`가 `localStorage`로 `looks` · `maps`(노드 자원 `rsrc` · 연결 `links` 포함) · 표시 설정 · `memos` · `wins`를
+> 노드 · 주체마다 저장한다 — [[module-profile|모듈 프로필]] §4. 서버 저장소(다른 기기)는 남은 일이다 — [[implementation-backlog|구현해야 할 것]] PF-3 · MD-4.
 
 | 무엇 | 상태 키 |
 | --- | --- |
-| 노드 모습 · 맵 배치 · 칸 재질 · 놓은 건물 | `looks` · `maps` · `fields` · `mat` · `placed` · `grounds` · `gmat` |
+| 노드 모습 · 맵 배치 · 칸 재질 · 놓은 건물 · 노드 자원 · 연결 | `looks` · `maps` · `fields` · `mat` · `placed` · `grounds` · `gmat` · `rsrc` · `links` |
+| 표시 설정 | `roadsOn` · `markStyle` · `roadPick` |
 | 창 자리 · 서랍 · 전체 화면 리스트 | `wins` · `drawer` · `fsHist` |
 | 편집기 자산 | 건물 설계도 · 필드/그라운드 스킨 · 자재 |
 | 메모 (메모를 서버에 두지 않기로 하면) | `memos` |
@@ -125,6 +130,7 @@ API에 자리가 없는 사용자 데이터 — IndexedDB 권장. 키는 노드 
 
 - 동작이 `accepted`면 `trackJob(client, 'terra.master.jobs.by-job-id.get', job)` → 끝나면 `pushAlarm('●'|'■', 색, 문구)`.
 - leaf는 `client.events(onEvent)`(SSE) → 이벤트 종류별로 그 앱 목록을 다시 받고 알림을 더한다.
+  ⚠ 실측: Daemon 이벤트의 binding은 `GET /events`(WebSocket)다 — 모듈은 지금 작업 폴링(`pollSec`)으로 알림을 만든다([[implementation-backlog|구현해야 할 것]] PF-5).
 
 ## 3. 디자인을 고친 뒤
 
@@ -173,7 +179,7 @@ npm run test:smoke   # 흐름 확인
 | --- | --- | --- |
 | 다른 tree의 Gateway에 닿는 길 | 주소 등록 · `gui.remote.*` 경유 · 같은 기계만 | tree 전환 · 자동 로그인 보관 |
 | 로컬 루트 탐색 · 로컬 프로그램으로 열기 | Daemon 로컬 op 새로 (`local-fs.list.get` · `desktop.open.post` 제안) | 폴더 탐색기 · 읽기 전용 열기 · OS 파일 관리자 |
-| 메모 저장 위치 | 메모 루트를 공유 폴더로 · `LayoutStore` | 메모장 · 다른 기기에서 보기 |
+| 메모 저장 위치 | 메모 루트를 공유 폴더로 · `LayoutStore`(지금 — 이 브라우저) | 메모장 · 다른 기기에서 보기 |
 | 모듈 수명 제어 길 | Gateway `module.manage`★ · Daemon `node.control` | 모듈 앱 잠금 |
 | 프사가 맵 노드를 따라갈지 | 지금은 로그인 tree · 로컬만 | 조타륜 앱 대상 표시 |
 
@@ -183,8 +189,10 @@ npm run test:smoke   # 흐름 확인
 - [ ] 다른 노드 맵에서 조타륜 앱이 그 노드의 자원을 보이고, 권한 없는 동작은 🔒 + 이유
 - [ ] 동작 결과가 글줄 · 배지로 보이고, 접수형은 작업 추적 → 알림
 - [ ] 카탈로그에 없는 기능은 숨기거나 잠긴다
-- [ ] 폴더 보관함 세 곳이 실제 폴더를 보이고, 메모가 새로고침 뒤에도 남는다
-- [ ] 노드 모습 · 맵 배치 · 전체 화면 리스트가 새로고침 뒤에도 남는다
+- [ ] 폴더 보관함 세 곳이 실제 폴더를 보인다 (저장소 ✓ · 탐색기 ✗ — PF-4)
+- [x] 메모가 새로고침 뒤에도 남는다 — 이 브라우저에서(LayoutStore). 다른 기기는 PF-3
+- [x] 노드 모습 · 맵 배치 · 노드 자원 · 연결이 새로고침 뒤에도 남는다 — 이 브라우저에서(LayoutStore). 전체 화면 리스트는 저장하지 않는다
+- [x] 설치한 노드 자원의 상태 · 모니터링 값이 원본 앱 목록과 이어진다(그 앱이 닫혀 있어도)
 - [ ] `npm run test:smoke` 통과 · [[node-screen-ui-spec|UI 명세]]의 시간 · 순서 그대로
 
 ## 관련 문서
@@ -196,6 +204,7 @@ npm run test:smoke   # 흐름 확인
 - [[node-screen-data-model|노드 화면 데이터 모델]]
 - [[node-screen-code-structure|코드 구조와 이식 가이드]] — 이식 방식(A · B · C) · 성능 함정
 - [[testing|시험]]
+- [[implementation-backlog|구현해야 할 것]] — 남은 일 전체(플랫폼 · 모듈 · GUI 원본 · 결정)
 
 ## 관련 모듈
 
