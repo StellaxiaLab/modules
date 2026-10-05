@@ -7,7 +7,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.5.0"
+version: "0.6.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 based_on: "terra-gui-resource-inventory (자원 목록) · terra-gui-api-priority"
@@ -138,11 +138,16 @@ flowchart LR
 | | operation | 권한 |
 | --- | --- | --- |
 | 루트 · 항목 | `terra.daemon.files.list.get` (L) · 들어가면 `io.terra.file.entries.list` (M) | `file.read` |
-| 받기 | `io.terra.file.transfers.pulls.create {root, path}` → `transfers.chunks.get {transfer_id, offset}`(eof까지 · 조각마다 SHA-256) → 전체 SHA-256 → `transfers.pulls.complete` → 브라우저 저장. 어긋나면 `transfers.pulls.abort` — 모듈이 지었다(`source.download`) | `file.read` |
+| 받기 | `io.terra.file.transfers.pulls.create {root, path}` → `transfers.chunks.get {transfer_id, offset}`(eof까지 · 조각마다 SHA-256) → 전체 SHA-256 → `transfers.pulls.complete` → 브라우저 저장. 어긋나면 `transfers.pulls.abort` — 모듈이 지었다(`source.download`). 받은 조각은 이 브라우저 IndexedDB에 두어 다시 받으면 거기서부터(SHA-256 · 크기가 같을 때) | `file.read` |
 | 지우기 · 새 폴더 | `entries.remove` · `entries.mkdir` (M ⚠) | `file.write` — 모듈 op가 계약에 선언한다(io.terra.file 0.2.0) |
-| 전송 목록 · 올리기 · 중단 · 이어서 | `transfers.list` · `transfers.create {push}` · `transfers.abort {keep_partial}` · `transfers.chunks.put` (409 `retry_offset`부터) | `file.read` / `file.write` |
+| 전송 목록 · 올리기 | `transfers.list` · `transfers.create {push}` → `transfers.chunks.put`(409면 서버 `offset`부터) → `transfers.complete` | `file.read` / `file.write` |
+| 중단 | `transfers.abort {keep_partial: true}` — 부분 파일 · 기록을 남긴다(io.terra.file 0.2.1부터 — 0.2.0은 invoke 본문의 `keep_partial`을 듣지 않아 늘 포기) | `file.write` |
+| 이어서 | 멈춘 전송(보내던 · 받던 화면이 닫혔다)의 카드. 올리기 — 파일 고르기 → 크기 · SHA-256이 같으면 `transfers.create {…, resume_id}` → 서버 `offset`부터. 받기 — 다시 받기(이 브라우저에 둔 조각부터) · 멈춘 받기는 `transfers.pulls.abort` | `file.write` / `file.read` |
+| 치우기 · 삭제 | 중단해 둔 것 — `transfers.abort {keep_partial: false}`(부분 파일도 지운다). 도는 것의 삭제도 같다(포기) | `file.write` |
 
-완료된 전송은 서버에서 지워진다 — "치우기"는 화면에서만.
+완료된 전송은 서버에서 지워진다 — 목록에 남는 것은 도는 것 · 멈춘 것 · 중단해 둔 것뿐이다.
+같은 파일을 같은 자리에 다시 `↑ 올리기` 하면 카드를 누르지 않아도 멈춘 · 중단해 둔 전송을 잇는다 — 부분 파일 때문에 새로 만들기가 `FILE_TARGET_EXISTS`가 될 때 전송 목록에서 찾는다.
+멈춘 전송은 디자인에 칸이 없어 `어긋남` 칸에 이유 줄과 함께 둔다(구현해야 할 것 UP-22).
 
 ### 2.6 서비스 터널 (`tunnel`)
 

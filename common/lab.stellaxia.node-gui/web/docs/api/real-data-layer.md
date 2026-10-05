@@ -8,7 +8,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.4.0"
+version: "0.5.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -262,6 +262,38 @@ sequenceDiagram
 SHA-256 은 직접 계산한다(`sha256.js` — maingui 와 같은 코드). `crypto.subtle` 은 한 번에 다 넣어야 하고 https 가 아닌 사설망 주소에서는 아예 없다.
 받기는 io.terra.file 0.2.0(modules #24 — `transfers.pulls.*`)이 있어야 한다. 그 op 가 카탈로그에 없으면 누르기 전에 잠근다.
 
+**끊긴 뒤 이어서(MD-21)** — 페이지를 닫았다 다시 열어도(다른 브라우저여도) 올리기 · 받기를 잇는다.
+
+| | 무엇이 남나 | 어떻게 잇나 |
+| --- | --- | --- |
+| 올리기 | 서버에 부분 파일과 전송 기록(checkpoint — `offset`). 같은 파일을 다시 올리면 새로 만들기가 `FILE_TARGET_EXISTS` 다 | 그 자리(`root` · `path`)에 크기 · SHA-256 이 같은 전송을 `transfers.list` 에서 찾아 `transfers.create {…, resume_id}` 로 다시 연다 — 서버가 받은 곳부터. 방금까지 움직인 것은 3초 뒤 `transfers.get` 으로 다시 보고 `offset` 이 그대로면 잇는다(닫고 곧바로 다시 올릴 때). 보내는 사이 기한이 지나도(`TRANSFER_EXPIRED`) 같은 전송을 다시 연다 |
+| 받기 | 이 브라우저의 IndexedDB `terra.gui.parts`(`src/store/parts.js`) — 조각마다 SHA-256 을 견준 뒤에만 둔다. 키 = `<node_id>\|<공유 폴더>/<경로>` | 다시 받으면 새로 연 받기의 SHA-256 · 크기가 저장본과 같을 때 둔 곳부터 `chunks.get`. 다르면 그 사이 파일이 바뀌었다 — 저장본을 버리고 처음부터. 앞서 받다 만 전송은 `pulls.abort` 로 닫고, 다 받으면 저장본을 지운다. 이레 넘게 손대지 않은 저장본은 지운다 |
+| 전송 앱 카드 | 서버 상태가 `prepared` · `transferring` 인데 보내는 쪽이 없으면(기한이 지났다 · 기록이 60초 넘게 그대로 · 이 화면이 15초 넘게 지켜봤는데 `offset` 이 그대로) **멈춤** — 디자인의 `어긋남` 칸에 두고 이유를 적는다(`멈췄다 · 31%에서 보내던 화면이 닫혔다 — …`) | 카드의 `이어서` — 올리기는 파일을 고르게 해 크기 · SHA-256 이 그 전송의 것일 때만 잇는다(이름은 달라도 된다), 받기는 다시 받는다. `중단` = 부분을 남기고 멈춘다(`중단됨` · `중단 · 31% 남겨 둠 — 같은 파일을 다시 올리면 거기서부터`), `치우기` = 남겨 둔 부분 파일과 기록을 버린다 |
+
+```mermaid
+flowchart TD
+  subgraph UP["올리기 — 서버가 받은 곳부터"]
+    U1["↑ 올리기 · 파일 고르기 · SHA-256"] --> U2{"transfers.create"}
+    U2 -->|"202"| U3["조각 0부터"]
+    U2 -->|"409 FILE_TARGET_EXISTS"| U4["transfers.list — 같은 자리 · 크기 · SHA-256"]
+    U4 -->|"멈춤 · 중단(부분 남김)"| U5["transfers.create resume_id → offset부터"]
+    U4 -->|"방금까지 움직임"| U6["3초 뒤 transfers.get"]
+    U6 -->|"offset 그대로"| U5
+    U6 -->|"움직였다"| U7["다른 화면이 보내는 중 — 보내지 않는다"]
+    U4 -->|"다른 파일 · 없음"| U8["까닭을 말하고 보내지 않는다"]
+  end
+  subgraph DN["받기 — 이 브라우저에 둔 곳부터"]
+    D1["받기"] --> D2["transfers.pulls.create — 지금 SHA-256 · 크기"]
+    D2 --> D3{"IndexedDB 저장본"}
+    D3 -->|"SHA-256 · 크기 같음"| D4["둔 곳부터 chunks.get · 앞선 받기는 pulls.abort"]
+    D3 -->|"다르다 · 없다"| D5["0부터 — 저장본 버림"]
+    D4 --> D6["전체 SHA-256 → pulls.complete → 저장 · 저장본 지움"]
+    D5 --> D6
+  end
+```
+
+부분을 남기는 중단은 io.terra.file **0.2.1**부터다 — 0.2.0은 `keep_partial` 을 query 에서만 읽어, 게이트웨이 invoke(POST 입력은 본문으로 간다)로 보낸 중단이 늘 포기(부분 파일 삭제 · 기록 잊음)였다(§5.1).
+
 ## 3. 비어 있는 것과 그 이유
 
 | 비어 있는 것 | 이유 | 채우려면 |
@@ -273,7 +305,6 @@ SHA-256 은 직접 계산한다(`sha256.js` — maingui 와 같은 코드). `cry
 | 다른 창 · 기기가 바꾼 배치를 곧장 받기 | 사용자 문서의 변경 신호(`terra.documents.changed`)는 Master 이벤트다 — 앱 토큰의 이벤트(이 노드 Daemon)에는 오지 않는다. 다음 쓰기의 409 알림 · 새로 고침에 받는다 | PF-17 |
 | 입출력 연결의 실제 데이터 흐름 | 연결(`links`)은 화면의 선이다 — 무엇을 주고받는지는 디자인 · 데이터 모양이 없다 | 설정 화면 디자인 + SVI 바인딩 |
 | 파일 열기 · 파일 관리자로 열기 — 다른 기계에서 볼 때 | Daemon 이 **그 노드의** 바탕화면에 연다 — 다른 기계의 브라우저에서는 뜻이 없어 누르지 않는다. 바탕화면 세션이 없는 노드(서버 · 컨테이너)는 `DESKTOP_SESSION_UNAVAILABLE` | — (설계대로) |
-| 받기 이어서 | 받다 끊기면 처음부터 — `resume_id` 로 이어 받으려면 받은 조각을 남겨 둘 곳이 있어야 한다 | 브라우저 저장소에 조각을 두거나 File System Access |
 | 작업 출력 · 다시 실행 | 실행은 추가 폼으로 된다(§2.4). Daemon 작업 목록 · 기록은 명령 · 출력을 주지 않는다 — 출력 칸에 그렇다고 적는다 | 출력 API(PF-7) |
 | 자원 선언 추가 · 철회 | op 셋(`svi.declarations.post` · `undeclare` · `forget`)은 계약에 있다. 카탈로그가 호출자 권한으로 거르는데 `node.config`★는 기본 권한 밖이라 앱 토큰에 안 보인다 — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` | 앱 권한 · 사용자 권한에 `node.config`(Q-10 — PF-13 진단 정정) |
 | 모듈 설치 · 설정 · 제거 | 노드 지정(B-6 `nodes.by-node-id.modules.assignments.*`)은 Master op라 앱 토큰이 닿지 않는다(PF-1). 설정 op는 설계뿐 | PF-1 · PF-14 |
@@ -352,6 +383,9 @@ SHA-256 은 직접 계산한다(`sha256.js` — maingui 와 같은 코드). `cry
 | `local-fs.roots.get` 은 Daemon 자기 폴더(데이터 · 설정 디렉터리)를 품은 루트를 `readable: false` · `reason: denied` 로 준다 | 🔒 + 이유, 누르면 들어가지 않고 그렇다고 말한다 |
 | `desktop.open.post` 의 실행 파일 거절은 409 `DESKTOP_OPEN_EXECUTABLE`, 바탕화면 세션이 없으면 503 `DESKTOP_SESSION_UNAVAILABLE`, 여는 프로그램이 없으면 503 `DESKTOP_LAUNCHER_UNAVAILABLE` | 코드마다 화면 글(머리말 없이) |
 | 손 등록(`io.devices.post`)은 주소로 장치 id 를 짓는다(`camera-manual-…` — 같은 주소면 같은 id) · 등록하면 `terra.io.devices.changed` 신호가 온다 | 신호로 I/O 앱 목록을 다시 받는다 |
+| io.terra.file 0.2.0 의 중단(`transfers.abort` · `pulls.abort`)은 `keep_partial` · `reason` 을 **query 에서만** 읽었다. 게이트웨이 invoke 는 POST 입력을 본문으로 보내므로(`BuildOperationTarget`) 앱이 보낸 `keep_partial: true` 가 들리지 않아 늘 포기였다 — 실측 `kept_partial: false` · 기록 404 · 부분 파일 없음 | io.terra.file 0.2.1이 본문도 읽는다(본문이 이긴다 · query 도 그대로) — 같은 실측이 `kept_partial: true` · 기록 200 · 부분 파일 262144 B |
+| 받기 전용 문(`pulls.complete` · `pulls.abort`)은 기한이 지난 받기를 닫지 못했다(`TRANSFER_EXPIRED`) — 받던 화면이 닫히면 그 받기가 목록에 계속 남는다 | 0.2.1 — 방향만 보고 닫는다 |
+| 전송 기록은 끝나면(완료 · 포기) 지워진다 — 목록에 남는 것은 도는 것과 부분을 남기고 중단한 것뿐이다. 기한(1시간)은 조각마다 늘지 않는다 | 멈춘 것 · 중단한 것만 이어서 · 치우기를 붙인다 · 기한이 지나면 `resume_id` 로 다시 연다 |
 
 ### 5.2 maingui 기준 — 추가 · 수정 · 삭제 · 상태 화면 · 모듈 GUI 창 — 2026-10-04
 
@@ -390,6 +424,21 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | 사용자 문서(MD-15) | 이름공간 `app:lab.stellaxia.node-gui.web`. 표지 `flat` · 메모를 바꾸자 문서 `layout/<node_id>` 에 들어갔다. **새 브라우저**(빈 저장소)로 로그인하자 같은 표지 · 메모. 그 브라우저에서 되돌린 뒤 첫 브라우저가 쓰자 409 → `다른 창 · 기기에서 … 바뀌었다` 한 번 → 덮었다 |
 | 콘솔 | 페이지 오류 0. 남은 응답 오류는 예상한 것 — 셸의 `/api/product/session` 404 · 아직 없는 `assets` 문서 404 · 바탕화면 503 · 일부러 낸 409 |
 
+### 5.4 끊긴 뒤 이어서(MD-21) — 2026-10-05
+
+같은 스택에 io.terra.file 0.2.1과 이 모듈을 깔고, leaf UI 셸 안에서 Chromium(Playwright)으로 4 MB 파일(조각 16개)을 주고받다가
+**페이지를 떠나(닫은 것과 같다)** 끊었다(`e2e-md21`). 다시 로그인해 이었다. 내용은 디스크의 파일 · 내려받은 파일의 SHA-256 으로 견줬다.
+
+| 단계 | 관찰 |
+| --- | --- |
+| 올리기 → 끊김 → 같은 파일 다시 | 31%(조각 5)에서 끊김 · 서버 `transferring · offset 1310720` → 다시 `↑ 올리기` → `올림 — 검사 통과 (share-0 · 31%부터 이어서)` · 조각 11개만 더 보냈다 · 내용이 같다 · 남은 전송 기록 없음 |
+| 받기 → 끊김 → 다시 받기 | 31%에서 끊김 · 이 브라우저 IndexedDB 에 1310720 B → 다시 `받기` → `받음 — 검사 통과 (4096 KB · 31%부터 이어서)` · 조각 11개만 더 받았다(끊길 때 오가던 하나는 버려졌다) · 내용이 같다 · 앞선 받기는 닫혔다 |
+| 멈춘 카드의 이어서 | 끊긴 올리기가 15초 뒤 `어긋남` · `멈췄다 · 31%에서 보내던 화면이 닫혔다 — …` · [이어서 · 중단] → `이어서` → **이름이 다른** 같은 내용의 파일을 골랐다 → `share-0/md21-card.bin · 31%부터 이어서` · 내용이 같다 |
+| 중단 → 다시 올리기 | 멈춘 카드의 `중단` → `중단됨` · `중단 · 31% 남겨 둠 — 같은 파일을 다시 올리면 거기서부터` · 서버 `aborted` · 부분 파일 1310720 B → 같은 파일을 `↑ 올리기` → `31%부터 이어서` · 내용이 같다 |
+| 치우기 | 중단해 둔 카드의 `치우기` → `md21-clear.bin 치움 — 남겨 둔 부분 파일도 지웠다` · 카드 · 서버 기록 · 부분 파일 모두 없다 |
+| 셸 세션 | 다시 들어올 때마다 로그인 카드가 섰다 — Scene 로그인의 Handle 은 새로 고침에 사라진다(PF-8). 이어서는 서버 기록 · 브라우저 저장본으로 하므로 상관없다 |
+| 콘솔 | 페이지 오류 0 |
+
 ## 6. 코드 지도
 
 | 파일 | 내용 |
@@ -399,6 +448,7 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | `src/data/intro-live.js` | `realIntro(Screen)` · `bootIntro` · `watchMapFrame` — 비밀번호 없는 시작 화면 · 노드 화면 미리 읽기 |
 | `src/store/layout.js` | LayoutStore — `layoutKey` · `bindLayout`(끊을 수 있는 자동 저장 · 바뀐 것만 · 서버로 뒤따라 `onSave`) · `saveLayout`(`_savedAt`) · `reviveMaps` · `reviveWins` · `reviveMemos` · `remapNodes` |
 | `src/store/docs.js` | 사용자 문서(C-1) — `DocStore`(읽기 · 모아서 쓰기 · `base_revision` · 409) · `newerDoc` · `pullAssets` · `watchAssets` |
+| `src/store/parts.js` | 받기 조각 보관(MD-21) — `openParts`(IndexedDB `terra.gui.parts` — `open` 은 SHA-256 · 크기가 같을 때만 0부터 이어진 조각 · `add` · `drop` · 이레 지난 것 치우기). 없거나 막히면 `null` — 메모리로만 받는다 |
 | `src/data/node-live.js` | `realNode(Screen)` · `loadWorld`(+ 사용자 문서) · `loadAlarms` · `loadFolder` · `loadLocalFolder` · `deskOpen` · `onThisMachine` · `loadNet` · `applySignal` · `masterWhy` · `resetWorld` · `wgLine` |
 | `src/data/world.js` | 노드 목록 → 이름(겹치면 node_id 끝 4자) · 관계도(NET) · 자원 요약 |
 | `src/data/alarms.js` | Daemon 작업 → 알림 한 줄(색이 곧 종류 — 화면의 `KIND` 표) |
@@ -407,12 +457,12 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | `src/data/settings-live.js` | `realSettings(Screen)` · `flatten` · `toWire` |
 | `src/data/editors-live.js` | `realMaterial` · `realField` |
 | `src/data/live-host.js` | `liveHub`(노드 화면 → 보드) · `connectLive`(보드) · `absenceText` |
-| `src/api/source.js` | `appFor`(Daemon 쪽이면 `local` 대응) · `daemonView` · `pathInput`(op 이름의 `by-…` 자리만) · 다른 노드는 노드 주소 호출(`idOf`) · `lockFor`(누르기 전 자물쇠 — 그 노드 카탈로그) · 폴더 단계 읽기 · `guard` · `crud` · `upload` · `download` · `guiApps` |
+| `src/api/source.js` | `appFor`(Daemon 쪽이면 `local` 대응) · `daemonView` · `pathInput`(op 이름의 `by-…` 자리만) · 다른 노드는 노드 주소 호출(`idOf`) · `lockFor`(누르기 전 자물쇠 — 그 노드 카탈로그) · 폴더 단계 읽기 · `guard` · `crud` · `upload`(이어서 — `resume_id`) · `stalledPush` · `download`(이어서 — `parts`) · `markStalled`(멈춘 전송) · `guiApps` |
 | `src/api/client.js` | `TerraClient` — `invoke` · `invokeAt`(노드 주소 호출) · `invokeModuleAt`(원격 모듈 경로) · `binding` · `nodeCatalog`(60초) · `canRelay` · `request` · `get` · `fillRoute` · `toResult` · `resultText` · `reasonText` |
 | `src/api/events.js` | 실시간 이벤트(B-5) — `openEvents`(fetch 스트림 · 이어 받기 · 끄기) · `sseFrames` · `frameEvent` · `SIGNAL_APPS` |
 | `src/api/sha256.js` | SHA-256(조각씩) · base64 — 올리기 · 받기 검사(maingui 와 같은 코드) |
 | `src/api/operations.js` | `HELM_APPS`(목록 · 동작 · `form` · `upload` · `download` · `remote`) · `HELM_CRUD`(실제 본문 · `localOnly`) · `CRUD_TEXT`(API 줄) · `GUI_APPS` · `fileBinding`(io.terra.file 경로 대응표) · `manualAdapter` · `scanLine` · `logLines` |
-| `src/api/wire.js` | `wireHelm` — 목록 · 동작 · 폼 저장 · 두 번째 누름 · 값을 적어야 하는 동작의 폼 열기 · 올리기(파일 고르기) · 받기(`saveBlob`) · 출력 칸(`outText`) · 폴링(이벤트가 열려 있으면 느리게) · `_hbRefresh` · `formValues`. `wireFrame` — 토큰 → 세계 · 조타륜 · 이벤트 |
+| `src/api/wire.js` | `wireHelm` — 목록 · 동작 · 폼 저장 · 두 번째 누름 · 값을 적어야 하는 동작의 폼 열기 · 올리기(파일 고르기) · 받기(`saveBlob`) · 멈춘 전송의 이어서 · 출력 칸(`outText`) · 폴링(이벤트가 열려 있으면 느리게) · `_hbRefresh` · `formValues`. `wireFrame` — 토큰 → 세계 · 조타륜(받기 조각 보관 `openParts`) · 이벤트 |
 | `src/api/adapters.js` | 상태를 화면 낱말로(`modState` · `jobState` · `xferState` · `tunnelState` …) — 표에 없는 값이 오면 렌더 전체가 멈추기 때문. `withGui`(모듈 ← GUI 앱) |
 
 ## 7. 시험
@@ -424,9 +474,10 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | `tests/module.test.mjs` | 부트 프로필 `prep` · 공통 보정(자기 칸) · LayoutStore 되살리기(`ovhHide` · 메모 모양 포함) · 묶기/끊기 · 바뀐 것만 저장 · `loadWorld`가 저장본을 되살리고 로그아웃이 지우지 않기 · **사용자 문서**(앱 이름공간 경로 · 404 와 501 · `base_revision` · 409 한 번 알림 · 모아서 쓰기 · 끊기 · 새 쪽이 이긴다 · 자산 받기 · 내보내기 · 서버 것이 새로우면 그 배치 · 브라우저 것이 새로우면 한 번 올리기) · 시작 화면 · frame 연결 빌리기 · 설치한 자원 · 상태 화면의 앱 다시 받기 |
 | `tests/events.test.mjs` | SSE 프레임(주석 · 덜 온 프레임 · `\r\n`) · 이어 받기(`last_event_id` · `Last-Event-ID`) · 길이 없으면 끄기 · 신호 → 0.25초 모아 그 목록만 · `reset` 은 다 · 로그인 전 신호 버리기 · 이벤트가 열려 있으면 폴링이 느려진다 |
 | `tests/node-ops.test.mjs` | SHA-256 · base64 · 올리기(만들기 → 조각 → 409 면 서버 offset → 완료 · 다섯 번에서 멈춤) · 받기(조각 · 전체 검사 · 어긋나면 `pulls.abort`) · 손 등록(scheme → 어댑터 · 비우면 스캔 · 모르는 scheme) · 출력 칸 글 · 로컬 탐색(루트 · 항목 · 🔒 · 한 번만 읽기 · 실패하면 다시) · 바탕화면에서 열기(그 컴퓨터에서만 · `shared:<이름>` · 실행 파일 409) · Master 에 닿지 않는 노드 관리 |
+| `tests/resume.test.mjs` | 끊긴 뒤 이어서(MD-21) — 멈춘 전송 가리기(기한 · 기록 60초 · 지켜본 15초 · 이 화면이 하는 것 · 노드마다) · 올리기(`FILE_TARGET_EXISTS` → 목록 → `resume_id` · 다른 화면이 보내는 중 · 다른 파일 · 잠깐 지켜본 뒤 잇기 · 카드의 이어서 · 기한이 지나면 다시 열기 · 중단되면 멈추기) · 받기(둔 조각부터 · 앞선 받기 닫기 · 바뀐 파일은 처음부터 · 전체가 어긋나면 버리기 · 기한) · 카드의 이어서 · 중단 · 치우기 |
 | `tests/crud.test.mjs` | 앱마다 추가 · 수정 · 삭제의 **본문이 실제 서버의 입력과 같은지**(폴더 · 장치 · 작업 · 터널 · 피어 · 허가 · 선언 · 전송), Master POST 에 `node_id` 를 싣지 않기, 길이 없는 것은 `null`, 카탈로그에 없는 op 는 부르지 않기, GUI 앱 붙이기. 화면과 함께: 폼 저장이 지어내지 않기 · 삭제의 두 번 누름 · 맵 자리 걷기 · 취소는 남기기 · 이름 · 칸 id 따라가기 · 폼 여는 동작 · 끊으면 되돌리기 · API 줄 ⚠ · 자리 표시자에 예시 없음 · 모듈 GUI 창 · 상태 화면 로그인 줄 |
 | `tests/api.test.mjs` | 봉투 벗기기 · 위임 자격의 Master 401 · `<노드>` 자리 표시자 · **노드 주소 호출**(그 노드 카탈로그 60초 · 연 것만 · `allowed: false` · 길이 없는 게이트웨이 · `no-node-id` · Master 길 오류 → 화면 글 · 모듈 로그 `remote`) · **원격 모듈 경로**(`fillRoute` · 다른 노드 폴더 항목 · 올리기 조각 PUT · 경로 자리는 본문에서 뺀다 · 노드 주소 호출로 부르지 않는다) · frame 판별 · 보드 페이지 |
-| `tests/smoke.mjs` | 페이지가 오류 없이 뜨고 예시가 없다 · 시작 화면 → 노드 화면 · 조타륜 · 전체 화면 · 메모 · 오버헤드 패널 접기 · 상태 화면(로그인 전) · 도로 편집기 보드 · 창 크기 |
+| `tests/smoke.mjs` | 페이지가 오류 없이 뜨고 예시가 없다 · 시작 화면 → 노드 화면 · 조타륜 · 전체 화면 · 메모 · 오버헤드 패널 접기 · 상태 화면(로그인 전) · 도로 편집기 보드 · 창 크기 · 받기 조각 보관(진짜 IndexedDB) |
 
 ```bash
 # Linux — web/ 에서. Windows(PowerShell) · macOS 도 같은 명령이다
@@ -447,12 +498,12 @@ npm test
 - [[node-screen-data-model|노드 화면 데이터 모델]] — §2.8 예시로만 존재하는 것
 - [[testing|시험]]
 - [[module-profile|모듈 프로필]] — 시작 화면 · LayoutStore · 생성 때 바꾸는 것
-- [[implementation-backlog|구현해야 할 것]] — MD-11 · MD-12 · MD-15~MD-19(끝냄) · 남은 PF · UP
+- [[implementation-backlog|구현해야 할 것]] — MD-11 · MD-12 · MD-15~MD-21(끝냄) · 남은 PF · UP
 
 ## 관련 모듈
 
 - `lab.stellaxia.node-gui` — 이 웹을 `ui/` 로 싣는 모듈(모듈 README "무엇이 실데이터인가")
-- `io.terra.file` · `io.terra.io-inventory` — 폴더 · 전송(0.2.0 받기) · 장치(0.2.0 손 등록) 데이터의 출처
+- `io.terra.file` · `io.terra.io-inventory` — 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · 장치(0.2.0 손 등록) 데이터의 출처
 - Terra 게이트웨이 — 노드 주소 호출(B-1) · 사용자 문서(C-1) · 이벤트 중계(B-5)
 
 ## 관련 흐름
@@ -461,3 +512,4 @@ npm test
 - 로그인 → `loadWorld`(+ 사용자 문서) → `wireHelm` → 이벤트(폴링은 바닥) · 로그아웃 → `resetWorld`
 - §2.8 그림 — LayoutStore ↔ 사용자 문서(새 쪽이 이긴다 · 409)
 - §2.4 그림 — 폼 저장 · 두 번째 누름 → `crud` → 서버 → 목록 다시 받기
+- §2.9 그림 — 올리기 · 받기 → 끊김 → 이어서(서버 checkpoint · 이 브라우저의 조각)

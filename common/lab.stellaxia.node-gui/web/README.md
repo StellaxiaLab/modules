@@ -6,7 +6,7 @@ doc_type: "readme"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.2.0"
+version: "1.3.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 ---
@@ -81,6 +81,7 @@ web/                         # 모듈 lab.stellaxia.node-gui 의 웹 소스 (포
 │   ├── data/                # 실데이터 층: 화면 클래스를 이어받아 예시를 지운다 (*-live.js · intro-live.js) · 순수 변환
 │   ├── store/layout.js      # LayoutStore — 맵 배치 · 노드 자원 · 연결 · 메모 (이 브라우저 · 노드 · 주체마다)
 │   ├── store/docs.js        # 사용자 문서(Terra C-1) — LayoutStore · 편집기 자산을 서버에도 (새 쪽이 이긴다 · 409)
+│   ├── store/parts.js       # 받기 조각 보관(IndexedDB) — 끊긴 받기를 다시 받으면 거기서부터 (MD-21)
 │   └── model/               # 데이터 모양(JSDoc) · 권한 · 배지 규칙
 ├── design/                  # 디자인 캔버스 원본 (.dc.html · canvas.json · 로고)
 ├── docs/                    # 개발 문서 (Obsidian 호환 — docs/README.md 부터)

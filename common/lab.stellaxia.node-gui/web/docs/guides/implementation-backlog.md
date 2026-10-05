@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.4.0"
+version: "1.5.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -39,16 +39,17 @@ related:
 | 묶음 | 누가 | 높음 | 중간 | 낮음 |
 | --- | --- | --- | --- | --- |
 | **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 1 | 3 | 5 |
-| **MD** 이 모듈 | modules 저장소 | 1 | 4 | 4 |
-| **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | — | 3 | 2 |
+| **MD** 이 모듈 | modules 저장소 | 1 | 4 | 3 |
+| **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | — | 3 | 4 |
 | **Q** 사람이 정할 것 | 소유자 | — | — | — |
 
 남은 것만 센다(2026-10-05 저녁). Terra G0~G6이 닫은 PF는 §1.2, 이 모듈이 끝낸 MD는 §2 "끝낸 것", 원본이 고친 UP는 §3.0에 있다.
 Terra G0~G6이 연 길(B-1 · B-5 · C-1 · B-11 · B-12 · B-14)은 이 모듈이 모두 옮겼다 — MD-11 · MD-12 · MD-15~MD-20.
+끊긴 뒤 이어서(MD-21)도 끝냈다 — 그 길에서 찾은 io.terra.file 문제(invoke로 보낸 중단이 늘 포기)를 0.2.1로 함께 고쳤다.
 
 ```mermaid
 flowchart LR
-  subgraph DONE["끝냄 2026-10-05 — Terra G0~G6이 연 길"]
+  subgraph DONE["끝냄 2026-10-05 — Terra G0~G6이 연 길 · 끊긴 뒤 이어서"]
     MD11["MD-11 이벤트"]
     MD12["MD-12 다른 노드"]
     MD15["MD-15 사용자 문서"]
@@ -56,7 +57,10 @@ flowchart LR
     MD17["MD-17 올리기 · 받기"]
     MD18["MD-18 장치 손 등록"]
     MD20["MD-20 다른 노드의 공유 폴더"]
+    MD21["MD-21 끊긴 뒤 이어서"]
   end
+  FILE021["io.terra.file 0.2.1 — 중단이 부분을 남긴다"] -->|"중단 뒤 다시 올리기"| MD21
+  MD21 -.->|"멈춤 칸 · 이어서"| UP22["UP-22 · UP-23 원본에 올릴 것"]
   PF10["PF-10 자기 op invoke — Terra PR 118"] -.->|"병합되면 경로 대신 operationId"| MD15
   PF1["PF-1 Master op — 남음"] --> MD1["MD-1 입출력 연결의 의미"]
   PF1 --> MD13["MD-13 tree CRUD E2E"]
@@ -113,7 +117,6 @@ flowchart LR
 | **MD-10** | 번들에 남은 예시 문자열 | 원본 미리보기의 예시 상수가 번들에 **문자열로** 남는다(화면 · 요청에는 나가지 않는다 — 시험이 지킨다). 지우려면 원본 미리보기 데이터를 따로 떼야 한다 | 원본 작업 방식 | 낮음 |
 | **MD-13** | tree 게이트웨이에서 Master 쪽 추가 · 수정 · 삭제 E2E | 허가 · 바인딩 · 터널 열기 · 선언 · 피어 회수 · 다른 노드 작업의 본문은 Master 코드로 맞췄지만(`decodeJSON` 입력 구조) 시험 스택이 leaf라 실제로 부르지 못했다(`not-in-catalog`). tree 노드에 모듈을 깔고 돌린다 | PF-1(위임) | 중간 |
 | **MD-14** | 모듈 GUI 창에서 그 모듈의 GUI 열기 | 지금은 `/api/v1/gui/apps`로 GUI가 있는지 · 주소만 보인다 | PF-15 | 낮음 |
-| **MD-21** | 받기 · 올리기를 끊긴 뒤 이어서 | 한 세션 안에서는 이어 간다(올리기 409 → 서버 offset). 페이지를 닫으면 처음부터다 — 받기는 `resume_id`, 올리기는 남은 전송을 고를 칸이 없다 | — | 낮음 |
 
 ### 끝낸 것
 
@@ -129,11 +132,12 @@ flowchart LR
 | **MD-16** | 모듈 로그 · 폴더 탐색기 · 열기 | 로그 → 상태 화면 출력 칸(게이트웨이 `logs` · Daemon `lines` 둘 다). 폴더 탐색기 = `local-fs.roots` · `entries`(🔒 + 이유). 파일 = `desktop.open {open}`, `파일 관리자로` = 지금 폴더 `{reveal}` — 그 컴퓨터에서 볼 때만(`*.localhost`). Daemon 오류 코드는 화면 글로 · 2026-10-05 |
 | **MD-17** | 파일 올리기 · 받기 | 올리기 — `↑ 올리기` → 파일 고르기 → `transfers.create`(SHA-256) → 조각 → 409면 서버 offset부터 → 완료 검사(maingui A-2를 옮겼다). **받기** — 폴더 앱 `받기` → `transfers.pulls.create` → `chunks.get`(조각마다 SHA-256) → 전체 검사 → `pulls.complete` → 브라우저 저장. 받기는 io.terra.file 0.2.0(#24)부터 — 원본에는 아직 없다(UP-20) · 2026-10-05 |
 | **MD-18** | 장치 손 등록 | I/O 앱 `＋ 추가` 폼 = 이름 · 주소. 주소 scheme → `manual.rtsp` · `manual.http-camera` → `terra.daemon.io.devices.post {kind: camera, name, adapter_id, address}`. 비우면 스캔 · 모르는 scheme은 부르지 않는다. io-inventory 0.2.0(#26) · 2026-10-05 |
+| **MD-21** | 받기 · 올리기를 끊긴 뒤 이어서 | **올리기** — 같은 자리에 같은 파일(크기 · SHA-256)을 보내다 멈춘 전송을 `transfers.list`에서 찾아 `resume_id`로 다시 연다(새로 만들기가 부분 파일 때문에 `FILE_TARGET_EXISTS`일 때 · 방금까지 움직인 것은 3초 뒤 다시 본다 · 기한이 지나도). **받기** — 받은 조각을 이 브라우저 IndexedDB(`src/store/parts.js`)에 두고, SHA-256 · 크기가 같으면 둔 곳부터 · 앞선 받기는 닫는다. **전송 앱** — 멈춘 전송(보내던 화면이 닫혔다)은 `어긋남` 칸 + 이어서(파일 고르기 · 이름은 달라도 된다) · 중단(부분 남김) · 치우기(부분도 버림). **io.terra.file 0.2.1** — 중단의 `keep_partial` · `reason`을 invoke 본문에서도 읽는다(0.2.0은 query만 읽어 앱의 중단이 늘 포기였다) · 기한 지난 받기도 받기 전용 문으로 닫는다. 진짜 스택에서 4 MB 올리기 · 받기를 31%에서 끊고 이었다([[real-data-layer\|실데이터 층]] §5.4) · 2026-10-05 |
 | **MD-20** | 다른 노드의 공유 폴더 안 · 전송 | `io.terra.file`(scopes local · node)은 노드 카탈로그에 없어 원격 모듈 경로 `/api/nodes/{node_id}/modules/io.terra.file/v1/…`로 부른다(`client.invokeModuleAt` · `fillRoute` · 카탈로그 `bindings`, 없으면 `fileBinding`). 앱 토큰으로 진짜 게이트웨이에서 목록 · 올리기 · 받기 · 지우기가 그 길로 갔다 · 2026-10-05 |
 | **MD-19** | maingui `2ced429` 따라가기 | `design/`(Artboard · Settings)을 그 커밋 그대로 복사하고 다시 만들었다 — 파일 단위로 같다. 연동 층은 필요한 것만 옮겼다(이벤트 · 노드 주소 호출 · 사용자 문서 · local-fs · desktop.open · 올리기 · 노드 관리 폼은 Master에 닿지 않으니 잠금 · 설정 재시작 `doRestart`). 생성기의 낡은 설정 패치 둘을 뺐다 · 2026-10-05 |
 
 그 밖에 maingui 기준으로 다시 맞추며(2026-10-04) 자원 추가 · 수정 · 삭제를 실제 호출로(지어내지 않기) · 값을 적어야 하는 앱 바 동작의 폼 · 상태 화면 · 모듈 GUI 창 · `ovhHide` 저장 — [[real-data-layer|실데이터 층]] §2.4 · §2.5 · §5.2.
-MD-11 · MD-12 · MD-15~MD-20의 진짜 스택 실측은 [[real-data-layer|실데이터 층]] §5.3, 단위 시험은 [[testing|시험]].
+MD-11 · MD-12 · MD-15~MD-20의 진짜 스택 실측은 [[real-data-layer|실데이터 층]] §5.3, MD-21은 §5.4, 단위 시험은 [[testing|시험]].
 
 ## 3. GUI 원본(maingui) · 디자인에 올릴 것 (UP)
 
@@ -147,6 +151,7 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 | 원본에 올렸다 | UP-1 · UP-2 · UP-3 · UP-10 · UP-12(나) · UP-15 · UP-18 · UP-19 · UP-20 · UP-21 | [maingui#1](https://github.com/StellaxiaLab/maingui/pull/1) — 고치기 전 코드에서 실패하는 시험과 함께(UP-19~21은 둘째 커밋 `43d547a` — 가짜 Gateway도 실제 모양으로) |
 | 원본이 고쳤다 | UP-4 · UP-5 · UP-6 · UP-7 · UP-8 · UP-12(가 · 다 · 라 · 마) · UP-13 · UP-17 | maingui `19d2a70`(연동 층을 실제 Gateway에) · `2ced429`(G0~G6 연동) |
 | 남았다 | UP-9 · UP-11 · UP-12(바 · 사) · UP-14 · UP-16 | 아래 — maingui `2ced429`에서 다시 봤다 |
+| 새로 찾았다 — 아직 올리지 않았다 | UP-22 · UP-23 | MD-21에서 — 아래 |
 
 - **UP-9** — `service.js` `hbPerm`이 로컬 노드를 여전히 `소유자` · 모든 권한으로 둔다. 원본의 선택일 수 있다(권한 없는 호출은 게이트웨이가 거절한다)
 - **UP-11** — UI 명세 §2.9가 여전히 §2.13 뒤에 있다
@@ -159,6 +164,13 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 - **UP-19** — 모듈 로그의 두 모양. Daemon(`modules.by-module-id.logs.get` — 다른 노드 · 대체 경로)은 줄이 `{at, stream, text}` 객체라 원본 `wire.js`의 `d.lines.join('\n')`이 `[object Object]`를 찍는다. 게이트웨이(`modules.by-id.logs.get`)는 `{module, logs: [글]}`인데 원본은 `logs`를 보지 않아 JSON이 그대로 나온다. 원본의 가짜 Gateway가 둘 다 `lines: [글]`로 답해 가려졌다 — 모듈은 `logLines`로 둘 다 글로 옮긴다
 - **UP-20** — 받기(내려받기). io.terra.file 0.2.0(modules #24)이 `transfers.pulls.*`를 냈다. 원본에는 받기가 없다 — 모듈 `source.download`(조각 · 조각마다 SHA-256 · 전체 검사 · `pulls.abort`) · `saveBlob`를 옮긴다
 - **UP-21** — `desktop.open`의 실행 파일 거절 코드는 `DESKTOP_OPEN_EXECUTABLE`이다. 원본은 `r.code === 'DESKTOP_EXECUTABLE'`을 본다(409로도 견주어 글은 맞게 나온다). 그 밖의 코드(`DESKTOP_SESSION_UNAVAILABLE` 503 · `DESKTOP_LAUNCHER_UNAVAILABLE` 503 · `LOCAL_FS_DENIED` …)는 `지금은 볼 수 없다 (모듈 멈춤)` 같은 머리말로 나온다 — 모듈은 코드마다 화면 글(`reasonText`)
+
+새로 찾은 것(MD-21 — 끊긴 뒤 이어서를 진짜 스택에서 돌리며 · 아직 원본에 올리지 않았다):
+
+- **UP-22** — 디자인의 전송 상태에 **멈춤**(보내던 · 받던 화면이 닫혔다 — 이어서 할 수 있다)이 없다. 칸은 `transferring` · `verifying` · `completed` · `aborted` · 그 밖(`어긋남`)뿐이라
+  모듈은 멈춘 전송을 `어긋남` 칸에 두고 이유 줄로 말한다(`멈췄다 · 31%에서 보내던 화면이 닫혔다 — …`). 멈춤 칩이 있으면 낫다
+- **UP-23** — 원본에는 끊긴 뒤 이어서가 없다. 원본의 중단(`keep_partial: true`)은 io.terra.file 0.2.0에서 늘 포기였다 — 0.2.1이 고쳤으니 원본 코드는 그대로 둬도 된다.
+  모듈의 `markStalled` · `stalledPush` · `upload {resume}` · `download` + `src/store/parts.js`를 옮길 수 있다
 
 ### 3.1 찾은 것 — 그때 표
 
@@ -185,6 +197,8 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 | **UP-19** | 모듈 로그 글 | Daemon 로그 줄 = `{at, stream, text}` → `[object Object]`. 게이트웨이 것은 `{module, logs: [글]}`인데 원본은 `lines`만 봐 JSON 그대로 찍힌다. 원본의 가짜 Gateway도 두 모양이 실제와 달라 가려졌다(계약 · 진짜 스택) | `logLines` — 두 모양 다 · 흐름이 섞이면 stderr에 `! ` | 중간 |
 | **UP-20** | 받기가 없다 | io.terra.file 0.2.0 `transfers.pulls.create` → `chunks.get` → `pulls.complete`(modules #24) | `source.download` · `saveBlob` — 300 KB 받아 내용이 같다(실측) | 중간 |
 | **UP-21** | 바탕화면 · 로컬 탐색 오류 글 | 실제 코드 `DESKTOP_OPEN_EXECUTABLE` · 503 두 가지 · `LOCAL_FS_*` | `reasonText` — 머리말 없이 | 낮음 |
+| **UP-22** | 전송 카드에 멈춤 상태가 없다 | 페이지를 닫은 올리기는 서버에 `transferring`으로 남는다 — 보내는 쪽이 없다(실측 `offset 1310720` 그대로) | `어긋남` 칸 + 이유 줄 · 이어서 · 중단 | 낮음 |
+| **UP-23** | 끊긴 뒤 이어서가 없다 | 다시 올리면 부분 파일 때문에 `FILE_TARGET_EXISTS` · 다시 받으면 처음부터 | `resume_id` · IndexedDB 조각 — 31%부터 이었다(실측) | 낮음 |
 
 ## 4. 사람이 정할 것 (Q)
 
@@ -199,7 +213,7 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 | **Q-10** | `node.config`★를 앱 권한에 넣을까 | 넣지 않았다 — 설정 화면의 운영자 키와 자원 선언 쓰기(`svi.declarations.post` · `undeclare` · `forget` — PF-13 정정)가 잠겨 보인다 | `module.json`의 `permissions`에 더한다. 사용자 권한과의 교집합이라 사용자에게도 있어야 한다 — `node.config`★는 기본 권한 밖이라 관리자 계정에도 따로 주어야 한다 |
 | **Q-11** | 디자인 노트 페이지(`components` · `helm` · `helm-apps`) | 모듈에서 뺐다(service 판과 같다). 원본은 `design/`에 남겼다 | demo 판에서만 본다 |
 | **Q-12** | maingui를 어떻게 따라갈까 | `design/`을 **복사**하고 맞춘 커밋(`f24c3bc`)을 문서에 적는다 — [[module-profile\|모듈 프로필]] §8. 모듈에서 찾은 원본 쪽 문제는 원본에 PR로 올린다(maingui#1) | git submodule · subtree로 묶는다 · 연동 층(`src/api`)을 공유 패키지로 뗀다(Q-9와 같이) |
-| **Q-13** | "삭제"의 뜻 | 작업 = **취소**(기록은 남는다) · 선언 = **철회**(퇴역 원장에 남는다) · 전송 = **포기**(부분 파일도 지운다 — `keep_partial: false`) · 끝난 전송 = 화면에서만 치우기 | 전송 삭제를 `중단`(부분 파일 남김 — 카드의 `중단`과 같다)으로 |
+| **Q-13** | "삭제"의 뜻 | 작업 = **취소**(기록은 남는다) · 선언 = **철회**(퇴역 원장에 남는다) · 전송 = **포기**(부분 파일도 지운다 — `keep_partial: false`) · 중단해 둔 전송(부분 남김)의 치우기도 포기 · 끝난 전송 = 화면에서만 치우기. 카드의 `중단`은 부분을 남긴다 — 같은 파일을 다시 올리면 잇는다(MD-21) | 전송 삭제를 `중단`(부분 파일 남김 — 카드의 `중단`과 같다)으로 |
 | **Q-14** | 사용자 데이터를 서버에도 둘까 | **예** — `layoutStore: server`(기본). 브라우저에 바로, 사용자 문서에 뒤따라. 두 곳이 다르면 새 쪽 · 겹쳐 쓰면 마지막에 고친 화면(409 한 번 알림) | `local`(이 브라우저에만 — 예전과 같다) · `none`(공용 화면) |
 | **Q-15** | 다른 노드의 작업을 어디서 볼까 | **그 노드 Daemon의 작업 목록**(노드 주소 호출) — 앱 토큰은 Master 작업에 닿지 않는다(PF-1). 실행만 Master `commands.post`(Daemon이 원격 실행을 열지 않는다) | Master 작업(`jobs.get`) — PF-1이 열리면 출력까지 보인다(PF-7) |
 
@@ -229,4 +243,7 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 - MD-12 → MD-20: 다른 노드의 Daemon은 노드 주소 호출로, 공유 폴더(모듈 op)는 원격 모듈 경로로 닿는다
 - PF-1 → PF-17: 문서 변경 신호는 Master 이벤트라 앱 토큰에 오지 않는다
 - MD-16 · MD-17 → UP-19 · UP-20 · UP-21: 모듈이 진짜 스택에서 찾은 것을 원본에 올렸다(maingui#1)
+- MD-17 → MD-21: 한 세션 안의 이어 보내기(409 → 서버 offset) → 페이지를 닫은 뒤에도(서버 checkpoint · 이 브라우저의 조각)
+- io.terra.file 0.2.1 → MD-21: 중단이 부분을 남겨야 다시 올릴 때 잇는다 — 0.2.0은 invoke로 보낸 중단을 늘 포기로 들었다
+- MD-21 → UP-22 · UP-23: 멈춤 칸과 이어서를 원본에도
 - PF-15 → MD-14: 셸이 "앱 열기"를 받아야 모듈 GUI 창이 실제로 연다

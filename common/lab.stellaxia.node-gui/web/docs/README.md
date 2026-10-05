@@ -8,7 +8,7 @@ doc_type: "moc"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.2.0"
+version: "1.3.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -37,7 +37,7 @@ related:
 
 출하는 Terra 모듈 `lab.stellaxia.node-gui`의 웹 앱으로 한다. 노드에서 셸 Scene의 `terra.web/frame` 안에 뜨면 이 노드의
 값(노드 · 부모 tree · 자원 · 알림 · 폴더 · 네트워크 · 설정)으로 채워진다 — [[real-data-layer|실데이터 층]] · [[architecture#7. Terra 안에서 — frame|구조 §7]].
-Terra G0~G6이 연 길(실시간 이벤트 · 다른 노드 · 사용자 문서 · 로컬 탐색 · 바탕화면 열기 · 모듈 로그)과 파일 올리기 · 받기 · 장치 손 등록도 쓴다 — [[real-data-layer|실데이터 층]] §2.6~§2.9.
+Terra G0~G6이 연 길(실시간 이벤트 · 다른 노드 · 사용자 문서 · 로컬 탐색 · 바탕화면 열기 · 모듈 로그)과 파일 올리기 · 받기(끊긴 뒤 이어서 포함) · 장치 손 등록도 쓴다 — [[real-data-layer|실데이터 층]] §2.6~§2.9.
 
 ## 읽는 순서
 
@@ -64,7 +64,7 @@ flowchart LR
 | 예시 데이터를 어떻게 지웠나 · 무엇을 어디서 읽나 · 무엇이 왜 비어 있나 | [[real-data-layer\|실데이터 층]] |
 | 변형(demo · service · module) · 시작 화면 · LayoutStore · 원본(maingui)과 맞추기 | [[module-profile\|모듈 프로필]] |
 | 자원 추가 · 수정 · 삭제 — 앱마다 실제 본문 · 지어내지 않기 · 상태 화면 · 모듈 GUI 창 | [[real-data-layer\|실데이터 층]] §2.4 · §2.5 |
-| 실시간 이벤트 · 다른 노드(노드 주소 호출) · 사용자 문서(서버 저장) · 올리기 · 받기 | [[real-data-layer\|실데이터 층]] §2.6 · §2.7 · §2.8 · §2.9 · [[module-profile\|모듈 프로필]] §4 |
+| 실시간 이벤트 · 다른 노드(노드 주소 호출) · 사용자 문서(서버 저장) · 올리기 · 받기 · 끊긴 뒤 이어서 | [[real-data-layer\|실데이터 층]] §2.6 · §2.7 · §2.8 · §2.9 · [[module-profile\|모듈 프로필]] §4 · [[helm-apps-integration\|조타륜 앱 연동]] §2.5 |
 | **남은 일** — 플랫폼 · 이 모듈 · GUI 원본 · 결정 | [[implementation-backlog\|구현해야 할 것]] |
 | 도로 편집기 · 건물 타입 도로 | [[road-editor-spec\|도로 편집기]] |
 | 화면 모양 · 동작 · 시간 | [[node-screen-ui-spec\|노드 화면 UI 명세]] |

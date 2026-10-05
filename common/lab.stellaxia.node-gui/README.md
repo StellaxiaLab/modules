@@ -4,7 +4,7 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.5"
+version: "v0.6"
 last_updated: "2026-10-05"
 ---
 
@@ -93,8 +93,8 @@ flowchart LR
 | 맵 배치 · 노드 모습 · 노드 자원 · 연결(도로) · 표시 설정 · 메모 | LayoutStore — 이 브라우저(앱 origin)에 노드 · 주체마다 + 사용자 문서 `app:lab.stellaxia.node-gui.web/layout/<node_id>`(새 쪽이 이긴다 · 겹쳐 쓰면 한 번 알린다). 처음엔 비어 있다. 설치한 자원의 상태 · 모니터링 값은 원본 앱 목록에서(닫혀 있어도) |
 | 세션 띠 · 유틸 카드 · 창 요약 · 속성 창 | 로그인한 사람(frame 값) · 토큰 권한 · 모듈 · 터널 · WireGuard · 설정 키 수 · 장치 · 공유 폴더 개수 — 진짜 값, 없으면 `—` |
 | 알림 | 이 노드의 Daemon 작업(`terra.daemon.tasks.get`) — 실시간 이벤트(`terra.daemon.events.get` SSE)의 신호마다, 이벤트가 없으면 `pollSec`(기본 10초)마다. 새로 생기거나 상태가 바뀐 것 |
-| 조타륜 앱 — I/O 장치 · 공유 폴더 · 파일 전송 · 서비스 터널 · WireGuard · 자원 선언 · 작업 · 모듈 | **실데이터와 실제 동작.** 작업은 Daemon 작업, 모듈 수명은 Daemon 경로(`node.control`). 장치 손 등록(카메라 주소) · 파일 올리기(↑ 올리기 → 조각 · SHA-256) · 받기(브라우저 저장) · 모듈 로그(상태 화면 출력 칸) |
-| 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버가 받는 본문으로 부른다 — 폴더(만들기 · 빈 파일 · 이름 바꾸기 · 지우기) · 장치(별명 · 승인 · 켜기 · 잊기 · 스캔) · 작업(실행 · 취소) · 전송(포기). 서버에 길이 없으면 **항목을 지어 넣지 않고** 그렇다고 말한다 |
+| 조타륜 앱 — I/O 장치 · 공유 폴더 · 파일 전송 · 서비스 터널 · WireGuard · 자원 선언 · 작업 · 모듈 | **실데이터와 실제 동작.** 작업은 Daemon 작업, 모듈 수명은 Daemon 경로(`node.control`). 장치 손 등록(카메라 주소) · 파일 올리기(↑ 올리기 → 조각 · SHA-256) · 받기(브라우저 저장) · 끊긴 뒤 이어서(같은 파일을 다시 올리면 서버가 받은 곳부터 · 다시 받으면 이 브라우저에 둔 조각부터 · 멈춘 전송의 카드) · 모듈 로그(상태 화면 출력 칸) |
+| 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버가 받는 본문으로 부른다 — 폴더(만들기 · 빈 파일 · 이름 바꾸기 · 지우기) · 장치(별명 · 승인 · 켜기 · 잊기 · 스캔) · 작업(실행 · 취소) · 전송(포기 · 중단해 둔 것의 치우기). 서버에 길이 없으면 **항목을 지어 넣지 않고** 그렇다고 말한다 |
 | 상태 화면 · 모듈 GUI 창 | 원본 앱 목록의 그 항목 · 이 노드의 권한 / 설치된 GUI 앱(`/api/v1/gui/apps`). 다른 모듈의 앱은 이 창에 띄울 수 없다고 적는다(frame은 자기 모듈의 앱만) |
 | 조타륜 앱 — SVI 자원 · 허가 | Master operation — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` |
 | 폴더 보관함 | Terra 저장소 = 이 노드의 공유 폴더(`io.terra.file`). 폴더 탐색기 = 이 노드의 로컬 최상위 루트(`local-fs` — 닫힌 폴더는 🔒), 파일 · 폴더는 그 노드의 바탕화면에 연다(`desktop.open` — 그 컴퓨터에서 볼 때만). 메모는 LayoutStore(브라우저 + 사용자 문서) |
@@ -168,6 +168,20 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### 끊긴 뒤 이어서 — MD-21 (2026-10-05, 0.3.0 · io.terra.file 0.2.1)
+
+같은 스택에 io.terra.file 0.2.1과 이 모듈을 깔고, leaf UI 셸 안에서 4 MB 파일(조각 16개)을 주고받다가 **페이지를 떠나** 끊은 뒤 다시 로그인해 이었다.
+내용은 SHA-256으로 견줬다 — 자세히는 [`web/docs/api/real-data-layer.md`](web/docs/api/real-data-layer.md) §5.4.
+
+| 항목 | 진짜 스택에서 |
+| --- | --- |
+| 올리기 | 31%에서 끊김 → 같은 파일을 다시 `↑ 올리기` → `31%부터 이어서` · 조각 11개만 더 보냈다 · 내용이 같다 |
+| 받기 | 31%에서 끊김 → 이 브라우저 IndexedDB에 1310720 B → 다시 `받기` → `31%부터 이어서` · 내용이 같다 · 앞선 받기는 닫혔다 |
+| 멈춘 카드 | 15초 뒤 `어긋남` · `멈췄다 · 31%에서 보내던 화면이 닫혔다` · [이어서 · 중단] → 이름이 다른 같은 파일로 이었다 |
+| 중단 · 치우기 | 중단 → `중단됨` · `31% 남겨 둠` · 부분 파일 1310720 B → 같은 파일 다시 올리기로 이었다. 치우기 → 카드 · 기록 · 부분 파일이 모두 사라졌다 |
+| io.terra.file 0.2.1 | 0.2.0은 invoke로 보낸 중단의 `keep_partial`을 듣지 않았다(`kept_partial: false` · 기록 404 · 부분 파일 없음) → 0.2.1은 `kept_partial: true` · 기록 200 · 부분 파일 남음 |
+| 시험 | `npm test` 111 · `test:smoke`(진짜 IndexedDB 포함) · io.terra.file `go test`(고치기 전 코드로는 새 시험이 실패) · `validate` · `test:web` · `test:scenes` 통과 · 페이지 오류 0 |
 
 ### Terra G0~G6 연동 — MD-11 · MD-12 · MD-15~MD-19 (2026-10-05, 0.3.0)
 
@@ -288,7 +302,7 @@ Daemon만 가짜다.
 ## 관련 모듈
 
 - `io.terra.scene.terra` (Terra 코어) — 이 main을 띄우는 base Scene
-- [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · 전송(0.2.0 받기) · I/O 장치(0.2.0 손 등록) 데이터의 출처
+- [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · I/O 장치(0.2.0 손 등록) 데이터의 출처
 - [`lab.stellaxia.scene.hello`](../lab.stellaxia.scene.hello/README.md) — 같은 tree 레지스트리 경로의 가장 작은 Scene 모듈
 - GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `2ced429`와 같다
 
@@ -300,3 +314,4 @@ Daemon만 가짜다.
 - 빌드 · 출하 — `npm run build:web` → `npm run pack`(앱 entry 검사) → 릴리스 자산 → `publish`
 - 자원 추가 · 수정 · 삭제 — 폼 저장 · 두 번째 누름 → `source.crud`(실제 본문) → 이 노드의 Gateway → 목록 다시 받기 — 서버에 길이 없으면 지어내지 않는다
 - 원본 따라가기 — maingui `design/` 복사 → `npm run gen`(패치를 못 찾으면 멈춤) → 시험 → `build:web`
+- 끊긴 뒤 이어서 — 올리기는 서버의 checkpoint(전송 목록 → `resume_id`), 받기는 이 브라우저의 조각(IndexedDB) → 서버의 SHA-256으로 끝에서 견준다

@@ -8,7 +8,7 @@ doc_type: "guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.3.0"
+version: "1.4.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -130,6 +130,9 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 도로 · 건물 설계(편집기에서 내보낸 것)는 LayoutStore가 아니라 `localStorage`의 `terra.gui.roads` · `terra.gui.buildings`다 — 노드 화면은 `storage` 이벤트로 받아 다시 굽는다([[road-editor-spec|도로 편집기]] §2).
 `layoutStore: server`면 이 둘도 사용자 문서 `assets`로 뒤따라 가고, 로그인할 때 서버 것이 더 새로우면 받아 다시 굽는다.
 
+받다 끊긴 파일의 조각은 이 브라우저의 IndexedDB `terra.gui.parts`(`src/store/parts.js`)에 둔다 — 같은 파일을 다시 받으면 거기서부터 잇고(서버의 SHA-256 · 크기가 같을 때),
+다 받으면 지운다. 이레 넘게 손대지 않은 것은 치운다. 사용자 문서로는 보내지 않는다(파일 바이트다). 막힌 브라우저(사생활 창 등)에서는 메모리로만 받는다 — [[real-data-layer|실데이터 층]] §2.9.
+
 ## 5. 설정 — `public/config.json`
 
 ```json
@@ -181,7 +184,7 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 | 다른 노드 — 노드 주소 호출 · 그 노드 카탈로그로 미리 잠금 · 권한 `관리자 · 중계` | `src/api/client.js` `invokeAt` · `nodeCatalog` · `src/api/source.js` `lockFor` · `daemonView` · `node-live.js` `hbPerm` |
 | 사용자 문서(서버 저장) — 배치 · 메모 · 편집기 자산 | `src/store/docs.js` · `node-live.js` `loadWorld` |
 | 모듈 로그 → 상태 화면 출력 칸 · 폴더 탐색기(local-fs) · 바탕화면에서 열기(desktop.open) | `src/api/wire.js` `outText` · `node-live.js` `loadLocalFolder` · `deskOpen` · `FBMODES` · `fbOpenItem` · `fbOS` |
-| 파일 올리기(↑ 올리기 → 파일 고르기) · 받기(폴더 앱 `받기` → 브라우저 저장) | `src/api/source.js` `upload` · `download` · `src/api/wire.js` `saveBlob` · `src/api/sha256.js` |
+| 파일 올리기(↑ 올리기 → 파일 고르기) · 받기(폴더 앱 `받기` → 브라우저 저장) · 끊긴 뒤 이어서(멈춘 전송의 카드 · 같은 파일 다시 올리기 · 이 브라우저에 둔 조각) | `src/api/source.js` `upload` · `download` · `stalledPush` · `markStalled` · `src/store/parts.js` · `src/api/wire.js` `saveBlob` · `src/api/sha256.js` |
 | I/O 장치 손 등록 폼(이름 · 주소) | `node-live.js` `hbFields` · `src/api/operations.js` `manualAdapter` |
 | 노드 관리 폼(이름 · 부모 · 지우기)은 Master op라 잠그고 이유를 보인다 · 설정 재시작은 Daemon `restart.post` 뒤 health로 돌아올 때까지 | `node-live.js` `masterWhy` · `rstVals` · `src/data/settings-live.js` `doRestart` |
 
