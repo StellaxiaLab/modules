@@ -102,6 +102,25 @@ check('보드의 ← 노드 화면 → 전체 화면 끝', await page.evaluate((
 // 창 크기를 따라 늘고 준다 (기준 1447×945 · 최소 1180×280)
 await page.setViewportSize({ width: 1700, height: 1000 }); await page.waitForTimeout(600);
 check('화면 크기 = 창 크기', await page.evaluate(() => { const s = window.__screen.state.scr; return s.W === 1700 && s.H === 1000; }));
+// 받기 조각 보관(src/store/parts.js · MD-21) — 진짜 IndexedDB. 두고 · 다시 열면(새 페이지처럼 새 객체) 0부터 이어진 조각과 앞선 전송 id ·
+// 파일이 바뀌었으면(SHA-256) 버리고 · 다 받으면 지운다
+const kept = await page.evaluate(async () => {
+  const { openParts } = await import('/src/store/parts.js');
+  const P = openParts();
+  if (!P) return null;
+  const k = 'node_t|share-0/x.bin', enc = (t) => new TextEncoder().encode(t), dec = (a) => a.map((b) => new TextDecoder().decode(b)).join('');
+  await P.drop(k);
+  const a = await P.open(k, { sha: 's1', size: 12, tid: 't1' });
+  await P.add(k, 0, enc('abcd')); await P.add(k, 4, enc('efgh')); await P.add(k, 10, enc('kl'));   // 8~10 이 빠졌다 — 그 뒤는 쓰지 않는다
+  const b = await openParts().open(k, { sha: 's1', size: 12, tid: 't2' });
+  const c = await P.open(k, { sha: 's2', size: 12, tid: 't3' });
+  await P.drop(k);
+  const d = await P.open(k, { sha: 's2', size: 12, tid: 't4' });
+  await P.drop(k);
+  return JSON.stringify({ a: [a.offset, a.tid], b: [b.offset, b.tid, dec(b.chunks)], c: [c.offset, c.tid, c.chunks.length], d: [d.offset, d.tid] });
+});
+check('받기 조각 보관(IndexedDB) — 이어진 조각 · 앞선 전송 id · 바뀐 파일은 버림 · 지움',
+  kept === JSON.stringify({ a: [0, null], b: [8, 't1', 'abcdefgh'], c: [0, 't2', 0], d: [0, null] }), kept);
 check('페이지 오류 없음', errors.length === 0, errors.slice(0, 3).join(' / '));
 
 await browser.close(); server.close();

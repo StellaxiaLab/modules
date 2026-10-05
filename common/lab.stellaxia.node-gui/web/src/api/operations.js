@@ -90,8 +90,12 @@ export const HELM_APPS = {
       // 올리기 = 파일 고르기 → transfers.create(크기 · SHA-256) → chunks.put → complete (source.js upload · wire.js) — share-0 맨 위로
       push: { op: FILE('transfers.create'), where: 'M', perm: 'file.write', resp: 'now', upload: true },
       abort: { op: FILE('transfers.abort'), where: 'M', perm: 'file.read|file.write', resp: 'now', in: (id) => ({ transfer_id: id, keep_partial: true }) },
-      resume: { op: FILE('transfers.chunks.put'), where: 'M', perm: 'file.write', resp: 'now', none: 'no-upload', note: '409의 retry_offset부터 — 보낼 바이트가 화면에 없다' },
-      clear: { op: null, note: '화면에서만 치운다 — 완료된 전송은 서버에서 이미 지워진다' }
+      // 이어서 = 멈춘 전송(보내던 · 받던 화면이 닫혔다 — source.js markStalled). 올리기는 같은 파일을 골라 resume_id 로 서버가 받은 곳부터,
+      // 받기는 다시 열어 이 브라우저에 받아 둔 만큼 건너뛴다(src/store/parts.js) — wire.js 가 맡는다(MD-21)
+      resume: { op: FILE('transfers.create'), where: 'M', perm: 'file.read|file.write', resp: 'now', resume: true },
+      // 치우기 = 중단해 둔 전송(부분 남김)을 버린다 — 부분 파일과 기록을 지운다(keep_partial: false). 완료된 전송은 서버가 이미 지웠다(목록에 없다)
+      clear: { op: FILE('transfers.abort'), where: 'M', perm: 'file.read|file.write', resp: 'now', in: (id) => ({ transfer_id: id, keep_partial: false }),
+        say: (d, it) => ((it && it.name) || '전송') + ' 치움' + (it && it.dir === 'push' ? ' — 남겨 둔 부분 파일도 지웠다' : '') }
     }
   },
   tunnel: {
@@ -251,8 +255,9 @@ export const HELM_CRUD = {
   xfer: {
     create: { none: 'xfer-form' },   // 폼에 적을 것이 없다 — 올리기는 머리의 ↑ 올리기(파일 고르기), 받기는 폴더 앱 파일 카드의 받기
     update: null,   // 전송을 고치는 op 없음 — 중단 뒤 다시
-    del: (v, it) => (it && (it.state === 'completed' || it.state === 'aborted') ? { screen: true, verb: '치움' }
-      : { op: FILE('transfers.abort'), where: 'M', body: (vv, i) => ({ transfer_id: i.id, keep_partial: false }), keep: true, verb: '중단' })   // 삭제 = 포기 — 부분 파일도 지운다
+    // 삭제 = 포기 — 부분 파일도 지운다. 중단해 둔 것(부분 남김)도 서버에서 버린다(남겨 두면 다음 목록에 다시 온다). 완료된 것은 화면에서만
+    del: (v, it) => (it && it.state === 'completed' ? { screen: true, verb: '치움' }
+      : { op: FILE('transfers.abort'), where: 'M', body: (vv, i) => ({ transfer_id: i.id, keep_partial: false }), keep: true, verb: it && it.state === 'aborted' ? '치움' : '중단' })
   },
   tunnel: {
     // Master 가 경로 표(ticket)를 발급해야 열린다 — Daemon 의 POST /service-tunnels 는 그 표를 받는 쪽이다. 대상 · 로컬 주소는 loopback 만
@@ -297,7 +302,7 @@ export const CRUD_TEXT = {
   decl: { list: 'terra.daemon.svi.declarations.get', add: 'terra.daemon.svi.declarations.post', edit: 'terra.daemon.svi.declarations.post {replace · 퇴역이면 reuse_name}', del: 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post' },
   grant: { list: 'terra.master.svi.grants.get + svi.bindings.get', add: 'terra.master.svi.grants.post', edit: '⚠ 허가를 고치는 op 없음 — 철회 뒤 다시 준다', del: 'terra.master.svi.grants.by-grant-id.delete · 바인딩은 svi.bindings.by-binding-id.delete' },
   folder: { list: 'io.terra.file.roots.list · io.terra.file.entries.list', add: 'io.terra.file.entries.mkdir · 파일은 io.terra.file.entries.write (빈 파일)', edit: 'io.terra.file.entries.rename', del: 'io.terra.file.entries.remove' },
-  xfer: { list: 'io.terra.file.transfers.list', add: '↑ 올리기 — io.terra.file.transfers.create → transfers.chunks.put → transfers.complete · 받기는 폴더 앱 — transfers.pulls.create → transfers.chunks.get → transfers.pulls.complete', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
+  xfer: { list: 'io.terra.file.transfers.list', add: '↑ 올리기 — io.terra.file.transfers.create → transfers.chunks.put → transfers.complete · 받기는 폴더 앱 — transfers.pulls.create → transfers.chunks.get → transfers.pulls.complete', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시 · 멈춘 전송은 카드의 이어서(resume_id · 이 브라우저에 받아 둔 조각)', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
   tunnel: { list: 'terra.daemon.service-tunnels.get + terra.master.service-tunnels.declarations.get', add: '선언 terra.master.service-tunnels.declarations.post · 즉석 terra.master.service-tunnels.open.post', edit: '⚠ 고치는 op 없음 — 지우고 다시', del: 'terra.daemon.service-tunnels.by-tunnel-id.close.post · 선언은 terra.master.service-tunnels.declarations.by-declaration-id.delete' },
   wg: { list: 'terra.daemon.wireguard.peers.get · wireguard.status.get', add: '⚠ 피어는 mesh 가입으로 생긴다', edit: '⚠ 피어를 고치는 op 없음 — 동기화(wireguard.sync.post)', del: 'terra.master.network.mesh.wireguard.peers.revoke.post {source_node_id · target_node_id} (되돌릴 수 없다)' },
   job: { list: 'terra.daemon.tasks.get · tree: terra.master.jobs.get', add: 'terra.daemon.commands.execute.post · tree: terra.master.commands.post', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행', del: 'terra.daemon.tasks.by-task-id.cancel.post · tree: commands.post {process.cancel.request}' },

@@ -14,6 +14,7 @@ import { loadWorld, loadAlarms, loadNet, resetWorld, applySignal } from '../data
 import { openEvents, EVENTS_OP } from './events.js';
 import { liveHub } from '../data/live-host.js';
 import { loadConfig } from './config.js';
+import { openParts } from '../store/parts.js';
 
 const GREEN = '#1f7a4d', RED = '#d33d52', GRAY = '#5b6472', AMBER = '#a65f00', BLUE = '#2563eb';
 
@@ -88,35 +89,39 @@ export function wireHelm(screen, source, opts = {}) {
     if (preset && screen.state.hbForm) Object.keys(preset).forEach((k) => screen.hbFormSet(k, preset[k]));
   };
   // 파일 올리기 — 파일 고르기 → source.upload(조각 · 이어서 · 검사). 끝나면 전송 · 폴더 목록을 다시 받는다
-  const pickUpload = (node) => {
+  //   rec — 전송 앱 카드의 이어서: 멈춘 그 전송. 같은 파일(크기 · SHA-256)을 골라야 서버가 받은 곳부터 잇는다(MD-21)
+  const pctOf = (n, of) => Math.floor(n / Math.max(1, of) * 100) + '%';
+  const pickUpload = (node, rec) => {
     const inp = document.createElement('input');
     inp.type = 'file';
     inp.onchange = async () => {
       const f = inp.files && inp.files[0];
       if (!f || !live) return;
       screen.setState({ hbBusy: 'xfer' });
-      screen.hbSay('↑ ' + f.name + ' 올리는 중 — 0%', BLUE);
-      const r = await source.upload(node, f, '', (off) => { if (live) screen.hbSay('↑ ' + f.name + ' 올리는 중 — ' + Math.floor(off / Math.max(1, f.size) * 100) + '%', BLUE); });
+      screen.hbSay('↑ ' + f.name + (rec ? ' 이어 올리는 중' : ' 올리는 중') + ' — ' + (rec ? pctOf(rec.off * f.size, f.size) : '0%'), BLUE);
+      const r = await source.upload(node, f, '', (off) => { if (live) screen.hbSay('↑ ' + f.name + ' 올리는 중 — ' + pctOf(off, f.size), BLUE); }, rec ? { resume: rec } : {});
       if (!live) return;
       screen.setState({ hbBusy: null });
       const good = r && r.kind === 'ok' && !(r.data && r.data.verified === false);
-      screen.hbSay(good ? '↑ ' + f.name + ' 올림 — 검사 통과 (share-0)' : '↑ ' + f.name + ' — ' + (r ? resultText(r) : '실패'), good ? GREEN : RED);
+      const at = rec ? rec.root + '/' + rec.path : 'share-0', from = r && r.from ? ' · ' + pctOf(r.from, f.size) + '부터 이어서' : '';
+      screen.hbSay(good ? '↑ ' + f.name + ' 올림 — 검사 통과 (' + at + from + ')' : '↑ ' + f.name + ' — ' + (r ? resultText(r) : '실패'), good ? GREEN : RED);
       load(node, 'xfer', true);
       load(node, 'folder', true);
     };
     inp.click();
   };
-  // 파일 받기 — source.download(조각 · 검사) → 브라우저 저장(a download — frame 은 allow-downloads). 끝나면 전송 목록을 다시 받는다
-  const getFile = async (node, id, item) => {
+  // 파일 받기 — source.download(조각 · 검사 · 이 브라우저에 받아 둔 만큼은 건너뛴다) → 브라우저 저장(a download — frame 은 allow-downloads).
+  // 끝나면 전송 목록을 다시 받는다. opts.old — 전송 앱 카드의 이어서: 멈춘 그 받기(새로 열고 닫는다)
+  const getFile = async (node, id, item, opts) => {
     const name = (item && item.name) || String(id).split('/').pop();
     screen.setState({ hbBusy: id });
     screen.hbSay('↓ ' + name + ' 받는 중 — 0%', BLUE);
-    const r = await source.download(node, id, (off, size) => { if (live) screen.hbSay('↓ ' + name + ' 받는 중 — ' + (size ? Math.floor(off / Math.max(1, size) * 100) + '%' : Math.ceil(off / 1024) + ' KB'), BLUE); });
+    const r = await source.download(node, id, (off, size) => { if (live) screen.hbSay('↓ ' + name + ' 받는 중 — ' + (size ? pctOf(off, size) : Math.ceil(off / 1024) + ' KB'), BLUE); }, opts);
     if (!live) return;
     screen.setState({ hbBusy: null });
-    if (r.kind !== 'ok' || !r.blob) { screen.hbSay('↓ ' + name + ' — ' + resultText(r), RED); return; }
+    if (r.kind !== 'ok' || !r.blob) { screen.hbSay('↓ ' + name + ' — ' + resultText(r), RED); load(node, 'xfer', true); return; }
     saveBlob(r.blob, r.name || name);
-    screen.hbSay('↓ ' + name + ' 받음 — 검사 통과 (' + Math.max(1, Math.ceil(r.blob.size / 1024)) + ' KB)', GREEN);
+    screen.hbSay('↓ ' + name + ' 받음 — 검사 통과 (' + Math.max(1, Math.ceil(r.blob.size / 1024)) + ' KB' + (r.from ? ' · ' + pctOf(r.from, r.blob.size) + '부터 이어서' : '') + ')', GREEN);
     load(node, 'xfer', true);
   };
   // 3) 동작 → Gateway. 결과를 글줄로, 끝나면 목록을 다시 받는다 (접수된 작업이면 끝날 때까지 쫓는다)
@@ -125,6 +130,17 @@ export function wireHelm(screen, source, opts = {}) {
   screen.hbAct = async (app, id, op, nodeArg) => {
     const node = nodeArg || screen.hbNode();
     if (app === 'xfer' && op === 'push' && source.upload) { if (!screen.state.hbBusy) pickUpload(node); return; }
+    // 멈춘 전송의 이어서 — 올리기는 같은 파일을 고르게 하고, 받기는 다시 받되 이 브라우저에 받아 둔 만큼은 건너뛴다(MD-21)
+    if (app === 'xfer' && op === 'resume' && source.upload) {
+      if (screen.state.hbBusy) return;
+      const lock = source.lockFor ? source.lockFor(app, op, node) : null;
+      if (lock) { screen.hbSay('🔒 ' + lock, AMBER); return; }
+      const it = screen.hbItems(node, app).find((x) => x.id === id);
+      if (!it || !it.path) return;
+      if (it.dir === 'pull') void getFile(node, it.root + '/' + it.path, it, { old: it.id });
+      else pickUpload(node, it);
+      return;
+    }
     if (app === 'folder' && op === 'get' && source.download) {
       if (screen.state.hbBusy) return;
       const lock = source.lockFor ? source.lockFor(app, op, node) : null;
@@ -354,7 +370,7 @@ async function wireFrame(screen) {
     const cfg = await loadConfig();
     if (key !== next) return;
     // 다른 노드는 관계도의 node_id 로 노드 주소 호출(B-1)을 한다 — 그 노드 카탈로그가 오면 자물쇠를 다시 그린다
-    const source = new LiveSource(client, { localNode: screen.state.localNode.name, localId: screen.state.localNode.id, idOf: (name) => (screen.NET && screen.NET[name] && screen.NET[name].id) || null });
+    const source = new LiveSource(client, { localNode: screen.state.localNode.name, localId: screen.state.localNode.id, idOf: (name) => (screen.NET && screen.NET[name] && screen.NET[name].id) || null, parts: openParts() });
     source.client = client;
     client.onNodeCatalog = () => { if (key === next) screen.setState({}); };
     // 실시간 이벤트(B-5)가 열려 있으면 신호가 다시 받기를 맡는다 — 폴링은 여섯 번에 한 번(바닥)만

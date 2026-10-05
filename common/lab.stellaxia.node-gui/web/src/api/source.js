@@ -60,17 +60,59 @@ export function pathInput(op, id, item) {
 /** 다른 노드에서 볼 때 바꿔 낄 것(spec.remote) — 게이트웨이 op 는 그 노드에 없다. 모듈 로그는 그 노드 Daemon 의 것으로 */
 function forNode(spec, local) { return spec && !local && spec.remote ? Object.assign({}, spec, spec.remote) : spec; }
 
+/** io.terra.file 이 root 를 비웠을 때 쓰는 공유 폴더(api.go defaultRootName) — 전송 기록의 root 는 이 이름으로 남는다 */
+const DEFAULT_ROOT = 'share-0';
+/** 이만큼 서버 기록이 움직이지 않았고 이 화면이 보내지도 받지도 않으면 멈춘 전송이다 — 서버 시각(updated_at)으로 */
+export const STALL_MS = 60000;
+/** 이 화면이 목록을 받으며 이만큼 지켜봤는데 offset 이 그대로면 멈춘 전송이다 — 이 브라우저 시계로(시계가 어긋나도 된다) */
+export const SEEN_MS = 15000;
+/** 전송 만들기 · 읽기의 답 → 전송 기록 */
+const trOf = (r) => (r && r.data && r.data.transfer) || (r && r.data) || {};
+/** 멈춘 올리기를 다시 연다 — 같은 전송(resume_id). 받은 곳(offset)과 부분 파일은 서버에 남아 있다 */
+const resumeBody = (t) => ({ direction: 'push', root: t.root, path: t.path, size_bytes: t.bytes, checksum_sha256: t.sha, mode: t.mode || 'create', resume_id: t.id });
+
+/**
+ * 전송 목록의 멈춘 전송 — 서버 상태는 아직 prepared · transferring 인데 보내거나 받는 쪽이 없다(그 화면을 닫았다).
+ * 이 화면이 하는 중이 아니고, 기한(expires_at)이 지났거나 · STALL_MS 넘게 기록이 움직이지 않았거나 · 이 화면이 SEEN_MS 넘게
+ * 지켜봤는데 offset 이 그대로면 화면의 '어긋남'(failed) 칸에 둔다 — 디자인이 그 칸에 이어서 · 중단을 붙인다.
+ * 중단(부분 남김)한 전송은 그대로 '중단됨'이다 — 같은 파일을 다시 올리면 잇는다
+ * @param {any[]} items  adapters.js xfer 항목 @param {Set<string>} [active] 이 화면이 보내거나 받는 전송 id
+ * @param {Map<string, { off: number, t: number }>} [seen]  이 화면이 본 offset 과 처음 본 때 — 목록을 받을 때마다 고친다
+ */
+export function markStalled(items, active, now = Date.now(), seen = null) {
+  if (seen) { const ids = new Set(items.map((d) => d.id)); [...seen.keys()].forEach((k) => { if (!ids.has(k)) seen.delete(k); }); }
+  return items.map((d) => {
+    if (d.state !== 'transferring' || (active && active.has(d.id))) { if (seen) seen.delete(d.id); return d; }
+    let still = false;
+    if (seen) {
+      const o = seen.get(d.id);
+      if (o && o.off === d.off) still = now - o.t >= SEEN_MS; else seen.set(d.id, { off: d.off, t: now });
+    }
+    if (!(still || (d.exp && d.exp < now) || (d.at && d.at < now - STALL_MS))) return d;
+    return Object.assign({}, d, { state: 'failed', stalled: true, reason: d.dir === 'pull'
+      ? '멈췄다 · 받던 화면이 닫혔다 — 이어서: 이 브라우저에 받아 둔 만큼은 건너뛴다'
+      : '멈췄다 · ' + Math.floor((d.off || 0) * 100) + '%에서 보내던 화면이 닫혔다 — 이어서: 같은 파일을 고르면 거기서부터' });
+  });
+}
+
 /** @implements {HelmSource} */
 export class LiveSource {
   /**
    * @param {import('./client.js').TerraClient} client
-   * @param {{ localNode: string, localId?: string|null, idOf?: (name: string) => string|null|undefined }} opts
+   * @param {{ localNode: string, localId?: string|null, idOf?: (name: string) => string|null|undefined, parts?: import('../store/parts.js').PartStore|null }} opts
    *   idOf — 화면의 노드 이름 → Master node_id (관계도 NET[name].id). 다른 노드는 이것으로 노드 주소 호출(B-1)을 한다
+   *   parts — 받기 조각 보관(src/store/parts.js). 없으면 받기는 메모리로만 한다 — 페이지를 닫으면 처음부터
    */
   constructor(client, opts) {
     this.mock = false; this.client = client; this.localNode = opts.localNode; this.localId = opts.localId || null;
     this.idOf = opts.idOf || (() => null);
+    this.parts = opts.parts || null;
+    this.active = new Set();   // 이 화면이 지금 보내거나 받는 전송 id — 전송 목록에서 멈춘 것과 가른다
+    this.seen = new Map();     // 노드 → (전송 id → 이 화면이 본 offset · 처음 본 때) — markStalled
   }
+
+  /** 다른 화면이 보내는 중인지 볼 때 기다리는 시간(ms) — 시험은 줄여 쓴다 */
+  static PROBE_MS = 3000;
 
   /** 화면의 노드 이름 → 진짜 node_id (이 노드면 localId). 모르면 이름 그대로(Master 가 거절한다) */
   nodeIdOf(node) { return node === this.localNode ? this.localId || node : this.idOf(node) || node; }
@@ -136,6 +178,10 @@ export class LiveSource {
       return items.concat(more);
     }
     if (app === 'mod' && local) return withGui(items, await this.guiApps());
+    if (app === 'xfer') {
+      if (!this.seen.has(node)) this.seen.set(node, new Map());
+      return markStalled(items, this.active, Date.now(), this.seen.get(node));
+    }
     return items;
   }
 
@@ -200,70 +246,142 @@ export class LiveSource {
   /**
    * 파일 올리기 — io.terra.file 전송: transfers.create(push · 크기 · SHA-256) → transfers.chunks.put(조각마다 —
    * 409 면 서버가 받은 offset 부터 이어서) → transfers.complete(모듈이 전체 SHA-256 을 검사한다)
+   * 끊긴 뒤 이어서(MD-21) — 보내던 화면을 닫으면 부분 파일이 남아 새로 만들기는 FILE_TARGET_EXISTS 다. 그 자리에 같은 파일
+   * (크기 · SHA-256)을 보내다 멈춘 전송이 있으면 새로 만들지 않고 그 전송을 다시 연다(resume_id — 서버가 받은 곳부터).
+   * 보내는 사이 기한이 지나도(TRANSFER_EXPIRED) 같은 전송을 다시 연다
    * @param {string} node @param {Blob & { name: string }} file
    * @param {string} dir 보관함 칸 id('<공유 폴더>/<경로>') — ''이면 share-0 맨 위
    * @param {(offset: number) => void} [onProgress]
+   * @param {{ resume?: any }} [opts]  resume — 전송 앱 카드의 이어서: 그 전송(adapters.js xfer 항목 — root · path · bytes · sha)
+   * @returns {Promise<import('./client.js').Result & { from?: number }>}  from — 이어서 보냈으면 시작한 바이트
    */
-  async upload(node, file, dir, onProgress) {
+  async upload(node, file, dir, onProgress, opts = {}) {
     const M = (op, input) => this.call({ op: 'io.terra.file.' + op, where: 'M' }, node, input);
-    const s = String(dir || ''), i = s.indexOf('/'), root = i < 0 ? s : s.slice(0, i), rel = i < 0 ? '' : s.slice(i + 1);
-    const cr = await M('transfers.create', Object.assign({ direction: 'push', path: (rel ? rel + '/' : '') + file.name, size_bytes: file.size,
-      checksum_sha256: await sha256Blob(file), mode: 'create' }, root ? { root } : {}));
-    if (cr.kind !== 'ok' && cr.kind !== 'accepted') return cr;
-    const tr = (cr.data && cr.data.transfer) || cr.data || {}, id = tr.transfer_id;
-    if (!id) return { kind: 'error', reason: '전송 id를 받지 못했다' };
-    const step = Math.min(tr.chunk_size || 262144, 512 * 1024);
-    let off = tr.offset || 0, retry = 0;
-    while (off < file.size) {
-      const bytes = new Uint8Array(await file.slice(off, off + step).arrayBuffer());
-      const r = await M('transfers.chunks.put', { transfer_id: id, offset: off, data: toB64(bytes) });
-      if (r.kind !== 'ok') {
-        if (r.status !== 409 || ++retry > 5) return r;
-        const g = await M('transfers.get', { transfer_id: id });   // 어긋남 — 서버가 받은 곳부터
-        if (g.kind !== 'ok') return r;
-        const t = (g.data && g.data.transfer) || g.data || {};
-        off = t.offset || 0;
-        continue;
+    const sha = await sha256Blob(file);
+    let cr;
+    if (opts.resume) {
+      const t = opts.resume;
+      if (t.bytes !== file.size || (t.sha && t.sha !== sha)) return { kind: 'unavailable', reason: 'xfer-differs' };
+      cr = await M('transfers.create', resumeBody(t));
+    } else {
+      const s = String(dir || ''), i = s.indexOf('/'), root = i < 0 ? s : s.slice(0, i), rel = i < 0 ? '' : s.slice(i + 1);
+      const path = (rel ? rel + '/' : '') + file.name;
+      cr = await M('transfers.create', Object.assign({ direction: 'push', path, size_bytes: file.size, checksum_sha256: sha, mode: 'create' }, root ? { root } : {}));
+      if (cr.reason === 'FILE_TARGET_EXISTS') {   // 그 파일이 멈춘 올리기의 부분 파일일 수 있다
+        const hit = await this.stalledPush(node, root || DEFAULT_ROOT, path, file.size, sha);
+        if (hit.reason) return hit;
+        if (hit.rec) cr = await M('transfers.create', resumeBody(hit.rec));
       }
-      off = (r.data && r.data.next_offset) || off + bytes.length;
-      retry = 0;
-      if (onProgress) onProgress(off);
     }
-    return M('transfers.complete', { transfer_id: id });
+    if (cr.kind !== 'ok' && cr.kind !== 'accepted') return cr;
+    const tr = trOf(cr), id = tr.transfer_id;
+    if (!id) return { kind: 'error', reason: '전송 id를 받지 못했다' };
+    const step = Math.min(tr.chunk_size || 262144, 512 * 1024), from = tr.offset || 0;
+    let off = from, retry = 0, reopen = 0;
+    if (from && onProgress) onProgress(from);
+    this.active.add(id);
+    try {
+      while (off < file.size) {
+        const bytes = new Uint8Array(await file.slice(off, off + step).arrayBuffer());
+        const r = await M('transfers.chunks.put', { transfer_id: id, offset: off, data: toB64(bytes) });
+        if (r.kind !== 'ok') {
+          // 다른 곳에서 끝냈거나 중단했다 — 더 보내지 않는다
+          if (r.status !== 409 || r.reason === 'TRANSFER_WRONG_STATE' || ++retry > 5) return r;
+          const g = r.reason === 'TRANSFER_EXPIRED' && reopen++ < 3
+            ? await M('transfers.create', resumeBody({ id, root: tr.root, path: tr.path, bytes: tr.size_bytes, sha: tr.checksum_sha256, mode: tr.mode }))   // 기한이 지났다 — 같은 전송을 다시 연다
+            : await M('transfers.get', { transfer_id: id });   // 어긋남 — 서버가 받은 곳부터
+          if (g.kind !== 'ok' && g.kind !== 'accepted') return r;
+          off = trOf(g).offset || 0;
+          continue;
+        }
+        off = (r.data && r.data.next_offset) || off + bytes.length;
+        retry = 0;
+        if (onProgress) onProgress(off);
+      }
+      const done = await M('transfers.complete', { transfer_id: id });
+      return from ? Object.assign(done, { from }) : done;
+    } finally { this.active.delete(id); }
+  }
+
+  /**
+   * 그 자리(root · path)에서 보내다 멈춘 올리기 — 서버 전송 목록에서 찾는다(이 화면을 닫았다 다시 연 뒤라도, 다른 브라우저라도).
+   * 이을 수 있는 것: 멈춘 것(markStalled) · 중단(부분 남김)한 것 중 크기 · SHA-256 이 같은 것. 목록은 새것부터다.
+   * 방금까지 움직인 것은 PROBE_MS 기다려 다시 본다 — offset 이 그대로면 보내던 화면이 닫힌 것이다(닫고 곧바로 다시 올릴 때)
+   * @returns {Promise<{ rec?: any } & Partial<import('./client.js').Result>>}  rec — 이을 전송 · reason — 이을 수 없는 까닭 · {} — 그런 전송이 없다
+   */
+  async stalledPush(node, root, path, size, sha) {
+    const r = await this.call({ op: 'io.terra.file.transfers.list', where: 'M' }, node, {});
+    if (r.kind !== 'ok') return {};
+    const here = markStalled(ADAPT.xfer(r.data), this.active).filter((t) => t.dir === 'push' && t.root === root && t.path === path && /^(transferring|failed|aborted)$/.test(t.state));
+    if (!here.length) return {};
+    const same = here.filter((t) => t.bytes === size && t.sha === sha);
+    const free = same.find((t) => t.state !== 'transferring');
+    if (free) return { rec: free };
+    if (!same.length) return { kind: 'unavailable', reason: 'xfer-other' };
+    const t = same[0];
+    await new Promise((res) => setTimeout(res, LiveSource.PROBE_MS));
+    const g = await this.call({ op: 'io.terra.file.transfers.get', where: 'M' }, node, { transfer_id: t.id });
+    const now = trOf(g);
+    if (g.reason === 'TRANSFER_EXPIRED') return { rec: t };   // 기한이 지났다 — 보내는 쪽이 없다
+    if (g.kind === 'ok' && /^(prepared|transferring)$/.test(now.state) && Math.min(1, (now.offset || 0) / Math.max(1, t.bytes)) === t.off) return { rec: t };
+    return { kind: 'unavailable', reason: 'xfer-busy' };
   }
 
   /**
    * 파일 받기 — io.terra.file 받기(0.2.0): transfers.pulls.create(root · path) → transfers.chunks.get(offset 부터 eof 까지 —
    * 조각마다 SHA-256 을 견준다) → 전체 SHA-256 을 서버의 것과 견주고 transfers.pulls.complete. 어긋나면 pulls.abort 로 닫는다
+   * 끊긴 뒤 이어서(MD-21) — 받은 조각을 이 브라우저(this.parts — IndexedDB)에 둔다. 같은 파일을 다시 받으면 새로 연 받기의
+   * SHA-256 · 크기가 저장본과 같을 때 둔 곳부터 잇는다(다르면 그 사이 파일이 바뀌었다 — 처음부터). 앞서 받다 만 전송은 닫는다
    * @param {string} node @param {string} id 보관함 칸 id('<공유 폴더>/<경로>')
    * @param {(offset: number, size?: number) => void} [onProgress]
-   * @returns {Promise<import('./client.js').Result & { blob?: Blob, name?: string }>}
+   * @param {{ old?: string }} [opts]  old — 전송 앱 카드의 이어서: 멈춘 그 받기(새로 열고 닫는다)
+   * @returns {Promise<import('./client.js').Result & { blob?: Blob, name?: string, from?: number }>}  from — 이어 받았으면 시작한 바이트
    */
-  async download(node, id, onProgress) {
+  async download(node, id, onProgress, opts = {}) {
     const M = (op, input) => this.call({ op: 'io.terra.file.' + op, where: 'M' }, node, input);
     const s = String(id || ''), i = s.indexOf('/'), root = i < 0 ? '' : s.slice(0, i), path = i < 0 ? '' : s.slice(i + 1);
     if (!root || !path) return { kind: 'unavailable', reason: 'share-root' };
     const cr = await M('transfers.pulls.create', { root, path });
     if (cr.kind !== 'ok' && cr.kind !== 'accepted') return cr;
-    const tr = (cr.data && cr.data.transfer) || cr.data || {}, tid = tr.transfer_id;
+    const tr = trOf(cr), tid = tr.transfer_id, size = tr.size_bytes;
     if (!tid) return { kind: 'error', reason: '전송 id를 받지 못했다' };
-    const close = async (r) => { await M('transfers.pulls.abort', { transfer_id: tid }); return r; };
+    const P = this.parts, key = this.nodeIdOf(node) + '|' + root + '/' + path;
+    let kept = null;
+    if (P && tr.checksum_sha256) { try { kept = await P.open(key, { sha: tr.checksum_sha256, size, tid }); } catch { kept = null; } }
+    // 앞서 받다 만 전송(카드의 이어서 · 이 브라우저에 적어 둔 것) — 새로 열었으니 닫는다
+    [...new Set([opts.old, kept && kept.tid])].filter((x) => x && x !== tid).forEach((x) => { void M('transfers.pulls.abort', { transfer_id: x }); });
+    const close = async (r, bad) => { if (bad && kept) await P.drop(key); await M('transfers.pulls.abort', { transfer_id: tid }); return r; };
     const H = new Sha256(), parts = [];
-    let off = 0;
-    for (;;) {
-      const r = await M('transfers.chunks.get', { transfer_id: tid, offset: off });
-      if (r.kind !== 'ok' || !r.data) return close(r);
-      const bytes = fromB64(r.data.data);
-      if (r.data.sha256 && new Sha256().update(bytes).hex() !== r.data.sha256) return close({ kind: 'error', reason: 'chunk-checksum' });
-      H.update(bytes); parts.push(bytes); off += bytes.length;
-      if (onProgress) onProgress(off, tr.size_bytes);
-      if (r.data.eof || !bytes.length) break;
-    }
-    if (tr.checksum_sha256 && H.hex() !== tr.checksum_sha256) return close({ kind: 'error', reason: 'checksum' });
-    const done = await M('transfers.pulls.complete', { transfer_id: tid });
-    if (done.kind !== 'ok') return done;
-    if (done.data && done.data.verified === false) return { kind: 'error', reason: 'checksum', data: done.data };
-    return { kind: 'ok', data: done.data, blob: new Blob(parts), name: path.split('/').pop() };
+    let off = 0, keep = !!kept, reopen = 0;
+    if (kept && kept.offset) { kept.chunks.forEach((b) => { H.update(b); parts.push(b); }); off = kept.offset; if (onProgress) onProgress(off, size); }
+    const from = off;
+    let eof = size > 0 && off >= size;
+    this.active.add(tid);
+    try {
+      while (!eof) {
+        const r = await M('transfers.chunks.get', { transfer_id: tid, offset: off });
+        if (r.kind !== 'ok' || !r.data) {
+          if (r.reason === 'TRANSFER_EXPIRED' && reopen++ < 3) {   // 기한이 지났다 — 같은 받기를 다시 연다
+            const g = await M('transfers.pulls.create', { root, path, resume_id: tid });
+            if (g.kind === 'ok' || g.kind === 'accepted') continue;
+          }
+          return close(r);
+        }
+        const bytes = fromB64(r.data.data);
+        if (r.data.sha256 && new Sha256().update(bytes).hex() !== r.data.sha256) return close({ kind: 'error', reason: 'chunk-checksum' });
+        if (keep && bytes.length) keep = await P.add(key, off, bytes);
+        H.update(bytes); parts.push(bytes); off += bytes.length;
+        if (onProgress) onProgress(off, size);
+        eof = !!r.data.eof || !bytes.length;
+      }
+      // 전체가 다르다 — 받는 사이 파일이 바뀌었다. 이 브라우저에 둔 것도 버린다
+      if (tr.checksum_sha256 && H.hex() !== tr.checksum_sha256) return close({ kind: 'error', reason: 'checksum' }, true);
+      const done = await M('transfers.pulls.complete', { transfer_id: tid });
+      if (done.kind !== 'ok') return done;
+      if (done.data && done.data.verified === false) return { kind: 'error', reason: 'checksum', data: done.data };
+      if (kept) await P.drop(key);
+      return Object.assign({ kind: 'ok', data: done.data, blob: new Blob(parts), name: path.split('/').pop() }, from ? { from } : {});
+    } finally { this.active.delete(tid); }
   }
 
   async act(node, app, id, op, item, ctx = {}) {
@@ -273,6 +391,7 @@ export class LiveSource {
     if (spec.none) return { kind: 'unavailable', reason: spec.none };
     if (spec.upload) return { kind: 'unavailable', reason: 'no-upload' };   // 올리기는 파일을 골라야 한다 — wire.js 가 고르게 하고 upload 를 부른다
     if (spec.download) return { kind: 'unavailable', reason: 'no-download' };   // 받기는 저장할 곳이 있어야 한다 — wire.js 가 download 를 부르고 브라우저로 저장한다
+    if (spec.resume) return { kind: 'unavailable', reason: 'no-upload' };   // 이어서 — 올리기는 파일을 다시 골라야 한다 · 받기는 저장할 곳이 있어야 한다(wire.js)
     const input = spec.in ? spec.in(id, item || {}, Object.assign({ nodeId: this.nodeIdOf(node) }, ctx)) : pathInput(spec.op, id, item);
     if (input && input.none) return { kind: 'unavailable', reason: input.none };
     const r = await this.call(spec, node, Object.assign({}, spec.body || {}, input));

@@ -27,6 +27,9 @@ export const modState = pick({
   failed: 'failed', crashed: 'failed', error: 'failed',
   stopped: 'stopped', exited: 'stopped', discovered: 'stopped', installed: 'stopped', disabled: 'stopped', unavailable: 'stopped'
 }, 'stopped');
+/** 전송 카드의 덧글 — 서버가 사유를 적지 않았을 때. 부분 파일을 남기고 중단한 올리기는 같은 파일을 다시 올리면 잇는다(MD-21) */
+const xferNote = (t) => (t.state === 'prepared' ? '준비됨 — 청크를 기다린다'
+  : t.state === 'aborted' && t.direction === 'push' && t.offset > 0 ? '중단 · ' + Math.floor(t.offset / Math.max(1, t.size_bytes) * 100) + '% 남겨 둠 — 같은 파일을 다시 올리면 거기서부터' : '');
 /** 전송 상태 (화면: transferring · verifying · completed · aborted · 그 밖 = 어긋남). prepared = 아직 0% */
 export const xferState = pick({ prepared: 'transferring', transferring: 'transferring', verifying: 'verifying', completed: 'completed', aborted: 'aborted', failed: 'failed' }, 'failed');
 /** 터널 상태 (화면: active · listening · draining · 그 밖 = 실패) */
@@ -56,8 +59,10 @@ export const ADAPT = {
   /** 공유 폴더(맨 위 칸). 그 안의 항목은 source.js folderLevels 가 folderEntries 로 붙인다 */
   folder: (d) => arr(d, 'roots').map((r) => ({ id: r.name, parent: '', name: r.name, dir: true, root: true, info: r.path || '' })),
   folderEntries: (root, path, d) => entryItems(root, path, d && d.entries),
+  // root · path · bytes · sha · mode · at · exp — 멈춘 전송을 가리고(source.js markStalled) 이어서 다시 열 때(resume_id) 쓴다
   xfer: (d) => arr(d, 'transfers').map((t) => ({ id: t.transfer_id || t.id, dir: t.direction, name: (t.path || '').split('/').pop() || t.path || '', total: (t.size_bytes || 0) / 1e6,
-    off: t.size_bytes ? Math.min(1, (t.offset || 0) / t.size_bytes) : 0, state: xferState(t.state), reason: t.reason || (t.state === 'prepared' ? '준비됨 — 청크를 기다린다' : '') })),
+    off: t.size_bytes ? Math.min(1, (t.offset || 0) / t.size_bytes) : 0, state: xferState(t.state), reason: t.reason || xferNote(t),
+    root: t.root || '', path: t.path || '', bytes: t.size_bytes || 0, sha: t.checksum_sha256 || '', mode: t.mode || '', at: Date.parse(t.updated_at) || 0, exp: Date.parse(t.expires_at) || 0 })),
   tunnel: (d, ctx) => (ctx.declarations || []).map((x) => ({ id: x.id, type: 'decl', name: (x.service_id || '').split('.').pop() + ' → ' + x.target_node_id, to: x.target_node_id + ':' + x.target_port, bind: x.local_bind_host + ':' + x.local_port, on: !x.disabled }))
     .concat(arr(d, 'tunnels').map((t) => ({ id: t.id || t.tunnel_id, type: 'tun', name: (t.service_id || t.id || '') + ' → ' + (t.target_node_id || ''), to: (t.target_host || t.target_node_id || '') + ':' + t.target_port,
       bind: t.local_address || (t.local_bind_host + ':' + t.local_port), state: tunnelState(t.status || t.state),
