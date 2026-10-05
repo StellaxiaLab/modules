@@ -135,8 +135,8 @@ flowchart LR
 | | operation | 권한 |
 | --- | --- | --- |
 | 루트 · 항목 | `terra.daemon.files.list.get` (L) · 원격은 `io.terra.file.entries.list` (M ⚠) | `file.read` |
-| 받기 | `io.terra.file.transfers.create {direction: pull}` → 전송 앱에 나타남 | `file.read` |
-| 지우기 · 새 폴더 | `entries.remove` · `entries.mkdir` (M ⚠) | `file.write` — **모듈 op는 권한을 선언하지 않는다** → 화면이 잠근다 |
+| 받기 | `io.terra.file.transfers.pulls.create {root, path}` (닫기는 `transfers.pulls.{complete,abort}`) → 전송 앱에 나타남 | `file.read` |
+| 지우기 · 새 폴더 | `entries.remove` · `entries.mkdir` (M ⚠) | `file.write` — 모듈 op가 계약에 선언한다(io.terra.file 0.2.0) |
 | 전송 목록 · 올리기 · 중단 · 이어서 | `transfers.list` · `transfers.create {push}` · `transfers.abort {keep_partial}` · `transfers.chunks.put` (409 `retry_offset`부터) | `file.read` / `file.write` |
 
 완료된 전송은 서버에서 지워진다 — "치우기"는 화면에서만.

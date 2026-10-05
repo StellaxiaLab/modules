@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -481,6 +482,70 @@ func newOperationsHandler(manager *store.Manager, transfers *transfer.Manager) h
 		writeJSON(w, http.StatusOK, map[string]any{"transfer_id": record.ID, "state": record.State, "kept_partial": keep})
 	})
 
+	// The pull-only door. transfers.create opens either direction, so it needs
+	// file.write — a contract declares one permission per operation, not one per
+	// input value. These three let a caller who may only read take a file out:
+	// they open, close and abandon pull transfers and nothing else, which is why
+	// file.read is enough for them.
+	mux.HandleFunc("POST "+apiPrefix+"/transfers/pulls", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Root     string `json:"root"`
+			Path     string `json:"path"`
+			ResumeID string `json:"resume_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeAPIError(w, http.StatusBadRequest, "FILE_INVALID_REQUEST", "the request body must be a pull request object")
+			return
+		}
+		root := strings.TrimSpace(body.Root)
+		if root == "" {
+			root = defaultRootName
+		}
+		record, err := transfers.Prepare(transfer.PrepareRequest{
+			Direction: transfer.Pull,
+			Root:      root,
+			Path:      body.Path,
+			ResumeID:  strings.TrimSpace(body.ResumeID),
+		})
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusAccepted, map[string]any{"transfer": record})
+	})
+
+	mux.HandleFunc("POST "+apiPrefix+"/transfers/pulls/{transfer_id}/complete", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("transfer_id")
+		if err := requirePull(transfers, id); err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		record, err := transfers.Complete(id)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"transfer_id": record.ID, "bytes": record.Offset,
+			"checksum_sha256": record.Checksum, "verified": true,
+		})
+	})
+
+	mux.HandleFunc("POST "+apiPrefix+"/transfers/pulls/{transfer_id}/abort", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("transfer_id")
+		if err := requirePull(transfers, id); err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		keep := strings.EqualFold(strings.TrimSpace(r.URL.Query().Get("keep_partial")), "true")
+		record, err := transfers.Abort(id, r.URL.Query().Get("reason"), !keep)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"transfer_id": record.ID, "state": record.State, "kept_partial": keep})
+	})
+
 	// Anything else under the prefix is this module's to answer for. Falling
 	// through to a bare 404 would read as "the module is not there", which is a
 	// different problem with a different fix.
@@ -493,6 +558,21 @@ func newOperationsHandler(manager *store.Manager, transfers *transfer.Manager) h
 	})
 
 	return mux
+}
+
+// requirePull refuses a push behind a pull-only operation. Without it the
+// file.read door would close — or, with keep_partial false, delete — an upload
+// that only file.write may touch. Direction is fixed at prepare, so reading it
+// before acting is not a race.
+func requirePull(transfers *transfer.Manager, id string) error {
+	record, err := transfers.Get(id)
+	if err != nil {
+		return err
+	}
+	if record.Direction != transfer.Pull {
+		return fmt.Errorf("%w: %s is a %s transfer, and this operation only handles pulls", transfer.ErrWrongState, id, record.Direction)
+	}
+	return nil
 }
 
 // chunkRefusalCode names why a chunk was refused so a sender can tell "resend
