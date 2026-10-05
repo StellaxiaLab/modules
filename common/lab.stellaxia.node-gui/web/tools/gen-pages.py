@@ -92,8 +92,6 @@ MODULE_TPL = {
         ('<button type="button" onClick="{{hdr.togglePerm}}" aria-pressed="{{hdr.permOn}}" title="node.config★는 기본 권한 밖 — 관리자도 명시해야 열린다" style="height: 30px; padding: 0 10px; border: 1px solid {{hdr.permLine}}; border-radius: 6px; background: {{hdr.permBg}}; color: {{hdr.permFg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">{{hdr.permLabel}}</button>',
          '<span title="node.config★는 기본 권한 밖 — 관리자도 명시해야 열린다" style="display: inline-flex; align-items: center; height: 30px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{hdr.permLine}}; border-radius: 6px; background: {{hdr.permBg}}; color: {{hdr.permFg}}; font-size: 12px; font-weight: 600;">{{hdr.permLabel}}</span>'),
         ('\n' + DEMO_SELECT.rstrip('\n'), ''),
-        ('title="시연: 재시작을 마친 것으로"', 'title="Daemon을 재시작한 뒤 실행 중인 값을 다시 읽는다 (config.get)"'),
-        ('>재시작함 (시연)</button>', '>다시 읽기</button>'),
     ],
     'index': [
         # 노드 화면 미리 읽기: src 대신 data-src — Terra 안에서는 중첩 iframe 이 frame-ancestors 에 막혀 boot 가 srcdoc 으로 넣는다

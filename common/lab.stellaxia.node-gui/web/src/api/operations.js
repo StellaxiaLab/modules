@@ -13,7 +13,7 @@
 const L = (op) => 'terra.daemon.' + op;
 const T = (op) => 'terra.master.' + op;
 const G = (op) => 'terra.gateway.' + op;
-const FILE = (op) => 'io.terra.file.' + op;   // 모듈 op — 원격 노드는 Gateway /api/nodes/{node}/modules/io.terra.file/v1/... 경유
+const FILE = (op) => 'io.terra.file.' + op;   // 모듈 op — scopes local · node 라 다른 노드의 카탈로그(B-1)에 없다. 그 노드에서는 잠긴다
 
 /** 조타륜 앱 10개 — 목록(list) · 동작(acts). acts의 키는 화면 hbAct(app, id, op)의 op와 같다 */
 export const HELM_APPS = {
@@ -65,7 +65,8 @@ export const HELM_APPS = {
     list: { op: L('files.list.get'), where: 'L', perm: 'file.read', resp: 'now', note: '루트 목록 · 항목 목록. 그 밖의 동작은 모듈 namespace' },
     acts: {
       open: { op: FILE('entries.list'), where: 'M', perm: 'file.read', resp: 'now', note: '들어가기는 화면 이동 — 목록은 source.js 가 지금 경로까지 읽는다' },
-      get: { op: FILE('transfers.create'), where: 'M', perm: 'file.read', resp: 'now', none: 'no-download', note: '받기는 청크를 끝까지 당겨 파일로 저장해야 한다 — 화면에 아직 없다' },
+      // 받기 = transfers.pulls.create → chunks.get(eof 까지 · 조각마다 SHA-256) → 전체 SHA-256 → pulls.complete → 브라우저 저장 (source.js download · wire.js). io.terra.file 0.2.0
+      get: { op: FILE('transfers.pulls.create'), where: 'M', perm: 'file.read', resp: 'now', download: true },
       del: { op: FILE('entries.remove'), where: 'M', perm: 'file.write', resp: 'now', in: (id, item) => ({ root: item.share, path: item.rel, recursive: !!item.dir }), note: '모듈 op는 권한을 선언하지 않는다 — 화면이 file.write로 잠근다' },
       mkdir: { op: FILE('entries.mkdir'), where: 'M', perm: 'file.write', resp: 'now', in: (id, item, ctx) => newFolder(ctx && ctx.path) }
     }
@@ -74,7 +75,8 @@ export const HELM_APPS = {
     name: '파일 전송', see: 'file.read',
     list: { op: FILE('transfers.list'), where: 'M', perm: 'file.read', resp: 'now', verify: true },
     acts: {
-      push: { op: FILE('transfers.create'), where: 'M', perm: 'file.write', resp: 'now', none: 'no-upload', note: '올리기는 파일을 고르고 청크를 보내야 한다 — 화면에 아직 없다' },
+      // 올리기 = 파일 고르기 → transfers.create(크기 · SHA-256) → chunks.put → complete (source.js upload · wire.js) — share-0 맨 위로
+      push: { op: FILE('transfers.create'), where: 'M', perm: 'file.write', resp: 'now', upload: true },
       abort: { op: FILE('transfers.abort'), where: 'M', perm: 'file.read|file.write', resp: 'now', in: (id) => ({ transfer_id: id, keep_partial: true }) },
       resume: { op: FILE('transfers.chunks.put'), where: 'M', perm: 'file.write', resp: 'now', none: 'no-upload', note: '409의 retry_offset부터 — 보낼 바이트가 화면에 없다' },
       clear: { op: null, note: '화면에서만 치운다 — 완료된 전송은 서버에서 이미 지워진다' }
@@ -128,12 +130,12 @@ export const HELM_APPS = {
     name: '모듈', see: 'node.read',
     list: { op: L('modules.get'), where: 'L', perm: 'node.read', resp: 'now', note: 'tree에서 볼 때 terra.master.nodes.by-node-id.modules.get' },
     acts: {
-      // 시작 · 멈춤 · 재시작은 이 노드 Daemon 의 경로(node.control)로 — 게이트웨이의 terra.gateway.modules.by-id.* 는 재시작이 없다.
-      // 로그는 게이트웨이가 이 노드의 모듈 것을 준다. 어느 쪽이든 이 노드의 모듈만 다룬다(where 'L' — 다른 노드면 부르지 않는다)
+      // 시작 · 멈춤 · 재시작은 Daemon 의 경로(node.control)로 — 게이트웨이의 terra.gateway.modules.by-id.* 는 재시작이 없다.
+      // 로그는 이 노드면 게이트웨이가, 다른 노드면 그 노드 Daemon 이 준다(remote — 노드 주소 호출 B-1. 게이트웨이 op 는 그 노드 카탈로그에 없다)
       start: { op: L('modules.by-module-id.start.post'), where: 'L', perm: 'node.control', resp: 'job' },
       stop: { op: L('modules.by-module-id.stop.post'), where: 'L', perm: 'node.control', resp: 'job' },
       restart: { op: L('modules.by-module-id.restart.post'), where: 'L', perm: 'node.control', resp: 'job' },
-      log: { op: G('modules.by-id.logs.get'), where: 'L', perm: 'node.read', resp: 'now', say: (d) => logLine(d) },
+      log: { op: G('modules.by-id.logs.get'), where: 'L', perm: 'node.read', resp: 'now', say: (d) => logLine(d), remote: { op: L('modules.by-module-id.logs.get') } },
       check: { op: L('modules.get'), where: 'L', perm: 'node.read', resp: 'now', say: (d) => modLine(d) }
     }
   }
@@ -186,7 +188,14 @@ export const GUI_APPS = { path: '/api/v1/gui/apps', perm: '공개', note: 'apps[
  */
 export const HELM_CRUD = {
   io: {
-    create: { op: L('io.scan.post'), where: 'L', body: () => ({}), scan: true },   // 손으로 등록하는 op는 없다 — 스캔이 찾는다
+    // 손 등록(io-inventory 수동 원천) — 카메라 주소의 scheme 이 어댑터를 고른다. 주소를 비우면 스캔이 찾는다
+    create: (v) => {
+      const addr = String(v.addr || '').trim();
+      if (!addr) return { op: L('io.scan.post'), where: 'L', body: () => ({}), scan: true };
+      const adapter = manualAdapter(addr);
+      if (!adapter) return { none: 'io-addr' };
+      return { op: L('io.devices.post'), where: 'L', body: () => ({ kind: 'camera', name: v.name, adapter_id: adapter, address: addr }) };
+    },
     update: { where: 'L', steps: (v, it) => ioSteps(v, it) },
     del: { op: L('io.devices.by-device-id.forget.post'), where: 'L', body: (v, it) => ({ device_id: it.id }), verb: '잊음' }
   },
@@ -228,7 +237,7 @@ export const HELM_CRUD = {
     }
   },
   xfer: {
-    create: { none: 'no-transfer' },   // 올리기는 청크를 보내고, 받기는 끝까지 당겨 저장해야 한다 — 화면에 그 칸이 없다
+    create: { none: 'xfer-form' },   // 폼에 적을 것이 없다 — 올리기는 머리의 ↑ 올리기(파일 고르기), 받기는 폴더 앱 파일 카드의 받기
     update: null,   // 전송을 고치는 op 없음 — 중단 뒤 다시
     del: (v, it) => (it && (it.state === 'completed' || it.state === 'aborted') ? { screen: true, verb: '치움' }
       : { op: FILE('transfers.abort'), where: 'M', body: (vv, i) => ({ transfer_id: i.id, keep_partial: false }), keep: true, verb: '중단' })   // 삭제 = 포기 — 부분 파일도 지운다
@@ -257,8 +266,9 @@ export const HELM_CRUD = {
     update: null,   // 작업은 고칠 수 없다 — 다시 실행
     del: { op: T('commands.post'), where: 'T', body: (v, it, ctx) => ({ target_node_id: ctx.nodeId, type: 'process.cancel.request', payload: { job_id: it.id } }), keep: true, verb: '취소' },
     // 이 노드 자신의 작업은 Daemon 이 받는다 — 명령 · 인자만(작업 id 는 202 의 task_id)
+    // 명령 실행은 Daemon 이 원격으로 열지 않는다(scopes local) — 다른 노드는 노드 주소 호출로 닿아도 Master 명령으로 간다(localOnly)
     local: {
-      create: { op: L('commands.execute.post'), where: 'L', body: (v) => cmdLine(v.cmd) },
+      create: { op: L('commands.execute.post'), where: 'L', body: (v) => cmdLine(v.cmd), localOnly: true },
       del: { op: L('tasks.by-task-id.cancel.post'), where: 'L', body: (v, it) => ({ task_id: it.id }), keep: true, verb: '취소' }
     }
   },
@@ -270,17 +280,23 @@ export const HELM_CRUD = {
  * 화면(HBCRUD)의 글은 원본 설계의 것이라 실제와 다른 곳이 있다(장치 이름 바꾸기 · 터널 · 피어 회수 본문) — node-live.js 가 이것으로 바꾼다
  */
 export const CRUD_TEXT = {
-  io: { list: 'terra.daemon.io.devices.get', add: 'terra.daemon.io.scan.post — 손으로 등록하는 op는 없다, 스캔이 찾는다', edit: 'io.devices.by-device-id.{alias · approve · deny · enable · disable}.post — 바뀐 것만 차례로', del: 'terra.daemon.io.devices.by-device-id.forget.post' },
+  io: { list: 'terra.daemon.io.devices.get', add: 'terra.daemon.io.devices.post — 손 등록(카메라 manual.rtsp · manual.http-camera) · 주소를 비우면 terra.daemon.io.scan.post', edit: 'io.devices.by-device-id.{alias · approve · deny · enable · disable}.post — 바뀐 것만 차례로', del: 'terra.daemon.io.devices.by-device-id.forget.post' },
   svi: { list: 'terra.master.svi.resources.get (node_id)', add: '⚠ SVI 자원은 선언에서 생긴다 — 자원 선언 앱', edit: '⚠ 자원을 고치는 op 없음 — 같은 이름으로 다시 선언', del: '⚠ 선언 철회로 사라진다 — 자원 선언 앱' },
   decl: { list: 'terra.daemon.svi.declarations.get', add: 'terra.daemon.svi.declarations.post', edit: 'terra.daemon.svi.declarations.post {replace · 퇴역이면 reuse_name}', del: 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post' },
   grant: { list: 'terra.master.svi.grants.get + svi.bindings.get', add: 'terra.master.svi.grants.post', edit: '⚠ 허가를 고치는 op 없음 — 철회 뒤 다시 준다', del: 'terra.master.svi.grants.by-grant-id.delete · 바인딩은 svi.bindings.by-binding-id.delete' },
   folder: { list: 'io.terra.file.roots.list · io.terra.file.entries.list', add: 'io.terra.file.entries.mkdir · 파일은 io.terra.file.entries.write (빈 파일)', edit: 'io.terra.file.entries.rename', del: 'io.terra.file.entries.remove' },
-  xfer: { list: 'io.terra.file.transfers.list', add: '⚠ 올리기 · 받기는 청크를 보내고 받아야 한다 — 아직 화면에 없다', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
+  xfer: { list: 'io.terra.file.transfers.list', add: '↑ 올리기 — io.terra.file.transfers.create → transfers.chunks.put → transfers.complete · 받기는 폴더 앱 — transfers.pulls.create → transfers.chunks.get → transfers.pulls.complete', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
   tunnel: { list: 'terra.daemon.service-tunnels.get + terra.master.service-tunnels.declarations.get', add: '선언 terra.master.service-tunnels.declarations.post · 즉석 terra.master.service-tunnels.open.post', edit: '⚠ 고치는 op 없음 — 지우고 다시', del: 'terra.daemon.service-tunnels.by-tunnel-id.close.post · 선언은 terra.master.service-tunnels.declarations.by-declaration-id.delete' },
   wg: { list: 'terra.daemon.wireguard.peers.get · wireguard.status.get', add: '⚠ 피어는 mesh 가입으로 생긴다', edit: '⚠ 피어를 고치는 op 없음 — 동기화(wireguard.sync.post)', del: 'terra.master.network.mesh.wireguard.peers.revoke.post {source_node_id · target_node_id} (되돌릴 수 없다)' },
   job: { list: 'terra.daemon.tasks.get · tree: terra.master.jobs.get', add: 'terra.daemon.commands.execute.post · tree: terra.master.commands.post', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행', del: 'terra.daemon.tasks.by-task-id.cancel.post · tree: commands.post {process.cancel.request}' },
   mod: { list: 'terra.daemon.modules.get · GUI는 /api/v1/gui/apps', add: '⚠ 모듈 설치 op 없음 — 제안 terra.gateway.modules.post (패키지 · 서명)', edit: '⚠ 모듈 설정 — 제안 terra.gateway.modules.by-module-id.config.put', del: '⚠ 모듈 제거 — 제안 terra.gateway.modules.by-module-id.delete' }
 };
+
+/** 손 등록할 카메라 주소 → io-inventory 수동 어댑터 (rtsp · rtsps → manual.rtsp, http · https → manual.http-camera). 모르면 '' */
+export function manualAdapter(addr) {
+  const m = /^([a-z][a-z0-9+.-]*):\/\/[^/\s]/i.exec(String(addr || '').trim()), sch = m ? m[1].toLowerCase() : '';
+  return sch === 'rtsp' || sch === 'rtsps' ? 'manual.rtsp' : sch === 'http' || sch === 'https' ? 'manual.http-camera' : '';
+}
 
 /** 장치 고치기 — 바뀐 것만 차례로. 종류는 장치가 정하고, 승인 대기로 되돌리는 op 는 없다 */
 function ioSteps(v, it) {
@@ -358,8 +374,15 @@ export function scanLine(d) {
 
 /** 모듈 로그 → 마지막 한 줄 */
 export function logLine(d) {
-  const lines = d && Array.isArray(d.logs) ? d.logs.filter((l) => String(l).trim()) : [];
-  return (d && d.module ? d.module + ' · ' : '') + (lines.length ? String(lines[lines.length - 1]).slice(0, 160) : '최근 로그 없음');
+  const lines = logLines(d).filter((l) => l.trim());
+  const mod = d && (d.module || d.module_id);
+  return (mod ? mod + ' · ' : '') + (lines.length ? lines[lines.length - 1].slice(0, 160) : '최근 로그 없음');
+}
+
+/** 로그 줄 — 게이트웨이 { logs: [글] } · Daemon { lines: [{ at, stream, text }] } (stderr 줄은 앞에 '! ') */
+export function logLines(d) {
+  const all = d && (Array.isArray(d.logs) ? d.logs : Array.isArray(d.lines) ? d.lines : null);
+  return (all || []).map((l) => (l && typeof l === 'object' ? (l.stream === 'stderr' ? '! ' : '') + String(l.text == null ? '' : l.text) : String(l)));
 }
 
 /** 모듈 목록 → 상태 확인 글줄 */

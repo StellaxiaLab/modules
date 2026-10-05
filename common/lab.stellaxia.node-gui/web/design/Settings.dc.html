@@ -89,7 +89,7 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
     </aside>
 
     <main style="flex-grow: 1; min-width: 0; background: #eef1f5; display: flex; flex-direction: column; min-height: 0;">
-        <!-- 재시작 대기 배너 — Daemon 재시작 API가 없어 버튼이 아니라 안내 -->
+        <!-- 재시작 대기 배너 — terra.daemon.restart.post (정상 종료 → 서비스 관리자가 다시 띄운다). 두 번 눌러 확인 -->
         <sc-if value="{{pend.show}}" hint-placeholder-val="{{false}}">
           <div style="margin: 12px 20px 0; border-radius: 12px; border: 1px solid #e8c78f; background: #fffaf0; overflow: hidden; flex-shrink: 0;">
             <div style="display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px;">
@@ -97,9 +97,9 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
               <span style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; font-size: 12.5px; color: #5a3d00; line-height: 1.6;">
                 <b style="font-size: 13.5px; color: #3d2a00;">저장됨 · 재시작 대기 — 키 {{pend.n}}개</b>
                 <span>파일에는 썼지만 실행 중인 데몬은 아직 옛 값입니다. <span class="mono" style="font-size: 11.5px;">{{pend.keys}}</span></span>
-                <span style="color: #7a5a1a;">Daemon을 재시작하는 API가 없습니다. 로컬 기기에서 <code class="mono" style="padding: 1px 6px; border-radius: 5px; background: #16191f; color: #e5e9f0; font-size: 11.5px;">terra daemon restart</code> — 또는 Linux는 systemd, Windows는 서비스 관리자에서 Terra 데몬을 다시 시작하세요.<span style="display: {{pend.helpDisp}};"> 환경 변수(TERRA_DAEMON_*)가 있으면 재시작 뒤 그 값이 이깁니다.</span></span>
+                <span style="color: #7a5a1a;">오른쪽 단추로 Daemon을 다시 시작합니다(정상 종료 뒤 systemd · 작업 스케줄러 · launchd가 다시 띄운다). 다시 띄울 관리자가 없으면 로컬 기기에서 <code class="mono" style="padding: 1px 6px; border-radius: 5px; background: #16191f; color: #e5e9f0; font-size: 11.5px;">terra daemon restart</code> — 또는 Linux는 systemd, Windows는 서비스 관리자에서 Terra 데몬을 다시 시작하세요.<span style="display: {{pend.helpDisp}};"> 환경 변수(TERRA_DAEMON_*)가 있으면 재시작 뒤 그 값이 이깁니다.</span></span>
               </span>
-              <button type="button" onClick="{{pend.done}}" title="시연: 재시작을 마친 것으로" style="height: 28px; padding: 0 10px; flex-shrink: 0; border: 1px solid #e8c78f; border-radius: 7px; background: #ffffff; color: #8a5a00; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">재시작함 (시연)</button>
+              <button type="button" data-restart="1" onClick="{{pend.done}}" title="terra.daemon.restart.post — 두 번 눌러 확인" style="height: 28px; padding: 0 10px; flex-shrink: 0; border: 1px solid {{pend.line}}; border-radius: 7px; background: {{pend.bg}}; color: {{pend.fg}}; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">{{pend.label}}</button>
             </div>
           </div>
         </sc-if>
@@ -312,6 +312,18 @@ class Component extends DCLogic {
   writeHelp(on) { try { window.localStorage.setItem('terra.gui.innerHelp', on ? '1' : '0'); } catch (e) { /* 저장 못 해도 이 화면에서는 바뀐다 */ } this.setState({ help: on }); }
   componentDidMount() { this._onStore = (e) => { if (e.key === 'terra.gui.innerHelp') this.setState({ help: e.newValue === '1' }); }; try { window.addEventListener('storage', this._onStore); } catch (e) { /* 무시 */ } }
 
+  // Daemon 재시작 (terra.daemon.restart.post): 첫 누름 = 확인 준비(5초), 둘째 = 실행. 예시는 바로 끝난 것으로. 서비스가 doRestart를 바꿔 끼운다
+  restartDaemon() {
+    const S = this.state; if (S.restarting) return;
+    if (!S.restartArm) { this.setState({ restartArm: true }); clearTimeout(this._raT); this._raT = setTimeout(() => this.setState({ restartArm: false }), 5000); return; }
+    this.setState({ restartArm: false, restarting: true });
+    this.doRestart().then((r) => {
+      this.setState({ restarting: false });
+      if (r && r.ok === false) { this.toast('■', '#d33d52', '재시작하지 못했습니다', r.msg || ''); return; }
+      this.setState({ pending: {} }); this.toast('●', '#1f7a4d', 'Daemon을 다시 시작했습니다', '실행 중인 값을 다시 읽었습니다 (config.get)');
+    });
+  }
+  async doRestart() { await new Promise((r) => setTimeout(r, 900)); return { ok: true }; }
   later(ms, f) { this._ts = this._ts || []; this._ts.push(setTimeout(f, ms)); }
   toast(g, c, title, text) { const id = Math.random(); this.setState({ toasts: this.state.toasts.concat([{ id, g, c, title, text }]).slice(-3) }); this.later(4500, () => this.setState({ toasts: this.state.toasts.filter((t) => t.id !== id) })); }
   val(k) { const d = this.state.draft; return Object.prototype.hasOwnProperty.call(d, k) ? d[k] : this.state.cur[k]; }
@@ -554,7 +566,7 @@ class Component extends DCLogic {
       tabs,
       grp: { disp: showGrp && !blocked ? 'flex' : 'none', q: S.q, setQ: (e) => this.setState({ q: e.target.value }), items: grpItems,
         filters: [['all', '모두', 135], ['edit', '편집 가능', 96], ['dev', '변경된 값', nDev + nPend + nDraft]].map(([k, label, n]) => ({ label, n, on: S.filter === k ? 'true' : 'false', bg: S.filter === k ? '#16191f' : '#ffffff', fg: S.filter === k ? '#ffffff' : '#3a4049', line: S.filter === k ? '#16191f' : '#d8dde5', pick: () => this.setState({ filter: k }) })) },
-      pend: { helpDisp: S.help ? 'inline' : 'none', show: !blocked && cur.id === 'node' && nPend > 0, n: nPend, keys: Object.keys(S.pending).join(' · '), done: () => { this.setState({ pending: {} }); this.toast('●', '#1f7a4d', '재시작 완료로 표시', '실행 중인 값을 다시 읽었습니다 (config.get)'); } },
+      pend: { helpDisp: S.help ? 'inline' : 'none', show: !blocked && cur.id === 'node' && nPend > 0, n: nPend, keys: Object.keys(S.pending).join(' · '), done: () => this.restartDaemon(), label: S.restartArm ? '정말 재시작' : S.restarting ? '↻ 재시작 중…' : '↻ Daemon 재시작', bg: S.restartArm ? '#a65f00' : '#ffffff', fg: S.restartArm ? '#ffffff' : '#8a5a00', line: S.restartArm ? '#a65f00' : '#e8c78f' },
       page: { title, sub, chips, subDisp: S.help && sub ? 'inline' : 'none' },
       keys: { show: showKeys && !blocked, rows: keyRows, empty: showKeys && !keyRows.length },
       cards: blocked || !showKeys ? cards : [],

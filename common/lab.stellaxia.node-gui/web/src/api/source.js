@@ -5,6 +5,8 @@
 
 import { HELM_APPS, HELM_CRUD, GUI_APPS, scanLine } from './operations.js';
 import { ADAPT, withGui } from './adapters.js';
+import { resultText } from './client.js';
+import { Sha256, sha256Blob, toB64, fromB64 } from './sha256.js';
 
 /**
  * @typedef {Object} HelmSource
@@ -26,7 +28,7 @@ export class MockSource {
   async act() { return { kind: 'ok', data: null }; }   // 연결 전에는 화면의 hbAct 가 받는다 (실데이터 층: 로그인 안내만)
 }
 
-/** 앱 대응표 — 로컬 노드에서 볼 때 local 대응이 있으면 그것으로 바꿔 낀다 */
+/** 앱 대응표 — Daemon 쪽에서 볼 때(이 노드 · 노드 주소 호출로 닿는 다른 노드) local 대응이 있으면 그것으로 바꿔 낀다 */
 export function appFor(app, local) {
   const A = HELM_APPS[app];
   if (!A || !local || !A.local) return A || null;
@@ -55,29 +57,55 @@ export function pathInput(op, id, item) {
   return out;
 }
 
+/** 다른 노드에서 볼 때 바꿔 낄 것(spec.remote) — 게이트웨이 op 는 그 노드에 없다. 모듈 로그는 그 노드 Daemon 의 것으로 */
+function forNode(spec, local) { return spec && !local && spec.remote ? Object.assign({}, spec, spec.remote) : spec; }
+
 /** @implements {HelmSource} */
 export class LiveSource {
-  /** @param {import('./client.js').TerraClient} client @param {{ localNode: string, localId?: string|null }} opts */
-  constructor(client, opts) { this.mock = false; this.client = client; this.localNode = opts.localNode; this.localId = opts.localId || null; }
+  /**
+   * @param {import('./client.js').TerraClient} client
+   * @param {{ localNode: string, localId?: string|null, idOf?: (name: string) => string|null|undefined }} opts
+   *   idOf — 화면의 노드 이름 → Master node_id (관계도 NET[name].id). 다른 노드는 이것으로 노드 주소 호출(B-1)을 한다
+   */
+  constructor(client, opts) {
+    this.mock = false; this.client = client; this.localNode = opts.localNode; this.localId = opts.localId || null;
+    this.idOf = opts.idOf || (() => null);
+  }
 
-  /** 화면의 노드 이름 → 진짜 node_id (이 노드면 localId) */
-  nodeIdOf(node) { return node === this.localNode && this.localId ? this.localId : node; }
+  /** 화면의 노드 이름 → 진짜 node_id (이 노드면 localId). 모르면 이름 그대로(Master 가 거절한다) */
+  nodeIdOf(node) { return node === this.localNode ? this.localId || node : this.idOf(node) || node; }
 
-  // L(Daemon) · M(모듈) op은 이 노드의 것만 부를 수 있다 — 다른 노드로 가는 operation 경로가 없다(client.invoke의 node).
+  /** 다른 노드의 Daemon 에 노드 주소 호출(B-1)로 닿나 — 이 게이트웨이에 그 길이 있어야 한다 */
+  relays() { return !!(this.client.canRelay && this.client.canRelay()); }
+
+  /** Daemon 쪽 대응(local)을 쓰나 — 이 노드, 또는 노드 주소 호출로 그 Daemon 에 닿는 다른 노드.
+   *  앱 토큰은 Master 에 닿지 않는다(구현해야 할 것 PF-1) — 다른 노드의 작업도 그 Daemon 의 작업 목록으로 본다 */
+  daemonView(node) { return node === this.localNode || this.relays(); }
+
+  /** 그 노드에서 볼 앱 대응표 */
+  appFor(app, node) { return appFor(app, this.daemonView(node)); }
+
+  // L(Daemon) · M(모듈) op — 이 노드면 invoke, 다른 노드면 노드 주소 호출(client.invoke 의 node = node_id). node_id 를 모르면 부르지 않는다.
   // T(Master) 의 읽기 · 지우기(GET · DELETE)는 node_id 를 query 로 싣는다(화면 이름이 아니라 진짜 node_id — 로컬 노드면 localId).
   // 본문이 있는 Master 호출(POST)에는 싣지 않는다 — Master 의 본문 해석기도 모르는 키를 거절한다(decodeJSON DisallowUnknownFields)
-  call(spec, node, input) {
+  call(spec0, node, input) {
+    const local = node === this.localNode, spec = forNode(spec0, local);
     const scoped = spec.where === 'L' || spec.where === 'M';
-    const remote = scoped && node !== this.localNode;
+    if (scoped && !local) {
+      const id = this.idOf(node);
+      if (!id) return Promise.resolve({ kind: 'unavailable', reason: 'no-node-id' });
+      return this.client.invoke(spec.op, Object.assign(fillNode(spec.input, id), input || {}), { node: id });
+    }
     const nodeId = this.nodeIdOf(node);
     const query = spec.where === 'T' && /\.(get|delete)$/.test(spec.op || '');
     const base = query ? Object.assign({ node_id: nodeId }, fillNode(spec.input, nodeId)) : fillNode(spec.input, nodeId);
-    return this.client.invoke(spec.op, Object.assign(base, input || {}), remote ? { node } : {});
+    return this.client.invoke(spec.op, Object.assign(base, input || {}));
   }
 
   async list(node, app, ctx = {}) {
     const local = node === this.localNode;
-    const A = appFor(app, local); if (!A) return [];
+    if (!local && this.relays() && this.client.nodeCatalog) void this.client.nodeCatalog(this.idOf(node));   // 누르기 전 자물쇠용으로 미리
+    const A = this.appFor(app, node); if (!A) return [];
     if (A.guard) {
       const g = await this.call(A.guard, node);
       if (g.kind === 'ok' && A.guard.skip(g.data)) return [];
@@ -87,7 +115,7 @@ export class LiveSource {
       if (A.list.empty && A.list.empty(r)) return [];   // 꺼진 기능의 거절은 빈 목록이다(WireGuard 422 등)
       throw r;
     }
-    const actx = { local };
+    const actx = { local };   // 이 노드의 SVI 자원은 내 것(own) — 다른 노드는 허가를 본다
     for (const ex of A.extra || []) {
       const e = await this.call(ex, node);
       if (e.kind === 'ok') {
@@ -137,11 +165,109 @@ export class LiveSource {
     return out;
   }
 
+  /**
+   * 누르기 전에 잠글 이유 — 화면의 hbOpLock 이 카드 · 머리 버튼마다 부른다(🔒 + 이유). 누른 뒤에야 "길이 없다"를 듣지 않게.
+   * 화면에서만 하는 동작 · 폼으로 가는 동작 · 부를 수 있는 동작은 null
+   */
+  lockFor(app, op, node) {
+    const local = node === this.localNode, A = this.appFor(app, node), spec = forNode(A && A.acts ? A.acts[op] : null, local);
+    if (!spec || !spec.op || spec.form) return null;
+    const why = (reason) => resultText({ kind: 'unavailable', reason });
+    if (spec.none) return why(spec.none);
+    if ((spec.where === 'L' || spec.where === 'M') && !local) {
+      if (!this.relays()) return why('remote-node');
+      if (this.client.masterBlocked) return why('master-delegation');
+      const id = this.idOf(node);
+      if (!id) return why('no-node-id');
+      const cat = this.client.nodeCatalogNow ? this.client.nodeCatalogNow(id) : null;
+      if (!cat) { if (this.client.nodeCatalog) void this.client.nodeCatalog(id); return null; }   // 받는 중 — 누르면 호출이 다시 판정한다
+      const e = cat.ok ? cat.ops.get(spec.op) : null;
+      if (cat.ok && !e) return why('not-remote');
+      if (e && e.allowed === false) return resultText({ kind: 'forbidden', reason: 'remote-denied' });
+      return null;
+    }
+    if (spec.where === 'T' && this.client.masterBlocked) return why('master-delegation');
+    const cat = this.client.catalog;
+    if (cat && cat.size > 0 && !this.client.has(spec.op)) return why(spec.where === 'T' ? 'master-delegation' : 'not-in-catalog');
+    return null;
+  }
+
+  /**
+   * 파일 올리기 — io.terra.file 전송: transfers.create(push · 크기 · SHA-256) → transfers.chunks.put(조각마다 —
+   * 409 면 서버가 받은 offset 부터 이어서) → transfers.complete(모듈이 전체 SHA-256 을 검사한다)
+   * @param {string} node @param {Blob & { name: string }} file
+   * @param {string} dir 보관함 칸 id('<공유 폴더>/<경로>') — ''이면 share-0 맨 위
+   * @param {(offset: number) => void} [onProgress]
+   */
+  async upload(node, file, dir, onProgress) {
+    const M = (op, input) => this.call({ op: 'io.terra.file.' + op, where: 'M' }, node, input);
+    const s = String(dir || ''), i = s.indexOf('/'), root = i < 0 ? s : s.slice(0, i), rel = i < 0 ? '' : s.slice(i + 1);
+    const cr = await M('transfers.create', Object.assign({ direction: 'push', path: (rel ? rel + '/' : '') + file.name, size_bytes: file.size,
+      checksum_sha256: await sha256Blob(file), mode: 'create' }, root ? { root } : {}));
+    if (cr.kind !== 'ok' && cr.kind !== 'accepted') return cr;
+    const tr = (cr.data && cr.data.transfer) || cr.data || {}, id = tr.transfer_id;
+    if (!id) return { kind: 'error', reason: '전송 id를 받지 못했다' };
+    const step = Math.min(tr.chunk_size || 262144, 512 * 1024);
+    let off = tr.offset || 0, retry = 0;
+    while (off < file.size) {
+      const bytes = new Uint8Array(await file.slice(off, off + step).arrayBuffer());
+      const r = await M('transfers.chunks.put', { transfer_id: id, offset: off, data: toB64(bytes) });
+      if (r.kind !== 'ok') {
+        if (r.status !== 409 || ++retry > 5) return r;
+        const g = await M('transfers.get', { transfer_id: id });   // 어긋남 — 서버가 받은 곳부터
+        if (g.kind !== 'ok') return r;
+        const t = (g.data && g.data.transfer) || g.data || {};
+        off = t.offset || 0;
+        continue;
+      }
+      off = (r.data && r.data.next_offset) || off + bytes.length;
+      retry = 0;
+      if (onProgress) onProgress(off);
+    }
+    return M('transfers.complete', { transfer_id: id });
+  }
+
+  /**
+   * 파일 받기 — io.terra.file 받기(0.2.0): transfers.pulls.create(root · path) → transfers.chunks.get(offset 부터 eof 까지 —
+   * 조각마다 SHA-256 을 견준다) → 전체 SHA-256 을 서버의 것과 견주고 transfers.pulls.complete. 어긋나면 pulls.abort 로 닫는다
+   * @param {string} node @param {string} id 보관함 칸 id('<공유 폴더>/<경로>')
+   * @param {(offset: number, size?: number) => void} [onProgress]
+   * @returns {Promise<import('./client.js').Result & { blob?: Blob, name?: string }>}
+   */
+  async download(node, id, onProgress) {
+    const M = (op, input) => this.call({ op: 'io.terra.file.' + op, where: 'M' }, node, input);
+    const s = String(id || ''), i = s.indexOf('/'), root = i < 0 ? '' : s.slice(0, i), path = i < 0 ? '' : s.slice(i + 1);
+    if (!root || !path) return { kind: 'unavailable', reason: 'share-root' };
+    const cr = await M('transfers.pulls.create', { root, path });
+    if (cr.kind !== 'ok' && cr.kind !== 'accepted') return cr;
+    const tr = (cr.data && cr.data.transfer) || cr.data || {}, tid = tr.transfer_id;
+    if (!tid) return { kind: 'error', reason: '전송 id를 받지 못했다' };
+    const close = async (r) => { await M('transfers.pulls.abort', { transfer_id: tid }); return r; };
+    const H = new Sha256(), parts = [];
+    let off = 0;
+    for (;;) {
+      const r = await M('transfers.chunks.get', { transfer_id: tid, offset: off });
+      if (r.kind !== 'ok' || !r.data) return close(r);
+      const bytes = fromB64(r.data.data);
+      if (r.data.sha256 && new Sha256().update(bytes).hex() !== r.data.sha256) return close({ kind: 'error', reason: 'chunk-checksum' });
+      H.update(bytes); parts.push(bytes); off += bytes.length;
+      if (onProgress) onProgress(off, tr.size_bytes);
+      if (r.data.eof || !bytes.length) break;
+    }
+    if (tr.checksum_sha256 && H.hex() !== tr.checksum_sha256) return close({ kind: 'error', reason: 'checksum' });
+    const done = await M('transfers.pulls.complete', { transfer_id: tid });
+    if (done.kind !== 'ok') return done;
+    if (done.data && done.data.verified === false) return { kind: 'error', reason: 'checksum', data: done.data };
+    return { kind: 'ok', data: done.data, blob: new Blob(parts), name: path.split('/').pop() };
+  }
+
   async act(node, app, id, op, item, ctx = {}) {
-    const A = appFor(app, node === this.localNode);
-    const spec = (A && A.acts[op]) || null;
+    const A = this.appFor(app, node);
+    const spec = forNode((A && A.acts[op]) || null, node === this.localNode);
     if (!spec || !spec.op) return { kind: 'ok', data: null };   // 화면에서만 하는 동작 (치우기 등)
     if (spec.none) return { kind: 'unavailable', reason: spec.none };
+    if (spec.upload) return { kind: 'unavailable', reason: 'no-upload' };   // 올리기는 파일을 골라야 한다 — wire.js 가 고르게 하고 upload 를 부른다
+    if (spec.download) return { kind: 'unavailable', reason: 'no-download' };   // 받기는 저장할 곳이 있어야 한다 — wire.js 가 download 를 부르고 브라우저로 저장한다
     const input = spec.in ? spec.in(id, item || {}, Object.assign({ nodeId: this.nodeIdOf(node) }, ctx)) : pathInput(spec.op, id, item);
     if (input && input.none) return { kind: 'unavailable', reason: input.none };
     const r = await this.call(spec, node, Object.assign({}, spec.body || {}, input));
@@ -164,7 +290,8 @@ export class LiveSource {
     const C = HELM_CRUD[app];
     if (!C) return null;
     const v = vals || {}, it = item || {}, cx = Object.assign({ nodeId: this.nodeIdOf(node) }, ctx);
-    let spec = node === this.localNode && C.local && C.local[mode] !== undefined ? C.local[mode] : C[mode];
+    let spec = this.daemonView(node) && C.local && C.local[mode] !== undefined ? C.local[mode] : C[mode];
+    if (spec && spec.localOnly && node !== this.localNode) spec = C[mode];   // 그 Daemon 이 원격으로 열지 않은 것 — Master 경로로
     if (typeof spec === 'function') spec = spec(v, it, cx);
     if (!spec) return null;
     if (spec.none) return { kind: 'unavailable', reason: spec.none };

@@ -6,15 +6,16 @@
 
 import { TerraClient, resultText, trackJob } from './client.js';
 import { LiveSource, appFor } from './source.js';
-import { TRACK, TASK_STATE } from './operations.js';
+import { TRACK, TASK_STATE, logLines } from './operations.js';
 import { frameReady, role } from './frame-boot.js';
 import { wireFrameSession } from './frame-session.js';
 import { wireFrameBoards } from './frame-boards.js';
-import { loadWorld, loadAlarms, loadNet, resetWorld } from '../data/node-live.js';
+import { loadWorld, loadAlarms, loadNet, resetWorld, applySignal } from '../data/node-live.js';
+import { openEvents, EVENTS_OP } from './events.js';
 import { liveHub } from '../data/live-host.js';
 import { loadConfig } from './config.js';
 
-const GREEN = '#1f7a4d', RED = '#d33d52', GRAY = '#5b6472', AMBER = '#a65f00';
+const GREEN = '#1f7a4d', RED = '#d33d52', GRAY = '#5b6472', AMBER = '#a65f00', BLUE = '#2563eb';
 
 /** 보관함 칸 id('공유 폴더/상대 경로')의 위 칸 — 맨 위 칸(공유 폴더)이면 '' */
 const parentOf = (id) => { const s = String(id || ''); return s.indexOf('/') < 0 ? '' : s.slice(0, s.lastIndexOf('/')); };
@@ -24,16 +25,20 @@ const nameOf = (it) => (it && (it.name || it.cmd || it.who || it.from || it.id))
 /**
  * @param {any} screen  mount()가 돌려준 화면 객체 (window.__screen)
  * @param {import('./source.js').HelmSource} source
- * @param {{ pollMs?: number }} [opts]  다시 받는 간격 (public/config.json pollSec)
+ * @param {{ pollMs?: number, live?: () => boolean }} [opts]  pollMs — 다시 받는 간격 (public/config.json pollSec).
+ *        live — 실시간 이벤트가 열려 있나. 열려 있으면 신호가 다시 받기를 맡고(_hbRefresh), 폴링은 여섯 배 느린 바닥으로 남는다
  * @returns {() => void} 끊기 — 바꿔 끼운 seam을 되돌리고 받아 둔 목록을 지운다
  */
 export function wireHelm(screen, source, opts = {}) {
-  const every = Math.max(5000, opts.pollMs || 10000);
+  const base = Math.max(5000, opts.pollMs || 10000);
+  const period = () => (opts.live && opts.live() ? base * 6 : base);
   if (source.mock) return () => {};
-  const loading = new Set();
-  const orig = { hbSeed: screen.hbSeed, hbAct: screen.hbAct, hbFormSave: screen.hbFormSave, hbDel: screen.hbDel };
+  const loading = new Set(), loaded = new Set();
+  const orig = { hbSeed: screen.hbSeed, hbAct: screen.hbAct, hbFormSave: screen.hbFormSave, hbDel: screen.hbDel, hbOpLock: screen.hbOpLock };
   // 1) 받아 오기 전엔 빈 목록 + 글줄
   screen.hbSeed = () => [];
+  // 길 없는 동작은 누르기 전에 🔒 + 이유 (원본 hbOpLock — 카드 · 머리 버튼마다 부른다)
+  if (source.lockFor) screen.hbOpLock = (app, op, node) => source.lockFor(app, op, node || screen.hbNode());
   // 목록을 볼 권한이 없으면 부르지 않는다 — 화면이 자물쇠와 이유를 그린다
   const canSee = (node, app) => {
     const A = screen.HBAPP ? screen.HBAPP()[app] : null;
@@ -59,6 +64,7 @@ export function wireHelm(screen, source, opts = {}) {
       const list = await source.list(node, app, { path: app === 'folder' ? folderPaths(node, path) : path != null ? path : screen.state.hbPath });
       if (!live) return;
       screen.hbPut(node, app, list);
+      loaded.add(key);
       if (!quiet) screen.setState({ hbMsg: null });
     } catch (r) { if (live) screen.hbSay(r && r.kind ? resultText(r) : String(r), RED); }
     finally { loading.delete(key); }
@@ -81,21 +87,67 @@ export function wireHelm(screen, source, opts = {}) {
     screen.hbFormOpen(app, mode, mode === 'edit' ? id : null, node, 'fs');
     if (preset && screen.state.hbForm) Object.keys(preset).forEach((k) => screen.hbFormSet(k, preset[k]));
   };
+  // 파일 올리기 — 파일 고르기 → source.upload(조각 · 이어서 · 검사). 끝나면 전송 · 폴더 목록을 다시 받는다
+  const pickUpload = (node) => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0];
+      if (!f || !live) return;
+      screen.setState({ hbBusy: 'xfer' });
+      screen.hbSay('↑ ' + f.name + ' 올리는 중 — 0%', BLUE);
+      const r = await source.upload(node, f, '', (off) => { if (live) screen.hbSay('↑ ' + f.name + ' 올리는 중 — ' + Math.floor(off / Math.max(1, f.size) * 100) + '%', BLUE); });
+      if (!live) return;
+      screen.setState({ hbBusy: null });
+      const good = r && r.kind === 'ok' && !(r.data && r.data.verified === false);
+      screen.hbSay(good ? '↑ ' + f.name + ' 올림 — 검사 통과 (share-0)' : '↑ ' + f.name + ' — ' + (r ? resultText(r) : '실패'), good ? GREEN : RED);
+      load(node, 'xfer', true);
+      load(node, 'folder', true);
+    };
+    inp.click();
+  };
+  // 파일 받기 — source.download(조각 · 검사) → 브라우저 저장(a download — frame 은 allow-downloads). 끝나면 전송 목록을 다시 받는다
+  const getFile = async (node, id, item) => {
+    const name = (item && item.name) || String(id).split('/').pop();
+    screen.setState({ hbBusy: id });
+    screen.hbSay('↓ ' + name + ' 받는 중 — 0%', BLUE);
+    const r = await source.download(node, id, (off, size) => { if (live) screen.hbSay('↓ ' + name + ' 받는 중 — ' + (size ? Math.floor(off / Math.max(1, size) * 100) + '%' : Math.ceil(off / 1024) + ' KB'), BLUE); });
+    if (!live) return;
+    screen.setState({ hbBusy: null });
+    if (r.kind !== 'ok' || !r.blob) { screen.hbSay('↓ ' + name + ' — ' + resultText(r), RED); return; }
+    saveBlob(r.blob, r.name || name);
+    screen.hbSay('↓ ' + name + ' 받음 — 검사 통과 (' + Math.max(1, Math.ceil(r.blob.size / 1024)) + ' KB)', GREEN);
+    load(node, 'xfer', true);
+  };
   // 3) 동작 → Gateway. 결과를 글줄로, 끝나면 목록을 다시 받는다 (접수된 작업이면 끝날 때까지 쫓는다)
   //    node 를 주면 그 노드의 자원이다 — 상태 화면은 지금 맵이 아닌 노드의 자원도 다룬다
   const origAct = screen.hbAct.bind(screen);
   screen.hbAct = async (app, id, op, nodeArg) => {
     const node = nodeArg || screen.hbNode();
+    if (app === 'xfer' && op === 'push' && source.upload) { if (!screen.state.hbBusy) pickUpload(node); return; }
+    if (app === 'folder' && op === 'get' && source.download) {
+      if (screen.state.hbBusy) return;
+      const lock = source.lockFor ? source.lockFor(app, op, node) : null;
+      if (lock) { screen.hbSay('🔒 ' + lock, AMBER); return; }
+      void getFile(node, id, screen.hbItems(node, app).find((x) => x.id === id));
+      return;
+    }
     if (app === 'folder' && op === 'open') { origAct(app, id, op, nodeArg); load(node, app, true); return; }   // 들어가기는 화면 이동 + 그 폴더 읽기
     if (app === 'wg' && op === 'revoke' && screen.state.hbArm !== id) return origAct(app, id, op, nodeArg);   // 두 번 누르기 확인은 화면이 맡는다
     if (screen.state.hbBusy) return;
-    const spec = ((appFor(app, node === source.localNode) || { acts: {} }).acts || {})[op];
+    const spec = (((source.appFor ? source.appFor(app, node) : appFor(app, node === source.localNode)) || { acts: {} }).acts || {})[op];
     if (spec && spec.form && screen.hbFormOpen) { screen.setState({ hbArm: null }); openForm(app, spec.form, id, node, spec.preset); return; }
     const item = screen.hbItems(node, app).find((x) => x.id === id);
     screen.setState({ hbBusy: id || app, hbArm: null });
     const r = await source.act(node, app, id, op, item, { path: screen.state.hbPath });
     if (!live) return;
     screen.setState({ hbBusy: null });
+    // 모듈 로그 · 작업 출력은 상태 화면의 출력 칸으로 (원본 hbShowOut)
+    if (r.kind === 'ok' && screen.hbShowOut && ((app === 'mod' && op === 'log') || (app === 'job' && op === 'out'))) {
+      screen.hbShowOut(node, app, id, nameOf(item) + (op === 'log' ? ' 로그' : ' 출력'), outText(op, r.data));
+      screen.hbSay((op === 'log' ? '로그' : '출력') + ' — 상태 화면', GRAY);
+      return;
+    }
     screen.hbSay(r.say || resultText(r), r.kind === 'ok' || r.kind === 'accepted' ? GREEN : RED);
     after(r, node, app, item);
   };
@@ -161,7 +213,7 @@ export function wireHelm(screen, source, opts = {}) {
   //    화면은 원본 앱 목록(hbItems)에서 그 항목을 찾아 읽는다 — 받지 않으면 "원본 목록에서 사라짐"으로 보인다
   let last = '', lastAt = 0, rsAt = 0;
   const t = setInterval(() => {
-    const app = screen.hbApp && screen.hbApp(), now = Date.now();
+    const app = screen.hbApp && screen.hbApp(), now = Date.now(), every = period();
     const open = app ? screen.hbNode() + '|' + app : '';
     if (!app) last = '';
     else {
@@ -181,15 +233,49 @@ export function wireHelm(screen, source, opts = {}) {
       });
     }
   }, 400);
+  // 7) 실시간 신호(B-5) → 받아 둔 목록 다시 받기. node — 그 노드의 것만(없으면 모든 노드)
+  screen._hbRefresh = (apps, node) => loaded.forEach((k) => {
+    const i = k.lastIndexOf('|'), n = k.slice(0, i), a = k.slice(i + 1);
+    if (apps.indexOf(a) >= 0 && (!node || node === n)) load(n, a, true);
+  });
   return () => {
     live = false;
     clearInterval(t);
+    delete screen._hbRefresh;
     screen.hbSeed = orig.hbSeed;
     screen.hbAct = orig.hbAct;
     screen.hbFormSave = orig.hbFormSave;
     screen.hbDel = orig.hbDel;
-    screen.setState({ hbd: {}, io: [], hbMsg: null, hbBusy: null, hbForm: null, hbArm: null });
+    screen.hbOpLock = orig.hbOpLock;
+    screen.setState({ hbd: {}, io: [], hbMsg: null, hbBusy: null, hbForm: null, hbArm: null, hbOut: null });
   };
+}
+
+/** 받은 파일을 브라우저로 저장한다 — 이 문서에 a[download] 를 잠깐 붙여 누른다 */
+export function saveBlob(blob, name, doc = globalThis.document) {
+  if (!doc || !doc.createElement) return false;
+  const url = URL.createObjectURL(blob), a = doc.createElement('a');
+  a.href = url; a.download = name || 'download'; a.style.display = 'none';
+  (doc.body || doc.documentElement).appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  return true;
+}
+
+/**
+ * 출력 칸의 글 — 모듈 로그(게이트웨이 { logs } · Daemon { lines }) · 작업 기록.
+ * 이 노드의 작업 기록(terra.daemon.tasks.by-task-id.get)은 명령 출력을 돌려주지 않는다 — 그렇다고 적는다(구현해야 할 것 PF-7)
+ */
+export function outText(op, d) {
+  if (op === 'log') {
+    const lines = logLines(d);
+    return lines.length ? lines.join('\n') + (d.truncated ? '\n— 앞부분은 잘렸다' : '') : '(최근 로그 없음)';
+  }
+  const x = d || {}, o = x.output || x.result || {};
+  if (o.stdout != null || o.stderr) return [o.stdout || '', o.stderr ? '— stderr —\n' + o.stderr : '', o.exit_code != null ? '— exit ' + o.exit_code : ''].filter(Boolean).join('\n');
+  return [x.type ? '작업 ' + x.type : '', '상태 ' + (TASK_STATE[x.state || x.status] || x.state || x.status || '모름'),
+    x.started_at ? '시작 ' + x.started_at : '', x.finished_at ? '끝 ' + x.finished_at : '',
+    '— 출력: Daemon 작업 기록은 명령 출력을 돌려주지 않는다'].filter(Boolean).join('\n');
 }
 
 /**
@@ -215,11 +301,12 @@ export async function wireFromUrl(screen) {
 }
 
 /** 지금 자격이 실제로 쥔 권한과 주체 (게이트웨이 whoami — 요청한 것이 아니라 교집합의 결과).
+ *  delegate — 이 토큰을 받은 앱 id. 사용자 문서 이름공간(app:<id>)이 이것으로 정해진다
  *  경로로 부른다 — invoke 로 부르면 호출자가 중계에서 빠진다(client.get) */
 async function whoami(client) {
   const r = await client.get('/api/v1/agent/whoami');
   const d = r.kind === 'ok' && r.data ? r.data : {};
-  return { principal: d.principal || '', permissions: Array.isArray(d.permissions) ? d.permissions : [] };
+  return { principal: d.principal || '', permissions: Array.isArray(d.permissions) ? d.permissions : [], delegate: typeof d.delegate === 'string' ? d.delegate : '' };
 }
 
 /**
@@ -238,8 +325,9 @@ async function wireFrame(screen) {
   const session = wireFrameSession(screen, terra);
 
   // 토큰이 생기고 없어지거나 권한이 달라질 때만 다시 붙는다. 정기 갱신(만료 80%)은 토큰 문자열만 바뀐다.
-  let unwire = null, key = '', timers = [];
+  let unwire = null, key = '', timers = [], stopEvents = null;
   const stop = () => {
+    if (stopEvents) { stopEvents(); stopEvents = null; }
     if (unwire) { unwire(); unwire = null; }
     timers.forEach(clearInterval); timers = [];
   };
@@ -261,14 +349,28 @@ async function wireFrame(screen) {
     const who = await whoami(client);
     const principal = (value && typeof value === 'object' && value.principal) || who.principal;
     const permissions = terra.permissions().slice();
-    if (screen.__real) await loadWorld(screen, client, { permissions, principal });
+    if (screen.__real) await loadWorld(screen, client, { permissions, principal, appId: who.delegate || (terra.appId || '') });
     if (key !== next) return;
     const cfg = await loadConfig();
     if (key !== next) return;
-    const source = new LiveSource(client, { localNode: screen.state.localNode.name, localId: screen.state.localNode.id });
+    // 다른 노드는 관계도의 node_id 로 노드 주소 호출(B-1)을 한다 — 그 노드 카탈로그가 오면 자물쇠를 다시 그린다
+    const source = new LiveSource(client, { localNode: screen.state.localNode.name, localId: screen.state.localNode.id, idOf: (name) => (screen.NET && screen.NET[name] && screen.NET[name].id) || null });
     source.client = client;
-    unwire = wireHelm(screen, source, { pollMs: cfg.pollSec * 1000 });
-    if (screen.__real) timers.push(setInterval(() => { void loadAlarms(screen, client); }, cfg.pollSec * 1000), setInterval(() => { void loadNet(screen, client); }, cfg.pollSec * 3000));
+    client.onNodeCatalog = () => { if (key === next) screen.setState({}); };
+    // 실시간 이벤트(B-5)가 열려 있으면 신호가 다시 받기를 맡는다 — 폴링은 여섯 번에 한 번(바닥)만
+    let ev = '';
+    const live = () => ev === 'open';
+    unwire = wireHelm(screen, source, { pollMs: cfg.pollSec * 1000, live });
+    if (screen.__real) {
+      const every = (ms, fn) => { let n = 0; timers.push(setInterval(() => { if (!live() || ++n % 6 === 0) fn(); }, ms)); };
+      every(cfg.pollSec * 1000, () => { void loadAlarms(screen, client); });
+      every(cfg.pollSec * 3000, () => { void loadNet(screen, client); });
+      if (client.has(EVENTS_OP)) {
+        stopEvents = openEvents(client, (e) => applySignal(screen, client, e), {
+          onState: (st) => { ev = st; if (screen.__real && screen.__real.events !== st) { screen.__real.events = st; screen.setState({}); } }
+        });
+      }
+    }
     hub.set({ client, terra, permissions, principal, node: Object.assign({}, screen.state.localNode) });
   };
   const offToken = terra.onToken(() => { void sync(); });

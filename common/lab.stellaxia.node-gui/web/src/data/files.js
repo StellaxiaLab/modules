@@ -46,3 +46,27 @@ export function entryItems(root, rel, entries) {
     };
   });
 }
+
+// ───── 폴더 탐색기 — 이 노드의 로컬 최상위 루트(Daemon local-fs, 읽기만) ─────
+// 칸 id 는 '<루트 이름>/<상대 경로>' — 공유 폴더 칸과 같은 모양이라 splitId 를 같이 쓴다.
+// 읽을 수 없는 루트 · 항목(readable: false)은 locked 로 두고 이유를 info 에 적는다 — 들어가지 않는다
+
+/** 로컬 루트(terra.daemon.local-fs.roots.get) → 맨 위 칸 */
+export function localRootItems(roots) {
+  return (Array.isArray(roots) ? roots : []).filter((r) => r && r.name).map((r) => Object.assign({
+    id: r.name, parent: '', name: r.name, dir: true, lfs: r.name, rel: '',
+    info: r.readable === false ? '🔒 ' + (r.reason || '읽을 수 없음') : [r.path, r.kind].filter(Boolean).join(' · ')
+  }, r.readable === false ? { locked: true } : {}));
+}
+
+/** 로컬 폴더 하나의 항목(terra.daemon.local-fs.entries.get) → 그 폴더 아래 칸. path 는 루트 상대다 */
+export function localEntryItems(root, rel, entries) {
+  const parent = rel ? root + '/' + rel : root;
+  return (Array.isArray(entries) ? entries : []).filter((e) => e && e.name).map((e) => {
+    const path = e.path ? String(e.path).replace(/^\/+/, '') : (rel ? rel + '/' + e.name : e.name);
+    return Object.assign({
+      id: root + '/' + path, parent, name: e.name, dir: !!e.is_dir, size: e.is_dir ? undefined : fmtSize(e.size),
+      info: e.readable === false ? '🔒 ' + (e.reason || '읽을 수 없음') : fmtTime(e.modified_at), lfs: root, rel: path
+    }, e.readable === false ? { locked: true } : {});
+  });
+}

@@ -82,8 +82,11 @@ export function remapNodes(saved, NET) {
   return out;
 }
 
-export function saveLayout(key, data) {
-  try { localStorage.setItem(key, JSON.stringify(data)); return true; } catch { return false; }
+/** 저장본에 _savedAt(ms)을 둔다 — 서버 문서(src/store/docs.js)와 어느 쪽이 새로운지 견준다.
+ *  at — 서버 문서를 받아 적을 때는 그 문서의 savedAt(같은 것을 다시 올리지 않게) */
+export function saveLayout(key, data, at) {
+  const stamp = Number.isFinite(at) && at > 0 ? at : Date.now();
+  try { localStorage.setItem(key, JSON.stringify(Object.assign({}, data, { _savedAt: stamp }))); return true; } catch { return false; }
 }
 
 /** setState를 감싸 바뀔 때마다(0.8초 모아서) 저장 */
@@ -99,15 +102,25 @@ export function autoSave(screen, key) {
 /**
  * autoSave 와 같되 끊을 수 있다. 모듈은 로그아웃 · 토큰을 잃으면 빈 세계로 돌아가는데,
  * 그때 저장을 끊지 않으면 빈 세계가 저장본을 덮는다.
+ * @param {(data: any) => void} [onSave]  브라우저에 저장한 뒤 — 서버 문서로 뒤따라 보낸다(src/store/docs.js). 바뀐 것이 없으면 부르지 않는다
  * @returns {() => void} 끊기 — 감싼 setState 를 되돌린다
  */
-export function bindLayout(screen, key, win = globalThis.window) {
-  let t = 0, on = true;
+export function bindLayout(screen, key, win = globalThis.window, onSave = null) {
+  let t = 0, on = true, last = '';
+  // 바뀐 것이 있을 때만 쓴다 — 같은 것을 다시 쓰면 _savedAt 만 새로워져, 묵은 브라우저 저장본이 다른 기기의 새 서버 문서를 이긴다
+  try { last = JSON.stringify(pickLayout(screen)); } catch { last = ''; }
   const own = Object.prototype.hasOwnProperty.call(screen, 'setState');
   const orig = screen.setState;
-  const save = () => { if (on && !screen.state.mt) saveLayout(key, pickLayout(screen)); };
+  const save = () => {
+    if (!on || screen.state.mt) return;
+    const d = pickLayout(screen), j = JSON.stringify(d);
+    if (j === last) return;
+    last = j;
+    saveLayout(key, d);
+    if (onSave) onSave(d);
+  };
   screen.setState = function (p) { orig.call(screen, p); if (!on) return; clearTimeout(t); t = setTimeout(save, 800); };
-  const hide = () => { if (on) saveLayout(key, pickLayout(screen)); };
+  const hide = () => { if (on) save(); };
   if (win && win.addEventListener) win.addEventListener('pagehide', hide);
   return () => {
     if (!on) return;
@@ -146,6 +159,16 @@ export function reviveMaps(maps, NET, isTree) {
     out[owner] = m;
   });
   return out;
+}
+
+/**
+ * 메모 — 화면은 메모마다 id · name · info(글)를 읽는다(유틸 카드의 "최근"이 info.replace 를 부른다).
+ * 다른 기기 · 다른 판의 저장본(사용자 문서)이 모양이 어긋나도 화면이 멈추지 않게 다듬고, 모양이 아닌 것은 버린다
+ */
+export function reviveMemos(memos) {
+  return (Array.isArray(memos) ? memos : []).filter((m) => m && typeof m.id === 'string' && m.id && typeof m.name === 'string')
+    .map((m) => Object.assign({}, m, { parent: typeof m.parent === 'string' ? m.parent : '', info: typeof m.info === 'string' ? m.info : '' },
+      m.dir ? {} : { text: typeof m.text === 'string' ? m.text : '' }));
 }
 
 /** 창 자리 — 저장본에 없는 새 창(도로 편집기 · 자원 설정 …)은 기본 자리로, 모르는 창은 버린다 */

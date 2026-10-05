@@ -98,7 +98,7 @@ test('작업 기록은 접수가 아니다 — 상태가 있는 job_id · task_i
   const rec = await toResult(json(200, { status: 'ok', data: { id: 'task-1', job_id: 'plan-1', state: 'succeeded' } }));
   assert.equal(rec.kind, 'ok');
   const acc = await toResult(json(202, { status: 'accepted', data: { task_id: 'task-2' } }));
-  assert.deepEqual(acc, { kind: 'accepted', job: 'task-2' });
+  assert.deepEqual(acc, { kind: 'accepted', job: 'task-2', data: { task_id: 'task-2' } });
 });
 
 test('API 가 없는 동작은 부르지 않고 이유를 낸다', async () => {
@@ -148,7 +148,7 @@ test('노드 화면 — 로그인 전에는 빈 세계다: 예시 노드 · tree
   assert.equal(s.renderVals().who.name, '로그인 전');
 });
 
-test('노드 화면 — 진짜 권한: 이 노드는 토큰의 권한, 모듈 수명 · 작업 취소는 node.control 로 연다. 다른 노드는 닿지 않음', async () => {
+test('노드 화면 — 진짜 권한: 이 노드는 토큰의 권한, 모듈 수명 · 작업 취소는 node.control 로 연다. 다른 노드는 노드 주소 호출로 닿을 때만', async () => {
   const { default: Screen } = await import('../src/screens/node.js');
   const s = new (realNode(Screen))({ skin: 'grass' });
   s.__real.perms = ['node.read', 'node.control', 'file.read'];
@@ -159,6 +159,16 @@ test('노드 화면 — 진짜 권한: 이 노드는 토큰의 권한, 모듈 �
   assert.ok(!P.has.includes('file.write'));
   assert.equal(s.hbPerm('다른 노드').role, '닿지 않음');
   assert.equal(s.renderVals().who.name, 'admin@stack.local');
+  // 다른 노드 — node_id 를 알고 게이트웨이에 노드 주소 호출(B-1)이 있으면 같은 권한(Master · 대상 Daemon 이 다시 좁힌다)
+  s.NET['leaf-b'] = { role: 'Leaf', kids: [], res: [], id: 'node_b' };
+  s.NET['tree-x'] = { role: 'Tree', kids: [], res: [], id: null };
+  s.__client = { canRelay: () => true, has: () => true, catalog: new Map() };
+  const B = s.hbPerm('leaf-b');
+  assert.equal(B.role, '관리자 · 중계');
+  assert.ok(B.has.includes('module.manage'));
+  assert.match(s.hbPerm('tree-x').why, /node_id 를 모른다/);
+  s.__client = { canRelay: () => false, has: () => false, catalog: new Map([['x', {}]]) };
+  assert.match(s.hbPerm('leaf-b').why, /노드 주소 호출이 없다/);
 });
 
 test('노드 화면 — tree 자식이 18을 넘어도 버리지 않는다(바깥 겹, 그래도 넘치면 새 노드 목록)', async () => {

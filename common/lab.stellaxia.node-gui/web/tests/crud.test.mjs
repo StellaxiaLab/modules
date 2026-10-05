@@ -146,9 +146,9 @@ test('Master 호출 — 읽기 · 지우기만 node_id 를 query 로 싣는다(�
   assert.equal(f.calls[2].body.node_id, 'node_1');
 });
 
-test('전송 — 올리기 · 받기는 아직 없다. 끝난 전송은 화면에서만 치우고, 도는 전송은 포기한다(부분 파일도 지운다)', async () => {
+test('전송 — 폼으로는 만들지 않는다(↑ 올리기로 파일을 고른다 · 받기는 아직 없다). 끝난 전송은 화면에서만 치우고, 도는 전송은 포기한다(부분 파일도 지운다)', async () => {
   const { f, source } = live();
-  assert.equal((await source.crud(LOCAL, 'xfer', 'create', { name: 'a', dir: 'push', total: 1 })).reason, 'no-transfer');
+  assert.equal((await source.crud(LOCAL, 'xfer', 'create', { name: 'a', dir: 'push', total: 1 })).reason, 'xfer-form');
   const done = await source.crud(LOCAL, 'xfer', 'del', null, { id: 'tr-1', state: 'completed' });
   assert.deepEqual([done.screen, done.verb, f.calls.length], [true, '치움', 0]);
   const r = await source.crud(LOCAL, 'xfer', 'del', null, { id: 'tr-2', state: 'transferring' });

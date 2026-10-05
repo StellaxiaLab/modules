@@ -15,7 +15,8 @@ globalThis.window = win;
 globalThis.localStorage = mem;
 
 const { prep, boot, REAL } = await import('../src/boot/module.js');
-const { reviveMaps, reviveWins, bindLayout, layoutKey, loadLayout, remapNodes } = await import('../src/store/layout.js');
+const { reviveMaps, reviveWins, reviveMemos, bindLayout, layoutKey, loadLayout, saveLayout, remapNodes } = await import('../src/store/layout.js');
+const { DocStore, newerDoc, pullAssets, watchAssets } = await import('../src/store/docs.js');
 const { loadWorld, resetWorld } = await import('../src/data/node-live.js');
 const { buildNet } = await import('../src/data/world.js');
 const { borrowFrame } = await import('../src/api/frame-boot.js');
@@ -114,6 +115,8 @@ test('LayoutStore — 저장된 맵을 지금 노드 관계에 맞춘다: 주인
   assert.equal(Object.keys(out.t.rsrc).length, 1);
   assert.equal(out.t.links.length, 1);
   assert.equal(out.t.sel, null);
+  const memos = reviveMemos([{ id: 'a.md', name: 'a.md', text: 'x' }, { id: 'd', name: 'd', dir: true, info: '폴더' }, { id: 3 }, null, 'x']);
+  assert.deepEqual(memos, [{ id: 'a.md', name: 'a.md', text: 'x', parent: '', info: '' }, { id: 'd', name: 'd', dir: true, info: '폴더', parent: '' }], '다른 판 · 기기의 메모도 화면이 읽는 모양으로');
   const wins = reviveWins({ net: { x: 1, y: 1, w: 300 }, rd: { x: 2, y: 2, w: 400 } }, { net: { x: 50, y: 60 }, old: { x: 0, y: 0 } });
   assert.deepEqual(wins, { net: { x: 50, y: 60, w: 300 }, rd: { x: 2, y: 2, w: 400 } });
 });
@@ -182,7 +185,8 @@ test('loadWorld — 노드 · 주체마다 저장한 배치 · 노드 자원 · 
   assert.deepEqual(Object.keys(S.maps).sort(), ['leaf-a'], '주인이 사라진 맵은 버린다');
   assert.equal(s.NET['leaf-b'].auth, 'offline');
   assert.equal(s.__real.layoutKey, key);
-  assert.match(s.FBMODES().memo.desc, /이 브라우저에 저장/);
+  assert.match(s.FBMODES().memo.desc, /이 브라우저에만 저장/, 'appId 가 없으면 사용자 문서를 쓰지 않는다');
+  assert.equal(s.__real.docs, null);
   // 바꾸면 저장된다
   s.setState({ markStyle: 'none' });
   await sleep(900);
@@ -208,6 +212,179 @@ test('loadWorld — 읽는 사이 로그아웃하면 멈춘다: 빈 세계를 �
   assert.equal(s.state.localNode.name, '이 노드');
   assert.equal(s.__real.layoutKey, null);
   assert.ok(!c.calls.includes('/api/v1/agent/nodes'), '멈춘 뒤로는 부르지 않는다');
+});
+
+/** 사용자 문서 저장소 흉내 — Master 의 규칙: 없으면 404 · base_revision 이 안 맞거나 있는데 base 없이 쓰면 409 · 없는데 base 없이 쓰면 만든다 */
+function docServer() {
+  const docs = new Map();
+  let rev = 0;
+  const keyOf = (path) => path.split('/').slice(6).map(decodeURIComponent).join('/');
+  return {
+    docs, reqs: [], catalog: new Set(), has: () => false,
+    put(key, value) { docs.set(key, { revision: ++rev, value }); },
+    async request(method, path, body) {
+      this.reqs.push({ method, path, body });
+      const key = keyOf(path), cur = docs.get(key);
+      if (method === 'GET') return cur ? { kind: 'ok', data: { key, revision: cur.revision, value: cur.value } } : { kind: 'error', status: 404, reason: 'DOCUMENT_NOT_FOUND' };
+      const base = body.base_revision;
+      if ((base == null && cur) || (base != null && (!cur || cur.revision !== base))) return { kind: 'error', status: 409, reason: 'DOCUMENT_REVISION_CONFLICT' };
+      this.put(key, body.value);
+      return { kind: 'ok', data: { key, revision: rev } };
+    }
+  };
+}
+
+test('DocStore — 앱 이름공간 경로 · 없음(404)은 써서 만들고 못 쓰는 저장소(501)는 끈다 · 쓰기마다 base_revision · 409면 한 번 알리고 지금 판 위에 다시 쓴다', async () => {
+  const srv = docServer();
+  const d = new DocStore(srv, 'lab.stellaxia.node-gui.web');
+  assert.equal(d.available(), true, '카탈로그를 못 받았으면 해 본다');
+  assert.equal(d.path('layout/node 1'), '/api/v1/me/documents/app%3Alab.stellaxia.node-gui.web/layout/node%201');
+  assert.equal(await d.read('layout/n1'), null);
+  assert.notEqual(d.state, 'off', '없음(404)은 저장소가 있다는 뜻');
+  assert.equal(await d.write('layout/n1', { a: 1 }), true);
+  const v = srv.docs.get('layout/n1').value;
+  assert.deepEqual([v.version, v.data.a, v.savedAt > 0], [1, 1, true]);
+  assert.equal(srv.reqs.at(-1).body.base_revision, undefined, '처음 쓰기는 base 없이');
+  await d.write('layout/n1', { a: 2 });
+  assert.equal(srv.reqs.at(-1).body.base_revision, 1, '다음 쓰기는 받은 revision 을 싣는다');
+  // 다른 창 · 기기가 먼저 썼다 → 409 → 한 번 알리고 지금 판 위에 덮는다
+  const notes = []; d.onNote = (t) => notes.push(t);
+  srv.put('layout/n1', { version: 1, savedAt: 1, data: { a: 'other' } });
+  assert.equal(await d.write('layout/n1', { a: 3 }), true);
+  assert.equal(srv.docs.get('layout/n1').value.data.a, 3);
+  srv.put('layout/n1', { version: 1, savedAt: 1, data: { a: 'other2' } });
+  await d.write('layout/n1', { a: 4 });
+  assert.equal(srv.docs.get('layout/n1').value.data.a, 4);
+  assert.equal(notes.length, 1, '겹침은 한 번만 알린다');
+  // 쓰기가 막혔다(할당량 …) — 한 번 알리고 브라우저에만
+  const bad = new DocStore({ catalog: new Set(), async request(m) { return m === 'GET' ? { kind: 'error', status: 404 } : { kind: 'error', status: 429, reason: 'DOCUMENT_QUOTA_EXCEEDED' }; } }, 'x');
+  const bn = []; bad.onNote = (t) => bn.push(t);
+  assert.equal(await bad.write('k', {}), false);
+  await bad.write('k', {});
+  assert.equal(bn.length, 1);
+  assert.match(bn[0], /DOCUMENT_QUOTA_EXCEEDED/);
+  // Master 연결이 없는 게이트웨이(501) — 끄고, 더 쓰지 않는다
+  const off = new DocStore({ catalog: new Set(), reqs: [], async request(m) { this.reqs.push(m); return { kind: 'unsupported', status: 501, reason: 'MANAGEMENT_UNAVAILABLE' }; } }, 'x');
+  assert.equal(await off.read('layout/n1'), null);
+  assert.equal(off.state, 'off');
+  assert.equal(await off.write('layout/n1', {}), false);
+  assert.equal(off.c.reqs.length, 1, '꺼진 저장소에는 쓰지 않는다');
+  // 카탈로그에 사용자 문서가 없는 게이트웨이
+  assert.equal(new DocStore({ catalog: new Set(['terra.daemon.node.get']), has: () => false }, 'x').available(), false);
+});
+
+test('DocStore — 새 쪽이 이긴다(savedAt · _savedAt) · 모아서 쓰고(같은 키는 마지막 것만) · 끊으면 모아 둔 쓰기를 버린다', async () => {
+  assert.equal(newerDoc({ _savedAt: 5 }, { savedAt: 9, data: { x: 1 } }).x, 1);
+  assert.equal(newerDoc({ _savedAt: 9 }, { savedAt: 5, data: { x: 1 } }), null);
+  assert.equal(newerDoc({}, null), null);
+  assert.equal(newerDoc({}, { savedAt: 1, data: 'x' }), null);
+  const was = DocStore.WAIT; DocStore.WAIT = 30;
+  try {
+    const srv = docServer(), d = new DocStore(srv, 'a');
+    d.later('k', () => ({ n: 1 })); d.later('k', () => ({ n: 2 }));
+    await sleep(90);
+    assert.equal(srv.reqs.filter((r) => r.method === 'PUT').length, 1);
+    assert.equal(srv.docs.get('k').value.data.n, 2);
+    d.later('k', () => ({ n: 3 })); d.stop();
+    await sleep(90);
+    assert.equal(srv.docs.get('k').value.data.n, 2, '끊으면 버린다');
+  } finally { DocStore.WAIT = was; }
+});
+
+test('DocStore — 편집기 자산: 서버 것이 새로우면 받아 화면에 알리고, 편집기가 내보내면(storage 이벤트) 서버로', async () => {
+  const was = DocStore.WAIT; DocStore.WAIT = 30;
+  try {
+    const ls = memoryStorage(), srv = docServer(), d = new DocStore(srv, 'a');
+    srv.put('assets', { version: 1, savedAt: 1000, data: { 'terra.gui.buildings': '[{"id":"b1"}]', 'terra.gui.roads': null } });
+    const got = [];
+    assert.equal(await pullAssets(d, (k, v) => got.push([k, v]), ls), true);
+    assert.deepEqual(got, [['terra.gui.buildings', '[{"id":"b1"}]']]);
+    assert.equal(ls.getItem('terra.gui.assetsAt'), '1000');
+    assert.equal(await pullAssets(d, () => got.push('again'), ls), false, '같은 것은 다시 받지 않는다');
+    // 편집기(다른 문서)가 내보냈다
+    const fns = [];
+    const w = { addEventListener: (n, f) => fns.push(f), removeEventListener: (n, f) => fns.splice(fns.indexOf(f), 1) };
+    const stop = watchAssets(d, w, ls);
+    ls.setItem('terra.gui.roads', '[{"id":"r1"}]');
+    fns.forEach((f) => f({ key: 'terra.gui.roads' }));
+    fns.forEach((f) => f({ key: 'terra.gui.innerHelp' }));
+    await sleep(90);
+    assert.equal(srv.reqs.filter((r) => r.method === 'PUT').length, 1, '자산이 아닌 키는 보내지 않는다');
+    assert.equal(srv.docs.get('assets').value.data['terra.gui.roads'], '[{"id":"r1"}]');
+    assert.ok(Number(ls.getItem('terra.gui.assetsAt')) > 1000, '브라우저 쪽 시각을 새로 적는다 — 다음 받기가 덮지 않게');
+    stop();
+    assert.equal(fns.length, 0);
+  } finally { DocStore.WAIT = was; }
+});
+
+test('LayoutStore — 바뀐 것이 있을 때만 저장하고 서버로 보낸다(onSave) · 서버 문서를 받아 적을 때는 그 시각으로', async () => {
+  const s = new (prep('node', NodeScreen))({ skin: 'grass' });
+  const key = layoutKey('n-onsave', 'u');
+  const sent = [];
+  const unbind = bindLayout(s, key, win, (d) => sent.push(d));
+  s.setState({ hbMsg: null });   // 저장할 것은 그대로다
+  await sleep(900);
+  assert.equal(loadLayout(key), null, '같은 것은 쓰지 않는다 — _savedAt 만 새로워져 다른 기기의 새 문서를 이기지 않게');
+  assert.equal(sent.length, 0);
+  s.setState({ markStyle: 'flat' });
+  await sleep(900);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].markStyle, 'flat');
+  assert.equal(sent[0]._savedAt, undefined, '서버로 가는 것에는 브라우저 시각을 싣지 않는다');
+  assert.ok(loadLayout(key)._savedAt > 0);
+  unbind();
+  saveLayout(key, { markStyle: 'none' }, 1234);
+  assert.equal(loadLayout(key)._savedAt, 1234);
+});
+
+test('loadWorld — 사용자 문서(서버)가 더 새로우면 그 배치를 쓰고, 브라우저 것이 새로우면 한 번 올린다 · 바꾸면 뒤따라 쓴다 · 저장소가 없으면 브라우저만', async () => {
+  const was = DocStore.WAIT; DocStore.WAIT = 60;
+  const APP = 'lab.stellaxia.node-gui.web', docKey = 'layout/node-1';
+  const withDocs = (srv) => Object.assign(fakeClient(), { request: srv.request.bind(srv), catalog: new Set(), has: () => false });
+  try {
+    // ① 다른 기기에서 나중에 고친 배치가 서버에 있다
+    const key = layoutKey('node-1', 'docs@stack.local');
+    mem.setItem(key, JSON.stringify({ markStyle: 'flat', memos: [], _savedAt: 1000 }));
+    const srv = docServer();
+    srv.put(docKey, { version: 1, savedAt: 2000, data: { markStyle: 'none', memos: [{ id: 'm.md', parent: '', name: 'm.md', text: '서버' }] } });
+    const s = new (prep('node', NodeScreen))({ skin: 'grass' });
+    await loadWorld(s, withDocs(srv), { permissions: ['node.read'], principal: 'docs@stack.local', appId: APP });
+    assert.equal(s.state.markStyle, 'none');
+    assert.equal(s.state.memos[0].text, '서버');
+    assert.equal(loadLayout(key)._savedAt, 2000, '브라우저 저장본도 서버 시각으로 — 다음엔 다시 올리지 않는다');
+    assert.ok(s.__real.docs, '서버 저장소에 묶였다');
+    assert.match(s.FBMODES().memo.desc, /사용자 문서/);
+    assert.ok(srv.reqs.every((r) => r.path.startsWith('/api/v1/me/documents/app%3A' + APP + '/')), '앱 이름공간만 쓴다');
+    await sleep(1000);
+    assert.equal(srv.reqs.filter((r) => r.method === 'PUT').length, 0, '받은 것을 다시 올리지 않는다');
+    s.setState({ markStyle: 'flag' });   // 바꾸면 브라우저(0.8초) → 서버(모아서)
+    await sleep(1000);
+    const puts = srv.reqs.filter((r) => r.method === 'PUT');
+    assert.equal(puts.length, 1);
+    assert.equal(puts[0].body.base_revision, 1);
+    assert.equal(srv.docs.get(docKey).value.data.markStyle, 'flag');
+    resetWorld(s);
+    assert.equal(s.__real.docs, null, '로그아웃하면 서버 쓰기를 끊는다');
+
+    // ② 이 브라우저에서 더 나중에 고쳤다(서버가 없던 때) — 한 번 올린다
+    const key2 = layoutKey('node-1', 'docs2@stack.local');
+    mem.setItem(key2, JSON.stringify({ markStyle: 'flat', _savedAt: Date.now() }));
+    const srv2 = docServer();
+    const s2 = new (prep('node', NodeScreen))({ skin: 'grass' });
+    await loadWorld(s2, withDocs(srv2), { permissions: ['node.read'], principal: 'docs2@stack.local', appId: APP });
+    assert.equal(s2.state.markStyle, 'flat');
+    await sleep(200);
+    assert.equal(srv2.docs.get(docKey).value.data.markStyle, 'flat');
+    resetWorld(s2);
+
+    // ③ Master 연결이 없는 게이트웨이(501) — 브라우저에만
+    const c3 = Object.assign(fakeClient(), { async request() { return { kind: 'unsupported', status: 501 }; }, catalog: new Set(), has: () => false });
+    const s3 = new (prep('node', NodeScreen))({ skin: 'grass' });
+    await loadWorld(s3, c3, { permissions: ['node.read'], principal: 'docs3@stack.local', appId: APP });
+    assert.equal(s3.__real.docs, null);
+    assert.match(s3.FBMODES().memo.desc, /이 브라우저에만 저장/);
+    resetWorld(s3);
+  } finally { DocStore.WAIT = was; }
 });
 
 test('frame-boot — 같은 origin 부모가 내놓은 frame 연결을 빌린다(hello 는 한 번만)', () => {

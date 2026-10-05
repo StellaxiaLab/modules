@@ -47,6 +47,18 @@ export default class Component extends DCLogic {
   writeHelp(on) { try { window.localStorage.setItem('terra.gui.innerHelp', on ? '1' : '0'); } catch (e) { /* 저장 못 해도 이 화면에서는 바뀐다 */ } this.setState({ help: on }); }
   componentDidMount() { this._onStore = (e) => { if (e.key === 'terra.gui.innerHelp') this.setState({ help: e.newValue === '1' }); }; try { window.addEventListener('storage', this._onStore); } catch (e) { /* 무시 */ } }
 
+  // Daemon 재시작 (terra.daemon.restart.post): 첫 누름 = 확인 준비(5초), 둘째 = 실행. 예시는 바로 끝난 것으로. 서비스가 doRestart를 바꿔 끼운다
+  restartDaemon() {
+    const S = this.state; if (S.restarting) return;
+    if (!S.restartArm) { this.setState({ restartArm: true }); clearTimeout(this._raT); this._raT = setTimeout(() => this.setState({ restartArm: false }), 5000); return; }
+    this.setState({ restartArm: false, restarting: true });
+    this.doRestart().then((r) => {
+      this.setState({ restarting: false });
+      if (r && r.ok === false) { this.toast('■', '#d33d52', '재시작하지 못했습니다', r.msg || ''); return; }
+      this.setState({ pending: {} }); this.toast('●', '#1f7a4d', 'Daemon을 다시 시작했습니다', '실행 중인 값을 다시 읽었습니다 (config.get)');
+    });
+  }
+  async doRestart() { await new Promise((r) => setTimeout(r, 900)); return { ok: true }; }
   later(ms, f) { this._ts = this._ts || []; this._ts.push(setTimeout(f, ms)); }
   toast(g, c, title, text) { const id = Math.random(); this.setState({ toasts: this.state.toasts.concat([{ id, g, c, title, text }]).slice(-3) }); this.later(4500, () => this.setState({ toasts: this.state.toasts.filter((t) => t.id !== id) })); }
   val(k) { const d = this.state.draft; return Object.prototype.hasOwnProperty.call(d, k) ? d[k] : this.state.cur[k]; }
@@ -289,7 +301,7 @@ export default class Component extends DCLogic {
       tabs,
       grp: { disp: showGrp && !blocked ? 'flex' : 'none', q: S.q, setQ: (e) => this.setState({ q: e.target.value }), items: grpItems,
         filters: [['all', '모두', 135], ['edit', '편집 가능', 96], ['dev', '변경된 값', nDev + nPend + nDraft]].map(([k, label, n]) => ({ label, n, on: S.filter === k ? 'true' : 'false', bg: S.filter === k ? '#16191f' : '#ffffff', fg: S.filter === k ? '#ffffff' : '#3a4049', line: S.filter === k ? '#16191f' : '#d8dde5', pick: () => this.setState({ filter: k }) })) },
-      pend: { helpDisp: S.help ? 'inline' : 'none', show: !blocked && cur.id === 'node' && nPend > 0, n: nPend, keys: Object.keys(S.pending).join(' · '), done: () => { this.setState({ pending: {} }); this.toast('●', '#1f7a4d', '재시작 완료로 표시', '실행 중인 값을 다시 읽었습니다 (config.get)'); } },
+      pend: { helpDisp: S.help ? 'inline' : 'none', show: !blocked && cur.id === 'node' && nPend > 0, n: nPend, keys: Object.keys(S.pending).join(' · '), done: () => this.restartDaemon(), label: S.restartArm ? '정말 재시작' : S.restarting ? '↻ 재시작 중…' : '↻ Daemon 재시작', bg: S.restartArm ? '#a65f00' : '#ffffff', fg: S.restartArm ? '#ffffff' : '#8a5a00', line: S.restartArm ? '#a65f00' : '#e8c78f' },
       page: { title, sub, chips, subDisp: S.help && sub ? 'inline' : 'none' },
       keys: { show: showKeys && !blocked, rows: keyRows, empty: showKeys && !keyRows.length },
       cards: blocked || !showKeys ? cards : [],
