@@ -8,6 +8,7 @@ import (
 
 	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/discovery"
 	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/manual"
 )
 
 func tombstoneFixture(t *testing.T) (http.Handler, *inventory.Registry) {
@@ -22,7 +23,7 @@ func tombstoneFixture(t *testing.T) (http.Handler, *inventory.Registry) {
 	if err := registry.Register(device); err != nil {
 		t.Fatal(err)
 	}
-	handler := newOperationsHandler(registry, newHotplug(discovery.WatchStatus{Mode: discovery.WatchNone}))
+	handler := newOperationsHandler(registry, newHotplug(discovery.WatchStatus{Mode: discovery.WatchNone}), &manualDoor{source: manual.NewMemorySource(), adapters: manual.DefaultAdapters()})
 	return handler, registry
 }
 

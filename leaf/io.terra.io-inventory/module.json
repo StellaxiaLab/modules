@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "io.terra.io-inventory",
   "name": "Terra I/O Inventory",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "kind": "service",
   "description": "Node-local I/O device inventory and approval policy, extracted from the daemon as the core-slimming pilot.",
   "compatibility": {
@@ -18,7 +18,7 @@
   },
   "provides": {
     "capabilities": [
-      { "id": "io.terra.io-inventory", "version": "0.1.0" }
+      { "id": "io.terra.io-inventory", "version": "0.2.0" }
     ]
   },
   "contracts": {
