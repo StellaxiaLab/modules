@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "io.terra.file",
   "name": "Terra File",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "kind": "service",
   "description": "Shared-folder listing and, from F3, resumable chunked file transfer. The second core-slimming extraction after io.terra.io-inventory.",
   "compatibility": {

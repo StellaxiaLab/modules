@@ -3,7 +3,7 @@
   "$id": "https://contracts.terra.dev/modules/io.terra.file/0.1.0/terra-api.json",
   "schemaVersion": "1.0.0",
   "contractId": "io.terra.file.api",
-  "contractVersion": "0.1.0",
+  "contractVersion": "0.2.0",
   "defaultLocale": "ko-KR",
   "title": "Terra File API",
   "summary": "노드의 공유 폴더를 나열하고 관리합니다.",
@@ -29,6 +29,18 @@
     "workload-identity": {
       "type": "workload-identity",
       "description": "Module Runtime이 실행 instance에 발급한 단기 Workload Identity를 사용합니다."
+    }
+  },
+  "permissions": {
+    "file.read": {
+      "title": "파일 읽기",
+      "description": "공유 폴더 목록·항목·내용과 전송 상태를 읽고, pull 전송의 청크를 받습니다. 부수효과가 없습니다.",
+      "risk": "read"
+    },
+    "file.write": {
+      "title": "파일 쓰기",
+      "description": "공유 폴더에 쓰고·자르고·만들고·이름을 바꾸고·지우며, 전송을 열고·닫고·중단하고 push 청크를 올립니다. pull 전송을 여는 것도 여기에 듭니다.",
+      "risk": "write"
     }
   },
   "errors": {
@@ -172,7 +184,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.read"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -339,7 +353,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.read"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -559,7 +575,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.read"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -793,7 +811,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.read"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -1019,7 +1039,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.write"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -1272,7 +1294,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.write"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -1475,7 +1499,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.write"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -1678,7 +1704,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.write"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -1873,7 +1901,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.write"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -2065,7 +2095,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.read"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -2308,7 +2340,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.read"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -2551,7 +2585,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.write"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -2856,7 +2892,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.write"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -3048,7 +3086,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.read"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -3224,7 +3264,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.write"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
@@ -3404,7 +3446,9 @@
         "authentication": [
           "workload-identity"
         ],
-        "permissions": [],
+        "permissions": [
+          "file.write"
+        ],
         "workloadPermissions": [],
         "dataClassification": "internal",
         "audit": {
