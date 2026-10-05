@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -473,8 +474,12 @@ func newOperationsHandler(manager *store.Manager, transfers *transfer.Manager) h
 	mux.HandleFunc("POST "+apiPrefix+"/transfers/{transfer_id}/abort", func(w http.ResponseWriter, r *http.Request) {
 		// keep_partial is the caller's decision: giving up on a bad file should
 		// not leave it behind, while pausing to resume must keep what is there.
-		keep := strings.EqualFold(strings.TrimSpace(r.URL.Query().Get("keep_partial")), "true")
-		record, err := transfers.Abort(r.PathValue("transfer_id"), r.URL.Query().Get("reason"), !keep)
+		keep, reason, err := abortRequest(r)
+		if err != nil {
+			writeAPIError(w, http.StatusBadRequest, "FILE_INVALID_REQUEST", "the request body must be an abort request object")
+			return
+		}
+		record, err := transfers.Abort(r.PathValue("transfer_id"), reason, !keep)
 		if err != nil {
 			writeStoreError(w, err)
 			return
@@ -533,12 +538,16 @@ func newOperationsHandler(manager *store.Manager, transfers *transfer.Manager) h
 
 	mux.HandleFunc("POST "+apiPrefix+"/transfers/pulls/{transfer_id}/abort", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("transfer_id")
+		keep, reason, err := abortRequest(r)
+		if err != nil {
+			writeAPIError(w, http.StatusBadRequest, "FILE_INVALID_REQUEST", "the request body must be an abort request object")
+			return
+		}
 		if err := requirePull(transfers, id); err != nil {
 			writeStoreError(w, err)
 			return
 		}
-		keep := strings.EqualFold(strings.TrimSpace(r.URL.Query().Get("keep_partial")), "true")
-		record, err := transfers.Abort(id, r.URL.Query().Get("reason"), !keep)
+		record, err := transfers.Abort(id, reason, !keep)
 		if err != nil {
 			writeStoreError(w, err)
 			return
@@ -565,14 +574,51 @@ func newOperationsHandler(manager *store.Manager, transfers *transfer.Manager) h
 // that only file.write may touch. Direction is fixed at prepare, so reading it
 // before acting is not a race.
 func requirePull(transfers *transfer.Manager, id string) error {
+	// Get refuses a transfer whose window closed, which is right for reading a
+	// chunk but not here: complete and abort close a transfer, and a pull left
+	// behind by a page that shut mid-download is exactly the one a reader needs
+	// to close. Only the direction is this check's business.
 	record, err := transfers.Get(id)
-	if err != nil {
+	if err != nil && !errors.Is(err, transfer.ErrExpired) {
 		return err
 	}
 	if record.Direction != transfer.Pull {
 		return fmt.Errorf("%w: %s is a %s transfer, and this operation only handles pulls", transfer.ErrWrongState, id, record.Direction)
 	}
 	return nil
+}
+
+// abortRequest reads what a caller says when it ends a transfer: keep the
+// partial file and checkpoint or not, and why.
+//
+// An invoke through the Gateway brings it as the JSON body — for a POST binding
+// everything that is not a path parameter goes there (terra-module-runtime
+// BuildOperationTarget). A call written by hand may bring it as the query. Both
+// are read, the body winning where it speaks. Reading the query alone turned
+// every pause sent through the Gateway into giving up: the partial file deleted
+// and the checkpoint forgotten, with nothing left to resume.
+func abortRequest(r *http.Request) (keep bool, reason string, err error) {
+	query := r.URL.Query()
+	keep = strings.EqualFold(strings.TrimSpace(query.Get("keep_partial")), "true")
+	reason = query.Get("reason")
+	var body struct {
+		KeepPartial *bool   `json:"keep_partial"`
+		Reason      *string `json:"reason"`
+	}
+	switch err := json.NewDecoder(r.Body).Decode(&body); {
+	case errors.Is(err, io.EOF):
+		// No body: the query, or the defaults, say it all.
+		return keep, reason, nil
+	case err != nil:
+		return false, "", err
+	}
+	if body.KeepPartial != nil {
+		keep = *body.KeepPartial
+	}
+	if body.Reason != nil {
+		reason = *body.Reason
+	}
+	return keep, reason, nil
 }
 
 // chunkRefusalCode names why a chunk was refused so a sender can tell "resend

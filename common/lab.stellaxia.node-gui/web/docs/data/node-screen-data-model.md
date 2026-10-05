@@ -7,8 +7,8 @@ doc_type: "data-model"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-04"
+version: "0.3.1"
+last_updated: "2026-10-05"
 language: "ko-KR"
 source: "design/Artboard-qcfu.dc.html (= src/screens/node.js) — constructor(), renderVals()"
 related:
@@ -182,7 +182,7 @@ looks = { 'tree-home': { skin: 'concrete', bid: 'tower', rot: 0 }, … }
 | --- | --- | --- |
 | `fb` | `{ open, mode, path }` 사이드 바 | 메모리 |
 | `FBDATA().repo` | Terra 저장소 예시 트리 | `terra.daemon.files.list.get` |
-| `FBDATA().local` | 로컬 루트 예시 트리 | ⚠ API 없음 — [[helm-apps-integration\|앱 연동]] §4 |
+| `FBDATA().local` | 로컬 루트 예시 트리 | `terra.daemon.local-fs.roots.get` · `entries.get`(Terra B-11) — [[helm-apps-integration\|앱 연동]] §4 |
 | `fbMsg` · `fbArm` | 알림 띠 · 지우기 확인 | 메모리 |
 
 ### 2.12 메모장 — `memos` · `memoCur` · `memoDraft` 🟩
@@ -249,7 +249,7 @@ interface AssetStore {             // 편집기 3종이 만드는 것
 
 > [!NOTE] 지금 구현 (2026-10-04)
 > ①을 `localStorage`로 세웠다 — `src/store/layout.js`(짝 프로젝트와 같은 모양). 모듈의 키는 `terra.gui.layout|<node_id>|<주체>`이고
-> `looks` · `maps`(노드 자원 `rsrc` · 연결 `links` 포함) · 표시 설정 · `memos` · `wins`를 한 덩어리로 담는다. 단, 맵 **안의** 노드는 아직 이름이 키다.
+> `looks` · `maps`(노드 자원 `rsrc` · 연결 `links` 포함) · 표시 설정 · `memos` · `wins`를 한 덩어리로 담는다. 맵 **안의** 노드는 화면 규칙대로 이름이 키지만, 저장본에 이름 → `node_id`(`nodeIds`)를 같이 적어 읽을 때 지금 이름으로 옮긴다(`remapNodes` — 이름이 바뀌어도 따라간다).
 > 서버 저장으로 바꿀 때는 `loadLayout` · `saveLayout` 두 함수만 바꾼다 — [[module-profile|모듈 프로필]] §4.
 
 ### 3.1 편집기 ↔ 노드 화면 연결

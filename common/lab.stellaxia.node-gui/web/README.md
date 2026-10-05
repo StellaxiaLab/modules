@@ -6,8 +6,8 @@ doc_type: "readme"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.1.0"
-last_updated: "2026-10-04"
+version: "1.5.0"
+last_updated: "2026-10-05"
 language: "ko-KR"
 ---
 
@@ -15,8 +15,9 @@ language: "ko-KR"
 
 게임 GUI 형태의 Terra 노드 화면과 편집기들을 브라우저에서 바로 돌리는 웹 프로젝트다.
 디자인 캔버스에서 만든 화면(`design/*.dc.html`)을 그대로 옮겼고, 외부 UI 라이브러리 없이 순수 JavaScript(ES 모듈)로 동작한다.
-GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `f24c3bc`(service 판 — 예시 데이터를 뺀 판)와 같은 원본 · 같은 생성 규칙으로 만든 **module 변형**이다 —
+GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `1aa6340`(service 판 — 예시 데이터를 뺀 판)와 같은 원본 · 같은 생성 규칙으로 만든 **module 변형**이다 —
 시작 화면 · 노드 자원 설치 · 연결하기(도로) · 이벤트 · 자원 추가 · 수정 · 삭제 · 상태 화면 · 도로 편집기 · 창 크기를 따르는 화면이 들어 있다([[module-profile|모듈 프로필]]).
+Terra G0~G6이 연 길도 쓴다 — 실시간 이벤트(SSE) · 다른 노드(노드 주소 호출) · 사용자 문서(서버 저장) · 로컬 탐색 · 바탕화면에서 열기 · 파일 올리기 · 받기 · 장치 손 등록([[real-data-layer|실데이터 층]] §2.6~§2.9).
 
 디자인 원본의 예시 데이터는 화면에 나오지 않는다 — 부트 프로필(`src/boot/module.js`)이 실데이터 층(`src/data`)의 클래스로 바꿔 끼워
 첫 렌더 전에 지우고, Terra 안에서는 이 노드의 값으로 채운다([[real-data-layer|실데이터 층]]). Gateway에 붙이는 연동 층(`src/api` · `src/model`)과
@@ -35,7 +36,7 @@ npm ci
 npm run dev          # http://localhost:5173 — 시작 화면(index.html) · 화면 목록은 screens.html
 npm run build        # ../ui/ 에 정적 파일 — 모듈이 싣는 것 (상대 경로라 어느 경로에 올려도 동작)
 npm run gen          # design/*.dc.html 을 고친 뒤 화면 페이지를 다시 만든다 (python3 필요 · public/config.json 의 variant = module)
-npm test             # 연동 층 · 실데이터 층 · 모듈 프로필 · 추가 · 수정 · 삭제 시험 (node:test — 브라우저 없이)
+npm test             # 연동 층 · 실데이터 층 · 모듈 프로필 · 추가 · 수정 · 삭제 · 이벤트 · 손 동작 시험 (node:test — 브라우저 없이)
 npm run test:smoke   # 연기 시험 (playwright 브라우저 필요: npx playwright install chromium)
 ```
 
@@ -70,20 +71,22 @@ python3 -m http.server 8000      # http://localhost:8000
 web/                         # 모듈 lab.stellaxia.node-gui 의 웹 소스 (포장되지 않는다)
 ├── index.html · node.html · building.html · road.html …   # 화면 페이지 (tools/gen-pages.py가 만든다)
 ├── screens.html             # 화면 목록 (개발용 — 빌드에 들어가지 않는다)
-├── public/config.json       # 실행 설정 — variant(module) · layoutStore · pollSec
+├── public/config.json       # 실행 설정 — variant(module) · layoutStore(server · local · none) · pollSec
 ├── src/
 │   ├── runtime/dc.js        # 작은 템플릿 런타임 ({{값}} · sc-for · sc-if · onClick …)
 │   ├── screens/*.js         # 화면 로직 (design/*.dc.html 에서 생성 — 손대지 않는다)
 │   ├── boot/                # 부트 프로필 module.js(prep · boot) · 공통 보정 fixes.js
-│   ├── api/                 # 연동 층: TerraClient · operation 대응표 · 응답 변환 · 데이터 소스 · 화면 연결 · 설정
+│   ├── api/                 # 연동 층: TerraClient(노드 주소 호출) · operation 대응표 · 응답 변환 · 데이터 소스(올리기 · 받기) · 화면 연결 · 실시간 이벤트 · SHA-256 · 설정
 │   │                        #   frame-boot · frame-session · frame-boards · terra-frame-client — Terra frame 안에서
 │   ├── data/                # 실데이터 층: 화면 클래스를 이어받아 예시를 지운다 (*-live.js · intro-live.js) · 순수 변환
 │   ├── store/layout.js      # LayoutStore — 맵 배치 · 노드 자원 · 연결 · 메모 (이 브라우저 · 노드 · 주체마다)
+│   ├── store/docs.js        # 사용자 문서(Terra C-1) — LayoutStore · 편집기 자산을 서버에도 (새 쪽이 이긴다 · 409)
+│   ├── store/parts.js       # 받기 조각 보관(IndexedDB) — 끊긴 받기를 다시 받으면 거기서부터 (MD-21)
 │   └── model/               # 데이터 모양(JSDoc) · 권한 · 배지 규칙
 ├── design/                  # 디자인 캔버스 원본 (.dc.html · canvas.json · 로고)
 ├── docs/                    # 개발 문서 (Obsidian 호환 — docs/README.md 부터)
 ├── tools/                   # gen-pages.py(module 변형 — 템플릿 패치 · frame-boot 첫 import) · pages.json
-├── tests/*.test.mjs         # 연동 층 · 실데이터 층 · 모듈 프로필 · 추가 · 수정 · 삭제 시험 (npm test)
+├── tests/*.test.mjs         # 연동 층 · 실데이터 층 · 모듈 프로필 · 추가 · 수정 · 삭제 · 이벤트 · 손 동작 시험 (npm test)
 └── tests/smoke.mjs          # 연기 시험 (npm run test:smoke — 브라우저 필요)
 ```
 

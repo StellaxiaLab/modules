@@ -146,20 +146,25 @@ test('Master 호출 — 읽기 · 지우기만 node_id 를 query 로 싣는다(�
   assert.equal(f.calls[2].body.node_id, 'node_1');
 });
 
-test('전송 — 올리기 · 받기는 아직 없다. 끝난 전송은 화면에서만 치우고, 도는 전송은 포기한다(부분 파일도 지운다)', async () => {
+test('전송 — 폼으로는 만들지 않는다(↑ 올리기로 파일을 고른다 · 받기는 폴더 앱). 끝난 전송은 화면에서만 치우고, 도는 전송 · 중단해 둔 전송은 포기한다(부분 파일도 지운다)', async () => {
   const { f, source } = live();
-  assert.equal((await source.crud(LOCAL, 'xfer', 'create', { name: 'a', dir: 'push', total: 1 })).reason, 'no-transfer');
+  assert.equal((await source.crud(LOCAL, 'xfer', 'create', { name: 'a', dir: 'push', total: 1 })).reason, 'xfer-form');
   const done = await source.crud(LOCAL, 'xfer', 'del', null, { id: 'tr-1', state: 'completed' });
   assert.deepEqual([done.screen, done.verb, f.calls.length], [true, '치움', 0]);
   const r = await source.crud(LOCAL, 'xfer', 'del', null, { id: 'tr-2', state: 'transferring' });
-  assert.deepEqual([opOf(f.calls[0].url), f.calls[0].body, r.keep], ['io.terra.file.transfers.abort', { transfer_id: 'tr-2', keep_partial: false }, true]);
+  assert.deepEqual([opOf(f.calls[0].url), f.calls[0].body, r.keep, r.verb], ['io.terra.file.transfers.abort', { transfer_id: 'tr-2', keep_partial: false }, true, '중단']);
+  // 중단해 둔 것(부분 남김 — io.terra.file 0.2.1)은 서버에 남는다 — 화면에서만 치우면 다음 목록에 다시 온다
+  const p = await source.crud(LOCAL, 'xfer', 'del', null, { id: 'tr-3', state: 'aborted' });
+  assert.deepEqual([opOf(f.calls[1].url), f.calls[1].body, p.keep, p.verb], ['io.terra.file.transfers.abort', { transfer_id: 'tr-3', keep_partial: false }, true, '치움']);
 });
 
-test('길이 없는 것 — SVI 자원 · 모듈 · 허가 고치기 · 피어 추가는 null(화면이 지어내지 않는다). 이 노드의 게이트웨이에 없는 op 는 부르지 않는다', async () => {
+test('길이 없는 것 — SVI 자원 · 모듈 설치 · 제거 · 허가 고치기 · 피어 추가는 null(화면이 지어내지 않는다). 이 노드의 게이트웨이에 없는 op 는 부르지 않는다', async () => {
   const { f, source } = live();
-  for (const [app, mode] of [['svi', 'create'], ['svi', 'update'], ['svi', 'del'], ['mod', 'create'], ['mod', 'update'], ['mod', 'del'], ['grant', 'update'], ['wg', 'create'], ['job', 'update']]) {
+  for (const [app, mode] of [['svi', 'create'], ['svi', 'update'], ['svi', 'del'], ['mod', 'create'], ['mod', 'del'], ['grant', 'update'], ['wg', 'create'], ['job', 'update']]) {
     assert.equal(await source.crud(LOCAL, app, mode, {}, { id: 'x' }), null, app + ' ' + mode);
   }
+  // 모듈 수정 = 모듈 설정 — 폼을 열 때 받은 설정(item.cfg)이 없으면 부르지 않는다
+  assert.deepEqual(await source.crud(LOCAL, 'mod', 'update', {}, { id: 'x' }), { kind: 'unavailable', reason: 'mod-cfg' });
   source.client.catalog = new Map([['terra.daemon.io.scan.post', {}]]);   // leaf 게이트웨이 — Master op 가 없다
   const r = await source.crud(LOCAL, 'tunnel', 'create', { type: 'tun', to: 'p:22', bind: '127.0.0.1:1' }, null, { nodeIdOf: () => 'node_9' });
   assert.deepEqual([r.kind, r.reason], ['unavailable', 'not-in-catalog']);

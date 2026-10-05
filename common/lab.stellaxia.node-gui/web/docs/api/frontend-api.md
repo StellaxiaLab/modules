@@ -8,8 +8,8 @@ doc_type: "api-reference"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.6.0"
-last_updated: "2026-10-04"
+version: "0.10.0"
+last_updated: "2026-10-05"
 language: "ko-KR"
 source: "src/screens/node.js · src/api/* · src/data/* · src/model/*"
 os_priority:
@@ -165,11 +165,11 @@ window.__screen.goMap('nas-01');
 | --- | --- |
 | `fbToggle(mode?)` | 사이드 바 열기 · 닫기. `mode`를 주면 그 바로가기로 바로 → `fb` |
 | `FBMODES()` | 바로가기 셋 정의(이름 · 루트 · 읽기 전용 여부 · OS 경로) |
-| `FBDATA()` | **seam** — 저장소 · 탐색기 트리. 원본은 예시, 실데이터 층은 공유 폴더(`io.terra.file`) · 탐색기는 빈 목록 |
+| `FBDATA()` | **seam** — 저장소 · 탐색기 트리. 원본은 예시, 실데이터 층은 공유 폴더(`io.terra.file`) · 탐색기는 로컬 최상위 루트(`local-fs`) |
 | `fbList(mode)` | 그 모드의 항목들 (메모장은 `memos`) |
 | `fbOpenItem(entry)` | 폴더면 들어가기, 읽기 전용 파일이면 로컬 프로그램으로 열기(**seam**), 메모면 메모장 칸 |
 | `fbApp(name)` | 확장자 → 로컬 기본 프로그램 이름 |
-| `fbOS()` | 지금 폴더를 OS 파일 관리자로 (**seam** — API 없음) |
+| `fbOS()` | 지금 폴더를 OS 파일 관리자로 (**seam** — 실데이터 층은 `desktop.open {action: reveal}`, 그 컴퓨터에서 볼 때만) |
 | `memoNew(dir?)` · `memoOpen(id)` | 메모장 칸 열기 (새 메모 · 그 메모) |
 | `memoSave()` | 이름 · 본문 저장(같은 이름이면 막음) → `memos` (**seam**) |
 | `memoDel(id)` | 두 번 눌러 지우기(폴더면 안까지) (**seam**) |
@@ -222,22 +222,25 @@ sequenceDiagram
 | `hbFormSave()` · `hbDel(app, id, node)` | 자기 목록에 지어 넣기 · 화면에서만 지우기 | 서버에 길이 없으면 폼 · 확인 대기를 열기 전에 말한다(`crudWhy`) · 연결 전 저장은 지어내지 않는다 · 연결 뒤: 값 다듬기 → `source.crud` → 받으면 목록 다시 받기(삭제는 그 뒤에 목록 · 맵 자리 걷기, 상태만 바뀌는 것은 남기기) | `realNode` · `wireHelm` ✅ |
 | `HBCRUD()` · `rstVals()` · `mguiVals()` · `memoVals()` | 원본 설계의 API 글 · 예시 자리 표시자 · `auth` 없음 = 로그인됨 · "이 창 안에 뜬다" · `~/.terra/memos` | 실제 부르는 것(`CRUD_TEXT`, 없는 op 는 ⚠) · 중립 자리 표시자 · 이 화면의 세션 · 띄울 수 없다는 이유 · `메모/` | `realNode` ✅ |
 | `hbTick()` | 전송 · 작업 진행 흉내 | 아무것도 안 한다 | `realNode` ✅ |
-| `hbPerm(node)` | 예시 권한표 | 이 노드 = 토큰 권한(모듈 수명 · 작업 취소는 `node.control`), 다른 노드 = 닿지 않음, 로그인 전 = 로그인 필요 | `realNode` ✅ |
+| `hbPerm(node)` | 예시 권한표 | 이 노드 = 토큰 권한(모듈 수명 · 작업 취소는 `node.control`), 다른 노드 = 노드 주소 호출로 닿으면 같은 권한(`관리자 · 중계`) · `node_id`를 모르거나 길이 없으면 닿지 않음, 로그인 전 = 로그인 필요 | `realNode` ✅ |
 | `NET` · `parentOfNode` | 예시 관계 | 이 노드 · 부모 tree · `GET /api/v1/agent/nodes` | `loadWorld` ✅ |
 | `startLogin` | 가짜 성공/실패 | 부르지 않는다 — **frame 안에서는 셸이 로그인한다**(§6.5) | — |
 | `beginSwitch(pick)` | tree 전환 연출 | 다른 tree로 가지 않고 글만 — 다른 tree의 게이트웨이에는 이 화면이 닿지 않는다 | `realNode` ✅ |
-| `FBDATA()` · `fbList('repo')` | 예시 트리 | `io.terra.file.roots.list` · `entries.list` (탐색기는 API 없음 — 빈 목록) | `realNode` · `loadFolder` ✅ |
-| `fbOpenItem` · `fbOS` | 안내 글만 | 폴더는 들어가 읽고, 파일 열기 · 파일 관리자는 "API가 아직 없다" | `realNode` ✅ |
+| `FBDATA()` · `fbList('repo')` · `fbList('local')` | 예시 트리 | `io.terra.file.roots.list` · `entries.list` · 탐색기 `terra.daemon.local-fs.roots.get` · `entries.get` | `realNode` · `loadFolder` · `loadLocalFolder` ✅ |
+| `fbOpenItem` · `fbOS` | 안내 글만 | 폴더는 들어가 읽고, 파일은 그 노드의 로컬 프로그램으로 · 파일 관리자로(`desktop.open` — 그 컴퓨터에서 볼 때만) | `realNode` · `deskOpen` ✅ |
 | `utilInfo()` · `renderVals()` | 예시 수치 · 창 요약 · 세션 띠 | 진짜 값(없으면 `—`) · `who` 바인딩 | `realNode` ✅ |
-| `memoSave` · `memoDel` · `memoMkdir` · `memos` | 메모리 | 메모 루트 쓰기 · 지우기 · 만들기 | 〃 §4.3 |
-| `pushAlarm` | 그대로 | 작업 추적 · SSE에서 부른다 | `trackJob` · `client.events` |
+| `memoSave` · `memoDel` · `memoMkdir` · `memos` | 메모리 | LayoutStore(브라우저 + 사용자 문서) | `bindLayout` · `DocStore` ✅ |
+| `pushAlarm` | 그대로 | 작업 추적 · 사용자 문서 겹침 알림에서 부른다 | `trackJob` · `DocStore.onNote` |
+| `_onStore` | 편집기 자산 받기(`storage` 이벤트) | 그대로 + 사용자 문서 `assets` 가 더 새로우면 받아 부른다 | `pullAssets` ✅ |
+| `hbShowOut` | 출력 칸 | 모듈 로그 · 작업 기록 | `wireHelm` · `outText` ✅ |
 
 ## 6. 연동 층 API (`src/api`)
 
 ### 6.1 `TerraClient` (`client.js`)
 
 ```js
-import { TerraClient, resultText } from './src/api/index.js';
+import { TerraClient, resultText, openEvents } from './src/api/index.js';
+import { applySignal } from './src/data/node-live.js';
 
 // 주소 지정 — 시험 · 도구용. 쿠키(credentials: 'include')로 부른다. 화면은 frame 길만 쓴다
 const client = new TerraClient('http://127.0.0.1:8787');
@@ -247,7 +250,10 @@ const framed = new TerraClient('', { fetch: terra.fetch.bind(terra), delegated: 
 await client.refreshCatalog();                              // 로그인 · 토큰이 바뀐 뒤마다
 const r = await client.invoke('terra.daemon.io.devices.get', {});
 if (r.kind === 'ok') use(r.data); else showReason(resultText(r));
-const stop = client.events((ev) => screen.pushAlarm('●', '#1f7a4d', ev.type));   // leaf SSE
+// 실시간 이벤트 — src/api/events.js. 신호 → 그 목록만 다시 받는다(applySignal)
+const stop = openEvents(framed, (ev) => applySignal(screen, framed, ev), { onState: (s) => console.log('events', s) });
+// 다른 노드 — 노드 주소 호출 (관계도의 node_id)
+const remote = await framed.invoke('terra.daemon.io.devices.get', {}, { node: 'node_…' });
 ```
 
 | 메서드 | 하는 일 |
@@ -255,11 +261,14 @@ const stop = client.events((ev) => screen.pushAlarm('●', '#1f7a4d', ev.type));
 | `new TerraClient(base, { fetch, delegated })` | `fetch` — 부르는 함수(frame 안에서는 `terra.fetch`, 없으면 쿠키를 싣는 `fetch`). `delegated` — 자격이 **위임**(앱 스코프 토큰)이다: Master의 401을 "로그인 필요"가 아니라 `unavailable · master-delegation`으로 읽고 그 뒤로 Master operation을 다시 부르지 않는다 |
 | `refreshCatalog()` | `GET /api/v1/catalog` → 부를 수 있는 operation 집합 |
 | `has(id)` · `entry(id)` | 카탈로그에 있나 · 항목(확인 모드 · 위험) |
-| `invoke(id, input?, { signal, node })` | `POST /api/v1/operations/{id}/invoke`. 봉투를 벗겨 `Result`로 — Daemon `{ status, data }` · Master `{ ok, data }` · 오류 `{ error: { code } }`의 `code`가 `reason`이 된다. `node`를 주면 **부르지 않고** `unavailable · remote-node` — 다른 노드의 operation을 부르는 게이트웨이 경로가 없다 |
-| `get(path)` | 게이트웨이 자신의 **경로**를 GET 으로 — `/api/v1/agent/whoami`(invoke 로 부르면 호출자가 중계에서 빠져 `anonymous`가 온다 — 실측) · `/api/v1/agent/nodes` |
-| `events(onEvent)` | leaf `terra.daemon.events.get` SSE를 **fetch 스트림**으로 읽는다(`Accept: text/event-stream`) — `EventSource`는 Authorization을 붙이지 못한다. 끊기면 1→2→4…30초 재연결. 끄는 함수를 돌려준다 |
+| `invoke(id, input?, { signal, node })` | `POST /api/v1/operations/{id}/invoke`. 봉투를 벗겨 `Result`로 — Daemon `{ status, data }` · Master `{ ok, data }` · 오류 `{ error: { code } }`의 `code`가 `reason`이 된다. `node`(node_id)를 주면 `invokeAt` |
+| `invokeAt(nodeId, id, input?)` | 노드 주소 호출 `POST /api/v1/nodes/{node_id}/operations/{id}/invoke`(Terra B-1) — 그 노드 카탈로그에 없으면 `unavailable · not-remote`, `allowed: false` 면 `forbidden · remote-denied`, 길이 없으면 `unavailable · remote-node`. 대상의 봉투가 그대로 온다 |
+| `nodeCatalog(nodeId)` · `nodeCatalogNow(nodeId)` · `canRelay()` | 그 노드가 클러스터에 연 operation(60초 캐시 · 받으면 `onNodeCatalog`) · 받아 둔 것 · 노드 주소 호출 길이 있나 |
+| `invokeModuleAt(nodeId, id, input?, fallback?)` · `binding(id)` | 다른 노드의 **모듈** op — 원격 모듈 경로 `/api/nodes/{node_id}/modules/…`(카탈로그 `bindings` → `fillRoute`) · 그 op 의 `{ method, path }` |
+| `get(path)` · `request(method, path, body?)` | 게이트웨이 자신의 **경로**로 — `/api/v1/agent/whoami`(invoke 로 부르면 호출자가 중계에서 빠져 `anonymous`가 온다 — 실측 · Terra#118) · `/api/v1/agent/nodes` · `/api/v1/me/documents/…` |
+| `openEvents(client, onEvent, opts)` (`events.js`) | leaf `terra.daemon.events.get` SSE를 **fetch 스트림**으로 읽는다(`Accept: text/event-stream`) — `EventSource`는 Authorization을 붙이지 못한다. 끊기면 1→2→4…30초 뒤 `last_event_id`로 이어 받고, 길이 없으면 끈다. 끄는 함수를 돌려준다. `opts.op` · `opts.input`으로 다른 SSE op(SVI 핸들 흐름 이벤트 `terra.master.svi.handles.by-handle-id.events.get {handle_id}`)도 연다 — `opts.raw`면 `data`를 벗기지 않는다(StreamMessage) |
 
-`Result.kind`: `ok` · `accepted`(작업 번호) · `needs-confirm` · `unauthenticated` · `forbidden` · `unsupported`(501) · `down`(503) · `unreachable` · `unavailable` · `error`. `unavailable`은 `reason`이 가른다 — `not-in-catalog` · `remote-node` · `master-delegation` · `no-operation`. 화면 처리는 [[node-screen-api-integration|연동 가이드]] §2.3.
+`Result.kind`: `ok` · `accepted`(작업 번호) · `needs-confirm` · `unauthenticated` · `forbidden` · `unsupported`(501) · `down`(503) · `unreachable` · `unavailable` · `error`. `unavailable`은 `reason`이 가른다 — `not-in-catalog` · `remote-node` · `no-node-id` · `not-remote` · `master-delegation` · `no-operation`. 화면 처리는 [[node-screen-api-integration|연동 가이드]] §2.3.
 
 > [!NOTE] 확인 신호는 보내지 않는다
 > 게이트웨이에는 `X-Terra-Confirm` 같은 확인 규약이 없다. 그래서 `needs-confirm`은 지금 만들어지지 않고,
@@ -285,7 +294,8 @@ HELM_APPS.io = {
 | 칸 | 뜻 |
 | --- | --- |
 | `in(id, item, ctx)` | 입력을 만든다. 없으면 op 이름의 `by-…` 자리만 채운다(`pathInput`) — 모듈 op · Daemon 본문 해석기는 모르는 키를 거절한다 |
-| `none` | 부르지 않고 그 이유(`client.js` `REASON`)를 낸다 — 받기 · 올리기 · 다시 실행처럼 화면이 아직 하지 않는 것 |
+| `none` | 부르지 않고 그 이유(`client.js` `REASON`)를 낸다 — 다시 실행처럼 화면이 아직 하지 않는 것 |
+| `upload` · `download` · `resume` | `act`로 부르지 않는다(`no-upload` · `no-download`) — 파일을 고르거나 저장할 곳이 있어야 해서 `wire.js`가 맡는다: 올리기 = 파일 고르기 → `source.upload`, 받기 = `source.download` → 브라우저 저장, 이어서 = 멈춘 전송의 카드(올리기는 파일 고르기 → `upload {resume}` · 받기는 다시 받기) |
 | `form` | 부르지 않고 앱 전체 화면의 추가(`add`) · 수정(`edit`) 폼을 연다 — `+ 선언` · `+ 허가` · `+ 즉석 열기`(`preset: { type: 'tun' }`) · `+ 실행` · `다시 선언` |
 | `say(data, item)` | 성공 글줄을 응답으로 만든다(모듈 상태 확인 · 작업 보기 · 로그) |
 | `local` | 이 노드에서 볼 때만 쓰는 대응 — 작업 앱은 Master 작업 대신 Daemon 작업(`tasks.*`) |
@@ -297,7 +307,7 @@ HELM_APPS.io = {
 | --- | --- |
 | `{ op, where, body(v, item, ctx) }` | 한 번 부른다. `ctx = { path, nodeId, nodeIdOf }` |
 | `{ where, steps(v, item, ctx) }` | 여러 번 차례로(장치 고치기 — 별명 · 승인 · 켜기 가운데 바뀐 것만). 하나가 실패하면 멈춘다 |
-| `{ none }` · `{ screen: true }` · `keep` · `verb` · `scan` · `id` | 부르지 않고 이유 · 서버에 지울 것이 없다(화면에서만) · 삭제해도 목록에 남는다 · 글줄 낱말 · 결과를 스캔 글줄로 · 바뀐 칸 id |
+| `{ none }` · `{ screen: true }` · `keep` · `verb` · `scan` · `say(data, item)` · `id` | 부르지 않고 이유 · 서버에 지울 것이 없다(화면에서만) · 삭제해도 목록에 남는다 · 글줄 낱말 · 결과를 스캔 글줄로 · 성공 글줄(모듈 설정 저장 — revision · 재시작) · 바뀐 칸 id |
 | `(v, item, ctx) => spec` | 값 · 항목에 따라 길이 다르다(파일/폴더 · 선언 · 즉석 터널 · 바인딩) |
 | `null` | 서버에 길이 없다 — 화면은 지어내지 않는다. 이유 글은 `CRUD_TEXT[app]`의 ⚠ 줄 |
 | `local` | 이 노드에서 볼 때의 대응(작업 — Daemon `commands.execute.post` · `tasks.by-task-id.cancel.post`) |
@@ -315,10 +325,10 @@ HELM_APPS.io = {
 | 이름 | 하는 일 |
 | --- | --- |
 | `MockSource(screen)` | 화면의 `hbSeed` 그대로 (실데이터 층에서는 빈 목록) |
-| `LiveSource(client, { localNode, localId })` | `list(node, app, { path })` · `act(node, app, id, op, item, { path })` · `crud(node, app, mode, vals, item, { path, nodeIdOf })`. L · M op을 다른 노드에 부르면 `unavailable · remote-node`(경로가 없다). T op은 읽기 · 지우기(GET · DELETE)만 `node_id`(진짜 id)를 query로 싣는다 — Master의 본문 해석기는 모르는 키를 거절한다. 폴더 앱은 경로 여럿(보고 있는 곳 + 설치한 칸들의 위 칸)까지 단계마다 항목을 읽는다(겹치는 단계는 한 번). 모듈 앱은 `/api/v1/gui/apps`로 GUI 표시를 붙인다 |
-| `appFor(app, local)` · `pathInput(op, id, item)` | 로컬 노드면 `local` 대응으로 · op 이름의 `by-…` 자리만 입력으로 |
+| `LiveSource(client, { localNode, localId, idOf, nameOf, parts })` | `list(node, app, { path })` · `act(node, app, id, op, item, { path })` · `crud(node, app, mode, vals, item, { path, nodeIdOf })` · `lockFor(app, op, node)`(누르기 전 자물쇠) · `upload(node, file, dir, onProgress, { resume })` · `download(node, id, onProgress, { old })`. 끊긴 뒤 이어서(MD-21): 올리기는 같은 자리 · 같은 파일의 멈춘 전송을 `resume_id`로 다시 열고(`stalledPush`), 받기는 `parts`(받기 조각 보관 — `src/store/parts.js`의 `openParts()`)에 둔 조각부터 받는다. 전송 앱 목록은 `markStalled`가 멈춘 전송을 `어긋남` 칸에 둔다. `modConfig(node, id)` — 모듈 설정 스키마 · 값 → 폼 모양(`cfgForm`) · 설정을 선언하지 않은 모듈이면 `cfg: null`. L · M op을 다른 노드에 부르면 노드 주소 호출(`idOf` — 관계도의 node_id, 모르면 `no-node-id`). T op은 읽기 · 지우기(GET · DELETE)만 `node_id`(진짜 id)를 query로 싣는다 — Master의 본문 해석기는 모르는 키를 거절한다. 폴더 앱은 경로 여럿(보고 있는 곳 + 설치한 칸들의 위 칸)까지 단계마다 항목을 읽는다(겹치는 단계는 한 번). 모듈 앱은 `/api/v1/gui/apps`로 GUI 표시를 붙인다. SVI 자원 앱은 허가 · 열린 핸들 · 바인딩을 함께 받아 흐름도(`flow`)를 채운다 — 상대 노드는 `nameOf`(node_id → 화면 이름)로 |
+| `appFor(app, local)` · `pathInput(op, id, item)` | Daemon 쪽이면(이 노드 · 노드 주소 호출로 닿는 노드 — `source.daemonView`) `local` 대응으로 · op 이름의 `by-…` 자리만 입력으로 |
 | `fillNode(input, node)` | 대응표 `input`의 `'<노드>'` 자리를 실제 노드 이름으로 채운다 — 자리 표시자가 `node_id`를 덮어쓰지 않게 |
-| `wireHelm(screen, source, { pollMs })` | seam 바꿔 끼우기(`hbSeed` · `hbAct` · `hbFormSave` · `hbDel`) · 앱/노드(폴더는 경로까지)가 바뀌면 받기 · 열려 있는 동안 `pollSec`(기본 10초) 폴링 · **맵에 설치한 노드 자원(`state.rsrc`) · 상태 화면이 보는 자원의 앱도 닫혀 있어도 같은 간격으로** 받기 · 볼 권한이 없으면 부르지 않기. **되돌리는 함수**를 돌려준다(바꿔 낀 seam을 원래대로, 받은 목록 · 폼은 비운다) |
+| `wireHelm(screen, source, { pollMs, live })` | seam 바꿔 끼우기(`hbSeed` · `hbAct` · `hbFormSave` · `hbDel` · `hbOpLock`) · 올리기(파일 고르기) · 받기(`saveBlob`) · 멈춘 전송의 이어서 · 모듈 로그 · 작업 기록 → 출력 칸 · 실시간 신호(`_hbRefresh` — 받아 둔 목록만, `live()`면 폴링 여섯 배 느리게) · 앱/노드(폴더는 경로까지)가 바뀌면 받기 · 열려 있는 동안 `pollSec`(기본 10초) 폴링 · **맵에 설치한 노드 자원(`state.rsrc`) · 상태 화면이 보는 자원의 앱도 닫혀 있어도 같은 간격으로** 받기 · 볼 권한이 없으면 부르지 않기. **되돌리는 함수**를 돌려준다(바꿔 낀 seam을 원래대로, 받은 목록 · 폼은 비운다) |
 | `formValues(screen, form, item)` | 폼 값 다듬기 — 원본 저장과 같은 규칙(글 앞뒤 빈칸 · 수 · 열쇠 칸이 비면 `{ err }`) |
 | `wireFromUrl(screen)` | 부트 프로필 `boot('node')`가 부른다. frame 안(또는 시작 화면이 미리 읽은 보드 자리 — 시작 화면의 연결을 빌린다)이면 frame 토큰으로 위를 건다(§6.5): 카탈로그 → `loadWorld`(+ LayoutStore) → `wireHelm` → 알림 · 네트워크 폴링. 밖(단독 실행)에서는 데이터 없이 전체 화면 보드만 연다(`src`) |
 

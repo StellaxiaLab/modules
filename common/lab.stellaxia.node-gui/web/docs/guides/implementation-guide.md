@@ -7,8 +7,8 @@ doc_type: "implementation-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.1"
-last_updated: "2026-10-04"
+version: "0.3.2"
+last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -129,8 +129,8 @@ API에 자리가 없는 사용자 데이터 — 키는 노드 id.
 ### 2.6 알림 · 작업 추적
 
 - 동작이 `accepted`면 `trackJob(client, 'terra.master.jobs.by-job-id.get', job)` → 끝나면 `pushAlarm('●'|'■', 색, 문구)`.
-- leaf는 `client.events(onEvent)`(SSE) → 이벤트 종류별로 그 앱 목록을 다시 받고 알림을 더한다.
-  ⚠ 실측: Daemon 이벤트의 binding은 `GET /events`(WebSocket)다 — 모듈은 지금 작업 폴링(`pollSec`)으로 알림을 만든다([[implementation-backlog|구현해야 할 것]] PF-5).
+- leaf는 `openEvents(client, onEvent)`(`src/api/events.js` — `terra.daemon.events.get` 을 invoke + `Accept: text/event-stream`) → `applySignal` 이 신호 종류별로 그 앱 목록을 다시 받고 알림을 더한다.
+  Terra G0~G6(B-5)이 연 길이다 — 이벤트가 열려 있으면 작업 폴링(`pollSec`)은 여섯 배 느린 바닥으로 남는다([[real-data-layer|실데이터 층]] §2.6).
 
 ## 3. 디자인을 고친 뒤
 

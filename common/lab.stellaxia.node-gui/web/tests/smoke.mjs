@@ -71,6 +71,18 @@ check('조타륜 앱 전체 화면', await page.evaluate(() => !!document.queryS
 await page.mouse.click(723, 70); await page.waitForTimeout(500);
 check('파인 곳 → 맵', await page.evaluate(() => !document.querySelector('[data-fs-notch]')));
 await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+// SVI 자원 앱 = 흐름도(maingui A-28) — 로그인 전엔 잠겨 있고, 읽기 권한이 있으면 빈 흐름도다. 어느 쪽이든 예시 흐름 이벤트(0.5초 박자)는 돌지 않는다
+const fsText = () => page.evaluate(() => ({ text: (document.querySelector('section.fs-hb') || {}).innerText || '', ev: JSON.stringify(window.__screen.state.sviEv || {}) }));
+await page.evaluate(() => window.__screen.fsEnter('hb:svi')); await page.waitForTimeout(1200);
+const sviLocked = await fsText();
+check('SVI 자원 앱 — 로그인 전엔 잠김 · 예시 없음', /node\.read 필요/.test(sviLocked.text) && !EXAMPLE.test(sviLocked.text) && sviLocked.ev === '{}', sviLocked.ev);
+await page.evaluate(() => { window.__smokePerms = window.__screen.__real.perms; window.__screen.__real.perms = ['node.read']; window.__screen.setState({}); }); await page.waitForTimeout(1500);
+const svi = await fsText();
+await page.screenshot({ path: join(ROOT, 'tests/shots/svi-flow.png') });
+check('SVI 자원 앱 — 흐름도 · 예시 없음', /카드로/.test(svi.text) && !EXAMPLE.test(svi.text) && svi.ev === '{}', svi.text.slice(0, 120).replace(/\n/g, ' ') + ' · ' + svi.ev);
+await page.evaluate(() => window.__screen.setState({ hbView: { svi: 'card' } })); await page.waitForTimeout(400);
+check('SVI 자원 앱 — 카드 보기로', /흐름도로/.test((await fsText()).text));
+await page.evaluate(() => { window.__screen.__real.perms = window.__smokePerms; window.__screen.setState({ hbView: {} }); window.__screen.fsExit(); }); await page.waitForTimeout(500);
 // 폴더 보관함 → 메모장 → 새 메모 저장 (로그인 전이라 이 화면 안에만 남는다)
 await page.locator('[data-fb-pod]').click(); await page.waitForTimeout(600);
 await page.locator('[data-fb-go="memo"]').click(); await page.waitForTimeout(300);
@@ -102,6 +114,25 @@ check('보드의 ← 노드 화면 → 전체 화면 끝', await page.evaluate((
 // 창 크기를 따라 늘고 준다 (기준 1447×945 · 최소 1180×280)
 await page.setViewportSize({ width: 1700, height: 1000 }); await page.waitForTimeout(600);
 check('화면 크기 = 창 크기', await page.evaluate(() => { const s = window.__screen.state.scr; return s.W === 1700 && s.H === 1000; }));
+// 받기 조각 보관(src/store/parts.js · MD-21) — 진짜 IndexedDB. 두고 · 다시 열면(새 페이지처럼 새 객체) 0부터 이어진 조각과 앞선 전송 id ·
+// 파일이 바뀌었으면(SHA-256) 버리고 · 다 받으면 지운다
+const kept = await page.evaluate(async () => {
+  const { openParts } = await import('/src/store/parts.js');
+  const P = openParts();
+  if (!P) return null;
+  const k = 'node_t|share-0/x.bin', enc = (t) => new TextEncoder().encode(t), dec = (a) => a.map((b) => new TextDecoder().decode(b)).join('');
+  await P.drop(k);
+  const a = await P.open(k, { sha: 's1', size: 12, tid: 't1' });
+  await P.add(k, 0, enc('abcd')); await P.add(k, 4, enc('efgh')); await P.add(k, 10, enc('kl'));   // 8~10 이 빠졌다 — 그 뒤는 쓰지 않는다
+  const b = await openParts().open(k, { sha: 's1', size: 12, tid: 't2' });
+  const c = await P.open(k, { sha: 's2', size: 12, tid: 't3' });
+  await P.drop(k);
+  const d = await P.open(k, { sha: 's2', size: 12, tid: 't4' });
+  await P.drop(k);
+  return JSON.stringify({ a: [a.offset, a.tid], b: [b.offset, b.tid, dec(b.chunks)], c: [c.offset, c.tid, c.chunks.length], d: [d.offset, d.tid] });
+});
+check('받기 조각 보관(IndexedDB) — 이어진 조각 · 앞선 전송 id · 바뀐 파일은 버림 · 지움',
+  kept === JSON.stringify({ a: [0, null], b: [8, 't1', 'abcdefgh'], c: [0, 't2', 0], d: [0, null] }), kept);
 check('페이지 오류 없음', errors.length === 0, errors.slice(0, 3).join(' / '));
 
 await browser.close(); server.close();

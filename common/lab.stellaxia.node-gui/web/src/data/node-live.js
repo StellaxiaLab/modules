@@ -12,11 +12,13 @@
 
 import { treeFromMaster, nameNodes, buildNet, resourceSummary } from './world.js';
 import { taskAlarms } from './alarms.js';
-import { rootItems, entryItems, splitId } from './files.js';
-import { layoutKey, loadLayout, bindLayout, reviveMaps, reviveWins } from '../store/layout.js';
+import { rootItems, entryItems, splitId, localRootItems, localEntryItems } from './files.js';
+import { layoutKey, loadLayout, saveLayout, bindLayout, pickLayout, reviveMaps, reviveWins, reviveMemos, remapNodes } from '../store/layout.js';
+import { DocStore, newerDoc, pullAssets, watchAssets } from '../store/docs.js';
 import { loadConfig } from '../api/config.js';
-import { HELM_CRUD, CRUD_TEXT } from '../api/operations.js';
-import { resultText } from '../api/client.js';
+import { HELM_APPS, HELM_CRUD, CRUD_TEXT } from '../api/operations.js';
+import { SIGNAL_APPS } from '../api/events.js';
+import { resultText, reasonText } from '../api/client.js';
 
 /** 로그인 전 · 노드를 아직 모를 때 로컬 노드 자리에 쓰는 이름. 데이터가 아니라 화면 글이다 */
 export const LOCAL_PLACEHOLDER = '이 노드';
@@ -42,9 +44,11 @@ const BO = (k, label) => ({ k, label, type: 'bool' });
 /** 비어 있는 실데이터 보관소 — 로그아웃하면 이것으로 돌아간다 */
 function freshReal() {
   return {
-    perms: null, principal: '', fb: { repo: [], local: [] }, loaded: new Set(), seen: new Map(),
+    perms: null, principal: '', fb: { repo: [], local: [] }, loaded: new Set(), seen: new Map(), localFs: null,
     modules: null, wg: null, configKeys: null,
-    layoutKey: null, unbindLayout: null   // LayoutStore — 로그인한 동안만 저장한다
+    layoutKey: null, unbindLayout: null,   // LayoutStore — 로그인한 동안만 저장한다
+    docs: null, unwatchAssets: null,       // 사용자 문서(서버) — 로그인한 동안만 뒤따라 쓴다
+    events: '', sigs: new Set(), sigT: 0   // 실시간 이벤트(B-5) — '' · open · retry · off, 모아 둔 신호
   };
 }
 
@@ -63,15 +67,33 @@ export function emptyWorld(screen, local) {
     // 자원 설치 · 연결하기 · 설정 창 · 상태 화면 · 자원 폼 · 모듈 GUI 창 · 그래프 고름의 진행 중 상태 (defaultMap 이 rsrc · links 를 비운다)
     place: null, placeMsg: '', rcfgKey: null, conn: null, pillOpen: null, pillSrc: null, evView: 'real',
     rst: null, hbForm: null, mgui: null, netSel: null,
+    // 상태 화면의 출력 칸 · 노드 관리 폼 · 크기 바꾸는 중인 창 · 전체 화면 전 화면 — 앞 세션의 것을 남기지 않는다
+    hbOut: null, nodeAdm: null, wrz: null, fsPrev: {},
     // 표시 설정은 사용자마다 LayoutStore 에 있다 — 로그아웃하면 앞 사용자의 것을 남기지 않는다
     roadsOn: true, markStyle: 'flag', roadPick: 'stone', ovhHide: false
   });
 }
 
-/** 저장을 끊는다 — 빈 세계 · 다른 계정의 세계가 앞 저장본을 덮지 않게 */
+/** Master 를 부를 수 없는 이유 — 앱 토큰은 Master op 에 닿지 않는다(구현해야 할 것 PF-1). 닿으면 '' */
+export function masterWhy(client, op) {
+  if (!client) return 'Terra에 연결되지 않았다';
+  if (client.masterBlocked || !known(client, op)) return '이 화면(앱 토큰)은 Master에 닿지 않는다 — tree 쪽 관리 화면이나 terra CLI에서 한다';
+  return '';
+}
+
+/** 카탈로그에 그 op 가 있나 — 카탈로그를 아직 못 받았으면(비어 있으면) 막지 않는다 */
+const known = (client, op) => !client.catalog || client.catalog.size === 0 || client.has(op);
+
+/** 다른 노드에 노드 주소 호출(B-1)로 닿나 */
+const relays = (client) => !!(client && client.canRelay && client.canRelay());
+
+/** 저장을 끊는다 — 빈 세계 · 다른 계정의 세계가 앞 저장본을 덮지 않게. 서버로 모아 둔 쓰기도 버린다(브라우저 저장본이 다음 로그인에 다시 올린다) */
 function unbindLayout(screen) {
   const R = screen.__real;
-  if (R && R.unbindLayout) { R.unbindLayout(); R.unbindLayout = null; R.layoutKey = null; }
+  if (!R) return;
+  if (R.unbindLayout) { R.unbindLayout(); R.unbindLayout = null; R.layoutKey = null; }
+  if (R.unwatchAssets) { R.unwatchAssets(); R.unwatchAssets = null; }
+  if (R.docs) { R.docs.stop(); R.docs = null; }
 }
 
 /** 노드 화면 클래스를 이어받아 예시를 지운 클래스를 돌려준다 */
@@ -90,6 +112,9 @@ export function realNode(Screen) {
     // 전송 진행 · 작업 실행을 흉내 내던 0.5초 박자 — 진짜 목록은 폴링이 바꾼다
     hbTick() {}
 
+    // SVI 흐름도의 예시 흐름 이벤트(maingui A-28) — 진짜 흐름 이벤트는 wire.js 가 핸들 SSE 로 state.sviEv 에 넣는다
+    sviDemoTick() {}
+
     // 로그인 전의 동작은 아무것도 바꾸지 않는다. 연결되면 wire.js 가 진짜 동작으로 바꿔 낀다.
     // 폴더 들어가기(화면 이동)와 피어 회수의 첫 누름(확인 대기)은 데이터가 아니라 화면 동작이라 그대로 둔다
     hbAct(app, id, op) {
@@ -105,7 +130,8 @@ export function realNode(Screen) {
     crudWhy(app, mode, node) {
       const C = HELM_CRUD[app];
       if (!C) return '';
-      const local = node === this.state.localNode.name;
+      // Daemon 쪽 대응(local)은 이 노드 · 노드 주소 호출로 닿는 다른 노드에 쓴다(source.js daemonView 와 같은 규칙)
+      const local = node === this.state.localNode.name || relays(this.__client);
       const spec = local && C.local && C.local[mode] !== undefined ? C.local[mode] : C[mode];
       if (spec === null) return '⚠ ' + String((CRUD_TEXT[app] || {})[{ create: 'add', update: 'edit', del: 'del' }[mode]] || '서버에 길이 없다').replace(/^⚠\s*/, '');
       if (spec && typeof spec === 'object' && spec.none) return resultText({ kind: 'unavailable', reason: spec.none });
@@ -130,6 +156,14 @@ export function realNode(Screen) {
       if (C.tunnel) C.tunnel = Object.assign({}, C.tunnel, { key: 'to', fields: [SEL('type', '유형', ['decl', 'tun']), TX('to', '대상 (노드이름:포트)', '노드이름:22'), TX('bind', '로컬 주소', '127.0.0.1:2222')] });   // 이름은 서버가 짓는다(service_id)
       if (C.wg) C.wg = Object.assign({}, C.wg, { fields: [TX('id', '피어 노드', '노드 id'), TX('ip', '주소', '피어 주소'), TX('ep', '끝점', '호스트:51820')] });
       return C;
+    }
+
+    // I/O 장치 추가 = 손 등록(카메라 주소) — 종류 · 승인 · 켜기는 장치와 Daemon 이 정한다.
+    // 고칠 때는 원본의 칸에서 주소를 뺀다 — 등록한 장치의 주소를 바꾸는 op 는 없다(지우고 다시 등록)
+    hbFields(app, it) {
+      if (app === 'io' && !it) return [TX('name', '이름', '카메라 이름'), TX('addr', '주소 (비우면 스캔)', 'rtsp://… · http://… (카메라)')];
+      if (app === 'io') return super.hbFields(app, it).filter((f) => f.k !== 'addr');
+      return super.hbFields(app, it);
     }
 
     hbFormOpen(app, mode, id, node, where) {
@@ -170,10 +204,27 @@ export function realNode(Screen) {
           : '이 창 안에는 띄울 수 없다 — Terra는 앱마다 origin · 토큰을 따로 주고, 셸이 연다. 셸의 앱 목록에서 ' + ((app && app.name) || it.name) + '을(를) 연다';
       // Scene 모듈은 프로세스가 없어 Daemon 이 discovered(→ 멈춤)로 본다 — 화면을 기여하는 모듈이라고 적는다
       const scene = it.kind === 'scene' ? { state: '화면 모듈', sc: MUTE } : {};
+      // live · src — 원본은 실제 주소가 있으면 iframe 을 띄운다. 이 화면은 다른 앱의 토큰을 받지 못한다(구현해야 할 것 PF-15)
       return Object.assign(v, scene, {
-        url: it.ui || '—', runDisp: 'none', stopDisp: 'flex', stopMsg: msg,
+        url: it.ui || '—', live: false, src: '', runDisp: 'none', stopDisp: 'flex', stopMsg: msg, hint: msg,
         reload: () => this.hbAct('mod', null, 'check', v.node)
       });
+    }
+
+    // 노드 관리(상태 화면 · 노드) — 이름 · 부모 바꾸기 · 삭제는 Master nodes.by-node-id.{patch,delete} 다
+    async nodeAdmDo(kind, name, arg) {
+      const cl = this.__client, op = 'terra.master.nodes.by-node-id.' + (kind === 'delete' ? 'delete' : 'patch');
+      const why = masterWhy(cl, op);
+      if (why) return { ok: false, msg: why };
+      const id = ((this.NET || {})[name] || {}).id;
+      if (!id) return { ok: false, msg: name + '의 node_id를 모른다' };
+      const body = { node_id: id };
+      if (kind !== 'delete') {
+        if (arg.name !== name) body.display_name = arg.name;
+        if (arg.parent !== (this.parentOfNode(name) || '')) body.parent_node_id = arg.parent ? ((this.NET[arg.parent] || {}).id || '') : '';
+      }
+      const r = await cl.invoke(op, body);
+      return r.kind === 'ok' ? { ok: true } : { ok: false, msg: resultText(r) };
     }
 
     // 상태 화면 — 노드 칸의 "로그인" 줄은 원본 설계가 tree 로그인(비밀번호 · 오프라인)을 그린다. 이 화면이 닿는 것은
@@ -186,10 +237,13 @@ export function realNode(Screen) {
         : net.auth === 'offline' || net.status === 'offline' ? '오프라인' : '이 화면은 닿지 않는다';
       v.kv = (v.kv || []).map((r) => (r.k === '로그인' ? { k: r.k, v: login } : r));
       if (Array.isArray(v.api) && v.api[0]) v.api = [Object.assign({}, v.api[0], { op: 'GET /api/v1/agent/whoami · /api/v1/agent/nodes (게이트웨이 경로)' })].concat(v.api.slice(1));
+      // 노드 관리 폼 — Master 에 닿지 않으면 누르기 전에 잠근다(원본은 node.control 만 본다)
+      const why = v.adm ? masterWhy(this.__client, 'terra.master.nodes.by-node-id.patch') : '';
+      if (why) v.adm = Object.assign({}, v.adm, { lock: '🔒 ' + why, lockDisp: 'block', dis: true, delDisp: 'none', save: () => {}, del: () => {} });
       return v;
     }
 
-    // 메모장 — 메모는 이 브라우저(LayoutStore)에 있다. 원본의 ~/.terra/memos 경로는 이 모듈에 없다
+    // 메모장 — 메모는 LayoutStore(이 브라우저 · 사용자 문서)에 있다. 원본의 ~/.terra/memos 경로는 이 모듈에 없다
     memoVals() {
       const v = super.memoVals();
       if (v && typeof v.path === 'string') v.path = v.path.replace(/^~\/\.terra\/memos\//, '메모/');
@@ -228,46 +282,61 @@ export function realNode(Screen) {
       return Object.assign(m, { nodes, pending });
     }
 
-    // 폴더 보관함 — Terra 저장소는 이 노드의 진짜 공유 폴더, 폴더 탐색기는 API 가 없어 비어 있다
+    // 폴더 보관함 — Terra 저장소 = 이 노드의 진짜 공유 폴더(io.terra.file) · 폴더 탐색기 = Daemon 로컬 탐색(local-fs, 읽기만)
     FBDATA() { return this.__real.fb; }
 
     FBMODES() {
-      const M = super.FBMODES();
+      const M = super.FBMODES(), R = this.__real;
       return Object.assign({}, M, {
         repo: Object.assign({}, M.repo, { desc: '이 노드의 공유 폴더 (io.terra.file) — 읽기만', os: '' }),
-        local: Object.assign({}, M.local, { desc: '로컬 최상위 루트를 읽는 API가 아직 없다 — 비어 있다', os: '' }),
+        local: Object.assign({}, M.local, { os: '',
+          desc: R.localFs === false ? '이 노드의 Daemon에 로컬 탐색(local-fs)이 없다 — 또는 file.read 권한이 없다' : '이 노드의 로컬 최상위 루트 (Daemon local-fs) — 읽기만' }),
         memo: Object.assign({}, M.memo, { root: 'memos', rootLabel: '메모', os: '',
-          desc: this.__real.layoutKey ? '이 브라우저에 저장 — 다른 기기에는 없다(서버 저장 위치는 아직 없다)' : '로그인 전에는 이 화면 안에만 둔다 — 로그인하면 이 브라우저에 저장된다' })
+          desc: R.docs ? '이 브라우저와 Terra 사용자 문서에 저장 — 다른 기기 · 브라우저에서도 같은 메모'
+            : R.layoutKey ? '이 브라우저에만 저장 — 다른 기기에는 없다(이 게이트웨이에서 사용자 문서 저장소를 쓸 수 없다 · 또는 설정이 local)'
+            : '로그인 전에는 이 화면 안에만 둔다 — 로그인하면 저장된다' })
       });
     }
 
     fbOpenItem(d) {
-      const F = this.state.fb;
+      const F = this.state.fb, cl = this.__client;
+      if (d.locked) { this.fbSay('🔒 ' + d.name + ' — ' + String(d.info || '읽을 수 없음').replace(/^🔒 /, ''), WARN); return; }
       if (d.dir || d.lock || F.mode === 'memo') {
         super.fbOpenItem(d);
-        if (d.dir && F.mode === 'repo' && this.__client) void loadFolder(this, this.__client, d.id);
+        if (d.dir && cl && F.mode === 'repo') void loadFolder(this, cl, d.id);
+        if (d.dir && cl && F.mode === 'local') void loadLocalFolder(this, cl, d.id);
         return;
       }
-      this.fbSay(d.name + ' — 이 화면에서 파일을 여는 API가 아직 없다', MUTE);
+      void deskOpen(this, F.mode, d, 'open');   // 파일 = 그 노드의 로컬 프로그램으로
     }
 
-    fbOS() { this.fbSay('파일 관리자로 열기 — 이 화면에서 쓸 API가 아직 없다', MUTE); }
+    // 파일 관리자로 = 지금 들어가 있는 폴더를 그 노드의 파일 관리자로(desktop.open reveal)
+    fbOS() {
+      const F = this.state.fb;
+      if (!F.path || F.mode === 'memo') { this.fbSay('폴더에 들어가서 누른다 — 그 폴더를 파일 관리자로 연다', MUTE); return; }
+      void deskOpen(this, F.mode, { id: F.path, name: F.path.split('/').pop() }, 'reveal');
+    }
 
     // 필드 스킨 — 금속 판의 "예시 전용 부모 디자인"을 뺀다(부모 디자인은 기본을 따른다)
     fieldSkins() { return super.fieldSkins().map((sk) => (sk.id === 'metal' && sk.parent ? Object.assign({}, sk, { parent: null }) : sk)); }
 
-    // 노드 권한 — 이 노드는 스코프 토큰이 실제로 쥔 권한(사용자 ∩ 이 앱), 다른 노드는 이 화면이 닿지 않는다.
-    // 이 노드의 모듈 수명 · 작업 취소는 Daemon 경로(node.control)로 간다 — 화면의 "모듈 관리★ · 취소" 자물쇠를 node.control 로 푼다
+    // 노드 권한 — 이 노드는 스코프 토큰이 실제로 쥔 권한(사용자 ∩ 이 앱).
+    // 다른 노드는 노드 주소 호출(B-1)로 그 Daemon 에 닿을 때 같은 권한이다 — Master 가 그 노드 접근으로 한 번 더 좁히고, 대상 Daemon 이 다시 판정한다.
+    // 모듈 수명 · 작업 취소는 Daemon 경로(node.control)로 간다 — 화면의 "모듈 관리★ · 취소" 자물쇠를 node.control 로 푼다
     hbPerm(node) {
       const perms = this.__real.perms;
       if (!perms) return { role: '로그인 필요', rc: BAD, has: [], why: 'Terra에 로그인하지 않았다' };
-      if (node === this.state.localNode.name) {
+      const grant = (via) => {
         const has = perms.slice();
         if (has.indexOf('node.control') >= 0) ['module.manage', 'process.cancel'].forEach((p) => { if (has.indexOf(p) < 0) has.push(p); });
         const admin = has.indexOf('node.control') >= 0;
-        return { role: admin ? '관리자' : '읽기 전용', rc: admin ? BLUE : WARN, has };
-      }
-      return { role: '닿지 않음', rc: MUTE, has: [], why: '다른 노드의 자원은 아직 이 화면에서 다룰 수 없다' };
+        return { role: (admin ? '관리자' : '읽기 전용') + via, rc: admin ? BLUE : WARN, has };
+      };
+      if (node === this.state.localNode.name) return grant('');
+      const net = this.NET[node];
+      if (!net || !net.id) return { role: '닿지 않음', rc: MUTE, has: [], why: '그 노드의 node_id 를 모른다 — Master 노드 목록에 있는 노드만 다룬다' };
+      if (!relays(this.__client)) return { role: '닿지 않음', rc: MUTE, has: [], why: '이 노드의 게이트웨이에 노드 주소 호출이 없다 — 그 노드의 화면에서 다룬다' };
+      return grant(' · 중계');
     }
 
     // 조타륜 앱 바의 요약 줄 — 예시 문구(울타리 allowlist · wg0 100.80.0.3)를 진짜 값으로
@@ -290,7 +359,8 @@ export function realNode(Screen) {
       const tunnels = (S.netTunnels || []).length;
       I.net = Object.assign({}, I.net, {
         chip: '', tone: 'off',
-        stats: [[live ? String(tunnels) : '—', '로컬 터널', INK], [live ? wgState(R.wg) : '—', 'WireGuard', INK], [S.netPolled || '—', '확인', INK]],
+        stats: [[live ? String(tunnels) : '—', '로컬 터널', INK], [live ? wgState(R.wg) : '—', 'WireGuard', INK],
+          R.events === 'open' ? ['실시간', '이벤트', OK] : [S.netPolled || '—', '확인', INK]],
         foot: ['◇', MUTE, live ? '이 노드의 터널 · WireGuard — mesh · 경로는 Master 쪽 화면에서' : 'Terra에 로그인하면 이 노드의 네트워크가 보인다']
       });
       const mods = R.modules || [];
@@ -352,7 +422,7 @@ export function wgLine(wg, peers) {
  * 진짜 세계를 읽어 화면에 넣는다. 실패한 출처는 비워 두고 나머지는 채운다.
  * @param {any} screen   realNode 인스턴스
  * @param {import('../api/client.js').TerraClient} client  frame 토큰으로 부르는 클라이언트
- * @param {{ permissions: string[], principal?: string }} session
+ * @param {{ permissions: string[], principal?: string, appId?: string }} session  appId — 사용자 문서 이름공간(app:<appId>)
  */
 export async function loadWorld(screen, client, session) {
   const R = screen.__real;
@@ -382,11 +452,23 @@ export async function loadWorld(screen, client, session) {
   // 처음 맵은 이 노드 자신의 맵이다 — 조타륜이 이 노드의 자원을 다룬다. 조타륜을 내리면 부모 tree 맵으로 간다
   const localNode = { name: localName, role: 'Leaf', local: true, id: local.id };
   screen._mapGoal = null;   // 로그인 전에 고른 맵 이동은 버린다 — 이 노드 맵에서 시작한다
-  // 저장된 배치(LayoutStore) — 노드 · 주체마다. 없으면 기본 맵. 사라진 노드는 칸에서 빼고, 칸 없는 tree 자식은 새 노드로
+  // 저장된 배치(LayoutStore) — 노드 · 주체마다. 없으면 기본 맵. 사라진 노드는 칸에서 빼고, 칸 없는 tree 자식은 새 노드로.
+  // 저장본 안의 노드는 이름이 키다 — 저장 때 적어 둔 node_id 로 이름이 바뀐 노드를 지금 이름으로 옮긴다(remapNodes)
   const cfg = await loadConfig();
   if (gone()) return;
   const key = cfg.layoutStore === 'none' ? null : layoutKey(local.id || localName, R.principal);
-  const saved = (key && loadLayout(key)) || {};
+  const stored = (key && loadLayout(key)) || {};
+  // 서버 문서(사용자 문서 저장소 · layoutStore server) — 다른 기기 · 브라우저에서 더 나중에 고친 배치면 그것을 쓴다
+  const docKey = 'layout/' + (local.id || localName);
+  const docs = key && cfg.layoutStore === 'server' && session.appId ? new DocStore(client, session.appId) : null;
+  let fromDoc = null;
+  if (docs && docs.available()) {
+    const doc = await docs.read(docKey);
+    if (gone()) return;
+    fromDoc = newerDoc(stored, doc);
+    if (fromDoc) saveLayout(key, fromDoc, Number(doc.savedAt));   // 브라우저 저장본도 그 시각으로 맞춘다 — 다음엔 같은 것이라 다시 올리지 않는다
+  }
+  const saved = remapNodes(fromDoc || stored, NET);
   const maps = reviveMaps(saved.maps, NET, (role) => screen.isTree(role));
   const map = Object.assign({}, maps[localName] || screen.defaultMap(localName));
   screen.setState(Object.assign(map, {
@@ -396,13 +478,25 @@ export async function loadWorld(screen, client, session) {
     roadsOn: saved.roadsOn !== false,
     markStyle: ['flag', 'flat', 'none'].indexOf(saved.markStyle) >= 0 ? saved.markStyle : 'flag',
     roadPick: typeof saved.roadPick === 'string' && saved.roadPick ? saved.roadPick : 'stone',
-    memos: Array.isArray(saved.memos) ? saved.memos : [],
+    memos: reviveMemos(saved.memos),
     wins: reviveWins(screen.state.wins, saved.wins),
     ovhHide: !!saved.ovhHide,
     place: null, placeMsg: '', rcfgKey: null, conn: null, pillOpen: null, pillSrc: null,
-    rst: null, hbForm: null, mgui: null, netSel: null, hbArm: null
+    rst: null, hbForm: null, mgui: null, netSel: null, hbArm: null, hbOut: null, nodeAdm: null
   }));
-  if (key) { R.layoutKey = key; R.unbindLayout = bindLayout(screen, key); }
+  if (key) {
+    const live = docs && docs.available() && docs.state !== 'off' ? docs : null;
+    R.layoutKey = key;
+    R.unbindLayout = bindLayout(screen, key, globalThis.window, live ? (d) => live.later(docKey, () => d) : null);
+    if (live) {
+      R.docs = live;
+      live.onNote = (t, c) => screen.pushAlarm('◇', c, t);
+      // 브라우저 것이 더 새로우면(서버가 없던 때 · 다른 기기보다 나중에 고쳤다) 한 번 올린다
+      if (!fromDoc && Object.keys(stored).length) live.later(docKey, () => pickLayout(screen), DocStore.WAIT / 2);
+      R.unwatchAssets = watchAssets(live);
+      void pullAssets(live, (k, v) => { if (screen.__real === R && screen._onStore) screen._onStore({ key: k, newValue: v }); });
+    }
+  }
   await Promise.all([loadResources(screen, client, localName), loadAlarms(screen, client, true), loadRoots(screen, client), loadNet(screen, client), loadConfigKeys(screen, client)]);
 }
 
@@ -434,13 +528,52 @@ export async function loadAlarms(screen, client, first = false) {
   screen.setState({ alarms, notif });
 }
 
-/** 폴더 보관함 — 공유 폴더(맨 위 칸) */
+/** 폴더 보관함 — 공유 폴더(맨 위 칸) · 폴더 탐색기의 로컬 최상위 루트 */
 async function loadRoots(screen, client) {
-  const r = await client.invoke('io.terra.file.roots.list', {});
+  const LFS = 'terra.daemon.local-fs.roots.get', haveLocal = known(client, LFS);
+  const [r, l] = await Promise.all([client.invoke('io.terra.file.roots.list', {}), haveLocal ? client.invoke(LFS, {}) : null]);
   const roots = ok(r) && r.data ? r.data.roots : [];
-  screen.__real.fb = { repo: rootItems(roots), local: [] };
+  screen.__real.fb = { repo: rootItems(roots), local: ok(l) && l.data ? localRootItems(l.data.roots) : [] };
+  screen.__real.localFs = ok(l);
   screen.__real.loaded = new Set();
   screen.setState({});
+}
+
+/** 폴더 탐색기 — 들어간 로컬 폴더의 항목을 아직 안 읽었으면 읽는다(한 쪽 500개) */
+export async function loadLocalFolder(screen, client, id) {
+  const { root, rel } = splitId(id), key = 'local:' + id;
+  if (!root || screen.__real.loaded.has(key)) return;
+  screen.__real.loaded.add(key);
+  const r = await client.invoke('terra.daemon.local-fs.entries.get', rel ? { root, path: rel, limit: 500 } : { root, limit: 500 });
+  if (!ok(r) || !r.data) { screen.__real.loaded.delete(key); screen.fbSay('⚠ ' + id + ' — ' + (reasonText(r) || resultText(r)), BAD); return; }
+  const fb = screen.__real.fb;
+  fb.local = fb.local.filter((x) => x.parent !== id).concat(localEntryItems(root, rel, r.data.entries));
+  screen.setState({});
+}
+
+/**
+ * 그 노드의 바탕화면에서 열기 — terra.daemon.desktop.open.post { root, path, action: open | reveal }.
+ * 공유 폴더는 'shared:<이름>', 폴더 탐색기는 로컬 루트 이름. 그 컴퓨터 앞에서 이 화면을 볼 때만 뜻이 있다(Daemon 이 연다)
+ */
+export async function deskOpen(screen, mode, d, action) {
+  const cl = screen.__client, op = 'terra.daemon.desktop.open.post';
+  if (!cl) { screen.fbSay('Terra에 로그인해야 연다', BAD); return null; }
+  if (!known(cl, op)) { screen.fbSay('이 노드의 Daemon에 열기(desktop.open)가 없다 — 또는 node.control 권한이 없다', WARN); return null; }
+  if (!onThisMachine()) { screen.fbSay('이 노드의 바탕화면에 열린다 — 그 컴퓨터에서 이 화면을 볼 때만 쓴다', WARN); return null; }
+  const { root, rel } = splitId(d.id);
+  const r = await cl.invoke(op, Object.assign({ root: mode === 'repo' ? 'shared:' + root : root, action }, rel ? { path: rel } : {}));
+  const good = r.kind === 'ok' || r.kind === 'accepted';
+  screen.fbSay(good ? (action === 'reveal' ? '📂 파일 관리자로 열었다 — ' : '↗ 열었다 — ') + d.name
+    : d.name + ' — ' + (r.status === 409 && !r.reason ? '실행 파일은 열지 않는다 — 파일 관리자로만 보인다' : reasonText(r) || resultText(r)), good ? OK : BAD);
+  return r;
+}
+
+/** 이 화면을 그 노드 컴퓨터에서 보고 있나 — 앱 origin app-<id>.localhost 는 같은 기계에서만 풀린다(RFC 6761).
+ *  노드 화면은 srcdoc 안이라 location 이 about:srcdoc 이다 — 물려받은 origin 으로 본다 */
+export function onThisMachine(origin) {
+  let host = '';
+  try { host = new URL(origin || (window.origin && window.origin !== 'null' ? window.origin : document.baseURI)).hostname; } catch { return false; }
+  return host === 'localhost' || /\.localhost$/.test(host) || /^127\./.test(host) || host === '[::1]' || host === '::1';
 }
 
 /** 폴더 보관함 — 들어간 폴더의 항목을 아직 안 읽었으면 읽는다 */
@@ -480,9 +613,41 @@ async function loadConfigKeys(screen, client) {
   screen.setState({});
 }
 
+/**
+ * 실시간 신호(B-5) — Daemon 신호는 알림뿐이다(무엇이 바뀌었는지 id 만). 0.25초 모아서 그 목록을 다시 읽는다:
+ *   작업 → 알림 · 장치 · 모듈 → 노드 자원 요약 · 터널 · WireGuard → 네트워크 · 설정 → 설정 키 · 조타륜 앱 목록(wire.js _hbRefresh)
+ *   reset(이어 받을 자리를 놓쳤다) → 다 다시 읽는다
+ * @param {{ signal: string, data?: any }} ev
+ */
+export function applySignal(screen, client, ev, wait = 250) {
+  const R = screen.__real;
+  if (!R || !R.perms || !ev || !ev.signal) return;
+  R.sigs.add(ev.signal);
+  if (R.sigT) return;
+  R.sigT = setTimeout(() => {
+    R.sigT = 0;
+    const sigs = [...R.sigs];
+    R.sigs.clear();
+    if (screen.__real === R) runSignals(screen, client, sigs);
+  }, wait);
+}
+
+function runSignals(screen, client, sigs) {
+  const all = sigs.indexOf('reset') >= 0, on = (...xs) => all || xs.some((x) => sigs.indexOf(x) >= 0);
+  const local = screen.state.localNode.name;
+  if (on('terra.tasks.changed', 'terra.jobs.changed')) void loadAlarms(screen, client);
+  if (on('terra.io.devices.changed', 'terra.modules.changed')) void loadResources(screen, client, local);
+  if (on('terra.service-tunnels.changed', 'terra.wireguard.changed', 'terra.network.changed')) void loadNet(screen, client);
+  if (on('terra.config.changed')) void loadConfigKeys(screen, client);
+  const apps = new Set(all ? Object.keys(HELM_APPS) : []);
+  sigs.forEach((x) => (SIGNAL_APPS[x] || []).forEach((a) => apps.add(a)));
+  if (apps.size && screen._hbRefresh) screen._hbRefresh([...apps], local);
+}
+
 /** 로그아웃 · 토큰을 잃었을 때 — 빈 세계로 돌아간다(예시로 돌아가지 않는다) */
 export function resetWorld(screen) {
   unbindLayout(screen);   // 저장본은 그대로 둔다 — 다시 로그인하면 되살린다
+  if (screen.__real && screen.__real.sigT) clearTimeout(screen.__real.sigT);
   screen.__real = freshReal();
   screen.__client = null;
   screen._mapGoal = null;

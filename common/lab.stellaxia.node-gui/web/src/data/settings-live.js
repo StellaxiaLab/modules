@@ -82,6 +82,30 @@ export function realSettings(Screen) {
 
     can(p) { const L = this.__live; return !!L && (L.permissions || []).indexOf(p) >= 0; }
 
+    /**
+     * Daemon 재시작 — 원본의 두 번 누르기(restartDaemon)가 부른다. terra.daemon.restart.post 202 뒤 Daemon 은 정상 종료하고
+     * 서비스 관리자(systemd · 작업 스케줄러 · launchd)가 다시 띄운다. 관리자가 없으면 501 RESTART_UNSUPPORTED.
+     * Daemon 이 다시 띄운 게이트웨이는 앞 앱 토큰을 모른다 — 돌아오면 셸에서 다시 로그인한다.
+     * 돌아오는 것은 공개 경로 /api/v1/health 로 본다(토큰 없이 답한다)
+     */
+    async doRestart() {
+      const L = this.__live;
+      if (!L) return { ok: false, msg: 'Terra에 연결되지 않았다' };
+      const r = await L.client.invoke(D('restart.post'), {});
+      if (r.kind !== 'ok' && r.kind !== 'accepted') {
+        return { ok: false, msg: r.reason === 'RESTART_UNSUPPORTED' || r.status === 501 ? '다시 띄울 서비스 관리자가 없다 — 그 기기에서 Daemon을 손으로 다시 띄운다' : resultText(r) };
+      }
+      const t0 = Date.now();
+      let gone = false;
+      while (Date.now() - t0 < 90000) {
+        await new Promise((done) => setTimeout(done, 1500));
+        const h = await L.client.get('/api/v1/health');
+        if (h.kind !== 'ok') gone = true;
+        else if (gone || Date.now() - t0 > 8000) return { ok: true };   // 내려갔다 돌아왔다 · 너무 빨라 내려간 것을 못 봤다
+      }
+      return { ok: false, msg: '90초 안에 돌아오지 않았다 — 그 기기의 서비스 상태를 본다' };
+    }
+
     /** 이 노드에서 읽을 수 있는 것을 모두 다시 읽는다 */
     async load() {
       const L = this.__live;
@@ -257,7 +281,7 @@ export function realSettings(Screen) {
         if (S.loadErr) { only([this.stateCard('⚠', '#fde1e5', 'Daemon 설정을 읽지 못했습니다', 'terra.daemon.config.get — ' + S.loadErr)]); return v; }
         v.page.sub = 'terra.daemon.config.* · ' + name + (S.configPath ? ' · ' + S.configPath : '');
         v.page.subDisp = S.help ? 'inline' : 'none';
-        v.pend = Object.assign({}, v.pend, { done: () => { this.setState({ pending: {} }); void this.load(); this.toast('●', '#1f7a4d', '다시 읽었습니다', '실행 중인 값 (config.get)'); } });
+        // 재시작 대기 배너의 단추는 원본의 두 번 누르기(restartDaemon) → doRestart 그대로 쓴다
       }
       return v;
     }

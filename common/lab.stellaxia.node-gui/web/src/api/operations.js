@@ -13,14 +13,30 @@
 const L = (op) => 'terra.daemon.' + op;
 const T = (op) => 'terra.master.' + op;
 const G = (op) => 'terra.gateway.' + op;
-const FILE = (op) => 'io.terra.file.' + op;   // 모듈 op — 원격 노드는 Gateway /api/nodes/{node}/modules/io.terra.file/v1/... 경유
+const FILE = (op) => 'io.terra.file.' + op;   // 모듈 op — scopes local · node 라 노드 주소 호출(B-1)이 아니라 원격 모듈 경로로(client.invokeModuleAt)
+
+/** io.terra.file 계약의 bindings — 이 노드에 io.terra.file 이 없어 카탈로그에 bindings 가 없을 때 원격 모듈 경로를 만든다(maingui FILE_BINDINGS 와 같다) */
+const FILE_BINDINGS = {
+  'roots.list': ['GET', '/roots'], 'entries.list': ['GET', '/entries'], 'entries.stat': ['GET', '/entries/stat'], 'entries.read': ['GET', '/entries/read'],
+  'entries.write': ['PUT', '/entries/write'], 'entries.truncate': ['POST', '/entries/truncate'], 'entries.mkdir': ['POST', '/entries/mkdir'], 'entries.rename': ['POST', '/entries/rename'],
+  'entries.remove': ['DELETE', '/entries'], 'transfers.list': ['GET', '/transfers'], 'transfers.get': ['GET', '/transfers/{transfer_id}'], 'transfers.create': ['POST', '/transfers'],
+  'transfers.chunks.put': ['PUT', '/transfers/{transfer_id}/chunks'], 'transfers.chunks.get': ['GET', '/transfers/{transfer_id}/chunks'],
+  'transfers.complete': ['POST', '/transfers/{transfer_id}/complete'], 'transfers.abort': ['POST', '/transfers/{transfer_id}/abort'],
+  'transfers.pulls.create': ['POST', '/transfers/pulls'], 'transfers.pulls.complete': ['POST', '/transfers/pulls/{transfer_id}/complete'], 'transfers.pulls.abort': ['POST', '/transfers/pulls/{transfer_id}/abort']
+};
+/** io.terra.file op → { method, path } (모듈 경로). 모르는 op 이면 null */
+export const fileBinding = (op) => { const k = String(op || '').replace(/^io\.terra\.file\./, ''), b = FILE_BINDINGS[k]; return b && k !== op ? { method: b[0], path: '/api/modules/io.terra.file/v1' + b[1] } : null; };
 
 /** 조타륜 앱 10개 — 목록(list) · 동작(acts). acts의 키는 화면 hbAct(app, id, op)의 op와 같다 */
 export const HELM_APPS = {
   svi: {
     name: 'SVI 자원', see: 'node.read',
     list: { op: T('svi.resources.get'), where: 'T', perm: 'node.read', resp: 'now', input: { node_id: '<노드>', limit: 100 } },
-    extra: [{ op: T('svi.grants.get'), where: 'T', perm: 'node.read', use: '카드의 허가 표시 (내가 받은 허가)' }],
+    extra: [{ op: T('svi.grants.get'), where: 'T', perm: 'node.read', use: '카드의 허가 표시 (내가 받은 허가)' },
+      { op: T('svi.handles.get'), where: 'T', perm: 'node.read', use: '열린 핸들 — 흐름도 · 흐름 이벤트 (maingui A-28)' },
+      { op: T('svi.bindings.get'), where: 'T', perm: 'node.read', use: '흐름도의 바인딩 (maingui A-28)' }],
+    // 흐름 이벤트 (maingui A-28) — 흐름도에서 고른 자원 · 상태 화면이 보는 자원에 열린 핸들이 있으면 wire.js 가 그 핸들의 SSE 를 연다
+    events: { op: T('svi.handles.by-handle-id.events.get'), where: 'T', perm: 'node.read', resp: 'stream', note: 'Accept: text/event-stream · event: status | frame (StreamMessage)' },
     acts: {
       open: { op: T('svi.handles.post'), where: 'T', perm: 'node.read', resp: 'job', gate: '자원별 허가(read) · io.* 는 백엔드 없음' },
       close: { op: T('svi.handles.by-handle-id.delete'), where: 'T', perm: 'node.read', resp: 'now' },
@@ -65,7 +81,8 @@ export const HELM_APPS = {
     list: { op: L('files.list.get'), where: 'L', perm: 'file.read', resp: 'now', note: '루트 목록 · 항목 목록. 그 밖의 동작은 모듈 namespace' },
     acts: {
       open: { op: FILE('entries.list'), where: 'M', perm: 'file.read', resp: 'now', note: '들어가기는 화면 이동 — 목록은 source.js 가 지금 경로까지 읽는다' },
-      get: { op: FILE('transfers.create'), where: 'M', perm: 'file.read', resp: 'now', none: 'no-download', note: '받기는 청크를 끝까지 당겨 파일로 저장해야 한다 — 화면에 아직 없다' },
+      // 받기 = transfers.pulls.create → chunks.get(eof 까지 · 조각마다 SHA-256) → 전체 SHA-256 → pulls.complete → 브라우저 저장 (source.js download · wire.js). io.terra.file 0.2.0
+      get: { op: FILE('transfers.pulls.create'), where: 'M', perm: 'file.read', resp: 'now', download: true },
       del: { op: FILE('entries.remove'), where: 'M', perm: 'file.write', resp: 'now', in: (id, item) => ({ root: item.share, path: item.rel, recursive: !!item.dir }), note: '모듈 op는 권한을 선언하지 않는다 — 화면이 file.write로 잠근다' },
       mkdir: { op: FILE('entries.mkdir'), where: 'M', perm: 'file.write', resp: 'now', in: (id, item, ctx) => newFolder(ctx && ctx.path) }
     }
@@ -74,10 +91,15 @@ export const HELM_APPS = {
     name: '파일 전송', see: 'file.read',
     list: { op: FILE('transfers.list'), where: 'M', perm: 'file.read', resp: 'now', verify: true },
     acts: {
-      push: { op: FILE('transfers.create'), where: 'M', perm: 'file.write', resp: 'now', none: 'no-upload', note: '올리기는 파일을 고르고 청크를 보내야 한다 — 화면에 아직 없다' },
+      // 올리기 = 파일 고르기 → transfers.create(크기 · SHA-256) → chunks.put → complete (source.js upload · wire.js) — share-0 맨 위로
+      push: { op: FILE('transfers.create'), where: 'M', perm: 'file.write', resp: 'now', upload: true },
       abort: { op: FILE('transfers.abort'), where: 'M', perm: 'file.read|file.write', resp: 'now', in: (id) => ({ transfer_id: id, keep_partial: true }) },
-      resume: { op: FILE('transfers.chunks.put'), where: 'M', perm: 'file.write', resp: 'now', none: 'no-upload', note: '409의 retry_offset부터 — 보낼 바이트가 화면에 없다' },
-      clear: { op: null, note: '화면에서만 치운다 — 완료된 전송은 서버에서 이미 지워진다' }
+      // 이어서 = 멈춘 전송(보내던 · 받던 화면이 닫혔다 — source.js markStalled). 올리기는 같은 파일을 골라 resume_id 로 서버가 받은 곳부터,
+      // 받기는 다시 열어 이 브라우저에 받아 둔 만큼 건너뛴다(src/store/parts.js) — wire.js 가 맡는다(MD-21)
+      resume: { op: FILE('transfers.create'), where: 'M', perm: 'file.read|file.write', resp: 'now', resume: true },
+      // 치우기 = 중단해 둔 전송(부분 남김)을 버린다 — 부분 파일과 기록을 지운다(keep_partial: false). 완료된 전송은 서버가 이미 지웠다(목록에 없다)
+      clear: { op: FILE('transfers.abort'), where: 'M', perm: 'file.read|file.write', resp: 'now', in: (id) => ({ transfer_id: id, keep_partial: false }),
+        say: (d, it) => ((it && it.name) || '전송') + ' 치움' + (it && it.dir === 'push' ? ' — 남겨 둔 부분 파일도 지웠다' : '') }
     }
   },
   tunnel: {
@@ -128,12 +150,12 @@ export const HELM_APPS = {
     name: '모듈', see: 'node.read',
     list: { op: L('modules.get'), where: 'L', perm: 'node.read', resp: 'now', note: 'tree에서 볼 때 terra.master.nodes.by-node-id.modules.get' },
     acts: {
-      // 시작 · 멈춤 · 재시작은 이 노드 Daemon 의 경로(node.control)로 — 게이트웨이의 terra.gateway.modules.by-id.* 는 재시작이 없다.
-      // 로그는 게이트웨이가 이 노드의 모듈 것을 준다. 어느 쪽이든 이 노드의 모듈만 다룬다(where 'L' — 다른 노드면 부르지 않는다)
+      // 시작 · 멈춤 · 재시작은 Daemon 의 경로(node.control)로 — 게이트웨이의 terra.gateway.modules.by-id.* 는 재시작이 없다.
+      // 로그는 이 노드면 게이트웨이가, 다른 노드면 그 노드 Daemon 이 준다(remote — 노드 주소 호출 B-1. 게이트웨이 op 는 그 노드 카탈로그에 없다)
       start: { op: L('modules.by-module-id.start.post'), where: 'L', perm: 'node.control', resp: 'job' },
       stop: { op: L('modules.by-module-id.stop.post'), where: 'L', perm: 'node.control', resp: 'job' },
       restart: { op: L('modules.by-module-id.restart.post'), where: 'L', perm: 'node.control', resp: 'job' },
-      log: { op: G('modules.by-id.logs.get'), where: 'L', perm: 'node.read', resp: 'now', say: (d) => logLine(d) },
+      log: { op: G('modules.by-id.logs.get'), where: 'L', perm: 'node.read', resp: 'now', say: (d) => logLine(d), remote: { op: L('modules.by-module-id.logs.get') } },
       check: { op: L('modules.get'), where: 'L', perm: 'node.read', resp: 'now', say: (d) => modLine(d) }
     }
   }
@@ -186,7 +208,14 @@ export const GUI_APPS = { path: '/api/v1/gui/apps', perm: '공개', note: 'apps[
  */
 export const HELM_CRUD = {
   io: {
-    create: { op: L('io.scan.post'), where: 'L', body: () => ({}), scan: true },   // 손으로 등록하는 op는 없다 — 스캔이 찾는다
+    // 손 등록(io-inventory 수동 원천) — 카메라 주소의 scheme 이 어댑터를 고른다. 주소를 비우면 스캔이 찾는다
+    create: (v) => {
+      const addr = String(v.addr || '').trim();
+      if (!addr) return { op: L('io.scan.post'), where: 'L', body: () => ({}), scan: true };
+      const adapter = manualAdapter(addr);
+      if (!adapter) return { none: 'io-addr' };
+      return { op: L('io.devices.post'), where: 'L', body: () => ({ kind: 'camera', name: v.name, adapter_id: adapter, address: addr }) };
+    },
     update: { where: 'L', steps: (v, it) => ioSteps(v, it) },
     del: { op: L('io.devices.by-device-id.forget.post'), where: 'L', body: (v, it) => ({ device_id: it.id }), verb: '잊음' }
   },
@@ -228,10 +257,11 @@ export const HELM_CRUD = {
     }
   },
   xfer: {
-    create: { none: 'no-transfer' },   // 올리기는 청크를 보내고, 받기는 끝까지 당겨 저장해야 한다 — 화면에 그 칸이 없다
+    create: { none: 'xfer-form' },   // 폼에 적을 것이 없다 — 올리기는 머리의 ↑ 올리기(파일 고르기), 받기는 폴더 앱 파일 카드의 받기
     update: null,   // 전송을 고치는 op 없음 — 중단 뒤 다시
-    del: (v, it) => (it && (it.state === 'completed' || it.state === 'aborted') ? { screen: true, verb: '치움' }
-      : { op: FILE('transfers.abort'), where: 'M', body: (vv, i) => ({ transfer_id: i.id, keep_partial: false }), keep: true, verb: '중단' })   // 삭제 = 포기 — 부분 파일도 지운다
+    // 삭제 = 포기 — 부분 파일도 지운다. 중단해 둔 것(부분 남김)도 서버에서 버린다(남겨 두면 다음 목록에 다시 온다). 완료된 것은 화면에서만
+    del: (v, it) => (it && it.state === 'completed' ? { screen: true, verb: '치움' }
+      : { op: FILE('transfers.abort'), where: 'M', body: (vv, i) => ({ transfer_id: i.id, keep_partial: false }), keep: true, verb: it && it.state === 'aborted' ? '치움' : '중단' })
   },
   tunnel: {
     // Master 가 경로 표(ticket)를 발급해야 열린다 — Daemon 의 POST /service-tunnels 는 그 표를 받는 쪽이다. 대상 · 로컬 주소는 loopback 만
@@ -257,12 +287,21 @@ export const HELM_CRUD = {
     update: null,   // 작업은 고칠 수 없다 — 다시 실행
     del: { op: T('commands.post'), where: 'T', body: (v, it, ctx) => ({ target_node_id: ctx.nodeId, type: 'process.cancel.request', payload: { job_id: it.id } }), keep: true, verb: '취소' },
     // 이 노드 자신의 작업은 Daemon 이 받는다 — 명령 · 인자만(작업 id 는 202 의 task_id)
+    // 명령 실행은 Daemon 이 원격으로 열지 않는다(scopes local) — 다른 노드는 노드 주소 호출로 닿아도 Master 명령으로 간다(localOnly)
     local: {
-      create: { op: L('commands.execute.post'), where: 'L', body: (v) => cmdLine(v.cmd) },
+      create: { op: L('commands.execute.post'), where: 'L', body: (v) => cmdLine(v.cmd), localOnly: true },
       del: { op: L('tasks.by-task-id.cancel.post'), where: 'L', body: (v, it) => ({ task_id: it.id }), keep: true, verb: '취소' }
     }
   },
-  mod: { create: null, update: null, del: null }   // 설치 · 설정 · 제거 op 가 아직 없다(제안 — CRUD_TEXT)
+  // 설치 · 제거 op 는 아직 없다(제안 — CRUD_TEXT). 수정 = 모듈 설정(B-6 설정) — 모듈이 선언한 configuration.schema 의 칸.
+  // 폼을 열 때 wire.js 가 스키마 · 값을 받아 항목에 붙인다(item.cfg — cfgForm). 저장은 바뀐 키만(cfgPatch) · base_revision 으로 겹침을 막는다
+  mod: {
+    create: null,
+    update: (v, it) => (it && it.cfg ? { where: 'L', steps: (vv, i) => { const p = cfgPatch(i, vv); return p ? [{ op: L('modules.by-module-id.config.patch'), body: p }] : []; },
+      say: (d, i) => '⚙ ' + ((i && (i.name || i.id)) || '모듈') + ' 설정 저장 — revision ' + (d && d.revision) + (d && d.restart ? ' · 재시작함' : d && d.restart_error ? ' · 재시작 실패(' + d.restart_error + ') — 다음 시작에 반영' : '') }
+      : { none: 'mod-cfg' }),
+    del: null
+  }
 };
 
 /**
@@ -270,17 +309,83 @@ export const HELM_CRUD = {
  * 화면(HBCRUD)의 글은 원본 설계의 것이라 실제와 다른 곳이 있다(장치 이름 바꾸기 · 터널 · 피어 회수 본문) — node-live.js 가 이것으로 바꾼다
  */
 export const CRUD_TEXT = {
-  io: { list: 'terra.daemon.io.devices.get', add: 'terra.daemon.io.scan.post — 손으로 등록하는 op는 없다, 스캔이 찾는다', edit: 'io.devices.by-device-id.{alias · approve · deny · enable · disable}.post — 바뀐 것만 차례로', del: 'terra.daemon.io.devices.by-device-id.forget.post' },
+  io: { list: 'terra.daemon.io.devices.get', add: 'terra.daemon.io.devices.post — 손 등록(카메라 manual.rtsp · manual.http-camera) · 주소를 비우면 terra.daemon.io.scan.post', edit: 'io.devices.by-device-id.{alias · approve · deny · enable · disable}.post — 바뀐 것만 차례로', del: 'terra.daemon.io.devices.by-device-id.forget.post' },
   svi: { list: 'terra.master.svi.resources.get (node_id)', add: '⚠ SVI 자원은 선언에서 생긴다 — 자원 선언 앱', edit: '⚠ 자원을 고치는 op 없음 — 같은 이름으로 다시 선언', del: '⚠ 선언 철회로 사라진다 — 자원 선언 앱' },
   decl: { list: 'terra.daemon.svi.declarations.get', add: 'terra.daemon.svi.declarations.post', edit: 'terra.daemon.svi.declarations.post {replace · 퇴역이면 reuse_name}', del: 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post' },
   grant: { list: 'terra.master.svi.grants.get + svi.bindings.get', add: 'terra.master.svi.grants.post', edit: '⚠ 허가를 고치는 op 없음 — 철회 뒤 다시 준다', del: 'terra.master.svi.grants.by-grant-id.delete · 바인딩은 svi.bindings.by-binding-id.delete' },
   folder: { list: 'io.terra.file.roots.list · io.terra.file.entries.list', add: 'io.terra.file.entries.mkdir · 파일은 io.terra.file.entries.write (빈 파일)', edit: 'io.terra.file.entries.rename', del: 'io.terra.file.entries.remove' },
-  xfer: { list: 'io.terra.file.transfers.list', add: '⚠ 올리기 · 받기는 청크를 보내고 받아야 한다 — 아직 화면에 없다', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
+  xfer: { list: 'io.terra.file.transfers.list', add: '↑ 올리기 — io.terra.file.transfers.create → transfers.chunks.put → transfers.complete · 받기는 폴더 앱 — transfers.pulls.create → transfers.chunks.get → transfers.pulls.complete', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시 · 멈춘 전송은 카드의 이어서(resume_id · 이 브라우저에 받아 둔 조각)', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
   tunnel: { list: 'terra.daemon.service-tunnels.get + terra.master.service-tunnels.declarations.get', add: '선언 terra.master.service-tunnels.declarations.post · 즉석 terra.master.service-tunnels.open.post', edit: '⚠ 고치는 op 없음 — 지우고 다시', del: 'terra.daemon.service-tunnels.by-tunnel-id.close.post · 선언은 terra.master.service-tunnels.declarations.by-declaration-id.delete' },
   wg: { list: 'terra.daemon.wireguard.peers.get · wireguard.status.get', add: '⚠ 피어는 mesh 가입으로 생긴다', edit: '⚠ 피어를 고치는 op 없음 — 동기화(wireguard.sync.post)', del: 'terra.master.network.mesh.wireguard.peers.revoke.post {source_node_id · target_node_id} (되돌릴 수 없다)' },
   job: { list: 'terra.daemon.tasks.get · tree: terra.master.jobs.get', add: 'terra.daemon.commands.execute.post · tree: terra.master.commands.post', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행', del: 'terra.daemon.tasks.by-task-id.cancel.post · tree: commands.post {process.cancel.request}' },
-  mod: { list: 'terra.daemon.modules.get · GUI는 /api/v1/gui/apps', add: '⚠ 모듈 설치 op 없음 — 제안 terra.gateway.modules.post (패키지 · 서명)', edit: '⚠ 모듈 설정 — 제안 terra.gateway.modules.by-module-id.config.put', del: '⚠ 모듈 제거 — 제안 terra.gateway.modules.by-module-id.delete' }
+  mod: { list: 'terra.daemon.modules.get · GUI는 /api/v1/gui/apps', add: '⚠ 모듈 설치 op 없음 — 제안 terra.gateway.modules.post (패키지 · 서명)', edit: 'terra.daemon.modules.by-module-id.config.patch {values · unset · base_revision} — 칸은 terra.daemon.modules.by-module-id.config.schema.get · 값은 terra.daemon.modules.by-module-id.config.get · 실행 중이면 재시작', del: '⚠ 모듈 제거 — 제안 terra.gateway.modules.by-module-id.delete' }
 };
+
+/** 손 등록할 카메라 주소 → io-inventory 수동 어댑터 (rtsp · rtsps → manual.rtsp, http · https → manual.http-camera). 모르면 '' */
+export function manualAdapter(addr) {
+  const m = /^([a-z][a-z0-9+.-]*):\/\/[^/\s]/i.exec(String(addr || '').trim()), sch = m ? m[1].toLowerCase() : '';
+  return sch === 'rtsp' || sch === 'rtsps' ? 'manual.rtsp' : sch === 'http' || sch === 'https' ? 'manual.http-camera' : '';
+}
+
+/**
+ * 모듈 설정 스키마 · 값 → 폼 모양(B-6 설정 — Daemon config.schema.get · config.get). maingui cfgForm 과 같은 규칙:
+ *   칸 = configuration.schema 의 최상위 키 — 고르기(enum) · 예/아니오(boolean) · 수(integer · number) · 글(그 밖 — 배열 · 객체는 JSON 글) · 비밀(x-terra-secret — 값은 내지 않는다)
+ *   값 = 저장된 값(values — 기본값은 채우지 않는다) · 비밀은 설정됐는지만(secrets[k].set)
+ * @returns {{ revision: number, fields: any[], vals: Record<string, any>, saved: Record<string, any>, required: string[], invalid: any[], restartPending: boolean }}
+ */
+export function cfgForm(schemaData, cfgData) {
+  const sc = (schemaData && schemaData.schema) || {}, props = sc.properties || {}, req = sc.required || [], cfg = cfgData || {};
+  const secrets = new Set([].concat((schemaData && schemaData.secret_keys) || [], Object.keys(props).filter((k) => props[k] && props[k]['x-terra-secret'])));
+  const values = cfg.values || {}, sset = cfg.secrets || {}, fields = [], vals = {};
+  Object.keys(props).forEach((k) => {
+    const p = props[k] || {}, label = (p.title || k) + (req.indexOf(k) >= 0 ? ' *' : ''), dflt = p.default;
+    let f;
+    if (secrets.has(k)) f = { k, label: label + ' 🔒', type: 'secret', ph: sset[k] && sset[k].set ? '설정됨 — 비워 두면 그대로' : '비밀 값 (보이지 않는다)' };
+    else if (Array.isArray(p.enum)) f = { k, label, type: 'sel', opts: p.enum.map(String) };
+    else if (p.type === 'boolean') f = { k, label, type: 'bool' };
+    else if (p.type === 'integer' || p.type === 'number') f = { k, label, type: 'num', ph: dflt != null ? '기본 ' + dflt : '' };
+    else f = { k, label, type: 'text', ph: dflt != null ? '기본 ' + (typeof dflt === 'object' ? JSON.stringify(dflt) : dflt) : (p.description || '') };
+    f.json = p.type === 'array' || p.type === 'object';
+    f.num = p.type === 'integer' ? 'int' : p.type === 'number' ? 'num' : '';
+    f.enumNum = Array.isArray(p.enum) && p.enum.length > 0 && p.enum.every((x) => typeof x === 'number');
+    fields.push(f);
+    const v = secrets.has(k) ? '' : values[k];
+    vals[k] = f.type === 'bool' ? (v != null ? !!v : !!dflt) : f.type === 'sel' ? String(v != null ? v : dflt != null ? dflt : p.enum[0]) : v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+  });
+  return { revision: cfg.revision || 0, fields, vals, saved: Object.assign({}, values), required: req, invalid: cfg.invalid_keys || [], restartPending: !!cfg.restart_pending };
+}
+
+/**
+ * 폼 값 → config.patch 입력 — 바뀐 키만(손대지 않은 칸 · 기본값 칸은 싣지 않는다). 비운 칸은 unset(스키마 기본값으로), 비밀은 적었을 때만.
+ * 수 · JSON 칸이 그 모양이 아니면 글 그대로 보내 서버가 detail.keys 로 말하게 한다. 고칠 것이 없으면 null
+ * @param {{ id: string, cfg: ReturnType<typeof cfgForm> }} item
+ */
+export function cfgPatch(item, vals) {
+  const cfg = item && item.cfg;
+  if (!cfg) return null;
+  const values = {}, unset = [];
+  cfg.fields.forEach((f) => {
+    const v = vals[f.k], had = Object.prototype.hasOwnProperty.call(cfg.saved, f.k), was = cfg.vals[f.k];
+    if (f.type === 'secret') { if (v != null && String(v) !== '') values[f.k] = String(v); return; }
+    if (f.type === 'bool' ? !!v === !!was : String(v == null ? '' : v).trim() === String(was == null ? '' : was).trim()) return;
+    if (f.type === 'bool') { values[f.k] = !!v; return; }
+    const s = String(v == null ? '' : v).trim();
+    if (s === '') { if (had) unset.push(f.k); return; }
+    let out = s;
+    if (f.type === 'num') { out = f.num === 'int' ? Number(s) : parseFloat(s); if (!Number.isFinite(out) || (f.num === 'int' && !Number.isInteger(out))) out = s; }
+    else if (f.type === 'sel' && f.enumNum) { out = Number(s); }
+    else if (f.json) { try { out = JSON.parse(s); } catch { out = s; } }
+    if (!had || JSON.stringify(cfg.saved[f.k]) !== JSON.stringify(out)) values[f.k] = out;
+  });
+  if (!Object.keys(values).length && !unset.length) return null;
+  return Object.assign({ module_id: item.id, base_revision: cfg.revision }, Object.keys(values).length ? { values } : {}, unset.length ? { unset } : {});
+}
+
+/** 설정 저장 거절의 글 — 스키마를 어긴 키(error.detail.keys)를 적는다. 값은 서버도 되돌려 주지 않는다 */
+export function cfgErrorKeys(r) {
+  const e = r && r.data && r.data.error, keys = e && e.detail && Array.isArray(e.detail.keys) ? e.detail.keys : [];
+  return keys.map((k) => k.key + (k.message ? ' — ' + k.message : '')).join(' · ');
+}
 
 /** 장치 고치기 — 바뀐 것만 차례로. 종류는 장치가 정하고, 승인 대기로 되돌리는 op 는 없다 */
 function ioSteps(v, it) {
@@ -358,8 +463,17 @@ export function scanLine(d) {
 
 /** 모듈 로그 → 마지막 한 줄 */
 export function logLine(d) {
-  const lines = d && Array.isArray(d.logs) ? d.logs.filter((l) => String(l).trim()) : [];
-  return (d && d.module ? d.module + ' · ' : '') + (lines.length ? String(lines[lines.length - 1]).slice(0, 160) : '최근 로그 없음');
+  const lines = logLines(d).filter((l) => l.trim());
+  const mod = d && (d.module || d.module_id);
+  return (mod ? mod + ' · ' : '') + (lines.length ? lines[lines.length - 1].slice(0, 160) : '최근 로그 없음');
+}
+
+/** 로그 줄 — 게이트웨이 { module, logs: [글] } · Daemon { module_id, lines: [{ at, stream, text }] }.
+ *  Go 모듈은 로그를 다 stderr 로 낸다 — 두 흐름이 섞였을 때만 stderr 줄 앞에 '! ' */
+export function logLines(d) {
+  const all = (d && (Array.isArray(d.logs) ? d.logs : Array.isArray(d.lines) ? d.lines : null)) || [];
+  const mixed = new Set(all.filter((l) => l && typeof l === 'object').map((l) => l.stream)).size > 1;
+  return all.map((l) => (l && typeof l === 'object' ? (mixed && l.stream === 'stderr' ? '! ' : '') + String(l.text == null ? '' : l.text) : String(l)));
 }
 
 /** 모듈 목록 → 상태 확인 글줄 */

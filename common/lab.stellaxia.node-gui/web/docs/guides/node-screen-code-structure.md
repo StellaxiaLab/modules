@@ -122,7 +122,7 @@ flowchart TB
 | clip 높이 | `clip-ground` 높이 615 미만이면 타일 옆면이 잘린다 |
 | 유틸 서랍이 혼자 움직임 | 버튼을 뗀 뒤 `pointermove`가 오면 움직였다 → `buttons === 0` 가드 · `blur`에서 해제 · 뗄 때 `anim false` |
 | 관리 노드 창 ↔ 서랍창 겹침 | `mgHover` 동안 서랍창 `pointer-events: none` |
-| 이름이 키 | 지금 `NET` · `looks` · `maps` · 창 제목이 전부 노드 **이름**으로 묶여 있다. 연동하면서 id로 바꾼다 |
+| 이름이 키 | 지금 `NET` · `looks` · `maps` · 창 제목이 전부 노드 **이름**으로 묶여 있다. 모듈의 LayoutStore는 저장본에 이름 → `node_id`를 같이 적어 읽을 때 옮긴다(`store/layout.js` `remapNodes`) — 화면 안은 그대로 이름이다 |
 | `NET`이 상태 밖 | `this.NET`은 `setState` 대상이 아니다. API로 갱신하려면 상태로 옮긴다 |
 | 타이머 누수 | `goMap` · `storeWin` · `flipTo` · `startLogin`이 `setTimeout`을 여러 개 건다. 언마운트 · 로그아웃 때 전부 취소 |
 
