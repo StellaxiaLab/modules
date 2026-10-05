@@ -8,7 +8,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.1"
+version: "0.3.2"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -190,10 +190,10 @@ sequenceDiagram
 | 도로 · 건물 · 자재 설계(편집기에서 내보낸 것) | `localStorage` `terra.gui.roads` · `terra.gui.buildings` — 이 브라우저에만 | AssetStore |
 | 입출력 연결의 실제 데이터 흐름 | 연결(`links`)은 화면의 선이다 — 무엇을 주고받는지는 디자인 · 데이터 모양이 없다 | 설정 화면 디자인 + SVI 바인딩 |
 | 폴더 탐색기 · 파일 열기 · 파일 관리자로 열기 | Daemon 로컬 op 이 없다 | 제안 `terra.daemon.local-fs.list.get` · `terra.daemon.desktop.open.post` |
-| 받기 · 올리기 · 이어서 | 청크 전송을 화면이 하지 않는다 | `io.terra.file.transfers.*` 청크 루프 + 파일 고르기 |
+| 받기 · 올리기 · 이어서 | 청크 전송을 화면이 하지 않는다 | `io.terra.file.transfers.*` 청크 루프 + 파일 고르기 — maingui A-2를 옮긴다(MD-17) |
 | 작업 출력 · 다시 실행 | 실행은 추가 폼으로 된다(§2.4). Daemon 작업 목록 · 기록은 명령 · 출력을 주지 않는다 | 출력 API |
-| 자원 선언 추가 · 철회 | Daemon local API 에 경로(`POST /svi/declarations` …)는 있지만 게이트웨이 카탈로그에 그 op 들이 없다 — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` | 계약에 올린다(PF-13) |
-| 모듈 설치 · 설정 · 제거 | op 가 없다 | 제안 `terra.gateway.modules.post` · `by-module-id.config.put` · `by-module-id.delete`(PF-14) |
+| 자원 선언 추가 · 철회 | op 셋(`svi.declarations.post` · `undeclare` · `forget`)은 계약에 있다. 카탈로그가 호출자 권한으로 거르는데 `node.config`★는 기본 권한 밖이라 앱 토큰에 안 보인다 — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` | 앱 권한 · 사용자 권한에 `node.config`(Q-10 — PF-13 진단 정정) |
+| 모듈 설치 · 설정 · 제거 | 노드 지정(B-6 `nodes.by-node-id.modules.assignments.*`)은 Master op라 앱 토큰이 닿지 않는다(PF-1). 설정 op는 설계뿐 | PF-1 · PF-14 |
 | 다른 모듈의 GUI 열기 | frame 은 자기 모듈의 앱만 감싼다 — 앱 안에서 다른 앱을 띄울 길이 없다 | 셸에 "앱 열기" 요청(PF-15) |
 
 ## 4. 로그인 · 로그아웃
