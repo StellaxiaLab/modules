@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.6.1"
+version: "1.7.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -40,17 +40,18 @@ related:
 | --- | --- | --- | --- | --- |
 | **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 1 | 3 | 5 |
 | **MD** 이 모듈 | modules 저장소 | 1 | 4 | 3 |
-| **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | — | 3 | 4 |
+| **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | — | 3 | 5 |
 | **Q** 사람이 정할 것 | 소유자 | — | — | — |
 
 남은 것만 센다(2026-10-05 저녁). Terra G0~G6이 닫은 PF는 §1.2, 이 모듈이 끝낸 MD는 §2 "끝낸 것", 원본이 고친 UP는 §3.0에 있다.
 Terra G0~G6이 연 길(B-1 · B-5 · C-1 · B-11 · B-12 · B-14)은 이 모듈이 모두 옮겼다 — MD-11 · MD-12 · MD-15~MD-20.
 끊긴 뒤 이어서(MD-21)도 끝냈다 — 그 길에서 찾은 io.terra.file 문제(invoke로 보낸 중단이 늘 포기)를 0.2.1로 함께 고쳤다.
 maingui `e669c03`(A-29 ~ A-33)도 따라갔다(MD-22) — 모듈 수정 폼이 모듈 설정이 됐다(Terra main의 설정 op 셋).
+maingui `1aa6340`(A-20 · A-28)도 따라갔다(MD-23) — SVI 자원 앱이 흐름도가 됐다. SVI · 네트워크 읽기는 Master op라 앱 토큰으로는 비어 있다(PF-1) — 그 이유를 남기고, 예시 흐름 이벤트는 돌리지 않는다.
 
 ```mermaid
 flowchart LR
-  subgraph DONE["끝냄 2026-10-05 — Terra G0~G6이 연 길 · 끊긴 뒤 이어서"]
+  subgraph DONE["끝냄 2026-10-05 — Terra G0~G6이 연 길 · 끊긴 뒤 이어서 · maingui 따라가기"]
     MD11["MD-11 이벤트"]
     MD12["MD-12 다른 노드"]
     MD15["MD-15 사용자 문서"]
@@ -60,14 +61,17 @@ flowchart LR
     MD20["MD-20 다른 노드의 공유 폴더"]
     MD21["MD-21 끊긴 뒤 이어서"]
     MD22["MD-22 maingui e669c03 — 모듈 설정 폼"]
+    MD23["MD-23 maingui 1aa6340 — SVI 흐름도"]
   end
   CFG["Terra main 모듈 설정 op 셋 — 쓰기는 module.manage"] --> MD22
   FILE021["io.terra.file 0.2.1 — 중단이 부분을 남긴다"] -->|"중단 뒤 다시 올리기"| MD21
-  MD21 -.->|"멈춤 칸 · 이어서"| UP22["UP-22 · UP-23 원본에 올릴 것"]
+  MD21 -.->|"멈춤 칸 · 이어서"| UP22["UP-22 · UP-23 · UP-24 원본에 올릴 것"]
+  MD23 -.->|"빈 목록의 이유"| UP22
   PF10["PF-10 자기 op invoke — Terra PR 118"] -.->|"병합되면 경로 대신 operationId"| MD15
   PF1["PF-1 Master op — 남음"] --> MD1["MD-1 입출력 연결의 의미"]
   PF1 --> MD13["MD-13 tree CRUD E2E"]
   PF1 --> PF17["PF-17 문서 변경 신호"]
+  PF1 -.->|"앱 토큰엔 빈 흐름도"| MD23
   PF15["PF-15 셸의 앱 열기 — 남음"] --> MD14["MD-14 모듈 GUI 열기"]
   DES["디자인: 입출력 설정 화면"] --> MD1
   DES --> MD2["MD-2 자원 설정 창 입출력"]
@@ -112,7 +116,7 @@ flowchart LR
 
 | ID | 무엇 | 왜 · 지금 상태 | 선행 | 우선 |
 | --- | --- | --- | --- | --- |
-| **MD-1** | 입출력 연결의 **실제 의미** — `links`를 데이터 흐름(SVI 바인딩 · 허가)으로 | 지금 연결은 화면의 선(도로)이고 저장만 된다. 무엇을 어떤 형식으로 주고받는지 데이터 모양이 없다([[node-screen-data-model\|데이터 모델]] §2.14). 연결을 만들 때 `허가 · 연결` 앱의 bind를 부르고, 상태를 도로 이벤트(동작 · 대기 · 실패)로 돌려받는 것까지 | PF-1 · 입출력 설정 화면 디자인 | 높음 |
+| **MD-1** | 입출력 연결의 **실제 의미** — `links`를 데이터 흐름(SVI 바인딩 · 허가)으로 | 지금 연결은 화면의 선(도로)이고 저장만 된다. 무엇을 어떤 형식으로 주고받는지 데이터 모양이 없다([[node-screen-data-model\|데이터 모델]] §2.14). 연결을 만들 때 `허가 · 연결` 앱의 bind를 부르고, 상태를 도로 이벤트(동작 · 대기 · 실패)로 돌려받는 것까지. 원본 A-28 흐름도(MD-23)가 SVI 쪽 흐름(엔드포인트 · 핸들 · 바인딩 · 허가)을 그리게 됐지만 맵의 연결과는 아직 따로다 | PF-1 · 입출력 설정 화면 디자인 | 높음 |
 | **MD-2** | 자원 설정 창의 입력 · 출력 세부 설정 | 디자인이 "추후"다([[node-screen-ui-spec\|UI 명세]] §2.8) | 디자인 | 중간 |
 | **MD-3** | 사용자 이벤트(건물 · 도로의 `+ 이벤트`)가 켜지는 규칙 | 편집기에서 만들 수 있지만 맵에서 켜지는 조건이 없다(UI 명세 §2.11 "상태 연동은 추후") | 규칙 결정 | 중간 |
 | **MD-6** | 진짜 스택 E2E를 CI로 | 지금은 손으로 돈다([[testing\|시험]] §6) — Master · Daemon · 셸 · 브라우저가 필요하다. modules CI는 이미 Terra를 체크아웃한다(`test:scenes`) | — | 중간 |
@@ -137,25 +141,26 @@ flowchart LR
 | **MD-18** | 장치 손 등록 | I/O 앱 `＋ 추가` 폼 = 이름 · 주소. 주소 scheme → `manual.rtsp` · `manual.http-camera` → `terra.daemon.io.devices.post {kind: camera, name, adapter_id, address}`. 비우면 스캔 · 모르는 scheme은 부르지 않는다. io-inventory 0.2.0(#26) · 2026-10-05 |
 | **MD-21** | 받기 · 올리기를 끊긴 뒤 이어서 | **올리기** — 같은 자리에 같은 파일(크기 · SHA-256)을 보내다 멈춘 전송을 `transfers.list`에서 찾아 `resume_id`로 다시 연다(새로 만들기가 부분 파일 때문에 `FILE_TARGET_EXISTS`일 때 · 방금까지 움직인 것은 3초 뒤 다시 본다 · 기한이 지나도). **받기** — 받은 조각을 이 브라우저 IndexedDB(`src/store/parts.js`)에 두고, SHA-256 · 크기가 같으면 둔 곳부터 · 앞선 받기는 닫는다. **전송 앱** — 멈춘 전송(보내던 화면이 닫혔다)은 `어긋남` 칸 + 이어서(파일 고르기 · 이름은 달라도 된다) · 중단(부분 남김) · 치우기(부분도 버림). **io.terra.file 0.2.1** — 중단의 `keep_partial` · `reason`을 invoke 본문에서도 읽는다(0.2.0은 query만 읽어 앱의 중단이 늘 포기였다) · 기한 지난 받기도 받기 전용 문으로 닫는다. 진짜 스택에서 4 MB 올리기 · 받기를 31%에서 끊고 이었다([[real-data-layer\|실데이터 층]] §5.4) · 2026-10-05 |
 | **MD-22** | maingui `e669c03` 따라가기 — 모듈 설정 폼 | `design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **모듈 수정 = 모듈 설정**(maingui A-29): 폼을 열기 전에 `config.schema.get` · `config.get`으로 칸 · 값을 받아 항목에 붙이고(`cfgForm`), 저장은 바뀐 키만 `config.patch {values, unset, base_revision}`(`cfgPatch`). 거절한 키(`detail.keys`) · 409 겹침 · 설정 없는 모듈을 글로. 다른 노드는 노드 주소 호출. I/O 장치를 고칠 때는 원본의 새 주소 칸을 뺀다(주소를 바꾸는 op 가 없다). 진짜 스택(Terra main)에서 시험 모듈로 거절 · 저장 · 다시 열기 · 겹침 · 비우기를 확인했다([[real-data-layer\|실데이터 층]] §5.5) · 2026-10-05 |
+| **MD-23** | maingui `1aa6340` 따라가기 — SVI 흐름도 · 흐름 이벤트 | `design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **SVI 자원 앱 창 = 흐름도**(maingui A-28 — 제공 노드 → 자원 → 엔드포인트 → 핸들 · 바인딩 · 허가, 카드 보기와 바꾼다). 연동 층: `ADAPT.svi`가 `flow` · `handle`을 채운다(없으면 화면이 카메라에 `frames` · `snapshot` 엔드포인트를 지어낸다), svi 앱이 `svi.handles.get` · `svi.bindings.get`도 받고, `wire.js`가 고른 자원의 열린 핸들 SSE(`svi.handles.by-handle-id.events.get`)를 `state.sviEv`에 넣는다. `ADAPT.grant`를 Master의 답 모양(`items` · `subject{type, id}` · `source{resource_id}`)으로 고쳤다. 예시 흐름 이벤트(`sviDemoTick`)는 끈다. 보고 있는 앱의 목록을 받지 못하면 그 이유를 남긴다(UP-24). 네트워크 읽기(A-20)는 Master라 보드는 그대로 "닿지 않음". SVI는 전부 Master op라 앱 토큰으로는 빈 흐름도 + 이유다(PF-1 · [[real-data-layer\|실데이터 층]] §5.6) · 2026-10-05 |
 | **MD-20** | 다른 노드의 공유 폴더 안 · 전송 | `io.terra.file`(scopes local · node)은 노드 카탈로그에 없어 원격 모듈 경로 `/api/nodes/{node_id}/modules/io.terra.file/v1/…`로 부른다(`client.invokeModuleAt` · `fillRoute` · 카탈로그 `bindings`, 없으면 `fileBinding`). 앱 토큰으로 진짜 게이트웨이에서 목록 · 올리기 · 받기 · 지우기가 그 길로 갔다 · 2026-10-05 |
 | **MD-19** | maingui `2ced429` 따라가기 | `design/`(Artboard · Settings)을 그 커밋 그대로 복사하고 다시 만들었다 — 파일 단위로 같다. 연동 층은 필요한 것만 옮겼다(이벤트 · 노드 주소 호출 · 사용자 문서 · local-fs · desktop.open · 올리기 · 노드 관리 폼은 Master에 닿지 않으니 잠금 · 설정 재시작 `doRestart`). 생성기의 낡은 설정 패치 둘을 뺐다 · 2026-10-05 |
 
 그 밖에 maingui 기준으로 다시 맞추며(2026-10-04) 자원 추가 · 수정 · 삭제를 실제 호출로(지어내지 않기) · 값을 적어야 하는 앱 바 동작의 폼 · 상태 화면 · 모듈 GUI 창 · `ovhHide` 저장 — [[real-data-layer|실데이터 층]] §2.4 · §2.5 · §5.2.
-MD-11 · MD-12 · MD-15~MD-20의 진짜 스택 실측은 [[real-data-layer|실데이터 층]] §5.3, MD-21은 §5.4, MD-22는 §5.5, 단위 시험은 [[testing|시험]].
+MD-11 · MD-12 · MD-15~MD-20의 진짜 스택 실측은 [[real-data-layer|실데이터 층]] §5.3, MD-21은 §5.4, MD-22는 §5.5, MD-23은 §5.6, 단위 시험은 [[testing|시험]].
 
 ## 3. GUI 원본(maingui) · 디자인에 올릴 것 (UP)
 
 모듈을 만들며 찾은 것이다. service 판은 같은 진짜 게이트웨이(`/gw` → `127.0.0.1:28787`)에 `tools/serve.mjs`로 붙여 확인했다.
 UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다. 아래 §3.1 표는 그때 기준이다 — 지금 상태는 §3.0.
 
-### 3.0 지금 상태 (2026-10-05, maingui `e669c03`)
+### 3.0 지금 상태 (2026-10-05, maingui `1aa6340`)
 
 | 상태 | ID | 어디서 |
 | --- | --- | --- |
 | 원본에 올렸다 | UP-1 · UP-2 · UP-3 · UP-10 · UP-12(나) · UP-15 · UP-18 · UP-19 · UP-21 | [maingui#1](https://github.com/StellaxiaLab/maingui/pull/1) — 고치기 전 코드에서 실패하는 시험과 함께(UP-19 · UP-21은 둘째 커밋 `43d547a` — 가짜 Gateway도 실제 모양으로). main `e669c03`을 합쳤다(`c4fce94`) |
 | 원본이 고쳤다 | UP-4 · UP-5 · UP-6 · UP-7 · UP-8 · UP-12(가 · 다 · 라 · 마) · UP-13 · UP-17 · UP-20 | maingui `19d2a70`(연동 층을 실제 Gateway에) · `2ced429`(G0~G6 연동) · `e669c03`(A-30 내려받기 — UP-20은 PR에서 뺐다) |
-| 남았다 | UP-9 · UP-11 · UP-12(바 · 사) · UP-14 · UP-16 | 아래 — maingui `e669c03`에서 다시 봤다(로컬 노드 `소유자` · 작업 실행 `commands.post` · `화면에만 반영` · 노드 칸 `로그인됨`이 그대로다) |
-| 새로 찾았다 — 아직 올리지 않았다 | UP-22 · UP-23 | MD-21에서 — 아래 |
+| 남았다 | UP-9 · UP-11 · UP-12(바 · 사) · UP-14 · UP-16 | 아래 — maingui `1aa6340`에서 다시 봤다(로컬 노드 `소유자` · 작업 실행 `commands.post` · `화면에만 반영` · 노드 칸 `로그인됨`이 그대로다) |
+| 새로 찾았다 — 아직 올리지 않았다 | UP-22 · UP-23 · UP-24 | MD-21 · MD-23에서 — 아래 |
 
 - **UP-9** — `service.js` `hbPerm`이 로컬 노드를 여전히 `소유자` · 모든 권한으로 둔다. 원본의 선택일 수 있다(권한 없는 호출은 게이트웨이가 거절한다)
 - **UP-11** — UI 명세 §2.9가 여전히 §2.13 뒤에 있다
@@ -175,6 +180,11 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
   모듈은 멈춘 전송을 `어긋남` 칸에 두고 이유 줄로 말한다(`멈췄다 · 31%에서 보내던 화면이 닫혔다 — …`). 멈춤 칩이 있으면 낫다
 - **UP-23** — 원본에는 끊긴 뒤 이어서가 없다. 원본의 중단(`keep_partial: true`)은 io.terra.file 0.2.0에서 늘 포기였다 — 0.2.1이 고쳤으니 원본 코드는 그대로 둬도 된다.
   모듈의 `markStalled` · `stalledPush` · `upload {resume}` · `download` + `src/store/parts.js`를 옮길 수 있다
+
+새로 찾은 것(MD-23 — SVI 흐름도를 진짜 스택에서 돌리며 · 아직 원본에 올리지 않았다):
+
+- **UP-24** — 목록을 받지 못한 이유가 2.6초 뒤 사라진다. 원본 `wire.js`의 목록 받기는 실패를 `hbSay`로 알리고 `hbSay`는 2.6초 뒤 글줄을 지운다 —
+  그 뒤엔 이유 없는 빈 목록 · 빈 흐름도만 남는다. leaf Gateway에 붙은 service 판의 SVI 자원 · 허가(Master op)가 그렇다. 모듈은 보고 있는 앱이면 이유를 남기고, 다시 받으면 지운다
 
 ### 3.1 찾은 것 — 그때 표
 
@@ -203,6 +213,7 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 | **UP-21** | 바탕화면 · 로컬 탐색 오류 글 | 실제 코드 `DESKTOP_OPEN_EXECUTABLE` · 503 두 가지 · `LOCAL_FS_*` | `reasonText` — 머리말 없이 | 낮음 |
 | **UP-22** | 전송 카드에 멈춤 상태가 없다 | 페이지를 닫은 올리기는 서버에 `transferring`으로 남는다 — 보내는 쪽이 없다(실측 `offset 1310720` 그대로) | `어긋남` 칸 + 이유 줄 · 이어서 · 중단 | 낮음 |
 | **UP-23** | 끊긴 뒤 이어서가 없다 | 다시 올리면 부분 파일 때문에 `FILE_TARGET_EXISTS` · 다시 받으면 처음부터 | `resume_id` · IndexedDB 조각 — 31%부터 이었다(실측) | 낮음 |
+| **UP-24** | 목록을 받지 못한 이유가 사라진다 | 앱 토큰의 SVI 자원 앱 — `쓸 수 없다 · 이 노드의 게이트웨이에 없다`가 2.6초 뒤 지워지고 빈 흐름도만 남았다(실측) | 보고 있는 앱이면 이유를 남긴다(`hbMsg.sticky`) · 다시 받으면 지운다 | 낮음 |
 
 ## 4. 사람이 정할 것 (Q)
 
@@ -252,4 +263,6 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 - io.terra.file 0.2.1 → MD-21: 중단이 부분을 남겨야 다시 올릴 때 잇는다 — 0.2.0은 invoke로 보낸 중단을 늘 포기로 들었다
 - MD-21 → UP-22 · UP-23: 멈춤 칸과 이어서를 원본에도
 - maingui `e669c03` → MD-22: 원본이 모듈 수정 폼을 모듈 설정으로 바꿨다 — 모듈은 디자인을 복사하고 연동 층(받기 · 저장)을 지었다. 저장은 `module.manage`★(Q-16)
+- maingui `1aa6340` → MD-23: 원본이 SVI 자원 앱을 흐름도로 바꿨다 — 모듈은 디자인을 복사하고 연동 층(흐름 · 흐름 이벤트)을 옮겼다. SVI는 Master op라 앱 토큰으로는 빈 흐름도(PF-1)
+- MD-23 → UP-24: 목록을 받지 못한 이유를 남기는 것을 원본에도
 - PF-15 → MD-14: 셸이 "앱 열기"를 받아야 모듈 GUI 창이 실제로 연다

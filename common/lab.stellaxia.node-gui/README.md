@@ -4,7 +4,7 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.7"
+version: "v0.8"
 last_updated: "2026-10-05"
 ---
 
@@ -13,7 +13,7 @@ last_updated: "2026-10-05"
 게임 GUI 형태의 Terra 노드 화면 — 시작 화면 · 육각 필드 맵 · 조타륜 · 노드 자원 · 연결(도로) · 오버헤드 패널 · 편집기 — 을
 노드의 **main GUI**로 내는 모듈이다. base Scene(`io.terra.scene.terra`)은 main이 하나면 그것을 곧장 띄운다.
 
-화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `e669c03`(2026-10-05 — service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영)를
+화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `1aa6340`(2026-10-05 — service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영 · SVI 흐름도)를
 바탕으로 한 **module 변형**이다(처음에는 `f24c3bc`에 맞췄다) — 같은 디자인 원본(`web/design/`) · 같은 생성 규칙이고, 갈림은 부트 프로필(`web/src/boot/module.js`)이다.
 처음에는 압축 파일로 받은 `terra-node-gui` 1.0으로 만들었고, 그 뒤 maingui 저장소(자원 추가 · 수정 · 삭제 · 상태 화면 · 모듈 GUI 창이 더 있다)로 다시 맞췄다.
 모듈이 더한 것은 다섯이다.
@@ -96,9 +96,9 @@ flowchart LR
 | 조타륜 앱 — I/O 장치 · 공유 폴더 · 파일 전송 · 서비스 터널 · WireGuard · 자원 선언 · 작업 · 모듈 | **실데이터와 실제 동작.** 작업은 Daemon 작업, 모듈 수명은 Daemon 경로(`node.control`). 장치 손 등록(카메라 주소) · 파일 올리기(↑ 올리기 → 조각 · SHA-256) · 받기(브라우저 저장) · 끊긴 뒤 이어서(같은 파일을 다시 올리면 서버가 받은 곳부터 · 다시 받으면 이 브라우저에 둔 조각부터 · 멈춘 전송의 카드) · 모듈 로그(상태 화면 출력 칸) |
 | 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버가 받는 본문으로 부른다 — 폴더(만들기 · 빈 파일 · 이름 바꾸기 · 지우기) · 장치(별명 · 승인 · 켜기 · 잊기 · 스캔) · 작업(실행 · 취소) · 전송(포기 · 중단해 둔 것의 치우기) · 모듈 설정(모듈이 선언한 칸 — 바뀐 키만 · 저장은 `module.manage`★). 서버에 길이 없으면 **항목을 지어 넣지 않고** 그렇다고 말한다 |
 | 상태 화면 · 모듈 GUI 창 | 원본 앱 목록의 그 항목 · 이 노드의 권한 / 설치된 GUI 앱(`/api/v1/gui/apps`). 다른 모듈의 앱은 이 창에 띄울 수 없다고 적는다(frame은 자기 모듈의 앱만) |
-| 조타륜 앱 — SVI 자원 · 허가 | Master operation — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` |
+| 조타륜 앱 — SVI 자원 · 허가 | Master operation — `쓸 수 없다 · 이 노드의 게이트웨이에 없다`(그 앱을 보는 동안 남는다). SVI 자원 앱 창은 흐름도(maingui A-28) — 빈 흐름도이고 예시 흐름 이벤트는 돌지 않는다 |
 | 폴더 보관함 | Terra 저장소 = 이 노드의 공유 폴더(`io.terra.file`). 폴더 탐색기 = 이 노드의 로컬 최상위 루트(`local-fs` — 닫힌 폴더는 🔒), 파일 · 폴더는 그 노드의 바탕화면에 연다(`desktop.open` — 그 컴퓨터에서 볼 때만). 메모는 LayoutStore(브라우저 + 사용자 문서) |
-| 네트워크 보드 | 로컬 WireGuard · 로컬 서비스 터널은 실데이터. 사설망 · 라우팅 · 조작 이력은 Master — "닿지 않음" |
+| 네트워크 보드 | 로컬 WireGuard · 로컬 서비스 터널은 실데이터. 사설망 · 진단 · 라우팅(경로 정책 · 세션 · 연결 그룹) · 조작 이력은 Master — "닿지 않음"(maingui A-20이 tree Gateway로 읽는 것도 Master op) |
 | 설정 보드 | 로컬 노드 135키(값 · 소유 · 반영 · 설치값 차이)와 저장, 계정(whoami), 로컬 자원. 클러스터 · 서버 탭은 Master — "닿지 않음" |
 | 다른 노드 | 노드 주소 호출(Terra B-1)로 그 노드의 Daemon — I/O 장치 · 모듈(로그 포함) · 작업 · 선언 · 터널 · WireGuard. 그 노드 카탈로그로 누르기 전에 잠근다(로컬 전용은 잠김). 공유 폴더 · 전송 · 올리기 · 받기는 원격 모듈 경로(`/api/nodes/{node_id}/modules/io.terra.file/…`) |
 | 다른 tree | 비어 있다 — 연결 목록을 둘 곳 · 가는 길이 없다 |
@@ -168,6 +168,19 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### maingui 1aa6340 따라가기 — SVI 흐름도 MD-23 (2026-10-05, 0.3.0 · Terra main `3195421`)
+
+같은 스택에 이 모듈을 다시 깔고 앱 전체 화면에서 SVI 자원 앱과 네트워크 화면을 열었다. 화면이 부른 operation을 모두 적어 견줬다 —
+자세히는 [`web/docs/api/real-data-layer.md`](web/docs/api/real-data-layer.md) §5.6.
+
+| 항목 | 진짜 스택에서 |
+| --- | --- |
+| SVI 자원 앱 | 흐름도(제공 · 자원 · 엔드포인트 · 쓰는 쪽) · `▦ 카드로` · 흐름 이벤트 칸 `열린 핸들이 없다` — 빈 흐름도. 머리 줄의 `쓸 수 없다 · 이 노드의 게이트웨이에 없다`가 10초 뒤에도 남았다(고치기 전에는 2.6초 뒤 지워졌다) |
+| 예시 · 부른 것 | 10초 동안 흐름 이벤트 0 · `svi`가 들어간 operation 0(카탈로그에 없는 Master op는 부르지 않는다) · Master 네트워크 읽기 0 |
+| 네트워크 화면 | 보드의 사설망 · 진단 · mesh 묶음이 `Master operation — 이 화면에서 닿지 않음` |
+| 흐름도의 진짜 모양 | Master 계약 모양의 가짜 서버로 — 엔드포인트 · 열린 핸들 · 바인딩 · 허가 · 흐름 이벤트 SSE(`sviflow.test.mjs`). 허가 · 바인딩 어댑터를 Master의 답 모양으로 고쳤다 |
+| 시험 | `npm test` 124 · `test:smoke`(SVI 자원 앱 — 잠김 · 빈 흐름도 · 카드 보기) · `validate` · `test:web` 통과 · 페이지 오류 0 |
 
 ### maingui e669c03 따라가기 — 모듈 설정 폼 MD-22 (2026-10-05, 0.3.0 · Terra main `3195421`)
 
@@ -318,7 +331,7 @@ Daemon만 가짜다.
 - `io.terra.scene.terra` (Terra 코어) — 이 main을 띄우는 base Scene
 - [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · I/O 장치(0.2.0 손 등록) 데이터의 출처
 - [`lab.stellaxia.scene.hello`](../lab.stellaxia.scene.hello/README.md) — 같은 tree 레지스트리 경로의 가장 작은 Scene 모듈
-- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `e669c03`과 같다
+- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `1aa6340`과 같다
 
 ## 관련 흐름
 
@@ -329,3 +342,4 @@ Daemon만 가짜다.
 - 자원 추가 · 수정 · 삭제 — 폼 저장 · 두 번째 누름 → `source.crud`(실제 본문) → 이 노드의 Gateway → 목록 다시 받기 — 서버에 길이 없으면 지어내지 않는다
 - 원본 따라가기 — maingui `design/` 복사 → `npm run gen`(패치를 못 찾으면 멈춤) → 시험 → `build:web`
 - 끊긴 뒤 이어서 — 올리기는 서버의 checkpoint(전송 목록 → `resume_id`), 받기는 이 브라우저의 조각(IndexedDB) → 서버의 SHA-256으로 끝에서 견준다
+- SVI 흐름도 — 자원 · 허가 · 열린 핸들 · 바인딩 → 흐름도, 고른 자원의 열린 핸들 → 흐름 이벤트 SSE. 앱 토큰으로는 Master에 닿지 않아 빈 흐름도 + 이유(PF-1)

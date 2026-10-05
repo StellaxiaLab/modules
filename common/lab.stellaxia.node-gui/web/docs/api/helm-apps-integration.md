@@ -7,7 +7,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.7.0"
+version: "0.8.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 based_on: "terra-gui-resource-inventory (자원 목록) · terra-gui-api-priority"
@@ -94,12 +94,21 @@ flowchart LR
 
 | | operation | 권한 |
 | --- | --- | --- |
-| 목록 | `terra.master.svi.resources.get` (T, `node_id` 필터) + 허가 `svi.grants.get` | `node.read` |
+| 목록 | `terra.master.svi.resources.get` (T, `node_id` 필터) + 허가 `svi.grants.get` + 열린 핸들 `svi.handles.get` + 바인딩 `svi.bindings.get` | `node.read` |
 | 열기 | `terra.master.svi.handles.post` (T, 작업) | 자원별 허가 `read` · io.* 는 잠금(백엔드 없음) |
 | 닫기 | `terra.master.svi.handles.by-handle-id.delete` | `node.read` |
-| 흐름 | `…handles.by-handle-id.stream.get` — Gateway invoke로 닿지 않는다 → 직접 WebSocket | |
+| 흐름 이벤트 | `…handles.by-handle-id.events.get` — invoke + `Accept: text/event-stream` · `event: status \| frame`(StreamMessage) | `node.read` |
+| 흐름(데이터) | `…handles.by-handle-id.stream.get` — Gateway invoke로 닿지 않는다 → 직접 WebSocket | |
+
+창은 **흐름도**다(maingui A-28 · 모듈 MD-23) — 제공 노드 → 자원 → 엔드포인트 → 쓰는 쪽(열린 핸들 · 바인딩 · 허가), 흐르는 핸들 · 바인딩은 선이 움직인다.
+머리 단추로 카드 보기와 바꾼다. 자원을 누르면 오른쪽에 자세히 · 동작 · 흐름 이벤트(`state.sviEv` — 고른 자원의 열린 핸들 SSE). 상태 화면에도 자원 하나의 흐름도.
+흐름도의 모양은 `ADAPT.svi` 의 `flow { eps, handles, binds, grants }` 다 — 늘 채운다(없으면 화면이 카메라에 `frames` · `snapshot` 엔드포인트를 지어낸다).
 
 카드: 이름(`display_name`) · `kind · endpoint · direction · interaction` · 배지(`status`) · 한 줄 "허가 · read · subscribe" / "🔒 허가 없음".
+
+> [!NOTE] 앱 토큰으로는 빈 흐름도
+> 이 앱의 op 는 모두 Master 의 것이라 이 모듈의 앱 토큰에는 보이지 않는다(PF-1). 흐름도는 비어 있고, 머리 줄에 `쓸 수 없다 · 이 노드의 게이트웨이에 없다` 가 남는다.
+> 디자인의 예시 흐름 이벤트(0.5초 박자)는 돌리지 않는다 — [[real-data-layer|실데이터 층]] §5.6.
 
 ### 2.2 자원 선언 (`decl`)
 
@@ -121,6 +130,8 @@ flowchart LR
 | 바인딩 끊기 | `svi.bindings.by-binding-id.delete` | `node.read` |
 
 만료된 허가는 지워지지 않고 조회에서 걸러진다 → "끝남" 점선 카드.
+답 모양 — 허가 `{items[{grant_id, subject{type, id}, resource_id, operations, expires_at?}]}`(기한이 없으면 `expires_at` 이 없다 → `기한 없음`),
+바인딩 `{items[{binding_id, source{resource_id, endpoint_id}, target{resource_id}, source_node_id, target_node_id, desired_state, observed_state}]}` — 상태는 `active` 아니면 `failed`(이유: 원하는 상태와 지금 상태).
 
 ### 2.4 I/O 장치 (`io`)
 
@@ -249,3 +260,10 @@ Master는 canceled · timed_out을 `failed`로 접는다 — 이유는 `result.s
 ## 관련 모듈
 
 - `src/api/operations.js` · `src/api/adapters.js` · `src/api/source.js` · `src/model/permissions.js` · `src/model/badges.js`
+- `src/api/wire.js`(목록 받기 · 동작 · SVI 흐름 이벤트) · `src/api/events.js`(SSE — 노드 이벤트 · 핸들 흐름 이벤트)
+
+## 관련 흐름
+
+- 앱 바 · 앱 전체 화면을 연다 → `wireHelm` 이 그 앱의 목록을 받는다(받지 못하면 그 이유를 남긴다) → 카드 · 흐름도
+- SVI 흐름도에서 자원을 고른다 → 열린 핸들의 흐름 이벤트 SSE → `state.sviEv` → 오른쪽 흐름 이벤트 칸([[real-data-layer|실데이터 층]] §5.6)
+- 폼 저장 · 두 번째 누름 → `crud` → 서버 → 목록 다시 받기([[real-data-layer|실데이터 층]] §2.4)

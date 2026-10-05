@@ -8,7 +8,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.6.1"
+version: "0.7.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -103,7 +103,7 @@ flowchart TB
 | 자원 선언 | `svi.declarations.get` — 요약 줄은 울타리(`envelope.process` · `max_declarations`) | `+ 선언` · `다시 선언`은 폼을 연다. 선언 · 철회는 `node.config`★ — 앱이 선언하지 않은 권한이라 잠기고, 그 op 들이 게이트웨이 카탈로그에도 없다(§5.1) |
 | 명령 · 작업 | `terra.daemon.tasks.get` (Master 작업 대신) | `+ 실행` → 폼에 명령 → `terra.daemon.commands.execute.post`(202 · `task_id`를 끝까지 쫓는다) · 취소(`tasks.by-task-id.cancel.post`) · 보기(`tasks.by-task-id.get`). 다시는 **없다** — Daemon 작업 목록은 명령 · 출력을 돌려주지 않는다 |
 | 모듈 | `modules.get` + 게이트웨이의 설치된 GUI 앱(`GET /api/v1/gui/apps`, 공개) — 앱이 있는 모듈은 `GUI 제공` · 주소(`route`). Scene 모듈은 프로세스가 없어 `멈춤` + "화면만 기여한다" | 시작 · 멈춤 · 재시작(`terra.daemon.modules.by-module-id.*`, `node.control`) · 로그 → **상태 화면의 출력 칸**(이 노드 `terra.gateway.modules.by-id.logs.get { logs }` · 다른 노드 `terra.daemon.modules.by-module-id.logs.get { lines: [{at, stream, text}] }` — 두 흐름이 섞이면 stderr 줄에 `! `. Go 모듈은 다 stderr 라 표시하지 않는다) · GUI 창(§2.5) |
-| SVI 자원 · 허가 | Master — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` | — |
+| SVI 자원 · 허가 | Master — `쓸 수 없다 · 이 노드의 게이트웨이에 없다`. 그 앱을 보는 동안 이 글이 남는다(원본 글줄은 2.6초 뒤 지워진다 — UP-24). SVI 자원 앱 창은 **흐름도**(maingui A-28 — 카드 보기와 바꾼다) — 앱 토큰으로는 빈 흐름도 + 이 글이고, 예시 흐름 이벤트는 돌지 않는다 | Master 에 닿으면(PF-1): 흐름도 = 자원 → 엔드포인트 → 열린 핸들 · 바인딩 · 허가(`svi.handles.get` · `svi.bindings.get` · `svi.grants.get`), 고른 자원의 핸들 흐름 이벤트(SSE `svi.handles.by-handle-id.events.get` → `state.sviEv`) |
 
 이 노드의 권한은 토큰이 실제로 쥔 것(사용자 ∩ 앱)이다. 모듈 수명과 작업 취소는 Daemon 경로라 `node.control` 이 문이다 — 화면의
 `모듈 관리★` · `취소` 자물쇠를 `node.control` 로 푼다. 다른 노드는 노드 주소 호출(§2.7)로 그 Daemon 에 닿을 때 같은 권한(`관리자 · 중계`)이고,
@@ -299,7 +299,7 @@ flowchart TD
 
 | 비어 있는 것 | 이유 | 채우려면 |
 | --- | --- | --- |
-| Master 데이터(SVI · 허가 · mesh · 라우트 · 클러스터 · 다른 노드의 작업) | 앱 스코프 토큰은 Master 에 닿지 않는다 — 설계상 위임 경계 | 세션 중계를 Master operation 전체로 넓히는 ADR(모듈 README Q-2) |
+| Master 데이터(SVI · 허가 · SVI 흐름도 · 흐름 이벤트 · mesh · 사설망 · 진단 · 라우트 · 경로 정책 · 세션 · 연결 그룹 · 클러스터 · 다른 노드의 작업) | 앱 스코프 토큰은 Master 에 닿지 않는다 — 설계상 위임 경계. maingui 가 tree Gateway 로 읽게 된 것(A-20 네트워크 읽기 · A-28 흐름도)도 Master op 다 | 세션 중계를 Master operation 전체로 넓히는 ADR(모듈 README Q-2) |
 | 다른 노드의 명령 실행 | Daemon 이 명령 실행을 원격으로 열지 않는다 · Master `commands.post` 는 PF-1 | PF-1 |
 | tree 계층(손자 노드) | `agent/nodes` 에 부모 관계가 없다 | `terra.master.nodes.get` (위의 ADR) |
 | 다른 tree 목록 | 사용자가 등록한 연결 목록을 둘 곳이 없다 | Q-3 — `kind: service` 로 올려 사람별 저장 |
@@ -385,6 +385,8 @@ flowchart TD
 | `desktop.open.post` 의 실행 파일 거절은 409 `DESKTOP_OPEN_EXECUTABLE`, 바탕화면 세션이 없으면 503 `DESKTOP_SESSION_UNAVAILABLE`, 여는 프로그램이 없으면 503 `DESKTOP_LAUNCHER_UNAVAILABLE` | 코드마다 화면 글(머리말 없이) |
 | 손 등록(`io.devices.post`)은 주소로 장치 id 를 짓는다(`camera-manual-…` — 같은 주소면 같은 id) · 등록하면 `terra.io.devices.changed` 신호가 온다 | 신호로 I/O 앱 목록을 다시 받는다 |
 | (Terra main `3195421`) 모듈 설정 op 셋은 Daemon 의 것이다 — 읽기 둘은 `node.read`, 쓰기(`config.patch`)는 `module.manage`★. `module.manage` 는 "어느 코드가 그 노드에서 도는지 바꾸는" 권한이라 **기본 권한 밖**이다 — 관리자에게도 없어 카탈로그가 `config.patch` 를 거르고, 관리자 토큰으로 바로 불러도 403 이다 | 앱 권한에는 이미 있다. 사용자에게 따로 주어야 저장이 열린다(Q-16). 없으면 폼은 열려 값을 보이고, 저장은 `🔒 저장 — module.manage★ 권한 없음(…) · 값은 볼 수만 있다`로 막는다 |
+| (Terra main `3195421`) SVI 자원 · 허가 · 핸들 · 바인딩 · 흐름 이벤트는 모두 Master op(`terra.master.svi.*`)다 — Daemon 에는 선언(`svi.declarations.*`)뿐이다. 허가 목록은 `{items[{grant_id, subject{type, id}, resource_id, operations, created_at, expires_at?}]}`(기한이 없으면 `expires_at` 이 없다 — `routes_svi_grants.go` `sviGrantView`), 바인딩 목록은 `{items[{binding_id, source{resource_id, endpoint_id}, target{…}, source_node_id, target_node_id, desired_state, observed_state, reason, qos_profile}]}`(`BindingView`) | 허가 · 바인딩 어댑터를 그 모양으로 고쳤다 — 예전 키(`grants` · `subject_id` · `source_resource_id`)는 없는 키였다(MD-23). 앱 토큰으로는 빈 흐름도 + 이유 |
+| maingui A-20 의 네트워크 읽기 다섯(`network.networks.get` · `network.probes.get` · `route.policies.get` · `route.sessions.get` · `connection-groups.get`)도 Master op 다 — tree Gateway 가 중계한다 | 네트워크 보드의 Master 묶음은 그대로 `Master operation — 이 화면에서 닿지 않음` |
 | 설정 스키마는 Daemon 이 키를 정렬해 준다(Go map) — 폼 칸은 키 이름 순서다. 기본값은 값에 채우지 않는다(`values` 는 저장된 것만) | 기본값은 자리 표시자(`기본 50`)로 보인다 |
 | io.terra.file 0.2.0 의 중단(`transfers.abort` · `pulls.abort`)은 `keep_partial` · `reason` 을 **query 에서만** 읽었다. 게이트웨이 invoke 는 POST 입력을 본문으로 보내므로(`BuildOperationTarget`) 앱이 보낸 `keep_partial: true` 가 들리지 않아 늘 포기였다 — 실측 `kept_partial: false` · 기록 404 · 부분 파일 없음 | io.terra.file 0.2.1이 본문도 읽는다(본문이 이긴다 · query 도 그대로) — 같은 실측이 `kept_partial: true` · 기록 200 · 부분 파일 262144 B |
 | 받기 전용 문(`pulls.complete` · `pulls.abort`)은 기한이 지난 받기를 닫지 못했다(`TRANSFER_EXPIRED`) — 받던 화면이 닫히면 그 받기가 목록에 계속 남는다 | 0.2.1 — 방향만 보고 닫는다 |
@@ -460,6 +462,22 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | `module.manage` 없음 | (주기 전) 저장이 `쓸 수 없다 · 이 노드의 게이트웨이에 없다` — 카탈로그가 걸렀다. 관리자 토큰의 직접 호출도 403 |
 | 콘솔 | 페이지 오류 0 |
 
+### 5.6 maingui 1aa6340 따라가기 — SVI 흐름도(MD-23) — 2026-10-05
+
+같은 스택(Terra main `3195421`)에 이 모듈을 다시 깔고, 앱 전체 화면에서 SVI 자원 앱과 네트워크 화면을 열었다(`e2e-md23`). 화면이 부른 operation 을 모두 적어 견줬다.
+
+| 단계 | 관찰 |
+| --- | --- |
+| SVI 자원 앱 = 흐름도 | 열 머리(제공 · 자원 · 엔드포인트 · 쓰는 쪽 — 핸들 · 바인딩 · 허가) · 빈 흐름도 · `▦ 카드로` · 흐름 이벤트 칸 `열린 핸들이 없다 — 자원을 열면 흐름이 여기에 보인다` |
+| 이유 | 머리 줄에 `쓸 수 없다 · 이 노드의 게이트웨이에 없다` — 4초 · 10초 뒤에도 남았다(고치기 전에는 2.6초 뒤 지워져 이유 없는 빈 흐름도만 남았다 — UP-24) |
+| 예시 흐름 이벤트 | 10초 동안 `state.sviEv` 가 비어 있다 — 디자인의 0.5초 박자(`sviDemoTick`)가 돌지 않는다 |
+| 부른 것 | `svi` 가 들어간 operation 0 — 카탈로그에 없는 Master op 는 부르지 않고, 흐름 이벤트 SSE 도 열지 않았다 |
+| 카드 보기 | `🕸️ 흐름도로` · 같은 이유 글 · 빈 목록 |
+| 네트워크 화면 | 보드의 사설망 · 진단 · mesh 묶음이 `Master operation — 이 화면에서 닿지 않음`(셋) · Master 네트워크 읽기 0 |
+| 예시 · 콘솔 | 예시 표식 없음 · 페이지 오류 0 |
+
+흐름도가 진짜 데이터로 그려지는 것(엔드포인트 · 열린 핸들 · 바인딩 · 허가 · 흐름 이벤트 SSE)은 Master 계약 모양의 가짜 서버로 시험한다(`tests/sviflow.test.mjs`) — 앱 토큰은 Master 에 닿지 않는다(PF-1).
+
 ## 6. 코드 지도
 
 | 파일 | 내용 |
@@ -480,11 +498,11 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | `src/data/live-host.js` | `liveHub`(노드 화면 → 보드) · `connectLive`(보드) · `absenceText` |
 | `src/api/source.js` | `appFor`(Daemon 쪽이면 `local` 대응) · `daemonView` · `pathInput`(op 이름의 `by-…` 자리만) · 다른 노드는 노드 주소 호출(`idOf`) · `lockFor`(누르기 전 자물쇠 — 그 노드 카탈로그) · 폴더 단계 읽기 · `guard` · `crud` · `upload`(이어서 — `resume_id`) · `stalledPush` · `download`(이어서 — `parts`) · `markStalled`(멈춘 전송) · `modConfig`(모듈 설정 스키마 · 값) · `guiApps` |
 | `src/api/client.js` | `TerraClient` — `invoke` · `invokeAt`(노드 주소 호출) · `invokeModuleAt`(원격 모듈 경로) · `binding` · `nodeCatalog`(60초) · `canRelay` · `request` · `get` · `fillRoute` · `toResult` · `resultText` · `reasonText` |
-| `src/api/events.js` | 실시간 이벤트(B-5) — `openEvents`(fetch 스트림 · 이어 받기 · 끄기) · `sseFrames` · `frameEvent` · `SIGNAL_APPS` |
+| `src/api/events.js` | 실시간 이벤트(B-5) — `openEvents`(fetch 스트림 · 이어 받기 · 끄기 · 다른 SSE op `op` · `input` · `raw`) · `sseFrames` · `frameEvent`(`raw` — SVI 핸들 StreamMessage 는 벗기지 않는다) · `SIGNAL_APPS` |
 | `src/api/sha256.js` | SHA-256(조각씩) · base64 — 올리기 · 받기 검사(maingui 와 같은 코드) |
 | `src/api/operations.js` | `HELM_APPS`(목록 · 동작 · `form` · `upload` · `download` · `remote`) · `HELM_CRUD`(실제 본문 · `localOnly` · 모듈 수정 = 설정) · `CRUD_TEXT`(API 줄) · `GUI_APPS` · `fileBinding`(io.terra.file 경로 대응표) · `manualAdapter` · `scanLine` · `logLines` · `cfgForm` · `cfgPatch` · `cfgErrorKeys`(모듈 설정) |
-| `src/api/wire.js` | `wireHelm` — 목록 · 동작 · 폼 저장 · 두 번째 누름 · 값을 적어야 하는 동작의 폼 열기 · 올리기(파일 고르기) · 받기(`saveBlob`) · 멈춘 전송의 이어서 · 모듈 설정 폼(열기 전에 받기 · 다시 받아도 칸 유지 · 거절한 키) · 출력 칸(`outText`) · 폴링(이벤트가 열려 있으면 느리게) · `_hbRefresh` · `formValues`. `wireFrame` — 토큰 → 세계 · 조타륜(받기 조각 보관 `openParts`) · 이벤트 |
-| `src/api/adapters.js` | 상태를 화면 낱말로(`modState` · `jobState` · `xferState` · `tunnelState` …) — 표에 없는 값이 오면 렌더 전체가 멈추기 때문. `withGui`(모듈 ← GUI 앱) |
+| `src/api/wire.js` | `wireHelm` — 목록 · 동작 · 폼 저장 · 두 번째 누름 · 값을 적어야 하는 동작의 폼 열기 · 올리기(파일 고르기) · 받기(`saveBlob`) · 멈춘 전송의 이어서 · 모듈 설정 폼(열기 전에 받기 · 다시 받아도 칸 유지 · 거절한 키) · SVI 흐름 이벤트(고른 자원의 열린 핸들 SSE → `state.sviEv`) · 보고 있는 앱의 목록 실패 이유 남기기(`hbMsg.sticky`) · 출력 칸(`outText`) · 폴링(이벤트가 열려 있으면 느리게) · `_hbRefresh` · `formValues`. `wireFrame` — 토큰 → 세계 · 조타륜(받기 조각 보관 `openParts`) · 이벤트 |
+| `src/api/adapters.js` | 상태를 화면 낱말로(`modState` · `jobState` · `xferState` · `tunnelState` …) — 표에 없는 값이 오면 렌더 전체가 멈추기 때문. `withGui`(모듈 ← GUI 앱). `ADAPT.svi` 의 `flow`(흐름도 — 늘 채운다) · `handle`, `ADAPT.grant`(Master 의 답 모양 — `items` · `subject` · `source{resource_id}`) |
 
 ## 7. 시험
 
@@ -497,9 +515,10 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | `tests/node-ops.test.mjs` | SHA-256 · base64 · 올리기(만들기 → 조각 → 409 면 서버 offset → 완료 · 다섯 번에서 멈춤) · 받기(조각 · 전체 검사 · 어긋나면 `pulls.abort`) · 손 등록(scheme → 어댑터 · 비우면 스캔 · 모르는 scheme) · 출력 칸 글 · 로컬 탐색(루트 · 항목 · 🔒 · 한 번만 읽기 · 실패하면 다시) · 바탕화면에서 열기(그 컴퓨터에서만 · `shared:<이름>` · 실행 파일 409) · Master 에 닿지 않는 노드 관리 |
 | `tests/resume.test.mjs` | 끊긴 뒤 이어서(MD-21) — 멈춘 전송 가리기(기한 · 기록 60초 · 지켜본 15초 · 이 화면이 하는 것 · 노드마다) · 올리기(`FILE_TARGET_EXISTS` → 목록 → `resume_id` · 다른 화면이 보내는 중 · 다른 파일 · 잠깐 지켜본 뒤 잇기 · 카드의 이어서 · 기한이 지나면 다시 열기 · 중단되면 멈추기) · 받기(둔 조각부터 · 앞선 받기 닫기 · 바뀐 파일은 처음부터 · 전체가 어긋나면 버리기 · 기한) · 카드의 이어서 · 중단 · 치우기 |
 | `tests/modcfg.test.mjs` | 모듈 설정(MD-22) — `cfgForm`(칸 다섯 가지 · 저장된 값 · 기본값 · 비밀은 설정됐는지만) · `cfgPatch`(바뀐 키만 · 비우면 unset · 비밀은 적었을 때만 · 수 · JSON 모양 · base_revision) · `modConfig`(스키마 → 값 · 다른 노드는 노드 주소 호출 · 선언 없음) · 화면과 함께 폼 열기 → 거절한 키 · 겹침 · 저장 · 다시 받아도 칸 유지 · 선언 없는 모듈 · 끊기 · I/O 고칠 때 주소 칸 빼기 |
+| `tests/sviflow.test.mjs` | SVI 흐름도(MD-23) — `ADAPT.svi` 의 `flow`(엔드포인트 전부 · 열린 핸들 · 이 자원의 바인딩 · 허가 · 상대 노드 이름) · `ADAPT.grant`(Master 의 답 모양) · `frameEvent` `raw` · `source.list(svi)` 가 허가 · 핸들 · 바인딩을 함께 받기 · 흐름 이벤트 SSE → `state.sviEv`(끝나면 목록 다시 · 끊으면 지움) · 카탈로그에 없으면 열지 않기 · `RealNode` 는 예시 흐름 이벤트를 만들지 않기 · 보고 있는 앱의 목록 실패 이유를 남기기. 여덟 모두 고치기 전 코드로는 실패한다 |
 | `tests/crud.test.mjs` | 앱마다 추가 · 수정 · 삭제의 **본문이 실제 서버의 입력과 같은지**(폴더 · 장치 · 작업 · 터널 · 피어 · 허가 · 선언 · 전송), Master POST 에 `node_id` 를 싣지 않기, 길이 없는 것은 `null`, 카탈로그에 없는 op 는 부르지 않기, GUI 앱 붙이기. 화면과 함께: 폼 저장이 지어내지 않기 · 삭제의 두 번 누름 · 맵 자리 걷기 · 취소는 남기기 · 이름 · 칸 id 따라가기 · 폼 여는 동작 · 끊으면 되돌리기 · API 줄 ⚠ · 자리 표시자에 예시 없음 · 모듈 GUI 창 · 상태 화면 로그인 줄 |
 | `tests/api.test.mjs` | 봉투 벗기기 · 위임 자격의 Master 401 · `<노드>` 자리 표시자 · **노드 주소 호출**(그 노드 카탈로그 60초 · 연 것만 · `allowed: false` · 길이 없는 게이트웨이 · `no-node-id` · Master 길 오류 → 화면 글 · 모듈 로그 `remote`) · **원격 모듈 경로**(`fillRoute` · 다른 노드 폴더 항목 · 올리기 조각 PUT · 경로 자리는 본문에서 뺀다 · 노드 주소 호출로 부르지 않는다) · frame 판별 · 보드 페이지 |
-| `tests/smoke.mjs` | 페이지가 오류 없이 뜨고 예시가 없다 · 시작 화면 → 노드 화면 · 조타륜 · 전체 화면 · 메모 · 오버헤드 패널 접기 · 상태 화면(로그인 전) · 도로 편집기 보드 · 창 크기 · 받기 조각 보관(진짜 IndexedDB) |
+| `tests/smoke.mjs` | 페이지가 오류 없이 뜨고 예시가 없다 · 시작 화면 → 노드 화면 · 조타륜 · 전체 화면 · SVI 자원 앱(로그인 전 잠김 · 빈 흐름도 · 카드 보기 — 예시 흐름 이벤트 없음) · 메모 · 오버헤드 패널 접기 · 상태 화면(로그인 전) · 도로 편집기 보드 · 창 크기 · 받기 조각 보관(진짜 IndexedDB) |
 
 ```bash
 # Linux — web/ 에서. Windows(PowerShell) · macOS 도 같은 명령이다
@@ -520,7 +539,7 @@ npm test
 - [[node-screen-data-model|노드 화면 데이터 모델]] — §2.8 예시로만 존재하는 것
 - [[testing|시험]]
 - [[module-profile|모듈 프로필]] — 시작 화면 · LayoutStore · 생성 때 바꾸는 것
-- [[implementation-backlog|구현해야 할 것]] — MD-11 · MD-12 · MD-15~MD-22(끝냄) · 남은 PF · UP
+- [[implementation-backlog|구현해야 할 것]] — MD-11 · MD-12 · MD-15~MD-23(끝냄) · 남은 PF · UP
 
 ## 관련 모듈
 
@@ -535,3 +554,4 @@ npm test
 - §2.8 그림 — LayoutStore ↔ 사용자 문서(새 쪽이 이긴다 · 409)
 - §2.4 그림 — 폼 저장 · 두 번째 누름 → `crud` → 서버 → 목록 다시 받기
 - §2.9 그림 — 올리기 · 받기 → 끊김 → 이어서(서버 checkpoint · 이 브라우저의 조각)
+- SVI 자원 앱 흐름도 → 고른 자원의 열린 핸들 → 흐름 이벤트 SSE → `state.sviEv` — 앱 토큰으로는 빈 흐름도 + 이유(§5.6 · PF-1)

@@ -8,7 +8,7 @@ doc_type: "api-reference"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.9.0"
+version: "0.10.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 source: "src/screens/node.js · src/api/* · src/data/* · src/model/*"
@@ -266,7 +266,7 @@ const remote = await framed.invoke('terra.daemon.io.devices.get', {}, { node: 'n
 | `nodeCatalog(nodeId)` · `nodeCatalogNow(nodeId)` · `canRelay()` | 그 노드가 클러스터에 연 operation(60초 캐시 · 받으면 `onNodeCatalog`) · 받아 둔 것 · 노드 주소 호출 길이 있나 |
 | `invokeModuleAt(nodeId, id, input?, fallback?)` · `binding(id)` | 다른 노드의 **모듈** op — 원격 모듈 경로 `/api/nodes/{node_id}/modules/…`(카탈로그 `bindings` → `fillRoute`) · 그 op 의 `{ method, path }` |
 | `get(path)` · `request(method, path, body?)` | 게이트웨이 자신의 **경로**로 — `/api/v1/agent/whoami`(invoke 로 부르면 호출자가 중계에서 빠져 `anonymous`가 온다 — 실측 · Terra#118) · `/api/v1/agent/nodes` · `/api/v1/me/documents/…` |
-| `openEvents(client, onEvent, opts)` (`events.js`) | leaf `terra.daemon.events.get` SSE를 **fetch 스트림**으로 읽는다(`Accept: text/event-stream`) — `EventSource`는 Authorization을 붙이지 못한다. 끊기면 1→2→4…30초 뒤 `last_event_id`로 이어 받고, 길이 없으면 끈다. 끄는 함수를 돌려준다 |
+| `openEvents(client, onEvent, opts)` (`events.js`) | leaf `terra.daemon.events.get` SSE를 **fetch 스트림**으로 읽는다(`Accept: text/event-stream`) — `EventSource`는 Authorization을 붙이지 못한다. 끊기면 1→2→4…30초 뒤 `last_event_id`로 이어 받고, 길이 없으면 끈다. 끄는 함수를 돌려준다. `opts.op` · `opts.input`으로 다른 SSE op(SVI 핸들 흐름 이벤트 `terra.master.svi.handles.by-handle-id.events.get {handle_id}`)도 연다 — `opts.raw`면 `data`를 벗기지 않는다(StreamMessage) |
 
 `Result.kind`: `ok` · `accepted`(작업 번호) · `needs-confirm` · `unauthenticated` · `forbidden` · `unsupported`(501) · `down`(503) · `unreachable` · `unavailable` · `error`. `unavailable`은 `reason`이 가른다 — `not-in-catalog` · `remote-node` · `no-node-id` · `not-remote` · `master-delegation` · `no-operation`. 화면 처리는 [[node-screen-api-integration|연동 가이드]] §2.3.
 
@@ -325,7 +325,7 @@ HELM_APPS.io = {
 | 이름 | 하는 일 |
 | --- | --- |
 | `MockSource(screen)` | 화면의 `hbSeed` 그대로 (실데이터 층에서는 빈 목록) |
-| `LiveSource(client, { localNode, localId, idOf, parts })` | `list(node, app, { path })` · `act(node, app, id, op, item, { path })` · `crud(node, app, mode, vals, item, { path, nodeIdOf })` · `lockFor(app, op, node)`(누르기 전 자물쇠) · `upload(node, file, dir, onProgress, { resume })` · `download(node, id, onProgress, { old })`. 끊긴 뒤 이어서(MD-21): 올리기는 같은 자리 · 같은 파일의 멈춘 전송을 `resume_id`로 다시 열고(`stalledPush`), 받기는 `parts`(받기 조각 보관 — `src/store/parts.js`의 `openParts()`)에 둔 조각부터 받는다. 전송 앱 목록은 `markStalled`가 멈춘 전송을 `어긋남` 칸에 둔다. `modConfig(node, id)` — 모듈 설정 스키마 · 값 → 폼 모양(`cfgForm`) · 설정을 선언하지 않은 모듈이면 `cfg: null`. L · M op을 다른 노드에 부르면 노드 주소 호출(`idOf` — 관계도의 node_id, 모르면 `no-node-id`). T op은 읽기 · 지우기(GET · DELETE)만 `node_id`(진짜 id)를 query로 싣는다 — Master의 본문 해석기는 모르는 키를 거절한다. 폴더 앱은 경로 여럿(보고 있는 곳 + 설치한 칸들의 위 칸)까지 단계마다 항목을 읽는다(겹치는 단계는 한 번). 모듈 앱은 `/api/v1/gui/apps`로 GUI 표시를 붙인다 |
+| `LiveSource(client, { localNode, localId, idOf, nameOf, parts })` | `list(node, app, { path })` · `act(node, app, id, op, item, { path })` · `crud(node, app, mode, vals, item, { path, nodeIdOf })` · `lockFor(app, op, node)`(누르기 전 자물쇠) · `upload(node, file, dir, onProgress, { resume })` · `download(node, id, onProgress, { old })`. 끊긴 뒤 이어서(MD-21): 올리기는 같은 자리 · 같은 파일의 멈춘 전송을 `resume_id`로 다시 열고(`stalledPush`), 받기는 `parts`(받기 조각 보관 — `src/store/parts.js`의 `openParts()`)에 둔 조각부터 받는다. 전송 앱 목록은 `markStalled`가 멈춘 전송을 `어긋남` 칸에 둔다. `modConfig(node, id)` — 모듈 설정 스키마 · 값 → 폼 모양(`cfgForm`) · 설정을 선언하지 않은 모듈이면 `cfg: null`. L · M op을 다른 노드에 부르면 노드 주소 호출(`idOf` — 관계도의 node_id, 모르면 `no-node-id`). T op은 읽기 · 지우기(GET · DELETE)만 `node_id`(진짜 id)를 query로 싣는다 — Master의 본문 해석기는 모르는 키를 거절한다. 폴더 앱은 경로 여럿(보고 있는 곳 + 설치한 칸들의 위 칸)까지 단계마다 항목을 읽는다(겹치는 단계는 한 번). 모듈 앱은 `/api/v1/gui/apps`로 GUI 표시를 붙인다. SVI 자원 앱은 허가 · 열린 핸들 · 바인딩을 함께 받아 흐름도(`flow`)를 채운다 — 상대 노드는 `nameOf`(node_id → 화면 이름)로 |
 | `appFor(app, local)` · `pathInput(op, id, item)` | Daemon 쪽이면(이 노드 · 노드 주소 호출로 닿는 노드 — `source.daemonView`) `local` 대응으로 · op 이름의 `by-…` 자리만 입력으로 |
 | `fillNode(input, node)` | 대응표 `input`의 `'<노드>'` 자리를 실제 노드 이름으로 채운다 — 자리 표시자가 `node_id`를 덮어쓰지 않게 |
 | `wireHelm(screen, source, { pollMs, live })` | seam 바꿔 끼우기(`hbSeed` · `hbAct` · `hbFormSave` · `hbDel` · `hbOpLock`) · 올리기(파일 고르기) · 받기(`saveBlob`) · 멈춘 전송의 이어서 · 모듈 로그 · 작업 기록 → 출력 칸 · 실시간 신호(`_hbRefresh` — 받아 둔 목록만, `live()`면 폴링 여섯 배 느리게) · 앱/노드(폴더는 경로까지)가 바뀌면 받기 · 열려 있는 동안 `pollSec`(기본 10초) 폴링 · **맵에 설치한 노드 자원(`state.rsrc`) · 상태 화면이 보는 자원의 앱도 닫혀 있어도 같은 간격으로** 받기 · 볼 권한이 없으면 부르지 않기. **되돌리는 함수**를 돌려준다(바꿔 낀 seam을 원래대로, 받은 목록 · 폼은 비운다) |
