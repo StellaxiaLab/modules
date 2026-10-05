@@ -6,9 +6,9 @@
     "mirrorPath": "docs/contracts/manifest/schemas/manifest-v2.schema.json",
     "owner": "terra-module-runtime",
     "authority": "Go 검증기가 런타임 권위다. 이 스키마는 구조를 고정하고, 스키마가 표현하지 못하는 존재 규칙(모든 모듈은 entrypoint 또는 구현을 지목하는 contribution 을 선언한다)은 Go 쪽이 소유한다.",
-    "vendoredFromCommit": "30b53e05059e7d9b3c303ed97df6f36698cc55ec",
-    "schemaLastChangedIn": "392236ddfe2ddcdba063eafef69e5612e4994c38",
-    "sha256": "cb65f5fa7e1a090ecccedce270235ba183d62b1ed146696361720184e58c1a24",
-    "vendoredAt": "2026-09-21"
+    "vendoredFromCommit": "a421141a4c614855bedd2fc347bd9c8687df8c14",
+    "schemaLastChangedIn": "15ceae1f96fef7bbe892ce16a146190ffa6f7378",
+    "sha256": "600c243bc1e37b583cb6a6635b19b398e72030532b76627948fcedf1820a24e3",
+    "vendoredAt": "2026-10-05"
   }
 }
