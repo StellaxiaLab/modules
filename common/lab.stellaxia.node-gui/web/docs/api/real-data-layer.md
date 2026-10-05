@@ -102,7 +102,7 @@ flowchart TB
 | WireGuard 피어 | `wireguard.status.get` 이 꺼져 있으면 부르지 않는다, 켜져 있으면 `wireguard.peers.get` | 동기화. 회수는 Master — 본문은 두 끝(`source_node_id` · `target_node_id`) |
 | 자원 선언 | `svi.declarations.get` — 요약 줄은 울타리(`envelope.process` · `max_declarations`) | `+ 선언` · `다시 선언`은 폼을 연다. 선언 · 철회는 `node.config`★ — 앱이 선언하지 않은 권한이라 잠기고, 그 op 들이 게이트웨이 카탈로그에도 없다(§5.1) |
 | 명령 · 작업 | `terra.daemon.tasks.get` (Master 작업 대신) | `+ 실행` → 폼에 명령 → `terra.daemon.commands.execute.post`(202 · `task_id`를 끝까지 쫓는다) · 취소(`tasks.by-task-id.cancel.post`) · 보기(`tasks.by-task-id.get`). 다시는 **없다** — Daemon 작업 목록은 명령 · 출력을 돌려주지 않는다 |
-| 모듈 | `modules.get` + 게이트웨이의 설치된 GUI 앱(`GET /api/v1/gui/apps`, 공개) — 앱이 있는 모듈은 `GUI 제공` · 주소(`route`). Scene 모듈은 프로세스가 없어 `멈춤` + "화면만 기여한다" | 시작 · 멈춤 · 재시작(`terra.daemon.modules.by-module-id.*`, `node.control`) · 로그 → **상태 화면의 출력 칸**(이 노드 `terra.gateway.modules.by-id.logs.get { logs }` · 다른 노드 `terra.daemon.modules.by-module-id.logs.get { lines: [{at, stream, text}] }` — stderr 줄은 `! `) · GUI 창(§2.5) |
+| 모듈 | `modules.get` + 게이트웨이의 설치된 GUI 앱(`GET /api/v1/gui/apps`, 공개) — 앱이 있는 모듈은 `GUI 제공` · 주소(`route`). Scene 모듈은 프로세스가 없어 `멈춤` + "화면만 기여한다" | 시작 · 멈춤 · 재시작(`terra.daemon.modules.by-module-id.*`, `node.control`) · 로그 → **상태 화면의 출력 칸**(이 노드 `terra.gateway.modules.by-id.logs.get { logs }` · 다른 노드 `terra.daemon.modules.by-module-id.logs.get { lines: [{at, stream, text}] }` — 두 흐름이 섞이면 stderr 줄에 `! `. Go 모듈은 다 stderr 라 표시하지 않는다) · GUI 창(§2.5) |
 | SVI 자원 · 허가 | Master — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` | — |
 
 이 노드의 권한은 토큰이 실제로 쥔 것(사용자 ∩ 앱)이다. 모듈 수명과 작업 취소는 Daemon 경로라 `node.control` 이 문이다 — 화면의

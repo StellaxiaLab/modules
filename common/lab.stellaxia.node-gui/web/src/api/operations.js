@@ -379,10 +379,12 @@ export function logLine(d) {
   return (mod ? mod + ' · ' : '') + (lines.length ? lines[lines.length - 1].slice(0, 160) : '최근 로그 없음');
 }
 
-/** 로그 줄 — 게이트웨이 { logs: [글] } · Daemon { lines: [{ at, stream, text }] } (stderr 줄은 앞에 '! ') */
+/** 로그 줄 — 게이트웨이 { module, logs: [글] } · Daemon { module_id, lines: [{ at, stream, text }] }.
+ *  Go 모듈은 로그를 다 stderr 로 낸다 — 두 흐름이 섞였을 때만 stderr 줄 앞에 '! ' */
 export function logLines(d) {
-  const all = d && (Array.isArray(d.logs) ? d.logs : Array.isArray(d.lines) ? d.lines : null);
-  return (all || []).map((l) => (l && typeof l === 'object' ? (l.stream === 'stderr' ? '! ' : '') + String(l.text == null ? '' : l.text) : String(l)));
+  const all = (d && (Array.isArray(d.logs) ? d.logs : Array.isArray(d.lines) ? d.lines : null)) || [];
+  const mixed = new Set(all.filter((l) => l && typeof l === 'object').map((l) => l.stream)).size > 1;
+  return all.map((l) => (l && typeof l === 'object' ? (mixed && l.stream === 'stderr' ? '! ' : '') + String(l.text == null ? '' : l.text) : String(l)));
 }
 
 /** 모듈 목록 → 상태 확인 글줄 */

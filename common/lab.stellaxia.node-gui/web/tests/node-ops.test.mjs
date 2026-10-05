@@ -132,7 +132,9 @@ test('장치 손 등록 — 주소의 scheme 이 어댑터를 고른다. 비우�
 
 test('모듈 로그 · 작업 출력 — 출력 칸의 글', () => {
   assert.deepEqual(logLines({ logs: ['a', 'b'] }), ['a', 'b']);
-  assert.deepEqual(logLines({ lines: [{ at: 't', stream: 'stdout', text: 'up' }, { at: 't', stream: 'stderr', text: 'oops' }] }), ['up', '! oops']);
+  assert.deepEqual(logLines({ lines: [{ at: 't', stream: 'stdout', text: 'up' }, { at: 't', stream: 'stderr', text: 'oops' }] }), ['up', '! oops'], '두 흐름이 섞이면 stderr 에 표시');
+  assert.deepEqual(logLines({ module_id: 'm', lines: [{ at: 't', stream: 'stderr', text: 'scan found 0' }] }), ['scan found 0'], 'Go 모듈은 다 stderr — 표시하지 않는다(진짜 스택 io-inventory)');
+  assert.deepEqual(logLines({ module: 'm', logs: ['a'] }), ['a']);
   assert.equal(outText('log', { logs: ['one', 'two'], truncated: true }), 'one\ntwo\n— 앞부분은 잘렸다');
   assert.equal(outText('log', { lines: [] }), '(최근 로그 없음)');
   const t = outText('out', { type: 'process.execute', state: 'succeeded', started_at: '2026-10-05T01:00:00Z', finished_at: '2026-10-05T01:00:02Z' });

@@ -154,7 +154,7 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 - **UP-12(바 · 사)** — `＋ 추가`의 전송은 여전히 조각 없이 만든다(↑ 올리기 A-2는 따로 있다). 이 노드의 작업도 Master `commands.post`로 보낸다 — leaf 게이트웨이에는 그 op가 없다
 - **UP-14** — 길이 없으면 `origSave()`로 화면에만 넣는다(`⚠ … 화면에만 반영했다`). A-5 잠금이 많은 경우를 앞에서 막는다
 - **UP-16** — 상태 화면 노드 칸의 로그인 줄이 `auth`가 없으면 `로그인됨`이다
-- **UP-19** — 다른 노드의 모듈 로그(Daemon `modules.by-module-id.logs.get`)는 줄이 `{at, stream, text}` 객체다. 원본 `wire.js`는 `d.lines.join('\n')`이라 `[object Object]`가 찍힌다 — 모듈은 `logLines`로 글로 옮긴다
+- **UP-19** — 모듈 로그의 두 모양. Daemon(`modules.by-module-id.logs.get` — 다른 노드 · 대체 경로)은 줄이 `{at, stream, text}` 객체라 원본 `wire.js`의 `d.lines.join('\n')`이 `[object Object]`를 찍는다. 게이트웨이(`modules.by-id.logs.get`)는 `{module, logs: [글]}`인데 원본은 `logs`를 보지 않아 JSON이 그대로 나온다. 원본의 가짜 Gateway가 둘 다 `lines: [글]`로 답해 가려졌다 — 모듈은 `logLines`로 둘 다 글로 옮긴다
 - **UP-20** — 받기(내려받기). io.terra.file 0.2.0(modules #24)이 `transfers.pulls.*`를 냈다. 원본에는 받기가 없다 — 모듈 `source.download`(조각 · 조각마다 SHA-256 · 전체 검사 · `pulls.abort`) · `saveBlob`를 옮긴다
 - **UP-21** — `desktop.open`의 실행 파일 거절 코드는 `DESKTOP_OPEN_EXECUTABLE`이다. 원본은 `r.code === 'DESKTOP_EXECUTABLE'`을 본다(409로도 견주어 글은 맞게 나온다). 그 밖의 코드(`DESKTOP_SESSION_UNAVAILABLE` 503 · `DESKTOP_LAUNCHER_UNAVAILABLE` 503 · `LOCAL_FS_DENIED` …)는 `지금은 볼 수 없다 (모듈 멈춤)` 같은 머리말로 나온다 — 모듈은 코드마다 화면 글(`reasonText`)
 
@@ -180,7 +180,7 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 | **UP-16** | 상태 화면 노드 칸의 "로그인" 줄 | `auth`가 없으면 `로그인됨` — 로그인 전에도 그렇게 그린다 | 이 화면의 세션으로 적는다 | 낮음 |
 | **UP-17** | 모듈 GUI 창 | GUI 제공 여부를 제안 필드(`gui` · `ui`)로 읽는다 — 공개 경로 `GET /api/v1/gui/apps`가 `moduleId` · `route` · `origin`을 이미 준다. 창은 "이 창 안에 뜬다 (iframe)"라고 그리지만 다른 모듈의 앱은 띄울 수 없다(PF-15) | `/api/v1/gui/apps`로 알고, 띄울 수 없다고 적는다 | 중간 |
 | **UP-18** | 메모장 경로 글 `~/.terra/memos/` | 실제 메모는 LayoutStore(이 브라우저)에 있다 — 경로가 사실과 다르다 | `메모/` | 낮음 |
-| **UP-19** | 다른 노드 모듈 로그가 `[object Object]` | Daemon 로그 줄 = `{at, stream, text}`(계약 · 진짜 스택) | `logLines` — stderr는 `! ` | 중간 |
+| **UP-19** | 모듈 로그 글 | Daemon 로그 줄 = `{at, stream, text}` → `[object Object]`. 게이트웨이 것은 `{module, logs: [글]}`인데 원본은 `lines`만 봐 JSON 그대로 찍힌다. 원본의 가짜 Gateway도 두 모양이 실제와 달라 가려졌다(계약 · 진짜 스택) | `logLines` — 두 모양 다 · 흐름이 섞이면 stderr에 `! ` | 중간 |
 | **UP-20** | 받기가 없다 | io.terra.file 0.2.0 `transfers.pulls.create` → `chunks.get` → `pulls.complete`(modules #24) | `source.download` · `saveBlob` — 300 KB 받아 내용이 같다(실측) | 중간 |
 | **UP-21** | 바탕화면 · 로컬 탐색 오류 글 | 실제 코드 `DESKTOP_OPEN_EXECUTABLE` · 503 두 가지 · `LOCAL_FS_*` | `reasonText` — 머리말 없이 | 낮음 |
 
