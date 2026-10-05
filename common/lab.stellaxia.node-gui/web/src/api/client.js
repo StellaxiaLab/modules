@@ -59,6 +59,13 @@ export class TerraClient {
   /** 이 게이트웨이에 노드 주소 호출 길이 있나 */
   canRelay() { return this.has(RELAY_OP); }
 
+  /** 카탈로그의 bindings('GET /api/modules/io.terra.file/v1/entries') → { method, path }. 없으면 fallback */
+  binding(id, fallback) {
+    const e = this.entry(id), b = (e && e.bindings) || [];
+    for (const s of b) { const m = /^([A-Z]+)\s+(\/\S+)$/.exec(String(s)); if (m) return { method: m[1], path: m[2] }; }
+    return fallback || null;
+  }
+
   /**
    * 그 노드가 클러스터에 연 operation (60초 캐시). 못 받으면 { ok: false } — 그때는 막지 않고 부른다(대상이 다시 판정한다)
    * @param {string} nodeId @returns {Promise<{ ok: boolean, ops: Map<string, any>, at: number } | null>}
@@ -134,6 +141,22 @@ export class TerraClient {
   }
 
   /**
+   * 다른 노드의 **모듈** operation — 원격 모듈 경로 `/api/nodes/{node_id}/modules/{모듈}/…`(Master 중계).
+   * 모듈 op(io.terra.file …)는 scopes 가 local · node 라 노드 주소 호출(그 노드 카탈로그)에 없다 — 모듈 경로로 간다.
+   * 경로는 카탈로그의 bindings(없으면 fallback)에서 — `{name}` 자리를 채우고, GET · DELETE 는 나머지를 query 로, 그 밖은 본문으로
+   * @param {string} nodeId @param {string} id @param {object} [input] @param {{ method: string, path: string }} [fallback]
+   * @returns {Promise<Result>}
+   */
+  async invokeModuleAt(nodeId, id, input, fallback) {
+    if (this.masterBlocked) return { kind: 'unavailable', reason: 'master-delegation' };   // 중계는 Master 를 지난다
+    const b = this.binding(id, fallback);
+    if (!b || b.path.indexOf('/api/modules/') !== 0) return { kind: 'unavailable', reason: 'not-remote' };
+    const t = fillRoute(b.method, b.path, input || {});
+    if (t.missing) return { kind: 'error', reason: 'missing-path-param' };
+    return this.request(b.method, t.path.replace(/^\/api\/modules\//, '/api/nodes/' + encodeURIComponent(nodeId) + '/modules/'), t.body);
+  }
+
+  /**
    * 게이트웨이 자신의 경로를 GET 으로 — operation 이 아니라 경로로만 맞게 답하는 것들.
    *   /api/v1/agent/whoami  invoke(terra.gateway.agent.whoami.get)로 부르면 호출자가 중계에서 빠져 'anonymous' 가 온다(실측)
    *   /api/v1/agent/nodes   Master 세션으로 노드 목록 — 위임 자격이 노드 id 를 아는 길
@@ -154,6 +177,28 @@ export class TerraClient {
     catch (e) { return { kind: 'unreachable', reason: String(e) }; }
     return toResult(res);
   }
+}
+
+/**
+ * 게이트웨이의 buildUpstreamTarget 과 같은 규칙 — `{name}` 자리 채우기(`{name...}`은 `/`를 살린다) → GET · DELETE 는 나머지를 query, 그 밖은 본문.
+ * 자리를 못 채우면 missing 에 그 이름 (maingui src/api/client.js 와 같은 코드)
+ * @returns {{ path: string, body: any, missing: string|null }}
+ */
+export function fillRoute(method, path, input) {
+  const rest = Object.assign({}, input);
+  let missing = null;
+  let p = path.replace(/\{([^}]+)\}/g, (all, raw) => {
+    const name = raw.replace(/\.\.\.$/, ''), v = rest[name];
+    delete rest[name];
+    if (v == null || v === '') { missing = missing || name; return ''; }
+    return raw.endsWith('...') ? String(v).split('/').map(encodeURIComponent).join('/') : encodeURIComponent(String(v));
+  });
+  let body;
+  if (method === 'GET' || method === 'DELETE') {
+    const q = Object.entries(rest).filter(([, v]) => v != null && v !== '').map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : String(v)));
+    if (q.length) p += '?' + q.join('&');
+  } else body = rest;
+  return { path: p, body, missing };
 }
 
 /**

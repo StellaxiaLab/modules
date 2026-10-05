@@ -3,7 +3,7 @@
 //   LiveSource : Gateway (TerraClient + operations.js + adapters.js)
 // 화면과는 src/api/wire.js 가 잇는다.
 
-import { HELM_APPS, HELM_CRUD, GUI_APPS, scanLine } from './operations.js';
+import { HELM_APPS, HELM_CRUD, GUI_APPS, scanLine, fileBinding } from './operations.js';
 import { ADAPT, withGui } from './adapters.js';
 import { resultText } from './client.js';
 import { Sha256, sha256Blob, toB64, fromB64 } from './sha256.js';
@@ -85,7 +85,8 @@ export class LiveSource {
   /** 그 노드에서 볼 앱 대응표 */
   appFor(app, node) { return appFor(app, this.daemonView(node)); }
 
-  // L(Daemon) · M(모듈) op — 이 노드면 invoke, 다른 노드면 노드 주소 호출(client.invoke 의 node = node_id). node_id 를 모르면 부르지 않는다.
+  // L(Daemon) op — 이 노드면 invoke, 다른 노드면 노드 주소 호출(client.invoke 의 node = node_id).
+  // M(모듈) op — 이 노드면 invoke, 다른 노드면 원격 모듈 경로(client.invokeModuleAt — io.terra.file 은 노드 카탈로그에 없다). node_id 를 모르면 부르지 않는다.
   // T(Master) 의 읽기 · 지우기(GET · DELETE)는 node_id 를 query 로 싣는다(화면 이름이 아니라 진짜 node_id — 로컬 노드면 localId).
   // 본문이 있는 Master 호출(POST)에는 싣지 않는다 — Master 의 본문 해석기도 모르는 키를 거절한다(decodeJSON DisallowUnknownFields)
   call(spec0, node, input) {
@@ -94,7 +95,9 @@ export class LiveSource {
     if (scoped && !local) {
       const id = this.idOf(node);
       if (!id) return Promise.resolve({ kind: 'unavailable', reason: 'no-node-id' });
-      return this.client.invoke(spec.op, Object.assign(fillNode(spec.input, id), input || {}), { node: id });
+      const body = Object.assign(fillNode(spec.input, id), input || {});
+      if (spec.where === 'M' && this.client.invokeModuleAt) return this.client.invokeModuleAt(id, spec.op, body, fileBinding(spec.op));
+      return this.client.invoke(spec.op, body, { node: id });
     }
     const nodeId = this.nodeIdOf(node);
     const query = spec.where === 'T' && /\.(get|delete)$/.test(spec.op || '');
@@ -179,6 +182,8 @@ export class LiveSource {
       if (this.client.masterBlocked) return why('master-delegation');
       const id = this.idOf(node);
       if (!id) return why('no-node-id');
+      // 모듈 op 는 원격 모듈 경로 — 그 노드 카탈로그(B-1)가 아니다. 경로를 알면(카탈로그 bindings · 대응표) 막지 않는다 — 그 노드에 모듈이 없으면 부를 때 답한다
+      if (spec.where === 'M') return this.client.binding && this.client.binding(spec.op, fileBinding(spec.op)) ? null : why('not-remote');
       const cat = this.client.nodeCatalogNow ? this.client.nodeCatalogNow(id) : null;
       if (!cat) { if (this.client.nodeCatalog) void this.client.nodeCatalog(id); return null; }   // 받는 중 — 누르면 호출이 다시 판정한다
       const e = cat.ok ? cat.ops.get(spec.op) : null;

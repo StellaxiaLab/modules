@@ -4,7 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { TerraClient, toResult, resultText, RELAY_OP, NODE_CATALOG_OP } from '../src/api/client.js';
+import { TerraClient, toResult, resultText, fillRoute, RELAY_OP, NODE_CATALOG_OP } from '../src/api/client.js';
+import { fileBinding } from '../src/api/operations.js';
 import { LiveSource, fillNode } from '../src/api/source.js';
 import { frameRole } from '../src/api/frame-boot.js';
 import { pageOf } from '../src/api/frame-boards.js';
@@ -151,6 +152,48 @@ test('다른 노드 — 노드 주소 호출(B-1): 그 노드 카탈로그를 �
   const off = await source.list('leaf-c', 'io').catch((e) => e);
   assert.deepEqual([off.kind, off.status, off.reason], ['error', 409, 'NODE_OFFLINE']);
   assert.match(resultText(off), /오프라인/);
+});
+
+test('경로 채우기(fillRoute) — {name} 자리 · GET · DELETE 는 query · 그 밖은 본문 · {name...} 은 / 를 살린다 · 못 채우면 missing', () => {
+  assert.deepEqual(fillRoute('GET', '/api/modules/io.terra.file/v1/entries', { root: 'share-0', path: 'a b/c' }), { path: '/api/modules/io.terra.file/v1/entries?root=share-0&path=a%20b%2Fc', body: undefined, missing: null });
+  assert.deepEqual(fillRoute('PUT', '/x/transfers/{transfer_id}/chunks', { transfer_id: 'tr 1', offset: 0, data: 'QQ==' }), { path: '/x/transfers/tr%201/chunks', body: { offset: 0, data: 'QQ==' }, missing: null });
+  assert.equal(fillRoute('GET', '/x/{key...}', { key: 'a/b c' }).path, '/x/a/b%20c');
+  assert.equal(fillRoute('POST', '/x/{transfer_id}/complete', {}).missing, 'transfer_id');
+  assert.deepEqual(fileBinding('io.terra.file.transfers.pulls.create'), { method: 'POST', path: '/api/modules/io.terra.file/v1/transfers/pulls' });
+  assert.equal(fileBinding('terra.daemon.io.devices.get'), null);
+});
+
+test('다른 노드의 공유 폴더 안 · 전송 — 모듈 op 는 원격 모듈 경로 /api/nodes/{node_id}/modules/io.terra.file/v1/… (카탈로그 bindings, 없으면 대응표)', async () => {
+  const f = fakeFetch((url, init) => {
+    if (url.endsWith('/api/v1/catalog')) return json(200, { operations: [{ operationId: RELAY_OP }, { operationId: NODE_CATALOG_OP }, { operationId: 'terra.daemon.files.list.get' },
+      { operationId: 'io.terra.file.entries.list', bindings: ['GET /api/modules/io.terra.file/v1/entries'] }] });
+    if (url === '/api/v1/nodes/node_b/catalog') return json(200, { nodeId: 'node_b', operations: [{ operationId: 'terra.daemon.files.list.get', allowed: true }] });
+    if (url === '/api/v1/nodes/node_b/operations/terra.daemon.files.list.get/invoke') return json(200, { status: 'ok', data: { roots: [{ name: 'share-0' }] }, meta: {} });
+    if (url.startsWith('/api/nodes/node_b/modules/io.terra.file/v1/entries')) return json(200, { count: 1, entries: [{ path: 'docs/a.txt', name: 'a.txt', size: 3, is_dir: false }] });
+    if (url === '/api/nodes/node_b/modules/io.terra.file/v1/transfers' && init.method === 'POST') return json(202, { transfer: { transfer_id: 'tr-9', chunk_size: 4, offset: 0 } });
+    if (url === '/api/nodes/node_b/modules/io.terra.file/v1/transfers/tr-9/chunks') return json(200, { next_offset: 3 });
+    if (url === '/api/nodes/node_b/modules/io.terra.file/v1/transfers/tr-9/complete') return json(200, { transfer_id: 'tr-9', verified: true });
+    return json(404, { error: { code: 'NOT_FOUND' } });
+  });
+  const client = new TerraClient('', { fetch: f });
+  await client.refreshCatalog();
+  const source = new LiveSource(client, { localNode: 'edge-01', idOf: (n) => ({ 'leaf-b': 'node_b' }[n]) });
+  const items = await source.list('leaf-b', 'folder', { path: 'share-0/docs' });
+  assert.ok(items.some((x) => x.id === 'share-0/docs/a.txt'), '들어간 폴더의 항목이 원격 모듈 경로로 왔다');
+  const ent = f.calls.find((c) => c.url.startsWith('/api/nodes/node_b/modules/io.terra.file/v1/entries'));
+  assert.equal(ent.init.method, 'GET');
+  assert.match(ent.url, /root=share-0/);
+  assert.equal(source.lockFor('folder', 'del', 'leaf-b'), null, '모듈 경로를 알면 잠그지 않는다');
+  // 올리기 — 카탈로그에 bindings 가 없는 op 는 대응표(fileBinding)로
+  const up = await source.upload('leaf-b', new File(['abc'], 'n.txt'), 'share-0');
+  assert.equal(up.kind, 'ok');
+  const put = f.calls.find((c) => c.url.endsWith('/transfers/tr-9/chunks'));
+  assert.equal(put.init.method, 'PUT');
+  assert.deepEqual(Object.keys(JSON.parse(put.init.body)).sort(), ['data', 'offset'], '경로 자리(transfer_id)는 본문에서 뺀다');
+  assert.ok(!f.calls.some((c) => /\/api\/v1\/nodes\/node_b\/operations\/io\.terra\.file/.test(c.url)), '모듈 op 는 노드 주소 호출로 부르지 않는다');
+  // Master 에 닿지 않는 자격이면 중계도 없다
+  client.masterBlocked = true;
+  assert.match(source.lockFor('folder', 'del', 'leaf-b'), /Master/);
 });
 
 test('frame 안인지 가린다 — 다른 origin 부모 · 같은 origin 부모(보드) · 단독', () => {

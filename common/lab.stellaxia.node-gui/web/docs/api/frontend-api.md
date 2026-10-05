@@ -264,6 +264,7 @@ const remote = await framed.invoke('terra.daemon.io.devices.get', {}, { node: 'n
 | `invoke(id, input?, { signal, node })` | `POST /api/v1/operations/{id}/invoke`. 봉투를 벗겨 `Result`로 — Daemon `{ status, data }` · Master `{ ok, data }` · 오류 `{ error: { code } }`의 `code`가 `reason`이 된다. `node`(node_id)를 주면 `invokeAt` |
 | `invokeAt(nodeId, id, input?)` | 노드 주소 호출 `POST /api/v1/nodes/{node_id}/operations/{id}/invoke`(Terra B-1) — 그 노드 카탈로그에 없으면 `unavailable · not-remote`, `allowed: false` 면 `forbidden · remote-denied`, 길이 없으면 `unavailable · remote-node`. 대상의 봉투가 그대로 온다 |
 | `nodeCatalog(nodeId)` · `nodeCatalogNow(nodeId)` · `canRelay()` | 그 노드가 클러스터에 연 operation(60초 캐시 · 받으면 `onNodeCatalog`) · 받아 둔 것 · 노드 주소 호출 길이 있나 |
+| `invokeModuleAt(nodeId, id, input?, fallback?)` · `binding(id)` | 다른 노드의 **모듈** op — 원격 모듈 경로 `/api/nodes/{node_id}/modules/…`(카탈로그 `bindings` → `fillRoute`) · 그 op 의 `{ method, path }` |
 | `get(path)` · `request(method, path, body?)` | 게이트웨이 자신의 **경로**로 — `/api/v1/agent/whoami`(invoke 로 부르면 호출자가 중계에서 빠져 `anonymous`가 온다 — 실측 · Terra#118) · `/api/v1/agent/nodes` · `/api/v1/me/documents/…` |
 | `openEvents(client, onEvent, opts)` (`events.js`) | leaf `terra.daemon.events.get` SSE를 **fetch 스트림**으로 읽는다(`Accept: text/event-stream`) — `EventSource`는 Authorization을 붙이지 못한다. 끊기면 1→2→4…30초 뒤 `last_event_id`로 이어 받고, 길이 없으면 끈다. 끄는 함수를 돌려준다 |
 

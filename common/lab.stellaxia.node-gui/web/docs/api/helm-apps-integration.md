@@ -48,7 +48,7 @@ flowchart LR
 | --- | --- |
 | 로컬 노드 (A) | leaf Gateway에 그대로 (`terra.daemon.*`) |
 | 다른 노드의 Daemon op (L) | **노드 주소 호출**(Terra B-1) — `client.invoke(op, input, { node: node_id })` → `POST /api/v1/nodes/{node_id}/operations/{id}/invoke`. Master가 중계하고 대상 Daemon이 자기 계약으로 다시 판정한다. 그 노드 카탈로그(`GET /api/v1/nodes/{node_id}/catalog`, 60초)에 있는 것만 부르고 누르기 전에 잠근다. 로컬 전용(명령 실행 · `local-fs` · `desktop.open` · 재시작 · 이벤트)은 그 카탈로그에 없다 — [[real-data-layer\|실데이터 층]] §2.7 |
-| 다른 노드의 모듈 op (M) | `io.terra.file`은 scopes `local` · `node`라 그 노드 카탈로그에 없다 — 잠긴다. 원격 모듈 경로(`/api/nodes/{node}/modules/{id}/{ver}/…`)는 아직 쓰지 않는다([[implementation-backlog\|구현해야 할 것]] MD-20) |
+| 다른 노드의 모듈 op (M) | `io.terra.file`은 scopes `local` · `node`라 그 노드 카탈로그에 없다 — **원격 모듈 경로** `/api/nodes/{node_id}/modules/io.terra.file/v1/…`(Master 중계)로 부른다. 경로는 카탈로그 `bindings`(없으면 대응표), `{transfer_id}`를 채우고 GET · DELETE 는 query(`client.invokeModuleAt` · `fillRoute`) |
 | Master op (T) | tree Gateway에 `node_id`를 본문에 실어서. **Terra frame 안에서는 닿지 않는다** — 앱 스코프 토큰은 Master로 넘어가지 않아 `unavailable · master-delegation`이 된다([[architecture#7. Terra 안에서 — frame\|구조 §7]]) |
 
 ### 1.2 권한

@@ -13,7 +13,19 @@
 const L = (op) => 'terra.daemon.' + op;
 const T = (op) => 'terra.master.' + op;
 const G = (op) => 'terra.gateway.' + op;
-const FILE = (op) => 'io.terra.file.' + op;   // 모듈 op — scopes local · node 라 다른 노드의 카탈로그(B-1)에 없다. 그 노드에서는 잠긴다
+const FILE = (op) => 'io.terra.file.' + op;   // 모듈 op — scopes local · node 라 노드 주소 호출(B-1)이 아니라 원격 모듈 경로로(client.invokeModuleAt)
+
+/** io.terra.file 계약의 bindings — 이 노드에 io.terra.file 이 없어 카탈로그에 bindings 가 없을 때 원격 모듈 경로를 만든다(maingui FILE_BINDINGS 와 같다) */
+const FILE_BINDINGS = {
+  'roots.list': ['GET', '/roots'], 'entries.list': ['GET', '/entries'], 'entries.stat': ['GET', '/entries/stat'], 'entries.read': ['GET', '/entries/read'],
+  'entries.write': ['PUT', '/entries/write'], 'entries.truncate': ['POST', '/entries/truncate'], 'entries.mkdir': ['POST', '/entries/mkdir'], 'entries.rename': ['POST', '/entries/rename'],
+  'entries.remove': ['DELETE', '/entries'], 'transfers.list': ['GET', '/transfers'], 'transfers.get': ['GET', '/transfers/{transfer_id}'], 'transfers.create': ['POST', '/transfers'],
+  'transfers.chunks.put': ['PUT', '/transfers/{transfer_id}/chunks'], 'transfers.chunks.get': ['GET', '/transfers/{transfer_id}/chunks'],
+  'transfers.complete': ['POST', '/transfers/{transfer_id}/complete'], 'transfers.abort': ['POST', '/transfers/{transfer_id}/abort'],
+  'transfers.pulls.create': ['POST', '/transfers/pulls'], 'transfers.pulls.complete': ['POST', '/transfers/pulls/{transfer_id}/complete'], 'transfers.pulls.abort': ['POST', '/transfers/pulls/{transfer_id}/abort']
+};
+/** io.terra.file op → { method, path } (모듈 경로). 모르는 op 이면 null */
+export const fileBinding = (op) => { const k = String(op || '').replace(/^io\.terra\.file\./, ''), b = FILE_BINDINGS[k]; return b && k !== op ? { method: b[0], path: '/api/modules/io.terra.file/v1' + b[1] } : null; };
 
 /** 조타륜 앱 10개 — 목록(list) · 동작(acts). acts의 키는 화면 hbAct(app, id, op)의 op와 같다 */
 export const HELM_APPS = {

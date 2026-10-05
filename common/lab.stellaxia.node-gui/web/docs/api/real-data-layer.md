@@ -209,7 +209,8 @@ fetch 스트림으로 읽는다(frame 의 `terra.fetch` 가 앱 토큰을 싣는
 
 - `node_id` 는 관계도(`NET[이름].id`)에서 — 모르는 이름(부모 tree 등)은 부르지 않는다(`no-node-id`).
 - 그 노드의 카탈로그(`GET /api/v1/nodes/{node_id}/catalog` — 60초 캐시)에 있는 것만 부른다. 누르기 전에 잠근다(`lockFor` — `그 노드가 이 기능을 원격으로 열지 않았다` · `allowed: false` 면 `권한이 없다`). 카탈로그가 오면 자물쇠를 다시 그린다.
-- 원격으로 열린 것(`availability.scopes` 에 `cluster` — Daemon 계약 70개 중 47개): I/O 장치 · 모듈(로그 포함) · 작업 목록 · 기록 · 취소 · 자원 선언 · 서비스 터널 목록 · 닫기 · WireGuard. 열리지 않은 것: 명령 실행 · `local-fs` · `desktop.open` · 재시작 · 이벤트 · 설정 쓰기 — 그리고 `io.terra.file`(scopes `local` · `node`)이라 다른 노드의 공유 폴더 안 · 전송은 잠긴다.
+- 원격으로 열린 것(`availability.scopes` 에 `cluster` — Daemon 계약 70개 중 47개): I/O 장치 · 모듈(로그 포함) · 작업 목록 · 기록 · 취소 · 자원 선언 · 서비스 터널 목록 · 닫기 · WireGuard. 열리지 않은 것: 명령 실행 · `local-fs` · `desktop.open` · 재시작 · 이벤트 · 설정 쓰기.
+- **모듈 op**(`io.terra.file` — scopes `local` · `node`)는 노드 카탈로그에 없다 — 원격 모듈 경로 `/api/nodes/{node_id}/modules/io.terra.file/v1/…`로 부른다(`client.invokeModuleAt` — Master 중계). 경로는 카탈로그의 `bindings`(이 노드에 io.terra.file 이 없으면 대응표 `fileBinding`), `{transfer_id}` 자리는 채우고 GET · DELETE 는 나머지를 query 로(`fillRoute`). 그래서 다른 노드의 공유 폴더 안 · 전송 · 올리기 · 받기 · 지우기도 된다.
 - 게이트웨이 op 는 그 노드 카탈로그에 없다 — 모듈 로그는 다른 노드면 그 Daemon 의 `modules.by-module-id.logs.get` 으로(`remote`).
 - 앱 토큰은 Master 에 닿지 않는다(PF-1) — 다른 노드의 작업도 그 Daemon 의 작업 목록으로 본다(`daemonView`). Master 의 길 오류(`NODE_OFFLINE` · `RELAY_NOT_CONNECTED` · `DELEGATION_REQUIRED` · `NODE_NOT_FOUND`)는 화면 글로 옮긴다.
 
@@ -266,7 +267,6 @@ SHA-256 은 직접 계산한다(`sha256.js` — maingui 와 같은 코드). `cry
 | 비어 있는 것 | 이유 | 채우려면 |
 | --- | --- | --- |
 | Master 데이터(SVI · 허가 · mesh · 라우트 · 클러스터 · 다른 노드의 작업) | 앱 스코프 토큰은 Master 에 닿지 않는다 — 설계상 위임 경계 | 세션 중계를 Master operation 전체로 넓히는 ADR(모듈 README Q-2) |
-| 다른 노드의 공유 폴더 안 · 전송 | `io.terra.file` 은 scopes `local` · `node` 라 그 노드 카탈로그(B-1)에 없다 — 들어가기 · 올리기 · 받기가 잠긴다(루트 목록 `files.list.get` 은 된다) | 원격 모듈 경로(`/api/nodes/{node}/modules/io.terra.file/v1/…`)로 — MD-20 |
 | 다른 노드의 명령 실행 | Daemon 이 명령 실행을 원격으로 열지 않는다 · Master `commands.post` 는 PF-1 | PF-1 |
 | tree 계층(손자 노드) | `agent/nodes` 에 부모 관계가 없다 | `terra.master.nodes.get` (위의 ADR) |
 | 다른 tree 목록 | 사용자가 등록한 연결 목록을 둘 곳이 없다 | Q-3 — `kind: service` 로 올려 사람별 저장 |
@@ -386,6 +386,7 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | 모듈 로그(MD-16) | 모듈 앱 `로그` → 상태 화면 출력 칸 `Terra File 로그` |
 | 폴더 탐색기(MD-16) | 루트 `root` · `home🔒`(Daemon 자기 폴더를 품어 닫힘) → `root` 아래 `bin · boot · dev · etc …` → `etc` 153개. `home` 을 누르면 `🔒 home — denied`. `파일 관리자로` · 파일 열기 → `Daemon 이 그 컴퓨터의 바탕화면 세션에 닿지 않는다`(이 컨테이너에 바탕화면이 없다 — 503) |
 | 올리기 · 받기(MD-17) | 전송 앱 `↑ 올리기` **단추를 눌러** 파일 고르기 → 300 KB(조각 둘) → `올림 — 검사 통과 (share-0)` · 서버 `entries.stat` 300031 B. 폴더 앱 `받기` → 브라우저 다운로드 300031 B · 내용이 같다 · `받음 — 검사 통과` |
+| 다른 노드의 공유 폴더(MD-20) | 모듈 코드(`TerraClient` · `LiveSource`)를 Node에서 그대로, 앱 토큰(`tsa_`)으로 진짜 게이트웨이에 붙여 이 노드를 다른 이름으로 불렀다. 루트 = 노드 주소 호출 `files.list.get` · 올리기 400 KB(`POST …/transfers` → `PUT …/transfers/{tr}/chunks` → `complete`) · 목록 · 받기(`…/transfers/pulls` → `chunks` → `pulls/{tr}/complete` — 내용이 같다) · 지우기(`DELETE …/entries`)가 모두 `/api/nodes/{node}/modules/io.terra.file/v1/…`로 갔다 |
 | 사용자 문서(MD-15) | 이름공간 `app:lab.stellaxia.node-gui.web`. 표지 `flat` · 메모를 바꾸자 문서 `layout/<node_id>` 에 들어갔다. **새 브라우저**(빈 저장소)로 로그인하자 같은 표지 · 메모. 그 브라우저에서 되돌린 뒤 첫 브라우저가 쓰자 409 → `다른 창 · 기기에서 … 바뀌었다` 한 번 → 덮었다 |
 | 콘솔 | 페이지 오류 0. 남은 응답 오류는 예상한 것 — 셸의 `/api/product/session` 404 · 아직 없는 `assets` 문서 404 · 바탕화면 503 · 일부러 낸 409 |
 
@@ -407,10 +408,10 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | `src/data/editors-live.js` | `realMaterial` · `realField` |
 | `src/data/live-host.js` | `liveHub`(노드 화면 → 보드) · `connectLive`(보드) · `absenceText` |
 | `src/api/source.js` | `appFor`(Daemon 쪽이면 `local` 대응) · `daemonView` · `pathInput`(op 이름의 `by-…` 자리만) · 다른 노드는 노드 주소 호출(`idOf`) · `lockFor`(누르기 전 자물쇠 — 그 노드 카탈로그) · 폴더 단계 읽기 · `guard` · `crud` · `upload` · `download` · `guiApps` |
-| `src/api/client.js` | `TerraClient` — `invoke` · `invokeAt`(노드 주소 호출) · `nodeCatalog`(60초) · `canRelay` · `request` · `get` · `toResult` · `resultText` · `reasonText` |
+| `src/api/client.js` | `TerraClient` — `invoke` · `invokeAt`(노드 주소 호출) · `invokeModuleAt`(원격 모듈 경로) · `binding` · `nodeCatalog`(60초) · `canRelay` · `request` · `get` · `fillRoute` · `toResult` · `resultText` · `reasonText` |
 | `src/api/events.js` | 실시간 이벤트(B-5) — `openEvents`(fetch 스트림 · 이어 받기 · 끄기) · `sseFrames` · `frameEvent` · `SIGNAL_APPS` |
 | `src/api/sha256.js` | SHA-256(조각씩) · base64 — 올리기 · 받기 검사(maingui 와 같은 코드) |
-| `src/api/operations.js` | `HELM_APPS`(목록 · 동작 · `form` · `upload` · `download` · `remote`) · `HELM_CRUD`(실제 본문 · `localOnly`) · `CRUD_TEXT`(API 줄) · `GUI_APPS` · `manualAdapter` · `scanLine` · `logLines` |
+| `src/api/operations.js` | `HELM_APPS`(목록 · 동작 · `form` · `upload` · `download` · `remote`) · `HELM_CRUD`(실제 본문 · `localOnly`) · `CRUD_TEXT`(API 줄) · `GUI_APPS` · `fileBinding`(io.terra.file 경로 대응표) · `manualAdapter` · `scanLine` · `logLines` |
 | `src/api/wire.js` | `wireHelm` — 목록 · 동작 · 폼 저장 · 두 번째 누름 · 값을 적어야 하는 동작의 폼 열기 · 올리기(파일 고르기) · 받기(`saveBlob`) · 출력 칸(`outText`) · 폴링(이벤트가 열려 있으면 느리게) · `_hbRefresh` · `formValues`. `wireFrame` — 토큰 → 세계 · 조타륜 · 이벤트 |
 | `src/api/adapters.js` | 상태를 화면 낱말로(`modState` · `jobState` · `xferState` · `tunnelState` …) — 표에 없는 값이 오면 렌더 전체가 멈추기 때문. `withGui`(모듈 ← GUI 앱) |
 
@@ -424,7 +425,7 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | `tests/events.test.mjs` | SSE 프레임(주석 · 덜 온 프레임 · `\r\n`) · 이어 받기(`last_event_id` · `Last-Event-ID`) · 길이 없으면 끄기 · 신호 → 0.25초 모아 그 목록만 · `reset` 은 다 · 로그인 전 신호 버리기 · 이벤트가 열려 있으면 폴링이 느려진다 |
 | `tests/node-ops.test.mjs` | SHA-256 · base64 · 올리기(만들기 → 조각 → 409 면 서버 offset → 완료 · 다섯 번에서 멈춤) · 받기(조각 · 전체 검사 · 어긋나면 `pulls.abort`) · 손 등록(scheme → 어댑터 · 비우면 스캔 · 모르는 scheme) · 출력 칸 글 · 로컬 탐색(루트 · 항목 · 🔒 · 한 번만 읽기 · 실패하면 다시) · 바탕화면에서 열기(그 컴퓨터에서만 · `shared:<이름>` · 실행 파일 409) · Master 에 닿지 않는 노드 관리 |
 | `tests/crud.test.mjs` | 앱마다 추가 · 수정 · 삭제의 **본문이 실제 서버의 입력과 같은지**(폴더 · 장치 · 작업 · 터널 · 피어 · 허가 · 선언 · 전송), Master POST 에 `node_id` 를 싣지 않기, 길이 없는 것은 `null`, 카탈로그에 없는 op 는 부르지 않기, GUI 앱 붙이기. 화면과 함께: 폼 저장이 지어내지 않기 · 삭제의 두 번 누름 · 맵 자리 걷기 · 취소는 남기기 · 이름 · 칸 id 따라가기 · 폼 여는 동작 · 끊으면 되돌리기 · API 줄 ⚠ · 자리 표시자에 예시 없음 · 모듈 GUI 창 · 상태 화면 로그인 줄 |
-| `tests/api.test.mjs` | 봉투 벗기기 · 위임 자격의 Master 401 · `<노드>` 자리 표시자 · **노드 주소 호출**(그 노드 카탈로그 60초 · 연 것만 · `allowed: false` · 길이 없는 게이트웨이 · `no-node-id` · Master 길 오류 → 화면 글 · 모듈 로그 `remote`) · frame 판별 · 보드 페이지 |
+| `tests/api.test.mjs` | 봉투 벗기기 · 위임 자격의 Master 401 · `<노드>` 자리 표시자 · **노드 주소 호출**(그 노드 카탈로그 60초 · 연 것만 · `allowed: false` · 길이 없는 게이트웨이 · `no-node-id` · Master 길 오류 → 화면 글 · 모듈 로그 `remote`) · **원격 모듈 경로**(`fillRoute` · 다른 노드 폴더 항목 · 올리기 조각 PUT · 경로 자리는 본문에서 뺀다 · 노드 주소 호출로 부르지 않는다) · frame 판별 · 보드 페이지 |
 | `tests/smoke.mjs` | 페이지가 오류 없이 뜨고 예시가 없다 · 시작 화면 → 노드 화면 · 조타륜 · 전체 화면 · 메모 · 오버헤드 패널 접기 · 상태 화면(로그인 전) · 도로 편집기 보드 · 창 크기 |
 
 ```bash
