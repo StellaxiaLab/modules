@@ -136,6 +136,18 @@
         "rollback": { "type": "boolean" }
       }
     },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema"],
+      "description": "Operator-settable configuration (module configuration design §3). The host stores and validates the values and hands the module the effective result through TERRA_MODULE_CONFIG_FILE.",
+      "properties": {
+        "schema": {
+          "type": "object",
+          "description": "JSON Schema 2020-12 subset with root type object: type, properties, required, enum, minimum, maximum, minLength, maxLength, pattern, format (uri, hostname, ipv4), default, items, additionalProperties (boolean), annotations (title, description, $comment, examples), and the extensions x-terra-secret (top-level properties only; never read back) and x-terra-restart. Keywords outside the subset are refused. At most 64 KiB encoded."
+        }
+      }
+    },
     "signature": {
       "type": "object",
       "description": "Hash, issuer and trust chain. Shape is owned by the common design."
