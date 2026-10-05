@@ -100,9 +100,6 @@ func (s *stateStore) save(policies map[string]devicePolicy, tombstones map[strin
 	if s == nil || strings.TrimSpace(s.path) == "" || s.path == "." {
 		return errors.New("I/O device state path is required")
 	}
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return fmt.Errorf("create I/O device state directory: %w", err)
-	}
 	document := deviceStateDocument{SchemaVersion: deviceStateSchemaVersion, Devices: make([]devicePolicy, 0, len(policies))}
 	for _, policy := range policies {
 		document.Devices = append(document.Devices, policy)
@@ -116,9 +113,20 @@ func (s *stateStore) save(policies map[string]devicePolicy, tombstones map[strin
 	if err != nil {
 		return fmt.Errorf("encode I/O device state: %w", err)
 	}
-	temporary, err := os.CreateTemp(filepath.Dir(s.path), ".io-devices-*.tmp")
+	return WriteFileAtomic(s.path, append(data, '\n'))
+}
+
+// WriteFileAtomic replaces path with data so a reader sees either the old file
+// or the new one, never half of each. The state store and the manual device
+// source both keep what a person decided in a file like this, and a crash in
+// the middle of a save must not cost either of them the whole file.
+func WriteFileAtomic(path string, data []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create state directory: %w", err)
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".io-state-*.tmp")
 	if err != nil {
-		return fmt.Errorf("create temporary I/O device state: %w", err)
+		return fmt.Errorf("create temporary state file: %w", err)
 	}
 	temporaryPath := temporary.Name()
 	defer os.Remove(temporaryPath)
@@ -126,7 +134,7 @@ func (s *stateStore) save(policies map[string]devicePolicy, tombstones map[strin
 		_ = temporary.Close()
 		return err
 	}
-	if _, err := temporary.Write(append(data, '\n')); err != nil {
+	if _, err := temporary.Write(data); err != nil {
 		_ = temporary.Close()
 		return err
 	}
@@ -138,12 +146,12 @@ func (s *stateStore) save(policies map[string]devicePolicy, tombstones map[strin
 		return err
 	}
 	if runtime.GOOS != "windows" {
-		if err := os.Rename(temporaryPath, s.path); err != nil {
-			return fmt.Errorf("replace I/O device state: %w", err)
+		if err := os.Rename(temporaryPath, path); err != nil {
+			return fmt.Errorf("replace state file: %w", err)
 		}
 		return nil
 	}
-	return replaceStateFileWindows(temporaryPath, s.path)
+	return replaceStateFileWindows(temporaryPath, path)
 }
 
 func replaceStateFileWindows(temporaryPath, targetPath string) error {

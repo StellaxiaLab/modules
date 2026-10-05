@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/discovery"
 	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/manual"
 )
 
 // enumerator is one look at the node's hardware. The two helpers below take it
@@ -22,6 +25,34 @@ type enumerator func() (discovery.Result, error)
 // the module's own first look cannot drift apart.
 func scanDevices(registry *inventory.Registry) (inventory.SyncResult, error) {
 	return syncFrom(registry, discovery.Scan)
+}
+
+// scanResult is what POST /scan answers: the platform adapter's reconciliation
+// as it always was, and beside it one per manual adapter. The platform result
+// stays at the top level so a reader written before the manual source still
+// reads the same fields.
+type scanResult struct {
+	inventory.SyncResult
+	Manual []inventory.SyncResult `json:"manual,omitempty"`
+}
+
+// scanAll is an operator's rescan: the hand-registered devices and the
+// platform's. The manual source goes first and its result stands even when the
+// platform cannot look — a node with no discovery adapter (IO-2) still has the
+// cameras a person registered on it.
+//
+// The hotplug watcher does not call this. Its signal is the node's own
+// hardware changing (IO-17), and a camera on the network sends none.
+func scanAll(ctx context.Context, registry *inventory.Registry, door *manualDoor) (scanResult, error) {
+	manualResults, err := syncManual(ctx, registry, door)
+	if err != nil {
+		return scanResult{}, err
+	}
+	platform, err := scanDevices(registry)
+	if err != nil {
+		return scanResult{}, err
+	}
+	return scanResult{SyncResult: platform, Manual: manualResults}, nil
 }
 
 func syncFrom(registry *inventory.Registry, enumerate enumerator) (inventory.SyncResult, error) {
@@ -60,7 +91,18 @@ func syncFrom(registry *inventory.Registry, enumerate enumerator) (inventory.Syn
 // The enumeration itself is still whole — one file read on Linux, one PnP query
 // on Windows, neither of which answers about a single device — and the result is
 // filtered to the one asked about.
-func probeDevice(registry *inventory.Registry, deviceID string) (inventory.ProbeResult, error) {
+//
+// A hand-registered device is probed by its own adapter: the platform
+// enumerator cannot see a camera on the network, so asking it would only ever
+// answer "gone".
+func probeDevice(ctx context.Context, registry *inventory.Registry, door *manualDoor, deviceID string) (inventory.ProbeResult, error) {
+	before, err := registry.Get(deviceID)
+	if err != nil {
+		return inventory.ProbeResult{}, err
+	}
+	if strings.HasPrefix(before.AdapterID, manual.AdapterPrefix) {
+		return probeManual(ctx, registry, door, before)
+	}
 	return probeFrom(registry, deviceID, discovery.Scan)
 }
 
@@ -148,7 +190,20 @@ func probeChanges(before, after inventory.Device) []string {
 // It never fails start-up. A platform with no adapter is the ordinary case on
 // macOS today, and a module that refuses to run there would take the working
 // half of the inventory — the policy surface — down with it.
-func scanAtStartup(registry *inventory.Registry) {
+//
+// The manual source is brought in here too, and for the same reason: the
+// registry restores policy, never devices, so a camera a person registered is
+// absent after a restart until something reads the source again.
+func scanAtStartup(registry *inventory.Registry, door *manualDoor) {
+	if results, err := syncManual(context.Background(), registry, door); err != nil {
+		fmt.Fprintln(os.Stderr, "terra-io-inventory: manual device source could not be brought in at start-up:", err)
+	} else if len(results) > 0 {
+		count := 0
+		for _, result := range results {
+			count += len(result.Updated) + len(result.Added)
+		}
+		fmt.Fprintf(os.Stderr, "terra-io-inventory: start-up brought in %d hand-registered device(s)\n", count)
+	}
 	result, err := scanDevices(registry)
 	switch {
 	case errors.Is(err, discovery.ErrUnsupported):

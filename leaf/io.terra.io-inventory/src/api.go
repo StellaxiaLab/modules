@@ -9,7 +9,13 @@ import (
 
 	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/discovery"
 	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/manual"
 )
+
+// maxManualDeviceBody bounds a registration. It is the Daemon's limit for the
+// same body (terra.daemon.io.devices.post), so nothing the Daemon accepts is
+// refused here for size.
+const maxManualDeviceBody = 16 << 10
 
 // apiPrefix is where the Gateway mounts this module's operations
 // (contracts/api/terra-api.json bindings). The module serves the same paths on
@@ -47,6 +53,22 @@ func writeRegistryError(w http.ResponseWriter, err error) {
 	}
 }
 
+// writeManualError answers for a registration. A kind no adapter can open is
+// its own code, IO_ADAPTER_UNAVAILABLE, which the Daemon relays as is: "this
+// can never become available" is a different answer from "you asked wrong".
+func writeManualError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, manual.ErrInvalid):
+		writeAPIError(w, http.StatusBadRequest, "IO_INVALID_REQUEST", err.Error())
+	case errors.Is(err, manual.ErrAdapterUnavailable):
+		writeAPIError(w, http.StatusBadRequest, "IO_ADAPTER_UNAVAILABLE", err.Error())
+	case errors.Is(err, manual.ErrExists):
+		writeAPIError(w, http.StatusConflict, "IO_DEVICE_EXISTS", err.Error())
+	default:
+		writeRegistryError(w, err)
+	}
+}
+
 // writeEnumerationError answers for the two routes that ask the platform
 // adapter to look — scan and probe — so they cannot come to disagree about
 // what a failure means.
@@ -71,13 +93,37 @@ func writeEnumerationError(w http.ResponseWriter, err error) {
 
 // newOperationsHandler serves the module's Gateway-published operations. The
 // registry owns every policy decision; this layer only translates HTTP.
-func newOperationsHandler(registry *inventory.Registry, hotplug *Hotplug) http.Handler {
+func newOperationsHandler(registry *inventory.Registry, hotplug *Hotplug, door *manualDoor) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET "+apiPrefix+"/devices", func(w http.ResponseWriter, _ *http.Request) {
 		devices := registry.List()
 		writeJSON(w, http.StatusOK, map[string]any{"devices": devices, "count": len(devices)})
 	})
+	// The manual source's door (B-10). The Daemon's POST /io/devices relays
+	// here, and a module without this route is what the Daemon reports as 501
+	// IO_MANUAL_SOURCE_UNAVAILABLE. 201 because a device now exists that did
+	// not: the registration is written down and already in the list, pending.
+	mux.HandleFunc("POST "+apiPrefix+"/devices", func(w http.ResponseWriter, r *http.Request) {
+		var request manual.Request
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxManualDeviceBody))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&request); err != nil {
+			writeAPIError(w, http.StatusBadRequest, "IO_INVALID_REQUEST", "device registration must be a JSON object {kind, name, adapter_id, address, capabilities?, alias?}: "+err.Error())
+			return
+		}
+		if decoder.More() {
+			writeAPIError(w, http.StatusBadRequest, "IO_INVALID_REQUEST", "trailing data after the JSON object")
+			return
+		}
+		added, err := addManual(r.Context(), registry, door, request)
+		if err != nil {
+			writeManualError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, added)
+	})
+
 	// A sibling of /devices, not a child of it. A tombstone is not a device
 	// (IO-20) — it has no presence, no capabilities, no runtime state — and a
 	// path that nests it under /devices/ says the opposite of the decision that
@@ -151,7 +197,7 @@ func newOperationsHandler(registry *inventory.Registry, hotplug *Hotplug) http.H
 	})
 
 	mux.HandleFunc("POST "+apiPrefix+"/devices/{device_id}/probe", func(w http.ResponseWriter, r *http.Request) {
-		result, err := probeDevice(registry, r.PathValue("device_id"))
+		result, err := probeDevice(r.Context(), registry, door, r.PathValue("device_id"))
 		if err != nil {
 			writeEnumerationError(w, err)
 			return
@@ -160,7 +206,7 @@ func newOperationsHandler(registry *inventory.Registry, hotplug *Hotplug) http.H
 	})
 
 	mux.HandleFunc("POST "+apiPrefix+"/devices/{device_id}/forget", func(w http.ResponseWriter, r *http.Request) {
-		tombstone, err := registry.Forget(r.PathValue("device_id"))
+		tombstone, err := forgetDevice(registry, door, r.PathValue("device_id"))
 		if err != nil {
 			writeRegistryError(w, err)
 			return
@@ -168,8 +214,8 @@ func newOperationsHandler(registry *inventory.Registry, hotplug *Hotplug) http.H
 		writeJSON(w, http.StatusOK, map[string]any{"forgotten": true, "tombstone": tombstone})
 	})
 
-	mux.HandleFunc("POST "+apiPrefix+"/scan", func(w http.ResponseWriter, _ *http.Request) {
-		result, err := scanDevices(registry)
+	mux.HandleFunc("POST "+apiPrefix+"/scan", func(w http.ResponseWriter, r *http.Request) {
+		result, err := scanAll(r.Context(), registry, door)
 		if err != nil {
 			writeEnumerationError(w, err)
 			return
