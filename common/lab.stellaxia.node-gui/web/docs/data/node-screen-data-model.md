@@ -7,8 +7,8 @@ doc_type: "data-model"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-04"
+version: "0.3.1"
+last_updated: "2026-10-05"
 language: "ko-KR"
 source: "design/Artboard-qcfu.dc.html (= src/screens/node.js) — constructor(), renderVals()"
 related:
@@ -182,7 +182,7 @@ looks = { 'tree-home': { skin: 'concrete', bid: 'tower', rot: 0 }, … }
 | --- | --- | --- |
 | `fb` | `{ open, mode, path }` 사이드 바 | 메모리 |
 | `FBDATA().repo` | Terra 저장소 예시 트리 | `terra.daemon.files.list.get` |
-| `FBDATA().local` | 로컬 루트 예시 트리 | ⚠ API 없음 — [[helm-apps-integration\|앱 연동]] §4 |
+| `FBDATA().local` | 로컬 루트 예시 트리 | `terra.daemon.local-fs.roots.get` · `entries.get`(Terra B-11) — [[helm-apps-integration\|앱 연동]] §4 |
 | `fbMsg` · `fbArm` | 알림 띠 · 지우기 확인 | 메모리 |
 
 ### 2.12 메모장 — `memos` · `memoCur` · `memoDraft` 🟩

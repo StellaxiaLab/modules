@@ -7,8 +7,8 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.4.0"
-last_updated: "2026-10-03"
+version: "0.5.0"
+last_updated: "2026-10-05"
 language: "ko-KR"
 based_on: "terra-gui-resource-inventory (자원 목록) · terra-gui-api-priority"
 related:
@@ -17,6 +17,7 @@ related:
   - "[[node-screen-api-integration|노드 화면 API 연동 가이드]]"
   - "[[node-screen-ui-spec|노드 화면 UI 명세]]"
   - "[[real-data-layer|실데이터 층]]"
+  - "[[implementation-backlog|구현해야 할 것]]"
   - "[[docs/modules/terra-gui/design/unified-gui-ux/terra-gui-resource-inventory|GUI 자원 목록]]"
 ---
 
@@ -46,7 +47,8 @@ flowchart LR
 | 대상 | 부르는 길 |
 | --- | --- |
 | 로컬 노드 (A) | leaf Gateway에 그대로 (`terra.daemon.*`) |
-| 다른 노드의 Daemon op (L · 모듈 M) | **지금은 길이 없다** — `client.invoke(op, input, { node })`는 부르지 않고 `unavailable · remote-node`를 돌려준다. 게이트웨이의 원격 경로는 모듈 HTTP(`/api/nodes/{node}/modules/{id}/{ver}/…`)뿐이라 operation id로는 부를 수 없다 |
+| 다른 노드의 Daemon op (L) | **노드 주소 호출**(Terra B-1) — `client.invoke(op, input, { node: node_id })` → `POST /api/v1/nodes/{node_id}/operations/{id}/invoke`. Master가 중계하고 대상 Daemon이 자기 계약으로 다시 판정한다. 그 노드 카탈로그(`GET /api/v1/nodes/{node_id}/catalog`, 60초)에 있는 것만 부르고 누르기 전에 잠근다. 로컬 전용(명령 실행 · `local-fs` · `desktop.open` · 재시작 · 이벤트)은 그 카탈로그에 없다 — [[real-data-layer\|실데이터 층]] §2.7 |
+| 다른 노드의 모듈 op (M) | `io.terra.file`은 scopes `local` · `node`라 그 노드 카탈로그에 없다 — 잠긴다. 원격 모듈 경로(`/api/nodes/{node}/modules/{id}/{ver}/…`)는 아직 쓰지 않는다([[implementation-backlog\|구현해야 할 것]] MD-20) |
 | Master op (T) | tree Gateway에 `node_id`를 본문에 실어서. **Terra frame 안에서는 닿지 않는다** — 앱 스코프 토큰은 Master로 넘어가지 않아 `unavailable · master-delegation`이 된다([[architecture#7. Terra 안에서 — frame\|구조 §7]]) |
 
 ### 1.2 권한
@@ -79,9 +81,9 @@ flowchart LR
 | 상황 | 방식 |
 | --- | --- |
 | 앱 · 대상 노드가 바뀜 | 바로 받기 (`wireHelm`이 0.4초마다 살핀다) |
-| 바 · 앱 전체 화면이 열려 있음 | 10초 폴링 (tree는 폴링이 기본) |
+| 바 · 앱 전체 화면이 열려 있음 | 10초 폴링 — 실시간 이벤트가 열려 있으면 60초(바닥) |
 | 동작 뒤 | 바로 다시 받기, 작업이면 끝난 뒤 |
-| leaf 자신 | `terra.daemon.events.get` SSE가 오면 그 앱만 다시 받기 |
+| leaf 자신 | `terra.daemon.events.get` SSE(invoke + `Accept: text/event-stream`)의 신호가 오면 받아 둔 그 앱 목록만 다시 받기(`src/api/events.js` `SIGNAL_APPS` · `_hbRefresh`) |
 | 맵 전환 중 | 받은 목록을 넣어도 된다 — 바는 노드별(`'노드\|앱'`)로 저장한다 |
 
 ## 2. 앱별 대응
@@ -127,6 +129,7 @@ flowchart LR
 | 목록 | `terra.daemon.io.devices.get` (L) | `node.read` |
 | 승인 · 거부 · 켜기 · 끄기 · 잊기 | `io.devices.by-device-id.{approve,deny,enable,disable,forget}.post` | `node.control` |
 | 스캔 | `io.scan.post` → `{added, updated, missing}` | `node.control` · macOS 501 |
+| 손 등록(`＋ 추가` — 이름 · 주소) | `io.devices.post {kind: camera, name, adapter_id, address}` — `rtsp` · `rtsps` → `manual.rtsp`, `http` · `https` → `manual.http-camera`(io-inventory 0.2.0 수동 원천). 주소를 비우면 스캔 | `node.control` |
 
 배지 = presence × approval × enabled 합치기(`ioBadge`). 승인은 켜지 않는다(두 단계).
 
@@ -134,8 +137,8 @@ flowchart LR
 
 | | operation | 권한 |
 | --- | --- | --- |
-| 루트 · 항목 | `terra.daemon.files.list.get` (L) · 원격은 `io.terra.file.entries.list` (M ⚠) | `file.read` |
-| 받기 | `io.terra.file.transfers.pulls.create {root, path}` (닫기는 `transfers.pulls.{complete,abort}`) → 전송 앱에 나타남 | `file.read` |
+| 루트 · 항목 | `terra.daemon.files.list.get` (L) · 들어가면 `io.terra.file.entries.list` (M) | `file.read` |
+| 받기 | `io.terra.file.transfers.pulls.create {root, path}` → `transfers.chunks.get {transfer_id, offset}`(eof까지 · 조각마다 SHA-256) → 전체 SHA-256 → `transfers.pulls.complete` → 브라우저 저장. 어긋나면 `transfers.pulls.abort` — 모듈이 지었다(`source.download`) | `file.read` |
 | 지우기 · 새 폴더 | `entries.remove` · `entries.mkdir` (M ⚠) | `file.write` — 모듈 op가 계약에 선언한다(io.terra.file 0.2.0) |
 | 전송 목록 · 올리기 · 중단 · 이어서 | `transfers.list` · `transfers.create {push}` · `transfers.abort {keep_partial}` · `transfers.chunks.put` (409 `retry_offset`부터) | `file.read` / `file.write` |
 
@@ -179,7 +182,7 @@ Master는 canceled · timed_out을 `failed`로 접는다 — 이유는 `result.s
 | --- | --- | --- |
 | 목록 | `terra.daemon.modules.get` (L) · tree에서 볼 때 `terra.master.nodes.by-node-id.modules.get` | `node.read` |
 | 시작 · 멈춤 · 재시작 | **이 노드는 `terra.daemon.modules.by-module-id.{start,stop,restart}.post`**(`node.control`, 작업으로 접수 → `tasks.by-task-id.get`으로 끝까지 본다). 게이트웨이 쪽 이름은 `terra.gateway.modules.by-id.{start,stop}.post` — 재시작이 없다 | `node.control` |
-| 로그 | `terra.gateway.modules.by-id.logs.get` — leaf 게이트웨이에서는 500 `MODULE_MANAGEMENT_FAILED`("not supported by the daemon local API", 실측) | `node.read` |
+| 로그 | 이 노드 `terra.gateway.modules.by-id.logs.get { logs: [글] }` · 다른 노드 `terra.daemon.modules.by-module-id.logs.get { lines: [{at, stream, text}] }`(노드 주소 호출) → 상태 화면의 출력 칸. 예전 leaf 게이트웨이의 500 `MODULE_MANAGEMENT_FAILED`는 Terra G0~G6(B-14)에서 풀렸다 | `node.read` |
 
 자물쇠가 둘이다(Gateway `module.manage`★ / Daemon `node.control`). 이 노드의 모듈은 Daemon 길로 가므로 실데이터 층은 화면의 `모듈 관리★` 자물쇠를 `node.control`로 푼다.
 
@@ -200,14 +203,22 @@ Master는 canceled · timed_out을 `failed`로 접는다 — 이유는 `result.s
 | 바로가기 | 보이는 것 | 받는 곳 | 권한 |
 | --- | --- | --- | --- |
 | Terra 저장소 | Terra가 관리하는 폴더 — 공유 폴더(`storage.shared_dirs`) · 백업 · 모듈 데이터 | `terra.daemon.files.list.get` (루트 → 항목) | `file.read` · **읽기만** |
-| 폴더 탐색기 | 권한 안의 로컬 최상위 루트(`/` — Linux 먼저, Windows는 드라이브 목록, macOS는 `/Volumes` 포함) | ⚠ **API 없음** — Daemon에 새 op 필요(제안 `terra.daemon.local-fs.list.get`, 허용 루트 목록은 설정에서) | `file.read` · **읽기만** · 권한 밖 폴더는 🔒 흐리게 |
-| 메모장 | `~/.terra/memos` | 메모 루트를 공유 폴더로 등록해 `io.terra.file.entries.*` ⚠ 또는 `LayoutStore`(브라우저) — **결정 필요** | `file.read` · `file.write` |
+| 폴더 탐색기 | 권한 안의 로컬 최상위 루트(`/` — Linux 먼저, Windows는 드라이브 목록, macOS는 `/Volumes` 포함) | `terra.daemon.local-fs.roots.get` → `local-fs.entries.get {root, path?, limit}`(Terra B-11 · 로컬 전용). 루트는 Daemon 설정 `local_fs.roots` · 닫을 폴더는 `local_fs.deny` + Daemon 자기 폴더 | `file.read` · **읽기만** · 닫힌 폴더는 🔒 + 이유 |
+| 메모장 | 메모 | LayoutStore — 이 브라우저 + 사용자 문서(`layout/<node_id>` — [[real-data-layer\|실데이터 층]] §2.8). 원본(maingui)은 `memos` 루트 · `share-0/memos/` 파일 | `file.read` · `file.write` |
 
 ### 4.2 로컬 프로그램 · OS 파일 관리자로 열기
 
 읽기 전용 파일은 **로컬에서 지원하는 프로그램**으로 연다(Linux `xdg-open` · Windows 기본 앱 · macOS `open`). 폴더는 OS 파일 관리자로.
-브라우저는 로컬 프로그램을 띄울 수 없으므로 **Daemon 로컬 op가 필요하다**(⚠ 없음 — 제안 `terra.daemon.desktop.open.post {path}`, 로컬 노드에서만, 사용자 확인).
-원격 노드의 파일은 먼저 내려받기(전송) 뒤 로컬에서 연다.
+브라우저는 로컬 프로그램을 띄울 수 없으므로 Daemon이 연다 — `terra.daemon.desktop.open.post {root, path?, action: open | reveal}`(Terra B-12 · `node.control` · 로컬 전용).
+`root`는 폴더 탐색기의 로컬 루트 이름, 공유 폴더는 `shared:<이름>`. 화면은 **그 컴퓨터에서 볼 때만**(앱 origin이 `*.localhost`) 부른다 — Daemon이 그 노드의 바탕화면에 연다.
+
+| 답 | 화면 |
+| --- | --- |
+| 200 | `↗ 열었다` · `📂 파일 관리자로 열었다` |
+| 409 `DESKTOP_OPEN_EXECUTABLE` | 실행 파일은 열지 않는다 — 파일 관리자로만 |
+| 503 `DESKTOP_SESSION_UNAVAILABLE` · `DESKTOP_LAUNCHER_UNAVAILABLE` | 바탕화면 세션이 없다 · 여는 프로그램이 없다(서버 · 컨테이너) |
+
+원격 노드의 파일은 먼저 받기(§2.5) 뒤 로컬에서 연다.
 
 ### 4.3 메모장 동작
 

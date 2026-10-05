@@ -7,8 +7,8 @@ doc_type: "integration-guide"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-03"
+version: "0.3.1"
+last_updated: "2026-10-05"
 language: "ko-KR"
 based_on: "terra-gui-api-priority v0.2.0 (main 0642568)"
 os_priority:
@@ -104,7 +104,7 @@ class TerraClient {
 >   스코프 토큰을 붙인다. 쿠키는 앱 origin을 지나지 않으므로 `credentials: 'include'`는 단독 실행에서만 쓴다.
 > - **`confirm`이 없다** — 게이트웨이에 확인 신호의 규약이 없다. 되돌릴 수 없는 동작의 확인은 화면이 맡는다(두 번 누르기).
 > - **봉투를 벗긴다** — Daemon `{ status, data }` · Master `{ ok, data }`. 오류 봉투의 `error.code`가 `reason`이 된다.
-> - **`node`를 주면 부르지 않는다** — 다른 노드의 operation 경로가 없어 `unavailable · remote-node`.
+> - **`node`(node_id)를 주면 노드 주소 호출** — `POST /api/v1/nodes/{node_id}/operations/{id}/invoke`(Terra B-1). 그 노드 카탈로그(60초)에 없는 것은 부르지 않고 `unavailable · not-remote`, 그 길이 없는 게이트웨이면 `unavailable · remote-node`.
 > - 자세한 것은 [[frontend-api|프론트엔드 API]] §6.1 · §6.5.
 
 ### 2.3 응답을 화면 상태로 바꾸기

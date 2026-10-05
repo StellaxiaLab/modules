@@ -4,7 +4,7 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.4"
+version: "v0.5"
 last_updated: "2026-10-05"
 ---
 
@@ -13,15 +13,15 @@ last_updated: "2026-10-05"
 게임 GUI 형태의 Terra 노드 화면 — 시작 화면 · 육각 필드 맵 · 조타륜 · 노드 자원 · 연결(도로) · 오버헤드 패널 · 편집기 — 을
 노드의 **main GUI**로 내는 모듈이다. base Scene(`io.terra.scene.terra`)은 main이 하나면 그것을 곧장 띄운다.
 
-화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `f24c3bc`(2026-10-04 — service 판 = 예시 데이터를 뺀 판)를
-바탕으로 한 **module 변형**이다 — 같은 디자인 원본(`web/design/`) · 같은 생성 규칙이고, 갈림은 부트 프로필(`web/src/boot/module.js`)이다.
+화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `2ced429`(2026-10-05 — service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동)를
+바탕으로 한 **module 변형**이다(처음에는 `f24c3bc`에 맞췄다) — 같은 디자인 원본(`web/design/`) · 같은 생성 규칙이고, 갈림은 부트 프로필(`web/src/boot/module.js`)이다.
 처음에는 압축 파일로 받은 `terra-node-gui` 1.0으로 만들었고, 그 뒤 maingui 저장소(자원 추가 · 수정 · 삭제 · 상태 화면 · 모듈 GUI 창이 더 있다)로 다시 맞췄다.
 모듈이 더한 것은 다섯이다.
 
 1. **얇은 셸 Scene** — `terra.web/frame` 하나와 로그인 Route 하나.
 2. **frame 배선** — 웹이 Terra 셸 안에서 스코프 토큰으로 이 노드의 게이트웨이를 부른다. 시작 화면은 비밀번호를 받지 않고 셸의 로그인 카드를 부른다.
 3. **실데이터 층** — 디자인 원본의 예시 데이터를 하나도 보이지 않게 지우고, 이 노드의 값으로만 채운다(`web/src/data/`).
-4. **LayoutStore** — API에 자리가 없는 맵 배치 · 노드 모습 · 노드 자원 · 연결 · 메모를 이 브라우저에 노드 · 주체마다 둔다(`web/src/store/layout.js`).
+4. **LayoutStore** — API에 자리가 없는 맵 배치 · 노드 모습 · 노드 자원 · 연결 · 메모를 이 브라우저에 노드 · 주체마다 두고, Terra 사용자 문서 저장소(C-1)에도 뒤따라 둔다(`web/src/store/layout.js` · `docs.js`) — 다른 기기 · 브라우저에서 같은 맵.
 5. **웹 빌드 단계** — 이 저장소가 `web/`을 `ui/`로 굽는다([저장소 README](../../README.md)의 "웹 화면을 가진 모듈" 절).
 
 남은 일 — 플랫폼 · 이 모듈 · GUI 원본(maingui) · 결정 — 은 [`web/docs/guides/implementation-backlog.md`](web/docs/guides/implementation-backlog.md).
@@ -90,18 +90,19 @@ flowchart LR
 | --- | --- |
 | 시작 화면 | frame 세션 — 로그인 전이면 [Terra 로그인](셸의 로그인 카드), 토큰이 있으면 주체 이름(whoami)을 보이고 곧장 노드 화면으로 |
 | 맵 | 처음 맵은 **이 노드**(`terra.daemon.node.get`)의 맵. 부모 tree 는 등록 정보의 Master 주소(`tree · 호스트:포트`), 그 아래 노드는 `GET /api/v1/agent/nodes`(오프라인 노드는 건물에 정지 이벤트) |
-| 맵 배치 · 노드 모습 · 노드 자원 · 연결(도로) · 표시 설정 · 메모 | LayoutStore — 이 브라우저(앱 origin)에 노드 · 주체마다. 처음엔 비어 있다. 설치한 자원의 상태 · 모니터링 값은 원본 앱 목록에서(닫혀 있어도 `pollSec`마다) |
+| 맵 배치 · 노드 모습 · 노드 자원 · 연결(도로) · 표시 설정 · 메모 | LayoutStore — 이 브라우저(앱 origin)에 노드 · 주체마다 + 사용자 문서 `app:lab.stellaxia.node-gui.web/layout/<node_id>`(새 쪽이 이긴다 · 겹쳐 쓰면 한 번 알린다). 처음엔 비어 있다. 설치한 자원의 상태 · 모니터링 값은 원본 앱 목록에서(닫혀 있어도) |
 | 세션 띠 · 유틸 카드 · 창 요약 · 속성 창 | 로그인한 사람(frame 값) · 토큰 권한 · 모듈 · 터널 · WireGuard · 설정 키 수 · 장치 · 공유 폴더 개수 — 진짜 값, 없으면 `—` |
-| 알림 | 이 노드의 Daemon 작업(`terra.daemon.tasks.get`)을 `pollSec`(기본 10초)마다 — 새로 생기거나 상태가 바뀐 것 |
-| 조타륜 앱 — I/O 장치 · 공유 폴더 · 파일 전송 · 서비스 터널 · WireGuard · 자원 선언 · 작업 · 모듈 | **실데이터와 실제 동작.** 작업은 Daemon 작업, 모듈 수명은 Daemon 경로(`node.control`) |
+| 알림 | 이 노드의 Daemon 작업(`terra.daemon.tasks.get`) — 실시간 이벤트(`terra.daemon.events.get` SSE)의 신호마다, 이벤트가 없으면 `pollSec`(기본 10초)마다. 새로 생기거나 상태가 바뀐 것 |
+| 조타륜 앱 — I/O 장치 · 공유 폴더 · 파일 전송 · 서비스 터널 · WireGuard · 자원 선언 · 작업 · 모듈 | **실데이터와 실제 동작.** 작업은 Daemon 작업, 모듈 수명은 Daemon 경로(`node.control`). 장치 손 등록(카메라 주소) · 파일 올리기(↑ 올리기 → 조각 · SHA-256) · 받기(브라우저 저장) · 모듈 로그(상태 화면 출력 칸) |
 | 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버가 받는 본문으로 부른다 — 폴더(만들기 · 빈 파일 · 이름 바꾸기 · 지우기) · 장치(별명 · 승인 · 켜기 · 잊기 · 스캔) · 작업(실행 · 취소) · 전송(포기). 서버에 길이 없으면 **항목을 지어 넣지 않고** 그렇다고 말한다 |
 | 상태 화면 · 모듈 GUI 창 | 원본 앱 목록의 그 항목 · 이 노드의 권한 / 설치된 GUI 앱(`/api/v1/gui/apps`). 다른 모듈의 앱은 이 창에 띄울 수 없다고 적는다(frame은 자기 모듈의 앱만) |
 | 조타륜 앱 — SVI 자원 · 허가 | Master operation — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` |
-| 폴더 보관함 | Terra 저장소 = 이 노드의 공유 폴더(`io.terra.file`). 폴더 탐색기는 API가 없어 비어 있다. 메모는 LayoutStore(이 브라우저 — 서버 저장은 Q-3) |
+| 폴더 보관함 | Terra 저장소 = 이 노드의 공유 폴더(`io.terra.file`). 폴더 탐색기 = 이 노드의 로컬 최상위 루트(`local-fs` — 닫힌 폴더는 🔒), 파일 · 폴더는 그 노드의 바탕화면에 연다(`desktop.open` — 그 컴퓨터에서 볼 때만). 메모는 LayoutStore(브라우저 + 사용자 문서) |
 | 네트워크 보드 | 로컬 WireGuard · 로컬 서비스 터널은 실데이터. 사설망 · 라우팅 · 조작 이력은 Master — "닿지 않음" |
 | 설정 보드 | 로컬 노드 135키(값 · 소유 · 반영 · 설치값 차이)와 저장, 계정(whoami), 로컬 자원. 클러스터 · 서버 탭은 Master — "닿지 않음" |
-| 다른 노드 · 다른 tree | 비어 있다 — 다른 노드의 operation 경로 · 연결 목록이 없다 |
-| 편집기에서 내보낸 도로 · 건물 | 이 브라우저(`localStorage`) — 노드 화면이 바로 받아 다시 굽는다 |
+| 다른 노드 | 노드 주소 호출(Terra B-1)로 그 노드의 Daemon — I/O 장치 · 모듈(로그 포함) · 작업 · 선언 · 터널 · WireGuard. 그 노드 카탈로그로 누르기 전에 잠근다(로컬 전용 · 공유 폴더 안은 잠김) |
+| 다른 tree | 비어 있다 — 연결 목록을 둘 곳 · 가는 길이 없다 |
+| 편집기에서 내보낸 도로 · 건물 | 이 브라우저(`localStorage`) — 노드 화면이 바로 받아 다시 굽는다 · 사용자 문서 `assets`로 뒤따라 |
 | 로그인 전 · 토큰을 잃었을 때 | **빈 세계**(`이 노드` 한 칸 · `로그인 전`). 띠가 *"Terra에 로그인하지 않았습니다 — 로그인하면 이 노드의 데이터가 보입니다"* 와 [로그인]을 보인다 |
 
 Master가 닿지 않는 것은 **결함이 아니라 설계상 경계**다 — 앱 스코프 토큰은 Bearer를 싣지 않으므로 forward-auth인
@@ -116,7 +117,7 @@ Master 401은 "쓸 수 없다"로 바꾸고 그 뒤로 Master를 부르지 않�
 | --- | --- | --- | --- |
 | **Q-1** | 어떻게 나가나 (접두사) | **tree 레지스트리** — `lab.stellaxia.*`, `pack` → `publish`. 이 저장소의 규칙 그대로다 | 제품 동봉으로 가면 `io.terra.*`로 개명하고 코어 `bundled-modules.json`에 선언한다. **게시 전이라 개명 비용이 0이다** |
 | **Q-2** | Master 데이터를 웹에 어떻게 건네나 | **(다) 이 화면은 Master 데이터를 갖지 않는다** — "쓸 수 없다"로 보인다 | (가) Scene 중계 — 셸 Scene의 Function이 사용자 자격으로 `call`하고 `bind`로 넘긴다 · (나) Core peer 중계를 넓힌다(ADR 감) |
-| **Q-3** | 메모 · 설계도 · 맵 배치를 어디에 두나 | **1차 — 이 브라우저**(LayoutStore · `localStorage`, 노드 · 주체마다): 맵 배치 · 노드 모습 · 노드 자원 · 연결 · 메모 · 창 자리. 편집기 설계도도 `localStorage`. 서버 저장은 정하지 않았다 — `kind`는 `scene` 그대로 | `kind: service`로 올려 모듈 백엔드가 `X-Terra-Subject`로 사람별로 저장한다 — `loadLayout` · `saveLayout` 두 함수만 바꾼다 |
+| **Q-3** | 메모 · 설계도 · 맵 배치를 어디에 두나 | **이 브라우저 + Terra 사용자 문서 저장소**(C-1 — Terra G0~G6이 열었다). 브라우저(LayoutStore · `localStorage`, 노드 · 주체마다)에 바로, 사용자 문서(`app:<앱 id>` 이름공간 — 앱 토큰이면 고정)에 뒤따라. `kind`는 `scene` 그대로 — 모듈 백엔드가 필요 없다 | `config.json` `layoutStore: local`(브라우저에만) · `none`(저장 안 함) — 백로그 Q-14 |
 | **Q-4** | 보드를 어떻게 여나 | **`srcdoc`** — 판정서의 (가) · (나) · (다) 어느 것도 아닌 넷째 길. 프로토타입의 iframe 구조를 그대로 두고, 같은 앱의 페이지를 받아 `srcdoc`으로 넣는다. `srcdoc` 문서는 부모의 origin · CSP를 이어받아 `frame-ancestors` 검사를 타지 않는다 | (가) 한 문서 안에 마운트 · (다) 플랫폼 `frame-ancestors`에 `'self'`(P-3) |
 | **Q-5** | 여러 tree 전환 | **(가) 뺀다** — tree 목록은 비어 있고, 다른 tree로 가려 하면 *"다른 tree로는 이 화면이 닿지 않는다"* | (나) 셸 수준의 기능으로 따로 설계한다 |
 | **Q-6** | 폰트 | **(나) 시스템 글꼴** — Google Fonts를 뺐다(CSP `font-src 'self' data:`). 글꼴 스택의 `Noto Sans KR` → `system-ui` … 로 떨어진다 | (가) 서브셋을 `web/public/`에 넣어 번들 |
@@ -142,7 +143,7 @@ maingui를 따라가는 방법 · "삭제"의 뜻)은 [`web/docs/guides/implemen
 cd common/lab.stellaxia.node-gui/web
 npm ci
 npm run dev          # http://localhost:5173 — 단독 실행, 데이터 없음(빈 세계)
-npm test             # 연동 층 · 실데이터 층 · 모듈 프로필 · 추가 · 수정 · 삭제 시험 (80개)
+npm test             # 연동 층 · 실데이터 층 · 모듈 프로필 · 추가 · 수정 · 삭제 · 이벤트 · 손 동작 시험 (100개)
 npm run build        # ../ui/ 를 새로 쓴다
 ```
 
@@ -167,6 +168,22 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### Terra G0~G6 연동 — MD-11 · MD-12 · MD-15~MD-19 (2026-10-05, 0.3.0)
+
+Terra(main + [Terra#118](https://github.com/StellaxiaLab/Terra/pull/118))로 빌드한 스택에 이 모듈 0.3.0과 modules main의 `io.terra.file` · `io.terra.io-inventory` 0.2.0을 깔고,
+이 모듈 앱 토큰으로 Chromium(Playwright)에서 돌렸다. 결과는 관리자 토큰으로 서버에 직접 물어 견줬다 — 자세히는 [`web/docs/api/real-data-layer.md`](web/docs/api/real-data-layer.md) §5.3.
+
+| 항목 | 진짜 스택에서 |
+| --- | --- |
+| MD-11 실시간 이벤트 | SSE `open` · 네트워크 카드 `실시간`. 장치를 손 등록하자 `terra.io.devices.changed` → I/O 앱만 다시 받았다 |
+| MD-18 장치 손 등록 | I/O 앱 폼(이름 · 주소) `rtsp://…` → Daemon `adapter_id: manual.rtsp` · `kind: camera` |
+| MD-12 다른 노드 | 그 노드 카탈로그 49개 · `io.devices.get` · 모듈 로그 중계 200 · 로컬 전용(`local-fs`)은 부르지 않고 잠금 |
+| MD-16 로그 · 탐색기 · 열기 | 모듈 로그 → 상태 화면 출력 칸 · 로컬 루트(`root` · `home🔒`) → `etc` 153개 · 열기 → 이 컨테이너엔 바탕화면이 없다는 글(503) |
+| MD-17 올리기 · 받기 | `↑ 올리기` 단추 → 파일 고르기 → 300 KB(조각 둘) 검사 통과 · 서버 크기 같음 → 폴더 앱 `받기` → 내려받은 내용이 같다 |
+| MD-15 사용자 문서 | `app:lab.stellaxia.node-gui.web/layout/<node_id>` · **새 브라우저**(빈 저장소)에서 같은 표지 · 메모 · 겹쳐 쓰면 409 한 번 알림 |
+| MD-19 디자인 | `design/`이 maingui `2ced429`와 파일 단위로 같다 · 페이지 오류 0 |
+| 시험 | `npm test` 100 · `test:smoke` · `validate` · `test:web` 통과 |
 
 ### 구현해야 할 것 — MD-4 · MD-5 · MD-8 (2026-10-05)
 
@@ -270,14 +287,15 @@ Daemon만 가짜다.
 ## 관련 모듈
 
 - `io.terra.scene.terra` (Terra 코어) — 이 main을 띄우는 base Scene
-- [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · I/O 장치 데이터의 출처
+- [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · 전송(0.2.0 받기) · I/O 장치(0.2.0 손 등록) 데이터의 출처
 - [`lab.stellaxia.scene.hello`](../lab.stellaxia.scene.hello/README.md) — 같은 tree 레지스트리 경로의 가장 작은 Scene 모듈
-- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈은 `f24c3bc`에 맞췄다
+- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `2ced429`와 같다
 
 ## 관련 흐름
 
 - 위 "어떻게 맞물리나" 그림 — base Scene → 셸 Scene → frame → 시작 화면 → 노드 화면(srcdoc) → Gateway
-- 로그인 → 이 노드 · 부모 tree · 자원 읽기(`loadWorld`) → LayoutStore 되살리기 → 조타륜 앱 연결 → 알림 · 설치한 자원 · 네트워크 폴링 · 로그아웃 → 빈 세계(저장본은 남는다)
+- 로그인 → 이 노드 · 부모 tree · 자원 읽기(`loadWorld`) → LayoutStore 되살리기(브라우저 · 사용자 문서 중 새 쪽) → 조타륜 앱 연결 → 실시간 이벤트(폴링은 바닥) · 로그아웃 → 빈 세계(저장본은 남는다)
+- 다른 노드 — 관계도의 `node_id` → 그 노드 카탈로그 → 노드 주소 호출(Master 중계 · 대상 Daemon 판정)
 - 빌드 · 출하 — `npm run build:web` → `npm run pack`(앱 entry 검사) → 릴리스 자산 → `publish`
 - 자원 추가 · 수정 · 삭제 — 폼 저장 · 두 번째 누름 → `source.crud`(실제 본문) → 이 노드의 Gateway → 목록 다시 받기 — 서버에 길이 없으면 지어내지 않는다
 - 원본 따라가기 — maingui `design/` 복사 → `npm run gen`(패치를 못 찾으면 멈춤) → 시험 → `build:web`

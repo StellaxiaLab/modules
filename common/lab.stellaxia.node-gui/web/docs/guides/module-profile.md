@@ -8,7 +8,7 @@ doc_type: "guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.2.0"
+version: "1.3.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -29,7 +29,8 @@ related:
 디자인 캔버스 원본(`design/*.dc.html`) 하나에서 GUI 세 벌이 나온다. 차이는 `public/config.json`의 `variant`와
 그 변형의 **부트 프로필**(`src/boot/<variant>.js`)뿐이다 — 화면 코드(`src/screens/*.js`)는 셋 다 생성된 그대로다.
 
-원본은 **GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui)**다. 이 모듈은 그 `f24c3bc`(2026-10-04)에 맞췄다.
+원본은 **GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui)**다. 이 모듈의 `design/`은 그 `2ced429`(2026-10-05 — Terra G0~G6 연동)와 파일 단위로 같다.
+처음에는 `f24c3bc`(2026-10-04)에 맞췄다 — [[implementation-backlog|구현해야 할 것]] MD-19.
 
 - `demo` — maingui의 `examples/demo/`(예시 세계 그대로 · `examples/data/`). 예전 이름 `terra-node-gui-demo`.
 - `service` — maingui 저장소 뿌리. 예시를 지우고, 자기 로그인 화면으로 Gateway(`/gw` 프록시)에 붙는 독립 배포판. 예전 이름 `terra-node-gui`.
@@ -110,9 +111,9 @@ sequenceDiagram
 - 이 화면은 아무것도 기억하지 않는다 — 짝 프로젝트의 `terra.gui.autoLogin`(아이디 기억)을 쓰지 않는다. "자동 로그인"은 Terra가 쥔 세션이 있다는 뜻이다.
 - 오른쪽 아래 판의 `v0.2 · 예시 데이터` 글은 `Terra 노드 · Terra 안/밖`으로 바꾼다(짝 프로젝트 service는 이 글을 그대로 둔다 — [[implementation-backlog|구현해야 할 것]] UP-2).
 
-## 4. 저장 — LayoutStore (`src/store/layout.js`)
+## 4. 저장 — LayoutStore (`src/store/layout.js` · `src/store/docs.js`)
 
-API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage`(앱 origin)에 둔다.
+API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage`(앱 origin)에 바로, Terra 사용자 문서 저장소(C-1)에 뒤따라 둔다.
 
 | 항목 | 내용 |
 | --- | --- |
@@ -121,11 +122,13 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 | 언제 | 로그인해 세계를 읽은 뒤에만 묶는다(`bindLayout`). `setState`를 0.8초 모아 한 번, 페이지를 떠날 때 한 번. 맵 전환 중에는 쓰지 않는다 |
 | 되살리기 | 주인이 사라진 맵은 버리고, 사라진 노드는 칸에서 빼고, 칸이 없는 tree 자식은 `새 노드`로(`reviveMaps`). 새 창(도로 편집기 · 자원 설정)은 기본 자리(`reviveWins`). 처음 맵은 늘 이 노드의 맵이다 |
 | 로그아웃 · 토큰을 잃음 | 저장을 **끊고**(`unbind`) 빈 세계로 돌아간다 — 빈 세계가 저장본을 덮지 않는다. 표시 설정 · 패널 접힘도 기본으로, 열려 있던 상태 화면 · 폼 · 모듈 GUI 창 · 그래프 고름은 비운다 |
-| 끄기 | `config.json`의 `"layoutStore": "none"` — 공용 화면 · 키오스크 |
+| 서버(사용자 문서) | `layoutStore: server`(기본)면 같은 것을 `/api/v1/me/documents/app:lab.stellaxia.node-gui.web/layout/<node_id>`에 3초 모아서 쓴다 — 이름공간은 whoami의 `delegate`(앱 토큰이면 게이트웨이가 고정한다). 읽을 때 새 쪽(`savedAt` · 브라우저 `_savedAt`)이 이기고, 겹쳐 쓰면 409를 한 번 알린 뒤 덮는다. 저장소가 없거나 막히면 이 세션은 브라우저만 — [[real-data-layer\|실데이터 층]] §2.8 |
+| 끄기 | `config.json`의 `"layoutStore": "local"`(이 브라우저에만) · `"none"`(저장 안 함 — 공용 화면 · 키오스크) |
 | 노드 이름 | 맵 안의 노드는 화면 규칙대로 이름이 키다. 저장할 때 이름 → `node_id`(`nodeIds`)를 같이 적고, 읽을 때 지금 이름으로 옮긴다(`remapNodes`) — 이름이 바뀌어도 칸 · 모습 · 노드 자원 · 연결이 따라가고, 사라진 노드의 칸은 같은 이름을 얻은 다른 노드에게 넘어가지 않는다. tree 항목은 id가 없어 이름 그대로다 |
-| 한계 | 기기 · 브라우저마다 따로다. 서버 저장으로 바꿀 때는 `loadLayout` · `saveLayout` 두 함수만 바꾼다 — [[implementation-backlog\|구현해야 할 것]] PF-3 |
+| 한계 | 다른 창 · 기기가 바꾼 것은 곧장 오지 않는다 — 다음 쓰기의 409 알림 · 새로 고침에 받는다(문서 변경 신호는 Master 이벤트 — [[implementation-backlog\|구현해야 할 것]] PF-17) |
 
 도로 · 건물 설계(편집기에서 내보낸 것)는 LayoutStore가 아니라 `localStorage`의 `terra.gui.roads` · `terra.gui.buildings`다 — 노드 화면은 `storage` 이벤트로 받아 다시 굽는다([[road-editor-spec|도로 편집기]] §2).
+`layoutStore: server`면 이 둘도 사용자 문서 `assets`로 뒤따라 가고, 로그인할 때 서버 것이 더 새로우면 받아 다시 굽는다.
 
 ## 5. 설정 — `public/config.json`
 
@@ -133,7 +136,7 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 {
   "variant": "module",
   "appTitle": "Terra",
-  "layoutStore": "local",
+  "layoutStore": "server",
   "pollSec": 10
 }
 ```
@@ -141,8 +144,8 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 | 키 | 뜻 |
 | --- | --- |
 | `variant` | `module` — `npm run gen`이 이 값으로 페이지를 만든다. 다른 값이면 멈춘다(service · demo는 짝 프로젝트에서) |
-| `layoutStore` | `local` = 이 브라우저에 저장 · `none` = 저장 안 함 |
-| `pollSec` | 조타륜 앱 · 설치한 노드 자원 · 알림을 다시 받는 간격(초, 최소 5). 네트워크 요약은 그 3배 |
+| `layoutStore` | `server`(기본) = 이 브라우저 + Terra 사용자 문서(다른 기기 · 브라우저에서 같은 맵) · `local` = 이 브라우저에만 · `none` = 저장 안 함. 모르는 값이면 `server` |
+| `pollSec` | 조타륜 앱 · 설치한 노드 자원 · 알림을 다시 받는 간격(초, 최소 5). 네트워크 요약은 그 3배. 실시간 이벤트(B-5)가 열려 있으면 신호가 다시 받기를 맡고 이 간격은 여섯 배로 늘어난다(바닥) |
 
 빌드 결과 `ui/config.json`만 고쳐도 된다(받을 때 `cache: 'no-store'`). 짝 프로젝트의 `gateway` 키는 없다.
 
@@ -174,6 +177,13 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 | 로그아웃하면 시작 화면이 노드 화면을 걷고 판으로 돌아온다 | `src/data/intro-live.js` `flyBack` |
 | 자원 추가 · 수정 · 삭제 — 폼 저장(`hbFormSave`) · 두 번 누르는 삭제(`hbDel`)를 실제 호출로 바꿔 끼운다. 값을 적어야 하는 앱 바 동작은 폼을 연다 | `src/api/operations.js` `HELM_CRUD` · `src/api/source.js` `crud()` · `src/api/wire.js` |
 | 서버에 길이 없는 추가 · 수정 · 삭제는 폼 · 확인 대기를 열기 전에 막는다 · 폼의 API 줄 · 자리 표시자 · 상태 화면의 로그인 줄 · 모듈 GUI 창 · 메모 경로 | `src/data/node-live.js` (`crudWhy` · `HBCRUD` · `hbFormOpen` · `hbFormSave` · `hbDel` · `rstVals` · `mguiVals` · `memoVals`) |
+| 실시간 이벤트 — 신호마다 그 목록만 다시 받는다 · 폴링은 바닥 | `src/api/events.js` · `src/data/node-live.js` `applySignal` · `src/api/wire.js` `_hbRefresh` |
+| 다른 노드 — 노드 주소 호출 · 그 노드 카탈로그로 미리 잠금 · 권한 `관리자 · 중계` | `src/api/client.js` `invokeAt` · `nodeCatalog` · `src/api/source.js` `lockFor` · `daemonView` · `node-live.js` `hbPerm` |
+| 사용자 문서(서버 저장) — 배치 · 메모 · 편집기 자산 | `src/store/docs.js` · `node-live.js` `loadWorld` |
+| 모듈 로그 → 상태 화면 출력 칸 · 폴더 탐색기(local-fs) · 바탕화면에서 열기(desktop.open) | `src/api/wire.js` `outText` · `node-live.js` `loadLocalFolder` · `deskOpen` · `FBMODES` · `fbOpenItem` · `fbOS` |
+| 파일 올리기(↑ 올리기 → 파일 고르기) · 받기(폴더 앱 `받기` → 브라우저 저장) | `src/api/source.js` `upload` · `download` · `src/api/wire.js` `saveBlob` · `src/api/sha256.js` |
+| I/O 장치 손 등록 폼(이름 · 주소) | `node-live.js` `hbFields` · `src/api/operations.js` `manualAdapter` |
+| 노드 관리 폼(이름 · 부모 · 지우기)은 Master op라 잠그고 이유를 보인다 · 설정 재시작은 Daemon `restart.post` 뒤 health로 돌아올 때까지 | `node-live.js` `masterWhy` · `rstVals` · `src/data/settings-live.js` `doRestart` |
 
 ## 8. 원본(maingui)과 맞추기
 
@@ -193,7 +203,7 @@ npm test && npm run test:smoke
 npm run build:web && npm run validate && npm run test:web
 ```
 
-- 맞춘 커밋을 이 문서 머리(지금 `f24c3bc`)와 모듈 README에 적는다.
+- 맞춘 커밋을 이 문서 머리(지금 `2ced429`)와 모듈 README에 적는다.
 - `src/runtime/dc.js` · `src/boot/fixes.js` · `src/store/layout.js`(`KEYS`)처럼 원본과 같은 파일은 그쪽이 바뀌었는지 함께 본다 — 이번에 `dc.js`(글 칸 `onChange` → `input`)와 `KEYS`(`ovhHide`)가 바뀌었다.
 - 원본 화면에 **새 상태 키**가 생기면 `emptyWorld` · `loadWorld`(`src/data/node-live.js`)에서 로그아웃 · 다시 로그인 때 비울지 되살릴지 정한다 — 이번에는 `rst` · `hbForm` · `mgui` · `netSel`(비움) · `ovhHide`(되살림).
 - `src/api/*`(연동 층)는 이 저장소가 실측으로 고친 판이 앞선다 — 원본의 것으로 덮지 않는다. 원본의 새 대응(이번에는 `HELM_CRUD`)은 실제 서버의 입력과 견준 뒤 옮긴다([[implementation-backlog\|구현해야 할 것]] UP-12 · UP-13).
@@ -208,7 +218,8 @@ npm run build:web && npm run validate && npm run test:web
 
 ## 관련 모듈
 
-- `src/boot/module.js` · `src/boot/fixes.js` · `src/data/intro-live.js` · `src/store/layout.js` · `src/api/config.js`
+- `src/boot/module.js` · `src/boot/fixes.js` · `src/data/intro-live.js` · `src/store/layout.js` · `src/store/docs.js` · `src/api/config.js`
+- `src/api/events.js`(실시간 이벤트) · `src/api/client.js`(노드 주소 호출) · `src/api/sha256.js`(올리기 · 받기 검사)
 - `src/api/frame-boot.js` · `src/api/frame-boards.js` · `src/api/wire.js`
 - `src/api/operations.js`(`HELM_CRUD` · `CRUD_TEXT`) · `src/api/source.js`(`crud`) · `src/data/node-live.js`
 - GUI 원본 저장소 `StellaxiaLab/maingui` — 원본 · service · demo(`examples/`)
@@ -217,5 +228,5 @@ npm run build:web && npm run validate && npm run test:web
 ## 관련 흐름
 
 - §2 — 셸 → 시작 화면 → (로그인) → 노드 화면 미리 읽기 → 보드
-- §4 — 로그인 → 세계 읽기 → LayoutStore 되살리기 → 묶기 → 로그아웃 때 끊기
+- §4 — 로그인 → 세계 읽기 → LayoutStore 되살리기(브라우저 · 사용자 문서 중 새 쪽) → 묶기 → 로그아웃 때 끊기
 - §7 — 폼 저장 · 두 번째 누름 → `source.crud` → 서버 → 목록 다시 받기(지어내지 않는다)
