@@ -17,11 +17,12 @@ import (
 	"path/filepath"
 
 	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/manual"
 	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
 	coresvi "github.com/terra-project/terra/products/common/packages/terra-svi"
 )
 
-const moduleVersion = "0.1.0"
+const moduleVersion = "0.2.0"
 
 // statePath is where user-managed device policy persists. It lives in the
 // module's own data home (permissions.storage: module-data), never inside the
@@ -70,9 +71,17 @@ func run() error {
 		}
 	}
 
+	// What a person registered by hand (B-10). It sits beside the policy file
+	// in the same data home, as a file of its own (see manual.Source).
+	source, err := manual.OpenSource(manualSourcePath(path))
+	if err != nil {
+		return fmt.Errorf("restore manual device source: %w", err)
+	}
+	door := &manualDoor{source: source, adapters: manual.DefaultAdapters()}
+
 	// Hardware before the first request: policy survived the restart, the
 	// devices did not (see scanAtStartup).
-	scanAtStartup(registry)
+	scanAtStartup(registry, door)
 
 	// And after the first request: the start-up sweep is one look, so without
 	// this the list is only ever as fresh as the last time somebody asked.
@@ -83,7 +92,7 @@ func run() error {
 	server, err := modulesdk.Listen(modulesdk.Config{
 		Identity:   identity,
 		Readiness:  func(context.Context) (bool, string) { return true, "" },
-		Operations: newOperationsHandler(registry, hotplug),
+		Operations: newOperationsHandler(registry, hotplug, door),
 		SVIResources: func(context.Context) ([]coresvi.ResourceDescriptor, error) {
 			return registry.SVIResources(), nil
 		},
