@@ -158,11 +158,13 @@ test('전송 — 폼으로는 만들지 않는다(↑ 올리기로 파일을 고
   assert.deepEqual([opOf(f.calls[1].url), f.calls[1].body, p.keep, p.verb], ['io.terra.file.transfers.abort', { transfer_id: 'tr-3', keep_partial: false }, true, '치움']);
 });
 
-test('길이 없는 것 — SVI 자원 · 모듈 · 허가 고치기 · 피어 추가는 null(화면이 지어내지 않는다). 이 노드의 게이트웨이에 없는 op 는 부르지 않는다', async () => {
+test('길이 없는 것 — SVI 자원 · 모듈 설치 · 제거 · 허가 고치기 · 피어 추가는 null(화면이 지어내지 않는다). 이 노드의 게이트웨이에 없는 op 는 부르지 않는다', async () => {
   const { f, source } = live();
-  for (const [app, mode] of [['svi', 'create'], ['svi', 'update'], ['svi', 'del'], ['mod', 'create'], ['mod', 'update'], ['mod', 'del'], ['grant', 'update'], ['wg', 'create'], ['job', 'update']]) {
+  for (const [app, mode] of [['svi', 'create'], ['svi', 'update'], ['svi', 'del'], ['mod', 'create'], ['mod', 'del'], ['grant', 'update'], ['wg', 'create'], ['job', 'update']]) {
     assert.equal(await source.crud(LOCAL, app, mode, {}, { id: 'x' }), null, app + ' ' + mode);
   }
+  // 모듈 수정 = 모듈 설정 — 폼을 열 때 받은 설정(item.cfg)이 없으면 부르지 않는다
+  assert.deepEqual(await source.crud(LOCAL, 'mod', 'update', {}, { id: 'x' }), { kind: 'unavailable', reason: 'mod-cfg' });
   source.client.catalog = new Map([['terra.daemon.io.scan.post', {}]]);   // leaf 게이트웨이 — Master op 가 없다
   const r = await source.crud(LOCAL, 'tunnel', 'create', { type: 'tun', to: 'p:22', bind: '127.0.0.1:1' }, null, { nodeIdOf: () => 'node_9' });
   assert.deepEqual([r.kind, r.reason], ['unavailable', 'not-in-catalog']);

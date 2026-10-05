@@ -3,7 +3,7 @@
 //   LiveSource : Gateway (TerraClient + operations.js + adapters.js)
 // 화면과는 src/api/wire.js 가 잇는다.
 
-import { HELM_APPS, HELM_CRUD, GUI_APPS, scanLine, fileBinding } from './operations.js';
+import { HELM_APPS, HELM_CRUD, GUI_APPS, scanLine, fileBinding, cfgForm } from './operations.js';
 import { ADAPT, withGui } from './adapters.js';
 import { resultText } from './client.js';
 import { Sha256, sha256Blob, toB64, fromB64 } from './sha256.js';
@@ -183,6 +183,20 @@ export class LiveSource {
       return markStalled(items, this.active, Date.now(), this.seen.get(node));
     }
     return items;
+  }
+
+  /**
+   * 모듈 설정(B-6 설정) — 스키마(config.schema.get)와 저장된 값(config.get)을 받아 폼 모양(cfgForm)으로. 둘 다 node.read 다.
+   * 다른 노드는 노드 주소 호출(두 op 모두 scopes cluster). 설정을 선언하지 않은 모듈이면 cfg 는 null · r.reason MODULE_CONFIG_UNDECLARED
+   * @returns {Promise<{ r: import('./client.js').Result, cfg: ReturnType<typeof cfgForm> | null }>}
+   */
+  async modConfig(node, id) {
+    const L = (op) => ({ op: 'terra.daemon.modules.by-module-id.' + op, where: 'L' });
+    const s = await this.call(L('config.schema.get'), node, { module_id: id });
+    if (s.kind !== 'ok') return { r: s, cfg: null };
+    const v = await this.call(L('config.get'), node, { module_id: id });
+    if (v.kind !== 'ok') return { r: v, cfg: null };
+    return { r: v, cfg: cfgForm(s.data, v.data) };
   }
 
   /** 이 노드에 설치된 GUI 앱(게이트웨이 /api/v1/gui/apps — 공개). 못 읽으면 null — 모듈은 GUI 표시 없이 보인다 */
@@ -433,6 +447,7 @@ export class LiveSource {
     if (spec.keep) r.keep = true;
     if (spec.verb) r.verb = spec.verb;
     if (spec.scan && r.kind === 'ok') r.say = scanLine(r.data);
+    if (spec.say && (r.kind === 'ok' || r.kind === 'accepted')) r.say = spec.say(r.data, it);
     return r;
   }
 }

@@ -155,9 +155,11 @@ export function realNode(Screen) {
       return C;
     }
 
-    // I/O 장치 추가 = 손 등록(카메라 주소) — 종류 · 승인 · 켜기는 장치와 Daemon 이 정한다. 고칠 때는 원본의 칸 그대로
+    // I/O 장치 추가 = 손 등록(카메라 주소) — 종류 · 승인 · 켜기는 장치와 Daemon 이 정한다.
+    // 고칠 때는 원본의 칸에서 주소를 뺀다 — 등록한 장치의 주소를 바꾸는 op 는 없다(지우고 다시 등록)
     hbFields(app, it) {
       if (app === 'io' && !it) return [TX('name', '이름', '카메라 이름'), TX('addr', '주소 (비우면 스캔)', 'rtsp://… · http://… (카메라)')];
+      if (app === 'io') return super.hbFields(app, it).filter((f) => f.k !== 'addr');
       return super.hbFields(app, it);
     }
 

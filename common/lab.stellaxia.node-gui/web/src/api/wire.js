@@ -6,7 +6,7 @@
 
 import { TerraClient, resultText, trackJob } from './client.js';
 import { LiveSource, appFor } from './source.js';
-import { TRACK, TASK_STATE, logLines } from './operations.js';
+import { TRACK, TASK_STATE, logLines, cfgErrorKeys } from './operations.js';
 import { frameReady, role } from './frame-boot.js';
 import { wireFrameSession } from './frame-session.js';
 import { wireFrameBoards } from './frame-boards.js';
@@ -36,6 +36,7 @@ export function wireHelm(screen, source, opts = {}) {
   if (source.mock) return () => {};
   const loading = new Set(), loaded = new Set();
   const orig = { hbSeed: screen.hbSeed, hbAct: screen.hbAct, hbFormSave: screen.hbFormSave, hbDel: screen.hbDel, hbOpLock: screen.hbOpLock };
+  let unwireOpen = null;   // 모듈 설정 폼 열기(hbFormOpen)를 바꿔 끼웠으면 되돌리는 함수
   // 1) 받아 오기 전엔 빈 목록 + 글줄
   screen.hbSeed = () => [];
   // 길 없는 동작은 누르기 전에 🔒 + 이유 (원본 hbOpLock — 카드 · 머리 버튼마다 부른다)
@@ -62,8 +63,10 @@ export function wireHelm(screen, source, opts = {}) {
     loading.add(key);
     if (!quiet) screen.hbSay('불러오는 중…', GRAY);
     try {
-      const list = await source.list(node, app, { path: app === 'folder' ? folderPaths(node, path) : path != null ? path : screen.state.hbPath });
+      let list = await source.list(node, app, { path: app === 'folder' ? folderPaths(node, path) : path != null ? path : screen.state.hbPath });
       if (!live) return;
+      // 모듈 설정 폼이 보는 칸(item.cfg)은 목록에 없다 — 다시 받아도 붙여 둔 것을 잃지 않는다(열린 폼의 칸이 바뀌지 않게)
+      if (app === 'mod') { const was = new Map((screen.hbItems(node, app) || []).filter((x) => x.cfg).map((x) => [x.id, x.cfg])); if (was.size) list = list.map((x) => (was.has(x.id) ? Object.assign({}, x, { cfg: was.get(x.id) }) : x)); }
       screen.hbPut(node, app, list);
       loaded.add(key);
       if (!quiet) screen.setState({ hbMsg: null });
@@ -186,12 +189,41 @@ export function wireHelm(screen, source, opts = {}) {
       if (st && st.kind === 'res' && st.node === node && st.app === app && st.id === from) patch.rst = Object.assign({}, st, { id: to }, name ? { name } : {});
       if (Object.keys(patch).length) screen.setState(patch);
     };
+    // 모듈 설정(B-6 설정) — 수정 폼을 열기 전에 스키마 · 값을 받아 항목에 붙인다(item.cfg → 화면 hbFields 가 그 칸을 쓴다).
+    // 설정을 선언하지 않은 모듈이면 붙이지 않는다 — 화면이 "설정을 선언하지 않은 모듈이다"라고 말한다.
+    // 보기는 node.read, 저장은 module.manage★ — 화면 권한은 node.control 로 모듈 카드 단추를 열려고 module.manage 를 채워 넣으므로(node-live hbPerm)
+    // 저장할 수 있는지는 토큰이 실제로 쥔 권한으로 본다
+    const canManage = () => { const p = screen.__real && screen.__real.perms; return !Array.isArray(p) || p.indexOf('module.manage') >= 0; };
+    const NO_MANAGE = '🔒 저장 — module.manage★ 권한 없음(기본 권한 밖 — 운영자가 따로 준다) · 값은 볼 수만 있다';
+    if (source.modConfig && screen.hbFormOpen) {
+      const origOpen = screen.hbFormOpen, ownOpen = Object.prototype.hasOwnProperty.call(screen, 'hbFormOpen');
+      screen.hbFormOpen = async function (app, mode, id, node, where) {
+        if (app !== 'mod' || mode !== 'edit') return origOpen.call(screen, app, mode, id, node, where);
+        const nd = node || screen.hbNode();
+        if (screen.state.hbBusy) return;   // 다른 동작이 도는 중 — 다른 누름처럼 기다리게 한다
+        if (!screen.hbCan(app, nd).ok) return origOpen.call(screen, app, mode, id, node, where);   // 자물쇠는 화면이 말한다
+        screen.setState({ hbBusy: 'cfg' });
+        screen.hbSay('⚙ 설정 받는 중…', GRAY);
+        const { r, cfg } = await source.modConfig(nd, id);
+        if (!live) return;
+        screen.setState({ hbBusy: null });
+        if (!cfg && r.reason !== 'MODULE_CONFIG_UNDECLARED') { screen.hbSay('⚙ 설정 — ' + resultText(r), RED); return; }
+        screen.hbPut(nd, 'mod', (screen.hbItems(nd, 'mod') || []).map((x) => (x.id === id ? Object.assign({}, x, { cfg }) : x)));
+        screen.setState({ hbMsg: null });
+        origOpen.call(screen, app, mode, id, node, where);
+        if (cfg && cfg.invalid.length) screen.hbSay('⚠ 저장된 값이 스키마를 어긴다 — ' + cfg.invalid.map((k) => k.key).join(' · ') + ' (고치면 모듈이 시작한다)', AMBER);
+        else if (cfg && cfg.restartPending) screen.hbSay('⚙ 바꾼 설정이 아직 반영되지 않았다 — 다음 시작에 반영', AMBER);
+        else if (cfg && !canManage()) screen.hbSay('⚙ 설정을 볼 수만 있다 — 저장은 module.manage★ 권한이 있어야 한다', AMBER);
+      };
+      unwireOpen = () => { if (ownOpen) screen.hbFormOpen = origOpen; else delete screen.hbFormOpen; };
+    }
     screen.hbFormSave = async () => {
       const F = screen.state.hbForm;
       if (!F || screen.state.hbBusy) return;
       if (!screen.hbCan(F.app, F.node).ok) return origSave();   // 자물쇠 글줄은 화면이 맡는다
       const item = F.mode === 'edit' ? (screen.hbItems(F.node, F.app) || []).find((x) => x.id === F.id) : null;
       if (F.mode === 'edit' && !item) { formErr(F, '목록에서 사라졌다 — 다시 받는다'); load(F.node, F.app, true); return; }
+      if (F.app === 'mod' && item && item.cfg && !canManage()) { formErr(F, NO_MANAGE); return; }
       const v = formValues(screen, F, item);
       if (v.err) { formErr(F, v.err); return; }
       screen.setState({ hbBusy: 'form' });
@@ -200,7 +232,7 @@ export function wireHelm(screen, source, opts = {}) {
       screen.setState({ hbBusy: null });
       if (r === null) { formErr(F, '⚠ Gateway에 아직 이 동작의 길이 없다 — 화면에 지어 넣지 않았다'); return; }
       if (r.same) { screen.setState({ hbForm: null }); screen.hbSay('바뀐 것이 없다', GRAY); return; }
-      if (r.kind !== 'ok' && r.kind !== 'accepted') { formErr(F, resultText(r)); return; }
+      if (r.kind !== 'ok' && r.kind !== 'accepted') { const keys = cfgErrorKeys(r); formErr(F, resultText(r) + (keys ? ' — ' + keys : '')); return; }
       screen.setState({ hbForm: null });
       if (F.mode === 'edit') retarget(F.node, F.app, F.id, r.id || F.id, F.app === 'io' || F.app === 'folder' ? v.vals.name : '');
       screen.hbSay(r.say || nameOf(v.vals) + (F.mode === 'add' ? ' 추가' : ' 고침') + ' — ' + resultText(r), GREEN);
@@ -263,6 +295,7 @@ export function wireHelm(screen, source, opts = {}) {
     screen.hbFormSave = orig.hbFormSave;
     screen.hbDel = orig.hbDel;
     screen.hbOpLock = orig.hbOpLock;
+    if (unwireOpen) unwireOpen();
     screen.setState({ hbd: {}, io: [], hbMsg: null, hbBusy: null, hbForm: null, hbArm: null, hbOut: null });
   };
 }
@@ -299,6 +332,8 @@ export function outText(op, d) {
  * @returns {{ vals: any } | { err: string }}
  */
 export function formValues(screen, F, item) {
+  // 모듈 설정 폼은 칸이 스키마에서 온다 — 값은 글 그대로 cfgPatch 가 스키마 모양으로 옮긴다(비운 수 칸은 0 이 아니라 기본값으로 되돌리기다)
+  if (F.app === 'mod' && item && item.cfg) return { vals: Object.assign({}, F.vals) };
   const C = screen.HBCRUD()[F.app], fields = screen.hbFields(F.app, item), v = Object.assign({}, F.vals);
   fields.forEach((f) => { if (f.type === 'num') v[f.k] = parseFloat(v[f.k]) || 0; else if (f.type === 'text') v[f.k] = String(v[f.k] == null ? '' : v[f.k]).trim(); });
   const keyF = item && item.type === 'bind' ? 'from' : C.key;

@@ -289,7 +289,15 @@ export const HELM_CRUD = {
       del: { op: L('tasks.by-task-id.cancel.post'), where: 'L', body: (v, it) => ({ task_id: it.id }), keep: true, verb: '취소' }
     }
   },
-  mod: { create: null, update: null, del: null }   // 설치 · 설정 · 제거 op 가 아직 없다(제안 — CRUD_TEXT)
+  // 설치 · 제거 op 는 아직 없다(제안 — CRUD_TEXT). 수정 = 모듈 설정(B-6 설정) — 모듈이 선언한 configuration.schema 의 칸.
+  // 폼을 열 때 wire.js 가 스키마 · 값을 받아 항목에 붙인다(item.cfg — cfgForm). 저장은 바뀐 키만(cfgPatch) · base_revision 으로 겹침을 막는다
+  mod: {
+    create: null,
+    update: (v, it) => (it && it.cfg ? { where: 'L', steps: (vv, i) => { const p = cfgPatch(i, vv); return p ? [{ op: L('modules.by-module-id.config.patch'), body: p }] : []; },
+      say: (d, i) => '⚙ ' + ((i && (i.name || i.id)) || '모듈') + ' 설정 저장 — revision ' + (d && d.revision) + (d && d.restart ? ' · 재시작함' : d && d.restart_error ? ' · 재시작 실패(' + d.restart_error + ') — 다음 시작에 반영' : '') }
+      : { none: 'mod-cfg' }),
+    del: null
+  }
 };
 
 /**
@@ -306,13 +314,73 @@ export const CRUD_TEXT = {
   tunnel: { list: 'terra.daemon.service-tunnels.get + terra.master.service-tunnels.declarations.get', add: '선언 terra.master.service-tunnels.declarations.post · 즉석 terra.master.service-tunnels.open.post', edit: '⚠ 고치는 op 없음 — 지우고 다시', del: 'terra.daemon.service-tunnels.by-tunnel-id.close.post · 선언은 terra.master.service-tunnels.declarations.by-declaration-id.delete' },
   wg: { list: 'terra.daemon.wireguard.peers.get · wireguard.status.get', add: '⚠ 피어는 mesh 가입으로 생긴다', edit: '⚠ 피어를 고치는 op 없음 — 동기화(wireguard.sync.post)', del: 'terra.master.network.mesh.wireguard.peers.revoke.post {source_node_id · target_node_id} (되돌릴 수 없다)' },
   job: { list: 'terra.daemon.tasks.get · tree: terra.master.jobs.get', add: 'terra.daemon.commands.execute.post · tree: terra.master.commands.post', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행', del: 'terra.daemon.tasks.by-task-id.cancel.post · tree: commands.post {process.cancel.request}' },
-  mod: { list: 'terra.daemon.modules.get · GUI는 /api/v1/gui/apps', add: '⚠ 모듈 설치 op 없음 — 제안 terra.gateway.modules.post (패키지 · 서명)', edit: '⚠ 모듈 설정 — 제안 terra.gateway.modules.by-module-id.config.put', del: '⚠ 모듈 제거 — 제안 terra.gateway.modules.by-module-id.delete' }
+  mod: { list: 'terra.daemon.modules.get · GUI는 /api/v1/gui/apps', add: '⚠ 모듈 설치 op 없음 — 제안 terra.gateway.modules.post (패키지 · 서명)', edit: 'terra.daemon.modules.by-module-id.config.patch {values · unset · base_revision} — 칸은 terra.daemon.modules.by-module-id.config.schema.get · 값은 terra.daemon.modules.by-module-id.config.get · 실행 중이면 재시작', del: '⚠ 모듈 제거 — 제안 terra.gateway.modules.by-module-id.delete' }
 };
 
 /** 손 등록할 카메라 주소 → io-inventory 수동 어댑터 (rtsp · rtsps → manual.rtsp, http · https → manual.http-camera). 모르면 '' */
 export function manualAdapter(addr) {
   const m = /^([a-z][a-z0-9+.-]*):\/\/[^/\s]/i.exec(String(addr || '').trim()), sch = m ? m[1].toLowerCase() : '';
   return sch === 'rtsp' || sch === 'rtsps' ? 'manual.rtsp' : sch === 'http' || sch === 'https' ? 'manual.http-camera' : '';
+}
+
+/**
+ * 모듈 설정 스키마 · 값 → 폼 모양(B-6 설정 — Daemon config.schema.get · config.get). maingui cfgForm 과 같은 규칙:
+ *   칸 = configuration.schema 의 최상위 키 — 고르기(enum) · 예/아니오(boolean) · 수(integer · number) · 글(그 밖 — 배열 · 객체는 JSON 글) · 비밀(x-terra-secret — 값은 내지 않는다)
+ *   값 = 저장된 값(values — 기본값은 채우지 않는다) · 비밀은 설정됐는지만(secrets[k].set)
+ * @returns {{ revision: number, fields: any[], vals: Record<string, any>, saved: Record<string, any>, required: string[], invalid: any[], restartPending: boolean }}
+ */
+export function cfgForm(schemaData, cfgData) {
+  const sc = (schemaData && schemaData.schema) || {}, props = sc.properties || {}, req = sc.required || [], cfg = cfgData || {};
+  const secrets = new Set([].concat((schemaData && schemaData.secret_keys) || [], Object.keys(props).filter((k) => props[k] && props[k]['x-terra-secret'])));
+  const values = cfg.values || {}, sset = cfg.secrets || {}, fields = [], vals = {};
+  Object.keys(props).forEach((k) => {
+    const p = props[k] || {}, label = (p.title || k) + (req.indexOf(k) >= 0 ? ' *' : ''), dflt = p.default;
+    let f;
+    if (secrets.has(k)) f = { k, label: label + ' 🔒', type: 'secret', ph: sset[k] && sset[k].set ? '설정됨 — 비워 두면 그대로' : '비밀 값 (보이지 않는다)' };
+    else if (Array.isArray(p.enum)) f = { k, label, type: 'sel', opts: p.enum.map(String) };
+    else if (p.type === 'boolean') f = { k, label, type: 'bool' };
+    else if (p.type === 'integer' || p.type === 'number') f = { k, label, type: 'num', ph: dflt != null ? '기본 ' + dflt : '' };
+    else f = { k, label, type: 'text', ph: dflt != null ? '기본 ' + (typeof dflt === 'object' ? JSON.stringify(dflt) : dflt) : (p.description || '') };
+    f.json = p.type === 'array' || p.type === 'object';
+    f.num = p.type === 'integer' ? 'int' : p.type === 'number' ? 'num' : '';
+    f.enumNum = Array.isArray(p.enum) && p.enum.length > 0 && p.enum.every((x) => typeof x === 'number');
+    fields.push(f);
+    const v = secrets.has(k) ? '' : values[k];
+    vals[k] = f.type === 'bool' ? (v != null ? !!v : !!dflt) : f.type === 'sel' ? String(v != null ? v : dflt != null ? dflt : p.enum[0]) : v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+  });
+  return { revision: cfg.revision || 0, fields, vals, saved: Object.assign({}, values), required: req, invalid: cfg.invalid_keys || [], restartPending: !!cfg.restart_pending };
+}
+
+/**
+ * 폼 값 → config.patch 입력 — 바뀐 키만(손대지 않은 칸 · 기본값 칸은 싣지 않는다). 비운 칸은 unset(스키마 기본값으로), 비밀은 적었을 때만.
+ * 수 · JSON 칸이 그 모양이 아니면 글 그대로 보내 서버가 detail.keys 로 말하게 한다. 고칠 것이 없으면 null
+ * @param {{ id: string, cfg: ReturnType<typeof cfgForm> }} item
+ */
+export function cfgPatch(item, vals) {
+  const cfg = item && item.cfg;
+  if (!cfg) return null;
+  const values = {}, unset = [];
+  cfg.fields.forEach((f) => {
+    const v = vals[f.k], had = Object.prototype.hasOwnProperty.call(cfg.saved, f.k), was = cfg.vals[f.k];
+    if (f.type === 'secret') { if (v != null && String(v) !== '') values[f.k] = String(v); return; }
+    if (f.type === 'bool' ? !!v === !!was : String(v == null ? '' : v).trim() === String(was == null ? '' : was).trim()) return;
+    if (f.type === 'bool') { values[f.k] = !!v; return; }
+    const s = String(v == null ? '' : v).trim();
+    if (s === '') { if (had) unset.push(f.k); return; }
+    let out = s;
+    if (f.type === 'num') { out = f.num === 'int' ? Number(s) : parseFloat(s); if (!Number.isFinite(out) || (f.num === 'int' && !Number.isInteger(out))) out = s; }
+    else if (f.type === 'sel' && f.enumNum) { out = Number(s); }
+    else if (f.json) { try { out = JSON.parse(s); } catch { out = s; } }
+    if (!had || JSON.stringify(cfg.saved[f.k]) !== JSON.stringify(out)) values[f.k] = out;
+  });
+  if (!Object.keys(values).length && !unset.length) return null;
+  return Object.assign({ module_id: item.id, base_revision: cfg.revision }, Object.keys(values).length ? { values } : {}, unset.length ? { unset } : {});
+}
+
+/** 설정 저장 거절의 글 — 스키마를 어긴 키(error.detail.keys)를 적는다. 값은 서버도 되돌려 주지 않는다 */
+export function cfgErrorKeys(r) {
+  const e = r && r.data && r.data.error, keys = e && e.detail && Array.isArray(e.detail.keys) ? e.detail.keys : [];
+  return keys.map((k) => k.key + (k.message ? ' — ' + k.message : '')).join(' · ');
 }
 
 /** 장치 고치기 — 바뀐 것만 차례로. 종류는 장치가 정하고, 승인 대기로 되돌리는 op 는 없다 */
