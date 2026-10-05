@@ -7,7 +7,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.6.0"
+version: "0.7.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 based_on: "terra-gui-resource-inventory (자원 목록) · terra-gui-api-priority"
@@ -188,8 +188,10 @@ Master는 canceled · timed_out을 `failed`로 접는다 — 이유는 `result.s
 | 목록 | `terra.daemon.modules.get` (L) · tree에서 볼 때 `terra.master.nodes.by-node-id.modules.get` | `node.read` |
 | 시작 · 멈춤 · 재시작 | **이 노드는 `terra.daemon.modules.by-module-id.{start,stop,restart}.post`**(`node.control`, 작업으로 접수 → `tasks.by-task-id.get`으로 끝까지 본다). 게이트웨이 쪽 이름은 `terra.gateway.modules.by-id.{start,stop}.post` — 재시작이 없다 | `node.control` |
 | 로그 | 이 노드 `terra.gateway.modules.by-id.logs.get { logs: [글] }` · 다른 노드 `terra.daemon.modules.by-module-id.logs.get { lines: [{at, stream, text}] }`(노드 주소 호출) → 상태 화면의 출력 칸. 예전 leaf 게이트웨이의 500 `MODULE_MANAGEMENT_FAILED`는 Terra G0~G6(B-14)에서 풀렸다 | `node.read` |
+| 수정 = 설정 | `✎` → `terra.daemon.modules.by-module-id.config.schema.get` · `config.get`으로 칸 · 값(폼을 열기 전에) → 저장 `config.patch {values, unset, base_revision}` — 바뀐 키만. 거절은 키(`detail.keys`) · 409 겹침 · 설정을 선언하지 않은 모듈은 폼을 열지 않는다. 다른 노드는 노드 주소 호출(셋 다 scopes cluster) | 보기 `node.read` · 저장 `module.manage`★ |
 
 자물쇠가 둘이다(Gateway `module.manage`★ / Daemon `node.control`). 이 노드의 모듈은 Daemon 길로 가므로 실데이터 층은 화면의 `모듈 관리★` 자물쇠를 `node.control`로 푼다.
+설정 저장만은 Daemon도 `module.manage`★를 본다 — 그래서 저장할 수 있는지는 토큰이 실제로 쥔 권한으로 가린다(없으면 값은 볼 수만 있다 — [[implementation-backlog\|구현해야 할 것]] Q-16).
 
 ## 3. 새 앱을 더할 때
 

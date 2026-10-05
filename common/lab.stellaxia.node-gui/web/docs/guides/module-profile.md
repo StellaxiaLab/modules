@@ -8,7 +8,7 @@ doc_type: "guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.4.0"
+version: "1.5.0"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -29,7 +29,7 @@ related:
 디자인 캔버스 원본(`design/*.dc.html`) 하나에서 GUI 세 벌이 나온다. 차이는 `public/config.json`의 `variant`와
 그 변형의 **부트 프로필**(`src/boot/<variant>.js`)뿐이다 — 화면 코드(`src/screens/*.js`)는 셋 다 생성된 그대로다.
 
-원본은 **GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui)**다. 이 모듈의 `design/`은 그 `2ced429`(2026-10-05 — Terra G0~G6 연동)와 파일 단위로 같다.
+원본은 **GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui)**다. 이 모듈의 `design/`은 그 `e669c03`(2026-10-05 — Terra 10/05 반영: 모듈 설정 폼 · 내려받기 · 카메라 손 등록)과 파일 단위로 같다.
 처음에는 `f24c3bc`(2026-10-04)에 맞췄다 — [[implementation-backlog|구현해야 할 것]] MD-19.
 
 - `demo` — maingui의 `examples/demo/`(예시 세계 그대로 · `examples/data/`). 예전 이름 `terra-node-gui-demo`.
@@ -185,7 +185,8 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 | 사용자 문서(서버 저장) — 배치 · 메모 · 편집기 자산 | `src/store/docs.js` · `node-live.js` `loadWorld` |
 | 모듈 로그 → 상태 화면 출력 칸 · 폴더 탐색기(local-fs) · 바탕화면에서 열기(desktop.open) | `src/api/wire.js` `outText` · `node-live.js` `loadLocalFolder` · `deskOpen` · `FBMODES` · `fbOpenItem` · `fbOS` |
 | 파일 올리기(↑ 올리기 → 파일 고르기) · 받기(폴더 앱 `받기` → 브라우저 저장) · 끊긴 뒤 이어서(멈춘 전송의 카드 · 같은 파일 다시 올리기 · 이 브라우저에 둔 조각) | `src/api/source.js` `upload` · `download` · `stalledPush` · `markStalled` · `src/store/parts.js` · `src/api/wire.js` `saveBlob` · `src/api/sha256.js` |
-| I/O 장치 손 등록 폼(이름 · 주소) | `node-live.js` `hbFields` · `src/api/operations.js` `manualAdapter` |
+| I/O 장치 손 등록 폼(이름 · 주소) — 고칠 때는 원본의 주소 칸을 뺀다 | `node-live.js` `hbFields` · `src/api/operations.js` `manualAdapter` |
+| 모듈 수정 = 모듈 설정 — 폼을 열기 전에 스키마 · 값을 받아 붙이고(`item.cfg`), 저장은 바뀐 키만 · 권한이 없으면 볼 수만 | `src/api/source.js` `modConfig` · `src/api/operations.js` `cfgForm` · `cfgPatch` · `src/api/wire.js` |
 | 노드 관리 폼(이름 · 부모 · 지우기)은 Master op라 잠그고 이유를 보인다 · 설정 재시작은 Daemon `restart.post` 뒤 health로 돌아올 때까지 | `node-live.js` `masterWhy` · `rstVals` · `src/data/settings-live.js` `doRestart` |
 
 ## 8. 원본(maingui)과 맞추기
@@ -206,7 +207,7 @@ npm test && npm run test:smoke
 npm run build:web && npm run validate && npm run test:web
 ```
 
-- 맞춘 커밋을 이 문서 머리(지금 `2ced429`)와 모듈 README에 적는다.
+- 맞춘 커밋을 이 문서 머리(지금 `e669c03`)와 모듈 README에 적는다.
 - `src/runtime/dc.js` · `src/boot/fixes.js` · `src/store/layout.js`(`KEYS`)처럼 원본과 같은 파일은 그쪽이 바뀌었는지 함께 본다 — 이번에 `dc.js`(글 칸 `onChange` → `input`)와 `KEYS`(`ovhHide`)가 바뀌었다.
 - 원본 화면에 **새 상태 키**가 생기면 `emptyWorld` · `loadWorld`(`src/data/node-live.js`)에서 로그아웃 · 다시 로그인 때 비울지 되살릴지 정한다 — 이번에는 `rst` · `hbForm` · `mgui` · `netSel`(비움) · `ovhHide`(되살림).
 - `src/api/*`(연동 층)는 이 저장소가 실측으로 고친 판이 앞선다 — 원본의 것으로 덮지 않는다. 원본의 새 대응(이번에는 `HELM_CRUD`)은 실제 서버의 입력과 견준 뒤 옮긴다([[implementation-backlog\|구현해야 할 것]] UP-12 · UP-13).

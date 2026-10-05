@@ -4,7 +4,7 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.6"
+version: "v0.7"
 last_updated: "2026-10-05"
 ---
 
@@ -13,7 +13,7 @@ last_updated: "2026-10-05"
 게임 GUI 형태의 Terra 노드 화면 — 시작 화면 · 육각 필드 맵 · 조타륜 · 노드 자원 · 연결(도로) · 오버헤드 패널 · 편집기 — 을
 노드의 **main GUI**로 내는 모듈이다. base Scene(`io.terra.scene.terra`)은 main이 하나면 그것을 곧장 띄운다.
 
-화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `2ced429`(2026-10-05 — service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동)를
+화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `e669c03`(2026-10-05 — service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영)를
 바탕으로 한 **module 변형**이다(처음에는 `f24c3bc`에 맞췄다) — 같은 디자인 원본(`web/design/`) · 같은 생성 규칙이고, 갈림은 부트 프로필(`web/src/boot/module.js`)이다.
 처음에는 압축 파일로 받은 `terra-node-gui` 1.0으로 만들었고, 그 뒤 maingui 저장소(자원 추가 · 수정 · 삭제 · 상태 화면 · 모듈 GUI 창이 더 있다)로 다시 맞췄다.
 모듈이 더한 것은 다섯이다.
@@ -94,7 +94,7 @@ flowchart LR
 | 세션 띠 · 유틸 카드 · 창 요약 · 속성 창 | 로그인한 사람(frame 값) · 토큰 권한 · 모듈 · 터널 · WireGuard · 설정 키 수 · 장치 · 공유 폴더 개수 — 진짜 값, 없으면 `—` |
 | 알림 | 이 노드의 Daemon 작업(`terra.daemon.tasks.get`) — 실시간 이벤트(`terra.daemon.events.get` SSE)의 신호마다, 이벤트가 없으면 `pollSec`(기본 10초)마다. 새로 생기거나 상태가 바뀐 것 |
 | 조타륜 앱 — I/O 장치 · 공유 폴더 · 파일 전송 · 서비스 터널 · WireGuard · 자원 선언 · 작업 · 모듈 | **실데이터와 실제 동작.** 작업은 Daemon 작업, 모듈 수명은 Daemon 경로(`node.control`). 장치 손 등록(카메라 주소) · 파일 올리기(↑ 올리기 → 조각 · SHA-256) · 받기(브라우저 저장) · 끊긴 뒤 이어서(같은 파일을 다시 올리면 서버가 받은 곳부터 · 다시 받으면 이 브라우저에 둔 조각부터 · 멈춘 전송의 카드) · 모듈 로그(상태 화면 출력 칸) |
-| 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버가 받는 본문으로 부른다 — 폴더(만들기 · 빈 파일 · 이름 바꾸기 · 지우기) · 장치(별명 · 승인 · 켜기 · 잊기 · 스캔) · 작업(실행 · 취소) · 전송(포기 · 중단해 둔 것의 치우기). 서버에 길이 없으면 **항목을 지어 넣지 않고** 그렇다고 말한다 |
+| 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버가 받는 본문으로 부른다 — 폴더(만들기 · 빈 파일 · 이름 바꾸기 · 지우기) · 장치(별명 · 승인 · 켜기 · 잊기 · 스캔) · 작업(실행 · 취소) · 전송(포기 · 중단해 둔 것의 치우기) · 모듈 설정(모듈이 선언한 칸 — 바뀐 키만 · 저장은 `module.manage`★). 서버에 길이 없으면 **항목을 지어 넣지 않고** 그렇다고 말한다 |
 | 상태 화면 · 모듈 GUI 창 | 원본 앱 목록의 그 항목 · 이 노드의 권한 / 설치된 GUI 앱(`/api/v1/gui/apps`). 다른 모듈의 앱은 이 창에 띄울 수 없다고 적는다(frame은 자기 모듈의 앱만) |
 | 조타륜 앱 — SVI 자원 · 허가 | Master operation — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` |
 | 폴더 보관함 | Terra 저장소 = 이 노드의 공유 폴더(`io.terra.file`). 폴더 탐색기 = 이 노드의 로컬 최상위 루트(`local-fs` — 닫힌 폴더는 🔒), 파일 · 폴더는 그 노드의 바탕화면에 연다(`desktop.open` — 그 컴퓨터에서 볼 때만). 메모는 LayoutStore(브라우저 + 사용자 문서) |
@@ -168,6 +168,20 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### maingui e669c03 따라가기 — 모듈 설정 폼 MD-22 (2026-10-05, 0.3.0 · Terra main `3195421`)
+
+스택을 Terra main(모듈 설정 op 셋)으로 다시 빌드하고, `configuration.schema`를 선언한 시험 모듈(scratchpad)을 깔았다. 관리자에게 `module.manage`★를 따로 주고
+앱 전체 화면에서 그 모듈의 `✎`를 눌렀다 — 자세히는 [`web/docs/api/real-data-layer.md`](web/docs/api/real-data-layer.md) §5.5.
+
+| 항목 | 진짜 스택에서 |
+| --- | --- |
+| 폼 | `⚙ 설정 · 모듈` · 칸 다섯(글 · 고르기 · 수 `기본 50` · 비밀 · 예/아니오) · API 줄 초록 |
+| 거절 · 저장 | `poll_ms` 5 → `설정 값이 스키마를 어긴다 — poll_ms — must be at least 10` · 120 저장 → `revision 1` · 비밀은 `set: true`만 |
+| 다시 열기 · 겹침 · 비우기 | 저장된 값 · 비밀 칸 `설정됨 — 비워 두면 그대로` · 다른 쪽이 먼저 고치면 `다른 화면이 먼저 설정을 바꿨다` · 비우면 기본값으로(`unset`) |
+| 설정 없는 모듈 · 권한 | `Terra File`은 `설정을 선언하지 않은 모듈이다` · `module.manage`가 없으면 값은 보이고 저장은 `🔒 … 볼 수만 있다` |
+| MD-21 다시 | Terra main 스택에서도 올리기 · 받기 · 멈춘 카드 · 중단 · 치우기가 31%부터 이어졌다 |
+| 시험 | `npm test` 116 · `test:smoke` · `validate` · `test:web` 통과 · 페이지 오류 0 |
 
 ### 끊긴 뒤 이어서 — MD-21 (2026-10-05, 0.3.0 · io.terra.file 0.2.1)
 
@@ -304,7 +318,7 @@ Daemon만 가짜다.
 - `io.terra.scene.terra` (Terra 코어) — 이 main을 띄우는 base Scene
 - [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · I/O 장치(0.2.0 손 등록) 데이터의 출처
 - [`lab.stellaxia.scene.hello`](../lab.stellaxia.scene.hello/README.md) — 같은 tree 레지스트리 경로의 가장 작은 Scene 모듈
-- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `2ced429`와 같다
+- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `e669c03`과 같다
 
 ## 관련 흐름
 
