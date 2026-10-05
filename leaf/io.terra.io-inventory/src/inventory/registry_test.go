@@ -241,6 +241,44 @@ func TestSVIResourcesPassCoreValidation(t *testing.T) {
 	}
 }
 
+// An HTTP camera is a camera — same kind, same schema — but it sends JPEG, not
+// H.264. Publishing the kind's encoding would tell a consumer something false
+// about what arrives when it binds the endpoint. An RTSP camera keeps the
+// kind's encoding.
+func TestSVIEncodingsFollowTheAdapter(t *testing.T) {
+	registry := NewRegistry()
+	for _, device := range []Device{
+		{ID: "camera-http", Name: "Porch", Kind: DeviceCamera, AdapterID: "manual.http-camera"},
+		{ID: "camera-rtsp", Name: "Door", Kind: DeviceCamera, AdapterID: "manual.rtsp"},
+	} {
+		if err := registry.Register(device); err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Now().UTC()
+	encodings := map[string][]string{}
+	for _, resource := range registry.SVIResources() {
+		endpoint := resource.Endpoints[0]
+		if endpoint.OutputSchema != "terra.video.frame@1" {
+			t.Errorf("%s schema = %s, want terra.video.frame@1", resource.ResourceID, endpoint.OutputSchema)
+		}
+		encodings[resource.ResourceID] = endpoint.Encodings
+		resource.NodeID = "node-1"
+		resource.ProviderID = "module.io.terra.io-inventory"
+		resource.Owner = coresvi.SubjectRef{Type: coresvi.SubjectNode, ID: "node-1"}
+		resource.ExpiresAt = now.Add(time.Minute)
+		if err := coresvi.ValidateResource(resource); err != nil {
+			t.Fatalf("%s: %v", resource.ResourceID, err)
+		}
+	}
+	if got := encodings["io.camera-http"]; len(got) != 2 || got[0] != "image/jpeg" || got[1] != "multipart/x-mixed-replace" {
+		t.Errorf("HTTP camera encodings = %v, want [image/jpeg multipart/x-mixed-replace]", got)
+	}
+	if got := encodings["io.camera-rtsp"]; len(got) != 1 || got[0] != "video/h264" {
+		t.Errorf("RTSP camera encodings = %v, want [video/h264]", got)
+	}
+}
+
 // The three slots reserved for io-weave must be published from the start.
 // Adding one later is a schema_ref major bump, and each is already known to be
 // needed: what injection costs (D-9), where the reverse channel will go

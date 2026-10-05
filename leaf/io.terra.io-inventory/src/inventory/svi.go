@@ -19,6 +19,9 @@ func (r *Registry) SVIResources() []coresvi.ResourceDescriptor {
 	resources := make([]coresvi.ResourceDescriptor, 0, len(devices))
 	for _, device := range devices {
 		schemaRef, encodings := deviceSchema(device.Kind)
+		if adapterEncodings, ok := encodingsByAdapter[device.AdapterID]; ok {
+			encodings = append([]string(nil), adapterEncodings...)
+		}
 		displayName := device.Name
 		if strings.TrimSpace(device.Alias) != "" {
 			displayName = device.Alias
@@ -121,6 +124,17 @@ func resourceStatus(device Device) coresvi.ResourceStatus {
 		}
 		return coresvi.ResourceUnavailable
 	}
+}
+
+// encodingsByAdapter overrides the kind's encodings where the adapter that
+// opens the device says something different on the wire. The kind still picks
+// the schema — an HTTP camera is a camera — but a consumer that binds it
+// expecting H.264 and receives JPEG frames has been told something false. Keyed
+// by adapter id rather than importing the manual package, so this package stays
+// the OS-free, adapter-free core.
+var encodingsByAdapter = map[string][]string{
+	// Snapshot URLs answer one JPEG; MJPEG URLs answer a multipart stream of them.
+	"manual.http-camera": {"image/jpeg", "multipart/x-mixed-replace"},
 }
 
 func deviceSchema(kind DeviceKind) (string, []string) {
