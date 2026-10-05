@@ -48,6 +48,28 @@ export function realIntro(Screen) {
     /** 다른 계정으로 — 로그인 카드를 다시 부른다(이 Scene 의 로그인이면 카드에서 바꾼다) */
     otherAccount() { if (this.__sess.terra) this.__sess.terra.emit('login'); }
 
+    /**
+     * 로그아웃 · 토큰을 잃음 — 노드 화면을 걷고 판으로 돌아온다. 내려가는 중이어도 · 다 내려갔어도.
+     * 노드 화면(미리 읽은 문서)은 그대로 둔다 — 그 화면은 스스로 빈 세계로 돌아갔고, 다시 로그인하면 Scene 이 frame 을 새로 띄운다
+     */
+    flyBack() {
+      const S = this.state;
+      if (!this._fly && !S.fly && !S.flyDone && S.phase !== 'done') return;
+      clearTimeout(this._flyT); clearTimeout(this._autoT); clearTimeout(this._backT);
+      this._fly = null;   // 그리는 루프가 하늘을 다시 그린다
+      this.__sess.autoOnce = false;
+      const doc = this.__doc || (typeof document !== 'undefined' ? document : null), q = (sel) => (doc && doc.querySelector ? doc.querySelector(sel) : null);
+      const fr = q('[data-in-map]'), fv = q('[data-in-fly]');
+      if (fr && fr.style) {
+        fr.style.transition = 'opacity 500ms';
+        fr.style.opacity = '0';
+        fr.style.pointerEvents = 'none';
+        this._backT = setTimeout(() => { if (!this._fly) fr.style.transition = ''; }, 550);   // 다음에 내려갈 때는 루프가 직접 투명도를 정한다
+      }
+      if (fv && fv.getContext) { const g = fv.getContext('2d'); if (g) g.clearRect(0, 0, fv.width, fv.height); }
+      this.setState({ fly: false, flyDone: false, mapFail: false, phase: 'form', msg: '로그아웃했다 — 다시 들어가려면 Terra 로그인', msgC: MUTE });
+    }
+
     renderVals() {
       const r = super.renderVals(), v = r.v, S = this.state, X = this.__sess;
       const who = X.principal || '';
@@ -135,6 +157,7 @@ export async function bootIntro(screen, opts = {}) {
   const terra = await ready;
   if (!terra) { X.why = 'NO_FRAME'; screen.forceUpdate(); return stopMap; }
   X.terra = terra;
+  screen.__doc = opts.doc || document;
   let asked = false;
   const sync = () => {
     const token = !!terra.token(), value = terra.value();
@@ -154,6 +177,8 @@ export async function bootIntro(screen, opts = {}) {
       clearTimeout(screen._autoT);
       X.autoOnce = false;
       screen.setState({ phase: 'form' });
+    } else if (!token && (S.phase === 'done' || S.fly || S.flyDone || screen._fly)) {
+      screen.flyBack();   // 로그아웃 — 내려간 노드 화면(이제 빈 세계)을 걷고 판으로
     } else screen.forceUpdate();
   };
   const offToken = terra.onToken(sync);

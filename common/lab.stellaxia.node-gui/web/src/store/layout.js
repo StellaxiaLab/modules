@@ -11,11 +11,74 @@ export function loadLayout(key) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
 }
 
-/** 화면 상태 → 저장할 모양 (지금 맵은 snapshotMap으로 maps에 넣는다) */
+/** 화면 상태 → 저장할 모양 (지금 맵은 snapshotMap으로 maps에 넣는다).
+ *  nodeIds — 저장본 안의 노드는 화면 규칙대로 이름이 키다. 그 이름이 가리키는 node_id 를 같이 적어 두면
+ *  이름이 바뀌어도 읽을 때 따라간다(remapNodes). */
 export function pickLayout(screen) {
   const S = screen.state, out = {};
   KEYS.forEach((k) => { if (S[k] !== undefined) out[k] = S[k]; });
   out.maps = Object.assign({}, S.maps, { [S.map]: screen.snapshotMap() });
+  const ids = nodeIdsOf(screen.NET);
+  if (Object.keys(ids).length) out.nodeIds = ids;
+  return out;
+}
+
+/** 관계도(NET)에서 이름 → node_id (id 를 아는 노드만 — tree 항목은 id 가 없어 이름 그대로 간다) */
+export function nodeIdsOf(NET) {
+  const ids = {};
+  Object.keys(NET || {}).forEach((n) => { const id = NET[n] && NET[n].id; if (id) ids[n] = id; });
+  return ids;
+}
+
+/**
+ * 저장본의 노드 이름을 지금 이름으로 — 저장할 때 적어 둔 이름 → node_id(nodeIds)와 지금 관계도의 node_id → 이름을 잇는다.
+ *   이름이 바뀐 노드: 맵 주인 · 노드 칸 · 새 노드(pending) · 노드 모습(looks) · 노드 자원의 노드(rsrc.node) ·
+ *                    연결이 고른 자원(links.sel 의 'node|app|id')이 새 이름을 따라간다.
+ *   사라진 노드(그 id 가 관계도에 없다): 그 이름의 맵 · 칸 · 모습을 버린다 — 같은 이름을 얻은 **다른** 노드에게 넘어가지 않게.
+ *                    노드 자원은 그대로 둔다(화면이 "원본 목록에서 사라짐"으로 보인다).
+ * id 를 모르는 이름(tree 항목 · 예전 저장본 — nodeIds 가 없다)은 그대로 둔다.
+ * @param {any} saved  loadLayout 이 돌려준 것
+ * @param {Record<string, { id?: string|null }>} NET
+ */
+export function remapNodes(saved, NET) {
+  const ids = saved && saved.nodeIds;
+  if (!ids || typeof ids !== 'object') return saved;
+  const nameOf = new Map();
+  Object.keys(NET || {}).forEach((n) => { const id = NET[n] && NET[n].id; if (id) nameOf.set(id, n); });
+  const to = new Map();   // 저장 이름 → 지금 이름 · null(사라짐)
+  Object.keys(ids).forEach((n) => to.set(n, nameOf.has(ids[n]) ? nameOf.get(ids[n]) : null));
+  if ([...to].every(([a, b]) => a === b)) return saved;
+  const R = (n) => (to.has(n) ? to.get(n) : n);
+  const reKey = (x) => {
+    if (!x || typeof x.key !== 'string') return x;
+    const i = x.key.indexOf('|'), n = i < 0 ? x.key : x.key.slice(0, i), nn = R(n);
+    return nn && nn !== n ? Object.assign({}, x, { key: nn + x.key.slice(n.length) }) : x;
+  };
+  const out = Object.assign({}, saved, { nodeIds: Object.fromEntries([...to].filter(([, b]) => b).map(([a, b]) => [b, ids[a]])) });
+  if (saved.maps && typeof saved.maps === 'object') {
+    out.maps = {};
+    Object.keys(saved.maps).forEach((owner) => {
+      const m = saved.maps[owner], o = R(owner);
+      if (!o || !m || typeof m !== 'object') return;
+      const m2 = Object.assign({}, m);
+      if (m.nodes && typeof m.nodes === 'object') {
+        m2.nodes = {};
+        Object.keys(m.nodes).forEach((k) => { const nd = m.nodes[k], nn = nd && R(nd.name); if (nn) m2.nodes[k] = nn === nd.name ? nd : Object.assign({}, nd, { name: nn }); });
+      }
+      if (Array.isArray(m.pending)) m2.pending = m.pending.filter((p) => p && R(p.name)).map((p) => (R(p.name) === p.name ? p : Object.assign({}, p, { name: R(p.name) })));
+      if (m.rsrc && typeof m.rsrc === 'object') {
+        m2.rsrc = {};
+        Object.keys(m.rsrc).forEach((k) => { const r = m.rsrc[k], nn = r && R(r.node); m2.rsrc[k] = nn && nn !== r.node ? Object.assign({}, r, { node: nn }) : r; });
+      }
+      if (Array.isArray(m.links)) m2.links = m.links.map((l) => (l && Array.isArray(l.sel) ? Object.assign({}, l, { sel: l.sel.map(reKey) }) : l));
+      out.maps[o] = m2;
+    });
+  }
+  if (saved.looks && typeof saved.looks === 'object') {
+    out.looks = {};
+    Object.keys(saved.looks).forEach((n) => { const o = R(n); if (o) out.looks[o] = saved.looks[n]; });
+  }
+  if (typeof saved.map === 'string') out.map = R(saved.map) || saved.map;
   return out;
 }
 

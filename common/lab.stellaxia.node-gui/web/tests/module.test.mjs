@@ -15,7 +15,7 @@ globalThis.window = win;
 globalThis.localStorage = mem;
 
 const { prep, boot, REAL } = await import('../src/boot/module.js');
-const { reviveMaps, reviveWins, bindLayout, layoutKey, loadLayout } = await import('../src/store/layout.js');
+const { reviveMaps, reviveWins, bindLayout, layoutKey, loadLayout, remapNodes } = await import('../src/store/layout.js');
 const { loadWorld, resetWorld } = await import('../src/data/node-live.js');
 const { buildNet } = await import('../src/data/world.js');
 const { borrowFrame } = await import('../src/api/frame-boot.js');
@@ -63,9 +63,34 @@ test('공통 보정 — leaf 맵의 자기 칸은 노드 칸이다: 도로가 �
   assert.deepEqual(Object.keys(s.state.rsrc), []);
   assert.match(s.state.placeMsg, /노드가 있는 필드/);
   // 두 번 끼워도 한 겹이다
-  const once = NodeScreen.prototype.connPass;
+  const once = NodeScreen.prototype.placeAt;
   prep('node', NodeScreen);
-  assert.equal(NodeScreen.prototype.connPass, once);
+  assert.equal(NodeScreen.prototype.placeAt, once);
+});
+
+test('자기 칸 — 상태 창(캡슐)이 뜨고, 자원 → 자기 칸 연결은 공유가 된다. 자기 칸에서 나가는 연결은 다른 맵에서 들어온 자원이 있어야 한다(원본의 규칙)', () => {
+  const s = new (prep('node', NodeScreen))({ skin: 'grass' });
+  const self = s.state.self;
+  const other = s.state.fields.find((k) => k !== self && !s.state.nodes[k] && Math.abs(+k.split('-')[0] - +self.split('-')[0]) >= 2);
+  s.state.place = { app: 'io', id: 'dev-1', name: '장치', node: s.state.localNode.name, emoji: '🖱️', type: 'I/O' };
+  s.placeAt(other, false, null);
+  s.setState({ place: null, sel: self });
+  const pill = s.renderVals().pill;
+  assert.deepEqual([pill.disp, pill.name, pill.logoDisp], ['inline', s.state.localNode.name, 'block'], '자기 칸에도 캡슐이 뜬다');
+  // 나가는 연결 — 이 노드로 들어온 자원이 없으면 원본 규칙대로 거절한다
+  s.connStart(self, self, 0, 0);
+  s.connSet(Object.assign({}, s.state.conn, { over: other }));
+  s.connEnd();
+  assert.equal((s.state.links || []).length, 0);
+  assert.match(s.state.fieldNote, /내보낼 자원이 없다/);
+  // 자원 → 자기 칸 — 공유. 길은 자기 칸 위로 깔리지 않는다
+  s.connStart(other, other, 0, 0);
+  s.connSet(Object.assign({}, s.state.conn, { over: self }));
+  assert.equal(s.state.conn.ok, true);
+  s.connEnd();
+  const L = s.state.links;
+  assert.deepEqual([L.length, L[0].from, L[0].to, (L[0].path || []).includes(self)], [1, other, self, false]);
+  assert.match(s.state.fieldNote, /공유 목록에 들어갔다/);
 });
 
 test('world — Master 가 오프라인으로 본 노드는 auth offline (그 필드의 건물에 정지 이벤트)', () => {
@@ -162,6 +187,7 @@ test('loadWorld — 노드 · 주체마다 저장한 배치 · 노드 자원 · 
   s.setState({ markStyle: 'none' });
   await sleep(900);
   assert.equal(loadLayout(key).markStyle, 'none');
+  assert.deepEqual(loadLayout(key).nodeIds, { 'leaf-a': 'node-1', 'leaf-b': 'node-2' }, '저장본에 이름 → node_id 를 같이 적는다(tree 는 id 가 없다)');
   // 로그아웃 — 빈 세계로 돌아가되 저장본은 그대로
   resetWorld(s);
   assert.deepEqual([Object.keys(s.state.rsrc).length, s.state.links.length, s.state.memos.length], [0, 0, 0]);
@@ -271,4 +297,74 @@ test('시작 화면 — 내려가기 시작하면 아래 두 알약(게이트웨
   const { readFile } = await import('node:fs/promises');
   const page = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.equal(page.split('pointer-events: {{v.chromePe}}').length - 1, 2, 'tools/gen-pages.py 의 index 패치');
+});
+
+test('LayoutStore — 노드 이름이 바뀌어도 배치가 따라간다(node_id). 같은 이름을 얻은 다른 노드에게는 넘어가지 않는다 · 예전 저장본은 그대로', async () => {
+  const TREE = 'tree · 127.0.0.1:28080';
+  const saved = {
+    nodeIds: { 'leaf-a': 'node-1', 'leaf-b': 'node-2', 'leaf-c': 'node-9' },
+    maps: {
+      'leaf-a': { fields: ['4-4', '3-3'], nodes: {}, pending: [], self: '4-4', rsrc: { '3-3': { app: 'io', id: 'dev-1', name: '키보드', node: 'leaf-a' } },
+        links: [{ id: 'k1', from: '4-4', to: '3-3', start: '4-4', path: [], sel: [{ key: 'leaf-a|io|dev-1', name: '키보드' }] }] },
+      [TREE]: { fields: ['4-4', '3-3', '5-5', '5-4'], nodes: { '3-3': { name: 'leaf-a', role: 'Leaf' }, '5-5': { name: 'leaf-c', role: 'Leaf' }, '5-4': { name: 'leaf-b', role: 'Leaf' } }, pending: [], rsrc: {}, links: [] }
+    },
+    looks: { 'leaf-a': { skin: 'sand', bid: 'tower', rot: 1 }, 'leaf-c': { skin: 'snow', bid: 'hut', rot: 0 } },
+    map: 'leaf-a'
+  };
+  // 지금: node-1 의 이름이 leaf-a → leaf-a2, node-9(leaf-c)는 사라지고 다른 노드 node-7 이 leaf-c 라는 이름을 얻었다
+  const NET = { 'leaf-a2': { id: 'node-1' }, 'leaf-b': { id: 'node-2' }, 'leaf-c': { id: 'node-7' }, [TREE]: { role: 'Tree' } };
+  const out = remapNodes(saved, NET);
+  assert.deepEqual(Object.keys(out.maps).sort(), ['leaf-a2', TREE].sort());
+  assert.equal(out.maps['leaf-a2'].rsrc['3-3'].node, 'leaf-a2');
+  assert.equal(out.maps['leaf-a2'].links[0].sel[0].key, 'leaf-a2|io|dev-1');
+  assert.deepEqual(out.maps[TREE].nodes, { '3-3': { name: 'leaf-a2', role: 'Leaf' }, '5-4': { name: 'leaf-b', role: 'Leaf' } }, '사라진 node-9 의 칸은 같은 이름의 새 노드에게 넘어가지 않는다');
+  assert.deepEqual(Object.keys(out.looks), ['leaf-a2']);
+  assert.deepEqual([out.map, out.nodeIds], ['leaf-a2', { 'leaf-a2': 'node-1', 'leaf-b': 'node-2' }]);
+  assert.equal(saved.maps['leaf-a'].rsrc['3-3'].node, 'leaf-a', '원본은 건드리지 않는다');
+  // 바뀐 것이 없으면 · 예전 저장본(nodeIds 없음)이면 그대로
+  const same = { nodeIds: { 'leaf-b': 'node-2' }, maps: {} };
+  assert.equal(remapNodes(same, NET), same);
+  const old = { maps: { 'leaf-a': { fields: [] } } };
+  assert.equal(remapNodes(old, NET), old);
+});
+
+test('loadWorld — 이 노드의 이름이 바뀌어도(같은 node_id) 저장한 맵 · 노드 자원 · 연결 · 모습이 되살아난다', async () => {
+  const key = layoutKey('node-1', 'renamer');
+  mem.setItem(key, JSON.stringify({
+    nodeIds: { 'leaf-a': 'node-1', 'leaf-b': 'node-2' },
+    maps: { 'leaf-a': { fields: ['4-4', '3-3', '4-3'], mat: {}, placed: {}, nodes: {}, pending: [], self: '4-4', grounds: [], gmat: {}, grot: {}, frot: {},
+      rsrc: { '3-3': { app: 'io', id: 'dev-1', name: '키보드', node: 'leaf-a', emoji: '⌨️', type: 'I/O 장치', io: null, at: '09:00' } }, links: [] } },
+    looks: { 'leaf-a': { skin: 'sand', bid: 'tower', rot: 0 } }
+  }));
+  const c = fakeClient();
+  const base = c.invoke.bind(c), baseGet = c.get.bind(c);
+  c.invoke = async (op, input) => (op === 'terra.daemon.node.get' ? { kind: 'ok', data: { node_id: 'node-1', device_name: 'leaf-a2' } } : base(op, input));
+  c.get = async (path) => (path === '/api/v1/agent/nodes' ? { kind: 'ok', data: { nodes: [{ nodeId: 'node-1', displayName: 'leaf-a2', status: 'online' }, { nodeId: 'node-2', displayName: 'leaf-b', status: 'online' }] } } : baseGet(path));
+  const s = new (prep('node', NodeScreen))({ skin: 'grass' });
+  await loadWorld(s, c, { permissions: ['node.read'], principal: 'renamer' });
+  assert.equal(s.state.map, 'leaf-a2');
+  assert.deepEqual(Object.keys(s.state.rsrc), ['3-3']);
+  assert.equal(s.state.rsrc['3-3'].node, 'leaf-a2');
+  assert.deepEqual(s.state.looks['leaf-a2'], { skin: 'sand', bid: 'tower', rot: 0 });
+  resetWorld(s);
+});
+
+test('시작 화면 — 다 내려간 뒤 로그아웃하면(토큰을 잃으면) 노드 화면을 걷고 판으로 돌아온다. 다시 토큰이 오면 다시 내려간다', async () => {
+  const s = new (realIntro(IntroScreen))({});
+  const t = fakeTerra('tsa_z', { state: 'signedIn', principal: 'u' });
+  const frame = { style: { opacity: '1', pointerEvents: 'auto', transition: '' } };
+  const doc = Object.assign(stubDoc(), { querySelector: (sel) => (sel === '[data-in-map]' ? frame : null) });
+  await bootIntro(s, { role: 'frame', frameReady: Promise.resolve(t), doc, autoMs: 1000 });
+  clearTimeout(s._autoT);
+  s._fly = { done: true, p: 1 };   // 다 내려간 상태
+  s.setState({ phase: 'done', fly: true, flyDone: true });
+  t.set(null);
+  assert.deepEqual([s.state.phase, s.state.fly, s.state.flyDone, s._fly], ['form', false, false, null]);
+  assert.deepEqual([frame.style.opacity, frame.style.pointerEvents], ['0', 'none'], '노드 화면을 걷는다 — 누름도 판이 받는다');
+  const v = s.renderVals().v;
+  assert.deepEqual([v.cardDisp, v.chromeOp, v.chromePe, v.goLabel], ['flex', 1, 'auto', 'Terra 로그인']);
+  assert.match(v.msg, /로그아웃했다/);
+  t.set('tsa_z2');
+  assert.equal(s.state.phase, 'auto', '다시 로그인하면 다시 내려간다');
+  clearTimeout(s._autoT); clearTimeout(s._backT); s._dead = true;
 });

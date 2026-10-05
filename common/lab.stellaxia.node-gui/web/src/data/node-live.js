@@ -13,7 +13,7 @@
 import { treeFromMaster, nameNodes, buildNet, resourceSummary } from './world.js';
 import { taskAlarms } from './alarms.js';
 import { rootItems, entryItems, splitId } from './files.js';
-import { layoutKey, loadLayout, bindLayout, reviveMaps, reviveWins } from '../store/layout.js';
+import { layoutKey, loadLayout, bindLayout, reviveMaps, reviveWins, remapNodes } from '../store/layout.js';
 import { loadConfig } from '../api/config.js';
 import { HELM_CRUD, CRUD_TEXT } from '../api/operations.js';
 import { resultText } from '../api/client.js';
@@ -382,11 +382,12 @@ export async function loadWorld(screen, client, session) {
   // 처음 맵은 이 노드 자신의 맵이다 — 조타륜이 이 노드의 자원을 다룬다. 조타륜을 내리면 부모 tree 맵으로 간다
   const localNode = { name: localName, role: 'Leaf', local: true, id: local.id };
   screen._mapGoal = null;   // 로그인 전에 고른 맵 이동은 버린다 — 이 노드 맵에서 시작한다
-  // 저장된 배치(LayoutStore) — 노드 · 주체마다. 없으면 기본 맵. 사라진 노드는 칸에서 빼고, 칸 없는 tree 자식은 새 노드로
+  // 저장된 배치(LayoutStore) — 노드 · 주체마다. 없으면 기본 맵. 사라진 노드는 칸에서 빼고, 칸 없는 tree 자식은 새 노드로.
+  // 저장본 안의 노드는 이름이 키다 — 저장 때 적어 둔 node_id 로 이름이 바뀐 노드를 지금 이름으로 옮긴다(remapNodes)
   const cfg = await loadConfig();
   if (gone()) return;
   const key = cfg.layoutStore === 'none' ? null : layoutKey(local.id || localName, R.principal);
-  const saved = (key && loadLayout(key)) || {};
+  const saved = remapNodes((key && loadLayout(key)) || {}, NET);
   const maps = reviveMaps(saved.maps, NET, (role) => screen.isTree(role));
   const map = Object.assign({}, maps[localName] || screen.defaultMap(localName));
   screen.setState(Object.assign(map, {
