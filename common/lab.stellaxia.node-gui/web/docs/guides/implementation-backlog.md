@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.7.0"
+version: "1.7.1"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -40,7 +40,7 @@ related:
 | --- | --- | --- | --- | --- |
 | **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 1 | 3 | 5 |
 | **MD** 이 모듈 | modules 저장소 | 1 | 4 | 3 |
-| **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | — | 3 | 5 |
+| **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | — | 3 | 4 |
 | **Q** 사람이 정할 것 | 소유자 | — | — | — |
 
 남은 것만 센다(2026-10-05 저녁). Terra G0~G6이 닫은 PF는 §1.2, 이 모듈이 끝낸 MD는 §2 "끝낸 것", 원본이 고친 UP는 §3.0에 있다.
@@ -65,8 +65,8 @@ flowchart LR
   end
   CFG["Terra main 모듈 설정 op 셋 — 쓰기는 module.manage"] --> MD22
   FILE021["io.terra.file 0.2.1 — 중단이 부분을 남긴다"] -->|"중단 뒤 다시 올리기"| MD21
-  MD21 -.->|"멈춤 칸 · 이어서"| UP22["UP-22 · UP-23 · UP-24 원본에 올릴 것"]
-  MD23 -.->|"빈 목록의 이유"| UP22
+  MD21 -.->|"멈춤 칸 · 이어서"| UP22["UP-22 · UP-23 원본에 올릴 것"]
+  MD23 -.->|"빈 목록의 이유"| UP24["UP-24 maingui PR 1에 올림"]
   PF10["PF-10 자기 op invoke — Terra PR 118"] -.->|"병합되면 경로 대신 operationId"| MD15
   PF1["PF-1 Master op — 남음"] --> MD1["MD-1 입출력 연결의 의미"]
   PF1 --> MD13["MD-13 tree CRUD E2E"]
@@ -157,10 +157,10 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 
 | 상태 | ID | 어디서 |
 | --- | --- | --- |
-| 원본에 올렸다 | UP-1 · UP-2 · UP-3 · UP-10 · UP-12(나) · UP-15 · UP-18 · UP-19 · UP-21 | [maingui#1](https://github.com/StellaxiaLab/maingui/pull/1) — 고치기 전 코드에서 실패하는 시험과 함께(UP-19 · UP-21은 둘째 커밋 `43d547a` — 가짜 Gateway도 실제 모양으로). main `e669c03`을 합쳤다(`c4fce94`) |
+| 원본에 올렸다 | UP-1 · UP-2 · UP-3 · UP-10 · UP-12(나) · UP-15 · UP-18 · UP-19 · UP-21 · UP-24 | [maingui#1](https://github.com/StellaxiaLab/maingui/pull/1) — 고치기 전 코드에서 실패하는 시험과 함께(UP-19 · UP-21은 둘째 커밋 `43d547a` — 가짜 Gateway도 실제 모양으로, UP-24는 셋째 커밋 `580c6e5` — 가짜 Gateway의 Daemon 재시작으로 재현). main `e669c03`을 합쳤다(`c4fce94`) |
 | 원본이 고쳤다 | UP-4 · UP-5 · UP-6 · UP-7 · UP-8 · UP-12(가 · 다 · 라 · 마) · UP-13 · UP-17 · UP-20 | maingui `19d2a70`(연동 층을 실제 Gateway에) · `2ced429`(G0~G6 연동) · `e669c03`(A-30 내려받기 — UP-20은 PR에서 뺐다) |
 | 남았다 | UP-9 · UP-11 · UP-12(바 · 사) · UP-14 · UP-16 | 아래 — maingui `1aa6340`에서 다시 봤다(로컬 노드 `소유자` · 작업 실행 `commands.post` · `화면에만 반영` · 노드 칸 `로그인됨`이 그대로다) |
-| 새로 찾았다 — 아직 올리지 않았다 | UP-22 · UP-23 · UP-24 | MD-21 · MD-23에서 — 아래 |
+| 새로 찾았다 — 아직 올리지 않았다 | UP-22 · UP-23 | MD-21에서 — 아래 |
 
 - **UP-9** — `service.js` `hbPerm`이 로컬 노드를 여전히 `소유자` · 모든 권한으로 둔다. 원본의 선택일 수 있다(권한 없는 호출은 게이트웨이가 거절한다)
 - **UP-11** — UI 명세 §2.9가 여전히 §2.13 뒤에 있다
@@ -181,10 +181,10 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 - **UP-23** — 원본에는 끊긴 뒤 이어서가 없다. 원본의 중단(`keep_partial: true`)은 io.terra.file 0.2.0에서 늘 포기였다 — 0.2.1이 고쳤으니 원본 코드는 그대로 둬도 된다.
   모듈의 `markStalled` · `stalledPush` · `upload {resume}` · `download` + `src/store/parts.js`를 옮길 수 있다
 
-새로 찾은 것(MD-23 — SVI 흐름도를 진짜 스택에서 돌리며 · 아직 원본에 올리지 않았다):
+새로 찾아 원본에 올린 것(MD-23 — SVI 흐름도를 진짜 스택에서 돌리며 — maingui#1 셋째 커밋 `580c6e5`):
 
 - **UP-24** — 목록을 받지 못한 이유가 2.6초 뒤 사라진다. 원본 `wire.js`의 목록 받기는 실패를 `hbSay`로 알리고 `hbSay`는 2.6초 뒤 글줄을 지운다 —
-  그 뒤엔 이유 없는 빈 목록 · 빈 흐름도만 남는다. leaf Gateway에 붙은 service 판의 SVI 자원 · 허가(Master op)가 그렇다. 모듈은 보고 있는 앱이면 이유를 남기고, 다시 받으면 지운다
+  그 뒤엔 이유 없는 빈 목록 · 빈 흐름도만 남는다. leaf Gateway에 붙은 service 판의 SVI 자원 · 허가(Master op)가 그렇다. 모듈은 보고 있는 앱이면 이유를 남기고, 다시 받으면 지운다. 원본에도 같게 고쳤다(연기 시험 — Daemon 재시작 503 동안 앱을 다시 열어 2.6초 뒤에도 이유가 남는지)
 
 ### 3.1 찾은 것 — 그때 표
 
@@ -264,5 +264,5 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 - MD-21 → UP-22 · UP-23: 멈춤 칸과 이어서를 원본에도
 - maingui `e669c03` → MD-22: 원본이 모듈 수정 폼을 모듈 설정으로 바꿨다 — 모듈은 디자인을 복사하고 연동 층(받기 · 저장)을 지었다. 저장은 `module.manage`★(Q-16)
 - maingui `1aa6340` → MD-23: 원본이 SVI 자원 앱을 흐름도로 바꿨다 — 모듈은 디자인을 복사하고 연동 층(흐름 · 흐름 이벤트)을 옮겼다. SVI는 Master op라 앱 토큰으로는 빈 흐름도(PF-1)
-- MD-23 → UP-24: 목록을 받지 못한 이유를 남기는 것을 원본에도
+- MD-23 → UP-24: 목록을 받지 못한 이유를 남기는 것을 원본에도 올렸다(maingui#1 `580c6e5`)
 - PF-15 → MD-14: 셸이 "앱 열기"를 받아야 모듈 GUI 창이 실제로 연다
