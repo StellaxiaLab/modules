@@ -249,7 +249,7 @@ interface AssetStore {             // 편집기 3종이 만드는 것
 
 > [!NOTE] 지금 구현 (2026-10-04)
 > ①을 `localStorage`로 세웠다 — `src/store/layout.js`(짝 프로젝트와 같은 모양). 모듈의 키는 `terra.gui.layout|<node_id>|<주체>`이고
-> `looks` · `maps`(노드 자원 `rsrc` · 연결 `links` 포함) · 표시 설정 · `memos` · `wins`를 한 덩어리로 담는다. 단, 맵 **안의** 노드는 아직 이름이 키다.
+> `looks` · `maps`(노드 자원 `rsrc` · 연결 `links` 포함) · 표시 설정 · `memos` · `wins`를 한 덩어리로 담는다. 맵 **안의** 노드는 화면 규칙대로 이름이 키지만, 저장본에 이름 → `node_id`(`nodeIds`)를 같이 적어 읽을 때 지금 이름으로 옮긴다(`remapNodes` — 이름이 바뀌어도 따라간다).
 > 서버 저장으로 바꿀 때는 `loadLayout` · `saveLayout` 두 함수만 바꾼다 — [[module-profile|모듈 프로필]] §4.
 
 ### 3.1 편집기 ↔ 노드 화면 연결

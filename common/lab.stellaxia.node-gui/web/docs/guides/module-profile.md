@@ -8,8 +8,8 @@ doc_type: "guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.1.0"
-last_updated: "2026-10-04"
+version: "1.2.0"
+last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -104,6 +104,7 @@ sequenceDiagram
 | 로그인 전 | "Terra에 로그인하지 않았다" | `Terra 로그인` → `emit('login')` | 노랑 · 로그인 전 |
 | 토큰 있음 (셸 세션 · Scene 로그인) | 곧장 "○○(으)로 들어가는 중…" → 1.4초 뒤 내려간다. `취소 — 여기 머물기` | `들어가기` | 초록 · 연결됨 |
 | 셸이 답하지 않음 | "Terra 셸이 답하지 않는다" | — | 빨강 |
+| 로그아웃 (다 내려간 뒤) | 노드 화면을 걷고 판으로 돌아온다 · "로그아웃했다 — 다시 들어가려면 Terra 로그인" | `Terra 로그인` | 노랑 · 로그인 전 |
 | 권한 없음 (`SCOPE_TOKEN_DENIED`) | "이 화면의 토큰을 받지 못했다" + 이유 | `Terra 로그인`(다른 계정) | 노랑 |
 
 - 이 화면은 아무것도 기억하지 않는다 — 짝 프로젝트의 `terra.gui.autoLogin`(아이디 기억)을 쓰지 않는다. "자동 로그인"은 Terra가 쥔 세션이 있다는 뜻이다.
@@ -121,7 +122,8 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 | 되살리기 | 주인이 사라진 맵은 버리고, 사라진 노드는 칸에서 빼고, 칸이 없는 tree 자식은 `새 노드`로(`reviveMaps`). 새 창(도로 편집기 · 자원 설정)은 기본 자리(`reviveWins`). 처음 맵은 늘 이 노드의 맵이다 |
 | 로그아웃 · 토큰을 잃음 | 저장을 **끊고**(`unbind`) 빈 세계로 돌아간다 — 빈 세계가 저장본을 덮지 않는다. 표시 설정 · 패널 접힘도 기본으로, 열려 있던 상태 화면 · 폼 · 모듈 GUI 창 · 그래프 고름은 비운다 |
 | 끄기 | `config.json`의 `"layoutStore": "none"` — 공용 화면 · 키오스크 |
-| 한계 | 기기 · 브라우저마다 따로다. 노드 이름이 바뀌면 그 노드의 칸 · 모습이 끊긴다(이름이 키다). 서버 저장으로 바꿀 때는 `loadLayout` · `saveLayout` 두 함수만 바꾼다 — [[implementation-backlog\|구현해야 할 것]] PF-3 |
+| 노드 이름 | 맵 안의 노드는 화면 규칙대로 이름이 키다. 저장할 때 이름 → `node_id`(`nodeIds`)를 같이 적고, 읽을 때 지금 이름으로 옮긴다(`remapNodes`) — 이름이 바뀌어도 칸 · 모습 · 노드 자원 · 연결이 따라가고, 사라진 노드의 칸은 같은 이름을 얻은 다른 노드에게 넘어가지 않는다. tree 항목은 id가 없어 이름 그대로다 |
+| 한계 | 기기 · 브라우저마다 따로다. 서버 저장으로 바꿀 때는 `loadLayout` · `saveLayout` 두 함수만 바꾼다 — [[implementation-backlog\|구현해야 할 것]] PF-3 |
 
 도로 · 건물 설계(편집기에서 내보낸 것)는 LayoutStore가 아니라 `localStorage`의 `terra.gui.roads` · `terra.gui.buildings`다 — 노드 화면은 `storage` 이벤트로 받아 다시 굽는다([[road-editor-spec|도로 편집기]] §2).
 
@@ -168,7 +170,8 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 | 예시 상태 지우기 · 진짜 출처로 채우기 · 권한 · 요약 글 | `src/data/node-live.js` · `network-live.js` · `settings-live.js` · `editors-live.js` — [[real-data-layer\|실데이터 층]] |
 | 시작 화면의 세션 · 로그인 · 미리 읽기 | `src/data/intro-live.js` |
 | 빈 맵의 해안선 엔진 멈춤 | `fixes.js` (짝 프로젝트와 같다) |
-| leaf 맵의 자기 칸(`self`)을 노드 칸으로 — 도로가 지나가지 못하고 · 연결 대상이 되고 · 자원을 놓지 못한다 | `fixes.js` (모듈에서 더함 — 원본에 올릴 것, [[implementation-backlog\|구현해야 할 것]] UP-3) |
+| leaf 맵의 자기 칸(`self`)에 자원을 놓지 못한다 — 길 찾기 · 대상 · 상태 창은 원본이 `nodeAt()`으로 고쳤고 설치만 남았다 | `fixes.js` (모듈에서 더함 — 원본에 올릴 것, [[implementation-backlog\|구현해야 할 것]] UP-3) |
+| 로그아웃하면 시작 화면이 노드 화면을 걷고 판으로 돌아온다 | `src/data/intro-live.js` `flyBack` |
 | 자원 추가 · 수정 · 삭제 — 폼 저장(`hbFormSave`) · 두 번 누르는 삭제(`hbDel`)를 실제 호출로 바꿔 끼운다. 값을 적어야 하는 앱 바 동작은 폼을 연다 | `src/api/operations.js` `HELM_CRUD` · `src/api/source.js` `crud()` · `src/api/wire.js` |
 | 서버에 길이 없는 추가 · 수정 · 삭제는 폼 · 확인 대기를 열기 전에 막는다 · 폼의 API 줄 · 자리 표시자 · 상태 화면의 로그인 줄 · 모듈 GUI 창 · 메모 경로 | `src/data/node-live.js` (`crudWhy` · `HBCRUD` · `hbFormOpen` · `hbFormSave` · `hbDel` · `rstVals` · `mguiVals` · `memoVals`) |
 

@@ -5,7 +5,7 @@ scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
 version: "v0.4"
-last_updated: "2026-10-04"
+last_updated: "2026-10-05"
 ---
 
 # Terra 노드 (`lab.stellaxia.node-gui`)
@@ -142,7 +142,7 @@ maingui를 따라가는 방법 · "삭제"의 뜻)은 [`web/docs/guides/implemen
 cd common/lab.stellaxia.node-gui/web
 npm ci
 npm run dev          # http://localhost:5173 — 단독 실행, 데이터 없음(빈 세계)
-npm test             # 연동 층 · 실데이터 층 · 모듈 프로필 · 추가 · 수정 · 삭제 시험 (76개)
+npm test             # 연동 층 · 실데이터 층 · 모듈 프로필 · 추가 · 수정 · 삭제 시험 (80개)
 npm run build        # ../ui/ 를 새로 쓴다
 ```
 
@@ -167,6 +167,15 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### 구현해야 할 것 — MD-4 · MD-5 · MD-8 (2026-10-05)
+
+| 항목 | 진짜 스택에서 |
+| --- | --- |
+| MD-5 자기 칸 | 이 노드 칸을 고르면 캡슐(이름 · 로고)이 뜬다 — 연결은 원본 규칙(공유 · 내보내기)대로 |
+| MD-4 저장본의 `node_id` | 저장본에 `nodeIds: { stack-leaf-01: node_… }`. 이름이 바뀐 노드 · 같은 이름을 얻은 다른 노드는 시험(`tests/module.test.mjs`)으로 본다 |
+| MD-8 로그아웃 | 세션 띠의 [로그아웃] → 시작 화면이 노드 화면을 걷고 판으로(누름은 판이 받는다) → [Terra 로그인] → 같은 맵으로 다시 내려간다 |
+| 시험 | `npm test` 80 · `test:smoke` · `validate` · `test:web` · `test:scenes` 44 통과 · 예시 표식 0건 |
 
 ### maingui 기준 — 추가 · 수정 · 삭제 · 상태 화면 · 모듈 GUI 창 (2026-10-04)
 

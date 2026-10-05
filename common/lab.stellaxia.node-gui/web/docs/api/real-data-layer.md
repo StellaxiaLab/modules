@@ -8,8 +8,8 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
-last_updated: "2026-10-04"
+version: "0.3.1"
+last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -206,6 +206,7 @@ sequenceDiagram
 - **시작 화면** — 로그인 전이면 판에 [Terra 로그인]이 선다 → 셸의 `/login` 카드 → 로그인하면 셸이 frame 을 처음부터 다시 띄우고, 토큰이 있으니 곧장 내려간다.
   셸을 새로 고치면 Scene 의 세션(memory Store)이 비어 다시 로그인한다 — 저장한 배치 · 자원 · 연결 · 메모는 LayoutStore 에 남아 되살아난다.
 - **로그아웃** — LayoutStore 저장을 끊은 뒤 빈 세계로 돌아간다. 저장본은 지우지 않는다(다시 로그인하면 되살린다).
+  시작 화면도 노드 화면을 걷고 판(하늘 · 바다 · [Terra 로그인])으로 돌아온다 — 다시 로그인하면 다시 내려간다.
 
 ## 5. 실측 — 진짜 스택 위에서
 
