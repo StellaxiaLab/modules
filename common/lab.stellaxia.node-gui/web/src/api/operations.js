@@ -32,7 +32,11 @@ export const HELM_APPS = {
   svi: {
     name: 'SVI 자원', see: 'node.read',
     list: { op: T('svi.resources.get'), where: 'T', perm: 'node.read', resp: 'now', input: { node_id: '<노드>', limit: 100 } },
-    extra: [{ op: T('svi.grants.get'), where: 'T', perm: 'node.read', use: '카드의 허가 표시 (내가 받은 허가)' }],
+    extra: [{ op: T('svi.grants.get'), where: 'T', perm: 'node.read', use: '카드의 허가 표시 (내가 받은 허가)' },
+      { op: T('svi.handles.get'), where: 'T', perm: 'node.read', use: '열린 핸들 — 흐름도 · 흐름 이벤트 (maingui A-28)' },
+      { op: T('svi.bindings.get'), where: 'T', perm: 'node.read', use: '흐름도의 바인딩 (maingui A-28)' }],
+    // 흐름 이벤트 (maingui A-28) — 흐름도에서 고른 자원 · 상태 화면이 보는 자원에 열린 핸들이 있으면 wire.js 가 그 핸들의 SSE 를 연다
+    events: { op: T('svi.handles.by-handle-id.events.get'), where: 'T', perm: 'node.read', resp: 'stream', note: 'Accept: text/event-stream · event: status | frame (StreamMessage)' },
     acts: {
       open: { op: T('svi.handles.post'), where: 'T', perm: 'node.read', resp: 'job', gate: '자원별 허가(read) · io.* 는 백엔드 없음' },
       close: { op: T('svi.handles.by-handle-id.delete'), where: 'T', perm: 'node.read', resp: 'now' },

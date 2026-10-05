@@ -2388,6 +2388,7 @@ export default class Component extends DCLogic {
   }
   // 상태 화면 (창 'rst'): { kind: 'res', node, app, id } · { kind: 'node', key } · { kind: 'road', key }
   rstOpen(spec) {
+    if (spec && spec.app === 'svi' && !this._hbX) this._hbX = setInterval(() => this.hbTick(), 500);   // 흐름 이벤트 (예시)
     const F = this.state.hbForm;
     this.setState({ rst: Object.assign({}, spec), hbForm: F && F.where === 'rst' ? null : F, hbArm: null });
     const W = this.state.wins.rst; if (!this.state.winOpen.rst) this.openWin('rst', W.x, W.y); else this.winFront('rst');
@@ -2466,6 +2467,93 @@ export default class Component extends DCLogic {
     const W = this.state.wins.mgui; if (!this.state.winOpen.mgui) this.openWin('mgui', W.x, W.y); else this.winFront('mgui');
   }
   // 흐름: 자원이 지나는 단계 · 지금 단계 · 색 (상태 화면 위쪽 줄)
+  // ───── SVI 흐름도 (A-28) — 자원 하나하나를 '제공 노드 → 자원 → 엔드포인트 → 쓰는 쪽(핸들 · 바인딩 · 허가)'으로 그린다 ─────
+  //   it.flow = { eps[{id, dir, inter}], handles[{id, who, op, ep, state, mine}], binds[{id, ep, to, state, qos, reason}], grants[{id, who, ops, alive}] }
+  //   서비스에서는 adapters.js가 Master 목록(자원 endpoints · svi.grants · svi.handles · svi.bindings)으로 채운다. 예시는 조타륜의 허가 · 바인딩 목록에서 만든다
+  sviFlow(node, d) {
+    if (d.flow) return d.flow;
+    const toks = String(d.ep || '').split(' · '), short = String(d.id || '').split('.').slice(2).join('.');
+    const eps = /camera/.test(d.kind || '') ? [{ id: 'frames', dir: 'source', inter: 'stream' }, { id: 'snapshot', dir: 'source', inter: 'read' }]
+      : toks[0] && toks[0] !== '엔드포인트 없음' ? [{ id: toks[0], dir: toks[1] || 'source', inter: toks[2] || '' }] : [];
+    const G = this.hbItems(node, 'grant') || [], mine = (r) => { const b = String(r || '').split('#')[0]; return b === short || b === d.name || b === d.id; };
+    return {
+      eps,
+      handles: d.handle ? [{ id: d.handle, who: '내 핸들', op: 'read', ep: eps[0] ? eps[0].id : '', state: 'active', mine: true }] : [],
+      binds: G.filter((g) => g.type === 'bind' && mine(g.from)).map((b) => ({ id: b.id, ep: String(b.from).split('#')[1] || (eps[0] ? eps[0].id : ''), to: b.to, state: b.state, qos: b.qos, reason: b.reason })),
+      grants: G.filter((g) => g.type === 'grant' && mine(g.res)).map((g) => ({ id: g.id, who: g.who, ops: g.ops, alive: g.alive }))
+    };
+  }
+  // 흐름도 배치: 열 = [제공 노드] · 자원 · 엔드포인트 · 쓰는 쪽. single = 상태 화면용(자원 하나, 노드 열 없음)
+  sviDiagram(node, list, W, selId, single) {
+    const S = this.state, ST = { available: ['#1f7a4d', '쓸 수 있음'], busy: ['#2563eb', '사용 중'], disabled: ['#8b95a6', '꺼짐'], unavailable: ['#d33d52', '보고 끊김'], unsupported: ['#8b95a6', '지원 안 함'] };
+    const PH = single ? 30 : 32, GAP = 6, RG = 18, TOP = single ? 10 : 16;
+    const C = single ? { res: [2, Math.round(W * 0.3)], ep: [Math.round(W * 0.36), Math.round(W * 0.24)], con: [Math.round(W * 0.66), W - Math.round(W * 0.66) - 2] }
+      : { node: [10, 168], res: [226, 196], ep: [Math.max(452, Math.round(W * 0.4)), 150], con: [Math.max(650, Math.round(W * 0.4) + 200), 0] };
+    if (!single) C.con[1] = Math.min(340, Math.max(170, W - C.con[0] - 14));
+    const boxes = [], edges = [], curve = (x1, y1, x2, y2) => { const m = (x1 + x2) / 2; return 'M' + x1 + ' ' + y1 + ' C' + m + ' ' + y1 + ' ' + m + ' ' + y2 + ' ' + x2 + ' ' + y2; };
+    const LIVE = /^(active|degraded|opening|preparing)$/, HS = { active: '#2563eb', degraded: '#a65f00', opening: '#2563eb', preparing: '#a65f00', requested: '#a65f00', authorized: '#a65f00', validating: '#a65f00', planning: '#a65f00', closing: '#8b95a6', closed: '#8b95a6', denied: '#d33d52', failed: '#d33d52', expired: '#8b95a6' };
+    let y = TOP, nFlow = 0;
+    const rows = list.map((d) => {
+      const f = this.sviFlow(node, d), cons = [].concat(
+        f.handles.map((h) => ({ k: 'h', d: h, ep: h.ep, emoji: '🔗', title: (h.mine ? '내 핸들' : h.who || '핸들') + ' · ' + (h.op || 'read'), sub: h.state + (h.id ? ' · ' + String(h.id).slice(0, 12) : ''), col: HS[h.state] || '#8b95a6', live: LIVE.test(h.state) })),
+        f.binds.map((b) => ({ k: 'b', d: b, ep: b.ep, emoji: '➜', title: b.to, sub: (b.state === 'active' ? '바인딩 · 흐르는 중' : '바인딩 · ' + (b.reason || '실패')) + (b.qos ? ' · ' + b.qos : ''), col: b.state === 'active' ? '#1f9d55' : '#d33d52', live: b.state === 'active' })),
+        f.grants.map((g) => ({ k: 'g', d: g, emoji: '🔑', title: g.who, sub: '허가 · ' + g.ops, col: g.alive ? '#c08a00' : '#b8c0cc', live: false })));
+      const n = Math.max(f.eps.length, cons.length, 1), h = Math.max(56, n * (PH + GAP) - GAP), r = { d, f, cons, y, h };
+      y += h + RG; return r;
+    });
+    const H = Math.max(single ? 70 : 150, y - RG + TOP);
+    if (!single && list.length) {   // 제공 노드
+      const net = this.NET[node] || {}, ny = Math.round(H / 2 - 34);
+      boxes.push({ key: 'node', x: C.node[0], y: ny, w: C.node[1], h: 68, emoji: '', logo: this.nodeLogo(net.role), logoDisp: 'block', title: node, sub: '제공 노드 · 자원 ' + list.length, line: '#16191f', bw: 2, bg: '#ffffff', fg: '#16191f', dot: 'transparent', r: 12, go: () => {}, tip: node + ' — 이 노드가 선언한 SVI 자원', cur: 'default', fw: 800 });
+      rows.forEach((r) => edges.push({ d: curve(C.node[0] + C.node[1], ny + 34, C.res[0], r.y + r.h / 2), col: '#b8c0cc', w: 1.5, dash: 'none', anim: 'none', op: 1, mk: 'svd-ar-s' }));
+    }
+    rows.forEach((r) => {
+      const d = r.d, st = ST[d.status] || ST.unavailable, sel = !single && selId === d.id, rmY = r.y + r.h / 2, flowing = r.cons.some((c) => c.live);
+      if (flowing) nFlow++;
+      boxes.push({ key: 'res:' + d.id, x: C.res[0], y: Math.round(rmY - 26), w: C.res[1], h: 52, emoji: this.rsrcEmoji('svi', d), logo: '', logoDisp: 'none', title: d.name, sub: d.kind + ' · ' + (flowing ? '흐르는 중' : st[1]), line: sel ? '#2563eb' : st[0], bw: sel ? 2.5 : 1.5, bg: sel ? '#f3f7ff' : '#ffffff', fg: '#16191f', dot: flowing ? '#2563eb' : st[0], r: 10,
+        go: single ? () => {} : () => this.setState({ sviSel: d.id }), tip: d.id, cur: single ? 'default' : 'pointer', fw: 800 });
+      const epY = {}, e0 = rmY - (r.f.eps.length * (PH + GAP) - GAP) / 2;
+      r.f.eps.forEach((ep, i) => {
+        const ey = Math.round(e0 + i * (PH + GAP)); epY[ep.id] = ey + PH / 2;
+        boxes.push({ key: 'ep:' + d.id + ':' + ep.id, x: C.ep[0], y: ey, w: C.ep[1], h: PH, emoji: ep.inter === 'stream' ? '〰' : '◇', logo: '', logoDisp: 'none', title: ep.id, sub: [ep.dir, ep.inter].filter(Boolean).join(' · '), line: '#cfd6df', bw: 1, bg: '#f7f8fb', fg: '#3a4049', dot: 'transparent', r: 13, go: () => {}, tip: '엔드포인트 ' + ep.id, cur: 'default', fw: 700 });
+        edges.push({ d: curve(C.res[0] + C.res[1], rmY, C.ep[0], ey + PH / 2), col: '#b8c0cc', w: 1.5, dash: 'none', anim: 'none', op: 1, mk: '' });
+      });
+      r.cons.forEach((c, i) => {
+        const cy = Math.round(r.y + i * (PH + GAP)), my = cy + PH / 2;
+        boxes.push({ key: 'con:' + d.id + ':' + i, x: C.con[0], y: cy, w: C.con[1], h: PH, emoji: c.emoji, logo: '', logoDisp: 'none', title: c.title, sub: c.sub, line: c.col, bw: c.live ? 1.5 : 1, bg: '#ffffff', fg: '#16191f', dot: 'transparent', r: 13,
+          go: single ? () => {} : () => this.setState({ sviSel: d.id }), tip: c.title + ' — ' + c.sub, cur: single ? 'default' : 'pointer', fw: 700 });
+        // 허가는 자원에 대한 것 — 엔드포인트 묶음 아래에서 점선으로 (흐름 선과 겹치지 않게)
+        const eTop = r.f.eps.length ? epY[r.f.eps[0].id] - PH / 2 : rmY, eBot = r.f.eps.length ? epY[r.f.eps[r.f.eps.length - 1].id] + PH / 2 : rmY;
+        const from = c.k === 'g' ? (r.f.eps.length ? [C.ep[0] + C.ep[1] / 2, eBot] : [C.res[0] + C.res[1], rmY]) : [C.ep[0] + C.ep[1], epY[c.ep] != null ? epY[c.ep] : (r.f.eps[0] ? epY[r.f.eps[0].id] : rmY)];
+        void eTop;
+        const gd = c.k === 'g' && r.f.eps.length ? 'M' + from[0] + ' ' + from[1] + ' C' + from[0] + ' ' + (my + 2) + ' ' + (from[0] + 40) + ' ' + my + ' ' + C.con[0] + ' ' + my : null;
+        edges.push({ d: gd || curve(from[0], from[1], C.con[0], my), col: c.col, w: c.live ? 2.2 : 1.4, dash: c.k === 'g' ? '2 4' : c.live ? '7 5' : c.k === 'b' ? '5 4' : 'none', anim: c.live ? 'ring-march 0.9s linear infinite' : 'none', op: c.k === 'g' ? 0.85 : 1, mk: c.k === 'g' ? '' : c.live ? (c.k === 'b' ? 'svd-ar-g' : 'svd-ar-b') : 'svd-ar-s' });
+      });
+      if (!r.f.eps.length && !r.cons.length) boxes.push({ key: 'none:' + d.id, x: C.ep[0], y: Math.round(rmY - PH / 2), w: C.ep[1] + (single ? C.con[1] : 160), h: PH, emoji: '', logo: '', logoDisp: 'none', title: '엔드포인트 · 쓰는 쪽 없음', sub: '', line: '#e6e9ee', bw: 1, bg: 'transparent', fg: '#8b95a6', dot: 'transparent', r: 13, go: () => {}, tip: '', cur: 'default', fw: 400 });
+    });
+    const cols = single ? [] : [['제공', C.node[0]], ['자원', C.res[0]], ['엔드포인트', C.ep[0]], ['쓰는 쪽 — 핸들 · 바인딩 · 허가', C.con[0]]].map(([t, x]) => ({ t, x }));
+    boxes.forEach((b) => { b.emoDisp = b.emoji && !(single && /^ep:/.test(b.key)) ? 'block' : 'none'; b.dotDisp = b.dot === 'transparent' ? 'none' : 'block'; if (single) b.x = b.x; });
+    return { W, H, boxes, edges, cols, colsDisp: single ? 'none' : 'block', empty: !list.length, nFlow };
+  }
+  // 흐름 이벤트 (핸들 SSE terra.master.svi.handles.by-handle-id.events.get — status · frame). 서비스는 wire.js가 state.sviEv에 넣는다, 예시는 sviDemoTick
+  sviEvView(resId) {
+    const E = (this.state.sviEv || {})[resId] || null, items = E ? E.items.slice(-8).reverse() : [];
+    return { on: true, live: !!(E && E.live), head: E ? '프레임 ' + E.frames + ' · ' + (E.bytes >= 1024 ? Math.round(E.bytes / 1024) + ' KB' : E.bytes + ' B') + (E.live ? ' · ● 실시간 (SSE)' : ' · 예시') : '열린 핸들이 없다 — 자원을 열면 흐름이 여기에 보인다',
+      headC: E && E.live ? '#2563eb' : '#8b95a6', items: items.map((x) => ({ t: x.t, text: x.text, c: x.c || '#e6e9ee' })), none: !items.length, noneDisp: items.length ? 'none' : 'block' };
+  }
+  sviDemoTick() {
+    if (this._sviLive) return;
+    const S = this.state, nodes = new Set([this.hbNode(), S.rst && S.rst.app === 'svi' ? S.rst.node : null].filter(Boolean)), ev = Object.assign({}, S.sviEv || {});
+    let ch = false;
+    nodes.forEach((n) => (this.hbItems(n, 'svi') || []).forEach((d) => {
+      if (!d.handle) { if (ev[d.id]) { delete ev[d.id]; ch = true; } return; }
+      const E = ev[d.id] || { frames: 0, bytes: 0, items: [{ t: new Date().toTimeString().slice(0, 8), text: 'status · active — 임대 2분', c: '#5fd39a' }], live: false };
+      const sz = /camera|screen/.test(d.kind) ? 18000 + (E.frames * 977) % 6000 : 120 + (E.frames * 37) % 90;
+      ev[d.id] = { frames: E.frames + 1, bytes: E.bytes + sz, live: false, items: E.items.concat([{ t: new Date().toTimeString().slice(0, 8), text: 'frame #' + (E.frames + 1) + ' · ' + (sz >= 1024 ? (sz / 1024).toFixed(1) + ' KB' : sz + ' B') }]).slice(-30) };
+      ch = true;
+    }));
+    if (ch) this.setState({ sviEv: ev });
+  }
   rsFlow(app, it) {
     const F = (steps, at, tone) => ({ steps, at, tone });
     switch (app) {
@@ -2537,6 +2625,7 @@ export default class Component extends DCLogic {
         progOn: R.app === 'xfer' && it.off != null, prog: it.off != null ? Math.round(it.off * 100) : 0,
         outOn: !!(S.hbOut && S.hbOut.node === R.node && S.hbOut.app === R.app && S.hbOut.id === R.id), outTitle: S.hbOut ? S.hbOut.title : '', outText: S.hbOut ? S.hbOut.text : '', outAt: S.hbOut ? S.hbOut.at : '',
         outClose: () => this.setState({ hbOut: null }),
+        sviOn: R.app === 'svi', svd: R.app === 'svi' ? this.sviDiagram(R.node, [it], Math.max(360, ((S.wins.rst && S.wins.rst.w) || 430) - 34), null, true) : { boxes: [], edges: [], W: 0, H: 0 }, sviEv: R.app === 'svi' ? this.sviEvView(R.id) : { items: [] },
         modDisp: R.app === 'mod' ? 'flex' : 'none', modKind: gui ? 'GUI를 제공하는 모듈 — 상태 화면 + 모듈 화면(GUI 창)' : '기능만 제공하는 모듈 — 상태 화면만 (GUI 없음)', modC: gui ? '#5b21b6' : '#5b6472', modBg: gui ? '#ede4fe' : '#eef1f5',
         guiDisp: gui ? 'inline-flex' : 'none', gui: () => this.mguiOpen(R.node, R.id),
         mapLine: mk ? '맵 ' + this.cellName(mk) + ' · 입력 ' + nIn + ' · 출력 ' + nOut : '맵에 설치되지 않음 — 조타륜 카드를 끌어 필드에 놓는다', focusDisp: mk ? 'inline-flex' : 'none', focus: () => { if (mk) this.setState({ sel: mk }); },
@@ -2705,6 +2794,7 @@ export default class Component extends DCLogic {
   // 전송 진행 · 작업 실행을 0.5초마다 움직인다 (보고 있는 노드만)
   hbApp() { const S = this.state; return S.hb || (S.fs && S.fs.indexOf('hb:') === 0 ? S.fs.slice(3) : null); }
   hbTick() {
+    this.sviDemoTick();
     const S0 = this.state, app = this.hbApp();
     if (app !== 'xfer' && app !== 'job') return;
     const S = Object.assign({}, S0, { hb: app });
@@ -2933,11 +3023,26 @@ export default class Component extends DCLogic {
     // 창(전체 화면)에서는 + 추가 — 폼이 오른쪽에서 열린다
     const CR = this.HBCRUD()[px];
     if (fs && CR && canSee) { const ab = B('＋ 추가', '_add', null, true, CR.need); if (ab.label.indexOf('🔒') !== 0) ab.go = () => this.hbFormOpen(px, 'add', null, node, 'fs'); heads = heads.concat([ab]); }
+    // SVI 자원 창 = 흐름도 (A-28). 머리 단추로 카드 보기와 바꾼다
+    let diag = null;
+    if (fs && px === 'svi' && canSee) {
+      const view = (S.hbView || {}).svi || 'diag', isD = view === 'diag';
+      heads = [{ label: isD ? '▦ 카드로' : '🕸️ 흐름도로', tip: isD ? '카드 목록으로 보기' : '흐름도로 보기', go: () => this.setState({ hbView: Object.assign({}, S.hbView || {}, { svi: isD ? 'card' : 'diag' }) }), bg: '#ffffff', fg: '#16191f', line: '#d8dde5' }].concat(heads);
+      if (isD) {
+        const L = this.lay(), infoW = 320, W = Math.max(760, L.W - 44 - infoW - 14), sel = list.some((d) => d.id === S.sviSel) ? S.sviSel : (list.find((d) => d.handle) || list[0] || {}).id;
+        const svd = this.sviDiagram(node, list, W, sel, false), it = list.find((d) => d.id === sel), c = cards.find((x) => x.id === sel);
+        const f = it ? this.sviFlow(node, it) : null;
+        diag = { svd, infoW, sel: !!it, title: it ? it.name : '', sub: it ? it.kind + ' · ' + it.id : '', chip: c ? c.chip : '', cbg: c ? c.cbg : '#eef1f5', cfg: c ? c.cfg : '#5b6472', acts: c ? c.acts : [],
+          kv: it ? [['엔드포인트', f.eps.map((e) => e.id).join(' · ') || '—'], ['핸들', f.handles.length ? f.handles.map((h) => h.state).join(' · ') : '없음'], ['바인딩', f.binds.length ? f.binds.map((b) => b.to + ' (' + b.state + ')').join(' · ') : '없음'], ['허가', f.grants.length ? f.grants.map((g) => g.who + ' ' + g.ops + (g.alive ? '' : ' · 만료')).join(' / ') : it.grant === 'own' ? '소유자' : '없음']].map(([k, v]) => ({ k, v })) : [],
+          stat: () => { if (it) this.rstOpen({ kind: 'res', node, app: 'svi', id: it.id, name: it.name }); }, ev: it ? this.sviEvView(it.id) : this.sviEvView(''),
+          legend: '━ 흐름(핸들 · 바인딩, 움직이면 흐르는 중) · ┅ 허가 · ─ 제공 · 자원을 누르면 오른쪽에 자세히' };
+      }
+    }
     const perms = A.perms.map((p) => ({ label: PN[p], tip: p + (has(p) ? ' 있음' : ' 없음'), mark: has(p) ? '✓' : '🔒', bg: has(p) ? '#e3f4ea' : '#fde1e5', fg: has(p) ? '#1f7a4d' : '#d33d52' }));
     if (A.grant && canSee) { const g = loc ? list.length : list.filter((d) => d.grant).length; perms.push({ label: '허가 ' + g + '/' + list.length, tip: 'SVI 자원별 허가 — 자원마다 따로 본다', mark: '', bg: '#eef1f5', fg: '#5b6472' }); }
     return {
       on: true, app: px, name: r.name, sub: r.sub, logo: IC.app[px] || '', node, role: P.role, roleC: P.rc, isLocal: loc, nodeTag: loc ? '로컬' : '원격',
-      perms, cards, list: canSee, locked: !canSee,
+      perms, cards, list: canSee && !diag, locked: !canSee, diagOn: !!diag, diag: diag || { svd: { boxes: [], edges: [], cols: [], W: 0, H: 0 }, acts: [], kv: [], ev: { items: [] } },
       lockMsg: '🔒 ' + node + '의 ' + r.name + '을(를) 볼 권한이 없다 — ' + A.see + ' 필요' + (P.why ? ' · ' + P.why : ''),
       msg: S.hbMsg ? S.hbMsg.t : canSee ? sum : '권한 없음',
       msgC: S.hbMsg ? S.hbMsg.c : '#5b6472', heads, hasHeads: heads.length > 0,

@@ -29,7 +29,8 @@
 
 // ── 조타륜 앱 10개의 자원 한 줄 ──
 
-/** @typedef {{ id: string, kind: string, name: string, ep: string, status: 'available'|'busy'|'disabled'|'unavailable'|'unsupported', grant: 'own'|string[]|null, handle?: string|null, last?: string }} SviResource */
+/** @typedef {{ id: string, kind: string, name: string, ep: string, status: 'available'|'busy'|'disabled'|'unavailable'|'unsupported', grant: 'own'|string[]|null, handle?: string|null, last?: string, epId?: string, node?: string, flow?: SviFlow }} SviResource */
+/** @typedef {{ eps: { id: string, dir: string, inter: string }[], handles: { id: string, who: string, op: string, ep: string, state: string, mine: boolean }[], binds: { id: string, ep: string, to: string, state: 'active'|'failed', qos: string, reason: string }[], grants: { id: string, who: string, ops: string, alive: boolean }[] }} SviFlow  흐름도(maingui A-28) — SviResource.flow */
 /** @typedef {{ id: string, fam: 'process'|'file'|'net', name: string, dir: 'source'|'sink', origin: 'file'|'runtime', state: 'applied'|'shadowed'|'refused_by_policy'|'retired', what: string, reason?: string }} SviDeclaration */
 /** @typedef {{ id: string, type: 'grant', who: string, res: string, ops: string, ttl: string, alive: boolean }} SviGrant */
 /** @typedef {{ id: string, type: 'bind', from: string, to: string, state: string, qos?: string, reason?: string }} SviBinding */

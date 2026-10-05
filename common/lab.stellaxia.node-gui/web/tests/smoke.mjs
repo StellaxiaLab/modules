@@ -71,6 +71,18 @@ check('조타륜 앱 전체 화면', await page.evaluate(() => !!document.queryS
 await page.mouse.click(723, 70); await page.waitForTimeout(500);
 check('파인 곳 → 맵', await page.evaluate(() => !document.querySelector('[data-fs-notch]')));
 await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+// SVI 자원 앱 = 흐름도(maingui A-28) — 로그인 전엔 잠겨 있고, 읽기 권한이 있으면 빈 흐름도다. 어느 쪽이든 예시 흐름 이벤트(0.5초 박자)는 돌지 않는다
+const fsText = () => page.evaluate(() => ({ text: (document.querySelector('section.fs-hb') || {}).innerText || '', ev: JSON.stringify(window.__screen.state.sviEv || {}) }));
+await page.evaluate(() => window.__screen.fsEnter('hb:svi')); await page.waitForTimeout(1200);
+const sviLocked = await fsText();
+check('SVI 자원 앱 — 로그인 전엔 잠김 · 예시 없음', /node\.read 필요/.test(sviLocked.text) && !EXAMPLE.test(sviLocked.text) && sviLocked.ev === '{}', sviLocked.ev);
+await page.evaluate(() => { window.__smokePerms = window.__screen.__real.perms; window.__screen.__real.perms = ['node.read']; window.__screen.setState({}); }); await page.waitForTimeout(1500);
+const svi = await fsText();
+await page.screenshot({ path: join(ROOT, 'tests/shots/svi-flow.png') });
+check('SVI 자원 앱 — 흐름도 · 예시 없음', /카드로/.test(svi.text) && !EXAMPLE.test(svi.text) && svi.ev === '{}', svi.text.slice(0, 120).replace(/\n/g, ' ') + ' · ' + svi.ev);
+await page.evaluate(() => window.__screen.setState({ hbView: { svi: 'card' } })); await page.waitForTimeout(400);
+check('SVI 자원 앱 — 카드 보기로', /흐름도로/.test((await fsText()).text));
+await page.evaluate(() => { window.__screen.__real.perms = window.__smokePerms; window.__screen.setState({ hbView: {} }); window.__screen.fsExit(); }); await page.waitForTimeout(500);
 // 폴더 보관함 → 메모장 → 새 메모 저장 (로그인 전이라 이 화면 안에만 남는다)
 await page.locator('[data-fb-pod]').click(); await page.waitForTimeout(600);
 await page.locator('[data-fb-go="memo"]').click(); await page.waitForTimeout(300);

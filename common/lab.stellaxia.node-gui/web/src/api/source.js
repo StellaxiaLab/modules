@@ -99,13 +99,15 @@ export function markStalled(items, active, now = Date.now(), seen = null) {
 export class LiveSource {
   /**
    * @param {import('./client.js').TerraClient} client
-   * @param {{ localNode: string, localId?: string|null, idOf?: (name: string) => string|null|undefined, parts?: import('../store/parts.js').PartStore|null }} opts
+   * @param {{ localNode: string, localId?: string|null, idOf?: (name: string) => string|null|undefined, nameOf?: (id: string) => string|null|undefined, parts?: import('../store/parts.js').PartStore|null }} opts
    *   idOf — 화면의 노드 이름 → Master node_id (관계도 NET[name].id). 다른 노드는 이것으로 노드 주소 호출(B-1)을 한다
+   *   nameOf — 그 거꾸로(node_id → 화면 이름). 바인딩 · 흐름도의 상대 노드를 이름으로 보인다
    *   parts — 받기 조각 보관(src/store/parts.js). 없으면 받기는 메모리로만 한다 — 페이지를 닫으면 처음부터
    */
   constructor(client, opts) {
     this.mock = false; this.client = client; this.localNode = opts.localNode; this.localId = opts.localId || null;
     this.idOf = opts.idOf || (() => null);
+    this.nameOf = opts.nameOf || (() => null);
     this.parts = opts.parts || null;
     this.active = new Set();   // 이 화면이 지금 보내거나 받는 전송 id — 전송 목록에서 멈춘 것과 가른다
     this.seen = new Map();     // 노드 → (전송 id → 이 화면이 본 offset · 처음 본 때) — markStalled
@@ -160,12 +162,14 @@ export class LiveSource {
       if (A.list.empty && A.list.empty(r)) return [];   // 꺼진 기능의 거절은 빈 목록이다(WireGuard 422 등)
       throw r;
     }
-    const actx = { local };   // 이 노드의 SVI 자원은 내 것(own) — 다른 노드는 허가를 본다
+    // 이 노드의 SVI 자원은 내 것(own) — 다른 노드는 허가를 본다. nodeId 는 진짜 id 를 알 때만(바인딩을 그 노드 것으로 거른다)
+    const actx = { local, nodeId: local ? this.localId : this.idOf(node), nameOf: (id) => this.nameOf(id) };
     for (const ex of A.extra || []) {
       const e = await this.call(ex, node);
       if (e.kind === 'ok') {
         if (/grants/.test(ex.op)) actx.grants = e.data && (e.data.grants || e.data);
         if (/bindings/.test(ex.op)) actx.bindings = e.data && (e.data.bindings || e.data);
+        if (/svi\.handles\.get$/.test(ex.op)) actx.handleList = e.data;   // 열린 핸들 — 흐름도 · 흐름 이벤트(A-28)
         if (/declarations/.test(ex.op)) actx.declarations = e.data && (e.data.declarations || e.data);
       }
     }

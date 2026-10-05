@@ -112,6 +112,9 @@ export function realNode(Screen) {
     // 전송 진행 · 작업 실행을 흉내 내던 0.5초 박자 — 진짜 목록은 폴링이 바꾼다
     hbTick() {}
 
+    // SVI 흐름도의 예시 흐름 이벤트(maingui A-28) — 진짜 흐름 이벤트는 wire.js 가 핸들 SSE 로 state.sviEv 에 넣는다
+    sviDemoTick() {}
+
     // 로그인 전의 동작은 아무것도 바꾸지 않는다. 연결되면 wire.js 가 진짜 동작으로 바꿔 낀다.
     // 폴더 들어가기(화면 이동)와 피어 회수의 첫 누름(확인 대기)은 데이터가 아니라 화면 동작이라 그대로 둔다
     hbAct(app, id, op) {

@@ -289,6 +289,67 @@ html,body{height:100%}
             </sc-for>
             <button type="button" data-fs-btn="hb" aria-label="축소 — 전체 화면 전으로" title="축소 — 전체 화면 전으로" onClick="{{fsHb.fsExit}}" style="width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: #5b6472; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"></path></svg></button>
           </header>
+          <sc-if value="{{fsHb.diagOn}}" hint-placeholder-val="{{false}}">
+            <div data-svi-view="1" style="flex-grow: 1; min-height: 0; display: flex; gap: 14px; padding: 16px 22px; box-sizing: border-box; overflow: hidden;">
+              <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; overflow: auto;">
+                <div style="position: relative; height: 16px; flex-shrink: 0;">
+                  <sc-for list="{{fsHb.diag.svd.cols}}" as="cl" hint-placeholder-count="4">
+                    <span style="position: absolute; left: {{cl.x}}px; top: 0; font-size: 10.5px; font-weight: 700; color: #8b95a6; white-space: nowrap;">{{cl.t}}</span>
+                  </sc-for>
+                </div>
+              <div data-svi-diagram="fs" style="position: relative; width: {{fsHb.diag.svd.W}}px; height: {{fsHb.diag.svd.H}}px; flex-shrink: 0;">
+                <svg width="{{fsHb.diag.svd.W}}" height="{{fsHb.diag.svd.H}}" viewBox="0 0 {{fsHb.diag.svd.W}} {{fsHb.diag.svd.H}}" aria-hidden="true" style="position: absolute; left: 0; top: 0; overflow: visible;">
+                  <defs>
+                    <marker id="svd-ar-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#2563eb"></path></marker>
+                    <marker id="svd-ar-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#1f9d55"></path></marker>
+                    <marker id="svd-ar-s" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#b8c0cc"></path></marker>
+                  </defs>
+                  <sc-for list="{{fsHb.diag.svd.edges}}" as="se" hint-placeholder-count="3">
+                    <path data-svd-edge="1" d="{{se.d}}" fill="none" stroke="{{se.col}}" stroke-width="{{se.w}}" stroke-dasharray="{{se.dash}}" stroke-linecap="round" opacity="{{se.op}}" marker-end="url(#{{se.mk}})" style="animation: {{se.anim}};"></path>
+                  </sc-for>
+                </svg>
+                <sc-for list="{{fsHb.diag.svd.boxes}}" as="sb" hint-placeholder-count="4">
+                  <div data-svd-box="{{sb.key}}" title="{{sb.tip}}" onClick="{{sb.go}}" style="position: absolute; left: {{sb.x}}px; top: {{sb.y}}px; width: {{sb.w}}px; height: {{sb.h}}px; box-sizing: border-box; border: {{sb.bw}}px solid {{sb.line}}; border-radius: {{sb.r}}px; background: {{sb.bg}}; color: {{sb.fg}}; cursor: {{sb.cur}}; display: flex; align-items: center; gap: 6px; padding: 0 8px; overflow: hidden;">
+                    <img src="{{sb.logo}}" alt="" width="34" height="34" style="display: {{sb.logoDisp}}; width: 34px; height: 34px; flex-shrink: 0; image-rendering: pixelated;">
+                    <span style="display: {{sb.emoDisp}}; flex-shrink: 0; font-size: 13px; line-height: 1;">{{sb.emoji}}</span>
+                    <span style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1;">
+                      <span style="font-size: 11.5px; font-weight: {{sb.fw}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 14px;">{{sb.title}}</span>
+                      <span style="font-size: 9.5px; color: #8b95a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 12px;">{{sb.sub}}</span>
+                    </span>
+                    <span style="display: {{sb.dotDisp}}; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: {{sb.dot}};"></span>
+                  </div>
+                </sc-for>
+              </div>
+                <span style="font-size: 10.5px; color: #8b95a6;">{{fsHb.diag.legend}}</span>
+              </div>
+              <div data-svi-info="1" style="width: {{fsHb.diag.infoW}}px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; border-left: 1px solid #eef1f5; padding-left: 14px; font-size: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1;"><b data-svi-sel="1" style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{fsHb.diag.title}}</b><span style="font-size: 10.5px; color: #8b95a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{fsHb.diag.sub}}</span></span>
+                  <span style="flex-shrink: 0; height: 20px; padding: 0 8px; border-radius: 10px; background: {{fsHb.diag.cbg}}; color: {{fsHb.diag.cfg}}; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center;">{{fsHb.diag.chip}}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 70px 1fr; gap: 3px 8px; font-size: 11.5px;">
+                  <sc-for list="{{fsHb.diag.kv}}" as="kv" hint-placeholder-count="3">
+                    <span style="color: #8b95a6;">{{kv.k}}</span><span style="min-width: 0; overflow-wrap: anywhere;">{{kv.v}}</span>
+                  </sc-for>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                  <sc-for list="{{fsHb.diag.acts}}" as="a" hint-placeholder-count="2">
+                    <button type="button" class="hb-btn" onClick="{{a.go}}" title="{{a.tip}}" style="height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid {{a.line}}; background: {{a.bg}}; color: {{a.fg}};">{{a.label}}</button>
+                  </sc-for>
+                  <button type="button" data-svi-stat="1" onClick="{{fsHb.diag.stat}}" style="height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; border: 1px solid #d8dde5; background: #ffffff; color: #16191f;">ⓘ 상태 화면</button>
+                </div>
+                <div data-svi-events="1" style="display: flex; flex-direction: column; gap: 4px;">
+                  <span style="font-size: 11px; font-weight: 700; color: {{fsHb.diag.ev.headC}};">흐름 이벤트 · {{fsHb.diag.ev.head}}</span>
+                  <div style="max-height: 260px; overflow: auto; padding: 6px 8px; border-radius: 8px; background: #16191f; color: #e6e9ee; font-size: 10.5px; line-height: 15px; font-family: ui-monospace,Menlo,Consolas,monospace;">
+                    <span style="display: {{fsHb.diag.ev.noneDisp}}; color: #8b95a6;">— 이벤트 없음</span>
+                    <sc-for list="{{fsHb.diag.ev.items}}" as="ev" hint-placeholder-count="2">
+                      <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span style="color: #8b95a6;">{{ev.t}}</span> <span style="color: {{ev.c}};">{{ev.text}}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
           <sc-if value="{{fsHb.list}}" hint-placeholder-val="{{true}}">
             <div style="flex-grow: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; padding: 20px 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); grid-auto-rows: 132px; gap: 12px; align-content: start;">
               <sc-for list="{{fsHb.cards}}" as="d" hint-placeholder-count="4">
@@ -1445,6 +1506,43 @@ html,body{height:100%}
                     </sc-for>
                   </div>
                   <span style="font-size: 11.5px; color: #5b6472;">{{rst.meta}}</span>
+                  <sc-if value="{{rst.sviOn}}" hint-placeholder-val="{{false}}">
+                    <div data-rst-svi="1" style="display: flex; flex-direction: column; gap: 8px; padding: 8px 0 2px; border-top: 1px solid #eef1f5; border-bottom: 1px solid #eef1f5; overflow-x: auto;">
+                      <span style="font-size: 11px; font-weight: 700; color: #5b6472;">흐름도 · 자원 → 엔드포인트 → 핸들 · 바인딩 · 허가</span>
+              <div data-svi-diagram="rst" style="position: relative; width: {{rst.svd.W}}px; height: {{rst.svd.H}}px; flex-shrink: 0;">
+                <svg width="{{rst.svd.W}}" height="{{rst.svd.H}}" viewBox="0 0 {{rst.svd.W}} {{rst.svd.H}}" aria-hidden="true" style="position: absolute; left: 0; top: 0; overflow: visible;">
+                  <defs>
+                    <marker id="svd-ar-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#2563eb"></path></marker>
+                    <marker id="svd-ar-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#1f9d55"></path></marker>
+                    <marker id="svd-ar-s" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#b8c0cc"></path></marker>
+                  </defs>
+                  <sc-for list="{{rst.svd.edges}}" as="se" hint-placeholder-count="3">
+                    <path data-svd-edge="1" d="{{se.d}}" fill="none" stroke="{{se.col}}" stroke-width="{{se.w}}" stroke-dasharray="{{se.dash}}" stroke-linecap="round" opacity="{{se.op}}" marker-end="url(#{{se.mk}})" style="animation: {{se.anim}};"></path>
+                  </sc-for>
+                </svg>
+                <sc-for list="{{rst.svd.boxes}}" as="sb" hint-placeholder-count="4">
+                  <div data-svd-box="{{sb.key}}" title="{{sb.tip}}" onClick="{{sb.go}}" style="position: absolute; left: {{sb.x}}px; top: {{sb.y}}px; width: {{sb.w}}px; height: {{sb.h}}px; box-sizing: border-box; border: {{sb.bw}}px solid {{sb.line}}; border-radius: {{sb.r}}px; background: {{sb.bg}}; color: {{sb.fg}}; cursor: {{sb.cur}}; display: flex; align-items: center; gap: 6px; padding: 0 8px; overflow: hidden;">
+                    <img src="{{sb.logo}}" alt="" width="34" height="34" style="display: {{sb.logoDisp}}; width: 34px; height: 34px; flex-shrink: 0; image-rendering: pixelated;">
+                    <span style="display: {{sb.emoDisp}}; flex-shrink: 0; font-size: 13px; line-height: 1;">{{sb.emoji}}</span>
+                    <span style="display: flex; flex-direction: column; min-width: 0; flex-grow: 1;">
+                      <span style="font-size: 11.5px; font-weight: {{sb.fw}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 14px;">{{sb.title}}</span>
+                      <span style="font-size: 9.5px; color: #8b95a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 12px;">{{sb.sub}}</span>
+                    </span>
+                    <span style="display: {{sb.dotDisp}}; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: {{sb.dot}};"></span>
+                  </div>
+                </sc-for>
+              </div>
+                <div data-svi-events="1" style="display: flex; flex-direction: column; gap: 4px;">
+                  <span style="font-size: 11px; font-weight: 700; color: {{rst.sviEv.headC}};">흐름 이벤트 · {{rst.sviEv.head}}</span>
+                  <div style="max-height: 150px; overflow: auto; padding: 6px 8px; border-radius: 8px; background: #16191f; color: #e6e9ee; font-size: 10.5px; line-height: 15px; font-family: ui-monospace,Menlo,Consolas,monospace;">
+                    <span style="display: {{rst.sviEv.noneDisp}}; color: #8b95a6;">— 이벤트 없음</span>
+                    <sc-for list="{{rst.sviEv.items}}" as="ev" hint-placeholder-count="2">
+                      <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span style="color: #8b95a6;">{{ev.t}}</span> <span style="color: {{ev.c}};">{{ev.text}}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+                    </div>
+                  </sc-if>
                   <sc-if value="{{rst.outOn}}" hint-placeholder-val="{{false}}">
                     <div data-rst-output="1" style="display: flex; flex-direction: column; gap: 4px;">
                       <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #5b6472;"><span style="flex-grow: 1;">{{rst.outTitle}} · {{rst.outAt}}</span>

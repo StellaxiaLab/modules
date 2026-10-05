@@ -6,7 +6,7 @@
 
 import { TerraClient, resultText, trackJob } from './client.js';
 import { LiveSource, appFor } from './source.js';
-import { TRACK, TASK_STATE, logLines, cfgErrorKeys } from './operations.js';
+import { HELM_APPS, TRACK, TASK_STATE, logLines, cfgErrorKeys } from './operations.js';
 import { frameReady, role } from './frame-boot.js';
 import { wireFrameSession } from './frame-session.js';
 import { wireFrameBoards } from './frame-boards.js';
@@ -69,8 +69,15 @@ export function wireHelm(screen, source, opts = {}) {
       if (app === 'mod') { const was = new Map((screen.hbItems(node, app) || []).filter((x) => x.cfg).map((x) => [x.id, x.cfg])); if (was.size) list = list.map((x) => (was.has(x.id) ? Object.assign({}, x, { cfg: was.get(x.id) }) : x)); }
       screen.hbPut(node, app, list);
       loaded.add(key);
-      if (!quiet) screen.setState({ hbMsg: null });
-    } catch (r) { if (live) screen.hbSay(r && r.kind ? resultText(r) : String(r), RED); }
+      if (!quiet || (screen.state.hbMsg && screen.state.hbMsg.sticky === key)) screen.setState({ hbMsg: null });
+    } catch (r) {
+      if (!live) return;
+      const t = r && r.kind ? resultText(r) : String(r);
+      // 보고 있는 앱의 목록을 받지 못했다 — 화면 원본의 글줄(hbSay)은 2.6초 뒤 지워져 이유 없는 빈 목록 · 빈 흐름도만 남는다.
+      // 그 앱을 보는 동안은 이유를 남겨 둔다(Master 에만 있는 SVI 자원 · 허가 — 앱 토큰은 닿지 않는다). 다시 받으면 지운다
+      if (screen.hbApp && screen.hbApp() === app && screen.hbNode() === node) { clearTimeout(screen._hbT); screen.setState({ hbMsg: { t, c: RED, sticky: key } }); }
+      else screen.hbSay(t, RED);
+    }
     finally { loading.delete(key); }
   };
   // 접수된 작업(202)이면 끝날 때까지 쫓고, 아니면 바로 목록을 다시 받는다
@@ -286,9 +293,47 @@ export function wireHelm(screen, source, opts = {}) {
     const i = k.lastIndexOf('|'), n = k.slice(0, i), a = k.slice(i + 1);
     if (apps.indexOf(a) >= 0 && (!node || node === n)) load(n, a, true);
   });
+  // 8) SVI 흐름 이벤트 (maingui A-28): 흐름도에서 고른 자원 · 상태 화면이 보는 자원에 열린 핸들이 있으면 그 핸들의 status · frame SSE 를 받아
+  //    state.sviEv 에 넣는다(화면 sviEvView 가 읽는다). 예시 흐름 이벤트(sviDemoTick)는 RealNode 가 껐다.
+  //    SVI 목록 · 핸들은 Master op 라 앱 토큰으로는 받지 못한다(PF-1) — 열린 핸들이 없으니 열지 않는다
+  const SVI_EV = HELM_APPS.svi.events.op;
+  let svStop = null, svKey = '';
+  const svWatch = () => {
+    const S = screen.state, fsSvi = S.fs === 'hb:svi';
+    const node = fsSvi ? screen.hbNode() : S.rst && S.rst.app === 'svi' && S.winOpen && S.winOpen.rst ? S.rst.node : null;
+    const list = node ? screen.hbItems(node, 'svi') || [] : [];
+    const it = fsSvi ? list.find((d) => d.id === S.sviSel) || list.find((d) => d.handle) : node ? list.find((d) => d.id === S.rst.id) : null;
+    const key = it && it.handle && source.client && source.client.has(SVI_EV) ? node + '|' + it.id + '|' + it.handle : '';
+    if (key === svKey) return;
+    if (svStop) { svStop(); svStop = null; }
+    svKey = key;
+    if (!key) return;
+    const rid = it.id, at = () => new Date().toTimeString().slice(0, 8);
+    const push = (fn) => {
+      const ev = Object.assign({}, screen.state.sviEv || {}), E = ev[rid] || { frames: 0, bytes: 0, items: [], live: true };
+      ev[rid] = Object.assign(fn(E), { live: true });
+      screen.setState({ sviEv: ev });
+    };
+    svStop = openEvents(source.client, (e) => {
+      const m = e.data || {};
+      if (m.kind === 'frame' || e.signal === 'frame') {
+        const n = Math.floor(String(m.data || '').length * 3 / 4);   // base64 → 바이트
+        push((E) => ({ frames: E.frames + 1, bytes: E.bytes + n,
+          items: E.items.concat([{ t: at(), text: 'frame #' + (m.sequence || E.frames + 1) + ' · ' + (n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B') + (m.schema_ref ? ' · ' + m.schema_ref : '') }]).slice(-40) }));
+      } else {
+        const st = m.state || e.signal, bad = /failed|denied|expired/.test(st);
+        push((E) => ({ frames: E.frames, bytes: E.bytes, items: E.items.concat([{ t: at(), text: 'status · ' + st + (m.reason ? ' — ' + m.reason : ''), c: bad ? '#ff8a99' : '#5fd39a' }]).slice(-40) }));
+        if (/^(closed|failed|expired|denied)$/.test(st)) load(node, 'svi', true);   // 핸들이 끝났다 — 카드 · 흐름도를 다시 받는다
+      }
+    }, { op: SVI_EV, input: { handle_id: it.handle }, raw: true,
+      onState: (st) => { if (st === 'off') push((E) => Object.assign({}, E, { items: E.items.concat([{ t: at(), text: '스트림 끝 — 핸들이 닫혔거나 볼 수 없다', c: '#8b95a6' }]) })); } });
+  };
+  const svT = setInterval(svWatch, 500);
   return () => {
     live = false;
     clearInterval(t);
+    clearInterval(svT);
+    if (svStop) svStop();
     delete screen._hbRefresh;
     screen.hbSeed = orig.hbSeed;
     screen.hbAct = orig.hbAct;
@@ -296,7 +341,7 @@ export function wireHelm(screen, source, opts = {}) {
     screen.hbDel = orig.hbDel;
     screen.hbOpLock = orig.hbOpLock;
     if (unwireOpen) unwireOpen();
-    screen.setState({ hbd: {}, io: [], hbMsg: null, hbBusy: null, hbForm: null, hbArm: null, hbOut: null });
+    screen.setState({ hbd: {}, io: [], hbMsg: null, hbBusy: null, hbForm: null, hbArm: null, hbOut: null, sviEv: {} });
   };
 }
 

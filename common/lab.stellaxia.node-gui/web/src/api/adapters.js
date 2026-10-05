@@ -36,15 +36,39 @@ export const xferState = pick({ prepared: 'transferring', transferring: 'transfe
 export const tunnelState = pick({ active: 'active', listening: 'listening', draining: 'draining', closed: 'draining', failed: 'failed' }, 'failed');
 
 const ago = (sec) => (sec == null ? '없음' : sec < 60 ? sec + '초 전' : sec < 3600 ? Math.round(sec / 60) + '분 전' : Math.round(sec / 3600) + '시간 전');
+/** 허가 기한 → '12분 남음' · '3시간 남음' · '만료됨' */
+const left = (iso) => { const t = Date.parse(iso || ''); if (isNaN(t)) return ''; const sec = (t - Date.now()) / 1000; return sec <= 0 ? '만료됨' : sec < 5400 ? Math.round(sec / 60) + '분 남음' : Math.round(sec / 3600) + '시간 남음'; };
+/** 허가가 살아 있나 — 기한이 없으면 지울 때까지 산다 */
+const aliveGrant = (g) => !g.expires_at || Date.parse(g.expires_at) > Date.now();
+/** 허가 받는 이 — 사용자는 id 만, 그 밖(node · app)은 'node:<id>' */
+const subjectOf = (g) => { const sj = g.subject || {}; return sj.id ? (sj.type && sj.type !== 'user' ? sj.type + ':' : '') + sj.id : g.subject_id || '?'; };
+/** node_id → 화면의 노드 이름 (모르면 id 그대로) */
+const nodeName = (ctx, id) => (ctx.nameOf && ctx.nameOf(id)) || id || '';
 
 export const ADAPT = {
-  /** @returns {import('../model/types.js').SviResource[]} */
-  svi: (d, ctx) => arr(d, 'resources', 'items').map((r) => {
+  /**
+   * SVI 자원(Master svi.resources.get): { items[{ resource_id, node_id, kind, canonical_name, display_name, status, expires_at, endpoints[{ endpoint_id, direction, interaction }] }] }
+   * ctx — grants(svi.grants.get) · handleList(svi.handles.get) · bindings(svi.bindings.get)의 data 그대로 · nameOf(node_id → 화면 이름).
+   * flow — 흐름도(maingui A-28): 자원 → 엔드포인트 → 쓰는 쪽(핸들 · 바인딩 · 허가). 늘 채운다 — 없으면 화면이 예시처럼 만들어 낸다(카메라면 frames · snapshot 엔드포인트)
+   * @returns {import('../model/types.js').SviResource[]}
+   */
+  svi: (d, ctx) => arr(d, 'items', 'resources').map((r) => {
     const ep = (r.endpoints || [])[0] || {};
-    const g = (ctx.grants || []).find((x) => x.resource_id === r.resource_id);
-    return { id: r.resource_id, kind: r.kind || '', name: r.display_name || r.canonical_name || r.resource_id, status: sviState(r.status),
-      ep: [ep.endpoint_id, ep.direction, ep.interaction].filter(Boolean).join(' · '),
-      grant: ctx.local ? 'own' : g ? [].concat(g.operations || []) : null, last: r.expires_at };
+    const g = arr(ctx.grants, 'items', 'grants').filter((x) => x.resource_id === r.resource_id);
+    const ops = [...new Set(g.flatMap((x) => x.operations || []))];
+    const hs = arr(ctx.handleList, 'items', 'handles').filter((h) => h.resource_id === r.resource_id);
+    const open = hs.find((h) => !/^(closed|failed|expired|denied|revoked|terminated)$/.test(h.state));
+    return { id: r.resource_id, kind: r.kind || '', name: r.display_name || r.canonical_name || r.resource_id, node: r.node_id, status: sviState(r.status),
+      ep: [ep.endpoint_id, ep.direction, ep.interaction].filter(Boolean).join(' · ') || '엔드포인트 없음', epId: ep.endpoint_id,
+      grant: ctx.local ? 'own' : ops.length ? ops : null, last: r.expires_at || '', handle: open ? open.handle_id : null,
+      flow: {
+        eps: (r.endpoints || []).map((e) => ({ id: e.endpoint_id, dir: e.direction || '', inter: e.interaction || '' })),
+        handles: hs.filter((h) => !/^(closed|expired)$/.test(h.state)).map((h) => ({ id: h.handle_id, who: '내 핸들', op: h.operation || 'read', ep: h.endpoint_id || ep.endpoint_id || '',
+          state: h.state === 'pending' ? 'opening' : h.state || 'active', mine: true })),
+        binds: arr(ctx.bindings, 'items', 'bindings').filter((b) => (b.source || {}).resource_id === r.resource_id).map((b) => ({ id: b.binding_id, ep: (b.source || {}).endpoint_id || ep.endpoint_id || '',
+          to: nodeName(ctx, b.target_node_id) + ' · ' + ((b.target || {}).resource_id || ''), state: b.observed_state === 'active' ? 'active' : 'failed', qos: b.qos_profile || '', reason: b.reason || '' })),
+        grants: g.map((x) => ({ id: x.grant_id, who: subjectOf(x), ops: (x.operations || []).join(' · '), alive: aliveGrant(x) }))
+      } };
   }),
   decl: (d) => {
     const out = arr(d, 'declarations').map((x) => ({ id: x.family + '/' + x.name, fam: x.family, name: x.name, dir: x.direction || '—', origin: x.origin, state: declState(x.state),
@@ -53,8 +77,19 @@ export const ADAPT = {
     // 울타리(envelope) — 조타륜 앱 바의 요약 줄이 읽는다(node-live.js hbVals)
     return Object.assign(out, { envelope: d && d.envelope ? d.envelope : null });
   },
-  grant: (d, ctx) => arr(d, 'grants').map((g) => ({ id: g.grant_id, type: 'grant', who: g.subject_id, res: g.resource_id, ops: (g.operations || []).join(' · '), ttl: g.expires_at || '', alive: !g.expired }))
-    .concat((ctx.bindings || []).map((b) => ({ id: b.binding_id, type: 'bind', from: b.source_resource_id, to: b.target_node_id + ' · ' + b.target_resource_id, state: b.observed_state, qos: b.qos_profile, reason: b.reason }))),
+  /**
+   * 허가(Master svi.grants.get): { items[{ grant_id, subject{ type, id }, resource_id, operations[], expires_at? }] } (기한이 없으면 expires_at 이 없다)
+   * 바인딩(svi.bindings.get): { items[{ binding_id, source{ resource_id, endpoint_id }, target{…}, source_node_id, target_node_id, desired_state, observed_state, reason, qos_profile }] }
+   * 예전엔 grants · subject_id · source_resource_id 로 읽었다 — Master 의 답(routes_svi_grants.go sviGrantView · BindingView)과 달랐다. 바인딩 상태는 화면 낱말(active · failed)로
+   */
+  grant: (d, ctx) => arr(d, 'items', 'grants').map((g) => ({ id: g.grant_id, type: 'grant', who: subjectOf(g), res: g.resource_id, ops: (g.operations || []).join(' · '),
+    ttl: g.expires_at ? left(g.expires_at) : '기한 없음', alive: aliveGrant(g) }))
+    .concat(arr(ctx.bindings, 'items', 'bindings').filter((b) => !ctx.nodeId || b.source_node_id === ctx.nodeId || b.target_node_id === ctx.nodeId).map((b) => {
+      const src = b.source || {}, tgt = b.target || {};
+      return { id: b.binding_id, type: 'bind', from: (src.resource_id || '') + (src.endpoint_id ? '#' + src.endpoint_id : ''), to: nodeName(ctx, b.target_node_id) + ' · ' + (tgt.resource_id || ''),
+        state: b.observed_state === 'active' ? 'active' : 'failed', qos: b.qos_profile || '',
+        reason: b.reason || (b.desired_state && b.desired_state !== b.observed_state ? '원하는 상태 ' + b.desired_state + ' · 지금 ' + (b.observed_state || '—') : '') };
+    })),
   io: (d) => arr(d, 'devices').map((x) => ({ id: x.id, kind: x.kind, name: x.alias || x.name || x.id, presence: x.presence || 'unknown', approval: x.approval || 'pending', enabled: !!x.enabled })),
   /** 공유 폴더(맨 위 칸). 그 안의 항목은 source.js folderLevels 가 folderEntries 로 붙인다 */
   folder: (d) => arr(d, 'roots').map((r) => ({ id: r.name, parent: '', name: r.name, dir: true, root: true, info: r.path || '' })),

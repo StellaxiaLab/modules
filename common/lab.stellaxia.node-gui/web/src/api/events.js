@@ -44,18 +44,19 @@ export function sseFrames(buf) {
   return { frames, rest: buf };
 }
 
-/** 프레임 → 이벤트 { id, signal, nodeId?, data } */
-export function frameEvent(f) {
+/** 프레임 → 이벤트 { id, signal, nodeId?, data }. raw — data 를 벗기지 않는다(SVI 핸들 SSE 의 StreamMessage 는 그 자체가 내용이다) */
+export function frameEvent(f, raw) {
   let d = null;
   try { d = f.data ? JSON.parse(f.data) : null; } catch { d = f.data; }
   const obj = d && typeof d === 'object';
-  return { id: f.id, signal: (obj && d.signal) || f.event, nodeId: obj ? d.node_id : undefined, data: obj && d.data !== undefined ? d.data : d };
+  return { id: f.id, signal: (obj && d.signal) || f.event, nodeId: obj ? d.node_id : undefined, data: raw ? d : obj && d.data !== undefined ? d.data : d };
 }
 
 /**
  * @param {{ base: string, fetch: typeof fetch }} client  TerraClient (fetch = frame 의 terra.fetch)
  * @param {(ev: { id: string|null, signal: string, nodeId?: string, data: any }) => void} onEvent
- * @param {{ onState?: (s: 'open'|'retry'|'off', info?: any) => void, op?: string, input?: object, sleep?: (ms: number) => Promise<void> }} [opts]
+ * @param {{ onState?: (s: 'open'|'retry'|'off', info?: any) => void, op?: string, input?: object, raw?: boolean, sleep?: (ms: number) => Promise<void> }} [opts]
+ *   op · input — 다른 SSE op(SVI 핸들 흐름 이벤트 terra.master.svi.handles.by-handle-id.events.get {handle_id}). raw — frameEvent 참고
  * @returns {() => void} 끄기
  */
 export function openEvents(client, onEvent, opts = {}) {
@@ -87,7 +88,7 @@ export function openEvents(client, onEvent, opts = {}) {
           got.frames.forEach((f) => {
             if (f.id) last = f.id;
             if (!f.data && f.event === 'message') return;
-            try { onEvent(frameEvent(f)); } catch (e) { console.warn('[terra] 이벤트 처리', e); }
+            try { onEvent(frameEvent(f, opts.raw)); } catch (e) { console.warn('[terra] 이벤트 처리', e); }
           });
         }
       } catch {
