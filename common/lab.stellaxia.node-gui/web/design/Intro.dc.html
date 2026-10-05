@@ -144,12 +144,12 @@ body{margin:0;background:#a9dbf7;overflow:hidden}
   </div>
 
   <!-- 아래: 연결 상태 · 판 -->
-  <div style="position: absolute; z-index: 3; opacity: {{v.chromeOp}}; transition: opacity 400ms; left: 20px; bottom: 16px; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(15,40,56,0.38); color: #ffffff; font-size: 12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
+  <div style="position: absolute; z-index: 3; opacity: {{v.chromeOp}}; pointer-events: {{v.chromePe}}; transition: opacity 400ms; left: 20px; bottom: 16px; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(15,40,56,0.38); color: #ffffff; font-size: 12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
     <span style="width: 8px; height: 8px; border-radius: 50%; background: {{v.gwDot}}; box-shadow: 0 0 6px {{v.gwDot}};"></span>
     <span style="font-weight: 700;">Gateway</span>
     <span style="opacity: 0.85;">{{v.gwText}}</span>
   </div>
-  <div style="position: absolute; z-index: 3; opacity: {{v.chromeOp}}; transition: opacity 400ms; right: 20px; bottom: 16px; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 15px; background: rgba(15,40,56,0.38); color: #ffffff; font-size: 12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
+  <div style="position: absolute; z-index: 3; opacity: {{v.chromeOp}}; pointer-events: {{v.chromePe}}; transition: opacity 400ms; right: 20px; bottom: 16px; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 15px; background: rgba(15,40,56,0.38); color: #ffffff; font-size: 12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
     <span>v0.2</span><span style="opacity: 0.6;">·</span><span style="color: #ffd479; font-weight: 700;">예시 데이터</span>
   </div>
 </div>
@@ -222,7 +222,7 @@ class Component extends DCLogic {
     return {
       v: {
         form, status: !form, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
-        cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
+        cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, chromePe: S.fly ? 'none' : 'auto', spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
         sub: S.phase === 'done' ? name + ' — 로그인됨' : '노드에 로그인',
         username: S.username, password: S.password,
         setUser: (e) => this.setState({ username: e.target.value, msg: '' }),

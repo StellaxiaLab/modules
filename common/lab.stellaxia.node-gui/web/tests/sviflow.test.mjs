@@ -1,4 +1,4 @@
-// SVI 흐름도 (maingui A-28) — 자원 → 엔드포인트 → 쓰는 쪽(핸들 · 바인딩 · 허가) + 핸들 흐름 이벤트(SSE).
+// SVI 흐름도 (maingui A-28) — 자원 → 엔드포인트 → 쓰는 쪽(핸들 · 바인딩 · 허가) + 핸들 흐름(SSE) → 흐름 칸 · 맵 도로(maingui 85e28ee · MD-24).
 //   npm test
 // 모양은 Terra main Master 계약에서 확인했다: svi.resources.get · svi.grants.get · svi.handles.get · svi.bindings.get → { items[…] } ·
 // 허가 { grant_id, subject{ type, id }, resource_id, operations[], expires_at? }(routes_svi_grants.go sviGrantView — 기한이 없으면 expires_at 이 없다) ·
@@ -15,7 +15,8 @@ globalThis.window = win;
 const { TerraClient } = await import('../src/api/client.js');
 const { LiveSource } = await import('../src/api/source.js');
 const { ADAPT } = await import('../src/api/adapters.js');
-const { HELM_APPS } = await import('../src/api/operations.js');
+const { HELM_APPS, sviOpenOp } = await import('../src/api/operations.js');
+const { StreamView, bodyKind, b64Size } = await import('../src/api/svi-stream.js');
 const { frameEvent } = await import('../src/api/events.js');
 const { wireHelm } = await import('../src/api/wire.js');
 const { prep } = await import('../src/boot/module.js');
@@ -101,7 +102,7 @@ function sviServer() {
     if (c.op === HELM_APPS.svi.events.op) {
       if (streams++) return json(404, { error: { code: 'SVI_HANDLE_NOT_FOUND', message: 'handle closed' } });
       return sse('event: status\ndata: {"kind":"status","state":"active"}\n\n'
-        + 'event: frame\ndata: {"kind":"frame","sequence":1,"data":"YWJj","schema_ref":"video.frame"}\n\n'
+        + 'event: frame\ndata: {"kind":"frame","sequence":1,"data":"YWJj","schema_ref":"terra.bytes@1"}\n\n'
         + 'event: status\ndata: {"kind":"status","state":"closed","reason":"lease ended"}\n\n');
     }
     return json(200, { status: 'ok', data: {} });
@@ -120,7 +121,7 @@ test('source.list(svi) — 허가 · 핸들 · 바인딩을 함께 받아 흐름
   assert.equal(it.grant, 'own', '이 노드의 자원');
 });
 
-test('wire — 흐름도에서 고른 자원에 열린 핸들이 있으면 그 핸들의 흐름 이벤트를 받아 state.sviEv 에(실시간). 끝나면 목록을 다시 받는다 · 끊으면 닫는다', async () => {
+test('wire — 상태 화면(SVI 자원)이 보는 자원에 열린 핸들이 있으면 그 핸들의 흐름(SSE)을 받아 흐름 칸(state.sviStream)에. 끝나면 마지막 모습을 남기고 목록을 다시 받는다 · 끊으면 지운다', async () => {
   const s = new (prep('node', NodeScreen))({ skin: 'grass' });
   s.__real.perms = ['node.read', 'node.control', 'file.read'];
   const local = s.state.localNode.name;
@@ -130,22 +131,27 @@ test('wire — 흐름도에서 고른 자원에 열린 핸들이 있으면 그 �
   const source = new LiveSource(client, { localNode: local, localId: 'node_a', nameOf });
   const unwire = wireHelm(s, source, { pollMs: 60000 });
   try {
-    s.setState({ fs: 'hb:svi', sviSel: RES.resource_id });
+    s.setState({ fs: 'hb:svi' });
     assert.ok(await until(() => (s.hbItems(local, 'svi') || []).length === 1), '목록을 받았다');
-    assert.ok(await until(() => { const E = (s.state.sviEv || {})[RES.resource_id]; return E && E.items.length >= 3; }), JSON.stringify(s.state.sviEv));
-    const E = s.state.sviEv[RES.resource_id];
-    assert.deepEqual([E.frames, E.bytes, E.live], [1, 3, true]);
-    assert.deepEqual(E.items.slice(0, 3).map((x) => x.text), ['status · active', 'frame #1 · 3 B · video.frame', 'status · closed — lease ended']);
+    s.setState({ rst: { kind: 'res', node: local, app: 'svi', id: RES.resource_id, name: 'cam1' }, winOpen: Object.assign({}, s.state.winOpen, { rst: true }) });
+    assert.ok(await until(() => s.state.sviStream && s.state.sviStream.ended), JSON.stringify(s.state.sviStream));
+    const F = s.state.sviStream;
+    assert.deepEqual([F.resId, F.handleId, F.frames, F.bytes, F.seq, F.kind, F.state, F.live], [RES.resource_id, 'svih_live', 1, 3, 1, 'text', 'closed', true]);
+    assert.deepEqual(F.lines.map((l) => l.text), ['abc'], 'terra.bytes@1 은 글자로 읽는다');
+    assert.match(F.note, /읽기 끝/, 'read 핸들이 프레임 하나로 닫힌 것은 끊김이 아니다');
     const ev = f.calls.find((c) => c.op === HELM_APPS.svi.events.op);
     assert.deepEqual([ev.body, ev.accept], [{ handle_id: 'svih_live' }, 'text/event-stream']);
     assert.ok(await until(() => f.calls.filter((c) => c.op === 'terra.master.svi.resources.get').length >= 2), '핸들이 닫히자 목록을 다시 받았다');
-    const view = s.sviEvView(RES.resource_id);
-    assert.match(view.head, /프레임 1 · 3 B · ● 실시간 \(SSE\)/);
+    const view = s.sviFlowView({ app: 'svi', node: local, id: RES.resource_id }, s.hbItems(local, 'svi')[0]);
+    assert.equal(view.has, true);
+    assert.deepEqual(view.lines.map((l) => l.text), ['abc']);
+    assert.doesNotMatch(view.foot, /예시/);
   } finally {
     unwire();
     clearInterval(s._hbX); clearTimeout(s._hbT);
   }
-  assert.deepEqual(s.state.sviEv, {}, '끊으면 받은 흐름 이벤트를 지운다');
+  assert.equal(s.state.sviStream, null, '끊으면 흐름 칸을 비운다');
+  assert.deepEqual(s.state.sviFlow, {});
 });
 
 test('wire — 열린 핸들이 없거나 흐름 이벤트 op 가 카탈로그에 없으면(앱 토큰 — Master 밖) 열지 않는다', async () => {
@@ -160,27 +166,68 @@ test('wire — 열린 핸들이 없거나 흐름 이벤트 op 가 카탈로그�
   try {
     s.setState({ fs: 'hb:svi', sviSel: RES.resource_id });
     assert.ok(await until(() => (s.hbItems(local, 'svi') || []).length === 1));
+    s.setState({ rst: { kind: 'res', node: local, app: 'svi', id: RES.resource_id, name: 'cam1' }, winOpen: Object.assign({}, s.state.winOpen, { rst: true }) });
     await sleep(700);
     assert.ok(!f.calls.some((c) => c.op === HELM_APPS.svi.events.op), '카탈로그에 없는 op 는 부르지 않는다');
-    assert.equal((s.state.sviEv || {})[RES.resource_id], undefined);
+    assert.ok(!s.state.sviStream);
   } finally {
     unwire();
     clearInterval(s._hbX); clearTimeout(s._hbT);
   }
 });
 
-test('RealNode — 예시 흐름 이벤트를 만들지 않는다(디자인의 sviDemoTick · 0.5초 박자). 흐름 이벤트 칸은 "열린 핸들이 없다"', () => {
+test('RealNode — 예시 흐름을 만들지 않는다(디자인의 sviDemoTick · 0.5초 박자). 흐름 칸은 "열린 핸들이 없다" · 핸들이 있어도 받기 전에는 지어내지 않는다', () => {
   const s = new (prep('node', NodeScreen))({ skin: 'grass' });
   const local = s.state.localNode.name;
-  s.hbPut(local, 'svi', [{ id: RES.resource_id, kind: 'camera', name: 'cam1', status: 'available', ep: 'frames · source · stream', grant: 'own', handle: 'svih_live' }]);
-  s.setState({ fs: 'hb:svi' });
+  const it = { id: RES.resource_id, kind: 'camera', name: 'cam1', status: 'available', ep: 'frames · source · stream', grant: 'own', handle: 'svih_live' };
+  s.hbPut(local, 'svi', [it]);
+  s.setState({ fs: 'hb:svi', rst: { kind: 'res', node: local, app: 'svi', id: RES.resource_id, name: 'cam1' }, winOpen: Object.assign({}, s.state.winOpen, { rst: true }) });
   s.sviDemoTick();
   s.hbTick();
-  assert.deepEqual(s.state.sviEv || {}, {});
-  const view = s.sviEvView(RES.resource_id);
-  assert.equal(view.live, false);
-  assert.match(view.head, /열린 핸들이 없다/);
-  assert.doesNotMatch(view.head, /예시/);
+  assert.ok(!s.state.sviStream, '예시 흐름 칸이 생기지 않는다');
+  assert.deepEqual(s.state.sviFlow || {}, {}, '예시 도로 애니메이션도 없다');
+  const R = { app: 'svi', node: local, id: RES.resource_id };
+  assert.match(s.sviFlowView(R, Object.assign({}, it, { handle: null })).none, /열린 핸들이 없다/);
+  const v = s.sviFlowView(R, it);
+  assert.deepEqual([v.has, v.none], [false, '흐름을 받는 중…']);
+});
+
+test('operations — SVI 열기는 stream 엔드포인트가 subscribe 를 열면 subscribe, 아니면 read · 닫기는 카드 id 가 아니라 열린 핸들을', () => {
+  const open = HELM_APPS.svi.acts.open, close = HELM_APPS.svi.acts.close;
+  const [it] = ADAPT.svi({ items: [Object.assign({}, RES, { endpoints: [{ endpoint_id: 'frames', direction: 'source', interaction: 'stream', operations: ['read', 'subscribe'] }] })] }, { handleList: HANDLES });
+  assert.deepEqual([it.epInter, it.epOps, it.handleOp], ['stream', ['read', 'subscribe'], 'read']);
+  assert.equal(sviOpenOp(it), 'subscribe');
+  assert.equal(sviOpenOp({ epInter: 'stream', epOps: ['read'] }), 'read');
+  assert.equal(sviOpenOp({ epInter: 'read' }), 'read');
+  const inp = open.in(it.id, it);
+  assert.deepEqual([inp.resource_id, inp.endpoint_id, inp.operation], [RES.resource_id, 'frames', 'subscribe']);
+  assert.match(inp.idempotency_key, /^gui-svi\.node_a\.cam1-\d+$/);
+  assert.deepEqual(close.in(it.id, it), { handle_id: 'svih_live' });
+  assert.deepEqual(close.in('x', { handle: null }), { none: 'no-handle' });
+});
+
+test('StreamView — 글자 · hex · 그림 메타로 가르고, 다시 붙으면 받은 순번을 건너뛴다 · 꼬리는 500줄까지', () => {
+  assert.deepEqual([bodyKind('terra.bytes@1'), bodyKind('terra.text@1'), bodyKind('terra.image.frame@1'), bodyKind('video.frame')], ['text', 'text', 'image', 'meta']);
+  assert.deepEqual([b64Size('YWJj'), b64Size('YQ=='), b64Size('')], [3, 1, 0]);
+  let t = 0;
+  const v = new StreamView({ resId: 'r', handleId: 'h', op: 'subscribe', now: () => t });
+  v.push({ kind: 'status', state: 'active' });
+  v.push({ kind: 'frame', sequence: 1, data: btoa('one\ntwo\n'), schema_ref: 'terra.bytes@1' });
+  v.push({ kind: 'frame', sequence: 2, data: btoa(String.fromCharCode(0, 1, 2, 255)), schema_ref: 'terra.bytes@1' });
+  while (v.process(50));
+  let snap = v.snapshot();
+  assert.deepEqual(snap.lines.map((l) => [l.text, l.hex]), [['one', false], ['two', false], ['00 01 02 ff', true]]);
+  assert.equal(snap.fps, 0.7, '최근 3초에 두 개');
+  v.link('open', true);
+  v.push({ kind: 'frame', sequence: 2, data: 'YQ==', schema_ref: 'terra.bytes@1' });
+  assert.equal(v.frames, 2, '다시 붙은 뒤 이미 받은 순번은 건너뛴다');
+  for (let i = 3; i < 600; i++) v.push({ kind: 'frame', sequence: i, data: 'YQ==', schema_ref: 'terra.bytes@1' });
+  while (v.process(50));
+  assert.equal(v.tail.length, 500);
+  v.push({ kind: 'status', state: 'failed', reason: 'backend' });
+  snap = v.snapshot();
+  assert.deepEqual([snap.ended, snap.noteC], [true, 'bad']);
+  assert.match(snap.note, /failed — backend/);
 });
 
 test('wire — 보고 있는 앱의 목록을 받지 못하면(Master 전용 — 앱 토큰) 그 이유를 2.6초 뒤에도 남긴다 · 다시 받으면 지운다', async () => {

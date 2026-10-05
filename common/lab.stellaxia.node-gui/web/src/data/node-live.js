@@ -112,7 +112,7 @@ export function realNode(Screen) {
     // 전송 진행 · 작업 실행을 흉내 내던 0.5초 박자 — 진짜 목록은 폴링이 바꾼다
     hbTick() {}
 
-    // SVI 흐름도의 예시 흐름 이벤트(maingui A-28) — 진짜 흐름 이벤트는 wire.js 가 핸들 SSE 로 state.sviEv 에 넣는다
+    // SVI 흐름 칸 · 맵 도로의 예시 흐름(maingui A-28) — 진짜 흐름은 svi-live.js 가 핸들 SSE 로 state.sviStream · state.sviFlow 에 넣는다
     sviDemoTick() {}
 
     // 로그인 전의 동작은 아무것도 바꾸지 않는다. 연결되면 wire.js 가 진짜 동작으로 바꿔 낀다.
@@ -243,10 +243,10 @@ export function realNode(Screen) {
       return v;
     }
 
-    // 메모장 — 메모는 LayoutStore(이 브라우저 · 사용자 문서)에 있다. 원본의 ~/.terra/memos 경로는 이 모듈에 없다
+    // 메모장 — 메모는 LayoutStore(이 브라우저 · 사용자 문서)에 있다. 원본의 경로 글(예시 ~/.terra/memos · 07d5739부터 FBMODES().memo.root = memos)은 이 모듈에서 '메모/'다
     memoVals() {
       const v = super.memoVals();
-      if (v && typeof v.path === 'string') v.path = v.path.replace(/^~\/\.terra\/memos\//, '메모/');
+      if (v && typeof v.path === 'string') v.path = v.path.replace(/^(~\/\.terra\/memos|memos)\//, '메모/');
       return v;
     }
 

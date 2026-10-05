@@ -4,7 +4,7 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.8"
+version: "v0.9"
 last_updated: "2026-10-05"
 ---
 
@@ -13,7 +13,7 @@ last_updated: "2026-10-05"
 게임 GUI 형태의 Terra 노드 화면 — 시작 화면 · 육각 필드 맵 · 조타륜 · 노드 자원 · 연결(도로) · 오버헤드 패널 · 편집기 — 을
 노드의 **main GUI**로 내는 모듈이다. base Scene(`io.terra.scene.terra`)은 main이 하나면 그것을 곧장 띄운다.
 
-화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `1aa6340`(2026-10-05 — service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영 · SVI 흐름도)를
+화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `43a4e3a`(2026-10-05 — service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영 · SVI 흐름도 · SVI 흐름 칸 · 맵 도로 애니메이션)를
 바탕으로 한 **module 변형**이다(처음에는 `f24c3bc`에 맞췄다) — 같은 디자인 원본(`web/design/`) · 같은 생성 규칙이고, 갈림은 부트 프로필(`web/src/boot/module.js`)이다.
 처음에는 압축 파일로 받은 `terra-node-gui` 1.0으로 만들었고, 그 뒤 maingui 저장소(자원 추가 · 수정 · 삭제 · 상태 화면 · 모듈 GUI 창이 더 있다)로 다시 맞췄다.
 모듈이 더한 것은 다섯이다.
@@ -96,7 +96,7 @@ flowchart LR
 | 조타륜 앱 — I/O 장치 · 공유 폴더 · 파일 전송 · 서비스 터널 · WireGuard · 자원 선언 · 작업 · 모듈 | **실데이터와 실제 동작.** 작업은 Daemon 작업, 모듈 수명은 Daemon 경로(`node.control`). 장치 손 등록(카메라 주소) · 파일 올리기(↑ 올리기 → 조각 · SHA-256) · 받기(브라우저 저장) · 끊긴 뒤 이어서(같은 파일을 다시 올리면 서버가 받은 곳부터 · 다시 받으면 이 브라우저에 둔 조각부터 · 멈춘 전송의 카드) · 모듈 로그(상태 화면 출력 칸) |
 | 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버가 받는 본문으로 부른다 — 폴더(만들기 · 빈 파일 · 이름 바꾸기 · 지우기) · 장치(별명 · 승인 · 켜기 · 잊기 · 스캔) · 작업(실행 · 취소) · 전송(포기 · 중단해 둔 것의 치우기) · 모듈 설정(모듈이 선언한 칸 — 바뀐 키만 · 저장은 `module.manage`★). 서버에 길이 없으면 **항목을 지어 넣지 않고** 그렇다고 말한다 |
 | 상태 화면 · 모듈 GUI 창 | 원본 앱 목록의 그 항목 · 이 노드의 권한 / 설치된 GUI 앱(`/api/v1/gui/apps`). 다른 모듈의 앱은 이 창에 띄울 수 없다고 적는다(frame은 자기 모듈의 앱만) |
-| 조타륜 앱 — SVI 자원 · 허가 | Master operation — `쓸 수 없다 · 이 노드의 게이트웨이에 없다`(그 앱을 보는 동안 남는다). SVI 자원 앱 창은 흐름도(maingui A-28) — 빈 흐름도이고 예시 흐름 이벤트는 돌지 않는다 |
+| 조타륜 앱 — SVI 자원 · 허가 | Master operation — `쓸 수 없다 · 이 노드의 게이트웨이에 없다`(그 앱을 보는 동안 남는다). SVI 자원 앱 창은 흐름도(maingui A-28), 상태 화면에는 흐름 칸 · 맵에는 흐르는 도로(MD-24) — 열린 핸들이 없어 빈 흐름도 · `열린 핸들이 없다`이고 예시 흐름은 돌지 않는다 |
 | 폴더 보관함 | Terra 저장소 = 이 노드의 공유 폴더(`io.terra.file`). 폴더 탐색기 = 이 노드의 로컬 최상위 루트(`local-fs` — 닫힌 폴더는 🔒), 파일 · 폴더는 그 노드의 바탕화면에 연다(`desktop.open` — 그 컴퓨터에서 볼 때만). 메모는 LayoutStore(브라우저 + 사용자 문서) |
 | 네트워크 보드 | 로컬 WireGuard · 로컬 서비스 터널은 실데이터. 사설망 · 진단 · 라우팅(경로 정책 · 세션 · 연결 그룹) · 조작 이력은 Master — "닿지 않음"(maingui A-20이 tree Gateway로 읽는 것도 Master op) |
 | 설정 보드 | 로컬 노드 135키(값 · 소유 · 반영 · 설치값 차이)와 저장, 계정(whoami), 로컬 자원. 클러스터 · 서버 탭은 Master — "닿지 않음" |
@@ -168,6 +168,21 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### maingui 43a4e3a 따라가기 — SVI 흐름 칸 · 맵 도로 MD-24 (2026-10-05)
+
+원본의 `07d5739`(이 모듈이 올린 UP-1 · 2 · 3 · 10 · 12 · 15 · 18 · 19 · 21 · 24)와 `85e28ee`(A-28 흐름 칸 · 맵 도로 애니메이션)를 따라갔다.
+`design/Artboard-qcfu.dc.html` · `design/Intro.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다 — 자세히는
+[`web/docs/guides/implementation-backlog.md`](web/docs/guides/implementation-backlog.md) MD-24.
+
+| 항목 | 결과 |
+| --- | --- |
+| 흐름 칸 | 상태 화면(SVI 자원) 아래 — 상태 · QoS · seq · fps · 받은 양 · 버린 프레임, `schema_ref`별 본문(글자 · hex · 그림 최신 1장 · 메타), ⏸ 멈춤 · 🧹 지우기 · ⏹ 닫기 · ⬇ 저장. `src/api/svi-stream.js`는 원본 그대로, `src/api/svi-live.js`는 이 모듈의 `openEvents`(op를 opts로) · `HELM_APPS.svi.events`에 맞췄다 |
+| 맵 도로 | 열린 핸들이 흐르는 SVI 자원의 연결에 움직이는 점선 + fps (`prefers-reduced-motion`이면 멈춘 선) |
+| 열기 · 닫기 | 열기는 stream 엔드포인트가 `subscribe`를 열면 `subscribe`, 아니면 `read`(`sviOpenOp`). 전에는 열기 본문이 비었고, 닫기는 카드 id(자원)를 `handle_id`로 실었다 — 열린 핸들로 고쳤다 |
+| 원본에 올라간 패치 | 시작 화면 알약의 누름 끄기(UP-15)는 생성기 패치를 걷었다 — 원본에 있다. 메모 경로 글(UP-18)은 원본이 `memos/`를 쓰게 돼 `메모/`로 바꾸는 규칙을 넓혔다 |
+| 앱 토큰 | SVI는 Master op라 앱 토큰으로는 목록 · 핸들이 없다(PF-1) — 구독을 하나도 열지 않는다. 진짜 Terra 스택에서는 아직 돌려 보지 않았다 |
+| 시험 | `npm test` 126(흐름 칸 · 열기/닫기 본문 · StreamView 새로) · `test:smoke`(SVI 자원 앱 — 흐름 칸 · 도로에 예시 없음) · `validate` · `build:web` · `test:web` 통과 · 페이지 오류 0 |
 
 ### maingui 1aa6340 따라가기 — SVI 흐름도 MD-23 (2026-10-05, 0.3.0 · Terra main `3195421`)
 
@@ -331,7 +346,7 @@ Daemon만 가짜다.
 - `io.terra.scene.terra` (Terra 코어) — 이 main을 띄우는 base Scene
 - [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · I/O 장치(0.2.0 손 등록) 데이터의 출처
 - [`lab.stellaxia.scene.hello`](../lab.stellaxia.scene.hello/README.md) — 같은 tree 레지스트리 경로의 가장 작은 Scene 모듈
-- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `1aa6340`과 같다
+- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `43a4e3a`와 같다
 
 ## 관련 흐름
 

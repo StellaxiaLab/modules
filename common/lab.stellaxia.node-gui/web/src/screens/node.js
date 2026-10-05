@@ -2029,7 +2029,7 @@ export default class Component extends DCLogic {
   placeAt(key, gnd, nd, P0) {
     const P = P0 || this.state.place, R = this.state.rsrc || {};
     if (gnd) { this.setState({ placeMsg: '그라운드에는 설치할 수 없습니다 — 필드를 고르세요' }); return; }
-    if (nd) { this.setState({ placeMsg: '노드가 있는 필드입니다 — 빈 필드를 고르세요' }); return; }
+    if (nd || this.nodeAt(key)) { this.setState({ placeMsg: '노드가 있는 필드입니다 — 빈 필드를 고르세요' }); return; }   // nodeAt — leaf 맵의 자기 칸(self)도 노드 칸이다
     if (R[key] && !(R[key].app === P.app && R[key].id === P.id && R[key].node === P.node)) { this.setState({ placeMsg: R[key].name + '이(가) 이미 있는 필드입니다' }); return; }
     const next = {};
     Object.keys(R).forEach((k) => { const o = R[k]; if (!(o.node === P.node && o.app === P.app && o.id === P.id)) next[k] = o; });   // 같은 자원은 한 자리 — 다시 놓으면 옮긴다
@@ -2535,24 +2535,72 @@ export default class Component extends DCLogic {
     boxes.forEach((b) => { b.emoDisp = b.emoji && !(single && /^ep:/.test(b.key)) ? 'block' : 'none'; b.dotDisp = b.dot === 'transparent' ? 'none' : 'block'; if (single) b.x = b.x; });
     return { W, H, boxes, edges, cols, colsDisp: single ? 'none' : 'block', empty: !list.length, nFlow };
   }
-  // 흐름 이벤트 (핸들 SSE terra.master.svi.handles.by-handle-id.events.get — status · frame). 서비스는 wire.js가 state.sviEv에 넣는다, 예시는 sviDemoTick
-  sviEvView(resId) {
-    const E = (this.state.sviEv || {})[resId] || null, items = E ? E.items.slice(-8).reverse() : [];
-    return { on: true, live: !!(E && E.live), head: E ? '프레임 ' + E.frames + ' · ' + (E.bytes >= 1024 ? Math.round(E.bytes / 1024) + ' KB' : E.bytes + ' B') + (E.live ? ' · ● 실시간 (SSE)' : ' · 예시') : '열린 핸들이 없다 — 자원을 열면 흐름이 여기에 보인다',
-      headC: E && E.live ? '#2563eb' : '#8b95a6', items: items.map((x) => ({ t: x.t, text: x.text, c: x.c || '#e6e9ee' })), none: !items.length, noneDisp: items.length ? 'none' : 'block' };
+  // ───── 흐름 칸 (A-28) — 상태 화면(SVI 자원) 아래. 열린 핸들의 SSE(terra.master.svi.handles.by-handle-id.events.get)를 받아 보인다 ─────
+  //   state.sviStream = { resId, handleId, op, state, reason, qos, seq, fps, frames, bytes, dropped, evicted, kind: text|image|meta, lines[{seq, t, text, hex}], meta[], img, imgInfo,
+  //                       tailLines, paused, pending, note, noteC, ended, live }  — 서비스는 src/api/svi-live.js가 초당 10번까지 넣는다, 예시는 sviDemoTick
+  //   state.sviFlow[자원] = { fps, live } — 맵 도로 애니메이션
+  sviFlowView(R, it) {
+    const S = this.state, F = S.sviStream && S.sviStream.resId === R.id ? S.sviStream : null;
+    const TONE = { ok: ['#e3f4ea', '#1f7a4d'], run: ['#e6efff', '#2563eb'], wait: ['#fbf0cc', '#a65f00'], off: ['#eef1f5', '#5b6472'], bad: ['#fde1e5', '#d33d52'], end: ['#f4f6f9', '#8b95a6'] };
+    const fmt = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B');
+    const base = { has: !!F, noneDisp: F ? 'none' : 'block', none: it && it.handle ? '흐름을 받는 중…' : '열린 핸들이 없다 — 카드의 열기를 누르면 여기로 흐른다', chips: [], lines: [], meta: [], img: '', imgDisp: 'none', imgInfo: '',
+      textDisp: 'none', metaDisp: 'none', note: '', noteDisp: 'none', noteBg: '#f4f6f9', noteC: '#5b6472', pauseLabel: '⏸ 멈춤', pauseOn: false, foot: '',
+      pause: () => this.sviFlowCmd('pause'), clear: () => this.sviFlowCmd('clear'), close: () => this.sviFlowCmd('close'), save: () => this.sviFlowCmd('save'), closeDis: true, bodyH: 180 };
+    if (!F) return base;
+    const st = F.state, readDone = F.op === 'read' && st === 'closed' && F.frames >= 1;
+    const sk = st === 'active' ? 'run' : /^(requested|authorized|validating|planning|preparing|opening|degraded)$/.test(st) ? 'wait' : /^(denied|failed)$/.test(st) ? 'bad' : st === 'expired' ? 'end' : readDone ? 'ok' : 'off';
+    const chip = (k, label, tone, tip) => ({ k, label, bg: TONE[tone][0], fg: TONE[tone][1], tip: tip || label });
+    const chips = [chip('state', st + (readDone ? ' · 읽기 끝' : ''), sk, F.reason || st), chip('qos', 'QoS ' + F.qos, 'off'), chip('seq', 'seq ' + (F.seq == null ? '—' : F.seq), 'off', '마지막 프레임 순번 (0은 오지 않는다 — omitempty)'),
+      chip('fps', F.fps + ' fps', F.fps > 0 ? 'run' : 'off', '최근 3초 초당 프레임'), chip('bytes', fmt(F.bytes) + ' · ' + F.frames + '개', 'off', '받은 양'),
+      chip('dropped', '버림 ' + F.dropped, F.dropped > 0 ? 'bad' : 'off', '대기열(256)이 넘쳐 Master가 버린 프레임 — 핸들 보기 dropped_frames')]
+      .concat(F.evicted > 0 ? [chip('evicted', '쫓겨남 ' + F.evicted, 'bad', 'reliable 프로필에서 느린 구독자를 끊은 수 — evicted_subscribers')] : []);
+    const note = F.paused ? '⏸ 그리기 멈춤 — 받기는 이어 간다. 그동안 ' + F.pending + '개 받음' : F.note;
+    const nt = F.paused ? 'wait' : F.noteC || 'off';
+    return Object.assign(base, {
+      chips, note, noteDisp: note ? 'block' : 'none', noteBg: TONE[nt] ? TONE[nt][0] : '#f4f6f9', noteC: TONE[nt] ? TONE[nt][1] : '#5b6472',
+      textDisp: F.kind === 'text' ? 'block' : 'none', metaDisp: F.kind === 'meta' ? 'block' : 'none', imgDisp: F.kind === 'image' ? 'flex' : 'none',
+      lines: (F.lines || []).map((l) => ({ seq: '#' + l.seq, t: l.t, text: l.text, c: l.hex ? '#ffd27a' : '#e6e9ee', hex: l.hex ? 'hex' : '' })),
+      meta: (F.meta || []).map((m) => ({ t: m.t, text: m.text })), img: F.img || '', imgOn: F.img ? 'block' : 'none', imgInfo: F.imgInfo || '',
+      pauseLabel: F.paused ? '▶ 이어 그리기' : '⏸ 멈춤', pauseOn: F.paused, closeDis: !!F.ended,
+      foot: (F.schema ? F.schema + (F.encoding ? ' · ' + F.encoding : '') + ' · ' : '') + '꼬리 ' + F.tailLines + '줄 (최대 500줄 · 1 MB) · SSE — 이어 받기가 없어 끊겼다 다시 붙으면 그 시점부터' + (F.live ? '' : ' · 예시')
+    });
   }
+  // 흐름 칸 손잡이 (예시). 서비스에서는 svi-live.js가 바꿔 끼운다
+  sviFlowCmd(cmd) {
+    const S = this.state, F = S.sviStream; if (!F) return;
+    if (cmd === 'close') { if (S.rst && S.rst.app === 'svi') this.hbAct('svi', F.resId, 'close', S.rst.node); return; }
+    if (cmd === 'pause') this.setState({ sviStream: Object.assign({}, F, { paused: !F.paused, pending: 0, frozen: !F.paused ? F.lines : null }) });
+    else if (cmd === 'clear') this.setState({ sviStream: Object.assign({}, F, { lines: [], meta: [], img: null, tailLines: 0, all: [] }) });
+    else if (cmd === 'save') {
+      const text = (F.all || F.lines || []).map((l) => '#' + l.seq + '\t' + l.t + '\t' + (l.hex ? '[hex] ' : '') + l.text).join('\n') + '\n';
+      try { const a = document.createElement('a'), url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' })); a.href = url; a.download = (F.name || 'svi') + '.txt'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000); } catch (e) { /* 저장 막힘 */ }
+    }
+  }
+  // 예시 흐름: 핸들이 열린 자원마다 0.5초에 프레임 하나 (프로세스 = 글자 줄 · net = 글자 아닌 바이트 → hex · 카메라 · 화면 = 그림 메타)
   sviDemoTick() {
     if (this._sviLive) return;
-    const S = this.state, nodes = new Set([this.hbNode(), S.rst && S.rst.app === 'svi' ? S.rst.node : null].filter(Boolean)), ev = Object.assign({}, S.sviEv || {});
-    let ch = false;
+    const S = this.state, nodes = new Set([this.hbNode(), S.rst && S.rst.app === 'svi' ? S.rst.node : null].concat(Object.values(S.rsrc || {}).filter((o) => o.app === 'svi').map((o) => o.node)).filter(Boolean));
+    const flow = {}; let F = S.sviStream && S.sviStream.live ? S.sviStream : null, ch = false;
+    const now = new Date().toTimeString().slice(0, 8);
     nodes.forEach((n) => (this.hbItems(n, 'svi') || []).forEach((d) => {
-      if (!d.handle) { if (ev[d.id]) { delete ev[d.id]; ch = true; } return; }
-      const E = ev[d.id] || { frames: 0, bytes: 0, items: [{ t: new Date().toTimeString().slice(0, 8), text: 'status · active — 임대 2분', c: '#5fd39a' }], live: false };
-      const sz = /camera|screen/.test(d.kind) ? 18000 + (E.frames * 977) % 6000 : 120 + (E.frames * 37) % 90;
-      ev[d.id] = { frames: E.frames + 1, bytes: E.bytes + sz, live: false, items: E.items.concat([{ t: new Date().toTimeString().slice(0, 8), text: 'frame #' + (E.frames + 1) + ' · ' + (sz >= 1024 ? (sz / 1024).toFixed(1) + ' KB' : sz + ' B') }]).slice(-30) };
+      if (!d.handle) return;
+      flow[d.id] = { fps: 2, live: true, state: 'active' };
+      if (!(S.rst && S.rst.app === 'svi' && S.rst.id === d.id && S.winOpen.rst)) return;
+      const cur = S.sviStream && S.sviStream.resId === d.id && !S.sviStream.live ? S.sviStream : { resId: d.id, handleId: d.handle, name: d.name, op: 'subscribe', state: 'active', qos: 'realtime_latest', seq: null, fps: 2, frames: 0, bytes: 0, dropped: 0, evicted: 0,
+        kind: /camera|screen/.test(d.kind) ? 'image' : /^net/.test(d.kind) ? 'text' : 'text', schema: /camera|screen/.test(d.kind) ? 'terra.image.frame@1' : 'terra.bytes@1', encoding: /camera|screen/.test(d.kind) ? 'terra-frame-v2' : 'raw',
+        lines: [], all: [], meta: [], img: null, imgInfo: '', tailLines: 0, paused: false, pending: 0, note: '', noteC: '', ended: false, live: false };
+      const seq = (cur.seq || 0) + 1, net = /^net/.test(d.kind), img = cur.kind === 'image';
+      const line = net ? { seq, t: now, text: Array.from({ length: 16 }, (_, i) => ((seq * 37 + i * 91) % 256).toString(16).padStart(2, '0')).join(' ') + ' … (64.0 KB)', hex: true }
+        : { seq, t: now, text: d.name + ' cpu=' + (20 + (seq * 7) % 50) + '% mem=' + (40 + (seq * 3) % 30) + '% seq=' + seq, hex: false };
+      const all = img ? cur.all : cur.all.concat([line]).slice(-500), sz = img ? 18000 + (seq * 977) % 6000 : net ? 65536 : line.text.length + 1;
+      F = Object.assign({}, cur, { seq, frames: cur.frames + 1, bytes: cur.bytes + sz, dropped: net && seq % 9 === 0 ? cur.dropped + 3 : cur.dropped, all, tailLines: all.length,
+        lines: cur.paused ? cur.lines : all.slice(-80), pending: cur.paused ? cur.pending + 1 : 0, imgInfo: img ? '#' + seq + ' · ' + (sz / 1024).toFixed(1) + ' KB · terra-frame-v2 — 이 인코딩은 브라우저에서 그리지 않는다' : '' });
       ch = true;
     }));
-    if (ch) this.setState({ sviEv: ev });
+    const same = JSON.stringify(flow) === JSON.stringify(S.sviFlow || {});
+    const el = typeof document !== 'undefined' && document.querySelector('[data-flow-text]'), stick = !el || el.scrollHeight - el.scrollTop - el.clientHeight < 40;   // 맨 아래를 보고 있었으면 따라 내려간다
+    if (ch || !same) this.setState(Object.assign({ sviFlow: flow }, ch ? { sviStream: F } : {}));
+    if (ch && stick && F && !F.paused) setTimeout(() => { const e2 = document.querySelector('[data-flow-text]'); if (e2) e2.scrollTop = e2.scrollHeight; }, 0);
   }
   rsFlow(app, it) {
     const F = (steps, at, tone) => ({ steps, at, tone });
@@ -2625,7 +2673,7 @@ export default class Component extends DCLogic {
         progOn: R.app === 'xfer' && it.off != null, prog: it.off != null ? Math.round(it.off * 100) : 0,
         outOn: !!(S.hbOut && S.hbOut.node === R.node && S.hbOut.app === R.app && S.hbOut.id === R.id), outTitle: S.hbOut ? S.hbOut.title : '', outText: S.hbOut ? S.hbOut.text : '', outAt: S.hbOut ? S.hbOut.at : '',
         outClose: () => this.setState({ hbOut: null }),
-        sviOn: R.app === 'svi', svd: R.app === 'svi' ? this.sviDiagram(R.node, [it], Math.max(360, ((S.wins.rst && S.wins.rst.w) || 430) - 34), null, true) : { boxes: [], edges: [], W: 0, H: 0 }, sviEv: R.app === 'svi' ? this.sviEvView(R.id) : { items: [] },
+        sviOn: R.app === 'svi', svd: R.app === 'svi' ? this.sviDiagram(R.node, [it], Math.max(360, ((S.wins.rst && S.wins.rst.w) || 430) - 34), null, true) : { boxes: [], edges: [], W: 0, H: 0 }, flow: R.app === 'svi' ? this.sviFlowView(R, it) : { chips: [], lines: [], meta: [] },
         modDisp: R.app === 'mod' ? 'flex' : 'none', modKind: gui ? 'GUI를 제공하는 모듈 — 상태 화면 + 모듈 화면(GUI 창)' : '기능만 제공하는 모듈 — 상태 화면만 (GUI 없음)', modC: gui ? '#5b21b6' : '#5b6472', modBg: gui ? '#ede4fe' : '#eef1f5',
         guiDisp: gui ? 'inline-flex' : 'none', gui: () => this.mguiOpen(R.node, R.id),
         mapLine: mk ? '맵 ' + this.cellName(mk) + ' · 입력 ' + nIn + ' · 출력 ' + nOut : '맵에 설치되지 않음 — 조타륜 카드를 끌어 필드에 놓는다', focusDisp: mk ? 'inline-flex' : 'none', focus: () => { if (mk) this.setState({ sel: mk }); },
@@ -3034,7 +3082,7 @@ export default class Component extends DCLogic {
         const f = it ? this.sviFlow(node, it) : null;
         diag = { svd, infoW, sel: !!it, title: it ? it.name : '', sub: it ? it.kind + ' · ' + it.id : '', chip: c ? c.chip : '', cbg: c ? c.cbg : '#eef1f5', cfg: c ? c.cfg : '#5b6472', acts: c ? c.acts : [],
           kv: it ? [['엔드포인트', f.eps.map((e) => e.id).join(' · ') || '—'], ['핸들', f.handles.length ? f.handles.map((h) => h.state).join(' · ') : '없음'], ['바인딩', f.binds.length ? f.binds.map((b) => b.to + ' (' + b.state + ')').join(' · ') : '없음'], ['허가', f.grants.length ? f.grants.map((g) => g.who + ' ' + g.ops + (g.alive ? '' : ' · 만료')).join(' / ') : it.grant === 'own' ? '소유자' : '없음']].map(([k, v]) => ({ k, v })) : [],
-          stat: () => { if (it) this.rstOpen({ kind: 'res', node, app: 'svi', id: it.id, name: it.name }); }, ev: it ? this.sviEvView(it.id) : this.sviEvView(''),
+          stat: () => { if (it) this.rstOpen({ kind: 'res', node, app: 'svi', id: it.id, name: it.name }); }, flowLine: it && (S.sviFlow || {})[it.id] ? '● 흐르는 중 · ' + S.sviFlow[it.id].fps + ' fps — 꼬리 · 멈춤 · 저장은 상태 화면의 흐름 칸에서' : it && it.handle ? '핸들이 열려 있다 — 흐름 칸은 상태 화면에서' : '열린 핸들이 없다',
           legend: '━ 흐름(핸들 · 바인딩, 움직이면 흐르는 중) · ┅ 허가 · ─ 제공 · 자원을 누르면 오른쪽에 자세히' };
       }
     }
@@ -4013,7 +4061,7 @@ export default class Component extends DCLogic {
   memoVals() {
     const S = this.state, D = S.memoDraft || { name: '', text: '', dir: '', dirty: false };
     return {
-      name: D.name, text: D.text, path: '~/.terra/memos/' + (D.dir ? D.dir + '/' : ''), isNew: !S.memoCur, state: !S.memoCur ? '새 메모 — 아직 저장 안 됨' : D.dirty ? '고침 — 저장 안 됨' : '저장됨',
+      name: D.name, text: D.text, path: String(this.FBMODES().memo.root || '~/.terra/memos').replace(/\/?$/, '/') + (D.dir ? D.dir + '/' : ''), isNew: !S.memoCur, state: !S.memoCur ? '새 메모 — 아직 저장 안 됨' : D.dirty ? '고침 — 저장 안 됨' : '저장됨',
       stateC: D.dirty || !S.memoCur ? '#a65f00' : '#1f7a4d', note: S.memoNote ? S.memoNote.t : '', noteC: S.memoNote ? S.memoNote.c : '#5b6472',
       onName: (e) => this.setState({ memoDraft: Object.assign({}, D, { name: e.target.value, dirty: true }), memoNote: null }),
       onText: (e) => this.setState({ memoDraft: Object.assign({}, D, { text: e.target.value, dirty: true }), memoNote: null }),
@@ -4859,6 +4907,19 @@ export default class Component extends DCLogic {
       const st = String(it.state || it.status || it.health || it.presence || (it.enabled === false ? 'off' : 'ok'));
       return /fail|bad|unavail|missing|denied|refused|never/.test(st) ? STC.bad : /pend|wait|degrad|stale|queued|shadow/.test(st) ? STC.wait : /stop|disabled|retired|off/.test(st) ? STC.off : STC.ok;
     };
+    // SVI 흐름 도로 (A-28): 흐르는 자원(state.sviFlow live · fps > 0)이 끝에 있는 연결의 칸들을 잇는다
+    const sviRoads = (() => {
+      const FL = this.state.sviFlow || {}, R = this.state.rsrc || {}, byKey = new Map(tiles.map((t) => [t.key, t])), out = [];
+      (this.state.links || []).forEach((l, i) => {
+        const ends = [l.from, l.to].map((k) => R[k]).filter((o) => o && o.app === 'svi'), f = ends.map((o) => FL[o.id]).find((x) => x && x.live && x.fps > 0);
+        if (!f) return;
+        const pts = this.linkCells(l).map((k) => byKey.get(k)).filter(Boolean).map((t) => [Math.round(t.px), Math.round(t.py)]);
+        if (pts.length < 2) return;
+        const mid = pts[Math.floor((pts.length - 1) / 2)], nx = pts[Math.floor((pts.length - 1) / 2) + 1] || mid;
+        out.push({ key: l.id || 'l' + i, d: 'M' + pts.map((p) => p[0] + ' ' + p[1]).join(' L'), c: '#2563eb', fps: f.fps, lx: Math.round((mid[0] + nx[0]) / 2) - 30, ly: Math.round((mid[1] + nx[1]) / 2) - 30 });
+      });
+      return out;
+    })();
     const rmarks = mt ? [] : tiles.filter((t) => RS[t.key] && !t.gndOnly && placed[t.key] && t.key !== this.state.sel).map((t) => ({
       T: 'translate(' + t.px + ' ' + (t.py + (t.key === this.state.sel ? -12 : 0) + Math.min(0, t.biy || 0) + 4) + ')', emoji: RS[t.key].emoji, disc: '#e7eaef', dot: rsTone(RS[t.key])
     }));
@@ -5337,7 +5398,7 @@ export default class Component extends DCLogic {
       selHasB: !!(selKey && placed[selKey]),
       selEmpty: !!(selKey && !placed[selKey]),
       selNode: selKey && placed[selKey] ? '건물 · ' + bldOf(placed[selKey].bid).name + ' · 회전 ' + placed[selKey].rot + '/3' : '',
-      pendingNodes, rmarks, pill, placeBar, selRim, connMarks, connLine, connBar, route,
+      pendingNodes, rmarks, sviRoads, pill, placeBar, selRim, connMarks, connLine, connBar, route,
       evOpts: [['real', '실제', '#16191f']].concat(this.evtCommon().map((e) => [e.id, e.name, e.c])).map(([id, label, c]) => { const on = (this.state.evView || 'real') === id;
         return { id, label, c, on, bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', sh: on ? '0 1px 2px rgba(22,25,31,0.18)' : 'none', pick: () => this.setState({ evView: id }) }; }),
       roadSw: (() => { const on = this.state.roadsOn !== false, any = Object.values(this.state.placed || {}).some((p) => this.isRoad(p.bid));
