@@ -8,7 +8,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.6.0"
+version: "0.6.1"
 last_updated: "2026-10-05"
 language: "ko-KR"
 os_priority:
@@ -384,7 +384,7 @@ flowchart TD
 | `local-fs.roots.get` 은 Daemon 자기 폴더(데이터 · 설정 디렉터리)를 품은 루트를 `readable: false` · `reason: denied` 로 준다 | 🔒 + 이유, 누르면 들어가지 않고 그렇다고 말한다 |
 | `desktop.open.post` 의 실행 파일 거절은 409 `DESKTOP_OPEN_EXECUTABLE`, 바탕화면 세션이 없으면 503 `DESKTOP_SESSION_UNAVAILABLE`, 여는 프로그램이 없으면 503 `DESKTOP_LAUNCHER_UNAVAILABLE` | 코드마다 화면 글(머리말 없이) |
 | 손 등록(`io.devices.post`)은 주소로 장치 id 를 짓는다(`camera-manual-…` — 같은 주소면 같은 id) · 등록하면 `terra.io.devices.changed` 신호가 온다 | 신호로 I/O 앱 목록을 다시 받는다 |
-| (Terra main `3195421`) 모듈 설정 op 셋은 Daemon 의 것이다 — 읽기 둘은 `node.read`, 쓰기(`config.patch`)는 `module.manage`★. `module.manage` 는 "어느 코드가 그 노드에서 도는지 바꾸는" 권한이라 **기본 권한 밖**이다 — 관리자에게도 없어 카탈로그가 `config.patch` 를 거르고, 관리자 토큰으로 바로 불러도 403 이다 | 앱 권한에는 이미 있다. 사용자에게 따로 주어야 저장이 열린다(Q-16). 없으면 `🔒 수정 — module.manage 권한 없음` |
+| (Terra main `3195421`) 모듈 설정 op 셋은 Daemon 의 것이다 — 읽기 둘은 `node.read`, 쓰기(`config.patch`)는 `module.manage`★. `module.manage` 는 "어느 코드가 그 노드에서 도는지 바꾸는" 권한이라 **기본 권한 밖**이다 — 관리자에게도 없어 카탈로그가 `config.patch` 를 거르고, 관리자 토큰으로 바로 불러도 403 이다 | 앱 권한에는 이미 있다. 사용자에게 따로 주어야 저장이 열린다(Q-16). 없으면 폼은 열려 값을 보이고, 저장은 `🔒 저장 — module.manage★ 권한 없음(…) · 값은 볼 수만 있다`로 막는다 |
 | 설정 스키마는 Daemon 이 키를 정렬해 준다(Go map) — 폼 칸은 키 이름 순서다. 기본값은 값에 채우지 않는다(`values` 는 저장된 것만) | 기본값은 자리 표시자(`기본 50`)로 보인다 |
 | io.terra.file 0.2.0 의 중단(`transfers.abort` · `pulls.abort`)은 `keep_partial` · `reason` 을 **query 에서만** 읽었다. 게이트웨이 invoke 는 POST 입력을 본문으로 보내므로(`BuildOperationTarget`) 앱이 보낸 `keep_partial: true` 가 들리지 않아 늘 포기였다 — 실측 `kept_partial: false` · 기록 404 · 부분 파일 없음 | io.terra.file 0.2.1이 본문도 읽는다(본문이 이긴다 · query 도 그대로) — 같은 실측이 `kept_partial: true` · 기록 200 · 부분 파일 262144 B |
 | 받기 전용 문(`pulls.complete` · `pulls.abort`)은 기한이 지난 받기를 닫지 못했다(`TRANSFER_EXPIRED`) — 받던 화면이 닫히면 그 받기가 목록에 계속 남는다 | 0.2.1 — 방향만 보고 닫는다 |
