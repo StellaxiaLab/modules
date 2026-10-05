@@ -40,7 +40,7 @@ related:
 | --- | --- | --- | --- | --- |
 | **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 1 | 3 | 5 |
 | **MD** 이 모듈 | modules 저장소 | 1 | 4 | 5 |
-| **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | — | 5 | 3 |
+| **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | — | 3 | 2 |
 | **Q** 사람이 정할 것 | 소유자 | — | — | — |
 
 남은 것만 센다(2026-10-05 저녁). Terra G0~G6이 닫은 PF는 §1.2, 이 모듈이 끝낸 MD는 §2 "끝낸 것", 원본이 고친 UP는 §3.0에 있다.
@@ -144,16 +144,18 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 
 | 상태 | ID | 어디서 |
 | --- | --- | --- |
-| 원본에 올렸다 | UP-1 · UP-2 · UP-3 · UP-10 · UP-12(나) · UP-15 · UP-18 | [maingui#1](https://github.com/StellaxiaLab/maingui/pull/1) — 고치기 전 코드에서 실패하는 시험과 함께 |
+| 원본에 올렸다 | UP-1 · UP-2 · UP-3 · UP-10 · UP-12(나) · UP-15 · UP-18 · UP-19 · UP-20 · UP-21 | [maingui#1](https://github.com/StellaxiaLab/maingui/pull/1) — 고치기 전 코드에서 실패하는 시험과 함께(UP-19~21은 둘째 커밋 `43d547a` — 가짜 Gateway도 실제 모양으로) |
 | 원본이 고쳤다 | UP-4 · UP-5 · UP-6 · UP-7 · UP-8 · UP-12(가 · 다 · 라 · 마) · UP-13 · UP-17 | maingui `19d2a70`(연동 층을 실제 Gateway에) · `2ced429`(G0~G6 연동) |
 | 남았다 | UP-9 · UP-11 · UP-12(바 · 사) · UP-14 · UP-16 | 아래 — maingui `2ced429`에서 다시 봤다 |
-| 새로 찾았다 | UP-19 · UP-20 · UP-21 | MD-16 · MD-17을 진짜 스택에서 돌리며(2026-10-05) — 아래 |
 
 - **UP-9** — `service.js` `hbPerm`이 로컬 노드를 여전히 `소유자` · 모든 권한으로 둔다. 원본의 선택일 수 있다(권한 없는 호출은 게이트웨이가 거절한다)
 - **UP-11** — UI 명세 §2.9가 여전히 §2.13 뒤에 있다
 - **UP-12(바 · 사)** — `＋ 추가`의 전송은 여전히 조각 없이 만든다(↑ 올리기 A-2는 따로 있다). 이 노드의 작업도 Master `commands.post`로 보낸다 — leaf 게이트웨이에는 그 op가 없다
 - **UP-14** — 길이 없으면 `origSave()`로 화면에만 넣는다(`⚠ … 화면에만 반영했다`). A-5 잠금이 많은 경우를 앞에서 막는다
 - **UP-16** — 상태 화면 노드 칸의 로그인 줄이 `auth`가 없으면 `로그인됨`이다
+
+새로 찾아 원본에 올린 것(MD-16 · MD-17을 진짜 스택에서 돌리며 — maingui#1 둘째 커밋 `43d547a`):
+
 - **UP-19** — 모듈 로그의 두 모양. Daemon(`modules.by-module-id.logs.get` — 다른 노드 · 대체 경로)은 줄이 `{at, stream, text}` 객체라 원본 `wire.js`의 `d.lines.join('\n')`이 `[object Object]`를 찍는다. 게이트웨이(`modules.by-id.logs.get`)는 `{module, logs: [글]}`인데 원본은 `logs`를 보지 않아 JSON이 그대로 나온다. 원본의 가짜 Gateway가 둘 다 `lines: [글]`로 답해 가려졌다 — 모듈은 `logLines`로 둘 다 글로 옮긴다
 - **UP-20** — 받기(내려받기). io.terra.file 0.2.0(modules #24)이 `transfers.pulls.*`를 냈다. 원본에는 받기가 없다 — 모듈 `source.download`(조각 · 조각마다 SHA-256 · 전체 검사 · `pulls.abort`) · `saveBlob`를 옮긴다
 - **UP-21** — `desktop.open`의 실행 파일 거절 코드는 `DESKTOP_OPEN_EXECUTABLE`이다. 원본은 `r.code === 'DESKTOP_EXECUTABLE'`을 본다(409로도 견주어 글은 맞게 나온다). 그 밖의 코드(`DESKTOP_SESSION_UNAVAILABLE` 503 · `DESKTOP_LAUNCHER_UNAVAILABLE` 503 · `LOCAL_FS_DENIED` …)는 `지금은 볼 수 없다 (모듈 멈춤)` 같은 머리말로 나온다 — 모듈은 코드마다 화면 글(`reasonText`)
@@ -226,5 +228,5 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 - PF-10(Terra#118) → MD-15: 병합되면 사용자 문서도 operationId(invoke)로 부를 수 있다 — 지금은 경로
 - MD-12 → MD-20: 다른 노드의 Daemon은 닿는다 — 공유 폴더(모듈 op)는 원격 모듈 경로가 남았다
 - PF-1 → PF-17: 문서 변경 신호는 Master 이벤트라 앱 토큰에 오지 않는다
-- MD-16 · MD-17 → UP-19 · UP-20 · UP-21: 모듈이 진짜 스택에서 찾은 것을 원본에 올린다
+- MD-16 · MD-17 → UP-19 · UP-20 · UP-21: 모듈이 진짜 스택에서 찾은 것을 원본에 올렸다(maingui#1)
 - PF-15 → MD-14: 셸이 "앱 열기"를 받아야 모듈 GUI 창이 실제로 연다
