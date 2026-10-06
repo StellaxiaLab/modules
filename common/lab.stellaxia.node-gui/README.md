@@ -4,8 +4,8 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.10"
-last_updated: "2026-10-05"
+version: "v0.11"
+last_updated: "2026-10-06"
 ---
 
 # Terra 노드 (`lab.stellaxia.node-gui`)
@@ -111,11 +111,11 @@ Master 401은 "쓸 수 없다"로 바꾸고 그 뒤로 Master를 부르지 않�
 
 ## 남은 결정 — 이번 구현이 고른 기본값
 
-판정서 §7의 결정은 아직 사람이 내리지 않았다. 이 모듈은 **되돌리기 쉬운 쪽**을 골라 두었다.
+판정서 §7의 결정 가운데 **Q-1은 확정됐다**(아래 표). 나머지는 아직 사람이 내리지 않았고, 이 모듈은 **되돌리기 쉬운 쪽**을 골라 두었다.
 
 | | 질문 | 이번 기본값 | 바꾸려면 |
 | --- | --- | --- | --- |
-| **Q-1** | 어떻게 나가나 (접두사) | **tree 레지스트리** — `lab.stellaxia.*`, `pack` → `publish`. 이 저장소의 규칙 그대로다 | 제품 동봉으로 가면 `io.terra.*`로 개명하고 코어 `bundled-modules.json`에 선언한다. **게시 전이라 개명 비용이 0이다** |
+| **Q-1** | 어떻게 나가나 (접두사) | **확정(2026-10-06) — 이 저장소의 릴리스로 나가고 코어에는 동봉하지 않는다.** `lab.stellaxia.*` 그대로, 개명 · `bundled-modules.json` 선언 없음. 설치는 설치기가 이 저장소 릴리스의 `.tmod`를 원격에서 가져와 깐다(설치기는 구현 중). 그 뒤의 변경 · 설치 · 업그레이드는 `.tmod`를 직접 받아 깔거나 tree 레지스트리(`pack` → `publish`)를 거친다 | 제품 동봉으로 가면 `io.terra.*`로 개명하고 코어 `bundled-modules.json`에 선언한다 — 되돌릴 때의 길이다 |
 | **Q-2** | Master 데이터를 웹에 어떻게 건네나 | **(다) 이 화면은 Master 데이터를 갖지 않는다** — "쓸 수 없다"로 보인다 | (가) Scene 중계 — 셸 Scene의 Function이 사용자 자격으로 `call`하고 `bind`로 넘긴다 · (나) Core peer 중계를 넓힌다(ADR 감) |
 | **Q-3** | 메모 · 설계도 · 맵 배치를 어디에 두나 | **이 브라우저 + Terra 사용자 문서 저장소**(C-1 — Terra G0~G6이 열었다). 브라우저(LayoutStore · `localStorage`, 노드 · 주체마다)에 바로, 사용자 문서(`app:<앱 id>` 이름공간 — 앱 토큰이면 고정)에 뒤따라. `kind`는 `scene` 그대로 — 모듈 백엔드가 필요 없다 | `config.json` `layoutStore: local`(브라우저에만) · `none`(저장 안 함) — 백로그 Q-14 |
 | **Q-4** | 보드를 어떻게 여나 | **`srcdoc`** — 판정서의 (가) · (나) · (다) 어느 것도 아닌 넷째 길. 프로토타입의 iframe 구조를 그대로 두고, 같은 앱의 페이지를 받아 `srcdoc`으로 넣는다. `srcdoc` 문서는 부모의 origin · CSP를 이어받아 `frame-ancestors` 검사를 타지 않는다 | (가) 한 문서 안에 마운트 · (다) 플랫폼 `frame-ancestors`에 `'self'`(P-3) |
@@ -129,8 +129,8 @@ maingui를 따라가는 방법 · "삭제"의 뜻)은 [`web/docs/guides/implemen
 > 판정서 §6은 `branch: "dev"`로 시작해 마지막 단계에서 `main`으로 올리자고 적었다. 예시 데이터뿐인 화면이 설치만으로
 > 노드의 main 자리를 차지하지 않게 하려는 순서였다. 이 모듈은 처음부터 `main`으로 간다.
 >
-> - 그 순서가 기다리던 것 중 1~3단계(frame · 로컬 실데이터)와 P-4(웹 빌드 단계)가 이 모듈과 함께 들어왔다. 남은 것은
->   Q-1이고, 기본값(tree 레지스트리)에서는 **설치 자체가 운영자의 선택**이다.
+> - 그 순서가 기다리던 것 중 1~3단계(frame · 로컬 실데이터)와 P-4(웹 빌드 단계)가 이 모듈과 함께 들어왔다. Q-1은
+>   확정됐다 — 코어가 동봉하지 않으므로 **설치 자체가 운영자(또는 설치기)의 선택**이다. 설치기가 이 모듈을 깔아 주지 않으면 새 노드는 `MAIN_NOT_FOUND`로 시작하니, 설치기 쪽에서 챙겨야 하는 일이다.
 > - base는 main을 조용히 갈아치우지 않는다 — main이 이미 있으면 둘이 되어 고르는 화면(CHOOSE)이 뜬다. 그리고 오늘
 >   코어는 main을 동봉하지 않아 새 노드가 `MAIN_NOT_FOUND`로 시작한다. `dev`로 두면 이 모듈은 그 오류 화면의 dev
 >   버튼으로만 열린다(Terra `docs/modules/terra-gui/design/terra-base-scene-branch-design.md` §4의 표).
