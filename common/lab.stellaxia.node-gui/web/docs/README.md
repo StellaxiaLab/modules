@@ -32,7 +32,7 @@ related:
 
 이 프로젝트(`terra-node-gui`)는 디자인 캔버스의 **노드 화면**(시작 화면 · 육각 필드 맵 · 조타륜 · 노드 자원 · 연결 · 도로)과 편집기 보드를
 그대로 돌리는 웹 프로젝트에, 실데이터로 옮기기 위한 **연동 층**(`src/api` · `src/model`), 예시 데이터를 지우는 **실데이터 층**(`src/data`),
-변형별 **부트 프로필**(`src/boot`)과 이 문서들을 더한 것이다. GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `43a4e3a`(service 판)를 바탕으로 한 **module 변형**이다 — [[module-profile|모듈 프로필]].
+변형별 **부트 프로필**(`src/boot`)과 이 문서들을 더한 것이다. GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `a884226`(service 판)를 바탕으로 한 **module 변형**이다 — [[module-profile|모듈 프로필]].
 디자인 원본의 예시 세계는 화면에 나오지 않는다 — 단독으로 돌리면 데이터가 없는 빈 세계다.
 
 출하는 Terra 모듈 `lab.stellaxia.node-gui`의 웹 앱으로 한다. 노드에서 셸 Scene의 `terra.web/frame` 안에 뜨면 이 노드의

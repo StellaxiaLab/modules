@@ -15,7 +15,7 @@ language: "ko-KR"
 
 게임 GUI 형태의 Terra 노드 화면과 편집기들을 브라우저에서 바로 돌리는 웹 프로젝트다.
 디자인 캔버스에서 만든 화면(`design/*.dc.html`)을 그대로 옮겼고, 외부 UI 라이브러리 없이 순수 JavaScript(ES 모듈)로 동작한다.
-GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `43a4e3a`(service 판 — 예시 데이터를 뺀 판)와 같은 원본 · 같은 생성 규칙으로 만든 **module 변형**이다 —
+GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `a884226`(service 판 — 예시 데이터를 뺀 판)와 같은 원본 · 같은 생성 규칙으로 만든 **module 변형**이다 —
 시작 화면 · 노드 자원 설치 · 연결하기(도로) · 이벤트 · 자원 추가 · 수정 · 삭제 · 상태 화면 · 도로 편집기 · 창 크기를 따르는 화면이 들어 있다([[module-profile|모듈 프로필]]).
 Terra G0~G6이 연 길도 쓴다 — 실시간 이벤트(SSE) · 다른 노드(노드 주소 호출) · 사용자 문서(서버 저장) · 로컬 탐색 · 바탕화면에서 열기 · 파일 올리기 · 받기 · 장치 손 등록([[real-data-layer|실데이터 층]] §2.6~§2.9).
 

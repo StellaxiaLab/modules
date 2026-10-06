@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 재디자인 — 로그인</title>
+<script src="../support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{--paper:#ede9e1;--muted:#9aa1ab;--dim:#6b7280;--line:rgba(255,255,255,.10);--line-2:rgba(255,255,255,.18);--ok:#3ecf8e;--sun:#ffd84d;
+  --mono:'JetBrains Mono',ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace}
+body{margin:0;font-family:'Noto Sans KR','Noto Sans CJK KR','Noto Sans',system-ui,sans-serif;background:#000;color:var(--paper)}
+*{box-sizing:border-box}
+.board{position:relative;width:1447px;height:945px;overflow:hidden;background:#000;display:grid;grid-template-columns:1fr 520px}
+.left{position:relative;overflow:hidden}
+.left .map{position:absolute;inset:-40px;background:url(./assets/map-sample.jpg) 40% 50%/cover no-repeat;filter:saturate(.75) brightness(.55)}
+.left .fade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.15) 0,rgba(0,0,0,.35) 60%,#000 100%),linear-gradient(0deg,rgba(0,0,0,.7) 0,rgba(0,0,0,0) 40%)}
+.right{display:flex;flex-direction:column;justify-content:center;padding:0 72px;gap:28px}
+.cap{font-size:10.5px;font-weight:600;letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-size:12px;color:var(--muted);font-weight:500}
+.inp{height:46px;border-radius:10px;border:1px solid var(--line-2);background:#0e1013;display:flex;align-items:center;padding:0 14px;gap:10px;font-size:14px}
+.inp.focus{border-color:var(--paper);box-shadow:0 0 0 4px rgba(237,233,225,.12)}
+.btn{height:48px;border-radius:10px;background:var(--paper);color:#0b0b0b;font-weight:700;font-size:14.5px;display:flex;align-items:center;justify-content:center;letter-spacing:.02em}
+.sw{width:36px;height:20px;border-radius:10px;background:var(--paper);position:relative;flex:none}
+.sw::after{content:'';position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#000}
+.mono{font-family:var(--mono)}
+</style>
+</helmet>
+<div class="board">
+  <div class="left">
+    <div class="map"></div><div class="fade"></div>
+    <div style="position:absolute;left:56px;top:52px;display:flex;align-items:center;gap:14px">
+      <img src="../assets/logo/terra-vector-white.svg" alt="" style="width:34px;height:34px">
+      <span style="font-size:15px;font-weight:600;letter-spacing:.5em">TERRA</span>
+    </div>
+    <div style="position:absolute;left:56px;bottom:56px;display:flex;flex-direction:column;gap:10px;max-width:520px">
+      <span class="cap">Terra 노드 GUI</span>
+      <div style="font-size:34px;font-weight:700;line-height:1.25;letter-spacing:-.01em">클러스터를<br>섬처럼 다룹니다.</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:6px">로그인하면 이 노드의 맵이 열립니다 — 로그인 전에는 클러스터 정보를 보이지 않습니다.</div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:18px">
+      <div style="width:92px;height:92px;border-radius:22px;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#1a1c20,#000)">
+        <img src="../assets/logo/terra-main-white.svg" alt="Terra" style="width:70px;height:70px">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:30px;font-weight:600;letter-spacing:.42em">TERRA</span>
+        <span style="font-size:13.5px;color:var(--muted)">노드에 로그인 — 권한 안에서 맵이 열립니다</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="field"><label>사용자 이름</label><div class="inp focus"><span style="color:var(--dim)">👤</span><span class="mono">admin</span><span style="width:1px;height:18px;background:var(--paper)"></span></div></div>
+      <div class="field"><label>비밀번호</label><div class="inp"><span style="color:var(--dim)">🔒</span><span style="letter-spacing:.3em;color:var(--muted)">••••••••</span><span style="margin-left:auto;font-size:12px;color:var(--muted)">보기</span></div></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:2px">
+        <span class="sw"></span>
+        <div style="display:flex;flex-direction:column"><span style="font-size:13px;font-weight:600">자동 로그인</span><span style="font-size:11.5px;color:var(--dim)">이 기기에서 다음부터 바로 들어갑니다</span></div>
+      </div>
+    </div>
+
+    <div class="btn">로그인</div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:18px;font-size:12px;color:var(--muted)">
+      <span style="display:flex;align-items:center;gap:8px"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(62,207,142,.2)"></span>Gateway <span class="mono" style="color:var(--paper)">127.0.0.1:8787</span></span>
+      <span>연결됨</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1447,"height":945}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

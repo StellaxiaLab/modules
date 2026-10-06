@@ -35,7 +35,7 @@ export default class Component extends DCLogic {
     };
     this.state = {
       role: 'leaf', perm: true, demo: 'ok', tab: 'node', group: 0, q: '', filter: 'all', cur, draft: {}, pending: {}, errors: {}, open: {}, dlg: null, toasts: [], saving: false,
-      help: this.readHelp(),
+      help: this.readHelp(), winOp: this.readWinOp(),
       prefs: { start: '노드 화면', refresh: '10초' },
       grants: [{ id: 'grt_31', agent: 'claude-agent', level: 'read', nodes: 'edge-01', exp: '21:40' }]
     };
@@ -44,8 +44,10 @@ export default class Component extends DCLogic {
   // 이너 도움말 — "…입니다" 같은 회색 설명 글. 끄면 숨기고 ⓘ(마우스를 올리면 전체)로만 남긴다.
   // GUI 선호라서 현재 브라우저에만 저장한다(localStorage). 다른 보드는 storage 이벤트로 바로 따라온다
   readHelp() { try { const v = window.localStorage.getItem('terra.gui.innerHelp'); return v === '1'; } catch (e) { return false; } }
+  readWinOp() { try { const v = parseInt(window.localStorage.getItem('terra.gui.winOpacity'), 10); return v >= 30 && v <= 100 ? v : 64; } catch (e) { return 64; } }
+  writeWinOp(v) { v = Math.max(30, Math.min(100, Math.round(v))); try { window.localStorage.setItem('terra.gui.winOpacity', String(v)); } catch (e) { /* 저장 못 해도 이 화면에서는 바뀐다 */ } this.setState({ winOp: v }); }
   writeHelp(on) { try { window.localStorage.setItem('terra.gui.innerHelp', on ? '1' : '0'); } catch (e) { /* 저장 못 해도 이 화면에서는 바뀐다 */ } this.setState({ help: on }); }
-  componentDidMount() { this._onStore = (e) => { if (e.key === 'terra.gui.innerHelp') this.setState({ help: e.newValue === '1' }); }; try { window.addEventListener('storage', this._onStore); } catch (e) { /* 무시 */ } }
+  componentDidMount() { this._onStore = (e) => { if (e.key === 'terra.gui.innerHelp') this.setState({ help: e.newValue === '1' }); if (e.key === 'terra.gui.winOpacity') this.setState({ winOp: this.readWinOp() }); }; try { window.addEventListener('storage', this._onStore); } catch (e) { /* 무시 */ } }
 
   // Daemon 재시작 (terra.daemon.restart.post): 첫 누름 = 확인 준비(5초), 둘째 = 실행. 예시는 바로 끝난 것으로. 서비스가 doRestart를 바꿔 끼운다
   restartDaemon() {
@@ -54,8 +56,8 @@ export default class Component extends DCLogic {
     this.setState({ restartArm: false, restarting: true });
     this.doRestart().then((r) => {
       this.setState({ restarting: false });
-      if (r && r.ok === false) { this.toast('■', '#d33d52', '재시작하지 못했습니다', r.msg || ''); return; }
-      this.setState({ pending: {} }); this.toast('●', '#1f7a4d', 'Daemon을 다시 시작했습니다', '실행 중인 값을 다시 읽었습니다 (config.get)');
+      if (r && r.ok === false) { this.toast('■', '#ff6b81', '재시작하지 못했습니다', r.msg || ''); return; }
+      this.setState({ pending: {} }); this.toast('●', '#4ade80', 'Daemon을 다시 시작했습니다', '실행 중인 값을 다시 읽었습니다 (config.get)');
     });
   }
   async doRestart() { await new Promise((r) => setTimeout(r, 900)); return { ok: true }; }
@@ -92,7 +94,7 @@ export default class Component extends DCLogic {
   order(keys) { return keys.filter((k) => !/\.enabled$/.test(k)).concat(keys.filter((k) => /\.enabled$/.test(k))); }
   save(force) {
     const S = this.state, keys = Object.keys(S.draft), E = this.check();
-    if (Object.keys(E).length) { this.setState({ errors: E }); this.toast('■', '#d33d52', '저장하지 않았습니다 — 초안 검사 ' + Object.keys(E).length + '건', '키 옆의 빨간 문장을 고치세요. 최종 판정은 데몬이 합니다(PATCH 400).'); return; }
+    if (Object.keys(E).length) { this.setState({ errors: E }); this.toast('■', '#ff5d5d', '저장하지 않았습니다 — 초안 검사 ' + Object.keys(E).length + '건', '키 옆의 빨간 문장을 고치세요. 최종 판정은 데몬이 합니다(PATCH 400).'); return; }
     const danger = keys.filter((k) => this.DANGER[k] && (this.DANGER[k][0] === null || this.DANGER[k][0] === S.draft[k]));
     if (danger.length && !force) {
       this.setState({ dlg: { title: '저장 시 현재 화면의 접속 경로가 끊길 수 있습니다', op: 'terra.daemon.config.patch · save: true', rows: danger.map((k) => [k, String(S.draft[k])]), warn: danger.map((k) => this.DANGER[k][1]).join(' '), okLabel: '그래도 저장', ok: () => this.save(true) } });
@@ -104,13 +106,13 @@ export default class Component extends DCLogic {
       const cur = Object.assign({}, this.state.cur), pending = Object.assign({}, this.state.pending), now = [];
       ord.forEach((k) => { if (this.KEY[k].apply === '즉시') now.push(k); else pending[k] = { from: cur[k], to: this.state.draft[k] }; cur[k] = this.state.draft[k]; });
       this.setState({ saving: false, cur, pending, draft: {} });
-      this.toast('●', '#1f7a4d', '저장됨 — PATCH ' + ord.length + '번 (save: true)', (now.length ? '즉시 반영: ' + now.join(', ') + '. ' : '') + (ord.length - now.length ? '재시작 대기 ' + (ord.length - now.length) + '키' : ''));
+      this.toast('●', '#3ecf8e', '저장됨 — PATCH ' + ord.length + '번 (save: true)', (now.length ? '즉시 반영: ' + now.join(', ') + '. ' : '') + (ord.length - now.length ? '재시작 대기 ' + (ord.length - now.length) + '키' : ''));
     });
   }
-  tag(t, tone, tip) { const T = { ok: ['#e3f4ea', '#1f7a4d'], warn: ['#fbf0cc', '#8a5a00'], bad: ['#fde1e5', '#b4283c'], info: ['#dde8fd', '#1d4ed8'], off: ['#eef1f5', '#5b6472'], vio: ['#efe7fd', '#6d28d9'] }[tone]; return { t, bg: T[0], fg: T[1], tip: tip || '' }; }
-  btn(label, run, o) { o = o || {}; const d = o.danger; return { label, run: o.dis ? () => {} : run, tip: o.tip || '', dis: o.dis ? 'true' : 'false', cur: o.dis ? 'not-allowed' : 'pointer', op: o.dis ? 0.5 : 1, line: d ? '#f3b8c1' : o.primary ? '#2563eb' : '#d8dde5', bg: o.primary ? '#2563eb' : '#ffffff', fg: d ? '#b4283c' : o.primary ? '#ffffff' : '#16191f' }; }
-  card(o) { const H = this.state.help; return Object.assign({ subDisp: H ? 'inline' : 'none', showText: !!o.text && (H || !!o.big), span: 12, headDisp: o.title ? 'flex' : 'none', title: '', sub: '', acts: [], rows: [], hasText: !!o.text, text: '', textPad: '12px 14px', textAlign: 'left', iconDisp: 'none', icon: '', iconBg: '#eef1f5', bigDisp: 'none', big: '', hasCode: !!(o.code && o.code.length), code: [] }, o); }
-  row(t, d, v, o) { o = o || {}; const hide = o.help && !this.state.help; return { dDisp: d && !hide ? 'block' : 'none', t, d: d || '', v: v == null ? '' : String(v), vc: o.vc || '#16191f', vcls: o.mono ? 'mono' : '', cls: o.tmono ? 'mono' : '', badges: o.badges || [], btns: o.btns || [], op: o.op == null ? 1 : o.op }; }
+  tag(t, tone, tip) { const T = { ok: ['rgba(62,207,142,0.10)', '#3ecf8e'], warn: ['rgba(245,184,61,0.10)', '#f5b83d'], bad: ['rgba(255,93,93,0.10)', '#ff5d5d'], info: ['rgba(122,167,255,0.10)', '#7aa7ff'], off: ['rgba(255,255,255,0.04)', '#9aa1ab'], vio: ['rgba(180,140,255,0.10)', '#b48cff'] }[tone]; return { t, bg: T[0], fg: T[1], tip: tip || '' }; }
+  btn(label, run, o) { o = o || {}; const d = o.danger; return { label, run: o.dis ? () => {} : run, tip: o.tip || '', dis: o.dis ? 'true' : 'false', cur: o.dis ? 'not-allowed' : 'pointer', op: o.dis ? 0.5 : 1, line: d ? 'rgba(255,93,93,0.45)' : o.primary ? '#ede9e1' : 'rgba(255,255,255,0.18)', bg: o.primary ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: d ? '#ff5d5d' : o.primary ? '#111111' : '#ede9e1', cls: o.primary ? 'pri' : 'ghost' }; }
+  card(o) { const H = this.state.help; return Object.assign({ subDisp: H ? 'inline' : 'none', showText: !!o.text && (H || !!o.big), span: 12, headDisp: o.title ? 'flex' : 'none', title: '', sub: '', acts: [], rows: [], hasText: !!o.text, text: '', textPad: '12px 14px', textAlign: 'left', iconDisp: 'none', icon: '', iconBg: '#9aa1ab', bigDisp: 'none', big: '', hasCode: !!(o.code && o.code.length), code: [] }, o); }
+  row(t, d, v, o) { o = o || {}; const hide = o.help && !this.state.help; return { dDisp: d && !hide ? 'block' : 'none', t, d: d || '', v: v == null ? '' : String(v), vc: o.vc || '#ede9e1', vcls: o.mono ? 'mono' : '', cls: o.tmono ? 'mono' : '', hasSl: !!o.sl, slV: o.sl ? o.sl.v : 0, slSet: o.sl ? o.sl.set : null, slPrev: o.sl ? 'rgba(13,15,19,' + (o.sl.v / 100) + ')' : '', badges: o.badges || [], btns: o.btns || [], op: o.op == null ? 1 : o.op }; }
   stateCard(icon, bg, big, text) { return this.card({ hasText: true, subDisp: 'inline', showText: true, text, big, bigDisp: 'block', icon, iconBg: bg, iconDisp: 'flex', textPad: '40px 24px', textAlign: 'center' }); }
   // 키 한 줄 — 상태 9가지(§8.2)
   keyRow(k) {
@@ -126,28 +128,28 @@ export default class Component extends DCLogic {
     if (drafted) badges.push(this.tag('수정됨 · 미저장', 'info'));
     if (pend) badges.push(this.tag('재시작 대기', 'warn'));
     if (this.DANGER[k]) badges.push(this.tag('접속 경로', 'bad', '현재 GUI가 돌아올 길과 관계된 키'));
-    const r = { isKey: true, isFold: false, isHead: false, key: k, label: this.LABEL[k] || K.mean.split(' — ')[0], badges, labelFg: '#16191f',
-      edge: err ? '#d33d52' : drafted ? '#2563eb' : pend ? '#e0a53a' : 'transparent', bg: err ? '#fff7f8' : drafted ? '#f7faff' : 'transparent',
+    const r = { isKey: true, isFold: false, isHead: false, key: k, label: this.LABEL[k] || K.mean.split(' — ')[0], badges, labelFg: '#ede9e1',
+      edge: err ? '#ff5d5d' : drafted ? '#7aa7ff' : pend ? '#f5b83d' : 'transparent', bg: err ? 'rgba(255,93,93,0.06)' : drafted ? 'rgba(122,167,255,0.06)' : 'transparent',
       noteFull: [this.LABEL[k] ? K.mean.split(' — ')[0] : '', K.mean.indexOf(' — ') > 0 ? K.mean.split(' — ').slice(1).join(' — ') : '', K.rule && K.rule !== '—' ? K.rule.replace(/`/g, '') : ''].filter(Boolean).join(' · '),
-      note: err ? '⚠ ' + err : [this.LABEL[k] ? K.mean.split(' — ')[0] : '', K.mean.indexOf(' — ') > 0 ? K.mean.split(' — ').slice(1).join(' — ') : '', K.rule && K.rule !== '—' ? K.rule.replace(/`/g, '') : ''].filter(Boolean).join(' · '), noteFg: err ? '#b4283c' : '#8b95a6',
-      isToggle: false, isSelect: false, isInput: false, isMulti: false, isRO: false, val: '', line: err ? '#d33d52' : drafted ? '#2563eb' : '#d8dde5',
-      sub: '', subDisp: 'none', subFg: '#8b95a6', actDisp: 'none', actLabel: '', act: () => {}, roIcon: '', roTip: '' };
+      note: err ? '⚠ ' + err : [this.LABEL[k] ? K.mean.split(' — ')[0] : '', K.mean.indexOf(' — ') > 0 ? K.mean.split(' — ').slice(1).join(' — ') : '', K.rule && K.rule !== '—' ? K.rule.replace(/`/g, '') : ''].filter(Boolean).join(' · '), noteFg: err ? '#ff7a7a' : '#9aa1ab',
+      isToggle: false, isSelect: false, isInput: false, isMulti: false, isRO: false, val: '', line: err ? '#ff5d5d' : drafted ? '#7aa7ff' : 'rgba(255,255,255,0.18)',
+      sub: '', subDisp: 'none', subFg: '#9aa1ab', actDisp: 'none', actLabel: '', act: () => {}, roIcon: '', roTip: '' };
     const set = (nv) => { const d = Object.assign({}, this.state.draft); if (String(nv) === String(this.state.cur[k])) delete d[k]; else d[k] = nv; const e = Object.assign({}, this.state.errors); delete e[k]; this.setState({ draft: d, errors: e }); };
     const ro = (icon, tip) => { r.isRO = true; r.val = v === '' ? '(비어 있음)' : String(v); r.roIcon = icon; r.roTip = tip; };
-    if (K.owner === '비밀') { ro('•', 'API로 못 바꾼다 — 값은 *** 로만 온다'); r.val = '***'; r.sub = '값을 숨김 · 편집 없음'; r.subDisp = 'inline'; }
-    else if (K.owner === '설치기') { ro('⛭', '설치가 놓은 값'); r.sub = '재설치 · 복구로 바꾼다'; r.subDisp = 'inline'; }
-    else if (K.owner === '파생') { ro('⇣', '누가 정하나'); r.sub = /^wireguard\.|^mesh_vpn\./.test(k) ? 'Master 네트워크 계획이 정한다' : /node_id|roles/.test(k) ? '등록 · 설치 구성요소가 정한다' : '다른 키에서 파생된다'; r.subDisp = 'inline'; }
-    else if (locked) { ro('🔒', 'node.config 필요'); r.sub = 'node.config★ 권한이 없어 잠김 — 관리자가 권한 목록에 넣어야 열린다'; r.subDisp = 'inline'; r.subFg = '#a65f00'; }
-    else if (endpointBound) { ro('⚓', '생성 엔드포인트 표와 묶여 있다'); r.sub = '운영자 키지만 읽기 전용 권장 — 바꾸면 런처가 못 찾는다'; r.subDisp = 'inline'; r.actDisp = 'inline'; r.actLabel = '그래도 편집'; r.act = () => set(v); }
-    else if (K.ctrl === '토글') { r.isToggle = true; r.onA = v ? 'true' : 'false'; r.onText = v ? '켬' : '끔'; r.track = v ? '#2563eb' : '#c3cad5'; r.knob = v ? '18px' : '2px'; r.flip = () => set(!v); }
+    if (K.owner === '비밀') { ro('shield', 'API로 못 바꾼다 — 값은 *** 로만 온다'); r.val = '***'; r.sub = '값을 숨김 · 편집 없음'; r.subDisp = 'inline'; }
+    else if (K.owner === '설치기') { ro('box', '설치가 놓은 값'); r.sub = '재설치 · 복구로 바꾼다'; r.subDisp = 'inline'; }
+    else if (K.owner === '파생') { ro('down', '누가 정하나'); r.sub = /^wireguard\.|^mesh_vpn\./.test(k) ? 'Master 네트워크 계획이 정한다' : /node_id|roles/.test(k) ? '등록 · 설치 구성요소가 정한다' : '다른 키에서 파생된다'; r.subDisp = 'inline'; }
+    else if (locked) { ro('lock', 'node.config 필요'); r.sub = 'node.config★ 권한이 없어 잠김 — 관리자가 권한 목록에 넣어야 열린다'; r.subDisp = 'inline'; r.subFg = '#f5b83d'; }
+    else if (endpointBound) { ro('link', '생성 엔드포인트 표와 묶여 있다'); r.sub = '운영자 키지만 읽기 전용 권장 — 바꾸면 런처가 못 찾는다'; r.subDisp = 'inline'; r.actDisp = 'inline'; r.actLabel = '그래도 편집'; r.act = () => set(v); }
+    else if (K.ctrl === '토글') { r.isToggle = true; r.onA = v ? 'true' : 'false'; r.onText = v ? '켬' : '끔'; r.track = v ? '#ede9e1' : 'rgba(255,255,255,0.08)'; r.knobC = v ? '#111111' : '#9aa1ab'; r.knob = v ? '17px' : '1px'; r.flip = () => set(!v); }
     else if (K.ctrl === '선택') { r.isSelect = true; r.opts = K.opts.map((o) => ({ v: o, sel: String(v) === o ? 'selected' : null })); r.set = (e) => set(e.target.value); }
-    else if (K.ctrl === '다중 선택') { r.isMulti = true; const cur = String(v).split(',').map((x) => x.trim()).filter(Boolean); r.chips = K.opts.map((o) => { const on = cur.indexOf(o) >= 0; return { v: o, on: on ? 'true' : 'false', bg: on ? '#e8effc' : '#ffffff', line: on ? '#2563eb' : '#d8dde5', fg: on ? '#1d4ed8' : '#5b6472', pick: () => set((on ? cur.filter((x) => x !== o) : cur.concat([o])).join(', ')) }; }); }
+    else if (K.ctrl === '다중 선택') { r.isMulti = true; const cur = String(v).split(',').map((x) => x.trim()).filter(Boolean); r.chips = K.opts.map((o) => { const on = cur.indexOf(o) >= 0; return { v: o, on: on ? 'true' : 'false', bg: on ? 'rgba(237,233,225,0.12)' : 'rgba(255,255,255,0.02)', line: on ? '#ede9e1' : 'rgba(255,255,255,0.14)', fg: on ? '#ede9e1' : '#9aa1ab', pick: () => set((on ? cur.filter((x) => x !== o) : cur.concat([o])).join(', ')) }; }); }
     else { r.isInput = true; r.val = String(v); r.set = (e) => set(e.target.value); const n = K.type === '정수'; r.w = n ? '120px' : K.ctrl === '목록' ? '300px' : '240px'; r.align = n ? 'right' : 'left'; r.ph = K.ctrl === '목록' ? '쉼표로 나눔' : K.dflt === '—' ? '비어 있음' : ''; }
     // 이너 도움말이 꺼져 있으면: 설명 · 이유 문장을 숨기고 라벨 옆 ⓘ에 모은다 (오류 · 상태 문장은 남긴다)
     r.subHelp = r.subDisp === 'inline';
     if (dev && !drafted && !locked && K.owner === '운영자') { r.actDisp = 'inline'; r.actLabel = '설치값 복원 (' + this.DEV[k] + ')'; r.act = () => set(this.DEV[k]); }
-    if (pend && !err) { r.sub = '실행 중 ' + (pend.from === '' ? '(비어 있음)' : String(pend.from)) + ' → 파일 ' + String(pend.to); r.subDisp = 'inline'; r.subFg = '#8a5a00'; }
-    if (drafted && K.apply === '즉시' && !err) { r.sub = '저장하면 바로 반영'; r.subDisp = 'inline'; r.subFg = '#1f7a4d'; }
+    if (pend && !err) { r.sub = '실행 중 ' + (pend.from === '' ? '(비어 있음)' : String(pend.from)) + ' → 파일 ' + String(pend.to); r.subDisp = 'inline'; r.subFg = '#f5b83d'; }
+    if (drafted && K.apply === '즉시' && !err) { r.sub = '저장하면 바로 반영'; r.subDisp = 'inline'; r.subFg = '#3ecf8e'; }
     const H = S.help;
     if (!H && !err) { r.tip = [r.noteFull, r.subHelp && !pend && !(drafted && K.apply === '즉시') ? r.sub : ''].filter(Boolean).join(' — '); r.note = ''; }
     else r.tip = '';
@@ -186,53 +188,62 @@ export default class Component extends DCLogic {
   renderVals() {
     const S = this.state, leaf = S.role === 'leaf';
     const TABS = [
-      { id: 'general', icon: '🖥️', label: '일반', role: '로컬 기기', sub: 'GUI 환경설정 — 브라우저에만', tint: '#eef1f5', line: '#e0e5ec', avail: true },
-      { id: 'account', icon: '👤', label: '계정', role: '∀', sub: 'whoami · 로그아웃 · 위임 자격', tint: '#e7ebf0', line: '#d9dfe7', avail: true },
-      { id: 'node', icon: '⚙️', label: '로컬 노드', role: 'L', sub: 'Daemon 설정 135키 · 6분류', tint: '#dde8fd', line: '#c9dafb', avail: leaf },
-      { id: 'res', icon: '📦', label: '로컬 자원', role: 'L', sub: '공유 폴더 · SVI · I/O · 모듈 동의', tint: '#d9f2ea', line: '#bfe7da', avail: leaf },
-      { id: 'cluster', icon: '🌳', label: '클러스터', role: 'T', sub: '사용자 · 네트워크 · 배포 정책', tint: '#fdf2dc', line: '#f3d99b', avail: !leaf },
-      { id: 'server', icon: '🗄️', label: '서버', role: 'T', sub: 'Master 설정 — API 없음', tint: '#f1ebfe', line: '#dccffa', avail: !leaf }
+      { id: 'general', icon: 'gear', label: '일반', role: '로컬 기기', sub: 'GUI 환경설정 — 브라우저에만', avail: true },
+      { id: 'gui', icon: 'gear', label: 'GUI · 창', role: '로컬 기기', sub: '창 불투명도 · 유리 효과', avail: true },
+      { id: 'account', icon: 'user', label: '계정', role: '∀', sub: 'whoami · 로그아웃 · 위임 자격', avail: true },
+      { id: 'node', icon: 'cpu', label: '로컬 노드', role: 'L', sub: 'Daemon 설정 135키 · 6분류', avail: leaf },
+      { id: 'res', icon: 'box', label: '로컬 자원', role: 'L', sub: '공유 폴더 · SVI · I/O · 모듈 동의', avail: leaf },
+      { id: 'cluster', icon: 'tree', label: '클러스터', role: 'T', sub: '사용자 · 네트워크 · 배포 정책', avail: !leaf },
+      { id: 'server', icon: 'archive', label: '서버', role: 'T', sub: 'Master 설정 — API 없음', avail: !leaf }
     ];
     const cur = TABS.find((t) => t.id === S.tab) || TABS[0];
     const nDraft = Object.keys(S.draft).length, nPend = Object.keys(S.pending).length;
     const tabs = TABS.map((t) => { const on = t.id === cur.id;
-      return { icon: t.icon, label: t.label, role: t.role, sub: t.avail ? t.sub : (leaf ? 'tree GUI에서만 — terra.master.* 없음' : 'leaf GUI에서만 — terra.daemon.* 없음'), cur: on ? 'page' : 'false', bg: on ? '#e8effc' : 'transparent', fg: t.avail ? '#16191f' : '#8b95a6', subFg: t.avail ? '#5b6472' : '#a0a8b5',
-        tint: t.avail ? t.tint : '#f1f3f6', tintLine: t.avail ? t.line : '#e3e7ed', gray: t.avail ? 'none' : 'grayscale(1)',
-        roleFg: t.role === 'L' ? '#8a5a00' : t.role === 'T' ? '#1d4ed8' : '#5b6472', roleLine: t.role === 'L' ? '#e8c78f' : t.role === 'T' ? '#c9dafb' : '#d8dde5',
+      return { icon: t.icon, label: t.label, role: t.role, sub: t.avail ? t.sub : (leaf ? 'tree GUI에서만 — terra.master.* 없음' : 'leaf GUI에서만 — terra.daemon.* 없음'), cur: on ? 'page' : 'false', bg: on ? 'rgba(255,255,255,0.07)' : 'transparent', ring: on ? 'rgba(255,255,255,0.14)' : 'transparent', fg: t.avail ? '#ede9e1' : '#6b7280', subFg: t.avail ? '#9aa1ab' : '#6b7280',
+        tint: on ? 'rgba(240,166,58,0.12)' : 'rgba(255,255,255,0.04)', tintLine: on ? 'rgba(240,166,58,0.5)' : 'rgba(255,255,255,0.10)', ic: on ? '#f0a63a' : t.avail ? '#b4bac3' : '#6b7280', gray: t.avail ? 'none' : 'grayscale(1)',
+        roleFg: t.role === 'L' ? '#5aa8ff' : t.role === 'T' ? '#f0a63a' : '#9aa1ab', roleLine: t.role === 'L' ? 'rgba(90,168,255,0.5)' : t.role === 'T' ? 'rgba(240,166,58,0.5)' : 'rgba(255,255,255,0.18)',
         subDisp: S.help || !t.avail ? 'block' : 'none', dot: t.id === 'node' ? String(nDraft + nPend) : '', dotDisp: t.id === 'node' && nDraft + nPend ? 'inline-block' : 'none', pick: () => this.setState({ tab: t.id }) }; });
     let title = cur.label, sub = '', chips = [], cards = [], keyRows = [], showKeys = false, showGrp = false, bar = false;
     const demoBlock = () => {
-      if (S.demo === 'unreach') return this.stateCard('⚠', '#fde1e5', 'Gateway에 닿지 못했습니다', '현재 GUI를 서빙한 Gateway가 응답하지 않습니다(unreachable). 설정을 읽을 수도 쓸 수도 없습니다. 로컬 기기의 Terra가 실행 중인지 확인하세요.');
-      if (S.demo === 'anon' && cur.id !== 'general') return this.stateCard('🔑', '#dde8fd', '로그인이 필요합니다', '설정은 읽기에도 node.read가 필요합니다 — 로그인 전(anonymous)에는 값을 보여 줄 수 없습니다. "일반" 탭의 로컬 기기 선호만 바꿀 수 있습니다.');
-      if (S.demo === 'unenrolled' && (cur.id === 'node' || cur.id === 'res')) return this.stateCard('⛓', '#fbf0cc', '로컬 노드는 Master에 등록되지 않았습니다', '세션 상태 unavailable — Daemon 설정 자체를 읽지 못합니다. 등록은 GUI 버튼이 아니라 로컬 기기에서 terra daemon enroll 명령(또는 설치 마법사)으로 합니다.');
+      if (S.demo === 'unreach') return this.stateCard('warn', '#ff5d5d', 'Gateway에 닿지 못했습니다', '현재 GUI를 서빙한 Gateway가 응답하지 않습니다(unreachable). 설정을 읽을 수도 쓸 수도 없습니다. 로컬 기기의 Terra가 실행 중인지 확인하세요.');
+      if (S.demo === 'anon' && cur.id !== 'general') return this.stateCard('key', '#7aa7ff', '로그인이 필요합니다', '설정은 읽기에도 node.read가 필요합니다 — 로그인 전(anonymous)에는 값을 보여 줄 수 없습니다. "일반" 탭의 로컬 기기 선호만 바꿀 수 있습니다.');
+      if (S.demo === 'unenrolled' && (cur.id === 'node' || cur.id === 'res')) return this.stateCard('link', '#f5b83d', '로컬 노드는 Master에 등록되지 않았습니다', '세션 상태 unavailable — Daemon 설정 자체를 읽지 못합니다. 등록은 GUI 버튼이 아니라 로컬 기기에서 terra daemon enroll 명령(또는 설치 마법사)으로 합니다.');
       return null;
     };
     const blocked = demoBlock();
     if (blocked) cards = [blocked];
-    else if (!cur.avail) cards = [this.stateCard('🔒', '#eef1f5', cur.label + ' 탭은 로컬 노드에서 서지 않습니다', leaf ? '현재 GUI는 leaf(edge-01)의 Gateway가 서빙합니다. 카탈로그에 terra.master.*가 없어 클러스터 정책과 tree 서버 안내를 그릴 수 없습니다 — tree 노드의 GUI에서 여세요. (탭은 역할을 선언하지 않고 catalog로 관측해 연다)' : '현재 GUI는 tree(tree-home)의 Gateway가 서빙합니다. 카탈로그에 terra.daemon.config.*가 없습니다 — tree에서 leaf의 Daemon 설정을 바꾸는 API는 없습니다. 해당 노드의 GUI에서 여세요.')];
+    else if (!cur.avail) cards = [this.stateCard('lock', '#9aa1ab', cur.label + ' 탭은 로컬 노드에서 서지 않습니다', leaf ? '현재 GUI는 leaf(edge-01)의 Gateway가 서빙합니다. 카탈로그에 terra.master.*가 없어 클러스터 정책과 tree 서버 안내를 그릴 수 없습니다 — tree 노드의 GUI에서 여세요. (탭은 역할을 선언하지 않고 catalog로 관측해 연다)' : '현재 GUI는 tree(tree-home)의 Gateway가 서빙합니다. 카탈로그에 terra.daemon.config.*가 없습니다 — tree에서 leaf의 Daemon 설정을 바꾸는 API는 없습니다. 해당 노드의 GUI에서 여세요.')];
     else if (cur.id === 'general') {
       sub = 'Terra 설정이 아니라 현재 브라우저 · 현재 셸의 설정 — 노드가 아니라 기기마다 따로';
       const P = S.prefs, cyc = (k, list) => () => { const i = list.indexOf(P[k]); this.setState({ prefs: Object.assign({}, P, { [k]: list[(i + 1) % list.length] }) }); };
       const HO = S.help;
       cards = [this.card({ title: 'GUI 환경설정', sub: 'Scene persistent Store · API 없음', rows: [
-        this.row('이너 도움말', '회색 설명 글을 보여 준다. 끄면 ⓘ에 마우스를 올려야 보인다 — 오류 · 상태 · 경고는 늘 보인다', HO ? '켬' : '끔', { badges: [this.tag('모든 화면', 'info', '노드 화면 · 네트워크 · 설정에 바로 적용')], btns: [this.btn(HO ? '끄기' : '켜기', () => { this.writeHelp(!HO); this.toast('●', '#1f7a4d', '이너 도움말 ' + (!HO ? '켬' : '끔'), '현재 브라우저의 모든 Terra 화면에 적용됩니다'); }, { primary: !HO })] }),
+        this.row('이너 도움말', '회색 설명 글을 보여 준다. 끄면 ⓘ에 마우스를 올려야 보인다 — 오류 · 상태 · 경고는 늘 보인다', HO ? '켬' : '끔', { badges: [this.tag('모든 화면', 'info', '노드 화면 · 네트워크 · 설정에 바로 적용')], btns: [this.btn(HO ? '끄기' : '켜기', () => { this.writeHelp(!HO); this.toast('●', '#3ecf8e', '이너 도움말 ' + (!HO ? '켬' : '끔'), '현재 브라우저의 모든 Terra 화면에 적용됩니다'); }, { primary: !HO })] }),
         this.row('시작 화면', 'GUI를 열면 처음 보이는 화면', P.start, { help: true, btns: [this.btn('바꾸기', cyc('start', ['노드 화면', '네트워크', '설정']))] }),
         this.row('자동 새로 고침 주기', '폴링 화면의 기본 주기 — tree 화면은 대부분 폴링이다', P.refresh, { help: true, btns: [this.btn('바꾸기', cyc('refresh', ['5초', '10초', '30초', '끔']))] }),
-        this.row('언어', '셸(호스트)이 정한다 — 없으면 브라우저 언어', '한국어 (셸)', { help: true, vc: '#8b95a6', badges: [this.tag('셸 지정', 'off')] }),
-        this.row('라이트 · 다크', 'OS의 prefers-color-scheme 하나 — 수동 전환이 없다', 'OS 따름', { help: true, vc: '#8b95a6', badges: [this.tag('OS 지정', 'off')] }),
-        this.row('연결 대상', '셸이 자기 노드의 Gateway를 연다', leaf ? '127.0.0.1:8787' : '127.0.0.1:8788', { help: true, mono: true, vc: '#8b95a6', badges: [this.tag('셸 지정', 'off')] })
+        this.row('언어', '셸(호스트)이 정한다 — 없으면 브라우저 언어', '한국어 (셸)', { help: true, vc: '#9aa1ab', badges: [this.tag('셸 지정', 'off')] }),
+        this.row('라이트 · 다크', 'OS의 prefers-color-scheme 하나 — 수동 전환이 없다', 'OS 따름', { help: true, vc: '#9aa1ab', badges: [this.tag('OS 지정', 'off')] }),
+        this.row('연결 대상', '셸이 자기 노드의 Gateway를 연다', leaf ? '127.0.0.1:8787' : '127.0.0.1:8788', { help: true, mono: true, vc: '#9aa1ab', badges: [this.tag('셸 지정', 'off')] })
+      ] })];
+    } else if (cur.id === 'gui') {
+      sub = 'Terra 설정이 아니라 현재 브라우저의 GUI 설정 — 노드 화면의 모든 창에 바로 적용된다';
+      const V = S.winOp, setV = (v) => this.writeWinOp(v);
+      cards = [this.card({ title: '창', sub: 'Scene persistent Store · API 없음', rows: [
+        this.row('창 불투명도', '숫자가 낮을수록 창 뒤의 맵이 더 비친다. 100%는 완전히 불투명 — 창 제목줄 왼쪽의 물방울 버튼으로 창마다 잠깐 끄고 켤 수도 있다 (그 창만 100%)', V + '%', { badges: [this.tag('모든 창', 'info', '일반 창 · 전체 화면 창 · 조타륜 앱 창')], sl: { v: V, set: (e) => setV(+e.target.value) }, btns: [this.btn('기본값 64%', () => setV(64))] }),
+        this.row('빠른 선택', '자주 쓰는 값', '', { help: true, btns: [30, 50, 64, 80, 100].map((n) => this.btn(n + '%', () => setV(n), { primary: V === n })) }),
+        this.row('전환', '불투명도를 켜고 끌 때 값이 한 번에 바뀌지 않고 약 0.5초 동안 일정한 속도로 바뀐다', '선형 0.5초', { help: true, vc: '#9aa1ab', badges: [this.tag('고정', 'off')] })
       ] })];
     } else if (cur.id === 'account') {
       sub = 'terra.gateway.agent.whoami.get · auth.credentials.* · agent.grants.*';
       const perms = ['node.read', 'node.control', 'process.execute', 'file.read', 'file.write', 'relay.use', 'module.publish', 'agent.use', 'agent.grant'].concat(S.perm ? ['node.config'] : []);
       cards = [
-        this.card({ span: 7, title: '세션 정보', sub: 'whoami', acts: [this.btn('로그아웃', () => this.toast('●', '#1f7a4d', '로그아웃 — auth.credentials.delete', '자격 핸들을 폐기했습니다 (시연)'), { danger: true })], rows: [
+        this.card({ span: 7, title: '세션 정보', sub: 'whoami', acts: [this.btn('로그아웃', () => this.toast('●', '#3ecf8e', '로그아웃 — auth.credentials.delete', '자격 핸들을 폐기했습니다 (시연)'), { danger: true })], rows: [
           this.row('admin', 'principal · 사용자 유형 master_admin', '만료 21:40', { tmono: true, mono: true, badges: [this.tag('master_admin', 'vio', '관리자는 권한이 아니라 사용자 유형')] }),
           this.row('권한', perms.join(' · '), perms.length + '개', { mono: true, badges: S.perm ? [this.tag('node.config★ 있음', 'ok')] : [this.tag('node.config★ 없음', 'warn', '관리자라도 Daemon 설정 쓰기는 권한 목록에 명시해야 열린다')] }),
           this.row('reach', '현재 세션이 닿는 노드', leaf ? 'edge-01 (로컬 노드)' : 'home 클러스터 8노드', { mono: true, help: true }),
-          this.row('비밀번호 변경', '자기 비밀번호를 바꾸는 operation이 없다 — 관리자 재설정만', '없음', { help: true, vc: '#8b95a6', badges: [this.tag('API 없음', 'off')] })
+          this.row('비밀번호 변경', '자기 비밀번호를 바꾸는 operation이 없다 — 관리자 재설정만', '없음', { help: true, vc: '#9aa1ab', badges: [this.tag('API 없음', 'off')] })
         ] }),
-        this.card({ span: 5, title: '에이전트 위임 자격', sub: 'agent.grants.*', acts: [this.btn('+ 발급', () => this.setState({ dlg: { title: '에이전트에게 자격을 발급할까요?', op: 'terra.gateway.agent.grants.post', rows: [['agent', 'claude-agent'], ['level', 'read'], ['nodes', leaf ? 'edge-01' : 'tree-home 외 7'], ['만료', '세션과 같이 21:40']], warn: '위임 자격은 위험 동작입니다. 발급한 동안 에이전트가 이 권한으로 노드를 부를 수 있습니다.', okLabel: '발급', ok: () => { this.setState({ grants: this.state.grants.concat([{ id: 'grt_' + Math.floor(Math.random() * 90 + 10), agent: 'claude-agent', level: 'read', nodes: leaf ? 'edge-01' : '8노드', exp: '21:40' }]) }); this.toast('●', '#1f7a4d', '발급됨', 'agent.grants.post'); } } }), { primary: true })],
+        this.card({ span: 5, title: '에이전트 위임 자격', sub: 'agent.grants.*', acts: [this.btn('+ 발급', () => this.setState({ dlg: { title: '에이전트에게 자격을 발급할까요?', op: 'terra.gateway.agent.grants.post', rows: [['agent', 'claude-agent'], ['level', 'read'], ['nodes', leaf ? 'edge-01' : 'tree-home 외 7'], ['만료', '세션과 같이 21:40']], warn: '위임 자격은 위험 동작입니다. 발급한 동안 에이전트가 이 권한으로 노드를 부를 수 있습니다.', okLabel: '발급', ok: () => { this.setState({ grants: this.state.grants.concat([{ id: 'grt_' + Math.floor(Math.random() * 90 + 10), agent: 'claude-agent', level: 'read', nodes: leaf ? 'edge-01' : '8노드', exp: '21:40' }]) }); this.toast('●', '#3ecf8e', '발급됨', 'agent.grants.post'); } } }), { primary: true })],
           rows: S.grants.map((g) => this.row(g.agent, g.id + ' · ' + g.nodes + ' · 만료 ' + g.exp, g.level, { mono: true, badges: [this.tag(g.level, 'info')], btns: [this.btn('회수', () => this.setState({ grants: this.state.grants.filter((x) => x.id !== g.id) }), { danger: true })] })) })
       ];
     } else if (cur.id === 'node') {
@@ -247,24 +258,24 @@ export default class Component extends DCLogic {
       sub = '설정 파일 밖 — 로컬 자원 · 정책 (leaf Gateway operation)';
       cards = [
         this.card({ span: 6, title: '공유 폴더', sub: 'config.patch storage.shared_dirs · 재시작 필요', acts: [this.btn('로컬 노드 › 저장소에서 편집', () => this.setState({ tab: 'node', group: 0, q: '' }))], rows: String(S.cur['storage.shared_dirs']).split(',').map((d) => this.row(d.trim(), 'io.terra.file이 여는 루트', '', { tmono: true })) }),
-        this.card({ span: 6, title: 'SVI 자원 선언', sub: 'svi.declarations.* · 재시작 없이 반영', acts: [this.btn('dry_run으로 확인', () => this.toast('◇', '#2563eb', 'apply — dry_run', '하나라도 거절되면 아무것도 적용하지 않습니다 · 거절 0')), this.btn('적용', () => this.toast('●', '#1f7a4d', '적용됨 — 재시작 없이', 'svi.declarations.apply.post'), { primary: true, dis: !S.perm, tip: S.perm ? '' : 'node.config★ 필요' })], rows: [
+        this.card({ span: 6, title: 'SVI 자원 선언', sub: 'svi.declarations.* · 재시작 없이 반영', acts: [this.btn('dry_run으로 확인', () => this.toast('◇', '#7aa7ff', 'apply — dry_run', '하나라도 거절되면 아무것도 적용하지 않습니다 · 거절 0')), this.btn('적용', () => this.toast('●', '#3ecf8e', '적용됨 — 재시작 없이', 'svi.declarations.apply.post'), { primary: true, dis: !S.perm, tip: S.perm ? '' : 'node.config★ 필요' })], rows: [
           this.row('camera.front', '장치 · /dev/video0', 'declared', { mono: true, badges: [this.tag('declared', 'ok')] }), this.row('sensor.hub', '장치 · /dev/ttyUSB0', 'declared', { mono: true, badges: [this.tag('declared', 'ok')] }), this.row('share.inbox', '폴더 · ~/TerraShare/inbox', 'undeclared', { mono: true, op: 0.6, badges: [this.tag('undeclared', 'off')] })] }),
         this.card({ span: 7, title: 'I/O 장치', sub: 'io.devices.* · io.terra.io-inventory 모듈 의존 — 없으면 503', rows: [
-          this.row('USB Camera (046d:0825)', '승인됨 · 별칭 camera.front', 'enabled', { badges: [this.tag('approved', 'ok')], btns: [this.btn('끄기', () => this.toast('●', '#1f7a4d', '장치 끔', 'io.devices.disable'))] }),
-          this.row('CP2102 USB-UART', '새 장치 — 결정 전', 'pending', { badges: [this.tag('new', 'info')], btns: [this.btn('승인', () => this.toast('●', '#1f7a4d', '승인됨', 'io.devices.approve')), this.btn('거부', () => this.toast('●', '#5b6472', '거부됨', 'io.devices.deny'), { danger: true })] })] }),
+          this.row('USB Camera (046d:0825)', '승인됨 · 별칭 camera.front', 'enabled', { badges: [this.tag('approved', 'ok')], btns: [this.btn('끄기', () => this.toast('●', '#3ecf8e', '장치 끔', 'io.devices.disable'))] }),
+          this.row('CP2102 USB-UART', '새 장치 — 결정 전', 'pending', { badges: [this.tag('new', 'info')], btns: [this.btn('승인', () => this.toast('●', '#3ecf8e', '승인됨', 'io.devices.approve')), this.btn('거부', () => this.toast('●', '#9aa1ab', '거부됨', 'io.devices.deny'), { danger: true })] })] }),
         this.card({ span: 5, title: '모듈 설치 동의', sub: 'modules.offers.* — Tree가 제안한 모듈', rows: [
-          this.row('io.terra.file', 'v1.4.2 · recommended', '동의함', { mono: true, tmono: true, badges: [this.tag('consented', 'ok')], btns: [this.btn('철회', () => this.toast('●', '#5b6472', '동의 철회 — 중지 · 제거', 'modules.offers.withdraw'), { danger: true })] }),
-          this.row('io.terra.screen', 'v0.9.0 · available', '대기', { tmono: true, badges: [this.tag('offered', 'info')], btns: [this.btn('동의', () => this.toast('●', '#1f7a4d', '동의 — 설치 · 기동', 'modules.offers.consent'))] })] }),
+          this.row('io.terra.file', 'v1.4.2 · recommended', '동의함', { mono: true, tmono: true, badges: [this.tag('consented', 'ok')], btns: [this.btn('철회', () => this.toast('●', '#9aa1ab', '동의 철회 — 중지 · 제거', 'modules.offers.withdraw'), { danger: true })] }),
+          this.row('io.terra.screen', 'v0.9.0 · available', '대기', { tmono: true, badges: [this.tag('offered', 'info')], btns: [this.btn('동의', () => this.toast('●', '#3ecf8e', '동의 — 설치 · 기동', 'modules.offers.consent'))] })] }),
         this.card({ span: 12, text: 'WireGuard 관리형 키 · 설정은 설정이라기보다 동작(위험 · 확인 필요)이라 네트워크 화면의 "로컬 WireGuard"에 둡니다. SVI의 목록형 선언과 런타임 상한(svi.runtime)은 스키마 밖 — 파일로만 편집합니다.' })
       ];
     } else if (cur.id === 'cluster') {
       sub = 'tree Gateway · Master API — 설정 "키"가 아니라 레코드를 만들고 고친다';
       cards = [
-        this.card({ span: 7, title: '사용자 · 권한', sub: 'admin.users.* · master_admin 유형만', acts: [this.btn('+ 사용자', () => this.toast('◇', '#2563eb', '사용자 만들기', 'email* · password* · display_name · user_type'), { primary: true })], rows: [
+        this.card({ span: 7, title: '사용자 · 권한', sub: 'admin.users.* · master_admin 유형만', acts: [this.btn('+ 사용자', () => this.toast('◇', '#7aa7ff', '사용자 만들기', 'email* · password* · display_name · user_type'), { primary: true })], rows: [
           this.row('admin', 'master_admin · 권한 10 (node.config★ 포함)', 'active', { tmono: true, badges: [this.tag('master_admin', 'vio')] }),
-          this.row('minji', 'cluster_user · 기본 권한 9', 'active', { tmono: true, badges: [this.tag('node.config★ 없음', 'warn')], btns: [this.btn('권한 수정', () => this.toast('●', '#1f7a4d', 'permissions[] 수정', 'Master는 값을 검사하지 않고 저장합니다 — module.manage처럼 사전에 없는 이름도 문자열로 넣어야 열린다'))] }),
+          this.row('minji', 'cluster_user · 기본 권한 9', 'active', { tmono: true, badges: [this.tag('node.config★ 없음', 'warn')], btns: [this.btn('권한 수정', () => this.toast('●', '#3ecf8e', 'permissions[] 수정', 'Master는 값을 검사하지 않고 저장합니다 — module.manage처럼 사전에 없는 이름도 문자열로 넣어야 열린다'))] }),
           this.row('ci-bot', 'cluster_user · 정지됨', 'suspended', { tmono: true, op: 0.6, badges: [this.tag('suspended', 'off')] })] }),
-        this.card({ span: 5, title: '클러스터', sub: 'admin.clusters.*', rows: [this.row('home', 'environment prod', 'active', { tmono: true, badges: [this.tag('active', 'ok')], btns: [this.btn('수정', () => this.toast('◇', '#2563eb', '클러스터 수정', 'name · status · environment'))] })] }),
+        this.card({ span: 5, title: '클러스터', sub: 'admin.clusters.*', rows: [this.row('home', 'environment prod', 'active', { tmono: true, badges: [this.tag('active', 'ok')], btns: [this.btn('수정', () => this.toast('◇', '#7aa7ff', '클러스터 수정', 'name · status · environment'))] })] }),
         this.card({ span: 12, title: '타 화면 소유 클러스터 정책', sub: '여기서는 목록과 길만', rows: [
           this.row('논리 네트워크 · IP 할당 · transport', 'network.* — 네트워크 화면 "사설망"', '2 네트워크', { btns: [this.btn('네트워크 화면 →', () => { if (typeof window !== 'undefined') window.location.href = 'network.html'; })] }),
           this.row('라우트 정책', 'route.policies.* — 네트워크 화면 "연결 진단"', '3 정책', { btns: [this.btn('네트워크 화면 →', () => { if (typeof window !== 'undefined') window.location.href = 'network.html'; })] }),
@@ -276,7 +287,7 @@ export default class Component extends DCLogic {
     } else if (cur.id === 'server') {
       sub = 'tree의 Master config.json — 46키 · 전부 재시작 필요';
       cards = [
-        this.stateCard('🗄️', '#f1ebfe', '이 설정은 tree 서버에서 CLI로 바꿉니다', 'Master 설정에는 HTTP API가 없어 이 화면은 값을 읽지도 못합니다. 경보 임계값 · TURN · 최초 계정 · tree 계층 · 모듈 호스트 · Gateway가 여기 있습니다. tree 기계에서 아래 명령을 쓰세요.'),
+        this.stateCard('archive', '#b48cff', '이 설정은 tree 서버에서 CLI로 바꿉니다', 'Master 설정에는 HTTP API가 없어 이 화면은 값을 읽지도 못합니다. 경보 임계값 · TURN · 최초 계정 · tree 계층 · 모듈 호스트 · Gateway가 여기 있습니다. tree 기계에서 아래 명령을 쓰세요.'),
         this.card({ span: 12, title: 'terra master config', sub: 'tree 기계에서', hasCode: true, code: [
           { c: 'terra master config show', d: '지금 값 (비밀은 숨김)' }, { c: 'terra master config schema', d: '키 · 타입 · 소유 — 운영자 28 · 설치기 10 · 파생 4 · 비밀 4' },
           { c: 'terra master config get monitor.alerts.cpu_percent', d: '키 하나' }, { c: 'terra master config set monitor.alerts.cpu_percent 85', d: '바꾸기' },
@@ -285,31 +296,31 @@ export default class Component extends DCLogic {
     }
     // 그룹 목록
     const grpItems = this.GROUPS.map((g, i) => { const ks = g.keys.map((x) => x[0]), on = i === S.group && !S.q && S.filter === 'all', ed = g.keys.filter((x) => x[2] === '운영자').length;
-      return { name: g.name, meta: ks.length + '키 · 편집 ' + ed, secDisp: on ? 'flex' : 'none', secs: g.secs.map((sc, si) => ({ t: sc.name, n: String(sc.keys.length), go: () => { try { const el = document.getElementById('sec-' + si); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* 무시 */ } } })), bg: on ? '#e8effc' : 'transparent', fg: '#16191f', fw: on ? 700 : 500,
+      return { name: g.name, meta: ks.length + '키 · 편집 ' + ed, secDisp: on ? 'flex' : 'none', secs: g.secs.map((sc, si) => ({ t: sc.name, n: String(sc.keys.length), go: () => { try { const el = document.getElementById('sec-' + si); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) { /* 무시 */ } } })), bg: on ? 'rgba(255,255,255,0.07)' : 'transparent', ring: on ? 'rgba(255,255,255,0.14)' : 'transparent', fg: '#ede9e1', fw: on ? 700 : 500,
         draftDisp: ks.some((k) => S.draft.hasOwnProperty(k)) ? 'inline-block' : 'none', pendDisp: ks.some((k) => S.pending[k]) ? 'inline-block' : 'none', pick: () => this.setState({ group: i, q: '', filter: 'all' }) }; });
     const nDev = Object.keys(this.DEV).filter((k) => String(S.cur[k]) !== String(this.DEV[k])).length;
     const E = S.saving ? {} : this.check(), nErr = Object.keys(S.draft).filter((k) => E[k]).length;
     const ord = this.order(Object.keys(S.draft));
     return {
-      hdr: { roleText: leaf ? 'edge-01 · leaf GUI' : 'tree-home · tree GUI', gwTip: leaf ? 'Gateway 127.0.0.1:8787' : 'Gateway 127.0.0.1:8788', roleBg: leaf ? '#e2ecfd' : '#fdf2dc', roleFg: leaf ? '#1d4ed8' : '#8a5a00', roleDot: leaf ? '#6f9cf0' : '#f0b442',
+      hdr: { roleText: leaf ? 'edge-01 · leaf GUI' : 'tree-home · tree GUI', gwTip: leaf ? 'Gateway 127.0.0.1:8787' : 'Gateway 127.0.0.1:8788', roleBg: leaf ? 'rgba(90,168,255,0.10)' : 'rgba(240,166,58,0.10)', roleFg: leaf ? '#5aa8ff' : '#f0a63a', roleDot: leaf ? '#5aa8ff' : '#f0a63a',
         who: S.demo === 'anon' ? '로그인 전' : 'admin · 만료 21:40',
-        roles: [['leaf', 'leaf에서 연 GUI'], ['tree', 'tree에서 연 GUI']].map(([k, label]) => ({ label, on: S.role === k ? 'true' : 'false', bg: S.role === k ? '#ffffff' : 'transparent', fg: S.role === k ? '#16191f' : '#5b6472', sh: S.role === k ? '0 1px 2px rgba(22,25,31,0.12)' : 'none', pick: () => this.setState({ role: k }) })),
-        permOn: S.perm ? 'true' : 'false', permLabel: S.perm ? 'node.config★ 있음' : 'node.config★ 없음', permBg: S.perm ? '#e3f4ea' : '#fbf0cc', permFg: S.perm ? '#1f7a4d' : '#8a5a00', permLine: S.perm ? '#c9e9d5' : '#e8c78f', togglePerm: () => this.setState({ perm: !S.perm }),
+        roles: [['leaf', 'leaf에서 연 GUI'], ['tree', 'tree에서 연 GUI']].map(([k, label]) => ({ label, on: S.role === k ? 'true' : 'false', bg: S.role === k ? '#ede9e1' : 'transparent', fg: S.role === k ? '#111111' : '#9aa1ab', sh: S.role === k ? '0 1px 2px rgba(0,0,0,0.35)' : 'none', pick: () => this.setState({ role: k }) })),
+        permOn: S.perm ? 'true' : 'false', permLabel: S.perm ? 'node.config★ 있음' : 'node.config★ 없음', permBg: S.perm ? 'rgba(62,207,142,0.10)' : 'rgba(245,184,61,0.10)', permFg: S.perm ? '#3ecf8e' : '#f5b83d', permLine: S.perm ? 'rgba(62,207,142,0.45)' : 'rgba(245,184,61,0.5)', togglePerm: () => this.setState({ perm: !S.perm }),
         demos: [['ok', '상태: 정상'], ['unreach', '상태: Gateway 미연결'], ['anon', '상태: 로그인 전'], ['unenrolled', '상태: 미등록 leaf']].map(([v, label]) => ({ v, label, sel: S.demo === v ? 'selected' : null })),
         setDemo: (e) => this.setState({ demo: e.target.value }) },
       helpBox: S.help ? 'block' : 'none',
       tabs,
       grp: { disp: showGrp && !blocked ? 'flex' : 'none', q: S.q, setQ: (e) => this.setState({ q: e.target.value }), items: grpItems,
-        filters: [['all', '모두', 135], ['edit', '편집 가능', 96], ['dev', '변경된 값', nDev + nPend + nDraft]].map(([k, label, n]) => ({ label, n, on: S.filter === k ? 'true' : 'false', bg: S.filter === k ? '#16191f' : '#ffffff', fg: S.filter === k ? '#ffffff' : '#3a4049', line: S.filter === k ? '#16191f' : '#d8dde5', pick: () => this.setState({ filter: k }) })) },
-      pend: { helpDisp: S.help ? 'inline' : 'none', show: !blocked && cur.id === 'node' && nPend > 0, n: nPend, keys: Object.keys(S.pending).join(' · '), done: () => this.restartDaemon(), label: S.restartArm ? '정말 재시작' : S.restarting ? '↻ 재시작 중…' : '↻ Daemon 재시작', bg: S.restartArm ? '#a65f00' : '#ffffff', fg: S.restartArm ? '#ffffff' : '#8a5a00', line: S.restartArm ? '#a65f00' : '#e8c78f' },
+        filters: [['all', '모두', 135], ['edit', '편집 가능', 96], ['dev', '변경된 값', nDev + nPend + nDraft]].map(([k, label, n]) => ({ label, n, on: S.filter === k ? 'true' : 'false', bg: S.filter === k ? '#ede9e1' : 'rgba(255,255,255,0.03)', fg: S.filter === k ? '#111111' : '#b4bac3', line: S.filter === k ? '#ede9e1' : 'rgba(255,255,255,0.12)', pick: () => this.setState({ filter: k }) })) },
+      pend: { helpDisp: S.help ? 'inline' : 'none', show: !blocked && cur.id === 'node' && nPend > 0, n: nPend, keys: Object.keys(S.pending).join(' · '), done: () => this.restartDaemon(), label: S.restartArm ? '정말 재시작' : S.restarting ? '↻ 재시작 중…' : '↻ Daemon 재시작', bg: S.restartArm ? '#f5b83d' : 'rgba(255,255,255,0.04)', fg: S.restartArm ? '#111111' : '#f5b83d', line: S.restartArm ? '#f5b83d' : 'rgba(245,184,61,0.45)' },
       page: { title, sub, chips, subDisp: S.help && sub ? 'inline' : 'none' },
       keys: { show: showKeys && !blocked, rows: keyRows, empty: showKeys && !keyRows.length },
       cards: blocked || !showKeys ? cards : [],
-      bar: { disp: bar && !blocked && (nDraft || S.saving) ? 'flex' : 'none', dot: nErr ? '#d33d52' : '#2563eb', fg: nErr ? '#b4283c' : '#16191f',
+      bar: { disp: bar && !blocked && (nDraft || S.saving) ? 'flex' : 'none', dot: nErr ? '#ff5d5d' : '#7aa7ff', fg: nErr ? '#ff7a7a' : '#ede9e1',
         title: S.saving ? 'PATCH 전송 중…' : nErr ? '수정 ' + nDraft + '키 · 초안 검사 ' + nErr + '건 실패' : '미저장 ' + nDraft + '키 · GUI 초안',
         order: '보내는 순서: ' + ord.join(' → ') + (ord.some((k) => /\.enabled$/.test(k)) ? '   (켜기 키는 마지막 — §2.6)' : ''),
-        discard: () => this.setState({ draft: {}, errors: {} }), save: () => { if (!S.saving) this.save(false); }, saveLabel: S.saving ? '저장 중' : '저장 (save: true)', g: S.saving ? '⟳' : '', spin: S.saving ? 'spin' : '',
-        dis: S.saving ? 'true' : 'false', cur: S.saving ? 'wait' : 'pointer', op: S.saving ? 0.7 : 1, btnBg: '#2563eb', btnLine: '#2563eb' },
+        discard: () => this.setState({ draft: {}, errors: {} }), save: () => { if (!S.saving) this.save(false); }, saveLabel: S.saving ? '저장 중' : '저장 (save: true)', g: S.saving ? '⟳' : '', gDisp: S.saving ? 'inline-flex' : 'none', spin: S.saving ? 'spin' : '',
+        dis: S.saving ? 'true' : 'false', cur: S.saving ? 'wait' : 'pointer', op: S.saving ? 0.7 : 1, btnBg: '#ede9e1', btnLine: '#ede9e1' },
       dlg: S.dlg ? { open: true, title: S.dlg.title, op: S.dlg.op, rows: S.dlg.rows.map(([k, v]) => ({ k, v })), warn: S.dlg.warn, okLabel: S.dlg.okLabel, cancel: () => this.setState({ dlg: null }), ok: () => { const f = S.dlg.ok; this.setState({ dlg: null }); f(); } }
         : { open: false, title: '', op: '', rows: [], warn: '', okLabel: '', cancel: () => {}, ok: () => {} },
       toasts: S.toasts

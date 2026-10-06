@@ -11,6 +11,7 @@ import re, json, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'design') + '/'
 OUT = ROOT + '/'
+UP = './'
 cfg = json.load(open(OUT + 'public/config.json', encoding='utf-8'))
 VARIANT = sys.argv[1] if len(sys.argv) > 1 else cfg.get('variant', 'module')
 if VARIANT != 'module':
@@ -40,19 +41,22 @@ links = {f'{a}.dc.html': f'{b}.html' for a, b, *_ in screens}
 BOOT_NAME = {'index': 'intro'}   # 부트 프로필이 받는 화면 이름 (페이지 이름과 다른 것만)
 
 # ── 모듈 변형에서 원본 글을 바꾸는 곳 — 원본이 바뀌어 못 찾으면 멈춘다(조용히 예시가 남지 않게) ──
-SIMUL_SWITCHES_NET = '''    <span style="font-size: 11.5px; color: #8b95a6;">시연</span>
-    <div role="group" aria-label="GUI를 연 노드 (시연)" style="display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: #eef1f5;">
+def simul_switches(pad):
+    return '''    <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.28em; color: #6b7280;">시연</span>
+    <div role="group" aria-label="GUI를 연 노드 (시연)" style="display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
       <sc-for list="{{hdr.roles}}" as="ro" hint-placeholder-count="2">
-        <button type="button" aria-pressed="{{ro.on}}" onClick="{{ro.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: {{ro.bg}}; color: {{ro.fg}}; box-shadow: {{ro.sh}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">{{ro.label}}</button>
+        <button type="button" aria-pressed="{{ro.on}}" onClick="{{ro.pick}}" style="height: 26px; padding: 0 PAD; border: 0; border-radius: 7px; background: {{ro.bg}}; color: {{ro.fg}}; box-shadow: {{ro.sh}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">{{ro.label}}</button>
       </sc-for>
     </div>
-'''
-DEMO_SELECT = '''    <select aria-label="상태 시연" onChange="{{hdr.setDemo}}" style="height: 30px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12px; color: #16191f;">
+'''.replace('PAD', pad)
+SIMUL_SWITCHES_NET = simul_switches('10px')    # 네트워크 판
+SIMUL_SWITCHES_SET = simul_switches('11px')    # 설정 판
+DEMO_SELECT = '''    <select aria-label="상태 시연" onChange="{{hdr.setDemo}}" style="height: 30px; padding: 0 8px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: #0e1013; font: inherit; font-size: 12px; color: #ede9e1;">
       <sc-for list="{{hdr.demos}}" as="dm" hint-placeholder-count="4">
         <option value="{{dm.v}}" selected="{{dm.sel}}">{{dm.label}}</option>
       </sc-for>
     </select>
-    <span style="font-size: 12px; font-weight: 600; color: #a65f00; border: 1px solid #a65f00; border-radius: 4px; padding: 1px 6px;">예시 데이터</span>
+    <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #f5b83d; border: 1px solid rgba(245,184,61,0.5); background: rgba(245,184,61,0.10);">예시 데이터</span>
 '''
 # 시작 화면의 입력 판 — 모듈에서는 웹이 비밀번호를 받지 않는다(웹 프로그램 감싸기 설계 §3.3.1).
 # 아이디 · 비밀번호 칸과 자동 로그인 스위치 자리에 Terra 로그인 단추와 지금 세션 줄을 둔다 → src/boot/module.js prep('intro')
@@ -60,23 +64,23 @@ INTRO_FORM_START = '<sc-if value="{{v.form}}" hint-placeholder-val="{{true}}">'
 INTRO_FORM_END = '\n      </sc-if>\n\n      <!-- 자동 로그인 중 · 로그인됨 -->'
 INTRO_FORM_MODULE = '''<sc-if value="{{v.form}}" hint-placeholder-val="{{true}}">
         <!-- 모듈: 비밀번호는 Terra가 받는다. 이 판은 Terra 로그인 카드를 부르고(terra.emit('login')) 세션이 생기면 내려간다 -->
-        <div data-in-terra="1" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid #d8dde5; border-radius: 12px; background: #ffffff;">
-          <span style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: #16191f;"><span style="width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: {{v.whoDot}};"></span>{{v.whoTitle}}</span>
-          <span style="font-size: 12px; color: #5b6472; line-height: 1.5;">{{v.whoSub}}</span>
+        <div data-in-terra="1" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; background: #0e1013;">
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: #ede9e1;"><span style="width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: {{v.whoDot}};"></span>{{v.whoTitle}}</span>
+          <span style="font-size: 12px; color: #9aa1ab; line-height: 1.5;">{{v.whoSub}}</span>
         </div>
 
         <span data-in-msg="1" style="min-height: 18px; font-size: 12px; font-weight: 600; color: {{v.msgC}};">{{v.msg}}</span>
 
-        <button type="button" data-in-go="1" onClick="{{v.submit}}" class="in-btn" style="height: 48px; border: 0; border-radius: 12px; background: #16191f; color: #ffffff; font: inherit; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
-          <sc-if value="{{v.busy}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); border-top-color: #ffffff; animation: in-spin 700ms linear infinite;"></span></sc-if>
+        <button type="button" data-in-go="1" onClick="{{v.submit}}" class="in-btn" style="height: 48px; border: 0; border-radius: 10px; background: #ede9e1; color: #111111; font: inherit; font-size: 14.5px; font-weight: 700; letter-spacing: 0.02em; box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+          <sc-if value="{{v.busy}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.15); border-top-color: #111111; animation: in-spin 700ms linear infinite;"></span></sc-if>
           {{v.goLabel}}
         </button>
-        <span style="font-size: 11px; color: #8b95a6; text-align: center;">{{v.goNote}}</span>'''
+        <span style="font-size: 11px; color: #9aa1ab; text-align: center;">{{v.goNote}}</span>'''
 MODULE_TPL = {
     'node': [
-        ('<span style="color: #1f7a4d; font-size: 10px;">●</span>\n        <span style="font-weight: 700;">admin</span>\n        <span style="color: #5b6472; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; min-width: 0;">만료 21:40 · 권한: 모듈 관리 · 노드 조회</span>',
-         '<span style="color: {{who.dotC}}; font-size: 10px;">●</span>\n        <span style="font-weight: 700;">{{who.name}}</span>\n        <span title="{{who.sub}}" style="color: #5b6472; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; min-width: 0;">{{who.sub}}</span>'),
-        ('\n        <span style="font-size: 11px; font-weight: 700; color: #a65f00; border: 1px solid #a65f00; border-radius: 4px; padding: 0 5px; line-height: 16px;">예시 데이터</span>', ''),
+        ('<span class="live-dot" style="width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: #3ecf8e;"></span>\n        <span style="font-weight: 700; font-family: \'JetBrains Mono\',ui-monospace,\'DejaVu Sans Mono\',Consolas,Menlo,monospace;">admin</span>\n        <span style="color: #9aa1ab; font-size: 12px; overflow: hidden; text-overflow: ellipsis; min-width: 0;">만료 <span style="font-family: \'JetBrains Mono\',ui-monospace,\'DejaVu Sans Mono\',Consolas,Menlo,monospace;">21:40</span> · 권한: 모듈 관리 · 노드 조회</span>',
+         '<span class="live-dot" style="width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: {{who.dotC}};"></span>\n        <span style="font-weight: 700; font-family: \'JetBrains Mono\',ui-monospace,\'DejaVu Sans Mono\',Consolas,Menlo,monospace;">{{who.name}}</span>\n        <span title="{{who.sub}}" style="color: #9aa1ab; font-size: 12px; overflow: hidden; text-overflow: ellipsis; min-width: 0;">{{who.sub}}</span>'),
+        ('\n        <span style="flex-shrink: 0; height: 20px; padding: 0 8px; border-radius: 10px; border: 1px solid rgba(245,184,61,0.5); background: rgba(245,184,61,0.10); color: #f5b83d; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center;">예시 데이터</span>', ''),
         ('{{leafResCount}}개 · 예시', '{{leafResCount}}개'),
         # 전체 화면 보드: src 대신 data-board — Terra 안에서 src 탐색은 frame-ancestors 에 막힌다. src/api/frame-boards.js 가 srcdoc(밖은 src)으로 연다
         ('<iframe class="win-fs-full" src="{{w.href}}"', '<iframe class="win-fs-full" data-board="{{w.href}}"'),
@@ -84,13 +88,13 @@ MODULE_TPL = {
     'network': [
         ('이 보드는 머리의 "열린 곳" 전환으로 tree GUI · leaf GUI를 둘 다 보여 준다. 데이터는 전부 예시 -->', '역할(tree · leaf)은 카탈로그로 정하고, 데이터는 이 노드의 게이트웨이에서 읽는다(src/data/network-live.js) -->'),
         (SIMUL_SWITCHES_NET + DEMO_SELECT, ''),
-        ('<div>권한 <span class="mono">node.read</span> · <span class="mono">node.control</span> ✓</div>', '<div>{{sess.perm}}</div>'),
+        ('<div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">권한 <span class="mono" style="color: #ede9e1;">node.read</span> · <span class="mono" style="color: #ede9e1;">node.control</span><span style="color: #3ecf8e; display: inline-flex;"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12l5 5 9-10"/></svg></span></div>', '<div>{{sess.perm}}</div>'),
     ],
     'settings': [
         ('데이터는 예시 -->', '데이터는 이 노드의 게이트웨이에서 읽는다(src/data/settings-live.js) -->'),
-        (SIMUL_SWITCHES_NET, ''),
-        ('<button type="button" onClick="{{hdr.togglePerm}}" aria-pressed="{{hdr.permOn}}" title="node.config★는 기본 권한 밖 — 관리자도 명시해야 열린다" style="height: 30px; padding: 0 10px; border: 1px solid {{hdr.permLine}}; border-radius: 6px; background: {{hdr.permBg}}; color: {{hdr.permFg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">{{hdr.permLabel}}</button>',
-         '<span title="node.config★는 기본 권한 밖 — 관리자도 명시해야 열린다" style="display: inline-flex; align-items: center; height: 30px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{hdr.permLine}}; border-radius: 6px; background: {{hdr.permBg}}; color: {{hdr.permFg}}; font-size: 12px; font-weight: 600;">{{hdr.permLabel}}</span>'),
+        (SIMUL_SWITCHES_SET, ''),
+        ('<button type="button" onClick="{{hdr.togglePerm}}" aria-pressed="{{hdr.permOn}}" title="node.config★는 기본 권한 밖 — 관리자도 명시해야 열린다" style="height: 30px; padding: 0 11px; border: 1px solid {{hdr.permLine}}; border-radius: 9px; background: {{hdr.permBg}}; color: {{hdr.permFg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#s-key"></use></svg>{{hdr.permLabel}}</button>',
+         '<span title="node.config★는 기본 권한 밖 — 관리자도 명시해야 열린다" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; box-sizing: border-box; padding: 0 11px; border: 1px solid {{hdr.permLine}}; border-radius: 9px; background: {{hdr.permBg}}; color: {{hdr.permFg}}; font-size: 12px; font-weight: 600;"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#s-key"></use></svg>{{hdr.permLabel}}</span>'),
         ('\n' + DEMO_SELECT.rstrip('\n'), ''),
     ],
     'index': [
@@ -98,8 +102,8 @@ MODULE_TPL = {
         ('<iframe data-in-map="1" src="node.html"', '<iframe data-in-map="1" data-src="node.html"'),
         ('>다른 계정으로 · 자동 로그인 끄기</button>', '>다른 계정으로 로그인</button>'),
         ('>취소 — 직접 로그인</button>', '>취소 — 여기 머물기</button>'),
-        ('<span>v0.2</span><span style="opacity: 0.6;">·</span><span style="color: #ffd479; font-weight: 700;">예시 데이터</span>',
-         '<span>Terra 노드</span><span style="opacity: 0.6;">·</span><span style="font-weight: 700;">{{v.where}}</span>'),
+        ('<span style="font-family: \'JetBrains Mono\', ui-monospace, monospace; font-size: 11.5px; color: #9aa1ab;">v0.2</span><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; box-sizing: border-box; border-radius: 10px; color: #f5b83d; border: 1px solid rgba(245,184,61,0.5); background: rgba(245,184,61,0.10); font-size: 11px; font-weight: 600;">예시 데이터</span>',
+         '<span style="font-size: 11.5px; color: #9aa1ab;">Terra 노드</span><span style="font-size: 11.5px; font-weight: 700; color: #ede9e1;">{{v.where}}</span>'),
         # 아래 두 알약의 누름 끄기(pointer-events: v.chromePe)는 원본에 올라갔다 — maingui 07d5739 (UP-15)
     ],
 }
@@ -139,6 +143,7 @@ for src, name, title, mode, desc, _ in screens:
     # 외부 글꼴(구글 폰트)은 싣지 않는다. Terra 안(terra.web/frame)에서는 앱 자산 CSP의 style-src · font-src 'self'가
     # 막아 콘솔 오류와 헛요청만 남는다. 글꼴 스택이 Noto Sans KR → 시스템 글꼴로 이어지므로 화면은 그대로 선다.
     helmet = re.sub(r'\s*<link[^>]*fonts\.(?:googleapis|gstatic)\.com[^>]*>', '', helmet)
+    helmet = helmet.replace('https://cdn.jsdelivr.net/npm/@fontsource/noto-emoji@5.3.2/files/noto-emoji-emoji-400-normal.woff2', UP + 'fonts/noto-emoji.woff2')
     tpl = re.sub(r'<helmet>.*?</helmet>', '', body, flags=re.S).strip()
     js = s.split('data-dc-script')[1].split('>', 1)[1].split('</script>')[0].strip()
     props = json.loads(re.search(r"data-props='([^']*)'", s).group(1))

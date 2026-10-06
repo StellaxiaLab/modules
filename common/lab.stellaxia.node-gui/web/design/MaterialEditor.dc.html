@@ -9,185 +9,310 @@
 <x-dc>
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
 <style>
-.face-hit:hover{filter:brightness(1.05)}
-body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif;background:#ffffff}
-a{color:#2563eb}a:hover{color:#1d4ed8}
-.px:hover{stroke:#2563eb;stroke-width:1.5}
+.face-hit:hover{filter:brightness(1.25)}
+body{margin:0;font-family:'Noto Sans KR','Noto Sans CJK KR',system-ui,sans-serif;background:#07090c}
+a{color:#b4bac3}a:hover{color:#ede9e1}
+.tw{color-scheme:dark;-webkit-font-smoothing:antialiased}
+.tw *{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+.tw ::-webkit-scrollbar{width:8px;height:8px}
+.tw ::-webkit-scrollbar-track{background:transparent}
+.tw ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:4px}
+.tw ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.26)}
+.tw ::selection{background:rgba(255,216,77,.35)}
+.tw :focus-visible{outline:2px solid #ffd84d;outline-offset:2px}
+.tw .mono{font-family:'JetBrains Mono',ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace}
+.tw .cap{font-size:10px;font-weight:600;letter-spacing:.28em;color:#9aa1ab;text-transform:uppercase;white-space:nowrap}
+.tw .muted{color:#9aa1ab}
+.tw .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tw .ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;pointer-events:none}
+.tw .ico.s{width:14px;height:14px}
+.tw .ico.l{width:18px;height:18px}
+.tw button{transition:background-color 140ms,border-color 140ms,color 140ms,box-shadow 140ms,transform 140ms cubic-bezier(.22,1,.36,1)}
+/* 창 머리 */
+.tw .hd{background:rgba(15,17,21,.92);border-bottom:1px solid rgba(255,255,255,.10)}
+.tw .back{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#9aa1ab;text-decoration:none;white-space:nowrap;padding:5px 8px 5px 4px;border-radius:8px;transition:background 140ms,color 140ms}
+.tw .back:hover{color:#ede9e1;background:rgba(255,255,255,.05)}
+.tw .vsep{width:1px;height:20px;background:rgba(255,255,255,.10);flex:none}
+.tw .ttl{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.tw .ttl h1{margin:0;font-size:15px;font-weight:600;color:#ede9e1;letter-spacing:-.01em}
+/* 버튼 */
+.tw .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;box-sizing:border-box;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:rgba(255,255,255,.04);color:#ede9e1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.tw .btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.28)}
+.tw .btn:active{transform:scale(.97)}
+.tw .btn.pri{background:#ede9e1;color:#111;border-color:#ede9e1}
+.tw .btn.pri:hover{background:#fff;border-color:#fff}
+.tw .btn.ghost{border-color:transparent;background:transparent;color:#b4bac3}
+.tw .btn.ghost:hover{background:rgba(255,255,255,.06);color:#ede9e1}
+.tw .btn.vio{color:#cfa8ff;border-color:rgba(189,132,255,.5);background:rgba(189,132,255,.08)}
+.tw .btn.vio:hover{background:rgba(189,132,255,.16)}
+.tw .btn.danger{color:#ff5d5d;border-color:rgba(255,93,93,.45);background:rgba(255,93,93,.06)}
+.tw .btn.danger:hover{background:rgba(255,93,93,.14)}
+.tw .btn.sm{height:28px;padding:0 9px;font-size:12px;border-radius:8px;font-weight:500}
+.tw .btn.xs{height:26px;padding:0 8px;font-size:12px;border-radius:7px;font-weight:500}
+.tw .btn.icn{width:28px;padding:0}
+.tw .dash{border-style:dashed !important}
+/* 세그먼트 · 토글 */
+.tw .seg{display:inline-flex;align-items:center;gap:2px;padding:3px !important;border-radius:10px !important;background:rgba(255,255,255,.05) !important;border:1px solid rgba(255,255,255,.06)}
+.tw .seg>button{border:0 !important;border-radius:7px !important;box-shadow:none !important;white-space:nowrap}
+.tw .seg>button:hover{color:#ede9e1 !important}
+.tw .seg>button[aria-checked="true"],.tw .seg>button[aria-selected="true"],.tw .seg>button[aria-pressed="true"]{background:#ede9e1 !important;color:#111 !important;font-weight:600}
+.tw .seg>button[aria-checked="true"]:hover,.tw .seg>button[aria-selected="true"]:hover,.tw .seg>button[aria-pressed="true"]:hover{color:#111 !important}
+.tw .tog{display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;border-radius:8px;cursor:pointer}
+.tw .tog:hover{border-color:rgba(255,255,255,.30) !important;color:#ede9e1}
+.tw .tog[aria-pressed="true"]{color:#111 !important}
+.tw .tog[aria-pressed="true"]:hover{border-color:#ede9e1 !important}
+/* 입력 */
+.tw .input{height:32px;box-sizing:border-box;padding:0 10px;border:1px solid rgba(255,255,255,.14) !important;border-radius:9px !important;background:#0e1013 !important;color:#ede9e1 !important;font:inherit;font-size:13px;outline:none;transition:border-color 140ms,box-shadow 140ms}
+.tw .input:hover{border-color:rgba(255,255,255,.24) !important}
+.tw .input:focus{border-color:rgba(237,233,225,.7) !important;box-shadow:0 0 0 3px rgba(237,233,225,.10)}
+.tw select.input{-webkit-appearance:none;appearance:none;padding-right:28px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa1ab' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;background-repeat:no-repeat !important;background-position:right 8px center !important;background-size:14px !important}
+.tw select.input option{background:#14171c;color:#ede9e1}
+.tw .input.sm{height:26px;font-size:12px;border-radius:7px !important;padding-left:8px}
+.tw select.input.sm{padding-right:24px;background-position:right 6px center !important}
+.tw input[type=color]{-webkit-appearance:none;appearance:none;box-sizing:border-box;padding:2px !important;border:1px solid rgba(255,255,255,.18) !important;border-radius:7px !important;background:#0e1013 !important;cursor:pointer}
+.tw input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.tw input[type=color]::-webkit-color-swatch{border:0;border-radius:4px}
+.tw input[type=color]::-moz-color-swatch{border:0;border-radius:4px}
+.tw input[type=range]{-webkit-appearance:none;appearance:none;height:18px;background:transparent;cursor:pointer;margin:0}
+.tw input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:rgba(255,255,255,.14)}
+.tw input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:#ede9e1;border:0;box-shadow:0 0 0 3px rgba(13,15,19,.9),0 1px 4px rgba(0,0,0,.5);transition:transform 140ms}
+.tw input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.12)}
+.tw input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:rgba(255,255,255,.14)}
+.tw input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#ede9e1;border:0}
+.tw input[type=range].vio::-webkit-slider-thumb{background:#cfa8ff}
+.tw input[type=range].vio::-moz-range-thumb{background:#cfa8ff}
+/* 면 · 패널 */
+.tw .side{background:#0f1115}
+.tw .panel{background:rgba(13,15,19,.82);border:1px solid rgba(255,255,255,.10);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.04);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.tw .well{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-radius:12px}
+.tw .stage{background:radial-gradient(ellipse 70% 60% at 50% 46%,#1b1f26 0%,#12151a 45%,#0b0d10 100%)}
+.tw .stage-svg{background:radial-gradient(ellipse 75% 65% at 50% 50%,#1a1e25 0%,#101317 60%,#0b0d10 100%);border:1px solid rgba(255,255,255,.08);border-radius:12px}
+.tw .hr{height:1px;background:rgba(255,255,255,.08);border:0;margin:2px 0}
+.tw .sw{transition:transform 120ms cubic-bezier(.22,1,.36,1),box-shadow 120ms}
+.tw .sw:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.45)}
+.tw .sw[aria-pressed="true"]{box-shadow:0 0 0 2px #0d0f13,0 0 0 3px #ede9e1}
+/* 리스트 */
+.tw .row{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;border-radius:10px;border:1px solid transparent;background:transparent;color:#b4bac3;font:inherit;text-align:left;cursor:pointer}
+.tw .row:hover{background:rgba(255,255,255,.05);color:#ede9e1}
+.tw .row>*{pointer-events:none}
+.tw .row[aria-current="true"],.tw .row[aria-selected="true"],.tw .row[aria-pressed="true"]{background:rgba(255,255,255,.09) !important;border-color:rgba(255,255,255,.18) !important;color:#ede9e1}
+.tw .row[aria-current="true"]{pointer-events:none}
+.tw .thumbbox{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+/* 픽셀 */
+.px:hover{stroke:#ffd84d;stroke-width:1.5}
 @keyframes ants{to{stroke-dashoffset:-8}}
 .sel-rect{animation:ants 600ms linear infinite}
+/* 애니메이션 칸 */
+.tw .play .i-pause{display:none}
+.tw .play[aria-label="멈춤"] .i-play{display:none}
+.tw .play[aria-label="멈춤"] .i-pause{display:block}
+.tw .slot{transition:border-color 120ms,box-shadow 120ms,background 120ms}
+.tw .slot:hover{border-color:rgba(255,255,255,.35) !important}
+.tw .chip{display:inline-flex;align-items:center;height:22px;box-sizing:border-box;padding:0 9px;border-radius:11px;font-size:11.5px;font-weight:600;white-space:nowrap}
+@media (prefers-reduced-motion: reduce){.tw *{transition:none !important}.sel-rect{animation:none}}
 </style>
 </helmet>
-<div style="width: 1440px; height: 900px; display: flex; flex-direction: column; background: #ffffff; color: #16191f; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+<div class="tw" style="width: 1440px; height: 900px; display: flex; flex-direction: column; background: #0d0f13; color: #ede9e1; font-family: 'Noto Sans KR','Noto Sans CJK KR',system-ui,sans-serif; font-size: 13px; line-height: 1.5; overflow: hidden;">
 
-  <header style="height: 52px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #d8dde5;">
-    <a href="BuildingEditor.dc.html" style="font-size: 13px; color: #5b6472; text-decoration: none; white-space: nowrap;">← 건물 편집기</a>
-    <h1 style="margin: 0; font-size: 17px; font-weight: 600; white-space: nowrap;">자재 편집기</h1>
-    <input type="text" value="{{name}}" onChange="{{setName}}" aria-label="자재 이름" style="height: 30px; width: 140px; box-sizing: border-box; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; font: inherit; font-size: 13px; color: #16191f;">
-    <span title="{{kindTip}}" style="height: 24px; padding: 0 9px; border-radius: 12px; background: {{kindBg}}; color: {{kindFg}}; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; white-space: nowrap;">{{kindLabel}}</span>
-    <div role="radiogroup" aria-label="{{an.typeLabel}} 타입" style="display: flex; gap: 2px; padding: 2px; border-radius: 7px; background: #eef1f5;">
+  <header class="hd" style="height: 52px; flex-shrink: 0; box-sizing: border-box; padding: 0 14px 0 12px; display: flex; align-items: center; gap: 10px;">
+    <a class="back" href="BuildingEditor.dc.html"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>건물 편집기</a>
+    <span class="vsep"></span>
+    <span class="ttl"><svg class="ico l" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg><h1>자재 편집기</h1></span>
+    <input class="input" type="text" value="{{name}}" onChange="{{setName}}" aria-label="자재 이름" style="width: 150px; height: 30px;">
+    <span class="chip" title="{{kindTip}}" style="background: {{kindBg}}; color: {{kindFg}}; border: 1px solid rgba(255,255,255,0.10);">{{kindLabel}}</span>
+    <div class="seg" role="radiogroup" aria-label="{{an.typeLabel}} 타입">
       <sc-for list="{{an.types}}" as="ty" hint-placeholder-count="2">
-        <button type="button" role="radio" aria-checked="{{ty.on}}" onClick="{{ty.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 5px; background: {{ty.bg}}; color: {{ty.fg}}; box-shadow: {{ty.sh}}; font: inherit; font-size: 12.5px; font-weight: {{ty.fw}}; cursor: pointer; white-space: nowrap;">{{ty.label}}</button>
+        <button type="button" role="radio" aria-checked="{{ty.on}}" onClick="{{ty.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: {{ty.bg}}; color: {{ty.fg}}; box-shadow: {{ty.sh}}; font: inherit; font-size: 12px; font-weight: {{ty.fw}}; cursor: pointer; white-space: nowrap;">{{ty.label}}</button>
       </sc-for>
     </div>
-    <span style="font-size: 12px; color: {{saveColor}}; white-space: nowrap;">{{saveText}}</span>
+    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: {{saveColor}}; white-space: nowrap;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{saveColor}};"></span>{{saveText}}</span>
     <span style="flex-grow: 1;"></span>
-    <nav aria-label="자재 편집기 메뉴" style="display: flex; align-items: center; gap: 4px;">
-      <button type="button" onClick="{{save}}" style="height: 32px; padding: 0 12px; border: 1px solid #2563eb; border-radius: 6px; background: #2563eb; color: #ffffff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">자재 저장</button>
-      <button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;">내보내기</button>
-      <button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;">불러오기</button>
-      <button type="button" onClick="{{saveAs}}" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;">다른 이름으로 저장</button>
-      <button type="button" onClick="{{newMat}}" style="height: 32px; padding: 0 12px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;">새로 만들기</button>
-      <button type="button" onClick="{{newCustom}}" title="8 × 8 × 8 칸에 색 블럭을 쌓아 만드는 자재 — 울타리 · 작은 도구처럼 블럭보다 작은 물건용" style="height: 32px; padding: 0 12px; border: 1px solid #7b4fa0; border-radius: 6px; background: #ffffff; color: #5b2f7e; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">새 커스텀 자재</button>
+    <nav aria-label="자재 편집기 메뉴" style="display: flex; align-items: center; gap: 6px;">
+      <button class="btn ghost sm" type="button"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>내보내기</button>
+      <button class="btn ghost sm" type="button"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>불러오기</button>
+      <button class="btn sm" type="button" onClick="{{saveAs}}"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>다른 이름으로 저장</button>
+      <button class="btn sm" type="button" onClick="{{newMat}}"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>새로 만들기</button>
+      <button class="btn sm vio" type="button" onClick="{{newCustom}}" title="8 × 8 × 8 칸에 색 블럭을 쌓아 만드는 자재 — 울타리 · 작은 도구처럼 블럭보다 작은 물건용"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>새 커스텀 자재</button>
+      <button class="btn pri" type="button" onClick="{{save}}"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>자재 저장</button>
     </nav>
   </header>
 
   <div style="flex-grow: 1; display: {{cubeFlex}}; min-height: 0;">
-    <main onKeyDown="{{key}}" style="outline: none; flex-grow: 1; min-width: 0; background: #eef1f5; display: flex; flex-direction: column; gap: 14px; padding: 18px 24px; box-sizing: border-box;">
-      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-          <span style="color: #5b6472;">편집 중</span>
-          <select value="{{curId}}" onChange="{{pickMat}}" aria-label="편집할 자재" style="height: 32px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 13px; color: #16191f;">
+    <aside class="side" aria-label="자재 리스트" style="width: 232px; flex-shrink: 0; box-sizing: border-box; border-right: 1px solid rgba(255,255,255,0.08); padding: 14px 10px 10px; display: flex; flex-direction: column; gap: 8px; min-height: 0;">
+      <div style="display: flex; align-items: center; padding: 0 6px;">
+        <span class="cap">자재</span>
+        <span style="flex-grow: 1;"></span>
+        <span class="mono" style="font-size: 11px; color: #6b7280;">{{matOptions.length}}개</span>
+      </div>
+      <div role="tree" aria-label="자재 셋" style="display: flex; flex-direction: column; gap: 2px; overflow-y: auto; min-height: 0; padding-right: 2px;">
+        <sc-for list="{{matTree}}" as="row" hint-placeholder-count="8">
+          <sc-if value="{{row.isSet}}" hint-placeholder-val="{{false}}">
+            <div role="treeitem" style="padding: 10px 8px 4px; font-size: 11px; font-weight: 600; color: #6b7280; letter-spacing: .02em;">{{row.label}}</div>
+          </sc-if>
+          <sc-if value="{{row.isMat}}" hint-placeholder-val="{{true}}">
+            <button class="row" type="button" role="treeitem" aria-selected="{{row.pressed}}" onClick="{{row.pick}}" style="height: 46px; padding: 0 8px; border: {{row.border}}; background: {{row.bg}};">
+              <span class="thumbbox" style="width: 34px; height: 34px;"><img src="{{row.img}}" alt="" width="30" height="30" style="width: 30px; height: 30px; image-rendering: pixelated;"></span>
+              <span style="display: flex; flex-direction: column; min-width: 0; line-height: 1.3;">
+                <span style="display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: {{row.fw}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.label}} <span style="display: {{row.playDisp}}; color: #3ecf8e;"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true" style="width: 11px; height: 11px;"><path d="M7 4l13 8-13 8z"/></svg></span></span>
+                <span class="mono" style="font-size: 10.5px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.meta}}</span>
+              </span>
+              <span style="flex-grow: 1;"></span>
+              <span style="font-size: 11px; color: #ffd84d; white-space: nowrap;">{{row.state}}</span>
+            </button>
+          </sc-if>
+        </sc-for>
+      </div>
+      <span style="flex-grow: 1;"></span>
+      <button class="btn sm dash" type="button" onClick="{{newCustom}}" style="flex-shrink: 0; color: #b4bac3;"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>새 커스텀 자재</button>
+    </aside>
+
+    <main class="stage" onKeyDown="{{key}}" style="outline: none; flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px 18px 12px; box-sizing: border-box; position: relative;">
+      <div class="panel" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 7px 8px; border-radius: 12px; box-sizing: border-box;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+          <span class="cap" style="padding-left: 4px;">편집 중</span>
+          <select class="input sm" value="{{curId}}" onChange="{{pickMat}}" aria-label="편집할 자재" style="width: 210px;">
             <sc-for list="{{matOptions}}" as="o" hint-placeholder-count="7">
               <option value="{{o.id}}">{{o.label}}</option>
             </sc-for>
           </select>
         </label>
-        <span style="width: 1px; height: 22px; background: #d8dde5;"></span>
-        <div role="group" aria-label="도구" style="display: flex; gap: 4px;">
+        <span class="vsep"></span>
+        <div class="seg" role="group" aria-label="도구">
           <sc-for list="{{tools}}" as="t" hint-placeholder-count="6">
-            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" title="{{t.tip}}" style="height: 32px; padding: 0 10px; border: {{t.border}}; border-radius: 6px; background: {{t.bg}}; color: #16191f; font: inherit; font-size: 13px; font-weight: {{t.fw}}; cursor: pointer;">{{t.label}}</button>
+            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" title="{{t.tip}}" style="height: 26px; padding: 0 9px; border: {{t.border}}; background: {{t.bg}}; color: #b4bac3; font: inherit; font-size: 12px; font-weight: {{t.fw}}; cursor: pointer;">{{t.label}}</button>
           </sc-for>
         </div>
-        <span style="width: 1px; height: 22px; background: #d8dde5;"></span>
-        <button type="button" onClick="{{copy}}" title="Ctrl+C" style="display: {{cubeInline}}; height: 32px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{copyColor}}; font: inherit; font-size: 13px; cursor: pointer;">복사</button>
-        <button type="button" onClick="{{pasteMode}}" title="Ctrl+V — 누른 뒤 놓을 칸을 클릭" style="display: {{cubeInline}}; height: 32px; padding: 0 10px; border: {{pasteBorder}}; border-radius: 6px; background: {{pasteBg}}; color: {{pasteColor}}; font: inherit; font-size: 13px; cursor: pointer;">붙여넣기</button>
-        <button type="button" onClick="{{fillSel}}" style="display: {{cubeInline}}; height: 32px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{copyColor}}; font: inherit; font-size: 13px; cursor: pointer;">선택 영역 칠하기</button>
-        <button type="button" onClick="{{undo}}" title="Ctrl+Z" style="height: 32px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{undoColor}}; font: inherit; font-size: 13px; cursor: pointer;">되돌리기</button>
-        <span style="font-size: 12px; color: #5b6472;">{{status}}</span>
+        <span class="vsep"></span>
+        <button class="btn xs" type="button" onClick="{{copy}}" title="Ctrl+C" style="display: {{cubeInline}}; color: {{copyColor}};">복사</button>
+        <button class="btn xs" type="button" onClick="{{pasteMode}}" title="Ctrl+V — 누른 뒤 놓을 칸을 클릭" style="display: {{cubeInline}}; border: {{pasteBorder}}; background: {{pasteBg}}; color: {{pasteColor}};">붙여넣기</button>
+        <button class="btn xs" type="button" onClick="{{fillSel}}" style="display: {{cubeInline}}; color: {{copyColor}};"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11l7-7 7 7-7 7z"/><path d="M20 15c1 2 1 3 0 4s-2 0-2-1 1-2 2-3z"/></svg>선택 영역 칠하기</button>
+        <button class="btn xs" type="button" onClick="{{undo}}" title="Ctrl+Z" style="color: {{undoColor}};"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>되돌리기</button>
+        <span style="font-size: 12px; color: #9aa1ab; padding: 0 4px;">{{status}}</span>
       </div>
 
-      <div style="flex-grow: 1; display: {{cubeFlex}}; align-items: center; justify-content: center;">
-        <svg width="640" height="500" viewBox="0 0 640 500" role="img" aria-label="자재 전개도 — 6면 각 8 × 8 픽셀" style="touch-action: none; user-select: none; cursor: {{netCursor}};" onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerLeave="{{up}}">
+      <div style="flex-grow: 1; display: {{cubeFlex}}; align-items: center; justify-content: center; min-height: 0;">
+        <svg width="640" height="500" viewBox="0 0 640 500" role="img" aria-label="자재 전개도 — 6면 각 8 × 8 픽셀" style="touch-action: none; user-select: none; cursor: {{netCursor}}; filter: drop-shadow(0 18px 30px rgba(0,0,0,.45));" onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerLeave="{{up}}">
           <sc-for list="{{net}}" as="fc" hint-placeholder-count="6">
             <g>
-              <rect x="{{fc.ox}}" y="{{fc.oy}}" width="{{fc.size}}" height="{{fc.size}}" fill="none" stroke="{{fc.ring}}" stroke-width="3" rx="2"></rect>
+              <rect x="{{fc.ox}}" y="{{fc.oy}}" width="{{fc.size}}" height="{{fc.size}}" fill="#0b0d10" stroke="{{fc.ring}}" stroke-width="3" rx="3"></rect>
               <sc-for list="{{fc.px}}" as="p" hint-placeholder-count="64">
-                <rect class="px" x="{{p.x}}" y="{{p.y}}" width="{{cell}}" height="{{cell}}" fill="{{p.c}}" stroke="rgba(22,25,31,0.08)" stroke-width="0.5" data-px="{{p.key}}"></rect>
+                <rect class="px" x="{{p.x}}" y="{{p.y}}" width="{{cell}}" height="{{cell}}" fill="{{p.c}}" stroke="rgba(8,10,13,0.42)" stroke-width="0.8" data-px="{{p.key}}"></rect>
               </sc-for>
-              <rect class="sel-rect" x="{{fc.sx}}" y="{{fc.sy}}" width="{{fc.sw}}" height="{{fc.sh}}" fill="rgba(37,99,235,0.08)" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 4" opacity="{{fc.sop}}" style="pointer-events: none;"></rect>
-              <text x="{{fc.lx}}" y="{{fc.ly}}" text-anchor="middle" font-size="12" fill="#5b6472" style="pointer-events: none;">{{fc.label}}</text>
+              <rect class="sel-rect" x="{{fc.sx}}" y="{{fc.sy}}" width="{{fc.sw}}" height="{{fc.sh}}" fill="rgba(255,216,77,0.10)" stroke="#ffd84d" stroke-width="1.5" stroke-dasharray="4 4" opacity="{{fc.sop}}" style="pointer-events: none;"></rect>
+              <text x="{{fc.lx}}" y="{{fc.ly}}" text-anchor="middle" font-size="11.5" font-weight="500" fill="#9aa1ab" style="pointer-events: none;">{{fc.label}}</text>
             </g>
           </sc-for>
         </svg>
       </div>
       <!-- 애니메이션 확장: 1초 = 16칸 고정. 칸마다 프레임을 넣거나 비워 두고, 빈 칸은 앞 프레임을 그대로 보인다 (한 줄 = 1초) -->
-      <section aria-label="애니메이션 칸" style="display: {{an.disp}}; flex-direction: column; gap: 8px; box-sizing: border-box; background: #ffffff; border: 1px solid #d8dde5; border-radius: 10px; padding: 10px 12px;">
+      <section class="panel" aria-label="애니메이션 칸" style="flex-shrink: 0; display: {{an.disp}}; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 10px 12px; border-radius: 14px;">
         <div style="display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; font-size: 12.5px;">
-          <button type="button" onClick="{{an.toggle}}" aria-label="{{an.playLabel}}" title="{{an.playLabel}}" style="width: 32px; height: 28px; border: 1px solid {{an.playLine}}; border-radius: 6px; background: {{an.playBg}}; color: {{an.playFg}}; font: inherit; font-size: 13px; cursor: pointer;">{{an.playIcon}}</button>
-          <b style="font-size: 13px; font-variant-numeric: tabular-nums;">칸 {{an.cur}} / {{an.len}}</b>
+          <button class="play" type="button" onClick="{{an.toggle}}" aria-label="{{an.playLabel}}" title="{{an.playLabel}}" style="width: 30px; height: 28px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid {{an.playLine}}; border-radius: 8px; background: {{an.playBg}}; color: {{an.playFg}}; font: inherit; font-size: 13px; cursor: pointer;"><span class="i-play"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></span><span class="i-pause"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></span><span class="sr">{{an.playIcon}}</span></button>
+          <b class="mono" style="font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums;">칸 {{an.cur}} / {{an.len}}</b>
           <span style="color: {{an.slotFg}};">{{an.slotInfo}}</span>
           <span style="flex-grow: 1;"></span>
-          <label style="display: {{an.lenDisp}}; align-items: center; gap: 4px; color: #5b6472;">길이
-            <select value="{{an.lenVal}}" onChange="{{an.setLen}}" aria-label="애니메이션 길이" style="height: 26px; padding: 0 4px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12.5px; color: #16191f;">
+          <label style="display: {{an.lenDisp}}; align-items: center; gap: 6px; color: #9aa1ab;">길이
+            <select class="input sm" value="{{an.lenVal}}" onChange="{{an.setLen}}" aria-label="애니메이션 길이">
               <sc-for list="{{an.lens}}" as="lo" hint-placeholder-count="4"><option value="{{lo.v}}">{{lo.t}}</option></sc-for>
             </select></label>
-          <span style="display: {{an.lenFixDisp}}; color: #5b6472;">길이 1초 고정 (16칸)</span>
+          <span style="display: {{an.lenFixDisp}}; color: #9aa1ab;">길이 1초 고정 (16칸)</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px;">
-          <span style="color: #5b6472;">복제 간격</span>
-          <div role="radiogroup" aria-label="복제 간격" style="display: flex; gap: 2px; padding: 2px; border-radius: 6px; background: #eef1f5;">
+          <span style="color: #9aa1ab;">복제 간격</span>
+          <div class="seg" role="radiogroup" aria-label="복제 간격">
             <sc-for list="{{an.steps}}" as="sp" hint-placeholder-count="3">
-              <button type="button" role="radio" aria-checked="{{sp.on}}" title="{{sp.tip}}" onClick="{{sp.pick}}" style="height: 22px; padding: 0 7px; border: 0; border-radius: 4px; background: {{sp.bg}}; color: {{sp.fg}}; box-shadow: {{sp.sh}}; font: inherit; font-size: 11.5px; font-weight: {{sp.fw}}; cursor: pointer;">{{sp.label}}</button>
+              <button type="button" role="radio" aria-checked="{{sp.on}}" title="{{sp.tip}}" onClick="{{sp.pick}}" style="height: 22px; padding: 0 8px; border: 0; background: {{sp.bg}}; color: {{sp.fg}}; box-shadow: {{sp.sh}}; font: inherit; font-size: 11.5px; font-weight: {{sp.fw}}; cursor: pointer;">{{sp.label}}</button>
             </sc-for>
           </div>
-          <button type="button" onClick="{{an.dup}}" title="{{an.dupTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #2563eb; border-radius: 6px; background: #ffffff; color: {{an.dupFg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">+ 복제 → {{an.stepLabel}} 뒤</button>
-          <button type="button" onClick="{{an.fill}}" title="{{an.fillTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">{{an.fillLabel}}</button>
+          <button class="btn xs" type="button" onClick="{{an.dup}}" title="{{an.dupTip}}" style="color: {{an.dupFg}}; font-weight: 600;"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>복제 → {{an.stepLabel}} 뒤</button>
+          <button class="btn xs" type="button" onClick="{{an.fill}}" title="{{an.fillTip}}">{{an.fillLabel}}</button>
           <span style="flex-grow: 1;"></span>
-          <button type="button" onClick="{{an.left}}" title="이 프레임을 한 칸 앞으로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.leftFg}}; font: inherit; font-size: 12px; cursor: pointer;">◀</button>
-          <button type="button" onClick="{{an.right}}" title="이 프레임을 한 칸 뒤로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.rightFg}}; font: inherit; font-size: 12px; cursor: pointer;">▶</button>
+          <button class="btn xs icn" type="button" onClick="{{an.left}}" title="이 프레임을 한 칸 앞으로" aria-label="이 프레임을 한 칸 앞으로" style="color: {{an.leftFg}};"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button class="btn xs icn" type="button" onClick="{{an.right}}" title="이 프레임을 한 칸 뒤로" aria-label="이 프레임을 한 칸 뒤로" style="color: {{an.rightFg}};"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         </div>
         <div role="listbox" aria-label="칸 (한 줄 = 1초)" style="display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px;">
           <sc-for list="{{an.slots}}" as="fs" hint-placeholder-count="16">
-            <button type="button" role="option" aria-selected="{{fs.sel}}" aria-label="{{fs.label}}" title="{{fs.label}}" onClick="{{fs.pick}}" style="position: relative; height: {{an.slotH}}px; padding: 0; box-sizing: border-box; border: {{fs.border}}; border-radius: 5px; background: {{fs.bg}}; cursor: pointer; overflow: hidden; box-shadow: {{fs.ring}};">
+            <button class="slot" type="button" role="option" aria-selected="{{fs.sel}}" aria-label="{{fs.label}}" title="{{fs.label}}" onClick="{{fs.pick}}" style="position: relative; height: {{an.slotH}}px; padding: 0; box-sizing: border-box; border: {{fs.border}}; border-radius: 6px; background: {{fs.bg}}; cursor: pointer; overflow: hidden; box-shadow: {{fs.ring}};">
               <img src="{{fs.img}}" alt="" style="display: {{fs.imgDisp}}; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
-              <span style="display: {{fs.holdDisp}}; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1px; background: #b9cdf5;"></span>
-              <span style="position: absolute; left: 3px; top: 0; font-size: 9.5px; font-weight: 700; color: {{fs.numFg}};">{{fs.num}}</span>
+              <span style="display: {{fs.holdDisp}}; position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: rgba(255,255,255,0.10);"></span>
+              <span class="mono" style="position: absolute; left: 3px; top: 0; font-size: 9px; font-weight: 600; color: {{fs.numFg}};">{{fs.num}}</span>
             </button>
           </sc-for>
         </div>
-        <div style="display: {{an.confirmDisp}}; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: #fff7e6; border: 1px solid #f0d59a; font-size: 12.5px; color: #7a4d00;">
-          <span style="flex-grow: 1;">일반 타입은 프레임 하나 · 1초입니다 — 지금 보이는 프레임만 남기고 나머지 프레임 {{an.dropN}}개를 지웁니다.</span>
-          <button type="button" onClick="{{an.confirmYes}}" style="height: 26px; padding: 0 10px; border: 1px solid #d33d52; border-radius: 6px; background: #ffffff; color: #b4283c; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">지우고 일반으로</button>
-          <button type="button" onClick="{{an.confirmNo}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">취소</button>
+        <div style="display: {{an.confirmDisp}}; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(245,184,61,0.08); border: 1px solid rgba(245,184,61,0.35); font-size: 12.5px; color: #f5b83d;">
+          <svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg><span style="flex-grow: 1;">일반 타입은 프레임 하나 · 1초입니다 — 지금 보이는 프레임만 남기고 나머지 프레임 {{an.dropN}}개를 지웁니다.</span>
+          <button class="btn xs danger" type="button" onClick="{{an.confirmYes}}" style="font-weight: 600;">지우고 일반으로</button>
+          <button class="btn xs" type="button" onClick="{{an.confirmNo}}">취소</button>
         </div>
       </section>
-      <span style="font-size: 12px; color: #5b6472;">{{helpText}}</span>
+      <span style="font-size: 11.5px; color: #6b7280; line-height: 1.5;">{{helpText}}</span>
     </main>
 
-    <aside style="width: 340px; flex-shrink: 0; box-sizing: border-box; border-left: 1px solid #d8dde5; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto;">
-      <section aria-label="팔레트" style="display: flex; flex-direction: column; gap: 8px;">
-        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">팔레트</h3>
+    <aside class="side" style="width: 340px; flex-shrink: 0; box-sizing: border-box; border-left: 1px solid rgba(255,255,255,0.08); padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto;">
+      <section aria-label="팔레트" style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center;"><h3 class="cap" style="margin: 0;">팔레트</h3><span style="flex-grow: 1;"></span><span style="font-size: 11px; color: #6b7280;">아래 줄 = 최근 색</span></div>
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #d8dde5; background: {{color}};"></span>
+          <span style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.14); background: {{color}}; box-shadow: inset 0 0 0 2px rgba(0,0,0,.25);"></span>
           <div style="display: flex; flex-direction: column; gap: 4px;">
-            <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; font-size: 13px;">{{color}}</span>
-            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5b6472;">직접 고르기 <input type="color" value="{{color}}" onChange="{{setColor}}" aria-label="색 직접 고르기" style="width: 36px; height: 24px; padding: 0; border: 1px solid #d8dde5; border-radius: 4px; background: #ffffff;"></label>
+            <span class="mono" style="font-size: 13px;">{{color}}</span>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9aa1ab;">직접 고르기 <input type="color" value="{{color}}" onChange="{{setColor}}" aria-label="색 직접 고르기" style="width: 36px; height: 24px;"></label>
           </div>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px;">
+        <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px;">
           <sc-for list="{{palette}}" as="c" hint-placeholder-count="32">
-            <button type="button" aria-label="{{c.hex}}" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="height: 26px; border: {{c.border}}; border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;"></button>
+            <button class="sw" type="button" aria-label="{{c.hex}}" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="height: 26px; border: {{c.border}}; border-radius: 6px; background: {{c.hex}}; cursor: pointer; padding: 0;"></button>
           </sc-for>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; min-height: 22px;">
+        <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; min-height: 22px; padding: 4px; margin: 0 -4px; border-radius: 8px; background: rgba(255,255,255,0.025);">
           <sc-for list="{{recent}}" as="c" hint-placeholder-count="0">
-            <button type="button" aria-label="{{c.hex}}" onClick="{{c.pick}}" style="height: 22px; border: 1px solid #d8dde5; border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;" aria-description="최근 색"></button>
+            <button class="sw" type="button" aria-label="{{c.hex}}" onClick="{{c.pick}}" style="height: 22px; border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;" aria-description="최근 색"></button>
           </sc-for>
         </div>
       </section>
 
-      <section aria-label="{{faceLabel}} 기능" style="display: {{cubeFlex}}; flex-direction: column; gap: 8px; border-top: 1px solid #d8dde5; padding-top: 10px; font-size: 12.5px;">
-        <div style="display: flex; align-items: baseline; gap: 6px;">
+      <section aria-label="{{faceLabel}} 기능" style="display: {{cubeFlex}}; flex-direction: column; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; font-size: 12.5px;">
+        <div style="display: flex; align-items: baseline; gap: 8px;">
           <h3 style="margin: 0; font-size: 14px; font-weight: 600;">{{faceLabel}}</h3>
-          <span style="color: #5b6472;">선택한 면 기능</span>
+          <span class="cap">선택한 면 기능</span>
         </div>
         <div style="display: flex; gap: 6px;">
-          <button type="button" onClick="{{copySides}}" style="flex: 1; height: 28px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">→ 옆면 4개로 복사</button>
-          <button type="button" onClick="{{copyAll}}" style="flex: 1; height: 28px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">→ 6면 전부로 복사</button>
+          <button class="btn sm" type="button" onClick="{{copySides}}" style="flex: 1;">→ 옆면 4개로 복사</button>
+          <button class="btn sm" type="button" onClick="{{copyAll}}" style="flex: 1;">→ 6면 전부로 복사</button>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
           <span style="font-weight: 600;">색 한꺼번에 바꾸기</span>
           <span style="flex-grow: 1;"></span>
-          <div role="tablist" aria-label="바꿀 범위" style="display: flex; gap: 2px; background: #f4f6f9; border-radius: 6px; padding: 2px;">
+          <div class="seg" role="tablist" aria-label="바꿀 범위">
             <sc-for list="{{scopes}}" as="k" hint-placeholder-count="2">
-              <button type="button" role="tab" aria-selected="{{k.sel}}" onClick="{{k.pick}}" style="height: 24px; padding: 0 8px; border: 0; border-radius: 5px; background: {{k.bg}}; color: {{k.fg}}; font: inherit; font-size: 12px; font-weight: {{k.fw}}; cursor: pointer; box-shadow: {{k.sh}};">{{k.label}}</button>
+              <button type="button" role="tab" aria-selected="{{k.sel}}" onClick="{{k.pick}}" style="height: 24px; padding: 0 9px; border: 0; background: {{k.bg}}; color: {{k.fg}}; font: inherit; font-size: 12px; font-weight: {{k.fw}}; cursor: pointer; box-shadow: {{k.sh}};">{{k.label}}</button>
             </sc-for>
           </div>
         </div>
         <div style="display: flex; gap: 4px;">
           <sc-for list="{{hues}}" as="hu" hint-placeholder-count="8">
-            <button type="button" aria-label="{{hu.name}}으로" title="{{hu.name}}" onClick="{{hu.pick}}" style="flex: 1; height: 20px; border: 1px solid rgba(22,25,31,0.15); border-radius: 4px; background: {{hu.c}}; cursor: pointer; padding: 0;"></button>
+            <button class="sw" type="button" aria-label="{{hu.name}}으로" title="{{hu.name}}" onClick="{{hu.pick}}" style="flex: 1; height: 20px; border: 1px solid rgba(255,255,255,0.14); border-radius: 5px; background: {{hu.c}}; cursor: pointer; padding: 0;"></button>
           </sc-for>
         </div>
-        <label style="display: flex; align-items: center; gap: 8px;"><span style="color: #5b6472; width: 30px;">색상</span><input type="range" min="-180" max="180" step="2" value="{{adjH}}" onChange="{{setH}}" style="flex-grow: 1; min-width: 0; accent-color: #2563eb;"><span style="width: 40px; text-align: right; font-family: ui-monospace,monospace;">{{adjH}}°</span></label>
-        <label style="display: flex; align-items: center; gap: 8px;"><span style="color: #5b6472; width: 30px;">채도</span><input type="range" min="-100" max="100" step="2" value="{{adjS}}" onChange="{{setS}}" style="flex-grow: 1; min-width: 0; accent-color: #2563eb;"><span style="width: 40px; text-align: right; font-family: ui-monospace,monospace;">{{adjS}}%</span></label>
-        <label style="display: flex; align-items: center; gap: 8px;"><span style="color: #5b6472; width: 30px;">명도</span><input type="range" min="-50" max="50" step="1" value="{{adjL}}" onChange="{{setL}}" style="flex-grow: 1; min-width: 0; accent-color: #2563eb;"><span style="width: 40px; text-align: right; font-family: ui-monospace,monospace;">{{adjL}}</span></label>
+        <label style="display: flex; align-items: center; gap: 10px;"><span style="color: #9aa1ab; width: 30px;">색상</span><input type="range" min="-180" max="180" step="2" value="{{adjH}}" onChange="{{setH}}" style="flex-grow: 1; min-width: 0;"><span class="mono" style="width: 40px; text-align: right; color: #b4bac3; font-size: 12px;">{{adjH}}°</span></label>
+        <label style="display: flex; align-items: center; gap: 10px;"><span style="color: #9aa1ab; width: 30px;">채도</span><input type="range" min="-100" max="100" step="2" value="{{adjS}}" onChange="{{setS}}" style="flex-grow: 1; min-width: 0;"><span class="mono" style="width: 40px; text-align: right; color: #b4bac3; font-size: 12px;">{{adjS}}%</span></label>
+        <label style="display: flex; align-items: center; gap: 10px;"><span style="color: #9aa1ab; width: 30px;">명도</span><input type="range" min="-50" max="50" step="1" value="{{adjL}}" onChange="{{setL}}" style="flex-grow: 1; min-width: 0;"><span class="mono" style="width: 40px; text-align: right; color: #b4bac3; font-size: 12px;">{{adjL}}</span></label>
         <div style="display: flex; gap: 6px;">
-          <button type="button" onClick="{{commitAdj}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{adjBtn}}; font: inherit; font-size: 12.5px; cursor: pointer;">확정</button>
-          <button type="button" onClick="{{cancelAdj}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{adjBtn}}; font: inherit; font-size: 12.5px; cursor: pointer;">원래대로</button>
+          <button class="btn xs" type="button" onClick="{{commitAdj}}" style="color: {{adjBtn}};"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>확정</button>
+          <button class="btn xs" type="button" onClick="{{cancelAdj}}" style="color: {{adjBtn}};"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>원래대로</button>
         </div>
       </section>
 
-      <section aria-label="미리보기" style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #f4f6f9; border-radius: 10px; padding: 8px; margin-top: auto;">
-        <svg width="260" height="200" viewBox="10 25 280 215" role="img" aria-label="큐브 미리보기 — 끌어서 돌려 봄" style="cursor: grab; touch-action: none;" onPointerDown="{{pDown}}" onPointerMove="{{pMove}}" onPointerUp="{{pUp}}" onPointerLeave="{{pUp}}">
+      <section class="well" aria-label="미리보기" style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 8px 10px; margin-top: auto; background: radial-gradient(ellipse 70% 60% at 50% 45%, #1b1f26 0%, #111317 70%);">
+        <div style="align-self: stretch; display: flex; align-items: center; padding: 0 6px;"><span class="cap">미리보기</span><span style="flex-grow: 1;"></span><span style="font-size: 11px; color: #6b7280;">끌어서 돌려 보기</span></div>
+        <svg width="260" height="200" viewBox="10 25 280 215" role="img" aria-label="큐브 미리보기 — 끌어서 돌려 봄" style="cursor: grab; touch-action: none; filter: drop-shadow(0 14px 18px rgba(0,0,0,.5));" onPointerDown="{{pDown}}" onPointerMove="{{pMove}}" onPointerUp="{{pUp}}" onPointerLeave="{{pUp}}">
           <sc-for list="{{preview}}" as="q" hint-placeholder-count="192">
             <polygon points="{{q.pts}}" fill="{{q.c}}" stroke="{{q.c}}" stroke-width="0.4" stroke-linejoin="round"></polygon>
           </sc-for>
         </svg>
-        <div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">방위 {{yawLabel}} · 기울기 {{pitchLabel}}</span>
-        <button type="button" onClick="{{resetView}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">필드 시점으로</button></div>
+        <div style="display: flex; align-items: center; gap: 8px;"><span class="mono" style="font-size: 11.5px; color: #9aa1ab;">방위 {{yawLabel}} · 기울기 {{pitchLabel}}</span>
+        <button class="btn xs" type="button" onClick="{{resetView}}"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg>필드 시점으로</button></div>
       </section>
     </aside>
   </div>
@@ -195,135 +320,138 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
   <!-- 커스텀 자재 화면: 건물 편집기와 같은 모양 — 왼쪽 자재 리스트 · 가운데 설계 화면(8 × 8 판 · 높이 8, 끌어서 돌려 봄) · 오른쪽 시점 큐브와 색(= 자재).
        조작도 같다: 좌클릭 끌기 회전 · 우클릭 누르고 있기 설치 준비 · 떼면 설치 · 블록 좌클릭 제거 · Ctrl+Z 되돌리기 -->
   <div style="flex-grow: 1; display: {{vx.disp}}; min-height: 0;">
-    <aside aria-label="자재 리스트" style="width: 232px; flex-shrink: 0; box-sizing: border-box; border-right: 1px solid #d8dde5; background: #f4f6f9; padding: 14px 10px; display: flex; flex-direction: column; gap: 8px; min-height: 0;">
-      <div style="display: flex; align-items: center; gap: 4px; padding: 0 4px;">
-        <h3 style="margin: 0; font-size: 14px; font-weight: 600;">자재</h3>
+    <aside class="side" aria-label="자재 리스트" style="width: 232px; flex-shrink: 0; box-sizing: border-box; border-right: 1px solid rgba(255,255,255,0.08); padding: 14px 10px 10px; display: flex; flex-direction: column; gap: 8px; min-height: 0;">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 0 6px;">
+        <h3 class="cap" style="margin: 0;">자재</h3>
         <span style="flex-grow: 1;"></span>
-        <span style="font-size: 11.5px; color: #5b6472;">누르면 열기</span>
+        <span style="font-size: 11px; color: #6b7280;">누르면 열기</span>
       </div>
-      <div role="tree" aria-label="자재 셋" style="display: flex; flex-direction: column; gap: 1px; overflow-y: auto; min-height: 0;">
+      <div role="tree" aria-label="자재 셋" style="display: flex; flex-direction: column; gap: 2px; overflow-y: auto; min-height: 0; padding-right: 2px;">
         <sc-for list="{{vx.tree}}" as="row" hint-placeholder-count="8">
           <sc-if value="{{row.isSet}}" hint-placeholder-val="{{false}}">
-            <div role="treeitem" style="padding: 6px 6px 2px; font-size: 13px; font-weight: 600;">{{row.label}}</div>
+            <div role="treeitem" style="padding: 10px 8px 4px; font-size: 11px; font-weight: 600; color: #6b7280; letter-spacing: .02em;">{{row.label}}</div>
           </sc-if>
           <sc-if value="{{row.isMat}}" hint-placeholder-val="{{true}}">
-            <button type="button" role="treeitem" aria-selected="{{row.pressed}}" onClick="{{row.pick}}" style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 14px; border: {{row.border}}; border-radius: 6px; background: {{row.bg}}; color: #16191f; font: inherit; text-align: left; cursor: pointer;">
-              <img src="{{row.img}}" alt="" width="30" height="30" style="width: 30px; height: 30px; image-rendering: pixelated; flex-shrink: 0;">
-              <span style="display: flex; flex-direction: column; min-width: 0;">
-                <span style="font-size: 13px; font-weight: {{row.fw}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.label}} <span style="display: {{row.playDisp}}; font-size: 11px;">▶️</span></span>
-                <span style="font-size: 11.5px; color: #5b6472; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.meta}}</span>
+            <button class="row" type="button" role="treeitem" aria-selected="{{row.pressed}}" onClick="{{row.pick}}" style="height: 46px; padding: 0 8px; border: {{row.border}}; background: {{row.bg}};">
+              <span class="thumbbox" style="width: 34px; height: 34px;"><img src="{{row.img}}" alt="" width="30" height="30" style="width: 30px; height: 30px; image-rendering: pixelated;"></span>
+              <span style="display: flex; flex-direction: column; min-width: 0; line-height: 1.3;">
+                <span style="display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: {{row.fw}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.label}} <span style="display: {{row.playDisp}}; color: #3ecf8e;"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true" style="width: 11px; height: 11px;"><path d="M7 4l13 8-13 8z"/></svg></span></span>
+                <span class="mono" style="font-size: 10.5px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{row.meta}}</span>
               </span>
               <span style="flex-grow: 1;"></span>
-              <span style="font-size: 11.5px; color: #2563eb; white-space: nowrap;">{{row.state}}</span>
+              <span style="font-size: 11px; color: #ffd84d; white-space: nowrap;">{{row.state}}</span>
             </button>
           </sc-if>
         </sc-for>
       </div>
-      <button type="button" onClick="{{newCustom}}" style="height: 32px; flex-shrink: 0; border: 1px dashed #b6bfcc; border-radius: 8px; background: transparent; color: #5b6472; font: inherit; font-size: 13px; cursor: pointer;">+ 새 커스텀 자재</button>
+      <span style="flex-grow: 1;"></span>
+      <button class="btn sm dash" type="button" onClick="{{newCustom}}" style="flex-shrink: 0; color: #b4bac3;"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>새 커스텀 자재</button>
     </aside>
 
-    <main onKeyDown="{{vx.key}}" style="position: relative; flex-grow: 1; min-width: 0; background: #eef1f5; outline: none;">
+    <main class="stage" onKeyDown="{{vx.key}}" style="position: relative; flex-grow: 1; min-width: 0; outline: none;">
       <svg width="936" height="848" viewBox="0 0 936 848" role="img" aria-label="설계 화면 — {{name}}, 끌어서 돌려 봄" style="display: block; cursor: {{vx.cursor}}; touch-action: none; user-select: none;" onPointerDown="{{vx.down}}" onPointerMove="{{vx.move}}" onPointerUp="{{vx.up}}" onPointerLeave="{{vx.leave}}" onContextMenu="{{vx.ctx}}">
-        <polygon points="{{vx.rim}}" fill="#dfe4eb"></polygon>
+        <polygon points="{{vx.rim}}" fill="#0b0d10" stroke="rgba(255,255,255,0.06)" stroke-width="1"></polygon>
         <sc-for list="{{vx.plate}}" as="c" hint-placeholder-count="64">
-          <polygon class="face-hit" points="{{c.pts}}" fill="{{c.fill}}" stroke="#c3cad5" stroke-width="1" data-target="{{c.target}}"></polygon>
+          <polygon class="face-hit" points="{{c.pts}}" fill="{{c.fill}}" stroke="#2a2f38" stroke-width="1" data-target="{{c.target}}"></polygon>
         </sc-for>
-        <polygon points="{{vx.outline}}" fill="none" stroke="#5b6472" stroke-width="1.5" stroke-dasharray="6 6" opacity="0.8" style="pointer-events: none;"></polygon>
+        <polygon points="{{vx.outline}}" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="6 6" opacity="0.8" style="pointer-events: none;"></polygon>
         <sc-for list="{{vx.faces}}" as="f" hint-placeholder-count="40">
           <polygon points="{{f.pts}}" fill="{{f.fill}}" stroke="{{f.stroke}}" stroke-width="{{f.sw}}" stroke-linejoin="round" opacity="{{f.op}}" data-target="{{f.target}}" data-block="{{f.block}}" style="pointer-events: {{f.pe}};"></polygon>
         </sc-for>
       </svg>
 
-      <div style="position: absolute; left: 16px; top: 14px; display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,0.92); border: 1px solid #d8dde5; border-radius: 8px; padding: 10px 12px; width: 300px; box-sizing: border-box;">
-        <span style="font-size: 13px; font-weight: 600;">가로 · 세로 · 높이 8 × 8 × 8 <span style="font-weight: 400; color: #5b6472;">(블럭 하나 = 자재 한 칸의 1/8)</span></span>
-        <span style="font-size: 12px; color: #5b6472;">블럭 {{vx.total}}개 · 아래 판이 바닥 · 블럭 크기보다 작은 물건(울타리 · 작은 도구)을 만든다</span>
-        <span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #16191f;">놓을 색 <span style="width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(22,25,31,0.2); background: {{color}};"></span> <span style="font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">{{color}}</span></span>
+      <div class="panel" style="position: absolute; left: 16px; top: 14px; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; width: 300px; box-sizing: border-box;">
+        <span class="cap">설계 · 8 × 8 × 8</span>
+        <span style="font-size: 13px; font-weight: 600;">가로 · 세로 · 높이 8 × 8 × 8 <span style="font-weight: 400; color: #9aa1ab;">(블럭 하나 = 자재 한 칸의 1/8)</span></span>
+        <span style="font-size: 12px; color: #9aa1ab;">블럭 <b class="mono" style="color: #ede9e1; font-weight: 600;">{{vx.total}}</b>개 · 아래 판이 바닥 · 블럭 크기보다 작은 물건(울타리 · 작은 도구)을 만든다</span>
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #b4bac3;">놓을 색 <span style="width: 18px; height: 18px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.2); background: {{color}};"></span> <span class="mono">{{color}}</span></span>
       </div>
 
           <!-- 애니메이션 확장: 1초 = 16칸 고정. 칸마다 프레임을 넣거나 비워 두고, 빈 칸은 앞 프레임을 그대로 보인다 (한 줄 = 1초) -->
-          <section aria-label="애니메이션 칸" style="position: absolute; left: 16px; top: 206px; width: 380px; display: {{an.disp}}; flex-direction: column; gap: 8px; box-sizing: border-box; background: #ffffff; border: 1px solid #d8dde5; border-radius: 10px; padding: 10px 12px;">
-            <div style="display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; font-size: 12.5px;">
-              <button type="button" onClick="{{an.toggle}}" aria-label="{{an.playLabel}}" title="{{an.playLabel}}" style="width: 32px; height: 28px; border: 1px solid {{an.playLine}}; border-radius: 6px; background: {{an.playBg}}; color: {{an.playFg}}; font: inherit; font-size: 13px; cursor: pointer;">{{an.playIcon}}</button>
-              <b style="font-size: 13px; font-variant-numeric: tabular-nums;">칸 {{an.cur}} / {{an.len}}</b>
-              <span style="color: {{an.slotFg}};">{{an.slotInfo}}</span>
-              <span style="flex-grow: 1;"></span>
-              <label style="display: {{an.lenDisp}}; align-items: center; gap: 4px; color: #5b6472;">길이
-                <select value="{{an.lenVal}}" onChange="{{an.setLen}}" aria-label="애니메이션 길이" style="height: 26px; padding: 0 4px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12.5px; color: #16191f;">
-                  <sc-for list="{{an.lens}}" as="lo" hint-placeholder-count="4"><option value="{{lo.v}}">{{lo.t}}</option></sc-for>
-                </select></label>
-              <span style="display: {{an.lenFixDisp}}; color: #5b6472;">길이 1초 고정 (16칸)</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px;">
-              <span style="color: #5b6472;">복제 간격</span>
-              <div role="radiogroup" aria-label="복제 간격" style="display: flex; gap: 2px; padding: 2px; border-radius: 6px; background: #eef1f5;">
-                <sc-for list="{{an.steps}}" as="sp" hint-placeholder-count="3">
-                  <button type="button" role="radio" aria-checked="{{sp.on}}" title="{{sp.tip}}" onClick="{{sp.pick}}" style="height: 22px; padding: 0 7px; border: 0; border-radius: 4px; background: {{sp.bg}}; color: {{sp.fg}}; box-shadow: {{sp.sh}}; font: inherit; font-size: 11.5px; font-weight: {{sp.fw}}; cursor: pointer;">{{sp.label}}</button>
-                </sc-for>
-              </div>
-              <button type="button" onClick="{{an.dup}}" title="{{an.dupTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #2563eb; border-radius: 6px; background: #ffffff; color: {{an.dupFg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">+ 복제 → {{an.stepLabel}} 뒤</button>
-              <button type="button" onClick="{{an.fill}}" title="{{an.fillTip}}" style="height: 26px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">{{an.fillLabel}}</button>
-              <span style="flex-grow: 1;"></span>
-              <button type="button" onClick="{{an.left}}" title="이 프레임을 한 칸 앞으로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.leftFg}}; font: inherit; font-size: 12px; cursor: pointer;">◀</button>
-              <button type="button" onClick="{{an.right}}" title="이 프레임을 한 칸 뒤로" style="height: 26px; padding: 0 7px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: {{an.rightFg}}; font: inherit; font-size: 12px; cursor: pointer;">▶</button>
-            </div>
-            <div role="listbox" aria-label="칸 (한 줄 = 1초)" style="display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px;">
-              <sc-for list="{{an.slots}}" as="fs" hint-placeholder-count="16">
-                <button type="button" role="option" aria-selected="{{fs.sel}}" aria-label="{{fs.label}}" title="{{fs.label}}" onClick="{{fs.pick}}" style="position: relative; height: {{an.slotH}}px; padding: 0; box-sizing: border-box; border: {{fs.border}}; border-radius: 5px; background: {{fs.bg}}; cursor: pointer; overflow: hidden; box-shadow: {{fs.ring}};">
-                  <img src="{{fs.img}}" alt="" style="display: {{fs.imgDisp}}; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
-                  <span style="display: {{fs.holdDisp}}; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1px; background: #b9cdf5;"></span>
-                  <span style="position: absolute; left: 3px; top: 0; font-size: 9.5px; font-weight: 700; color: {{fs.numFg}};">{{fs.num}}</span>
-                </button>
-              </sc-for>
-            </div>
-            <div style="display: {{an.confirmDisp}}; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: #fff7e6; border: 1px solid #f0d59a; font-size: 12.5px; color: #7a4d00;">
-              <span style="flex-grow: 1;">일반 타입은 프레임 하나 · 1초입니다 — 지금 보이는 프레임만 남기고 나머지 프레임 {{an.dropN}}개를 지웁니다.</span>
-              <button type="button" onClick="{{an.confirmYes}}" style="height: 26px; padding: 0 10px; border: 1px solid #d33d52; border-radius: 6px; background: #ffffff; color: #b4283c; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">지우고 일반으로</button>
-              <button type="button" onClick="{{an.confirmNo}}" style="height: 26px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">취소</button>
-            </div>
-          </section>
+          <section class="panel" aria-label="애니메이션 칸" style="position: absolute; left: 16px; top: 214px; width: 400px; display: {{an.disp}}; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 10px 12px; border-radius: 14px;">
+        <div style="display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; font-size: 12.5px;">
+          <button class="play" type="button" onClick="{{an.toggle}}" aria-label="{{an.playLabel}}" title="{{an.playLabel}}" style="width: 30px; height: 28px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid {{an.playLine}}; border-radius: 8px; background: {{an.playBg}}; color: {{an.playFg}}; font: inherit; font-size: 13px; cursor: pointer;"><span class="i-play"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></span><span class="i-pause"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></span><span class="sr">{{an.playIcon}}</span></button>
+          <b class="mono" style="font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums;">칸 {{an.cur}} / {{an.len}}</b>
+          <span style="color: {{an.slotFg}};">{{an.slotInfo}}</span>
+          <span style="flex-grow: 1;"></span>
+          <label style="display: {{an.lenDisp}}; align-items: center; gap: 6px; color: #9aa1ab;">길이
+            <select class="input sm" value="{{an.lenVal}}" onChange="{{an.setLen}}" aria-label="애니메이션 길이">
+              <sc-for list="{{an.lens}}" as="lo" hint-placeholder-count="4"><option value="{{lo.v}}">{{lo.t}}</option></sc-for>
+            </select></label>
+          <span style="display: {{an.lenFixDisp}}; color: #9aa1ab;">길이 1초 고정 (16칸)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px;">
+          <span style="color: #9aa1ab;">복제 간격</span>
+          <div class="seg" role="radiogroup" aria-label="복제 간격">
+            <sc-for list="{{an.steps}}" as="sp" hint-placeholder-count="3">
+              <button type="button" role="radio" aria-checked="{{sp.on}}" title="{{sp.tip}}" onClick="{{sp.pick}}" style="height: 22px; padding: 0 8px; border: 0; background: {{sp.bg}}; color: {{sp.fg}}; box-shadow: {{sp.sh}}; font: inherit; font-size: 11.5px; font-weight: {{sp.fw}}; cursor: pointer;">{{sp.label}}</button>
+            </sc-for>
+          </div>
+          <button class="btn xs" type="button" onClick="{{an.dup}}" title="{{an.dupTip}}" style="color: {{an.dupFg}}; font-weight: 600;"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>복제 → {{an.stepLabel}} 뒤</button>
+          <button class="btn xs" type="button" onClick="{{an.fill}}" title="{{an.fillTip}}">{{an.fillLabel}}</button>
+          <span style="flex-grow: 1;"></span>
+          <button class="btn xs icn" type="button" onClick="{{an.left}}" title="이 프레임을 한 칸 앞으로" aria-label="이 프레임을 한 칸 앞으로" style="color: {{an.leftFg}};"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button class="btn xs icn" type="button" onClick="{{an.right}}" title="이 프레임을 한 칸 뒤로" aria-label="이 프레임을 한 칸 뒤로" style="color: {{an.rightFg}};"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        </div>
+        <div role="listbox" aria-label="칸 (한 줄 = 1초)" style="display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px;">
+          <sc-for list="{{an.slots}}" as="fs" hint-placeholder-count="16">
+            <button class="slot" type="button" role="option" aria-selected="{{fs.sel}}" aria-label="{{fs.label}}" title="{{fs.label}}" onClick="{{fs.pick}}" style="position: relative; height: {{an.slotH}}px; padding: 0; box-sizing: border-box; border: {{fs.border}}; border-radius: 6px; background: {{fs.bg}}; cursor: pointer; overflow: hidden; box-shadow: {{fs.ring}};">
+              <img src="{{fs.img}}" alt="" style="display: {{fs.imgDisp}}; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
+              <span style="display: {{fs.holdDisp}}; position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: rgba(255,255,255,0.10);"></span>
+              <span class="mono" style="position: absolute; left: 3px; top: 0; font-size: 9px; font-weight: 600; color: {{fs.numFg}};">{{fs.num}}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display: {{an.confirmDisp}}; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(245,184,61,0.08); border: 1px solid rgba(245,184,61,0.35); font-size: 12.5px; color: #f5b83d;">
+          <svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg><span style="flex-grow: 1;">일반 타입은 프레임 하나 · 1초입니다 — 지금 보이는 프레임만 남기고 나머지 프레임 {{an.dropN}}개를 지웁니다.</span>
+          <button class="btn xs danger" type="button" onClick="{{an.confirmYes}}" style="font-weight: 600;">지우고 일반으로</button>
+          <button class="btn xs" type="button" onClick="{{an.confirmNo}}">취소</button>
+        </div>
+      </section>
 
-      <div style="position: absolute; left: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; max-width: 640px; font-size: 12px; color: #5b6472; background: rgba(255,255,255,0.92); border: 1px solid #d8dde5; border-radius: 8px; padding: 8px 12px; box-sizing: border-box;">
-        <span><b style="color: #16191f; font-weight: 600;">좌클릭 끌기</b> 회전</span>
-        <span><b style="color: #16191f; font-weight: 600;">색 클릭</b> 놓을 색</span>
-        <span><b style="color: #16191f; font-weight: 600;">우클릭 누르고 있기</b> 설치 준비</span>
-        <span><b style="color: #16191f; font-weight: 600;">떼기</b> 설치</span>
-        <span><b style="color: #16191f; font-weight: 600;">좌클릭</b> 블록 제거</span>
-        <span><b style="color: #16191f; font-weight: 600;">Ctrl+Z</b> 되돌리기</span>
+      <div class="panel" style="position: absolute; left: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; max-width: 640px; font-size: 12px; color: #9aa1ab; padding: 9px 14px; box-sizing: border-box; border-radius: 12px;">
+        <span><b style="color: #ede9e1; font-weight: 600;">좌클릭 끌기</b> 회전</span>
+        <span><b style="color: #ede9e1; font-weight: 600;">색 클릭</b> 놓을 색</span>
+        <span><b style="color: #ede9e1; font-weight: 600;">우클릭 누르고 있기</b> 설치 준비</span>
+        <span><b style="color: #ede9e1; font-weight: 600;">떼기</b> 설치</span>
+        <span><b style="color: #ede9e1; font-weight: 600;">좌클릭</b> 블록 제거</span>
+        <span><b class="mono" style="color: #ede9e1; font-weight: 600;">Ctrl+Z</b> 되돌리기</span>
       </div>
     </main>
 
-    <aside style="width: 272px; flex-shrink: 0; box-sizing: border-box; border-left: 1px solid #d8dde5; padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow: hidden;">
-      <section aria-label="시점" style="display: flex; flex-direction: column; align-items: center; gap: 6px; background: #f4f6f9; border-radius: 10px; padding: 12px;">
+    <aside class="side" style="width: 272px; flex-shrink: 0; box-sizing: border-box; border-left: 1px solid rgba(255,255,255,0.08); padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto;">
+      <section class="well" aria-label="시점" style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px; background: radial-gradient(ellipse 70% 60% at 50% 45%, #1b1f26 0%, #111317 70%);">
+        <div style="align-self: stretch; display: flex;"><span class="cap">시점</span></div>
         <svg width="140" height="132" viewBox="0 0 140 132" role="group" aria-label="시점 큐브 — 면을 누르면 그 방향으로 봅니다" style="cursor: pointer;" onClick="{{vx.cubeClick}}">
           <sc-for list="{{vx.cube}}" as="q" hint-placeholder-count="3">
             <g data-face="{{q.id}}">
-              <polygon points="{{q.pts}}" fill="{{q.fill}}" stroke="#16191f" stroke-opacity="0.25" stroke-width="1" stroke-linejoin="round"></polygon>
-              <text x="{{q.lx}}" y="{{q.ly}}" text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="600" fill="#ffffff" style="pointer-events: none;">{{q.label}}</text>
+              <polygon points="{{q.pts}}" fill="{{q.fill}}" stroke="#0b0d10" stroke-opacity="0.6" stroke-width="1" stroke-linejoin="round"></polygon>
+              <text x="{{q.lx}}" y="{{q.ly}}" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="600" font-family="'JetBrains Mono',ui-monospace,monospace" fill="#ffffff" style="pointer-events: none;">{{q.label}}</text>
             </g>
           </sc-for>
         </svg>
-        <span style="font-size: 12px; color: #5b6472; font-family: ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;">방위 {{yawLabel}} · 기울기 {{pitchLabel}}</span>
-        <button type="button" onClick="{{resetView}}" style="height: 28px; padding: 0 10px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12.5px; cursor: pointer;">필드 시점으로</button>
+        <span class="mono" style="font-size: 11.5px; color: #9aa1ab;">방위 {{yawLabel}} · 기울기 {{pitchLabel}}</span>
+        <button class="btn xs" type="button" onClick="{{resetView}}"><svg class="ico s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg>필드 시점으로</button>
       </section>
 
-      <section aria-label="색 (자재)" style="display: flex; flex-direction: column; gap: 8px; min-height: 0;">
+      <section aria-label="색 (자재)" style="display: flex; flex-direction: column; gap: 10px; min-height: 0;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">색</h3>
-          <span style="font-size: 12px; color: #5b6472;">커스텀 자재의 블럭 = 색 하나</span>
+          <h3 class="cap" style="margin: 0;">색</h3>
+          <span style="font-size: 11.5px; color: #6b7280;">커스텀 자재의 블럭 = 색 하나</span>
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="width: 40px; height: 40px; border-radius: 8px; border: 1px solid #d8dde5; background: {{color}};"></span>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5b6472;">직접 고르기 <input type="color" value="{{color}}" onChange="{{setColor}}" aria-label="색 직접 고르기" style="width: 36px; height: 24px; padding: 0; border: 1px solid #d8dde5; border-radius: 4px; background: #ffffff;"></label>
+          <span style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.14); background: {{color}}; box-shadow: inset 0 0 0 2px rgba(0,0,0,.25);"></span>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9aa1ab;">직접 고르기 <input type="color" value="{{color}}" onChange="{{setColor}}" aria-label="색 직접 고르기" style="width: 36px; height: 24px;"></label>
         </div>
         <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px;">
           <sc-for list="{{palette}}" as="c" hint-placeholder-count="32">
-            <button type="button" aria-label="{{c.hex}}" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="height: 24px; border: {{c.border}}; border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;"></button>
+            <button class="sw" type="button" aria-label="{{c.hex}}" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="height: 24px; border: {{c.border}}; border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;"></button>
           </sc-for>
         </div>
-        <span style="font-size: 12px; color: #5b6472;">최근 쓴 색</span>
+        <span class="cap" style="margin-top: 2px;">최근 쓴 색</span>
         <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; min-height: 22px;">
           <sc-for list="{{recent}}" as="c" hint-placeholder-count="0">
-            <button type="button" aria-label="{{c.hex}}" onClick="{{c.pick}}" style="height: 22px; border: 1px solid #d8dde5; border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;"></button>
+            <button class="sw" type="button" aria-label="{{c.hex}}" onClick="{{c.pick}}" style="height: 22px; border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; background: {{c.hex}}; cursor: pointer; padding: 0;"></button>
           </sc-for>
         </div>
       </section>
@@ -393,7 +521,7 @@ class Component extends DCLogic {
   animVals(opts) {
     const S = this.state, fr = S.frames, len = fr.length, anim = S.anim, maxLen = opts.maxLen || 1, step = S.step || 2;
     const keys = fr.map((f, i) => this.slotFilled(i)), nKeys = keys.filter(Boolean).length;
-    const tab = (label, on, pick, tip) => ({ label, tip: tip || '', on: on ? 'true' : 'false', bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(22,25,31,0.14)' : 'none', pick });
+    const tab = (label, on, pick, tip) => ({ label, tip: tip || '', on: on ? 'true' : 'false', bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(0,0,0,0.35)' : 'none', pick });
     const edit = (fn) => () => { if (S.playing) this.animPlay(false); fn(); };
     const filledHere = keys[S.fi], held = this.heldIdx(fr, S.fi);
     const move = (d) => edit(() => {
@@ -411,9 +539,9 @@ class Component extends DCLogic {
       return {
         num: has ? String(i + 1) : '', label: '칸 ' + (i + 1) + ' · ' + (Math.floor(i / 16) + 1) + '초' + (has ? ' — 프레임' : ' — 빈 칸 (칸 ' + (hk + 1) + '의 프레임이 이어짐)'),
         sel: on ? 'true' : 'false', img, imgDisp: img ? 'block' : 'none', holdDisp: has ? 'none' : 'block',
-        border: on ? '2px solid #2563eb' : has ? '1px solid #b6c3d6' : '1px solid #e3e8ef',
-        bg: has ? (img ? '#f7f8fa' : '#dde8fd') : (i % 4 === 0 ? '#f4f6f9' : '#fafbfc'),
-        ring: head ? '0 0 0 2px #1f9d55' : 'none', numFg: on ? '#2563eb' : '#5b6472',
+        border: on ? '2px solid #ffd84d' : has ? '1px solid rgba(255,255,255,0.22)' : '1px solid rgba(255,255,255,0.07)',
+        bg: has ? (img ? '#1a1e25' : 'rgba(122,167,255,0.16)') : (i % 4 === 0 ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.025)'),
+        ring: head ? '0 0 0 2px #3ecf8e' : 'none', numFg: on ? '#ffd84d' : '#9aa1ab',
         pick: edit(() => this.animGo(i))
       };
     });
@@ -427,7 +555,7 @@ class Component extends DCLogic {
       ], typeLabel: opts.typeLabel,
       cur: String(cur + 1), len: String(len),
       slotInfo: '프레임 ' + nKeys + '개 · ' + (filledHere ? '이 칸은 프레임' : '빈 칸 — 칸 ' + (held + 1) + '의 프레임이 보임 · 그리면 이 칸에 새 프레임'),
-      slotFg: filledHere ? '#5b6472' : '#2563eb',
+      slotFg: filledHere ? '#9aa1ab' : '#7aa7ff',
       lenDisp: maxLen > 1 ? 'flex' : 'none', lenFixDisp: maxLen > 1 ? 'none' : 'inline', lenVal: String(len / 16), lens,
       setLen: (e) => {
         if (S.playing) this.animPlay(false);
@@ -446,7 +574,7 @@ class Component extends DCLogic {
         if (!f[j]) f[j] = opts.copy(f[this.heldIdx(f, S.fi)]);
         this.animGo(j, f); this.setState({ saved: false });
       }),
-      dupFg: S.fi + step < len ? '#2563eb' : '#b6bfcc',
+      dupFg: S.fi + step < len ? '#ede9e1' : '#4b515b',
       fillLabel: filledHere ? '빈 칸으로' : '이 칸에 프레임 넣기',
       fillTip: filledHere ? (S.fi === 0 ? '칸 0은 비울 수 없습니다' : '이 칸의 프레임을 지워 앞 프레임이 이어지게') : '앞 프레임을 복사해 이 칸에 넣기',
       fill: edit(() => {
@@ -456,10 +584,10 @@ class Component extends DCLogic {
         this.animGo(S.fi, f); this.setState({ saved: false });
       }),
       left: move(-1), right: move(1),
-      leftFg: filledHere && S.fi > 0 ? '#16191f' : '#b6bfcc', rightFg: filledHere && S.fi < len - 1 && (S.fi > 0 || keys[1]) ? '#16191f' : '#b6bfcc',
+      leftFg: filledHere && S.fi > 0 ? '#ede9e1' : '#4b515b', rightFg: filledHere && S.fi < len - 1 && (S.fi > 0 || keys[1]) ? '#ede9e1' : '#4b515b',
       toggle: () => { if (nKeys < 2) return; this.animPlay(!S.playing); },
       playIcon: S.playing ? '❚❚' : '▶', playLabel: nKeys < 2 ? '프레임이 2개 이상이면 재생' : S.playing ? '멈춤' : '재생',
-      playLine: S.playing ? '#1f9d55' : '#d8dde5', playBg: S.playing ? '#e8f6ee' : '#ffffff', playFg: nKeys < 2 ? '#b6bfcc' : S.playing ? '#1f7a4d' : '#16191f',
+      playLine: S.playing ? 'rgba(62,207,142,0.55)' : 'rgba(255,255,255,0.18)', playBg: S.playing ? 'rgba(62,207,142,0.14)' : 'rgba(255,255,255,0.04)', playFg: nKeys < 2 ? '#4b515b' : S.playing ? '#3ecf8e' : '#ede9e1',
       slots,
       confirmDisp: S.confirmBasic ? 'flex' : 'none', dropN: String(Math.max(0, nKeys - 1)),
       confirmYes: () => {
@@ -777,7 +905,7 @@ class Component extends DCLogic {
     const plate = [];
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const t = x + ',' + y + ',0';
-      plate.push({ pts: str([PG(x, y, 0), PG(x + 1, y, 0), PG(x + 1, y + 1, 0), PG(x, y + 1, 0)]), target: t, fill: hover === t && !has(x, y, 0) ? '#dbe6fb' : ((x + y) % 2 ? '#f8f9fb' : '#f1f3f7') });
+      plate.push({ pts: str([PG(x, y, 0), PG(x + 1, y, 0), PG(x + 1, y + 1, 0), PG(x, y + 1, 0)]), target: t, fill: hover === t && !has(x, y, 0) ? 'rgba(255,216,77,0.30)' : ((x + y) % 2 ? '#1c2028' : '#161a20') });
     }
     const sq = (k) => [[-k, -k], [N + k, -k], [N + k, N + k], [-k, N + k]];
     const rim = str(sq(0.35).map(([a, b]) => PG(a, b, 0))), outline = str(sq(0).map(([a, b]) => PG(a, b, 0)));
@@ -796,7 +924,7 @@ class Component extends DCLogic {
       if (id !== 'pz' && dx * sy + dy * cy <= 0.001) return;
       const pts = cornersOf(id, x, y, z).map((q) => PG(...q)), nb = [x + dx, y + dy, z + dz];
       const lf = this.lightF(id, DM[id].n[0] * cy - DM[id].n[1] * sy, DM[id].n[0] * sy + DM[id].n[1] * cy);
-      faces.push({ pts: str(pts), fill: this.scaleC(col, lf), stroke: ghost ? '#2563eb' : 'rgba(22,25,31,0.22)', sw: ghost ? 1.5 : 0.9, op: ghost ? (S.vplacing ? 0.85 : 0.6) : 1, pe: ghost ? 'none' : 'auto',
+      faces.push({ pts: str(pts), fill: this.scaleC(col, lf), stroke: ghost ? '#ffd84d' : 'rgba(22,25,31,0.22)', sw: ghost ? 1.5 : 0.9, op: ghost ? (S.vplacing ? 0.85 : 0.6) : 1, pe: ghost ? 'none' : 'auto',
         target: inB(...nb) ? nb.join(',') : '', block: x + ',' + y + ',' + z, near: pts.reduce((a, q) => a + q[2], 0) / 4 + (ghost ? 0.01 : 0) });
     });
     let total = 0;
@@ -814,7 +942,7 @@ class Component extends DCLogic {
     ].filter((q) => q.id === 'pz' || q.n[0] * sy + q.n[1] * cy > 0.02).map((q) => {
       const pts = q.c.map((p) => CPW(...p));
       return { id: q.id, label: q.label, pts: str(pts), lx: f(pts.reduce((a, p) => a + p[0], 0) / 4), ly: f(pts.reduce((a, p) => a + p[1], 0) / 4),
-        fill: this.scaleC('#5f7fbf', this.lightF(q.id, q.n[0] * cy - q.n[1] * sy, q.n[0] * sy + q.n[1] * cy)), near: pts.reduce((a, p) => a + p[2], 0) / 4 };
+        fill: this.scaleC('#6a7486', this.lightF(q.id, q.n[0] * cy - q.n[1] * sy, q.n[0] * sy + q.n[1] * cy)), near: pts.reduce((a, p) => a + p[2], 0) / 4 };
     }).sort((a, b) => a.near - b.near);
     const cubeClick = (e) => {
       const g = e.target.closest ? e.target.closest('[data-face]') : null, id = g ? g.getAttribute('data-face') : '';
@@ -881,7 +1009,7 @@ class Component extends DCLogic {
         let n = 0; if (v) for (let i = 0; i < v.length; i++) if (v[i]) n++;
         out.push({ isSet: false, isMat: true, label: m.name, img: custom ? this.voxImg(v, 30, 30, 45, this.fieldPitch(), 19, 15, 17) : this.thumb(on && !custom ? S.faces : m.faces),
           meta: custom ? '8³ · 블럭 ' + n + (fr > 1 ? ' · ' + fr + '프레임' : '') : '큐브 · 6면' + (fr > 1 ? ' · ' + fr + '프레임' : ''), playDisp: fr > 1 ? 'inline' : 'none',
-          pressed: on ? 'true' : 'false', border: on ? '1px solid #2563eb' : '1px solid transparent', bg: on ? '#ffffff' : 'transparent', fw: on ? 600 : 500, state: on ? '편집 중' : '',
+          pressed: on ? 'true' : 'false', border: on ? '1px solid rgba(255,255,255,0.18)' : '1px solid transparent', bg: on ? 'rgba(255,255,255,0.09)' : 'transparent', fw: on ? 600 : 500, state: on ? '편집 중' : '',
           pick: () => { if (!on && this._pickMat) this._pickMat({ target: { value: m.id } }); } });
       });
     });
@@ -903,7 +1031,7 @@ class Component extends DCLogic {
       const ox = OX + L.col * (FACE + GAP), oy = OY + L.row * (FACE + GAP);
       return {
         ox: ox - 2, oy: oy - 2, size: FACE + 4,
-        ring: this.state.sel === L.id ? '#2563eb' : 'transparent',
+        ring: this.state.sel === L.id ? '#ffd84d' : 'rgba(255,255,255,0.06)',
         label: L.label + (this.state.sel === L.id ? ' · 선택' : ''),
         lx: ox + FACE / 2, ly: L.row === 2 ? oy + FACE + 18 : oy - 8,
         sx: rsel && rsel.id === L.id ? ox + Math.min(rsel.x0, rsel.x1) * CELL : 0, sy: rsel && rsel.id === L.id ? oy + Math.min(rsel.y0, rsel.y1) * CELL : 0,
@@ -1046,7 +1174,7 @@ class Component extends DCLogic {
     const palette = PAL.map((hex) => ({
       hex,
       pressed: hex === this.state.color ? 'true' : 'false',
-      border: hex === this.state.color ? '2px solid #2563eb' : '1px solid rgba(22,25,31,0.15)',
+      border: hex === this.state.color ? '2px solid #0d0f13' : '1px solid rgba(255,255,255,0.10)',
       pick: () => this.setState({ color: hex, tool: this.state.tool === 'pick' ? 'pen' : this.state.tool })
     }));
     const TOOLS = [
@@ -1068,8 +1196,8 @@ class Component extends DCLogic {
     const tools = (custom ? VTOOLS : TOOLS).map((t) => ({
       label: t.label, tip: t.tip,
       pressed: this.state.tool === t.id ? 'true' : 'false',
-      border: this.state.tool === t.id ? '1px solid #2563eb' : '1px solid #d8dde5',
-      bg: this.state.tool === t.id ? '#e6eefc' : '#ffffff',
+      border: this.state.tool === t.id ? '1px solid #ede9e1' : '1px solid rgba(255,255,255,0.14)',
+      bg: this.state.tool === t.id ? '#ede9e1' : 'rgba(255,255,255,0.04)',
       fw: this.state.tool === t.id ? 600 : 400,
       pick: () => this.setState({ tool: t.id, pasting: false })
     }));
@@ -1100,7 +1228,7 @@ class Component extends DCLogic {
         applyAdj(dh, cur.s, cur.l);
       }
     }));
-    const tab = (label, on, pick) => ({ label, sel: on ? 'true' : 'false', bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(22,25,31,0.12)' : 'none', pick });
+    const tab = (label, on, pick) => ({ label, sel: on ? 'true' : 'false', bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(0,0,0,0.35)' : 'none', pick });
     const scopes = [tab('이 면', !this.state.adjAll, () => this.setState({ adjAll: false, adj: null })), tab('6면 전부', this.state.adjAll, () => this.setState({ adjAll: true, adj: null }))];
     const FACE_NAME = { px: '오른쪽', ny: '뒤', nx: '왼쪽', py: '앞', pz: '위', nz: '아래' };
     const selTxt = rsel ? '선택 ' + FACE_NAME[rsel.id] + ' ' + (Math.abs(rsel.x1 - rsel.x0) + 1) + '×' + (Math.abs(rsel.y1 - rsel.y0) + 1) : '';
@@ -1152,16 +1280,16 @@ class Component extends DCLogic {
     return {
       name: this.state.name,
       setName: (e) => this.setState({ name: e.target.value, saved: false }),
-      saveText: this.state.saved ? '저장됨' : '● 저장 안 됨',
-      saveColor: this.state.saved ? '#5b6472' : '#a65f00',
+      saveText: this.state.saved ? '저장됨' : '저장 안 됨',
+      saveColor: this.state.saved ? '#3ecf8e' : '#f5b83d',
       save, saveAs, newMat, pickMat,
       curId: this.state.curId,
       // 2프레임 이상 = 애니메이션 자재: 목록에 ▶️
-      matOptions: mats.map((m) => ({ id: m.id, label: (this.keyCount(m.frames) > 1 ? '▶️ ' : '') + (m.kind === 'custom' ? '[커스텀] ' : '') + m.name + ' — ' + m.set, selected: m.id === this.state.curId })),
+      matOptions: mats.map((m) => ({ id: m.id, label: (this.keyCount(m.frames) > 1 ? '▸ ' : '') + (m.kind === 'custom' ? '[커스텀] ' : '') + m.name + ' — ' + m.set, selected: m.id === this.state.curId })),
       an: this.animVals({ typeLabel: '자재', basicLabel: custom ? '일반' : '일반 자재', animLabel: custom ? '애니메이션' : '애니메이션 자재', thumb: (f) => this.thumb(f), copy: (f) => this.copyFrame(f), slotH: 46, maxLen: 1 }),
-      newCustom, vx: this.voxVals(custom),
+      newCustom, vx: this.voxVals(custom), matTree: custom ? [] : this.voxTree(),
       cubeFlex: custom ? 'none' : 'flex', cubeInline: custom ? 'none' : 'inline-block', cubeBlock: custom ? 'none' : 'block',
-      kindLabel: custom ? '커스텀 · 8³' : '큐브 · 6면', kindBg: custom ? '#f1e9f8' : '#eef1f5', kindFg: custom ? '#5b2f7e' : '#5b6472',
+      kindLabel: custom ? '커스텀 · 8³' : '큐브 · 6면', kindBg: custom ? 'rgba(189,132,255,0.12)' : 'rgba(255,255,255,0.05)', kindFg: custom ? '#cfa8ff' : '#b4bac3',
       kindTip: custom ? '8 × 8 × 8 칸에 색 블럭을 쌓아 만드는 자재 — 울타리 · 작은 도구처럼 블럭보다 작은 물건' : '여섯 면에 8 × 8 픽셀을 그리는 블럭 자재',
       helpText: '면마다 8 × 8 픽셀 · 전개도를 접으면 큐브가 됩니다 (앞 위에 윗면, 뒤 아래에 아랫면) · 면을 누르면 그 면이 선택되고, 선택한 면의 기능은 오른쪽 팔레트 아래에 있습니다 · 단축키 Ctrl+C · Ctrl+V · Ctrl+Z · Esc',
       tools,
@@ -1171,11 +1299,11 @@ class Component extends DCLogic {
       netCursor: this.state.pasting ? 'copy' : this.state.tool === 'select' ? 'cell' : this.state.tool === 'pick' ? 'copy' : 'crosshair',
       down, move, up, key, copy, fillSel, undo, status,
       pasteMode: () => { if (this.state.clip) this.setState({ pasting: !this.state.pasting }); },
-      pasteBorder: this.state.pasting ? '1px solid #2563eb' : '1px solid #d8dde5',
-      pasteBg: this.state.pasting ? '#e6eefc' : '#ffffff',
-      pasteColor: this.state.clip ? '#16191f' : '#8b95a6',
-      copyColor: rsel ? '#16191f' : '#8b95a6',
-      undoColor: this.state.hist.length ? '#16191f' : '#8b95a6',
+      pasteBorder: this.state.pasting ? '1px solid #ffd84d' : '1px solid rgba(255,255,255,0.18)',
+      pasteBg: this.state.pasting ? 'rgba(255,216,77,0.14)' : 'rgba(255,255,255,0.04)',
+      pasteColor: this.state.clip ? '#ede9e1' : '#5d646e',
+      copyColor: rsel ? '#ede9e1' : '#5d646e',
+      undoColor: this.state.hist.length ? '#ede9e1' : '#5d646e',
       faceLabel: FACE_NAME[sel] + ' 면',
       scopes, hues, adjH: cur.h, adjS: cur.s, adjL: cur.l,
       setH: (e) => applyAdj(Number(e.target.value), cur.s, cur.l),
@@ -1183,7 +1311,7 @@ class Component extends DCLogic {
       setL: (e) => applyAdj(cur.h, cur.s, Number(e.target.value)),
       commitAdj: () => this.setState({ adj: null }),
       cancelAdj: () => { if (a) { const next = Object.assign({}, this.state.faces); a.targets.forEach((id) => { next[id] = a.base[id]; }); this.setState({ faces: next, adj: null }); } },
-      adjBtn: a ? '#16191f' : '#8b95a6',
+      adjBtn: a ? '#ede9e1' : '#5d646e',
       color: this.state.color,
       setColor: (e) => this.setState({ color: e.target.value }),
       palette,

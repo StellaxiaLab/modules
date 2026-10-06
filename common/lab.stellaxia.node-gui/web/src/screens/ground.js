@@ -46,7 +46,7 @@ export default class Component extends DCLogic {
   animVals(opts) {
     const S = this.state, fr = S.frames, len = fr.length, anim = S.anim, maxLen = opts.maxLen || 1, step = S.step || 4;
     const keys = fr.map((f, i) => this.slotFilled(i)), nKeys = keys.filter(Boolean).length;
-    const tab = (label, on, pick, tip) => ({ label, tip: tip || '', on: on ? 'true' : 'false', bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(22,25,31,0.14)' : 'none', pick });
+    const tab = (label, on, pick, tip) => ({ label, tip: tip || '', on: on ? 'true' : 'false', bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(0,0,0,0.35)' : 'none', pick });
     const edit = (fn) => () => { if (S.playing) this.animPlay(false); fn(); };
     const filledHere = keys[S.fi], held = this.heldIdx(fr, S.fi);
     const move = (d) => edit(() => {
@@ -64,9 +64,9 @@ export default class Component extends DCLogic {
       return {
         num: has ? String(i + 1) : '', label: '칸 ' + (i + 1) + ' · ' + (Math.floor(i / 16) + 1) + '초' + (has ? ' — 프레임' : ' — 빈 칸 (칸 ' + (hk + 1) + '의 프레임이 이어짐)'),
         sel: on ? 'true' : 'false', img, imgDisp: img ? 'block' : 'none', holdDisp: has ? 'none' : 'block',
-        border: on ? '2px solid #2563eb' : has ? '1px solid #b6c3d6' : '1px solid #e3e8ef',
-        bg: has ? (img ? '#f7f8fa' : '#dde8fd') : (i % 4 === 0 ? '#f4f6f9' : '#fafbfc'),
-        ring: head ? '0 0 0 2px #1f9d55' : 'none', numFg: on ? '#2563eb' : '#5b6472',
+        border: on ? '2px solid #ffd84d' : has ? '1px solid rgba(255,255,255,0.22)' : '1px solid rgba(255,255,255,0.07)',
+        bg: has ? (img ? '#1a1e25' : 'rgba(122,167,255,0.16)') : (i % 4 === 0 ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.025)'),
+        ring: head ? '0 0 0 2px #3ecf8e' : 'none', numFg: on ? '#ffd84d' : '#9aa1ab',
         pick: edit(() => this.animGo(i))
       };
     });
@@ -80,7 +80,7 @@ export default class Component extends DCLogic {
       ], typeLabel: opts.typeLabel,
       cur: String(cur + 1), len: String(len),
       slotInfo: '프레임 ' + nKeys + '개 · ' + (filledHere ? '이 칸은 프레임' : '빈 칸 — 칸 ' + (held + 1) + '의 프레임이 보임 · 그리면 이 칸에 새 프레임'),
-      slotFg: filledHere ? '#5b6472' : '#2563eb',
+      slotFg: filledHere ? '#9aa1ab' : '#7aa7ff',
       lenDisp: maxLen > 1 ? 'flex' : 'none', lenFixDisp: maxLen > 1 ? 'none' : 'inline', lenVal: String(len / 16), lens,
       setLen: (e) => {
         if (S.playing) this.animPlay(false);
@@ -99,7 +99,7 @@ export default class Component extends DCLogic {
         if (!f[j]) f[j] = opts.copy(f[this.heldIdx(f, S.fi)]);
         this.animGo(j, f); this.setState({ saved: false });
       }),
-      dupFg: S.fi + step < len ? '#2563eb' : '#b6bfcc',
+      dupFg: S.fi + step < len ? '#ede9e1' : '#4b515b',
       fillLabel: filledHere ? '빈 칸으로' : '이 칸에 프레임 넣기',
       fillTip: filledHere ? (S.fi === 0 ? '칸 0은 비울 수 없습니다' : '이 칸의 프레임을 지워 앞 프레임이 이어지게') : '앞 프레임을 복사해 이 칸에 넣기',
       fill: edit(() => {
@@ -109,10 +109,10 @@ export default class Component extends DCLogic {
         this.animGo(S.fi, f); this.setState({ saved: false });
       }),
       left: move(-1), right: move(1),
-      leftFg: filledHere && S.fi > 0 ? '#16191f' : '#b6bfcc', rightFg: filledHere && S.fi < len - 1 && (S.fi > 0 || keys[1]) ? '#16191f' : '#b6bfcc',
+      leftFg: filledHere && S.fi > 0 ? '#ede9e1' : '#4b515b', rightFg: filledHere && S.fi < len - 1 && (S.fi > 0 || keys[1]) ? '#ede9e1' : '#4b515b',
       toggle: () => { if (nKeys < 2) return; this.animPlay(!S.playing); },
       playIcon: S.playing ? '❚❚' : '▶', playLabel: nKeys < 2 ? '프레임이 2개 이상이면 재생' : S.playing ? '멈춤' : '재생',
-      playLine: S.playing ? '#1f9d55' : '#d8dde5', playBg: S.playing ? '#e8f6ee' : '#ffffff', playFg: nKeys < 2 ? '#b6bfcc' : S.playing ? '#1f7a4d' : '#16191f',
+      playLine: S.playing ? 'rgba(62,207,142,0.55)' : 'rgba(255,255,255,0.18)', playBg: S.playing ? 'rgba(62,207,142,0.14)' : 'rgba(255,255,255,0.04)', playFg: nKeys < 2 ? '#4b515b' : S.playing ? '#3ecf8e' : '#ede9e1',
       slots,
       confirmDisp: S.confirmBasic ? 'flex' : 'none', dropN: String(Math.max(0, nKeys - 1)),
       confirmYes: () => {
@@ -365,10 +365,10 @@ export default class Component extends DCLogic {
       '#f4fbfa', '#a8dcd6', '#6fbfd0', '#3f8fb0', '#ffffff', '#d9dee6', '#9aa3ae', '#3a4049', '#e8a0a0', '#d86a5a', '#f0b442', '#ffd88a', '#b6a1e0', '#7d67c8', '#1f9d55', '#16191f'];
     return {
       curId: S.curId, name: S.name,
-      skinOptions: S.skins.map((k) => ({ id: k.id, label: k.name + (this.keyCount(k.frames) > 1 ? ' ▶' : '') })),
+      skinOptions: S.skins.map((k) => ({ id: k.id, label: k.name + (this.keyCount(k.frames) > 1 ? ' ▸' : '') })),
       pickSkin: (e) => { const k = S.skins.find((x) => x.id === e.target.value); if (k) this.loadSkin(k); },
       setName: (e) => this.setState({ name: e.target.value, saved: false }),
-      saveText: S.saved ? '저장됨' : '저장 안 됨', saveColor: S.saved ? '#1f7a4d' : '#a65f00',
+      saveText: S.saved ? '저장됨' : '저장 안 됨', saveColor: S.saved ? '#3ecf8e' : '#f5b83d',
       save: () => {
         const fr = this.framesNow(), sk = { id: S.curId, name: S.name, edge: S.data.edge, mode: S.data.mode, top: fr[0].top, frames: S.anim ? fr : [fr[0]].concat(new Array(15).fill(null)) };
         this.setState({ skins: S.skins.map((k) => k.id === S.curId ? sk : k), frames: fr, saved: true });
@@ -379,12 +379,12 @@ export default class Component extends DCLogic {
       },
       newSkin: () => { const top = new Array(256).fill('#93c775'); this.loadSkin({ id: 'g' + Date.now().toString(36), name: '새 그라운드', edge: '#5f8f48', mode: 'tile', frames: [{ top }].concat(new Array(15).fill(null)) }); this.setState({ saved: false }); },
       rotDeg: String(S.rot * 60), rotate: () => this.setState({ rot: (S.rot + 1) % 6 }),
-      shapes: [['cluster', '뭉치'], ['line', '한 줄'], ['ring', '고리']].map(([id, label]) => ({ label, on: S.shape === id ? 'true' : 'false', bg: S.shape === id ? '#ffffff' : 'transparent', fw: S.shape === id ? 600 : 400, pick: () => this.setState({ shape: id }) })),
+      shapes: [['cluster', '뭉치'], ['line', '한 줄'], ['ring', '고리']].map(([id, label]) => ({ label, on: S.shape === id ? 'true' : 'false', bg: S.shape === id ? '#ede9e1' : 'transparent', fw: S.shape === id ? 600 : 400, pick: () => this.setState({ shape: id }) })),
       pv,
       an: this.animVals({ typeLabel: '그라운드', basicLabel: '일반 그라운드', animLabel: '애니메이션 그라운드', thumb: (f) => this.thumb(f), copy: (f) => this.copyFrame(f), slotH: 40, slotHM: 30, slotHS: 22, maxLen: 4 }),
       frameNote: S.anim ? '칸 ' + (S.fi + 1) + '의 프레임' : '일반 (프레임 하나)',
       gridLabel: hxm ? GH.GW + ' × ' + GH.GH : '16 × 16',
-      modes: [['tile', '16×16 반복', '16×16 무늬를 세계 좌표에 되풀이 — 이웃 칸과 이음매 없이 이어짐'], ['hex', '육각 통째', '리전 한 칸(보로노이 칸) 전체를 한 장으로 — 칸마다 같은 그림이 놓임']].map(([id, label, tip]) => ({ label, tip, on: S.data.mode === id ? 'true' : 'false', bg: S.data.mode === id ? '#ffffff' : 'transparent', fg: S.data.mode === id ? '#16191f' : '#5b6472', fw: S.data.mode === id ? 600 : 400, sh: S.data.mode === id ? '0 1px 2px rgba(22,25,31,0.14)' : 'none', pick: () => setMode(id) })),
+      modes: [['tile', '16×16 반복', '16×16 무늬를 세계 좌표에 되풀이 — 이웃 칸과 이음매 없이 이어짐'], ['hex', '육각 통째', '리전 한 칸(보로노이 칸) 전체를 한 장으로 — 칸마다 같은 그림이 놓임']].map(([id, label, tip]) => ({ label, tip, on: S.data.mode === id ? 'true' : 'false', bg: S.data.mode === id ? '#ede9e1' : 'transparent', fg: S.data.mode === id ? '#111111' : '#9aa1ab', fw: S.data.mode === id ? 600 : 400, sh: S.data.mode === id ? '0 1px 2px rgba(0,0,0,0.35)' : 'none', pick: () => setMode(id) })),
       modeHint: hxm ? '칸 전체를 한 장으로 — 흐린 칸은 칸 밖(이웃 칸 자리). 회전하면 그림이 칸 중심으로 돈다' : '16칸마다 되풀이 — 가장자리가 이어지게 그리세요',
       px,
       down: (e) => { if (S.playing) this.animPlay(false); const i = at(e); if (i < 0) return; this._drawing = true; this.paint(i, true); },
@@ -393,15 +393,15 @@ export default class Component extends DCLogic {
       edge: S.data.edge,
       edgeFromColor: () => this.setState({ data: Object.assign({}, S.data, { edge: S.color }), saved: false }),
       edgeAuto: () => this.setState({ data: Object.assign({}, S.data, { edge: this.scaleC(this.avgC(S.data.top), 0.78) }), saved: false }),
-      tools: [['pen', '펜', '한 칸씩 칠하기 (끌면 이어서)'], ['fill', '채우기', '같은 색으로 이어진 칸을 한 번에'], ['pick', '스포이드', '누른 칸의 색을 고르기']].map(([id, label, tip]) => ({ label, tip, pressed: S.tool === id ? 'true' : 'false', border: S.tool === id ? '2px solid #2563eb' : '1px solid #d8dde5', bg: S.tool === id ? '#e6eefc' : '#ffffff', fw: S.tool === id ? 600 : 400, pick: () => this.setState({ tool: id }) })),
+      tools: [['pen', '펜', '한 칸씩 칠하기 (끌면 이어서)'], ['fill', '채우기', '같은 색으로 이어진 칸을 한 번에'], ['pick', '스포이드', '누른 칸의 색을 고르기']].map(([id, label, tip]) => ({ label, tip, pressed: S.tool === id ? 'true' : 'false', border: '0', bg: S.tool === id ? '#ede9e1' : 'transparent', fw: S.tool === id ? 600 : 400, pick: () => this.setState({ tool: id }) })),
       undo: () => { if (!S.hist.length) return; this.setState({ data: S.hist[S.hist.length - 1], hist: S.hist.slice(0, -1) }); },
-      undoColor: S.hist.length ? '#16191f' : '#b6bfcc',
+      undoColor: S.hist.length ? '#ede9e1' : '#5d646e',
       shiftPx: () => { if (S.data.mode === 'hex') return; const t = S.data.top, nt = t.map((_, i) => { const x = i % 16, y = (i - x) / 16; return t[((y + 15) % 16) * 16 + (x + 15) % 16]; }); this.setState({ data: Object.assign({}, S.data, { top: nt }), hist: S.hist.concat([S.data]).slice(-40), saved: false }); },
       status: S.playing ? '재생 중 — 칸을 누르면 멈추고 그 칸으로' : S.tool === 'fill' ? '누른 칸과 이어진 같은 색을 모두 칠합니다' : S.tool === 'pick' ? '색을 고를 칸을 누르세요' : '누르거나 끌어서 칠하기. 무늬는 16칸마다 되풀이되니 가장자리가 이어지게 그리세요',
       color: S.color, setColor: (e) => this.setState({ color: e.target.value }),
-      palette: PAL.map((hex) => ({ hex, pressed: hex === S.color ? 'true' : 'false', border: hex === S.color ? '2px solid #2563eb' : '1px solid rgba(22,25,31,0.15)', pick: () => this.setState({ color: hex, tool: S.tool === 'pick' ? 'pen' : S.tool }) })),
+      palette: PAL.map((hex) => ({ hex, pressed: hex === S.color ? 'true' : 'false', border: hex === S.color ? '2px solid #0d0f13' : '1px solid rgba(255,255,255,0.10)', pick: () => this.setState({ color: hex, tool: S.tool === 'pick' ? 'pen' : S.tool }) })),
       recent: S.recent.map((hex) => ({ hex, pick: () => this.setState({ color: hex }) })),
-      skinList: S.skins.map((k) => ({ name: k.name, img: this.thumb(k.id === S.curId ? S.data : Object.assign({ mode: k.mode }, k.frames[0])), on: k.id === S.curId ? 'true' : 'false', border: k.id === S.curId ? '2px solid #2563eb' : '1px solid #d8dde5', fw: k.id === S.curId ? 600 : 400, playDisp: this.keyCount(k.frames) > 1 ? 'inline' : 'none', pick: () => this.loadSkin(k) }))
+      skinList: S.skins.map((k) => ({ name: k.name, img: this.thumb(k.id === S.curId ? S.data : Object.assign({ mode: k.mode }, k.frames[0])), on: k.id === S.curId ? 'true' : 'false', border: k.id === S.curId ? '1px solid rgba(255,255,255,0.18)' : '1px solid transparent', fw: k.id === S.curId ? 600 : 400, playDisp: this.keyCount(k.frames) > 1 ? 'inline-flex' : 'none', meta: (k.mode === 'hex' ? '육각 통째' : '16 × 16') + (this.keyCount(k.frames) > 1 ? ' · ' + this.keyCount(k.frames) + '프레임' : ''), pick: () => this.loadSkin(k) }))
     };
   }
 }

@@ -9,15 +9,30 @@
 <x-dc>
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif;background:#ffffff}
-a{color:#2563eb}a:hover{color:#1d4ed8}
-.mono{font-family:ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace}
-.nv:hover{background:#f3f6fb}
-.rw:hover{background:#f8fafd}
+body{margin:0;font-family: 'Noto Sans KR','Noto Sans CJK KR',system-ui,sans-serif;background:#07090c;color-scheme:dark}
+a{color:#b4bac3}a:hover{color:#ede9e1}
+*{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:4px}
+*::-webkit-scrollbar-track{background:transparent}
+::selection{background:rgba(255,216,77,.35)}
+:focus-visible{outline:2px solid #ffd84d;outline-offset:2px}
+select option{background:#15181d;color:#ede9e1}
+input::placeholder{color:#6b7280}
+button{transition:background 140ms,border-color 140ms,color 140ms,filter 140ms}
+.ghost:hover{background:rgba(255,255,255,.09)!important;border-color:rgba(255,255,255,.28)!important}
+.tg:hover{color:#ede9e1}
+.acg:not(.spin):has(.act:empty){display:none!important}
+.acg .acs{display:none}.acg.spin .acs{display:block}.acg.spin .act{display:none}.acg:empty{display:none}
+[data-ic="loader"] svg{animation:spin 900ms linear infinite}
+.bx button:hover{filter:brightness(1.15)}
+.mono{font-family: 'JetBrains Mono',ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace}
+.nv:hover{background:rgba(255,255,255,.05)}
+.rw:hover{background:rgba(255,255,255,.03)}
 .gn{cursor:pointer}
-.gn:hover .gn-c{stroke:#2563eb}
+.gn:hover .gn-c{stroke:#ffd84d}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;animation:spin 900ms linear infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
@@ -29,57 +44,58 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
 <!-- 네트워크 화면 v2 — 입력: terra-gui-network-requirements (main fc74e28)
      묶음 넷(§3): 사설망(T) · 연결 진단·라우팅(T) · 서비스 터널(T+L) · 로컬 WireGuard(L) + 조작 이력(T)
      화면은 노드 역할을 선언하지 않고 관측한다(health · catalog). 이 보드는 머리의 "열린 곳" 전환으로 tree GUI · leaf GUI를 둘 다 보여 준다. 데이터는 전부 예시 -->
-<div style="position: relative; width: 1440px; height: 900px; display: flex; flex-direction: column; background: #ffffff; color: #16191f; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+<div style="position: relative; width: 1440px; height: 900px; display: flex; flex-direction: column; background: radial-gradient(1100px 520px at 12% -12%, #18202b 0%, rgba(24,32,43,0) 60%), radial-gradient(900px 600px at 100% 110%, #10161d 0%, rgba(16,22,29,0) 60%), #0b0d11; color: #ede9e1; color-scheme: dark; font-family: 'Noto Sans KR','Noto Sans CJK KR',system-ui,sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
 
-  <header style="height: 52px; flex-shrink: 0; box-sizing: border-box; padding: 0 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #d8dde5;">
-    <a href="Artboard-qcfu.dc.html" style="font-size: 13px; color: #5b6472; text-decoration: none;">← 노드 화면</a>
-    <h1 style="margin: 0; font-size: 17px; font-weight: 600;">네트워크</h1>
-    <span title="{{hdr.gwTip}}" style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; background: {{hdr.roleBg}}; color: {{hdr.roleFg}}; font-size: 12px; font-weight: 600;"><span style="width: 8px; height: 8px; border-radius: 2px; background: {{hdr.roleDot}};"></span>{{hdr.roleText}}</span>
-    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: {{hdr.pollFg}};"><span class="{{hdr.pollCls}}" style="width: 7px; height: 7px; border-radius: 50%; background: {{hdr.pollDot}};"></span>{{hdr.pollText}}</span>
-    <button type="button" onClick="{{hdr.refresh}}" style="height: 26px; padding: 0 9px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; color: #16191f; font: inherit; font-size: 12px; cursor: pointer;">↻ 지금</button>
+<svg aria-hidden="true" width="0" height="0" style="position: absolute; width: 0; height: 0; overflow: hidden;"><defs><symbol id="n-net" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M12 11.5L6.5 17M12 11.5l5.5 5.5"/></symbol><symbol id="n-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h7"/></symbol><symbol id="n-tunnel" viewBox="0 0 24 24"><path d="M4 20V11a8 8 0 0 1 16 0v9"/><path d="M8 20v-8a4 4 0 0 1 8 0v8"/></symbol><symbol id="n-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol><symbol id="n-doc" viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></symbol><symbol id="n-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol><symbol id="n-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol><symbol id="n-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></symbol><symbol id="n-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol><symbol id="n-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol><symbol id="n-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol><symbol id="n-loader" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></symbol><symbol id="n-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="n-half" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></symbol><symbol id="n-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol><symbol id="n-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol></defs></svg>
+  <header style="height: 54px; flex-shrink: 0; box-sizing: border-box; padding: 0 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.10); background: rgba(15,17,21,0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);">
+    <a href="Artboard-qcfu.dc.html" class="tg" style="display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 9px 0 5px; border-radius: 8px; font-size: 12.5px; color: #9aa1ab; text-decoration: none; border: 1px solid rgba(255,255,255,0.10);"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#n-back"></use></svg> 노드 화면</a>
+    <h1 style="margin: 0; display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #ede9e1;"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#n-net"></use></svg>네트워크</h1>
+    <span title="{{hdr.gwTip}}" style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 11px; background: {{hdr.roleBg}}; color: {{hdr.roleFg}}; border: 1px solid color-mix(in srgb, {{hdr.roleFg}} 50%, transparent); font-size: 11.5px; font-weight: 600;"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{hdr.roleDot}}; box-shadow: 0 0 6px {{hdr.roleDot}};"></span>{{hdr.roleText}}</span>
+    <span style="display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 11px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); font-size: 11.5px; color: {{hdr.pollFg}};"><span class="{{hdr.pollCls}}" style="width: 7px; height: 7px; border-radius: 50%; background: {{hdr.pollDot}}; box-shadow: 0 0 6px {{hdr.pollDot}};"></span>{{hdr.pollText}}</span>
+    <button type="button" onClick="{{hdr.refresh}}" class="ghost" style="height: 28px; padding: 0 10px 0 8px; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; background: rgba(255,255,255,0.04); color: #ede9e1; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#n-refresh"></use></svg>지금</button>
     <span style="flex-grow: 1;"></span>
-    <span style="font-size: 11.5px; color: #8b95a6;">시연</span>
-    <div role="group" aria-label="GUI를 연 노드 (시연)" style="display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: #eef1f5;">
+    <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.28em; color: #6b7280;">시연</span>
+    <div role="group" aria-label="GUI를 연 노드 (시연)" style="display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
       <sc-for list="{{hdr.roles}}" as="ro" hint-placeholder-count="2">
         <button type="button" aria-pressed="{{ro.on}}" onClick="{{ro.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: {{ro.bg}}; color: {{ro.fg}}; box-shadow: {{ro.sh}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">{{ro.label}}</button>
       </sc-for>
     </div>
-    <select aria-label="상태 시연" onChange="{{hdr.setDemo}}" style="height: 30px; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12px; color: #16191f;">
+    <select aria-label="상태 시연" onChange="{{hdr.setDemo}}" style="height: 30px; padding: 0 8px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: #0e1013; font: inherit; font-size: 12px; color: #ede9e1;">
       <sc-for list="{{hdr.demos}}" as="dm" hint-placeholder-count="4">
         <option value="{{dm.v}}" selected="{{dm.sel}}">{{dm.label}}</option>
       </sc-for>
     </select>
-    <span style="font-size: 12px; font-weight: 600; color: #a65f00; border: 1px solid #a65f00; border-radius: 4px; padding: 1px 6px;">예시 데이터</span>
+    <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #f5b83d; border: 1px solid rgba(245,184,61,0.5); background: rgba(245,184,61,0.10);">예시 데이터</span>
   </header>
 
   <div style="flex-grow: 1; display: flex; min-height: 0;">
     <!-- 왼쪽: 묶음. 로컬 노드의 카탈로그에 없는 묶음은 잠그고 이유를 적는다 -->
-    <nav aria-label="네트워크 묶음" style="width: 232px; flex-shrink: 0; box-sizing: border-box; border-right: 1px solid #d8dde5; padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto;">
+    <nav aria-label="네트워크 묶음" style="width: 232px; flex-shrink: 0; box-sizing: border-box; border-right: 1px solid rgba(255,255,255,0.10); background: rgba(13,15,19,0.55); padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto;">
       <sc-for list="{{nav}}" as="nv" hint-placeholder-count="5">
-        <button type="button" class="nv" aria-current="{{nv.cur}}" onClick="{{nv.pick}}" style="display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; border: 0; border-radius: 9px; background: {{nv.bg}}; color: {{nv.fg}}; font: inherit; text-align: left; cursor: pointer;">
-          <span aria-hidden="true" style="width: 30px; height: 30px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; background: {{nv.tint}}; border: 1px solid {{nv.tintLine}}; display: flex; align-items: center; justify-content: center; font-size: 14px; filter: {{nv.gray}};">{{nv.icon}}</span>
+        <button type="button" class="nv" aria-current="{{nv.cur}}" onClick="{{nv.pick}}" style="display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; border: 1px solid {{nv.ring}}; border-radius: 12px; background: {{nv.bg}}; color: {{nv.fg}}; font: inherit; text-align: left; cursor: pointer;">
+          <span aria-hidden="true" style="width: 30px; height: 30px; flex-shrink: 0; box-sizing: border-box; border-radius: 9px; background: {{nv.tint}}; border: 1px solid {{nv.tintLine}}; color: {{nv.ic}}; display: flex; align-items: center; justify-content: center; filter: {{nv.gray}};"><svg viewBox="0 0 24 24" width="16" height="16" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#n-{{nv.icon}}"></use></svg></span>
           <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
-            <span style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 13px; font-weight: 700;">{{nv.label}}</span><span style="font-size: 10px; font-weight: 700; color: {{nv.roleFg}}; border: 1px solid {{nv.roleLine}}; border-radius: 4px; padding: 0 4px; line-height: 15px;">{{nv.role}}</span></span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 13px; font-weight: 700;">{{nv.label}}</span><span class="mono" style="font-size: 10px; font-weight: 600; color: {{nv.roleFg}}; border: 1px solid {{nv.roleLine}}; border-radius: 5px; padding: 0 4px; line-height: 15px;">{{nv.role}}</span></span>
             <span style="display: {{nv.subDisp}}; font-size: 11px; color: {{nv.subFg}}; line-height: 1.45;">{{nv.sub}}</span>
           </span>
         </button>
       </sc-for>
-      <div style="margin-top: auto; padding: 10px; border-radius: 9px; background: #f7f8fb; font-size: 11.5px; color: #5b6472; line-height: 1.6;">
-        <div style="font-weight: 700; color: #16191f; margin-bottom: 2px;">세션</div>
+      <div style="margin-top: auto; padding: 11px 12px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); font-size: 11.5px; color: #9aa1ab; line-height: 1.6;">
+        <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.28em; color: #9aa1ab; margin-bottom: 4px;">세션</div>
         <div>{{sess.who}}</div>
-        <div>권한 <span class="mono">node.read</span> · <span class="mono">node.control</span> ✓</div>
-        <div style="display: {{helpBlock}}; color: #8b95a6;">네트워크 45건은 이 두 기본 권한으로 모두 열린다</div>
+        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">권한 <span class="mono" style="color: #ede9e1;">node.read</span> · <span class="mono" style="color: #ede9e1;">node.control</span><span style="color: #3ecf8e; display: inline-flex;"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12l5 5 9-10"/></svg></span></div>
+        <div style="display: {{helpBlock}}; color: #6b7280;">네트워크 45건은 이 두 기본 권한으로 모두 열린다</div>
       </div>
     </nav>
 
-    <main style="flex-grow: 1; min-width: 0; background: #eef1f5; overflow-y: auto; box-sizing: border-box; padding: 16px 18px 24px;">
+    <main style="flex-grow: 1; min-width: 0; background: transparent; overflow-y: auto; box-sizing: border-box; padding: 16px 18px 24px;">
       <div style="display: flex; align-items: flex-end; gap: 12px; margin-bottom: 12px;">
         <div style="display: flex; flex-direction: column; gap: 2px;">
-          <h2 style="margin: 0; font-size: 18px; font-weight: 700;">{{page.title}}</h2>
-          <span style="display: {{page.subDisp}}; font-size: 12.5px; color: #5b6472;">{{page.sub}}</span>
+          <h2 style="margin: 0; font-size: 19px; font-weight: 700; color: #ede9e1; letter-spacing: -0.01em;">{{page.title}}</h2>
+          <span style="display: {{page.subDisp}}; font-size: 12px; color: #9aa1ab;">{{page.sub}}</span>
         </div>
         <span style="flex-grow: 1;"></span>
-        <div role="tablist" style="display: {{page.tabDisp}}; gap: 2px; padding: 3px; border-radius: 9px; background: #e2e7ee;">
+        <div role="tablist" style="display: {{page.tabDisp}}; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
           <sc-for list="{{page.tabs}}" as="tb" hint-placeholder-count="3">
             <button type="button" role="tab" aria-selected="{{tb.on}}" onClick="{{tb.pick}}" style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: {{tb.bg}}; color: {{tb.fg}}; box-shadow: {{tb.sh}}; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">{{tb.label}}</button>
           </sc-for>
@@ -89,27 +105,27 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
       <!-- 블록: 12칸 격자에 폭(span)만큼. type = banner · table · kv · graph · form · steps · locked · state -->
       <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; align-items: start;">
         <sc-for list="{{blocks}}" as="bk" hint-placeholder-count="4">
-          <section style="grid-column: span {{bk.span}}; box-sizing: border-box; background: {{bk.bg}}; border: 1px solid {{bk.line}}; border-radius: 12px; overflow: hidden; min-width: 0;">
+          <section class="bx" style="grid-column: span {{bk.span}}; box-sizing: border-box; background: {{bk.bg}}; border: 1px solid {{bk.line}}; border-radius: 14px; overflow: hidden; min-width: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.30);">
             <sc-if value="{{bk.hasHead}}" hint-placeholder-val="{{true}}">
-              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #eef1f5; flex-wrap: wrap;">
-                <h3 style="margin: 0; font-size: 13.5px; font-weight: 700;">{{bk.title}}</h3>
-                <span style="font-size: 11.5px; color: #5b6472;">{{bk.sub}}</span>
+              <div style="display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap;">
+                <h3 style="margin: 0; font-size: 13.5px; font-weight: 700; color: #ede9e1;">{{bk.title}}</h3>
+                <span class="mono" style="font-size: 11px; color: #9aa1ab;">{{bk.sub}}</span>
                 <sc-for list="{{bk.tags}}" as="tg" hint-placeholder-count="0">
-                  <span title="{{tg.tip}}" style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 10px; background: {{tg.bg}}; color: {{tg.fg}}; font-size: 11px; font-weight: 700;">{{tg.t}}</span>
+                  <span title="{{tg.tip}}" style="display: inline-flex; align-items: center; gap: 4px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 10px; background: {{tg.bg}}; color: {{tg.fg}}; border: 1px solid color-mix(in srgb, {{tg.fg}} 50%, transparent); font-size: 11px; font-weight: 600;">{{tg.t}}</span>
                 </sc-for>
                 <span style="flex-grow: 1;"></span>
                 <sc-for list="{{bk.acts}}" as="ac" hint-placeholder-count="0">
-                  <button type="button" title="{{ac.tip}}" aria-disabled="{{ac.dis}}" onClick="{{ac.run}}" style="height: 28px; padding: 0 11px; border: 1px solid {{ac.line}}; border-radius: 7px; background: {{ac.bg}}; color: {{ac.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: {{ac.cur}}; opacity: {{ac.op}}; display: inline-flex; align-items: center; gap: 5px;"><span class="{{ac.spin}}">{{ac.g}}</span>{{ac.label}}</button>
+                  <button type="button" title="{{ac.tip}}" aria-disabled="{{ac.dis}}" onClick="{{ac.run}}" style="height: 30px; padding: 0 12px; border: 1px solid {{ac.line}}; border-radius: 9px; background: {{ac.bg}}; color: {{ac.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: {{ac.cur}}; opacity: {{ac.op}}; display: inline-flex; align-items: center; gap: 6px;"><span class="{{ac.spin}} acg" style="display: inline-flex;"><svg class="acs" viewBox="0 0 24 24" width="14" height="14" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round;"><use href="#n-loader"></use></svg><span class="act">{{ac.g}}</span></span>{{ac.label}}</button>
                 </sc-for>
               </div>
             </sc-if>
 
             <sc-if value="{{bk.isBanner}}" hint-placeholder-val="{{false}}">
-              <div style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; background: {{bk.tint}}; color: {{bk.fg}}; font-size: 12.5px; line-height: 1.6;">
-                <span style="font-size: 14px; line-height: 1.4;">{{bk.icon}}</span>
-                <span style="flex-grow: 1;"><b>{{bk.bTitle}}</b> {{bk.text}}</span>
+              <div style="display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; background: transparent; color: {{bk.fg}}; font-size: 12.5px; line-height: 1.6;">
+                <span data-ic="{{bk.icon}}" style="display: flex; padding-top: 1px;"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#n-{{bk.icon}}"></use></svg></span>
+                <span style="flex-grow: 1; color: #b4bac3;"><b style="color: #ede9e1; font-weight: 600;">{{bk.bTitle}}</b> {{bk.text}}</span>
                 <sc-for list="{{bk.bActs}}" as="ac" hint-placeholder-count="0">
-                  <button type="button" onClick="{{ac.run}}" style="height: 26px; padding: 0 10px; border: 1px solid {{ac.line}}; border-radius: 6px; background: #ffffff; color: {{ac.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;">{{ac.label}}</button>
+                  <button type="button" onClick="{{ac.run}}" class="ghost" style="height: 30px; padding: 0 11px; border: 1px solid {{ac.line}}; border-radius: 9px; background: rgba(255,255,255,0.04); color: {{ac.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">{{ac.label}}</button>
                 </sc-for>
               </div>
             </sc-if>
@@ -117,65 +133,65 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
             <sc-if value="{{bk.isTable}}" hint-placeholder-val="{{false}}">
               <div style="display: grid; grid-template-columns: {{bk.cols}}; font-size: 12.5px;">
                 <sc-for list="{{bk.head}}" as="hd" hint-placeholder-count="4">
-                  <span style="padding: 7px 12px; background: #f7f8fb; color: #5b6472; font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{hd.t}}</span>
+                  <span style="padding: 8px 12px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06); color: #9aa1ab; font-size: 11.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{hd.t}}</span>
                 </sc-for>
                 <sc-for list="{{bk.cells}}" as="cl" hint-placeholder-count="8">
-                  <span style="padding: {{cl.pad}}; border-top: 1px solid #eef1f5; background: {{cl.rowBg}}; min-width: 0; display: flex; align-items: center; gap: 6px; opacity: {{cl.op}};">
+                  <span style="padding: {{cl.pad}}; border-top: 1px solid rgba(255,255,255,0.06); background: {{cl.rowBg}}; min-width: 0; display: flex; align-items: center; gap: 6px; opacity: {{cl.op}};">
                     <sc-if value="{{cl.isT}}" hint-placeholder-val="{{true}}">
                       <span class="{{cl.cls}}" title="{{cl.tip}}" style="color: {{cl.c}}; font-weight: {{cl.fw}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{cl.t}}</span>
-                      <span style="font-size: 11px; color: #8b95a6; white-space: nowrap;">{{cl.sub}}</span>
+                      <span style="font-size: 11px; color: #6b7280; white-space: nowrap;">{{cl.sub}}</span>
                     </sc-if>
                     <sc-if value="{{cl.isB}}" hint-placeholder-val="{{false}}">
-                      <span title="{{cl.tip}}" style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 10px; background: {{cl.bb}}; color: {{cl.bf}}; font-size: 11px; font-weight: 700; white-space: nowrap;"><span class="{{cl.cls}}">{{cl.g}}</span>{{cl.t}}</span>
-                      <span style="font-size: 11px; color: #8b95a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{cl.sub}}</span>
+                      <span title="{{cl.tip}}" style="display: inline-flex; align-items: center; gap: 4px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 10px; background: {{cl.bb}}; color: {{cl.bf}}; border: 1px solid color-mix(in srgb, {{cl.bf}} 50%, transparent); font-size: 11px; font-weight: 600; white-space: nowrap;"><span class="{{cl.cls}}">{{cl.g}}</span>{{cl.t}}</span>
+                      <span style="font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{cl.sub}}</span>
                     </sc-if>
                     <sc-if value="{{cl.isBtn}}" hint-placeholder-val="{{false}}">
                       <span style="flex-grow: 1;"></span>
                       <sc-for list="{{cl.btns}}" as="bt" hint-placeholder-count="1">
-                        <button type="button" title="{{bt.tip}}" onClick="{{bt.run}}" aria-disabled="{{bt.dis}}" style="height: 25px; padding: 0 9px; border: 1px solid {{bt.line}}; border-radius: 6px; background: #ffffff; color: {{bt.fg}}; font: inherit; font-size: 11.5px; font-weight: 600; cursor: {{bt.cur}}; opacity: {{bt.op}}; white-space: nowrap;">{{bt.label}}</button>
+                        <button type="button" title="{{bt.tip}}" onClick="{{bt.run}}" aria-disabled="{{bt.dis}}" class="ghost" style="height: 26px; padding: 0 9px; border: 1px solid {{bt.line}}; border-radius: 8px; background: rgba(255,255,255,0.04); color: {{bt.fg}}; font: inherit; font-size: 11.5px; font-weight: 600; cursor: {{bt.cur}}; opacity: {{bt.op}}; white-space: nowrap;">{{bt.label}}</button>
                       </sc-for>
                     </sc-if>
                   </span>
                 </sc-for>
               </div>
               <sc-if value="{{bk.isEmpty}}" hint-placeholder-val="{{false}}">
-                <div style="padding: 22px 14px; text-align: center; font-size: 12.5px; color: #8b95a6;">{{bk.empty}}</div>
+                <div style="padding: 24px 14px; text-align: center; font-size: 12.5px; color: #9aa1ab;">{{bk.empty}}</div>
               </sc-if>
               <sc-if value="{{bk.hasFoot}}" hint-placeholder-val="{{false}}">
-                <div style="padding: 8px 14px; border-top: 1px solid #eef1f5; background: #fbfcfd; font-size: 11.5px; color: #5b6472; line-height: 1.6;">{{bk.foot}}</div>
+                <div style="padding: 9px 14px; border-top: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.015); font-size: 11.5px; color: #9aa1ab; line-height: 1.6;">{{bk.foot}}</div>
               </sc-if>
             </sc-if>
 
             <sc-if value="{{bk.isKv}}" hint-placeholder-val="{{false}}">
               <div style="display: grid; grid-template-columns: repeat({{bk.kvCols}}, 1fr); gap: 6px; padding: 12px 14px;">
                 <sc-for list="{{bk.items}}" as="kv" hint-placeholder-count="4">
-                  <span title="{{kv.tip}}" style="box-sizing: border-box; padding: 7px 10px; border-radius: 8px; background: {{kv.bg}}; border: 1px solid {{kv.line}}; display: flex; flex-direction: column; gap: 1px; min-width: 0;">
-                    <span style="font-size: 10.5px; color: #5b6472;">{{kv.k}}</span>
-                    <span class="{{kv.cls}}" style="font-size: 13px; font-weight: 700; color: {{kv.c}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{kv.v}}</span>
+                  <span title="{{kv.tip}}" style="box-sizing: border-box; padding: 9px 11px; border-radius: 9px; background: {{kv.bg}}; border: 1px solid {{kv.line}}; display: flex; flex-direction: column-reverse; gap: 2px; min-width: 0;">
+                    <span style="font-size: 10.5px; color: #9aa1ab;">{{kv.k}}</span>
+                    <span class="{{kv.cls}}" style="font-size: 15px; font-weight: 600; color: {{kv.c}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{kv.v}}</span>
                   </span>
                 </sc-for>
               </div>
               <sc-if value="{{bk.hasFoot}}" hint-placeholder-val="{{false}}">
-                <div style="padding: 0 14px 12px; font-size: 11.5px; color: #5b6472; line-height: 1.6;">{{bk.foot}}</div>
+                <div style="padding: 0 14px 12px; font-size: 11.5px; color: #9aa1ab; line-height: 1.6;">{{bk.foot}}</div>
               </sc-if>
             </sc-if>
 
             <sc-if value="{{bk.isGraph}}" hint-placeholder-val="{{false}}">
-              <svg width="100%" height="{{bk.gh}}" viewBox="0 0 {{bk.gw}} {{bk.gh}}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="라우트 그래프" style="display: block; background: radial-gradient(circle at 50% 40%, #fbfcfe 0%, #f2f5f9 100%);">
+              <svg width="100%" height="{{bk.gh}}" viewBox="0 0 {{bk.gw}} {{bk.gh}}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="라우트 그래프" style="display: block; background: radial-gradient(circle at 50% 40%, #121922 0%, #0a0d11 100%);">
                 <sc-for list="{{bk.edges}}" as="ed" hint-placeholder-count="6">
                   <line x1="{{ed.x1}}" y1="{{ed.y1}}" x2="{{ed.x2}}" y2="{{ed.y2}}" stroke="{{ed.c}}" stroke-width="{{ed.w}}" stroke-dasharray="{{ed.dash}}" stroke-linecap="round" opacity="{{ed.op}}"></line>
                 </sc-for>
                 <sc-for list="{{bk.gnodes}}" as="gn" hint-placeholder-count="6">
                   <g class="gn" transform="translate({{gn.x}} {{gn.y}})" onClick="{{gn.pick}}" opacity="{{gn.op}}">
                     <title>{{gn.name}}</title>
-                    <circle class="gn-c" r="{{gn.r}}" fill="#ffffff" stroke="{{gn.line}}" stroke-width="{{gn.lw}}"></circle>
+                    <circle class="gn-c" r="{{gn.r}}" fill="#14181e" stroke="{{gn.line}}" stroke-width="{{gn.lw}}" style="transition: stroke 140ms;"></circle>
                     <rect x="-6" y="-6" width="12" height="12" rx="3" fill="{{gn.c}}"></rect>
-                    <text y="{{gn.ty}}" text-anchor="middle" font-size="11" font-weight="{{gn.fw}}" fill="#16191f" class="mono" style="paint-order: stroke; stroke: #f4f6f9; stroke-width: 3px;">{{gn.name}}</text>
+                    <text y="{{gn.ty}}" text-anchor="middle" font-size="11" font-weight="{{gn.fw}}" fill="#ede9e1" class="mono" style="paint-order: stroke; stroke: rgba(10,13,17,0.92); stroke-width: 3px;">{{gn.name}}</text>
                     <text y="{{gn.ty2}}" text-anchor="middle" font-size="9.5" fill="{{gn.tagC}}" font-weight="700">{{gn.tag}}</text>
                   </g>
                 </sc-for>
               </svg>
-              <div style="display: flex; gap: 12px; flex-wrap: wrap; padding: 8px 14px; border-top: 1px solid #eef1f5; font-size: 11.5px; color: #3a4049;">
+              <div style="display: flex; gap: 12px; flex-wrap: wrap; padding: 9px 14px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 11.5px; color: #b4bac3;">
                 <sc-for list="{{bk.legend}}" as="lg" hint-placeholder-count="4">
                   <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 20px; height: 0; border-top: 3px {{lg.style}} {{lg.c}};"></span><span class="mono">{{lg.t}}</span></span>
                 </sc-for>
@@ -185,24 +201,24 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
             <sc-if value="{{bk.isForm}}" hint-placeholder-val="{{false}}">
               <div style="display: grid; grid-template-columns: repeat({{bk.fCols}}, 1fr); gap: 10px 12px; padding: 12px 14px;">
                 <sc-for list="{{bk.fields}}" as="fd" hint-placeholder-count="4">
-                  <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: #5b6472; min-width: 0;">
-                    <span>{{fd.label}} <span style="color: #d33d52;">{{fd.req}}</span></span>
+                  <label style="display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; color: #b4bac3; min-width: 0;">
+                    <span>{{fd.label}} <span style="color: #ff5d5d;">{{fd.req}}</span></span>
                     <sc-if value="{{fd.isSel}}" hint-placeholder-val="{{true}}">
-                      <select onChange="{{fd.set}}" style="height: 32px; box-sizing: border-box; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 7px; background: #ffffff; font: inherit; font-size: 12.5px; color: #16191f;">
+                      <select onChange="{{fd.set}}" style="height: 36px; box-sizing: border-box; padding: 0 9px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: #0e1013; font: inherit; font-size: 12.5px; color: #ede9e1; outline: none;">
                         <sc-for list="{{fd.opts}}" as="op" hint-placeholder-count="3">
                           <option value="{{op.v}}" selected="{{op.sel}}">{{op.t}}</option>
                         </sc-for>
                       </select>
                     </sc-if>
                     <sc-if value="{{fd.isIn}}" hint-placeholder-val="{{false}}">
-                      <input type="text" value="{{fd.val}}" onChange="{{fd.set}}" class="mono" style="height: 32px; box-sizing: border-box; padding: 0 9px; border: 1px solid #d8dde5; border-radius: 7px; font-size: 12.5px; color: #16191f;">
+                      <input type="text" value="{{fd.val}}" onChange="{{fd.set}}" class="mono" style="height: 36px; box-sizing: border-box; padding: 0 11px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: #0e1013; font-size: 12.5px; color: #ede9e1; outline: none;">
                     </sc-if>
-                    <span style="font-size: 10.5px; color: #8b95a6;">{{fd.hint}}</span>
+                    <span style="font-size: 10.5px; color: #9aa1ab;">{{fd.hint}}</span>
                   </label>
                 </sc-for>
               </div>
               <sc-if value="{{bk.hasFoot}}" hint-placeholder-val="{{false}}">
-                <div style="padding: 0 14px 12px; font-size: 11.5px; color: #5b6472; line-height: 1.6;">{{bk.foot}}</div>
+                <div style="padding: 0 14px 12px; font-size: 11.5px; color: #9aa1ab; line-height: 1.6;">{{bk.foot}}</div>
               </sc-if>
             </sc-if>
 
@@ -210,31 +226,31 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
               <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px;">
                 <sc-for list="{{bk.steps}}" as="sp" hint-placeholder-count="3">
                   <div style="display: flex; gap: 10px; align-items: baseline; font-size: 12.5px;">
-                    <span style="width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; background: #eef1f5; color: #3a4049; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">{{sp.n}}</span>
+                    <span class="mono" style="width: 22px; height: 22px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.18); color: #ede9e1; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;">{{sp.n}}</span>
                     <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
-                      <span>{{sp.d}} <span style="font-size: 11px; color: #a65f00;">{{sp.admin}}</span></span>
-                      <code class="mono" style="padding: 5px 8px; border-radius: 6px; background: #16191f; color: #e5e9f0; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{sp.cmd}}</code>
+                      <span style="color: #ede9e1;">{{sp.d}} <span style="font-size: 11px; color: #f5b83d;">{{sp.admin}}</span></span>
+                      <code class="mono" style="padding: 6px 10px; border-radius: 8px; background: #0e1013; border: 1px solid rgba(255,255,255,0.12); color: #ede9e1; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span style="color: #6b7280;">$ </span>{{sp.cmd}}</code>
                     </span>
                   </div>
                 </sc-for>
               </div>
               <sc-if value="{{bk.hasFoot}}" hint-placeholder-val="{{false}}">
-                <div style="padding: 0 14px 12px; font-size: 11.5px; color: #5b6472; line-height: 1.6;">{{bk.foot}}</div>
+                <div style="padding: 0 14px 12px; font-size: 11.5px; color: #9aa1ab; line-height: 1.6;">{{bk.foot}}</div>
               </sc-if>
             </sc-if>
 
             <sc-if value="{{bk.isActs}}" hint-placeholder-val="{{false}}">
               <sc-if value="{{bk.running}}" hint-placeholder-val="{{false}}">
-                <div style="display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #dde8fd; color: #1d4ed8; font-size: 12.5px; font-weight: 600;"><span class="spin">⟳</span>{{bk.runText}}<span style="flex-grow: 1;"></span><span style="width: 90px; height: 5px; border-radius: 3px; background: rgba(29,78,216,0.18); overflow: hidden;"><span style="display: block; height: 100%; width: {{bk.runPct}}%; background: #2563eb;"></span></span></div>
+                <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(122,167,255,0.08); border-bottom: 1px solid rgba(122,167,255,0.2); color: #7aa7ff; font-size: 12.5px; font-weight: 600;"><span class="spin" style="display: inline-flex;"><svg viewBox="0 0 24 24" width="15" height="15" style="display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round;"><use href="#n-loader"></use></svg></span>{{bk.runText}}<span style="flex-grow: 1;"></span><span style="width: 90px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden;"><span style="display: block; height: 100%; width: {{bk.runPct}}%; background: #7aa7ff; border-radius: 3px; transition: width 420ms cubic-bezier(.22,1,.36,1);"></span></span></div>
               </sc-if>
               <div style="display: flex; flex-direction: column;">
                 <sc-for list="{{bk.rows}}" as="ar" hint-placeholder-count="4">
-                  <div class="rw" style="display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid #eef1f5;">
+                  <div class="rw" style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid rgba(255,255,255,0.06);">
                     <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0; flex-grow: 1;">
-                      <span style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700;">{{ar.label}}<span style="font-size: 10px; font-weight: 700; color: {{ar.kFg}}; background: {{ar.kBg}}; border-radius: 4px; padding: 0 5px; line-height: 16px;">{{ar.kind}}</span></span>
-                      <span style="font-size: 11px; color: #5b6472; line-height: 1.5;">{{ar.desc}}</span>
+                      <span style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #ede9e1;">{{ar.label}}<span style="font-size: 10px; font-weight: 600; color: {{ar.kFg}}; background: {{ar.kBg}}; border: 1px solid color-mix(in srgb, {{ar.kFg}} 45%, transparent); border-radius: 8px; padding: 0 6px; line-height: 15px;">{{ar.kind}}</span></span>
+                      <span style="font-size: 11px; color: #9aa1ab; line-height: 1.5;">{{ar.desc}}</span>
                     </span>
-                    <button type="button" onClick="{{ar.run}}" aria-disabled="{{ar.dis}}" style="height: 28px; padding: 0 11px; flex-shrink: 0; border: 1px solid {{ar.line}}; border-radius: 7px; background: #ffffff; color: {{ar.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: {{ar.cur}}; opacity: {{ar.op}};">{{ar.btn}}</button>
+                    <button type="button" onClick="{{ar.run}}" aria-disabled="{{ar.dis}}" class="ghost" style="height: 28px; padding: 0 11px; flex-shrink: 0; border: 1px solid {{ar.line}}; border-radius: 8px; background: rgba(255,255,255,0.04); color: {{ar.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: {{ar.cur}}; opacity: {{ar.op}};">{{ar.btn}}</button>
                   </div>
                 </sc-for>
               </div>
@@ -242,12 +258,12 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
 
             <sc-if value="{{bk.isState}}" hint-placeholder-val="{{false}}">
               <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 36px 20px; text-align: center;">
-                <span style="width: 48px; height: 48px; border-radius: 12px; background: {{bk.tint}}; display: flex; align-items: center; justify-content: center; font-size: 22px;">{{bk.icon}}</span>
-                <span style="font-size: 15px; font-weight: 700;">{{bk.sTitle}}</span>
-                <span style="max-width: 560px; font-size: 12.5px; color: #5b6472; line-height: 1.7;">{{bk.text}}</span>
+                <span data-ic="{{bk.icon}}" style="width: 48px; height: 48px; box-sizing: border-box; border-radius: 14px; background: {{bk.tint}}; border: 1px solid color-mix(in srgb, {{bk.fg}} 40%, transparent); color: {{bk.fg}}; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#n-{{bk.icon}}"></use></svg></span>
+                <span style="font-size: 15px; font-weight: 700; color: #ede9e1;">{{bk.sTitle}}</span>
+                <span style="max-width: 560px; font-size: 12.5px; color: #9aa1ab; line-height: 1.7;">{{bk.text}}</span>
                 <div style="display: flex; gap: 6px; margin-top: 4px;">
                   <sc-for list="{{bk.bActs}}" as="ac" hint-placeholder-count="0">
-                    <button type="button" onClick="{{ac.run}}" style="height: 30px; padding: 0 12px; border: 1px solid {{ac.line}}; border-radius: 7px; background: #ffffff; color: {{ac.fg}}; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">{{ac.label}}</button>
+                    <button type="button" onClick="{{ac.run}}" class="ghost" style="height: 34px; padding: 0 13px; border: 1px solid {{ac.line}}; border-radius: 9px; background: rgba(255,255,255,0.04); color: {{ac.fg}}; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">{{ac.label}}</button>
                   </sc-for>
                 </div>
               </div>
@@ -260,24 +276,24 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
 
   <!-- 위험 확인: 대상 · 방향 · 되돌릴 수 있는지를 적는다 (위험 10건은 모두 계약에 확인이 선언돼 있다 — confirmationMode) -->
   <sc-if value="{{dlg.open}}" hint-placeholder-val="{{false}}">
-    <div style="position: absolute; inset: 0; z-index: 30; background: rgba(22,25,31,0.32); display: flex; align-items: center; justify-content: center;">
-      <div class="pop" role="alertdialog" aria-label="{{dlg.title}}" style="width: 460px; box-sizing: border-box; background: #ffffff; border-radius: 14px; box-shadow: 0 20px 50px rgba(22,25,31,0.28); overflow: hidden;">
+    <div style="position: absolute; inset: 0; z-index: 30; background: rgba(0,0,0,0.50); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center;">
+      <div class="pop" role="alertdialog" aria-label="{{dlg.title}}" style="width: 460px; box-sizing: border-box; background: rgba(18,20,25,0.96); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; box-shadow: 0 30px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05); overflow: hidden;">
         <div style="display: flex; gap: 12px; padding: 18px 20px 12px;">
-          <span style="width: 38px; height: 38px; flex-shrink: 0; border-radius: 10px; background: #fde1e5; color: #d33d52; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700;">!</span>
+          <span style="width: 38px; height: 38px; flex-shrink: 0; box-sizing: border-box; border-radius: 10px; background: rgba(255,93,93,0.12); border: 1px solid rgba(255,93,93,0.4); color: #ff5d5d; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#n-warn"></use></svg></span>
           <span style="display: flex; flex-direction: column; gap: 3px;">
-            <span style="font-size: 15px; font-weight: 700;">{{dlg.title}}</span>
-            <span class="mono" style="font-size: 11.5px; color: #5b6472;">{{dlg.op}}</span>
+            <span style="font-size: 15px; font-weight: 700; color: #ede9e1;">{{dlg.title}}</span>
+            <span class="mono" style="font-size: 11.5px; color: #9aa1ab;">{{dlg.op}}</span>
           </span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 6px; padding: 0 20px 14px;">
           <sc-for list="{{dlg.rows}}" as="dr" hint-placeholder-count="3">
-            <div style="display: flex; gap: 10px; font-size: 12.5px;"><span style="width: 92px; flex-shrink: 0; color: #5b6472;">{{dr.k}}</span><span style="font-weight: 600; color: {{dr.c}};">{{dr.v}}</span></div>
+            <div style="display: flex; gap: 10px; font-size: 12.5px;"><span style="width: 92px; flex-shrink: 0; color: #9aa1ab;">{{dr.k}}</span><span style="font-weight: 600; color: {{dr.c}};">{{dr.v}}</span></div>
           </sc-for>
-          <div style="margin-top: 4px; padding: 8px 10px; border-radius: 8px; background: #fbf0cc; color: #7a4a06; font-size: 12px; line-height: 1.6;">{{dlg.warn}}</div>
+          <div style="margin-top: 4px; padding: 9px 11px; border-radius: 9px; background: rgba(245,184,61,0.08); border: 1px solid rgba(245,184,61,0.30); color: #f5c76a; font-size: 12px; line-height: 1.6;">{{dlg.warn}}</div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 6px; padding: 12px 20px; border-top: 1px solid #eef1f5; background: #fbfcfd;">
-          <button type="button" onClick="{{dlg.cancel}}" style="height: 32px; padding: 0 14px; border: 1px solid #d8dde5; border-radius: 7px; background: #ffffff; color: #16191f; font: inherit; font-size: 13px; cursor: pointer;">취소</button>
-          <button type="button" onClick="{{dlg.ok}}" style="height: 32px; padding: 0 14px; border: 1px solid #d33d52; border-radius: 7px; background: #d33d52; color: #ffffff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">{{dlg.okLabel}}</button>
+        <div style="display: flex; justify-content: flex-end; gap: 6px; padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);">
+          <button type="button" onClick="{{dlg.cancel}}" class="ghost" style="height: 34px; padding: 0 14px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: rgba(255,255,255,0.04); color: #ede9e1; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">취소</button>
+          <button type="button" onClick="{{dlg.ok}}" style="height: 34px; padding: 0 14px; border: 1px solid #ff5d5d; border-radius: 9px; background: #ff5d5d; color: #1a0707; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;">{{dlg.okLabel}}</button>
         </div>
       </div>
     </div>
@@ -286,9 +302,9 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
   <!-- 결과 알림 -->
   <div aria-live="polite" style="position: absolute; right: 18px; bottom: 18px; z-index: 20; display: flex; flex-direction: column; gap: 6px; width: 380px;">
     <sc-for list="{{toasts}}" as="ts" hint-placeholder-count="0">
-      <div class="pop" style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: #ffffff; border: 1px solid #d8dde5; border-left: 4px solid {{ts.c}}; box-shadow: 0 8px 24px rgba(22,25,31,0.14); font-size: 12.5px; line-height: 1.55;">
-        <span style="color: {{ts.c}}; font-weight: 700;">{{ts.g}}</span>
-        <span style="flex-grow: 1;"><b>{{ts.title}}</b><br><span style="color: #5b6472;">{{ts.text}}</span></span>
+      <div class="pop" style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: rgba(13,15,19,0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid color-mix(in srgb, {{ts.c}} 45%, transparent); box-shadow: 0 10px 30px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05); font-size: 12.5px; line-height: 1.55; color: #ede9e1;">
+        <span style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: color-mix(in srgb, {{ts.c}} 16%, transparent); color: {{ts.c}}; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;">{{ts.g}}</span>
+        <span style="flex-grow: 1;"><b style="font-weight: 600;">{{ts.title}}</b><br><span style="color: #9aa1ab; font-size: 11.5px;">{{ts.text}}</span></span>
       </div>
     </sc-for>
   </div>
@@ -380,15 +396,15 @@ class Component extends DCLogic {
   // 색 · 배지 사전
   T() {
     return {
-      ok: ['#e3f4ea', '#1f7a4d'], warn: ['#fbf0cc', '#8a5a00'], bad: ['#fde1e5', '#b4283c'], info: ['#dde8fd', '#1d4ed8'], off: ['#eef1f5', '#5b6472'], vio: ['#efe7fd', '#6d28d9']
+      ok: ['rgba(62,207,142,0.10)', '#3ecf8e'], warn: ['rgba(245,184,61,0.10)', '#f5b83d'], bad: ['rgba(255,93,93,0.10)', '#ff5d5d'], info: ['rgba(122,167,255,0.10)', '#7aa7ff'], off: ['rgba(255,255,255,0.04)', '#9aa1ab'], vio: ['rgba(180,140,255,0.10)', '#b48cff']
     };
   }
-  RT() { return { local_loopback: '#8b95a6', lan_direct: '#1f7a4d', mesh_vpn_direct: '#2563eb', webrtc_p2p: '#7c3aed', cloud_relay: '#9aa4b0' }; }
+  RT() { return { local_loopback: '#9aa1ab', lan_direct: '#3ecf8e', mesh_vpn_direct: '#5aa8ff', webrtc_p2p: '#b48cff', cloud_relay: '#b4bac3' }; }
   // 표 셀 만들기
-  cT(t, o) { return Object.assign({ isT: true, isB: false, isBtn: false, t: String(t), c: '#16191f', fw: 400, cls: '', sub: '', tip: '' }, o || {}); }
+  cT(t, o) { return Object.assign({ isT: true, isB: false, isBtn: false, t: String(t), c: '#ede9e1', fw: 400, cls: '', sub: '', tip: '' }, o || {}); }
   cM(t, o) { return this.cT(t, Object.assign({ cls: 'mono' }, o || {})); }
   cB(t, tone, o) { const x = this.T()[tone] || this.T().off; return Object.assign({ isT: false, isB: true, isBtn: false, t: String(t), bb: x[0], bf: x[1], g: '', cls: '', sub: '', tip: '' }, o || {}); }
-  cBtn(btns) { return { isT: false, isB: false, isBtn: true, btns: btns.map((b) => Object.assign({ tip: '', dis: 'false', cur: 'pointer', op: 1, line: b.danger ? '#f3b8c1' : '#d8dde5', fg: b.danger ? '#b4283c' : '#16191f' }, b)) }; }
+  cBtn(btns) { return { isT: false, isB: false, isBtn: true, btns: btns.map((b) => Object.assign({ tip: '', dis: 'false', cur: 'pointer', op: 1, line: b.danger ? 'rgba(255,93,93,0.45)' : 'rgba(255,255,255,0.18)', fg: b.danger ? '#ff5d5d' : '#ede9e1' }, b)) }; }
   table(o) {
     // o: title, sub, span, cols, head[], rows[{cells[], hl}], empty, foot, tags, acts
     const cells = [];
@@ -397,7 +413,7 @@ class Component extends DCLogic {
   }
   block(o, extra) {
     const H = this.state.help;
-    const r = Object.assign({ span: o.span || 12, bg: '#ffffff', line: '#d8dde5', hasHead: !!o.title, title: o.title || '', sub: H ? o.sub || '' : '', tags: o.tags || [], acts: (o.acts || []).map((a) => this.act(a)),
+    const r = Object.assign({ span: o.span || 12, bg: 'rgba(13,15,19,0.70)', line: 'rgba(255,255,255,0.10)', hasHead: !!o.title, title: o.title || '', sub: H ? o.sub || '' : '', tags: o.tags || [], acts: (o.acts || []).map((a) => this.act(a)),
       isBanner: false, isTable: false, isKv: false, isGraph: false, isForm: false, isSteps: false, isState: false, isActs: false, running: false, runText: '', runPct: 0, rows: [], hasFoot: !!o.foot, foot: o.foot || '', isEmpty: false, bActs: [] }, extra || {});
     if (!H && r.hasFoot && String(r.foot).charAt(0) !== '⟳') { r.hasFoot = false; }
     if (!H && r.fields) r.fields = r.fields.map((f) => Object.assign({}, f, { hint: /^(⚠|서로)/.test(f.hint || '') ? f.hint : '' }));
@@ -405,19 +421,19 @@ class Component extends DCLogic {
   }
   act(a) {
     const k = a.kind || 'normal', busy = a.busy;
-    const P = { primary: ['#2563eb', '#2563eb', '#ffffff'], danger: ['#f3b8c1', '#ffffff', '#b4283c'], normal: ['#d8dde5', '#ffffff', '#16191f'], warn: ['#e8c78f', '#fffaf0', '#8a5a00'] }[k];
+    const P = { primary: ['#ede9e1', '#ede9e1', '#111111'], danger: ['rgba(255,93,93,0.45)', 'rgba(255,93,93,0.06)', '#ff5d5d'], normal: ['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.04)', '#ede9e1'], warn: ['rgba(245,184,61,0.5)', 'rgba(245,184,61,0.08)', '#f5b83d'] }[k];
     return { label: busy ? a.busyLabel || '실행 중…' : a.label, tip: a.tip || '', run: a.dis || busy ? () => {} : a.run, line: P[0], bg: P[1], fg: P[2], dis: a.dis || busy ? 'true' : 'false', cur: a.dis ? 'not-allowed' : busy ? 'wait' : 'pointer', op: a.dis ? 0.5 : 1, g: busy ? '⟳' : a.g || '', spin: busy ? 'spin' : '' };
   }
   tag(t, tone, tip) { const x = this.T()[tone] || this.T().off; return { t, bg: x[0], fg: x[1], tip: tip || '' }; }
   banner(tone, icon, title, text, acts, span) {
     if (tone === 'info' && !this.state.help && !(acts || []).length) return null; // 안내 배너는 도움말과 함께 숨긴다
     const x = this.T()[tone];
-    return this.block({ span: span || 12 }, { hasHead: false, isBanner: true, bg: x[0], line: 'transparent', tint: x[0], fg: x[1], icon, bTitle: title, text, bActs: (acts || []).map((a) => ({ label: a.label, run: a.run, line: '#d8dde5', fg: '#16191f' })) });
+    return this.block({ span: span || 12 }, { hasHead: false, isBanner: true, bg: x[0], line: 'color-mix(in srgb, ' + x[1] + ' 40%, transparent)', tint: x[0], fg: x[1], icon, bTitle: title, text, bActs: (acts || []).map((a) => ({ label: a.label, run: a.run, line: 'rgba(255,255,255,0.18)', fg: '#ede9e1' })) });
   }
-  kv(o, items, cols) { return this.block(o, { isKv: true, kvCols: cols || 4, items: items.map((i) => Object.assign({ bg: '#f4f6f9', line: '#e6eaf0', c: '#16191f', cls: '', tip: '' }, i)) }); }
+  kv(o, items, cols) { return this.block(o, { isKv: true, kvCols: cols || 4, items: items.map((i) => Object.assign({ bg: 'rgba(255,255,255,0.04)', line: 'rgba(255,255,255,0.07)', c: '#ede9e1', cls: '', tip: '' }, i)) }); }
   stateBlock(icon, tone, title, text, acts) {
     const x = this.T()[tone];
-    return this.block({ span: 12 }, { hasHead: false, isState: true, tint: x[0], icon, sTitle: title, text, bActs: (acts || []).map((a) => ({ label: a.label, run: a.run, line: '#d8dde5', fg: '#16191f' })) });
+    return this.block({ span: 12 }, { hasHead: false, isState: true, tint: x[0], fg: x[1], icon, sTitle: title, text, bActs: (acts || []).map((a) => ({ label: a.label, run: a.run, line: 'rgba(255,255,255,0.18)', fg: '#ede9e1' })) });
   }
   // 접수형 · 실행 중 흉내
   runSync(key, ms, done, fail) {
@@ -433,17 +449,17 @@ class Component extends DCLogic {
     const mism = this.NODES.filter((n) => n.observed && n.obsGen < 42);
     const recTone = { updated: 'ok', unchanged: 'off', waiting_for_nodes: 'warn', manual_override: 'warn' }[R.status];
     const out = [];
-    if (bad.length) out.push(this.banner('bad', '◐', '일부 배포 실패 (degraded)', '배포 ' + this.NODES.length + '개 중 ' + bad.length + '개가 거절됐습니다 — ' + bad.map((n) => n.id).join(', ') + '. 나머지 노드는 정상입니다. 노드 행에서 원인을 보고, 자동 조정을 다시 실행하세요.', [{ label: '거절된 노드만 보기', run: () => this.toast('◇', '#2563eb', '거르기', '시연 화면에서는 표에 빨간 줄로 표시됩니다') }]));
+    if (bad.length) out.push(this.banner('bad', 'warn', '일부 배포 실패 (degraded)', '배포 ' + this.NODES.length + '개 중 ' + bad.length + '개가 거절됐습니다 — ' + bad.map((n) => n.id).join(', ') + '. 나머지 노드는 정상입니다. 노드 행에서 원인을 보고, 자동 조정을 다시 실행하세요.', [{ label: '거절된 노드만 보기', run: () => this.toast('◇', '#7aa7ff', '거르기', '시연 화면에서는 표에 빨간 줄로 표시됩니다') }]));
     out.push(this.kv({ span: 7, title: 'mesh 자동 조정', sub: '데몬이 보고한 키 · endpoint로 desired를 다시 만든다',
       tags: [this.tag(R.status, recTone, 'waiting_for_nodes · manual_override · unchanged · updated')],
       acts: [{ label: '자동 조정 실행', kind: 'danger', busy: S.busy.reconcile, busyLabel: '조정 중…', run: () => this.confirm({ op: 'terra.master.network.mesh.wireguard.reconcile.post', title: 'mesh 자동 조정을 실행할까요?', rows: [['대상', 'home 클러스터 · 적격 노드 ' + R.eligible + '개'], ['결과', '바뀐 노드에 새 desired를 배포'], ['되돌리기', '없음 — 다시 조정하거나 수동 계획']], warn: '수동 계획을 적용한 뒤에는 manual_override로 답하고 아무것도 바꾸지 않습니다.', okLabel: '조정 실행',
-          ok: () => this.runSync('reconcile', 1300, () => { this.setState({ reconcile: Object.assign({}, R, { status: 'unchanged', reason: '바뀐 키 · endpoint가 없습니다', at: this.hm(Date.now()).slice(0, 5), updated: 0 }) }); this.toast('●', '#1f7a4d', '자동 조정 — unchanged', '적격 7 · 갱신 0 · 제거 0'); }) }) },
-        { label: '수동 계획 적용…', kind: 'warn', tip: '미리보기가 아니라 적용이다', run: () => this.confirm({ op: 'terra.master.network.mesh.wireguard.plan.post', title: '수동 계획은 곧바로 적용됩니다', rows: [['동작', '네트워크 · 할당 · desired를 저장하고 노드에 배포'], ['이후', '자동 조정이 manual_override로 멈춤'], ['되돌리기', '없음 — 미리보기 API가 없다']], warn: '이름은 plan이지만 미리보기가 아닙니다. 노드와 공개 키를 넣는 폼은 이 확인 다음 단계에 둡니다(시연에서는 생략).', okLabel: '이해했음 — 폼 열기', ok: () => this.toast('◇', '#2563eb', '수동 계획', '시연 화면 — 폼은 아직 없습니다') }) }] },
+          ok: () => this.runSync('reconcile', 1300, () => { this.setState({ reconcile: Object.assign({}, R, { status: 'unchanged', reason: '바뀐 키 · endpoint가 없습니다', at: this.hm(Date.now()).slice(0, 5), updated: 0 }) }); this.toast('●', '#3ecf8e', '자동 조정 — unchanged', '적격 7 · 갱신 0 · 제거 0'); }) }) },
+        { label: '수동 계획 적용…', kind: 'warn', tip: '미리보기가 아니라 적용이다', run: () => this.confirm({ op: 'terra.master.network.mesh.wireguard.plan.post', title: '수동 계획은 곧바로 적용됩니다', rows: [['동작', '네트워크 · 할당 · desired를 저장하고 노드에 배포'], ['이후', '자동 조정이 manual_override로 멈춤'], ['되돌리기', '없음 — 미리보기 API가 없다']], warn: '이름은 plan이지만 미리보기가 아닙니다. 노드와 공개 키를 넣는 폼은 이 확인 다음 단계에 둡니다(시연에서는 생략).', okLabel: '이해했음 — 폼 열기', ok: () => this.toast('◇', '#7aa7ff', '수동 계획', '시연 화면 — 폼은 아직 없습니다') }) }] },
       [{ k: '마지막 결과', v: R.status, c: st[recTone][1], cls: 'mono' }, { k: '실행 시각', v: R.at, cls: 'mono' }, { k: '적격 노드', v: R.eligible, cls: 'mono' }, { k: '갱신 · 제거', v: R.updated + ' · ' + R.removed, cls: 'mono' }], 4));
     out[out.length - 1].foot = R.reason;
     out[out.length - 1].hasFoot = true;
     out.push(this.table({ span: 5, title: '논리 네트워크 (CIDR)', sub: 'network.networks.*', cols: '1fr 1.3fr 0.8fr',
-      acts: [{ label: '+ CIDR', run: () => this.toast('!', '#a65f00', '같은 CIDR은 통째로 바꿉니다', '생성 폼에 이 경고를 붙입니다 (시연에서는 폼 생략)') }],
+      acts: [{ label: '+ CIDR', run: () => this.toast('!', '#f5b83d', '같은 CIDR은 통째로 바꿉니다', '생성 폼에 이 경고를 붙입니다 (시연에서는 폼 생략)') }],
       head: ['이름', 'CIDR', '상태'],
       rows: S.networks.map((n) => ({ cells: [this.cT(n.name, { fw: 700, sub: n.id }), this.cM(n.cidr, { sub: 'gw ' + n.gateway }), this.cB(n.status, n.status === 'active' ? 'ok' : 'off')] })),
       foot: '관리자 계정만 클러스터 선택 칸이 붙는다 — 일반 사용자는 로그인 때 받은 자기 클러스터로 정해진다.' }));
@@ -453,15 +469,15 @@ class Component extends DCLogic {
       head: ['노드', '상태', 'IP (home-lan)', 'desired', 'observed', '배포', ''],
       rows: this.NODES.map((n) => {
         const mis = n.observed && n.obsGen < 42, off = n.status === 'offline';
-        return { hl: n.push === 'rejected' ? '#fff5f6' : mis ? '#fffbf0' : 'transparent', op: off ? 0.7 : 1, cells: [
+        return { hl: n.push === 'rejected' ? 'rgba(255,93,93,0.07)' : mis ? 'rgba(245,184,61,0.06)' : 'transparent', op: off ? 0.7 : 1, cells: [
           this.cM(n.id, { fw: 700, sub: /tree/i.test(n.role) ? 'tree' : '' }),
           this.cB(off ? 'offline' : 'online', off ? 'off' : 'ok', { tip: 'relay_connected: ' + n.relay }),
           this.cM(n.ip),
           this.cB(n.desired, 'info', { tip: 'desired transport' }),
-          n.observed ? this.cB(n.observed + (mis ? ' · gen ' + n.obsGen : ''), mis ? 'warn' : 'ok', { tip: 'observed reachability · network_generation', sub: mis ? '42 기다림' : '' }) : this.cT('관측 없음', { c: '#8b95a6' }),
+          n.observed ? this.cB(n.observed + (mis ? ' · gen ' + n.obsGen : ''), mis ? 'warn' : 'ok', { tip: 'observed reachability · network_generation', sub: mis ? '42 기다림' : '' }) : this.cT('관측 없음', { c: '#8a919b' }),
           this.cB(pushT[n.push], pushTone[n.push], { tip: 'wireguard_push_deliveries[].status = ' + n.push, sub: n.push === 'rejected' ? '키 불일치' : '' }),
           this.cBtn(n.id === 'tree-home' ? [] : [{ label: '철회', danger: true, tip: 'peer 철회 — 위험', run: () => this.confirm({ op: 'terra.master.network.mesh.wireguard.peers.revoke.post', title: n.id + ' peer를 철회할까요?', rows: [['source', 'tree-home'], ['target', n.id], ['방향', '양방향 (bidirectional: true)'], ['되돌리기', '다시 조정해야 복구 — 즉시 끊긴다']], warn: '철회는 바뀐 노드에 바로 배포됩니다. 오프라인 노드는 다음 연결 때 받습니다.', okLabel: '철회',
-            ok: () => this.toast('●', '#1f7a4d', 'peer 철회 — revoked', 'tree-home ↔ ' + n.id + ' · 배포 2건 sent') }) }])
+            ok: () => this.toast('●', '#3ecf8e', 'peer 철회 — revoked', 'tree-home ↔ ' + n.id + ' · 배포 2건 sent') }) }])
         ] };
       }),
       foot: '배포 결과(wireguard_push_deliveries): pending · deferred_offline · sent · accepted · rejected · failed. 노란 줄 = observed의 network_generation이 desired보다 옛것(적용 중 또는 어긋남). 빨간 줄 = 배포 거절.' }));
@@ -479,8 +495,8 @@ class Component extends DCLogic {
         isGraph: true, gw: 800, gh: 380,
         edges: this.EDGES.map(([a, b, t]) => ({ x1: pos[a].x, y1: pos[a].y, x2: pos[b].x, y2: pos[b].y, c: RT[t], w: onPair(a, b) ? 4 : 2.2, dash: t === 'cloud_relay' ? '6 5' : t === 'webrtc_p2p' ? '2 5' : 'none', op: onPair(a, b) ? 1 : 0.7 })),
         gnodes: this.NODES.map((n) => { const sel = n.id === P.src || n.id === P.dst;
-          return { x: n.x, y: n.y, name: n.id, r: sel ? 17 : 14, line: sel ? '#2563eb' : n.status === 'offline' ? '#c3cad5' : '#8b95a6', lw: sel ? 3 : 1.5, c: /tree/i.test(n.role) ? '#f0b442' : '#6f9cf0', op: n.status === 'offline' ? 0.55 : 1, ty: 30, ty2: 42, fw: sel ? 700 : 500,
-            tag: n.id === P.src ? 'source' : n.id === P.dst ? 'target' : '', tagC: '#2563eb',
+          return { x: n.x, y: n.y, name: n.id, r: sel ? 17 : 14, line: sel ? '#ffd84d' : n.status === 'offline' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.38)', lw: sel ? 3 : 1.5, c: /tree/i.test(n.role) ? '#f0a63a' : '#5aa8ff', op: n.status === 'offline' ? 0.55 : 1, ty: 30, ty2: 42, fw: sel ? 700 : 500,
+            tag: n.id === P.src ? 'source' : n.id === P.dst ? 'target' : '', tagC: '#ffd84d',
             pick: () => this.setState({ pair: n.id === P.src ? P : Object.assign({}, P, n.id === P.dst ? { src: P.dst, dst: P.src } : { dst: n.id }) }) }; }),
         legend: Object.keys(RT).filter((k) => k !== 'local_loopback').map((k) => ({ t: k, c: RT[k], style: k === 'cloud_relay' || k === 'webrtc_p2p' ? 'dashed' : 'solid' }))
       }));
@@ -492,13 +508,13 @@ class Component extends DCLogic {
       const pf = this.block({ span: 5, title: '노드 쌍', sub: '그래프에서 누르면 target이 바뀐다',
         acts: [{ label: 'probe 실행', kind: 'primary', busy: S.busy.probe, busyLabel: '보내는 중…', dis: P.src === P.dst, tip: 'network.probes.post — 접수만 한다(202). probe id는 오지 않는다',
           run: () => this.runSync('probe', 700, () => {
-            if (off) { this.toast('■', '#d33d52', '409 PROBE_TARGET_UNAVAILABLE', P.dst + '에 relay 없이 닿는 건강한 capability가 없습니다 · 다시 시도할 수 있음'); return; }
+            if (off) { this.toast('■', '#ff5d5d', '409 PROBE_TARGET_UNAVAILABLE', P.dst + '에 relay 없이 닿는 건강한 capability가 없습니다 · 다시 시도할 수 있음'); return; }
             this.setState({ waitProbe: { src: P.src, dst: P.dst, since: Date.now() } });
-            this.toast('◇', '#2563eb', 'accepted — 결과를 기다리는 중', 'message_id msg_' + Math.floor(Math.random() * 9000 + 1000) + ' · 결과는 목록의 observed_at이 바뀌면 옵니다');
+            this.toast('◇', '#7aa7ff', 'accepted — 결과를 기다리는 중', 'message_id msg_' + Math.floor(Math.random() * 9000 + 1000) + ' · 결과는 목록의 observed_at이 바뀌면 옵니다');
             this.later(3200, () => {
               const pr = { id: 'probe_' + Math.floor(Math.random() * 900 + 100).toString(16), src: P.src, dst: P.dst, adapter: 'wireguard', reachable: true, fresh: true, stale: '', at: this.hm(Date.now()), err: '' };
               this.setState({ waitProbe: null, probes: [pr].concat(this.state.probes.filter((x) => !(x.src === P.src && x.dst === P.dst))) });
-              this.toast('●', '#1f7a4d', 'probe 결과 도착', P.src + ' → ' + P.dst + ' reachable · fresh');
+              this.toast('●', '#3ecf8e', 'probe 결과 도착', P.src + ' → ' + P.dst + ' reachable · fresh');
             });
           }) }] }, { isForm: true, fCols: 3, fields: [
         { label: 'source', req: '*', isSel: true, isIn: false, opts: nodeOpts(P.src), set: set('src'), hint: '' },
@@ -514,42 +530,42 @@ class Component extends DCLogic {
       const denied = P.dst === 'laptop-03' ? [{ rt: 'lan_direct', reason: '대상 offline' }, { rt: 'mesh_vpn_direct', reason: '대상 offline' }] : [{ rt: 'lan_direct', reason: '같은 LAN이 아님' }, { rt: 'webrtc_p2p', reason: '정책이 허용하지 않음' }];
       out.push(this.table({ span: 7, title: '후보 라우트', sub: 'route.candidates.get · ' + P.src + ' → ' + P.dst + ' · ' + P.channel, tags: [this.tag('policy_source: ' + (P.dst === 'gpu-01' ? 'stored:rp-01' : P.dst === 'laptop-03' ? 'stored:rp-02' : 'default'), 'vio')],
         cols: '1.6fr 0.9fr 0.8fr 0.6fr 0.8fr 1.3fr', head: ['route_type', 'adapter', '상태', '지연', '대역폭', '이유'],
-        rows: cands.map((c, i) => ({ hl: i === 0 ? '#f3f7ff' : 'transparent', cells: [this.cM(c.rt, { c: RT[c.rt], fw: 700, sub: i === 0 ? '선택' : '' }), this.cM(c.ad), this.cB(c.healthy ? 'healthy' : 'unhealthy', c.healthy ? 'ok' : 'bad'), this.cM(c.lat + 'ms'), this.cM(c.bw), this.cT(c.reason, { c: '#5b6472' })] }))
-          .concat(denied.map((d) => ({ op: 0.6, cells: [this.cM(d.rt, { c: '#8b95a6', sub: '거부' }), this.cT('—'), this.cB('denied', 'off'), this.cT('—'), this.cT('—'), this.cT(d.reason, { c: '#8b95a6' })] }))),
+        rows: cands.map((c, i) => ({ hl: i === 0 ? 'rgba(122,167,255,0.07)' : 'transparent', cells: [this.cM(c.rt, { c: RT[c.rt], fw: 700, sub: i === 0 ? '선택' : '' }), this.cM(c.ad), this.cB(c.healthy ? 'healthy' : 'unhealthy', c.healthy ? 'ok' : 'bad'), this.cM(c.lat + 'ms'), this.cM(c.bw), this.cT(c.reason, { c: '#9aa1ab' })] }))
+          .concat(denied.map((d) => ({ op: 0.6, cells: [this.cM(d.rt, { c: '#8a919b', sub: '거부' }), this.cT('—'), this.cB('denied', 'off'), this.cT('—'), this.cT('—'), this.cT(d.reason, { c: '#8a919b' })] }))),
         empty: '409 ROUTE_UNAVAILABLE — 쓸 수 있는 후보가 없습니다 (다시 시도 가능)', foot: cands.length ? '' : '대상이 offline이면 후보가 비고 거부된 후보만 남는다.' }));
       out.push(this.table({ span: 5, title: 'probe 기록', sub: 'network.probes.get', cols: '1.5fr 1.6fr 0.8fr',
         head: ['쌍', '결과', '시각'],
-        rows: (waiting ? [{ hl: '#f3f7ff', cells: [this.cM(P.src + ' → ' + P.dst), this.cB('기다림', 'info', { g: '⟳', cls: 'spin' }), this.cM('—')] }] : []).concat(S.probes.map((p) => ({ cells: [
+        rows: (waiting ? [{ hl: 'rgba(122,167,255,0.07)', cells: [this.cM(P.src + ' → ' + P.dst), this.cB('기다림', 'info', { g: '⟳', cls: 'spin' }), this.cM('—')] }] : []).concat(S.probes.map((p) => ({ cells: [
           this.cM(p.src + ' → ' + p.dst, { sub: p.adapter }),
           p.reachable ? this.cB(p.fresh ? 'reachable · fresh' : 'reachable', p.fresh ? 'ok' : 'warn', { sub: p.fresh ? '' : p.stale }) : this.cB('unreachable', 'bad', { sub: p.err }),
-          this.cM(p.at, { c: '#5b6472' })] }))),
+          this.cM(p.at, { c: '#9aa1ab' })] }))),
         foot: 'stale_reason: unreachable · missing_observed_at · probe_expired · network_generation_mismatch' }));
     } else if (sub === 'policy') {
       const modeTone = { auto: 'off', prefer: 'info', only: 'vio', deny: 'bad', relay_only: 'warn' };
-      out.push(this.banner('warn', '!', '저장 성공 ≠ 유효.', '정책 저장은 내용을 검증하지 않습니다. 저장한 뒤 그 쌍의 후보를 조회해 유효한지 보여 줍니다 — 틀린 정책은 후보 조회 409, 그래프에서 edge가 조용히 빠지는 것으로 드러납니다.'));
-      out.push(this.table({ span: 12, title: '라우트 정책', sub: 'route.policies.* — 같은 scope면 덮어쓴다(저장 = 새로 만들기 + 고치기)', acts: [{ label: '+ 정책', kind: 'primary', run: () => this.toast('◇', '#2563eb', '정책 폼', '시연 화면 — scope(source · target · channel · resource) + policy(mode · prefer · allow · deny · fallback)') }],
+      out.push(this.banner('warn', 'warn', '저장 성공 ≠ 유효.', '정책 저장은 내용을 검증하지 않습니다. 저장한 뒤 그 쌍의 후보를 조회해 유효한지 보여 줍니다 — 틀린 정책은 후보 조회 409, 그래프에서 edge가 조용히 빠지는 것으로 드러납니다.'));
+      out.push(this.table({ span: 12, title: '라우트 정책', sub: 'route.policies.* — 같은 scope면 덮어쓴다(저장 = 새로 만들기 + 고치기)', acts: [{ label: '+ 정책', kind: 'primary', run: () => this.toast('◇', '#7aa7ff', '정책 폼', '시연 화면 — scope(source · target · channel · resource) + policy(mode · prefer · allow · deny · fallback)') }],
         cols: '0.8fr 1.6fr 0.9fr 0.8fr 1.3fr 1fr 1.2fr 0.9fr', head: ['id', 'scope', 'channel', 'mode', 'prefer → fallback', '저장', '후보 확인', ''],
-        rows: S.policies.map((p) => ({ hl: p.checked === 'bad' ? '#fff5f6' : 'transparent', cells: [
-          this.cM(p.id, { fw: 700 }), this.cM(p.src + ' → ' + p.dst), this.cM(p.channel), this.cB(p.mode, modeTone[p.mode]), this.cM(p.prefer + ' → ' + p.fallback, { c: '#3a4049' }), this.cT(p.at, { c: '#5b6472' }),
+        rows: S.policies.map((p) => ({ hl: p.checked === 'bad' ? 'rgba(255,93,93,0.07)' : 'transparent', cells: [
+          this.cM(p.id, { fw: 700 }), this.cM(p.src + ' → ' + p.dst), this.cM(p.channel), this.cB(p.mode, modeTone[p.mode]), this.cM(p.prefer + ' → ' + p.fallback, { c: '#b4bac3' }), this.cT(p.at, { c: '#9aa1ab' }),
           p.checked === 'ok' ? this.cB('후보 있음', 'ok') : this.cB('409 ROUTE_UNAVAILABLE', 'bad', { tip: 'edge-01과 gpu-02는 같은 LAN이 아니다 — only lan_direct는 성립하지 않음' }),
-          this.cBtn([{ label: '삭제', danger: true, run: () => this.toast('●', '#1f7a4d', '정책 삭제', p.id + ' — route.policies.by-policy-id.delete') }])] })),
+          this.cBtn([{ label: '삭제', danger: true, run: () => this.toast('●', '#3ecf8e', '정책 삭제', p.id + ' — route.policies.by-policy-id.delete') }])] })),
         foot: 'mode: auto · prefer · only · deny · relay_only. 목록 값은 route_type. 빨간 줄 = 저장은 됐지만 후보 조회가 실패한 정책.' }));
     } else {
       const stTone = { opening: 'info', active: 'ok', draining: 'warn', closed: 'off', failed: 'bad' };
       out.push(this.table({ span: 12, title: '라우트 세션', sub: 'route.sessions.*', cols: '0.8fr 1.5fr 1fr 1.1fr 2fr 1fr 0.6fr',
         head: ['id', '경로', 'channel', 'route_type', '상태', '보냄 / 받음', ''],
         rows: S.sessions.map((s) => ({ cells: [
-          this.cM(s.id, { fw: 700 }), this.cM(s.src + ' → ' + s.dst), this.cM(s.channel, { c: '#5b6472' }), this.cM(s.rt, { c: this.RT()[s.rt] }),
+          this.cM(s.id, { fw: 700 }), this.cM(s.src + ' → ' + s.dst), this.cM(s.channel, { c: '#9aa1ab' }), this.cM(s.rt, { c: this.RT()[s.rt] }),
           this.cB(s.state, stTone[s.state], { sub: s.trace === 'plan' ? '남은 흔적 — 열지 않은 계획' : '', tip: s.trace === 'plan' ? '터널 계획(plan)이 만든 opening 세션. 실패한 연결이 아니다 — 지우는 API는 없다' : '' }),
-          this.cM(s.sent + ' / ' + s.recv, { c: '#3a4049' }),
+          this.cM(s.sent + ' / ' + s.recv, { c: '#b4bac3' }),
           this.cBtn(s.state === 'closed' ? [] : [{ label: '닫기', danger: true, run: () => this.confirm({ op: 'terra.master.route.sessions.by-session-id.close.post', title: s.id + ' 세션을 닫을까요?', rows: [['경로', s.src + ' → ' + s.dst], ['실제로 하는 일', 'Master 기록만 closed로 바꾼다'], ['되돌리기', '없음']], warn: '데몬에 알리지 않습니다. 이미 열린 연결은 바로 끊기지 않고, 이후 티켓 갱신만 거부됩니다. "닫힘"을 연결 종료로 보지 마세요.', okLabel: '기록 닫기',
-            ok: () => { this.setState({ sessions: this.state.sessions.map((x) => x.id === s.id ? Object.assign({}, x, { state: 'closed' }) : x) }); this.toast('●', '#1f7a4d', s.id + ' — closed (Master 기록)', '연결 자체는 티켓이 끝날 때까지 남을 수 있습니다'); } }) }])] })),
+            ok: () => { this.setState({ sessions: this.state.sessions.map((x) => x.id === s.id ? Object.assign({}, x, { state: 'closed' }) : x) }); this.toast('●', '#3ecf8e', s.id + ' — closed (Master 기록)', '연결 자체는 티켓이 끝날 때까지 남을 수 있습니다'); } }) }])] })),
         foot: 'state: opening · active · draining · closed · failed. expires_at은 첫 티켓의 만료(2분)라 세션 만료로 그리지 않는다. health(트래픽)는 데몬 보고가 있을 때만.' }));
-      out.push(this.table({ span: 12, title: '연결 그룹', sub: 'connection-groups.* — 상태는 opening · closed 둘뿐', acts: [{ label: '+ 그룹', run: () => this.toast('◇', '#2563eb', '그룹 만들기', 'name + session_ids[]') }],
+      out.push(this.table({ span: 12, title: '연결 그룹', sub: 'connection-groups.* — 상태는 opening · closed 둘뿐', acts: [{ label: '+ 그룹', run: () => this.toast('◇', '#7aa7ff', '그룹 만들기', 'name + session_ids[]') }],
         cols: '0.8fr 1.2fr 2fr 0.8fr 0.8fr', head: ['id', '이름', '세션', '상태', ''],
         rows: S.groups.map((g) => ({ cells: [this.cM(g.id, { fw: 700 }), this.cT(g.name, { fw: 700 }), this.cM(g.sessions.join(', ')), this.cB(g.state, g.state === 'closed' ? 'off' : 'info'),
           this.cBtn(g.state === 'closed' ? [] : [{ label: '닫기', danger: true, run: () => this.confirm({ op: 'terra.master.connection-groups.by-group-id.close.post', title: '"' + g.name + '" 그룹을 닫을까요?', rows: [['함께 닫힘', '속한 세션 ' + g.sessions.length + '개 (' + g.sessions.join(', ') + ')'], ['되돌리기', '없음']], warn: '그룹을 닫으면 속한 세션도 Master 기록에서 함께 닫힙니다.', okLabel: '그룹 닫기',
-            ok: () => { this.setState({ groups: this.state.groups.map((x) => x.id === g.id ? Object.assign({}, x, { state: 'closed' }) : x), sessions: this.state.sessions.map((x) => g.sessions.indexOf(x.id) >= 0 ? Object.assign({}, x, { state: 'closed' }) : x) }); this.toast('●', '#1f7a4d', g.name + ' — closed', '세션 ' + g.sessions.length + '개도 closed'); } }) }])] })) }));
+            ok: () => { this.setState({ groups: this.state.groups.map((x) => x.id === g.id ? Object.assign({}, x, { state: 'closed' }) : x), sessions: this.state.sessions.map((x) => g.sessions.indexOf(x.id) >= 0 ? Object.assign({}, x, { state: 'closed' }) : x) }); this.toast('●', '#3ecf8e', g.name + ' — closed', '세션 ' + g.sessions.length + '개도 closed'); } }) }])] })) }));
     }
     return { tabs, blocks: out };
   }
@@ -560,12 +576,12 @@ class Component extends DCLogic {
       out.push(this.table({ span: 12, title: '로컬 터널', sub: 'terra.daemon.service-tunnels.get — 순서가 매번 달라 화면이 이름순으로 정렬', tags: [this.tag('선언 여부 필드 없음', 'off', '선언 터널과 구분하는 필드가 없다')],
         cols: '1.3fr 2fr 1.2fr 0.9fr 1.1fr 1.1fr 0.6fr', head: ['service_id', 'local → target', '상대', '상태', '세션 (활성/전체/실패)', '보냄 / 받음', ''],
         rows: S.ltunnels.slice().sort((a, b) => a.service < b.service ? -1 : 1).map((t) => ({ cells: [
-          this.cM(t.service, { fw: 700, sub: t.id }), this.cM(t.local + ' → ' + t.target), this.cM(t.src + ' → ' + t.dst, { c: '#5b6472' }), this.cB(t.status, stTone[t.status] || 'off'),
-          this.cM(t.act + ' / ' + t.total + ' / ' + t.failed, { c: t.failed ? '#a65f00' : '#16191f' }), this.cM(t.sent + ' / ' + t.recv, { c: '#3a4049' }),
+          this.cM(t.service, { fw: 700, sub: t.id }), this.cM(t.local + ' → ' + t.target), this.cM(t.src + ' → ' + t.dst, { c: '#9aa1ab' }), this.cB(t.status, stTone[t.status] || 'off'),
+          this.cM(t.act + ' / ' + t.total + ' / ' + t.failed, { c: t.failed ? '#f5b83d' : '#ede9e1' }), this.cM(t.sent + ' / ' + t.recv, { c: '#b4bac3' }),
           this.cBtn([{ label: '닫기', danger: true, run: () => this.confirm({ op: 'terra.daemon.service-tunnels.by-tunnel-id.close.post', title: t.service + ' 터널을 닫을까요?', rows: [['터널', t.id + ' · ' + t.local], ['활성 세션', t.act + '개 — 끊긴다'], ['되돌리기', '다시 열려면 tree 화면에서 계획 · 열기']], warn: '선언된 터널이면 약 60초 안에 다시 열립니다 — 선언을 지워야 닫힙니다. 없는 id도 closed: true라서, 닫혔는지는 목록을 다시 읽어 확인합니다.', okLabel: '닫기',
-            ok: () => this.runSync('tclose', 900, () => { this.setState({ ltunnels: this.state.ltunnels.filter((x) => x.id !== t.id) }); this.toast('●', '#1f7a4d', '닫힘 — 목록을 다시 읽어 확인했습니다', t.service + ' · 선언 터널이면 곧 다시 나타납니다'); }) }) }])] })),
+            ok: () => this.runSync('tclose', 900, () => { this.setState({ ltunnels: this.state.ltunnels.filter((x) => x.id !== t.id) }); this.toast('●', '#3ecf8e', '닫힘 — 목록을 다시 읽어 확인했습니다', t.service + ' · 선언 터널이면 곧 다시 나타납니다'); }) }) }])] })),
         empty: '열린 터널이 없습니다', foot: '터널 status: listening · active · failed · draining. 세션 state: dialing · active.' }));
-      out.push(this.banner('info', 'ⓘ', '새 터널은 tree 화면에서 엽니다.', 'leaf 화면만으로는 새 터널을 열 수 없습니다 — 입력이 Master의 계획인데, leaf GUI의 카탈로그에는 Master operation이 없습니다(/api/upstream/… 경로에는 operation id가 없다).'));
+      out.push(this.banner('info', 'info', '새 터널은 tree 화면에서 엽니다.', 'leaf 화면만으로는 새 터널을 열 수 없습니다 — 입력이 Master의 계획인데, leaf GUI의 카탈로그에는 Master operation이 없습니다(/api/upstream/… 경로에는 operation id가 없다).'));
       return { tabs: [], blocks: out };
     }
     const sub = S.sub.tunnel, tabs = [['sessions', '열린 터널'], ['decl', '고정 포트 선언'], ['new', '새 터널']];
@@ -576,26 +592,26 @@ class Component extends DCLogic {
         head: ['세션', '경로', 'route_type', '상태', '보냄 / 받음'],
         rows: tun.map((s) => ({ cells: [this.cM(s.id, { fw: 700 }), this.cM(s.src + ' → ' + s.dst), this.cM(s.rt, { c: this.RT()[s.rt] }),
           this.cB(s.state, stTone[s.state], { g: s.state === 'opening' && s.trace === 'opening' ? '⟳' : '', cls: s.state === 'opening' && s.trace === 'opening' ? 'spin' : '', sub: s.trace === 'plan' ? '남은 흔적 — 열지 않은 계획' : s.state === 'failed' ? '사유는 Master에 남지 않음' : '' }),
-          this.cM(s.sent + ' / ' + s.recv, { c: '#3a4049' })] })),
+          this.cM(s.sent + ' / ' + s.recv, { c: '#b4bac3' })] })),
         foot: '열기(open)는 접수만 한다(202 · message_id). 세션이 opening → active 또는 failed로 바뀌는 것을 폴링으로 본다. 409가 나도 opening 세션이 남는다.' }));
     } else if (sub === 'decl') {
-      out.push(this.table({ span: 12, title: '고정 포트 선언', sub: 'service-tunnels.declarations.* — 데몬이 약 60초마다 맞춰 연다', acts: [{ label: '+ 선언', kind: 'primary', run: () => this.toast('!', '#a65f00', '409 DECLARATION_EXISTS', '같은 노드에 service_id나 local_port가 겹치면 거절됩니다 — 폼에서 먼저 막습니다') }],
+      out.push(this.table({ span: 12, title: '고정 포트 선언', sub: 'service-tunnels.declarations.* — 데몬이 약 60초마다 맞춰 연다', acts: [{ label: '+ 선언', kind: 'primary', run: () => this.toast('!', '#f5b83d', '409 DECLARATION_EXISTS', '같은 노드에 service_id나 local_port가 겹치면 거절됩니다 — 폼에서 먼저 막습니다') }],
         cols: '0.9fr 1.3fr 1.3fr 0.9fr 0.9fr 1fr 0.8fr 0.7fr', head: ['id', '노드', 'service_id', 'local', 'target', '정책', '상태', ''],
-        rows: S.decls.map((d) => ({ cells: [this.cM(d.id, { fw: 700 }), this.cM(d.src + ' → ' + d.dst), this.cM(d.service), this.cM(':' + d.lport), this.cM('127.0.0.1:' + d.tport, { c: '#5b6472' }), this.cM(d.policy), this.cB(d.enabled ? 'enabled' : 'disabled', d.enabled ? 'ok' : 'off'),
-          this.cBtn([{ label: '지우기', danger: true, run: () => { this.setState({ decls: this.state.decls.filter((x) => x.id !== d.id) }); this.toast('●', '#1f7a4d', '선언 삭제', d.id + ' — 해당 노드의 터널은 다음 재조정 때 닫힙니다'); } }])] })),
+        rows: S.decls.map((d) => ({ cells: [this.cM(d.id, { fw: 700 }), this.cM(d.src + ' → ' + d.dst), this.cM(d.service), this.cM(':' + d.lport), this.cM('127.0.0.1:' + d.tport, { c: '#9aa1ab' }), this.cM(d.policy), this.cB(d.enabled ? 'enabled' : 'disabled', d.enabled ? 'ok' : 'off'),
+          this.cBtn([{ label: '지우기', danger: true, run: () => { this.setState({ decls: this.state.decls.filter((x) => x.id !== d.id) }); this.toast('●', '#3ecf8e', '선언 삭제', d.id + ' — 해당 노드의 터널은 다음 재조정 때 닫힙니다'); } }])] })),
         foot: 'target_host · local_bind_host는 loopback만 된다. 선언 터널은 leaf에서 닫아도 다시 열린다 — 닫으려면 여기서 지운다.' }));
     } else {
       const P = S.plan, set = (k) => (e) => this.setState({ plan: Object.assign({}, this.state.plan, { [k]: e.target.value }) });
       const nodeOpts = (v) => this.NODES.map((n) => ({ v: n.id, t: n.id, sel: n.id === v ? 'selected' : null }));
       const pol = ['auto', 'lan-only', 'lan-preferred', 'secure-mesh-only', 'webrtc-only', 'webrtc-preferred', 'relay-only'];
       out.push(this.block({ span: 7, title: '새 터널', sub: 'service-tunnels.plan.post → service-tunnels.open.post',
-        acts: [{ label: '경로 계획', run: () => this.runSync('plan', 800, () => { this.setState({ planned: { at: this.hm(Date.now()), rt: P.policy === 'relay-only' ? 'cloud_relay' : 'mesh_vpn_direct' } }); this.toast('◇', '#2563eb', '계획됨 — 티켓은 2분 뒤 만료', '열지 않으면 opening 세션이 목록에 남습니다'); }), busy: S.busy.plan },
+        acts: [{ label: '경로 계획', run: () => this.runSync('plan', 800, () => { this.setState({ planned: { at: this.hm(Date.now()), rt: P.policy === 'relay-only' ? 'cloud_relay' : 'mesh_vpn_direct' } }); this.toast('◇', '#7aa7ff', '계획됨 — 티켓은 2분 뒤 만료', '열지 않으면 opening 세션이 목록에 남습니다'); }), busy: S.busy.plan },
           { label: '열기', kind: 'danger', dis: !S.planned, tip: S.planned ? '' : '먼저 경로 계획', busy: S.busy.open, run: () => this.confirm({ op: 'terra.master.service-tunnels.open.post', title: P.service + ' 터널을 열까요?', rows: [['source', P.src + ' (여기서 127.0.0.1:' + (P.lport === '0' ? '임의 포트' : P.lport) + ')'], ['target', P.dst + ' 127.0.0.1:' + P.tport], ['경로', (S.planned || {}).rt + ' · 정책 ' + P.policy], ['되돌리기', '세션을 닫거나 source 노드에서 터널 닫기']], warn: 'Master가 source 노드의 데몬에 열라고 보냅니다. 응답은 접수(202)뿐이고, 결과는 세션 상태(opening → active · failed)로 확인합니다.', okLabel: '열기',
             ok: () => this.runSync('open', 600, () => {
               const id = 'rt_' + Math.floor(Math.random() * 60000 + 4096).toString(16);
               this.setState({ planned: null, sessions: [{ id, src: P.src, dst: P.dst, channel: 'service.tunnel', rt: 'mesh_vpn_direct', state: 'opening', sent: '—', recv: '—', trace: 'opening' }].concat(this.state.sessions), sub: Object.assign({}, this.state.sub, { tunnel: 'sessions' }) });
-              this.toast('◇', '#2563eb', 'accepted — 세션 ' + id + ' opening', '세션 상태를 폴링합니다');
-              this.later(3000, () => { this.setState({ sessions: this.state.sessions.map((x) => x.id === id ? Object.assign({}, x, { state: 'active', trace: '', sent: '0 B', recv: '0 B' }) : x) }); this.toast('●', '#1f7a4d', id + ' — active', P.service + ' 터널이 열렸습니다'); });
+              this.toast('◇', '#7aa7ff', 'accepted — 세션 ' + id + ' opening', '세션 상태를 폴링합니다');
+              this.later(3000, () => { this.setState({ sessions: this.state.sessions.map((x) => x.id === id ? Object.assign({}, x, { state: 'active', trace: '', sent: '0 B', recv: '0 B' }) : x) }); this.toast('●', '#3ecf8e', id + ' — active', P.service + ' 터널이 열렸습니다'); });
             }) }) }] },
       { isForm: true, fCols: 3, fields: [
         { label: 'source (로컬)', req: '*', isSel: true, isIn: false, opts: nodeOpts(P.src), set: set('src'), hint: '' },
@@ -606,8 +622,8 @@ class Component extends DCLogic {
         { label: 'local_port', req: '', isSel: false, isIn: true, val: P.lport, set: set('lport'), hint: '0이면 임의 포트' }
       ], hasFoot: true, foot: '계획은 미리보기가 아니다 — 서명된 티켓(2분)과 opening 세션을 만든다. 응답의 비밀값(ticket.signature · TURN credential)은 화면에 보이지 않는다.' }));
       out.push(this.table({ span: 5, title: '계획 결과', sub: S.planned ? S.planned.at + ' · 비밀값은 숨김' : '아직 계획하지 않음', cols: '1.3fr 1fr 0.8fr', head: ['후보', 'adapter', ''],
-        rows: S.planned ? [{ hl: '#f3f7ff', cells: [this.cM(S.planned.rt, { fw: 700, c: this.RT()[S.planned.rt], sub: '선택' }), this.cM(S.planned.rt === 'cloud_relay' ? 'websocket' : 'wireguard'), this.cB('decision', 'info')] },
-          { cells: [this.cM('cloud_relay', { c: '#8b95a6' }), this.cM('websocket'), this.cB('후보', 'off')] }, { op: 0.6, cells: [this.cM('lan_direct', { c: '#8b95a6' }), this.cT('—'), this.cB('denied', 'off')] }] : [],
+        rows: S.planned ? [{ hl: 'rgba(122,167,255,0.07)', cells: [this.cM(S.planned.rt, { fw: 700, c: this.RT()[S.planned.rt], sub: '선택' }), this.cM(S.planned.rt === 'cloud_relay' ? 'websocket' : 'wireguard'), this.cB('decision', 'info')] },
+          { cells: [this.cM('cloud_relay', { c: '#8a919b' }), this.cM('websocket'), this.cB('후보', 'off')] }, { op: 0.6, cells: [this.cM('lan_direct', { c: '#8a919b' }), this.cT('—'), this.cB('denied', 'off')] }] : [],
         empty: '경로 계획을 누르면 선택된 경로와 후보가 여기에 나옵니다', foot: S.planned ? '티켓 id · 만료 · max_uses만 보여 준다. 열지 않으면 이 계획의 세션은 "남은 흔적"으로 남는다.' : '' }));
     }
     return { tabs, blocks: out };
@@ -615,11 +631,11 @@ class Component extends DCLogic {
   wgBlocks() {
     const S = this.state, W = S.wg, out = [], demo = S.demo;
     if (demo === 'wgoff') {
-      out.push(this.stateBlock('◌', 'off', 'WireGuard가 꺼져 있습니다', '로컬 노드의 설정에서 WireGuard 사용(enabled)이 꺼져 있습니다(기본값). 설치(installed) ✓ · 준비(ready) ✓ — ready는 꺼져 있어도 true라서, 배지는 enabled · installed · ready를 함께 봅니다. 이것은 빈 상태이지 오류가 아닙니다.', [{ label: '설치 안내 보기', run: () => this.setState({ demo: 'noinst' }) }]));
+      out.push(this.stateBlock('shield', 'off', 'WireGuard가 꺼져 있습니다', '로컬 노드의 설정에서 WireGuard 사용(enabled)이 꺼져 있습니다(기본값). 설치(installed) ✓ · 준비(ready) ✓ — ready는 꺼져 있어도 true라서, 배지는 enabled · installed · ready를 함께 봅니다. 이것은 빈 상태이지 오류가 아닙니다.', [{ label: '설치 안내 보기', run: () => this.setState({ demo: 'noinst' }) }]));
       return { tabs: [], blocks: out };
     }
     if (demo === 'noinst') {
-      out.push(this.banner('warn', '!', 'WireGuard 도구가 없습니다.', 'installed: false · reason: "wireguard tools not found". 설치를 실행하는 API는 없습니다 — 아래 단계를 로컬 기기에서 직접 실행하세요.'));
+      out.push(this.banner('warn', 'warn', 'WireGuard 도구가 없습니다.', 'installed: false · reason: "wireguard tools not found". 설치를 실행하는 API는 없습니다 — 아래 단계를 로컬 기기에서 직접 실행하세요.'));
       out.push(this.block({ span: 12, title: '설치 계획', sub: 'wireguard.install-plan.get · Linux (ubuntu) · 지원됨' }, { isSteps: true, steps: [
         { n: 1, d: '패키지 목록 갱신', admin: '관리자 권한', cmd: 'sudo apt-get update' },
         { n: 2, d: 'WireGuard 도구 설치', admin: '관리자 권한', cmd: 'sudo apt-get install -y wireguard-tools' },
@@ -634,7 +650,7 @@ class Component extends DCLogic {
       tags: [this.tag(W.enabled ? 'enabled' : 'disabled', W.enabled ? 'ok' : 'off'), this.tag(W.installed ? 'installed' : '미설치', W.installed ? 'ok' : 'bad'), this.tag(W.ready ? 'ready' : 'not ready', W.ready ? 'ok' : 'warn'),
         this.tag(on ? '인터페이스 켜짐 (간접)' : '인터페이스 꺼짐 (간접)', on ? 'info' : 'off', '켜짐 여부 필드가 없다 — peers 조회 성공 · sync의 interface_observed로 판단')] },
       [{ k: 'mode', v: W.mode, cls: 'mono' }, { k: 'interface', v: W.iface, cls: 'mono' }, { k: 'address_cidr', v: W.addr, cls: 'mono' }, { k: 'listen_port', v: W.port, cls: 'mono' },
-        { k: 'public_key', v: W.pub, cls: 'mono' }, { k: '권한 helper', v: W.helper ? '설정됨' : '없음', c: W.helper ? '#1f7a4d' : '#a65f00' }, { k: '관리형 키 만든 날', v: W.keyAt, cls: 'mono' }, { k: 'mesh_vpn', v: 'managed · on', cls: 'mono' }], 4));
+        { k: 'public_key', v: W.pub, cls: 'mono' }, { k: '권한 helper', v: W.helper ? '설정됨' : '없음', c: W.helper ? '#3ecf8e' : '#f5b83d' }, { k: '관리형 키 만든 날', v: W.keyAt, cls: 'mono' }, { k: 'mesh_vpn', v: 'managed · on', cls: 'mono' }], 4));
     const b = S.busy;
     const run = (name, ms, after) => () => {
       this.setState({ busy: Object.assign({}, this.state.busy, { running: name, runSince: Date.now() }) });
@@ -642,30 +658,30 @@ class Component extends DCLogic {
     };
     const dg = (op, title, rows, warn, okLabel, go) => () => this.confirm({ op, title, rows, warn, okLabel, ok: go });
     const upDown = W.observed
-      ? dg('terra.daemon.wireguard.down.post', '인터페이스를 내릴까요?', [['대상', W.iface + ' · ' + W.addr], ['영향', '로컬 노드의 mesh 연결이 모두 끊긴다'], ['되돌리기', '올리기로 다시 켬']], '현재 GUI가 mesh를 통해 열려 있었다면 연결이 끊길 수 있습니다. 15초 안에 답이 없으면 504 — 끝났는지 모르므로 상태를 다시 읽습니다.', '내리기', run('내리기', 2200, () => { this.setState({ wg: Object.assign({}, this.state.wg, { observed: false }) }); this.toast('●', '#1f7a4d', '내리기 — executed', 'wg-quick down terra0 · peers 조회는 이제 422'); }))
-      : dg('terra.daemon.wireguard.apply.post', '인터페이스를 올릴까요?', [['대상', W.iface + ' · ' + W.addr], ['되돌리기', '내리기']], '성공은 명령이 끝났다는 뜻입니다 — 섰는지는 이어서 동기화로 확인합니다.', '올리기', run('올리기', 1800, () => { this.setState({ wg: Object.assign({}, this.state.wg, { observed: true }) }); this.toast('●', '#1f7a4d', '올리기 — executed', 'wg-quick up terra0'); }));
+      ? dg('terra.daemon.wireguard.down.post', '인터페이스를 내릴까요?', [['대상', W.iface + ' · ' + W.addr], ['영향', '로컬 노드의 mesh 연결이 모두 끊긴다'], ['되돌리기', '올리기로 다시 켬']], '현재 GUI가 mesh를 통해 열려 있었다면 연결이 끊길 수 있습니다. 15초 안에 답이 없으면 504 — 끝났는지 모르므로 상태를 다시 읽습니다.', '내리기', run('내리기', 2200, () => { this.setState({ wg: Object.assign({}, this.state.wg, { observed: false }) }); this.toast('●', '#3ecf8e', '내리기 — executed', 'wg-quick down terra0 · peers 조회는 이제 422'); }))
+      : dg('terra.daemon.wireguard.apply.post', '인터페이스를 올릴까요?', [['대상', W.iface + ' · ' + W.addr], ['되돌리기', '내리기']], '성공은 명령이 끝났다는 뜻입니다 — 섰는지는 이어서 동기화로 확인합니다.', '올리기', run('올리기', 1800, () => { this.setState({ wg: Object.assign({}, this.state.wg, { observed: true }) }); this.toast('●', '#3ecf8e', '올리기 — executed', 'wg-quick up terra0'); }));
     const A = [
-      ['동기화', '쓰기', 'Master의 desired를 당겨 와 설정에 반영 · interface_observed로 켜짐을 확인', '동기화', false, run('동기화', 1400, () => { this.setState({ wg: Object.assign({}, this.state.wg, { observed: true }) }); this.toast('●', '#1f7a4d', '동기화 — skipped', 'reason: desired_config_unchanged · interface_observed: true'); })],
-      ['보고', '쓰기', 'peer 스냅숏을 Master에 보고 — 401·403·404면 데몬이 로컬 등록을 지운다', '보고', false, run('보고', 900, () => this.toast('●', '#1f7a4d', '보고 — reported', 'Master reported_peers 4 · recorded 4 · unresolved 0'))],
+      ['동기화', '쓰기', 'Master의 desired를 당겨 와 설정에 반영 · interface_observed로 켜짐을 확인', '동기화', false, run('동기화', 1400, () => { this.setState({ wg: Object.assign({}, this.state.wg, { observed: true }) }); this.toast('●', '#3ecf8e', '동기화 — skipped', 'reason: desired_config_unchanged · interface_observed: true'); })],
+      ['보고', '쓰기', 'peer 스냅숏을 Master에 보고 — 401·403·404면 데몬이 로컬 등록을 지운다', '보고', false, run('보고', 900, () => this.toast('●', '#3ecf8e', '보고 — reported', 'Master reported_peers 4 · recorded 4 · unresolved 0'))],
       [W.observed ? '인터페이스 내리기' : '인터페이스 올리기', '위험', W.observed ? '내리면 로컬 노드의 mesh 연결이 끊긴다' : '성공 = 명령이 끝남. 섰는지는 동기화로 확인', W.observed ? '내리기…' : '올리기…', true, upDown],
-      ['관리형 키 교체', '위험', '기본은 "없으면 만들고 있으면 읽기". rotate일 때만 교체 — 교체 뒤 설정을 다시 적용', '교체…', true, dg('terra.daemon.wireguard.managed-key.post', '관리형 키를 교체할까요?', [['rotate', 'true'], ['지금 공개 키', W.pub], ['이후', '설정을 다시 적용해야 peer와 다시 붙는다']], '교체 뒤 Master 보고가 실패하면 성공 응답 안에 bootstrap_report_error로 옵니다. 그 경우 보고를 다시 누르세요.', '키 교체', run('키 교체', 1300, () => { this.setState({ wg: Object.assign({}, this.state.wg, { pub: 'Qn7w2L…a9Xc=', keyAt: '방금' }) }); this.toast('!', '#a65f00', '키 교체됨 — 설정을 다시 적용하세요', 'previous_public_key ' + W.pub + ' · bootstrap_report ok'); }))],
-      ['관리형 설정 기록', '위험', '주소 · peer를 설정 파일에 쓴다. dry_run도 파일을 쓴다 — 미리보기 아님', '기록…', true, dg('terra.daemon.wireguard.managed-config.post', '관리형 설정을 기록할까요?', [['address_cidr', W.addr], ['peers', S.peers.length + '개'], ['dry_run', '쓰지 않음 — dry_run도 파일을 쓴다']], 'dry_run은 미리보기가 아닙니다. 설정 파일과 데몬 설정을 쓰고 명령 실행만 건너뜁니다.', '기록', run('설정 기록', 1500, () => this.toast('●', '#1f7a4d', '설정 기록 — restart_required: false', 'content_sha256 3f9a…c1 · peer_count 4')))]
+      ['관리형 키 교체', '위험', '기본은 "없으면 만들고 있으면 읽기". rotate일 때만 교체 — 교체 뒤 설정을 다시 적용', '교체…', true, dg('terra.daemon.wireguard.managed-key.post', '관리형 키를 교체할까요?', [['rotate', 'true'], ['지금 공개 키', W.pub], ['이후', '설정을 다시 적용해야 peer와 다시 붙는다']], '교체 뒤 Master 보고가 실패하면 성공 응답 안에 bootstrap_report_error로 옵니다. 그 경우 보고를 다시 누르세요.', '키 교체', run('키 교체', 1300, () => { this.setState({ wg: Object.assign({}, this.state.wg, { pub: 'Qn7w2L…a9Xc=', keyAt: '방금' }) }); this.toast('!', '#f5b83d', '키 교체됨 — 설정을 다시 적용하세요', 'previous_public_key ' + W.pub + ' · bootstrap_report ok'); }))],
+      ['관리형 설정 기록', '위험', '주소 · peer를 설정 파일에 쓴다. dry_run도 파일을 쓴다 — 미리보기 아님', '기록…', true, dg('terra.daemon.wireguard.managed-config.post', '관리형 설정을 기록할까요?', [['address_cidr', W.addr], ['peers', S.peers.length + '개'], ['dry_run', '쓰지 않음 — dry_run도 파일을 쓴다']], 'dry_run은 미리보기가 아닙니다. 설정 파일과 데몬 설정을 쓰고 명령 실행만 건너뜁니다.', '기록', run('설정 기록', 1500, () => this.toast('●', '#3ecf8e', '설정 기록 — restart_required: false', 'content_sha256 3f9a…c1 · peer_count 4')))]
     ];
     const el = b.running ? (S.now - b.runSince) / 1000 : 0;
     const acts = this.block({ span: 4, title: '동작', sub: '데몬이 요청 안에서 끝까지 실행' }, { isActs: true, running: !!b.running, runText: (b.running || '') + ' — 실행 중 ' + Math.round(el) + '초 / 15초', runPct: Math.min(100, Math.round(el / 15 * 100)),
-      rows: A.map(([label, kind, desc, btn, danger, go]) => ({ label, kind, desc, btn, kBg: danger ? '#fde1e5' : '#eef1f5', kFg: danger ? '#b4283c' : '#5b6472', line: danger ? '#f3b8c1' : '#d8dde5', fg: danger ? '#b4283c' : '#16191f',
+      rows: A.map(([label, kind, desc, btn, danger, go]) => ({ label, kind, desc, btn, kBg: danger ? 'rgba(255,93,93,0.10)' : 'rgba(255,255,255,0.04)', kFg: danger ? '#ff5d5d' : '#9aa1ab', line: danger ? 'rgba(255,93,93,0.45)' : 'rgba(255,255,255,0.18)', fg: danger ? '#ff5d5d' : '#ede9e1',
         run: b.running ? () => {} : go, dis: b.running ? 'true' : 'false', cur: b.running ? 'wait' : 'pointer', op: b.running ? 0.5 : 1 })),
       hasFoot: false });
     out.push(acts);
     const last = { bActs: [null, null, { run: upDown }] };
     if (!on) {
-      out.push(this.stateBlock('◌', 'off', 'peer를 읽을 수 없습니다', '인터페이스가 없어 wireguard.peers.get이 422를 냈습니다 — 이것이 "꺼짐"의 간접 신호입니다. 원인은 오지 않으므로 status · enrollment를 함께 읽어 가릅니다: installed ✓ · 등록 ✓ → 인터페이스가 내려가 있음.', [{ label: '올리기…', run: last.bActs[2].run }]));
+      out.push(this.stateBlock('shield', 'off', 'peer를 읽을 수 없습니다', '인터페이스가 없어 wireguard.peers.get이 422를 냈습니다 — 이것이 "꺼짐"의 간접 신호입니다. 원인은 오지 않으므로 status · enrollment를 함께 읽어 가릅니다: installed ✓ · 등록 ✓ → 인터페이스가 내려가 있음.', [{ label: '올리기…', run: last.bActs[2].run }]));
     } else {
       out.push(this.table({ span: 12, title: 'peer handshake', sub: 'wireguard.peers.get · 기준 180초', tags: [this.tag('healthy ' + cnt.healthy, 'ok'), this.tag('stale ' + cnt.stale, cnt.stale ? 'warn' : 'off'), this.tag('never_seen ' + cnt.never_seen, cnt.never_seen ? 'bad' : 'off', '본 적 없는 peer는 stale에도 센다')],
         cols: '1fr 1.1fr 1.4fr 1.5fr 1.2fr 1.2fr', head: ['peer', 'public_key', 'endpoint', 'allowed_ips', '마지막 handshake', '받음 / 보냄'],
-        rows: S.peers.map((p) => { const f = fresh(p); return { op: f === 'never_seen' ? 0.7 : 1, hl: f === 'stale' ? '#fffbf0' : 'transparent', cells: [
-          this.cM(p.name, { fw: 700 }), this.cM(p.pub, { c: '#5b6472' }), this.cM(p.ep), this.cM(p.allowed, { c: '#3a4049' }),
-          this.cB(f === 'never_seen' ? '본 적 없음' : p.hs + '초 전', f === 'healthy' ? 'ok' : f === 'stale' ? 'warn' : 'bad', { sub: f }), this.cM(p.rx + ' / ' + p.tx, { c: '#3a4049' })] }; }),
+        rows: S.peers.map((p) => { const f = fresh(p); return { op: f === 'never_seen' ? 0.7 : 1, hl: f === 'stale' ? 'rgba(245,184,61,0.06)' : 'transparent', cells: [
+          this.cM(p.name, { fw: 700 }), this.cM(p.pub, { c: '#9aa1ab' }), this.cM(p.ep), this.cM(p.allowed, { c: '#b4bac3' }),
+          this.cB(f === 'never_seen' ? '본 적 없음' : p.hs + '초 전', f === 'healthy' ? 'ok' : f === 'stale' ? 'warn' : 'bad', { sub: f }), this.cM(p.rx + ' / ' + p.tx, { c: '#b4bac3' })] }; }),
         foot: '표의 peer 이름은 allowed_ips로 맞춘 것이다 — 응답에는 public_key만 온다.' }));
     }
     return { tabs: [], blocks: out };
@@ -674,10 +690,10 @@ class Component extends DCLogic {
     const S = this.state, F = S.logFilter, rTone = { updated: 'ok', created: 'ok', accepted: 'info', revoked: 'warn', deleted: 'off', send_failed: 'bad' };
     const rows = S.logs.filter((l) => F === 'all' || l.result === F);
     return { tabs: [['all', '전체'], ['accepted', 'accepted'], ['created', 'created'], ['revoked', 'revoked']], tabKey: 'log', blocks: [
-      this.banner('info', 'ⓘ', '본인 조작 이력입니다.', 'network.logs.get은 호출자 본인이 한 조작만 줍니다 — 관리자도 같습니다. 클러스터 전체 기록이 아닙니다. 실시간 스트림(logs.stream)은 Gateway가 게시하지 않아 폴링합니다.'),
+      this.banner('info', 'info', '본인 조작 이력입니다.', 'network.logs.get은 호출자 본인이 한 조작만 줍니다 — 관리자도 같습니다. 클러스터 전체 기록이 아닙니다. 실시간 스트림(logs.stream)은 Gateway가 게시하지 않아 폴링합니다.'),
       this.table({ span: 12, title: '조작 이력', sub: 'network.logs.get · 최신순 · limit 100', cols: '0.9fr 1.8fr 1fr 1.4fr 0.9fr 2fr',
         head: ['시각', 'action', 'target_type', 'target', 'result', 'detail'],
-        rows: rows.map((l) => ({ cells: [this.cM(l.at, { c: '#5b6472' }), this.cM(l.action, { fw: 700 }), this.cM(l.type, { c: '#5b6472' }), this.cM(l.target), this.cB(l.result, rTone[l.result] || 'off'), this.cT(l.detail, { c: '#3a4049' })] })),
+        rows: rows.map((l) => ({ cells: [this.cM(l.at, { c: '#9aa1ab' }), this.cM(l.action, { fw: 700 }), this.cM(l.type, { c: '#9aa1ab' }), this.cM(l.target), this.cB(l.result, rTone[l.result] || 'off'), this.cT(l.detail, { c: '#b4bac3' })] })),
         empty: '이 결과의 조작이 없습니다' })
     ] };
   }
@@ -685,27 +701,27 @@ class Component extends DCLogic {
     const S = this.state, st = this.T(), leaf = S.role === 'leaf';
     // 묶음 — 카탈로그에 있는지로 연다 (tree GUI: Master op · leaf GUI: Daemon op)
     const SECS = [
-      { id: 'mesh', icon: '🕸️', label: '사설망', role: 'T', sub: 'mesh · CIDR · IP · 배포', tint: '#dde8fd', line: '#c9dafb' },
-      { id: 'route', icon: '🧭', label: '연결 진단 · 라우팅', role: 'T', sub: 'probe · 그래프 · 정책 · 세션', tint: '#efe7fd', line: '#dccffa' },
-      { id: 'tunnel', icon: '⇄', label: '서비스 터널', role: 'T+L', sub: leaf ? '로컬 터널' : '세션 · 선언 · 새 터널', tint: '#d9f2ea', line: '#bfe7da' },
-      { id: 'wg', icon: '🔐', label: '로컬 WireGuard', role: 'L', sub: '상태 · peer · 올리기/내리기', tint: '#fdf2dc', line: '#f3d99b' },
-      { id: 'log', icon: '🧾', label: '조작 이력', role: 'T', sub: '본인 네트워크 조작', tint: '#eef1f5', line: '#e0e5ec' }
+      { id: 'mesh', icon: 'net', label: '사설망', role: 'T', sub: 'mesh · CIDR · IP · 배포' },
+      { id: 'route', icon: 'route', label: '연결 진단 · 라우팅', role: 'T', sub: 'probe · 그래프 · 정책 · 세션' },
+      { id: 'tunnel', icon: 'tunnel', label: '서비스 터널', role: 'T+L', sub: leaf ? '로컬 터널' : '세션 · 선언 · 새 터널' },
+      { id: 'wg', icon: 'shield', label: '로컬 WireGuard', role: 'L', sub: '상태 · peer · 올리기/내리기' },
+      { id: 'log', icon: 'doc', label: '조작 이력', role: 'T', sub: '본인 네트워크 조작' }
     ];
     const avail = (s) => s.role === 'T+L' || (leaf ? s.role === 'L' : s.role === 'T');
     const cur = SECS.find((s) => s.id === S.sec) || SECS[0];
     const nav = SECS.map((s) => { const ok = avail(s), on = s.id === S.sec;
       return { subDisp: S.help || !ok ? 'block' : 'none', icon: s.icon, label: s.label, role: s.role, sub: ok ? s.sub : (leaf ? 'leaf GUI에는 Master operation이 없다' : 'tree GUI에는 Daemon operation이 없다'),
-        cur: on ? 'page' : 'false', bg: on ? '#e8effc' : 'transparent', fg: ok ? '#16191f' : '#8b95a6', subFg: ok ? '#5b6472' : '#a0a8b5', tint: ok ? s.tint : '#f1f3f6', tintLine: ok ? s.line : '#e3e7ed', gray: ok ? 'none' : 'grayscale(1)',
-        roleFg: s.role === 'L' ? '#8a5a00' : s.role === 'T' ? '#1d4ed8' : '#1f7a4d', roleLine: s.role === 'L' ? '#e8c78f' : s.role === 'T' ? '#c9dafb' : '#bfe7da',
+        cur: on ? 'page' : 'false', bg: on ? 'rgba(255,255,255,0.07)' : 'transparent', ring: on ? 'rgba(255,255,255,0.14)' : 'transparent', fg: ok ? '#ede9e1' : '#6b7280', subFg: ok ? '#9aa1ab' : '#6b7280', tint: on ? 'rgba(240,166,58,0.12)' : 'rgba(255,255,255,0.04)', tintLine: on ? 'rgba(240,166,58,0.5)' : 'rgba(255,255,255,0.10)', ic: on ? '#f0a63a' : ok ? '#b4bac3' : '#6b7280', gray: ok ? 'none' : 'grayscale(1)',
+        roleFg: s.role === 'L' ? '#5aa8ff' : s.role === 'T' ? '#f0a63a' : '#3ecf8e', roleLine: s.role === 'L' ? 'rgba(90,168,255,0.5)' : s.role === 'T' ? 'rgba(240,166,58,0.5)' : 'rgba(62,207,142,0.45)',
         pick: () => this.setState({ sec: s.id }) }; });
     // 본문
     let view = { tabs: [], blocks: [] }, title = cur.label, subt = '';
-    const lockedMsg = () => this.stateBlock('🔒', 'off', cur.label + '은(는) 로컬 노드에서 부를 수 없습니다', leaf
+    const lockedMsg = () => this.stateBlock('lock', 'off', cur.label + '은(는) 로컬 노드에서 부를 수 없습니다', leaf
       ? '현재 GUI는 leaf(edge-01)의 Gateway가 서빙합니다. leaf 카탈로그에는 terra.master.* operation이 없어 mesh · CIDR · 라우트를 다룰 수 없습니다. tree 노드의 GUI에서 여세요. (화면은 역할을 선언하지 않고 health · catalog로 관측한다)'
       : '현재 GUI는 tree(tree-home)의 Gateway가 서빙합니다. 로컬 WireGuard는 leaf 데몬의 operation이라 tree 카탈로그에 없습니다. 해당 노드의 GUI에서 여세요.', [{ label: leaf ? 'tree GUI로 보기 (시연)' : 'leaf GUI로 보기 (시연)', run: () => this.setState({ role: leaf ? 'tree' : 'leaf' }) }]);
-    if (S.demo === 'loading') view.blocks = [this.stateBlock('⟳', 'info', '처음 불러오는 중', (leaf ? 'terra.daemon.' : 'terra.master.') + '… 첫 조회를 기다립니다. 새로고침(폴링)과 달리 아직 보여 줄 값이 없습니다.', [])];
-    else if (S.demo === 'down') view.blocks = [this.stateBlock('⚠', 'bad', leaf ? '데몬에 닿지 못했습니다' : 'Master에 닿지 못했습니다', leaf ? 'Gateway는 살아 있지만 데몬 제공자가 응답하지 않습니다(503). 상대 노드 오프라인 · Master 실패와 다른 상황입니다 — 로컬 기기의 terra 데몬을 확인하세요.' : 'tree Gateway가 Master 호출에 503/504를 받았습니다. 마지막으로 받은 값은 ' + this.hm(S.polledAt) + ' 것입니다. 상대 노드가 오프라인인 것과는 다릅니다.', [{ label: '다시 시도', run: () => this.setState({ demo: 'ok', polledAt: Date.now() }) }])];
-    else if (S.demo === 'unenrolled' && leaf && (cur.id === 'wg' || cur.id === 'tunnel')) view.blocks = [this.stateBlock('⛓', 'warn', '로컬 노드는 Master에 등록되지 않았습니다', '세션 상태 unavailable — 동기화 · 보고가 실패합니다. 등록은 GUI 버튼이 아니라 로컬 기기에서 terra daemon enroll 명령으로 합니다(또는 설치 마법사).', [])];
+    if (S.demo === 'loading') view.blocks = [this.stateBlock('loader', 'info', '처음 불러오는 중', (leaf ? 'terra.daemon.' : 'terra.master.') + '… 첫 조회를 기다립니다. 새로고침(폴링)과 달리 아직 보여 줄 값이 없습니다.', [])];
+    else if (S.demo === 'down') view.blocks = [this.stateBlock('warn', 'bad', leaf ? '데몬에 닿지 못했습니다' : 'Master에 닿지 못했습니다', leaf ? 'Gateway는 살아 있지만 데몬 제공자가 응답하지 않습니다(503). 상대 노드 오프라인 · Master 실패와 다른 상황입니다 — 로컬 기기의 terra 데몬을 확인하세요.' : 'tree Gateway가 Master 호출에 503/504를 받았습니다. 마지막으로 받은 값은 ' + this.hm(S.polledAt) + ' 것입니다. 상대 노드가 오프라인인 것과는 다릅니다.', [{ label: '다시 시도', run: () => this.setState({ demo: 'ok', polledAt: Date.now() }) }])];
+    else if (S.demo === 'unenrolled' && leaf && (cur.id === 'wg' || cur.id === 'tunnel')) view.blocks = [this.stateBlock('link', 'warn', '로컬 노드는 Master에 등록되지 않았습니다', '세션 상태 unavailable — 동기화 · 보고가 실패합니다. 등록은 GUI 버튼이 아니라 로컬 기기에서 terra daemon enroll 명령으로 합니다(또는 설치 마법사).', [])];
     else if (!avail(cur)) view.blocks = [lockedMsg()];
     else if (cur.id === 'mesh') { view.blocks = this.meshBlocks(); subt = 'home 클러스터 · WireGuard mesh — 네트워크 · 할당 · desired가 노드마다 배포된다'; }
     else if (cur.id === 'route') { view = this.routeBlocks(); subt = '노드 쌍을 골라 probe · 후보를 본다. 경로 진단은 화면이 두 호출을 조합한다'; }
@@ -721,10 +737,10 @@ class Component extends DCLogic {
     return {
       hdr: {
         roleText: leaf ? 'edge-01 · leaf GUI' : 'tree-home · tree GUI', gwTip: leaf ? 'Gateway 127.0.0.1:8787 — terra.gateway.* + terra.daemon.*' : 'Gateway 127.0.0.1:8788 — terra.gateway.* + terra.master.*',
-        roleBg: leaf ? '#e2ecfd' : '#fdf2dc', roleFg: leaf ? '#1d4ed8' : '#8a5a00', roleDot: leaf ? '#6f9cf0' : '#f0b442',
-        pollText: pollBad ? '갱신 실패 — 마지막 값 ' + this.hm(S.polledAt) : '폴링 · ' + polledSec + '초 전 갱신 · 다음 ' + next + '초', pollFg: pollBad ? '#b4283c' : '#5b6472', pollDot: pollBad ? '#d33d52' : '#1f7a4d', pollCls: pollBad ? '' : 'pulse',
+        roleBg: leaf ? 'rgba(90,168,255,0.10)' : 'rgba(240,166,58,0.10)', roleFg: leaf ? '#5aa8ff' : '#f0a63a', roleDot: leaf ? '#5aa8ff' : '#f0a63a',
+        pollText: pollBad ? '갱신 실패 — 마지막 값 ' + this.hm(S.polledAt) : '폴링 · ' + polledSec + '초 전 갱신 · 다음 ' + next + '초', pollFg: pollBad ? '#ff7a7a' : '#b4bac3', pollDot: pollBad ? '#ff5d5d' : '#3ecf8e', pollCls: pollBad ? '' : 'pulse',
         refresh: () => this.setState({ polledAt: Date.now() }),
-        roles: [['tree', 'tree에서 연 GUI'], ['leaf', 'leaf에서 연 GUI']].map(([k, label]) => ({ label, on: S.role === k ? 'true' : 'false', bg: S.role === k ? '#ffffff' : 'transparent', fg: S.role === k ? '#16191f' : '#5b6472', sh: S.role === k ? '0 1px 2px rgba(22,25,31,0.12)' : 'none',
+        roles: [['tree', 'tree에서 연 GUI'], ['leaf', 'leaf에서 연 GUI']].map(([k, label]) => ({ label, on: S.role === k ? 'true' : 'false', bg: S.role === k ? '#ede9e1' : 'transparent', fg: S.role === k ? '#111111' : '#9aa1ab', sh: S.role === k ? '0 1px 2px rgba(0,0,0,0.35)' : 'none',
           pick: () => this.setState({ role: k, sec: SECS.find((s) => s.id === S.sec && (s.role === 'T+L' || s.role === (k === 'leaf' ? 'L' : 'T'))) ? S.sec : (k === 'leaf' ? 'wg' : 'mesh') }) })),
         demos: DEMOS.map(([v, label]) => ({ v, label, sel: S.demo === v ? 'selected' : null })),
         setDemo: (e) => { const v = e.target.value; this.setState({ demo: v, role: ['wgoff', 'noinst', 'unenrolled'].indexOf(v) >= 0 ? 'leaf' : S.role, sec: ['wgoff', 'noinst'].indexOf(v) >= 0 ? 'wg' : S.sec }); }
@@ -732,11 +748,11 @@ class Component extends DCLogic {
       sess: { who: 'admin · 만료 21:40 · ' + (leaf ? 'leaf' : 'home 클러스터') },
       nav,
       page: { subDisp: S.help && subt ? 'inline' : 'none', title, sub: subt, tabDisp: view.tabs.length ? 'flex' : 'none',
-        tabs: view.tabs.map(([k, label]) => ({ label, on: curTab === k ? 'true' : 'false', bg: curTab === k ? '#ffffff' : 'transparent', fg: curTab === k ? '#16191f' : '#5b6472', sh: curTab === k ? '0 1px 2px rgba(22,25,31,0.12)' : 'none',
+        tabs: view.tabs.map(([k, label]) => ({ label, on: curTab === k ? 'true' : 'false', bg: curTab === k ? '#ede9e1' : 'transparent', fg: curTab === k ? '#111111' : '#9aa1ab', sh: curTab === k ? '0 1px 2px rgba(0,0,0,0.35)' : 'none',
           pick: () => tabKey === 'log' ? this.setState({ logFilter: k }) : this.setState({ sub: Object.assign({}, S.sub, { [tabKey]: k }) }) })) },
       helpBlock: S.help ? 'block' : 'none',
       blocks: view.blocks.filter(Boolean),
-      dlg: D ? { open: true, title: D.title, op: D.op, rows: D.rows.map(([k, v]) => ({ k, v, c: '#16191f' })), warn: D.warn, okLabel: D.okLabel || '확인',
+      dlg: D ? { open: true, title: D.title, op: D.op, rows: D.rows.map(([k, v]) => ({ k, v, c: '#ede9e1' })), warn: D.warn, okLabel: D.okLabel || '확인',
         cancel: () => this.setState({ dlg: null }), ok: () => { this.setState({ dlg: null }); D.ok(); } } : { open: false, title: '', op: '', rows: [], warn: '', okLabel: '', cancel: () => {}, ok: () => {} },
       toasts: S.toasts
     };

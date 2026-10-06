@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 재디자인 — 노드 화면 HUD</title>
+<script src="../support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --glass:rgba(13,15,19,.80); --glass-2:rgba(24,27,33,.86); --line:rgba(255,255,255,.10); --line-2:rgba(255,255,255,.18);
+  --paper:#ede9e1; --muted:#9aa1ab; --dim:#6b7280;
+  --tree:#f0a63a; --leaf:#5aa8ff; --sun:#ffd84d; --ok:#3ecf8e; --warn:#f5b83d; --err:#ff5d5d;
+  --mono:'JetBrains Mono',ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;
+}
+body{margin:0;font-family:'Noto Sans KR','Noto Sans CJK KR','Noto Sans',system-ui,sans-serif;background:#0b0d10;color:var(--paper)}
+*{box-sizing:border-box}
+.board{position:relative;width:1447px;height:945px;overflow:hidden;background:#1d97ac}
+.map{position:absolute;inset:0;background:url(./assets/map-sample.jpg) center/cover no-repeat}
+.vig{position:absolute;inset:0;pointer-events:none;background:
+  linear-gradient(180deg,rgba(6,10,14,.38) 0,rgba(6,10,14,0) 140px),
+  linear-gradient(0deg,rgba(6,10,14,.42) 0,rgba(6,10,14,0) 190px)}
+.glass{position:absolute;background:var(--glass);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(14px)}
+.cap{font-size:10px;font-weight:600;letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
+.mono{font-family:var(--mono)}
+.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font-size:11px;font-weight:600;border:1px solid var(--line-2);color:var(--paper)}
+.chip.tree{color:var(--tree);border-color:rgba(240,166,58,.5);background:rgba(240,166,58,.10)}
+.chip.leaf{color:var(--leaf);border-color:rgba(90,168,255,.5);background:rgba(90,168,255,.10)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.seg{display:flex;align-items:center;gap:2px;padding:3px;border-radius:10px;background:rgba(255,255,255,.04)}
+.seg b{font-weight:500;font-size:12px;padding:5px 10px;border-radius:7px;color:var(--muted)}
+.seg b.on{background:var(--paper);color:#111;font-weight:600}
+.seg b.tog{color:var(--paper)}
+.seg b.tog.tree{color:var(--tree)} .seg b.tog.leaf{color:var(--leaf)}
+.seg b.off{color:#5b616b;text-decoration:line-through;text-decoration-color:rgba(255,255,255,.2)}
+.vsep{width:1px;height:18px;background:var(--line-2);margin:0 6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:9px;font-size:12.5px;font-weight:600;border:1px solid var(--line-2);color:var(--paper);background:rgba(255,255,255,.04)}
+.btn.pri{background:var(--paper);color:#111;border-color:var(--paper)}
+.kbd{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line-2);border-radius:4px;padding:0 4px;margin-left:2px}
+.slot{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;background:rgba(255,255,255,.05);border:1px solid var(--line);position:relative}
+.slot.on{background:var(--paper);border-color:var(--paper);box-shadow:0 0 0 4px rgba(237,233,225,.18)}
+.slot i{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;background:var(--err);color:#fff;font:700 10px/16px var(--mono);text-align:center;padding:0 4px;font-style:normal}
+.rail{width:52px;height:52px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:19px;position:relative}
+.rail span{font-size:9.5px;color:var(--muted);font-weight:500}
+.rail i{position:absolute;top:4px;right:4px;min-width:16px;height:16px;border-radius:8px;font:700 10px/16px var(--mono);text-align:center;padding:0 4px;font-style:normal;color:#111}
+.bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar>u{display:block;height:100%;border-radius:3px}
+.anno{position:absolute;font-size:11px;font-weight:600;color:#111;background:var(--sun);border-radius:10px;padding:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+</style>
+</helmet>
+
+<div class="board">
+  <div class="map"></div>
+  <div class="vig"></div>
+
+  <!-- ① 노드 명판 (왼쪽 위) -->
+  <div class="glass" style="left:16px;top:16px;width:356px;height:92px;padding:14px 16px;display:flex;gap:14px;align-items:center">
+    <div style="width:56px;height:56px;border-radius:14px;background:#000;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;flex:none">
+      <img src="../assets/logo/terra-vector-white.svg" alt="Terra" style="width:40px;height:40px">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px"><span class="cap" style="letter-spacing:.42em;color:var(--paper)">TERRA</span><span style="font-size:11px;color:var(--dim)">home 클러스터 › 루트</span></div>
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.01em;line-height:1" class="mono">tree-home</div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="chip tree">TREE</span><span class="chip leaf">LEAF</span><span style="font-size:11.5px;color:var(--muted)">자식 3 · 관제탑</span></div>
+    </div>
+  </div>
+
+  <!-- ② 보기 · 거르기 (명판 아래) -->
+  <div class="glass" style="left:16px;top:116px;height:40px;padding:0 4px;display:flex;align-items:center;border-radius:12px">
+    <div class="seg" style="background:none"><b class="on">노드</b><b>필드</b><b>그라운드</b></div>
+    <div class="vsep"></div>
+    <div class="seg" style="background:none"><b class="tog tree">● Tree</b><b class="tog leaf">● Leaf</b><b class="tog">▲ 건물</b></div>
+    <div class="vsep"></div>
+    <div class="seg" style="background:none"><b class="tog" style="color:var(--tree)">부모</b><b class="off">자식</b><b class="off">로컬</b></div>
+  </div>
+
+  <!-- ③ 세션 띠 (가운데 위) -->
+  <div class="glass" style="left:50%;transform:translateX(-50%);top:16px;height:38px;padding:0 6px 0 14px;display:flex;align-items:center;gap:10px;border-radius:19px;font-size:12px;white-space:nowrap">
+    <span class="dot" style="background:var(--ok);box-shadow:0 0 0 3px rgba(62,207,142,.2)"></span>
+    <b style="font-weight:600">admin</b>
+    <span style="color:var(--muted)">만료 <span class="mono">21:40</span></span>
+    <span style="color:var(--dim)">·</span>
+    <span style="color:var(--muted)">모듈 관리 · 노드 조회</span>
+    <span class="chip" style="color:var(--warn);border-color:rgba(245,184,61,.5);height:20px">예시 데이터</span>
+    <span class="btn" style="height:28px;border-radius:14px;padding:0 10px 0 12px">맵 <span style="color:var(--muted);font-weight:500">· 창 4</span> ▾</span>
+  </div>
+
+  <!-- ④ 폴더 보관함 (오른쪽 위) -->
+  <div class="glass" style="right:16px;top:16px;height:38px;padding:0 4px 0 12px;display:flex;align-items:center;gap:4px;border-radius:19px;font-size:12px">
+    <span class="cap" style="margin-right:6px">보관함</span>
+    <span class="btn" style="height:30px;border:none;border-radius:15px">🗄 저장소</span>
+    <span class="btn" style="height:30px;border:none;border-radius:15px">🧭 탐색기</span>
+    <span class="btn" style="height:30px;border:none;border-radius:15px">📝 메모 <span class="mono" style="color:var(--muted)">3</span></span>
+  </div>
+
+  <!-- ⑤ 선택 상태 창 (맵 위 캡슐) -->
+  <div style="position:absolute;left:653px;top:178px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center">
+    <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px 0 4px;border-radius:18px;background:var(--glass-2);border:1.5px solid var(--sun);box-shadow:0 0 0 4px rgba(255,216,77,.22),0 8px 20px rgba(0,0,0,.3);white-space:nowrap">
+      <span style="width:28px;height:28px;border-radius:50%;background:#000;display:flex;align-items:center;justify-content:center;font-size:15px">🌳</span>
+      <b class="mono" style="font-size:13px">tree-home</b>
+      <span style="font-size:11px;color:var(--muted)">↔ 6 · 공유 0</span>
+      <span class="dot" style="background:var(--ok)"></span>
+    </div>
+    <div style="width:2px;height:30px;background:linear-gradient(var(--sun),rgba(255,216,77,0))"></div>
+  </div>
+
+  <!-- ⑥ 인스펙터 (오른쪽) -->
+  <div class="glass" style="right:16px;top:70px;width:316px;padding:16px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="cap">선택 · <span class="mono" style="letter-spacing:.06em">C4·R3</span></span>
+      <span style="font-size:16px;color:var(--muted)">⤢ ✕</span>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div style="width:52px;height:52px;border-radius:12px;background:url(./assets/map-sample.jpg) no-repeat;background-size:1726px 945px;background-position:-766px -330px;border:1px solid var(--line-2);flex:none"></div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <b class="mono" style="font-size:17px">tree-home</b>
+        <span style="font-size:12px;color:var(--muted)">관제탑 · 부모 필드 · 높이 3단</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+      <div style="background:rgba(255,255,255,.04);border-radius:9px;padding:8px"><div class="mono" style="font-size:16px;font-weight:600">41</div><div style="font-size:10.5px;color:var(--muted)">자원</div></div>
+      <div style="background:rgba(255,255,255,.04);border-radius:9px;padding:8px"><div class="mono" style="font-size:16px;font-weight:600">6</div><div style="font-size:10.5px;color:var(--muted)">연결</div></div>
+      <div style="background:rgba(255,255,255,.04);border-radius:9px;padding:8px"><div class="mono" style="font-size:16px;font-weight:600">3</div><div style="font-size:10.5px;color:var(--muted)">자식</div></div>
+      <div style="background:rgba(62,207,142,.10);border-radius:9px;padding:8px"><div style="font-size:13px;font-weight:700;color:var(--ok);line-height:22px">정상</div><div style="font-size:10.5px;color:var(--muted)">상태</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:11.5px">
+      <div style="display:grid;grid-template-columns:52px 1fr 40px;gap:8px;align-items:center"><span style="color:var(--muted)">CPU</span><div class="bar"><u style="width:34%;background:var(--leaf)"></u></div><span class="mono" style="text-align:right">34%</span></div>
+      <div style="display:grid;grid-template-columns:52px 1fr 40px;gap:8px;align-items:center"><span style="color:var(--muted)">메모리</span><div class="bar"><u style="width:61%;background:var(--leaf)"></u></div><span class="mono" style="text-align:right">61%</span></div>
+      <div style="display:grid;grid-template-columns:52px 1fr 40px;gap:8px;align-items:center"><span style="color:var(--muted)">디스크</span><div class="bar"><u style="width:82%;background:var(--warn)"></u></div><span class="mono" style="text-align:right;color:var(--warn)">82%</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <span class="btn pri">들어가기 <span class="kbd" style="color:#555;border-color:#bbb">2×</span></span>
+      <span class="btn">🔗 연결하기</span>
+      <span class="btn">상태 화면</span>
+      <span class="btn">⚙ 설정</span>
+    </div>
+  </div>
+
+  <!-- ⑦ 알림 토스트 -->
+  <div class="glass" style="right:16px;bottom:226px;width:316px;height:52px;padding:0 12px;display:flex;align-items:center;gap:10px;border-left:3px solid var(--err);border-radius:12px">
+    <span style="font-size:17px">⚠️</span>
+    <div style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+      <b style="font-size:12.5px;font-weight:600">chat 재시작 접수 · 1건 실패</b>
+      <span style="font-size:11px;color:var(--muted)">gpu-02 · 2분 전</span>
+    </div>
+    <span style="font-size:12px;color:var(--paper);font-weight:600">보기</span>
+  </div>
+
+  <!-- ⑧ 유틸 레일 (오른쪽 아래) -->
+  <div class="glass" style="right:16px;bottom:16px;width:316px;height:196px;padding:12px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">유틸 서랍</span><span style="font-size:11px;color:var(--muted)">위로 끌어 펼치기 ⌃</span></div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
+      <div class="rail">🔔<span>알림</span><i style="background:var(--err);color:#fff">2</i></div>
+      <div class="rail">📝<span>메모</span><i style="background:var(--paper)">3</i></div>
+      <div class="rail">🕸<span>네트워크</span><i style="background:var(--warn)">7/8</i></div>
+      <div class="rail">🧩<span>모듈</span></div>
+      <div class="rail">👤<span>사용자</span></div>
+      <div class="rail">ℹ️<span>속성</span></div>
+      <div class="rail">✏️<span>편집</span></div>
+      <div class="rail">🏠<span>건물</span></div>
+      <div class="rail">🛣<span>도로</span></div>
+      <div class="rail">⋯<span>더 보기</span></div>
+    </div>
+  </div>
+
+  <!-- ⑨ 홈 노드 · 지도 (왼쪽 아래) -->
+  <div style="position:absolute;left:16px;bottom:16px;display:flex;align-items:flex-end;gap:10px">
+    <div style="width:104px;height:104px;border-radius:50%;padding:5px;background:var(--glass);border:1px solid var(--line-2);box-shadow:0 10px 30px rgba(0,0,0,.3);position:relative">
+      <div style="width:100%;height:100%;border-radius:50%;background:url(./assets/map-sample.jpg) no-repeat;background-size:1726px 945px;background-position:-747px -330px;border:2px solid var(--tree)"></div>
+      <span style="position:absolute;bottom:2px;right:2px;width:26px;height:26px;border-radius:50%;background:#000;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;font-size:13px">⇄</span>
+    </div>
+    <div class="glass" style="position:relative;padding:10px 14px;border-radius:12px;display:flex;flex-direction:column;gap:3px;margin-bottom:6px">
+      <span class="cap">로그인 노드</span>
+      <b class="mono" style="font-size:14px">tree-home</b>
+      <span style="font-size:11px;color:var(--muted)">길게 눌러 다른 tree로</span>
+    </div>
+    <div class="glass" style="position:relative;width:52px;height:52px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:6px;font-size:18px">🗺<span style="font-size:9.5px;color:var(--muted)">MAP</span></div>
+  </div>
+
+  <!-- ⑩ 조타륜 도크 (가운데 아래) -->
+  <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:16px;width:640px;height:190px">
+    <svg viewBox="0 0 640 190" width="640" height="190" style="position:absolute;inset:0" aria-hidden="true">
+      <defs><linearGradient id="arcfade" x1="0" x2="1"><stop offset="0" stop-color="#ede9e1" stop-opacity="0"/><stop offset=".25" stop-color="#ede9e1" stop-opacity=".9"/><stop offset=".75" stop-color="#ede9e1" stop-opacity=".9"/><stop offset="1" stop-color="#ede9e1" stop-opacity="0"/></linearGradient></defs>
+      <path d="M0 190 Q320 -140 640 190 Z" fill="rgba(13,15,19,.82)" stroke="rgba(255,255,255,.12)"/>
+      <g transform="translate(0,-26)"><path d="M70 120 Q320 18 570 120" fill="none" stroke="url(#arcfade)" stroke-width="1.5"/>
+      <g stroke="#ede9e1" stroke-opacity=".55" stroke-width="1">
+        <line x1="130" y1="92" x2="132" y2="99"/><line x1="170" y1="78" x2="171" y2="85"/><line x1="210" y1="66" x2="211" y2="76"/><line x1="250" y1="58" x2="250" y2="65"/><line x1="285" y1="54" x2="285" y2="61"/>
+        <line x1="355" y1="54" x2="355" y2="61"/><line x1="390" y1="58" x2="390" y2="65"/><line x1="430" y1="66" x2="429" y2="76"/><line x1="470" y1="78" x2="469" y2="85"/><line x1="510" y1="92" x2="508" y2="99"/>
+      </g>
+      <g fill="#9aa1ab" font-family="JetBrains Mono, ui-monospace, monospace" font-size="10" text-anchor="middle">
+        <text x="211" y="92">350</text><text x="429" y="92">10</text><text x="132" y="113">340</text><text x="508" y="113">20</text>
+      </g>
+      <path d="M320 40 l-6 -10 h12 z" fill="#ffd84d"/>
+      <text x="320" y="64" text-anchor="middle" fill="#ede9e1" font-family="JetBrains Mono, ui-monospace, monospace" font-size="13" font-weight="600">N 000°</text></g>
+    </svg>
+    <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:12px;display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div style="display:flex;gap:6px">
+        <div class="slot">⚙️</div><div class="slot">🧩</div><div class="slot">📡</div><div class="slot">📜</div>
+        <div class="slot on">🔑</div>
+        <div class="slot">⌨️</div><div class="slot">📁</div><div class="slot">📦<i>1</i></div><div class="slot">🚇</div><div class="slot">🛡️</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);white-space:nowrap"><b style="color:var(--paper);font-weight:600">허가 · 연결</b> · 끌어서 돌리기 <span class="kbd">←</span><span class="kbd">→</span> · 위로 올려 펼치기</div>
+    </div>
+  </div>
+
+  <!-- 주석 (디자인 설명용 — 구현 대상 아님) -->
+  <sc-if value="{{showAnno}}" hint-placeholder-val="{{true}}">
+    <span class="anno" style="left:378px;top:20px">① 명판</span>
+    <span class="anno" style="left:524px;top:122px">② 보기·거르기</span>
+    <span class="anno" style="left:484px;top:58px">③ 세션 띠</span>
+    <span class="anno" style="right:16px;top:58px;right:24px;top:60px;left:auto;display:none">④</span>
+    <span class="anno" style="left:700px;top:150px">⑤ 선택 캡슐</span>
+    <span class="anno" style="left:1060px;top:76px">⑥ 인스펙터</span>
+    <span class="anno" style="left:1022px;top:676px">⑦ 알림</span>
+    <span class="anno" style="left:1022px;top:740px">⑧ 유틸 레일</span>
+    <span class="anno" style="left:24px;top:800px">⑨ 홈 노드</span>
+    <span class="anno" style="left:400px;top:770px">⑩ 조타륜 도크</span>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1447,"height":945}}'>
+class Component extends DCLogic {
+  renderVals() { return { showAnno: this.props.anno !== false }; }
+}
+</script>
+</body>
+</html>

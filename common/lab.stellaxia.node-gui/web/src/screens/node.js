@@ -7,7 +7,7 @@ export default class Component extends DCLogic {
     super(props);
     this.state = {
       // 이너 도움말(설정 › 일반) — 끄면 회색 설명 글을 숨긴다. 끄는 중 · 드래그 중 안내와 오류 · 상태는 남긴다
-      help: this.readHelp(),
+      help: this.readHelp(), winOp: this.readWinOp(),
       scr: { W: 1447, H: 945 },   // 화면 크기 (fitScreen이 창에 맞춘다)
       sel: '3-2',
       mat: {
@@ -78,6 +78,9 @@ export default class Component extends DCLogic {
         net: { x: 420, y: 110, w: 600 }, mod: { x: 540, y: 200, w: 380 }, user: { x: 600, y: 240, w: 360 }, set: { x: 560, y: 180, w: 380 }, memo: { x: 600, y: 120, w: 480 }, rd: { x: 440, y: 200, w: 400 }, rcfg: { x: 1040, y: 120, w: 360 }, rst: { x: 990, y: 70, w: 430 }, mgui: { x: 300, y: 90, w: 720 }
       },
       winOpen: {}, wrz: null, fsPrev: {}, hbOut: null, mguiKey: 0, nodeAdm: null,   // nodeAdm = 상태 화면의 노드 관리 폼 { node, name, parent, arm, msg, c }
+      // nodeEnr = 노드 등록 코드 폼 (A-19) { node, label, ttl, code, codeId, msg, c, busy, list[], arm }
+      //   code = 방금 발급한 평문. 발급 응답에서만 보이고 다시 받을 수 없다 — 그래서 상태에 들고 있다
+      nodeEnr: null,
         // hbOut = 상태 화면에 보이는 작업 출력 · 모듈 로그 · mguiKey = 모듈 GUI 다시 읽기
         // wrz = 크기 바꾸는 중인 창 · fsPrev = 전체 화면 전 화면 (축소하면 그리로)
       drawer: [],
@@ -98,6 +101,7 @@ export default class Component extends DCLogic {
         { id: '아이디어', parent: '', name: '아이디어', dir: true, info: '항목 1' },
         { id: '아이디어/맵 아이디어.md', parent: '아이디어', name: '맵 아이디어.md', text: '바다 위 섬 사이를 다리로 잇기?', size: '1 KB', info: '9월 28일' }
       ],
+      glassOff: {},   // 창별 불투명 켬(true) — 기본은 뒤가 비치는 반투명
       fs: null, fsList: false, fsHist: [],   // fsHist = 전체 화면으로 한 번 연 화면 (리스트에 모인다)   // 전체 화면 창 · 전체 창 리스트 박스 펼침
       hb: null, hbMsg: null, hbBusy: null, hbScanned: null, hbd: {}, hbPath: '', hbArm: null,   // hbd = 노드|앱별로 동작이 바꾼 예시 자원
       io: [
@@ -112,11 +116,11 @@ export default class Component extends DCLogic {
       cardRise: null,     // 서랍에 막 들어와 아래에서 올라오는 카드
       drawerNear: false, drawerHover: null,
       alarms: [
-        { t: '18:58', g: '◇', c: '#2563eb', m: 'chat 재시작 접수됨 — #J-2031' },
-        { t: '18:41', g: '■', c: '#d33d52', m: 'vdevice 시작 실패' },
-        { t: '18:30', g: '●', c: '#1f7a4d', m: 'laptop-03 · build-srv가 새로 붙었습니다' },
-        { t: '18:12', g: '●', c: '#1f7a4d', m: 'nas-01 백업 작업 완료 — #T-118' },
-        { t: '17:55', g: '◐', c: '#a65f00', m: 'nas-01 디스크 사용량 85%' }
+        { t: '18:58', g: '◇', c: '#7aa7ff', m: 'chat 재시작 접수됨 — #J-2031' },
+        { t: '18:41', g: '■', c: '#ff5d5d', m: 'vdevice 시작 실패' },
+        { t: '18:30', g: '●', c: '#3ecf8e', m: 'laptop-03 · build-srv가 새로 붙었습니다' },
+        { t: '18:12', g: '●', c: '#3ecf8e', m: 'nas-01 백업 작업 완료 — #T-118' },
+        { t: '17:55', g: '◐', c: '#f5b83d', m: 'nas-01 디스크 사용량 85%' }
       ],
       // 네트워크 요약 (예시 — 유틸 카드 · 창 요약용). 네트워크 화면 자체는 별도 보드 network.html
       netPolled: '18:58',
@@ -1795,9 +1799,10 @@ export default class Component extends DCLogic {
   }
   ovA() {
     const hid = !!this.state.ovhHide, p = this._ovP != null ? this._ovP : hid ? 1 : 0, E = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
-    const a = 54 * E(Math.min(1, p / 0.5)), b = 76 * E(Math.max(0, (p - 0.5) / 0.5)), L = this.lay();
+    const a = 54 * E(Math.min(1, p / 0.5)), b = 100 * E(Math.max(0, (p - 0.5) / 0.5)), L = this.lay();
     return { a, b, hull: this.ovHull(a), wingG: 'translate(0 ' + (-a).toFixed(2) + ')', wingH: 'translateY(' + (-a).toFixed(2) + 'px)', rootT: 'translateY(' + (-b).toFixed(2) + 'px)', pe: p > 0.5 ? 'none' : 'auto',
-      hTop: +(Math.max(0, 98 - a - b) + b).toFixed(2), hL: L.W - 150, chev: hid ? '▼' : '▲', exp: hid ? 'false' : 'true', hTip: hid ? '오버헤드 패널 펴기' : '오버헤드 패널 접기', toggle: () => this.ovToggle() };
+      hTop: +(Math.max(0, 54 - a - b) + b).toFixed(2), hL: L.W - 200,   // 전체 화면 창의 _ ㅁ × 버튼(오른쪽 끝 106px)과 겹치지 않게 왼쪽으로
+       chev: hid ? '▼' : '▲', exp: hid ? 'false' : 'true', hTip: hid ? '오버헤드 패널 펴기' : '오버헤드 패널 접기', toggle: () => this.ovToggle() };
   }
   ovApply() {
     if (typeof document === 'undefined') return;
@@ -1834,7 +1839,7 @@ export default class Component extends DCLogic {
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
     document.body.style.margin = '0';
-    document.body.style.background = '#eef1f5';
+    document.body.style.background = '#07090c';
     const cur = this.state.scr || {};
     if (cur.W !== W || cur.H !== H) this.setState({ scr: { W, H } });
     // 다시 그리기가 style 속성을 통째로 바꿀 수 있어 그린 뒤에도 한 번 더 건다
@@ -1926,8 +1931,9 @@ export default class Component extends DCLogic {
     });
   }
   readHelp() { try { return window.localStorage.getItem('terra.gui.innerHelp') === '1'; } catch (e) { return false; } }
+  readWinOp() { try { const v = parseInt(window.localStorage.getItem('terra.gui.winOpacity'), 10); return v >= 30 && v <= 100 ? v : 64; } catch (e) { return 64; } }   // 설정 › GUI · 창 에서 바꾼 창 불투명도(%)
   componentDidMount() {
-    this._onStore = (e) => { if (e.key === 'terra.gui.innerHelp') this.setState({ help: e.newValue === '1' }); if (e.key === 'terra.gui.buildings') { this.bldLoad(); this.bakeBuildings(); this.setState({ fieldNote: '건물 편집기에서 건물을 받았습니다' }); } if (e.key === 'terra.gui.roads') { this.roads = this.roadLoad(); this._roadImg = {}; this.setState({ roadV: (this.state.roadV || 0) + 1, fieldNote: '도로 편집기에서 도로를 받았습니다' }); } };
+    this._onStore = (e) => { if (e.key === 'terra.gui.innerHelp') this.setState({ help: e.newValue === '1' }); if (e.key === 'terra.gui.winOpacity') this.setState({ winOp: this.readWinOp() }); if (e.key === 'terra.gui.buildings') { this.bldLoad(); this.bakeBuildings(); this.setState({ fieldNote: '건물 편집기에서 건물을 받았습니다' }); } if (e.key === 'terra.gui.roads') { this.roads = this.roadLoad(); this._roadImg = {}; this.setState({ roadV: (this.state.roadV || 0) + 1, fieldNote: '도로 편집기에서 도로를 받았습니다' }); } };
     try { window.addEventListener('storage', this._onStore); } catch (e) { /* 무시 */ }
     this.mountBldgDefs();
     this.bakeBuildings();
@@ -1947,7 +1953,7 @@ export default class Component extends DCLogic {
   // 돌리기: 누른 채 좌우로 끌기(손가락 밑 눈금이 따라온다) · 올라온 상태에서 휠. 놓으면 관성으로 돌다 가장 가까운 1°에 멈춘다
   // 눈금 간격은 곡률과 상관없이 1° = 23px. 바탕 없이 검은 선만. 캔버스에 직접 그린다(렌더 밖 — 다시 렌더돼도 지워지지 않게)
   // ── 조타륜 앱 바 ──
-  HBICON() { return {"mouse": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAcElEQVR4nGNgIBEwInPEJOX/oyt49fwhI7oYXPG7j1//v/v49T86G1kdEzbNe1WMcToJqwbnO2dxaoC7D5v7YQDZHyzIEjduXMNQrKGhRdhJ+ABeDSfOXcevGzk4t+0/gxGkDAxoEQfTBGPjjDRSAAAPJTUwTnv5FwAAAABJRU5ErkJggg==", "keyboard": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAOUlEQVR4nGNgGHSAUUxS/j8pGpgYGBgYbty4xkAMPUhtYBCTlP//7uPX/zAaHSPLi0nK/yfdBpoDAAFeP78nahjJAAAAAElFTkSuQmCC", "camera": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAbUlEQVR4nGNgoDVgROaIScr/R+a/ev6QkQENMKIrwgdePX/IyMLAwMBQWtMOF+xuqYSzsYkzIZvQ3VLJwO91Bo6RNcMAE4YIAwPDll4hnM7CqsGn+B1ODSzInNKadobuFhMUPjogOZSIVUs+AAAKUB/EtSyn5QAAAABJRU5ErkJggg==", "microphone": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAZ0lEQVR4nGNgIBEwoguIScr/R+a/ev4QRQ0juuKWrn4UA2rKClE0MWGztqaskKGmrBCrk1iwCaLbggxItgEOYJ4Vk5T/P2vxuv+zFq/7jyyGUwOMjc7HaQs+jXidh0shhqeJcgopAAB1tizagNyQyQAAAABJRU5ErkJggg==", "screen": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAATElEQVR4nGNgoDVgFJOU/0+KBhYGBgYGpd6TRCm+V2zOwATjLPQSJUoTXEP8ttekaSAWkOxprEBMUv4/LoMY0RViU/Tq+UNGbOK0AQBIzw9CmaeDRQAAAABJRU5ErkJggg==", "raw_bus": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAYklEQVR4nGNgIBEwoguIScr/R+a/ev4QRQ0TNlNu3LjGcOPGNcI2oJuOzRYWdMlbs5VR+Gqpd1H4WJ2klnoXQyFOG7DZQtAGkoCYpPz/D1uc/n/Y4vQfVyBg1YRLMeVOIgQAAi8fhb+zry4AAAAASUVORK5CYII=", "app": {"svi": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAn0lEQVR4nGNgwAHEJOX/i0nK/8clz4hNAwMDA0PL/gcMDAwMDDWOCgwMDAwMr54/RFHLiEsDOkA3gJGQBlwGsDAwMDCoNh6CCxCykTNsGsP3VVkQjTDNyArQ/cgZNg3FIBYGNIBuALoGGGDC5Rd8mghqxAco03i73o5oDd9XZTEwMDAwsMBTRL3dfwYGRODg0gBTDw9VdANwaSAICCVyANl2QbR0fQ9YAAAAAElFTkSuQmCC", "decl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAcUlEQVR4nGNkgAIxSfn/DHjAq+cPGZH5cI6YpPz/pw+vYdUkLa+FoZkJny3I4OnDayiuIlojzFaYZhZ0BY3d87Hahm4Ahsb60kSiXECUjdgMHU421pcmMqgsTmBgYGBguBO7gHIbUZIcUToYMNMtSQAAQAgqwdbeIjoAAAAASUVORK5CYII=", "grant": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAiUlEQVR4nNWRMQrDMAxFv0rOUOjUwaCb6VS5WUCDJoEukQ5FtZM4zpKlf7FB/vqPb+BvRHl5vt5rOwg3Oj6vmtK0zGUzYME6Mj9aE4uCRQEAy1wOFBtjTVCEG4UbpfkSdaReargR7VETcyQW/bbaK2e/iEV/Z7jRlNEs6CKdFTT8q6TpLbzy3a8PoRtAkXaAxvAAAAAASUVORK5CYII=", "io": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAc0lEQVR4nGNgIBMwoguIScr/x6bw1fOHGGpRNL37+BWOkfnoBjIha7px4xqKQXtVjOHsGzeuobiGiYFMgFej852zOOXgHsYVKOgAFkgsyILofkQHGhpacDZt/EgVjSfOXcctiZ4AYHjb/jMYCYA6SY4UAAATJEwmt7R2AgAAAABJRU5ErkJggg==", "folder": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAdUlEQVR4nGNgIBMwMjAwMIhJyv9Hl3j1/CEjXo1ikvL/X+6OwpAQd12GVzMLLomXu6MYxF2XYbgE5hqcGmGasbkE7lR8mnEBFgYGBoYzE2QYZLXtiNLw+OohBpOCJwxM5NjGwMAwABrhofr46iGSNJIdqvQHALMDH+GivpOoAAAAAElFTkSuQmCC", "xfer": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAjklEQVR4nGNgQAJikvL/GYgETMiaOFvMiNbMhKyJgYGBgVjNTMiaYIAYzYzICjhbzBi+15yCS756/pAR5iJ0MaZXzx8ywjjIkuhi/F5nMP1IDiBbIwsyB9l/DAzY4xUmxoguga4I3W8MDAwMH7eZ4Hfqq+cPGT9uM8HQhB5weG1WTX79n5QkiaKZZE3YAAA2yjyJne97XgAAAABJRU5ErkJggg==", "tunnel": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAmklEQVR4nGNgIBMwoguIScr/x6bw1fOHKGrhHJiGlq5+rDbUlBWiGMAI0wTToKetwXDp6g0UTchiNWWFDK+eP2RkQTfZz9sTq40YLhGTlP8/a/G6/7MWr/uPy3/Y1DEh+wE9AJDBq+cPGWH+ZGBgYMBwKgMDA8P/B10oNjMqlGEYyIQugK4JlxiGRmIBhlOxOQsbYMQXkoMLAAB0DUBTf9fzKAAAAABJRU5ErkJggg==", "wg": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAcElEQVR4nGNgoASIScr/F5OU/0+KOhYxSfn/e1WMGRgYGBicGRj+v3r+kBGXJmR1LOgKolOKsNq8e+ta3E7ApQlmIIpTGRgYGJCch9efuLyB06n4XIJTIdGaYIBQFGGEKkwToShiIskZxABiUxP9AAA7ojfQB69kFQAAAABJRU5ErkJggg==", "job": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAb0lEQVR4nGNgIBMwiknK/ydHIwsDAwODq3cwQYUVNx8wdK/1YJh0agWDWupdCm3k4BUkSdOPz+8ZmGAchyNZJGmGazxgM40kzUzIHFI0o2h0OJLFcMBmGlEaWXBpQrcZ3UBGMUn5/+SEKguMMfgBALqqJUuy3PLuAAAAAElFTkSuQmCC", "mod": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAj0lEQVR4nGNgoDYQk5T/LyYp/x+XPAsuTbdmKzMwMDAwqKUy/H/1/CEjTo34TEeWgxnCiCwJswUXUEu9C9fIhFclHttZ8DkRHSD7mwVZgBhw89pNBgYGFohT1VLvMqil3iXBwQwMLDDPEuNkiOEsDK+eP2QkOnAgTsQRHZsL/xA0wLcfYiOKRmJtx5aSiAYAcDE7MUcZcyQAAAAASUVORK5CYII="}}; }
+  HBICON() { return {"mouse": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0xMiAzaDBhNiA2IDAgMCAxIDYgNnY2YTYgNiAwIDAgMSAtNiA2aDBhNiA2IDAgMCAxIC02IC02di02YTYgNiAwIDAgMSA2IC02eiBNMTIgN3Y0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "keyboard": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDZoMTZhMiAyIDAgMCAxIDIgMnY4YTIgMiAwIDAgMSAtMiAyaC0xNmEyIDIgMCAwIDEgLTIgLTJ2LThhMiAyIDAgMCAxIDIgLTJ6IE02IDEwaC4wMU0xMCAxMGguMDFNMTQgMTBoLjAxTTE4IDEwaC4wMU03IDE0aDEwIiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "camera": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0zIDhoNGwyLTNoNmwyIDNoNHYxMUgzeiBNOC41IDEzYTMuNSAzLjUgMCAxIDAgNy4wIDBhMy41IDMuNSAwIDEgMCAtNy4wIDB6IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "microphone": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0xMiAzaDBhMyAzIDAgMCAxIDMgM3Y1YTMgMyAwIDAgMSAtMyAzaDBhMyAzIDAgMCAxIC0zIC0zdi01YTMgMyAwIDAgMSAzIC0zeiBNNSAxMWE3IDcgMCAwIDAgMTQgME0xMiAxOHYzTTkgMjFoNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "screen": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik01IDRoMTRhMiAyIDAgMCAxIDIgMnY4YTIgMiAwIDAgMSAtMiAyaC0xNGEyIDIgMCAwIDEgLTIgLTJ2LThhMiAyIDAgMCAxIDIgLTJ6IE04IDIwaDhNMTIgMTZ2NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "raw_bus": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0xMyAyTDQgMTRoN2wtMSA4IDktMTJoLTd6IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "app": {"svi": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0xMiAxMnY5TTggMjFoOCBNMTAgMTBhMiAyIDAgMSAwIDQgMGEyIDIgMCAxIDAgLTQgMHogTTcgNWE3IDcgMCAwIDAgMCAxME0xNyA1YTcgNyAwIDAgMSAwIDEwIiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "decl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik02IDNoOWwzIDN2MTVINnogTTkgOWg2TTkgMTNoNk05IDE3aDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==", "grant": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDE0YTQgNCAwIDEgMCA4IDBhNCA0IDAgMSAwIC04IDB6IE0xMSAxMWw5LTlNMTYgNmwzIDNNMTQgOGwyIDIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==", "io": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDZoMTZhMiAyIDAgMCAxIDIgMnY4YTIgMiAwIDAgMSAtMiAyaC0xNmEyIDIgMCAwIDEgLTIgLTJ2LThhMiAyIDAgMCAxIDIgLTJ6IE02IDEwaC4wMU0xMCAxMGguMDFNMTQgMTBoLjAxTTE4IDEwaC4wMU03IDE0aDEwIiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "folder": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0zIDZoNmwyIDJoMTB2MTFIM3oiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==", "xfer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik03IDRMMyA4bDQgNE0zIDhoMTRNMTcgMjBsNC00LTQtNE0yMSAxNkg3IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "tunnel": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDIwVjExYTggOCAwIDAgMSAxNiAwdjkgTTggMjB2LThhNCA0IDAgMCAxIDggMHY4IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "wg": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0xMiAzbDggM3Y2YzAgNS0zLjUgOC04IDktNC41LTEtOC00LTgtOVY2eiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "job": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDZsNSA2LTUgNk0xMiAxOGg4IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "mod": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDhoNGEyIDIgMCAxIDEgNCAwaDR2NGEyIDIgMCAxIDEgMCA0djRINHoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg=="}}; }   // ver.2: 선 아이콘
   // ── 조타륜 앱 바: 다루는 자원은 "지금(가는) 맵의 노드"의 것이다 — 로컬 맵이면 로컬 노드, 다른 노드 맵이면 그 노드 ──
   // 남의 노드 자원이라 늘 권한을 같이 본다: 노드 권한(node.read · control · config★ · process.execute · file.read · write)과
   // SVI 자원별 허가. 잠긴 동작은 숨기지 않고 자물쇠와 이유를 단다 (누르면 이유가 왼쪽 글줄에 뜬다)
@@ -1997,8 +2003,8 @@ export default class Component extends DCLogic {
         D.on = true;
         const g = D.ghost = document.createElement('div');
         g.setAttribute('data-res-ghost', '1');
-        g.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px 0 3px;border-radius:17px;border:1.6px solid #16191f;background:#fff;box-shadow:0 8px 20px rgba(22,25,31,.25);font:700 13px "Noto Sans KR",sans-serif;color:#16191f;white-space:nowrap;transform:translate(-18px,-17px)';
-        g.innerHTML = '<span style="width:28px;height:28px;border-radius:50%;background:#e7eaef;display:flex;align-items:center;justify-content:center;font-size:15px"></span><span></span>';
+        g.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px 0 3px;border-radius:17px;border:1.6px solid rgba(237,233,225,0.6);background:#0e0e0e;box-shadow:0 8px 20px rgba(0,0,0,0.55);font:700 13px "Noto Sans KR",sans-serif;color:#c7ccd4;white-space:nowrap;transform:translate(-18px,-17px)';
+        g.innerHTML = '<span style="width:28px;height:28px;border-radius:50%;background:#14161a;display:flex;align-items:center;justify-content:center;font-size:15px"></span><span></span>';
         g.firstChild.textContent = res.emoji; g.lastChild.textContent = res.name;
         document.body.appendChild(g);
         this.setState({ place: res, placeMsg: '설치할 필드 위에 놓으세요' });
@@ -2177,7 +2183,7 @@ export default class Component extends DCLogic {
     const nb = this.nbKeys(k).map((q) => S.nodes[q] ? { em: '', logo: this.nodeLogo(S.nodes[q].role), logoDisp: 'inline', name: S.nodes[q].name, at: this.cellName(q) } : (S.rsrc || {})[q] ? { em: S.rsrc[q].emoji, logo: '', logoDisp: 'none', name: S.rsrc[q].name, at: this.cellName(q) } : null).filter(Boolean);
     return {
       has: true, none: false, emoji: o.emoji, name: o.name, type: o.type, node: o.node, at: this.cellName(k) + ' · ' + o.at + ' 설치',
-      mode: io.in.length || io.out.length ? '입출력 연결 ' + (io.in.length + io.out.length) : '설치됨 · 모니터링 전용', modeC: io.in.length || io.out.length ? '#2563eb' : '#a65f00', modeBg: io.in.length || io.out.length ? '#e6efff' : '#fbf0cc',
+      mode: io.in.length || io.out.length ? '입출력 연결 ' + (io.in.length + io.out.length) : '설치됨 · 모니터링 전용', modeC: io.in.length || io.out.length ? '#7aa7ff' : '#f5b83d', modeBg: io.in.length || io.out.length ? 'rgba(122,167,255,0.12)' : 'rgba(245,184,61,0.12)',
       ins, outs, insNone: ins.length ? 'none' : 'inline', outsNone: outs.length ? 'none' : 'inline',
       mon, live: it ? '원본 ' + o.node + ' · ' + o.app + ' 목록과 이어져 있다' : '원본 항목을 찾지 못했다',
       nb, nbNone: nb.length === 0, nbLabel: nb.length ? '이웃 ' + nb.length + ' — 입출력 후보' : '이웃한 노드 · 자원 없음',
@@ -2191,18 +2197,18 @@ export default class Component extends DCLogic {
   hbClose() {
     this.setState({ hb: null, hbBusy: null, hbArm: null });
   }
-  hbSay(t, c) { clearTimeout(this._hbT); this.setState({ hbMsg: { t, c: c || '#1f7a4d' } }); this._hbT = setTimeout(() => this.setState({ hbMsg: null }), 2600); }
+  hbSay(t, c) { clearTimeout(this._hbT); this.setState({ hbMsg: { t, c: c || '#3ecf8e' } }); this._hbT = setTimeout(() => this.setState({ hbMsg: null }), 2600); }
   hbNode() { const g = this._mapGoal != null ? this._mapGoal : this.state.map; return g || this.state.localNode.name; }
   // 노드 권한 (예시). 로컬 노드 = 소유자(전부). 로그인한 tree 아래는 역할마다 다르고, 로그인 안 된 tree(비밀번호 · 오프라인) 아래는 권한이 없다
   hbPerm(node) {
     const S = this.state, ALL = ['node.read', 'node.control', 'node.config', 'process.execute', 'process.cancel', 'file.read', 'file.write', 'module.manage'];
-    if (node === S.localNode.name) return { role: '소유자', rc: '#1f7a4d', has: ALL, owner: true };
+    if (node === S.localNode.name) return { role: '소유자', rc: '#3ecf8e', has: ALL, owner: true };
     let t = this.NET[node] && this.isTree(this.NET[node].role) ? node : this.parentOfNode(node), guard = 0;
-    while (t && guard++ < 8) { const a = (this.NET[t] || {}).auth; if (a === 'password' || a === 'offline') return { role: '권한 없음', rc: '#d33d52', has: [], why: t + ' 로그인 필요' }; t = this.parentOfNode(t); }
+    while (t && guard++ < 8) { const a = (this.NET[t] || {}).auth; if (a === 'password' || a === 'offline') return { role: '권한 없음', rc: '#ff5d5d', has: [], why: t + ' 로그인 필요' }; t = this.parentOfNode(t); }
     const P = { 'tree-home': ['node.read', 'node.control', 'process.execute', 'file.read', 'file.write'], 'nas-01': ['node.read', 'file.read', 'file.write'],
       'tree-lab': ['node.read', 'node.control'], 'gpu-01': ['node.read', 'process.execute'] };
     const has = P[node] || ['node.read'];
-    return { role: has.indexOf('node.control') >= 0 ? '관리자' : '읽기 전용', rc: has.indexOf('node.control') >= 0 ? '#2563eb' : '#a65f00', has };
+    return { role: has.indexOf('node.control') >= 0 ? '관리자' : '읽기 전용', rc: has.indexOf('node.control') >= 0 ? '#7aa7ff' : '#f5b83d', has };
   }
   // 앱마다 보여 줄 권한 칸 · 목록을 보는 데 필요한 권한
   HBAPP() { return {
@@ -2339,10 +2345,10 @@ export default class Component extends DCLogic {
   hbFormOpen(app, mode, id, node, where) {
     const C = this.HBCRUD()[app]; if (!C) return;
     const nd = node || this.hbNode(), can = this.hbCan(app, nd);
-    if (!can.ok) { this.hbSay('🔒 ' + (mode === 'add' ? '추가' : '수정') + ' — ' + can.why, '#d33d52'); return; }
+    if (!can.ok) { this.hbSay('🔒 ' + (mode === 'add' ? '추가' : '수정') + ' — ' + can.why, '#ff5d5d'); return; }
     const it = mode === 'edit' ? (this.hbItems(nd, app) || []).find((x) => x.id === id) : null;
     if (mode === 'edit' && !it) return;
-    if (app === 'mod' && mode === 'edit' && !it.cfg) { this.hbSay('⚙ ' + (it.name || it.id) + ' — 설정을 선언하지 않은 모듈이다 (매니페스트 configuration.schema 없음)', '#5b6472'); return; }
+    if (app === 'mod' && mode === 'edit' && !it.cfg) { this.hbSay('⚙ ' + (it.name || it.id) + ' — 설정을 선언하지 않은 모듈이다 (매니페스트 configuration.schema 없음)', '#8b95a6'); return; }
     const vals = {}, src = app === 'mod' && it && it.cfg ? it.cfg.vals || {} : it;
     this.hbFields(app, it).forEach((f) => { vals[f.k] = src ? (src[f.k] == null ? (f.type === 'bool' ? false : '') : src[f.k]) : f.type === 'sel' ? f.opts[0] : f.type === 'bool' ? false : ''; });
     this.setState({ hbForm: { app, node: nd, mode, id: id || null, vals, where: where || 'fs', err: '' }, hbArm: null });
@@ -2369,13 +2375,13 @@ export default class Component extends DCLogic {
     }
     this.hbPut(F.node, F.app, next);
     this.setState({ hbForm: null });
-    this.hbSay(nm + (F.mode === 'add' ? ' 추가' : ' 고침') + ' — ' + (F.mode === 'add' ? C.api.add : C.api.edit).split(' — ')[0], '#1f7a4d');
+    this.hbSay(nm + (F.mode === 'add' ? ' 추가' : ' 고침') + ' — ' + (F.mode === 'add' ? C.api.add : C.api.edit).split(' — ')[0], '#3ecf8e');
   }
   // 삭제: 두 번 눌러야 한다. 맵에 설치돼 있었으면 그 자리와 연결도 걷는다
   hbDel(app, id, node) {
     const nd = node || this.hbNode(), C = this.HBCRUD()[app], can = this.hbCan(app, nd);
-    if (!can.ok) { this.hbSay('🔒 삭제 — ' + can.why, '#d33d52'); return; }
-    if (this.state.hbArm !== 'del:' + id) { this.setState({ hbArm: 'del:' + id }); this.hbSay('한 번 더 누르면 삭제 — ' + C.api.del, '#d33d52'); return; }
+    if (!can.ok) { this.hbSay('🔒 삭제 — ' + can.why, '#ff5d5d'); return; }
+    if (this.state.hbArm !== 'del:' + id) { this.setState({ hbArm: 'del:' + id }); this.hbSay('한 번 더 누르면 삭제 — ' + C.api.del, '#ff5d5d'); return; }
     const list = this.hbItems(nd, app) || [], d = list.find((x) => x.id === id) || {}, nm = d.name || d.cmd || d.who || id;
     this.hbPut(nd, app, app === 'folder' ? list.filter((x) => x.id !== id && x.parent !== id && String(x.parent || '').indexOf(id + '/') !== 0) : list.filter((x) => x.id !== id));
     const R = Object.assign({}, this.state.rsrc || {}), gone = Object.keys(R).filter((k) => R[k].node === nd && R[k].app === app && R[k].id === id);
@@ -2384,7 +2390,7 @@ export default class Component extends DCLogic {
     if (gone.length) Object.assign(patch, { rsrc: R, links: (this.state.links || []).filter((l) => gone.indexOf(l.from) < 0 && gone.indexOf(l.to) < 0) });
     const F = this.state.hbForm; if (F && F.id === id) patch.hbForm = null;
     this.setState(patch);
-    this.hbSay(nm + ' 삭제' + (gone.length ? ' — 맵에서도 걷어 냈다' : ''), '#a65f00');
+    this.hbSay(nm + ' 삭제' + (gone.length ? ' — 맵에서도 걷어 냈다' : ''), '#f5b83d');
   }
   // 상태 화면 (창 'rst'): { kind: 'res', node, app, id } · { kind: 'node', key } · { kind: 'road', key }
   rstOpen(spec) {
@@ -2394,34 +2400,80 @@ export default class Component extends DCLogic {
     const W = this.state.wins.rst; if (!this.state.winOpen.rst) this.openWin('rst', W.x, W.y); else this.winFront('rst');
   }
   // ── 노드 관리 (상태 화면 · 노드): 이름 · 부모 바꾸기 · 삭제. 예시는 화면에서만, 서비스는 Master nodes.by-node-id.{patch,delete} 뒤 같은 반영 ──
-  nodeAdmFor(name) { const A = this.state.nodeAdm; return A && A.node === name ? A : { node: name, name, parent: this.parentOfNode(name) || '', arm: false, msg: '', c: '#5b6472' }; }
+  nodeAdmFor(name) { const A = this.state.nodeAdm; return A && A.node === name ? A : { node: name, name, parent: this.parentOfNode(name) || '', arm: false, msg: '', c: '#9aa1ab' }; }
   nodeAdmSet(name, patch) { this.setState({ nodeAdm: Object.assign({}, this.nodeAdmFor(name), patch, { msg: '' }) }); }
-  nodeAdmSay(name, msg, c) { this.setState({ nodeAdm: Object.assign({}, this.nodeAdmFor(name), { msg, c: c || '#1f7a4d' }) }); }
+  nodeAdmSay(name, msg, c) { this.setState({ nodeAdm: Object.assign({}, this.nodeAdmFor(name), { msg, c: c || '#3ecf8e' }) }); }
   async nodeAdmSave(name) {
     const A = this.nodeAdmFor(name), nu = String(A.name || '').trim(), par = A.parent || '';
-    if (!nu) { this.nodeAdmSay(name, '이름이 비었다', '#d33d52'); return; }
-    if (nu !== name && this.NET[nu]) { this.nodeAdmSay(name, '같은 이름의 노드가 이미 있다', '#d33d52'); return; }
-    if (par === name) { this.nodeAdmSay(name, '자기 자신을 부모로 둘 수 없다', '#d33d52'); return; }
+    if (!nu) { this.nodeAdmSay(name, '이름이 비었다', '#ff5d5d'); return; }
+    if (nu !== name && this.NET[nu]) { this.nodeAdmSay(name, '같은 이름의 노드가 이미 있다', '#ff5d5d'); return; }
+    if (par === name) { this.nodeAdmSay(name, '자기 자신을 부모로 둘 수 없다', '#ff5d5d'); return; }
     const was = this.parentOfNode(name) || '';
-    if (nu === name && par === was) { this.nodeAdmSay(name, '바뀐 것이 없다', '#5b6472'); return; }
+    if (nu === name && par === was) { this.nodeAdmSay(name, '바뀐 것이 없다', '#9aa1ab'); return; }
     const r = await this.nodeAdmDo('patch', name, { name: nu, parent: par });
-    if (r && r.ok === false) { this.nodeAdmSay(name, r.msg || '바꾸지 못했다', '#d33d52'); return; }
+    if (r && r.ok === false) { this.nodeAdmSay(name, r.msg || '바꾸지 못했다', '#ff5d5d'); return; }
     if (par !== was) this.nodeMoveLocal(name, par);
     if (nu !== name) this.nodeRenameLocal(name, nu);
     this.setState({ nodeAdm: null });
-    this.pushAlarm('●', '#2563eb', name + (nu !== name ? ' → ' + nu : '') + (par !== was ? ' · 부모 ' + (par || '없음') : '') + ' — 바꿈');
+    this.pushAlarm('●', '#7aa7ff', name + (nu !== name ? ' → ' + nu : '') + (par !== was ? ' · 부모 ' + (par || '없음') : '') + ' — 바꿈');
   }
   async nodeAdmDel(name) {
     const A = this.nodeAdmFor(name);
-    if (!A.arm) { this.setState({ nodeAdm: Object.assign({}, A, { arm: true, msg: '한 번 더 누르면 노드를 Master에서 지운다 — 되돌릴 수 없다', c: '#d33d52' }) }); return; }
+    if (!A.arm) { this.setState({ nodeAdm: Object.assign({}, A, { arm: true, msg: '한 번 더 누르면 노드를 Master에서 지운다 — 되돌릴 수 없다', c: '#ff5d5d' }) }); return; }
     const r = await this.nodeAdmDo('delete', name, {});
-    if (r && r.ok === false) { this.nodeAdmSay(name, r.msg || '지우지 못했다', '#d33d52'); return; }
+    if (r && r.ok === false) { this.nodeAdmSay(name, r.msg || '지우지 못했다', '#ff5d5d'); return; }
     this.nodeDropLocal(name);
     this.setState({ nodeAdm: null, rst: null }); this.closeWin('rst');
-    this.pushAlarm('■', '#a65f00', name + ' 노드를 지웠다');
+    this.pushAlarm('■', '#f5b83d', name + ' 노드를 지웠다');
   }
   // 서비스가 바꿔 끼운다 (Master 호출). 예시는 바로 성공
   async nodeAdmDo() { return { ok: true }; }
+  // ── 노드 등록 코드 (A-19 · Terra ADR-GW-002): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드.
+  //    평문은 발급 응답에서 한 번만 보이므로 복사 버튼을 주고, 다시 볼 수 없다고 적는다 ──
+  nodeEnrFor(name) { const E = this.state.nodeEnr; return E && E.node === name ? E : { node: name, label: '', ttl: '900', code: '', codeId: '', addr: '', msg: '', c: '#8b95a6', busy: false, list: [], arm: '' }; }
+  nodeEnrSet(name, patch) { this.setState({ nodeEnr: Object.assign({}, this.nodeEnrFor(name), patch) }); }
+  nodeEnrSay(name, msg, c) { this.nodeEnrSet(name, { msg, c: c || '#4ade80', busy: false }); }
+  async nodeEnrIssue(name) {
+    const E = this.nodeEnrFor(name);
+    if (E.busy) return;
+    this.nodeEnrSet(name, { busy: true, msg: '발급하는 중…', c: '#8b95a6', code: '', codeId: '' });
+    const r = await this.nodeEnrDo('issue', name, { label: String(E.label || '').trim(), expires_in_sec: Number(E.ttl) || 900 });
+    if (!r || r.ok === false) { this.nodeEnrSay(name, (r && r.msg) || '발급하지 못했다', '#ff6b81'); return; }
+    const d = r.data || {};
+    this.nodeEnrSet(name, { busy: false, code: d.code || '', codeId: d.code_id || '', addr: d.master_url || '', label: '',
+      msg: '발급했다 — 이 코드는 지금 한 번만 보인다. 복사해서 그 기계로 옮긴다', c: '#4ade80' });
+    this.pushAlarm('◆', '#60a5fa', '노드 등록 코드를 발급했다 — ' + (d.expires_at ? '만료 ' + String(d.expires_at).slice(11, 16) : '15분'));
+    this.nodeEnrLoad(name);
+  }
+  async nodeEnrLoad(name) {
+    const STAT_KO = { active: '쓸 수 있음', used: '이미 쓴 코드', expired: '수명 지남', revoked: '폐기됨' };
+    const r = await this.nodeEnrDo('list', name, {});
+    if (!r || r.ok === false) return;
+    this.nodeEnrSet(name, { list: ((r.data || {}).codes || []).map((x) => ({
+      id: x.code_id, label: x.label || '(메모 없음)', status: x.status || 'active',
+      sub: [STAT_KO[x.status] || x.status, x.expires_at ? '만료 ' + String(x.expires_at).slice(11, 16) : '', x.claimed_node_id ? '→ ' + x.claimed_node_id : ''].filter(Boolean).join(' · ') })) });
+  }
+  async nodeEnrRevoke(name, id) {
+    const E = this.nodeEnrFor(name);
+    if (E.arm !== id) { this.nodeEnrSet(name, { arm: id, msg: '한 번 더 누르면 그 코드를 폐기한다 — 이미 등록한 노드는 그대로다', c: '#fbbf24' }); return; }
+    const r = await this.nodeEnrDo('revoke', name, { code_id: id });
+    if (!r || r.ok === false) { this.nodeEnrSay(name, (r && r.msg) || '폐기하지 못했다', '#ff6b81'); return; }
+    this.nodeEnrSet(name, { arm: '', msg: '폐기했다', c: '#4ade80', code: E.codeId === id ? '' : E.code });
+    this.nodeEnrLoad(name);
+  }
+  nodeEnrCopy(name) {
+    const E = this.nodeEnrFor(name);
+    if (!E.code) return;
+    const done = () => this.nodeEnrSay(name, '복사했다 — 그 기계의 GUI에 붙여 넣는다', '#4ade80');
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(E.code).then(done, () => this.nodeEnrSay(name, '복사하지 못했다 — 글상자에서 직접 고른다', '#fbbf24')); return; }
+    } catch { /* 아래 폴백 */ }
+    const el = document.querySelector('[data-node-enr-code]');
+    if (el && el.select) { el.select(); try { document.execCommand('copy'); done(); return; } catch { /* 막힘 */ } }
+    this.nodeEnrSay(name, '복사하지 못했다 — 글상자에서 직접 고른다', '#fbbf24');
+  }
+  // 서비스가 바꿔 끼운다 (Master 호출). 예시는 길이 없다고 말한다
+  async nodeEnrDo() { return { ok: false, msg: '예시에서는 등록 코드를 발급하지 않는다' }; }
   // 이 동작의 길이 없으면 잠글 이유 (서비스가 catalog로 바꿔 끼운다). 예시는 늘 null
   hbOpLock() { return null; }
   nodeMoveLocal(name, par) {
@@ -2485,18 +2537,18 @@ export default class Component extends DCLogic {
   }
   // 흐름도 배치: 열 = [제공 노드] · 자원 · 엔드포인트 · 쓰는 쪽. single = 상태 화면용(자원 하나, 노드 열 없음)
   sviDiagram(node, list, W, selId, single) {
-    const S = this.state, ST = { available: ['#1f7a4d', '쓸 수 있음'], busy: ['#2563eb', '사용 중'], disabled: ['#8b95a6', '꺼짐'], unavailable: ['#d33d52', '보고 끊김'], unsupported: ['#8b95a6', '지원 안 함'] };
+    const S = this.state, ST = { available: ['#4ade80', '쓸 수 있음'], busy: ['#60a5fa', '사용 중'], disabled: ['#8b95a6', '꺼짐'], unavailable: ['#ff6b81', '보고 끊김'], unsupported: ['#8b95a6', '지원 안 함'] };
     const PH = single ? 30 : 32, GAP = 6, RG = 18, TOP = single ? 10 : 16;
     const C = single ? { res: [2, Math.round(W * 0.3)], ep: [Math.round(W * 0.36), Math.round(W * 0.24)], con: [Math.round(W * 0.66), W - Math.round(W * 0.66) - 2] }
       : { node: [10, 168], res: [226, 196], ep: [Math.max(452, Math.round(W * 0.4)), 150], con: [Math.max(650, Math.round(W * 0.4) + 200), 0] };
     if (!single) C.con[1] = Math.min(340, Math.max(170, W - C.con[0] - 14));
     const boxes = [], edges = [], curve = (x1, y1, x2, y2) => { const m = (x1 + x2) / 2; return 'M' + x1 + ' ' + y1 + ' C' + m + ' ' + y1 + ' ' + m + ' ' + y2 + ' ' + x2 + ' ' + y2; };
-    const LIVE = /^(active|degraded|opening|preparing)$/, HS = { active: '#2563eb', degraded: '#a65f00', opening: '#2563eb', preparing: '#a65f00', requested: '#a65f00', authorized: '#a65f00', validating: '#a65f00', planning: '#a65f00', closing: '#8b95a6', closed: '#8b95a6', denied: '#d33d52', failed: '#d33d52', expired: '#8b95a6' };
+    const LIVE = /^(active|degraded|opening|preparing)$/, HS = { active: '#60a5fa', degraded: '#fbbf24', opening: '#60a5fa', preparing: '#fbbf24', requested: '#fbbf24', authorized: '#fbbf24', validating: '#fbbf24', planning: '#fbbf24', closing: '#8b95a6', closed: '#8b95a6', denied: '#ff6b81', failed: '#ff6b81', expired: '#8b95a6' };
     let y = TOP, nFlow = 0;
     const rows = list.map((d) => {
       const f = this.sviFlow(node, d), cons = [].concat(
         f.handles.map((h) => ({ k: 'h', d: h, ep: h.ep, emoji: '🔗', title: (h.mine ? '내 핸들' : h.who || '핸들') + ' · ' + (h.op || 'read'), sub: h.state + (h.id ? ' · ' + String(h.id).slice(0, 12) : ''), col: HS[h.state] || '#8b95a6', live: LIVE.test(h.state) })),
-        f.binds.map((b) => ({ k: 'b', d: b, ep: b.ep, emoji: '➜', title: b.to, sub: (b.state === 'active' ? '바인딩 · 흐르는 중' : '바인딩 · ' + (b.reason || '실패')) + (b.qos ? ' · ' + b.qos : ''), col: b.state === 'active' ? '#1f9d55' : '#d33d52', live: b.state === 'active' })),
+        f.binds.map((b) => ({ k: 'b', d: b, ep: b.ep, emoji: '➜', title: b.to, sub: (b.state === 'active' ? '바인딩 · 흐르는 중' : '바인딩 · ' + (b.reason || '실패')) + (b.qos ? ' · ' + b.qos : ''), col: b.state === 'active' ? '#1f9d55' : '#ff6b81', live: b.state === 'active' })),
         f.grants.map((g) => ({ k: 'g', d: g, emoji: '🔑', title: g.who, sub: '허가 · ' + g.ops, col: g.alive ? '#c08a00' : '#b8c0cc', live: false })));
       const n = Math.max(f.eps.length, cons.length, 1), h = Math.max(56, n * (PH + GAP) - GAP), r = { d, f, cons, y, h };
       y += h + RG; return r;
@@ -2504,23 +2556,23 @@ export default class Component extends DCLogic {
     const H = Math.max(single ? 70 : 150, y - RG + TOP);
     if (!single && list.length) {   // 제공 노드
       const net = this.NET[node] || {}, ny = Math.round(H / 2 - 34);
-      boxes.push({ key: 'node', x: C.node[0], y: ny, w: C.node[1], h: 68, emoji: '', logo: this.nodeLogo(net.role), logoDisp: 'block', title: node, sub: '제공 노드 · 자원 ' + list.length, line: '#16191f', bw: 2, bg: '#ffffff', fg: '#16191f', dot: 'transparent', r: 12, go: () => {}, tip: node + ' — 이 노드가 선언한 SVI 자원', cur: 'default', fw: 800 });
+      boxes.push({ key: 'node', x: C.node[0], y: ny, w: C.node[1], h: 68, emoji: '', logo: this.nodeLogo(net.role), logoDisp: 'block', title: node, sub: '제공 노드 · 자원 ' + list.length, line: '#e6edf5', bw: 2, bg: 'rgba(20,26,36,.72)', fg: '#e6edf5', dot: 'transparent', r: 12, go: () => {}, tip: node + ' — 이 노드가 선언한 SVI 자원', cur: 'default', fw: 800 });
       rows.forEach((r) => edges.push({ d: curve(C.node[0] + C.node[1], ny + 34, C.res[0], r.y + r.h / 2), col: '#b8c0cc', w: 1.5, dash: 'none', anim: 'none', op: 1, mk: 'svd-ar-s' }));
     }
     rows.forEach((r) => {
       const d = r.d, st = ST[d.status] || ST.unavailable, sel = !single && selId === d.id, rmY = r.y + r.h / 2, flowing = r.cons.some((c) => c.live);
       if (flowing) nFlow++;
-      boxes.push({ key: 'res:' + d.id, x: C.res[0], y: Math.round(rmY - 26), w: C.res[1], h: 52, emoji: this.rsrcEmoji('svi', d), logo: '', logoDisp: 'none', title: d.name, sub: d.kind + ' · ' + (flowing ? '흐르는 중' : st[1]), line: sel ? '#2563eb' : st[0], bw: sel ? 2.5 : 1.5, bg: sel ? '#f3f7ff' : '#ffffff', fg: '#16191f', dot: flowing ? '#2563eb' : st[0], r: 10,
+      boxes.push({ key: 'res:' + d.id, x: C.res[0], y: Math.round(rmY - 26), w: C.res[1], h: 52, emoji: this.rsrcEmoji('svi', d), logo: '', logoDisp: 'none', title: d.name, sub: d.kind + ' · ' + (flowing ? '흐르는 중' : st[1]), line: sel ? '#60a5fa' : st[0], bw: sel ? 2.5 : 1.5, bg: sel ? '#f3f7ff' : 'rgba(20,26,36,.72)', fg: '#e6edf5', dot: flowing ? '#60a5fa' : st[0], r: 10,
         go: single ? () => {} : () => this.setState({ sviSel: d.id }), tip: d.id, cur: single ? 'default' : 'pointer', fw: 800 });
       const epY = {}, e0 = rmY - (r.f.eps.length * (PH + GAP) - GAP) / 2;
       r.f.eps.forEach((ep, i) => {
         const ey = Math.round(e0 + i * (PH + GAP)); epY[ep.id] = ey + PH / 2;
-        boxes.push({ key: 'ep:' + d.id + ':' + ep.id, x: C.ep[0], y: ey, w: C.ep[1], h: PH, emoji: ep.inter === 'stream' ? '〰' : '◇', logo: '', logoDisp: 'none', title: ep.id, sub: [ep.dir, ep.inter].filter(Boolean).join(' · '), line: '#cfd6df', bw: 1, bg: '#f7f8fb', fg: '#3a4049', dot: 'transparent', r: 13, go: () => {}, tip: '엔드포인트 ' + ep.id, cur: 'default', fw: 700 });
+        boxes.push({ key: 'ep:' + d.id + ':' + ep.id, x: C.ep[0], y: ey, w: C.ep[1], h: PH, emoji: ep.inter === 'stream' ? '〰' : '◇', logo: '', logoDisp: 'none', title: ep.id, sub: [ep.dir, ep.inter].filter(Boolean).join(' · '), line: '#cfd6df', bw: 1, bg: '#f7f8fb', fg: '#b8c2d0', dot: 'transparent', r: 13, go: () => {}, tip: '엔드포인트 ' + ep.id, cur: 'default', fw: 700 });
         edges.push({ d: curve(C.res[0] + C.res[1], rmY, C.ep[0], ey + PH / 2), col: '#b8c0cc', w: 1.5, dash: 'none', anim: 'none', op: 1, mk: '' });
       });
       r.cons.forEach((c, i) => {
         const cy = Math.round(r.y + i * (PH + GAP)), my = cy + PH / 2;
-        boxes.push({ key: 'con:' + d.id + ':' + i, x: C.con[0], y: cy, w: C.con[1], h: PH, emoji: c.emoji, logo: '', logoDisp: 'none', title: c.title, sub: c.sub, line: c.col, bw: c.live ? 1.5 : 1, bg: '#ffffff', fg: '#16191f', dot: 'transparent', r: 13,
+        boxes.push({ key: 'con:' + d.id + ':' + i, x: C.con[0], y: cy, w: C.con[1], h: PH, emoji: c.emoji, logo: '', logoDisp: 'none', title: c.title, sub: c.sub, line: c.col, bw: c.live ? 1.5 : 1, bg: 'rgba(20,26,36,.72)', fg: '#e6edf5', dot: 'transparent', r: 13,
           go: single ? () => {} : () => this.setState({ sviSel: d.id }), tip: c.title + ' — ' + c.sub, cur: single ? 'default' : 'pointer', fw: 700 });
         // 허가는 자원에 대한 것 — 엔드포인트 묶음 아래에서 점선으로 (흐름 선과 겹치지 않게)
         const eTop = r.f.eps.length ? epY[r.f.eps[0].id] - PH / 2 : rmY, eBot = r.f.eps.length ? epY[r.f.eps[r.f.eps.length - 1].id] + PH / 2 : rmY;
@@ -2541,10 +2593,10 @@ export default class Component extends DCLogic {
   //   state.sviFlow[자원] = { fps, live } — 맵 도로 애니메이션
   sviFlowView(R, it) {
     const S = this.state, F = S.sviStream && S.sviStream.resId === R.id ? S.sviStream : null;
-    const TONE = { ok: ['#e3f4ea', '#1f7a4d'], run: ['#e6efff', '#2563eb'], wait: ['#fbf0cc', '#a65f00'], off: ['#eef1f5', '#5b6472'], bad: ['#fde1e5', '#d33d52'], end: ['#f4f6f9', '#8b95a6'] };
+    const TONE = { ok: ['rgba(74,222,128,.14)', '#4ade80'], run: ['rgba(96,165,250,.16)', '#60a5fa'], wait: ['rgba(251,191,36,.16)', '#fbbf24'], off: ['rgba(255,255,255,.08)', '#8b95a6'], bad: ['rgba(255,107,129,.14)', '#ff6b81'], end: ['rgba(255,255,255,.06)', '#8b95a6'] };
     const fmt = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B');
     const base = { has: !!F, noneDisp: F ? 'none' : 'block', none: it && it.handle ? '흐름을 받는 중…' : '열린 핸들이 없다 — 카드의 열기를 누르면 여기로 흐른다', chips: [], lines: [], meta: [], img: '', imgDisp: 'none', imgInfo: '',
-      textDisp: 'none', metaDisp: 'none', note: '', noteDisp: 'none', noteBg: '#f4f6f9', noteC: '#5b6472', pauseLabel: '⏸ 멈춤', pauseOn: false, foot: '',
+      textDisp: 'none', metaDisp: 'none', note: '', noteDisp: 'none', noteBg: 'rgba(255,255,255,.06)', noteC: '#8b95a6', pauseLabel: '⏸ 멈춤', pauseOn: false, foot: '',
       pause: () => this.sviFlowCmd('pause'), clear: () => this.sviFlowCmd('clear'), close: () => this.sviFlowCmd('close'), save: () => this.sviFlowCmd('save'), closeDis: true, bodyH: 180 };
     if (!F) return base;
     const st = F.state, readDone = F.op === 'read' && st === 'closed' && F.frames >= 1;
@@ -2557,7 +2609,7 @@ export default class Component extends DCLogic {
     const note = F.paused ? '⏸ 그리기 멈춤 — 받기는 이어 간다. 그동안 ' + F.pending + '개 받음' : F.note;
     const nt = F.paused ? 'wait' : F.noteC || 'off';
     return Object.assign(base, {
-      chips, note, noteDisp: note ? 'block' : 'none', noteBg: TONE[nt] ? TONE[nt][0] : '#f4f6f9', noteC: TONE[nt] ? TONE[nt][1] : '#5b6472',
+      chips, note, noteDisp: note ? 'block' : 'none', noteBg: TONE[nt] ? TONE[nt][0] : 'rgba(255,255,255,.06)', noteC: TONE[nt] ? TONE[nt][1] : '#8b95a6',
       textDisp: F.kind === 'text' ? 'block' : 'none', metaDisp: F.kind === 'meta' ? 'block' : 'none', imgDisp: F.kind === 'image' ? 'flex' : 'none',
       lines: (F.lines || []).map((l) => ({ seq: '#' + l.seq, t: l.t, text: l.text, c: l.hex ? '#ffd27a' : '#e6e9ee', hex: l.hex ? 'hex' : '' })),
       meta: (F.meta || []).map((m) => ({ t: m.t, text: m.text })), img: F.img || '', imgOn: F.img ? 'block' : 'none', imgInfo: F.imgInfo || '',
@@ -2649,36 +2701,36 @@ export default class Component extends DCLogic {
     this.setState({ links: LK });
   }
   rstVals() {
-    const S = this.state, R = S.rst, none = { has: false, none: true, isRes: false, isNode: false, isRoad: false, isMiss: false, msg: '', msgDisp: 'none', msgC: '#5b6472' };
+    const S = this.state, R = S.rst, none = { has: false, none: true, isRes: false, isNode: false, isRoad: false, isMiss: false, msg: '', msgDisp: 'none', msgC: '#9aa1ab' };
     if (!R || !S.winOpen.rst) return none;
-    const BG = { ok: ['#e3f4ea', '#1f7a4d'], run: ['#e6efff', '#2563eb'], wait: ['#fbf0cc', '#a65f00'], off: ['#eef1f5', '#5b6472'], bad: ['#fde1e5', '#d33d52'], end: ['#f4f6f9', '#8b95a6'] }, KN = this.KEYNAME();
+    const BG = { ok: ['rgba(62,207,142,0.12)', '#3ecf8e'], run: ['rgba(122,167,255,0.12)', '#7aa7ff'], wait: ['rgba(245,184,61,0.12)', '#f5b83d'], off: ['rgba(255,255,255,0.06)', '#9aa1ab'], bad: ['rgba(255,93,93,0.12)', '#ff5d5d'], end: ['rgba(255,255,255,0.03)', '#9aa1ab'] }, KN = this.KEYNAME();
     const kvOf = (o) => Object.keys(o).filter((k) => o[k] != null && typeof o[k] !== 'object' && ['fresh', 'fin', 'fout'].indexOf(k) < 0)
       .map((k) => ({ k: KN[k] || k, raw: k, v: typeof o[k] === 'boolean' ? (o[k] ? '예' : '아니오') : k === 'off' ? Math.round(o[k] * 100) + '%' : String(o[k]) }));
-    const apiRow = (w, op, perm) => ({ w, op, perm, warn: /⚠/.test(op), c: /⚠/.test(op) ? '#a65f00' : '#16191f', bg: /⚠/.test(op) ? '#fff8e6' : '#f7f8fb' });
-    const base = Object.assign({}, none, { has: true, none: false, msg: S.hbMsg ? S.hbMsg.t : '', msgDisp: S.hbMsg ? 'block' : 'none', msgC: S.hbMsg ? S.hbMsg.c : '#5b6472' });
+    const apiRow = (w, op, perm) => ({ w, op, perm, warn: /⚠/.test(op), c: /⚠/.test(op) ? '#f5b83d' : '#ede9e1', bg: /⚠/.test(op) ? 'rgba(245,184,61,0.10)' : 'rgba(255,255,255,0.04)' });
+    const base = Object.assign({}, none, { has: true, none: false, msg: S.hbMsg ? S.hbMsg.t : '', msgDisp: S.hbMsg ? 'block' : 'none', msgC: S.hbMsg ? S.hbMsg.c : '#9aa1ab' });
     const LK = S.links || [];
     if (R.kind === 'res') {
       const it = (this.hbItems(R.node, R.app) || []).find((x) => x.id === R.id);
       if (!it) return Object.assign(base, { isMiss: true, missMsg: (R.name || R.id) + ' — ' + R.node + '의 ' + this.appName(R.app) + ' 목록에 없다 (삭제됨)' });
       const V = this.hbVals(R.app, R.node), card = ((V && V.cards) || []).find((c) => c.id === R.id) || { acts: [] };
       const fl = this.rsFlow(R.app, it), tc = BG[fl.tone] || BG.ok;
-      const steps = fl.steps.map((s, i) => ({ label: s, bg: i < fl.at ? '#16191f' : i === fl.at ? tc[1] : '#ffffff', fg: i <= fl.at ? '#ffffff' : '#8b95a6', line: i < fl.at ? '#16191f' : i === fl.at ? tc[1] : '#d8dde5', bar: i <= fl.at ? '#16191f' : '#d8dde5', barDisp: i ? 'block' : 'none' }));
+      const steps = fl.steps.map((s, i) => ({ label: s, bg: i < fl.at ? '#ede9e1' : i === fl.at ? tc[1] : 'rgba(255,255,255,0.04)', fg: i <= fl.at ? '#111111' : '#9aa1ab', line: i < fl.at ? '#ede9e1' : i === fl.at ? tc[1] : 'rgba(255,255,255,0.18)', bar: i <= fl.at ? '#ede9e1' : 'rgba(255,255,255,0.18)', barDisp: i ? 'block' : 'none' }));
       const mk = Object.keys(S.rsrc || {}).find((k) => { const o = S.rsrc[k]; return o.node === R.node && o.app === R.app && o.id === R.id; });
       const nIn = mk ? LK.filter((l) => l.to === mk).length : 0, nOut = mk ? LK.filter((l) => l.from === mk).length : 0;
       const C = this.HBCRUD()[R.app], can = this.hbCan(R.app, R.node), gui = R.app === 'mod' && !!it.gui, arm = S.hbArm === 'del:' + R.id;
       const acts = (card.acts || []).filter((a) => !/📍/.test(a.label));
       return Object.assign(base, {
         isRes: true, icon: card.icon || '', iconDisp: card.icon ? 'block' : 'none', emoji: card.icon ? '' : this.rsrcEmoji(R.app, it), title: card.name || it.name || it.cmd || it.id, app: this.appName(R.app), node: R.node, id: R.id,
-        chip: card.chip || '', cbg: card.cbg || '#eef1f5', cfg: card.cfg || '#5b6472', meta: card.meta || '', steps, kv: kvOf(it), acts, hasActs: acts.length > 0,
+        chip: card.chip || '', cbg: card.cbg || 'rgba(255,255,255,0.06)', cfg: card.cfg || '#9aa1ab', meta: card.meta || '', steps, kv: kvOf(it), acts, hasActs: acts.length > 0,
         progOn: R.app === 'xfer' && it.off != null, prog: it.off != null ? Math.round(it.off * 100) : 0,
         outOn: !!(S.hbOut && S.hbOut.node === R.node && S.hbOut.app === R.app && S.hbOut.id === R.id), outTitle: S.hbOut ? S.hbOut.title : '', outText: S.hbOut ? S.hbOut.text : '', outAt: S.hbOut ? S.hbOut.at : '',
         outClose: () => this.setState({ hbOut: null }),
         sviOn: R.app === 'svi', svd: R.app === 'svi' ? this.sviDiagram(R.node, [it], Math.max(360, ((S.wins.rst && S.wins.rst.w) || 430) - 34), null, true) : { boxes: [], edges: [], W: 0, H: 0 }, flow: R.app === 'svi' ? this.sviFlowView(R, it) : { chips: [], lines: [], meta: [] },
-        modDisp: R.app === 'mod' ? 'flex' : 'none', modKind: gui ? 'GUI를 제공하는 모듈 — 상태 화면 + 모듈 화면(GUI 창)' : '기능만 제공하는 모듈 — 상태 화면만 (GUI 없음)', modC: gui ? '#5b21b6' : '#5b6472', modBg: gui ? '#ede4fe' : '#eef1f5',
+        modDisp: R.app === 'mod' ? 'flex' : 'none', modKind: gui ? 'GUI를 제공하는 모듈 — 상태 화면 + 모듈 화면(GUI 창)' : '기능만 제공하는 모듈 — 상태 화면만 (GUI 없음)', modC: gui ? '#c4b5fd' : '#9aa1ab', modBg: gui ? 'rgba(167,139,250,0.14)' : 'rgba(255,255,255,0.06)',
         guiDisp: gui ? 'inline-flex' : 'none', gui: () => this.mguiOpen(R.node, R.id),
         mapLine: mk ? '맵 ' + this.cellName(mk) + ' · 입력 ' + nIn + ' · 출력 ' + nOut : '맵에 설치되지 않음 — 조타륜 카드를 끌어 필드에 놓는다', focusDisp: mk ? 'inline-flex' : 'none', focus: () => { if (mk) this.setState({ sel: mk }); },
         lock: can.ok ? '' : '🔒 ', lockTip: can.ok ? '' : can.why,
-        edit: () => this.hbFormOpen(R.app, 'edit', R.id, R.node, 'rst'), del: () => this.hbDel(R.app, R.id, R.node), delLabel: arm ? '정말 삭제' : '🗑️ 삭제', delBg: arm ? '#d33d52' : '#ffffff', delFg: arm ? '#ffffff' : '#d33d52',
+        edit: () => this.hbFormOpen(R.app, 'edit', R.id, R.node, 'rst'), del: () => this.hbDel(R.app, R.id, R.node), delLabel: arm ? '정말 삭제' : '🗑️ 삭제', delBg: arm ? '#ff5d5d' : 'rgba(255,255,255,0.04)', delFg: arm ? '#111111' : '#ff5d5d',
         api: C ? [apiRow('조회', C.api.list, 'node.read'), apiRow('추가', C.api.add, C.need.join(' · ')), apiRow('수정', C.api.edit, C.need.join(' · ')), apiRow('삭제', C.api.del, C.need.join(' · '))] : []
       });
     }
@@ -2690,7 +2742,7 @@ export default class Component extends DCLogic {
       const outRows = outs.map((l) => {
         const sel = l.sel || [], n = sel.filter((s) => pool.some((p) => p.key === s.key)).length;
         return { to: this.cellLabel(l.to), cnt: n + ' / ' + pool.length, none: pool.length === 0, noneDisp: pool.length ? 'none' : 'block',
-          items: pool.map((it) => { const on = sel.some((s) => s.key === it.key); return { label: (it.emoji || '◆') + ' ' + it.name, tip: it.map + ' 맵 · ' + (it.kind === 'share' ? '공유' : '입력 ← ' + it.via), bg: on ? '#16191f' : '#ffffff', fg: on ? '#ffffff' : '#16191f', line: on ? '#16191f' : '#d8dde5', mark: on ? '✓' : '+', toggle: () => this.nodeSelToggle(l.id, it) }; }) };
+          items: pool.map((it) => { const on = sel.some((s) => s.key === it.key); return { label: (it.emoji || '◆') + ' ' + it.name, tip: it.map + ' 맵 · ' + (it.kind === 'share' ? '공유' : '입력 ← ' + it.via), bg: on ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: on ? '#111111' : '#ede9e1', line: on ? '#ede9e1' : 'rgba(255,255,255,0.18)', mark: on ? '✓' : '+', toggle: () => this.nodeSelToggle(l.id, it) }; }) };
       });
       const inRows = ins.map((l) => { const r = (S.rsrc || {})[l.from]; return { from: this.cellLabel(l.from), what: r ? (r.emoji + ' ' + r.name + ' — 공유 목록에 들어감') : ((l.sel || []).map((s) => (s.emoji || '◆') + ' ' + s.name).join(' · ') || '고른 자원 없음') }; });
       const shares = all.map((it) => ({ label: (it.emoji || '◆') + ' ' + it.name, sub: (it.kind === 'share' ? '공유 · ' : '입력 ← ' + it.via + ' · ') + it.map + ' 맵' + (it.map === S.map ? ' (이 맵 — 여기선 내보낼 수 없다)' : ''), op: it.map === S.map ? 0.55 : 1 }));
@@ -2708,9 +2760,25 @@ export default class Component extends DCLogic {
           const opts = [{ v: '', label: '— 없음 (맨 위)' }].concat(Object.keys(this.NET).filter((k) => k !== name && this.isTree((this.NET[k] || {}).role)).sort().map((k) => ({ v: k, label: k })))
             .map((o) => Object.assign(o, { sel: o.v === (A.parent || '') }));
           return { name: A.name, opts, lock: ctl ? '' : '🔒 node.control 권한 없음', lockDisp: ctl ? 'none' : 'block', dis: !ctl, msg: A.msg, msgC: A.c, msgDisp: A.msg ? 'block' : 'none',
-            delLabel: A.arm ? '정말 삭제' : '🗑️ 노드 삭제', delBg: A.arm ? '#d33d52' : '#ffffff', delFg: A.arm ? '#ffffff' : '#d33d52', delDisp: me ? 'none' : 'inline-flex',
+            delLabel: A.arm ? '정말 삭제' : '🗑️ 노드 삭제', delBg: A.arm ? '#ff5d5d' : 'rgba(255,255,255,0.04)', delFg: A.arm ? '#111111' : '#ff5d5d', delDisp: me ? 'none' : 'inline-flex',
             setName: (e) => this.nodeAdmSet(name, { name: e.target.value }), setParent: (e) => this.nodeAdmSet(name, { parent: e.target.value }),
             save: () => { if (ctl) this.nodeAdmSave(name); }, del: () => { if (ctl) this.nodeAdmDel(name); } };
+        })(),
+        // 노드 등록 코드 (A-19): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드. tree 노드에서만
+        // 보인다 — 코드는 클러스터 것이고, 새 노드는 이 노드 밑에 붙는다
+        enr: (() => {
+          const E = this.nodeEnrFor(name), ctl = (P.has || []).indexOf('node.control') >= 0;
+          const tree = this.isTree((this.NET[name] || {}).role || net.role);
+          return { disp: tree ? 'flex' : 'none', lock: ctl ? '' : '🔒 node.control 권한 없음', lockDisp: ctl ? 'none' : 'block', dis: !ctl || !!E.busy,
+            label: E.label || '', ttls: [['900', '15분'], ['300', '5분'], ['3600', '1시간']].map(([v, t]) => ({ v, t, sel: v === (E.ttl || '900') })),
+            code: E.code || '', codeDisp: E.code ? 'flex' : 'none', addr: E.addr || '', addrDisp: E.code && E.addr ? 'block' : 'none',
+            msg: E.msg || '', msgC: E.c || '#8b95a6', msgDisp: E.msg ? 'block' : 'none',
+            goLabel: E.busy ? '발급 중…' : '＋ 등록 코드 발급',
+            rows: (E.list || []).map((x) => Object.assign({}, x, { armed: E.arm === x.id, delLabel: E.arm === x.id ? '정말 폐기' : '폐기',
+              delDisp: x.status === 'active' ? 'inline-flex' : 'none', revoke: () => { if (ctl) this.nodeEnrRevoke(name, x.id); } })),
+            rowsNone: (E.list || []).length ? 'none' : 'block',
+            setLabel: (e) => this.nodeEnrSet(name, { label: e.target.value }), setTtl: (e) => this.nodeEnrSet(name, { ttl: e.target.value }),
+            issue: () => { if (ctl) this.nodeEnrIssue(name); }, copy: () => this.nodeEnrCopy(name), load: () => this.nodeEnrLoad(name) };
         })()
       });
     }
@@ -2732,15 +2800,15 @@ export default class Component extends DCLogic {
     const S = this.state, G = S.mgui;
     if (!G || !S.winOpen.mgui) return { on: false };
     const it = (this.hbItems(G.node, 'mod') || []).find((x) => x.id === G.id);
-    if (!it) return { on: true, name: G.id, node: G.node, url: '—', run: false, runDisp: 'none', stopDisp: 'flex', stopMsg: '모듈이 목록에 없다 (삭제됨)', state: '없음', sc: '#d33d52', stat: () => {} };
+    if (!it) return { on: true, name: G.id, node: G.node, url: '—', run: false, runDisp: 'none', stopDisp: 'flex', stopMsg: '모듈이 목록에 없다 (삭제됨)', state: '없음', sc: '#ff5d5d', stat: () => {} };
     const run = it.state === 'running' || it.state === 'degraded', url = it.ui || '/api/nodes/' + G.node + '/modules/' + it.id + '/ui/';
     const live = run && it.gui && !!it.live && !!it.ui;   // live = 실제 Gateway가 준 주소 (예시는 자리표시만)
     return { on: true, name: it.name, node: G.node, id: it.id, ver: it.ver, url, run, live, src: live ? url + (url.indexOf('?') < 0 ? '?' : '&') + 'k=' + (S.mguiKey || 0) : '', sandbox: this.mguiSandbox(it),
       hint: it.uiWindow ? '창 앱이다 — 모듈이 자기 창(별도 origin)으로 띄운다' : it.uiRemote && !live ? '다른 노드의 GUI 꾸러미가 아직 이 Gateway에 오지 않았다 (assetsAvailable = false)' : '모듈이 제공하는 화면이 이 창 안에 뜬다 (iframe)',
       iso: it.uiCross ? '앱 origin' : '격리 (불투명 origin)', runDisp: run && it.gui && !live ? 'flex' : 'none', stopDisp: run && it.gui ? 'none' : 'flex',
       stopMsg: !it.gui ? '이 모듈은 GUI를 제공하지 않는다 — 기능만 있다' : '모듈이 ' + (it.state === 'failed' ? '실패 상태' : '멈춰 있다') + ' — 시작해야 GUI가 뜬다',
-      state: { running: '실행 중', degraded: '저하', failed: '실패', stopped: '멈춤' }[it.state] || it.state, sc: run ? '#1f7a4d' : it.state === 'failed' ? '#d33d52' : '#5b6472',
-      stat: () => this.rstOpen({ kind: 'res', node: G.node, app: 'mod', id: it.id, name: it.name }), reload: () => { this.setState({ mguiKey: (S.mguiKey || 0) + 1 }); this.hbSay(it.name + ' GUI 다시 읽기', '#2563eb'); } };
+      state: { running: '실행 중', degraded: '저하', failed: '실패', stopped: '멈춤' }[it.state] || it.state, sc: run ? '#3ecf8e' : it.state === 'failed' ? '#ff5d5d' : '#9aa1ab',
+      stat: () => this.rstOpen({ kind: 'res', node: G.node, app: 'mod', id: it.id, name: it.name }), reload: () => { this.setState({ mguiKey: (S.mguiKey || 0) + 1 }); this.hbSay(it.name + ' GUI 다시 읽기', '#7aa7ff'); } };
   }
   formVals(where) {
     const F = this.state.hbForm; if (!F || F.where !== where) return { on: false };
@@ -2749,11 +2817,11 @@ export default class Component extends DCLogic {
       const v = F.vals[f.k];
       return { label: f.label, k: f.k, isText: f.type === 'text' || f.type === 'num' || f.type === 'secret', isSel: f.type === 'sel', isBool: f.type === 'bool', val: v == null ? '' : String(v), ph: f.ph || '',
         onIn: (e) => this.hbFormSet(f.k, e && e.target ? e.target.value : ''),
-        opts: (f.opts || []).map((o) => ({ label: o, bg: v === o ? '#16191f' : '#ffffff', fg: v === o ? '#ffffff' : '#16191f', line: v === o ? '#16191f' : '#d8dde5', pick: () => this.hbFormSet(f.k, o) })),
-        boolLabel: v ? '예' : '아니오', boolBg: v ? '#1f7a4d' : '#eef1f5', boolFg: v ? '#ffffff' : '#5b6472', flip: () => this.hbFormSet(f.k, !v) };
+        opts: (f.opts || []).map((o) => ({ label: o, bg: v === o ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: v === o ? '#111111' : '#ede9e1', line: v === o ? '#ede9e1' : 'rgba(255,255,255,0.18)', pick: () => this.hbFormSet(f.k, o) })),
+        boolLabel: v ? '예' : '아니오', boolBg: v ? '#3ecf8e' : 'rgba(255,255,255,0.06)', boolFg: v ? '#111111' : '#9aa1ab', flip: () => this.hbFormSet(f.k, !v) };
     });
     const api = F.mode === 'add' ? C.api.add : C.api.edit;
-    return { on: true, title: (F.mode === 'add' ? '추가' : F.app === 'mod' && it && it.cfg ? '⚙ 설정' : '수정') + ' · ' + this.appName(F.app), sub: F.node + (it ? ' · ' + it.id : ' · 새 항목'), fields, api, apiC: /⚠/.test(api) ? '#a65f00' : '#1f7a4d', apiBg: /⚠/.test(api) ? '#fff8e6' : '#f0faf4',
+    return { on: true, title: (F.mode === 'add' ? '추가' : F.app === 'mod' && it && it.cfg ? '⚙ 설정' : '수정') + ' · ' + this.appName(F.app), sub: F.node + (it ? ' · ' + it.id : ' · 새 항목'), fields, api, apiC: /⚠/.test(api) ? '#f5b83d' : '#3ecf8e', apiBg: /⚠/.test(api) ? 'rgba(245,184,61,0.10)' : 'rgba(74,222,128,.10)',
       err: F.err || '', errDisp: F.err ? 'block' : 'none', save: () => this.hbFormSave(), cancel: () => this.setState({ hbForm: null }), saveLabel: F.mode === 'add' ? '추가' : '저장', stop: (e) => e.stopPropagation() };
   }
   // ───── 자원 공유 현황 그래프 (네트워크 창) ─────
@@ -2795,7 +2863,7 @@ export default class Component extends DCLogic {
     });
     const sel = S.netSel && NET[S.netSel] ? S.netSel : null;
     const touch = (e) => !sel || e.a.id === sel || e.b.id === sel || (e.a.t === 'r' && resMap[e.a.id] && resMap[e.a.id].o.node === sel) || (e.b.t === 'r' && resMap[e.b.id] && resMap[e.b.id].o.node === sel);
-    const COL = { share: '#1f9d55', out: '#2563eb', link: '#64748b' }, MK = { share: 'sg-ar-g', out: 'sg-ar-b', link: 'sg-ar-s' };
+    const COL = { share: '#1f9d55', out: '#7aa7ff', link: '#9aa1ab' }, MK = { share: 'sg-ar-g', out: 'sg-ar-b', link: 'sg-ar-s' };
     const at = (end) => (end.t === 'n' ? pos[end.id] : resMap[end.id]) || { x: cx, y: cy };
     const active = {};
     const eOut = Object.values(edges).map((e, i) => {
@@ -2818,13 +2886,13 @@ export default class Component extends DCLogic {
       const p = pos[n], role = NET[n].role || '', tree = this.isTree(role), off = NET[n].auth === 'offline' || NET[n].auth === 'password', act = !!active[n], sz = (tree ? 26 : 20) + (full ? 4 : 0);
       const showLabel = full || tree || act || n === sel || n === loc || n === here;
       return { name: n, x: p.x.toFixed(1), y: p.y.toFixed(1), logo: this.nodeLogo(role), sz, half: sz / 2, ly: (p.y + sz / 2 + 2).toFixed(1),
-        line: n === sel ? '#16191f' : n === here ? '#e0a100' : tree ? '#1e3a5f' : '#1f7a4d', bw: n === sel || n === here ? 2.6 : act ? 2 : 1.3, dash: off ? 'dashed' : 'solid', op: off ? 0.5 : sel && sel !== n && !act ? 0.55 : 1,
-        labelDisp: showLabel ? 'block' : 'none', lfw: act || n === sel ? 700 : 500, lc: act ? '#16191f' : '#5b6472',
+        line: n === sel ? '#ffd84d' : n === here ? '#f5b83d' : tree ? '#f0a63a' : '#5aa8ff', bw: n === sel || n === here ? 2.6 : act ? 2 : 1.3, dash: off ? 'dashed' : 'solid', op: off ? 0.5 : sel && sel !== n && !act ? 0.55 : 1,
+        labelDisp: showLabel ? 'block' : 'none', lfw: act || n === sel ? 700 : 500, lc: act ? '#ede9e1' : '#9aa1ab',
         badge: shareN[n] ? String(shareN[n]) : '', badgeDisp: shareN[n] ? 'flex' : 'none',
         tip: n + ' · ' + role + (n === loc ? ' · 로컬' : '') + (n === here ? ' · 지금 맵' : '') + (off ? ' · ' + (NET[n].auth === 'offline' ? '오프라인' : '로그인 필요') : '') + (shareN[n] ? ' · 들어온 공유 ' + shareN[n] : ''),
         pick: () => this.setState({ netSel: sel === n ? null : n }) };
     });
-    const res = Object.values(resMap).filter((r) => r.x != null).map((r) => ({ x: (r.x - 8).toFixed(1), y: (r.y - 8).toFixed(1), emoji: r.o.emoji || '◆', op: !sel || r.o.node === sel ? (r.n ? 1 : 0.6) : 0.25, line: r.n ? '#16191f' : '#c3cad5', tip: r.o.name + ' · ' + r.o.type + ' · ' + r.o.node + (r.n ? ' · 연결 ' + r.n : ' · 연결 없음') }));
+    const res = Object.values(resMap).filter((r) => r.x != null).map((r) => ({ x: (r.x - 8).toFixed(1), y: (r.y - 8).toFixed(1), emoji: r.o.emoji || '◆', op: !sel || r.o.node === sel ? (r.n ? 1 : 0.6) : 0.25, line: r.n ? '#ede9e1' : 'rgba(255,255,255,0.18)', tip: r.o.name + ' · ' + r.o.type + ' · ' + r.o.node + (r.n ? ' · 연결 ' + r.n : ' · 연결 없음') }));
     // 고른 노드의 정보
     let info = { on: false, name: '', role: '', logo: '', enterDisp: 'none', enter: () => {}, clear: () => {}, ins: [], insNone: 'none', outs: [], outsNone: 'none', own: [], ownNone: 'none' };
     if (sel) {
@@ -2861,15 +2929,15 @@ export default class Component extends DCLogic {
     if (this.state.hbBusy) return;
     const node = nodeArg || this.hbNode();
     // 되돌릴 수 없는 것(피어 회수)은 두 번 눌러야 한다
-    if (op === 'revoke' && app === 'wg' && this.state.hbArm !== id) { this.setState({ hbArm: id }); this.hbSay('한 번 더 누르면 회수 — 되돌릴 수 없다', '#d33d52'); return; }
+    if (op === 'revoke' && app === 'wg' && this.state.hbArm !== id) { this.setState({ hbArm: id }); this.hbSay('한 번 더 누르면 회수 — 되돌릴 수 없다', '#ff5d5d'); return; }
     if (app === 'folder' && op === 'open') { this.setState({ hbPath: id, hbArm: null }); return; }
     this.setState({ hbBusy: id || app, hbArm: null });
     clearTimeout(this._hbA);
     this._hbA = setTimeout(() => {
       const list = this.hbItems(node, app), d = list.find((x) => x.id === id) || {}, nm = d.name || d.cmd || d.id || '';
       const up = (patch) => list.map((x) => x.id === id ? Object.assign({}, x, patch) : x), drop = () => list.filter((x) => x.id !== id);
-      let next = list, say = '', c = '#1f7a4d';
-      const W = '#a65f00';
+      let next = list, say = '', c = '#3ecf8e';
+      const W = '#f5b83d';
       switch (app + ':' + op) {
         case 'io:approve': next = up({ approval: 'approved' }); say = nm + ' 승인 — 켜야 쓸 수 있다'; break;
         case 'io:enable': next = up({ enabled: true }); say = nm + ' 켜짐'; break;
@@ -2877,11 +2945,11 @@ export default class Component extends DCLogic {
         case 'io:deny': next = up({ approval: 'denied', enabled: false }); say = nm + ' 거부 — 꺼졌다'; c = W; break;
         case 'io:forget': next = drop(); say = nm + ' 잊음 — 다시 보이면 새 대기 장치'; c = W; break;
         case 'io:scan':
-          if (this.state.hbScanned === node) { say = '스캔 — 변화 없음'; c = '#5b6472'; break; }
+          if (this.state.hbScanned === node) { say = '스캔 — 변화 없음'; c = '#9aa1ab'; break; }
           next = [{ id: 'raw_bus-0403-6001-' + (node.length * 4099).toString(16).padStart(8, '0'), kind: 'raw_bus', name: 'FTDI 시리얼', presence: 'present', approval: 'pending', enabled: false, fresh: true }].concat(list);
-          this.setState({ hbScanned: node }); say = '스캔 — 새 장치 1 · 사라짐 0'; c = '#2563eb'; break;
-        case 'svi:open': next = up({ handle: 'svih_' + id.length.toString(16) + 'a3' }); say = nm + ' 핸들 열림 — 임대 2분, 흐르는 중'; c = '#2563eb'; break;
-        case 'svi:close': next = up({ handle: null }); say = nm + ' 핸들 닫음'; c = '#5b6472'; break;
+          this.setState({ hbScanned: node }); say = '스캔 — 새 장치 1 · 사라짐 0'; c = '#7aa7ff'; break;
+        case 'svi:open': next = up({ handle: 'svih_' + id.length.toString(16) + 'a3' }); say = nm + ' 핸들 열림 — 임대 2분, 흐르는 중'; c = '#7aa7ff'; break;
+        case 'svi:close': next = up({ handle: null }); say = nm + ' 핸들 닫음'; c = '#9aa1ab'; break;
         case 'decl:undeclare': next = up({ state: 'retired', what: '퇴역 원장', reason: null }); say = nm + ' 철회 — 핸들 · 바인딩이 닫혔다. 이름은 원장에 남는다'; c = W; break;
         case 'decl:redeclare': next = up({ state: 'applied', what: '같은 내용으로 다시 선언 (reuse_name)' }); say = nm + ' 다시 선언 — revision +1'; break;
         case 'decl:forget': next = drop(); say = nm + ' 잊음 — 이름이 풀렸다'; c = W; break;
@@ -2893,29 +2961,29 @@ export default class Component extends DCLogic {
         case 'folder:get': {
           const xs = this.hbItems(node, 'xfer');
           this.hbPut(node, 'xfer', [{ id: 'tr-' + (xs.length + 42) + '-p', dir: 'pull', name: nm, total: parseFloat(d.size) || 1, off: 0, state: 'transferring', fresh: true }].concat(xs));
-          say = nm + ' 내려받기 시작 — 파일 전송에서 보인다'; c = '#2563eb'; this.setState({ hbBusy: null }); this.hbSay(say, c); return; }
+          say = nm + ' 내려받기 시작 — 파일 전송에서 보인다'; c = '#7aa7ff'; this.setState({ hbBusy: null }); this.hbSay(say, c); return; }
         case 'folder:del': next = list.filter((x) => x.id !== id && x.parent.indexOf(id + '/') !== 0 && x.parent !== id); say = nm + ' 지움'; c = W; break;
         case 'folder:mkdir': { const p = this.state.hbPath, k = list.filter((x) => x.parent === p && /^새 폴더/.test(x.name)).length + 1, nmk = '새 폴더' + (k > 1 ? ' ' + k : '');
           next = list.concat([{ id: p + '/' + nmk, parent: p, name: nmk, dir: true, info: '비어 있음', fresh: true }]); say = nmk + ' 만듦'; break; }
         case 'xfer:abort': next = up({ state: 'aborted', reason: '받은 부분은 남김 (keep_partial)' }); say = nm + ' 중단'; c = W; break;
-        case 'xfer:resume': next = up({ state: 'transferring', reason: null }); say = nm + ' ' + Math.round(d.off * 100) + '%부터 이어 보냄'; c = '#2563eb'; break;
-        case 'xfer:clear': next = drop(); say = nm + ' 치움'; c = '#5b6472'; break;
-        case 'xfer:push': next = [{ id: 'tr-' + (list.length + 42) + '-u', dir: 'push', name: 'upload-' + (list.length + 1) + '.dat', total: 24, off: 0, state: 'transferring', fresh: true }].concat(list); say = '올리기 준비 — prepared → 청크'; c = '#2563eb'; break;
+        case 'xfer:resume': next = up({ state: 'transferring', reason: null }); say = nm + ' ' + Math.round(d.off * 100) + '%부터 이어 보냄'; c = '#7aa7ff'; break;
+        case 'xfer:clear': next = drop(); say = nm + ' 치움'; c = '#9aa1ab'; break;
+        case 'xfer:push': next = [{ id: 'tr-' + (list.length + 42) + '-u', dir: 'push', name: 'upload-' + (list.length + 1) + '.dat', total: 24, off: 0, state: 'transferring', fresh: true }].concat(list); say = '올리기 준비 — prepared → 청크'; c = '#7aa7ff'; break;
         case 'tunnel:close': next = up({ state: 'draining' }); say = nm + ' 터널 닫는 중'; c = W;
           setTimeout(() => { const L2 = this.hbItems(node, 'tunnel'); this.hbPut(node, 'tunnel', L2.filter((x) => x.id !== id)); }, 900); break;
         case 'tunnel:del': next = drop(); say = nm + ' 선언 지움 — 60초 안에 리스너가 닫힌다'; c = W; break;
-        case 'tunnel:open': next = list.concat([{ id: 'tun-' + (list.length + 1) + 'x', type: 'tun', name: 'ssh → ' + (node === 'tree-home' ? 'nas-01' : 'tree-home'), to: (node === 'tree-home' ? 'nas-01' : 'tree-home') + ':22', bind: '127.0.0.1:0 → 41873', state: 'listening', conn: '0 / 16', fresh: true }]); say = '즉석 열기 — 저장되지 않는다(재시작하면 사라짐)'; c = '#2563eb'; break;
-        case 'wg:revoke': next = drop(); say = id + ' 피어 회수 — 되돌릴 수 없다'; c = '#d33d52'; break;
+        case 'tunnel:open': next = list.concat([{ id: 'tun-' + (list.length + 1) + 'x', type: 'tun', name: 'ssh → ' + (node === 'tree-home' ? 'nas-01' : 'tree-home'), to: (node === 'tree-home' ? 'nas-01' : 'tree-home') + ':22', bind: '127.0.0.1:0 → 41873', state: 'listening', conn: '0 / 16', fresh: true }]); say = '즉석 열기 — 저장되지 않는다(재시작하면 사라짐)'; c = '#7aa7ff'; break;
+        case 'wg:revoke': next = drop(); say = id + ' 피어 회수 — 되돌릴 수 없다'; c = '#ff5d5d'; break;
         case 'wg:sync': next = list.map((p) => p.health === 'never' ? p : Object.assign({}, p, { hs: '방금', health: 'healthy' })); say = '동기화 — 핸드셰이크 갱신'; break;
         case 'mod:start': next = up({ state: 'running', note: '방금 시작' }); say = nm + ' 시작'; break;
         case 'mod:stop': next = up({ state: 'stopped', note: '멈춤 — 기여한 SVI 자원은 unavailable' }); say = nm + ' 멈춤'; c = W; break;
         case 'mod:restart': next = up({ state: 'running', note: '재시작함' }); say = nm + ' 재시작 — 실행 중'; break;
-        case 'mod:log': this.hbShowOut(node, app, id, nm + ' 로그', d.note ? '[예시] ' + d.note : '(예시) 최근 로그 없음'); say = nm + ' 로그 — 상태 화면'; c = '#16191f'; break;
-        case 'mod:check': next = list.map((x) => x.state === 'degraded' ? Object.assign({}, x, { note: '방금 확인 — 아직 느림' }) : x); say = '상태 확인 — 실행 ' + list.filter((x) => x.state === 'running').length + ' · 저하 ' + list.filter((x) => x.state === 'degraded').length + ' · 실패 ' + list.filter((x) => x.state === 'failed').length; c = '#2563eb'; break;
+        case 'mod:log': this.hbShowOut(node, app, id, nm + ' 로그', d.note ? '[예시] ' + d.note : '(예시) 최근 로그 없음'); say = nm + ' 로그 — 상태 화면'; c = '#ede9e1'; break;
+        case 'mod:check': next = list.map((x) => x.state === 'degraded' ? Object.assign({}, x, { note: '방금 확인 — 아직 느림' }) : x); say = '상태 확인 — 실행 ' + list.filter((x) => x.state === 'running').length + ' · 저하 ' + list.filter((x) => x.state === 'degraded').length + ' · 실패 ' + list.filter((x) => x.state === 'failed').length; c = '#7aa7ff'; break;
         case 'job:cancel': next = up({ state: 'failed', code: null, out: 'canceled' }); say = id + ' 취소 — Master엔 failed로 남는다'; c = W; break;
-        case 'job:out': this.hbShowOut(node, app, id, (d.cmd || id) + ' 출력', [d.out || '(출력 없음)', d.code != null ? '— exit ' + d.code : ''].filter(Boolean).join('\n')); say = id + ' 출력 — 상태 화면'; c = '#16191f'; break;
-        case 'job:rerun': next = [{ id: 'job_' + (8816 + list.length), cmd: d.cmd, state: 'running', t: 0, fin: 3, fout: d.state === 'failed' ? '43 passed in 8.02s' : '완료', fresh: true }].concat(list); say = d.cmd + ' 다시 실행'; c = '#2563eb'; break;
-        case 'job:run': next = [{ id: 'job_' + (8816 + list.length), cmd: 'uptime', state: 'running', t: 0, fin: 2, fout: 'up 12 days, load 0.21', fresh: true }].concat(list); say = 'uptime 실행 — 202 접수'; c = '#2563eb'; break;
+        case 'job:out': this.hbShowOut(node, app, id, (d.cmd || id) + ' 출력', [d.out || '(출력 없음)', d.code != null ? '— exit ' + d.code : ''].filter(Boolean).join('\n')); say = id + ' 출력 — 상태 화면'; c = '#ede9e1'; break;
+        case 'job:rerun': next = [{ id: 'job_' + (8816 + list.length), cmd: d.cmd, state: 'running', t: 0, fin: 3, fout: d.state === 'failed' ? '43 passed in 8.02s' : '완료', fresh: true }].concat(list); say = d.cmd + ' 다시 실행'; c = '#7aa7ff'; break;
+        case 'job:run': next = [{ id: 'job_' + (8816 + list.length), cmd: 'uptime', state: 'running', t: 0, fin: 2, fout: 'up 12 days, load 0.21', fresh: true }].concat(list); say = 'uptime 실행 — 202 접수'; c = '#7aa7ff'; break;
         default: break;
       }
       if (next !== list) this.hbPut(node, app, next);
@@ -2930,16 +2998,16 @@ export default class Component extends DCLogic {
     const node = nodeArg || this.hbNode(), loc = node === S.localNode.name, P = this.hbPerm(node), has = (p) => P.has.indexOf(p) >= 0;
     const PN = { 'module.manage': '모듈 관리★', 'node.read': '읽기', 'node.control': '제어', 'node.config': '설정★', 'process.execute': '실행', 'process.cancel': '취소', 'file.read': '파일 읽기', 'file.write': '파일 쓰기' };
     // 배지 다섯 — 정상 · 진행 중 · 꺼짐·대기 · 문제 · 끝남
-    const BG = { ok: ['#e3f4ea', '#1f7a4d'], run: ['#e6efff', '#2563eb'], wait: ['#fbf0cc', '#a65f00'], off: ['#eef1f5', '#5b6472'], bad: ['#fde1e5', '#d33d52'], end: ['#f4f6f9', '#8b95a6'] };
+    const BG = { ok: ['rgba(62,207,142,0.12)', '#3ecf8e'], run: ['rgba(122,167,255,0.12)', '#7aa7ff'], wait: ['rgba(245,184,61,0.12)', '#f5b83d'], off: ['rgba(255,255,255,0.06)', '#9aa1ab'], bad: ['rgba(255,93,93,0.12)', '#ff5d5d'], end: ['rgba(255,255,255,0.03)', '#9aa1ab'] };
     const chip = (t, k) => ({ chip: t, cbg: BG[k][0], cfg: BG[k][1] });
     // 동작 버튼. need = 필요한 권한들, lock = 권한 말고 다른 이유로 잠김
     const B = (label, op, id, primary, need, lock) => {
       const miss = (need || []).filter((p) => !String(p).split('|').some(has)), why = lock || this.hbOpLock(px, op, node) || (miss.length ? miss.join(' · ') + ' 권한 없음' + (P.why ? ' — ' + P.why : '') : null);
-      return { label: why ? '🔒 ' + label : label, tip: why || label, go: why ? () => this.hbSay('🔒 ' + label + ' — ' + why, '#d33d52') : () => this.hbAct(px, id, op, node),
-        bg: why ? '#f4f6f9' : primary ? '#16191f' : '#ffffff', fg: why ? '#9aa3ae' : primary ? '#ffffff' : '#16191f', line: why ? '#e6e9ee' : primary ? '#16191f' : '#d8dde5' };
+      return { label: why ? '🔒 ' + label : label, tip: why || label, go: why ? () => this.hbSay('🔒 ' + label + ' — ' + why, '#ff5d5d') : () => this.hbAct(px, id, op, node),
+        bg: why ? 'rgba(255,255,255,0.03)' : primary ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: why ? '#6b7280' : primary ? '#111111' : '#ede9e1', line: why ? 'rgba(255,255,255,0.08)' : primary ? '#ede9e1' : 'rgba(255,255,255,0.18)' };
     };
     const card = (o, i) => Object.assign({ icon: IC.app[px], sub: '', meta: '', metaOn: !!o.meta, prog: 0, progOn: o.prog != null, acts: [], busy: S.hbBusy === o.id, op: 1, bstyle: 'solid',
-      bline: o.fresh ? '#2563eb' : '#e0e5ec', bg: o.fresh ? '#f3f7ff' : '#ffffff', delay: Math.min(i, 8) * 30, raw: '' }, o, { progOn: o.prog != null, metaOn: !!o.meta, prog: o.prog != null ? Math.round(o.prog * 100) : 0 });
+      bline: o.fresh ? '#7aa7ff' : 'rgba(255,255,255,0.10)', bg: o.fresh ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)', delay: Math.min(i, 8) * 30, raw: '' }, o, { progOn: o.prog != null, metaOn: !!o.meta, prog: o.prog != null ? Math.round(o.prog * 100) : 0 });
     const canSee = has(A.see), list = canSee ? this.hbItems(node, px) : [];
     let cards = [], sum = '', heads = [];
     const KL = { mouse: '마우스', keyboard: '키보드', camera: '카메라', microphone: '마이크', screen: '화면', raw_bus: '원시 버스' };
@@ -3023,7 +3091,7 @@ export default class Component extends DCLogic {
       heads = [B('+ 즉석 열기', 'open', null, false, CTL)];
     } else if (px === 'wg') {
       cards = list.map((d, i) => card(Object.assign({ id: d.id, name: d.id, sub: d.ip + ' · ' + d.ep, meta: '핸드셰이크 ' + d.hs, raw: 'allowed_ips ' + d.ip + '/32', icon: IC.app.wg,
-        acts: [B(S.hbArm === d.id ? '정말 회수' : '회수', 'revoke', d.id, S.hbArm === d.id, CTL)], bline: S.hbArm === d.id ? '#d33d52' : '#e0e5ec' },
+        acts: [B(S.hbArm === d.id ? '정말 회수' : '회수', 'revoke', d.id, S.hbArm === d.id, CTL)], bline: S.hbArm === d.id ? '#ff5d5d' : 'rgba(255,255,255,0.10)' },
         d.health === 'healthy' ? chip('정상', 'ok') : d.health === 'stale' ? chip('오래됨', 'wait') : chip('본 적 없음', 'off')), i));
       sum = 'wg0 · ' + (loc ? '100.80.0.3' : '100.80.0.' + (node.length + 2)) + ' · 피어 ' + list.length;
       heads = [B('⟳ 동기화', 'sync', null, false, CTL)];
@@ -3060,13 +3128,13 @@ export default class Component extends DCLogic {
       const res = { app: px, id: c.id, name: c.name, node, emoji: this.rsrcEmoji(px, it), type: r.name + (it.kind || it.fam ? ' · ' + (it.kind || it.fam) : '') };
       // 오른쪽 위 작은 단추: ⓘ 상태 화면 · 🖥 모듈 GUI · (창에서만) ✎ 수정 · 🗑 삭제
       const gui = px === 'mod' && !!it.gui, armDel = S.hbArm === 'del:' + c.id;
-      const tl = (ic, tip, go, hot, key) => ({ ic, tip, key, go: (e) => { if (e) e.stopPropagation(); go(); }, bg: hot ? '#d33d52' : '#ffffff', fg: hot ? '#ffffff' : '#16191f', line: hot ? '#d33d52' : '#d8dde5' });
+      const tl = (ic, tip, go, hot, key) => ({ ic, tip, key, go: (e) => { if (e) e.stopPropagation(); go(); }, bg: hot ? '#ff5d5d' : 'rgba(255,255,255,0.04)', fg: hot ? '#111111' : '#ede9e1', line: hot ? '#ff5d5d' : 'rgba(255,255,255,0.18)' });
       const stat = () => this.rstOpen({ kind: 'res', node, app: px, id: c.id, name: c.name });
       const tools = [tl('ⓘ', '상태 화면', stat, false, 'stat')].concat(gui ? [tl('🖥', 'GUI 열기', () => this.mguiOpen(node, c.id), false, 'gui')] : [])
         .concat(fs ? [tl('✎', '수정', () => this.hbFormOpen(px, 'edit', c.id, node, 'fs'), false, 'edit'), tl(armDel ? '!' : '🗑', armDel ? '한 번 더 누르면 삭제' : '삭제', () => this.hbDel(px, c.id, node), armDel, 'del')] : []);
       return Object.assign({}, c, { tools, toolsPad: tools.length * 24, stat: (e) => { if (this.justDragged) return; const t = e && e.target; if (t && t.closest && t.closest('button')) return; stat(); }, grab: (e) => this.resDragStart(e, res), acts: (c.acts || []).concat([{ label: picking ? '📍 고르는 중' : at ? '📍 ' + at : '📍 설치', tip: at ? '설치된 필드 ' + at + ' — 다시 누르면 다른 필드로 옮긴다' : '이 자원을 맵의 필드에 설치한다 — 누른 뒤 필드를 고른다',
         go: () => this.placeStart({ app: px, id: c.id, name: c.name, node, emoji: this.rsrcEmoji(px, it), type: r.name + (it.kind || it.fam ? ' · ' + (it.kind || it.fam) : '') }),
-        bg: picking ? '#ffd84d' : at ? '#fff8db' : '#ffffff', fg: '#7a4f00', line: picking || at ? '#e8c34a' : '#efd27a' }]) });
+        bg: picking ? '#ffd84d' : at ? 'rgba(255,216,77,0.14)' : 'rgba(255,255,255,0.04)', fg: picking ? '#111111' : '#ffd84d', line: picking || at ? '#ffd84d' : 'rgba(255,216,77,0.45)' }]) });
     });
     // 창(전체 화면)에서는 + 추가 — 폼이 오른쪽에서 열린다
     const CR = this.HBCRUD()[px];
@@ -3075,25 +3143,25 @@ export default class Component extends DCLogic {
     let diag = null;
     if (fs && px === 'svi' && canSee) {
       const view = (S.hbView || {}).svi || 'diag', isD = view === 'diag';
-      heads = [{ label: isD ? '▦ 카드로' : '🕸️ 흐름도로', tip: isD ? '카드 목록으로 보기' : '흐름도로 보기', go: () => this.setState({ hbView: Object.assign({}, S.hbView || {}, { svi: isD ? 'card' : 'diag' }) }), bg: '#ffffff', fg: '#16191f', line: '#d8dde5' }].concat(heads);
+      heads = [{ label: isD ? '▦ 카드로' : '🕸️ 흐름도로', tip: isD ? '카드 목록으로 보기' : '흐름도로 보기', go: () => this.setState({ hbView: Object.assign({}, S.hbView || {}, { svi: isD ? 'card' : 'diag' }) }), bg: 'rgba(20,26,36,.72)', fg: '#e6edf5', line: 'rgba(255,255,255,.18)' }].concat(heads);
       if (isD) {
         const L = this.lay(), infoW = 320, W = Math.max(760, L.W - 44 - infoW - 14), sel = list.some((d) => d.id === S.sviSel) ? S.sviSel : (list.find((d) => d.handle) || list[0] || {}).id;
         const svd = this.sviDiagram(node, list, W, sel, false), it = list.find((d) => d.id === sel), c = cards.find((x) => x.id === sel);
         const f = it ? this.sviFlow(node, it) : null;
-        diag = { svd, infoW, sel: !!it, title: it ? it.name : '', sub: it ? it.kind + ' · ' + it.id : '', chip: c ? c.chip : '', cbg: c ? c.cbg : '#eef1f5', cfg: c ? c.cfg : '#5b6472', acts: c ? c.acts : [],
+        diag = { svd, infoW, sel: !!it, title: it ? it.name : '', sub: it ? it.kind + ' · ' + it.id : '', chip: c ? c.chip : '', cbg: c ? c.cbg : 'rgba(255,255,255,.08)', cfg: c ? c.cfg : '#8b95a6', acts: c ? c.acts : [],
           kv: it ? [['엔드포인트', f.eps.map((e) => e.id).join(' · ') || '—'], ['핸들', f.handles.length ? f.handles.map((h) => h.state).join(' · ') : '없음'], ['바인딩', f.binds.length ? f.binds.map((b) => b.to + ' (' + b.state + ')').join(' · ') : '없음'], ['허가', f.grants.length ? f.grants.map((g) => g.who + ' ' + g.ops + (g.alive ? '' : ' · 만료')).join(' / ') : it.grant === 'own' ? '소유자' : '없음']].map(([k, v]) => ({ k, v })) : [],
           stat: () => { if (it) this.rstOpen({ kind: 'res', node, app: 'svi', id: it.id, name: it.name }); }, flowLine: it && (S.sviFlow || {})[it.id] ? '● 흐르는 중 · ' + S.sviFlow[it.id].fps + ' fps — 꼬리 · 멈춤 · 저장은 상태 화면의 흐름 칸에서' : it && it.handle ? '핸들이 열려 있다 — 흐름 칸은 상태 화면에서' : '열린 핸들이 없다',
           legend: '━ 흐름(핸들 · 바인딩, 움직이면 흐르는 중) · ┅ 허가 · ─ 제공 · 자원을 누르면 오른쪽에 자세히' };
       }
     }
-    const perms = A.perms.map((p) => ({ label: PN[p], tip: p + (has(p) ? ' 있음' : ' 없음'), mark: has(p) ? '✓' : '🔒', bg: has(p) ? '#e3f4ea' : '#fde1e5', fg: has(p) ? '#1f7a4d' : '#d33d52' }));
-    if (A.grant && canSee) { const g = loc ? list.length : list.filter((d) => d.grant).length; perms.push({ label: '허가 ' + g + '/' + list.length, tip: 'SVI 자원별 허가 — 자원마다 따로 본다', mark: '', bg: '#eef1f5', fg: '#5b6472' }); }
+    const perms = A.perms.map((p) => ({ label: PN[p], tip: p + (has(p) ? ' 있음' : ' 없음'), mark: has(p) ? '✓' : '🔒', bg: has(p) ? 'rgba(62,207,142,0.12)' : 'rgba(255,93,93,0.12)', fg: has(p) ? '#3ecf8e' : '#ff5d5d' }));
+    if (A.grant && canSee) { const g = loc ? list.length : list.filter((d) => d.grant).length; perms.push({ label: '허가 ' + g + '/' + list.length, tip: 'SVI 자원별 허가 — 자원마다 따로 본다', mark: '', bg: 'rgba(255,255,255,0.06)', fg: '#9aa1ab' }); }
     return {
       on: true, app: px, name: r.name, sub: r.sub, logo: IC.app[px] || '', node, role: P.role, roleC: P.rc, isLocal: loc, nodeTag: loc ? '로컬' : '원격',
       perms, cards, list: canSee && !diag, locked: !canSee, diagOn: !!diag, diag: diag || { svd: { boxes: [], edges: [], cols: [], W: 0, H: 0 }, acts: [], kv: [], ev: { items: [] } },
       lockMsg: '🔒 ' + node + '의 ' + r.name + '을(를) 볼 권한이 없다 — ' + A.see + ' 필요' + (P.why ? ' · ' + P.why : ''),
       msg: S.hbMsg ? S.hbMsg.t : canSee ? sum : '권한 없음',
-      msgC: S.hbMsg ? S.hbMsg.c : '#5b6472', heads, hasHeads: heads.length > 0,
+      msgC: S.hbMsg ? S.hbMsg.c : '#9aa1ab', heads, hasHeads: heads.length > 0,
       close: () => this.hbClose(), stop: (e) => e.stopPropagation(),
       fsGo: () => this.fsEnter('hb:' + px), fsExit: () => this.fsShrink('hb:' + px),
       wheel: (e) => { const row = document.querySelector('[data-hb-row]'); if (row) { row.scrollLeft += (e.deltaY || e.deltaX); } e.stopPropagation(); }
@@ -3122,6 +3190,19 @@ export default class Component extends DCLogic {
       ic.rows.forEach((row, j) => { for (let i = 0; i < 14; i++) { const ch = row[i]; if (ch !== '.') put(3 + i, oy + j, ic.pal[ch]); } });
       return c;
     };
+    // ver.2: 앱 로고 = 선 아이콘 타일 (정면 = 오프화이트 바탕 · 옆 = 어두운 유리). 픽셀 로고 PX는 쓰지 않는다
+    const LI = {"svi": "M12 12v9M8 21h8 M10 10a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z M7 5a7 7 0 0 0 0 10M17 5a7 7 0 0 1 0 10", "decl": "M6 3h9l3 3v15H6z M9 9h6M9 13h6M9 17h4", "grant": "M4 14a4 4 0 1 0 8 0a4 4 0 1 0 -8 0z M11 11l9-9M16 6l3 3M14 8l2 2", "io": "M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2z M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10", "folder": "M3 6h6l2 2h10v11H3z", "xfer": "M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7", "tunnel": "M4 20V11a8 8 0 0 1 16 0v9 M8 20v-8a4 4 0 0 1 8 0v8", "wg": "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z", "job": "M4 6l5 6-5 6M12 18h8", "mod": "M4 8h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4H4z"};
+    const lineTile = (k, on) => {
+      if (typeof document === 'undefined' || typeof Path2D === 'undefined') return null;
+      const c = document.createElement('canvas'); c.width = c.height = 128;
+      const q = c.getContext('2d'); q.scale(128 / 60, 128 / 60);
+      const rr = (x, y, w, h, r) => { q.beginPath(); q.moveTo(x + r, y); q.arcTo(x + w, y, x + w, y + h, r); q.arcTo(x + w, y + h, x, y + h, r); q.arcTo(x, y + h, x, y, r); q.arcTo(x, y, x + w, y, r); q.closePath(); };
+      rr(4, 4, 52, 52, 14); q.fillStyle = on ? '#ede9e1' : 'rgba(24,27,33,0.96)'; q.fill();
+      q.lineWidth = 1.2; q.strokeStyle = on ? '#ede9e1' : 'rgba(255,255,255,0.20)'; q.stroke();
+      q.save(); q.translate(30 - 13.2, 30 - 13.2); q.scale(1.1, 1.1); q.lineWidth = 1.8; q.lineCap = 'round'; q.lineJoin = 'round';
+      q.strokeStyle = on ? '#111111' : '#ede9e1'; q.stroke(new Path2D(LI[k])); q.restore();
+      return c;
+    };
     const RES = [
       { name: 'SVI 자원', sub: '공통 모델로 등록된 이 노드의 입출력 · 파일 · 소켓 · 장치', px: 'svi' },
       { name: '자원 선언', sub: '이 노드가 내놓을 SVI 자원의 정의 · 퇴역 원장', px: 'decl' },
@@ -3133,10 +3214,10 @@ export default class Component extends DCLogic {
       { name: 'WireGuard 피어', sub: '이 노드의 메시 연결', px: 'wg' },
       { name: '명령 · 작업', sub: '이 노드에서 돈 프로세스', px: 'job' },
       { name: '모듈', sub: '이 노드에 설치된 모듈 · 상태 · 시작 · 멈춤', px: 'mod' }
-    ].map((r) => Object.assign(r, { img: [0, 1].map((on) => pxTile(PX[r.px], on)) }));
+    ].map((r) => Object.assign(r, { img: [0, 1].map((on) => lineTile(r.px, on)) }));
     this._hxRes = RES;
     const STEP = 10, DRUM = 20, BT = 30, BH = 70, RD = 290, TILE = 52;   // 로고 띠 폭 ≈ 조타륜 폭(600) — 드럼 간격 20°라 한 번에 7~9개. 로고는 드럼을 따라 되풀이된다   // TILE = 픽셀 20칸 × 3
-    const C = '#1c2129', D = '#0f1216', L = '#4b5260', RED = '#8a2f22';   // 선은 검은색
+    const C = 'rgba(237,233,225,0.55)', D = '#ede9e1', L = 'rgba(237,233,225,0.22)', RED = '#ffd84d';   // ver.2: 어두운 도크 위 오프화이트 눈금 · 햇빛 바늘
     cv.width = W * DPR; cv.height = H * DPR;
     const g = cv.getContext('2d');
     // 눈금판은 네 겹(위에서부터): ① 바깥 고리 · 눈금  ② 숫자  ③ 점 고리  ④ 빗금 띠
@@ -3177,7 +3258,7 @@ export default class Component extends DCLogic {
       for (let d = Math.ceil((c - N) / 5) * 5; d <= c + N; d += 5) {
         const [x, y] = P(d, rN - fs * 0.95), cd = CARD[nm(d)];
         g.save(); g.translate(x, y); g.rotate(ang(d) + Math.PI / 2);
-        g.font = '700 ' + (cd ? fs * 1.35 : fs) + "px 'Cormorant Garamond', Georgia, serif"; g.fillStyle = cd ? D : C;
+        g.font = (cd ? '700 ' : '500 ') + (cd ? fs * 1.0 : fs * 0.74) + "px 'JetBrains Mono', ui-monospace, monospace"; g.fillStyle = cd ? (cd === 'N' ? RED : D) : C;
         g.fillText(cd || String(nm(d)), 0, 0); g.restore();
       }
       // ③ 점 고리
@@ -3199,11 +3280,12 @@ export default class Component extends DCLogic {
       const fade = g.createLinearGradient(0, 0, W, 0);
       fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(0.16, 'rgba(0,0,0,1)'); fade.addColorStop(0.84, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = fade; g.fillRect(0, 0, W, H);
+      { const bf = g.createLinearGradient(0, 0, 0, H); bf.addColorStop(0, 'rgba(0,0,0,1)'); bf.addColorStop(212 / H, 'rgba(0,0,0,1)'); bf.addColorStop(236 / H, 'rgba(0,0,0,0)'); bf.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = bf; g.fillRect(0, 0, W, H); }   // ver.2 도크: 테이블 대신 아래로 사라진다
       g.globalCompositeOperation = 'source-over';
       // 가운데 고정 바늘(① 과 함께) · 방위(④ 아래) — 올라올수록 또렷하게
       const top0 = cy0 - R;
       g.globalAlpha = cl(hx.s[1]);
-      g.strokeStyle = RED; g.lineWidth = 1.6; g.beginPath(); g.moveTo(CX, top0 - 14); g.lineTo(CX, top0 + 76); g.stroke();
+      g.strokeStyle = '#ffd84d'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(CX, top0 - 14); g.lineTo(CX, top0 + 24); g.stroke();
       g.fillStyle = RED; g.beginPath(); g.moveTo(CX - 7, top0 - 26); g.lineTo(CX + 7, top0 - 26); g.lineTo(CX, top0 - 12); g.closePath(); g.fill();
       const h = nm(-Math.round(hx.rot));
       // 가운데(정면) 로고의 자원 이름 — 방위는 작게 곁들인다
@@ -3233,7 +3315,7 @@ export default class Component extends DCLogic {
         lg.translate(x, y); lg.scale(sz, sz);
         // 픽셀 로고 (정면이면 밝은 타일). 픽셀이 번지지 않게 부드럽게 늘이기를 끈다
         const im = r.img[near > 0.5 ? 1 : 0];
-        if (im) { lg.imageSmoothingEnabled = false; lg.drawImage(im, -w / 2, -w / 2, w, w); }
+        if (im) { lg.imageSmoothingEnabled = true; lg.drawImage(im, -w / 2, -w / 2, w, w); }
         lg.restore();
       });
       lg.restore();
@@ -3822,7 +3904,7 @@ export default class Component extends DCLogic {
           });
           this._liftTs.push(setTimeout(() => {
             this.setState({ mt: null, sel: next.sel, tlNote: note || '' });
-            this.pushAlarm('◇', '#0f766e', name + ' 맵으로 이동' + (dir === 'down' ? ' (자식)' : dir === 'up' ? ' (부모)' : ''));
+            this.pushAlarm('◇', '#2dd4bf', name + ' 맵으로 이동' + (dir === 'down' ? ' (자식)' : dir === 'up' ? ' (부모)' : ''));
           }, Math.max(0, keys.length - 1) * STEP + RISE + 80));
         }, (keepN ? MOVE : 0) + IN);
       })));
@@ -3865,26 +3947,26 @@ export default class Component extends DCLogic {
   }
   // ───── 서브 창 · 서랍 ─────
   // 유틸 기능 로고 — 16×16 픽셀 (bld/ud_icons.py). 창에는 색을 칠하지 않고, 기능의 대표 색은 로고가 맡는다
-  UDLOGO() { return this._udLogo || (this._udLogo = {"memo": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVR4nGNgoBAwwhhikvL/idHw6vlDRmQ+CzLn6cNreDVLy2thiLGgCzR2z8equb40Ec6GuRbFNWKS8v9///qKF4tJyv8Xk5T//2GL03+YIUS5ANn2W7OVUeRQAhFfGEjLa8E1q6XehTufZBcga0YB+MIA3d/IAK8LkG1+3CmA1WskhQEDA2ZCYsKpAw3gMhzFC9hS2ggAAFdFd/Cf+COdAAAAAElFTkSuQmCC", "props": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAeElEQVR4nGNgwAHEJOX/I2Nc6nACkCbrpm9gTJQByDYha0Y3BKeLYJpgCrAZgKwGr5MJYZxeQjcEm2swNCOHNLpCGMBlMNgwXP5FBzgDlioGUOQFigORatGInpBk/W7ANYDYRCUk5OQK0oSMCSZlbAaiayYJEJudAV2EbHAK7wMNAAAAAElFTkSuQmCC", "alarm": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAZ0lEQVR4nGNgwAPEJOX/gzA+NXg1f93pBMYkGwKzGR0Trfm9SwQK3qxiBaYJGoJNM0mGwAz4f+EaTkMGsQHI/sdlAF5D8AUgQQOI1YzTEFwJhxBGMQCWbInF1HUBrlghOzOhuwyfGgA89i9gGzSPWgAAAABJRU5ErkJggg==", "map": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAbklEQVR4nGNgoBSIScr/pwSDDYg/uQ0Fg8RefP+MgdHVohigNbcLqwEwm5ANgKkl6AIQfdk2CIxhBuF0AbrJ6AbADEFWCzcA2fnYvEC0C3AFIrKL0MOKYCASHQukRCPOWEAPRJq5AMMAipLy0AcA+4jDQ6XIBTcAAAAASUVORK5CYII=", "bld": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdklEQVR4nGNgwAPEJOX/gzA+NXg1f6jSA2NkQ4gyFFkzuiEgunvqMtyGYNOMbAheA/BpRjYEqwHEaEZ3CVmaMQIWZhq5GMUVv989IArjDECYJDbDkMUJGlBz5ANWA2DiRLsAHxunAei2zjIRwvAS7QwgK/ooBQAN/3v3Rdcy7QAAAABJRU5ErkJggg==", "fld": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAeUlEQVR4nGNgQANikvL/8WF09Ria/Q5V4cU4DUHWrNcfhFUzTBzDEHw24zIMbggxNuMyEGwILtuJMQyrK0iyHT0c2u7OJwpjjQmQ4IosWzAGKYKxsYkRNIAQxmtAlZcGhgZ0MaJdgMswggZg00jQBTBDiMFYNQ8YAAAAjXWIzixPTgAAAABJRU5ErkJggg==", "mat": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAQ0lEQVR4nGNgoBSIScr/pwSDDVhW8wkrxicHk4cbUON7GwUjG4BNDsUAqnqBFC/BDSDkbHQDYOK08cJoLAxELAw4AACSmbLYH2lOhwAAAABJRU5ErkJggg==", "net": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAZklEQVR4nGNgwAHEJOX/I2Nc6nBqtlj2AgWTZAjMgJsf/lJmAAgzZy4k3QCYIRSFAbIhyGJEa0Y3gChD0BVgcz5OQ7D5GRsba5jgindkjDdd4Ip3dANwpgtC8U5UuiAU7xSli8ENAHq/spYrEEyrAAAAAElFTkSuQmCC", "edit": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAT0lEQVR4nGNgoDcQk5T/D8Nkaf6+4iQck2QIzFayDAApfOM/5T+yISRrhmGS/I+uGWbAcNf8+eZW8jQjGwAzhKyEAjOA5KSKnMbJSucDBgBglJjcsvLWrwAAAABJRU5ErkJggg==", "mod": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAUUlEQVR4nGNgoBUQk5T/j4xJ1vzpkAEKJskQsgxAdzKyIdjkiLIVF6aKARiGkGIATpeg+x0fPtQlQL5X8AYksQbQJhZA/iIG43U+sRjDgAEDAASaOUpfjfSKAAAAAElFTkSuQmCC", "user": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAR0lEQVR4nGNgoAUQk5T/jw0Trfn01YdYMUFD8GkmypBhYADFgYhsCFnRCFOYUtKNFeM1CJ9GbAaRrRmrIVQxgBxMVIzQHAAAB7830LHeNIwAAAAASUVORK5CYII=", "set": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAVElEQVR4nGNgoBYQk5T/D8NkaVbafB6MSTYAphmmkSoGkGQIuvPRDSTZEGRMsiHYDKI4VgafIWRHM0WuQTaEr2QCGJMd1TDNIJoil5AVqDBDkDUDAH5CmJ+UE6kYAAAAAElFTkSuQmCC"}); }
+  UDLOGO() { return this._udLogo || (this._udLogo = {"memo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik01IDNoMTBsNCA0djE0SDV6IE05IDEyaDZNOSAxNmg0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "props": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0zIDEyYTkgOSAwIDEgMCAxOCAwYTkgOSAwIDEgMCAtMTggMHogTTEyIDExdjZNMTIgNy41di4wMSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "alarm": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik02IDE3VjExYTYgNiAwIDAgMSAxMiAwdjZsMiAySDR6IE0xMCAyMWg0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "map": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0zIDZsNi0zIDYgMyA2LTN2MTVsLTYgMy02LTMtNiAzeiBNOSAzdjE1TTE1IDZ2MTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==", "bld": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0zIDExbDktNyA5IDd2MTBIM3ogTTEwIDIxdi02aDR2NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "fld": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik03IDRoMTBsNSA4LTUgOEg3bC01LTh6IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=", "mat": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0xMiAzbDggNC41djlMMTIgMjFsLTgtNC41di05eiBNMTIgMTJsOC00LjVNMTIgMTJ2OU0xMiAxMkw0IDcuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "net": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik05LjUgNWEyLjUgMi41IDAgMSAwIDUuMCAwYTIuNSAyLjUgMCAxIDAgLTUuMCAweiBNMi41IDE5YTIuNSAyLjUgMCAxIDAgNS4wIDBhMi41IDIuNSAwIDEgMCAtNS4wIDB6IE0xNi41IDE5YTIuNSAyLjUgMCAxIDAgNS4wIDBhMi41IDIuNSAwIDEgMCAtNS4wIDB6IE0xMiA3LjV2NE0xMiAxMS41TDYuNSAxN00xMiAxMS41bDUuNSA1LjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==", "edit": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDIwbDQtMSAxMS0xMS0zLTNMNSAxNnoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==", "mod": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDhoNGEyIDIgMCAxIDEgNCAwaDR2NGEyIDIgMCAxIDEgMCA0djRINHoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==", "user": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik04IDhhNCA0IDAgMSAwIDggMGE0IDQgMCAxIDAgLTggMHogTTQgMjFhOCA4IDAgMCAxIDE2IDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==", "set": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik05IDEyYTMgMyAwIDEgMCA2IDBhMyAzIDAgMSAwIC02IDB6IE0xMiAydjNNMTIgMTl2M00yIDEyaDNNMTkgMTJoM000LjkgNC45bDIuMSAyLjFNMTcgMTdsMi4xIDIuMU00LjkgMTkuMUw3IDE3TTE3IDdsMi4xLTIuMSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "rd": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik04IDNMNSAyMU0xNiAzbDMgMThNMTIgNHYzTTEyIDExdjNNMTIgMTh2MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "rcfg": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0xMiAyMXMtNi02LjItNi0xMWE2IDYgMCAwIDEgMTIgMGMwIDQuOC02IDExLTYgMTF6IE05LjggMTBhMi4yIDIuMiAwIDEgMCA0LjQgMGEyLjIgMi4yIDAgMSAwIC00LjQgMHoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==", "rst": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDIwVjEwTTEwIDIwVjRNMTYgMjB2LTdNMjIgMjBIMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+", "mgui": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik01IDRoMTRhMiAyIDAgMCAxIDIgMnY4YTIgMiAwIDAgMSAtMiAyaC0xNGEyIDIgMCAwIDEgLTIgLTJ2LThhMiAyIDAgMCAxIDIgLTJ6IE04IDIwaDhNMTIgMTZ2NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWRlOWUxIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+"}); }   // ver.2: 선 아이콘 (v2/design/icons.md)
   WDEF() {
     return {
       // color = 창 표식 · pa / pb = 서랍 카드 파스텔 · ink = 카드 글자
-      props: { title: '속성', emoji: '⚙️', color: '#2563eb', pa: '#dde8fd', pb: '#c9dafb', ink: '#1d4ed8' },
-      alarm: { title: '알림', emoji: '🔔', color: '#d33d52', pa: '#fde1e5', pb: '#f9cdd4', ink: '#a8243a' },
-      map: { title: '지도', emoji: '🗺️', color: '#0f766e', pa: '#d5f3ed', pb: '#c0ebe2', ink: '#115e59', rz: 'none' },   // 안이 고정 크기(숲 지도) — 창 크기도 고정
-      bld: { title: '건물 편집기', emoji: '🏗️', color: '#c2410c', pa: '#fde6d4', pb: '#fad5bb', ink: '#9a3412', href: 'building.html' },
-      fld: { title: '필드 편집기', emoji: '🟩', color: '#1f7a4d', pa: '#d8f2e2', pb: '#c3e9d1', ink: '#166534', href: 'field.html' },
-      rd: { title: '도로 편집기', emoji: '🛣️', color: '#57534e', pa: '#ece9e4', pb: '#ddd8d0', ink: '#44403c', href: 'road.html' },
-      mat: { title: '자재 편집기', emoji: '🧱', color: '#6d28d9', pa: '#e9e1fc', pb: '#dacefa', ink: '#5b21b6', href: 'material.html' },
-      net: { title: '네트워크', emoji: '🔗', color: '#0369a1', pa: '#d9eefb', pb: '#c4e3f7', ink: '#075985', href: 'network.html' },
-      edit: { title: '편집', emoji: '✏️', color: '#be185d', pa: '#fde2ef', pb: '#f9cde3', ink: '#9d174d' },
-      mod: { title: '모듈', emoji: '🧩', color: '#a16207', pa: '#fbf0cc', pb: '#f6e5ae', ink: '#854d0e' },
-      user: { title: '사용자', emoji: '👤', color: '#475569', pa: '#e7ebf0', pb: '#d9dfe7', ink: '#334155' },
-      memo: { title: '메모장', emoji: '📝', color: '#b45309', pa: '#fdf0d9', pb: '#fae3b8', ink: '#92400e' },
-      rcfg: { title: '자원 설정', emoji: '📍', color: '#b7791f', pa: '#fff4cc', pb: '#ffe9a3', ink: '#7a4f00' },
-      rst: { title: '상태', emoji: '📊', color: '#2563eb', pa: '#dde8fd', pb: '#c9dafb', ink: '#1d4ed8' },
-      mgui: { title: '모듈 GUI', emoji: '🖥️', color: '#7c3aed', pa: '#ede4fe', pb: '#dccdfc', ink: '#5b21b6' },
-      set: { title: '설정', emoji: '🛠️', color: '#0e7490', pa: '#d6f1f6', pb: '#bfe6ee', ink: '#155e75', href: 'settings.html' }
+      props: { title: '속성', emoji: '⚙️', color: '#628ff1', pa: 'rgba(98,143,241,0.16)', pb: 'rgba(98,143,241,0.34)', ink: '#a8c1f7' },
+      alarm: { title: '알림', emoji: '🔔', color: '#df7382', pa: 'rgba(223,115,130,0.16)', pb: 'rgba(223,115,130,0.34)', ink: '#edb1ba' },
+      map: { title: '지도', emoji: '🗺️', color: '#529c97', pa: 'rgba(82,156,151,0.16)', pb: 'rgba(82,156,151,0.34)', ink: '#9fc8c5', rz: 'none' },   // 안이 고정 크기(숲 지도) — 창 크기도 고정
+      bld: { title: '건물 편집기', emoji: '🏗️', color: '#d37650', pa: 'rgba(211,118,80,0.16)', pb: 'rgba(211,118,80,0.34)', ink: '#e7b39e', href: 'building.html' },
+      fld: { title: '필드 편집기', emoji: '🟩', color: '#5e9f7f', pa: 'rgba(94,159,127,0.16)', pb: 'rgba(94,159,127,0.34)', ink: '#a5cab8', href: 'field.html' },
+      rd: { title: '도로 편집기', emoji: '🛣️', color: '#868380', pa: 'rgba(134,131,128,0.16)', pb: 'rgba(134,131,128,0.34)', ink: '#bcbab8', href: 'road.html' },
+      mat: { title: '자재 편집기', emoji: '🧱', color: '#9664e4', pa: 'rgba(150,100,228,0.16)', pb: 'rgba(150,100,228,0.34)', ink: '#c5a9f0', href: 'material.html' },
+      net: { title: '네트워크', emoji: '🔗', color: '#4a93bb', pa: 'rgba(74,147,187,0.16)', pb: 'rgba(74,147,187,0.34)', ink: '#9ac3d9', href: 'network.html' },
+      edit: { title: '편집', emoji: '✏️', color: '#d0598a', pa: 'rgba(208,89,138,0.16)', pb: 'rgba(208,89,138,0.34)', ink: '#e5a3be' },
+      mod: { title: '모듈', emoji: '🧩', color: '#bb8e4c', pa: 'rgba(187,142,76,0.16)', pb: 'rgba(187,142,76,0.34)', ink: '#d9c09c' },
+      user: { title: '사용자', emoji: '👤', color: '#7b8593', pa: 'rgba(123,133,147,0.16)', pb: 'rgba(123,133,147,0.34)', ink: '#b5bbc3' },
+      memo: { title: '메모장', emoji: '📝', color: '#c9834e', pa: 'rgba(201,131,78,0.16)', pb: 'rgba(201,131,78,0.34)', ink: '#e1ba9d' },
+      rcfg: { title: '자원 설정', emoji: '📍', color: '#cb9f5e', pa: 'rgba(203,159,94,0.16)', pb: 'rgba(203,159,94,0.34)', ink: '#e2c9a5' },
+      rst: { title: '상태', emoji: '📊', color: '#628ff1', pa: 'rgba(98,143,241,0.16)', pb: 'rgba(98,143,241,0.34)', ink: '#a8c1f7' },
+      mgui: { title: '모듈 GUI', emoji: '🖥️', color: '#a171f2', pa: 'rgba(161,113,242,0.16)', pb: 'rgba(161,113,242,0.34)', ink: '#cbb0f8' },
+      set: { title: '설정', emoji: '🛠️', color: '#519baf', pa: 'rgba(81,155,175,0.16)', pb: 'rgba(81,155,175,0.34)', ink: '#9fc7d3', href: 'settings.html' }
     };
   }
   // 창 크기 정책: WDEF.rz = 'both'(기본) | 'x' | 'y' | 'none'(안이 고정 크기). 최소 · 최대는 WDEF.minW · minH · maxW · maxH로 바꾼다
@@ -3916,17 +3998,24 @@ export default class Component extends DCLogic {
   // 모서리 두 번 누르기: 원래 크기(높이는 내용에 맞춤)로
   winRzReset(id) { const W = this.state.wins[id], D = this._win0 && this._win0[id]; this.setState({ wins: Object.assign({}, this.state.wins, { [id]: Object.assign({}, W, { w: D ? D.w : W.w, h: null }) }) }); }
   // 서랍 구역 (필드 영역 좌표): 오른쪽 아래
-  drawerZone() { const L = this.lay(); return { x: L.W - 560, y: L.FH - 250, w: 560, h: 250 }; }
+  // ver.2 보관 영역(창을 끌어 놓는 곳): 세션 띠 바로 밑의 작은 칸 — 세션 띠(전체 화면 리스트)와 겹치지 않는다
+  drawerZone() { const L = this.lay(); return { x: Math.round(L.W / 2 - 210), y: 14, w: 420, h: 110 }; }
+  dropHit(x, y) { const z = this.drawerZone(); return x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h; }
   // 서랍창 인식 범위: 오른쪽 아래 구석, 화면 가로 · 세로의 1/4 (카드 자리 drawerZone과 따로). 호버로 올라오기 · 끌어 넣기가 같이 쓴다
-  drawerHit() { const L = this.lay(); return { x: L.W - 1447 / 4, y: L.FH - 901 / 4, w: 1447 / 4, h: 901 / 4 }; }
-  inDrawer(x, y) { const z = this.drawerHit(); return x >= z.x && y >= z.y; }
+  // ver.2 서랍 인식: 1차 = 세션 띠 밑 ~ 명판(노드 이름 창) 밑면 높이까지(필드 y 8 ~ 42). 카드 위에 올려 펼친 동안은 펼친 카드 높이까지 유지
+  drawerHit() {
+    const L = this.lay(), n = Math.max(1, this.state.drawer.length), w = Math.min(L.W - 40, 168 + (n - 1) * 46 + 160);
+    const deep = !!this.state.drawerHover;
+    return { x: L.W / 2 - w / 2, y: 8, w, h: deep ? 250 : 88 - 8 };   // 1차 인식: 왼쪽 위 [노드·필드…] 창의 밑면(화면 y 132 = 필드 y 88)까지
+  }
+  inDrawer(x, y) { const z = this.drawerHit(); return x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h; }
   // ───── 폴더 보관함 (오버헤드 패널 오른쪽): 누르면 사이드 바가 상단 테이블 뒤에서 위 → 아래로 내려온다 ─────
   // 바로가기 셋: Terra 저장소(terra가 관리하는 폴더 · 읽기만) · 폴더 탐색기(권한 안의 로컬 최상위 루트 · 읽기만) · 메모장(만들기 · 고치기 · 지우기 · 탐색)
   // 읽기만인 곳의 파일은 로컬에서 지원하는 프로그램으로 연다. 세 곳 모두 로컬 OS 파일 관리자로 열 수 있다 (예시 — 실제로는 Daemon 열기 요청)
   FBMODES() { return {
-    repo: { name: 'Terra 저장소', root: 'terra://', rootLabel: 'Terra 저장소', desc: 'Terra가 관리하는 공유 폴더 · 백업 · 모듈 데이터', ro: true, os: '~/TerraShare', icon: '🗄️' },
-    local: { name: '폴더 탐색기', root: '/', rootLabel: '/', desc: '권한 안에서 들어갈 수 있는 로컬 최상위 루트', ro: true, os: '/', icon: '🧭' },
-    memo: { name: '메모장', root: '~/.terra/memos', rootLabel: 'memos', desc: '임시 메모 — 만들기 · 고치기 · 지우기 · 탐색', ro: false, os: '~/.terra/memos', icon: '📝' }
+    repo: { name: 'Terra 저장소', root: 'terra://', rootLabel: 'Terra 저장소', desc: 'Terra가 관리하는 공유 폴더 · 백업 · 모듈 데이터', ro: true, os: '~/TerraShare', icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDRoMTZhMSAxIDAgMCAxIDEgMXYzYTEgMSAwIDAgMSAtMSAxaC0xNmExIDEgMCAwIDEgLTEgLTF2LTNhMSAxIDAgMCAxIDEgLTF6IE01IDl2MTFoMTRWOU0xMCAxM2g0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=' },
+    local: { name: '폴더 탐색기', root: '/', rootLabel: '/', desc: '권한 안에서 들어갈 수 있는 로컬 최상위 루트', ro: true, os: '/', icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0zIDEyYTkgOSAwIDEgMCAxOCAwYTkgOSAwIDEgMCAtMTggMHogTTE1LjUgOC41bC0yIDUtNSAyIDItNXoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==' },
+    memo: { name: '메모장', root: '~/.terra/memos', rootLabel: 'memos', desc: '임시 메모 — 만들기 · 고치기 · 지우기 · 탐색', ro: false, os: '~/.terra/memos', icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik01IDNoMTBsNCA0djE0SDV6IE05IDEyaDZNOSAxNmg0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=' }
   }; }
   FBDATA() { return this._fbData || (this._fbData = {
     repo: [
@@ -3966,7 +4055,7 @@ export default class Component extends DCLogic {
     if (mode) { this.setState({ fb: { open: true, mode, path: '' }, fbMsg: null, fbArm: null }); return; }
     this.setState({ fb: Object.assign({}, F, { open: !F.open }), fbMsg: null, fbArm: null });
   }
-  fbSay(t, c) { clearTimeout(this._fbT); this.setState({ fbMsg: { t, c: c || '#1f7a4d' } }); this._fbT = setTimeout(() => this.setState({ fbMsg: null }), 3200); }
+  fbSay(t, c) { clearTimeout(this._fbT); this.setState({ fbMsg: { t, c: c || '#3ecf8e' } }); this._fbT = setTimeout(() => this.setState({ fbMsg: null }), 3200); }
   fbList(mode) { return mode === 'memo' ? this.state.memos : (this.FBDATA()[mode] || []); }
   // 확장자별 로컬 기본 프로그램 (예시). Linux는 xdg-open, Windows는 기본 앱, macOS는 open
   fbApp(name) {
@@ -3975,15 +4064,15 @@ export default class Component extends DCLogic {
   }
   fbOpenItem(d) {
     const F = this.state.fb;
-    if (d.lock) { this.fbSay('🔒 ' + d.name + ' — 권한 밖이라 들어갈 수 없다', '#d33d52'); return; }
+    if (d.lock) { this.fbSay('🔒 ' + d.name + ' — 권한 밖이라 들어갈 수 없다', '#ff5d5d'); return; }
     if (d.dir) { this.setState({ fb: Object.assign({}, F, { path: d.id }), fbArm: null }); return; }
     if (F.mode === 'memo') { this.memoOpen(d.id); return; }
-    this.fbSay(d.name + ' — 로컬 ' + this.fbApp(d.name) + '(으)로 연다 · 읽기 전용', '#2563eb');
+    this.fbSay(d.name + ' — 로컬 ' + this.fbApp(d.name) + '(으)로 연다 · 읽기 전용', '#7aa7ff');
   }
   fbOS() {
     const F = this.state.fb, M = this.FBMODES()[F.mode];
     const p = F.mode === 'local' ? '/' + F.path : F.mode === 'repo' ? (F.path ? '~/' + F.path : M.os) : M.os + (F.path ? '/' + F.path : '');
-    this.fbSay('파일 관리자로 ' + p + ' 열기 — Linux xdg-open · Windows 탐색기 · macOS Finder', '#2563eb');
+    this.fbSay('파일 관리자로 ' + p + ' 열기 — Linux xdg-open · Windows 탐색기 · macOS Finder', '#7aa7ff');
   }
   // ── 메모장: 파일 만들기 · 고치기 · 지우기 · 탐색. 쓰기는 메모장 기능칸(창)에서 ──
   memoNew(dir) {
@@ -4000,21 +4089,21 @@ export default class Component extends DCLogic {
     const S = this.state, D = S.memoDraft; if (!D) return;
     let name = (D.name || '').trim() || '이름 없음.md'; if (!/\.[a-z0-9]+$/i.test(name)) name += '.md';
     const id = (D.dir ? D.dir + '/' : '') + name, now = new Date(), t = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-    if (S.memos.some((x) => x.id === id && x.id !== S.memoCur)) { this.setState({ memoNote: { t: '같은 이름이 이미 있다 — ' + name, c: '#d33d52' } }); return; }
+    if (S.memos.some((x) => x.id === id && x.id !== S.memoCur)) { this.setState({ memoNote: { t: '같은 이름이 이미 있다 — ' + name, c: '#ff5d5d' } }); return; }
     const rest = S.memos.filter((x) => x.id !== S.memoCur);
     const item = { id, parent: D.dir, name, text: D.text, size: Math.max(1, Math.ceil((D.text || '').length * 3 / 1024)) + ' KB', info: '오늘 ' + t };
     const at = S.memos.findIndex((x) => x.id === S.memoCur);
     const memos = at >= 0 ? rest.slice(0, at).concat([item], rest.slice(at)) : rest.concat([item]);
-    this.setState({ memos, memoCur: id, memoDraft: Object.assign({}, D, { name, dirty: false }), memoNote: { t: (at >= 0 ? '저장함 · ' : '만듦 · ') + t, c: '#1f7a4d' } });
+    this.setState({ memos, memoCur: id, memoDraft: Object.assign({}, D, { name, dirty: false }), memoNote: { t: (at >= 0 ? '저장함 · ' : '만듦 · ') + t, c: '#3ecf8e' } });
   }
   memoDel(id) {
     const S = this.state;
-    if (S.fbArm !== id) { this.setState({ fbArm: id }); this.fbSay('한 번 더 누르면 지운다', '#d33d52'); return; }
+    if (S.fbArm !== id) { this.setState({ fbArm: id }); this.fbSay('한 번 더 누르면 지운다', '#ff5d5d'); return; }
     const gone = (x) => x.id === id || x.parent === id || x.parent.indexOf(id + '/') === 0;
     const d = S.memos.find((x) => x.id === id);
     this.setState({ memos: S.memos.filter((x) => !gone(x)), fbArm: null });
     if (S.memoCur && (S.memoCur === id || S.memoCur.indexOf(id + '/') === 0)) this.setState({ memoCur: null, memoDraft: Object.assign({}, S.memoDraft, { dirty: true }) });
-    this.fbSay((d ? d.name : id) + ' 지움', '#a65f00');
+    this.fbSay((d ? d.name : id) + ' 지움', '#f5b83d');
   }
   memoMkdir() {
     const S = this.state, base = S.fb.path, k = S.memos.filter((x) => x.parent === base && /^새 폴더/.test(x.name)).length + 1, nm = '새 폴더' + (k > 1 ? ' ' + k : '');
@@ -4024,21 +4113,21 @@ export default class Component extends DCLogic {
   fbVals() {
     const S = this.state, F = S.fb, M = this.FBMODES(), mode = F.mode, md = mode ? M[mode] : null;
     const memoN = S.memos.filter((x) => !x.dir).length;
-    const shortcuts = Object.keys(M).map((k) => ({ id: k, name: M[k].name, desc: M[k].desc, icon: M[k].icon, badge: M[k].ro ? '읽기만' : '쓰기', bc: M[k].ro ? '#5b6472' : '#1f7a4d', bbg: M[k].ro ? '#eef1f5' : '#e3f4ea',
+    const shortcuts = Object.keys(M).map((k) => ({ id: k, name: M[k].name, desc: M[k].desc, icon: M[k].icon, badge: M[k].ro ? '읽기만' : '쓰기', bc: M[k].ro ? '#9aa1ab' : '#3ecf8e', bbg: M[k].ro ? 'rgba(255,255,255,0.06)' : 'rgba(62,207,142,0.12)',
       go: () => this.setState({ fb: Object.assign({}, F, { mode: k, path: '' }), fbArm: null, fbMsg: null }) }));
     // 오른쪽 계기판 램프 (보관함 바로가기 셋)
     const LC = { repo: '#8ec5ff', local: '#ffc861', memo: '#7cf2b0' };
     const lamps = Object.keys(M).map((k) => { const on = F.open && mode === k; return { id: k, label: k === 'memo' ? '메모 ' + memoN : k === 'repo' ? '저장소' : '탐색기', tip: M[k].name + ' 열기',
-      fg: on ? LC[k] : '#7d8794', ts: on ? '0 0 4px ' + LC[k] : 'none', glow: on ? 'inset 0 0 8px rgba(255,255,255,0.12), 0 0 6px rgba(255,255,255,0.1)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+      icon: M[k].icon, bg: on ? 'rgba(255,255,255,0.10)' : 'transparent', fg: on ? '#ffd84d' : '#ede9e1', ts: on ? '0 0 4px ' + LC[k] : 'none', glow: on ? 'inset 0 0 8px rgba(255,255,255,0.12), 0 0 6px rgba(255,255,255,0.1)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
       go: (e) => { e.stopPropagation(); this.fbToggle(k); } }; });
     let rows = [], crumbs = [];
     if (mode) {
       const all = this.fbList(mode), path = F.path;
       rows = all.filter((x) => x.parent === path).sort((a, b) => (b.dir ? 1 : 0) - (a.dir ? 1 : 0) || a.name.localeCompare(b.name)).map((d) => {
         const ext = d.dir ? '' : (d.name.split('.').pop() || '').toLowerCase();
-        return { id: d.id, name: d.name, dir: !!d.dir, lock: !!d.lock, glyph: d.lock ? '🔒' : d.dir ? '📁' : { pdf: '📕', md: '📄', xlsx: '📊', jpg: '🖼️', png: '🖼️', json: '🧾', zst: '🗜️', gz: '🗜️', bin: '💾' }[ext] || '📄',
+        return { id: d.id, name: d.name, dir: !!d.dir, lock: !!d.lock, glyph: d.lock ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik03IDExaDEwYTIgMiAwIDAgMSAyIDJ2NmEyIDIgMCAwIDEgLTIgMmgtMTBhMiAyIDAgMCAxIC0yIC0ydi02YTIgMiAwIDAgMSAyIC0yeiBNOCAxMVY4YTQgNCAwIDAgMSA4IDB2MyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOWFhMWFiIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+' : d.dir ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0zIDZoNmwyIDJoMTB2MTFIM3oiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YwYTYzYSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==' : { pdf: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik02IDNoOWwzIDN2MTVINnogTTkgOWg2TTkgMTNoNk05IDE3aDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmNWQ1ZCIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==', md: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik02IDNoOWwzIDN2MTVINnogTTkgOWg2TTkgMTNoNk05IDE3aDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2VkZTllMSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==', xlsx: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDIwVjEwTTEwIDIwVjRNMTYgMjB2LTdNMjIgMjBIMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+', jpg: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0yIDEyczQtNyAxMC03IDEwIDcgMTAgNy00IDctMTAgN1MyIDEyIDIgMTJ6IE05IDEyYTMgMyAwIDEgMCA2IDBhMyAzIDAgMSAwIC02IDB6IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWE3ZmYiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=', png: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0yIDEyczQtNyAxMC03IDEwIDcgMTAgNy00IDctMTAgN1MyIDEyIDIgMTJ6IE05IDEyYTMgMyAwIDEgMCA2IDBhMyAzIDAgMSAwIC02IDB6IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWE3ZmYiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=', json: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik02IDNoOWwzIDN2MTVINnogTTkgOWg2TTkgMTNoNk05IDE3aDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1YjgzZCIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==', zst: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0zIDdsOS00IDkgNHYxMGwtOSA0LTktNHogTTMgN2w5IDQgOS00TTEyIDExdjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5YWExYWIiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=', gz: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik0zIDdsOS00IDkgNHYxMGwtOSA0LTktNHogTTMgN2w5IDQgOS00TTEyIDExdjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5YWExYWIiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=', bin: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik03IDZoMTBhMSAxIDAgMCAxIDEgMXYxMGExIDEgMCAwIDEgLTEgMWgtMTBhMSAxIDAgMCAxIC0xIC0xdi0xMGExIDEgMCAwIDEgMSAtMXogTTkgMnY0TTE1IDJ2NE05IDE4djRNMTUgMTh2NE0yIDloNE0yIDE1aDRNMTggOWg0TTE4IDE1aDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzlhYTFhYiIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==' }[ext] || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik02IDNoOWwzIDN2MTVINnogTTkgOWg2TTkgMTNoNk05IDE3aDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2I0YmFjMyIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
           sub: d.dir ? (d.info || '폴더') : (d.size ? d.size + ' · ' : '') + (d.info || ''), op: d.lock ? 0.5 : 1, cur: mode === 'memo' && S.winOpen.memo && S.memoCur === d.id,
-          bg: mode === 'memo' && S.memoCur === d.id ? '#f3f7ff' : 'transparent',
+          bg: mode === 'memo' && S.memoCur === d.id ? 'rgba(255,255,255,0.06)' : 'transparent',
           open: () => this.fbOpenItem(d), canDel: mode === 'memo', armed: S.fbArm === d.id,
           delLabel: S.fbArm === d.id ? '정말?' : '지우기', del: (e) => { e.stopPropagation(); this.memoDel(d.id); },
           act: d.dir ? (d.lock ? '권한 밖' : '열기') : mode === 'memo' ? '고치기' : this.fbApp(d.name) };
@@ -4048,10 +4137,10 @@ export default class Component extends DCLogic {
     }
     return {
       open: !!F.open, home: !mode, browse: !!mode, shortcuts, lamps, rows, empty: !!mode && rows.length === 0, crumbs,
-      title: md ? md.name : '폴더 보관함', icon: md ? md.icon : '🗄️', ro: !!(md && md.ro), rw: !!(md && !md.ro),
+      title: md ? md.name : '폴더 보관함', icon: md ? md.icon : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iLTMgLTMgMzAgMzAiPjxwYXRoIGQ9Ik00IDRoMTZhMSAxIDAgMCAxIDEgMXYzYTEgMSAwIDAgMSAtMSAxaC0xNmExIDEgMCAwIDEgLTEgLTF2LTNhMSAxIDAgMCAxIDEgLTF6IE01IDl2MTFoMTRWOU0xMCAxM2g0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlZGU5ZTEiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=', ro: !!(md && md.ro), rw: !!(md && !md.ro),
       note: md ? (md.ro ? '읽기 전용 — 파일은 로컬 프로그램으로 연다' : '만들기 · 고치기 · 지우기 — 쓰기는 메모장 칸에서') : '바로가기를 고르세요',
-      msg: S.fbMsg ? S.fbMsg.t : '', msgC: S.fbMsg ? S.fbMsg.c : '#5b6472', hasMsg: !!S.fbMsg,
-      podState: F.open ? '열림' : '닫힘', podChev: F.open ? '▴' : '▾', podLamp: F.open ? '#ffc861' : '#3b434e', podGlow: F.open ? '0 0 6px #f0b442' : 'none',
+      msg: S.fbMsg ? S.fbMsg.t : '', msgC: S.fbMsg ? S.fbMsg.c : '#9aa1ab', hasMsg: !!S.fbMsg,
+      podState: F.open ? '열림' : '닫힘', podChev: F.open ? '▴' : '▾', podLamp: F.open ? '#ffd84d' : 'rgba(255,255,255,0.22)', podGlow: F.open ? '0 0 0 3px rgba(255,216,77,0.18)' : 'none',
       toggle: (e) => { e.stopPropagation(); this.fbToggle(); }, close: () => this.setState({ fb: Object.assign({}, F, { open: false }) }),
       back: () => this.setState({ fb: Object.assign({}, F, F.path ? { path: F.path.indexOf('/') > 0 ? F.path.slice(0, F.path.lastIndexOf('/')) : '' } : { mode: null }), fbArm: null }),
       home2: () => this.setState({ fb: Object.assign({}, F, { mode: null, path: '' }), fbArm: null }),
@@ -4062,14 +4151,14 @@ export default class Component extends DCLogic {
     const S = this.state, D = S.memoDraft || { name: '', text: '', dir: '', dirty: false };
     return {
       name: D.name, text: D.text, path: String(this.FBMODES().memo.root || '~/.terra/memos').replace(/\/?$/, '/') + (D.dir ? D.dir + '/' : ''), isNew: !S.memoCur, state: !S.memoCur ? '새 메모 — 아직 저장 안 됨' : D.dirty ? '고침 — 저장 안 됨' : '저장됨',
-      stateC: D.dirty || !S.memoCur ? '#a65f00' : '#1f7a4d', note: S.memoNote ? S.memoNote.t : '', noteC: S.memoNote ? S.memoNote.c : '#5b6472',
+      stateC: D.dirty || !S.memoCur ? '#f5b83d' : '#3ecf8e', note: S.memoNote ? S.memoNote.t : '', noteC: S.memoNote ? S.memoNote.c : '#9aa1ab',
       onName: (e) => this.setState({ memoDraft: Object.assign({}, D, { name: e.target.value, dirty: true }), memoNote: null }),
       onText: (e) => this.setState({ memoDraft: Object.assign({}, D, { text: e.target.value, dirty: true }), memoNote: null }),
       save: () => this.memoSave(), fresh: () => this.memoNew(D.dir),
-      del: () => { if (S.memoCur) { this.memoDel(S.memoCur); if (S.fbArm === S.memoCur) this.setState({ memoNote: { t: '지움', c: '#a65f00' } }); else this.setState({ memoNote: { t: '한 번 더 누르면 지운다', c: '#d33d52' } }); } },
+      del: () => { if (S.memoCur) { this.memoDel(S.memoCur); if (S.fbArm === S.memoCur) this.setState({ memoNote: { t: '지움', c: '#f5b83d' } }); else this.setState({ memoNote: { t: '한 번 더 누르면 지운다', c: '#ff5d5d' } }); } },
       delLabel: S.memoCur && S.fbArm === S.memoCur ? '정말 지우기' : '지우기', canDel: !!S.memoCur,
       browse: () => this.fbToggle('memo'),
-      list: S.memos.filter((x) => !x.dir).map((m) => ({ id: m.id, name: m.id, on: m.id === S.memoCur, bg: m.id === S.memoCur ? '#16191f' : '#ffffff', fg: m.id === S.memoCur ? '#ffffff' : '#16191f', go: () => this.memoOpen(m.id) }))
+      list: S.memos.filter((x) => !x.dir).map((m) => ({ id: m.id, name: m.id, on: m.id === S.memoCur, bg: m.id === S.memoCur ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: m.id === S.memoCur ? '#111111' : '#ede9e1', go: () => this.memoOpen(m.id) }))
     };
   }
   // ───── 전체 화면: 창 하나가 오버헤드 패널 계기판 아래(필드 y 84)부터 화면 맨 아래까지 덮는다. 가운데 파인 곳으로 맵이 보이고, 누르면 맵으로 ─────
@@ -4089,6 +4178,7 @@ export default class Component extends DCLogic {
     const S = this.state, hist = S.fsHist.indexOf(id) >= 0 ? S.fsHist : S.fsHist.concat([id]);
     // 전체 화면 전의 화면을 적어 둔다 → 축소하면 그 화면으로 (다른 전체 화면 · 조타륜 막대 · 맵 위의 창)
     const prev = Object.assign({}, S.fsPrev || {}); if (S.fs !== id) prev[id] = { fs: S.fs || null, hb: S.hb || null, inHist: S.fsHist.indexOf(id) >= 0 && S.fs !== id && !S.winOpen[id] };
+    this.fsBarAuto();
     if (id.indexOf('hb:') === 0) {
       if (S.hb) this.hbClose();
       this.setState({ fs: id, fsList: false, fsHist: hist, fsPrev: prev, hbMsg: null, hbBusy: null, hbArm: null });
@@ -4108,13 +4198,17 @@ export default class Component extends DCLogic {
     const ok = (k) => !!k && k !== id && hist.indexOf(k) >= 0 && (k.indexOf('hb:') === 0 || !!S.winOpen[k]);
     const back = ok(p.fs) ? p.fs : null;
     this.setState({ fs: back, fsList: false, fsHist: hist, fsPrev: prev });
+    this.fsBarBack();
     if (!back && id.indexOf('hb:') === 0 && p.hb) this.hbOpen(p.hb);
     if (id.indexOf('hb:') !== 0 && S.winOpen[id]) this.winFront(id);
   }
   // 리스트에서 빼기: 창이면 닫는다(맵 화면에서 사라진 채 보관 중이었으므로), 조타륜 앱이면 리스트에서만 뺀다
   fsDrop(id) { if (this.state.fs === id) this.fsExit(); this.setState({ fsHist: this.state.fsHist.filter((k) => k !== id) }); if (id.indexOf('hb:') !== 0) this.closeWin(id); }
   fsName(id) { if (id.indexOf('hb:') === 0) { const r = (this._hxRes || []).find((x) => x.px === id.slice(3)); return r ? r.name : id; } return (this.WDEF()[id] || {}).title || id; }
-  fsExit() { this.setState({ fs: null, fsList: false }); }
+  fsExit() { this.setState({ fs: null, fsList: false }); this.fsBarBack(); }
+  // 전체 화면에 들어가면 상단바는 위로 올라가 있다 — 손잡이로 내리면 창 위로 덮여 내려온다(창은 줄지 않는다). 맵으로 나오면 원래대로
+  fsBarAuto() { if (!this.state.ovhHide && !this._ovRun && !this._fsAuto) { this._fsAuto = true; this.ovToggle(); } }
+  fsBarBack() { const go = () => { if (this._unmounted || this.state.fs || !this._fsAuto) return; if (this._ovRun) { setTimeout(go, 80); return; } this._fsAuto = false; if (this.state.ovhHide) this.ovToggle(); }; setTimeout(go, 0); }   // 올라가는 중이면 끝나길 기다렸다 내린다
   // 오버헤드 패널 창 목록에서 누름 (전체 화면 중이면 그 창을 전체 화면으로)
   ovWin(id) {
     const S = this.state, W = S.wins[id], front = S.winZ.filter((k) => S.winOpen[k]).slice(-1)[0];
@@ -4138,7 +4232,7 @@ export default class Component extends DCLogic {
   }
   // 서랍에 넣기: 창이 수직으로 화면 밖(아래)으로 내려간 뒤 → 서랍 카드가 아래에서 위로 올라온다
   storeWin(id, instant) {
-    if (this.state.fs === id) this.setState({ fs: null });
+    if (this.state.fs === id) { this.setState({ fs: null }); this.fsBarBack(); }
     const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
     const put = () => {
       this.setState({ winOpen: Object.assign({}, this.state.winOpen, { [id]: false }), drawer: this.state.drawer.filter((k) => k !== id).concat([id]), drawerHover: null, winDrop: null, cardRise: id });
@@ -4174,7 +4268,7 @@ export default class Component extends DCLogic {
       moved = true;
       const [x, y] = loc(ev);
       const back = mode !== 'pull' && this.udSlotHit(id, x, y);
-      this.setState({ wdrag: { id, mode, x: x - off[0], y: y - off[1], over: !back && this.inDrawer(x, y), back }, drawerNear: false });
+      this.setState({ wdrag: { id, mode, x: x - off[0], y: y - off[1], over: !back && this.dropHit(x, y), back }, drawerNear: false });
     };
     let done = false;
     const up = () => {
@@ -4218,7 +4312,7 @@ export default class Component extends DCLogic {
       if (id && out && phase !== 'pull') { phase = 'pull'; if (id) this.winFront(id); }
       if (phase === 'pull') {
         const back = this.udSlotHit(id, x, y);
-        this.setState({ wdrag: { id, mode: 'util', x: x - 84, y: y - 22, over: !back && this.inDrawer(x, y), back }, drawerNear: false });
+        this.setState({ wdrag: { id, mode: 'util', x: x - 84, y: y - 22, over: !back && this.dropHit(x, y), back }, drawerNear: false });
         return;
       }
       if (phase === 'idle' && Math.abs(y - y0) < 6) return;
@@ -4263,7 +4357,7 @@ export default class Component extends DCLogic {
     return { x, y };
   }
   closeWin(id) {
-    if (this.state.fs === id) this.setState({ fs: null });
+    if (this.state.fs === id) { this.setState({ fs: null }); this.fsBarBack(); }
     if (this.state.fsHist.indexOf(id) >= 0) this.setState({ fsHist: this.state.fsHist.filter((k) => k !== id) });   // 닫힌 창은 리스트에서도 빠진다
     if (id === 'alarm') this.setState({ alarmNew: 0 });
     this.setState({ winOpen: Object.assign({}, this.state.winOpen, { [id]: false }), drawer: this.state.drawer.filter((k) => k !== id), winZ: this.state.winZ.filter((k) => k !== id) });
@@ -4272,6 +4366,86 @@ export default class Component extends DCLogic {
   // 서랍 높이 한계 = 화면의 2/3 지점 (머리 40px 포함). CH = 기능칸 높이, LROW = 목록 한 줄
   // Q = 한 번에 내려오는 칸 수 (이 칸들이 한 줄로 이어져 cos 경향으로 내려오고, 나머지는 바닥에 완전히 겹쳐 있다가 순환)
   get MG_PILL() { return 247; }   // 관리 노드 창 접힌 너비 (이름 9자 기준)
+  // ver.2 인스펙터 값 — 칸 하나의 요약과 동작. 동작은 원래 기능(캡슐 메뉴 · 창)을 그대로 부른다
+  inspVals(selT, pill, RS) {
+    const S = this.state, k = S.sel;
+    const off = { tx: 340, op: 0, pe: 'none', cap: '선택', pos: '', key: '', vb: '0 0 1 1', href: '#tg-none', font: 'inherit', name: '', sub: '', isNode: false, stats: [], meters: [], hasRows: false, rows: [], acts: [], expand: () => {}, close: () => {} };
+    if (!k || !selT || S.place || S.conn || (S.mapTrans && S.mapTrans.phase)) return off;
+    const [c, r] = k.split('-').map(Number), pos = 'C' + c + '·R' + r;
+    const nd = selT.nd || this.nodeAt(k), o = RS[k], pl = (S.placed || {})[k], road = !!(pl && this.isRoad(pl.bid) && !pl.pv);
+    const bName = (bid) => { const b = (this.buildings || []).find((x) => x.id === bid); return b ? b.name : bid; };
+    const openW = (id) => { const W = S.wins[id]; if (!S.winOpen[id]) this.openWin(id, W.x, W.y); else this.winFront(id); };
+    const btn = (label, click, o2) => Object.assign({ label, click, down: () => {}, tip: '', bg: 'rgba(255,255,255,0.04)', fg: '#ede9e1', line: 'rgba(255,255,255,0.18)', op: 1, pe: 'auto' }, o2 || {});
+    const pri = { bg: '#ede9e1', fg: '#111111', line: '#ede9e1' }, dis = { op: 0.4, pe: 'none' };
+    const v = { tx: 0, op: 1, pe: 'auto', cap: '선택', pos, key: k, vb: Math.round(selT.px - 74) + ' ' + Math.round(selT.py - 150) + ' 148 190', href: '#tg-' + k, font: 'inherit',
+      expand: () => openW('props'), close: () => this.setState({ sel: null, pillOpen: null }), isNode: false, stats: [], meters: [], hasRows: false, rows: [], acts: [] };
+    const nLinks = (S.links || []).filter((l) => l.from === k || l.to === k || (l.path || []).indexOf(k) >= 0).length;
+    if (nd) {
+      const APPS = ['job', 'mod', 'svi', 'decl', 'grant', 'io', 'folder', 'xfer', 'tunnel', 'wg'];
+      let total = 0, bad = 0;
+      APPS.forEach((a) => { const L = this.hbItems(nd.name, a) || []; total += L.length; bad += L.filter((x) => /fail|unavail|denied|degraded|stale/.test(String(x.state || x.status || x.health || ''))).length; });
+      const kids = ((this.NET[nd.name] || {}).kids || []).length, ok = bad === 0;
+      const h = [...nd.name].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 11), m = (s2) => 8 + ((h >>> s2) % 72);
+      const look = (S.looks || {})[nd.name] || {};
+      Object.assign(v, { font: "'JetBrains Mono',ui-monospace,monospace", name: nd.name, sub: (look.bid ? bName(look.bid) + ' · ' : '') + (nd.parent ? '부모 필드' : (nd.role || '')), isNode: true,
+        stats: [[total, '자원'], [nLinks, '연결'], [kids, '자식']].map(([vv, kk]) => ({ v: String(vv), k: kk, c: '#ede9e1', font: "600 16px/1.3 'JetBrains Mono',ui-monospace,monospace", bg: 'rgba(255,255,255,0.05)' }))
+          .concat([{ v: ok ? '정상' : '저하', k: '상태', c: ok ? '#3ecf8e' : '#f5b83d', font: '700 13px/22px inherit', bg: ok ? 'rgba(62,207,142,0.12)' : 'rgba(245,184,61,0.12)' }]),
+        meters: [['CPU', m(0)], ['메모리', m(7) + 12], ['디스크', m(13) + 18]].map(([kk, vv]) => { vv = Math.min(96, vv); const w = vv > 80; return { k: kk, v: vv, w: vv, c: w ? '#f5b83d' : '#5aa8ff', tc: w ? '#f5b83d' : '#ede9e1' }; }),
+        acts: [
+          nd.parent ? btn('지금 맵', () => {}, Object.assign({ tip: '이 노드의 맵을 보고 있다' }, pri, dis)) : btn('들어가기', () => this.enterNode(nd), Object.assign({ tip: '두 번 누르기와 같다' }, pri)),
+          btn('연결하기', () => {}, { down: pill.connDown, tip: pill.connTip || '누른 채 끌어 놓기' }),
+          btn('상태 화면', () => pill.stat()),
+          btn('설정', () => openW('set')),
+        ] });
+      v.cap = '노드';
+    } else if (o) {
+      Object.assign(v, { cap: '노드 자원', name: o.name || o.id, sub: (o.type || o.app || '') + ' · ' + (o.node || ''), hasRows: true,
+        rows: [{ k: '원본 노드', v: o.node || '—' }, { k: '연결', v: String(nLinks) }, { k: '입출력', v: nLinks ? '연결됨' : '설치됨 · 모니터링 전용' }],
+        acts: [btn('상태 화면', () => pill.stat(), pri), btn('연결하기', () => {}, { down: pill.connDown, tip: pill.connTip }), btn('자원 설정', () => pill.open(), {}), btn('속성', () => openW('props'))] });
+    } else if (road) {
+      Object.assign(v, { cap: '도로', name: pill.name || '도로', sub: '합류 · 연결 ' + nLinks, hasRows: false,
+        acts: [btn('상태 화면', () => pill.stat(), pri), btn('도로 편집기', () => openW('rd')), btn('이 칸 걷기', () => pill.delCell()), btn('속성', () => openW('props'))] });
+    } else if (pl) {
+      Object.assign(v, { cap: '건물', name: bName(pl.bid), sub: '건물 · ' + ((pl.rot || 0) * 90) + '°', hasRows: true, rows: [{ k: '필드 스킨', v: String((S.mat || {})[k] || 'grass') }],
+        acts: [btn('편집', () => openW('edit'), pri), btn('건물 편집기', () => openW('bld')), btn('필드 편집기', () => openW('fld')), btn('속성', () => openW('props'))] });
+    } else if (selT.gndOnly) {
+      Object.assign(v, { cap: '그라운드', name: '그라운드', sub: String((S.gmat || {})[k] || 'meadow') + ' · 높이 0',
+        acts: [btn('편집', () => openW('edit'), pri), btn('필드 편집기', () => openW('fld')), btn('속성', () => openW('props'))] });
+    } else {
+      Object.assign(v, { cap: '필드', name: '빈 필드', sub: String((S.mat || {})[k] || 'grass') + ' 스킨',
+        acts: [btn('편집', () => openW('edit'), pri), btn('필드 편집기', () => openW('fld')), btn('건물 편집기', () => openW('bld')), btn('속성', () => openW('props'))] });
+    }
+    return v;
+  }
+  // ver.2 유틸 서랍(레일) 값
+  railVals() {
+    const S = this.state, UL = this.UDLOGO(), WD = this.WDEF(), UI = this.utilInfo();
+    const memoN = (S.memos || []).filter((m) => !m.dir).length;
+    const netS = UI.INFO && UI.INFO.net && UI.INFO.net.stats && UI.INFO.net.stats[0] ? String(UI.INFO.net.stats[0][0]) : '';
+    const BD = {
+      alarm: [S.notif.alarm, '#ff5d5d', '#ffffff'], memo: [memoN, '#ede9e1', '#111111'], net: [netS, '#f5b83d', '#111111'],
+      mod: [S.notif.mod, '#ff5d5d', '#ffffff'], user: [(S.pending || []).length, '#ede9e1', '#111111'],
+      bld: [S.notif.bld, '#ff5d5d', '#ffffff'],
+    };
+    const LBL = { props: '속성', edit: '편집', alarm: '알림', memo: '메모', net: '네트워크', set: '설정', bld: '건물', rd: '도로', fld: '필드', mat: '자재', mod: '모듈', user: '사용자', map: '지도' };
+    const open = (id) => { if (S.winOpen[id]) { this.winFront(id); return; } const c = this.centerSpot(id); this.openWin(id, c.x, c.y); };
+    const item = (id) => {
+      const b = BD[id] || [S.notif[id], '#ff5d5d', '#ffffff'], on = !!S.winOpen[id];
+      return { id, label: LBL[id] || (WD[id] || {}).title, logo: UL[id] || '', click: () => open(id),
+        badge: b[0] ? String(b[0]) : '', bdDisp: b[0] ? 'block' : 'none', bdBg: b[1], bdFg: b[2],
+        bg: on ? 'rgba(255,255,255,0.09)' : 'transparent', ring: on ? 'inset 0 0 0 1px rgba(255,255,255,0.18)' : 'none' };
+    };
+    const more = !!S.railMore;
+    const items = ['alarm', 'memo', 'net', 'mod', 'user', 'props', 'edit', 'bld', 'rd'].map(item);
+    items.push({ id: 'more', label: '더 보기', logo: 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="-3 -3 30 30"><path d="M5 12h.01M12 12h.01M19 12h.01" fill="none" stroke="#ede9e1" stroke-width="3" stroke-linecap="round"/></svg>'),
+      click: () => this.setState({ railMore: !more }), badge: '', bdDisp: 'none', bdBg: 'transparent', bdFg: 'transparent',
+      bg: more ? 'rgba(255,255,255,0.09)' : 'transparent', ring: more ? 'inset 0 0 0 1px rgba(255,255,255,0.18)' : 'none' });
+    return {
+      items, more: ['set', 'fld', 'mat', 'map'].map(item), moreRows: more ? '1fr' : '0fr', openAttr: more ? '1' : '0',
+      hint: more ? '아래로 접기' : '위로 펼치기', toggle: () => this.setState({ railMore: !more }),
+      z: 12,
+    };
+  }
   UD() { const L = this.lay(); return { W: 280, X: L.W - 30 - 280, SB: L.FH - 180 + 12, HC: Math.max(150, Math.min(500, L.FH - 300)), CH: 150, LROW: 40, Q: 5 }; }   // HC = 서랍 높이 한계(맵 제목 · 범례를 가리지 않게) · X · SB = 테이블 오른쪽 위(서랍 줄의 왼쪽 · 아래 끝), 위로 연다
   udSet(patch) { this.setState({ ud: Object.assign({}, this.state.ud, patch) }); }
   udListH() { const G = this.UD(); return Math.min(this.state.utilItems.length * G.LROW, G.HC); }
@@ -4444,7 +4618,7 @@ export default class Component extends DCLogic {
         }, 650);
       } else {
         this._navTree = null;
-        this.pushAlarm('■', '#d33d52', target.name + ' 로그인 실패');
+        this.pushAlarm('■', '#ff5d5d', target.name + ' 로그인 실패');
         this.setState({ auth: { phase: 'fail', target } });
         setTimeout(() => {
           this.flipTo(prev, 'cw', () => {
@@ -4582,25 +4756,25 @@ export default class Component extends DCLogic {
     const S = this.state;
     // 알림 수는 책갈피가 맡으므로 칩에는 넣지 않는다 (칩 = 기능의 상태)
     // 기능 칸 내용 (예시 — 연동 시 각 기능의 요약 값으로 바꾼다): sub = 한 줄 설명 · chip = 상태 · stats = 핵심 수치 3칸 [값, 이름, 색] · foot = 최근 한 줄
-    const OK = '#1f7a4d', WARN = '#a65f00', BAD = '#d33d52', INK = '#16191f', BLUE = '#2563eb';
+    const OK = '#3ecf8e', WARN = '#f5b83d', BAD = '#ff5d5d', INK = '#ede9e1', BLUE = '#7aa7ff';
     const selK = S.sel, selN = selK && S.nodes[selK], selSk = selK ? (this.FSK.find((x) => x.id === this.mapSkin(S, S.map, selK)) || {}).name : '';
     const fails = S.alarms.filter((a) => a.c === BAD).length;
     const INFO = {
       props: { sub: '선택한 타일 · 노드 살펴보기', chip: selK ? '선택됨' : '', tone: 'blue',
-        stats: [[selK ? 'C' + (+selK.split('-')[0] + 1) + '·R' + (+selK.split('-')[1] + 1) : '—', '타일', INK], [selSk || '—', '재질', INK], [selN ? selN.name : '—', '노드', selN ? '#7c3aed' : INK]],
+        stats: [[selK ? 'C' + (+selK.split('-')[0] + 1) + '·R' + (+selK.split('-')[1] + 1) : '—', '타일', INK], [selSk || '—', '재질', INK], [selN ? selN.name : '—', '노드', selN ? '#b69cff' : INK]],
         foot: ['◆', BLUE, selN ? selN.name + ' · ' + selN.role : '필드의 타일을 누르면 여기에 나타납니다'] },
       edit: { sub: '필드 · 건물 · 재질 · 노드 배치', chip: S.editMode ? '켜짐' : '꺼짐', tone: S.editMode ? 'ok' : 'off',
         stats: [[S.fields.length, '필드', INK], [Object.keys(S.nodes).length, '노드 칸', INK], [S.pending.length, '대기 노드', S.pending.length ? WARN : INK]],
-        foot: S.pending.length ? ['◇', BLUE, S.pending.map((n) => n.name).join(' · ') + ' — 칸 지정 대기'] : ['○', '#8b95a6', '대기 중인 새 노드 없음'] },
+        foot: S.pending.length ? ['◇', BLUE, S.pending.map((n) => n.name).join(' · ') + ' — 칸 지정 대기'] : ['○', '#9aa1ab', '대기 중인 새 노드 없음'] },
       alarm: { sub: '작업 완료 · 실패 · 새 노드', chip: fails ? '실패 ' + fails : '', tone: 'bad',
         stats: [[S.alarms.length, '전체', INK], [fails, '실패', fails ? BAD : INK], [S.alarms[0] ? S.alarms[0].t : '—', '최근', INK]],
-        foot: S.alarms[0] ? [S.alarms[0].g, S.alarms[0].c, S.alarms[0].m] : ['○', '#8b95a6', '알림 없음'] },
+        foot: S.alarms[0] ? [S.alarms[0].g, S.alarms[0].c, S.alarms[0].m] : ['○', '#9aa1ab', '알림 없음'] },
       net: { sub: 'mesh · 진단 · 터널 · WireGuard', chip: '일부 실패', tone: 'warn',
         stats: [['7/8', '배포 적용', WARN], ['2', '터널 세션', INK], ['2', 'desired≠observed', WARN]],
         foot: ['◐', WARN, 'gpu-02 배포 거절 · 폴링 10초 · 마지막 ' + S.netPolled] },
       bld: { sub: '노드 프사 · 필드 위 건물 설계', chip: '', tone: 'off',
         stats: [[this.buildings.length, '설계도', INK], [Object.values(S.looks).filter((l) => l.bid).length, '노드에 씀', INK], ['16³', '격자', INK]],
-        foot: ['✎', '#5b6472', this.buildings.map((b) => b.name).join(' · ')] },
+        foot: ['✎', '#9aa1ab', this.buildings.map((b) => b.name).join(' · ')] },
       rd: { sub: '건물 타입 · 도로 — 팔 · 합류 설계 (건물 편집기와 같은 3D 편집)', chip: '', tone: 'off',
         stats: [[this.roads.length, '설계', INK], [Object.values(S.placed || {}).filter((p) => this.isRoad(p.bid)).length, '놓인 도로', INK], ['1/6', '팔 범위', INK]],
         foot: ['⬡', '#57534e', this.roads.map((r) => r.name).join(' · ')] },
@@ -4623,10 +4797,10 @@ export default class Component extends DCLogic {
         stats: [['admin', '계정', INK], ['21:40', '만료', INK], ['3★', '잠긴 권한', WARN]],
         foot: ['★', WARN, 'node.config · module.manage · master.admin 잠김'] }
     };
-    const TONE = { ok: ['#e3f4ea', OK], bad: ['#fde1e5', BAD], blue: ['#dde8fd', BLUE], off: ['#eef1f5', '#5b6472'], warn: ['#fbf0cc', WARN] };
+    const TONE = { ok: ['rgba(62,207,142,0.12)', OK], bad: ['rgba(255,93,93,0.12)', BAD], blue: ['rgba(122,167,255,0.12)', BLUE], off: ['rgba(255,255,255,0.06)', '#9aa1ab'], warn: ['rgba(245,184,61,0.12)', WARN] };
     INFO.map = { sub: '노드 관계 지도', chip: '', tone: 'off',
-      stats: [[Object.keys(this.NET).filter((k) => this.isTree(this.NET[k].role)).length, 'tree', INK], [Object.keys(this.NET).length, '노드', INK], [S.map, '지금 맵', '#0f766e']],
-      foot: ['◇', '#0f766e', this.pathOf(S.map).join(' › ')] };
+      stats: [[Object.keys(this.NET).filter((k) => this.isTree(this.NET[k].role)).length, 'tree', INK], [Object.keys(this.NET).length, '노드', INK], [S.map, '지금 맵', '#2dd4bf']],
+      foot: ['◇', '#2dd4bf', this.pathOf(S.map).join(' › ')] };
     return { INFO, TONE, INK };
   }
   // ── 맵 보기: 이동(홀드 후 끌기) · 확대(스크롤) ──
@@ -4851,7 +5025,7 @@ export default class Component extends DCLogic {
         ...(() => {
           const over = !!(drag && drag.over === key && !(fdrag && fdrag.from === key)), pickable = !!(this.state.place && !gndOnly && !nd && !(this.state.rsrc || {})[key]);
           const dash = over || pickable;
-          return { ring: dash || (selected && gndOnly) ? 1 : 0, ringCls: dash ? 'tile-ring' : '', ringC: dash ? '#2563eb' : '#ffd84d', ringDash: dash ? '14 10' : 'none', ringFill: selected && gndOnly && !dash ? 'rgba(255,216,77,0.22)' : 'none' };
+          return { ring: dash || (selected && gndOnly) ? 1 : 0, ringCls: dash ? 'tile-ring' : '', ringC: dash ? '#7aa7ff' : '#ffd84d', ringDash: dash ? '14 10' : 'none', ringFill: selected && gndOnly && !dash ? 'rgba(255,216,77,0.22)' : 'none' };
         })(),
         sun: selected ? 'url(#sel-sun)' : 'none',
         op: fdrag && fdrag.from === key ? 0.3 : (fdrag && fdrag.kind === 'field' && fdrag.over === key && fdrag.over !== fdrag.from ? 0.3 : 1),
@@ -4900,7 +5074,7 @@ export default class Component extends DCLogic {
 
     // ── 노드 자원 표식 · 컴포넌트 상태 창 ──
     const RS = this.state.rsrc || {}, selT = tiles.find((t) => t.key === this.state.sel);
-    const STC = { ok: '#1f9d55', wait: '#e0a100', bad: '#d33d52', off: '#9aa3ae' };
+    const STC = { ok: '#1f9d55', wait: '#e0a100', bad: '#ff5d5d', off: '#6b7280' };
     const rsTone = (o) => {
       const it = (this.hbItems(o.node, o.app) || []).find((x) => x.id === o.id);
       if (!it) return STC.off;
@@ -4916,16 +5090,16 @@ export default class Component extends DCLogic {
         const pts = this.linkCells(l).map((k) => byKey.get(k)).filter(Boolean).map((t) => [Math.round(t.px), Math.round(t.py)]);
         if (pts.length < 2) return;
         const mid = pts[Math.floor((pts.length - 1) / 2)], nx = pts[Math.floor((pts.length - 1) / 2) + 1] || mid;
-        out.push({ key: l.id || 'l' + i, d: 'M' + pts.map((p) => p[0] + ' ' + p[1]).join(' L'), c: '#2563eb', fps: f.fps, lx: Math.round((mid[0] + nx[0]) / 2) - 30, ly: Math.round((mid[1] + nx[1]) / 2) - 30 });
+        out.push({ key: l.id || 'l' + i, d: 'M' + pts.map((p) => p[0] + ' ' + p[1]).join(' L'), c: '#60a5fa', fps: f.fps, lx: Math.round((mid[0] + nx[0]) / 2) - 30, ly: Math.round((mid[1] + nx[1]) / 2) - 30 });
       });
       return out;
     })();
     const rmarks = mt ? [] : tiles.filter((t) => RS[t.key] && !t.gndOnly && placed[t.key] && t.key !== this.state.sel).map((t) => ({
-      T: 'translate(' + t.px + ' ' + (t.py + (t.key === this.state.sel ? -12 : 0) + Math.min(0, t.biy || 0) + 4) + ')', emoji: RS[t.key].emoji, disc: '#e7eaef', dot: rsTone(RS[t.key])
+      T: 'translate(' + t.px + ' ' + (t.py + (t.key === this.state.sel ? -12 : 0) + Math.min(0, t.biy || 0) + 4) + ')', emoji: RS[t.key].emoji, disc: 'rgba(255,255,255,0.08)', dot: rsTone(RS[t.key])
     }));
     const pill = (() => {
-      const off = { stat: () => {}, roadDisp: 'none', delCell: () => {}, delRoute: () => {}, pe: 'none', op: 1, disp: 'none', T: 'translate(0 0)', x0: 0, w: 0, fw: 0, fh: 46, fy: -62, stemY: -20, logo: '', logoDisp: 'none', name: '', emoji: '', disc: '#e7eaef', efs: 16, dot: '#1f9d55', tip: '', k: '', bob: '',
-        sub: '', subDisp: 'none', caret: '', menuDisp: 'none', srcDisp: 'none', srcs: [], srcNoneDisp: 'none', connDown: () => {}, connTip: '', connBg: '#ffd84d', connFg: '#16191f', roadNext: () => {}, roadName: '', open: () => {}, openLabel: '', toggle: () => {} };
+      const off = { stat: () => {}, roadDisp: 'none', delCell: () => {}, delRoute: () => {}, pe: 'none', op: 1, disp: 'none', T: 'translate(0 0)', x0: 0, w: 0, fw: 0, fh: 46, fy: -62, stemY: -20, logo: '', logoDisp: 'none', name: '', emoji: '', disc: 'rgba(255,255,255,0.08)', efs: 16, dot: '#1f9d55', tip: '', k: '', bob: '',
+        sub: '', subDisp: 'none', caret: '', menuDisp: 'none', srcDisp: 'none', srcs: [], srcNoneDisp: 'none', connDown: () => {}, connTip: '', connBg: '#ffd84d', connFg: '#111111', roadNext: () => {}, roadName: '', open: () => {}, openLabel: '', toggle: () => {} };
       if (!selT || mt || this.state.place) return off;
       const k = selT.key, o = RS[k], nd = selT.nd || this.nodeAt(k), pl = placed[k], road = !!(pl && this.isRoad(pl.bid) && !pl.pv);
       if (!o && !nd && !road) return off;
@@ -4940,7 +5114,7 @@ export default class Component extends DCLogic {
       const srcKeys = road ? [...new Set(LK.filter((l) => (l.path || []).indexOf(k) >= 0 || l.start === k).map((l) => l.from))] : [];
       const src = road ? (srcKeys.indexOf(this.state.pillSrc) >= 0 ? this.state.pillSrc : srcKeys.length === 1 ? srcKeys[0] : null) : k;
       const lbl = (q) => this.cellLabel(q);
-      const srcs = srcKeys.map((q) => ({ label: lbl(q), bg: q === src ? '#ffd84d' : '#ffffff', fg: '#16191f', line: q === src ? '#16191f' : '#d8dde5', pick: (e) => { if (e) e.stopPropagation(); this.setState({ pillSrc: q }); } }));
+      const srcs = srcKeys.map((q) => ({ label: lbl(q), bg: q === src ? '#ffd84d' : 'rgba(255,255,255,0.05)', fg: q === src ? '#111111' : '#ede9e1', line: q === src ? '#ffd84d' : 'rgba(255,255,255,0.18)', pick: (e) => { if (e) e.stopPropagation(); this.setState({ pillSrc: q }); } }));
       const showSrc = open && road;
       // 높이: 건물 · 도로가 있으면 그 꼭대기 위로, 깃발이면 깃발 위로
       const ms = this.state.markStyle || 'flag', top = pl ? Math.min(0, selT.biy || 0) : (ms === 'flag' ? -66 : 0);
@@ -4948,14 +5122,14 @@ export default class Component extends DCLogic {
       const fh = 46 + (open ? 38 : 0) + (showSrc ? 36 : 0), fw = Math.max(w, open ? (road ? 560 : 360) : 0, showSrc ? 150 + srcKeys.length * 90 : 0) + 30;
       const rp = this.roads.find((r) => r.id === this.state.roadPick) || this.roads[0];
       const roadsOn = this.state.roadsOn !== false, canConn = roadsOn && (!road || !!src);
-      return { pe: CN ? 'none' : 'auto', op: CN ? 0.55 : 1, disp: 'inline', T: 'translate(' + selT.px + ' ' + (selT.py - 12) + ')', x0: -21, w, fw, fh, fy: stemY + 4 - fh, stemY, name, emoji, disc: '#e7eaef',
+      return { pe: CN ? 'none' : 'auto', op: CN ? 0.55 : 1, disp: 'inline', T: 'translate(' + selT.px + ' ' + (selT.py - 12) + ')', x0: -Math.round(fw / 2), w, fw, fh, fy: stemY + 4 - fh, stemY, name, emoji, disc: 'rgba(255,255,255,0.08)',
         logo: nd ? this.nodeLogo(nd.role) : '', logoDisp: nd ? 'block' : 'none', efs: two ? 12 : 17, dot: o ? rsTone(o) : '#1f9d55', k, bob: open || CN ? '' : 'pill-bob',
         sub, subDisp: sub ? 'inline' : 'none', caret: open ? '▴' : '▾', menuDisp: open ? 'flex' : 'none', srcDisp: showSrc ? 'flex' : 'none', srcs, srcNoneDisp: srcKeys.length ? 'none' : 'inline',
         tip: (o ? o.type + ' · ' + o.node : nd ? (nd.role || '') + ' 노드 — 공유 끝점' : '도로 합류') + ' — 로고: 상태 화면 · 이름: 연결 메뉴',
         stat: (e) => { if (e) e.stopPropagation(); if (o) this.rstOpen({ kind: 'res', node: o.node, app: o.app, id: o.id, name: o.name }); else if (nd) this.rstOpen({ kind: 'node', key: k }); else this.rstOpen({ kind: 'road', key: k }); },
         toggle: (e) => { if (e) e.stopPropagation(); this.setState({ pillOpen: open ? null : k }); },
         connTip: !roadsOn ? '도로 표시가 꺼져 있다 — 켜야 연결할 수 있다' : canConn ? '누른 채 끌어 연결할 노드 · 자원에 놓는다 — 누른 채 우클릭하면 그 칸을 반드시 거친다' : '먼저 이어진 자원을 고르세요',
-        connBg: canConn ? '#ffd84d' : '#5b6472', connFg: canConn ? '#16191f' : '#c6ced8',
+        connBg: canConn ? '#ffd84d' : 'rgba(255,255,255,0.08)', connFg: canConn ? '#111111' : '#6b7280',
         connDown: (e) => { if (e) { e.stopPropagation(); e.preventDefault(); } if (!canConn) { this.setState({ fieldNote: !roadsOn ? '도로 표시가 꺼져 있다 — 편집 창에서 도로 표시를 켜야 연결할 수 있다' : '합류에서 이을 자원을 먼저 고르세요' }); return; } this.connStart(src, k, selT.px, selT.py - 12); },
         roadName: rp.name, roadNext: (e) => { if (e) e.stopPropagation(); const i = this.roads.indexOf(rp); this.setState({ roadPick: this.roads[(i + 1) % this.roads.length].id }); },
         openLabel: o ? '자원 설정' : nd ? '속성' : '도로 편집기', roadDisp: road ? 'inline-block' : 'none',
@@ -4965,11 +5139,11 @@ export default class Component extends DCLogic {
     // 연결 끌기 표시: 경유지 번호 핀 · 대상 고리 · 길이 없을 때 빨간 점선
     const CNs = this.state.conn, tileAt = (q) => tiles.find((t) => t.key === q);
     const connMarks = !CNs ? [] : CNs.wps.map((q, i) => { const t = tileAt(q); return t ? { T: 'translate(' + t.px + ' ' + t.py + ')', c: '#e0a100', dash: 'none', n: i + 1, nDisp: 'block' } : null; }).filter(Boolean)
-      .concat(CNs.over && CNs.over !== CNs.start && tileAt(CNs.over) ? [{ T: 'translate(' + tileAt(CNs.over).px + ' ' + tileAt(CNs.over).py + ')', c: CNs.ok ? '#1f9d55' : '#d33d52', dash: CNs.ok ? 'none' : '6 4', n: '', nDisp: 'none' }] : []);
+      .concat(CNs.over && CNs.over !== CNs.start && tileAt(CNs.over) ? [{ T: 'translate(' + tileAt(CNs.over).px + ' ' + tileAt(CNs.over).py + ')', c: CNs.ok ? '#1f9d55' : '#ff5d5d', dash: CNs.ok ? 'none' : '6 4', n: '', nDisp: 'none' }] : []);
     const connLine = CNs && !CNs.ok && CNs.x != null && !(CNs.path && CNs.path.length) ? { x1: CNs.sx, y1: CNs.sy, x2: Math.round(CNs.x), y2: Math.round(CNs.y - 20), disp: 'inline' } : { x1: 0, y1: 0, x2: 0, y2: 0, disp: 'none' };
     const connBar = CNs ? (() => {
       const lb = (q) => (q ? this.cellLabel(q) : '—'), rp = this.roads.find((r) => r.id === this.state.roadPick) || this.roads[0];
-      return { on: true, from: lb(CNs.from) + (CNs.start !== CNs.from ? ' (합류 ' + this.cellName(CNs.start) + ')' : ''), to: CNs.ok ? lb(CNs.over) : '대상 고르기', toC: CNs.ok ? '#7ee2a8' : '#ffffff',
+      return { on: true, from: lb(CNs.from) + (CNs.start !== CNs.from ? ' (합류 ' + this.cellName(CNs.start) + ')' : ''), to: CNs.ok ? lb(CNs.over) : '대상 고르기', toC: CNs.ok ? '#3ecf8e' : '#ede9e1',
         nw: CNs.wps.length, len: (CNs.path || []).filter((q) => !(this.state.placed[q])).length, road: rp.name,
         msg: CNs.ok ? '놓으면 연결' : CNs.msg || '노드 · 자원(입력이면 합류 도로도) 위에서 놓기 — 누른 채 우클릭 = 경유지 · Backspace 경유 취소 · Esc 그만두기' };
     })() : { on: false };
@@ -5398,24 +5572,24 @@ export default class Component extends DCLogic {
       selHasB: !!(selKey && placed[selKey]),
       selEmpty: !!(selKey && !placed[selKey]),
       selNode: selKey && placed[selKey] ? '건물 · ' + bldOf(placed[selKey].bid).name + ' · 회전 ' + placed[selKey].rot + '/3' : '',
-      pendingNodes, rmarks, sviRoads, pill, placeBar, selRim, connMarks, connLine, connBar, route,
-      evOpts: [['real', '실제', '#16191f']].concat(this.evtCommon().map((e) => [e.id, e.name, e.c])).map(([id, label, c]) => { const on = (this.state.evView || 'real') === id;
-        return { id, label, c, on, bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', sh: on ? '0 1px 2px rgba(22,25,31,0.18)' : 'none', pick: () => this.setState({ evView: id }) }; }),
+      pendingNodes, rmarks, sviRoads, pill, placeBar, insp: this.inspVals(selT, pill, RS), selRim, connMarks, connLine, connBar, route,
+      evOpts: [['real', '실제', '#ede9e1']].concat(this.evtCommon().map((e) => [e.id, e.name, e.c])).map(([id, label, c]) => { const on = (this.state.evView || 'real') === id;
+        return { id, label, c, on, bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', sh: 'none', pick: () => this.setState({ evView: id }) }; }),
       roadSw: (() => { const on = this.state.roadsOn !== false, any = Object.values(this.state.placed || {}).some((p) => this.isRoad(p.bid));
-        return { on, label: on ? '켬' : '끔', bg: on ? '#16191f' : '#ffffff', fg: on ? '#ffffff' : '#5b6472', toggle: () => this.setState({ roadsOn: !on }),
-          chipDisp: any ? 'block' : 'none', chipBg: on ? 'rgba(255,255,255,0.95)' : '#16191f', chipFg: on ? '#16191f' : '#ffffff', line: on ? '#d8dde5' : '#16191f' }; })(),
+        return { on, label: on ? '켬' : '끔', bg: on ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: on ? '#111111' : '#9aa1ab', toggle: () => this.setState({ roadsOn: !on }),
+          chipDisp: any ? 'block' : 'none', chipBg: on ? 'rgba(13,15,19,0.82)' : 'rgba(255,216,77,0.14)', chipFg: on ? '#ede9e1' : '#ffd84d', line: on ? 'rgba(255,255,255,0.14)' : 'rgba(255,216,77,0.5)' }; })(),
       markOpts: [['flag', '🚩 깃발'], ['flat', '🍃 눕힌 로고'], ['none', '없음']].map(([id, label]) => { const on = (this.state.markStyle || 'flag') === id;
-        return { id, label, on, bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', sh: on ? '0 1px 2px rgba(22,25,31,0.18)' : 'none', pick: () => this.setState({ markStyle: id }) }; }),
+        return { id, label, on, bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', sh: 'none', pick: () => this.setState({ markStyle: id }) }; }),
       hasPending: pendingNodes.length > 0 && this.isTree((this.NET[this.state.map] || {}).role),
       editOffDisp: this.state.help || (pendingNodes.length > 0 && this.isTree((this.NET[this.state.map] || {}).role)) ? 'flex' : 'none',
       noPending: pendingNodes.length === 0,
       lay: this.lay(),
-      fsOn: !!this.state.fs, ovhZ: this.state.ovhHide || this.state.fsList || this.state.fb.open ? 80 : 8, fb: this.fbVals(), memo: this.memoVals(), rcfg: this.rcfgVals(),
+      fsOn: !!this.state.fs, hbGlassBg: 'rgba(13,15,19,' + (this.state.glassOff.hb ? 1 : this.state.winOp / 100) + ')', hbGlassOn: !this.state.glassOff.hb, hbGlassFg: this.state.glassOff.hb ? '#9aa1ab' : '#5aa8ff', hbGlassTip: this.state.glassOff.hb ? '반투명하게 — 뒤가 비친다' : '불투명하게', hbGlassToggle: () => this.setState({ glassOff: Object.assign({}, this.state.glassOff, { hb: !this.state.glassOff.hb }) }), fsMapBtn: (e) => { e.stopPropagation(); this.fsExit(); }, ovhZ: this.state.fs || this.state.ovhHide || this.state.fsList || this.state.fb.open ? 80 : 8, fb: this.fbVals(), memo: this.memoVals(), rcfg: this.rcfgVals(),
       sg: (() => {
-        const S = this.state, tab = S.netTab || 'graph', TB = (on) => ({ bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', sh: on ? '0 1px 3px rgba(22,25,31,0.14)' : 'none' });
+        const S = this.state, tab = S.netTab || 'graph', TB = (on) => ({ bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', sh: 'none' });
         const base = { on: false, tabG: TB(tab === 'graph'), tabB: TB(tab === 'board'), toGraph: () => this.setState({ netTab: 'graph' }), toBoard: () => this.setState({ netTab: 'board' }) };
         if (!(S.winOpen.net || S.fs === 'net') || tab !== 'graph') return base;
-        const full = S.fs === 'net', LW = this.lay(), W = Math.round(full ? LW.W - 400 : S.wins.net.w - 26), H = Math.round(full ? LW.FH - this.FS_TOP - 120 : S.wins.net.h ? Math.max(180, S.wins.net.h - 132) : 360);   // 창 크기를 따라간다
+        const full = S.fs === 'net', LW = this.lay(), W = Math.round(full ? LW.W - 400 : S.wins.net.w - 26), H = Math.round(full ? LW.FHx - this.FS_TOP - 120 : S.wins.net.h ? Math.max(180, S.wins.net.h - 132) : 360);   // 창 크기를 따라간다
         return Object.assign(base, { on: true, dir: full ? 'row' : 'column', infoW: full ? 330 : W }, this.shareGraph(W, H, full));
       })(),
       ovA: this.ovA(), rst: this.rstVals(), mgw: this.mguiVals(), fsForm: this.formVals('fs'), rsForm: this.formVals('rst'),
@@ -5436,6 +5610,10 @@ export default class Component extends DCLogic {
           lamp('TREE', isT, 'g', '노드 역할 tree'), lamp('LEAF', isL, 'g', '노드 역할 leaf'), lamp('건물', !!bid, 'w', '칸에 건물이 있다'),
           lamp('부모', !!(nd && nd.parent), 'a', '이 맵의 주인 노드'), lamp('자식', !!(nd && !nd.parent), 'a', '이 맵 주인의 자식 노드'), lamp('로컬', isLocal, 'b', '이 GUI가 도는 로컬 노드')
         ];
+        // ver.2 보기 · 거르기 띠: 탭(채움) | 토글(색 점) | 범위(꺼지면 취소선) — 판정은 위 램프와 같다
+        const lampsA = [['노드', kind === 'node', 0], ['필드', kind === 'field' || kind === 'node', 1], ['그라운드', kind === 'ground', 2]].map(([label, on0, i]) => { const on = on0 && !off; return { label, tip: lamps[i].tip, bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', fw: on ? 600 : 500 }; });
+        const lampsB = [['Tree', isT, '#f0a63a', 3], ['Leaf', isL, '#5aa8ff', 4], ['건물', !!bid, '#ede9e1', 5]].map(([label, on0, c, i]) => { const on = on0 && !off; return { label, tip: lamps[i].tip, fg: on ? c : '#6b7280', fw: on ? 600 : 500, dot: on ? c : 'rgba(255,255,255,0.16)', glow: on ? '0 0 0 3px ' + c + '33' : 'none' }; });
+        const lampsC = [['↑ 부모', !!(nd && nd.parent), '#ffd84d', 6], ['자식', !!(nd && !nd.parent), '#ffd84d', 7], ['로컬', isLocal, '#5aa8ff', 8]].map(([label, on0, c, i]) => { const on = on0 && !off; return { label, tip: lamps[i].tip, bg: 'transparent', fg: on ? c : '#6b7280', fw: on ? 600 : 500, deco: on ? 'none' : 'line-through' }; });
         const pos = sel ? 'C' + (sel.c + 1) + ' · R' + (sel.r + 1) : '';
         const head = kind === 'node' ? '노드 · ' + pos : kind === 'field' ? '필드 · ' + pos : kind === 'ground' ? '그라운드 · ' + pos : '선택 없음';
         const name = nd ? nd.name : kind === 'field' ? byId(matOf(selKey)).name : kind === 'ground' ? gById(gmatOf(selKey)).name : '—';
@@ -5459,14 +5637,14 @@ export default class Component extends DCLogic {
         const UL = this.UDLOGO(), IC = this.HBICON(), cur = S.fs;
         const fsl = S.fsHist.map((id) => {
           const hb = id.indexOf('hb:') === 0, on = id === cur;
-          return { id, label: this.fsName(id), logo: hb ? IC.app[id.slice(3)] : UL[id] || '', tick: hb ? '#1e3a5f' : D[id].color,
-            bg: on ? '#16191f' : '#f7f8f6', fg: on ? '#ffffff' : '#16191f', line: on ? '#16191f' : '#d8dde5', tip: on ? '지금 화면' : this.fsName(id) + ' 전체 화면으로',
+          return { id, label: this.fsName(id), logo: hb ? IC.app[id.slice(3)] : UL[id] || '', tick: hb ? '#f0a63a' : D[id].color,
+            bg: on ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: on ? '#111111' : '#ede9e1', line: on ? '#ede9e1' : 'rgba(255,255,255,0.18)', tip: on ? '지금 화면' : this.fsName(id) + ' 전체 화면으로',
             go: () => this.fsEnter(id), drop: (e) => { e.stopPropagation(); this.fsDrop(id); } };
         });
-        return { off, lcdOp: off ? 0.07 : 1, lcdGlow: off ? 'none' : '0 0 6px rgba(94,234,154,0.55)', stripC: off ? '#3b434e' : '#8b95a6',
+        return { off, lcdOp: off ? 0.07 : 1, lcdGlow: off ? 'none' : '0 0 6px rgba(94,234,154,0.55)', stripC: off ? '#3b434e' : '#9aa1ab',
           fsl, fslEmpty: fsl.length === 0, fsList: !!S.fsList, boxCur: cur ? this.fsName(cur) : '맵', boxChev: S.fsList ? '▴' : '▾',
           boxToggle: (e) => { e.stopPropagation(); this.setState({ fsList: !S.fsList }); },
-          lamps, head: off ? '' : head, name: off ? '' : name, detail: off ? '' : detail, strip: off ? '맵 화면이 아님 — 꺼짐' : '맵 ' + this.pathOf(S.map).join(' › ') + (S.editMode ? ' · 편집 켬' : ''), wins, count: '열림 ' + nOpen + ' · 서랍 ' + nD };
+          lamps, lampsA, lampsB, lampsC, barDisp: off ? 'none' : 'inline-flex', head: off ? '' : head, name: off ? '' : name, detail: off ? '' : detail, strip: off ? '맵 화면이 아님 — 꺼짐' : '맵 ' + this.pathOf(S.map).join(' › ') + (S.editMode ? ' · 편집 켬' : ''), wins, count: '열림 ' + nOpen + ' · 서랍 ' + nD };
       })(),
       selIsNode: !!selNodeInfo,
       selNodeName: selNodeInfo ? selNodeInfo.name : '',
@@ -5479,7 +5657,7 @@ export default class Component extends DCLogic {
         const crumbs = path.map((nm, i) => {
           const last = i === path.length - 1, n = this.NET[nm] || {}, tree = this.isTree(n.role);
           return {
-            name: nm, cur: last ? 'page' : 'false', bg: last ? '#ffffff' : 'transparent', fg: last ? '#16191f' : '#5b6472', fw: last ? 600 : 400,
+            name: nm, cur: last ? 'page' : 'false', bg: last ? '#ede9e1' : 'transparent', fg: last ? '#111111' : '#9aa1ab', fw: last ? 600 : 400,
             cursor: last ? 'default' : 'pointer', dot: tree ? '#f0b442' : '#6f9cf0', sepDisp: last ? 'none' : 'inline',
             go: () => {
               if (last) return;
@@ -5492,7 +5670,7 @@ export default class Component extends DCLogic {
           crumbs,
           mapTitle: leaf ? mapName + ' 자원 맵' : mapName + ' 클러스터',
           isLeafMap: leaf,
-          leafRes: (net.res || []).map(([name, kind]) => ({ name, kind, g: kind === '장치' ? '■' : kind === '모듈' ? '◆' : '▤', c: kind === '장치' ? '#4f7fd9' : kind === '모듈' ? '#7c3aed' : '#a65f00' })),
+          leafRes: (net.res || []).map(([name, kind]) => ({ name, kind, g: kind === '장치' ? '■' : kind === '모듈' ? '◆' : '▤', c: kind === '장치' ? '#7aa7ff' : kind === '모듈' ? '#b69cff' : '#f5b83d' })),
           leafResCount: (net.res || []).length
         };
       })(),
@@ -5511,20 +5689,21 @@ export default class Component extends DCLogic {
           const show = dragging ? dg.mode === 'window' : !!S.winOpen[id] && (S.fs ? fsOn || over : S.fsHist.indexOf(id) < 0), netBoard = id === 'net' && S.netTab === 'board';   // 전체 화면 동안 다른 창은 숨기고, 전체 화면 리스트에 보관된 창은 맵 화면에서 사라진다
           const zi = S.winZ.indexOf(id);
           return {
-            id, show, title: d.title, emoji: d.emoji, color: d.color, href: d.href || '#',
-            x: fsOn ? 0 : dragging ? Math.round(dg.x) : W.x, y: fsOn ? this.FS_TOP : dragging ? Math.round(dg.y) : W.y, w: fsOn ? LW.W : W.w,
-            maxH: fsOn ? LW.FH - this.FS_TOP : W.h ? Math.max(W.h, 100) : id === 'props' || id === 'edit' ? 749 : 560, z: fsOn ? 70 : over ? 76 + Math.max(0, zi) : dragging ? 40 : 10 + Math.max(0, zi),
-            h: fsOn ? (LW.FH - this.FS_TOP) + 'px' : W.h ? W.h + 'px' : 'auto', bg: fsOn ? '#ffffff' : 'rgba(255,255,255,0.97)', rad: fsOn ? '0' : '12px', cls: fsOn ? 'win-fs' : 'win-rz',
-            fsTip: fsOn ? '축소 — 전체 화면 전으로' : '전체 화면', fsIcon: fsOn ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+            id, show, title: d.title, emoji: d.emoji, color: d.color, href: d.href || '#', ic: this.UDLOGO()[id] || '',
+            capt: id === 'alarm' ? S.alarms.length + '건' : id === 'memo' ? S.memos.filter((m) => !m.dir).length + '개' : id === 'map' ? Object.keys(this.NET).filter((k) => this.isTree(this.NET[k].role)).length + ' tree' : '',
+            x: fsOn ? 0 : dragging ? Math.round(dg.x) : W.x, y: fsOn ? -44 : dragging ? Math.round(dg.y) : W.y, w: fsOn ? LW.W : W.w,
+            maxH: fsOn ? LW.FHx : W.h ? Math.max(W.h, 100) : id === 'props' || id === 'edit' ? 749 : 560, z: fsOn ? 70 : over ? 76 + Math.max(0, zi) : dragging ? 40 : 10 + Math.max(0, zi),
+            h: fsOn ? LW.FHx + 'px' : W.h ? W.h + 'px' : 'auto', bg: 'rgba(13,15,19,' + (S.glassOff[id] ? 1 : S.winOp / 100) + ')', glassOn: !S.glassOff[id], glassFg: S.glassOff[id] ? '#9aa1ab' : '#5aa8ff', glassTip: S.glassOff[id] ? '반투명하게 — 뒤가 비친다' : '불투명하게', glassToggle: () => this.setState({ glassOff: Object.assign({}, S.glassOff, { [id]: !S.glassOff[id] }) }), rad: fsOn ? '0' : '14px', cls: fsOn ? 'win-fs' : 'win-rz',
+            fsTip: fsOn ? '축소 — 전체 화면 전으로' : '전체 화면', fsIcon: fsOn ? 'M8 8h12v12H8zM4 16V4h12' : 'M4 4h16v16H4z',
             fsToggle: () => (fsOn ? this.fsShrink(id) : this.fsEnter(id)),
             rzX: !fsOn && !dragging && RZ.x, rzY: !fsOn && !dragging && RZ.y, rzXY: !fsOn && !dragging && RZ.x && RZ.y, rzLine: S.wrz === id ? d.color : 'transparent',
             rzE: (e) => this.winResize(id, e, 'x'), rzS: (e) => this.winResize(id, e, 'y'), rzSE: (e) => this.winResize(id, e, 'xy'), rzReset: () => this.winRzReset(id),
             rzTip: '창 크기 — 끌어서 바꾸기 · 두 번 눌러 원래 크기',
             fsFrame: fsOn && !!d.href && (id !== 'net' || netBoard), isEdBox: (['props', 'edit', 'alarm', 'map', 'memo', 'rcfg', 'rst', 'mgui', 'net'].indexOf(id) < 0 || netBoard) && !(fsOn && d.href), isMemo: id === 'memo', isRcfg: id === 'rcfg', isRst: id === 'rst', isMgui: id === 'mgui', isNet: id === 'net',
-            line: dragging && dg.back ? d.color : dragging && dg.over ? '#2563eb' : '#d8dde5', head: dragging && (dg.over || dg.back) ? '#eef3fb' : '#ffffff',
-            shadow: dragging ? '0 18px 40px rgba(22,25,31,0.24)' : '0 6px 20px rgba(22,25,31,0.10)',
+            line: dragging && dg.back ? d.color : dragging && dg.over ? '#ffd84d' : 'rgba(255,255,255,0.10)', head: dragging && (dg.over || dg.back) ? 'rgba(255,216,77,0.08)' : 'rgba(255,255,255,0.02)',
+            shadow: dragging ? '0 26px 60px rgba(0,0,0,0.55)' : '0 18px 44px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05)',
             sc: dragging && (dg.over || dg.back) ? 0.55 : 1, op: dragging && (dg.over || dg.back) ? 0.8 : 1, origin: '24px 19px',
-            ty: S.winDrop === id ? LW.FH - W.y + 40 : 0, trans: S.winDrop === id ? 'transform 440ms cubic-bezier(.55,0,.9,.45)' : 'transform 160ms ease-out, opacity 160ms ease-out, box-shadow 160ms',
+            ty: S.winDrop === id ? -(W.y + 120) : 0, trans: S.winDrop === id ? 'transform 440ms cubic-bezier(.55,0,.9,.45), background-color 520ms linear' : 'transform 160ms ease-out, opacity 160ms ease-out, box-shadow 160ms, background-color 520ms linear',
             isProps: id === 'props', isAlarm: id === 'alarm', isMap: id === 'map', isEd: ['props', 'edit', 'alarm', 'map'].indexOf(id) < 0, isEdit: id === 'edit',
             sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none',
             close: () => this.closeWin(id), closeTip: id === 'map' ? '닫기 — 관리 노드 창의 MAP 탭으로' : '닫기 — 유틸 서랍의 제자리로',
@@ -5538,20 +5717,21 @@ export default class Component extends DCLogic {
         const Z = this.drawerZone(), CW = 168, CH = 230, n = S.drawer.length, step = 46;
         const list = S.drawer.filter((id) => !(dg && dg.id === id && dg.mode === 'card'));
         const hv = S.drawerHover, hi = list.indexOf(hv);
-        const vis = (on) => Math.round(CH * (on ? 0.9 : S.drawerNear ? 0.7 : 0.3));
-        const right = LW.W - 28, FHd = LW.FH;
+        const vis = (on) => (on ? Math.round(CH * 0.9) : S.drawerNear ? 46 : 12);
+        const PB = 8, rowW = CW + Math.max(0, list.length - 1) * step, right = Math.round(LW.W / 2 + rowW / 2), FHd = LW.FH;
+        const topY = (on, id) => (S.cardRise === id ? PB - CH - 40 : PB - CH + vis(on));
         const UI = this.utilInfo();
         const sumOf = (id) => { const f = UI.INFO[id] || { sub: '', chip: '', tone: 'off', stats: [], foot: ['', UI.INK, ''] }, t = UI.TONE[f.tone] || UI.TONE.off;
           return { color: WD[id].color, sub: f.sub, chip: f.chip, chipDisp: f.chip ? 'flex' : 'none', chipFg: t[1], stats: f.stats.map(([v, k, cc]) => ({ v: String(v), k, c: cc })), foot: { g: f.foot[0], c: f.foot[1], t: f.foot[2] } }; };
         const cards = list.map((id, i) => {
           const d = WD[id], on = i === hi, push = hi < 0 ? 0 : i < hi ? -52 : i > hi ? 52 : 0;
           return Object.assign(sumOf(id), {
-            id, title: d.title, emoji: d.emoji, logo: this.UDLOGO()[id] || '', c1: d.pa, c2: d.pb, ink: d.ink, w: CW, h: CH, line: on ? d.pb : '#d8dde5',
+            id, title: d.title, emoji: d.emoji, logo: this.UDLOGO()[id] || '', c1: d.pa, c2: d.pb, ink: d.ink, w: CW, h: CH, line: on ? d.pb : 'rgba(255,255,255,0.18)',
             bmDisp: S.notif[id] ? 'flex' : 'none', bmN: S.notif[id] || '', bmC: d.color, bmLabel: d.title + ' 알림 ' + (S.notif[id] || 0) + '건',
-            bmx: right - CW - (list.length - 1 - i) * step + push + CW - 34, bmy: (S.cardRise === id ? FHd + 6 : FHd - vis(on)) - 24,
-            x: right - CW - (list.length - 1 - i) * step + push, y: S.cardRise === id ? FHd + 6 : FHd - vis(on),
+            bmx: right - CW - (list.length - 1 - i) * step + push + CW - 34, bmy: topY(on, id) + CH - 12,
+            x: right - CW - (list.length - 1 - i) * step + push, y: topY(on, id),
             z: list.length - i,   // 왼쪽 카드가 위 — 튀어나와도 층 순서는 그대로
-            shadow: on ? '0 -8px 24px rgba(22,25,31,0.18), 0 1px 2px rgba(22,25,31,0.06)' : '0 -3px 10px rgba(22,25,31,0.10), 0 1px 2px rgba(22,25,31,0.05)',
+            shadow: on ? '0 -8px 24px rgba(0,0,0,0.43), 0 1px 2px rgba(0,0,0,0.14)' : '0 -3px 10px rgba(0,0,0,0.24), 0 1px 2px rgba(0,0,0,0.12)',
             grab: (e) => this.startWinDrag(id, e, 'card'),
             enter: () => { if (!this.state.wdrag && !this.state.mgHover) this.setState({ drawerHover: id, drawerNear: true }); },
             leave: () => { if (this.state.drawerHover === id) this.setState({ drawerHover: null }); }
@@ -5561,10 +5741,10 @@ export default class Component extends DCLogic {
         if (dg && (dg.mode === 'card' || dg.mode === 'util')) {
           const d = WD[dg.id];
           cards.push(Object.assign(sumOf(dg.id), { id: dg.id, bmDisp: 'none', bmx: 0, bmy: 0, bmN: '', bmC: 'transparent', bmLabel: '', line: d.pb, title: d.title, emoji: d.emoji, logo: this.UDLOGO()[dg.id] || '', c1: d.pa, c2: d.pb, ink: d.ink, w: CW, h: CH, x: Math.round(dg.x), y: Math.round(dg.y), z: 60,
-            shadow: '0 18px 40px rgba(22,25,31,0.30)', grab: () => {}, enter: () => {}, leave: () => {} }));
+            shadow: '0 18px 40px rgba(0,0,0,0.6)', grab: () => {}, enter: () => {}, leave: () => {} }));
         }
         const dragging = !!dg;
-        const dz = { x: Z.x, y: Z.y, w: Z.w, h: Z.h, op: dragging ? 1 : 0, line: dg && dg.over ? '#2563eb' : '#c3cad5', bg: dg && dg.over ? 'rgba(37,99,235,0.10)' : 'rgba(22,25,31,0.03)', label: dg && dg.over ? '놓으면 서랍에 보관' : '여기에 놓으면 서랍에 보관' };
+        const dz = { x: Z.x, y: Z.y, w: Z.w, h: Z.h, op: dragging ? 1 : 0, line: dg && dg.over ? '#ffd84d' : 'rgba(255,255,255,0.22)', bg: dg && dg.over ? 'rgba(255,216,77,0.10)' : 'rgba(13,15,19,0.35)', label: dg && dg.over ? '놓으면 서랍에 보관' : '여기에 놓으면 서랍에 보관' };
         // tree 지도: 이어진 나무는 위(뿌리) → 아래로, 이어지지 않은 tree는 나무 옆에 한 줄씩. 노드 아래에 이름 (9자 넘으면 …, 마우스를 올리면 전체)
         const isT = (n) => this.isTree((this.NET[n] || {}).role);
         const allT = Object.keys(this.NET).filter(isT);
@@ -5583,8 +5763,8 @@ export default class Component extends DCLogic {
           const here = nm === mapOwner, login = nm === S.curTree.name, cx = cxOf(nm), cy = cyOf(nm);
           return {
             name: nm, short: nm.length > 9 ? nm.slice(0, 8) + '…' : nm, bx: cx - 38, by: cy - 12,
-            fill: here ? '#8b5cf6' : '#f6d38a', ring: here ? '#5b21b6' : '#d9a441', rw: here ? 2.4 : 1.4,
-            fw: here ? 700 : 500, fg: here ? '#5b21b6' : '#16191f', cur: here ? 'page' : 'false', loginDisp: login ? 'block' : 'none',
+            fill: here ? '#ffd84d' : 'rgba(240,166,58,0.16)', ring: here ? '#ffd84d' : '#f0a63a', rw: here ? 2 : 1.4, ink: here ? '#111111' : '#f0a63a',
+            fw: here ? 700 : 500, fg: here ? '#ffd84d' : '#ede9e1', cur: here ? 'page' : 'false', loginDisp: login ? 'block' : 'none',
             go: () => this.goNode(nm)
           };
         });
@@ -5628,7 +5808,7 @@ export default class Component extends DCLogic {
             cards = cards.map((c) => {
               const d = WD[c.id], empty = out(c.id);
               return Object.assign(c, {
-                title: d.title, emoji: d.emoji, c1: d.pa, c2: d.pb, ink: d.ink, color: d.color, full: !empty, empty, backOn: !!(dg && dg.back && dg.id === c.id), eLine: dg && dg.back && dg.id === c.id ? d.color : '#c3cad5', eBg: dg && dg.back && dg.id === c.id ? d.pa : '#f4f6f9', eMsg: dg && dg.back && dg.id === c.id ? '놓으면 이 칸으로 돌아갑니다' : '창으로 나가 있음 · 창을 닫거나 여기로 끌어 오면 돌아옵니다',
+                title: d.title, emoji: d.emoji, c1: d.pa, c2: d.pb, ink: d.ink, color: d.color, full: !empty, empty, backOn: !!(dg && dg.back && dg.id === c.id), eLine: dg && dg.back && dg.id === c.id ? d.color : 'rgba(255,255,255,0.18)', eBg: dg && dg.back && dg.id === c.id ? d.pa : 'rgba(255,255,255,0.03)', eMsg: dg && dg.back && dg.id === c.id ? '놓으면 이 칸으로 돌아갑니다' : '창으로 나가 있음 · 창을 닫거나 여기로 끌어 오면 돌아옵니다',
                 ...(() => { const f = INFO[c.id] || { sub: '', chip: '', tone: 'off', stats: [], foot: ['', INK, ''] }, t = TONE[f.tone] || TONE.off;
                   return { sub: f.sub, chip: f.chip, chipBg: t[0], chipFg: t[1], stats: f.stats.map(([v, k, cc]) => ({ v: String(v), k, c: cc })), foot: { g: f.foot[0], c: f.foot[1], t: f.foot[2] } }; })(),
                 logo: this.UDLOGO()[c.id] || '', s1: (INFO[c.id] || { stats: [] }).stats[0] ? { v: String(INFO[c.id].stats[0][0]), k: INFO[c.id].stats[0][1], c: INFO[c.id].stats[0][2] } : { v: '—', k: '', c: INK }, s2: (INFO[c.id] || { stats: [] }).stats[1] ? { v: String(INFO[c.id].stats[1][0]), k: INFO[c.id].stats[1][1], c: INFO[c.id].stats[1][2] } : { v: '—', k: '', c: INK },
@@ -5641,7 +5821,7 @@ export default class Component extends DCLogic {
             const nOut = items.filter(out).length;
             return {
               w2: G.W + 28,
-              stripLine: dg && dg.back && U.mode === 'closed' ? WD[dg.id].color : '#d8dde5', stripOutline: dg && dg.back && U.mode === 'closed' ? '3px solid ' + WD[dg.id].pa : 'none',
+              stripLine: dg && dg.back && U.mode === 'closed' ? WD[dg.id].color : 'rgba(255,255,255,0.18)', stripOutline: dg && dg.back && U.mode === 'closed' ? '3px solid ' + WD[dg.id].pa : 'none',
               bms: items.some((id) => S.notif[id] && !out(id)) ? [{ w: G.W - 12, a: '2.6', z: 1, c: '#e5484d', label: '알림이 있습니다' }] : [],
               bmDisp: U.mode === 'closed' ? 'block' : 'none',
               x: G.X, sb: G.SB, z: 1,   // 유틸 서랍은 테이블(2) 뒤 층 — 줄 아래 끝이 테이블 테두리 밑으로 들어간다
@@ -5654,40 +5834,40 @@ export default class Component extends DCLogic {
           })(),
           al: (() => {
             // 알림 종류는 색으로 나눈다 (연동 시에는 알림에 kind 필드를 둔다)
-            const KIND = { '#d33d52': ['bad', '실패', '#fde1e5', '#f9cdd4'], '#a65f00': ['bad', '주의', '#fbf0cc', '#f6e5ae'], '#2563eb': ['job', '작업', '#dde8fd', '#c9dafb'], '#0f766e': ['job', '이동', '#d5f3ed', '#c0ebe2'], '#1f7a4d': ['done', '완료', '#e3f4ea', '#c9e9d5'] };
-            const kindOf = (a) => KIND[a.c] || ['job', '알림', '#eef1f5', '#e0e5ec'];
+            const KIND = { '#ff5d5d': ['bad', '실패', 'rgba(255,93,93,0.12)', 'rgba(255,93,93,0.32)'], '#f5b83d': ['bad', '주의', 'rgba(245,184,61,0.12)', 'rgba(245,184,61,0.32)'], '#7aa7ff': ['job', '작업', 'rgba(122,167,255,0.12)', 'rgba(122,167,255,0.32)'], '#2dd4bf': ['job', '이동', 'rgba(45,212,191,0.12)', 'rgba(45,212,191,0.32)'], '#3ecf8e': ['done', '완료', 'rgba(62,207,142,0.12)', 'rgba(62,207,142,0.32)'] };
+            const kindOf = (a) => KIND[a.c] || ['job', '알림', 'rgba(255,255,255,0.06)', 'rgba(255,255,255,0.10)'];
             const F = S.alarmF, list = S.alarms.map((a, i) => ({ a, i, k: kindOf(a) }));
             const cnt = (f) => f === 'all' ? list.length : list.filter((x) => x.k[0] === f).length;
             const shown = list.filter((x) => F === 'all' || x.k[0] === F);
-            const item = (x) => ({ t: x.a.t, g: x.a.g, c: x.a.c, m: x.a.m, kind: x.k[1], tint: x.k[2], tintLine: x.k[3], isNew: x.i < S.alarmNew, fw: x.i < S.alarmNew ? 700 : 500, bg: x.i < S.alarmNew ? '#f5f8ff' : 'transparent' });
+            const item = (x) => ({ t: x.a.t, g: x.a.g, c: x.a.c, m: x.a.m, kind: x.k[1], tint: x.k[2], tintLine: x.k[3], isNew: x.i < S.alarmNew, fw: x.i < S.alarmNew ? 700 : 500, bg: x.i < S.alarmNew ? 'rgba(255,216,77,0.05)' : 'transparent' });
             const fresh = shown.filter((x) => x.i < S.alarmNew), old = shown.filter((x) => x.i >= S.alarmNew);
             const groups = [];
             if (fresh.length) groups.push({ label: '새 알림 ' + fresh.length, items: fresh.map(item) });
             if (old.length) groups.push({ label: fresh.length ? '이전' : '최근', items: old.map(item) });
             return {
               filters: [['all', '전체'], ['bad', '실패·주의'], ['job', '작업'], ['done', '완료']].map(([f, label]) => ({ label, n: cnt(f), on: F === f ? 'true' : 'false',
-                bg: F === f ? '#16191f' : '#ffffff', fg: F === f ? '#ffffff' : '#3a4049', line: F === f ? '#16191f' : '#d8dde5', pick: () => this.setState({ alarmF: f }) })),
+                bg: F === f ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: F === f ? '#111111' : '#b4bac3', line: F === f ? '#ede9e1' : 'rgba(255,255,255,0.18)', pick: () => this.setState({ alarmF: f }) })),
               groups, empty: !shown.length
             };
           })(),
-          wins, cards, dz, alarms: S.alarms,
-          drawerZ: S.mgHover ? 3 : 9, drawerPe: S.mgHover ? 'none' : 'auto',
+          wins, cards, dz, alarms: S.alarms, rail: this.railVals(),
+          drawerZ: S.mgHover ? 3 : 7, drawerPe: S.mgHover ? 'none' : 'auto', drawerClip: S.wdrag && S.wdrag.mode === 'card' ? 'none' : 'polygon(-5000px -32px, 5000px -32px, 5000px 5000px, -5000px 5000px)',   // 카드는 세션 띠 윗변보다 위로는 안 보인다
           pullSq: dg && dg.mode === 'pull' ? { on: true, x: Math.round(dg.x), y: Math.round(dg.y), sc: dg.over ? 0.8 : 1 } : { on: false, x: 0, y: 0, sc: 1 },
           forest: Object.assign({ nodes: nodes2, edges, w: fw, h: fh }, sep),
-          mini: { vb: '0 0 ' + fw + ' ' + fh, grab: (e) => this.startWinDrag('map', e, 'pull'), line: S.winOpen.map ? '#c3cad5' : '#0f766e', op: pulling || S.winOpen.map ? 0.45 : 1 }
+          mini: { vb: '0 0 ' + fw + ' ' + fh, grab: (e) => this.startWinDrag('map', e, 'pull'), line: S.winOpen.map ? 'rgba(255,255,255,0.18)' : '#2dd4bf', op: pulling || S.winOpen.map ? 0.45 : 1 }
         };
       })(),
       selNodeKind: selNodeInfo && selNodeInfo.parent ? '부모' : '자식',
-      selNodeLine: selNodeInfo && selNodeInfo.parent ? '#ddd6fe' : '#c7d7f5',
-      selNodeBg: selNodeInfo && selNodeInfo.parent ? '#f5f3ff' : '#f3f7ff',
-      selNodeDot: selNodeInfo && selNodeInfo.parent ? '#7c3aed' : '#4f7fd9',
+      selNodeLine: selNodeInfo && selNodeInfo.parent ? 'rgba(240,166,58,0.45)' : 'rgba(90,168,255,0.45)',
+      selNodeBg: selNodeInfo && selNodeInfo.parent ? 'rgba(240,166,58,0.08)' : 'rgba(255,255,255,0.06)',
+      selNodeDot: selNodeInfo && selNodeInfo.parent ? '#b69cff' : '#7aa7ff',
       clusterKey: (() => {
-        if (!this.isTree((this.NET[this.state.map] || {}).role)) return [{ c: '#6f9cf0', d: '#4f7fd9', t: 'Leaf 맵 — 노드 없음 · 자원만' }];
+        if (!this.isTree((this.NET[this.state.map] || {}).role)) return [{ c: '#6f9cf0', d: '#7aa7ff', t: 'Leaf 맵 — 노드 없음 · 자원만' }];
         const all = Object.values(nodes), par = all.find((n) => n.parent), kids = all.filter((n) => !n.parent);
         const nLeaf = kids.filter((n) => this.roleKey(n.role) === 'leaf').length, nTree = kids.length - nLeaf;
         return [
-          { c: '#8b5cf6', d: '#5b21b6', t: '부모 ' + (par ? par.name : '없음') },
-          { c: '#6f9cf0', d: '#4f7fd9', t: '자식 Leaf ' + nLeaf },
+          { c: '#8b5cf6', d: '#c4b5fd', t: '부모 ' + (par ? par.name : '없음') },
+          { c: '#6f9cf0', d: '#7aa7ff', t: '자식 Leaf ' + nLeaf },
           { c: '#f0b442', d: '#c98a1c', t: '자식 Tree ' + nTree }
         ];
       })(),
@@ -5742,8 +5922,8 @@ export default class Component extends DCLogic {
         const items = tl ? trees.map((t, i) => {
           const a0 = (-90 + (i - 1) * G.STEP) * Math.PI / 180; // 부채 속 자리 (휠 회전은 tlApply가 그린다)
           return Object.assign({ i, name: t.name, x0: (Math.cos(a0) * G.R).toFixed(2), y0: (Math.sin(a0) * G.R).toFixed(2),
-            border: i === selI && ready ? '3px solid #2563eb' : '2px solid #ffffff', tagOp: i === selI && ready ? 1 : 0,
-            lockDisp: t.auth === 'password' || t.auth === 'offline' ? 'flex' : 'none', lockBg: t.auth === 'offline' ? '#8b95a6' : '#a65f00',
+            border: i === selI && ready ? '3px solid #ffd84d' : '2px solid rgba(255,255,255,0.28)', tagOp: i === selI && ready ? 1 : 0,
+            lockDisp: t.auth === 'password' || t.auth === 'offline' ? 'flex' : 'none', lockBg: t.auth === 'offline' ? '#9aa1ab' : '#f5b83d',
             lockIcon: t.auth === 'offline' ? 'M4 4l16 16M9 5.5A9 9 0 0 1 21 9M3 9a9 9 0 0 1 3-2M7 13a5 5 0 0 1 3-1.5M17 13a5 5 0 0 0-1.5-1' : 'M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z' }, bView(this.lookOf(t.name).bid, t.role));
         }) : [];
         const target = ready && trees[selI] ? trees[selI] : null;
@@ -5761,8 +5941,8 @@ export default class Component extends DCLogic {
           filter: au && (au.phase === 'loading' || au.phase === 'fail') ? 'grayscale(1) brightness(0.9)' : 'none',
           ringOp: au && au.phase !== 'done' ? 1 : 0,
           spinClass: au && au.phase === 'loading' ? 'tl-spin' : '',
-          track: au && au.phase === 'loading' ? 'rgba(37,99,235,0.15)' : 'transparent',
-          ring: !au || au.phase === 'loading' ? '#2563eb' : au.phase === 'success' || (au.phase === 'done' && au.ok) ? '#1f9d55' : '#d33d52',
+          track: au && au.phase === 'loading' ? 'rgba(237,233,225,0.15)' : 'transparent',
+          ring: !au || au.phase === 'loading' ? '#7aa7ff' : au.phase === 'success' || (au.phase === 'done' && au.ok) ? '#1f9d55' : '#ff5d5d',
           dash: au && au.phase === 'loading' ? (C * 0.28).toFixed(1) + ' ' + C.toFixed(1) : C.toFixed(1) + ' 0'
         };
         const lgSubmit = () => {
@@ -5774,8 +5954,8 @@ export default class Component extends DCLogic {
         const lg = lgS ? {
           open: true, closeStyle: lgS.closing ? 'animation: lg-drop 260ms cubic-bezier(.55,0,1,.45) both;' : '', name: lgS.target.name, title: lgS.target.name + ' 노드 로그인',
           username: lgS.username, password: lgS.password, autoAttr: lgS.auto ? 'checked' : null,
-          msg: lgS.msg || '예시: 비밀번호에 wrong을 넣으면 실패합니다', msgColor: lgS.msg ? '#d33d52' : '#8b95a6',
-          passBorder: lgS.msg ? '#d33d52' : '#c3cad5', btnBg: '#2563eb',
+          msg: lgS.msg || '예시: 비밀번호에 wrong을 넣으면 실패합니다', msgColor: lgS.msg ? '#ff5d5d' : '#9aa1ab',
+          passBorder: lgS.msg ? '#ff5d5d' : 'rgba(255,255,255,0.18)', btnBg: '#ede9e1',
           setUser: (e) => this.setState({ login: Object.assign({}, this.state.login, { username: e.target.value, msg: '' }) }),
           setPass: (e) => this.setState({ login: Object.assign({}, this.state.login, { password: e.target.value, msg: '' }) }),
           toggleAuto: (e) => this.setState({ login: Object.assign({}, this.state.login, { auto: !!e.target.checked }) }),
@@ -5821,6 +6001,7 @@ export default class Component extends DCLogic {
         const restoring = !shift && !open && since < 860;
         const restoreHold = restoring && since < 500;                // ①② 동안 이름은 멈춤(숨은 이름은 안 보인 채)
         const nameStr = String(au && au.phase !== 'done' ? au.target.name : (tl && tl.ready && !tl.moving && trees[tl.r + 1] ? trees[tl.r + 1].name : shownT && shownT.local ? shownT.name : ct.name));
+        let nameTxtW = 0; for (const ch of nameStr) nameTxtW += ch.charCodeAt(0) > 127 ? 19 : 11;   // 이름 글자 너비(한글 · 전각은 넓다) — 상자 밖으로 안 나가게 창 너비 계산에 쓴다
         // 관리 노드 창 모양은 전부 여기서 계산한다 (로그인 창 위치도 이 값에서 나온다)
         const LGW = 336;                                   // 로그인 창 너비
         const avLeft = open || shift ? 94 : 20;            // 접힘: 프사는 바닥 · 왼쪽 벽과 같은 거리(20). 펼치거나 tree를 바꾸는 중엔 옆으로
@@ -5829,15 +6010,17 @@ export default class Component extends DCLogic {
         const lgOn = !!lgS;                                // 로그인 창이 떠 있는 동안 창 모양을 로그인 창에 맞춘다
         // 펼침: 테이블 왼쪽 검은 좌석을 꽉 채우도록 뒤(왼쪽)로도 늘어난다 — 테두리가 좌석 외곽선(x 24 ~)과 겹친다. 오른쪽 끝은 그대로(1024)
         const OPEN_L = 24, OPEN_R = 59 + 965;
-        let pLeft = open ? OPEN_L : 59, pWidth = open ? OPEN_R - OPEN_L : pillW;
+        // 접힘(ver.2): 프사 오른쪽에 10px 띄운 유리 이름표 — 이름 길이에 맞춘다
+        const TAG_L = 136, TAG_W = Math.max(196, nameTxtW + 40);
+        let pLeft = open ? OPEN_L : (lgOn ? 59 : TAG_L), pWidth = open ? OPEN_R - OPEN_L : (lgOn ? pillW : TAG_W);
         if (!open && shift) {                              // 접힌 채 tree 변경: 프사 왼쪽엔 아무것도 없게 — 창 왼쪽 끝을 프사 뒤로
           pLeft = avLeft + 39; pWidth = Math.max(140, 59 + pillW - pLeft);
         }
-        if (loginShow) pWidth = avLeft + 140 + 14 + nameStr.length * 11 + 32 - pLeft; // 로그인 중: 프사 오른쪽 이름까지
+        if (loginShow) pWidth = avLeft + 140 + 14 + nameTxtW + 32 - pLeft; // 로그인 중: 프사 오른쪽 이름까지
         if (lgOn && !open) pWidth = LGW;                   // 접힌 창은 로그인 창 너비만큼 늘어난다
         // 높이는 테이블 왼쪽 검은(벨벳) 좌석에 맞춘다: 좌석 = 필드 y 749 ~ 877 (가운데 813).
         // 접힘 = 좌석 가운데에 96px · 펼침 = 좌석 윗면 ~ 바닥면과 일치(128px) — 가운데가 같아 위아래로 같이 늘어난다
-        const pBottom = open ? 21 : 40, pHeight = open ? 133 : 96;   // 펼침 = 좌석 외곽선 · 그림자 선(필드 y 747 ~ 880)까지 테두리가 덮는다
+        const pBottom = open ? 21 : 26, pHeight = open ? 133 : 76;   // 펼침 = 좌석 외곽선 · 그림자 선(필드 y 747 ~ 880)까지 테두리가 덮는다
         // 이름 자리 · 투명도 · 움직임 (①프사 → ②배경 → ③이름 순서)
         let padL, nameOp, nameTrans;
         if (shift && loginShow) {                          // 로그인 중: 창이 늘어난 뒤 프사 오른쪽에 나타난다
@@ -5847,22 +6030,22 @@ export default class Component extends DCLogic {
         } else if (restoreHold) {
           if (this._restoreHidden) { padL = avLeft + 40 - pLeft; nameOp = 0; nameTrans = 'none'; }
           else {                                            // 보이던 이름은 창이 줄어드는 동안 화면에서 제자리
-            padL = (this._restoreNameAbs != null ? this._restoreNameAbs : 175) - pLeft; nameOp = 1;
+            padL = (this._restoreNameAbs != null ? this._restoreNameAbs : 152) - pLeft; nameOp = 1;
             nameTrans = 'left 260ms cubic-bezier(.3,.7,.2,1) 240ms';
           }
         } else if (restoring) {                            // ③ : 이름이 마지막에 제자리로
-          padL = 116; nameOp = 1;
+          padL = 152 - pLeft; nameOp = 1;
           nameTrans = this._restoreHidden ? 'opacity 120ms ease-out, left 320ms ease-in-out' : 'left 320ms ease-in-out';
         } else {
           // 이름은 프사에 붙어 다닌다: 가로는 프사와 같은 거리 · 같은 시간으로 함께 옮기고(프사가 움직이기 전엔 대기),
           // 펼칠 땐 프사가 다 옮긴 뒤에 높이만 올린다. 접을 땐 프사와 함께 옮기며 높이를 내린다
-          padL = (open ? 175 + (94 - 20) : 175) - pLeft; nameOp = 1;
+          padL = (open ? 175 + (94 - 20) : 152) - pLeft; nameOp = 1;
           nameTrans = open
             ? 'left 260ms cubic-bezier(.3,.7,.2,1) 600ms, top 260ms ease-in-out 860ms, height 260ms ease-in-out 860ms'
             : 'left 240ms cubic-bezier(.5,0,.7,.4) 0ms, top 260ms ease-in-out 0ms, height 260ms ease-in-out 0ms';
         }
         // 보이던 이름을 붙든 채 창이 줄어들 땐, 이름이 잘리지 않게 창 너비를 이름 끝까지만 줄였다가 ③에서 마저 줄인다
-        if (restoreHold && !this._restoreHidden && this._restoreNameAbs != null) pWidth = Math.max(pWidth, this._restoreNameAbs + nameStr.length * 11 + 24 - pLeft);
+        if (restoreHold && !this._restoreHidden && this._restoreNameAbs != null) pWidth = Math.max(pWidth, this._restoreNameAbs + nameTxtW + 24 - pLeft);
         this._lastNameAbs = pLeft + padL;
         const mg = {
           left: pLeft, bottom: pBottom, height: pHeight, width: pWidth,
@@ -5873,11 +6056,17 @@ export default class Component extends DCLogic {
           //        접을 때: 왼쪽 것부터 — 프사 → 이름 → 세부 내용, 그 뒤에 창이 줄어든다. 서로 겹치지 않게
           avDur: shift ? '280ms cubic-bezier(.3,.7,.2,1) ' + (shiftAvWait ? '480ms' : '0ms') : open ? '260ms cubic-bezier(.3,.7,.2,1) 600ms' : '240ms cubic-bezier(.5,0,.7,.4) 0ms',
           avTrans: shift ? 'left 280ms cubic-bezier(.3,.7,.2,1) ' + (shiftAvWait ? '480ms' : '0ms') : open ? 'left 260ms cubic-bezier(.3,.7,.2,1) 600ms' : 'left 240ms cubic-bezier(.5,0,.7,.4) 0ms',
-          radius: lgOn && !open ? '12px' : lgOn ? '12px 52px 8px 8px' : open ? '20px 52px 8px 16px' : '8px 52px 8px 8px',   // 접힌 창 오른쪽 끝도 펼친 모양과 같게 · 펼친 왼쪽 모서리는 좌석 모서리와 같게
+          radius: lgOn && !open ? '12px' : lgOn ? '12px 52px 8px 8px' : open ? '20px 52px 8px 16px' : '12px',   // 접힌 창 오른쪽 끝도 펼친 모양과 같게 · 펼친 왼쪽 모서리는 좌석 모서리와 같게
           // 지도 탭: 펼쳤을 때만 창 오른쪽 끝에서 44px 튀어나온다 (지도 창이 나와 있으면 숨김)
-          tabL: pLeft + pWidth - 140 + 44, tabPad: 96,
-          tabOp: open && !flow && !this.state.winOpen.map ? 1 : 0, tabX: open && !flow && !this.state.winOpen.map ? 0 : -44,
-          tabPe: open && !flow && !this.state.winOpen.map ? 'auto' : 'none', tabDelay: open ? '520ms' : '0ms',
+          tabL: open ? pLeft + pWidth - 140 + 44 : pLeft + pWidth + 10, tabPad: open ? 96 : 0,
+          tabW: open ? 140 : 56, tabH: open ? pHeight : 56, tabB: open ? pBottom : pBottom,
+          tabR: open ? '8px 52px 8px 8px' : '12px',
+          tabOp: !flow && !lgOn && !shift && !this.state.winOpen.map ? 1 : 0, tabX: !flow && !lgOn && !shift && !this.state.winOpen.map ? 0 : -44,
+          tabPe: !flow && !lgOn && !shift && !this.state.winOpen.map ? 'auto' : 'none', tabDelay: open ? '520ms' : '0ms',
+          // 프사의 바꾸기 버튼 · 이름표 안내 줄
+          swapL: avLeft + 76, avScale: !open && !shift && !lgOn && !loginShow ? 0.75 : 1, swapOp: !open && !shift && !lgOn ? 1 : 0, swapPe: !open && !shift && !lgOn ? 'auto' : 'none',
+          swap: (e) => { if (e) e.stopPropagation(); this.tlOpen('mouse'); },
+          hintOp: !open && !shift && !lgOn && !loginShow ? 1 : 0,
           tabGrab: (e) => this.startWinDrag('map', e, 'pull'),
           toggle: () => this.mgToggle(),
           trans: restoreHold
@@ -5890,7 +6079,7 @@ export default class Component extends DCLogic {
             : open
               ? 'bottom 200ms ease-out, height 200ms ease-out, left 320ms cubic-bezier(.3,.7,.2,1) 200ms, width 320ms cubic-bezier(.3,.7,.2,1) 200ms, border-radius 320ms 200ms'   // 펼침: ① 위아래로 높이 → ② 오른쪽으로
               : 'left 260ms cubic-bezier(.5,0,.8,.4) 480ms, width 260ms cubic-bezier(.5,0,.8,.4) 480ms, border-radius 220ms 480ms, bottom 200ms ease-in 740ms, height 200ms ease-in 740ms',   // 접음: 역순 — ② 왼쪽으로 줄고 → ① 높이
-          padL, nameX: pLeft + padL, nameTop: this.lay().FH - pBottom - pHeight + 3, nameH: open ? 60 : 96, nameOp, nameTrans, detL: 175 + (94 - 20) - pLeft,   // 설명은 펼친 이름과 같은 줄에서 시작
+          padL, nameMaxW: Math.max(60, pWidth - padL - 16), nameX: pLeft + padL, nameTop: this.lay().FH - pBottom - pHeight + 3, nameH: open ? 60 : 72, nameOp, nameTrans, detL: 175 + (94 - 20) - pLeft,   // 설명은 펼친 이름과 같은 줄에서 시작
           detailOp: open ? 1 : 0, detailY: open ? 0 : 8, detailDelay: open ? '1000ms' : '0ms',   // 펼침: 이름이 올라간 뒤 · 접음: 먼저 사라짐 detailPe: open ? 'auto' : 'none',
         };
         return {
@@ -5922,9 +6111,9 @@ export default class Component extends DCLogic {
             name: nameStr,
             // 접힘: 9자를 넘으면 8자 + … · 펼침(또는 tree 목록 · 로그인 중): 전부
             nameShow: open || live || (au && au.phase !== 'done') ? nameStr : (nameStr.length > 9 ? nameStr.slice(0, 8) + '…' : nameStr),
-            nameColor: target ? '#2563eb' : '#16191f',
+            nameColor: target ? '#7aa7ff' : '#ede9e1',
             sub: target ? target.role + ' · 떼면 이 tree로 로그인' : shownT && shownT.local ? shownT.role + ' · 로컬 노드 — 조타륜 자원' : ct.role + ' · 노드 ' + cur.nodeCount + '개',
-            avatarRing: '#16191f',   // 프사 테두리는 늘 검은색
+            avatarRing: '#f0a63a',   // ver.2: 프사 테두리 = tree 호박색
             // 목록 아래 눈금: 목록 자리마다 중간 눈금, 그 사이 작은 눈금 (휠로 목록과 함께 돈다)
             ticks: (() => {
               const out = [];
@@ -5937,13 +6126,13 @@ export default class Component extends DCLogic {
             spikes: this.tlSpikeDefs().map((d, i) => {
               const R0 = 60, tip = R0 + d.len, c = R0 + d.len * 0.42, w = d.w;
               return {
-                i, a: d.a, len0: d.len, fill: d.big ? '#2563eb' : '#1c2733',
+                i, a: d.a, len0: d.len, fill: d.big ? '#ffd84d' : 'rgba(237,233,225,0.78)',
                 d: 'M' + (-w) + ' ' + (-R0) + ' Q ' + (-w * 0.22) + ' ' + (-c) + ' 0 ' + (-tip) + ' Q ' + (w * 0.22) + ' ' + (-c) + ' ' + w + ' ' + (-R0) + ' Z',
                 w2: w * 2, len: tip, vb: (-w) + ' ' + (-tip) + ' ' + (w * 2) + ' ' + tip, left: -w, top: -tip
               };
             }),
             // 양 끝 긴 눈금: 오른쪽 먼저, 왼쪽이 맨 위 레이어
-            needles: [{ side: 'r', fill: '#1c2733' }, { side: 'l', fill: '#1c2733' }],
+            needles: [{ side: 'r', fill: 'rgba(237,233,225,0.85)' }, { side: 'l', fill: 'rgba(237,233,225,0.85)' }],
             hint: live
               ? (!tl.ready ? '다 나오면 고를 수 있습니다 · 지금 떼면 되돌아 들어갑니다' : tl.mode === 'mouse' ? '휠로 돌려 포인터에 맞추고 떼면 로그인 · 누른 채 프사 밖으로 나가면 취소' : '휠로 돌려 포인터에 맞추고 Ctrl을 떼면 로그인 · 다른 곳을 좌클릭하면 취소')
               : !this.state.help ? '' : '프사를 누르고 있거나 Ctrl을 누르고 있으면 로그인할 수 있는 다른 tree ' + trees.length + '개가 나옵니다',
@@ -5959,8 +6148,8 @@ export default class Component extends DCLogic {
           return {
             i, label: it.label, icon: it.icon, x: Math.round(Math.cos(a) * RM.R), y: Math.round(Math.sin(a) * RM.R),
             size: on ? RM.SIZE + 6 : RM.SIZE, delay: (i * 18) + 'ms',
-            bg: on ? '#2563eb' : '#ffffff', fg: on ? '#ffffff' : (off ? '#b6bfcc' : '#16191f'),
-            border: on ? '0' : '1px solid #d8dde5', shadow: on ? '0 4px 14px rgba(37,99,235,0.35)' : '0 2px 8px rgba(22,25,31,0.14)',
+            bg: on ? '#ede9e1' : 'rgba(18,20,25,0.94)', fg: on ? '#111111' : (off ? '#4b5260' : '#ede9e1'),
+            border: on ? '0' : '1px solid rgba(255,255,255,0.16)', shadow: on ? '0 0 0 4px rgba(237,233,225,0.16), 0 8px 18px rgba(0,0,0,0.5)' : '0 6px 14px rgba(0,0,0,0.45)',
             disabledA: off ? 'true' : 'false',
             pick: () => rmRun(i)
           };
@@ -5971,17 +6160,17 @@ export default class Component extends DCLogic {
           title: '원형 메뉴 — ' + (t.kind === 'tile' ? '타일 ' + t.key : '필드'),
           label: hv !== null ? rmItems[hv].label : (t.kind === 'tile' ? '타일 ' + t.key : '필드') + ' · 방향으로 밀어 고르기',
           labelOp: 1, labelY: RM.R + RM.SIZE / 2 + 12,
-          centerBg: hv === null ? '#c0303f' : '#8f2430',
+          centerBg: hv === null ? 'rgba(18,20,25,0.94)' : 'rgba(255,93,93,0.85)',
           close: () => this.setState({ rmenu: null })
         };
-      })() : { open: false, x: 0, y: 0, ring: 0, ring2: 0, items: [], title: '', label: '', labelOp: 0, labelY: 0, centerBg: '#c0303f', close: () => {} },
+      })() : { open: false, x: 0, y: 0, ring: 0, ring2: 0, items: [], title: '', label: '', labelOp: 0, labelY: 0, centerBg: 'rgba(18,20,25,0.94)', close: () => {} },
       editOn: !!this.state.editMode,
       editOff: !this.state.editMode,
       editChecked: this.state.editMode ? 'true' : 'false',
       toggleEdit: () => { this.pendField = null; this.setState({ editMode: !this.state.editMode, drag: null }); },
       sw: this.state.editMode
-        ? { border: '#2563eb', bg: '#e6eefc', track: '#2563eb', knob: '16px', state: '켜짐', stateColor: '#2563eb' }
-        : { border: '#d8dde5', bg: '#ffffff', track: '#c3cad5', knob: '2px', state: '꺼짐', stateColor: '#5b6472' },
+        ? { border: 'rgba(237,233,225,0.6)', bg: 'rgba(237,233,225,0.08)', track: '#ede9e1', knob: '16px', knobC: '#111111', state: '켜짐', stateColor: '#ede9e1' }
+        : { border: 'rgba(255,255,255,0.18)', bg: 'rgba(255,255,255,0.04)', track: 'rgba(255,255,255,0.14)', knob: '2px', knobC: '#9aa1ab', state: '꺼짐', stateColor: '#9aa1ab' },
       editDisp: this.state.editMode ? 'inline-block' : 'none',
       editFlex: this.state.editMode ? 'flex' : 'none',
       helpDisp: this.state.help ? 'inline' : 'none',
@@ -6007,9 +6196,9 @@ export default class Component extends DCLogic {
         if (root) { root.tabIndex = -1; root.focus({ preventScroll: true }); }
         this.setState({ drag: { kind: 'newField', over: null, x: null, y: null } });
       },
-      trashBg: drag && drag.kind === 'field' && drag.trash ? '#fdecee' : '#ffffff',
+      trashBg: drag && drag.kind === 'field' && drag.trash ? 'rgba(255,93,93,0.10)' : 'rgba(255,255,255,0.04)',
       trashBorder: drag && drag.kind === 'field' ? (drag.trash ? '1px solid #d33d52' : '1px dashed #d33d52') : '1px dashed #c3cad5',
-      trashColor: drag && drag.kind === 'field' ? '#d33d52' : '#5b6472',
+      trashColor: drag && drag.kind === 'field' ? '#ff5d5d' : '#9aa1ab',
       fieldHint: drag && drag.kind === 'newGround' ? '빈 리전(점선)에 놓으면 그라운드가 깔립니다 — 붙은 그라운드끼리는 이어집니다'
         : drag && drag.kind === 'field' && groundSet.has(drag.from) ? (drag.trash ? '놓으면 이 그라운드를 지웁니다' : '빈 리전(점선)에 놓으면 그라운드를 옮깁니다')
         : drag && drag.kind === 'newField' ? '빈 칸(점선) · 그라운드에 놓으면 그 자리에 생깁니다'
@@ -6024,12 +6213,12 @@ export default class Component extends DCLogic {
       buildings, roadCards,
       tabTile: this.state.tab === 'tile',
       tabGnd: this.state.tab === 'gnd',
-      tgn: this.state.tab === 'gnd' ? { b: '#2563eb', c: '#16191f', w: 600 } : { b: 'transparent', c: '#5b6472', w: 400 },
+      tgn: this.state.tab === 'gnd' ? { b: '#ede9e1', c: '#ede9e1', w: 600 } : { b: 'transparent', c: '#9aa1ab', w: 400 },
       tabGndSel: this.state.tab === 'gnd' ? 'true' : 'false',
       goGnd: () => this.setState({ tab: 'gnd' }),
       tabBldg: this.state.tab === 'bldg',
-      tt: this.state.tab === 'tile' ? { b: '#2563eb', c: '#16191f', w: 600 } : { b: 'transparent', c: '#5b6472', w: 400 },
-      tb: this.state.tab === 'bldg' ? { b: '#2563eb', c: '#16191f', w: 600 } : { b: 'transparent', c: '#5b6472', w: 400 },
+      tt: this.state.tab === 'tile' ? { b: '#ede9e1', c: '#ede9e1', w: 600 } : { b: 'transparent', c: '#9aa1ab', w: 400 },
+      tb: this.state.tab === 'bldg' ? { b: '#ede9e1', c: '#ede9e1', w: 600 } : { b: 'transparent', c: '#9aa1ab', w: 400 },
       tabTileSel: this.state.tab === 'tile' ? 'true' : 'false',
       tabBldgSel: this.state.tab === 'bldg' ? 'true' : 'false',
       goTile: () => this.setState({ tab: 'tile' }),

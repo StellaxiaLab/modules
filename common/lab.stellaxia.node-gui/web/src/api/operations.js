@@ -196,6 +196,25 @@ export const TRACK = {
 /** 이 노드에 설치된 GUI 앱 — 게이트웨이 경로(공개). 모듈 앱의 GUI 표시(gui · ui)가 읽는다 */
 export const GUI_APPS = { path: '/api/v1/gui/apps', perm: '공개', note: 'apps[] — id · moduleId · route · origin · embed' };
 
+/** 노드 등록 코드 (A-19 · Terra ADR-GW-002 · 노드 등록 코드 설계).
+ *
+ *  tree 관리자가 Master에서 일회용 코드를 만들고(issue — 평문은 그 응답에서 한 번만 보인다),
+ *  사람이 그 코드를 미등록 기계로 들고 가 그 기계의 GUI에서 code를 부른다.
+ *
+ *  code는 **미등록 leaf의 Gateway가 루프백에서 통과시키는 단 하나의 op**다. 익명 호출자의 catalog엔
+ *  없으므로(권한을 선언한다) client.invoke의 catalog 검사를 지나지 못한다 — src/api/enroll.js가
+ *  곧장 부른다. 부를 op는 health의 enrollment.codeOperation이 알려 준다. */
+export const ENROLL = {
+  code: { op: L('enrollment.code.post'), perm: 'node.enroll★ (등록 전에는 Gateway의 등록 창)',
+    note: '본문 { code, device_name?, master_url? } → 202 { status, master_url, master_url_persisted, restarting, service_manager }. 거절은 401 ENROLL_CODE_INVALID · _USED · _EXPIRED · _REVOKED · 400 ENROLL_MASTER_URL_REQUIRED · 409 이미 등록 · 422 Master 거절' },
+  issue: { op: T('nodes.enroll-codes.post'), perm: 'node.control',
+    note: '본문 { label?, parent_node_id?, expires_in_sec?, master_url? } → 201 { code, code_id, master_url, expires_at, max_uses }. 평문 code는 이 응답에서만 — 다시 볼 수 없다' },
+  list: { op: T('nodes.enroll-codes.get'), perm: 'node.control',
+    note: '{ codes[{ code_id, label, status: active|used|expired|revoked, expires_at, used_count, claimed_node_id? }] } — 평문은 없다' },
+  revoke: { op: T('nodes.enroll-codes.by-code-id.delete'), perm: 'node.control',
+    note: '신규 등록만 막는다 — 이 코드로 이미 등록한 노드는 그대로다' }
+};
+
 /**
  * 조타륜 앱의 추가(create) · 수정(update) · 삭제(del) — 화면의 폼(hbFormSave)과 두 번 누르는 삭제(hbDel)가 부른다(wire.js · source.js crud).
  * 본문은 실제 서버의 입력에 맞췄다 — Daemon · Master · 모듈 op 모두 모르는 키를 거절한다(DisallowUnknownFields · additionalProperties:false).

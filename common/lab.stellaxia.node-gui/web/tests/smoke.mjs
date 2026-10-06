@@ -68,8 +68,9 @@ check('조타륜 앱 바', await page.evaluate(() => !!document.querySelector('[
 // 앱 전체 화면 → 리스트에 들어감 → 파인 곳 눌러 맵으로
 await page.evaluate(() => document.querySelector('[data-hb-fs]').click()); await page.waitForTimeout(600);
 check('조타륜 앱 전체 화면', await page.evaluate(() => !!document.querySelector('section.fs-hb')));
-await page.mouse.click(723, 70); await page.waitForTimeout(500);
-check('파인 곳 → 맵', await page.evaluate(() => !document.querySelector('[data-fs-notch]')));
+// ver.2: 전체 화면은 화면 전체를 쓰고 상단바는 올라가 있다 — 맵으로 나오는 길은 가운데 상단 세션 띠의 [맵] 버튼
+await page.evaluate(() => document.querySelector('[data-fs-map]').click()); await page.waitForTimeout(1300);
+check('맵 버튼 → 맵', await page.evaluate(() => !document.querySelector('section.fs-hb') && !document.querySelector('[data-fs-map]')));
 await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 // SVI 자원 앱 = 흐름도(maingui A-28) — 로그인 전엔 잠겨 있고, 읽기 권한이 있으면 빈 흐름도다. 어느 쪽이든 예시 흐름(0.5초 박자 — 흐름 칸 sviStream · 맵 도로 sviFlow)은 돌지 않는다
 const fsText = () => page.evaluate(() => ({ text: (document.querySelector('section.fs-hb') || {}).innerText || '', ev: (window.__screen.state.sviStream ? '흐름 칸 ' : '') + JSON.stringify(window.__screen.state.sviFlow || {}) }));
@@ -84,7 +85,7 @@ await page.evaluate(() => window.__screen.setState({ hbView: { svi: 'card' } }))
 check('SVI 자원 앱 — 카드 보기로', /흐름도로/.test((await fsText()).text));
 await page.evaluate(() => { window.__screen.__real.perms = window.__smokePerms; window.__screen.setState({ hbView: {} }); window.__screen.fsExit(); }); await page.waitForTimeout(500);
 // 폴더 보관함 → 메모장 → 새 메모 저장 (로그인 전이라 이 화면 안에만 남는다)
-await page.locator('[data-fb-pod]').click(); await page.waitForTimeout(600);
+await page.locator('[data-fb-pod]').click({ position: { x: 318, y: 20 } }); await page.waitForTimeout(600);   // 보관함 알약의 오른쪽 끝(펼침 표시) — 가운데는 저장소 · 탐색기 · 메모 바로가기 단추
 await page.locator('[data-fb-go="memo"]').click(); await page.waitForTimeout(300);
 await page.locator('[data-fb-new]').click(); await page.waitForTimeout(400);
 await page.locator('[data-memo-name]').fill('연기 시험'); await page.locator('[data-memo-text]').fill('한 줄');

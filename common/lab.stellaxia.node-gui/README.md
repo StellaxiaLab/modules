@@ -4,7 +4,7 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.9"
+version: "v0.10"
 last_updated: "2026-10-05"
 ---
 
@@ -13,8 +13,8 @@ last_updated: "2026-10-05"
 게임 GUI 형태의 Terra 노드 화면 — 시작 화면 · 육각 필드 맵 · 조타륜 · 노드 자원 · 연결(도로) · 오버헤드 패널 · 편집기 — 을
 노드의 **main GUI**로 내는 모듈이다. base Scene(`io.terra.scene.terra`)은 main이 하나면 그것을 곧장 띄운다.
 
-화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `43a4e3a`(2026-10-05 — service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영 · SVI 흐름도 · SVI 흐름 칸 · 맵 도로 애니메이션)를
-바탕으로 한 **module 변형**이다(처음에는 `f24c3bc`에 맞췄다) — 같은 디자인 원본(`web/design/`) · 같은 생성 규칙이고, 갈림은 부트 프로필(`web/src/boot/module.js`)이다.
+화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `a884226`(2026-10-06 — **ver.2 다크 글래스 디자인** · 노드 등록 코드 · service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영 · SVI 흐름도 · SVI 흐름 칸 · 맵 도로 애니메이션)를
+바탕으로 한 **module 변형**이다(처음에는 `f24c3bc`, 그다음 `43a4e3a`에 맞췄다) — 같은 디자인 원본(`web/design/`) · 같은 생성 규칙이고, 갈림은 부트 프로필(`web/src/boot/module.js`)이다.
 처음에는 압축 파일로 받은 `terra-node-gui` 1.0으로 만들었고, 그 뒤 maingui 저장소(자원 추가 · 수정 · 삭제 · 상태 화면 · 모듈 GUI 창이 더 있다)로 다시 맞췄다.
 모듈이 더한 것은 다섯이다.
 
@@ -168,6 +168,17 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### maingui a884226 따라가기 — ver.2 다크 글래스 디자인 MD-25 (2026-10-06, 0.4.0)
+
+원본이 화면 전체를 ver.2 다크 글래스로 다시 입혔다(30커밋 — 노드 화면의 서랍 · 세션 띠 · 인스펙터 · 창 불투명도, 편집기 5종 · 설정 · 네트워크 · 시작 화면).
+`design/`을 그 커밋 그대로 복사하고 다시 만들었다. 모듈이 손댄 곳은 셋이다.
+
+- `tools/gen-pages.py`의 `MODULE_TPL` 치환 8건을 ver.2 마크업에 맞춰 다시 썼다(세션 띠 · 예시 배지 · 시연 스위치 · 상태 시연 select · 권한 줄 · 시작 화면 v0.2 줄). 시작 화면의 Terra 로그인 박스도 다크 색으로 바꿨다.
+- 이모지 글꼴(`public/fonts/noto-emoji.woff2` — 단색 선 글꼴, OFL)을 원본처럼 저장소에서 서빙한다. CDN을 부르지 않으므로 `font-src 'self'` CSP와 맞는다.
+- 연기 시험(`tests/smoke.mjs`)의 두 조작을 ver.2에 맞췄다 — 전체 화면에서 맵으로는 세션 띠의 `[맵]` 버튼, 보관함 알약은 오른쪽 끝을 누른다.
+
+원본이 더한 **노드 등록 코드**(A-19 — 미등록 leaf 등록 화면 · tree 노드 상태 창의 코드 발급)는 이 모듈에 싣지 않는다. 등록 화면은 시작 화면의 로그인 박스를 통째로 바꾸는 모듈 프로필에서 빠졌고(셸이 로그인을 받는다), 발급은 Master operation이라 앱 토큰으로는 "쓸 수 없다"(Q-2)로 보인다. `ENROLL` operation 선언만 `src/api/operations.js`에 들어와 있다.
 
 ### maingui 43a4e3a 따라가기 — SVI 흐름 칸 · 맵 도로 MD-24 (2026-10-05)
 
@@ -346,7 +357,7 @@ Daemon만 가짜다.
 - `io.terra.scene.terra` (Terra 코어) — 이 main을 띄우는 base Scene
 - [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · I/O 장치(0.2.0 손 등록) 데이터의 출처
 - [`lab.stellaxia.scene.hello`](../lab.stellaxia.scene.hello/README.md) — 같은 tree 레지스트리 경로의 가장 작은 Scene 모듈
-- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `43a4e3a`와 같다
+- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `a884226`과 같다
 
 ## 관련 흐름
 
