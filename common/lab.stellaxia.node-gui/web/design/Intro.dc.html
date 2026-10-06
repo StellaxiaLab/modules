@@ -9,9 +9,9 @@
 <x-dc>
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&amp;family=Cormorant+Garamond:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#a9dbf7;overflow:hidden}
+body{margin:0;background:#0b222d;overflow:hidden}
 @keyframes in-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 .in-rise{animation:in-rise 700ms cubic-bezier(.2,.8,.3,1) both}
 @keyframes in-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
@@ -21,27 +21,36 @@ body{margin:0;background:#a9dbf7;overflow:hidden}
 @keyframes in-away{0%{transform:translateY(0)}18%{transform:translateY(14px)}100%{transform:translateY(-120vh)}}
 .in-away{animation:in-away 1100ms cubic-bezier(.55,0,.75,.3) both}
 .in-field{transition:border-color 140ms,box-shadow 140ms}
-.in-field:focus-within{border-color:#1e3a5f;box-shadow:0 0 0 3px rgba(30,58,95,0.16)}
+.in-field:focus-within{border-color:#ede9e1;box-shadow:0 0 0 4px rgba(237,233,225,0.10)}
 .in-field input{outline:none}
 .in-btn{transition:filter 120ms,transform 120ms}
-.in-btn:hover{filter:brightness(1.08)}
+.in-btn:hover{background:#ffffff!important}
+.in-ghost:hover{background:rgba(255,255,255,.09)!important;color:#ede9e1!important}
+.in-eye:hover{color:#ede9e1!important}
+.in-sw .in-knob{background:#9aa1ab}
+[aria-checked="true"] .in-sw .in-knob{background:#111111}
+.in-field input::placeholder{color:#6b7280}
+::selection{background:rgba(255,216,77,.35)}
+:focus-visible{outline:2px solid #ffd84d;outline-offset:2px}
+.in-field input:focus-visible{outline:none}
 .in-btn:active{transform:translateY(1px)}
-.in-sw{transition:background 160ms}
+.in-sw{transition:background 260ms}
 @keyframes in-turn{to{transform:rotate(360deg)}}
 .in-wheel{animation:in-turn 80s linear infinite;transform-origin:center;transform-box:fill-box}
-.in-sw span{transition:transform 180ms cubic-bezier(.3,.7,.3,1)}
+.in-sw span{transition:transform 260ms cubic-bezier(.34,1.56,.64,1),background 260ms}
 </style>
 </helmet>
 <!-- 인트로 (새 씬): 바다와 맑은 하늘의 수평선 위에 로그인 판. 배경은 캔버스에 직접 그린다 (렌더 밖 — introSky) -->
-<div data-in-root="1" style="position: relative; width: 100vw; height: 100vh; min-width: 360px; min-height: 520px; overflow: hidden; background: #a9dbf7; color: #16191f; font-family: 'Noto Sans KR','Noto Sans',system-ui,'Segoe UI',-apple-system,sans-serif; font-size: 14px; line-height: 1.5;">
+<div data-in-root="1" style="position: relative; width: 100vw; height: 100vh; min-width: 360px; min-height: 520px; overflow: hidden; background: #0b222d; color: #ede9e1; font-family: 'Noto Sans KR','Noto Sans CJK KR',system-ui,sans-serif; font-size: 14px; line-height: 1.5;">
   <canvas data-in-sky="1" aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block;"></canvas>
+  <div aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; opacity: {{v.chromeOp}}; transition: opacity 900ms; background: linear-gradient(180deg, rgba(8,12,30,0.52) 0%, rgba(18,22,46,0.34) 36%, rgba(90,52,44,0.14) 55%, rgba(4,16,26,0.34) 63%, rgba(2,8,14,0.60) 100%), radial-gradient(ellipse 75% 65% at 50% 46%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.38) 100%);"></div>
   <!-- 로그인 성공 뒤: 카메라가 아래로 숙여지며(수평선이 위로) 구름을 지나 맵(노드 화면)이 드러난다. 노드 화면은 이 자리에서 미리 읽어 둔다 -->
   <sc-if value="{{v.frameOn}}" hint-placeholder-val="{{false}}">
     <iframe data-in-map="1" src="Artboard-qcfu.dc.html" title="Terra 노드 화면" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: 0; opacity: 0; z-index: 1; pointer-events: none; background: transparent;"></iframe>
   </sc-if>
   <!-- 맵(노드 화면)을 못 읽었을 때: 구름이 걷힌 뒤 바로 갈 수 있는 길 -->
   <sc-if value="{{v.mapFail}}" hint-placeholder-val="{{false}}">
-    <a data-in-fallback="1" href="Artboard-qcfu.dc.html" class="in-btn in-rise" style="position: absolute; left: 50%; top: 50%; z-index: 4; transform: translate(-50%, -50%); height: 48px; padding: 0 22px; border-radius: 24px; background: #16191f; color: #ffffff; font-size: 15px; font-weight: 800; text-decoration: none; display: flex; align-items: center; box-shadow: 0 10px 30px rgba(14,58,84,0.35);">노드 화면으로 →</a>
+    <a data-in-fallback="1" href="Artboard-qcfu.dc.html" class="in-btn in-rise" style="position: absolute; left: 50%; top: 50%; z-index: 4; transform: translate(-50%, -50%); height: 48px; padding: 0 22px; border-radius: 12px; background: #ede9e1; color: #111111; font-size: 14.5px; font-weight: 700; text-decoration: none; display: flex; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.77);">노드 화면으로 →</a>
   </sc-if>
   <canvas data-in-fly="1" aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; z-index: 2; pointer-events: none;"></canvas>
 
@@ -50,91 +59,132 @@ body{margin:0;background:#a9dbf7;overflow:hidden}
     <div data-in-stack="1" class="{{v.cardCls}}" style="position: relative; width: 384px; max-width: 100%; margin-top: {{v.cardTop}}px; pointer-events: none;">
       <!-- 조타륜: 판 뒤에서 위쪽 절반쯤만 보인다(판 속에 잠김). 천천히 돈다 -->
       <div aria-hidden="true" style="position: absolute; left: 50%; top: -180px; width: 360px; height: 360px; margin-left: -180px; z-index: 0;">
-        <svg width="360" height="360" viewBox="-180 -180 360 360" style="position: absolute; left: 0; top: 0; overflow: visible; filter: drop-shadow(0 6px 14px rgba(14,58,84,0.22));">
+        <svg width="360" height="360" viewBox="-180 -180 360 360" style="position: absolute; left: 0; top: 0; overflow: visible; filter: drop-shadow(0 10px 24px rgba(0,0,0,0.55));">
           <defs>
-            <linearGradient id="in-gel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdfdfb"></stop><stop offset="1" stop-color="#e6e9e6"></stop></linearGradient>
+            <linearGradient id="in-gel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2f37"></stop><stop offset="1" stop-color="#121418"></stop></linearGradient>
           </defs>
           <g class="in-wheel">
             <sc-for list="{{v.spokes}}" as="sp" hint-placeholder-count="8">
               <g transform="rotate({{sp.a}})">
-                <rect x="-6.5" y="-150" width="13" height="110" fill="url(#in-gel)" stroke="#1f2a37" stroke-width="2"></rect>
-                <rect x="-9.5" y="-179" width="19" height="40" rx="9.5" fill="url(#in-gel)" stroke="#1f2a37" stroke-width="2"></rect>
-                <rect x="-4" y="-174" width="3" height="28" rx="1.5" fill="#ffffff"></rect>
+                <rect x="-6.5" y="-150" width="13" height="110" fill="url(#in-gel)" stroke="rgba(237,233,225,0.42)" stroke-width="1.6"></rect>
+                <rect x="-9.5" y="-179" width="19" height="40" rx="9.5" fill="url(#in-gel)" stroke="rgba(237,233,225,0.42)" stroke-width="1.6"></rect>
+                <rect x="-4" y="-174" width="3" height="28" rx="1.5" fill="rgba(237,233,225,0.30)"></rect>
               </g>
             </sc-for>
-            <circle r="132" fill="none" stroke="#1f2a37" stroke-width="22"></circle>
-            <circle r="132" fill="none" stroke="#f1f3f0" stroke-width="17.6"></circle>
-            <circle r="132" fill="none" stroke="#1e3a5f" stroke-width="1.4" opacity="0.85"></circle>
-            <circle r="136.5" fill="none" stroke="#ffffff" stroke-width="2"></circle>
+            <circle r="132" fill="none" stroke="rgba(237,233,225,0.42)" stroke-width="22"></circle>
+            <circle r="132" fill="none" stroke="#16191e" stroke-width="18.8"></circle>
+            <circle r="132" fill="none" stroke="rgba(237,233,225,0.22)" stroke-width="1.2" opacity="0.85"></circle>
+            <circle r="136.5" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="2"></circle>
           </g>
         </svg>
       </div>
       <!-- 가운데 베어링: 고정(돌지 않음). 스테인리스 고리 + 흰 판 + Terra 로고. 판 윗변에 걸쳐 있다 -->
-      <div aria-hidden="true" style="position: absolute; left: 50%; top: -106px; width: 212px; height: 212px; margin-left: -106px; z-index: 2; border-radius: 50%; box-sizing: border-box; border: 2.2px solid #1f2a37; background: linear-gradient(180deg, #f4f6f8, #b9c0c9 50%, #e3e7ec); box-shadow: 0 8px 20px rgba(14,58,84,0.25); display: flex; align-items: center; justify-content: center;">
-        <div style="width: 186px; height: 186px; border-radius: 50%; box-sizing: border-box; border: 2px solid #1f2a37; background: linear-gradient(180deg, #fdfdfb, #eef0ee); box-shadow: inset 0 0 0 4px #fdfdfb, inset 0 0 0 5.4px rgba(30,58,95,0.85), inset 0 3px 8px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center;">
-          <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48ZmlsdGVyIGlkPSJyb3VnaCIgeD0iLTEwJSIgeT0iLTEwJSIgd2lkdGg9IjEyMCUiIGhlaWdodD0iMTIwJSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjEuMSIgbnVtT2N0YXZlcz0iMiIgc2VlZD0iNyIgcmVzdWx0PSJuIj48L2ZlVHVyYnVsZW5jZT48ZmVEaXNwbGFjZW1lbnRNYXAgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0ibiIgc2NhbGU9IjIuNCI+PC9mZURpc3BsYWNlbWVudE1hcD48L2ZpbHRlcj48L2RlZnM+PGcgZmlsdGVyPSJ1cmwoI3JvdWdoKSI+PHBhdGggZmlsbD0iIzEzMTMxMyIgZD0iTTggMjIgTDUwIDMxIEw0MCAxOCBMNzAgMjggTDc4IDI2IEw4MCA5IEw5MCAyNCBMMTE2IDMwIEwxNTAgMjkgTDE1OCAzNCBMMTg0IDE5IEwxNjggNDYgTDE1MCA0MiBMMTM4IDQ3IEwxMjMgNTcgTDExOSA5OCBMMTM2IDEwMCBMMTIxIDExMiBMMTE3IDEyNSBMMTIzIDE1OCBMMTQyIDE3NCBMNTIgMTc0IEw3NiAxNDggTDg2IDExOCBMODggMTA2IEw4MyA4MSBMOTMgODggTDk4IDcyIEw5NSA2MCBMNjQgNDUgTDI2IDQ5IEwzOCA0MFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNMTkxLjIgNzcuMyBMMTk3LjkgOTQuOSBMMTkzLjEgMTEzLjEgTDE5Mi4zIDk1LjJaIj48L3BhdGg+PHBhdGggZmlsbD0iIzEzMTMxMyIgZD0iTTE4Ny4yIDEzNS4yIEwxODUuNiAxNDUuNSBMMTc3LjkgMTUyLjYgTDE4MS45IDE0My42WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMxMzEzMTMiIGQ9Ik0xNjIuOSAxNjkuOSBMMTUwLjcgMTg0LjQgTDEzMi4xIDE4OC4zIEwxNDcuNSAxNzkuMFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNNjQuOCAxODcuMiBMNTEuMyAxODQuNCBMNDIuMSAxNzQuMSBMNTMuNyAxODAuMloiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNMjguMCAxNjAuNCBMMTMuOCAxNDcuOCBMMTAuNiAxMjkuMCBMMTkuNCAxNDQuN1oiPjwvcGF0aD48cGF0aCBmaWxsPSIjMTMxMzEzIiBkPSJNMTEuNyA2Ny45IEwxMy42IDU2LjAgTDIyLjEgNDcuNCBMMTcuMyA1Ny45WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiMxMzEzMTMiIGQ9Ik0zNy4xIDMwLjEgTDQ1LjIgMTguOCBMNTguOCAxNS41IEw0OC4zIDIzLjRaIj48L3BhdGg+PC9nPjxwYXRoIGZpbGw9IiMxMzEzMTMiIGQ9Ik0xMTggMiBDMTE4LjM4IDguNDYgMTE5LjU0IDkuNjIgMTI2IDEwIEMxMTkuNTQgMTAuMzggMTE4LjM4IDExLjU0IDExOCAxOCBDMTE3LjYyIDExLjU0IDExNi40NiAxMC4zOCAxMTAgMTAgQzExNi40NiA5LjYyIDExNy42MiA4LjQ2IDExOCAyWiI+PC9wYXRoPjwvc3ZnPgo=" alt="Terra" width="124" height="124" style="width: 124px; height: 124px;">
+      <div aria-hidden="true" style="position: absolute; left: 50%; top: -106px; width: 212px; height: 212px; margin-left: -106px; z-index: 2; border-radius: 50%; box-sizing: border-box; border: 1.5px solid rgba(237,233,225,0.45); background: linear-gradient(180deg, #1d2128, #0d0f13 55%, #16191e); box-shadow: 0 14px 34px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.10); display: flex; align-items: center; justify-content: center;">
+        <div style="width: 186px; height: 186px; border-radius: 50%; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.14); background: radial-gradient(circle at 50% 35%, #15181d 0%, #050607 75%); box-shadow: inset 0 0 0 5px rgba(237,233,225,0.06), inset 0 0 0 6px rgba(237,233,225,0.18), inset 0 6px 18px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;">
+          <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMiAtMTIgMjI0IDIyNCIgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCI+PHRpdGxlPlRlcnJhPC90aXRsZT48ZGVmcz48ZmlsdGVyIGlkPSJyb3VnaCIgeD0iLTEwJSIgeT0iLTEwJSIgd2lkdGg9IjEyMCUiIGhlaWdodD0iMTIwJSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjEuMSIgbnVtT2N0YXZlcz0iMiIgc2VlZD0iNyIgcmVzdWx0PSJuIj48L2ZlVHVyYnVsZW5jZT48ZmVEaXNwbGFjZW1lbnRNYXAgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0ibiIgc2NhbGU9IjIuNCI+PC9mZURpc3BsYWNlbWVudE1hcD48L2ZpbHRlcj48L2RlZnM+PGcgZmlsdGVyPSJ1cmwoI3JvdWdoKSI+PHBhdGggZmlsbD0iI0RDREFENSIgZD0iTTggMjIgTDUwIDMxIEw0MCAxOCBMNzAgMjggTDc4IDI2IEw4MCA5IEw5MCAyNCBMMTE2IDMwIEwxNTAgMjkgTDE1OCAzNCBMMTg0IDE5IEwxNjggNDYgTDE1MCA0MiBMMTM4IDQ3IEwxMjMgNTcgTDExOSA5OCBMMTM2IDEwMCBMMTIxIDExMiBMMTE3IDEyNSBMMTIzIDE1OCBMMTQyIDE3NCBMNTIgMTc0IEw3NiAxNDggTDg2IDExOCBMODggMTA2IEw4MyA4MSBMOTMgODggTDk4IDcyIEw5NSA2MCBMNjQgNDUgTDI2IDQ5IEwzOCA0MFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjRENEQUQ1IiBkPSJNMTkxLjIgNzcuMyBMMTk3LjkgOTQuOSBMMTkzLjEgMTEzLjEgTDE5Mi4zIDk1LjJaIj48L3BhdGg+PHBhdGggZmlsbD0iI0RDREFENSIgZD0iTTE4Ny4yIDEzNS4yIEwxODUuNiAxNDUuNSBMMTc3LjkgMTUyLjYgTDE4MS45IDE0My42WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiNEQ0RBRDUiIGQ9Ik0xNjIuOSAxNjkuOSBMMTUwLjcgMTg0LjQgTDEzMi4xIDE4OC4zIEwxNDcuNSAxNzkuMFoiPjwvcGF0aD48cGF0aCBmaWxsPSIjRENEQUQ1IiBkPSJNNjQuOCAxODcuMiBMNTEuMyAxODQuNCBMNDIuMSAxNzQuMSBMNTMuNyAxODAuMloiPjwvcGF0aD48cGF0aCBmaWxsPSIjRENEQUQ1IiBkPSJNMjguMCAxNjAuNCBMMTMuOCAxNDcuOCBMMTAuNiAxMjkuMCBMMTkuNCAxNDQuN1oiPjwvcGF0aD48cGF0aCBmaWxsPSIjRENEQUQ1IiBkPSJNMTEuNyA2Ny45IEwxMy42IDU2LjAgTDIyLjEgNDcuNCBMMTcuMyA1Ny45WiI+PC9wYXRoPjxwYXRoIGZpbGw9IiNEQ0RBRDUiIGQ9Ik0zNy4xIDMwLjEgTDQ1LjIgMTguOCBMNTguOCAxNS41IEw0OC4zIDIzLjRaIj48L3BhdGg+PC9nPjxwYXRoIGZpbGw9IiNEQ0RBRDUiIGQ9Ik0xMTggMiBDMTE4LjM4IDguNDYgMTE5LjU0IDkuNjIgMTI2IDEwIEMxMTkuNTQgMTAuMzggMTE4LjM4IDExLjU0IDExOCAxOCBDMTE3LjYyIDExLjU0IDExNi40NiAxMC4zOCAxMTAgMTAgQzExNi40NiA5LjYyIDExNy42MiA4LjQ2IDExOCAyWiI+PC9wYXRoPjwvc3ZnPgo=" alt="Terra" width="118" height="118" style="width: 118px; height: 118px; filter: drop-shadow(0 0 14px rgba(237,233,225,0.12));">
         </div>
       </div>
     <!-- form 제출 대신 버튼 · Enter로 (캔버스처럼 form 제출이 막힌 곳에서도 돌게) -->
-    <div data-in-card="1" role="form" aria-label="Terra 로그인" style="pointer-events: auto; position: relative; z-index: 1; width: 100%; box-sizing: border-box; padding: 30px 30px 24px; border-radius: 24px; border: 2.2px solid #1f2a37; background: linear-gradient(180deg, #fdfdfb, #eef0ee); box-shadow: inset 0 0 0 4px #fdfdfb, inset 0 0 0 5.6px rgba(30,58,95,0.85), 0 24px 60px rgba(14,58,84,0.28), 0 4px 12px rgba(14,58,84,0.12); position: relative; display: flex; flex-direction: column;">
+    <div data-in-card="1" role="form" aria-label="Terra 로그인" style="pointer-events: auto; position: relative; z-index: 1; width: 100%; box-sizing: border-box; padding: 30px 30px 24px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12); background: linear-gradient(180deg, rgba(16,18,23,0.96), rgba(7,8,10,0.97)); backdrop-filter: blur(16px) saturate(1.1); -webkit-backdrop-filter: blur(16px) saturate(1.1); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 30px 80px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.3); position: relative; display: flex; flex-direction: column;">
       <div style="position: relative; z-index: 1; display: flex; flex-direction: column; gap: 14px;">
       <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 4px; padding-top: 98px;">
-        <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; font-weight: 700; letter-spacing: 0.04em; line-height: 1.05; text-shadow: 0 1px 0 #fdfdfb;">Terra</span>
-        <span style="font-size: 12.5px; color: #5b6472;">{{v.sub}}</span>
+        <span aria-label="Terra" style="font-size: 28px; font-weight: 600; letter-spacing: 0.42em; padding-left: 0.42em; line-height: 1.2; color: #ede9e1;">TERRA</span>
+        <span style="margin-top: 4px; font-size: 12.5px; color: #9aa1ab;">{{v.sub}}</span>
       </div>
 
       <sc-if value="{{v.form}}" hint-placeholder-val="{{true}}">
         <label style="display: flex; flex-direction: column; gap: 5px;">
-          <span style="font-size: 12px; font-weight: 700; color: #3b4452;">username</span>
-          <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid {{v.userLine}}; border-radius: 10px; background: #ffffff;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
-            <input data-in-user="1" type="text" name="username" autocomplete="username" value="{{v.username}}" onChange="{{v.setUser}}" onKeyDown="{{v.enter}}" placeholder="admin" aria-label="username" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 15px; color: #16191f;">
+          <span style="font-size: 12px; font-weight: 500; color: #b4bac3;">username</span>
+          <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid {{v.userLine}}; border-radius: 10px; background: #0e1013;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
+            <input data-in-user="1" type="text" name="username" autocomplete="username" value="{{v.username}}" onChange="{{v.setUser}}" onKeyDown="{{v.enter}}" placeholder="admin" aria-label="username" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 14.5px; color: #ede9e1; caret-color: #ede9e1;">
           </span>
         </label>
         <label style="display: flex; flex-direction: column; gap: 5px;">
-          <span style="font-size: 12px; font-weight: 700; color: #3b4452; display: flex; justify-content: space-between;"><span>password</span><span style="color: #a65f00; font-weight: 700;">{{v.caps}}</span></span>
-          <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 6px 0 12px; box-sizing: border-box; border: 1px solid {{v.passLine}}; border-radius: 10px; background: #ffffff;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b95a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
-            <input data-in-pass="1" type="{{v.pwType}}" name="password" autocomplete="current-password" value="{{v.password}}" onChange="{{v.setPass}}" onKeyDown="{{v.key}}" aria-label="password" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 15px; color: #16191f;">
-            <button type="button" onClick="{{v.togglePw}}" aria-label="{{v.pwTip}}" title="{{v.pwTip}}" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #5b6472; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{v.eye}}"></path><circle cx="12" cy="12" r="{{v.eyeR}}"></circle></svg>
+          <span style="font-size: 12px; font-weight: 500; color: #b4bac3; display: flex; justify-content: space-between;"><span>password</span><span style="color: #f5b83d; font-weight: 600;">{{v.caps}}</span></span>
+          <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 6px 0 12px; box-sizing: border-box; border: 1px solid {{v.passLine}}; border-radius: 10px; background: #0e1013;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+            <input data-in-pass="1" type="{{v.pwType}}" name="password" autocomplete="current-password" value="{{v.password}}" onChange="{{v.setPass}}" onKeyDown="{{v.key}}" aria-label="password" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 14.5px; color: #ede9e1; caret-color: #ede9e1;">
+            <button type="button" onClick="{{v.togglePw}}" aria-label="{{v.pwTip}}" title="{{v.pwTip}}" class="in-eye" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #9aa1ab; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{v.eye}}"></path><circle cx="12" cy="12" r="{{v.eyeR}}"></circle></svg>
             </button>
           </span>
         </label>
 
         <!-- 자동 로그인: 켜 두면 이 기기에 기억하고 다음부터 판을 건너뛴다 -->
         <button type="button" data-in-auto="1" role="switch" aria-checked="{{v.autoOn}}" onClick="{{v.toggleAuto}}" style="display: flex; align-items: center; gap: 10px; padding: 4px 2px; border: 0; background: transparent; cursor: pointer; font: inherit; text-align: left;">
-          <span class="in-sw" style="position: relative; width: 40px; height: 22px; flex-shrink: 0; border-radius: 11px; background: {{v.swBg}}; box-shadow: inset 0 1px 2px rgba(0,0,0,0.18);">
-            <span style="position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transform: translateX({{v.swX}}px);"></span>
+          <span class="in-sw" style="position: relative; width: 40px; height: 22px; flex-shrink: 0; border-radius: 11px; background: {{v.swBg}}; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.16); box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);">
+            <span class="in-knob" style="position: absolute; left: 1px; top: 1px; width: 18px; height: 18px; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.55); transform: translateX({{v.swX}}px);"></span>
           </span>
           <span style="display: flex; flex-direction: column; line-height: 1.3;">
-            <span style="font-size: 13.5px; font-weight: 700; color: #16191f;">자동 로그인</span>
-            <span style="font-size: 11px; color: #8b95a6;">이 기기에서 다음부터 바로 들어간다</span>
+            <span style="font-size: 13px; font-weight: 600; color: #ede9e1;">자동 로그인</span>
+            <span style="font-size: 11px; color: #9aa1ab;">이 기기에서 다음부터 바로 들어간다</span>
           </span>
         </button>
 
         <span data-in-msg="1" style="min-height: 18px; font-size: 12px; font-weight: 600; color: {{v.msgC}};">{{v.msg}}</span>
 
-        <button type="button" data-in-go="1" onClick="{{v.submit}}" class="in-btn" style="height: 48px; border: 0; border-radius: 12px; background: #16191f; color: #ffffff; font: inherit; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
-          <sc-if value="{{v.busy}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); border-top-color: #ffffff; animation: in-spin 700ms linear infinite;"></span></sc-if>
+        <button type="button" data-in-go="1" onClick="{{v.submit}}" class="in-btn" style="height: 48px; border: 0; border-radius: 10px; background: #ede9e1; color: #111111; font: inherit; font-size: 14.5px; font-weight: 700; letter-spacing: 0.02em; box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+          <sc-if value="{{v.busy}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.15); border-top-color: #111111; animation: in-spin 700ms linear infinite;"></span></sc-if>
           {{v.goLabel}}
         </button>
+      </sc-if>
+
+      <!-- 미등록 노드 등록 (A-19 · ADR-GW-002): tree 관리자가 만든 일회용 등록 코드를 받는다.
+           루프백에서 보고 있을 때만 칸이 나온다 — 미등록 Gateway의 등록 창이 루프백에서만 열리기 때문이다 -->
+      <sc-if value="{{v.enroll}}" hint-placeholder-val="{{false}}">
+        <div data-in-enroll="1" style="display: flex; flex-direction: column; gap: 12px; padding: 2px 0;">
+          <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border: 1.5px solid rgba(255,255,255,0.12); border-radius: 10px; background: #11100a;">
+            <span style="font-size: 12.5px; font-weight: 800; color: #c7ccd4;">이 노드는 아직 tree에 등록되지 않았습니다</span>
+            <span data-in-enroll-note="1" style="font-size: 11.5px; line-height: 1.5; color: #959fae;">{{v.enrNote}}</span>
+          </div>
+
+          <!-- 루프백이 아닐 때: 왜 여기서는 등록할 수 없는지 -->
+          <span data-in-enroll-why="1" style="display: {{v.enrWhyDisp}}; font-size: 11.5px; line-height: 1.5; color: #ea9e55;">{{v.enrWhy}}</span>
+
+          <div data-in-enroll-fields="1" style="display: {{v.enrFieldsDisp}}; flex-direction: column; gap: 10px;">
+            <label style="display: flex; flex-direction: column; gap: 5px;">
+              <span style="font-size: 12px; font-weight: 700; color: #a6b1c2;">등록 코드</span>
+              <span class="in-field" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 12px; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; background: #0e0e0e;">
+                <textarea data-in-enroll-code="1" rows="2" value="{{v.enrCode}}" onChange="{{v.setEnrCode}}" placeholder="tnc_…" aria-label="등록 코드" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 13px; font-family: 'JetBrains Mono',ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace; color: #c7ccd4; resize: vertical; overflow-wrap: anywhere;"></textarea>
+              </span>
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 5px;">
+              <span style="font-size: 12px; font-weight: 700; color: #a6b1c2;">기기 이름</span>
+              <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; background: #0e0e0e;">
+                <input data-in-enroll-name="1" type="text" value="{{v.enrName}}" onChange="{{v.setEnrName}}" placeholder="비우면 이 기계의 이름" aria-label="기기 이름" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 15px; color: #c7ccd4;">
+              </span>
+            </label>
+            <!-- 코드가 Master 주소를 품고 있으면 이 칸은 나오지 않는다 -->
+            <label data-in-enroll-addr-row="1" style="display: {{v.enrAddrDisp}}; flex-direction: column; gap: 5px;">
+              <span style="font-size: 12px; font-weight: 700; color: #a6b1c2;">Master 주소</span>
+              <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; background: #0e0e0e;">
+                <input data-in-enroll-addr="1" type="text" value="{{v.enrAddr}}" onChange="{{v.setEnrAddr}}" placeholder="http://master.example:8080" aria-label="Master 주소" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 14px; color: #c7ccd4;">
+              </span>
+            </label>
+            <span data-in-enroll-msg="1" style="display: {{v.enrMsgDisp}}; min-height: 18px; font-size: 12px; font-weight: 600; line-height: 1.5; color: {{v.enrMsgC}};">{{v.enrMsg}}</span>
+            <button type="button" data-in-enroll-go="1" onClick="{{v.enrGo}}" class="in-btn" style="display: {{v.enrGoDisp}}; height: 48px; border: 0; border-radius: 12px; background: #ede9e1; color: #111111; font: inherit; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; align-items: center; justify-content: center; gap: 10px;">
+              <sc-if value="{{v.enrBusy}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.049); border-top-color: rgba(255,255,255,0.12); animation: in-spin 700ms linear infinite;"></span></sc-if>
+              {{v.enrGoLabel}}
+            </button>
+          </div>
+        </div>
       </sc-if>
 
       <!-- 자동 로그인 중 · 로그인됨 -->
       <sc-if value="{{v.status}}" hint-placeholder-val="{{false}}">
         <div data-in-status="1" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0 4px;">
-          <span aria-hidden="true" style="width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{v.stBg}}; color: #ffffff; font-size: 26px; font-weight: 800;">
-            <sc-if value="{{v.busy}}" hint-placeholder-val="{{true}}"><span style="width: 26px; height: 26px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.35); border-top-color: #ffffff; animation: in-spin 800ms linear infinite;"></span></sc-if>
-            <sc-if value="{{v.ok}}" hint-placeholder-val="{{false}}">✓</sc-if>
+          <span aria-hidden="true" style="width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; background: {{v.stBg}}; border: 1px solid {{v.stLine}}; color: #0b0d11; font-size: 26px; font-weight: 800;">
+            <sc-if value="{{v.busy}}" hint-placeholder-val="{{true}}"><span style="width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,0.12); border-top-color: #ede9e1; animation: in-spin 800ms linear infinite;"></span></sc-if>
+            <sc-if value="{{v.ok}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12l5 5 9-10"></path></svg></sc-if>
           </span>
-          <span style="font-size: 15px; font-weight: 800;">{{v.stTitle}}</span>
-          <span style="font-size: 12.5px; color: #5b6472; text-align: center;">{{v.stSub}}</span>
+          <span style="font-size: 15px; font-weight: 700; color: #ede9e1;">{{v.stTitle}}</span>
+          <span style="font-size: 12.5px; color: #9aa1ab; text-align: center;">{{v.stSub}}</span>
           <sc-if value="{{v.ok}}" hint-placeholder-val="{{false}}">
-            <button type="button" onClick="{{v.logout}}" style="border: 0; background: transparent; color: #5b6472; font: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline;">다른 계정으로 · 자동 로그인 끄기</button>
+            <button type="button" onClick="{{v.logout}}" style="border: 0; background: transparent; color: #9aa1ab; font: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;">다른 계정으로 · 자동 로그인 끄기</button>
           </sc-if>
           <sc-if value="{{v.canCancel}}" hint-placeholder-val="{{true}}">
-            <button type="button" data-in-cancel="1" onClick="{{v.cancel}}" style="height: 34px; padding: 0 16px; border: 1px solid #d8dde5; border-radius: 17px; background: #ffffff; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;">취소 — 직접 로그인</button>
+            <button type="button" data-in-cancel="1" onClick="{{v.cancel}}" class="in-ghost" style="height: 34px; padding: 0 16px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: rgba(255,255,255,0.04); color: #ede9e1; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;">취소 — 직접 로그인</button>
           </sc-if>
         </div>
       </sc-if>
@@ -144,13 +194,13 @@ body{margin:0;background:#a9dbf7;overflow:hidden}
   </div>
 
   <!-- 아래: 연결 상태 · 판 -->
-  <div style="position: absolute; z-index: 3; opacity: {{v.chromeOp}}; pointer-events: {{v.chromePe}}; transition: opacity 400ms; left: 20px; bottom: 16px; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(15,40,56,0.38); color: #ffffff; font-size: 12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
+  <div style="position: absolute; z-index: 3; opacity: {{v.chromeOp}}; pointer-events: {{v.chromePe}}; transition: opacity 400ms; left: 20px; bottom: 16px; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(13,15,19,0.72); border: 1px solid rgba(255,255,255,0.10); color: #ede9e1; font-size: 12px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 10px 30px rgba(0,0,0,0.30);">
     <span style="width: 8px; height: 8px; border-radius: 50%; background: {{v.gwDot}}; box-shadow: 0 0 6px {{v.gwDot}};"></span>
-    <span style="font-weight: 700;">Gateway</span>
-    <span style="opacity: 0.85;">{{v.gwText}}</span>
+    <span style="font-weight: 600;">Gateway</span>
+    <span class="in-mono" style="color: #9aa1ab; font-family: 'JetBrains Mono', ui-monospace, 'DejaVu Sans Mono', monospace; font-size: 11.5px;">{{v.gwText}}</span>
   </div>
-  <div style="position: absolute; z-index: 3; opacity: {{v.chromeOp}}; pointer-events: {{v.chromePe}}; transition: opacity 400ms; right: 20px; bottom: 16px; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 15px; background: rgba(15,40,56,0.38); color: #ffffff; font-size: 12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
-    <span>v0.2</span><span style="opacity: 0.6;">·</span><span style="color: #ffd479; font-weight: 700;">예시 데이터</span>
+  <div style="position: absolute; z-index: 3; opacity: {{v.chromeOp}}; pointer-events: {{v.chromePe}}; transition: opacity 400ms; right: 20px; bottom: 16px; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 15px; background: rgba(13,15,19,0.72); border: 1px solid rgba(255,255,255,0.10); color: #ede9e1; font-size: 12px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 10px 30px rgba(0,0,0,0.30);">
+    <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.28em; color: #9aa1ab;">TERRA</span><span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; color: #9aa1ab;">v0.2</span><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; box-sizing: border-box; border-radius: 10px; color: #f5b83d; border: 1px solid rgba(245,184,61,0.5); background: rgba(245,184,61,0.10); font-size: 11px; font-weight: 600;">예시 데이터</span>
   </div>
 </div>
 </x-dc>
@@ -162,7 +212,7 @@ class Component extends DCLogic {
     this.state = {
       username: saved ? saved.username : 'admin', password: '', auto: !!saved, showPw: false, caps: false,
       // phase: form(입력) · auto(자동 로그인 중) · loading(확인 중) · fail(실패) · done(로그인됨)
-      phase: saved ? 'auto' : 'form', msg: '', msgC: '#d33d52', shake: 0, gw: 'check'
+      phase: saved ? 'auto' : 'form', msg: '', msgC: '#ff5d5d', shake: 0, gw: 'check'
     };
   }
   // 자동 로그인 기억 (예시 — 실제로는 비밀번호를 화면이 저장하지 않고 Gateway가 자격 핸들을 보관한다)
@@ -200,7 +250,7 @@ class Component extends DCLogic {
     }, 900);
   }
   fail(msg) {
-    this.setState({ phase: 'form', msg, msgC: '#d33d52', shake: this.state.shake + 1 });
+    this.setState({ phase: 'form', msg, msgC: '#ff5d5d', shake: this.state.shake + 1 });
     const card = document.querySelector('[data-in-card]');
     if (card) { card.classList.remove('in-shake'); void card.offsetWidth; card.classList.add('in-shake'); }
   }
@@ -217,11 +267,21 @@ class Component extends DCLogic {
     this.setState({ fly: true });
   }
   renderVals() {
-    const S = this.state, form = S.phase === 'form' || S.phase === 'loading', busy = S.phase === 'loading' || S.phase === 'auto';
+    const S = this.state;
+    // 미등록 노드 등록 (A-19): 로그인도 자동 로그인도 아닌 세 번째 단계다. 로그인할 Master가
+    // 아직 없으니 로그인 칸을 보여 줄 수 없고, '로그인됨' 칸도 아니다 — 그래서 form · status와
+    // 나란히 서는 제3의 묶음으로 둔다. 실제 값은 src/boot/service.js가 채운다(서비스 변형만)
+    const enroll = S.phase === 'enroll' || S.phase === 'enrolling' || S.phase === 'enrolled';
+    const form = !enroll && (S.phase === 'form' || S.phase === 'loading'), busy = S.phase === 'loading' || S.phase === 'auto';
     const name = S.username.trim() || 'admin';
     return {
       v: {
-        form, status: !form, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
+        form, status: !form && !enroll, enroll, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
+        // 등록 묶음 — 변형(demo)에서는 enroll이 거짓이라 그려지지 않는다
+        enrLocal: false, enrNote: '', enrWhy: '', enrWhyDisp: 'none', enrFieldsDisp: 'none',
+        enrCode: '', enrName: '', enrAddr: '', enrAddrDisp: 'none', enrMsg: '', enrMsgC: '#fbbf24', enrMsgDisp: 'none',
+        enrBusy: false, enrGoLabel: '등록', enrGoDisp: 'none', enrDone: false,
+        setEnrCode: () => {}, setEnrName: () => {}, setEnrAddr: () => {}, enrGo: () => {}, enrBack: () => {},
         cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, chromePe: S.fly ? 'none' : 'auto', spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
         sub: S.phase === 'done' ? name + ' — 로그인됨' : '노드에 로그인',
         username: S.username, password: S.password,
@@ -233,18 +293,18 @@ class Component extends DCLogic {
         pwType: S.showPw ? 'text' : 'password', pwTip: S.showPw ? '비밀번호 숨기기' : '비밀번호 보기',
         eye: S.showPw ? 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM4 4l16 16' : 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z', eyeR: 3,
         togglePw: () => this.setState({ showPw: !S.showPw }),
-        autoOn: S.auto ? 'true' : 'false', swBg: S.auto ? '#1f7a4d' : '#c3cad5', swX: S.auto ? 18 : 0,
+        autoOn: S.auto ? 'true' : 'false', swBg: S.auto ? '#ede9e1' : 'rgba(255,255,255,0.08)', swX: S.auto ? 18 : 0,
         toggleAuto: () => this.setState({ auto: !S.auto }),
-        userLine: S.msg && !S.username.trim() ? '#d33d52' : '#c3cad5', passLine: S.msg && S.username.trim() ? '#d33d52' : '#c3cad5',
+        userLine: S.msg && !S.username.trim() ? '#ff5d5d' : 'rgba(255,255,255,0.18)', passLine: S.msg && S.username.trim() ? '#ff5d5d' : 'rgba(255,255,255,0.18)',
         msg: S.msg, msgC: S.msgC,
         goLabel: S.phase === 'loading' ? '확인 중…' : '로그인',
         submit: (e) => this.submit(e),
-        stBg: S.phase === 'done' ? '#1f7a4d' : '#1e3a5f',
+        stBg: S.phase === 'done' ? '#3ecf8e' : 'rgba(255,255,255,0.05)', stLine: S.phase === 'done' ? '#3ecf8e' : 'rgba(255,255,255,0.14)',
         stTitle: S.phase === 'auto' ? name + '(으)로 자동 로그인 중…' : '로그인됨',
         stSub: S.phase === 'auto' ? '이 기기에 기억된 로그인 — 잠시 뒤 들어간다' : (S.auto ? '자동 로그인 켜짐 · ' : '') + '맵으로 내려간다…',
         cancel: () => { clearTimeout(this._autoT); this.setState({ phase: 'form', msg: '' }); setTimeout(() => { const el = document.querySelector('[data-in-pass]'); if (el) el.focus(); }, 50); },
         logout: () => { this.writeAuto(null); this.setState({ phase: 'form', auto: false, password: '', msg: '' }); },
-        gwDot: S.gw === 'ok' ? '#5eea9a' : '#ffd479', gwText: S.gw === 'ok' ? '127.0.0.1:8787 · 연결됨' : '응답 확인 중…'
+        gwDot: S.gw === 'ok' ? '#3ecf8e' : '#f5b83d', gwText: S.gw === 'ok' ? '127.0.0.1:8787 · 연결됨' : '응답 확인 중…'
       }
     };
   }

@@ -63,7 +63,7 @@ export default class Component extends DCLogic {
   animVals(opts) {
     const S = this.state, fr = S.frames, len = fr.length, anim = S.anim, maxLen = opts.maxLen || 1, step = S.step || 2;
     const keys = fr.map((f, i) => this.slotFilled(i)), nKeys = keys.filter(Boolean).length;
-    const tab = (label, on, pick, tip) => ({ label, tip: tip || '', on: on ? 'true' : 'false', bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(22,25,31,0.14)' : 'none', pick });
+    const tab = (label, on, pick, tip) => ({ label, tip: tip || '', on: on ? 'true' : 'false', bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(0,0,0,0.35)' : 'none', pick });
     const edit = (fn) => () => { if (S.playing) this.animPlay(false); fn(); };
     const filledHere = keys[S.fi], held = this.heldIdx(fr, S.fi);
     const move = (d) => edit(() => {
@@ -81,9 +81,9 @@ export default class Component extends DCLogic {
       return {
         num: has ? String(i + 1) : '', label: '칸 ' + (i + 1) + ' · ' + (Math.floor(i / 16) + 1) + '초' + (has ? ' — 프레임' : ' — 빈 칸 (칸 ' + (hk + 1) + '의 프레임이 이어짐)'),
         sel: on ? 'true' : 'false', img, imgDisp: img ? 'block' : 'none', holdDisp: has ? 'none' : 'block',
-        border: on ? '2px solid #2563eb' : has ? '1px solid #b6c3d6' : '1px solid #e3e8ef',
-        bg: has ? (img ? '#f7f8fa' : '#dde8fd') : (i % 4 === 0 ? '#f4f6f9' : '#fafbfc'),
-        ring: head ? '0 0 0 2px #1f9d55' : 'none', numFg: on ? '#2563eb' : '#5b6472',
+        border: on ? '2px solid #ffd84d' : has ? '1px solid rgba(255,255,255,0.22)' : '1px solid rgba(255,255,255,0.07)',
+        bg: has ? (img ? '#1a1e25' : 'rgba(122,167,255,0.16)') : (i % 4 === 0 ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.025)'),
+        ring: head ? '0 0 0 2px #3ecf8e' : 'none', numFg: on ? '#ffd84d' : '#9aa1ab',
         pick: edit(() => this.animGo(i))
       };
     });
@@ -97,7 +97,7 @@ export default class Component extends DCLogic {
       ], typeLabel: opts.typeLabel,
       cur: String(cur + 1), len: String(len),
       slotInfo: '프레임 ' + nKeys + '개 · ' + (filledHere ? '이 칸은 프레임' : '빈 칸 — 칸 ' + (held + 1) + '의 프레임이 보임 · 그리면 이 칸에 새 프레임'),
-      slotFg: filledHere ? '#5b6472' : '#2563eb',
+      slotFg: filledHere ? '#9aa1ab' : '#7aa7ff',
       lenDisp: maxLen > 1 ? 'flex' : 'none', lenFixDisp: maxLen > 1 ? 'none' : 'inline', lenVal: String(len / 16), lens,
       setLen: (e) => {
         if (S.playing) this.animPlay(false);
@@ -116,7 +116,7 @@ export default class Component extends DCLogic {
         if (!f[j]) f[j] = opts.copy(f[this.heldIdx(f, S.fi)]);
         this.animGo(j, f); this.setState({ saved: false });
       }),
-      dupFg: S.fi + step < len ? '#2563eb' : '#b6bfcc',
+      dupFg: S.fi + step < len ? '#ede9e1' : '#4b515b',
       fillLabel: filledHere ? '빈 칸으로' : '이 칸에 프레임 넣기',
       fillTip: filledHere ? (S.fi === 0 ? '칸 0은 비울 수 없습니다' : '이 칸의 프레임을 지워 앞 프레임이 이어지게') : '앞 프레임을 복사해 이 칸에 넣기',
       fill: edit(() => {
@@ -126,10 +126,10 @@ export default class Component extends DCLogic {
         this.animGo(S.fi, f); this.setState({ saved: false });
       }),
       left: move(-1), right: move(1),
-      leftFg: filledHere && S.fi > 0 ? '#16191f' : '#b6bfcc', rightFg: filledHere && S.fi < len - 1 && (S.fi > 0 || keys[1]) ? '#16191f' : '#b6bfcc',
+      leftFg: filledHere && S.fi > 0 ? '#ede9e1' : '#4b515b', rightFg: filledHere && S.fi < len - 1 && (S.fi > 0 || keys[1]) ? '#ede9e1' : '#4b515b',
       toggle: () => { if (nKeys < 2) return; this.animPlay(!S.playing); },
       playIcon: S.playing ? '❚❚' : '▶', playLabel: nKeys < 2 ? '프레임이 2개 이상이면 재생' : S.playing ? '멈춤' : '재생',
-      playLine: S.playing ? '#1f9d55' : '#d8dde5', playBg: S.playing ? '#e8f6ee' : '#ffffff', playFg: nKeys < 2 ? '#b6bfcc' : S.playing ? '#1f7a4d' : '#16191f',
+      playLine: S.playing ? 'rgba(62,207,142,0.55)' : 'rgba(255,255,255,0.18)', playBg: S.playing ? 'rgba(62,207,142,0.14)' : 'rgba(255,255,255,0.04)', playFg: nKeys < 2 ? '#4b515b' : S.playing ? '#3ecf8e' : '#ede9e1',
       slots,
       confirmDisp: S.confirmBasic ? 'flex' : 'none', dropN: String(Math.max(0, nKeys - 1)),
       confirmYes: () => {
@@ -447,7 +447,7 @@ export default class Component extends DCLogic {
     const plate = [];
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const t = x + ',' + y + ',0';
-      plate.push({ pts: str([PG(x, y, 0), PG(x + 1, y, 0), PG(x + 1, y + 1, 0), PG(x, y + 1, 0)]), target: t, fill: hover === t && !has(x, y, 0) ? '#dbe6fb' : ((x + y) % 2 ? '#f8f9fb' : '#f1f3f7') });
+      plate.push({ pts: str([PG(x, y, 0), PG(x + 1, y, 0), PG(x + 1, y + 1, 0), PG(x, y + 1, 0)]), target: t, fill: hover === t && !has(x, y, 0) ? 'rgba(255,216,77,0.30)' : ((x + y) % 2 ? '#1c2028' : '#161a20') });
     }
     const sq = (k) => [[-k, -k], [N + k, -k], [N + k, N + k], [-k, N + k]];
     const rim = str(sq(0.35).map(([a, b]) => PG(a, b, 0))), outline = str(sq(0).map(([a, b]) => PG(a, b, 0)));
@@ -466,7 +466,7 @@ export default class Component extends DCLogic {
       if (id !== 'pz' && dx * sy + dy * cy <= 0.001) return;
       const pts = cornersOf(id, x, y, z).map((q) => PG(...q)), nb = [x + dx, y + dy, z + dz];
       const lf = this.lightF(id, DM[id].n[0] * cy - DM[id].n[1] * sy, DM[id].n[0] * sy + DM[id].n[1] * cy);
-      faces.push({ pts: str(pts), fill: this.scaleC(col, lf), stroke: ghost ? '#2563eb' : 'rgba(22,25,31,0.22)', sw: ghost ? 1.5 : 0.9, op: ghost ? (S.vplacing ? 0.85 : 0.6) : 1, pe: ghost ? 'none' : 'auto',
+      faces.push({ pts: str(pts), fill: this.scaleC(col, lf), stroke: ghost ? '#ffd84d' : 'rgba(22,25,31,0.22)', sw: ghost ? 1.5 : 0.9, op: ghost ? (S.vplacing ? 0.85 : 0.6) : 1, pe: ghost ? 'none' : 'auto',
         target: inB(...nb) ? nb.join(',') : '', block: x + ',' + y + ',' + z, near: pts.reduce((a, q) => a + q[2], 0) / 4 + (ghost ? 0.01 : 0) });
     });
     let total = 0;
@@ -484,7 +484,7 @@ export default class Component extends DCLogic {
     ].filter((q) => q.id === 'pz' || q.n[0] * sy + q.n[1] * cy > 0.02).map((q) => {
       const pts = q.c.map((p) => CPW(...p));
       return { id: q.id, label: q.label, pts: str(pts), lx: f(pts.reduce((a, p) => a + p[0], 0) / 4), ly: f(pts.reduce((a, p) => a + p[1], 0) / 4),
-        fill: this.scaleC('#5f7fbf', this.lightF(q.id, q.n[0] * cy - q.n[1] * sy, q.n[0] * sy + q.n[1] * cy)), near: pts.reduce((a, p) => a + p[2], 0) / 4 };
+        fill: this.scaleC('#6a7486', this.lightF(q.id, q.n[0] * cy - q.n[1] * sy, q.n[0] * sy + q.n[1] * cy)), near: pts.reduce((a, p) => a + p[2], 0) / 4 };
     }).sort((a, b) => a.near - b.near);
     const cubeClick = (e) => {
       const g = e.target.closest ? e.target.closest('[data-face]') : null, id = g ? g.getAttribute('data-face') : '';
@@ -551,7 +551,7 @@ export default class Component extends DCLogic {
         let n = 0; if (v) for (let i = 0; i < v.length; i++) if (v[i]) n++;
         out.push({ isSet: false, isMat: true, label: m.name, img: custom ? this.voxImg(v, 30, 30, 45, this.fieldPitch(), 19, 15, 17) : this.thumb(on && !custom ? S.faces : m.faces),
           meta: custom ? '8³ · 블럭 ' + n + (fr > 1 ? ' · ' + fr + '프레임' : '') : '큐브 · 6면' + (fr > 1 ? ' · ' + fr + '프레임' : ''), playDisp: fr > 1 ? 'inline' : 'none',
-          pressed: on ? 'true' : 'false', border: on ? '1px solid #2563eb' : '1px solid transparent', bg: on ? '#ffffff' : 'transparent', fw: on ? 600 : 500, state: on ? '편집 중' : '',
+          pressed: on ? 'true' : 'false', border: on ? '1px solid rgba(255,255,255,0.18)' : '1px solid transparent', bg: on ? 'rgba(255,255,255,0.09)' : 'transparent', fw: on ? 600 : 500, state: on ? '편집 중' : '',
           pick: () => { if (!on && this._pickMat) this._pickMat({ target: { value: m.id } }); } });
       });
     });
@@ -573,7 +573,7 @@ export default class Component extends DCLogic {
       const ox = OX + L.col * (FACE + GAP), oy = OY + L.row * (FACE + GAP);
       return {
         ox: ox - 2, oy: oy - 2, size: FACE + 4,
-        ring: this.state.sel === L.id ? '#2563eb' : 'transparent',
+        ring: this.state.sel === L.id ? '#ffd84d' : 'rgba(255,255,255,0.06)',
         label: L.label + (this.state.sel === L.id ? ' · 선택' : ''),
         lx: ox + FACE / 2, ly: L.row === 2 ? oy + FACE + 18 : oy - 8,
         sx: rsel && rsel.id === L.id ? ox + Math.min(rsel.x0, rsel.x1) * CELL : 0, sy: rsel && rsel.id === L.id ? oy + Math.min(rsel.y0, rsel.y1) * CELL : 0,
@@ -716,7 +716,7 @@ export default class Component extends DCLogic {
     const palette = PAL.map((hex) => ({
       hex,
       pressed: hex === this.state.color ? 'true' : 'false',
-      border: hex === this.state.color ? '2px solid #2563eb' : '1px solid rgba(22,25,31,0.15)',
+      border: hex === this.state.color ? '2px solid #0d0f13' : '1px solid rgba(255,255,255,0.10)',
       pick: () => this.setState({ color: hex, tool: this.state.tool === 'pick' ? 'pen' : this.state.tool })
     }));
     const TOOLS = [
@@ -738,8 +738,8 @@ export default class Component extends DCLogic {
     const tools = (custom ? VTOOLS : TOOLS).map((t) => ({
       label: t.label, tip: t.tip,
       pressed: this.state.tool === t.id ? 'true' : 'false',
-      border: this.state.tool === t.id ? '1px solid #2563eb' : '1px solid #d8dde5',
-      bg: this.state.tool === t.id ? '#e6eefc' : '#ffffff',
+      border: this.state.tool === t.id ? '1px solid #ede9e1' : '1px solid rgba(255,255,255,0.14)',
+      bg: this.state.tool === t.id ? '#ede9e1' : 'rgba(255,255,255,0.04)',
       fw: this.state.tool === t.id ? 600 : 400,
       pick: () => this.setState({ tool: t.id, pasting: false })
     }));
@@ -770,7 +770,7 @@ export default class Component extends DCLogic {
         applyAdj(dh, cur.s, cur.l);
       }
     }));
-    const tab = (label, on, pick) => ({ label, sel: on ? 'true' : 'false', bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(22,25,31,0.12)' : 'none', pick });
+    const tab = (label, on, pick) => ({ label, sel: on ? 'true' : 'false', bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(0,0,0,0.35)' : 'none', pick });
     const scopes = [tab('이 면', !this.state.adjAll, () => this.setState({ adjAll: false, adj: null })), tab('6면 전부', this.state.adjAll, () => this.setState({ adjAll: true, adj: null }))];
     const FACE_NAME = { px: '오른쪽', ny: '뒤', nx: '왼쪽', py: '앞', pz: '위', nz: '아래' };
     const selTxt = rsel ? '선택 ' + FACE_NAME[rsel.id] + ' ' + (Math.abs(rsel.x1 - rsel.x0) + 1) + '×' + (Math.abs(rsel.y1 - rsel.y0) + 1) : '';
@@ -822,16 +822,16 @@ export default class Component extends DCLogic {
     return {
       name: this.state.name,
       setName: (e) => this.setState({ name: e.target.value, saved: false }),
-      saveText: this.state.saved ? '저장됨' : '● 저장 안 됨',
-      saveColor: this.state.saved ? '#5b6472' : '#a65f00',
+      saveText: this.state.saved ? '저장됨' : '저장 안 됨',
+      saveColor: this.state.saved ? '#3ecf8e' : '#f5b83d',
       save, saveAs, newMat, pickMat,
       curId: this.state.curId,
       // 2프레임 이상 = 애니메이션 자재: 목록에 ▶️
-      matOptions: mats.map((m) => ({ id: m.id, label: (this.keyCount(m.frames) > 1 ? '▶️ ' : '') + (m.kind === 'custom' ? '[커스텀] ' : '') + m.name + ' — ' + m.set, selected: m.id === this.state.curId })),
+      matOptions: mats.map((m) => ({ id: m.id, label: (this.keyCount(m.frames) > 1 ? '▸ ' : '') + (m.kind === 'custom' ? '[커스텀] ' : '') + m.name + ' — ' + m.set, selected: m.id === this.state.curId })),
       an: this.animVals({ typeLabel: '자재', basicLabel: custom ? '일반' : '일반 자재', animLabel: custom ? '애니메이션' : '애니메이션 자재', thumb: (f) => this.thumb(f), copy: (f) => this.copyFrame(f), slotH: 46, maxLen: 1 }),
-      newCustom, vx: this.voxVals(custom),
+      newCustom, vx: this.voxVals(custom), matTree: custom ? [] : this.voxTree(),
       cubeFlex: custom ? 'none' : 'flex', cubeInline: custom ? 'none' : 'inline-block', cubeBlock: custom ? 'none' : 'block',
-      kindLabel: custom ? '커스텀 · 8³' : '큐브 · 6면', kindBg: custom ? '#f1e9f8' : '#eef1f5', kindFg: custom ? '#5b2f7e' : '#5b6472',
+      kindLabel: custom ? '커스텀 · 8³' : '큐브 · 6면', kindBg: custom ? 'rgba(189,132,255,0.12)' : 'rgba(255,255,255,0.05)', kindFg: custom ? '#cfa8ff' : '#b4bac3',
       kindTip: custom ? '8 × 8 × 8 칸에 색 블럭을 쌓아 만드는 자재 — 울타리 · 작은 도구처럼 블럭보다 작은 물건' : '여섯 면에 8 × 8 픽셀을 그리는 블럭 자재',
       helpText: '면마다 8 × 8 픽셀 · 전개도를 접으면 큐브가 됩니다 (앞 위에 윗면, 뒤 아래에 아랫면) · 면을 누르면 그 면이 선택되고, 선택한 면의 기능은 오른쪽 팔레트 아래에 있습니다 · 단축키 Ctrl+C · Ctrl+V · Ctrl+Z · Esc',
       tools,
@@ -841,11 +841,11 @@ export default class Component extends DCLogic {
       netCursor: this.state.pasting ? 'copy' : this.state.tool === 'select' ? 'cell' : this.state.tool === 'pick' ? 'copy' : 'crosshair',
       down, move, up, key, copy, fillSel, undo, status,
       pasteMode: () => { if (this.state.clip) this.setState({ pasting: !this.state.pasting }); },
-      pasteBorder: this.state.pasting ? '1px solid #2563eb' : '1px solid #d8dde5',
-      pasteBg: this.state.pasting ? '#e6eefc' : '#ffffff',
-      pasteColor: this.state.clip ? '#16191f' : '#8b95a6',
-      copyColor: rsel ? '#16191f' : '#8b95a6',
-      undoColor: this.state.hist.length ? '#16191f' : '#8b95a6',
+      pasteBorder: this.state.pasting ? '1px solid #ffd84d' : '1px solid rgba(255,255,255,0.18)',
+      pasteBg: this.state.pasting ? 'rgba(255,216,77,0.14)' : 'rgba(255,255,255,0.04)',
+      pasteColor: this.state.clip ? '#ede9e1' : '#5d646e',
+      copyColor: rsel ? '#ede9e1' : '#5d646e',
+      undoColor: this.state.hist.length ? '#ede9e1' : '#5d646e',
       faceLabel: FACE_NAME[sel] + ' 면',
       scopes, hues, adjH: cur.h, adjS: cur.s, adjL: cur.l,
       setH: (e) => applyAdj(Number(e.target.value), cur.s, cur.l),
@@ -853,7 +853,7 @@ export default class Component extends DCLogic {
       setL: (e) => applyAdj(cur.h, cur.s, Number(e.target.value)),
       commitAdj: () => this.setState({ adj: null }),
       cancelAdj: () => { if (a) { const next = Object.assign({}, this.state.faces); a.targets.forEach((id) => { next[id] = a.base[id]; }); this.setState({ faces: next, adj: null }); } },
-      adjBtn: a ? '#16191f' : '#8b95a6',
+      adjBtn: a ? '#ede9e1' : '#5d646e',
       color: this.state.color,
       setColor: (e) => this.setState({ color: e.target.value }),
       palette,

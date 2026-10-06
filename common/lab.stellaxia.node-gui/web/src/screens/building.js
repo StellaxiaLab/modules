@@ -67,7 +67,7 @@ export default class Component extends DCLogic {
   animVals(opts) {
     const S = this.state, fr = S.frames, len = fr.length, anim = S.anim, maxLen = opts.maxLen || 1, step = S.step || 2;
     const keys = fr.map((f, i) => this.slotFilled(i)), nKeys = keys.filter(Boolean).length;
-    const tab = (label, on, pick, tip) => ({ label, tip: tip || '', on: on ? 'true' : 'false', bg: on ? '#ffffff' : 'transparent', fg: on ? '#16191f' : '#5b6472', fw: on ? 600 : 400, sh: on ? '0 1px 2px rgba(22,25,31,0.14)' : 'none', pick });
+    const tab = (label, on, pick, tip) => ({ label, tip: tip || '', on: on ? 'true' : 'false', bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', fw: on ? 600 : 400, sh: 'none', pick });
     const edit = (fn) => () => { if (S.playing) this.animPlay(false); fn(); };
     const filledHere = keys[S.fi], held = this.heldIdx(fr, S.fi);
     const move = (d) => edit(() => {
@@ -85,9 +85,9 @@ export default class Component extends DCLogic {
       return {
         num: has ? String(i + 1) : '', label: '칸 ' + (i + 1) + ' · ' + (Math.floor(i / 16) + 1) + '초' + (has ? ' — 프레임' : ' — 빈 칸 (칸 ' + (hk + 1) + '의 프레임이 이어짐)'),
         sel: on ? 'true' : 'false', img, imgDisp: img ? 'block' : 'none', holdDisp: has ? 'none' : 'block',
-        border: on ? '2px solid #2563eb' : has ? '1px solid #b6c3d6' : '1px solid #e3e8ef',
-        bg: has ? (img ? '#f7f8fa' : '#dde8fd') : (i % 4 === 0 ? '#f4f6f9' : '#fafbfc'),
-        ring: head ? '0 0 0 2px #1f9d55' : 'none', numFg: on ? '#2563eb' : '#5b6472',
+        border: on ? '2px solid #ffd84d' : has ? '1px solid rgba(255,255,255,0.24)' : '1px solid rgba(255,255,255,0.07)',
+        bg: has ? (img ? '#1b1f26' : 'rgba(255,255,255,0.16)') : (i % 4 === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)'),
+        ring: head ? '0 0 0 2px #3ecf8e' : 'none', numFg: on ? '#ffd84d' : '#9aa1ab',
         pick: edit(() => this.animGo(i))
       };
     });
@@ -101,7 +101,7 @@ export default class Component extends DCLogic {
       ], typeLabel: opts.typeLabel,
       cur: String(cur + 1), len: String(len),
       slotInfo: '프레임 ' + nKeys + '개 · ' + (filledHere ? '이 칸은 프레임' : '빈 칸 — 칸 ' + (held + 1) + '의 프레임이 보임 · 그리면 이 칸에 새 프레임'),
-      slotFg: filledHere ? '#5b6472' : '#2563eb',
+      slotFg: filledHere ? '#9aa1ab' : '#7aa7ff',
       lenDisp: maxLen > 1 ? 'flex' : 'none', lenFixDisp: maxLen > 1 ? 'none' : 'inline', lenVal: String(len / 16), lens,
       setLen: (e) => {
         if (S.playing) this.animPlay(false);
@@ -120,7 +120,7 @@ export default class Component extends DCLogic {
         if (!f[j]) f[j] = opts.copy(f[this.heldIdx(f, S.fi)]);
         this.animGo(j, f); this.setState({ saved: false });
       }),
-      dupFg: S.fi + step < len ? '#2563eb' : '#b6bfcc',
+      dupFg: S.fi + step < len ? '#ffd84d' : '#6b7280',
       fillLabel: filledHere ? '빈 칸으로' : '이 칸에 프레임 넣기',
       fillTip: filledHere ? (S.fi === 0 ? '칸 0은 비울 수 없습니다' : '이 칸의 프레임을 지워 앞 프레임이 이어지게') : '앞 프레임을 복사해 이 칸에 넣기',
       fill: edit(() => {
@@ -130,10 +130,10 @@ export default class Component extends DCLogic {
         this.animGo(S.fi, f); this.setState({ saved: false });
       }),
       left: move(-1), right: move(1),
-      leftFg: filledHere && S.fi > 0 ? '#16191f' : '#b6bfcc', rightFg: filledHere && S.fi < len - 1 && (S.fi > 0 || keys[1]) ? '#16191f' : '#b6bfcc',
+      leftFg: filledHere && S.fi > 0 ? '#ede9e1' : '#4b5260', rightFg: filledHere && S.fi < len - 1 && (S.fi > 0 || keys[1]) ? '#ede9e1' : '#4b5260',
       toggle: () => { if (nKeys < 2) return; this.animPlay(!S.playing); },
-      playIcon: S.playing ? '❚❚' : '▶', playLabel: nKeys < 2 ? '프레임이 2개 이상이면 재생' : S.playing ? '멈춤' : '재생',
-      playLine: S.playing ? '#1f9d55' : '#d8dde5', playBg: S.playing ? '#e8f6ee' : '#ffffff', playFg: nKeys < 2 ? '#b6bfcc' : S.playing ? '#1f7a4d' : '#16191f',
+      playIcon: S.playing ? '❚❚' : '▶', playOn: !!S.playing, playOff: !S.playing, playLabel: nKeys < 2 ? '프레임이 2개 이상이면 재생' : S.playing ? '멈춤' : '재생',
+      playLine: S.playing ? 'rgba(62,207,142,0.55)' : 'rgba(255,255,255,0.18)', playBg: S.playing ? 'rgba(62,207,142,0.12)' : 'rgba(255,255,255,0.04)', playFg: nKeys < 2 ? '#4b5260' : S.playing ? '#3ecf8e' : '#ede9e1',
       slots,
       confirmDisp: S.confirmBasic ? 'flex' : 'none', dropN: String(Math.max(0, nKeys - 1)),
       confirmYes: () => {
@@ -146,7 +146,7 @@ export default class Component extends DCLogic {
   }
   // ───── 이벤트 (건물 · 도로 공통) — 동작 · 대기 · 정지 · 실패 + 사용자 이벤트 ─────
   //   이벤트마다 디자인 한 벌(블록 · 프레임). 디자인이 없는 이벤트는 맵에서 기본 모습에 효과를 입힌다
-  evtCommonE() { return [{ id: 'run', name: '동작', c: '#1f9d55' }, { id: 'wait', name: '대기', c: '#e0a100' }, { id: 'stop', name: '정지', c: '#8b95a6' }, { id: 'fail', name: '실패', c: '#d33d52' }]; }
+  evtCommonE() { return [{ id: 'run', name: '동작', c: '#3ecf8e' }, { id: 'wait', name: '대기', c: '#f5b83d' }, { id: 'stop', name: '정지', c: '#9aa1ab' }, { id: 'fail', name: '실패', c: '#ff5d5d' }]; }
   evtDirsE() { return []; }
   evCurD() {
     const fr = this.framesNow(), anim = this.state.anim && (this.keyCount(fr) > 1 || fr.length > 16);
@@ -190,16 +190,16 @@ export default class Component extends DCLogic {
     const S = this.state, evs = S.evs || {}, modified = S.ev !== 'base' && !evs[S.ev] && this._evSnap && this.evNorm(this.evCurD()) !== this._evSnap;
     const has = (id) => id === 'base' || !!evs[id] || (id === S.ev && modified);
     const chip = (e, grp) => { const on = S.ev === e.id, d = has(e.id);
-      return { id: e.id, label: (e.g ? e.g + ' ' : '') + e.name, grp, on: on ? 'true' : 'false', bg: on ? '#16191f' : d ? '#ffffff' : '#f4f6f9', fg: on ? '#ffffff' : d ? '#16191f' : '#8b95a6',
-        line: on ? '#16191f' : d ? (e.c || '#d8dde5') : '#e3e8ef', style: d ? 'solid' : 'dashed', dot: e.c || '#16191f', dotOp: d ? 1 : 0.35, tip: e.name + (d ? ' — 디자인 있음' : ' — 디자인 없음 (기본 모습 + 효과)'), pick: () => this.evSwitch(e.id) }; };
-    const all = [chip({ id: 'base', name: '기본', c: '#16191f' }, 'base')].concat(this.evtCommonE().map((e) => chip(e, 'common')), this.evtDirsE().map((e) => chip(e, 'dir')), S.custom.map((e) => chip(Object.assign({ c: '#be185d' }, e), 'custom')));
+      return { id: e.id, ico: e.ico || '', label: (e.g ? e.g + ' ' : '') + e.name, grp, on: on ? 'true' : 'false', bg: on ? '#ede9e1' : d ? (e.c && e.c.length === 7 ? e.c + '1a' : 'rgba(255,255,255,0.05)') : 'transparent', fg: on ? '#111111' : d ? (e.c || '#ede9e1') : '#6b7280',
+        line: on ? '#ede9e1' : d ? (e.c ? e.c + '80' : 'rgba(255,255,255,0.18)') : 'rgba(255,255,255,0.14)', style: d ? 'solid' : 'dashed', dot: on && e.id === 'base' ? '#111111' : (e.c || '#ede9e1'), dotOp: d ? 1 : 0.35, tip: e.name + (d ? ' — 디자인 있음' : ' — 디자인 없음 (기본 모습 + 효과)'), pick: () => this.evSwitch(e.id) }; };
+    const all = [chip({ id: 'base', name: '기본', c: '#b4bac3' }, 'base')].concat(this.evtCommonE().map((e) => chip(e, 'common')), this.evtDirsE().map((e) => chip(e, 'dir')), S.custom.map((e) => chip(Object.assign({ c: '#ff6ca2' }, e), 'custom')));
     const cur = all.find((c) => c.id === S.ev) || all[0], isCustom = S.custom.some((c) => c.id === S.ev), isDir = /^dir-/.test(S.ev);
     const info = S.ev === 'base' ? '기본 모습 — 이벤트에 디자인이 없으면 이 모습에 효과(대기 = 호박빛 · 정지 = 잿빛 · 실패 = 붉은 깜빡임)를 입힌다'
       : has(S.ev) ? cur.label + ' 디자인' + (isDir ? ' — 흐름이 그 방향인 팔만 이 모습 (합류는 기본)' : ' — 이 상태일 때 맵에서 이 모습')
       : cur.label + ' — 아직 디자인이 없다. 기본 모습을 복사해 보여 주는 중 · 고치면 이 이벤트 디자인이 생긴다';
     return {
       common: all.filter((c) => c.grp === 'base' || c.grp === 'common'), dirs: all.filter((c) => c.grp === 'dir'), custom: all.filter((c) => c.grp === 'custom'),
-      dirDisp: 'none', info, infoC: S.ev === 'base' ? '#5b6472' : has(S.ev) ? '#1f7a4d' : '#a65f00',
+      dirDisp: 'none', info, infoC: S.ev === 'base' ? '#9aa1ab' : has(S.ev) ? '#3ecf8e' : '#f5b83d',
       dropDisp: S.ev !== 'base' && (has(S.ev) || isCustom) ? 'inline-block' : 'none', dropLabel: isCustom ? '이벤트 삭제' : '디자인 지우기 (기본 사용)', drop: () => this.evDrop(S.ev),
       newOn: S.evNew !== null && S.evNew !== undefined, newOff: !(S.evNew !== null && S.evNew !== undefined), newVal: S.evNew || '',
       newStart: () => this.setState({ evNew: '' }), newInput: (e) => this.setState({ evNew: e.target.value }), newKey: (e) => { if (e.key === 'Enter') this.evAdd(e.target.value); else if (e.key === 'Escape') this.setState({ evNew: null }); },
@@ -782,7 +782,7 @@ export default class Component extends DCLogic {
       plate.push({
         pts: str([PG(x, y, 0), PG(x + 1, y, 0), PG(x + 1, y + 1, 0), PG(x, y + 1, 0)]),
         target: t,
-        fill: hover === t && !has(x, y, 0) ? '#dbe6fb' : (info.safe ? '#f8f9fb' : '#fbefdc')
+        fill: hover === t && !has(x, y, 0) ? 'rgba(255,216,77,0.45)' : (info.safe ? '#1e2229' : '#3b2d18')
       });
     });
     const plateRim = str(reg.hex.map(([a, b]) => PW(a * 1.05, b * 1.05, 0)));
@@ -825,7 +825,7 @@ export default class Component extends DCLogic {
       faces.push({
         pts: str(pts),
         fill: p.url,
-        stroke: ghost ? '#2563eb' : 'rgba(22,25,31,0.22)',
+        stroke: ghost ? '#ffd84d' : 'rgba(22,25,31,0.22)',
         sw: ghost ? 1.5 : sw,
         op: ghost ? (this.state.placing ? 0.85 : 0.6) : 1,
         pe: ghost ? 'none' : 'auto',
@@ -852,7 +852,7 @@ export default class Component extends DCLogic {
         if (gOcc.has((x + dx) + ',' + (y + dy) + ',' + (z + dz))) return;
         if (id !== 'pz' && dx * sy + dy * cy <= 0.001) return;
         const pts = cornersOf(id, x, y, z).map((q) => PG(...q));
-        faces.push({ pts: str(pts), fill: patFor(m, id, this.planeOf(id, x, y, z), o || 0).url, stroke: '#2563eb', sw: 0.6, op: 0.7, pe: 'none', target: '', block: '', near: pts.reduce((a, q) => a + q[2], 0) / 4 + 0.01 });
+        faces.push({ pts: str(pts), fill: patFor(m, id, this.planeOf(id, x, y, z), o || 0).url, stroke: '#ffd84d', sw: 0.6, op: 0.7, pe: 'none', target: '', block: '', near: pts.reduce((a, q) => a + q[2], 0) / 4 + 0.01 });
       }));
       dropInfo = { ok, skip: placed.length - ok.length };
     }
@@ -1040,13 +1040,13 @@ export default class Component extends DCLogic {
         isBp: true, isSet: false, isFolder: false, label: bp.name, indent: (depth * 14) + 'px',
         meta: (on ? this.state.N : bp.N) + '×' + (on ? this.state.N : bp.N) + ' · 블록 ' + (on ? this.state.blocks.length : bp.blocks.length) + (nFr > 1 ? ' · ' + nFr + '프레임' : ''),
         playDisp: nFr > 1 ? 'inline' : 'none', playTip: '애니메이션 · 프레임 ' + nFr + '개 · ' + lenS + '초 (' + lenS * 16 + '칸)',
-        pressed: on ? 'true' : 'false', border: on ? '1px solid #2563eb' : '1px solid transparent', bg: on ? '#ffffff' : 'transparent',
+        pressed: on ? 'true' : 'false', border: on ? '1px solid rgba(255,216,77,0.55)' : '1px solid transparent', bg: on ? 'rgba(255,255,255,0.07)' : 'transparent',
         fw: on ? 600 : 500, state: on ? '편집 중' : '', op: drag && drag.id === id ? 0.5 : 1,
         grab: (e) => { if (e.button === 0) this.pend = { id, x: e.clientX, y: e.clientY }; },
         load: () => { if (this.justDragged) { this.justDragged = false; return; } if (!on) loadBp(i); }
       });
     };
-    const dropStyle = (key) => ({ drop: key, dropBg: dropOn === key ? '#e6eefc' : 'transparent', dropLine: dropOn === key ? '1px dashed #2563eb' : 'none' });
+    const dropStyle = (key) => ({ drop: key, dropBg: dropOn === key ? 'rgba(255,216,77,0.10)' : 'transparent', dropLine: dropOn === key ? '1px dashed #ffd84d' : 'none' });
     this.state.bpSets.forEach((st, si) => {
       bpTree.push(Object.assign({ isSet: true, isFolder: false, isBp: false, label: st.name }, dropStyle('s' + si)));
       st.items.forEach((it, ii) => {
@@ -1130,7 +1130,7 @@ export default class Component extends DCLogic {
         isMat: true, isSet: false, isFolder: false, label: m.name, indent: (depth * 14) + 'px',
         top: this.avgC(m.faces.pz), left: this.scaleC(this.avgC(m.faces.nx), 0.85), right: this.scaleC(this.avgC(m.faces.py), 0.68),
         playDisp: this.keyCount(m.frames) > 1 ? 'inline' : 'none', playTip: '애니메이션 자재 · 프레임 ' + this.keyCount(m.frames) + '개 · 1초 (16칸)',
-        pressed: on ? 'true' : 'false', border: on ? '1px solid #2563eb' : '1px solid transparent', bg: on ? '#f3f7ff' : 'transparent',
+        pressed: on ? 'true' : 'false', border: on ? '1px solid rgba(255,216,77,0.55)' : '1px solid transparent', bg: on ? 'rgba(255,216,77,0.08)' : 'transparent',
         fw: on ? 600 : 400, state: on ? '활성' : '',
         pick: () => this.setState({ active: on ? null : id, hover: null })
       });
@@ -1160,11 +1160,11 @@ export default class Component extends DCLogic {
     return {
       evb: this.evBar(), curName: bpsState[cur].name,
       saveText: this.state.saved ? '저장됨' : '● 저장 안 됨',
-      saveColor: this.state.saved ? '#5b6472' : '#a65f00',
+      saveColor: this.state.saved ? '#6b7280' : '#f5b83d',
       save, exportNow, newBp, newFolder, delBp,
       an: this.animVals({ typeLabel: '건물', basicLabel: '일반 건물', animLabel: '애니메이션 건물', thumb: null, copy: (f) => f.map((b) => b.slice()), slotH: 26, slotHM: 22, slotHS: 18, maxLen: 4 }),
       bpTree, rootMove, rootUp, rootCancel, rootKey, chip,
-      delBpColor: bpsState.length > 1 ? '#d33d52' : '#8b95a6',
+      delBpColor: bpsState.length > 1 ? '#ff5d5d' : '#6b7280',
       N, setN, cap: reg.cells.size,
       warnText: (this.state.note ? this.state.note + '. ' : '') + (this.state.dropped ? '칸 수를 줄여 범위 밖 블록 ' + this.state.dropped + '개를 뺐습니다. ' : '') + (unsafe ? '주황 칸의 블록은 90° 돌린 방향에서 타일 밖으로 나갑니다' : ''),
       pats, plate, plateRim, hexOutline, faces,
@@ -1178,7 +1178,7 @@ export default class Component extends DCLogic {
       pitchLabel: Math.round(this.state.pitch) + '°',
       resetView: () => this.setState({ yaw: 45, pitch: this.fieldPitch() }),
       tree, delMat,
-      delColor: this.state.active ? '#d33d52' : '#8b95a6',
+      delColor: this.state.active ? '#ff5d5d' : '#6b7280',
       hasExport: !!ex,
       ex: ex || { name: '', views: [], patterns: [], blocks: 0, unit: 0, merged: 0 },
       pitchField: Math.round(this.fieldPitch() * 10) / 10,

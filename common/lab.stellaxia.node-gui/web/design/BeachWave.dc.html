@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 파도 해변 (보관 부품)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0}</style>
+</helmet>
+<!-- 보관 부품: 관리 노드 창 배경이던 '위에서 내려다본 해변 · 밀려왔다 빠지는 파도'.
+     ver.2 노드 화면에서는 뺐다 (관리 노드 창 = 이 세션 시안 모양). 나중에 다른 자리에 쓰려고 그대로 보관한다.
+     쓰는 법: 같은 캔버스(data-mg-beach)를 두고 mgBeachStart()를 부른다. 너비 기준은 this._mgPillW(접힌 창 너비) -->
+<div style="position: relative; width: 1000px; height: 160px; background: #0d0f13; overflow: hidden; font-family: 'Noto Sans KR',system-ui,sans-serif; color: #ede9e1;">
+  <div style="position: absolute; left: 0; top: 16px; width: {{w}}px; height: 128px; overflow: hidden; border-radius: 12px; border: 1px solid rgba(255,255,255,0.10);">
+    <canvas data-mg-beach="1" aria-hidden="true" style="position: absolute; left: 0; top: 50%; width: 1000px; height: 128px; transform: translateY(-50%); pointer-events: none;"></canvas>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"width":{"editor":"range","min":120,"max":1000,"step":10,"default":1000},"$preview":{"width":1000,"height":160}}'>
+class Component extends DCLogic {
+  componentDidMount() { this._mgPillW = this.props.width ?? 1000; this.mgBeachStart(); }
+  componentWillUnmount() { this._unmounted = true; if (this._mgb && this._mgb.raf) cancelAnimationFrame(this._mgb.raf); }
+  renderVals() { this._mgPillW = this.props.width ?? 1000; return { w: this._mgPillW }; }
+  mgBeachStart() {
+    const cv = document.querySelector('[data-mg-beach]');
+    if (!cv || this._mgb) return;
+    const TAU = Math.PI * 2, S = Math.sin, cl = (x) => Math.min(1, Math.max(0, x));
+    const CW = 1000, CH = 128, s = 0.5, DPR = 2, host = cv.parentElement;
+    const A0 = -40, A1 = CH / s + 40, BT = -3000;          // 그리는 범위 (a 방향 위아래 여유, b는 창 왼쪽 끝까지)
+    const C = { sand: '#f6e4c8', wetSand: '#e8cfa6', wet: '#d9b183', foam: '#d9f2f7', water: '#4dc5d4', deep: '#27b0c1', patch: '#3cbccc' };
+    cv.width = CW * DPR; cv.height = CH * DPR;
+    const g = cv.getContext('2d');
+    // 거품 배치: 해안선 가까이는 작고 드물게, 바다 쪽으로 갈수록 크고 촘촘하게 (시드 고정)
+    let sd = 7 >>> 0;
+    const rand = () => { sd = (sd + 0x6d2b79f5) >>> 0; let t = sd; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const gauss = () => Math.sqrt(-2 * Math.log(rand() || 1e-9)) * Math.cos(TAU * rand());
+    const lay = [];
+    for (let n = 0; n < 60000; n++) {
+      const d = 10 + rand() * 200;
+      if (rand() > 0.012 + 0.988 * Math.min(1, (d / 170) ** 3)) continue;
+      const a = -20 + rand() * (A1 - A0 - 40), r = Math.max(3, Math.min(38, 3.5 * Math.exp(d / 72) * Math.exp(gauss() * 0.25)));
+      if (d - r * 0.5 < 8) continue;
+      let ok = true;
+      for (const c of lay) {
+        const dx = c[0] - a; if (dx > 110 || dx < -110) continue;
+        const dm = Math.max(d, -c[1]);
+        const lim = Math.max((c[2] + r) * 0.95 + (30 - dm * 0.3), (c[2] + r) * (0.6 - 0.45 * cl((dm - 110) / 70)));
+        if (Math.hypot(dx, -c[1] - d) < lim) { ok = false; break; }
+      }
+      if (ok) lay.push([a, -d, r, rand() * TAU, 0]);
+    }
+    for (let a = -10; a < A1 - 20;) { const r = (3.5 + rand() * 2.5) * Math.exp(gauss() * 0.35); lay.push([a, -250 + (rand() * 10 - 5), r, rand() * TAU, 1]); a += 2 * r + (-Math.log(rand() || 1e-9) * 16) + 3; }
+    const cells = lay.map((c) => ({ a0: c[0], b0: c[1], R: c[2], ph: c[3], band: c[4], a: c[0], b: c[1], va: 0, vb: 0, rc: c[2], fa: 0, fb: 0, nb: [], L: 0, sq: 0 }));
+    // 거품 구멍은 배치된 자리가 '집'이다: 해안선 방향 a0, 경계와의 거리 d0. 밀리거나 밀쳐져도 그 자리로 돌아가려 한다 (넓은 영역을 떠다니지 않는다)
+    cells.filter((c) => c.band === 0).forEach((c) => {
+      c.d0 = -c.b0; c.k = 2.2 / (0.5 + c.R / 18);   // 큰 구멍일수록 파도를 늦게 따라온다
+      c.f1 = 0.12 + rand() * 0.3; c.f3 = 0.2 + rand() * 0.4;
+    });
+    // 서로 밀칠 수 있는 짝은 집 근처끼리뿐 — 한 번만 구해 둔다 (매 프레임 전체 비교 없음)
+    const pr = [];
+    for (let i = 0; i < cells.length; i++) for (let j = i + 1; j < cells.length; j++) {
+      const ci = cells[i], cj = cells[j]; if (ci.band !== cj.band) continue;
+      if (Math.hypot(cj.a0 - ci.a0, cj.b0 - ci.b0) < (ci.R + cj.R) * 1.5 + 24) pr.push(i, j);
+    }
+    const pairs = Int32Array.from(pr);
+    // 깊은 물 위의 옅은 얼룩 · 흰 물보라 (창 왼쪽 끝까지 흩어 둔다)
+    const blob = (r, seed, st) => {
+      let q = seed * 9301 + 49297; const rn = () => { q = (q * 9301 + 49297) % 233280; return q / 233280; };
+      const p0 = rn() * 6.28, p1 = rn() * 6.28, pts = [];
+      for (let i = 0; i < 9; i++) { const t = TAU * i / 9, rr = r * (1 + 0.15 * S(2 * t + p0) + 0.08 * S(3 * t + p1)); pts.push([S(t) * rr * 0.8, Math.cos(t) * rr * st]); }
+      return pts;
+    };
+    const patches = [], flecks = [];
+    for (let b = -420, i = 0; b > -2400; b -= 150 + (i % 3) * 40, i++) patches.push({ a: 40 + ((i * 97) % 180), b, ph: i * 1.9, dur: 11, pts: blob(16 + (i % 4) * 5, 50 + i, 1.6) });
+    for (let b = -380, i = 0; b > -2400; b -= 260, i++) flecks.push({ a: 30 + ((i * 131) % 200), b, ph: i * 2.3, dur: 7, pts: blob(3.4, 80 + i, 2.2) });
+    const K = 16, cs = [], sn = [];
+    for (let k = 0; k < K; k++) { cs.push(Math.cos(TAU * k / K)); sn.push(S(TAU * k / K)); }
+    const P = 8, gap = 2.5, margin = 12;
+    const step = (dt, t, sw, rb, E) => {
+      const N = cells.length;
+      for (let i = 0; i < N; i++) {
+        const c = cells[i]; c.nb.length = 0;
+        const sq = c.band === 0 ? cl((c.L - c.b - 40) / 130) : 0; c.sq = sq;
+        c.rc = c.R * (1 + (0.06 + 0.12 * sq) * S((1.2 - 0.4 * sq) * t + c.ph));
+        if (c.band === 0) {
+          const prev = c.L; c.L += (sw - c.L) * Math.min(1, c.k * dt); c.b += c.L - prev;
+          // 집으로 돌아가려는 용수철 (살짝 흔들리기만 한다)
+          c.fa = (c.a0 + 4 * S(t * c.f1 + c.ph) - c.a) * 6 - c.va * 3;
+          c.fb = (c.L - c.d0 + 3 * S(t * c.f3 + c.ph) - c.b) * 8 - c.vb * 3.5;
+          const ex = E(c.a) - c.b - c.rc; if (ex < margin) c.fb -= (margin - ex) * 60;
+        } else {
+          const ta = c.a0 + 22 * S(0.13 * t + c.ph), tb = c.b0 + off + eM + rb + 2.5 * S(0.5 * t + c.ph * 1.7);
+          c.fa = (ta - c.a) * 5 - c.va * 3; c.fb = (tb - c.b) * 7 - c.vb * 4;
+        }
+      }
+      for (let p = 0; p < pairs.length; p += 2) {
+        const i = pairs[p], j = pairs[p + 1], ci = cells[i], cj = cells[j];
+        {
+          const dx = cj.a - ci.a, dy = cj.b - ci.b;
+          const d = Math.hypot(dx, dy) || 0.01, sum = ci.rc + cj.rc;
+          if (d < sum + gap + 2) { ci.nb.push(j); cj.nb.push(i); }
+          const dm = ci.band === 0 ? (ci.L - ci.b + cj.L - cj.b) / 2 : 0;
+          const sp = ci.band === 0 ? Math.max(0, 18 - 0.16 * dm) : 4, soft = ci.band === 0 ? cl((dm - 40) / 130) : 0;
+          const tgt = sum * (0.92 - 0.24 * soft) + sp;
+          if (d < tgt) { const f = (tgt - d) * (25 - 17 * soft), fx = dx / d * f, fy = dy / d * f; ci.fa -= fx; ci.fb -= fy; cj.fa += fx; cj.fb += fy; }
+        }
+      }
+      for (let i = 0; i < N; i++) {
+        const c = cells[i];
+        c.va += c.fa * dt; c.vb += c.fb * dt;
+        const v = Math.hypot(c.va, c.vb); if (v > 160) { c.va *= 160 / v; c.vb *= 160 / v; }
+        c.a += c.va * dt; c.b += c.vb * dt;
+        if (c.band === 0) { const lim = E(c.a) - c.rc - margin * 0.4; if (c.b > lim) { c.b = lim; if (c.vb > 0) c.vb = 0; } }
+      }
+    };
+    const edge = (f, close) => { g.beginPath(); g.moveTo(A0, f(A0)); for (let a = A0 + 8; a <= A1 + 0.01; a += 8) g.lineTo(a, f(a)); if (close) { g.lineTo(A1, BT - 40); g.lineTo(A0, BT - 40); g.closePath(); } };
+    // 움직임 설정
+    //   접힌 창: 해안선은 창 길이의 1/2, 밀려오는 거리는 나머지의 절반(창 길이의 1/4) — 파도가 3/4 지점까지 올라온다. 밀려오는 거리는 펼쳐도 그대로
+    //   펼칠 때(순서대로, 전체 시간 = 창이 커지는 시간 — 창 너비 진행도 p를 그대로 따른다):
+    //     ① p 0 → 0.5 : 파도 자체(바다 전체, 거품 구멍 포함)가 해안선이 펼친 창의 1/2에 올 때까지 한 몸으로 옮겨간다
+    //     ② p 0.5 → 1 : 그다음 해안선이 나머지 절반의 1/4(창 길이의 1/8)만큼 늘어나 5/8 지점에 닿는다 (거품 구멍은 한 박자 늦게 따라온다)
+    //   접을 땐 창이 줄어드는 대로 ② → ① 순서로 되돌아간다
+    const WE = 965;                                                        // 펼친 창 너비
+    const wc = () => Math.max(120, this._mgPillW || 200);                  // 접힌 창 너비
+    let t = 0, last = 0, warm = false, eS = 0, eM = 0, eD = 0, lay0 = null, off = 100;
+    const rr = new Array(K), rs = new Array(K);
+    const render = (dt) => {
+      t += dt;
+      const Wc = wc(), w = (host && host.offsetWidth) || Wc;
+      const p = cl((w - Wc) / (WE - Wc));                                  // 펼침 진행도 0 → 1
+      const p1 = cl(p / 0.5), p2 = cl((p - 0.5) / 0.5);
+      off = Wc / 2 / s; const reach = Wc / 4 / s;
+      const lay = p1 * (WE / 2 - Wc / 2) / s, shore = p2 * (WE / 8) / s;
+      if (lay0 === null) lay0 = lay;
+      if (warm) { const d = lay - lay0; for (const c of cells) { c.b += d; c.L += d; } }   // ① 바다 전체가 한 몸으로
+      lay0 = lay;
+      const ext = lay + shore;
+      eS = eM = eD = ext;
+      const far = off + ext;
+      let ph = (t / P) % 1; ph += 0.1 * S(TAU * ph);
+      const wv = -8 + reach * (0.5 - 0.5 * Math.cos(TAU * ph)), sw = far + wv, rb = 9 * S(TAU * t / (P * 1.6));
+      const E = (a) => sw + 5.5 * S(a * 0.045 - 1.9 * t) + 3.5 * S(a * 0.083 + 1.3 * t + 1) + 2.2 * S(a * 0.17 - 2.6 * t + 2) + 4 * S(a * 0.02 + 0.45 * t);
+      const W = (a) => far + reach + 3 * S(a * 0.03 + 0.15 * t) + 2 * S(a * 0.08 - 0.25 * t + 1);
+      const Sh = (a) => off - 178 + eS + wv * 0.3 + 13 * S(a * 0.028 - 0.7 * t) + 7 * S(a * 0.066 + 1.0 * t + 2) + 3.5 * S(a * 0.14 - 1.5 * t);
+      const M = (a) => off - 250 + eM + rb + 10 * S(a * 0.022 - 0.5 * t) + 4 * S(a * 0.06 + 0.8 * t + 1);
+      const Hh = (a) => Math.max(2.5, 11 + 8 * S(a * 0.015 + 0.3 * t + 0.5) + 3 * S(a * 0.05 - 0.7 * t));
+      const D = (a) => off - 335 + eD + rb * 0.5 + 20 * S(a * 0.017 + 0.3 * t) + 11 * S(a * 0.047 - 0.55 * t + 1) + 5 * S(a * 0.1 + 0.9 * t + 2);
+      if (!warm) { warm = true; for (const c of cells) if (c.band === 0) { c.L = sw; c.b = c.b0 + sw; } for (let n = 0; n < 20; n++) step(0.02, t, sw, rb, E); }
+      step(dt, t, sw, rb, E);
+      g.setTransform(0, DPR * s, DPR * s, 0, 0, 0);                     // (a, b) → (x = b·s, y = a·s)
+      g.fillStyle = C.sand; g.fillRect(A0, BT - 40, A1 - A0, 6000);
+      // 젖은 모래: 파도가 올라오는 끝(젖은 선)까지 모래를 한 톤 어둡게 칠한다
+      g.fillStyle = C.wetSand; edge(W, true); g.fill();
+      g.fillStyle = C.foam; edge(E, true); g.fill();
+      const hole = (c) => {
+        let hi, lo = null;
+        if (c.band === 0) hi = E(c.a) - margin * 0.5; else { const m = M(c.a), h = Hh(c.a); hi = m + h - 1.5; lo = m - h + 1.5; }
+        for (let k = 0; k < K; k++) {
+          const th = TAU * k / K;
+          let r = c.rc * (1 + (0.08 + 0.08 * c.sq) * S(2 * th + c.ph + 0.6 * t) + (0.05 + 0.05 * c.sq) * S(3 * th + 2 * c.ph - 0.4 * t));
+          for (let n = 0; n < c.nb.length; n++) {
+            const o = cells[c.nb[n]], dx = o.a - c.a, dy = o.b - c.b, d = Math.hypot(dx, dy) || 0.01, cp = (cs[k] * dx + sn[k] * dy) / d;
+            if (cp > 0.02) {
+              const w = c.band === 0 ? gap * cl(1 - ((c.L - c.b + o.L - o.b) / 2 - 60) / 80) : gap;
+              const v = ((d * d + c.rc * c.rc - o.rc * o.rc) / (2 * d) - w / 2) / cp; if (v < r) r = v;
+            }
+          }
+          if (sn[k] > 0.02) { const v = (hi - c.b) / sn[k]; if (v < r) r = v; }
+          if (lo !== null && sn[k] < -0.02) { const v = (lo - c.b) / sn[k]; if (v < r) r = v; }
+          rr[k] = Math.max(0.2, r);
+        }
+        for (let k = 0; k < K; k++) rs[k] = Math.min(rr[k], 0.25 * rr[(k + K - 1) % K] + 0.5 * rr[k] + 0.25 * rr[(k + 1) % K]);
+        const px = (k) => c.a + cs[k % K] * rs[k % K], py = (k) => c.b + sn[k % K] * rs[k % K];
+        g.moveTo((px(0) + px(1)) / 2, (py(0) + py(1)) / 2);
+        for (let k = 1; k <= K; k++) g.quadraticCurveTo(px(k), py(k), (px(k) + px(k + 1)) / 2, (py(k) + py(k + 1)) / 2);
+        g.closePath();
+      };
+      g.fillStyle = C.water; g.beginPath(); cells.forEach((c) => { if (c.band === 0) hole(c); }); g.fill();
+      edge(Sh, true); g.fill();
+      g.fillStyle = C.foam; g.beginPath(); g.moveTo(A0, M(A0) + Hh(A0));
+      for (let a = A0 + 8; a <= A1 + 0.01; a += 8) g.lineTo(a, M(a) + Hh(a));
+      for (let a = A1; a >= A0 - 0.01; a -= 8) g.lineTo(a, M(a) - Hh(a));
+      g.closePath(); g.fill();
+      g.fillStyle = C.water; g.beginPath(); cells.forEach((c) => { if (c.band === 1) hole(c); }); g.fill();
+      g.fillStyle = C.deep; edge(D, true); g.fill();
+      const drift = (p, col) => {
+        const k = 0.5 - 0.5 * Math.cos(TAU * (t / p.dur) + p.ph), sc = 1 + 0.08 * k, ca = p.a - 4 * k, cb = off + eD + p.b + 8 * k;
+        g.fillStyle = col; g.beginPath();
+        p.pts.forEach(([u, v], i) => { const x = ca + u * sc, y = cb + v * sc; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+        g.closePath(); g.fill();
+      };
+      patches.forEach((p) => drift(p, C.patch)); flecks.forEach((p) => drift(p, C.foam));
+    };
+    const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    render(0.016);
+    const loop = (ts) => {
+      if (this._unmounted || !this._mgb) return;
+      const dt = last ? Math.min(0.033, (ts - last) / 1000) : 0.016; last = ts;
+      if (!document.hidden) render(dt);
+      this._mgb.raf = requestAnimationFrame(loop);
+    };
+    this._mgb = { raf: 0 };
+    if (!still) this._mgb.raf = requestAnimationFrame(loop);
+  }
+}
+</script>
+</body>
+</html>

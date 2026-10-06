@@ -9,7 +9,7 @@ export default class Component extends DCLogic {
     this.state = {
       username: saved ? saved.username : 'admin', password: '', auto: !!saved, showPw: false, caps: false,
       // phase: form(입력) · auto(자동 로그인 중) · loading(확인 중) · fail(실패) · done(로그인됨)
-      phase: saved ? 'auto' : 'form', msg: '', msgC: '#d33d52', shake: 0, gw: 'check'
+      phase: saved ? 'auto' : 'form', msg: '', msgC: '#ff5d5d', shake: 0, gw: 'check'
     };
   }
   // 자동 로그인 기억 (예시 — 실제로는 비밀번호를 화면이 저장하지 않고 Gateway가 자격 핸들을 보관한다)
@@ -47,7 +47,7 @@ export default class Component extends DCLogic {
     }, 900);
   }
   fail(msg) {
-    this.setState({ phase: 'form', msg, msgC: '#d33d52', shake: this.state.shake + 1 });
+    this.setState({ phase: 'form', msg, msgC: '#ff5d5d', shake: this.state.shake + 1 });
     const card = document.querySelector('[data-in-card]');
     if (card) { card.classList.remove('in-shake'); void card.offsetWidth; card.classList.add('in-shake'); }
   }
@@ -64,11 +64,21 @@ export default class Component extends DCLogic {
     this.setState({ fly: true });
   }
   renderVals() {
-    const S = this.state, form = S.phase === 'form' || S.phase === 'loading', busy = S.phase === 'loading' || S.phase === 'auto';
+    const S = this.state;
+    // 미등록 노드 등록 (A-19): 로그인도 자동 로그인도 아닌 세 번째 단계다. 로그인할 Master가
+    // 아직 없으니 로그인 칸을 보여 줄 수 없고, '로그인됨' 칸도 아니다 — 그래서 form · status와
+    // 나란히 서는 제3의 묶음으로 둔다. 실제 값은 src/boot/service.js가 채운다(서비스 변형만)
+    const enroll = S.phase === 'enroll' || S.phase === 'enrolling' || S.phase === 'enrolled';
+    const form = !enroll && (S.phase === 'form' || S.phase === 'loading'), busy = S.phase === 'loading' || S.phase === 'auto';
     const name = S.username.trim() || 'admin';
     return {
       v: {
-        form, status: !form, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
+        form, status: !form && !enroll, enroll, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
+        // 등록 묶음 — 변형(demo)에서는 enroll이 거짓이라 그려지지 않는다
+        enrLocal: false, enrNote: '', enrWhy: '', enrWhyDisp: 'none', enrFieldsDisp: 'none',
+        enrCode: '', enrName: '', enrAddr: '', enrAddrDisp: 'none', enrMsg: '', enrMsgC: '#fbbf24', enrMsgDisp: 'none',
+        enrBusy: false, enrGoLabel: '등록', enrGoDisp: 'none', enrDone: false,
+        setEnrCode: () => {}, setEnrName: () => {}, setEnrAddr: () => {}, enrGo: () => {}, enrBack: () => {},
         cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, chromePe: S.fly ? 'none' : 'auto', spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
         sub: S.phase === 'done' ? name + ' — 로그인됨' : '노드에 로그인',
         username: S.username, password: S.password,
@@ -80,18 +90,18 @@ export default class Component extends DCLogic {
         pwType: S.showPw ? 'text' : 'password', pwTip: S.showPw ? '비밀번호 숨기기' : '비밀번호 보기',
         eye: S.showPw ? 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM4 4l16 16' : 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z', eyeR: 3,
         togglePw: () => this.setState({ showPw: !S.showPw }),
-        autoOn: S.auto ? 'true' : 'false', swBg: S.auto ? '#1f7a4d' : '#c3cad5', swX: S.auto ? 18 : 0,
+        autoOn: S.auto ? 'true' : 'false', swBg: S.auto ? '#ede9e1' : 'rgba(255,255,255,0.08)', swX: S.auto ? 18 : 0,
         toggleAuto: () => this.setState({ auto: !S.auto }),
-        userLine: S.msg && !S.username.trim() ? '#d33d52' : '#c3cad5', passLine: S.msg && S.username.trim() ? '#d33d52' : '#c3cad5',
+        userLine: S.msg && !S.username.trim() ? '#ff5d5d' : 'rgba(255,255,255,0.18)', passLine: S.msg && S.username.trim() ? '#ff5d5d' : 'rgba(255,255,255,0.18)',
         msg: S.msg, msgC: S.msgC,
         goLabel: S.phase === 'loading' ? '확인 중…' : '로그인',
         submit: (e) => this.submit(e),
-        stBg: S.phase === 'done' ? '#1f7a4d' : '#1e3a5f',
+        stBg: S.phase === 'done' ? '#3ecf8e' : 'rgba(255,255,255,0.05)', stLine: S.phase === 'done' ? '#3ecf8e' : 'rgba(255,255,255,0.14)',
         stTitle: S.phase === 'auto' ? name + '(으)로 자동 로그인 중…' : '로그인됨',
         stSub: S.phase === 'auto' ? '이 기기에 기억된 로그인 — 잠시 뒤 들어간다' : (S.auto ? '자동 로그인 켜짐 · ' : '') + '맵으로 내려간다…',
         cancel: () => { clearTimeout(this._autoT); this.setState({ phase: 'form', msg: '' }); setTimeout(() => { const el = document.querySelector('[data-in-pass]'); if (el) el.focus(); }, 50); },
         logout: () => { this.writeAuto(null); this.setState({ phase: 'form', auto: false, password: '', msg: '' }); },
-        gwDot: S.gw === 'ok' ? '#5eea9a' : '#ffd479', gwText: S.gw === 'ok' ? '127.0.0.1:8787 · 연결됨' : '응답 확인 중…'
+        gwDot: S.gw === 'ok' ? '#3ecf8e' : '#f5b83d', gwText: S.gw === 'ok' ? '127.0.0.1:8787 · 연결됨' : '응답 확인 중…'
       }
     };
   }
