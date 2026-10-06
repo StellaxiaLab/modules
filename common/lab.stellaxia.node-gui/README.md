@@ -4,7 +4,7 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.11"
+version: "v0.12"
 last_updated: "2026-10-06"
 ---
 
@@ -13,7 +13,7 @@ last_updated: "2026-10-06"
 게임 GUI 형태의 Terra 노드 화면 — 시작 화면 · 육각 필드 맵 · 조타륜 · 노드 자원 · 연결(도로) · 오버헤드 패널 · 편집기 — 을
 노드의 **main GUI**로 내는 모듈이다. base Scene(`io.terra.scene.terra`)은 main이 하나면 그것을 곧장 띄운다.
 
-화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `a884226`(2026-10-06 — **ver.2 다크 글래스 디자인** · 노드 등록 코드 · service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영 · SVI 흐름도 · SVI 흐름 칸 · 맵 도로 애니메이션)를
+화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `4ec0685`(2026-10-06 — **ver.2 다크 글래스 디자인** · 사용자 관리 · 등록 상태 · 시작 화면 온보딩 · service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영 · SVI 흐름도 · SVI 흐름 칸 · 맵 도로 애니메이션)를
 바탕으로 한 **module 변형**이다(처음에는 `f24c3bc`, 그다음 `43a4e3a`에 맞췄다) — 같은 디자인 원본(`web/design/`) · 같은 생성 규칙이고, 갈림은 부트 프로필(`web/src/boot/module.js`)이다.
 처음에는 압축 파일로 받은 `terra-node-gui` 1.0으로 만들었고, 그 뒤 maingui 저장소(자원 추가 · 수정 · 삭제 · 상태 화면 · 모듈 GUI 창이 더 있다)로 다시 맞췄다.
 모듈이 더한 것은 다섯이다.
@@ -168,6 +168,16 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### maingui 4ec0685 따라가기 — 사용자 관리 · 등록 상태 · 온보딩 MD-26 (2026-10-06, 0.4.1)
+
+원본이 `a884226` 뒤로 시작 화면(O-1 · O-2 · O-5 · O-7)과 설정 화면(사용자 관리 M-1 · 첫 실행 마무리 O-3 · 이 노드의 등록 상태 O-6)을 더했다.
+`design/Intro.dc.html` · `design/Settings.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다 — 모듈용 치환 패치는 그대로 맞았다.
+
+- **사용자 관리(M-1)** — Master operation(`terra.master.admin.users.*`)이라 앱 토큰으로는 닿지 않는다(Q-2). 새 설정 디자인은 예시 사용자(`minji` 등)를 상태에 품고 있어서 **비우고** `usersState: 'error'`("Master에 닿지 않았거나…")로 둔다. 예시 동작(`userApi` — 화면 안에서만 사용자를 늘린다)은 "Master operation — 이 화면에서는 닿지 않는다"로 바꿨다.
+- **이 노드의 등록 상태(O-6)** — Daemon operation(`terra.daemon.enrollment.status.get`, `node.read`)이라 **진짜 값**을 읽는다. 못 받으면(tree만 · 길 없음) 말없이 "없음". `ENROLLMENT` · `USERS` operation 선언은 `src/api/operations.js`에 들어왔다.
+- **알림 글자색** — 원본이 `wire.js`의 상태 글줄 색을 다크 글래스 팔레트로 옮겼다(`#d33d52→#ff6b81` · `#1f7a4d→#4ade80` · `#a65f00→#fbbf24` · `#2563eb→#60a5fa` · `#5b6472→#8b95a6`). 모듈의 같은 자리(`wire.js` · `data/alarms.js` · `data/node-live.js` 상수 · 설정 · 네트워크의 토스트)에 같은 값을 적용했다. 배지 배경(`model/badges.js`)과 로그인 띠(`api/frame-session.js`)는 원본도 그대로라 손대지 않았다.
+- **싣지 않은 것** — 시작 화면의 등록 단계 표시 · 복사 명령(O-5 · O-7)과 첫 실행 마무리의 서비스 판 동작은 모듈이 로그인 박스를 통째로 바꾸므로(Terra 셸이 로그인을 받는다) 화면에 나오지 않는다.
 
 ### maingui a884226 따라가기 — ver.2 다크 글래스 디자인 MD-25 (2026-10-06, 0.4.0)
 
@@ -357,7 +367,7 @@ Daemon만 가짜다.
 - `io.terra.scene.terra` (Terra 코어) — 이 main을 띄우는 base Scene
 - [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · I/O 장치(0.2.0 손 등록) 데이터의 출처
 - [`lab.stellaxia.scene.hello`](../lab.stellaxia.scene.hello/README.md) — 같은 tree 레지스트리 경로의 가장 작은 Scene 모듈
-- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `a884226`과 같다
+- GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `4ec0685`와 같다
 
 ## 관련 흐름
 

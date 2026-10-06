@@ -213,6 +213,40 @@ html,body{margin:0;background:#dfe3ea}
                   </sc-for>
                 </div>
               </sc-for>
+              <sc-if value="{{cd.hasForm}}" hint-placeholder-val="{{false}}">
+                <div data-st-form="{{cd.formId}}" style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; border-top: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.025);">
+                  <b style="font-size: 12.5px; color: #ede9e1;">{{cd.formTitle}}</b>
+                  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+                    <sc-for list="{{cd.fields}}" as="fd" hint-placeholder-count="0">
+                      <label style="display: flex; flex-direction: column; gap: 4px; grid-column: span {{fd.span}}; min-width: 0;">
+                        <span style="font-size: 11.5px; font-weight: 600; color: #b4bac3;">{{fd.label}}</span>
+                        <sc-if value="{{fd.isIn}}" hint-placeholder-val="{{false}}">
+                          <input type="{{fd.type}}" data-st-field="{{fd.key}}" value="{{fd.v}}" onChange="{{fd.set}}" placeholder="{{fd.ph}}" autocomplete="off" class="mono" style="height: 34px; width: 100%; box-sizing: border-box; padding: 0 11px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: #0e1013; font-size: 12.5px; color: #ede9e1; outline: none;">
+                        </sc-if>
+                        <sc-if value="{{fd.isSel}}" hint-placeholder-val="{{false}}">
+                          <select data-st-field="{{fd.key}}" onChange="{{fd.set}}" class="mono" style="height: 34px; width: 100%; box-sizing: border-box; padding: 0 9px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: #0e1013; font-size: 12.5px; color: #ede9e1; outline: none;">
+                            <sc-for list="{{fd.opts}}" as="op" hint-placeholder-count="2">
+                              <option value="{{op.v}}" selected="{{op.sel}}">{{op.t}}</option>
+                            </sc-for>
+                          </select>
+                        </sc-if>
+                        <sc-if value="{{fd.isChips}}" hint-placeholder-val="{{false}}">
+                          <span data-st-field="{{fd.key}}" style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            <sc-for list="{{fd.chips}}" as="ch" hint-placeholder-count="0">
+                              <button type="button" data-st-chip="{{ch.v}}" aria-pressed="{{ch.on}}" onClick="{{ch.run}}" title="{{ch.tip}}" class="mono" style="height: 26px; padding: 0 9px; border: 1px solid {{ch.line}}; border-radius: 13px; background: {{ch.bg}}; color: {{ch.fg}}; font-size: 11.5px; font-weight: 600; cursor: pointer;">{{ch.v}}</button>
+                            </sc-for>
+                          </span>
+                        </sc-if>
+                      </label>
+                    </sc-for>
+                  </div>
+                  <span data-st-form-msg="1" style="display: {{cd.fmsgDisp}}; font-size: 12px; font-weight: 600; line-height: 1.5; color: {{cd.fmsgC}};">{{cd.fmsg}}</span>
+                  <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button type="button" data-st-form-cancel="1" onClick="{{cd.fcancel}}" class="ghost" style="height: 30px; padding: 0 13px; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; background: rgba(255,255,255,0.04); color: #ede9e1; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">취소</button>
+                    <button type="button" data-st-form-ok="1" onClick="{{cd.fok}}" aria-disabled="{{cd.fbusy}}" class="pri" style="height: 30px; padding: 0 15px; border: 1px solid #ede9e1; border-radius: 8px; background: #ede9e1; color: #111111; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; opacity: {{cd.fop}};">{{cd.fokLabel}}</button>
+                  </div>
+                </div>
+              </sc-if>
               <sc-if value="{{cd.showText}}" hint-placeholder-val="{{false}}">
                 <div style="padding: {{cd.textPad}}; font-size: 12.5px; color: #b4bac3; line-height: 1.7; text-align: {{cd.textAlign}};">
                   <div style="display: {{cd.iconDisp}}; justify-content: center; margin-bottom: 8px;"><span style="width: 48px; height: 48px; box-sizing: border-box; border-radius: 14px; background: color-mix(in srgb, {{cd.iconBg}} 12%, transparent); border: 1px solid color-mix(in srgb, {{cd.iconBg}} 40%, transparent); color: {{cd.iconBg}}; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="22" height="22" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#s-{{cd.icon}}"></use></svg></span></div>

@@ -65,7 +65,7 @@ test('작업 알림 — 처음엔 최근 것만, 그 뒤엔 바뀐 것만', () =
   const next = taskAlarms(seen, tasks);
   assert.equal(next.length, 1);
   assert.match(next[0].m, /실패/);
-  assert.equal(next[0].c, '#d33d52');
+  assert.equal(next[0].c, '#ff6b81');
 });
 
 test('작업 알림 한 줄의 모양', () => {

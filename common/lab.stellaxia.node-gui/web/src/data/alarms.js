@@ -5,17 +5,17 @@
 // 알림으로 바꾼다. 화면의 알림 한 줄 모양 { t, g, c, m } 을 그대로 쓴다.
 
 const STATE = {
-  succeeded: { label: '완료', g: '●', c: '#1f7a4d' },
-  success: { label: '완료', g: '●', c: '#1f7a4d' },
-  completed: { label: '완료', g: '●', c: '#1f7a4d' },
-  failed: { label: '실패', g: '■', c: '#d33d52' },
-  dead_letter: { label: '실패', g: '■', c: '#d33d52' },
-  timed_out: { label: '시간 초과', g: '■', c: '#d33d52' },
-  canceled: { label: '취소됨', g: '◐', c: '#a65f00' },
-  cancelled: { label: '취소됨', g: '◐', c: '#a65f00' },
-  running: { label: '실행 중', g: '◇', c: '#2563eb' },
-  pending: { label: '대기', g: '◇', c: '#2563eb' },
-  queued: { label: '대기', g: '◇', c: '#2563eb' }
+  succeeded: { label: '완료', g: '●', c: '#4ade80' },
+  success: { label: '완료', g: '●', c: '#4ade80' },
+  completed: { label: '완료', g: '●', c: '#4ade80' },
+  failed: { label: '실패', g: '■', c: '#ff6b81' },
+  dead_letter: { label: '실패', g: '■', c: '#ff6b81' },
+  timed_out: { label: '시간 초과', g: '■', c: '#ff6b81' },
+  canceled: { label: '취소됨', g: '◐', c: '#fbbf24' },
+  cancelled: { label: '취소됨', g: '◐', c: '#fbbf24' },
+  running: { label: '실행 중', g: '◇', c: '#60a5fa' },
+  pending: { label: '대기', g: '◇', c: '#60a5fa' },
+  queued: { label: '대기', g: '◇', c: '#60a5fa' }
 };
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -27,7 +27,7 @@ export function clock(iso, now = Date.now()) {
 
 /** 작업 하나 → 알림 한 줄 */
 export function taskAlarm(task) {
-  const s = STATE[task.state] || { label: task.state || '알 수 없음', g: '◐', c: '#a65f00' };
+  const s = STATE[task.state] || { label: task.state || '알 수 없음', g: '◐', c: '#fbbf24' };
   const when = task.finished_at || task.started_at || task.created_at;
   return { t: clock(when), g: s.g, c: s.c, m: (task.type || task.kind || '작업') + ' · ' + s.label + ' — #' + String(task.id || '').slice(-6), id: task.id, at: when || '' };
 }

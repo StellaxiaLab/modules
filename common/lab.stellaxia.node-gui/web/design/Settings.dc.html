@@ -223,6 +223,40 @@ button{transition:background 140ms,border-color 140ms,color 140ms,filter 140ms}
                   </sc-for>
                 </div>
               </sc-for>
+              <sc-if value="{{cd.hasForm}}" hint-placeholder-val="{{false}}">
+                <div data-st-form="{{cd.formId}}" style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; border-top: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.025);">
+                  <b style="font-size: 12.5px; color: #ede9e1;">{{cd.formTitle}}</b>
+                  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+                    <sc-for list="{{cd.fields}}" as="fd" hint-placeholder-count="0">
+                      <label style="display: flex; flex-direction: column; gap: 4px; grid-column: span {{fd.span}}; min-width: 0;">
+                        <span style="font-size: 11.5px; font-weight: 600; color: #b4bac3;">{{fd.label}}</span>
+                        <sc-if value="{{fd.isIn}}" hint-placeholder-val="{{false}}">
+                          <input type="{{fd.type}}" data-st-field="{{fd.key}}" value="{{fd.v}}" onChange="{{fd.set}}" placeholder="{{fd.ph}}" autocomplete="off" class="mono" style="height: 34px; width: 100%; box-sizing: border-box; padding: 0 11px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: #0e1013; font-size: 12.5px; color: #ede9e1; outline: none;">
+                        </sc-if>
+                        <sc-if value="{{fd.isSel}}" hint-placeholder-val="{{false}}">
+                          <select data-st-field="{{fd.key}}" onChange="{{fd.set}}" class="mono" style="height: 34px; width: 100%; box-sizing: border-box; padding: 0 9px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: #0e1013; font-size: 12.5px; color: #ede9e1; outline: none;">
+                            <sc-for list="{{fd.opts}}" as="op" hint-placeholder-count="2">
+                              <option value="{{op.v}}" selected="{{op.sel}}">{{op.t}}</option>
+                            </sc-for>
+                          </select>
+                        </sc-if>
+                        <sc-if value="{{fd.isChips}}" hint-placeholder-val="{{false}}">
+                          <span data-st-field="{{fd.key}}" style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            <sc-for list="{{fd.chips}}" as="ch" hint-placeholder-count="0">
+                              <button type="button" data-st-chip="{{ch.v}}" aria-pressed="{{ch.on}}" onClick="{{ch.run}}" title="{{ch.tip}}" class="mono" style="height: 26px; padding: 0 9px; border: 1px solid {{ch.line}}; border-radius: 13px; background: {{ch.bg}}; color: {{ch.fg}}; font-size: 11.5px; font-weight: 600; cursor: pointer;">{{ch.v}}</button>
+                            </sc-for>
+                          </span>
+                        </sc-if>
+                      </label>
+                    </sc-for>
+                  </div>
+                  <span data-st-form-msg="1" style="display: {{cd.fmsgDisp}}; font-size: 12px; font-weight: 600; line-height: 1.5; color: {{cd.fmsgC}};">{{cd.fmsg}}</span>
+                  <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button type="button" data-st-form-cancel="1" onClick="{{cd.fcancel}}" class="ghost" style="height: 30px; padding: 0 13px; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; background: rgba(255,255,255,0.04); color: #ede9e1; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;">취소</button>
+                    <button type="button" data-st-form-ok="1" onClick="{{cd.fok}}" aria-disabled="{{cd.fbusy}}" class="pri" style="height: 30px; padding: 0 15px; border: 1px solid #ede9e1; border-radius: 8px; background: #ede9e1; color: #111111; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; opacity: {{cd.fop}};">{{cd.fokLabel}}</button>
+                  </div>
+                </div>
+              </sc-if>
               <sc-if value="{{cd.showText}}" hint-placeholder-val="{{false}}">
                 <div style="padding: {{cd.textPad}}; font-size: 12.5px; color: #b4bac3; line-height: 1.7; text-align: {{cd.textAlign}};">
                   <div style="display: {{cd.iconDisp}}; justify-content: center; margin-bottom: 8px;"><span style="width: 48px; height: 48px; box-sizing: border-box; border-radius: 14px; background: color-mix(in srgb, {{cd.iconBg}} 12%, transparent); border: 1px solid color-mix(in srgb, {{cd.iconBg}} 40%, transparent); color: {{cd.iconBg}}; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="22" height="22" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><use href="#s-{{cd.icon}}"></use></svg></span></div>
@@ -290,6 +324,9 @@ button{transition:background 140ms,border-color 140ms,color 140ms,filter 140ms}
 class Component extends DCLogic {
   constructor(props) {
     super(props);
+    // Master의 기본 권한(DefaultPermissions) · 권한 사전 — Master는 값을 검사하지 않고 저장한다, 사전에 없는 이름도 문자열로 넣을 수 있다
+    this.DEFAULT_PERMS = ['node.read', 'node.control', 'process.execute', 'file.read', 'file.write', 'relay.use', 'module.publish', 'agent.use', 'agent.grant'];
+    this.KNOWN_PERMS = this.DEFAULT_PERMS.concat(['node.config', 'node.enroll', 'module.manage', 'master.admin', 'module.approve', 'core.publish']);
     // Daemon 설정 스키마 135키 — terra-gui-settings §2.7에서 옮김: [key, 타입, 소유, 반영, 컨트롤, 기본값, 허용값·규칙, 뜻, 선택지]
     this.GROUPS = [{"name": "노드", "pre": "daemon · storage · logging", "keys": [["daemon.capabilities", "목록", "운영자", "즉시", "목록", "—", "—", "로컬 노드가 광고하는 capability 목록", []], ["daemon.data_dir", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra`", "필수", "데이터 디렉터리", []], ["daemon.device_name", "문자열", "운영자", "즉시", "텍스트", "`\"\"`", "—", "노드 표시 이름", []], ["daemon.environment", "문자열", "운영자", "재시작", "선택", "`prod`", "`dev`·`test`·`prod`", "실행 환경. prod면 보안 규칙이 강해진다", ["dev", "test", "prod"]], ["daemon.node_id", "문자열", "파생", "재시작", "읽기 전용", "`\"\"`", "—", "Master가 등록 때 발급한 노드 id", []], ["daemon.roles", "목록", "파생", "즉시", "읽기 전용", "—", "—", "설치된 구성요소가 정하는 역할 목록", []], ["daemon.runtime_mode", "문자열", "운영자", "재시작", "선택", "`service`", "`foreground`·`service`·`dev`", "실행 방식", ["foreground", "service", "dev"]], ["storage.cache_dir", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra/cache`", "—", "캐시 디렉터리", []], ["storage.data_dir", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra`", "필수", "저장소 데이터 디렉터리", []], ["storage.shared_dirs", "목록", "운영자", "재시작", "목록", "`~/TerraShare`", "—", "공유 폴더 목록 — `io.terra.file`이 여는 루트", []], ["storage.temp_dir", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra/tmp`", "—", "임시 디렉터리", []], ["logging.file_enabled", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "파일로 남기기", []], ["logging.format", "문자열", "운영자", "재시작", "선택", "`json`", "`json`·`text`", "로그 형식", ["json", "text"]], ["logging.level", "문자열", "운영자", "즉시", "선택", "`info`", "`debug`·`info`·`warn`·`warning`·`error`", "로그 수준", ["debug", "info", "warn", "warning", "error"]], ["logging.log_dir", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra/logs`", "—", "로그 디렉터리", []], ["logging.max_backups", "정수", "운영자", "재시작", "숫자", "`5`", "≥ 0", "보관할 이전 파일 수", []], ["logging.max_size_mb", "정수", "운영자", "재시작", "숫자", "`10`", "≥ 1", "파일 하나의 최대 크기(MB)", []]], "secs": [{"name": "노드 식별", "keys": ["daemon.capabilities", "daemon.data_dir", "daemon.device_name", "daemon.environment", "daemon.node_id", "daemon.roles", "daemon.runtime_mode"]}, {"name": "저장소", "keys": ["storage.cache_dir", "storage.data_dir", "storage.shared_dirs", "storage.temp_dir"]}, {"name": "로그", "keys": ["logging.file_enabled", "logging.format", "logging.level", "logging.log_dir", "logging.max_backups", "logging.max_size_mb"]}]}, {"name": "Master 연결", "pre": "master · heartbeat · enrollment", "keys": [["master.reconnect", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "끊기면 다시 연결", []], ["master.reconnect_initial_delay_ms", "정수", "운영자", "재시작", "숫자", "`1000`", "≥ 0", "재연결 첫 대기(ms)", []], ["master.reconnect_max_delay_ms", "정수", "운영자", "재시작", "숫자", "`30000`", "≥ 첫 대기", "재연결 최대 대기(ms)", []], ["master.request_timeout_sec", "정수", "운영자", "재시작", "숫자", "`10`", "≥ 1", "Master 요청 제한 시간(초)", []], ["master.url", "문자열", "운영자", "재시작", "텍스트", "`\"\"`", "절대 URL, `ws`·`wss`·`http`·`https`. prod + `security.require_tls` + runtime≠dev면 `wss`·`https`만. 필수", "상위 Master 주소", []], ["heartbeat.interval_sec", "정수", "운영자", "재시작", "숫자", "`10`", "≥ 1", "heartbeat 주기(초)", []], ["heartbeat.timeout_sec", "정수", "운영자", "재시작", "숫자", "`5`", "1 ~ 주기", "heartbeat 응답 제한(초)", []], ["enrollment.enabled", "켜기/끄기", "설치기", "재시작", "읽기 전용", "켬", "켜면 `enrollment.state_path` 필수", "등록 기능을 이 설치가 가졌는가", []], ["enrollment.image_digest", "문자열", "파생", "재시작", "읽기 전용", "—", "`TERRA_IMAGE_DIGEST`가 우선", "이 멤버가 부팅한 이미지 digest", []], ["enrollment.instance_key", "문자열", "운영자", "재시작", "텍스트", "—", "`TERRA_INSTANCE_KEY`가 우선", "Fleet 안의 고정 신원 — 재시작 때 같은 자리를 다시 쓰는가를 정한다", []], ["enrollment.join_code_path", "문자열", "운영자", "재시작", "텍스트", "—", "`TERRA_JOIN_CODE`가 우선", "Fleet 가입 코드 파일 경로 — 코드는 파일에만 둔다", []], ["enrollment.state_path", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra/registration.json`", "—", "등록 상태 파일", []], ["daemon.co_located_master.base_url", "문자열", "설치기", "재시작", "읽기 전용", "—", "루프백", "같은 기계의 Master 주소 — tree 역할도 가진 노드만", []], ["daemon.co_located_master.request_timeout_sec", "정수", "운영자", "재시작", "숫자", "—", "—", "그 Master 호출 제한 시간(초)", []], ["daemon.co_located_master.service_credential", "문자열", "비밀", "재시작", "숨김", "(숨김)", "API로 못 바꾼다", "그 Master에 대한 Core-peer 자격", []]], "secs": [{"name": "Master 세션", "keys": ["master.reconnect", "master.reconnect_initial_delay_ms", "master.reconnect_max_delay_ms", "master.request_timeout_sec", "master.url", "heartbeat.interval_sec", "heartbeat.timeout_sec"]}, {"name": "노드 등록", "keys": ["enrollment.enabled", "enrollment.image_digest", "enrollment.instance_key", "enrollment.join_code_path", "enrollment.state_path"]}, {"name": "동일 호스트 Master", "keys": ["daemon.co_located_master.base_url", "daemon.co_located_master.request_timeout_sec", "daemon.co_located_master.service_credential"]}]}, {"name": "네트워크", "pre": "wireguard · mesh_vpn · direct_tcp · grpc · webrtc · 터널", "keys": [["wireguard.address_cidr", "문자열", "파생", "재시작", "읽기 전용", "`\"\"`", "managed면 CIDR. 등록·동기화가 켜져 있으면 비워도 된다", "로컬 노드의 mesh 주소 — Master 네트워크 계획이 준다", []], ["wireguard.advertise_endpoint", "문자열", "운영자", "재시작", "텍스트", "—", "—", "다른 노드에 알릴 endpoint", []], ["wireguard.auto_install", "켜기/끄기", "설치기", "재시작", "읽기 전용", "끔", "—", "WireGuard 자동 설치", []], ["wireguard.auto_up", "켜기/끄기", "설치기", "재시작", "읽기 전용", "끔", "managed에서 주소가 없고 동기화도 없으면 켤 수 없다", "인터페이스 자동 올림", []], ["wireguard.desired_sync_interval_sec", "정수", "운영자", "재시작", "숫자", "`60`", "≥ 0", "Master desired 설정 동기화 주기(초)", []], ["wireguard.enabled", "켜기/끄기", "운영자", "재시작", "토글", "끔", "켜면 `interface_name`·`private_key_path` 필수", "WireGuard 통합 켜기", []], ["wireguard.endpoint_refresh_interval_sec", "정수", "운영자", "재시작", "숫자", "`60`", "≥ 0", "endpoint 갱신 주기(초)", []], ["wireguard.install_policy", "문자열", "설치기", "재시작", "읽기 전용", "`optional`", "`optional`·`required`", "WireGuard 설치가 필수인가", []], ["wireguard.interface_name", "문자열", "운영자", "재시작", "텍스트", "`terra0`", "—", "인터페이스 이름", []], ["wireguard.listen_port", "정수", "운영자", "재시작", "숫자", "`51820`", "0 ~ 65535", "수신 포트", []], ["wireguard.mode", "문자열", "설치기", "재시작", "읽기 전용", "`external`", "`external`·`managed`", "WireGuard 운영 방식 — managed는 권한 헬퍼가 필요해 재설치로만 바꾼다", []], ["wireguard.mtu", "정수", "운영자", "재시작", "숫자", "`1420`", "0 또는 ≥ 576", "MTU", []], ["wireguard.nat_gateway", "문자열", "운영자", "재시작", "텍스트", "—", "IP 주소. 비면 자동", "매핑을 요청할 게이트웨이", []], ["wireguard.nat_mapping_lifetime_sec", "정수", "운영자", "재시작", "숫자", "`3600`", "auto면 ≥ 60", "매핑 수명(초)", []], ["wireguard.nat_mapping_mode", "문자열", "운영자", "재시작", "선택", "`auto`", "`auto`·`disabled`", "공유기 포트 매핑 시도", ["auto", "disabled"]], ["wireguard.nat_mapping_protocols", "목록", "운영자", "재시작", "다중 선택", "`nat-pmp, pcp, upnp`", "`nat-pmp`·`pcp`·`upnp`, auto면 1개 이상, 중복 불가", "포트 매핑 프로토콜", ["nat-pmp", "pcp", "upnp"]], ["wireguard.nat_probe_timeout_ms", "정수", "운영자", "재시작", "숫자", "`2000`", "auto면 ≥ 1", "매핑 탐침 제한(ms)", []], ["wireguard.persistent_keepalive_sec", "정수", "운영자", "재시작", "숫자", "`25`", "≥ 0", "keepalive(초)", []], ["wireguard.private_key_path", "문자열", "설치기", "재시작", "읽기 전용", "`\"\"`", "—", "WireGuard 개인키 파일", []], ["wireguard.privileged_helper_path", "문자열", "설치기", "재시작", "읽기 전용", "—", "—", "권한 헬퍼 경로", []], ["wireguard.privileged_helper_timeout_sec", "정수", "운영자", "재시작", "숫자", "`30`", "헬퍼가 있으면 ≥ 1", "권한 헬퍼 제한(초)", []], ["wireguard.stun_servers", "목록", "운영자", "재시작", "목록", "—", "—", "공인 주소를 찾을 STUN 서버", []], ["wireguard.stun_timeout_ms", "정수", "운영자", "재시작", "숫자", "`2000`", "STUN 서버가 있으면 ≥ 1", "STUN 제한(ms)", []], ["mesh_vpn.adapter", "문자열", "파생", "재시작", "읽기 전용", "`wireguard`", "`wireguard`·`tailscale` 등. tcp·websocket·webrtc 불가", "mesh 어댑터", []], ["mesh_vpn.advertise_host", "문자열", "파생", "재시작", "읽기 전용", "`\"\"`", "`0.0.0.0`·`::` 불가", "mesh로 알릴 주소", []], ["mesh_vpn.connect_timeout_ms", "정수", "운영자", "재시작", "숫자", "`5000`", "켜져 있으면 ≥ 1", "mesh 연결 제한(ms)", []], ["mesh_vpn.enabled", "켜기/끄기", "파생", "재시작", "읽기 전용", "끔", "켜면 adapter·listen·advertise·network_id·timeout 필수", "mesh 도달 endpoint를 광고한다", []], ["mesh_vpn.listen_host", "문자열", "운영자", "재시작", "텍스트", "`0.0.0.0`", "—", "mesh 리스너 주소", []], ["mesh_vpn.mode", "문자열", "파생", "재시작", "읽기 전용", "`external`", "`external`·`managed`(managed는 wireguard만, `wireguard.enabled` 필요)", "mesh 운영 방식", []], ["mesh_vpn.network_id", "문자열", "파생", "재시작", "읽기 전용", "`\"\"`", "—", "mesh 네트워크 id", []], ["mesh_vpn.peer_id", "문자열", "파생", "재시작", "읽기 전용", "`\"\"`", "—", "mesh 안의 로컬 노드 id", []], ["mesh_vpn.port", "정수", "운영자", "재시작", "숫자", "`17323`", "0 ~ 65535", "mesh 리스너 포트", []], ["direct_tcp.advertise_host", "문자열", "운영자", "재시작", "텍스트", "`\"\"`", "`0.0.0.0`·`::` 불가", "다른 노드가 붙을 주소", []], ["direct_tcp.connect_timeout_ms", "정수", "운영자", "재시작", "숫자", "`5000`", "≥ 1", "연결 제한(ms)", []], ["direct_tcp.enabled", "켜기/끄기", "운영자", "재시작", "토글", "끔", "켜면 listen·advertise·port·timeout 필수", "LAN 직접 연결 리스너(TLS·route ticket) — 포트가 열린다", []], ["direct_tcp.listen_host", "문자열", "운영자", "재시작", "텍스트", "`0.0.0.0`", "—", "리스너 주소", []], ["direct_tcp.port", "정수", "운영자", "재시작", "숫자", "`17322`", "1 ~ 65535", "리스너 포트", []], ["grpc_transport.advertise_host", "문자열", "운영자", "재시작", "텍스트", "`\"\"`", "—", "다른 노드가 붙을 주소", []], ["grpc_transport.connect_timeout_ms", "정수", "운영자", "재시작", "숫자", "`5000`", "—", "연결 제한(ms)", []], ["grpc_transport.enabled", "켜기/끄기", "운영자", "재시작", "토글", "끔", "—", "같은 세션을 gRPC로 나르는 리스너 — 포트가 열린다", []], ["grpc_transport.listen_host", "문자열", "운영자", "재시작", "텍스트", "`0.0.0.0`", "—", "리스너 주소", []], ["grpc_transport.port", "정수", "운영자", "재시작", "숫자", "`17325`", "—", "리스너 포트", []], ["webrtc.connect_timeout_ms", "정수", "운영자", "재시작", "숫자", "`15000`", "켜져 있으면 ≥ 1", "연결 제한(ms)", []], ["webrtc.enabled", "켜기/끄기", "운영자", "재시작", "토글", "끔", "—", "서비스 터널의 WebRTC P2P 경로", []], ["webrtc.stun_servers", "목록", "운영자", "재시작", "목록", "—", "—", "STUN 서버", []], ["service_tunnels.enabled", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "Master에 선언된 터널을 로컬 노드가 연다 — 무엇을 열지는 Master가 정한다", []], ["service_tunnels.reconcile_interval_sec", "정수", "운영자", "재시작", "숫자", "—", "0 = 기본값", "선언 조회 주기(초)", []]], "secs": [{"name": "WireGuard", "keys": ["wireguard.address_cidr", "wireguard.advertise_endpoint", "wireguard.auto_install", "wireguard.auto_up", "wireguard.desired_sync_interval_sec", "wireguard.enabled", "wireguard.endpoint_refresh_interval_sec", "wireguard.install_policy", "wireguard.interface_name", "wireguard.listen_port", "wireguard.mode", "wireguard.mtu", "wireguard.nat_gateway", "wireguard.nat_mapping_lifetime_sec", "wireguard.nat_mapping_mode", "wireguard.nat_mapping_protocols", "wireguard.nat_probe_timeout_ms", "wireguard.persistent_keepalive_sec", "wireguard.private_key_path", "wireguard.privileged_helper_path", "wireguard.privileged_helper_timeout_sec", "wireguard.stun_servers", "wireguard.stun_timeout_ms"]}, {"name": "Mesh VPN", "keys": ["mesh_vpn.adapter", "mesh_vpn.advertise_host", "mesh_vpn.connect_timeout_ms", "mesh_vpn.enabled", "mesh_vpn.listen_host", "mesh_vpn.mode", "mesh_vpn.network_id", "mesh_vpn.peer_id", "mesh_vpn.port"]}, {"name": "직접 TCP", "keys": ["direct_tcp.advertise_host", "direct_tcp.connect_timeout_ms", "direct_tcp.enabled", "direct_tcp.listen_host", "direct_tcp.port"]}, {"name": "gRPC 전송", "keys": ["grpc_transport.advertise_host", "grpc_transport.connect_timeout_ms", "grpc_transport.enabled", "grpc_transport.listen_host", "grpc_transport.port"]}, {"name": "WebRTC", "keys": ["webrtc.connect_timeout_ms", "webrtc.enabled", "webrtc.stun_servers"]}, {"name": "서비스 터널", "keys": ["service_tunnels.enabled", "service_tunnels.reconcile_interval_sec"]}]}, {"name": "보안·API", "pre": "security · local_api · gateway_service", "keys": [["security.device_token_path", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra/token.json`", "—", "장치 토큰 파일", []], ["security.private_key_path", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra/keys/device_private.key`", "—", "장치 개인키 파일", []], ["security.public_key_path", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra/keys/device_public.key`", "—", "장치 공개키 파일", []], ["security.require_tls", "켜기/끄기", "운영자", "재시작", "토글", "켬", "prod·비개발 모드면 `master.url`이 `wss`·`https`여야 한다", "Master 연결에 TLS를 요구", []], ["local_api.auth_token_path", "문자열", "설치기", "재시작", "읽기 전용", "`~/.terra/local_api_token`", "—", "로컬 API 토큰 파일", []], ["local_api.bind_host", "문자열", "운영자", "재시작", "텍스트", "`127.0.0.1`", "prod에서 `0.0.0.0` 금지", "로컬 API 바인드 주소", []], ["local_api.enable_debug", "켜기/끄기", "운영자", "재시작", "토글", "끔", "—", "`/debug/*` 경로 켜기", []], ["local_api.enabled", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "로컬 API 켜기 — Gateway·CLI가 이것으로 데몬에 닿는다", []], ["local_api.port", "정수", "운영자", "재시작", "숫자", "`17321`", "1 ~ 65535. 생성 엔드포인트 표와 묶여 있다(§9-8)", "로컬 API 포트", []], ["local_api.require_auth", "켜기/끄기", "운영자", "재시작", "토글", "켬", "prod에서 끌 수 없다", "로컬 API에 토큰 요구", []], ["local_api.shutdown_timeout_sec", "정수", "운영자", "재시작", "숫자", "`5`", "≥ 1", "종료 대기(초)", []], ["gateway_service.addr", "문자열", "운영자", "재시작", "텍스트", "`127.0.0.1:8787`", "생성 엔드포인트 표와 묶여 있다(§9-8)", "Gateway 주소", []], ["gateway_service.binary_path", "문자열", "설치기", "재시작", "읽기 전용", "—", "비면 데몬 옆", "Gateway 실행 파일 경로", []], ["gateway_service.dev_open", "켜기/끄기", "운영자", "재시작", "토글", "—", "운영에서 켜지 않는다", "모든 호출자에게 모든 권한 — **개발 전용**", []], ["gateway_service.enabled", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "로컬 노드의 Gateway를 띄운다", []], ["gateway_service.ipc", "문자열", "파생", "재시작", "읽기 전용", "—", "비면 데이터 디렉터리에서 파생", "모듈 게시 IPC 주소", []], ["gateway_service.master_service_credential", "문자열", "비밀", "재시작", "숨김", "(숨김)", "API로 못 바꾼다", "Gateway의 Core-peer 자격", []]], "secs": [{"name": "보안 자격", "keys": ["security.device_token_path", "security.private_key_path", "security.public_key_path", "security.require_tls"]}, {"name": "로컬 API", "keys": ["local_api.auth_token_path", "local_api.bind_host", "local_api.enable_debug", "local_api.enabled", "local_api.port", "local_api.require_auth", "local_api.shutdown_timeout_sec"]}, {"name": "Gateway", "keys": ["gateway_service.addr", "gateway_service.binary_path", "gateway_service.dev_open", "gateway_service.enabled", "gateway_service.ipc", "gateway_service.master_service_credential"]}]}, {"name": "모듈·업데이트", "pre": "modules · 배포 · core · fleet", "keys": [["modules.allow_tree_override", "켜기/끄기", "설치기", "재시작", "읽기 전용", "—", "—", "이미지에 구운 모듈과 Tree 배포본이 겹치면 Tree 쪽을 살린다 — 이미지 빌드 결정", []], ["modules.auto_start", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "발견한 모듈을 자동 기동", []], ["modules.directories", "목록", "설치기", "재시작", "읽기 전용", "—", "—", "모듈을 찾는 디렉터리", []], ["modules.enabled", "켜기/끄기", "설치기", "재시작", "읽기 전용", "켬", "켜면 `modules.directories` 필수", "모듈 호스트를 이 설치가 가졌는가", []], ["modules.gateway_ipc", "문자열", "파생", "재시작", "읽기 전용", "—", "비면 데이터 디렉터리에서 파생", "Gateway에 route를 게시하는 IPC 주소", []], ["modules.managed_directories", "목록", "설치기", "재시작", "읽기 전용", "—", "—", "Tree 배포가 설치하는 디렉터리", []], ["modules.max_restarts", "정수", "운영자", "재시작", "숫자", "`3`", "≥ 0", "모듈 최대 재시작 횟수", []], ["modules.require_executable_hash", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "모듈 실행 파일 해시 검사", []], ["modules.rescan_interval_sec", "정수", "운영자", "재시작", "숫자", "—", "0 = 시작 때 한 번", "모듈 디렉터리 재스캔 주기(초)", []], ["modules.restart_backoff_ms", "정수", "운영자", "재시작", "숫자", "`1000`", "≥ 0", "모듈 재시작 간격(ms)", []], ["modules.state_dir", "문자열", "설치기", "재시작", "읽기 전용", "—", "—", "설치 기록 디렉터리", []], ["modules.stop_timeout_sec", "정수", "운영자", "재시작", "숫자", "`10`", "≥ 1 (모듈 호스트가 켜져 있을 때)", "모듈 정지 대기(초)", []], ["modules.strict_module_signing", "켜기/끄기", "운영자", "재시작", "토글", "끔", "—", "서명 없는 모듈도 격리 — Terra 서명 모듈만 돈다", []], ["module_distribution.allow_dev_install", "켜기/끄기", "운영자", "재시작", "토글", "—", "—", "서명 없는(개발 신뢰) 패키지 자동 설치 허용 — 시험대 전용", []], ["module_distribution.disk_quota_mb", "정수", "운영자", "재시작", "숫자", "—", "0 = 무제한", "관리 모듈 디스크 상한(MB)", []], ["module_distribution.enabled", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "Tree의 모듈 배포를 받는다", []], ["module_distribution.poll_interval_sec", "정수", "운영자", "재시작", "숫자", "—", "0 = Tree가 보낸 lease 주기(최소 60초)", "배포 조회 주기(초)", []], ["core_distribution.allow_apply", "켜기/끄기", "운영자", "재시작", "토글", "—", "—", "코어 교체 허용 — 끄면 바이트만 받고 교체는 손으로", []], ["core_distribution.disk_quota_mb", "정수", "운영자", "재시작", "숫자", "`4096`", "0 = 무제한", "스테이징 디스크 상한(MB)", []], ["core_distribution.enabled", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "코어 릴리스를 받아 스테이징한다", []], ["core_distribution.hold", "켜기/끄기", "운영자", "재시작", "토글", "—", "—", "스테이징을 거부한다 — 거부 사실은 Tree에 보고된다", []], ["core_distribution.hold_reason", "문자열", "운영자", "재시작", "텍스트", "—", "비면 기본 문구", "거부 사유", []], ["core_distribution.maintenance_window", "문자열", "운영자", "재시작", "텍스트", "—", "`HH:MM-HH:MM` 로컬 시각, 자정 넘김 가능. 비면 언제든", "릴리스 적용을 허용하는 시간대", []], ["core_distribution.poll_interval_sec", "정수", "운영자", "재시작", "숫자", "—", "0 = 기본값", "조회 주기(초)", []], ["core_distribution.role", "문자열", "운영자", "재시작", "텍스트", "—", "비면 `terra`(통합 번들)", "받을 릴리스 번들", []], ["fleet_host.docker_binary", "문자열", "운영자", "재시작", "텍스트", "—", "비면 PATH", "docker CLI 경로", []], ["fleet_host.enabled", "켜기/끄기", "설치기", "재시작", "읽기 전용", "끔", "—", "Fleet 컨테이너 호스트 역할", []], ["fleet_host.poll_interval_sec", "정수", "운영자", "재시작", "숫자", "—", "0 = 30초", "조회 주기(초)", []], ["fleet_host.stop_timeout_sec", "정수", "운영자", "재시작", "숫자", "—", "—", "`docker stop` 대기(초)", []]], "secs": [{"name": "모듈", "keys": ["modules.allow_tree_override", "modules.auto_start", "modules.directories", "modules.enabled", "modules.gateway_ipc", "modules.managed_directories", "modules.max_restarts", "modules.require_executable_hash", "modules.rescan_interval_sec", "modules.restart_backoff_ms", "modules.state_dir", "modules.stop_timeout_sec", "modules.strict_module_signing"]}, {"name": "모듈 배포", "keys": ["module_distribution.allow_dev_install", "module_distribution.disk_quota_mb", "module_distribution.enabled", "module_distribution.poll_interval_sec"]}, {"name": "코어 업데이트", "keys": ["core_distribution.allow_apply", "core_distribution.disk_quota_mb", "core_distribution.enabled", "core_distribution.hold", "core_distribution.hold_reason", "core_distribution.maintenance_window", "core_distribution.poll_interval_sec", "core_distribution.role"]}, {"name": "Fleet 호스트", "keys": ["fleet_host.docker_binary", "fleet_host.enabled", "fleet_host.poll_interval_sec", "fleet_host.stop_timeout_sec"]}]}, {"name": "런타임", "pre": "task_queue · feature", "keys": [["task_queue.default_timeout_sec", "정수", "운영자", "재시작", "숫자", "`300`", "≥ 1", "작업 기본 제한 시간(초)", []], ["task_queue.max_queue_size", "정수", "운영자", "재시작", "숫자", "`1024`", "≥ 1", "대기열 최대 길이", []], ["task_queue.max_retry_count", "정수", "운영자", "재시작", "숫자", "`3`", "≥ 0", "재시도 횟수", []], ["task_queue.worker_count", "정수", "운영자", "재시작", "숫자", "`4`", "≥ 1", "동시에 도는 작업 수", []], ["feature.enable_docker", "켜기/끄기", "운영자", "재시작", "토글", "끔", "—", "Docker 기능", []], ["feature.enable_experimental", "켜기/끄기", "운영자", "재시작", "토글", "끔", "—", "실험 기능", []], ["feature.enable_io_gateway", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "I/O 게이트웨이 기능", []], ["feature.enable_screen_share", "켜기/끄기", "운영자", "재시작", "토글", "끔", "—", "화면 공유 기능", []], ["feature.enable_svi", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "SVI 기능", []], ["feature.enable_svi_test_stream", "켜기/끄기", "운영자", "재시작", "토글", "켬", "—", "SVI 시험 스트림 자원 — 발견만 되고 여는 데는 Grant가 필요하다", []]], "secs": [{"name": "작업 큐", "keys": ["task_queue.default_timeout_sec", "task_queue.max_queue_size", "task_queue.max_retry_count", "task_queue.worker_count"]}, {"name": "기능 플래그", "keys": ["feature.enable_docker", "feature.enable_experimental", "feature.enable_io_gateway", "feature.enable_screen_share", "feature.enable_svi", "feature.enable_svi_test_stream"]}]}];
     // 라벨은 명사형 용어로 — 문서의 뜻(mean) 문장은 ⓘ · 설명 줄에 남긴다
@@ -322,13 +359,134 @@ class Component extends DCLogic {
       role: 'leaf', perm: true, demo: 'ok', tab: 'node', group: 0, q: '', filter: 'all', cur, draft: {}, pending: {}, errors: {}, open: {}, dlg: null, toasts: [], saving: false,
       help: this.readHelp(), winOp: this.readWinOp(),
       prefs: { start: '노드 화면', refresh: '10초' },
-      grants: [{ id: 'grt_31', agent: 'claude-agent', level: 'read', nodes: 'edge-01', exp: '21:40' }]
+      grants: [{ id: 'grt_31', agent: 'claude-agent', level: 'read', nodes: 'edge-01', exp: '21:40' }],
+      // 사용자 관리(M-1) · 첫 로그인 마무리(O-3) · 이 노드의 등록 상태(O-6) — 예시 값. 서비스는 Master · Daemon 응답으로 바꾼다
+      me: 'admin@example.com', usersState: 'ok',
+      users: [
+        { id: 'u_admin', email: 'admin@example.com', name: '관리자', type: 'master_admin', status: 'active', perms: this.DEFAULT_PERMS.concat(['node.config']) },
+        { id: 'u_minji', email: 'minji@example.com', name: '민지', type: 'cluster_user', status: 'active', perms: this.DEFAULT_PERMS.slice() },
+        { id: 'u_ci', email: 'ci-bot@example.com', name: 'CI 봇', type: 'cluster_user', status: 'disabled', perms: this.DEFAULT_PERMS.slice() }
+      ],
+      uf: null, firstDone: this.readFirstDone(),
+      enrSt: { state: 'ok', registered: true, nodeId: 'node_7f3a91c2', deviceId: 'dev_edge01', masterUrl: 'https://tree.example.com', registeredAt: '2026-10-02 14:03', credentialReady: true, fleet: '' }
     };
   }
   componentWillUnmount() { (this._ts || []).forEach(clearTimeout); try { window.removeEventListener('storage', this._onStore); } catch (e) { /* 무시 */ } }
   // 이너 도움말 — "…입니다" 같은 회색 설명 글. 끄면 숨기고 ⓘ(마우스를 올리면 전체)로만 남긴다.
   // GUI 선호라서 현재 브라우저에만 저장한다(localStorage). 다른 보드는 storage 이벤트로 바로 따라온다
   readHelp() { try { const v = window.localStorage.getItem('terra.gui.innerHelp'); return v === '1'; } catch (e) { return false; } }
+  readFirstDone() { try { return window.localStorage.getItem('terra.gui.firstRunDone') === '1'; } catch (e) { return false; } }
+  writeFirstDone(v) { try { if (v) window.localStorage.setItem('terra.gui.firstRunDone', '1'); else window.localStorage.removeItem('terra.gui.firstRunDone'); } catch (e) { /* 저장 못 해도 이 화면에서는 바로 닫힌다 */ } this.setState({ firstDone: !!v }); }
+  // 사용자 관리(M-1): 한 곳으로 모은 호출 — act = create | patch | password. 이 판은 화면 안에서만 바꾸고, 서비스는 이 메서드 하나를 Master 호출로 바꿔 끼운다
+  async userApi(act, a) {
+    const U = this.state.users.map((x) => Object.assign({}, x));
+    if (act === 'create') {
+      if (U.some((x) => x.email.toLowerCase() === a.email.toLowerCase())) return { ok: false, msg: '이미 등록된 이메일입니다 (EMAIL_IN_USE)' };
+      U.push({ id: 'u_' + Math.random().toString(36).slice(2, 8), email: a.email, name: a.display_name || '', type: a.user_type || 'cluster_user', status: 'active', perms: this.DEFAULT_PERMS.slice() });
+    } else if (act === 'patch') {
+      const u = U.find((x) => x.id === a.id); if (!u) return { ok: false, msg: '사용자를 찾지 못했습니다 (USER_NOT_FOUND)' };
+      if (a.status) u.status = a.status; if (a.permissions) u.perms = a.permissions.slice();
+    } else if (act === 'password') { if (!U.some((x) => x.id === a.id)) return { ok: false, msg: '사용자를 찾지 못했습니다 (USER_NOT_FOUND)' }; }
+    this.setState({ users: U }); return { ok: true };
+  }
+  ufSet(patch) { this.setState({ uf: Object.assign({}, this.state.uf, patch, { msg: patch.msg != null ? patch.msg : '' }) }); }
+  userForm(mode, u) {
+    const base = { mode, id: u ? u.id : '', who: u ? u.email : '', busy: false, msg: '' };
+    this.setState({ uf: mode === 'new' ? Object.assign(base, { email: '', name: '', pw: '', type: 'cluster_user' })
+      : mode === 'perm' ? Object.assign(base, { perms: (u.perms || []).filter((x) => this.KNOWN_PERMS.indexOf(x) >= 0), extra: (u.perms || []).filter((x) => this.KNOWN_PERMS.indexOf(x) < 0).join(', ') })
+      : Object.assign(base, { pw: '' }) });
+  }
+  async userSubmit() {
+    const f = this.state.uf; if (!f || f.busy) return;
+    const fail = (msg) => this.setState({ uf: Object.assign({}, this.state.uf, { busy: false, msg }) });
+    let act, a;
+    if (f.mode === 'new') {
+      if (!/^[^@\s]+@[^@\s]+$/.test(String(f.email || '').trim())) return fail('이메일을 입력하세요');
+      if (String(f.pw || '').length < 8) return fail('비밀번호는 8자 이상이어야 합니다');
+      act = 'create'; a = { email: f.email.trim(), password: f.pw, display_name: String(f.name || '').trim() || undefined, user_type: f.type };
+    } else if (f.mode === 'perm') {
+      const extra = String(f.extra || '').split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
+      act = 'patch'; a = { id: f.id, permissions: Array.from(new Set((f.perms || []).concat(extra))) };
+    } else {
+      if (String(f.pw || '').length < 8) return fail('비밀번호는 8자 이상이어야 합니다');
+      act = 'password'; a = { id: f.id, password: f.pw };
+    }
+    this.setState({ uf: Object.assign({}, f, { busy: true, msg: '' }) });
+    const r = await this.userApi(act, a);
+    if (!r || !r.ok) return fail((r && r.msg) || '하지 못했습니다');
+    this.setState({ uf: null });
+    this.toast('●', '#3ecf8e', f.mode === 'new' ? '사용자를 만들었습니다' : f.mode === 'perm' ? '권한을 저장했습니다' : '비밀번호를 다시 정했습니다', f.mode === 'new' ? a.email : f.who);
+  }
+  userToggle(u) {
+    const to = u.status === 'active' ? 'disabled' : 'active';
+    this.setState({ dlg: { title: to === 'disabled' ? u.email + ' 계정을 끌까요?' : u.email + ' 계정을 다시 켤까요?', op: 'terra.master.admin.users.by-user-id.patch { status: ' + to + ' }',
+      rows: [['계정', u.email], ['유형', u.type], ['바뀌는 값', 'status → ' + to]],
+      warn: to === 'disabled' ? '계정을 끄면 로그인할 수 없고 열린 세션도 이어지지 않습니다. 문서는 지워지지 않으며 다시 켜면 그대로 돌아옵니다. SVI 허가는 따로 회수해야 합니다.' : '', okLabel: to === 'disabled' ? '끄기' : '켜기',
+      ok: async () => { const r = await this.userApi('patch', { id: u.id, status: to }); if (r && r.ok) this.toast('●', '#3ecf8e', to === 'disabled' ? '계정을 껐습니다' : '계정을 켰습니다', u.email); else this.toast('■', '#ff6b81', '하지 못했습니다', (r && r.msg) || ''); } } });
+  }
+  // 첫 로그인 마무리(O-3): Tree를 처음 쓰는 최초(bootstrap) 관리자에게 — 사용자가 이 계정 하나뿐이고 아직 닫지 않았을 때만
+  firstRunCards() {
+    const S = this.state, U = S.users;
+    if (S.firstDone || S.usersState !== 'ok' || !(U.length === 1 && U[0].type === 'master_admin')) return [];
+    return [this.card({ span: 12, title: '첫 로그인 마무리', sub: '최초(bootstrap) 관리자 · 두 가지가 남았다', acts: [this.btn('이 안내 닫기', () => this.writeFirstDone(true))], rows: [
+      this.row('일상용 계정 만들기', 'bootstrap 관리자(master_admin)는 설치가 만든 최상위 계정이다. 일상 작업은 별도 계정으로 하고, 이 계정은 계정 관리 · 복구용으로 남겨 둔다', '남음', { badges: [this.tag('권장', 'warn')], btns: [this.btn('+ 사용자 만들기', () => this.userForm('new'), { primary: true })] }),
+      this.row('bootstrap 자격 파일 정리', 'Windows 마법사가 암호를 만들었다면 Tree 데이터 위치의 bootstrap-password 파일에 남아 있다. 암호를 안전한 곳에 옮긴 뒤 그 파일을 지운다 — 이 화면에서는 지울 수 없다. Linux는 --admin-password-file로 준 파일, compose는 .env의 TERRA_ADMIN_PASSWORD도 같다', '이 화면 밖', { badges: [this.tag('파일 · CLI', 'off')] })
+    ] })];
+  }
+  usersCard() {
+    const S = this.state, U = S.users;
+    if (S.usersState === 'loading') return this.stateCard('rotate', '#9aa1ab', '사용자를 불러오는 중…', '잠시만 기다리세요.');
+    if (S.usersState === 'denied') return this.stateCard('lock', '#f5b83d', '사용자 관리는 master_admin만', '이 계정은 사용자 유형이 master_admin이 아니라 사용자 목록을 볼 수 없습니다 (FORBIDDEN). 관리자 계정으로 로그인하세요.');
+    if (S.usersState === 'error') return this.stateCard('lock', '#ff6b81', '사용자 목록을 받지 못했습니다', 'Master에 닿지 않았거나 이 Gateway에 사용자 관리 길(terra.master.admin.users.*)이 없습니다. 새로고침해 보세요.');
+    const rows = U.map((u) => {
+      const self = u.email === S.me, off = u.status !== 'active', badges = [];
+      badges.push(this.tag(u.type, u.type === 'master_admin' ? 'vio' : 'info', u.type === 'master_admin' ? '관리자는 권한이 아니라 사용자 유형' : '일상용 계정'));
+      if (self) badges.push(this.tag('나', 'ok'));
+      if (off) badges.push(this.tag('꺼짐', 'off', '로그인할 수 없다 — 문서는 그대로 있고 다시 켜면 돌아온다'));
+      if ((u.perms || []).indexOf('node.config') < 0) badges.push(this.tag('node.config★ 없음', 'warn', 'Daemon 설정 쓰기는 권한 목록에 명시해야 열린다'));
+      return this.row(u.email, [u.name, '권한 ' + (u.perms || []).length].filter(Boolean).join(' · '), off ? 'disabled' : 'active', { tmono: true, op: off ? 0.6 : 1, badges,
+        btns: [this.btn('권한', () => this.userForm('perm', u)), this.btn('암호 재설정', () => this.userForm('pw', u)),
+          this.btn(off ? '켜기' : '끄기', () => this.userToggle(u), { danger: !off, dis: self && !off, tip: self && !off ? '자기 계정은 끌 수 없다 (SELF_DISABLE_NOT_ALLOWED)' : '' })] });
+    });
+    return this.card(Object.assign({ span: 12, title: '사용자 · 권한', sub: 'admin.users.* · master_admin 유형만 · ' + U.length + '명', acts: [this.btn('+ 사용자', () => this.userForm('new'), { primary: true })], rows }, this.userFormCard()));
+  }
+  // 이 노드의 등록 상태(O-6): 이 기계의 Daemon이 어느 Tree에 속했나
+  enrollCard() {
+    const E = this.state.enrSt;
+    if (E.state === 'none') return this.stateCard('link', '#9aa1ab', '이 Gateway엔 Daemon 등록 정보가 없습니다', 'tree만 설치한 기계이거나 Daemon에 닿지 않았습니다. 등록 상태는 Daemon(terra.daemon.enrollment.status.get)이 압니다.');
+    const ok = !!E.registered;
+    return this.card({ span: 12, title: '이 노드의 등록 상태', sub: 'terra.daemon.enrollment.status.get', rows: [
+      this.row('등록', ok ? '이 기계는 Tree에 등록되어 있다' : '아직 어느 Tree에도 속하지 않았다 — 시작 화면에서 등록 코드로 등록한다', ok ? '등록됨' : '미등록', { badges: [this.tag(ok ? 'registered' : 'not registered', ok ? 'ok' : 'warn')] }),
+      ...(ok ? [
+        this.row('노드 ID', 'Master가 발급한 노드 번호', E.nodeId || '—', { mono: true, help: true }),
+        this.row('장치 ID', '이 기계의 장치 번호', E.deviceId || '—', { mono: true, help: true }),
+        this.row('Master 주소', '이 노드가 보고하는 Tree', E.masterUrl || '—', { mono: true, help: true }),
+        this.row('등록한 때', '', E.registeredAt || '—', { help: true }),
+        this.row('Gateway 자격', 'Gateway가 Master 인증으로 다시 뜰 수 있나', E.credentialReady ? '준비됨' : '없음', { badges: [this.tag(E.credentialReady ? 'ready' : 'missing', E.credentialReady ? 'ok' : 'bad')], vc: E.credentialReady ? '#3ecf8e' : '#ff6b81' }),
+        ...(E.fleet ? [this.row('Fleet', 'Fleet 가입 코드로 등록한 노드', E.fleet, { mono: true })] : [])] : []),
+      this.row('해제 · 다른 Tree로 옮기기', 'Daemon에는 등록을 푸는 길이 없다. 노드 제거는 Tree 쪽에서 한다 — 해제 절차는 아직 정해지지 않았다', '없음', { help: true, vc: '#9aa1ab', badges: [this.tag('API 없음', 'off')] })
+    ] });
+  }
+  // 사용자 카드의 입력 묶음 (uf가 열려 있을 때)
+  userFormCard() {
+    const f = this.state.uf; if (!f) return {};
+    const set = (k) => (e) => this.ufSet({ [k]: e.target.value });
+    const title = f.mode === 'new' ? '새 사용자' : f.mode === 'perm' ? f.who + ' — 권한' : f.who + ' — 비밀번호 다시 정하기';
+    let fields;
+    if (f.mode === 'new') fields = [
+      { key: 'email', label: '이메일 *', span: 1, isIn: true, type: 'email', v: f.email, ph: 'name@example.com', set: set('email') },
+      { key: 'name', label: '표시 이름', span: 1, isIn: true, type: 'text', v: f.name, ph: '비우면 이메일', set: set('name') },
+      { key: 'pw', label: '초기 비밀번호 * (8자 이상)', span: 1, isIn: true, type: 'password', v: f.pw, ph: '1회용으로 전하고 첫 로그인 뒤 바꾸게 한다', set: set('pw') },
+      { key: 'type', label: '사용자 유형', span: 1, isSel: true, set: set('type'), opts: [['cluster_user', 'cluster_user — 일상용'], ['master_admin', 'master_admin — 계정 관리자']].map(([v, t]) => ({ v, t, sel: f.type === v ? 'selected' : null })) }];
+    else if (f.mode === 'perm') fields = [
+      { key: 'perms', label: '권한 — 누르면 켜고 끈다 (Master는 값을 검사하지 않고 저장한다)', span: 2, isChips: true, chips: this.KNOWN_PERMS.map((v) => { const on = f.perms.indexOf(v) >= 0, star = this.DEFAULT_PERMS.indexOf(v) < 0;
+        return { v, on: on ? 'true' : 'false', tip: star ? '기본 권한 밖 — 명시해야 열린다' : '기본 권한', bg: on ? 'rgba(237,233,225,0.14)' : 'transparent', fg: on ? '#ede9e1' : '#9aa1ab', line: on ? '#ede9e1' : 'rgba(255,255,255,0.18)',
+          run: () => this.ufSet({ perms: on ? f.perms.filter((x) => x !== v) : f.perms.concat([v]) }) }; }) },
+      { key: 'extra', label: '그 밖의 권한 (쉼표로 나눔 — 사전에 없는 이름도 그대로 저장된다)', span: 2, isIn: true, type: 'text', v: f.extra, ph: '예: module.manage', set: set('extra') }];
+    else fields = [{ key: 'pw', label: '새 비밀번호 (8자 이상)', span: 2, isIn: true, type: 'password', v: f.pw, ph: '', set: set('pw') }];
+    return { hasForm: true, formId: f.mode, formTitle: title, fields, fmsg: f.msg, fmsgDisp: f.msg ? 'block' : 'none', fcancel: () => this.setState({ uf: null }), fok: () => this.userSubmit(),
+      fokLabel: f.busy ? '보내는 중…' : f.mode === 'new' ? '만들기' : '저장', fbusy: f.busy ? 'true' : 'false', fop: f.busy ? 0.6 : 1 };
+  }
   readWinOp() { try { const v = parseInt(window.localStorage.getItem('terra.gui.winOpacity'), 10); return v >= 30 && v <= 100 ? v : 64; } catch (e) { return 64; } }
   writeWinOp(v) { v = Math.max(30, Math.min(100, Math.round(v))); try { window.localStorage.setItem('terra.gui.winOpacity', String(v)); } catch (e) { /* 저장 못 해도 이 화면에서는 바뀐다 */ } this.setState({ winOp: v }); }
   writeHelp(on) { try { window.localStorage.setItem('terra.gui.innerHelp', on ? '1' : '0'); } catch (e) { /* 저장 못 해도 이 화면에서는 바뀐다 */ } this.setState({ help: on }); }
@@ -396,7 +554,7 @@ class Component extends DCLogic {
   }
   tag(t, tone, tip) { const T = { ok: ['rgba(62,207,142,0.10)', '#3ecf8e'], warn: ['rgba(245,184,61,0.10)', '#f5b83d'], bad: ['rgba(255,93,93,0.10)', '#ff5d5d'], info: ['rgba(122,167,255,0.10)', '#7aa7ff'], off: ['rgba(255,255,255,0.04)', '#9aa1ab'], vio: ['rgba(180,140,255,0.10)', '#b48cff'] }[tone]; return { t, bg: T[0], fg: T[1], tip: tip || '' }; }
   btn(label, run, o) { o = o || {}; const d = o.danger; return { label, run: o.dis ? () => {} : run, tip: o.tip || '', dis: o.dis ? 'true' : 'false', cur: o.dis ? 'not-allowed' : 'pointer', op: o.dis ? 0.5 : 1, line: d ? 'rgba(255,93,93,0.45)' : o.primary ? '#ede9e1' : 'rgba(255,255,255,0.18)', bg: o.primary ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: d ? '#ff5d5d' : o.primary ? '#111111' : '#ede9e1', cls: o.primary ? 'pri' : 'ghost' }; }
-  card(o) { const H = this.state.help; return Object.assign({ subDisp: H ? 'inline' : 'none', showText: !!o.text && (H || !!o.big), span: 12, headDisp: o.title ? 'flex' : 'none', title: '', sub: '', acts: [], rows: [], hasText: !!o.text, text: '', textPad: '12px 14px', textAlign: 'left', iconDisp: 'none', icon: '', iconBg: '#9aa1ab', bigDisp: 'none', big: '', hasCode: !!(o.code && o.code.length), code: [] }, o); }
+  card(o) { const H = this.state.help; return Object.assign({ subDisp: H ? 'inline' : 'none', showText: !!o.text && (H || !!o.big), span: 12, headDisp: o.title ? 'flex' : 'none', title: '', sub: '', acts: [], rows: [], hasText: !!o.text, text: '', textPad: '12px 14px', textAlign: 'left', iconDisp: 'none', icon: '', iconBg: '#9aa1ab', bigDisp: 'none', big: '', hasCode: !!(o.code && o.code.length), code: [], hasForm: false, formId: '', formTitle: '', fields: [], fmsg: '', fmsgDisp: 'none', fmsgC: '#ff6b81', fcancel: () => {}, fok: () => {}, fokLabel: '', fbusy: 'false', fop: 1 }, o); }
   row(t, d, v, o) { o = o || {}; const hide = o.help && !this.state.help; return { dDisp: d && !hide ? 'block' : 'none', t, d: d || '', v: v == null ? '' : String(v), vc: o.vc || '#ede9e1', vcls: o.mono ? 'mono' : '', cls: o.tmono ? 'mono' : '', hasSl: !!o.sl, slV: o.sl ? o.sl.v : 0, slSet: o.sl ? o.sl.set : null, slPrev: o.sl ? 'rgba(13,15,19,' + (o.sl.v / 100) + ')' : '', badges: o.badges || [], btns: o.btns || [], op: o.op == null ? 1 : o.op }; }
   stateCard(icon, bg, big, text) { return this.card({ hasText: true, subDisp: 'inline', showText: true, text, big, bigDisp: 'block', icon, iconBg: bg, iconDisp: 'flex', textPad: '40px 24px', textAlign: 'center' }); }
   // 키 한 줄 — 상태 9가지(§8.2)
@@ -529,7 +687,8 @@ class Component extends DCLogic {
           this.row('비밀번호 변경', '자기 비밀번호를 바꾸는 operation이 없다 — 관리자 재설정만', '없음', { help: true, vc: '#9aa1ab', badges: [this.tag('API 없음', 'off')] })
         ] }),
         this.card({ span: 5, title: '에이전트 위임 자격', sub: 'agent.grants.*', acts: [this.btn('+ 발급', () => this.setState({ dlg: { title: '에이전트에게 자격을 발급할까요?', op: 'terra.gateway.agent.grants.post', rows: [['agent', 'claude-agent'], ['level', 'read'], ['nodes', leaf ? 'edge-01' : 'tree-home 외 7'], ['만료', '세션과 같이 21:40']], warn: '위임 자격은 위험 동작입니다. 발급한 동안 에이전트가 이 권한으로 노드를 부를 수 있습니다.', okLabel: '발급', ok: () => { this.setState({ grants: this.state.grants.concat([{ id: 'grt_' + Math.floor(Math.random() * 90 + 10), agent: 'claude-agent', level: 'read', nodes: leaf ? 'edge-01' : '8노드', exp: '21:40' }]) }); this.toast('●', '#3ecf8e', '발급됨', 'agent.grants.post'); } } }), { primary: true })],
-          rows: S.grants.map((g) => this.row(g.agent, g.id + ' · ' + g.nodes + ' · 만료 ' + g.exp, g.level, { mono: true, badges: [this.tag(g.level, 'info')], btns: [this.btn('회수', () => this.setState({ grants: this.state.grants.filter((x) => x.id !== g.id) }), { danger: true })] })) })
+          rows: S.grants.map((g) => this.row(g.agent, g.id + ' · ' + g.nodes + ' · 만료 ' + g.exp, g.level, { mono: true, badges: [this.tag(g.level, 'info')], btns: [this.btn('회수', () => this.setState({ grants: this.state.grants.filter((x) => x.id !== g.id) }), { danger: true })] })) }),
+        this.enrollCard()
       ];
     } else if (cur.id === 'node') {
       showKeys = true; showGrp = true; bar = true;
@@ -556,11 +715,9 @@ class Component extends DCLogic {
     } else if (cur.id === 'cluster') {
       sub = 'tree Gateway · Master API — 설정 "키"가 아니라 레코드를 만들고 고친다';
       cards = [
-        this.card({ span: 7, title: '사용자 · 권한', sub: 'admin.users.* · master_admin 유형만', acts: [this.btn('+ 사용자', () => this.toast('◇', '#7aa7ff', '사용자 만들기', 'email* · password* · display_name · user_type'), { primary: true })], rows: [
-          this.row('admin', 'master_admin · 권한 10 (node.config★ 포함)', 'active', { tmono: true, badges: [this.tag('master_admin', 'vio')] }),
-          this.row('minji', 'cluster_user · 기본 권한 9', 'active', { tmono: true, badges: [this.tag('node.config★ 없음', 'warn')], btns: [this.btn('권한 수정', () => this.toast('●', '#3ecf8e', 'permissions[] 수정', 'Master는 값을 검사하지 않고 저장합니다 — module.manage처럼 사전에 없는 이름도 문자열로 넣어야 열린다'))] }),
-          this.row('ci-bot', 'cluster_user · 정지됨', 'suspended', { tmono: true, op: 0.6, badges: [this.tag('suspended', 'off')] })] }),
-        this.card({ span: 5, title: '클러스터', sub: 'admin.clusters.*', rows: [this.row('home', 'environment prod', 'active', { tmono: true, badges: [this.tag('active', 'ok')], btns: [this.btn('수정', () => this.toast('◇', '#7aa7ff', '클러스터 수정', 'name · status · environment'))] })] }),
+        ...this.firstRunCards(),
+        this.usersCard(),
+        this.card({ span: 12, title: '클러스터', sub: 'admin.clusters.*', rows: [this.row('home', 'environment prod', 'active', { tmono: true, badges: [this.tag('active', 'ok')], btns: [this.btn('수정', () => this.toast('◇', '#7aa7ff', '클러스터 수정', 'name · status · environment'))] })] }),
         this.card({ span: 12, title: '타 화면 소유 클러스터 정책', sub: '여기서는 목록과 길만', rows: [
           this.row('논리 네트워크 · IP 할당 · transport', 'network.* — 네트워크 화면 "사설망"', '2 네트워크', { btns: [this.btn('네트워크 화면 →', () => { if (typeof window !== 'undefined') window.location.href = 'Network.dc.html'; })] }),
           this.row('라우트 정책', 'route.policies.* — 네트워크 화면 "연결 진단"', '3 정책', { btns: [this.btn('네트워크 화면 →', () => { if (typeof window !== 'undefined') window.location.href = 'Network.dc.html'; })] }),
