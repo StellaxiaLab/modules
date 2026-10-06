@@ -25,7 +25,7 @@ export const LOCAL_PLACEHOLDER = '이 노드';
 
 const ok = (r) => r && r.kind === 'ok';
 const hhmm = (d = new Date()) => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-const OK = '#1f7a4d', WARN = '#a65f00', BAD = '#d33d52', INK = '#16191f', BLUE = '#2563eb', MUTE = '#5b6472';
+const OK = '#4ade80', WARN = '#fbbf24', BAD = '#ff6b81', INK = '#16191f', BLUE = '#60a5fa', MUTE = '#8b95a6';
 
 /** 이 화면이 쓰는 권한 — 유틸 카드의 "잠긴 권한"이 이것과 견준다 */
 const SCREEN_PERMS = ['node.read', 'node.control', 'node.config', 'process.execute', 'process.cancel', 'file.read', 'file.write', 'module.manage'];

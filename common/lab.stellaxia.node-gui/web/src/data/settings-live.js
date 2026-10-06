@@ -42,6 +42,16 @@ export function toWire(type, v) {
   return String(v == null ? '' : v);
 }
 
+/** 이 기계의 등록 상태(O-6) — Daemon enrollment.status.get 응답을 화면 값으로. 못 받으면(tree만 · 길 없음) 말없이 '없음' (maingui boot/service.js loadEnrollment 와 같다) */
+export function enrollmentState(r) {
+  if (!r || r.kind !== 'ok' || !r.data) return { state: 'none' };
+  const d = r.data, at = d.registered_at ? new Date(d.registered_at) : null, p2 = (n) => String(n).padStart(2, '0');
+  const f = d.fleet && (d.fleet.fleet_id || d.fleet.slot_id) ? [d.fleet.fleet_id, d.fleet.slot_id].filter(Boolean).join(' · ') : '';
+  return { state: 'ok', registered: !!d.registered, nodeId: d.node_id || '', deviceId: d.device_id || '', masterUrl: d.master_url || '',
+    registeredAt: at && !isNaN(at) ? at.getFullYear() + '-' + p2(at.getMonth() + 1) + '-' + p2(at.getDate()) + ' ' + p2(at.getHours()) + ':' + p2(at.getMinutes()) : '',
+    credentialReady: !!d.credential_ready, fleet: f };
+}
+
 export function realSettings(Screen) {
   return class RealSettings extends Screen {
     constructor(props) {
@@ -52,6 +62,7 @@ export function realSettings(Screen) {
       Object.keys(this.KEY).forEach((k) => { cur[k] = this.KEY[k].type === '켜기/끄기' ? false : ''; });
       Object.assign(this.state, {
         role: null, perm: false, demo: 'ok', cur, draft: {}, pending: {}, errors: {}, grants: [],
+        users: [], me: '', usersState: 'error', uf: null, enrSt: { state: 'none' },
         live: null, why: null, loading: true, loadErr: '', nodeName: '', principal: '', who: null, configPath: '', schemaN: null, operatorN: null,
         res: { roots: null, decls: null, envelope: null, devices: null, offers: null, errs: {} }
       });
@@ -71,7 +82,7 @@ export function realSettings(Screen) {
       this.__live = live;
       if (!live) {
         this.DEV = {};
-        this.setState({ live: false, why, loading: false, role: null, perm: false, who: null, principal: '', nodeName: '', draft: {}, pending: {}, errors: {} });
+        this.setState({ live: false, why, loading: false, users: [], me: '', usersState: 'error', enrSt: { state: 'none' }, role: null, perm: false, who: null, principal: '', nodeName: '', draft: {}, pending: {}, errors: {} });
         return;
       }
       const role = roleOf(live.client.catalog);
@@ -79,6 +90,9 @@ export function realSettings(Screen) {
         tab: role === 'leaf' ? this.state.tab : (['node', 'res'].indexOf(this.state.tab) >= 0 ? 'account' : this.state.tab) });
       void this.load();
     }
+
+    /** 사용자 관리(M-1)는 Master operation(terra.master.admin.users.*)이다 — 앱 토큰은 Master에 닿지 않는다(Q-2 · PF-1). 화면 안에서만 바꾸는 예시 동작을 쓰지 않는다 */
+    async userApi() { return { ok: false, msg: 'Master operation — 이 화면(앱 토큰)에서는 닿지 않는다. 사용자 관리는 tree의 관리 화면에서 한다' }; }
 
     can(p) { const L = this.__live; return !!L && (L.permissions || []).indexOf(p) >= 0; }
 
@@ -112,7 +126,7 @@ export function realSettings(Screen) {
       if (!L) return;
       const c = L.client, leaf = this.state.role === 'leaf';
       const none = Promise.resolve(null);
-      const [who, node, cfg, schema, roots, decls, devs, offers] = await Promise.all([
+      const [who, node, cfg, schema, roots, decls, devs, offers, enr] = await Promise.all([
         c.get('/api/v1/agent/whoami'),   // 경로로 — invoke 로는 호출자가 빠진다(client.get)
         leaf ? c.invoke(D('node.get'), {}) : none,
         leaf ? c.invoke(D('config.get'), {}) : none,
@@ -120,10 +134,12 @@ export function realSettings(Screen) {
         leaf ? c.invoke(D('files.list.get'), {}) : none,
         leaf ? c.invoke(D('svi.declarations.get'), {}) : none,
         leaf ? c.invoke(D('io.devices.get'), {}) : none,
-        leaf ? c.invoke(D('modules.offers.get'), {}) : none
+        leaf ? c.invoke(D('modules.offers.get'), {}) : none,
+        leaf ? c.invoke(D('enrollment.status.get'), {}) : none
       ]);
       if (this.__live !== L) return;
       const patch = { loading: false };
+      patch.enrSt = enrollmentState(enr);
       if (ok(who) && who.data) patch.who = who.data;
       if (ok(node) && node.data) patch.nodeName = node.data.device_name || node.data.node_id || '';
       if (ok(schema) && schema.data && schema.data.fields) {
@@ -164,7 +180,7 @@ export function realSettings(Screen) {
     save(force) {
       const S = this.state, keys = Object.keys(S.draft), E = this.check(), L = this.__live;
       if (!L) return;
-      if (Object.keys(E).length) { this.setState({ errors: E }); this.toast('■', '#d33d52', '저장하지 않았습니다 — 초안 검사 ' + Object.keys(E).length + '건', '키 옆의 빨간 문장을 고치세요. 최종 판정은 데몬이 합니다(PATCH 400).'); return; }
+      if (Object.keys(E).length) { this.setState({ errors: E }); this.toast('■', '#ff6b81', '저장하지 않았습니다 — 초안 검사 ' + Object.keys(E).length + '건', '키 옆의 빨간 문장을 고치세요. 최종 판정은 데몬이 합니다(PATCH 400).'); return; }
       const danger = keys.filter((k) => this.DANGER[k] && (this.DANGER[k][0] === null || this.DANGER[k][0] === S.draft[k]));
       if (danger.length && !force) {
         this.setState({ dlg: { title: '저장 시 현재 화면의 접속 경로가 끊길 수 있습니다', op: 'terra.daemon.config.patch · save: true', rows: danger.map((k) => [k, String(S.draft[k])]), warn: danger.map((k) => this.DANGER[k][1]).join(' '), okLabel: '그래도 저장', ok: () => this.save(true) } });
@@ -184,8 +200,8 @@ export function realSettings(Screen) {
         const draft = Object.assign({}, this.state.draft);
         done.forEach((k) => { delete draft[k]; });
         this.setState({ saving: false, pending, draft, errors: fail ? { [fail.k]: resultText(fail.r) } : {} });
-        if (fail) this.toast('■', '#d33d52', fail.k + ' 저장 실패', resultText(fail.r) + (done.length ? ' · 앞의 ' + done.length + '키는 저장됨' : ''));
-        else this.toast('●', '#1f7a4d', '저장됨 — PATCH ' + done.length + '번 (save: true)', (now.length ? '즉시 반영: ' + now.join(', ') + '. ' : '') + (done.length - now.length ? '재시작 대기 ' + (done.length - now.length) + '키' : ''));
+        if (fail) this.toast('■', '#ff6b81', fail.k + ' 저장 실패', resultText(fail.r) + (done.length ? ' · 앞의 ' + done.length + '키는 저장됨' : ''));
+        else this.toast('●', '#4ade80', '저장됨 — PATCH ' + done.length + '번 (save: true)', (now.length ? '즉시 반영: ' + now.join(', ') + '. ' : '') + (done.length - now.length ? '재시작 대기 ' + (done.length - now.length) + '키' : ''));
         void this.load();
       })();
     }
@@ -196,7 +212,7 @@ export function realSettings(Screen) {
       if (!L) return;
       void L.client.invoke(op, input).then((r) => {
         const good = r.kind === 'ok' || r.kind === 'accepted';
-        this.toast(good ? '●' : '■', good ? '#1f7a4d' : '#d33d52', label + (good ? '' : ' — 실패'), good ? op : resultText(r));
+        this.toast(good ? '●' : '■', good ? '#4ade80' : '#ff6b81', label + (good ? '' : ' — 실패'), good ? op : resultText(r));
         void this.load();
       });
     }

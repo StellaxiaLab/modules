@@ -13,7 +13,7 @@ const { TerraClient } = await import('../src/api/client.js');
 const { LiveSource, pathInput, appFor } = await import('../src/api/source.js');
 const { ADAPT, modState, jobState, xferState, tunnelState } = await import('../src/api/adapters.js');
 const { realNode, wgLine } = await import('../src/data/node-live.js');
-const { flatten, toWire, realSettings } = await import('../src/data/settings-live.js');
+const { flatten, toWire, realSettings, enrollmentState } = await import('../src/data/settings-live.js');
 const { roleOf, tunnelRows, peerRows, realNetwork } = await import('../src/data/network-live.js');
 const { realMaterial, realField } = await import('../src/data/editors-live.js');
 
@@ -229,4 +229,23 @@ test('편집기 — 사용자 작품 예시(커스텀 자재 · 전용 부모 �
   const { default: Fld } = await import('../src/screens/field.js');
   const f = new (realField(Fld))({});
   assert.ok(!f.state.skins.some((x) => x.parent));
+});
+
+test('설정 — 사용자 관리(M-1)는 Master op 라 비어 있고 닿지 않는다고 한다 · 등록 상태(O-6)는 Daemon 값', async () => {
+  const { default: Set_ } = await import('../src/screens/settings.js');
+  const s = new (realSettings(Set_))({});
+  assert.deepEqual(s.state.users, []);
+  assert.equal(s.state.usersState, 'error');
+  assert.equal(s.state.enrSt.state, 'none');
+  const r = await s.userApi('create', { email: 'x@example.com' });
+  assert.equal(r.ok, false);
+  assert.match(r.msg, /Master operation/);
+  assert.deepEqual(s.state.users, [], '예시 동작처럼 화면 안에서만 사용자를 늘리지 않는다');
+  // 응답 없음 · 실패 → 말없이 없음
+  assert.deepEqual(enrollmentState(null), { state: 'none' });
+  assert.deepEqual(enrollmentState({ kind: 'error' }), { state: 'none' });
+  // 등록된 기계
+  const e = enrollmentState({ kind: 'ok', data: { registered: true, node_id: 'n1', device_id: 'd1', master_url: 'http://m:8080', registered_at: '2026-10-02T14:03:00', credential_ready: true, fleet: { fleet_id: 'f', slot_id: 's' } } });
+  assert.deepEqual([e.state, e.registered, e.nodeId, e.deviceId, e.masterUrl, e.credentialReady, e.fleet, e.registeredAt], ['ok', true, 'n1', 'd1', 'http://m:8080', true, 'f · s', '2026-10-02 14:03']);
+  assert.equal(enrollmentState({ kind: 'ok', data: { registered: false } }).registered, false);
 });

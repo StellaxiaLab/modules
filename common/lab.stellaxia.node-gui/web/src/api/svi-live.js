@@ -135,7 +135,7 @@ export function wireSviStreams(screen, source, reload) {
     else if (cmd === 'save') {
       const text = s.view.saveText(), name = String(s.view.name || 'svi').replace(/[^\w.-]+/g, '_') + '-' + s.view.handleId + '.txt';
       try { const a = document.createElement('a'), url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' })); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000); }
-      catch (e) { screen.hbSay('저장하지 못했다 — ' + resultText({ kind: 'error', reason: String(e) }), '#d33d52'); }
+      catch (e) { screen.hbSay('저장하지 못했다 — ' + resultText({ kind: 'error', reason: String(e) }), '#ff6b81'); }
       screen._lastFlowSave = { name, lines: s.view.tail.length, bytes: text.length };
     }
     screen.setState({ sviStream: s.view.snapshot() });

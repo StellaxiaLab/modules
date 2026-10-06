@@ -116,7 +116,7 @@ export function realNetwork(Screen) {
       void L.client.invoke(op, input || {}).then((r) => {
         this.setState({ busy: Object.assign({}, this.state.busy, { running: null }) });
         const good = r.kind === 'ok' || r.kind === 'accepted';
-        this.toast(good ? '●' : '■', good ? '#1f7a4d' : '#d33d52', label + ' — ' + (good ? '실행됨' : '실패'), good ? '상태를 다시 읽었습니다' : resultText(r));
+        this.toast(good ? '●' : '■', good ? '#4ade80' : '#ff6b81', label + ' — ' + (good ? '실행됨' : '실패'), good ? '상태를 다시 읽었습니다' : resultText(r));
         void this.refresh();
       });
     }

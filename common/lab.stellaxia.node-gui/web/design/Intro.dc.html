@@ -139,8 +139,33 @@ body{margin:0;background:#0b222d;overflow:hidden}
             <span data-in-enroll-note="1" style="font-size: 11.5px; line-height: 1.5; color: #959fae;">{{v.enrNote}}</span>
           </div>
 
-          <!-- 루프백이 아닐 때: 왜 여기서는 등록할 수 없는지 -->
+          <!-- 루프백이 아닐 때: 왜 여기서는 등록할 수 없는지 — 그 기계에서 바로 붙여 넣을 명령(O-7) -->
           <span data-in-enroll-why="1" style="display: {{v.enrWhyDisp}}; font-size: 11.5px; line-height: 1.5; color: #ea9e55;">{{v.enrWhy}}</span>
+          <div data-in-enroll-cmds="1" style="display: {{v.enrCmdsDisp}}; flex-direction: column; gap: 8px;">
+            <sc-for list="{{v.enrCmds}}" as="cm" hint-placeholder-count="0">
+              <div data-in-cmd="{{cm.id}}" style="display: flex; flex-direction: column; gap: 5px;">
+                <span style="font-size: 11.5px; font-weight: 600; color: #b4bac3;">{{cm.label}}</span>
+                <span style="display: flex; align-items: stretch; gap: 6px;">
+                  <code data-in-cmd-text="1" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.12); border-radius: 9px; background: #0e1013; color: #ede9e1; font-family: 'JetBrains Mono', ui-monospace, 'DejaVu Sans Mono', monospace; font-size: 11.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; user-select: all;">{{cm.cmd}}</code>
+                  <button type="button" data-in-cmd-copy="1" onClick="{{cm.copy}}" aria-label="명령 복사" class="in-ghost" style="flex-shrink: 0; width: 62px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: rgba(255,255,255,0.04); color: {{cm.copyC}}; font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;">{{cm.copyLabel}}</button>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- 등록 진행 단계(O-5): 코드 확인 → Master 응답 → Daemon 재시작 → Gateway 복귀 -->
+          <ol data-in-enroll-steps="1" aria-label="등록 진행 단계" style="display: {{v.enrStepsDisp}}; margin: 0; padding: 0; list-style: none; flex-direction: column; gap: 6px;">
+            <sc-for list="{{v.enrSteps}}" as="st" hint-placeholder-count="0">
+              <li data-in-step="{{st.state}}" style="display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: {{st.c}}; font-weight: {{st.w}};">
+                <span aria-hidden="true" style="width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; box-sizing: border-box; border: 1px solid {{st.line}}; background: {{st.bg}}; display: flex; align-items: center; justify-content: center; color: #0b0d11;">
+                  <sc-if value="{{st.isDone}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="12" height="12" style="fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12l5 5 9-10"></path></svg></sc-if>
+                  <sc-if value="{{st.isActive}}" hint-placeholder-val="{{false}}"><span style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.18); border-top-color: #ede9e1; animation: in-spin 800ms linear infinite;"></span></sc-if>
+                  <sc-if value="{{st.isBad}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="12" height="12" style="fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round;"><path d="M6 6l12 12M18 6L6 18"></path></svg></sc-if>
+                </span>
+                <span>{{st.label}}</span>
+              </li>
+            </sc-for>
+          </ol>
 
           <div data-in-enroll-fields="1" style="display: {{v.enrFieldsDisp}}; flex-direction: column; gap: 10px;">
             <label style="display: flex; flex-direction: column; gap: 5px;">
@@ -168,6 +193,48 @@ body{margin:0;background:#0b222d;overflow:hidden}
               {{v.enrGoLabel}}
             </button>
           </div>
+          <button type="button" data-in-enroll-back="1" onClick="{{v.enrBack}}" class="in-ghost" style="display: {{v.enrBackDisp}}; align-self: center; height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #9aa1ab; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;">← 처음으로</button>
+        </div>
+      </sc-if>
+
+      <!-- 시작 화면(O-1): 이 기계가 아직 어느 Tree에도 속하지 않았을 때 — 무엇을 할지 고른다 -->
+      <sc-if value="{{v.pick}}" hint-placeholder-val="{{false}}">
+        <div data-in-pick="1" style="display: flex; flex-direction: column; gap: 10px; padding: 2px 0;">
+          <span style="font-size: 12px; line-height: 1.55; color: #959fae; text-align: center;">{{v.pickNote}}</span>
+          <sc-for list="{{v.picks}}" as="pk" hint-placeholder-count="3">
+            <button type="button" data-in-pick-item="{{pk.id}}" onClick="{{pk.go}}" class="in-ghost" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; background: rgba(255,255,255,0.04); color: #ede9e1; font: inherit; text-align: left; cursor: pointer;">
+              <span aria-hidden="true" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; color: {{pk.c}};">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{pk.icon}}"></path></svg>
+              </span>
+              <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1;">
+                <span style="font-size: 14px; font-weight: 700;">{{pk.title}}</span>
+                <span style="font-size: 11.5px; line-height: 1.45; color: #9aa1ab;">{{pk.sub}}</span>
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M9 6l6 6-6 6"></path></svg>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- 안내 화면(O-2 · 새 Tree 만들기): 이 브라우저에서 할 수 없는 일을 알리고, 할 수 있는 길을 명령으로 준다 -->
+      <sc-if value="{{v.guide}}" hint-placeholder-val="{{false}}">
+        <div data-in-guide="{{v.guideId}}" style="display: flex; flex-direction: column; gap: 12px; padding: 2px 0;">
+          <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border: 1.5px solid rgba(255,255,255,0.12); border-radius: 10px; background: #11100a;">
+            <span style="font-size: 12.5px; font-weight: 800; color: #c7ccd4;">{{v.gTitle}}</span>
+            <span style="font-size: 11.5px; line-height: 1.55; color: #959fae;">{{v.gText}}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <sc-for list="{{v.gCmds}}" as="cm" hint-placeholder-count="0">
+              <div data-in-cmd="{{cm.id}}" style="display: flex; flex-direction: column; gap: 5px;">
+                <span style="font-size: 11.5px; font-weight: 600; color: #b4bac3;">{{cm.label}}</span>
+                <span style="display: flex; align-items: stretch; gap: 6px;">
+                  <code data-in-cmd-text="1" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.12); border-radius: 9px; background: #0e1013; color: #ede9e1; font-family: 'JetBrains Mono', ui-monospace, 'DejaVu Sans Mono', monospace; font-size: 11.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; user-select: all;">{{cm.cmd}}</code>
+                  <button type="button" data-in-cmd-copy="1" onClick="{{cm.copy}}" aria-label="명령 복사" class="in-ghost" style="flex-shrink: 0; width: 62px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9px; background: rgba(255,255,255,0.04); color: {{cm.copyC}}; font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;">{{cm.copyLabel}}</button>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+          <button type="button" data-in-guide-back="1" onClick="{{v.gBack}}" class="in-ghost" style="align-self: center; height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #9aa1ab; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;">← 처음으로</button>
         </div>
       </sc-if>
 
@@ -209,10 +276,14 @@ class Component extends DCLogic {
   constructor(props) {
     super(props);
     const saved = this.readAuto();
+    let want = ''; try { want = new URLSearchParams(window.location.search).get('phase') || ''; } catch (e) { want = ''; }
+    const peek = ['start', 'enroll', 'later', 'newtree'].indexOf(want) >= 0 ? want : '';   // index.html?phase=start — 등록 전 화면을 본다 (예시)
     this.state = {
+      enr: { code: '', name: '', addr: '', step: -1, msg: '', msgC: '#fbbf24', from: peek === 'enroll' ? '' : 'start' }, copied: '',
       username: saved ? saved.username : 'admin', password: '', auto: !!saved, showPw: false, caps: false,
       // phase: form(입력) · auto(자동 로그인 중) · loading(확인 중) · fail(실패) · done(로그인됨)
-      phase: saved ? 'auto' : 'form', msg: '', msgC: '#ff5d5d', shake: 0, gw: 'check'
+      //        start(시작 — 등록 전) · enroll(등록 코드) · later(등록 전엔 못 한다) · newtree(새 Tree 안내)
+      phase: peek || (saved ? 'auto' : 'form'), msg: '', msgC: '#ff5d5d', shake: 0, gw: 'check'
     };
   }
   // 자동 로그인 기억 (예시 — 실제로는 비밀번호를 화면이 저장하지 않고 Gateway가 자격 핸들을 보관한다)
@@ -236,7 +307,7 @@ class Component extends DCLogic {
     if (this.state.phase === 'auto') this._autoT = setTimeout(() => this.finish(true), 1800);
     else setTimeout(() => { const el = document.querySelector('[data-in-pass]'); if (el && this.state.phase === 'form') el.focus(); }, 300);
   }
-  componentWillUnmount() { this._dead = true; clearTimeout(this._flyT); clearTimeout(this._preT); clearTimeout(this._gwT); clearTimeout(this._autoT); clearTimeout(this._loginT); if (this._raf) cancelAnimationFrame(this._raf); if (this._rs) window.removeEventListener('resize', this._rs); }
+  componentWillUnmount() { this._dead = true; clearTimeout(this._flyT); clearTimeout(this._preT); clearTimeout(this._gwT); clearTimeout(this._autoT); clearTimeout(this._loginT); clearTimeout(this._cpT); clearTimeout(this._enrT); if (this._raf) cancelAnimationFrame(this._raf); if (this._rs) window.removeEventListener('resize', this._rs); }
   // 로그인 (예시): username · password가 비면 막고, password가 4자 미만이면 실패. 실제로는 terra.gateway.auth.credentials.post
   submit(e) {
     if (e && e.preventDefault) e.preventDefault();
@@ -260,6 +331,72 @@ class Component extends DCLogic {
     this.setState({ phase: 'done', password: '', msg: '' });
     clearTimeout(this._flyT); this._flyT = setTimeout(() => this.startFly(), 700);
   }
+  // ───── 등록 전 화면 (O-1 · O-2 · O-5 · O-7) ─────
+  // 명령 복사: 클립보드가 막힌 곳(http · iframe)에서는 글을 골라 두어 Ctrl+C로 가져가게 한다
+  copyText(text, id) {
+    const done = (label) => { this.setState({ copied: id, copiedLabel: label }); clearTimeout(this._cpT); this._cpT = setTimeout(() => this.setState({ copied: '' }), 1600); };
+    const pick = () => { try { const el = document.querySelector('[data-in-cmd="' + id + '"] [data-in-cmd-text]'); if (el) { const r = document.createRange(); r.selectNodeContents(el); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); } } catch (e) { /* 고르지 못해도 글은 보인다 */ } done('선택됨'); };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(() => done('복사됨'), pick); return; } } catch (e) { /* 아래로 */ }
+    pick();
+  }
+  cmdRows(list) {
+    const S = this.state;
+    return list.map((c) => ({ id: c.id, label: c.label, cmd: c.cmd, copy: () => this.copyText(c.cmd, c.id), copyLabel: S.copied === c.id ? (S.copiedLabel || '복사됨') : '복사', copyC: S.copied === c.id ? '#3ecf8e' : '#ede9e1' }));
+  }
+  // 등록 진행 단계: step = 지금 하는 단계(0~3), 4 = 모두 끝남, -1 = 숨김. bad = 그 단계에서 막힘
+  stepRows(step, bad) {
+    return ['코드 확인', 'Master 응답', 'Daemon 재시작', 'Gateway 복귀'].map((label, i) => {
+      const done = step > i, active = step === i && bad !== i, isBad = bad === i;
+      return { label, state: isBad ? 'bad' : done ? 'done' : active ? 'active' : 'todo', isDone: done, isActive: active, isBad,
+        c: isBad ? '#ff6b81' : done ? '#b4bac3' : active ? '#ede9e1' : '#6b7280', w: active ? 700 : 500,
+        bg: done ? '#3ecf8e' : isBad ? '#ff6b81' : 'transparent', line: done ? '#3ecf8e' : isBad ? '#ff6b81' : active ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.16)' };
+    });
+  }
+  // 등록 코드 묶음의 예시 동작 — tnc_로 시작하면 4단계를 차례로 지나 로그인 화면으로 간다
+  enrVals() {
+    const E = this.state.enr, set = (patch) => this.setState({ enr: Object.assign({}, this.state.enr, patch) });
+    const busy = E.step >= 0 && E.step < 4;
+    return {
+      enrLocal: true, enrNote: 'tree 관리자에게 등록 코드를 받아 아래에 붙여 넣으세요. 코드는 한 번만 쓸 수 있고 기본 수명은 15분입니다. 이 화면은 Master 계정 비밀번호를 받지 않습니다 — 코드만으로 등록합니다.',
+      enrWhy: '', enrWhyDisp: 'none', enrFieldsDisp: 'flex', enrCmds: [], enrCmdsDisp: 'none',
+      enrCode: E.code, enrName: E.name, enrAddr: E.addr, enrAddrDisp: 'none', enrMsg: E.msg, enrMsgC: E.msgC, enrMsgDisp: E.msg ? 'block' : 'none',
+      enrBusy: busy, enrDone: E.step === 4, enrGoLabel: E.step === 4 ? '등록됨' : busy ? '등록하는 중…' : '등록', enrGoDisp: 'flex',
+      enrSteps: this.stepRows(E.step), enrStepsDisp: E.step >= 0 ? 'flex' : 'none', enrBackDisp: E.from === 'start' ? 'flex' : 'none',
+      setEnrCode: (e) => set({ code: e.target.value, msg: '' }), setEnrName: (e) => set({ name: e.target.value, msg: '' }), setEnrAddr: (e) => set({ addr: e.target.value, msg: '' }),
+      enrGo: () => {
+        const c = String(this.state.enr.code || '').trim();
+        if (busy || E.step === 4) return;
+        if (c.indexOf('tnc_') !== 0 || c === 'tnc_') { set({ msg: '등록 코드는 tnc_로 시작합니다 — 복사한 것을 다시 확인하세요', msgC: '#ff6b81' }); return; }
+        set({ step: 1, msg: '' });
+        const at = (n, ms, then) => setTimeout(() => { if (this._dead) return; set({ step: n }); if (then) then(); }, ms);
+        at(2, 900); at(3, 1800);
+        at(4, 2700, () => { this._enrT = setTimeout(() => { if (!this._dead) this.setState({ phase: 'form', msg: '등록했습니다 — 로그인하세요', msgC: '#3ecf8e', enr: Object.assign({}, this.state.enr, { step: -1, code: '' }) }); }, 900); });
+      },
+      enrBack: () => this.setState({ phase: 'start', msg: '' })
+    };
+  }
+  // 시작 화면의 선택지 · 안내 화면의 글과 명령 — 이 기계가 아직 어느 Tree에도 속하지 않았을 때
+  pickVals() {
+    const go = (phase) => () => this.setState({ phase, msg: '', enr: Object.assign({}, this.state.enr, { from: 'start', step: -1, msg: '' }) });
+    const guides = {
+      newtree: { title: '새 Tree는 설치기로 만듭니다', text: 'Tree는 이 화면이 아니라 설치기(terra-setup)가 만듭니다. Tree 역할을 설치하면 이 기계의 Gateway가 Tree가 되고 이 화면이 로그인 화면으로 바뀝니다 — 설치할 때 정한 관리자 이메일 · 암호로 로그인합니다. Windows는 설치 마법사에서 역할 Tree를 고르고 관리자 이메일 · 암호를 입력합니다.',
+        cmds: [{ id: 'nt1', label: 'Linux — 대화형 설치 (역할을 묻는 질문에 tree)', cmd: './bin/terra-setup install' },
+          { id: 'nt2', label: 'Linux — 비대화형 설치', cmd: './bin/terra-setup install --product terra --role tree --admin-email <관리자 이메일> --admin-password-file <암호 파일> --yes' }] },
+      later: { title: '등록하기 전에는 이 브라우저에서 할 수 있는 일이 없습니다', text: '등록하지 않은 노드의 Gateway는 등록 요청 하나만 받습니다 — 로그인도 맵도 설정도 열리지 않습니다. 나중에 등록하려면 이 화면으로 다시 와서 등록 코드를 붙여 넣으세요. 등록 전에도 이 기계의 CLI로는 Daemon을 쓸 수 있습니다.',
+        cmds: [{ id: 'lt1', label: '등록 상태 확인', cmd: 'terra daemon enrollment status' },
+          { id: 'lt2', label: 'CLI로 등록', cmd: 'terra daemon enroll --name <장치 이름>' }] }
+    };
+    const g = guides[this.state.phase] || { title: '', text: '', cmds: [] };
+    return {
+      pickNote: '이 기계는 아직 어느 Tree에도 속하지 않았습니다. 무엇을 하시겠어요?',
+      picks: [
+        { id: 'attach', title: '기존 Tree에 붙는다', sub: 'tree 관리자에게 받은 등록 코드로 이 기계를 등록한다', c: '#5aa8ff', icon: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1', go: go('enroll') },
+        { id: 'newtree', title: '새 Tree를 만든다', sub: '설치기로 이 기계에 Tree를 설치한다 — 명령을 안내한다', c: '#f0a63a', icon: 'M12 5v14M5 12h14', go: go('newtree') },
+        { id: 'later', title: '나중에 등록한다', sub: '지금은 하지 않는다 — 등록 전에 할 수 있는 일을 알려 준다', c: '#9aa1ab', icon: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0', go: go('later') }
+      ],
+      guideId: this.state.phase, gTitle: g.title, gText: g.text, gCmds: this.cmdRows(g.cmds), gBack: () => this.setState({ phase: 'start', msg: '' })
+    };
+  }
   // 카메라 내려가기: 노드 화면을 미리 읽기 시작하고(iframe), 그리는 루프가 _fly를 보고 움직인다
   startFly() {
     if (this._fly || this._dead) return;
@@ -272,18 +409,17 @@ class Component extends DCLogic {
     // 아직 없으니 로그인 칸을 보여 줄 수 없고, '로그인됨' 칸도 아니다 — 그래서 form · status와
     // 나란히 서는 제3의 묶음으로 둔다. 실제 값은 src/boot/service.js가 채운다(서비스 변형만)
     const enroll = S.phase === 'enroll' || S.phase === 'enrolling' || S.phase === 'enrolled';
-    const form = !enroll && (S.phase === 'form' || S.phase === 'loading'), busy = S.phase === 'loading' || S.phase === 'auto';
+    // 시작(start) · 안내(later · newtree)는 등록 전의 앞뒤 화면이다 — 로그인 칸도 '로그인됨' 칸도 아니다
+    const pick = S.phase === 'start', guide = S.phase === 'later' || S.phase === 'newtree', pre = pick || guide;
+    const form = !enroll && !pre && (S.phase === 'form' || S.phase === 'loading'), busy = S.phase === 'loading' || S.phase === 'auto';
     const name = S.username.trim() || 'admin';
     return {
       v: {
-        form, status: !form && !enroll, enroll, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
+        form, status: !form && !enroll && !pre, enroll, pick, guide, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
         // 등록 묶음 — 변형(demo)에서는 enroll이 거짓이라 그려지지 않는다
-        enrLocal: false, enrNote: '', enrWhy: '', enrWhyDisp: 'none', enrFieldsDisp: 'none',
-        enrCode: '', enrName: '', enrAddr: '', enrAddrDisp: 'none', enrMsg: '', enrMsgC: '#fbbf24', enrMsgDisp: 'none',
-        enrBusy: false, enrGoLabel: '등록', enrGoDisp: 'none', enrDone: false,
-        setEnrCode: () => {}, setEnrName: () => {}, setEnrAddr: () => {}, enrGo: () => {}, enrBack: () => {},
+        ...this.enrVals(), ...this.pickVals(),
         cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, chromePe: S.fly ? 'none' : 'auto', spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
-        sub: S.phase === 'done' ? name + ' — 로그인됨' : '노드에 로그인',
+        sub: S.phase === 'done' ? name + ' — 로그인됨' : pick ? '아직 Tree에 속하지 않은 기계' : S.phase === 'later' ? '등록 전' : S.phase === 'newtree' ? '새 Tree' : enroll ? '노드 등록' : '노드에 로그인',
         username: S.username, password: S.password,
         setUser: (e) => this.setState({ username: e.target.value, msg: '' }),
         setPass: (e) => this.setState({ password: e.target.value, msg: '' }),

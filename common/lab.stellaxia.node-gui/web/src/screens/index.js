@@ -6,10 +6,14 @@ export default class Component extends DCLogic {
   constructor(props) {
     super(props);
     const saved = this.readAuto();
+    let want = ''; try { want = new URLSearchParams(window.location.search).get('phase') || ''; } catch (e) { want = ''; }
+    const peek = ['start', 'enroll', 'later', 'newtree'].indexOf(want) >= 0 ? want : '';   // index.html?phase=start — 등록 전 화면을 본다 (예시)
     this.state = {
+      enr: { code: '', name: '', addr: '', step: -1, msg: '', msgC: '#fbbf24', from: peek === 'enroll' ? '' : 'start' }, copied: '',
       username: saved ? saved.username : 'admin', password: '', auto: !!saved, showPw: false, caps: false,
       // phase: form(입력) · auto(자동 로그인 중) · loading(확인 중) · fail(실패) · done(로그인됨)
-      phase: saved ? 'auto' : 'form', msg: '', msgC: '#ff5d5d', shake: 0, gw: 'check'
+      //        start(시작 — 등록 전) · enroll(등록 코드) · later(등록 전엔 못 한다) · newtree(새 Tree 안내)
+      phase: peek || (saved ? 'auto' : 'form'), msg: '', msgC: '#ff5d5d', shake: 0, gw: 'check'
     };
   }
   // 자동 로그인 기억 (예시 — 실제로는 비밀번호를 화면이 저장하지 않고 Gateway가 자격 핸들을 보관한다)
@@ -33,7 +37,7 @@ export default class Component extends DCLogic {
     if (this.state.phase === 'auto') this._autoT = setTimeout(() => this.finish(true), 1800);
     else setTimeout(() => { const el = document.querySelector('[data-in-pass]'); if (el && this.state.phase === 'form') el.focus(); }, 300);
   }
-  componentWillUnmount() { this._dead = true; clearTimeout(this._flyT); clearTimeout(this._preT); clearTimeout(this._gwT); clearTimeout(this._autoT); clearTimeout(this._loginT); if (this._raf) cancelAnimationFrame(this._raf); if (this._rs) window.removeEventListener('resize', this._rs); }
+  componentWillUnmount() { this._dead = true; clearTimeout(this._flyT); clearTimeout(this._preT); clearTimeout(this._gwT); clearTimeout(this._autoT); clearTimeout(this._loginT); clearTimeout(this._cpT); clearTimeout(this._enrT); if (this._raf) cancelAnimationFrame(this._raf); if (this._rs) window.removeEventListener('resize', this._rs); }
   // 로그인 (예시): username · password가 비면 막고, password가 4자 미만이면 실패. 실제로는 terra.gateway.auth.credentials.post
   submit(e) {
     if (e && e.preventDefault) e.preventDefault();
@@ -57,6 +61,72 @@ export default class Component extends DCLogic {
     this.setState({ phase: 'done', password: '', msg: '' });
     clearTimeout(this._flyT); this._flyT = setTimeout(() => this.startFly(), 700);
   }
+  // ───── 등록 전 화면 (O-1 · O-2 · O-5 · O-7) ─────
+  // 명령 복사: 클립보드가 막힌 곳(http · iframe)에서는 글을 골라 두어 Ctrl+C로 가져가게 한다
+  copyText(text, id) {
+    const done = (label) => { this.setState({ copied: id, copiedLabel: label }); clearTimeout(this._cpT); this._cpT = setTimeout(() => this.setState({ copied: '' }), 1600); };
+    const pick = () => { try { const el = document.querySelector('[data-in-cmd="' + id + '"] [data-in-cmd-text]'); if (el) { const r = document.createRange(); r.selectNodeContents(el); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); } } catch (e) { /* 고르지 못해도 글은 보인다 */ } done('선택됨'); };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(() => done('복사됨'), pick); return; } } catch (e) { /* 아래로 */ }
+    pick();
+  }
+  cmdRows(list) {
+    const S = this.state;
+    return list.map((c) => ({ id: c.id, label: c.label, cmd: c.cmd, copy: () => this.copyText(c.cmd, c.id), copyLabel: S.copied === c.id ? (S.copiedLabel || '복사됨') : '복사', copyC: S.copied === c.id ? '#3ecf8e' : '#ede9e1' }));
+  }
+  // 등록 진행 단계: step = 지금 하는 단계(0~3), 4 = 모두 끝남, -1 = 숨김. bad = 그 단계에서 막힘
+  stepRows(step, bad) {
+    return ['코드 확인', 'Master 응답', 'Daemon 재시작', 'Gateway 복귀'].map((label, i) => {
+      const done = step > i, active = step === i && bad !== i, isBad = bad === i;
+      return { label, state: isBad ? 'bad' : done ? 'done' : active ? 'active' : 'todo', isDone: done, isActive: active, isBad,
+        c: isBad ? '#ff6b81' : done ? '#b4bac3' : active ? '#ede9e1' : '#6b7280', w: active ? 700 : 500,
+        bg: done ? '#3ecf8e' : isBad ? '#ff6b81' : 'transparent', line: done ? '#3ecf8e' : isBad ? '#ff6b81' : active ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.16)' };
+    });
+  }
+  // 등록 코드 묶음의 예시 동작 — tnc_로 시작하면 4단계를 차례로 지나 로그인 화면으로 간다
+  enrVals() {
+    const E = this.state.enr, set = (patch) => this.setState({ enr: Object.assign({}, this.state.enr, patch) });
+    const busy = E.step >= 0 && E.step < 4;
+    return {
+      enrLocal: true, enrNote: 'tree 관리자에게 등록 코드를 받아 아래에 붙여 넣으세요. 코드는 한 번만 쓸 수 있고 기본 수명은 15분입니다. 이 화면은 Master 계정 비밀번호를 받지 않습니다 — 코드만으로 등록합니다.',
+      enrWhy: '', enrWhyDisp: 'none', enrFieldsDisp: 'flex', enrCmds: [], enrCmdsDisp: 'none',
+      enrCode: E.code, enrName: E.name, enrAddr: E.addr, enrAddrDisp: 'none', enrMsg: E.msg, enrMsgC: E.msgC, enrMsgDisp: E.msg ? 'block' : 'none',
+      enrBusy: busy, enrDone: E.step === 4, enrGoLabel: E.step === 4 ? '등록됨' : busy ? '등록하는 중…' : '등록', enrGoDisp: 'flex',
+      enrSteps: this.stepRows(E.step), enrStepsDisp: E.step >= 0 ? 'flex' : 'none', enrBackDisp: E.from === 'start' ? 'flex' : 'none',
+      setEnrCode: (e) => set({ code: e.target.value, msg: '' }), setEnrName: (e) => set({ name: e.target.value, msg: '' }), setEnrAddr: (e) => set({ addr: e.target.value, msg: '' }),
+      enrGo: () => {
+        const c = String(this.state.enr.code || '').trim();
+        if (busy || E.step === 4) return;
+        if (c.indexOf('tnc_') !== 0 || c === 'tnc_') { set({ msg: '등록 코드는 tnc_로 시작합니다 — 복사한 것을 다시 확인하세요', msgC: '#ff6b81' }); return; }
+        set({ step: 1, msg: '' });
+        const at = (n, ms, then) => setTimeout(() => { if (this._dead) return; set({ step: n }); if (then) then(); }, ms);
+        at(2, 900); at(3, 1800);
+        at(4, 2700, () => { this._enrT = setTimeout(() => { if (!this._dead) this.setState({ phase: 'form', msg: '등록했습니다 — 로그인하세요', msgC: '#3ecf8e', enr: Object.assign({}, this.state.enr, { step: -1, code: '' }) }); }, 900); });
+      },
+      enrBack: () => this.setState({ phase: 'start', msg: '' })
+    };
+  }
+  // 시작 화면의 선택지 · 안내 화면의 글과 명령 — 이 기계가 아직 어느 Tree에도 속하지 않았을 때
+  pickVals() {
+    const go = (phase) => () => this.setState({ phase, msg: '', enr: Object.assign({}, this.state.enr, { from: 'start', step: -1, msg: '' }) });
+    const guides = {
+      newtree: { title: '새 Tree는 설치기로 만듭니다', text: 'Tree는 이 화면이 아니라 설치기(terra-setup)가 만듭니다. Tree 역할을 설치하면 이 기계의 Gateway가 Tree가 되고 이 화면이 로그인 화면으로 바뀝니다 — 설치할 때 정한 관리자 이메일 · 암호로 로그인합니다. Windows는 설치 마법사에서 역할 Tree를 고르고 관리자 이메일 · 암호를 입력합니다.',
+        cmds: [{ id: 'nt1', label: 'Linux — 대화형 설치 (역할을 묻는 질문에 tree)', cmd: './bin/terra-setup install' },
+          { id: 'nt2', label: 'Linux — 비대화형 설치', cmd: './bin/terra-setup install --product terra --role tree --admin-email <관리자 이메일> --admin-password-file <암호 파일> --yes' }] },
+      later: { title: '등록하기 전에는 이 브라우저에서 할 수 있는 일이 없습니다', text: '등록하지 않은 노드의 Gateway는 등록 요청 하나만 받습니다 — 로그인도 맵도 설정도 열리지 않습니다. 나중에 등록하려면 이 화면으로 다시 와서 등록 코드를 붙여 넣으세요. 등록 전에도 이 기계의 CLI로는 Daemon을 쓸 수 있습니다.',
+        cmds: [{ id: 'lt1', label: '등록 상태 확인', cmd: 'terra daemon enrollment status' },
+          { id: 'lt2', label: 'CLI로 등록', cmd: 'terra daemon enroll --name <장치 이름>' }] }
+    };
+    const g = guides[this.state.phase] || { title: '', text: '', cmds: [] };
+    return {
+      pickNote: '이 기계는 아직 어느 Tree에도 속하지 않았습니다. 무엇을 하시겠어요?',
+      picks: [
+        { id: 'attach', title: '기존 Tree에 붙는다', sub: 'tree 관리자에게 받은 등록 코드로 이 기계를 등록한다', c: '#5aa8ff', icon: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1', go: go('enroll') },
+        { id: 'newtree', title: '새 Tree를 만든다', sub: '설치기로 이 기계에 Tree를 설치한다 — 명령을 안내한다', c: '#f0a63a', icon: 'M12 5v14M5 12h14', go: go('newtree') },
+        { id: 'later', title: '나중에 등록한다', sub: '지금은 하지 않는다 — 등록 전에 할 수 있는 일을 알려 준다', c: '#9aa1ab', icon: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0', go: go('later') }
+      ],
+      guideId: this.state.phase, gTitle: g.title, gText: g.text, gCmds: this.cmdRows(g.cmds), gBack: () => this.setState({ phase: 'start', msg: '' })
+    };
+  }
   // 카메라 내려가기: 노드 화면을 미리 읽기 시작하고(iframe), 그리는 루프가 _fly를 보고 움직인다
   startFly() {
     if (this._fly || this._dead) return;
@@ -69,18 +139,17 @@ export default class Component extends DCLogic {
     // 아직 없으니 로그인 칸을 보여 줄 수 없고, '로그인됨' 칸도 아니다 — 그래서 form · status와
     // 나란히 서는 제3의 묶음으로 둔다. 실제 값은 src/boot/service.js가 채운다(서비스 변형만)
     const enroll = S.phase === 'enroll' || S.phase === 'enrolling' || S.phase === 'enrolled';
-    const form = !enroll && (S.phase === 'form' || S.phase === 'loading'), busy = S.phase === 'loading' || S.phase === 'auto';
+    // 시작(start) · 안내(later · newtree)는 등록 전의 앞뒤 화면이다 — 로그인 칸도 '로그인됨' 칸도 아니다
+    const pick = S.phase === 'start', guide = S.phase === 'later' || S.phase === 'newtree', pre = pick || guide;
+    const form = !enroll && !pre && (S.phase === 'form' || S.phase === 'loading'), busy = S.phase === 'loading' || S.phase === 'auto';
     const name = S.username.trim() || 'admin';
     return {
       v: {
-        form, status: !form && !enroll, enroll, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
+        form, status: !form && !enroll && !pre, enroll, pick, guide, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
         // 등록 묶음 — 변형(demo)에서는 enroll이 거짓이라 그려지지 않는다
-        enrLocal: false, enrNote: '', enrWhy: '', enrWhyDisp: 'none', enrFieldsDisp: 'none',
-        enrCode: '', enrName: '', enrAddr: '', enrAddrDisp: 'none', enrMsg: '', enrMsgC: '#fbbf24', enrMsgDisp: 'none',
-        enrBusy: false, enrGoLabel: '등록', enrGoDisp: 'none', enrDone: false,
-        setEnrCode: () => {}, setEnrName: () => {}, setEnrAddr: () => {}, enrGo: () => {}, enrBack: () => {},
+        ...this.enrVals(), ...this.pickVals(),
         cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, chromePe: S.fly ? 'none' : 'auto', spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
-        sub: S.phase === 'done' ? name + ' — 로그인됨' : '노드에 로그인',
+        sub: S.phase === 'done' ? name + ' — 로그인됨' : pick ? '아직 Tree에 속하지 않은 기계' : S.phase === 'later' ? '등록 전' : S.phase === 'newtree' ? '새 Tree' : enroll ? '노드 등록' : '노드에 로그인',
         username: S.username, password: S.password,
         setUser: (e) => this.setState({ username: e.target.value, msg: '' }),
         setPass: (e) => this.setState({ password: e.target.value, msg: '' }),

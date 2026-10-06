@@ -17,7 +17,7 @@ import { liveHub } from '../data/live-host.js';
 import { loadConfig } from './config.js';
 import { openParts } from '../store/parts.js';
 
-const GREEN = '#1f7a4d', RED = '#d33d52', GRAY = '#5b6472', AMBER = '#a65f00', BLUE = '#2563eb';
+const GREEN = '#4ade80', RED = '#ff6b81', GRAY = '#8b95a6', AMBER = '#fbbf24', BLUE = '#60a5fa';
 
 /** 보관함 칸 id('공유 폴더/상대 경로')의 위 칸 — 맨 위 칸(공유 폴더)이면 '' */
 const parentOf = (id) => { const s = String(id || ''); return s.indexOf('/') < 0 ? '' : s.slice(0, s.lastIndexOf('/')); };

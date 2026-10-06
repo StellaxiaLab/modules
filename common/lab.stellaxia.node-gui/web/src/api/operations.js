@@ -215,6 +215,19 @@ export const ENROLL = {
     note: '신규 등록만 막는다 — 이 코드로 이미 등록한 노드는 그대로다' }
 };
 
+/** 사용자 관리 (M-1 · O-3) — tree Gateway. 계약 terra-api.json의 terra.master.admin.users.* (보안 permissions: master.admin = 사용자 유형 master_admin) */
+export const USERS = {
+  list: { op: T('admin.users.get'), perm: 'master.admin', note: '{ users[{ id, email, display_name, user_type: master_admin|cluster_user, status: active|disabled, permissions[], created_at, updated_at }] }' },
+  create: { op: T('admin.users.post'), perm: 'master.admin', note: '본문 { email*, password*(8자 이상), display_name?, user_type? } → 201 · 409 EMAIL_IN_USE' },
+  patch: { op: T('admin.users.by-user-id.patch'), perm: 'master.admin', note: '{ user_id, display_name?, user_type?, status?, permissions[]? } (본문 최소 1키). permissions는 Master가 값을 검사하지 않고 저장한다 · 자기 계정을 disabled로 바꾸면 400 SELF_DISABLE_NOT_ALLOWED · 404 USER_NOT_FOUND' },
+  password: { op: T('admin.users.by-user-id.password.post'), perm: 'master.admin', note: '{ user_id, password(8자 이상) } → { updated: true }' }
+};
+
+/** 이 기계의 등록 상태 (O-6) — Daemon(leaf Gateway) */
+export const ENROLLMENT = {
+  status: { op: L('enrollment.status.get'), perm: 'node.read', note: '{ enabled, registered, installation_id?, master_url?, device_id?, node_id?, relay_url?, registered_at?, credential_ready, fleet? } — 등록을 풀거나 옮기는 길은 Daemon에 없다' }
+};
+
 /**
  * 조타륜 앱의 추가(create) · 수정(update) · 삭제(del) — 화면의 폼(hbFormSave)과 두 번 누르는 삭제(hbDel)가 부른다(wire.js · source.js crud).
  * 본문은 실제 서버의 입력에 맞췄다 — Daemon · Master · 모듈 op 모두 모르는 키를 거절한다(DisallowUnknownFields · additionalProperties:false).
