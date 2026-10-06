@@ -69,7 +69,7 @@ export default class Component extends DCLogic {
     return {
       v: {
         form, status: !form, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
-        cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
+        cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, chromePe: S.fly ? 'none' : 'auto', spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
         sub: S.phase === 'done' ? name + ' — 로그인됨' : '노드에 로그인',
         username: S.username, password: S.password,
         setUser: (e) => this.setState({ username: e.target.value, msg: '' }),

@@ -100,12 +100,7 @@ MODULE_TPL = {
         ('>취소 — 직접 로그인</button>', '>취소 — 여기 머물기</button>'),
         ('<span>v0.2</span><span style="opacity: 0.6;">·</span><span style="color: #ffd479; font-weight: 700;">예시 데이터</span>',
          '<span>Terra 노드</span><span style="opacity: 0.6;">·</span><span style="font-weight: 700;">{{v.where}}</span>'),
-        # 아래 두 알약(게이트웨이 · 꼬리말)은 내려갈 때 opacity 0 으로 사라지지만 누름은 그대로 받는다 — 모듈은 내려간 뒤에도
-        # 이 문서 안에 노드 화면(iframe)을 둬서, 그 알약이 노드 화면 왼쪽 · 오른쪽 아래의 누름을 가로챈다(폼 저장 단추 등). 누름도 끈다
-        ('z-index: 3; opacity: {{v.chromeOp}}; transition: opacity 400ms; left: 20px; bottom: 16px;',
-         'z-index: 3; opacity: {{v.chromeOp}}; pointer-events: {{v.chromePe}}; transition: opacity 400ms; left: 20px; bottom: 16px;'),
-        ('z-index: 3; opacity: {{v.chromeOp}}; transition: opacity 400ms; right: 20px; bottom: 16px;',
-         'z-index: 3; opacity: {{v.chromeOp}}; pointer-events: {{v.chromePe}}; transition: opacity 400ms; right: 20px; bottom: 16px;'),
+        # 아래 두 알약의 누름 끄기(pointer-events: v.chromePe)는 원본에 올라갔다 — maingui 07d5739 (UP-15)
     ],
 }
 MODULE_BETWEEN = {

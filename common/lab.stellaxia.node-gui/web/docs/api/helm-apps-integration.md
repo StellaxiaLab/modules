@@ -101,7 +101,7 @@ flowchart LR
 | 흐름(데이터) | `…handles.by-handle-id.stream.get` — Gateway invoke로 닿지 않는다 → 직접 WebSocket | |
 
 창은 **흐름도**다(maingui A-28 · 모듈 MD-23) — 제공 노드 → 자원 → 엔드포인트 → 쓰는 쪽(열린 핸들 · 바인딩 · 허가), 흐르는 핸들 · 바인딩은 선이 움직인다.
-머리 단추로 카드 보기와 바꾼다. 자원을 누르면 오른쪽에 자세히 · 동작 · 흐름 이벤트(`state.sviEv` — 고른 자원의 열린 핸들 SSE). 상태 화면에도 자원 하나의 흐름도.
+머리 단추로 카드 보기와 바꾼다. 자원을 누르면 오른쪽에 자세히 · 동작 · 흐름 줄(`● 흐르는 중 · N fps`). 상태 화면에는 자원 하나의 흐름도와 **흐름 칸**(`state.sviStream` — 열린 핸들 SSE의 꼬리 · 멈춤 · 지우기 · 닫기 · 저장, maingui `85e28ee` · MD-24). 맵에서 연결된 자원이 흐르면 도로에 움직이는 점선 + fps(`state.sviFlow`).
 흐름도의 모양은 `ADAPT.svi` 의 `flow { eps, handles, binds, grants }` 다 — 늘 채운다(없으면 화면이 카메라에 `frames` · `snapshot` 엔드포인트를 지어낸다).
 
 카드: 이름(`display_name`) · `kind · endpoint · direction · interaction` · 배지(`status`) · 한 줄 "허가 · read · subscribe" / "🔒 허가 없음".
@@ -265,5 +265,5 @@ Master는 canceled · timed_out을 `failed`로 접는다 — 이유는 `result.s
 ## 관련 흐름
 
 - 앱 바 · 앱 전체 화면을 연다 → `wireHelm` 이 그 앱의 목록을 받는다(받지 못하면 그 이유를 남긴다) → 카드 · 흐름도
-- SVI 흐름도에서 자원을 고른다 → 열린 핸들의 흐름 이벤트 SSE → `state.sviEv` → 오른쪽 흐름 이벤트 칸([[real-data-layer|실데이터 층]] §5.6)
+- SVI 자원의 상태 화면을 연다 → 열린 핸들의 흐름 SSE(`src/api/svi-live.js`) → `state.sviStream` → 흐름 칸 · 연결된 자원이면 `state.sviFlow` → 맵 도로([[real-data-layer|실데이터 층]] §5.6 · MD-24)
 - 폼 저장 · 두 번째 누름 → `crud` → 서버 → 목록 다시 받기([[real-data-layer|실데이터 층]] §2.4)

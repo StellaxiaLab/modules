@@ -59,8 +59,9 @@ export const ADAPT = {
     const hs = arr(ctx.handleList, 'items', 'handles').filter((h) => h.resource_id === r.resource_id);
     const open = hs.find((h) => !/^(closed|failed|expired|denied|revoked|terminated)$/.test(h.state));
     return { id: r.resource_id, kind: r.kind || '', name: r.display_name || r.canonical_name || r.resource_id, node: r.node_id, status: sviState(r.status),
-      ep: [ep.endpoint_id, ep.direction, ep.interaction].filter(Boolean).join(' · ') || '엔드포인트 없음', epId: ep.endpoint_id,
+      ep: [ep.endpoint_id, ep.direction, ep.interaction].filter(Boolean).join(' · ') || '엔드포인트 없음', epId: ep.endpoint_id, epInter: ep.interaction || '', epOps: ep.operations || [],
       grant: ctx.local ? 'own' : ops.length ? ops : null, last: r.expires_at || '', handle: open ? open.handle_id : null,
+      handleOp: open ? open.operation || '' : '', handleQos: open ? open.qos_profile || '' : '',   // 흐름 칸 머리 줄 (svi-live.js)
       flow: {
         eps: (r.endpoints || []).map((e) => ({ id: e.endpoint_id, dir: e.direction || '', inter: e.interaction || '' })),
         handles: hs.filter((h) => !/^(closed|expired)$/.test(h.state)).map((h) => ({ id: h.handle_id, who: '내 핸들', op: h.operation || 'read', ep: h.endpoint_id || ep.endpoint_id || '',

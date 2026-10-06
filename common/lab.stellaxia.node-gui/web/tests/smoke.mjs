@@ -71,8 +71,8 @@ check('조타륜 앱 전체 화면', await page.evaluate(() => !!document.queryS
 await page.mouse.click(723, 70); await page.waitForTimeout(500);
 check('파인 곳 → 맵', await page.evaluate(() => !document.querySelector('[data-fs-notch]')));
 await page.keyboard.press('Escape'); await page.waitForTimeout(300);
-// SVI 자원 앱 = 흐름도(maingui A-28) — 로그인 전엔 잠겨 있고, 읽기 권한이 있으면 빈 흐름도다. 어느 쪽이든 예시 흐름 이벤트(0.5초 박자)는 돌지 않는다
-const fsText = () => page.evaluate(() => ({ text: (document.querySelector('section.fs-hb') || {}).innerText || '', ev: JSON.stringify(window.__screen.state.sviEv || {}) }));
+// SVI 자원 앱 = 흐름도(maingui A-28) — 로그인 전엔 잠겨 있고, 읽기 권한이 있으면 빈 흐름도다. 어느 쪽이든 예시 흐름(0.5초 박자 — 흐름 칸 sviStream · 맵 도로 sviFlow)은 돌지 않는다
+const fsText = () => page.evaluate(() => ({ text: (document.querySelector('section.fs-hb') || {}).innerText || '', ev: (window.__screen.state.sviStream ? '흐름 칸 ' : '') + JSON.stringify(window.__screen.state.sviFlow || {}) }));
 await page.evaluate(() => window.__screen.fsEnter('hb:svi')); await page.waitForTimeout(1200);
 const sviLocked = await fsText();
 check('SVI 자원 앱 — 로그인 전엔 잠김 · 예시 없음', /node\.read 필요/.test(sviLocked.text) && !EXAMPLE.test(sviLocked.text) && sviLocked.ev === '{}', sviLocked.ev);

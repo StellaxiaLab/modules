@@ -35,11 +35,14 @@ export const HELM_APPS = {
     extra: [{ op: T('svi.grants.get'), where: 'T', perm: 'node.read', use: '카드의 허가 표시 (내가 받은 허가)' },
       { op: T('svi.handles.get'), where: 'T', perm: 'node.read', use: '열린 핸들 — 흐름도 · 흐름 이벤트 (maingui A-28)' },
       { op: T('svi.bindings.get'), where: 'T', perm: 'node.read', use: '흐름도의 바인딩 (maingui A-28)' }],
-    // 흐름 이벤트 (maingui A-28) — 흐름도에서 고른 자원 · 상태 화면이 보는 자원에 열린 핸들이 있으면 wire.js 가 그 핸들의 SSE 를 연다
-    events: { op: T('svi.handles.by-handle-id.events.get'), where: 'T', perm: 'node.read', resp: 'stream', note: 'Accept: text/event-stream · event: status | frame (StreamMessage)' },
+    // 흐름 (maingui A-28 · 85e28ee) — 상태 화면이 보는 자원 · 맵에서 연결된 자원에 열린 핸들이 있으면 svi-live.js 가 그 핸들의 SSE 를 연다
+    events: { op: T('svi.handles.by-handle-id.events.get'), where: 'T', perm: 'node.read', resp: 'stream', note: 'Accept: text/event-stream · event: status | frame (StreamMessage) — 흐름 칸 · 맵 도로(svi-live.js) · 이어 받기 없음 · 핸들당 구독자 32' },
     acts: {
-      open: { op: T('svi.handles.post'), where: 'T', perm: 'node.read', resp: 'job', gate: '자원별 허가(read) · io.* 는 백엔드 없음' },
-      close: { op: T('svi.handles.by-handle-id.delete'), where: 'T', perm: 'node.read', resp: 'now' },
+      // stream 엔드포인트가 subscribe 를 열면 subscribe(계속 흐른다), 아니면 read(프레임 하나로 끝난다) — maingui 85e28ee
+      open: { op: T('svi.handles.post'), where: 'T', perm: 'node.read', resp: 'job', gate: '자원별 허가(read) · io.* 는 백엔드 없음',
+        in: (id, it) => ({ resource_id: it.id || id, endpoint_id: it.epId, operation: sviOpenOp(it), idempotency_key: 'gui-' + (it.id || id) + '-' + Date.now() }) },
+      // 경로의 handle_id 는 카드 id(자원)가 아니라 그 자원에 열린 핸들이다
+      close: { op: T('svi.handles.by-handle-id.delete'), where: 'T', perm: 'node.read', resp: 'now', in: (id, it) => (it.handle ? { handle_id: it.handle } : { none: 'no-handle' }) },
       stream: { op: T('svi.handles.by-handle-id.stream.get'), where: 'T', perm: 'node.read', resp: 'stream', note: 'Gateway invoke로 닿지 않는다 — 직접 WebSocket' }
     }
   },
@@ -482,3 +485,6 @@ export function modLine(d) {
   const run = mods.filter((m) => m.state === 'running').length, bad = mods.filter((m) => m.state === 'failed').length;
   return '상태 확인 — 모듈 ' + mods.length + ' · 실행 ' + run + (bad ? ' · 실패 ' + bad : '');
 }
+
+/** SVI 핸들을 여는 동작 — stream 엔드포인트가 subscribe 를 열면 subscribe, 아니면 read (maingui 85e28ee) */
+export function sviOpenOp(it) { return it && it.epInter === 'stream' && (it.epOps || []).indexOf('subscribe') >= 0 ? 'subscribe' : 'read'; }
