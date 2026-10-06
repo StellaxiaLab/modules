@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 재디자인 — Terra Agent 창 (대화 · 승인 · 준비 · 설정)</title>
+<script src="../support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --glass:rgba(13,15,19,.82); --win:rgba(15,17,21,.92); --line:rgba(255,255,255,.10); --line-2:rgba(255,255,255,.18);
+  --up:rgba(255,255,255,.05); --up-2:rgba(255,255,255,.09);
+  --paper:#ede9e1; --sub:#b4bac3; --muted:#9aa1ab; --dim:#6b7280;
+  --tree:#f0a63a; --leaf:#5aa8ff; --sun:#ffd84d; --ok:#3ecf8e; --warn:#f5b83d; --err:#ff5d5d; --info:#7aa7ff;
+  --mono:'JetBrains Mono',ui-monospace,'DejaVu Sans Mono',Consolas,Menlo,monospace;
+}
+body{margin:0;font-family:'Noto Sans KR','Noto Sans CJK KR','Noto Sans',system-ui,sans-serif;background:#07090c;color:var(--paper);font-size:13px;line-height:1.5}
+*{box-sizing:border-box}
+.page{display:flex;flex-direction:column;gap:48px;padding:0}
+.board{position:relative;width:1447px;height:945px;overflow:hidden;background:#1d97ac;flex:none}
+.map{position:absolute;inset:0;background:url(./assets/map-sample.jpg) center/cover no-repeat;filter:saturate(.8)}
+.dim{position:absolute;inset:0;background:rgba(5,8,11,.58)}
+.vig{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(6,10,14,.45) 0,rgba(6,10,14,0) 140px),linear-gradient(0deg,rgba(6,10,14,.5) 0,rgba(6,10,14,0) 190px)}
+.glass{position:absolute;background:var(--glass);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(14px)}
+.win{position:absolute;left:103px;top:42px;width:1240px;height:861px;background:var(--win);border:1px solid var(--line-2);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(18px);display:flex;flex-direction:column;overflow:hidden}
+.wh{height:46px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 14px 0 12px}
+.wh .mark{width:28px;height:28px;border-radius:8px;background:#000;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center}
+.wh .ctl{margin-left:auto;display:flex;gap:2px}
+.wh .ctl i{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.wb{flex:1;display:flex;min-height:0}
+.c1{width:272px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.c2{flex:1;display:flex;flex-direction:column;min-width:0}
+.c3{width:300px;flex:none;border-left:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic.s{width:13px;height:13px}.ic.l{width:20px;height:20px}
+.cap{font-size:10px;font-weight:600;letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
+.mono{font-family:var(--mono)}
+.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font-size:11px;font-weight:600;border:1px solid var(--line-2);color:var(--paper);white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:rgba(62,207,142,.5);background:rgba(62,207,142,.10)}
+.chip.warn{color:var(--warn);border-color:rgba(245,184,61,.5);background:rgba(245,184,61,.10)}
+.chip.err{color:var(--err);border-color:rgba(255,93,93,.5);background:rgba(255,93,93,.10)}
+.chip.info{color:var(--info);border-color:rgba(122,167,255,.5);background:rgba(122,167,255,.10)}
+.chip.tree{color:var(--tree);border-color:rgba(240,166,58,.5);background:rgba(240,166,58,.10)}
+.chip.leaf{color:var(--leaf);border-color:rgba(90,168,255,.5);background:rgba(90,168,255,.10)}
+.chip.mut{color:var(--muted);border-color:var(--line-2);background:none}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
+.dot.run{background:var(--leaf);box-shadow:0 0 0 3px rgba(90,168,255,.22)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 14px;border-radius:9px;font-size:12.5px;font-weight:600;border:1px solid var(--line-2);color:var(--paper);background:rgba(255,255,255,.04);white-space:nowrap}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.btn.pri{background:var(--paper);color:#111;border-color:var(--paper)}
+.btn.dng{color:var(--err);border-color:rgba(255,93,93,.5);background:rgba(255,93,93,.08)}
+.btn.off{opacity:.38}
+.kbd{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line-2);border-radius:4px;padding:0 4px}
+.seg{display:flex;gap:2px;padding:3px;border-radius:10px;background:rgba(255,255,255,.04)}
+.seg b{font-weight:500;font-size:12px;padding:4px 10px;border-radius:7px;color:var(--muted)}
+.seg b.on{background:var(--paper);color:#111;font-weight:600}
+.bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar>u{display:block;height:100%;border-radius:3px}
+.card{background:var(--up);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kv{display:grid;grid-template-columns:84px 1fr;gap:6px 10px;font-size:12px;align-items:baseline}
+.kv>span:nth-child(odd){color:var(--muted)}
+.kv>span:nth-child(even){min-width:0;overflow-wrap:anywhere}
+.sess{padding:10px 12px;border-radius:11px;border:1px solid transparent;display:flex;flex-direction:column;gap:5px}
+.sess.on{background:var(--up-2);border-color:var(--line-2)}
+.sess b{font-size:12.5px;font-weight:600;line-height:1.35}
+.sess .m{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted)}
+.msgs{flex:1;min-height:0;overflow:hidden;padding:18px 22px;display:flex;flex-direction:column;gap:12px}
+.me{align-self:flex-end;max-width:62%;background:rgba(255,255,255,.08);border:1px solid var(--line-2);border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:13px}
+.ai{align-self:flex-start;max-width:74%;display:flex;gap:10px}
+.ai .av{width:26px;height:26px;border-radius:8px;background:#000;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px}
+.ai .tx{background:var(--up);border:1px solid var(--line);border-radius:4px 14px 14px 14px;padding:10px 14px;font-size:13px;line-height:1.65}
+.ev{align-self:center;width:88%;display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--muted);padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.025)}
+.ev .mono{color:var(--sub);font-size:11px}
+.ev .r{margin-left:auto;display:flex;gap:6px;align-items:center}
+.ev.plan{border-style:dashed;border-color:var(--line-2)}
+.ev.done{border:none;background:none;justify-content:center;color:var(--dim)}
+.ev.done:before,.ev.done:after{content:"";height:1px;flex:1;background:var(--line)}
+.inp{flex:none;border-top:1px solid var(--line);padding:12px 16px 14px;display:flex;flex-direction:column;gap:8px}
+.inp .box{min-height:60px;border-radius:12px;border:1px solid var(--line-2);background:rgba(255,255,255,.04);padding:10px 12px;display:flex;gap:10px;align-items:flex-end;color:var(--muted);font-size:13px}
+.inp .box.dis{opacity:.45}
+.anno{position:absolute;font-size:11px;font-weight:600;color:#111;background:var(--sun);border-radius:10px;padding:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:5;white-space:nowrap}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 18px}
+.tabs b{padding:12px 14px;font-size:12.5px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs b.on{color:var(--paper);border-color:var(--paper);font-weight:600}
+.step{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--up)}
+.step .n{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--line-2);font:600 12px var(--mono)}
+.step.ok .n{color:var(--ok);border-color:rgba(62,207,142,.5);background:rgba(62,207,142,.10)}
+.step.bad{border-color:rgba(245,184,61,.5);background:rgba(245,184,61,.06)}
+.step.bad .n{color:var(--warn);border-color:rgba(245,184,61,.6)}
+.step.wait{opacity:.5}
+.code{font-family:var(--mono);font-size:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:9px;padding:9px 12px;color:var(--paper);overflow:hidden}
+.code i{font-style:normal;color:var(--dim)}
+.note{font-size:11.5px;color:var(--muted);display:flex;gap:7px;align-items:flex-start;line-height:1.55}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:10px;font-weight:600;letter-spacing:.2em;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);text-transform:uppercase}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--line)}
+.fld{height:36px;border-radius:9px;border:1px solid var(--line-2);background:rgba(255,255,255,.04);padding:0 12px;display:flex;align-items:center;font-size:12.5px;color:var(--sub)}
+.lbl{font-size:11px;color:var(--muted);margin-bottom:5px;display:flex;gap:6px;align-items:center}
+.title-tag{position:absolute;left:103px;top:12px;z-index:6;display:flex;gap:8px;align-items:center}
+</style>
+</helmet>
+
+<!-- 선 아이콘 모음 (icons.md + 에이전트용 spark) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-spark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.4"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="14" r="4"/><path d="M11 11l9-9M16 6l3 3M14 8l2 2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M4 6l5 6-5 6M12 18h8"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-min" viewBox="0 0 24 24"><path d="M5 18h14"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
+  <symbol id="i-chevr" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M4 8h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4H4z"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-net" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M12 11.5L6.5 17M12 11.5l5.5 5.5"/></symbol>
+</svg>
+
+<div class="page">
+
+<!-- ═══════════════ 보드 1 · 대화 (G1) — plan 모드 ═══════════════ -->
+<div class="board">
+  <div class="map"></div><div class="dim"></div><div class="vig"></div>
+  <div class="title-tag"><span class="chip" style="background:var(--sun);border-color:var(--sun);color:#111">① 대화 · G1</span><span style="font-size:11.5px;color:var(--sub)">plan 모드 — 읽기만 한다. 새 세션의 기본값(D-7)</span></div>
+
+  <div class="win">
+    <div class="wh">
+      <div class="mark"><svg class="ic" style="color:var(--paper)"><use href="#i-spark"/></svg></div>
+      <span class="cap" style="letter-spacing:.42em;color:var(--paper)">TERRA AGENT</span>
+      <span class="chip mut mono">io.terra.agent 0.1.0</span>
+      <span class="chip tree mono">tree-home</span>
+      <div class="ctl"><i><svg class="ic"><use href="#i-min"/></svg></i><i><svg class="ic"><use href="#i-max"/></svg></i><i><svg class="ic"><use href="#i-x"/></svg></i></div>
+    </div>
+
+    <div class="wb">
+      <!-- 왼쪽: 준비 · 세션 -->
+      <div class="c1">
+        <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+          <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">준비 상태</span><span class="chip ok"><svg class="ic s"><use href="#i-check"/></svg>준비됨</span></div>
+            <div style="display:flex;gap:6px;font-size:11px;color:var(--sub)">
+              <span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모듈</span>
+              <span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모델</span>
+              <span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>자격</span>
+            </div>
+          </div>
+          <span class="btn pri" style="height:38px"><svg class="ic"><use href="#i-plus"/></svg>새 세션</span>
+          <div class="seg"><b class="on">내 세션</b><b>종료됨</b></div>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:0 8px;display:flex;flex-direction:column;gap:2px">
+          <div class="sess on"><b>gpu-02가 응답하지 않는 원인 조사</b><div class="m"><i class="dot run"></i><span style="color:var(--leaf)">running</span><span class="chip mut" style="height:17px;font-size:10px">plan</span><span class="mono" style="margin-left:auto">방금</span></div></div>
+          <div class="sess"><b>chat 모듈이 Published가 안 되는 이유</b><div class="m"><i class="dot" style="background:var(--muted)"></i><span>idle</span><span class="chip mut" style="height:17px;font-size:10px">plan</span><span class="mono" style="margin-left:auto">18분 전</span></div></div>
+          <div class="sess"><b>새벽 로그 정리 재시작</b><div class="m"><i class="dot" style="background:var(--warn)"></i><span style="color:var(--warn)">waiting-approval</span><span class="chip mut" style="height:17px;font-size:10px">ask</span><span class="mono" style="margin-left:auto">1시간 전</span></div></div>
+          <div class="sess"><b>디스크 82% 원인</b><div class="m"><i class="dot" style="background:var(--dim)"></i><span>done</span><span class="chip mut" style="height:17px;font-size:10px">plan</span><span class="mono" style="margin-left:auto">어제</span></div></div>
+          <div class="sess"><b>모델 장애 테스트</b><div class="m"><i class="dot" style="background:var(--err)"></i><span style="color:var(--err)">failed</span><span class="mono" style="margin-left:auto">어제</span></div></div>
+        </div>
+        <div style="padding:12px 14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)"><svg class="ic s"><use href="#i-gear"/></svg>설정 · 모델 · 자격<svg class="ic s" style="margin-left:auto"><use href="#i-chevr"/></svg></div>
+      </div>
+
+      <!-- 가운데: 대화 -->
+      <div class="c2">
+        <div style="height:58px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 20px">
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+            <b style="font-size:14.5px;font-weight:700;letter-spacing:-.01em">gpu-02가 응답하지 않는 원인 조사</b>
+            <span class="mono" style="font-size:10.5px;color:var(--dim)">session · gpu02-diag-0412</span>
+          </div>
+          <span class="chip info" style="margin-left:6px"><i class="dot run" style="width:6px;height:6px"></i>running</span>
+          <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+            <span class="chip mut"><svg class="ic s"><use href="#i-lock"/></svg>plan · 열 때 고정</span>
+            <span class="chip mut mono">claude-opus-5</span>
+            <span class="btn sm dng"><svg class="ic s"><use href="#i-stop"/></svg>취소</span>
+          </div>
+        </div>
+
+        <div class="msgs">
+          <div class="me">gpu-02가 응답하지 않아. 원인을 <b>읽기만 해서</b> 조사해줘.</div>
+
+          <div class="ev"><svg class="ic s"><use href="#i-cube"/></svg><span>모델을 불렀습니다</span><span class="mono">12.4 KB 노드 밖으로</span><span class="r"><span class="mono" style="color:var(--dim)">#2</span></span></div>
+
+          <div class="ev"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">terra.gateway.nodes.by-id.status.get</span><span class="r"><span class="chip ok" style="height:18px">ok</span><svg class="ic s"><use href="#i-chevr"/></svg></span></div>
+          <div class="ev"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">terra.gateway.modules.get</span><span class="r"><span class="chip ok" style="height:18px">ok</span><svg class="ic s"><use href="#i-chevr"/></svg></span></div>
+
+          <div class="ai"><div class="av"><svg class="ic s" style="color:var(--paper)"><use href="#i-spark"/></svg></div>
+            <div class="tx">gpu-02의 <span class="mono" style="color:var(--sub)">status</span>는 응답이 없고, Daemon 쪽 <span class="mono" style="color:var(--sub)">chat</span> 모듈이 <b>Stopped</b>입니다. 디스크 사용률이 82%라 로그 쓰기에 실패했을 가능성이 있습니다. 모듈 재시작이 가장 작은 조치입니다.</div></div>
+
+          <div class="ev plan"><svg class="ic s" style="color:var(--warn)"><use href="#i-eye"/></svg><span class="mono">terra.gateway.modules.by-id.restart.post</span><span class="r"><span class="chip warn" style="height:18px">제안 · 실행 안 됨</span></span></div>
+
+          <div class="ev done"><span>차례가 끝났습니다 · 3턴 · 18.2k 토큰</span></div>
+
+          <div class="ai"><div class="av" style="opacity:.0"></div>
+            <div class="tx" style="display:flex;align-items:center;gap:8px;color:var(--muted);padding:8px 14px"><i class="dot run"></i>모델이 답하는 중…</div></div>
+        </div>
+
+        <div class="inp">
+          <div class="box dis"><span style="flex:1">모델이 답하는 중입니다</span><span class="btn pri sm off"><svg class="ic s"><use href="#i-up"/></svg>보내기</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>plan 세션은 제안만 합니다. 실행하려면 <b style="color:var(--sub);font-weight:600">새 세션</b>을 ask로 여세요.</span><span class="mono">0 / 20000</span></div>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 세션 · 자격 -->
+      <div class="c3">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span class="cap">세션</span>
+          <div class="kv">
+            <span>자율성</span><span><span class="chip">plan</span> <span style="font-size:11px;color:var(--dim)">고정</span></span>
+            <span>시뮬레이션</span><span>꺼짐</span>
+            <span>모델</span><span class="mono" style="font-size:11.5px">anthropic · claude-opus-5</span>
+            <span>소유자</span><span class="mono" style="font-size:11.5px">alice</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span class="cap">사용량 · 한도</span>
+          <div style="display:grid;grid-template-columns:52px 1fr 54px;gap:8px;align-items:center;font-size:11.5px"><span style="color:var(--muted)">모델 호출</span><div class="bar"><u style="width:12%;background:var(--leaf)"></u></div><span class="mono" style="text-align:right">3 / 24</span></div>
+          <div style="display:grid;grid-template-columns:52px 1fr 54px;gap:8px;align-items:center;font-size:11.5px"><span style="color:var(--muted)">시간</span><div class="bar"><u style="width:9%;background:var(--leaf)"></u></div><span class="mono" style="text-align:right">1:21</span></div>
+          <div class="mono" style="font-size:11px;color:var(--sub);display:grid;grid-template-columns:1fr 1fr;gap:3px 10px"><span style="color:var(--muted)">입력</span><span style="text-align:right">14,060</span><span style="color:var(--muted)">출력</span><span style="text-align:right">4,162</span><span style="color:var(--muted)">캐시</span><span style="text-align:right">9,840</span></div>
+          <div class="note"><svg class="ic s" style="margin-top:2px"><use href="#i-info"/></svg><span>비용은 통화로 환산하지 않고 토큰으로만 보입니다.</span></div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:3px">
+          <span class="cap">노드 밖으로 나간 양</span>
+          <div style="display:flex;align-items:baseline;gap:6px"><b class="mono" style="font-size:24px;font-weight:600">36.8</b><span class="mono" style="color:var(--muted)">KB</span></div>
+          <span style="font-size:11px;color:var(--muted)">모델 호출 3회 · 출력은 필터 없이 제공자로 갑니다</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">위임 자격</span><span class="chip ok"><i class="dot" style="background:var(--ok);width:6px;height:6px"></i>맡겨짐</span></div>
+          <div class="kv">
+            <span>권한</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip mut mono" style="height:18px">node.read</span><span class="chip mut mono" style="height:18px">module.read</span><span class="chip mut mono" style="height:18px">agent.use</span></span>
+            <span>reach</span><span class="mono" style="font-size:11.5px">node (이 노드)</span>
+            <span>만료</span><span class="mono" style="font-size:11.5px">7h 12m 뒤 <span style="color:var(--dim)">(만료 시각 전)</span></span>
+          </div>
+          <div class="note"><svg class="ic s" style="margin-top:2px;color:var(--warn)"><use href="#i-warn"/></svg><span>폐기 여부는 확인하지 못합니다.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="anno" style="left:262px;top:142px">준비 상태 3칸</span>
+  <span class="anno" style="left:700px;top:148px">열 때 고정 — 변경 컨트롤 없음</span>
+  <span class="anno" style="left:900px;top:432px">제안은 "실행 안 됨"으로 표시</span>
+  <span class="anno" style="left:1060px;top:700px">실효 권한·reach·만료만</span>
+</div>
+
+<!-- ═══════════════ 보드 2 · 승인 (G2) ═══════════════ -->
+<div class="board">
+  <div class="map"></div><div class="dim"></div><div class="vig"></div>
+  <div class="title-tag"><span class="chip" style="background:var(--sun);border-color:var(--sun);color:#111">② 승인 · G2</span><span style="font-size:11.5px;color:var(--sub)">ask 세션 — 계약 사실과 모델의 주장을 갈라 보인다</span></div>
+
+  <div class="win">
+    <div class="wh">
+      <div class="mark"><svg class="ic" style="color:var(--paper)"><use href="#i-spark"/></svg></div>
+      <span class="cap" style="letter-spacing:.42em;color:var(--paper)">TERRA AGENT</span>
+      <span class="chip mut mono">io.terra.agent 0.1.0</span>
+      <span class="chip tree mono">tree-home</span>
+      <span class="chip warn" style="margin-left:6px"><svg class="ic s"><use href="#i-clock"/></svg>승인 1건 대기</span>
+      <div class="ctl"><i><svg class="ic"><use href="#i-min"/></svg></i><i><svg class="ic"><use href="#i-max"/></svg></i><i><svg class="ic"><use href="#i-x"/></svg></i></div>
+    </div>
+
+    <div class="wb">
+      <div class="c1">
+        <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+          <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">승인 인박스</span><span class="chip warn mono">1</span></div>
+            <div style="display:flex;flex-direction:column;gap:3px;font-size:12px"><b style="font-weight:600">새벽 로그 정리 재시작</b><span class="mono" style="font-size:10.5px;color:var(--muted)">modules.restart · 27:41 남음</span></div>
+          </div>
+          <span class="btn pri" style="height:38px"><svg class="ic"><use href="#i-plus"/></svg>새 세션</span>
+          <div class="seg"><b class="on">내 세션</b><b>종료됨</b></div>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:0 8px;display:flex;flex-direction:column;gap:2px">
+          <div class="sess on"><b>새벽 로그 정리 재시작</b><div class="m"><i class="dot" style="background:var(--warn)"></i><span style="color:var(--warn)">waiting-approval</span><span class="chip mut" style="height:17px;font-size:10px">ask</span><span class="mono" style="margin-left:auto">방금</span></div></div>
+          <div class="sess"><b>gpu-02가 응답하지 않는 원인 조사</b><div class="m"><i class="dot" style="background:var(--muted)"></i><span>idle</span><span class="chip mut" style="height:17px;font-size:10px">plan</span><span class="mono" style="margin-left:auto">12분 전</span></div></div>
+          <div class="sess"><b>디스크 82% 원인</b><div class="m"><i class="dot" style="background:var(--dim)"></i><span>done</span><span class="chip mut" style="height:17px;font-size:10px">plan</span><span class="mono" style="margin-left:auto">어제</span></div></div>
+        </div>
+        <div style="padding:12px 14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)"><svg class="ic s"><use href="#i-gear"/></svg>설정 · 모델 · 자격<svg class="ic s" style="margin-left:auto"><use href="#i-chevr"/></svg></div>
+      </div>
+
+      <div class="c2">
+        <div style="height:58px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 20px">
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+            <b style="font-size:14.5px;font-weight:700;letter-spacing:-.01em">새벽 로그 정리 재시작</b>
+            <span class="mono" style="font-size:10.5px;color:var(--dim)">session · logrotate-0411</span>
+          </div>
+          <span class="chip warn" style="margin-left:6px"><i class="dot" style="background:var(--warn);width:6px;height:6px"></i>waiting-approval</span>
+          <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+            <span class="chip mut"><svg class="ic s"><use href="#i-lock"/></svg>ask · 열 때 고정</span>
+            <span class="btn sm dng"><svg class="ic s"><use href="#i-stop"/></svg>취소</span>
+          </div>
+        </div>
+
+        <div class="msgs" style="gap:10px;padding-top:14px">
+          <div class="me">chat 모듈이 죽었어. 재시작해줘.</div>
+          <div class="ev"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">terra.gateway.modules.get</span><span class="r"><span class="chip ok" style="height:18px">ok</span></span></div>
+
+          <!-- 승인 카드 -->
+          <div style="align-self:stretch;margin:2px 0 0;border:1px solid rgba(245,184,61,.5);border-radius:14px;background:linear-gradient(180deg,rgba(245,184,61,.07),rgba(245,184,61,.02));overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid rgba(245,184,61,.25)">
+              <svg class="ic l" style="color:var(--warn)"><use href="#i-shield"/></svg>
+              <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="color:var(--warn)">승인 요청</span><b class="mono" style="font-size:13px;font-weight:600">terra.gateway.modules.by-id.restart.post</b></div>
+              <span class="chip warn mono" style="margin-left:auto;height:24px;font-size:12px"><svg class="ic s"><use href="#i-clock"/></svg>27:41</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:0">
+              <div style="padding:13px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:9px">
+                <span class="cap" style="display:flex;gap:8px;align-items:center;color:var(--paper)"><svg class="ic s"><use href="#i-doc"/></svg>계약이 말하는 것</span>
+                <div class="kv" style="grid-template-columns:70px 1fr;gap:5px 8px">
+                  <span>위험</span><span><span class="chip warn" style="height:18px">쓰기 · operate</span></span>
+                  <span>확인</span><span class="mono" style="font-size:11.5px">required</span>
+                  <span>부작용</span><span>모듈 프로세스가 재시작된다</span>
+                  <span>재시도</span><span class="mono" style="font-size:11.5px">never <span style="color:var(--dim)">· 멱등 아님</span></span>
+                  <span>결과</span><span><span class="chip info" style="height:18px">accepted-job</span> <span style="font-size:11px;color:var(--muted)">접수 ≠ 완료</span></span>
+                  <span>대상</span><span class="mono" style="font-size:11.5px">tree-home <span style="color:var(--dim)">(이 Gateway의 노드)</span></span>
+                </div>
+              </div>
+              <div style="padding:13px 16px;display:flex;flex-direction:column;gap:9px">
+                <span class="cap" style="display:flex;gap:8px;align-items:center;color:var(--muted)"><svg class="ic s"><use href="#i-spark"/></svg>모델이 말하는 것</span>
+                <div style="border:1px dashed var(--line-2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--sub);line-height:1.6">“chat 모듈이 Stopped라 재시작이 필요합니다. 데이터에는 영향이 없습니다.”</div>
+                <div class="note"><svg class="ic s" style="margin-top:2px"><use href="#i-info"/></svg><span>모델의 주장입니다. <b style="color:var(--sub);font-weight:600">근거가 아닙니다.</b> 왼쪽 계약 사실로 판단하세요.</span></div>
+              </div>
+            </div>
+            <div style="padding:9px 16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--muted)">
+              <svg class="ic s"><use href="#i-chevr"/></svg><span>입력 원문</span><span class="mono" style="color:var(--dim)">{ "id": "io.terra.chat" }</span>
+              <span class="chip mut" style="margin-left:auto;height:18px">이전에 거부한 같은 호출 1회</span>
+            </div>
+            <div style="padding:12px 16px;background:rgba(0,0,0,.25);border-top:1px solid var(--line);display:flex;align-items:center;gap:12px">
+              <span style="font-size:11.5px;color:var(--muted);flex:1;line-height:1.5">승인은 “물어봤다”입니다. <b style="color:var(--sub);font-weight:600">Gateway가 다시 판정</b>하므로 승인 뒤에도 거절될 수 있습니다.</span>
+              <span class="btn">거부</span><span class="btn pri" style="padding:0 22px">승인</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="inp">
+          <div class="box dis"><span style="flex:1">승인 대기 중에는 일반 글을 보낼 수 없습니다</span><span class="btn pri sm off"><svg class="ic s"><use href="#i-up"/></svg>보내기</span></div>
+          <div style="font-size:11px;color:var(--dim)">승인 버튼은 대기 승인이 있을 때만 켜집니다. 한 번 누르면 곧바로 비활성화됩니다.</div>
+        </div>
+      </div>
+
+      <div class="c3">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span class="cap">세션</span>
+          <div class="kv">
+            <span>자율성</span><span><span class="chip">ask</span> <span style="font-size:11px;color:var(--dim)">고정</span></span>
+            <span>모델</span><span class="mono" style="font-size:11.5px">claude-opus-5</span>
+            <span>마감</span><span class="mono" style="font-size:11.5px">min(30분, 남은 시간)</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span class="cap">사용량 · 한도</span>
+          <div style="display:grid;grid-template-columns:52px 1fr 54px;gap:8px;align-items:center;font-size:11.5px"><span style="color:var(--muted)">모델 호출</span><div class="bar"><u style="width:8%;background:var(--leaf)"></u></div><span class="mono" style="text-align:right">2 / 24</span></div>
+          <div style="display:grid;grid-template-columns:52px 1fr 54px;gap:8px;align-items:center;font-size:11.5px"><span style="color:var(--muted)">시간</span><div class="bar"><u style="width:70%;background:var(--warn)"></u></div><span class="mono" style="text-align:right;color:var(--warn)">10:30</span></div>
+          <div class="note"><svg class="ic s" style="margin-top:2px;color:var(--warn)"><use href="#i-warn"/></svg><span>승인 대기도 한 차례 시간(900초) 안에 듭니다.</span></div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px">
+          <span class="cap">이 승인이 하지 않는 것</span>
+          <div class="note"><svg class="ic s" style="margin-top:3px"><use href="#i-check"/></svg><span>권한을 올리지 않습니다 — 위임 자격 범위 안에서만 실행</span></div>
+          <div class="note"><svg class="ic s" style="margin-top:3px"><use href="#i-check"/></svg><span>두 번 눌러도 한 번만 처리됩니다</span></div>
+          <div class="note"><svg class="ic s" style="margin-top:3px"><use href="#i-check"/></svg><span>외부 도구 호출은 Gateway 감사에 남지 않습니다</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">위임 자격</span><span class="chip ok">맡겨짐</span></div>
+          <div class="kv">
+            <span>권한</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip mut mono" style="height:18px">module.operate</span><span class="chip mut mono" style="height:18px">+2</span></span>
+            <span>만료</span><span class="mono" style="font-size:11.5px">7h 03m 뒤</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="anno" style="left:545px;top:326px">계약 사실</span>
+  <span class="anno" style="left:880px;top:326px">모델의 주장 — 시각적으로 분리</span>
+  <span class="anno" style="left:560px;top:612px">“승인 = 실행”이라 말하지 않는다</span>
+</div>
+
+<!-- ═══════════════ 보드 3 · 준비 · 위임 안내 (G1) ═══════════════ -->
+<div class="board">
+  <div class="map"></div><div class="dim"></div><div class="vig"></div>
+  <div class="title-tag"><span class="chip" style="background:var(--sun);border-color:var(--sun);color:#111">③ 준비 · 위임 안내 · G1</span><span style="font-size:11.5px;color:var(--sub)">앱은 자격을 발급하지 않는다. 발급은 사람 세션을 쥔 쪽(CLI → 코어 GUI 계정 탭)</span></div>
+
+  <div class="win">
+    <div class="wh">
+      <div class="mark"><svg class="ic" style="color:var(--paper)"><use href="#i-spark"/></svg></div>
+      <span class="cap" style="letter-spacing:.42em;color:var(--paper)">TERRA AGENT</span>
+      <span class="chip mut mono">io.terra.agent 0.1.0</span>
+      <span class="chip tree mono">tree-home</span>
+      <div class="ctl"><i><svg class="ic"><use href="#i-min"/></svg></i><i><svg class="ic"><use href="#i-max"/></svg></i><i><svg class="ic"><use href="#i-x"/></svg></i></div>
+    </div>
+    <div class="wb">
+      <div class="c1">
+        <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+          <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">준비 상태</span><span class="chip warn"><svg class="ic s"><use href="#i-warn"/></svg>자격 필요</span></div>
+            <div style="display:flex;gap:6px;font-size:11px;color:var(--sub)">
+              <span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모듈</span>
+              <span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모델</span>
+              <span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--warn)"></i>자격</span>
+            </div>
+          </div>
+          <span class="btn pri off" style="height:38px"><svg class="ic"><use href="#i-plus"/></svg>새 세션</span>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:12px;color:var(--dim);line-height:1.7">아직 세션이 없습니다.<br>자격을 맡기면 시작할 수 있습니다.</div>
+      </div>
+
+      <div class="c2" style="align-items:center;justify-content:center">
+        <div style="width:640px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px">
+            <span class="cap">시작하기 전에</span>
+            <b style="font-size:22px;font-weight:700;letter-spacing:-.015em">에이전트가 이 노드에서 일하려면 위임 자격이 필요합니다</b>
+            <span style="color:var(--muted);font-size:12.5px;line-height:1.7">자격은 사람이 직접 등급과 수명을 정해 맡깁니다. 이 화면은 자격을 만들거나 표시하지 않고, 맡겨진 상태만 보여 줍니다.</span>
+          </div>
+
+          <div class="step ok"><span class="n"><svg class="ic s"><use href="#i-check"/></svg></span><div><b style="font-weight:600">에이전트 모듈</b><div style="font-size:11.5px;color:var(--muted)">응답 중 · 세션 5개</div></div><span class="chip ok">정상</span></div>
+          <div class="step ok"><span class="n"><svg class="ic s"><use href="#i-check"/></svg></span><div><b style="font-weight:600">모델</b><div style="font-size:11.5px;color:var(--muted)" class="mono">anthropic · claude-opus-5 · 기본</div></div><span class="chip ok">등록됨</span></div>
+          <div class="step bad"><span class="n">3</span><div><b style="font-weight:600">위임 자격</b><div style="font-size:11.5px;color:var(--muted)">맡겨진 자격이 없습니다</div></div><span class="chip warn">맡기기 필요</span></div>
+
+          <div class="card" style="display:flex;flex-direction:column;gap:11px;padding:16px;margin-top:2px">
+            <div style="display:flex;align-items:center;gap:8px"><svg class="ic" style="color:var(--paper)"><use href="#i-key"/></svg><b style="font-weight:600;font-size:13.5px">자격을 맡기는 곳</b><span class="chip mut" style="margin-left:auto">앱 밖에서</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="border:1px solid var(--line-2);border-radius:11px;padding:12px;display:flex;flex-direction:column;gap:8px;background:rgba(0,0,0,.2)">
+                <span style="display:flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px"><svg class="ic s"><use href="#i-term"/></svg>터미널<span class="chip info" style="margin-left:auto;height:18px">먼저</span></span>
+                <div class="code"><i>$</i> terra agent grant \<br>&nbsp;&nbsp;--level operate --ttl 8h \<br>&nbsp;&nbsp;--hand-over</div>
+                <span style="font-size:11px;color:var(--dim)">발급과 맡기기를 한 동작으로. 토큰은 출력되지 않습니다.</span>
+              </div>
+              <div style="border:1px solid var(--line);border-radius:11px;padding:12px;display:flex;flex-direction:column;gap:8px;opacity:.7">
+                <span style="display:flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px"><svg class="ic s"><use href="#i-user"/></svg>설정 › 계정<span class="chip mut" style="margin-left:auto;height:18px">다음</span></span>
+                <div style="font-size:12px;color:var(--sub);line-height:1.6">코어 GUI의 <b style="font-weight:600">위임 자격</b>에서 등급·수명을 고르고 “Terra Agent에 맡기기”를 누릅니다.</div>
+                <span class="btn sm" style="align-self:flex-start">설정 열기<svg class="ic s"><use href="#i-chevr"/></svg></span>
+              </div>
+            </div>
+            <div class="note"><svg class="ic s" style="margin-top:2px"><use href="#i-lock"/></svg><span>가장 좁은 등급(<span class="mono" style="color:var(--sub)">readonly</span>)과 짧은 수명부터 시작하세요. 맡긴 뒤 이 화면에서 <b style="color:var(--sub);font-weight:600">받은 권한·reach·만료</b>를 확인합니다.</span></div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end"><span class="btn sm"><svg class="ic s"><use href="#i-net"/></svg>다시 확인</span></div>
+        </div>
+      </div>
+
+      <div class="c3">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span class="cap">상태별 안내 문구</span>
+          <div class="card" style="display:flex;flex-direction:column;gap:6px;padding:10px 12px"><span class="chip warn" style="align-self:flex-start">미등록</span><span style="font-size:12px;color:var(--sub)">맡겨진 자격이 없습니다.</span></div>
+          <div class="card" style="display:flex;flex-direction:column;gap:6px;padding:10px 12px"><span class="chip err" style="align-self:flex-start">만료됨</span><span style="font-size:12px;color:var(--sub)">자격이 만료되었습니다. 다시 맡기세요. <span class="mono" style="color:var(--dim)">expired</span></span></div>
+          <div class="card" style="display:flex;flex-direction:column;gap:6px;padding:10px 12px"><span class="chip ok" style="align-self:flex-start">만료 시각 전</span><span style="font-size:12px;color:var(--sub)">폐기 여부는 확인하지 못합니다. Gateway가 재시작되면 자격이 사라질 수 있습니다.</span></div>
+          <div class="card" style="display:flex;flex-direction:column;gap:6px;padding:10px 12px"><span class="chip mut" style="align-self:flex-start">관문 없음</span><span style="font-size:12px;color:var(--sub)">이 노드에는 위임 관문이 없어 읽기만 가능합니다.</span></div>
+        </div>
+        <div class="note" style="margin-top:auto"><svg class="ic s" style="margin-top:2px"><use href="#i-info"/></svg><span>“자격 유효”라고 말하지 않습니다. 만료 시각만 알 수 있습니다.</span></div>
+      </div>
+    </div>
+  </div>
+  <span class="anno" style="left:600px;top:462px">자격이 빠진 칸으로 안내</span>
+  <span class="anno" style="left:400px;top:790px">토큰 입력칸 없음 · 표시 없음</span>
+</div>
+
+<!-- ═══════════════ 보드 4 · 설정 (G3) ═══════════════ -->
+<div class="board">
+  <div class="map"></div><div class="dim"></div><div class="vig"></div>
+  <div class="title-tag"><span class="chip" style="background:var(--sun);border-color:var(--sun);color:#111">④ 설정 · G3</span><span style="font-size:11.5px;color:var(--sub)">모델은 노드 전역 · 키는 다시 보이지 않음 · MCP 등록·삭제는 앱에 두지 않음</span></div>
+
+  <div class="win">
+    <div class="wh">
+      <div class="mark"><svg class="ic" style="color:var(--paper)"><use href="#i-spark"/></svg></div>
+      <span class="cap" style="letter-spacing:.42em;color:var(--paper)">TERRA AGENT</span>
+      <span class="chip mut mono">io.terra.agent 0.1.0</span>
+      <span class="chip tree mono">tree-home</span>
+      <span style="font-size:12px;color:var(--muted);margin-left:6px">설정</span>
+      <div class="ctl"><i><svg class="ic"><use href="#i-min"/></svg></i><i><svg class="ic"><use href="#i-max"/></svg></i><i><svg class="ic"><use href="#i-x"/></svg></i></div>
+    </div>
+    <div class="tabs"><b class="on">모델</b><b>자격</b><b>MCP 서버</b><b>한도 기본값</b></div>
+
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:20px 22px;overflow:hidden">
+      <!-- 왼쪽: 모델 -->
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div style="border:1px solid rgba(245,184,61,.5);background:rgba(245,184,61,.07);border-radius:12px;padding:11px 14px;display:flex;gap:10px;align-items:flex-start">
+          <svg class="ic" style="color:var(--warn);margin-top:2px"><use href="#i-warn"/></svg>
+          <div style="font-size:12px;line-height:1.6;color:var(--sub)"><b style="color:var(--paper);font-weight:600">이 노드의 모든 사람에게 적용됩니다.</b> 모델 등록·삭제는 개인 설정이 아니라 노드 설정입니다.</div>
+        </div>
+        <span class="cap">등록된 모델</span>
+        <div class="card" style="padding:4px 4px">
+          <table class="tbl">
+            <thead><tr><th>제공자</th><th>모델</th><th>base url</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="mono">anthropic <span class="chip ok" style="height:17px;margin-left:4px">기본</span></td><td class="mono">claude-opus-5</td><td class="mono" style="color:var(--muted)">기본값</td><td style="text-align:right"><span class="btn sm dng"><svg class="ic s"><use href="#i-trash"/></svg></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <span class="cap" style="margin-top:4px">모델 등록 · 교체</span>
+        <div class="card" style="display:flex;flex-direction:column;gap:11px;padding:14px">
+          <div><div class="lbl">API 키 <span class="chip mut" style="height:17px;font-size:10px">8자 이상</span></div><div class="fld mono" style="letter-spacing:.2em;color:var(--muted)">••••••••••••••••<svg class="ic s" style="margin-left:auto"><use href="#i-lock"/></svg></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><div class="lbl">모델</div><div class="fld mono">claude-opus-5</div></div>
+            <div><div class="lbl">base url <span style="color:var(--dim)">선택</span></div><div class="fld mono" style="color:var(--dim)">기본값 사용</div></div>
+          </div>
+          <div class="note"><svg class="ic s" style="margin-top:2px"><use href="#i-lock"/></svg><span>저장하면 키는 다시 보이지 않고, 화면·로그·브라우저 저장소에 남지 않습니다.</span></div>
+          <div class="note"><svg class="ic s" style="margin-top:2px;color:var(--warn)"><use href="#i-warn"/></svg><span>저장할 때 키를 제공자에 시험하지 않습니다. 틀린 키는 첫 메시지에서 세션을 <span class="mono" style="color:var(--sub)">failed</span>로 만듭니다.</span></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px"><span class="btn">취소</span><span class="btn pri">모든 사람에게 적용하며 저장</span></div>
+        </div>
+        <span class="cap" style="margin-top:4px">한도 기본값 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 새 세션을 열 때 채워지는 값</span></span>
+        <div class="card" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px">
+          <div><div class="lbl">모델 호출 <span style="color:var(--dim)">한 차례</span></div><div class="fld mono">24</div><div style="font-size:10.5px;color:var(--dim);margin-top:4px">1 ~ 100</div></div>
+          <div><div class="lbl">시간 (초)</div><div class="fld mono">900</div><div style="font-size:10.5px;color:var(--dim);margin-top:4px">1 ~ 7200 · 승인 대기 포함</div></div>
+          <div><div class="lbl">토큰 예산</div><div class="fld mono" style="color:var(--dim)">무제한</div><div style="font-size:10.5px;color:var(--dim);margin-top:4px">캐시 토큰 제외</div></div>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 자격 · MCP -->
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <span class="cap">위임 자격</span>
+        <div class="card" style="display:flex;flex-direction:column;gap:12px;padding:14px">
+          <div style="display:flex;align-items:center;gap:8px"><span class="chip ok"><i class="dot" style="background:var(--ok);width:6px;height:6px"></i>맡겨짐</span><span class="mono" style="font-size:12px;color:var(--sub)">alice</span><span class="chip mut mono" style="margin-left:auto">operate</span></div>
+          <div class="kv" style="grid-template-columns:64px 1fr">
+            <span>권한</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip mut mono" style="height:18px">node.read</span><span class="chip mut mono" style="height:18px">module.read</span><span class="chip mut mono" style="height:18px">module.operate</span><span class="chip mut mono" style="height:18px">agent.use</span></span>
+            <span>reach</span><span class="mono" style="font-size:11.5px">node (이 노드)</span>
+            <span>무인</span><span style="font-size:12px">아님 <span style="color:var(--dim)">· 사전 승인 없음</span></span>
+          </div>
+          <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px"><span style="color:var(--muted)">만료까지</span><span class="mono">7h 03m / 8h</span></div><div class="bar"><u style="width:88%;background:var(--leaf)"></u></div></div>
+          <div class="note"><svg class="ic s" style="margin-top:2px;color:var(--warn)"><use href="#i-warn"/></svg><span>만료 시각만 압니다. 폐기·Gateway 재시작은 확인하지 못합니다.</span></div>
+          <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:9px">
+            <span style="font-size:11.5px;color:var(--sub);font-weight:600">거두기 — 이 순서로</span>
+            <div style="display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--muted)"><span class="chip mut mono" style="height:18px">1</span>열린 세션 취소<svg class="ic s"><use href="#i-chevr"/></svg><span class="chip mut mono" style="height:18px">2</span>Gateway 폐기<svg class="ic s"><use href="#i-chevr"/></svg><span class="chip mut mono" style="height:18px">3</span>맡긴 자격 삭제</div>
+            <div style="display:flex;gap:8px"><span class="btn sm">다시 맡기기 안내</span><span class="btn sm dng" style="margin-left:auto"><svg class="ic s"><use href="#i-trash"/></svg>자격 거두기</span></div>
+          </div>
+        </div>
+
+        <span class="cap" style="margin-top:2px">MCP 서버 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 읽기 전용</span></span>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px;padding:14px">
+          <div style="display:flex;align-items:center;gap:10px"><svg class="ic" style="color:var(--paper)"><use href="#i-puzzle"/></svg><div style="display:flex;flex-direction:column"><b class="mono" style="font-size:12.5px;font-weight:600">filesystem</b><span class="mono" style="font-size:10.5px;color:var(--muted)">npx -y @mcp/server-fs</span></div><span class="chip mut" style="margin-left:auto">도구 4 · 읽기 전용 3</span></div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="chip mut mono" style="height:18px">env: ROOT_DIR</span><span class="chip mut mono" style="height:18px">값은 표시하지 않음</span></div>
+          <div class="note" style="border-top:1px solid var(--line);padding-top:10px"><svg class="ic s" style="margin-top:2px"><use href="#i-term"/></svg><span>등록·삭제는 노드에 명령 한 줄을 실행할 권한을 주는 일이라 이 앱에 두지 않습니다. 터미널에서 하세요.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="anno" style="left:600px;top:136px">노드 전역 경고 — 항상 위에</span>
+  <span class="anno" style="left:245px;top:388px">키는 다시 보이지 않음</span>
+  <span class="anno" style="left:860px;top:394px">거두기 순서 안내</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1447,"height":3900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
