@@ -1,0 +1,15 @@
+{
+  "$comment": "엘리먼트는 custom 하나. terra.web/frame이 props.app의 앱을 앱별 origin의 sandbox iframe으로 띄운다 — 같은 모듈의 static·proxied 앱이어야 하고, frame이 Fragment 루트라서 호스트 틀(1120px·여백)이 벗겨져 웹이 화면 전체를 쓴다(Terra#93).",
+  "schemaVersion": "0.1.0",
+  "id": "main-test.main",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "MAIN Test",
+  "root": {
+    "type": "custom",
+    "id": "frame",
+    "component": "terra.web/frame",
+    "props": { "app": "lab.stellaxia.scene.main-test.ui" },
+    "a11y": { "label": "MAIN Test" }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$comment": "얇은 껍데기(웹 프로그램 감싸기 설계 §3.3). Route 하나, Fragment 하나, Function·Store 없음 — 화면은 같은 모듈의 embed 앱(lab.stellaxia.scene.main-test.ui)이 그리고, 웹이 부르는 것이 있어도 Scene Function을 거치지 않으므로 requiredOperations도 비어 있다.",
+  "schemaVersion": "0.1.0",
+  "id": "lab.stellaxia.scene.main-test",
+  "version": "0.1.0",
+  "name": "MAIN Test",
+  "entryRoute": "/",
+  "routes": [{ "path": "/", "fragment": "main-test.main" }],
+  "functions": [],
+  "stores": [],
+  "fragments": ["surface/fragments/main.fragment.json"],
+  "requiredOperations": [],
+  "recoveryFragment": "main-test.main"
+}

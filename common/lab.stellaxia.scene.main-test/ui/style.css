@@ -1,0 +1,36 @@
+/* 자유 디자인 — Scene 토큰으로는 칠할 수 없던 바탕을 웹이 직접 칠한다.
+   외부 글꼴·이미지는 쓰지 않는다: 앱 자산 CSP가 같은 origin만 받는다. */
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: #ffffff;
+  color: #111111;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Noto Sans KR', sans-serif;
+}
+
+/* 가운데 — 한 칸짜리 grid의 place-items 한 줄. 높이는 frame이 준 iframe 전체다. */
+.stage {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 24px;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(48px, 12vw, 160px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
