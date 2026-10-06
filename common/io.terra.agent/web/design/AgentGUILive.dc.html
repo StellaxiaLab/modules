@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra Agent 동작하는 화면</title>
+<script src="../support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+:root{
+  --glass:rgba(13,15,19,.82); --win:rgba(15,17,21,.92); --line:rgba(255,255,255,.10); --line-2:rgba(255,255,255,.18);
+  --up:rgba(255,255,255,.05); --up-2:rgba(255,255,255,.09);
+  --paper:#ede9e1; --sub:#b4bac3; --muted:#9aa1ab; --dim:#6b7280;
+  --tree:#f0a63a; --leaf:#5aa8ff; --sun:#ffd84d; --ok:#3ecf8e; --warn:#f5b83d; --err:#ff5d5d; --info:#7aa7ff;
+  --mono:ui-monospace,'DejaVu Sans Mono',Consolas,'SF Mono',Menlo,monospace;
+}
+body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#07090c;color:var(--paper);font-size:13px;line-height:1.5}
+*{box-sizing:border-box}
+.page{display:flex;flex-direction:column;gap:48px;padding:0}
+.board{position:relative;width:1447px;height:945px;overflow:hidden;background:#1d97ac;flex:none}
+.map{position:absolute;inset:0;background:url(./assets/map-sample.jpg) center/cover no-repeat;filter:saturate(.8)}
+.dim{position:absolute;inset:0;background:rgba(5,8,11,.58)}
+.vig{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(6,10,14,.45) 0,rgba(6,10,14,0) 140px),linear-gradient(0deg,rgba(6,10,14,.5) 0,rgba(6,10,14,0) 190px)}
+.glass{position:absolute;background:var(--glass);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(14px)}
+.win{position:absolute;left:103px;top:42px;width:1240px;height:861px;background:var(--win);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(18px);display:flex;flex-direction:column;overflow:hidden}
+.wh{height:46px;flex:none;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;padding:0 14px 0 12px}
+.wh .mark{width:28px;height:28px;border-radius:8px;background:#000;display:flex;align-items:center;justify-content:center}
+.wh .ctl{margin-left:auto;display:flex;gap:2px}
+.wh .ctl i{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.wb{flex:1;display:flex;min-height:0}
+.c1{width:272px;flex:none;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;min-height:0}
+.c2{flex:1;display:flex;flex-direction:column;min-width:0}
+.c3{width:300px;flex:none;border-left:1px solid rgba(255,255,255,.06);padding:16px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic.s{width:13px;height:13px}.ic.l{width:20px;height:20px}
+.cap{font-size:10px;font-weight:600;letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
+.mono{font-family:var(--mono)}
+.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font-size:11px;font-weight:600;color:var(--paper);white-space:nowrap}
+.chip.ok{color:var(--ok);background:rgba(62,207,142,.10)}
+.chip.warn{color:var(--warn);background:rgba(245,184,61,.10)}
+.chip.err{color:var(--err);background:rgba(255,93,93,.10)}
+.chip.info{color:var(--info);background:rgba(122,167,255,.10)}
+.chip.tree{color:var(--tree);background:rgba(240,166,58,.10)}
+.chip.leaf{color:var(--leaf);background:rgba(90,168,255,.10)}
+.chip.mut{color:var(--muted);border-color:var(--line-2);background:none}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
+.dot.run{background:var(--leaf);box-shadow:0 0 0 3px rgba(90,168,255,.22)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 14px;border-radius:9px;font-size:12.5px;font-weight:600;color:var(--paper);background:rgba(255,255,255,.04);white-space:nowrap}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.btn.pri{background:var(--paper);color:#111;border-color:var(--paper)}
+.btn.dng{color:var(--err);background:rgba(255,93,93,.08)}
+.btn.off{opacity:.38}
+.kbd{font-family:var(--mono);font-size:10px;color:var(--muted);border-radius:4px;padding:0 4px}
+.seg{display:flex;gap:2px;padding:3px;border-radius:10px;background:rgba(255,255,255,.04)}
+.seg b{font-weight:500;font-size:12px;padding:4px 10px;border-radius:7px;color:var(--muted)}
+.seg b.on{background:var(--paper);color:#111;font-weight:600}
+.bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar>u{display:block;height:100%;border-radius:3px}
+.card{background:var(--up);border-radius:12px;padding:12px}
+.kv{display:grid;grid-template-columns:84px 1fr;gap:6px 10px;font-size:12px;align-items:baseline}
+.kv>span:nth-child(odd){color:var(--muted)}
+.kv>span:nth-child(even){min-width:0;overflow-wrap:anywhere}
+.sess{padding:10px 12px;border-radius:11px;border:1px solid transparent;display:flex;flex-direction:column;gap:5px}
+.sess.on{background:var(--up-2);border-color:var(--line-2)}
+.sess b{font-size:12.5px;font-weight:600;line-height:1.35}
+.sess .m{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted)}
+.msgs{flex:1;min-height:0;overflow:hidden;padding:18px 22px;display:flex;flex-direction:column;gap:12px}
+.me{align-self:flex-end;max-width:62%;background:rgba(255,255,255,.08);border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:13px}
+.ai{align-self:flex-start;max-width:74%;display:flex;gap:10px}
+.ai .av{width:26px;height:26px;border-radius:8px;background:#000;display:flex;align-items:center;justify-content:center;flex:none;margin-top:2px}
+.ai .tx{background:var(--up);border-radius:4px 14px 14px 14px;padding:10px 14px;font-size:13px;line-height:1.65}
+.ev{align-self:center;width:88%;display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--muted);padding:6px 10px;border-radius:9px;background:rgba(255,255,255,.025)}
+.ev .mono{color:var(--sub);font-size:11px}
+.ev .r{margin-left:auto;display:flex;gap:6px;align-items:center}
+.ev.plan{border-style:dashed;border-color:var(--line-2)}
+.ev.done{border:none;background:none;justify-content:center;color:var(--dim)}
+.ev.done:before,.ev.done:after{content:"";height:1px;flex:1;background:var(--line)}
+.inp{flex:none;border-top:1px solid rgba(255,255,255,.06);padding:12px 16px 14px;display:flex;flex-direction:column;gap:8px}
+.inp .box{min-height:60px;border-radius:12px;background:rgba(255,255,255,.04);padding:10px 12px;display:flex;gap:10px;align-items:flex-end;color:var(--muted);font-size:13px}
+.inp .box.dis{opacity:.45}
+.anno{position:absolute;font-size:11px;font-weight:600;color:#111;background:var(--sun);border-radius:10px;padding:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:5;white-space:nowrap}
+.tabs{display:flex;gap:2px;border-bottom:1px solid rgba(255,255,255,.06);padding:0 18px}
+.tabs b{padding:12px 14px;font-size:12.5px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs b.on{color:var(--paper);border-color:var(--paper);font-weight:600}
+.step{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--up)}
+.step .n{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 12px var(--mono)}
+.step.ok .n{color:var(--ok);background:rgba(62,207,142,.10)}
+.step.bad{background:rgba(245,184,61,.06)}
+.step.bad .n{color:var(--warn);}
+.step.wait{opacity:.5}
+.code{font-family:var(--mono);font-size:12px;background:rgba(0,0,0,.35);border-radius:9px;padding:9px 12px;color:var(--paper);overflow:hidden}
+.code i{font-style:normal;color:var(--dim)}
+.note{font-size:11.5px;color:var(--muted);display:flex;gap:7px;align-items:flex-start;line-height:1.55}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:10px;font-weight:600;letter-spacing:.2em;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.06);text-transform:uppercase}
+.tbl td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.fld{height:36px;border-radius:9px;background:rgba(255,255,255,.04);padding:0 12px;display:flex;align-items:center;font-size:12.5px;color:var(--sub)}
+.lbl{font-size:11px;color:var(--muted);margin-bottom:5px;display:flex;gap:6px;align-items:center}
+.title-tag{position:absolute;left:103px;top:12px;z-index:6;display:flex;gap:8px;align-items:center}
+
+/* ── 유리 스타일: 테두리 없음 · 살짝 투명한 젖빛 유리 ── */
+:root{--line:rgba(255,255,255,.06);--line-2:rgba(255,255,255,.06);--up:rgba(255,255,255,.07);--up-2:rgba(255,255,255,.12)}
+.dim{background:rgba(6,10,14,.22)}
+.win{border:none;background:linear-gradient(135deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.05) 38%,rgba(255,255,255,.03) 100%),rgba(16,20,26,.46);
+  backdrop-filter:blur(30px) saturate(150%);-webkit-backdrop-filter:blur(30px) saturate(150%);
+  box-shadow:0 30px 80px rgba(0,0,0,.45),0 2px 10px rgba(0,0,0,.2),inset 0 0 60px rgba(255,255,255,.035)}
+.glass{border:none;background:rgba(16,20,26,.46);backdrop-filter:blur(24px) saturate(150%);box-shadow:0 14px 40px rgba(0,0,0,.35)}
+.wh{border-bottom-color:rgba(255,255,255,.05);background:rgba(255,255,255,.04)}
+.wh .mark{border:none;background:rgba(0,0,0,.45)}
+.c1,.c3{background:rgba(0,0,0,.16);border-color:transparent}
+.c2{background:rgba(255,255,255,.015)}
+.card,.step,.ev,.me,.ai .tx,.fld,.inp .box,.code,.tabs,.seg{border:none}
+.card{background:rgba(255,255,255,.07)}
+.sess.on{background:rgba(255,255,255,.12);border-color:transparent}
+.chip,.btn,.kbd{border:none}
+.chip{background:rgba(255,255,255,.09)}
+.chip.ok{background:rgba(62,207,142,.16)}.chip.warn{background:rgba(245,184,61,.16)}.chip.err{background:rgba(255,93,93,.16)}
+.chip.info{background:rgba(122,167,255,.16)}.chip.tree{background:rgba(240,166,58,.16)}.chip.leaf{background:rgba(90,168,255,.16)}
+.chip.mut{background:rgba(255,255,255,.07)}
+.btn{background:rgba(255,255,255,.09)}
+.btn.pri{background:rgba(237,233,225,.94)}
+.btn.dng{background:rgba(255,93,93,.16)}
+.me{background:rgba(255,255,255,.13)}
+.ai .tx,.ev{background:rgba(255,255,255,.06)}
+.ev.plan{background:rgba(255,255,255,.04)}
+.ev.done{background:none}
+.fld,.inp .box{background:rgba(255,255,255,.08)}
+.code{background:rgba(0,0,0,.28)}
+.step{background:rgba(255,255,255,.07)}
+.step.bad{background:rgba(245,184,61,.12)}
+.step .n{border:none;background:rgba(255,255,255,.09)}
+.step.ok .n{background:rgba(62,207,142,.18)}.step.bad .n{background:rgba(245,184,61,.2)}
+.tabs{background:none;border-bottom:1px solid rgba(255,255,255,.05)}
+.tbl th,.tbl td{border-bottom-color:rgba(255,255,255,.05)}
+.bar{background:rgba(255,255,255,.1)}
+.ev.plan{border:none;background:rgba(255,255,255,.035)}
+.win{background:linear-gradient(135deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.05) 38%,rgba(255,255,255,.03) 100%),rgba(14,18,24,.56)}
+.cap,.sess .m,.note,.kv>span:nth-child(odd){color:#aeb4bd}
+.ev,.ev .mono{color:#b4bac3}
+/* ── Liquid Glass: 가장자리 빛 반사 · 알약형 · 보라/청록 포인트 · 바닥 그림자 · 무지갯빛 번짐 ── */
+.win{border-radius:30px;background:linear-gradient(150deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.05) 34%,rgba(255,255,255,.08) 100%),rgba(14,20,30,.42);
+  backdrop-filter:blur(28px) saturate(185%) brightness(1.06);-webkit-backdrop-filter:blur(28px) saturate(185%) brightness(1.06);
+  box-shadow:inset 2px 2px 1.5px rgba(255,255,255,.50),inset -1.5px -1.5px 1.5px rgba(255,255,255,.16),inset 0 0 36px rgba(255,255,255,.05),0 40px 90px rgba(0,0,0,.45),0 14px 30px rgba(20,10,60,.30)}
+.win::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:radial-gradient(70% 45% at 0% 0%,rgba(255,255,255,.20),transparent 62%),radial-gradient(60% 40% at 100% 100%,rgba(120,205,255,.12),transparent 65%)}
+.win::after{content:"";position:absolute;right:-90px;bottom:-110px;width:640px;height:480px;border-radius:50%;pointer-events:none;z-index:-1;filter:blur(36px);
+  background:radial-gradient(circle at 42% 42%,rgba(176,140,255,.42),rgba(95,216,200,.26) 48%,rgba(255,170,190,.14) 66%,transparent 74%)}
+.wh{background:none;border-bottom-color:rgba(255,255,255,.04)}
+.wh .mark{border-radius:50%;background:linear-gradient(145deg,rgba(255,255,255,.28),rgba(255,255,255,.06));box-shadow:inset 1px 1px 1px rgba(255,255,255,.55),0 6px 14px rgba(0,0,0,.28)}
+.wh .ctl i{border-radius:50%;background:rgba(255,255,255,.08);box-shadow:inset 1px 1px 1px rgba(255,255,255,.3);margin-left:4px}
+.c1,.c3{background:rgba(255,255,255,.035)}
+.card,.step{border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.17),rgba(255,255,255,.05));
+  backdrop-filter:blur(14px);box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.34),inset -1px -1px 1px rgba(255,255,255,.08),0 14px 28px rgba(0,0,0,.20)}
+.step.bad{background:linear-gradient(160deg,rgba(245,184,61,.22),rgba(255,150,190,.08))}
+.sess{border-radius:18px}.sess.on{background:linear-gradient(160deg,rgba(255,255,255,.20),rgba(255,255,255,.07));box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.34),0 10px 22px rgba(0,0,0,.18)}
+.chip{border-radius:999px;background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.05));box-shadow:inset 1px 1px 1px rgba(255,255,255,.30),0 4px 8px rgba(0,0,0,.14)}
+.chip.ok{background:linear-gradient(160deg,rgba(62,207,142,.30),rgba(62,207,142,.10))}
+.chip.warn{background:linear-gradient(160deg,rgba(245,184,61,.30),rgba(245,184,61,.10))}
+.chip.err{background:linear-gradient(160deg,rgba(255,93,93,.30),rgba(255,93,93,.10))}
+.chip.info{background:linear-gradient(160deg,rgba(150,130,255,.34),rgba(122,167,255,.10))}
+.chip.tree{background:linear-gradient(160deg,rgba(240,166,58,.30),rgba(240,166,58,.10))}
+.chip.leaf{background:linear-gradient(160deg,rgba(90,168,255,.30),rgba(90,168,255,.10))}
+.btn{border-radius:999px;background:linear-gradient(165deg,rgba(255,255,255,.22),rgba(255,255,255,.07));
+  box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.46),inset -1px -1px 1px rgba(255,255,255,.10),0 10px 18px rgba(0,0,0,.26)}
+.btn.pri{color:#fff;background:linear-gradient(165deg,#a698ff 0%,#7563f2 55%,#6a58e8 100%);
+  box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.55),inset -1px -2px 2px rgba(60,40,170,.45),0 14px 26px rgba(111,93,240,.50)}
+.btn.dng{background:linear-gradient(165deg,rgba(255,120,120,.34),rgba(255,93,93,.12))}
+.seg{border-radius:999px;background:rgba(255,255,255,.06);box-shadow:inset 1px 1px 2px rgba(0,0,0,.25)}
+.seg b{border-radius:999px}.seg b.on{background:linear-gradient(165deg,#fff,#e9e6f6);color:#1a1a2a;box-shadow:0 6px 14px rgba(0,0,0,.28)}
+.me{border-radius:24px 24px 8px 24px;background:linear-gradient(135deg,rgba(168,148,255,.46),rgba(95,216,200,.20));
+  box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.36),0 12px 24px rgba(40,20,120,.25)}
+.ai .tx{border-radius:8px 24px 24px 24px;background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.05));box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.28),0 10px 22px rgba(0,0,0,.16)}
+.ai .av{border-radius:50%;background:linear-gradient(145deg,rgba(255,255,255,.3),rgba(255,255,255,.06));box-shadow:inset 1px 1px 1px rgba(255,255,255,.5)}
+.ev{border-radius:999px;padding:7px 14px;background:linear-gradient(160deg,rgba(255,255,255,.11),rgba(255,255,255,.035));box-shadow:inset 1px 1px 1px rgba(255,255,255,.22),0 6px 14px rgba(0,0,0,.12)}
+.ev.plan{box-shadow:inset 1px 1px 1px rgba(255,255,255,.14)}.ev.done{background:none;box-shadow:none}
+.fld{border-radius:999px;background:linear-gradient(165deg,rgba(255,255,255,.14),rgba(255,255,255,.05));box-shadow:inset 1.5px 1.5px 2px rgba(0,0,0,.22),inset -1px -1px 1px rgba(255,255,255,.18)}
+.inp .box{border-radius:26px;background:linear-gradient(165deg,rgba(255,255,255,.14),rgba(255,255,255,.05));box-shadow:inset 1.5px 1.5px 2px rgba(0,0,0,.2),inset -1px -1px 1px rgba(255,255,255,.2),0 12px 24px rgba(0,0,0,.16)}
+.code{border-radius:16px}.step .n{box-shadow:inset 1px 1px 1px rgba(255,255,255,.4)}
+.bar{box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}.bar>u{background-image:linear-gradient(90deg,rgba(255,255,255,.0),rgba(255,255,255,.35));box-shadow:0 0 10px currentColor}
+.tabs b.on{border-image:linear-gradient(90deg,#a698ff,#5fd8c8) 1}
+.tbl{border-radius:16px}
+:root{--muted:#c9ced6;--dim:#a2a9b4;--sub:#dde0e6}
+.cap,.sess .m,.note,.kv>span:nth-child(odd){color:#cfd4db}
+.chip{color:#f4f1ea;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.chip.ok{color:#6ff0b4}.chip.warn{color:#ffd166}.chip.err{color:#ff8e8e}.chip.info{color:#c8bfff}.chip.tree{color:#ffc069}.chip.leaf{color:#9ccbff}
+.chip.mut{color:#dde0e6}
+.ev,.ev .mono{color:#d3d8df}
+.c1,.c3{background:rgba(8,12,20,.18)}
+.win{background:linear-gradient(150deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.06) 34%,rgba(255,255,255,.09) 100%),rgba(14,20,30,.60);backdrop-filter:blur(34px) saturate(170%) brightness(1.04);-webkit-backdrop-filter:blur(34px) saturate(170%) brightness(1.04)}
+.c1,.c3{background:rgba(8,12,20,.24)}
+.card,.step{background:linear-gradient(160deg,rgba(255,255,255,.20),rgba(255,255,255,.07))}
+
+/* ── 보드 ⑤~⑧ 추가 요소 ── */
+.ban{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;font-size:12px;color:var(--sub);background:rgba(255,255,255,.07)}
+.ban b{color:var(--paper);font-weight:600}
+.ban.warn{background:rgba(245,184,61,.14)}.ban.err{background:rgba(255,93,93,.14)}.ban.info{background:rgba(122,167,255,.13)}
+.ban .r{margin-left:auto;display:flex;gap:6px;align-items:center}
+.cb{width:16px;height:16px;border-radius:5px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none;color:#111}
+.cb.on{background:var(--paper)}
+.opt{border-radius:12px;padding:11px 12px;background:rgba(255,255,255,.07);display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);line-height:1.5}
+.opt b{font-size:13px;color:var(--paper);font-weight:600}
+.opt.on{background:rgba(255,255,255,.17);box-shadow:inset 1px 1px 1px rgba(255,255,255,.35)}
+.opt.off{opacity:.45}
+.dlg{border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(160deg,rgba(255,255,255,.17),rgba(255,255,255,.07));box-shadow:0 18px 50px rgba(0,0,0,.35),inset 1px 1px 1px rgba(255,255,255,.3)}
+.dlg h4{margin:0;font-size:14.5px;font-weight:700;display:flex;gap:8px;align-items:center}
+.mini{border-radius:14px;overflow:hidden;background:linear-gradient(180deg,rgba(245,184,61,.14),rgba(245,184,61,.06))}
+.mini .t{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:12px}
+.mini .f{padding:9px 12px;background:rgba(0,0,0,.22);display:flex;gap:8px;align-items:center;font-size:11.5px;color:var(--muted)}
+
+/* ── 내부 컴포넌트: 거의 불투명한 검정 유리 ── */
+.wh{background:rgba(0,0,0,.40)}
+.c1,.c3{background:rgba(5,7,10,.66)}
+.c2{background:rgba(5,7,10,.46)}
+.card,.step{background:linear-gradient(160deg,rgba(30,33,39,.90),rgba(10,12,16,.92))}
+.ev,.ai .tx,.opt,.ban{background:rgba(8,10,14,.78)}
+.ev.plan{background:rgba(8,10,14,.70)}
+.ev.done{background:none}
+.fld,.inp .box{background:rgba(0,0,0,.58)}
+.code{background:rgba(0,0,0,.72)}
+.sess.on{background:rgba(0,0,0,.55)}
+.seg{background:rgba(0,0,0,.52)}
+.btn{background:rgba(0,0,0,.50)}
+.btn.dng{background:rgba(70,20,22,.88)}
+.chip{background:rgba(0,0,0,.50)}
+.chip.ok{background:rgba(14,58,40,.92)}.chip.warn{background:rgba(66,48,12,.92)}.chip.err{background:rgba(72,20,22,.92)}
+.chip.info{background:rgba(20,36,72,.92)}.chip.tree{background:rgba(66,42,10,.92)}.chip.leaf{background:rgba(16,44,74,.92)}
+.chip.mut{background:rgba(0,0,0,.50)}
+.me{background:linear-gradient(135deg,rgba(74,62,170,.96),rgba(22,78,92,.96))}
+.step.bad{background:linear-gradient(160deg,rgba(60,44,12,.92),rgba(24,18,8,.94))}
+.step .n{background:rgba(0,0,0,.5)}
+.step.ok .n{background:rgba(14,58,40,.92)}.step.bad .n{background:rgba(66,48,12,.92)}
+.ban.warn{background:rgba(58,42,12,.92)}.ban.err{background:rgba(62,18,20,.92)}.ban.info{background:rgba(18,32,64,.92)}
+.opt.on{background:linear-gradient(160deg,rgba(60,56,130,.92),rgba(20,24,40,.94))}
+.cb{background:rgba(0,0,0,.6)}.cb.on{background:var(--paper)}
+.dlg{background:linear-gradient(160deg,rgba(38,42,50,.94),rgba(12,14,18,.96))}
+.mini{background:linear-gradient(180deg,rgba(58,42,12,.92),rgba(24,18,8,.94))}
+.mini .f{background:rgba(0,0,0,.45)}
+.bar{background:rgba(0,0,0,.55)}
+
+
+/* ── soft-shadow: 좋은 그림자 = 크고 흐리고 옅게, 아래로 살짝, 바탕 색조로 물들임. 짙은 회색의 좁은 그림자는 쓰지 않는다 ── */
+:root{
+  --sh-1:0 1px 2px rgba(64,52,150,.10),0 6px 16px -6px rgba(84,70,210,.22);
+  --sh-2:0 2px 6px rgba(64,52,150,.10),0 14px 30px -12px rgba(84,70,210,.34);
+  --sh-3:0 4px 12px rgba(56,44,140,.12),0 30px 72px -20px rgba(78,64,200,.50);
+  --rim:inset 1.5px 1.5px 1px rgba(255,255,255,.34),inset -1px -1px 1px rgba(255,255,255,.08);
+}
+.win{box-shadow:inset 2px 2px 1.5px rgba(255,255,255,.50),inset -1.5px -1.5px 1.5px rgba(255,255,255,.16),inset 0 0 36px rgba(255,255,255,.05),var(--sh-3)}
+.card,.step{box-shadow:var(--rim),var(--sh-1)}
+.sess.on{box-shadow:var(--rim),var(--sh-1)}
+.chip{box-shadow:inset 1px 1px 1px rgba(255,255,255,.28),0 2px 6px -2px rgba(84,70,210,.22)}
+.btn{box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.46),inset -1px -1px 1px rgba(255,255,255,.10),var(--sh-1)}
+.btn.pri{box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.55),inset -1px -2px 2px rgba(60,40,170,.40),0 2px 6px rgba(84,70,210,.20),0 12px 28px -8px rgba(111,93,240,.46)}
+.seg b.on{box-shadow:0 1px 2px rgba(64,52,150,.12),0 6px 14px -6px rgba(84,70,210,.30)}
+.me{box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.36),var(--sh-1)}
+.ai .tx{box-shadow:inset 1.5px 1.5px 1px rgba(255,255,255,.28),var(--sh-1)}
+.ev{box-shadow:inset 1px 1px 1px rgba(255,255,255,.22),0 4px 12px -6px rgba(84,70,210,.20)}
+.inp .box{box-shadow:inset 1.5px 1.5px 2px rgba(0,0,0,.2),inset -1px -1px 1px rgba(255,255,255,.2),var(--sh-1)}
+.dlg{box-shadow:inset 1px 1px 1px rgba(255,255,255,.3),var(--sh-3)}
+.wh .mark{box-shadow:inset 1px 1px 1px rgba(255,255,255,.55),0 4px 12px -4px rgba(84,70,210,.35)}
+.anno{box-shadow:0 1px 2px rgba(120,90,0,.15),0 6px 14px -6px rgba(255,200,40,.45)}
+.mini{box-shadow:var(--sh-1)}
+
+/* ── 동작하는 화면 ── */
+button{font-family:inherit;color:inherit;border:none;text-align:left}
+button.btn,button.sess,button.opt,button.chipb{cursor:pointer}
+button.btn{text-align:center}
+button.btn:hover,button.sess:hover,button.opt:hover,button.chipb:hover{filter:brightness(1.18)}
+button.btn:active{transform:translateY(1px)}
+button:disabled{cursor:not-allowed;opacity:.4}
+button.sess{width:100%;background:none}
+button.sess.on{background:rgba(0,0,0,.55)}
+button.opt{width:100%;font-size:11.5px}
+button.chipb{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:13px;background:rgba(0,0,0,.5);font-size:11.5px;color:var(--sub)}
+.inp input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--paper);font:inherit;font-size:13px;height:32px}
+.inp input::placeholder{color:var(--dim)}
+.inp input:disabled{cursor:not-allowed}
+.msgs{flex-direction:column-reverse}
+.msgs .in{display:flex;flex-direction:column;gap:10px}
+.pgone{display:none}
+.opt.bad{background:rgba(58,16,18,.92)}
+.ovl{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;border-radius:30px}
+</style>
+</helmet>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-spark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.4"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="14" r="4"/><path d="M11 11l9-9M16 6l3 3M14 8l2 2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M4 6l5 6-5 6M12 18h8"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-min" viewBox="0 0 24 24"><path d="M5 18h14"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
+  <symbol id="i-chevr" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M4 8h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4H4z"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-net" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M12 11.5L6.5 17M12 11.5l5.5 5.5"/></symbol>
+</svg>
+
+<div class="board">
+  <div class="map"></div><div class="dim"></div><div class="vig"></div>
+  <div class="title-tag"><span class="chip" style="background:var(--sun);border-color:var(--sun);color:#111">동작하는 화면</span><span style="font-size:11.5px;color:var(--sub)">예시 데이터 — 세션을 고르고, 글을 보내고, 승인·거부하고, 새 세션을 열어 보세요. 호출은 모두 시뮬레이션입니다</span></div>
+  <div class="win">
+    <div class="wh">
+      <div class="mark"><svg class="ic" style="color:var(--paper)"><use href="#i-spark"/></svg></div>
+      <span class="cap" style="letter-spacing:.42em;color:var(--paper)">TERRA AGENT</span>
+      <span class="chip mut mono">io.terra.agent 0.1.0</span>
+      <span class="chip tree mono">tree-home</span>
+      <sc-if value="{{pendingCount}}" hint-placeholder-val="{{false}}"><span class="chip warn" style="margin-left:6px"><svg class="ic s"><use href="#i-clock"/></svg>승인 대기 {{pendingCount}}</span></sc-if>
+      <div class="ctl"><i><svg class="ic"><use href="#i-min"/></svg></i><i><svg class="ic"><use href="#i-max"/></svg></i><i><svg class="ic"><use href="#i-x"/></svg></i></div>
+    </div>
+    <div class="wb">
+      <!-- 왼쪽 -->
+      <div class="c1">
+        <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+          <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">준비 상태</span><span class="chip ok"><svg class="ic s"><use href="#i-check"/></svg>준비됨</span></div>
+            <div style="display:flex;gap:6px;font-size:11px;color:var(--sub)"><span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모듈</span><span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모델</span><span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>자격</span></div>
+          </div>
+          <sc-if value="{{pendingCount}}" hint-placeholder-val="{{false}}">
+            <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">승인 인박스</span><span class="chip warn mono">{{pendingCount}}</span></div>
+              <sc-for list="{{inbox}}" as="p" hint-placeholder-count="1">
+                <button class="chipb" style="height:auto;padding:6px 10px;border-radius:10px;flex-direction:column;align-items:flex-start;gap:2px;width:100%" onClick="{{p.open}}"><b style="font-size:12px;color:var(--paper);font-weight:600">{{p.title}}</b><span class="mono" style="font-size:10.5px;color:var(--warn)">{{p.op}} · {{p.left}} 남음</span></button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <button class="btn pri" style="height:38px" onClick="{{openNew}}"><svg class="ic"><use href="#i-plus"/></svg>새 세션</button>
+          <div class="seg"><b class="on">내 세션</b><b>종료됨</b></div>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:0 8px;display:flex;flex-direction:column;gap:2px">
+          <sc-for list="{{sessionList}}" as="s" hint-placeholder-count="3">
+            <button class="{{s.cls}}" onClick="{{s.select}}"><b>{{s.title}}</b><span class="m"><i class="dot" style="background:{{s.dot}}"></i><span style="color:{{s.stColor}}">{{s.status}}</span><span class="chip mut" style="height:17px;font-size:10px">{{s.autonomy}}</span><span class="mono" style="margin-left:auto">{{s.time}}</span></span></button>
+          </sc-for>
+        </div>
+        <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)"><svg class="ic s"><use href="#i-gear"/></svg>설정 · 모델 · 자격<svg class="ic s" style="margin-left:auto"><use href="#i-chevr"/></svg></div>
+      </div>
+
+      <!-- 가운데: 세션 -->
+      <sc-if value="{{showSession}}" hint-placeholder-val="{{true}}">
+      <div class="c2">
+        <div style="height:58px;flex:none;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;padding:0 20px">
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><b style="font-size:14.5px;font-weight:700;letter-spacing:-.01em">{{cur.title}}</b><span class="mono" style="font-size:10.5px;color:var(--dim)">session · {{cur.sid}}</span></div>
+          <span class="{{cur.statusCls}}" style="margin-left:6px"><i class="dot" style="width:6px;height:6px;background:{{cur.dot}}"></i>{{cur.status}}</span>
+          <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+            <span class="chip mut"><svg class="ic s"><use href="#i-lock"/></svg>{{cur.autonomy}} · 열 때 고정</span>
+            <sc-if value="{{cur.canCancel}}" hint-placeholder-val="{{true}}"><button class="btn sm dng" onClick="{{askCancel}}"><svg class="ic s"><use href="#i-stop"/></svg>취소</button></sc-if>
+          </div>
+        </div>
+        <div class="msgs" style="padding-top:14px"><div class="in">
+          <sc-if value="{{cur.empty}}" hint-placeholder-val="{{false}}">
+            <div style="align-self:center;margin:60px 0 0;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;color:var(--muted);font-size:12.5px"><svg class="ic l" style="color:var(--paper)"><use href="#i-spark"/></svg><b style="color:var(--paper);font-size:15px">무엇을 도와드릴까요?</b><span>{{cur.hint}}</span></div>
+          </sc-if>
+          <sc-for list="{{entries}}" as="e" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column">
+              <sc-if value="{{e.isUser}}" hint-placeholder-val="{{false}}"><div class="me">{{e.text}}</div></sc-if>
+              <sc-if value="{{e.isModel}}" hint-placeholder-val="{{false}}"><div class="ev"><svg class="ic s"><use href="#i-cube"/></svg><span>모델을 불렀습니다 <span class="mono" style="color:var(--dim)">· {{e.note}}</span></span><span class="mono">{{e.kb}} KB 노드 밖으로</span><span class="r"><span class="mono" style="color:var(--dim)">#{{e.n}}</span></span></div></sc-if>
+              <sc-if value="{{e.isCall}}" hint-placeholder-val="{{false}}"><div class="ev">
+                <sc-if value="{{e.cOk}}" hint-placeholder-val="{{false}}"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg></sc-if>
+                <sc-if value="{{e.cPlan}}" hint-placeholder-val="{{false}}"><svg class="ic s" style="color:var(--warn)"><use href="#i-eye"/></svg></sc-if>
+                <sc-if value="{{e.cRef}}" hint-placeholder-val="{{false}}"><svg class="ic s" style="color:var(--err)"><use href="#i-x"/></svg></sc-if>
+                <span class="mono">{{e.op}}</span><span class="r"><span class="{{e.chipCls}}" style="height:18px">{{e.chipText}}</span><sc-if value="{{e.extra}}" hint-placeholder-val="{{false}}"><span class="mono" style="color:var(--dim)">{{e.extra}}</span></sc-if></span></div></sc-if>
+              <sc-if value="{{e.isAssistant}}" hint-placeholder-val="{{false}}"><div class="ai" style="max-width:80%"><div class="av"><svg class="ic s" style="color:var(--paper)"><use href="#i-spark"/></svg></div><div class="tx">{{e.text}}</div></div></sc-if>
+              <sc-if value="{{e.isDone}}" hint-placeholder-val="{{false}}"><div class="ev done"><span>{{e.text}} <span style="color:var(--dim)">(성공을 뜻하지 않음)</span></span></div></sc-if>
+              <sc-if value="{{e.isError}}" hint-placeholder-val="{{false}}"><div class="ai"><div class="av" style="background:rgba(255,93,93,.25)"><svg class="ic s" style="color:var(--err)"><use href="#i-warn"/></svg></div><div class="tx" style="background:rgba(62,18,20,.92);display:flex;flex-direction:column;gap:5px"><span style="display:flex;gap:8px;align-items:center"><b>{{e.text}}</b><span class="chip err mono" style="height:18px">{{e.code}}</span></span><span style="font-size:11.5px;color:var(--sub)">{{e.sub}}</span></div></div></sc-if>
+              <sc-if value="{{e.isCancelled}}" hint-placeholder-val="{{false}}"><div class="ev done"><span>세션이 취소되었습니다 · 입력 불가</span></div></sc-if>
+              <sc-if value="{{e.isCard}}" hint-placeholder-val="{{false}}">
+                <div style="border-radius:14px;background:linear-gradient(180deg,rgba(62,45,12,.94),rgba(26,20,9,.95));box-shadow:0 8px 28px rgba(0,0,0,.3);overflow:hidden">
+                  <div style="display:flex;align-items:center;gap:10px;padding:11px 16px"><svg class="ic l" style="color:var(--warn)"><use href="#i-shield"/></svg><div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="color:var(--warn)">승인 요청</span><b class="mono" style="font-size:12.5px;font-weight:600">{{e.op}}</b></div>
+                    <sc-if value="{{e.cardPending}}" hint-placeholder-val="{{true}}"><span class="chip warn mono" style="margin-left:auto;height:24px;font-size:12px"><svg class="ic s"><use href="#i-clock"/></svg>{{e.left}}</span></sc-if>
+                    <sc-if value="{{e.cardDone}}" hint-placeholder-val="{{false}}"><span class="{{e.resCls}}" style="margin-left:auto;height:24px">{{e.resText}}</span></sc-if></div>
+                  <div style="display:grid;grid-template-columns:1.1fr 1fr;font-size:12px">
+                    <div style="padding:4px 16px 12px;display:flex;flex-direction:column;gap:7px"><span class="cap" style="color:var(--paper)">계약이 말하는 것</span>
+                      <div class="kv" style="grid-template-columns:62px 1fr;gap:5px 8px"><span>위험</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip warn mono" style="height:18px">risk: write</span><span class="chip mut mono" style="height:18px">node.control</span></span><span>부작용</span><span>모듈 프로세스가 재시작된다</span><span>재시도</span><span class="mono" style="font-size:11.5px">never <span style="color:var(--dim)">· 멱등 아님</span></span><span>결과</span><span><span class="chip info" style="height:18px">accepted-job</span> <span style="font-size:11px;color:var(--muted)">접수 ≠ 완료</span></span><span>대상</span><span class="mono" style="font-size:11.5px">tree-home <span style="color:var(--dim)">(이 Gateway의 노드)</span></span></div></div>
+                    <div style="padding:4px 16px 12px;display:flex;flex-direction:column;gap:7px"><span class="cap" style="color:var(--muted)">모델이 말하는 것</span><div style="border-radius:10px;padding:9px 12px;font-size:12px;color:var(--sub);background:rgba(0,0,0,.62);font-style:italic;line-height:1.55">“chat 모듈이 Stopped라 재시작이 필요합니다. 데이터에는 영향이 없습니다.”</div><span style="font-size:10.5px;color:var(--dim)">모델의 주장입니다. <b style="color:var(--sub)">근거가 아닙니다.</b></span></div>
+                  </div>
+                  <div style="padding:11px 16px;background:rgba(0,0,0,.55);display:flex;align-items:center;gap:10px">
+                    <span style="font-size:11.5px;color:var(--muted);flex:1;line-height:1.5">{{e.foot}}</span>
+                    <sc-if value="{{e.cardPending}}" hint-placeholder-val="{{true}}"><button class="btn" onClick="{{e.deny}}">거부</button><button class="btn pri" style="padding:0 22px" onClick="{{e.approve}}">승인</button></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div></div>
+        <div class="inp">
+          <sc-if value="{{showChips}}" hint-placeholder-val="{{true}}"><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{suggest}}" as="q" hint-placeholder-count="2"><button class="chipb" onClick="{{q.go}}">{{q.text}}</button></sc-for></div></sc-if>
+          <div class="{{cur.boxCls}}"><input value="{{draft}}" placeholder="{{cur.placeholder}}" disabled="{{cur.locked}}" onInput="{{onType}}" onKeyDown="{{onKey}}"/><button class="btn pri sm" disabled="{{cur.sendOff}}" onClick="{{send}}"><svg class="ic s"><use href="#i-up"/></svg>보내기</button></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>{{cur.footNote}}</span><span class="mono">{{draftLen}} / 20000</span></div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- 가운데: 새 세션 -->
+      <sc-if value="{{creating}}" hint-placeholder-val="{{false}}">
+      <div class="c2" style="overflow:hidden">
+        <div style="height:58px;flex:none;display:flex;align-items:center;gap:10px;padding:0 22px"><b style="font-size:15px;font-weight:700">새 세션 열기</b><span class="chip mut mono">session_id 자동 · {{nextSid}}</span><button class="btn sm" style="margin-left:auto" onClick="{{closeNew}}">닫기</button></div>
+        <div style="flex:1;min-height:0;padding:4px 22px 16px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+          <span class="cap">자율성 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 열 때 고정 · 기본값은 plan (D-7)</span></span>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+            <sc-for list="{{autoOpts}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" onClick="{{o.pick}}"><b>{{o.name}}</b>{{o.desc}}</button></sc-for>
+          </div>
+          <span class="cap">외부 MCP 서버 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 읽기 전용 목록 · 등록은 앱 밖</span></span>
+          <button class="{{mcpCls}}" style="display:flex;flex-direction:row;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;width:100%" onClick="{{toggleMcp}}"><span class="{{mcpBox}}"><svg class="ic s" style="width:12px;height:12px"><use href="#i-check"/></svg></span><svg class="ic" style="color:var(--paper)"><use href="#i-puzzle"/></svg><span style="display:flex;flex-direction:column"><b class="mono" style="font-size:12.5px;font-weight:600">filesystem</b><span style="font-size:10.5px;color:var(--muted)">도구 4 · 읽기 전용 3 · env 이름만 보임</span></span></button>
+          <sc-if value="{{conflict}}" hint-placeholder-val="{{false}}"><div class="ban err"><svg class="ic" style="color:var(--err)"><use href="#i-warn"/></svg><span><b>무인 세션은 외부 MCP와 함께 열 수 없습니다.</b> 서버를 빼거나 자율성을 바꾸세요. <span class="mono" style="color:var(--dim)">MCP_UNATTENDED_CONFLICT</span></span></div></sc-if>
+          <div class="card" style="display:flex;flex-direction:column;gap:6px"><span class="cap">한도 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 기본값</span></span><span class="mono" style="font-size:12px;color:var(--sub)">차례당 호출 24 · 시간 900초(승인 대기 포함) · 토큰 무제한</span></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:auto"><span style="font-size:11.5px;color:var(--dim);flex:1">열린 뒤에는 자율성을 바꿀 수 없습니다. 올리려면 새 세션입니다.</span><button class="btn" onClick="{{closeNew}}">취소</button><button class="btn pri" disabled="{{conflict}}" onClick="{{createSession}}">세션 열기</button></div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- 오른쪽 -->
+      <div class="c3">
+        <div style="display:flex;flex-direction:column;gap:10px"><span class="cap">세션</span>
+          <div class="kv"><span>자율성</span><span><span class="chip">{{cur.autonomy}}</span> <span style="font-size:11px;color:var(--dim)">고정</span></span><span>모델</span><span class="mono" style="font-size:11.5px">claude-opus-5 <span style="color:var(--dim)">열 때 값</span></span><span>소유자</span><span class="mono" style="font-size:11.5px">alice</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:10px"><span class="cap">사용량 · 한도</span>
+          <div style="display:grid;grid-template-columns:52px 1fr 54px;gap:8px;align-items:center;font-size:11.5px"><span style="color:var(--muted)">이번 차례</span><div class="bar"><u style="background:var(--leaf);width:{{cur.turnPct}}%"></u></div><span class="mono" style="text-align:right">{{cur.turnCalls}} / 24</span></div>
+          <div class="mono" style="font-size:11px;color:var(--sub);display:grid;grid-template-columns:1fr 1fr;gap:3px 10px"><span style="color:var(--muted)">입력</span><span style="text-align:right">{{cur.inTok}}</span><span style="color:var(--muted)">출력</span><span style="text-align:right">{{cur.outTok}}</span><span style="color:var(--muted)">캐시</span><span style="text-align:right">{{cur.cache}}</span></div>
+          <div class="note"><svg class="ic s" style="margin-top:2px"><use href="#i-info"/></svg><span>비용은 통화로 환산하지 않고 토큰으로만 보입니다.</span></div></div>
+        <div class="card" style="display:flex;flex-direction:column;gap:3px"><span class="cap">노드 밖으로 나간 양</span><div style="display:flex;align-items:baseline;gap:6px"><b class="mono" style="font-size:24px;font-weight:600">{{cur.kb}}</b><span class="mono" style="color:var(--muted)">KB</span></div><span style="font-size:11px;color:var(--muted)">출력은 필터 없이 제공자로 갑니다</span></div>
+        <div class="card" style="display:flex;flex-direction:column;gap:6px"><span class="cap">모듈 상태 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 예시</span></span><div style="display:flex;justify-content:space-between;font-size:12px"><span class="mono">io.terra.chat</span><span class="{{chatCls}}">{{chatText}}</span></div><span style="font-size:10.5px;color:var(--dim)">재시작은 “접수”까지만 알 수 있고, 이 칸은 바뀌지 않습니다.</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:auto"><div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">위임 자격</span><span class="chip ok">맡겨짐</span></div>
+          <div class="kv"><span>권한</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip mut mono" style="height:18px">node.read</span><span class="chip mut mono" style="height:18px">file.read</span><span class="chip mut mono" style="height:18px">node.control</span></span><span>reach</span><span class="mono" style="font-size:11.5px">node (이 노드)</span><span>만료</span><span class="mono" style="font-size:11.5px">7h 03m 뒤 <span style="color:var(--dim)">(만료 시각 전)</span></span></div>
+          <div class="note"><svg class="ic s" style="margin-top:2px;color:var(--warn)"><use href="#i-warn"/></svg><span>폐기 여부는 확인하지 못합니다.</span></div></div>
+      </div>
+    </div>
+
+    <sc-if value="{{confirmCancel}}" hint-placeholder-val="{{false}}">
+      <div class="ovl"><div class="dlg" style="width:400px"><h4><svg class="ic l" style="color:var(--err)"><use href="#i-stop"/></svg>세션을 취소할까요?</h4><div style="font-size:12.5px;color:var(--sub);line-height:1.65"><b>{{cur.title}}</b><br>취소는 되돌릴 수 없습니다. 진행 중인 호출은 멈추지 않을 수 있고, 취소된 세션에는 새 글을 보낼 수 없습니다.</div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onClick="{{noCancel}}">그대로 두기</button><button class="btn dng" onClick="{{doCancel}}">세션 취소</button></div></div></div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1447,"height":945}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.uid = 100;
+    this.gen = {};
+    this.timers = [];
+    this.state = {
+      selected: 's1',
+      creating: false,
+      confirmCancel: false,
+      newAuto: 'plan',
+      newMcp: false,
+      draft: '',
+      chatDown: true,
+      sessions: [
+        { id: 's1', sid: 'logrotate-0411', title: '새벽 로그 정리 재시작', autonomy: 'ask', status: 'idle', time: '방금',
+          turnCalls: 0, inTok: 0, outTok: 0, cache: 0, kb: 0, entries: [] },
+        { id: 's2', sid: 'gpu02-diag-0412', title: 'gpu-02가 응답하지 않는 원인 조사', autonomy: 'plan', status: 'idle', time: '12분 전',
+          turnCalls: 3, inTok: 14060, outTok: 4162, cache: 9840, kb: 36.8, entries: [
+            { id: 1, kind: 'user', text: 'gpu-02가 응답하지 않아. 원인을 읽기만 해서 조사해줘.' },
+            { id: 2, kind: 'model', n: 1, kb: '12.4' },
+            { id: 3, kind: 'call', op: 'terra.gateway.agent.whoami.get', st: 'ok' },
+            { id: 4, kind: 'call', op: 'terra.gateway.modules.get', st: 'ok' },
+            { id: 5, kind: 'assistant', text: '자격의 범위는 이 노드까지이고, 모듈 목록에서 chat 모듈이 Stopped입니다. 재시작이 가장 작은 조치입니다.' },
+            { id: 6, kind: 'call', op: 'terra.daemon.modules.by-module-id.restart.post', st: 'planned' },
+            { id: 7, kind: 'done', text: '차례가 끝났습니다 · 모델 호출 3회 · 18.2k 토큰' } ] },
+        { id: 's3', sid: 'model-fail-0412', title: '모델 장애 테스트', autonomy: 'ask', status: 'failed', time: '어제',
+          turnCalls: 1, inTok: 4380, outTok: 0, cache: 0, kb: 12.4, entries: [
+            { id: 1, kind: 'user', text: 'gpu-02 상태를 알려줘.' },
+            { id: 2, kind: 'error', text: '모델을 부르지 못했습니다', code: 'MODEL_UNAVAILABLE', sub: '일시적인 장애여도 이 세션은 복구할 수 없습니다. 새 세션을 열어 다시 시도하세요.' } ] }
+      ]
+    };
+  }
+
+  componentDidMount() {
+    this.tick = setInterval(() => this.countdown(), 1000);
+  }
+  componentWillUnmount() {
+    clearInterval(this.tick);
+    this.timers.forEach((t) => clearTimeout(t));
+  }
+
+  /* ───── 상태 도우미 ───── */
+  nid() { this.uid += 1; return this.uid; }
+  upd(id, fn) {
+    this.setState((s) => ({ sessions: s.sessions.map((x) => (x.id === id ? fn(x) : x)) }));
+  }
+  push(id, entry, patch) {
+    const e = Object.assign({ id: this.nid() }, entry);
+    this.upd(id, (x) => Object.assign({}, x, patch || {}, { entries: x.entries.concat([e]) }));
+  }
+  later(id, g, ms, fn) {
+    const t = setTimeout(() => { if (this.gen[id] === g) fn(); }, ms);
+    this.timers.push(t);
+  }
+  fmtTok(n) { return n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : String(n); }
+  fmtLeft(sec) { const m = Math.floor(sec / 60); const r = sec % 60; return m + ':' + (r < 10 ? '0' : '') + r; }
+
+  modelCall(id, g) {
+    this.upd(id, (x) => Object.assign({}, x, {
+      turnCalls: x.turnCalls + 1, inTok: x.inTok + 4380, outTok: x.outTok + 1210, cache: x.cache + 3100,
+      kb: Math.round((x.kb + 12.4) * 10) / 10,
+      entries: x.entries.concat([{ id: this.nid(), kind: 'model', n: x.turnCalls + 1, kb: '12.4' }])
+    }));
+  }
+  finish(id) {
+    this.upd(id, (x) => Object.assign({}, x, { status: 'idle', time: '방금', entries: x.entries.concat([
+      { id: this.nid(), kind: 'done', text: '차례가 끝났습니다 · 모델 호출 ' + x.turnCalls + '회 · ' + this.fmtTok(x.inTok + x.outTok) + ' 토큰' }]) }));
+  }
+  call(id, op, st, extra) { this.push(id, { kind: 'call', op: op, st: st, extra: extra || '' }); }
+  say(id, text) { this.push(id, { kind: 'assistant', text: text }); }
+
+  /* ───── 시뮬레이션: 한 차례 ───── */
+  sendText(id, text) {
+    const s = this.state.sessions.find((x) => x.id === id);
+    if (!s || s.status === 'running' || s.status === 'waiting-approval' || s.status === 'failed' || s.status === 'cancelled') return;
+    const body = (text || '').trim();
+    if (!body) return;
+    const g = (this.gen[id] = (this.gen[id] || 0) + 1);
+    this.push(id, { kind: 'user', text: body }, { status: 'running', turnCalls: 0 });
+    this.setState({ draft: '' });
+    const wants = /재시작|restart|다시 켜|살려|껐/i.test(body);
+    const RESTART = 'terra.daemon.modules.by-module-id.restart.post';
+    const mode = s.autonomy;
+    this.later(id, g, 600, () => this.modelCall(id, g));
+    this.later(id, g, 1500, () => this.call(id, 'terra.gateway.agent.whoami.get', 'ok'));
+    this.later(id, g, 2300, () => this.call(id, 'terra.gateway.modules.get', 'ok'));
+    this.later(id, g, 3300, () => this.modelCall(id, g));
+    this.later(id, g, 4200, () => this.say(id, wants
+      ? '모듈 목록에서 chat 모듈이 Stopped입니다. 재시작이 가장 작은 조치입니다.'
+      : '모듈 5개 중 chat 하나가 Stopped이고 나머지는 Published입니다. 읽기만으로 확인한 결과이고, 원인은 아직 모릅니다.'));
+    if (!wants) { this.later(id, g, 5000, () => this.finish(id)); return; }
+    if (mode === 'plan') {
+      this.later(id, g, 5000, () => this.call(id, RESTART, 'planned'));
+      this.later(id, g, 5800, () => this.finish(id));
+    } else if (mode === 'ask') {
+      this.later(id, g, 5000, () => {
+        this.push(id, { kind: 'card', op: RESTART, state: 'pending', remaining: 270 }, { status: 'waiting-approval' });
+      });
+    } else if (mode === 'auto') {
+      this.later(id, g, 5000, () => this.call(id, RESTART, 'accepted', '접수 ≠ 완료'));
+      this.later(id, g, 5800, () => this.modelCall(id, g));
+      this.later(id, g, 6600, () => this.say(id, '재시작을 접수했습니다. 모듈이 실제로 올라왔는지는 아직 확인하지 못했습니다.'));
+      this.later(id, g, 7400, () => this.finish(id));
+    } else {
+      this.later(id, g, 5000, () => this.call(id, RESTART, 'refused', 'TERRA_APPROVAL_REQUIRED'));
+      this.later(id, g, 5800, () => this.say(id, '무인 세션이라 사람에게 물을 수 없어 거절되었습니다.'));
+      this.later(id, g, 6600, () => this.finish(id));
+    }
+  }
+
+  /* ───── 승인 · 거부 ───── */
+  answer(id, entryId, approve) {
+    const g = this.gen[id];
+    const RESTART = 'terra.daemon.modules.by-module-id.restart.post';
+    const before = this.state.sessions.find((x) => x.id === id);
+    const hit0 = before && before.entries.find((e) => e.id === entryId);
+    if (!hit0 || hit0.state !== 'pending') return;   // 두 번 눌러도 한 번만
+    this.upd(id, (x) => Object.assign({}, x, { status: 'running', entries: x.entries.map((e) => (e.id === entryId && e.state === 'pending' ? Object.assign({}, e, { state: approve ? 'approved' : 'denied' }) : e)) }));
+    if (approve) {
+      this.later(id, g, 1100, () => this.call(id, RESTART, 'accepted', '접수 ≠ 완료'));
+      this.later(id, g, 1900, () => this.modelCall(id, g));
+      this.later(id, g, 2800, () => this.say(id, '재시작을 접수했습니다. 모듈이 실제로 올라왔는지는 아직 확인하지 못했습니다 — 상태를 다시 읽어 보세요.'));
+      this.later(id, g, 3600, () => this.finish(id));
+    } else {
+      this.later(id, g, 700, () => this.call(id, RESTART, 'refused', 'TERRA_APPROVAL_DENIED'));
+      this.later(id, g, 1500, () => this.say(id, '거부하셨으니 재시작하지 않았습니다. 다른 방법이 필요하면 말씀해 주세요.'));
+      this.later(id, g, 2300, () => this.finish(id));
+    }
+  }
+  countdown() {
+    this.setState((s) => ({
+      sessions: s.sessions.map((x) => {
+        if (x.status !== 'waiting-approval') return x;
+        let expired = false;
+        const entries = x.entries.map((e) => {
+          if (e.kind === 'card' && e.state === 'pending') {
+            if (e.remaining <= 1) { expired = true; return Object.assign({}, e, { remaining: 0, state: 'expired' }); }
+            return Object.assign({}, e, { remaining: e.remaining - 1 });
+          }
+          return e;
+        });
+        if (!expired) return Object.assign({}, x, { entries: entries });
+        return Object.assign({}, x, { status: 'idle', entries: entries.concat([
+          { id: this.nid(), kind: 'error', text: '한 차례 시간이 끝났습니다', code: 'TIME_LIMIT', sub: '승인 대기도 한 차례 시간 안에 듭니다. 거부 줄 없이 오류만 남습니다.' }]) });
+      })
+    }));
+  }
+
+  /* ───── 취소 ───── */
+  doCancel() {
+    const id = this.state.selected;
+    this.gen[id] = (this.gen[id] || 0) + 1;
+    this.upd(id, (x) => Object.assign({}, x, { status: 'cancelled', time: '방금', entries: x.entries.map((e) => (e.kind === 'card' && e.state === 'pending' ? Object.assign({}, e, { state: 'cancelled' }) : e)).concat([{ id: this.nid(), kind: 'cancelled' }]) }));
+    this.setState({ confirmCancel: false });
+  }
+
+  /* ───── 새 세션 ───── */
+  createSession() {
+    const n = this.state.sessions.length + 1;
+    const id = 'n' + this.nid();
+    const sess = { id: id, sid: this.nextSid(), title: '새 세션 ' + n, autonomy: this.state.newAuto, status: 'idle', time: '방금',
+      turnCalls: 0, inTok: 0, outTok: 0, cache: 0, kb: 0, entries: [] };
+    this.setState((s) => ({ sessions: [sess].concat(s.sessions), selected: id, creating: false, newAuto: 'plan', newMcp: false, draft: '' }));
+  }
+  nextSid() { return 'sess-' + String(this.state.sessions.length + 413).padStart(4, '0'); }
+
+  /* ───── 화면 값 ───── */
+  renderVals() {
+    const S = this.state;
+    const cur = S.sessions.find((x) => x.id === S.selected) || S.sessions[0];
+    const stColor = (st) => ({ idle: 'var(--muted)', running: 'var(--leaf)', 'waiting-approval': 'var(--warn)', failed: 'var(--err)', cancelled: 'var(--dim)', done: 'var(--dim)' }[st] || 'var(--muted)');
+    const stCls = (st) => ({ idle: 'chip', running: 'chip info', 'waiting-approval': 'chip warn', failed: 'chip err', cancelled: 'chip mut' }[st] || 'chip');
+    const ended = cur.status === 'failed' || cur.status === 'cancelled';
+    const busy = cur.status === 'running' || cur.status === 'waiting-approval';
+    const entries = cur.entries.map((e) => {
+      const o = { id: e.id, isUser: e.kind === 'user', isModel: e.kind === 'model', isCall: e.kind === 'call', isAssistant: e.kind === 'assistant',
+        isDone: e.kind === 'done', isError: e.kind === 'error', isCancelled: e.kind === 'cancelled', isCard: e.kind === 'card',
+        text: e.text || '', note: 'claude-opus-5', n: e.n, kb: e.kb, op: e.op, code: e.code || '', sub: e.sub || '', extra: e.extra || '' };
+      if (e.kind === 'call') {
+        o.cOk = e.st === 'ok' || e.st === 'accepted'; o.cPlan = e.st === 'planned'; o.cRef = e.st === 'refused';
+        o.chipText = { ok: 'ok', accepted: 'accepted-job', planned: '제안 · 실행 안 됨', refused: 'refused' }[e.st];
+        o.chipCls = { ok: 'chip ok', accepted: 'chip info', planned: 'chip warn', refused: 'chip err' }[e.st];
+      }
+      if (e.kind === 'card') {
+        o.cardPending = e.state === 'pending'; o.cardDone = e.state !== 'pending';
+        o.left = this.fmtLeft(e.remaining || 0);
+        o.resText = { approved: '승인함', denied: '거부함', expired: '시간 초과', cancelled: '취소됨' }[e.state] || '';
+        o.resCls = { approved: 'chip ok', denied: 'chip err', expired: 'chip err', cancelled: 'chip mut' }[e.state] || 'chip';
+        o.foot = e.state === 'pending' ? '승인은 “물어봤다”입니다. Gateway가 다시 판정하므로 승인 뒤에도 거절될 수 있습니다.'
+          : e.state === 'approved' ? '승인됨 — Gateway 판정 대기. 실행됨이 아닙니다.'
+          : e.state === 'denied' ? '거부했습니다. 같은 호출이 다시 오면 “이전에 거부함”으로 표시합니다.'
+          : e.state === 'expired' ? '한 차례 시간이 끝나 승인 질문이 닫혔습니다.' : '세션이 취소되어 승인 질문이 닫혔습니다.';
+        o.approve = () => this.answer(cur.id, e.id, true);
+        o.deny = () => this.answer(cur.id, e.id, false);
+      }
+      return o;
+    });
+    const sessionList = S.sessions.map((x) => ({
+      id: x.id, title: x.title, status: x.status, autonomy: x.autonomy, time: x.time,
+      cls: x.id === S.selected && !S.creating ? 'sess on' : 'sess', dot: stColor(x.status), stColor: stColor(x.status),
+      select: () => this.setState({ selected: x.id, creating: false, confirmCancel: false, draft: '' })
+    }));
+    const inbox = [];
+    S.sessions.forEach((x) => x.entries.forEach((e) => {
+      if (e.kind === 'card' && e.state === 'pending') inbox.push({ title: x.title, op: 'modules.restart', left: this.fmtLeft(e.remaining), open: () => this.setState({ selected: x.id, creating: false }) });
+    }));
+    const empty = cur.entries.length === 0 && !ended;
+    const placeholder = ended ? '종료된 세션은 읽기 전용입니다' : cur.status === 'waiting-approval' ? '승인 대기 중에는 일반 글을 보낼 수 없습니다'
+      : cur.status === 'running' ? '모델이 답하는 중입니다' : '이어서 물어보세요';
+    const locked = ended || busy;
+    const sendDraft = (t) => { this.sendText(cur.id, t); };
+    const unattendedMcp = S.newAuto === 'unattended' && S.newMcp;
+    const AUTO = [['plan', '읽기만 하고 제안한다. 실행하지 않는다'], ['ask', '쓰기 전에 사람에게 묻는다'], ['auto', '자격 범위 안에서 묻지 않고 한다'], ['unattended', '물을 사람이 없으니 거절한다']];
+    const chatDone = S.sessions.some((x) => x.entries.some((e) => e.kind === 'call' && e.st === 'accepted'));
+    return {
+      pendingCount: inbox.length, inbox: inbox, sessionList: sessionList, entries: entries,
+      showSession: !S.creating, creating: S.creating, confirmCancel: S.confirmCancel,
+      cur: {
+        title: cur.title, sid: cur.sid, status: cur.status, statusCls: stCls(cur.status), dot: stColor(cur.status), autonomy: cur.autonomy,
+        canCancel: !ended && cur.status !== 'done', empty: empty,
+        hint: cur.autonomy === 'plan' ? 'plan 세션은 읽기만 하고 제안합니다.' : cur.autonomy === 'ask' ? 'ask 세션은 쓰기 전에 사람에게 승인을 묻습니다.' : cur.autonomy === 'auto' ? 'auto 세션은 자격 범위 안에서 묻지 않고 실행합니다.' : 'unattended 세션은 물을 사람이 없어 쓰기를 거절합니다.',
+        placeholder: placeholder, locked: locked, sendOff: locked || !S.draft.trim(), boxCls: locked ? 'box dis' : 'box',
+        footNote: ended ? '새 세션을 열어 이어가세요.' : cur.autonomy === 'plan' ? 'plan 세션은 제안만 합니다. 실행하려면 새 세션을 ask로 여세요.' : '버튼은 대기 승인이 있을 때만 켜집니다. 한 번 누르면 곧바로 비활성화됩니다.',
+        turnCalls: cur.turnCalls, turnPct: Math.min(100, Math.round(cur.turnCalls / 24 * 100)),
+        inTok: cur.inTok.toLocaleString('en-US'), outTok: cur.outTok.toLocaleString('en-US'), cache: cur.cache.toLocaleString('en-US'), kb: cur.kb.toFixed(1)
+      },
+      draft: S.draft, draftLen: S.draft.length,
+      onType: (e) => this.setState({ draft: e.target.value }),
+      onKey: (e) => { if (e.key === 'Enter' && !e.shiftKey) { sendDraft(S.draft); } },
+      send: () => sendDraft(S.draft),
+      showChips: empty,
+      suggest: [{ text: 'chat 모듈이 죽었어. 재시작해줘.', go: () => sendDraft('chat 모듈이 죽었어. 재시작해줘.') }, { text: '모듈 상태를 읽기만 해서 알려줘', go: () => sendDraft('모듈 상태를 읽기만 해서 알려줘') }],
+      askCancel: () => this.setState({ confirmCancel: true }), noCancel: () => this.setState({ confirmCancel: false }), doCancel: () => this.doCancel(),
+      openNew: () => this.setState({ creating: true, newAuto: 'plan', newMcp: false }),
+      closeNew: () => this.setState({ creating: false }),
+      nextSid: this.nextSid(),
+      autoOpts: AUTO.map((a) => ({ name: a[0], desc: a[1], cls: S.newAuto === a[0] ? 'opt on' : 'opt', pick: () => this.setState({ newAuto: a[0] }) })),
+      mcpCls: S.newMcp ? (unattendedMcp ? 'opt bad' : 'opt on') : 'opt', mcpBox: S.newMcp ? 'cb on' : 'cb',
+      toggleMcp: () => this.setState({ newMcp: !S.newMcp }),
+      conflict: unattendedMcp, createSession: () => this.createSession(),
+      chatCls: 'chip err', chatText: 'Stopped'
+    };
+  }
+}
+
+</script>
+</body>
+</html>
