@@ -37,7 +37,7 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .ic.s{width:13px;height:13px}.ic.l{width:20px;height:20px}
 .cap{font-size:10px;font-weight:600;letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
 .mono{font-family:var(--mono)}
-.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font-size:11px;font-weight:600;color:var(--paper);white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:16px;font-size:11px;font-weight:600;color:var(--paper);white-space:nowrap}
 .chip.ok{color:var(--ok);background:rgba(62,207,142,.10)}
 .chip.warn{color:var(--warn);background:rgba(245,184,61,.10)}
 .chip.err{color:var(--err);background:rgba(255,93,93,.10)}
@@ -53,16 +53,16 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .btn.dng{color:var(--err);background:rgba(255,93,93,.08)}
 .btn.off{opacity:.38}
 .kbd{font-family:var(--mono);font-size:10px;color:var(--muted);border-radius:4px;padding:0 4px}
-.seg{display:flex;gap:2px;padding:3px;border-radius:10px;background:rgba(255,255,255,.04)}
+.seg{display:flex;gap:2px;padding:3px;border-radius:16px;background:rgba(255,255,255,.04)}
 .seg b{font-weight:500;font-size:12px;padding:4px 10px;border-radius:7px;color:var(--muted)}
 .seg b.on{background:var(--paper);color:#111;font-weight:600}
 .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
 .bar>u{display:block;height:100%;border-radius:3px}
-.card{background:var(--up);border-radius:12px;padding:12px}
+.card{background:var(--up);border-radius:16px;padding:12px}
 .kv{display:grid;grid-template-columns:84px 1fr;gap:6px 10px;font-size:12px;align-items:baseline}
 .kv>span:nth-child(odd){color:var(--muted)}
 .kv>span:nth-child(even){min-width:0;overflow-wrap:anywhere}
-.sess{padding:10px 12px;border-radius:11px;border:1px solid transparent;display:flex;flex-direction:column;gap:5px}
+.sess{padding:10px 12px;border-radius:16px;border:1px solid transparent;display:flex;flex-direction:column;gap:5px}
 .sess.on{background:var(--up-2);border-color:var(--line-2)}
 .sess b{font-size:12.5px;font-weight:600;line-height:1.35}
 .sess .m{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted)}
@@ -78,13 +78,13 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .ev.done{border:none;background:none;justify-content:center;color:var(--dim)}
 .ev.done:before,.ev.done:after{content:"";height:1px;flex:1;background:var(--line)}
 .inp{flex:none;border-top:1px solid rgba(255,255,255,.06);padding:12px 16px 14px;display:flex;flex-direction:column;gap:8px}
-.inp .box{min-height:60px;border-radius:12px;background:rgba(255,255,255,.04);padding:10px 12px;display:flex;gap:10px;align-items:flex-end;color:var(--muted);font-size:13px}
+.inp .box{min-height:60px;border-radius:16px;background:rgba(255,255,255,.04);padding:10px 12px;display:flex;gap:10px;align-items:flex-end;color:var(--muted);font-size:13px}
 .inp .box.dis{opacity:.45}
-.anno{position:absolute;font-size:11px;font-weight:600;color:#111;background:var(--sun);border-radius:10px;padding:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:5;white-space:nowrap}
+.anno{position:absolute;font-size:11px;font-weight:600;color:#111;background:var(--sun);border-radius:16px;padding:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:5;white-space:nowrap}
 .tabs{display:flex;gap:2px;border-bottom:1px solid rgba(255,255,255,.06);padding:0 18px}
 .tabs b{padding:12px 14px;font-size:12.5px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs b.on{color:var(--paper);border-color:var(--paper);font-weight:600}
-.step{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--up)}
+.step{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--up)}
 .step .n{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 12px var(--mono)}
 .step.ok .n{color:var(--ok);background:rgba(62,207,142,.10)}
 .step.bad{background:rgba(245,184,61,.06)}
@@ -193,13 +193,13 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .card,.step{background:linear-gradient(160deg,rgba(255,255,255,.20),rgba(255,255,255,.07))}
 
 /* ── 보드 ⑤~⑧ 추가 요소 ── */
-.ban{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;font-size:12px;color:var(--sub);background:rgba(255,255,255,.07)}
+.ban{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:16px;font-size:12px;color:var(--sub);background:rgba(255,255,255,.07)}
 .ban b{color:var(--paper);font-weight:600}
 .ban.warn{background:rgba(245,184,61,.14)}.ban.err{background:rgba(255,93,93,.14)}.ban.info{background:rgba(122,167,255,.13)}
 .ban .r{margin-left:auto;display:flex;gap:6px;align-items:center}
 .cb{width:16px;height:16px;border-radius:5px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none;color:#111}
 .cb.on{background:var(--paper)}
-.opt{border-radius:12px;padding:11px 12px;background:rgba(255,255,255,.07);display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);line-height:1.5}
+.opt{border-radius:16px;padding:11px 12px;background:rgba(255,255,255,.07);display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);line-height:1.5}
 .opt b{font-size:13px;color:var(--paper);font-weight:600}
 .opt.on{background:rgba(255,255,255,.17);box-shadow:inset 1px 1px 1px rgba(255,255,255,.35)}
 .opt.off{opacity:.45}
@@ -273,7 +273,7 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
 .glass{background:var(--f-win);box-shadow:var(--f-sh)}
 .card,.step,.dlg,.mini{background:var(--f-1);box-shadow:var(--f-sh);border-radius:16px}
 .step.bad,.mini{background:#2a2312}
-.sess{border-radius:12px}.sess.on{background:var(--f-2);box-shadow:none}
+.sess{border-radius:16px}.sess.on{background:var(--f-2);box-shadow:none}
 .chip{background:var(--f-3);box-shadow:none}
 .chip.ok{background:rgba(62,207,142,.18)}.chip.warn{background:rgba(245,184,61,.18)}.chip.err{background:rgba(255,93,93,.18)}
 .chip.info{background:rgba(122,140,255,.20)}.chip.tree{background:rgba(240,166,58,.18)}.chip.leaf{background:rgba(90,168,255,.18)}
@@ -292,6 +292,13 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
 .wh .mark{background:var(--f-3);box-shadow:none}.wh .ctl i{background:var(--f-3);box-shadow:none}
 .anno{box-shadow:none}
 .vig{display:none}
+/* ── squircle: 연속 곡률(초타원) 모서리. 원·점은 그대로 둔다 ── */
+*,*::before,*::after{corner-shape:squircle}
+.dot,.ai .av,.wh .mark,.wh .ctl i,.think i,.step .n,.cb,.bar,.bar>u,.tabs b{corner-shape:round}
+.win{border-radius:34px}
+.card,.step,.dlg,.mini{border-radius:26px}
+.me{border-radius:28px 28px 10px 28px}.ai .tx{border-radius:16px 28px 28px 28px}
+.sess{border-radius:20px}.opt{border-radius:20px}.code{border-radius:18px}
 
 /* ── 동작하는 화면 ── */
 button{font-family:inherit;color:inherit;border:none;text-align:left}
@@ -335,7 +342,7 @@ button.sess:hover{filter:brightness(1.2)}
 button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) scale(.97);filter:brightness(1)}
 .tick{animation:tickWarn 1s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.rise,.fadein,.slidein,.ovl,.ovl .dlg,.pendglow,.box.work,.dot.run,.think i,.tick{animation:none !important}}
-.ovl{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;border-radius:20px}
+.ovl{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;border-radius:34px}
 </style>
 </helmet>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -392,7 +399,7 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
             <div class="card rise" style="padding:10px 12px;display:flex;flex-direction:column;gap:6px">
               <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">승인 인박스</span><span class="chip warn mono">{{pendingCount}}</span></div>
               <sc-for list="{{inbox}}" as="p" hint-placeholder-count="1">
-                <button class="chipb" style="height:auto;padding:6px 10px;border-radius:10px;flex-direction:column;align-items:flex-start;gap:2px;width:100%" onClick="{{p.open}}"><b style="font-size:12px;color:var(--paper);font-weight:600">{{p.title}}</b><span class="mono" style="font-size:10.5px;color:var(--warn)">{{p.op}} · {{p.left}} 남음</span></button>
+                <button class="chipb" style="height:auto;padding:6px 10px;border-radius:16px;flex-direction:column;align-items:flex-start;gap:2px;width:100%" onClick="{{p.open}}"><b style="font-size:12px;color:var(--paper);font-weight:600">{{p.title}}</b><span class="mono" style="font-size:10.5px;color:var(--warn)">{{p.op}} · {{p.left}} 남음</span></button>
               </sc-for>
             </div>
           </sc-if>
@@ -436,14 +443,14 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
               <sc-if value="{{e.isError}}" hint-placeholder-val="{{false}}"><div class="ai"><div class="av" style="background:rgba(255,93,93,.25)"><svg class="ic s" style="color:var(--err)"><use href="#i-warn"/></svg></div><div class="tx" style="background:rgba(62,18,20,.92);display:flex;flex-direction:column;gap:5px"><span style="display:flex;gap:8px;align-items:center"><b>{{e.text}}</b><span class="chip err mono" style="height:18px">{{e.code}}</span></span><span style="font-size:11.5px;color:var(--sub)">{{e.sub}}</span></div></div></sc-if>
               <sc-if value="{{e.isCancelled}}" hint-placeholder-val="{{false}}"><div class="ev done"><span>세션이 취소되었습니다 · 입력 불가</span></div></sc-if>
               <sc-if value="{{e.isCard}}" hint-placeholder-val="{{false}}">
-                <div class="{{e.cardCls}}" style="border-radius:14px;background:#2a2312;overflow:hidden">
+                <div class="{{e.cardCls}}" style="border-radius:26px;background:#2a2312;overflow:hidden">
                   <div style="display:flex;align-items:center;gap:10px;padding:11px 16px"><svg class="ic l" style="color:var(--warn)"><use href="#i-shield"/></svg><div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="color:var(--warn)">승인 요청</span><b class="mono" style="font-size:12.5px;font-weight:600">{{e.op}}</b></div>
                     <sc-if value="{{e.cardPending}}" hint-placeholder-val="{{true}}"><span class="chip warn mono {{e.tickCls}}" style="margin-left:auto;height:24px;font-size:12px"><svg class="ic s"><use href="#i-clock"/></svg>{{e.left}}</span></sc-if>
                     <sc-if value="{{e.cardDone}}" hint-placeholder-val="{{false}}"><span class="{{e.resCls}}" style="margin-left:auto;height:24px">{{e.resText}}</span></sc-if></div>
                   <div style="display:grid;grid-template-columns:1.1fr 1fr;font-size:12px">
                     <div style="padding:4px 16px 12px;display:flex;flex-direction:column;gap:7px"><span class="cap" style="color:var(--paper)">계약이 말하는 것</span>
                       <div class="kv" style="grid-template-columns:62px 1fr;gap:5px 8px"><span>위험</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip err mono" style="height:18px">risk: dangerous</span><span class="chip mut mono" style="height:18px">node.control</span></span><span>확인</span><span class="mono" style="font-size:11.5px">conditional</span><span>부작용</span><span style="color:var(--dim)">계약이 적지 않았다</span><span>재시도</span><span class="mono" style="font-size:11.5px">never <span style="color:var(--dim)">· 멱등 none</span></span><span>결과</span><span><span class="chip info" style="height:18px">accepted-job</span> <span style="font-size:11px;color:var(--muted)">접수 ≠ 완료</span></span><span>대상</span><span class="mono" style="font-size:11.5px">tree-home <span style="color:var(--dim)">(이 Gateway의 노드)</span></span></div></div>
-                    <div style="padding:4px 16px 12px;display:flex;flex-direction:column;gap:7px"><span class="cap" style="color:var(--muted)">모델이 말하는 것</span><div style="border-radius:10px;padding:9px 12px;font-size:12px;color:var(--sub);background:rgba(0,0,0,.62);font-style:italic;line-height:1.55">“chat 모듈이 Stopped라 재시작이 필요합니다. 데이터에는 영향이 없습니다.”</div><span style="font-size:10.5px;color:var(--dim)">모델의 주장입니다. <b style="color:var(--sub)">근거가 아닙니다.</b></span></div>
+                    <div style="padding:4px 16px 12px;display:flex;flex-direction:column;gap:7px"><span class="cap" style="color:var(--muted)">모델이 말하는 것</span><div style="border-radius:16px;padding:9px 12px;font-size:12px;color:var(--sub);background:rgba(0,0,0,.62);font-style:italic;line-height:1.55">“chat 모듈이 Stopped라 재시작이 필요합니다. 데이터에는 영향이 없습니다.”</div><span style="font-size:10.5px;color:var(--dim)">모델의 주장입니다. <b style="color:var(--sub)">근거가 아닙니다.</b></span></div>
                   </div>
                   <div style="padding:11px 16px;background:rgba(0,0,0,.55);display:flex;align-items:center;gap:10px">
                     <span style="font-size:11.5px;color:var(--muted);flex:1;line-height:1.5">{{e.foot}}</span>
@@ -473,7 +480,7 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
             <sc-for list="{{autoOpts}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" onClick="{{o.pick}}"><b>{{o.name}}</b>{{o.desc}}</button></sc-for>
           </div>
           <span class="cap">외부 MCP 서버 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 읽기 전용 목록 · 등록은 앱 밖</span></span>
-          <button class="{{mcpCls}}" style="display:flex;flex-direction:row;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;width:100%" onClick="{{toggleMcp}}"><span class="{{mcpBox}}"><svg class="ic s" style="width:12px;height:12px"><use href="#i-check"/></svg></span><svg class="ic" style="color:var(--paper)"><use href="#i-puzzle"/></svg><span style="display:flex;flex-direction:column"><b class="mono" style="font-size:12.5px;font-weight:600">filesystem</b><span style="font-size:10.5px;color:var(--muted)">도구 4 · 읽기 전용 3 · env 이름만 보임</span></span></button>
+          <button class="{{mcpCls}}" style="display:flex;flex-direction:row;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;width:100%" onClick="{{toggleMcp}}"><span class="{{mcpBox}}"><svg class="ic s" style="width:12px;height:12px"><use href="#i-check"/></svg></span><svg class="ic" style="color:var(--paper)"><use href="#i-puzzle"/></svg><span style="display:flex;flex-direction:column"><b class="mono" style="font-size:12.5px;font-weight:600">filesystem</b><span style="font-size:10.5px;color:var(--muted)">도구 4 · 읽기 전용 3 · env 이름만 보임</span></span></button>
           <sc-if value="{{conflict}}" hint-placeholder-val="{{false}}"><div class="ban err"><svg class="ic" style="color:var(--err)"><use href="#i-warn"/></svg><span><b>무인 세션은 외부 MCP와 함께 열 수 없습니다.</b> 서버를 빼거나 자율성을 바꾸세요. <span class="mono" style="color:var(--dim)">MCP_UNATTENDED_CONFLICT</span></span></div></sc-if>
           <div class="card" style="display:flex;flex-direction:column;gap:6px"><span class="cap">한도 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 기본값</span></span><span class="mono" style="font-size:12px;color:var(--sub)">차례당 호출 24 · 시간 900초(승인 대기 포함) · 토큰 무제한</span></div>
           <div style="display:flex;align-items:center;gap:10px;margin-top:auto"><span style="font-size:11.5px;color:var(--dim);flex:1">열린 뒤에는 자율성을 바꿀 수 없습니다. 올리려면 새 세션입니다.</span><button class="btn" onClick="{{closeNew}}">취소</button><button class="btn pri" disabled="{{conflict}}" onClick="{{createSession}}">세션 열기</button></div>

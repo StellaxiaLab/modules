@@ -37,7 +37,7 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .ic.s{width:13px;height:13px}.ic.l{width:20px;height:20px}
 .cap{font-size:10px;font-weight:600;letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
 .mono{font-family:var(--mono)}
-.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font-size:11px;font-weight:600;color:var(--paper);white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:16px;font-size:11px;font-weight:600;color:var(--paper);white-space:nowrap}
 .chip.ok{color:var(--ok);background:rgba(62,207,142,.10)}
 .chip.warn{color:var(--warn);background:rgba(245,184,61,.10)}
 .chip.err{color:var(--err);background:rgba(255,93,93,.10)}
@@ -53,16 +53,16 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .btn.dng{color:var(--err);background:rgba(255,93,93,.08)}
 .btn.off{opacity:.38}
 .kbd{font-family:var(--mono);font-size:10px;color:var(--muted);border-radius:4px;padding:0 4px}
-.seg{display:flex;gap:2px;padding:3px;border-radius:10px;background:rgba(255,255,255,.04)}
+.seg{display:flex;gap:2px;padding:3px;border-radius:16px;background:rgba(255,255,255,.04)}
 .seg b{font-weight:500;font-size:12px;padding:4px 10px;border-radius:7px;color:var(--muted)}
 .seg b.on{background:var(--paper);color:#111;font-weight:600}
 .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
 .bar>u{display:block;height:100%;border-radius:3px}
-.card{background:var(--up);border-radius:12px;padding:12px}
+.card{background:var(--up);border-radius:16px;padding:12px}
 .kv{display:grid;grid-template-columns:84px 1fr;gap:6px 10px;font-size:12px;align-items:baseline}
 .kv>span:nth-child(odd){color:var(--muted)}
 .kv>span:nth-child(even){min-width:0;overflow-wrap:anywhere}
-.sess{padding:10px 12px;border-radius:11px;border:1px solid transparent;display:flex;flex-direction:column;gap:5px}
+.sess{padding:10px 12px;border-radius:16px;border:1px solid transparent;display:flex;flex-direction:column;gap:5px}
 .sess.on{background:var(--up-2);border-color:var(--line-2)}
 .sess b{font-size:12.5px;font-weight:600;line-height:1.35}
 .sess .m{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted)}
@@ -78,13 +78,13 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .ev.done{border:none;background:none;justify-content:center;color:var(--dim)}
 .ev.done:before,.ev.done:after{content:"";height:1px;flex:1;background:var(--line)}
 .inp{flex:none;border-top:1px solid rgba(255,255,255,.06);padding:12px 16px 14px;display:flex;flex-direction:column;gap:8px}
-.inp .box{min-height:60px;border-radius:12px;background:rgba(255,255,255,.04);padding:10px 12px;display:flex;gap:10px;align-items:flex-end;color:var(--muted);font-size:13px}
+.inp .box{min-height:60px;border-radius:16px;background:rgba(255,255,255,.04);padding:10px 12px;display:flex;gap:10px;align-items:flex-end;color:var(--muted);font-size:13px}
 .inp .box.dis{opacity:.45}
-.anno{position:absolute;font-size:11px;font-weight:600;color:#111;background:var(--sun);border-radius:10px;padding:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:5;white-space:nowrap}
+.anno{position:absolute;font-size:11px;font-weight:600;color:#111;background:var(--sun);border-radius:16px;padding:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:5;white-space:nowrap}
 .tabs{display:flex;gap:2px;border-bottom:1px solid rgba(255,255,255,.06);padding:0 18px}
 .tabs b{padding:12px 14px;font-size:12.5px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs b.on{color:var(--paper);border-color:var(--paper);font-weight:600}
-.step{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--up)}
+.step{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--up)}
 .step .n{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 12px var(--mono)}
 .step.ok .n{color:var(--ok);background:rgba(62,207,142,.10)}
 .step.bad{background:rgba(245,184,61,.06)}
@@ -193,13 +193,13 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .card,.step{background:linear-gradient(160deg,rgba(255,255,255,.20),rgba(255,255,255,.07))}
 
 /* ── 보드 ⑤~⑧ 추가 요소 ── */
-.ban{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;font-size:12px;color:var(--sub);background:rgba(255,255,255,.07)}
+.ban{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:16px;font-size:12px;color:var(--sub);background:rgba(255,255,255,.07)}
 .ban b{color:var(--paper);font-weight:600}
 .ban.warn{background:rgba(245,184,61,.14)}.ban.err{background:rgba(255,93,93,.14)}.ban.info{background:rgba(122,167,255,.13)}
 .ban .r{margin-left:auto;display:flex;gap:6px;align-items:center}
 .cb{width:16px;height:16px;border-radius:5px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none;color:#111}
 .cb.on{background:var(--paper)}
-.opt{border-radius:12px;padding:11px 12px;background:rgba(255,255,255,.07);display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);line-height:1.5}
+.opt{border-radius:16px;padding:11px 12px;background:rgba(255,255,255,.07);display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);line-height:1.5}
 .opt b{font-size:13px;color:var(--paper);font-weight:600}
 .opt.on{background:rgba(255,255,255,.17);box-shadow:inset 1px 1px 1px rgba(255,255,255,.35)}
 .opt.off{opacity:.45}
@@ -273,7 +273,7 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
 .glass{background:var(--f-win);box-shadow:var(--f-sh)}
 .card,.step,.dlg,.mini{background:var(--f-1);box-shadow:var(--f-sh);border-radius:16px}
 .step.bad,.mini{background:#2a2312}
-.sess{border-radius:12px}.sess.on{background:var(--f-2);box-shadow:none}
+.sess{border-radius:16px}.sess.on{background:var(--f-2);box-shadow:none}
 .chip{background:var(--f-3);box-shadow:none}
 .chip.ok{background:rgba(62,207,142,.18)}.chip.warn{background:rgba(245,184,61,.18)}.chip.err{background:rgba(255,93,93,.18)}
 .chip.info{background:rgba(122,140,255,.20)}.chip.tree{background:rgba(240,166,58,.18)}.chip.leaf{background:rgba(90,168,255,.18)}
@@ -292,6 +292,13 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
 .wh .mark{background:var(--f-3);box-shadow:none}.wh .ctl i{background:var(--f-3);box-shadow:none}
 .anno{box-shadow:none}
 .vig{display:none}
+/* ── squircle: 연속 곡률(초타원) 모서리. 원·점은 그대로 둔다 ── */
+*,*::before,*::after{corner-shape:squircle}
+.dot,.ai .av,.wh .mark,.wh .ctl i,.think i,.step .n,.cb,.bar,.bar>u,.tabs b{corner-shape:round}
+.win{border-radius:34px}
+.card,.step,.dlg,.mini{border-radius:26px}
+.me{border-radius:28px 28px 10px 28px}.ai .tx{border-radius:16px 28px 28px 28px}
+.sess{border-radius:20px}.opt{border-radius:20px}.code{border-radius:18px}
 </style>
 </helmet>
 
@@ -499,7 +506,7 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
           <div class="ev"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">terra.gateway.modules.get</span><span class="r"><span class="chip ok" style="height:18px">ok</span></span></div>
 
           <!-- 승인 카드 -->
-          <div style="align-self:stretch;margin:2px 0 0;border-radius:14px;background:#2a2312;box-shadow:var(--f-sh);overflow:hidden">
+          <div style="align-self:stretch;margin:2px 0 0;border-radius:26px;background:#2a2312;box-shadow:var(--f-sh);overflow:hidden">
             <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
               <svg class="ic l" style="color:var(--warn)"><use href="#i-shield"/></svg>
               <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="color:var(--warn)">승인 요청</span><b class="mono" style="font-size:13px;font-weight:600">terra.daemon.modules.by-module-id.restart.post</b></div>
@@ -519,7 +526,7 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
               </div>
               <div style="padding:13px 16px;display:flex;flex-direction:column;gap:9px">
                 <span class="cap" style="display:flex;gap:8px;align-items:center;color:var(--muted)"><svg class="ic s"><use href="#i-spark"/></svg>모델이 말하는 것</span>
-                <div style="border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--sub);line-height:1.6;background:rgba(0,0,0,.62);font-style:italic">“chat 모듈이 Stopped라 재시작이 필요합니다. 데이터에는 영향이 없습니다.”</div>
+                <div style="border-radius:16px;padding:10px 12px;font-size:12.5px;color:var(--sub);line-height:1.6;background:rgba(0,0,0,.62);font-style:italic">“chat 모듈이 Stopped라 재시작이 필요합니다. 데이터에는 영향이 없습니다.”</div>
                 <div class="note"><svg class="ic s" style="margin-top:2px"><use href="#i-info"/></svg><span>모델의 주장입니다. <b style="color:var(--sub);font-weight:600">근거가 아닙니다.</b> 왼쪽 계약 사실로 판단하세요.</span></div>
               </div>
             </div>
@@ -620,12 +627,12 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
           <div class="card" style="display:flex;flex-direction:column;gap:11px;padding:16px;margin-top:2px">
             <div style="display:flex;align-items:center;gap:8px"><svg class="ic" style="color:var(--paper)"><use href="#i-key"/></svg><b style="font-weight:600;font-size:13.5px">자격을 맡기는 곳</b><span class="chip mut" style="margin-left:auto">앱 밖에서</span></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-              <div style="border-radius:11px;padding:12px;display:flex;flex-direction:column;gap:8px;background:rgba(0,0,0,.55)">
+              <div style="border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;background:rgba(0,0,0,.55)">
                 <span style="display:flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px"><svg class="ic s"><use href="#i-term"/></svg>터미널<span class="chip warn" style="margin-left:auto;height:18px">제안 · 아직 없음</span></span>
                 <div class="code"><i>$</i> terra agent grant \<br>&nbsp;&nbsp;--level readonly --ttl 1h \<br>&nbsp;&nbsp;--hand-over</div>
                 <span style="font-size:11px;color:var(--dim)"><span class="mono">--hand-over</span>는 요구 R-1·H-1의 제안이라 CLI에 아직 없습니다. 토큰이 출력되지 않는 것이 목표입니다.</span>
               </div>
-              <div style="border-radius:11px;padding:12px;display:flex;flex-direction:column;gap:8px;opacity:.7">
+              <div style="border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;opacity:.7">
                 <span style="display:flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px"><svg class="ic s"><use href="#i-user"/></svg>설정 › 계정<span class="chip warn" style="margin-left:auto;height:18px">제안 · 아직 없음</span></span>
                 <div style="font-size:12px;color:var(--sub);line-height:1.6">코어 GUI의 <b style="font-weight:600">위임 자격</b>에서 등급·수명을 골라 Terra Agent에 맡기는 동작입니다. 이 동작은 아직 없고, 선 뒤에 이름이 정해집니다.</div>
                 <span class="mono" style="font-size:11.5px;color:var(--muted)">설정 › 계정 › 위임 자격</span>
@@ -672,7 +679,7 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
     <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:20px 22px;overflow:hidden">
       <!-- 왼쪽: 모델 -->
       <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
-        <div style="background:rgba(52,38,10,.9);border-radius:12px;padding:11px 14px;display:flex;gap:10px;align-items:flex-start">
+        <div style="background:rgba(52,38,10,.9);border-radius:16px;padding:11px 14px;display:flex;gap:10px;align-items:flex-start">
           <svg class="ic" style="color:var(--warn);margin-top:2px"><use href="#i-warn"/></svg>
           <div style="font-size:12px;line-height:1.6;color:var(--sub)"><b style="color:var(--paper);font-weight:600">이 노드의 모든 사람에게 적용됩니다.</b> 모델 등록·삭제는 개인 설정이 아니라 노드 설정입니다.</div>
         </div>
@@ -748,7 +755,7 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
 <!-- ═══════════════ 보드 5~8 · 빠진 화면 (대조 §13.5) ═══════════════ -->
 <!-- bd5-marker --><div class="board">
   <div class="map"></div><div class="dim"></div><div class="vig"></div>
-<div class="title-tag"><span class="chip" style="background:var(--sun);border-color:var(--sun);color:#111">⑤ 새 세션 열기 · G1(plan)·G2</span><span style="font-size:11.5px;color:var(--sub)">열 때 정한 값은 바꿀 수 없다. 올리려면 새 세션 — 아래는 무인 + 외부 MCP 조합이 막히는 모양</span></div><div class="win"><div class="wh"><div class="mark"><svg class="ic" style="color:var(--paper)"><use href="#i-spark"/></svg></div><span class="cap" style="letter-spacing:.42em;color:var(--paper)">TERRA AGENT</span><span class="chip mut mono">io.terra.agent 0.1.0</span><span class="chip tree mono">tree-home</span><div class="ctl"><i><svg class="ic"><use href="#i-min"/></svg></i><i><svg class="ic"><use href="#i-max"/></svg></i><i><svg class="ic"><use href="#i-x"/></svg></i></div></div><div class="wb"><div class="c1"><div style="padding:14px;display:flex;flex-direction:column;gap:12px"><div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">준비 상태</span><span class="chip ok"><svg class="ic s"><use href="#i-check"/></svg>준비됨</span></div><div style="display:flex;gap:6px;font-size:11px;color:var(--sub)"><span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모듈</span><span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모델</span><span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>자격</span></div></div><span class="btn pri" style="height:38px"><svg class="ic"><use href="#i-plus"/></svg>새 세션</span><div class="seg"><b class="on">내 세션</b><b>종료됨</b></div></div><div style="flex:1;overflow:hidden;padding:0 8px;display:flex;flex-direction:column;gap:2px"><div class="sess"><b>gpu-02가 응답하지 않는 원인 조사</b><div class="m"><i class="dot" style="background:var(--muted)"></i><span>idle</span><span class="chip mut" style="height:17px;font-size:10px">plan</span><span class="mono" style="margin-left:auto">12분 전</span></div></div><div class="sess"><b>디스크 82% 원인</b><div class="m"><i class="dot" style="background:var(--dim)"></i><span>done</span><span class="chip mut" style="height:17px;font-size:10px">plan</span><span class="mono" style="margin-left:auto">어제</span></div></div></div><div style="padding:12px 14px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)"><svg class="ic s"><use href="#i-gear"/></svg>설정 · 모델 · 자격<svg class="ic s" style="margin-left:auto"><use href="#i-chevr"/></svg></div></div><div class="c2" style="overflow:hidden"><div style="height:58px;flex:none;display:flex;align-items:center;gap:10px;padding:0 22px"><b style="font-size:15px;font-weight:700">새 세션 열기</b><span class="chip mut mono">session_id 자동 · gpu02-diag-0413</span><span class="btn sm" style="margin-left:auto">닫기</span></div><div style="flex:1;min-height:0;padding:4px 22px 16px;display:flex;flex-direction:column;gap:12px;overflow:hidden"><span class="cap">자율성 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 열 때 고정 · 기본값은 plan (D-7)</span></span><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div class="opt"><b>plan</b>읽기만 하고 제안한다. 실행하지 않는다</div><div class="opt"><b>ask</b>쓰기 전에 사람에게 묻는다</div><div class="opt"><b>auto</b>읽기와 되돌릴 수 있는 쓰기는 묻지 않는다. 위험한 호출은 여전히 묻는다</div><div class="opt on"><b>unattended</b>읽기와 사전 승인한 호출만 실행하고 나머지는 거절한다 <span class="chip leaf mono" style="height:18px;align-self:flex-start">선택됨</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="card" style="display:flex;flex-direction:column;gap:10px;padding:13px"><span class="cap">모델 · 시뮬레이션</span><div><div class="lbl">제공자</div><div class="fld mono">anthropic · claude-opus-5 <span class="chip ok" style="height:17px;margin-left:auto">기본</span></div></div><div style="display:flex;align-items:center;gap:10px"><div class="seg"><b class="on">끔</b><b>켬</b></div><span style="font-size:11.5px;color:var(--muted)">시뮬레이션은 호출 0건 — 모두 “실행되지 않았다”로 보임</span></div></div><div class="card" style="display:flex;flex-direction:column;gap:9px;padding:13px"><span class="cap">한도 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 기본값이 채워짐</span></span><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div><div class="lbl">차례당 호출</div><div class="fld mono">24</div></div><div><div class="lbl">시간(초)</div><div class="fld mono">900</div></div><div><div class="lbl">토큰</div><div class="fld mono" style="color:var(--dim)">무제한</div></div></div><span style="font-size:10.5px;color:var(--dim)">시간에는 승인 대기가 들어갑니다</span></div></div><span class="cap">외부 MCP 서버 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 읽기 전용 목록 · 등록은 앱 밖</span></span><div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(58,16,18,.9)"><span class="cb on"><svg class="ic s"><use href="#i-check"/></svg></span><svg class="ic" style="color:var(--paper)"><use href="#i-puzzle"/></svg><div style="display:flex;flex-direction:column"><b class="mono" style="font-size:12.5px;font-weight:600">filesystem</b><span style="font-size:10.5px;color:var(--muted)">도구 4 · 읽기 전용 3 · env 이름만 보임</span></div><span class="chip err" style="margin-left:auto"><svg class="ic s"><use href="#i-warn"/></svg>무인과 함께 못 씀</span></div><div class="ban err"><svg class="ic" style="color:var(--err)"><use href="#i-warn"/></svg><span><b>무인 세션은 외부 MCP와 함께 열 수 없습니다.</b> 서버를 빼거나 자율성을 바꾸세요. <span class="mono" style="color:var(--dim)">MCP_UNATTENDED_CONFLICT</span></span></div><div style="display:flex;align-items:center;gap:10px;margin-top:auto"><span style="font-size:11.5px;color:var(--dim);flex:1">같은 id로 다시 보내면 새로 열리지 않고 기존 값이 돌아옵니다 — 응답의 실제 값을 보여 줍니다</span><span class="btn">취소</span><span class="btn pri off">세션 열기</span></div></div></div><div class="c3"><span class="cap">이 선택이 의미하는 것</span><div class="card" style="display:flex;flex-direction:column;gap:8px"><b style="font-size:12.5px">unattended</b><div class="note"><svg class="ic s"><use href="#i-check"/></svg><span>사람에게 묻지 못하는 호출은 승인 질문이 아니라 거절로 끝납니다</span></div><div class="note"><svg class="ic s"><use href="#i-check"/></svg><span>자격이 무인 자격이고 사전 승인 목록이 있어야 켜집니다</span></div><div class="note"><svg class="ic s" style="margin-top:3px;color:var(--warn)"><use href="#i-warn"/></svg><span>자격이 무인이 아니면 이 칸은 꺼지고 발급 안내가 뜹니다 <span class="mono" style="color:var(--dim)">CREDENTIAL_NOT_UNATTENDED</span></span></div></div><div class="card" style="display:flex;flex-direction:column;gap:8px"><b style="font-size:12.5px">열 때 고정</b><div class="note"><svg class="ic s" style="margin-top:3px"><use href="#i-lock"/></svg><span>자율성·시뮬레이션·제공자·MCP·한도는 열린 뒤 바꾸는 컨트롤이 없습니다. 올리려면 새 세션입니다.</span></div></div><div class="note" style="margin-top:auto"><svg class="ic s" style="margin-top:2px"><use href="#i-info"/></svg><span>G1에서는 plan만 열 수 있습니다. ask·auto·unattended는 G2부터 켭니다.</span></div></div></div></div><span class="anno" style="left:640px;top:148px">열 때 고정 — 올리려면 새 세션</span><span class="anno" style="left:790px;top:458px">무인 + 외부 MCP는 막는다</span>
+<div class="title-tag"><span class="chip" style="background:var(--sun);border-color:var(--sun);color:#111">⑤ 새 세션 열기 · G1(plan)·G2</span><span style="font-size:11.5px;color:var(--sub)">열 때 정한 값은 바꿀 수 없다. 올리려면 새 세션 — 아래는 무인 + 외부 MCP 조합이 막히는 모양</span></div><div class="win"><div class="wh"><div class="mark"><svg class="ic" style="color:var(--paper)"><use href="#i-spark"/></svg></div><span class="cap" style="letter-spacing:.42em;color:var(--paper)">TERRA AGENT</span><span class="chip mut mono">io.terra.agent 0.1.0</span><span class="chip tree mono">tree-home</span><div class="ctl"><i><svg class="ic"><use href="#i-min"/></svg></i><i><svg class="ic"><use href="#i-max"/></svg></i><i><svg class="ic"><use href="#i-x"/></svg></i></div></div><div class="wb"><div class="c1"><div style="padding:14px;display:flex;flex-direction:column;gap:12px"><div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">준비 상태</span><span class="chip ok"><svg class="ic s"><use href="#i-check"/></svg>준비됨</span></div><div style="display:flex;gap:6px;font-size:11px;color:var(--sub)"><span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모듈</span><span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>모델</span><span style="display:flex;align-items:center;gap:5px"><i class="dot" style="background:var(--ok)"></i>자격</span></div></div><span class="btn pri" style="height:38px"><svg class="ic"><use href="#i-plus"/></svg>새 세션</span><div class="seg"><b class="on">내 세션</b><b>종료됨</b></div></div><div style="flex:1;overflow:hidden;padding:0 8px;display:flex;flex-direction:column;gap:2px"><div class="sess"><b>gpu-02가 응답하지 않는 원인 조사</b><div class="m"><i class="dot" style="background:var(--muted)"></i><span>idle</span><span class="chip mut" style="height:17px;font-size:10px">plan</span><span class="mono" style="margin-left:auto">12분 전</span></div></div><div class="sess"><b>디스크 82% 원인</b><div class="m"><i class="dot" style="background:var(--dim)"></i><span>done</span><span class="chip mut" style="height:17px;font-size:10px">plan</span><span class="mono" style="margin-left:auto">어제</span></div></div></div><div style="padding:12px 14px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)"><svg class="ic s"><use href="#i-gear"/></svg>설정 · 모델 · 자격<svg class="ic s" style="margin-left:auto"><use href="#i-chevr"/></svg></div></div><div class="c2" style="overflow:hidden"><div style="height:58px;flex:none;display:flex;align-items:center;gap:10px;padding:0 22px"><b style="font-size:15px;font-weight:700">새 세션 열기</b><span class="chip mut mono">session_id 자동 · gpu02-diag-0413</span><span class="btn sm" style="margin-left:auto">닫기</span></div><div style="flex:1;min-height:0;padding:4px 22px 16px;display:flex;flex-direction:column;gap:12px;overflow:hidden"><span class="cap">자율성 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 열 때 고정 · 기본값은 plan (D-7)</span></span><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div class="opt"><b>plan</b>읽기만 하고 제안한다. 실행하지 않는다</div><div class="opt"><b>ask</b>쓰기 전에 사람에게 묻는다</div><div class="opt"><b>auto</b>읽기와 되돌릴 수 있는 쓰기는 묻지 않는다. 위험한 호출은 여전히 묻는다</div><div class="opt on"><b>unattended</b>읽기와 사전 승인한 호출만 실행하고 나머지는 거절한다 <span class="chip leaf mono" style="height:18px;align-self:flex-start">선택됨</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="card" style="display:flex;flex-direction:column;gap:10px;padding:13px"><span class="cap">모델 · 시뮬레이션</span><div><div class="lbl">제공자</div><div class="fld mono">anthropic · claude-opus-5 <span class="chip ok" style="height:17px;margin-left:auto">기본</span></div></div><div style="display:flex;align-items:center;gap:10px"><div class="seg"><b class="on">끔</b><b>켬</b></div><span style="font-size:11.5px;color:var(--muted)">시뮬레이션은 호출 0건 — 모두 “실행되지 않았다”로 보임</span></div></div><div class="card" style="display:flex;flex-direction:column;gap:9px;padding:13px"><span class="cap">한도 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 기본값이 채워짐</span></span><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div><div class="lbl">차례당 호출</div><div class="fld mono">24</div></div><div><div class="lbl">시간(초)</div><div class="fld mono">900</div></div><div><div class="lbl">토큰</div><div class="fld mono" style="color:var(--dim)">무제한</div></div></div><span style="font-size:10.5px;color:var(--dim)">시간에는 승인 대기가 들어갑니다</span></div></div><span class="cap">외부 MCP 서버 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 읽기 전용 목록 · 등록은 앱 밖</span></span><div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:rgba(58,16,18,.9)"><span class="cb on"><svg class="ic s"><use href="#i-check"/></svg></span><svg class="ic" style="color:var(--paper)"><use href="#i-puzzle"/></svg><div style="display:flex;flex-direction:column"><b class="mono" style="font-size:12.5px;font-weight:600">filesystem</b><span style="font-size:10.5px;color:var(--muted)">도구 4 · 읽기 전용 3 · env 이름만 보임</span></div><span class="chip err" style="margin-left:auto"><svg class="ic s"><use href="#i-warn"/></svg>무인과 함께 못 씀</span></div><div class="ban err"><svg class="ic" style="color:var(--err)"><use href="#i-warn"/></svg><span><b>무인 세션은 외부 MCP와 함께 열 수 없습니다.</b> 서버를 빼거나 자율성을 바꾸세요. <span class="mono" style="color:var(--dim)">MCP_UNATTENDED_CONFLICT</span></span></div><div style="display:flex;align-items:center;gap:10px;margin-top:auto"><span style="font-size:11.5px;color:var(--dim);flex:1">같은 id로 다시 보내면 새로 열리지 않고 기존 값이 돌아옵니다 — 응답의 실제 값을 보여 줍니다</span><span class="btn">취소</span><span class="btn pri off">세션 열기</span></div></div></div><div class="c3"><span class="cap">이 선택이 의미하는 것</span><div class="card" style="display:flex;flex-direction:column;gap:8px"><b style="font-size:12.5px">unattended</b><div class="note"><svg class="ic s"><use href="#i-check"/></svg><span>사람에게 묻지 못하는 호출은 승인 질문이 아니라 거절로 끝납니다</span></div><div class="note"><svg class="ic s"><use href="#i-check"/></svg><span>자격이 무인 자격이고 사전 승인 목록이 있어야 켜집니다</span></div><div class="note"><svg class="ic s" style="margin-top:3px;color:var(--warn)"><use href="#i-warn"/></svg><span>자격이 무인이 아니면 이 칸은 꺼지고 발급 안내가 뜹니다 <span class="mono" style="color:var(--dim)">CREDENTIAL_NOT_UNATTENDED</span></span></div></div><div class="card" style="display:flex;flex-direction:column;gap:8px"><b style="font-size:12.5px">열 때 고정</b><div class="note"><svg class="ic s" style="margin-top:3px"><use href="#i-lock"/></svg><span>자율성·시뮬레이션·제공자·MCP·한도는 열린 뒤 바꾸는 컨트롤이 없습니다. 올리려면 새 세션입니다.</span></div></div><div class="note" style="margin-top:auto"><svg class="ic s" style="margin-top:2px"><use href="#i-info"/></svg><span>G1에서는 plan만 열 수 있습니다. ask·auto·unattended는 G2부터 켭니다.</span></div></div></div></div><span class="anno" style="left:640px;top:148px">열 때 고정 — 올리려면 새 세션</span><span class="anno" style="left:790px;top:458px">무인 + 외부 MCP는 막는다</span>
 </div>
 <div class="board">
   <div class="map"></div><div class="dim"></div><div class="vig"></div>
