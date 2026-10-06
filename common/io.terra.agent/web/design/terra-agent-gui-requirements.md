@@ -8,10 +8,10 @@ doc_type: "design-inventory"
 scope: "module"
 target: "terra-agent"
 status: "draft"
-version: "0.3.0"
+version: "0.4.0"
 last_updated: "2026-10-06"
 language: "ko-KR"
-measured_at: "Terra main 3dd67c1(작업 브랜치는 c6a5bc8 기준) · modules 69cea20(common/io.terra.agent 0.1.0). 계약 operation 19건·CLI 명령 18건·상태 7종·entry 12종을 계약과 모듈·코어·Gateway·CLI 소스에 대조했다. terra agent grant의 출력은 다섯 가지 출력 방식으로 재현했다(§8.1). 디자인 대조(§13)는 modules 0ae91c5(브랜치 design/terra-agent-gui)의 AgentGUI.dc.html 557줄을 읽고 맞댔고, 08a3914(691줄, 보드 8장)로 다시 맞댔다. 새 보드의 샘플 값은 Gateway·daemon 계약 129건과 코어·모듈 소스로 확인했다"
+measured_at: "Terra main 3dd67c1(작업 브랜치는 c6a5bc8 기준) · modules 69cea20(common/io.terra.agent 0.1.0). 계약 operation 19건·CLI 명령 18건·상태 7종·entry 12종을 계약과 모듈·코어·Gateway·CLI 소스에 대조했다. terra agent grant의 출력은 다섯 가지 출력 방식으로 재현했다(§8.1). 디자인 대조(§13)는 modules 0ae91c5(브랜치 design/terra-agent-gui)의 AgentGUI.dc.html 557줄을 읽고 맞댔고, 08a3914(691줄, 보드 8장)로 다시 맞댔다. 새 보드의 샘플 값은 Gateway·daemon 계약 129건과 코어·모듈 소스로 확인했다. 세 번째로 e27d389(AgentGUI 782줄, AgentGUILive 758줄)를 맞대고 동작하는 화면을 Chromium 141에서 돌려 31개 점검을 했다(§13.6)"
 os_priority:
   - Linux
   - Windows
@@ -29,7 +29,7 @@ related:
   - "[[docs/guides/module-web-screen-guide|모듈 웹 화면 가이드]]"
 ---
 
-> **사본** — Terra 저장소 `docs/modules/terra-agent/design/terra-agent-gui-requirements.md`(v0.3.0, 커밋 `e0ef96e`)를 modules만 보는 세션이 읽도록 옮긴 스냅샷이다. 고칠 때는 원본을 고친다. 본문의 `[[링크]]`와 `docs/…` 경로는 Terra 저장소 기준이다.
+> **사본** — Terra 저장소 `docs/modules/terra-agent/design/terra-agent-gui-requirements.md`(v0.4.0, 커밋 `30a37f8`)를 modules만 보는 세션이 읽도록 옮긴 스냅샷이다. 고칠 때는 원본을 고친다. 본문의 `[[링크]]`와 `docs/…` 경로는 Terra 저장소 기준이다.
 
 # Terra Agent GUI 필요 기능표 — 대화·승인·위임·설정 화면
 
@@ -63,7 +63,7 @@ related:
 | 권한 | `agent.use` 16건 · `agent.external` 2건(`mcp.put`·`mcp.delete`) · 선언 없음 1건(`status.get`) |
 | 계약의 오류 코드 | 15개 |
 | 모델 provider | `anthropic` 하나(기본 모델 `claude-opus-5`) |
-| 화면 디자인 | **있다** — modules 저장소 `design/terra-agent-gui` 브랜치의 `AgentGUI.dc.html`(보드 8장: ①~④ 대화·승인·준비·설정, ⑤~⑧ 새 세션·종료·승인 상태·확인). 이 문서와의 대조는 §13 — `0ae91c5`로 처음, `08a3914`로 다시 맞댔다 |
+| 화면 디자인 | **있다** — modules 저장소 `design/terra-agent-gui` 브랜치의 `AgentGUI.dc.html`(보드 8장: ①~④ 대화·승인·준비·설정, ⑤~⑧ 새 세션·종료·승인 상태·확인)과 동작하는 화면 `AgentGUILive.dc.html`. 이 문서와의 대조는 §13 — `0ae91c5`·`08a3914`·`e27d389` 세 판을 맞댔고 동작은 브라우저에서 돌려 확인했다(§13.6) |
 | 기존 계획 | 모듈 API 목록의 우선순위 **P2 — "명령 폼으로 연다"**. 폼은 코어 표 21번의 렌더러가 서야 하는데 그 렌더러가 아직 없다(메뉴 구성도 §3 기준). 폼으로는 대화와 승인 카드를 그리지 못한다 |
 
 ### 1.2 막혀 있는 것 — GUI보다 먼저 풀어야 한다
@@ -430,7 +430,7 @@ Gateway가 재시작되면 scope token이 전부 사라진다(설계 D5). 모듈
 ### 6.5 공통 화면 규칙
 
 - 언어는 한국어다. 서버 문구는 영어이므로 `code` 사전을 두고 원문은 접는다.
-- 라이트·다크는 OS(`prefers-color-scheme`)를 따른다. 모바일은 시각 브리프 초안이 범위 밖으로 둔다. **디자인은 어두운 유리 한 벌이다(처음엔 node-gui `SKIN.md`의 HUD, 지금은 Liquid Glass) — 어느 쪽을 따를지는 결정 D-10이다(§13.4 DC-13).**
+- 라이트·다크는 OS(`prefers-color-scheme`)를 따른다. 모바일은 시각 브리프 초안이 범위 밖으로 둔다. **디자인은 어두운 유리 한 벌이다(처음엔 node-gui `SKIN.md`의 HUD, 그다음 Liquid Glass, 지금은 단색 면 flat) — 어느 쪽을 따를지는 결정 D-10이다(§13.4 DC-13).**
 - 기록은 길어진다(상한·삭제가 없다). 가상 스크롤과 쪽 읽기를 쓴다.
 - 모델과 외부 텍스트는 평문 또는 HTML 삽입이 없는 제한된 마크다운으로만 그린다. 링크는 자동으로 열지 않는다.
 - 브라우저 저장소(`localStorage`)에는 탭·필터 같은 화면 선호만 둔다. 세션 내용과 자격은 두지 않는다.
@@ -656,46 +656,47 @@ flowchart LR
 | D-7 | 새 세션의 기본 자율성 | `plan` 고정 / 마지막 선택 기억 | **`plan` 고정**(설계 §6.2). 기억하면 `auto`가 기본이 될 수 있다 |
 | D-8 | 일반 앱을 사람이 여는 길 | node-gui에서 열기 / 런처 / URL 직접 | **확인이 먼저**(§2.5). 이 문서가 확인하지 못했다 |
 | D-9 | 문구 | 서버 문구를 그대로 / `code` 사전 + 원문 접기 | **사전 + 접기** |
-| D-10 | 테마 | 어두운 유리 한 벌(디자인) / OS 테마를 따름(§6.5) | **어두운 유리 한 벌** — 처음 판은 node-gui `SKIN.md`의 HUD와 같은 화면 언어였으나 `08a3914`는 Liquid Glass로 바뀌어 토큰이 달라졌다(DC-13). 에이전트 앱만 새 스타일로 갈지 SKIN 토큰으로 맞출지는 사용자가 정한다. 라이트가 필요해지면 그때 토큰을 바꾼다. §6.5를 그에 맞게 고쳤다 |
-| D-11 | 글꼴 | 시스템 글꼴 + 이모지 서브셋(node-gui 방식) / 글꼴 파일을 앱에 싣는다 | **시스템 글꼴**. 싣는다면 라이선스(OFL) 고지와 용량을 따로 정한다. Google Fonts `<link>`는 CSP가 막는다(DC-12). `08a3914`가 이 권고대로 시스템 글꼴 스택으로 정리했고 이모지를 쓰지 않아 서브셋도 필요 없다 |
+| D-10 | 테마 | 어두운 한 벌(디자인) / OS 테마를 따름(§6.5) | **어두운 한 벌** — 처음 판은 node-gui `SKIN.md`의 HUD와 같은 화면 언어였으나 `08a3914`는 Liquid Glass, `e27d389`는 단색 면 flat으로 바뀌어 토큰이 달라졌다(DC-13). 에이전트 앱만 새 스타일로 갈지 SKIN 토큰으로 맞출지는 사용자가 정한다. 라이트가 필요해지면 그때 토큰을 바꾼다. §6.5를 그에 맞게 고쳤다 |
+| D-11 | 글꼴 | 시스템 글꼴 + 이모지 서브셋(node-gui 방식) / 글꼴 파일을 앱에 싣는다 | **시스템 글꼴**. 싣는다면 라이선스(OFL) 고지와 용량을 따로 정한다. Google Fonts `<link>`는 CSP가 막는다(DC-12). `08a3914`가 이 권고대로 시스템 글꼴 스택으로 정리했고 이모지를 쓰지 않아 서브셋도 필요 없다. 다만 `e27d389`는 스택 맨 앞에 `Pretendard`·`Inter`를 두고 글꼴 파일은 싣지 않았다 — 쓰려면 앱에 싣는 쪽(OFL 고지·용량)으로 정하고, 싣지 않는다면 스택에서 뺀다 |
 
 ## 13. 디자인 대조
 
-modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 맞대었다. 두 번 대조했다 — 처음에는 `0ae91c5`(보드 4장)를, 디자인이 이 절을 반영해 고쳐진 뒤에는 `08a3914`(보드 8장)를 맞댔다. 결론부터: 처음 지적한 열다섯 가운데 열둘이 고쳐졌고, 빠졌던 화면 여섯이 새 보드 ⑤~⑧로 들어왔다. 다시 맞대면서 새로 찾은 것은 여섯이다 — 샘플 값이 계약과 어긋난 곳(DC-17·18·19), 아직 없는 길이 있는 것처럼 보인 곳(DC-16), 안전 선택의 문구(DC-20·21). 승인 보드(②·⑦)는 모듈 쪽 요구 R-4(⑦은 R-5도)가 서야 짓는다.
+modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 맞대었다. 세 번 대조했다 — `0ae91c5`(보드 4장), `08a3914`(보드 8장), `e27d389`(보드 8장과 동작하는 화면 `AgentGUILive.dc.html`). 결론부터: 처음 지적한 열다섯 가운데 열둘과, 다시 찾은 여섯(DC-16~21)이 모두 고쳐졌다 — 디자인이 이 절을 그대로 따라 갔다. 동작하는 화면을 브라우저에서 돌려 보니 승인·거부·시간 초과·취소와 자율성 네 가지가 이 문서의 규칙대로 움직인다(§13.6). 남은 것은 동작하는 화면이 문서의 규칙을 덜 따른 곳 여섯(DC-22~27 — 입력창·스크롤·거부 표식·무인 게이트·토큰 줄·미연결 컨트롤)과 결정 둘(DC-13·14), 일부만 풀린 DC-9다. 승인 보드(②·⑦)는 모듈 쪽 요구 R-4(⑦은 R-5도)가 서야 짓는다.
 
 ### 13.1 대조한 것
 
 | 항목 | 값 |
 | --- | --- |
-| 파일 | modules 저장소 `common/io.terra.agent/web/design/AgentGUI.dc.html`과 `assets/map-sample.jpg`(530 KB, 바뀌지 않았다) |
+| 파일 | modules 저장소 `common/io.terra.agent/web/design/`의 `AgentGUI.dc.html`(보드)과 `AgentGUILive.dc.html`(동작하는 화면), `assets/map-sample.jpg`(530 KB, 바뀌지 않았다) |
 | 처음 판 | 브랜치 `design/terra-agent-gui`의 [`0ae91c5`](https://github.com/StellaxiaLab/modules/blob/0ae91c51027cf23507824797f45fee0d126d29a6/common/io.terra.agent/web/design/AgentGUI.dc.html)(2026-10-06). 557줄 |
-| 다시 본 판 | 같은 브랜치의 [`08a3914`](https://github.com/StellaxiaLab/modules/blob/08a39148505568cf34c59626a92bd6c8fbcce460/common/io.terra.agent/web/design/AgentGUI.dc.html)(2026-10-06). 691줄. 처음 판 위에 스타일 변경 셋(`7eddf62`·`499fbc5`·`3f73cf4`), 이 절을 반영한 `666e6b9`, `support.js` 경로를 고친 `08a3914`가 얹혔다 |
-| 그 뒤에 올라온 것 | `08a3914` 뒤로 세 커밋이 더 올라왔다(2026-10-06 23:50 KST 기준) — `c53a255` 내부 컴포넌트를 거의 불투명한 검정 유리로, `f76f87f` 보드 ⑨ 움직이는 화면(예시 데이터로 `ask` 세션 한 차례를 CSS 애니메이션으로 재생), `8180b23` 동작하는 화면 `AgentGUILive.dc.html`(700줄)과 그림자 정리. 이 절은 아직 맞대지 않았다. 두 파일에는 외부 URL·저장소·네트워크 호출이 없다(`grep`) |
-| 줄 번호 | 13.3과 13.4의 마지막 열, 새 항목(DC-16~)은 `08a3914` 기준이다. 13.4의 앞쪽 다섯 열은 처음 지적이라 `0ae91c5` 기준 그대로 둔다. ⑤~⑧은 보드마다 본문이 한 줄이라 줄 번호가 그 한 줄을 가리킨다(⑤ 667 · ⑥ 671 · ⑦ 675 · ⑧ 679~680) |
-| 보드 | ① 대화(G1, plan 모드) · ② 승인(G2) · ③ 준비·위임 안내(G1) · ④ 설정(G3) · ⑤ 새 세션 열기(G1 plan·G2) · ⑥ 종료·실패·시스템 배너(G1) · ⑦ 승인 카드의 상태·활동 줄(G2) · ⑧ 확인 단계(G1·G3). 보드는 1447×945이고 그 위에 1240×861 창이 뜬다 |
+| 두 번째 판 | 같은 브랜치의 [`08a3914`](https://github.com/StellaxiaLab/modules/blob/08a39148505568cf34c59626a92bd6c8fbcce460/common/io.terra.agent/web/design/AgentGUI.dc.html)(2026-10-06). 691줄. 처음 판 위에 스타일 변경 셋(`7eddf62`·`499fbc5`·`3f73cf4`), 이 절을 반영한 `666e6b9`, `support.js` 경로를 고친 `08a3914`가 얹혔다 |
+| 세 번째 판 | 같은 브랜치의 [`e27d389`](https://github.com/StellaxiaLab/modules/blob/e27d389797dedc776197b73c7d9870b5aee05a52/common/io.terra.agent/web/design/AgentGUI.dc.html)(2026-10-07 00:04 KST). `AgentGUI.dc.html` 782줄, [`AgentGUILive.dc.html`](https://github.com/StellaxiaLab/modules/blob/e27d389797dedc776197b73c7d9870b5aee05a52/common/io.terra.agent/web/design/AgentGUILive.dc.html) 758줄. 두 번째 판 뒤로 `c53a255` 내부 컴포넌트 스타일, `f76f87f` 보드 ⑨ 움직이는 화면(CSS 애니메이션 — `8180b23`이 `AgentGUILive`로 바꾸며 뺐다), `8180b23` 동작하는 화면, `737e70b` 모션, `4989bec` 빛 제거·flat 스타일·글꼴 교체와 "대조 DC-16~21 반영", `e27d389` squircle 모서리가 얹혔다. 디자인 브랜치는 계속 움직인다 — 이 절은 `e27d389`까지다 |
+| 줄 번호 | 13.3과 13.4의 마지막 열은 `08a3914` 기준이다(DC-16~27과 13.6, 13.3의 끝 세 줄은 `e27d389` 기준 — `AgentGUI.dc.html`은 `<style>`이 길어져 같은 보드가 91줄 아래에 있다). 13.4의 앞쪽 다섯 열은 처음 지적이라 `0ae91c5` 기준 그대로 둔다. ⑤~⑧은 보드마다 본문이 한 줄이라 줄 번호가 그 한 줄을 가리킨다(`08a3914`: ⑤ 667 · ⑥ 671 · ⑦ 675 · ⑧ 679~680, `e27d389`: ⑤ 758 · ⑥ 762 · ⑦ 766 · ⑧ 770) |
+| 보드 | ① 대화(G1, plan 모드) · ② 승인(G2) · ③ 준비·위임 안내(G1) · ④ 설정(G3) · ⑤ 새 세션 열기(G1 plan·G2) · ⑥ 종료·실패·시스템 배너(G1) · ⑦ 승인 카드의 상태·활동 줄(G2) · ⑧ 확인 단계(G1·G3). 보드는 1447×945이고 그 위에 1240×861 창이 뜬다. `AgentGUILive`는 같은 창에 세션 목록·대화·새 세션·확인창·인박스를 상태 기계로 돌린다(예시 데이터, 호출은 시뮬레이션) |
 | 지도 이미지 | 노드 GUI 위에 창이 뜬 모습을 흉내 내는 배경 장식이다. 앱에는 들어가지 않는다 |
 | 주석 칩 | 노란 `anno` 칩("열 때 고정 — 변경 컨트롤 없음" 같은 것)과 보드 제목표는 설명용이다. 앱에 넣지 않는다 |
-| 방법 | 두 판 모두 파일을 끝까지 읽고 이 문서의 §4~§9·§12와 항목별로 맞댔다. 샘플 값은 소스와 계약으로 확인했다 — 등급 권한은 `agent_grant.go`, operation id·권한 id·위험·확인 모드·결과 방식은 Gateway·daemon 계약(`terra-api.json`), 오류 코드는 `loop.go`·`api.go`·코어 `tools.go`·`gateway.go`, 자율성별 판정은 코어 `approval.go`의 `Decide` |
-| 하지 않은 것 | 화면으로 띄워 보지 않았다. `support.js`가 저장소에 없다 — 이 디자인은 `../support.js`로, node-gui의 `web/design/`은 대부분 `./support.js`로 부른다. 디자인 도구가 주입하는 것으로 보인다 `[I]` |
-| 사본 | modules `common/io.terra.agent/web/design/terra-agent-gui-requirements.md`(브랜치 `design/terra-agent-gui`, modules PR #34)는 modules만 보는 디자인 세션이 읽도록 옮긴 이 문서의 스냅샷이다. 고칠 때는 이 원본을 고치고 사본을 다시 올린다 |
+| 방법 | 세 판 모두 파일을 끝까지 읽고 이 문서의 §4~§9·§12와 항목별로 맞댔다. 샘플 값은 소스와 계약으로 확인했다 — 등급 권한은 `agent_grant.go`, operation id·권한 id·위험·확인 모드·결과 방식은 Gateway·daemon 계약(`terra-api.json`), 오류 코드는 `loop.go`·`api.go`·코어 `tools.go`·`gateway.go`, 자율성별 판정은 코어 `approval.go`의 `Decide`. 동작은 §13.6 |
+| 하지 않은 것 | 실제 모듈·Gateway에 연결된 앱이 아니라 시안이라 그 연결은 볼 수 없다(§13.6은 시안이 규칙대로 움직이는지다). `support.js`가 저장소에 없다 — 이 디자인은 `../support.js`로, node-gui의 `web/design/`은 대부분 `./support.js`로 부른다. 디자인 도구가 주입하는 것으로 보인다 `[I]` |
+| 사본 | modules `common/io.terra.agent/web/design/terra-agent-gui-requirements.md`(브랜치 `design/terra-agent-gui`)는 modules만 보는 디자인 세션이 읽도록 옮긴 이 문서의 스냅샷이다. 고칠 때는 이 원본을 고치고 사본을 다시 올린다 |
 
 ### 13.2 보드별 판정
 
-| 보드 | 이 문서와 맞는 정도 | 바로 쓸 수 있나(`08a3914`) | 남은 것 | 처음 막던 것(`0ae91c5`) |
-| --- | --- | --- | --- | --- |
-| ① 대화 | 높다 | 쓸 수 있다 | 공통(DC-13·14) | DC-1·2·4·5·7 |
-| ② 승인 | 높다 | R-4가 선 뒤 | DC-9·17, R-4, 공통 | DC-1·2·3·5·7·9, R-4 |
-| ③ 준비·위임 안내 | 높다 | DC-16을 고치면 — R-1 전에는 "제안 · 아직 없음"으로 표시했다 | DC-16 | DC-8·10 |
-| ④ 설정 | 높다 | DC-20을 고치면 | DC-20, 공통 | DC-1·6·11·15 |
-| ⑤ 새 세션 열기 | 높다 | DC-21을 고치면 | DC-21 | — |
-| ⑥ 종료·실패·시스템 배너 | 높다 | 쓸 수 있다 | 폴링 전송의 끊김 문구(13.5) | — |
-| ⑦ 승인 카드의 상태·활동 줄 | 높다 | R-4·R-5가 선 뒤 | DC-18·19 | — |
-| ⑧ 확인 단계 | 높다 | DC-20을 고치면 | DC-20 | — |
-| 여덟 보드 공통 | — | 결정 뒤 | DC-13·14 | DC-12·13·14 |
+| 보드 | 이 문서와 맞는 정도 | 바로 쓸 수 있나(`e27d389`) | 남은 것(`e27d389`) | 두 번째 판(`08a3914`)에서 남았던 것 | 처음(`0ae91c5`)에 막던 것 |
+| --- | --- | --- | --- | --- | --- |
+| ① 대화 | 높다 | 쓸 수 있다 | 공통(DC-13·14) | 공통(DC-13·14) | DC-1·2·4·5·7 |
+| ② 승인 | 높다 | R-4가 선 뒤 | DC-9(계약 사실을 읽지 못한 모양), R-4, 공통 | DC-9·17, R-4, 공통 | DC-1·2·3·5·7·9, R-4 |
+| ③ 준비·위임 안내 | 높다 | 쓸 수 있다 — R-1 전에는 "제안 · 아직 없음"으로 표시했다 | 공통 | DC-16 | DC-8·10 |
+| ④ 설정 | 높다 | 쓸 수 있다 | 공통 | DC-20, 공통 | DC-1·6·11·15 |
+| ⑤ 새 세션 열기 | 높다 | 쓸 수 있다 | 공통 | DC-21 | — |
+| ⑥ 종료·실패·시스템 배너 | 높다 | 쓸 수 있다 | 폴링 전송의 끊김 문구(13.5) | 폴링 전송의 끊김 문구(13.5) | — |
+| ⑦ 승인 카드의 상태·활동 줄 | 높다 | R-4·R-5가 선 뒤 | R-4·R-5 | DC-18·19 | — |
+| ⑧ 확인 단계 | 높다 | 쓸 수 있다 | 공통 | DC-20 | — |
+| 동작하는 화면 | 높다 — 승인·거부·시간 초과·취소·자율성은 문서대로 움직인다 | DC-22~27을 고치면(구현의 출발점으로) | DC-22~27 | — | — |
+| 여덟 보드 공통 | — | 결정 뒤 | DC-13·14 | DC-13·14 | DC-12·13·14 |
 
 ### 13.3 맞는 점
 
-줄 번호는 `08a3914` 기준이다.
+줄 번호는 `08a3914` 기준이다. 끝의 세 줄(`e27d389`로 표시)만 `e27d389` 기준이다.
 
 | 요구 | 이 문서 | 디자인(보드 · 줄) |
 | --- | --- | --- |
@@ -724,12 +725,15 @@ modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 �
 | 되돌릴 수 없거나 위험한 사람의 동작에 확인 단계 — 세션 취소·자격 거두기·모델 삭제. MCP 등록·삭제는 앱에 없으니 확인창도 없다 | I16 · D-4 | ⑧ 679~680 |
 | 모델 삭제는 노드 전역임을 말하고, 기본 모델 승계(알파벳 첫 번째)와 열린 세션이 다음 차례부터 바뀐다는 것을 알린다 | §4.1 `models.delete` | ⑧ 679 |
 | 글꼴은 시스템 스택이고 파일에 외부 URL이 없다 | D-11 | 스타일 17·19 |
+| 자율성 네 가지의 뜻이 판정표와 같다 — `auto`는 읽기와 되돌릴 수 있는 쓰기만 묻지 않고 위험한 호출은 여전히 묻는다, `unattended`는 읽기와 사전 승인한 호출만 실행한다 | `Decide`(`approval.go`) · D-7 | ⑤ 758 · 동작하는 화면 723·731 (`e27d389`) — 시험에서 새 `auto` 세션의 restart가 승인을 물었다 |
+| 계약 사실 칸이 계약 값 그대로다 — `risk: dangerous`·`conditional`·"계약이 적지 않았다"·`멱등 none`·`accepted-job` | §6.3 · R-4 | ② 519~522 · 동작하는 화면 452 (`e27d389`) |
+| 자격 거두기를 단계로 나눈다 — 세션 취소 → 폐기 명령 복사 → 사람이 폐기를 확인한 뒤 삭제 | §8.6 | ④ 736 · ⑧ 770 (`e27d389`) |
 
 **디자인이 문서보다 나은 점** — 구현할 때 문구 사전의 출발점으로 쓴다: ③의 "시작하기 전에" 세 단계와 상태별 안내 문구 넷(미등록·만료됨·만료 시각 전·관문 없음), ②의 "이 승인이 하지 않는 것" 카드, 승인 인박스를 목록 위에 두는 자리, ⑥의 "한도·거절은 failed가 아니다" 대응표와 종료 상태 표, ⑦의 승인 카드 상태 넷, ⑧의 "왜 화면이 세우는가" 문구.
 
 ### 13.4 고쳐야 할 것
 
-`DC-n`은 이 대조의 항목 번호다. 표의 앞쪽 다섯 열은 처음 대조(`0ae91c5`)의 지적이고 줄 번호도 그 커밋 기준이다. 마지막 열이 `08a3914`에서 다시 본 결과다(줄 번호도 그 커밋 기준). 열다섯 가운데 열둘이 고쳐졌고, DC-9는 일부만, DC-13·14는 결정이 남았다. 새로 찾은 여섯은 이 절의 마지막 표다.
+`DC-n`은 이 대조의 항목 번호다. 표의 앞쪽 다섯 열은 처음 대조(`0ae91c5`)의 지적이고 줄 번호도 그 커밋 기준이다. 마지막 열은 `08a3914`에서 다시 본 결과이고(줄 번호도 그 커밋 기준), `e27d389`에서 달라진 것(DC-9·12·13·14)만 그 열에 덧붙였다. DC-16~21은 `08a3914`에서 새로 찾은 것이고 마지막 열이 `e27d389`의 결과다. 처음 지적 열다섯 가운데 열둘과 DC-16~21 여섯이 모두 고쳐졌다(열여덟) — 디자인이 이 절을 그대로 따라 갔다. DC-9는 일부만 풀렸고 DC-13·14는 결정이 남았다. 동작하는 화면을 돌려 보며 새로 찾은 여섯(DC-22~27)은 이 절의 마지막 표다.
 
 **샘플 값이 사실과 어긋난다**
 
@@ -748,7 +752,7 @@ modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 �
 | # | 보드 · 줄 | 디자인이 보이는 것 | 사실과 근거 | 고칠 것 | 다시 본 결과(`08a3914`) |
 | --- | --- | --- | --- | --- | --- |
 | DC-8 | ③ · 434, 443 | 명령 `terra agent grant … --level operate --ttl 8h --hand-over`와 "토큰은 출력되지 않습니다" | `--hand-over`는 이 문서가 낸 제안(R-1·H-1)이고 CLI에 없다. 같은 카드가 "가장 좁은 등급과 짧은 수명부터"라고 하는데 예시는 `operate`·8h다(§8.5: TTL은 제안하되 미리 채우지 않는다) | R-1이 서기 전에는 "제안 — 아직 없다"로 표시하거나 이 보드를 R-1 뒤로 미룬다. 예시는 `--level readonly --ttl 1h` | **고침** — ③ 540 "제안 · 아직 없음" 칩, 541 예시 `--level readonly --ttl 1h`, 542 R-1·H-1 풀이. 오른쪽 카드(544~548)는 DC-16 |
-| DC-9 | ② · 319~327 | "계약이 말하는 것" 칸 — 위험·확인·부작용·재시도·결과·대상 | 모듈이 이 값을 지금 주지 않는다 — `pending_approvals`에는 `judgement`·`reason`·`input`뿐이고(R-4), 브리지는 카탈로그를 못 읽는다(§2.1). 또 "위험: 쓰기 · operate"는 계약의 `risk`(read·write·dangerous·privileged)에 등급 이름을 섞었다 | 이 보드는 R-4 뒤에 짓는다(§11 G2). `위험`은 `risk` 값과 요구 권한(`node.control`)을 따로 쓴다. 값을 못 읽었을 때("계약 사실을 읽지 못했다", §6.3)의 모양도 한 장 더 필요하다 | **일부** — ② 428에서 `risk`와 요구 권한(`node.control`)을 따로 쓴다. 남은 것: 값이 계약과 다르다(DC-17), 계약 사실을 읽지 못했을 때의 모양이 없다, R-4 전제는 그대로다(제목표 370이 적었다) |
+| DC-9 | ② · 319~327 | "계약이 말하는 것" 칸 — 위험·확인·부작용·재시도·결과·대상 | 모듈이 이 값을 지금 주지 않는다 — `pending_approvals`에는 `judgement`·`reason`·`input`뿐이고(R-4), 브리지는 카탈로그를 못 읽는다(§2.1). 또 "위험: 쓰기 · operate"는 계약의 `risk`(read·write·dangerous·privileged)에 등급 이름을 섞었다 | 이 보드는 R-4 뒤에 짓는다(§11 G2). `위험`은 `risk` 값과 요구 권한(`node.control`)을 따로 쓴다. 값을 못 읽었을 때("계약 사실을 읽지 못했다", §6.3)의 모양도 한 장 더 필요하다 | **일부** — ② 428에서 `risk`와 요구 권한(`node.control`)을 따로 쓴다. 남은 것: 값이 계약과 다르다(DC-17), 계약 사실을 읽지 못했을 때의 모양이 없다, R-4 전제는 그대로다(제목표 370이 적었다) `e27d389`: 위험 칸이 `risk: dangerous`로 고쳐졌다(DC-17). 남은 것은 "계약 사실을 읽지 못했다" 모양과 R-4다 |
 | DC-10 | ③ · 440 | "설정 열기" 버튼 | 브리지 메시지(`hello`·`request`·`openWindow`·`remote`·`mountApp`) 중 셸의 설정 화면을 여는 것이 있는지 확인하지 못했다 `[I]` | 확인 전에는 버튼 대신 경로 글("설정 › 계정 › 위임 자격")만 둔다 | **고침** — "설정 열기" 버튼이 없고 경로 글(547)만 있다 |
 | DC-11 | ④ · 530 | 거두기 순서의 2단계 "Gateway 폐기"가 앱 안의 단계로 나온다 | 폐기는 사람 세션만 한다(§8.6, I3). 앱은 못 한다 | 2단계는 복사할 수 있는 명령으로 보인다 — `terra agent revoke <agn_…>`(id는 `credentials.get`의 `delegate`에서 `agent:`을 뗀 값). 앱의 버튼은 1·3단계만 맡는다 | **고침** — ④ 641~642가 2단계를 `터미널` 칩과 복사할 명령 `terra agent revoke agn_7f3a91c2`로 보이고, 앱 칩은 1·3단계(640·643)에만 달았다. 두 단계를 한 버튼에 묶은 것은 DC-20 |
 
@@ -756,35 +760,83 @@ modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 �
 
 | # | 보드 · 줄 | 디자인이 보이는 것 | 사실과 근거 | 고칠 것 | 다시 본 결과(`08a3914`) |
 | --- | --- | --- | --- | --- | --- |
-| DC-12 | 공통 · 11~12 | Google Fonts `<link>` | 앱은 외부 origin이 CSP에 막힌다(§2.4). node-gui는 같은 글꼴 이름에 이모지 서브셋만 자체 호스팅한다(`web/node.html`의 `@font-face`, `public/fonts/noto-emoji.woff2`) — 한글·라틴 글자는 시스템 글꼴로 나간다 `[I]` | `<link>`를 걷고 글꼴 스택을 시스템 글꼴로 둔다. 글꼴 파일을 싣는다면 라이선스와 용량을 정한다(D-11) | **고침** — Google Fonts `<link>`가 없고 글꼴이 시스템 스택이다(17·19: `system-ui`·`Noto Sans CJK KR`·`Malgun Gothic`·`Apple SD Gothic Neo`, 모노 `ui-monospace`·`DejaVu Sans Mono`·`Consolas`·`SF Mono`·`Menlo`). 파일에 외부 URL이 없다. D-11의 권고와 같다 |
-| DC-13 | 공통 · 14~21 | 어두운 유리 HUD 한 벌 | §6.5는 OS 테마(`prefers-color-scheme`)를 따른다고 적었다 — [[docs/modules/terra-gui/design/unified-gui-ux/terra-gui-visual-design-brief\|시각 디자인 브리프]] 초안 기준이다. node-gui의 [`SKIN.md`](https://github.com/StellaxiaLab/modules/blob/main/common/lab.stellaxia.node-gui/web/design/SKIN.md)가 같은 HUD를 정의한다 | 디자인을 따르는 쪽이 맞아 보인다. 결정 D-10이고 §6.5에 표시했다 | **달라졌다 — 결정 남음** — 스타일이 `SKIN.md`의 HUD에서 Liquid Glass로 바뀌었다(103~193). 같은 것: 어두운 유리 한 벌, 역할·상태 색, 글자색, 캡션, 선 아이콘. 다른 것: 테두리 없음, 모서리 30·22·알약(SKIN은 14·9·10), 주 버튼이 보라 그라디언트(SKIN은 `#ede9e1` 바탕), `info` 칩·말풍선·탭의 보라·청록 포인트, 웹폰트 없음(SKIN은 `Noto Sans KR`·`JetBrains Mono`). "node-gui와 같은 화면 언어"라는 D-10의 이유가 약해져 D-10을 고쳤다 |
-| DC-14 | 공통 · 151, 272, 399, 477 | 앱이 창 제어(최소화·최대화·닫기)와 `TERRA AGENT` 제목줄을 그린다 | 창을 셸이 그린다면 중복이다. 앱을 여는 길(D-8)이 아직 정해지지 않았다(§2.5) | D-8 뒤에 정한다. 제목줄을 셸에 맡기면 앱은 헤더(모듈 버전·대상 노드 칩)만 남긴다 | **그대로 — 결정 대기** — 창 제어와 `TERRA AGENT` 제목줄이 여덟 장 모두에 있다(254~258 외). ① 주석(361)이 "열기 방식(D-8) 뒤 확정"이라고 적었다 |
+| DC-12 | 공통 · 11~12 | Google Fonts `<link>` | 앱은 외부 origin이 CSP에 막힌다(§2.4). node-gui는 같은 글꼴 이름에 이모지 서브셋만 자체 호스팅한다(`web/node.html`의 `@font-face`, `public/fonts/noto-emoji.woff2`) — 한글·라틴 글자는 시스템 글꼴로 나간다 `[I]` | `<link>`를 걷고 글꼴 스택을 시스템 글꼴로 둔다. 글꼴 파일을 싣는다면 라이선스와 용량을 정한다(D-11) | **고침** — Google Fonts `<link>`가 없고 글꼴이 시스템 스택이다(17·19: `system-ui`·`Noto Sans CJK KR`·`Malgun Gothic`·`Apple SD Gothic Neo`, 모노 `ui-monospace`·`DejaVu Sans Mono`·`Consolas`·`SF Mono`·`Menlo`). 파일에 외부 URL이 없다. D-11의 권고와 같다 `e27d389`: 스택 맨 앞이 `Pretendard Variable`·`Pretendard`·`Inter`로 바뀌었다(269). `@font-face`도 글꼴 파일도 없어 설치돼 있어야 쓰인다 — 이 시험 머신에서는 DejaVu Sans·WenQuanYi Zen Hei로 그려졌다. 쓰려면 앱에 싣는 결정이 필요하다(D-11) |
+| DC-13 | 공통 · 14~21 | 어두운 유리 HUD 한 벌 | §6.5는 OS 테마(`prefers-color-scheme`)를 따른다고 적었다 — [[docs/modules/terra-gui/design/unified-gui-ux/terra-gui-visual-design-brief\|시각 디자인 브리프]] 초안 기준이다. node-gui의 [`SKIN.md`](https://github.com/StellaxiaLab/modules/blob/main/common/lab.stellaxia.node-gui/web/design/SKIN.md)가 같은 HUD를 정의한다 | 디자인을 따르는 쪽이 맞아 보인다. 결정 D-10이고 §6.5에 표시했다 | **달라졌다 — 결정 남음** — 스타일이 `SKIN.md`의 HUD에서 Liquid Glass로 바뀌었다(103~193). 같은 것: 어두운 유리 한 벌, 역할·상태 색, 글자색, 캡션, 선 아이콘. 다른 것: 테두리 없음, 모서리 30·22·알약(SKIN은 14·9·10), 주 버튼이 보라 그라디언트(SKIN은 `#ede9e1` 바탕), `info` 칩·말풍선·탭의 보라·청록 포인트, 웹폰트 없음(SKIN은 `Noto Sans KR`·`JetBrains Mono`). "node-gui와 같은 화면 언어"라는 D-10의 이유가 약해져 D-10을 고쳤다 `e27d389`: flat(266~302)으로 한 번 더 바뀌었다 — 단색 면이고 안쪽 반사·흐림·그라데이션이 없다(`backdrop-filter` 끔). 모서리는 squircle 34·26·20(`corner-shape: squircle`, Chromium 139 이상에서만 먹고 그 밖은 둥근 모서리로 떨어진다 `[I]`), 주 버튼 `#7563f2`, 사용자 말풍선 `#5a4fd0`. `SKIN.md`와 달라진 점(테두리 없음·모서리·주 버튼 색·글꼴)은 `08a3914`와 같고 유리 질감만 사라졌다 |
+| DC-14 | 공통 · 151, 272, 399, 477 | 앱이 창 제어(최소화·최대화·닫기)와 `TERRA AGENT` 제목줄을 그린다 | 창을 셸이 그린다면 중복이다. 앱을 여는 길(D-8)이 아직 정해지지 않았다(§2.5) | D-8 뒤에 정한다. 제목줄을 셸에 맡기면 앱은 헤더(모듈 버전·대상 노드 칩)만 남긴다 | **그대로 — 결정 대기** — 창 제어와 `TERRA AGENT` 제목줄이 여덟 장 모두에 있다(254~258 외). ① 주석(361)이 "열기 방식(D-8) 뒤 확정"이라고 적었다 `e27d389`도 같다(346·466·594·671 외, 주석 452) |
 | DC-15 | ④ · 491, 502 | `base url`이 평범한 선택 입력 | 프롬프트가 그 주소로 간다. `models.put`은 `base_url`을 검증하지 않고 결과가 노드 전역이다(R-9) | "고급"으로 접고 "이 주소로 프롬프트가 갑니다" 경고를 붙인다. 저장 확인에 값을 다시 보인다 | **고침** — ④ 609에서 "고급"으로 접고 "프롬프트 도착지" 칩을 달았다. 612가 프롬프트가 그 주소로 가고 서버가 주소를 검증하지 않으며 저장 확인에서 값을 다시 보인다고 적었다. 613은 키를 시험하지 않는다고 적었다 |
 
-**다시 대조에서 새로 찾은 것**
+**다시 대조에서 새로 찾은 것 — 두 번째 판(`08a3914`)에서 찾았고 세 번째 판(`e27d389`)이 고쳤다**
+
+| # | 보드 · 줄 | 디자인이 보이는 것 | 사실과 근거 | 고칠 것 | 다시 본 결과(`e27d389`) |
+| --- | --- | --- | --- | --- | --- |
+| DC-16 | ③ · 544~548 | 오른쪽 카드 "설정 › 계정 — 코어 GUI"가 "코어 GUI의 위임 자격에서 등급·수명을 고르고 'Terra Agent에 맡기기'를 누릅니다"라고 쓴다. 흐리게(`opacity .7`)만 했다 | 코어 GUI에 그 동작이 없다. H-2(제안)이고 카탈로그에서 `io.terra.agent.credentials.put`이 보일 때만 서는 동작이다(§8). 다른 문서에도 그 문구가 없다 `[V]`. 왼쪽 카드(터미널)는 "제안 · 아직 없음"을 달았는데 이쪽은 없다 | 같은 "제안 · 아직 없음" 칩을 단다. 동작 이름("Terra Agent에 맡기기")은 H-2가 선 뒤에 쓴다 | **고침** — ③ 오른쪽 카드에 "제안 · 아직 없음" 칩(636)을 달았고 "이 동작은 아직 없고, 선 뒤에 이름이 정해집니다"(637)로 바꿨다 |
+| DC-17 | ② · 428~432 | "계약이 말하는 것" 칸의 값 — 위험 `risk: write`, 확인 `required`, 부작용 "모듈 프로세스가 재시작된다" | 이 호출(`terra.daemon.modules.by-module-id.restart.post`)의 daemon 계약은 `execution.risk: dangerous`, `execution.confirmation.mode: conditional`이다. 맞는 값: 요구 권한 `node.control`, 재시도 `never`·멱등 `none`, 결과 `accepted-job`. `sideEffects`는 이 계약에 없다 — daemon·Gateway 계약 129건 가운데 `sideEffects`를 적은 것은 0건이다. 사람을 부른 이유는 `risk=dangerous`다 — `Decide`는 `required`만 사람을 부르는 조건으로 읽고 `conditional`은 읽지 않는다(`approval.go`) | 위험을 `dangerous`로 쓴다(위험 색). 확인은 `conditional`과 계약 문구를 그대로 쓴다. 계약이 적지 않은 칸(부작용)은 "없음"이 아니라 "계약이 적지 않았다"로 쓴다. R-4 전에도 오는 `judgement`(`risk=dangerous`)를 위험 칸에 쓸 수 있다 | **고침** — ② 519~522와 동작하는 화면 452가 `risk: dangerous`(err 칩)·`conditional`·"계약이 적지 않았다"·`멱등 none`을 보인다. 요구 권한 `node.control`과 `accepted-job`은 처음부터 맞았다 |
+| DC-18 | ⑦ · 675 | 호출 상세 카드가 `terra.gateway.modules.get`에 "결과 방식 `accepted-job` · 접수이지 완료가 아님"을 단다 | `terra.gateway.modules.get`의 `output.mode`는 `immediate`다(Gateway 계약). `accepted-job`은 restart 같은 비동기 호출의 값이다. 또 `call` entry에는 결과 방식이 없다 — `decision`·`status`·`error_code`·`trace_id`뿐이다(`loop.go:482`). `output.mode`는 계약의 값이라 브리지가 못 읽는다(§2.1) | 샘플을 restart 줄로 바꾸거나 `immediate`로 쓴다. 결과 방식 칸은 R-5에 `output.mode`를 더한 뒤에 그린다(§10 R-5에 적었다). 그 전에는 이 칸을 빼고 `decision`·`status`·오류 코드·trace id만 보인다 | **고침** — ⑦ 호출 상세 카드(766)에서 "결과 방식" 줄을 뺐다. `decision`·오류 코드·trace id만 남았다 |
+| DC-19 | ⑦ · 675 | "시간 초과 → 거부" 카드가 원문 `no answer within 30m`을 보인다 | 원문은 Go의 `Duration.String()`이라 `no answer within 30m0s`다(`loop.go:563`). 또 기본 한도(900초)에서는 30분이 오기 전에 한 차례 시간이 끝나 `denied` 없이 `TIME_LIMIT`만 남는다(§14.3 ②). 이 카드는 한 차례 시간을 1800초보다 크게 둔 세션에서만 나온다 | 원문은 사전으로 풀고 접는다(D-9). 샘플은 `30m0s`로 쓴다. 기본 한도 세션에서는 만들 수 없는 상태라 시험은 한도를 올린 세션으로 한다 | **고침** — ⑦ 766이 `no answer within 30m0s`로 고쳤다 |
+| DC-20 | ④ · 645 · ⑧ · 679 | 버튼 "1 · 3단계 진행…"(④)과 "세션 취소 후 자격 삭제"(⑧)가 세션 취소와 자격 삭제를 한 번에 한다 | §8.6의 순서는 세션 취소 → 폐기 → `credentials.delete`다. 삭제하면 앱은 폐기 명령에 쓰는 id(`credentials.get`의 `delegate`)를 잃고, 폐기는 사람 세션만 한다. 이 두 버튼은 폐기 전에 앱 쪽 흔적만 지우고 Gateway의 자격은 만료까지 살려 둘 수 있다. 내 자격 목록 API도 없다(R-10). DC-11의 "앱의 버튼은 1·3단계만 맡는다"가 이 묶음을 막지 못했다 | 1·3단계를 한 버튼에 묶지 않는다. 세션 취소 → 폐기 명령 복사 → 사람이 폐기를 마쳤다고 확인한 뒤에야 삭제를 풀고(앱은 폐기 여부를 모른다), 삭제한 뒤 결과 화면에 `terra agent revoke <id>`를 남기며 "Gateway 폐기는 아직입니다"라고 쓴다 | **고침** — ④ 736이 "1 · 세션 취소"·"2 · 폐기 명령 복사"·"3 · 자격 삭제"(흐리게)로 나눴다. ⑧ 770은 사람이 "폐기를 마쳤습니다"를 확인해야 삭제가 풀리고, 삭제한 뒤에도 "Gateway 폐기는 아직입니다"와 명령이 결과 화면에 남는다고 적었다. 버튼은 "닫기"·"폐기 명령 복사"·"세션 취소"다 |
+| DC-21 | ⑤ · 667 | 자율성 설명 — `auto`는 "자격 범위 안에서 묻지 않고 한다", `unattended`는 "물을 사람이 없으니 거절한다" | 판정표(`approval.go`의 `Decide`)에서 `auto`는 읽기와 **되돌릴 수 있는 쓰기**만 묻지 않는다. `dangerous`·`privileged` 위험, `confirmation: required`, 되돌릴 수 없는 부작용, 반복하면 안 되는 쓰기(멱등 없음)는 `auto`에서도 묻는다. `unattended`는 읽기와 **사전 승인한 id**를 실행하고 나머지만 거절한다 | 문구를 판정표에 맞춘다 — `auto`: "읽기와 되돌릴 수 있는 쓰기는 묻지 않는다. 위험한 호출은 여전히 묻는다", `unattended`: "읽기와 사전 승인한 호출만 실행하고 나머지는 거절한다". 자율성은 열 때 고르는 안전 선택이라 이 문구가 곧 사용자의 기대가 된다 | **고침** — ⑤ 758이 `auto`: "읽기와 되돌릴 수 있는 쓰기는 묻지 않는다. 위험한 호출은 여전히 묻는다", `unattended`: "읽기와 사전 승인한 호출만 실행하고 나머지는 거절한다"로 바꿨다. 동작하는 화면 723·731도 같다 |
+
+**동작하는 화면을 돌려 보며 찾은 것 — `e27d389`(§13.6)**
 
 | # | 보드 · 줄 | 디자인이 보이는 것 | 사실과 근거 | 고칠 것 |
 | --- | --- | --- | --- | --- |
-| DC-16 | ③ · 544~548 | 오른쪽 카드 "설정 › 계정 — 코어 GUI"가 "코어 GUI의 위임 자격에서 등급·수명을 고르고 'Terra Agent에 맡기기'를 누릅니다"라고 쓴다. 흐리게(`opacity .7`)만 했다 | 코어 GUI에 그 동작이 없다. H-2(제안)이고 카탈로그에서 `io.terra.agent.credentials.put`이 보일 때만 서는 동작이다(§8). 다른 문서에도 그 문구가 없다 `[V]`. 왼쪽 카드(터미널)는 "제안 · 아직 없음"을 달았는데 이쪽은 없다 | 같은 "제안 · 아직 없음" 칩을 단다. 동작 이름("Terra Agent에 맡기기")은 H-2가 선 뒤에 쓴다 |
-| DC-17 | ② · 428~432 | "계약이 말하는 것" 칸의 값 — 위험 `risk: write`, 확인 `required`, 부작용 "모듈 프로세스가 재시작된다" | 이 호출(`terra.daemon.modules.by-module-id.restart.post`)의 daemon 계약은 `execution.risk: dangerous`, `execution.confirmation.mode: conditional`이다. 맞는 값: 요구 권한 `node.control`, 재시도 `never`·멱등 `none`, 결과 `accepted-job`. `sideEffects`는 이 계약에 없다 — daemon·Gateway 계약 129건 가운데 `sideEffects`를 적은 것은 0건이다. 사람을 부른 이유는 `risk=dangerous`다 — `Decide`는 `required`만 사람을 부르는 조건으로 읽고 `conditional`은 읽지 않는다(`approval.go`) | 위험을 `dangerous`로 쓴다(위험 색). 확인은 `conditional`과 계약 문구를 그대로 쓴다. 계약이 적지 않은 칸(부작용)은 "없음"이 아니라 "계약이 적지 않았다"로 쓴다. R-4 전에도 오는 `judgement`(`risk=dangerous`)를 위험 칸에 쓸 수 있다 |
-| DC-18 | ⑦ · 675 | 호출 상세 카드가 `terra.gateway.modules.get`에 "결과 방식 `accepted-job` · 접수이지 완료가 아님"을 단다 | `terra.gateway.modules.get`의 `output.mode`는 `immediate`다(Gateway 계약). `accepted-job`은 restart 같은 비동기 호출의 값이다. 또 `call` entry에는 결과 방식이 없다 — `decision`·`status`·`error_code`·`trace_id`뿐이다(`loop.go:482`). `output.mode`는 계약의 값이라 브리지가 못 읽는다(§2.1) | 샘플을 restart 줄로 바꾸거나 `immediate`로 쓴다. 결과 방식 칸은 R-5에 `output.mode`를 더한 뒤에 그린다(§10 R-5에 적었다). 그 전에는 이 칸을 빼고 `decision`·`status`·오류 코드·trace id만 보인다 |
-| DC-19 | ⑦ · 675 | "시간 초과 → 거부" 카드가 원문 `no answer within 30m`을 보인다 | 원문은 Go의 `Duration.String()`이라 `no answer within 30m0s`다(`loop.go:563`). 또 기본 한도(900초)에서는 30분이 오기 전에 한 차례 시간이 끝나 `denied` 없이 `TIME_LIMIT`만 남는다(§14.3 ②). 이 카드는 한 차례 시간을 1800초보다 크게 둔 세션에서만 나온다 | 원문은 사전으로 풀고 접는다(D-9). 샘플은 `30m0s`로 쓴다. 기본 한도 세션에서는 만들 수 없는 상태라 시험은 한도를 올린 세션으로 한다 |
-| DC-20 | ④ · 645 · ⑧ · 679 | 버튼 "1 · 3단계 진행…"(④)과 "세션 취소 후 자격 삭제"(⑧)가 세션 취소와 자격 삭제를 한 번에 한다 | §8.6의 순서는 세션 취소 → 폐기 → `credentials.delete`다. 삭제하면 앱은 폐기 명령에 쓰는 id(`credentials.get`의 `delegate`)를 잃고, 폐기는 사람 세션만 한다. 이 두 버튼은 폐기 전에 앱 쪽 흔적만 지우고 Gateway의 자격은 만료까지 살려 둘 수 있다. 내 자격 목록 API도 없다(R-10). DC-11의 "앱의 버튼은 1·3단계만 맡는다"가 이 묶음을 막지 못했다 | 1·3단계를 한 버튼에 묶지 않는다. 세션 취소 → 폐기 명령 복사 → 사람이 폐기를 마쳤다고 확인한 뒤에야 삭제를 풀고(앱은 폐기 여부를 모른다), 삭제한 뒤 결과 화면에 `terra agent revoke <id>`를 남기며 "Gateway 폐기는 아직입니다"라고 쓴다 |
-| DC-21 | ⑤ · 667 | 자율성 설명 — `auto`는 "자격 범위 안에서 묻지 않고 한다", `unattended`는 "물을 사람이 없으니 거절한다" | 판정표(`approval.go`의 `Decide`)에서 `auto`는 읽기와 **되돌릴 수 있는 쓰기**만 묻지 않는다. `dangerous`·`privileged` 위험, `confirmation: required`, 되돌릴 수 없는 부작용, 반복하면 안 되는 쓰기(멱등 없음)는 `auto`에서도 묻는다. `unattended`는 읽기와 **사전 승인한 id**를 실행하고 나머지만 거절한다 | 문구를 판정표에 맞춘다 — `auto`: "읽기와 되돌릴 수 있는 쓰기는 묻지 않는다. 위험한 호출은 여전히 묻는다", `unattended`: "읽기와 사전 승인한 호출만 실행하고 나머지는 거절한다". 자율성은 열 때 고르는 안전 선택이라 이 문구가 곧 사용자의 기대가 된다 |
+| DC-22 | 동작하는 화면 · 467~468, 739 | 입력창 — 한 줄 `<input>`이고 Enter로 전송한다(`onKey`는 `e.key === 'Enter' && !e.shiftKey`만 본다). 글자 수 "0 / 20000"은 세기만 한다 | (a) 한글을 치다가 Enter로 조합을 끝내면 `keydown`이 `isComposing: true`로 오는데 `onKey`(739)가 이를 거르지 않아 조합 중에 전송된다(시험: `isComposing: true`인 Enter로 세션이 `running`이 됐다). (b) 계약 `messages.post`의 `text.maxLength`는 20000이고 모듈 코드는 강제하지 않는다(§14.3 ⑩). 시험에서 20001자가 "20001 / 20000"으로 보이는데 보내기가 켜져 있고 `maxlength`도 없다. (c) 한 줄 `<input>`이라 줄바꿈이 안 된다 — Shift+Enter 구분이 있어도 쓸 수 없다 | `isComposing`(또는 `keyCode 229`)이면 Enter를 무시한다. 입력창은 `<textarea>`로 하고 Shift+Enter를 줄바꿈으로 둔다. 20000자를 넘으면 글자 수를 `err` 색으로 바꾸고 보내기를 끈다(모듈은 막지 않는다) |
+| DC-23 | 동작하는 화면 · CSS 69·317~318 | 대화 영역(`.msgs`)이 `overflow:hidden`이고 `column-reverse`로 아래에 붙는다 | 시험: 세 차례를 주고받으면 대화 높이 1014px가 영역 646px를 넘어 위쪽이 잘리고 올려 볼 스크롤이 없다. §6.5는 기록이 길어지니 가상 스크롤과 쪽 읽기를 쓴다고 했다 | `overflow-y:auto`로 하고 맨 아래에 있을 때만 새 줄을 따라 내려간다(올려 읽는 중이면 따라가지 않는다). 위로 올리면 앞 기록을 쪽으로 읽는다(§5.3) |
+| DC-24 | 동작하는 화면 · 421~426, 445~460 | 문서 규칙 둘이 보이지 않는다 — 같은 호출을 거부한 뒤 다시 시키면 둘째 카드에 "이전에 거부한 같은 호출"(I18)이 없고, 시간 초과로 `idle`이 된 머리줄에는 `idle`만 보인다 | 시험으로 확인했다. 정적 보드 ②는 "이전에 거부한 같은 호출 1회"를, ⑥ 오른쪽은 "마지막 오류를 상태 옆에 보입니다"를 적었지만 움직이는 화면에는 둘 다 없다. §6.1 `idle` 행이 마지막 `error`를 상태 옆에 보이라고 한다(I20) | 카드에 I18 표식을, `idle` 칩 옆에 마지막 `error` 코드(`TIME_LIMIT` 등)를 단다. 움직이는 화면이 정적 보드보다 덜 보이면 구현자가 움직이는 쪽만 보고 지나친다 |
+| DC-25 | 동작하는 화면 · 723, 483~486, 502 | `unattended`를 아무 때나 열 수 있고, 자격 카드(502)에는 `unattended`·사전 승인 필드가 없다 | 모듈은 자격이 무인이고 사전 승인 목록이 있어야 연다 — 아니면 403 `CREDENTIAL_NOT_UNATTENDED`(`loop.go`의 `allowsUnattended`, §6.4). 정적 보드 ⑤(758)와 ④의 자격 카드는 이 게이트와 두 필드를 보인다. 시험: 무인 자격 표시가 없는데도 "세션 열기"가 켜진다 | `credentials.get`의 `unattended`와 `pre_approved`가 비면 무인 칸을 끄고 발급 안내를 보인다. 시뮬레이션 한계로 둔다면 보드 제목표에 "무인 게이트는 시뮬레이션하지 않음"을 적는다 |
+| DC-26 | 동작하는 화면 · 581 | "차례가 끝났습니다 · 모델 호출 2회 · 22.4k 토큰" — 호출 수는 그 차례 몫인데 토큰은 세션 누적이다 | 시험: 같은 일을 한 두 차례가 11.2k, 22.4k 토큰으로 나온다(`inTok`+`outTok`이 세션 합계). 모듈의 `usage`는 세션 누적이고 차례별 토큰은 entry에 없다(§14.3 ①·⑨) | 토큰을 빼거나 "세션 누적"을 붙인다. 차례별 토큰은 모듈이 내줄 때까지 보이지 않는다 |
+| DC-27 | 동작하는 화면 · 388, 407, 414, 428, 467, 508 | 연결되지 않은 컨트롤과 접근성 — "종료됨" 탭(407)·"설정 · 모델 · 자격"(414)·창 제어(388)는 눌러도 아무 일이 없다. 입력칸에 이름이 없고(467), 새 줄을 알리는 영역이 없고(428), 확인창에 `role="dialog"`가 없다(508) | 시험: "종료됨"을 눌러도 목록이 바뀌지 않아 `failed`·`cancelled` 세션이 "내 세션"에 섞여 있다. 접근성 점검에서 이름 없는 입력 1, 라이브 영역 0, 대화 역할 0이고 `aria-` 속성은 SVG의 `aria-hidden` 하나뿐이다 | 구현은 탭을 상태로 가르고(종료 = `done`·`cancelled`·`failed`·`archived`), 입력칸에 이름을, 대화 목록에 `role="log"`를, 확인창에 `role="dialog"`·`aria-modal`을 단다. 이 문서 §6.5에는 접근성 규칙이 없으니 구현 전에 정한다 |
 
 ### 13.5 빠진 화면과 상태
 
-처음 대조에서 디자인에 없던 화면과 상태다. 마지막 열이 `08a3914`에서 다시 본 결과다.
+처음 대조에서 디자인에 없던 화면과 상태다. 마지막 열이 `08a3914`에서 다시 본 결과이고, `e27d389`에서 달라진 것을 덧붙였다.
 
 | 화면·상태 | 이 문서 | 단계 | 다시 본 결과(`08a3914`) |
 | --- | --- | :---: | --- |
-| **새 세션 열기** — 자율성 4종·시뮬레이션·한도·MCP 선택, 무인과 외부 MCP 조합 차단 | §4.1 `sessions.post` · I6 · I10 | G1(`plan`만)·G2 | **있다**(⑤ 667) — 자율성 4종·시뮬레이션·한도·MCP 선택과 무인 + 외부 MCP 차단. 자율성 문구는 DC-21. 무인이 아닌 자격일 때 꺼진 칸의 모양은 문구뿐이다 |
-| 종료·실패 — `failed`·`archived`·종료 세션의 읽기 전용과 새 세션, `error` 말풍선(STEP·TIME·TOKEN·REFUSED·TRUNCATED) | §6.1 · §6.4 · I20 | G1 | **있다**(⑥ 671) — `failed`·`archived`·읽기 전용·새 세션과 `MODEL_UNAVAILABLE` 말풍선. 한도·거절은 대응표로만 있고 말풍선은 없다 |
-| 시스템 배너 — 모듈 정지, 자격 만료(세션 도중), 모델 미등록, 폴링·스트림 끊김 | §6.2 · §6.4 | G1 | **일부**(⑥ 671) — 자격 만료와 실시간 연결 끊김은 배너로 있고, 모듈 정지·모델 미등록·위임 관문 없음은 문구 한 줄이다. 브리지만 쓰는 배치(D-1 A)에는 스트림이 없으니 "실시간 연결"이 아니라 폴링 실패 문구가 필요하다 |
-| 확인 단계 — 세션 취소·자격 거두기·모델 삭제 | I16 | G1·G3 | **있다**(⑧ 679~680) — 세션 취소·자격 거두기·모델 삭제. 자격 거두기 버튼은 DC-20 |
-| 승인 카드의 나머지 상태 — 누른 뒤 비활성, 시간 초과로 거부, 이미 처리됨(404), 대기 여럿 | §6.3 · I9 | G2 | **있다**(⑦ 675) — 누른 직후·시간 초과·이미 처리됨(404)·대기 여럿. "계약 사실을 읽지 못했다" 모양은 아직 없다(DC-9) |
-| 활동 — `external` 줄("감사에 없다"), 승인 결과 줄, 호출 상세를 펼친 모양, trace id 복사 | §5.2 · §7.1 · I12 | G2 | **있다**(⑦ 675) — `external` 줄, 승인 결과 줄, 호출 상세, trace id 복사. 결과 방식 칸은 DC-18 |
+| **새 세션 열기** — 자율성 4종·시뮬레이션·한도·MCP 선택, 무인과 외부 MCP 조합 차단 | §4.1 `sessions.post` · I6 · I10 | G1(`plan`만)·G2 | **있다**(⑤ 667) — 자율성 4종·시뮬레이션·한도·MCP 선택과 무인 + 외부 MCP 차단. 자율성 문구는 DC-21. 무인이 아닌 자격일 때 꺼진 칸의 모양은 문구뿐이다 `e27d389`: 자율성 문구가 고쳐졌다(DC-21). 동작하는 화면이 새 세션을 실제로 열어 보인다 — 무인 게이트는 DC-25 |
+| 종료·실패 — `failed`·`archived`·종료 세션의 읽기 전용과 새 세션, `error` 말풍선(STEP·TIME·TOKEN·REFUSED·TRUNCATED) | §6.1 · §6.4 · I20 | G1 | **있다**(⑥ 671) — `failed`·`archived`·읽기 전용·새 세션과 `MODEL_UNAVAILABLE` 말풍선. 한도·거절은 대응표로만 있고 말풍선은 없다 `e27d389`: 동작하는 화면이 `failed`를 읽기 전용으로 보인다(시험 통과). "종료됨" 탭은 안 바뀐다(DC-27) |
+| 시스템 배너 — 모듈 정지, 자격 만료(세션 도중), 모델 미등록, 폴링·스트림 끊김 | §6.2 · §6.4 | G1 | **일부**(⑥ 671) — 자격 만료와 실시간 연결 끊김은 배너로 있고, 모듈 정지·모델 미등록·위임 관문 없음은 문구 한 줄이다. 브리지만 쓰는 배치(D-1 A)에는 스트림이 없으니 "실시간 연결"이 아니라 폴링 실패 문구가 필요하다 `e27d389`: 그대로다 |
+| 확인 단계 — 세션 취소·자격 거두기·모델 삭제 | I16 | G1·G3 | **있다**(⑧ 679~680) — 세션 취소·자격 거두기·모델 삭제. 자격 거두기 버튼은 DC-20 `e27d389`: 자격 거두기가 단계로 나뉘었다(DC-20). 동작하는 화면에는 세션 취소 확인창이 있다 |
+| 승인 카드의 나머지 상태 — 누른 뒤 비활성, 시간 초과로 거부, 이미 처리됨(404), 대기 여럿 | §6.3 · I9 | G2 | **있다**(⑦ 675) — 누른 직후·시간 초과·이미 처리됨(404)·대기 여럿. "계약 사실을 읽지 못했다" 모양은 아직 없다(DC-9) `e27d389`: 동작하는 화면이 누른 직후·승인·거부·시간 초과·취소를 움직여 보인다(§13.6) |
+| 활동 — `external` 줄("감사에 없다"), 승인 결과 줄, 호출 상세를 펼친 모양, trace id 복사 | §5.2 · §7.1 · I12 | G2 | **있다**(⑦ 675) — `external` 줄, 승인 결과 줄, 호출 상세, trace id 복사. 결과 방식 칸은 DC-18 `e27d389`: 호출 상세에서 결과 방식 줄을 뺐다(DC-18) |
 | 원격 노드 | §3.2 화면 8 | G4 — 이번 범위 밖 | 그대로 — G4, 이번 범위 밖 |
+
+### 13.6 동작 확인
+
+디자인이 "동작하는 화면"을 올려서 실제로 움직이는지 돌려 보았다. 이것은 **시안이 이 문서의 규칙대로 움직이는지**의 확인이다 — 실제 모듈·Gateway에 연결된 앱이 아니다(호출은 `setTimeout`으로 흉내 낸 시뮬레이션이고 이 노드의 값은 예시다).
+
+| 항목 | 값 |
+| --- | --- |
+| 방법 | node-gui의 `web/src/runtime/dc.js`(디자인 캔버스 문법 `{{…}}`·`<sc-for>`·`<sc-if>`·`DCLogic`을 브라우저에서 돌리는 작은 런타임)로 두 파일을 `tools/gen-pages.py`와 같은 방식(헬멧 → 머리, 템플릿 → 본문, 스크립트 → 모듈)으로 페이지로 만들어 띄웠다. 디자인 파일은 고치지 않았다 |
+| 환경 | Linux · Chromium 141 · Playwright 1.56.1(헤드리스). 시간은 가짜 시계로 감아 5~270초 기다림을 건너뛰었고, 실시간으로도 한 번 돌렸다 |
+| 범위 | 점검 31개 — 통과 23, 실패 8. 실패한 것이 곧 DC-22~27이다. 통과로 적혔지만 문제를 보인 것이 둘 더 있다(한글 조합 중 Enter, 접근성) |
+| 코드 | 시험 코드는 저장소에 넣지 않았다(작업 영역 밖). 디자인이 바뀌면 같은 점검을 다시 돌려야 하니 필요하면 modules `web/design/`에 올릴 수 있다 |
+
+| 묶음 | 본 것 | 결과 |
+| --- | --- | :---: |
+| 불러오기 | 동작하는 화면이 콘솔 오류·페이지 오류·실패한 요청·4xx 없이 뜬다. 세션 셋 | 통과 |
+| 승인 | `ask` 세션에 글을 보내면 `running`(입력 잠김) → 5초 뒤 `waiting-approval`(승인 카드·인박스·머리 칩·입력 잠김) → 카운트다운(10초 뒤 4:2x) → 승인 → `accepted-job` "접수 ≠ 완료" → `idle`. 승인을 두 번 불러도 접수는 한 번이고 실제 더블클릭도 한 번만 처리된다 | 통과 |
+| 거부 | 거부 → `TERRA_APPROVAL_DENIED` 줄, 재시작 없음, 안내 글, `idle` | 통과 |
+| 시간 초과 | 무응답 270초 → 마지막 1분에 `tick` → 카드 "시간 초과", `idle`, `TIME_LIMIT` 한 줄, `denied` 줄 없음, 입력 복귀(§6.3) | 통과 |
+| 취소 | 실행 중·승인 대기 중 취소, 확인창, "그대로 두기", 취소 뒤 20초 동안 줄이 늘지 않음, 대기 카드가 "취소됨"으로 닫힘 | 통과 |
+| 자율성 | 새 세션의 `plan`은 제안만("실행 안 됨"), `ask`·`auto`는 위험한 restart를 묻고, `unattended`는 묻지 않고 `TERRA_APPROVAL_REQUIRED`로 거절한다(`Decide`와 같다) | 통과 |
+| 무인 + MCP | 충돌 배너 `MCP_UNATTENDED_CONFLICT`, "세션 열기" 꺼짐(눌러도 세션이 늘지 않음), 서버를 빼면 켜짐 | 통과 |
+| 입력 안전 | 공백만은 못 보낸다. 글에 든 HTML과 `{{…}}`는 글자 그대로 나온다. 연타해도 한 번 | 통과 |
+| 인박스 | 다른 세션의 대기 승인이 인박스에 뜨고 눌러서 그 세션이 열린다 | 통과 |
+| 종료 세션 | `failed` 세션은 읽기 전용(입력 잠김·취소 숨김·"새 세션" 안내) | 통과 |
+| 실시간 | 가짜 시계 없이 보낸 글에 5초쯤 뒤 승인 카드가 선다 | 통과 |
+| 정적 보드 | 여덟 보드가 모두 그려지고 오류·외부 URL이 없으며 글자가 창 밖으로 나가지 않는다 | 통과 |
+| 입력창 | 한글 조합 중 Enter가 전송한다 · 20001자가 보내진다 · 여러 줄이 안 된다 | 실패 — DC-22 |
+| 대화 영역 | 3차례 뒤 위쪽이 잘리고 스크롤이 없다 | 실패 — DC-23 |
+| 문서 규칙 | 거부 표식(I18)과 한도 멈춤 옆 마지막 오류(I20)가 없다 | 실패 — DC-24 |
+| 무인 게이트 | 무인 자격이 아니어도 `unattended`를 연다 | 실패 — DC-25 |
+| 차례 줄 | 호출은 차례 몫, 토큰은 세션 누적(11.2k → 22.4k) | 실패 — DC-26 |
+| 연결·접근성 | "종료됨" 탭이 안 바뀐다. 이름 없는 입력 1·라이브 영역 0·dialog 역할 0 | 실패 — DC-27 |
+
+환경에서 알아 둘 것:
+
+- `corner-shape: squircle`은 Chromium 139 이상에서만 먹는다 `[I]`(이 시험은 141에서 돌아갔다). 그 밖의 엔진은 둥근 모서리로 떨어진다 — 깨지지는 않는다.
+- 이 시험 머신에는 Pretendard·Inter가 없어 글자가 DejaVu Sans·WenQuanYi Zen Hei로 그려졌다. 시험 스크린샷의 글꼴은 설계 의도와 다르다.
 
 ## 14. 근거와 세는 법
 
@@ -803,7 +855,7 @@ modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 �
 | entry 12종 | `user`·`assistant`·`model`·`call`·`external`·`planned`·`approval`·`approved`·`denied`·`done`·`cancelled`·`error` |
 | 세션 상태 7종 | `session.go`의 상수 — `idle`·`running`·`waiting-approval`·`done`·`cancelled`·`failed`·`archived` |
 | 등급 5개 | `agent_grant.go` — `readonly`(L0) · `operate`(L1) · `execute`(L2) · `fleet`(L3) · `account`(L4) |
-| 디자인 대조(§13) | 샘플 값은 Gateway·daemon `terra-api.json`의 `operations`(55 + 74 = 129건)에서 `execution.risk`·`execution.confirmation.mode`·`output.mode`·`sideEffects`를, 소스에서 오류 코드와 `Decide`를 읽어 확인했다. 디자인 파일은 `grep`으로 줄 번호와 외부 URL(0건)·이모지(0건)를 셌다 |
+| 디자인 대조(§13) | 샘플 값은 Gateway·daemon `terra-api.json`의 `operations`(55 + 74 = 129건)에서 `execution.risk`·`execution.confirmation.mode`·`output.mode`·`sideEffects`를, 소스에서 오류 코드와 `Decide`를 읽어 확인했다. 디자인 파일은 `grep`으로 줄 번호와 외부 URL(0건)·이모지(0건)를 셌다. 동작 확인(§13.6)은 node-gui `web/src/runtime/dc.js`로 두 파일을 Playwright 1.56.1·Chromium 141(Linux)에서 띄워 점검 31개를 돌렸다. 시험 코드는 이 저장소에 넣지 않았다 |
 | 재현 | `terra agent grant`를 시험 서버에 대고 `--json`·기본 표·`--quiet`·`--format yaml`·`--format ndjson`으로 돌렸다. 시험 코드는 저장소 복사본(작업 영역 밖)에서만 썼고 이 저장소에는 넣지 않았다. 복사본의 `renderer.go`·`agent.go`·`module_call.go`는 이 저장소의 것과 같다 |
 | 기준 소스 | Terra `products/common/{packages/terra-agent-core, apps/terra-gateway-service, apps/terra-cli}`, modules `common/io.terra.agent`와 `common/io.terra.nodetalk` |
 
@@ -839,6 +891,8 @@ modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 �
 - Scene Function으로 `grants.post` → `credentials.put`을 잇는 것과 토큰 값 취급(H-5).
 - `account` 자격이 `models.put`을 Gateway를 거쳐 확인 없이 부르는지(§9.3) — 핸들러 수준만 재현했다.
 - 실제 Anthropic 호출과 모델 응답의 품질 — 이 문서의 범위가 아니다.
+- 동작하는 화면(`AgentGUILive`)은 예시 데이터를 `setTimeout`으로 흉내 낸 시뮬레이션이다. 실제 모듈·Gateway에 연결된 앱은 아직 없다(G1 전). 브라우저 시험은 Linux의 Chromium 141 하나만 돌렸다 — Windows·macOS와 Firefox·Safari(`corner-shape: squircle` 지원은 확인하지 못했다 `[I]`)는 돌리지 않았다.
+- 한글 IME는 `keydown`에 `isComposing`을 실어 흉내 냈을 뿐 실제 조합을 돌리지 않았다 `[I]`.
 - 이 문서는 구현 인벤토리(`docs/reference/implemented-features.md`)를 고치지 않는다. 구현할 때 갱신한다.
 
 ## 15. 관련 문서
@@ -865,7 +919,7 @@ modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 �
 - [io.terra.nodetalk](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.nodetalk) — 서비스 모듈이 자기 `ui/` 앱을 싣는 선례(대화방)
 - [io.terra.webapp-host](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.webapp-host) — 브리지 handshake의 참조 구현
 - [lab.stellaxia.node-gui](https://github.com/StellaxiaLab/modules/tree/main/common/lab.stellaxia.node-gui) — main GUI. 앱 목록을 읽어 모듈에 `gui` 표시를 붙인다
-- [AgentGUI.dc.html](https://github.com/StellaxiaLab/modules/blob/08a39148505568cf34c59626a92bd6c8fbcce460/common/io.terra.agent/web/design/AgentGUI.dc.html) — 이 문서와 다시 대조한 화면 디자인(브랜치 `design/terra-agent-gui`, §13). 처음 대조한 판은 [`0ae91c5`](https://github.com/StellaxiaLab/modules/blob/0ae91c51027cf23507824797f45fee0d126d29a6/common/io.terra.agent/web/design/AgentGUI.dc.html)
+- [AgentGUI.dc.html](https://github.com/StellaxiaLab/modules/blob/e27d389797dedc776197b73c7d9870b5aee05a52/common/io.terra.agent/web/design/AgentGUI.dc.html) · [AgentGUILive.dc.html](https://github.com/StellaxiaLab/modules/blob/e27d389797dedc776197b73c7d9870b5aee05a52/common/io.terra.agent/web/design/AgentGUILive.dc.html) — 이 문서와 세 번 대조한 화면 디자인과 동작하는 화면(브랜치 `design/terra-agent-gui`, §13). 두 번째 판은 [`08a3914`](https://github.com/StellaxiaLab/modules/blob/08a39148505568cf34c59626a92bd6c8fbcce460/common/io.terra.agent/web/design/AgentGUI.dc.html), 처음 판은 [`0ae91c5`](https://github.com/StellaxiaLab/modules/blob/0ae91c51027cf23507824797f45fee0d126d29a6/common/io.terra.agent/web/design/AgentGUI.dc.html)
 - `products/common/packages/terra-agent-core` — 승인 판정 `Decide`, 메타도구
 - `products/common/apps/terra-gateway-service/agent_grant.go` · `scope_token.go` — 위임 발급과 앱 토큰
 - `products/common/apps/terra-cli/internal/app/agent.go` · `internal/output/renderer.go` — `terra agent` 명령과 출력 가림
