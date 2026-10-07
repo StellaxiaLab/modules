@@ -299,24 +299,19 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
 .card,.step,.dlg,.mini{border-radius:26px}
 .me{border-radius:28px 28px 10px 28px}.ai .tx{border-radius:16px 28px 28px 28px}
 .sess{border-radius:20px}.opt{border-radius:20px}.code{border-radius:18px}
-/* ── pillow: 면에도 곡률. 가운데가 살짝 볼록하게 떠 보이도록 위는 밝고 가장자리는 어둡게, 안쪽으로 번지는 아주 옅은 명암 ── */
-:root{
-  --bulge:radial-gradient(130% 100% at 50% 0%,rgba(255,255,255,.075),rgba(255,255,255,0) 62%),linear-gradient(180deg,rgba(255,255,255,.025),rgba(0,0,0,.14));
-  --bulge-s:radial-gradient(130% 100% at 50% 0%,rgba(255,255,255,.055),rgba(255,255,255,0) 62%),linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.10));
-  --dent:linear-gradient(180deg,rgba(0,0,0,.30),rgba(0,0,0,0) 55%),linear-gradient(0deg,rgba(255,255,255,.03),rgba(255,255,255,0) 40%);
-  --in-up:inset 0 1px 0 rgba(255,255,255,.07),inset 0 14px 22px -16px rgba(255,255,255,.12),inset 0 -14px 24px -14px rgba(0,0,0,.55);
-  --in-up-s:inset 0 1px 0 rgba(255,255,255,.06),inset 0 8px 14px -10px rgba(255,255,255,.10),inset 0 -8px 14px -9px rgba(0,0,0,.45);
-  --in-dn:inset 0 6px 12px -6px rgba(0,0,0,.65),inset 0 -1px 0 rgba(255,255,255,.05);
-}
-.win{background-image:var(--bulge-s);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -40px 60px -50px rgba(0,0,0,.6),0 24px 64px -24px rgba(0,0,0,.65)}
-.card,.step,.dlg,.mini{background-image:var(--bulge);box-shadow:var(--in-up),var(--f-sh)}
-.sess.on{background-image:var(--bulge);box-shadow:var(--in-up-s)}
-.chip,.btn,.ev,.opt,.me,.ai .tx{background-image:var(--bulge-s);box-shadow:var(--in-up-s)}
-.btn.pri{background-image:var(--bulge);box-shadow:var(--in-up-s),0 8px 20px -10px rgba(117,99,242,.7)}
-.seg b.on{background-image:linear-gradient(180deg,#fff,#dedaf0);box-shadow:inset 0 -6px 10px -6px rgba(90,80,150,.35)}
-.fld,.inp .box,.seg,.bar,.code{background-image:var(--dent);box-shadow:var(--in-dn)}
-.ev.done{background-image:none;box-shadow:none}
-.ai .av,.wh .mark,.wh .ctl i,.step .n{background-image:var(--bulge-s);box-shadow:var(--in-up-s)}
+/* ── bow: 모서리만이 아니라 네 변도 바깥으로 살짝 휜다. 변 가운데가 가장 바깥이고 모서리 쪽은 안으로 들어간다(위아래 --b, 좌우 --bx). clip-path: shape ── */
+.card,.step,.dlg,.mini,.sess.on,.opt,.me,.ai .tx,.code,.inp .box,.bow{clip-path:shape(from var(--r,22px) var(--b,2.5px),
+  curve to calc(100% - var(--r,22px)) var(--b,2.5px) with 50% calc(-1 * var(--b,2.5px)),
+  curve to calc(100% - var(--bx,1px)) min(var(--r,22px),46%) with calc(100% - var(--r,22px) + (var(--r,22px) - var(--bx,1px))*.7) var(--b,2.5px) / calc(100% - var(--bx,1px)) calc(min(var(--r,22px),46%) - (min(var(--r,22px),46%) - var(--b,2.5px))*.7),
+  curve to calc(100% - var(--bx,1px)) calc(100% - min(var(--r,22px),46%)) with calc(100% + var(--bx,1px)) 50%,
+  curve to calc(100% - var(--r,22px)) calc(100% - var(--b,2.5px)) with calc(100% - var(--bx,1px)) calc(100% - min(var(--r,22px),46%) + (min(var(--r,22px),46%) - var(--b,2.5px))*.7) / calc(100% - var(--r,22px) + (var(--r,22px) - var(--bx,1px))*.7) calc(100% - var(--b,2.5px)),
+  curve to var(--r,22px) calc(100% - var(--b,2.5px)) with 50% calc(100% + var(--b,2.5px)),
+  curve to var(--bx,1px) calc(100% - min(var(--r,22px),46%)) with calc(var(--r,22px) - (var(--r,22px) - var(--bx,1px))*.7) calc(100% - var(--b,2.5px)) / var(--bx,1px) calc(100% - min(var(--r,22px),46%) + (min(var(--r,22px),46%) - var(--b,2.5px))*.7),
+  curve to var(--bx,1px) min(var(--r,22px),46%) with calc(-1 * var(--bx,1px)) 50%,
+  curve to var(--r,22px) var(--b,2.5px) with var(--bx,1px) calc(min(var(--r,22px),46%) - (min(var(--r,22px),46%) - var(--b,2.5px))*.7) / calc(var(--r,22px) - (var(--r,22px) - var(--bx,1px))*.7) var(--b,2.5px),
+  close)}
+.opt,.me,.ai .tx,.sess.on,.code{--r:18px}
+.inp .box{--r:24px}
 
 /* ── 동작하는 화면 ── */
 button{font-family:inherit;color:inherit;border:none;text-align:left}
@@ -328,7 +323,7 @@ button:disabled{cursor:not-allowed;opacity:.4}
 button.sess{width:100%;background:none}
 button.sess.on{background-color:var(--f-2)}
 button.opt{width:100%;font-size:11.5px}
-button.chipb{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:13px;background-color:var(--f-3);background-image:var(--bulge-s);box-shadow:var(--in-up-s);font-size:11.5px;color:var(--sub)}
+button.chipb{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:13px;background:var(--f-3);font-size:11.5px;color:var(--sub)}
 .inp input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--paper);font:inherit;font-size:13px;height:32px}
 .inp input::placeholder{color:var(--dim)}
 .inp input:disabled{cursor:not-allowed}
