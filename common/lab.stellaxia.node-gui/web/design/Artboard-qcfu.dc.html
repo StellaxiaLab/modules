@@ -4479,6 +4479,7 @@ class Component extends DCLogic {
       { id: 'tr-41-1', dir: 'push', name: 'firmware.bin', total: 48, off: 0.62, state: 'transferring' },
       { id: 'tr-41-2', dir: 'pull', name: 'backup.tar', total: 1200, off: 0.18, state: 'transferring' },
       { id: 'tr-41-3', dir: 'push', name: 'logs.zip', total: 96, off: 0.4, state: 'failed', reason: 'CHUNK_OUT_OF_ORDER — 40%부터 이어 보낼 수 있다' },
+      { id: 'tr-41-4', dir: 'push', name: 'backup.tar', total: 310, off: 0.31, state: 'stalled', reason: '멈췄다 · 31%에서 보내던 화면이 닫혔다 — 이어서: 같은 파일을 고르면 거기서부터' },
       { id: 'tr-41-4', dir: 'pull', name: 'notes.md', total: 0.01, off: 1, state: 'completed' }
     ];
     if (app === 'tunnel') return [
@@ -4884,7 +4885,7 @@ class Component extends DCLogic {
       case 'decl': return F(['선언', '적용', '퇴역'], it.state === 'retired' ? 2 : it.state === 'applied' ? 1 : 0, it.state === 'applied' ? 'ok' : it.state === 'retired' ? 'off' : it.state === 'shadowed' ? 'wait' : 'bad');
       case 'grant': return it.type === 'bind' ? F(['바인딩', '흐르는 중'], it.state === 'active' ? 1 : 0, it.state === 'active' ? 'ok' : 'bad') : F(['허가', '유효', '만료'], it.alive ? 1 : 2, it.alive ? 'ok' : 'off');
       case 'folder': return F([it.dir ? '폴더' : '파일', '공유됨'], 1, 'ok');
-      case 'xfer': { const i = ['prepared', 'transferring', 'verifying', 'completed'].indexOf(it.state); return F(['준비', '보내는 중', '검사', '끝남'], i < 0 ? 1 : i, it.state === 'failed' ? 'bad' : it.state === 'aborted' ? 'off' : it.state === 'completed' ? 'ok' : 'run'); }
+      case 'xfer': { const i = ['prepared', 'transferring', 'verifying', 'completed'].indexOf(it.state); return F(['준비', '보내는 중', '검사', '끝남'], i < 0 ? 1 : i, it.state === 'failed' ? 'bad' : it.state === 'stalled' ? 'wait' : it.state === 'aborted' ? 'off' : it.state === 'completed' ? 'ok' : 'run'); }
       case 'tunnel': return it.type === 'decl' ? F(['선언', '늘 열기'], 1, 'ok') : F(['대기', '연결', '닫는 중'], it.state === 'draining' ? 2 : it.state === 'active' ? 1 : 0, it.state === 'failed' ? 'bad' : it.state === 'draining' ? 'off' : 'ok');
       case 'wg': return F(['본 적 없음', '오래됨', '정상'], it.health === 'healthy' ? 2 : it.health === 'stale' ? 1 : 0, it.health === 'healthy' ? 'ok' : it.health === 'stale' ? 'wait' : 'off');
       case 'job': { const i = ['queued', 'sent', 'running'].indexOf(it.state); return F(['대기', '보냄', '실행', '끝'], it.state === 'success' || it.state === 'failed' ? 3 : Math.max(0, i), it.state === 'failed' ? 'bad' : it.state === 'success' ? 'ok' : 'run'); }
@@ -5294,8 +5295,8 @@ class Component extends DCLogic {
       const sz = (v) => v >= 1000 ? (v / 1000).toFixed(1) + ' GB' : v >= 1 ? Math.round(v) + ' MB' : Math.round(v * 1000) + ' KB';
       cards = list.map((d, i) => {
         const need = [d.dir === 'push' ? 'file.write' : 'file.read'];
-        const st = d.state === 'transferring' ? chip(Math.round(d.off * 100) + '%', 'run') : d.state === 'verifying' ? chip('검사 중', 'run') : d.state === 'completed' ? chip('끝남', 'end') : d.state === 'aborted' ? chip('중단됨', 'off') : chip('어긋남', 'bad');
-        const acts = d.state === 'transferring' ? [B('중단', 'abort', d.id, false, need)] : d.state === 'failed' ? [B('이어서', 'resume', d.id, true, need), B('중단', 'abort', d.id, false, need)]
+        const st = d.state === 'transferring' ? chip(Math.round(d.off * 100) + '%', 'run') : d.state === 'verifying' ? chip('검사 중', 'run') : d.state === 'completed' ? chip('끝남', 'end') : d.state === 'aborted' ? chip('중단됨', 'off') : d.state === 'stalled' ? chip('멈춤', 'wait') : chip('어긋남', 'bad');
+        const acts = d.state === 'transferring' ? [B('중단', 'abort', d.id, false, need)] : d.state === 'failed' || d.state === 'stalled' ? [B('이어서', 'resume', d.id, true, need), B('중단', 'abort', d.id, false, need)]
           : d.state === 'completed' || d.state === 'aborted' ? [B('치우기', 'clear', d.id, false, [])] : [];
         return card(Object.assign({ id: d.id, name: d.name, sub: (d.dir === 'push' ? '↑ 올리기' : '↓ 내려받기') + ' · ' + sz(d.total), raw: d.id, fresh: d.fresh, acts, icon: IC.app.xfer,
           prog: d.state === 'completed' ? null : d.off, meta: d.reason || (d.state === 'completed' ? '완료된 전송은 기록이 남지 않는다' : ''), op: d.state === 'completed' ? 0.7 : 1, bstyle: d.state === 'completed' ? 'dashed' : 'solid' }, st), i);
