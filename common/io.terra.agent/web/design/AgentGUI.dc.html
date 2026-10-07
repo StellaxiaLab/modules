@@ -267,12 +267,11 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 /* ── flat: 입체감 제거. 단색 면 · 안쪽 반사/그라데이션/흐림 없음 · 그림자는 아주 옅게 ── */
 :root{--f-win:#13161b;--f-1:#1b1f26;--f-2:#222730;--f-3:#2a303a;--f-in:#0f1216;--f-sh:0 1px 2px rgba(0,0,0,.18),0 8px 24px -12px rgba(0,0,0,.45)}
 body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-system,'Segoe UI','Noto Sans KR','Noto Sans CJK KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;letter-spacing:-.005em}
-*,*::before,*::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .win{border-radius:20px;background:var(--f-win);box-shadow:0 24px 64px -24px rgba(0,0,0,.65)}
 .win::before,.win::after{display:none}
 .glass{background:var(--f-win);box-shadow:var(--f-sh)}
 .card,.step,.dlg,.mini{background:var(--f-1);box-shadow:var(--f-sh);border-radius:16px}
-.step.bad,.mini{background:#2a2312}
+.step.bad,.mini{background:rgba(245,184,61,.13)}
 .sess{border-radius:16px}.sess.on{background:var(--f-2);box-shadow:none}
 .chip{background:var(--f-3);box-shadow:none}
 .chip.ok{background:rgba(62,207,142,.18)}.chip.warn{background:rgba(245,184,61,.18)}.chip.err{background:rgba(255,93,93,.18)}
@@ -312,6 +311,16 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
   close)}
 .opt,.me,.ai .tx,.sess.on,.code{--r:18px}
 .inp .box{--r:24px}
+/* ── glass: 살짝 투명한 유리. 창은 뒤 배경을 흐리게 비추고, 안쪽 면은 흰 기운을 얹은 반투명 ── */
+:root{--f-win:rgba(13,16,22,.66);--f-1:rgba(255,255,255,.075);--f-2:rgba(255,255,255,.11);--f-3:rgba(255,255,255,.14);--f-in:rgba(0,0,0,.30);--f-sh:none}
+.win{background:var(--f-win);backdrop-filter:blur(30px) saturate(1.45);-webkit-backdrop-filter:blur(30px) saturate(1.45)}
+.glass{background:var(--f-win);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4)}
+.step.bad,.mini{background:rgba(245,184,61,.13)}
+.me{background:rgba(112,94,238,.82)}
+.btn.pri{background:rgba(117,99,242,.88)}
+.opt.on{background:rgba(112,94,238,.30)}
+.seg b.on{background:rgba(255,255,255,.90)}
+.opt.bad{background:rgba(255,93,93,.18)}
 </style>
 </helmet>
 
@@ -519,7 +528,7 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
           <div class="ev"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">terra.gateway.modules.get</span><span class="r"><span class="chip ok" style="height:18px">ok</span></span></div>
 
           <!-- 승인 카드 -->
-          <div style="align-self:stretch;margin:2px 0 0;border-radius:26px;background:#2a2312;box-shadow:var(--f-sh);overflow:hidden">
+          <div style="align-self:stretch;margin:2px 0 0;border-radius:26px;background:rgba(245,184,61,.13);box-shadow:var(--f-sh);overflow:hidden">
             <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.06)">
               <svg class="ic l" style="color:var(--warn)"><use href="#i-shield"/></svg>
               <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="color:var(--warn)">승인 요청</span><b class="mono" style="font-size:13px;font-weight:600">terra.daemon.modules.by-module-id.restart.post</b></div>
