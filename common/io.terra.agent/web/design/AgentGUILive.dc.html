@@ -37,7 +37,7 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .ic.s{width:13px;height:13px}.ic.l{width:20px;height:20px}
 .cap{font-size:10px;font-weight:600;letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
 .mono{font-family:var(--mono)}
-.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font-size:11px;font-weight:600;color:var(--paper);white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:16px;font-size:11px;font-weight:600;color:var(--paper);white-space:nowrap}
 .chip.ok{color:var(--ok);background:rgba(62,207,142,.10)}
 .chip.warn{color:var(--warn);background:rgba(245,184,61,.10)}
 .chip.err{color:var(--err);background:rgba(255,93,93,.10)}
@@ -53,16 +53,16 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .btn.dng{color:var(--err);background:rgba(255,93,93,.08)}
 .btn.off{opacity:.38}
 .kbd{font-family:var(--mono);font-size:10px;color:var(--muted);border-radius:4px;padding:0 4px}
-.seg{display:flex;gap:2px;padding:3px;border-radius:10px;background:rgba(255,255,255,.04)}
+.seg{display:flex;gap:2px;padding:3px;border-radius:16px;background:rgba(255,255,255,.04)}
 .seg b{font-weight:500;font-size:12px;padding:4px 10px;border-radius:7px;color:var(--muted)}
 .seg b.on{background:var(--paper);color:#111;font-weight:600}
 .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
 .bar>u{display:block;height:100%;border-radius:3px}
-.card{background:var(--up);border-radius:12px;padding:12px}
+.card{background:var(--up);border-radius:16px;padding:12px}
 .kv{display:grid;grid-template-columns:84px 1fr;gap:6px 10px;font-size:12px;align-items:baseline}
 .kv>span:nth-child(odd){color:var(--muted)}
 .kv>span:nth-child(even){min-width:0;overflow-wrap:anywhere}
-.sess{padding:10px 12px;border-radius:11px;border:1px solid transparent;display:flex;flex-direction:column;gap:5px}
+.sess{padding:10px 12px;border-radius:16px;border:1px solid transparent;display:flex;flex-direction:column;gap:5px}
 .sess.on{background:var(--up-2);border-color:var(--line-2)}
 .sess b{font-size:12.5px;font-weight:600;line-height:1.35}
 .sess .m{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted)}
@@ -78,13 +78,13 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .ev.done{border:none;background:none;justify-content:center;color:var(--dim)}
 .ev.done:before,.ev.done:after{content:"";height:1px;flex:1;background:var(--line)}
 .inp{flex:none;border-top:1px solid rgba(255,255,255,.06);padding:12px 16px 14px;display:flex;flex-direction:column;gap:8px}
-.inp .box{min-height:60px;border-radius:12px;background:rgba(255,255,255,.04);padding:10px 12px;display:flex;gap:10px;align-items:flex-end;color:var(--muted);font-size:13px}
+.inp .box{min-height:60px;border-radius:16px;background:rgba(255,255,255,.04);padding:10px 12px;display:flex;gap:10px;align-items:flex-end;color:var(--muted);font-size:13px}
 .inp .box.dis{opacity:.45}
-.anno{position:absolute;font-size:11px;font-weight:600;color:#111;background:var(--sun);border-radius:10px;padding:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:5;white-space:nowrap}
+.anno{position:absolute;font-size:11px;font-weight:600;color:#111;background:var(--sun);border-radius:16px;padding:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:5;white-space:nowrap}
 .tabs{display:flex;gap:2px;border-bottom:1px solid rgba(255,255,255,.06);padding:0 18px}
 .tabs b{padding:12px 14px;font-size:12.5px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs b.on{color:var(--paper);border-color:var(--paper);font-weight:600}
-.step{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--up)}
+.step{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--up)}
 .step .n{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 12px var(--mono)}
 .step.ok .n{color:var(--ok);background:rgba(62,207,142,.10)}
 .step.bad{background:rgba(245,184,61,.06)}
@@ -193,13 +193,13 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .card,.step{background:linear-gradient(160deg,rgba(255,255,255,.20),rgba(255,255,255,.07))}
 
 /* ── 보드 ⑤~⑧ 추가 요소 ── */
-.ban{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;font-size:12px;color:var(--sub);background:rgba(255,255,255,.07)}
+.ban{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:16px;font-size:12px;color:var(--sub);background:rgba(255,255,255,.07)}
 .ban b{color:var(--paper);font-weight:600}
 .ban.warn{background:rgba(245,184,61,.14)}.ban.err{background:rgba(255,93,93,.14)}.ban.info{background:rgba(122,167,255,.13)}
 .ban .r{margin-left:auto;display:flex;gap:6px;align-items:center}
 .cb{width:16px;height:16px;border-radius:5px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none;color:#111}
 .cb.on{background:var(--paper)}
-.opt{border-radius:12px;padding:11px 12px;background:rgba(255,255,255,.07);display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);line-height:1.5}
+.opt{border-radius:16px;padding:11px 12px;background:rgba(255,255,255,.07);display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);line-height:1.5}
 .opt b{font-size:13px;color:var(--paper);font-weight:600}
 .opt.on{background:rgba(255,255,255,.17);box-shadow:inset 1px 1px 1px rgba(255,255,255,.35)}
 .opt.off{opacity:.45}
@@ -263,18 +263,64 @@ body{margin:0;font-family:system-ui,'Noto Sans CJK KR','Noto Sans KR','Malgun Go
 .anno{box-shadow:0 1px 2px rgba(120,90,0,.15),0 6px 14px -6px rgba(255,200,40,.45)}
 .mini{box-shadow:var(--sh-1)}
 
-/* ── halo: 창 뒤의 빛. 평소엔 은은하게 켜져 있고(숨 쉬듯), 처리 중이면 돌아간다 ── */
-@property --ang{syntax:'<angle>';inherits:false;initial-value:0deg}
-.halo{position:absolute;left:103px;top:42px;width:1240px;height:861px;border-radius:30px;pointer-events:none;z-index:0}
-.halo::before,.halo::after{content:"";position:absolute;transition:opacity .9s ease}
-.halo::before{inset:-30px;border-radius:64px;background:conic-gradient(from var(--ang),rgba(117,99,242,.95),rgba(95,216,200,.85),rgba(255,154,194,.85),rgba(117,99,242,.95));filter:blur(46px);opacity:.34}
-.halo::after{inset:-10px;border-radius:44px;background:radial-gradient(62% 52% at 50% 100%,rgba(117,99,242,.55),transparent 72%),radial-gradient(40% 40% at 8% 0%,rgba(95,216,200,.35),transparent 70%);filter:blur(30px);opacity:.55;animation:haloBreathe 7s ease-in-out infinite}
-.halo.busy::before{opacity:.9;animation:haloSpin 3.4s linear infinite}
-.halo.busy.wait::before{background:conic-gradient(from var(--ang),rgba(245,184,61,.95),rgba(255,140,100,.85),rgba(255,216,77,.8),rgba(245,184,61,.95));animation-duration:5.2s}
-@keyframes haloSpin{to{--ang:360deg}}
-@keyframes haloBreathe{0%,100%{opacity:.42}50%{opacity:.72}}
-.win{z-index:1}
-@media (prefers-reduced-motion:reduce){.halo::before,.halo::after{animation:none !important}}
+
+/* ── flat: 입체감 제거. 단색 면 · 안쪽 반사/그라데이션/흐림 없음 · 그림자는 아주 옅게 ── */
+:root{--f-win:#13161b;--f-1:#1b1f26;--f-2:#222730;--f-3:#2a303a;--f-in:#0f1216;--f-sh:0 1px 2px rgba(0,0,0,.18),0 8px 24px -12px rgba(0,0,0,.45)}
+body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-system,'Segoe UI','Noto Sans KR','Noto Sans CJK KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;letter-spacing:-.005em}
+.win{border-radius:20px;background:var(--f-win);box-shadow:0 24px 64px -24px rgba(0,0,0,.65)}
+.win::before,.win::after{display:none}
+.glass{background:var(--f-win);box-shadow:var(--f-sh)}
+.card,.step,.dlg,.mini{background:var(--f-1);box-shadow:var(--f-sh);border-radius:16px}
+.step.bad,.mini{background:rgba(245,184,61,.13)}
+.sess{border-radius:16px}.sess.on{background:var(--f-2);box-shadow:none}
+.chip{background:var(--f-3);box-shadow:none}
+.chip.ok{background:rgba(62,207,142,.18)}.chip.warn{background:rgba(245,184,61,.18)}.chip.err{background:rgba(255,93,93,.18)}
+.chip.info{background:rgba(122,140,255,.20)}.chip.tree{background:rgba(240,166,58,.18)}.chip.leaf{background:rgba(90,168,255,.18)}
+.btn{background:var(--f-3);box-shadow:none}
+.btn.pri{background:#7563f2;color:#fff;box-shadow:none}
+.btn.dng{background:rgba(255,93,93,.22)}
+.seg{background:var(--f-in);box-shadow:none}.seg b.on{background:#ece9f6;color:#1a1a2a;box-shadow:none}
+.me{background:#5a4fd0;box-shadow:none}
+.ai .tx{background:var(--f-2);box-shadow:none}.ai .av{background:var(--f-3);box-shadow:none}
+.ev{background:var(--f-1);box-shadow:none}.ev.plan{box-shadow:none}
+.fld,.inp .box{background:var(--f-in);box-shadow:none}
+.code{background:var(--f-in)}
+.step .n{box-shadow:none}
+.bar{background:var(--f-in);box-shadow:none}.bar>u{background-image:none;box-shadow:none}
+.opt{background:var(--f-2);box-shadow:none}.opt.on{background:#3a3470;box-shadow:none}
+.wh .mark{background:var(--f-3);box-shadow:none}.wh .ctl i{background:var(--f-3);box-shadow:none}
+.anno{box-shadow:none}
+.vig{display:none}
+/* ── squircle: 연속 곡률(초타원) 모서리. 원·점은 그대로 둔다 ── */
+*,*::before,*::after{corner-shape:squircle}
+.dot,.ai .av,.wh .mark,.wh .ctl i,.think i,.step .n,.cb,.bar,.bar>u,.tabs b{corner-shape:round}
+.win{border-radius:34px}
+.card,.step,.dlg,.mini{border-radius:26px}
+.me{border-radius:28px 28px 10px 28px}.ai .tx{border-radius:16px 28px 28px 28px}
+.sess{border-radius:20px}.opt{border-radius:20px}.code{border-radius:18px}
+/* ── bow: 모서리만이 아니라 네 변도 바깥으로 살짝 휜다. 변 가운데가 가장 바깥이고 모서리 쪽은 안으로 들어간다(위아래 --b, 좌우 --bx). clip-path: shape ── */
+.card,.step,.dlg,.mini,.sess.on,.opt,.me,.ai .tx,.code,.inp .box,.bow{clip-path:shape(from var(--r,22px) var(--b,2.5px),
+  curve to calc(100% - var(--r,22px)) var(--b,2.5px) with 50% calc(-1 * var(--b,2.5px)),
+  curve to calc(100% - var(--bx,1px)) min(var(--r,22px),46%) with calc(100% - var(--r,22px) + (var(--r,22px) - var(--bx,1px))*.7) var(--b,2.5px) / calc(100% - var(--bx,1px)) calc(min(var(--r,22px),46%) - (min(var(--r,22px),46%) - var(--b,2.5px))*.7),
+  curve to calc(100% - var(--bx,1px)) calc(100% - min(var(--r,22px),46%)) with calc(100% + var(--bx,1px)) 50%,
+  curve to calc(100% - var(--r,22px)) calc(100% - var(--b,2.5px)) with calc(100% - var(--bx,1px)) calc(100% - min(var(--r,22px),46%) + (min(var(--r,22px),46%) - var(--b,2.5px))*.7) / calc(100% - var(--r,22px) + (var(--r,22px) - var(--bx,1px))*.7) calc(100% - var(--b,2.5px)),
+  curve to var(--r,22px) calc(100% - var(--b,2.5px)) with 50% calc(100% + var(--b,2.5px)),
+  curve to var(--bx,1px) calc(100% - min(var(--r,22px),46%)) with calc(var(--r,22px) - (var(--r,22px) - var(--bx,1px))*.7) calc(100% - var(--b,2.5px)) / var(--bx,1px) calc(100% - min(var(--r,22px),46%) + (min(var(--r,22px),46%) - var(--b,2.5px))*.7),
+  curve to var(--bx,1px) min(var(--r,22px),46%) with calc(-1 * var(--bx,1px)) 50%,
+  curve to var(--r,22px) var(--b,2.5px) with var(--bx,1px) calc(min(var(--r,22px),46%) - (min(var(--r,22px),46%) - var(--b,2.5px))*.7) / calc(var(--r,22px) - (var(--r,22px) - var(--bx,1px))*.7) var(--b,2.5px),
+  close)}
+.opt,.me,.ai .tx,.sess.on,.code{--r:18px}
+.inp .box{--r:24px}
+/* ── glass: 살짝 투명한 유리. 창은 뒤 배경을 흐리게 비추고, 안쪽 면은 흰 기운을 얹은 반투명 ── */
+:root{--f-win:rgba(13,16,22,.66);--f-1:rgba(255,255,255,.075);--f-2:rgba(255,255,255,.11);--f-3:rgba(255,255,255,.14);--f-in:rgba(0,0,0,.30);--f-sh:none}
+.win{background:var(--f-win);backdrop-filter:blur(30px) saturate(1.45);-webkit-backdrop-filter:blur(30px) saturate(1.45)}
+.glass{background:var(--f-win);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4)}
+.step.bad,.mini{background:rgba(245,184,61,.13)}
+.me{background:rgba(112,94,238,.82)}
+.btn.pri{background:rgba(117,99,242,.88)}
+.opt.on{background:rgba(112,94,238,.30)}
+.seg b.on{background:rgba(255,255,255,.90)}
+.opt.bad{background:rgba(255,93,93,.18)}
 
 /* ── 동작하는 화면 ── */
 button{font-family:inherit;color:inherit;border:none;text-align:left}
@@ -284,16 +330,16 @@ button.btn:hover,button.sess:hover,button.opt:hover,button.chipb:hover{filter:br
 button.btn:active{transform:translateY(1px)}
 button:disabled{cursor:not-allowed;opacity:.4}
 button.sess{width:100%;background:none}
-button.sess.on{background:rgba(0,0,0,.55)}
+button.sess.on{background-color:var(--f-2)}
 button.opt{width:100%;font-size:11.5px}
-button.chipb{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:13px;background:rgba(0,0,0,.5);font-size:11.5px;color:var(--sub)}
+button.chipb{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:13px;background:var(--f-3);font-size:11.5px;color:var(--sub)}
 .inp input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--paper);font:inherit;font-size:13px;height:32px}
 .inp input::placeholder{color:var(--dim)}
 .inp input:disabled{cursor:not-allowed}
 .msgs{flex-direction:column-reverse}
 .msgs .in{display:flex;flex-direction:column;gap:10px}
 .pgone{display:none}
-.opt.bad{background:rgba(58,16,18,.92)}
+.opt.bad{background:rgba(255,93,93,.18)}
 
 /* ── 모션: 모든 이벤트에 부드럽게 ── */
 :root{--ease:cubic-bezier(.22,.8,.24,1);--spring:cubic-bezier(.3,1.4,.5,1)}
@@ -302,28 +348,23 @@ button.chipb{display:inline-flex;align-items:center;height:26px;padding:0 11px;b
 @keyframes slideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
 @keyframes popIn{from{opacity:0;transform:translateY(10px) scale(.94)}to{opacity:1;transform:none}}
 @keyframes dots{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-4px);opacity:1}}
-@keyframes pendGlow{0%,100%{box-shadow:0 2px 6px rgba(120,80,10,.2),0 12px 34px -10px rgba(245,184,61,.30)}50%{box-shadow:0 2px 8px rgba(120,80,10,.25),0 18px 48px -8px rgba(245,184,61,.62)}}
-@keyframes boxGlow{0%,100%{box-shadow:inset 1.5px 1.5px 2px rgba(0,0,0,.2),inset -1px -1px 1px rgba(255,255,255,.2),0 10px 30px -10px rgba(117,99,242,.55)}50%{box-shadow:inset 1.5px 1.5px 2px rgba(0,0,0,.2),inset -1px -1px 1px rgba(255,255,255,.2),0 10px 34px -8px rgba(95,216,200,.6)}}
 @keyframes runDot{0%,100%{box-shadow:0 0 0 2px rgba(90,168,255,.18)}50%{box-shadow:0 0 0 6px rgba(90,168,255,.04)}}
 @keyframes tickWarn{0%,100%{opacity:1}50%{opacity:.55}}
 .rise{animation:rise .5s var(--ease) both}
 .fadein{animation:fadeIn .4s var(--ease) both}
 .slidein{animation:slideIn .45s var(--ease) both}
 .ovl{animation:fadeIn .25s ease both}.ovl .dlg{animation:popIn .38s var(--spring) both}
-.pendglow{animation:pendGlow 2.4s ease-in-out infinite}
-.box.work{animation:boxGlow 2.6s ease-in-out infinite}
 .dot.run{animation:runDot 1.6s ease-in-out infinite}
 .think{display:inline-flex;gap:5px;align-items:center}.think i{width:6px;height:6px;border-radius:50%;background:var(--sub);animation:dots 1.1s ease-in-out infinite}
 .think i:nth-child(2){animation-delay:.15s}.think i:nth-child(3){animation-delay:.3s}
 .chip,.btn,.sess,.opt,.chipb,.seg b,.fld,.card,.step,.ev,.me,.tx,.bar>u,.cb{transition:background .35s var(--ease),color .35s var(--ease),box-shadow .35s var(--ease),transform .25s var(--ease),filter .25s var(--ease),opacity .35s var(--ease)}
 .bar>u{transition:width .7s var(--ease)}
-button.btn:hover,button.chipb:hover,button.opt:hover{transform:translateY(-1px);filter:brightness(1.14)}
-button.sess:hover{filter:brightness(1.2);transform:translateX(2px)}
+button.btn:hover,button.chipb:hover,button.opt:hover{filter:brightness(1.14)}
+button.sess:hover{filter:brightness(1.2)}
 button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) scale(.97);filter:brightness(1)}
-.inp .box:focus-within{box-shadow:inset 1.5px 1.5px 2px rgba(0,0,0,.2),inset -1px -1px 1px rgba(255,255,255,.2),0 10px 32px -10px rgba(117,99,242,.6)}
 .tick{animation:tickWarn 1s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.rise,.fadein,.slidein,.ovl,.ovl .dlg,.pendglow,.box.work,.dot.run,.think i,.tick{animation:none !important}}
-.ovl{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;border-radius:30px}
+.ovl{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.40);display:flex;align-items:center;justify-content:center;border-radius:34px}
 </style>
 </helmet>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -359,7 +400,6 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
 <div class="board">
   <div class="map"></div><div class="dim"></div><div class="vig"></div>
   <div class="title-tag"><span class="chip" style="background:var(--sun);border-color:var(--sun);color:#111">동작하는 화면</span><span style="font-size:11.5px;color:var(--sub)">예시 데이터 — 세션을 고르고, 글을 보내고, 승인·거부하고, 새 세션을 열어 보세요. 호출은 모두 시뮬레이션입니다</span></div>
-  <div class="{{haloCls}}"></div>
   <div class="win">
     <div class="wh">
       <div class="mark"><svg class="ic" style="color:var(--paper)"><use href="#i-spark"/></svg></div>
@@ -381,7 +421,7 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
             <div class="card rise" style="padding:10px 12px;display:flex;flex-direction:column;gap:6px">
               <div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">승인 인박스</span><span class="chip warn mono">{{pendingCount}}</span></div>
               <sc-for list="{{inbox}}" as="p" hint-placeholder-count="1">
-                <button class="chipb" style="height:auto;padding:6px 10px;border-radius:10px;flex-direction:column;align-items:flex-start;gap:2px;width:100%" onClick="{{p.open}}"><b style="font-size:12px;color:var(--paper);font-weight:600">{{p.title}}</b><span class="mono" style="font-size:10.5px;color:var(--warn)">{{p.op}} · {{p.left}} 남음</span></button>
+                <button class="chipb" style="height:auto;padding:6px 10px;border-radius:16px;flex-direction:column;align-items:flex-start;gap:2px;width:100%" onClick="{{p.open}}"><b style="font-size:12px;color:var(--paper);font-weight:600">{{p.title}}</b><span class="mono" style="font-size:10.5px;color:var(--warn)">{{p.op}} · {{p.left}} 남음</span></button>
               </sc-for>
             </div>
           </sc-if>
@@ -425,14 +465,14 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
               <sc-if value="{{e.isError}}" hint-placeholder-val="{{false}}"><div class="ai"><div class="av" style="background:rgba(255,93,93,.25)"><svg class="ic s" style="color:var(--err)"><use href="#i-warn"/></svg></div><div class="tx" style="background:rgba(62,18,20,.92);display:flex;flex-direction:column;gap:5px"><span style="display:flex;gap:8px;align-items:center"><b>{{e.text}}</b><span class="chip err mono" style="height:18px">{{e.code}}</span></span><span style="font-size:11.5px;color:var(--sub)">{{e.sub}}</span></div></div></sc-if>
               <sc-if value="{{e.isCancelled}}" hint-placeholder-val="{{false}}"><div class="ev done"><span>세션이 취소되었습니다 · 입력 불가</span></div></sc-if>
               <sc-if value="{{e.isCard}}" hint-placeholder-val="{{false}}">
-                <div class="{{e.cardCls}}" style="border-radius:14px;background:linear-gradient(180deg,rgba(62,45,12,.94),rgba(26,20,9,.95));overflow:hidden">
+                <div class="{{e.cardCls}}" style="border-radius:26px;background:rgba(245,184,61,.13);overflow:hidden">
                   <div style="display:flex;align-items:center;gap:10px;padding:11px 16px"><svg class="ic l" style="color:var(--warn)"><use href="#i-shield"/></svg><div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="color:var(--warn)">승인 요청</span><b class="mono" style="font-size:12.5px;font-weight:600">{{e.op}}</b></div>
                     <sc-if value="{{e.cardPending}}" hint-placeholder-val="{{true}}"><span class="chip warn mono {{e.tickCls}}" style="margin-left:auto;height:24px;font-size:12px"><svg class="ic s"><use href="#i-clock"/></svg>{{e.left}}</span></sc-if>
                     <sc-if value="{{e.cardDone}}" hint-placeholder-val="{{false}}"><span class="{{e.resCls}}" style="margin-left:auto;height:24px">{{e.resText}}</span></sc-if></div>
                   <div style="display:grid;grid-template-columns:1.1fr 1fr;font-size:12px">
                     <div style="padding:4px 16px 12px;display:flex;flex-direction:column;gap:7px"><span class="cap" style="color:var(--paper)">계약이 말하는 것</span>
-                      <div class="kv" style="grid-template-columns:62px 1fr;gap:5px 8px"><span>위험</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip warn mono" style="height:18px">risk: write</span><span class="chip mut mono" style="height:18px">node.control</span></span><span>부작용</span><span>모듈 프로세스가 재시작된다</span><span>재시도</span><span class="mono" style="font-size:11.5px">never <span style="color:var(--dim)">· 멱등 아님</span></span><span>결과</span><span><span class="chip info" style="height:18px">accepted-job</span> <span style="font-size:11px;color:var(--muted)">접수 ≠ 완료</span></span><span>대상</span><span class="mono" style="font-size:11.5px">tree-home <span style="color:var(--dim)">(이 Gateway의 노드)</span></span></div></div>
-                    <div style="padding:4px 16px 12px;display:flex;flex-direction:column;gap:7px"><span class="cap" style="color:var(--muted)">모델이 말하는 것</span><div style="border-radius:10px;padding:9px 12px;font-size:12px;color:var(--sub);background:rgba(0,0,0,.62);font-style:italic;line-height:1.55">“chat 모듈이 Stopped라 재시작이 필요합니다. 데이터에는 영향이 없습니다.”</div><span style="font-size:10.5px;color:var(--dim)">모델의 주장입니다. <b style="color:var(--sub)">근거가 아닙니다.</b></span></div>
+                      <div class="kv" style="grid-template-columns:62px 1fr;gap:5px 8px"><span>위험</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip err mono" style="height:18px">risk: dangerous</span><span class="chip mut mono" style="height:18px">node.control</span></span><span>확인</span><span class="mono" style="font-size:11.5px">conditional</span><span>부작용</span><span style="color:var(--dim)">계약이 적지 않았다</span><span>재시도</span><span class="mono" style="font-size:11.5px">never <span style="color:var(--dim)">· 멱등 none</span></span><span>결과</span><span><span class="chip info" style="height:18px">accepted-job</span> <span style="font-size:11px;color:var(--muted)">접수 ≠ 완료</span></span><span>대상</span><span class="mono" style="font-size:11.5px">tree-home <span style="color:var(--dim)">(이 Gateway의 노드)</span></span></div></div>
+                    <div style="padding:4px 16px 12px;display:flex;flex-direction:column;gap:7px"><span class="cap" style="color:var(--muted)">모델이 말하는 것</span><div style="border-radius:16px;padding:9px 12px;font-size:12px;color:var(--sub);background:rgba(0,0,0,.62);font-style:italic;line-height:1.55">“chat 모듈이 Stopped라 재시작이 필요합니다. 데이터에는 영향이 없습니다.”</div><span style="font-size:10.5px;color:var(--dim)">모델의 주장입니다. <b style="color:var(--sub)">근거가 아닙니다.</b></span></div>
                   </div>
                   <div style="padding:11px 16px;background:rgba(0,0,0,.55);display:flex;align-items:center;gap:10px">
                     <span style="font-size:11.5px;color:var(--muted);flex:1;line-height:1.5">{{e.foot}}</span>
@@ -462,7 +502,7 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
             <sc-for list="{{autoOpts}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" onClick="{{o.pick}}"><b>{{o.name}}</b>{{o.desc}}</button></sc-for>
           </div>
           <span class="cap">외부 MCP 서버 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 읽기 전용 목록 · 등록은 앱 밖</span></span>
-          <button class="{{mcpCls}}" style="display:flex;flex-direction:row;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;width:100%" onClick="{{toggleMcp}}"><span class="{{mcpBox}}"><svg class="ic s" style="width:12px;height:12px"><use href="#i-check"/></svg></span><svg class="ic" style="color:var(--paper)"><use href="#i-puzzle"/></svg><span style="display:flex;flex-direction:column"><b class="mono" style="font-size:12.5px;font-weight:600">filesystem</b><span style="font-size:10.5px;color:var(--muted)">도구 4 · 읽기 전용 3 · env 이름만 보임</span></span></button>
+          <button class="{{mcpCls}}" style="display:flex;flex-direction:row;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;width:100%" onClick="{{toggleMcp}}"><span class="{{mcpBox}}"><svg class="ic s" style="width:12px;height:12px"><use href="#i-check"/></svg></span><svg class="ic" style="color:var(--paper)"><use href="#i-puzzle"/></svg><span style="display:flex;flex-direction:column"><b class="mono" style="font-size:12.5px;font-weight:600">filesystem</b><span style="font-size:10.5px;color:var(--muted)">도구 4 · 읽기 전용 3 · env 이름만 보임</span></span></button>
           <sc-if value="{{conflict}}" hint-placeholder-val="{{false}}"><div class="ban err"><svg class="ic" style="color:var(--err)"><use href="#i-warn"/></svg><span><b>무인 세션은 외부 MCP와 함께 열 수 없습니다.</b> 서버를 빼거나 자율성을 바꾸세요. <span class="mono" style="color:var(--dim)">MCP_UNATTENDED_CONFLICT</span></span></div></sc-if>
           <div class="card" style="display:flex;flex-direction:column;gap:6px"><span class="cap">한도 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 기본값</span></span><span class="mono" style="font-size:12px;color:var(--sub)">차례당 호출 24 · 시간 900초(승인 대기 포함) · 토큰 무제한</span></div>
           <div style="display:flex;align-items:center;gap:10px;margin-top:auto"><span style="font-size:11.5px;color:var(--dim);flex:1">열린 뒤에는 자율성을 바꿀 수 없습니다. 올리려면 새 세션입니다.</span><button class="btn" onClick="{{closeNew}}">취소</button><button class="btn pri" disabled="{{conflict}}" onClick="{{createSession}}">세션 열기</button></div>
@@ -588,15 +628,10 @@ class Component extends DCLogic {
     if (mode === 'plan') {
       this.later(id, g, 5000, () => this.call(id, RESTART, 'planned'));
       this.later(id, g, 5800, () => this.finish(id));
-    } else if (mode === 'ask') {
+    } else if (mode === 'ask' || mode === 'auto') { // auto도 dangerous 호출은 묻는다 (DC-21)
       this.later(id, g, 5000, () => {
         this.push(id, { kind: 'card', op: RESTART, state: 'pending', remaining: 270 }, { status: 'waiting-approval' });
       });
-    } else if (mode === 'auto') {
-      this.later(id, g, 5000, () => this.call(id, RESTART, 'accepted', '접수 ≠ 완료'));
-      this.later(id, g, 5800, () => this.modelCall(id, g));
-      this.later(id, g, 6600, () => this.say(id, '재시작을 접수했습니다. 모듈이 실제로 올라왔는지는 아직 확인하지 못했습니다.'));
-      this.later(id, g, 7400, () => this.finish(id));
     } else {
       this.later(id, g, 5000, () => this.call(id, RESTART, 'refused', 'TERRA_APPROVAL_REQUIRED'));
       this.later(id, g, 5800, () => this.say(id, '무인 세션이라 사람에게 물을 수 없어 거절되었습니다.'));
@@ -707,16 +742,15 @@ class Component extends DCLogic {
     const locked = ended || busy;
     const sendDraft = (t) => { this.sendText(cur.id, t); };
     const unattendedMcp = S.newAuto === 'unattended' && S.newMcp;
-    const AUTO = [['plan', '읽기만 하고 제안한다. 실행하지 않는다'], ['ask', '쓰기 전에 사람에게 묻는다'], ['auto', '자격 범위 안에서 묻지 않고 한다'], ['unattended', '물을 사람이 없으니 거절한다']];
+    const AUTO = [['plan', '읽기만 하고 제안한다. 실행하지 않는다'], ['ask', '쓰기 전에 사람에게 묻는다'], ['auto', '읽기와 되돌릴 수 있는 쓰기는 묻지 않는다. 위험한 호출은 여전히 묻는다'], ['unattended', '읽기와 사전 승인한 호출만 실행하고 나머지는 거절한다']];
     const chatDone = S.sessions.some((x) => x.entries.some((e) => e.kind === 'call' && e.st === 'accepted'));
     return {
-      haloCls: cur.status === 'running' ? 'halo busy' : (inbox.length > 0 ? 'halo busy wait' : 'halo'),
       pendingCount: inbox.length, inbox: inbox, sessionList: sessionList, entries: entries,
       showSession: !S.creating, creating: S.creating, confirmCancel: S.confirmCancel,
       cur: {
         title: cur.title, sid: cur.sid, status: cur.status, statusCls: stCls(cur.status), dot: stColor(cur.status), autonomy: cur.autonomy,
         canCancel: !ended && cur.status !== 'done', empty: empty,
-        hint: cur.autonomy === 'plan' ? 'plan 세션은 읽기만 하고 제안합니다.' : cur.autonomy === 'ask' ? 'ask 세션은 쓰기 전에 사람에게 승인을 묻습니다.' : cur.autonomy === 'auto' ? 'auto 세션은 자격 범위 안에서 묻지 않고 실행합니다.' : 'unattended 세션은 물을 사람이 없어 쓰기를 거절합니다.',
+        hint: cur.autonomy === 'plan' ? 'plan 세션은 읽기만 하고 제안합니다.' : cur.autonomy === 'ask' ? 'ask 세션은 쓰기 전에 사람에게 승인을 묻습니다.' : cur.autonomy === 'auto' ? 'auto 세션은 읽기와 되돌릴 수 있는 쓰기는 묻지 않지만, 위험한 호출은 여전히 묻습니다.' : 'unattended 세션은 읽기와 사전 승인한 호출만 실행하고 나머지는 거절합니다.',
         placeholder: placeholder, locked: locked, sendOff: locked || !S.draft.trim(), boxCls: cur.status === 'running' ? 'box work dis' : (locked ? 'box dis' : 'box'), thinking: cur.status === 'running',
         footNote: ended ? '새 세션을 열어 이어가세요.' : cur.autonomy === 'plan' ? 'plan 세션은 제안만 합니다. 실행하려면 새 세션을 ask로 여세요.' : '버튼은 대기 승인이 있을 때만 켜집니다. 한 번 누르면 곧바로 비활성화됩니다.',
         turnCalls: cur.turnCalls, turnPct: Math.min(100, Math.round(cur.turnCalls / 24 * 100)),
