@@ -8,7 +8,7 @@ doc_type: "design"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.3.0"
+version: "0.4.0"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -450,6 +450,14 @@ type Phase = 'draft' | 'invalid' | 'needs-grant' | 'binding' | 'active' | 'degra
 > - 공유는 같은 (자원, 노드)의 살아 있는 노드 허가가 있으면 그것을 쓴다(`grant_id`). 없으면 `subject_type: node` 허가를 만든다. 소유자가 아니면 404 `SVI_RESOURCE_NOT_FOUND` → `denied`.
 > - 시험은 Master 계약 모양의 가짜 클라이언트다 — 진짜 스택은 PF-1이 열린 뒤(MD-32). **`svi.resources.by-resource-id.endpoints.get`의 응답 모양은 Terra 코드(`routes_svi.go`)로만 확인했다.**
 > - 단추는 없다 — 입출력 설정 화면(UP-25)이 오면 [연결 적용] · [나에게 허가 주기]가 이 둘을 부른다.
+
+> [!NOTE] 구현됨 — MD-29 · MD-30 (2026-10-07)
+> 상태 맞추기(§4.3)는 `web/src/api/link-sync.js` · `src/api/link-wire.js`, 글은 `src/model/link-text.js`에 있다.
+> - **맞추는 길:** 신호(`terra.svi.bindings.changed` · `grants.changed` → 이미 `_hbRefresh`로 가는 그 길에 얹어 0.3초 뒤) · 처음(1.5초 뒤) · 30초 바닥 폴링. 신호가 앱에 오는지는 PF-1 가정 2다.
+> - **서버에 닿지 않으면 아무것도 바꾸지 않는다** — `lost`는 `svi.bindings.by-binding-id.get`이 404일 때만이다(목록에 없다고 `lost`로 보지 않는다 — 관리자 · 남이 만든 바인딩은 목록에 없을 수 있다).
+> - 이유 글은 Terra 코드에서 확인한 이유만 푼다(`reasonLine`). 모르는 이유는 그대로 보인다. `phaseEvent`는 §4.4 표의 도로 이벤트 대응이다 — 도로가 그것을 쓰는 것은 UP-26(MD-31).
+> - **끊기(§4.2):** 연결이 사라지는 `setState`를 본다. 맵 이동 · 로그아웃 · 다른 기기의 배치는 `map` · `maps`가 같이 와서 건드리지 않는다. 같은 `binding_id`를 쓰는 다른 연결이 남아 있으면 닫지 않는다. 닫지 못한 것은 `state.linkOrphans`(`{binding_id, code, at}` — 저장본에 들어간다)에 남아 다음 맞추기에서 다시 닫는다.
+> - 시험은 가짜 클라이언트다. 진짜 스택은 PF-1이 열린 뒤(MD-32).
 
 ## 6. 입출력 설정 화면 — 요구사항
 

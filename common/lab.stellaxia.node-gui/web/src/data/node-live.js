@@ -13,6 +13,7 @@
 import { treeFromMaster, nameNodes, buildNet, resourceSummary } from './world.js';
 import { taskAlarms } from './alarms.js';
 import { rootItems, entryItems, splitId, localRootItems, localEntryItems } from './files.js';
+import { reviveOrphans } from '../api/link-sync.js';
 import { layoutKey, loadLayout, saveLayout, bindLayout, pickLayout, reviveMaps, reviveWins, reviveMemos, remapNodes } from '../store/layout.js';
 import { DocStore, newerDoc, pullAssets, watchAssets } from '../store/docs.js';
 import { loadConfig } from '../api/config.js';
@@ -70,7 +71,7 @@ export function emptyWorld(screen, local) {
     // 상태 화면의 출력 칸 · 노드 관리 폼 · 크기 바꾸는 중인 창 · 전체 화면 전 화면 — 앞 세션의 것을 남기지 않는다
     hbOut: null, nodeAdm: null, wrz: null, fsPrev: {},
     // 표시 설정은 사용자마다 LayoutStore 에 있다 — 로그아웃하면 앞 사용자의 것을 남기지 않는다
-    roadsOn: true, markStyle: 'flag', roadPick: 'stone', ovhHide: false
+    roadsOn: true, markStyle: 'flag', roadPick: 'stone', ovhHide: false, linkOrphans: []
   });
 }
 
@@ -481,6 +482,7 @@ export async function loadWorld(screen, client, session) {
     memos: reviveMemos(saved.memos),
     wins: reviveWins(screen.state.wins, saved.wins),
     ovhHide: !!saved.ovhHide,
+    linkOrphans: reviveOrphans(saved.linkOrphans),   // 못 닫은 바인딩 — 다음 맞추기에서 다시(MD-30)
     place: null, placeMsg: '', rcfgKey: null, conn: null, pillOpen: null, pillSrc: null,
     rst: null, hbForm: null, mgui: null, netSel: null, hbArm: null, hbOut: null, nodeAdm: null
   }));

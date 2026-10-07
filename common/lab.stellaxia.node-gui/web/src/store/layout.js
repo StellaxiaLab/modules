@@ -5,7 +5,7 @@
 // 바꿀 때: loadLayout · saveLayout 두 함수만 다른 저장소(GUI 모듈 API 등)로 — docs/guides/module-profile.md §저장
 import { reviveLinks } from '../model/link-io.js';
 
-const KEYS = ['looks', 'maps', 'map', 'roadsOn', 'markStyle', 'roadPick', 'memos', 'wins', 'utilItems', 'ovhHide'];
+const KEYS = ['looks', 'maps', 'map', 'roadsOn', 'markStyle', 'roadPick', 'memos', 'wins', 'utilItems', 'ovhHide', 'linkOrphans'];
 
 export function layoutKey(gateway, user) { return 'terra.gui.layout|' + gateway + '|' + (user || '-'); }
 
