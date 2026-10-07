@@ -4,8 +4,8 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.12"
-last_updated: "2026-10-06"
+version: "v0.13"
+last_updated: "2026-10-07"
 ---
 
 # Terra 노드 (`lab.stellaxia.node-gui`)
@@ -109,6 +109,11 @@ Master가 닿지 않는 것은 **결함이 아니라 설계상 경계**다 — �
 Master는 401을 낸다. 그 401을 "로그인 필요"로 읽으면 사용자를 헛되이 로그인 화면으로 보내므로, 위임 자격으로 받은
 Master 401은 "쓸 수 없다"로 바꾸고 그 뒤로 Master를 부르지 않는다. 어떻게 열지는 아래 Q-2다.
 
+> [!NOTE] Q-2는 Terra가 정했다 (2026-10-07, [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md) · [Terra#136](https://github.com/StellaxiaLab/Terra/pull/136))
+> 앱 스코프 토큰은 **세션 id 위임 입구**로 Master operation에 닿는다 — 게이트웨이가 Core peer 자격 + 세션 id로 기존 Master 라우트를 부르고, Master가 그 사람의 세션을 복원해 권한을 좁힌다. Bearer는 여전히 나가지 않는다.
+> 1차는 **읽기만 · 앱 토큰만 · 관리자 동작 제외**, tree · leaf 둘 다. 쓰기 · 관리자 · Master 이벤트(SSE)는 2차다.
+> **Terra 구현 전이라 위 동작(401 → "쓸 수 없다")은 그대로다.** 구현이 들어오면 1차 읽기 화면부터 잇는다.
+
 ## 남은 결정 — 이번 구현이 고른 기본값
 
 판정서 §7의 결정 가운데 **Q-1은 확정됐다**(아래 표). 나머지는 아직 사람이 내리지 않았고, 이 모듈은 **되돌리기 쉬운 쪽**을 골라 두었다.
@@ -116,7 +121,7 @@ Master 401은 "쓸 수 없다"로 바꾸고 그 뒤로 Master를 부르지 않�
 | | 질문 | 이번 기본값 | 바꾸려면 |
 | --- | --- | --- | --- |
 | **Q-1** | 어떻게 나가나 (접두사) | **확정(2026-10-06) — 이 저장소의 릴리스로 나가고 코어에는 동봉하지 않는다.** `lab.stellaxia.*` 그대로, 개명 · `bundled-modules.json` 선언 없음. 설치는 설치기가 이 저장소 릴리스의 `.tmod`를 원격에서 가져와 깐다(설치기는 구현 중). 그 뒤의 변경 · 설치 · 업그레이드는 `.tmod`를 직접 받아 깔거나 tree 레지스트리(`pack` → `publish`)를 거친다 | 제품 동봉으로 가면 `io.terra.*`로 개명하고 코어 `bundled-modules.json`에 선언한다 — 되돌릴 때의 길이다 |
-| **Q-2** | Master 데이터를 웹에 어떻게 건네나 | **(다) 이 화면은 Master 데이터를 갖지 않는다** — "쓸 수 없다"로 보인다 | (가) Scene 중계 — 셸 Scene의 Function이 사용자 자격으로 `call`하고 `bind`로 넘긴다 · (나) Core peer 중계를 넓힌다(ADR 감) |
+| **Q-2** | Master 데이터를 웹에 어떻게 건네나 | **확정(2026-10-07) — (나) Core peer 중계를 넓힌다.** [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md): 세션 id 위임 입구, 1차는 읽기만 · 앱만 · 관리자 제외. **Terra 구현 전까지는 (다)처럼 보인다** — "쓸 수 없다" | 쓰기 · 관리자 · SSE는 ADR의 2차 결정을 기다린다. (가) Scene 중계는 쓰지 않는다 |
 | **Q-3** | 메모 · 설계도 · 맵 배치를 어디에 두나 | **이 브라우저 + Terra 사용자 문서 저장소**(C-1 — Terra G0~G6이 열었다). 브라우저(LayoutStore · `localStorage`, 노드 · 주체마다)에 바로, 사용자 문서(`app:<앱 id>` 이름공간 — 앱 토큰이면 고정)에 뒤따라. `kind`는 `scene` 그대로 — 모듈 백엔드가 필요 없다 | `config.json` `layoutStore: local`(브라우저에만) · `none`(저장 안 함) — 백로그 Q-14 |
 | **Q-4** | 보드를 어떻게 여나 | **`srcdoc`** — 판정서의 (가) · (나) · (다) 어느 것도 아닌 넷째 길. 프로토타입의 iframe 구조를 그대로 두고, 같은 앱의 페이지를 받아 `srcdoc`으로 넣는다. `srcdoc` 문서는 부모의 origin · CSP를 이어받아 `frame-ancestors` 검사를 타지 않는다 | (가) 한 문서 안에 마운트 · (다) 플랫폼 `frame-ancestors`에 `'self'`(P-3) |
 | **Q-5** | 여러 tree 전환 | **(가) 뺀다** — tree 목록은 비어 있고, 다른 tree로 가려 하면 *"다른 tree로는 이 화면이 닿지 않는다"* | (나) 셸 수준의 기능으로 따로 설계한다 |
@@ -174,7 +179,7 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 원본이 `a884226` 뒤로 시작 화면(O-1 · O-2 · O-5 · O-7)과 설정 화면(사용자 관리 M-1 · 첫 실행 마무리 O-3 · 이 노드의 등록 상태 O-6)을 더했다.
 `design/Intro.dc.html` · `design/Settings.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다 — 모듈용 치환 패치는 그대로 맞았다.
 
-- **사용자 관리(M-1)** — Master operation(`terra.master.admin.users.*`)이라 앱 토큰으로는 닿지 않는다(Q-2). 새 설정 디자인은 예시 사용자(`minji` 등)를 상태에 품고 있어서 **비우고** `usersState: 'error'`("Master에 닿지 않았거나…")로 둔다. 예시 동작(`userApi` — 화면 안에서만 사용자를 늘린다)은 "Master operation — 이 화면에서는 닿지 않는다"로 바꿨다.
+- **사용자 관리(M-1)** — Master operation(`terra.master.admin.users.*`)이라 앱 토큰으로는 닿지 않는다(Q-2). ADR-GW-003의 1차에서도 관리자 동작은 열리지 않는다. 새 설정 디자인은 예시 사용자(`minji` 등)를 상태에 품고 있어서 **비우고** `usersState: 'error'`("Master에 닿지 않았거나…")로 둔다. 예시 동작(`userApi` — 화면 안에서만 사용자를 늘린다)은 "Master operation — 이 화면에서는 닿지 않는다"로 바꿨다.
 - **이 노드의 등록 상태(O-6)** — Daemon operation(`terra.daemon.enrollment.status.get`, `node.read`)이라 **진짜 값**을 읽는다. 못 받으면(tree만 · 길 없음) 말없이 "없음". `ENROLLMENT` · `USERS` operation 선언은 `src/api/operations.js`에 들어왔다.
 - **알림 글자색** — 원본이 `wire.js`의 상태 글줄 색을 다크 글래스 팔레트로 옮겼다(`#d33d52→#ff6b81` · `#1f7a4d→#4ade80` · `#a65f00→#fbbf24` · `#2563eb→#60a5fa` · `#5b6472→#8b95a6`). 모듈의 같은 자리(`wire.js` · `data/alarms.js` · `data/node-live.js` 상수 · 설정 · 네트워크의 토스트)에 같은 값을 적용했다. 배지 배경(`model/badges.js`)과 로그인 띠(`api/frame-session.js`)는 원본도 그대로라 손대지 않았다.
 - **싣지 않은 것** — 시작 화면의 등록 단계 표시 · 복사 명령(O-5 · O-7)과 첫 실행 마무리의 서비스 판 동작은 모듈이 로그인 박스를 통째로 바꾸므로(Terra 셸이 로그인을 받는다) 화면에 나오지 않는다.
@@ -188,7 +193,7 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 - 이모지 글꼴(`public/fonts/noto-emoji.woff2` — 단색 선 글꼴, OFL)을 원본처럼 저장소에서 서빙한다. CDN을 부르지 않으므로 `font-src 'self'` CSP와 맞는다.
 - 연기 시험(`tests/smoke.mjs`)의 두 조작을 ver.2에 맞췄다 — 전체 화면에서 맵으로는 세션 띠의 `[맵]` 버튼, 보관함 알약은 오른쪽 끝을 누른다.
 
-원본이 더한 **노드 등록 코드**(A-19 — 미등록 leaf 등록 화면 · tree 노드 상태 창의 코드 발급)는 이 모듈에 싣지 않는다. 등록 화면은 시작 화면의 로그인 박스를 통째로 바꾸는 모듈 프로필에서 빠졌고(셸이 로그인을 받는다), 발급은 Master operation이라 앱 토큰으로는 "쓸 수 없다"(Q-2)로 보인다. `ENROLL` operation 선언만 `src/api/operations.js`에 들어와 있다.
+원본이 더한 **노드 등록 코드**(A-19 — 미등록 leaf 등록 화면 · tree 노드 상태 창의 코드 발급)는 이 모듈에 싣지 않는다. 등록 화면은 시작 화면의 로그인 박스를 통째로 바꾸는 모듈 프로필에서 빠졌고(셸이 로그인을 받는다), 발급은 Master operation(쓰기)이라 앱 토큰으로는 "쓸 수 없다"(Q-2)로 보인다 — ADR-GW-003의 1차(읽기만)에도 들지 않는다. `ENROLL` operation 선언만 `src/api/operations.js`에 들어와 있다.
 
 ### maingui 43a4e3a 따라가기 — SVI 흐름 칸 · 맵 도로 MD-24 (2026-10-05)
 
