@@ -8,8 +8,8 @@ doc_type: "api-reference"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.10.0"
-last_updated: "2026-10-05"
+version: "0.11.0"
+last_updated: "2026-10-07"
 language: "ko-KR"
 source: "src/screens/node.js · src/api/* · src/data/* · src/model/*"
 os_priority:
@@ -294,7 +294,8 @@ HELM_APPS.io = {
 | 칸 | 뜻 |
 | --- | --- |
 | `in(id, item, ctx)` | 입력을 만든다. 없으면 op 이름의 `by-…` 자리만 채운다(`pathInput`) — 모듈 op · Daemon 본문 해석기는 모르는 키를 거절한다 |
-| `none` | 부르지 않고 그 이유(`client.js` `REASON`)를 낸다 — 다시 실행처럼 화면이 아직 하지 않는 것 |
+| `none` | 부르지 않고 그 이유(`client.js` `REASON`)를 낸다 — 대응하는 API가 없거나 화면이 아직 하지 않는 것. `in` 이 `{ none }` 을 돌려줘도 같다(Master 가 보낸 작업의 다시 실행 — `TASK_RERUN_VIA_MASTER`) |
+| `confirm` | 두 번 눌러야 부른다 — 첫 누름은 겨누기(`hbArm`)와 이 글. 작업 다시 실행(`wire.js`) |
 | `upload` · `download` · `resume` | `act`로 부르지 않는다(`no-upload` · `no-download`) — 파일을 고르거나 저장할 곳이 있어야 해서 `wire.js`가 맡는다: 올리기 = 파일 고르기 → `source.upload`, 받기 = `source.download` → 브라우저 저장, 이어서 = 멈춘 전송의 카드(올리기는 파일 고르기 → `upload {resume}` · 받기는 다시 받기) |
 | `form` | 부르지 않고 앱 전체 화면의 추가(`add`) · 수정(`edit`) 폼을 연다 — `+ 선언` · `+ 허가` · `+ 즉석 열기`(`preset: { type: 'tun' }`) · `+ 실행` · `다시 선언` |
 | `say(data, item)` | 성공 글줄을 응답으로 만든다(모듈 상태 확인 · 작업 보기 · 로그) |
