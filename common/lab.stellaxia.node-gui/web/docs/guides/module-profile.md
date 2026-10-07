@@ -196,6 +196,8 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 
 ## 8. 원본(maingui)과 맞추기
 
+> [!NOTE] 2026-10-07부터 디자인 원본은 이 저장소의 `web/design/`이다. 아래 순서는 maingui `4ec0685`까지 따라가던 방법의 이력이고, 앞으로는 `web/design/`을 직접 고친 뒤 `npm run gen`만 한다.
+
 디자인 캔버스에서 원본이 바뀌면 — maingui 저장소의 `design/`을 가져와 다시 만든다:
 
 ```bash

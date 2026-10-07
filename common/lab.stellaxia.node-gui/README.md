@@ -13,6 +13,9 @@ last_updated: "2026-10-07"
 게임 GUI 형태의 Terra 노드 화면 — 시작 화면 · 육각 필드 맵 · 조타륜 · 노드 자원 · 연결(도로) · 오버헤드 패널 · 편집기 — 을
 노드의 **main GUI**로 내는 모듈이다. base Scene(`io.terra.scene.terra`)은 main이 하나면 그것을 곧장 띄운다.
 
+> [!NOTE] 디자인 원본은 이제 이 저장소다 (2026-10-07)
+> 이 시점부터 노드 GUI 디자인은 이 저장소의 `web/design/`에서 고치고 곧바로 적용한다. maingui를 따라가며 복사하는 일은 하지 않는다 — maingui `4ec0685`가 마지막으로 맞춘 판이다. 아래 maingui 기술은 그 이력이며, 같은 규칙으로 `npm run gen`만 돌리면 된다.
+
 화면은 GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `4ec0685`(2026-10-06 — **ver.2 다크 글래스 디자인** · 사용자 관리 · 등록 상태 · 시작 화면 온보딩 · service 판 = 예시 데이터를 뺀 판 · Terra G0~G6 연동 · Terra 10/05 반영 · SVI 흐름도 · SVI 흐름 칸 · 맵 도로 애니메이션)를
 바탕으로 한 **module 변형**이다(처음에는 `f24c3bc`, 그다음 `43a4e3a`에 맞췄다) — 같은 디자인 원본(`web/design/`) · 같은 생성 규칙이고, 갈림은 부트 프로필(`web/src/boot/module.js`)이다.
 처음에는 압축 파일로 받은 `terra-node-gui` 1.0으로 만들었고, 그 뒤 maingui 저장소(자원 추가 · 수정 · 삭제 · 상태 화면 · 모듈 GUI 창이 더 있다)로 다시 맞췄다.
