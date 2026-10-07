@@ -277,6 +277,7 @@ const REASON = {
   'no-rerun': 'Daemon 작업 목록은 명령을 돌려주지 않는다 — 추가 폼에 다시 적는다',
   'share-root': '공유 폴더(맨 위 칸)는 Daemon 설정이 정한다 — 폴더 안에 들어가서 만들고 바꾼다',
   'bad-name': '이름에 / 를 쓸 수 없다',
+  'bind-immutable': '바인딩은 고칠 수 없다 — 끊고 새로 연결한다',
   'io-kind': '종류는 장치가 정한다 — 바꿀 수 없다',
   'io-addr': '손 등록은 카메라 주소만 받는다 — rtsp:// · rtsps:// · http:// · https:// (비우면 스캔한다)',
   'io-pending': '승인 대기로 되돌리는 op는 없다 — 승인 · 거부만',

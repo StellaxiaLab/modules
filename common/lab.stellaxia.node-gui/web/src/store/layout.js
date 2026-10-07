@@ -3,7 +3,9 @@
 //   service 키 = terra.gui.layout|<gateway>|<user>
 //   module  키 = terra.gui.layout|<node_id>|<주체>  — 앱 origin 이 게이트웨이마다 따로라 저장소가 이미 게이트웨이로 갈린다
 // 바꿀 때: loadLayout · saveLayout 두 함수만 다른 저장소(GUI 모듈 API 등)로 — docs/guides/module-profile.md §저장
-const KEYS = ['looks', 'maps', 'map', 'roadsOn', 'markStyle', 'roadPick', 'memos', 'wins', 'utilItems', 'ovhHide'];
+import { reviveLinks } from '../model/link-io.js';
+
+const KEYS = ['looks', 'maps', 'map', 'roadsOn', 'markStyle', 'roadPick', 'memos', 'wins', 'utilItems', 'ovhHide', 'linkOrphans'];
 
 export function layoutKey(gateway, user) { return 'terra.gui.layout|' + gateway + '|' + (user || '-'); }
 
@@ -154,7 +156,7 @@ export function reviveMaps(maps, NET, isTree) {
         .map((k) => before.get(k) || { name: k, role: (NET[k] || { role: 'Leaf' }).role, at: '새로' });
     } else m.pending = [];
     m.rsrc = m.rsrc && typeof m.rsrc === 'object' ? m.rsrc : {};
-    m.links = Array.isArray(m.links) ? m.links : [];
+    m.links = reviveLinks(m.links);   // io 가 어긋난 연결은 io 를 뗀다 — 화면 전용으로 읽힌다(MD-27)
     m.sel = null;
     out[owner] = m;
   });

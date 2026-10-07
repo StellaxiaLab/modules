@@ -107,6 +107,15 @@ MODULE_TPL = {
         # 아래 두 알약의 누름 끄기(pointer-events: v.chromePe)는 원본에 올라갔다 — maingui 07d5739 (UP-15)
     ],
 }
+# 화면 스크립트(src/screens/*.js)에서 바꾸는 곳 — 지금은 하나뿐이다. 원본에 올릴 때까지 모듈이 들고 있고, 올라가면 걷는다
+MODULE_JS = {
+    'node': [
+        # [UP-26 · MD-31] 도로 이벤트: 연결(links)이 들고 있는 입출력 상태(io.phase — 대기 · 실패 · 정지 · 동작)를 끝 자원의 상태와 함께 본다.
+        # this.linkEv(l)(src/boot/fixes.js)는 화면 전용 연결이면 null — 예전 연결의 도로는 그대로다
+        ('[l.from, l.to].forEach((q) => { const x = evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; });',
+         '[l.from, l.to, l].forEach((q) => { const x = q === l ? (this.linkEv ? this.linkEv(l) : null) : evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; });'),
+    ],
+}
 MODULE_BETWEEN = {
     # (시작 표지, 끝 표지, 바꿀 글) — 시작 ~ 끝 앞까지를 통째로 바꾼다. 둘 다 정확히 한 번 있어야 한다
     'index': [(INTRO_FORM_START, INTRO_FORM_END, INTRO_FORM_MODULE)],
@@ -151,6 +160,7 @@ for src, name, title, mode, desc, _ in screens:
     defaults = {k: v.get('default') for k, v in props.items() if not k.startswith('$') and isinstance(v, dict) and 'default' in v}
     for a, b in links.items():
         tpl = tpl.replace(a, b); js = js.replace(a, b)
+    js = patch(js, MODULE_JS.get(name, []), name + ' 스크립트')
     tpl = patch_between(tpl, MODULE_BETWEEN.get(name, []), name + ' 템플릿')
     tpl = patch(tpl, MODULE_TPL.get(name, []), name + ' 템플릿')
     assert '</script' not in tpl

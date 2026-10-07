@@ -158,9 +158,9 @@ test('전송 — 폼으로는 만들지 않는다(↑ 올리기로 파일을 고
   assert.deepEqual([opOf(f.calls[1].url), f.calls[1].body, p.keep, p.verb], ['io.terra.file.transfers.abort', { transfer_id: 'tr-3', keep_partial: false }, true, '치움']);
 });
 
-test('길이 없는 것 — SVI 자원 · 모듈 설치 · 제거 · 허가 고치기 · 피어 추가는 null(화면이 지어내지 않는다). 이 노드의 게이트웨이에 없는 op 는 부르지 않는다', async () => {
+test('길이 없는 것 — SVI 자원 · 모듈 설치 · 제거 · 피어 추가는 null(화면이 지어내지 않는다). 이 노드의 게이트웨이에 없는 op 는 부르지 않는다', async () => {
   const { f, source } = live();
-  for (const [app, mode] of [['svi', 'create'], ['svi', 'update'], ['svi', 'del'], ['mod', 'create'], ['mod', 'del'], ['grant', 'update'], ['wg', 'create'], ['job', 'update']]) {
+  for (const [app, mode] of [['svi', 'create'], ['svi', 'update'], ['svi', 'del'], ['mod', 'create'], ['mod', 'del'], ['wg', 'create'], ['job', 'update']]) {
     assert.equal(await source.crud(LOCAL, app, mode, {}, { id: 'x' }), null, app + ' ' + mode);
   }
   // 모듈 수정 = 모듈 설정 — 폼을 열 때 받은 설정(item.cfg)이 없으면 부르지 않는다
@@ -354,4 +354,16 @@ test('실데이터 층 — 상태 화면의 노드 "로그인" 줄은 이 화면
   assert.equal(login(s), '로그인됨 — 이 화면의 세션');
   assert.match(s.rstVals().api[0].op, /\/api\/v1\/agent\/whoami/);
   assert.match(s.memoVals().path, /^메모\//);
+});
+
+test('허가 고치기 — svi.grants.by-grant-id.patch(operations · 기한만, 받는 이 · 자원은 못 바꾼다). 바인딩은 고치는 op 가 없다', async () => {
+  const { f, source } = live();
+  const r = await source.crud(LOCAL, 'grant', 'update', { who: 'user_2', res: 'r', ops: 'read · subscribe', ttl: '' }, { id: 'g-1', type: 'grant' });
+  assert.deepEqual([opOf(f.calls[0].url), f.calls[0].body], ['terra.master.svi.grants.by-grant-id.patch', { grant_id: 'g-1', operations: ['read', 'subscribe'] }], '기한을 비우면 기한은 건드리지 않는다(게이트웨이가 grant_id 를 경로로 옮긴다)');
+  assert.equal(r.verb, '고침');
+  await source.crud(LOCAL, 'grant', 'update', { ops: 'read', ttl: '2시간' }, { id: 'g-1', type: 'grant' });
+  assert.deepEqual(f.calls[1].body, { grant_id: 'g-1', operations: ['read'], ttl_seconds: 7200 });
+  const n = f.calls.length;
+  assert.deepEqual(await source.crud(LOCAL, 'grant', 'update', { ops: 'read' }, { id: 'b-1', type: 'bind' }), { kind: 'unavailable', reason: 'bind-immutable' });
+  assert.equal(f.calls.length, n, '바인딩은 부르지 않는다');
 });
