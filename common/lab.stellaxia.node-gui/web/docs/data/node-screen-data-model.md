@@ -7,7 +7,7 @@ doc_type: "data-model"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.3.2"
+version: "0.3.4"
 last_updated: "2026-10-07"
 language: "ko-KR"
 source: "design/Artboard-qcfu.dc.html (= src/screens/node.js) — constructor(), renderVals()"
@@ -207,8 +207,9 @@ looks = { 'tree-home': { skin: 'concrete', bid: 'tower', rot: 0 }, … }
 | `markStyle` | 🟩 로컬 (사용자 설정) | `flag` · `flat` · `none` | 건물 없는 노드 · 자원 필드의 표지 — [[node-screen-ui-spec#2.9 건물 없는 필드의 표지 (편집 창에서 고름)\|UI 명세 §2.9]] |
 | `evView` | ⬜ 화면 | `real` · `run` · `wait` · `stop` · `fail` | 이벤트 보기 (실제 상태 대신 한 이벤트로) — [[node-screen-ui-spec#2.11 이벤트 — 상태에 따라 다른 모습\|UI 명세 §2.11]]. 실제 상태: 노드 = `NET[이름].auth`(Master 가 오프라인으로 보면 `offline` → 정지) · 자원 = 원본 항목의 상태 |
 | `roadsOn` | 🟩 로컬 (사용자 설정) | boolean | 도로 그림 표시 |
-| `links` | 🟩 로컬 (맵마다 — `maps[이름].links`) | `[{ id, from, to, start, path[], road }]` | 연결하기로 만든 연결. 도로의 팔은 이것으로만 정해진다(`[start, …path, to]`의 이웃 칸 쌍). `to`는 합류 도로 칸일 수도 있다(입력 더하기) — [[node-screen-ui-spec#2.10 연결하기 — 도로 배치\|UI 명세 §2.10]] |
+| `links` | 🟩 로컬 (맵마다 — `maps[이름].links`) | `[{ id, from, to, start, path[], road, io? }]` — `io`(MD-27)는 연결의 종류 · 끝점 · 쌍 · QoS · 상태([[io-link-svi-binding-design\|입출력 연결 설계]] §5). 없으면 화면 전용 | 연결하기로 만든 연결. 도로의 팔은 이것으로만 정해진다(`[start, …path, to]`의 이웃 칸 쌍). `to`는 합류 도로 칸일 수도 있다(입력 더하기) — [[node-screen-ui-spec#2.10 연결하기 — 도로 배치\|UI 명세 §2.10]] |
 | `conn` · `pillOpen` · `pillSrc` · `roadPick` | ⬜ 화면 (`roadPick`은 🟩) | 끄는 중인 연결 · 펼친 설정 창 · 합류에서 고른 출발 자원 · 새로 깔 도로 종류 | |
+| `linkOrphans` | 🟩 로컬 (`LayoutStore` — 사용자 문서) | `[{ binding_id, code, at }]` | 끊은 연결의 바인딩을 서버에서 못 닫은 것(MD-30) — 다음 맞추기에서 다시 닫고 비운다 |
 | `roads` (`this.roads`) | 🟩 로컬 (`localStorage` `terra.gui.roads` → 나중에 `AssetStore`) | 도로 설계 목록 | [[road-editor-spec#4. 데이터\|도로 편집기 §4]]. 놓인 도로는 `placed[칸].bid = 'road:<id>'` |
 | `scr` | ⬜ 화면 | `{ W, H }` | 화면 크기 — 창을 따라 바뀐다(`fitScreen` → `lay()`) |
 

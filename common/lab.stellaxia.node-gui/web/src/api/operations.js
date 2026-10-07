@@ -263,7 +263,10 @@ export const HELM_CRUD = {
   },
   grant: {
     create: { op: T('svi.grants.post'), where: 'T', body: (v) => ({ subject_id: v.who, resource_id: v.res, operations: String(v.ops || 'read').split(' · '), ttl_seconds: ttlSec(v.ttl) }) },
-    update: null,   // 허가를 고치는 op 없음 — 철회 뒤 다시 준다
+    // 허가 고치기 — Master `svi.grants.by-grant-id.patch`(B-9): operations · endpoint_id · ttl_seconds 만 바꾼다(받는 이 · 자원은 못 바꾼다). 줄이면 그 operation 으로 연 핸들이 닫힌다.
+    // 바인딩은 고치는 op 가 없다 — 끊고 새로 연결한다. 기한 칸을 비우면 기한은 건드리지 않는다
+    update: (v, it) => (it && it.type === 'bind' ? { none: 'bind-immutable' }
+      : { op: T('svi.grants.by-grant-id.patch'), where: 'T', body: (vv, i) => Object.assign({ grant_id: i.id, operations: String(vv.ops || 'read').split(/\s*[·,]\s*/).filter(Boolean) }, vv.ttl ? { ttl_seconds: ttlSec(vv.ttl) } : {}), verb: '고침' }),
     del: (v, it) => (it && it.type === 'bind'
       ? { op: T('svi.bindings.by-binding-id.delete'), where: 'T', body: (vv, i) => ({ binding_id: i.id }), verb: '끊음' }
       : { op: T('svi.grants.by-grant-id.delete'), where: 'T', body: (vv, i) => ({ grant_id: i.id }), verb: '철회' })
@@ -347,7 +350,7 @@ export const CRUD_TEXT = {
   io: { list: 'terra.daemon.io.devices.get', add: 'terra.daemon.io.devices.post — 손 등록(카메라 manual.rtsp · manual.http-camera) · 주소를 비우면 terra.daemon.io.scan.post', edit: 'io.devices.by-device-id.{alias · approve · deny · enable · disable}.post — 바뀐 것만 차례로', del: 'terra.daemon.io.devices.by-device-id.forget.post' },
   svi: { list: 'terra.master.svi.resources.get (node_id)', add: '⚠ SVI 자원은 선언에서 생긴다 — 자원 선언 앱', edit: '⚠ 자원을 고치는 op 없음 — 같은 이름으로 다시 선언', del: '⚠ 선언 철회로 사라진다 — 자원 선언 앱' },
   decl: { list: 'terra.daemon.svi.declarations.get', add: 'terra.daemon.svi.declarations.post', edit: 'terra.daemon.svi.declarations.post {replace · 퇴역이면 reuse_name}', del: 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post' },
-  grant: { list: 'terra.master.svi.grants.get + svi.bindings.get', add: 'terra.master.svi.grants.post', edit: '⚠ 허가를 고치는 op 없음 — 철회 뒤 다시 준다', del: 'terra.master.svi.grants.by-grant-id.delete · 바인딩은 svi.bindings.by-binding-id.delete' },
+  grant: { list: 'terra.master.svi.grants.get + svi.bindings.get', add: 'terra.master.svi.grants.post', edit: 'terra.master.svi.grants.by-grant-id.patch {operations · ttl_seconds} — 줄이면 그 operation 으로 연 핸들이 닫힌다 · 바인딩은 고치는 op 가 없다(끊고 새로 연결)', del: 'terra.master.svi.grants.by-grant-id.delete · 바인딩은 svi.bindings.by-binding-id.delete' },
   folder: { list: 'io.terra.file.roots.list · io.terra.file.entries.list', add: 'io.terra.file.entries.mkdir · 파일은 io.terra.file.entries.write (빈 파일)', edit: 'io.terra.file.entries.rename', del: 'io.terra.file.entries.remove' },
   xfer: { list: 'io.terra.file.transfers.list', add: '↑ 올리기 — io.terra.file.transfers.create → transfers.chunks.put → transfers.complete · 받기는 폴더 앱 — transfers.pulls.create → transfers.chunks.get → transfers.pulls.complete', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시 · 멈춘 전송은 카드의 이어서(resume_id · 이 브라우저에 받아 둔 조각)', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
   tunnel: { list: 'terra.daemon.service-tunnels.get + terra.master.service-tunnels.declarations.get', add: '선언 terra.master.service-tunnels.declarations.post · 즉석 terra.master.service-tunnels.open.post', edit: '⚠ 고치는 op 없음 — 지우고 다시', del: 'terra.daemon.service-tunnels.by-tunnel-id.close.post · 선언은 terra.master.service-tunnels.declarations.by-declaration-id.delete' },

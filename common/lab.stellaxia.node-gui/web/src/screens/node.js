@@ -4879,7 +4879,7 @@ export default class Component extends DCLogic {
     const evOf = (k) => {
       const f = this.state.evView || 'real', pl = placed[k], road = !!(pl && this.isRoad(pl.bid));
       let e = evRaw(k);
-      if (!e && road) (this.state.links || []).forEach((l) => { if (this.linkCells(l).indexOf(k) < 0) return; [l.from, l.to].forEach((q) => { const x = evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; }); });
+      if (!e && road) (this.state.links || []).forEach((l) => { if (this.linkCells(l).indexOf(k) < 0) return; [l.from, l.to, l].forEach((q) => { const x = q === l ? (this.linkEv ? this.linkEv(l) : null) : evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; }); });
       if (!e && !road) return null;
       return f !== 'real' ? f : (e || 'run');
     };

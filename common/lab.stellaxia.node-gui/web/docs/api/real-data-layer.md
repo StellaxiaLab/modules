@@ -8,7 +8,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.7.1"
+version: "0.7.2"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -143,7 +143,7 @@ flowchart TB
 | WireGuard 피어 | — mesh 가입으로 생긴다 | — | Master `network.mesh.wireguard.peers.revoke.post {source_node_id, target_node_id}` — 공개 키뿐인 피어는 못 한다 |
 | 명령 · 작업 | 이 노드 `terra.daemon.commands.execute.post {command, args}` · 다른 노드 Master `commands.post {target_node_id, type: process.execute.request, payload}` — 명령 실행은 Daemon 이 원격으로 열지 않는다(`localOnly`) | — 다시 실행 | `tasks.by-task-id.cancel.post {task_id}` — 다른 노드도 노드 주소 호출로 그 Daemon 의 작업을(§2.7). 길이 없으면 Master `commands.post {process.cancel.request}`. 목록에 남는다 |
 | 자원 선언 | `terra.daemon.svi.declarations.post` — 평평한 선언 `{family, name, direction, command · args / path / address}` | 같은 op + `replace`(퇴역한 이름은 `reuse_name`). 계열 · 이름은 못 바꾼다 | `svi.declarations.by-family.by-name.undeclare.post {family, name}` — 퇴역 원장에 남는다 |
-| 허가 · 연결 | Master `svi.grants.post {subject_id, resource_id, operations[], ttl_seconds}` | — 철회 뒤 다시 | Master `svi.grants.by-grant-id.delete` · 바인딩 `svi.bindings.by-binding-id.delete` |
+| 허가 · 연결 | Master `svi.grants.post {subject_id, resource_id, operations[], ttl_seconds}` | — 철회 뒤 다시 | Master `svi.grants.by-grant-id.delete` · 바인딩 `svi.bindings.by-binding-id.delete` · 맵의 연결을 적용하면 `svi.bindings.post`(일곱 키) · 공유는 `svi.grants.post {subject_type: node}` — `src/api/link-apply.js`(MD-28 · 설계 [[io-link-svi-binding-design\|입출력 연결 설계]]) |
 | 모듈 | — 설치 op 가 없다(노드 지정은 Master — PF-14) | **모듈 설정**(B-6 설정 · maingui A-29) — 폼을 열기 전에 `terra.daemon.modules.by-module-id.config.schema.get` · `config.get`(`node.read`)으로 칸 · 값을 받아 항목에 붙인다(`item.cfg` — `cfgForm`: 수 · 고르기 · 예/아니오 · 글 · 비밀). 저장은 `config.patch {module_id, values, unset, base_revision}`(`module.manage`★) — 바뀐 키만(`cfgPatch`), 비운 칸은 `unset`(기본값으로), 비밀은 적었을 때만. 거절은 키를 적는다(`error.detail.keys`) · 겹치면 409 · 설정을 선언하지 않은 모듈은 폼을 열지 않고 그렇다고. 다른 노드는 노드 주소 호출 | — 제거 op 가 없다 |
 | SVI 자원 | — 선언에서 생긴다 | — | — |
 

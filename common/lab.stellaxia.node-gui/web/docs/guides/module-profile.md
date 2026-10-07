@@ -169,6 +169,10 @@ API에 자리가 없는 사용자 데이터를 이 브라우저의 `localStorage
 
 바꿀 글을 원본에서 **정확히 한 번** 찾지 못하면 `npm run gen`이 멈추고 그 글을 보인다 — 조용히 예시가 남지 않게.
 
+> [!NOTE] 화면 스크립트를 바꾸는 곳이 하나 있다 (`MODULE_JS` — 2026-10-07, MD-31)
+> 위는 모두 템플릿 · 구간 패치다. 스크립트(`src/screens/node.js`)는 그대로 둔다는 원칙에서 **한 줄**만 벗어난다 — 도로 이벤트(`evOf`)가 연결의 입출력 상태(`io.phase`)를 함께 보게 하는 것(`this.linkEv(l)` — `src/boot/fixes.js`).
+> `evOf`는 `renderVals` 안의 지역 함수라 런타임에 끼울 자리가 없다. 같은 규칙(정확히 한 번)이고, 원본에 올라가면(UP-26) 걷는다. [[io-link-svi-binding-design|입출력 연결 설계]] §4.4
+
 ## 7. 실행 때 바꾸는 것 (`src/boot/module.js` · `src/boot/fixes.js` · `src/data/*.js`)
 
 | 무엇 | 어디 |
