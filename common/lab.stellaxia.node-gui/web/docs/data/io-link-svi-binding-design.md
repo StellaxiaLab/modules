@@ -8,7 +8,7 @@ doc_type: "design"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.4.0"
+version: "0.5.0"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -458,6 +458,12 @@ type Phase = 'draft' | 'invalid' | 'needs-grant' | 'binding' | 'active' | 'degra
 > - 이유 글은 Terra 코드에서 확인한 이유만 푼다(`reasonLine`). 모르는 이유는 그대로 보인다. `phaseEvent`는 §4.4 표의 도로 이벤트 대응이다 — 도로가 그것을 쓰는 것은 UP-26(MD-31).
 > - **끊기(§4.2):** 연결이 사라지는 `setState`를 본다. 맵 이동 · 로그아웃 · 다른 기기의 배치는 `map` · `maps`가 같이 와서 건드리지 않는다. 같은 `binding_id`를 쓰는 다른 연결이 남아 있으면 닫지 않는다. 닫지 못한 것은 `state.linkOrphans`(`{binding_id, code, at}` — 저장본에 들어간다)에 남아 다음 맞추기에서 다시 닫는다.
 > - 시험은 가짜 클라이언트다. 진짜 스택은 PF-1이 열린 뒤(MD-32).
+
+> [!NOTE] 구현됨 — MD-31(도로 이벤트) · MD-33 (2026-10-07)
+> - **도로 이벤트(§4.4):** 화면 스크립트의 `evOf`가 도로의 이벤트를 고를 때 지나는 연결의 `phaseEvent(io.phase)`도 함께 본다(`tools/gen-pages.py` `MODULE_JS` 한 곳 + `fixes.js` `linkEv`). 지나는 연결들 · 끝 자원들 가운데 가장 나쁜 것이 이긴다. 화면 전용 연결 · `io` 없는 예전 연결은 null이라 도로는 그대로다. **새 SVI ↔ SVI 연결은 적용 전까지 `draft` = `wait`**라 도로가 호박빛으로 번진다 — 설계 §4.4 표대로다.
+> - **흐름 도로(UP-27)는 남았다:** `sviRoads`가 바인딩 `active`로도 흐르게 하려면 라벨(`▶ n fps`)이 핸들 없이 어떻게 보일지 디자인이 정해야 한다.
+> - **허가 고치기(MD-33):** 글만이 아니라 `HELM_CRUD.grant.update`를 달았다 — `svi.grants.by-grant-id.patch {operations, ttl_seconds?}`. 바인딩은 고치는 op가 없다.
+> - 이 환경에는 브라우저가 없어 도로 그림은 보지 못했다 — 연기 시험(`test:smoke`)이 필요하다.
 
 ## 6. 입출력 설정 화면 — 요구사항
 

@@ -250,3 +250,21 @@ test('화면 — 노드가 내보낼 자원을 고르면 그 연결의 쌍이 �
   assert.deepEqual(s.state.links[0].io.pairs.map((p) => p.key), ['svires_x#>svires_rec#']);
   assert.equal('io' in s.state.links[1], false, '다른 연결은 그대로');
 });
+
+test('도로 이벤트 — linkEv 는 연결 상태를 이벤트로, 화면 전용은 null · 화면 스크립트가 그것을 본다(UP-26 · MD-31)', async () => {
+  const s = new FakeScreen();
+  const ev = (io) => s.linkEv({ id: 'x', io });
+  assert.equal(s.linkEv(L('old', '1-1', '3-1')), null, '예전 연결(io 없음)은 그대로');
+  assert.equal(ev({ v: 1, kind: 'screen', pairs: [] }), null);
+  assert.equal(ev({ v: 1, kind: 'binding', phase: 'draft', pairs: [] }), 'wait');
+  assert.equal(ev({ v: 1, kind: 'binding', phase: 'active', pairs: [] }), 'run');
+  assert.equal(ev({ v: 1, kind: 'binding', phase: 'failed', pairs: [] }), 'fail');
+  assert.equal(ev({ v: 1, kind: 'binding', phase: 'denied', pairs: [] }), 'fail');
+  assert.equal(ev({ v: 1, kind: 'share', phase: 'share-expired', pairs: [] }), 'stop');
+  assert.equal(ev({ v: 9, kind: 'binding', phase: 'failed' }), null, '어긋난 io 는 화면 전용으로 읽는다');
+  // 생성된 화면 스크립트가 도로 이벤트에서 연결 상태를 본다 — gen-pages MODULE_JS 가 한 곳만 바꾼다
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile(new URL('../src/screens/node.js', import.meta.url), 'utf8');
+  assert.equal(src.split('this.linkEv(l)').length - 1, 1);
+  assert.match(src, /\[l\.from, l\.to, l\]\.forEach\(\(q\) => \{ const x = q === l \?/);
+});

@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.9.2"
+version: "1.9.3"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -40,7 +40,7 @@ related:
 | 묶음 | 누가 | 높음 | 중간 | 낮음 |
 | --- | --- | --- | --- | --- |
 | **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 3 | 4 | 8 |
-| **MD** 이 모듈 | modules 저장소 | 1 | 6 | 4 |
+| **MD** 이 모듈 | modules 저장소 | 1 | 6 | 3 |
 | **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | 1 | 6 | 7 |
 | **Q** 사람이 정할 것 | 소유자 | — | — | — |
 
@@ -149,6 +149,8 @@ flowchart LR
 | **MD-23** | maingui `1aa6340` 따라가기 — SVI 흐름도 · 흐름 이벤트 | `design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **SVI 자원 앱 창 = 흐름도**(maingui A-28 — 제공 노드 → 자원 → 엔드포인트 → 핸들 · 바인딩 · 허가, 카드 보기와 바꾼다). 연동 층: `ADAPT.svi`가 `flow` · `handle`을 채운다(없으면 화면이 카메라에 `frames` · `snapshot` 엔드포인트를 지어낸다), svi 앱이 `svi.handles.get` · `svi.bindings.get`도 받고, `wire.js`가 고른 자원의 열린 핸들 SSE(`svi.handles.by-handle-id.events.get`)를 `state.sviEv`에 넣는다. `ADAPT.grant`를 Master의 답 모양(`items` · `subject{type, id}` · `source{resource_id}`)으로 고쳤다. 예시 흐름 이벤트(`sviDemoTick`)는 끈다. 보고 있는 앱의 목록을 받지 못하면 그 이유를 남긴다(UP-24). 네트워크 읽기(A-20)는 Master라 보드는 그대로 "닿지 않음". SVI는 전부 Master op라 앱 토큰으로는 빈 흐름도 + 이유다(PF-1 · [[real-data-layer\|실데이터 층]] §5.6) · 2026-10-05 |
 | **MD-26** | maingui `4ec0685` 따라가기 — 사용자 관리 · 등록 상태 · 온보딩 | `design/Intro` · `design/Settings`를 그 커밋 그대로 복사하고 다시 만들었다(치환 패치는 그대로 맞았다). 새 설정 디자인의 예시 사용자 · 예시 등록 상태를 비우고, 사용자 관리(Master op)는 "닿지 않는다"(Q-2) · 등록 상태(Daemon `enrollment.status.get`)는 진짜 값. 원본이 옮긴 알림 글자색을 모듈의 같은 자리에 적용. 시험: 단위 127 · 연기 36 통과 | 반영 |
 | **MD-25** | maingui `a884226` 따라가기 — ver.2 다크 글래스 디자인 | `design/` 전체를 그 커밋 그대로 복사하고 다시 만들었다. `gen-pages.py`의 `MODULE_TPL` 치환 8건을 ver.2 마크업에 맞춰 다시 썼고(세션 띠 · 예시 배지 · 시연 스위치 · 상태 시연 select · 권한 줄 · v0.2 줄) 시작 화면 Terra 로그인 박스를 다크 색으로 바꿨다. 이모지 글꼴은 `public/fonts/`. 노드 등록 코드(A-19)는 싣지 않는다 — 등록 화면은 모듈 프로필이 로그인 박스를 갈아 끼워 빠지고, 발급은 Master op라 Q-2의 "쓸 수 없다". 시험: 단위 126 · 연기 36 통과 | 반영 |
+| **MD-31**(도로 이벤트) | 연결 상태 → 도로 이벤트(UP-26) — [[io-link-svi-binding-design|입출력 연결 설계]] §4.4 | 화면 스크립트의 `evOf`가 도로 이벤트를 고를 때 연결도 함께 본다 — `tools/gen-pages.py`에 **`MODULE_JS`**(스크립트 패치, 정확히 한 번 찾지 못하면 멈춘다 — 지금 한 곳)를 더해 `[l.from, l.to]` 자리에 연결 `l`을 더했고, `src/boot/fixes.js`의 `linkEv(l)`가 `phaseEvent(io.phase)`를 준다(화면 전용 · 예전 연결은 null — 그 도로는 그대로). 새 SVI ↔ SVI 연결은 적용 전까지 `wait`(숨 쉬듯 번짐)이다. 원본에 올라가면(UP-26) 이 패치를 걷는다 · 시험은 `linkEv`와 생성된 스크립트에 그 한 줄이 있는지(`tests/linkio.test.mjs`) — 도로 그림은 연기 시험이 필요하다(이 환경에는 브라우저가 없어 돌리지 못했다) · 2026-10-07 |
+| **MD-33** | 허가 고치기 — `svi.grants.by-grant-id.patch`(B-9) | `HELM_CRUD.grant.update`: `{grant_id, operations[, ttl_seconds]}`(기한 칸이 비면 기한은 건드리지 않는다 — 받는 이 · 자원은 못 바꾼다). 바인딩 항목은 `bind-immutable`(고치는 op 가 없다 — 끊고 새로 연결). `CRUD_TEXT` 글도 맞췄다 · 시험 `tests/crud.test.mjs` · 2026-10-07 |
 | **MD-29** | 연결 상태 맞추기 — [[io-link-svi-binding-design|입출력 연결 설계]] §4.3 · §4.4 | `src/api/link-sync.js`(`syncLinks` — 목록 한 번 + 없는 것만 하나씩 확인, 404일 때만 `lost` · 서버에 닿지 않으면 아무것도 바꾸지 않는다 · 공유 허가는 기한 · 철회) · `link-wire.js`의 `screen.linkSync()`(신호 `terra.svi.*.changed` → `_hbRefresh`에 얹어 0.3초 뒤 · 처음 1.5초 뒤 · 30초 바닥 폴링 · 읽는 사이 바뀐 연결은 덮지 않는다 · 동시에 둘 안 돈다) · `src/model/link-text.js`(`reasonLine` — 알려진 바인딩 이유만 풀어 쓴다 · `phaseLabel` · `phaseEvent` 도로 이벤트 대응) · 시험 `tests/linksync.test.mjs` 16개 · 2026-10-07 |
 | **MD-30** | 끊기 · 철거에서 바인딩 닫기 — [[io-link-svi-binding-design|입출력 연결 설계]] §3.3 · §4.2 | 연결이 사라지는 `setState`를 `link-wire.js`가 본다(끊기 · 칸 철거 · 경로 철거 · 자원 철거 · 필드 삭제 — 한 곳씩 감싸지 않고 `links`가 줄어드는 것을 본다). **맵 이동 · 로그아웃 · 다른 기기의 배치는 `map` · `maps`가 같이 오므로 건드리지 않는다.** 같은 `binding_id`를 쓰는 다른 연결(이 맵 · 다른 맵)이 남아 있으면 닫지 않는다 · 이미 없으면(404) 닫힌 것 · 닫지 못하면 `state.linkOrphans`(저장본에 들어간다)에 남겨 다음 맞추기에서 다시. 허가(나에게 준 bind 허가 · 노드 허가)는 자동 철회하지 않는다(Q-23 기본값) · 2026-10-07 |
 | **MD-28** | 연결 적용 — 엔드포인트 다시 읽기 → 미리 검사 → 내 허가 확인 → `svi.bindings.post` · 공유는 `svi.grants.post {subject_type: node}` — [[io-link-svi-binding-design|입출력 연결 설계]] §4.1 · §4.4 · §5.4 | `src/api/link-apply.js`(`applyLink` · `precheck` · `grantCovers` · `grantSelf` · `lacksOf`) · `src/api/link-wire.js`가 `screen.linkApply(연결 id)` · `screen.linkGrantSelf(연결 id)`를 단다(`wire.js`) · `source.principal`(whoami) · `link-io.js`에 사람이 고른 엔드포인트(`io.endpoints`)를 더했다. 호출은 `client.invoke` 직접(본문에 `node_id` 없음 — UP-13) · 이미 바인딩이 있는 쌍은 다시 만들지 않는다 · 서버에 닿지 않으면(카탈로그에 없음 · 401 · 503) 아무것도 바꾸지 않는다 · 단추는 UP-25(설정 화면)가 온 뒤 · 시험 `tests/linkapply.test.mjs` 23개(Master 계약 모양의 가짜 클라이언트) · 2026-10-07 |
@@ -262,9 +264,9 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 | MD | **MD-28** | ~~적용 흐름~~ — **끝냄**(2026-10-07, 가짜 Master 시험만 — 진짜 스택은 PF-1 · MD-32) | — |
 | MD | **MD-29** | ~~상태 맞추기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
 | MD | **MD-30** | ~~끊기에서 바인딩 닫기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
-| MD | **MD-31** | 연결 상태 → 도로 이벤트 · 흐름 도로를 바인딩으로(UP-26 · UP-27 따라가기) | 중간 |
+| MD | **MD-31** | 도로 이벤트는 **끝냄**(아래 §2 끝낸 것) — 남은 것: 흐름 도로를 바인딩 `active`로 그리기(UP-27 — 도로 라벨이 fps라 바인딩만 있고 핸들이 없을 때의 모습이 디자인 몫) | 중간 |
 | MD | **MD-32** | 연결 E2E — 가짜 서버 + tree 진짜 스택(MD-13과 함께) | 중간 |
-| MD | **MD-33** | "허가를 고치는 op 없음" 글 고치기 — `svi.grants.by-grant-id.patch`(B-9)가 있다 | 낮음 |
+| MD | **MD-33** | ~~"허가를 고치는 op 없음" 글~~ — **끝냄**(2026-10-07, 글만이 아니라 `update`를 실제로 달았다) | — |
 | UP | **UP-25** | 입출력 설정 화면 디자인(요구사항은 설계 §6) | 높음 |
 | UP | **UP-26** | 연결 상태 → 도로 이벤트(`evOf`가 끝 자원 `status`만 본다) | 중간 |
 | UP | **UP-27** | `sviRoads` 조건을 열린 핸들 대신 바인딩 `active`로 | 중간 |

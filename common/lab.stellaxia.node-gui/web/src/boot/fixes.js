@@ -1,4 +1,5 @@
-import { rebuildLinks, screenLinkCtx } from '../model/link-io.js';
+import { rebuildLinks, screenLinkCtx, readLinkIO } from '../model/link-io.js';
+import { phaseEvent } from '../model/link-text.js';
 
 // 두 변형이 함께 쓰는 보정 — 디자인 원본이 예시 데이터로만 돌아 드러나지 않던 빈 상태 오류를 막는다
 export function applyFixes(name, Screen) {
@@ -35,6 +36,10 @@ export function applyFixes(name, Screen) {
         return r;
       };
     };
+    // [모듈에서 더함 · 원본에 올릴 것 — UP-26] 연결 상태 → 도로 이벤트(설계 §4.4). 화면 스크립트의 evOf 가 도로의 이벤트를 고를 때 연결도 함께 본다
+    // (tools/gen-pages.py MODULE_JS). 화면 전용 연결(io 없음 · screen)은 null — 지금처럼 끝 자원의 상태만 본다
+    P.linkEv = function (l) { const io = readLinkIO(l); return io.kind === 'screen' ? null : phaseEvent(io.phase); };
+
     withIO('connEnd', (a, added) => (l) => added.has(l));   // 새 연결만 — 다른 연결의 쌍은 읽을 때 다시 푼다(합류가 바뀌어도)
     withIO('nodeSelToggle', (a) => (l) => l.id === a[0]);   // 노드가 내보낼 자원을 고르면 그 연결의 쌍이 바뀐다
   }
