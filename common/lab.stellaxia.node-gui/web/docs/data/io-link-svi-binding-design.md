@@ -8,7 +8,7 @@ doc_type: "design"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.1.0"
+version: "0.2.0"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -181,10 +181,15 @@ flowchart TD
 
 UI 명세 §2.10의 합류 규칙은 "입력은 합류까지, 출력은 합류에서"다. 쌍은 다음처럼 푼다.
 
-1. 합류 칸 J로 **들어오는** 연결(`to === J`)의 `from` 자원들이 source 집합이다.
-2. J에서 **나가는** 연결(`start === J`)의 `to` 자원들이 sink 집합이다.
-3. 바인딩 = source 집합 × sink 집합. 쌍마다 하나다.
-4. 합류에서 나가는 연결에 `pillSrc`(고른 출발 자원)가 있으면 그 source만 쓴다. 지금 화면이 출발 자원을 고르게 하는 것과 같다.
+연결 데이터에는 이미 출발(`from`)과 도착(`to`)이 있어서, 합류는 **입력 더하기**만 따로 풀면 된다(구현 MD-27, `src/model/link-io.js` `pairsOf`).
+
+1. **자원 → 자원** 연결은 쌍 하나다. 길이 합류를 지나도 같다.
+2. **출력 더하기**(`start`가 합류 칸) 연결은 `from`이 이미 고른 출발 자원이라 쌍 하나다(`from → to`). 지금 화면이 합류에서 출발 자원을 고르게 하는 것과 같다.
+3. **입력 더하기**(`to`가 합류 칸 J) 연결은 도착이 연결 안에 없다. J를 **지나는 다른 연결**(`to`가 J가 아닌 것)의 도착 자원마다 쌍이 하나씩 생긴다 — `from`(새 입력) × 그 도착들. 입력 더하기끼리는 서로의 도착이 아니다.
+4. 출발과 도착이 같은 자원이면 쌍을 만들지 않는다.
+
+> [!NOTE] 처음 쓴 규칙에서 바뀐 것 (0.2.0)
+> 처음에는 "J로 들어오는 연결의 `from` 집합 × J에서 나가는 연결의 `to` 집합"이라고 썼다. 구현하며 보니 출력 더하기 연결은 `from`을 이미 들고 있어서, 집합 곱을 따로 만들면 사람이 고르지 않은 쌍(입력 더하기의 새 자원 → 출력 더하기의 새 대상)까지 만들게 된다. 그래서 위처럼 연결이 든 쌍을 그대로 쓰고, 도착이 없는 입력 더하기만 풀었다. 사람이 고르지 않은 쌍은 만들지 않는다.
 
 > [!WARNING] 합류는 곱으로 커진다
 > source 3 × sink 3이면 바인딩이 9개다. sink 엔드포인트가 `exclusive`이거나 `max_consumers`가 1이면 둘째부터 거절된다(`target_endpoint_exclusive` · `target_endpoint_consumer_limit` — `binding_service.go:927-960`).
@@ -348,7 +353,8 @@ interface LinkIO {
   pairs: PairRef[];                       // 쌍마다 하나 (§3)
   grant_ids?: string[];                   // 이 연결 때문에 만든 허가 (나에게 준 bind 허가 · 노드 허가)
   // 마지막으로 본 상태 — 다시 열 때 첫 그림용. 열면 서버로 맞춘다 (§4.3)
-  phase: Phase;
+  phase?: Phase;                          // screen 이면 없다
+  via_node_id?: string;                   // share 만. 출발이 노드일 때 그 node_id — 출처 표시일 뿐 권한이 아니다
   reason?: string;                        // 서버 reason 또는 화면 검사 이유
   code?: string;                          // HTTP 오류 코드 (SVI_BINDING_DENIED · SVI_UNAVAILABLE …)
   checked_at?: string;                    // RFC 3339
@@ -357,7 +363,8 @@ interface EndpointRef { node_id: string; resource_id: string; endpoint_id: strin
 interface PairRef {
   key: string;                            // srcRes#srcEp>dstRes#dstEp
   binding_id?: string;
-  idempotency_key: string;                // 'gui-link-' + sha256(tree + key).slice(0, 32) — 두 번 눌러도 하나
+  idempotency_key?: string;               // 바인딩 쌍만(공유 쌍에는 없다). 'gui-link-' + sha256(tree + key).slice(0, 32) — 두 번 눌러도 하나
+  grant_id?: string;                      // 공유 쌍 — 노드 허가 id
   phase: Phase; reason?: string;
 }
 type Phase = 'draft' | 'invalid' | 'needs-grant' | 'binding' | 'active' | 'degraded'
@@ -425,6 +432,13 @@ type Phase = 'draft' | 'invalid' | 'needs-grant' | 'binding' | 'active' | 'degra
 | 끊기 | 닫기 실패 | `orphans[]`(맵 단위)에 `binding_id`를 남긴다 |
 
 거절 이유 목록의 근거는 `binding_service.go:797-993`이고, HTTP 코드의 근거는 `routes_svi_bindings.go:143-154`다.
+
+> [!NOTE] 구현됨 — MD-27 (2026-10-07)
+> 위 모양과 §2.1 · §3의 판정 · 쌍 풀기는 `web/src/model/link-io.js`(순수 함수)에 있다. 연결을 놓으면(`connEnd`) 새 연결에, 노드가 내보낼 자원을 고르면(`nodeSelToggle`) 그 연결에 `io`를 붙인다 — `src/boot/fixes.js`가 화면 클래스에 끼운다(원본 화면 코드는 그대로 — UP-28이 원본에 올라가면 걷는다). 서버는 부르지 않는다(적용은 MD-28).
+> - 예전 저장본(`io` 없음)과 어긋난 `io`는 **화면 전용**으로 읽는다. 저장본은 바꾸지 않는다(`reviveLinks`는 어긋난 `io`만 뗀다).
+> - 엔드포인트는 방향이 맞는 것이 하나뿐일 때만 채운다(Q-27). 앱 토큰으로 SVI 목록이 비어 있으면(PF-1) 모르는 채(`''`)로 남는다.
+> - 합류 때문에 다른 연결의 쌍이 바뀌어도 이미 붙은 `io`는 그때 다시 풀지 않는다 — 적용 직전에 `rebuildLinks`로 다시 푼다(MD-28).
+> - 시험: `tests/linkio.test.mjs`.
 
 ## 6. 입출력 설정 화면 — 요구사항
 

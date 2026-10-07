@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.9.0"
+version: "1.9.1"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -40,7 +40,7 @@ related:
 | 묶음 | 누가 | 높음 | 중간 | 낮음 |
 | --- | --- | --- | --- | --- |
 | **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 3 | 4 | 8 |
-| **MD** 이 모듈 | modules 저장소 | 4 | 7 | 4 |
+| **MD** 이 모듈 | modules 저장소 | 3 | 7 | 4 |
 | **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | 1 | 6 | 7 |
 | **Q** 사람이 정할 것 | 소유자 | — | — | — |
 
@@ -149,6 +149,7 @@ flowchart LR
 | **MD-23** | maingui `1aa6340` 따라가기 — SVI 흐름도 · 흐름 이벤트 | `design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **SVI 자원 앱 창 = 흐름도**(maingui A-28 — 제공 노드 → 자원 → 엔드포인트 → 핸들 · 바인딩 · 허가, 카드 보기와 바꾼다). 연동 층: `ADAPT.svi`가 `flow` · `handle`을 채운다(없으면 화면이 카메라에 `frames` · `snapshot` 엔드포인트를 지어낸다), svi 앱이 `svi.handles.get` · `svi.bindings.get`도 받고, `wire.js`가 고른 자원의 열린 핸들 SSE(`svi.handles.by-handle-id.events.get`)를 `state.sviEv`에 넣는다. `ADAPT.grant`를 Master의 답 모양(`items` · `subject{type, id}` · `source{resource_id}`)으로 고쳤다. 예시 흐름 이벤트(`sviDemoTick`)는 끈다. 보고 있는 앱의 목록을 받지 못하면 그 이유를 남긴다(UP-24). 네트워크 읽기(A-20)는 Master라 보드는 그대로 "닿지 않음". SVI는 전부 Master op라 앱 토큰으로는 빈 흐름도 + 이유다(PF-1 · [[real-data-layer\|실데이터 층]] §5.6) · 2026-10-05 |
 | **MD-26** | maingui `4ec0685` 따라가기 — 사용자 관리 · 등록 상태 · 온보딩 | `design/Intro` · `design/Settings`를 그 커밋 그대로 복사하고 다시 만들었다(치환 패치는 그대로 맞았다). 새 설정 디자인의 예시 사용자 · 예시 등록 상태를 비우고, 사용자 관리(Master op)는 "닿지 않는다"(Q-2) · 등록 상태(Daemon `enrollment.status.get`)는 진짜 값. 원본이 옮긴 알림 글자색을 모듈의 같은 자리에 적용. 시험: 단위 127 · 연기 36 통과 | 반영 |
 | **MD-25** | maingui `a884226` 따라가기 — ver.2 다크 글래스 디자인 | `design/` 전체를 그 커밋 그대로 복사하고 다시 만들었다. `gen-pages.py`의 `MODULE_TPL` 치환 8건을 ver.2 마크업에 맞춰 다시 썼고(세션 띠 · 예시 배지 · 시연 스위치 · 상태 시연 select · 권한 줄 · v0.2 줄) 시작 화면 Terra 로그인 박스를 다크 색으로 바꿨다. 이모지 글꼴은 `public/fonts/`. 노드 등록 코드(A-19)는 싣지 않는다 — 등록 화면은 모듈 프로필이 로그인 박스를 갈아 끼워 빠지고, 발급은 Master op라 Q-2의 "쓸 수 없다". 시험: 단위 126 · 연기 36 통과 | 반영 |
+| **MD-27** | 연결 판정 · 쌍 풀기 · `links[].io` 저장 — [[io-link-svi-binding-design\|입출력 연결 설계]] §2 · §3 · §5 | `src/model/link-io.js`(순수 — `classifyLink` · `pairsOf` · `buildIO` · `readLinkIO` · `sanitizeIO` · `reviveLinks` · `rebuildLinks`) · `src/boot/fixes.js`가 `connEnd`(새 연결) · `nodeSelToggle`(그 연결)에 `io`를 붙인다 · `src/store/layout.js` `reviveMaps`가 어긋난 `io`를 뗀다. 서버 호출 없음 · 예전 저장본은 그대로(화면 전용으로 읽힌다) · 시험 `tests/linkio.test.mjs` 24개 · 2026-10-07 |
 | **MD-24** | maingui `43a4e3a` 따라가기 — SVI 흐름 칸 · 맵 도로 애니메이션 | `design/Artboard-qcfu.dc.html` · `design/Intro.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **흐름 칸**(maingui `85e28ee` A-28): 상태 화면(SVI 자원) 아래 — 상태 · QoS · seq · fps · 받은 양 · 버린 프레임, `schema_ref`별 본문(글자 꼬리 · hex · 그림 최신 1장 · 메타), 멈춤 · 지우기 · 닫기 · 저장. **맵 도로**: 흐르는 자원의 연결에 움직이는 점선 + fps. 연동 층: `src/api/svi-stream.js`(StreamView — 꼬리 500줄/1 MB · 끝 64 KiB만 디코딩 · 8 ms 조각)는 원본 그대로, `src/api/svi-live.js`는 이 모듈의 `openEvents`(op를 opts로) · `HELM_APPS.svi.events`에 맞춰 옮겼다 — 예전 `wire.js` §8의 `state.sviEv`를 걷었다. 열기 본문을 채웠다(`sviOpenOp` — stream 엔드포인트가 `subscribe`를 열면 subscribe, 아니면 read · 전에는 빈 본문), 닫기는 카드 id가 아니라 열린 핸들(`item.handle`)을, `ADAPT.svi`가 `epInter` · `epOps` · `handleOp` · `handleQos`를 채운다. 원본에 올라간 것(`07d5739` — maingui#1): 시작 화면 알약의 누름 끄기(UP-15) 생성기 패치를 걷었고, 메모 경로 글(UP-18 — 원본이 `memos/`)도 `메모/`로 바꾼다. SVI는 Master op라 앱 토큰으로는 구독을 열지 않는다(PF-1). 가짜 서버(`sviflow.test.mjs`) · 연기 시험으로만 확인했다 — 진짜 스택은 아직 · 2026-10-05 |
 | **MD-20** | 다른 노드의 공유 폴더 안 · 전송 | `io.terra.file`(scopes local · node)은 노드 카탈로그에 없어 원격 모듈 경로 `/api/nodes/{node_id}/modules/io.terra.file/v1/…`로 부른다(`client.invokeModuleAt` · `fillRoute` · 카탈로그 `bindings`, 없으면 `fileBinding`). 앱 토큰으로 진짜 게이트웨이에서 목록 · 올리기 · 받기 · 지우기가 그 길로 갔다 · 2026-10-05 |
 | **MD-19** | maingui `2ced429` 따라가기 | `design/`(Artboard · Settings)을 그 커밋 그대로 복사하고 다시 만들었다 — 파일 단위로 같다. 연동 층은 필요한 것만 옮겼다(이벤트 · 노드 주소 호출 · 사용자 문서 · local-fs · desktop.open · 올리기 · 노드 관리 폼은 Master에 닿지 않으니 잠금 · 설정 재시작 `doRestart`). 생성기의 낡은 설정 패치 둘을 뺐다 · 2026-10-05 |
@@ -254,7 +255,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 | PF | **PF-21** | 바인딩 거절 이유를 `{reason_code, detail}`로 | 낮음 |
 | PF | **PF-22** | `terra.svi.bindings.changed`에 `reason` 싣기 | 낮음 |
 | PF | **PF-23** | 계약 글(기본 QoS · 핸들 operation) · 상세 설계서 §24.3을 코드에 맞추기 | 낮음 |
-| MD | **MD-27** | 연결 판정 · 쌍 풀기(합류 = source × sink) · `links[].io` 저장 | 높음 |
+| MD | **MD-27** | ~~연결 판정 · 쌍 풀기 · `links[].io` 저장~~ — **끝냄**(2026-10-07, 합류 규칙을 연결이 든 쌍 기준으로 고쳤다 — 설계 §3.2) | — |
 | MD | **MD-28** | 적용 흐름 — 미리 검사 → 허가 확인 → `svi.bindings.post`(지금 `허가 · 연결` 앱에 bind가 없다) · 노드 끝은 노드 허가 | 높음 |
 | MD | **MD-29** | 상태 맞추기 — 신호 · 폴링 · 열 때 맞추기 · 이유 글 · `orphans[]` | 높음 |
 | MD | **MD-30** | 끊기 · 칸 철거 · 경로 철거 · 자원 철거에서 바인딩 닫기 | 중간 |
