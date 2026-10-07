@@ -13,6 +13,8 @@
 const L = (op) => 'terra.daemon.' + op;
 const T = (op) => 'terra.master.' + op;
 const G = (op) => 'terra.gateway.' + op;
+/** 작업 출력 한 번에 읽는 양 — task-output.js OUTPUT_PAGE 와 같다(Daemon TaskOutputMaxPage) */
+const OUTPUT_PAGE = 256 * 1024;
 const FILE = (op) => 'io.terra.file.' + op;   // 모듈 op — scopes local · node 라 노드 주소 호출(B-1)이 아니라 원격 모듈 경로로(client.invokeModuleAt)
 
 /** io.terra.file 계약의 bindings — 이 노드에 io.terra.file 이 없어 카탈로그에 bindings 가 없을 때 원격 모듈 경로를 만든다(maingui FILE_BINDINGS 와 같다) */
@@ -137,15 +139,20 @@ export const HELM_APPS = {
       cancel: { op: T('commands.post'), where: 'T', perm: 'process.execute + process.cancel★', resp: 'job', input: { type: 'process.cancel.request' } },
       out: { op: T('jobs.by-job-id.get'), where: 'T', perm: 'node.read', resp: 'now', note: '출력은 폴링 — stdout · stderr 64 KiB' }
     },
-    // 이 노드 자신의 작업은 Daemon 이 안다 — Master 를 거치지 않는다. 출력(stdout)은 Daemon 이 돌려주지 않는다
+    // 이 노드 자신의 작업은 Daemon 이 안다 — Master 를 거치지 않는다.
+    // 출력 · 다시 실행은 Terra PF-7 — Daemon 이 작업마다 출력의 꼬리(256 KiB)와 원래 명세를 보관한다(task-output.js)
+    //   출력 읽기는 다른 노드도 노드 주소 호출로 닿는다(scopes cluster). 따라가기(SSE) · 다시 실행은 이 노드만(scopes local)
     local: {
       list: { op: L('tasks.get'), where: 'L', perm: 'node.read', resp: 'now' },
       adapt: 'jobLocal',
       acts: {
         run: { op: L('commands.execute.post'), where: 'L', perm: 'process.execute', resp: 'job', form: 'add', note: '명령은 앱 전체 화면의 추가 폼에 적는다' },
-        rerun: { op: L('commands.execute.post'), where: 'L', perm: 'process.execute', resp: 'job', none: 'no-rerun', note: 'Daemon 작업 목록은 명령을 돌려주지 않는다' },
+        // 같은 명세로 새 작업(rerun_of). 고치기가 아니다 — 바뀐 명령은 + 실행. Master 가 보낸 작업은 Master 로(TASK_RERUN_VIA_MASTER).
+        // confirmed 는 사람이 확인했다는 뜻이다 — 화면이 두 번 누르게 한다(confirm · wire.js)
+        rerun: { op: L('tasks.by-task-id.rerun.post'), where: 'L', perm: 'process.execute', resp: 'job', confirm: '두 번 눌러야 — 같은 명령을 이 노드에서 다시 실행한다',
+          in: (id, it) => (it && it.origin === 'master' ? { none: 'TASK_RERUN_VIA_MASTER' } : { task_id: id, confirmed: true }) },
         cancel: { op: L('tasks.by-task-id.cancel.post'), where: 'L', perm: 'node.control', resp: 'job' },
-        out: { op: L('tasks.by-task-id.get'), where: 'L', perm: 'node.read', resp: 'now', say: (d) => taskLine(d) }
+        out: { op: L('tasks.by-task-id.output.get'), where: 'L', perm: 'process.execute', resp: 'now', in: (id) => ({ task_id: id, max_bytes: OUTPUT_PAGE }), note: '실행 중이면 이 노드는 SSE 로 따라간다(output.events.get)' }
       }
     }
   },
@@ -355,7 +362,7 @@ export const CRUD_TEXT = {
   xfer: { list: 'io.terra.file.transfers.list', add: '↑ 올리기 — io.terra.file.transfers.create → transfers.chunks.put → transfers.complete · 받기는 폴더 앱 — transfers.pulls.create → transfers.chunks.get → transfers.pulls.complete', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시 · 멈춘 전송은 카드의 이어서(resume_id · 이 브라우저에 받아 둔 조각)', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
   tunnel: { list: 'terra.daemon.service-tunnels.get + terra.master.service-tunnels.declarations.get', add: '선언 terra.master.service-tunnels.declarations.post · 즉석 terra.master.service-tunnels.open.post', edit: '⚠ 고치는 op 없음 — 지우고 다시', del: 'terra.daemon.service-tunnels.by-tunnel-id.close.post · 선언은 terra.master.service-tunnels.declarations.by-declaration-id.delete' },
   wg: { list: 'terra.daemon.wireguard.peers.get · wireguard.status.get', add: '⚠ 피어는 mesh 가입으로 생긴다', edit: '⚠ 피어를 고치는 op 없음 — 동기화(wireguard.sync.post)', del: 'terra.master.network.mesh.wireguard.peers.revoke.post {source_node_id · target_node_id} (되돌릴 수 없다)' },
-  job: { list: 'terra.daemon.tasks.get · tree: terra.master.jobs.get', add: 'terra.daemon.commands.execute.post · tree: terra.master.commands.post', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행', del: 'terra.daemon.tasks.by-task-id.cancel.post · tree: commands.post {process.cancel.request}' },
+  job: { list: 'terra.daemon.tasks.get · tree: terra.master.jobs.get', add: 'terra.daemon.commands.execute.post · tree: terra.master.commands.post', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행(terra.daemon.tasks.by-task-id.rerun.post {confirmed} · 출력은 tasks.by-task-id.output.get)', del: 'terra.daemon.tasks.by-task-id.cancel.post · tree: commands.post {process.cancel.request}' },
   mod: { list: 'terra.daemon.modules.get · GUI는 /api/v1/gui/apps', add: '⚠ 모듈 설치 op 없음 — 제안 terra.gateway.modules.post (패키지 · 서명)', edit: 'terra.daemon.modules.by-module-id.config.patch {values · unset · base_revision} — 칸은 terra.daemon.modules.by-module-id.config.schema.get · 값은 terra.daemon.modules.by-module-id.config.get · 실행 중이면 재시작', del: '⚠ 모듈 제거 — 제안 terra.gateway.modules.by-module-id.delete' }
 };
 
@@ -486,12 +493,6 @@ function newFolder(at) {
 }
 
 export const TASK_STATE = { succeeded: '완료', success: '완료', completed: '완료', failed: '실패', dead_letter: '실패', timed_out: '시간 초과', canceled: '취소됨', cancelled: '취소됨', running: '실행 중', pending: '대기', queued: '대기' };
-
-/** Daemon 작업 하나 → 글줄 */
-export function taskLine(d) {
-  if (!d || typeof d !== 'object') return '작업 정보 없음';
-  return (d.type || '작업') + ' · ' + (TASK_STATE[d.state] || d.state || '상태 모름') + ' — 출력은 Daemon 이 돌려주지 않는다';
-}
 
 /** I/O 스캔 결과(ScanResult) → 글줄 */
 export function scanLine(d) {

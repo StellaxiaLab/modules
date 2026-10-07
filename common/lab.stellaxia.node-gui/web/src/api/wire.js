@@ -16,6 +16,7 @@ import { loadWorld, loadAlarms, loadNet, resetWorld, applySignal } from '../data
 import { openEvents, EVENTS_OP } from './events.js';
 import { liveHub } from '../data/live-host.js';
 import { loadConfig } from './config.js';
+import { OutputView, followOutput, OUTPUT_EVENTS_OP } from './task-output.js';
 import { openParts } from '../store/parts.js';
 
 const GREEN = '#4ade80', RED = '#ff6b81', GRAY = '#8b95a6', AMBER = '#fbbf24', BLUE = '#60a5fa';
@@ -81,6 +82,30 @@ export function wireHelm(screen, source, opts = {}) {
       else screen.hbSay(t, RED);
     }
     finally { loading.delete(key); }
+  };
+  // 출력 칸이 따라가는 작업 — 한 번에 하나(출력 칸이 하나다). 다른 것을 보이거나 칸이 다른 것을 보이면 닫는다
+  let follow = null;
+  const stopFollow = () => { if (follow) { follow.stop(); clearTimeout(follow.t); follow = null; } };
+  // 작업 출력(Terra PF-7) — 읽은 꼬리를 보이고, 이 노드의 실행 중인 작업이면 SSE 로 따라간다(task-output.js)
+  const showOutput = (node, id, item, page) => {
+    stopFollow();
+    const view = new OutputView().page(page), title = (nameOf(item) || id) + ' 출력';
+    screen.hbShowOut(node, 'job', id, title, view.text());
+    if (view.ended || node !== source.localNode || !source.client || !source.client.has(OUTPUT_EVENTS_OP)) return;
+    const mine = () => { const O = screen.state.hbOut; return O && O.node === node && O.app === 'job' && O.id === id; };
+    const f = { t: null };
+    const paint = () => {
+      f.t = null;
+      if (!live || follow !== f) return;
+      if (!mine()) { stopFollow(); return; }
+      screen.setState({ hbOut: Object.assign({}, screen.state.hbOut, { text: view.text(), at: new Date().toTimeString().slice(0, 8) }) });
+      if (view.ended) { follow = null; load(node, 'job', true); }
+    };
+    // 말이 많은 명령도 화면은 초당 여섯 번까지만 다시 그린다 — 끝은 곧장
+    f.stop = followOutput(source.client, id, view, () => {
+      if (view.ended) { clearTimeout(f.t); f.t = setTimeout(paint, 0); } else if (!f.t) f.t = setTimeout(paint, 160);
+    });
+    follow = f;
   };
   // 접수된 작업(202)이면 끝날 때까지 쫓고, 아니면 바로 목록을 다시 받는다
   const after = (r, node, app, item) => {
@@ -165,12 +190,23 @@ export function wireHelm(screen, source, opts = {}) {
     if (screen.state.hbBusy) return;
     const spec = (((source.appFor ? source.appFor(app, node) : appFor(app, node === source.localNode)) || { acts: {} }).acts || {})[op];
     if (spec && spec.form && screen.hbFormOpen) { screen.setState({ hbArm: null }); openForm(app, spec.form, id, node, spec.preset); return; }
+    // 확인이 필요한 동작(작업 다시 실행) — 첫 누름은 겨누기만 한다. 같은 카드를 한 번 더 누르면 부른다
+    //   부를 수 없는 것(Master 가 보낸 작업 — in 이 none)은 겨누지 않는다 — 첫 누름에 이유를 보인다
+    if (spec && spec.confirm && screen.state.hbArm !== id) {
+      const it = screen.hbItems(node, app).find((x) => x.id === id), pre = spec.in ? spec.in(id, it || {}, {}) : null;
+      if (!(pre && pre.none)) { screen.setState({ hbArm: id }); screen.hbSay('↻ 한 번 더 누르면 ' + (nameOf(it) || id) + ' — ' + spec.confirm, AMBER); return; }
+    }
     const item = screen.hbItems(node, app).find((x) => x.id === id);
     screen.setState({ hbBusy: id || app, hbArm: null });
     const r = await source.act(node, app, id, op, item, { path: screen.state.hbPath });
     if (!live) return;
     screen.setState({ hbBusy: null });
     // 모듈 로그 · 작업 출력은 상태 화면의 출력 칸으로 (원본 hbShowOut)
+    if (r.kind === 'ok' && screen.hbShowOut && app === 'job' && op === 'out' && r.data && Array.isArray(r.data.chunks)) {
+      showOutput(node, id, item, r.data);
+      screen.hbSay('출력 — 상태 화면' + (follow ? ' · 따라가는 중' : ''), GRAY);
+      return;
+    }
     if (r.kind === 'ok' && screen.hbShowOut && ((app === 'mod' && op === 'log') || (app === 'job' && op === 'out'))) {
       screen.hbShowOut(node, app, id, nameOf(item) + (op === 'log' ? ' 로그' : ' 출력'), outText(op, r.data));
       screen.hbSay((op === 'log' ? '로그' : '출력') + ' — 상태 화면', GRAY);
@@ -308,6 +344,7 @@ export function wireHelm(screen, source, opts = {}) {
   const lkOff = source.client ? wireLinkApply(screen, source) : () => {};
   return () => {
     live = false;
+    stopFollow();
     clearInterval(t);
     svOff();
     lkOff();
@@ -336,19 +373,22 @@ export function saveBlob(blob, name, doc = globalThis.document) {
 }
 
 /**
- * 출력 칸의 글 — 모듈 로그(게이트웨이 { logs } · Daemon { lines }) · 작업 기록.
- * 이 노드의 작업 기록(terra.daemon.tasks.by-task-id.get)은 명령 출력을 돌려주지 않는다 — 그렇다고 적는다(구현해야 할 것 PF-7)
+ * 출력 칸의 글 — 모듈 로그(게이트웨이 { logs } · Daemon { lines }) · 작업 출력.
+ * 작업 출력은 Daemon 의 출력 쪽(terra.daemon.tasks.by-task-id.output.get { chunks … } — task-output.js) · Master 작업({ output: { stdout, stderr, exit_code } }).
+ * 둘 다 아닌 작업 기록이면 상태만 적는다
  */
 export function outText(op, d) {
   if (op === 'log') {
     const lines = logLines(d);
     return lines.length ? lines.join('\n') + (d.truncated ? '\n— 앞부분은 잘렸다' : '') : '(최근 로그 없음)';
   }
-  const x = d || {}, o = x.output || x.result || {};
+  const x = d || {};
+  if (Array.isArray(x.chunks)) return new OutputView().page(x).text();
+  const o = x.output || x.result || {};
   if (o.stdout != null || o.stderr) return [o.stdout || '', o.stderr ? '— stderr —\n' + o.stderr : '', o.exit_code != null ? '— exit ' + o.exit_code : ''].filter(Boolean).join('\n');
   return [x.type ? '작업 ' + x.type : '', '상태 ' + (TASK_STATE[x.state || x.status] || x.state || x.status || '모름'),
     x.started_at ? '시작 ' + x.started_at : '', x.finished_at ? '끝 ' + x.finished_at : '',
-    '— 출력: Daemon 작업 기록은 명령 출력을 돌려주지 않는다'].filter(Boolean).join('\n');
+    '— 출력: 이 기록에는 출력이 없다'].filter(Boolean).join('\n');
 }
 
 /**

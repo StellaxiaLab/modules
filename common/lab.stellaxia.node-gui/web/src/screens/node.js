@@ -3102,7 +3102,7 @@ export default class Component extends DCLogic {
       const ST = { queued: ['대기', 'wait'], sent: ['보냄', 'run'], running: ['실행 중', 'run'], success: ['성공', 'ok'], failed: ['실패', 'bad'] };
       cards = list.map((d, i) => {
         const live = d.state === 'running' || d.state === 'queued' || d.state === 'sent';
-        const acts = live ? [B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, ['node.read']), B('다시', 'rerun', d.id, true, EX, deleg)];
+        const OUT = loc ? EX : ['node.read'], acts = live ? [B('출력', 'out', d.id, false, OUT), B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, OUT), B(S.hbArm === d.id ? '정말 다시' : '다시', 'rerun', d.id, true, EX, deleg)];
         const mm = Math.floor((d.t || 0) / 60), ss = Math.floor((d.t || 0) % 60);
         return card(Object.assign({ id: d.id, name: d.cmd, sub: d.id, raw: d.cmd, icon: IC.app.job, fresh: d.fresh, acts,
           meta: d.state === 'running' ? mm + ':' + String(ss).padStart(2, '0') + ' 경과' : d.code != null ? 'exit ' + d.code : d.out === 'canceled' ? '취소됨' : '' }, chip(ST[d.state][0], ST[d.state][1])), i);
