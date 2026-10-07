@@ -114,6 +114,11 @@ export class TerraClient {
       this.masterBlocked = true;
       return { kind: 'unavailable', status: r.status, reason: 'master-delegation', data: r.data };
     }
+    // Terra ADR-GW-003(위임 입구) 이후: Master 는 앱 토큰에 연 operation 만 받고, 열지 않은 것은
+    // 403 DELEGATION_NOT_OPEN 이다. 그 operation 하나만 닫힌 것이라 Master 전체를 막지 않는다.
+    if (this.delegated && r.kind === 'forbidden' && r.reason === 'DELEGATION_NOT_OPEN') {
+      return { kind: 'unavailable', status: r.status, reason: 'DELEGATION_NOT_OPEN', data: r.data };
+    }
     return r;
   }
 
@@ -255,6 +260,7 @@ const REASON = {
   NODE_NOT_FOUND: 'Master 가 그 노드를 모른다',
   OPERATION_NOT_REMOTE: '그 노드가 이 기능을 원격으로 열지 않았다',
   'master-delegation': 'Master를 거치는 기능은 이 화면에 아직 열리지 않았다',
+  DELEGATION_NOT_OPEN: 'Master가 이 기능을 앱 토큰에 아직 열지 않았다 — 지금은 읽기만 열려 있다(Terra ADR-GW-003 1차)',
   'not-in-catalog': '이 노드의 게이트웨이에 없다',
   'no-operation': '대응하는 API가 없다',
   'no-download': '받기는 파일을 저장할 곳이 있어야 한다 — 폴더 앱 파일 카드의 받기를 누른다',

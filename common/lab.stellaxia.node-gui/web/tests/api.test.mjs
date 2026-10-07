@@ -79,6 +79,21 @@ test('위임 자격의 Master 401 은 "닿지 않음"으로 읽고, 다음부터
   assert.equal(f.calls.length, 1);
 });
 
+test('위임 입구(ADR-GW-003)가 열지 않은 Master operation 은 그 하나만 "닿지 않음"이고 Master 를 막지 않는다', async () => {
+  const f = fakeFetch((url) => (url.includes('terra.master.fleets.get')
+    ? json(403, { ok: false, error: { code: 'DELEGATION_NOT_OPEN', message: 'this route does not accept a delegated session' } })
+    : json(200, { ok: true, data: { nodes: [{ node_id: 'n1' }] } })));
+  const client = new TerraClient('', { fetch: f, delegated: true });
+  const closed = await client.invoke('terra.master.fleets.get', {});
+  assert.equal(closed.kind, 'unavailable');
+  assert.equal(closed.reason, 'DELEGATION_NOT_OPEN');
+  assert.match(resultText(closed), /앱 토큰에 아직 열지 않았다/);
+  assert.equal(client.masterBlocked, false);
+  const open = await client.invoke('terra.master.nodes.get', {});
+  assert.equal(open.kind, 'ok');
+  assert.equal(f.calls.length, 2);
+});
+
 test('사용자 자격(단독 실행)의 401 은 그대로 "로그인이 필요하다"', async () => {
   const f = fakeFetch(() => json(401, { ok: false, error: { code: 'UNAUTHORIZED' } }));
   const client = new TerraClient('http://127.0.0.1:8790', { fetch: f });
