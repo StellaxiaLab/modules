@@ -8,7 +8,7 @@ doc_type: "design"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.6.0"
+version: "0.6.1"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -608,7 +608,7 @@ flowchart LR
 | **Q-22 · Q-23** | 위 표 | Q-22 묻고 만든다 · Q-23 철회하지 않고 기한은 고른다(기본 30일) |
 | Q-18~Q-21 · Q-24~Q-27 | 위 표 | 기본값 그대로 |
 
-**PF-24**(새 번호) — Terra: ADR-GW-003 2차 쓰기 라우트를 Q-28의 순서로 연다. 첫 단계(`bindings.post` · `bindings.by-binding-id.delete`)가 열리면 MD-28 · MD-30이 같은 사람의 자원끼리 이어지는 연결에서 동작한다 — 허가가 이미 있을 때. `grants.post`가 열리면 [나에게 허가 주기]까지. 이 모듈은 라우트가 카탈로그에 없으면 아무것도 바꾸지 않는다(시험으로 확인).
+**PF-24**(새 번호) — Terra: ADR-GW-003 2차 쓰기 라우트를 Q-28의 순서로 연다. **제안 문서를 Terra에 올렸다: [ADR-GW-004 (Proposed)](https://github.com/StellaxiaLab/Terra/pull/146)** — 라우트별 위험 분석 · 가드(받는 이 · operation) · 한도 · 감사 · 시험 · 사람이 정할 질문 Q11~Q16. 첫 단계(`bindings.post` · `bindings.by-binding-id.delete`)가 열리면 MD-28 · MD-30이 같은 사람의 자원끼리 이어지는 연결에서 동작한다 — 허가가 이미 있을 때. `grants.post`가 열리면 [나에게 허가 주기]까지. 이 모듈은 라우트가 카탈로그에 없으면 아무것도 바꾸지 않는다(시험으로 확인).
 
 ## 9. 확인하지 못한 것
 
