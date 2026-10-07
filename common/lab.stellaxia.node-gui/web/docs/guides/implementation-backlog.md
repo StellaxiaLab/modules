@@ -291,6 +291,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 
 - [[docs/README|개발 문서 MOC]]
 - [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]] — MD-1 설계 · §5의 근거
+- [[onboarding-gap-analysis|첫 실행 · 온보딩 · 관리 화면 공백 분석]] — O-1~O-8 · M-1~M-7 (maingui에서 옮김) · 안 한 것(O-8 · M-3~M-5 · O-3 노드 화면 알람)
 - [[module-profile|모듈 프로필]] — 변형 · 시작 화면 · LayoutStore · 생성 때 바꾸는 것
 - [[real-data-layer|실데이터 층]] — §3 비어 있는 것 · §5 실측
 - [[implementation-guide|구현 가이드]] — 실데이터로 옮기는 순서 · 결정 필요
