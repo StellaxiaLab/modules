@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { applyLink, precheck, grantCovers, deniedReason, grantSelf, lacksOf, OPS } from '../src/api/link-apply.js';
+import { applyLink, precheck, grantCovers, deniedReason, grantSelf, lacksOf, OPS, GRANT_SELF_TTL_DEFAULT } from '../src/api/link-apply.js';
 import { wireLinkApply } from '../src/api/link-wire.js';
 import { buildIO, setEndpointChoice, sanitizeIO, idempotencyKey, pairsOf } from '../src/model/link-io.js';
 
@@ -183,13 +183,14 @@ test('적용 — 미리 검사에 걸리면 bind 를 부르지 않는다', async
   assert.equal(r.io.phase, 'invalid'); assert.match(r.io.pairs[0].reason, /^schema_major_mismatch:/);
 });
 
-test('적용 — 내 것이 아닌 자원(엔드포인트 404)은 source_endpoint_not_found 로', async () => {
+test('적용 — 내 것이 아닌 자원(엔드포인트 404)은 *_resource_not_found 로', async () => {
   const link = L('a', '1-1', '3-1');
   const c = fake(std({ [OPS.endpoints]: (i) => (i.resource_id === 'svires_rec' ? { kind: 'error', status: 404, reason: 'SVI_RESOURCE_NOT_FOUND', data: {} } : ok({ items: [EP_SRC] })) }));
   const r = await apply(c, link, [link]);
   assert.equal(r.unavailable, undefined);
   assert.equal(r.io.phase, 'invalid');
-  assert.equal(r.io.pairs[0].reason.startsWith('endpoint_not_chosen'), true, '받는 쪽 엔드포인트를 알 수 없다');
+  assert.equal(r.io.pairs[0].reason, 'target_resource_not_found', 'Master 가 거절하는 이유와 같은 말 — 허가를 받아도 남의 자원과는 못 잇는다');
+  assert.equal(c.calls.some((x) => x.op === OPS.bindPost || x.op === OPS.grantsGet), false, '보이지 않는 자원이면 허가 · bind 를 부르지 않는다');
 });
 
 test('적용 — 이미 바인딩이 있는 쌍은 다시 만들지 않는다 · 닫힌 쌍은 다시 만든다', async () => {
@@ -315,7 +316,21 @@ test('화면 — linkGrantSelf 는 막힌 쌍의 허가를 만들고 다시 적�
   const r = await s.linkGrantSelf('a');
   const made = client.calls.filter((x) => x.op === OPS.grantsPost).map((x) => x.input);
   assert.deepEqual(made.map((m) => [m.resource_id, m.operations[0], m.endpoint_id, m.subject_id]), [['svires_cam', 'bind.source', 'sviep_frames', ME], ['svires_rec', 'bind.target', 'sviep_in', ME]]);
+  assert.deepEqual(made.map((m) => m.ttl_seconds), [GRANT_SELF_TTL_DEFAULT, GRANT_SELF_TTL_DEFAULT], '고르지 않으면 30일 — 무기한 허가가 쌓이지 않게(Q-23)');
+  assert.equal(GRANT_SELF_TTL_DEFAULT, 30 * 86400);
   assert.equal(r.grant.ok, true); assert.equal(r.apply.io.phase, 'binding');
   assert.equal(s.state.links[0].io.pairs[0].binding_id, 'svib_1');
   assert.equal(await s.linkGrantSelf('a'), null, '막힌 쌍이 없으면 하지 않는다');
+});
+
+test('화면 — linkGrantSelf 는 설정 창에서 고른 기한을 쓴다(0 = 기한 없음 · 어긋난 값은 기본)', async () => {
+  for (const [opt, want] of [[{ ttlSeconds: 3600 }, 3600], [{ ttlSeconds: 0 }, 0], [{ ttlSeconds: -5 }, GRANT_SELF_TTL_DEFAULT], [{ ttlSeconds: 'x' }, GRANT_SELF_TTL_DEFAULT], [undefined, GRANT_SELF_TTL_DEFAULT]]) {
+    const s = new Screen([L('a', '1-1', '3-1')]);
+    const client = fake(std({ [OPS.grantsGet]: ok({ items: [] }), [OPS.grantsPost]: ok({ grant: { grant_id: 'g' } }) }));
+    wireLinkApply(s, { client, principal: ME });
+    await s.linkApply('a');
+    await s.linkGrantSelf('a', opt);
+    const ttls = client.calls.filter((x) => x.op === OPS.grantsPost).map((x) => x.input.ttl_seconds);
+    assert.deepEqual(ttls, [want, want], JSON.stringify(opt));
+  }
 });
