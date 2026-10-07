@@ -347,8 +347,9 @@ button.chipb{display:inline-flex;align-items:center;height:26px;padding:0 11px;b
 .inp input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--paper);font:inherit;font-size:13px;height:32px}
 .inp input::placeholder{color:var(--dim)}
 .inp input:disabled{cursor:not-allowed}
-.msgs{flex-direction:column-reverse}
-.msgs .in{display:flex;flex-direction:column;gap:10px}
+.msgs{display:flex;flex-direction:column}
+.msgs .in{display:flex;flex-direction:column;gap:10px;margin-top:auto}
+.msgs .in>*{overflow-anchor:none}.msgs .in>.tail{overflow-anchor:auto;height:1px;flex:none}
 .pgone{display:none}
 .opt.bad{background:rgba(255,93,93,.18)}
 
@@ -357,7 +358,6 @@ button.chipb{display:inline-flex;align-items:center;height:26px;padding:0 11px;b
 .inp textarea{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--paper);font:inherit;font-size:13px;line-height:20px;height:32px;padding:6px 0;resize:none;max-height:120px}
 .inp textarea::placeholder{color:var(--dim)}.inp textarea:disabled{cursor:not-allowed}
 .msgs{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
-.msgs .in{flex:none}
 .seg button{font:inherit;font-weight:500;font-size:12px;padding:4px 10px;border-radius:999px;color:var(--muted);background:none;border:none;cursor:pointer;text-align:center}
 .seg button.on{background:rgba(255,255,255,.90);color:#111;font-weight:600}
 button:focus-visible,[role=tab]:focus-visible,.msgs:focus-visible{outline:2px solid #b9aeff;outline-offset:-3px}
@@ -509,6 +509,7 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
             </div>
           </sc-for>
           <sc-if value="{{cur.thinking}}" hint-placeholder-val="{{false}}"><div class="ai rise"><div class="av"><svg class="ic s" style="color:var(--paper)"><use href="#i-spark"/></svg></div><div class="tx" style="padding:12px 16px"><span class="think"><i></i><i></i><i></i></span></div></div></sc-if>
+          <div class="tail" aria-hidden="true"></div>
         </div></div>
         <div class="inp">
           <sc-if value="{{showChips}}" hint-placeholder-val="{{true}}"><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{suggest}}" as="q" hint-placeholder-count="2"><button class="chipb" onClick="{{q.go}}">{{q.text}}</button></sc-for></div></sc-if>
@@ -597,11 +598,23 @@ class Component extends DCLogic {
     };
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    // 맨 아래에 있을 때만 새 줄을 따라간다. 올려 읽는 중이면 읽던 자리를 둔다 (DC-23)
+    const mm = document.querySelector('.msgs');
+    if (mm && this.atBottom !== false) mm.scrollTop = mm.scrollHeight;
+    if (prevState && (prevState.selected !== this.state.selected || prevState.creating !== this.state.creating || prevState.tab !== this.state.tab)) {
+      this.atBottom = true; setTimeout(() => { const m = document.querySelector('.msgs'); if (m) m.scrollTop = m.scrollHeight; }, 0);
+    }
+  }
   componentDidMount() {
+    this.atBottom = true;
+    this.onScroll = (ev) => { const t = ev.target; if (t && t.classList && t.classList.contains('msgs')) this.atBottom = t.scrollHeight - t.clientHeight - t.scrollTop < 40; };
+    document.addEventListener('scroll', this.onScroll, true);
     this.tick = setInterval(() => this.countdown(), 1000);
   }
   componentWillUnmount() {
     clearInterval(this.tick);
+    document.removeEventListener('scroll', this.onScroll, true);
     this.timers.forEach((t) => clearTimeout(t));
   }
 
@@ -783,7 +796,7 @@ class Component extends DCLogic {
     const locked = ended || busy;
     const over = S.draft.length > 20000;
     const gateOk = S.cred.unattended && S.cred.pre.length > 0;
-    const sendDraft = (t) => { this.sendText(cur.id, t); };
+    const sendDraft = (t) => { this.sendText(cur.id, t); setTimeout(() => { const ta = document.querySelector('.inp textarea'); if (ta) ta.style.height = ''; }, 0); };
     const unattendedMcp = S.newAuto === 'unattended' && S.newMcp;
     const AUTO = [['plan', '읽기만 하고 제안한다. 실행하지 않는다'], ['ask', '쓰기 전에 사람에게 묻는다'], ['auto', '읽기와 되돌릴 수 있는 쓰기는 묻지 않는다. 위험한 호출은 여전히 묻는다'], ['unattended', '읽기와 사전 승인한 호출만 실행하고 나머지는 거절한다']];
     const chatDone = S.sessions.some((x) => x.entries.some((e) => e.kind === 'call' && e.st === 'accepted'));
@@ -803,7 +816,7 @@ class Component extends DCLogic {
         inTok: cur.inTok.toLocaleString('en-US'), outTok: cur.outTok.toLocaleString('en-US'), cache: cur.cache.toLocaleString('en-US'), kb: cur.kb.toFixed(1)
       },
       draft: S.draft, draftLen: S.draft.length, draftStyle: over ? 'color:var(--err);font-weight:600' : '',
-      onType: (e) => this.setState({ draft: e.target.value }),
+      onType: (e) => { const t = e.target; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 120) + 'px'; this.setState({ draft: t.value }); },
       onKey: (e) => {
         if ((e.nativeEvent && e.nativeEvent.isComposing) || e.isComposing || e.keyCode === 229) return; // 한글 조합 중 Enter는 전송이 아니다 (DC-22)
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!over && S.draft.trim()) sendDraft(S.draft); }
