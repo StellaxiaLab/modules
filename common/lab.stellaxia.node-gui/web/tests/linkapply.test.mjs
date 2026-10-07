@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { applyLink, precheck, grantCovers, deniedReason, grantSelf, lacksOf, OPS } from '../src/api/link-apply.js';
+import { applyLink, precheck, grantCovers, deniedReason, grantSelf, lacksOf, OPS, GRANT_SELF_TTL_DEFAULT } from '../src/api/link-apply.js';
 import { wireLinkApply } from '../src/api/link-wire.js';
 import { buildIO, setEndpointChoice, sanitizeIO, idempotencyKey, pairsOf } from '../src/model/link-io.js';
 
@@ -316,7 +316,21 @@ test('화면 — linkGrantSelf 는 막힌 쌍의 허가를 만들고 다시 적�
   const r = await s.linkGrantSelf('a');
   const made = client.calls.filter((x) => x.op === OPS.grantsPost).map((x) => x.input);
   assert.deepEqual(made.map((m) => [m.resource_id, m.operations[0], m.endpoint_id, m.subject_id]), [['svires_cam', 'bind.source', 'sviep_frames', ME], ['svires_rec', 'bind.target', 'sviep_in', ME]]);
+  assert.deepEqual(made.map((m) => m.ttl_seconds), [GRANT_SELF_TTL_DEFAULT, GRANT_SELF_TTL_DEFAULT], '고르지 않으면 30일 — 무기한 허가가 쌓이지 않게(Q-23)');
+  assert.equal(GRANT_SELF_TTL_DEFAULT, 30 * 86400);
   assert.equal(r.grant.ok, true); assert.equal(r.apply.io.phase, 'binding');
   assert.equal(s.state.links[0].io.pairs[0].binding_id, 'svib_1');
   assert.equal(await s.linkGrantSelf('a'), null, '막힌 쌍이 없으면 하지 않는다');
+});
+
+test('화면 — linkGrantSelf 는 설정 창에서 고른 기한을 쓴다(0 = 기한 없음 · 어긋난 값은 기본)', async () => {
+  for (const [opt, want] of [[{ ttlSeconds: 3600 }, 3600], [{ ttlSeconds: 0 }, 0], [{ ttlSeconds: -5 }, GRANT_SELF_TTL_DEFAULT], [{ ttlSeconds: 'x' }, GRANT_SELF_TTL_DEFAULT], [undefined, GRANT_SELF_TTL_DEFAULT]]) {
+    const s = new Screen([L('a', '1-1', '3-1')]);
+    const client = fake(std({ [OPS.grantsGet]: ok({ items: [] }), [OPS.grantsPost]: ok({ grant: { grant_id: 'g' } }) }));
+    wireLinkApply(s, { client, principal: ME });
+    await s.linkApply('a');
+    await s.linkGrantSelf('a', opt);
+    const ttls = client.calls.filter((x) => x.op === OPS.grantsPost).map((x) => x.input.ttl_seconds);
+    assert.deepEqual(ttls, [want, want], JSON.stringify(opt));
+  }
 });
