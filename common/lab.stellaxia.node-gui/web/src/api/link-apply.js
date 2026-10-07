@@ -142,6 +142,11 @@ export async function applyLink(source, link, links, ctx, o) {
     const key = p.key, cur = io.pairs.find((q) => q.key === key);
     if (cur && cur.binding_id && cur.phase !== 'lost' && cur.phase !== 'closed' && cur.phase !== 'denied' && cur.phase !== 'invalid') { notes.push(label(p) + ' — 이미 바인딩이 있다'); continue; }
     const s = p.source, t = p.target;
+    // 자원을 못 본다 — 내 것이 아니거나 사라졌다. 관리자가 아니면 남의 자원과는 허가를 받아도 못 잇는다(Master 도 같은 이유로 거절한다 — 설계 §9 실행 확인)
+    if (eps.get(s.resource_id) === null || eps.get(t.resource_id) === null) {
+      const reason = (eps.get(s.resource_id) === null ? 'source' : 'target') + '_resource_not_found';
+      io = phaseOf(io, key, 'invalid', { reason }); notes.push(label(p) + ' — ' + reason); continue;
+    }
     // 엔드포인트를 정하지 못했다 — 사람이 고른다(Q-27)
     if (!s.endpoint_id || !t.endpoint_id) {
       io = phaseOf(io, key, 'invalid', { reason: 'endpoint_not_chosen: ' + (!s.endpoint_id ? s.resource_id + '(보내는 쪽)' : t.resource_id + '(받는 쪽)') });

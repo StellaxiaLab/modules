@@ -183,13 +183,14 @@ test('적용 — 미리 검사에 걸리면 bind 를 부르지 않는다', async
   assert.equal(r.io.phase, 'invalid'); assert.match(r.io.pairs[0].reason, /^schema_major_mismatch:/);
 });
 
-test('적용 — 내 것이 아닌 자원(엔드포인트 404)은 source_endpoint_not_found 로', async () => {
+test('적용 — 내 것이 아닌 자원(엔드포인트 404)은 *_resource_not_found 로', async () => {
   const link = L('a', '1-1', '3-1');
   const c = fake(std({ [OPS.endpoints]: (i) => (i.resource_id === 'svires_rec' ? { kind: 'error', status: 404, reason: 'SVI_RESOURCE_NOT_FOUND', data: {} } : ok({ items: [EP_SRC] })) }));
   const r = await apply(c, link, [link]);
   assert.equal(r.unavailable, undefined);
   assert.equal(r.io.phase, 'invalid');
-  assert.equal(r.io.pairs[0].reason.startsWith('endpoint_not_chosen'), true, '받는 쪽 엔드포인트를 알 수 없다');
+  assert.equal(r.io.pairs[0].reason, 'target_resource_not_found', 'Master 가 거절하는 이유와 같은 말 — 허가를 받아도 남의 자원과는 못 잇는다');
+  assert.equal(c.calls.some((x) => x.op === OPS.bindPost || x.op === OPS.grantsGet), false, '보이지 않는 자원이면 허가 · bind 를 부르지 않는다');
 });
 
 test('적용 — 이미 바인딩이 있는 쌍은 다시 만들지 않는다 · 닫힌 쌍은 다시 만든다', async () => {

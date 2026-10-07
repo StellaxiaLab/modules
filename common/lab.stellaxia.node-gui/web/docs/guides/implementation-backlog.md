@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.9.3"
+version: "1.9.4"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -254,8 +254,8 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 
 | 묶음 | ID | 무엇 | 우선 |
 | --- | --- | --- | --- |
-| PF | **PF-18** | 소유자의 자기 허가 — 소유자도 bind 전에 자기에게 `bind.source` · `bind.target` 허가가 있어야 한다 | 높음 |
-| PF | **PF-19** | 남의 자원과 잇는 bind — 관리자가 아니면 두 끝이 모두 내 소유여야 한다(카탈로그 소유자 검사) | 높음 |
+| PF | **PF-18** | 소유자의 자기 허가 — 소유자도 bind 전에 자기에게 `bind.source` · `bind.target` 허가가 있어야 한다 — 실행으로 확인(2026-10-07) | 높음 |
+| PF | **PF-19** | 남의 자원과 잇는 bind — 관리자가 아니면 두 끝이 모두 내 소유여야 한다(카탈로그 소유자 검사) — 실행으로 확인(2026-10-07) | 높음 |
 | PF | **PF-20** | `svi.bindings.get` 필터(`node_id` · `resource_id`) · 내 자원에 걸린 남의 바인딩 | 중간 |
 | PF | **PF-21** | 바인딩 거절 이유를 `{reason_code, detail}`로 | 낮음 |
 | PF | **PF-22** | `terra.svi.bindings.changed`에 `reason` 싣기 | 낮음 |

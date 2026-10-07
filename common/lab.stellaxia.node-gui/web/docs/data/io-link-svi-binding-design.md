@@ -8,7 +8,7 @@ doc_type: "design"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.5.0"
+version: "0.5.1"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -542,8 +542,8 @@ type Phase = 'draft' | 'invalid' | 'needs-grant' | 'binding' | 'active' | 'degra
 | ID | 무엇 | 왜 | 우선 |
 | --- | --- | --- | --- |
 | **PF-1** | (그대로) 앱 토큰 → Master op. 이 설계는 **사용자 신원으로 중계**되는 것을 전제한다 | 허가 검사가 `user` 주체만 본다(맨 앞 가정 1) | 높음 |
-| **PF-18** | 소유자의 자기 허가 | 소유자도 자기 자원에 허가가 없으면 핸들 · 바인딩이 막힌다 — 시험이 소유자가 자기에게 허가를 준다(`M/svi/handle_service_test.go:90-100`). 연결 하나에 허가 둘이 먼저 있어야 한다. 소유자는 암묵 허가로 볼지, GUI가 자동으로 줄지 정해 달라 — Q-22와 짝. **(추측)** 의도된 설계일 수 있다 | 높음 |
-| **PF-19** | 남의 자원과 잇는 bind | 코드로는 관리자가 아니면 **두 끝이 모두 내 소유여야** bind가 풀린다(`binding_service.go:797-805` → `M/svi/catalog.go:493-504`). 허가(`bind.source` · `bind.target`)를 받아도 남의 자원은 `*_resource_not_found`로 거절된다. 다른 사람 · 다른 노드 소유 자원과 잇는 연결이 막힌다 — 허가를 받은 사람은 카탈로그에서도 보이게 해 달라. 자원의 `OwnerID`가 노드 주인인지 선언한 사람인지는 **(추측 — 확인하지 못했다)**. 진짜 스택 시험으로 확인 | 높음 |
+| **PF-18** | 소유자의 자기 허가 | 소유자도 자기 자원에 허가가 없으면 핸들 · 바인딩이 막힌다 — 시험이 소유자가 자기에게 허가를 준다(`M/svi/handle_service_test.go:90-100`). 연결 하나에 허가 둘이 먼저 있어야 한다. 소유자는 암묵 허가로 볼지, GUI가 자동으로 줄지 정해 달라 — Q-22와 짝. **실행으로 확인했다**(아래). 의도된 설계로 보인다 — Master 테스트도 소유자가 자기에게 허가를 준다 | 높음 |
+| **PF-19** | 남의 자원과 잇는 bind | 코드로는 관리자가 아니면 **두 끝이 모두 내 소유여야** bind가 풀린다(`binding_service.go:797-805` → `M/svi/catalog.go:493-504`). 허가(`bind.source` · `bind.target`)를 받아도 남의 자원은 `*_resource_not_found`로 거절된다. 다른 사람 · 다른 노드 소유 자원과 잇는 연결이 막힌다 — 허가를 받은 사람은 카탈로그에서도 보이게 해 달라. **실행으로 확인했다**(아래). 자원의 `OwnerID`는 보고한 노드의 주인(`node.OwnerUserID` — `M/svi/ingest.go:112-121`)이다 — 한 사람의 여러 노드 자원끼리는 이어지고, 다른 사람의 자원과는 관리자가 아니면 못 잇는다 | 높음 |
 | **PF-20** | 바인딩 목록 필터 | `svi.bindings.get`은 필터가 없고, 관리자가 아니면 만든 사람 것만 준다(`binding_service.go:286-300`). 맵(노드)에 걸린 바인딩을 보려면 `node_id` · `resource_id` 필터와 "내 자원에 걸린 남의 바인딩" 보기가 필요하다 | 중간 |
 | **PF-21** | 바인딩 거절 이유를 기계가 읽는 모양으로 | 지금 이유는 자유 글자다(`flow_not_allowed: target node … is not in …` — `binding_service.go:992`). `{reason_code, detail}`처럼 나누면 화면 글을 안정적으로 고를 수 있다 | 낮음 |
 | **PF-22** | 바인딩 신호에 `reason` 싣기 | `terra.svi.bindings.changed`는 `{binding_id, observed_state}`뿐이다(`binding_service.go:1164-1171`). 실패마다 다시 읽어야 한다 | 낮음 |
@@ -588,12 +588,24 @@ flowchart LR
 
 ## 9. 확인하지 못한 것
 
-- 관리자가 아닌 사람이 남의 자원과 bind하면 거절된다는 것은 **코드를 읽어 얻은 결론**이다(`binding_service.go:797-805`, `catalog.go:493-504`). 실행해 보지는 않았다. 자원의 `OwnerID`가 누구로 채워지는지(노드 주인 · 선언한 사람)는 **(추측)** — PF-19.
-- **(추측)** 관리자 우회. `grantsSatisfied` · 핸들 `covered`(`M/svi/handle_service.go:542-553`)에는 관리자 우회가 보이지 않았다. 다른 층에 있는지는 확인하지 못했다.
+- ~~관리자가 아닌 사람이 남의 자원과 bind하면 거절된다~~ — **실행으로 확인했다**(아래 「Master 서비스를 실행해 확인한 것」).
+- ~~**(추측)** 관리자 우회~~ — Master 테스트 `TestMasterAdminBindingFindsTheGrantItWasGiven`(`binding_service_test.go`)가 관리자도 **자기에게 준 허가**로 bind한다는 것을 보인다 — 관리자라고 허가가 면제되지 않는다. 관리자가 달라지는 것은 카탈로그에서 남의 자원이 보이는 것뿐이다.
 - **(추측)** I/O 장치가 SVI 자원(`io.*`)으로 나오는지, 그 엔드포인트 모양이 어떤지.
 - **(추측)** 바인딩 `target`의 하위 필드. `EndpointReference`라 `resource_id` · `endpoint_id`로 보지만 화면 코드는 `resource_id`만 읽는다.
 - **(추측)** PF-1이 열려도 Master 신호(`terra.svi.*.changed`)가 앱 SSE에 오는지. 오지 않으면 §4.3의 폴링 바닥만 남는다(PF-17과 같은 경계).
-- 이 문서의 시퀀스 · 상태는 코드를 읽고 짠 것이다. 진짜 스택에서 바인딩을 만들어 보지 않았다 — 앱 토큰으로는 닿지 않는다(PF-1).
+- 이 문서의 시퀀스 · 상태는 코드를 읽고 짠 것이다(아래 세 가지 거절만 Master 서비스를 직접 실행해 확인했다). 진짜 스택에서 바인딩을 만들어 보지 않았다 — 앱 토큰으로는 닿지 않는다(PF-1).
+
+### Master 서비스를 실행해 확인한 것 (2026-10-07)
+
+Terra `9459f0f`의 Master 바인딩 서비스를 Go 테스트 하네스(`svi/binding_service_test.go`의 `newBindingHarness` — 사용자 `user-a`가 두 노드의 자원 둘을 가진다)로 직접 불러 봤다. 확인용 시험 파일은 Terra 저장소에 넣지 않고 지웠다(작업 트리 변경 없음). 앱 토큰 · 게이트웨이를 거치지 않은 **서비스 층**의 결과다.
+
+| 경우 | 결과 | 뜻 |
+| --- | --- | --- |
+| 소유자(`user-a`)가 허가 없이 bind | `SVI binding was denied: missing_bind_grant` | PF-18 — 소유자도 자기 허가가 먼저 있어야 한다 |
+| 소유자가 `bind.source`만 있고 `bind.target`이 없다 | `missing_bind_grant` | 둘 다 있어야 한다 |
+| 다른 사용자(`user-b`)가 `bind.source` · `bind.target` 허가를 **둘 다 받았다** | `SVI binding was denied: source_resource_not_found` | PF-19 — 허가를 받아도 남의 자원은 카탈로그에서 보이지 않는다 |
+
+**이 설계에 미치는 영향:** 한 사람의 여러 노드 자원끼리 잇는 연결(이 화면의 주된 쓰임)은 `[나에게 허가 주기]` 한 번이면 된다. **다른 사람의 자원과 잇는 연결은 관리자가 아니면 만들 수 없다** — 설정 화면은 그 경우를 `denied` · `source_resource_not_found`로 보이고, 허가를 받으라고 안내하면 안 된다(받아도 안 된다).
 
 ## 관련 문서
 
