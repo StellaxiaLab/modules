@@ -455,7 +455,7 @@ type Phase = 'draft' | 'invalid' | 'needs-grant' | 'binding' | 'active' | 'degra
 > - 허가가 없는 쌍은 bind를 부르지 않고 `needs-grant`(이유 `missing_bind_grant: <자원> <operation>, …`)로 둔다. `linkGrantSelf`는 사람이 확인한 뒤에만 부른다(Q-22): 끝점 하나 · operation 하나씩 만들고(기한 없음 — Q-23 기본값) 다시 적용한다.
 > - 공유는 같은 (자원, 노드)의 살아 있는 노드 허가가 있으면 그것을 쓴다(`grant_id`). 없으면 `subject_type: node` 허가를 만든다. 소유자가 아니면 404 `SVI_RESOURCE_NOT_FOUND` → `denied`.
 > - 시험은 Master 계약 모양의 가짜 클라이언트다 — 진짜 스택은 PF-1이 열린 뒤(MD-32). **`svi.resources.by-resource-id.endpoints.get`의 응답 모양은 Terra 코드(`routes_svi.go`)로만 확인했다.**
-> - 단추는 없다 — 입출력 설정 화면(UP-25)이 오면 [연결 적용] · [나에게 허가 주기]가 이 둘을 부른다.
+> - 단추는 입출력 설정 창(UP-25 최소판 · 2026-10-08 · [[implementation-backlog|구현 백로그]] MD-35)의 [연결 적용] · [나에게 허가 주기]가 이 둘을 부른다.
 
 > [!NOTE] 구현됨 — MD-29 · MD-30 (2026-10-07)
 > 상태 맞추기(§4.3)는 `web/src/api/link-sync.js` · `src/api/link-wire.js`, 글은 `src/model/link-text.js`에 있다.
