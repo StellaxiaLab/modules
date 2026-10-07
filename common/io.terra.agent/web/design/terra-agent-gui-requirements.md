@@ -29,7 +29,7 @@ related:
   - "[[docs/guides/module-web-screen-guide|모듈 웹 화면 가이드]]"
 ---
 
-> **사본** — Terra 저장소 `docs/modules/terra-agent/design/terra-agent-gui-requirements.md`(v0.5.0, 커밋 `c0909ad`, Terra PR #139 — 병합 전)를 modules만 보는 세션이 읽도록 옮긴 스냅샷이다. 고칠 때는 원본을 고친다. 본문의 `[[링크]]`와 `docs/…` 경로는 Terra 저장소 기준이다.
+> **사본** — Terra 저장소 `docs/modules/terra-agent/design/terra-agent-gui-requirements.md`(v0.5.0, 커밋 `c0909ad`, Terra PR #139)를 modules만 보는 세션이 읽도록 옮긴 스냅샷이다. 고칠 때는 원본을 고친다. 본문의 `[[링크]]`와 `docs/…` 경로는 Terra 저장소 기준이다.
 
 # Terra Agent GUI 필요 기능표 — 대화·승인·위임·설정 화면
 
