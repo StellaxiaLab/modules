@@ -8,8 +8,8 @@ doc_type: "moc"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.5.0"
-last_updated: "2026-10-05"
+version: "1.6.0"
+last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -23,6 +23,7 @@ related:
   - "[[real-data-layer|실데이터 층]]"
   - "[[module-profile|모듈 프로필]]"
   - "[[implementation-backlog|구현해야 할 것]]"
+  - "[[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]]"
   - "[[implementation-guide|구현 가이드]]"
   - "[[road-editor-spec|도로 편집기]]"
   - "[[testing|시험]]"
@@ -52,6 +53,8 @@ flowchart LR
   E --> G["구현 가이드"]
   F --> G
   R --> BL["구현해야 할 것"]
+  R --> IO["입출력 연결 ↔ SVI 바인딩 설계"]
+  IO --> BL
   MP --> BL
   G --> H["시험"]
 ```
@@ -67,6 +70,7 @@ flowchart LR
 | 실시간 이벤트 · 다른 노드(노드 주소 호출) · 사용자 문서(서버 저장) · 올리기 · 받기 · 끊긴 뒤 이어서 | [[real-data-layer\|실데이터 층]] §2.6 · §2.7 · §2.8 · §2.9 · [[module-profile\|모듈 프로필]] §4 · [[helm-apps-integration\|조타륜 앱 연동]] §2.5 |
 | 모듈 설정(모듈 앱의 수정 폼) | [[real-data-layer\|실데이터 층]] §2.4 · §5.5 · [[helm-apps-integration\|조타륜 앱 연동]] §2.9 |
 | SVI 흐름도 · 흐름 이벤트 · 빈 목록의 이유 | [[real-data-layer\|실데이터 층]] §2.2 · §5.6 · [[helm-apps-integration\|조타륜 앱 연동]] §2.1 · [[implementation-backlog\|구현해야 할 것]] MD-23 · UP-24 |
+| 맵의 연결(도로)을 SVI 바인딩 · 허가로 — 대응 표 · 흐름 · 데이터 모양 · 입출력 설정 화면 요구사항 (MD-1) | [[io-link-svi-binding-design\|입출력 연결 ↔ SVI 바인딩 설계]] |
 | **남은 일** — 플랫폼 · 이 모듈 · GUI 원본 · 결정 | [[implementation-backlog\|구현해야 할 것]] |
 | 도로 편집기 · 건물 타입 도로 | [[road-editor-spec\|도로 편집기]] |
 | 화면 모양 · 동작 · 시간 | [[node-screen-ui-spec\|노드 화면 UI 명세]] |
@@ -85,7 +89,7 @@ flowchart LR
 | `docs/` | 이 MOC · [[architecture\|구조]] |
 | `docs/screens/` | [[node-screen-ui-spec\|UI 명세]] · [[road-editor-spec\|도로 편집기]] |
 | `docs/api/` | [[frontend-api\|프론트엔드 API]] · [[helm-apps-integration\|조타륜 앱 연동]] · [[node-screen-api-integration\|API 연동 가이드]] · [[real-data-layer\|실데이터 층]] |
-| `docs/data/` | [[node-screen-data-model\|데이터 모델]] |
+| `docs/data/` | [[node-screen-data-model\|데이터 모델]] · [[io-link-svi-binding-design\|입출력 연결 ↔ SVI 바인딩 설계]] |
 | `docs/guides/` | [[getting-started\|시작하기]] · [[module-profile\|모듈 프로필]] · [[implementation-backlog\|구현해야 할 것]] · [[implementation-guide\|구현 가이드]] · [[node-screen-code-structure\|이식 가이드]] · [[testing\|시험]] |
 
 ## 화면과 원본

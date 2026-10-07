@@ -358,6 +358,7 @@ Daemon만 가짜다.
 - [`web/docs/api/real-data-layer.md`](web/docs/api/real-data-layer.md) — 예시 데이터를 지운 방법 · 출처 · 빈 자리 · 실측
 - [`web/docs/guides/module-profile.md`](web/docs/guides/module-profile.md) — 변형(demo · service · module) · 시작 화면 · LayoutStore · 원본(maingui)과 맞추기
 - [`web/docs/guides/implementation-backlog.md`](web/docs/guides/implementation-backlog.md) — 구현해야 할 것 (PF · MD · UP · Q)
+- [`web/docs/data/io-link-svi-binding-design.md`](web/docs/data/io-link-svi-binding-design.md) — 맵의 연결(`links`) ↔ SVI 바인딩 · 허가 설계(MD-1 · PF-1 가정)
 - Terra `docs/reports/terra-node-gui-main-module-feasibility-2026-10-01.md` — 가능성 판정 · 플랫폼 공백 P-1~P-5 · 결정 Q-1~Q-6
 - Terra `docs/modules/terra-gui/design/terra-base-scene-branch-design.md` — base Scene이 main을 고르는 규칙
 - Terra `products/common/apps/terra-cli/internal/app/webscaffold/` — `terra-frame-client.js`의 원본(`web/src/api/`에 그대로 사본)

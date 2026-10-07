@@ -8,8 +8,8 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.7.0"
-last_updated: "2026-10-05"
+version: "0.7.1"
+last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -24,6 +24,7 @@ related:
   - "[[testing|시험]]"
   - "[[module-profile|모듈 프로필]]"
   - "[[implementation-backlog|구현해야 할 것]]"
+  - "[[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]]"
 ---
 
 # 실데이터 층 — 예시 데이터를 지우고 이 노드의 값으로
@@ -304,7 +305,7 @@ flowchart TD
 | tree 계층(손자 노드) | `agent/nodes` 에 부모 관계가 없다 | `terra.master.nodes.get` (위의 ADR) |
 | 다른 tree 목록 | 사용자가 등록한 연결 목록을 둘 곳이 없다 | Q-3 — `kind: service` 로 올려 사람별 저장 |
 | 다른 창 · 기기가 바꾼 배치를 곧장 받기 | 사용자 문서의 변경 신호(`terra.documents.changed`)는 Master 이벤트다 — 앱 토큰의 이벤트(이 노드 Daemon)에는 오지 않는다. 다음 쓰기의 409 알림 · 새로 고침에 받는다 | PF-17 |
-| 입출력 연결의 실제 데이터 흐름 | 연결(`links`)은 화면의 선이다 — 무엇을 주고받는지는 디자인 · 데이터 모양이 없다 | 설정 화면 디자인 + SVI 바인딩 |
+| 입출력 연결의 실제 데이터 흐름 | 연결(`links`)은 화면의 선이다 — 무엇을 주고받는지는 디자인 · 데이터 모양이 없다 | 설정 화면 디자인 + SVI 바인딩 — 설계: [[io-link-svi-binding-design\|입출력 연결 ↔ SVI 바인딩 설계]] |
 | 파일 열기 · 파일 관리자로 열기 — 다른 기계에서 볼 때 | Daemon 이 **그 노드의** 바탕화면에 연다 — 다른 기계의 브라우저에서는 뜻이 없어 누르지 않는다. 바탕화면 세션이 없는 노드(서버 · 컨테이너)는 `DESKTOP_SESSION_UNAVAILABLE` | — (설계대로) |
 | 작업 출력 · 다시 실행 | 실행은 추가 폼으로 된다(§2.4). Daemon 작업 목록 · 기록은 명령 · 출력을 주지 않는다 — 출력 칸에 그렇다고 적는다 | 출력 API(PF-7) |
 | 자원 선언 추가 · 철회 | op 셋(`svi.declarations.post` · `undeclare` · `forget`)은 계약에 있다. 카탈로그가 호출자 권한으로 거르는데 `node.config`★는 기본 권한 밖이라 앱 토큰에 안 보인다 — `쓸 수 없다 · 이 노드의 게이트웨이에 없다` | 앱 권한 · 사용자 권한에 `node.config`(Q-10 — PF-13 진단 정정) |
@@ -540,6 +541,7 @@ npm test
 - [[testing|시험]]
 - [[module-profile|모듈 프로필]] — 시작 화면 · LayoutStore · 생성 때 바꾸는 것
 - [[implementation-backlog|구현해야 할 것]] — MD-11 · MD-12 · MD-15~MD-23(끝냄) · 남은 PF · UP
+- [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]] — 맵의 연결 → bind → 허가 → 도로 이벤트(MD-1 · PF-1 가정)
 
 ## 관련 모듈
 

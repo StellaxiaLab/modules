@@ -7,8 +7,8 @@ doc_type: "data-model"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.3.1"
-last_updated: "2026-10-05"
+version: "0.3.2"
+last_updated: "2026-10-07"
 language: "ko-KR"
 source: "design/Artboard-qcfu.dc.html (= src/screens/node.js) — constructor(), renderVals()"
 related:
@@ -18,6 +18,7 @@ related:
   - "[[node-screen-code-structure|코드 구조와 이식 가이드]]"
   - "[[road-editor-spec|도로 편집기]]"
   - "[[module-profile|모듈 프로필]]"
+  - "[[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]]"
 ---
 
 # 노드 화면 데이터 모델
@@ -213,6 +214,7 @@ looks = { 'tree-home': { skin: 'concrete', bid: 'tower', rot: 0 }, … }
 
 > [!NOTE] 입출력 연결은 아직 데이터 모양이 없다
 > 연결 자체는 `links`에 있다(자원 설정 창의 입력 · 출력이 여기서 나온다). 무엇을 어떤 형식으로 주고받는지(세부 입출력 설정)는 아직 모양이 없다 — 설정 화면 디자인이 나오면 SVI 바인딩(`허가 · 연결` 앱의 bind)과 맞춰 정한다.
+> 제안(2026-10-07): [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]] §5 — 연결에 `io`(종류 · 끝점 · `schema_ref` · QoS · 방향 · `binding_id` · 상태)를 더한다. 지금 `허가 · 연결` 앱에는 bind 동작이 없다(같은 문서 §1.2).
 
 ## 3. 저장 위치가 정해지지 않은 데이터
 
@@ -307,6 +309,7 @@ interface AssetStore {             // 편집기 3종이 만드는 것
 - [[node-screen-ui-spec|노드 화면 UI 명세]]
 - [[node-screen-api-integration|노드 화면 API 연동 가이드]]
 - [[node-screen-code-structure|코드 구조와 이식 가이드]]
+- [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]] — §2.14 `links`를 SVI 바인딩 · 허가로
 
 ## 관련 모듈
 
