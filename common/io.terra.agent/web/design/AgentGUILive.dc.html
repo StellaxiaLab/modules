@@ -321,6 +321,17 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
 .opt.on{background:rgba(112,94,238,.30)}
 .seg b.on{background:rgba(255,255,255,.90)}
 .opt.bad{background:rgba(255,93,93,.18)}
+/* ── 대비·투명도 설정 (DC-29): 유리 위 글자는 가장 밝은 뒤 배경에서도 4.5:1을 넘기도록 면을 조금 더 진하게, 설정이 있으면 단색 면으로 ── */
+:root{--f-win:rgba(13,16,22,.80)}
+.btn.pri{background:rgba(98,80,228,.96)}
+.chip.err{color:#ff9a9a}.chip.warn{color:#ffd27a}.btn.dng{color:#ffb4b4;background:rgba(255,93,93,.26)}
+@media (prefers-reduced-transparency:reduce),(prefers-contrast:more),(forced-colors:active){
+  :root{--f-win:#13161b;--f-1:#1b1f26;--f-2:#222730;--f-3:#2a303a;--f-in:#0f1216}
+  .win,.glass{background:#13161b;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .me{background:#5a4fd0}.btn.pri{background:#5b49df}
+  .step.bad,.mini{background:#2a2312}.opt.on{background:#3a3470}.opt.bad{background:#3a1416}
+  .chip.ok{background:#16352a}.chip.warn{background:#3a2e12}.chip.err{background:#3d1b1b}.chip.info{background:#262c4d}
+}
 
 /* ── 동작하는 화면 ── */
 button{font-family:inherit;color:inherit;border:none;text-align:left}
@@ -340,6 +351,18 @@ button.chipb{display:inline-flex;align-items:center;height:26px;padding:0 11px;b
 .msgs .in{display:flex;flex-direction:column;gap:10px}
 .pgone{display:none}
 .opt.bad{background:rgba(255,93,93,.18)}
+
+
+/* ── DC-22·23·27·28 ── */
+.inp textarea{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--paper);font:inherit;font-size:13px;line-height:20px;height:32px;padding:6px 0;resize:none;max-height:120px}
+.inp textarea::placeholder{color:var(--dim)}.inp textarea:disabled{cursor:not-allowed}
+.msgs{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+.msgs .in{flex:none}
+.seg button{font:inherit;font-weight:500;font-size:12px;padding:4px 10px;border-radius:999px;color:var(--muted);background:none;border:none;cursor:pointer;text-align:center}
+.seg button.on{background:rgba(255,255,255,.90);color:#111;font-weight:600}
+button:focus-visible,[role=tab]:focus-visible,.msgs:focus-visible{outline:2px solid #b9aeff;outline-offset:-3px}
+.inp .box:focus-within{box-shadow:inset 0 0 0 2px #b9aeff;background-color:rgba(255,255,255,.12)}
+.opt:disabled{opacity:.45;cursor:not-allowed}
 
 /* ── 모션: 모든 이벤트에 부드럽게 ── */
 :root{--ease:cubic-bezier(.22,.8,.24,1);--spring:cubic-bezier(.3,1.4,.5,1)}
@@ -407,7 +430,7 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
       <span class="chip mut mono">io.terra.agent 0.1.0</span>
       <span class="chip tree mono">tree-home</span>
       <sc-if value="{{pendingCount}}" hint-placeholder-val="{{false}}"><span class="chip warn rise" style="margin-left:6px"><svg class="ic s"><use href="#i-clock"/></svg>승인 대기 {{pendingCount}}</span></sc-if>
-      <div class="ctl"><i><svg class="ic"><use href="#i-min"/></svg></i><i><svg class="ic"><use href="#i-max"/></svg></i><i><svg class="ic"><use href="#i-x"/></svg></i></div>
+      <div class="ctl" aria-hidden="true" title="이 시연에서는 연결하지 않았습니다"><i><svg class="ic"><use href="#i-min"/></svg></i><i><svg class="ic"><use href="#i-max"/></svg></i><i><svg class="ic"><use href="#i-x"/></svg></i></div>
     </div>
     <div class="wb">
       <!-- 왼쪽 -->
@@ -426,14 +449,15 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
             </div>
           </sc-if>
           <button class="btn pri" style="height:38px" onClick="{{openNew}}"><svg class="ic"><use href="#i-plus"/></svg>새 세션</button>
-          <div class="seg"><b class="on">내 세션</b><b>종료됨</b></div>
+          <div class="seg" role="tablist" aria-label="세션 목록"><button role="tab" aria-selected="{{tabMine}}" class="{{tabMineCls}}" onClick="{{goMine}}">내 세션</button><button role="tab" aria-selected="{{tabEnded}}" class="{{tabEndedCls}}" onClick="{{goEnded}}">종료됨</button></div>
         </div>
         <div style="flex:1;overflow:hidden;padding:0 8px;display:flex;flex-direction:column;gap:2px">
+          <sc-if value="{{noSessions}}" hint-placeholder-val="{{false}}"><div style="padding:18px 12px;font-size:12px;color:var(--dim)">{{noSessionsText}}</div></sc-if>
           <sc-for list="{{sessionList}}" as="s" hint-placeholder-count="3">
             <button class="{{s.cls}}" onClick="{{s.select}}"><b>{{s.title}}</b><span class="m"><i class="dot" style="background:{{s.dot}}"></i><span style="color:{{s.stColor}}">{{s.status}}</span><span class="chip mut" style="height:17px;font-size:10px">{{s.autonomy}}</span><span class="mono" style="margin-left:auto">{{s.time}}</span></span></button>
           </sc-for>
         </div>
-        <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)"><svg class="ic s"><use href="#i-gear"/></svg>설정 · 모델 · 자격<svg class="ic s" style="margin-left:auto"><use href="#i-chevr"/></svg></div>
+        <div aria-disabled="true" title="이 시연에서는 연결하지 않았습니다" style="padding:12px 14px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);opacity:.8"><svg class="ic s"><use href="#i-gear"/></svg>설정 · 모델 · 자격<svg class="ic s" style="margin-left:auto"><use href="#i-chevr"/></svg></div>
       </div>
 
       <!-- 가운데: 세션 -->
@@ -442,12 +466,13 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
         <div style="height:58px;flex:none;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;padding:0 20px">
           <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><b style="font-size:14.5px;font-weight:700;letter-spacing:-.01em">{{cur.title}}</b><span class="mono" style="font-size:10.5px;color:var(--dim)">session · {{cur.sid}}</span></div>
           <span class="{{cur.statusCls}}" style="margin-left:6px"><i class="dot" style="width:6px;height:6px;background:{{cur.dot}}"></i>{{cur.status}}</span>
+          <sc-if value="{{cur.lastErr}}" hint-placeholder-val="{{false}}"><span class="chip err mono" style="height:20px;font-size:10.5px" title="마지막 오류">{{cur.lastErr}}</span></sc-if>
           <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
             <span class="chip mut"><svg class="ic s"><use href="#i-lock"/></svg>{{cur.autonomy}} · 열 때 고정</span>
             <sc-if value="{{cur.canCancel}}" hint-placeholder-val="{{true}}"><button class="btn sm dng" onClick="{{askCancel}}"><svg class="ic s"><use href="#i-stop"/></svg>취소</button></sc-if>
           </div>
         </div>
-        <div class="msgs" style="padding-top:14px"><div class="in">
+        <div class="msgs" role="log" aria-live="polite" aria-label="대화 기록" tabindex="0" style="padding-top:14px"><div class="in">
           <sc-if value="{{cur.empty}}" hint-placeholder-val="{{false}}">
             <div style="align-self:center;margin:60px 0 0;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;color:var(--muted);font-size:12.5px"><svg class="ic l" style="color:var(--paper)"><use href="#i-spark"/></svg><b style="color:var(--paper);font-size:15px">무엇을 도와드릴까요?</b><span>{{cur.hint}}</span></div>
           </sc-if>
@@ -467,6 +492,7 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
               <sc-if value="{{e.isCard}}" hint-placeholder-val="{{false}}">
                 <div class="{{e.cardCls}}" style="border-radius:26px;background:rgba(245,184,61,.13);overflow:hidden">
                   <div style="display:flex;align-items:center;gap:10px;padding:11px 16px"><svg class="ic l" style="color:var(--warn)"><use href="#i-shield"/></svg><div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="color:var(--warn)">승인 요청</span><b class="mono" style="font-size:12.5px;font-weight:600">{{e.op}}</b></div>
+                    <sc-if value="{{e.prevDenied}}" hint-placeholder-val="{{false}}"><span class="chip err" style="margin-left:auto;height:22px;font-size:11px">{{e.prevDeniedText}}</span></sc-if>
                     <sc-if value="{{e.cardPending}}" hint-placeholder-val="{{true}}"><span class="chip warn mono {{e.tickCls}}" style="margin-left:auto;height:24px;font-size:12px"><svg class="ic s"><use href="#i-clock"/></svg>{{e.left}}</span></sc-if>
                     <sc-if value="{{e.cardDone}}" hint-placeholder-val="{{false}}"><span class="{{e.resCls}}" style="margin-left:auto;height:24px">{{e.resText}}</span></sc-if></div>
                   <div style="display:grid;grid-template-columns:1.1fr 1fr;font-size:12px">
@@ -486,8 +512,8 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
         </div></div>
         <div class="inp">
           <sc-if value="{{showChips}}" hint-placeholder-val="{{true}}"><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{suggest}}" as="q" hint-placeholder-count="2"><button class="chipb" onClick="{{q.go}}">{{q.text}}</button></sc-for></div></sc-if>
-          <div class="{{cur.boxCls}}"><input value="{{draft}}" placeholder="{{cur.placeholder}}" disabled="{{cur.locked}}" onInput="{{onType}}" onKeyDown="{{onKey}}"/><button class="btn pri sm" disabled="{{cur.sendOff}}" onClick="{{send}}"><svg class="ic s"><use href="#i-up"/></svg>보내기</button></div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>{{cur.footNote}}</span><span class="mono">{{draftLen}} / 20000</span></div>
+          <div class="{{cur.boxCls}}"><textarea rows="1" aria-label="세션에 보낼 글" value="{{draft}}" placeholder="{{cur.placeholder}}" disabled="{{cur.locked}}" onInput="{{onType}}" onKeyDown="{{onKey}}"></textarea><button class="btn pri sm" disabled="{{cur.sendOff}}" onClick="{{send}}"><svg class="ic s"><use href="#i-up"/></svg>보내기</button></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>{{cur.footNote}}</span><span class="mono" style="{{draftStyle}}">{{draftLen}} / 20000</span></div>
         </div>
       </div>
       </sc-if>
@@ -499,8 +525,9 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
         <div style="flex:1;min-height:0;padding:4px 22px 16px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
           <span class="cap">자율성 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 열 때 고정 · 기본값은 plan (D-7)</span></span>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-            <sc-for list="{{autoOpts}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" onClick="{{o.pick}}"><b>{{o.name}}</b>{{o.desc}}</button></sc-for>
+            <sc-for list="{{autoOpts}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" disabled="{{o.off}}" onClick="{{o.pick}}"><b>{{o.name}}</b>{{o.desc}}</button></sc-for>
           </div>
+          <sc-if value="{{noUnattended}}" hint-placeholder-val="{{false}}"><div class="note" style="margin-top:-4px"><svg class="ic s" style="margin-top:2px;color:var(--warn)"><use href="#i-warn"/></svg><span>이 자격은 무인 자격이 아니고 사전 승인 목록도 없어 <b>unattended</b>를 열 수 없습니다(<span class="mono">CREDENTIAL_NOT_UNATTENDED</span>). 발급은 앱 밖에서 합니다.</span></div></sc-if>
           <span class="cap">외부 MCP 서버 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 읽기 전용 목록 · 등록은 앱 밖</span></span>
           <button class="{{mcpCls}}" style="display:flex;flex-direction:row;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;width:100%" onClick="{{toggleMcp}}"><span class="{{mcpBox}}"><svg class="ic s" style="width:12px;height:12px"><use href="#i-check"/></svg></span><svg class="ic" style="color:var(--paper)"><use href="#i-puzzle"/></svg><span style="display:flex;flex-direction:column"><b class="mono" style="font-size:12.5px;font-weight:600">filesystem</b><span style="font-size:10.5px;color:var(--muted)">도구 4 · 읽기 전용 3 · env 이름만 보임</span></span></button>
           <sc-if value="{{conflict}}" hint-placeholder-val="{{false}}"><div class="ban err"><svg class="ic" style="color:var(--err)"><use href="#i-warn"/></svg><span><b>무인 세션은 외부 MCP와 함께 열 수 없습니다.</b> 서버를 빼거나 자율성을 바꾸세요. <span class="mono" style="color:var(--dim)">MCP_UNATTENDED_CONFLICT</span></span></div></sc-if>
@@ -521,13 +548,14 @@ button.btn:active,button.chipb:active,button.opt:active{transform:translateY(0) 
         <div class="card" style="display:flex;flex-direction:column;gap:3px"><span class="cap">노드 밖으로 나간 양</span><div style="display:flex;align-items:baseline;gap:6px"><b class="mono" style="font-size:24px;font-weight:600">{{cur.kb}}</b><span class="mono" style="color:var(--muted)">KB</span></div><span style="font-size:11px;color:var(--muted)">출력은 필터 없이 제공자로 갑니다</span></div>
         <div class="card" style="display:flex;flex-direction:column;gap:6px"><span class="cap">모듈 상태 <span style="letter-spacing:.1em;color:var(--dim);text-transform:none;font-weight:500">· 예시</span></span><div style="display:flex;justify-content:space-between;font-size:12px"><span class="mono">io.terra.chat</span><span class="{{chatCls}}">{{chatText}}</span></div><span style="font-size:10.5px;color:var(--dim)">재시작은 “접수”까지만 알 수 있고, 이 칸은 바뀌지 않습니다.</span></div>
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:auto"><div style="display:flex;justify-content:space-between;align-items:center"><span class="cap">위임 자격</span><span class="chip ok">맡겨짐</span></div>
-          <div class="kv"><span>권한</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip mut mono" style="height:18px">node.read</span><span class="chip mut mono" style="height:18px">file.read</span><span class="chip mut mono" style="height:18px">node.control</span></span><span>reach</span><span class="mono" style="font-size:11.5px">node (이 노드)</span><span>만료</span><span class="mono" style="font-size:11.5px">7h 03m 뒤 <span style="color:var(--dim)">(만료 시각 전)</span></span></div>
+          <div class="kv"><span>권한</span><span style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip mut mono" style="height:18px">node.read</span><span class="chip mut mono" style="height:18px">file.read</span><span class="chip mut mono" style="height:18px">node.control</span></span><span>reach</span><span class="mono" style="font-size:11.5px">node (이 노드)</span><span>만료</span><span class="mono" style="font-size:11.5px">7h 03m 뒤 <span style="color:var(--dim)">(만료 시각 전)</span></span><span>무인</span><span class="mono" style="font-size:11.5px">{{credUnattendedText}}</span><span>사전 승인</span><span class="mono" style="font-size:11.5px">{{credPreText}}</span></div>
+          <button class="chipb" style="align-self:flex-start" onClick="{{toggleCred}}">{{credToggleText}}</button>
           <div class="note"><svg class="ic s" style="margin-top:2px;color:var(--warn)"><use href="#i-warn"/></svg><span>폐기 여부는 확인하지 못합니다.</span></div></div>
       </div>
     </div>
 
     <sc-if value="{{confirmCancel}}" hint-placeholder-val="{{false}}">
-      <div class="ovl"><div class="dlg" style="width:400px"><h4><svg class="ic l" style="color:var(--err)"><use href="#i-stop"/></svg>세션을 취소할까요?</h4><div style="font-size:12.5px;color:var(--sub);line-height:1.65"><b>{{cur.title}}</b><br>취소는 되돌릴 수 없습니다. 진행 중인 호출은 멈추지 않을 수 있고, 취소된 세션에는 새 글을 보낼 수 없습니다.</div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onClick="{{noCancel}}">그대로 두기</button><button class="btn dng" onClick="{{doCancel}}">세션 취소</button></div></div></div>
+      <div class="ovl"><div class="dlg" role="dialog" aria-modal="true" aria-label="세션을 취소할까요?" style="width:400px"><h4><svg class="ic l" style="color:var(--err)"><use href="#i-stop"/></svg>세션을 취소할까요?</h4><div style="font-size:12.5px;color:var(--sub);line-height:1.65"><b>{{cur.title}}</b><br>취소는 되돌릴 수 없습니다. 진행 중인 호출은 멈추지 않을 수 있고, 취소된 세션에는 새 글을 보낼 수 없습니다.</div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onClick="{{noCancel}}">그대로 두기</button><button class="btn dng" onClick="{{doCancel}}">세션 취소</button></div></div></div>
     </sc-if>
   </div>
 </div>
@@ -546,6 +574,8 @@ class Component extends DCLogic {
       newAuto: 'plan',
       newMcp: false,
       draft: '',
+      tab: 'mine',
+      cred: { unattended: true, pre: ['terra.gateway.agent.whoami.get'] },
       chatDown: true,
       sessions: [
         { id: 's1', sid: 'logrotate-0411', title: '새벽 로그 정리 재시작', autonomy: 'ask', status: 'idle', time: '방금',
@@ -558,7 +588,7 @@ class Component extends DCLogic {
             { id: 4, kind: 'call', op: 'terra.gateway.modules.get', st: 'ok' },
             { id: 5, kind: 'assistant', text: '자격의 범위는 이 노드까지이고, 모듈 목록에서 chat 모듈이 Stopped입니다. 재시작이 가장 작은 조치입니다.' },
             { id: 6, kind: 'call', op: 'terra.daemon.modules.by-module-id.restart.post', st: 'planned' },
-            { id: 7, kind: 'done', text: '차례가 끝났습니다 · 모델 호출 3회 · 18.2k 토큰' } ] },
+            { id: 7, kind: 'done', text: '차례가 끝났습니다 · 모델 호출 3회 · 세션 누적 18.2k 토큰' } ] },
         { id: 's3', sid: 'model-fail-0412', title: '모델 장애 테스트', autonomy: 'ask', status: 'failed', time: '어제',
           turnCalls: 1, inTok: 4380, outTok: 0, cache: 0, kb: 12.4, entries: [
             { id: 1, kind: 'user', text: 'gpu-02 상태를 알려줘.' },
@@ -600,7 +630,7 @@ class Component extends DCLogic {
   }
   finish(id) {
     this.upd(id, (x) => Object.assign({}, x, { status: 'idle', time: '방금', entries: x.entries.concat([
-      { id: this.nid(), kind: 'done', text: '차례가 끝났습니다 · 모델 호출 ' + x.turnCalls + '회 · ' + this.fmtTok(x.inTok + x.outTok) + ' 토큰' }]) }));
+      { id: this.nid(), kind: 'done', text: '차례가 끝났습니다 · 모델 호출 ' + x.turnCalls + '회 · 세션 누적 ' + this.fmtTok(x.inTok + x.outTok) + ' 토큰' }]) }));
   }
   call(id, op, st, extra) { this.push(id, { kind: 'call', op: op, st: st, extra: extra || '' }); }
   say(id, text) { this.push(id, { kind: 'assistant', text: text }); }
@@ -610,6 +640,7 @@ class Component extends DCLogic {
     const s = this.state.sessions.find((x) => x.id === id);
     if (!s || s.status === 'running' || s.status === 'waiting-approval' || s.status === 'failed' || s.status === 'cancelled') return;
     const body = (text || '').trim();
+    if (body.length > 20000) return;
     if (!body) return;
     const g = (this.gen[id] = (this.gen[id] || 0) + 1);
     this.push(id, { kind: 'user', text: body }, { status: 'running', turnCalls: 0 });
@@ -632,6 +663,11 @@ class Component extends DCLogic {
       this.later(id, g, 5000, () => {
         this.push(id, { kind: 'card', op: RESTART, state: 'pending', remaining: 270 }, { status: 'waiting-approval' });
       });
+    } else if (this.state.cred.pre.indexOf(RESTART) >= 0) { // 사전 승인한 호출은 무인에서도 실행한다
+      this.later(id, g, 5000, () => this.call(id, RESTART, 'accepted', '접수 ≠ 완료'));
+      this.later(id, g, 5800, () => this.modelCall(id, g));
+      this.later(id, g, 6600, () => this.say(id, '재시작을 접수했습니다. 모듈이 실제로 올라왔는지는 아직 확인하지 못했습니다.'));
+      this.later(id, g, 7400, () => this.finish(id));
     } else {
       this.later(id, g, 5000, () => this.call(id, RESTART, 'refused', 'TERRA_APPROVAL_REQUIRED'));
       this.later(id, g, 5800, () => this.say(id, '무인 세션이라 사람에게 물을 수 없어 거절되었습니다.'));
@@ -691,7 +727,7 @@ class Component extends DCLogic {
     const id = 'n' + this.nid();
     const sess = { id: id, sid: this.nextSid(), title: '새 세션 ' + n, autonomy: this.state.newAuto, status: 'idle', time: '방금',
       turnCalls: 0, inTok: 0, outTok: 0, cache: 0, kb: 0, entries: [] };
-    this.setState((s) => ({ sessions: [sess].concat(s.sessions), selected: id, creating: false, newAuto: 'plan', newMcp: false, draft: '' }));
+    this.setState((s) => ({ sessions: [sess].concat(s.sessions), selected: id, creating: false, newAuto: 'plan', newMcp: false, draft: '', tab: 'mine' }));
   }
   nextSid() { return 'sess-' + String(this.state.sessions.length + 413).padStart(4, '0'); }
 
@@ -701,8 +737,10 @@ class Component extends DCLogic {
     const cur = S.sessions.find((x) => x.id === S.selected) || S.sessions[0];
     const stColor = (st) => ({ idle: 'var(--muted)', running: 'var(--leaf)', 'waiting-approval': 'var(--warn)', failed: 'var(--err)', cancelled: 'var(--dim)', done: 'var(--dim)' }[st] || 'var(--muted)');
     const stCls = (st) => ({ idle: 'chip', running: 'chip info', 'waiting-approval': 'chip warn', failed: 'chip err', cancelled: 'chip mut' }[st] || 'chip');
+    const lastErrEntry = cur.entries.slice().reverse().find((e) => e.kind === 'error');
     const ended = cur.status === 'failed' || cur.status === 'cancelled';
     const busy = cur.status === 'running' || cur.status === 'waiting-approval';
+    let deniedSoFar = 0;
     const entries = cur.entries.map((e) => {
       const o = { id: e.id, isUser: e.kind === 'user', isModel: e.kind === 'model', isCall: e.kind === 'call', isAssistant: e.kind === 'assistant',
         isDone: e.kind === 'done', isError: e.kind === 'error', isCancelled: e.kind === 'cancelled', isCard: e.kind === 'card',
@@ -713,6 +751,7 @@ class Component extends DCLogic {
         o.chipCls = { ok: 'chip ok', accepted: 'chip info', planned: 'chip warn', refused: 'chip err' }[e.st];
       }
       if (e.kind === 'card') {
+        o.prevDenied = deniedSoFar > 0; o.prevDeniedText = '이전에 거부한 같은 호출 ' + deniedSoFar + '회'; if (e.state === 'denied') deniedSoFar += 1;
         o.cardPending = e.state === 'pending'; o.cardDone = e.state !== 'pending';
         o.cardCls = e.state === 'pending' ? 'pendglow' : ''; o.tickCls = e.state === 'pending' && e.remaining <= 60 ? 'tick' : '';
         o.left = this.fmtLeft(e.remaining || 0);
@@ -727,7 +766,9 @@ class Component extends DCLogic {
       }
       return o;
     });
-    const sessionList = S.sessions.map((x) => ({
+    const isEnded = (x) => x.status === 'failed' || x.status === 'cancelled';
+    const shown = S.sessions.filter((x) => (S.tab === 'ended' ? isEnded(x) : !isEnded(x)));
+    const sessionList = shown.map((x) => ({
       id: x.id, title: x.title, status: x.status, autonomy: x.autonomy, time: x.time,
       cls: x.id === S.selected && !S.creating ? 'sess on' : 'sess', dot: stColor(x.status), stColor: stColor(x.status),
       select: () => this.setState({ selected: x.id, creating: false, confirmCancel: false, draft: '' })
@@ -740,25 +781,33 @@ class Component extends DCLogic {
     const placeholder = ended ? '종료된 세션은 읽기 전용입니다' : cur.status === 'waiting-approval' ? '승인 대기 중에는 일반 글을 보낼 수 없습니다'
       : cur.status === 'running' ? '모델이 답하는 중입니다' : '이어서 물어보세요';
     const locked = ended || busy;
+    const over = S.draft.length > 20000;
+    const gateOk = S.cred.unattended && S.cred.pre.length > 0;
     const sendDraft = (t) => { this.sendText(cur.id, t); };
     const unattendedMcp = S.newAuto === 'unattended' && S.newMcp;
     const AUTO = [['plan', '읽기만 하고 제안한다. 실행하지 않는다'], ['ask', '쓰기 전에 사람에게 묻는다'], ['auto', '읽기와 되돌릴 수 있는 쓰기는 묻지 않는다. 위험한 호출은 여전히 묻는다'], ['unattended', '읽기와 사전 승인한 호출만 실행하고 나머지는 거절한다']];
     const chatDone = S.sessions.some((x) => x.entries.some((e) => e.kind === 'call' && e.st === 'accepted'));
     return {
+      tabMine: S.tab === 'mine', tabEnded: S.tab === 'ended', tabMineCls: S.tab === 'mine' ? 'on' : '', tabEndedCls: S.tab === 'ended' ? 'on' : '',
+      goMine: () => this.setState({ tab: 'mine' }), goEnded: () => this.setState({ tab: 'ended' }),
+      noSessions: shown.length === 0, noSessionsText: S.tab === 'ended' ? '종료된 세션이 없습니다.' : '열린 세션이 없습니다. 새 세션을 여세요.',
       pendingCount: inbox.length, inbox: inbox, sessionList: sessionList, entries: entries,
       showSession: !S.creating, creating: S.creating, confirmCancel: S.confirmCancel,
       cur: {
-        title: cur.title, sid: cur.sid, status: cur.status, statusCls: stCls(cur.status), dot: stColor(cur.status), autonomy: cur.autonomy,
+        title: cur.title, sid: cur.sid, lastErr: (cur.status === 'idle' || cur.status === 'failed') && lastErrEntry ? lastErrEntry.code : '', status: cur.status, statusCls: stCls(cur.status), dot: stColor(cur.status), autonomy: cur.autonomy,
         canCancel: !ended && cur.status !== 'done', empty: empty,
         hint: cur.autonomy === 'plan' ? 'plan 세션은 읽기만 하고 제안합니다.' : cur.autonomy === 'ask' ? 'ask 세션은 쓰기 전에 사람에게 승인을 묻습니다.' : cur.autonomy === 'auto' ? 'auto 세션은 읽기와 되돌릴 수 있는 쓰기는 묻지 않지만, 위험한 호출은 여전히 묻습니다.' : 'unattended 세션은 읽기와 사전 승인한 호출만 실행하고 나머지는 거절합니다.',
-        placeholder: placeholder, locked: locked, sendOff: locked || !S.draft.trim(), boxCls: cur.status === 'running' ? 'box work dis' : (locked ? 'box dis' : 'box'), thinking: cur.status === 'running',
+        placeholder: placeholder, locked: locked, sendOff: locked || over || !S.draft.trim(), boxCls: cur.status === 'running' ? 'box work dis' : (locked ? 'box dis' : 'box'), thinking: cur.status === 'running',
         footNote: ended ? '새 세션을 열어 이어가세요.' : cur.autonomy === 'plan' ? 'plan 세션은 제안만 합니다. 실행하려면 새 세션을 ask로 여세요.' : '버튼은 대기 승인이 있을 때만 켜집니다. 한 번 누르면 곧바로 비활성화됩니다.',
         turnCalls: cur.turnCalls, turnPct: Math.min(100, Math.round(cur.turnCalls / 24 * 100)),
         inTok: cur.inTok.toLocaleString('en-US'), outTok: cur.outTok.toLocaleString('en-US'), cache: cur.cache.toLocaleString('en-US'), kb: cur.kb.toFixed(1)
       },
-      draft: S.draft, draftLen: S.draft.length,
+      draft: S.draft, draftLen: S.draft.length, draftStyle: over ? 'color:var(--err);font-weight:600' : '',
       onType: (e) => this.setState({ draft: e.target.value }),
-      onKey: (e) => { if (e.key === 'Enter' && !e.shiftKey) { sendDraft(S.draft); } },
+      onKey: (e) => {
+        if ((e.nativeEvent && e.nativeEvent.isComposing) || e.isComposing || e.keyCode === 229) return; // 한글 조합 중 Enter는 전송이 아니다 (DC-22)
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!over && S.draft.trim()) sendDraft(S.draft); }
+      },
       send: () => sendDraft(S.draft),
       showChips: empty,
       suggest: [{ text: 'chat 모듈이 죽었어. 재시작해줘.', go: () => sendDraft('chat 모듈이 죽었어. 재시작해줘.') }, { text: '모듈 상태를 읽기만 해서 알려줘', go: () => sendDraft('모듈 상태를 읽기만 해서 알려줘') }],
@@ -766,7 +815,11 @@ class Component extends DCLogic {
       openNew: () => this.setState({ creating: true, newAuto: 'plan', newMcp: false }),
       closeNew: () => this.setState({ creating: false }),
       nextSid: this.nextSid(),
-      autoOpts: AUTO.map((a) => ({ name: a[0], desc: a[1], cls: S.newAuto === a[0] ? 'opt on' : 'opt', pick: () => this.setState({ newAuto: a[0] }) })),
+      autoOpts: AUTO.map((a) => { const off = a[0] === 'unattended' && !gateOk; return { name: a[0], desc: a[1], off: off, cls: S.newAuto === a[0] ? 'opt on' : 'opt', pick: () => { if (!off) this.setState({ newAuto: a[0] }); } }; }),
+      noUnattended: !gateOk,
+      credUnattendedText: S.cred.unattended ? '예' : '아니오', credPreText: S.cred.pre.length ? S.cred.pre.length + '건 (whoami.get)' : '없음',
+      credToggleText: S.cred.unattended ? '예시: 무인 자격 끄기' : '예시: 무인 자격 켜기',
+      toggleCred: () => this.setState((s) => ({ cred: s.cred.unattended ? { unattended: false, pre: [] } : { unattended: true, pre: ['terra.gateway.agent.whoami.get'] }, newAuto: s.newAuto === 'unattended' && s.cred.unattended ? 'plan' : s.newAuto })),
       mcpCls: S.newMcp ? (unattendedMcp ? 'opt bad' : 'opt on') : 'opt', mcpBox: S.newMcp ? 'cb on' : 'cb',
       toggleMcp: () => this.setState({ newMcp: !S.newMcp }),
       conflict: unattendedMcp, createSession: () => this.createSession(),
