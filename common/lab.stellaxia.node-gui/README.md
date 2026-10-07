@@ -357,6 +357,7 @@ Daemon만 가짜다.
 
 ## 관련 문서
 
+- [설치기 연동 범위](../../docs/installer-integration.md) — 설치기가 이 모듈을 원격에서 받아 까는 범위 · 결정(Q-1 이후)
 - [저장소 README](../../README.md) — 접두사(Q-1), 웹 화면을 가진 모듈의 빌드 · 포장
 - [`docs/layout.md`](../../docs/layout.md) — L-6 · L-8 웹 모듈 절, L-10 Scene 두 층
 - [`web/README.md`](web/README.md) — 웹 프로젝트 소개 · [`web/docs/README.md`](web/docs/README.md) — 웹 개발 문서 MOC
