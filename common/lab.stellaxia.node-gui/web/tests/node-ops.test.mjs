@@ -139,7 +139,7 @@ test('모듈 로그 · 작업 출력 — 출력 칸의 글', () => {
   assert.equal(outText('log', { lines: [] }), '(최근 로그 없음)');
   const t = outText('out', { type: 'process.execute', state: 'succeeded', started_at: '2026-10-05T01:00:00Z', finished_at: '2026-10-05T01:00:02Z' });
   assert.match(t, /작업 process\.execute/);
-  assert.match(t, /명령 출력을 돌려주지 않는다/);
+  assert.match(t, /이 기록에는 출력이 없다/, '출력은 output.get 이 준다 — 작업 기록 자체에는 없다(tests/taskout.test.mjs)');
   assert.equal(outText('out', { output: { stdout: 'hi', exit_code: 0 } }), 'hi\n— exit 0');
 });
 

@@ -55,14 +55,15 @@ export function frameEvent(f, raw) {
 /**
  * @param {{ base: string, fetch: typeof fetch }} client  TerraClient (fetch = frame 의 terra.fetch)
  * @param {(ev: { id: string|null, signal: string, nodeId?: string, data: any }) => void} onEvent
- * @param {{ onState?: (s: 'open'|'retry'|'off', info?: any) => void, op?: string, input?: object, raw?: boolean, sleep?: (ms: number) => Promise<void> }} [opts]
+ * @param {{ onState?: (s: 'open'|'retry'|'off', info?: any) => void, op?: string, input?: object, raw?: boolean, last?: string|null, sleep?: (ms: number) => Promise<void> }} [opts]
  *   op · input — 다른 SSE op(SVI 핸들 흐름 이벤트 terra.master.svi.handles.by-handle-id.events.get {handle_id}). raw — frameEvent 참고
+ *   last — 처음부터 이 id 뒤를 받는다(작업 출력: 읽기로 받은 last_seq — task-output.js)
  * @returns {() => void} 끄기
  */
 export function openEvents(client, onEvent, opts = {}) {
   const op = opts.op || EVENTS_OP;
   const nap = opts.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
-  let stop = false, last = null, wait = 1000, ctl = null, fails = 0;
+  let stop = false, last = opts.last || null, wait = 1000, ctl = null, fails = 0;
   const state = (s, i) => { if (opts.onState) opts.onState(s, i); };
   const run = async () => {
     while (!stop) {
