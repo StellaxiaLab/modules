@@ -142,6 +142,11 @@ export async function applyLink(source, link, links, ctx, o) {
     const key = p.key, cur = io.pairs.find((q) => q.key === key);
     if (cur && cur.binding_id && cur.phase !== 'lost' && cur.phase !== 'closed' && cur.phase !== 'denied' && cur.phase !== 'invalid') { notes.push(label(p) + ' — 이미 바인딩이 있다'); continue; }
     const s = p.source, t = p.target;
+    // 자원을 못 본다 — 내 것이 아니거나 사라졌다. 관리자가 아니면 남의 자원과는 허가를 받아도 못 잇는다(Master 도 같은 이유로 거절한다 — 설계 §9 실행 확인)
+    if (eps.get(s.resource_id) === null || eps.get(t.resource_id) === null) {
+      const reason = (eps.get(s.resource_id) === null ? 'source' : 'target') + '_resource_not_found';
+      io = phaseOf(io, key, 'invalid', { reason }); notes.push(label(p) + ' — ' + reason); continue;
+    }
     // 엔드포인트를 정하지 못했다 — 사람이 고른다(Q-27)
     if (!s.endpoint_id || !t.endpoint_id) {
       io = phaseOf(io, key, 'invalid', { reason: 'endpoint_not_chosen: ' + (!s.endpoint_id ? s.resource_id + '(보내는 쪽)' : t.resource_id + '(받는 쪽)') });
@@ -219,10 +224,13 @@ async function applyShare(client, link, links, ctx, io0, o, h) {
 
 /**
  * [나에게 허가 주기] — 연결이 막힌 쌍의 bind.source · bind.target 을 내 user 주체에게 준다(소유자만 만들 수 있다 — node.control · 자원 소유).
- * 사람이 눌렀을 때만 부른다(Q-22). 끝점 하나 · operation 하나씩, 기한은 ttlSeconds(0 = 없음 — Q-23).
+ * 사람이 눌렀을 때만 부른다(Q-22). 끝점 하나 · operation 하나씩. 기한은 ttlSeconds — 0 은 기한 없음(사람이 일부러 고른 경우만). 기본은 30일이다(Q-23 결정: 무기한 허가가 쌓이지 않게 설정 창에서 기한을 고르고, 고르지 않으면 30일).
  * @returns {Promise<{ ok: boolean, made: string[], failed: Array<{ resource_id: string, operation: string, code: string }> }>}
  */
-export async function grantSelf(client, lacks, userId, ttlSeconds = 0) {
+/** 내게 주는 bind 허가의 기본 기한(초) — 30일. 임시 기본값이다: Q-23 결정(2026-10-07)이 "기한을 고르게 한다"까지만 정했다 */
+export const GRANT_SELF_TTL_DEFAULT = 30 * 86400;
+
+export async function grantSelf(client, lacks, userId, ttlSeconds = GRANT_SELF_TTL_DEFAULT) {
   const made = [], failed = [];
   if (!client.has(OPS.grantsPost)) return { ok: false, made, failed: lacks.map((l) => ({ resource_id: l.resource_id, operation: l.operation, code: 'not-in-catalog' })) };
   for (const l of lacks) {
