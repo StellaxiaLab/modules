@@ -7,6 +7,7 @@
 import { TerraClient, resultText, trackJob } from './client.js';
 import { LiveSource, appFor } from './source.js';
 import { HELM_APPS, TRACK, TASK_STATE, logLines, cfgErrorKeys, sviOpenOp } from './operations.js';
+import { wireLinkApply } from './link-wire.js';
 import { wireSviStreams } from './svi-live.js';
 import { frameReady, role } from './frame-boot.js';
 import { wireFrameSession } from './frame-session.js';
@@ -303,10 +304,13 @@ export function wireHelm(screen, source, opts = {}) {
   //    열린 핸들이 있으면 그 핸들의 status · frame SSE 를 받아 state.sviStream(흐름 칸) · state.sviFlow(도로 애니메이션)에 넣는다.
   //    예시 흐름(sviDemoTick)은 RealNode 가 껐다. SVI 목록 · 핸들은 Master op 라 앱 토큰으로는 받지 못한다(PF-1) — 열린 핸들이 없으니 열지 않는다
   const svOff = source.client ? wireSviStreams(screen, source, load) : () => {};
+  // 9) 연결 적용(MD-28) — screen.linkApply(연결 id) · screen.linkGrantSelf(연결 id). 설정 화면(UP-25)이 오면 단추가 이것을 부른다
+  const lkOff = source.client ? wireLinkApply(screen, source) : () => {};
   return () => {
     live = false;
     clearInterval(t);
     svOff();
+    lkOff();
     delete screen.sviFlowCmd;   // svi-live 가 바꿔 끼운 흐름 칸 손잡이 — 화면 것으로 돌린다
     delete screen._sviPrime;
     delete screen._hbRefresh;
@@ -427,6 +431,7 @@ async function wireFrame(screen) {
     // 다른 노드는 관계도의 node_id 로 노드 주소 호출(B-1)을 한다 — 그 노드 카탈로그가 오면 자물쇠를 다시 그린다
     const source = new LiveSource(client, { localNode: screen.state.localNode.name, localId: screen.state.localNode.id, idOf: (name) => (screen.NET && screen.NET[name] && screen.NET[name].id) || null, parts: openParts() });
     source.client = client;
+    source.principal = principal;   // 연결 적용(link-wire.js)이 허가 검사에 쓰는 내 신원 — 게이트웨이 whoami 의 principal
     client.onNodeCatalog = () => { if (key === next) screen.setState({}); };
     // 실시간 이벤트(B-5)가 열려 있으면 신호가 다시 받기를 맡는다 — 폴링은 여섯 번에 한 번(바닥)만
     let ev = '';

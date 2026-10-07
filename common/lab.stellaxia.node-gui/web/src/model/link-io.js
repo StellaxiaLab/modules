@@ -85,10 +85,24 @@ export function idempotencyKey(treeId, key) {
 
 const ref = (e, ep) => ({ node_id: e.node_id, resource_id: e.resource_id, endpoint_id: ep || '' });
 
-/** 한 끝 자원의 엔드포인트 — ctx.endpointsOf(자원 끝)가 돌려준 목록에서 하나뿐일 때만 */
-function epOf(ctx, e, role) {
+/** 사람이 고른 엔드포인트의 키 — 같은 자원이 한 연결에서 보내는 쪽과 받는 쪽일 수 있어 역할로 가른다 */
+export const epChoiceKey = (role, resourceId) => (role === 'source' ? 'src:' : 'dst:') + resourceId;
+
+/** 한 끝 자원의 엔드포인트 — 사람이 고른 것(io.endpoints)이 먼저, 없으면 ctx.endpointsOf(자원 끝)가 돌려준 목록에서 하나뿐일 때만 */
+function epOf(ctx, e, role, chosen) {
+  const c = chosen && chosen[epChoiceKey(role, e.resource_id)];
+  if (c) return c;
   const eps = ctx.endpointsOf ? ctx.endpointsOf(e) : null;
   return eps ? pickEndpoint(eps, role) : '';
+}
+
+/** 엔드포인트 고름을 io 에 적는다 — 새 io 를 돌려준다(원본은 그대로). epId 가 비면 고름을 푼다 */
+export function setEndpointChoice(io, role, resourceId, epId) {
+  const base = readLinkIO(null, io), endpoints = Object.assign({}, base.endpoints), k = epChoiceKey(role, resourceId);
+  if (epId) endpoints[k] = epId; else delete endpoints[k];
+  const out = Object.assign({}, io && sanitizeIO(io) ? io : base);
+  if (Object.keys(endpoints).length) out.endpoints = endpoints; else delete out.endpoints;
+  return out;
 }
 
 /**
@@ -99,11 +113,13 @@ function epOf(ctx, e, role) {
  *   자원 → 노드 · 노드 → 노드: 노드 허가(공유) — 쌍 키 `share:…`.
  * @param {any} link
  * @param {any[]} links  이 맵의 모든 연결 — 합류를 풀 때 쓴다
+
  * @param {LinkCtx} ctx
+ * @param {any} [io]  사람이 고른 엔드포인트(io.endpoints)를 읽을 io — 없으면 link.io
  * @returns {Array<{ key: string, kind: 'binding'|'share', source: any, target: any, via_node_id?: string }>}
  */
-export function pairsOf(link, links, ctx) {
-  const kind = classifyLink(link, ctx);
+export function pairsOf(link, links, ctx, io) {
+  const kind = classifyLink(link, ctx), chosen = readLinkIO(link, io).endpoints;
   if (kind === 'screen') return [];
   const a = endOf(ctx, link.from), b = endOf(ctx, link.to), out = [];
   // 출발 자원들 — 노드면 고른 자원(sel '노드|앱|id' 중 SVI 인 것)
@@ -125,7 +141,7 @@ export function pairsOf(link, links, ctx) {
   }
   sources.forEach((s) => sinks.forEach((t) => {
     if (s.resource_id === t.resource_id) return;   // 자기 자신으로는 잇지 않는다
-    const sp = epOf(ctx, s, 'source'), tp = epOf(ctx, t, 'target');
+    const sp = epOf(ctx, s, 'source', chosen), tp = epOf(ctx, t, 'target', chosen);
     out.push({ key: pairKey({ resource_id: s.resource_id, endpoint_id: sp }, { resource_id: t.resource_id, endpoint_id: tp }), kind: 'binding', source: ref(s, sp), target: ref(t, tp) });
   }));
   return out.filter((p, i) => out.findIndex((q) => q.key === p.key) === i);
@@ -159,7 +175,7 @@ export function buildIO(link, links, ctx, prev) {
   const kind = classifyLink(link, ctx), keep = readLinkIO(link, prev);
   const base = { v: IO_VERSION, kind, qos_profile: keep.qos_profile, compatibility_policy: keep.compatibility_policy, direction: 'forward', pairs: [] };
   if (kind === 'screen') return base;
-  const ps = pairsOf(link, links, ctx), old = new Map(keep.pairs.map((p) => [p.key, p]));
+  const ps = pairsOf(link, links, ctx, keep), old = new Map(keep.pairs.map((p) => [p.key, p]));
   base.pairs = ps.map((p) => {
     const o = old.get(p.key);
     const pr = { key: p.key, phase: o && PHASES.indexOf(o.phase) >= 0 ? o.phase : 'draft' };
@@ -176,6 +192,7 @@ export function buildIO(link, links, ctx, prev) {
     if (a && a.t === 'node' && a.node_id) base.via_node_id = a.node_id;
   }
   // 연결 전체의 상태 — 쌍들 중 가장 나쁜 것(마지막으로 본 값)
+  if (keep.endpoints) base.endpoints = keep.endpoints;
   base.phase = worstPhase(base.pairs.map((p) => p.phase));
   ['reason', 'code', 'checked_at', 'schema_ref', 'encoding'].forEach((f) => { if (keep[f] !== undefined && keep[f] !== '') base[f] = keep[f]; });
   return base;
@@ -215,6 +232,11 @@ export function sanitizeIO(io) {
   if (io.kind === 'share') {
     out.share_ops = (Array.isArray(io.share_ops) ? io.share_ops : []).filter((o) => SHARE_OPS.indexOf(o) >= 0);
     if (Number.isFinite(io.share_ttl_seconds) && io.share_ttl_seconds >= 0) out.share_ttl_seconds = Math.floor(io.share_ttl_seconds);
+  }
+  if (obj(io.endpoints)) {
+    const e = {};
+    Object.keys(io.endpoints).forEach((k) => { if (/^(src|dst):./.test(k) && typeof io.endpoints[k] === 'string' && io.endpoints[k]) e[k] = io.endpoints[k]; });
+    if (Object.keys(e).length) out.endpoints = e;
   }
   if (Array.isArray(io.grant_ids)) out.grant_ids = io.grant_ids.filter((g) => typeof g === 'string' && g);
   return out;

@@ -8,7 +8,7 @@ doc_type: "design"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.2.0"
+version: "0.3.0"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -439,6 +439,17 @@ type Phase = 'draft' | 'invalid' | 'needs-grant' | 'binding' | 'active' | 'degra
 > - 엔드포인트는 방향이 맞는 것이 하나뿐일 때만 채운다(Q-27). 앱 토큰으로 SVI 목록이 비어 있으면(PF-1) 모르는 채(`''`)로 남는다.
 > - 합류 때문에 다른 연결의 쌍이 바뀌어도 이미 붙은 `io`는 그때 다시 풀지 않는다 — 적용 직전에 `rebuildLinks`로 다시 푼다(MD-28).
 > - 시험: `tests/linkio.test.mjs`.
+
+> [!NOTE] 구현됨 — MD-28 (2026-10-07)
+> 적용 흐름(§4.1)은 `web/src/api/link-apply.js`에 있고, `screen.linkApply(연결 id)` · `screen.linkGrantSelf(연결 id)`가 `src/api/link-wire.js`에서 붙는다. 시퀀스와 달라진 점 · 더한 것:
+> - 호출은 `client.invoke` 직접 — 엔드포인트는 `svi.resources.by-resource-id.endpoints.get`(응답 `{resource_id, items: [EndpointDescriptor]}`, `routes_svi.go:54-62`), 허가는 `svi.grants.get`(내 user 주체로 거른다), bind는 계약 본문 일곱 키 그대로. 본문에 `node_id`를 싣지 않는다.
+> - **미리 검사는 확실히 어긋난 것만 막는다** — 엔드포인트가 말하지 않은 것(`operations` · schema · `qos_profiles`가 비어 있음)은 막지 않는다. 최종 판정은 Master다.
+> - 하나뿐이라 자동으로 고른 엔드포인트도 `io.endpoints`(`src:<자원>` · `dst:<자원>` → 엔드포인트 id)에 적는다 — 사람이 고른 것과 같은 자리다. 쌍의 키가 안 흔들려야 다음에 같은 쌍의 `binding_id` · 상태를 찾는다.
+> - 서버에 닿지 않으면(카탈로그에 없음 · 401 · 503 · 알 수 없는 오류) 연결을 바꾸지 않고 이유만 알린다. 자원이 내 것이 아니라 404면 그 쌍이 `invalid`다.
+> - 허가가 없는 쌍은 bind를 부르지 않고 `needs-grant`(이유 `missing_bind_grant: <자원> <operation>, …`)로 둔다. `linkGrantSelf`는 사람이 확인한 뒤에만 부른다(Q-22): 끝점 하나 · operation 하나씩 만들고(기한 없음 — Q-23 기본값) 다시 적용한다.
+> - 공유는 같은 (자원, 노드)의 살아 있는 노드 허가가 있으면 그것을 쓴다(`grant_id`). 없으면 `subject_type: node` 허가를 만든다. 소유자가 아니면 404 `SVI_RESOURCE_NOT_FOUND` → `denied`.
+> - 시험은 Master 계약 모양의 가짜 클라이언트다 — 진짜 스택은 PF-1이 열린 뒤(MD-32). **`svi.resources.by-resource-id.endpoints.get`의 응답 모양은 Terra 코드(`routes_svi.go`)로만 확인했다.**
+> - 단추는 없다 — 입출력 설정 화면(UP-25)이 오면 [연결 적용] · [나에게 허가 주기]가 이 둘을 부른다.
 
 ## 6. 입출력 설정 화면 — 요구사항
 
