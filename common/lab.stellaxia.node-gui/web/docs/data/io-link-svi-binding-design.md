@@ -8,7 +8,7 @@ doc_type: "design"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.5.0"
+version: "0.5.1"
 last_updated: "2026-10-07"
 language: "ko-KR"
 os_priority:
@@ -16,7 +16,7 @@ os_priority:
   - Windows
   - macOS
 backlog: "MD-1"
-assumes: "PF-1 (Master op 접근) — 열렸다고 가정한다. 별도 ADR에서 다룬다"
+assumes: "PF-1 (Master op 접근) — 열렸다고 가정한다. Terra ADR-GW-003이 정했다(1차 읽기만, 쓰기는 2차)"
 source_commits:
   modules: "667fb53"
   maingui: "9128754"
@@ -45,6 +45,12 @@ SVI 흐름도(MD-23 · maingui A-28)는 엔드포인트 · 핸들 · 바인딩 �
 >
 > 1. **Master가 보는 호출자는 그 사람(사용자)이다.** 바인딩의 허가 검사는 바인딩을 만든 사람(`CreatorUserID`)이 가진 `user` 주체 허가만 본다(`binding_service.go:1062-1078`). 앱이나 서비스 계정 같은 다른 주체로 중계되면 이 검사가 늘 실패한다.
 > 2. **Master 이벤트(`terra.svi.bindings.changed` 등)도 앱에 온다.** PF-17과 같은 경계다. 이벤트가 오지 않으면 폴링으로 대신한다(§4.3).
+
+> [!NOTE] ADR이 정해졌다 (2026-10-07 — [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md))
+> - **가정 1은 맞다.** Master는 중계된 세션 id로 그 사람의 claims를 복원한다. 다만 **관리자 유형은 걷는다** — 앱으로 들어온 호출은 관리자가 아니므로 `authorizeAndPlan`의 `administrator` 우회도 없다(PF-19는 관리자에게도 적용된다).
+> - **가정 2는 아직 아니다.** Master SSE는 ADR의 2차 결정이다. 그때까지는 §4.3의 폴링 바닥이다.
+> - **1차는 읽기(GET)만이다.** `svi.bindings.post` · 허가 만들기(MD-28)는 쓰기라 2차를 기다린다. 1차로는 흐름도 · 허가 목록만 채워진다.
+> - Terra 구현 전이다. 지금 동작은 위 문단 그대로다.
 
 근거는 `파일:줄`로 적는다. 저장소 표기는 다음과 같다.
 
@@ -541,7 +547,7 @@ type Phase = 'draft' | 'invalid' | 'needs-grant' | 'binding' | 'active' | 'degra
 
 | ID | 무엇 | 왜 | 우선 |
 | --- | --- | --- | --- |
-| **PF-1** | (그대로) 앱 토큰 → Master op. 이 설계는 **사용자 신원으로 중계**되는 것을 전제한다 | 허가 검사가 `user` 주체만 본다(맨 앞 가정 1) | 높음 |
+| **PF-1** | (그대로) 앱 토큰 → Master op. 이 설계는 **사용자 신원으로 중계**되는 것을 전제한다 — ADR-GW-003이 그렇게 정했다. bind · 허가는 2차 | 허가 검사가 `user` 주체만 본다(맨 앞 가정 1) | 높음 |
 | **PF-18** | 소유자의 자기 허가 | 소유자도 자기 자원에 허가가 없으면 핸들 · 바인딩이 막힌다 — 시험이 소유자가 자기에게 허가를 준다(`M/svi/handle_service_test.go:90-100`). 연결 하나에 허가 둘이 먼저 있어야 한다. 소유자는 암묵 허가로 볼지, GUI가 자동으로 줄지 정해 달라 — Q-22와 짝. **(추측)** 의도된 설계일 수 있다 | 높음 |
 | **PF-19** | 남의 자원과 잇는 bind | 코드로는 관리자가 아니면 **두 끝이 모두 내 소유여야** bind가 풀린다(`binding_service.go:797-805` → `M/svi/catalog.go:493-504`). 허가(`bind.source` · `bind.target`)를 받아도 남의 자원은 `*_resource_not_found`로 거절된다. 다른 사람 · 다른 노드 소유 자원과 잇는 연결이 막힌다 — 허가를 받은 사람은 카탈로그에서도 보이게 해 달라. 자원의 `OwnerID`가 노드 주인인지 선언한 사람인지는 **(추측 — 확인하지 못했다)**. 진짜 스택 시험으로 확인 | 높음 |
 | **PF-20** | 바인딩 목록 필터 | `svi.bindings.get`은 필터가 없고, 관리자가 아니면 만든 사람 것만 준다(`binding_service.go:286-300`). 맵(노드)에 걸린 바인딩을 보려면 `node_id` · `resource_id` 필터와 "내 자원에 걸린 남의 바인딩" 보기가 필요하다 | 중간 |
@@ -574,7 +580,7 @@ flowchart LR
 
 | ID | 결정 | 이 설계의 기본값 | 다른 길 |
 | --- | --- | --- | --- |
-| **Q-17** | PF-1 ADR이 중계 주체를 무엇으로 정하나 | **사용자 신원**으로 중계. 바인딩 · 허가가 그 사람 이름으로 남는다 | 앱 · 서비스 계정 주체 — 그러면 Terra의 허가 검사(`user` 주체만)를 넓혀야 한다 |
+| **Q-17** | PF-1 ADR이 중계 주체를 무엇으로 정하나 | **답함(ADR-GW-003) — 사용자 신원**(세션 복원, 관리자 유형은 걷음)으로 중계. 바인딩 · 허가가 그 사람 이름으로 남는다 | 앱 · 서비스 계정 주체 — 그러면 Terra의 허가 검사(`user` 주체만)를 넓혀야 한다 |
 | **Q-18** | SVI 아닌 자원 끝의 연결 | **허용하되 `화면 전용` 배지**(지금 저장본과 호환) | 연결하는 순간 막는다 · SVI 선언으로 안내한다 |
 | **Q-19** | `compatibility_policy` 기본 | **`exact`**(Master 기본과 같다) | `compatible` 허용 — 변환(`transform_required`)은 묻고 켠다 |
 | **Q-20** | 합류의 쌍 | **곱(source × sink)** + 만들기 전 미리보기 | 합류에서 나가는 연결마다 출발 자원 하나만(`pillSrc` 필수) |
