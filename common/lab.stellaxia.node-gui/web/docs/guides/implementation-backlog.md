@@ -24,6 +24,7 @@ related:
   - "[[road-editor-spec|도로 편집기]]"
   - "[[testing|시험]]"
   - "[[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]]"
+  - "[[performance-and-fidelity-recommendations|맵 진입 지연과 가짜 값 — 개선 권고안]]"
 ---
 
 # 구현해야 할 것 — 새 GUI를 모듈로 올린 뒤
