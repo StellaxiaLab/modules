@@ -96,23 +96,29 @@ flowchart LR
 | 조타륜 앱 — I/O 장치 · 공유 폴더 · 파일 전송 · 서비스 터널 · WireGuard · 자원 선언 · 작업 · 모듈 | **실데이터와 실제 동작.** 작업은 Daemon 작업, 모듈 수명은 Daemon 경로(`node.control`). 장치 손 등록(카메라 주소) · 파일 올리기(↑ 올리기 → 조각 · SHA-256) · 받기(브라우저 저장) · 끊긴 뒤 이어서(같은 파일을 다시 올리면 서버가 받은 곳부터 · 다시 받으면 이 브라우저에 둔 조각부터 · 멈춘 전송의 카드) · 모듈 로그(상태 화면 출력 칸) |
 | 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버가 받는 본문으로 부른다 — 폴더(만들기 · 빈 파일 · 이름 바꾸기 · 지우기) · 장치(별명 · 승인 · 켜기 · 잊기 · 스캔) · 작업(실행 · 취소) · 전송(포기 · 중단해 둔 것의 치우기) · 모듈 설정(모듈이 선언한 칸 — 바뀐 키만 · 저장은 `module.manage`★). 서버에 길이 없으면 **항목을 지어 넣지 않고** 그렇다고 말한다 |
 | 상태 화면 · 모듈 GUI 창 | 원본 앱 목록의 그 항목 · 이 노드의 권한 / 설치된 GUI 앱(`/api/v1/gui/apps`). 다른 모듈의 앱은 이 창에 띄울 수 없다고 적는다(frame은 자기 모듈의 앱만) |
-| 조타륜 앱 — SVI 자원 · 허가 | Master operation — `쓸 수 없다 · 이 노드의 게이트웨이에 없다`(그 앱을 보는 동안 남는다). SVI 자원 앱 창은 흐름도(maingui A-28), 상태 화면에는 흐름 칸 · 맵에는 흐르는 도로(MD-24) — 열린 핸들이 없어 빈 흐름도 · `열린 핸들이 없다`이고 예시 흐름은 돌지 않는다 |
+| 조타륜 앱 — SVI 자원 · 허가 | Master operation — **읽기는 위임 입구로 닿는다**(Terra ADR-GW-003 1차): 자원 · 허가 · 열린 핸들 · 바인딩 목록. tree 에서는 operation id 로, leaf 에서는 `/api/upstream/…` 경로로 부른다(`src/api/master-delegated.js`). SVI 자원 앱 창은 흐름도(maingui A-28) · 상태 화면의 흐름 칸 · 맵의 흐르는 도로(MD-24) — 흐름 이벤트(SSE)는 2차라 열리지 않아 흐름 칸 · 도로는 움직이지 않는다(예시 흐름도 돌지 않는다). 허가 만들기 · 연결(bind)은 쓰기라 `DELEGATION_NOT_OPEN`으로 잠긴다 |
 | 폴더 보관함 | Terra 저장소 = 이 노드의 공유 폴더(`io.terra.file`). 폴더 탐색기 = 이 노드의 로컬 최상위 루트(`local-fs` — 닫힌 폴더는 🔒), 파일 · 폴더는 그 노드의 바탕화면에 연다(`desktop.open` — 그 컴퓨터에서 볼 때만). 메모는 LayoutStore(브라우저 + 사용자 문서) |
-| 네트워크 보드 | 로컬 WireGuard · 로컬 서비스 터널은 실데이터. 사설망 · 진단 · 라우팅(경로 정책 · 세션 · 연결 그룹) · 조작 이력은 Master — "닿지 않음"(maingui A-20이 tree Gateway로 읽는 것도 Master op) |
+| 네트워크 보드 | 로컬 WireGuard · 로컬 서비스 터널은 실데이터. 사설망 · 진단 · 라우팅(경로 정책 · 세션 · 연결 그룹) · 조작 이력은 Master — "닿지 않음". 이 읽기들은 위임 입구 1차에 들어 클라이언트로는 닿지만, 보드가 아직 부르지 않는다(구현해야 할 것 PF-1 남은 것) |
 | 설정 보드 | 로컬 노드 135키(값 · 소유 · 반영 · 설치값 차이)와 저장, 계정(whoami), 로컬 자원. 클러스터 · 서버 탭은 Master — "닿지 않음" |
 | 다른 노드 | 노드 주소 호출(Terra B-1)로 그 노드의 Daemon — I/O 장치 · 모듈(로그 포함) · 작업 · 선언 · 터널 · WireGuard. 그 노드 카탈로그로 누르기 전에 잠근다(로컬 전용은 잠김). 공유 폴더 · 전송 · 올리기 · 받기는 원격 모듈 경로(`/api/nodes/{node_id}/modules/io.terra.file/…`) |
 | 다른 tree | 비어 있다 — 연결 목록을 둘 곳 · 가는 길이 없다 |
 | 편집기에서 내보낸 도로 · 건물 | 이 브라우저(`localStorage`) — 노드 화면이 바로 받아 다시 굽는다 · 사용자 문서 `assets`로 뒤따라 |
 | 로그인 전 · 토큰을 잃었을 때 | **빈 세계**(`이 노드` 한 칸 · `로그인 전`). 띠가 *"Terra에 로그인하지 않았습니다 — 로그인하면 이 노드의 데이터가 보입니다"* 와 [로그인]을 보인다 |
 
-Master가 닿지 않는 것은 **결함이 아니라 설계상 경계**다 — 앱 스코프 토큰은 Bearer를 싣지 않으므로 forward-auth인
-Master는 401을 낸다. 그 401을 "로그인 필요"로 읽으면 사용자를 헛되이 로그인 화면으로 보내므로, 위임 자격으로 받은
-Master 401은 "쓸 수 없다"로 바꾸고 그 뒤로 Master를 부르지 않는다. 어떻게 열지는 아래 Q-2다.
+앱 스코프 토큰은 Bearer를 싣지 않는다 — **설계상 경계**다. Terra ADR-GW-003(아래 Q-2) 이후 게이트웨이는 앱 토큰을
+Master의 **위임 입구**로 보내고, Master는 그 입구에 연 op(1차: 읽기 28)만 받는다. 이 모듈은 그 셋을 이렇게 읽는다:
+
+| Master 의 답 | 화면 |
+| --- | --- |
+| 열린 읽기 — 200 | 그대로 쓴다. tree 게이트웨이는 카탈로그에 `terra.master.*`가 있어 operation id 로, leaf 게이트웨이는 카탈로그에 없어 `/api/upstream/…` 경로로 부른다(`src/api/client.js` `invokeUpstream` · 표는 Terra 계약에서 만든 `src/api/master-delegated.js`) |
+| 열지 않은 op — 403 `DELEGATION_NOT_OPEN` | 그 op 하나만 "쓸 수 없다". leaf 에서는 표에 없는 op(쓰기 · 관리 · 흐름)를 부르지 않고 누르기 전에 잠근다 |
+| 위임 입구가 없는 예전 Terra — 401 | "로그인 필요"가 아니라 "쓸 수 없다"로 바꾸고 그 뒤로 Master 를 부르지 않는다 |
+| leaf 에 상위 Master 가 없다 — `/api/upstream` 501 | "상위 Master 가 없다" · 그 뒤로 경로로 부르지 않는다 |
 
 > [!NOTE] Q-2는 Terra가 정했다 (2026-10-07, [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md) · [Terra#136](https://github.com/StellaxiaLab/Terra/pull/136))
 > 앱 스코프 토큰은 **세션 id 위임 입구**로 Master operation에 닿는다 — 게이트웨이가 Core peer 자격 + 세션 id로 기존 Master 라우트를 부르고, Master가 그 사람의 세션을 복원해 권한을 좁힌다. Bearer는 여전히 나가지 않는다.
 > 1차는 **읽기만 · 앱 토큰만 · 관리자 동작 제외**, tree · leaf 둘 다. 쓰기 · 관리자 · Master 이벤트(SSE)는 2차다.
-> **Terra 구현 전이라 위 동작(401 → "쓸 수 없다")은 그대로다.** 구현이 들어오면 1차 읽기 화면부터 잇는다.
+> **Terra 구현이 들어왔다**([Terra#143](https://github.com/StellaxiaLab/Terra/pull/143) · 2026-10-09 main). 이 모듈은 tree · leaf 둘 다에서 1차 읽기를 부른다 — 위 표.
 
 ## 남은 결정 — 이번 구현이 고른 기본값
 
@@ -121,7 +127,7 @@ Master 401은 "쓸 수 없다"로 바꾸고 그 뒤로 Master를 부르지 않�
 | | 질문 | 이번 기본값 | 바꾸려면 |
 | --- | --- | --- | --- |
 | **Q-1** | 어떻게 나가나 (접두사) | **확정(2026-10-06) — 이 저장소의 릴리스로 나가고 코어에는 동봉하지 않는다.** `lab.stellaxia.*` 그대로, 개명 · `bundled-modules.json` 선언 없음. 설치는 설치기가 이 저장소 릴리스의 `.tmod`를 원격에서 가져와 깐다(설치기는 구현 중). 그 뒤의 변경 · 설치 · 업그레이드는 `.tmod`를 직접 받아 깔거나 tree 레지스트리(`pack` → `publish`)를 거친다 | 제품 동봉으로 가면 `io.terra.*`로 개명하고 코어 `bundled-modules.json`에 선언한다 — 되돌릴 때의 길이다 |
-| **Q-2** | Master 데이터를 웹에 어떻게 건네나 | **확정(2026-10-07) — (나) Core peer 중계를 넓힌다.** [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md): 세션 id 위임 입구, 1차는 읽기만 · 앱만 · 관리자 제외. **Terra 구현은 [Terra#143](https://github.com/StellaxiaLab/Terra/pull/143)(1차 읽기 28 경로) — 병합 전 Terra에서는 (다)처럼 보인다.** 모듈은 열린 Master op 를 그대로 부르고, 열리지 않은 op 의 403 `DELEGATION_NOT_OPEN` 은 그 op 하나만 "쓸 수 없다"로 읽는다(`src/api/client.js`, Master 전체를 막는 것은 예전 Terra 의 401 뿐) — "쓸 수 없다" | 쓰기 · 관리자 · SSE는 ADR의 2차 결정을 기다린다. (가) Scene 중계는 쓰지 않는다 |
+| **Q-2** | Master 데이터를 웹에 어떻게 건네나 | **확정(2026-10-07) — (나) Core peer 중계를 넓힌다.** [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md): 세션 id 위임 입구, 1차는 읽기만 · 앱만 · 관리자 제외. **Terra 구현은 [Terra#143](https://github.com/StellaxiaLab/Terra/pull/143)(1차 읽기 28 경로, main 병합).** 모듈은 열린 Master op 를 그대로 부르고(leaf 는 `/api/upstream` 경로), 열리지 않은 op 의 403 `DELEGATION_NOT_OPEN` 은 그 op 하나만 "쓸 수 없다"로 읽는다(`src/api/client.js`, Master 전체를 막는 것은 예전 Terra 의 401 뿐) — "쓸 수 없다" | 쓰기 · 관리자 · SSE는 ADR의 2차 결정을 기다린다. (가) Scene 중계는 쓰지 않는다 |
 | **Q-3** | 메모 · 설계도 · 맵 배치를 어디에 두나 | **이 브라우저 + Terra 사용자 문서 저장소**(C-1 — Terra G0~G6이 열었다). 브라우저(LayoutStore · `localStorage`, 노드 · 주체마다)에 바로, 사용자 문서(`app:<앱 id>` 이름공간 — 앱 토큰이면 고정)에 뒤따라. `kind`는 `scene` 그대로 — 모듈 백엔드가 필요 없다 | `config.json` `layoutStore: local`(브라우저에만) · `none`(저장 안 함) — 백로그 Q-14 |
 | **Q-4** | 보드를 어떻게 여나 | **`srcdoc`** — 판정서의 (가) · (나) · (다) 어느 것도 아닌 넷째 길. 프로토타입의 iframe 구조를 그대로 두고, 같은 앱의 페이지를 받아 `srcdoc`으로 넣는다. `srcdoc` 문서는 부모의 origin · CSP를 이어받아 `frame-ancestors` 검사를 타지 않는다 | (가) 한 문서 안에 마운트 · (다) 플랫폼 `frame-ancestors`에 `'self'`(P-3) |
 | **Q-5** | 여러 tree 전환 | **(가) 뺀다** — tree 목록은 비어 있고, 다른 tree로 가려 하면 *"다른 tree로는 이 화면이 닿지 않는다"* | (나) 셸 수준의 기능으로 따로 설계한다 |
@@ -174,6 +180,16 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 
 ## 검증
 
+### leaf 화면의 Master 읽기 — 위임 입구 1차 (2026-10-09 · Terra ADR-GW-003)
+
+Terra가 앱 토큰의 Master 위임 입구를 열었다([Terra#143](https://github.com/StellaxiaLab/Terra/pull/143)). tree 게이트웨이는 카탈로그에 Master op 가 있어 바뀐 것이 없고, leaf 게이트웨이는 카탈로그에 `terra.master.*`가 없어 경로로 부른다.
+
+- **표** — `src/api/master-delegated.js`: Terra 계약에서 `security.authentication`에 `delegated-session`이 있는 op(28 · 모두 GET) → `[method, path]`. `web/tools/gen-master-delegated.mjs --terra <Terra>`로 만든다 · CI(Pack against Terra)가 `--check`로 대조한다.
+- **부르기** — 위임 자격이고 카탈로그를 받았는데 그 op 가 없으면, 표에 있는 것은 `/api/upstream/v1/…`(`{name}` 자리 채움 · 나머지는 query), 없는 것은 부르지 않고 `DELEGATION_NOT_OPEN`.
+- **잠금 · API 줄** — `reaches(client, op)`(카탈로그 또는 경로)로 본다: 상태 화면 자물쇠(`lockFor`) · 폼의 API 줄 ⚠ · 노드 관리의 이유(`masterWhy`) · SVI 연결 맞추기(`link-sync`) · 적용(`link-apply`) · 핸들 보기 폴링(`svi-live`).
+- 시험: `tests/api.test.mjs`에 8개(경로 · 경로 자리 · 쓰기는 안 부름 · 501 · 401 · 403 · tree · 사용자 자격 그대로 · 표 규칙 · 계약 대조는 `TERRA_CHECKOUT`이 있을 때) · 전체 205 통과(1 건너뜀) · `build-web` 통과. **진짜 leaf 스택 실측은 아직이다.**
+- 남은 것: 네트워크 · 설정 보드의 Master 읽기(사설망 · 라우팅 · 조작 이력 · 클러스터 탭)는 클라이언트로는 닿지만 보드가 아직 부르지 않는다. 쓰기 · 관리자 · SSE는 ADR의 2차.
+
 ### maingui 8af1b0c 따라가기 — UP-32 MD-41 (2026-10-09)
 
 이 모듈이 MD-34에서 생성기 패치로 들고 있던 UP-32(실행 중인 작업 카드에도 `출력` · `다시`는 두 번 누르기)가 원본에 올라갔다([maingui#7](https://github.com/StellaxiaLab/maingui/pull/7)).
@@ -225,7 +241,7 @@ Terra가 명령 작업의 출력과 다시 실행을 열었다([Terra#140](https
 | 맵 도로 | 열린 핸들이 흐르는 SVI 자원의 연결에 움직이는 점선 + fps (`prefers-reduced-motion`이면 멈춘 선) |
 | 열기 · 닫기 | 열기는 stream 엔드포인트가 `subscribe`를 열면 `subscribe`, 아니면 `read`(`sviOpenOp`). 전에는 열기 본문이 비었고, 닫기는 카드 id(자원)를 `handle_id`로 실었다 — 열린 핸들로 고쳤다 |
 | 원본에 올라간 패치 | 시작 화면 알약의 누름 끄기(UP-15)는 생성기 패치를 걷었다 — 원본에 있다. 메모 경로 글(UP-18)은 원본이 `memos/`를 쓰게 돼 `메모/`로 바꾸는 규칙을 넓혔다 |
-| 앱 토큰 | SVI는 Master op라 앱 토큰으로는 목록 · 핸들이 없다(PF-1) — 구독을 하나도 열지 않는다. 진짜 Terra 스택에서는 아직 돌려 보지 않았다 |
+| 앱 토큰 | SVI는 Master op다 — 목록 · 핸들은 위임 입구 1차(Terra ADR-GW-003)로 닿지만 흐름 이벤트(SSE)는 2차라 구독을 하나도 열지 않는다. 진짜 Terra 스택에서는 아직 돌려 보지 않았다 |
 | 시험 | `npm test` 126(흐름 칸 · 열기/닫기 본문 · StreamView 새로) · `test:smoke`(SVI 자원 앱 — 흐름 칸 · 도로에 예시 없음) · `validate` · `build:web` · `test:web` 통과 · 페이지 오류 0 |
 
 ### maingui 1aa6340 따라가기 — SVI 흐름도 MD-23 (2026-10-05, 0.3.0 · Terra main `3195421`)
@@ -402,4 +418,4 @@ Daemon만 가짜다.
 - 자원 추가 · 수정 · 삭제 — 폼 저장 · 두 번째 누름 → `source.crud`(실제 본문) → 이 노드의 Gateway → 목록 다시 받기 — 서버에 길이 없으면 지어내지 않는다
 - 원본 따라가기 — maingui `design/` 복사 → `npm run gen`(패치를 못 찾으면 멈춤) → 시험 → `build:web`
 - 끊긴 뒤 이어서 — 올리기는 서버의 checkpoint(전송 목록 → `resume_id`), 받기는 이 브라우저의 조각(IndexedDB) → 서버의 SHA-256으로 끝에서 견준다
-- SVI 흐름도 — 자원 · 허가 · 열린 핸들 · 바인딩 → 흐름도, 고른 자원의 열린 핸들 → 흐름 이벤트 SSE. 앱 토큰으로는 Master에 닿지 않아 빈 흐름도 + 이유(PF-1)
+- SVI 흐름도 — 자원 · 허가 · 열린 핸들 · 바인딩 → 흐름도, 고른 자원의 열린 핸들 → 흐름 이벤트 SSE. 앱 토큰으로는 목록까지(위임 입구 1차 — leaf 는 `/api/upstream`), 흐름 이벤트는 2차
