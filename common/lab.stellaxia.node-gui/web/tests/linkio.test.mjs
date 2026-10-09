@@ -121,7 +121,7 @@ test('io 만들기 — 바인딩 · 공유 · 화면 전용의 모양', () => {
   assert.equal(a.qos_profile, ''); assert.equal(a.compatibility_policy, 'exact');
   assert.deepEqual(a.source, { node_id: 'node_pi', resource_id: 'svires_cam', endpoint_id: '' });
   assert.equal(a.pairs.length, 1); assert.equal(a.pairs[0].idempotency_key, idempotencyKey('tree-a', a.pairs[0].key));
-  assert.equal(b.kind, 'share'); assert.deepEqual(b.share_ops, ['read', 'subscribe', 'bind.source']); assert.equal(b.share_ttl_seconds, 0);
+  assert.equal(b.kind, 'share'); assert.deepEqual(b.share_ops, ['read', 'subscribe', 'bind.source']); assert.equal(b.share_ttl_seconds, 30 * 86400, '노드 공유 기본 기한 30일(위임 입구는 무기한을 거절한다)');
   assert.deepEqual(b.target, { node_id: 'node_hub' });
   assert.equal(b.pairs[0].idempotency_key, undefined, '공유 쌍에는 바인딩 멱등 키가 없다');
   assert.deepEqual(d, { v: 1, kind: 'screen', qos_profile: '', compatibility_policy: 'exact', direction: 'forward', pairs: [] });

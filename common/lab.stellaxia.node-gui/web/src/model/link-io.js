@@ -13,6 +13,9 @@ export const KINDS = ['binding', 'share', 'screen'];
 export const PHASES = ['draft', 'invalid', 'needs-grant', 'binding', 'active', 'degraded', 'failed', 'denied', 'closed', 'lost', 'shared', 'share-expired'];
 export const QOS_PROFILES = ['', 'realtime_latest', 'realtime_ordered', 'reliable_ordered', 'bulk_resumable'];
 export const SHARE_OPS = ['read', 'subscribe', 'bind.source'];
+/** 노드 공유 허가의 기본 기한(초) — 30일. 사용자 허가(Q-23)와 같다. Terra 위임 입구(ADR-GW-004 Q14)는 기한 없는 허가 ·
+ *  90일 넘는 허가를 거절하므로 앱 화면은 무기한을 보내지 않는다. 공유 기한을 고르는 칸이 아직 없어 0(예전 기본값)도 이 값으로 읽는다 */
+export const SHARE_TTL_DEFAULT = 30 * 86400;
 export const SVI_APP = 'svi';
 
 const obj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
@@ -188,7 +191,7 @@ export function buildIO(link, links, ctx, prev) {
   else if (kind === 'share' && b && b.t === 'node') base.target = { node_id: b.node_id };
   if (kind === 'share') {
     base.share_ops = keep.share_ops && keep.share_ops.length ? keep.share_ops : SHARE_OPS.slice();
-    base.share_ttl_seconds = Number.isFinite(keep.share_ttl_seconds) && keep.share_ttl_seconds >= 0 ? keep.share_ttl_seconds : 0;
+    base.share_ttl_seconds = Number.isFinite(keep.share_ttl_seconds) && keep.share_ttl_seconds > 0 ? keep.share_ttl_seconds : SHARE_TTL_DEFAULT;
     if (a && a.t === 'node' && a.node_id) base.via_node_id = a.node_id;
   }
   // 연결 전체의 상태 — 쌍들 중 가장 나쁜 것(마지막으로 본 값)

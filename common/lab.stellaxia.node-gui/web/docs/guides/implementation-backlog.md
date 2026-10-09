@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.16.0"
+version: "1.17.0"
 last_updated: "2026-10-09"
 language: "ko-KR"
 os_priority:
@@ -291,7 +291,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 | PF | **PF-21** | 바인딩 거절 이유를 `{reason_code, detail}`로 | 낮음 |
 | PF | **PF-22** | `terra.svi.bindings.changed`에 `reason` 싣기 | 낮음 |
 | PF | **PF-23** | 계약 글(기본 QoS · 핸들 operation) · 상세 설계서 §24.3을 코드에 맞추기 | 낮음 |
-| PF | **PF-24** | ADR-GW-003 2차 쓰기 라우트를 **두 단계로** — 먼저 `svi.bindings.post` · `svi.bindings.by-binding-id.delete`, 그 다음 `svi.grants.post` · `.patch` · `.delete`(Q-28 결정 2026-10-07 — 설계 §8). **[Terra ADR-GW-004](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-004-svi-write-routes-for-app-tokens.md) — 2026-10-07 제안([Terra#146](https://github.com/StellaxiaLab/Terra/pull/146)), 2026-10-09 승인 · 2a · 2b 구현([Terra#154](https://github.com/StellaxiaLab/Terra/pull/154))** — 바인딩 만들기 · 끊기(분당 30 · 60)와 **2b 허가 만들기 · 고치기 · 철회**(분당 20 — 받는 이는 본인 · 같은 클러스터 노드, operation 허용 목록, 기한 필수 · 90일 이하)가 위임 입구로 열린다. 모듈은 표(`master-delegated.js`, 33 op)를 다시 만들어 leaf 에서도 `/api/upstream`으로 부른다. 허가를 만드는 화면은 기한을 꼭 실어야 한다(Q-23 기본 30일 — 90일 상한 안) | 높음 |
+| PF | **PF-24** | ADR-GW-003 2차 쓰기 라우트를 **두 단계로** — 먼저 `svi.bindings.post` · `svi.bindings.by-binding-id.delete`, 그 다음 `svi.grants.post` · `.patch` · `.delete`(Q-28 결정 2026-10-07 — 설계 §8). **[Terra ADR-GW-004](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-004-svi-write-routes-for-app-tokens.md) — 2026-10-07 제안([Terra#146](https://github.com/StellaxiaLab/Terra/pull/146)), 2026-10-09 승인 · 2a · 2b 구현([Terra#154](https://github.com/StellaxiaLab/Terra/pull/154))** — 바인딩 만들기 · 끊기(분당 30 · 60)와 **2b 허가 만들기 · 고치기 · 철회**(분당 20 — 받는 이는 본인 · 같은 클러스터 노드, operation 허용 목록, 기한 필수 · 90일 이하)가 위임 입구로 열린다. 모듈은 표(`master-delegated.js`, 33 op)를 다시 만들어 leaf 에서도 `/api/upstream`으로 부른다. 위임 입구는 기한 없는 허가 · 90일 넘는 허가를 거절하므로, 노드 공유의 기본 기한도 사용자 허가와 같은 **30일**로 바꿨다(2026-10-09 — 예전 기본 0 = 무기한, 고르는 칸이 없어 저장된 0도 30일로 읽는다 · `link-io.js` `SHARE_TTL_DEFAULT`) | 높음 |
 | MD | **MD-27** | ~~연결 판정 · 쌍 풀기 · `links[].io` 저장~~ — **끝냄**(2026-10-07, 합류 규칙을 연결이 든 쌍 기준으로 고쳤다 — 설계 §3.2) | — |
 | MD | **MD-28** | ~~적용 흐름~~ — **끝냄**(2026-10-07, 가짜 Master 시험만 — 진짜 스택은 PF-1 · MD-32) | — |
 | MD | **MD-29** | ~~상태 맞추기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
