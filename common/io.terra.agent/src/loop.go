@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
+	agentcore "github.com/StellaxiaLab/terra-agent"
 	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
 )
 
 // approvalTimeout is how long a turn waits for a person before giving up on

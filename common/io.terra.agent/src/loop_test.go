@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
+	agentcore "github.com/StellaxiaLab/terra-agent"
 
 	"github.com/StellaxiaLab/modules/internal/testkit/testwait"
 )

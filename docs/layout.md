@@ -62,7 +62,7 @@ last_updated: "2026-10-09"
 | --- | --- | --- |
 | M-1 | Go 모듈 경로 개명 | 완료 |
 | M-2 | 모듈이 `terra-sdk` `v0.1.0`을 버전으로 require, SDK 대상 `replace` 제거 | 완료 (시험 보조는 `internal/testkit`) |
-| M-3 | `io.terra.agent`가 `terra-agent`를 require | 대기 |
+| M-3 | `io.terra.agent`가 `terra-agent`를 require | 완료 |
 | M-4 | `io.terra.io-weave`에 `terra-io-weave` 내재화 | 완료 |
 | M-5·M-6 | CI에서 Terra SSH 키 의존 제거, 스키마 대조가 건너뛰지 못하게 | M-2 이후 |
 
