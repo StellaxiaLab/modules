@@ -40,6 +40,19 @@ export function applyFixes(name, Screen) {
     // (tools/gen-pages.py MODULE_JS). 화면 전용 연결(io 없음 · screen)은 null — 지금처럼 끝 자원의 상태만 본다
     P.linkEv = function (l) { const io = readLinkIO(l); return io.kind === 'screen' ? null : phaseEvent(io.phase); };
 
+    // [모듈에서 더함 · 원본에 올릴 것 — UP-25] 입출력 설정 창(디자인의 ioPanel). 디자인의 예시 구현(엔드포인트 표 · 허가 · 타이머 적용)은 모듈에서 돌지 않는다:
+    //   엔드포인트는 그 자원의 실제 목록(ADAPT.svi 항목의 flow.eps — id · 방향 · 방식. 형식 · QoS 는 모르니 비운다 — Master 가 판정한다),
+    //   적용 · 허가는 wireLinkApply 가 인스턴스에 붙이는 linkApply · linkGrantSelf. 붙기 전(게이트웨이에 닿지 않음)에는 지어내지 않고 이유를 말한다(UP-14 원칙).
+    P.ioDemo = () => false;
+    P.IOEPS = function (res) {
+      const items = res && this.hbItems ? this.hbItems(res.node, 'svi') : null;
+      const it = Array.isArray(items) ? items.find((x) => x && x.id === res.id) : null;
+      return it && it.flow && Array.isArray(it.flow.eps) ? it.flow.eps.map((e) => ({ id: e.id, dir: e.dir === 'sink' ? 'sink' : e.dir === 'duplex' ? 'duplex' : 'source', inter: e.inter || '' })) : [];
+    };
+    const unwired = function () { this.hbSay('쓸 수 없다 · 이 노드의 게이트웨이에 아직 닿지 않았다 — 연결 적용은 닿은 뒤에', '#ff6b81'); return Promise.resolve(null); };
+    P.linkApply = unwired;
+    P.linkGrantSelf = unwired;
+
     withIO('connEnd', (a, added) => (l) => added.has(l));   // 새 연결만 — 다른 연결의 쌍은 읽을 때 다시 푼다(합류가 바뀌어도)
     withIO('nodeSelToggle', (a) => (l) => l.id === a[0]);   // 노드가 내보낼 자원을 고르면 그 연결의 쌍이 바뀐다
   }
