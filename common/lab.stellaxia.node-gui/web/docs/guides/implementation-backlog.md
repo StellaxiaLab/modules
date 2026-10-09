@@ -8,8 +8,8 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.13.0"
-last_updated: "2026-10-08"
+version: "1.14.0"
+last_updated: "2026-10-09"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -119,7 +119,7 @@ flowchart LR
 | PF-11 | leaf 게이트웨이의 모듈 로그 | B-14 | `terra.gateway.modules.by-id.logs.get` 200 · `terra.daemon.modules.by-module-id.logs.get` 200 | MD-16 |
 | PF-12 | `storage.shared_dirs` 스키마 타입 | B-15 ① | `config.schema.get` → `object_list` | — |
 | PF-6 | 파일 받기 · 올리기 | (Terra 몫이 아니었다) | `io.terra.file.transfers.*`는 원래 있다 — 조각 루프는 화면 일이다. maingui A-2가 지었다 | MD-17 |
-| PF-7 | 명령 출력 · 다시 실행 | Terra PF-7 — [Terra#140](https://github.com/StellaxiaLab/Terra/pull/140)(출력 쪽 읽기 `tasks.by-task-id.output.get` · 출력 SSE `output.events.get` · 다시 실행 `rerun.post` · 가리기 · 감사) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)(실행 중 등록 · Master 작업 env 가리기 · 확인 승인) | **앱 토큰 실측 전 (2026-10-07)** — 이 모듈은 가짜 서버 시험만(`tests/taskout.test.mjs`). Terra 쪽에서 Gateway를 지나는 출력 SSE가 15초 넘게 사는 것을 실측했다(Terra#144) | MD-34 |
+| PF-7 | 명령 출력 · 다시 실행 | Terra PF-7 — [Terra#140](https://github.com/StellaxiaLab/Terra/pull/140)(출력 쪽 읽기 `tasks.by-task-id.output.get` · 출력 SSE `output.events.get` · 다시 실행 `rerun.post` · 가리기 · 감사) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)(실행 중 등록 · Master 작업 env 가리기 · 확인 승인) | **앱 토큰 실측 (2026-10-09)** — Terra main `1e13d75` 스택에서 이 앱 토큰으로 실행 중 읽기 · SSE 따라가기 · 비밀 가림 · 다시 실행 · 노드 주소 호출 읽기 · Master가 보낸 작업의 409를 확인했다(`web/tools/live-taskout.mjs` 15개 — [[real-data-layer\|실데이터 층]] §5.7). Gateway를 지나는 SSE가 15초 넘게 사는 것은 Terra#144가 실측했다 | MD-34 |
 | PF-13 | 선언 쓰기 op | **진단 정정** | 선언 op 셋(`svi.declarations.post` · `undeclare` · `forget`)은 Daemon 계약에 처음부터 있었다. 카탈로그는 호출자가 쥔 권한으로 거른다(`narrowList`). `node.config`★는 기본 권한 밖이라 **관리자 토큰에도** 안 보인다(관리자 143 · 앱 142 / 전체 156) | Q-10 |
 
 ## 2. 이 모듈에서 할 것 (MD)
@@ -145,7 +145,7 @@ flowchart LR
 
 | ID | 무엇 | 어떻게 · 언제 |
 | --- | --- | --- |
-| **MD-34** | 작업 출력 · 다시 실행 — Terra PF-7 · [[real-data-layer\|실데이터 층]] §2.10 | `src/api/task-output.js`(`OutputView` — 읽은 쪽 · 따라온 조각 → 출력 칸의 글: 섞인 흐름의 stderr `! ` · 노드가 버린 앞부분 · 끝 상태 · 받지 않은 출력 · 끝 512 K 글자 / `followOutput` — 이 노드의 출력 SSE를 읽은 `last_seq` 뒤부터, `end`에 닫는다). 대응표: 이 노드 · 다른 노드(노드 주소 호출)의 `출력` = `tasks.by-task-id.output.get`(`process.execute`), `다시` = `rerun.post {task_id, confirmed: true}`(이 노드 · 두 번 누름 `confirm` · Master가 보낸 작업은 부르지 않고 이유). 카드는 실행 중에도 `출력`(생성기 `MODULE_JS` 둘째 패치 — UP-32). `openEvents`에 처음 자리 `last` · Daemon 오류 코드 여덟을 화면 글로 · `no-rerun` 을 걷었다. 시험 `tests/taskout.test.mjs` 5개 · 전체 196 통과. 앱 토큰으로 진짜 스택 실측은 아직 · 2026-10-07 |
+| **MD-34** | 작업 출력 · 다시 실행 — Terra PF-7 · [[real-data-layer\|실데이터 층]] §2.10 | `src/api/task-output.js`(`OutputView` — 읽은 쪽 · 따라온 조각 → 출력 칸의 글: 섞인 흐름의 stderr `! ` · 노드가 버린 앞부분 · 끝 상태 · 받지 않은 출력 · 끝 512 K 글자 / `followOutput` — 이 노드의 출력 SSE를 읽은 `last_seq` 뒤부터, `end`에 닫는다). 대응표: 이 노드 · 다른 노드(노드 주소 호출)의 `출력` = `tasks.by-task-id.output.get`(`process.execute`), `다시` = `rerun.post {task_id, confirmed: true}`(이 노드 · 두 번 누름 `confirm` · Master가 보낸 작업은 부르지 않고 이유). 카드는 실행 중에도 `출력`(생성기 `MODULE_JS` 둘째 패치 — UP-32). `openEvents`에 처음 자리 `last` · Daemon 오류 코드 여덟을 화면 글로 · `no-rerun` 을 걷었다. 시험 `tests/taskout.test.mjs` 5개 · 전체 196 통과 · 2026-10-07. 앱 토큰 진짜 스택 실측 `web/tools/live-taskout.mjs` 15개 통과(실데이터 층 §5.7) · 2026-10-09 |
 | **MD-4** | LayoutStore 안의 노드 키 — 이름이 바뀌어도 따라간다 | 저장할 때 이름 → `node_id`(`nodeIds`)를 같이 적고, 읽을 때 지금 관계도의 이름으로 옮긴다(`layout.js` `remapNodes`) — 맵 주인 · 노드 칸 · 새 노드 · 모습 · 노드 자원의 노드 · 연결이 고른 자원. 사라진 노드의 칸은 같은 이름을 얻은 **다른** 노드에게 넘기지 않는다. 예전 저장본(`nodeIds` 없음)은 그대로 읽는다. 저장 형식은 그대로 이름 키라 서버 저장(PF-3)으로 옮겨도 같다 · 2026-10-05 |
 | **MD-5** | leaf 맵 자기 칸에서 연결 시작 · 상태 창 | maingui `f24c3bc`가 `nodeAt()`으로 자기 칸을 노드로 보게 됐다 — 캡슐이 뜨고, 자원 → 자기 칸은 공유가 되고, 자기 칸에서 나가는 연결은 원본 규칙대로 다른 맵에서 들어온 자원이 있어야 한다. `fixes.js`는 설치(`placeAt`)만 막는다 · 2026-10-05 |
 | **MD-7** | 폴더 자원의 모니터링 경로 | 설치한 폴더 · 파일 자원과 상태 화면이 보는 칸의 **위 칸까지** 읽는다(`wire.js` `folderPaths` · `source.js` 경로 여럿) · 2026-10-04 |
