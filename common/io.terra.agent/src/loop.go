@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
+	agentcore "github.com/StellaxiaLab/terra-agent"
 	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
 )
 
