@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.14.0"
+version: "1.15.0"
 last_updated: "2026-10-09"
 language: "ko-KR"
 os_priority:
@@ -84,7 +84,7 @@ flowchart LR
   DES --> MD2["MD-2 자원 설정 창 입출력"]
   MD1 -.->|"쪼갬 — §5"| IOD["입출력 연결 설계<br/>MD-27~MD-33 · UP-25~UP-31 · PF-18~PF-23"]
   PF7["PF-7 작업 출력 · 다시 실행 — Terra PR 140 · 144 닫음"] --> MD34["MD-34 출력 칸 · 따라가기 · 다시 (2026-10-07)"]
-  MD34 -.->|"카드의 출력 · 정말 다시"| UP32["UP-32 원본에 올릴 것"]
+  MD34 -.->|"카드의 출력 · 정말 다시"| UP32["UP-32 maingui#7 병합"]
 ```
 
 ## 1. Terra 플랫폼 — 모듈만으로는 못 하는 것 (PF)
@@ -145,6 +145,7 @@ flowchart LR
 
 | ID | 무엇 | 어떻게 · 언제 |
 | --- | --- | --- |
+| **MD-41** | maingui `8af1b0c` 따라가기 — UP-32(실행 중 출력 · 두 번 누르는 다시) | `design/Artboard-qcfu.dc.html`에 그 커밋의 UP-32 네 줄을 받았다(나머지 디자인 파일은 같다). main이 디자인 원본에 직접 넣은 UP-22 · MD-35(입출력 설정 창)는 그대로 둔다. 생성기의 UP-32 패치를 걷고, 출력 단추 권한(이 노드는 Daemon `process.execute`)만 모듈 전용 패치로 남겼다 — 생성된 카드 줄은 전과 같다. 원본 화면이 `job:rerun`을 겨누지만, 연동 층(`wire.js` `confirm`)이 먼저 받으므로 동작은 같다. 단위 198 · 연기 통과 · 2026-10-09 |
 | **MD-34** | 작업 출력 · 다시 실행 — Terra PF-7 · [[real-data-layer\|실데이터 층]] §2.10 | `src/api/task-output.js`(`OutputView` — 읽은 쪽 · 따라온 조각 → 출력 칸의 글: 섞인 흐름의 stderr `! ` · 노드가 버린 앞부분 · 끝 상태 · 받지 않은 출력 · 끝 512 K 글자 / `followOutput` — 이 노드의 출력 SSE를 읽은 `last_seq` 뒤부터, `end`에 닫는다). 대응표: 이 노드 · 다른 노드(노드 주소 호출)의 `출력` = `tasks.by-task-id.output.get`(`process.execute`), `다시` = `rerun.post {task_id, confirmed: true}`(이 노드 · 두 번 누름 `confirm` · Master가 보낸 작업은 부르지 않고 이유). 카드는 실행 중에도 `출력`(생성기 `MODULE_JS` 둘째 패치 — UP-32). `openEvents`에 처음 자리 `last` · Daemon 오류 코드 여덟을 화면 글로 · `no-rerun` 을 걷었다. 시험 `tests/taskout.test.mjs` 5개 · 전체 196 통과 · 2026-10-07. 앱 토큰 진짜 스택 실측 `web/tools/live-taskout.mjs` 15개 통과(실데이터 층 §5.7) · 2026-10-09 |
 | **MD-4** | LayoutStore 안의 노드 키 — 이름이 바뀌어도 따라간다 | 저장할 때 이름 → `node_id`(`nodeIds`)를 같이 적고, 읽을 때 지금 관계도의 이름으로 옮긴다(`layout.js` `remapNodes`) — 맵 주인 · 노드 칸 · 새 노드 · 모습 · 노드 자원의 노드 · 연결이 고른 자원. 사라진 노드의 칸은 같은 이름을 얻은 **다른** 노드에게 넘기지 않는다. 예전 저장본(`nodeIds` 없음)은 그대로 읽는다. 저장 형식은 그대로 이름 키라 서버 저장(PF-3)으로 옮겨도 같다 · 2026-10-05 |
 | **MD-5** | leaf 맵 자기 칸에서 연결 시작 · 상태 창 | maingui `f24c3bc`가 `nodeAt()`으로 자기 칸을 노드로 보게 됐다 — 캡슐이 뜨고, 자원 → 자기 칸은 공유가 되고, 자기 칸에서 나가는 연결은 원본 규칙대로 다른 맵에서 들어온 자원이 있어야 한다. `fixes.js`는 설치(`placeAt`)만 막는다 · 2026-10-05 |
@@ -185,10 +186,11 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 | 상태 | ID | 어디서 |
 | --- | --- | --- |
 | 원본에 올렸다 | UP-1 · UP-2 · UP-3 · UP-10 · UP-12(나) · UP-15 · UP-18 · UP-19 · UP-21 · UP-24 | [maingui#1](https://github.com/StellaxiaLab/maingui/pull/1) — 고치기 전 코드에서 실패하는 시험과 함께(UP-19 · UP-21은 둘째 커밋 `43d547a` — 가짜 Gateway도 실제 모양으로, UP-24는 셋째 커밋 `580c6e5` — 가짜 Gateway의 Daemon 재시작으로 재현). main `e669c03`을 합쳤다(`c4fce94`). main에 병합됐다(`07d5739`) — 모듈은 MD-24로 그 원본을 따라갔다 |
+| 원본에 올렸다(2026-10-09) | UP-32 | [maingui#7](https://github.com/StellaxiaLab/maingui/pull/7) — 병합 `8af1b0c`. 원본은 화면이 겨눈 두 번째 누름을 확인된 것으로 보낸다(전에는 `commands.post` 의 `needs-confirm` 이 표시 없이 두 번째를 기다렸다). 모듈은 MD-41로 그 원본을 따라갔다 |
 | 원본이 고쳤다 | UP-4 · UP-5 · UP-6 · UP-7 · UP-8 · UP-12(가 · 다 · 라 · 마) · UP-13 · UP-17 · UP-20 | maingui `19d2a70`(연동 층을 실제 Gateway에) · `2ced429`(G0~G6 연동) · `e669c03`(A-30 내려받기 — UP-20은 PR에서 뺐다) |
 | 남았다 | UP-9 · UP-11 · UP-12(바 · 사) · UP-14 · UP-16 | 아래 — maingui `1aa6340`에서 다시 봤다(`43a4e3a`는 이 줄들을 건드리지 않았다)(로컬 노드 `소유자` · 작업 실행 `commands.post` · `화면에만 반영` · 노드 칸 `로그인됨`이 그대로다) |
 | 디자인 원본(이 저장소 `web/design`)에 직접 반영했다 | UP-22 | 2026-10-08 — 전송 카드에 `stalled`(멈춤) 칩 · 이어서 · 중단. 모듈은 `markStalled`가 `failed` 대신 `stalled`를 준다 |
-| 새로 찾았다 — 아직 올리지 않았다 | UP-23 · UP-32 · UP-33 · UP-34 · UP-35 · UP-36 | MD-21 · MD-34 · 2026-10-08 맵 진입 측정에서 — 아래 |
+| 새로 찾았다 — 아직 올리지 않았다 | UP-23 · UP-33 · UP-34 · UP-35 · UP-36 | MD-21 · 2026-10-08 맵 진입 측정에서 — 아래 |
 
 - **UP-9** — `service.js` `hbPerm`이 로컬 노드를 여전히 `소유자` · 모든 권한으로 둔다. 원본의 선택일 수 있다(권한 없는 호출은 게이트웨이가 거절한다)
 - **UP-11** — UI 명세 §2.9가 여전히 §2.13 뒤에 있다
@@ -213,7 +215,8 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 
 - **UP-32** — 명령 · 작업 카드: 실행 중인 작업에는 `취소`뿐이라 출력을 볼 수 없다. Terra PF-7로 Daemon이 출력을 주니 실행 중에도 `출력`이 있어야 하고,
   `다시`는 같은 명령을 다시 돌리므로 두 번 눌러야 한다(`정말 다시` — 회수와 같은 `hbArm`). 이 노드의 출력은 `process.execute`가 있어야 한다.
-  모듈은 생성기 `MODULE_JS`로 그 한 줄을 바꿔 들고 있다(`tools/gen-pages.py`) — 원본에 올라가면 걷는다 · 낮음
+  모듈은 생성기 `MODULE_JS`로 그 한 줄을 바꿔 들고 있었다(`tools/gen-pages.py`) — **원본에 올라갔다**(maingui#7 · `8af1b0c`, 2026-10-09) · MD-41가 걷었다.
+  출력 단추의 권한(이 노드는 `process.execute`)만 모듈 전용 패치로 남는다 — 원본은 Master 작업(`node.read`)을 읽으므로 올리지 않는다
 
 새로 찾은 것(2026-10-08 — 레지스트리로 설치해 Terra 셸에서 맵 진입을 재 보며 · 아직 원본에 올리지 않았다 · 근거 [[performance-and-fidelity-recommendations|권고안]]):
 
