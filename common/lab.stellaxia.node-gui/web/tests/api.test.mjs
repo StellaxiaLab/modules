@@ -253,8 +253,8 @@ test('leaf — 위임 입구가 열지 않은 Master op(쓰기)는 부르지 않
   const f = fakeFetch(() => json(200, {}));
   const client = new TerraClient('', { fetch: f, delegated: true });
   client.catalog = leafCatalog();
-  assert.equal(client.reaches('terra.master.admin.users.post'), false);
-  const r = await client.invoke('terra.master.admin.users.post', { name: 'x' });
+  assert.equal(client.reaches('terra.master.svi.handles.post'), false);
+  const r = await client.invoke('terra.master.svi.handles.post', { resource_id: 'r1' });
   assert.deepEqual([r.kind, r.reason], ['unavailable', 'DELEGATION_NOT_OPEN']);
   assert.equal(f.calls.length, 0);
 });
@@ -311,20 +311,40 @@ test('leaf — 누르기 전 자물쇠: 위임 입구가 연 읽기는 잠그지
   const client = new TerraClient('', { fetch: fakeFetch(() => json(200, {})), delegated: true });
   client.catalog = leafCatalog();
   assert.equal(reaches(client, 'terra.master.svi.grants.get'), true);
-  assert.equal(missingReason(client, 'terra.master.admin.users.post'), 'DELEGATION_NOT_OPEN');
+  assert.equal(missingReason(client, 'terra.master.svi.handles.post'), 'DELEGATION_NOT_OPEN');
   assert.equal(missingReason(client, 'terra.daemon.nope.get'), 'not-in-catalog');
   assert.equal(reaches({ has: () => false }, 'terra.master.nodes.get'), false, 'has 만 가진 가짜 클라이언트는 has 로 본다');
 });
 
-test('위임 대응표 — 모두 Master 경로이고 메서드는 GET·POST·PATCH·DELETE 다 (Terra master.api 1.3.0)', () => {
+test('위임 대응표 — 읽기는 GET, 쓰기는 ADR-GW-004 가 연 것뿐(2a 바인딩 · 2b 허가)이고 Master 경로다', () => {
   const ids = Object.keys(MASTER_DELEGATED);
-  assert.equal(ids.length, 33);
+  const writes = ids.filter((id) => MASTER_DELEGATED[id][0] !== 'GET').sort();
+  assert.deepEqual(writes, ['terra.master.svi.bindings.by-binding-id.delete', 'terra.master.svi.bindings.post',
+    'terra.master.svi.grants.by-grant-id.delete', 'terra.master.svi.grants.by-grant-id.patch', 'terra.master.svi.grants.post']);
+  assert.equal(ids.length - writes.length, 28, '1차 읽기 28');
   for (const id of ids) {
-    const [method, path] = MASTER_DELEGATED[id];
+    const [, path] = MASTER_DELEGATED[id];
     assert.ok(id.startsWith('terra.master.'), id);
-    assert.ok(['GET', 'POST', 'PATCH', 'DELETE'].includes(method), id);
     assert.match(path, /^\/api\/v1\//, id);
   }
+});
+
+test('leaf — 위임 입구가 연 바인딩 쓰기(2a)는 /api/upstream 경로로 본문을 실어 부르고, 열지 않은 쓰기는 부르지 않는다', async () => {
+  const f = fakeFetch(() => json(202, { ok: true, data: { binding_id: 'b1' } }));
+  const client = new TerraClient('', { fetch: f, delegated: true });
+  client.catalog = leafCatalog();
+  const body = { source_resource_id: 'r1', source_endpoint_id: 'out', target_resource_id: 'r2', target_endpoint_id: 'in', idempotency_key: 'k' };
+  const r = await client.invoke('terra.master.svi.bindings.post', body);
+  assert.notEqual(r.kind, 'unavailable');
+  assert.equal(f.calls[0].url, '/api/upstream/v1/svi/bindings');
+  assert.equal(f.calls[0].init.method, 'POST');
+  assert.deepEqual(JSON.parse(f.calls[0].init.body), body);
+  await client.invoke('terra.master.svi.bindings.by-binding-id.delete', { binding_id: 'b1' });
+  assert.equal(f.calls[1].url, '/api/upstream/v1/svi/bindings/b1');
+  assert.equal(f.calls[1].init.method, 'DELETE');
+  // 핸들 열기는 위임 입구가 열지 않은 쓰기 — 부르지 않는다
+  assert.equal((await client.invoke('terra.master.svi.handles.post', {})).reason, 'DELEGATION_NOT_OPEN');
+  assert.equal(f.calls.length, 2);
 });
 
 test('위임 대응표 — Terra 계약과 같다 (TERRA_CHECKOUT 이 있을 때)', { skip: !process.env.TERRA_CHECKOUT && 'TERRA_CHECKOUT 없음 — CI 의 Pack against Terra 가 gen-master-delegated.mjs --check 로 본다' }, async () => {

@@ -8,7 +8,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.10.0"
+version: "0.11.0"
 last_updated: "2026-10-09"
 language: "ko-KR"
 os_priority:
@@ -327,7 +327,7 @@ Daemon 이 명령 작업마다 출력의 꼬리(256 KiB — 노드 전체 32 MiB
 
 | 비어 있는 것 | 이유 | 채우려면 |
 | --- | --- | --- |
-| Master 데이터(SVI · 허가 · SVI 흐름도 · 흐름 이벤트 · mesh · 사설망 · 진단 · 라우트 · 경로 정책 · 세션 · 연결 그룹 · 클러스터 · 다른 노드의 작업) | 앱 스코프 토큰은 위임 입구 1차(Terra ADR-GW-003)로 Master **읽기**에 닿는다 — SVI 자원 · 허가 · 핸들 · 바인딩 목록은 부른다(leaf 는 `/api/upstream`). 흐름 이벤트(SSE)와 쓰기는 2차, 네트워크 보드(mesh · 사설망 · 진단 · 라우트 · 정책 · 세션 · 연결 그룹)와 클러스터 탭은 보드가 아직 부르지 않는다 | ADR-GW-003 2차 · 보드 연결(모듈 README Q-2) |
+| Master 데이터(SVI · 허가 · SVI 흐름도 · 흐름 이벤트 · mesh · 사설망 · 진단 · 라우트 · 경로 정책 · 세션 · 연결 그룹 · 클러스터 · 다른 노드의 작업) | 앱 스코프 토큰은 위임 입구 1차(Terra ADR-GW-003)로 Master **읽기**에 닿는다 — SVI 자원 · 허가 · 핸들 · 바인딩 목록은 부른다(leaf 는 `/api/upstream`). 네트워크 보드의 사설망 · 진단 · 라우트 · 정책 · 세션 · 조작 이력도 읽는다(§5.8). 흐름 이벤트(SSE) · 쓰기 · 연결 그룹 · 클러스터 탭(관리자 동작)은 2차 | ADR-GW-003 2차(모듈 README Q-2) |
 | 다른 노드의 명령 실행 | Daemon 이 명령 실행을 원격으로 열지 않는다 · Master `commands.post` 는 쓰기라 위임 입구 2차(`DELEGATION_NOT_OPEN`) | PF-1 2차 |
 | tree 계층(손자 노드) | `agent/nodes` 에 부모 관계가 없다 | `terra.master.nodes.get` (위의 ADR) |
 | 다른 tree 목록 | 사용자가 등록한 연결 목록을 둘 곳이 없다 | Q-3 — `kind: service` 로 올려 사람별 저장 |
@@ -414,7 +414,7 @@ Daemon 이 명령 작업마다 출력의 꼬리(256 KiB — 노드 전체 32 MiB
 | 손 등록(`io.devices.post`)은 주소로 장치 id 를 짓는다(`camera-manual-…` — 같은 주소면 같은 id) · 등록하면 `terra.io.devices.changed` 신호가 온다 | 신호로 I/O 앱 목록을 다시 받는다 |
 | (Terra main `3195421`) 모듈 설정 op 셋은 Daemon 의 것이다 — 읽기 둘은 `node.read`, 쓰기(`config.patch`)는 `module.manage`★. `module.manage` 는 "어느 코드가 그 노드에서 도는지 바꾸는" 권한이라 **기본 권한 밖**이다 — 관리자에게도 없어 카탈로그가 `config.patch` 를 거르고, 관리자 토큰으로 바로 불러도 403 이다 | 앱 권한에는 이미 있다. 사용자에게 따로 주어야 저장이 열린다(Q-16). 없으면 폼은 열려 값을 보이고, 저장은 `🔒 저장 — module.manage★ 권한 없음(…) · 값은 볼 수만 있다`로 막는다 |
 | (Terra main `3195421`) SVI 자원 · 허가 · 핸들 · 바인딩 · 흐름 이벤트는 모두 Master op(`terra.master.svi.*`)다 — Daemon 에는 선언(`svi.declarations.*`)뿐이다. 허가 목록은 `{items[{grant_id, subject{type, id}, resource_id, operations, created_at, expires_at?}]}`(기한이 없으면 `expires_at` 이 없다 — `routes_svi_grants.go` `sviGrantView`), 바인딩 목록은 `{items[{binding_id, source{resource_id, endpoint_id}, target{…}, source_node_id, target_node_id, desired_state, observed_state, reason, qos_profile}]}`(`BindingView`) | 허가 · 바인딩 어댑터를 그 모양으로 고쳤다 — 예전 키(`grants` · `subject_id` · `source_resource_id`)는 없는 키였다(MD-23). 앱 토큰으로는 빈 흐름도 + 이유 |
-| maingui A-20 의 네트워크 읽기 다섯(`network.networks.get` · `network.probes.get` · `route.policies.get` · `route.sessions.get` · `connection-groups.get`)도 Master op 다 — tree Gateway 가 중계한다 | 네트워크 보드의 Master 묶음은 그대로 `Master operation — 이 화면에서 닿지 않음` |
+| maingui A-20 의 네트워크 읽기 다섯(`network.networks.get` · `network.probes.get` · `route.policies.get` · `route.sessions.get` · `connection-groups.get`)도 Master op 다 — tree Gateway 가 중계한다 | 네트워크 보드의 Master 묶음은 그대로 `Master operation — 이 화면에서 닿지 않음` — **2026-10-09: 위임 입구 1차로 읽는다(§5.8)** |
 | 설정 스키마는 Daemon 이 키를 정렬해 준다(Go map) — 폼 칸은 키 이름 순서다. 기본값은 값에 채우지 않는다(`values` 는 저장된 것만) | 기본값은 자리 표시자(`기본 50`)로 보인다 |
 | io.terra.file 0.2.0 의 중단(`transfers.abort` · `pulls.abort`)은 `keep_partial` · `reason` 을 **query 에서만** 읽었다. 게이트웨이 invoke 는 POST 입력을 본문으로 보내므로(`BuildOperationTarget`) 앱이 보낸 `keep_partial: true` 가 들리지 않아 늘 포기였다 — 실측 `kept_partial: false` · 기록 404 · 부분 파일 없음 | io.terra.file 0.2.1이 본문도 읽는다(본문이 이긴다 · query 도 그대로) — 같은 실측이 `kept_partial: true` · 기록 200 · 부분 파일 262144 B |
 | 받기 전용 문(`pulls.complete` · `pulls.abort`)은 기한이 지난 받기를 닫지 못했다(`TRANSFER_EXPIRED`) — 받던 화면이 닫히면 그 받기가 목록에 계속 남는다 | 0.2.1 — 방향만 보고 닫는다 |
@@ -527,6 +527,22 @@ Node 에서 그대로 그 토큰으로 진짜 게이트웨이에 붙였다(`web/
 
 실측에서 드러난 Daemon 의 사실 — 기본 셸(`system_default`)은 명령과 인자를 **빈칸으로 이어 한 줄로** `/bin/sh -c` 에 넘긴다(따옴표를 붙이지 않는다 — `runner.go` `joinCommand`).
 그래서 `{command: "sh", args: ["-c", "for i in 1 2; do …"]}` 는 `sh -c for i in …` 이 되어 문법 오류다. 이 앱의 `+ 실행` 폼(`cmdLine`)은 한 줄을 빈칸으로 나눠 보내므로 Daemon 에서 같은 줄로 다시 이어진다(겹친 빈칸은 하나가 된다 — 따옴표 안이라도). 인자에 빈칸이 든 명령은 `shell: direct_exec` 이 필요하다.
+
+
+### 5.8 네트워크 보드의 Master 읽기 — 위임 입구 1차 — 2026-10-09
+
+Terra ADR-GW-003 1차(Terra#143)로 앱 토큰이 Master 읽기에 닿는다. 네트워크 보드의 Master 묶음을 "닿지 않음"에서 진짜 값으로 바꿨다(`src/data/network-master.js`). 보드 원본(`screens/network.js`)의 이 묶음은 디자인 캔버스의 시연 코드라(예시 노드 · 세대 번호 42 · 고정 후보) 쓰지 않고, 읽기 전용 블록을 새로 짓는다.
+
+| 묶음 | 읽는 것 | 보이는 것 |
+| --- | --- | --- |
+| 사설망 | `network.state.get` · `network.status.get` | 논리 네트워크(CIDR · gateway · dns), 노드 × 네트워크(할당 IP · desired · observed와 세대 · 배포 결과와 오류) |
+| 연결 진단 · 라우팅 | `route.graph.get` · `network.status.get` · `route.policies.get` · `route.sessions.get` · `network.probes.get` · 쌍을 고르면 `route.candidates.get` | 라우트 그래프(쌍마다 건강한 후보의 route_type) · 후보 · 거부된 후보 · probe 기록 · 정책 · 세션 |
+| 조작 이력 | `network.logs.get {limit: 100}` | 호출자 본인의 네트워크 조작 |
+
+- **부르는 길** — tree 는 operation id, leaf 는 `/api/upstream`(client.js `invokeUpstream`). 보드는 모른다. 묶음을 고를 때와 10초마다 그 묶음의 읽기만 부른다.
+- **쓰기는 없다** — 자동 조정 · 수동 계획 · 피어 철회 · probe 실행 · 정책 저장 · 세션 닫기는 Master 쓰기라 위임 입구 2차다. 버튼을 두지 않고 "보기만" 배너를 둔다. 연결 그룹(`connection-groups.*`)은 1차 28에 들지 않는다.
+- **닿지 않으면** — 예전 Terra(401 → `masterBlocked`) · 상위 Master 없음(501)이면 예전처럼 "닿지 않음"과 이유.
+- 시험: `tests/netmaster.test.mjs` 5개 — 응답 → 행(노드 × 네트워크 · 그래프 · 후보 · 정책 · 세션 · probe · 이력, Go 의 nil 목록 · 빈 time), leaf 앱 토큰의 보드가 `/api/upstream`으로 읽고 예시 · 쓰기 버튼이 없음, 401이면 "닿지 않음". 응답 모양은 Terra Master 코드(`routes_network.go` · `models/network_state.go` · `models/route_runtime.go`)를 읽고 맞췄다. **진짜 스택 실측은 아직이다.**
 
 ## 6. 코드 지도
 

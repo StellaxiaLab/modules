@@ -323,7 +323,7 @@ const REASON = {
   OPERATION_NOT_REMOTE: '그 노드가 이 기능을 원격으로 열지 않았다',
   'master-delegation': 'Master를 거치는 기능은 이 화면에 아직 열리지 않았다',
   'no-upstream': '이 노드의 게이트웨이에 상위 Master 가 없다 — 노드를 tree 에 등록한 뒤에 Master 를 본다',
-  DELEGATION_NOT_OPEN: 'Master가 이 기능을 앱 토큰에 아직 열지 않았다 — 지금은 읽기만 열려 있다(Terra ADR-GW-003 1차)',
+  DELEGATION_NOT_OPEN: 'Master가 이 기능을 앱 토큰에 아직 열지 않았다 — 지금은 읽기와 SVI 연결 · 허가(바인딩 · 본인 · 같은 클러스터 노드에게 주는 허가)만 열려 있다(Terra ADR-GW-003 · 004)',
   'not-in-catalog': '이 노드의 게이트웨이에 없다',
   'no-module': '이 노드에 그 모듈이 설치되어 있지 않다',
   LOCAL_API_UNAVAILABLE: '이 노드에서 그 모듈이 시작하지 않았거나 설치되어 있지 않다',

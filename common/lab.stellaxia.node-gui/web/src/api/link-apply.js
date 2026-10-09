@@ -5,7 +5,7 @@
 //        공유(자원 → 노드)는 svi.grants.post {subject_type: node}.
 // 전제: PF-1 — Master op 가 이 화면의 자격으로 닿는다(사용자 신원). 닿지 않으면(카탈로그에 없다 · 401) 아무것도 바꾸지 않고 이유만 돌려준다.
 // 서버는 `client.invoke` 로 직접 부른다 — Master 의 POST 본문은 모르는 키를 거절한다(decodeJSON). node_id 를 싣지 않는다(UP-13).
-import { buildIO, pairsOf, worstPhase, idempotencyKey, setEndpointChoice } from '../model/link-io.js';
+import { buildIO, pairsOf, worstPhase, idempotencyKey, setEndpointChoice, SHARE_TTL_DEFAULT } from '../model/link-io.js';
 import { reaches, missingReason, reasonText } from './client.js';
 
 const T = (op) => 'terra.master.' + op;
@@ -206,7 +206,7 @@ async function applyShare(client, link, links, ctx, io0, o, h) {
     const live = arr(have.data, 'items', 'grants').find((g) => g && g.resource_id === res && g.subject && g.subject.type === 'node' && g.subject.id === nodeId && (!g.expires_at || Date.parse(g.expires_at) > (o.now || Date.now)()));
     if (live) { io = phaseOf(io, p.key, 'shared', { grant_id: live.grant_id }); h.notes.push(label(p) + ' — 이미 공유 중'); continue; }
     const ops = io.share_ops && io.share_ops.length ? io.share_ops : ['read', 'subscribe', 'bind.source'];
-    const body = { subject_type: 'node', subject_id: nodeId, resource_id: res, operations: ops, ttl_seconds: io.share_ttl_seconds || 0 };
+    const body = { subject_type: 'node', subject_id: nodeId, resource_id: res, operations: ops, ttl_seconds: io.share_ttl_seconds > 0 ? io.share_ttl_seconds : SHARE_TTL_DEFAULT };
     if (p.via_node_id) body.via_node_id = p.via_node_id;
     const r = await client.invoke(OPS.grantsPost, body);
     if (r.kind === 'ok' || r.kind === 'accepted') {
