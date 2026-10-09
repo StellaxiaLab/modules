@@ -10,10 +10,7 @@ replace github.com/terra-project/terra/products/common/packages/terra-protocol =
 
 replace github.com/terra-project/terra/products/common/packages/terra-svi => ../../../../products/common/packages/terra-svi
 
-replace github.com/terra-project/terra/products/common/packages/terra-io-weave => ../../../../products/common/packages/terra-io-weave
-
 require (
-	github.com/terra-project/terra/products/common/packages/terra-io-weave v0.0.0
 	github.com/terra-project/terra/products/common/packages/terra-module-sdk v0.0.0
 	github.com/terra-project/terra/products/common/packages/terra-protocol v0.0.0
 	github.com/terra-project/terra/products/common/packages/terra-svi v0.0.0
