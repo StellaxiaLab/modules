@@ -4,8 +4,8 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.14"
-last_updated: "2026-10-07"
+version: "v0.15"
+last_updated: "2026-10-09"
 ---
 
 # Terra 노드 (`lab.stellaxia.node-gui`)
@@ -181,7 +181,7 @@ Terra가 명령 작업의 출력과 다시 실행을 열었다([Terra#140](https
 - **출력** — `terra.daemon.tasks.by-task-id.output.get`(`process.execute`)을 상태 화면의 출력 칸에. 다른 노드도 노드 주소 호출로 읽는다. 이 노드에서 실행 중인 작업이면 출력 SSE(`output.events.get`)로 이어 받는다.
 - **다시** — 두 번 눌러 `tasks.by-task-id.rerun.post {task_id, confirmed: true}`. 이 노드에서 시작한 끝난 작업만 — Master가 보낸 작업은 부르지 않고 이유를 보인다.
 - **카드** — 실행 중에도 `출력`, 다시는 `정말 다시`. 생성기 `MODULE_JS`의 둘째 패치다(원본에 올릴 것 UP-32).
-- 시험: `tests/taskout.test.mjs` 5개 · 전체 196 통과 · `npm run build` 통과. **앱 토큰으로 진짜 스택 실측은 아직이다** — 가짜 서버 시험과 Terra 쪽 Gateway SSE 실측(Terra#144)뿐이다.
+- 시험: `tests/taskout.test.mjs` 5개 · 전체 196 통과 · `npm run build` 통과. 앱 토큰으로 진짜 스택 실측(2026-10-09, Terra main `1e13d75`) — `web/tools/live-taskout.mjs` 15개 통과([`real-data-layer.md`](web/docs/api/real-data-layer.md) §5.7). 브라우저 화면은 단위 · 연기 시험으로 본다.
 
 ### maingui 4ec0685 따라가기 — 사용자 관리 · 등록 상태 · 온보딩 MD-26 (2026-10-06, 0.4.1)
 
