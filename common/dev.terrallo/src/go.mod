@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/common/dev.terrallo
+module github.com/StellaxiaLab/modules/common/dev.terrallo
 
 go 1.23.0
 

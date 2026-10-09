@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/discovery"
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/manual"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/discovery"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/manual"
 )
 
 // maxManualDeviceBody bounds a registration. It is the Daemon's limit for the

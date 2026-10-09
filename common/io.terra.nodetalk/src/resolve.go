@@ -34,7 +34,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // conversationFrom resolves the conversation a request names.

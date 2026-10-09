@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/common/io.terra.sample.window
+module github.com/StellaxiaLab/modules/common/io.terra.sample.window
 
 go 1.23.0
 

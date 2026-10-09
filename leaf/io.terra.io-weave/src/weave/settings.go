@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	ioweave "github.com/terra-project/terra/products/common/packages/terra-io-weave"
+	ioweave "github.com/StellaxiaLab/modules/leaf/io.terra.io-weave/ioweave"
 )
 
 // What a node answers a remote pointer with depends on what is in front of the

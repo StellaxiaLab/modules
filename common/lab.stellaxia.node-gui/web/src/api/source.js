@@ -74,7 +74,7 @@ const resumeBody = (t) => ({ direction: 'push', root: t.root, path: t.path, size
 /**
  * 전송 목록의 멈춘 전송 — 서버 상태는 아직 prepared · transferring 인데 보내거나 받는 쪽이 없다(그 화면을 닫았다).
  * 이 화면이 하는 중이 아니고, 기한(expires_at)이 지났거나 · STALL_MS 넘게 기록이 움직이지 않았거나 · 이 화면이 SEEN_MS 넘게
- * 지켜봤는데 offset 이 그대로면 화면의 '어긋남'(failed) 칸에 둔다 — 디자인이 그 칸에 이어서 · 중단을 붙인다.
+ * 지켜봤는데 offset 이 그대로면 `stalled`(멈춤) 로 둔다 — 디자인이 그 칸에 이어서 · 중단을 붙인다(UP-22).
  * 중단(부분 남김)한 전송은 그대로 '중단됨'이다 — 같은 파일을 다시 올리면 잇는다
  * @param {any[]} items  adapters.js xfer 항목 @param {Set<string>} [active] 이 화면이 보내거나 받는 전송 id
  * @param {Map<string, { off: number, t: number }>} [seen]  이 화면이 본 offset 과 처음 본 때 — 목록을 받을 때마다 고친다
@@ -89,7 +89,7 @@ export function markStalled(items, active, now = Date.now(), seen = null) {
       if (o && o.off === d.off) still = now - o.t >= SEEN_MS; else seen.set(d.id, { off: d.off, t: now });
     }
     if (!(still || (d.exp && d.exp < now) || (d.at && d.at < now - STALL_MS))) return d;
-    return Object.assign({}, d, { state: 'failed', stalled: true, reason: d.dir === 'pull'
+    return Object.assign({}, d, { state: 'stalled', stalled: true, reason: d.dir === 'pull'
       ? '멈췄다 · 받던 화면이 닫혔다 — 이어서: 이 브라우저에 받아 둔 만큼은 건너뛴다'
       : '멈췄다 · ' + Math.floor((d.off || 0) * 100) + '%에서 보내던 화면이 닫혔다 — 이어서: 같은 파일을 고르면 거기서부터' });
   });
@@ -331,7 +331,7 @@ export class LiveSource {
   async stalledPush(node, root, path, size, sha) {
     const r = await this.call({ op: 'io.terra.file.transfers.list', where: 'M' }, node, {});
     if (r.kind !== 'ok') return {};
-    const here = markStalled(ADAPT.xfer(r.data), this.active).filter((t) => t.dir === 'push' && t.root === root && t.path === path && /^(transferring|failed|aborted)$/.test(t.state));
+    const here = markStalled(ADAPT.xfer(r.data), this.active).filter((t) => t.dir === 'push' && t.root === root && t.path === path && /^(transferring|stalled|failed|aborted)$/.test(t.state));
     if (!here.length) return {};
     const same = here.filter((t) => t.bytes === size && t.sha === sha);
     const free = same.find((t) => t.state !== 'transferring');

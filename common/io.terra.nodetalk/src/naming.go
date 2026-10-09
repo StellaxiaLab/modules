@@ -17,7 +17,7 @@ package main
 // The peer-facing replica routes deliberately get NONE of this. What crosses
 // between nodes is the log, and the log has no names in it.
 
-import "github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+import "github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 
 // namedEntry is one transcript line with the labels a person reads.
 type namedEntry struct {

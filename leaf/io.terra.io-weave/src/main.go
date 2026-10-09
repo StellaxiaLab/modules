@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-weave/weave"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-weave/weave"
 	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
 	coresvi "github.com/terra-project/terra/products/common/packages/terra-svi"
 )
