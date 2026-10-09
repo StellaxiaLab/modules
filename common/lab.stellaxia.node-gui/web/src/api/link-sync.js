@@ -2,6 +2,7 @@
 // 설계: docs/data/io-link-svi-binding-design.md §4.2(끊기) · §4.3(상태를 받아 오는 길) · §4.4(상태).
 // 권위는 서버다 — io 의 phase 는 마지막으로 본 값의 캐시. 서버가 닿지 않으면(카탈로그에 없음 · 401 · 503) 아무것도 바꾸지 않는다(lost 로 오해하지 않는다).
 import { worstPhase } from '../model/link-io.js';
+import { reaches } from './client.js';
 
 const T = (op) => 'terra.master.' + op;
 export const SYNC_OPS = {
@@ -35,14 +36,14 @@ export async function syncLinks(client, links, o = {}) {
   // 바인딩 — 목록 한 번. 목록에 없으면 하나씩 확인한다(관리자 · 다른 사람이 만든 것은 목록에 없을 수 있다) — 404 일 때만 'lost'
   const found = new Map();
   if (binds.length) {
-    if (!client.has(SYNC_OPS.bindingsGet)) return { links: L, changed: false, unavailable: 'not-in-catalog' };
+    if (!reaches(client, SYNC_OPS.bindingsGet)) return { links: L, changed: false, unavailable: 'not-in-catalog' };
     const r = await client.invoke(SYNC_OPS.bindingsGet, {});
     if (r.kind === 'ok') arr(r.data, 'items', 'bindings').forEach((b) => { if (b && b.binding_id) found.set(b.binding_id, b); });
     else if (unreachable(r)) return { links: L, changed: false, unavailable: r.kind };
     const want = new Set(binds.flatMap((l) => l.io.pairs.map((p) => p.binding_id).filter(Boolean)));
     for (const id of want) {
       if (found.has(id)) continue;
-      const g = client.has(SYNC_OPS.bindingGet) ? await client.invoke(SYNC_OPS.bindingGet, { binding_id: id }) : { kind: 'unavailable' };
+      const g = reaches(client, SYNC_OPS.bindingGet) ? await client.invoke(SYNC_OPS.bindingGet, { binding_id: id }) : { kind: 'unavailable' };
       if (g.kind === 'ok') found.set(id, (g.data && g.data.binding) || g.data);
       else if (goneCode(g)) found.set(id, null);   // 서버에 없다
       else if (unreachable(g)) return { links: L, changed: false, unavailable: g.kind };
@@ -51,7 +52,7 @@ export async function syncLinks(client, links, o = {}) {
   // 공유 — 자원마다 노드 허가를 읽는다(기한이 지난 것도 보려고 active 를 걸지 않는다)
   const grants = new Map();
   for (const res of new Set(shares.flatMap((l) => l.io.pairs.filter((p) => p.grant_id).map((p) => p.key.split('>')[0].replace(/^share:/, ''))))) {
-    if (!client.has(SYNC_OPS.grantsGet)) return { links: L, changed: false, unavailable: 'not-in-catalog' };
+    if (!reaches(client, SYNC_OPS.grantsGet)) return { links: L, changed: false, unavailable: 'not-in-catalog' };
     const r = await client.invoke(SYNC_OPS.grantsGet, { resource_id: res, subject_type: 'node', limit: 200 });
     if (r.kind === 'ok') grants.set(res, arr(r.data, 'items', 'grants'));
     else if (unreachable(r)) return { links: L, changed: false, unavailable: r.kind };
@@ -107,7 +108,7 @@ export async function syncLinks(client, links, o = {}) {
 export async function closeBindings(client, ids) {
   const closed = [], failed = [];
   for (const id of [...new Set(ids)].filter(Boolean)) {
-    if (!client.has(SYNC_OPS.bindingDelete)) { failed.push({ binding_id: id, code: 'not-in-catalog' }); continue; }
+    if (!reaches(client, SYNC_OPS.bindingDelete)) { failed.push({ binding_id: id, code: 'not-in-catalog' }); continue; }
     const r = await client.invoke(SYNC_OPS.bindingDelete, { binding_id: id });
     if (r.kind === 'ok' || r.kind === 'accepted' || goneCode(r)) closed.push(id);
     else failed.push({ binding_id: id, code: r.reason || r.kind });

@@ -1,5 +1,5 @@
 // 연결 적용(MD-28) — 엔드포인트 다시 읽기 → 미리 검사 → 내 허가 → svi.bindings.post · 공유 허가, 상태 · 오류 상태 기록
-//   Master 계약 모양의 가짜 클라이언트로 시험한다(앱 토큰으로는 Master 에 닿지 않는다 — PF-1). npm test
+//   Master 계약 모양의 가짜 클라이언트로 시험한다(SVI 쓰기는 앱 토큰의 위임 입구에 아직 열리지 않았다 — Terra ADR-GW-003 1차는 읽기만). npm test
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -158,7 +158,7 @@ test('적용 — 서버가 닿지 않으면(503 · 401 · 카탈로그에 없음
   c.catalog = ['terra.master.nodes.get'];
   const r = await apply(c, link, [link]);
   assert.equal(r.unavailable, 'not-in-catalog'); assert.equal(c.calls.length, 0, '부르지 않는다');
-  assert.match(r.notes[0], /PF-1/);
+  assert.match(r.notes[0], /^svi\.bindings\.post — 이 노드의 게이트웨이에 없다/);
   assert.equal((await applyLink({ client: fake(std()) }, link, [link], ctx(), { userId: '' })).unavailable, 'no-user');
 });
 

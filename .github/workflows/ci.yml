@@ -174,6 +174,12 @@ jobs:
         if: steps.guard.outputs.present == 'true'
         run: node modules/tools/check-schema-drift.mjs --terra "$GITHUB_WORKSPACE/terra"
 
+      # node-gui 의 leaf 화면은 Master 읽기를 /api/upstream 경로로 부른다(Terra ADR-GW-003 D3).
+      # op id → 경로 표는 Terra 계약에서 만든 사본이라, 위임 입구가 여닫는 op 가 바뀌면 여기서 드러난다.
+      - name: Check node-gui's Master delegation table against Terra
+        if: steps.guard.outputs.present == 'true'
+        run: node modules/common/lab.stellaxia.node-gui/web/tools/gen-master-delegated.mjs --terra "$GITHUB_WORKSPACE/terra" --check
+
       # main 패키지는 모듈 루트가 아니라 cmd/terra 에 있다 — 루트에는 go.mod 와
       # internal/ 뿐이라 `go build .` 는 "no Go files" 로 죽는다.
       - name: Build the terra CLI
