@@ -36,7 +36,7 @@
 /** @typedef {{ id: string, type: 'bind', from: string, to: string, state: string, qos?: string, reason?: string }} SviBinding */
 /** @typedef {{ id: string, kind: 'mouse'|'keyboard'|'camera'|'microphone'|'screen'|'raw_bus', name: string, presence: 'present'|'missing'|'unknown', approval: 'pending'|'approved'|'denied'|'quarantined', enabled: boolean }} IoDevice */
 /** @typedef {{ id: string, parent: string, name: string, dir?: boolean, root?: boolean, size?: string, info?: string }} FsEntry */
-/** @typedef {{ id: string, dir: 'push'|'pull', name: string, total: number, off: number, state: 'prepared'|'transferring'|'verifying'|'completed'|'aborted'|'failed', reason?: string }} Transfer */
+/** @typedef {{ id: string, dir: 'push'|'pull', name: string, total: number, off: number, state: 'prepared'|'transferring'|'verifying'|'completed'|'aborted'|'stalled'|'failed', reason?: string }} Transfer */
 /** @typedef {{ id: string, type: 'decl'|'tun', name: string, to: string, bind: string, on?: boolean, state?: 'listening'|'active'|'failed'|'draining', conn?: string, bytes?: string, err?: string }} Tunnel */
 /** @typedef {{ id: string, ip: string, ep: string, hs: string, health: 'healthy'|'stale'|'never' }} WgPeer */
 /** @typedef {{ id: string, cmd: string, state: 'queued'|'sent'|'running'|'success'|'failed', t?: number, code?: number|null, out?: string }} Job */
