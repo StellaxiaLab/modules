@@ -28,12 +28,23 @@ export default class Component extends DCLogic {
       setTimeout(() => {
         const fr = document.querySelector('[data-in-map]'); if (!fr) return;
         // 읽힌 것이 정말 노드 화면인지 본다 (없는 주소면 빈 쪽이 뜬다 → 준비 안 됨 → 구름 뒤 '노드 화면으로' 버튼)
-        fr.addEventListener('load', () => { setTimeout(() => {
-          let ok = true; try { ok = !!(fr.contentDocument && fr.contentDocument.querySelector('[data-node-root]')); } catch (e) { ok = true; }
-          if (ok) { this._mapReady = true; if (this._fly) this._fly.ready = true; }
-        }, 900); });
+        // 준비 판정(MD-41): 예전엔 load 뒤 900ms 고정이었다. 이제 노드 화면이 이 노드의 값에 붙었는지(liveHub 값)를 본다 — 붙었으면 바로,
+        // 연결을 기다려야 하는 판(Terra 안 · 토큰 있음)인데 아직이면 3.5초까지, 연결이 필요 없는 판은 0.25초 뒤. 읽힌 것이 노드 화면이 아니면(없는 주소) 2초까지 다시 본다.
+        fr.addEventListener('load', () => {
+          const t0 = performance.now();
+          const need = !!(this.__sess && this.__sess.role === 'frame' && this.__sess.token);
+          const check = () => {
+            if (this._dead) return;
+            let ok = true, live = false;
+            try { ok = !!(fr.contentDocument && fr.contentDocument.querySelector('[data-node-root]')); live = !!(fr.contentWindow && fr.contentWindow.__terraLive && fr.contentWindow.__terraLive.value); } catch (e) { ok = true; live = true; }
+            const waited = performance.now() - t0;
+            if (ok && waited >= 250 && (!need || live || waited >= 3500)) { this._mapReady = true; if (this._fly) this._fly.ready = true; return; }
+            if (waited < (ok ? 6000 : 2000)) setTimeout(check, 100);
+          };
+          check();
+        });
       }, 0);
-    }, 1200);
+    }, 250);
     if (this.state.phase === 'auto') this._autoT = setTimeout(() => this.finish(true), 1800);
     else setTimeout(() => { const el = document.querySelector('[data-in-pass]'); if (el && this.state.phase === 'form') el.focus(); }, 300);
   }
