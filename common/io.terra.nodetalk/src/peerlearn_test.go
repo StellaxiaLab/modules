@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // newLearningNode is newNode with the peer learner exposed — the bootstrap

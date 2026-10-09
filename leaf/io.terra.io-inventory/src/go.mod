@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/leaf/io.terra.io-inventory
+module github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory
 
 go 1.23.0
 

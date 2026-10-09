@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // The bootstrap hole this closes: sync is pull-only, and a node builds its peer

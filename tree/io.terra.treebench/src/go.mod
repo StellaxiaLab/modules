@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/tree/io.terra.treebench
+module github.com/StellaxiaLab/modules/tree/io.terra.treebench
 
 go 1.23.0
 

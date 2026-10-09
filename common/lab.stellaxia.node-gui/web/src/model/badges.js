@@ -22,7 +22,7 @@ const TABLE = {
   svi: { available: ['쓸 수 있음', 'ok'], busy: ['사용 중', 'run'], disabled: ['꺼짐', 'off'], unavailable: ['보고 끊김', 'bad'], unsupported: ['지원 안 함', 'end'] },
   decl: { applied: ['적용됨', 'ok'], shadowed: ['가려짐', 'wait'], refused_by_policy: ['울타리 밖', 'bad'], retired: ['퇴역', 'end'] },
   bind: { active: ['흐르는 중', 'run'], requested: ['요청됨', 'wait'], validating: ['확인 중', 'run'], preparing: ['준비 중', 'run'], degraded: ['저하', 'wait'], failed: ['실패 · 재시도', 'bad'], closing: ['닫는 중', 'off'], closed: ['닫힘', 'end'] },
-  xfer: { prepared: ['준비', 'wait'], transferring: ['전송 중', 'run'], verifying: ['검사 중', 'run'], completed: ['끝남', 'end'], aborted: ['중단됨', 'off'], failed: ['어긋남', 'bad'] },
+  xfer: { prepared: ['준비', 'wait'], transferring: ['전송 중', 'run'], verifying: ['검사 중', 'run'], completed: ['끝남', 'end'], aborted: ['중단됨', 'off'], stalled: ['멈춤', 'wait'], failed: ['어긋남', 'bad'] },
   tunnel: { listening: ['대기 중', 'ok'], active: ['연결 중', 'run'], failed: ['실패', 'bad'], draining: ['닫는 중', 'off'] },
   wg: { healthy: ['정상', 'ok'], stale: ['오래됨', 'wait'], never: ['본 적 없음', 'off'] },
   job: { queued: ['대기', 'wait'], sent: ['보냄', 'run'], running: ['실행 중', 'run'], success: ['성공', 'ok'], failed: ['실패', 'bad'] },

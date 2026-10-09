@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/leaf/io.terra.file
+module github.com/StellaxiaLab/modules/leaf/io.terra.file
 
 go 1.25.0
 

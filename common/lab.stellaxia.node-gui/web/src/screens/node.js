@@ -58,6 +58,10 @@ export default class Component extends DCLogic {
       rsrc: {},
       place: null,        // 설치할 필드를 고르는 중인 자원
       rcfgKey: null,      // 자원 설정 창이 보여 주는 필드
+      ioOpen: null,       // 자원 설정 창에서 펼친 연결(id) — 입출력 설정 (UP-25)
+      ioGrants: {},       // 예시: 내가 허가를 받은 자원 id → 기한 글 (연결 적용 · 나에게 허가 주기가 만든다)
+      ioForce: '',        // 예시 미리보기: 상태를 강제로 보여 본다 (디자인 검토용 — 서비스 · 모듈에서는 보이지 않는다)
+      ioTtl: '30d',       // [나에게 허가 주기] 기한 (Q-23 — 기본 30일)
       links: [],          // 연결: { id, from, to, start, path[], road } — from · to = 노드 · 자원 칸, start = 출발 칸(합류면 도로 칸), path = 거친 칸(도로)
       conn: null,         // 연결하기를 누른 채 끄는 중 { from, start, wps[], over, path[], ok, x, y, sx, sy }
       pillOpen: null, pillSrc: null, roadPick: 'stone',
@@ -2178,7 +2182,8 @@ export default class Component extends DCLogic {
     const LK = S.links || [], lb = (q) => ((S.rsrc || {})[q] ? S.rsrc[q].name : S.nodes[q] ? S.nodes[q].name : this.cellName(q));
     const cut = (id) => () => this.setState({ links: (this.state.links || []).filter((l) => l.id !== id), fieldNote: '연결을 끊었습니다 — 도로는 남는다' });
     const io = { in: LK.filter((l) => l.to === k), out: LK.filter((l) => l.from === k) };
-    const ins = io.in.map((l) => ({ name: '⇠ ' + lb(l.from), len: (l.path || []).length, cut: cut(l.id) })), outs = io.out.map((l) => ({ name: lb(l.to) + ' ⇢', len: (l.path || []).length, cut: cut(l.id) }));
+    const row = (l, name) => Object.assign({ name, len: (l.path || []).length, cut: cut(l.id) }, this.ioRow(l));
+    const ins = io.in.map((l) => row(l, '⇠ ' + lb(l.from))), outs = io.out.map((l) => row(l, lb(l.to) + ' ⇢'));
     // 이웃: 이 필드 둘레 6칸의 노드 · 자원 (입출력을 이을 수 있는 후보)
     const nb = this.nbKeys(k).map((q) => S.nodes[q] ? { em: '', logo: this.nodeLogo(S.nodes[q].role), logoDisp: 'inline', name: S.nodes[q].name, at: this.cellName(q) } : (S.rsrc || {})[q] ? { em: S.rsrc[q].emoji, logo: '', logoDisp: 'none', name: S.rsrc[q].name, at: this.cellName(q) } : null).filter(Boolean);
     return {
@@ -2187,8 +2192,159 @@ export default class Component extends DCLogic {
       ins, outs, insNone: ins.length ? 'none' : 'inline', outsNone: outs.length ? 'none' : 'inline',
       mon, live: it ? '원본 ' + o.node + ' · ' + o.app + ' 목록과 이어져 있다' : '원본 항목을 찾지 못했다',
       nb, nbNone: nb.length === 0, nbLabel: nb.length ? '이웃 ' + nb.length + ' — 입출력 후보' : '이웃한 노드 · 자원 없음',
-      remove: () => this.rsrcRemove(k), focus: () => this.setState({ sel: k })
+      ip: this.ioPanel(k, lb), remove: () => this.rsrcRemove(k), focus: () => this.setState({ sel: k })
     };
+  }
+
+  // ───── 입출력 설정 (UP-25 · 설계 §6 최소판) ─────
+  // 연결(links) 한 줄의 `io`를 읽고 쓴다. 모양은 모듈의 연결 io(src/model/link-io.js)와 같다 — kind · phase · reason · qos_profile ·
+  // compatibility_policy · endpoints{ 'src:<자원>' · 'dst:<자원>' } · pairs[{ key, phase }]. 적용 · 허가 · 상태 맞추기는 서비스가 같은 이름(linkApply · linkGrantSelf)으로 덮는다.
+  // 디자인에서는 아래 예시 구현이 돈다 — 엔드포인트 · 형식 · QoS는 IOEPS 표, 허가는 state.ioGrants, 적용은 타이머로 requested → active.
+  ioDemo() { return true; }   // 상태 미리보기 선택 칸을 보일지 — 서비스 · 모듈 판은 false
+  IOEPS(res) {   // res = 자원 칸의 자원 { app, id, node, name } — 예시는 모든 자원이 같은 여섯 엔드포인트. 서비스 · 모듈은 그 자원의 실제 엔드포인트로 덮는다(schema · qos 를 모르면 비운다)
+    const all = ['realtime_latest', 'realtime_ordered', 'reliable_ordered', 'bulk_resumable'];
+    return [
+      { id: 'frames', dir: 'source', inter: 'stream', schema: 'terra.video.frame@1', qos: all.slice(0, 3), resumable: false },
+      { id: 'snapshot', dir: 'source', inter: 'request', schema: 'terra.image.jpeg@1', qos: ['reliable_ordered', 'bulk_resumable'], resumable: true },
+      { id: 'stats', dir: 'source', inter: 'stream', schema: 'terra.metrics@1', qos: ['realtime_latest'], resumable: false },
+      { id: 'sink', dir: 'sink', inter: 'stream', schema: 'terra.video.frame@1', qos: all.slice(0, 3), max: 1 },
+      { id: 'ctl', dir: 'sink', inter: 'command', schema: 'terra.control@1', qos: ['reliable_ordered'] },
+      { id: 'log', dir: 'sink', inter: 'stream', schema: 'terra.metrics@2', qos: ['realtime_latest'] }
+    ];
+  }
+  ioQosText() { return { realtime_latest: '최신만 — 늦으면 버린다', realtime_ordered: '순서 지킴 — 실시간', reliable_ordered: '신뢰 · 순서 — 잃지 않는다 (이어서 만들 수 있는 자원만)', bulk_resumable: '대용량 — 끊겨도 이어받는다' }; }
+  ioPhaseText() { return {
+    draft: ['설정 전', '#9aa1ab', 'rgba(255,255,255,0.08)'], invalid: ['맞지 않는다', '#ff6b81', 'rgba(255,107,129,0.14)'], 'needs-grant': ['허가 필요', '#f5b83d', 'rgba(245,184,61,0.14)'],
+    binding: ['연결 중', '#7aa7ff', 'rgba(122,167,255,0.14)'], active: ['흐르는 중', '#3ecf8e', 'rgba(62,207,142,0.14)'], degraded: ['저하', '#f5b83d', 'rgba(245,184,61,0.14)'],
+    failed: ['실패 · 다시 시도 중', '#ff6b81', 'rgba(255,107,129,0.14)'], denied: ['거절', '#ff6b81', 'rgba(255,107,129,0.14)'], closed: ['닫혔다', '#9aa1ab', 'rgba(255,255,255,0.08)'],
+    lost: ['서버에 없다', '#ff6b81', 'rgba(255,107,129,0.14)'], shared: ['공유됨', '#3ecf8e', 'rgba(62,207,142,0.14)'], 'share-expired': ['공유 기한 끝', '#f5b83d', 'rgba(245,184,61,0.14)'] }; }
+  // 연결 한 줄의 종류 — 끝 둘이 SVI 자원이면 바인딩, 도착이 노드면 공유, 그 밖은 화면 전용 (모듈의 classifyLink 와 같은 규칙)
+  ioKindOf(l) {
+    const R = this.state.rsrc || {}, N = this.state.nodes || {}, a = R[l.from], b = R[l.to], nb = N[l.to] || (this.state.self === l.to), na = N[l.from] || (this.state.self === l.from);
+    if (a && a.app === 'svi') return b && b.app === 'svi' ? 'binding' : nb ? 'share' : (!b && !nb) ? 'binding' : 'screen';
+    if (na) return b && b.app === 'svi' ? 'binding' : nb ? 'share' : 'screen';
+    return 'screen';
+  }
+  ioRead(l) {
+    const io = l && l.io;
+    if (io && io.kind) return io;
+    const kind = this.ioKindOf(l);
+    return { v: 1, kind, qos_profile: '', compatibility_policy: 'exact', direction: 'forward', pairs: kind === 'screen' ? [] : [{ key: l.id, phase: 'draft' }], phase: kind === 'screen' ? undefined : 'draft' };
+  }
+  ioPut(id, patch) {
+    this.setState({ links: (this.state.links || []).map((l) => (l.id === id ? Object.assign({}, l, { io: Object.assign({}, this.ioRead(l), patch) }) : l)) });
+  }
+  ioRow(l) {
+    const io = this.ioRead(l), P = this.ioPhaseText(), open = this.state.ioOpen === l.id;
+    const ph = io.kind === 'screen' ? ['화면 전용', '#9aa1ab'] : io.kind === 'share' ? ['공유', '#7aa7ff'] : [(P[io.phase] || P.draft)[0], (P[io.phase] || P.draft)[1]];
+    return { ph: ph[0], phC: ph[1], cfgBd: open ? 'rgba(237,233,225,0.6)' : 'rgba(255,255,255,0.10)', cfgBg: open ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.04)',
+      cfg: () => this.setState({ ioOpen: open ? null : l.id }) };
+  }
+  ioEnds(l) {
+    const R = this.state.rsrc || {}, a = R[l.from], b = R[l.to];
+    return { a, b, src: a && a.app === 'svi' ? a : null, dst: b && b.app === 'svi' ? b : null };
+  }
+  // 형식 판정 — exact · compatible(같은 major) · transform_required · incompatible
+  ioCompat(sEp, dEp) {
+    if (!sEp || !dEp) return { v: 'pick', t: '엔드포인트를 고르면 판정한다', c: '#9aa1ab', bg: 'rgba(255,255,255,0.08)' };
+    const sx = sEp.schema, dx = dEp.schema;
+    if (!sx || !dx) return { v: 'unknown', t: '형식을 알 수 없다 — Master가 판정한다', c: '#9aa1ab', bg: 'rgba(255,255,255,0.08)' };
+    if (sx === dx) return { v: 'exact', t: '정확히 같다', c: '#3ecf8e', bg: 'rgba(62,207,142,0.14)' };
+    const m = (x) => /^(.+)@(\d+)$/.exec(x) || [x, x, '0'], a = m(sx), b = m(dx);
+    if (a[1] === b[1] && a[2] === b[2]) return { v: 'compatible', t: '호환', c: '#7aa7ff', bg: 'rgba(122,167,255,0.14)' };
+    if (a[1] === 'terra.video.frame' && b[1] === 'terra.image.jpeg') return { v: 'transform_required', t: '변환 필요', c: '#f5b83d', bg: 'rgba(245,184,61,0.14)' };
+    return { v: 'incompatible', t: a[1] === b[1] ? 'major 버전이 다르다' : '맞지 않는다', c: '#ff6b81', bg: 'rgba(255,107,129,0.14)' };
+  }
+  ioPanel(k, lb) {
+    const S = this.state, off = { open: false }, l = (S.links || []).find((x) => x.id === S.ioOpen);
+    if (!l || (l.from !== k && l.to !== k)) return off;
+    const io = this.ioRead(l), E = this.ioEnds(l), srcEps = this.IOEPS(E.src), dstEps = this.IOEPS(E.dst), demo = this.ioDemo();
+    const kindT = { binding: ['바인딩', '#7aa7ff', 'rgba(122,167,255,0.14)'], share: ['공유', '#3ecf8e', 'rgba(62,207,142,0.14)'], screen: ['화면 전용', '#9aa1ab', 'rgba(255,255,255,0.08)'] }[io.kind];
+    const chosen = (role, r) => (io.endpoints || {})[(role === 'source' ? 'src:' : 'dst:') + (r ? r.id : '')] || '';
+    const sSel = chosen('source', E.src), dSel = chosen('target', E.dst);
+    const sEp = srcEps.find((e) => e.id === sSel), dEp = dstEps.find((e) => e.id === dSel);
+    const pick = (list, sel) => [{ v: '', t: '고른다', sel: !sel, dis: false }].concat(list.map((e) => ({ v: e.id, t: e.id + (e.inter ? ' · ' + e.inter : '') + (e.max ? ' · 최대 ' + e.max : ''), sel: e.id === sel, dis: false })));
+    // 두 칸을 잇달아 바꿔도 앞 것을 잃지 않게 지금 값에서 읽는다
+    const setEp = (role, r) => (e) => { const cur = this.ioRead((this.state.links || []).find((x) => x.id === l.id) || l), m = Object.assign({}, cur.endpoints), key = (role === 'source' ? 'src:' : 'dst:') + r.id; if (e.target.value) m[key] = e.target.value; else delete m[key]; this.ioPut(l.id, { endpoints: m, phase: 'draft', reason: '' }); };
+    const cm = this.ioCompat(sEp, dEp);
+    const both = sEp && dEp, known = both && sEp.qos && dEp.qos, common = known ? sEp.qos.filter((q) => dEp.qos.indexOf(q) >= 0) : [];
+    const qosT = this.ioQosText();
+    const qosOpts = [{ v: '', t: '자동 (Master가 정함)', sel: !io.qos_profile, dis: false }].concat(['realtime_latest', 'realtime_ordered', 'reliable_ordered', 'bulk_resumable'].map((q) => {
+      const inter = known ? common.indexOf(q) >= 0 : true, res = q !== 'reliable_ordered' || !sEp || sEp.resumable !== false;
+      return { v: q, t: q + (!inter ? ' — 한쪽이 못 낸다' : !res ? ' — 이어서 만들 수 없다' : ''), sel: io.qos_profile === q, dis: !(inter && res) };
+    }));
+    // 허가 — 내 bind.source(출발) · bind.target(도착). 예시: state.ioGrants
+    const G = S.ioGrants || {}, gS = E.src && G[E.src.id], gD = E.dst && G[E.dst.id], granted = !!(gS && gD);
+    const grantTxt = io.kind !== 'binding' ? '' : granted ? '있다 · ' + gS : !gS && !gD ? '없다 — 보내는 쪽 bind.source · 받는 쪽 bind.target이 모두 필요하다' : '절반만 있다 — ' + (gS ? '받는 쪽 bind.target이 없다' : '보내는 쪽 bind.source가 없다');
+    const ttls = [['1h', '1시간'], ['1d', '1일'], ['7d', '7일'], ['30d', '30일 (기본)'], ['0', '기한 없음']];
+    const can = this.hbCan('io', (E.src || E.dst || {}).node || this.hbNode()), force = S.ioForce || '';
+    let lock = '';
+    if (force === 'unreach') lock = '쓸 수 없다 · Master에 닿지 않는다 — 앱 토큰으로 Master op를 부르는 길(PF-1)이 열려야 한다. 아래 상태는 마지막으로 본 값이다.';
+    else if (io.kind === 'binding' && !can.ok) lock = can.why + ' — 이 연결은 볼 수만 있다';
+    const dis = !!lock;
+    // 표시용 상태 — 미리보기가 있으면 그것
+    const P = this.ioPhaseText(), phase = force && P[force] ? force : (io.phase || 'draft');
+    const reasons = { invalid: 'schema_incompatible: ' + (sEp ? sEp.schema : 'terra.video.frame@1') + ' → ' + (dEp ? dEp.schema : 'terra.metrics@1'), 'needs-grant': 'missing_bind_grant', failed: 'prepare_failed', denied: 'flow_not_allowed: target node ' + ((E.dst || {}).node || 'n2'),
+      degraded: 'participant_disconnected', closed: 'consumer_requested', lost: 'source_resource_not_found' };
+    const reasonText = { invalid: '형식이 맞지 않는다 — ' + reasons.invalid.split(': ')[1], 'needs-grant': '허가가 없다 — 보내는 쪽 bind.source · 받는 쪽 bind.target이 모두 있어야 한다', failed: '준비에 실패했다 — Master가 다시 시도한다',
+      denied: '이 자원이 내보낼 수 있는 노드가 아니다 — 노드 허가(흐름 허용 목록)에 없다. 자원 주인에게 허용을 요청한다', degraded: '한쪽 노드가 끊겼다 — 다시 이어지면 돌아온다', closed: '내가 끊었다', lost: '보내는 쪽 자원을 찾을 수 없다(내 것이 아니거나 사라졌다)' };
+    const reason = force ? (reasonText[force] || '') : (io.reason || '');
+    const steps = { binding: 'requested → validating → preparing → active' };
+    const flowing = phase === 'active';
+    const facts = flowing || phase === 'degraded' ? 'QoS ' + (io.qos_profile || (common[0] || 'realtime_latest')) + ' (서버가 정함) · 형식 ' + ((sEp && sEp.schema) || 'terra.video.frame@1') + ' · 경로 직접 · 방금 확인' : '';
+    const needSel = io.kind === 'binding' && !(sSel && dSel);
+    const applyDis = dis || io.kind !== 'binding' || needSel || phase === 'binding';
+    const label = phase === 'active' ? '다시 적용' : phase === 'failed' || phase === 'lost' || phase === 'closed' ? '다시 만들기' : '연결 적용';
+    return {
+      open: true, head: lb(l.from) + ' → ' + lb(l.to), kind: kindT[0], kindC: kindT[1], kindBg: kindT[2], len: (l.path || []).length,
+      lock, lockDisp: lock ? 'block' : 'none', screenDisp: io.kind === 'screen' ? 'block' : 'none', shareDisp: io.kind === 'share' ? 'block' : 'none', bodyDisp: io.kind === 'binding' ? 'flex' : 'none',
+      srcName: E.src ? E.src.name : '—', dstName: E.dst ? E.dst.name : '합류 · 노드', dis, disOp: dis ? 0.45 : 1,
+      srcEps: pick(srcEps.filter((e) => e.dir === 'source' || e.dir === 'duplex'), sSel), dstEps: pick(dstEps.filter((e) => e.dir === 'sink' || e.dir === 'duplex'), dSel),
+      setSrc: E.src ? setEp('source', E.src) : () => {}, setDst: E.dst ? setEp('target', E.dst) : () => {},
+      srcSchema: sEp ? sEp.schema || '모름' : '—', dstSchema: dEp ? dEp.schema || '모름' : '—', compat: cm.t, compatC: cm.c, compatBg: cm.bg,
+      policies: [['exact', '정확히 같을 때만'], ['compatible', '호환이면 허용']].map(([v, t]) => ({ v, t, sel: (io.compatibility_policy || 'exact') === v })),
+      setPolicy: (e) => this.ioPut(l.id, { compatibility_policy: e.target.value, phase: 'draft', reason: '' }),
+      qosOpts, qosNote: io.qos_profile ? qosT[io.qos_profile] : known ? '두 끝이 함께 내는 것: ' + (common.length ? common.join(' · ') : '없음 — 고를 수 없다') : both ? '이 엔드포인트의 QoS 목록을 알 수 없다 — 자동이면 Master가 정한다' : '엔드포인트를 고르면 함께 내는 QoS만 보인다',
+      setQos: (e) => this.ioPut(l.id, { qos_profile: e.target.value, phase: 'draft', reason: '' }),
+      grant: grantTxt, grantC: granted ? '#3ecf8e' : '#f5b83d', grantAskDisp: io.kind === 'binding' && !granted && E.src && E.dst ? 'flex' : 'none',
+      ttls: ttls.map(([v, t]) => ({ v, t, sel: (S.ioTtl || '30d') === v })), setTtl: (e) => this.setState({ ioTtl: e.target.value }),
+      askHint: '내가 소유자일 때만 — 아니면 자원 주인에게 요청한다',
+      grantSelf: () => { if (!dis) this.linkGrantSelf(l.id, { ttlSeconds: this.ioTtlSec(S.ioTtl || '30d') }); },
+      ph: P[phase][0], phC: P[phase][1], phBg: P[phase][2], phNote: phase === 'binding' ? steps.binding : io.checked_at ? '확인 ' + io.checked_at : '',
+      reason, reasonDisp: reason ? 'block' : 'none', facts, factsDisp: facts ? 'block' : 'none',
+      apply: () => { if (!applyDis) this.linkApply(l.id); }, applyDis, applyOp: applyDis ? 0.45 : 1, applyLabel: label,
+      applyNote: needSel ? '엔드포인트를 둘 다 고른다' : '',
+      unbind: () => { if (phase === 'active' || phase === 'degraded' || phase === 'binding') this.ioPut(l.id, { phase: 'closed', reason: 'consumer_requested' }); },
+      unbindDis: dis || !(phase === 'active' || phase === 'degraded' || phase === 'binding'), unbindOp: dis || !(phase === 'active' || phase === 'degraded' || phase === 'binding') ? 0.45 : 1,
+      demoDisp: demo ? 'flex' : 'none', setForce: (e) => this.setState({ ioForce: e.target.value }),
+      forces: [['', '실제 상태'], ['invalid', '맞지 않는다'], ['needs-grant', '허가 필요'], ['binding', '연결 중'], ['active', '흐르는 중'], ['degraded', '저하'], ['failed', '실패'], ['denied', '거절'], ['closed', '닫혔다'], ['lost', '서버에 없다'], ['unreach', 'Master에 닿지 않음']].map(([v, t]) => ({ v, t, sel: force === v })),
+      close: () => this.setState({ ioOpen: null })
+    };
+  }
+  ioTtlSec(v) { return { '1h': 3600, '1d': 86400, '7d': 7 * 86400, '30d': 30 * 86400, '0': 0 }[v]; }
+  // [연결 적용] — 예시 구현: 고른 것을 미리 검사하고 → 허가를 보고 → requested … active. 서비스는 같은 이름으로 Master를 부른다(src/api/link-wire.js)
+  linkApply(id) {
+    const l = (this.state.links || []).find((x) => x.id === id); if (!l) return Promise.resolve(null);
+    const io = this.ioRead(l), E = this.ioEnds(l), ch = io.endpoints || {};
+    const sEp = this.IOEPS(E.src).find((e) => e.id === ch['src:' + (E.src || {}).id]), dEp = this.IOEPS(E.dst).find((e) => e.id === ch['dst:' + (E.dst || {}).id]);
+    const cm = this.ioCompat(sEp, dEp), pol = io.compatibility_policy || 'exact';
+    const bad = cm.v === 'incompatible' || cm.v === 'transform_required' || (pol === 'exact' && cm.v === 'compatible');
+    const stamp = () => new Date().toTimeString().slice(0, 5);
+    if (bad) { this.ioPut(id, { phase: 'invalid', reason: 'schema_incompatible: ' + sEp.schema + ' → ' + dEp.schema, checked_at: stamp() }); return Promise.resolve({ applied: false }); }
+    const G = this.state.ioGrants || {};
+    if (!(G[E.src.id] && G[E.dst.id])) { this.ioPut(id, { phase: 'needs-grant', reason: 'missing_bind_grant', checked_at: stamp() }); return Promise.resolve({ applied: false }); }
+    this.ioPut(id, { phase: 'binding', reason: '' });
+    return new Promise((res) => setTimeout(() => { this.ioPut(id, { phase: 'active', reason: '', checked_at: stamp() }); res({ applied: true }); }, 1100));
+  }
+  // [나에게 허가 주기] — 예시 구현: 두 끝의 허가를 만들고 다시 적용한다
+  linkGrantSelf(id, o) {
+    const l = (this.state.links || []).find((x) => x.id === id); if (!l) return Promise.resolve(null);
+    const E = this.ioEnds(l), sec = o && Number.isFinite(o.ttlSeconds) ? o.ttlSeconds : 30 * 86400;
+    const until = sec === 0 ? '기한 없음' : sec >= 86400 ? Math.round(sec / 86400) + '일 남음' : Math.round(sec / 3600) + '시간 남음';
+    const G = Object.assign({}, this.state.ioGrants); G[E.src.id] = until; G[E.dst.id] = until;
+    this.setState({ ioGrants: G });
+    this.hbSay('허가를 만들었다 — ' + E.src.name + ' bind.source · ' + E.dst.name + ' bind.target (' + until + ')', '#3ecf8e');
+    return this.linkApply(id);
   }
   nbKeys(k) {
     const [c, r] = this.ck(k), odd = (c % 2 + 2) % 2 === 1;
@@ -2257,6 +2413,7 @@ export default class Component extends DCLogic {
       { id: 'tr-41-1', dir: 'push', name: 'firmware.bin', total: 48, off: 0.62, state: 'transferring' },
       { id: 'tr-41-2', dir: 'pull', name: 'backup.tar', total: 1200, off: 0.18, state: 'transferring' },
       { id: 'tr-41-3', dir: 'push', name: 'logs.zip', total: 96, off: 0.4, state: 'failed', reason: 'CHUNK_OUT_OF_ORDER — 40%부터 이어 보낼 수 있다' },
+      { id: 'tr-41-4', dir: 'push', name: 'backup.tar', total: 310, off: 0.31, state: 'stalled', reason: '멈췄다 · 31%에서 보내던 화면이 닫혔다 — 이어서: 같은 파일을 고르면 거기서부터' },
       { id: 'tr-41-4', dir: 'pull', name: 'notes.md', total: 0.01, off: 1, state: 'completed' }
     ];
     if (app === 'tunnel') return [
@@ -2662,7 +2819,7 @@ export default class Component extends DCLogic {
       case 'decl': return F(['선언', '적용', '퇴역'], it.state === 'retired' ? 2 : it.state === 'applied' ? 1 : 0, it.state === 'applied' ? 'ok' : it.state === 'retired' ? 'off' : it.state === 'shadowed' ? 'wait' : 'bad');
       case 'grant': return it.type === 'bind' ? F(['바인딩', '흐르는 중'], it.state === 'active' ? 1 : 0, it.state === 'active' ? 'ok' : 'bad') : F(['허가', '유효', '만료'], it.alive ? 1 : 2, it.alive ? 'ok' : 'off');
       case 'folder': return F([it.dir ? '폴더' : '파일', '공유됨'], 1, 'ok');
-      case 'xfer': { const i = ['prepared', 'transferring', 'verifying', 'completed'].indexOf(it.state); return F(['준비', '보내는 중', '검사', '끝남'], i < 0 ? 1 : i, it.state === 'failed' ? 'bad' : it.state === 'aborted' ? 'off' : it.state === 'completed' ? 'ok' : 'run'); }
+      case 'xfer': { const i = ['prepared', 'transferring', 'verifying', 'completed'].indexOf(it.state); return F(['준비', '보내는 중', '검사', '끝남'], i < 0 ? 1 : i, it.state === 'failed' ? 'bad' : it.state === 'stalled' ? 'wait' : it.state === 'aborted' ? 'off' : it.state === 'completed' ? 'ok' : 'run'); }
       case 'tunnel': return it.type === 'decl' ? F(['선언', '늘 열기'], 1, 'ok') : F(['대기', '연결', '닫는 중'], it.state === 'draining' ? 2 : it.state === 'active' ? 1 : 0, it.state === 'failed' ? 'bad' : it.state === 'draining' ? 'off' : 'ok');
       case 'wg': return F(['본 적 없음', '오래됨', '정상'], it.health === 'healthy' ? 2 : it.health === 'stale' ? 1 : 0, it.health === 'healthy' ? 'ok' : it.health === 'stale' ? 'wait' : 'off');
       case 'job': { const i = ['queued', 'sent', 'running'].indexOf(it.state); return F(['대기', '보냄', '실행', '끝'], it.state === 'success' || it.state === 'failed' ? 3 : Math.max(0, i), it.state === 'failed' ? 'bad' : it.state === 'success' ? 'ok' : 'run'); }
@@ -3072,8 +3229,8 @@ export default class Component extends DCLogic {
       const sz = (v) => v >= 1000 ? (v / 1000).toFixed(1) + ' GB' : v >= 1 ? Math.round(v) + ' MB' : Math.round(v * 1000) + ' KB';
       cards = list.map((d, i) => {
         const need = [d.dir === 'push' ? 'file.write' : 'file.read'];
-        const st = d.state === 'transferring' ? chip(Math.round(d.off * 100) + '%', 'run') : d.state === 'verifying' ? chip('검사 중', 'run') : d.state === 'completed' ? chip('끝남', 'end') : d.state === 'aborted' ? chip('중단됨', 'off') : chip('어긋남', 'bad');
-        const acts = d.state === 'transferring' ? [B('중단', 'abort', d.id, false, need)] : d.state === 'failed' ? [B('이어서', 'resume', d.id, true, need), B('중단', 'abort', d.id, false, need)]
+        const st = d.state === 'transferring' ? chip(Math.round(d.off * 100) + '%', 'run') : d.state === 'verifying' ? chip('검사 중', 'run') : d.state === 'completed' ? chip('끝남', 'end') : d.state === 'aborted' ? chip('중단됨', 'off') : d.state === 'stalled' ? chip('멈춤', 'wait') : chip('어긋남', 'bad');
+        const acts = d.state === 'transferring' ? [B('중단', 'abort', d.id, false, need)] : d.state === 'failed' || d.state === 'stalled' ? [B('이어서', 'resume', d.id, true, need), B('중단', 'abort', d.id, false, need)]
           : d.state === 'completed' || d.state === 'aborted' ? [B('치우기', 'clear', d.id, false, [])] : [];
         return card(Object.assign({ id: d.id, name: d.name, sub: (d.dir === 'push' ? '↑ 올리기' : '↓ 내려받기') + ' · ' + sz(d.total), raw: d.id, fresh: d.fresh, acts, icon: IC.app.xfer,
           prog: d.state === 'completed' ? null : d.off, meta: d.reason || (d.state === 'completed' ? '완료된 전송은 기록이 남지 않는다' : ''), op: d.state === 'completed' ? 0.7 : 1, bstyle: d.state === 'completed' ? 'dashed' : 'solid' }, st), i);
@@ -3102,7 +3259,7 @@ export default class Component extends DCLogic {
       const ST = { queued: ['대기', 'wait'], sent: ['보냄', 'run'], running: ['실행 중', 'run'], success: ['성공', 'ok'], failed: ['실패', 'bad'] };
       cards = list.map((d, i) => {
         const live = d.state === 'running' || d.state === 'queued' || d.state === 'sent';
-        const acts = live ? [B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, ['node.read']), B('다시', 'rerun', d.id, true, EX, deleg)];
+        const OUT = loc ? EX : ['node.read'], acts = live ? [B('출력', 'out', d.id, false, OUT), B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, OUT), B(S.hbArm === d.id ? '정말 다시' : '다시', 'rerun', d.id, true, EX, deleg)];
         const mm = Math.floor((d.t || 0) / 60), ss = Math.floor((d.t || 0) % 60);
         return card(Object.assign({ id: d.id, name: d.cmd, sub: d.id, raw: d.cmd, icon: IC.app.job, fresh: d.fresh, acts,
           meta: d.state === 'running' ? mm + ':' + String(ss).padStart(2, '0') + ' 경과' : d.code != null ? 'exit ' + d.code : d.out === 'canceled' ? '취소됨' : '' }, chip(ST[d.state][0], ST[d.state][1])), i);
