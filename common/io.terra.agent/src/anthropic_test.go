@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
+	agentcore "github.com/StellaxiaLab/terra-agent"
 )
 
 // The adapter against a stand-in Messages API: what it sends (the key in the

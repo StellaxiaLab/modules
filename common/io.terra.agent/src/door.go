@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
+	agentcore "github.com/StellaxiaLab/terra-agent"
 	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
 	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
 )

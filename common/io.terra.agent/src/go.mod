@@ -10,13 +10,9 @@ replace github.com/terra-project/terra/products/common/packages/terra-protocol =
 
 replace github.com/terra-project/terra/products/common/packages/terra-svi => ../../../../products/common/packages/terra-svi
 
-replace github.com/terra-project/terra/products/common/packages/terra-agent-core => ../../../../products/common/packages/terra-agent-core
-
-replace github.com/terra-project/terra/products/common/packages/terra-api-contract => ../../../../products/common/packages/terra-api-contract
-
 require (
+	github.com/StellaxiaLab/terra-agent v0.1.0
 	github.com/anthropics/anthropic-sdk-go v1.71.0
-	github.com/terra-project/terra/products/common/packages/terra-agent-core v0.0.0
 	github.com/terra-project/terra/products/common/packages/terra-module-runtime v0.0.0
 	github.com/terra-project/terra/products/common/packages/terra-module-sdk v0.0.0
 )
@@ -29,7 +25,6 @@ require (
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.1 // indirect
-	github.com/terra-project/terra/products/common/packages/terra-api-contract v0.0.0 // indirect
 	github.com/terra-project/terra/products/common/packages/terra-svi v0.0.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

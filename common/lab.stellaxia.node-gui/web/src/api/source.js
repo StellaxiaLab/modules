@@ -5,7 +5,7 @@
 
 import { HELM_APPS, HELM_CRUD, GUI_APPS, scanLine, fileBinding, cfgForm } from './operations.js';
 import { ADAPT, withGui } from './adapters.js';
-import { resultText } from './client.js';
+import { resultText, reaches, missingReason } from './client.js';
 import { Sha256, sha256Blob, toB64, fromB64 } from './sha256.js';
 
 /**
@@ -123,7 +123,8 @@ export class LiveSource {
   relays() { return !!(this.client.canRelay && this.client.canRelay()); }
 
   /** Daemon 쪽 대응(local)을 쓰나 — 이 노드, 또는 노드 주소 호출로 그 Daemon 에 닿는 다른 노드.
-   *  앱 토큰은 Master 에 닿지 않는다(구현해야 할 것 PF-1) — 다른 노드의 작업도 그 Daemon 의 작업 목록으로 본다 */
+   *  앱 토큰은 Master 의 읽기에만 닿는다(Terra ADR-GW-003 1차) — 명령 보내기 · 취소는 Master 쓰기라, 다른 노드의 작업도
+   *  그 Daemon 의 작업 목록으로 본다 */
   daemonView(node) { return node === this.localNode || this.relays(); }
 
   /** 그 노드에서 볼 앱 대응표 */
@@ -257,7 +258,7 @@ export class LiveSource {
     }
     if (spec.where === 'T' && this.client.masterBlocked) return why('master-delegation');
     const cat = this.client.catalog;
-    if (cat && cat.size > 0 && !this.client.has(spec.op)) return why(spec.where === 'T' ? 'master-delegation' : 'not-in-catalog');
+    if (cat && cat.size > 0 && !reaches(this.client, spec.op)) return why(spec.where !== 'T' ? 'not-in-catalog' : this.client.delegated ? missingReason(this.client, spec.op) : 'master-delegation');
     return null;
   }
 

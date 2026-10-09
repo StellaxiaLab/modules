@@ -1,7 +1,7 @@
 // MD-38 — 모듈이 없는 노드에서 그 모듈의 operation 을 부르지 않는다 (src/api/module-gate.js)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { modulesResult, installedModuleIds, invokeIfModule, MODULE_OF } from '../src/api/module-gate.js';
+import { modulesResult, forgetModules, installedModuleIds, invokeIfModule, MODULE_OF } from '../src/api/module-gate.js';
 import { resultText } from '../src/api/client.js';
 
 function fakeClient(modules) {
@@ -54,4 +54,14 @@ test('modules.get 을 못 받으면 막지 않는다 — 부르고 서버가 판
 
 test('LOCAL_API_UNAVAILABLE 503 은 모듈이 시작하지 않았거나 없다고 말한다', () => {
   assert.match(resultText({ kind: 'down', status: 503, reason: 'LOCAL_API_UNAVAILABLE' }), /시작하지 않았거나 설치되어 있지 않다/);
+});
+
+test('모듈이 바뀌었다는 신호 뒤에는 캐시를 버리고 새로 본다', async () => {
+  const c = fakeClient(['io.terra.file']);
+  await modulesResult(c);
+  await modulesResult(c);
+  assert.equal(c.calls.filter((x) => x === 'terra.daemon.modules.get').length, 1);
+  forgetModules(c);
+  await modulesResult(c);
+  assert.equal(c.calls.filter((x) => x === 'terra.daemon.modules.get').length, 2);
 });

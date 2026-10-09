@@ -9,7 +9,7 @@
 // SVI 는 Master op 다 — 앱 토큰으로는 svi.resources.get · svi.handles.get 을 받지 못해 열린 핸들이 없고, 그러면 아무 구독도 열지 않는다(PF-1).
 
 import { openEvents } from './events.js';
-import { resultText } from './client.js';
+import { resultText, reaches } from './client.js';
 import { StreamView, TERMINAL } from './svi-stream.js';
 import { HELM_APPS } from './operations.js';
 
@@ -88,7 +88,7 @@ export function wireSviStreams(screen, source, reload) {
     } });
     // 버린 프레임 · 쫓겨난 구독자는 핸들 보기에서 센다 (2초마다)
     const poll = async () => { const r = await client.invoke(HANDLE_GET, { handle_id: hid }).catch(() => null); if (r && r.kind === 'ok') { view.counters(r.data && (r.data.handle || r.data)); dirty = true; schedule(); } };
-    if (client.has(HANDLE_GET)) { poll(); s.poll = setInterval(poll, 2000); }
+    if (reaches(client, HANDLE_GET)) { poll(); s.poll = setInterval(poll, 2000); }
     subs.set(hid, s);
   };
   // 끝난 흐름: 구독을 끊되 흐름 칸에는 마지막 모습을 남긴다 (끝난 이유와 함께)

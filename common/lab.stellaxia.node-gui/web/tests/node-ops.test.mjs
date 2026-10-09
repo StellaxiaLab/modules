@@ -217,4 +217,7 @@ test('노드 관리(이름 · 부모 바꾸기 · 지우기) — 앱 토큰은 M
   const fine = { masterBlocked: false, catalog: new Map([['terra.master.nodes.by-node-id.patch', {}]]), has: () => true };
   assert.equal(masterWhy(fine, 'terra.master.nodes.by-node-id.patch'), '');
   assert.equal(masterWhy({ masterBlocked: false, catalog: new Map(), has: () => true }, 'x'), '', '카탈로그를 못 받았으면 막지 않는다');
+  // leaf 의 앱 토큰(Terra ADR-GW-003) — 이름 바꾸기는 쓰기라 위임 입구가 열지 않았다
+  const leaf = { masterBlocked: false, delegated: true, catalog: new Map([['a', {}]]), has: () => false, reaches: () => false };
+  assert.match(masterWhy(leaf, 'terra.master.nodes.by-node-id.patch'), /앱 토큰에 아직 열지 않았다.* — tree 쪽/);
 });

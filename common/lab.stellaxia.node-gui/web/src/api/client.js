@@ -13,8 +13,13 @@
  *  | { kind: 'unauthenticated' | 'forbidden' | 'unsupported' | 'down' | 'unreachable' | 'unavailable' | 'error', status?: number, reason?: string, data?: any }} Result
  */
 
-/** frame 토큰으로는 Master에 닿지 않는다 — 게이트웨이가 위임 자격의 Bearer를 Master로 넘기지 않는다(설계상 경계) */
+import { MASTER_DELEGATED } from './master-delegated.js';
+
+/** Master op. frame 토큰(앱 스코프 토큰)은 Bearer 로 Master 에 가지 않는다 — Terra ADR-GW-003 이후에는 Gateway 가
+ *  위임 입구(세션 id + 좁힌 권한)로 보내고, Master 는 그 입구에 연 op(1차: 읽기 28)만 받는다 */
 const MASTER_PREFIX = 'terra.master.';
+/** Gateway 의 원격 코어 패스스루 — /api/upstream/v1/… → <Master>/api/v1/… (leaf 는 enroll 한 tree 의 Master) */
+const UPSTREAM_PREFIX = '/api/upstream';
 
 /** 노드 주소 호출 (Terra B-1 · ADR-GW-001) — 다른 노드의 operation 을 Master 가 중계하고, 대상 Daemon 이 자기 계약으로 다시 판정한다.
  *    POST /api/v1/nodes/{node_id}/operations/{id}/invoke  — 대상의 답(Daemon 봉투 · 202 포함)이 그대로 온다
@@ -38,6 +43,8 @@ export class TerraClient {
     this.delegated = !!opts.delegated;
     /** Master가 위임 자격을 거절한 뒤로는 부르지 않는다 — 부를 때마다 토큰 재발급 하나와 재시도 하나가 헛돈다 */
     this.masterBlocked = false;
+    /** 이 게이트웨이에 상위 Master 가 없다(/api/upstream 이 501) — 그 뒤로는 경로로 부르지 않는다 */
+    this.upstreamMissing = false;
     /** @type {Map<string, any>} */
     this.catalog = new Map();
     /** 노드 카탈로그 캐시 — node_id → { ok, ops: Map, at } · 받는 중이면 { p, at } */
@@ -58,6 +65,18 @@ export class TerraClient {
 
   /** 이 게이트웨이에 노드 주소 호출 길이 있나 */
   canRelay() { return this.has(RELAY_OP); }
+
+  /**
+   * 카탈로그에 없는 Master op 를 경로(/api/upstream)로 부를 수 있나 — leaf 게이트웨이의 카탈로그에는 terra.master.* 가 없다.
+   * 위임 자격(앱 토큰)이고 · 위임 입구가 연 op(master-delegated.js)이고 · 상위 Master 가 있을 때만
+   * @param {string} id
+   */
+  viaUpstream(id) {
+    return this.delegated && !this.masterBlocked && !this.upstreamMissing && id.startsWith(MASTER_PREFIX)
+      && !!MASTER_DELEGATED[id] && this.catalog.size > 0 && !this.catalog.has(id);
+  }
+  /** 이 op 를 부를 길이 있나 — 카탈로그에 있거나 경로로 부를 수 있다 */
+  reaches(id) { return this.has(id) || this.viaUpstream(id); }
 
   /** 카탈로그의 bindings('GET /api/modules/io.terra.file/v1/entries') → { method, path }. 없으면 fallback */
   binding(id, fallback) {
@@ -97,7 +116,8 @@ export class TerraClient {
     if (!id) return { kind: 'unavailable', reason: 'no-operation' };
     if (opts.node) return this.invokeAt(opts.node, id, input, opts);
     if (this.masterBlocked && id.startsWith(MASTER_PREFIX)) return { kind: 'unavailable', reason: 'master-delegation' };
-    if (!this.has(id)) return { kind: 'unavailable', reason: 'not-in-catalog' };
+    if (this.viaUpstream(id)) return this.invokeUpstream(id, input);
+    if (!this.has(id)) return { kind: 'unavailable', reason: missingReason(this, id) };
     let res;
     try {
       // 확인 신호는 보내지 않는다 — 게이트웨이에 그런 규약이 없다. 위험한 동작의 확인은 화면이 맡는다(두 번 누르기).
@@ -108,8 +128,32 @@ export class TerraClient {
     } catch (e) {
       return { kind: 'unreachable', reason: String(e) };
     }
-    const r = await toResult(res);
-    // frame 클라이언트는 401에 이미 한 번 재발급해 다시 보냈다. 그래도 401인 Master 호출은 토큰 만료가 아니다.
+    return this.masterAnswer(id, await toResult(res));
+  }
+
+  /**
+   * 카탈로그에 없는 Master op 를 경로로 — leaf 게이트웨이의 /api/upstream/v1/… (Terra ADR-GW-003 D3).
+   * 게이트웨이가 앱 토큰을 위임 입구로 보내고, 경로를 받을지는 Master 가 정한다(안 열린 경로는 403 DELEGATION_NOT_OPEN).
+   * 입력은 invoke 와 같은 평평한 객체 — `{name}` 자리를 채우고 GET 의 나머지는 query 다(fillRoute)
+   * @param {string} id @param {object} [input] @returns {Promise<Result>}
+   */
+  async invokeUpstream(id, input) {
+    const [method, path] = MASTER_DELEGATED[id];
+    const t = fillRoute(method, path, input || {});
+    if (t.missing) return { kind: 'error', reason: 'missing-path-param' };
+    const r = await this.request(method, UPSTREAM_PREFIX + t.path.replace(/^\/api/, ''), method === 'GET' || method === 'DELETE' ? undefined : t.body);
+    // 501 UPSTREAM_UNAVAILABLE — 이 게이트웨이에 상위 Master 가 없다(enroll 전 leaf). 다시 묻지 않는다
+    if (r.kind === 'unsupported') {
+      this.upstreamMissing = true;
+      return { kind: 'unavailable', status: r.status, reason: 'no-upstream', data: r.data };
+    }
+    return this.masterAnswer(id, r);
+  }
+
+  /** Master op 의 답을 위임 자격의 눈으로 다시 읽는다 — invoke · invokeUpstream 이 같이 쓴다 */
+  masterAnswer(id, r) {
+    // frame 클라이언트는 401에 이미 한 번 재발급해 다시 보냈다. 그래도 401인 Master 호출은 토큰 만료가 아니다
+    // (위임 입구가 없는 예전 Terra — 게이트웨이가 앱 토큰을 Master 로 넘기지 않는다).
     if (this.delegated && r.kind === 'unauthenticated' && id.startsWith(MASTER_PREFIX)) {
       this.masterBlocked = true;
       return { kind: 'unavailable', status: r.status, reason: 'master-delegation', data: r.data };
@@ -239,6 +283,24 @@ function errorCode(body) {
   return body.code || (typeof e === 'string' ? e : undefined) || body.message;
 }
 
+/**
+ * 그 op 를 부를 길이 있나 — 카탈로그에 있거나, leaf 에서 경로(/api/upstream)로 부를 수 있다(TerraClient.reaches).
+ * 시험의 가짜 클라이언트처럼 has 만 가진 것은 has 로 본다
+ * @param {{ has: (op: string) => boolean, reaches?: (op: string) => boolean } | null | undefined} client @param {string} op
+ */
+export const reaches = (client, op) => !!client && (typeof client.reaches === 'function' ? client.reaches(op) : client.has(op));
+
+/**
+ * 카탈로그에 없는 op 의 이유. 위임 자격(앱 토큰)의 Master op 는 — 위임 입구가 열지 않았거나(쓰기 · 관리 · 흐름),
+ * 상위 Master 가 없다. 그 밖은 이 게이트웨이에 없다
+ * @param {TerraClient} client @param {string} id
+ */
+export function missingReason(client, id) {
+  if (!id.startsWith(MASTER_PREFIX) || !client.delegated) return 'not-in-catalog';
+  if (client.upstreamMissing) return 'no-upstream';
+  return MASTER_DELEGATED[id] ? 'master-delegation' : 'DELEGATION_NOT_OPEN';
+}
+
 /** 이유 코드 → 사람이 읽는 말. 모르는 코드는 그대로 보인다(검색되는 이름이 낫다) */
 const REASON = {
   'remote-node': '이 노드의 게이트웨이에 노드 주소 호출이 없다 — 다른 노드의 자원은 그 노드의 화면에서',
@@ -260,6 +322,7 @@ const REASON = {
   NODE_NOT_FOUND: 'Master 가 그 노드를 모른다',
   OPERATION_NOT_REMOTE: '그 노드가 이 기능을 원격으로 열지 않았다',
   'master-delegation': 'Master를 거치는 기능은 이 화면에 아직 열리지 않았다',
+  'no-upstream': '이 노드의 게이트웨이에 상위 Master 가 없다 — 노드를 tree 에 등록한 뒤에 Master 를 본다',
   DELEGATION_NOT_OPEN: 'Master가 이 기능을 앱 토큰에 아직 열지 않았다 — 지금은 읽기만 열려 있다(Terra ADR-GW-003 1차)',
   'not-in-catalog': '이 노드의 게이트웨이에 없다',
   'no-module': '이 노드에 그 모듈이 설치되어 있지 않다',

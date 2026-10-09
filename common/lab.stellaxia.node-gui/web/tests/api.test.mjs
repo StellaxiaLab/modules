@@ -4,7 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { TerraClient, toResult, resultText, fillRoute, RELAY_OP, NODE_CATALOG_OP } from '../src/api/client.js';
+import { TerraClient, toResult, resultText, fillRoute, reaches, missingReason, RELAY_OP, NODE_CATALOG_OP } from '../src/api/client.js';
+import { MASTER_DELEGATED } from '../src/api/master-delegated.js';
 import { fileBinding } from '../src/api/operations.js';
 import { LiveSource, fillNode } from '../src/api/source.js';
 import { frameRole } from '../src/api/frame-boot.js';
@@ -227,4 +228,108 @@ test('보드 링크에서 페이지 이름을 꺼낸다', () => {
   assert.equal(pageOf('http://app-x.localhost:8787/api/v1/gui/apps/x/files/node.html'), 'node.html');
   assert.equal(pageOf('https://example.com/'), null);
   assert.equal(pageOf(''), null);
+});
+
+// ── leaf 화면의 Master (Terra ADR-GW-003 D3) ─────────────────────────────────────────────
+// leaf 게이트웨이의 카탈로그에는 terra.master.* 가 없다. 위임 입구가 연 op 는 경로(/api/upstream)로 부른다.
+const leafCatalog = () => new Map([['terra.daemon.node.get', {}]]);
+
+test('leaf — 위임 입구가 연 Master 읽기는 카탈로그에 없어도 /api/upstream 경로로 부른다', async () => {
+  const f = fakeFetch(() => json(200, { ok: true, data: { resources: [{ resource_id: 'r1' }] } }));
+  const client = new TerraClient('', { fetch: f, delegated: true });
+  client.catalog = leafCatalog();
+  assert.equal(client.reaches('terra.master.svi.resources.get'), true);
+  const r = await client.invoke('terra.master.svi.resources.get', { node_id: 'node_a', limit: 100 });
+  assert.equal(r.kind, 'ok');
+  assert.equal(f.calls[0].url, '/api/upstream/v1/svi/resources?node_id=node_a&limit=100');
+  assert.equal(f.calls[0].init.method, 'GET');
+  assert.equal(f.calls[0].init.body, undefined, 'GET 은 본문을 싣지 않는다');
+  // 경로 자리는 채운다
+  await client.invoke('terra.master.svi.handles.by-handle-id.get', { handle_id: 'h/1' });
+  assert.equal(f.calls[1].url, '/api/upstream/v1/svi/handles/h%2F1');
+});
+
+test('leaf — 위임 입구가 열지 않은 Master op(쓰기)는 부르지 않고 DELEGATION_NOT_OPEN 이다', async () => {
+  const f = fakeFetch(() => json(200, {}));
+  const client = new TerraClient('', { fetch: f, delegated: true });
+  client.catalog = leafCatalog();
+  assert.equal(client.reaches('terra.master.svi.grants.post'), false);
+  const r = await client.invoke('terra.master.svi.grants.post', { resource_id: 'r1' });
+  assert.deepEqual([r.kind, r.reason], ['unavailable', 'DELEGATION_NOT_OPEN']);
+  assert.equal(f.calls.length, 0);
+});
+
+test('leaf — 상위 Master 가 없는 게이트웨이(501)면 그 뒤로는 경로로 부르지 않는다', async () => {
+  const f = fakeFetch(() => json(501, { error: { code: 'UPSTREAM_UNAVAILABLE', message: '이 Gateway에는 상위 Master가 구성되어 있지 않습니다' } }));
+  const client = new TerraClient('', { fetch: f, delegated: true });
+  client.catalog = leafCatalog();
+  const r = await client.invoke('terra.master.nodes.get', {});
+  assert.deepEqual([r.kind, r.reason], ['unavailable', 'no-upstream']);
+  assert.match(resultText(r), /상위 Master 가 없다/);
+  const again = await client.invoke('terra.master.svi.resources.get', {});
+  assert.equal(again.reason, 'no-upstream');
+  assert.equal(f.calls.length, 1);
+  assert.equal(client.reaches('terra.master.nodes.get'), false);
+});
+
+test('leaf — 경로로 부른 Master 의 401(위임 입구가 없는 예전 Terra)은 Master 를 막고, 403 DELEGATION_NOT_OPEN 은 그 하나만', async () => {
+  const old = fakeFetch(() => json(401, { ok: false, error: { code: 'UNAUTHORIZED' } }));
+  const a = new TerraClient('', { fetch: old, delegated: true });
+  a.catalog = leafCatalog();
+  assert.equal((await a.invoke('terra.master.nodes.get', {})).reason, 'master-delegation');
+  assert.equal(a.masterBlocked, true);
+  assert.equal(a.reaches('terra.master.jobs.get'), false);
+
+  const f = fakeFetch((url) => (url.includes('/route/')
+    ? json(403, { ok: false, error: { code: 'DELEGATION_NOT_OPEN' } })
+    : json(200, { ok: true, data: { nodes: [] } })));
+  const b = new TerraClient('', { fetch: f, delegated: true });
+  b.catalog = leafCatalog();
+  assert.equal((await b.invoke('terra.master.route.graph.get', {})).reason, 'DELEGATION_NOT_OPEN');
+  assert.equal(b.masterBlocked, false);
+  assert.equal((await b.invoke('terra.master.nodes.get', {})).kind, 'ok');
+});
+
+test('경로로 부르는 것은 위임 자격의 leaf 뿐 — tree(카탈로그에 있음) · 사용자 자격 · 카탈로그를 아직 못 받음은 예전 그대로', async () => {
+  const f = fakeFetch(() => json(200, { ok: true, data: {} }));
+  const tree = new TerraClient('', { fetch: f, delegated: true });
+  tree.catalog = new Map([['terra.master.nodes.get', {}]]);
+  await tree.invoke('terra.master.nodes.get', {});
+  assert.match(f.calls[0].url, /\/api\/v1\/operations\/terra\.master\.nodes\.get\/invoke$/);
+
+  const user = new TerraClient('', { fetch: f });
+  user.catalog = leafCatalog();
+  assert.equal((await user.invoke('terra.master.nodes.get', {})).reason, 'not-in-catalog');
+
+  const early = new TerraClient('', { fetch: f, delegated: true });   // 카탈로그 전 — 막지 않고 invoke
+  await early.invoke('terra.master.nodes.get', {});
+  assert.match(f.calls[1].url, /\/operations\/terra\.master\.nodes\.get\/invoke$/);
+  assert.equal(f.calls.length, 2);
+});
+
+test('leaf — 누르기 전 자물쇠: 위임 입구가 연 읽기는 잠그지 않고, 열지 않은 쓰기는 그 이유로 잠근다', () => {
+  const client = new TerraClient('', { fetch: fakeFetch(() => json(200, {})), delegated: true });
+  client.catalog = leafCatalog();
+  assert.equal(reaches(client, 'terra.master.svi.grants.get'), true);
+  assert.equal(missingReason(client, 'terra.master.svi.grants.post'), 'DELEGATION_NOT_OPEN');
+  assert.equal(missingReason(client, 'terra.daemon.nope.get'), 'not-in-catalog');
+  assert.equal(reaches({ has: () => false }, 'terra.master.nodes.get'), false, 'has 만 가진 가짜 클라이언트는 has 로 본다');
+});
+
+test('위임 대응표 — 1차 규칙: 모두 GET 이고 Master 경로다', () => {
+  const ids = Object.keys(MASTER_DELEGATED);
+  assert.equal(ids.length, 28);
+  for (const id of ids) {
+    const [method, path] = MASTER_DELEGATED[id];
+    assert.ok(id.startsWith('terra.master.'), id);
+    assert.equal(method, 'GET', id);
+    assert.match(path, /^\/api\/v1\//, id);
+  }
+});
+
+test('위임 대응표 — Terra 계약과 같다 (TERRA_CHECKOUT 이 있을 때)', { skip: !process.env.TERRA_CHECKOUT && 'TERRA_CHECKOUT 없음 — CI 의 Pack against Terra 가 gen-master-delegated.mjs --check 로 본다' }, async () => {
+  const { buildTable } = await import('../tools/gen-master-delegated.mjs');
+  const { readFileSync } = await import('node:fs');
+  const contract = JSON.parse(readFileSync(process.env.TERRA_CHECKOUT + '/products/tree/master/contracts/api/terra-api.json', 'utf8'));
+  assert.deepEqual(buildTable(contract), MASTER_DELEGATED);
 });

@@ -16,6 +16,9 @@ export function modulesResult(client) {
   return p;
 }
 
+/** 캐시를 버린다 — 모듈이 바뀌었다는 신호(terra.modules.changed)를 받았을 때 */
+export function forgetModules(client) { client.__modGate = null; }
+
 /** 설치된 모듈 id 의 집합 — 목록을 못 받았으면 null */
 export async function installedModuleIds(client) {
   const r = await modulesResult(client);

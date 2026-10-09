@@ -114,10 +114,13 @@ MODULE_JS = {
         # this.linkEv(l)(src/boot/fixes.js)는 화면 전용 연결이면 null — 예전 연결의 도로는 그대로다
         ('[l.from, l.to].forEach((q) => { const x = evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; });',
          '[l.from, l.to, l].forEach((q) => { const x = q === l ? (this.linkEv ? this.linkEv(l) : null) : evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; });'),
-        # [UP-32 · Terra PF-7] 명령 · 작업 카드: 출력은 실행 중에도 본다(이 노드는 SSE 로 따라간다 — src/api/task-output.js).
-        # 이 노드의 출력은 Daemon 이 process.execute 로 준다. 다시는 두 번 누른다(hbArm — src/api/wire.js 의 confirm)
-        ("const acts = live ? [B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, ['node.read']), B('다시', 'rerun', d.id, true, EX, deleg)];",
-         "const OUT = loc ? EX : ['node.read'], acts = live ? [B('출력', 'out', d.id, false, OUT), B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, OUT), B(S.hbArm === d.id ? '정말 다시' : '다시', 'rerun', d.id, true, EX, deleg)];"),
+        # [모듈 전용 · Terra PF-7 · MD-41] 명령 · 작업 카드의 출력 권한: 이 노드의 출력은 Daemon 이 process.execute 로 준다
+        # (terra.daemon.tasks.by-task-id.output.get). 원본은 Master 작업(node.read)을 읽으므로 원본에 올리지 않는다.
+        # 실행 중 출력 · 두 번 누르는 다시(UP-32)는 원본에 올라갔다 — maingui 8af1b0c
+        ("const acts = live ? [B('출력', 'out', d.id, false, ['node.read']),",
+         "const OUT = loc ? EX : ['node.read'], acts = live ? [B('출력', 'out', d.id, false, OUT),"),
+        ("] : [B('출력', 'out', d.id, false, ['node.read']), B(S.hbArm === d.id ? '정말 다시' : '다시',",
+         "] : [B('출력', 'out', d.id, false, OUT), B(S.hbArm === d.id ? '정말 다시' : '다시',"),
     ],
 }
 MODULE_BETWEEN = {

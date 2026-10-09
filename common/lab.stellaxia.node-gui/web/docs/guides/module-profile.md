@@ -8,8 +8,8 @@ doc_type: "guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.6.0"
-last_updated: "2026-10-05"
+version: "1.7.0"
+last_updated: "2026-10-09"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -29,7 +29,7 @@ related:
 디자인 캔버스 원본(`design/*.dc.html`) 하나에서 GUI 세 벌이 나온다. 차이는 `public/config.json`의 `variant`와
 그 변형의 **부트 프로필**(`src/boot/<variant>.js`)뿐이다 — 화면 코드(`src/screens/*.js`)는 셋 다 생성된 그대로다.
 
-원본은 **GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui)**다. 이 모듈의 `design/`은 그 `4ec0685`(2026-10-06 — 사용자 관리 · 등록 상태 · 시작 화면 온보딩. 그 전에는 `a884226`(ver.2 다크 글래스)이었고, 그 전에는 `43a4e3a`(2026-10-05 — SVI 흐름 칸 · 맵 도로 A-28 · maingui#1 병합 · 그 앞 `1aa6340` SVI 흐름도 · `e669c03` 모듈 설정 폼 · 내려받기 · 카메라 손 등록)이었다)와 파일 단위로 같다.
+원본은 **GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui)**다. 이 모듈의 `design/`은 그 `8af1b0c`(2026-10-09 — maingui#7 UP-32: 실행 중 출력 · 두 번 누르는 다시. 그 전에는 `4ec0685`(2026-10-06 — 사용자 관리 · 등록 상태 · 시작 화면 온보딩), 그 전에는 `a884226`(ver.2 다크 글래스)이었고, 그 전에는 `43a4e3a`(2026-10-05 — SVI 흐름 칸 · 맵 도로 A-28 · maingui#1 병합 · 그 앞 `1aa6340` SVI 흐름도 · `e669c03` 모듈 설정 폼 · 내려받기 · 카메라 손 등록)이었다)와 파일 단위로 같다 — 다만 `Artboard-qcfu.dc.html` 에는 이 저장소에서 디자인 원본에 직접 넣은 것(UP-22 전송 멈춤 칩 · UP-25 최소판 입출력 설정 창 MD-35, 2026-10-08)이 더 있다. 원본에 올리면 다시 같아진다.
 처음에는 `f24c3bc`(2026-10-04)에 맞췄다 — [[implementation-backlog|구현해야 할 것]] MD-19.
 
 - `demo` — maingui의 `examples/demo/`(예시 세계 그대로 · `examples/data/`). 예전 이름 `terra-node-gui-demo`.
@@ -215,7 +215,7 @@ npm test && npm run test:smoke
 npm run build:web && npm run validate && npm run test:web
 ```
 
-- 맞춘 커밋을 이 문서 머리(지금 `4ec0685`)와 모듈 README에 적는다.
+- 맞춘 커밋을 이 문서 머리(지금 `8af1b0c`)와 모듈 README에 적는다.
 - `src/runtime/dc.js` · `src/boot/fixes.js` · `src/store/layout.js`(`KEYS`)처럼 원본과 같은 파일은 그쪽이 바뀌었는지 함께 본다 — 이번에 `dc.js`(글 칸 `onChange` → `input`)와 `KEYS`(`ovhHide`)가 바뀌었다.
 - 원본 화면에 **새 상태 키**가 생기면 `emptyWorld` · `loadWorld`(`src/data/node-live.js`)에서 로그아웃 · 다시 로그인 때 비울지 되살릴지 정한다 — 이번에는 `rst` · `hbForm` · `mgui` · `netSel`(비움) · `ovhHide`(되살림).
 - `src/api/*`(연동 층)는 이 저장소가 실측으로 고친 판이 앞선다 — 원본의 것으로 덮지 않는다. 원본의 새 대응(이번에는 `HELM_CRUD`)은 실제 서버의 입력과 견준 뒤 옮긴다([[implementation-backlog\|구현해야 할 것]] UP-12 · UP-13).

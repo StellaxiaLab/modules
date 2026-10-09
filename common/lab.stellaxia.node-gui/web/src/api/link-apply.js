@@ -6,6 +6,7 @@
 // 전제: PF-1 — Master op 가 이 화면의 자격으로 닿는다(사용자 신원). 닿지 않으면(카탈로그에 없다 · 401) 아무것도 바꾸지 않고 이유만 돌려준다.
 // 서버는 `client.invoke` 로 직접 부른다 — Master 의 POST 본문은 모르는 키를 거절한다(decodeJSON). node_id 를 싣지 않는다(UP-13).
 import { buildIO, pairsOf, worstPhase, idempotencyKey, setEndpointChoice } from '../model/link-io.js';
+import { reaches, missingReason, reasonText } from './client.js';
 
 const T = (op) => 'terra.master.' + op;
 export const OPS = {
@@ -85,7 +86,7 @@ const phaseOf = (io, key, phase, extra) => {
 
 /**
  * 연결 하나를 적용한다. 부르는 호출은 위 OPS 뿐이다. 이미 바인딩이 있는 쌍(binding_id)은 다시 만들지 않는다(멱등 키도 같다).
- * @param {{ client: any }} source  LiveSource — `client.invoke` · `client.has` 만 쓴다
+ * @param {{ client: any }} source  LiveSource — `client.invoke` · `client.has`(· `client.reaches`) 만 쓴다
  * @param {any} link
  * @param {any[]} links  이 맵의 모든 연결(합류를 풀 때)
  * @param {import('../model/link-io.js').LinkCtx} ctx
@@ -98,8 +99,8 @@ export async function applyLink(source, link, links, ctx, o) {
   let io = buildIO(link, links, ctx, link.io);
   if (io.kind === 'screen') return { io, applied: 0, notes: ['화면 전용 연결이다 — 데이터는 흐르지 않는다'] };
   const need = io.kind === 'share' ? [OPS.grantsPost, OPS.grantsGet] : [OPS.bindPost, OPS.grantsGet, OPS.endpoints];
-  const missing = need.find((op) => !client.has(op));
-  if (missing) return { io, applied: 0, unavailable: 'not-in-catalog', notes: ['이 노드의 게이트웨이에 ' + missing.replace('terra.master.', '') + ' 가 없다 — Master 위임(PF-1)'] };
+  const missing = need.find((op) => !reaches(client, op));
+  if (missing) return { io, applied: 0, unavailable: 'not-in-catalog', notes: [missing.replace('terra.master.', '') + ' — ' + reasonText({ reason: missingReason(client, missing) })] };
   if (!o.userId) return { io, applied: 0, unavailable: 'no-user', notes: ['내 신원을 모른다 — 다시 로그인'] };
 
   const stamp = () => new Date(now()).toISOString();
@@ -232,7 +233,7 @@ export const GRANT_SELF_TTL_DEFAULT = 30 * 86400;
 
 export async function grantSelf(client, lacks, userId, ttlSeconds = GRANT_SELF_TTL_DEFAULT) {
   const made = [], failed = [];
-  if (!client.has(OPS.grantsPost)) return { ok: false, made, failed: lacks.map((l) => ({ resource_id: l.resource_id, operation: l.operation, code: 'not-in-catalog' })) };
+  if (!reaches(client, OPS.grantsPost)) return { ok: false, made, failed: lacks.map((l) => ({ resource_id: l.resource_id, operation: l.operation, code: 'not-in-catalog' })) };
   for (const l of lacks) {
     const r = await client.invoke(OPS.grantsPost, { subject_type: 'user', subject_id: userId, resource_id: l.resource_id, endpoint_id: l.endpoint_id, operations: [l.operation], ttl_seconds: ttlSeconds });
     if (r.kind === 'ok' || r.kind === 'accepted') made.push(l.resource_id + ' ' + l.operation);

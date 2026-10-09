@@ -3086,6 +3086,7 @@ export default class Component extends DCLogic {
     const node = nodeArg || this.hbNode();
     // 되돌릴 수 없는 것(피어 회수)은 두 번 눌러야 한다
     if (op === 'revoke' && app === 'wg' && this.state.hbArm !== id) { this.setState({ hbArm: id }); this.hbSay('한 번 더 누르면 회수 — 되돌릴 수 없다', '#ff5d5d'); return; }
+    if (op === 'rerun' && app === 'job' && this.state.hbArm !== id) { this.setState({ hbArm: id }); this.hbSay('한 번 더 누르면 다시 실행 — 같은 명령을 다시 돌린다', '#f5b83d'); return; }
     if (app === 'folder' && op === 'open') { this.setState({ hbPath: id, hbArm: null }); return; }
     this.setState({ hbBusy: id || app, hbArm: null });
     clearTimeout(this._hbA);
@@ -3258,6 +3259,7 @@ export default class Component extends DCLogic {
       const ST = { queued: ['대기', 'wait'], sent: ['보냄', 'run'], running: ['실행 중', 'run'], success: ['성공', 'ok'], failed: ['실패', 'bad'] };
       cards = list.map((d, i) => {
         const live = d.state === 'running' || d.state === 'queued' || d.state === 'sent';
+        // 출력은 실행 중에도 본다(지금까지 받은 출력). 다시는 같은 명령을 또 돌리므로 두 번 누른다(hbArm — 회수와 같다)
         const OUT = loc ? EX : ['node.read'], acts = live ? [B('출력', 'out', d.id, false, OUT), B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, OUT), B(S.hbArm === d.id ? '정말 다시' : '다시', 'rerun', d.id, true, EX, deleg)];
         const mm = Math.floor((d.t || 0) / 60), ss = Math.floor((d.t || 0) % 60);
         return card(Object.assign({ id: d.id, name: d.cmd, sub: d.id, raw: d.cmd, icon: IC.app.job, fresh: d.fresh, acts,
