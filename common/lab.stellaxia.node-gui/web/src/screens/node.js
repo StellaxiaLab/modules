@@ -5769,7 +5769,7 @@ export default class Component extends DCLogic {
             sc: dragging && (dg.over || dg.back) ? 0.55 : 1, op: dragging && (dg.over || dg.back) ? 0.8 : 1, origin: '24px 19px',
             ty: S.winDrop === id ? -(W.y + 120) : 0, trans: S.winDrop === id ? 'transform 440ms cubic-bezier(.55,0,.9,.45), background-color 520ms linear' : 'transform 160ms ease-out, opacity 160ms ease-out, box-shadow 160ms, background-color 520ms linear',
             isProps: id === 'props', isAlarm: id === 'alarm', isMap: id === 'map', isEd: ['props', 'edit', 'alarm', 'map'].indexOf(id) < 0, isEdit: id === 'edit',
-            sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none',
+            sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none', hasBoard: !!d.href, noBoard: !d.href,   // 보드가 있는 창은 전체 화면으로 연다(fsToggle) — 보드 링크는 srcdoc 안에서 화면을 깨뜨려 없앴다
             close: () => this.closeWin(id), closeTip: id === 'map' ? '닫기 — 관리 노드 창의 MAP 탭으로' : '닫기 — 유틸 서랍의 제자리로',
             front: () => this.winFront(id),
             grab: (e) => { if (fsOn) return; this.startWinDrag(id, e, 'window'); },

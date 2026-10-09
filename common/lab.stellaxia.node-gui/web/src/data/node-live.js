@@ -395,8 +395,8 @@ export function realNode(Screen) {
         fld: '필드 스킨 ' + (this.FSK || []).length,
         set: live ? S.localNode.name + ' Daemon 설정' + (R.configKeys ? ' ' + R.configKeys.total + '키' : '') + ' · node.config★ ' + (R.perms.indexOf('node.config') >= 0 ? '있음' : '없음') : 'Terra에 로그인하면 이 노드의 설정이 보인다',
         mat: '자재 ' + (this.MATS || []).length + '종',
-        mod: R.modules ? '설치 ' + mods.length + ' · 실행 ' + mods.filter((m) => m.state === 'running').length + ' · 실패 ' + mods.filter((m) => m.state === 'failed').length : '로그인하면 이 노드의 모듈이 보인다',
-        user: live ? short(R.principal) + ' · 권한 ' + R.perms.length : 'Terra에 로그인하지 않았다'
+        mod: R.modules ? '설치 ' + mods.length + ' · 실행 ' + mods.filter((m) => m.state === 'running').length + ' · 실패 ' + mods.filter((m) => m.state === 'failed').length + (mods.some((m) => m.kind === 'scene') ? ' — 화면(scene) 모듈 ' + mods.filter((m) => m.kind === 'scene').length + '개는 프로세스가 없어 실행으로 세지 않는다' : '') : '로그인하면 이 노드의 모듈이 보인다',
+        user: live ? short(R.principal) + ' · 이 화면이 받은 권한 ' + R.perms.length + '개' : 'Terra에 로그인하지 않았다'
       };
       if (Array.isArray(v.wins)) v.wins = v.wins.map((w) => (SUM[w.id] != null ? Object.assign({}, w, { sum: SUM[w.id] }) : w));
       v.who = live

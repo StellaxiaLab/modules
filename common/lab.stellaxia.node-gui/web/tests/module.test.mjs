@@ -567,3 +567,19 @@ test('노드 카드 — CPU · 메모리 · 디스크는 받은 값만 그린다
   s.__real = Object.assign({}, s.__real, { meters: { [name]: { cpu: 3 } } });
   assert.deepEqual(s.renderVals().insp.meters.map((m) => m.k), ['CPU']);
 });
+
+test('창 본문 — 보드가 있는 창(설정 · 편집기)은 전체 화면으로 열게 하고, 보드가 없는 창(모듈 · 사용자)은 없다고 말한다. 깨지는 "보드에서 열기" 링크는 없다(MD-40)', () => {
+  const s = new (prep('node', NodeScreen))({ skin: 'grass' });
+  const wins = Object.fromEntries(s.renderVals().wins.map((w) => [w.id, w]));
+  for (const id of ['set', 'bld', 'rd', 'fld', 'mat']) assert.deepEqual([id, wins[id].hasBoard, wins[id].noBoard], [id, true, false]);
+  for (const id of ['mod', 'user']) assert.deepEqual([id, wins[id].hasBoard, wins[id].noBoard], [id, false, true]);
+  assert.equal(typeof wins.set.fsToggle, 'function', '전체 화면으로 열기');
+});
+
+test('창 요약 — 모듈 창은 화면(scene) 모듈이 실행으로 세어지지 않는 이유를, 사용자 창은 권한이 이 화면이 받은 것임을 말한다', () => {
+  const s = new (prep('node', NodeScreen))({ skin: 'grass' });
+  s.__real = Object.assign({}, s.__real, { perms: ['node.read', 'node.control'], principal: 'admin@x', modules: [{ id: 'a', kind: 'scene', state: 'discovered' }, { id: 'b', kind: 'runtime', state: 'discovered' }, { id: 'c', kind: 'process', state: 'running' }] });
+  const wins = Object.fromEntries(s.renderVals().wins.map((w) => [w.id, w]));
+  assert.match(wins.mod.sum, /설치 3 · 실행 1 · 실패 0 — 화면\(scene\) 모듈 1개는 프로세스가 없어/);
+  assert.match(wins.user.sum, /이 화면이 받은 권한 2개/);
+});

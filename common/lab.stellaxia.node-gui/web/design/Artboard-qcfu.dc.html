@@ -1802,11 +1802,16 @@ section[data-win] header button:hover{background:rgba(255,255,255,.08) !importan
           </sc-if>
           <sc-if value="{{w.isEdBox}}" hint-placeholder-val="{{false}}">
             <div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-              <div style="height: 150px; border: 1px dashed rgba(255,255,255,0.10); border-radius: 8px; background: #101113; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #9aa1ab;">
-                <span>{{w.title}} 화면이 이 창 안에 들어옵니다</span>
+              <div style="min-height: 150px; border: 1px dashed rgba(255,255,255,0.10); border-radius: 8px; background: #101113; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 14px; text-align: center; color: #9aa1ab;">
+                <sc-if value="{{w.hasBoard}}" hint-placeholder-val="{{true}}">
+                  <span>{{w.title}} 화면은 전체 화면에서 열린다 — 이 창 안에는 요약만 있다</span>
+                  <button type="button" onPointerDown="{{stopEv}}" onClick="{{w.fsToggle}}" style="height: 30px; padding: 0 14px; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; background: #ede9e1; color: #15171a; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;">전체 화면으로 열기</button>
+                </sc-if>
+                <sc-if value="{{w.noBoard}}" hint-placeholder-val="{{false}}">
+                  <span>{{w.title}} 화면은 이 앱에 아직 없다 — 아래 요약이 이 노드에서 받은 값이다</span>
+                </sc-if>
               </div>
               <span style="font-size: 12.5px; color: #9aa1ab;">{{w.sum}}</span>
-              <a href="{{w.href}}" style="align-self: flex-end; font-size: 12.5px; color: #7aa7ff; display: {{w.hrefDisp}};">보드에서 열기 →</a>
             </div>
           </sc-if>
           <!-- 창 크기 손잡이 (창 정책 WDEF.rz를 따른다 — 안이 고정 크기인 창은 없다) · 전체 화면 · 끄는 중에는 숨긴다 -->
@@ -7772,7 +7777,7 @@ class Component extends DCLogic {
             sc: dragging && (dg.over || dg.back) ? 0.55 : 1, op: dragging && (dg.over || dg.back) ? 0.8 : 1, origin: '24px 19px',
             ty: S.winDrop === id ? -(W.y + 120) : 0, trans: S.winDrop === id ? 'transform 440ms cubic-bezier(.55,0,.9,.45), background-color 520ms linear' : 'transform 160ms ease-out, opacity 160ms ease-out, box-shadow 160ms, background-color 520ms linear',
             isProps: id === 'props', isAlarm: id === 'alarm', isMap: id === 'map', isEd: ['props', 'edit', 'alarm', 'map'].indexOf(id) < 0, isEdit: id === 'edit',
-            sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none',
+            sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none', hasBoard: !!d.href, noBoard: !d.href,   // 보드가 있는 창은 전체 화면으로 연다(fsToggle) — 보드 링크는 srcdoc 안에서 화면을 깨뜨려 없앴다
             close: () => this.closeWin(id), closeTip: id === 'map' ? '닫기 — 관리 노드 창의 MAP 탭으로' : '닫기 — 유틸 서랍의 제자리로',
             front: () => this.winFront(id),
             grab: (e) => { if (fsOn) return; this.startWinDrag(id, e, 'window'); },
