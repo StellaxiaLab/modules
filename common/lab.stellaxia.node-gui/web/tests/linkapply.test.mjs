@@ -223,7 +223,7 @@ test('공유 — 자원 → 노드는 노드 주체 허가를 만든다(없을 �
   const link = L('s', '1-1', '0-0');
   const c = fake({ [OPS.grantsGet]: ok({ items: [] }), [OPS.grantsPost]: ok({ grant: { grant_id: 'g_new' } }) });
   const r = await apply(c, link, [link]);
-  assert.deepEqual(c.calls.find((x) => x.op === OPS.grantsPost).input, { subject_type: 'node', subject_id: 'node_hub', resource_id: 'svires_cam', operations: ['read', 'subscribe', 'bind.source'], ttl_seconds: 0 });
+  assert.deepEqual(c.calls.find((x) => x.op === OPS.grantsPost).input, { subject_type: 'node', subject_id: 'node_hub', resource_id: 'svires_cam', operations: ['read', 'subscribe', 'bind.source'], ttl_seconds: 30 * 86400 });
   assert.equal(r.io.phase, 'shared'); assert.equal(r.io.pairs[0].grant_id, 'g_new'); assert.equal(r.applied, 1);
   // 이미 있다
   const have = { grant_id: 'g_old', subject: { type: 'node', id: 'node_hub' }, resource_id: 'svires_cam', operations: ['read'] };
