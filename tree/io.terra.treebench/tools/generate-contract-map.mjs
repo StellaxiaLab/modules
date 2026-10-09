@@ -49,6 +49,9 @@ const CHANNEL = {
   'device-token': 'd',
   'service-credential': 'v',
   public: 'p',
+  // ADR-GW-003: the Gateway's door for app tokens into operations the browser
+  // session already reaches; it only narrows a session, so it is never first.
+  'delegated-session': 's',
 };
 
 export function buildMap(contract) {

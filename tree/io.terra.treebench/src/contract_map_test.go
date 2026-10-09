@@ -53,6 +53,11 @@ var channelCode = map[string]string{
 	"device-token":       "d",
 	"service-credential": "v",
 	"public":             "p",
+	// ADR-GW-003: a second way into an operation the browser session already
+	// reaches — the Gateway lowers a signed-in person's session for an app
+	// token. The Master only ever narrows a session through it, so it never
+	// stands alone or first, and the browser screen is the honest place for it.
+	"delegated-session": "s",
 }
 
 // channelName is for failure messages only: "d" alone does not tell a reader
