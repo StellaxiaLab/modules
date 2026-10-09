@@ -4427,7 +4427,7 @@ export default class Component extends DCLogic {
   // ver.2 인스펙터 값 — 칸 하나의 요약과 동작. 동작은 원래 기능(캡슐 메뉴 · 창)을 그대로 부른다
   inspVals(selT, pill, RS) {
     const S = this.state, k = S.sel;
-    const off = { tx: 340, op: 0, pe: 'none', cap: '선택', pos: '', key: '', vb: '0 0 1 1', href: '#tg-none', font: 'inherit', name: '', sub: '', isNode: false, stats: [], meters: [], hasRows: false, rows: [], acts: [], expand: () => {}, close: () => {} };
+    const off = { tx: 340, op: 0, pe: 'none', cap: '선택', pos: '', key: '', vb: '0 0 1 1', href: '#tg-none', font: 'inherit', name: '', sub: '', isNode: false, stats: [], meters: [], noMeters: false, hasRows: false, rows: [], acts: [], expand: () => {}, close: () => {} };
     if (!k || !selT || S.place || S.conn || (S.mapTrans && S.mapTrans.phase)) return off;
     const [c, r] = k.split('-').map(Number), pos = 'C' + c + '·R' + r;
     const nd = selT.nd || this.nodeAt(k), o = RS[k], pl = (S.placed || {})[k], road = !!(pl && this.isRoad(pl.bid) && !pl.pv);
@@ -4436,19 +4436,20 @@ export default class Component extends DCLogic {
     const btn = (label, click, o2) => Object.assign({ label, click, down: () => {}, tip: '', bg: 'rgba(255,255,255,0.04)', fg: '#ede9e1', line: 'rgba(255,255,255,0.18)', op: 1, pe: 'auto' }, o2 || {});
     const pri = { bg: '#ede9e1', fg: '#111111', line: '#ede9e1' }, dis = { op: 0.4, pe: 'none' };
     const v = { tx: 0, op: 1, pe: 'auto', cap: '선택', pos, key: k, vb: Math.round(selT.px - 74) + ' ' + Math.round(selT.py - 150) + ' 148 190', href: '#tg-' + k, font: 'inherit',
-      expand: () => openW('props'), close: () => this.setState({ sel: null, pillOpen: null }), isNode: false, stats: [], meters: [], hasRows: false, rows: [], acts: [] };
+      expand: () => openW('props'), close: () => this.setState({ sel: null, pillOpen: null }), isNode: false, stats: [], meters: [], noMeters: false, hasRows: false, rows: [], acts: [] };
     const nLinks = (S.links || []).filter((l) => l.from === k || l.to === k || (l.path || []).indexOf(k) >= 0).length;
     if (nd) {
       const APPS = ['job', 'mod', 'svi', 'decl', 'grant', 'io', 'folder', 'xfer', 'tunnel', 'wg'];
       let total = 0, bad = 0;
       APPS.forEach((a) => { const L = this.hbItems(nd.name, a) || []; total += L.length; bad += L.filter((x) => /fail|unavail|denied|degraded|stale/.test(String(x.state || x.status || x.health || ''))).length; });
       const kids = ((this.NET[nd.name] || {}).kids || []).length, ok = bad === 0;
-      const h = [...nd.name].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 11), m = (s2) => 8 + ((h >>> s2) % 72);
+      const mt = this.nodeMeters(nd);   // 실제로 받은 사용량 — 없으면 null (지어낸 값을 그리지 않는다: MD-36)
       const look = (S.looks || {})[nd.name] || {};
       Object.assign(v, { font: "'JetBrains Mono',ui-monospace,monospace", name: nd.name, sub: (look.bid ? bName(look.bid) + ' · ' : '') + (nd.parent ? '부모 필드' : (nd.role || '')), isNode: true,
         stats: [[total, '자원'], [nLinks, '연결'], [kids, '자식']].map(([vv, kk]) => ({ v: String(vv), k: kk, c: '#ede9e1', font: "600 16px/1.3 'JetBrains Mono',ui-monospace,monospace", bg: 'rgba(255,255,255,0.05)' }))
           .concat([{ v: ok ? '정상' : '저하', k: '상태', c: ok ? '#3ecf8e' : '#f5b83d', font: '700 13px/22px inherit', bg: ok ? 'rgba(62,207,142,0.12)' : 'rgba(245,184,61,0.12)' }]),
-        meters: [['CPU', m(0)], ['메모리', m(7) + 12], ['디스크', m(13) + 18]].map(([kk, vv]) => { vv = Math.min(96, vv); const w = vv > 80; return { k: kk, v: vv, w: vv, c: w ? '#f5b83d' : '#5aa8ff', tc: w ? '#f5b83d' : '#ede9e1' }; }),
+        meters: mt ? [['CPU', mt.cpu], ['메모리', mt.mem], ['디스크', mt.disk]].filter(([, vv]) => typeof vv === 'number').map(([kk, vv]) => { vv = Math.max(0, Math.min(100, Math.round(vv))); const w = vv > 80; return { k: kk, v: vv, w: vv, c: w ? '#f5b83d' : '#5aa8ff', tc: w ? '#f5b83d' : '#ede9e1' }; }) : [],
+        noMeters: !mt,
         acts: [
           nd.parent ? btn('지금 맵', () => {}, Object.assign({ tip: '이 노드의 맵을 보고 있다' }, pri, dis)) : btn('들어가기', () => this.enterNode(nd), Object.assign({ tip: '두 번 누르기와 같다' }, pri)),
           btn('연결하기', () => {}, { down: pill.connDown, tip: pill.connTip || '누른 채 끌어 놓기' }),
@@ -4791,6 +4792,9 @@ export default class Component extends DCLogic {
   cellKind(m, key) { return m.nodes[key] ? this.nodeKind(m.nodes[key]) : (m.self === key ? 'parent' : false); }
   cellLift(m, sk, key) { return m.nodes[key] ? this.nodeLift(sk, m.nodes[key]) : (m.self === key ? this.parentOf(sk).lift : 0); }
   roleKey(label) { return !label ? false : /tree/i.test(label) && /leaf/i.test(label) ? 'both' : /tree/i.test(label) ? 'tree' : 'leaf'; }
+  // 노드 사용량(CPU · 메모리 · 디스크 %, 0~100) — 실제로 받은 값만. 값이 없으면 null 이고 카드는 "알려 주지 않는다"를 보인다.
+  // 게이트웨이가 앱 토큰에 이 값을 아직 주지 않는다(backlog PF-25) — 받는 길이 생기면 this.__real.meters[노드 이름] = { cpu, mem, disk } 로 채운다.
+  nodeMeters(nd) { const m = this.__real && this.__real.meters && nd && this.__real.meters[nd.name]; return m && typeof m === 'object' ? m : null; }
   tileView(sid, role, rot) {
     const rk = rot ? this.ensureRot(sid, role, rot) : null;
     const bt = (rk ? this.BT.find((b) => b.key === rk) : this.BT.find((b) => b.sid === sid && b.node === (role || false) && !b.rot)) || this.BT[0];

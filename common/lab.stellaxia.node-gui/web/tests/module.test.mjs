@@ -545,3 +545,25 @@ test('시작 화면 — 다 내려간 뒤 로그아웃하면(토큰을 잃으면
   assert.equal(s.state.phase, 'auto', '다시 로그인하면 다시 내려간다');
   clearTimeout(s._autoT); clearTimeout(s._backT); s._dead = true;
 });
+
+test('노드 카드 — CPU · 메모리 · 디스크는 받은 값만 그린다. 값이 없으면 지어내지 않고 알려 주지 않는다고 말한다(MD-36)', () => {
+  const s = new (prep('node', NodeScreen))({ skin: 'grass' });
+  const self = s.state.self, name = s.state.localNode.name;
+  s.setState({ sel: self });
+  let insp = s.renderVals().insp;
+  assert.equal(insp.isNode, true);
+  assert.deepEqual(insp.meters, [], '값이 없으면 막대가 없다');
+  assert.equal(insp.noMeters, true);
+  assert.doesNotMatch(visible(insp), /"v":(2[0-9]|4[0-9]|8[0-9])\b.*"k":"(CPU|메모리|디스크)"/);
+  // 이름이 다른 노드가 같은 값을 내지 않는다 — 이름 해시로 값을 만들던 길이 없다
+  assert.equal(s.nodeMeters({ name: 'a' }), null);
+  assert.equal(s.nodeMeters({ name: 'b' }), null);
+  // 받은 값이 있으면 그 값 — 반올림 · 0~100 안으로 · 80% 넘으면 경고색
+  s.__real = Object.assign({}, s.__real, { meters: { [name]: { cpu: 12.4, mem: 55, disk: 91.6 } } });
+  insp = s.renderVals().insp;
+  assert.equal(insp.noMeters, false);
+  assert.deepEqual(insp.meters.map((m) => [m.k, m.v, m.c]), [['CPU', 12, '#5aa8ff'], ['메모리', 55, '#5aa8ff'], ['디스크', 92, '#f5b83d']]);
+  // 일부만 와도 온 것만
+  s.__real = Object.assign({}, s.__real, { meters: { [name]: { cpu: 3 } } });
+  assert.deepEqual(s.renderVals().insp.meters.map((m) => m.k), ['CPU']);
+});

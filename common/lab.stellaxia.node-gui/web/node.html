@@ -1856,6 +1856,9 @@ html,body{height:100%}
               <sc-for list="{{insp.meters}}" as="mt" hint-placeholder-count="3">
                 <div style="display: grid; grid-template-columns: 52px 1fr 40px; gap: 8px; align-items: center;"><span style="color: #9aa1ab;">{{mt.k}}</span><div style="height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden;"><div style="width: {{mt.w}}%; height: 5px; border-radius: 3px; background: {{mt.c}}; transition: width 420ms cubic-bezier(.22,1,.36,1);"></div></div><span style="text-align: right; font-family: 'JetBrains Mono',ui-monospace,monospace; color: {{mt.tc}};">{{mt.v}}%</span></div>
               </sc-for>
+              <sc-if value="{{insp.noMeters}}" hint-placeholder-val="{{false}}">
+                <div style="color: #9aa1ab; font-size: 10.5px; line-height: 1.4;">사용량 — 이 노드의 게이트웨이가 아직 알려 주지 않는다</div>
+              </sc-if>
             </div>
           </sc-if>
           <sc-if value="{{insp.hasRows}}" hint-placeholder-val="{{false}}">
