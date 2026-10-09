@@ -193,7 +193,7 @@ Go 의존은 0으로도 된다.
 | --- | --- | --- |
 | 매니페스트·배치 검증, 스키마 사본 해시 | 이 저장소만 (Node 24) | `npm ci && npm run validate && npm run check:schema` |
 | 웹 모듈 빌드·시험 | 이 저장소만 | `npm run build:web && npm run test:web` |
-| Go 모듈 빌드·시험 | 모듈 10개 중 `io.terra.agent`를 뺀 9개는 **이 저장소 + 공개 `terra-sdk` `v0.1.0`**(Go 모듈 프록시)만 필요하다. `io.terra.agent`는 `terra-agent-core`를 아직 Terra 상대경로로 `replace`한다(M-3). `io.terra.fleet`의 계약 대조 시험은 Terra의 Master 계약 파일을 읽는다(`TERRA_CHECKOUT`) | 모듈 `src/`에서 `go build ./... && go test ./...`, 또는 `npm run build -- --terra <path>` · `npm run test -- --terra <path>` |
+| Go 모듈 빌드·시험 | 모듈 10개 중 `io.terra.agent`를 뺀 9개는 **이 저장소 + 공개 `terra-sdk` `v0.1.0`**(Go 모듈 프록시)만 필요하다. `io.terra.agent`는 `terra-agent-core`를 아직 Terra 상대경로로 `replace`한다(M-3). `io.terra.treebench`의 계약 대조 시험은 Terra의 Master 계약 파일을 읽는다(`TERRA_CHECKOUT`) | 모듈 `src/`에서 `go build ./... && go test ./...`, 또는 `npm run build -- --terra <path>` · `npm run test -- --terra <path>` |
 | 포장(`pack`) · Scene 마운트 | Terra 체크아웃과 `terra` CLI | 위 "검증" 절 |
 
 ### 목표 (M-2·M-3 이후)
