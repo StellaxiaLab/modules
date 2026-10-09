@@ -4,7 +4,7 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.15"
+version: "v0.16"
 last_updated: "2026-10-09"
 ---
 
@@ -173,6 +173,15 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### maingui 8af1b0c 따라가기 — UP-32 MD-41 (2026-10-09)
+
+이 모듈이 MD-34에서 생성기 패치로 들고 있던 UP-32(실행 중인 작업 카드에도 `출력` · `다시`는 두 번 누르기)가 원본에 올라갔다([maingui#7](https://github.com/StellaxiaLab/maingui/pull/7)).
+`design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사했다 — 나머지 디자인 파일은 이미 같았다.
+
+- 생성기의 UP-32 패치를 걷었다. 출력 단추의 권한만 모듈 전용 패치로 남는다 — 이 노드의 출력은 Daemon이 `process.execute`로 준다(원본은 Master 작업을 `node.read`로 읽는다).
+- 생성된 카드 줄은 전과 같다. 원본 화면이 `job:rerun`을 겨누는 줄이 더해졌지만, 연동 층(`wire.js` `confirm`)이 먼저 받으므로 동작은 같다.
+- 시험: 단위 198 · 연기 통과.
 
 ### 작업 출력 · 다시 실행 — MD-34 (2026-10-07 · Terra PF-7)
 
