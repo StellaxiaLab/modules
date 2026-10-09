@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
 )
 
 // AdapterPrefix marks the adapter ids a person may name. Every other adapter is

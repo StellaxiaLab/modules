@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.file/store"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/store"
 	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
 )
 

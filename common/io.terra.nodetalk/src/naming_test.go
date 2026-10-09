@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // Names are put on when a line is read and never when it is written.

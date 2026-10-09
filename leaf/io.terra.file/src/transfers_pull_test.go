@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.file/store"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/store"
 )
 
 // TestAReadOnlyCallerCanTakeAFileOut: the pull-only door is the whole path —

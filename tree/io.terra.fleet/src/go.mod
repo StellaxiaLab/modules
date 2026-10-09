@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/tree/io.terra.fleet
+module github.com/StellaxiaLab/modules/tree/io.terra.fleet
 
 go 1.23.0
 

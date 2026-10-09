@@ -16,7 +16,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
 )
 
 // ErrInvalid is a registration whose shape is wrong — the request, not the

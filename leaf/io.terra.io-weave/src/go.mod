@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/leaf/io.terra.io-weave
+module github.com/StellaxiaLab/modules/leaf/io.terra.io-weave
 
 go 1.23.0
 

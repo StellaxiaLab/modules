@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/common/io.terra.webapp-host
+module github.com/StellaxiaLab/modules/common/io.terra.webapp-host
 
 go 1.23.0
 

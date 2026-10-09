@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
 )
 
 // Persistent device identity.

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // Fault injection (plan §3 M5, idea doc §9). Without this, the failover and
