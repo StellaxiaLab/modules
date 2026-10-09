@@ -107,13 +107,17 @@ MODULE_TPL = {
         # 아래 두 알약의 누름 끄기(pointer-events: v.chromePe)는 원본에 올라갔다 — maingui 07d5739 (UP-15)
     ],
 }
-# 화면 스크립트(src/screens/*.js)에서 바꾸는 곳 — 지금은 하나뿐이다. 원본에 올릴 때까지 모듈이 들고 있고, 올라가면 걷는다
+# 화면 스크립트(src/screens/*.js)에서 바꾸는 곳. 원본에 올릴 때까지 모듈이 들고 있고, 올라가면 걷는다
 MODULE_JS = {
     'node': [
         # [UP-26 · MD-31] 도로 이벤트: 연결(links)이 들고 있는 입출력 상태(io.phase — 대기 · 실패 · 정지 · 동작)를 끝 자원의 상태와 함께 본다.
         # this.linkEv(l)(src/boot/fixes.js)는 화면 전용 연결이면 null — 예전 연결의 도로는 그대로다
         ('[l.from, l.to].forEach((q) => { const x = evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; });',
          '[l.from, l.to, l].forEach((q) => { const x = q === l ? (this.linkEv ? this.linkEv(l) : null) : evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; });'),
+        # [UP-32 · Terra PF-7] 명령 · 작업 카드: 출력은 실행 중에도 본다(이 노드는 SSE 로 따라간다 — src/api/task-output.js).
+        # 이 노드의 출력은 Daemon 이 process.execute 로 준다. 다시는 두 번 누른다(hbArm — src/api/wire.js 의 confirm)
+        ("const acts = live ? [B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, ['node.read']), B('다시', 'rerun', d.id, true, EX, deleg)];",
+         "const OUT = loc ? EX : ['node.read'], acts = live ? [B('출력', 'out', d.id, false, OUT), B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, OUT), B(S.hbArm === d.id ? '정말 다시' : '다시', 'rerun', d.id, true, EX, deleg)];"),
     ],
 }
 MODULE_BETWEEN = {

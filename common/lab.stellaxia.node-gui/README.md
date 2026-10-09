@@ -4,8 +4,8 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.13"
-last_updated: "2026-10-07"
+version: "v0.15"
+last_updated: "2026-10-09"
 ---
 
 # Terra 노드 (`lab.stellaxia.node-gui`)
@@ -121,7 +121,7 @@ Master 401은 "쓸 수 없다"로 바꾸고 그 뒤로 Master를 부르지 않�
 | | 질문 | 이번 기본값 | 바꾸려면 |
 | --- | --- | --- | --- |
 | **Q-1** | 어떻게 나가나 (접두사) | **확정(2026-10-06) — 이 저장소의 릴리스로 나가고 코어에는 동봉하지 않는다.** `lab.stellaxia.*` 그대로, 개명 · `bundled-modules.json` 선언 없음. 설치는 설치기가 이 저장소 릴리스의 `.tmod`를 원격에서 가져와 깐다(설치기는 구현 중). 그 뒤의 변경 · 설치 · 업그레이드는 `.tmod`를 직접 받아 깔거나 tree 레지스트리(`pack` → `publish`)를 거친다 | 제품 동봉으로 가면 `io.terra.*`로 개명하고 코어 `bundled-modules.json`에 선언한다 — 되돌릴 때의 길이다 |
-| **Q-2** | Master 데이터를 웹에 어떻게 건네나 | **확정(2026-10-07) — (나) Core peer 중계를 넓힌다.** [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md): 세션 id 위임 입구, 1차는 읽기만 · 앱만 · 관리자 제외. **Terra 구현 전까지는 (다)처럼 보인다** — "쓸 수 없다" | 쓰기 · 관리자 · SSE는 ADR의 2차 결정을 기다린다. (가) Scene 중계는 쓰지 않는다 |
+| **Q-2** | Master 데이터를 웹에 어떻게 건네나 | **확정(2026-10-07) — (나) Core peer 중계를 넓힌다.** [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md): 세션 id 위임 입구, 1차는 읽기만 · 앱만 · 관리자 제외. **Terra 구현은 [Terra#143](https://github.com/StellaxiaLab/Terra/pull/143)(1차 읽기 28 경로) — 병합 전 Terra에서는 (다)처럼 보인다.** 모듈은 열린 Master op 를 그대로 부르고, 열리지 않은 op 의 403 `DELEGATION_NOT_OPEN` 은 그 op 하나만 "쓸 수 없다"로 읽는다(`src/api/client.js`, Master 전체를 막는 것은 예전 Terra 의 401 뿐) — "쓸 수 없다" | 쓰기 · 관리자 · SSE는 ADR의 2차 결정을 기다린다. (가) Scene 중계는 쓰지 않는다 |
 | **Q-3** | 메모 · 설계도 · 맵 배치를 어디에 두나 | **이 브라우저 + Terra 사용자 문서 저장소**(C-1 — Terra G0~G6이 열었다). 브라우저(LayoutStore · `localStorage`, 노드 · 주체마다)에 바로, 사용자 문서(`app:<앱 id>` 이름공간 — 앱 토큰이면 고정)에 뒤따라. `kind`는 `scene` 그대로 — 모듈 백엔드가 필요 없다 | `config.json` `layoutStore: local`(브라우저에만) · `none`(저장 안 함) — 백로그 Q-14 |
 | **Q-4** | 보드를 어떻게 여나 | **`srcdoc`** — 판정서의 (가) · (나) · (다) 어느 것도 아닌 넷째 길. 프로토타입의 iframe 구조를 그대로 두고, 같은 앱의 페이지를 받아 `srcdoc`으로 넣는다. `srcdoc` 문서는 부모의 origin · CSP를 이어받아 `frame-ancestors` 검사를 타지 않는다 | (가) 한 문서 안에 마운트 · (다) 플랫폼 `frame-ancestors`에 `'self'`(P-3) |
 | **Q-5** | 여러 tree 전환 | **(가) 뺀다** — tree 목록은 비어 있고, 다른 tree로 가려 하면 *"다른 tree로는 이 화면이 닿지 않는다"* | (나) 셸 수준의 기능으로 따로 설계한다 |
@@ -173,6 +173,15 @@ GUI 원본 저장소(maingui)에서 원본을 가져오는 순서는 [`web/docs/
 > 릴리스 경로)은 이 경우를 막는다.
 
 ## 검증
+
+### 작업 출력 · 다시 실행 — MD-34 (2026-10-07 · Terra PF-7)
+
+Terra가 명령 작업의 출력과 다시 실행을 열었다([Terra#140](https://github.com/StellaxiaLab/Terra/pull/140) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)). 조타륜 명령 · 작업 앱이 그 길을 쓴다 — [`web/docs/api/real-data-layer.md`](web/docs/api/real-data-layer.md) §2.10.
+
+- **출력** — `terra.daemon.tasks.by-task-id.output.get`(`process.execute`)을 상태 화면의 출력 칸에. 다른 노드도 노드 주소 호출로 읽는다. 이 노드에서 실행 중인 작업이면 출력 SSE(`output.events.get`)로 이어 받는다.
+- **다시** — 두 번 눌러 `tasks.by-task-id.rerun.post {task_id, confirmed: true}`. 이 노드에서 시작한 끝난 작업만 — Master가 보낸 작업은 부르지 않고 이유를 보인다.
+- **카드** — 실행 중에도 `출력`, 다시는 `정말 다시`. 생성기 `MODULE_JS`의 둘째 패치다(원본에 올릴 것 UP-32).
+- 시험: `tests/taskout.test.mjs` 5개 · 전체 196 통과 · `npm run build` 통과. 앱 토큰으로 진짜 스택 실측(2026-10-09, Terra main `1e13d75`) — `web/tools/live-taskout.mjs` 15개 통과([`real-data-layer.md`](web/docs/api/real-data-layer.md) §5.7). 브라우저 화면은 단위 · 연기 시험으로 본다.
 
 ### maingui 4ec0685 따라가기 — 사용자 관리 · 등록 상태 · 온보딩 MD-26 (2026-10-06, 0.4.1)
 
