@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
 	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
 )

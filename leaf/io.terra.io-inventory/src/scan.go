@@ -8,9 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/discovery"
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/manual"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/discovery"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/manual"
 )
 
 // enumerator is one look at the node's hardware. The two helpers below take it

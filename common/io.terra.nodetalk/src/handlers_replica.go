@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // replicaPull serves the peer-facing sync window (contract: replica.pull).

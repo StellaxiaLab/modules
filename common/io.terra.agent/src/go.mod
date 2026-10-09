@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/common/io.terra.agent
+module github.com/StellaxiaLab/modules/common/io.terra.agent
 
 go 1.24.0
 
