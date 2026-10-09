@@ -309,6 +309,20 @@ Daemon 이 명령 작업마다 출력의 꼬리(256 KiB — 노드 전체 32 MiB
 
 카드는 실행 중에도 `출력` 을 둔다(생성기 `MODULE_JS` — UP-32). 이 노드의 출력 단추는 `process.execute` 가 없으면 잠긴다.
 
+### 2.11 맵 진입 — 굽기 · 모듈 게이트 · 사용량 (MD-35 · MD-36 · MD-38 · 2026-10-09)
+
+[[performance-and-fidelity-recommendations|개선 권고안]] · [[work-order-map-entry-and-fidelity|작업 지시서]]가 근거다.
+
+- **타일 · 건물 · 도로 그림은 쓰일 때 굽는다.** 마운트 때 라이브러리 전체(타일 30 + 프레임 35 · 건물 10 × 4방향 · 도로 3 — SVG 38MB)를 굽던 것을 `needTile`(타일) · `needBld`(건물) · `roadImgOf`(도로)가 화면이 쓰는 것만 줄에 세운다.
+  줄(`bakeEnq`/`bakePump`)은 한 번에 한 장씩 `requestIdleCallback` 틱 사이에 돈다 — 팔레트 도로 카드는 낮은 우선순위. 아직 안 구워진 것은 기존대로 **벡터로** 그린다(`tileDefs`는 쓰이는 미완료 타일만 문서에 둔다).
+- **PNG 인코딩은 비동기다**(`pngUrl` — `canvas.toBlob` + `FileReader`). **CSP가 `img-src 'self' data:`라 `blob:` URL은 못 쓴다** — 데이터 URL로 바꿔 쓴다. 이 줄을 건드릴 때 `createObjectURL`로 바꾸면 그림이 사라진다.
+- **모듈이 없는 노드는 그 모듈의 operation을 부르지 않는다**(`src/api/module-gate.js`). `terra.daemon.io.devices.get` ← `io.terra.io-inventory` · `terra.daemon.files.list.get` ← `io.terra.file`. `modules.get`(15초 캐시)을 먼저 보고 없으면 `{ kind: 'unavailable', reason: 'no-module' }`.
+  `modules.get`을 못 받으면 막지 않는다(서버가 판정한다). 첫 화면(`loadResources`)과 설정 보드가 함께 쓴다.
+- **노드 카드의 CPU · 메모리 · 디스크는 받은 값만 그린다**(`nodeMeters(nd)` ← `__real.meters[노드 이름] = { cpu, mem, disk }`, 0~100). 지금은 아무도 채우지 않는다 — leaf 게이트웨이가 사용량을 앱 토큰에 주지 않는다(backlog **PF-25**).
+  값이 없으면 막대 대신 "사용량 — 이 노드의 게이트웨이가 아직 알려 주지 않는다". 예전의 노드 이름 해시 값은 없다.
+- 앱 안의 `me/documents/.../layout/<노드>`와 `.../assets` **404는 "저장된 것이 아직 없다"**로 처리된다(`DocStore.read` — 404면 상태를 `off`로 바꾸지 않는다). 브라우저 콘솔에는 실패한 요청으로 남는다.
+- 편집 창(모듈 · 사용자 · 설정 · 편집기) 본문: 보드가 있는 창은 `fsToggle`(전체 화면)로 진짜 보드를 연다. **창 안의 "보드에서 열기" 링크는 두지 않는다** — srcdoc 안에서 누르면 `frame-ancestors` CSP 오류 페이지(`chrome-error`)로 바뀌어 노드 화면이 깨진다.
+
 ## 3. 비어 있는 것과 그 이유
 
 | 비어 있는 것 | 이유 | 채우려면 |

@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.14.0"
+version: "1.15.0"
 last_updated: "2026-10-09"
 language: "ko-KR"
 os_priority:
@@ -41,13 +41,14 @@ related:
 
 | 묶음 | 누가 | 높음 | 중간 | 낮음 |
 | --- | --- | --- | --- | --- |
-| **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 4 | 3 | 8 |
-| **MD** 이 모듈 | modules 저장소 | 4 | 7 | 6 |
+| **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 4 | 4 | 8 |
+| **MD** 이 모듈 | modules 저장소 | 1 | 7 | 3 |
 | **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | 1 | 6 | 8 |
 | **Q** 사람이 정할 것 | 소유자 | — | — | — |
 
 남은 것만 센다(2026-10-05 저녁 · 2026-10-07에 §5 입출력 연결 설계의 PF-18~PF-23 · MD-27~MD-33 · UP-25~UP-31을 더했다). Terra G0~G6이 닫은 PF는 §1.2, 이 모듈이 끝낸 MD는 §2 "끝낸 것", 원본이 고친 UP는 §3.0에 있다.
 2026-10-07 저녁 — Terra가 PF-7(작업 출력 · 다시 실행)을 닫았다([Terra#140](https://github.com/StellaxiaLab/Terra/pull/140) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)). 이 모듈이 따라갔다(MD-34) — 생성기 패치 하나가 원본에 올릴 것(UP-32)으로 남는다.
+2026-10-09 — 맵 진입 개선을 끝냈다(MD-35 · MD-36 · MD-38 · MD-40 · MD-41 완료 · MD-37 효과 없음 · MD-39 불필요 — 로그인 → 맵 평균 20.1초 → 7.3초, 모듈 0.4.2). 남은 것은 MD-42 · PF-25.
 2026-10-09 — **maingui를 더 이상 쓰지 않는다** — `web/design/`이 이 저장소의 원본이라 UP-33~UP-36은 MD-35 · MD-36 · MD-40 · MD-41로 흡수했다(순서 · 완료 기준: [[work-order-map-entry-and-fidelity|작업 지시서]]).
 2026-10-08 — 레지스트리로 설치해 Terra 셸에서 열어 재 본 결과(맵 진입 20초+ · 지어낸 CPU · 메모리 · 디스크 값 · 빈 창)를 MD-35~MD-40(+ UP-33~UP-36 → MD로 흡수)으로 올렸다. 측정과 근거는 [[performance-and-fidelity-recommendations|맵 진입 지연과 가짜 값 — 개선 권고안]] — 어느 것부터 어떻게 하는지는 [[work-order-map-entry-and-fidelity|작업 지시서]].
 Terra G0~G6이 연 길(B-1 · B-5 · C-1 · B-11 · B-12 · B-14)은 이 모듈이 모두 옮겼다 — MD-11 · MD-12 · MD-15~MD-20.
@@ -109,6 +110,7 @@ flowchart LR
 | **PF-15** | 앱 안에서 **다른 모듈의 GUI**를 여는 길 | 남았다 — 스코프 토큰으로는 앱 토큰을 발급받지 못한다(실측 `SCOPE_TOKEN_DENIED` "앱 스코프 토큰 발급에는 사용자 세션이 필요합니다" — 설계대로). 셸에 "앱 열기" 요청(예: `emit('open-app', { app })`)이 필요하다 | 모듈 GUI 창(`🖥`) | 중간 |
 | **PF-16** | 노드의 공유 목록 | 반쯤 — C-3 노드 주체 허가 = 흐름 허용 목록(G6). 읽기가 Master `svi.grants.get {node_id …}`라 PF-1 — 읽기라 ADR-GW-003의 1차에 든다 | 상태 화면의 공유 목록 · 네트워크 창의 공유 그래프 | 낮음 |
 | **PF-17** | 앱 토큰으로 받는 **사용자 문서 변경 신호** | 새로 찾았다 — 문서를 쓰면 Master가 그 사람에게만 `terra.documents.changed`를 낸다(`announceDocument`). 앱 토큰의 이벤트는 이 노드 Daemon 것(`terra.daemon.events.get`)이라 그 신호가 오지 않는다. Master 이벤트는 PF-1 경계 — ADR-GW-003은 Master SSE를 2차로 미뤘다(필터 주체와 함께) | 다른 창 · 기기가 바꾼 배치를 곧장 받지 못한다 — 다음 쓰기의 409 알림 · 새로 고침에 받는다(MD-15). 길: 게이트웨이가 앱 이름공간(`app:<appId>`)의 문서 신호만 그 앱 토큰의 SSE에 실어 준다 | 낮음 |
+| **PF-25** | 앱 토큰으로 읽는 **노드 사용량**(CPU · 메모리 · 디스크 %) | 없다 — leaf 게이트웨이 카탈로그(117개)에 사용량 op가 없고 `agent/nodes`도 주지 않는다. Master에는 `GET /api/v1/monitor/snapshot`(`cpu_percent` · `memory_percent` · `disk_percent` · `measured`)이 있으나 leaf 게이트웨이가 게시하지 않아 `terra.master.monitor.snapshot.get`이 `MODULE_ROUTE_NOT_FOUND`다. Daemon에도 procfs 모니터(`data_plane/monitoring`)가 있으나 op가 없다 | 노드 카드 사용량 막대(MD-36 — 받은 값만 그린다) | 중간 |
 
 ### 1.2 Terra G0~G6이 닫은 것 — 앱 토큰 실측 (2026-10-05)
 
@@ -136,18 +138,19 @@ flowchart LR
 | **MD-10** | 번들에 남은 예시 문자열 | 원본 미리보기의 예시 상수가 번들에 **문자열로** 남는다(화면 · 요청에는 나가지 않는다 — 시험이 지킨다). 지우려면 원본 미리보기 데이터를 따로 떼야 한다 | 원본 작업 방식 | 낮음 |
 | **MD-13** | tree 게이트웨이에서 Master 쪽 추가 · 수정 · 삭제 E2E | 허가 · 바인딩 · 터널 열기 · 선언 · 피어 회수 · 다른 노드 작업의 본문은 Master 코드로 맞췄지만(`decodeJSON` 입력 구조) 시험 스택이 leaf라 실제로 부르지 못했다(`not-in-catalog`). tree 노드에 모듈을 깔고 돌린다 | PF-1(위임) | 중간 |
 | **MD-14** | 모듈 GUI 창에서 그 모듈의 GUI 열기 | 지금은 `/api/v1/gui/apps`로 GUI가 있는지 · 주소만 보인다 | PF-15 | 낮음 |
-| **MD-35** | 타일 · 도로 PNG를 **빌드 시점에** 굽기 | 맵 진입 20초+의 주원인 — 런타임에 `toDataURL` 318회 · 약 36MB · 메인 스레드 점유([[performance-and-fidelity-recommendations\|권고안]] §1). 굽는 함수는 생성 파일의 원본(`design/Artboard-qcfu.dc.html`)에 있다 — **UP-33을 흡수**(원본을 여기서 고친다) | — | 높음 |
-| **MD-36** | 노드 카드 CPU · 메모리 · 디스크 — **지어낸 값 가리기** (임시) | 노드 이름 해시로 만든 값이다(`node.js:4393`) — 실제는 0~2% · 6% · 28%인데 24% · 48% · 87%(노랑)가 뜬다. 실데이터 operation이 있으면 잇고, 없으면 칸을 `—`로. 지금은 `src/boot/module.js` · `src/data/*.js`로 끼운다 — **UP-34를 흡수** — 원본 `design/`에서 "값 없음" 상태를 만든다. 시험: 이름만 다른 두 노드가 같은 값을 내지 않는다 | — | 높음 |
-| **MD-37** | 데이터 요청을 굽기보다 **먼저** | `catalog` 서버 2ms인데 클라이언트에서 7.9초, 이후 요청이 14.7초에야 나간다. 부트에서 요청을 먼저 시작하고 첫 화면 밖(io 장치 · 파일 목록 · 와이어가드 · 설정 스키마)은 늦춘다. **재측정으로 이 추정이 맞는지 확인** — 틀리면 원인이 다른 것이다 | — | 높음 |
-| **MD-40** | 모듈 · 사용자 · 설정 창 **본문** | "…화면이 이 창 안에 들어옵니다"와 숫자 한 줄뿐이다. 무엇을 기다리는지(아직 구현 안 됨 · 열 수 없음) 구분해 말하고 "보드에서 열기"를 눈에 띄게. **UP-36을 흡수** — 원본 `design/`의 창 본문 상태를 여기서 디자인한다 | — | 중간 |
-| **MD-38** | 모듈 없음과 오류를 구분 | `io.devices.get` · `files.list.get` 503은 `io.terra.io-inventory` · `io.terra.file`이 없어서다 — 사유를 읽어 "이 노드에 입출력 모듈이 없다"로. 첫 호출 전에 `modules.get`로 건너뛴다 | — | 낮음 |
-| **MD-39** | 굽기 결과 캐시 | MD-35를 하면 필요 없다 — 둘 중 하나만. 캐시는 `Cache Storage` · IndexedDB에 키(정의 해시 + 해상도 + 앱 버전) | MD-35 판단 | 낮음 |
-| **MD-41** | 진입 연출을 로딩과 겹친다 | 데이터 준비 뒤에 `autoMs` 1.4초 + 내려가는 모션 4~5초가 직렬로 붙는다(`src/data/intro-live.js`). **UP-35를 흡수** | MD-35 | 낮음 |
+| **MD-42** | 노드 화면 마운트의 동기 작업 약 2초 | 맵 굽기를 걷어낸 뒤 남은 첫 롱태스크(1.7~2.1초). 스킨 · 타일 벡터 생성(`ensureBake` · `bakeTile`)으로 보이나 프로파일로 쪼개지 않았다. 편집기 보드 4종(건물 · 도로 · 필드 · 자재)의 굽기(`getImageData`)도 같이 잰다 | — | 중간 |
 
 ### 끝낸 것
 
 | ID | 무엇 | 어떻게 · 언제 |
 | --- | --- | --- |
+| **MD-35** | 맵 진입 굽기 — 쓰이는 것만 · 한 장씩 · 비동기 PNG | `design/Artboard-qcfu.dc.html` — `needTile` · `needBld` · `roadImgOf(…, low)` · `bakeEnq`/`bakePump`(`requestIdleCallback`) · `pngUrl`(`toBlob` + `FileReader` — CSP가 `blob:`을 막는다). 마운트 때 굽던 151장(SVG 38MB · `toDataURL` 318회 36.6MB)을 쓰일 때만 굽는다. 로그인 → 맵 평균 20.1초 → 7.3초 · catalog 7.5~9.5초 → 0.2초([[work-order-map-entry-and-fidelity\|작업 지시서]] §6). UP-33 흡수 · 2026-10-09 · 0.4.2 |
+| **MD-36** | 노드 카드의 지어낸 CPU · 메모리 · 디스크 제거 | 이름 해시 계산을 지우고 `nodeMeters(nd)`(`__real.meters[노드 이름] = { cpu, mem, disk }` — 받은 값만) · 없으면 "사용량 — 이 노드의 게이트웨이가 아직 알려 주지 않는다". leaf 게이트웨이에 사용량 op가 없어 **PF-25**. 시험 1개. UP-34 흡수 · 2026-10-09 · 0.4.2 |
+| **MD-37** | 데이터 요청을 굽기보다 먼저 | **효과가 없어 하지 않았다** — 요청을 0.2초에 시작해 봐도 조타륜 앱 첫 요청이 14~15.7초로 그대로였다(메인 스레드가 굽기에 잡혀 있었다). 코드는 되돌리고 결과를 [[performance-and-fidelity-recommendations\|권고안]] §1.3에 남겼다 · 2026-10-09 |
+| **MD-38** | 모듈 없음과 오류 구분 | `src/api/module-gate.js` — `modules.get`(15초 캐시)로 설치 여부를 보고 없으면 `io.devices.get`(`io.terra.io-inventory`) · `files.list.get`(`io.terra.file`)을 부르지 않는다. 이유 글 `no-module` · `LOCAL_API_UNAVAILABLE`. 로그인 → 맵 구간 503 두 건 제거 · 시험 5개 · 2026-10-09 · 0.4.2 |
+| **MD-39** | 굽기 결과 캐시 | **불필요** — MD-35로 런타임 굽기가 1~11장이 됐다 · 2026-10-09 |
+| **MD-40** | 모듈 · 사용자 · 설정 창 본문 | 보드가 있는 창은 [전체 화면으로 열기](`fsToggle` — 누르면 진짜 보드가 열린다), 없는 창은 "이 앱에 아직 없다". **"보드에서 열기 →" 링크 제거**(srcdoc 안에서 누르면 CSP 오류 페이지로 바뀌어 노드 화면이 깨졌다). 모듈 요약에 scene 모듈이 "실행"으로 세어지지 않는 이유 · 사용자 요약은 "이 화면이 받은 권한 N개". 조타륜 "속성" 메뉴는 정상. 시험 2개. UP-36 흡수 · 2026-10-09 · 0.4.2 |
+| **MD-41** | 진입 연출 | 연출은 이미 구름에서 맵을 기다리고 있었다 — 고정 지연만 줄였다: 미리 읽기 1200 → 250ms · 준비 판정 load+900ms → 노드 화면의 liveHub 값 확인(최대 3.5초) · `autoMs` 1400 → 900. 7.8~8.0 → 7.1~7.2초. UP-35 흡수 · 2026-10-09 · 0.4.2 |
 | **MD-34** | 작업 출력 · 다시 실행 — Terra PF-7 · [[real-data-layer\|실데이터 층]] §2.10 | `src/api/task-output.js`(`OutputView` — 읽은 쪽 · 따라온 조각 → 출력 칸의 글: 섞인 흐름의 stderr `! ` · 노드가 버린 앞부분 · 끝 상태 · 받지 않은 출력 · 끝 512 K 글자 / `followOutput` — 이 노드의 출력 SSE를 읽은 `last_seq` 뒤부터, `end`에 닫는다). 대응표: 이 노드 · 다른 노드(노드 주소 호출)의 `출력` = `tasks.by-task-id.output.get`(`process.execute`), `다시` = `rerun.post {task_id, confirmed: true}`(이 노드 · 두 번 누름 `confirm` · Master가 보낸 작업은 부르지 않고 이유). 카드는 실행 중에도 `출력`(생성기 `MODULE_JS` 둘째 패치 — UP-32). `openEvents`에 처음 자리 `last` · Daemon 오류 코드 여덟을 화면 글로 · `no-rerun` 을 걷었다. 시험 `tests/taskout.test.mjs` 5개 · 전체 196 통과. 앱 토큰으로 진짜 스택 실측은 아직 · 2026-10-07 |
 | **MD-4** | LayoutStore 안의 노드 키 — 이름이 바뀌어도 따라간다 | 저장할 때 이름 → `node_id`(`nodeIds`)를 같이 적고, 읽을 때 지금 관계도의 이름으로 옮긴다(`layout.js` `remapNodes`) — 맵 주인 · 노드 칸 · 새 노드 · 모습 · 노드 자원의 노드 · 연결이 고른 자원. 사라진 노드의 칸은 같은 이름을 얻은 **다른** 노드에게 넘기지 않는다. 예전 저장본(`nodeIds` 없음)은 그대로 읽는다. 저장 형식은 그대로 이름 키라 서버 저장(PF-3)으로 옮겨도 같다 · 2026-10-05 |
 | **MD-5** | leaf 맵 자기 칸에서 연결 시작 · 상태 창 | maingui `f24c3bc`가 `nodeAt()`으로 자기 칸을 노드로 보게 됐다 — 캡슐이 뜨고, 자원 → 자기 칸은 공유가 되고, 자기 칸에서 나가는 연결은 원본 규칙대로 다른 맵에서 들어온 자원이 있어야 한다. `fixes.js`는 설치(`placeAt`)만 막는다 · 2026-10-05 |
