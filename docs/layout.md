@@ -64,10 +64,10 @@ last_updated: "2026-10-09"
 | M-2 | 모듈이 `terra-sdk` `v0.1.0`을 버전으로 require, SDK 대상 `replace` 제거 | 완료 (시험 보조는 `internal/testkit`) |
 | M-3 | `io.terra.agent`가 `terra-agent`를 require | 완료 |
 | M-4 | `io.terra.io-weave`에 `terra-io-weave` 내재화 | 완료 |
-| M-5·M-6 | CI에서 Terra SSH 키 의존 제거, 스키마 대조가 건너뛰지 못하게 | M-2 이후 |
+| M-5·M-6 | CI에서 Terra SSH 키 의존 제거, 스키마 대조가 건너뛰지 못하게 | 완료 (릴리스만 아직 Terra 체크아웃 필요) |
 
-그때까지 Go 빌드·시험·포장은 Terra 체크아웃이 필요하다 — 절차는 [README](../README.md)의
-"독립 빌드 (초안)" 절.
+Go 빌드·시험은 이제 Terra 없이 돈다. 포장·Scene 마운트·스키마 원본 대조는 Terra 체크아웃이 필요해 Terra 쪽
+CI 몫이다 — 절차는 [README](../README.md)의 "독립 빌드 (초안)" 절.
 
 ## 2. 규칙
 
@@ -213,10 +213,12 @@ scene/
 | 포장이 실제로 열리는지 — 설치기와 같은 검사로 자기 출력을 되여는 것 | `terra module pack` |
 | 계약 JSON의 내용이 Terra API Contract 표준을 지키는지 | Terra 쪽 계약 검증 |
 
-여기서 다시 구현하면 사본이 하나 더 생기고, 사본은 말없이 늙는다. 그래서 CI의 `pack` 잡이
-Terra를 체크아웃해 진짜 `terra module pack`을 부른다 — Terra의 읽기 전용 deploy key
-(`TERRA_CHECKOUT_SSH_KEY`)가 있을 때다. 없으면 PR에서는 건너뛰되 **warning**으로 남기고,
-`main` 푸시에서는 **실패한다**: main은 이 저장소가 "검증됐다"고 말하는 자리다.
+여기서 다시 구현하면 사본이 하나 더 생기고, 사본은 말없이 늙는다. 그래서 진짜 `terra module pack`을 부르는
+권위는 Terra에 있다. 예전에는 이 저장소의 CI `pack` 잡이 Terra 비공개 체크아웃(`TERRA_CHECKOUT_SSH_KEY`)으로
+그것을 불렀지만, 독립 빌드 전환(M-5)에서 그 잡을 이 저장소의 CI에서 뺐다 — **`terra` CLI는 Terra 소스에서
+구워야 하고 공개 릴리스가 없기 때문이다.** 이 저장소는 도구(`tools/pack-modules.mjs` 등)를 그대로 두고, Terra 쪽
+CI가 이 저장소를 체크아웃해 부른다([README](../README.md)의 "검증" 절 박스). 그때까지 위 표의
+`terra module pack` 행(Scene 무결성 · 포장 열림)은 **이 저장소의 PR에서는 확인되지 않는다.**
 
 ## 4. 벤더링한 스키마
 
@@ -225,7 +227,8 @@ Terra를 체크아웃해 진짜 `terra module pack`을 부른다 — Terra의 �
 
 사본을 손으로 고치지 않는다. 원본이 바뀌면 다시 복사하고 `PROVENANCE.json`을 갱신한다.
 [`tools/check-schema-drift.mjs`](../tools/check-schema-drift.mjs)가 둘을 대조한다 —
-Terra 체크아웃이 있으면 원본과 바이트로, 없으면 적어도 기록된 해시와.
+`--terra <path>`를 주면 원본과 바이트로, `--self-only`를 주면 기록된 해시와만 대조한다. 둘 중 하나를 반드시 골라야 하며,
+고르지 않으면 실패한다(조용히 건너뛰지 않는다). CI는 `--self-only`를 쓰고 원본 대조는 Terra 쪽 CI가 `--terra`로 한다.
 
 ## 관련 문서
 

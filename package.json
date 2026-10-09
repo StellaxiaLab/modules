@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "validate": "node tools/validate-modules.mjs",
-    "check:schema": "node tools/check-schema-drift.mjs",
+    "check:schema": "node tools/check-schema-drift.mjs --self-only",
     "build": "node tools/build-modules.mjs",
     "test": "node tools/test-modules.mjs",
     "build:web": "node tools/build-web.mjs",
