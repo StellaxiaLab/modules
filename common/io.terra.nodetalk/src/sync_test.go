@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // httpDoor dispatches door calls to real handler servers by node id — the

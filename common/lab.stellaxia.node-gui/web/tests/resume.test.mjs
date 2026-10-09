@@ -53,7 +53,7 @@ function memParts() {
   };
 }
 
-test('멈춘 전송 — 이 화면이 하지 않고, 기한이 지났거나 STALL_MS 넘게 움직이지 않은 prepared · transferring 만 어긋남(이어서 · 중단)으로', () => {
+test('멈춘 전송 — 이 화면이 하지 않고, 기한이 지났거나 STALL_MS 넘게 움직이지 않은 prepared · transferring 만 멈춤(이어서 · 중단)으로', () => {
   const now = Date.parse('2026-10-05T10:00:00Z');
   const rec = (id, o) => Object.assign({ transfer_id: id, direction: 'push', root: 'share-0', path: 'a/' + id + '.bin', size_bytes: 1000, checksum_sha256: 'ab', offset: 400, state: 'transferring', updated_at: iso(now - 5000), expires_at: iso(now + 3600e3) }, o);
   const items = ADAPT.xfer({ transfers: [
@@ -64,7 +64,7 @@ test('멈춘 전송 — 이 화면이 하지 않고, 기한이 지났거나 STAL
   const out = Object.fromEntries(markStalled(items, new Set(['mine']), now).map((d) => [d.id, d]));
   assert.equal(out.fresh.state, 'transferring', '움직이는 중');
   assert.equal(out.mine.state, 'transferring', '이 화면이 보내는 중');
-  assert.deepEqual([out.old.state, out.expired.state, out.prep.state], ['failed', 'failed', 'failed']);
+  assert.deepEqual([out.old.state, out.expired.state, out.prep.state], ['stalled', 'stalled', 'stalled']);
   assert.match(out.old.reason, /40%에서 보내던 화면이 닫혔다/);
   assert.match(out.pull.reason, /받던 화면이 닫혔다 — 이어서: 이 브라우저에 받아 둔 만큼은 건너뛴다/);
   assert.equal(out.paused.state, 'aborted', '중단한 것은 그대로 중단됨');
@@ -73,7 +73,7 @@ test('멈춘 전송 — 이 화면이 하지 않고, 기한이 지났거나 STAL
   const seen = new Map(), skew = (o) => ADAPT.xfer({ transfers: [rec('slow', Object.assign({ updated_at: iso(now + 3600e3) }, o))] });
   assert.equal(markStalled(skew(), null, now, seen)[0].state, 'transferring', '처음 본다');
   assert.equal(markStalled(skew(), null, now + SEEN_MS - 1, seen)[0].state, 'transferring');
-  assert.equal(markStalled(skew(), null, now + SEEN_MS, seen)[0].state, 'failed', '그대로다 — 멈췄다');
+  assert.equal(markStalled(skew(), null, now + SEEN_MS, seen)[0].state, 'stalled', '그대로다 — 멈췄다');
   assert.equal(markStalled(skew({ offset: 500 }), null, now + SEEN_MS + 1, seen)[0].state, 'transferring', '움직였다 — 다시 지켜본다');
   markStalled([], null, now, seen);
   assert.equal(seen.size, 0, '목록에서 사라진 것은 잊는다');
@@ -249,7 +249,7 @@ test('전송 앱 카드의 이어서 — 받기는 다시 받되 멈춘 전송�
   try {
     const unwire = wireHelm(s, source, { pollMs: 60000 });
     s.hbPut(local, 'xfer', await source.list(local, 'xfer'));
-    assert.deepEqual(s.hbItems(local, 'xfer').map((d) => d.state), ['failed', 'failed'], '둘 다 멈췄다 — 이어서 · 중단');
+    assert.deepEqual(s.hbItems(local, 'xfer').map((d) => d.state), ['stalled', 'stalled'], '둘 다 멈췄다 — 이어서 · 중단');
     assert.deepEqual(await source.act(local, 'xfer', 'p-old', 'resume', s.hbItems(local, 'xfer')[0]), { kind: 'unavailable', reason: 'no-upload' });
     assert.equal(source.lockFor('xfer', 'resume', local), null, '잠그지 않는다');
     await s.hbAct('xfer', 'p-old', 'resume', local);

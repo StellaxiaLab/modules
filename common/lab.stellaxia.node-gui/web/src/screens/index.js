@@ -28,7 +28,7 @@ export default class Component extends DCLogic {
       setTimeout(() => {
         const fr = document.querySelector('[data-in-map]'); if (!fr) return;
         // 읽힌 것이 정말 노드 화면인지 본다 (없는 주소면 빈 쪽이 뜬다 → 준비 안 됨 → 구름 뒤 '노드 화면으로' 버튼)
-        // 준비 판정(MD-41): 예전엔 load 뒤 900ms 고정이었다. 이제 노드 화면이 이 노드의 값에 붙었는지(liveHub 값)를 본다 — 붙었으면 바로,
+        // 준비 판정(MD-43): 예전엔 load 뒤 900ms 고정이었다. 이제 노드 화면이 이 노드의 값에 붙었는지(liveHub 값)를 본다 — 붙었으면 바로,
         // 연결을 기다려야 하는 판(Terra 안 · 토큰 있음)인데 아직이면 3.5초까지, 연결이 필요 없는 판은 0.25초 뒤. 읽힌 것이 노드 화면이 아니면(없는 주소) 2초까지 다시 본다.
         fr.addEventListener('load', () => {
           const t0 = performance.now();

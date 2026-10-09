@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/manual"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/manual"
 )
 
 // manualDoor is the hand-registration side of the inventory: the source that

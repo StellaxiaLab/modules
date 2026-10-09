@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
 )
 
 func TestKindForMapsOnlyDescribableClasses(t *testing.T) {

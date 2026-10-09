@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-weave/weave"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-weave/weave"
 )
 
 // Operation paths, mirroring the gateway-http bindings in

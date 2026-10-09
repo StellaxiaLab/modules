@@ -23,6 +23,7 @@ related:
   - "[[real-data-layer|실데이터 층]]"
   - "[[module-profile|모듈 프로필]]"
   - "[[implementation-backlog|구현해야 할 것]]"
+  - "[[onboarding-gap-analysis|온보딩 · 관리 화면 공백 분석]]"
   - "[[performance-and-fidelity-recommendations|맵 진입 지연과 가짜 값 — 개선 권고안]]"
   - "[[work-order-map-entry-and-fidelity|작업 지시서 — 맵 진입 지연 · 지어낸 값 · 빈 창]]"
   - "[[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]]"
@@ -74,6 +75,7 @@ flowchart LR
 | SVI 흐름도 · 흐름 이벤트 · 빈 목록의 이유 | [[real-data-layer\|실데이터 층]] §2.2 · §5.6 · [[helm-apps-integration\|조타륜 앱 연동]] §2.1 · [[implementation-backlog\|구현해야 할 것]] MD-23 · UP-24 |
 | 맵의 연결(도로)을 SVI 바인딩 · 허가로 — 대응 표 · 흐름 · 데이터 모양 · 입출력 설정 화면 요구사항 (MD-1) | [[io-link-svi-binding-design\|입출력 연결 ↔ SVI 바인딩 설계]] |
 | **남은 일** — 플랫폼 · 이 모듈 · GUI 원본 · 결정 | [[implementation-backlog\|구현해야 할 것]] |
+| **첫 실행 · 온보딩 · 관리 화면에서 비어 있는 것** | [[onboarding-gap-analysis\|온보딩 · 관리 화면 공백 분석]] |
 | 맵 진입이 느린 이유(타일 굽기) · 지어낸 CPU/메모리/디스크 값 · 빈 창 — 측정과 권고 | [[performance-and-fidelity-recommendations\|맵 진입 지연과 가짜 값 — 개선 권고안]] |
 | **세션에 붙일 한 줄** — 맵 진입 개선 작업의 순서 · 완료 기준 · 기록표 · 진행 로그 | [[work-order-map-entry-and-fidelity\|작업 지시서]] |
 | 도로 편집기 · 건물 타입 도로 | [[road-editor-spec\|도로 편집기]] |
@@ -94,7 +96,7 @@ flowchart LR
 | `docs/screens/` | [[node-screen-ui-spec\|UI 명세]] · [[road-editor-spec\|도로 편집기]] |
 | `docs/api/` | [[frontend-api\|프론트엔드 API]] · [[helm-apps-integration\|조타륜 앱 연동]] · [[node-screen-api-integration\|API 연동 가이드]] · [[real-data-layer\|실데이터 층]] |
 | `docs/data/` | [[node-screen-data-model\|데이터 모델]] · [[io-link-svi-binding-design\|입출력 연결 ↔ SVI 바인딩 설계]] |
-| `docs/guides/` | [[getting-started\|시작하기]] · [[module-profile\|모듈 프로필]] · [[implementation-backlog\|구현해야 할 것]] · [[implementation-guide\|구현 가이드]] · [[node-screen-code-structure\|이식 가이드]] · [[testing\|시험]] |
+| `docs/guides/` | [[getting-started\|시작하기]] · [[module-profile\|모듈 프로필]] · [[implementation-backlog\|구현해야 할 것]] · [[onboarding-gap-analysis\|온보딩 공백 분석]] · [[implementation-guide\|구현 가이드]] · [[node-screen-code-structure\|이식 가이드]] · [[testing\|시험]] |
 
 ## 화면과 원본
 

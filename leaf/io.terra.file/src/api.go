@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.file/store"
-	"github.com/terra-project/terra/module/leaf/io.terra.file/transfer"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/store"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/transfer"
 )
 
 // apiPrefix is where the Gateway mounts this module's operations

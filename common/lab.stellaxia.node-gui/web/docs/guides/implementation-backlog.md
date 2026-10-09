@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.15.0"
+version: "1.16.0"
 last_updated: "2026-10-09"
 language: "ko-KR"
 os_priority:
@@ -48,8 +48,8 @@ related:
 
 남은 것만 센다(2026-10-05 저녁 · 2026-10-07에 §5 입출력 연결 설계의 PF-18~PF-23 · MD-27~MD-33 · UP-25~UP-31을 더했다). Terra G0~G6이 닫은 PF는 §1.2, 이 모듈이 끝낸 MD는 §2 "끝낸 것", 원본이 고친 UP는 §3.0에 있다.
 2026-10-07 저녁 — Terra가 PF-7(작업 출력 · 다시 실행)을 닫았다([Terra#140](https://github.com/StellaxiaLab/Terra/pull/140) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)). 이 모듈이 따라갔다(MD-34) — 생성기 패치 하나가 원본에 올릴 것(UP-32)으로 남는다.
-2026-10-09 — 맵 진입 개선을 끝냈다(MD-35 · MD-36 · MD-38 · MD-40 · MD-41 완료 · MD-37 효과 없음 · MD-39 불필요 — 로그인 → 맵 평균 20.1초 → 7.3초, 모듈 0.4.2). 남은 것은 MD-42 · PF-25.
-2026-10-09 — **maingui를 더 이상 쓰지 않는다** — `web/design/`이 이 저장소의 원본이라 UP-33~UP-36은 MD-35 · MD-36 · MD-40 · MD-41로 흡수했다(순서 · 완료 기준: [[work-order-map-entry-and-fidelity|작업 지시서]]).
+2026-10-09 — 맵 진입 개선을 끝냈다(MD-35 · MD-36 · MD-38 · MD-40 · MD-43 완료 · MD-37 효과 없음 · MD-39 불필요 — 로그인 → 맵 평균 20.1초 → 7.3초, 모듈 0.4.2). 남은 것은 MD-42 · PF-25.
+2026-10-09 — **maingui를 더 이상 쓰지 않는다** — `web/design/`이 이 저장소의 원본이라 UP-33~UP-36은 MD-35 · MD-36 · MD-40 · MD-43로 흡수했다(순서 · 완료 기준: [[work-order-map-entry-and-fidelity|작업 지시서]]).
 2026-10-08 — 레지스트리로 설치해 Terra 셸에서 열어 재 본 결과(맵 진입 20초+ · 지어낸 CPU · 메모리 · 디스크 값 · 빈 창)를 MD-35~MD-40(+ UP-33~UP-36 → MD로 흡수)으로 올렸다. 측정과 근거는 [[performance-and-fidelity-recommendations|맵 진입 지연과 가짜 값 — 개선 권고안]] — 어느 것부터 어떻게 하는지는 [[work-order-map-entry-and-fidelity|작업 지시서]].
 Terra G0~G6이 연 길(B-1 · B-5 · C-1 · B-11 · B-12 · B-14)은 이 모듈이 모두 옮겼다 — MD-11 · MD-12 · MD-15~MD-20.
 끊긴 뒤 이어서(MD-21)도 끝냈다 — 그 길에서 찾은 io.terra.file 문제(invoke로 보낸 중단이 늘 포기)를 0.2.1로 함께 고쳤다.
@@ -123,7 +123,7 @@ flowchart LR
 | PF-11 | leaf 게이트웨이의 모듈 로그 | B-14 | `terra.gateway.modules.by-id.logs.get` 200 · `terra.daemon.modules.by-module-id.logs.get` 200 | MD-16 |
 | PF-12 | `storage.shared_dirs` 스키마 타입 | B-15 ① | `config.schema.get` → `object_list` | — |
 | PF-6 | 파일 받기 · 올리기 | (Terra 몫이 아니었다) | `io.terra.file.transfers.*`는 원래 있다 — 조각 루프는 화면 일이다. maingui A-2가 지었다 | MD-17 |
-| PF-7 | 명령 출력 · 다시 실행 | Terra PF-7 — [Terra#140](https://github.com/StellaxiaLab/Terra/pull/140)(출력 쪽 읽기 `tasks.by-task-id.output.get` · 출력 SSE `output.events.get` · 다시 실행 `rerun.post` · 가리기 · 감사) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)(실행 중 등록 · Master 작업 env 가리기 · 확인 승인) | **앱 토큰 실측 전 (2026-10-07)** — 이 모듈은 가짜 서버 시험만(`tests/taskout.test.mjs`). Terra 쪽에서 Gateway를 지나는 출력 SSE가 15초 넘게 사는 것을 실측했다(Terra#144) | MD-34 |
+| PF-7 | 명령 출력 · 다시 실행 | Terra PF-7 — [Terra#140](https://github.com/StellaxiaLab/Terra/pull/140)(출력 쪽 읽기 `tasks.by-task-id.output.get` · 출력 SSE `output.events.get` · 다시 실행 `rerun.post` · 가리기 · 감사) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)(실행 중 등록 · Master 작업 env 가리기 · 확인 승인) | **앱 토큰 실측 (2026-10-09)** — Terra main `1e13d75` 스택에서 이 앱 토큰으로 실행 중 읽기 · SSE 따라가기 · 비밀 가림 · 다시 실행 · 노드 주소 호출 읽기 · Master가 보낸 작업의 409를 확인했다(`web/tools/live-taskout.mjs` 15개 — [[real-data-layer\|실데이터 층]] §5.7). Gateway를 지나는 SSE가 15초 넘게 사는 것은 Terra#144가 실측했다 | MD-34 |
 | PF-13 | 선언 쓰기 op | **진단 정정** | 선언 op 셋(`svi.declarations.post` · `undeclare` · `forget`)은 Daemon 계약에 처음부터 있었다. 카탈로그는 호출자가 쥔 권한으로 거른다(`narrowList`). `node.config`★는 기본 권한 밖이라 **관리자 토큰에도** 안 보인다(관리자 143 · 앱 142 / 전체 156) | Q-10 |
 
 ## 2. 이 모듈에서 할 것 (MD)
@@ -150,8 +150,8 @@ flowchart LR
 | **MD-38** | 모듈 없음과 오류 구분 | `src/api/module-gate.js` — `modules.get`(15초 캐시)로 설치 여부를 보고 없으면 `io.devices.get`(`io.terra.io-inventory`) · `files.list.get`(`io.terra.file`)을 부르지 않는다. 이유 글 `no-module` · `LOCAL_API_UNAVAILABLE`. 로그인 → 맵 구간 503 두 건 제거 · 시험 5개 · 2026-10-09 · 0.4.2 |
 | **MD-39** | 굽기 결과 캐시 | **불필요** — MD-35로 런타임 굽기가 1~11장이 됐다 · 2026-10-09 |
 | **MD-40** | 모듈 · 사용자 · 설정 창 본문 | 보드가 있는 창은 [전체 화면으로 열기](`fsToggle` — 누르면 진짜 보드가 열린다), 없는 창은 "이 앱에 아직 없다". **"보드에서 열기 →" 링크 제거**(srcdoc 안에서 누르면 CSP 오류 페이지로 바뀌어 노드 화면이 깨졌다). 모듈 요약에 scene 모듈이 "실행"으로 세어지지 않는 이유 · 사용자 요약은 "이 화면이 받은 권한 N개". 조타륜 "속성" 메뉴는 정상. 시험 2개. UP-36 흡수 · 2026-10-09 · 0.4.2 |
-| **MD-41** | 진입 연출 | 연출은 이미 구름에서 맵을 기다리고 있었다 — 고정 지연만 줄였다: 미리 읽기 1200 → 250ms · 준비 판정 load+900ms → 노드 화면의 liveHub 값 확인(최대 3.5초) · `autoMs` 1400 → 900. 7.8~8.0 → 7.1~7.2초. UP-35 흡수 · 2026-10-09 · 0.4.2 |
-| **MD-34** | 작업 출력 · 다시 실행 — Terra PF-7 · [[real-data-layer\|실데이터 층]] §2.10 | `src/api/task-output.js`(`OutputView` — 읽은 쪽 · 따라온 조각 → 출력 칸의 글: 섞인 흐름의 stderr `! ` · 노드가 버린 앞부분 · 끝 상태 · 받지 않은 출력 · 끝 512 K 글자 / `followOutput` — 이 노드의 출력 SSE를 읽은 `last_seq` 뒤부터, `end`에 닫는다). 대응표: 이 노드 · 다른 노드(노드 주소 호출)의 `출력` = `tasks.by-task-id.output.get`(`process.execute`), `다시` = `rerun.post {task_id, confirmed: true}`(이 노드 · 두 번 누름 `confirm` · Master가 보낸 작업은 부르지 않고 이유). 카드는 실행 중에도 `출력`(생성기 `MODULE_JS` 둘째 패치 — UP-32). `openEvents`에 처음 자리 `last` · Daemon 오류 코드 여덟을 화면 글로 · `no-rerun` 을 걷었다. 시험 `tests/taskout.test.mjs` 5개 · 전체 196 통과. 앱 토큰으로 진짜 스택 실측은 아직 · 2026-10-07 |
+| **MD-43** | 진입 연출 | 연출은 이미 구름에서 맵을 기다리고 있었다 — 고정 지연만 줄였다: 미리 읽기 1200 → 250ms · 준비 판정 load+900ms → 노드 화면의 liveHub 값 확인(최대 3.5초) · `autoMs` 1400 → 900. 7.8~8.0 → 7.1~7.2초. UP-35 흡수 · 2026-10-09 · 0.4.2 |
+| **MD-34** | 작업 출력 · 다시 실행 — Terra PF-7 · [[real-data-layer\|실데이터 층]] §2.10 | `src/api/task-output.js`(`OutputView` — 읽은 쪽 · 따라온 조각 → 출력 칸의 글: 섞인 흐름의 stderr `! ` · 노드가 버린 앞부분 · 끝 상태 · 받지 않은 출력 · 끝 512 K 글자 / `followOutput` — 이 노드의 출력 SSE를 읽은 `last_seq` 뒤부터, `end`에 닫는다). 대응표: 이 노드 · 다른 노드(노드 주소 호출)의 `출력` = `tasks.by-task-id.output.get`(`process.execute`), `다시` = `rerun.post {task_id, confirmed: true}`(이 노드 · 두 번 누름 `confirm` · Master가 보낸 작업은 부르지 않고 이유). 카드는 실행 중에도 `출력`(생성기 `MODULE_JS` 둘째 패치 — UP-32). `openEvents`에 처음 자리 `last` · Daemon 오류 코드 여덟을 화면 글로 · `no-rerun` 을 걷었다. 시험 `tests/taskout.test.mjs` 5개 · 전체 196 통과 · 2026-10-07. 앱 토큰 진짜 스택 실측 `web/tools/live-taskout.mjs` 15개 통과(실데이터 층 §5.7) · 2026-10-09 |
 | **MD-4** | LayoutStore 안의 노드 키 — 이름이 바뀌어도 따라간다 | 저장할 때 이름 → `node_id`(`nodeIds`)를 같이 적고, 읽을 때 지금 관계도의 이름으로 옮긴다(`layout.js` `remapNodes`) — 맵 주인 · 노드 칸 · 새 노드 · 모습 · 노드 자원의 노드 · 연결이 고른 자원. 사라진 노드의 칸은 같은 이름을 얻은 **다른** 노드에게 넘기지 않는다. 예전 저장본(`nodeIds` 없음)은 그대로 읽는다. 저장 형식은 그대로 이름 키라 서버 저장(PF-3)으로 옮겨도 같다 · 2026-10-05 |
 | **MD-5** | leaf 맵 자기 칸에서 연결 시작 · 상태 창 | maingui `f24c3bc`가 `nodeAt()`으로 자기 칸을 노드로 보게 됐다 — 캡슐이 뜨고, 자원 → 자기 칸은 공유가 되고, 자기 칸에서 나가는 연결은 원본 규칙대로 다른 맵에서 들어온 자원이 있어야 한다. `fixes.js`는 설치(`placeAt`)만 막는다 · 2026-10-05 |
 | **MD-7** | 폴더 자원의 모니터링 경로 | 설치한 폴더 · 파일 자원과 상태 화면이 보는 칸의 **위 칸까지** 읽는다(`wire.js` `folderPaths` · `source.js` 경로 여럿) · 2026-10-04 |
@@ -161,6 +161,7 @@ flowchart LR
 | **MD-15** | 맵 배치 · 자산 서버 저장 | `src/store/docs.js` — 이름공간 `app:<whoami delegate>` · 키 `layout/<node_id>` · `assets`. 브라우저에는 바로, 서버에는 3초 모아서. 새 쪽(`savedAt` · `_savedAt`)이 이기고, 쓰기마다 `base_revision` · 409면 한 번 알리고 다시 쓴다. 바뀐 것이 있을 때만 쓴다. 서버가 없거나 막히면 브라우저만. `config.json` `layoutStore: server`(기본) · `local` · `none` · 2026-10-05 |
 | **MD-16** | 모듈 로그 · 폴더 탐색기 · 열기 | 로그 → 상태 화면 출력 칸(게이트웨이 `logs` · Daemon `lines` 둘 다). 폴더 탐색기 = `local-fs.roots` · `entries`(🔒 + 이유). 파일 = `desktop.open {open}`, `파일 관리자로` = 지금 폴더 `{reveal}` — 그 컴퓨터에서 볼 때만(`*.localhost`). Daemon 오류 코드는 화면 글로 · 2026-10-05 |
 | **MD-17** | 파일 올리기 · 받기 | 올리기 — `↑ 올리기` → 파일 고르기 → `transfers.create`(SHA-256) → 조각 → 409면 서버 offset부터 → 완료 검사(maingui A-2를 옮겼다). **받기** — 폴더 앱 `받기` → `transfers.pulls.create` → `chunks.get`(조각마다 SHA-256) → 전체 검사 → `pulls.complete` → 브라우저 저장. 받기는 io.terra.file 0.2.0(#24)부터 — 원본에는 아직 없다(UP-20) · 2026-10-05 |
+| **MD-41** | 입출력 설정 창 — UP-25 최소판(2026-10-08) | 자원 설정 창(`rcfg`)의 입력 · 출력 줄마다 **[설정]**이 생겼다 — 펼치면 종류 배지(바인딩 · 공유 · 화면 전용) · 보내는 · 받는 엔드포인트 고르기 · 형식 판정 · 호환 정책 · QoS(두 끝이 함께 내는 것만, `reliable_ordered`는 이어서 만들 수 있을 때만) · 허가 상태 + [나에게 허가 주기](기한 고르기, Q-23) · 상태 줄 · [연결 적용] · [바인딩 닫기] · 잠금 이유(E-12) · 화면 전용 안내(E-13). 연결 `io`(MD-27)를 읽고 쓰고, 적용은 `linkApply` · `linkGrantSelf`(MD-28 · `link-wire.js`)를 부른다. **디자인 원본**(`design/Artboard-qcfu.dc.html`)에 예시 구현이 있고 — 모듈은 엔드포인트를 그 자원의 실제 목록(`flow.eps`)으로 덮고(`fixes.js` `IOEPS`), 서버에 닿기 전에는 적용을 지어내지 않고 이유를 말한다(UP-14 원칙). 최소판 밖: E-6 · E-8 · E-9 · [다시 시도] · [경로 철거로 가기] · [흐름 열기] 시험은 `tests/smoke.mjs`(패널 · 고름 · 잠금 · 디자인 예시 흐름). |
 | **MD-18** | 장치 손 등록 | I/O 앱 `＋ 추가` 폼 = 이름 · 주소. 주소 scheme → `manual.rtsp` · `manual.http-camera` → `terra.daemon.io.devices.post {kind: camera, name, adapter_id, address}`. 비우면 스캔 · 모르는 scheme은 부르지 않는다. io-inventory 0.2.0(#26) · 2026-10-05 |
 | **MD-21** | 받기 · 올리기를 끊긴 뒤 이어서 | **올리기** — 같은 자리에 같은 파일(크기 · SHA-256)을 보내다 멈춘 전송을 `transfers.list`에서 찾아 `resume_id`로 다시 연다(새로 만들기가 부분 파일 때문에 `FILE_TARGET_EXISTS`일 때 · 방금까지 움직인 것은 3초 뒤 다시 본다 · 기한이 지나도). **받기** — 받은 조각을 이 브라우저 IndexedDB(`src/store/parts.js`)에 두고, SHA-256 · 크기가 같으면 둔 곳부터 · 앞선 받기는 닫는다. **전송 앱** — 멈춘 전송(보내던 화면이 닫혔다)은 `어긋남` 칸 + 이어서(파일 고르기 · 이름은 달라도 된다) · 중단(부분 남김) · 치우기(부분도 버림). **io.terra.file 0.2.1** — 중단의 `keep_partial` · `reason`을 invoke 본문에서도 읽는다(0.2.0은 query만 읽어 앱의 중단이 늘 포기였다) · 기한 지난 받기도 받기 전용 문으로 닫는다. 진짜 스택에서 4 MB 올리기 · 받기를 31%에서 끊고 이었다([[real-data-layer\|실데이터 층]] §5.4) · 2026-10-05 |
 | **MD-22** | maingui `e669c03` 따라가기 — 모듈 설정 폼 | `design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **모듈 수정 = 모듈 설정**(maingui A-29): 폼을 열기 전에 `config.schema.get` · `config.get`으로 칸 · 값을 받아 항목에 붙이고(`cfgForm`), 저장은 바뀐 키만 `config.patch {values, unset, base_revision}`(`cfgPatch`). 거절한 키(`detail.keys`) · 409 겹침 · 설정 없는 모듈을 글로. 다른 노드는 노드 주소 호출. I/O 장치를 고칠 때는 원본의 새 주소 칸을 뺀다(주소를 바꾸는 op 가 없다). 진짜 스택(Terra main)에서 시험 모듈로 거절 · 저장 · 다시 열기 · 겹침 · 비우기를 확인했다([[real-data-layer\|실데이터 층]] §5.5) · 2026-10-05 |
@@ -183,7 +184,7 @@ MD-11 · MD-12 · MD-15~MD-20의 진짜 스택 실측은 [[real-data-layer|실�
 ## 3. GUI 원본(maingui) · 디자인에 올릴 것 (UP)
 
 > [!WARNING] 2026-10-09 — maingui는 더 이상 쓰지 않는다
-> 이 절의 UP 항목은 "원본에 올릴 것"으로 적었지만 원본 저장소가 중단되어 올릴 곳이 없다. **새로 찾은 UP-33~UP-36은 MD-35 · MD-36 · MD-40 · MD-41로 흡수**했다.
+> 이 절의 UP 항목은 "원본에 올릴 것"으로 적었지만 원본 저장소가 중단되어 올릴 곳이 없다. **새로 찾은 UP-33~UP-36은 MD-35 · MD-36 · MD-40 · MD-43로 흡수**했다.
 > 남은 UP-9 · UP-11 · UP-12(바 · 사) · UP-14 · UP-16 · UP-22 · UP-23 · UP-25~UP-32는 원본에 올릴 곳이 없으니, 하려면 MD로 옮긴다(`web/design/`을 직접 고치는 길) — 옮기기 전까지는 "원본 쪽에 남은 것"으로 둔다. 나중에 정리한다.
 
 모듈을 만들며 찾은 것이다. service 판은 같은 진짜 게이트웨이(`/gw` → `127.0.0.1:28787`)에 `tools/serve.mjs`로 붙여 확인했다.
@@ -196,8 +197,9 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 | 원본에 올렸다 | UP-1 · UP-2 · UP-3 · UP-10 · UP-12(나) · UP-15 · UP-18 · UP-19 · UP-21 · UP-24 | [maingui#1](https://github.com/StellaxiaLab/maingui/pull/1) — 고치기 전 코드에서 실패하는 시험과 함께(UP-19 · UP-21은 둘째 커밋 `43d547a` — 가짜 Gateway도 실제 모양으로, UP-24는 셋째 커밋 `580c6e5` — 가짜 Gateway의 Daemon 재시작으로 재현). main `e669c03`을 합쳤다(`c4fce94`). main에 병합됐다(`07d5739`) — 모듈은 MD-24로 그 원본을 따라갔다 |
 | 원본이 고쳤다 | UP-4 · UP-5 · UP-6 · UP-7 · UP-8 · UP-12(가 · 다 · 라 · 마) · UP-13 · UP-17 · UP-20 | maingui `19d2a70`(연동 층을 실제 Gateway에) · `2ced429`(G0~G6 연동) · `e669c03`(A-30 내려받기 — UP-20은 PR에서 뺐다) |
 | 남았다 | UP-9 · UP-11 · UP-12(바 · 사) · UP-14 · UP-16 | 아래 — maingui `1aa6340`에서 다시 봤다(`43a4e3a`는 이 줄들을 건드리지 않았다)(로컬 노드 `소유자` · 작업 실행 `commands.post` · `화면에만 반영` · 노드 칸 `로그인됨`이 그대로다) |
-| 새로 찾았다 — 아직 올리지 않았다 | UP-22 · UP-23 · UP-32 | MD-21 · MD-34에서 — 아래 |
-| **maingui 중단으로 MD에 흡수**(2026-10-09) | UP-33 → MD-35 · UP-34 → MD-36 · UP-35 → MD-41 · UP-36 → MD-40 | 2026-10-08 맵 진입 측정에서 찾았고, 원본이 이 저장소의 `web/design/`이 되어 모듈에서 직접 고친다 |
+| 디자인 원본(이 저장소 `web/design`)에 직접 반영했다 | UP-22 | 2026-10-08 — 전송 카드에 `stalled`(멈춤) 칩 · 이어서 · 중단. 모듈은 `markStalled`가 `failed` 대신 `stalled`를 준다 |
+| 새로 찾았다 — 아직 올리지 않았다 | UP-23 · UP-32 | MD-21 · MD-34에서 — 아래 |
+| **maingui 중단으로 MD에 흡수**(2026-10-09) | UP-33 → MD-35 · UP-34 → MD-36 · UP-35 → MD-43 · UP-36 → MD-40 | 2026-10-08 맵 진입 측정에서 찾았고, 원본이 이 저장소의 `web/design/`이 되어 모듈에서 직접 고친다 |
 
 - **UP-9** — `service.js` `hbPerm`이 로컬 노드를 여전히 `소유자` · 모든 권한으로 둔다. 원본의 선택일 수 있다(권한 없는 호출은 게이트웨이가 거절한다)
 - **UP-11** — UI 명세 §2.9가 여전히 §2.13 뒤에 있다
@@ -224,7 +226,7 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
   `다시`는 같은 명령을 다시 돌리므로 두 번 눌러야 한다(`정말 다시` — 회수와 같은 `hbArm`). 이 노드의 출력은 `process.execute`가 있어야 한다.
   모듈은 생성기 `MODULE_JS`로 그 한 줄을 바꿔 들고 있다(`tools/gen-pages.py`) — 원본에 올라가면 걷는다 · 낮음
 
-새로 찾은 것(2026-10-08 — 레지스트리로 설치해 Terra 셸에서 맵 진입을 재 보며 · **2026-10-09 maingui 중단으로 MD-35 · MD-36 · MD-40 · MD-41에 흡수 — 아래는 찾은 근거로 남긴다** · 근거 [[performance-and-fidelity-recommendations|권고안]]):
+새로 찾은 것(2026-10-08 — 레지스트리로 설치해 Terra 셸에서 맵 진입을 재 보며 · **2026-10-09 maingui 중단으로 MD-35 · MD-36 · MD-40 · MD-43에 흡수 — 아래는 찾은 근거로 남긴다** · 근거 [[performance-and-fidelity-recommendations|권고안]]):
 
 - **UP-33** — 타일 · 도로를 런타임에 SVG → `canvas` → `toDataURL('image/png')`로 3배 해상도로 굽는다(`design/Artboard-qcfu.dc.html` `bakeImgs` · `roadImgOf`). 한 번 여는 데 `toDataURL` 318회 · 약 36MB · 3.4초 + `drawImage` 151회 · 1.0초 + SVG 디코드가
   메인 스레드를 거의 쉬지 못하게 한다(헤드리스 소프트웨어 렌더링 환경 — 실제 PC 값은 따로 잰다). 비동기(`toBlob` · `createImageBitmap`/`OffscreenCanvas`) · 보이는 것부터 · 화면 배율에 맞춘 해상도 · 중복 합치기로 · 높음
@@ -305,7 +307,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 | MD | **MD-31** | 도로 이벤트는 **끝냄**(아래 §2 끝낸 것) — 남은 것: 흐름 도로를 바인딩 `active`로 그리기(UP-27 — 도로 라벨이 fps라 바인딩만 있고 핸들이 없을 때의 모습이 디자인 몫) | 중간 |
 | MD | **MD-32** | 연결 E2E — 가짜 서버 + tree 진짜 스택(MD-13과 함께) | 중간 |
 | MD | **MD-33** | ~~"허가를 고치는 op 없음" 글~~ — **끝냄**(2026-10-07, 글만이 아니라 `update`를 실제로 달았다) | — |
-| UP | **UP-25** | 입출력 설정 화면 디자인(요구사항은 설계 §6) | 높음 |
+| UP | **UP-25** | ~~입출력 설정 화면 디자인~~ — **최소판 끝냄**(2026-10-08 · MD-41). 남은 요소는 설계 §6.1 "나중으로 미룬다" | — |
 | UP | **UP-26** | 연결 상태 → 도로 이벤트(`evOf`가 끝 자원 `status`만 본다) | 중간 |
 | UP | **UP-27** | `sviRoads` 조건을 열린 핸들 대신 바인딩 `active`로 | 중간 |
 | UP | **UP-28** | `links` 모양에 `io` 더하기 | 중간 |
@@ -318,6 +320,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 
 - [[docs/README|개발 문서 MOC]]
 - [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]] — MD-1 설계 · §5의 근거
+- [[onboarding-gap-analysis|첫 실행 · 온보딩 · 관리 화면 공백 분석]] — O-1~O-8 · M-1~M-7 (maingui에서 옮김) · 안 한 것(O-8 · M-3~M-5 · O-3 노드 화면 알람)
 - [[module-profile|모듈 프로필]] — 변형 · 시작 화면 · LayoutStore · 생성 때 바꾸는 것
 - [[real-data-layer|실데이터 층]] — §3 비어 있는 것 · §5 실측
 - [[implementation-guide|구현 가이드]] — 실데이터로 옮기는 순서 · 결정 필요
@@ -345,7 +348,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 - MD-17 → MD-21: 한 세션 안의 이어 보내기(409 → 서버 offset) → 페이지를 닫은 뒤에도(서버 checkpoint · 이 브라우저의 조각)
 - io.terra.file 0.2.1 → MD-21: 중단이 부분을 남겨야 다시 올릴 때 잇는다 — 0.2.0은 invoke로 보낸 중단을 늘 포기로 들었다
 - MD-21 → UP-22 · UP-23: 멈춤 칸과 이어서를 원본에도
-- 2026-10-08 맵 진입 측정 → MD-35 · MD-36 · MD-37 · MD-38 · MD-39 · MD-40 · MD-41(UP-33~UP-36을 흡수): 굽기(MD-35) · 지어낸 미터(MD-36) · 요청 순서(MD-37) · 연출(MD-41) · 빈 창(MD-40) — [[performance-and-fidelity-recommendations|개선 권고안]] · [[work-order-map-entry-and-fidelity|작업 지시서]]
+- 2026-10-08 맵 진입 측정 → MD-35 · MD-36 · MD-37 · MD-38 · MD-39 · MD-40 · MD-43(UP-33~UP-36을 흡수): 굽기(MD-35) · 지어낸 미터(MD-36) · 요청 순서(MD-37) · 연출(MD-43) · 빈 창(MD-40) — [[performance-and-fidelity-recommendations|개선 권고안]] · [[work-order-map-entry-and-fidelity|작업 지시서]]
 - maingui `e669c03` → MD-22: 원본이 모듈 수정 폼을 모듈 설정으로 바꿨다 — 모듈은 디자인을 복사하고 연동 층(받기 · 저장)을 지었다. 저장은 `module.manage`★(Q-16)
 - maingui `1aa6340` → MD-23: 원본이 SVI 자원 앱을 흐름도로 바꿨다 — 모듈은 디자인을 복사하고 연동 층(흐름 · 흐름 이벤트)을 옮겼다. SVI는 Master op라 앱 토큰으로는 빈 흐름도(PF-1)
 - MD-23 → UP-24: 목록을 받지 못한 이유를 남기는 것을 원본에도 올렸다(maingui#1 `580c6e5`)

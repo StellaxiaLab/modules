@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/discovery"
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/manual"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/discovery"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/manual"
 )
 
 func tombstoneFixture(t *testing.T) (http.Handler, *inventory.Registry) {

@@ -30,7 +30,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // directoryRefresh is how long a learned name is trusted before this node asks

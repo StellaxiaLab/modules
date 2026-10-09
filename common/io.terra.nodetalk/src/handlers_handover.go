@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // peerPrincipalPrefix is how the door's relay stamps a peer module instance
