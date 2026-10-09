@@ -2,14 +2,6 @@ module github.com/StellaxiaLab/modules/common/io.terra.agent
 
 go 1.24.0
 
-replace github.com/terra-project/terra/products/common/packages/terra-module-sdk => ../../../../products/common/packages/terra-module-sdk
-
-replace github.com/terra-project/terra/products/common/packages/terra-module-runtime => ../../../../products/common/packages/terra-module-runtime
-
-replace github.com/terra-project/terra/products/common/packages/terra-protocol => ../../../../products/common/packages/terra-protocol
-
-replace github.com/terra-project/terra/products/common/packages/terra-svi => ../../../../products/common/packages/terra-svi
-
 replace github.com/terra-project/terra/products/common/packages/terra-agent-core => ../../../../products/common/packages/terra-agent-core
 
 replace github.com/terra-project/terra/products/common/packages/terra-api-contract => ../../../../products/common/packages/terra-api-contract
@@ -17,8 +9,6 @@ replace github.com/terra-project/terra/products/common/packages/terra-api-contra
 require (
 	github.com/anthropics/anthropic-sdk-go v1.71.0
 	github.com/terra-project/terra/products/common/packages/terra-agent-core v0.0.0
-	github.com/terra-project/terra/products/common/packages/terra-module-runtime v0.0.0
-	github.com/terra-project/terra/products/common/packages/terra-module-sdk v0.0.0
 )
 
 require (
@@ -30,7 +20,6 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.1 // indirect
 	github.com/terra-project/terra/products/common/packages/terra-api-contract v0.0.0 // indirect
-	github.com/terra-project/terra/products/common/packages/terra-svi v0.0.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
@@ -38,7 +27,10 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
-	github.com/terra-project/terra/products/common/packages/terra-testwait v0.0.0
 )
 
-replace github.com/terra-project/terra/products/common/packages/terra-testwait => ../../../../products/common/packages/terra-testwait
+require github.com/StellaxiaLab/terra-sdk v0.1.0
+
+require github.com/StellaxiaLab/modules/internal/testkit v0.0.0
+
+replace github.com/StellaxiaLab/modules/internal/testkit => ../../../internal/testkit

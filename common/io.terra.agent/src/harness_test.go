@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
-	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
 // The test bench: a fake host that answers the delegate door with a fake

@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
-	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
 const moduleVersion = "0.1.0"

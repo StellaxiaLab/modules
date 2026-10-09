@@ -10,7 +10,7 @@ import (
 
 	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
 
-	"github.com/terra-project/terra/products/common/packages/terra-testwait"
+	"github.com/StellaxiaLab/modules/internal/testkit/testwait"
 )
 
 // Each row of the design's decision table (§6.3) has a test here, run through

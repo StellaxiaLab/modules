@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"time"
 
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
-	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
 )
 
 // doorTimeout bounds one relayed Gateway call. The door caps it at two

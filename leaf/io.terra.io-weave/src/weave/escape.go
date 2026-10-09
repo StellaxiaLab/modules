@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
 )
 
 // The escape path (D-22).

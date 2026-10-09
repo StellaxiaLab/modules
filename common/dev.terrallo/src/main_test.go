@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
+	"github.com/StellaxiaLab/modules/internal/testkit/climanifest"
 )
 
 // This module is a probe for the registration → publication → distribution →
@@ -163,21 +163,16 @@ func TestOperationsRefuseNonGET(t *testing.T) {
 }
 
 // The three tests above read the manifest as plain JSON, which proves the file
-// says what we think it says but not that the PLATFORM agrees. ManifestCLICommands
-// is the function the module host actually runs, and it drops a malformed
-// command with a reason rather than failing the module — so a bad declaration
-// would ship quietly and `terra hello` would simply not exist. Running the real
-// validator here is what turns that silence into a test failure.
+// says what we think it says but not that the PLATFORM agrees. The host
+// drops a malformed command with a reason rather than failing the module — so a
+// bad declaration would ship quietly and `terra hello` would simply not exist.
+// climanifest reads the declaration as written and reports what is visibly
+// wrong; the host's own validator runs in CI (`terra module pack`).
 func TestPlatformAcceptsTheCLIContribution(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "module.json"))
+	commands, reasons, err := climanifest.Load(filepath.Join("..", "module.json"))
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
-	manifest, _, err := modulert.DecodeManifest(raw)
-	if err != nil {
-		t.Fatalf("the platform rejects this manifest: %v", err)
-	}
-	commands, reasons := modulert.ManifestCLICommands(manifest)
 	if len(reasons) != 0 {
 		t.Fatalf("the host would drop a contributed command: %v", reasons)
 	}

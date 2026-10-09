@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/StellaxiaLab/modules/internal/testkit/svicheck"
 	ioweave "github.com/StellaxiaLab/modules/leaf/io.terra.io-weave/ioweave"
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
-	coresvi "github.com/terra-project/terra/products/common/packages/terra-svi"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
+	coresvi "github.com/StellaxiaLab/terra-sdk/svi"
 )
 
 func newTestProjection(t *testing.T, profile ioweave.Profile) *Projection {
@@ -55,7 +56,7 @@ func TestPublishedResourceIsValidOnceTheDaemonNamespacesIt(t *testing.T) {
 	resource.ProviderID = "module.io.terra.io-weave"
 	resource.Owner = coresvi.SubjectRef{Type: coresvi.SubjectNode, ID: "node-a"}
 	resource.ExpiresAt = resource.ExpiresAt.AddDate(0, 0, 1)
-	if err := coresvi.ValidateResource(resource); err != nil {
+	if err := svicheck.Resource(resource); err != nil {
 		t.Fatalf("published resource is invalid: %v", err)
 	}
 }
@@ -74,9 +75,10 @@ func TestProjectedPointerCannotBeBoundAsASource(t *testing.T) {
 			t.Fatalf("endpoint offers %q, which lets another node read this node's borrowed pointer", operation)
 		}
 	}
-	decision := coresvi.EvaluateBinding(endpoint, endpoint)
-	if decision.Result != coresvi.CompatibilityIncompatible {
-		t.Fatalf("sink-as-source = %q, want incompatible", decision.Result)
+	// The host refuses to bind a sink as a source (its EvaluateBinding, not part
+	// of terra-sdk); what the module owns is that it never publishes a source.
+	if endpoint.Direction == coresvi.DirectionSource {
+		t.Fatalf("direction = %q: a published source lets another node bind this pointer as one", endpoint.Direction)
 	}
 }
 

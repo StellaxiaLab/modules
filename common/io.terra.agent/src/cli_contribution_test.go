@@ -2,31 +2,26 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
+	"github.com/StellaxiaLab/modules/internal/testkit/climanifest"
 )
 
 // contributions.cli is what turns this module's operations into `terra agent
 // …` commands. Two things rot silently there: a declaration the platform
 // quietly drops, and a pointer that no longer matches the operation's input
-// schema after a contract change. Both are asserted against the platform's
-// own validator and the shipped contract.
+// schema after a contract change. Both are asserted against the shipped
+// contract; the platform's own validator runs in CI (`terra module pack`).
 
-func loadManifest(t *testing.T) modulert.Manifest {
+func loadCommands(t *testing.T) ([]climanifest.Command, []string) {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "module.json"))
+	commands, problems, err := climanifest.Load(filepath.Join("..", "module.json"))
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
-	manifest, err := modulert.ParseManifest(raw)
-	if err != nil {
-		t.Fatalf("manifest rejected by the runtime: %v", err)
-	}
-	return manifest
+	return commands, problems
 }
 
 func contractInputSchema(t *testing.T, operationID string) (map[string]any, map[string]bool) {
@@ -48,7 +43,7 @@ func contractInputSchema(t *testing.T, operationID string) (map[string]any, map[
 }
 
 func TestEveryDeclaredCLICommandIsAccepted(t *testing.T) {
-	commands, reasons := modulert.ManifestCLICommands(loadManifest(t))
+	commands, reasons := loadCommands(t)
 	for _, reason := range reasons {
 		t.Errorf("the platform dropped a declared command: %s", reason)
 	}
@@ -70,7 +65,7 @@ func TestEveryDeclaredCLICommandIsAccepted(t *testing.T) {
 // Every pointer a command writes is a property of the operation it calls, and
 // every required property has a way to be supplied.
 func TestCLIPointersMatchTheContract(t *testing.T) {
-	commands, _ := modulert.ManifestCLICommands(loadManifest(t))
+	commands, _ := loadCommands(t)
 	check := func(commandName, operationID string, pointers map[string]bool) {
 		properties, required := contractInputSchema(t, operationID)
 		for pointer := range pointers {
@@ -113,7 +108,7 @@ func TestCLIPointersMatchTheContract(t *testing.T) {
 
 // The secrets arrive on standard input and nowhere else.
 func TestSecretsAreStdinFlags(t *testing.T) {
-	commands, _ := modulert.ManifestCLICommands(loadManifest(t))
+	commands, _ := loadCommands(t)
 	want := map[string]string{"agent credential set": "/credential", "agent model add": "/api_key"}
 	for _, command := range commands {
 		pointer, expected := want[command.Name]
@@ -143,8 +138,8 @@ func TestSecretsAreStdinFlags(t *testing.T) {
 // reads: identity at the viewer, history at entries, stream at the entry, send
 // at the text.
 func TestChatSessionRolesMatchTheContract(t *testing.T) {
-	commands, _ := modulert.ManifestCLICommands(loadManifest(t))
-	var chat *modulert.CLICommand
+	commands, _ := loadCommands(t)
+	var chat *climanifest.Command
 	for index := range commands {
 		if commands[index].Name == "agent chat" {
 			chat = &commands[index]

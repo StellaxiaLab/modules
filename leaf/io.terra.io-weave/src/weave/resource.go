@@ -11,8 +11,8 @@ package weave
 import (
 	"strings"
 
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
-	coresvi "github.com/terra-project/terra/products/common/packages/terra-svi"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
+	coresvi "github.com/StellaxiaLab/terra-sdk/svi"
 )
 
 // PointerResourceID is this module's local resource id — the suffix the daemon

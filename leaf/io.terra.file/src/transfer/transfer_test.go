@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/StellaxiaLab/modules/leaf/io.terra.file/store"
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
 )
 
 type harness struct {

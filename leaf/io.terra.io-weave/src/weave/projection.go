@@ -10,7 +10,7 @@ import (
 	"time"
 
 	ioweave "github.com/StellaxiaLab/modules/leaf/io.terra.io-weave/ioweave"
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
 )
 
 // Mode is what this node does with a pointer frame that reaches it.

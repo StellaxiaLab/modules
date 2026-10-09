@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
 )
 
 func mustTranslator(t *testing.T, profile Profile, layout string) *Translator {

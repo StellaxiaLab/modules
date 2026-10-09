@@ -1,3 +1,5 @@
+github.com/StellaxiaLab/terra-sdk v0.1.0 h1:JNcrwoT0SbdCvjJmYi2jTzGysmUChur1Io8usrDm0nk=
+github.com/StellaxiaLab/terra-sdk v0.1.0/go.mod h1:2z5ClnmVzDQQSLKltDO0l38I2ebS4xyCV38tATnfZpk=
 github.com/anthropics/anthropic-sdk-go v1.71.0 h1:DK9xG3s5t+xUIOp+R+1LIRjkU/wG57YyQO3630+gYOE=
 github.com/anthropics/anthropic-sdk-go v1.71.0/go.mod h1:x+lPk/cCl48uRegeP0hlYYBN1b7bEBTveInIMgLicnY=
 github.com/bahlo/generic-list-go v0.2.0 h1:5sz/EEAK+ls5wF+NeqDpk5+iNdMDXrh3z3nPnH1Wvgk=
