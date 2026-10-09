@@ -8,8 +8,8 @@ doc_type: "moc"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.6.0"
-last_updated: "2026-10-07"
+version: "1.7.0"
+last_updated: "2026-10-08"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -23,6 +23,7 @@ related:
   - "[[real-data-layer|실데이터 층]]"
   - "[[module-profile|모듈 프로필]]"
   - "[[implementation-backlog|구현해야 할 것]]"
+  - "[[performance-and-fidelity-recommendations|맵 진입 지연과 가짜 값 — 개선 권고안]]"
   - "[[io-link-svi-binding-design|입출력 연결 ↔ SVI 바인딩 설계]]"
   - "[[implementation-guide|구현 가이드]]"
   - "[[road-editor-spec|도로 편집기]]"
@@ -72,6 +73,7 @@ flowchart LR
 | SVI 흐름도 · 흐름 이벤트 · 빈 목록의 이유 | [[real-data-layer\|실데이터 층]] §2.2 · §5.6 · [[helm-apps-integration\|조타륜 앱 연동]] §2.1 · [[implementation-backlog\|구현해야 할 것]] MD-23 · UP-24 |
 | 맵의 연결(도로)을 SVI 바인딩 · 허가로 — 대응 표 · 흐름 · 데이터 모양 · 입출력 설정 화면 요구사항 (MD-1) | [[io-link-svi-binding-design\|입출력 연결 ↔ SVI 바인딩 설계]] |
 | **남은 일** — 플랫폼 · 이 모듈 · GUI 원본 · 결정 | [[implementation-backlog\|구현해야 할 것]] |
+| 맵 진입이 느린 이유(타일 굽기) · 지어낸 CPU/메모리/디스크 값 · 빈 창 — 측정과 권고 | [[performance-and-fidelity-recommendations\|맵 진입 지연과 가짜 값 — 개선 권고안]] |
 | 도로 편집기 · 건물 타입 도로 | [[road-editor-spec\|도로 편집기]] |
 | 화면 모양 · 동작 · 시간 | [[node-screen-ui-spec\|노드 화면 UI 명세]] |
 | 화면 객체의 메서드 · 상태 · seam · 연동 층 API | [[frontend-api\|프론트엔드 API]] |

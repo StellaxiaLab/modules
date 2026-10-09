@@ -8,7 +8,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.9.0"
+version: "0.10.0"
 last_updated: "2026-10-09"
 language: "ko-KR"
 os_priority:
@@ -313,7 +313,7 @@ Daemon 이 명령 작업마다 출력의 꼬리(256 KiB — 노드 전체 32 MiB
 
 | 비어 있는 것 | 이유 | 채우려면 |
 | --- | --- | --- |
-| Master 데이터(SVI · 허가 · SVI 흐름도 · 흐름 이벤트 · mesh · 사설망 · 진단 · 라우트 · 경로 정책 · 세션 · 연결 그룹 · 클러스터 · 다른 노드의 작업) | 앱 스코프 토큰은 Master 에 닿지 않는다 — 설계상 위임 경계. maingui 가 tree Gateway 로 읽게 된 것(A-20 네트워크 읽기 · A-28 흐름도)도 Master op 다 | 세션 중계를 Master operation 전체로 넓히는 ADR(모듈 README Q-2) |
+| Master 데이터(SVI · 허가 · SVI 흐름도 · 흐름 이벤트 · mesh · 사설망 · 진단 · 라우트 · 경로 정책 · 세션 · 연결 그룹 · 클러스터 · 다른 노드의 작업) | 앱 스코프 토큰은 위임 입구 1차(Terra ADR-GW-003)로 Master **읽기**에 닿는다 — SVI 자원 · 허가 · 핸들 · 바인딩 목록은 부른다(leaf 는 `/api/upstream`). 흐름 이벤트(SSE)와 쓰기는 2차, 네트워크 보드(mesh · 사설망 · 진단 · 라우트 · 정책 · 세션 · 연결 그룹)와 클러스터 탭은 보드가 아직 부르지 않는다 | ADR-GW-003 2차 · 보드 연결(모듈 README Q-2) |
 | 다른 노드의 명령 실행 | Daemon 이 명령 실행을 원격으로 열지 않는다 · Master `commands.post` 는 쓰기라 위임 입구 2차(`DELEGATION_NOT_OPEN`) | PF-1 2차 |
 | tree 계층(손자 노드) | `agent/nodes` 에 부모 관계가 없다 | `terra.master.nodes.get` (위의 ADR) |
 | 다른 tree 목록 | 사용자가 등록한 연결 목록을 둘 곳이 없다 | Q-3 — `kind: service` 로 올려 사람별 저장 |
@@ -491,6 +491,28 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | 예시 · 콘솔 | 예시 표식 없음 · 페이지 오류 0 |
 
 흐름도가 진짜 데이터로 그려지는 것(엔드포인트 · 열린 핸들 · 바인딩 · 허가 · 흐름 이벤트 SSE)은 Master 계약 모양의 가짜 서버로 시험한다(`tests/sviflow.test.mjs`) — 목록은 위임 입구 1차로 닿지만 진짜 스택 실측은 아직이고, 흐름 이벤트(SSE)는 2차다.
+
+### 5.7 작업 출력 · 다시 실행(MD-34) — 2026-10-09
+
+Terra main `1e13d75`(PF-7 — Terra#140 · #144 들어감)으로 Master · Daemon(등록 · 게이트웨이를 Daemon 이 띄운다) · 게이트웨이를 빌드하고,
+modules main(`1379de1`)의 이 모듈을 Daemon 모듈 폴더에 두었다. 이 앱의 토큰을 진짜 발급 길(`POST /api/v1/gui/apps/lab.stellaxia.node-gui.web/token`, Master 세션)로 받았다 —
+권한 `node.read · node.control · process.execute · file.read · file.write · session.identity`. 모듈 코드(`TerraClient` · `LiveSource` · `task-output.js`)를
+Node 에서 그대로 그 토큰으로 진짜 게이트웨이에 붙였다(`web/tools/live-taskout.mjs` — 15개 모두 통과). 화면(브라우저)은 거치지 않았다 — 화면은 `tests/taskout.test.mjs` · 연기 시험이 본다.
+
+| 단계 | 관찰 |
+| --- | --- |
+| 카탈로그 | 앱 토큰의 카탈로그 116개에 `tasks.by-task-id.output.get` · `output.events.get` · `rerun.post` 가 다 있다 |
+| 실행 중 읽기 | 6초짜리 명령(줄 셋 · stderr 한 줄 · `--password=…` · `exit 3`) 0.7초 뒤 `act(out)` → `state running` · `line1` · `— 실행 중` |
+| 따라가기(SSE) | 읽은 `last_seq` 뒤부터 `followOutput` — 5.3초 동안 여섯 번 바뀌고 `end` 에 스스로 닫혔다. 글: `line1 · line2 · line3 · --password=*** · ! warn · — 실패 · exit 3 · exit status 3` |
+| 가림 · 흐름 | 비밀(`--password=…`)은 Daemon 이 `***` 로 가렸다. 두 흐름이 섞여 stderr 줄에 `! `. 줄 차례는 Daemon 이 읽은 차례다 — 스크립트에서 stderr 를 먼저 썼어도 stdout 줄 뒤에 왔다(파이프가 따로라 차례를 보장하지 않는다) |
+| 끝난 뒤 읽기 | `outText` 글이 따라온 글과 같다 |
+| 목록 카드 | `origin local` · `exit 3`(`result.exit_code`) |
+| 다시 실행 | `act(rerun)` → `rerun.post {task_id, confirmed: true}` 202 · 새 작업 `rerun_of` = 원래 작업 · 출력이 같다. 끝나지 않은 작업은 409 `TASK_STILL_RUNNING` → `아직 끝나지 않은 작업이다 …` |
+| 다른 노드 | 노드 주소 호출(Master 중계)로 같은 출력을 읽었다(scopes cluster). 다시 실행은 그 노드 카탈로그에 없어 🔒 `그 노드가 이 기능을 원격으로 열지 않았다`. 클러스터에 노드가 하나라 이 노드를 다른 이름으로 불렀다 |
+| Master 가 보낸 작업 | 관리자가 Master `commands.post` 로 보낸 작업 → `tasks.get?master_job_id=` 로 찾았다(`origin master`). 화면은 다시 실행을 부르지 않고 `Master 가 보낸 작업이다 …`, Daemon 에 직접 불러도 409 `TASK_RERUN_VIA_MASTER`. 출력은 이 노드에서 읽힌다 |
+
+실측에서 드러난 Daemon 의 사실 — 기본 셸(`system_default`)은 명령과 인자를 **빈칸으로 이어 한 줄로** `/bin/sh -c` 에 넘긴다(따옴표를 붙이지 않는다 — `runner.go` `joinCommand`).
+그래서 `{command: "sh", args: ["-c", "for i in 1 2; do …"]}` 는 `sh -c for i in …` 이 되어 문법 오류다. 이 앱의 `+ 실행` 폼(`cmdLine`)은 한 줄을 빈칸으로 나눠 보내므로 Daemon 에서 같은 줄로 다시 이어진다(겹친 빈칸은 하나가 된다 — 따옴표 안이라도). 인자에 빈칸이 든 명령은 `shell: direct_exec` 이 필요하다.
 
 ## 6. 코드 지도
 
