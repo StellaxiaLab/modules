@@ -291,7 +291,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 | PF | **PF-21** | 바인딩 거절 이유를 `{reason_code, detail}`로 | 낮음 |
 | PF | **PF-22** | `terra.svi.bindings.changed`에 `reason` 싣기 | 낮음 |
 | PF | **PF-23** | 계약 글(기본 QoS · 핸들 operation) · 상세 설계서 §24.3을 코드에 맞추기 | 낮음 |
-| PF | **PF-24** | ADR-GW-003 2차 쓰기 라우트를 **두 단계로** — 먼저 `svi.bindings.post` · `svi.bindings.by-binding-id.delete`, 그 다음 `svi.grants.post` · `.patch` · `.delete`(Q-28 결정 2026-10-07 — 설계 §8) | 높음 |
+| PF | **PF-24** | ADR-GW-003 2차 쓰기 라우트를 **두 단계로** — 먼저 `svi.bindings.post` · `svi.bindings.by-binding-id.delete`, 그 다음 `svi.grants.post` · `.patch` · `.delete`(Q-28 결정 2026-10-07 — 설계 §8) — **Terra 제안 문서 작성함(Proposed): [ADR-GW-004](https://github.com/StellaxiaLab/Terra/pull/146)**(2026-10-07). 요점: 입구는 라우트를 권한이 아니라 **메서드**로 읽기·쓰기를 가른다(`bindings.post`가 쓰기인데 `node.read`) · `grants.post`는 받는 이를 본인 · 같은 클러스터 노드로, operation을 허용 목록으로 제한(받는 이의 존재를 검사하지 않아 침해된 앱이 임의의 사용자에게 읽기를 줄 수 있다) · 쓰기 한도 · 감사에 앱 id. 사람이 정할 것은 그 문서 §6 Q11~Q16 | 높음 |
 | MD | **MD-27** | ~~연결 판정 · 쌍 풀기 · `links[].io` 저장~~ — **끝냄**(2026-10-07, 합류 규칙을 연결이 든 쌍 기준으로 고쳤다 — 설계 §3.2) | — |
 | MD | **MD-28** | ~~적용 흐름~~ — **끝냄**(2026-10-07, 가짜 Master 시험만 — 진짜 스택은 PF-1 · MD-32) | — |
 | MD | **MD-29** | ~~상태 맞추기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
