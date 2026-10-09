@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
+	agentcore "github.com/StellaxiaLab/terra-agent"
 )
 
 // envFakeMCP makes this binary act as an MCP server instead of a test runner.

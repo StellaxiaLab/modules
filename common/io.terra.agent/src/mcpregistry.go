@@ -26,7 +26,7 @@ import (
 	"strings"
 	"sync"
 
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
+	agentcore "github.com/StellaxiaLab/terra-agent"
 )
 
 const mcpServersFileName = "mcp-servers.json"
