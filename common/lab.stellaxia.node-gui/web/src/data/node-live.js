@@ -20,6 +20,7 @@ import { loadConfig } from '../api/config.js';
 import { HELM_APPS, HELM_CRUD, CRUD_TEXT } from '../api/operations.js';
 import { SIGNAL_APPS } from '../api/events.js';
 import { resultText, reasonText } from '../api/client.js';
+import { modulesResult, invokeIfModule, MODULE_OF } from '../api/module-gate.js';
 
 /** 로그인 전 · 노드를 아직 모를 때 로컬 노드 자리에 쓰는 이름. 데이터가 아니라 화면 글이다 */
 export const LOCAL_PLACEHOLDER = '이 노드';
@@ -504,10 +505,11 @@ export async function loadWorld(screen, client, session) {
 
 /** 로컬 노드의 자원 요약(진짜 개수)과 모듈 목록 */
 async function loadResources(screen, client, localName) {
-  const [io, roots, mods] = await Promise.all([
-    client.invoke('terra.daemon.io.devices.get', {}),
-    client.invoke('terra.daemon.files.list.get', {}),
-    client.invoke('terra.daemon.modules.get', {})
+  // 모듈이 없는 노드는 그 모듈의 operation 을 부르지 않는다(503 로그를 남기지 않는다) — src/api/module-gate.js
+  const mods = await modulesResult(client);
+  const [io, roots] = await Promise.all([
+    invokeIfModule(client, MODULE_OF['terra.daemon.io.devices.get'], 'terra.daemon.io.devices.get', {}),
+    invokeIfModule(client, MODULE_OF['terra.daemon.files.list.get'], 'terra.daemon.files.list.get', {})
   ]);
   const count = (r, key) => (ok(r) && r.data && Array.isArray(r.data[key]) ? r.data[key].length : undefined);
   const entry = screen.NET[localName];
