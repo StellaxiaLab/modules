@@ -7,8 +7,8 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.8.0"
-last_updated: "2026-10-05"
+version: "0.8.1"
+last_updated: "2026-10-09"
 language: "ko-KR"
 based_on: "terra-gui-resource-inventory (자원 목록) · terra-gui-api-priority"
 related:
@@ -106,8 +106,8 @@ flowchart LR
 
 카드: 이름(`display_name`) · `kind · endpoint · direction · interaction` · 배지(`status`) · 한 줄 "허가 · read · subscribe" / "🔒 허가 없음".
 
-> [!NOTE] 앱 토큰으로는 빈 흐름도
-> 이 앱의 op 는 모두 Master 의 것이라 이 모듈의 앱 토큰에는 보이지 않는다(PF-1). 흐름도는 비어 있고, 머리 줄에 `쓸 수 없다 · 이 노드의 게이트웨이에 없다` 가 남는다.
+> [!NOTE] 앱 토큰으로는 목록까지
+> 이 앱의 op 는 모두 Master 의 것이다. 읽기(자원 · 허가 · 핸들 · 바인딩)는 위임 입구 1차로 닿는다(PF-1 · Terra ADR-GW-003) — tree 는 operation id, leaf 는 `/api/upstream` 경로. 흐름 이벤트(SSE)는 2차라 흐름 칸 · 도로는 움직이지 않는다. 닿지 않으면(예전 Terra · 상위 Master 없음) 흐름도는 비어 있고 머리 줄에 `쓸 수 없다 · …` 가 남는다.
 > 디자인의 예시 흐름 이벤트(0.5초 박자)는 돌리지 않는다 — [[real-data-layer|실데이터 층]] §5.6.
 
 ### 2.2 자원 선언 (`decl`)

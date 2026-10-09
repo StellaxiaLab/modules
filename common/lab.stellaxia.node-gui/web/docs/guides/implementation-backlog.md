@@ -8,8 +8,8 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.12.0"
-last_updated: "2026-10-07"
+version: "1.13.0"
+last_updated: "2026-10-09"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -49,7 +49,7 @@ related:
 Terra G0~G6이 연 길(B-1 · B-5 · C-1 · B-11 · B-12 · B-14)은 이 모듈이 모두 옮겼다 — MD-11 · MD-12 · MD-15~MD-20.
 끊긴 뒤 이어서(MD-21)도 끝냈다 — 그 길에서 찾은 io.terra.file 문제(invoke로 보낸 중단이 늘 포기)를 0.2.1로 함께 고쳤다.
 maingui `e669c03`(A-29 ~ A-33)도 따라갔다(MD-22) — 모듈 수정 폼이 모듈 설정이 됐다(Terra main의 설정 op 셋).
-maingui `1aa6340`(A-20 · A-28)도 따라갔다(MD-23) — SVI 자원 앱이 흐름도가 됐다. SVI · 네트워크 읽기는 Master op라 앱 토큰으로는 비어 있다(PF-1) — 그 이유를 남기고, 예시 흐름 이벤트는 돌리지 않는다.
+maingui `1aa6340`(A-20 · A-28)도 따라갔다(MD-23) — SVI 자원 앱이 흐름도가 됐다. SVI · 네트워크 읽기는 Master op다 — 위임 입구 1차(PF-1, 2026-10-09)로 SVI 목록은 닿고, 흐름 이벤트(SSE)는 2차라 예시 흐름 이벤트는 돌리지 않는다.
 maingui `43a4e3a`(`07d5739` — maingui#1 병합 · `85e28ee` — A-28 흐름 칸 · 맵 도로)도 따라갔다(MD-24) — 상태 화면에 흐름 칸, 맵에 흐르는 도로. 앱 토큰으로는 열린 핸들이 없어 구독을 열지 않는다.
 
 ```mermaid
@@ -73,7 +73,7 @@ flowchart LR
   MD23 -.->|"빈 목록의 이유"| UP24["UP-24 maingui PR 1에 올림"]
   UP24 -.->|"maingui 07d5739 병합"| MD24
   PF10["PF-10 자기 op invoke — Terra PR 118"] -.->|"병합되면 경로 대신 operationId"| MD15
-  PF1["PF-1 Master op — ADR-GW-003 결정 · 구현 전"] --> MD1["MD-1 입출력 연결의 의미"]
+  PF1["PF-1 Master op — ADR-GW-003 1차(읽기) 구현"] --> MD1["MD-1 입출력 연결의 의미"]
   PF1 --> MD13["MD-13 tree CRUD E2E"]
   PF1 --> PF17["PF-17 문서 변경 신호"]
   PF1 -.->|"앱 토큰엔 빈 흐름도"| MD23
@@ -97,13 +97,13 @@ flowchart LR
 
 | ID | 무엇 | 지금 — Terra main 실측 | 막히는 화면 | 우선 |
 | --- | --- | --- | --- | --- |
-| **PF-1** | 앱 스코프 토큰으로 **Master operation**에 닿는 길 | **결정됨 · 구현 전(2026-10-07)** — [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md)([Terra#136](https://github.com/StellaxiaLab/Terra/pull/136)): 게이트웨이가 Core peer 자격 + 세션 id로 기존 Master 라우트를 부르는 위임 입구. 1차 = **읽기(GET)만 · 앱 토큰만 · 관리자 제외**, tree · leaf 둘 다. 2차 = 쓰기 · 관리자 · 에이전트 · Master SSE. 지금 실측: leaf 게이트웨이 카탈로그에 `terra.master.*`가 0개고 `/api/upstream/…`은 404다(이 배치 — ADR은 코드로는 501 또는 401이 나와야 한다고 읽었고 404의 원인은 확인하지 못했다). tree 게이트웨이에서도 스코프 토큰은 Bearer를 싣지 않아 Master가 401이다 — Bearer는 발급자 밖으로 나가지 않는다는 설계상 경계. Terra는 새 표면만 세션 id 중계로 열었다 | 1차에 열릴 것: 조타륜 SVI 자원 · 허가 목록, 작업 기록(Master jobs), 노드 상세, 노드 공유 목록(C-3), 네트워크 보드 읽기. 2차를 기다릴 것: 연결(bind) · 허가 만들기, 모듈 노드 지정(B-6), 사용자 관리, 설정의 클러스터 탭, **입출력 연결의 실제 의미(MD-1)** — bind · 허가가 쓰기다. 관리 노드 창의 tree 계층은 어느 라우트인지 확인 전 | 높음 |
+| **PF-1** | 앱 스코프 토큰으로 **Master operation**에 닿는 길 | **1차 구현됨(2026-10-09)** — Terra [Terra#143](https://github.com/StellaxiaLab/Terra/pull/143) · 모듈: tree 는 operation id, leaf 는 `/api/upstream` 경로(`src/api/master-delegated.js` — Terra 계약에서 만든 28 op 표, CI 대조). 결정은 [Terra ADR-GW-003](https://github.com/StellaxiaLab/Terra/blob/main/docs/architecture/ADR-GW-003-master-operation-access-for-app-tokens.md)([Terra#136](https://github.com/StellaxiaLab/Terra/pull/136)): 게이트웨이가 Core peer 자격 + 세션 id로 기존 Master 라우트를 부르는 위임 입구. 1차 = **읽기(GET)만 · 앱 토큰만 · 관리자 제외**, tree · leaf 둘 다. 2차 = 쓰기 · 관리자 · 에이전트 · Master SSE. 지금 실측: leaf 게이트웨이 카탈로그에 `terra.master.*`가 0개고 `/api/upstream/…`은 404다(이 배치 — ADR은 코드로는 501 또는 401이 나와야 한다고 읽었고 404의 원인은 확인하지 못했다). tree 게이트웨이에서도 스코프 토큰은 Bearer를 싣지 않아 Master가 401이다 — Bearer는 발급자 밖으로 나가지 않는다는 설계상 경계. Terra는 새 표면만 세션 id 중계로 열었다 | 열린 것(1차): 조타륜 SVI 자원 · 허가 · 핸들 · 바인딩 목록, 작업 기록(Master jobs), 노드 상세, 노드 공유 목록(C-3). **남은 것:** 네트워크 · 설정 보드가 Master 읽기를 아직 부르지 않는다 · 진짜 leaf 스택 실측. 2차를 기다릴 것: 연결(bind) · 허가 만들기, 모듈 노드 지정(B-6), 사용자 관리, 설정의 클러스터 탭, **입출력 연결의 실제 의미(MD-1)** — bind · 허가가 쓰기다. 관리 노드 창의 tree 계층은 어느 라우트인지 확인 전 | 높음 |
 | **PF-8** | 셸을 새로 고쳐도 남는 세션 | 반쯤 열렸다. frame은 안쪽 Scene이 로그인했으면 그 Handle, 아니면 **셸의 Bearer**(`sessionStorage`)로 앱 토큰을 받는다(`web-frame-inner.ts`). 이 모듈의 Scene 로그인은 Handle을 `secret` Store에 두는데 그 Store는 새로 고침에 사라진다 — 다시 로그인한다(실측 `NO_SESSION`). 셸에서 로그인한 판은 남는다(코드 읽기 — 실측은 MD-6에서) | 시작 화면 → 매번 로그인 카드 | 중간 |
 | **PF-9** | 앱 자산 CSP `frame-ancestors`에 앱 자신의 origin | 반쯤 — B-17 `--gui-frame-ancestors`(배치 설정)가 생겼다. 기본값은 그대로라 srcdoc 3겹 우회를 남긴다 | 우회로 돈다 | 낮음 |
 | **PF-10** | `terra.gateway.*`을 invoke로 부르면 앱 토큰이 익명이 된다 | 원인을 찾았다 — 게이트웨이는 자기 op를 loopback으로 되돌리는데 앱 토큰은 싣지 않는다. whoami뿐 아니라 사용자 문서(`me.documents`)도 invoke로는 403이었다. **고쳐 올렸다 — [Terra#118](https://github.com/StellaxiaLab/Terra/pull/118)**(자기 op는 프로세스 안에서 답한다 · 진짜 스택 실측) | 없음 — 모듈은 경로로 부른다(whoami · `me/documents` — `client.get` · `client.request`). #118이 들어가면 operationId로 바꿔도 된다 | 낮음 |
 | **PF-14** | 모듈 설치 · 제거 | 반쯤 — B-6 노드 지정(`nodes.by-node-id.modules.assignments.*`, `module.manage`★)이 생겼지만 Master op라 PF-1에 막힌다 — 쓰기라 ADR-GW-003의 2차다. **설정은 열렸다** — Daemon `modules.by-module-id.config.*`(Terra main `3195421`, 쓰기는 `module.manage`★) → MD-22 | 모듈 앱의 `＋ 추가` · `🗑` | 낮음 |
 | **PF-15** | 앱 안에서 **다른 모듈의 GUI**를 여는 길 | 남았다 — 스코프 토큰으로는 앱 토큰을 발급받지 못한다(실측 `SCOPE_TOKEN_DENIED` "앱 스코프 토큰 발급에는 사용자 세션이 필요합니다" — 설계대로). 셸에 "앱 열기" 요청(예: `emit('open-app', { app })`)이 필요하다 | 모듈 GUI 창(`🖥`) | 중간 |
-| **PF-16** | 노드의 공유 목록 | 반쯤 — C-3 노드 주체 허가 = 흐름 허용 목록(G6). 읽기가 Master `svi.grants.get {node_id …}`라 PF-1 — 읽기라 ADR-GW-003의 1차에 든다 | 상태 화면의 공유 목록 · 네트워크 창의 공유 그래프 | 낮음 |
+| **PF-16** | 노드의 공유 목록 | 반쯤 — C-3 노드 주체 허가 = 흐름 허용 목록(G6). 읽기가 Master `svi.grants.get {node_id …}` — ADR-GW-003 1차로 닿는다(2026-10-09) | 상태 화면의 공유 목록 · 네트워크 창의 공유 그래프 | 낮음 |
 | **PF-17** | 앱 토큰으로 받는 **사용자 문서 변경 신호** | 새로 찾았다 — 문서를 쓰면 Master가 그 사람에게만 `terra.documents.changed`를 낸다(`announceDocument`). 앱 토큰의 이벤트는 이 노드 Daemon 것(`terra.daemon.events.get`)이라 그 신호가 오지 않는다. Master 이벤트는 PF-1 경계 — ADR-GW-003은 Master SSE를 2차로 미뤘다(필터 주체와 함께) | 다른 창 · 기기가 바꾼 배치를 곧장 받지 못한다 — 다음 쓰기의 409 알림 · 새로 고침에 받는다(MD-15). 길: 게이트웨이가 앱 이름공간(`app:<appId>`)의 문서 신호만 그 앱 토큰의 SSE에 실어 준다 | 낮음 |
 
 ### 1.2 Terra G0~G6이 닫은 것 — 앱 토큰 실측 (2026-10-05)
@@ -254,7 +254,7 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 | **Q-12** | maingui를 어떻게 따라갈까 | `design/`을 **복사**하고 맞춘 커밋(`f24c3bc`)을 문서에 적는다 — [[module-profile\|모듈 프로필]] §8. 모듈에서 찾은 원본 쪽 문제는 원본에 PR로 올린다(maingui#1) | git submodule · subtree로 묶는다 · 연동 층(`src/api`)을 공유 패키지로 뗀다(Q-9와 같이) |
 | **Q-13** | "삭제"의 뜻 | 작업 = **취소**(기록은 남는다) · 선언 = **철회**(퇴역 원장에 남는다) · 전송 = **포기**(부분 파일도 지운다 — `keep_partial: false`) · 중단해 둔 전송(부분 남김)의 치우기도 포기 · 끝난 전송 = 화면에서만 치우기. 카드의 `중단`은 부분을 남긴다 — 같은 파일을 다시 올리면 잇는다(MD-21) | 전송 삭제를 `중단`(부분 파일 남김 — 카드의 `중단`과 같다)으로 |
 | **Q-14** | 사용자 데이터를 서버에도 둘까 | **예** — `layoutStore: server`(기본). 브라우저에 바로, 사용자 문서에 뒤따라. 두 곳이 다르면 새 쪽 · 겹쳐 쓰면 마지막에 고친 화면(409 한 번 알림) | `local`(이 브라우저에만 — 예전과 같다) · `none`(공용 화면) |
-| **Q-15** | 다른 노드의 작업을 어디서 볼까 | **그 노드 Daemon의 작업 목록**(노드 주소 호출) — 앱 토큰은 Master 작업에 닿지 않는다(PF-1). 실행만 Master `commands.post`(Daemon이 원격 실행을 열지 않는다) | Master 작업(`jobs.get`) — PF-1이 열리면 Master 쪽 기록도 보인다. 출력은 PF-7로 그 Daemon이 준다(노드 주소 호출 — MD-34) |
+| **Q-15** | 다른 노드의 작업을 어디서 볼까 | **그 노드 Daemon의 작업 목록**(노드 주소 호출) — 앱 토큰은 Master 작업 기록(`jobs.get`)은 읽지만(PF-1 1차) 보내기 · 취소(`commands.post`)는 2차다. 실행만 Master `commands.post`(Daemon이 원격 실행을 열지 않는다) | Master 작업(`jobs.get`)을 다른 노드 화면에 함께 보일지. 출력은 PF-7로 그 Daemon이 준다(노드 주소 호출 — MD-34) |
 | **Q-16** | `module.manage`★를 사용자에게 줄까 | 모듈 앱 권한에는 있다(`module.json`). 사용자 권한은 운영자가 정한다 — 기본 권한 밖이라 관리자에게도 따로 주어야 모듈 설정 저장이 열린다. 없으면 폼은 열려 값을 보이고, 저장은 `🔒 저장 — module.manage★ 권한 없음(…) · 값은 볼 수만 있다`로 막는다 | 설정 보기만 열기(읽기는 `node.read`) — 원본 디자인은 수정 폼 하나라 보기 전용 칸이 없다 |
 
 ## 5. 입출력 연결 설계에서 나온 것 (2026-10-07)
