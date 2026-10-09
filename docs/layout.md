@@ -4,8 +4,8 @@ doc_type: "contract"
 scope: "repository"
 target: "stellaxialab/modules"
 status: "active"
-version: "v1.3"
-last_updated: "2026-10-03"
+version: "v1.4"
+last_updated: "2026-10-09"
 ---
 
 # 모듈 저장소 레이아웃 규약
@@ -47,6 +47,26 @@ last_updated: "2026-10-03"
 
 `common` · `leaf` · `tree`를 **소유권 루트**라고 부른다. Terra의 `module/` 아래와 같은 이름,
 같은 깊이다. 다른 점은 `module/`이라는 한 겹이 없다는 것뿐이다 — 저장소 자체가 그 역할이다.
+
+## 독립 빌드와 Go 모듈 경로 (초안)
+
+모듈의 Go 모듈 경로는 위 계층을 그대로 반영한다: `github.com/StellaxiaLab/modules/<소유권 루트>/<module-id>`.
+`go.mod`는 모듈 디렉터리가 아니라 그 안의 `src/`에 있고, 경로는 `src/` 한 겹을 적지 않는다
+(Terra의 `module/<tier>/<id>` 모양에서 `github.com/terra-project/terra/module` 접두사만
+`github.com/StellaxiaLab/modules`로 바뀌었다). 같은 모듈의 하위 패키지는 그 뒤에 이어 적는다
+(예: `.../leaf/io.terra.file/store`).
+
+저장소만으로 빌드되게 하는 전환(설계 `module-independent-repos` M-1~M-8)의 현재 단계:
+
+| 단계 | 내용 | 상태 |
+| --- | --- | --- |
+| M-1 | Go 모듈 경로 개명 | 완료 |
+| M-2·M-3 | SDK·agent를 버전으로 require, `replace` 제거 | 공개 SDK `v0.1.0` 태그 대기 |
+| M-4 | `io.terra.io-weave`에 `terra-io-weave` 내재화 | 대기 |
+| M-5·M-6 | CI에서 Terra SSH 키 의존 제거, 스키마 대조가 건너뛰지 못하게 | M-2 이후 |
+
+그때까지 Go 빌드·시험·포장은 Terra 체크아웃이 필요하다 — 절차는 [README](../README.md)의
+"독립 빌드 (초안)" 절.
 
 ## 2. 규칙
 
