@@ -178,7 +178,7 @@ Go 의존은 0으로도 된다.
 ## 독립 빌드 (초안)
 
 > [!NOTE]
-> 전환 중인 절차다. 설계 문서 `module-independent-repos`(작업 M-1~M-8)가 정한다.
+> 전환 중인 절차다. 설계 문서 [`module-independent-repos`](docs/design/module-independent-repos.md)(작업 M-1~M-8)가 정한다.
 > Go 모듈 빌드·시험까지는 클론만으로 된다. 포장·Scene 마운트·스키마 원본 대조는 아직 Terra 체크아웃이 필요하고
 > Terra 쪽 CI 몫이다 — 아래 표가 그 경계다.
 
