@@ -1,6 +1,6 @@
 // Go 소스를 가진 모듈의 시험을 돈다.
 //
-//   node tools/test-modules.mjs --terra ../terra [--module io.terra.file]
+//   node tools/test-modules.mjs [--terra ../terra] [--module io.terra.file]
 //
 // **왜 이 파일이 있나 (분리 검토 G-14)** — 이주 전에는 코어의 CI 가 모듈의 Go
 // 시험을 돌고 있었다. Terra 의 `ci.yml` 은 `git ls-files '*go.mod'` 로 저장소의
@@ -20,7 +20,7 @@
 
 import { join } from 'node:path';
 
-import { goModules, resolveTerraRoot, run, writeWorkspace } from './go-workspace.mjs';
+import { goModules, goWorkEnv, resolveOptionalTerraRoot, run } from './go-workspace.mjs';
 
 /**
  * `-race` 로 한 번 더 도는 패키지들. Terra 의 `ci.yml` 이 들고 있던 목록에서
@@ -49,6 +49,23 @@ const RACE_PACKAGES = [
   }
 ];
 
+/**
+ * Terra 의 파일을 읽어야만 도는 시험. Terra 없이 돌 때 이것만 빼고, 빼는 사실과
+ * 사유를 로그에 남긴다. `--terra` 를 주면 전부 돈다.
+ *
+ * 이 시험들은 모듈의 동작이 아니라 **모듈이 만든 파생물(contract-map.js)이 Terra 의
+ * Master 계약과 어긋났는가** 를 본다 — 권위가 Terra 에 있는 대조다. Terra 쪽 CI 가
+ * 이 저장소를 체크아웃해 `node tools/test-modules.mjs --terra .` 로 돌려야 이 대조가
+ * 어디선가 돈다 (Terra 쪽 변경은 PR 본문에 적어 넘겼다).
+ */
+const NEEDS_TERRA = {
+  'io.terra.treebench': {
+    pattern: '^(TestGeneratedContractMapMatchesMasterContract|TestChannelSplitIsCovered)$',
+    names: ['TestGeneratedContractMapMatchesMasterContract', 'TestChannelSplitIsCovered'],
+    why: 'Terra Master 계약(products/tree/master/contracts/api/terra-api.json)과 대조한다. Terra 쪽 CI 몫'
+  }
+};
+
 function parseArgs(argv) {
   let terra = process.env.TERRA_CHECKOUT ?? '';
   const only = [];
@@ -58,7 +75,7 @@ function parseArgs(argv) {
     else if (argument === '--module') only.push(argv[++index] ?? '');
     else throw new Error(`알 수 없는 인자: ${argument}`);
   }
-  return { terraRoot: resolveTerraRoot(terra), only: only.filter(Boolean) };
+  return { terraRoot: resolveOptionalTerraRoot(terra), only: only.filter(Boolean) };
 }
 
 async function main() {
@@ -92,10 +109,8 @@ async function main() {
     }
   }
 
-  const workspace = await writeWorkspace(modules, terraRoot, 'test-modules.mjs');
-  console.log(
-    `go.work: 모듈 ${modules.length}개 · Terra 패키지 ${workspace.replacements}개 → ${workspace.path}`
-  );
+  const workspace = await goWorkEnv(modules, terraRoot, 'test-modules.mjs');
+  console.log(workspace.note);
 
   // 시험은 **호스트에서 돈다** — 교차컴파일한 시험 바이너리는 실행할 수 없다.
   // GOOS/GOARCH 를 비우는 것이 build-modules 와 다른 점이다.
@@ -105,16 +120,25 @@ async function main() {
   // 가리킨다. 실측(2026-09-30): `io.terra.treebench` 의 contract_map_test 가
   // `../../../../products/tree/master/contracts/api/terra-api.json` 을 읽어
   // 시험 둘이 이 저장소에서 터졌다 — 이 단계가 없었으면 아무도 몰랐다.
-  const env = { ...process.env, GOWORK: workspace.path, TERRA_CHECKOUT: terraRoot };
+  const env = { ...process.env, GOWORK: workspace.GOWORK };
+  if (terraRoot) env.TERRA_CHECKOUT = terraRoot;
 
   let failed = 0;
   let ran = 0;
   for (const module of modules) {
     console.log(`::group::go test ${module.tier}/${module.id}`);
-    const code = await run('go', ['test', '-count=1', '-timeout', '30m', './...'], {
-      cwd: join(module.dir, 'src'),
-      env
-    });
+    const args = ['test', '-count=1', '-timeout', '30m'];
+    // Terra 가 없으면 Terra 의 파일을 읽는 시험만 **이름을 대고** 뺀다 — 조용히
+    // 건너뛰는 것이 아니라 무엇을 누가 받는지를 로그에 남긴다.
+    const needsTerra = terraRoot ? null : NEEDS_TERRA[module.id];
+    if (needsTerra) {
+      args.push('-skip', needsTerra.pattern);
+      console.log(
+        `::notice::${module.id}: Terra 체크아웃이 없어 ${needsTerra.names.join(' · ')} 을 건너뛴다 — ${needsTerra.why}`
+      );
+    }
+    args.push('./...');
+    const code = await run('go', args, { cwd: join(module.dir, 'src'), env });
     console.log('::endgroup::');
     if (code !== 0) {
       console.error(`::error::${module.id} 시험 실패 (exit ${code})`);

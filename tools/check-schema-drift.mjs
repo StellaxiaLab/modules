@@ -10,7 +10,15 @@
 // 사본의 바이트 대조, api-console 스테이징 대조). 여기서는 저장소가 갈라졌으니
 // Terra 체크아웃을 인자로 받는다.
 //
-//   node tools/check-schema-drift.mjs --terra /path/to/Terra
+//   node tools/check-schema-drift.mjs --terra /path/to/Terra   원본과 바이트 대조 (+ 자기 해시)
+//   node tools/check-schema-drift.mjs --self-only              자기 해시만
+//
+// **둘 중 하나를 반드시 고른다.** 예전에는 Terra 체크아웃이 없으면 "원본 대조는
+// 건너뛴다" 고 알림만 남기고 초록으로 끝났다 — 이 저장소가 Terra 비공개 체크아웃에서
+// 독립하면(M-5) 그 건너뜀이 기본값이 되어, 대조가 아무 데서도 안 도는데 아무도
+// 모르게 된다. 이제 인자 없이 부르면 실패하고, `--self-only` 는 "원본 대조를 안
+// 한다" 를 **명시적으로 고른 것**이다. 원본 대조의 권위는 Terra 쪽에 있다 — Terra 의
+// CI 가 이 저장소를 체크아웃해 `--terra` 로 돌린다.
 //
 // 줄바꿈만 정규화하고 그 밖에는 바이트로 본다 — Terra 의 Go 대조 시험과 같다.
 
@@ -25,6 +33,15 @@ const provenance = JSON.parse(readFileSync(join(repoRoot, "schemas", "PROVENANCE
 const args = process.argv.slice(2);
 const terraFlag = args.indexOf("--terra");
 const terraRoot = terraFlag === -1 ? process.env.TERRA_CHECKOUT : args[terraFlag + 1];
+const selfOnly = args.includes("--self-only");
+
+if (!terraRoot && !selfOnly) {
+  const message =
+    "원본 대조 방식을 고르지 않았다 — --terra <path>(또는 TERRA_CHECKOUT)로 Terra 원본과 대조하거나, " +
+    "원본 대조를 하지 않겠다면 --self-only 를 명시한다. 인자 없이 건너뛰지 않는다";
+  console.log(process.env.GITHUB_ACTIONS ? `::error::${message}` : `✗ ${message}`);
+  process.exit(1);
+}
 
 const normalize = (text) => text.replace(/\r\n/g, "\n");
 const sha256 = (text) => createHash("sha256").update(text).digest("hex");
@@ -73,7 +90,7 @@ for (const [file, record] of Object.entries(provenance)) {
 }
 
 if (!terraRoot) {
-  const message = "Terra 체크아웃이 없어 원본 대조는 건너뛴다 — 사본 자신의 해시만 확인했다 (--terra <path> 또는 TERRA_CHECKOUT)";
+  const message = "--self-only: 사본 자신의 해시만 확인했다. Terra 원본과의 대조는 이 실행에서 하지 않았다 — Terra 쪽 CI 몫이다";
   console.log(process.env.GITHUB_ACTIONS ? `::notice::${message}` : `! ${message}`);
 }
 
