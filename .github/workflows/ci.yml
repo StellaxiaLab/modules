@@ -1,21 +1,32 @@
 # 모듈 소스 저장소 CI.
 #
-# 잡이 셋이고, 셋이 보는 것이 다르다.
+# 잡이 셋이고, **셋 다 이 저장소를 클론한 것만으로 돈다** — Terra 체크아웃도,
+# `TERRA_CHECKOUT_SSH_KEY` 도, 어떤 시크릿도 필요 없다(독립 레포 전환 M-5·M-6).
 #
-#   validate  이 저장소만으로 볼 수 있는 것 — 매니페스트 형식, 배치 규칙,
-#             참조 경로의 실재, 벤더링한 스키마 사본의 자기 해시.
-#   web       웹 화면을 가진 모듈(web/package.json)의 빌드와 시험. 이것도 이
-#             저장소만으로 돈다 — Terra 체크아웃도 시크릿도 필요 없다.
-#   pack      Terra 쪽 권위에게 물어야 하는 것 — Scene 무결성과 포장이 실제로
-#             열리는지, 그리고 **출하 Scene 이 Terra 의 실 런타임에서 마운트되는지**.
-#             `terra module pack` 이 자기 출력을 설치기와 같은 검사로 되열기
-#             때문에, 이 잡이 초록이면 그 패키지는 설치된다. 마운트까지 보는
-#             이유는 분리 검토 G-23 이다 — 아래 그 단계의 주석에 적었다.
+#   validate  매니페스트 형식, 배치 규칙, 참조 경로의 실재, 벤더링한 스키마 사본의
+#             자기 해시.
+#   web       웹 화면을 가진 모듈(web/package.json)의 빌드와 시험.
+#   go        Go 소스를 가진 모듈 10개의 빌드와 시험. 의존은 공개 `terra-sdk` ·
+#             `terra-agent` 의 태그(Go 모듈 프록시)뿐이다.
 #
-# pack 은 Terra 체크아웃이 필요해서 `TERRA_CHECKOUT_SSH_KEY`(Terra 의 읽기 전용
-# deploy key) 가 있을 때만 돈다. 없으면 건너뛰되 **조용히 건너뛰지는 않는다** —
-# 건너뛴 사실을 warning 으로 남긴다. 조용한 통과가 어떤 사고를 내는지는 Terra 의
-# G-7(모듈 0개 번들이 오류 없이 출하되던 것)이 이미 보여 줬다.
+# **여기서 더 이상 보지 않는 것, 그리고 누가 보는가** — 예전에는 `pack` 잡이 Terra
+# 비공개 체크아웃으로 `terra` CLI 를 굽고 아래 셋을 봤다. 셋 다 Terra 의 코드가 있어야
+# 서는 검사라서 이 저장소의 CI 에서는 뺐고, **권위는 Terra 쪽 CI 로 간다**:
+#
+#   1. `terra module pack` — Scene 무결성, 포장이 설치기와 같은 검사로 다시 열리는지.
+#      `terra` CLI 를 Terra 소스에서 굽는다.
+#   2. 출하 Scene 의 실 런타임 마운트(`npm run test:scenes -- --terra <path>`, 분리 검토
+#      G-23). Terra 의 npm 의존과 `shipped-scenes.test.ts` 를 쓴다.
+#   3. 스키마 사본과 Terra 원본의 바이트 대조(`npm run check:schema -- --terra <path>`)
+#      와 Terra Master 계약 대조 시험(`node tools/test-modules.mjs --terra <path>`).
+#   4. node-gui 의 Master 위임 표(op id → /api/upstream 경로)와 Terra 계약의 대조
+#      (`node common/lab.stellaxia.node-gui/web/tools/gen-master-delegated.mjs --terra <path> --check`).
+#      위임 입구가 여닫는 op 가 바뀌면 이 표가 낡는다.
+#
+# 이 저장소의 도구(`tools/pack-modules.mjs` · `test-scenes.mjs` 등)는 그대로 남아
+# 있다 — Terra 쪽 CI 가 이 저장소를 체크아웃해 부르면 된다. 릴리스(`release.yml`)는
+# 태그를 찍을 때 `terra` CLI 로 `.tmod` 를 굽기 때문에 아직 Terra 체크아웃이 필요하다
+# (README 의 "독립 빌드" 절).
 #
 # 러너가 self-hosted 인 이유 — 처음에 ubuntu-latest 로 적었다가 첫 실행에서 두 잡
 # 모두 3초 만에 러너를 못 받고 죽었다(runner_id 0, 로그 없음). Terra 의 ci.yml 이
@@ -57,10 +68,11 @@ jobs:
       - name: Validate every module
         run: node tools/validate-modules.mjs
 
-      # Terra 체크아웃 없이도 볼 수 있는 절반: 사본이 PROVENANCE.json 에 적힌
-      # 해시 그대로인가. 손으로 고친 스키마를 여기서 잡는다.
+      # 사본이 PROVENANCE.json 에 적힌 해시 그대로인가. 손으로 고친 스키마를 여기서
+      # 잡는다. `--self-only` 는 "Terra 원본과의 대조는 이 잡에서 하지 않는다" 를
+      # 명시적으로 고른 것이다 — 그 대조는 Terra 쪽 CI 몫이다(위 머리 주석 3).
       - name: Check the vendored schema against its recorded hash
-        run: node tools/check-schema-drift.mjs
+        run: node tools/check-schema-drift.mjs --self-only
 
   web:
     name: Web UI build and test
@@ -74,10 +86,6 @@ jobs:
         with:
           node-version: 24
 
-      # 이 잡이 pack 잡과 따로 있는 이유 — pack 잡은 시크릿이 없으면 건너뛰고, 포크에서
-      # 온 PR 에는 시크릿이 가지 않는다. 화면 소스가 깨졌는지는 Terra 없이도 알 수
-      # 있으므로 그것까지 시크릿 뒤에 숨기지 않는다.
-      #
       # 굽기가 먼저인 이유: build-web 이 `npm ci` 로 의존을 받고, test-web 은
       # node_modules 가 있으면 그것을 그대로 쓴다. 순서를 뒤집으면 의존을 두 번 받는다.
       - name: Build modules that carry a web UI
@@ -88,199 +96,33 @@ jobs:
       - name: Test modules that carry a web UI
         run: node tools/test-web.mjs
 
-  pack:
-    name: Pack against Terra
+  go:
+    name: Go build and test
     runs-on: [self-hosted, linux, x64, docker, homelab]
     steps:
       - uses: actions/checkout@v4
+
+      # io.terra.file 이 os.Root 를 써서 go 1.25 를 요구한다(모듈 go.mod 의 go 줄).
+      # 모듈마다 go 줄이 다르므로 가장 높은 쪽에 맞춘다. 캐시는 모듈마다 go.sum 이
+      # 달라 setup-go 의 기본 캐시 키(루트 go.sum)가 맞지 않아 끈다.
+      - uses: actions/setup-go@v5
         with:
-          path: modules
-
-      # secrets 는 job 수준 if 에서 읽히지 않으므로 스텝에서 판정한다.
-      #
-      # 없을 때의 처분이 두 갈래인 이유 — 이 잡은 이 저장소의 검증 절반을 혼자
-      # 들고 있다(Scene 무결성 · 포장이 실제로 열리는지 · Go 모듈 빌드). 그것이
-      # 조용히 건너뛰면, L-9 가 막으려는 침묵과 같은 모양이 CI 자체에 생긴다
-      # (분리 검토 G-12).
-      #
-      #   PR · 수동 실행   warning 을 남기고 건너뛴다. 포크에서 온 PR 에는
-      #                    시크릿이 가지 않으므로, 여기서 실패로 올리면 기여를
-      #                    막게 된다.
-      #   main 푸시        실패한다. main 은 이 저장소가 "검증됐다"고 말하는
-      #                    자리이고, 검증 절반이 빠진 초록은 그 말을 거짓으로
-      #                    만든다.
-      #
-      # main 갈래를 이제야 켠 이유: 시크릿이 오기 전에 켰으면 main 이 그때까지
-      # 빨갰다. 2026-09-29 에 deploy key 가 붙어 이 잡이 처음으로 실제 검증을
-      # 돌았고(`VERIFIED true` · 포장한 모듈 1개), 그 뒤에 켰다.
-      - name: Is a Terra checkout reachable
-        id: guard
-        env:
-          KEY: ${{ secrets.TERRA_CHECKOUT_SSH_KEY }}
-        run: |
-          if [ -n "$KEY" ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "present=false" >> "$GITHUB_OUTPUT"
-          skipped="TERRA_CHECKOUT_SSH_KEY 가 없어 pack 검증을 건너뛴다 — Scene 무결성·포장 열림·Go 빌드·Scene 마운트는 이번 실행에서 확인되지 않았다"
-
-          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
-            echo "::error::$skipped. main 에서는 건너뛸 수 없다 — 저장소 시크릿 TERRA_CHECKOUT_SSH_KEY 를 세운다(README 의 \"검증\" 절)"
-            exit 1
-          fi
-
-          echo "::warning::$skipped"
-
-      # 자격증명이 PAT 가 아니라 **Terra 의 읽기 전용 deploy key** 인 이유: 조직이
-      # fine-grained PAT 를 허용해야 하고, 허용해도 만료 갱신이 따라오며 발행한
-      # 사람에게 묶인다. deploy key 는 저장소 하나 · 읽기 전용이고 만료가 없다.
-      #
-      # 처음 돌 때 걸릴 수 있는 것 둘 (둘 다 시끄럽게 실패하므로 조용한 통과는 아니다):
-      #   1. "Host key verification failed" — 러너의 known_hosts 에 github.com 이
-      #      없다. 처방은 `ssh-known-hosts` 에 github.com 의 공개 호스트 키를 적는
-      #      것이다(https://api.github.com/meta 의 ssh_keys). `ssh-strict: false`
-      #      로 검증을 끄는 것은 처방이 아니다.
-      #   2. 22번 포트가 막혔다 — 홈랩 러너의 아웃바운드 정책. 처방은 ssh 설정에
-      #      github.com 을 ssh.github.com:443 으로 보내는 항목을 두는 것이다.
-      # 실제로 어느 쪽인지 보고 고친다. 돌려보지 않은 값을 미리 박아 두지 않는다.
-      - if: steps.guard.outputs.present == 'true'
-        uses: actions/checkout@v4
-        with:
-          repository: StellaxiaLab/Terra
-          ssh-key: ${{ secrets.TERRA_CHECKOUT_SSH_KEY }}
-          path: terra
-
-      - if: steps.guard.outputs.present == 'true'
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: terra/go.work
+          go-version: "1.25"
           cache: false
 
-      # 드리프트 대조 스크립트가 node 로 돌고, 아래 마운트 단계가 Terra 의 npm
-      # 의존을 받는다. 그래서 캐시를 둔다 — 잠금 파일은 이 저장소가 아니라
-      # **받아 온 Terra 쪽**이므로 경로를 그쪽으로 적는다(기본값은 저장소 루트를
-      # 보고, 거기엔 이 잡이 쓰는 잠금 파일이 없다).
-      - if: steps.guard.outputs.present == 'true'
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: terra/package-lock.json
 
-      # 벤더링한 스키마가 원본에서 떨어져 나갔는지는 여기서만 볼 수 있다.
-      - name: Check the vendored schema against Terra
-        if: steps.guard.outputs.present == 'true'
-        run: node modules/tools/check-schema-drift.mjs --terra "$GITHUB_WORKSPACE/terra"
-
-      # node-gui 의 leaf 화면은 Master 읽기를 /api/upstream 경로로 부른다(Terra ADR-GW-003 D3).
-      # op id → 경로 표는 Terra 계약에서 만든 사본이라, 위임 입구가 여닫는 op 가 바뀌면 여기서 드러난다.
-      - name: Check node-gui's Master delegation table against Terra
-        if: steps.guard.outputs.present == 'true'
-        run: node modules/common/lab.stellaxia.node-gui/web/tools/gen-master-delegated.mjs --terra "$GITHUB_WORKSPACE/terra" --check
-
-      # main 패키지는 모듈 루트가 아니라 cmd/terra 에 있다 — 루트에는 go.mod 와
-      # internal/ 뿐이라 `go build .` 는 "no Go files" 로 죽는다.
-      - name: Build the terra CLI
-        if: steps.guard.outputs.present == 'true'
-        working-directory: terra/products/common/apps/terra-cli
-        run: go build -o "$RUNNER_TEMP/terra" ./cmd/terra
-
-      # Go 소스를 가진 모듈을 매니페스트가 선언한 타깃으로 굽는다.
+      # 도구는 Node 로 돌지만 의존(ajv)은 쓰지 않는다. build/test 는 모듈별로
+      # `GOWORK=off` 로 go build / go test 를 부른다 — 모듈이 자기 go.mod/go.sum
+      # 만으로 서는지를 그대로 본다.
       #
-      # 이 단계가 없으면 그런 모듈은 그 다음 줄에서 전부 거절된다 —
-      # `terra module pack` 이 D-18 이후 바이너리 반쪽을 보고, 소스 트리의 `bin/` 은
-      # 원래 비어 있다(빌드 산출물이다). 실측: bin 없이 pack → MODULE_ENTRYPOINT_MISSING,
-      # 굽고 나서 pack → 통과.
-      #
-      # 모듈의 src/go.mod 는 SDK 를 Terra 안의 상대경로로 replace 한다. 그 경로는
-      # 이 저장소에 없으므로, 스크립트가 go.work 를 임시로 만들어 replace 를 덮는다
-      # (분리 검토 Q-8 — 나란한 체크아웃). 위에서 이미 terra/ 를 받아 뒀다.
+      # `--terra` 를 주지 않는다. 그래서 Terra 의 Master 계약 파일을 읽는
+      # io.terra.treebench 시험 둘은 **이름이 로그에 찍히며** 빠진다
+      # (tools/test-modules.mjs 의 NEEDS_TERRA). 그 대조는 Terra 쪽 CI 몫이다.
       - name: Build modules that carry Go source
-        if: steps.guard.outputs.present == 'true'
-        working-directory: modules
-        run: node tools/build-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
+        run: node tools/build-modules.mjs
 
-      # 모듈의 Go 시험을 돈다 (분리 검토 G-14).
-      #
-      # 이주 전에는 **코어의 CI 가 이것을 돌고 있었다** — Terra 의 go 잡이
-      # `git ls-files '*go.mod'` 로 저장소의 모든 Go 모듈을 훑는데 거기에
-      # `module/<tier>/<id>/src` 가 들어 있었다. 모듈이 이 저장소로 오면 그
-      # 훑기에서 **말없이 빠진다**: 없어진 경로를 세지 않으므로 코어 CI 는
-      # 그대로 초록이고, 줄어든 것은 시험의 수뿐이다. 실측(2026-09-30):
-      # 이주하는 모듈 열에 시험 파일 55개 · Test 함수 347개.
-      #
-      # 위의 build 단계로는 대신할 수 없다 — 컴파일이 되는지만 본다.
-      # 그리고 이것이 코어가 `module/` 을 지우기 전에 서야 하는 이유다.
       - name: Test modules that carry Go source
-        if: steps.guard.outputs.present == 'true'
-        working-directory: modules
-        run: node tools/test-modules.mjs --terra "$GITHUB_WORKSPACE/terra"
-
-      # 웹 화면을 가진 모듈의 `ui/` 를 굽는다 — `bin/` 과 같은 빌드 산출물이다.
-      #
-      # `terra module pack` 은 gui.apps 의 entry 를 보지 않는다: ui/ 가 아예 없어도,
-      # 스캐폴드의 자리 표시자만 있어도 `VERIFIED true` 다(실측). 그래서 이 단계를
-      # 빠뜨린 포장은 설치는 되는데 화면이 빈 패키지를 낸다. 다음 단계의
-      # pack-modules 가 포장 전에 entry 를 보고 서므로 그렇게 조용히 나가지는 않는다.
-      - name: Build modules that carry a web UI
-        if: steps.guard.outputs.present == 'true'
-        working-directory: modules
-        run: node tools/build-web.mjs
-
-      # pack 은 자기 출력을 설치기와 같은 검사(OpenPackageManifest → Extract →
-      # VerifyPayload)로 되연다. 그래서 이 단계가 통과하면 "포장은 됐는데 설치가
-      # 안 되는" 상태가 남지 않는다.
-      #
-      # 여기서 부르는 것이 **릴리스가 부르는 바로 그 스크립트**다. 셸 루프를
-      # 따로 들고 있었지만 둘로 나눌 이유가 없었다 — 같은 일("모든 모듈을
-      # 포장한다")을 두 벌로 쓰면 사본은 말없이 늙고, 무엇보다 **릴리스 경로의
-      # 도구가 PR 에서 한 번도 돌지 않는다.** 검증 잡이 도구를 비켜 가는 것은
-      # G-12 가 막으려던 그 모양이다.
-      #
-      # 릴리스보다 더 보기도 한다: 타깃별로 좁혀 굽고, modules.json 을 쓰고,
-      # 모듈 하나라도 자산을 못 내면 목록을 쓰지 않고 선다. 태그는 PR 에 없으니
-      # 커밋으로 채운다 — 이 실행의 산출물은 버려지고 형식만 지키면 된다.
-      - name: Pack every module
-        if: steps.guard.outputs.present == 'true'
-        working-directory: modules
-        run: |
-          node tools/pack-modules.mjs \
-            --cli "$RUNNER_TEMP/terra" \
-            --terra "$GITHUB_WORKSPACE/terra" \
-            --tag "ci-${GITHUB_SHA}" \
-            --out "$RUNNER_TEMP/dist"
-
-      # ── 출하 Scene 이 Terra 의 실 런타임에서 마운트되는지 (분리 검토 G-23) ──
-      #
-      # 위의 pack 은 Scene 의 **정적 무결성**을 본다 — fragment 가 모르는 store 를
-      # 부르는지, id 가 기여 id 와 같은지. 그것이 통과해도 **실 DOM 에서 서는**
-      # Scene 이 있다: `custom` 요소의 실체를 등록하는 것은 제품 앱이고(호스트
-      # 계층), 이 저장소는 그것을 모른다.
-      #
-      # **실제로 당했다 (2026-10-01).** modules#17 이 `lab.stellaxia.node-gui` 를
-      # 머지한 것만으로 Terra 의 모든 PR 과 main 이 빨개졌다. 그 Scene 의 main
-      # Fragment 는 루트가 `terra.web/frame` 이고, 그 component 는
-      # `terra-runtime-core` 에 산다. Terra 의 `shipped-scenes.test.ts` 는
-      # `TERRA_MODULES_ROOT` 로 **이 저장소의 main 을 라이브로** 걷기 때문에,
-      # 여기서 머지하는 순간이 저쪽의 빌드 시점이다 — 그리고 그때까지
-      # **양쪽 어디에도 막을 문이 없었다.** 이 단계가 그 문이다.
-      #
-      # 거울상이다: Terra 의 frontend 잡은 이 저장소를 체크아웃해 자기 시험이
-      # 조용히 건너뛰는 것을 막는다(G-17). 이쪽은 저쪽 시험을 받아 이 저장소의
-      # 머지가 저쪽을 깨뜨리는 것을 막는다. 둘이 같은 결합의 양쪽 끝이다.
-      #
-      # 무엇을 돌리는지와 왜인지는 `tools/test-scenes.mjs` 가 들고 있다 — 여기에
-      # 셸로 적어 두면 사본이 둘이 되고, 기여자는 이 검사를 로컬에서 돌릴 수
-      # 없다(`npm run test:scenes -- --terra <path>`). 그 사정은 pack 단계가
-      # 릴리스와 같은 스크립트를 부르는 이유와 같다.
-      - name: Install Terra's npm deps
-        if: steps.guard.outputs.present == 'true'
-        working-directory: terra
-        run: npm ci
-
-      - name: Mount the shipped Scenes in Terra's runtime
-        if: steps.guard.outputs.present == 'true'
-        working-directory: modules
-        run: node tools/test-scenes.mjs --terra "$GITHUB_WORKSPACE/terra"
+        run: node tools/test-modules.mjs

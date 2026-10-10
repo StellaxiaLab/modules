@@ -40,6 +40,31 @@ export function resolveTerraRoot(terra) {
   return terraRoot;
 }
 
+/**
+ * Terra 체크아웃을 **주면 검증하고, 안 주면 null** 이다. Go 모듈은 이제 공개
+ * `terra-sdk` · `terra-agent` 만으로 서므로(M-2 · M-3) 빌드와 시험에는 Terra 가
+ * 필요 없다. 있으면 더 보는 것(Terra 의 Master 계약 대조 시험)이 있을 뿐이다.
+ * 값은 줬는데 Terra 가 아니면 조용히 null 로 내리지 않고 던진다 — 오타난 경로가
+ * "Terra 없이 돈다" 로 바뀌면 그 검사가 사라진 것을 아무도 모른다.
+ */
+export function resolveOptionalTerraRoot(terra) {
+  return terra ? resolveTerraRoot(terra) : null;
+}
+
+/**
+ * Go 명령에 줄 GOWORK. Terra 가 있으면 임시 go.work 로 묶고(아직 Terra 상대경로
+ * replace 를 가진 모듈이 있을 때를 위해), 없으면 `off` — 모듈 하나하나가 자기
+ * go.mod/go.sum 만으로 선다. 이것이 "클론만으로 빌드된다" 의 실체다.
+ */
+export async function goWorkEnv(modules, terraRoot, generator) {
+  if (!terraRoot) return { GOWORK: 'off', note: 'Terra 없이 — 모듈별 go.mod 만으로 빌드한다 (GOWORK=off)' };
+  const workspace = await writeWorkspace(modules, terraRoot, generator);
+  return {
+    GOWORK: workspace.path,
+    note: `go.work: 모듈 ${modules.length}개 · Terra 패키지 ${workspace.replacements}개 → ${workspace.path}`
+  };
+}
+
 /** src/go.mod 를 가진 모듈만 — Scene·extension 은 빌드하거나 시험할 Go 가 없다. */
 export function goModules() {
   const found = [];

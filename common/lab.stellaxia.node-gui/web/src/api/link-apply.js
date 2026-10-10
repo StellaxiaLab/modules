@@ -18,6 +18,12 @@ export const OPS = {
 
 const arr = (d, ...keys) => { if (Array.isArray(d)) return d; for (const k of keys) if (d && Array.isArray(d[k])) return d[k]; return []; };
 
+/**
+ * 게이트웨이 whoami 의 principal 에서 사용자 id 만 꺼낸다. 앱 토큰이면 `user_… via lab.stellaxia.node-gui.web` 처럼 `via <앱>` 이 붙는다
+ * (진짜 스택 실측 2026-10-10 — 그대로 허가의 subject_id 로 보내면 위임 입구가 FORBIDDEN, 허가 목록 대조도 어긋난다)
+ */
+export const userIdOf = (principal) => String(principal || '').split(/\s+via\s+/)[0].trim();
+
 // ───── 미리 검사 (순수) ─────
 
 const SCHEMA = /^terra\.([a-z0-9]+(?:[.-][a-z0-9]+)*)@([1-9][0-9]*)$/;   // core/schema_ref.go
@@ -94,7 +100,8 @@ const phaseOf = (io, key, phase, extra) => {
  * @returns {Promise<{ io: any, applied: number, unavailable?: string, notes: string[] }>}
  *   unavailable — 서버에 닿지 않아 아무것도 바꾸지 않았다(이유 코드) · notes — 쌍마다 한 줄(화면 글줄용)
  */
-export async function applyLink(source, link, links, ctx, o) {
+export async function applyLink(source, link, links, ctx, o0) {
+  const o = Object.assign({}, o0, { userId: userIdOf(o0 && o0.userId) });
   const client = source.client, now = o.now || Date.now, notes = [];
   let io = buildIO(link, links, ctx, link.io);
   if (io.kind === 'screen') return { io, applied: 0, notes: ['화면 전용 연결이다 — 데이터는 흐르지 않는다'] };
@@ -231,8 +238,8 @@ async function applyShare(client, link, links, ctx, io0, o, h) {
 /** 내게 주는 bind 허가의 기본 기한(초) — 30일. 임시 기본값이다: Q-23 결정(2026-10-07)이 "기한을 고르게 한다"까지만 정했다 */
 export const GRANT_SELF_TTL_DEFAULT = 30 * 86400;
 
-export async function grantSelf(client, lacks, userId, ttlSeconds = GRANT_SELF_TTL_DEFAULT) {
-  const made = [], failed = [];
+export async function grantSelf(client, lacks, userId0, ttlSeconds = GRANT_SELF_TTL_DEFAULT) {
+  const userId = userIdOf(userId0), made = [], failed = [];
   if (!reaches(client, OPS.grantsPost)) return { ok: false, made, failed: lacks.map((l) => ({ resource_id: l.resource_id, operation: l.operation, code: 'not-in-catalog' })) };
   for (const l of lacks) {
     const r = await client.invoke(OPS.grantsPost, { subject_type: 'user', subject_id: userId, resource_id: l.resource_id, endpoint_id: l.endpoint_id, operations: [l.operation], ttl_seconds: ttlSeconds });

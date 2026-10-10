@@ -1,24 +1,21 @@
 // Go 소스를 가진 모듈을 매니페스트가 선언한 타깃으로 굽는다.
 //
-//   node tools/build-modules.mjs --terra ../terra [--target linux-amd64]...
+//   node tools/build-modules.mjs [--terra ../terra] [--target linux-amd64]...
 //
 // **왜 필요한가** — `terra module pack` 은 D-18 이후 바이너리 반쪽을 본다.
 // `entrypoints.process` 에 타깃을 적고 `bin/` 이 빈 모듈은 `MODULE_ENTRYPOINT_MISSING`
 // 으로 거절된다. 소스 트리의 `bin/` 은 원래 비어 있으므로(빌드 산출물이다), Go 모듈이
 // 이 저장소에 오면 `pack` 잡이 그 자리에서 빨개진다. 이 파일이 그 사이를 메운다.
 //
-// **왜 Terra 체크아웃이 필요한가** — 모듈의 `src/go.mod` 가 `terra-module-sdk` 등을
-// `replace` 로 끌어쓰고, 그 SDK 는 공개 레지스트리에 없다(Terra 가 private 이고
-// module path 도 실제 remote 와 다르다). 분리 검토 Q-8 이 **나란한 체크아웃**을
-// 골랐고, CI 의 pack 잡이 이미 그 모양이다 — `modules/` 와 `terra/` 가 나란히 있다.
-//
-// 워크스페이스 배선(go.work · replace 덮어쓰기)은 `tools/go-workspace.mjs` 가 갖고
-// 있다 — `test-modules.mjs` 가 같은 것을 필요로 하고, 두 벌은 한쪽만 늙는다.
+// **Terra 체크아웃은 이제 선택이다** — 모듈이 공개 `terra-sdk` · `terra-agent` 를
+// 버전으로 require 하므로(M-2 · M-3) 빌드에는 Terra 가 필요 없다. `--terra` 를 주면
+// 예전처럼 임시 go.work 로 묶는다(아직 Terra 상대경로 replace 를 가진 모듈이 생길 때를
+// 위한 길이다). 워크스페이스 배선은 `tools/go-workspace.mjs` 가 갖고 있다.
 
 import { readFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import { goModules, resolveTerraRoot, run, writeWorkspace } from './go-workspace.mjs';
+import { goModules, goWorkEnv, resolveOptionalTerraRoot, run } from './go-workspace.mjs';
 
 // --- 인자 ---------------------------------------------------------------
 
@@ -31,7 +28,7 @@ function parseArgs(argv) {
     else if (argument === '--target') targets.push(argv[++index] ?? '');
     else throw new Error(`알 수 없는 인자: ${argument}`);
   }
-  return { terraRoot: resolveTerraRoot(terra), targets: targets.filter(Boolean) };
+  return { terraRoot: resolveOptionalTerraRoot(terra), targets: targets.filter(Boolean) };
 }
 
 // --- 빌드 ---------------------------------------------------------------
@@ -58,10 +55,8 @@ async function main() {
     return 0;
   }
 
-  const workspace = await writeWorkspace(modules, terraRoot, 'build-modules.mjs');
-  console.log(
-    `go.work: 모듈 ${modules.length}개 · Terra 패키지 ${workspace.replacements}개 → ${workspace.path}`
-  );
+  const workspace = await goWorkEnv(modules, terraRoot, 'build-modules.mjs');
+  console.log(workspace.note);
 
   let failed = 0;
   let built = 0;
@@ -87,7 +82,7 @@ async function main() {
         cwd: join(module.dir, 'src'),
         env: {
           ...process.env,
-          GOWORK: workspace.path,
+          GOWORK: workspace.GOWORK,
           GOOS: goos,
           GOARCH: goarch,
           // Terra 의 Build-ExternalModules 와 같은 설정 — 교차컴파일에서

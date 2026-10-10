@@ -178,8 +178,9 @@ Go 의존은 0으로도 된다.
 ## 독립 빌드 (초안)
 
 > [!NOTE]
-> 전환 중인 절차다. 설계 문서 `module-independent-repos`(작업 M-1~M-8)가
-> 정한다. **지금은 아직 클론만으로 빌드되지 않는다** — 아래 "지금" 표가 현재 상태이고, "목표"가 끝난 모습이다.
+> 전환 중인 절차다. 설계 문서 `module-independent-repos`(작업 M-1~M-8)가 정한다.
+> Go 모듈 빌드·시험까지는 클론만으로 된다. 포장·Scene 마운트·스키마 원본 대조는 아직 Terra 체크아웃이 필요하고
+> Terra 쪽 CI 몫이다 — 아래 표가 그 경계다.
 
 ### Go 모듈 경로
 
@@ -187,60 +188,75 @@ Go 의존은 0으로도 된다.
 (예: `github.com/StellaxiaLab/modules/leaf/io.terra.file`). `go.mod`는 각 모듈의 `src/`에 있다.
 이 경로는 모듈끼리 서로의 패키지를 부를 때와 `go.mod`의 `module` 줄에만 쓰이고, 어디에서도 내려받지 않는다.
 
-### 지금
+### 클론 한 번으로 (M-2 ~ M-6 이후)
 
-| 하는 일 | 필요한 것 | 명령 |
-| --- | --- | --- |
-| 매니페스트·배치 검증, 스키마 사본 해시 | 이 저장소만 (Node 24) | `npm ci && npm run validate && npm run check:schema` |
-| 웹 모듈 빌드·시험 | 이 저장소만 | `npm run build:web && npm run test:web` |
-| Go 모듈 빌드·시험 | **Terra 체크아웃** — `src/go.mod`가 `terra-module-sdk` · `terra-module-runtime` · `terra-svi` · `terra-protocol` 등을 Terra 안의 상대경로로 `replace`하고, 그 패키지는 공개 레지스트리에 없다 | `npm run build -- --terra <path>` · `npm run test -- --terra <path>` |
-| 포장(`pack`) · Scene 마운트 | Terra 체크아웃과 `terra` CLI | 위 "검증" 절 |
-
-### 목표 (M-2·M-3 이후)
-
-`StellaxiaLab/terra-sdk`와 `StellaxiaLab/terra-agent`가 `v0.1.0` 태그를 가지면 Go 모듈은 두 레포를 **버전으로**
-require하고 `replace`는 사라진다. 그때의 빌드는 다음 한 줄 묶음이다.
+Go 모듈 10개는 공개 `terra-sdk` · `terra-agent`의 `v0.1.0` 태그를 **버전으로** require하고 Terra를 가리키는 `replace`는
+없다. 빈 머신에서 이 저장소를 클론하는 것만으로 14개 모듈의 검증·빌드·시험이 돈다.
 
 ```bash
 git clone https://github.com/StellaxiaLab/modules && cd modules
 npm ci
-npm run validate && npm run check:schema
-npm run build && npm run test        # --terra 없이: 모듈 안에서 go build ./... / go test ./...
+npm run validate && npm run check:schema    # 매니페스트·배치, 스키마 사본의 자기 해시
+npm run build && npm run test               # Go 모듈 10개: go build / go test (Go 1.25 필요)
+npm run build:web && npm run test:web       # 웹 화면을 가진 모듈
 ```
 
-pack 검증이 Terra 체크아웃을 계속 필요로 하는 부분이 남으면, 그 이유와 최소 범위를 이 절에 적는다
-(M-5). 이 절은 그때 초안에서 정본으로 바뀐다.
+| 하는 일 | 필요한 것 |
+| --- | --- |
+| 매니페스트·배치 검증, 스키마 사본 해시 | 이 저장소만 (Node 24) |
+| 웹 모듈 빌드·시험 | 이 저장소만 |
+| Go 모듈 빌드·시험 | 이 저장소 + Go 모듈 프록시(`terra-sdk`, `terra-agent` 태그) — **Terra 불필요** |
+| 포장(`terra module pack`) · Scene 마운트 · 스키마 원본 대조 · Master 계약 대조(treebench 2건) | **Terra 체크아웃** — Terra 쪽 CI 몫 (아래 "검증" 절의 박스). `terra` CLI는 Terra 소스에서 굽는다 |
+| 릴리스(`.tmod` 구워 올리기) | Terra 체크아웃과 `TERRA_CHECKOUT_SSH_KEY` — 태그를 찍을 때만 |
 
 ## 검증
 
 | 명령 | 보는 것 |
 | --- | --- |
 | `npm run validate` | 매니페스트 형식(Manifest v2), 배치 규약 L-1~L-10, 참조 경로의 실재 |
-| `npm run check:schema` | 벤더링한 스키마 사본이 기록된 해시 그대로인가 |
-| `npm run check:schema -- --terra <path>` | 그 사본이 Terra의 원본과 바이트까지 같은가 |
-| `npm run build -- --terra <path>` | Go 소스를 가진 모듈이 선언한 타깃으로 굽히는가 |
-| `npm run test -- --terra <path>` | Go 소스를 가진 모듈의 **시험이 도는가** — `go test` 와 goroutine 을 가진 패키지의 `-race` |
+| `npm run check:schema` | 벤더링한 스키마 사본이 기록된 해시 그대로인가 (`--self-only` — 원본 대조는 하지 않는다고 **명시**한 것) |
+| `npm run check:schema -- --terra <path>` | 그 사본이 Terra의 원본과 바이트까지 같은가 (Terra 체크아웃 필요) |
+| `npm run build` | Go 소스를 가진 모듈이 선언한 타깃으로 굽히는가 — **Terra 불필요** |
+| `npm run test` | Go 소스를 가진 모듈의 **시험이 도는가** — `go test` 와 goroutine 을 가진 패키지의 `-race`. **Terra 불필요**; `--terra <path>`를 주면 Terra의 Master 계약을 읽는 시험(treebench 2건)도 돈다 |
 | `npm run build:web` | 웹 화면을 가진 모듈의 `web/`을 `ui/`로 굽고, 앱 entry가 생겼는지 · 자리 표시자가 아닌지 |
 | `npm run test:web` | 그 모듈의 웹 시험(`web/package.json`의 `scripts.test`)이 도는가 |
 | `npm run test:scenes -- --terra <path>` | 출하 Scene 이 Terra 의 **실 런타임에서 마운트되는가** — `pack` 이 보는 정적 무결성 너머 (분리 검토 G-23) |
 | `terra module pack <dir>` | Scene 무결성과 포장이 실제로 열리는지 (**권위**) |
 | `npm run pack -- --cli <terra> --terra <path> --tag <tag>` | 저장소 전체를 타깃별로 포장하고 릴리스 목록을 낸다 |
 
-`validate` · `check:schema` · `build:web` · `test:web`은 이 저장소만으로 돌고, 나머지는 Terra
-체크아웃이 필요하다. CI도 같은 선으로 갈라져 있다 — `validate` 잡과 `web` 잡은 항상 돌고,
-`pack` 잡은 `TERRA_CHECKOUT_SSH_KEY`가 있을 때만 돈다.
+`validate` · `check:schema` · `build` · `test` · `build:web` · `test:web`은 이 저장소만으로 돌고,
+`test:scenes` · `pack` · `check:schema -- --terra`는 Terra 체크아웃이 필요하다. CI는 앞의 것만 본다 —
+`validate` · `web` · `go` 세 잡이 항상 돌고 **시크릿이 하나도 필요 없다**(`TERRA_CHECKOUT_SSH_KEY` 제거, M-5·M-6).
+
+> [!IMPORTANT]
+> **이 저장소의 CI가 더 이상 보지 않는 것** — 예전의 `pack` 잡이 보던 세 가지는 Terra의 코드가 있어야 서는
+> 검사(`terra` CLI는 Terra 소스에서 굽고, Scene 마운트 시험은 Terra의 npm 의존과 `shipped-scenes.test.ts`를 쓴다)라서
+> 뺐다. **권위는 Terra 쪽 CI로 간다:**
+>
+> | 검사 | 부르는 법 (Terra 쪽 CI가 이 저장소를 체크아웃한 뒤) |
+> | --- | --- |
+> | `terra module pack` — Scene 무결성, 포장이 열리는지 | `npm run build && npm run pack -- --cli <terra> --terra <terra> --tag <tag>` |
+> | 출하 Scene의 실 런타임 마운트 (G-23) | `npm run test:scenes -- --terra <terra>` |
+> | 스키마 사본 ↔ Terra 원본 바이트 대조 | `npm run check:schema -- --terra <terra>` |
+> | Terra Master 계약 ↔ treebench 생성물 대조 | `npm run test -- --terra <terra>` |
+> | Terra 계약 ↔ node-gui의 Master 위임 표(`master-delegated.js`) 대조 | `node common/lab.stellaxia.node-gui/web/tools/gen-master-delegated.mjs --terra <terra> --check` |
+>
+> 이 PR 이후 modules의 PR은 위 다섯 가지를 **이 저장소 안에서는 확인받지 못한다.** Terra 쪽 CI가 이 저장소의
+> main(또는 PR 브랜치)을 받아 돌려야 이 공백이 닫힌다. 릴리스(`release.yml`)는 태그를 찍을 때 `terra` CLI로
+> `.tmod`를 굽기 때문에 **아직 Terra 체크아웃(`TERRA_CHECKOUT_SSH_KEY`)이 필요하다** — Terra가 `terra` CLI를 공개
+> 릴리스 자산으로 내면 그 의존도 사라진다.
 
 `npm run test`가 있는 이유는 **이주가 그것을 떨어뜨렸기 때문**이다(분리 검토 G-14). 모듈이
 Terra 안에 있을 때는 Terra의 CI가 `git ls-files '*go.mod'`로 저장소의 모든 Go 모듈을 훑어
 시험을 돌리고 있었고, 모듈이 여기로 오면 그 훑기에서 **말없이 빠진다** — 없어진 경로를 세지
 않으므로 코어 CI는 그대로 초록이다. `npm run build`로는 대신할 수 없다: 컴파일이 되는지만
 본다. 첫 실행이 바로 하나를 잡았다 — `io.terra.treebench`가 Master의 계약을 Terra 트리
-기준 상대경로로 읽고 있었다(G-15). 그래서 시험 환경에는 `TERRA_CHECKOUT`이 함께 간다. 시크릿이 없을 때의 처분은 **어디서 도느냐로 갈린다:**
+기준 상대경로로 읽고 있었다(G-15). 그래서 시험 환경에는 `--terra`를 주면 `TERRA_CHECKOUT`이 함께 간다.
 
-| 어디서 | 시크릿이 없으면 |
-| --- | --- |
-| PR · 수동 실행 | 건너뛰되 **warning으로 남긴다.** 포크에서 온 PR에는 시크릿이 가지 않으므로, 여기서 실패로 올리면 기여를 막게 된다 |
-| `main` 푸시 | **실패한다.** main은 이 저장소가 "검증됐다"고 말하는 자리이고, 검증 절반이 빠진 초록은 그 말을 거짓으로 만든다 |
+> 옛 처분(참고): `pack` 잡은 시크릿이 없을 때 PR·수동 실행에서는 warning으로 건너뛰고 `main` 푸시에서는 실패했다.
+> 지금은 그 잡이 이 저장소에 없다(위 박스). 대신 `check-schema-drift`는 **방식을 고르지 않으면 실패한다** — `--terra`로
+> 원본과 대조하거나 `--self-only`로 "대조를 안 한다"를 명시해야 하고, 인자 없이 조용히 건너뛰지 않는다.
+> Terra 없이 도는 `npm run test`가 빼는 시험은 treebench의 Master 계약 대조 2건뿐이고, 빼는 사실과 이름이 로그에 찍힌다.
 
 `npm run test:scenes`가 있는 이유는 **이 저장소의 머지가 저쪽을 깨뜨렸기 때문**이다(분리 검토
 G-23). `terra module pack`은 Scene의 **정적** 무결성을 본다 — fragment가 모르는 store를 부르는지,
@@ -259,6 +275,8 @@ G-14의 거울상이다. G-14는 *이 저장소가 가져온 시험을 아무도
 **둘** 걷는다(저쪽의 `module/`에 남는 base Scene `io.terra.scene.terra`와 이 저장소). 그래서 저쪽
 Scene이 깨지면 이 저장소의 PR도 빨개진다. 뿌리를 좁히는 것은 처방이 아니다 — 좁히면 base Scene이
 목록에서 **조용히 빠진다.**
+
+> **지금은 릴리스(`release.yml`)만 이 시크릿을 쓴다.** CI(`ci.yml`)는 쓰지 않는다.
 
 그 시크릿은 **`StellaxiaLab/Terra`의 읽기 전용 deploy key의 개인키**다. PAT가 아닌 이유는
 셋이다 — 조직이 fine-grained PAT를 허용해야 하고, 허용해도 만료 갱신이 따라오며, 발행한
@@ -282,18 +300,17 @@ ssh-keygen -t ed25519 -N '' -C 'modules-ci@StellaxiaLab' -f terra-ci
 비어 있으므로(빌드 산출물이다) 순서가 정해져 있다:
 
 ```bash
-npm run build -- --terra ../terra          # src/ → bin/<target>/
+npm run build                              # src/ → bin/<target>/ (Terra 불필요)
 terra module pack leaf/com.acme.hello      # 그다음에 포장
 ```
 
 실측으로 양쪽을 확인했다 — `bin` 없이 포장하면 `MODULE_ENTRYPOINT_MISSING`, 굽고 나면
 통과한다.
 
-빌드에 Terra 체크아웃이 필요한 이유는 하나다: 모듈의 `src/go.mod`가 `terra-module-sdk`
-등을 `replace`로 끌어쓰고 **그 SDK는 공개 레지스트리에 없다**(Terra가 private이고 module
-path도 실제 remote와 다르다). 그 `replace`는 Terra 안을 가리키는 상대경로라 이 저장소에서는
-풀리지 않으므로, 스크립트가 `go.work`를 임시로 만들어 덮는다 — 모듈의 `go.mod`는 손대지
-않는다. 이주가 파일 수정을 동반하지 않게 하려는 것이다.
+> 이 절의 `--terra`는 이제 선택이다. 예전에는 모듈의 `src/go.mod`가 `terra-module-sdk` 등을 Terra 안의
+> 상대경로로 `replace`했고 그 SDK가 공개 레지스트리에 없어서 Terra 체크아웃이 빌드에 필요했다. 지금은 모듈이
+> 공개 `terra-sdk` · `terra-agent`를 버전으로 require하므로(M-2·M-3) `GOWORK=off`로 모듈 하나하나가 자기
+> `go.mod`/`go.sum`만으로 선다. `--terra`를 주면 예전처럼 임시 `go.work`로 묶는다.
 
 Go 소스가 없는 모듈(Scene·extension)은 빌드할 것이 없고, 스크립트가 그 사실을 적고 통과한다.
 
