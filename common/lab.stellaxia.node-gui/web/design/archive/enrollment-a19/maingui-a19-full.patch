@@ -1,0 +1,1766 @@
+diff --git a/design/Artboard-qcfu.dc.html b/design/Artboard-qcfu.dc.html
+index 70c3c4a..7e5ee22 100644
+--- a/design/Artboard-qcfu.dc.html
++++ b/design/Artboard-qcfu.dc.html
+@@ -1709,6 +1709,38 @@ a{color:#2563eb}a:hover{color:#1d4ed8}
+                       <button type="button" data-node-adm-save="1" onClick="{{rst.adm.save}}" style="height: 28px; padding: 0 12px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #16191f; background: #16191f; color: #ffffff;">저장</button>
+                     </div>
+                   </div>
++                  <!-- 노드 등록 코드 (A-19 · Terra ADR-GW-002): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드.
++                       평문은 발급 응답에서 한 번만 온다 — 복사 버튼을 주고, 다시 볼 수 없다고 적는다 -->
++                  <div data-node-enr="1" style="display: {{rst.enr.disp}}; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid #e6e9ee; border-radius: 10px;">
++                    <span style="font-size: 11px; font-weight: 700; color: #5b6472;">노드 등록 코드 · 이 노드 밑에 새 노드</span>
++                    <span style="font-size: 10.5px; line-height: 1.5; color: #8b95a6;">사람이 코드를 그 기계로 들고 가, 그 기계의 GUI에 붙여 넣는다. 그 기계에 Master 계정 비밀번호를 치지 않는다.</span>
++                    <span style="display: {{rst.enr.lockDisp}}; font-size: 11px; color: #d33d52;">{{rst.enr.lock}}</span>
++                    <div style="display: flex; gap: 6px; align-items: center;">
++                      <input data-node-enr-label="1" type="text" value="{{rst.enr.label}}" onChange="{{rst.enr.setLabel}}" disabled="{{rst.enr.dis}}" placeholder="어느 기계용인지 메모" aria-label="등록 코드 메모" style="flex-grow: 1; min-width: 0; height: 28px; box-sizing: border-box; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 7px; font: inherit; font-size: 12px;">
++                      <select data-node-enr-ttl="1" onChange="{{rst.enr.setTtl}}" disabled="{{rst.enr.dis}}" aria-label="수명" style="height: 28px; border: 1px solid #d8dde5; border-radius: 7px; font: inherit; font-size: 12px; background: #ffffff;">
++                        <sc-for list="{{rst.enr.ttls}}" as="tt" hint-placeholder-count="3"><option value="{{tt.v}}" selected="{{tt.sel}}">{{tt.t}}</option></sc-for>
++                      </select>
++                      <button type="button" data-node-enr-issue="1" onClick="{{rst.enr.issue}}" disabled="{{rst.enr.dis}}" style="height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #16191f; background: #16191f; color: #ffffff; white-space: nowrap;">{{rst.enr.goLabel}}</button>
++                    </div>
++                    <!-- 방금 발급한 평문 — 지금 한 번만 -->
++                    <div data-node-enr-fresh="1" style="display: {{rst.enr.codeDisp}}; flex-direction: column; gap: 5px; padding: 8px; border: 1.5px solid #ffd84d; border-radius: 9px; background: #fffbea;">
++                      <span style="font-size: 10.5px; font-weight: 800; color: #a65f00;">이 코드는 지금 한 번만 보인다 — 창을 닫으면 다시 볼 수 없다</span>
++                      <div style="display: flex; gap: 6px; align-items: flex-start;">
++                        <textarea data-node-enr-code="1" rows="2" value="{{rst.enr.code}}" readonly="1" aria-label="발급된 등록 코드" spellcheck="false" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 6px 8px; border: 1px solid #e2d08a; border-radius: 7px; background: #ffffff; font: inherit; font-size: 11.5px; font-family: ui-monospace,Menlo,Consolas,monospace; line-height: 1.45; resize: vertical; overflow-wrap: anywhere;"></textarea>
++                        <button type="button" data-node-enr-copy="1" onClick="{{rst.enr.copy}}" style="height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #a65f00; background: #ffffff; color: #a65f00; white-space: nowrap;">복사</button>
++                      </div>
++                      <span data-node-enr-addr="1" style="display: {{rst.enr.addrDisp}}; font-size: 10.5px; color: #5b6472; overflow-wrap: anywhere;">Master 주소를 품었다 — {{rst.enr.addr}} (그 기계는 주소를 따로 넣지 않아도 된다)</span>
++                    </div>
++                    <span style="display: {{rst.enr.msgDisp}}; font-size: 11px; line-height: 1.5; color: {{rst.enr.msgC}};">{{rst.enr.msg}}</span>
++                    <!-- 발급해 둔 코드 (평문은 없다) -->
++                    <sc-for list="{{rst.enr.rows}}" as="ec" hint-placeholder-count="2">
++                      <div style="display: flex; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 7px; background: #f4f6f9; font-size: 11px;">
++                        <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.4;"><b style="overflow-wrap: anywhere;">{{ec.label}}</b><span style="color: #8b95a6;">{{ec.sub}}</span></span>
++                        <button type="button" data-node-enr-revoke="1" onClick="{{ec.revoke}}" style="display: {{ec.delDisp}}; height: 24px; padding: 0 9px; border-radius: 12px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid #d33d52; background: #ffffff; color: #d33d52; align-items: center; white-space: nowrap;">{{ec.delLabel}}</button>
++                      </div>
++                    </sc-for>
++                    <span style="display: {{rst.enr.rowsNone}}; font-size: 10.5px; color: #8b95a6;">발급해 둔 코드 없음</span>
++                  </div>
+                   <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #eef1f5; padding-top: 10px;">
+                     <span style="font-size: 11px; font-weight: 700; color: #5b6472;">API · helm-apps-integration</span>
+                     <sc-for list="{{rst.api}}" as="ap" hint-placeholder-count="3">
+@@ -1987,6 +2019,9 @@ class Component extends DCLogic {
+         net: { x: 420, y: 110, w: 600 }, mod: { x: 540, y: 200, w: 380 }, user: { x: 600, y: 240, w: 360 }, set: { x: 560, y: 180, w: 380 }, memo: { x: 600, y: 120, w: 480 }, rd: { x: 440, y: 200, w: 400 }, rcfg: { x: 1040, y: 120, w: 360 }, rst: { x: 990, y: 70, w: 430 }, mgui: { x: 300, y: 90, w: 720 }
+       },
+       winOpen: {}, wrz: null, fsPrev: {}, hbOut: null, mguiKey: 0, nodeAdm: null,   // nodeAdm = 상태 화면의 노드 관리 폼 { node, name, parent, arm, msg, c }
++      // nodeEnr = 노드 등록 코드 폼 (A-19) { node, label, ttl, code, codeId, msg, c, busy, list[], arm }
++      //   code = 방금 발급한 평문. 발급 응답에서만 보이고 다시 받을 수 없다 — 그래서 상태에 들고 있다
++      nodeEnr: null,
+         // hbOut = 상태 화면에 보이는 작업 출력 · 모듈 로그 · mguiKey = 모듈 GUI 다시 읽기
+         // wrz = 크기 바꾸는 중인 창 · fsPrev = 전체 화면 전 화면 (축소하면 그리로)
+       drawer: [],
+@@ -4331,6 +4366,52 @@ class Component extends DCLogic {
+   }
+   // 서비스가 바꿔 끼운다 (Master 호출). 예시는 바로 성공
+   async nodeAdmDo() { return { ok: true }; }
++  // ── 노드 등록 코드 (A-19 · Terra ADR-GW-002): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드.
++  //    평문은 발급 응답에서 한 번만 보이므로 복사 버튼을 주고, 다시 볼 수 없다고 적는다 ──
++  nodeEnrFor(name) { const E = this.state.nodeEnr; return E && E.node === name ? E : { node: name, label: '', ttl: '900', code: '', codeId: '', addr: '', msg: '', c: '#5b6472', busy: false, list: [], arm: '' }; }
++  nodeEnrSet(name, patch) { this.setState({ nodeEnr: Object.assign({}, this.nodeEnrFor(name), patch) }); }
++  nodeEnrSay(name, msg, c) { this.nodeEnrSet(name, { msg, c: c || '#1f7a4d', busy: false }); }
++  async nodeEnrIssue(name) {
++    const E = this.nodeEnrFor(name);
++    if (E.busy) return;
++    this.nodeEnrSet(name, { busy: true, msg: '발급하는 중…', c: '#5b6472', code: '', codeId: '' });
++    const r = await this.nodeEnrDo('issue', name, { label: String(E.label || '').trim(), expires_in_sec: Number(E.ttl) || 900 });
++    if (!r || r.ok === false) { this.nodeEnrSay(name, (r && r.msg) || '발급하지 못했다', '#d33d52'); return; }
++    const d = r.data || {};
++    this.nodeEnrSet(name, { busy: false, code: d.code || '', codeId: d.code_id || '', addr: d.master_url || '', label: '',
++      msg: '발급했다 — 이 코드는 지금 한 번만 보인다. 복사해서 그 기계로 옮긴다', c: '#1f7a4d' });
++    this.pushAlarm('◆', '#2563eb', '노드 등록 코드를 발급했다 — ' + (d.expires_at ? '만료 ' + String(d.expires_at).slice(11, 16) : '15분'));
++    this.nodeEnrLoad(name);
++  }
++  async nodeEnrLoad(name) {
++    const STAT_KO = { active: '쓸 수 있음', used: '이미 쓴 코드', expired: '수명 지남', revoked: '폐기됨' };
++    const r = await this.nodeEnrDo('list', name, {});
++    if (!r || r.ok === false) return;
++    this.nodeEnrSet(name, { list: ((r.data || {}).codes || []).map((x) => ({
++      id: x.code_id, label: x.label || '(메모 없음)', status: x.status || 'active',
++      sub: [STAT_KO[x.status] || x.status, x.expires_at ? '만료 ' + String(x.expires_at).slice(11, 16) : '', x.claimed_node_id ? '→ ' + x.claimed_node_id : ''].filter(Boolean).join(' · ') })) });
++  }
++  async nodeEnrRevoke(name, id) {
++    const E = this.nodeEnrFor(name);
++    if (E.arm !== id) { this.nodeEnrSet(name, { arm: id, msg: '한 번 더 누르면 그 코드를 폐기한다 — 이미 등록한 노드는 그대로다', c: '#a65f00' }); return; }
++    const r = await this.nodeEnrDo('revoke', name, { code_id: id });
++    if (!r || r.ok === false) { this.nodeEnrSay(name, (r && r.msg) || '폐기하지 못했다', '#d33d52'); return; }
++    this.nodeEnrSet(name, { arm: '', msg: '폐기했다', c: '#1f7a4d', code: E.codeId === id ? '' : E.code });
++    this.nodeEnrLoad(name);
++  }
++  nodeEnrCopy(name) {
++    const E = this.nodeEnrFor(name);
++    if (!E.code) return;
++    const done = () => this.nodeEnrSay(name, '복사했다 — 그 기계의 GUI에 붙여 넣는다', '#1f7a4d');
++    try {
++      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(E.code).then(done, () => this.nodeEnrSay(name, '복사하지 못했다 — 글상자에서 직접 고른다', '#a65f00')); return; }
++    } catch { /* 아래 폴백 */ }
++    const el = document.querySelector('[data-node-enr-code]');
++    if (el && el.select) { el.select(); try { document.execCommand('copy'); done(); return; } catch { /* 막힘 */ } }
++    this.nodeEnrSay(name, '복사하지 못했다 — 글상자에서 직접 고른다', '#a65f00');
++  }
++  // 서비스가 바꿔 끼운다 (Master 호출). 예시는 길이 없다고 말한다
++  async nodeEnrDo() { return { ok: false, msg: '예시에서는 등록 코드를 발급하지 않는다' }; }
+   // 이 동작의 길이 없으면 잠글 이유 (서비스가 catalog로 바꿔 끼운다). 예시는 늘 null
+   hbOpLock() { return null; }
+   nodeMoveLocal(name, par) {
+@@ -4620,6 +4701,22 @@ class Component extends DCLogic {
+             delLabel: A.arm ? '정말 삭제' : '🗑️ 노드 삭제', delBg: A.arm ? '#d33d52' : '#ffffff', delFg: A.arm ? '#ffffff' : '#d33d52', delDisp: me ? 'none' : 'inline-flex',
+             setName: (e) => this.nodeAdmSet(name, { name: e.target.value }), setParent: (e) => this.nodeAdmSet(name, { parent: e.target.value }),
+             save: () => { if (ctl) this.nodeAdmSave(name); }, del: () => { if (ctl) this.nodeAdmDel(name); } };
++        })(),
++        // 노드 등록 코드 (A-19): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드. tree 노드에서만
++        // 보인다 — 코드는 클러스터 것이고, 새 노드는 이 노드 밑에 붙는다
++        enr: (() => {
++          const E = this.nodeEnrFor(name), ctl = (P.has || []).indexOf('node.control') >= 0;
++          const tree = this.isTree((this.NET[name] || {}).role || net.role);
++          return { disp: tree ? 'flex' : 'none', lock: ctl ? '' : '🔒 node.control 권한 없음', lockDisp: ctl ? 'none' : 'block', dis: !ctl || !!E.busy,
++            label: E.label || '', ttls: [['900', '15분'], ['300', '5분'], ['3600', '1시간']].map(([v, t]) => ({ v, t, sel: v === (E.ttl || '900') })),
++            code: E.code || '', codeDisp: E.code ? 'flex' : 'none', addr: E.addr || '', addrDisp: E.code && E.addr ? 'block' : 'none',
++            msg: E.msg || '', msgC: E.c || '#5b6472', msgDisp: E.msg ? 'block' : 'none',
++            goLabel: E.busy ? '발급 중…' : '＋ 등록 코드 발급',
++            rows: (E.list || []).map((x) => Object.assign({}, x, { armed: E.arm === x.id, delLabel: E.arm === x.id ? '정말 폐기' : '폐기',
++              delDisp: x.status === 'active' ? 'inline-flex' : 'none', revoke: () => { if (ctl) this.nodeEnrRevoke(name, x.id); } })),
++            rowsNone: (E.list || []).length ? 'none' : 'block',
++            setLabel: (e) => this.nodeEnrSet(name, { label: e.target.value }), setTtl: (e) => this.nodeEnrSet(name, { ttl: e.target.value }),
++            issue: () => { if (ctl) this.nodeEnrIssue(name); }, copy: () => this.nodeEnrCopy(name), load: () => this.nodeEnrLoad(name) };
+         })()
+       });
+     }
+diff --git a/design/Intro.dc.html b/design/Intro.dc.html
+index 0fc0821..6704a94 100644
+--- a/design/Intro.dc.html
++++ b/design/Intro.dc.html
+@@ -121,6 +121,47 @@ body{margin:0;background:#a9dbf7;overflow:hidden}
+         </button>
+       </sc-if>
+ 
++      <!-- 미등록 노드 등록 (A-19 · ADR-GW-002): tree 관리자가 만든 일회용 등록 코드를 받는다.
++           루프백에서 보고 있을 때만 칸이 나온다 — 미등록 Gateway의 등록 창이 루프백에서만 열리기 때문이다 -->
++      <sc-if value="{{v.enroll}}" hint-placeholder-val="{{false}}">
++        <div data-in-enroll="1" style="display: flex; flex-direction: column; gap: 12px; padding: 2px 0;">
++          <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border: 1.5px solid #ffd84d; border-radius: 10px; background: #fffbea;">
++            <span style="font-size: 12.5px; font-weight: 800; color: #16191f;">이 노드는 아직 tree에 등록되지 않았습니다</span>
++            <span data-in-enroll-note="1" style="font-size: 11.5px; line-height: 1.5; color: #5b6472;">{{v.enrNote}}</span>
++          </div>
++
++          <!-- 루프백이 아닐 때: 왜 여기서는 등록할 수 없는지 -->
++          <span data-in-enroll-why="1" style="display: {{v.enrWhyDisp}}; font-size: 11.5px; line-height: 1.5; color: #a65f00;">{{v.enrWhy}}</span>
++
++          <div data-in-enroll-fields="1" style="display: {{v.enrFieldsDisp}}; flex-direction: column; gap: 10px;">
++            <label style="display: flex; flex-direction: column; gap: 5px;">
++              <span style="font-size: 12px; font-weight: 700; color: #3b4452;">등록 코드</span>
++              <span class="in-field" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 12px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 10px; background: #ffffff;">
++                <textarea data-in-enroll-code="1" rows="2" value="{{v.enrCode}}" onChange="{{v.setEnrCode}}" placeholder="tnc_…" aria-label="등록 코드" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 13px; font-family: ui-monospace,Menlo,Consolas,monospace; color: #16191f; resize: vertical; overflow-wrap: anywhere;"></textarea>
++              </span>
++            </label>
++            <label style="display: flex; flex-direction: column; gap: 5px;">
++              <span style="font-size: 12px; font-weight: 700; color: #3b4452;">기기 이름</span>
++              <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 10px; background: #ffffff;">
++                <input data-in-enroll-name="1" type="text" value="{{v.enrName}}" onChange="{{v.setEnrName}}" placeholder="비우면 이 기계의 이름" aria-label="기기 이름" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 15px; color: #16191f;">
++              </span>
++            </label>
++            <!-- 코드가 Master 주소를 품고 있으면 이 칸은 나오지 않는다 -->
++            <label data-in-enroll-addr-row="1" style="display: {{v.enrAddrDisp}}; flex-direction: column; gap: 5px;">
++              <span style="font-size: 12px; font-weight: 700; color: #3b4452;">Master 주소</span>
++              <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 10px; background: #ffffff;">
++                <input data-in-enroll-addr="1" type="text" value="{{v.enrAddr}}" onChange="{{v.setEnrAddr}}" placeholder="http://master.example:8080" aria-label="Master 주소" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 14px; color: #16191f;">
++              </span>
++            </label>
++            <span data-in-enroll-msg="1" style="display: {{v.enrMsgDisp}}; min-height: 18px; font-size: 12px; font-weight: 600; line-height: 1.5; color: {{v.enrMsgC}};">{{v.enrMsg}}</span>
++            <button type="button" data-in-enroll-go="1" onClick="{{v.enrGo}}" class="in-btn" style="display: {{v.enrGoDisp}}; height: 48px; border: 0; border-radius: 12px; background: #16191f; color: #ffffff; font: inherit; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; align-items: center; justify-content: center; gap: 10px;">
++              <sc-if value="{{v.enrBusy}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); border-top-color: #ffffff; animation: in-spin 700ms linear infinite;"></span></sc-if>
++              {{v.enrGoLabel}}
++            </button>
++          </div>
++        </div>
++      </sc-if>
++
+       <!-- 자동 로그인 중 · 로그인됨 -->
+       <sc-if value="{{v.status}}" hint-placeholder-val="{{false}}">
+         <div data-in-status="1" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0 4px;">
+@@ -217,11 +258,21 @@ class Component extends DCLogic {
+     this.setState({ fly: true });
+   }
+   renderVals() {
+-    const S = this.state, form = S.phase === 'form' || S.phase === 'loading', busy = S.phase === 'loading' || S.phase === 'auto';
++    const S = this.state;
++    // 미등록 노드 등록 (A-19): 로그인도 자동 로그인도 아닌 세 번째 단계다. 로그인할 Master가
++    // 아직 없으니 로그인 칸을 보여 줄 수 없고, '로그인됨' 칸도 아니다 — 그래서 form · status와
++    // 나란히 서는 제3의 묶음으로 둔다. 실제 값은 src/boot/service.js가 채운다(서비스 변형만)
++    const enroll = S.phase === 'enroll' || S.phase === 'enrolling' || S.phase === 'enrolled';
++    const form = !enroll && (S.phase === 'form' || S.phase === 'loading'), busy = S.phase === 'loading' || S.phase === 'auto';
+     const name = S.username.trim() || 'admin';
+     return {
+       v: {
+-        form, status: !form, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
++        form, status: !form && !enroll, enroll, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
++        // 등록 묶음 — 변형(demo)에서는 enroll이 거짓이라 그려지지 않는다
++        enrLocal: false, enrNote: '', enrWhy: '', enrWhyDisp: 'none', enrFieldsDisp: 'none',
++        enrCode: '', enrName: '', enrAddr: '', enrAddrDisp: 'none', enrMsg: '', enrMsgC: '#a65f00', enrMsgDisp: 'none',
++        enrBusy: false, enrGoLabel: '등록', enrGoDisp: 'none', enrDone: false,
++        setEnrCode: () => {}, setEnrName: () => {}, setEnrAddr: () => {}, enrGo: () => {}, enrBack: () => {},
+         cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, chromePe: S.fly ? 'none' : 'auto', spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
+         sub: S.phase === 'done' ? name + ' — 로그인됨' : '노드에 로그인',
+         username: S.username, password: S.password,
+diff --git a/docs/api/helm-apps-integration.md b/docs/api/helm-apps-integration.md
+index a86f40d..903a5c0 100644
+--- a/docs/api/helm-apps-integration.md
++++ b/docs/api/helm-apps-integration.md
+@@ -7,7 +7,7 @@ doc_type: "integration-guide"
+ scope: "project"
+ target: "terra-gui"
+ status: "draft"
+-version: "1.1.0"
++version: "1.2.0"
+ last_updated: "2026-10-05"
+ language: "ko-KR"
+ based_on: "Terra 저장소 계약 · 코드 (terra-gateway-facts) — 처음 판은 terra-gui-resource-inventory · terra-gui-api-priority"
+@@ -17,6 +17,7 @@ related:
+   - "[[terra-gateway-facts|Gateway 실제 동작]]"
+   - "[[node-screen-api-integration|노드 화면 API 연동 가이드]]"
+   - "[[node-screen-ui-spec|노드 화면 UI 명세]]"
++  - "[[implementation-backlog|구현 백로그]]"
+   - "[[docs/modules/terra-gui/design/unified-gui-ux/terra-gui-resource-inventory|GUI 자원 목록]]"
+ ---
+ 
+@@ -230,6 +231,16 @@ flowchart LR
+ - ⚠(op 없음)은 `wire.js`가 화면 목록(`hbd`)에만 반영하고 "Gateway에 아직 이 동작의 길이 없다"를 글줄에 띄운다 — 다시 받으면 사라진다.
+ - 성공(`ok` · `accepted`)이면 목록을 다시 받는다. 삭제는 맵에 설치된 자리와 연결도 걷는다.
+ - **상태 화면**: 항목 값 전부 · 흐름(`rsFlow`) · 카드 동작 · 위 표의 operation을 한 창에 보인다 — 앱별 전용 화면이 나오기 전의 공통 화면.
++- **노드 관리 · 노드 등록 코드** (상태 화면 · 노드): 조타륜 앱이 아니라 노드에 붙은 동작이라 `HELM_CRUD`가 아니라 `node-live.js`가 잇는다.
++
++  | 동작 | operation | 권한 | 잇는 곳 |
++  | --- | --- | --- | --- |
++  | 이름 · 부모 바꾸기 · 삭제 | `terra.master.nodes.by-node-id.{patch,delete}` | `node.control` | `wireNodeAdmin` → 원본 `nodeAdmDo` |
++  | 등록 코드 발급 (A-19) | `terra.master.nodes.enroll-codes.post {label?, parent_node_id = 이 노드, expires_in_sec}` — 평문은 이 응답에서만 | `node.control` | `wireEnrollCodes` → 원본 `nodeEnrDo('issue')` |
++  | 등록 코드 목록 | `terra.master.nodes.enroll-codes.get` — 평문 없음 · `status` = active · used · expired · revoked | `node.control` (목록도) | `nodeEnrDo('list')` · 상태 창을 열 때 한 번 |
++  | 등록 코드 폐기 | `terra.master.nodes.enroll-codes.by-code-id.delete {code_id}` — 두 번 눌러 | `node.control` | `nodeEnrDo('revoke')` |
++
++  등록 코드 칸은 **tree 노드**의 상태 화면에만 나온다 — 새 노드는 그 tree 밑에 붙는다(`parent_node_id`). 평문은 다시 받을 수 없으므로 화면이 발급 응답의 한 번을 상태(`nodeEnr.code`)에 들고 있다가 `복사` 버튼과 "다시 볼 수 없다" 안내를 준다. 상태 창은 노드 이름이 아니라 맵 칸으로 열린다(`{ kind: 'node', key }`) — 목록을 받는 고리도 칸에서 이름을 찾는다. 받는 쪽(미등록 leaf의 등록 폼)은 조타륜이 아니라 로그인 화면이다 — [[terra-gateway-facts#2.1 미등록 노드 등록 — 노드 등록 코드 (A-19)|Gateway 실제 동작 §2.1]].
+ - **모듈 GUI**: 모듈 항목의 `gui`(GUI 앱이 있는지) · `ui`(주소). 이 노드는 `gui.apps.get`의 `(origin || Gateway)/api/v1/gui/apps/{id}/files/{entry}`, 다른 노드는 `/api/v1/gui/remote/{node_id}/{module}/{app}/files/index.html`(지금은 `assetsAvailable` = false). `embed: scene`인 앱은 빼낸다. 모듈 GUI 창은 그 주소를 띄울 iframe 자리를 둔다.
+ 
+ ## 3. 새 앱을 더할 때
+diff --git a/docs/api/terra-gateway-facts.md b/docs/api/terra-gateway-facts.md
+index 229d62a..7ae004a 100644
+--- a/docs/api/terra-gateway-facts.md
++++ b/docs/api/terra-gateway-facts.md
+@@ -7,7 +7,7 @@ doc_type: "integration-reference"
+ scope: "project"
+ target: "terra-gui"
+ status: "draft"
+-version: "2.1.0"
++version: "2.2.0"
+ last_updated: "2026-10-05"
+ language: "ko-KR"
+ based_on: "terra 저장소 — products/common/apps/terra-gateway-service · products/leaf/daemon · products/tree/master 의 코드와 contracts/api/terra-api.json, stellaxialab modules/leaf/io.terra.file"
+@@ -17,6 +17,8 @@ related:
+   - "[[frontend-api|프론트엔드 API]]"
+   - "[[service-mode|서비스 모드]]"
+   - "[[system-design|설계서]]"
++  - "[[implementation-backlog|구현 백로그]]"
++  - "[[user-manual|사용 설명서]]"
+ ---
+ 
+ # Terra Gateway 실제 동작 — 연동 층의 기준
+@@ -54,10 +56,81 @@ sequenceDiagram
+ 
+ - **쿠키가 아니다.** 핸들은 `sessionStorage`(`terra.gui.handle`)에 둔다 — 같은 탭의 페이지끼리 나누고, 탭을 닫으면 사라진다. 비밀번호 · 토큰은 저장하지 않는다.
+ - 로그인 실패: 401 `CREDENTIAL_REJECTED`. Master가 없는 Gateway: 501 `CREDENTIAL_UNAVAILABLE`.
+-- 로그인할 수 없는 이유 (B-13): `health.get` → `auth: { mode: "none", reason: NODE_NOT_ENROLLED | CREDENTIAL_MISSING | NO_MASTER }`, Master가 이 Gateway 자격을 거절하면 `credentialRejected: true` — 로그인 화면이 이유를 보인다.
++- 로그인할 수 없는 이유 (B-13): `health.get` → `auth: { mode: "none", reason: NODE_NOT_ENROLLED | CREDENTIAL_MISSING | NO_MASTER }`, Master가 이 Gateway 자격을 거절하면 `credentialRejected: true` — 로그인 화면이 이유를 보인다. `NODE_NOT_ENROLLED`이면 그 자리가 등록 폼이다(§2.1).
+ - 인증 모드: `terra.gateway.health.get` → `auth.mode` = `master` · `seeded` · `open`. `open`이면 로그인 없이 쓴다(개발용).
+ - 오류 모양: Gateway 자기 라우트 `{ error: { code, message, traceId } }`.
+ 
++## 2.1 미등록 노드 등록 — 노드 등록 코드 (A-19)
++
++Terra PR #129(ADR-GW-002 · 노드 등록 코드 설계)가 연 길이다. tree 관리자가 Master에서 **일회용 코드**를 만들고, 사람이 그 코드를 미등록 기계로 들고 가 그 기계의 GUI에 붙여 넣는다. **leaf 브라우저에 Master 계정 비밀번호가 가지 않는다** — 기존 `terra.daemon.enrollment.register.post`는 사람의 Master access token을 받으므로 그 길로는 피할 수 없었다.
++
++```mermaid
++sequenceDiagram
++    participant T as tree GUI
++    participant M as Master
++    participant L as leaf GUI (루프백)
++    participant G as leaf Gateway
++    participant D as leaf Daemon
++    T->>M: terra.master.nodes.enroll-codes.post (node.control)
++    M-->>T: 201 { code: "tnc_….<base64url(주소)>", code_id, expires_at, max_uses: 1 } — 평문은 이때 한 번
++    Note over T,L: 사람이 코드를 그 기계로 옮긴다
++    L->>G: health.get
++    G-->>L: auth { mode: none, reason: NODE_NOT_ENROLLED } · enrollment { codeOperation, open }
++    L->>G: terra.daemon.enrollment.code.post { code, device_name?, master_url? }
++    Note over G: 등록 전 창 — 다섯 조건
++    G->>D: POST /enrollment/code
++    D->>M: POST /api/v1/enroll/code (무인증 · 코드가 자격)
++    D-->>L: 202 { status, master_url, master_url_persisted, restarting, service_manager }
++    Note over D,G: Daemon이 자기를 다시 띄운다 → Gateway가 --master-url로 돌아온다
++    L->>G: health.get (폴링)
++    G-->>L: auth { mode: master } → 로그인 화면
++```
++
++**등록 전 창 (Gateway).** 미등록 leaf의 Gateway는 익명 호출을 다 막지만 **op 하나만** 통과시킨다. 다섯이 모두 참일 때만이다.
++
++| 조건 | 화면이 아는 것 |
++| --- | --- |
++| 그 op 하나 — `terra.daemon.enrollment.code.post` | `health.enrollment.codeOperation` |
++| 접속이 **루프백** (연결 주소만 본다 · 전달 헤더는 무시) | 화면은 `location.hostname`(또는 설정의 절대 gateway 주소)으로 폼을 보일지 정한다. 허용은 언제나 Gateway가 정한다 |
++| `auth.mode none` + `auth.reason NODE_NOT_ENROLLED` | `health.auth` |
++| 창 전용 속도 제한 (기본 분당 5) | 넘으면 403 |
++| 성공 **1회로 영구 닫힘** | `health.enrollment.open: false` |
++
++창이 없는 Gateway(다른 태세 · 더 오래된 Terra)에는 `health.enrollment` **키 자체가 없다**.
++
++**catalog를 거치지 않는다.** 익명 호출자의 catalog는 권한을 선언한 op를 지우므로(`narrowList`) 이 op는 거기에 없다. 창은 한 번의 **호출**을 열어 주는 것이지 catalog에 보이게 하는 것이 아니다 — `src/api/enroll.js`가 `client.request`로 곧장 부른다.
++
++**코드 문자열.** `tnc_<secret>` 또는 `tnc_<secret>.<base64url(Master origin)>`. 첫 `.`이 경계다. Fleet 가입 코드(`tjc_`)는 이 길이 아니다. **붙여 넣은 원문을 그대로** `code`에 싣는다 — 주소를 떼는 것은 Daemon의 일이고, Master도 첫 `.` 뒤를 버리고 대조한다. 코드가 주소를 품지 않았을 때만 `master_url`을 싣는다.
++
++**답.**
++
++| 상황 | 상태 · 코드 | 화면이 하는 말 |
++| --- | --- | --- |
++| 등록됨 | 202 `{ status, master_url, master_url_persisted, restarting, service_manager }` | Daemon이 다시 뜨기를 기다린다 · `restarting: false`면 직접 다시 시작하라고 |
++| 코드가 틀림 | 401 `ENROLL_CODE_INVALID` | 복사한 것을 확인하거나 새 코드 |
++| 이미 씀 | 401 `ENROLL_CODE_USED` | 한 번만 쓸 수 있다 · 새 코드 |
++| 수명 지남 | 401 `ENROLL_CODE_EXPIRED` | 기본 15분 · 새 코드 |
++| 폐기됨 | 401 `ENROLL_CODE_REVOKED` | 관리자가 폐기했다 |
++| 주소 없음 | 400 `ENROLL_MASTER_URL_REQUIRED` | Master 주소 칸을 보인다 |
++| 이미 등록 | 409 `LOCAL_API_CONFLICT` | 새로고침하면 로그인 화면 |
++| Master 거절 | 422 `LOCAL_API_CONTROL_REJECTED` (이름 충돌이면 `NODE_NAME_CONFLICT`) | Master가 거절했다 |
++| 루프백 아님 · 창 닫힘 · 한도 | 403 | 그 기계에서 루프백으로 열어야 한다 · 창이 이미 쓰였을 수 있다 |
++| Master에 닿지 못함 | 503 | 주소 · Master 상태 확인 |
++
++모르는 코드만 한 가지 답(`_INVALID`)이고 쓴 · 지난 · 폐기된 코드는 이유를 말한다 — 그 분기는 256비트 해시가 맞은 뒤에만 닿으므로 코드를 추측하는 쪽은 아무것도 배우지 못한다(Terra 설계 §4.5).
++
++**기기 이름 기본값.** 등록 전에는 `terra.daemon.node.get`(`node.read`)이 창 밖이라 지금 노드 이름을 읽을 수 없다. 열려 있으면(개발용 `open` Gateway 등) 그 `device_name`, 아니면 페이지 host(루프백 · IP 주소가 아닐 때), 둘 다 아니면 비운다 — Daemon이 `daemon.device_name` → 호스트 이름 순으로 메운다.
++
++**tree 쪽 op** (셋 다 `node.control` — 목록도):
++
++| op | 입력 | 답 |
++| --- | --- | --- |
++| `terra.master.nodes.enroll-codes.post` | `{ label?, parent_node_id?, expires_in_sec? (기본 900 · 상한 3600), master_url? }` | 201 `{ code, code_id, label, master_url, expires_at, max_uses: 1, parent_node_id, plaintext_shown_once: true }` — **평문은 여기서만** |
++| `terra.master.nodes.enroll-codes.get` | — | `{ codes[{ code_id, label, status: active·used·expired·revoked, expires_at, max_uses, used_count, created_at, parent_node_id?, revoked_at?, claimed_node_id?, claimed_at? }] }` — 평문 없음 |
++| `terra.master.nodes.enroll-codes.by-code-id.delete` | `{ code_id }` | `{ code_id, revoked: true }` — 신규 등록만 막는다. 다른 클러스터 id는 404 |
++
++`master_url`을 빼면 Master가 **발급 요청이 닿은 origin**을 코드에 품는다. 빈 문자열을 명시하면 주소를 넣지 않는다. 이 GUI는 빼고 보낸다 — 운영자가 실제로 쓴 주소다.
++
+ ## 3. 세션 · 노드
+ 
+ | 묻는 것 | operation | 응답 (data) |
+@@ -182,7 +255,7 @@ maingui 백로그 B-1 ~ B-12는 Terra G0 ~ G6(`docs/implementation/node-gui-plat
+ | 빈칸 | 지금 화면 | 필요한 것 |
+ | --- | --- | --- |
+ | 로컬 탐색 · 데스크톱 열기 실기 | 가짜 Gateway로만 시험 | Linux 데스크톱 · Windows 실측 |
+-| 미등록 leaf 등록 | 로그인 화면이 이유(`NODE_NOT_ENROLLED`)만 보인다 | 등록 토큰을 받는 흐름 (`terra.daemon.enrollment.register.post`) — 화면 결정 |
++| 미등록 leaf 등록 실기 | 가짜 Gateway로만 시험 (§2.1 — 2026-10-05에 열렸다) | 실물 세 프로세스로 등록 → Daemon 재시작 → 로그인 |
+ 
+ ## 관련 문서
+ 
+@@ -190,4 +263,4 @@ maingui 백로그 B-1 ~ B-12는 Terra G0 ~ G6(`docs/implementation/node-gui-plat
+ 
+ ## 관련 모듈
+ 
+-- `src/api/client.js` · `src/api/session.js` · `src/api/operations.js` · `src/api/adapters.js` · `src/api/source.js` · `src/api/wire.js` · `tools/mock-gateway.mjs` · `tests/live-api.mjs`
++- `src/api/client.js` · `src/api/session.js` · `src/api/enroll.js` · `src/api/operations.js` · `src/api/adapters.js` · `src/api/source.js` · `src/api/wire.js` · `tools/mock-gateway.mjs` · `tests/live-api.mjs`
+diff --git a/docs/design/implementation-backlog.md b/docs/design/implementation-backlog.md
+index b53b8da..a27931e 100644
+--- a/docs/design/implementation-backlog.md
++++ b/docs/design/implementation-backlog.md
+@@ -8,7 +8,7 @@ doc_type: "backlog"
+ scope: "project"
+ target: "terra-gui"
+ status: "draft"
+-version: "3.6.0"
++version: "3.7.0"
+ last_updated: "2026-10-05"
+ language: "ko-KR"
+ based_on: "maingui main 19d2a70 · Terra 저장소 확인 결과(terra-gateway-facts)"
+@@ -19,6 +19,7 @@ related:
+   - "[[helm-apps-integration|조타륜 앱 연동]]"
+   - "[[implementation-guide|구현 가이드]]"
+   - "[[decision-recommendations|결정 권고안]]"
++  - "[[user-manual|사용 설명서]]"
+ ---
+ 
+ # 구현 남은 일 — 백로그
+@@ -35,13 +36,13 @@ ID는 이슈 · 커밋에서 그대로 쓴다(예: `A-1`).
+ flowchart LR
+   C["C. 결정 — 정함"] --> A1["A.1 끝남 (A-1 ~ A-15)"]
+   B["B. Terra G0 ~ G6 — 열림"] --> A2["A.2 반영 (A-16 ~ A-27)"]
+-  A1 --> A2 --> A2b["A.2b Terra 10/05 반영 (A-20 · A-28 ~ A-33)"] --> A3["A.3 남은 것 (A-19)"]
++  A1 --> A2 --> A2b["A.2b Terra 10/05 반영 (A-19 · A-20 · A-28 ~ A-33)"] --> A3["A.3 남은 것 (없음)"]
+   M["모듈 lab.stellaxia.node-gui — 진짜 스택"] --> A4["A.4 모듈에서 찾아 고침 (UP-1 · 2 · 3 · 10 · 12 · 15 · 18 · 19 · 21 · 24)"]
+ ```
+ 
+ ## A. GUI — maingui 안에서
+ 
+-A 15개를 [[decision-recommendations|결정 권고안]]대로 구현했고(2026-10-05), Terra가 B를 연 뒤 A-16 ~ A-27을 더했다. 남은 것은 A.3, Terra 모듈을 진짜 스택에서 돌리며 찾아 고친 원본 쪽 문제는 A.4.
++A 15개를 [[decision-recommendations|결정 권고안]]대로 구현했고(2026-10-05), Terra가 B를 연 뒤 A-16 ~ A-27을 더했다. 마지막으로 남았던 A-19(미등록 leaf 등록)는 Terra가 노드 등록 코드를 연 뒤 끝냈다 — A.3은 비었다. Terra 모듈을 진짜 스택에서 돌리며 찾아 고친 원본 쪽 문제는 A.4.
+ 
+ ### A.1 끝난 것
+ 
+@@ -82,7 +83,7 @@ Terra가 B 표를 operation으로 열었고(`terra/docs/implementation/node-gui-
+ 
+ ### A.2b Terra 2026-10-05 변경 반영
+ 
+-Terra PR #115 ~ #127과 modules v2026.10.05(io.terra.file 0.2.0 · io-inventory 수동 원천)를 화면에 붙였다.
++Terra PR #115 ~ #127 · #129(노드 등록 코드)와 modules v2026.10.05(io.terra.file 0.2.0 · io-inventory 수동 원천)를 화면에 붙였다.
+ 
+ | ID | 할 일 | 구현 | 고친 곳 |
+ | --- | --- | --- | --- |
+@@ -92,13 +93,12 @@ Terra PR #115 ~ #127과 modules v2026.10.05(io.terra.file 0.2.0 · io-inventory
+ | A-31 | 공유 폴더 권한을 op마다 | io.terra.file 0.2.0 선언과 같게 — 목록 · 읽기 · 상태 · 받기 = `file.read`, 나머지 = `file.write` | `filePerm` |
+ | A-32 | 카메라 손 등록 | 추가 폼에 주소 칸 — `rtsp(s)://` = `manual.rtsp` · `http(s)://` = `manual.http-camera` (camera · `video.frame`), 주소가 없으면 스캔 | `HELM_CRUD.io` · `manualAdapter` · 원본 `HBCRUD.io` |
+ | A-33 | 오류를 그대로 · 문서 한도 | 원격 모듈의 403 · 404 · 409가 그대로 온다(Terra 59b3523 · b71f6e1) · 거절 키 `detail.keys`를 글줄에 · `DOCUMENT_TOO_LARGE`(413, 기본 256 KiB) · `DOCUMENT_QUOTA_EXCEEDED`(429) 알림 | `client.js` `toResult` · `DocSync` |
++| A-19 | 미등록 leaf 등록 화면 | **등록 코드** 방식 (Terra ADR-GW-002 · 노드 등록 코드 설계). 로그인 화면이 `auth.reason: NODE_NOT_ENROLLED`를 보면 안내 대신 등록 폼 — 칸은 등록 코드 · 기기 이름 · (코드가 주소를 품지 않았을 때만) Master 주소. **루프백에서 볼 때만** 폼이 나오고, 아니면 안내만 하고 왜 안 되는지 적는다(미등록 Gateway의 등록 창이 루프백에만 열린다). 부르는 op는 `terra.daemon.enrollment.code.post` 하나 — 익명 catalog엔 없어 catalog를 거치지 않고 곧장 부른다. 거절은 이유마다 다른 말: 코드 틀림 · 이미 씀 · 수명 지남 · 폐기됨(401 `ENROLL_CODE_*`) · 이미 등록(409) · Master 거절(422) · 루프백 아님 · 창 닫힘(403). 202 뒤 health의 `auth` · `reason`을 보며 Gateway가 Master 인증으로 다시 뜨기를 기다렸다가 로그인 화면으로. tree 쪽은 tree 노드 상태 창의 "노드 등록 코드" 칸 — 발급(메모 · 수명 15분/5분/1시간) · 평문 1회 + 복사 버튼 + "다시 볼 수 없다" · 목록 · 폐기(두 번 눌러). Master 계정 비밀번호는 leaf 브라우저에 가지 않는다 | `src/api/enroll.js` · `service.js` `beginEnroll` · `enrollVals` · `P.enrollGo` · 원본 `Intro.dc.html` 등록 묶음 · 원본 `nodeEnr*` · `node-live.js` `wireEnrollCodes` · `ENROLL` |
+ | A-20 | 네트워크 화면의 사설망 · 진단 · 경로 정책 · 세션 · 연결 그룹 | tree Gateway가 중계하는 Master 읽기 op `network.networks.get` · `network.probes.get` · `route.policies.get` · `route.sessions.get` · `connection-groups.get` → 화면 모양(정책 `scope` · `policy{mode, prefer, fallback}`, 세션 `health` 바이트, probe `result`). Master의 0 시각은 '없음'. 조정 결과는 읽는 op가 없어 비움 | `service.js` `netReads` · `bootNetwork` |
+ 
+ ### A.3 남은 것
+ 
+-| ID | 할 일 | 기다리는 것 |
+-| --- | --- | --- |
+-| A-19 | 미등록 leaf 등록 화면 | 등록 토큰을 어디서 받을지 (`terra.daemon.enrollment.register.post {access_token, device_name}`) |
++없다. A-19(미등록 leaf 등록 화면)가 마지막이었고 2026-10-05에 A.2b로 옮겼다 — 기다리던 "등록 토큰을 어디서 받을지"는 Terra가 **노드 등록 코드**로 답했다(Terra PR #129).
+ 
+ ### A.4 모듈에서 찾아 고친 것 (2026-10-05)
+ 
+@@ -153,9 +153,9 @@ Terra 저장소의 [노드 GUI 지원 구현 계획](https://github.com/Stellaxi
+ ## 다음에 할 것
+ 
+ 1. 실물 Terra(세 프로세스)로 한 번 붙여 본다 — 가짜 Gateway가 아닌 곳에서 노드 주소 호출 · SSE · 사용자 문서.
+-2. A-19(미등록 leaf 등록)는 등록 토큰을 어디서 받을지 정하면 바로 된다.
++2. 등록 화면(A-19)도 실물 세 프로세스로 한 번 — 등록 → Daemon 재시작 → 로그인까지.
++3. Terra에 남은 것: mesh 자동 조정 결과를 읽는 op, `svi.shares.*`(C-3).
+ 4. **영상 · 소리 흐름**은 SSE가 아니라 WebSocket 티켓(`terra.gateway.streams.tickets.post` → `GET /api/v1/streams/{ticket}`, 티켓 수명 30초 · 1회용 · 쓸 때 자격을 다시 본다)으로 받는 것이 맞다. Terra에 영상 · 소리 원천이 실제로 생길 때 한다 — 지금 나오는 것은 거의 `terra.bytes@1`이고 `terra.image.frame@1`은 Android 카메라뿐이다.
+-3. Terra에 남은 것: mesh 자동 조정 결과를 읽는 op, 등록 토큰 흐름(A-19), `svi.shares.*`(C-3).
+ 
+ 끝낸 항목은 A.1로 옮기고 커밋 메시지에 ID를 남긴다.
+ 
+diff --git a/docs/guides/service-mode.md b/docs/guides/service-mode.md
+index 1161a35..51ca8c0 100644
+--- a/docs/guides/service-mode.md
++++ b/docs/guides/service-mode.md
+@@ -8,7 +8,7 @@ doc_type: "guide"
+ scope: "project"
+ target: "terra-gui"
+ status: "draft"
+-version: "2.2.0"
++version: "2.3.0"
+ last_updated: "2026-10-05"
+ language: "ko-KR"
+ related:
+@@ -19,6 +19,8 @@ related:
+   - "[[frontend-api|프론트엔드 API]]"
+   - "[[node-screen-data-model|노드 화면 데이터 모델]]"
+   - "[[examples|예시 데이터]]"
++  - "[[implementation-backlog|구현 백로그]]"
++  - "[[user-manual|사용 설명서]]"
+ ---
+ 
+ # 서비스 모드 — 예시 데이터를 지우고 Gateway에 붙기
+@@ -34,6 +36,7 @@ related:
+ | --- | --- | --- |
+ | 실행 설정 | `public/config.json` `"variant": "service"` | `public/examples/demo/config.json` `"variant": "demo"` |
+ | 로그인 | **이메일** · 비밀번호 → `POST /api/v1/auth/credentials` → 자격 핸들(`Authorization: Handle`, 탭 세션 동안) · 자동 로그인 = 핸들이 살아 있을 때만 · `auth.mode: open`이면 로그인 없이 | 예시 (비밀번호 4자 이상이면 통과) |
++| 미등록 노드 등록 (A-19) | `health.auth.reason: NODE_NOT_ENROLLED`이면 로그인 칸 대신 **등록 폼** — 등록 코드 · 기기 이름 · (코드에 주소가 없을 때만) Master 주소 → `terra.daemon.enrollment.code.post` → 202 → Gateway가 Master 인증으로 다시 뜨면 로그인 화면. **루프백에서 볼 때만** 폼, 아니면 안내 + 이유. tree 노드 상태 창엔 등록 코드 발급 · 목록 · 폐기 | 없음 (`v.enroll`이 거짓 — 그려지지 않는다) |
+ | 노드 · 맵 | `agent.whoami.get`(사용자 · 권한) + `terra.daemon.node.get`(로컬 노드) + `terra.master.nodes.get`(tree면, 없으면 `agent.nodes.get`) → 노드 관계 · 기본 맵 | 예시 `NET` · 예시 맵 |
+ | 조타륜 앱 10개 | 항상 Gateway (`LiveSource`) — 다른 노드는 Master · 원격 모듈 길만, Daemon 앱(선언 · I/O · WireGuard)은 "그 노드의 Gateway로" · 위험 op는 두 번 누르기 | 예시 (`?live=1`이면 Gateway) |
+ | 자원 추가 · 수정 · 삭제 (조타륜 앱 창) | `HELM_CRUD`의 operation으로 Gateway에 — 길이 없는 것(⚠)은 화면에만 · 글줄로 알림 | 예시 목록에서 |
+@@ -75,7 +78,7 @@ sequenceDiagram
+   end
+ ```
+ 
+-로그인 화면(`index.html`)은 `prep('intro')`에서 `submit`을 실제 로그인(`{email, password}`)으로 바꾸고, `boot('intro')`에서 `health.get`으로 Gateway 상태(초록 · 빨강 점 · 인증 모드)를 보인다. 서비스 변형은 입력 칸 이름을 `이메일`로 바꿔 끼운다(`tools/gen-pages.py`의 `SERVICE_TPL['index']`).
++로그인 화면(`index.html`)은 `prep('intro')`에서 `submit`을 실제 로그인(`{email, password}`)으로 바꾸고, `boot('intro')`에서 `health.get`으로 Gateway 상태(초록 · 빨강 점 · 인증 모드)를 보인다. `auth.reason`이 `NODE_NOT_ENROLLED`이면 화면이 세 번째 단계 `enroll`로 간다 — 원본 `design/Intro.dc.html`의 등록 묶음(`v.enroll` · `v.enr*`)을 `service.js`의 `beginEnroll` · `enrollVals` · `enrollGo`가 채운다. 폼을 보일지는 설정의 `gateway`가 절대 주소면 그 host, 경로(`/gw`)면 `location.hostname`이 루프백인지로 정한다 — 실제 허용은 언제나 Gateway의 등록 전 창이 연결 주소로 정한다([[terra-gateway-facts#2.1 미등록 노드 등록 — 노드 등록 코드 (A-19)|Gateway 실제 동작 §2.1]]). 가짜 Gateway로 미등록 상태를 흉내 내려면 `MOCK_AUTH_REASON=NODE_NOT_ENROLLED node tools/mock-gateway.mjs` — 받는 코드는 `MOCK_ENROLL_CODE`(기본 `tnc_mockcode`), `tnc_used…` · `tnc_expired…` · `tnc_revoked…`는 각 거절을 낸다. 서비스 변형은 입력 칸 이름을 `이메일`로 바꿔 끼운다(`tools/gen-pages.py`의 `SERVICE_TPL['index']`).
+ 
+ ## 3. 설정 — `public/config.json`
+ 
+@@ -139,7 +142,6 @@ API에 자리가 없는 사용자 데이터 — 노드 모습(`looks`) · 맵마
+ 
+ | 화면 | 상태 | 다음 |
+ | --- | --- | --- |
+-| 미등록 leaf 등록 | 알림만 | 등록 토큰 흐름 (A-19) |
+ | SVI 영상 · 소리 흐름 | 흐름 칸은 SSE만 (글자 · hex · 그림 한 장 · 메타 줄) | WebSocket 티켓 `streams.tickets.post` — Terra에 영상 · 소리 원천이 생기면 |
+ | 네트워크 화면의 mesh 자동 조정 결과 | 비움 | 조정 결과를 읽는 Master op |
+ | 사용자 이벤트(건물 · 도로) | 디자인만 | 어떤 상태에서 켜질지 규칙 필요 |
+diff --git a/docs/manual/user-manual.md b/docs/manual/user-manual.md
+index 3bc3b3f..974bb23 100644
+--- a/docs/manual/user-manual.md
++++ b/docs/manual/user-manual.md
+@@ -8,7 +8,7 @@ doc_type: "manual"
+ scope: "project"
+ target: "terra-gui"
+ status: "draft"
+-version: "1.1.0"
++version: "1.2.0"
+ last_updated: "2026-10-05"
+ language: "ko-KR"
+ os_priority:
+@@ -21,6 +21,8 @@ related:
+   - "[[node-screen-ui-spec|노드 화면 UI 명세]]"
+   - "[[getting-started|시작하기]]"
+   - "[[examples|예시 데이터]]"
++  - "[[terra-gateway-facts|Gateway 실제 동작]]"
++  - "[[implementation-backlog|구현 백로그]]"
+ ---
+ 
+ # Terra 노드 GUI 사용 설명서
+@@ -44,6 +46,35 @@ Terra 노드 GUI는 Terra 클러스터(tree · leaf 노드)를 **게임처럼 
+ 
+ 로그인하지 않고 `node.html`을 열면 로그인 화면으로 돌아온다.
+ 
++### 1.1 아직 등록하지 않은 기계 — 등록 코드로 등록하기
++
++새 기계에 Terra를 깔고 처음 화면을 열면, 그 기계는 아직 어느 tree에도 속하지 않아 로그인할 곳이 없다. 이때 로그인 칸 대신 **등록 폼**이 나온다. 이 기계에 Master 계정 비밀번호를 치지 않는다 — tree 관리자에게 받은 **등록 코드** 하나로 등록한다.
++
++1. **tree 관리자**: tree GUI의 맵에서 새 노드를 붙일 tree 노드를 눌러 상태 화면을 연다 → **노드 등록 코드** 칸 → 메모(어느 기계용인지) · 수명(15분 · 5분 · 1시간)을 고르고 `＋ 등록 코드 발급` (§6).
++2. 노란 칸에 코드가 **한 번만** 나온다. `복사`를 눌러 그 기계로 옮긴다(메신저 · 메모 · 손으로). 창을 닫으면 다시 볼 수 없다 — 잃었으면 새로 발급한다.
++3. **그 기계에서** 브라우저로 `http://127.0.0.1:…`(루프백 주소)로 GUI를 연다. 등록 폼에 코드를 붙여 넣는다.
++4. **기기 이름**은 tree에 보일 이름이다. 비우면 그 기계의 이름을 쓴다.
++5. 코드에 Master 주소가 들어 있으면 그대로 `등록`. 주소가 없는 코드면 **Master 주소** 칸이 나온다 — tree 관리자에게 받은 주소를 넣는다.
++6. 등록하면 Daemon이 다시 뜬다. 화면이 기다렸다가 저절로 로그인 화면으로 넘어간다.
++
++| 화면이 하는 말 | 할 일 |
++| --- | --- |
++| 등록 코드가 맞지 않습니다 | 복사가 잘렸는지 본다. 그래도 안 되면 새 코드를 받는다 |
++| 이미 쓴 등록 코드입니다 | 코드는 한 번만 쓴다 — 새 코드를 받는다 |
++| 등록 코드의 수명이 지났습니다 | 기본 15분이다 — 새 코드를 받는다 |
++| tree 관리자가 이 코드를 폐기했습니다 | 관리자에게 이유를 묻는다 |
++| 이 코드엔 Master 주소가 없습니다 | Master 주소 칸에 주소를 넣고 다시 누른다 |
++| 같은 기기 이름이 이 클러스터에 이미 있습니다 | 다른 이름을 넣는다 — 코드는 그대로 다시 쓸 수 있다 |
++| 이 노드는 이미 등록되어 있습니다 | 새로고침하면 로그인 화면이 나온다 |
++| 이 Gateway가 등록 요청을 막았습니다 | 그 기계에서 `127.0.0.1`로 열었는지 본다. 등록이 이미 한 번 성공했다면 Daemon이 다시 뜨기를 기다린다 |
++| 등록했습니다 — 이 기계의 Daemon을 직접 다시 시작하세요 | 서비스로 깔리지 않은 Daemon이다 — 직접 다시 띄운다 |
++
++> [!WARNING] 등록 폼은 그 기계에서만 나온다
++> 다른 기계에서 이 노드의 GUI를 열면 폼 대신 "루프백 주소로 열었을 때만 등록할 수 있다"는 안내만 나온다. 아직 아무의 것도 아닌 기계를 네트워크 너머에서 가져갈 수 없게, Terra가 등록 요청을 그 기계 안에서 온 것만 받기 때문이다. 터미널이 있다면 `terra daemon enroll`이나 설치 마법사로도 등록할 수 있다.
++
++> [!NOTE] 코드를 옮기는 동안
++> 코드가 새면 그 수명(기본 15분) 안에 남이 노드 하나를 등록할 수 있다. 짧은 수명을 고르고, 쓰지 않을 코드는 §6에서 `폐기`한다. 이미 등록한 노드는 폐기해도 그대로다.
++
+ ## 2. 노드 화면 한눈에
+ 
+ ```mermaid
+@@ -144,7 +175,7 @@ flowchart LR
+ | --- | --- |
+ | 자원 | 이름 · 앱 · 노드 · id · 배지 → **흐름**(예: I/O 장치 `발견 → 승인 → 켜짐`) → 한 줄 정보 · 진행 막대 → **현재 상태**(모든 값) → 맵 자리(설치 칸 · 입력 · 출력 수 · `필드 보기`) → 동작 단추 · ✏️ 수정 · 🗑️ 삭제 → **API** 표 |
+ | 모듈 | 위에 더해 `GUI를 제공하는 모듈` / `기능만 제공하는 모듈` 띠, GUI 제공이면 `🖥️ GUI 열기` |
+-| 노드 | 역할 · 로그인 · 부모 · 자식 · 내 권한 → **공유 목록** → **이 맵에서 내보내기**(고르기 칩) → 이 맵에서 들어오는 것 → **노드 관리**(이름 · 부모 바꾸기 · 🗑️ 노드 삭제는 두 번 — `node.control` 필요) |
++| 노드 | 역할 · 로그인 · 부모 · 자식 · 내 권한 → **공유 목록** → **이 맵에서 내보내기**(고르기 칩) → 이 맵에서 들어오는 것 → **노드 관리**(이름 · 부모 바꾸기 · 🗑️ 노드 삭제는 두 번 — `node.control` 필요) → tree 노드면 **노드 등록 코드**(발급 — 평문은 한 번만 · `복사` · 발급해 둔 코드 목록 · `폐기`는 두 번, §1.1 — `node.control` 필요) |
+ | 흐름 칸 (SVI 자원) | 자원을 **열면**(핸들) 상태 화면 아래 `〰 흐름` 칸에 데이터가 흐른다. 머리 줄 = 상태 · QoS · 마지막 순번 · 초당 프레임 · 받은 양 · **버림**(서버가 버린 프레임). 글자는 줄로, 글자가 아닌 바이트는 노란 hex로, 그림은 최신 한 장으로 보인다. `⏸ 멈춤`(받기는 계속 — 그동안 받은 수가 보인다) · `🧹 지우기` · `⏹ 닫기`(핸들을 닫는다) · `⬇ 저장`(받은 꼬리를 파일로). 최근 500줄까지만 둔다 |
+ | 이어 받기 없음 | 연결이 끊겼다 다시 붙으면 **그 시점부터** 받는다 — 끊긴 동안의 프레임은 오지 않는다(칸 아래에 적혀 있다). 한 번 읽기(read) 핸들은 프레임 하나를 받고 "읽기 끝"으로 끝난다 — 오류가 아니다 |
+ | 맵 도로 | 흐르는 자원이 맵에 설치돼 도로로 이어져 있으면 그 도로에 파란 점선이 흐르고 `▶ n fps`가 뜬다. 멈추거나 닫으면 원래대로. 움직임 줄이기 설정이면 점선은 멈추고 숫자만 바뀐다 |
+@@ -276,6 +307,8 @@ sequenceDiagram
+ | 추가 · 수정이 새로고침하면 사라진다 | 그 동작은 Gateway에 길이 없다(⚠) — 화면에만 반영된 것 |
+ | 노드에서 연결이 안 된다 | 내보낼 공유 자원이 없다 — §8.3 |
+ | 연결하기가 흐리다 | 도로 표시가 꺼져 있다 — §8.2 |
++| 로그인 칸 대신 `등록 코드` 칸이 나온다 | 아직 등록하지 않은 기계다 — §1.1 |
++| 등록 코드 칸이 안 나오고 안내만 나온다 | 그 기계에서 `127.0.0.1`로 열지 않았다 — §1.1 |
+ 
+ ## 관련 문서
+ 
+diff --git a/examples/demo/index.html b/examples/demo/index.html
+index 0bcf125..85bb5c7 100644
+--- a/examples/demo/index.html
++++ b/examples/demo/index.html
+@@ -125,6 +125,47 @@ html,body{height:100%;overflow:hidden;background:#a9dbf7}
+         </button>
+       </sc-if>
+ 
++      <!-- 미등록 노드 등록 (A-19 · ADR-GW-002): tree 관리자가 만든 일회용 등록 코드를 받는다.
++           루프백에서 보고 있을 때만 칸이 나온다 — 미등록 Gateway의 등록 창이 루프백에서만 열리기 때문이다 -->
++      <sc-if value="{{v.enroll}}" hint-placeholder-val="{{false}}">
++        <div data-in-enroll="1" style="display: flex; flex-direction: column; gap: 12px; padding: 2px 0;">
++          <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border: 1.5px solid #ffd84d; border-radius: 10px; background: #fffbea;">
++            <span style="font-size: 12.5px; font-weight: 800; color: #16191f;">이 노드는 아직 tree에 등록되지 않았습니다</span>
++            <span data-in-enroll-note="1" style="font-size: 11.5px; line-height: 1.5; color: #5b6472;">{{v.enrNote}}</span>
++          </div>
++
++          <!-- 루프백이 아닐 때: 왜 여기서는 등록할 수 없는지 -->
++          <span data-in-enroll-why="1" style="display: {{v.enrWhyDisp}}; font-size: 11.5px; line-height: 1.5; color: #a65f00;">{{v.enrWhy}}</span>
++
++          <div data-in-enroll-fields="1" style="display: {{v.enrFieldsDisp}}; flex-direction: column; gap: 10px;">
++            <label style="display: flex; flex-direction: column; gap: 5px;">
++              <span style="font-size: 12px; font-weight: 700; color: #3b4452;">등록 코드</span>
++              <span class="in-field" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 12px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 10px; background: #ffffff;">
++                <textarea data-in-enroll-code="1" rows="2" value="{{v.enrCode}}" onChange="{{v.setEnrCode}}" placeholder="tnc_…" aria-label="등록 코드" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 13px; font-family: ui-monospace,Menlo,Consolas,monospace; color: #16191f; resize: vertical; overflow-wrap: anywhere;"></textarea>
++              </span>
++            </label>
++            <label style="display: flex; flex-direction: column; gap: 5px;">
++              <span style="font-size: 12px; font-weight: 700; color: #3b4452;">기기 이름</span>
++              <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 10px; background: #ffffff;">
++                <input data-in-enroll-name="1" type="text" value="{{v.enrName}}" onChange="{{v.setEnrName}}" placeholder="비우면 이 기계의 이름" aria-label="기기 이름" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 15px; color: #16191f;">
++              </span>
++            </label>
++            <!-- 코드가 Master 주소를 품고 있으면 이 칸은 나오지 않는다 -->
++            <label data-in-enroll-addr-row="1" style="display: {{v.enrAddrDisp}}; flex-direction: column; gap: 5px;">
++              <span style="font-size: 12px; font-weight: 700; color: #3b4452;">Master 주소</span>
++              <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 10px; background: #ffffff;">
++                <input data-in-enroll-addr="1" type="text" value="{{v.enrAddr}}" onChange="{{v.setEnrAddr}}" placeholder="http://master.example:8080" aria-label="Master 주소" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 14px; color: #16191f;">
++              </span>
++            </label>
++            <span data-in-enroll-msg="1" style="display: {{v.enrMsgDisp}}; min-height: 18px; font-size: 12px; font-weight: 600; line-height: 1.5; color: {{v.enrMsgC}};">{{v.enrMsg}}</span>
++            <button type="button" data-in-enroll-go="1" onClick="{{v.enrGo}}" class="in-btn" style="display: {{v.enrGoDisp}}; height: 48px; border: 0; border-radius: 12px; background: #16191f; color: #ffffff; font: inherit; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; align-items: center; justify-content: center; gap: 10px;">
++              <sc-if value="{{v.enrBusy}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); border-top-color: #ffffff; animation: in-spin 700ms linear infinite;"></span></sc-if>
++              {{v.enrGoLabel}}
++            </button>
++          </div>
++        </div>
++      </sc-if>
++
+       <!-- 자동 로그인 중 · 로그인됨 -->
+       <sc-if value="{{v.status}}" hint-placeholder-val="{{false}}">
+         <div data-in-status="1" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0 4px;">
+diff --git a/examples/demo/node.html b/examples/demo/node.html
+index 414f8f4..0d5cf1b 100644
+--- a/examples/demo/node.html
++++ b/examples/demo/node.html
+@@ -1713,6 +1713,38 @@ html,body{height:100%}
+                       <button type="button" data-node-adm-save="1" onClick="{{rst.adm.save}}" style="height: 28px; padding: 0 12px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #16191f; background: #16191f; color: #ffffff;">저장</button>
+                     </div>
+                   </div>
++                  <!-- 노드 등록 코드 (A-19 · Terra ADR-GW-002): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드.
++                       평문은 발급 응답에서 한 번만 온다 — 복사 버튼을 주고, 다시 볼 수 없다고 적는다 -->
++                  <div data-node-enr="1" style="display: {{rst.enr.disp}}; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid #e6e9ee; border-radius: 10px;">
++                    <span style="font-size: 11px; font-weight: 700; color: #5b6472;">노드 등록 코드 · 이 노드 밑에 새 노드</span>
++                    <span style="font-size: 10.5px; line-height: 1.5; color: #8b95a6;">사람이 코드를 그 기계로 들고 가, 그 기계의 GUI에 붙여 넣는다. 그 기계에 Master 계정 비밀번호를 치지 않는다.</span>
++                    <span style="display: {{rst.enr.lockDisp}}; font-size: 11px; color: #d33d52;">{{rst.enr.lock}}</span>
++                    <div style="display: flex; gap: 6px; align-items: center;">
++                      <input data-node-enr-label="1" type="text" value="{{rst.enr.label}}" onChange="{{rst.enr.setLabel}}" disabled="{{rst.enr.dis}}" placeholder="어느 기계용인지 메모" aria-label="등록 코드 메모" style="flex-grow: 1; min-width: 0; height: 28px; box-sizing: border-box; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 7px; font: inherit; font-size: 12px;">
++                      <select data-node-enr-ttl="1" onChange="{{rst.enr.setTtl}}" disabled="{{rst.enr.dis}}" aria-label="수명" style="height: 28px; border: 1px solid #d8dde5; border-radius: 7px; font: inherit; font-size: 12px; background: #ffffff;">
++                        <sc-for list="{{rst.enr.ttls}}" as="tt" hint-placeholder-count="3"><option value="{{tt.v}}" selected="{{tt.sel}}">{{tt.t}}</option></sc-for>
++                      </select>
++                      <button type="button" data-node-enr-issue="1" onClick="{{rst.enr.issue}}" disabled="{{rst.enr.dis}}" style="height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #16191f; background: #16191f; color: #ffffff; white-space: nowrap;">{{rst.enr.goLabel}}</button>
++                    </div>
++                    <!-- 방금 발급한 평문 — 지금 한 번만 -->
++                    <div data-node-enr-fresh="1" style="display: {{rst.enr.codeDisp}}; flex-direction: column; gap: 5px; padding: 8px; border: 1.5px solid #ffd84d; border-radius: 9px; background: #fffbea;">
++                      <span style="font-size: 10.5px; font-weight: 800; color: #a65f00;">이 코드는 지금 한 번만 보인다 — 창을 닫으면 다시 볼 수 없다</span>
++                      <div style="display: flex; gap: 6px; align-items: flex-start;">
++                        <textarea data-node-enr-code="1" rows="2" value="{{rst.enr.code}}" readonly="1" aria-label="발급된 등록 코드" spellcheck="false" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 6px 8px; border: 1px solid #e2d08a; border-radius: 7px; background: #ffffff; font: inherit; font-size: 11.5px; font-family: ui-monospace,Menlo,Consolas,monospace; line-height: 1.45; resize: vertical; overflow-wrap: anywhere;"></textarea>
++                        <button type="button" data-node-enr-copy="1" onClick="{{rst.enr.copy}}" style="height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #a65f00; background: #ffffff; color: #a65f00; white-space: nowrap;">복사</button>
++                      </div>
++                      <span data-node-enr-addr="1" style="display: {{rst.enr.addrDisp}}; font-size: 10.5px; color: #5b6472; overflow-wrap: anywhere;">Master 주소를 품었다 — {{rst.enr.addr}} (그 기계는 주소를 따로 넣지 않아도 된다)</span>
++                    </div>
++                    <span style="display: {{rst.enr.msgDisp}}; font-size: 11px; line-height: 1.5; color: {{rst.enr.msgC}};">{{rst.enr.msg}}</span>
++                    <!-- 발급해 둔 코드 (평문은 없다) -->
++                    <sc-for list="{{rst.enr.rows}}" as="ec" hint-placeholder-count="2">
++                      <div style="display: flex; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 7px; background: #f4f6f9; font-size: 11px;">
++                        <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.4;"><b style="overflow-wrap: anywhere;">{{ec.label}}</b><span style="color: #8b95a6;">{{ec.sub}}</span></span>
++                        <button type="button" data-node-enr-revoke="1" onClick="{{ec.revoke}}" style="display: {{ec.delDisp}}; height: 24px; padding: 0 9px; border-radius: 12px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid #d33d52; background: #ffffff; color: #d33d52; align-items: center; white-space: nowrap;">{{ec.delLabel}}</button>
++                      </div>
++                    </sc-for>
++                    <span style="display: {{rst.enr.rowsNone}}; font-size: 10.5px; color: #8b95a6;">발급해 둔 코드 없음</span>
++                  </div>
+                   <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #eef1f5; padding-top: 10px;">
+                     <span style="font-size: 11px; font-weight: 700; color: #5b6472;">API · helm-apps-integration</span>
+                     <sc-for list="{{rst.api}}" as="ap" hint-placeholder-count="3">
+diff --git a/examples/demo/screens/index.js b/examples/demo/screens/index.js
+index 1c41cb4..b7805e5 100644
+--- a/examples/demo/screens/index.js
++++ b/examples/demo/screens/index.js
+@@ -64,11 +64,21 @@ export default class Component extends DCLogic {
+     this.setState({ fly: true });
+   }
+   renderVals() {
+-    const S = this.state, form = S.phase === 'form' || S.phase === 'loading', busy = S.phase === 'loading' || S.phase === 'auto';
++    const S = this.state;
++    // 미등록 노드 등록 (A-19): 로그인도 자동 로그인도 아닌 세 번째 단계다. 로그인할 Master가
++    // 아직 없으니 로그인 칸을 보여 줄 수 없고, '로그인됨' 칸도 아니다 — 그래서 form · status와
++    // 나란히 서는 제3의 묶음으로 둔다. 실제 값은 src/boot/service.js가 채운다(서비스 변형만)
++    const enroll = S.phase === 'enroll' || S.phase === 'enrolling' || S.phase === 'enrolled';
++    const form = !enroll && (S.phase === 'form' || S.phase === 'loading'), busy = S.phase === 'loading' || S.phase === 'auto';
+     const name = S.username.trim() || 'admin';
+     return {
+       v: {
+-        form, status: !form, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
++        form, status: !form && !enroll, enroll, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
++        // 등록 묶음 — 변형(demo)에서는 enroll이 거짓이라 그려지지 않는다
++        enrLocal: false, enrNote: '', enrWhy: '', enrWhyDisp: 'none', enrFieldsDisp: 'none',
++        enrCode: '', enrName: '', enrAddr: '', enrAddrDisp: 'none', enrMsg: '', enrMsgC: '#a65f00', enrMsgDisp: 'none',
++        enrBusy: false, enrGoLabel: '등록', enrGoDisp: 'none', enrDone: false,
++        setEnrCode: () => {}, setEnrName: () => {}, setEnrAddr: () => {}, enrGo: () => {}, enrBack: () => {},
+         cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, chromePe: S.fly ? 'none' : 'auto', spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
+         sub: S.phase === 'done' ? name + ' — 로그인됨' : '노드에 로그인',
+         username: S.username, password: S.password,
+diff --git a/examples/demo/screens/node.js b/examples/demo/screens/node.js
+index c4a8a78..dfcbb2e 100644
+--- a/examples/demo/screens/node.js
++++ b/examples/demo/screens/node.js
+@@ -78,6 +78,9 @@ export default class Component extends DCLogic {
+         net: { x: 420, y: 110, w: 600 }, mod: { x: 540, y: 200, w: 380 }, user: { x: 600, y: 240, w: 360 }, set: { x: 560, y: 180, w: 380 }, memo: { x: 600, y: 120, w: 480 }, rd: { x: 440, y: 200, w: 400 }, rcfg: { x: 1040, y: 120, w: 360 }, rst: { x: 990, y: 70, w: 430 }, mgui: { x: 300, y: 90, w: 720 }
+       },
+       winOpen: {}, wrz: null, fsPrev: {}, hbOut: null, mguiKey: 0, nodeAdm: null,   // nodeAdm = 상태 화면의 노드 관리 폼 { node, name, parent, arm, msg, c }
++      // nodeEnr = 노드 등록 코드 폼 (A-19) { node, label, ttl, code, codeId, msg, c, busy, list[], arm }
++      //   code = 방금 발급한 평문. 발급 응답에서만 보이고 다시 받을 수 없다 — 그래서 상태에 들고 있다
++      nodeEnr: null,
+         // hbOut = 상태 화면에 보이는 작업 출력 · 모듈 로그 · mguiKey = 모듈 GUI 다시 읽기
+         // wrz = 크기 바꾸는 중인 창 · fsPrev = 전체 화면 전 화면 (축소하면 그리로)
+       drawer: [],
+@@ -2422,6 +2425,52 @@ export default class Component extends DCLogic {
+   }
+   // 서비스가 바꿔 끼운다 (Master 호출). 예시는 바로 성공
+   async nodeAdmDo() { return { ok: true }; }
++  // ── 노드 등록 코드 (A-19 · Terra ADR-GW-002): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드.
++  //    평문은 발급 응답에서 한 번만 보이므로 복사 버튼을 주고, 다시 볼 수 없다고 적는다 ──
++  nodeEnrFor(name) { const E = this.state.nodeEnr; return E && E.node === name ? E : { node: name, label: '', ttl: '900', code: '', codeId: '', addr: '', msg: '', c: '#5b6472', busy: false, list: [], arm: '' }; }
++  nodeEnrSet(name, patch) { this.setState({ nodeEnr: Object.assign({}, this.nodeEnrFor(name), patch) }); }
++  nodeEnrSay(name, msg, c) { this.nodeEnrSet(name, { msg, c: c || '#1f7a4d', busy: false }); }
++  async nodeEnrIssue(name) {
++    const E = this.nodeEnrFor(name);
++    if (E.busy) return;
++    this.nodeEnrSet(name, { busy: true, msg: '발급하는 중…', c: '#5b6472', code: '', codeId: '' });
++    const r = await this.nodeEnrDo('issue', name, { label: String(E.label || '').trim(), expires_in_sec: Number(E.ttl) || 900 });
++    if (!r || r.ok === false) { this.nodeEnrSay(name, (r && r.msg) || '발급하지 못했다', '#d33d52'); return; }
++    const d = r.data || {};
++    this.nodeEnrSet(name, { busy: false, code: d.code || '', codeId: d.code_id || '', addr: d.master_url || '', label: '',
++      msg: '발급했다 — 이 코드는 지금 한 번만 보인다. 복사해서 그 기계로 옮긴다', c: '#1f7a4d' });
++    this.pushAlarm('◆', '#2563eb', '노드 등록 코드를 발급했다 — ' + (d.expires_at ? '만료 ' + String(d.expires_at).slice(11, 16) : '15분'));
++    this.nodeEnrLoad(name);
++  }
++  async nodeEnrLoad(name) {
++    const STAT_KO = { active: '쓸 수 있음', used: '이미 쓴 코드', expired: '수명 지남', revoked: '폐기됨' };
++    const r = await this.nodeEnrDo('list', name, {});
++    if (!r || r.ok === false) return;
++    this.nodeEnrSet(name, { list: ((r.data || {}).codes || []).map((x) => ({
++      id: x.code_id, label: x.label || '(메모 없음)', status: x.status || 'active',
++      sub: [STAT_KO[x.status] || x.status, x.expires_at ? '만료 ' + String(x.expires_at).slice(11, 16) : '', x.claimed_node_id ? '→ ' + x.claimed_node_id : ''].filter(Boolean).join(' · ') })) });
++  }
++  async nodeEnrRevoke(name, id) {
++    const E = this.nodeEnrFor(name);
++    if (E.arm !== id) { this.nodeEnrSet(name, { arm: id, msg: '한 번 더 누르면 그 코드를 폐기한다 — 이미 등록한 노드는 그대로다', c: '#a65f00' }); return; }
++    const r = await this.nodeEnrDo('revoke', name, { code_id: id });
++    if (!r || r.ok === false) { this.nodeEnrSay(name, (r && r.msg) || '폐기하지 못했다', '#d33d52'); return; }
++    this.nodeEnrSet(name, { arm: '', msg: '폐기했다', c: '#1f7a4d', code: E.codeId === id ? '' : E.code });
++    this.nodeEnrLoad(name);
++  }
++  nodeEnrCopy(name) {
++    const E = this.nodeEnrFor(name);
++    if (!E.code) return;
++    const done = () => this.nodeEnrSay(name, '복사했다 — 그 기계의 GUI에 붙여 넣는다', '#1f7a4d');
++    try {
++      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(E.code).then(done, () => this.nodeEnrSay(name, '복사하지 못했다 — 글상자에서 직접 고른다', '#a65f00')); return; }
++    } catch { /* 아래 폴백 */ }
++    const el = document.querySelector('[data-node-enr-code]');
++    if (el && el.select) { el.select(); try { document.execCommand('copy'); done(); return; } catch { /* 막힘 */ } }
++    this.nodeEnrSay(name, '복사하지 못했다 — 글상자에서 직접 고른다', '#a65f00');
++  }
++  // 서비스가 바꿔 끼운다 (Master 호출). 예시는 길이 없다고 말한다
++  async nodeEnrDo() { return { ok: false, msg: '예시에서는 등록 코드를 발급하지 않는다' }; }
+   // 이 동작의 길이 없으면 잠글 이유 (서비스가 catalog로 바꿔 끼운다). 예시는 늘 null
+   hbOpLock() { return null; }
+   nodeMoveLocal(name, par) {
+@@ -2711,6 +2760,22 @@ export default class Component extends DCLogic {
+             delLabel: A.arm ? '정말 삭제' : '🗑️ 노드 삭제', delBg: A.arm ? '#d33d52' : '#ffffff', delFg: A.arm ? '#ffffff' : '#d33d52', delDisp: me ? 'none' : 'inline-flex',
+             setName: (e) => this.nodeAdmSet(name, { name: e.target.value }), setParent: (e) => this.nodeAdmSet(name, { parent: e.target.value }),
+             save: () => { if (ctl) this.nodeAdmSave(name); }, del: () => { if (ctl) this.nodeAdmDel(name); } };
++        })(),
++        // 노드 등록 코드 (A-19): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드. tree 노드에서만
++        // 보인다 — 코드는 클러스터 것이고, 새 노드는 이 노드 밑에 붙는다
++        enr: (() => {
++          const E = this.nodeEnrFor(name), ctl = (P.has || []).indexOf('node.control') >= 0;
++          const tree = this.isTree((this.NET[name] || {}).role || net.role);
++          return { disp: tree ? 'flex' : 'none', lock: ctl ? '' : '🔒 node.control 권한 없음', lockDisp: ctl ? 'none' : 'block', dis: !ctl || !!E.busy,
++            label: E.label || '', ttls: [['900', '15분'], ['300', '5분'], ['3600', '1시간']].map(([v, t]) => ({ v, t, sel: v === (E.ttl || '900') })),
++            code: E.code || '', codeDisp: E.code ? 'flex' : 'none', addr: E.addr || '', addrDisp: E.code && E.addr ? 'block' : 'none',
++            msg: E.msg || '', msgC: E.c || '#5b6472', msgDisp: E.msg ? 'block' : 'none',
++            goLabel: E.busy ? '발급 중…' : '＋ 등록 코드 발급',
++            rows: (E.list || []).map((x) => Object.assign({}, x, { armed: E.arm === x.id, delLabel: E.arm === x.id ? '정말 폐기' : '폐기',
++              delDisp: x.status === 'active' ? 'inline-flex' : 'none', revoke: () => { if (ctl) this.nodeEnrRevoke(name, x.id); } })),
++            rowsNone: (E.list || []).length ? 'none' : 'block',
++            setLabel: (e) => this.nodeEnrSet(name, { label: e.target.value }), setTtl: (e) => this.nodeEnrSet(name, { ttl: e.target.value }),
++            issue: () => { if (ctl) this.nodeEnrIssue(name); }, copy: () => this.nodeEnrCopy(name), load: () => this.nodeEnrLoad(name) };
+         })()
+       });
+     }
+diff --git a/index.html b/index.html
+index 39265fc..ae65e4f 100644
+--- a/index.html
++++ b/index.html
+@@ -125,6 +125,47 @@ html,body{height:100%;overflow:hidden;background:#a9dbf7}
+         </button>
+       </sc-if>
+ 
++      <!-- 미등록 노드 등록 (A-19 · ADR-GW-002): tree 관리자가 만든 일회용 등록 코드를 받는다.
++           루프백에서 보고 있을 때만 칸이 나온다 — 미등록 Gateway의 등록 창이 루프백에서만 열리기 때문이다 -->
++      <sc-if value="{{v.enroll}}" hint-placeholder-val="{{false}}">
++        <div data-in-enroll="1" style="display: flex; flex-direction: column; gap: 12px; padding: 2px 0;">
++          <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border: 1.5px solid #ffd84d; border-radius: 10px; background: #fffbea;">
++            <span style="font-size: 12.5px; font-weight: 800; color: #16191f;">이 노드는 아직 tree에 등록되지 않았습니다</span>
++            <span data-in-enroll-note="1" style="font-size: 11.5px; line-height: 1.5; color: #5b6472;">{{v.enrNote}}</span>
++          </div>
++
++          <!-- 루프백이 아닐 때: 왜 여기서는 등록할 수 없는지 -->
++          <span data-in-enroll-why="1" style="display: {{v.enrWhyDisp}}; font-size: 11.5px; line-height: 1.5; color: #a65f00;">{{v.enrWhy}}</span>
++
++          <div data-in-enroll-fields="1" style="display: {{v.enrFieldsDisp}}; flex-direction: column; gap: 10px;">
++            <label style="display: flex; flex-direction: column; gap: 5px;">
++              <span style="font-size: 12px; font-weight: 700; color: #3b4452;">등록 코드</span>
++              <span class="in-field" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 12px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 10px; background: #ffffff;">
++                <textarea data-in-enroll-code="1" rows="2" value="{{v.enrCode}}" onChange="{{v.setEnrCode}}" placeholder="tnc_…" aria-label="등록 코드" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 13px; font-family: ui-monospace,Menlo,Consolas,monospace; color: #16191f; resize: vertical; overflow-wrap: anywhere;"></textarea>
++              </span>
++            </label>
++            <label style="display: flex; flex-direction: column; gap: 5px;">
++              <span style="font-size: 12px; font-weight: 700; color: #3b4452;">기기 이름</span>
++              <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 10px; background: #ffffff;">
++                <input data-in-enroll-name="1" type="text" value="{{v.enrName}}" onChange="{{v.setEnrName}}" placeholder="비우면 이 기계의 이름" aria-label="기기 이름" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 15px; color: #16191f;">
++              </span>
++            </label>
++            <!-- 코드가 Master 주소를 품고 있으면 이 칸은 나오지 않는다 -->
++            <label data-in-enroll-addr-row="1" style="display: {{v.enrAddrDisp}}; flex-direction: column; gap: 5px;">
++              <span style="font-size: 12px; font-weight: 700; color: #3b4452;">Master 주소</span>
++              <span class="in-field" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #c3cad5; border-radius: 10px; background: #ffffff;">
++                <input data-in-enroll-addr="1" type="text" value="{{v.enrAddr}}" onChange="{{v.setEnrAddr}}" placeholder="http://master.example:8080" aria-label="Master 주소" spellcheck="false" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 14px; color: #16191f;">
++              </span>
++            </label>
++            <span data-in-enroll-msg="1" style="display: {{v.enrMsgDisp}}; min-height: 18px; font-size: 12px; font-weight: 600; line-height: 1.5; color: {{v.enrMsgC}};">{{v.enrMsg}}</span>
++            <button type="button" data-in-enroll-go="1" onClick="{{v.enrGo}}" class="in-btn" style="display: {{v.enrGoDisp}}; height: 48px; border: 0; border-radius: 12px; background: #16191f; color: #ffffff; font: inherit; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; align-items: center; justify-content: center; gap: 10px;">
++              <sc-if value="{{v.enrBusy}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); border-top-color: #ffffff; animation: in-spin 700ms linear infinite;"></span></sc-if>
++              {{v.enrGoLabel}}
++            </button>
++          </div>
++        </div>
++      </sc-if>
++
+       <!-- 자동 로그인 중 · 로그인됨 -->
+       <sc-if value="{{v.status}}" hint-placeholder-val="{{false}}">
+         <div data-in-status="1" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0 4px;">
+diff --git a/node.html b/node.html
+index 600c83a..d70b2a7 100644
+--- a/node.html
++++ b/node.html
+@@ -1713,6 +1713,38 @@ html,body{height:100%}
+                       <button type="button" data-node-adm-save="1" onClick="{{rst.adm.save}}" style="height: 28px; padding: 0 12px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #16191f; background: #16191f; color: #ffffff;">저장</button>
+                     </div>
+                   </div>
++                  <!-- 노드 등록 코드 (A-19 · Terra ADR-GW-002): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드.
++                       평문은 발급 응답에서 한 번만 온다 — 복사 버튼을 주고, 다시 볼 수 없다고 적는다 -->
++                  <div data-node-enr="1" style="display: {{rst.enr.disp}}; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid #e6e9ee; border-radius: 10px;">
++                    <span style="font-size: 11px; font-weight: 700; color: #5b6472;">노드 등록 코드 · 이 노드 밑에 새 노드</span>
++                    <span style="font-size: 10.5px; line-height: 1.5; color: #8b95a6;">사람이 코드를 그 기계로 들고 가, 그 기계의 GUI에 붙여 넣는다. 그 기계에 Master 계정 비밀번호를 치지 않는다.</span>
++                    <span style="display: {{rst.enr.lockDisp}}; font-size: 11px; color: #d33d52;">{{rst.enr.lock}}</span>
++                    <div style="display: flex; gap: 6px; align-items: center;">
++                      <input data-node-enr-label="1" type="text" value="{{rst.enr.label}}" onChange="{{rst.enr.setLabel}}" disabled="{{rst.enr.dis}}" placeholder="어느 기계용인지 메모" aria-label="등록 코드 메모" style="flex-grow: 1; min-width: 0; height: 28px; box-sizing: border-box; padding: 0 8px; border: 1px solid #d8dde5; border-radius: 7px; font: inherit; font-size: 12px;">
++                      <select data-node-enr-ttl="1" onChange="{{rst.enr.setTtl}}" disabled="{{rst.enr.dis}}" aria-label="수명" style="height: 28px; border: 1px solid #d8dde5; border-radius: 7px; font: inherit; font-size: 12px; background: #ffffff;">
++                        <sc-for list="{{rst.enr.ttls}}" as="tt" hint-placeholder-count="3"><option value="{{tt.v}}" selected="{{tt.sel}}">{{tt.t}}</option></sc-for>
++                      </select>
++                      <button type="button" data-node-enr-issue="1" onClick="{{rst.enr.issue}}" disabled="{{rst.enr.dis}}" style="height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #16191f; background: #16191f; color: #ffffff; white-space: nowrap;">{{rst.enr.goLabel}}</button>
++                    </div>
++                    <!-- 방금 발급한 평문 — 지금 한 번만 -->
++                    <div data-node-enr-fresh="1" style="display: {{rst.enr.codeDisp}}; flex-direction: column; gap: 5px; padding: 8px; border: 1.5px solid #ffd84d; border-radius: 9px; background: #fffbea;">
++                      <span style="font-size: 10.5px; font-weight: 800; color: #a65f00;">이 코드는 지금 한 번만 보인다 — 창을 닫으면 다시 볼 수 없다</span>
++                      <div style="display: flex; gap: 6px; align-items: flex-start;">
++                        <textarea data-node-enr-code="1" rows="2" value="{{rst.enr.code}}" readonly="1" aria-label="발급된 등록 코드" spellcheck="false" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 6px 8px; border: 1px solid #e2d08a; border-radius: 7px; background: #ffffff; font: inherit; font-size: 11.5px; font-family: ui-monospace,Menlo,Consolas,monospace; line-height: 1.45; resize: vertical; overflow-wrap: anywhere;"></textarea>
++                        <button type="button" data-node-enr-copy="1" onClick="{{rst.enr.copy}}" style="height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid #a65f00; background: #ffffff; color: #a65f00; white-space: nowrap;">복사</button>
++                      </div>
++                      <span data-node-enr-addr="1" style="display: {{rst.enr.addrDisp}}; font-size: 10.5px; color: #5b6472; overflow-wrap: anywhere;">Master 주소를 품었다 — {{rst.enr.addr}} (그 기계는 주소를 따로 넣지 않아도 된다)</span>
++                    </div>
++                    <span style="display: {{rst.enr.msgDisp}}; font-size: 11px; line-height: 1.5; color: {{rst.enr.msgC}};">{{rst.enr.msg}}</span>
++                    <!-- 발급해 둔 코드 (평문은 없다) -->
++                    <sc-for list="{{rst.enr.rows}}" as="ec" hint-placeholder-count="2">
++                      <div style="display: flex; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 7px; background: #f4f6f9; font-size: 11px;">
++                        <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.4;"><b style="overflow-wrap: anywhere;">{{ec.label}}</b><span style="color: #8b95a6;">{{ec.sub}}</span></span>
++                        <button type="button" data-node-enr-revoke="1" onClick="{{ec.revoke}}" style="display: {{ec.delDisp}}; height: 24px; padding: 0 9px; border-radius: 12px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid #d33d52; background: #ffffff; color: #d33d52; align-items: center; white-space: nowrap;">{{ec.delLabel}}</button>
++                      </div>
++                    </sc-for>
++                    <span style="display: {{rst.enr.rowsNone}}; font-size: 10.5px; color: #8b95a6;">발급해 둔 코드 없음</span>
++                  </div>
+                   <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #eef1f5; padding-top: 10px;">
+                     <span style="font-size: 11px; font-weight: 700; color: #5b6472;">API · helm-apps-integration</span>
+                     <sc-for list="{{rst.api}}" as="ap" hint-placeholder-count="3">
+diff --git a/src/api/enroll.js b/src/api/enroll.js
+new file mode 100644
+index 0000000..cc786a4
+--- /dev/null
++++ b/src/api/enroll.js
+@@ -0,0 +1,153 @@
++// 미등록 노드 등록 (A-19 · Terra ADR-GW-002) — 일회용 등록 코드를 Daemon에 넘긴다.
++//
++// tree 관리자가 Master에서 코드를 만들고(`terra.master.nodes.enroll-codes.post`), 사람이 그 코드를
++// 이 기계로 들고 와 여기에 붙여 넣는다. 이 기계의 브라우저에 Master 계정 비밀번호가 가지 않는 것이
++// 요점이다 — 기존 `terra.daemon.enrollment.register.post`는 사람의 Master access token을 받으므로
++// 그 길로는 피할 수 없었다.
++//
++// 미등록 leaf의 Gateway는 **이 op 하나만** 루프백에서 통과시킨다(등록 전 창). 다섯 조건이 모두
++// 참이어야 하고(그 op · 루프백 · 미등록 · 전용 속도 제한 · 성공 1회), 조건은 Gateway가 판정한다 —
++// 아래 isLoopbackHost는 폼을 **보일지** 정하는 것뿐이고, 실제 판정은 언제나 서버 쪽이다.
++import { ENROLL } from './operations.js';
++
++/** 코드 접두사. Fleet 가입 코드(tjc_)는 이 길이 아니다 */
++export const CODE_PREFIX = 'tnc_';
++
++/**
++ * 붙여 넣은 코드를 Daemon이 받는 모양으로 본다.
++ *   tnc_<secret>                       주소 없음 → Master 주소를 따로 받아야 한다
++ *   tnc_<secret>.<base64url(origin)>   주소를 품었다 → 주소 칸을 보이지 않는다
++ * 첫 '.'이 유일한 경계다(base64url도 secret도 '.'을 쓰지 않는다).
++ * @param {string} raw
++ * @returns {{ ok: boolean, code: string, masterUrl: string, why?: string }}
++ */
++export function readCode(raw) {
++  const text = String(raw || '').trim();
++  if (!text) return { ok: false, code: '', masterUrl: '', why: '등록 코드를 붙여 넣으세요' };
++  const i = text.indexOf('.');
++  const code = i < 0 ? text : text.slice(0, i);
++  let masterUrl = '';
++  if (i >= 0) {
++    try {
++      const b = text.slice(i + 1).replace(/-/g, '+').replace(/_/g, '/');
++      const decoded = atob64(b + '==='.slice((b.length + 3) % 4));
++      if (/^https?:\/\//i.test(decoded)) masterUrl = decoded.replace(/\/$/, '');
++    } catch { /* 망가진 주소 — 코드만 쓴다. 주소는 거드는 것이고 코드가 자격이다 */ }
++  }
++  if (/^tjc_/.test(code)) return { ok: false, code: '', masterUrl: '', why: '이것은 Fleet 가입 코드(tjc_)입니다 — 노드 등록 코드(tnc_)가 필요합니다' };
++  if (code.indexOf(CODE_PREFIX) !== 0 || code === CODE_PREFIX) return { ok: false, code: '', masterUrl: '', why: '등록 코드는 ' + CODE_PREFIX + '로 시작합니다 — 복사한 것을 다시 확인하세요' };
++  return { ok: true, code, masterUrl };
++}
++
++/** base64 풀기 — 브라우저의 atob, 연동 시험(Node)의 전역 atob 둘 다 쓴다 */
++function atob64(b) {
++  if (typeof globalThis.atob === 'function') return globalThis.atob(b);
++  throw new Error('no base64 decoder');
++}
++
++/** 루프백 host 인가 — 127.0.0.0/8 · ::1 · localhost */
++export function isLoopbackHost(host) {
++  const h = String(host || '').trim().toLowerCase().replace(/^\[|\]$/g, '');
++  if (!h) return false;
++  if (h === 'localhost' || /\.localhost$/.test(h)) return true;
++  if (h === '::1' || h === '0:0:0:0:0:0:0:1') return true;
++  return /^127(\.\d{1,3}){3}$/.test(h);
++}
++
++/**
++ * 등록 요청이 Gateway에 **루프백으로** 닿는가 — 폼을 보일지 정한다.
++ * 설정의 gateway가 절대 주소면 그 host를, 경로('/gw')면 이 페이지의 host를 본다.
++ * 역방향 프록시가 사이에 있으면 이 판정이 맞아도 Gateway는 거절할 수 있다 — 그래서 서버의
++ * 403도 사람 말로 가른다(FORM 아래 submitEnroll).
++ * @param {string} gateway public/config.json 의 gateway
++ */
++export function enrollReachesLoopback(gateway, pageHost) {
++  const g = String(gateway || '').trim();
++  if (/^[a-z]+:\/\//i.test(g)) {
++    try { return isLoopbackHost(new URL(g).hostname); } catch { return false; }
++  }
++  // 같은 출처 경로('/gw')거나 ':8788' 같은 꼴 — 이 페이지가 어디서 열렸는지가 기준이다
++  const host = pageHost != null ? pageHost : (globalThis.location && globalThis.location.hostname) || '';
++  return isLoopbackHost(host);
++}
++
++/** 거절 이유를 사람 말로. 코드는 Master가 판정한 것을 Daemon이 그대로 옮긴 것이다 */
++const SAY = {
++  ENROLL_CODE_INVALID: '등록 코드가 맞지 않습니다 — 복사한 것을 다시 확인하거나 tree 관리자에게 새 코드를 받으세요',
++  ENROLL_CODE_USED: '이미 쓴 등록 코드입니다 — 코드는 한 번만 쓸 수 있습니다. tree 관리자에게 새 코드를 받으세요',
++  ENROLL_CODE_EXPIRED: '등록 코드의 수명이 지났습니다 (기본 15분) — tree 관리자에게 새 코드를 받으세요',
++  ENROLL_CODE_REVOKED: 'tree 관리자가 이 코드를 폐기했습니다 — 왜 폐기됐는지 확인하세요',
++  ENROLL_MASTER_URL_REQUIRED: '이 코드엔 Master 주소가 없습니다 — Master 주소를 넣고 다시 누르세요',
++  LOCAL_API_CONFLICT: '이 노드는 이미 등록되어 있습니다 — 새로고침하면 로그인 화면이 나옵니다',
++  LOCAL_API_CONTROL_REJECTED: 'Master가 등록을 거절했습니다',
++  NODE_NAME_CONFLICT: '같은 기기 이름이 이 클러스터에 이미 있습니다 — 다른 이름을 넣으세요',
++  NODE_NAME_RESERVED: '쓸 수 없는 기기 이름입니다 — 다른 이름을 넣으세요'
++};
++
++/** 등록 요청을 보낸다.
++ *
++ *  code는 **사람이 붙여 넣은 그대로** 보낸다 — 주소를 품은 꼴이면 그대로다. 주소를 떼어 내는 것은
++ *  Daemon의 일이고(ParseNodeEnrollCode), Master도 첫 '.' 뒤를 버리고 대조한다. 화면이 미리 떼면
++ *  코드가 품고 있던 주소가 아무 데도 실려 가지 않는다.
++ *  @param {import('./client.js').TerraClient} c
++ *  @param {{ code: string, deviceName?: string, masterUrl?: string }} input
++ *  @returns {Promise<{ ok: boolean, code?: string, msg?: string, needAddr?: boolean, data?: any }>} */
++export async function submitEnroll(c, input) {
++  const body = { code: String(input.code || '').trim() };
++  const name = String(input.deviceName || '').trim();
++  if (name) body.device_name = name;
++  const addr = String(input.masterUrl || '').trim().replace(/\/$/, '');
++  if (addr) body.master_url = addr;
++
++  // catalog를 거치지 않고 곧장 부른다. 익명 호출자의 catalog는 권한을 선언한 op를 지우므로
++  // (Gateway narrowList) 이 op는 거기에 없다 — 등록 전 창은 **한 번의 호출**을 열어 주는 것이고
++  // catalog에 보이게 하는 것이 아니다. 부를 op는 health의 enrollment.codeOperation이 알려 준다.
++  const r = await c.request('POST', '/api/v1/operations/' + encodeURIComponent(ENROLL.code.op) + '/invoke', body);
++
++  if (r.kind === 'ok' || r.kind === 'accepted') return { ok: true, data: r.data || {} };
++  const said = SAY[r.code];
++  if (said) return { ok: false, code: r.code, msg: said, needAddr: r.code === 'ENROLL_MASTER_URL_REQUIRED' };
++  if (r.kind === 'forbidden') {
++    return { ok: false, code: r.code || 'FORBIDDEN',
++      msg: '이 Gateway가 등록 요청을 막았습니다 — 등록은 그 기계에서, 루프백 주소(127.0.0.1)로 열어야 합니다. '
++        + '이미 등록이 한 번 성공했다면 이 창은 닫혀 있습니다 (' + (r.code || '403') + ')' };
++  }
++  if (r.kind === 'unavailable') {
++    return { ok: false, code: r.code || 'NOT_FOUND',
++      msg: '이 Gateway엔 등록 코드로 등록하는 길이 없습니다 — Terra가 더 오래된 판입니다. `terra daemon enroll`이나 설치 마법사로 등록하세요' };
++  }
++  if (r.kind === 'down' || r.kind === 'unreachable') {
++    return { ok: false, code: r.code || r.kind, msg: 'Master에 닿지 못했습니다 — 주소와 Master 상태를 확인하세요' + (r.reason ? ' (' + r.reason + ')' : '') };
++  }
++  if (r.kind === 'unauthenticated') {
++    // 401이지만 SAY에 없는 코드 — 낡은 Master가 Fleet 거절(UNAUTHORIZED)로 답한 경우가 이것이다
++    return { ok: false, code: r.code || 'UNAUTHORIZED',
++      msg: 'Master가 코드를 받지 않았습니다 — Master가 노드 등록 코드를 모르는 더 오래된 판일 수 있습니다 (' + (r.code || '401') + ')' };
++  }
++  return { ok: false, code: r.code || r.kind, msg: '등록하지 못했습니다 — ' + (r.reason || r.code || r.kind) };
++}
++
++/**
++ * 등록이 끝난 뒤 Gateway가 Master 인증으로 다시 뜨기를 기다린다.
++ * Daemon이 자기를 다시 띄우므로 Gateway도 함께 죽고 돌아온다 — 설정 화면의 재시작 대기와 같은 방식:
++ * 한 번 닿지 않게 된 뒤 다시 닿고, 그때 auth.mode가 none이 아니면 끝이다.
++ * @param {() => Promise<import('./client.js').Result>} readHealth
++ * @param {(text: string) => void} [say]
++ * @param {{ waitMs?: number, everyMs?: number, sleep?: (ms: number) => Promise<void> }} [opts]
++ */
++export async function waitForEnrolledGateway(readHealth, say, opts = {}) {
++  const waitMs = opts.waitMs || 180000, everyMs = opts.everyMs || 2000;
++  const nap = opts.sleep || ((ms) => new Promise((ok) => setTimeout(ok, ms)));
++  const t0 = Date.now();
++  let gone = false;
++  while (Date.now() - t0 < waitMs) {
++    await nap(everyMs);
++    const h = await readHealth();
++    if (h.kind !== 'ok') { gone = true; if (say) say('Daemon이 다시 뜨는 중입니다 — 기다리세요…'); continue; }
++    const a = (h.data && h.data.auth) || {};
++    if (a.mode && a.mode !== 'none') return { ok: true, mode: a.mode };
++    if (a.reason && a.reason !== 'NODE_NOT_ENROLLED') return { ok: true, mode: a.mode || 'none', reason: a.reason };
++    if (say) say(gone ? '돌아왔습니다 — Master 인증을 기다리는 중…' : '등록이 반영되기를 기다리는 중…');
++  }
++  return { ok: false };
++}
+diff --git a/src/api/operations.js b/src/api/operations.js
+index 34d816c..aaa4f91 100644
+--- a/src/api/operations.js
++++ b/src/api/operations.js
+@@ -173,6 +173,25 @@ export const SESSION = {
+   events: { op: 'terra.master.events.get', alt: 'terra.daemon.events.get', note: 'SSE — src/api/events.js' }
+ };
+ 
++/** 노드 등록 코드 (A-19 · Terra ADR-GW-002 · 노드 등록 코드 설계).
++ *
++ *  tree 관리자가 Master에서 일회용 코드를 만들고(issue — 평문은 그 응답에서 한 번만 보인다),
++ *  사람이 그 코드를 미등록 기계로 들고 가 그 기계의 GUI에서 code를 부른다.
++ *
++ *  code는 **미등록 leaf의 Gateway가 루프백에서 통과시키는 단 하나의 op**다. 익명 호출자의 catalog엔
++ *  없으므로(권한을 선언한다) client.invoke의 catalog 검사를 지나지 못한다 — src/api/enroll.js가
++ *  곧장 부른다. 부를 op는 health의 enrollment.codeOperation이 알려 준다. */
++export const ENROLL = {
++  code: { op: L('enrollment.code.post'), perm: 'node.enroll★ (등록 전에는 Gateway의 등록 창)',
++    note: '본문 { code, device_name?, master_url? } → 202 { status, master_url, master_url_persisted, restarting, service_manager }. 거절은 401 ENROLL_CODE_INVALID · _USED · _EXPIRED · _REVOKED · 400 ENROLL_MASTER_URL_REQUIRED · 409 이미 등록 · 422 Master 거절' },
++  issue: { op: T('nodes.enroll-codes.post'), perm: 'node.control',
++    note: '본문 { label?, parent_node_id?, expires_in_sec?, master_url? } → 201 { code, code_id, master_url, expires_at, max_uses }. 평문 code는 이 응답에서만 — 다시 볼 수 없다' },
++  list: { op: T('nodes.enroll-codes.get'), perm: 'node.control',
++    note: '{ codes[{ code_id, label, status: active|used|expired|revoked, expires_at, used_count, claimed_node_id? }] } — 평문은 없다' },
++  revoke: { op: T('nodes.enroll-codes.by-code-id.delete'), perm: 'node.control',
++    note: '신규 등록만 막는다 — 이 코드로 이미 등록한 노드는 그대로다' }
++};
++
+ /** 조타륜 앱 창의 추가 · 수정 · 삭제 — 화면의 hbFormSave(create · update) · hbDel(del)이 부른다 (src/api/wire.js).
+  *  op: null 또는 항목 없음 = Gateway에 아직 길이 없다(⚠) → 화면(hbd)에만 반영하고 글줄로 알린다.
+  *  함수로 된 항목은 (vals, item) → spec (항목 종류에 따라 op가 다를 때) */
+diff --git a/src/boot/node-live.js b/src/boot/node-live.js
+index 565df2b..d4c9457 100644
+--- a/src/boot/node-live.js
++++ b/src/boot/node-live.js
+@@ -4,8 +4,10 @@
+ //   wireOpLocks      : 이 Gateway에 길이 없는 동작은 처음부터 🔒 (A-5)
+ //   wireTrees        : 관리 노드 창의 tree 목록 = 같은 클러스터의 tree + 설정의 다른 Gateway (C-5 · A-10)
+ //   wireNodeAdmin    : 노드 이름 · 부모 바꾸기 · 삭제 = Master nodes.by-node-id.{patch,delete} (A-11)
++//   wireEnrollCodes  : 노드 등록 코드 발급 · 목록 · 폐기 = Master nodes.enroll-codes.* (A-19)
+ import { ADAPT } from '../api/adapters.js';
+ import { resultText } from '../api/client.js';
++import { ENROLL } from '../api/operations.js';
+ 
+ // ───── 모듈 GUI (C-4) ─────
+ // 앱 iframe과 이야기하는 두 길 — 둘 다 '보낸 창이 우리 모듈 GUI iframe인가 + origin이 그 앱의 origin(격리면 "null")인가'를 먼저 본다.
+@@ -170,3 +172,49 @@ export function wireNodeAdmin(screen, client) {
+     return r.kind === 'ok' ? { ok: true } : { ok: false, msg: resultText(r) };
+   };
+ }
++
++// ───── 노드 등록 코드 (A-19 · Terra ADR-GW-002) ─────
++//
++// tree 관리자가 여기서 일회용 코드를 만들고, 사람이 그 코드를 아직 노드가 아닌 기계로 들고 간다.
++// 그 기계는 자기 GUI에서 `terra.daemon.enrollment.code.post`로 스스로 등록한다 (src/api/enroll.js).
++//
++// 평문은 발급 응답에서 **한 번만** 온다 — 목록은 메타데이터뿐이고 평문을 복구할 길이 없다. 그래서
++// 화면이 그 한 번을 들고 있다가 복사 버튼을 주고, 다시 볼 수 없다고 적는다.
++//
++// 새 노드는 코드를 발급한 노드 밑에 붙는다 (parent_node_id). 코드 자체는 클러스터 것이므로 발급 ·
++// 목록 · 폐기 셋 다 node.control이고, 목록에도 그 권한이 걸린다 — 15분 창 안에서 "아직 쓰이지 않은
++// 코드가 무엇인가"는 읽기보다 발급 쪽에 가깝다 (Terra 설계 §4.3).
++export function wireEnrollCodes(screen, client) {
++  screen.nodeEnrDo = async (kind, name, arg) => {
++    const op = kind === 'issue' ? ENROLL.issue.op : kind === 'list' ? ENROLL.list.op : ENROLL.revoke.op;
++    if (!client.has(op)) return { ok: false, msg: '이 Gateway엔 등록 코드 길이 없다 — Terra가 더 오래된 판이다' };
++    let input = {};
++    if (kind === 'issue') {
++      input = { expires_in_sec: arg.expires_in_sec || 900 };
++      if (arg.label) input.label = arg.label;
++      // 새 노드를 이 노드 밑에 붙인다. tree 자신에게 발급하면 그 tree가 부모가 된다
++      const id = ((screen.NET || {})[name] || {}).id;
++      if (id) input.parent_node_id = id;
++      // master_url은 보내지 않는다 — Master가 발급 요청이 닿은 origin을 코드에 품는다. 그것이
++      // 운영자가 실제로 쓴 주소이고, 역방향 프록시 뒤라면 운영자가 Master 쪽에서 정할 일이다
++    } else if (kind === 'revoke') input = { code_id: arg.code_id };
++
++    const r = await client.invoke(op, input, { confirm: true });
++    if (r.kind === 'ok' || r.kind === 'accepted') return { ok: true, data: r.data || {} };
++    if (r.kind === 'unavailable' || r.code === 'NOT_IMPLEMENTED') return { ok: false, msg: '이 Master는 등록 코드를 저장하지 않는다 — 더 오래된 판이다' };
++    if (r.kind === 'forbidden') return { ok: false, msg: 'node.control 권한이 없다' };
++    return { ok: false, msg: resultText(r) };
++  };
++  // 상태 창을 열 때 목록을 한 번 받는다 (tree 노드일 때만 — leaf엔 발급 칸 자체가 없다).
++  // 노드 상태 창은 노드 이름이 아니라 맵 칸으로 열린다 ({ kind: 'node', key }) — 이름은 칸에서 찾는다
++  const open0 = screen.rstOpen;
++  screen.rstOpen = function (spec) {
++    open0.call(this, spec);
++    const nd = spec && spec.kind === 'node' && spec.key != null ? this.nodeAt(spec.key) : null;
++    const name = nd && nd.name;
++    if (name && this.isTree(((this.NET || {})[name] || {}).role || nd.role)) {
++      this.setState({ nodeEnr: null });
++      this.nodeEnrLoad(name);
++    }
++  };
++}
+diff --git a/src/boot/service.js b/src/boot/service.js
+index a8bd212..2fdd4c4 100644
+--- a/src/boot/service.js
++++ b/src/boot/service.js
+@@ -12,7 +12,9 @@ import { HELM_APPS } from '../api/operations.js';
+ import { layoutKey, loadLayout, autoSave } from '../store/layout.js';
+ import { ShareSync, DocSync, loadMemos, wireMemos } from '../store/sync.js';
+ import { SharedFiles } from '../api/files.js';
+-import { bridgeModuleGui, wireFolderStorage, wireOpLocks, wireTrees, wireNodeAdmin } from './node-live.js';
++import { bridgeModuleGui, wireFolderStorage, wireOpLocks, wireTrees, wireNodeAdmin, wireEnrollCodes } from './node-live.js';
++import { readCode, enrollReachesLoopback, submitEnroll, waitForEnrolledGateway } from '../api/enroll.js';
++import { SESSION } from '../api/operations.js';
+ import { applyFixes } from './fixes.js';
+ 
+ const inFrame = (() => { try { return window.top !== window; } catch { return true; } })();
+@@ -72,8 +74,42 @@ export function prep(name, Screen) {
+       const v = rv.call(this), g = this.gwInfo || { state: 'check', text: '응답 확인 중…' };
+       v.v.gwDot = g.state === 'ok' ? '#5eea9a' : g.state === 'down' ? '#ff6b7d' : '#ffd479';
+       v.v.gwText = g.text;
++      if (v.v.enroll) Object.assign(v.v, enrollVals(this));
+       return v;
+     };
++    // 미등록 노드 등록 (A-19): 코드를 Daemon에 넘긴다 → 202 → Gateway가 Master 인증으로 다시 뜨기를
++    // 기다렸다가 로그인 화면으로. 거절은 이유마다 다른 말로 — 그 기계엔 터미널도 로그도 없고,
++    // 사람이 무엇을 할지 고를 재료는 이 한 줄뿐이다
++    P.enrollGo = async function () {
++      const E = this.enroll || {};
++      if (E.busy || E.done) return;
++      const read = readCode(E.code);
++      if (!read.ok) { this.enrollSay(read.why, '#d33d52'); return; }
++      const addr = read.masterUrl || String(E.addr || '').trim();
++      if (!addr && E.addrAsked) { this.enrollSay('Master 주소를 넣으세요 — 이 코드엔 주소가 없습니다', '#d33d52'); return; }
++      this.enrollSet({ busy: true, msg: '등록하는 중…', msgC: '#5b6472' });
++      const c = await client();
++      // 붙여 넣은 원문을 그대로 넘긴다 — 코드가 품은 주소는 Daemon이 떼어 쓴다. 주소 칸은 코드가
++      // 주소를 품지 않았을 때만 실린다
++      const r = await submitEnroll(c, { code: E.code, deviceName: E.name, masterUrl: read.masterUrl ? '' : E.addr });
++      if (!r.ok) {
++        this.enrollSet({ busy: false, msg: r.msg, msgC: '#d33d52', addrAsked: E.addrAsked || !!r.needAddr });
++        return;
++      }
++      // 202: 등록은 끝났다. 남은 것은 Daemon이 다시 뜨고 Gateway가 Master 인증으로 돌아오는 것
++      const d = r.data || {}, mgr = d.service_manager || '';
++      this.enrollSet({ busy: true, done: true, msgC: '#1f7a4d',
++        msg: d.restarting ? '등록했습니다 — Daemon이 다시 뜨기를 기다립니다 (' + mgr + ')'
++          : '등록했습니다 — 이 기계의 Daemon을 직접 다시 시작하세요 (다시 띄울 서비스 관리자가 없습니다)' });
++      if (d.master_url_persisted === false) this.enrollSay('등록했지만 Master 주소를 설정 파일에 적지 못했습니다 — 다시 뜬 뒤에도 로그인할 수 없으면 `terra daemon config` 로 master.url을 확인하세요', '#a65f00');
++      const back = await waitForEnrolledGateway(() => health(), (t) => this.enrollSet({ msg: t, msgC: '#5b6472' }));
++      if (!back.ok) { this.enrollSet({ busy: false, msg: '등록은 끝났지만 Gateway가 3분 안에 돌아오지 않았습니다 — 새로고침해 보세요', msgC: '#a65f00' }); return; }
++      // 카탈로그 · 자격 핸들을 새로 잡아야 한다 — 다시 읽는 쪽이 정직하다
++      this.enrollSet({ msg: '등록이 끝났습니다 — 로그인 화면으로 갑니다', msgC: '#1f7a4d' });
++      setTimeout(() => location.reload(), 900);
++    };
++    P.enrollSet = function (patch) { this.enroll = Object.assign({}, this.enroll, patch); this.forceUpdate(); };
++    P.enrollSay = function (msg, c) { this.enrollSet({ msg, msgC: c || '#a65f00' }); };
+   }
+   if (name === 'settings') {
+     // 저장 = terra.daemon.config.patch { set, save: true } (A-9). 원래 save의 검사 · 위험 확인 · 재시작 대기 표시는 그대로 쓰고,
+@@ -149,8 +185,11 @@ async function bootIntro(screen) {
+   const NOTE = { NODE_NOT_ENROLLED: '이 노드는 아직 tree에 등록되지 않았습니다 — tree 관리자에게 등록 토큰을 받아 등록하면 로그인할 수 있습니다',
+     CREDENTIAL_MISSING: '이 Gateway가 Master 자격을 갖고 있지 않습니다 — Daemon을 다시 시작하거나 다시 등록하세요', NO_MASTER: '이 Gateway엔 Master가 없어 로그인할 수 없습니다' };
+   if (mode === 'none' || why.credentialRejected) {
+-    const t = why.credentialRejected ? 'Master가 이 Gateway의 자격을 거절했습니다 — 노드를 다시 등록해야 합니다' : NOTE[why.reason] || NOTE.NO_MASTER;
+     screen.gwInfo = { state: 'down', text: cfg.gateway + ' · ' + (why.reason || 'CREDENTIAL_REJECTED') };
++    // 미등록 노드(A-19 · ADR-GW-002): 안내만 하던 자리가 등록 폼을 받는다. 자격만 없는 노드
++    // (CREDENTIAL_MISSING)는 이미 누군가의 것이라 등록할 것이 없다 — 종전 안내 그대로다
++    if (why.reason === 'NODE_NOT_ENROLLED' && !why.credentialRejected) { await beginEnroll(screen, cfg, h.data); return; }
++    const t = why.credentialRejected ? 'Master가 이 Gateway의 자격을 거절했습니다 — 노드를 다시 등록해야 합니다' : NOTE[why.reason] || NOTE.NO_MASTER;
+     screen.setState({ phase: 'form', msg: t, msgC: '#a65f00' });
+     return;
+   }
+@@ -164,6 +203,61 @@ async function bootIntro(screen) {
+   }
+ }
+ 
++// 등록 단계 준비 (A-19). 폼을 보일지는 **루프백에서 보고 있는지**로 정한다 — 미등록 Gateway의
++// 등록 창이 루프백 접속에만 열리기 때문이다. 아니면 종전처럼 안내만 하고 왜 안 되는지 적는다.
++async function beginEnroll(screen, cfg, healthData) {
++  const win = (healthData && healthData.enrollment) || null;   // Gateway가 창을 열어 뒀나 (없으면 더 오래된 Terra)
++  const local = enrollReachesLoopback(cfg.gateway);
++  // 기기 이름의 기본값. 등록 전에는 terra.daemon.node.get(node.read★)이 창 밖이라 노드 이름을 읽을 수
++  // 없다 — 열려 있으면 그것을 쓰고(개발용 open Gateway 등), 아니면 이 페이지의 host가 가장 가까운
++  // 답이다. 둘 다 아니면 비워 둔다: Daemon이 daemon.device_name → 호스트 이름 순으로 메운다
++  let name = '';
++  try {
++    const c = await client();
++    const n = await c.invoke(SESSION.localNode.op);
++    if (n.kind === 'ok' && n.data && n.data.device_name) name = String(n.data.device_name);
++  } catch { /* 등록 전에는 닫혀 있는 것이 정상이다 */ }
++  if (!name) { const host = String(location.hostname || ''); if (host && !/^(localhost|127\.|\[?::1)/i.test(host) && !/^\d+(\.\d+){3}$/.test(host)) name = host.split('.')[0]; }
++
++  screen.enroll = { code: '', name, addr: '', local, addrAsked: false, busy: false, done: false, msg: '', msgC: '#a65f00',
++    closed: !!(win && win.open === false), op: (win && win.codeOperation) || '' };
++  if (screen.enroll.closed) screen.enroll.msg = '이 노드는 방금 등록됐습니다 — Daemon이 다시 뜨기를 기다리세요. 돌아오면 로그인 화면이 나옵니다';
++  screen.setState({ phase: 'enroll', msg: '' });
++  // 창이 이미 쓰였으면 기다리기만 한다 (재시작을 놓쳤거나 다른 창에서 등록했다)
++  if (screen.enroll.closed) {
++    const back = await waitForEnrolledGateway(() => health(), (t) => screen.enrollSet({ msg: t, msgC: '#5b6472' }));
++    if (back.ok) setTimeout(() => location.reload(), 600);
++  }
++}
++
++// 등록 묶음의 화면 값 — 템플릿(design/Intro.dc.html)의 v.enr* 가 이것을 읽는다
++function enrollVals(screen) {
++  const E = screen.enroll || {}, read = readCode(E.code);
++  const hasAddr = !!(read.ok && read.masterUrl);
++  const needAddr = !!(read.ok && !read.masterUrl) || E.addrAsked;
++  const note = 'tree 관리자에게 등록 코드를 받아 아래에 붙여 넣으세요. 코드는 한 번만 쓸 수 있고 기본 수명은 15분입니다. '
++    + '이 화면은 Master 계정 비밀번호를 받지 않습니다 — 코드만으로 등록합니다.';
++  const why = E.local ? '' : '이 화면은 그 기계에서 루프백 주소(http://127.0.0.1:…)로 열었을 때만 등록 폼을 보입니다. '
++    + '미등록 노드의 Gateway가 등록 창을 루프백 접속에만 열기 때문입니다. '
++    + '그 기계에서 열거나, 그 기계에서 `terra daemon enroll`이나 설치 마법사로 등록하세요.';
++  return {
++    enrLocal: !!E.local,
++    enrNote: note,
++    enrWhy: why, enrWhyDisp: why ? 'block' : 'none',
++    enrFieldsDisp: E.local ? 'flex' : 'none',
++    enrCode: E.code || '', enrName: E.name || '', enrAddr: E.addr || '',
++    enrAddrDisp: E.local && needAddr && !hasAddr ? 'flex' : 'none',
++    enrMsg: E.msg || '', enrMsgC: E.msgC || '#a65f00', enrMsgDisp: E.msg ? 'block' : 'none',
++    enrBusy: !!E.busy, enrDone: !!E.done,
++    enrGoLabel: E.done ? '등록됨' : E.busy ? '등록하는 중…' : '등록',
++    enrGoDisp: E.local && !E.closed ? 'flex' : 'none',
++    setEnrCode: (e) => screen.enrollSet({ code: e.target.value, msg: '' }),
++    setEnrName: (e) => screen.enrollSet({ name: e.target.value, msg: '' }),
++    setEnrAddr: (e) => screen.enrollSet({ addr: e.target.value, msg: '' }),
++    enrGo: () => screen.enrollGo()
++  };
++}
++
+ async function bootNode(screen) {
+   // 1) 예시 데이터를 바로 지운다 (첫 그림이 그려지기 전에)
+   screen.NET = {};
+@@ -248,6 +342,7 @@ async function bootNode(screen) {
+   wireFolderStorage(screen, new SharedFiles(c), c);
+   const treesRefresh = wireTrees(screen, cfg);
+   wireNodeAdmin(screen, c);
++  wireEnrollCodes(screen, c);
+   window.terraLogout = async () => { dropTokens(); await logout(); location.replace('./index.html'); };
+   // 등록 안 된 leaf (A-12): 맵은 이 노드 하나로 서고, tree에 등록하라고 알린다 (등록 = terra.daemon.enrollment.register.post — tree 관리자가 준 토큰)
+   if (local.unregistered) {
+diff --git a/src/screens/index.js b/src/screens/index.js
+index 7638105..1284ef1 100644
+--- a/src/screens/index.js
++++ b/src/screens/index.js
+@@ -64,11 +64,21 @@ export default class Component extends DCLogic {
+     this.setState({ fly: true });
+   }
+   renderVals() {
+-    const S = this.state, form = S.phase === 'form' || S.phase === 'loading', busy = S.phase === 'loading' || S.phase === 'auto';
++    const S = this.state;
++    // 미등록 노드 등록 (A-19): 로그인도 자동 로그인도 아닌 세 번째 단계다. 로그인할 Master가
++    // 아직 없으니 로그인 칸을 보여 줄 수 없고, '로그인됨' 칸도 아니다 — 그래서 form · status와
++    // 나란히 서는 제3의 묶음으로 둔다. 실제 값은 src/boot/service.js가 채운다(서비스 변형만)
++    const enroll = S.phase === 'enroll' || S.phase === 'enrolling' || S.phase === 'enrolled';
++    const form = !enroll && (S.phase === 'form' || S.phase === 'loading'), busy = S.phase === 'loading' || S.phase === 'auto';
+     const name = S.username.trim() || 'admin';
+     return {
+       v: {
+-        form, status: !form, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
++        form, status: !form && !enroll, enroll, busy, ok: S.phase === 'done', canCancel: S.phase === 'auto',
++        // 등록 묶음 — 변형(demo)에서는 enroll이 거짓이라 그려지지 않는다
++        enrLocal: false, enrNote: '', enrWhy: '', enrWhyDisp: 'none', enrFieldsDisp: 'none',
++        enrCode: '', enrName: '', enrAddr: '', enrAddrDisp: 'none', enrMsg: '', enrMsgC: '#a65f00', enrMsgDisp: 'none',
++        enrBusy: false, enrGoLabel: '등록', enrGoDisp: 'none', enrDone: false,
++        setEnrCode: () => {}, setEnrName: () => {}, setEnrAddr: () => {}, enrGo: () => {}, enrBack: () => {},
+         cardCls: S.fly ? 'in-away' : 'in-rise', cardTop: 70, frameOn: !!(S.fly || S.preload), mapFail: !!S.mapFail, cardDisp: S.flyDone ? 'none' : 'flex', chromeOp: S.fly ? 0 : 1, chromePe: S.fly ? 'none' : 'auto', spokes: [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ a })),
+         sub: S.phase === 'done' ? name + ' — 로그인됨' : '노드에 로그인',
+         username: S.username, password: S.password,
+diff --git a/src/screens/node.js b/src/screens/node.js
+index 4f1cd55..5c0e83f 100644
+--- a/src/screens/node.js
++++ b/src/screens/node.js
+@@ -78,6 +78,9 @@ export default class Component extends DCLogic {
+         net: { x: 420, y: 110, w: 600 }, mod: { x: 540, y: 200, w: 380 }, user: { x: 600, y: 240, w: 360 }, set: { x: 560, y: 180, w: 380 }, memo: { x: 600, y: 120, w: 480 }, rd: { x: 440, y: 200, w: 400 }, rcfg: { x: 1040, y: 120, w: 360 }, rst: { x: 990, y: 70, w: 430 }, mgui: { x: 300, y: 90, w: 720 }
+       },
+       winOpen: {}, wrz: null, fsPrev: {}, hbOut: null, mguiKey: 0, nodeAdm: null,   // nodeAdm = 상태 화면의 노드 관리 폼 { node, name, parent, arm, msg, c }
++      // nodeEnr = 노드 등록 코드 폼 (A-19) { node, label, ttl, code, codeId, msg, c, busy, list[], arm }
++      //   code = 방금 발급한 평문. 발급 응답에서만 보이고 다시 받을 수 없다 — 그래서 상태에 들고 있다
++      nodeEnr: null,
+         // hbOut = 상태 화면에 보이는 작업 출력 · 모듈 로그 · mguiKey = 모듈 GUI 다시 읽기
+         // wrz = 크기 바꾸는 중인 창 · fsPrev = 전체 화면 전 화면 (축소하면 그리로)
+       drawer: [],
+@@ -2422,6 +2425,52 @@ export default class Component extends DCLogic {
+   }
+   // 서비스가 바꿔 끼운다 (Master 호출). 예시는 바로 성공
+   async nodeAdmDo() { return { ok: true }; }
++  // ── 노드 등록 코드 (A-19 · Terra ADR-GW-002): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드.
++  //    평문은 발급 응답에서 한 번만 보이므로 복사 버튼을 주고, 다시 볼 수 없다고 적는다 ──
++  nodeEnrFor(name) { const E = this.state.nodeEnr; return E && E.node === name ? E : { node: name, label: '', ttl: '900', code: '', codeId: '', addr: '', msg: '', c: '#5b6472', busy: false, list: [], arm: '' }; }
++  nodeEnrSet(name, patch) { this.setState({ nodeEnr: Object.assign({}, this.nodeEnrFor(name), patch) }); }
++  nodeEnrSay(name, msg, c) { this.nodeEnrSet(name, { msg, c: c || '#1f7a4d', busy: false }); }
++  async nodeEnrIssue(name) {
++    const E = this.nodeEnrFor(name);
++    if (E.busy) return;
++    this.nodeEnrSet(name, { busy: true, msg: '발급하는 중…', c: '#5b6472', code: '', codeId: '' });
++    const r = await this.nodeEnrDo('issue', name, { label: String(E.label || '').trim(), expires_in_sec: Number(E.ttl) || 900 });
++    if (!r || r.ok === false) { this.nodeEnrSay(name, (r && r.msg) || '발급하지 못했다', '#d33d52'); return; }
++    const d = r.data || {};
++    this.nodeEnrSet(name, { busy: false, code: d.code || '', codeId: d.code_id || '', addr: d.master_url || '', label: '',
++      msg: '발급했다 — 이 코드는 지금 한 번만 보인다. 복사해서 그 기계로 옮긴다', c: '#1f7a4d' });
++    this.pushAlarm('◆', '#2563eb', '노드 등록 코드를 발급했다 — ' + (d.expires_at ? '만료 ' + String(d.expires_at).slice(11, 16) : '15분'));
++    this.nodeEnrLoad(name);
++  }
++  async nodeEnrLoad(name) {
++    const STAT_KO = { active: '쓸 수 있음', used: '이미 쓴 코드', expired: '수명 지남', revoked: '폐기됨' };
++    const r = await this.nodeEnrDo('list', name, {});
++    if (!r || r.ok === false) return;
++    this.nodeEnrSet(name, { list: ((r.data || {}).codes || []).map((x) => ({
++      id: x.code_id, label: x.label || '(메모 없음)', status: x.status || 'active',
++      sub: [STAT_KO[x.status] || x.status, x.expires_at ? '만료 ' + String(x.expires_at).slice(11, 16) : '', x.claimed_node_id ? '→ ' + x.claimed_node_id : ''].filter(Boolean).join(' · ') })) });
++  }
++  async nodeEnrRevoke(name, id) {
++    const E = this.nodeEnrFor(name);
++    if (E.arm !== id) { this.nodeEnrSet(name, { arm: id, msg: '한 번 더 누르면 그 코드를 폐기한다 — 이미 등록한 노드는 그대로다', c: '#a65f00' }); return; }
++    const r = await this.nodeEnrDo('revoke', name, { code_id: id });
++    if (!r || r.ok === false) { this.nodeEnrSay(name, (r && r.msg) || '폐기하지 못했다', '#d33d52'); return; }
++    this.nodeEnrSet(name, { arm: '', msg: '폐기했다', c: '#1f7a4d', code: E.codeId === id ? '' : E.code });
++    this.nodeEnrLoad(name);
++  }
++  nodeEnrCopy(name) {
++    const E = this.nodeEnrFor(name);
++    if (!E.code) return;
++    const done = () => this.nodeEnrSay(name, '복사했다 — 그 기계의 GUI에 붙여 넣는다', '#1f7a4d');
++    try {
++      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(E.code).then(done, () => this.nodeEnrSay(name, '복사하지 못했다 — 글상자에서 직접 고른다', '#a65f00')); return; }
++    } catch { /* 아래 폴백 */ }
++    const el = document.querySelector('[data-node-enr-code]');
++    if (el && el.select) { el.select(); try { document.execCommand('copy'); done(); return; } catch { /* 막힘 */ } }
++    this.nodeEnrSay(name, '복사하지 못했다 — 글상자에서 직접 고른다', '#a65f00');
++  }
++  // 서비스가 바꿔 끼운다 (Master 호출). 예시는 길이 없다고 말한다
++  async nodeEnrDo() { return { ok: false, msg: '예시에서는 등록 코드를 발급하지 않는다' }; }
+   // 이 동작의 길이 없으면 잠글 이유 (서비스가 catalog로 바꿔 끼운다). 예시는 늘 null
+   hbOpLock() { return null; }
+   nodeMoveLocal(name, par) {
+@@ -2711,6 +2760,22 @@ export default class Component extends DCLogic {
+             delLabel: A.arm ? '정말 삭제' : '🗑️ 노드 삭제', delBg: A.arm ? '#d33d52' : '#ffffff', delFg: A.arm ? '#ffffff' : '#d33d52', delDisp: me ? 'none' : 'inline-flex',
+             setName: (e) => this.nodeAdmSet(name, { name: e.target.value }), setParent: (e) => this.nodeAdmSet(name, { parent: e.target.value }),
+             save: () => { if (ctl) this.nodeAdmSave(name); }, del: () => { if (ctl) this.nodeAdmDel(name); } };
++        })(),
++        // 노드 등록 코드 (A-19): 아직 노드가 아닌 기계로 사람이 들고 갈 일회용 코드. tree 노드에서만
++        // 보인다 — 코드는 클러스터 것이고, 새 노드는 이 노드 밑에 붙는다
++        enr: (() => {
++          const E = this.nodeEnrFor(name), ctl = (P.has || []).indexOf('node.control') >= 0;
++          const tree = this.isTree((this.NET[name] || {}).role || net.role);
++          return { disp: tree ? 'flex' : 'none', lock: ctl ? '' : '🔒 node.control 권한 없음', lockDisp: ctl ? 'none' : 'block', dis: !ctl || !!E.busy,
++            label: E.label || '', ttls: [['900', '15분'], ['300', '5분'], ['3600', '1시간']].map(([v, t]) => ({ v, t, sel: v === (E.ttl || '900') })),
++            code: E.code || '', codeDisp: E.code ? 'flex' : 'none', addr: E.addr || '', addrDisp: E.code && E.addr ? 'block' : 'none',
++            msg: E.msg || '', msgC: E.c || '#5b6472', msgDisp: E.msg ? 'block' : 'none',
++            goLabel: E.busy ? '발급 중…' : '＋ 등록 코드 발급',
++            rows: (E.list || []).map((x) => Object.assign({}, x, { armed: E.arm === x.id, delLabel: E.arm === x.id ? '정말 폐기' : '폐기',
++              delDisp: x.status === 'active' ? 'inline-flex' : 'none', revoke: () => { if (ctl) this.nodeEnrRevoke(name, x.id); } })),
++            rowsNone: (E.list || []).length ? 'none' : 'block',
++            setLabel: (e) => this.nodeEnrSet(name, { label: e.target.value }), setTtl: (e) => this.nodeEnrSet(name, { ttl: e.target.value }),
++            issue: () => { if (ctl) this.nodeEnrIssue(name); }, copy: () => this.nodeEnrCopy(name), load: () => this.nodeEnrLoad(name) };
+         })()
+       });
+     }
+diff --git a/tests/live-api.mjs b/tests/live-api.mjs
+index fe46cdc..7653e70 100644
+--- a/tests/live-api.mjs
++++ b/tests/live-api.mjs
+@@ -4,7 +4,8 @@
+ import { spawn } from 'node:child_process';
+ import { TerraClient, trackJob } from '../src/api/client.js';
+ import { LiveSource } from '../src/api/source.js';
+-import { HELM_APPS, filePerm, manualAdapter } from '../src/api/operations.js';
++import { HELM_APPS, filePerm, manualAdapter, ENROLL } from '../src/api/operations.js';
++import { readCode, isLoopbackHost, enrollReachesLoopback, submitEnroll, waitForEnrolledGateway } from '../src/api/enroll.js';
+ import { SharedFiles } from '../src/api/files.js';
+ import { ShareSync, DocSync, loadMemos } from '../src/store/sync.js';
+ import { openEvents } from '../src/api/events.js';
+@@ -255,7 +256,89 @@ try {
+   const ex = await c.invoke('terra.daemon.desktop.open.post', { root: 'home', path: 'setup.sh', action: 'open' }, { confirm: true });
+   check('로컬 탐색 · 실행 파일 열기 거절', lr.kind === 'ok' && lr.data.entries.length === 4 && ex.status === 409, ex.code);
+   void ADAPT;
++  // ───── 노드 등록 코드 — tree 쪽 (A-19 · Terra ADR-GW-002) ─────
++  const iss = await c.invoke(ENROLL.issue.op, { label: '작업대 노트북', expires_in_sec: 900 }, { confirm: true });
++  check('등록 코드 발급 → 평문은 이 응답에서만', iss.kind === 'ok' && /^tnc_/.test((iss.data || {}).code || '') && iss.data.max_uses === 1 && iss.data.plaintext_shown_once === true,
++    iss.kind === 'ok' ? 'max_uses ' + iss.data.max_uses : iss.kind);
++  const parsed = readCode(iss.kind === 'ok' ? iss.data.code : '');
++  check('코드가 Master 주소를 품는다 (해시엔 안 들어간다)', parsed.ok && parsed.masterUrl === iss.data.master_url && parsed.code.indexOf('.') < 0, parsed.masterUrl);
++  const lst = await c.invoke(ENROLL.list.op, {}, { confirm: true });
++  const row = lst.kind === 'ok' && (lst.data.codes || []).find((x) => x.code_id === iss.data.code_id);
++  check('목록은 메타데이터뿐 — 평문이 없다', !!row && row.status === 'active' && row.label === '작업대 노트북' && JSON.stringify(lst.data).indexOf(parsed.code) < 0, row && row.status);
++  const rv = await c.invoke(ENROLL.revoke.op, { code_id: iss.data.code_id }, { confirm: true });
++  const lst2 = await c.invoke(ENROLL.list.op, {}, { confirm: true });
++  const row2 = lst2.kind === 'ok' && (lst2.data.codes || []).find((x) => x.code_id === iss.data.code_id);
++  check('폐기 → 목록이 revoked', rv.kind === 'ok' && !!row2 && row2.status === 'revoked', row2 && row2.status);
++  const rv2 = await c.invoke(ENROLL.revoke.op, { code_id: iss.data.code_id }, { confirm: true });
++  check('두 번 폐기 = 404', rv2.kind === 'unavailable' || rv2.status === 404, rv2.code || rv2.kind);
++  // 폼을 보일지 정하는 판정 — 실제 허용은 언제나 서버가 한다
++  check('루프백 판정', isLoopbackHost('127.0.0.1') && isLoopbackHost('::1') && isLoopbackHost('localhost')
++    && !isLoopbackHost('10.0.0.5') && !isLoopbackHost('') && enrollReachesLoopback('http://127.0.0.1:8787')
++    && !enrollReachesLoopback('http://10.0.0.5:8787') && enrollReachesLoopback('/gw', 'localhost') && !enrollReachesLoopback('/gw', 'node.example.net'));
++  check('Fleet 코드(tjc_)는 이 길이 아니다', !readCode('tjc_abc').ok && !readCode('').ok && !readCode('tnc_').ok && readCode('tnc_abc.!!!').ok,
++    readCode('tjc_abc').why);
+   check('로그아웃', (await c.logout()).kind === 'ok' && (await c.invoke('terra.gateway.agent.whoami.get')).kind === 'unauthenticated');
++
++  // ───── 노드 등록 코드 — 미등록 leaf 쪽 ─────
++  // 등록 전 창은 로그인 없이 그 op 하나만 통과시킨다. 두 번째 가짜 Gateway를 미등록 상태로 띄워
++  // 거절마다 다른 말이 나오는지, 성공 하나로 창이 닫히는지 본다
++  const PORT2 = 8794;
++  const gw2 = spawn(process.execPath, ['tools/mock-gateway.mjs', String(PORT2)],
++    // 거절 다섯 가지를 먼저 보고 그 뒤에 성공을 보려면 창의 속도 제한에 자리가 있어야 한다.
++    // 제한 자체는 아래 세 번째 Gateway가 기본값(5)으로 따로 본다
++    { stdio: ['ignore', 'pipe', 'inherit'], env: Object.assign({}, process.env, { MOCK_AUTH_REASON: 'NODE_NOT_ENROLLED', MOCK_ENROLL_TRIES: '30' }) });
++  await new Promise((ok) => gw2.stdout.once('data', ok));
++  try {
++    const u = new TerraClient('http://127.0.0.1:' + PORT2);
++    const h0 = await u.invoke('terra.gateway.health.get');
++    const a0 = (h0.data || {}).auth || {}, w0 = (h0.data || {}).enrollment || {};
++    check('미등록 health = auth none/NODE_NOT_ENROLLED + 등록 창', a0.mode === 'none' && a0.reason === 'NODE_NOT_ENROLLED'
++      && w0.codeOperation === ENROLL.code.op && w0.open === true, a0.reason + ' · ' + w0.codeOperation);
++    // 로그인하지 않았다 — 등록 op만 열려 있고 다른 op는 그대로 막힌다
++    check('등록 전엔 다른 op가 함께 열리지 않는다', (await u.invoke('terra.daemon.node.get')).kind === 'unauthenticated'
++      && (await u.invoke('terra.master.nodes.get')).kind === 'unauthenticated');
++    const addr = 'http://127.0.0.1:' + PORT2;
++    const b64 = Buffer.from(addr, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
++    const bad = await submitEnroll(u, { code: 'tnc_nope', deviceName: 'x', masterUrl: addr });
++    check('코드가 틀림 → 사람 말', !bad.ok && bad.code === 'ENROLL_CODE_INVALID' && /다시 확인|새 코드/.test(bad.msg), bad.code);
++    const used = await submitEnroll(u, { code: 'tnc_used1', deviceName: 'x', masterUrl: addr });
++    check('이미 쓴 코드 → 사람 말', !used.ok && used.code === 'ENROLL_CODE_USED' && /한 번만/.test(used.msg), used.code);
++    const old = await submitEnroll(u, { code: 'tnc_expired1', deviceName: 'x', masterUrl: addr });
++    check('수명 지남 → 사람 말', !old.ok && old.code === 'ENROLL_CODE_EXPIRED' && /15분/.test(old.msg), old.code);
++    const gone = await submitEnroll(u, { code: 'tnc_revoked1', deviceName: 'x', masterUrl: addr });
++    check('폐기됨 → 사람 말', !gone.ok && gone.code === 'ENROLL_CODE_REVOKED' && /폐기/.test(gone.msg), gone.code);
++    const noAddr = await submitEnroll(u, { code: 'tnc_mockcode', deviceName: 'x' });
++    check('주소 없는 코드 → 주소를 받아야 한다', !noAddr.ok && noAddr.code === 'ENROLL_MASTER_URL_REQUIRED' && noAddr.needAddr === true, noAddr.code);
++    // 코드가 주소를 품으면 주소 칸을 받지 않는다
++    const withAddr = readCode('tnc_mockcode.' + b64);
++    check('주소를 품은 코드는 주소 칸을 받지 않는다', withAddr.ok && withAddr.masterUrl === addr, withAddr.masterUrl);
++    // 원문을 그대로 넘긴다 — 주소를 떼는 것은 Daemon의 일이다
++    const good = await submitEnroll(u, { code: 'tnc_mockcode.' + b64, deviceName: 'bench-01' });
++    check('성공 = 202 + restarting', good.ok && good.data.restarting === true && good.data.master_url_persisted === true
++      && good.data.status.registered === true, good.ok ? good.data.status.node_id : good.msg);
++    // 성공 하나로 창이 닫힌다 — 두 번째 노드는 생기지 않는다
++    const again = await submitEnroll(u, { code: 'tnc_mockcode.' + b64, deviceName: 'bench-02' });
++    check('성공 1회로 창이 닫힌다', !again.ok && /막았습니다|이미 등록/.test(again.msg), again.code);
++    // Gateway가 Master 인증으로 돌아오기를 기다린다 (설정 화면의 재시작 대기와 같은 방식)
++    const back = await waitForEnrolledGateway(() => u.invoke('terra.gateway.health.get'), null, { everyMs: 10, waitMs: 2000 });
++    check('등록 뒤 Gateway가 Master 인증으로 돌아온다', back.ok && back.mode === 'master', back.mode);
++    const h1 = await u.invoke('terra.gateway.health.get');
++    check('돌아온 health엔 등록 창 키가 없다', !((h1.data || {}).enrollment));
++  } finally { gw2.kill(); }
++
++  // 창 전용 속도 제한 — 코드를 두드리는 것을 Gateway에서도 막는다 (창의 다섯 조건 중 넷째)
++  const PORT3 = 8796;
++  const gw3 = spawn(process.execPath, ['tools/mock-gateway.mjs', String(PORT3)],
++    { stdio: ['ignore', 'pipe', 'inherit'], env: Object.assign({}, process.env, { MOCK_AUTH_REASON: 'NODE_NOT_ENROLLED', MOCK_ENROLL_TRIES: '2' }) });
++  await new Promise((ok) => gw3.stdout.once('data', ok));
++  try {
++    const u3 = new TerraClient('http://127.0.0.1:' + PORT3);
++    const got = [];
++    for (let i = 0; i < 3; i++) got.push(await submitEnroll(u3, { code: 'tnc_nope', deviceName: 'x', masterUrl: 'http://127.0.0.1:' + PORT3 }));
++    check('창 전용 속도 제한 — 한도를 넘으면 Gateway가 막는다',
++      got[0].code === 'ENROLL_CODE_INVALID' && got[1].code === 'ENROLL_CODE_INVALID' && got[2].code === 'LOCAL_API_FORBIDDEN',
++      got.map((g) => g.code).join(' · '));
++  } finally { gw3.kill(); }
+ } finally { gw.kill(); }
+ console.log(bad ? '실패 ' + bad : '모두 통과');
+ process.exit(bad ? 1 : 0);
+diff --git a/tests/smoke.mjs b/tests/smoke.mjs
+index 3e2b33a..a767c19 100644
+--- a/tests/smoke.mjs
++++ b/tests/smoke.mjs
+@@ -19,6 +19,11 @@ run(['tools/mock-gateway.mjs', '8791']);
+ run(['tools/serve.mjs', '.'], { PORT: '4173', TERRA_GATEWAY: 'http://127.0.0.1:8791' });
+ run(['tools/mock-gateway.mjs', '8792', '--examples']);
+ run(['tools/serve.mjs', '.'], { PORT: '4174', TERRA_GATEWAY: 'http://127.0.0.1:8792' });
++// 미등록 노드 (A-19): 등록 전 창이 열린 가짜 Gateway. 한 서버를 0.0.0.0에 띄워 두 이름으로 본다 —
++// 127.0.0.1:4175 는 루프백(폼이 나온다) · 0.0.0.0:4175 는 아니다(안내만). 폼을 보일지는 GUI가
++// location.hostname으로 정하고, 실제 허용은 Gateway가 연결 주소로 정한다
++run(['tools/mock-gateway.mjs', '8797'], { MOCK_AUTH_REASON: 'NODE_NOT_ENROLLED', MOCK_ENROLL_TRIES: '30' });
++run(['tools/serve.mjs', '.'], { PORT: '4175', TERRA_GATEWAY: 'http://127.0.0.1:8797', HOST: '0.0.0.0' });
+ await new Promise((r) => setTimeout(r, 1200));
+ const BASE = 'http://127.0.0.1:4173/';
+ await mkdir(join(ROOT, 'tests/shots'), { recursive: true });
+@@ -236,6 +241,30 @@ void cfg;
+   await page.evaluate(() => { window.__screen.nodeAdmSet('nas-01', { name: 'nas-02' }); return window.__screen.nodeAdmSave('nas-01'); }); await page.waitForTimeout(800);
+   const nodes2 = await gw('terra.master.nodes.get', {});
+   check('노드 이름 바꾸기 → Master', nodes2.data.nodes.some((n) => n.display_name === 'nas-02') && await page.evaluate(() => !!window.__screen.NET['nas-02']));
++  // 노드 등록 코드 (A-19): tree 노드의 상태 창 → 발급 → 평문 1회 · 복사 버튼 · 다시 볼 수 없다는 안내 → 목록 → 폐기
++  // 노드 상태 창은 맵 칸으로 열린다 — 사람이 노드 칸을 눌렀을 때와 같은 모양으로 연다
++  const cellOf = (n) => page.evaluate((nm) => Object.keys(window.__screen.state.nodes).find((k) => window.__screen.state.nodes[k].name === nm), n);
++  const treeKey = await cellOf('tree-home');
++  await page.evaluate((k) => window.__screen.rstOpen({ kind: 'node', key: k }), treeKey); await page.waitForTimeout(1200);
++  const enrShown = await page.evaluate(() => { const el = document.querySelector('[data-node-enr]'); return !!(el && el.offsetParent); });
++  await page.fill('[data-node-enr-label]', '연기 시험 노트북');
++  await page.click('[data-node-enr-issue]'); await page.waitForTimeout(1200);
++  const fresh = await page.evaluate(() => {
++    const box = document.querySelector('[data-node-enr-fresh]'), ta = document.querySelector('[data-node-enr-code]');
++    return { shown: !!(box && box.offsetParent), code: ta ? ta.value : '', warn: box ? box.innerText : '', copy: !!(document.querySelector('[data-node-enr-copy]') || {}).offsetParent };
++  });
++  check('tree 노드 → 등록 코드 발급 · 평문 1회 · 복사 버튼 · 다시 볼 수 없다',
++    enrShown && fresh.shown && /^tnc_/.test(fresh.code) && fresh.copy && /한 번만|다시 볼 수 없다/.test(fresh.warn), fresh.code.slice(0, 16));
++  const listed = await page.evaluate(() => document.querySelector('[data-node-enr]').innerText);
++  check('발급한 코드가 목록에 (평문 없이)', /연기 시험 노트북/.test(listed) && /쓸 수 있음/.test(listed));
++  await page.screenshot({ path: join(ROOT, 'tests/shots/enroll-code-issue.png') });
++  await page.click('[data-node-enr-revoke]'); await page.waitForTimeout(300);
++  await page.click('[data-node-enr-revoke]'); await page.waitForTimeout(1000);
++  check('등록 코드 폐기 (두 번 눌러)', await page.evaluate(() => /폐기됨/.test(document.querySelector('[data-node-enr]').innerText)));
++  // leaf 노드에는 발급 칸이 없다 — 코드는 tree 밑에 새 노드를 붙인다
++  const leafKey = await cellOf('edge-01');
++  await page.evaluate((k) => window.__screen.rstOpen({ kind: 'node', key: k }), leafKey); await page.waitForTimeout(900);
++  check('leaf 노드엔 등록 코드 칸이 없다', await page.evaluate(() => { const el = document.querySelector('[data-node-enr]'); return !el || !el.offsetParent; }));
+ }
+ {
+   // 예시 모드: 가짜 Gateway가 examples/data 를 내준다 + 예시 배치(seed)
+@@ -316,5 +345,70 @@ void cfg;
+   check('내려가면 아래 알약이 누름을 받지 않는다', await page.evaluate(() => { const ds = [...document.querySelectorAll('#stage div')].filter((d) => d.style.zIndex === '3' && d.style.bottom === '16px');
+     return ds.length === 2 && ds.every((d) => getComputedStyle(d).pointerEvents === 'none'); }));
+ }
++{
++  // ───── 미등록 leaf 등록 화면 (A-19 · Terra ADR-GW-002) ─────
++  const NE = 'http://127.0.0.1:4175/', FAR = 'http://0.0.0.0:4175/';
++  // 루프백이 아닌 곳: 폼이 없고 왜 안 되는지 적는다
++  await page.goto(FAR + 'index.html'); await page.waitForTimeout(2200);
++  const far = await page.evaluate(() => {
++    const el = document.querySelector('[data-in-enroll-fields]'), code = document.querySelector('[data-in-enroll-code]');
++    return { phase: window.__screen.state.phase, fields: el ? getComputedStyle(el).display : 'missing',
++      why: (document.querySelector('[data-in-enroll-why]') || { innerText: '' }).innerText,
++      // display:none은 가지를 지우지 않는다 — 보이는지로 본다
++      codeShown: !!(code && code.offsetParent), goShown: !!(document.querySelector('[data-in-enroll-go]') || {}).offsetParent };
++  });
++  check('루프백 아님 → 등록 폼 없음 · 이유를 적는다',
++    far.phase === 'enroll' && far.fields === 'none' && /루프백 주소/.test(far.why) && !far.codeShown && !far.goShown,
++    far.fields + ' · ' + far.why.slice(0, 30));
++  await page.screenshot({ path: join(ROOT, 'tests/shots/enroll-remote.png') });
++
++  // 루프백: 폼이 나온다
++  await page.goto(NE + 'index.html'); await page.waitForTimeout(2200);
++  const near = await page.evaluate(() => ({
++    phase: window.__screen.state.phase,
++    fields: getComputedStyle(document.querySelector('[data-in-enroll-fields]')).display,
++    note: document.querySelector('[data-in-enroll-note]').innerText,
++    hasPw: !!document.querySelector('[data-in-pass]'),
++    why: (document.querySelector('[data-in-enroll-why]') || { innerText: '' }).innerText
++  }));
++  check('미등록 leaf · 루프백 → 등록 폼 · 비밀번호 칸은 없다',
++    near.phase === 'enroll' && near.fields === 'flex' && /등록 코드/.test(near.note) && !near.hasPw && !near.why.trim(), near.fields);
++  await page.screenshot({ path: join(ROOT, 'tests/shots/enroll.png') });
++
++  // 코드가 틀림
++  await page.fill('[data-in-enroll-code]', 'tnc_nope');
++  await page.click('[data-in-enroll-go]'); await page.waitForTimeout(900);
++  check('코드가 틀림 → 사람 말', await page.evaluate(() => /다시 확인|새 코드/.test(document.querySelector('[data-in-enroll-msg]').innerText)),
++    await page.evaluate(() => document.querySelector('[data-in-enroll-msg]').innerText.slice(0, 40)));
++  // 수명 지남
++  await page.fill('[data-in-enroll-code]', 'tnc_expired1');
++  await page.click('[data-in-enroll-go]'); await page.waitForTimeout(900);
++  check('수명 지남 → 사람 말', await page.evaluate(() => /수명이 지났/.test(document.querySelector('[data-in-enroll-msg]').innerText)),
++    await page.evaluate(() => document.querySelector('[data-in-enroll-msg]').innerText.slice(0, 40)));
++  // Fleet 코드는 이 길이 아니다 (서버에 가기 전에 화면이 막는다)
++  await page.fill('[data-in-enroll-code]', 'tjc_fleetcode');
++  await page.click('[data-in-enroll-go]'); await page.waitForTimeout(400);
++  check('Fleet 코드(tjc_)는 화면이 막는다', await page.evaluate(() => /Fleet 가입 코드/.test(document.querySelector('[data-in-enroll-msg]').innerText)));
++  // 주소를 품지 않은 코드 → 주소 칸이 나온다
++  await page.fill('[data-in-enroll-code]', 'tnc_mockcode');
++  await page.waitForTimeout(300);
++  check('주소 없는 코드 → Master 주소 칸이 나온다',
++    await page.evaluate(() => getComputedStyle(document.querySelector('[data-in-enroll-addr-row]')).display === 'flex'));
++  // 성공: 주소를 품은 코드 → 202 → Gateway가 Master 인증으로 돌아오면 로그인 화면으로
++  const b64 = Buffer.from('http://127.0.0.1:8797', 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
++  await page.fill('[data-in-enroll-code]', 'tnc_mockcode.' + b64);
++  await page.waitForTimeout(300);
++  check('주소를 품은 코드 → 주소 칸이 사라진다',
++    await page.evaluate(() => getComputedStyle(document.querySelector('[data-in-enroll-addr-row]')).display === 'none'));
++  await page.fill('[data-in-enroll-name]', 'bench-01');
++  await page.click('[data-in-enroll-go]'); await page.waitForTimeout(1200);
++  check('등록 성공 → 다시 뜨기를 기다린다', await page.evaluate(() => /등록했습니다/.test(document.querySelector('[data-in-enroll-msg]').innerText)),
++    await page.evaluate(() => document.querySelector('[data-in-enroll-msg]').innerText.slice(0, 50)));
++  await page.screenshot({ path: join(ROOT, 'tests/shots/enroll-done.png') });
++  // 창이 닫히고 health가 master가 되면 화면을 다시 읽어 로그인 폼으로 넘어간다
++  await page.waitForFunction(() => !!document.querySelector('[data-in-pass]'), null, { timeout: 20000 }).catch(() => {});
++  const after = await page.evaluate(() => ({ phase: window.__screen.state.phase, pw: !!document.querySelector('[data-in-pass]') }));
++  check('등록이 끝나면 로그인 화면으로', after.pw && after.phase === 'form', after.phase);
++}
+ check('페이지 오류 없음', errors.length === 0, errors.slice(0, 3).join(' / '));
+ await done();
+diff --git a/tools/mock-gateway.mjs b/tools/mock-gateway.mjs
+index f909622..1cde135 100644
+--- a/tools/mock-gateway.mjs
++++ b/tools/mock-gateway.mjs
+@@ -4,6 +4,13 @@
+ //   node tools/mock-gateway.mjs [포트=8790]              → 작은 세계 (노드 4 · 장치 2 · 모듈 2) — 연기 시험이 쓴다
+ //   node tools/mock-gateway.mjs [포트=8790] --examples   → 예시 데이터 세계 (examples/data/*.json — 노드 28 · 조타륜 자원 1,148개)
+ //   서비스: TERRA_GATEWAY=http://127.0.0.1:8790 npm run dev  → http://localhost:5173 (로그인: 아무 이메일 · 비밀번호 4자 이상)
++//   미등록 노드 흉내 (A-19): MOCK_AUTH_REASON=NODE_NOT_ENROLLED node tools/mock-gateway.mjs
++//     → health가 auth { mode: none, reason: NODE_NOT_ENROLLED } + enrollment { codeOperation, open }
++//     → 로그인 없이 terra.daemon.enrollment.code.post 하나만 통과한다 (Terra의 등록 전 창과 같은 다섯 조건)
++//     MOCK_ENROLL_CODE=tnc_… 로 받을 코드를 정한다 (기본 tnc_mockcode). 그 밖의 코드는 ENROLL_CODE_INVALID,
++//     tnc_used… 는 _USED, tnc_expired… 는 _EXPIRED, tnc_revoked… 는 _REVOKED — 시험이 거절마다 다른 말을 보려면 이것을 쓴다
++//     MOCK_ENROLL_TRIES=n 으로 창 전용 속도 제한을 바꾼다 (기본 5 = Terra 기본 분당 5회)
++//     MOCK_DEVICE_NAME=… 은 device_name을 비웠을 때 쓰는 이름 (기본 unenrolled-leaf)
+ //
+ // 실제 tree Gateway(+ Master + 이 노드의 Daemon)처럼 답한다 (docs/api/terra-gateway-facts.md):
+ //   POST /api/v1/auth/credentials {email,password} → { handle: { id: 'tch_…', expiresAt }, session } · 이후 Authorization: Handle <id>
+@@ -32,6 +39,15 @@ const CFG_SCHEMA = { 'io.terra.io-weave': { type: 'object', additionalProperties
+   poll_ms: { type: 'integer', title: '읽기 간격 (ms)', minimum: 10, maximum: 1000, default: 50 }, mode: { type: 'string', title: '모드', enum: ['relative', 'absolute'], default: 'relative' },
+   share_cursor: { type: 'boolean', title: '커서 공유', default: true }, relay_token: { type: 'string', title: '중계 토큰', 'x-terra-secret': true } } } };
+ const CFGSTORE = {};
++// 노드 등록 코드 (A-19): 발급한 코드의 메타데이터. 평문은 발급 응답에만 — 여기엔 해시도 두지 않고
++// 테스트가 쓸 '받을 코드'만 env로 정한다 (실제 Master는 SHA-256 해시를 둔다)
++const ENROLL_CODES = [];
++const ENROLL_OP = 'terra.daemon.enrollment.code.post';
++// 등록 전 창 (ADR-GW-002): Terra처럼 이 노드가 미등록일 때만, 그리고 성공 1회로 닫힌다
++const ENROLL_WINDOW = { unenrolled: process.env.MOCK_AUTH_REASON === 'NODE_NOT_ENROLLED', open: process.env.MOCK_AUTH_REASON === 'NODE_NOT_ENROLLED',
++  tries: 0, since: 0, limit: Number(process.env.MOCK_ENROLL_TRIES) || 5 };   // Terra 기본은 분당 5회 (MOCK_ENROLL_TRIES로 바꾼다)
++const WANT_CODE = process.env.MOCK_ENROLL_CODE || 'tnc_mockcode';
++const b64u = (t) => Buffer.from(t, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+ const cfgOf = (node, id) => (CFGSTORE[node + '|' + id] = CFGSTORE[node + '|' + id] || { revision: 0, values: {} });
+ // SVI 핸들 원천 (가짜): process = 한 줄에 한 프레임(terra.bytes@1 · raw · UTF-8) · net = 글자 아닌 바이트 조각(대기열이 넘쳐 dropped_frames가 오른다) ·
+ //   read 핸들은 프레임 1개 뒤 closed — Terra처럼. 열면 곧 흐르고 닫으면 마지막 status 뒤 구독이 닫힌다
+@@ -162,7 +178,18 @@ const accepted = (data) => ({ __status: 202, data });
+ const H = HOME;
+ const OPS = {
+   // Gateway 자기 라우트 (맨몸)
+-  'terra.gateway.health.get': () => ({ published: true, generation: 1, operationCount: Object.keys(OPS).length, auth: process.env.MOCK_AUTH_REASON ? { mode: 'none', reason: process.env.MOCK_AUTH_REASON } : { mode: 'master' }, upstream: { origin: 'mock-master' } }),
++  'terra.gateway.health.get': () => {
++    const d = { published: true, generation: 1, operationCount: Object.keys(OPS).length,
++      // 등록이 끝나면 mode master다 — Terra에서는 Daemon이 다시 뜨면서 Gateway가 --master-url을 받아
++      // 그렇게 된다. MOCK_AUTH_REASON=NODE_NOT_ENROLLED는 '처음 상태'일 뿐이라 여기 남지 않는다
++      auth: ENROLL_WINDOW.unenrolled ? { mode: 'none', reason: 'NODE_NOT_ENROLLED' }
++        : process.env.MOCK_AUTH_REASON && process.env.MOCK_AUTH_REASON !== 'NODE_NOT_ENROLLED'
++          ? { mode: 'none', reason: process.env.MOCK_AUTH_REASON } : { mode: 'master' },
++      upstream: { origin: 'mock-master' } };
++    // 창이 있는 Gateway만 이 키를 싣는다 (Terra와 같다 — 창 없는 Gateway엔 키 자체가 없다)
++    if (ENROLL_WINDOW.unenrolled) d.enrollment = { codeOperation: ENROLL_OP, open: ENROLL_WINDOW.open };
++    return d;
++  },
+   'terra.gateway.agent.whoami.get': (b, c) => ({ principal: c.user.email, permissions: EX ? ALLP : ['node.read', 'node.control', 'file.read', 'file.write', 'module.manage'], allPermissions: false, delegate: false, reach: 'fleet', expiresAt: new Date(c.user.exp).toISOString() }),
+   'terra.master.events.get': () => { throw new E(406, 'NOT_ACCEPTABLE', 'Accept: text/event-stream'); },
+   'terra.daemon.events.get': () => { throw new E(406, 'NOT_ACCEPTABLE', 'Accept: text/event-stream'); },
+@@ -254,6 +281,68 @@ const OPS = {
+   'terra.master.nodes.by-node-id.patch': (b) => { const n = NODES.find((x) => x.node_id === b.node_id); if (!n) throw new E(404, 'NODE_NOT_FOUND');
+     if (b.display_name && b.display_name !== n.display_name) { if (NODES.some((x) => x.display_name === b.display_name)) throw new E(409, 'NODE_NAME_TAKEN'); RES[b.display_name] = RES[n.display_name]; delete RES[n.display_name]; n.display_name = b.display_name; NAME[n.node_id] = b.display_name; }
+     if ('parent_node_id' in b) n.parent_node_id = b.parent_node_id || undefined; return n; },
++  // ───── 노드 등록 코드 (A-19 · Terra ADR-GW-002) ─────
++  // 발급: 평문은 이 응답에서만. 기본 수명 15분(상한 1시간) · 사용 1회 고정 — max_uses는 입력으로 올릴 수 없다.
++  // 코드 문자열이 Master 주소를 품는다: tnc_<secret>.<base64url(origin)> (해시에는 들어가지 않는다)
++  'terra.master.nodes.enroll-codes.post': (b, c) => {
++    const ttl = Math.min(3600, Math.max(1, Number(b.expires_in_sec) || 900));
++    const id = 'nec_' + uid() + uid();
++    const addr = b.master_url === '' ? '' : (b.master_url || 'http://127.0.0.1:' + port);
++    const row = { code_id: id, label: String(b.label || '').slice(0, 120), parent_node_id: b.parent_node_id || '',
++      status: 'active', expires_at: iso(ttl), max_uses: 1, used_count: 0, created_at: new Date().toISOString(),
++      created_by: c.user ? c.user.email : '', _secret: WANT_CODE };
++    ENROLL_CODES.unshift(row);
++    return { code: addr ? WANT_CODE + '.' + b64u(addr) : WANT_CODE, code_id: id, label: row.label,
++      master_url: addr, expires_at: row.expires_at, max_uses: 1, parent_node_id: row.parent_node_id, plaintext_shown_once: true };
++  },
++  // 목록: 메타데이터뿐이다. 평문은 복구할 수 없다 (node.control — Terra 설계 §4.3)
++  'terra.master.nodes.enroll-codes.get': () => ({ codes: ENROLL_CODES.map((r) => {
++    const now = Date.now(), out = { code_id: r.code_id, label: r.label, max_uses: r.max_uses, used_count: r.used_count, created_at: r.created_at,
++      expires_at: r.expires_at, status: r.revoked_at ? 'revoked' : r.used_count >= r.max_uses ? 'used' : Date.parse(r.expires_at) <= now ? 'expired' : 'active' };
++    if (r.parent_node_id) out.parent_node_id = r.parent_node_id;
++    if (r.revoked_at) out.revoked_at = r.revoked_at;
++    if (r.claimed_node_id) { out.claimed_node_id = r.claimed_node_id; out.claimed_at = r.claimed_at; }
++    return out;
++  }) }),
++  // 폐기: 신규 등록만 막는다. 이미 등록한 노드의 device token은 그대로다
++  'terra.master.nodes.enroll-codes.by-code-id.delete': (b) => {
++    const r = ENROLL_CODES.find((x) => x.code_id === b.code_id);
++    if (!r || r.revoked_at) throw new E(404, 'NOT_FOUND', '등록 코드 없음');
++    r.revoked_at = new Date().toISOString();
++    return { code_id: r.code_id, revoked: true };
++  },
++  // 등록 (Daemon · 미등록 노드의 등록 창을 지나 들어온다). 거절은 접두사로 갈라 흉내 낸다 —
++  // 실제 Master는 해시가 맞은 뒤에만 이유를 말하고 모르는 코드는 _INVALID 하나다 (설계 §4.5)
++  'terra.daemon.enrollment.code.post': (b) => {
++    const raw = String(b.code || '').trim();
++    if (!raw) throw new E(400, 'LOCAL_API_BAD_REQUEST', 'code is required');
++    const dot = raw.indexOf('.'), secret = dot < 0 ? raw : raw.slice(0, dot);
++    let addr = '';
++    if (dot >= 0) { try { const t = Buffer.from(raw.slice(dot + 1).replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'); if (/^https?:\/\//.test(t)) addr = t; } catch { /* 망가진 주소 */ } }
++    if (/^tjc_/.test(secret)) throw new E(400, 'LOCAL_API_BAD_REQUEST', 'this is not a node enrollment code');
++    if (secret.indexOf('tnc_') !== 0) throw new E(400, 'LOCAL_API_BAD_REQUEST', 'this is not a node enrollment code');
++    if (/^tnc_used/.test(secret)) throw new E(401, 'ENROLL_CODE_USED', 'this enrollment code has already been used');
++    if (/^tnc_expired/.test(secret)) throw new E(401, 'ENROLL_CODE_EXPIRED', 'this enrollment code has expired');
++    if (/^tnc_revoked/.test(secret)) throw new E(401, 'ENROLL_CODE_REVOKED', 'this enrollment code was revoked');
++    if (secret !== WANT_CODE) throw new E(401, 'ENROLL_CODE_INVALID', 'the Master does not recognise this enrollment code');
++    const master = addr || String(b.master_url || '').trim();
++    if (!master) throw new E(400, 'ENROLL_MASTER_URL_REQUIRED', 'no Master address is available');
++    if (!ENROLL_WINDOW.unenrolled) throw new E(409, 'LOCAL_API_CONFLICT', 'daemon is already registered');
++    // 이름을 비우면 Daemon이 daemon.device_name → 호스트 이름 순으로 메운다. 가짜 Gateway의 HOME은
++    // 이미 등록된 노드라 그것을 쓰면 늘 이름 충돌이 된다 — 미등록 기계의 이름을 따로 둔다
++    const name = String(b.device_name || '').trim() || process.env.MOCK_DEVICE_NAME || 'unenrolled-leaf';
++    if (NODES.some((x) => x.display_name === name)) throw new E(409, 'NODE_NAME_CONFLICT', 'node display_name is already registered in this cluster');
++    // 쓴 코드를 소비 (평문이 WANT_CODE인 첫 active 행)
++    const row = ENROLL_CODES.find((x) => !x.revoked_at && x.used_count < x.max_uses && Date.parse(x.expires_at) > Date.now());
++    const nodeId = nid(name);
++    if (row) { row.used_count = 1; row.claimed_node_id = nodeId; row.claimed_at = new Date().toISOString(); }
++    // 등록됐다 — 창이 닫히고 다음 health는 mode master다 (Terra는 Daemon 재시작으로 그렇게 된다)
++    ENROLL_WINDOW.open = false;
++    ENROLL_WINDOW.unenrolled = false;
++    if (!NODES.some((x) => x.display_name === name)) NODES.push({ node_id: nodeId, display_name: name, roles: ['leaf'], depth: 1, status: 'online', relay_connected: true });
++    return accepted({ status: { enabled: true, registered: true, node_id: nodeId, device_id: 'dev_' + uid(), master_url: master, credential_ready: true },
++      master_url: master, master_url_persisted: true, restarting: true, restart_required: true, exit_code: 75, service_manager: 'mock-service' });
++  },
+   'terra.master.nodes.by-node-id.delete': (b) => { const i = NODES.findIndex((x) => x.node_id === b.node_id); if (i < 0) throw new E(404, 'NODE_NOT_FOUND'); if (NODES[i].display_name === H) throw new E(409, 'NODE_IS_GATEWAY'); const n = NODES.splice(i, 1)[0]; delete NAME[n.node_id]; return { deleted: true }; },
+   'terra.master.nodes.by-node-id.get': (b) => NODES.find((n) => n.node_id === b.node_id) || (() => { throw new E(404, 'NODE_NOT_FOUND'); })(),
+   'terra.master.nodes.by-node-id.modules.get': (b) => ({ modules: RAW.mods(need(nameOf(b.node_id), 'node_id'), true) }),
+@@ -364,7 +453,22 @@ const DANGEROUS = new Set(['terra.daemon.io.devices.by-device-id.deny.post', 'te
+   'terra.daemon.modules.by-module-id.restart.post', 'terra.daemon.modules.by-module-id.stop.post', 'terra.daemon.service-tunnels.by-tunnel-id.close.post',
+   'terra.master.commands.post', 'terra.master.service-tunnels.open.post', 'terra.master.network.mesh.wireguard.peers.revoke.post']);
+ // 원격으로 연 Daemon op (Terra 1차 목록 — local-fs · desktop · restart · node.get · config는 local만)
+-const REMOTE_OPS = Object.keys(OPS).filter((op) => /^terra\.daemon\./.test(op) && !/local-fs|desktop|restart|node\.get|daemon\.config\./.test(op));
++// 등록(enrollment)은 availability.scopes가 ["local"] 하나다 — 노드의 소유를 정하는 행위라 원격으로
++// 열지 않는다 (Terra ADR-GW-001 결정 4 · ADR-GW-002)
++const REMOTE_OPS = Object.keys(OPS).filter((op) => /^terra\.daemon\./.test(op) && !/local-fs|desktop|restart|enrollment|node\.get|daemon\.config\./.test(op));
++// 등록 전 창의 다섯 조건 중 서버가 판정하는 넷 (op 하나는 부르는 쪽에서 이미 걸렀다).
++// 루프백은 연결의 원격 주소만 본다 — 전달 헤더는 앞에 선 것이 쓰는 것이라 믿을 수 없다
++function enrollWindowAdmits(req) {
++  if (!ENROLL_WINDOW.unenrolled || !ENROLL_WINDOW.open) return false;
++  const a = (req.socket && req.socket.remoteAddress) || '';
++  const h = String(a).replace(/^::ffff:/, '');
++  if (!(h === '::1' || /^127(\.\d{1,3}){3}$/.test(h))) return false;
++  // 창 전용 속도 제한 — Terra의 FixedWindowLimiter(5, 1분)와 같은 모양이다
++  const now = Date.now();
++  if (!ENROLL_WINDOW.since || now - ENROLL_WINDOW.since >= 60000) { ENROLL_WINDOW.since = now; ENROLL_WINDOW.tries = 0; }
++  if (++ENROLL_WINDOW.tries > ENROLL_WINDOW.limit) return false;
++  return true;
++}
+ const familyOf = (op) => (/^terra\.daemon\./.test(op) ? 'daemon' : /^terra\.master\./.test(op) ? 'master' : 'raw');
+ const FILE_ROUTES = Object.entries(FILE_BINDINGS).map(([k, [method, path]]) => ({ op: 'io.terra.file.' + k, method, re: new RegExp('^' + path.replace(/\{([^}]+)\}/g, '(?<$1>[^/]+)') + '$') }));
+ 
+@@ -446,7 +550,14 @@ http.createServer((req, res) => {
+     if (m && req.method === 'POST') {
+       const id = decodeURIComponent(m[1]), f = OPS[id], fam = familyOf(id);
+       if (!f) return fail('raw', new E(404, 'MODULE_ROUTE_NOT_FOUND', 'published route를 찾을 수 없습니다: ' + id));
+-      if (id !== 'terra.gateway.health.get' && !user) return fail('raw', new E(401, 'UNAUTHENTICATED', '로그인이 필요합니다'));
++      // 등록 전 창 (ADR-GW-002): 미등록 노드는 등록 op 하나를 로그인 없이 통과시킨다. Terra와 같은
++      // 다섯 조건 — 그 op · 루프백 · 미등록 · 전용 속도 제한 · 성공 1회. 조건이 하나라도 어긋나면
++      // 아래 보통 판정으로 떨어진다
++      const viaWindow = id === ENROLL_OP && !user && enrollWindowAdmits(req);
++      if (id !== 'terra.gateway.health.get' && !user && !viaWindow) {
++        if (id === ENROLL_OP) return fail('daemon', new E(403, 'LOCAL_API_FORBIDDEN', ENROLL_WINDOW.unenrolled ? '등록 창이 닫혔거나 루프백이 아니다' : '이 노드는 이미 등록됐다'));
++        return fail('raw', new E(401, 'UNAUTHENTICATED', '로그인이 필요합니다'));
++      }
+       if (/^terra\.daemon\./.test(id) && Date.now() < DOWN.until) return fail('raw', new E(503, 'PROVIDER_UNAVAILABLE', 'Daemon 재시작 중'));
+       // SVI 핸들 흐름 (B-4 SSE) — Terra routes_svi_handle_events.go와 같은 모양: 구독 전에 판정(없음 404) → 지금 상태 → (realtime_latest면) 마지막 프레임 → 실시간 ·
+       //   15초 keep-alive · 끝난 핸들은 상태만 주고 닫는다 · 이어 받기 없음
