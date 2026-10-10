@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.18.0"
+version: "1.19.0"
 last_updated: "2026-10-10"
 language: "ko-KR"
 os_priority:
@@ -162,7 +162,7 @@ flowchart LR
 | **MD-15** | 맵 배치 · 자산 서버 저장 | `src/store/docs.js` — 이름공간 `app:<whoami delegate>` · 키 `layout/<node_id>` · `assets`. 브라우저에는 바로, 서버에는 3초 모아서. 새 쪽(`savedAt` · `_savedAt`)이 이기고, 쓰기마다 `base_revision` · 409면 한 번 알리고 다시 쓴다. 바뀐 것이 있을 때만 쓴다. 서버가 없거나 막히면 브라우저만. `config.json` `layoutStore: server`(기본) · `local` · `none` · 2026-10-05 |
 | **MD-16** | 모듈 로그 · 폴더 탐색기 · 열기 | 로그 → 상태 화면 출력 칸(게이트웨이 `logs` · Daemon `lines` 둘 다). 폴더 탐색기 = `local-fs.roots` · `entries`(🔒 + 이유). 파일 = `desktop.open {open}`, `파일 관리자로` = 지금 폴더 `{reveal}` — 그 컴퓨터에서 볼 때만(`*.localhost`). Daemon 오류 코드는 화면 글로 · 2026-10-05 |
 | **MD-17** | 파일 올리기 · 받기 | 올리기 — `↑ 올리기` → 파일 고르기 → `transfers.create`(SHA-256) → 조각 → 409면 서버 offset부터 → 완료 검사(maingui A-2를 옮겼다). **받기** — 폴더 앱 `받기` → `transfers.pulls.create` → `chunks.get`(조각마다 SHA-256) → 전체 검사 → `pulls.complete` → 브라우저 저장. 받기는 io.terra.file 0.2.0(#24)부터 — 원본에는 아직 없다(UP-20) · 2026-10-05 |
-| **MD-41** | 입출력 설정 창 — UP-25 최소판(2026-10-08) | 자원 설정 창(`rcfg`)의 입력 · 출력 줄마다 **[설정]**이 생겼다 — 펼치면 종류 배지(바인딩 · 공유 · 화면 전용) · 보내는 · 받는 엔드포인트 고르기 · 형식 판정 · 호환 정책 · QoS(두 끝이 함께 내는 것만, `reliable_ordered`는 이어서 만들 수 있을 때만) · 허가 상태 + [나에게 허가 주기](기한 고르기, Q-23) · 상태 줄 · [연결 적용] · [바인딩 닫기] · 잠금 이유(E-12) · 화면 전용 안내(E-13). 연결 `io`(MD-27)를 읽고 쓰고, 적용은 `linkApply` · `linkGrantSelf`(MD-28 · `link-wire.js`)를 부른다. **디자인 원본**(`design/Artboard-qcfu.dc.html`)에 예시 구현이 있고 — 모듈은 엔드포인트를 그 자원의 실제 목록(`flow.eps`)으로 덮고(`fixes.js` `IOEPS`), 서버에 닿기 전에는 적용을 지어내지 않고 이유를 말한다(UP-14 원칙). 최소판 밖: E-6 · E-8 · E-9 · [다시 시도] · [경로 철거로 가기] · [흐름 열기] 시험은 `tests/smoke.mjs`(패널 · 고름 · 잠금 · 디자인 예시 흐름). |
+| **MD-44** | 입출력 설정 창 — UP-25 최소판(2026-10-08) — 예전 번호 MD-41(maingui 따라가기와 겹쳐 2026-10-10에 바꿨다) | 자원 설정 창(`rcfg`)의 입력 · 출력 줄마다 **[설정]**이 생겼다 — 펼치면 종류 배지(바인딩 · 공유 · 화면 전용) · 보내는 · 받는 엔드포인트 고르기 · 형식 판정 · 호환 정책 · QoS(두 끝이 함께 내는 것만, `reliable_ordered`는 이어서 만들 수 있을 때만) · 허가 상태 + [나에게 허가 주기](기한 고르기, Q-23) · 상태 줄 · [연결 적용] · [바인딩 닫기] · 잠금 이유(E-12) · 화면 전용 안내(E-13). 연결 `io`(MD-27)를 읽고 쓰고, 적용은 `linkApply` · `linkGrantSelf`(MD-28 · `link-wire.js`)를 부른다. **디자인 원본**(`design/Artboard-qcfu.dc.html`)에 예시 구현이 있고 — 모듈은 엔드포인트를 그 자원의 실제 목록(`flow.eps`)으로 덮고(`fixes.js` `IOEPS`), 서버에 닿기 전에는 적용을 지어내지 않고 이유를 말한다(UP-14 원칙). 최소판 밖: E-6 · E-8 · E-9 · [다시 시도] · [경로 철거로 가기] · [흐름 열기] 시험은 `tests/smoke.mjs`(패널 · 고름 · 잠금 · 디자인 예시 흐름). |
 | **MD-18** | 장치 손 등록 | I/O 앱 `＋ 추가` 폼 = 이름 · 주소. 주소 scheme → `manual.rtsp` · `manual.http-camera` → `terra.daemon.io.devices.post {kind: camera, name, adapter_id, address}`. 비우면 스캔 · 모르는 scheme은 부르지 않는다. io-inventory 0.2.0(#26) · 2026-10-05 |
 | **MD-21** | 받기 · 올리기를 끊긴 뒤 이어서 | **올리기** — 같은 자리에 같은 파일(크기 · SHA-256)을 보내다 멈춘 전송을 `transfers.list`에서 찾아 `resume_id`로 다시 연다(새로 만들기가 부분 파일 때문에 `FILE_TARGET_EXISTS`일 때 · 방금까지 움직인 것은 3초 뒤 다시 본다 · 기한이 지나도). **받기** — 받은 조각을 이 브라우저 IndexedDB(`src/store/parts.js`)에 두고, SHA-256 · 크기가 같으면 둔 곳부터 · 앞선 받기는 닫는다. **전송 앱** — 멈춘 전송(보내던 화면이 닫혔다)은 `어긋남` 칸 + 이어서(파일 고르기 · 이름은 달라도 된다) · 중단(부분 남김) · 치우기(부분도 버림). **io.terra.file 0.2.1** — 중단의 `keep_partial` · `reason`을 invoke 본문에서도 읽는다(0.2.0은 query만 읽어 앱의 중단이 늘 포기였다) · 기한 지난 받기도 받기 전용 문으로 닫는다. 진짜 스택에서 4 MB 올리기 · 받기를 31%에서 끊고 이었다([[real-data-layer\|실데이터 층]] §5.4) · 2026-10-05 |
 | **MD-22** | maingui `e669c03` 따라가기 — 모듈 설정 폼 | `design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **모듈 수정 = 모듈 설정**(maingui A-29): 폼을 열기 전에 `config.schema.get` · `config.get`으로 칸 · 값을 받아 항목에 붙이고(`cfgForm`), 저장은 바뀐 키만 `config.patch {values, unset, base_revision}`(`cfgPatch`). 거절한 키(`detail.keys`) · 409 겹침 · 설정 없는 모듈을 글로. 다른 노드는 노드 주소 호출. I/O 장치를 고칠 때는 원본의 새 주소 칸을 뺀다(주소를 바꾸는 op 가 없다). 진짜 스택(Terra main)에서 시험 모듈로 거절 · 저장 · 다시 열기 · 겹침 · 비우기를 확인했다([[real-data-layer\|실데이터 층]] §5.5) · 2026-10-05 |
@@ -310,7 +310,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 | MD | **MD-31** | 도로 이벤트는 **끝냄**(아래 §2 끝낸 것) — 남은 것: 흐름 도로를 바인딩 `active`로 그리기(UP-27 — 도로 라벨이 fps라 바인딩만 있고 핸들이 없을 때의 모습이 디자인 몫) | 중간 |
 | MD | **MD-32** | 연결 E2E — 가짜 서버 + tree 진짜 스택(MD-13과 함께) | 중간 |
 | MD | **MD-33** | ~~"허가를 고치는 op 없음" 글~~ — **끝냄**(2026-10-07, 글만이 아니라 `update`를 실제로 달았다) | — |
-| UP | **UP-25** | ~~입출력 설정 화면 디자인~~ — **최소판 끝냄**(2026-10-08 · MD-41). 남은 요소는 설계 §6.1 "나중으로 미룬다" | — |
+| UP | **UP-25** | ~~입출력 설정 화면 디자인~~ — **최소판 끝냄**(2026-10-08 · MD-44). 남은 요소는 설계 §6.1 "나중으로 미룬다" | — |
 | UP | **UP-26** | 연결 상태 → 도로 이벤트(`evOf`가 끝 자원 `status`만 본다) | 중간 |
 | UP | **UP-27** | `sviRoads` 조건을 열린 핸들 대신 바인딩 `active`로 | 중간 |
 | UP | **UP-28** | `links` 모양에 `io` 더하기 | 중간 |
