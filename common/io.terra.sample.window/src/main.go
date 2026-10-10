@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"os"
 
-	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
 const moduleVersion = "0.1.0"

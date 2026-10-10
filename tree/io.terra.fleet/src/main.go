@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"os"
 
-	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
 func run() error {
