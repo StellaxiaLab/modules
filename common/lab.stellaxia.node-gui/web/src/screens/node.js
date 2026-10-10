@@ -3260,6 +3260,7 @@ export default class Component extends DCLogic {
       cards = list.map((d, i) => {
         const live = d.state === 'running' || d.state === 'queued' || d.state === 'sent';
         // 출력은 실행 중에도 본다(지금까지 받은 출력). 다시는 같은 명령을 또 돌리므로 두 번 누른다(hbArm — 회수와 같다)
+        // 이 노드의 출력은 Daemon 이 process.execute 로 준다(terra.daemon.tasks.by-task-id.output.get — Terra PF-7). 다른 노드는 Master 작업(node.read)을 읽는다
         const OUT = loc ? EX : ['node.read'], acts = live ? [B('출력', 'out', d.id, false, OUT), B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, OUT), B(S.hbArm === d.id ? '정말 다시' : '다시', 'rerun', d.id, true, EX, deleg)];
         const mm = Math.floor((d.t || 0) / 60), ss = Math.floor((d.t || 0) % 60);
         return card(Object.assign({ id: d.id, name: d.cmd, sub: d.id, raw: d.cmd, icon: IC.app.job, fresh: d.fresh, acts,

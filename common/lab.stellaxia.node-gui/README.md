@@ -4,8 +4,8 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.16"
-last_updated: "2026-10-09"
+version: "v0.17"
+last_updated: "2026-10-10"
 ---
 
 # Terra 노드 (`lab.stellaxia.node-gui`)
@@ -198,7 +198,7 @@ Terra가 앱 토큰의 Master 위임 입구를 열었다([Terra#143](https://git
 이 모듈이 MD-34에서 생성기 패치로 들고 있던 UP-32(실행 중인 작업 카드에도 `출력` · `다시`는 두 번 누르기)가 원본에 올라갔다([maingui#7](https://github.com/StellaxiaLab/maingui/pull/7)).
 `design/Artboard-qcfu.dc.html`에 그 커밋의 UP-32 네 줄을 받았다 — 나머지 디자인 파일은 이미 같았다. 이 저장소가 디자인 원본에 직접 넣은 UP-22 · MD-35(입출력 설정 창)는 그대로 둔다.
 
-- 생성기의 UP-32 패치를 걷었다. 출력 단추의 권한만 모듈 전용 패치로 남는다 — 이 노드의 출력은 Daemon이 `process.execute`로 준다(원본은 Master 작업을 `node.read`로 읽는다).
+- 생성기의 UP-32 패치를 걷었다. 출력 단추의 권한만 모듈 전용 패치로 남는다 — 이 노드의 출력은 Daemon이 `process.execute`로 준다(원본은 Master 작업을 `node.read`로 읽는다). 2026-10-10 이 권한도 `web/design` 원본으로 옮기고 생성기 패치를 걷었다(maingui 은퇴 뒤 `web/design`이 원본이다).
 - 생성된 카드 줄은 전과 같다. 원본 화면이 `job:rerun`을 겨누는 줄이 더해졌지만, 연동 층(`wire.js` `confirm`)이 먼저 받으므로 동작은 같다.
 - 시험: 단위 198 · 연기 통과.
 
