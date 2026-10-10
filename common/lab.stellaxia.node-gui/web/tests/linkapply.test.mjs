@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { applyLink, precheck, grantCovers, deniedReason, grantSelf, lacksOf, OPS, GRANT_SELF_TTL_DEFAULT } from '../src/api/link-apply.js';
+import { applyLink, precheck, grantCovers, deniedReason, grantSelf, lacksOf, userIdOf, OPS, GRANT_SELF_TTL_DEFAULT } from '../src/api/link-apply.js';
 import { wireLinkApply } from '../src/api/link-wire.js';
 import { buildIO, setEndpointChoice, sanitizeIO, idempotencyKey, pairsOf } from '../src/model/link-io.js';
 
@@ -333,4 +333,21 @@ test('화면 — linkGrantSelf 는 설정 창에서 고른 기한을 쓴다(0 = 
     const ttls = client.calls.filter((x) => x.op === OPS.grantsPost).map((x) => x.input.ttl_seconds);
     assert.deepEqual(ttls, [want, want], JSON.stringify(opt));
   }
+});
+
+test('내 신원 — 앱 토큰의 principal 은 `user_… via <앱>` 이다(진짜 스택 실측) — 사용자 id 만 쓴다', async () => {
+  assert.equal(userIdOf('user_1 via lab.stellaxia.node-gui.web'), 'user_1');
+  assert.equal(userIdOf('user_1'), 'user_1');
+  assert.equal(userIdOf(''), ''); assert.equal(userIdOf(undefined), '');
+  const PRINCIPAL = ME + ' via lab.stellaxia.node-gui.web';
+  // 허가 대조 — 접미사가 붙은 채로도 내 user 허가를 알아본다
+  const link = L('v', '1-1', '3-1'), c = fake(std());
+  const r = await applyLink({ client: c }, link, [link], ctx(), { userId: PRINCIPAL, now: () => Date.parse('2026-10-07T00:00:00Z') });
+  assert.equal(c.calls.find((x) => x.op === OPS.bindPost) !== undefined, true, '내 허가를 알아봐 바인딩을 보낸다');
+  assert.ok(r.io);
+  assert.ok(c.calls.filter((x) => x.op === OPS.grantsGet).every((x) => x.input.subject_id === ME), '허가 목록은 사용자 id 로 묻는다');
+  // 나에게 허가 — subject_id 에 접미사가 새지 않는다
+  const c2 = fake({ [OPS.grantsPost]: ok({}) });
+  await grantSelf(c2, [{ resource_id: 'svires_cam', endpoint_id: 'sviep_frames', operation: 'bind.source' }], PRINCIPAL);
+  assert.equal(c2.calls[0].input.subject_id, ME);
 });
