@@ -76,7 +76,7 @@ flowchart LR
 
 - 화면을 바꾸려면 원본을 고친 뒤 `npm run gen`. `src/screens/*.js`는 덮어쓰인다. 변형은 `public/config.json`의 `"variant": "module"` 하나다.
 - 예시를 지우고 데이터를 채우는 것은 부트 프로필(`src/boot/module.js`)과 실데이터 층(`src/data/`)이다 — 화면 코드는 손대지 않는다. 연동 코드는 `src/api`에 두고 seam을 바꿔 끼운다 — [[frontend-api|프론트엔드 API]] §5.
-- 원본을 GUI 원본 저장소 maingui(`StellaxiaLab/maingui`)에서 가져오는 순서 · 생성 때 바꾸는 글은 [[module-profile|모듈 프로필]] §6 · §8.
+- 2026-10-07부터 디자인 원본은 이 저장소의 `design/`이다(maingui `4ec0685`가 마지막 동기화). 예전에 maingui(`StellaxiaLab/maingui`)에서 가져오던 순서 · 생성 때 바꾸는 글은 [[module-profile|모듈 프로필]] §6 · §8.
 
 ```text
 web/
