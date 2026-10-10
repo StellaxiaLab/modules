@@ -272,7 +272,7 @@ export default class Component extends DCLogic {
           this.cBtn([{ label: '닫기', danger: true, run: () => this.confirm({ op: 'terra.daemon.service-tunnels.by-tunnel-id.close.post', title: t.service + ' 터널을 닫을까요?', rows: [['터널', t.id + ' · ' + t.local], ['활성 세션', t.act + '개 — 끊긴다'], ['되돌리기', '다시 열려면 tree 화면에서 계획 · 열기']], warn: '선언된 터널이면 약 60초 안에 다시 열립니다 — 선언을 지워야 닫힙니다. 없는 id도 closed: true라서, 닫혔는지는 목록을 다시 읽어 확인합니다.', okLabel: '닫기',
             ok: () => this.runSync('tclose', 900, () => { this.setState({ ltunnels: this.state.ltunnels.filter((x) => x.id !== t.id) }); this.toast('●', '#3ecf8e', '닫힘 — 목록을 다시 읽어 확인했습니다', t.service + ' · 선언 터널이면 곧 다시 나타납니다'); }) }) }])] })),
         empty: '열린 터널이 없습니다', foot: '터널 status: listening · active · failed · draining. 세션 state: dialing · active.' }));
-      out.push(this.banner('info', 'info', '새 터널은 tree 화면에서 엽니다.', 'leaf 화면만으로는 새 터널을 열 수 없습니다 — 계획 · 열기는 Master 쓰기인데, 앱 토큰의 위임 입구는 아직 읽기만 엽니다(Terra ADR-GW-003 1차). 열린 터널 · 선언 목록 같은 Master 읽기는 leaf 에서도 /api/upstream 경로로 봅니다.'));
+      out.push(this.banner('info', 'info', '새 터널은 tree 화면에서 엽니다.', 'leaf 화면만으로는 새 터널을 열 수 없습니다 — 입력이 Master의 계획인데, leaf GUI의 카탈로그에는 Master operation이 없습니다(/api/upstream/… 경로에는 operation id가 없다).'));
       return { tabs: [], blocks: out };
     }
     const sub = S.sub.tunnel, tabs = [['sessions', '열린 터널'], ['decl', '고정 포트 선언'], ['new', '새 터널']];

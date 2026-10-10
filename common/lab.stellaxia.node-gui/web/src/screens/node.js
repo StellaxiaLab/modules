@@ -861,7 +861,7 @@ export default class Component extends DCLogic {
     return { id: 'road:' + rd.id, name: rd.name, road: rd, views: [empty, empty, empty, empty], blocks: 0, merged: 0 };
   }
   // 도로 그림 (팔 방향 mask별 한 장, 움직이면 조합마다 한 장). 아직 없으면 굽기를 걸고 null — 구워지면 다시 그린다
-  roadImgOf(rd0, mask, kinds, ev) {
+  roadImgOf(rd0, mask, kinds, ev, low) {
     const rd = this.roadEff(rd0, ev), kk = (kinds || []).map((k) => k || '-').join('');
     const key = rd0.id + '|' + mask + '|' + kk + '|' + (ev && rd0.events && rd0.events[ev] ? ev : '') + '|' + (rd0.v || 0);
     this._roadImg = this._roadImg || {};
@@ -872,12 +872,12 @@ export default class Component extends DCLogic {
     const vs = sq.combos.map((c, i) => this.roadModel(rd, mask, c.fi, c.mf, 'rp' + i, { kinds }));
     const x0 = Math.min(...vs.map((v) => v.bbox[0])), y0 = Math.min(...vs.map((v) => v.bbox[1])), x1 = Math.max(...vs.map((v) => v.bbox[2])), y1 = Math.max(...vs.map((v) => v.bbox[3]));
     const X = x0 - PAD, Y = y0 - PAD, W = x1 - x0 + PAD * 2, H = y1 - y0 + PAD * 2;
-    const bake = (v) => new Promise((res) => {
+    const bake = (v) => this.bakeEnq(() => new Promise((res) => {
       const svg = this.roadSvg(v, X, Y, W, H, SCALE), img = new Image();
-      img.onload = () => { try { const cv = document.createElement('canvas'); cv.width = Math.ceil(W * SCALE); cv.height = Math.ceil(H * SCALE); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); res(cv.toDataURL('image/png')); } catch (err) { res(null); } };
+      img.onload = () => { try { const cv = document.createElement('canvas'); cv.width = Math.ceil(W * SCALE); cv.height = Math.ceil(H * SCALE); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); this.pngUrl(cv).then(res); } catch (err) { res(null); } };
       img.onerror = () => res(null);
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    });
+    }), low);
     Promise.all(vs.map(bake)).then((urls) => {
       if (this._unmounted) return;
       if (urls.some((u) => !u)) { this._roadImg[key] = 'wait'; return; }
@@ -1896,8 +1896,8 @@ export default class Component extends DCLogic {
   // 건물 한 방향 = 이미지 한 장으로 굽기 (타일 굽기와 같은 방식: SVG 문자열 → 캔버스 → PNG).
   // 필드가 움직일 때(맵 전환 · 높이 변경 · 끌기) 벡터 경로 수백 개 + 무늬를 매 프레임 다시 그리지 않도록
   // 애니메이션 건물은 프레임(조합)마다 한 장씩 — 모든 프레임을 같은 테두리(합집합)로 구워 자리가 흔들리지 않게 한다
-  bakeBuildings() {
-    if (typeof document === 'undefined' || typeof Image === 'undefined') return;
+  bakeBuildings(pairs) {
+    if (typeof document === 'undefined' || typeof Image === 'undefined' || !pairs || !pairs.length) return;   // 화면이 쓰는 (건물, 방향)만 — needBld
     const SCALE = 3, PAD = 2, f2 = (v) => Math.round(v * 100) / 100;
     const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     const bake = (v, X, Y, W, H) => {
@@ -1906,22 +1906,22 @@ export default class Component extends DCLogic {
       const paths = v.paths.map((q) => '<path d="' + esc(q.d) + '" fill="' + q.edge + '" fill-rule="evenodd" stroke="' + q.edge + '" stroke-width="0.5" stroke-linejoin="round"/><path d="' + esc(q.d) + '" fill="' + q.fill + '" fill-rule="evenodd"/>').join('');
       const cw = Math.ceil(W * SCALE), ch = Math.ceil(H * SCALE);
       const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + cw + '" height="' + ch + '" viewBox="' + [f2(X), f2(Y), f2(W), f2(H)].join(' ') + '"><defs>' + pats + '</defs>' + paths + '</svg>';
-      return new Promise((resolve) => {
+      return this.bakeEnq(() => new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
-          try { const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; cv.getContext('2d').drawImage(img, 0, 0, cw, ch); resolve(cv.toDataURL('image/png')); } catch (err) { resolve(null); }
+          try { const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; cv.getContext('2d').drawImage(img, 0, 0, cw, ch); this.pngUrl(cv).then(resolve); } catch (err) { resolve(null); }
         };
         img.onerror = () => resolve(null);
         img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-      });
+      }));
     };
     const jobs = [];
-    this.buildings.concat(Object.values(this.bldEvs || {})).forEach((b) => [0, 1, 2, 3].forEach((r) => {
+    pairs.forEach(([b, r]) => {
       const vs = b.fviews.map((fv) => fv[r]);
       const x0 = Math.min(...vs.map((v) => v.bbox[0])), y0 = Math.min(...vs.map((v) => v.bbox[1])), x1 = Math.max(...vs.map((v) => v.bbox[2])), y1 = Math.max(...vs.map((v) => v.bbox[3]));
       const X = x0 - PAD, Y = y0 - PAD, W = x1 - x0 + PAD * 2, H = y1 - y0 + PAD * 2;
       jobs.push(Promise.all(vs.map((v) => bake(v, X, Y, W, H))).then((urls) => [b, r, urls.some((u) => !u) ? null : { url: urls[0], urls, x: f2(X), y: f2(Y), w: f2(W), h: f2(H) }]));
-    }));
+    });
     Promise.all(jobs).then((list) => {
       if (this._unmounted) return;
       const out = {};
@@ -1931,7 +1931,8 @@ export default class Component extends DCLogic {
         out[b.id + '-' + r] = v;
         if (b.anim) this._anims['b:' + b.id + '-' + r] = { urls: v.urls, seq: b.seq, T: b.T };
       });
-      this.setState({ bldImg: out });
+      pairs.forEach(([b, r]) => { if (this._bldPend) delete this._bldPend[b.id + '-' + r]; });
+      this.setState({ bldImg: Object.assign({}, this.state.bldImg || {}, out) });
     });
   }
   readHelp() { try { return window.localStorage.getItem('terra.gui.innerHelp') === '1'; } catch (e) { return false; } }
@@ -1940,7 +1941,6 @@ export default class Component extends DCLogic {
     this._onStore = (e) => { if (e.key === 'terra.gui.innerHelp') this.setState({ help: e.newValue === '1' }); if (e.key === 'terra.gui.winOpacity') this.setState({ winOp: this.readWinOp() }); if (e.key === 'terra.gui.buildings') { this.bldLoad(); this.bakeBuildings(); this.setState({ fieldNote: '건물 편집기에서 건물을 받았습니다' }); } if (e.key === 'terra.gui.roads') { this.roads = this.roadLoad(); this._roadImg = {}; this.setState({ roadV: (this.state.roadV || 0) + 1, fieldNote: '도로 편집기에서 도로를 받았습니다' }); } };
     try { window.addEventListener('storage', this._onStore); } catch (e) { /* 무시 */ }
     this.mountBldgDefs();
-    this.bakeBuildings();
     this._animI = setInterval(() => this.animTick(), 1000 / 32);   // 16fps 틱을 놓치지 않게 두 배로 살핀다
     this.fitScreen();
     if (typeof window !== 'undefined') { this._fit = () => this.fitScreen(); window.addEventListener('resize', this._fit); }
@@ -1951,8 +1951,7 @@ export default class Component extends DCLogic {
     this.hxStart();
     this.coastStart();
     this.seaStart();
-    this.bakeImgs(this.BT.concat(this.BTF));
-  }
+  }   // 타일 · 건물 · 도로 그림은 쓰일 때 굽는다 — needTile · needBld · roadImgOf (MD-35)
   // ───── 조타륜 (화면 아래 가운데): 평소엔 거의 직선으로 바닥에 숨어 있다가, 마우스가 오면 위로 올라오며 둥글게 휜다 ─────
   // 돌리기: 누른 채 좌우로 끌기(손가락 밑 눈금이 따라온다) · 올라온 상태에서 휠. 놓으면 관성으로 돌다 가장 가까운 1°에 멈춘다
   // 눈금 간격은 곡률과 상관없이 1° = 23px. 바탕 없이 검은 선만. 캔버스에 직접 그린다(렌더 밖 — 다시 렌더돼도 지워지지 않게)
@@ -3809,10 +3808,68 @@ export default class Component extends DCLogic {
     if (!still) this._mgb.raf = requestAnimationFrame(loop);
   }
   // 벡터 타일 목록을 이미지(3배 해상도)로 굽고 캐시에 더한다. 애니메이션 필드는 칸마다 쓸 그림 순서(_anims)도 만든다
+  // ───── 굽기 줄세우기 · 비동기 PNG (MD-35) ─────
+  // 굽는 일은 SVG 디코드 · 캔버스 · PNG 인코딩이 모두 메인 스레드를 쓴다. 라이브러리 전부(타일 · 건물 · 도로 151장 · SVG 38MB)를 맵 진입 때 한꺼번에 시작하면
+  // 이벤트 루프가 20초 가까이 멎어 요청 응답도 처리되지 못한다(재측정). 그래서 (1) 화면이 쓰는 것만 굽고(needTile · needBld · roadImgOf)
+  // (2) 한 번에 한 장씩 틱 사이에 내주며 굽고(bakeEnq) (3) PNG 인코딩은 canvas.toBlob(비동기)으로 한다. 아직 안 구워진 것은 벡터로 그대로 그린다(기존 대체 그림).
+  // CSP 가 img-src 'self' data: 라 blob: URL 은 못 쓴다 — FileReader 로 data URL 로 바꿔 쓴다.
+  bakeIdle(cb) { if (typeof requestIdleCallback === 'function') requestIdleCallback(() => cb(), { timeout: 120 }); else setTimeout(cb, 0); }
+  bakeEnq(job, low) {
+    this._bqH = this._bqH || []; this._bqL = this._bqL || [];
+    return new Promise((resolve) => { (low ? this._bqL : this._bqH).push({ job, resolve }); this.bakePump(); });
+  }
+  bakePump() {
+    if (this._bqBusy || this._unmounted) return;
+    const it = (this._bqH && this._bqH.shift()) || (this._bqL && this._bqL.shift());
+    if (!it) return;
+    this._bqBusy = true;
+    this.bakeIdle(() => {
+      let p; try { p = Promise.resolve(it.job()); } catch (e) { p = Promise.resolve(null); }
+      p.catch(() => null).then((v) => { it.resolve(v); this._bqBusy = false; this.bakePump(); });
+    });
+  }
+  pngUrl(cv) {
+    return new Promise((resolve) => {
+      const sync = () => { try { resolve(cv.toDataURL('image/png')); } catch (e) { resolve(null); } };
+      if (typeof cv.toBlob !== 'function' || typeof FileReader === 'undefined') { sync(); return; }
+      try {
+        cv.toBlob((bl) => {
+          if (!bl) { sync(); return; }
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result));
+          fr.onerror = () => sync();
+          fr.readAsDataURL(bl);
+        }, 'image/png');
+      } catch (e) { sync(); }
+    });
+  }
+  // 화면이 쓰는 타일만 굽는다 — 처음 쓰일 때 그림(과 애니메이션 프레임)을 줄에 세운다. 쓰이는 동안 벡터 대체 그림이 문서에 남는다(tileDefs)
+  needTile(bt) {
+    this._usedTile = this._usedTile || {};
+    this._usedTile[bt.key] = 1;
+    if ((this.state.tileImg && this.state.tileImg[bt.key]) || (this._tilePend && this._tilePend[bt.key])) return;
+    this._tilePend = this._tilePend || {};
+    const list = [bt].concat(this.BT.concat(this.BTF).filter((f) => f.key.indexOf(bt.key + '@') === 0));
+    list.forEach((b) => { this._tilePend[b.key] = 1; });
+    this._tileQ = (this._tileQ || []).concat(list);
+    clearTimeout(this._tileQT);
+    this._tileQT = setTimeout(() => { const q = this._tileQ; this._tileQ = []; this.bakeImgs(q); }, 0);
+  }
+  // 화면이 쓰는 건물(방향별)만 굽는다 — b = this.buildings(또는 이벤트 디자인) 항목 · r = 방향
+  needBld(b, r) {
+    if (!b || !b.fviews) return;
+    const k = b.id + '-' + r;
+    if ((this.state.bldImg && this.state.bldImg[k]) || (this._bldPend && this._bldPend[k])) return;
+    this._bldPend = this._bldPend || {};
+    this._bldPend[k] = 1;
+    this._bldQ = (this._bldQ || []).concat([[b, r]]);
+    clearTimeout(this._bldQT);
+    this._bldQT = setTimeout(() => { const q = this._bldQ; this._bldQ = []; this.bakeBuildings(q); }, 0);
+  }
   bakeImgs(list) {
     const SCALE = 3;
     const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-    const jobs = list.map((bt) => new Promise((resolve) => {
+    const jobs = list.map((bt) => this.bakeEnq(() => new Promise((resolve) => {
       const [x0, y0, x1, y1] = bt.bbox, w = x1 - x0, h = y1 - y0;
       const rects = bt.topPat.rects.map((r) => '<rect x="' + r.x + '" y="' + r.y + '" width="' + r.w + '" height="' + r.h + '" fill="' + r.fill + '"/>').join('');
       const pathEl = (p) => '<path d="' + esc(p.d) + '" fill="' + p.c + '" stroke="' + p.c + '" stroke-width="0.35" stroke-linejoin="round"/>';
@@ -3826,17 +3883,18 @@ export default class Component extends DCLogic {
           const cv = document.createElement('canvas');
           cv.width = Math.ceil(w * SCALE); cv.height = Math.ceil(h * SCALE);
           cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-          resolve([bt.key, cv.toDataURL('image/png')]);
+          this.pngUrl(cv).then((u) => resolve([bt.key, u || svgUrl]));   // PNG 인코딩은 비동기 — 못 하면 SVG 이미지 그대로
         } catch (err) {
           resolve([bt.key, svgUrl]); // 캔버스로 못 굽는 브라우저: SVG 이미지 그대로 (그래도 DOM 요소는 한 장)
         }
       };
       img.onerror = () => resolve([bt.key, null]);
       img.src = svgUrl;
-    }));
+    })));
     Promise.all(jobs).then((done) => {
       const cache = Object.assign({}, this.state.tileImg || {});
-      done.forEach(([k, v]) => { if (v) cache[k] = v; });
+      done.forEach((d) => { if (d && d[1]) cache[d[0]] = d[1]; });   // 줄 세운 일이 던지면 null — 그 타일은 벡터로 남는다
+      list.forEach((b) => { if (this._tilePend) delete this._tilePend[b.key]; });
       if (this._unmounted) return;
       // 애니메이션 필드: 칸마다 (빈 칸이면 앞 프레임의) 그림
       this._anims = this._anims || {};
@@ -4528,7 +4586,7 @@ export default class Component extends DCLogic {
   // ver.2 인스펙터 값 — 칸 하나의 요약과 동작. 동작은 원래 기능(캡슐 메뉴 · 창)을 그대로 부른다
   inspVals(selT, pill, RS) {
     const S = this.state, k = S.sel;
-    const off = { tx: 340, op: 0, pe: 'none', cap: '선택', pos: '', key: '', vb: '0 0 1 1', href: '#tg-none', font: 'inherit', name: '', sub: '', isNode: false, stats: [], meters: [], hasRows: false, rows: [], acts: [], expand: () => {}, close: () => {} };
+    const off = { tx: 340, op: 0, pe: 'none', cap: '선택', pos: '', key: '', vb: '0 0 1 1', href: '#tg-none', font: 'inherit', name: '', sub: '', isNode: false, stats: [], meters: [], noMeters: false, hasRows: false, rows: [], acts: [], expand: () => {}, close: () => {} };
     if (!k || !selT || S.place || S.conn || (S.mapTrans && S.mapTrans.phase)) return off;
     const [c, r] = k.split('-').map(Number), pos = 'C' + c + '·R' + r;
     const nd = selT.nd || this.nodeAt(k), o = RS[k], pl = (S.placed || {})[k], road = !!(pl && this.isRoad(pl.bid) && !pl.pv);
@@ -4537,19 +4595,20 @@ export default class Component extends DCLogic {
     const btn = (label, click, o2) => Object.assign({ label, click, down: () => {}, tip: '', bg: 'rgba(255,255,255,0.04)', fg: '#ede9e1', line: 'rgba(255,255,255,0.18)', op: 1, pe: 'auto' }, o2 || {});
     const pri = { bg: '#ede9e1', fg: '#111111', line: '#ede9e1' }, dis = { op: 0.4, pe: 'none' };
     const v = { tx: 0, op: 1, pe: 'auto', cap: '선택', pos, key: k, vb: Math.round(selT.px - 74) + ' ' + Math.round(selT.py - 150) + ' 148 190', href: '#tg-' + k, font: 'inherit',
-      expand: () => openW('props'), close: () => this.setState({ sel: null, pillOpen: null }), isNode: false, stats: [], meters: [], hasRows: false, rows: [], acts: [] };
+      expand: () => openW('props'), close: () => this.setState({ sel: null, pillOpen: null }), isNode: false, stats: [], meters: [], noMeters: false, hasRows: false, rows: [], acts: [] };
     const nLinks = (S.links || []).filter((l) => l.from === k || l.to === k || (l.path || []).indexOf(k) >= 0).length;
     if (nd) {
       const APPS = ['job', 'mod', 'svi', 'decl', 'grant', 'io', 'folder', 'xfer', 'tunnel', 'wg'];
       let total = 0, bad = 0;
       APPS.forEach((a) => { const L = this.hbItems(nd.name, a) || []; total += L.length; bad += L.filter((x) => /fail|unavail|denied|degraded|stale/.test(String(x.state || x.status || x.health || ''))).length; });
       const kids = ((this.NET[nd.name] || {}).kids || []).length, ok = bad === 0;
-      const h = [...nd.name].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 11), m = (s2) => 8 + ((h >>> s2) % 72);
+      const mt = this.nodeMeters(nd);   // 실제로 받은 사용량 — 없으면 null (지어낸 값을 그리지 않는다: MD-36)
       const look = (S.looks || {})[nd.name] || {};
       Object.assign(v, { font: "'JetBrains Mono',ui-monospace,monospace", name: nd.name, sub: (look.bid ? bName(look.bid) + ' · ' : '') + (nd.parent ? '부모 필드' : (nd.role || '')), isNode: true,
         stats: [[total, '자원'], [nLinks, '연결'], [kids, '자식']].map(([vv, kk]) => ({ v: String(vv), k: kk, c: '#ede9e1', font: "600 16px/1.3 'JetBrains Mono',ui-monospace,monospace", bg: 'rgba(255,255,255,0.05)' }))
           .concat([{ v: ok ? '정상' : '저하', k: '상태', c: ok ? '#3ecf8e' : '#f5b83d', font: '700 13px/22px inherit', bg: ok ? 'rgba(62,207,142,0.12)' : 'rgba(245,184,61,0.12)' }]),
-        meters: [['CPU', m(0)], ['메모리', m(7) + 12], ['디스크', m(13) + 18]].map(([kk, vv]) => { vv = Math.min(96, vv); const w = vv > 80; return { k: kk, v: vv, w: vv, c: w ? '#f5b83d' : '#5aa8ff', tc: w ? '#f5b83d' : '#ede9e1' }; }),
+        meters: mt ? [['CPU', mt.cpu], ['메모리', mt.mem], ['디스크', mt.disk]].filter(([, vv]) => typeof vv === 'number').map(([kk, vv]) => { vv = Math.max(0, Math.min(100, Math.round(vv))); const w = vv > 80; return { k: kk, v: vv, w: vv, c: w ? '#f5b83d' : '#5aa8ff', tc: w ? '#f5b83d' : '#ede9e1' }; }) : [],
+        noMeters: !mt,
         acts: [
           nd.parent ? btn('지금 맵', () => {}, Object.assign({ tip: '이 노드의 맵을 보고 있다' }, pri, dis)) : btn('들어가기', () => this.enterNode(nd), Object.assign({ tip: '두 번 누르기와 같다' }, pri)),
           btn('연결하기', () => {}, { down: pill.connDown, tip: pill.connTip || '누른 채 끌어 놓기' }),
@@ -4892,10 +4951,14 @@ export default class Component extends DCLogic {
   cellKind(m, key) { return m.nodes[key] ? this.nodeKind(m.nodes[key]) : (m.self === key ? 'parent' : false); }
   cellLift(m, sk, key) { return m.nodes[key] ? this.nodeLift(sk, m.nodes[key]) : (m.self === key ? this.parentOf(sk).lift : 0); }
   roleKey(label) { return !label ? false : /tree/i.test(label) && /leaf/i.test(label) ? 'both' : /tree/i.test(label) ? 'tree' : 'leaf'; }
+  // 노드 사용량(CPU · 메모리 · 디스크 %, 0~100) — 실제로 받은 값만. 값이 없으면 null 이고 카드는 "알려 주지 않는다"를 보인다.
+  // 게이트웨이가 앱 토큰에 이 값을 아직 주지 않는다(backlog PF-25) — 받는 길이 생기면 this.__real.meters[노드 이름] = { cpu, mem, disk } 로 채운다.
+  nodeMeters(nd) { const m = this.__real && this.__real.meters && nd && this.__real.meters[nd.name]; return m && typeof m === 'object' ? m : null; }
   tileView(sid, role, rot) {
     const rk = rot ? this.ensureRot(sid, role, rot) : null;
     const bt = (rk ? this.BT.find((b) => b.key === rk) : this.BT.find((b) => b.sid === sid && b.node === (role || false) && !b.rot)) || this.BT[0];
     const src = this.state.tileImg ? this.state.tileImg[bt.key] : null;
+    if (!src) this.needTile(bt);   // 처음 쓰일 때 굽는다 — 그때까지는 벡터
     const [x0, y0, x1, y1] = bt.bbox;
     const an = this._anims && this._anims[bt.key] ? bt.key : '';
     return { anim: an, img: (an && this.animUrl(an)) || src || '', href: '#' + bt.id, ix: x0, iy: y0, iw: x1 - x0, ih: y1 - y0, imgDisp: src ? 'inline' : 'none', useDisp: src ? 'none' : 'inline' };
@@ -4994,7 +5057,7 @@ export default class Component extends DCLogic {
   }
   renderVals() {
     this.ensureBake();
-    const cached = !!(this.state.tileImg && this.BT.every((b) => this.state.tileImg[b.key]));
+    const cached = !!(this.state.tileImg && this.BT.every((b) => !(this._usedTile && this._usedTile[b.key]) || this.state.tileImg[b.key]));
     const nodes = this.state.nodes;
     const SKINS = this.FSK;
     const TG = { top: this.BT[0].top };
@@ -5211,6 +5274,7 @@ export default class Component extends DCLogic {
           // 이벤트: 그 이벤트의 디자인을 구워 둔 게 있으면 그 그림, 없으면 기본 그림에 효과(대기 = 호박빛 · 정지 = 잿빛 · 실패 = 붉은 깜빡임)
           const ev0 = pl ? evOf(key) : null, bv0 = pl ? bldOf(pl.bid) : null, evB = bv0 && ev0 && this.bldEvs && this.bldEvs[bv0.id + '@' + ev0];
           const bv = evB || bv0, im = pl && this.state.bldImg && (this.state.bldImg[bv.id + '-' + pl.rot] || (evB && this.state.bldImg[bv0.id + '-' + pl.rot]));
+          if (pl) { if (!(this.state.bldImg && this.state.bldImg[bv.id + '-' + pl.rot])) this.needBld(bv, pl.rot); if (evB && !(this.state.bldImg && this.state.bldImg[bv0.id + '-' + pl.rot])) this.needBld(bv0, pl.rot); }
           const bcls = evB && this.state.bldImg && this.state.bldImg[bv.id + '-' + pl.rot] ? '' : evCls(ev0);
           if (!im) return { banim: '', bpaths: pl ? bv.views[pl.rot].paths : [], bimg: '', bimgDisp: 'none', bix: 0, biy: pl ? bv.views[pl.rot].bbox[1] : 0, biw: 0, bih: 0, bhit: 'M0 0', bop: 1, bcls };
           const vw = bv.views[pl.rot];
@@ -5646,7 +5710,7 @@ export default class Component extends DCLogic {
       };
     });
     const roadCards = this.roads.map((rd) => {
-      const ri = this.roadImgOf(rd, 63), nk = rd.frames ? this.keyCount(rd.frames) : 1;
+      const ri = this.roadImgOf(rd, 63, undefined, undefined, true), nk = rd.frames ? this.keyCount(rd.frames) : 1;   // 팔레트 카드 — 화면에 놓인 도로보다 뒤에
       return { id: rd.id, name: rd.name, img: ri ? ri.url : '', imgDisp: ri ? 'block' : 'none', playDisp: nk > 1 ? 'inline' : 'none',
         meta: (rd.N || 16) + '칸 · 팔 블록 ' + (rd.blocks || []).length + ' · 합류 높이 ' + ((rd.hub || {}).h || 0) + (nk > 1 ? ' · 프레임 ' + nk : ''),
         dragging: drag && drag.bid === 'road:' + rd.id ? '1px dashed #2563eb' : '1px solid #d8dde5',
@@ -5720,8 +5784,8 @@ export default class Component extends DCLogic {
       tg: { top: TG.top },
       // 이미지가 준비되면 벡터 타일은 화면(DOM)에서만 빠지고, 데이터는 this.BT에 그대로 남는다
       // 아직 이미지가 없는 타일(처음 쓰는 무늬 회전 등)만 벡터로 문서에 둔다
-      fieldPats: (() => { const seen = new Set(), out = []; this.BT.forEach((b) => { if ((this.state.tileImg && this.state.tileImg[b.key]) || seen.has(b.topPat.id)) return; seen.add(b.topPat.id); out.push(b.topPat); }); return out; })(),
-      tileDefs: this.BT.filter((b) => !(this.state.tileImg && this.state.tileImg[b.key])),
+      fieldPats: (() => { const seen = new Set(), out = []; this.BT.forEach((b) => { if (!(this._usedTile && this._usedTile[b.key]) || (this.state.tileImg && this.state.tileImg[b.key]) || seen.has(b.topPat.id)) return; seen.add(b.topPat.id); out.push(b.topPat); }); return out; })(),
+      tileDefs: this.BT.filter((b) => (this._usedTile && this._usedTile[b.key]) && !(this.state.tileImg && this.state.tileImg[b.key])),
       cacheNote: cached ? '타일 표시: 이미지 캐시 (벡터 데이터 보관 중)' : '타일 표시: 벡터 (이미지 준비 중)',
       shadowY: maxBottom - 10,
       shadowX: fx.cx, shadowRx: fx.rx,
@@ -5864,7 +5928,7 @@ export default class Component extends DCLogic {
             sc: dragging && (dg.over || dg.back) ? 0.55 : 1, op: dragging && (dg.over || dg.back) ? 0.8 : 1, origin: '24px 19px',
             ty: S.winDrop === id ? -(W.y + 120) : 0, trans: S.winDrop === id ? 'transform 440ms cubic-bezier(.55,0,.9,.45), background-color 520ms linear' : 'transform 160ms ease-out, opacity 160ms ease-out, box-shadow 160ms, background-color 520ms linear',
             isProps: id === 'props', isAlarm: id === 'alarm', isMap: id === 'map', isEd: ['props', 'edit', 'alarm', 'map'].indexOf(id) < 0, isEdit: id === 'edit',
-            sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none',
+            sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none', hasBoard: !!d.href, noBoard: !d.href,   // 보드가 있는 창은 전체 화면으로 연다(fsToggle) — 보드 링크는 srcdoc 안에서 화면을 깨뜨려 없앴다
             close: () => this.closeWin(id), closeTip: id === 'map' ? '닫기 — 관리 노드 창의 MAP 탭으로' : '닫기 — 유틸 서랍의 제자리로',
             front: () => this.winFront(id),
             grab: (e) => { if (fsOn) return; this.startWinDrag(id, e, 'window'); },
@@ -6070,6 +6134,7 @@ export default class Component extends DCLogic {
           const sz = Math.max(x1 - x0, y1 - y0, 60) * 1.3, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
           // 구운 이미지(애니메이션이면 프레임)가 있으면 그것을 — 프사 교체 · 로그인 중에도 같은 시계로 움직인다
           const im = this.state.bldImg && this.state.bldImg[bl.id + '-0'], ak = 'b:' + bl.id + '-0', an = im && this._anims && this._anims[ak] ? ak : '';
+          if (!im) this.needBld(bl, 0);
           return { vb: [cx - sz / 2, cy - sz / 2, sz, sz].map((q) => Math.round(q * 10) / 10).join(' '), paths: im ? [] : v.paths, shadow: v.shadow, tile: '#' + pt.id,
             anim: an, img: im ? (an && this.animUrl(an)) || im.url : '', imgDisp: im ? 'inline' : 'none', ix: im ? im.x : 0, iy: im ? im.y : 0, iw: im ? im.w : 0, ih: im ? im.h : 0 };
         };

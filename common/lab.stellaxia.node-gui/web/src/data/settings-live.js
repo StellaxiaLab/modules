@@ -13,6 +13,7 @@
 import { connectLive, absenceText } from './live-host.js';
 import { resultText } from '../api/client.js';
 import { roleOf } from './network-live.js';
+import { invokeIfModule, MODULE_OF } from '../api/module-gate.js';
 
 const D = (op) => 'terra.daemon.' + op;
 const ok = (r) => r && r.kind === 'ok';
@@ -131,9 +132,9 @@ export function realSettings(Screen) {
         leaf ? c.invoke(D('node.get'), {}) : none,
         leaf ? c.invoke(D('config.get'), {}) : none,
         leaf ? c.invoke(D('config.schema.get'), {}) : none,
-        leaf ? c.invoke(D('files.list.get'), {}) : none,
+        leaf ? invokeIfModule(c, MODULE_OF['terra.daemon.files.list.get'], D('files.list.get'), {}) : none,
         leaf ? c.invoke(D('svi.declarations.get'), {}) : none,
-        leaf ? c.invoke(D('io.devices.get'), {}) : none,
+        leaf ? invokeIfModule(c, MODULE_OF['terra.daemon.io.devices.get'], D('io.devices.get'), {}) : none,
         leaf ? c.invoke(D('modules.offers.get'), {}) : none,
         leaf ? c.invoke(D('enrollment.status.get'), {}) : none
       ]);

@@ -172,7 +172,7 @@ export async function bootIntro(screen, opts = {}) {
       X.autoOnce = true;   // 한 번만 — 취소한 뒤 토큰이 갱신돼도 다시 내려가지 않는다
       clearTimeout(screen._autoT);
       screen.setState({ phase: 'auto', msg: '' });
-      screen._autoT = setTimeout(() => { if (screen.state.phase === 'auto') screen.finish(true); }, opts.autoMs != null ? opts.autoMs : 1400);
+      screen._autoT = setTimeout(() => { if (screen.state.phase === 'auto') screen.finish(true); }, opts.autoMs != null ? opts.autoMs : 900);
     } else if (!token && S.phase === 'auto') {
       clearTimeout(screen._autoT);
       X.autoOnce = false;

@@ -20,6 +20,7 @@ import { loadConfig } from '../api/config.js';
 import { HELM_APPS, HELM_CRUD, CRUD_TEXT } from '../api/operations.js';
 import { SIGNAL_APPS } from '../api/events.js';
 import { resultText, reasonText, reaches, missingReason } from '../api/client.js';
+import { modulesResult, forgetModules, invokeIfModule, MODULE_OF } from '../api/module-gate.js';
 
 /** 로그인 전 · 노드를 아직 모를 때 로컬 노드 자리에 쓰는 이름. 데이터가 아니라 화면 글이다 */
 export const LOCAL_PLACEHOLDER = '이 노드';
@@ -398,8 +399,8 @@ export function realNode(Screen) {
         fld: '필드 스킨 ' + (this.FSK || []).length,
         set: live ? S.localNode.name + ' Daemon 설정' + (R.configKeys ? ' ' + R.configKeys.total + '키' : '') + ' · node.config★ ' + (R.perms.indexOf('node.config') >= 0 ? '있음' : '없음') : 'Terra에 로그인하면 이 노드의 설정이 보인다',
         mat: '자재 ' + (this.MATS || []).length + '종',
-        mod: R.modules ? '설치 ' + mods.length + ' · 실행 ' + mods.filter((m) => m.state === 'running').length + ' · 실패 ' + mods.filter((m) => m.state === 'failed').length : '로그인하면 이 노드의 모듈이 보인다',
-        user: live ? short(R.principal) + ' · 권한 ' + R.perms.length : 'Terra에 로그인하지 않았다'
+        mod: R.modules ? '설치 ' + mods.length + ' · 실행 ' + mods.filter((m) => m.state === 'running').length + ' · 실패 ' + mods.filter((m) => m.state === 'failed').length + (mods.some((m) => m.kind === 'scene') ? ' — 화면(scene) 모듈 ' + mods.filter((m) => m.kind === 'scene').length + '개는 프로세스가 없어 실행으로 세지 않는다' : '') : '로그인하면 이 노드의 모듈이 보인다',
+        user: live ? short(R.principal) + ' · 이 화면이 받은 권한 ' + R.perms.length + '개' : 'Terra에 로그인하지 않았다'
       };
       if (Array.isArray(v.wins)) v.wins = v.wins.map((w) => (SUM[w.id] != null ? Object.assign({}, w, { sum: SUM[w.id] }) : w));
       v.who = live
@@ -507,10 +508,12 @@ export async function loadWorld(screen, client, session) {
 
 /** 로컬 노드의 자원 요약(진짜 개수)과 모듈 목록 */
 async function loadResources(screen, client, localName) {
-  const [io, roots, mods] = await Promise.all([
-    client.invoke('terra.daemon.io.devices.get', {}),
-    client.invoke('terra.daemon.files.list.get', {}),
-    client.invoke('terra.daemon.modules.get', {})
+  // 모듈이 없는 노드는 그 모듈의 operation 을 부르지 않는다(503 로그를 남기지 않는다) — src/api/module-gate.js
+  forgetModules(client);   // 첫 화면 · terra.modules.changed 신호 때마다 새로 본다 — 15초 캐시는 설정 보드처럼 이 함수 밖에서 부르는 쪽을 위한 것
+  const mods = await modulesResult(client);
+  const [io, roots] = await Promise.all([
+    invokeIfModule(client, MODULE_OF['terra.daemon.io.devices.get'], 'terra.daemon.io.devices.get', {}),
+    invokeIfModule(client, MODULE_OF['terra.daemon.files.list.get'], 'terra.daemon.files.list.get', {})
   ]);
   const count = (r, key) => (ok(r) && r.data && Array.isArray(r.data[key]) ? r.data[key].length : undefined);
   const entry = screen.NET[localName];
