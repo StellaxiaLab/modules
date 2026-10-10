@@ -12,7 +12,7 @@ import (
 
 	"github.com/StellaxiaLab/modules/leaf/io.terra.file/store"
 	"github.com/StellaxiaLab/modules/leaf/io.terra.file/transfer"
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
 )
 
 // newReadTestHandler builds the real operations handler over a real shared
