@@ -307,7 +307,7 @@ Daemon 이 명령 작업마다 출력의 꼬리(256 KiB — 노드 전체 32 MiB
 | 따라가기 | 이 노드에서 실행 중이면 `…output.events.get {task_id, last_event_id: <읽은 last_seq>}` — SSE `output` · `gap` · `state` · `end` · `overflow` | `process.execute` · scopes local(이 노드만) | 받은 줄을 칸에 잇는다(초당 여섯 번까지 · 끝은 곧장). `end` 에 닫고 목록을 다시 받는다. 끊기면 받은 순번부터(`openEvents` 의 `last`). 칸이 다른 것을 보이거나 화면을 끊으면 닫는다 · 칸에는 끝 512 K 글자만 |
 | 다시 | 두 번 누른다(`hbArm` — `정말 다시`) → `…rerun.post {task_id, confirmed: true}` → 202 `{task_id(새), rerun_of}` → 새 작업을 끝까지 쫓는다 | `process.execute` · scopes local — 다른 노드는 🔒(그 노드가 원격으로 열지 않았다) | Master 가 보낸 작업(`origin.kind: master`)은 부르지 않고 첫 누름에 이유. `TASK_STILL_RUNNING` · `TASK_SPEC_EXPIRED` · `TASK_NOT_RERUNNABLE` 은 화면 글(`client.js` `REASON`) |
 
-카드는 실행 중에도 `출력` 을 둔다(생성기 `MODULE_JS` — UP-32). 이 노드의 출력 단추는 `process.execute` 가 없으면 잠긴다.
+카드는 실행 중에도 `출력` 을 둔다(UP-32). 이 노드의 출력 단추는 `process.execute` 가 없으면 잠긴다 — 둘 다 디자인 원본(`web/design/Artboard-qcfu.dc.html`)에 있다(MD-41).
 
 ### 2.11 맵 진입 — 굽기 · 모듈 게이트 · 사용량 (MD-35 · MD-36 · MD-38 · 2026-10-09)
 
