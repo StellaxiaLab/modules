@@ -19,7 +19,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
 )
 
 // AdapterID names this adapter on every device it reports. Registry.Sync uses

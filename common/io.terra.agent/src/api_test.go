@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terra-project/terra/products/common/packages/terra-testwait"
+	"github.com/StellaxiaLab/modules/common/io.terra.agent/internal/testwait"
 )
 
 // The operation surface, driven the way the Gateway drives it: the same paths

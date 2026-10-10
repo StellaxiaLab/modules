@@ -175,6 +175,42 @@ terra module pack leaf/com.acme.hello --out /tmp/hello.tmod
 전부는 `docs/contracts/module-host-http-contract.md`에 있다 — **환경변수 6 · 헤더 1 · 경로 2**이고,
 Go 의존은 0으로도 된다.
 
+## 독립 빌드 (초안)
+
+> [!NOTE]
+> 전환 중인 절차다. 설계 문서 `module-independent-repos`(작업 M-1~M-8)가
+> 정한다. **지금은 아직 클론만으로 빌드되지 않는다** — 아래 "지금" 표가 현재 상태이고, "목표"가 끝난 모습이다.
+
+### Go 모듈 경로
+
+모듈의 Go 경로는 디렉터리 구조 그대로다: `github.com/StellaxiaLab/modules/<common|leaf|tree>/<module-id>`
+(예: `github.com/StellaxiaLab/modules/leaf/io.terra.file`). `go.mod`는 각 모듈의 `src/`에 있다.
+이 경로는 모듈끼리 서로의 패키지를 부를 때와 `go.mod`의 `module` 줄에만 쓰이고, 어디에서도 내려받지 않는다.
+
+### 지금
+
+| 하는 일 | 필요한 것 | 명령 |
+| --- | --- | --- |
+| 매니페스트·배치 검증, 스키마 사본 해시 | 이 저장소만 (Node 24) | `npm ci && npm run validate && npm run check:schema` |
+| 웹 모듈 빌드·시험 | 이 저장소만 | `npm run build:web && npm run test:web` |
+| Go 모듈 빌드·시험 | **Terra 체크아웃** — `src/go.mod`가 `terra-module-sdk` · `terra-module-runtime` · `terra-svi` · `terra-protocol` 등을 Terra 안의 상대경로로 `replace`하고, 그 패키지는 공개 레지스트리에 없다 | `npm run build -- --terra <path>` · `npm run test -- --terra <path>` |
+| 포장(`pack`) · Scene 마운트 | Terra 체크아웃과 `terra` CLI | 위 "검증" 절 |
+
+### 목표 (M-2·M-3 이후)
+
+`StellaxiaLab/terra-sdk`와 `StellaxiaLab/terra-agent`가 `v0.1.0` 태그를 가지면 Go 모듈은 두 레포를 **버전으로**
+require하고 `replace`는 사라진다. 그때의 빌드는 다음 한 줄 묶음이다.
+
+```bash
+git clone https://github.com/StellaxiaLab/modules && cd modules
+npm ci
+npm run validate && npm run check:schema
+npm run build && npm run test        # --terra 없이: 모듈 안에서 go build ./... / go test ./...
+```
+
+pack 검증이 Terra 체크아웃을 계속 필요로 하는 부분이 남으면, 그 이유와 최소 범위를 이 절에 적는다
+(M-5). 이 절은 그때 초안에서 정본으로 바뀐다.
+
 ## 검증
 
 | 명령 | 보는 것 |

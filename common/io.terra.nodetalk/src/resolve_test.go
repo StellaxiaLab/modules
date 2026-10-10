@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // What a person typed, turned into what the module addresses things by.

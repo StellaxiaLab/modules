@@ -1352,19 +1352,85 @@ html,body{height:100%}
                   <div style="border: 1.5px dashed rgba(255,255,255,0.10); border-radius: 10px; padding: 9px 10px; display: flex; flex-direction: column; gap: 4px;">
                     <b style="font-size: 11.5px;">⇢ 입력</b>
                     <sc-for list="{{rcfg.ins}}" as="li" hint-placeholder-count="0">
-                      <span style="display: flex; align-items: center; gap: 4px; font-size: 11.5px;"><b>{{li.name}}</b><span style="color: #9aa1ab;">· 도로 {{li.len}}칸</span><span style="flex-grow: 1;"></span><button type="button" onClick="{{li.cut}}" title="연결 끊기 (도로는 남는다)" style="height: 20px; padding: 0 6px; border: 1px solid rgba(255,255,255,0.10); border-radius: 5px; background: rgba(255,255,255,0.04); color: #ff5d5d; font: inherit; font-size: 10.5px; cursor: pointer;">끊기</button></span>
+                      <span style="display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="display: flex; align-items: baseline; gap: 4px; min-width: 0;"><b style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{li.name}}</b><span style="color: #9aa1ab; white-space: nowrap; font-size: 10.5px;">· 도로 {{li.len}}칸</span></span><span style="display: flex; align-items: center; gap: 4px;"><span style="color: {{li.phC}}; font-size: 10.5px; font-weight: 700; white-space: nowrap;">{{li.ph}}</span><span style="flex-grow: 1;"></span><button type="button" data-io-cfg="1" onClick="{{li.cfg}}" title="입출력 설정" style="height: 20px; padding: 0 6px; border: 1px solid {{li.cfgBd}}; border-radius: 5px; background: {{li.cfgBg}}; color: #ede9e1; font: inherit; font-size: 10.5px; cursor: pointer;">설정</button><button type="button" onClick="{{li.cut}}" title="연결 끊기 (도로는 남는다)" style="height: 20px; padding: 0 6px; border: 1px solid rgba(255,255,255,0.10); border-radius: 5px; background: rgba(255,255,255,0.04); color: #ff5d5d; font: inherit; font-size: 10.5px; cursor: pointer;">끊기</button></span></span>
                     </sc-for>
                     <span style="font-size: 11px; color: #9aa1ab; display: {{rcfg.insNone}};">받을 곳 없음</span>
                   </div>
                   <div style="border: 1.5px dashed rgba(255,255,255,0.10); border-radius: 10px; padding: 9px 10px; display: flex; flex-direction: column; gap: 4px;">
                     <b style="font-size: 11.5px;">출력 ⇢</b>
                     <sc-for list="{{rcfg.outs}}" as="lo" hint-placeholder-count="0">
-                      <span style="display: flex; align-items: center; gap: 4px; font-size: 11.5px;"><b>{{lo.name}}</b><span style="color: #9aa1ab;">· 도로 {{lo.len}}칸</span><span style="flex-grow: 1;"></span><button type="button" onClick="{{lo.cut}}" title="연결 끊기 (도로는 남는다)" style="height: 20px; padding: 0 6px; border: 1px solid rgba(255,255,255,0.10); border-radius: 5px; background: rgba(255,255,255,0.04); color: #ff5d5d; font: inherit; font-size: 10.5px; cursor: pointer;">끊기</button></span>
+                      <span style="display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="display: flex; align-items: baseline; gap: 4px; min-width: 0;"><b style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{lo.name}}</b><span style="color: #9aa1ab; white-space: nowrap; font-size: 10.5px;">· 도로 {{lo.len}}칸</span></span><span style="display: flex; align-items: center; gap: 4px;"><span style="color: {{lo.phC}}; font-size: 10.5px; font-weight: 700; white-space: nowrap;">{{lo.ph}}</span><span style="flex-grow: 1;"></span><button type="button" data-io-cfg="1" onClick="{{lo.cfg}}" title="입출력 설정" style="height: 20px; padding: 0 6px; border: 1px solid {{lo.cfgBd}}; border-radius: 5px; background: {{lo.cfgBg}}; color: #ede9e1; font: inherit; font-size: 10.5px; cursor: pointer;">설정</button><button type="button" onClick="{{lo.cut}}" title="연결 끊기 (도로는 남는다)" style="height: 20px; padding: 0 6px; border: 1px solid rgba(255,255,255,0.10); border-radius: 5px; background: rgba(255,255,255,0.04); color: #ff5d5d; font: inherit; font-size: 10.5px; cursor: pointer;">끊기</button></span></span>
                     </sc-for>
                     <span style="font-size: 11px; color: #9aa1ab; display: {{rcfg.outsNone}};">보낼 곳 없음</span>
                   </div>
                 </div>
-                <div style="font-size: 11px; color: #f5b83d; background: #13110a; border-radius: 8px; padding: 7px 9px;">연결은 필드 위 설정 창의 🔗 연결하기(누른 채 끌기)로 만든다 · 세부 입출력 설정 화면은 추후 디자인 — 연결이 없으면 설치만 된 상태(모니터링 전용)로 둔다</div>
+                <div style="font-size: 11px; color: #f5b83d; background: #13110a; border-radius: 8px; padding: 7px 9px;">연결은 필드 위 설정 창의 🔗 연결하기(누른 채 끌기)로 만든다 · 연결 줄의 [설정]에서 엔드포인트 · 형식 · QoS · 허가를 정하고 적용한다 — 연결이 없으면 설치만 된 상태(모니터링 전용)로 둔다</div>
+                <sc-if value="{{rcfg.ip.open}}" hint-placeholder-val="{{false}}">
+                  <div data-io-panel="1" style="border: 1px solid rgba(255,255,255,0.14); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.03);">
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                      <b style="font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{rcfg.ip.head}}</b>
+                      <span style="height: 18px; padding: 0 8px; border-radius: 9px; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center; background: {{rcfg.ip.kindBg}}; color: {{rcfg.ip.kindC}};">{{rcfg.ip.kind}}</span>
+                      <span style="font-size: 10.5px; color: #9aa1ab;">도로 {{rcfg.ip.len}}칸</span>
+                      <span style="flex-grow: 1;"></span>
+                      <button type="button" data-io-close="1" onClick="{{rcfg.ip.close}}" style="height: 20px; padding: 0 7px; border: 1px solid rgba(255,255,255,0.10); border-radius: 5px; background: rgba(255,255,255,0.04); color: #9aa1ab; font: inherit; font-size: 10.5px; cursor: pointer;">접기</button>
+                    </div>
+                    <div data-io-lock="1" style="display: {{rcfg.ip.lockDisp}}; font-size: 11px; line-height: 1.5; color: #ffb4be; background: #1a0d10; border: 1px solid rgba(255,107,129,0.35); border-radius: 8px; padding: 7px 9px;">🔒 {{rcfg.ip.lock}}</div>
+                    <div data-io-screen="1" style="display: {{rcfg.ip.screenDisp}}; font-size: 11px; line-height: 1.5; color: #9aa1ab; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.14); border-radius: 8px; padding: 7px 9px;">이 연결은 화면에만 있다 — 데이터는 흐르지 않는다. 끝 둘이 SVI 자원(또는 노드)이어야 바인딩이 된다.</div>
+                    <div data-io-share="1" style="display: {{rcfg.ip.shareDisp}}; font-size: 11px; line-height: 1.5; color: #9aa1ab; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.14); border-radius: 8px; padding: 7px 9px;">도착이 노드라 <b style="color: #ede9e1;">노드 허가(공유)</b>가 된다 — 공유 operation · 기한 설정은 다음 판. 지금은 상태만 본다.</div>
+                    <div data-io-body="1" style="display: {{rcfg.ip.bodyDisp}}; flex-direction: column; gap: 8px;">
+                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                        <label style="display: flex; flex-direction: column; gap: 3px; min-width: 0;"><span style="font-size: 10.5px; font-weight: 700; color: #9aa1ab;">보내는 엔드포인트 · {{rcfg.ip.srcName}}</span>
+                          <select data-io-src="1" onChange="{{rcfg.ip.setSrc}}" disabled="{{rcfg.ip.dis}}" aria-label="보내는 엔드포인트" style="height: 26px; min-width: 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; font: inherit; font-size: 11.5px; background: #0e0e0e; color: #ede9e1;">
+                            <sc-for list="{{rcfg.ip.srcEps}}" as="eo" hint-placeholder-count="2"><option value="{{eo.v}}" selected="{{eo.sel}}" disabled="{{eo.dis}}">{{eo.t}}</option></sc-for>
+                          </select></label>
+                        <label style="display: flex; flex-direction: column; gap: 3px; min-width: 0;"><span style="font-size: 10.5px; font-weight: 700; color: #9aa1ab;">받는 엔드포인트 · {{rcfg.ip.dstName}}</span>
+                          <select data-io-dst="1" onChange="{{rcfg.ip.setDst}}" disabled="{{rcfg.ip.dis}}" aria-label="받는 엔드포인트" style="height: 26px; min-width: 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; font: inherit; font-size: 11.5px; background: #0e0e0e; color: #ede9e1;">
+                            <sc-for list="{{rcfg.ip.dstEps}}" as="eo" hint-placeholder-count="2"><option value="{{eo.v}}" selected="{{eo.sel}}" disabled="{{eo.dis}}">{{eo.t}}</option></sc-for>
+                          </select></label>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 3px; font-size: 11px; line-height: 1.5;">
+                        <span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"><b style="font-size: 10.5px; color: #9aa1ab;">형식</b><code style="font-size: 10.5px;">{{rcfg.ip.srcSchema}}</code><span style="color: #9aa1ab;">→</span><code style="font-size: 10.5px;">{{rcfg.ip.dstSchema}}</code><span data-io-compat="1" style="height: 17px; padding: 0 7px; border-radius: 9px; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center; background: {{rcfg.ip.compatBg}}; color: {{rcfg.ip.compatC}};">{{rcfg.ip.compat}}</span></span>
+                        <span style="display: flex; align-items: center; gap: 6px;"><b style="font-size: 10.5px; color: #9aa1ab;">호환 정책</b>
+                          <select data-io-policy="1" onChange="{{rcfg.ip.setPolicy}}" disabled="{{rcfg.ip.dis}}" aria-label="호환 정책" style="height: 22px; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; font: inherit; font-size: 11px; background: #0e0e0e; color: #ede9e1;">
+                            <sc-for list="{{rcfg.ip.policies}}" as="po" hint-placeholder-count="2"><option value="{{po.v}}" selected="{{po.sel}}">{{po.t}}</option></sc-for>
+                          </select></span>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 3px;">
+                        <span style="display: flex; align-items: center; gap: 6px;"><b style="font-size: 10.5px; color: #9aa1ab;">QoS</b>
+                          <select data-io-qos="1" onChange="{{rcfg.ip.setQos}}" disabled="{{rcfg.ip.dis}}" aria-label="QoS" style="height: 22px; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; font: inherit; font-size: 11px; background: #0e0e0e; color: #ede9e1;">
+                            <sc-for list="{{rcfg.ip.qosOpts}}" as="qo" hint-placeholder-count="3"><option value="{{qo.v}}" selected="{{qo.sel}}" disabled="{{qo.dis}}">{{qo.t}}</option></sc-for>
+                          </select></span>
+                        <span style="font-size: 10.5px; color: #9aa1ab; line-height: 1.5;">{{rcfg.ip.qosNote}}</span>
+                      </div>
+                      <div data-io-grant="1" style="display: flex; flex-direction: column; gap: 5px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 7px;">
+                        <span style="font-size: 11px; line-height: 1.5;"><b style="font-size: 10.5px; color: #9aa1ab;">허가</b> <span style="color: {{rcfg.ip.grantC}}; font-weight: 700;">{{rcfg.ip.grant}}</span></span>
+                        <span style="display: {{rcfg.ip.grantAskDisp}}; align-items: center; gap: 6px; flex-wrap: wrap;">
+                          <select data-io-ttl="1" onChange="{{rcfg.ip.setTtl}}" disabled="{{rcfg.ip.dis}}" aria-label="허가 기한" style="height: 24px; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; font: inherit; font-size: 11px; background: #0e0e0e; color: #ede9e1;">
+                            <sc-for list="{{rcfg.ip.ttls}}" as="tt" hint-placeholder-count="5"><option value="{{tt.v}}" selected="{{tt.sel}}">{{tt.t}}</option></sc-for>
+                          </select>
+                          <button type="button" data-io-grant-self="1" onClick="{{rcfg.ip.grantSelf}}" disabled="{{rcfg.ip.dis}}" style="height: 24px; padding: 0 10px; border: 1px solid rgba(237,233,225,0.5); border-radius: 12px; background: rgba(255,255,255,0.06); color: #ede9e1; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; opacity: {{rcfg.ip.disOp}};">나에게 허가 주기</button>
+                          <span style="font-size: 10.5px; color: #9aa1ab;">{{rcfg.ip.askHint}}</span>
+                        </span>
+                      </div>
+                      <div data-io-status="1" style="display: flex; flex-direction: column; gap: 3px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 7px;">
+                        <span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"><b style="font-size: 10.5px; color: #9aa1ab;">상태</b><span data-io-phase="1" style="height: 18px; padding: 0 8px; border-radius: 9px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; background: {{rcfg.ip.phBg}}; color: {{rcfg.ip.phC}};">{{rcfg.ip.ph}}</span><span style="font-size: 10.5px; color: #9aa1ab;">{{rcfg.ip.phNote}}</span></span>
+                        <span style="display: {{rcfg.ip.reasonDisp}}; font-size: 11px; line-height: 1.5; color: {{rcfg.ip.phC}};">{{rcfg.ip.reason}}</span>
+                        <span style="display: {{rcfg.ip.factsDisp}}; font-size: 10.5px; line-height: 1.6; color: #9aa1ab;">{{rcfg.ip.facts}}</span>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" data-io-apply="1" onClick="{{rcfg.ip.apply}}" disabled="{{rcfg.ip.applyDis}}" style="height: 26px; padding: 0 14px; border: 1px solid rgba(237,233,225,0.6); border-radius: 13px; background: #ede9e1; color: #111111; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; opacity: {{rcfg.ip.applyOp}};">{{rcfg.ip.applyLabel}}</button>
+                        <button type="button" data-io-unbind="1" onClick="{{rcfg.ip.unbind}}" disabled="{{rcfg.ip.unbindDis}}" style="height: 26px; padding: 0 12px; border: 1px solid rgba(255,255,255,0.14); border-radius: 13px; background: rgba(255,255,255,0.04); color: #ff8a8a; font: inherit; font-size: 11.5px; cursor: pointer; opacity: {{rcfg.ip.unbindOp}};">바인딩 닫기</button>
+                        <span style="font-size: 10.5px; color: #9aa1ab;">{{rcfg.ip.applyNote}}</span>
+                      </div>
+                    </div>
+                    <div data-io-force="1" style="display: {{rcfg.ip.demoDisp}}; align-items: center; gap: 6px; border-top: 1px dashed rgba(255,255,255,0.10); padding-top: 6px;">
+                      <span style="font-size: 10px; letter-spacing: 0.14em; color: #6b7280;">미리보기</span>
+                      <select data-io-force-sel="1" onChange="{{rcfg.ip.setForce}}" aria-label="상태 미리보기" style="height: 22px; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; font: inherit; font-size: 11px; background: #0e0e0e; color: #9aa1ab;">
+                        <sc-for list="{{rcfg.ip.forces}}" as="fo" hint-placeholder-count="6"><option value="{{fo.v}}" selected="{{fo.sel}}">{{fo.t}}</option></sc-for>
+                      </select>
+                    </div>
+                  </div>
+                </sc-if>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                   <span style="font-size: 11px; font-weight: 700; color: #9aa1ab;">{{rcfg.nbLabel}}</span>
                   <div style="display: flex; flex-wrap: wrap; gap: 4px;">
@@ -1803,11 +1869,16 @@ html,body{height:100%}
           </sc-if>
           <sc-if value="{{w.isEdBox}}" hint-placeholder-val="{{false}}">
             <div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-              <div style="height: 150px; border: 1px dashed rgba(255,255,255,0.10); border-radius: 8px; background: #101113; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #9aa1ab;">
-                <span>{{w.title}} 화면이 이 창 안에 들어옵니다</span>
+              <div style="min-height: 150px; border: 1px dashed rgba(255,255,255,0.10); border-radius: 8px; background: #101113; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 14px; text-align: center; color: #9aa1ab;">
+                <sc-if value="{{w.hasBoard}}" hint-placeholder-val="{{true}}">
+                  <span>{{w.title}} 화면은 전체 화면에서 열린다 — 이 창 안에는 요약만 있다</span>
+                  <button type="button" onPointerDown="{{stopEv}}" onClick="{{w.fsToggle}}" style="height: 30px; padding: 0 14px; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; background: #ede9e1; color: #15171a; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;">전체 화면으로 열기</button>
+                </sc-if>
+                <sc-if value="{{w.noBoard}}" hint-placeholder-val="{{false}}">
+                  <span>{{w.title}} 화면은 이 앱에 아직 없다 — 아래 요약이 이 노드에서 받은 값이다</span>
+                </sc-if>
               </div>
               <span style="font-size: 12.5px; color: #9aa1ab;">{{w.sum}}</span>
-              <a href="{{w.href}}" style="align-self: flex-end; font-size: 12.5px; color: #7aa7ff; display: {{w.hrefDisp}};">보드에서 열기 →</a>
             </div>
           </sc-if>
           <!-- 창 크기 손잡이 (창 정책 WDEF.rz를 따른다 — 안이 고정 크기인 창은 없다) · 전체 화면 · 끄는 중에는 숨긴다 -->
@@ -1856,6 +1927,9 @@ html,body{height:100%}
               <sc-for list="{{insp.meters}}" as="mt" hint-placeholder-count="3">
                 <div style="display: grid; grid-template-columns: 52px 1fr 40px; gap: 8px; align-items: center;"><span style="color: #9aa1ab;">{{mt.k}}</span><div style="height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden;"><div style="width: {{mt.w}}%; height: 5px; border-radius: 3px; background: {{mt.c}}; transition: width 420ms cubic-bezier(.22,1,.36,1);"></div></div><span style="text-align: right; font-family: 'JetBrains Mono',ui-monospace,monospace; color: {{mt.tc}};">{{mt.v}}%</span></div>
               </sc-for>
+              <sc-if value="{{insp.noMeters}}" hint-placeholder-val="{{false}}">
+                <div style="color: #9aa1ab; font-size: 10.5px; line-height: 1.4;">사용량 — 이 노드의 게이트웨이가 아직 알려 주지 않는다</div>
+              </sc-if>
             </div>
           </sc-if>
           <sc-if value="{{insp.hasRows}}" hint-placeholder-val="{{false}}">

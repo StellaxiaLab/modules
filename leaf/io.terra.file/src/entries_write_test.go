@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.file/store"
-	"github.com/terra-project/terra/module/leaf/io.terra.file/transfer"
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/store"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/transfer"
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
 )
 
 // newWriteTestHandler builds the real handler over a real shared folder and

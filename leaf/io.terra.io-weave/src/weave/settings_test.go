@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	ioweave "github.com/terra-project/terra/products/common/packages/terra-io-weave"
+	ioweave "github.com/StellaxiaLab/modules/leaf/io.terra.io-weave/ioweave"
 	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
 )
 

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/discovery"
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/discovery"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
 )
 
 // The module's reaction to the node's hardware changing.

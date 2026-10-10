@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terra-project/terra/module/common/io.terra.nodetalk/talk"
+	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 )
 
 // The whole of D-10 in one place: a main that stops answering is replaced, and

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
+	agentcore "github.com/StellaxiaLab/terra-agent"
 )
 
 const systemPrompt = `You are Terra Agent, an operator's assistant for a Terra node — a fleet of Leaf nodes and a Tree master that publish every capability as a contract-described operation behind a local Gateway.

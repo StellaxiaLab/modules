@@ -19,7 +19,8 @@ import { DocStore, newerDoc, pullAssets, watchAssets } from '../store/docs.js';
 import { loadConfig } from '../api/config.js';
 import { HELM_APPS, HELM_CRUD, CRUD_TEXT } from '../api/operations.js';
 import { SIGNAL_APPS } from '../api/events.js';
-import { resultText, reasonText } from '../api/client.js';
+import { resultText, reasonText, reaches, missingReason } from '../api/client.js';
+import { modulesResult, forgetModules, invokeIfModule, MODULE_OF } from '../api/module-gate.js';
 
 /** 로그인 전 · 노드를 아직 모를 때 로컬 노드 자리에 쓰는 이름. 데이터가 아니라 화면 글이다 */
 export const LOCAL_PLACEHOLDER = '이 노드';
@@ -75,15 +76,18 @@ export function emptyWorld(screen, local) {
   });
 }
 
-/** Master 를 부를 수 없는 이유 — 앱 토큰은 Master op 에 닿지 않는다(구현해야 할 것 PF-1). 닿으면 '' */
+/** Master 를 부를 수 없는 이유. 닿으면 ''. 앱 토큰은 위임 입구(Terra ADR-GW-003)가 연 op 에만 닿는다 — 1차는 읽기뿐이라
+ *  노드 이름 바꾸기 같은 쓰기는 여기서 잠긴다. 위임 입구가 없는 예전 Terra(401 — masterBlocked)는 Master 전체가 닿지 않는다 */
 export function masterWhy(client, op) {
   if (!client) return 'Terra에 연결되지 않았다';
-  if (client.masterBlocked || !known(client, op)) return '이 화면(앱 토큰)은 Master에 닿지 않는다 — tree 쪽 관리 화면이나 terra CLI에서 한다';
+  if (client.masterBlocked) return '이 화면(앱 토큰)은 Master에 닿지 않는다 — tree 쪽 관리 화면이나 terra CLI에서 한다';
+  if (!known(client, op)) return client.delegated ? reasonText({ reason: missingReason(client, op) }) + ' — tree 쪽 관리 화면이나 terra CLI에서 한다'
+    : '이 화면(앱 토큰)은 Master에 닿지 않는다 — tree 쪽 관리 화면이나 terra CLI에서 한다';
   return '';
 }
 
 /** 카탈로그에 그 op 가 있나 — 카탈로그를 아직 못 받았으면(비어 있으면) 막지 않는다 */
-const known = (client, op) => !client.catalog || client.catalog.size === 0 || client.has(op);
+const known = (client, op) => !client.catalog || client.catalog.size === 0 || reaches(client, op);
 
 /** 다른 노드에 노드 주소 호출(B-1)로 닿나 */
 const relays = (client) => !!(client && client.canRelay && client.canRelay());
@@ -144,7 +148,7 @@ export function realNode(Screen) {
     HBCRUD() {
       const C = super.HBCRUD(), cl = this.__client;
       const mark = (t) => {
-        const ops = String(t).match(OPID) || [], miss = cl ? ops.filter((o) => !cl.has(o)) : [];
+        const ops = String(t).match(OPID) || [], miss = cl ? ops.filter((o) => !reaches(cl, o)) : [];
         if (!miss.length) return t;
         return t + (miss.length === ops.length ? ' ⚠ 이 노드의 게이트웨이에 없다' : ' ⚠ 없음: ' + miss.map((o) => o.replace(/^terra\.(daemon|master|gateway)\./, '')).join(' · '));
       };
@@ -395,8 +399,8 @@ export function realNode(Screen) {
         fld: '필드 스킨 ' + (this.FSK || []).length,
         set: live ? S.localNode.name + ' Daemon 설정' + (R.configKeys ? ' ' + R.configKeys.total + '키' : '') + ' · node.config★ ' + (R.perms.indexOf('node.config') >= 0 ? '있음' : '없음') : 'Terra에 로그인하면 이 노드의 설정이 보인다',
         mat: '자재 ' + (this.MATS || []).length + '종',
-        mod: R.modules ? '설치 ' + mods.length + ' · 실행 ' + mods.filter((m) => m.state === 'running').length + ' · 실패 ' + mods.filter((m) => m.state === 'failed').length : '로그인하면 이 노드의 모듈이 보인다',
-        user: live ? short(R.principal) + ' · 권한 ' + R.perms.length : 'Terra에 로그인하지 않았다'
+        mod: R.modules ? '설치 ' + mods.length + ' · 실행 ' + mods.filter((m) => m.state === 'running').length + ' · 실패 ' + mods.filter((m) => m.state === 'failed').length + (mods.some((m) => m.kind === 'scene') ? ' — 화면(scene) 모듈 ' + mods.filter((m) => m.kind === 'scene').length + '개는 프로세스가 없어 실행으로 세지 않는다' : '') : '로그인하면 이 노드의 모듈이 보인다',
+        user: live ? short(R.principal) + ' · 이 화면이 받은 권한 ' + R.perms.length + '개' : 'Terra에 로그인하지 않았다'
       };
       if (Array.isArray(v.wins)) v.wins = v.wins.map((w) => (SUM[w.id] != null ? Object.assign({}, w, { sum: SUM[w.id] }) : w));
       v.who = live
@@ -504,10 +508,12 @@ export async function loadWorld(screen, client, session) {
 
 /** 로컬 노드의 자원 요약(진짜 개수)과 모듈 목록 */
 async function loadResources(screen, client, localName) {
-  const [io, roots, mods] = await Promise.all([
-    client.invoke('terra.daemon.io.devices.get', {}),
-    client.invoke('terra.daemon.files.list.get', {}),
-    client.invoke('terra.daemon.modules.get', {})
+  // 모듈이 없는 노드는 그 모듈의 operation 을 부르지 않는다(503 로그를 남기지 않는다) — src/api/module-gate.js
+  forgetModules(client);   // 첫 화면 · terra.modules.changed 신호 때마다 새로 본다 — 15초 캐시는 설정 보드처럼 이 함수 밖에서 부르는 쪽을 위한 것
+  const mods = await modulesResult(client);
+  const [io, roots] = await Promise.all([
+    invokeIfModule(client, MODULE_OF['terra.daemon.io.devices.get'], 'terra.daemon.io.devices.get', {}),
+    invokeIfModule(client, MODULE_OF['terra.daemon.files.list.get'], 'terra.daemon.files.list.get', {})
   ]);
   const count = (r, key) => (ok(r) && r.data && Array.isArray(r.data[key]) ? r.data[key].length : undefined);
   const entry = screen.NET[localName];

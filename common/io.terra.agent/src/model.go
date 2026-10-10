@@ -13,7 +13,7 @@ import (
 	"context"
 	"encoding/json"
 
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
+	agentcore "github.com/StellaxiaLab/terra-agent"
 )
 
 // Block kinds a Message may carry.

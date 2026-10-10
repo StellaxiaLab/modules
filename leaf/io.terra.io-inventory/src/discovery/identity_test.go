@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
 )
 
 // The two fixtures below are the same three devices on the same machine, read

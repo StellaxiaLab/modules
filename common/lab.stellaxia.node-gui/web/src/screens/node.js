@@ -58,6 +58,10 @@ export default class Component extends DCLogic {
       rsrc: {},
       place: null,        // 설치할 필드를 고르는 중인 자원
       rcfgKey: null,      // 자원 설정 창이 보여 주는 필드
+      ioOpen: null,       // 자원 설정 창에서 펼친 연결(id) — 입출력 설정 (UP-25)
+      ioGrants: {},       // 예시: 내가 허가를 받은 자원 id → 기한 글 (연결 적용 · 나에게 허가 주기가 만든다)
+      ioForce: '',        // 예시 미리보기: 상태를 강제로 보여 본다 (디자인 검토용 — 서비스 · 모듈에서는 보이지 않는다)
+      ioTtl: '30d',       // [나에게 허가 주기] 기한 (Q-23 — 기본 30일)
       links: [],          // 연결: { id, from, to, start, path[], road } — from · to = 노드 · 자원 칸, start = 출발 칸(합류면 도로 칸), path = 거친 칸(도로)
       conn: null,         // 연결하기를 누른 채 끄는 중 { from, start, wps[], over, path[], ok, x, y, sx, sy }
       pillOpen: null, pillSrc: null, roadPick: 'stone',
@@ -857,7 +861,7 @@ export default class Component extends DCLogic {
     return { id: 'road:' + rd.id, name: rd.name, road: rd, views: [empty, empty, empty, empty], blocks: 0, merged: 0 };
   }
   // 도로 그림 (팔 방향 mask별 한 장, 움직이면 조합마다 한 장). 아직 없으면 굽기를 걸고 null — 구워지면 다시 그린다
-  roadImgOf(rd0, mask, kinds, ev) {
+  roadImgOf(rd0, mask, kinds, ev, low) {
     const rd = this.roadEff(rd0, ev), kk = (kinds || []).map((k) => k || '-').join('');
     const key = rd0.id + '|' + mask + '|' + kk + '|' + (ev && rd0.events && rd0.events[ev] ? ev : '') + '|' + (rd0.v || 0);
     this._roadImg = this._roadImg || {};
@@ -868,12 +872,12 @@ export default class Component extends DCLogic {
     const vs = sq.combos.map((c, i) => this.roadModel(rd, mask, c.fi, c.mf, 'rp' + i, { kinds }));
     const x0 = Math.min(...vs.map((v) => v.bbox[0])), y0 = Math.min(...vs.map((v) => v.bbox[1])), x1 = Math.max(...vs.map((v) => v.bbox[2])), y1 = Math.max(...vs.map((v) => v.bbox[3]));
     const X = x0 - PAD, Y = y0 - PAD, W = x1 - x0 + PAD * 2, H = y1 - y0 + PAD * 2;
-    const bake = (v) => new Promise((res) => {
+    const bake = (v) => this.bakeEnq(() => new Promise((res) => {
       const svg = this.roadSvg(v, X, Y, W, H, SCALE), img = new Image();
-      img.onload = () => { try { const cv = document.createElement('canvas'); cv.width = Math.ceil(W * SCALE); cv.height = Math.ceil(H * SCALE); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); res(cv.toDataURL('image/png')); } catch (err) { res(null); } };
+      img.onload = () => { try { const cv = document.createElement('canvas'); cv.width = Math.ceil(W * SCALE); cv.height = Math.ceil(H * SCALE); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); this.pngUrl(cv).then(res); } catch (err) { res(null); } };
       img.onerror = () => res(null);
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    });
+    }), low);
     Promise.all(vs.map(bake)).then((urls) => {
       if (this._unmounted) return;
       if (urls.some((u) => !u)) { this._roadImg[key] = 'wait'; return; }
@@ -1892,8 +1896,8 @@ export default class Component extends DCLogic {
   // 건물 한 방향 = 이미지 한 장으로 굽기 (타일 굽기와 같은 방식: SVG 문자열 → 캔버스 → PNG).
   // 필드가 움직일 때(맵 전환 · 높이 변경 · 끌기) 벡터 경로 수백 개 + 무늬를 매 프레임 다시 그리지 않도록
   // 애니메이션 건물은 프레임(조합)마다 한 장씩 — 모든 프레임을 같은 테두리(합집합)로 구워 자리가 흔들리지 않게 한다
-  bakeBuildings() {
-    if (typeof document === 'undefined' || typeof Image === 'undefined') return;
+  bakeBuildings(pairs) {
+    if (typeof document === 'undefined' || typeof Image === 'undefined' || !pairs || !pairs.length) return;   // 화면이 쓰는 (건물, 방향)만 — needBld
     const SCALE = 3, PAD = 2, f2 = (v) => Math.round(v * 100) / 100;
     const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     const bake = (v, X, Y, W, H) => {
@@ -1902,22 +1906,22 @@ export default class Component extends DCLogic {
       const paths = v.paths.map((q) => '<path d="' + esc(q.d) + '" fill="' + q.edge + '" fill-rule="evenodd" stroke="' + q.edge + '" stroke-width="0.5" stroke-linejoin="round"/><path d="' + esc(q.d) + '" fill="' + q.fill + '" fill-rule="evenodd"/>').join('');
       const cw = Math.ceil(W * SCALE), ch = Math.ceil(H * SCALE);
       const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + cw + '" height="' + ch + '" viewBox="' + [f2(X), f2(Y), f2(W), f2(H)].join(' ') + '"><defs>' + pats + '</defs>' + paths + '</svg>';
-      return new Promise((resolve) => {
+      return this.bakeEnq(() => new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
-          try { const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; cv.getContext('2d').drawImage(img, 0, 0, cw, ch); resolve(cv.toDataURL('image/png')); } catch (err) { resolve(null); }
+          try { const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; cv.getContext('2d').drawImage(img, 0, 0, cw, ch); this.pngUrl(cv).then(resolve); } catch (err) { resolve(null); }
         };
         img.onerror = () => resolve(null);
         img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-      });
+      }));
     };
     const jobs = [];
-    this.buildings.concat(Object.values(this.bldEvs || {})).forEach((b) => [0, 1, 2, 3].forEach((r) => {
+    pairs.forEach(([b, r]) => {
       const vs = b.fviews.map((fv) => fv[r]);
       const x0 = Math.min(...vs.map((v) => v.bbox[0])), y0 = Math.min(...vs.map((v) => v.bbox[1])), x1 = Math.max(...vs.map((v) => v.bbox[2])), y1 = Math.max(...vs.map((v) => v.bbox[3]));
       const X = x0 - PAD, Y = y0 - PAD, W = x1 - x0 + PAD * 2, H = y1 - y0 + PAD * 2;
       jobs.push(Promise.all(vs.map((v) => bake(v, X, Y, W, H))).then((urls) => [b, r, urls.some((u) => !u) ? null : { url: urls[0], urls, x: f2(X), y: f2(Y), w: f2(W), h: f2(H) }]));
-    }));
+    });
     Promise.all(jobs).then((list) => {
       if (this._unmounted) return;
       const out = {};
@@ -1927,7 +1931,8 @@ export default class Component extends DCLogic {
         out[b.id + '-' + r] = v;
         if (b.anim) this._anims['b:' + b.id + '-' + r] = { urls: v.urls, seq: b.seq, T: b.T };
       });
-      this.setState({ bldImg: out });
+      pairs.forEach(([b, r]) => { if (this._bldPend) delete this._bldPend[b.id + '-' + r]; });
+      this.setState({ bldImg: Object.assign({}, this.state.bldImg || {}, out) });
     });
   }
   readHelp() { try { return window.localStorage.getItem('terra.gui.innerHelp') === '1'; } catch (e) { return false; } }
@@ -1936,7 +1941,6 @@ export default class Component extends DCLogic {
     this._onStore = (e) => { if (e.key === 'terra.gui.innerHelp') this.setState({ help: e.newValue === '1' }); if (e.key === 'terra.gui.winOpacity') this.setState({ winOp: this.readWinOp() }); if (e.key === 'terra.gui.buildings') { this.bldLoad(); this.bakeBuildings(); this.setState({ fieldNote: '건물 편집기에서 건물을 받았습니다' }); } if (e.key === 'terra.gui.roads') { this.roads = this.roadLoad(); this._roadImg = {}; this.setState({ roadV: (this.state.roadV || 0) + 1, fieldNote: '도로 편집기에서 도로를 받았습니다' }); } };
     try { window.addEventListener('storage', this._onStore); } catch (e) { /* 무시 */ }
     this.mountBldgDefs();
-    this.bakeBuildings();
     this._animI = setInterval(() => this.animTick(), 1000 / 32);   // 16fps 틱을 놓치지 않게 두 배로 살핀다
     this.fitScreen();
     if (typeof window !== 'undefined') { this._fit = () => this.fitScreen(); window.addEventListener('resize', this._fit); }
@@ -1947,8 +1951,7 @@ export default class Component extends DCLogic {
     this.hxStart();
     this.coastStart();
     this.seaStart();
-    this.bakeImgs(this.BT.concat(this.BTF));
-  }
+  }   // 타일 · 건물 · 도로 그림은 쓰일 때 굽는다 — needTile · needBld · roadImgOf (MD-35)
   // ───── 조타륜 (화면 아래 가운데): 평소엔 거의 직선으로 바닥에 숨어 있다가, 마우스가 오면 위로 올라오며 둥글게 휜다 ─────
   // 돌리기: 누른 채 좌우로 끌기(손가락 밑 눈금이 따라온다) · 올라온 상태에서 휠. 놓으면 관성으로 돌다 가장 가까운 1°에 멈춘다
   // 눈금 간격은 곡률과 상관없이 1° = 23px. 바탕 없이 검은 선만. 캔버스에 직접 그린다(렌더 밖 — 다시 렌더돼도 지워지지 않게)
@@ -2178,7 +2181,8 @@ export default class Component extends DCLogic {
     const LK = S.links || [], lb = (q) => ((S.rsrc || {})[q] ? S.rsrc[q].name : S.nodes[q] ? S.nodes[q].name : this.cellName(q));
     const cut = (id) => () => this.setState({ links: (this.state.links || []).filter((l) => l.id !== id), fieldNote: '연결을 끊었습니다 — 도로는 남는다' });
     const io = { in: LK.filter((l) => l.to === k), out: LK.filter((l) => l.from === k) };
-    const ins = io.in.map((l) => ({ name: '⇠ ' + lb(l.from), len: (l.path || []).length, cut: cut(l.id) })), outs = io.out.map((l) => ({ name: lb(l.to) + ' ⇢', len: (l.path || []).length, cut: cut(l.id) }));
+    const row = (l, name) => Object.assign({ name, len: (l.path || []).length, cut: cut(l.id) }, this.ioRow(l));
+    const ins = io.in.map((l) => row(l, '⇠ ' + lb(l.from))), outs = io.out.map((l) => row(l, lb(l.to) + ' ⇢'));
     // 이웃: 이 필드 둘레 6칸의 노드 · 자원 (입출력을 이을 수 있는 후보)
     const nb = this.nbKeys(k).map((q) => S.nodes[q] ? { em: '', logo: this.nodeLogo(S.nodes[q].role), logoDisp: 'inline', name: S.nodes[q].name, at: this.cellName(q) } : (S.rsrc || {})[q] ? { em: S.rsrc[q].emoji, logo: '', logoDisp: 'none', name: S.rsrc[q].name, at: this.cellName(q) } : null).filter(Boolean);
     return {
@@ -2187,8 +2191,159 @@ export default class Component extends DCLogic {
       ins, outs, insNone: ins.length ? 'none' : 'inline', outsNone: outs.length ? 'none' : 'inline',
       mon, live: it ? '원본 ' + o.node + ' · ' + o.app + ' 목록과 이어져 있다' : '원본 항목을 찾지 못했다',
       nb, nbNone: nb.length === 0, nbLabel: nb.length ? '이웃 ' + nb.length + ' — 입출력 후보' : '이웃한 노드 · 자원 없음',
-      remove: () => this.rsrcRemove(k), focus: () => this.setState({ sel: k })
+      ip: this.ioPanel(k, lb), remove: () => this.rsrcRemove(k), focus: () => this.setState({ sel: k })
     };
+  }
+
+  // ───── 입출력 설정 (UP-25 · 설계 §6 최소판) ─────
+  // 연결(links) 한 줄의 `io`를 읽고 쓴다. 모양은 모듈의 연결 io(src/model/link-io.js)와 같다 — kind · phase · reason · qos_profile ·
+  // compatibility_policy · endpoints{ 'src:<자원>' · 'dst:<자원>' } · pairs[{ key, phase }]. 적용 · 허가 · 상태 맞추기는 서비스가 같은 이름(linkApply · linkGrantSelf)으로 덮는다.
+  // 디자인에서는 아래 예시 구현이 돈다 — 엔드포인트 · 형식 · QoS는 IOEPS 표, 허가는 state.ioGrants, 적용은 타이머로 requested → active.
+  ioDemo() { return true; }   // 상태 미리보기 선택 칸을 보일지 — 서비스 · 모듈 판은 false
+  IOEPS(res) {   // res = 자원 칸의 자원 { app, id, node, name } — 예시는 모든 자원이 같은 여섯 엔드포인트. 서비스 · 모듈은 그 자원의 실제 엔드포인트로 덮는다(schema · qos 를 모르면 비운다)
+    const all = ['realtime_latest', 'realtime_ordered', 'reliable_ordered', 'bulk_resumable'];
+    return [
+      { id: 'frames', dir: 'source', inter: 'stream', schema: 'terra.video.frame@1', qos: all.slice(0, 3), resumable: false },
+      { id: 'snapshot', dir: 'source', inter: 'request', schema: 'terra.image.jpeg@1', qos: ['reliable_ordered', 'bulk_resumable'], resumable: true },
+      { id: 'stats', dir: 'source', inter: 'stream', schema: 'terra.metrics@1', qos: ['realtime_latest'], resumable: false },
+      { id: 'sink', dir: 'sink', inter: 'stream', schema: 'terra.video.frame@1', qos: all.slice(0, 3), max: 1 },
+      { id: 'ctl', dir: 'sink', inter: 'command', schema: 'terra.control@1', qos: ['reliable_ordered'] },
+      { id: 'log', dir: 'sink', inter: 'stream', schema: 'terra.metrics@2', qos: ['realtime_latest'] }
+    ];
+  }
+  ioQosText() { return { realtime_latest: '최신만 — 늦으면 버린다', realtime_ordered: '순서 지킴 — 실시간', reliable_ordered: '신뢰 · 순서 — 잃지 않는다 (이어서 만들 수 있는 자원만)', bulk_resumable: '대용량 — 끊겨도 이어받는다' }; }
+  ioPhaseText() { return {
+    draft: ['설정 전', '#9aa1ab', 'rgba(255,255,255,0.08)'], invalid: ['맞지 않는다', '#ff6b81', 'rgba(255,107,129,0.14)'], 'needs-grant': ['허가 필요', '#f5b83d', 'rgba(245,184,61,0.14)'],
+    binding: ['연결 중', '#7aa7ff', 'rgba(122,167,255,0.14)'], active: ['흐르는 중', '#3ecf8e', 'rgba(62,207,142,0.14)'], degraded: ['저하', '#f5b83d', 'rgba(245,184,61,0.14)'],
+    failed: ['실패 · 다시 시도 중', '#ff6b81', 'rgba(255,107,129,0.14)'], denied: ['거절', '#ff6b81', 'rgba(255,107,129,0.14)'], closed: ['닫혔다', '#9aa1ab', 'rgba(255,255,255,0.08)'],
+    lost: ['서버에 없다', '#ff6b81', 'rgba(255,107,129,0.14)'], shared: ['공유됨', '#3ecf8e', 'rgba(62,207,142,0.14)'], 'share-expired': ['공유 기한 끝', '#f5b83d', 'rgba(245,184,61,0.14)'] }; }
+  // 연결 한 줄의 종류 — 끝 둘이 SVI 자원이면 바인딩, 도착이 노드면 공유, 그 밖은 화면 전용 (모듈의 classifyLink 와 같은 규칙)
+  ioKindOf(l) {
+    const R = this.state.rsrc || {}, N = this.state.nodes || {}, a = R[l.from], b = R[l.to], nb = N[l.to] || (this.state.self === l.to), na = N[l.from] || (this.state.self === l.from);
+    if (a && a.app === 'svi') return b && b.app === 'svi' ? 'binding' : nb ? 'share' : (!b && !nb) ? 'binding' : 'screen';
+    if (na) return b && b.app === 'svi' ? 'binding' : nb ? 'share' : 'screen';
+    return 'screen';
+  }
+  ioRead(l) {
+    const io = l && l.io;
+    if (io && io.kind) return io;
+    const kind = this.ioKindOf(l);
+    return { v: 1, kind, qos_profile: '', compatibility_policy: 'exact', direction: 'forward', pairs: kind === 'screen' ? [] : [{ key: l.id, phase: 'draft' }], phase: kind === 'screen' ? undefined : 'draft' };
+  }
+  ioPut(id, patch) {
+    this.setState({ links: (this.state.links || []).map((l) => (l.id === id ? Object.assign({}, l, { io: Object.assign({}, this.ioRead(l), patch) }) : l)) });
+  }
+  ioRow(l) {
+    const io = this.ioRead(l), P = this.ioPhaseText(), open = this.state.ioOpen === l.id;
+    const ph = io.kind === 'screen' ? ['화면 전용', '#9aa1ab'] : io.kind === 'share' ? ['공유', '#7aa7ff'] : [(P[io.phase] || P.draft)[0], (P[io.phase] || P.draft)[1]];
+    return { ph: ph[0], phC: ph[1], cfgBd: open ? 'rgba(237,233,225,0.6)' : 'rgba(255,255,255,0.10)', cfgBg: open ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.04)',
+      cfg: () => this.setState({ ioOpen: open ? null : l.id }) };
+  }
+  ioEnds(l) {
+    const R = this.state.rsrc || {}, a = R[l.from], b = R[l.to];
+    return { a, b, src: a && a.app === 'svi' ? a : null, dst: b && b.app === 'svi' ? b : null };
+  }
+  // 형식 판정 — exact · compatible(같은 major) · transform_required · incompatible
+  ioCompat(sEp, dEp) {
+    if (!sEp || !dEp) return { v: 'pick', t: '엔드포인트를 고르면 판정한다', c: '#9aa1ab', bg: 'rgba(255,255,255,0.08)' };
+    const sx = sEp.schema, dx = dEp.schema;
+    if (!sx || !dx) return { v: 'unknown', t: '형식을 알 수 없다 — Master가 판정한다', c: '#9aa1ab', bg: 'rgba(255,255,255,0.08)' };
+    if (sx === dx) return { v: 'exact', t: '정확히 같다', c: '#3ecf8e', bg: 'rgba(62,207,142,0.14)' };
+    const m = (x) => /^(.+)@(\d+)$/.exec(x) || [x, x, '0'], a = m(sx), b = m(dx);
+    if (a[1] === b[1] && a[2] === b[2]) return { v: 'compatible', t: '호환', c: '#7aa7ff', bg: 'rgba(122,167,255,0.14)' };
+    if (a[1] === 'terra.video.frame' && b[1] === 'terra.image.jpeg') return { v: 'transform_required', t: '변환 필요', c: '#f5b83d', bg: 'rgba(245,184,61,0.14)' };
+    return { v: 'incompatible', t: a[1] === b[1] ? 'major 버전이 다르다' : '맞지 않는다', c: '#ff6b81', bg: 'rgba(255,107,129,0.14)' };
+  }
+  ioPanel(k, lb) {
+    const S = this.state, off = { open: false }, l = (S.links || []).find((x) => x.id === S.ioOpen);
+    if (!l || (l.from !== k && l.to !== k)) return off;
+    const io = this.ioRead(l), E = this.ioEnds(l), srcEps = this.IOEPS(E.src), dstEps = this.IOEPS(E.dst), demo = this.ioDemo();
+    const kindT = { binding: ['바인딩', '#7aa7ff', 'rgba(122,167,255,0.14)'], share: ['공유', '#3ecf8e', 'rgba(62,207,142,0.14)'], screen: ['화면 전용', '#9aa1ab', 'rgba(255,255,255,0.08)'] }[io.kind];
+    const chosen = (role, r) => (io.endpoints || {})[(role === 'source' ? 'src:' : 'dst:') + (r ? r.id : '')] || '';
+    const sSel = chosen('source', E.src), dSel = chosen('target', E.dst);
+    const sEp = srcEps.find((e) => e.id === sSel), dEp = dstEps.find((e) => e.id === dSel);
+    const pick = (list, sel) => [{ v: '', t: '고른다', sel: !sel, dis: false }].concat(list.map((e) => ({ v: e.id, t: e.id + (e.inter ? ' · ' + e.inter : '') + (e.max ? ' · 최대 ' + e.max : ''), sel: e.id === sel, dis: false })));
+    // 두 칸을 잇달아 바꿔도 앞 것을 잃지 않게 지금 값에서 읽는다
+    const setEp = (role, r) => (e) => { const cur = this.ioRead((this.state.links || []).find((x) => x.id === l.id) || l), m = Object.assign({}, cur.endpoints), key = (role === 'source' ? 'src:' : 'dst:') + r.id; if (e.target.value) m[key] = e.target.value; else delete m[key]; this.ioPut(l.id, { endpoints: m, phase: 'draft', reason: '' }); };
+    const cm = this.ioCompat(sEp, dEp);
+    const both = sEp && dEp, known = both && sEp.qos && dEp.qos, common = known ? sEp.qos.filter((q) => dEp.qos.indexOf(q) >= 0) : [];
+    const qosT = this.ioQosText();
+    const qosOpts = [{ v: '', t: '자동 (Master가 정함)', sel: !io.qos_profile, dis: false }].concat(['realtime_latest', 'realtime_ordered', 'reliable_ordered', 'bulk_resumable'].map((q) => {
+      const inter = known ? common.indexOf(q) >= 0 : true, res = q !== 'reliable_ordered' || !sEp || sEp.resumable !== false;
+      return { v: q, t: q + (!inter ? ' — 한쪽이 못 낸다' : !res ? ' — 이어서 만들 수 없다' : ''), sel: io.qos_profile === q, dis: !(inter && res) };
+    }));
+    // 허가 — 내 bind.source(출발) · bind.target(도착). 예시: state.ioGrants
+    const G = S.ioGrants || {}, gS = E.src && G[E.src.id], gD = E.dst && G[E.dst.id], granted = !!(gS && gD);
+    const grantTxt = io.kind !== 'binding' ? '' : granted ? '있다 · ' + gS : !gS && !gD ? '없다 — 보내는 쪽 bind.source · 받는 쪽 bind.target이 모두 필요하다' : '절반만 있다 — ' + (gS ? '받는 쪽 bind.target이 없다' : '보내는 쪽 bind.source가 없다');
+    const ttls = [['1h', '1시간'], ['1d', '1일'], ['7d', '7일'], ['30d', '30일 (기본)'], ['0', '기한 없음']];
+    const can = this.hbCan('io', (E.src || E.dst || {}).node || this.hbNode()), force = S.ioForce || '';
+    let lock = '';
+    if (force === 'unreach') lock = '쓸 수 없다 · Master에 닿지 않는다 — 앱 토큰으로 Master op를 부르는 길(PF-1)이 열려야 한다. 아래 상태는 마지막으로 본 값이다.';
+    else if (io.kind === 'binding' && !can.ok) lock = can.why + ' — 이 연결은 볼 수만 있다';
+    const dis = !!lock;
+    // 표시용 상태 — 미리보기가 있으면 그것
+    const P = this.ioPhaseText(), phase = force && P[force] ? force : (io.phase || 'draft');
+    const reasons = { invalid: 'schema_incompatible: ' + (sEp ? sEp.schema : 'terra.video.frame@1') + ' → ' + (dEp ? dEp.schema : 'terra.metrics@1'), 'needs-grant': 'missing_bind_grant', failed: 'prepare_failed', denied: 'flow_not_allowed: target node ' + ((E.dst || {}).node || 'n2'),
+      degraded: 'participant_disconnected', closed: 'consumer_requested', lost: 'source_resource_not_found' };
+    const reasonText = { invalid: '형식이 맞지 않는다 — ' + reasons.invalid.split(': ')[1], 'needs-grant': '허가가 없다 — 보내는 쪽 bind.source · 받는 쪽 bind.target이 모두 있어야 한다', failed: '준비에 실패했다 — Master가 다시 시도한다',
+      denied: '이 자원이 내보낼 수 있는 노드가 아니다 — 노드 허가(흐름 허용 목록)에 없다. 자원 주인에게 허용을 요청한다', degraded: '한쪽 노드가 끊겼다 — 다시 이어지면 돌아온다', closed: '내가 끊었다', lost: '보내는 쪽 자원을 찾을 수 없다(내 것이 아니거나 사라졌다)' };
+    const reason = force ? (reasonText[force] || '') : (io.reason || '');
+    const steps = { binding: 'requested → validating → preparing → active' };
+    const flowing = phase === 'active';
+    const facts = flowing || phase === 'degraded' ? 'QoS ' + (io.qos_profile || (common[0] || 'realtime_latest')) + ' (서버가 정함) · 형식 ' + ((sEp && sEp.schema) || 'terra.video.frame@1') + ' · 경로 직접 · 방금 확인' : '';
+    const needSel = io.kind === 'binding' && !(sSel && dSel);
+    const applyDis = dis || io.kind !== 'binding' || needSel || phase === 'binding';
+    const label = phase === 'active' ? '다시 적용' : phase === 'failed' || phase === 'lost' || phase === 'closed' ? '다시 만들기' : '연결 적용';
+    return {
+      open: true, head: lb(l.from) + ' → ' + lb(l.to), kind: kindT[0], kindC: kindT[1], kindBg: kindT[2], len: (l.path || []).length,
+      lock, lockDisp: lock ? 'block' : 'none', screenDisp: io.kind === 'screen' ? 'block' : 'none', shareDisp: io.kind === 'share' ? 'block' : 'none', bodyDisp: io.kind === 'binding' ? 'flex' : 'none',
+      srcName: E.src ? E.src.name : '—', dstName: E.dst ? E.dst.name : '합류 · 노드', dis, disOp: dis ? 0.45 : 1,
+      srcEps: pick(srcEps.filter((e) => e.dir === 'source' || e.dir === 'duplex'), sSel), dstEps: pick(dstEps.filter((e) => e.dir === 'sink' || e.dir === 'duplex'), dSel),
+      setSrc: E.src ? setEp('source', E.src) : () => {}, setDst: E.dst ? setEp('target', E.dst) : () => {},
+      srcSchema: sEp ? sEp.schema || '모름' : '—', dstSchema: dEp ? dEp.schema || '모름' : '—', compat: cm.t, compatC: cm.c, compatBg: cm.bg,
+      policies: [['exact', '정확히 같을 때만'], ['compatible', '호환이면 허용']].map(([v, t]) => ({ v, t, sel: (io.compatibility_policy || 'exact') === v })),
+      setPolicy: (e) => this.ioPut(l.id, { compatibility_policy: e.target.value, phase: 'draft', reason: '' }),
+      qosOpts, qosNote: io.qos_profile ? qosT[io.qos_profile] : known ? '두 끝이 함께 내는 것: ' + (common.length ? common.join(' · ') : '없음 — 고를 수 없다') : both ? '이 엔드포인트의 QoS 목록을 알 수 없다 — 자동이면 Master가 정한다' : '엔드포인트를 고르면 함께 내는 QoS만 보인다',
+      setQos: (e) => this.ioPut(l.id, { qos_profile: e.target.value, phase: 'draft', reason: '' }),
+      grant: grantTxt, grantC: granted ? '#3ecf8e' : '#f5b83d', grantAskDisp: io.kind === 'binding' && !granted && E.src && E.dst ? 'flex' : 'none',
+      ttls: ttls.map(([v, t]) => ({ v, t, sel: (S.ioTtl || '30d') === v })), setTtl: (e) => this.setState({ ioTtl: e.target.value }),
+      askHint: '내가 소유자일 때만 — 아니면 자원 주인에게 요청한다',
+      grantSelf: () => { if (!dis) this.linkGrantSelf(l.id, { ttlSeconds: this.ioTtlSec(S.ioTtl || '30d') }); },
+      ph: P[phase][0], phC: P[phase][1], phBg: P[phase][2], phNote: phase === 'binding' ? steps.binding : io.checked_at ? '확인 ' + io.checked_at : '',
+      reason, reasonDisp: reason ? 'block' : 'none', facts, factsDisp: facts ? 'block' : 'none',
+      apply: () => { if (!applyDis) this.linkApply(l.id); }, applyDis, applyOp: applyDis ? 0.45 : 1, applyLabel: label,
+      applyNote: needSel ? '엔드포인트를 둘 다 고른다' : '',
+      unbind: () => { if (phase === 'active' || phase === 'degraded' || phase === 'binding') this.ioPut(l.id, { phase: 'closed', reason: 'consumer_requested' }); },
+      unbindDis: dis || !(phase === 'active' || phase === 'degraded' || phase === 'binding'), unbindOp: dis || !(phase === 'active' || phase === 'degraded' || phase === 'binding') ? 0.45 : 1,
+      demoDisp: demo ? 'flex' : 'none', setForce: (e) => this.setState({ ioForce: e.target.value }),
+      forces: [['', '실제 상태'], ['invalid', '맞지 않는다'], ['needs-grant', '허가 필요'], ['binding', '연결 중'], ['active', '흐르는 중'], ['degraded', '저하'], ['failed', '실패'], ['denied', '거절'], ['closed', '닫혔다'], ['lost', '서버에 없다'], ['unreach', 'Master에 닿지 않음']].map(([v, t]) => ({ v, t, sel: force === v })),
+      close: () => this.setState({ ioOpen: null })
+    };
+  }
+  ioTtlSec(v) { return { '1h': 3600, '1d': 86400, '7d': 7 * 86400, '30d': 30 * 86400, '0': 0 }[v]; }
+  // [연결 적용] — 예시 구현: 고른 것을 미리 검사하고 → 허가를 보고 → requested … active. 서비스는 같은 이름으로 Master를 부른다(src/api/link-wire.js)
+  linkApply(id) {
+    const l = (this.state.links || []).find((x) => x.id === id); if (!l) return Promise.resolve(null);
+    const io = this.ioRead(l), E = this.ioEnds(l), ch = io.endpoints || {};
+    const sEp = this.IOEPS(E.src).find((e) => e.id === ch['src:' + (E.src || {}).id]), dEp = this.IOEPS(E.dst).find((e) => e.id === ch['dst:' + (E.dst || {}).id]);
+    const cm = this.ioCompat(sEp, dEp), pol = io.compatibility_policy || 'exact';
+    const bad = cm.v === 'incompatible' || cm.v === 'transform_required' || (pol === 'exact' && cm.v === 'compatible');
+    const stamp = () => new Date().toTimeString().slice(0, 5);
+    if (bad) { this.ioPut(id, { phase: 'invalid', reason: 'schema_incompatible: ' + sEp.schema + ' → ' + dEp.schema, checked_at: stamp() }); return Promise.resolve({ applied: false }); }
+    const G = this.state.ioGrants || {};
+    if (!(G[E.src.id] && G[E.dst.id])) { this.ioPut(id, { phase: 'needs-grant', reason: 'missing_bind_grant', checked_at: stamp() }); return Promise.resolve({ applied: false }); }
+    this.ioPut(id, { phase: 'binding', reason: '' });
+    return new Promise((res) => setTimeout(() => { this.ioPut(id, { phase: 'active', reason: '', checked_at: stamp() }); res({ applied: true }); }, 1100));
+  }
+  // [나에게 허가 주기] — 예시 구현: 두 끝의 허가를 만들고 다시 적용한다
+  linkGrantSelf(id, o) {
+    const l = (this.state.links || []).find((x) => x.id === id); if (!l) return Promise.resolve(null);
+    const E = this.ioEnds(l), sec = o && Number.isFinite(o.ttlSeconds) ? o.ttlSeconds : 30 * 86400;
+    const until = sec === 0 ? '기한 없음' : sec >= 86400 ? Math.round(sec / 86400) + '일 남음' : Math.round(sec / 3600) + '시간 남음';
+    const G = Object.assign({}, this.state.ioGrants); G[E.src.id] = until; G[E.dst.id] = until;
+    this.setState({ ioGrants: G });
+    this.hbSay('허가를 만들었다 — ' + E.src.name + ' bind.source · ' + E.dst.name + ' bind.target (' + until + ')', '#3ecf8e');
+    return this.linkApply(id);
   }
   nbKeys(k) {
     const [c, r] = this.ck(k), odd = (c % 2 + 2) % 2 === 1;
@@ -2257,6 +2412,7 @@ export default class Component extends DCLogic {
       { id: 'tr-41-1', dir: 'push', name: 'firmware.bin', total: 48, off: 0.62, state: 'transferring' },
       { id: 'tr-41-2', dir: 'pull', name: 'backup.tar', total: 1200, off: 0.18, state: 'transferring' },
       { id: 'tr-41-3', dir: 'push', name: 'logs.zip', total: 96, off: 0.4, state: 'failed', reason: 'CHUNK_OUT_OF_ORDER — 40%부터 이어 보낼 수 있다' },
+      { id: 'tr-41-4', dir: 'push', name: 'backup.tar', total: 310, off: 0.31, state: 'stalled', reason: '멈췄다 · 31%에서 보내던 화면이 닫혔다 — 이어서: 같은 파일을 고르면 거기서부터' },
       { id: 'tr-41-4', dir: 'pull', name: 'notes.md', total: 0.01, off: 1, state: 'completed' }
     ];
     if (app === 'tunnel') return [
@@ -2662,7 +2818,7 @@ export default class Component extends DCLogic {
       case 'decl': return F(['선언', '적용', '퇴역'], it.state === 'retired' ? 2 : it.state === 'applied' ? 1 : 0, it.state === 'applied' ? 'ok' : it.state === 'retired' ? 'off' : it.state === 'shadowed' ? 'wait' : 'bad');
       case 'grant': return it.type === 'bind' ? F(['바인딩', '흐르는 중'], it.state === 'active' ? 1 : 0, it.state === 'active' ? 'ok' : 'bad') : F(['허가', '유효', '만료'], it.alive ? 1 : 2, it.alive ? 'ok' : 'off');
       case 'folder': return F([it.dir ? '폴더' : '파일', '공유됨'], 1, 'ok');
-      case 'xfer': { const i = ['prepared', 'transferring', 'verifying', 'completed'].indexOf(it.state); return F(['준비', '보내는 중', '검사', '끝남'], i < 0 ? 1 : i, it.state === 'failed' ? 'bad' : it.state === 'aborted' ? 'off' : it.state === 'completed' ? 'ok' : 'run'); }
+      case 'xfer': { const i = ['prepared', 'transferring', 'verifying', 'completed'].indexOf(it.state); return F(['준비', '보내는 중', '검사', '끝남'], i < 0 ? 1 : i, it.state === 'failed' ? 'bad' : it.state === 'stalled' ? 'wait' : it.state === 'aborted' ? 'off' : it.state === 'completed' ? 'ok' : 'run'); }
       case 'tunnel': return it.type === 'decl' ? F(['선언', '늘 열기'], 1, 'ok') : F(['대기', '연결', '닫는 중'], it.state === 'draining' ? 2 : it.state === 'active' ? 1 : 0, it.state === 'failed' ? 'bad' : it.state === 'draining' ? 'off' : 'ok');
       case 'wg': return F(['본 적 없음', '오래됨', '정상'], it.health === 'healthy' ? 2 : it.health === 'stale' ? 1 : 0, it.health === 'healthy' ? 'ok' : it.health === 'stale' ? 'wait' : 'off');
       case 'job': { const i = ['queued', 'sent', 'running'].indexOf(it.state); return F(['대기', '보냄', '실행', '끝'], it.state === 'success' || it.state === 'failed' ? 3 : Math.max(0, i), it.state === 'failed' ? 'bad' : it.state === 'success' ? 'ok' : 'run'); }
@@ -2930,6 +3086,7 @@ export default class Component extends DCLogic {
     const node = nodeArg || this.hbNode();
     // 되돌릴 수 없는 것(피어 회수)은 두 번 눌러야 한다
     if (op === 'revoke' && app === 'wg' && this.state.hbArm !== id) { this.setState({ hbArm: id }); this.hbSay('한 번 더 누르면 회수 — 되돌릴 수 없다', '#ff5d5d'); return; }
+    if (op === 'rerun' && app === 'job' && this.state.hbArm !== id) { this.setState({ hbArm: id }); this.hbSay('한 번 더 누르면 다시 실행 — 같은 명령을 다시 돌린다', '#f5b83d'); return; }
     if (app === 'folder' && op === 'open') { this.setState({ hbPath: id, hbArm: null }); return; }
     this.setState({ hbBusy: id || app, hbArm: null });
     clearTimeout(this._hbA);
@@ -3072,8 +3229,8 @@ export default class Component extends DCLogic {
       const sz = (v) => v >= 1000 ? (v / 1000).toFixed(1) + ' GB' : v >= 1 ? Math.round(v) + ' MB' : Math.round(v * 1000) + ' KB';
       cards = list.map((d, i) => {
         const need = [d.dir === 'push' ? 'file.write' : 'file.read'];
-        const st = d.state === 'transferring' ? chip(Math.round(d.off * 100) + '%', 'run') : d.state === 'verifying' ? chip('검사 중', 'run') : d.state === 'completed' ? chip('끝남', 'end') : d.state === 'aborted' ? chip('중단됨', 'off') : chip('어긋남', 'bad');
-        const acts = d.state === 'transferring' ? [B('중단', 'abort', d.id, false, need)] : d.state === 'failed' ? [B('이어서', 'resume', d.id, true, need), B('중단', 'abort', d.id, false, need)]
+        const st = d.state === 'transferring' ? chip(Math.round(d.off * 100) + '%', 'run') : d.state === 'verifying' ? chip('검사 중', 'run') : d.state === 'completed' ? chip('끝남', 'end') : d.state === 'aborted' ? chip('중단됨', 'off') : d.state === 'stalled' ? chip('멈춤', 'wait') : chip('어긋남', 'bad');
+        const acts = d.state === 'transferring' ? [B('중단', 'abort', d.id, false, need)] : d.state === 'failed' || d.state === 'stalled' ? [B('이어서', 'resume', d.id, true, need), B('중단', 'abort', d.id, false, need)]
           : d.state === 'completed' || d.state === 'aborted' ? [B('치우기', 'clear', d.id, false, [])] : [];
         return card(Object.assign({ id: d.id, name: d.name, sub: (d.dir === 'push' ? '↑ 올리기' : '↓ 내려받기') + ' · ' + sz(d.total), raw: d.id, fresh: d.fresh, acts, icon: IC.app.xfer,
           prog: d.state === 'completed' ? null : d.off, meta: d.reason || (d.state === 'completed' ? '완료된 전송은 기록이 남지 않는다' : ''), op: d.state === 'completed' ? 0.7 : 1, bstyle: d.state === 'completed' ? 'dashed' : 'solid' }, st), i);
@@ -3102,7 +3259,8 @@ export default class Component extends DCLogic {
       const ST = { queued: ['대기', 'wait'], sent: ['보냄', 'run'], running: ['실행 중', 'run'], success: ['성공', 'ok'], failed: ['실패', 'bad'] };
       cards = list.map((d, i) => {
         const live = d.state === 'running' || d.state === 'queued' || d.state === 'sent';
-        const acts = live ? [B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, ['node.read']), B('다시', 'rerun', d.id, true, EX, deleg)];
+        // 출력은 실행 중에도 본다(지금까지 받은 출력). 다시는 같은 명령을 또 돌리므로 두 번 누른다(hbArm — 회수와 같다)
+        const OUT = loc ? EX : ['node.read'], acts = live ? [B('출력', 'out', d.id, false, OUT), B('취소', 'cancel', d.id, false, ['process.execute', 'process.cancel'], deleg)] : [B('출력', 'out', d.id, false, OUT), B(S.hbArm === d.id ? '정말 다시' : '다시', 'rerun', d.id, true, EX, deleg)];
         const mm = Math.floor((d.t || 0) / 60), ss = Math.floor((d.t || 0) % 60);
         return card(Object.assign({ id: d.id, name: d.cmd, sub: d.id, raw: d.cmd, icon: IC.app.job, fresh: d.fresh, acts,
           meta: d.state === 'running' ? mm + ':' + String(ss).padStart(2, '0') + ' 경과' : d.code != null ? 'exit ' + d.code : d.out === 'canceled' ? '취소됨' : '' }, chip(ST[d.state][0], ST[d.state][1])), i);
@@ -3650,10 +3808,68 @@ export default class Component extends DCLogic {
     if (!still) this._mgb.raf = requestAnimationFrame(loop);
   }
   // 벡터 타일 목록을 이미지(3배 해상도)로 굽고 캐시에 더한다. 애니메이션 필드는 칸마다 쓸 그림 순서(_anims)도 만든다
+  // ───── 굽기 줄세우기 · 비동기 PNG (MD-35) ─────
+  // 굽는 일은 SVG 디코드 · 캔버스 · PNG 인코딩이 모두 메인 스레드를 쓴다. 라이브러리 전부(타일 · 건물 · 도로 151장 · SVG 38MB)를 맵 진입 때 한꺼번에 시작하면
+  // 이벤트 루프가 20초 가까이 멎어 요청 응답도 처리되지 못한다(재측정). 그래서 (1) 화면이 쓰는 것만 굽고(needTile · needBld · roadImgOf)
+  // (2) 한 번에 한 장씩 틱 사이에 내주며 굽고(bakeEnq) (3) PNG 인코딩은 canvas.toBlob(비동기)으로 한다. 아직 안 구워진 것은 벡터로 그대로 그린다(기존 대체 그림).
+  // CSP 가 img-src 'self' data: 라 blob: URL 은 못 쓴다 — FileReader 로 data URL 로 바꿔 쓴다.
+  bakeIdle(cb) { if (typeof requestIdleCallback === 'function') requestIdleCallback(() => cb(), { timeout: 120 }); else setTimeout(cb, 0); }
+  bakeEnq(job, low) {
+    this._bqH = this._bqH || []; this._bqL = this._bqL || [];
+    return new Promise((resolve) => { (low ? this._bqL : this._bqH).push({ job, resolve }); this.bakePump(); });
+  }
+  bakePump() {
+    if (this._bqBusy || this._unmounted) return;
+    const it = (this._bqH && this._bqH.shift()) || (this._bqL && this._bqL.shift());
+    if (!it) return;
+    this._bqBusy = true;
+    this.bakeIdle(() => {
+      let p; try { p = Promise.resolve(it.job()); } catch (e) { p = Promise.resolve(null); }
+      p.catch(() => null).then((v) => { it.resolve(v); this._bqBusy = false; this.bakePump(); });
+    });
+  }
+  pngUrl(cv) {
+    return new Promise((resolve) => {
+      const sync = () => { try { resolve(cv.toDataURL('image/png')); } catch (e) { resolve(null); } };
+      if (typeof cv.toBlob !== 'function' || typeof FileReader === 'undefined') { sync(); return; }
+      try {
+        cv.toBlob((bl) => {
+          if (!bl) { sync(); return; }
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result));
+          fr.onerror = () => sync();
+          fr.readAsDataURL(bl);
+        }, 'image/png');
+      } catch (e) { sync(); }
+    });
+  }
+  // 화면이 쓰는 타일만 굽는다 — 처음 쓰일 때 그림(과 애니메이션 프레임)을 줄에 세운다. 쓰이는 동안 벡터 대체 그림이 문서에 남는다(tileDefs)
+  needTile(bt) {
+    this._usedTile = this._usedTile || {};
+    this._usedTile[bt.key] = 1;
+    if ((this.state.tileImg && this.state.tileImg[bt.key]) || (this._tilePend && this._tilePend[bt.key])) return;
+    this._tilePend = this._tilePend || {};
+    const list = [bt].concat(this.BT.concat(this.BTF).filter((f) => f.key.indexOf(bt.key + '@') === 0));
+    list.forEach((b) => { this._tilePend[b.key] = 1; });
+    this._tileQ = (this._tileQ || []).concat(list);
+    clearTimeout(this._tileQT);
+    this._tileQT = setTimeout(() => { const q = this._tileQ; this._tileQ = []; this.bakeImgs(q); }, 0);
+  }
+  // 화면이 쓰는 건물(방향별)만 굽는다 — b = this.buildings(또는 이벤트 디자인) 항목 · r = 방향
+  needBld(b, r) {
+    if (!b || !b.fviews) return;
+    const k = b.id + '-' + r;
+    if ((this.state.bldImg && this.state.bldImg[k]) || (this._bldPend && this._bldPend[k])) return;
+    this._bldPend = this._bldPend || {};
+    this._bldPend[k] = 1;
+    this._bldQ = (this._bldQ || []).concat([[b, r]]);
+    clearTimeout(this._bldQT);
+    this._bldQT = setTimeout(() => { const q = this._bldQ; this._bldQ = []; this.bakeBuildings(q); }, 0);
+  }
   bakeImgs(list) {
     const SCALE = 3;
     const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-    const jobs = list.map((bt) => new Promise((resolve) => {
+    const jobs = list.map((bt) => this.bakeEnq(() => new Promise((resolve) => {
       const [x0, y0, x1, y1] = bt.bbox, w = x1 - x0, h = y1 - y0;
       const rects = bt.topPat.rects.map((r) => '<rect x="' + r.x + '" y="' + r.y + '" width="' + r.w + '" height="' + r.h + '" fill="' + r.fill + '"/>').join('');
       const pathEl = (p) => '<path d="' + esc(p.d) + '" fill="' + p.c + '" stroke="' + p.c + '" stroke-width="0.35" stroke-linejoin="round"/>';
@@ -3667,17 +3883,18 @@ export default class Component extends DCLogic {
           const cv = document.createElement('canvas');
           cv.width = Math.ceil(w * SCALE); cv.height = Math.ceil(h * SCALE);
           cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-          resolve([bt.key, cv.toDataURL('image/png')]);
+          this.pngUrl(cv).then((u) => resolve([bt.key, u || svgUrl]));   // PNG 인코딩은 비동기 — 못 하면 SVG 이미지 그대로
         } catch (err) {
           resolve([bt.key, svgUrl]); // 캔버스로 못 굽는 브라우저: SVG 이미지 그대로 (그래도 DOM 요소는 한 장)
         }
       };
       img.onerror = () => resolve([bt.key, null]);
       img.src = svgUrl;
-    }));
+    })));
     Promise.all(jobs).then((done) => {
       const cache = Object.assign({}, this.state.tileImg || {});
-      done.forEach(([k, v]) => { if (v) cache[k] = v; });
+      done.forEach((d) => { if (d && d[1]) cache[d[0]] = d[1]; });   // 줄 세운 일이 던지면 null — 그 타일은 벡터로 남는다
+      list.forEach((b) => { if (this._tilePend) delete this._tilePend[b.key]; });
       if (this._unmounted) return;
       // 애니메이션 필드: 칸마다 (빈 칸이면 앞 프레임의) 그림
       this._anims = this._anims || {};
@@ -4369,7 +4586,7 @@ export default class Component extends DCLogic {
   // ver.2 인스펙터 값 — 칸 하나의 요약과 동작. 동작은 원래 기능(캡슐 메뉴 · 창)을 그대로 부른다
   inspVals(selT, pill, RS) {
     const S = this.state, k = S.sel;
-    const off = { tx: 340, op: 0, pe: 'none', cap: '선택', pos: '', key: '', vb: '0 0 1 1', href: '#tg-none', font: 'inherit', name: '', sub: '', isNode: false, stats: [], meters: [], hasRows: false, rows: [], acts: [], expand: () => {}, close: () => {} };
+    const off = { tx: 340, op: 0, pe: 'none', cap: '선택', pos: '', key: '', vb: '0 0 1 1', href: '#tg-none', font: 'inherit', name: '', sub: '', isNode: false, stats: [], meters: [], noMeters: false, hasRows: false, rows: [], acts: [], expand: () => {}, close: () => {} };
     if (!k || !selT || S.place || S.conn || (S.mapTrans && S.mapTrans.phase)) return off;
     const [c, r] = k.split('-').map(Number), pos = 'C' + c + '·R' + r;
     const nd = selT.nd || this.nodeAt(k), o = RS[k], pl = (S.placed || {})[k], road = !!(pl && this.isRoad(pl.bid) && !pl.pv);
@@ -4378,19 +4595,20 @@ export default class Component extends DCLogic {
     const btn = (label, click, o2) => Object.assign({ label, click, down: () => {}, tip: '', bg: 'rgba(255,255,255,0.04)', fg: '#ede9e1', line: 'rgba(255,255,255,0.18)', op: 1, pe: 'auto' }, o2 || {});
     const pri = { bg: '#ede9e1', fg: '#111111', line: '#ede9e1' }, dis = { op: 0.4, pe: 'none' };
     const v = { tx: 0, op: 1, pe: 'auto', cap: '선택', pos, key: k, vb: Math.round(selT.px - 74) + ' ' + Math.round(selT.py - 150) + ' 148 190', href: '#tg-' + k, font: 'inherit',
-      expand: () => openW('props'), close: () => this.setState({ sel: null, pillOpen: null }), isNode: false, stats: [], meters: [], hasRows: false, rows: [], acts: [] };
+      expand: () => openW('props'), close: () => this.setState({ sel: null, pillOpen: null }), isNode: false, stats: [], meters: [], noMeters: false, hasRows: false, rows: [], acts: [] };
     const nLinks = (S.links || []).filter((l) => l.from === k || l.to === k || (l.path || []).indexOf(k) >= 0).length;
     if (nd) {
       const APPS = ['job', 'mod', 'svi', 'decl', 'grant', 'io', 'folder', 'xfer', 'tunnel', 'wg'];
       let total = 0, bad = 0;
       APPS.forEach((a) => { const L = this.hbItems(nd.name, a) || []; total += L.length; bad += L.filter((x) => /fail|unavail|denied|degraded|stale/.test(String(x.state || x.status || x.health || ''))).length; });
       const kids = ((this.NET[nd.name] || {}).kids || []).length, ok = bad === 0;
-      const h = [...nd.name].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 11), m = (s2) => 8 + ((h >>> s2) % 72);
+      const mt = this.nodeMeters(nd);   // 실제로 받은 사용량 — 없으면 null (지어낸 값을 그리지 않는다: MD-36)
       const look = (S.looks || {})[nd.name] || {};
       Object.assign(v, { font: "'JetBrains Mono',ui-monospace,monospace", name: nd.name, sub: (look.bid ? bName(look.bid) + ' · ' : '') + (nd.parent ? '부모 필드' : (nd.role || '')), isNode: true,
         stats: [[total, '자원'], [nLinks, '연결'], [kids, '자식']].map(([vv, kk]) => ({ v: String(vv), k: kk, c: '#ede9e1', font: "600 16px/1.3 'JetBrains Mono',ui-monospace,monospace", bg: 'rgba(255,255,255,0.05)' }))
           .concat([{ v: ok ? '정상' : '저하', k: '상태', c: ok ? '#3ecf8e' : '#f5b83d', font: '700 13px/22px inherit', bg: ok ? 'rgba(62,207,142,0.12)' : 'rgba(245,184,61,0.12)' }]),
-        meters: [['CPU', m(0)], ['메모리', m(7) + 12], ['디스크', m(13) + 18]].map(([kk, vv]) => { vv = Math.min(96, vv); const w = vv > 80; return { k: kk, v: vv, w: vv, c: w ? '#f5b83d' : '#5aa8ff', tc: w ? '#f5b83d' : '#ede9e1' }; }),
+        meters: mt ? [['CPU', mt.cpu], ['메모리', mt.mem], ['디스크', mt.disk]].filter(([, vv]) => typeof vv === 'number').map(([kk, vv]) => { vv = Math.max(0, Math.min(100, Math.round(vv))); const w = vv > 80; return { k: kk, v: vv, w: vv, c: w ? '#f5b83d' : '#5aa8ff', tc: w ? '#f5b83d' : '#ede9e1' }; }) : [],
+        noMeters: !mt,
         acts: [
           nd.parent ? btn('지금 맵', () => {}, Object.assign({ tip: '이 노드의 맵을 보고 있다' }, pri, dis)) : btn('들어가기', () => this.enterNode(nd), Object.assign({ tip: '두 번 누르기와 같다' }, pri)),
           btn('연결하기', () => {}, { down: pill.connDown, tip: pill.connTip || '누른 채 끌어 놓기' }),
@@ -4733,10 +4951,14 @@ export default class Component extends DCLogic {
   cellKind(m, key) { return m.nodes[key] ? this.nodeKind(m.nodes[key]) : (m.self === key ? 'parent' : false); }
   cellLift(m, sk, key) { return m.nodes[key] ? this.nodeLift(sk, m.nodes[key]) : (m.self === key ? this.parentOf(sk).lift : 0); }
   roleKey(label) { return !label ? false : /tree/i.test(label) && /leaf/i.test(label) ? 'both' : /tree/i.test(label) ? 'tree' : 'leaf'; }
+  // 노드 사용량(CPU · 메모리 · 디스크 %, 0~100) — 실제로 받은 값만. 값이 없으면 null 이고 카드는 "알려 주지 않는다"를 보인다.
+  // 게이트웨이가 앱 토큰에 이 값을 아직 주지 않는다(backlog PF-25) — 받는 길이 생기면 this.__real.meters[노드 이름] = { cpu, mem, disk } 로 채운다.
+  nodeMeters(nd) { const m = this.__real && this.__real.meters && nd && this.__real.meters[nd.name]; return m && typeof m === 'object' ? m : null; }
   tileView(sid, role, rot) {
     const rk = rot ? this.ensureRot(sid, role, rot) : null;
     const bt = (rk ? this.BT.find((b) => b.key === rk) : this.BT.find((b) => b.sid === sid && b.node === (role || false) && !b.rot)) || this.BT[0];
     const src = this.state.tileImg ? this.state.tileImg[bt.key] : null;
+    if (!src) this.needTile(bt);   // 처음 쓰일 때 굽는다 — 그때까지는 벡터
     const [x0, y0, x1, y1] = bt.bbox;
     const an = this._anims && this._anims[bt.key] ? bt.key : '';
     return { anim: an, img: (an && this.animUrl(an)) || src || '', href: '#' + bt.id, ix: x0, iy: y0, iw: x1 - x0, ih: y1 - y0, imgDisp: src ? 'inline' : 'none', useDisp: src ? 'none' : 'inline' };
@@ -4835,7 +5057,7 @@ export default class Component extends DCLogic {
   }
   renderVals() {
     this.ensureBake();
-    const cached = !!(this.state.tileImg && this.BT.every((b) => this.state.tileImg[b.key]));
+    const cached = !!(this.state.tileImg && this.BT.every((b) => !(this._usedTile && this._usedTile[b.key]) || this.state.tileImg[b.key]));
     const nodes = this.state.nodes;
     const SKINS = this.FSK;
     const TG = { top: this.BT[0].top };
@@ -5052,6 +5274,7 @@ export default class Component extends DCLogic {
           // 이벤트: 그 이벤트의 디자인을 구워 둔 게 있으면 그 그림, 없으면 기본 그림에 효과(대기 = 호박빛 · 정지 = 잿빛 · 실패 = 붉은 깜빡임)
           const ev0 = pl ? evOf(key) : null, bv0 = pl ? bldOf(pl.bid) : null, evB = bv0 && ev0 && this.bldEvs && this.bldEvs[bv0.id + '@' + ev0];
           const bv = evB || bv0, im = pl && this.state.bldImg && (this.state.bldImg[bv.id + '-' + pl.rot] || (evB && this.state.bldImg[bv0.id + '-' + pl.rot]));
+          if (pl) { if (!(this.state.bldImg && this.state.bldImg[bv.id + '-' + pl.rot])) this.needBld(bv, pl.rot); if (evB && !(this.state.bldImg && this.state.bldImg[bv0.id + '-' + pl.rot])) this.needBld(bv0, pl.rot); }
           const bcls = evB && this.state.bldImg && this.state.bldImg[bv.id + '-' + pl.rot] ? '' : evCls(ev0);
           if (!im) return { banim: '', bpaths: pl ? bv.views[pl.rot].paths : [], bimg: '', bimgDisp: 'none', bix: 0, biy: pl ? bv.views[pl.rot].bbox[1] : 0, biw: 0, bih: 0, bhit: 'M0 0', bop: 1, bcls };
           const vw = bv.views[pl.rot];
@@ -5487,7 +5710,7 @@ export default class Component extends DCLogic {
       };
     });
     const roadCards = this.roads.map((rd) => {
-      const ri = this.roadImgOf(rd, 63), nk = rd.frames ? this.keyCount(rd.frames) : 1;
+      const ri = this.roadImgOf(rd, 63, undefined, undefined, true), nk = rd.frames ? this.keyCount(rd.frames) : 1;   // 팔레트 카드 — 화면에 놓인 도로보다 뒤에
       return { id: rd.id, name: rd.name, img: ri ? ri.url : '', imgDisp: ri ? 'block' : 'none', playDisp: nk > 1 ? 'inline' : 'none',
         meta: (rd.N || 16) + '칸 · 팔 블록 ' + (rd.blocks || []).length + ' · 합류 높이 ' + ((rd.hub || {}).h || 0) + (nk > 1 ? ' · 프레임 ' + nk : ''),
         dragging: drag && drag.bid === 'road:' + rd.id ? '1px dashed #2563eb' : '1px solid #d8dde5',
@@ -5561,8 +5784,8 @@ export default class Component extends DCLogic {
       tg: { top: TG.top },
       // 이미지가 준비되면 벡터 타일은 화면(DOM)에서만 빠지고, 데이터는 this.BT에 그대로 남는다
       // 아직 이미지가 없는 타일(처음 쓰는 무늬 회전 등)만 벡터로 문서에 둔다
-      fieldPats: (() => { const seen = new Set(), out = []; this.BT.forEach((b) => { if ((this.state.tileImg && this.state.tileImg[b.key]) || seen.has(b.topPat.id)) return; seen.add(b.topPat.id); out.push(b.topPat); }); return out; })(),
-      tileDefs: this.BT.filter((b) => !(this.state.tileImg && this.state.tileImg[b.key])),
+      fieldPats: (() => { const seen = new Set(), out = []; this.BT.forEach((b) => { if (!(this._usedTile && this._usedTile[b.key]) || (this.state.tileImg && this.state.tileImg[b.key]) || seen.has(b.topPat.id)) return; seen.add(b.topPat.id); out.push(b.topPat); }); return out; })(),
+      tileDefs: this.BT.filter((b) => (this._usedTile && this._usedTile[b.key]) && !(this.state.tileImg && this.state.tileImg[b.key])),
       cacheNote: cached ? '타일 표시: 이미지 캐시 (벡터 데이터 보관 중)' : '타일 표시: 벡터 (이미지 준비 중)',
       shadowY: maxBottom - 10,
       shadowX: fx.cx, shadowRx: fx.rx,
@@ -5705,7 +5928,7 @@ export default class Component extends DCLogic {
             sc: dragging && (dg.over || dg.back) ? 0.55 : 1, op: dragging && (dg.over || dg.back) ? 0.8 : 1, origin: '24px 19px',
             ty: S.winDrop === id ? -(W.y + 120) : 0, trans: S.winDrop === id ? 'transform 440ms cubic-bezier(.55,0,.9,.45), background-color 520ms linear' : 'transform 160ms ease-out, opacity 160ms ease-out, box-shadow 160ms, background-color 520ms linear',
             isProps: id === 'props', isAlarm: id === 'alarm', isMap: id === 'map', isEd: ['props', 'edit', 'alarm', 'map'].indexOf(id) < 0, isEdit: id === 'edit',
-            sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none',
+            sum: SUM[id] || '', hrefDisp: d.href ? 'inline' : 'none', hasBoard: !!d.href, noBoard: !d.href,   // 보드가 있는 창은 전체 화면으로 연다(fsToggle) — 보드 링크는 srcdoc 안에서 화면을 깨뜨려 없앴다
             close: () => this.closeWin(id), closeTip: id === 'map' ? '닫기 — 관리 노드 창의 MAP 탭으로' : '닫기 — 유틸 서랍의 제자리로',
             front: () => this.winFront(id),
             grab: (e) => { if (fsOn) return; this.startWinDrag(id, e, 'window'); },
@@ -5911,6 +6134,7 @@ export default class Component extends DCLogic {
           const sz = Math.max(x1 - x0, y1 - y0, 60) * 1.3, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
           // 구운 이미지(애니메이션이면 프레임)가 있으면 그것을 — 프사 교체 · 로그인 중에도 같은 시계로 움직인다
           const im = this.state.bldImg && this.state.bldImg[bl.id + '-0'], ak = 'b:' + bl.id + '-0', an = im && this._anims && this._anims[ak] ? ak : '';
+          if (!im) this.needBld(bl, 0);
           return { vb: [cx - sz / 2, cy - sz / 2, sz, sz].map((q) => Math.round(q * 10) / 10).join(' '), paths: im ? [] : v.paths, shadow: v.shadow, tile: '#' + pt.id,
             anim: an, img: im ? (an && this.animUrl(an)) || im.url : '', imgDisp: im ? 'inline' : 'none', ix: im ? im.x : 0, iy: im ? im.y : 0, iw: im ? im.w : 0, ih: im ? im.h : 0 };
         };

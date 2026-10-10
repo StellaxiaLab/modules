@@ -1,4 +1,4 @@
-module github.com/terra-project/terra/module/common/io.terra.nodetalk
+module github.com/StellaxiaLab/modules/common/io.terra.nodetalk
 
 go 1.23.0
 

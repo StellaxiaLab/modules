@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.file/store"
-	"github.com/terra-project/terra/module/leaf/io.terra.file/transfer"
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/store"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/transfer"
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
 )
 
 // startPush opens a push for content and sends its first two bytes, so there

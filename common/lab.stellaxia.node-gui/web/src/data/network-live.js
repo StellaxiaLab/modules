@@ -2,12 +2,15 @@
 //
 // 보드(src/screens/network.js)는 디자인 캔버스에서 생성된다. 고치지 않고 이어받는다.
 //   닿는 것    로컬 WireGuard(terra.daemon.wireguard.*) · 로컬 서비스 터널(terra.daemon.service-tunnels.*)
-//   닿지 않는 것  mesh · CIDR · 라우트 · 정책 · 세션 · 조작 이력 — 전부 Master(terra.master.*) op 이다. 앱 스코프 토큰은
-//              Master 에 닿지 않는다(client.js master-delegation). 그 묶음은 예시 대신 "닿지 않음"과 이유를 보인다.
+//   Master 읽기  mesh · CIDR · 라우트 그래프 · 후보 · 정책 · 세션 · probe 기록 · 조작 이력 — terra.master.* 읽기다. 앱 스코프 토큰은
+//              위임 입구 1차(Terra ADR-GW-003)로 읽기에 닿는다(tree 는 op id, leaf 는 /api/upstream). 블록은 network-master.js.
+//              닿지 않으면(예전 Terra · 상위 Master 없음) 그 묶음은 예시 대신 "닿지 않음"과 이유를 보인다.
+//   쓰지 않는 것  Master 쓰기(조정 · 계획 · 철회 · probe · 정책 · 세션 닫기 · 연결 그룹 · 새 터널) — 위임 입구 2차
 // 역할(tree · leaf)은 시연 전환이 아니라 카탈로그로 정한다. 시연 스위치는 tools/gen-pages.py 가 템플릿에서 뺐다.
 
 import { connectLive, absenceText } from './live-host.js';
-import { resultText } from '../api/client.js';
+import { resultText, reaches } from '../api/client.js';
+import { masterBlocks, NET_OPS, SEC_OPS, candidateRows } from './network-master.js';
 
 const D = (op) => 'terra.daemon.' + op;
 const ok = (r) => r && r.kind === 'ok';
@@ -42,7 +45,7 @@ export function peerRows(d) {
 }
 
 export function realNetwork(Screen) {
-  return class RealNetwork extends Screen {
+  const RealNetwork = class extends Screen {
     constructor(props) {
       super(props);
       this.NODES = [];
@@ -50,7 +53,7 @@ export function realNetwork(Screen) {
       Object.assign(this.state, {
         role: null, demo: 'ok', sec: 'wg', polledAt: 0,
         reconcile: { status: 'unchanged', reason: '', at: '—', eligible: 0, updated: 0, removed: 0 },
-        networks: [], pair: { src: '', dst: '', channel: 'service.tunnel' }, probes: [], waitProbe: null, policies: [], sessions: [], groups: [], decls: [],
+        networks: [], pair: { src: '', dst: '', channel: 'service_tunnel' }, probes: [], m: {}, mCand: null, waitProbe: null, policies: [], sessions: [], groups: [], decls: [],
         plan: { src: '', dst: '', service: '', tport: '', lport: '0', policy: 'auto' }, planned: null,
         ltunnels: [], wg: null, peers: [], peersOn: false, peersErr: '', logs: [],
         live: null, why: null, loading: true, nodeName: '', principal: '', perms: []
@@ -76,10 +79,44 @@ export function realNetwork(Screen) {
         return;
       }
       const role = roleOf(live.client.catalog);
-      this.setState({ live: true, why: null, loading: true, role, principal: live.principal || '', perms: live.permissions || [],
+      this.setState({ live: true, why: null, loading: true, role, m: {}, mCand: null, principal: live.principal || '', perms: live.permissions || [],
         nodeName: live.node && live.node.name ? live.node.name : '', sec: role === 'leaf' ? (['wg', 'tunnel'].indexOf(this.state.sec) >= 0 ? this.state.sec : 'wg') : this.state.sec });
       void this.refresh();
       this._poll = setInterval(() => { void this.refresh(); }, 10000);
+    }
+
+    /** Master 읽기에 닿나 — 위임 입구 1차(tree 는 카탈로그, leaf 는 /api/upstream) */
+    masterOn() { const L = this.__live; return !!(L && L.client && !L.client.masterBlocked && reaches(L.client, NET_OPS.status)); }
+    mText(r) { return resultText(r); }
+
+    /** 보고 있는 Master 묶음의 읽기 — 묶음마다 필요한 것만(SEC_OPS) */
+    async refreshMaster() {
+      const L = this.__live, ops = SEC_OPS[this.state.sec];
+      if (!L || !ops || !this.masterOn()) return;
+      const got = await Promise.all(ops.map((k) => L.client.invoke(NET_OPS[k], k === 'logs' ? { limit: 100 } : {})));
+      if (this.__live !== L) return;
+      const m = Object.assign({}, this.state.m);
+      ops.forEach((k, i) => { m[k] = got[i]; });
+      this.setState({ m, polledAt: Date.now(), loading: false });
+      if (this.state.sec === 'route' && this.state.pair.src && this.state.pair.dst) void this.readCandidates();
+    }
+
+    /** 고른 쌍의 후보 — route.candidates.get */
+    async readCandidates() {
+      const L = this.__live, P = this.state.pair;
+      if (!L || !P.src || !P.dst) return;
+      const r = await L.client.invoke(NET_OPS.candidates, { source_node_id: P.src, target_node_id: P.dst, channel: P.channel || 'service_tunnel' });
+      if (this.__live !== L || this.state.pair !== P) return;
+      this.setState({ mCand: r.kind === 'ok' ? { kind: 'ok', data: candidateRows(r.data) } : r });
+    }
+
+    /** 그래프에서 노드를 누르면 — 처음은 source, 다음은 target, 같은 것을 다시 누르면 비운다 */
+    pickPair(id) {
+      const P = this.state.pair;
+      const next = P.src === id ? Object.assign({}, P, { src: P.dst, dst: '' }) : P.dst === id ? Object.assign({}, P, { dst: '' })
+        : !P.src ? Object.assign({}, P, { src: id }) : Object.assign({}, P, { dst: id });
+      this.setState({ pair: next, mCand: null });
+      if (next.src && next.dst) void this.readCandidates();
     }
 
     /** 이 노드에서 닿는 것을 다시 읽는다 */
@@ -87,6 +124,7 @@ export function realNetwork(Screen) {
       const L = this.__live;
       if (!L) return;
       const c = L.client;
+      if (SEC_OPS[this.state.sec]) { await this.refreshMaster(); return; }
       if (this.state.role !== 'leaf') { this.setState({ loading: false, polledAt: Date.now() }); return; }
       const [node, st, tun] = await Promise.all([
         this.state.nodeName ? Promise.resolve(null) : c.invoke(D('node.get'), {}),
@@ -213,17 +251,34 @@ export function realNetwork(Screen) {
       const mark = (p) => p + (this.can(p) ? ' ✓' : ' ✗');
       v.sess = { who: S.live ? (S.principal || '로그인됨') + ' · ' + (S.role || '역할 모름') : '로그인 전', perm: S.live ? '권한 ' + mark('node.read') + ' · ' + mark('node.control') : '권한 —' };
       // 본문 — 연결 전이면 이유, 닿지 않는 묶음은 이유를 보인다
-      const T = ['mesh', 'route', 'log'];
+      const T = ['mesh', 'route', 'log'], mOn = S.live && this.masterOn();
       if (!S.live) v.blocks = [this.stateBlock('🔑', 'off', S.why === 'STANDALONE' ? 'Terra 밖에서 열었습니다' : 'Terra에 연결되지 않았습니다', absenceText(S.why), [])];
+      else if (T.indexOf(S.sec) >= 0 && mOn) {
+        // 위임 입구 1차 — Master 읽기를 진짜 값으로(network-master.js). 보드 원본의 블록은 시연 값이라 쓰지 않는다
+        const view = S.sec === 'mesh' ? this.realMesh() : S.sec === 'route' ? this.realRoute() : this.realLog();
+        const tabKey = S.sec === 'log' ? 'log' : S.sec === 'route' ? 'route' : null, curTab = tabKey === 'log' ? S.logFilter : tabKey ? S.sub[tabKey] : null;
+        v.blocks = view.blocks.filter(Boolean);
+        v.page.tabDisp = view.tabs.length ? 'flex' : 'none';
+        v.page.tabs = view.tabs.map(([k, label]) => ({ label, on: curTab === k ? 'true' : 'false', bg: curTab === k ? '#ede9e1' : 'transparent', fg: curTab === k ? '#111111' : '#9aa1ab', sh: curTab === k ? '0 1px 2px rgba(0,0,0,0.35)' : 'none',
+          pick: () => (tabKey === 'log' ? this.setState({ logFilter: k }) : this.setState({ sub: Object.assign({}, S.sub, { [tabKey]: k }) })) }));
+      }
       else if (T.indexOf(S.sec) >= 0 || (S.sec === 'tunnel' && !leaf)) { v.blocks = [this.unreach(v.page.title)]; v.page.tabDisp = 'none'; }
       else if (S.sec === 'wg' && !leaf) v.blocks = [this.stateBlock('🔒', 'off', '로컬 WireGuard는 leaf 데몬의 것입니다', '이 게이트웨이의 카탈로그에 terra.daemon.wireguard.*가 없습니다 — 해당 노드의 GUI에서 엽니다.', [])];
       if (S.sec === 'tunnel' && leaf) v.page.sub = S.help ? name + '에서 열린 터널 — 닫기만 여기서, 열기는 tree에서' : '';
       if (S.sec === 'wg' && leaf) v.page.sub = S.help ? name + ' · 데몬이 직접 실행하는 동작은 응답이 올 때까지 기다린다' : '';
-      if (T.indexOf(S.sec) >= 0) v.page.sub = '';
+      if (T.indexOf(S.sec) >= 0) v.page.sub = mOn && S.help ? 'Master 읽기 — 위임 입구 1차(보기만)' : '';
       v.page.subDisp = S.help && v.page.sub ? 'inline' : 'none';
-      // 왼쪽 묶음 — Master 묶음은 회색으로, 이유는 "닿지 않음"
-      v.nav = v.nav.map((n, i) => (i < 2 || i === 4 ? Object.assign({}, n, { sub: 'Master operation — 이 화면에서 닿지 않음', fg: '#8b95a6', subFg: '#a0a8b5', gray: 'grayscale(1)', subDisp: 'block' }) : n));
+      // 왼쪽 묶음 — Master 묶음은 닿으면 열고(묶음을 바꾸면 그 묶음의 읽기를 바로 부른다), 닿지 않으면 회색 · 이유 "닿지 않음"
+      const IDS = ['mesh', 'route', 'tunnel', 'wg', 'log'];
+      v.nav = v.nav.map((n, i) => {
+        const id = IDS[i], pick = () => { this.setState({ sec: id }); if (SEC_OPS[id]) void this.refreshMaster(); };
+        if (T.indexOf(id) < 0) return Object.assign({}, n, { pick });
+        if (mOn) return Object.assign({}, n, { pick, sub: n.sub && /Operation|operation/.test(n.sub) ? 'Master 읽기 — 보기만' : n.sub, fg: '#ede9e1', subFg: '#9aa1ab', gray: 'none' });
+        return Object.assign({}, n, { pick, sub: 'Master operation — 이 화면에서 닿지 않음', fg: '#8b95a6', subFg: '#a0a8b5', gray: 'grayscale(1)', subDisp: 'block' });
+      });
       return v;
     }
   };
+  Object.assign(RealNetwork.prototype, masterBlocks);
+  return RealNetwork;
 }

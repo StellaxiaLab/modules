@@ -16,8 +16,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/inventory"
-	"github.com/terra-project/terra/module/leaf/io.terra.io-inventory/manual"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/manual"
 	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
 	coresvi "github.com/terra-project/terra/products/common/packages/terra-svi"
 )

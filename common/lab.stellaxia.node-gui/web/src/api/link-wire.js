@@ -5,7 +5,7 @@
 // 적용 규칙은 link-apply.js · 상태 맞추기는 link-sync.js. 여기서는 화면 상태(links)에 결과를 쓰고 글줄로 알린다.
 import { screenLinkCtx } from '../model/link-io.js';
 import { reasonLine } from '../model/link-text.js';
-import { applyLink, grantSelf, lacksOf } from './link-apply.js';
+import { applyLink, grantSelf, lacksOf, GRANT_SELF_TTL_DEFAULT } from './link-apply.js';
 import { syncLinks, closeBindings, orphanedBindings, reviveOrphans } from './link-sync.js';
 
 const GREEN = '#3ecf8e', AMBER = '#f5b83d', RED = '#ff6b81';
@@ -42,13 +42,15 @@ export function wireLinkApply(screen, source, opts = {}) {
     } finally { busy.delete(id); }
   };
 
-  /** [나에게 허가 주기] — needs-grant 인 쌍의 허가를 만들고 다시 적용한다. 사람이 확인한 뒤에만 부른다(Q-22) */
-  screen.linkGrantSelf = async (id) => {
+  /** [나에게 허가 주기] — needs-grant 인 쌍의 허가를 만들고 다시 적용한다. 사람이 확인한 뒤에만 부른다(Q-22).
+   *  opts.ttlSeconds — 설정 창에서 고른 기한(0 = 기한 없음). 없으면 30일(Q-23) */
+  screen.linkGrantSelf = async (id, opts = {}) => {
     const link = (screen.state.links || []).find((l) => l && l.id === id);
     if (!link || !link.io) return null;
     const lacks = link.io.pairs.filter((p) => p.phase === 'needs-grant').flatMap(lacksOf);
     if (!lacks.length) return null;
-    const grant = await grantSelf(client, lacks, source.principal || '', 0);
+    const ttl = Number.isFinite(opts.ttlSeconds) && opts.ttlSeconds >= 0 ? Math.floor(opts.ttlSeconds) : GRANT_SELF_TTL_DEFAULT;
+    const grant = await grantSelf(client, lacks, source.principal || '', ttl);
     screen.hbSay(grant.ok ? '허가를 만들었다 — ' + grant.made.join(', ') : '허가를 만들지 못했다 — ' + grant.failed.map((f) => f.resource_id + ' ' + f.operation + ' · ' + f.code).join(', '), grant.ok ? GREEN : RED);
     const apply = grant.ok ? await screen.linkApply(id) : null;
     return { grant, apply };

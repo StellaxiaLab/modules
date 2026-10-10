@@ -134,6 +134,53 @@ const kept = await page.evaluate(async () => {
 });
 check('받기 조각 보관(IndexedDB) — 이어진 조각 · 앞선 전송 id · 바뀐 파일은 버림 · 지움',
   kept === JSON.stringify({ a: [0, null], b: [8, 't1', 'abcdefgh'], c: [0, 't2', 0], d: [0, null] }), kept);
+// 입출력 설정 창 (UP-25 · 설계 §6 최소판) — 연결 줄의 [설정]이 펼치는 패널. 모듈에서는 서버에 닿기 전엔 적용을 지어내지 않는다
+await page.goto(BASE + 'node.html'); await page.waitForTimeout(3000);
+const ioUi = await page.evaluate(async () => {
+  const s = window.__screen, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  s.hbCan = () => ({ ok: true, why: '' });   // 권한은 이 시험의 관심이 아니다 — 잠금은 아래에서 따로
+  s.IOEPS = (res) => (res && res.id === 'a' ? [{ id: 'frames', dir: 'source', inter: 'stream' }, { id: 'stats', dir: 'source', inter: 'stream' }] : [{ id: 'sink', dir: 'sink', inter: 'stream' }]);
+  s.setState({ rsrc: { '1-1': { app: 'svi', id: 'a', name: '카메라', node: s.state.map, emoji: '📷', type: 'svi', io: null, at: '12:00' }, '2-1': { app: 'svi', id: 'b', name: '저장기', node: s.state.map, emoji: '💾', type: 'svi', io: null, at: '12:00' } },
+    links: [{ id: 'l1', from: '1-1', to: '2-1', start: '1-1', path: ['1-2'], road: 'stone' }], rcfgKey: '1-1' });
+  const W = s.state.wins.rcfg; s.openWin('rcfg', W.x, W.y); await wait(300);
+  const q = (x) => document.querySelector(x), all = (x) => [...document.querySelectorAll(x)];
+  const out = { closed: !q('[data-io-panel]'), chip: (all('[data-io-cfg]')[0] || {}).innerText };
+  q('[data-io-cfg]').click(); await wait(250);
+  out.open = !!q('[data-io-panel]'); out.kind = q('[data-io-panel]').innerText.indexOf('바인딩') >= 0;
+  out.eps = all('[data-io-src] option').map((o) => o.value).join(',') + '|' + all('[data-io-dst] option').map((o) => o.value).join(',');
+  out.applyOff = q('[data-io-apply]').disabled;   // 엔드포인트를 안 골랐다
+  out.demoSel = getComputedStyle(q('[data-io-force]')).display;   // 모듈은 미리보기 칸이 없다
+  const a = q('[data-io-src]'); a.value = 'frames'; a.dispatchEvent(new Event('change', { bubbles: true }));
+  const b = q('[data-io-dst]'); b.value = 'sink'; b.dispatchEvent(new Event('change', { bubbles: true })); await wait(250);
+  out.chosen = JSON.stringify(s.state.links[0].io.endpoints);
+  out.grantAsk = getComputedStyle(q('[data-io-grant-self]').parentElement).display;
+  q('[data-io-apply]').click(); await wait(250);
+  out.unwired = (s.state.hbMsg && s.state.hbMsg.t) || ''; out.phase = s.state.links[0].io.phase;   // 지어내지 않았다 — 여전히 설정 전
+  s.setState({ ioForce: 'unreach' }); await wait(250);
+  out.lock = !!q('[data-io-lock]') && getComputedStyle(q('[data-io-lock]')).display !== 'none' && q('[data-io-apply]').disabled;
+  return out;
+});
+check('입출력 설정 — 연결 줄 [설정]이 패널을 펼친다 (바인딩 · 엔드포인트 칸)', ioUi.closed && ioUi.open && ioUi.kind && ioUi.eps === ',frames,stats|,sink' && ioUi.applyOff, JSON.stringify([ioUi.closed, ioUi.open, ioUi.eps, ioUi.applyOff]));
+check('입출력 설정 — 모듈에는 상태 미리보기 칸이 없다', ioUi.demoSel === 'none', ioUi.demoSel);
+check('입출력 설정 — 엔드포인트 고름이 연결 io에 남는다 · 허가 칸', ioUi.chosen === JSON.stringify({ 'src:a': 'frames', 'dst:b': 'sink' }) && ioUi.grantAsk !== 'none', ioUi.chosen);
+check('입출력 설정 — 서버에 닿기 전 [연결 적용]은 지어내지 않고 이유를 말한다', /쓸 수 없다/.test(ioUi.unwired) && ioUi.phase === 'draft', ioUi.unwired + ' · ' + ioUi.phase);
+check('입출력 설정 — 닿지 않으면 잠그고 이유를 보인다', ioUi.lock === true);
+// 디자인 원본의 예시 구현(고치지 않은 클래스) — 형식 판정 · 허가 · 적용 흐름
+const ioDemo = await page.evaluate(async () => {
+  const C = (await import('/src/screens/node.js?pristine')).default, o = Object.create(C.prototype), log = [];
+  o.state = { map: 'tree-x', self: null, nodes: {}, rsrc: { '1-1': { app: 'svi', id: 'a', name: '카메라', node: 'n1' }, '2-1': { app: 'svi', id: 'b', name: '저장기', node: 'n1' } }, links: [{ id: 'l1', from: '1-1', to: '2-1', path: [] }], ioGrants: {} };
+  o.setState = (p) => Object.assign(o.state, p); o.hbSay = (t) => log.push(t);
+  const put = (src, dst) => o.setState({ links: [Object.assign({}, o.state.links[0], { io: Object.assign(o.ioRead(o.state.links[0]), { endpoints: { 'src:a': src, 'dst:b': dst } }) })] });
+  const ph = () => o.state.links[0].io.phase, E = o.IOEPS(), cv = (x, y) => o.ioCompat(E.find((e) => e.id === x), E.find((e) => e.id === y)).v, out = {};
+  out.kind = o.ioRead(o.state.links[0]).kind;
+  put('frames', 'log'); await o.linkApply('l1'); out.bad = ph();
+  put('frames', 'sink'); await o.linkApply('l1'); out.noGrant = ph();
+  await o.linkGrantSelf('l1', { ttlSeconds: 86400 }); out.granted = ph();
+  out.compat = [cv('frames', 'sink'), cv('frames', 'log'), cv('snapshot', 'sink')].join(',');
+  return out;
+});
+check('입출력 설정 (디자인 예시) — 형식 어긋남 → invalid · 허가 없음 → needs-grant · 허가 주기 → active',
+  ioDemo.kind === 'binding' && ioDemo.bad === 'invalid' && ioDemo.noGrant === 'needs-grant' && ioDemo.granted === 'active' && ioDemo.compat === 'exact,incompatible,incompatible', JSON.stringify(ioDemo));
 check('페이지 오류 없음', errors.length === 0, errors.slice(0, 3).join(' / '));
 
 await browser.close(); server.close();

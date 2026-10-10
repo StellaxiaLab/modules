@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.file/store"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/store"
 )
 
 var (

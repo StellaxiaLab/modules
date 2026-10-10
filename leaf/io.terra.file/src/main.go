@@ -20,10 +20,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/terra-project/terra/module/leaf/io.terra.file/store"
-	"github.com/terra-project/terra/module/leaf/io.terra.file/transfer"
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
-	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/store"
+	"github.com/StellaxiaLab/modules/leaf/io.terra.file/transfer"
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
 // defaultChunkSizeBytes is the transfer chunk this module asks callers to use.

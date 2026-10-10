@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	agentcore "github.com/terra-project/terra/products/common/packages/terra-agent-core"
+	agentcore "github.com/StellaxiaLab/terra-agent"
 
-	"github.com/terra-project/terra/products/common/packages/terra-testwait"
+	"github.com/StellaxiaLab/modules/common/io.terra.agent/internal/testwait"
 )
 
 // Each row of the design's decision table (§6.3) has a test here, run through

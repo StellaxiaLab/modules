@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
 )
 
 // This module is a probe for the registration → publication → distribution →
@@ -162,32 +160,7 @@ func TestOperationsRefuseNonGET(t *testing.T) {
 	}
 }
 
-// The three tests above read the manifest as plain JSON, which proves the file
-// says what we think it says but not that the PLATFORM agrees. ManifestCLICommands
-// is the function the module host actually runs, and it drops a malformed
-// command with a reason rather than failing the module — so a bad declaration
-// would ship quietly and `terra hello` would simply not exist. Running the real
-// validator here is what turns that silence into a test failure.
-func TestPlatformAcceptsTheCLIContribution(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "module.json"))
-	if err != nil {
-		t.Fatalf("read manifest: %v", err)
-	}
-	manifest, _, err := modulert.DecodeManifest(raw)
-	if err != nil {
-		t.Fatalf("the platform rejects this manifest: %v", err)
-	}
-	commands, reasons := modulert.ManifestCLICommands(manifest)
-	if len(reasons) != 0 {
-		t.Fatalf("the host would drop a contributed command: %v", reasons)
-	}
-	if len(commands) != 1 {
-		t.Fatalf("the host sees %d contributed commands, want 1", len(commands))
-	}
-	if got := commands[0].Name; got != "hello" {
-		t.Fatalf("the host registers %q, so `terra hello` would not dispatch", got)
-	}
-	if got := commands[0].OperationID; got != "dev.terrallo.hello.get" {
-		t.Fatalf("contributed command invokes %q", got)
-	}
-}
+// That the PLATFORM agrees with this manifest — that the host's own validator
+// accepts the CLI contribution rather than dropping it with a reason — is
+// checked in Terra (module-gateway-integration), because it needs the host's
+// manifest parser and this module builds without a Terra checkout.

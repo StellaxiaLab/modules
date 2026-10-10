@@ -5,7 +5,8 @@
 //        공유(자원 → 노드)는 svi.grants.post {subject_type: node}.
 // 전제: PF-1 — Master op 가 이 화면의 자격으로 닿는다(사용자 신원). 닿지 않으면(카탈로그에 없다 · 401) 아무것도 바꾸지 않고 이유만 돌려준다.
 // 서버는 `client.invoke` 로 직접 부른다 — Master 의 POST 본문은 모르는 키를 거절한다(decodeJSON). node_id 를 싣지 않는다(UP-13).
-import { buildIO, pairsOf, worstPhase, idempotencyKey, setEndpointChoice } from '../model/link-io.js';
+import { buildIO, pairsOf, worstPhase, idempotencyKey, setEndpointChoice, SHARE_TTL_DEFAULT } from '../model/link-io.js';
+import { reaches, missingReason, reasonText } from './client.js';
 
 const T = (op) => 'terra.master.' + op;
 export const OPS = {
@@ -85,7 +86,7 @@ const phaseOf = (io, key, phase, extra) => {
 
 /**
  * 연결 하나를 적용한다. 부르는 호출은 위 OPS 뿐이다. 이미 바인딩이 있는 쌍(binding_id)은 다시 만들지 않는다(멱등 키도 같다).
- * @param {{ client: any }} source  LiveSource — `client.invoke` · `client.has` 만 쓴다
+ * @param {{ client: any }} source  LiveSource — `client.invoke` · `client.has`(· `client.reaches`) 만 쓴다
  * @param {any} link
  * @param {any[]} links  이 맵의 모든 연결(합류를 풀 때)
  * @param {import('../model/link-io.js').LinkCtx} ctx
@@ -98,8 +99,8 @@ export async function applyLink(source, link, links, ctx, o) {
   let io = buildIO(link, links, ctx, link.io);
   if (io.kind === 'screen') return { io, applied: 0, notes: ['화면 전용 연결이다 — 데이터는 흐르지 않는다'] };
   const need = io.kind === 'share' ? [OPS.grantsPost, OPS.grantsGet] : [OPS.bindPost, OPS.grantsGet, OPS.endpoints];
-  const missing = need.find((op) => !client.has(op));
-  if (missing) return { io, applied: 0, unavailable: 'not-in-catalog', notes: ['이 노드의 게이트웨이에 ' + missing.replace('terra.master.', '') + ' 가 없다 — Master 위임(PF-1)'] };
+  const missing = need.find((op) => !reaches(client, op));
+  if (missing) return { io, applied: 0, unavailable: 'not-in-catalog', notes: [missing.replace('terra.master.', '') + ' — ' + reasonText({ reason: missingReason(client, missing) })] };
   if (!o.userId) return { io, applied: 0, unavailable: 'no-user', notes: ['내 신원을 모른다 — 다시 로그인'] };
 
   const stamp = () => new Date(now()).toISOString();
@@ -142,6 +143,11 @@ export async function applyLink(source, link, links, ctx, o) {
     const key = p.key, cur = io.pairs.find((q) => q.key === key);
     if (cur && cur.binding_id && cur.phase !== 'lost' && cur.phase !== 'closed' && cur.phase !== 'denied' && cur.phase !== 'invalid') { notes.push(label(p) + ' — 이미 바인딩이 있다'); continue; }
     const s = p.source, t = p.target;
+    // 자원을 못 본다 — 내 것이 아니거나 사라졌다. 관리자가 아니면 남의 자원과는 허가를 받아도 못 잇는다(Master 도 같은 이유로 거절한다 — 설계 §9 실행 확인)
+    if (eps.get(s.resource_id) === null || eps.get(t.resource_id) === null) {
+      const reason = (eps.get(s.resource_id) === null ? 'source' : 'target') + '_resource_not_found';
+      io = phaseOf(io, key, 'invalid', { reason }); notes.push(label(p) + ' — ' + reason); continue;
+    }
     // 엔드포인트를 정하지 못했다 — 사람이 고른다(Q-27)
     if (!s.endpoint_id || !t.endpoint_id) {
       io = phaseOf(io, key, 'invalid', { reason: 'endpoint_not_chosen: ' + (!s.endpoint_id ? s.resource_id + '(보내는 쪽)' : t.resource_id + '(받는 쪽)') });
@@ -200,7 +206,7 @@ async function applyShare(client, link, links, ctx, io0, o, h) {
     const live = arr(have.data, 'items', 'grants').find((g) => g && g.resource_id === res && g.subject && g.subject.type === 'node' && g.subject.id === nodeId && (!g.expires_at || Date.parse(g.expires_at) > (o.now || Date.now)()));
     if (live) { io = phaseOf(io, p.key, 'shared', { grant_id: live.grant_id }); h.notes.push(label(p) + ' — 이미 공유 중'); continue; }
     const ops = io.share_ops && io.share_ops.length ? io.share_ops : ['read', 'subscribe', 'bind.source'];
-    const body = { subject_type: 'node', subject_id: nodeId, resource_id: res, operations: ops, ttl_seconds: io.share_ttl_seconds || 0 };
+    const body = { subject_type: 'node', subject_id: nodeId, resource_id: res, operations: ops, ttl_seconds: io.share_ttl_seconds > 0 ? io.share_ttl_seconds : SHARE_TTL_DEFAULT };
     if (p.via_node_id) body.via_node_id = p.via_node_id;
     const r = await client.invoke(OPS.grantsPost, body);
     if (r.kind === 'ok' || r.kind === 'accepted') {
@@ -219,12 +225,15 @@ async function applyShare(client, link, links, ctx, io0, o, h) {
 
 /**
  * [나에게 허가 주기] — 연결이 막힌 쌍의 bind.source · bind.target 을 내 user 주체에게 준다(소유자만 만들 수 있다 — node.control · 자원 소유).
- * 사람이 눌렀을 때만 부른다(Q-22). 끝점 하나 · operation 하나씩, 기한은 ttlSeconds(0 = 없음 — Q-23).
+ * 사람이 눌렀을 때만 부른다(Q-22). 끝점 하나 · operation 하나씩. 기한은 ttlSeconds — 0 은 기한 없음(사람이 일부러 고른 경우만). 기본은 30일이다(Q-23 결정: 무기한 허가가 쌓이지 않게 설정 창에서 기한을 고르고, 고르지 않으면 30일).
  * @returns {Promise<{ ok: boolean, made: string[], failed: Array<{ resource_id: string, operation: string, code: string }> }>}
  */
-export async function grantSelf(client, lacks, userId, ttlSeconds = 0) {
+/** 내게 주는 bind 허가의 기본 기한(초) — 30일. 임시 기본값이다: Q-23 결정(2026-10-07)이 "기한을 고르게 한다"까지만 정했다 */
+export const GRANT_SELF_TTL_DEFAULT = 30 * 86400;
+
+export async function grantSelf(client, lacks, userId, ttlSeconds = GRANT_SELF_TTL_DEFAULT) {
   const made = [], failed = [];
-  if (!client.has(OPS.grantsPost)) return { ok: false, made, failed: lacks.map((l) => ({ resource_id: l.resource_id, operation: l.operation, code: 'not-in-catalog' })) };
+  if (!reaches(client, OPS.grantsPost)) return { ok: false, made, failed: lacks.map((l) => ({ resource_id: l.resource_id, operation: l.operation, code: 'not-in-catalog' })) };
   for (const l of lacks) {
     const r = await client.invoke(OPS.grantsPost, { subject_type: 'user', subject_id: userId, resource_id: l.resource_id, endpoint_id: l.endpoint_id, operations: [l.operation], ttl_seconds: ttlSeconds });
     if (r.kind === 'ok' || r.kind === 'accepted') made.push(l.resource_id + ' ' + l.operation);
