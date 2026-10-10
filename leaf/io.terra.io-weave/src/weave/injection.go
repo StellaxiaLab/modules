@@ -3,7 +3,7 @@ package weave
 import (
 	"errors"
 
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
 )
 
 // Whether this node COULD drive its own pointer, and why not when it cannot.

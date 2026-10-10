@@ -9,7 +9,7 @@ import (
 
 	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
+	"github.com/StellaxiaLab/modules/internal/testkit/climanifest"
 )
 
 // The `nodetalk join` room is assembled entirely from pointers into this
@@ -65,7 +65,7 @@ func schemaAt(schema map[string]any, pointer string) (map[string]any, bool) {
 		if !ok {
 			return nil, false
 		}
-		next, ok := properties[modulert.DecodeCLIPointerToken(token)].(map[string]any)
+		next, ok := properties[climanifest.DecodePointerToken(token)].(map[string]any)
 		if !ok {
 			return nil, false
 		}
@@ -74,9 +74,9 @@ func schemaAt(schema map[string]any, pointer string) (map[string]any, bool) {
 	return current, true
 }
 
-func sessionCommand(t *testing.T) modulert.CLICommand {
+func sessionCommand(t *testing.T) climanifest.Command {
 	t.Helper()
-	commands, reasons := modulert.ManifestCLICommands(loadManifest(t))
+	commands, reasons := loadCommands(t)
 	for _, reason := range reasons {
 		t.Errorf("the platform dropped a declared command: %s", reason)
 	}
@@ -86,7 +86,7 @@ func sessionCommand(t *testing.T) modulert.CLICommand {
 		}
 	}
 	t.Fatal("no session declared — the room has no way to be opened")
-	return modulert.CLICommand{}
+	return climanifest.Command{}
 }
 
 // Every role names an operation this module serves, and is callable with what
@@ -111,7 +111,7 @@ func TestSessionRolesAreCallable(t *testing.T) {
 	// The send role supplies one input itself: the typed text.
 	sendText := strings.TrimPrefix(session.Send.TextPointer, "/")
 
-	check := func(role, operationID string, mode modulert.CLISessionInput) {
+	check := func(role, operationID string, mode string) {
 		if !served[operationID] {
 			t.Errorf("%s: names %s, which this module does not serve", role, operationID)
 			return
@@ -121,7 +121,7 @@ func TestSessionRolesAreCallable(t *testing.T) {
 			if role == "send" && property == sendText {
 				continue
 			}
-			if mode == modulert.CLIInputNone {
+			if mode == climanifest.InputNone {
 				t.Errorf("%s: %s requires %q, but the role declared input \"none\"",
 					role, operationID, property)
 				continue

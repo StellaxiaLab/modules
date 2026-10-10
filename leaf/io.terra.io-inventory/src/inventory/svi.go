@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
-	coresvi "github.com/terra-project/terra/products/common/packages/terra-svi"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
+	coresvi "github.com/StellaxiaLab/terra-sdk/svi"
 )
 
 // SVIResources describes the registry's devices as module-local SVI resource

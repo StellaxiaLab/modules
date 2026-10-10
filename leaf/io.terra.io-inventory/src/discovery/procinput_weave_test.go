@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
 )
 
 // The other half of G-27, pinned from the identity rather than from a

@@ -12,7 +12,7 @@ import (
 
 	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
 
-	"github.com/terra-project/terra/products/common/packages/terra-testwait"
+	"github.com/StellaxiaLab/modules/internal/testkit/testwait"
 )
 
 // recordingDoor captures every door call and answers success, so a test can

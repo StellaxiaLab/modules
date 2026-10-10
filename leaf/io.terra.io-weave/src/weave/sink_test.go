@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	ioweave "github.com/StellaxiaLab/modules/leaf/io.terra.io-weave/ioweave"
-	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
 )
 
 // "Not mine" is not a failure: the daemon asks every registered backend in

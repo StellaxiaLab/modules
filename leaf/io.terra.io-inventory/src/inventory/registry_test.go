@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	coresvi "github.com/terra-project/terra/products/common/packages/terra-svi"
+	"github.com/StellaxiaLab/modules/internal/testkit/svicheck"
+	coresvi "github.com/StellaxiaLab/terra-sdk/svi"
 )
 
 func TestRegistryEnforcesApprovalEnableAndPresence(t *testing.T) {
@@ -235,7 +236,7 @@ func TestSVIResourcesPassCoreValidation(t *testing.T) {
 		resource.ProviderID = "module.io.terra.io-inventory"
 		resource.Owner = coresvi.SubjectRef{Type: coresvi.SubjectNode, ID: "node-1"}
 		resource.ExpiresAt = now.Add(time.Minute)
-		if err := coresvi.ValidateResource(resource); err != nil {
+		if err := svicheck.Resource(resource); err != nil {
 			t.Fatalf("kind %q: %v", resource.Kind, err)
 		}
 	}
@@ -267,7 +268,7 @@ func TestSVIEncodingsFollowTheAdapter(t *testing.T) {
 		resource.ProviderID = "module.io.terra.io-inventory"
 		resource.Owner = coresvi.SubjectRef{Type: coresvi.SubjectNode, ID: "node-1"}
 		resource.ExpiresAt = now.Add(time.Minute)
-		if err := coresvi.ValidateResource(resource); err != nil {
+		if err := svicheck.Resource(resource); err != nil {
 			t.Fatalf("%s: %v", resource.ResourceID, err)
 		}
 	}
