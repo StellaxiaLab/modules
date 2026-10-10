@@ -114,6 +114,32 @@ func TestEveryAnsweredErrorCodeIsDeclared(t *testing.T) {
 	}
 }
 
+// loadManifest reads module.json as plain JSON — only the permission fields
+// this file asserts on. The host's own manifest parser is not available to a
+// module that builds without a Terra checkout; Terra checks that the host
+// accepts this manifest (module-gateway-integration).
+type manifestPermissions struct {
+	Permissions *struct {
+		CoreOperations []struct {
+			ID string `json:"id"`
+		} `json:"coreOperations"`
+		Storage []string `json:"storage"`
+	} `json:"permissions"`
+}
+
+func loadManifest(t *testing.T) manifestPermissions {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join("..", "module.json"))
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	var manifest manifestPermissions
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		t.Fatalf("decode manifest: %v", err)
+	}
+	return manifest
+}
+
 // The module's standing power is one door. If someone adds a second core
 // operation to the manifest, the module gains authority that exists whether
 // or not a person delegated anything — the exact thing §11.4 forbids.
