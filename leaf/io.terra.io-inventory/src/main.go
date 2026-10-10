@@ -18,8 +18,8 @@ import (
 
 	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/inventory"
 	"github.com/StellaxiaLab/modules/leaf/io.terra.io-inventory/manual"
-	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
-	coresvi "github.com/terra-project/terra/products/common/packages/terra-svi"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
+	coresvi "github.com/StellaxiaLab/terra-sdk/svi"
 )
 
 const moduleVersion = "0.2.0"

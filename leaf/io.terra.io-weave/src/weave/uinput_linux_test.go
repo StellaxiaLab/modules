@@ -13,7 +13,7 @@ import (
 	"testing"
 	"unsafe"
 
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
 )
 
 // G-27, from the creating side.

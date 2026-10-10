@@ -9,9 +9,9 @@ import (
 	"time"
 
 	ioweave "github.com/StellaxiaLab/modules/leaf/io.terra.io-weave/ioweave"
-	protocol "github.com/terra-project/terra/products/common/packages/terra-protocol"
+	protocol "github.com/StellaxiaLab/terra-sdk/protocol"
 
-	"github.com/terra-project/terra/products/common/packages/terra-testwait"
+	"github.com/StellaxiaLab/modules/internal/testkit/testwait"
 )
 
 // fakeInjector stands in for a virtual input device.

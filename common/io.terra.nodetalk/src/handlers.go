@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
 )
 
 // ---- status -----------------------------------------------------------------

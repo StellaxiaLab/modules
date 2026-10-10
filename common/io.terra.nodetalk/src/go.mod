@@ -2,18 +2,8 @@ module github.com/StellaxiaLab/modules/common/io.terra.nodetalk
 
 go 1.23.0
 
-replace github.com/terra-project/terra/products/common/packages/terra-module-sdk => ../../../../products/common/packages/terra-module-sdk
+require github.com/StellaxiaLab/terra-sdk v0.1.0
 
-replace github.com/terra-project/terra/products/common/packages/terra-module-runtime => ../../../../products/common/packages/terra-module-runtime
+require github.com/StellaxiaLab/modules/internal/testkit v0.0.0
 
-replace github.com/terra-project/terra/products/common/packages/terra-protocol => ../../../../products/common/packages/terra-protocol
-
-replace github.com/terra-project/terra/products/common/packages/terra-svi => ../../../../products/common/packages/terra-svi
-
-require (
-	github.com/terra-project/terra/products/common/packages/terra-module-runtime v0.0.0
-	github.com/terra-project/terra/products/common/packages/terra-module-sdk v0.0.0
-	github.com/terra-project/terra/products/common/packages/terra-testwait v0.0.0
-)
-
-replace github.com/terra-project/terra/products/common/packages/terra-testwait => ../../../../products/common/packages/terra-testwait
+replace github.com/StellaxiaLab/modules/internal/testkit => ../../../internal/testkit

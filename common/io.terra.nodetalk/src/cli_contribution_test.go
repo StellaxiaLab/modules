@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	modulert "github.com/terra-project/terra/products/common/packages/terra-module-runtime"
+	"github.com/StellaxiaLab/modules/internal/testkit/climanifest"
 )
 
 // The manifest's contributions.cli turns this module's operations into real
@@ -18,19 +18,15 @@ import (
 // and a pointer that no longer matches the operation's input schema after a
 // contract change. Both would leave a command that exists in the manifest and
 // does nothing useful in a shell, so both are asserted here against the
-// platform's own validator and the shipped contract.
+// shipped contract (the platform's own validator is the CI pack job).
 
-func loadManifest(t *testing.T) modulert.Manifest {
+func loadCommands(t *testing.T) ([]climanifest.Command, []string) {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "module.json"))
+	commands, problems, err := climanifest.Load(filepath.Join("..", "module.json"))
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
-	var manifest modulert.Manifest
-	if err := json.Unmarshal(raw, &manifest); err != nil {
-		t.Fatalf("decode manifest: %v", err)
-	}
-	return manifest
+	return commands, problems
 }
 
 // contractInputSchema returns one operation's input schema properties and its
@@ -66,7 +62,7 @@ func contractInputSchema(t *testing.T, operationID string) (map[string]any, map[
 }
 
 func TestEveryDeclaredCLICommandIsAccepted(t *testing.T) {
-	commands, reasons := modulert.ManifestCLICommands(loadManifest(t))
+	commands, reasons := loadCommands(t)
 	for _, reason := range reasons {
 		t.Errorf("the platform dropped a declared command: %s", reason)
 	}
@@ -85,7 +81,7 @@ func TestEveryDeclaredCLICommandIsAccepted(t *testing.T) {
 // a top-level pointer, because the Gateway maps the flat input onto the
 // binding (path placeholders first, the rest to body or query).
 func TestCLIPointersMatchTheContractInput(t *testing.T) {
-	commands, _ := modulert.ManifestCLICommands(loadManifest(t))
+	commands, _ := loadCommands(t)
 	declared := map[string]bool{}
 	for _, route := range operationRoutes {
 		declared[route.OperationID] = true

@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	modulesdk "github.com/terra-project/terra/products/common/packages/terra-module-sdk"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
 // OpenSink is the module's answer to "can you absorb a binding's frames for
