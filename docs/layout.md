@@ -56,7 +56,7 @@ last_updated: "2026-10-09"
 `github.com/StellaxiaLab/modules`로 바뀌었다). 같은 모듈의 하위 패키지는 그 뒤에 이어 적는다
 (예: `.../leaf/io.terra.file/store`).
 
-저장소만으로 빌드되게 하는 전환(설계 `module-independent-repos` M-1~M-8)의 현재 단계:
+저장소만으로 빌드되게 하는 전환(설계 [`module-independent-repos`](design/module-independent-repos.md) M-1~M-8)의 현재 단계:
 
 | 단계 | 내용 | 상태 |
 | --- | --- | --- |
