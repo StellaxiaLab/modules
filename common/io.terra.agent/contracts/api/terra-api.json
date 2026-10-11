@@ -3723,6 +3723,16 @@
               "owner": "alice",
               "pending_approvals": [
                 {
+                  "contract": {
+                    "confirmation_mode": "conditional",
+                    "idempotency_mode": "none",
+                    "output_mode": "accepted-job",
+                    "permissions": [
+                      "node.control"
+                    ],
+                    "retry_mode": "never",
+                    "risk": "dangerous"
+                  },
                   "created_ms": 1757000100000,
                   "input": {
                     "module_id": "io.terra.sample"
@@ -3813,6 +3823,66 @@
                 "additionalProperties": false,
                 "description": "사람의 답을 기다리는 승인 요청 하나.",
                 "properties": {
+                  "contract": {
+                    "additionalProperties": false,
+                    "description": "이 operation의 계약이 말하는 실행 사실. 승인하는 사람이 읽을 것은 모델의 주장(reason)이 아니라 이쪽이다. 계약이 적지 않은 칸은 키가 없다 — '없음'(none·빈 목록)과 '적지 않음'(키 없음)은 다른 사실이다. Gateway 계약을 읽을 수 없는 호출(외부 MCP 도구)에는 이 객체 자체가 없다.",
+                    "properties": {
+                      "confirmation_mode": {
+                        "description": "execution.confirmation.mode. 계약이 적은 값 그대로(required·conditional·none 등).",
+                        "title": "확인 방식",
+                        "type": "string"
+                      },
+                      "idempotency_mode": {
+                        "description": "execution.idempotency.mode. 계약이 적은 값 그대로.",
+                        "title": "멱등",
+                        "type": "string"
+                      },
+                      "output_mode": {
+                        "description": "output.mode. immediate·accepted-job·stream·empty 중 계약이 적은 값. accepted-job은 접수이지 완료가 아니다.",
+                        "title": "결과 방식",
+                        "type": "string"
+                      },
+                      "permissions": {
+                        "description": "이 operation이 요구하는 권한. 키가 없으면 계약이 적지 않은 것이다.",
+                        "items": {
+                          "type": "string"
+                        },
+                        "title": "요구 권한",
+                        "type": "array"
+                      },
+                      "retry_mode": {
+                        "description": "execution.retry.mode. 계약이 적은 값 그대로.",
+                        "title": "재시도",
+                        "type": "string"
+                      },
+                      "risk": {
+                        "description": "execution.risk. read·write·dangerous·privileged 중 계약이 적은 값.",
+                        "title": "위험",
+                        "type": "string"
+                      },
+                      "side_effects": {
+                        "description": "계약이 적은 sideEffects. 키가 없으면 계약이 적지 않은 것이고, 빈 목록이면 계약이 '없다'고 적은 것이다.",
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "action": {
+                              "title": "동작",
+                              "type": "string"
+                            },
+                            "resource_id": {
+                              "title": "자원",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "title": "부작용",
+                        "type": "array"
+                      }
+                    },
+                    "title": "계약 사실",
+                    "type": "object"
+                  },
                   "created_ms": {
                     "description": "Unix epoch 밀리초.",
                     "minimum": 0,
@@ -4177,6 +4247,66 @@
                       "additionalProperties": false,
                       "description": "사람의 답을 기다리는 승인 요청 하나.",
                       "properties": {
+                        "contract": {
+                          "additionalProperties": false,
+                          "description": "이 operation의 계약이 말하는 실행 사실. 승인하는 사람이 읽을 것은 모델의 주장(reason)이 아니라 이쪽이다. 계약이 적지 않은 칸은 키가 없다 — '없음'(none·빈 목록)과 '적지 않음'(키 없음)은 다른 사실이다. Gateway 계약을 읽을 수 없는 호출(외부 MCP 도구)에는 이 객체 자체가 없다.",
+                          "properties": {
+                            "confirmation_mode": {
+                              "description": "execution.confirmation.mode. 계약이 적은 값 그대로(required·conditional·none 등).",
+                              "title": "확인 방식",
+                              "type": "string"
+                            },
+                            "idempotency_mode": {
+                              "description": "execution.idempotency.mode. 계약이 적은 값 그대로.",
+                              "title": "멱등",
+                              "type": "string"
+                            },
+                            "output_mode": {
+                              "description": "output.mode. immediate·accepted-job·stream·empty 중 계약이 적은 값. accepted-job은 접수이지 완료가 아니다.",
+                              "title": "결과 방식",
+                              "type": "string"
+                            },
+                            "permissions": {
+                              "description": "이 operation이 요구하는 권한. 키가 없으면 계약이 적지 않은 것이다.",
+                              "items": {
+                                "type": "string"
+                              },
+                              "title": "요구 권한",
+                              "type": "array"
+                            },
+                            "retry_mode": {
+                              "description": "execution.retry.mode. 계약이 적은 값 그대로.",
+                              "title": "재시도",
+                              "type": "string"
+                            },
+                            "risk": {
+                              "description": "execution.risk. read·write·dangerous·privileged 중 계약이 적은 값.",
+                              "title": "위험",
+                              "type": "string"
+                            },
+                            "side_effects": {
+                              "description": "계약이 적은 sideEffects. 키가 없으면 계약이 적지 않은 것이고, 빈 목록이면 계약이 '없다'고 적은 것이다.",
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "action": {
+                                    "title": "동작",
+                                    "type": "string"
+                                  },
+                                  "resource_id": {
+                                    "title": "자원",
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "title": "부작용",
+                              "type": "array"
+                            }
+                          },
+                          "title": "계약 사실",
+                          "type": "object"
+                        },
                         "created_ms": {
                           "description": "Unix epoch 밀리초.",
                           "minimum": 0,
@@ -5086,6 +5216,66 @@
               "additionalProperties": false,
               "description": "사람의 답을 기다리는 승인 요청 하나.",
               "properties": {
+                "contract": {
+                  "additionalProperties": false,
+                  "description": "이 operation의 계약이 말하는 실행 사실. 승인하는 사람이 읽을 것은 모델의 주장(reason)이 아니라 이쪽이다. 계약이 적지 않은 칸은 키가 없다 — '없음'(none·빈 목록)과 '적지 않음'(키 없음)은 다른 사실이다. Gateway 계약을 읽을 수 없는 호출(외부 MCP 도구)에는 이 객체 자체가 없다.",
+                  "properties": {
+                    "confirmation_mode": {
+                      "description": "execution.confirmation.mode. 계약이 적은 값 그대로(required·conditional·none 등).",
+                      "title": "확인 방식",
+                      "type": "string"
+                    },
+                    "idempotency_mode": {
+                      "description": "execution.idempotency.mode. 계약이 적은 값 그대로.",
+                      "title": "멱등",
+                      "type": "string"
+                    },
+                    "output_mode": {
+                      "description": "output.mode. immediate·accepted-job·stream·empty 중 계약이 적은 값. accepted-job은 접수이지 완료가 아니다.",
+                      "title": "결과 방식",
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "description": "이 operation이 요구하는 권한. 키가 없으면 계약이 적지 않은 것이다.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "요구 권한",
+                      "type": "array"
+                    },
+                    "retry_mode": {
+                      "description": "execution.retry.mode. 계약이 적은 값 그대로.",
+                      "title": "재시도",
+                      "type": "string"
+                    },
+                    "risk": {
+                      "description": "execution.risk. read·write·dangerous·privileged 중 계약이 적은 값.",
+                      "title": "위험",
+                      "type": "string"
+                    },
+                    "side_effects": {
+                      "description": "계약이 적은 sideEffects. 키가 없으면 계약이 적지 않은 것이고, 빈 목록이면 계약이 '없다'고 적은 것이다.",
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "action": {
+                            "title": "동작",
+                            "type": "string"
+                          },
+                          "resource_id": {
+                            "title": "자원",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "title": "부작용",
+                      "type": "array"
+                    }
+                  },
+                  "title": "계약 사실",
+                  "type": "object"
+                },
                 "created_ms": {
                   "description": "Unix epoch 밀리초.",
                   "minimum": 0,

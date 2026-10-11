@@ -151,7 +151,32 @@ type approvalRequest struct {
 	Judgement   string          `json:"judgement,omitempty"`
 	Input       json.RawMessage `json:"input,omitempty"`
 	CreatedMS   int64           `json:"created_ms"`
-	answer      chan bool
+	// Contract is what the operation's contract says about running it — the
+	// facts a person approves, as opposed to Reason, which is the model's claim.
+	// It is absent when there is no Gateway contract to read (an external tool).
+	Contract *approvalContract `json:"contract,omitempty"`
+	answer   chan bool
+}
+
+// approvalContract carries the contract's own words. A field the contract did
+// not write is ABSENT from the JSON; a field it wrote as "none" or as an empty
+// list is present. "Not written" and "none" are different facts (DC-17), so
+// every value here is omitted when unwritten and never defaulted.
+type approvalContract struct {
+	Risk             string `json:"risk,omitempty"`
+	ConfirmationMode string `json:"confirmation_mode,omitempty"`
+	IdempotencyMode  string `json:"idempotency_mode,omitempty"`
+	RetryMode        string `json:"retry_mode,omitempty"`
+	OutputMode       string `json:"output_mode,omitempty"`
+	// SideEffects and Permissions are pointers to slices so that an empty list
+	// the contract wrote (`[]`) survives omitempty while an unwritten one does not.
+	SideEffects *[]approvalSideEffect `json:"side_effects,omitempty"`
+	Permissions *[]string             `json:"permissions,omitempty"`
+}
+
+type approvalSideEffect struct {
+	ResourceID string `json:"resource_id,omitempty"`
+	Action     string `json:"action,omitempty"`
 }
 
 type session struct {
@@ -322,12 +347,12 @@ func (s *session) appendHistory(message Message) {
 }
 
 // addApproval registers a question and returns it; the loop waits on answer.
-func (s *session) addApproval(operationID, reason, judgement string, input json.RawMessage) *approvalRequest {
+func (s *session) addApproval(operationID, reason, judgement string, input json.RawMessage, contract *approvalContract) *approvalRequest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	request := &approvalRequest{
 		ID: randomID("apr_", 4), OperationID: operationID, Reason: reason, Judgement: judgement,
-		Input: input, CreatedMS: millis(s.now()), answer: make(chan bool, 1),
+		Input: input, Contract: contract, CreatedMS: millis(s.now()), answer: make(chan bool, 1),
 	}
 	s.pending[request.ID] = request
 	s.order = append(s.order, request.ID)

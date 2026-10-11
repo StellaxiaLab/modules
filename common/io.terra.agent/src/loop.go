@@ -535,7 +535,7 @@ func (e *engine) recorder(s *session) agentcore.Recorder {
 // the transcript and waits for `terra agent approve` or a typed answer.
 func (e *engine) approver(s *session) agentcore.Approver {
 	return agentcore.ApproverFunc(func(ctx context.Context, request agentcore.ApprovalRequest) (bool, error) {
-		pending := s.addApproval(request.OperationID, request.Reason, request.Judgement.Reason, request.Input)
+		pending := s.addApproval(request.OperationID, request.Reason, request.Judgement.Reason, request.Input, approvalContractOf(request.Operation))
 		s.mu.Lock()
 		s.setStateLocked(stateWaiting)
 		s.appendLocked(entry{
@@ -579,6 +579,36 @@ func (e *engine) approver(s *session) agentcore.Approver {
 		s.mu.Unlock()
 		return approved, nil
 	})
+}
+
+// approvalContractOf reads the facts off the catalog operation the gate already
+// holds. It returns nil when there is no operation (nothing was read).
+func approvalContractOf(operation agentcore.CatalogOperation) *approvalContract {
+	if operation.OperationID == "" {
+		return nil
+	}
+	contract := &approvalContract{}
+	if execution := operation.Execution; execution != nil {
+		contract.Risk = execution.Risk
+		contract.ConfirmationMode = execution.ConfirmationMode
+		contract.IdempotencyMode = execution.IdempotencyMode
+		contract.RetryMode = execution.RetryMode
+	}
+	if operation.Output != nil {
+		contract.OutputMode = operation.Output.Mode
+	}
+	if operation.SideEffects != nil {
+		effects := make([]approvalSideEffect, 0, len(operation.SideEffects))
+		for _, effect := range operation.SideEffects {
+			effects = append(effects, approvalSideEffect{ResourceID: effect.ResourceID, Action: effect.Action})
+		}
+		contract.SideEffects = &effects
+	}
+	if operation.Permissions != nil {
+		permissions := append([]string{}, operation.Permissions...)
+		contract.Permissions = &permissions
+	}
+	return contract
 }
 
 // approvalText is what the person reads. It separates the contract's facts
