@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>가짜 Terra 셸 (e2e)</title>
+    <style>
+      :root { color-scheme: light dark; --bar: #1d2433; --bar-text: #dbe3f5; --line: #3a4560; }
+      html, body { height: 100%; margin: 0; }
+      body { display: flex; flex-direction: column; font: 13px/1.4 system-ui, sans-serif; background: #0e1118; color: var(--bar-text); }
+      header { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 6px 12px; background: var(--bar); border-bottom: 1px solid var(--line); }
+      header b { font-weight: 600; }
+      header span { opacity: .85; }
+      #app-frame { flex: 1; border: 0; width: 100%; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <b>가짜 Terra 셸</b>
+      <span>사용자 <code id="who"></code></span>
+      <span>앱 권한 <code id="perms"></code></span>
+      <span>브리지 <code id="bridge">대기</code></span>
+      <span>요청 <code id="count">0</code></span>
+    </header>
+    <iframe id="app-frame" title="앱"></iframe>
+    <script type="module" src="./shell-host.mjs"></script>
+  </body>
+</html>

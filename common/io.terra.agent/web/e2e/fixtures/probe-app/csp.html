@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>점검용 앱 — CSP</title>
+  </head>
+  <body>
+    <p>이 페이지는 일부러 CSP 를 어긴다: 인라인 스크립트, 바깥 origin 으로 연결.</p>
+    <pre id="result">…</pre>
+    <script>window.__inlineRan = true;</script>
+    <script src="./csp-fetch.js"></script>
+  </body>
+</html>
