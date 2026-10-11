@@ -8,8 +8,8 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.12.0"
-last_updated: "2026-10-10"
+version: "0.13.0"
+last_updated: "2026-10-11"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -542,7 +542,7 @@ Terra ADR-GW-003 1차(Terra#143)로 앱 토큰이 Master 읽기에 닿는다. �
 - **부르는 길** — tree 는 operation id, leaf 는 `/api/upstream`(client.js `invokeUpstream`). 보드는 모른다. 묶음을 고를 때와 10초마다 그 묶음의 읽기만 부른다.
 - **쓰기는 없다** — 자동 조정 · 수동 계획 · 피어 철회 · probe 실행 · 정책 저장 · 세션 닫기는 Master 쓰기라 위임 입구 2차다. 버튼을 두지 않고 "보기만" 배너를 둔다. 연결 그룹(`connection-groups.*`)은 1차 28에 들지 않는다.
 - **닿지 않으면** — 예전 Terra(401 → `masterBlocked`) · 상위 Master 없음(501)이면 예전처럼 "닿지 않음"과 이유.
-- 시험: `tests/netmaster.test.mjs` 5개 — 응답 → 행(노드 × 네트워크 · 그래프 · 후보 · 정책 · 세션 · probe · 이력, Go 의 nil 목록 · 빈 time), leaf 앱 토큰의 보드가 `/api/upstream`으로 읽고 예시 · 쓰기 버튼이 없음, 401이면 "닿지 않음". 응답 모양은 Terra Master 코드(`routes_network.go` · `models/network_state.go` · `models/route_runtime.go`)를 읽고 맞췄다. **진짜 스택 실측은 아직이다.**
+- 시험: `tests/netmaster.test.mjs` 5개 — 응답 → 행(노드 × 네트워크 · 그래프 · 후보 · 정책 · 세션 · probe · 이력, Go 의 nil 목록 · 빈 time), leaf 앱 토큰의 보드가 `/api/upstream`으로 읽고 예시 · 쓰기 버튼이 없음, 401이면 "닿지 않음". 응답 모양은 Terra Master 코드(`routes_network.go` · `models/network_state.go` · `models/route_runtime.go`)를 읽고 맞췄다. **진짜 스택 실측 — §5.10(2026-10-11): 사설망 · 이력 · 쓰기 없음 · 닿지 않음은 맞고, 후보(쌍 고르기)는 채널 이름 때문에 409(MD-45).**
 
 ### 5.9 입출력 연결 — 위임 입구 쓰기 실측(MD-32) — 2026-10-10
 
@@ -568,6 +568,128 @@ Terra [Terra#154](https://github.com/StellaxiaLab/Terra/pull/154)(ADR-GW-004 2a 
 | 없는 바인딩 닫기 | `closeBindings`가 이미 없는 것으로 친다 |
 
 **실측에서 드러난 모듈 버그(고쳤다)** — 앱 토큰의 whoami `principal`은 `user_… via lab.stellaxia.node-gui.web`이다(`via <앱>`이 붙는다). 연결 적용은 이것을 그대로 사용자 id로 써서 `grantSelf`가 위임 입구에서 403이 났고, 허가 대조(`subject.id === userId`)도 영영 맞지 않았다. 단위 시험은 `user_me`로만 돌아 잡지 못했다. `link-apply.js`의 `userIdOf`가 `applyLink` · `grantSelf` 입구에서 `via` 접미사를 뗀다(시험 추가).
+
+### 5.10 위임 입구 화면 · 에이전트 실측 — 2026-10-11
+
+ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트 읽기)를 **시험이 닿지 않은 자리**에서 쟀다 — 사람이 보는 화면(tree · leaf), 실제 장치 쌍, 에이전트 모듈(`io.terra.agent`) 경로, leaf의 에이전트. 소스는 고치지 않았다. 찾은 버그는 재현 절차와 원인 추정만 적는다.
+
+**결과: ✅ 30 · ❌ 3 · ⏭ 2** (35항목 — A 6 · B 7 · C 8 · D 8 · E 6. A1 · A2 · A3 · A4 · A6은 tree와 leaf를 둘 다 보고 하나로 센다)
+
+#### 스택
+
+**한 기기에 여러 프로세스**(MD-32 방식). 실제 기기 두 대가 아니어서 "실제 장치 쌍"은 이 기기의 실제 HID 장치(마우스)와 io-weave 포인터 싱크로 대신했다. 같은 기기에 사용자가 설치한 Terra(leaf 게이트웨이 `8787`, 관리자 권한)가 돌고 있어 이 스택은 모두 `18xxx` 포트로 띄웠고 설치본은 건드리지 않았다.
+
+| 항목 | 값 |
+| --- | --- |
+| OS | Windows 11 Pro 10.0.22621 (x64) |
+| 도구 | Go 1.26.4 · Node 24.15.0 · Playwright 1.63(설치된 Chrome, headless) · Claude 앱 안 브라우저 |
+| 커밋 | Terra main `832f8f2` · modules main `8ab9e38` |
+| Master | `terra-master` dev · sqlite, `bootstrap_*` · `service_credential` · `gateway.scene_roots` · `modules`(Tree Host) — `127.0.0.1:18080` |
+| tree Gateway | **Master가 띄운 것**(`gateway.addr` `18788`) — Master provider · forward-auth · 장면 루트에 `io.terra.scene.terra`(base) · node-gui |
+| 데몬 둘 | `stack-leaf-a`(`node_…13_54fd…`) · `stack-leaf-b`(`node_…74_3395…`) — 같은 사용자 · 같은 클러스터, `--enroll-email`로 등록. WireGuard · mesh · gRPC · direct TCP 끔 |
+| leaf Gateway | **각 데몬이 띄운 것**(`gateway_service`, `18201` · `18202`) — 노드 자격은 `POST /api/v1/daemon/nodes/{id}/gateway-credential`(장치 토큰)로 받아 `gateway_service.master_service_credential`에 넣었다. 데몬 계약이 provider, 장면 루트 = 데몬 모듈 폴더 |
+| 모듈 | `terra module pack` → `install --root <data>/modules --state-root <data>/module-state --dev --force`: leaf-a에 node-gui 0.4.2 · `io.terra.scene.terra` 0.2.1 · `io.terra.io-inventory` 0.2.0 · `io.terra.io-weave` 0.1.0 · `io.terra.agent` 0.1.0, leaf-b에 node-gui · base Scene, Tree Host에 `io.terra.agent` |
+| 화면 | leaf UI 셸(`products/leaf/ui`, Vite `18301`) · tree UI 셸(`products/tree/ui`, `18302`) — `VITE_TERRA_GATEWAY_URL`(게이트웨이 직접) · `VITE_TERRA_GATEWAY_PROXY_TARGET` |
+| 권한 | 관리자에게 기본 권한 + `agent.grant` · `agent.unattended`. 다른 클러스터 확인용으로 사용자 하나와 그 노드(`other-cluster-node`, 꺼짐)를 만들었다 |
+| 토큰 | 앱 토큰 = `POST /api/v1/gui/apps/lab.stellaxia.node-gui.web/token`(권한 `node.read · node.control · process.execute · file.read · file.write · session.identity`). 에이전트 = 사람 세션으로 `POST /api/v1/agent/grants`. 토큰은 파일로만 다뤘고 기록에 남기지 않았다 |
+| 스크린샷 | 측정 기기의 `stack/shots/A-leaf/` · `A-tree/` · `B/`(저장소에 넣지 않았다). 아래 표의 파일 이름이 그 안의 것이다 |
+
+**막혔던 곳**(차례대로 · 오류 원문)
+
+| 단계 | 막힌 것 | 한 일 |
+| --- | --- | --- |
+| 체크아웃 | 작업 폴더에 Terra · modules가 없었다 | 나란히 clone |
+| 권한 | `PATCH /api/v1/admin/users/{id} {"permissions":[…]}`는 목록을 **통째로 바꾼다** — 기본 권한(`process.execute` · `file.*` …)이 빠졌다 | 기본 권한 + 셋으로 다시 넣었다 |
+| tree Gateway | 따로 띄울 필요가 없었다 — Master가 옆의 `terra-gateway.exe`를 찾아 띄운다(`tree gateway started`) | Master 설정 `gateway.addr` · `scene_roots` |
+| leaf 셸 | `Failed to resolve entry for package "@terra/ui-web-host"` | `npm run build:packages` · `build:runtime-core` |
+| leaf 셸 → Scene | `BASE_UNAVAILABLE` "게이트웨이에서 Scene을 받지 못했습니다: 이 셸에 Gateway 주소가 없습니다" | `VITE_TERRA_GATEWAY_URL` |
+| leaf 셸 → node-gui | base Scene이 없으면 셸이 node-gui(application)를 base로 띄우고 `terra.web/frame`이 `data-role="custom-missing"` — 빈 화면에 Scene 파일 요청이 되풀이된다(499건) | `io.terra.scene.terra`를 장면 루트에 깔았다 |
+| 위임 자격 | Gateway가 다시 뜨면(데몬 · Master 재시작) 받은 `tsa_`가 `principal: anonymous`로 읽힌다 — invoke는 401이 아니라 403 `MODULE_PERMISSION_DENIED` | 다시 발급(아래 PF-29) |
+| `io.terra.agent` | `credentials.put` 403 `CREDENTIAL_REJECTED` "the Gateway did not treat this value as a delegated credential" — 위의 죽은 자격이었다 | 새 자격으로 200 |
+| 모델 | provider가 `anthropic` 하나이고 API key가 필요하다 | 진짜 키는 넣지 않았다. `base_url`을 **각본대로 답하는 가짜 Messages 서버**로 돌렸다 — 모델의 판단은 재지 않았고 관문 경로만 쟀다 |
+| 조타륜 | headless에서 마우스를 대도 조타륜이 올라오지 않았다 | 앱 바만 상태로 열었다(`setState({hb:'svi'})`). 그 뒤의 📍 설치 · 칸 고르기 · 연결하기(끌기) · 설정 · 적용 · 끊기는 실제 누름 |
+| 연결 적용 | `source_disabled` — 마우스가 승인 전 | 이 스택 데몬에서만 그 마우스를 `approve` · `enable`(10초 뒤 SVI 자원 `available`) |
+
+#### A. 네트워크 보드(#63) — tree · leaf
+
+| # | 결과 | 본 값 |
+| --- | --- | --- |
+| A1 | ✅ ✅ | 사설망: `terra-managed-wireguard` · `100.80.0.0/24` · `active`, 노드 × 네트워크 `stack-leaf-a 100.80.0.10` · `stack-leaf-b 100.80.0.11` · `online` · `internet · gen 2`. leaf 로컬 WireGuard `disabled` · `terra0` · `51820` · "WireGuard가 꺼져 있습니다 — 데몬: wireguard integration is disabled…". 모든 frame 글자에서 시연 표식 **0건**(`edge-01` · `tree-home` · `10.60.0.` · `epoch 42` …) — `10-사설망.png` · `14-로컬_WireGuard.png` |
+| A2 | ❌ ❌ | 그래프에서 두 노드를 고르면(`source` · `target` 표시) 후보 칸이 `오류 · ROUTE_UNAVAILABLE`. 보드가 `channel=service_tunnel`을 보내고 Master는 `unsupported direct route channel "service_tunnel"`(409)로 거절한다. 같은 쌍을 `channel` 없이 · `service.tunnel`로 부르면 200(`route_graph_epoch` 305, `cloud_relay` 후보 · `mesh_vpn_direct` 거부) — MD-45 · `20-route-pair.png` |
+| A3 | ✅ ✅ | 관리자 Bearer로 서비스 터널 선언을 하나 만들고 지워 감사 행 둘을 낳았다 → 조작 이력 `service.tunnel.declaration.created` · `…deleted`(`md-a3-probe`, `12:01:22`). 그 전에는 "이 결과의 조작이 없습니다" — `21-oplog.png` |
+| A4 | ✅ ✅ | 자동 조정 · 계획 적용 · 철회 · probe 실행 · 정책 추가/저장 · 세션 닫기 — 어느 단계의 글자에도 없다. 묶음마다 "Master 읽기 — 보기만" |
+| A5 | ✅ | leaf의 Master 읽기 7개가 모두 `GET /api/upstream/v1/…`(`network/state` · `network/status` · `route/graph` · `route/policies` · `route/sessions` · `network/probes` · `network/logs?limit=100`). tree는 `POST /api/v1/operations/terra.master.*/invoke` |
+| A6 | ✅ ✅ | Master를 멈추고 [지금] · 묶음 다시 고르기: leaf "Master 읽기에 실패했습니다 · 오류 `UPSTREAM_UNREACHABLE`", tree(Gateway도 Master의 자식이라 함께 내려간다) "Master 읽기에 실패했습니다 · 노드에 닿지 않는다 · TypeError: Failed to fetch". 예시 값 0. 페이지를 새로 고치면 로그인 전 화면 — `31-after-stop-refresh.png` · `33-after-stop-reload.png` |
+
+보드 밖에서 본 것 — tree 보드의 서비스 터널 묶음이 "이 화면이 받은 앱 토큰은 Master에 닿지 않습니다(위임 경계)"라고 적는다(1차 이전의 글). 전체 화면 보드 위에 세션 캡슐(`admin@stack.local · 로그아웃`)이 떠서 겹친다. 남은 콘솔 오류는 셸의 `/api/product/session` 404뿐.
+
+#### B. 입출력 연결 — leaf 화면
+
+| # | 결과 | 본 값 |
+| --- | --- | --- |
+| B1 | ✅ | 이 기기의 실제 마우스 `io.mouse-046d-c548-67c52874`(`io.terra.io-inventory`, `terra.input.mouse@1`, endpoint `output`) → `io-weave.pointer`(`terra.input.mouse@1`, endpoint `input` · sink). 다른 장치: 카메라 · 마이크 · 화면은 `unavailable`, 키보드 · 마우스 · raw-bus는 승인 전 `disabled`. **다만 io-inventory는 자원만 선언하고 프레임을 내지 않는다**(`SVISource` 없음) — 바인딩이 서도 신호는 흐를 수 없다(MD-49) |
+| B2 | ❌ | 화면: 📍 설치 두 번 · 🔗 연결하기(끌기) → `binding · draft`(도로 3칸) → [설정] → 엔드포인트 둘을 고르고 [연결 적용] → `허가 필요`에서 더 가지 않는다(B3 · MD-46). 같은 쌍을 모듈 코드(`applyLink` · `grantSelf`)로 서버에 붙이면 바인딩 `svib_…85ad`가 생기지만 `observed_state: preparing` · `reason: target_prepare_failed: context deadline exceeded`에 멈춘다. leaf-a 데몬 로그 `master_relay_inbound_rejected … "message_type":"svi.binding.prepare.request" … "error":"invalid communication envelope"`(PF-26). 신호 흐름 확인은 할 수 없었다 — `12c-picked.png` · `13-apply.png` |
+| B3 | ❌ | 화면의 [나에게 허가 주기]가 `POST /api/upstream/v1/svi/grants {"subject_type":"user","subject_id":"admin@stack.local", …,"ttl_seconds":2592000}` 둘을 보내고 둘 다 403 `FORBIDDEN` "a delegated entrance may grant only to yourself or a node in your cluster". 글줄 "허가를 만들지 못했다 — … bind.source · FORBIDDEN, … bind.target · FORBIDDEN". 화면이 쥔 principal이 사용자 id가 아니라 **이메일**이다. 서버에 올바른 허가(user 주체 · 30일)를 따로 만들어도 화면은 계속 `허가 필요` — 대조도 이메일로 하기 때문이다(MD-46). 같은 함수를 whoami principal로 부르면 `bind.source` · `bind.target` · user 주체 · 기한 30일(`2026-11-10`)이 만들어진다 |
+| B4 | ✅ | 화면의 [끊기] → 그 연결이 맵 · 설정 창에서 사라졌다(바인딩이 없던 연결 — B3 때문). 바인딩이 있는 경우는 같은 모듈 코드(`closeBindings`)로 서버에서 봤다: `DELETE` 202 → `desired_state: closed` · `observed_state: closed` · `reason: consumer_requested` |
+| B5 | ⏭ | leaf 맵에 공유받을 노드(`stack-leaf-b`)를 놓지 못했다("이웃한 노드 · 자원 없음") — 이번에는 재지 않았다. 서버 쪽 노드 주체 허가 경로는 §5.9가 보았고, 그 경로는 principal을 쓰지 않는다 |
+| B6 | ⏭ | B5와 같은 이유 |
+| B7 | ✅ | `test.stream`(bytes)을 놓고 포인터로 잇고 [연결 적용] → `invalid` · `schema_incompatible: terra.bytes@1 → terra.input.mouse@1`, 줄 상태 "맞지 않는다" — `31-badioset.png` |
+
+입출력 설정 화면에서 본 것 — 엔드포인트가 쪽마다 하나뿐인데 자동으로 고르지 않는다("고른다"). 형식이 적용 전에는 "모름 → 모름 · 형식을 알 수 없다 — Master가 판정한다"(미리 검사는 [연결 적용] 때 엔드포인트를 읽고서야 돈다). 허가 기한 고르기에 위임 입구가 늘 거절하는 **"기한 없음"**이 있다(C2). MD-47.
+
+#### C. 위임 입구의 가드와 한도 — 앱 토큰으로 leaf `/api/upstream`
+
+| # | 결과 | 본 값 |
+| --- | --- | --- |
+| C1 | ✅ | 403 `FORBIDDEN` "a delegated grant may last at most 90 days" |
+| C2 | ✅ | 403 `FORBIDDEN` "a delegated grant needs an expiry (ttl_seconds) of at most 90 days" |
+| C3 | ✅ | 403 `FORBIDDEN` "a delegated entrance may grant only to yourself or a node in your cluster" |
+| C4 | ✅ | 404 `NODE_NOT_FOUND` "node was not found" |
+| C5 | ✅ | 403 `FORBIDDEN` "a delegated entrance may not grant write to a user" |
+| C6 | ✅ | 1.5초에 31번 — 1~30번 400 `INVALID_REQUEST`(본문에 `idempotency_key`가 없게 보냈다 — 바인딩을 만들지 않으려고), 31번째 429 `RATE_LIMITED` "too many delegated calls on this route — try again in a minute". 400도 한도에 센다. `Retry-After` 머리글은 없다 |
+| C7 | ✅ | 403 `DELEGATION_NOT_OPEN` "this route does not accept a delegated session" |
+| C8 | ✅ | `audit_logs`의 `master.delegated.invoked` 37행이 모두 `delegate: lab.stellaxia.node-gui.web` · `principal: user_…` · `peer_node_id`(leaf-a) · `status_code`. 거절된 C7(403)과 C6의 31번째(429)는 행이 없다 |
+
+#### D. 에이전트(ADR-GW-005) — tree
+
+| # | 결과 | 본 값 |
+| --- | --- | --- |
+| D1 | ✅ | fleet 자격(`reach: cluster`, 권한 `file.read · node.control · node.read · relay.use`)으로 `terra.master.nodes.get` 200 — leaf-a · leaf-b만, `other-cluster-node` 없음 |
+| D2 | ✅ | 403 `DELEGATION_NOT_OPEN` "이 Master operation은 위임 자격에 열려 있지 않습니다: terra.master.svi.bindings.post". 감사에 그 에이전트의 바인딩 행 없음(Master에 닿지 않았다) |
+| D3 | ✅ | 같은 분 안에 D1 1번 + 61번 → 59번 200, 그다음(전체 61번째)부터 429 `RATE_LIMITED` |
+| D4 | ✅ | `/api/upstream/v1/nodes` 401 `UNAUTHORIZED` |
+| D5 | ✅ | readonly 자격(`reach: local`, `node.read` 있음) → 403 `MODULE_PERMISSION_DENIED` "호출에 필요한 권한이 없습니다". readonly 카탈로그에 `terra.master.*` 0개(전체 47) — 막은 것은 도달 범위인데 오류 글은 "권한"이다 |
+| D6 | ✅ | `"unattended":true` 자격(15분) → 401 `UNAUTHORIZED` |
+| D7 | ✅ | 60행 모두 `delegate: agent:agn_955b6ddab20f8176` · `principal: user_…` |
+| D8 | ✅ | **처음 밟은 경로.** tree Tree Host의 `io.terra.agent`에 모델(가짜) · fleet 자격을 맡기고 세션 대화로 "노드 사이 경로 후보 보여줘" → 기록 `call terra.master.route.candidates.get: run · ok` → `terra.gateway.delegate` → tree Gateway → Master 200(`route_graph_epoch` 54), 감사 행 `delegate: agent:agn_c1a8b6eccc8cd31a` · `GET /api/v1/route/candidates` · 200. 모델에 주어지는 도구: `terra_search_operations` · `terra_describe_operation` · `terra_invoke(operationId, input, reason)` · `terra_session` · `terra_nodes`. **단, 계약대로 입력을 지으면 실패한다** — 계약 입력 스키마는 `{query:{source_node_id,…}}`인데 Gateway invoke는 입력을 평평하게 읽어 `query=<JSON>` 한 개로 보내고 Master가 404 `NODE_NOT_FOUND`. 관리자 Bearer로 invoke해도 같다(PF-27) |
+
+#### E. 에이전트 — leaf 기준선(ADR-GW-006 준비)
+
+| # | 결과 | 본 값 |
+| --- | --- | --- |
+| E1 | ✅ | leaf-a fleet 자격 → 404 `MODULE_ROUTE_NOT_FOUND` "published route를 찾을 수 없습니다: terra.master.nodes.get" |
+| E2 | ✅ | 401 `UNAUTHORIZED` |
+| E3 | ✅ | 200 · `count 3` — leaf-a · leaf-b와 함께 **다른 클러스터의 `other-cluster-node`**(꺼짐)도 나온다. tree의 `agent/nodes`도, 앱 토큰도 같다. 위임 입구의 `nodes.get`은 거르는데 이 목록(세션 id 중계 · `VisibleNodes`)은 관리자 세션을 그대로 읽는다(PF-28) |
+| E4 | ✅ | leaf-a에서 `GET /api/v1/nodes/{leaf-b}/catalog` 200(51개) · `POST /api/v1/nodes/{leaf-b}/operations/terra.daemon.status.get/invoke` 200 |
+| E5 | ✅ | leaf-a의 `io.terra.agent`(가짜 모델)에 같은 말 → `terra_search_operations "route candidates"` → `{"count":0}`, `terra_invoke terra.master.route.candidates.get` → `OPERATION_NOT_FOUND` "operation을 catalog에서 찾을 수 없습니다"(404), `terra_nodes` → 위 E3과 같은 3개. 진짜 모델이 그다음 무엇을 대신 할지는 재지 못했다(가짜 모델). 관문의 허용 표면(`delegateSurfaceAllows`)에 노드 주소 호출 `/api/v1/nodes/{id}/operations/…`가 없고 `terra_invoke`에 노드 인자가 없어, leaf 에이전트는 다른 노드의 데몬 op도 관문으로는 못 부른다 |
+| E6 | ✅ | leaf-a 카탈로그(관리자 Bearer 154 · 앱 토큰 136 · fleet 132) 중 `terra.master.*` **0**. leaf 데몬 계약 77 op 중 Master op **0** |
+
+#### 찾은 버그 · 원인 추정
+
+| ID | 어디 | 재현 | 원인 추정 |
+| --- | --- | --- | --- |
+| MD-45 | 이 모듈 — 네트워크 보드 후보 | 보드 › 연결 진단 · 라우팅 › 그래프에서 노드 둘 → `오류 · ROUTE_UNAVAILABLE` | `src/data/network-live.js:56` · `:108`의 기본 채널 `'service_tunnel'`. Master의 채널 이름은 `service.tunnel`(후보의 `channels`도 그렇다). 한 줄짜리지만 묻고 고친다 |
+| MD-46 | 이 모듈 — 연결 적용의 내 신원 | leaf 셸에서 Scene 로그인 → 연결 → [나에게 허가 주기] → 403. 서버에 허가가 있어도 `허가 필요` | `src/api/wire.js:465` `principal = (value && value.principal) \|\| who.principal` — frame 세션 값의 `principal`(셸 로그인 표시 = 이메일)을 whoami보다 앞세운다. `source.principal`(연결 적용)만 whoami를 쓰면 된다. §5.9의 `userIdOf`는 `via` 접미사만 다뤘다 |
+| PF-26 | Terra 데몬 — 바인딩 준비 응답 | 같은 노드 위 호환 쌍으로 바인딩 → `preparing` · `target_prepare_failed: context deadline exceeded` | `leaf/daemon/src/terra_daemon/svi/binding_executor.go:784`의 `preparedResponse`가 `Source`를 비운 봉투를 돌려준다. `communication.Service.Send`는 시각 · 판 · id만 채우고 `ValidateEnvelope`가 `Source.App == ""`로 `ErrInvalidEnvelope` → relay 읽기 루프가 `master_relay_inbound_rejected`로 적고 Master는 응답을 기다리다 시한 초과. 같은 파일의 다른 봉투(`:822` · `:858` · `:868`)는 `Source`를 싣는다. `binding_delegated_e2e_test.go`가 active를 보는 길이 relay가 아닌지 확인이 필요하다(코드 읽기 — 실행으로 확정하지 않았다) |
+| PF-27 | Terra — 계약 입력 스키마 ↔ Gateway invoke | `terra.master.route.candidates.get`을 `{"query":{"source_node_id":…,"target_node_id":…}}`로 invoke → 404 `NODE_NOT_FOUND`. 평평하게 보내면 200 | Master 계약의 GET op 입력 스키마가 `{query:{…}}`(`additionalProperties: false`)인데 `terra-module-runtime` `BuildOperationTarget`은 남은 키를 그대로 쿼리로 보낸다 — `query`가 키 하나가 된다. 계약을 읽는 에이전트(`terra_describe_operation`)는 계약대로 지어 실패한다 |
+
+#### 결정이 필요한 것
+
+| ID | 무엇 |
+| --- | --- |
+| PF-28 | `/api/v1/agent/nodes`가 관리자의 앱 토큰 · fleet 에이전트에게 다른 클러스터 노드를 나열한다(tree · leaf). 위임 입구(`nodes.get`)의 강등과 어긋난다. 그 노드로 노드 주소 호출이 되는지는 그 노드가 꺼져 있어 재지 못했다 |
+| PF-29 | Gateway 재시작으로 죽은 위임 자격이 `anonymous`로 읽혀 403 `MODULE_PERMISSION_DENIED`가 난다(401이 아니다) — 화면 · 에이전트 모듈이 "다시 로그인 · 다시 맡기기"를 알 수 없다. readonly의 도달 범위 거절도 같은 코드 · "권한" 글이다(D5). 429에 `Retry-After`가 없고, 위임 입구가 거절한 호출(403 · 429)은 감사 행이 없다(C8) |
+| ADR-GW-006 | E절 — leaf 카탈로그에 Master op 0 · 관문 표면에 노드 주소 호출 없음 · `agent/nodes`는 열림 |
 
 ## 6. 코드 지도
 
