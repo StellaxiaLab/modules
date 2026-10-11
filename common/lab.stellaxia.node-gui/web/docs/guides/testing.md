@@ -7,8 +7,8 @@ doc_type: "guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.11.0"
-last_updated: "2026-10-07"
+version: "0.12.0"
+last_updated: "2026-10-11"
 language: "ko-KR"
 related:
   - "[[docs/README|개발 문서 MOC]]"
@@ -134,6 +134,7 @@ Terra 셸과 진짜 게이트웨이 위에서 끝까지 돌린 기록은 모듈 
 | 끊긴 뒤 이어서(MD-21) | 준비에 io.terra.file 0.2.1(부분을 남기는 중단). 4 MB 올리기 · 받기를 가운데서 **페이지를 떠나** 끊고(`context.route`로 조각마다 120ms 늦춘다) 다시 로그인해 잇는다 — 같은 파일 다시 올리기 · 다시 받기(IndexedDB) · 멈춘 카드의 이어서(이름이 다른 같은 파일) · 중단 → 다시 올리기 · 치우기. 내용은 디스크 · 내려받은 파일의 SHA-256 으로, 건너뛴 것은 다시 보낸 · 받은 조각 수로 본다 |
 | Terra G0~G6 연동 | 준비에 modules main의 io.terra.file · io-inventory 0.2.0(`node tools/build-modules.mjs --terra <Terra> --target linux-amd64` → pack → install)을 더한다. 실시간 이벤트(`open` · 신호 → 그 목록만) · 손 등록 폼 → Daemon `manual.rtsp` · 노드 주소 호출(그 노드 카탈로그 · 중계 · 로컬 전용은 잠금) · 모듈 로그 출력 칸 · 폴더 탐색기 · 바탕화면 열기 · `↑ 올리기` **단추를 눌러** 파일 고르기 → 서버 크기 · 폴더 앱 `받기` → 다운로드 내용이 같다 · 사용자 문서 → **새 브라우저(빈 저장소)**로 로그인해 같은 배치 → 겹쳐 쓰면 409 한 번 알림 |
 | 입출력 연결(MD-32) | `node tools/live-linkio.mjs` — 모듈의 연결 적용 코드를 앱 토큰으로 leaf 게이트웨이의 위임 입구에 붙인다(허가 · 공유 · 거절 · 가드, 19개). 스택 세우는 법 · 막힌 곳 · 못 보는 것은 [[real-data-layer\|실데이터 층]] §5.9 |
+| 바인딩 active · closed(MD-32) | `node tools/live-linkbind.mjs` — 호환되는 쌍(노드1 `test.stream` → 노드2 파일 싱크, 같은 소유자)으로 허가 없음(needs-grant) → 나에게 허가 → 적용 → `active` → 싱크 파일이 자란다 → 연결을 지우면 `closed` · 흐름 멈춤(16개). Daemon 설정 · 막힌 곳은 [[real-data-layer\|실데이터 층]] §5.10 |
 
 2026-10-04 결과는 [[real-data-layer|실데이터 층]] §5.0(새 GUI) · §5.2(maingui 기준 — 추가 · 수정 · 삭제), 2026-10-05 결과는 §5.3(Terra G0~G6 연동) · §5.4(끊긴 뒤 이어서) · §5.5(모듈 설정) · §5.6(SVI 흐름도).
 
