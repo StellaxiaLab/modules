@@ -62,7 +62,7 @@ export default class Component extends DCLogic {
       ioGrants: {},       // 예시: 내가 허가를 받은 자원 id → 기한 글 (연결 적용 · 나에게 허가 주기가 만든다)
       ioForce: '',        // 예시 미리보기: 상태를 강제로 보여 본다 (디자인 검토용 — 서비스 · 모듈에서는 보이지 않는다)
       ioTtl: '30d',       // [나에게 허가 주기] 기한 (Q-23 — 기본 30일)
-      links: [],          // 연결: { id, from, to, start, path[], road } — from · to = 노드 · 자원 칸, start = 출발 칸(합류면 도로 칸), path = 거친 칸(도로)
+      links: [],          // 연결: { id, from, to, start, path[], road, io } — from · to = 노드 · 자원 칸, start = 출발 칸(합류면 도로 칸), path = 거친 칸(도로), io = 입출력 상태(UP-28 — ioRead 가 읽는 모양 · 없으면 화면 전용 · 새 연결은 만들 때 붙는다)
       conn: null,         // 연결하기를 누른 채 끄는 중 { from, start, wps[], over, path[], ok, x, y, sx, sy }
       pillOpen: null, pillSrc: null, roadPick: 'stone',
       evView: 'real',     // 이벤트 보기: real(실제 상태) · run · wait · stop · fail
@@ -2164,7 +2164,8 @@ export default class Component extends DCLogic {
     const rid = this.state.roadPick || 'stone', placed = Object.assign({}, this.state.placed);
     let n = 0; C.path.forEach((q) => { if (!placed[q]) { placed[q] = { bid: 'road:' + rid, rot: 0 }; n++; } });
     const lb = (q) => this.cellLabel(q), toNode = !(this.state.rsrc || {})[C.over] && this.nodeAt(C.over);
-    const link = Object.assign({ id: 'ln' + Date.now().toString(36), from: C.from, to: C.over, start: C.start, path: C.path.slice(), road: rid }, fromNode ? { sel: pool.map((p) => ({ key: p.key, name: p.name, emoji: p.emoji })) } : {});
+    const link0 = Object.assign({ id: 'ln' + Date.now().toString(36), from: C.from, to: C.over, start: C.start, path: C.path.slice(), road: rid }, fromNode ? { sel: pool.map((p) => ({ key: p.key, name: p.name, emoji: p.emoji })) } : {});
+    const link = Object.assign({}, link0, { io: this.ioRead(link0) });   // 입출력 상태(UP-28) — 종류를 지금 판정해 붙인다
     this.setState({ conn: null, placed, links: (this.state.links || []).concat([link]), sel: C.over, pillOpen: null,
       fieldNote: lb(C.from) + ' → ' + lb(C.over) + ' 연결 · 도로 ' + n + '칸 새로 깔고 ' + (C.path.length - n) + '칸은 있는 길을 탔다'
         + (fromNode ? ' · 내보낼 자원 ' + pool.length + '개를 모두 골랐다 — 상태 화면에서 고른다' : toNode && (this.state.rsrc || {})[C.from] ? ' · ' + toNode.name + '의 공유 목록에 들어갔다' : '') });
@@ -2229,6 +2230,12 @@ export default class Component extends DCLogic {
     if (io && io.kind) return io;
     const kind = this.ioKindOf(l);
     return { v: 1, kind, qos_profile: '', compatibility_policy: 'exact', direction: 'forward', pairs: kind === 'screen' ? [] : [{ key: l.id, phase: 'draft' }], phase: kind === 'screen' ? undefined : 'draft' };
+  }
+  // 연결 상태 → 도로 이벤트 (UP-26 · 설계 §4.4): 'run' · 'wait' · 'stop' · 'fail'. io 가 없거나 화면 전용이면 null — 그 도로는 끝 자원의 상태만 본다(예전 연결 그대로)
+  linkEv(l) {
+    const io = l && l.io;
+    if (!io || !io.kind || io.kind === 'screen') return null;
+    return { draft: 'wait', invalid: 'fail', 'needs-grant': 'wait', binding: 'wait', active: 'run', degraded: 'wait', failed: 'fail', denied: 'fail', closed: 'stop', lost: 'stop', shared: 'run', 'share-expired': 'stop' }[io.phase] || 'run';
   }
   ioPut(id, patch) {
     this.setState({ links: (this.state.links || []).map((l) => (l.id === id ? Object.assign({}, l, { io: Object.assign({}, this.ioRead(l), patch) }) : l)) });
@@ -5102,7 +5109,7 @@ export default class Component extends DCLogic {
     const evOf = (k) => {
       const f = this.state.evView || 'real', pl = placed[k], road = !!(pl && this.isRoad(pl.bid));
       let e = evRaw(k);
-      if (!e && road) (this.state.links || []).forEach((l) => { if (this.linkCells(l).indexOf(k) < 0) return; [l.from, l.to, l].forEach((q) => { const x = q === l ? (this.linkEv ? this.linkEv(l) : null) : evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; }); });
+      if (!e && road) (this.state.links || []).forEach((l) => { if (this.linkCells(l).indexOf(k) < 0) return; [l.from, l.to, l].forEach((q) => { const x = q === l ? this.linkEv(l) : evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; }); });
       if (!e && !road) return null;
       return f !== 'real' ? f : (e || 'run');
     };
@@ -5305,16 +5312,17 @@ export default class Component extends DCLogic {
       const st = String(it.state || it.status || it.health || it.presence || (it.enabled === false ? 'off' : 'ok'));
       return /fail|bad|unavail|missing|denied|refused|never/.test(st) ? STC.bad : /pend|wait|degrad|stale|queued|shadow/.test(st) ? STC.wait : /stop|disabled|retired|off/.test(st) ? STC.off : STC.ok;
     };
-    // SVI 흐름 도로 (A-28): 흐르는 자원(state.sviFlow live · fps > 0)이 끝에 있는 연결의 칸들을 잇는다
+    // SVI 흐름 도로 (A-28 · UP-27): 바인딩이 흐르는 중(io.kind 'binding' · phase 'active')인 연결의 칸들을 잇는다 — 열린 핸들이 아니라 바인딩 상태가 조건이다.
+    // 라벨: 끝 자원에 흐르는 핸들(state.sviFlow live · fps > 0)이 있으면 '▶ n fps', 바인딩만 있고 핸들이 없으면 fps 를 지어내지 않고 '▶ 흐르는 중'. io 가 없는 연결(예전 · 예시)은 예전 조건(핸들) 그대로
     const sviRoads = (() => {
       const FL = this.state.sviFlow || {}, R = this.state.rsrc || {}, byKey = new Map(tiles.map((t) => [t.key, t])), out = [];
       (this.state.links || []).forEach((l, i) => {
-        const ends = [l.from, l.to].map((k) => R[k]).filter((o) => o && o.app === 'svi'), f = ends.map((o) => FL[o.id]).find((x) => x && x.live && x.fps > 0);
-        if (!f) return;
+        const ends = [l.from, l.to].map((k) => R[k]).filter((o) => o && o.app === 'svi'), f = ends.map((o) => FL[o.id]).find((x) => x && x.live && x.fps > 0), io = l.io;
+        if (io && io.kind ? !(io.kind === 'binding' && io.phase === 'active') : !f) return;
         const pts = this.linkCells(l).map((k) => byKey.get(k)).filter(Boolean).map((t) => [Math.round(t.px), Math.round(t.py)]);
         if (pts.length < 2) return;
         const mid = pts[Math.floor((pts.length - 1) / 2)], nx = pts[Math.floor((pts.length - 1) / 2) + 1] || mid;
-        out.push({ key: l.id || 'l' + i, d: 'M' + pts.map((p) => p[0] + ' ' + p[1]).join(' L'), c: '#60a5fa', fps: f.fps, lx: Math.round((mid[0] + nx[0]) / 2) - 30, ly: Math.round((mid[1] + nx[1]) / 2) - 30 });
+        out.push({ key: l.id || 'l' + i, d: 'M' + pts.map((p) => p[0] + ' ' + p[1]).join(' L'), c: '#60a5fa', label: f ? '▶ ' + f.fps + ' fps' : '▶ 흐르는 중', lx: Math.round((mid[0] + nx[0]) / 2) - 30, ly: Math.round((mid[1] + nx[1]) / 2) - 30 });
       });
       return out;
     })();

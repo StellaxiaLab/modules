@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.20.0"
+version: "1.22.2"
 last_updated: "2026-10-11"
 language: "ko-KR"
 os_priority:
@@ -48,7 +48,7 @@ related:
 
 남은 것만 센다(2026-10-05 저녁 · 2026-10-07에 §5 입출력 연결 설계의 PF-18~PF-23 · MD-27~MD-33 · UP-25~UP-31을 더했다). Terra G0~G6이 닫은 PF는 §1.2, 이 모듈이 끝낸 MD는 §2 "끝낸 것", 원본이 고친 UP는 §3.0에 있다.
 2026-10-07 저녁 — Terra가 PF-7(작업 출력 · 다시 실행)을 닫았다([Terra#140](https://github.com/StellaxiaLab/Terra/pull/140) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)). 이 모듈이 따라갔다(MD-34) — 생성기 패치 하나가 원본에 올릴 것(UP-32)으로 남는다.
-2026-10-11 — MD-32: 바인딩이 진짜 스택에서 `active` → `closed`까지 간다(leaf · 앱 토큰 · 노드 둘 — [[real-data-layer|실데이터 층]] §5.10). Terra Daemon의 `Source` 버그를 찾아 Terra `c62fff73`이 고쳤다(`main` 머지 전). 남은 것은 `main`으로 다시 재기 · 같은 노드 쌍(Terra 한계) · tree.
+2026-10-11 — MD-32: 바인딩이 진짜 스택에서 `active` → `closed`까지 간다(leaf · 앱 토큰 · 노드 둘 — [[real-data-layer|실데이터 층]] §5.10). Terra Daemon의 `Source` 버그를 찾아 고쳤고(Terra#187 `c82c24e2`로 `main`에 들어갔다), `main` Daemon으로 다시 재서 두 노드 쌍 16/16을 확인했다. 남은 것은 같은 노드 쌍(Terra 한계 — 데이터가 흐르지 않는다). tree 쪽 쓰기는 MD-13 줄과 [[real-data-layer|실데이터 층]] §5.11.
 2026-10-09 — 맵 진입 개선을 끝냈다(MD-35 · MD-36 · MD-38 · MD-40 · MD-43 완료 · MD-37 효과 없음 · MD-39 불필요 — 로그인 → 맵 평균 20.1초 → 7.3초, 모듈 0.4.2). 남은 것은 MD-42 · PF-25.
 2026-10-09 — **maingui를 더 이상 쓰지 않는다** — `web/design/`이 이 저장소의 원본이라 UP-33~UP-36은 MD-35 · MD-36 · MD-40 · MD-43로 흡수했다(순서 · 완료 기준: [[work-order-map-entry-and-fidelity|작업 지시서]]).
 2026-10-08 — 레지스트리로 설치해 Terra 셸에서 열어 재 본 결과(맵 진입 20초+ · 지어낸 CPU · 메모리 · 디스크 값 · 빈 창)를 MD-35~MD-40(+ UP-33~UP-36 → MD로 흡수)으로 올렸다. 측정과 근거는 [[performance-and-fidelity-recommendations|맵 진입 지연과 가짜 값 — 개선 권고안]] — 어느 것부터 어떻게 하는지는 [[work-order-map-entry-and-fidelity|작업 지시서]].
@@ -137,7 +137,7 @@ flowchart LR
 | **MD-6** | 진짜 스택 E2E를 CI로 | 지금은 손으로 돈다([[testing\|시험]] §6) — Master · Daemon · 셸 · 브라우저가 필요하다. modules CI는 이미 Terra를 체크아웃한다(`test:scenes`) | — | 중간 |
 | **MD-9** | Terra 세션 띠의 디자인 자리 | 로그인 · 로그아웃 띠는 모듈이 그린 흰 캡슐이다(`frame-session.js`) — 원본 디자인에 자리가 없다 | 디자인 | 낮음 |
 | **MD-10** | 번들에 남은 예시 문자열 | 원본 미리보기의 예시 상수가 번들에 **문자열로** 남는다(화면 · 요청에는 나가지 않는다 — 시험이 지킨다). 지우려면 원본 미리보기 데이터를 따로 떼야 한다 | 원본 작업 방식 | 낮음 |
-| **MD-13** | tree 게이트웨이에서 Master 쪽 추가 · 수정 · 삭제 E2E | 허가 · 바인딩 · 터널 열기 · 선언 · 피어 회수 · 다른 노드 작업의 본문은 Master 코드로 맞췄지만(`decodeJSON` 입력 구조) 시험 스택이 leaf라 실제로 부르지 못했다(`not-in-catalog`). tree 노드에 모듈을 깔고 돌린다 | PF-1(위임) | 중간 |
+| **MD-13** | tree 게이트웨이에서 Master 쪽 추가 · 수정 · 삭제 E2E | **tree 스택에서 돌렸다**(2026-10-11, Terra `main` `c82c24e2` · [[real-data-layer\|실데이터 층]] §5.11 · `web/tools/live-tree-up.sh` · `live-tree.mjs` 38개 통과). 위임 입구가 연 쓰기 다섯(`svi.grants.post·patch·delete` · `svi.bindings.post·delete`)은 operation id 길로 **전부 동작**한다 — 허가 만들기·줄이기·지우기, 가드 거절 6종, 바인딩 `active`·데이터·`closed`. **터널 선언·열기 · 피어 철회 · mesh 조정 · Master `commands.post`(다른 노드 작업)는 `403 DELEGATION_NOT_OPEN`**(Terra `delegated_routes.go`가 닫아 둠, 본문 모양은 확인 못 함). 중계 길의 선언 쓰기는 앱에 `node.config`가 없어 `remote-denied`, 다른 노드 `commands.execute`는 `not-remote`. 남은 일: tree에서 열린 op 목록으로 화면 잠금(`client.has`가 닫힌 쓰기에도 참) · 선언 쓰기에 매니페스트 `node.config` 결정 · 닫힌 쓰기를 여는 일은 Terra ADR-GW-004 후속 | PF-1(위임) | 중간 |
 | **MD-14** | 모듈 GUI 창에서 그 모듈의 GUI 열기 | 지금은 `/api/v1/gui/apps`로 GUI가 있는지 · 주소만 보인다 | PF-15 | 낮음 |
 | **MD-42** | 노드 화면 마운트의 동기 작업 약 2초 | 맵 굽기를 걷어낸 뒤 남은 첫 롱태스크(1.7~2.1초). 스킨 · 타일 벡터 생성(`ensureBake` · `bakeTile`)으로 보이나 프로파일로 쪼개지 않았다. 편집기 보드 4종(건물 · 도로 · 필드 · 자재)의 굽기(`getImageData`)도 같이 잰다 | — | 중간 |
 
@@ -170,7 +170,7 @@ flowchart LR
 | **MD-23** | maingui `1aa6340` 따라가기 — SVI 흐름도 · 흐름 이벤트 | `design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **SVI 자원 앱 창 = 흐름도**(maingui A-28 — 제공 노드 → 자원 → 엔드포인트 → 핸들 · 바인딩 · 허가, 카드 보기와 바꾼다). 연동 층: `ADAPT.svi`가 `flow` · `handle`을 채운다(없으면 화면이 카메라에 `frames` · `snapshot` 엔드포인트를 지어낸다), svi 앱이 `svi.handles.get` · `svi.bindings.get`도 받고, `wire.js`가 고른 자원의 열린 핸들 SSE(`svi.handles.by-handle-id.events.get`)를 `state.sviEv`에 넣는다. `ADAPT.grant`를 Master의 답 모양(`items` · `subject{type, id}` · `source{resource_id}`)으로 고쳤다. 예시 흐름 이벤트(`sviDemoTick`)는 끈다. 보고 있는 앱의 목록을 받지 못하면 그 이유를 남긴다(UP-24). 네트워크 읽기(A-20)는 Master라 보드는 그대로 "닿지 않음". SVI는 전부 Master op라 앱 토큰으로는 빈 흐름도 + 이유다(PF-1 · [[real-data-layer\|실데이터 층]] §5.6) · 2026-10-05 |
 | **MD-26** | maingui `4ec0685` 따라가기 — 사용자 관리 · 등록 상태 · 온보딩 | `design/Intro` · `design/Settings`를 그 커밋 그대로 복사하고 다시 만들었다(치환 패치는 그대로 맞았다). 새 설정 디자인의 예시 사용자 · 예시 등록 상태를 비우고, 사용자 관리(Master op)는 "닿지 않는다"(Q-2) · 등록 상태(Daemon `enrollment.status.get`)는 진짜 값. 원본이 옮긴 알림 글자색을 모듈의 같은 자리에 적용. 시험: 단위 127 · 연기 36 통과 | 반영 |
 | **MD-25** | maingui `a884226` 따라가기 — ver.2 다크 글래스 디자인 | `design/` 전체를 그 커밋 그대로 복사하고 다시 만들었다. `gen-pages.py`의 `MODULE_TPL` 치환 8건을 ver.2 마크업에 맞춰 다시 썼고(세션 띠 · 예시 배지 · 시연 스위치 · 상태 시연 select · 권한 줄 · v0.2 줄) 시작 화면 Terra 로그인 박스를 다크 색으로 바꿨다. 이모지 글꼴은 `public/fonts/`. 노드 등록 코드(A-19)는 싣지 않는다 — 등록 화면은 모듈 프로필이 로그인 박스를 갈아 끼워 빠지고, 발급은 Master op라 Q-2의 "쓸 수 없다". 시험: 단위 126 · 연기 36 통과 | 반영 |
-| **MD-31**(도로 이벤트) | 연결 상태 → 도로 이벤트(UP-26) — [[io-link-svi-binding-design|입출력 연결 설계]] §4.4 | 화면 스크립트의 `evOf`가 도로 이벤트를 고를 때 연결도 함께 본다 — `tools/gen-pages.py`에 **`MODULE_JS`**(스크립트 패치, 정확히 한 번 찾지 못하면 멈춘다 — 그때 한 곳, MD-34가 둘째를 더했다)를 더해 `[l.from, l.to]` 자리에 연결 `l`을 더했고, `src/boot/fixes.js`의 `linkEv(l)`가 `phaseEvent(io.phase)`를 준다(화면 전용 · 예전 연결은 null — 그 도로는 그대로). 새 SVI ↔ SVI 연결은 적용 전까지 `wait`(숨 쉬듯 번짐)이다. 원본에 올라가면(UP-26) 이 패치를 걷는다 · 시험은 `linkEv`와 생성된 스크립트에 그 한 줄이 있는지(`tests/linkio.test.mjs`) — 도로 그림은 연기 시험이 필요하다(이 환경에는 브라우저가 없어 돌리지 못했다) · 2026-10-07 |
+| **MD-31**(도로 이벤트 · 흐름 도로) | 연결 상태 → 도로 이벤트(UP-26) · 흐름 도로를 바인딩 `active`로(UP-27) — [[io-link-svi-binding-design|입출력 연결 설계]] §4.4 | **2026-10-11 디자인 원본(`web/design`)에서 직접 했다**(maingui 은퇴 — MD-41과 같은 길). 화면 스크립트의 `evOf`가 도로 이벤트를 고를 때 연결도 함께 본다 — 원본에 `linkEv(l)`(io 없음 · 화면 전용 = null, 그 밖은 상태 → `run`·`wait`·`stop`·`fail`)를 더했고 `evOf`가 `[l.from, l.to, l]`을 본다. 그래서 `tools/gen-pages.py`의 **`MODULE_JS` 패치를 걷었다**(이제 빈 사전). `src/boot/fixes.js`의 `linkEv`는 모듈의 엄격한 읽기(`readLinkIO` — 어긋난 판은 화면 전용)로 원본 기본 구현을 덮는다. 새 SVI ↔ SVI 연결은 적용 전까지 `wait`(숨 쉬듯 번짐)이다. **흐름 도로(UP-27):** 조건이 열린 핸들이 아니라 바인딩 `io.kind === 'binding' && io.phase === 'active'`다. 라벨은 끝 자원에 흐르는 핸들이 있으면 `▶ n fps`, **바인딩만 있고 핸들이 없으면 fps를 지어내지 않고 `▶ 흐르는 중`**(디자인 결정 — 가장 작은 안으로 내가 정했다, 바꾸려면 원본의 `sviRoads` 라벨 한 곳). `io`가 없는 연결(예전 저장본 · 예시)은 예전 조건(핸들)을 그대로 쓴다. 시험: `tests/linkio.test.mjs`(원본 · 생성 스크립트 · 패치 없음) · `tests/smoke.mjs`(설정 전이면 핸들이 흘러도 없음 · 핸들 없이 `흐르는 중` · 핸들이 있으면 fps) · 2026-10-07 · 2026-10-11 |
 | **MD-33** | 허가 고치기 — `svi.grants.by-grant-id.patch`(B-9) | `HELM_CRUD.grant.update`: `{grant_id, operations[, ttl_seconds]}`(기한 칸이 비면 기한은 건드리지 않는다 — 받는 이 · 자원은 못 바꾼다). 바인딩 항목은 `bind-immutable`(고치는 op 가 없다 — 끊고 새로 연결). `CRUD_TEXT` 글도 맞췄다 · 시험 `tests/crud.test.mjs` · 2026-10-07 |
 | **MD-29** | 연결 상태 맞추기 — [[io-link-svi-binding-design|입출력 연결 설계]] §4.3 · §4.4 | `src/api/link-sync.js`(`syncLinks` — 목록 한 번 + 없는 것만 하나씩 확인, 404일 때만 `lost` · 서버에 닿지 않으면 아무것도 바꾸지 않는다 · 공유 허가는 기한 · 철회) · `link-wire.js`의 `screen.linkSync()`(신호 `terra.svi.*.changed` → `_hbRefresh`에 얹어 0.3초 뒤 · 처음 1.5초 뒤 · 30초 바닥 폴링 · 읽는 사이 바뀐 연결은 덮지 않는다 · 동시에 둘 안 돈다) · `src/model/link-text.js`(`reasonLine` — 알려진 바인딩 이유만 풀어 쓴다 · `phaseLabel` · `phaseEvent` 도로 이벤트 대응) · 시험 `tests/linksync.test.mjs` 16개 · 2026-10-07 |
 | **MD-30** | 끊기 · 철거에서 바인딩 닫기 — [[io-link-svi-binding-design|입출력 연결 설계]] §3.3 · §4.2 | 연결이 사라지는 `setState`를 `link-wire.js`가 본다(끊기 · 칸 철거 · 경로 철거 · 자원 철거 · 필드 삭제 — 한 곳씩 감싸지 않고 `links`가 줄어드는 것을 본다). **맵 이동 · 로그아웃 · 다른 기기의 배치는 `map` · `maps`가 같이 오므로 건드리지 않는다.** 같은 `binding_id`를 쓰는 다른 연결(이 맵 · 다른 맵)이 남아 있으면 닫지 않는다 · 이미 없으면(404) 닫힌 것 · 닫지 못하면 `state.linkOrphans`(저장본에 들어간다)에 남겨 다음 맞추기에서 다시. 허가(나에게 준 bind 허가 · 노드 허가)는 자동 철회하지 않는다(Q-23 기본값) · 2026-10-07 |
@@ -308,13 +308,13 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 | MD | **MD-28** | ~~적용 흐름~~ — **끝냄**(2026-10-07, 가짜 Master 시험만 — 진짜 스택은 PF-1 · MD-32) | — |
 | MD | **MD-29** | ~~상태 맞추기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
 | MD | **MD-30** | ~~끊기에서 바인딩 닫기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
-| MD | **MD-31** | 도로 이벤트는 **끝냄**(아래 §2 끝낸 것) — 남은 것: 흐름 도로를 바인딩 `active`로 그리기(UP-27 — 도로 라벨이 fps라 바인딩만 있고 핸들이 없을 때의 모습이 디자인 몫) | 중간 |
-| MD | **MD-32** | 연결 E2E — **leaf는 끝냄**(2026-10-10 · 2026-10-11): 위임 입구 진짜 스택에서 허가 · 공유 · 거절 · 가드 · **바인딩 `active` · 데이터 · 닫기**까지 27개 통과([[real-data-layer\|실데이터 층]] §5.9 · `web/tools/live-stack-up.sh` · `live-linkio.mjs`). 같은 일을 다른 길(Daemon 설정의 `svi.file_sinks`)로 16개 통과([[real-data-layer\|실데이터 층]] §5.10 · `live-linkbind.mjs`). 찾은 것: 앱 토큰 principal의 `via <앱>`(고침, #69) · Terra Daemon 준비 응답의 `Source` 누락(고침 — [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185), 2026-10-11 머지. 그 앞의 Terra로는 `active` 단계가 실패) · 같은 노드 안 바인딩은 `active`인데 데이터가 안 흐름(Daemon이 한 바인딩의 두 역할을 `binding_id` 하나로 들고 있다 — §5.10, Terra 한계). **남은 것:** tree 진짜 스택(MD-13과 함께) · 화면(브라우저)을 거친 흐름 | 중간 |
+| MD | **MD-31** | ~~도로 이벤트 · 흐름 도로~~ — **끝냄**(2026-10-11, UP-26 · UP-27을 `web/design`에서 직접 했다 — 위 §2 끝낸 것) | — |
+| MD | **MD-32** | 연결 E2E — **leaf는 끝냄**(2026-10-10 · 2026-10-11): 위임 입구 진짜 스택에서 허가 · 공유 · 거절 · 가드 · **바인딩 `active` · 데이터 · 닫기**까지 27개 통과([[real-data-layer\|실데이터 층]] §5.9 · `web/tools/live-stack-up.sh` · `live-linkio.mjs`). 같은 일을 다른 길(파일 싱크 어댑터)로 16개 통과(**Terra `main` `c82c24e2`의 Daemon · Master · 게이트웨이로 다시 재서 확인**, 2026-10-11, [[real-data-layer\|실데이터 층]] §5.10 · `live-linkbind.mjs`). 찾은 것: 앱 토큰 principal의 `via <앱>`(고침, #69) · Terra Daemon 준비 응답의 `Source` 누락(고침 — [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185), 2026-10-11 머지 · `main`에서 재측정 완료. 그 앞의 Terra로는 `active` 단계가 실패) · 같은 노드 안 바인딩은 `active`인데 데이터가 안 흐름(`main` `c82c24e2`에서도 그대로 — Daemon이 한 바인딩의 두 역할을 `binding_id` 하나로 들고 있다 — §5.10, Terra 한계). **남은 것:** tree 진짜 스택(MD-13과 함께) · 화면(브라우저)을 거친 흐름 | 중간 |
 | MD | **MD-33** | ~~"허가를 고치는 op 없음" 글~~ — **끝냄**(2026-10-07, 글만이 아니라 `update`를 실제로 달았다) | — |
 | UP | **UP-25** | ~~입출력 설정 화면 디자인~~ — **최소판 끝냄**(2026-10-08 · MD-44). 남은 요소는 설계 §6.1 "나중으로 미룬다" | — |
-| UP | **UP-26** | 연결 상태 → 도로 이벤트(`evOf`가 끝 자원 `status`만 본다) | 중간 |
-| UP | **UP-27** | `sviRoads` 조건을 열린 핸들 대신 바인딩 `active`로 | 중간 |
-| UP | **UP-28** | `links` 모양에 `io` 더하기 | 중간 |
+| UP | **UP-26** | ~~연결 상태 → 도로 이벤트~~ — **끝냄**(2026-10-11, `web/design` 원본에 `linkEv` · `evOf` 반영, 생성기 패치 걷음) | — |
+| UP | **UP-27** | ~~`sviRoads` 조건을 바인딩 `active`로~~ — **끝냄**(2026-10-11, `web/design` 원본. 핸들 없는 바인딩은 `▶ 흐르는 중`으로 그린다 — 디자인 결정은 MD-31 행) | — |
+| UP | **UP-28** | ~~`links` 모양에 `io` 더하기~~ — **끝냄**(2026-10-11, `web/design` 원본의 `links` 모양 설명에 `io`를 더했고 새 연결은 `io: ioRead(link)`를 달고 만들어진다 — 모듈이 저장하는 `links[].io`와 같은 모양, 모듈은 `rebuildLinks`가 쌍을 다시 푼다) | — |
 | UP | **UP-29** | `HELM_CRUD` 바인딩 고치기가 허가 PATCH를 부른다 **(추측 — 실행해 보지 않았다)** | 낮음 |
 | UP | **UP-30** | 허가 폼의 기한 칸이 무시된다(`ttl_seconds: 3600` 고정) | 낮음 |
 | UP | **UP-31** | 바인딩 변경 신호로 SVI 앱(흐름도)도 다시 받기 | 낮음 |

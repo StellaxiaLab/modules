@@ -8,8 +8,8 @@ doc_type: "design"
 scope: "module"
 target: "terra-gui"
 status: "draft"
-version: "0.6.2"
-last_updated: "2026-10-10"
+version: "0.6.3"
+last_updated: "2026-10-11"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -466,8 +466,8 @@ type Phase = 'draft' | 'invalid' | 'needs-grant' | 'binding' | 'active' | 'degra
 > - 시험은 가짜 클라이언트다. 진짜 스택은 PF-1이 열린 뒤(MD-32).
 
 > [!NOTE] 구현됨 — MD-31(도로 이벤트) · MD-33 (2026-10-07)
-> - **도로 이벤트(§4.4):** 화면 스크립트의 `evOf`가 도로의 이벤트를 고를 때 지나는 연결의 `phaseEvent(io.phase)`도 함께 본다(`tools/gen-pages.py` `MODULE_JS` 한 곳 + `fixes.js` `linkEv`). 지나는 연결들 · 끝 자원들 가운데 가장 나쁜 것이 이긴다. 화면 전용 연결 · `io` 없는 예전 연결은 null이라 도로는 그대로다. **새 SVI ↔ SVI 연결은 적용 전까지 `draft` = `wait`**라 도로가 호박빛으로 번진다 — 설계 §4.4 표대로다.
-> - **흐름 도로(UP-27)는 남았다:** `sviRoads`가 바인딩 `active`로도 흐르게 하려면 라벨(`▶ n fps`)이 핸들 없이 어떻게 보일지 디자인이 정해야 한다.
+> - **도로 이벤트(§4.4):** 화면 스크립트의 `evOf`가 도로의 이벤트를 고를 때 지나는 연결의 `phaseEvent(io.phase)`도 함께 본다(2026-10-11부터 디자인 원본 `web/design`의 `linkEv` · `evOf` — 생성기 패치는 걷었다. `fixes.js`의 `linkEv`가 모듈의 엄격한 읽기로 덮는다). 지나는 연결들 · 끝 자원들 가운데 가장 나쁜 것이 이긴다. 화면 전용 연결 · `io` 없는 예전 연결은 null이라 도로는 그대로다. **새 SVI ↔ SVI 연결은 적용 전까지 `draft` = `wait`**라 도로가 호박빛으로 번진다 — 설계 §4.4 표대로다.
+> - **흐름 도로(UP-27, 2026-10-11 끝냄):** `sviRoads`의 조건은 바인딩 `active`다(원본 `web/design`). 라벨은 핸들이 흐르면 `▶ n fps`, 핸들 없이 바인딩만 있으면 `▶ 흐르는 중`(fps를 지어내지 않는다 — 가장 작은 안). `io` 없는 연결은 예전 핸들 조건 그대로.
 > - **허가 고치기(MD-33):** 글만이 아니라 `HELM_CRUD.grant.update`를 달았다 — `svi.grants.by-grant-id.patch {operations, ttl_seconds?}`. 바인딩은 고치는 op가 없다.
 > - 이 환경에는 브라우저가 없어 도로 그림은 보지 못했다 — 연기 시험(`test:smoke`)이 필요하다.
 
