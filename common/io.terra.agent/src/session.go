@@ -108,6 +108,11 @@ type entry struct {
 	TraceID string `json:"trace_id,omitempty"`
 	// SentBytes is how much left this node on a model line (§8).
 	SentBytes int `json:"sent_bytes,omitempty"`
+	// Provider and Model name where a model line went, as structure, so a
+	// reader does not have to parse Note for it (M-7). They are the values of
+	// THIS call, which can differ from the session's value at open.
+	Provider string `json:"provider,omitempty"`
+	Model    string `json:"model,omitempty"`
 	// Server is the registered external MCP server an external line called
 	// (A8), and ResultBytes is how much it answered with after the cap (R6).
 	Server      string `json:"server,omitempty"`
@@ -134,8 +139,12 @@ type sessionMeta struct {
 	CreatedMS   int64  `json:"created_ms"`
 	UpdatedMS   int64  `json:"updated_ms"`
 	LastError   string `json:"last_error,omitempty"`
-	Answer      string `json:"answer,omitempty"`
-	Usage       Usage  `json:"usage"`
+	// LastErrorCode is the code of the error line that LastError describes
+	// (TIME_LIMIT, MODEL_UNAVAILABLE, ...), so a list row can show it without
+	// parsing an English sentence. Empty on records written before it existed.
+	LastErrorCode string `json:"last_error_code,omitempty"`
+	Answer        string `json:"answer,omitempty"`
+	Usage         Usage  `json:"usage"`
 	// MCPServers are the registered external MCP servers this session may use
 	// (A8). It is frozen at open, like autonomy: a session's surface does not
 	// widen under it, and a person reading the record later needs to know which
@@ -472,11 +481,18 @@ func (st *sessionStore) get(id string) (*session, bool) {
 	return current, ok
 }
 
-func (st *sessionStore) list() []map[string]any {
+// list returns the sessions owned by owner, newest first. The filter lives
+// here, not in the handler, so no caller can forget it.
+func (st *sessionStore) list(owner string) []map[string]any {
 	st.mu.Lock()
 	sessions := make([]*session, 0, len(st.sessions))
 	for _, current := range st.sessions {
-		sessions = append(sessions, current)
+		current.mu.Lock()
+		mine := current.meta.Owner == owner
+		current.mu.Unlock()
+		if mine {
+			sessions = append(sessions, current)
+		}
 	}
 	st.mu.Unlock()
 	sort.Slice(sessions, func(i, j int) bool { return sessions[i].meta.CreatedMS > sessions[j].meta.CreatedMS })

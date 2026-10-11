@@ -1729,6 +1729,11 @@
                     "title": "종류",
                     "type": "string"
                   },
+                  "model": {
+                    "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "호출한 모델",
+                    "type": "string"
+                  },
                   "note": {
                     "description": "호출 줄의 판정·상태 같은 짧은 부기.",
                     "title": "주석",
@@ -1737,6 +1742,11 @@
                   "operation_id": {
                     "description": "호출 줄이 부른 operation id.",
                     "title": "operation",
+                    "type": "string"
+                  },
+                  "provider": {
+                    "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "모델 provider",
                     "type": "string"
                   },
                   "request_id": {
@@ -2028,6 +2038,11 @@
                   "title": "종류",
                   "type": "string"
                 },
+                "model": {
+                  "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "호출한 모델",
+                  "type": "string"
+                },
                 "note": {
                   "description": "호출 줄의 판정·상태 같은 짧은 부기.",
                   "title": "주석",
@@ -2036,6 +2051,11 @@
                 "operation_id": {
                   "description": "호출 줄이 부른 operation id.",
                   "title": "operation",
+                  "type": "string"
+                },
+                "provider": {
+                  "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "모델 provider",
                   "type": "string"
                 },
                 "request_id": {
@@ -2302,6 +2322,11 @@
                   "title": "종류",
                   "type": "string"
                 },
+                "model": {
+                  "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "호출한 모델",
+                  "type": "string"
+                },
                 "note": {
                   "description": "호출 줄의 판정·상태 같은 짧은 부기.",
                   "title": "주석",
@@ -2310,6 +2335,11 @@
                 "operation_id": {
                   "description": "호출 줄이 부른 operation id.",
                   "title": "operation",
+                  "type": "string"
+                },
+                "provider": {
+                  "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "모델 provider",
                   "type": "string"
                 },
                 "request_id": {
@@ -3234,6 +3264,11 @@
                     "title": "종류",
                     "type": "string"
                   },
+                  "model": {
+                    "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "호출한 모델",
+                    "type": "string"
+                  },
                   "note": {
                     "description": "호출 줄의 판정·상태 같은 짧은 부기.",
                     "title": "주석",
@@ -3242,6 +3277,11 @@
                   "operation_id": {
                     "description": "호출 줄이 부른 operation id.",
                     "title": "operation",
+                    "type": "string"
+                  },
+                  "provider": {
+                    "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "모델 provider",
                     "type": "string"
                   },
                   "request_id": {
@@ -3314,6 +3354,11 @@
             "last_error": {
               "description": "멈춘 이유가 있으면.",
               "title": "마지막 오류",
+              "type": "string"
+            },
+            "last_error_code": {
+              "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+              "title": "마지막 오류 코드",
               "type": "string"
             },
             "session_id": {
@@ -3775,6 +3820,11 @@
               "title": "마지막 오류",
               "type": "string"
             },
+            "last_error_code": {
+              "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+              "title": "마지막 오류 코드",
+              "type": "string"
+            },
             "max_seconds": {
               "description": "한 차례(모델 호출 → 도구 호출 → 다음 호출)가 넘을 수 없는 벽시계 초. 세션이 사람의 답을 기다리며 쉬는 시간은 포함하지 않는다.",
               "minimum": 1,
@@ -4139,6 +4189,11 @@
                     "title": "마지막 오류",
                     "type": "string"
                   },
+                  "last_error_code": {
+                    "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+                    "title": "마지막 오류 코드",
+                    "type": "string"
+                  },
                   "max_seconds": {
                     "description": "한 차례(모델 호출 → 도구 호출 → 다음 호출)가 넘을 수 없는 벽시계 초. 세션이 사람의 답을 기다리며 쉬는 시간은 포함하지 않는다.",
                     "minimum": 1,
@@ -4353,7 +4408,7 @@
         "preconditions": [],
         "processing": [
           {
-            "description": "이 노드의 세션을 상태·자율성과 함께 나열한다.",
+            "description": "이 노드의 세션 가운데 호출자 본인의 것을 상태·자율성과 함께 나열한다.",
             "id": "sessions-list",
             "transaction": "none"
           }
@@ -4367,7 +4422,7 @@
         ]
       },
       "status": "stable",
-      "summary": "이 노드의 세션을 상태·자율성과 함께 나열한다.",
+      "summary": "이 노드의 세션 가운데 호출자 본인의 것을 상태·자율성과 함께 나열한다.",
       "tags": [
         "agent",
         "session",
@@ -5046,6 +5101,11 @@
           "last_error": {
             "description": "세션이 멈춘 이유가 있으면 그것.",
             "title": "마지막 오류",
+            "type": "string"
+          },
+          "last_error_code": {
+            "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+            "title": "마지막 오류 코드",
             "type": "string"
           },
           "max_seconds": {
