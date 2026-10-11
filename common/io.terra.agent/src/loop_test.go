@@ -262,6 +262,9 @@ func TestStepLimitStopsTheLoop(t *testing.T) {
 	if len(errorsSeen) != 1 || errorsSeen[0].ErrorCode != "STEP_LIMIT" {
 		t.Fatalf("errors = %+v", errorsSeen)
 	}
+	if view["last_error_code"] != "STEP_LIMIT" {
+		t.Fatalf("last_error_code = %v", view["last_error_code"])
+	}
 }
 
 // A model failure stops the turn without a new plan and leaves the state
@@ -274,6 +277,10 @@ func TestModelFailureStopsWithoutANewPlan(t *testing.T) {
 	view := current.snapshot()
 	if view["state"] != stateFailed || !strings.Contains(view["last_error"].(string), "overloaded") {
 		t.Fatalf("view = %v", view)
+	}
+	// 목록 행에서 영어 문장을 해석하지 않고도 코드를 읽는다 (M-6).
+	if view["last_error_code"] != "MODEL_UNAVAILABLE" {
+		t.Fatalf("last_error_code = %v, want the code of the error line", view["last_error_code"])
 	}
 	if len(b.provider.seen()) != 1 {
 		t.Fatal("the loop planned again after the model failed")
@@ -392,7 +399,7 @@ func TestATurnStopsAtItsWallClock(t *testing.T) {
 	if len(stops) != 1 || stops[0].ErrorCode != "TIME_LIMIT" || !strings.Contains(stops[0].Text, "1s") {
 		t.Fatalf("stop entry = %+v", stops)
 	}
-	if view := current.snapshot(); view["state"] != stateDone || !strings.Contains(view["last_error"].(string), "past its limit") {
+	if view := current.snapshot(); view["state"] != stateDone || !strings.Contains(view["last_error"].(string), "past its limit") || view["last_error_code"] != "TIME_LIMIT" {
 		t.Fatalf("view = %v", view)
 	}
 	// A cancelled turn and a turn that ran out of time are different things,
@@ -426,6 +433,9 @@ func TestASessionStopsWhenItsTokenBudgetIsSpent(t *testing.T) {
 	view := current.snapshot()
 	if view["token_budget"] != float64(20) || view["max_steps"] != float64(6) {
 		t.Fatalf("limits are not visible in the session: %v", view)
+	}
+	if view["last_error_code"] != "TOKEN_BUDGET" {
+		t.Fatalf("last_error_code = %v", view["last_error_code"])
 	}
 }
 

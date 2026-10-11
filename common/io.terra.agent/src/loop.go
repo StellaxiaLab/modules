@@ -280,6 +280,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		s.busy = false
 		s.cancel = nil
 		s.meta.LastError = err.Error()
+		s.meta.LastErrorCode = "MCP_SERVER_UNKNOWN"
 		s.setStateLocked(stateFailed)
 		s.mu.Unlock()
 		cancel()
@@ -300,7 +301,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		Tools: agent.ToolsFor(ctx),
 	}
 
-	end := func(state, failure string) {
+	end := func(state, failure, code string) {
 		cancel()
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -311,6 +312,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		}
 		if failure != "" {
 			s.meta.LastError = failure
+			s.meta.LastErrorCode = code
 		}
 		if finish && state == stateIdle {
 			state = stateDone
@@ -319,8 +321,8 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 	}
 
 	for step := 0; step < meta.MaxSteps; step++ {
-		if stopped, state, reason := e.stopped(ctx, s); stopped {
-			end(state, reason)
+		if stopped, state, reason, code := e.stopped(ctx, s); stopped {
+			end(state, reason, code)
 			return
 		}
 		request.Messages = s.historyCopy()
@@ -333,14 +335,14 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		})
 		response, err := provider.Complete(ctx, request)
 		if err != nil {
-			if stopped, state, reason := e.stopped(ctx, s); stopped {
-				end(state, reason)
+			if stopped, state, reason, code := e.stopped(ctx, s); stopped {
+				end(state, reason, code)
 				return
 			}
 			// 모델 API 장애: 진행 중 호출은 끝냈고, 새 계획은 세우지 않고,
 			// 세션 상태를 남기고 멈춘다(§13).
 			s.append(entry{Kind: kindError, Author: authorTerra, Text: "model call failed: " + err.Error(), ErrorCode: "MODEL_UNAVAILABLE"})
-			end(stateFailed, err.Error())
+			end(stateFailed, err.Error(), "MODEL_UNAVAILABLE")
 			return
 		}
 		s.mu.Lock()
@@ -370,7 +372,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 				text += " (" + response.Refusal + ")"
 			}
 			s.append(entry{Kind: kindError, Author: authorTerra, Text: text, ErrorCode: "MODEL_REFUSED"})
-			end(stateIdle, text)
+			end(stateIdle, text, "MODEL_REFUSED")
 			return
 		}
 		if len(toolUses) == 0 {
@@ -378,7 +380,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 				s.append(entry{Kind: kindError, Author: authorTerra, Text: "the model's answer was cut at its token limit", ErrorCode: "MODEL_TRUNCATED"})
 			}
 			s.append(entry{Kind: kindDone, Author: authorTerra, Note: doneNote(s)})
-			end(stateIdle, "")
+			end(stateIdle, "", "")
 			return
 		}
 
@@ -387,21 +389,21 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		for _, call := range toolUses {
 			result := agent.Call(ctx, call.Name, call.Input)
 			results = append(results, toolResultBlock(call.ID, result))
-			if stopped, state, reason := e.stopped(ctx, s); stopped {
-				end(state, reason)
+			if stopped, state, reason, code := e.stopped(ctx, s); stopped {
+				end(state, reason, code)
 				return
 			}
 		}
 		s.appendHistory(Message{Role: roleUser, Blocks: results})
 	}
 	s.append(entry{Kind: kindError, Author: authorTerra, Text: fmt.Sprintf("stopped: the session's limit of %d model turns was reached", meta.MaxSteps), ErrorCode: "STEP_LIMIT"})
-	end(stateIdle, "step limit reached")
+	end(stateIdle, "step limit reached", "STEP_LIMIT")
 }
 
 // stopped reports whether the turn must not continue, and how to say so. It
 // folds the three ways a turn ends short of an answer into one place: a person
 // cancelled it, its wall clock ran out, or the session spent its tokens.
-func (e *engine) stopped(ctx context.Context, s *session) (bool, string, string) {
+func (e *engine) stopped(ctx context.Context, s *session) (bool, string, string, string) {
 	if err := ctx.Err(); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			s.mu.Lock()
@@ -409,9 +411,9 @@ func (e *engine) stopped(ctx context.Context, s *session) (bool, string, string)
 			s.mu.Unlock()
 			reason := fmt.Sprintf("stopped: this turn ran past its limit of %ds", seconds)
 			s.append(entry{Kind: kindError, Author: authorTerra, Text: reason, ErrorCode: "TIME_LIMIT"})
-			return true, stateIdle, reason
+			return true, stateIdle, reason, "TIME_LIMIT"
 		}
-		return true, stateCancelled, ""
+		return true, stateCancelled, "", ""
 	}
 	s.mu.Lock()
 	budget, spent := s.meta.TokenBudget, s.meta.Usage.InputTokens+s.meta.Usage.OutputTokens
@@ -419,9 +421,9 @@ func (e *engine) stopped(ctx context.Context, s *session) (bool, string, string)
 	if budget > 0 && spent >= budget {
 		reason := fmt.Sprintf("stopped: this session spent its token budget (%d of %d)", spent, budget)
 		s.append(entry{Kind: kindError, Author: authorTerra, Text: reason, ErrorCode: "TOKEN_BUDGET"})
-		return true, stateIdle, reason
+		return true, stateIdle, reason, "TOKEN_BUDGET"
 	}
-	return false, "", ""
+	return false, "", "", ""
 }
 
 // promptBytes is how much of this request is content that leaves the node: the

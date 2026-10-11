@@ -134,8 +134,12 @@ type sessionMeta struct {
 	CreatedMS   int64  `json:"created_ms"`
 	UpdatedMS   int64  `json:"updated_ms"`
 	LastError   string `json:"last_error,omitempty"`
-	Answer      string `json:"answer,omitempty"`
-	Usage       Usage  `json:"usage"`
+	// LastErrorCode is the code of the error line that LastError describes
+	// (TIME_LIMIT, MODEL_UNAVAILABLE, ...), so a list row can show it without
+	// parsing an English sentence. Empty on records written before it existed.
+	LastErrorCode string `json:"last_error_code,omitempty"`
+	Answer        string `json:"answer,omitempty"`
+	Usage         Usage  `json:"usage"`
 	// MCPServers are the registered external MCP servers this session may use
 	// (A8). It is frozen at open, like autonomy: a session's surface does not
 	// widen under it, and a person reading the record later needs to know which

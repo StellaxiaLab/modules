@@ -3316,6 +3316,11 @@
               "title": "마지막 오류",
               "type": "string"
             },
+            "last_error_code": {
+              "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+              "title": "마지막 오류 코드",
+              "type": "string"
+            },
             "session_id": {
               "description": "에이전트 세션 식별자. 파일 이름이 되므로 영문·숫자·._- 만 허용한다.",
               "maxLength": 128,
@@ -3775,6 +3780,11 @@
               "title": "마지막 오류",
               "type": "string"
             },
+            "last_error_code": {
+              "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+              "title": "마지막 오류 코드",
+              "type": "string"
+            },
             "max_seconds": {
               "description": "한 차례(모델 호출 → 도구 호출 → 다음 호출)가 넘을 수 없는 벽시계 초. 세션이 사람의 답을 기다리며 쉬는 시간은 포함하지 않는다.",
               "minimum": 1,
@@ -4137,6 +4147,11 @@
                   "last_error": {
                     "description": "세션이 멈춘 이유가 있으면 그것.",
                     "title": "마지막 오류",
+                    "type": "string"
+                  },
+                  "last_error_code": {
+                    "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+                    "title": "마지막 오류 코드",
                     "type": "string"
                   },
                   "max_seconds": {
@@ -5046,6 +5061,11 @@
           "last_error": {
             "description": "세션이 멈춘 이유가 있으면 그것.",
             "title": "마지막 오류",
+            "type": "string"
+          },
+          "last_error_code": {
+            "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+            "title": "마지막 오류 코드",
             "type": "string"
           },
           "max_seconds": {
