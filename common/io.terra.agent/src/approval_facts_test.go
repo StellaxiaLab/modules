@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -181,4 +183,66 @@ func TestPendingApprovalExpiresMSFollowsTheEarlierBound(t *testing.T) {
 			t.Fatalf("created_ms = %v", pending["created_ms"])
 		}
 	})
+}
+
+// 호출 줄에 모델의 이유와 판정 근거를 옮긴다(M-4). 승인 없이 실행된 호출에도 남는다.
+func TestCallEntryCarriesTheModelsReasonAndTheJudgement(t *testing.T) {
+	b := newBench(t,
+		always(toolResponse("", invokeCall("c1", opStatus, `{}`, "노드 상태를 먼저 본다"))),
+		always(textResponse("ok")),
+	)
+	current := b.runPrompt(t, "auto", false, "상태 봐줘")
+	calls := entriesOfKind(current, kindCall)
+	if len(calls) != 1 {
+		t.Fatalf("call entries = %+v", calls)
+	}
+	if calls[0].Reason != "노드 상태를 먼저 본다" {
+		t.Errorf("reason = %q", calls[0].Reason)
+	}
+	if calls[0].Judgement == "" || calls[0].Decision != string(agentcore.DecisionRun) {
+		t.Errorf("judgement = %q decision = %q (a call that ran unasked still has the gate's reason)", calls[0].Judgement, calls[0].Decision)
+	}
+	encoded, _ := json.Marshal(calls[0])
+	if !strings.Contains(string(encoded), `"reason":"노드 상태를 먼저 본다"`) || !strings.Contains(string(encoded), `"judgement":`) {
+		t.Errorf("wire form lacks the fields: %s", encoded)
+	}
+	for _, secret := range []string{testCredential, testAPIKey} {
+		if strings.Contains(string(encoded), secret) {
+			t.Errorf("call entry carries a secret: %s", encoded)
+		}
+	}
+}
+
+func TestPlannedEntryCarriesTheModelsReason(t *testing.T) {
+	b := newBench(t,
+		always(toolResponse("", invokeCall("c1", opRestart, `{"module_id":"io.terra.sample"}`, "죽었으니 재시작한다"))),
+		always(textResponse("planned")),
+	)
+	current := b.runPrompt(t, "auto", true, "고쳐줘")
+	planned := entriesOfKind(current, kindPlanned)
+	if len(planned) != 1 || planned[0].Reason != "죽었으니 재시작한다" || planned[0].Judgement == "" {
+		t.Fatalf("planned entries = %+v", planned)
+	}
+}
+
+// 새 칸이 없는 옛 기록도 읽힌다, 그리고 칸이 비면 JSON에서 빠진다.
+func TestOlderRecordsWithoutReasonStillLoad(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.jsonl")
+	record := `{"meta":{"session_id":"old","state":"done","autonomy":"plan","simulate":false,"owner":"alice","steps":1,"max_steps":4,"created_ms":1,"updated_ms":2,"usage":{}}}` + "\n" +
+		`{"entry":{"seq":1,"kind":"call","author":"agent","author_label":"agent","time_ms":2,"subject":"x","decision":"run","status":"ok"}}` + "\n"
+	if err := os.WriteFile(path, []byte(record), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := readSessionRecord(path, time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := loaded.entriesAfter(0, 0)
+	if len(lines) != 1 || lines[0].Reason != "" || lines[0].Judgement != "" {
+		t.Fatalf("entries = %+v", lines)
+	}
+	encoded, _ := json.Marshal(lines[0])
+	if strings.Contains(string(encoded), `"reason"`) || strings.Contains(string(encoded), `"judgement"`) {
+		t.Errorf("empty fields must be absent: %s", encoded)
+	}
 }

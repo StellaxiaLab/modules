@@ -1680,9 +1680,11 @@
                   "author": "agent",
                   "author_label": "agent",
                   "decision": "run",
+                  "judgement": "read risk runs unasked",
                   "kind": "call",
                   "note": "run · ok · trace=trace-9f2c",
                   "operation_id": "terra.daemon.modules.list",
+                  "reason": "활성 모듈 목록을 먼저 본다",
                   "seq": 2,
                   "status": "ok",
                   "subject": "terra.daemon.modules.list",
@@ -1724,6 +1726,11 @@
                     "title": "오류 코드",
                     "type": "string"
                   },
+                  "judgement": {
+                    "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                    "title": "판정 근거",
+                    "type": "string"
+                  },
                   "kind": {
                     "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                     "title": "종류",
@@ -1737,6 +1744,11 @@
                   "operation_id": {
                     "description": "호출 줄이 부른 operation id.",
                     "title": "operation",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                    "title": "모델의 이유",
                     "type": "string"
                   },
                   "request_id": {
@@ -2023,6 +2035,11 @@
                   "title": "오류 코드",
                   "type": "string"
                 },
+                "judgement": {
+                  "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                  "title": "판정 근거",
+                  "type": "string"
+                },
                 "kind": {
                   "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                   "title": "종류",
@@ -2036,6 +2053,11 @@
                 "operation_id": {
                   "description": "호출 줄이 부른 operation id.",
                   "title": "operation",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                  "title": "모델의 이유",
                   "type": "string"
                 },
                 "request_id": {
@@ -2297,6 +2319,11 @@
                   "title": "오류 코드",
                   "type": "string"
                 },
+                "judgement": {
+                  "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                  "title": "판정 근거",
+                  "type": "string"
+                },
                 "kind": {
                   "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                   "title": "종류",
@@ -2310,6 +2337,11 @@
                 "operation_id": {
                   "description": "호출 줄이 부른 operation id.",
                   "title": "operation",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                  "title": "모델의 이유",
                   "type": "string"
                 },
                 "request_id": {
@@ -3229,6 +3261,11 @@
                     "title": "오류 코드",
                     "type": "string"
                   },
+                  "judgement": {
+                    "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                    "title": "판정 근거",
+                    "type": "string"
+                  },
                   "kind": {
                     "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                     "title": "종류",
@@ -3242,6 +3279,11 @@
                   "operation_id": {
                     "description": "호출 줄이 부른 operation id.",
                     "title": "operation",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                    "title": "모델의 이유",
                     "type": "string"
                   },
                   "request_id": {

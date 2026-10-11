@@ -484,7 +484,7 @@ func (e *engine) recorder(s *session) agentcore.Recorder {
 		line := entry{
 			Kind: kindCall, Author: authorAgent, Subject: record.Tool,
 			Decision: string(record.Decision), Status: record.Status, ErrorCode: record.ErrorCode,
-			TraceID: record.TraceID,
+			TraceID: record.TraceID, Reason: record.Reason, Judgement: record.Judgement,
 		}
 		if record.Tool == agentcore.ToolInvoke {
 			line.Subject = record.OperationID

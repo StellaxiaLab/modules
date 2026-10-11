@@ -101,6 +101,11 @@ type entry struct {
 	Status      string `json:"status,omitempty"`
 	ErrorCode   string `json:"error_code,omitempty"`
 	RequestID   string `json:"request_id,omitempty"`
+	// Reason is what the model said it was doing when it made the call: a
+	// claim, not a fact. Judgement is the gate's own reason for the decision.
+	// Both are kept for every call, including ones that ran without asking.
+	Reason    string `json:"reason,omitempty"`
+	Judgement string `json:"judgement,omitempty"`
 	// TraceID is the Gateway's id for a call line. It is what joins this
 	// record to the Gateway's audit trail — the same call seen from the two
 	// sides — and it is the reason a person can check the agent's account of
