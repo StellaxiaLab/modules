@@ -5,3 +5,6 @@ bin/
 # `go build` in src/ without -o writes the executable next to the sources.
 /src/io.terra.agent
 /src/io.terra.agent.exe
+
+# 웹 빌드 산출물 — web/ 소스를 vite 가 구워 여기 놓는다. 커밋하지 않는다.
+/ui/

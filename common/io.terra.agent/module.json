@@ -48,6 +48,20 @@
     ]
   },
   "contributions": {
+    "gui": {
+      "apps": [
+        {
+          "id": "io.terra.agent",
+          "name": "Terra Agent",
+          "mode": "static",
+          "entry": "ui/index.html",
+          "isolation": "sandboxed",
+          "permissions": [
+            "agent.use"
+          ]
+        }
+      ]
+    },
     "cli": {
       "commands": [
         {
