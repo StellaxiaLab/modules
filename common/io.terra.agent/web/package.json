@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "echo \"e2e 는 아직 없다 — 브라우저가 필요한 시험은 이 이름으로 둔다 (test 에 넣지 않는다)\""
+    "e2e": "node e2e/run.mjs",
+    "e2e:server": "node --test --test-timeout=60000 \"e2e/server/*.test.mjs\""
   },
   "devDependencies": {
     "typescript": "7.0.2",
