@@ -6,7 +6,7 @@
 //   TERRA_PEER_NODE=<같은 클러스터의 다른 node_id> node tools/live-linkio.mjs
 //
 // 스택 만드는 법과 결과: docs/api/real-data-layer.md §5.8. 이 판은 호환되는 소스 · 싱크 쌍이 없는 스택(test.stream bytes ↔ io-weave mouse)에서
-// 도는 것을 전제로 한다 — 정상 바인딩(active)은 이 시험에 없다. 그 자리는 Terra 의 Go e2e(binding_delegated_e2e_test.go)가 본다.
+// 도는 것을 전제로 한다 — 정상 바인딩(active → closed)은 형제 도구 live-linkbind.mjs(§5.10)가 본다.
 import { readFileSync } from 'node:fs';
 const W = new URL('../src/', import.meta.url).href;
 const win = { localStorage: { getItem() { return null; }, setItem() {} }, addEventListener() {}, removeEventListener() {} };
