@@ -680,8 +680,12 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 | --- | --- | --- | --- |
 | MD-45 | 이 모듈 — 네트워크 보드 후보 | 보드 › 연결 진단 · 라우팅 › 그래프에서 노드 둘 → `오류 · ROUTE_UNAVAILABLE` | `src/data/network-live.js:56` · `:108`의 기본 채널 `'service_tunnel'`. Master의 채널 이름은 `service.tunnel`(후보의 `channels`도 그렇다). 한 줄짜리지만 묻고 고친다 |
 | MD-46 | 이 모듈 — 연결 적용의 내 신원 | leaf 셸에서 Scene 로그인 → 연결 → [나에게 허가 주기] → 403. 서버에 허가가 있어도 `허가 필요` | `src/api/wire.js:465` `principal = (value && value.principal) \|\| who.principal` — frame 세션 값의 `principal`(셸 로그인 표시 = 이메일)을 whoami보다 앞세운다. `source.principal`(연결 적용)만 whoami를 쓰면 된다. §5.9의 `userIdOf`는 `via` 접미사만 다뤘다 |
-| PF-26 | Terra 데몬 — 바인딩 준비 응답 | 같은 노드 위 호환 쌍으로 바인딩 → `preparing` · `target_prepare_failed: context deadline exceeded` | `leaf/daemon/src/terra_daemon/svi/binding_executor.go:784`의 `preparedResponse`가 `Source`를 비운 봉투를 돌려준다. `communication.Service.Send`는 시각 · 판 · id만 채우고 `ValidateEnvelope`가 `Source.App == ""`로 `ErrInvalidEnvelope` → relay 읽기 루프가 `master_relay_inbound_rejected`로 적고 Master는 응답을 기다리다 시한 초과. 같은 파일의 다른 봉투(`:822` · `:858` · `:868`)는 `Source`를 싣는다. `binding_delegated_e2e_test.go`가 active를 보는 길이 relay가 아닌지 확인이 필요하다(코드 읽기 — 실행으로 확정하지 않았다) |
+| PF-26 | Terra 데몬 — 바인딩 준비 응답 | 같은 노드 위 호환 쌍으로 바인딩 → `preparing` · `target_prepare_failed: context deadline exceeded` | `leaf/daemon/src/terra_daemon/svi/binding_executor.go:784`의 `preparedResponse`가 `Source`를 비운 봉투를 돌려준다. `communication.Service.Send`는 시각 · 판 · id만 채우고 `ValidateEnvelope`가 `Source.App == ""`로 `ErrInvalidEnvelope` → relay 읽기 루프가 `master_relay_inbound_rejected`로 적고 Master는 응답을 기다리다 시한 초과. 같은 파일의 다른 봉투(`:822` · `:858` · `:868`)는 `Source`를 싣는다. `binding_delegated_e2e_test.go`가 active를 보는 길이 relay가 아닌지 확인이 필요하다(코드 읽기 — 실행으로 확정하지 않았다). **→ 고쳐짐: [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)(`dfbd1f9`, 이 원인 그대로) — 아래 재실측** |
 | PF-27 | Terra — 계약 입력 스키마 ↔ Gateway invoke | `terra.master.route.candidates.get`을 `{"query":{"source_node_id":…,"target_node_id":…}}`로 invoke → 404 `NODE_NOT_FOUND`. 평평하게 보내면 200 | Master 계약의 GET op 입력 스키마가 `{query:{…}}`(`additionalProperties: false`)인데 `terra-module-runtime` `BuildOperationTarget`은 남은 키를 그대로 쿼리로 보낸다 — `query`가 키 하나가 된다. 계약을 읽는 에이전트(`terra_describe_operation`)는 계약대로 지어 실패한다 |
+
+#### 재실측 — Terra main `361efe8`(PF-26 수정 포함)
+
+바이너리만 바꿔 같은 스택(같은 설정 · Master DB)을 다시 띄우고 같은 쌍을 모듈 코드로 붙였다. 데몬 로그의 `master_relay_inbound_rejected` **0건**, `target_prepare_failed`가 사라지고 바인딩이 소스 준비까지 간다 — `desired: active` · `observed: failed` · `reason: source_prepare_failed: backend_unavailable`. io-inventory가 프레임을 내지 않아서다(MD-49). 같은 재실측에서 **끊은 뒤 같은 쌍을 다시 적용하면 Master가 닫힌 옛 바인딩을 돌려준다**는 것을 찾았다 — 멱등 키가 tree와 쌍만으로 정해진다(MD-50).
 
 #### 결정이 필요한 것
 

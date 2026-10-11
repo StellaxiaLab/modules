@@ -41,8 +41,8 @@ related:
 
 | 묶음 | 누가 | 높음 | 중간 | 낮음 |
 | --- | --- | --- | --- | --- |
-| **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 5 | 6 | 9 |
-| **MD** 이 모듈 | modules 저장소 | 2 | 9 | 5 |
+| **PF** Terra 플랫폼 — 모듈만으로는 못 한다 | Terra 코어 | 4 | 6 | 9 |
+| **MD** 이 모듈 | modules 저장소 | 2 | 10 | 5 |
 | **UP** GUI 원본(maingui) · 디자인에 올릴 것 | GUI 원본 쪽 | 1 | 6 | 8 |
 | **Q** 사람이 정할 것 | 소유자 | — | — | — |
 
@@ -51,7 +51,7 @@ related:
 2026-10-09 — 맵 진입 개선을 끝냈다(MD-35 · MD-36 · MD-38 · MD-40 · MD-43 완료 · MD-37 효과 없음 · MD-39 불필요 — 로그인 → 맵 평균 20.1초 → 7.3초, 모듈 0.4.2). 남은 것은 MD-42 · PF-25.
 2026-10-09 — **maingui를 더 이상 쓰지 않는다** — `web/design/`이 이 저장소의 원본이라 UP-33~UP-36은 MD-35 · MD-36 · MD-40 · MD-43로 흡수했다(순서 · 완료 기준: [[work-order-map-entry-and-fidelity|작업 지시서]]).
 2026-10-08 — 레지스트리로 설치해 Terra 셸에서 열어 재 본 결과(맵 진입 20초+ · 지어낸 CPU · 메모리 · 디스크 값 · 빈 창)를 MD-35~MD-40(+ UP-33~UP-36 → MD로 흡수)으로 올렸다. 측정과 근거는 [[performance-and-fidelity-recommendations|맵 진입 지연과 가짜 값 — 개선 권고안]] — 어느 것부터 어떻게 하는지는 [[work-order-map-entry-and-fidelity|작업 지시서]].
-2026-10-11 — 위임 입구 화면 · 에이전트 실측([[real-data-layer|실데이터 층]] §5.10, Windows 한 기기 · Terra `832f8f2` · modules `8ab9e38` — ✅ 30 · ❌ 3 · ⏭ 2)에서 MD-45~MD-49 · PF-26~PF-29를 올렸다.
+2026-10-11 — 위임 입구 화면 · 에이전트 실측([[real-data-layer|실데이터 층]] §5.10, Windows 한 기기 · Terra `832f8f2` · modules `8ab9e38` — ✅ 30 · ❌ 3 · ⏭ 2)에서 MD-45~MD-50 · PF-26~PF-29를 올렸다(PF-26은 Terra#185가 이미 고쳤다 — 재실측으로 확인).
 Terra G0~G6이 연 길(B-1 · B-5 · C-1 · B-11 · B-12 · B-14)은 이 모듈이 모두 옮겼다 — MD-11 · MD-12 · MD-15~MD-20.
 끊긴 뒤 이어서(MD-21)도 끝냈다 — 그 길에서 찾은 io.terra.file 문제(invoke로 보낸 중단이 늘 포기)를 0.2.1로 함께 고쳤다.
 maingui `e669c03`(A-29 ~ A-33)도 따라갔다(MD-22) — 모듈 수정 폼이 모듈 설정이 됐다(Terra main의 설정 op 셋).
@@ -112,7 +112,7 @@ flowchart LR
 | **PF-16** | 노드의 공유 목록 | 반쯤 — C-3 노드 주체 허가 = 흐름 허용 목록(G6). 읽기가 Master `svi.grants.get {node_id …}` — ADR-GW-003 1차로 닿는다(2026-10-09) | 상태 화면의 공유 목록 · 네트워크 창의 공유 그래프 | 낮음 |
 | **PF-17** | 앱 토큰으로 받는 **사용자 문서 변경 신호** | 새로 찾았다 — 문서를 쓰면 Master가 그 사람에게만 `terra.documents.changed`를 낸다(`announceDocument`). 앱 토큰의 이벤트는 이 노드 Daemon 것(`terra.daemon.events.get`)이라 그 신호가 오지 않는다. Master 이벤트는 PF-1 경계 — ADR-GW-003은 Master SSE를 2차로 미뤘다(필터 주체와 함께) | 다른 창 · 기기가 바꾼 배치를 곧장 받지 못한다 — 다음 쓰기의 409 알림 · 새로 고침에 받는다(MD-15). 길: 게이트웨이가 앱 이름공간(`app:<appId>`)의 문서 신호만 그 앱 토큰의 SSE에 실어 준다 | 낮음 |
 | **PF-25** | 앱 토큰으로 읽는 **노드 사용량**(CPU · 메모리 · 디스크 %) | 없다 — leaf 게이트웨이 카탈로그(117개)에 사용량 op가 없고 `agent/nodes`도 주지 않는다. Master에는 `GET /api/v1/monitor/snapshot`(`cpu_percent` · `memory_percent` · `disk_percent` · `measured`)이 있으나 leaf 게이트웨이가 게시하지 않아 `terra.master.monitor.snapshot.get`이 `MODULE_ROUTE_NOT_FOUND`다. Daemon에도 procfs 모니터(`data_plane/monitoring`)가 있으나 op가 없다 | 노드 카드 사용량 막대(MD-36 — 받은 값만 그린다) | 중간 |
-| **PF-26** | 데몬의 **바인딩 준비 응답**이 relay에서 버려진다 | 2026-10-11 실측([[real-data-layer\|실데이터 층]] §5.10 B2) — 같은 노드 위 호환 쌍(마우스 → io-weave 포인터)의 바인딩이 `preparing` · `target_prepare_failed: context deadline exceeded`에 멈춘다. 데몬 로그 `master_relay_inbound_rejected … svi.binding.prepare.request … invalid communication envelope`. 원인 추정(코드 읽기): `binding_executor.go:784` `preparedResponse`가 `Source` 없는 봉투를 돌려주고 `Service.Send`의 `ValidateEnvelope`가 거절한다 | 입출력 연결이 `active`가 되지 않는다 | 높음 |
+| **PF-26** | 데몬의 **바인딩 준비 응답**이 relay에서 버려진다 | 2026-10-11 실측([[real-data-layer\|실데이터 층]] §5.10 B2) — 같은 노드 위 호환 쌍(마우스 → io-weave 포인터)의 바인딩이 `preparing` · `target_prepare_failed: context deadline exceeded`에 멈춘다. 데몬 로그 `master_relay_inbound_rejected … svi.binding.prepare.request … invalid communication envelope`. 원인 추정(코드 읽기): `binding_executor.go:784` `preparedResponse`가 `Source` 없는 봉투를 돌려주고 `Service.Send`의 `ValidateEnvelope`가 거절한다  **고쳐짐 — [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)(`dfbd1f9`, 원인 같음). Terra main `361efe8`로 다시 재니 봉투 거절 0 · 바인딩이 소스 준비까지 가서 `source_prepare_failed: backend_unavailable`(MD-49)** | 입출력 연결이 `active`가 되지 않는다 | ~~높음~~ 끝 |
 | **PF-27** | Master 계약 입력 스키마(`{query:{…}}`)와 Gateway invoke(평평한 입력)가 어긋난다 | 2026-10-11 실측(§5.10 D8) — `route.candidates.get`을 계약대로 `{query:{…}}`로 부르면 `query=<JSON>`이 되어 404 `NODE_NOT_FOUND`, 평평하게 부르면 200. 화면은 평평하게 부르므로 괜찮지만 계약을 읽는 에이전트는 틀린다 | `io.terra.agent`의 Master 읽기(계약대로 지은 입력) | 중간 |
 | **PF-28** | `/api/v1/agent/nodes`가 **다른 클러스터 노드**를 보인다 | 2026-10-11 실측(§5.10 E3) — 관리자의 앱 토큰 · fleet 에이전트(tree · leaf 둘 다)에게 다른 사용자의 노드가 나온다. 위임 입구의 `nodes.get`은 거른다. 결정: 이 목록도 강등할지 | 에이전트 `terra_nodes` · 노드 주소 호출의 후보 | 중간 |
 | **PF-29** | 죽은 위임 자격 · 도달 범위 거절이 403 `MODULE_PERMISSION_DENIED`로 온다 | 2026-10-11 실측(§5.10) — Gateway 재시작 뒤 `tsa_`가 `anonymous`(401이 아니라 403 "권한이 없습니다"), readonly(`node.read` 있음)의 도달 범위 거절도 같은 글. 429에 `Retry-After` 없음, 위임 입구가 거절한 호출은 감사 행 없음 | 화면 · 에이전트가 "다시 받기"를 알 수 없다 | 낮음 |
@@ -148,6 +148,7 @@ flowchart LR
 | **MD-47** | 입출력 설정 화면 다듬기 | 2026-10-11 실측(§5.10 B) — 쪽마다 엔드포인트가 하나여도 자동으로 고르지 않는다(설계 Q-27과 다름) · 적용 전 형식이 "모름 → 모름" · 허가 기한에 위임 입구가 늘 거절하는 "기한 없음"이 있다 · tree 보드 서비스 터널의 "앱 토큰은 Master에 닿지 않습니다"는 1차 이전 글 · 전체 화면 보드 위로 세션 캡슐이 겹친다 | — | 낮음 |
 | **MD-48** | 진짜 스택 실측 절차를 도구로 | 2026-10-11 — leaf · tree 셸로 보려면 base Scene(`io.terra.scene.terra`) · `VITE_TERRA_GATEWAY_URL` · UI 패키지 빌드가 필요했다(§5.10 막혔던 곳). 이번 Playwright 스크립트(보드 · 연결 · 끊김)를 `web/tools/`에 정리하면 MD-6의 발판이 된다 | MD-6 | 낮음 |
 | **MD-49** | `io.terra.io-inventory`가 **프레임을 내지 않는다** | 2026-10-11 — 장치를 SVI 자원으로 선언만 하고 `SVISource`가 없다. 실제 장치 → 싱크 바인딩이 서도 신호가 흐를 길이 없다(§5.10 B1). 같은 저장소의 다른 모듈 일이다 | PF-26 | 중간 |
+| **MD-50** | 끊은 뒤 **같은 쌍을 다시 이으면 닫힌 바인딩이 돌아온다** | 2026-10-11 재실측(Terra `361efe8`) — 멱등 키(`idempotencyKey(treeId, 쌍)`)가 tree와 쌍만으로 정해져, 닫은 바인딩과 같은 쌍을 다시 적용하면 Master가 그 닫힌 바인딩(`desired: closed` · `observed: requested`)을 돌려주고 상태 맞추기는 `binding`에 머문다. 끊기 때 키를 바꾸거나(연결 id · 세대를 섞기) 닫힌 바인딩이 오면 새 키로 다시 만든다 | — | 중간 |
 | **MD-42** | 노드 화면 마운트의 동기 작업 약 2초 | 맵 굽기를 걷어낸 뒤 남은 첫 롱태스크(1.7~2.1초). 스킨 · 타일 벡터 생성(`ensureBake` · `bakeTile`)으로 보이나 프로파일로 쪼개지 않았다. 편집기 보드 4종(건물 · 도로 · 필드 · 자재)의 굽기(`getImageData`)도 같이 잰다 | — | 중간 |
 
 ### 끝낸 것
