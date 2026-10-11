@@ -425,3 +425,10 @@ sha256으로 덮는다.
 Terra 쪽이 `module/`을 빌드·테스트 입력으로 읽는 자리(역의존)를 끊는 것이 저장소 분리의
 유일하게 남은 선행 조건이고, 그 목록은 Terra의
 `docs/reports/module-framework-conformance-audit-2026-09-21.md` §8이 소유한다.
+
+## 라이선스
+
+[Apache License 2.0](LICENSE). 이 저장소의 모듈 소스와 도구에 적용된다. 모듈 하나가 다른 조건을 가지면 그 모듈 디렉터리의 `README.md`가 따로 밝힌다.
+
+- `schemas/manifest-v2.schema.json`은 Terra의 원본 사본이다([`schemas/PROVENANCE.json`](schemas/PROVENANCE.json)).
+- 특허 사용권이 명시되어 있고, 상표(“Terra” 등의 이름)는 이 라이선스가 허락하는 범위 밖이다.
