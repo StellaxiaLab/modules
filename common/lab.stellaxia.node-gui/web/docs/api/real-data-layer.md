@@ -572,7 +572,7 @@ Terra [Terra#154](https://github.com/StellaxiaLab/Terra/pull/154)(ADR-GW-004 2a 
 | # | 무엇 | 처리 |
 | --- | --- | --- |
 | 1 | 앱 토큰의 whoami `principal`은 `user_… via lab.stellaxia.node-gui.web`이다. 연결 적용이 이것을 그대로 사용자 id로 써서 `grantSelf`가 위임 입구에서 403, 허가 대조(`subject.id === userId`)도 영영 맞지 않았다. 단위 시험은 `user_me`로만 돌아 잡지 못했다 | **고쳤다** — `link-apply.js`의 `userIdOf`가 `applyLink` · `grantSelf` 입구에서 `via` 접미사를 뗀다([modules#69](https://github.com/StellaxiaLab/modules/pull/69), 시험 추가) |
-| 2 | Terra Daemon의 `svi.binding.prepared.response`에 `Source`가 없다. `Service.Send`가 채우지 않고 `ValidateEnvelope`가 요구해서, **실제 Daemon 바이너리에서는 응답이 `invalid communication envelope`로 거절**되고 Master가 바인딩을 `target_prepare_failed: context deadline exceeded`로 끝낸다. 기존 시험은 응답을 기록만 하는 `recordingSender`라 못 잡았다 | Terra 쪽 결함 — **[Terra#188](https://github.com/StellaxiaLab/Terra/pull/188)**(한 줄 + 회귀 시험). **이 수정이 들어가기 전의 Terra로는 `live-linkio.mjs`의 `active` 단계가 실패한다** |
+| 2 | Terra Daemon의 `svi.binding.prepared.response`에 `Source`가 없다. `Service.Send`가 채우지 않고 `ValidateEnvelope`가 요구해서, **실제 Daemon 바이너리에서는 응답이 `invalid communication envelope`로 거절**되고 Master가 바인딩을 `target_prepare_failed: context deadline exceeded`로 끝낸다. 기존 시험은 응답을 기록만 하는 `recordingSender`라 못 잡았다(핸들 열기 · 닫기 응답도 같았다) | Terra 쪽 결함 — **[Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)가 고쳤다**(2026-10-11, Terra main `e84e765`). 응답 만드는 곳 둘에 `Source`를 싣고 `HandleIncoming`이 빈 `Source`를 기본값으로 채운다. 이 시험이 같은 증상을 보고 낸 수정이다. 수정 없이 그 main에서 `live-linkio.mjs` 27/27 통과를 확인했다 |
 | 3 | 소스와 싱크가 **같은 노드**에 있는 바인딩은 `active`가 되지만 15초 동안 데이터가 흐르지 않았다(파일 0바이트). 다른 노드 사이에서는 흐른다 | 원인을 찾지 못했다. Terra 쪽 확인 필요(추측: 같은 노드 안의 데이터 길) |
 
 **함정(세울 때 겪은 것)**
