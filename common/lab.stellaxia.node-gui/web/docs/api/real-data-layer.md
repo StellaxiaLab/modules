@@ -8,7 +8,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.13.0"
+version: "0.14.0"
 last_updated: "2026-10-11"
 language: "ko-KR"
 os_priority:
@@ -594,7 +594,7 @@ Terra [Terra#154](https://github.com/StellaxiaLab/Terra/pull/154)(ADR-GW-004 2a 
 
 두 끝은 **다른 노드 · 같은 소유자**다. 같은 소유자는 PF-19 때문이다(남의 자원은 허가가 있어도 `*_resource_not_found`). 다른 노드는 아래 "같은 노드 쌍" 때문이다.
 
-**스택** — §5.9와 같은 바이너리 방식(Terra `832f8f23` 빌드, Daemon만 `c62fff73` · `terra-master` dev sqlite · `terra-daemon` 둘 · 노드1의 Daemon이 띄운 leaf 게이트웨이). 노드2는 `--enroll-email` · `--enroll-password-file`로 같은 사용자에 등록하고 게이트웨이 · 모듈은 끈다.
+**스택** — §5.9와 같은 바이너리 방식(처음에는 Terra `832f8f23` 빌드에 Daemon만 `c62fff73`, 재측정은 모두 `main` `c82c24e2` · `terra-master` dev sqlite · `terra-daemon` 둘 · 노드1의 Daemon이 띄운 leaf 게이트웨이). 노드2는 `--enroll-email` · `--enroll-password-file`로 같은 사용자에 등록하고 게이트웨이 · 모듈은 끈다.
 
 ```bash
 # web/ 에서
@@ -605,7 +605,7 @@ node tools/live-linkbind.mjs
 
 **처음 막힌 곳 — Terra Daemon 버그(모듈 밖).** `main` 그대로의 Daemon으로는 `bindings.post`가 받은 뒤 약 10초 만에 `failed`(`target_prepare_failed: context deadline exceeded`)가 된다. Daemon 기록: `master_relay_inbound_rejected message_type=svi.binding.prepare.request error="invalid communication envelope"`. 원인: `BindingExecutor.preparedResponse`(`svi/binding_executor.go`)가 답 봉투에 `Source`를 싣지 않는다. 그래서 `communication.Service.Send`의 `ValidateEnvelope`(`Source.App`이 비면 거절)가 relay 어댑터의 `normalizeOutbound`(빈 `Source`를 채운다)까지 가기 전에 버리고, Master는 prepare 답을 영영 받지 못한다. Terra의 Go e2e(`common/tests/svi-handle-integration`)는 자기 `Send`가 `Source`를 채워서 이것을 가린다. `HandleManager.response`도 같은 모양이다. Terra 쪽에 알렸다 — 아래 "Terra 쪽 상태".
 
-**결과 — Terra 고침(`c62fff73`)을 넣은 Daemon으로 `16/16`.** 같은 스택 · 같은 도구에서 `main`(`832f8f23`) Daemon으로는 `active` · Master 기록 · 흐름이 실패한다(`binding → failed`, 닫기는 된다). 둘 사이에 바꾼 것은 Daemon 바이너리 하나다(Master · 게이트웨이는 `832f8f23`).
+**결과 — Terra `main`(`c82c24e2`)의 Daemon으로 `16/16`.** 같은 스택 · 같은 도구에서, 이번에는 고침 브랜치가 아니라 **Terra `main` `c82c24e2`**(Daemon `Source` 고침 `dfbd1f9c` 핸들러 응답 기본값 · `c62fff73` 빌더 둘 다 포함)를 `git archive`로 깨끗이 내보내 Master · Daemon · 게이트웨이를 모두 새로 빌드해 다시 쟀다(`tools/live-stack-up.sh`). 예전에 `main`(`832f8f23`) Daemon으로는 `active` · Master 기록 · 흐름이 실패했다(`binding → failed`, 닫기는 된다). 지금은 두 노드 쌍이 처음부터 끝까지 통과한다. 싱크는 이번에는 Daemon Local API의 런타임 선언(`POST /svi/declarations`, `family file` · `direction sink`)으로 올렸다 — `svi.file_sinks` 설정과 같은 파일 싱크 어댑터다.
 
 | 단계 | 본 것 | 결과 |
 | --- | --- | --- |
@@ -625,7 +625,7 @@ node tools/live-linkbind.mjs
 
 **같은 노드 쌍(Terra 쪽 메모)** — 소스와 싱크가 한 노드에 있으면(`test.stream` → 같은 Daemon의 `fs.md32-sink`) Master는 `observed active`라고 하지만 **싱크 파일은 0바이트 그대로다**. Daemon의 `BindingExecutor`가 바인딩 상태를 `binding_id` 하나로만 들고 있어서(`e.bindings[binding_id]`), 같은 바인딩의 source 역할 prepare가 target 역할 상태(열린 싱크)를 갈아 치운다. 모듈 쪽은 바꿀 것이 없다 — 상태는 Master가 말하는 대로 `active`로 보인다. 그래서 시험 도구는 두 끝이 같은 노드면 경고를 찍는다. 화면에 같은 노드 쌍을 막거나 표시할지는 Terra의 답(지원하지 않는 모양인지)을 보고 정한다.
 
-**Terra 쪽 상태** — Daemon의 `Source` 버그는 Terra 브랜치 `ccr-3a501c29-lt1eml`의 `c62fff73`("Give daemon SVI responses a Source so they pass envelope validation")이 고쳤다. `preparedResponse`와 `HandleManager.response`(핸들 열기 · 닫기 답도 같은 이유로 버려졌다)가 둘 다 `Source`를 싣고, 회귀 시험은 진짜 `Service.HandleIncoming`을 지난다. **`main`에 머지되기 전까지 `main` 그대로의 Daemon으로는 바인딩이 `active`가 되지 않는다.** 같은 노드 쌍은 그 고침과 따로이고, 아직 고칠 곳이 정해지지 않았다(로컬 상태를 `(binding_id, 역할)`로 들어야 한다 — commit · frame · close · 정리를 다 건드린다). **(2026-10-11 추가)** 같은 고침이 [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)로 `main`에 들어갔다(`e84e765`) — 수정 없는 `main`에서 §5.9의 `live-linkio.mjs` 27/27 통과를 확인했다.
+**Terra 쪽 상태** — Daemon의 `Source` 버그는 Terra 브랜치 `ccr-3a501c29-lt1eml`의 `c62fff73`("Give daemon SVI responses a Source so they pass envelope validation")이 고쳤다. `preparedResponse`와 `HandleManager.response`(핸들 열기 · 닫기 답도 같은 이유로 버려졌다)가 둘 다 `Source`를 싣고, 회귀 시험은 진짜 `Service.HandleIncoming`을 지난다. **(2026-10-11 갱신) 이 고침은 `main`에 들어갔고, `main` `c82c24e2`로 다시 재서 `16/16`을 확인했다.** 같은 노드 쌍은 그 고침과 따로이고, `main` `c82c24e2`에서도 그대로다 — 같은 노드 쌍(`fs.same`)은 `active`(`desired active / observed active`)까지 가고 싱크 파일은 `0 → 0` 바이트로 15/16(흐름 한 개만 ✗), 닫기는 정상이다. 아직 고칠 곳이 정해지지 않았다(로컬 상태를 `(binding_id, 역할)`로 들어야 한다 — commit · frame · close · 정리를 다 건드린다). **(2026-10-11 추가)** 같은 고침이 [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)로 `main`에 들어갔다(`e84e765`) — 수정 없는 `main`에서 §5.9의 `live-linkio.mjs` 27/27 통과를 확인했다.
 
 ## 6. 코드 지도
 
