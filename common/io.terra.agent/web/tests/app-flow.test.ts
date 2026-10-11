@@ -354,7 +354,7 @@ describe('앱 통합 — 폴링', () => {
     document.body.append(root);
     window.location.hash = '#/s/s-1';
     const transport = world.install(new FakeTransport());
-    const booted = boot(root, { transport, poll: { timers }, now: () => T0 });
+    const booted = boot(root, { transport, poll: { timers, now: () => T0 }, now: () => T0 });
     const app = booted!.app;
     await tick(6);
     expect(app.scheduler.getState().mode).toBe('running');
@@ -380,7 +380,7 @@ describe('앱 통합 — 폴링', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const transport = world.install(new FakeTransport());
-    const booted = boot(root, { transport, poll: { timers }, now: () => T0 });
+    const booted = boot(root, { transport, poll: { timers, now: () => T0 }, now: () => T0 });
     const app = booted!.app;
     await tick(6);
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
