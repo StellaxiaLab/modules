@@ -262,9 +262,18 @@ test('도로 이벤트 — linkEv 는 연결 상태를 이벤트로, 화면 전�
   assert.equal(ev({ v: 1, kind: 'binding', phase: 'denied', pairs: [] }), 'fail');
   assert.equal(ev({ v: 1, kind: 'share', phase: 'share-expired', pairs: [] }), 'stop');
   assert.equal(ev({ v: 9, kind: 'binding', phase: 'failed' }), null, '어긋난 io 는 화면 전용으로 읽는다');
-  // 생성된 화면 스크립트가 도로 이벤트에서 연결 상태를 본다 — gen-pages MODULE_JS 가 한 곳만 바꾼다
+  // 생성된 화면 스크립트가 도로 이벤트에서 연결 상태를 본다 — 디자인 원본(web/design)에 있고, 생성기 패치(MODULE_JS)는 없다
   const { readFile } = await import('node:fs/promises');
   const src = await readFile(new URL('../src/screens/node.js', import.meta.url), 'utf8');
+  const gen = await readFile(new URL('../tools/gen-pages.py', import.meta.url), 'utf8');
   assert.equal(src.split('this.linkEv(l)').length - 1, 1);
-  assert.match(src, /\[l\.from, l\.to, l\]\.forEach\(\(q\) => \{ const x = q === l \?/);
+  assert.match(src, /\[l\.from, l\.to, l\]\.forEach\(\(q\) => \{ const x = q === l \? this\.linkEv\(l\) :/);
+  assert.match(gen, /^MODULE_JS = \{\}$/m, 'UP-26 패치는 원본으로 옮겼다');
+  const dsg = await readFile(new URL('../design/Artboard-qcfu.dc.html', import.meta.url), 'utf8');
+  assert.ok(dsg.includes("[l.from, l.to, l].forEach((q) => { const x = q === l ? this.linkEv(l) :"), '원본에 있다');
+  // UP-27: 흐름 도로는 바인딩 active 가 조건(핸들이 없으면 fps 를 지어내지 않는다) · io 없는 연결은 예전 핸들 조건 그대로
+  assert.match(src, /if \(io && io\.kind \? !\(io\.kind === 'binding' && io\.phase === 'active'\) : !f\) return;/);
+  assert.match(src, /label: f \? '▶ ' \+ f\.fps \+ ' fps' : '▶ 흐르는 중'/);
+  // UP-28: 새 연결은 io 를 달고 만들어진다
+  assert.match(src, /const link = Object\.assign\(\{\}, link0, \{ io: this\.ioRead\(link0\) \}\);/);
 });
