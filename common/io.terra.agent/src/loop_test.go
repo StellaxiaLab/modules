@@ -456,6 +456,10 @@ func TestTheModelLineRecordsWhatLeftTheNode(t *testing.T) {
 		if line.SentBytes <= 0 || line.Text != "" {
 			t.Fatalf("model line %d = %+v; it is a fact about size, not a thing that was said", index, line)
 		}
+		// 앱이 note 문장을 해석하지 않고 읽는 구조 칸 (M-7).
+		if line.Provider != "scripted" || line.Model != "scripted-1" {
+			t.Fatalf("model line %d provider/model = %q/%q", index, line.Provider, line.Model)
+		}
 		if !strings.Contains(line.Note, "scripted/scripted-1") {
 			t.Fatalf("model line %d does not name where it went: %q", index, line.Note)
 		}

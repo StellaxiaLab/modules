@@ -1729,6 +1729,11 @@
                     "title": "종류",
                     "type": "string"
                   },
+                  "model": {
+                    "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "호출한 모델",
+                    "type": "string"
+                  },
                   "note": {
                     "description": "호출 줄의 판정·상태 같은 짧은 부기.",
                     "title": "주석",
@@ -1737,6 +1742,11 @@
                   "operation_id": {
                     "description": "호출 줄이 부른 operation id.",
                     "title": "operation",
+                    "type": "string"
+                  },
+                  "provider": {
+                    "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "모델 provider",
                     "type": "string"
                   },
                   "request_id": {
@@ -2028,6 +2038,11 @@
                   "title": "종류",
                   "type": "string"
                 },
+                "model": {
+                  "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "호출한 모델",
+                  "type": "string"
+                },
                 "note": {
                   "description": "호출 줄의 판정·상태 같은 짧은 부기.",
                   "title": "주석",
@@ -2036,6 +2051,11 @@
                 "operation_id": {
                   "description": "호출 줄이 부른 operation id.",
                   "title": "operation",
+                  "type": "string"
+                },
+                "provider": {
+                  "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "모델 provider",
                   "type": "string"
                 },
                 "request_id": {
@@ -2302,6 +2322,11 @@
                   "title": "종류",
                   "type": "string"
                 },
+                "model": {
+                  "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "호출한 모델",
+                  "type": "string"
+                },
                 "note": {
                   "description": "호출 줄의 판정·상태 같은 짧은 부기.",
                   "title": "주석",
@@ -2310,6 +2335,11 @@
                 "operation_id": {
                   "description": "호출 줄이 부른 operation id.",
                   "title": "operation",
+                  "type": "string"
+                },
+                "provider": {
+                  "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "모델 provider",
                   "type": "string"
                 },
                 "request_id": {
@@ -3234,6 +3264,11 @@
                     "title": "종류",
                     "type": "string"
                   },
+                  "model": {
+                    "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "호출한 모델",
+                    "type": "string"
+                  },
                   "note": {
                     "description": "호출 줄의 판정·상태 같은 짧은 부기.",
                     "title": "주석",
@@ -3242,6 +3277,11 @@
                   "operation_id": {
                     "description": "호출 줄이 부른 operation id.",
                     "title": "operation",
+                    "type": "string"
+                  },
+                  "provider": {
+                    "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "모델 provider",
                     "type": "string"
                   },
                   "request_id": {

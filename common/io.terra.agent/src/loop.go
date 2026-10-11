@@ -330,6 +330,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		// to "그때 뭐가 나갔지" does not depend on the call coming back.
 		s.append(entry{
 			Kind: kindModel, Author: authorTerra, SentBytes: promptBytes(request),
+			Provider: provider.Name(), Model: provider.Model(),
 			Note: fmt.Sprintf("%s/%s · %d B · %d tool result(s) carried", provider.Name(), provider.Model(),
 				promptBytes(request), toolResultCount(request.Messages)),
 		})
