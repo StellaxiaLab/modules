@@ -472,11 +472,18 @@ func (st *sessionStore) get(id string) (*session, bool) {
 	return current, ok
 }
 
-func (st *sessionStore) list() []map[string]any {
+// list returns the sessions owned by owner, newest first. The filter lives
+// here, not in the handler, so no caller can forget it.
+func (st *sessionStore) list(owner string) []map[string]any {
 	st.mu.Lock()
 	sessions := make([]*session, 0, len(st.sessions))
 	for _, current := range st.sessions {
-		sessions = append(sessions, current)
+		current.mu.Lock()
+		mine := current.meta.Owner == owner
+		current.mu.Unlock()
+		if mine {
+			sessions = append(sessions, current)
+		}
 	}
 	st.mu.Unlock()
 	sort.Slice(sessions, func(i, j int) bool { return sessions[i].meta.CreatedMS > sessions[j].meta.CreatedMS })
