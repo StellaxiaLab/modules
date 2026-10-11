@@ -1680,9 +1680,11 @@
                   "author": "agent",
                   "author_label": "agent",
                   "decision": "run",
+                  "judgement": "read risk runs unasked",
                   "kind": "call",
                   "note": "run · ok · trace=trace-9f2c",
                   "operation_id": "terra.daemon.modules.list",
+                  "reason": "활성 모듈 목록을 먼저 본다",
                   "seq": 2,
                   "status": "ok",
                   "subject": "terra.daemon.modules.list",
@@ -1724,6 +1726,11 @@
                     "title": "오류 코드",
                     "type": "string"
                   },
+                  "judgement": {
+                    "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                    "title": "판정 근거",
+                    "type": "string"
+                  },
                   "kind": {
                     "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                     "title": "종류",
@@ -1747,6 +1754,11 @@
                   "provider": {
                     "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
                     "title": "모델 provider",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                    "title": "모델의 이유",
                     "type": "string"
                   },
                   "request_id": {
@@ -2033,6 +2045,11 @@
                   "title": "오류 코드",
                   "type": "string"
                 },
+                "judgement": {
+                  "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                  "title": "판정 근거",
+                  "type": "string"
+                },
                 "kind": {
                   "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                   "title": "종류",
@@ -2056,6 +2073,11 @@
                 "provider": {
                   "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
                   "title": "모델 provider",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                  "title": "모델의 이유",
                   "type": "string"
                 },
                 "request_id": {
@@ -2317,6 +2339,11 @@
                   "title": "오류 코드",
                   "type": "string"
                 },
+                "judgement": {
+                  "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                  "title": "판정 근거",
+                  "type": "string"
+                },
                 "kind": {
                   "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                   "title": "종류",
@@ -2340,6 +2367,11 @@
                 "provider": {
                   "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
                   "title": "모델 provider",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                  "title": "모델의 이유",
                   "type": "string"
                 },
                 "request_id": {
@@ -3259,6 +3291,11 @@
                     "title": "오류 코드",
                     "type": "string"
                   },
+                  "judgement": {
+                    "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                    "title": "판정 근거",
+                    "type": "string"
+                  },
                   "kind": {
                     "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                     "title": "종류",
@@ -3282,6 +3319,11 @@
                   "provider": {
                     "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
                     "title": "모델 provider",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                    "title": "모델의 이유",
                     "type": "string"
                   },
                   "request_id": {
@@ -3768,7 +3810,18 @@
               "owner": "alice",
               "pending_approvals": [
                 {
+                  "contract": {
+                    "confirmation_mode": "conditional",
+                    "idempotency_mode": "none",
+                    "output_mode": "accepted-job",
+                    "permissions": [
+                      "node.control"
+                    ],
+                    "retry_mode": "never",
+                    "risk": "dangerous"
+                  },
                   "created_ms": 1757000100000,
+                  "expires_ms": 1757001000000,
                   "input": {
                     "module_id": "io.terra.sample"
                   },
@@ -3863,10 +3916,76 @@
                 "additionalProperties": false,
                 "description": "사람의 답을 기다리는 승인 요청 하나.",
                 "properties": {
+                  "contract": {
+                    "additionalProperties": false,
+                    "description": "이 operation의 계약이 말하는 실행 사실. 승인하는 사람이 읽을 것은 모델의 주장(reason)이 아니라 이쪽이다. 계약이 적지 않은 칸은 키가 없다 — '없음'(none·빈 목록)과 '적지 않음'(키 없음)은 다른 사실이다. Gateway 계약을 읽을 수 없는 호출(외부 MCP 도구)에는 이 객체 자체가 없다.",
+                    "properties": {
+                      "confirmation_mode": {
+                        "description": "execution.confirmation.mode. 계약이 적은 값 그대로(required·conditional·none 등).",
+                        "title": "확인 방식",
+                        "type": "string"
+                      },
+                      "idempotency_mode": {
+                        "description": "execution.idempotency.mode. 계약이 적은 값 그대로.",
+                        "title": "멱등",
+                        "type": "string"
+                      },
+                      "output_mode": {
+                        "description": "output.mode. immediate·accepted-job·stream·empty 중 계약이 적은 값. accepted-job은 접수이지 완료가 아니다.",
+                        "title": "결과 방식",
+                        "type": "string"
+                      },
+                      "permissions": {
+                        "description": "이 operation이 요구하는 권한. 키가 없으면 계약이 적지 않은 것이다.",
+                        "items": {
+                          "type": "string"
+                        },
+                        "title": "요구 권한",
+                        "type": "array"
+                      },
+                      "retry_mode": {
+                        "description": "execution.retry.mode. 계약이 적은 값 그대로.",
+                        "title": "재시도",
+                        "type": "string"
+                      },
+                      "risk": {
+                        "description": "execution.risk. read·write·dangerous·privileged 중 계약이 적은 값.",
+                        "title": "위험",
+                        "type": "string"
+                      },
+                      "side_effects": {
+                        "description": "계약이 적은 sideEffects. 키가 없으면 계약이 적지 않은 것이고, 빈 목록이면 계약이 '없다'고 적은 것이다.",
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "action": {
+                              "title": "동작",
+                              "type": "string"
+                            },
+                            "resource_id": {
+                              "title": "자원",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "title": "부작용",
+                        "type": "array"
+                      }
+                    },
+                    "title": "계약 사실",
+                    "type": "object"
+                  },
                   "created_ms": {
                     "description": "Unix epoch 밀리초.",
                     "minimum": 0,
                     "title": "생성 시각",
+                    "type": "integer"
+                  },
+                  "expires_ms": {
+                    "description": "이 질문이 답을 기다리기를 그만두는 시각(Unix epoch 밀리초) = 물은 시각 + min(질문당 대기 한도 30분, 이 차례의 남은 max_seconds). 이 시각 뒤에는 승인·거부가 닿지 않는다. 대기 시각을 못 구한 옛 기록에는 없다.",
+                    "minimum": 0,
+                    "title": "마감 시각",
                     "type": "integer"
                   },
                   "input": {
@@ -4232,10 +4351,76 @@
                       "additionalProperties": false,
                       "description": "사람의 답을 기다리는 승인 요청 하나.",
                       "properties": {
+                        "contract": {
+                          "additionalProperties": false,
+                          "description": "이 operation의 계약이 말하는 실행 사실. 승인하는 사람이 읽을 것은 모델의 주장(reason)이 아니라 이쪽이다. 계약이 적지 않은 칸은 키가 없다 — '없음'(none·빈 목록)과 '적지 않음'(키 없음)은 다른 사실이다. Gateway 계약을 읽을 수 없는 호출(외부 MCP 도구)에는 이 객체 자체가 없다.",
+                          "properties": {
+                            "confirmation_mode": {
+                              "description": "execution.confirmation.mode. 계약이 적은 값 그대로(required·conditional·none 등).",
+                              "title": "확인 방식",
+                              "type": "string"
+                            },
+                            "idempotency_mode": {
+                              "description": "execution.idempotency.mode. 계약이 적은 값 그대로.",
+                              "title": "멱등",
+                              "type": "string"
+                            },
+                            "output_mode": {
+                              "description": "output.mode. immediate·accepted-job·stream·empty 중 계약이 적은 값. accepted-job은 접수이지 완료가 아니다.",
+                              "title": "결과 방식",
+                              "type": "string"
+                            },
+                            "permissions": {
+                              "description": "이 operation이 요구하는 권한. 키가 없으면 계약이 적지 않은 것이다.",
+                              "items": {
+                                "type": "string"
+                              },
+                              "title": "요구 권한",
+                              "type": "array"
+                            },
+                            "retry_mode": {
+                              "description": "execution.retry.mode. 계약이 적은 값 그대로.",
+                              "title": "재시도",
+                              "type": "string"
+                            },
+                            "risk": {
+                              "description": "execution.risk. read·write·dangerous·privileged 중 계약이 적은 값.",
+                              "title": "위험",
+                              "type": "string"
+                            },
+                            "side_effects": {
+                              "description": "계약이 적은 sideEffects. 키가 없으면 계약이 적지 않은 것이고, 빈 목록이면 계약이 '없다'고 적은 것이다.",
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "action": {
+                                    "title": "동작",
+                                    "type": "string"
+                                  },
+                                  "resource_id": {
+                                    "title": "자원",
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "title": "부작용",
+                              "type": "array"
+                            }
+                          },
+                          "title": "계약 사실",
+                          "type": "object"
+                        },
                         "created_ms": {
                           "description": "Unix epoch 밀리초.",
                           "minimum": 0,
                           "title": "생성 시각",
+                          "type": "integer"
+                        },
+                        "expires_ms": {
+                          "description": "이 질문이 답을 기다리기를 그만두는 시각(Unix epoch 밀리초) = 물은 시각 + min(질문당 대기 한도 30분, 이 차례의 남은 max_seconds). 이 시각 뒤에는 승인·거부가 닿지 않는다. 대기 시각을 못 구한 옛 기록에는 없다.",
+                          "minimum": 0,
+                          "title": "마감 시각",
                           "type": "integer"
                         },
                         "input": {
@@ -5146,10 +5331,76 @@
               "additionalProperties": false,
               "description": "사람의 답을 기다리는 승인 요청 하나.",
               "properties": {
+                "contract": {
+                  "additionalProperties": false,
+                  "description": "이 operation의 계약이 말하는 실행 사실. 승인하는 사람이 읽을 것은 모델의 주장(reason)이 아니라 이쪽이다. 계약이 적지 않은 칸은 키가 없다 — '없음'(none·빈 목록)과 '적지 않음'(키 없음)은 다른 사실이다. Gateway 계약을 읽을 수 없는 호출(외부 MCP 도구)에는 이 객체 자체가 없다.",
+                  "properties": {
+                    "confirmation_mode": {
+                      "description": "execution.confirmation.mode. 계약이 적은 값 그대로(required·conditional·none 등).",
+                      "title": "확인 방식",
+                      "type": "string"
+                    },
+                    "idempotency_mode": {
+                      "description": "execution.idempotency.mode. 계약이 적은 값 그대로.",
+                      "title": "멱등",
+                      "type": "string"
+                    },
+                    "output_mode": {
+                      "description": "output.mode. immediate·accepted-job·stream·empty 중 계약이 적은 값. accepted-job은 접수이지 완료가 아니다.",
+                      "title": "결과 방식",
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "description": "이 operation이 요구하는 권한. 키가 없으면 계약이 적지 않은 것이다.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "요구 권한",
+                      "type": "array"
+                    },
+                    "retry_mode": {
+                      "description": "execution.retry.mode. 계약이 적은 값 그대로.",
+                      "title": "재시도",
+                      "type": "string"
+                    },
+                    "risk": {
+                      "description": "execution.risk. read·write·dangerous·privileged 중 계약이 적은 값.",
+                      "title": "위험",
+                      "type": "string"
+                    },
+                    "side_effects": {
+                      "description": "계약이 적은 sideEffects. 키가 없으면 계약이 적지 않은 것이고, 빈 목록이면 계약이 '없다'고 적은 것이다.",
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "action": {
+                            "title": "동작",
+                            "type": "string"
+                          },
+                          "resource_id": {
+                            "title": "자원",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "title": "부작용",
+                      "type": "array"
+                    }
+                  },
+                  "title": "계약 사실",
+                  "type": "object"
+                },
                 "created_ms": {
                   "description": "Unix epoch 밀리초.",
                   "minimum": 0,
                   "title": "생성 시각",
+                  "type": "integer"
+                },
+                "expires_ms": {
+                  "description": "이 질문이 답을 기다리기를 그만두는 시각(Unix epoch 밀리초) = 물은 시각 + min(질문당 대기 한도 30분, 이 차례의 남은 max_seconds). 이 시각 뒤에는 승인·거부가 닿지 않는다. 대기 시각을 못 구한 옛 기록에는 없다.",
+                  "minimum": 0,
+                  "title": "마감 시각",
                   "type": "integer"
                 },
                 "input": {

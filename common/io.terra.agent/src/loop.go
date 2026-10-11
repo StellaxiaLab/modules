@@ -487,7 +487,7 @@ func (e *engine) recorder(s *session) agentcore.Recorder {
 		line := entry{
 			Kind: kindCall, Author: authorAgent, Subject: record.Tool,
 			Decision: string(record.Decision), Status: record.Status, ErrorCode: record.ErrorCode,
-			TraceID: record.TraceID,
+			TraceID: record.TraceID, Reason: record.Reason, Judgement: record.Judgement,
 		}
 		if record.Tool == agentcore.ToolInvoke {
 			line.Subject = record.OperationID
@@ -538,7 +538,19 @@ func (e *engine) recorder(s *session) agentcore.Recorder {
 // the transcript and waits for `terra agent approve` or a typed answer.
 func (e *engine) approver(s *session) agentcore.Approver {
 	return agentcore.ApproverFunc(func(ctx context.Context, request agentcore.ApprovalRequest) (bool, error) {
-		pending := s.addApproval(request.OperationID, request.Reason, request.Judgement.Reason, request.Input)
+		wait := e.approvalWait
+		if wait <= 0 {
+			wait = approvalTimeout
+		}
+		// What is left of the turn is measured on the real clock the deadline
+		// runs on, then added to the session's own notion of "now".
+		var left time.Duration
+		deadline, hasDeadline := ctx.Deadline()
+		if hasDeadline {
+			left = time.Until(deadline)
+		}
+		pending := s.addApproval(request.OperationID, request.Reason, request.Judgement.Reason, request.Input, approvalContractOf(request.Operation),
+			func(asked time.Time) int64 { return approvalExpiry(asked, wait, left, hasDeadline) })
 		s.mu.Lock()
 		s.setStateLocked(stateWaiting)
 		s.appendLocked(entry{
@@ -548,10 +560,6 @@ func (e *engine) approver(s *session) agentcore.Approver {
 		})
 		s.mu.Unlock()
 
-		wait := e.approvalWait
-		if wait <= 0 {
-			wait = approvalTimeout
-		}
 		timer := time.NewTimer(wait)
 		defer timer.Stop()
 		var approved bool
@@ -582,6 +590,51 @@ func (e *engine) approver(s *session) agentcore.Approver {
 		s.mu.Unlock()
 		return approved, nil
 	})
+}
+
+// approvalContractOf reads the facts off the catalog operation the gate already
+// holds. It returns nil when there is no operation (nothing was read).
+func approvalContractOf(operation agentcore.CatalogOperation) *approvalContract {
+	if operation.OperationID == "" {
+		return nil
+	}
+	contract := &approvalContract{}
+	if execution := operation.Execution; execution != nil {
+		contract.Risk = execution.Risk
+		contract.ConfirmationMode = execution.ConfirmationMode
+		contract.IdempotencyMode = execution.IdempotencyMode
+		contract.RetryMode = execution.RetryMode
+	}
+	if operation.Output != nil {
+		contract.OutputMode = operation.Output.Mode
+	}
+	if operation.SideEffects != nil {
+		effects := make([]approvalSideEffect, 0, len(operation.SideEffects))
+		for _, effect := range operation.SideEffects {
+			effects = append(effects, approvalSideEffect{ResourceID: effect.ResourceID, Action: effect.Action})
+		}
+		contract.SideEffects = &effects
+	}
+	if operation.Permissions != nil {
+		permissions := append([]string{}, operation.Permissions...)
+		contract.Permissions = &permissions
+	}
+	return contract
+}
+
+// approvalExpiry is when a question asked at `asked` stops being answerable:
+// asked plus the earlier of the per-question wait and what is left of the
+// turn (`left`), whose deadline cancels the context under the waiting approver.
+// A turn with no deadline is bounded by the wait alone.
+func approvalExpiry(asked time.Time, wait, left time.Duration, hasDeadline bool) int64 {
+	span := wait
+	if hasDeadline && left < span {
+		span = left
+	}
+	if span < 0 {
+		span = 0
+	}
+	return millis(asked.Add(span))
 }
 
 // approvalText is what the person reads. It separates the contract's facts
