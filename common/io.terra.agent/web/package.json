@@ -1,0 +1,20 @@
+{
+  "name": "terra-agent-web",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Terra Agent 화면 — 모듈 io.terra.agent 의 정적 웹 앱(빌드 결과는 ../ui)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "echo \"e2e 는 아직 없다 — 브라우저가 필요한 시험은 이 이름으로 둔다 (test 에 넣지 않는다)\""
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
+  }
+}

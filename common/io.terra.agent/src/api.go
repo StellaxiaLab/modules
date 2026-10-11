@@ -533,8 +533,15 @@ func sessionOpened(current *session, viewer string, created bool) map[string]any
 	}
 }
 
-func (s *apiServer) sessionList(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"sessions": s.engine.sessions.list()})
+func (s *apiServer) sessionList(w http.ResponseWriter, r *http.Request) {
+	// A list is not addressed by an id, so ownership cannot refuse it the way
+	// it refuses a read of one session: it filters. A session of someone else
+	// is absent here, along with its topic, answer and pending approvals.
+	owner, ok := principal(w, r)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"sessions": s.engine.sessions.list(owner)})
 }
 
 func (s *apiServer) sessionGet(w http.ResponseWriter, r *http.Request) {
