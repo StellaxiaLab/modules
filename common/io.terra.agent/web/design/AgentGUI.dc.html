@@ -321,6 +321,17 @@ body{font-family:'Pretendard Variable','Pretendard','Inter',system-ui,-apple-sys
 .opt.on{background:rgba(112,94,238,.30)}
 .seg b.on{background:rgba(255,255,255,.90)}
 .opt.bad{background:rgba(255,93,93,.18)}
+/* ── 대비·투명도 설정 (DC-29): 유리 위 글자는 가장 밝은 뒤 배경에서도 4.5:1을 넘기도록 면을 조금 더 진하게, 설정이 있으면 단색 면으로 ── */
+:root{--f-win:rgba(13,16,22,.80)}
+.btn.pri{background:rgba(98,80,228,.96)}
+.chip.err{color:#ff9a9a}.chip.warn{color:#ffd27a}.btn.dng{color:#ffb4b4;background:rgba(255,93,93,.26)}
+@media (prefers-reduced-transparency:reduce),(prefers-contrast:more),(forced-colors:active){
+  :root{--f-win:#13161b;--f-1:#1b1f26;--f-2:#222730;--f-3:#2a303a;--f-in:#0f1216}
+  .win,.glass{background:#13161b;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .me{background:#5a4fd0}.btn.pri{background:#5b49df}
+  .step.bad,.mini{background:#2a2312}.opt.on{background:#3a3470}.opt.bad{background:#3a1416}
+  .chip.ok{background:#16352a}.chip.warn{background:#3a2e12}.chip.err{background:#3d1b1b}.chip.info{background:#262c4d}
+}
 </style>
 </helmet>
 
