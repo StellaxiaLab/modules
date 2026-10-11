@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "io.terra.agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "kind": "service",
   "name": "Terra Agent",
   "description": "Terra Agent — 사람의 요청을 받아 이 노드의 Gateway 카탈로그로 계획하고, 계약이 정한 승인 규칙 아래 operation을 부르는 모듈. 상시 권한은 0이다: 매니페스트가 선언하는 코어 operation은 위임 관문 terra.gateway.delegate 하나이고, 관문은 사람이 terra agent grant로 발급해 맡긴 위임 자격 없이는 아무것도 하지 못한다. 모델 provider의 API key는 모듈 데이터 영역의 0600 파일에만 있다.",
@@ -26,7 +26,7 @@
     "capabilities": [
       {
         "id": "io.terra.agent",
-        "version": "0.1.0"
+        "version": "0.2.0"
       }
     ]
   },
