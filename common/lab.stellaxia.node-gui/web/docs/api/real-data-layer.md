@@ -8,8 +8,8 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.12.0"
-last_updated: "2026-10-10"
+version: "0.13.0"
+last_updated: "2026-10-11"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -544,30 +544,42 @@ Terra ADR-GW-003 1차(Terra#143)로 앱 토큰이 Master 읽기에 닿는다. �
 - **닿지 않으면** — 예전 Terra(401 → `masterBlocked`) · 상위 Master 없음(501)이면 예전처럼 "닿지 않음"과 이유.
 - 시험: `tests/netmaster.test.mjs` 5개 — 응답 → 행(노드 × 네트워크 · 그래프 · 후보 · 정책 · 세션 · probe · 이력, Go 의 nil 목록 · 빈 time), leaf 앱 토큰의 보드가 `/api/upstream`으로 읽고 예시 · 쓰기 버튼이 없음, 401이면 "닿지 않음". 응답 모양은 Terra Master 코드(`routes_network.go` · `models/network_state.go` · `models/route_runtime.go`)를 읽고 맞췄다. **진짜 스택 실측은 아직이다.**
 
-### 5.9 입출력 연결 — 위임 입구 쓰기 실측(MD-32) — 2026-10-10
+### 5.9 입출력 연결 — 위임 입구 쓰기 · 바인딩 active 실측(MD-32) — 2026-10-10~11
 
-Terra [Terra#154](https://github.com/StellaxiaLab/Terra/pull/154)(ADR-GW-004 2a · 2b — 2026-10-09 머지)로 앱 토큰이 SVI 바인딩 · 허가를 **쓴다**. 모듈의 연결 적용 코드(`TerraClient` · `applyLink` · `grantSelf` · `syncLinks` · `closeBindings`)를 그대로, 이 앱의 토큰(`tsa_`)으로 진짜 leaf 게이트웨이의 `/api/upstream`에 붙였다 — `web/tools/live-linkio.mjs` 19개 통과. 화면(브라우저)은 거치지 않는다.
+Terra [Terra#154](https://github.com/StellaxiaLab/Terra/pull/154)(ADR-GW-004 2a · 2b — 2026-10-09 머지)로 앱 토큰이 SVI 바인딩 · 허가를 **쓴다**. 모듈의 연결 적용 코드(`TerraClient` · `applyLink` · `grantSelf` · `syncLinks` · `closeBindings`)를 그대로, 이 앱의 토큰(`tsa_`)으로 진짜 leaf 게이트웨이의 `/api/upstream`에 붙였다 — `web/tools/live-linkio.mjs` **27개 통과**. 화면(브라우저)은 거치지 않는다.
 
-**스택(Terra main `f22cdcb`, Linux, 도커 없이 바이너리)** — `terra-master`(dev, sqlite) · `terra-daemon` 둘(같은 사용자 · 같은 클러스터) · `terra-gateway`(leaf 모양: `--master-url` · 노드 자격 · 데몬 계약 · 이 모듈의 `module.json`을 놓은 `--scene-root`). Go 1.25(툴체인 자동). 순서와 막혔던 곳:
+**스택** — `web/tools/live-stack-up.sh <Terra 체크아웃> <작업 폴더>`가 도커 없이 세운다: `terra-master`(dev, sqlite) · `terra-daemon` 둘(같은 사용자 · 같은 클러스터, 소스 노드 d1 · 싱크 노드 d2) · `terra-gateway`(leaf 모양: `--master-url` · 노드 자격 · 데몬 계약 · 이 모듈의 `module.json`을 놓은 `--scene-root`) · 앱 토큰. Go 1.25(툴체인 자동). 끝나면 `env.sh`가 생기고, `. env.sh && node tools/live-linkio.mjs`로 돈다. `--down`으로 내린다.
 
-| 단계 | 한 일 | 막혔던 곳 |
-| --- | --- | --- |
-| Master · Daemon | `go build` 셋 → Master 설정(`bootstrap_*` · `service_credential`) → Daemon `--enroll-*` | — |
-| 싱크 자원 | `terra module pack`(modules의 `io.terra.io-weave`, `--target linux-amd64`) → `terra module install --root <data_dir>/modules --dev --force` | 개발 디렉터리에 모듈을 **복사만 하면 시작되지 않는다**(`MODULE_VERSION_UNSELECTED` — Keeper 설치 기록이 필요). 설치 루트는 Daemon의 관리 루트(`<data_dir>/modules`)와 그 옆 `module-state`여야 한다 |
-| 앱 토큰 | 관리자에게 `node.read` · `node.control` 등을 주고 → 게이트웨이 `POST /api/v1/gui/apps/lab.stellaxia.node-gui.web/token` | 앱이 GUI 앱으로 **게이트웨이 장면 루트에 있어야** 한다 |
-
-**이 스택에서 되지 않는 것** — 호환되는 소스 · 싱크 쌍이 없다. `test.stream`은 `terra.bytes@1`을 내고, 싱크는 `io-weave.pointer`(`terra.input.mouse@1`)뿐이며, `io.terra.io-inventory`는 이 컨테이너에서 장치를 올리지 않는다(수동 등록도 카메라뿐). 그래서 **바인딩이 `active`가 되는 길은 이 시험에 없다** — 그 자리는 Terra의 Go e2e(`binding_delegated_e2e_test.go`)가 본다.
+| 쌍 | 어떻게 올렸나 |
+| --- | --- |
+| 소스 | Daemon이 스스로 올리는 `test.stream`(`output` = `terra.bytes@1`, 100ms마다 프레임) |
+| 싱크 | **런타임 선언** — d2의 Local API `POST /svi/declarations {family:"file", direction:"sink", path}`. 모듈 설치 없이 호환되는(`terra.bytes@1`) 싱크가 생긴다. 설정에 `svi.runtime.file_roots`가 있어야 하고, 경로는 **Daemon 자신의 디렉터리 바깥**이어야 한다(`SVI_DECLARATION_OUTSIDE_ENVELOPE`) |
 
 | 본 것 | 결과 |
 | --- | --- |
 | 위임 입구 읽기 | 엔드포인트 · 허가 목록 · 바인딩 목록이 읽힌다 |
-| 어긋난 쌍 | 모듈의 미리 검사가 `schema_incompatible: terra.bytes@1 → terra.input.mouse@1`로 막는다. 미리 검사를 건너뛰고 `bindings.post`를 직접 부르면 Master가 403 `SVI_BINDING_DENIED` |
-| 나에게 허가(2b) | `grantSelf`가 `bind.source` · `bind.target`을 user 주체로 만든다(기한 30일). 허가 목록에 기한과 함께 보인다 |
-| 위임 입구의 가드 | 91일 기한 · 기한 없음 · 남에게 주는 허가 모두 403 `FORBIDDEN`("a delegated entrance may grant only to yourself or a node in your cluster") |
-| 공유(자원 → 같은 클러스터 노드) | 노드 주체 허가(`read` · `subscribe` · `bind.source`, 30일)가 만들어진다 · 다시 적용하면 있는 허가를 쓴다 · `syncLinks`가 `shared`로 읽는다 · `grants.delete`로 철회하면 `closed` |
-| 없는 바인딩 닫기 | `closeBindings`가 이미 없는 것으로 친다 |
+| 어긋난 쌍(소스 `text` = `terra.text@1` → 싱크 bytes) | 모듈의 미리 검사가 `schema_incompatible`로 막고, 미리 검사를 건너뛰고 `bindings.post`를 직접 부르면 Master가 403 `SVI_BINDING_DENIED` |
+| 허가 없이 적용 | `needs-grant` · 부족한 허가 둘(`bind.source` · `bind.target`) · 바인딩은 만들지 않는다 |
+| 나에게 허가(2b) | `grantSelf`가 user 주체로 둘을 만든다(기한 30일). 허가 목록에 기한과 함께 보인다 |
+| 허가 뒤 적용(2a) | 바인딩이 만들어지고, 다시 적용하면 같은 바인딩을 쓴다(멱등) |
+| **`active` · 데이터** | `syncLinks`가 `requested → active`로 읽고, 싱크 파일이 자란다(102바이트 / 15초 안). 소스 노드 ≠ 싱크 노드 |
+| 닫기(2a delete) | `closeBindings` → `closed`, 파일이 더 자라지 않는다. 이미 닫힌 · 없는 바인딩은 오류로 치지 않는다 |
+| 위임 입구의 가드 | 91일 기한 · 기한 없음 · 남에게 주는 허가 모두 403 `FORBIDDEN` |
+| 공유(자원 → 같은 클러스터 노드) | 노드 주체 허가가 만들어지고(30일) · 다시 적용하면 있는 것을 쓰고 · `syncLinks`가 `shared`로 읽고 · `grants.delete`로 철회하면 `closed` |
 
-**실측에서 드러난 모듈 버그(고쳤다)** — 앱 토큰의 whoami `principal`은 `user_… via lab.stellaxia.node-gui.web`이다(`via <앱>`이 붙는다). 연결 적용은 이것을 그대로 사용자 id로 써서 `grantSelf`가 위임 입구에서 403이 났고, 허가 대조(`subject.id === userId`)도 영영 맞지 않았다. 단위 시험은 `user_me`로만 돌아 잡지 못했다. `link-apply.js`의 `userIdOf`가 `applyLink` · `grantSelf` 입구에서 `via` 접미사를 뗀다(시험 추가).
+**실측에서 드러난 것**
+
+| # | 무엇 | 처리 |
+| --- | --- | --- |
+| 1 | 앱 토큰의 whoami `principal`은 `user_… via lab.stellaxia.node-gui.web`이다. 연결 적용이 이것을 그대로 사용자 id로 써서 `grantSelf`가 위임 입구에서 403, 허가 대조(`subject.id === userId`)도 영영 맞지 않았다. 단위 시험은 `user_me`로만 돌아 잡지 못했다 | **고쳤다** — `link-apply.js`의 `userIdOf`가 `applyLink` · `grantSelf` 입구에서 `via` 접미사를 뗀다([modules#69](https://github.com/StellaxiaLab/modules/pull/69), 시험 추가) |
+| 2 | Terra Daemon의 `svi.binding.prepared.response`에 `Source`가 없다. `Service.Send`가 채우지 않고 `ValidateEnvelope`가 요구해서, **실제 Daemon 바이너리에서는 응답이 `invalid communication envelope`로 거절**되고 Master가 바인딩을 `target_prepare_failed: context deadline exceeded`로 끝낸다. 기존 시험은 응답을 기록만 하는 `recordingSender`라 못 잡았다 | Terra 쪽 결함 — **[Terra#188](https://github.com/StellaxiaLab/Terra/pull/188)**(한 줄 + 회귀 시험). **이 수정이 들어가기 전의 Terra로는 `live-linkio.mjs`의 `active` 단계가 실패한다** |
+| 3 | 소스와 싱크가 **같은 노드**에 있는 바인딩은 `active`가 되지만 15초 동안 데이터가 흐르지 않았다(파일 0바이트). 다른 노드 사이에서는 흐른다 | 원인을 찾지 못했다. Terra 쪽 확인 필요(추측: 같은 노드 안의 데이터 길) |
+
+**함정(세울 때 겪은 것)**
+- 모듈을 개발 디렉터리에 **복사만 하면** 시작되지 않는다(`MODULE_VERSION_UNSELECTED` — Keeper 설치 기록이 필요). 쓰려면 `terra module pack` → `terra module install --root <data_dir>/modules --dev`. 이번 시험은 모듈 설치 없이 런타임 선언으로 해결했다.
+- 게이트웨이 앱 토큰은 그 앱이 GUI 앱으로 **장면 루트**에 있어야 나온다.
+- 스택을 세운 직후에는 자원 보고 · Local API 토큰이 아직 없다 — `live-stack-up.sh`가 준비될 때까지 기다린다.
+- `pkill -x`는 프로세스 이름이 15자를 넘으면 맞지 않는다(`pkill -f`는 자기 셸 명령 문자열에 걸린다).
 
 ## 6. 코드 지도
 

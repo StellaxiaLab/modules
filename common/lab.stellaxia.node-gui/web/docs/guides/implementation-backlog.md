@@ -8,8 +8,8 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.19.0"
-last_updated: "2026-10-10"
+version: "1.20.0"
+last_updated: "2026-10-11"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -308,7 +308,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 | MD | **MD-29** | ~~상태 맞추기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
 | MD | **MD-30** | ~~끊기에서 바인딩 닫기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
 | MD | **MD-31** | 도로 이벤트는 **끝냄**(아래 §2 끝낸 것) — 남은 것: 흐름 도로를 바인딩 `active`로 그리기(UP-27 — 도로 라벨이 fps라 바인딩만 있고 핸들이 없을 때의 모습이 디자인 몫) | 중간 |
-| MD | **MD-32** | 연결 E2E — **반쯤 끝냄**(2026-10-10): leaf 위임 입구 진짜 스택에서 허가 · 공유 · 거절 · 가드 19개 통과([[real-data-layer\|실데이터 층]] §5.9 · `web/tools/live-linkio.mjs`) · 앱 토큰 principal의 `via <앱>` 버그를 찾아 고쳤다. **남은 것:** 바인딩이 `active`가 되는 길(호환되는 소스 · 싱크 쌍이 있는 스택 — 마우스 소스를 올리는 장치 또는 시험 모듈 필요) · tree 진짜 스택(MD-13과 함께) | 중간 |
+| MD | **MD-32** | 연결 E2E — **leaf 스택은 끝냄**(2026-10-11): 위임 입구 진짜 스택에서 허가 · 공유 · 거절 · 가드 · **바인딩 `active` · 데이터 · 닫기**까지 27개 통과([[real-data-layer\|실데이터 층]] §5.9 · `web/tools/live-stack-up.sh` · `live-linkio.mjs`). 찾은 것: 앱 토큰 principal의 `via <앱>`(고침, #69) · Terra Daemon 준비 응답의 `Source` 누락([Terra#188](https://github.com/StellaxiaLab/Terra/pull/188) — 들어가기 전의 Terra로는 `active` 단계가 실패) · 같은 노드 안 바인딩은 `active`인데 데이터가 안 흐름(원인 모름). **남은 것:** tree 진짜 스택(MD-13과 함께) · 화면(브라우저)을 거친 흐름 | 중간 |
 | MD | **MD-33** | ~~"허가를 고치는 op 없음" 글~~ — **끝냄**(2026-10-07, 글만이 아니라 `update`를 실제로 달았다) | — |
 | UP | **UP-25** | ~~입출력 설정 화면 디자인~~ — **최소판 끝냄**(2026-10-08 · MD-44). 남은 요소는 설계 §6.1 "나중으로 미룬다" | — |
 | UP | **UP-26** | 연결 상태 → 도로 이벤트(`evOf`가 끝 자원 `status`만 본다) | 중간 |
