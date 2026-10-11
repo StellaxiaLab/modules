@@ -48,6 +48,7 @@ related:
 
 남은 것만 센다(2026-10-05 저녁 · 2026-10-07에 §5 입출력 연결 설계의 PF-18~PF-23 · MD-27~MD-33 · UP-25~UP-31을 더했다). Terra G0~G6이 닫은 PF는 §1.2, 이 모듈이 끝낸 MD는 §2 "끝낸 것", 원본이 고친 UP는 §3.0에 있다.
 2026-10-07 저녁 — Terra가 PF-7(작업 출력 · 다시 실행)을 닫았다([Terra#140](https://github.com/StellaxiaLab/Terra/pull/140) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)). 이 모듈이 따라갔다(MD-34) — 생성기 패치 하나가 원본에 올릴 것(UP-32)으로 남는다.
+2026-10-11 — MD-32: 바인딩이 진짜 스택에서 `active` → `closed`까지 간다(leaf · 앱 토큰 · 노드 둘 — [[real-data-layer|실데이터 층]] §5.10). Terra Daemon의 `Source` 버그를 찾아 Terra `c62fff73`이 고쳤다(`main` 머지 전). 남은 것은 `main`으로 다시 재기 · 같은 노드 쌍(Terra 한계) · tree.
 2026-10-09 — 맵 진입 개선을 끝냈다(MD-35 · MD-36 · MD-38 · MD-40 · MD-43 완료 · MD-37 효과 없음 · MD-39 불필요 — 로그인 → 맵 평균 20.1초 → 7.3초, 모듈 0.4.2). 남은 것은 MD-42 · PF-25.
 2026-10-09 — **maingui를 더 이상 쓰지 않는다** — `web/design/`이 이 저장소의 원본이라 UP-33~UP-36은 MD-35 · MD-36 · MD-40 · MD-43로 흡수했다(순서 · 완료 기준: [[work-order-map-entry-and-fidelity|작업 지시서]]).
 2026-10-08 — 레지스트리로 설치해 Terra 셸에서 열어 재 본 결과(맵 진입 20초+ · 지어낸 CPU · 메모리 · 디스크 값 · 빈 창)를 MD-35~MD-40(+ UP-33~UP-36 → MD로 흡수)으로 올렸다. 측정과 근거는 [[performance-and-fidelity-recommendations|맵 진입 지연과 가짜 값 — 개선 권고안]] — 어느 것부터 어떻게 하는지는 [[work-order-map-entry-and-fidelity|작업 지시서]].
@@ -308,7 +309,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 | MD | **MD-29** | ~~상태 맞추기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
 | MD | **MD-30** | ~~끊기에서 바인딩 닫기~~ — **끝냄**(2026-10-07, 가짜 Master 시험만) | — |
 | MD | **MD-31** | 도로 이벤트는 **끝냄**(아래 §2 끝낸 것) — 남은 것: 흐름 도로를 바인딩 `active`로 그리기(UP-27 — 도로 라벨이 fps라 바인딩만 있고 핸들이 없을 때의 모습이 디자인 몫) | 중간 |
-| MD | **MD-32** | 연결 E2E — **leaf 스택은 끝냄**(2026-10-11): 위임 입구 진짜 스택에서 허가 · 공유 · 거절 · 가드 · **바인딩 `active` · 데이터 · 닫기**까지 27개 통과([[real-data-layer\|실데이터 층]] §5.9 · `web/tools/live-stack-up.sh` · `live-linkio.mjs`). 찾은 것: 앱 토큰 principal의 `via <앱>`(고침, #69) · Terra Daemon 준비 응답의 `Source` 누락(고침 — [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185), 2026-10-11 머지. 그 앞의 Terra로는 `active` 단계가 실패) · 같은 노드 안 바인딩은 `active`인데 데이터가 안 흐름(원인 모름). **남은 것:** tree 진짜 스택(MD-13과 함께) · 화면(브라우저)을 거친 흐름 | 중간 |
+| MD | **MD-32** | 연결 E2E — **leaf는 끝냄**(2026-10-10 · 2026-10-11): 위임 입구 진짜 스택에서 허가 · 공유 · 거절 · 가드 · **바인딩 `active` · 데이터 · 닫기**까지 27개 통과([[real-data-layer\|실데이터 층]] §5.9 · `web/tools/live-stack-up.sh` · `live-linkio.mjs`). 같은 일을 다른 길(Daemon 설정의 `svi.file_sinks`)로 16개 통과([[real-data-layer\|실데이터 층]] §5.10 · `live-linkbind.mjs`). 찾은 것: 앱 토큰 principal의 `via <앱>`(고침, #69) · Terra Daemon 준비 응답의 `Source` 누락(고침 — [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185), 2026-10-11 머지. 그 앞의 Terra로는 `active` 단계가 실패) · 같은 노드 안 바인딩은 `active`인데 데이터가 안 흐름(Daemon이 한 바인딩의 두 역할을 `binding_id` 하나로 들고 있다 — §5.10, Terra 한계). **남은 것:** tree 진짜 스택(MD-13과 함께) · 화면(브라우저)을 거친 흐름 | 중간 |
 | MD | **MD-33** | ~~"허가를 고치는 op 없음" 글~~ — **끝냄**(2026-10-07, 글만이 아니라 `update`를 실제로 달았다) | — |
 | UP | **UP-25** | ~~입출력 설정 화면 디자인~~ — **최소판 끝냄**(2026-10-08 · MD-44). 남은 요소는 설계 §6.1 "나중으로 미룬다" | — |
 | UP | **UP-26** | 연결 상태 → 도로 이벤트(`evOf`가 끝 자원 `status`만 본다) | 중간 |

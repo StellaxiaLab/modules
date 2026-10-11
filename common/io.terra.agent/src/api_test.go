@@ -270,6 +270,49 @@ func TestSessionsAreOwnedByWhoOpenedThem(t *testing.T) {
 	}
 }
 
+// sessions.list is the one read that is not addressed by an id, so it is the
+// one place ownership has to be applied by filtering rather than by refusing:
+// a person sees their own sessions and no trace of anyone else's.
+func TestSessionListShowsOnlyTheCallersSessions(t *testing.T) {
+	s := newSurface(t)
+	if err := s.engine.credentials.put(credentialRecord{Principal: "bob", Credential: testCredential, Delegate: "agent:agn_bob", Reach: "local", Permissions: []string{"node.read", "node.control"}, ExpiresAt: "2999-01-01T00:00:00Z", RegisteredMS: 1}); err != nil {
+		t.Fatal(err)
+	}
+	for _, open := range []struct{ who, id, topic string }{
+		{testPrincipal, "mine", "내 비밀 주제"}, {"bob", "bobs", "밥의 비밀 주제"},
+	} {
+		if status, body := s.call(t, open.who, "POST", "/sessions", map[string]any{"session_id": open.id, "topic": open.topic}); status != 200 {
+			t.Fatalf("open %s: %d %v", open.id, status, body)
+		}
+	}
+	ids := func(principal string) (string, []any) {
+		status, body := s.call(t, principal, "GET", "/sessions", nil)
+		if status != 200 {
+			t.Fatalf("list as %s: %d %v", principal, status, body)
+		}
+		raw, _ := json.Marshal(body)
+		rows, _ := body["sessions"].([]any)
+		return string(raw), rows
+	}
+	raw, rows := ids(testPrincipal)
+	if len(rows) != 1 || rows[0].(map[string]any)["session_id"] != "mine" {
+		t.Fatalf("the owner should see exactly their own session: %s", raw)
+	}
+	if strings.Contains(raw, "bobs") || strings.Contains(raw, "밥의 비밀 주제") {
+		t.Fatalf("another principal's session leaked into the list: %s", raw)
+	}
+	raw, rows = ids("bob")
+	if len(rows) != 1 || rows[0].(map[string]any)["session_id"] != "bobs" || strings.Contains(raw, "내 비밀 주제") {
+		t.Fatalf("bob should see exactly his own session: %s", raw)
+	}
+	if _, rows = ids("carol"); len(rows) != 0 {
+		t.Fatalf("a principal with no sessions should see none: %v", rows)
+	}
+	if status, body := s.call(t, "", "GET", "/sessions", nil); status != 400 || errorCode(body) != "INVALID_REQUEST" {
+		t.Fatalf("a list without a principal must be refused, not answered for everyone: %d %v", status, body)
+	}
+}
+
 // openStream follows the session's SSE push and hands back the entries it
 // sees, until the wanted text arrives or the deadline passes.
 func (s *surface) openStream(t *testing.T, principal, sessionID string) (<-chan entry, func()) {

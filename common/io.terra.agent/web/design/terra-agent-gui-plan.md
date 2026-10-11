@@ -8,8 +8,8 @@ doc_type: "planning"
 scope: "module"
 target: "io.terra.agent · web/design · terra-cli · terra-gateway-service"
 status: "draft"
-version: "0.1.0"
-updated: "2026-10-07"
+version: "0.2.0"
+updated: "2026-10-11"
 language: "ko-KR"
 measured_at: "Terra main 7077867(에이전트에 걸린 코어 코드는 요구 문서 측정 시점 3dd67c1 이후 0줄 변경) · modules main 09add6b와 브랜치 design/agent-gui-dc22-29의 c378a12(common/io.terra.agent 0.1.0 — 소스·계약·매니페스트가 69cea20 이후 0줄 변경). 모듈은 api.go·session.go·loop.go·credentials.go·providers.go와 계약 JSON을 직접 읽었고, 포장 규약은 modules tools/*.mjs·ci.yml, 앱 열기·브리지·CSP는 launcher.js·webAppBridge.ts·gui_apps.go를 직접 읽었다. 시연 화면은 Chromium 141.0.7390.37(헤드리스, Linux)·Playwright 1.56.1로 점검 35개와 초점·글자 대비·선호 설정 폴백·스크롤·입력칸 점검을 돌렸다"
 os_priority:
@@ -27,7 +27,7 @@ related:
   - "[[docs/modules/terra-gui/design/unified-gui-ux/terra-gui-module-api|Terra 통합 GUI 모듈 API 목록]]"
 ---
 
-> **사본** — Terra 저장소 `docs/implementation/terra-agent-gui-plan.md`(v0.1.0, 커밋 `310910e`, Terra PR #148)를 modules만 보는 세션이 읽도록 옮긴 스냅샷이다. **진행 표(§4.1·§5.2의 상태 열)는 이 사본에서 갱신한다** — 단계가 끝날 때 원본을 이 사본에 맞춘다. 그 밖의 고칠 것은 원본을 고친다. 본문의 `[[링크]]`와 `docs/…` 경로는 Terra 저장소 기준이다.
+> **사본** — Terra 저장소 `docs/implementation/terra-agent-gui-plan.md`(v0.2.0, 2026-10-11 갱신 — 결정 Q-1~Q-5 확정 반영)를 modules만 보는 세션이 읽도록 옮긴 스냅샷이다. **진행 표(§4.1·§5.2의 상태 열)는 이 사본에서 갱신한다** — 단계가 끝날 때 원본을 이 사본에 맞춘다. 그 밖의 고칠 것은 원본을 고친다. 본문의 `[[링크]]`와 `docs/…` 경로는 Terra 저장소 기준이다.
 
 # Terra Agent GUI — 구현 인수: 시연 화면과 모듈의 격차·남은 일
 
@@ -86,7 +86,7 @@ related:
 | 10 | **기존 계정은 `agent.use`가 없을 수 있다** — 새 계정만 기본으로 받는다(소급하지 않았다). 없으면 모든 호출이 403 `MODULE_PERMISSION_DENIED`다(권한 부족과 reach 밖이 같은 문구) | `status.get`만 권한 없이 된다 — 준비 상태 1단계로 쓴다. 시연에 이 상태가 없다 → GAP-2 | `[V]` `products/tree/master/src/terra_master/auth/service.go:675-707` |
 | 11 | 승인은 `approvals.post`로만 답한다(I8) | 채팅 입력의 승인 경로를 쓰지 않는다 | 요구 I8 |
 | 12 | 재시도 never 넷(`messages.post`·`approvals.post`·`runs.post`·`mcp.put`)은 자동 재전송 금지(I17) | 응답을 못 받았으면 `messages.list`로 확인하고 사람이 다시 누르게 한다 | 요구 I17 |
-| 13 | 앱을 **셸 밖에서** 열 수 있다 — 런처가 `/api/v1/gui/apps/<id>/files/<entry>`를 새 탭으로 연다. 그때는 브리지가 없다 | 에이전트 앱이 이 모드를 지원할지는 결정 Q-1 | `[V]` `launcher.js:385-392` |
+| 13 | 앱을 **셸 밖에서** 열 수 있다 — 런처가 `/api/v1/gui/apps/<id>/files/<entry>`를 새 탭으로 연다. 그때는 브리지가 없다 | **지원하지 않는다 — Q-1 확정(2026-10-11).** 브리지가 없으면 "셸 안에서 여세요"를 보인다 | `[V]` `launcher.js:385-392` |
 
 ### 1.4 시작하는 순서
 
@@ -144,7 +144,7 @@ flowchart LR
 | GAP-12 | **카운트다운이 270초 고정**이다. R-6(`expires_ms`) 전에는 근사뿐이다 — 마지막 `user` 줄 시각 + `max_seconds`와 `approval` 줄 시각 + 30분 중 작은 값. "틀릴 수 있음"을 표시한다 | `[V]` Live 664 · `loop.go:28` | 모듈(M-3) | G2 |
 | GAP-13 | 헤더의 **대상 노드 이름**(`tree-home`)의 출처가 정해지지 않았다. `status.get`에 노드 이름이 없고 브리지는 `/api/v1`을 못 부른다 | `[V]` `api.go:172` · `webAppBridge.ts` | 결정 | G1 |
 | GAP-14 | 우측의 **"모듈 상태 io.terra.chat Stopped" 카드**는 출처 없는 시연 전용 예시다 | `[V]` Live 549 | 구현(생략) | — |
-| GAP-15 | **접근성 규칙이 문서에 없다.** 요구 §6.5에 없고 DC-27은 "구현 전에 정한다"고 했다. §6의 Q-2에 초안을 둔다 | 요구 §13.4 DC-27 | 결정 | G1 |
+| GAP-15 | **접근성 규칙이 문서에 없다.** 요구 §6.5에 없고 DC-27은 "구현 전에 정한다"고 했다. Q-2 확정(2026-10-11)으로 요구 §6.5에 규칙을 더했다 → **해소** | 요구 §13.4 DC-27 | 해소 — 요구 §6.5 | G1 |
 
 ## 3. 시연 → 실제 API 대응표
 
@@ -284,7 +284,7 @@ G1을 안전하게 열고 G2를 여는 **최소 묶음**이다. 모듈 변경은
 | WP-5 | **G2 화면** — 화면 4·5: 승인 카드·인박스·활동(`call`·`planned`·`external` 줄). `ask`·`auto` 세션을 연다. 거부 기억 표식(I18) | WP-4 · M-2 · M-3 · M-4 | 카드가 계약 사실과 모델의 주장을 갈라 보인다. 같은 승인을 두 번 눌러도 한 번만 처리된다. 모델·외부 텍스트의 HTML 삽입 시험이 통과한다 | G2 | 미착수 |
 | WP-6 | **G3 화면** — 화면 6: 모델 등록·교체·삭제(마스킹 입력, 노드 전역 확인), 자격 상태·거두기 3단계(DC-20), MCP 목록(읽기), 한도 기본값 | WP-5 | 키가 다시 보이지 않는다. 노드 전역 확인이 서 있다. 자격 만료·폐기 안내가 요구 §6.2를 따른다 | G3 | 미착수 |
 | WP-7 | **G4** — 무인 세션(사전 승인 선택), 화면 8(원격 노드), 검색·삭제·보존 | WP-6 · R-12~R-16 | 각 항목이 요구 변경과 함께 닫힌다 | G4 | 미착수 |
-| WP-8 | **시험(상시)** — §5.3 | WP-2부터 | 묶음마다 해당 시험이 같은 PR에 들어간다 | 상시 | 미착수 |
+| WP-8 | **시험(상시)** — §5.3. 시연 점검 하네스는 modules `common/io.terra.agent/web/design/checks/`(Q-5) | WP-2부터 | 묶음마다 해당 시험이 같은 PR에 들어간다 | 상시 | 미착수 |
 
 ### 5.3 시험 계획
 
@@ -295,7 +295,7 @@ G1을 안전하게 열고 G2를 여는 **최소 묶음**이다. 모듈 변경은
 | 접근성·초점·대비 | 탭 순서의 모든 정지점이 `:focus-visible`이고 안쪽 고리가 보인다 · 글자 대비 4.5:1 이상(뒤 배경 검정·회색·흰색) · `prefers-reduced-transparency`·`prefers-contrast:more`·`forced-colors`에서 단색으로 떨어진다 | e2e + CDP `Emulation.setEmulatedMedia`(`prefers-reduced-transparency`는 CDP로만 켠다) | §2.1의 측정 방법 |
 | 실 모듈 스모크 | 실제 `io.terra.agent`(가짜 모델 서버)에 앱을 붙여 열기 → 말하기 → 승인 한 판 | 수동 또는 별도 잡. 실 Anthropic 호출은 시험에 쓰지 않는다 | 요구 §11 |
 
-이식할 점검 — 시연에서 35개를 돌려 모두 통과했다. 앱에서도 같은 묶음을 e2e로 돌린다. 시험 코드는 이 저장소에 넣지 않았다(요구 §13.6).
+이식할 점검 — 시연에서 35개를 돌려 모두 통과했다. 앱에서도 같은 묶음을 e2e로 돌린다. 시험 코드는 이 저장소가 아니라 modules `common/io.terra.agent/web/design/checks/`에 있다(Q-5 확정, 2026-10-11) — 실행법과 실행 결과는 그 폴더의 `README.md`가 적는다. 앱의 e2e가 서면 그쪽으로 옮긴다.
 
 | 묶음 | 본 것 |
 | --- | --- |
@@ -325,15 +325,15 @@ G1을 안전하게 열고 G2를 여는 **최소 묶음**이다. 모듈 변경은
 | D-10 테마 | 어두운 유리 한 벌. 폴백(단색)이 들어와 글자 대비 위험이 줄었다. 재질은 디자인이 멈춘 뒤 정한다 | 기다리지 않는다 — 시연이 이미 `--f-*` 변수로 쓰므로 토큰으로 분리해 옮긴다 |
 | D-11 글꼴 | 시연의 스택 맨 앞이 `Pretendard Variable`·`Pretendard`·`Inter`이고 글꼴 파일은 없다. CSP `font-src 'self' data:`라 쓰려면 앱에 싣는다(OFL 고지·용량) | **WP-4가 끝나기 전** — 싣든지 스택에서 뺀다 |
 
-이 문서가 새로 올리는 질문이다. 사용자가 답한다.
+이 문서가 올린 질문 Q-1~Q-5를 사용자가 **2026-10-11에 권고(기본값)대로 확정**했다. 아래 표의 "확정" 열이 그 결과이고, 구현은 이를 전제로 한다.
 
-| # | 질문 | 권고 |
-| :---: | --- | --- |
-| Q-1 | 앱을 **셸 밖**(직접 열람)에서도 지원하나? 지원하면 로그인 방식·토큰 취급·신원(R-3)이 되살아난다 — 런처는 로그인 폼과 `authHeaders()`를 쓴다 | 지원하지 않는다. 브리지가 없으면 "셸 안에서 여세요"를 보인다 |
-| Q-2 | 요구 §6.5에 **접근성 규칙**을 더하나? 초안: 초점은 안쪽 2px 고리(`#b9aeff`, offset −3px)와 입력칸 `:focus-within` · 글자 대비 4.5:1(뒤 배경 검정·회색·흰색에서 센다) · `prefers-reduced-transparency`·`prefers-contrast:more`·`forced-colors`는 단색 폴백 · 대화 영역 `role=log`·확인창 `role=dialog` | 더한다(GAP-15) |
-| Q-3 | 모듈 응답 확장(M-2~M-7)을 이 GUI 작업의 범위에 넣나? 계약이 바뀌므로 모듈 버전을 올린다 | 넣는다 — G2의 전제다. 버전은 `0.2.0` |
-| Q-4 | 앱 `id`를 모듈 id(`io.terra.agent`)로 하나, `.web`을 붙이나? | 모듈 id(요구 §2.4) |
-| Q-5 | 시연 점검 코드(Playwright 하네스)를 modules `web/design/`에 올리나? 디자인이 바뀔 때마다 같은 점검을 다시 돌려야 한다 | 올린다 — 구현 앱의 e2e가 서면 그쪽으로 옮긴다 |
+| # | 질문 | 권고 | 확정 |
+| :---: | --- | --- | --- |
+| Q-1 | 앱을 **셸 밖**(직접 열람)에서도 지원하나? 지원하면 로그인 방식·토큰 취급·신원(R-3)이 되살아난다 — 런처는 로그인 폼과 `authHeaders()`를 쓴다 | 지원하지 않는다. 브리지가 없으면 "셸 안에서 여세요"를 보인다 | **확정(2026-10-11, 권고대로)** — 셸 밖 직접 열람은 지원하지 않는다. 로그인 폼·`authHeaders()`·신원(R-3)은 이 작업에 들이지 않는다 |
+| Q-2 | 요구 §6.5에 **접근성 규칙**을 더하나? 초안: 초점은 안쪽 2px 고리(`#b9aeff`, offset −3px)와 입력칸 `:focus-within` · 글자 대비 4.5:1(뒤 배경 검정·회색·흰색에서 센다) · `prefers-reduced-transparency`·`prefers-contrast:more`·`forced-colors`는 단색 폴백 · 대화 영역 `role=log`·확인창 `role=dialog` | 더한다(GAP-15) | **확정(2026-10-11, 권고대로)** — 요구 문서 §6.5에 접근성 규칙을 더했다(v0.7.0). GAP-15 해소 |
+| Q-3 | 모듈 응답 확장(M-2~M-7)을 이 GUI 작업의 범위에 넣나? 계약이 바뀌므로 모듈 버전을 올린다 | 넣는다 — G2의 전제다. 버전은 `0.2.0` | **확정(2026-10-11, 권고대로)** — M-2~M-7이 이 작업의 범위이고 모듈 버전은 `0.2.0`이다(§4.1) |
+| Q-4 | 앱 `id`를 모듈 id(`io.terra.agent`)로 하나, `.web`을 붙이나? | 모듈 id(요구 §2.4) | **확정(2026-10-11, 권고대로)** — 앱 `id`는 `io.terra.agent`이다(WP-1의 `contributions.gui.apps[]`) |
+| Q-5 | 시연 점검 코드(Playwright 하네스)를 modules `web/design/`에 올리나? 디자인이 바뀔 때마다 같은 점검을 다시 돌려야 한다 | 올린다 — 구현 앱의 e2e가 서면 그쪽으로 옮긴다 | **확정(2026-10-11, 권고대로)** — modules `common/io.terra.agent/web/design/checks/`에 올렸다(§5.3, WP-8) |
 
 ## 7. 확인하지 못한 것
 

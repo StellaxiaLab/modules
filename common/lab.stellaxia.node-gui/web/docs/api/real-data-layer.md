@@ -581,6 +581,52 @@ Terra [Terra#154](https://github.com/StellaxiaLab/Terra/pull/154)(ADR-GW-004 2a 
 - 스택을 세운 직후에는 자원 보고 · Local API 토큰이 아직 없다 — `live-stack-up.sh`가 준비될 때까지 기다린다.
 - `pkill -x`는 프로세스 이름이 15자를 넘으면 맞지 않는다(`pkill -f`는 자기 셸 명령 문자열에 걸린다).
 
+### 5.10 입출력 연결 — 바인딩 `active` · `closed` 실측(MD-32) — 2026-10-11
+
+§5.9에 없던 것 — **호환되는 소스 · 싱크 쌍**으로 모듈의 연결 적용 코드가 바인딩을 `active`까지 올리고, 연결을 지우면 `closed`가 되는지 — 를 진짜 스택에서 봤다. `web/tools/live-linkbind.mjs`가 화면이 쓰는 함수(`applyLink` · `lacksOf` · `grantSelf` · `syncLinks` · `orphanedBindings` · `closeBindings`)를 그대로, 앱 토큰(`tsa_`)으로 leaf 게이트웨이의 `/api/upstream`에 붙인다.
+
+**쌍 — 새 시험 모듈 없이 Terra에 있는 것만 썼다.**
+
+| 끝 | 자원 | 엔드포인트 · 형식 | 켜는 법 |
+| --- | --- | --- | --- |
+| 소스 | `svi.<노드1>.test.stream` | `output` · `terra.bytes@1`(`terra-svi-frame-<n>`을 0.1초마다) | Daemon 설정 `feature.enable_svi` · `feature.enable_svi_test_stream`(`svi/test_stream_adapter.go`) |
+| 싱크 | `svi.<노드2>.fs.<이름>` | `append` · `terra.bytes@1`(파일 끝에 붙인다) | Daemon 설정 `svi.file_sinks: [{name, path}]`(`svi/filesystem_adapter.go`) |
+
+두 끝은 **다른 노드 · 같은 소유자**다. 같은 소유자는 PF-19 때문이다(남의 자원은 허가가 있어도 `*_resource_not_found`). 다른 노드는 아래 "같은 노드 쌍" 때문이다.
+
+**스택** — §5.9와 같은 바이너리 방식(Terra `832f8f23` 빌드, Daemon만 `c62fff73` · `terra-master` dev sqlite · `terra-daemon` 둘 · 노드1의 Daemon이 띄운 leaf 게이트웨이). 노드2는 `--enroll-email` · `--enroll-password-file`로 같은 사용자에 등록하고 게이트웨이 · 모듈은 끈다.
+
+```bash
+# web/ 에서
+TERRA_GW=http://127.0.0.1:28787 TERRA_APP_TOKEN_FILE=<app.tok> \
+TERRA_SRC_RES=svi.<노드1>.test.stream TERRA_SINK_RES=svi.<노드2>.fs.md32-sink2 TERRA_SINK_FILE=<그 싱크 파일> \
+node tools/live-linkbind.mjs
+```
+
+**처음 막힌 곳 — Terra Daemon 버그(모듈 밖).** `main` 그대로의 Daemon으로는 `bindings.post`가 받은 뒤 약 10초 만에 `failed`(`target_prepare_failed: context deadline exceeded`)가 된다. Daemon 기록: `master_relay_inbound_rejected message_type=svi.binding.prepare.request error="invalid communication envelope"`. 원인: `BindingExecutor.preparedResponse`(`svi/binding_executor.go`)가 답 봉투에 `Source`를 싣지 않는다. 그래서 `communication.Service.Send`의 `ValidateEnvelope`(`Source.App`이 비면 거절)가 relay 어댑터의 `normalizeOutbound`(빈 `Source`를 채운다)까지 가기 전에 버리고, Master는 prepare 답을 영영 받지 못한다. Terra의 Go e2e(`common/tests/svi-handle-integration`)는 자기 `Send`가 `Source`를 채워서 이것을 가린다. `HandleManager.response`도 같은 모양이다. Terra 쪽에 알렸다 — 아래 "Terra 쪽 상태".
+
+**결과 — Terra 고침(`c62fff73`)을 넣은 Daemon으로 `16/16`.** 같은 스택 · 같은 도구에서 `main`(`832f8f23`) Daemon으로는 `active` · Master 기록 · 흐름이 실패한다(`binding → failed`, 닫기는 된다). 둘 사이에 바꾼 것은 Daemon 바이너리 하나다(Master · 게이트웨이는 `832f8f23`).
+
+| 단계 | 본 것 | 결과 |
+| --- | --- | --- |
+| 미리 확인 | 두 끝의 엔드포인트(위임 입구 GET) | `terra.bytes@1 → terra.bytes@1` |
+| 허가 없이 적용 | `applyLink` | `needs-grant` · `missing_bind_grant: <소스> bind.source, <싱크> bind.target`(Master는 부르지 않는다 — PF-18) |
+| 나에게 허가 | `lacksOf(쌍)` → `grantSelf` | 둘 다 만들어진다(user 주체 · 끝점 · 30일) |
+| 다시 적용 | `applyLink` → `svi.bindings.post` | 202 · `phase binding` · `binding_id` |
+| 상태 맞추기 | `syncLinks`를 0.5초마다 | `binding → active` 약 0.5초 · `schema_ref terra.bytes@1` · Master 기록 `desired active / observed active` · `qos reliable_ordered` · `route relay` |
+| 흐름 | 노드2의 싱크 파일(같은 컴퓨터라 직접 읽는다) | 2초에 102 → 458 바이트 · 끝이 `…terra-svi-frame-25` |
+| 다시 적용 | `applyLink` | 같은 `binding_id` · 새로 만들지 않는다 · 목록에 이 쌍의 살아 있는 바인딩은 하나 |
+| 연결 지우기 | `orphanedBindings` → `closeBindings`(`svi.bindings.by-binding-id.delete`) | 202 |
+| 상태 맞추기 | `syncLinks` | `active → closed` 약 0.5초 · Master 기록 `desired closed / observed closed` |
+| 흐름 멈춤 | 싱크 파일 | 닫은 뒤 458 → 458 바이트 |
+| 닫힌 것 다시 닫기 | `closeBindings` | 닫힌 것으로 친다 |
+
+도구는 끝에 이번에 만든 내 허가를 지운다. Terra 쪽 확인(`svi-core-contract-decisions.md` §12.11 · `287bd9a9`)대로, 허가가 철회되거나 기한이 지나면 살아 있는 바인딩은 `degraded`가 아니라 **닫힌다**. 그래서 순서는 바인딩을 먼저 닫고 허가를 나중에 지운다. 화면에서도 내 허가의 기한(기본 30일)은 바인딩이 살아 있을 기간보다 길어야 한다.
+
+**같은 노드 쌍(Terra 쪽 메모)** — 소스와 싱크가 한 노드에 있으면(`test.stream` → 같은 Daemon의 `fs.md32-sink`) Master는 `observed active`라고 하지만 **싱크 파일은 0바이트 그대로다**. Daemon의 `BindingExecutor`가 바인딩 상태를 `binding_id` 하나로만 들고 있어서(`e.bindings[binding_id]`), 같은 바인딩의 source 역할 prepare가 target 역할 상태(열린 싱크)를 갈아 치운다. 모듈 쪽은 바꿀 것이 없다 — 상태는 Master가 말하는 대로 `active`로 보인다. 그래서 시험 도구는 두 끝이 같은 노드면 경고를 찍는다. 화면에 같은 노드 쌍을 막거나 표시할지는 Terra의 답(지원하지 않는 모양인지)을 보고 정한다.
+
+**Terra 쪽 상태** — Daemon의 `Source` 버그는 Terra 브랜치 `ccr-3a501c29-lt1eml`의 `c62fff73`("Give daemon SVI responses a Source so they pass envelope validation")이 고쳤다. `preparedResponse`와 `HandleManager.response`(핸들 열기 · 닫기 답도 같은 이유로 버려졌다)가 둘 다 `Source`를 싣고, 회귀 시험은 진짜 `Service.HandleIncoming`을 지난다. **`main`에 머지되기 전까지 `main` 그대로의 Daemon으로는 바인딩이 `active`가 되지 않는다.** 같은 노드 쌍은 그 고침과 따로이고, 아직 고칠 곳이 정해지지 않았다(로컬 상태를 `(binding_id, 역할)`로 들어야 한다 — commit · frame · close · 정리를 다 건드린다). **(2026-10-11 추가)** 같은 고침이 [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)로 `main`에 들어갔다(`e84e765`) — 수정 없는 `main`에서 §5.9의 `live-linkio.mjs` 27/27 통과를 확인했다.
+
 ## 6. 코드 지도
 
 | 파일 | 내용 |

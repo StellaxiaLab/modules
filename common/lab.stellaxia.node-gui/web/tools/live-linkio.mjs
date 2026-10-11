@@ -6,7 +6,7 @@
 //
 // 쓰는 환경변수(env.sh 가 채운다): TERRA_GW · TERRA_APP_TOKEN_FILE · TERRA_SRC_RES(test.stream — bytes 소스) · TERRA_PEER_NODE(같은 클러스터의 다른 노드)
 //   · TERRA_D1_LOCAL · TERRA_D1_LOCAL_TOKEN_FILE · TERRA_FILES_DIR(Daemon 의 svi.runtime 울타리 안 — 파일 싱크를 런타임 선언으로 올린다)
-// 스택 만드는 법과 결과: docs/api/real-data-layer.md §5.9 · §5.10
+// 스택 만드는 법과 결과: docs/api/real-data-layer.md §5.9. 형제 도구 live-linkbind.mjs(§5.10)는 싱크를 `svi.file_sinks` 설정으로 올리는 다른 길로 같은 active → closed 를 본다.
 import { readFileSync, statSync, existsSync } from 'node:fs';
 const W = new URL('../src/', import.meta.url).href;
 const win = { localStorage: { getItem() { return null; }, setItem() {} }, addEventListener() {}, removeEventListener() {} };
