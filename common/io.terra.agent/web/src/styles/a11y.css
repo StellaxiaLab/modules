@@ -1,0 +1,32 @@
+/* 접근성 규칙(요구 §6.5, Q-2) — 이 파일이 마지막에 온다.
+   1) 초점: 안쪽 2px 고리(#b9aeff, offset −3px). 입력칸은 상자 전체에 :focus-within 고리.
+   2) 글자 대비 4.5:1 — 토큰(tokens.css)이 지킨다. 뒤 배경이 검정·회색·흰색일 때 센다.
+   3) prefers-reduced-transparency · prefers-contrast:more · forced-colors 는 단색으로 떨어진다. */
+a:focus-visible,
+button:focus-visible,
+[role='tab']:focus-visible,
+.msgs:focus-visible,
+summary:focus-visible,
+input:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.opt:focus-within { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+.inp .box:focus-within { box-shadow: inset 0 0 0 2px var(--focus); background-color: rgba(255, 255, 255, 0.12); }
+.inp textarea:focus-visible { outline: none; }
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  :root { --f-win: #13161b; --f-1: #1b1f26; --f-2: #222730; --f-3: #2a303a; --f-in: #0f1216; --me: #5a4fd0; --pri: #5b49df; --bg-ok: #16352a; --bg-warn: #3a2e12; --bg-err: #3d1b1b; --bg-info: #262c4d; --bg-warn-soft: #2a2312; --bg-err-soft: #3a1416; }
+  .app, .c1, .c3, .c2, .wh { background: #13161b; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .opt.on { background: #3a3470; }
+  .ai .tx.err { background: #3a1416; }
+  .inp .box:focus-within { background-color: #1b1f26; }
+  body { background-image: none; }
+}
+@media (forced-colors: active) {
+  .chip, .btn, .card, .step, .ev, .opt, .notice, .ban, .dlg { border: 1px solid CanvasText; }
+  .btn:disabled { border-style: dashed; }
+  a:focus-visible, button:focus-visible, [role='tab']:focus-visible, .msgs:focus-visible, summary:focus-visible, input:focus-visible { outline-color: Highlight; }
+  .inp .box:focus-within { box-shadow: none; outline: 2px solid Highlight; outline-offset: -3px; }
+  .seg button.on { border: 1px solid Highlight; }
+}
