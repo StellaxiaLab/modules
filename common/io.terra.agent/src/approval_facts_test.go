@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	agentcore "github.com/StellaxiaLab/terra-agent"
 
@@ -113,4 +114,71 @@ func TestApprovalContractSeparatesEmptyFromUnwritten(t *testing.T) {
 	if approvalContractOf(agentcore.CatalogOperation{}) != nil {
 		t.Error("an unknown operation must have no contract object")
 	}
+}
+
+// 마감 시각(M-3): 대기 시작 + min(한 질문의 대기 한도, 이 차례의 남은 시간).
+func TestApprovalExpiryIsTheEarlierOfWaitAndTurnDeadline(t *testing.T) {
+	start := time.UnixMilli(1_757_000_000_000)
+	cases := []struct {
+		name        string
+		wait        time.Duration
+		left        time.Duration
+		hasDeadline bool
+		want        int64
+	}{
+		{"no deadline: the wait alone", approvalTimeout, 0, false, start.Add(approvalTimeout).UnixMilli()},
+		{"turn ends first", approvalTimeout, 15 * time.Minute, true, start.Add(15 * time.Minute).UnixMilli()},
+		{"wait ends first", 2 * time.Minute, 15 * time.Minute, true, start.Add(2 * time.Minute).UnixMilli()},
+		{"deadline already passed", approvalTimeout, -time.Second, true, start.UnixMilli()},
+	}
+	for _, c := range cases {
+		if got := approvalExpiry(start, c.wait, c.left, c.hasDeadline); got != c.want {
+			t.Errorf("%s: expires_ms = %d, want %d", c.name, got, c.want)
+		}
+	}
+}
+
+// Through the real loop with a fixed clock: the default turn limit (900 s) is
+// shorter than the 30-minute wait, so the turn's remaining time is the bound;
+// with a shorter wait the wait is.
+func TestPendingApprovalExpiresMSFollowsTheEarlierBound(t *testing.T) {
+	fixed := time.UnixMilli(1_757_000_000_000)
+	run := func(t *testing.T, wait time.Duration, maxSeconds int) map[string]any {
+		b := newBench(t,
+			always(toolResponse("", invokeCall("c1", opRestart, `{"module_id":"io.terra.sample"}`, "restart"))),
+			always(textResponse("done")),
+		)
+		b.engine.approvalWait = wait
+		provider, _ := b.engine.prepare(testPrincipal, "")
+		current, _, _ := b.engine.sessions.open(sessionOptions{Autonomy: "ask", Provider: "scripted", MaxSteps: 4, MaxSeconds: maxSeconds}, testPrincipal)
+		current.now = func() time.Time { return fixed }
+		if _, err := b.engine.submit(current, "restart", testPrincipal, provider); err != nil {
+			t.Fatal(err)
+		}
+		testwait.Until(t, "an approval request", func() bool { return current.pendingCount() == 1 })
+		pending := pendingJSON(t, current)
+		current.answerApproval("", false)
+		testwait.Until(t, "the turn to finish", func() bool { return current.snapshot()["state"] == stateIdle })
+		return pending
+	}
+
+	t.Run("wait is shorter than the turn", func(t *testing.T) {
+		pending := run(t, 2*time.Minute, 900)
+		if got, want := int64(pending["expires_ms"].(float64)), fixed.Add(2*time.Minute).UnixMilli(); got != want {
+			t.Fatalf("expires_ms = %d, want created + wait = %d", got, want)
+		}
+	})
+	t.Run("the turn ends before the wait", func(t *testing.T) {
+		pending := run(t, approvalTimeout, 900)
+		got := int64(pending["expires_ms"].(float64))
+		ceiling := fixed.Add(900 * time.Second).UnixMilli()
+		// The turn's deadline runs on the real clock a few ms before the approval
+		// is asked, so allow that much slack below the fixed-clock ceiling.
+		if got > ceiling || got < ceiling-5000 {
+			t.Fatalf("expires_ms = %d, want within 5 s below created + 900 s = %d", got, ceiling)
+		}
+		if int64(pending["created_ms"].(float64)) != fixed.UnixMilli() {
+			t.Fatalf("created_ms = %v", pending["created_ms"])
+		}
+	})
 }

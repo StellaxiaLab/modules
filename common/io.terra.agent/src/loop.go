@@ -535,7 +535,19 @@ func (e *engine) recorder(s *session) agentcore.Recorder {
 // the transcript and waits for `terra agent approve` or a typed answer.
 func (e *engine) approver(s *session) agentcore.Approver {
 	return agentcore.ApproverFunc(func(ctx context.Context, request agentcore.ApprovalRequest) (bool, error) {
-		pending := s.addApproval(request.OperationID, request.Reason, request.Judgement.Reason, request.Input, approvalContractOf(request.Operation))
+		wait := e.approvalWait
+		if wait <= 0 {
+			wait = approvalTimeout
+		}
+		// What is left of the turn is measured on the real clock the deadline
+		// runs on, then added to the session's own notion of "now".
+		var left time.Duration
+		deadline, hasDeadline := ctx.Deadline()
+		if hasDeadline {
+			left = time.Until(deadline)
+		}
+		pending := s.addApproval(request.OperationID, request.Reason, request.Judgement.Reason, request.Input, approvalContractOf(request.Operation),
+			func(asked time.Time) int64 { return approvalExpiry(asked, wait, left, hasDeadline) })
 		s.mu.Lock()
 		s.setStateLocked(stateWaiting)
 		s.appendLocked(entry{
@@ -545,10 +557,6 @@ func (e *engine) approver(s *session) agentcore.Approver {
 		})
 		s.mu.Unlock()
 
-		wait := e.approvalWait
-		if wait <= 0 {
-			wait = approvalTimeout
-		}
 		timer := time.NewTimer(wait)
 		defer timer.Stop()
 		var approved bool
@@ -609,6 +617,21 @@ func approvalContractOf(operation agentcore.CatalogOperation) *approvalContract 
 		contract.Permissions = &permissions
 	}
 	return contract
+}
+
+// approvalExpiry is when a question asked at `asked` stops being answerable:
+// asked plus the earlier of the per-question wait and what is left of the
+// turn (`left`), whose deadline cancels the context under the waiting approver.
+// A turn with no deadline is bounded by the wait alone.
+func approvalExpiry(asked time.Time, wait, left time.Duration, hasDeadline bool) int64 {
+	span := wait
+	if hasDeadline && left < span {
+		span = left
+	}
+	if span < 0 {
+		span = 0
+	}
+	return millis(asked.Add(span))
 }
 
 // approvalText is what the person reads. It separates the contract's facts

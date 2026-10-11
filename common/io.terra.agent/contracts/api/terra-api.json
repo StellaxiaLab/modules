@@ -3734,6 +3734,7 @@
                     "risk": "dangerous"
                   },
                   "created_ms": 1757000100000,
+                  "expires_ms": 1757001000000,
                   "input": {
                     "module_id": "io.terra.sample"
                   },
@@ -3887,6 +3888,12 @@
                     "description": "Unix epoch 밀리초.",
                     "minimum": 0,
                     "title": "생성 시각",
+                    "type": "integer"
+                  },
+                  "expires_ms": {
+                    "description": "이 질문이 답을 기다리기를 그만두는 시각(Unix epoch 밀리초) = 물은 시각 + min(질문당 대기 한도 30분, 이 차례의 남은 max_seconds). 이 시각 뒤에는 승인·거부가 닿지 않는다. 대기 시각을 못 구한 옛 기록에는 없다.",
+                    "minimum": 0,
+                    "title": "마감 시각",
                     "type": "integer"
                   },
                   "input": {
@@ -4311,6 +4318,12 @@
                           "description": "Unix epoch 밀리초.",
                           "minimum": 0,
                           "title": "생성 시각",
+                          "type": "integer"
+                        },
+                        "expires_ms": {
+                          "description": "이 질문이 답을 기다리기를 그만두는 시각(Unix epoch 밀리초) = 물은 시각 + min(질문당 대기 한도 30분, 이 차례의 남은 max_seconds). 이 시각 뒤에는 승인·거부가 닿지 않는다. 대기 시각을 못 구한 옛 기록에는 없다.",
+                          "minimum": 0,
+                          "title": "마감 시각",
                           "type": "integer"
                         },
                         "input": {
@@ -5280,6 +5293,12 @@
                   "description": "Unix epoch 밀리초.",
                   "minimum": 0,
                   "title": "생성 시각",
+                  "type": "integer"
+                },
+                "expires_ms": {
+                  "description": "이 질문이 답을 기다리기를 그만두는 시각(Unix epoch 밀리초) = 물은 시각 + min(질문당 대기 한도 30분, 이 차례의 남은 max_seconds). 이 시각 뒤에는 승인·거부가 닿지 않는다. 대기 시각을 못 구한 옛 기록에는 없다.",
+                  "minimum": 0,
+                  "title": "마감 시각",
                   "type": "integer"
                 },
                 "input": {

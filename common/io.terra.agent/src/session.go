@@ -155,7 +155,11 @@ type approvalRequest struct {
 	// facts a person approves, as opposed to Reason, which is the model's claim.
 	// It is absent when there is no Gateway contract to read (an external tool).
 	Contract *approvalContract `json:"contract,omitempty"`
-	answer   chan bool
+	// ExpiresMS is when this question gives up waiting (Unix epoch ms): the
+	// moment it was asked plus the earlier of the per-question wait and what is
+	// left of the turn's wall-clock limit. After it the card cannot be answered.
+	ExpiresMS int64 `json:"expires_ms,omitempty"`
+	answer    chan bool
 }
 
 // approvalContract carries the contract's own words. A field the contract did
@@ -347,12 +351,13 @@ func (s *session) appendHistory(message Message) {
 }
 
 // addApproval registers a question and returns it; the loop waits on answer.
-func (s *session) addApproval(operationID, reason, judgement string, input json.RawMessage, contract *approvalContract) *approvalRequest {
+func (s *session) addApproval(operationID, reason, judgement string, input json.RawMessage, contract *approvalContract, expiry func(asked time.Time) int64) *approvalRequest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	asked := s.now()
 	request := &approvalRequest{
 		ID: randomID("apr_", 4), OperationID: operationID, Reason: reason, Judgement: judgement,
-		Input: input, Contract: contract, CreatedMS: millis(s.now()), answer: make(chan bool, 1),
+		Input: input, Contract: contract, CreatedMS: millis(asked), ExpiresMS: expiry(asked), answer: make(chan bool, 1),
 	}
 	s.pending[request.ID] = request
 	s.order = append(s.order, request.ID)
