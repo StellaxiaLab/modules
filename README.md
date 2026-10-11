@@ -25,6 +25,7 @@ tree/     tree 제품 전용
 
 Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 사이를 오가도 경로 모양이
 바뀌지 않게. 규약 전문과 규칙 번호는 [`docs/layout.md`](docs/layout.md)에 있다.
+설치기가 이 저장소의 모듈(`lab.stellaxia.node-gui`)을 원격에서 받아 까는 범위와 결정은 [`docs/installer-integration.md`](docs/installer-integration.md)에 있다.
 
 > [!IMPORTANT]
 > **접두사는 `lab.stellaxia.*` 다** (2026-09-23 확정). 경계는 저장소도 소유자도 아니라
