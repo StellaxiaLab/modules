@@ -8,7 +8,7 @@ doc_type: "backlog"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "1.22.0"
+version: "1.22.1"
 last_updated: "2026-10-11"
 language: "ko-KR"
 os_priority:
@@ -137,7 +137,7 @@ flowchart LR
 | **MD-6** | 진짜 스택 E2E를 CI로 | 지금은 손으로 돈다([[testing\|시험]] §6) — Master · Daemon · 셸 · 브라우저가 필요하다. modules CI는 이미 Terra를 체크아웃한다(`test:scenes`) | — | 중간 |
 | **MD-9** | Terra 세션 띠의 디자인 자리 | 로그인 · 로그아웃 띠는 모듈이 그린 흰 캡슐이다(`frame-session.js`) — 원본 디자인에 자리가 없다 | 디자인 | 낮음 |
 | **MD-10** | 번들에 남은 예시 문자열 | 원본 미리보기의 예시 상수가 번들에 **문자열로** 남는다(화면 · 요청에는 나가지 않는다 — 시험이 지킨다). 지우려면 원본 미리보기 데이터를 따로 떼야 한다 | 원본 작업 방식 | 낮음 |
-| **MD-13** | tree 게이트웨이에서 Master 쪽 추가 · 수정 · 삭제 E2E | 허가 · 바인딩 · 터널 열기 · 선언 · 피어 회수 · 다른 노드 작업의 본문은 Master 코드로 맞췄지만(`decodeJSON` 입력 구조) 시험 스택이 leaf라 실제로 부르지 못했다(`not-in-catalog`). tree 노드에 모듈을 깔고 돌린다 | PF-1(위임) | 중간 |
+| **MD-13** | tree 게이트웨이에서 Master 쪽 추가 · 수정 · 삭제 E2E | **tree 스택에서 돌렸다**(2026-10-11, Terra `main` `c82c24e2` · [[real-data-layer\|실데이터 층]] §5.11 · `web/tools/live-tree-up.sh` · `live-tree.mjs` 38개 통과). 위임 입구가 연 쓰기 다섯(`svi.grants.post·patch·delete` · `svi.bindings.post·delete`)은 operation id 길로 **전부 동작**한다 — 허가 만들기·줄이기·지우기, 가드 거절 6종, 바인딩 `active`·데이터·`closed`. **터널 선언·열기 · 피어 철회 · mesh 조정 · Master `commands.post`(다른 노드 작업)는 `403 DELEGATION_NOT_OPEN`**(Terra `delegated_routes.go`가 닫아 둠, 본문 모양은 확인 못 함). 중계 길의 선언 쓰기는 앱에 `node.config`가 없어 `remote-denied`, 다른 노드 `commands.execute`는 `not-remote`. 남은 일: tree에서 열린 op 목록으로 화면 잠금(`client.has`가 닫힌 쓰기에도 참) · 선언 쓰기에 매니페스트 `node.config` 결정 · 닫힌 쓰기를 여는 일은 Terra ADR-GW-004 후속 | PF-1(위임) | 중간 |
 | **MD-14** | 모듈 GUI 창에서 그 모듈의 GUI 열기 | 지금은 `/api/v1/gui/apps`로 GUI가 있는지 · 주소만 보인다 | PF-15 | 낮음 |
 | **MD-42** | 노드 화면 마운트의 동기 작업 약 2초 | 맵 굽기를 걷어낸 뒤 남은 첫 롱태스크(1.7~2.1초). 스킨 · 타일 벡터 생성(`ensureBake` · `bakeTile`)으로 보이나 프로파일로 쪼개지 않았다. 편집기 보드 4종(건물 · 도로 · 필드 · 자재)의 굽기(`getImageData`)도 같이 잰다 | — | 중간 |
 

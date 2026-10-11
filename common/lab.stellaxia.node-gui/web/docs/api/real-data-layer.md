@@ -8,7 +8,7 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.14.0"
+version: "0.15.0"
 last_updated: "2026-10-11"
 language: "ko-KR"
 os_priority:
@@ -626,6 +626,54 @@ node tools/live-linkbind.mjs
 **같은 노드 쌍(Terra 쪽 메모)** — 소스와 싱크가 한 노드에 있으면(`test.stream` → 같은 Daemon의 `fs.md32-sink`) Master는 `observed active`라고 하지만 **싱크 파일은 0바이트 그대로다**. Daemon의 `BindingExecutor`가 바인딩 상태를 `binding_id` 하나로만 들고 있어서(`e.bindings[binding_id]`), 같은 바인딩의 source 역할 prepare가 target 역할 상태(열린 싱크)를 갈아 치운다. 모듈 쪽은 바꿀 것이 없다 — 상태는 Master가 말하는 대로 `active`로 보인다. 그래서 시험 도구는 두 끝이 같은 노드면 경고를 찍는다. 화면에 같은 노드 쌍을 막거나 표시할지는 Terra의 답(지원하지 않는 모양인지)을 보고 정한다.
 
 **Terra 쪽 상태** — Daemon의 `Source` 버그는 Terra 브랜치 `ccr-3a501c29-lt1eml`의 `c62fff73`("Give daemon SVI responses a Source so they pass envelope validation")이 고쳤다. `preparedResponse`와 `HandleManager.response`(핸들 열기 · 닫기 답도 같은 이유로 버려졌다)가 둘 다 `Source`를 싣고, 회귀 시험은 진짜 `Service.HandleIncoming`을 지난다. **(2026-10-11 갱신) 이 고침은 `main`에 들어갔고, `main` `c82c24e2`로 다시 재서 `16/16`을 확인했다.** 같은 노드 쌍은 그 고침과 따로이고, `main` `c82c24e2`에서도 그대로다 — 같은 노드 쌍(`fs.same`)은 `active`(`desired active / observed active`)까지 가고 싱크 파일은 `0 → 0` 바이트로 15/16(흐름 한 개만 ✗), 닫기는 정상이다. 아직 고칠 곳이 정해지지 않았다(로컬 상태를 `(binding_id, 역할)`로 들어야 한다 — commit · frame · close · 정리를 다 건드린다). **(2026-10-11 추가)** 같은 고침이 [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)로 `main`에 들어갔다(`e84e765`) — 수정 없는 `main`에서 §5.9의 `live-linkio.mjs` 27/27 통과를 확인했다.
+
+### 5.11 tree 게이트웨이에서 Master 쓰기 E2E(MD-13) — 2026-10-11
+
+지금까지 진짜 스택(§5.9 · §5.10)은 **leaf**였다 — 게이트웨이 카탈로그에 `terra.master.*`가 없어서 모듈이 `/api/upstream` 경로로 Master에 갔다. 이번에는 **tree**를 세웠다. `web/tools/live-tree.mjs`가 화면이 쓰는 코드(`TerraClient` · `applyLink` · `grantSelf` · `syncLinks` · `closeBindings`)를 그대로, 앱 토큰(`tsa_`)으로 부른다.
+
+**tree 스택 세우기** — `tools/live-tree-up.sh <Terra 체크아웃> <작업 폴더>`(Terra `main` `c82c24e2`의 깨끗한 `git archive`에서 `go build`). 틀은 Terra의 `products/common/tests/remote-invocation-integration/delegated_session_e2e_test.go`다. leaf 스택(`live-stack-up.sh`)과 다른 점은 셋뿐이다.
+
+| | leaf 스택 | tree 스택 |
+| --- | --- | --- |
+| 게이트웨이 계약 | Daemon 계약 | **Master 계약**(`products/tree/master/contracts/api/terra-api.json`)을 provider로 |
+| Master 가는 길 | `--master-service-credential`에 노드 자격 | Master `service_credential`(Core-peer) + `--provider terra.master=<Master> --provider-forward-auth terra.master` |
+| 모듈 | `module.json`을 scene root에 | 같다 — 설치된 `lab.stellaxia.node-gui`가 앱 토큰 문(`/api/v1/gui/apps/<앱>/token`)을 연다 |
+
+Daemon 둘(같은 사용자)은 Master에 enroll만 하고 게이트웨이는 달지 않는다. 포트는 Master 38080 · 게이트웨이 38787 · Daemon 38321/38322(leaf 스택과 겹치지 않는다). 사용·결과: `. <폴더>/env.sh && node tools/live-tree.mjs` — 38개 통과.
+
+**tree에서 달라지는 것**
+
+- 카탈로그가 212개이고 그중 `terra.master.*`가 160개다(`terra.daemon.*`는 0). `client.viaUpstream()`은 꺼져 있고 Master op는 `/api/v1/operations/<op>/invoke`로 간다 — **operation id 길이 처음으로 실제로 불렸다**.
+- 카탈로그는 위임 입구가 닫은 op도 싣는다. 그래서 `client.has()` · `reaches()`는 닫힌 op에도 참이고(예 `peers.revoke.post`), 부르면 게이트웨이가 `403 DELEGATION_NOT_OPEN`을 준다(`masterAnswer`가 `unavailable`로 바꿔 준다). **카탈로그만 보는 화면 잠금은 tree에서 닫힌 쓰기를 거르지 못한다** — 잠그려면 열린 op 목록이 필요하다(아래 후속).
+- Daemon op는 카탈로그에 없다. 노드를 지정해야 한다(`invoke(op, input, { node })` → `/api/v1/nodes/{id}/operations/{op}/invoke`). 지정하지 않으면 `not-in-catalog`.
+- 앱 토큰을 새로 발급하면 앞의 토큰은 바로 죽는다(`whoami`가 `anonymous`, 카탈로그 88개로 줄어든다). 같은 앱·사용자당 하나다.
+
+**쓰기 경로별 결과** — 동작 / 거절(이유) / 닿지 않음(빠진 op)
+
+| 경로 | op | 결과 |
+| --- | --- | --- |
+| 허가 만들기(본인) | `svi.grants.post` | **동작** — 기한 필수 · 목록에 기한이 보인다 |
+| 허가 만들기(같은 클러스터 노드) | `svi.grants.post` `subject_type: node` | **동작** — `read` · `subscribe` |
+| 허가 고치기 — 줄이기 · 기한 줄이기 | `svi.grants.by-grant-id.patch` | **동작** — 줄이면 목록의 operations가 바뀐다 |
+| 허가 고치기 — 넓히기 | 같음 | 본인에게 `bind.source`는 **동작**(허용 집합), `write`는 **거절** `403 FORBIDDEN`(D-4) |
+| 허가 지우기 | `svi.grants.by-grant-id.delete` | **동작** — 본인 · 노드 허가, 지운 뒤 목록에서 사라진다 |
+| 허가 가드 | `svi.grants.post` | **거절** `403 FORBIDDEN` — 91일 · 기한 없음 · 다른 사용자 · `write` · `group` 주체. 없는 노드는 `404 NODE_NOT_FOUND` |
+| 바인딩 만들기 | `svi.bindings.post` | **동작** — 허가 없음(`needs-grant`) → `grantSelf` → 만들기 → `active` → 싱크 파일 자람(102바이트) |
+| 바인딩 닫기 | `svi.bindings.by-binding-id.delete` | **동작** — `closed` · 없는/닫힌 id 다시 닫기도 오류 아님 |
+| 선언 추가 · 철회(다른 노드, 중계) | `terra.daemon.svi.declarations.post` · `…undeclare.post` | **거절** `remote-denied` — 노드 카탈로그가 `allowed:false`(필요 권한 `node.config`★, 앱 매니페스트에 없다). `TREE_NODE_CONFIG=1`로 세우면(사용자와 설치본 `module.json`에 `node.config`) **동작** |
+| 다른 노드 작업(중계) | `terra.daemon.commands.execute.post` | **닿지 않음** `not-remote` — 그 노드가 원격으로 열지 않았다(노드 카탈로그에 없다) |
+| 다른 노드 작업(Master) | `terra.master.commands.post` · `jobs.by-job-id.cancel.post` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+| 터널 선언 · 열기 · 계획 · 선언 지우기 | `terra.master.service-tunnels.declarations.post` · `open.post` · `plan.post` · `declarations.by-declaration-id.delete` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+| 터널 닫기(다른 노드, 중계) | `terra.daemon.service-tunnels.by-tunnel-id.close.post` | **동작**(`accepted`) — 없는 id도 받는다(네트워크 화면의 경고와 같다: 닫혔는지는 목록을 다시 읽어 확인) |
+| peer 철회 · mesh 조정 · 수동 계획 | `terra.master.network.mesh.wireguard.peers.revoke.post` · `reconcile.post` · `plan.post` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+| 라우트 세션 · 연결 그룹 닫기 | `terra.master.route.sessions.by-session-id.close.post` · `connection-groups.by-group-id.close.post` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+| 노드 이름 · 모듈 할당 · 핸들 열기 · 노드 중계(세션 id 길) | `nodes.by-node-id.patch` · `…modules.assignments.post` · `svi.handles.post` · `nodes.by-node-id.operations.invoke.post` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+
+요약: **위임 입구가 연 쓰기 다섯**(`svi.bindings.post|delete` · `svi.grants.post|patch|delete`, Terra `delegated_routes.go` `delegatedWrites`)은 tree에서 전부 동작하고, 그 밖의 `terra.master.*` 쓰기는 입구에서 닫혀 있다. 그 닫힌 쓰기가 §2·화면의 "터널 열기 · 피어 회수 · 다른 노드 작업"이다 — 본문을 Master 코드에 맞춰 놓은 것은 맞는지 **지금은 확인할 수 없다**(게이트웨이가 본문을 읽기 전에 막는다). 열려면 Terra ADR-GW-004에 단계를 더해야 한다(모듈이 정할 일이 아니다).
+
+**Terra 버그는 막힌 것이 없다.** 막힌 곳은 모두 설계된 닫힘(`DELEGATION_NOT_OPEN` · 노드 카탈로그 `allowed:false`)이다. 스택을 막 세운 직후에는 Daemon의 중계 연결이 아직 서지 않아 `409 NODE_OFFLINE`가 몇 초 나온다 — 도구가 기다린다.
+
+**후속(모듈)** — ① tree에서도 `MASTER_DELEGATED`(열린 op 목록)로 잠그기: `client.has`가 닫힌 쓰기에 참이다. ② 원격 선언 쓰기를 쓰려면 앱 매니페스트에 `node.config` 선언이 필요하다(Master의 `DefaultPermissions`에 `node.config`가 없다 — 사용자에게 따로 줘야 한다). 둘 다 이 라운드에서 고치지 않았다.
 
 ## 6. 코드 지도
 
