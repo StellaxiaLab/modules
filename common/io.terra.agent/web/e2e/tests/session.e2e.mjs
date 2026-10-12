@@ -1,5 +1,5 @@
 // 대화 화면의 상태 묶음 — 취소 · 자율성 · 시간 초과(카드 밖의 몫) · 인박스 · 종료 세션 · 규칙 I20 · 차례 줄.
-// 원본: design/checks/demo-checks.mjs 의 "Live:" 점검들. 승인 카드(화면 4·5, WP-5)가 있어야 하는 점검은 여기 없다 — TODO-checks.md "WP-5 대기".
+// 원본: design/checks/demo-checks.mjs 의 "Live:" 점검들. 승인 카드가 있어야 하는 점검은 approvals.e2e.mjs 에 있다.
 // 시계는 `control.advance(초)` 로 감는다. 기다림은 `until()` 이다.
 
 import { OP, agentApi, assert, mark, openApp, requestsOf, until } from '../lib/app.mjs';
@@ -134,7 +134,7 @@ check('자율성: unattended — 묻지 않고 거절한다(TERRA_APPROVAL_REQUI
   assert.deepEqual(app.problems.all(), []);
 }, UI);
 
-check('자율성: auto — 되돌릴 수 있는 쓰기는 묻지 않고 돌고 접수(accepted-job)로 남는다 (위험한 호출을 묻는 카드는 WP-5 대기)', async (t) => {
+check('자율성: auto — 되돌릴 수 있는 쓰기는 묻지 않고 돌고 접수(accepted-job)로 남는다 (위험한 호출을 묻는 카드는 approvals.e2e.mjs)', async (t) => {
   const api = agentApi(t);
   await api.open({ id: 'a-auto', autonomy: 'auto', scenario: 'accepted-job' });
   const app = await openApp(t, { route: '#/s/a-auto' });
@@ -154,7 +154,7 @@ check('자율성: auto — 되돌릴 수 있는 쓰기는 묻지 않고 돌고 �
 
 // ───────── 시간 초과 (카드 밖의 몫) ─────────
 
-check('시간 초과(카드 밖의 몫): 무응답으로 시간이 끝나면 idle · TIME_LIMIT 한 줄 · denied 줄 없음 · 입력 복귀 (카드 "시간 초과" 표시는 WP-5 대기)', async (t) => {
+check('시간 초과(카드 밖의 몫): 무응답으로 시간이 끝나면 idle · TIME_LIMIT 한 줄 · denied 줄 없음 · 입력 복귀 (카드 "시간 초과" 표시는 approvals.e2e.mjs)', async (t) => {
   const api = agentApi(t);
   await api.open({ id: 't-time', autonomy: 'ask', scenario: 'approval-timeout', max_seconds: 300 });
   const app = await openApp(t, { route: '#/s/t-time' });
