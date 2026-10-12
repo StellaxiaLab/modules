@@ -10,6 +10,26 @@ import (
 // producing two. Every test here is one half of that: the incumbent gives up,
 // or the challenger takes over, and the two happen in that order.
 
+// A lease is "held" when the last contact is younger than the TTL. A test that
+// proves the HELD side with a TTL of tens of milliseconds is racing the
+// scheduler: any stall between the contact and the assertion lapses the lease
+// for real, and CI fails with a symptom identical to a broken lease. So these
+// tests use a TTL no stall can reach (leaseFar) and move the contact record
+// into the past to make time pass, instead of sleeping. Same field the lease
+// reads; no production seam.
+const leaseFar = time.Minute
+
+// ageContact makes the last peer contact for a conversation `age` old.
+func ageContact(t *testing.T, store *Store, id string, age time.Duration) {
+	t.Helper()
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if _, known := store.contactLocked(id); !known {
+		t.Fatalf("fixture: no contact recorded for %s to age", id)
+	}
+	store.peerContact[id] = time.Now().Add(-age)
+}
+
 // a room where node-b outranks the creating main, which is where a handover can
 // legitimately go.
 func leasedRoom(t *testing.T, ttl time.Duration) (*Store, string) {
@@ -27,7 +47,7 @@ func leasedRoom(t *testing.T, ttl time.Duration) (*Store, string) {
 // decision that must not happen twice — and keeps everything else, including the
 // ability to clean the room up.
 func TestALapsedMainStopsAddingButKeepsEverythingElse(t *testing.T) {
-	store, id := leasedRoom(t, 30*time.Millisecond)
+	store, id := leasedRoom(t, leaseFar)
 	// Someone reached it: now there is a challenger that could exist, and a
 	// lease worth running.
 	store.TouchPeerContact(id)
@@ -35,7 +55,7 @@ func TestALapsedMainStopsAddingButKeepsEverythingElse(t *testing.T) {
 		t.Fatalf("adding while the lease is held: %v", err)
 	}
 
-	time.Sleep(60 * time.Millisecond)
+	ageContact(t, store, id, 2*leaseFar)
 
 	if _, _, err := store.AddMember(id, "node-d", nil); !errors.Is(err, ErrMainLeaseLapsed) {
 		t.Errorf("adding after the lease lapsed: %v", err)
@@ -57,9 +77,9 @@ func TestALapsedMainStopsAddingButKeepsEverythingElse(t *testing.T) {
 // Being reached again restores it. Standing down is a pause, not a forfeit — the
 // main is alive and the moment anyone talks to it again it is the main again.
 func TestALapsedMainRecoversWhenReachedAgain(t *testing.T) {
-	store, id := leasedRoom(t, 30*time.Millisecond)
+	store, id := leasedRoom(t, leaseFar)
 	store.TouchPeerContact(id)
-	time.Sleep(60 * time.Millisecond)
+	ageContact(t, store, id, 2*leaseFar)
 	if _, _, err := store.AddMember(id, "node-c", nil); !errors.Is(err, ErrMainLeaseLapsed) {
 		t.Fatalf("fixture: expected a lapsed lease, got %v", err)
 	}
