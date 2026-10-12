@@ -123,7 +123,7 @@ test('피어 회수 — 이 노드 → 피어 두 끝을 싣는다(카드 동작
 test('허가 · 선언 — Master · Daemon 이 받는 평평한 본문. 선언의 계열 · 이름은 고칠 수 없고, 퇴역한 이름은 reuse_name 으로 다시', async () => {
   const { f, source } = live();
   await source.crud(LOCAL, 'grant', 'create', { who: 'user_2', res: 'svi.n.process.m', ops: 'read · subscribe', ttl: '2시간' });
-  assert.deepEqual(f.calls[0].body, { subject_id: 'user_2', resource_id: 'svi.n.process.m', operations: ['read', 'subscribe'], ttl_seconds: 7200 });
+  assert.deepEqual(f.calls[0].body, { subject_type: 'user', subject_id: 'user_2', resource_id: 'svi.n.process.m', operations: ['read', 'subscribe'], ttl_seconds: 7200 });
   await source.crud(LOCAL, 'decl', 'create', { name: 'probe', fam: 'process', dir: 'source', what: '/usr/bin/probe --stdout -v' });
   assert.deepEqual(f.calls[1].body, { family: 'process', name: 'probe', direction: 'source', command: '/usr/bin/probe', args: ['--stdout', '-v'] });
   const old = { id: 'process/probe', fam: 'process', name: 'probe', dir: 'source', state: 'retired' };
@@ -134,6 +134,16 @@ test('허가 · 선언 — Master · Daemon 이 받는 평평한 본문. 선언�
   assert.equal((await source.crud(LOCAL, 'decl', 'update', { name: 'other', fam: 'process', dir: 'source', what: 'x' }, old)).reason, 'decl-key');
   const r = await source.crud(LOCAL, 'decl', 'del', null, old);
   assert.deepEqual([f.calls[4].body, r.keep, r.verb], [{ family: 'process', name: 'probe' }, true, '철회']);
+});
+
+test('허가 만들기 — 받는 이의 종류를 보낸다(노드 ID · node:<id> 는 node, 그 밖은 user). 안 보내면 Master 가 user 로 읽어 위임 입구가 노드를 거절한다', async () => {
+  const { f, source } = live();
+  const sent = [];
+  for (const who of ['node_b', 'node:node_b', ' node: node_b ', 'user_2', 'guest']) {
+    await source.crud(LOCAL, 'grant', 'create', { who, res: 'r1', ops: 'read', ttl: '1시간' });
+    sent.push([f.calls[f.calls.length - 1].body.subject_type, f.calls[f.calls.length - 1].body.subject_id]);
+  }
+  assert.deepEqual(sent, [['node', 'node_b'], ['node', 'node_b'], ['node', 'node_b'], ['user', 'user_2'], ['user', 'guest']]);
 });
 
 test('Master 호출 — 읽기 · 지우기만 node_id 를 query 로 싣는다(본문이 있는 POST 는 모르는 키를 거절한다)', async () => {

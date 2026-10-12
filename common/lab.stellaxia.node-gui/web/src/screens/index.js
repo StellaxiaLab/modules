@@ -17,6 +17,15 @@ export default class Component extends DCLogic {
     };
   }
   // 자동 로그인 기억 (예시 — 실제로는 비밀번호를 화면이 저장하지 않고 Gateway가 자격 핸들을 보관한다)
+  /**
+   * 맵 준비 판정(순수) — 'ready'(맵을 연다) · 'wait'(100ms 뒤 다시 본다) · 'giveup'(노드 화면이 아니라 더 보지 않는다 → 구름 뒤 '노드 화면으로' 버튼)
+   * ok    읽힌 것이 노드 화면인가  live  노드 화면이 이 노드의 값에 붙었나(liveHub)  need  값을 기다려야 하는 판인가(Terra 안 · 토큰 있음)
+   * waited  load 뒤 ms. 최소 250ms, 값을 기다리는 판은 값이 오면 바로 · 안 오면 3500ms 에 연다. 노드 화면이 아니면 2000ms 까지만 본다
+   */
+  static decideReady({ ok, live, need, waited }) {
+    if (ok && waited >= 250 && (!need || live || waited >= 3500)) return 'ready';
+    return ok || waited < 2000 ? 'wait' : 'giveup';
+  }
   readAuto() { try { const v = window.localStorage.getItem('terra.gui.autoLogin'); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
   writeAuto(v) { try { if (v) window.localStorage.setItem('terra.gui.autoLogin', JSON.stringify(v)); else window.localStorage.removeItem('terra.gui.autoLogin'); } catch (e) { /* 저장 못 해도 화면은 돈다 */ } }
   componentDidMount() {
@@ -32,14 +41,15 @@ export default class Component extends DCLogic {
         // 연결을 기다려야 하는 판(Terra 안 · 토큰 있음)인데 아직이면 3.5초까지, 연결이 필요 없는 판은 0.25초 뒤. 읽힌 것이 노드 화면이 아니면(없는 주소) 2초까지 다시 본다.
         fr.addEventListener('load', () => {
           const t0 = performance.now();
-          const need = !!(this.__sess && this.__sess.role === 'frame' && this.__sess.token);
           const check = () => {
             if (this._dead) return;
+            // 토큰은 load 뒤에 와도 된다 — 한 번 굳히지 않고 볼 때마다 다시 읽는다
+            const need = !!(this.__sess && this.__sess.role === 'frame' && this.__sess.token);
             let ok = true, live = false;
             try { ok = !!(fr.contentDocument && fr.contentDocument.querySelector('[data-node-root]')); live = !!(fr.contentWindow && fr.contentWindow.__terraLive && fr.contentWindow.__terraLive.value); } catch (e) { ok = true; live = true; }
-            const waited = performance.now() - t0;
-            if (ok && waited >= 250 && (!need || live || waited >= 3500)) { this._mapReady = true; if (this._fly) this._fly.ready = true; return; }
-            if (waited < (ok ? 6000 : 2000)) setTimeout(check, 100);
+            const d = Component.decideReady({ ok, live, need, waited: performance.now() - t0 });
+            if (d === 'ready') { this._mapReady = true; if (this._fly) this._fly.ready = true; return; }
+            if (d === 'wait') setTimeout(check, 100);
           };
           check();
         });

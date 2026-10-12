@@ -41,6 +41,8 @@ const left = (iso) => { const t = Date.parse(iso || ''); if (isNaN(t)) return ''
 /** 허가가 살아 있나 — 기한이 없으면 지울 때까지 산다 */
 const aliveGrant = (g) => !g.expires_at || Date.parse(g.expires_at) > Date.now();
 /** 허가 받는 이 — 사용자는 id 만, 그 밖(node · app)은 'node:<id>' */
+/** Daemon 작업 종류 → 카드 제목. 목록에는 명령이 없어 종류만 보인다 — 알아볼 수 있는 것만 우리말로 두고 나머지는 종류 그대로 */
+const TASK_TYPE_LABEL = { 'process.execute.request': '명령 실행', 'process.cancel.request': '작업 취소' };
 const subjectOf = (g) => { const sj = g.subject || {}; return sj.id ? (sj.type && sj.type !== 'user' ? sj.type + ':' : '') + sj.id : g.subject_id || '?'; };
 /** node_id → 화면의 노드 이름 (모르면 id 그대로) */
 const nodeName = (ctx, id) => (ctx.nameOf && ctx.nameOf(id)) || id || '';
@@ -109,7 +111,7 @@ export const ADAPT = {
     state: jobState(j.status || j.state), code: j.result && j.result.exit_code, out: (j.status || j.state) === 'canceled' ? 'canceled' : j.result && (j.result.stdout || '').slice(-200) })),
   /** 이 노드의 Daemon 작업(terra.daemon.tasks.get) — 목록에는 명령 · 출력이 없다(출력은 output.get — task-output.js). 종류(type) · 상태 · 끝 코드 */
   // origin(local · master) — 다시 실행은 이 노드에서 시작한 작업만 Daemon 이 받는다(Master 가 보낸 것은 Master 로). result · rerun_of — Terra PF-7
-  jobLocal: (d) => arr(d, 'tasks').map((t) => ({ id: t.id, cmd: t.type || t.kind || '작업', state: jobState(t.state), code: t.result && t.result.exit_code != null ? t.result.exit_code : null,
+  jobLocal: (d) => arr(d, 'tasks').map((t) => ({ id: t.id, cmd: TASK_TYPE_LABEL[t.type] || t.type || t.kind || '작업', state: jobState(t.state), code: t.result && t.result.exit_code != null ? t.result.exit_code : null,
     out: t.state === 'canceled' || t.state === 'cancelled' ? 'canceled' : '', t: t.started_at && !t.finished_at ? (Date.now() - Date.parse(t.started_at)) / 1000 : 0,
     origin: (t.origin && t.origin.kind) || undefined, rerunOf: t.rerun_of || undefined })),
   mod: (d) => arr(d, 'modules').map((m) => {

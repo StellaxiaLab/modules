@@ -233,11 +233,12 @@ export class TerraClient {
    * @param {'GET'|'PUT'|'POST'|'DELETE'} method @param {string} path '/api/v1/…' @param {any} [body] JSON 으로 싣는다
    * @returns {Promise<Result>}
    */
-  async request(method, path, body) {
+  async request(method, path, body, opts = {}) {
     const headers = { Accept: 'application/json' };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     let res;
-    try { res = await this.fetch(`${this.base}${path}`, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined }); }
+    // keepalive — 페이지를 닫는 중에도 요청이 끝까지 간다(본문 64KB 한도 · 그보다 크면 브라우저가 거절해 unreachable)
+    try { res = await this.fetch(`${this.base}${path}`, Object.assign({ method, headers, body: body !== undefined ? JSON.stringify(body) : undefined }, opts.keepalive ? { keepalive: true } : {})); }
     catch (e) { return { kind: 'unreachable', reason: String(e) }; }
     return toResult(res);
   }

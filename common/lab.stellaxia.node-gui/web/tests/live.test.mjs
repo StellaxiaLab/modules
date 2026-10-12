@@ -122,7 +122,8 @@ test('상태는 화면의 낱말로 옮긴다 — 표에 없는 값이 오면 �
   assert.equal(mods[0].state, 'stopped');
   assert.match(mods[0].note, /Scene 모듈/);
   const jobs = ADAPT.jobLocal({ tasks: [{ id: 'task-1', type: 'process.execute.request', state: 'succeeded' }] });
-  assert.deepEqual([jobs[0].id, jobs[0].cmd, jobs[0].state], ['task-1', 'process.execute.request', 'success']);
+  assert.deepEqual([jobs[0].id, jobs[0].cmd, jobs[0].state], ['task-1', '명령 실행', 'success']);   // 목록에는 명령이 없다 — 종류를 알아볼 말로
+  assert.equal(ADAPT.jobLocal({ tasks: [{ id: 't', type: 'some.other.kind', state: 'running' }] })[0].cmd, 'some.other.kind', '모르는 종류는 그대로');
 });
 
 test('진짜 응답 필드 — 터널 id · status, 피어 handshake 초, 전송 transfer_id', () => {

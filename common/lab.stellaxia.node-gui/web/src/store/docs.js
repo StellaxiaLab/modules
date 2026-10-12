@@ -45,10 +45,10 @@ export class DocStore {
     this.timers[key] = setTimeout(() => { delete this.pending[key]; void this.write(key, get()); }, wait);
   }
 
-  async write(key, data) {
+  async write(key, data, opts = {}) {
     if (this.state === 'off') return false;
     const value = { version: 1, savedAt: Date.now(), data };
-    const put = (base) => this.c.request('PUT', this.path(key), Object.assign({ value }, base != null ? { base_revision: base } : {}));
+    const put = (base) => this.c.request('PUT', this.path(key), Object.assign({ value }, base != null ? { base_revision: base } : {}), opts);
     let r = await put(this.rev[key]);
     if (r.status === 409) {   // 다른 창 · 기기가 먼저 썼다 — 한 번 알리고 지금 것으로 덮는다
       if (!this.warned) { this.warned = true; this.onNote('다른 창 · 기기에서 ' + key + '이(가) 바뀌었다 — 이 화면의 것으로 덮는다(새로 고치면 그쪽 것을 받는다)', '#a65f00'); }
@@ -60,8 +60,32 @@ export class DocStore {
     return false;
   }
 
+  /** 모아 둔 쓰기를 지금 보낸다(keepalive — 닫히는 페이지에서도 끝까지 간다). 3초 안에 닫으면 서버 문서가 빠지던 것을 막는다 */
+  flush() {
+    const keys = Object.keys(this.pending);
+    for (const key of keys) {
+      clearTimeout(this.timers[key]);
+      const get = this.pending[key];
+      delete this.pending[key]; delete this.timers[key];
+      void this.write(key, get(), { keepalive: true });
+    }
+    return keys.length;
+  }
+
+  /** 페이지가 닫힐 때(pagehide) 모아 둔 쓰기를 비운다. 맵 배치 저장(bindLayout)의 pagehide 뒤에 걸어야 그 저장이 먼저 모인다 */
+  watchHide(win = globalThis.window) {
+    if (!win || !win.addEventListener || this._hide) return;
+    this._hide = () => { this.flush(); };
+    this._win = win;
+    win.addEventListener('pagehide', this._hide);
+  }
+
   /** 끊기 — 모아 둔 쓰기를 버린다(로그아웃 · 토큰을 잃었다. 브라우저 저장본은 남아 다음 로그인에 다시 올린다) */
-  stop() { Object.values(this.timers).forEach(clearTimeout); this.timers = {}; this.pending = {}; }
+  stop() {
+    Object.values(this.timers).forEach(clearTimeout); this.timers = {}; this.pending = {};
+    if (this._hide && this._win) this._win.removeEventListener('pagehide', this._hide);
+    this._hide = null; this._win = null;
+  }
 }
 
 /** 브라우저 저장본과 서버 문서 가운데 새 것 — 서버 것이 새로우면 그 data, 아니면 null(브라우저 것을 쓴다) */
