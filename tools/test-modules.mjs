@@ -1,6 +1,6 @@
 // Go 소스를 가진 모듈의 시험을 돈다.
 //
-//   node tools/test-modules.mjs [--terra ../terra] [--module io.terra.file]
+//   node tools/test-modules.mjs [--terra ../terra] [--module io.terra.file] [--require-race]
 //
 // **왜 이 파일이 있나 (분리 검토 G-14)** — 이주 전에는 코어의 CI 가 모듈의 Go
 // 시험을 돌고 있었다. Terra 의 `ci.yml` 은 `git ls-files '*go.mod'` 로 저장소의
@@ -18,9 +18,23 @@
 // 패키지에만 `-race`. 코어는 `go vet` 을 CI 에서 돌지 않으므로 여기서도 돌지
 // 않는다: 이주는 옮기는 일이고, 없던 검사를 더하는 것은 별 건이다.
 
+import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 
 import { goModules, goWorkEnv, resolveOptionalTerraRoot, run } from './go-workspace.mjs';
+import { decideRace } from './race-policy.mjs';
+
+/**
+ * 이 호스트에서 cgo 가 켜져 있는지 — `go test -race` 의 전제다. go 가 스스로 답하게
+ * 한다(`go env CGO_ENABLED`): 환경변수로 껐든 C 컴파일러가 없어 자동으로 꺼졌든 같은
+ * 값으로 나온다. go 를 못 부르면 "켜져 있다" 로 둔다 — 그 경우 아래 go test 가 자기
+ * 오류로 죽고, 그 오류가 가려지지 않는 쪽이 낫다.
+ */
+function cgoIsEnabled(env) {
+  const result = spawnSync('go', ['env', 'CGO_ENABLED'], { env, encoding: 'utf8' });
+  if (result.status !== 0) return true;
+  return result.stdout.trim() !== '0';
+}
 
 /**
  * `-race` 로 한 번 더 도는 패키지들. Terra 의 `ci.yml` 이 들고 있던 목록에서
@@ -68,18 +82,20 @@ const NEEDS_TERRA = {
 
 function parseArgs(argv) {
   let terra = process.env.TERRA_CHECKOUT ?? '';
+  let requireRace = process.env.TERRA_REQUIRE_RACE === '1';
   const only = [];
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--terra') terra = argv[++index] ?? '';
     else if (argument === '--module') only.push(argv[++index] ?? '');
+    else if (argument === '--require-race') requireRace = true;
     else throw new Error(`알 수 없는 인자: ${argument}`);
   }
-  return { terraRoot: resolveOptionalTerraRoot(terra), only: only.filter(Boolean) };
+  return { terraRoot: resolveOptionalTerraRoot(terra), only: only.filter(Boolean), requireRace };
 }
 
 async function main() {
-  const { terraRoot, only } = parseArgs(process.argv.slice(2));
+  const { terraRoot, only, requireRace } = parseArgs(process.argv.slice(2));
   const all = goModules();
   const modules = only.length > 0 ? all.filter((m) => only.includes(m.id)) : all;
 
@@ -149,7 +165,17 @@ async function main() {
   }
 
   let raced = 0;
-  if (process.platform === 'linux') {
+  const race = decideRace({
+    platform: process.platform,
+    cgoEnabled: process.platform === 'linux' ? cgoIsEnabled(env) : false,
+    requireRace
+  });
+  if (race.fail) {
+    console.error(`::error::${race.message}`);
+    failed += 1;
+  } else if (!race.run) {
+    console.log(race.level === 'notice' ? `::notice::${race.message}` : race.message);
+  } else {
     for (const entry of RACE_PACKAGES) {
       const module = modules.find((m) => m.id === entry.id);
       if (!module) continue; // --module 로 좁힌 실행
@@ -167,8 +193,6 @@ async function main() {
         raced += 1;
       }
     }
-  } else {
-    console.log(`-race 는 리눅스에서만 돈다 — 이 호스트는 ${process.platform} 다`);
   }
 
   console.log(`시험한 모듈 ${ran}개 · -race ${raced}개 · 실패 ${failed}개`);

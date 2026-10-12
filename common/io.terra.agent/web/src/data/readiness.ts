@@ -49,6 +49,8 @@ export interface Readiness {
   viewer: string | null;
   expiresAt: string | null;
   version: string | null;
+  /** status.get 의 node_name(다듬은 값). 없거나 비면 null — 헤더는 그때 자리를 만들지 않는다. */
+  nodeName: string | null;
 }
 
 const PERMISSION_CODES: ReadonlySet<string> = new Set(['MODULE_PERMISSION_DENIED', 'BRIDGE_NO_PERMISSIONS']);
@@ -139,5 +141,6 @@ function finish(steps: ReadinessStep[], status: CallResult<ModuleStatus> | undef
     viewer: creds?.principal ?? null,
     expiresAt: creds?.expires_at ?? null,
     version: status?.ok ? status.data.version : null,
+    nodeName: status?.ok && typeof status.data.node_name === 'string' ? status.data.node_name.trim() || null : null,
   };
 }
