@@ -27,7 +27,19 @@ G1 화면: 1 준비 상태(`views/readiness.ts`) · 2 세션 목록·새 세션(
 - 앱 자산 CSP가 `script-src 'self'`다 — 인라인 스크립트·이벤트 속성 없음. 동적 텍스트는 텍스트 노드로만 넣는다(`innerHTML` 계열 금지 — `tests/no-html-insertion.test.ts`가 소스를 훑는다).
 - 토큰은 메모리에만. 브라우저 저장소를 쓰지 않는다.
 - 셸 밖에서 열면 "이 앱은 Terra 셸 안에서 여세요." 안내만 보인다(결정 Q-1).
-- 글꼴 파일은 싣지 않는다(결정 D-11 대기) — 시스템 폰트 스택으로 떨어진다.
+- 글꼴은 앱에 싣는다(결정 D-11) — 아래 "글꼴" 절. 외부 URL 없이 `font-src 'self'` 에서 로드되고, 글꼴이 없어도 스택이 시스템 글꼴로 떨어진다.
+
+## 글꼴 (D-11)
+
+| 글꼴 | 버전 · 출처 | 라이선스 | 싣는 것 |
+| --- | --- | --- | --- |
+| Pretendard Variable | 1.3.9 · npm `pretendard` 의 공식 dynamic subset | SIL OFL 1.1 | 가변(굵기 45~920) woff2 92조각 — 앱은 400·500·600·700 을 쓴다. `unicode-range` 로 화면에 나온 글자의 조각만 내려받는다 |
+| Inter | 5.3.0 · npm `@fontsource-variable/inter` | SIL OFL 1.1 | 가변(100~900) woff2 latin · latin-ext 두 조각 |
+
+- 선언은 `src/styles/fonts.css`(`font-display: swap`, `url(/fonts/…)` — 빌드가 `../fonts/…` 상대 경로로 바꾼다). 파일은 `public/fonts/` 에 있고 빌드가 `../ui/fonts/` 로 복사한다. 갱신은 npm 패키지를 새로 받아 `public/fonts/` 의 woff2 와 `fonts.css` 의 선언을 같이 바꾸고 `tests/fonts.test.ts` 로 맞춘다.
+- **OFL 고지**: `public/fonts/pretendard/OFL-pretendard.txt` · `public/fonts/inter/OFL-inter.txt`(저작권 표시와 라이선스 전문). 빌드와 함께 `ui/fonts/…` 로 나가므로 모듈 패키지가 글꼴 파일 옆에 고지를 같이 싣는다(OFL 의 재배포 조건). 글꼴 이름(Pretendard·Inter)은 바꾸지 않았고 글꼴 파일을 수정하지 않았다. 앱 화면 안의 고지는 두지 않았다.
+- 스택은 `tokens.css` 의 `--font`(`Pretendard Variable` → `Pretendard` → `Inter` → 시스템). Pretendard 가 라틴도 담아서 Inter 는 Pretendard 에 없는 글리프의 폴백이다.
+- 점검: `tests/fonts.test.ts`(선언·파일·고지, 빌드 뒤에는 `../ui` 의 외부 URL·`url()` 대상 실재까지) · `e2e/tests/fonts.e2e.mjs`(`document.fonts` 로드 상태·로드한 조각 수·바이트).
 
 ## WP-5(승인 카드)를 위한 확장 지점
 
