@@ -7,7 +7,7 @@ Terra Agent 앱(`web/`)을 **실제 브라우저에서** 시험하려고 세운 
 - **앱 정적 서빙** — 앱 자산 CSP(`script-src 'self'` …)를 **같은 헤더**로 건다. 앱이 CSP 를 어기면 e2e 의 콘솔 오류로 드러난다.
 - **서버 자체의 단위 시험** — 가짜 서버가 계약·소스와 갈라지지 않았는지 대조한다. 가짜가 거짓말하면 앱 시험이 거짓 초록이 되므로 이 시험이 먼저다.
 
-앱 화면(WP-4)이 아직 없던 때 만들었다. 그래서 `fixtures/probe-app/`(브리지로 `status.get`·`sessions.list` 를 부르는 20줄 앱)으로 서버·브리지·CSP·시나리오가 실제로 맞물려 도는 것을 증명한다. **실제 앱의 점검 35개 이식은 별도 작업**이고, 어느 시나리오로 돌릴지는 [TODO-checks.md](TODO-checks.md) 에 매핑해 두었다.
+앱 화면(WP-4)이 아직 없던 때 만들었다. 그래서 `fixtures/probe-app/`(브리지로 `status.get`·`sessions.list` 를 부르는 20줄 앱)으로 서버·브리지·CSP·시나리오가 실제로 맞물려 도는 것을 증명한다. 실제 앱(`--app ui`)의 점검 35개는 승인 카드(WP-5)가 필요한 것을 뺀 나머지를 이식했다 — 현황과 남은 것은 [TODO-checks.md](TODO-checks.md) 에 있다.
 
 ## 실행
 
@@ -17,7 +17,7 @@ npm ci
 
 npm run e2e:server        # 서버 단위 시험 (node --test, 브라우저 불필요, 의존 없음) — CI 에서도 돌 수 있다
 npm run e2e               # 브라우저 e2e: 점검용 앱(probe)으로 스모크
-npm run build && npm run e2e -- --app ui      # 빌드한 실제 앱(../ui)으로
+npm run build && npm run e2e -- --app ui      # 빌드한 실제 앱(../ui)으로 — 앱 점검 39개
 npm run e2e -- --grep 승인                     # 이름에 '승인' 이 든 점검만
 npm run e2e -- --list                          # 점검 목록
 ```
@@ -58,7 +58,8 @@ node e2e/serve.mjs --root ../ui --shell-origin http://127.0.0.1:4021   # 앱 정
 | `shell-host.html` · `shell-host.mjs` · `shell-bridge.mjs` | 셸 호스트 페이지. 브리지 규칙 본체는 `shell-bridge.mjs`(웹앱 브리지 소스의 옮김) |
 | `stack.mjs` | 셸 서버 + Gateway 서버(앱 서빙·가짜 모듈)를 **다른 origin** 으로 세운다 |
 | `run.mjs` · `lib/harness.mjs` · `lib/browser.mjs` | 러너 · 하네스(`check`/`until`/`openShell`) · Chromium·페이지 감시 |
-| `tests/*.e2e.mjs` | 브라우저 점검 — `smoke`(서버·브리지·CSP), `scenarios`(시나리오 구동), `load`(실제 앱 불러오기) |
+| `lib/app.mjs` | 실제 앱 점검의 공용 도구 — `agentApi`(세션을 서버 쪽에서 심고 읽기), `openApp`(앱을 셸 안에서 열고 화면 읽기), `requestsOf`·`mark`(서버가 받은 요청 세기) |
+| `tests/*.e2e.mjs` | 브라우저 점검 — `smoke`(서버·브리지·CSP)·`scenarios`(시나리오 구동)는 probe 앱, 나머지는 실제 앱(`--app ui`): `load`(불러오기·세션 셋) · `input`(입력) · `session`(취소·자율성·시간 초과·인박스·종료 세션·I20·차례 줄) · `scroll` · `a11y`(접근성·초점·대비·폴백) · `readiness`(준비 상태·응답 유실) |
 | `server/*.test.mjs` | 서버 단위 시험 48개 — `contract`(계약 대조) · `strict`(본문·principal·소유자) · `state`(상태기계·시나리오) · `gateway`(권한·봉투·주입·CSP·브리지 규칙) |
 | `fixtures/probe-app/` | 점검용 최소 앱(실제 앱이 아니다) |
 | `TODO-checks.md` | §5.3 점검 묶음 → 시나리오 매핑 |
@@ -218,7 +219,6 @@ export default {
 
 ## 하지 않은 것
 
-- 계획서 §5.3 의 앱 점검 35개 이식 — [TODO-checks.md](TODO-checks.md) (WP-4 병합 뒤).
-- 접근성·초점·대비 측정(CDP `Emulation.setEmulatedMedia`) — 앱 화면이 있어야 한다.
-- 전송 어댑터(`src/transport/errors.ts`)가 이 서버의 봉투를 읽는지 — 어댑터 시험은 Vitest 의 몫이고, 앱 e2e 가 서면 화면에서 확인된다.
+- 승인 카드(WP-5, 화면 4·5)가 있어야 하는 점검 — [TODO-checks.md](TODO-checks.md) "WP-5 대기". 무인 + 외부 MCP·DC-25 도 새 세션 화면에 그 조작이 서야 한다("화면 없음").
+- 전송 어댑터(`src/transport/errors.ts`)가 이 서버의 봉투를 읽는지 — 어댑터 시험은 Vitest 의 몫이다. 앱 e2e 는 모듈 봉투(`MODEL_UNAVAILABLE` 등은 기록의 줄로 온다), `403 MODULE_PERMISSION_DENIED`(권한 없음) 를 화면에서 확인하지만, 오류 코드 사전 전체(15 + 7)와 브리지 오류의 화면 모양은 아직 e2e 로 돌지 않았다.
 - 실 모듈·실 Gateway 스모크(§5.3 넷째 층) — 별도 잡.
