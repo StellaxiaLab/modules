@@ -11,5 +11,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // ?raw 로 읽는 .css 가 빈 문자열이 되지 않게 한다(tests/fonts.test.ts 가 fonts.css 와 ../ui 의 css 를 본다).
+    css: { include: [/\.css(\?raw)?$/] },
   },
 });
