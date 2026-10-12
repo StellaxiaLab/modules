@@ -31,6 +31,7 @@ export interface ReadinessPresentation {
   /** "만료 시각 전 — 폐기 여부는 확인하지 못함". */
   caveat: string | null;
   version: string | null;
+  nodeName: string | null;
 }
 
 const LABELS: Record<StepId, string> = {
@@ -100,7 +101,7 @@ function present(step: ReadinessStep, r: Readiness): StepPresentation {
 
 export function presentReadiness(r: Readiness | null): ReadinessPresentation {
   if (!r) {
-    return { tone: 'wait', chip: '확인 중', headline: '준비 상태를 확인하는 중입니다.', steps: [], delegateProposal: false, canOpenSession: false, caveat: null, version: null };
+    return { tone: 'wait', chip: '확인 중', headline: '준비 상태를 확인하는 중입니다.', steps: [], delegateProposal: false, canOpenSession: false, caveat: null, version: null, nodeName: null };
   }
   const steps = r.steps.map((s) => present(s, r));
   const pending = r.steps.some((s) => s.status === 'pending');
@@ -122,5 +123,5 @@ export function presentReadiness(r: Readiness | null): ReadinessPresentation {
     const first = steps.find((s) => s.status === 'fail');
     headline = first ? `${first.label}: ${first.title}` : '준비가 끝나지 않았습니다.';
   }
-  return { tone, chip, headline, steps, delegateProposal, canOpenSession: r.ready, caveat: r.caveat, version: r.version };
+  return { tone, chip, headline, steps, delegateProposal, canOpenSession: r.ready, caveat: r.caveat, version: r.version, nodeName: r.nodeName };
 }

@@ -104,6 +104,7 @@ export function createHandlers(engine) {
       return ok({
         status: state.statusOverride ?? 'ok', version: MODULE_VERSION, sessions: state.sessions.size,
         models_registered: state.providers.size, delegate_door: state.door,
+        ...(state.nodeName ? { node_name: state.nodeName } : {}),
       });
     },
 

@@ -339,6 +339,8 @@ export interface ModuleStatus {
   sessions?: number;
   models_registered?: number;
   delegate_door?: boolean;
+  /** 이 노드의 이름(0.3.0~). 호스트가 알려 준 때만 있다 — 이전 모듈·코어 면 없는 호스트에서는 키가 없다. */
+  node_name?: string;
 }
 /** credentials.get — 값은 없다. `registered:false` 면 나머지 칸이 없다. `pre_approved` 는 비면 키가 없다. */
 export interface CredentialFacts {

@@ -144,7 +144,7 @@ flowchart LR
 | GAP-10 | **움직이는 시연이 없는 화면** — 준비 상태(고정 "준비됨"), 위임 안내, 설정, 자격 거두기 3단계(DC-20). 정적 보드 ③·④·⑧이 정본이다 | `[V]` Live 440 | 구현 | G1 · G3 |
 | GAP-11 | 승인 카드의 **시간 초과·무응답 거부·취소**는 entry가 아니다 — 파생 규칙이 필요하다(§3.2) | `[V]` `loop.go:404-415·536-580` | 구현 | G2 |
 | GAP-12 | **카운트다운이 270초 고정**이다. R-6(`expires_ms`) 전에는 근사뿐이다 — 마지막 `user` 줄 시각 + `max_seconds`와 `approval` 줄 시각 + 30분 중 작은 값. "틀릴 수 있음"을 표시한다 | `[V]` Live 664 · `loop.go:28` — M-3 병합(#74): `expires_ms` | 구현 | G2 |
-| GAP-13 | 헤더의 **대상 노드 이름**(`tree-home`)의 출처가 정해지지 않았다. `status.get`에 노드 이름이 없고 브리지는 `/api/v1`을 못 부른다 | `[V]` `api.go:172` · `webAppBridge.ts` | 결정 | G1 |
+| GAP-13 | 헤더의 **대상 노드 이름**(`tree-home`)의 출처가 정해지지 않았다. `status.get`에 노드 이름이 없고 브리지는 `/api/v1`을 못 부른다 | `[V]` `api.go:172` · `webAppBridge.ts` | **확정·구현** — `status.get` 에 선택 필드 `node_name`(모듈 0.3.0; 상시 권한이 둘로 늘었다: 위임 관문 + 읽기 전용 노드 신원 조회) | G1 |
 | GAP-14 | 우측의 **"모듈 상태 io.terra.chat Stopped" 카드**는 출처 없는 시연 전용 예시다 | `[V]` Live 549 | 구현(생략) | — |
 | GAP-15 | **접근성 규칙이 문서에 없다.** 요구 §6.5에 없고 DC-27은 "구현 전에 정한다"고 했다. Q-2 확정(2026-10-11)으로 요구 §6.5에 규칙을 더했다 → **해소** | 요구 §13.4 DC-27 | 해소 — 요구 §6.5 | G1 |
 
@@ -206,7 +206,7 @@ flowchart LR
 | 시연의 값 | 출처 |
 | --- | --- |
 | 헤더 `io.terra.agent 0.1.0` | `status.get`의 `version` |
-| 헤더 `tree-home` | 미정(GAP-13) |
+| 헤더 `tree-home` | `status.get` 의 `node_name`(GAP-13 확정 — 모듈 0.3.0, 읽기 전용 `terra.node.identity.get`). 없으면 자리 없음 |
 | 승인 카드 "계약이 말하는 것"(위험·확인·부작용·재시도·결과·대상) | `pending_approvals[].contract`(M-2, 모양은 §4.2). `contract`가 없으면(외부 MCP 도구, 또는 M-2 이전 모듈) "계약 사실을 읽지 못했다" + `judgement` 문장 |
 | "모델이 말하는 것" | `pending_approvals[].reason` — 모델의 주장이고 근거가 아니다. `call`·`planned`·`external` entry에도 `reason`·`judgement`가 있다(M-4, 비면 키 없음) |
 | 카운트다운 270초 | `pending_approvals[].expires_ms`(M-3). 없으면 근사(GAP-12) |

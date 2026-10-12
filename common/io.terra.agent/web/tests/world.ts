@@ -20,6 +20,8 @@ export class World {
   /** messages.post 의 답을 덮는다(실패 시험). */
   postReply: FakeReply | null = null;
   version = '0.1.0';
+  /** status.get 의 node_name. undefined 면 키가 없다(이전 모듈·코어 면 없는 호스트). */
+  nodeName: string | undefined = undefined;
   delegateDoor = true;
   modelRegistered = true;
   credentialRegistered = true;
@@ -109,7 +111,10 @@ export class World {
     const approval = /^\/approvals\/([^/]+)$/.exec(path);
     if (call.method === 'POST' && approval) return this.answerApproval(decodeURIComponent(approval[1] ?? ''), call);
     if (call.method === 'GET' && path === '/status') {
-      return this.statusReply ?? reply.ok({ status: 'ok', version: this.version, sessions: this.sessions.size, delegate_door: this.delegateDoor });
+      return this.statusReply ?? reply.ok({
+        status: 'ok', version: this.version, sessions: this.sessions.size, delegate_door: this.delegateDoor,
+        ...(this.nodeName === undefined ? {} : { node_name: this.nodeName }),
+      });
     }
     if (call.method === 'GET' && path === '/models') {
       return (
