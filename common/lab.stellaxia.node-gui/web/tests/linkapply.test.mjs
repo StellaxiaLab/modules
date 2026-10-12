@@ -207,6 +207,62 @@ test('적용 — 이미 바인딩이 있는 쌍은 다시 만들지 않는다 ·
   assert.ok(c0);
 });
 
+/** Master 의 idempotency_key 를 흉내 낸다 — 같은 키는 옛 바인딩을 그대로 돌려준다(닫혔어도). Terra svi/binding_service.go Create */
+function masterBind() {
+  const byKey = new Map(); let n = 0;
+  const api = (i) => {
+    let b = byKey.get(i.idempotency_key);
+    if (!b) { b = { binding_id: 'svib_' + (++n), desired_state: 'active', observed_state: 'requested' }; byKey.set(i.idempotency_key, b); }
+    return { kind: 'accepted', data: Object.assign({}, b) };
+  };
+  api.close = (id) => { for (const b of byKey.values()) if (b.binding_id === id) { b.desired_state = 'closed'; b.observed_state = 'closed'; } };
+  api.keys = () => [...byKey.keys()];
+  return api;
+}
+const closeInIO = (io) => Object.assign({}, io, { pairs: io.pairs.map((p) => Object.assign({}, p, { phase: 'closed' })) });
+
+test('적용 — 닫힌 쌍을 다시 적용하면 Master 가 옛 닫힌 바인딩을 돌려주지 않고 새 바인딩이 선다(MD-50)', async () => {
+  const link = L('a', '1-1', '3-1'), master = masterBind();
+  const first = await apply(fake(std({ [OPS.bindPost]: master })), link, [link]);
+  const id1 = first.io.pairs[0].binding_id;
+  assert.equal(id1, 'svib_1');
+  master.close(id1);
+  const closed = Object.assign({}, link, { io: closeInIO(first.io) });
+  const again = await apply(fake(std({ [OPS.bindPost]: master })), closed, [closed]);
+  const p = again.io.pairs[0];
+  assert.notEqual(p.binding_id, id1, '닫힌 옛 바인딩이 그대로 돌아오면 안 된다');
+  assert.equal(p.binding_id, 'svib_2');
+  assert.equal(p.phase, 'binding');
+  assert.equal(master.keys().length, 2);
+  // 두 번 눌러도(앞 바인딩이 같다) 새 바인딩은 하나다 — 키가 앞 바인딩에서 나오므로 같다
+  const twice = await apply(fake(std({ [OPS.bindPost]: master })), closed, [closed]);
+  assert.equal(twice.io.pairs[0].binding_id, 'svib_2');
+  assert.equal(master.keys().length, 2, '같은 앞 바인딩에서 다시 눌러도 키는 같다');
+  // 또 닫고 다시 적용해도 이어서 새로 선다
+  master.close('svib_2');
+  const third = await apply(fake(std({ [OPS.bindPost]: master })), Object.assign({}, link, { io: closeInIO(again.io) }), [link]);
+  assert.equal(third.io.pairs[0].binding_id, 'svib_3');
+});
+
+test('적용 — 앞 바인딩 id 를 잃었어도(닫힌 것이 돌아오면) 그 id 를 앞으로 삼아 한 번 더 요청한다(MD-50)', async () => {
+  const link = L('a', '1-1', '3-1'), master = masterBind();
+  const first = await apply(fake(std({ [OPS.bindPost]: master })), link, [link]);
+  master.close(first.io.pairs[0].binding_id);
+  const lost = Object.assign({}, link, { io: Object.assign({}, first.io, { pairs: first.io.pairs.map((p) => ({ key: p.key, phase: 'closed' })) }) });   // binding_id 가 없다
+  const c = fake(std({ [OPS.bindPost]: master })), r = await apply(c, lost, [lost]);
+  assert.equal(c.calls.filter((x) => x.op === OPS.bindPost).length, 2, '닫힌 것이 돌아오면 한 번 더');
+  assert.equal(r.io.pairs[0].binding_id, 'svib_2');
+  assert.equal(r.io.pairs[0].phase, 'binding');
+});
+
+test('적용 — 닫힌 바인딩이 계속 돌아오면 세 번에서 멈춘다(끝없이 묻지 않는다)', async () => {
+  const link = L('a', '1-1', '3-1'); let n = 0;
+  const c = fake(std({ [OPS.bindPost]: () => ({ kind: 'accepted', data: { binding_id: 'svib_x' + (++n), desired_state: 'closed' } }) }));
+  const r = await apply(c, link, [link]);
+  assert.equal(c.calls.filter((x) => x.op === OPS.bindPost).length, 3);
+  assert.notEqual(r.io.pairs[0].phase, 'binding', '닫힌 채로 "연결 중"이라고 하지 않는다');
+});
+
 test('적용 — 합류(입력 더하기)는 쌍마다 한 번씩 bind 한다', async () => {
   const c0 = ctx({ rsrc: { '1-1': svi('svires_cam', 'pi'), '3-1': svi('svires_rec', 'hub'), '5-1': svi('svires_mic', 'pi') } });
   const main = L('main', '1-1', '3-1', { path: ['2-1', '2-2'] }), join = L('join', '5-1', '2-2', { path: ['4-1'] }), links = [main, join];
