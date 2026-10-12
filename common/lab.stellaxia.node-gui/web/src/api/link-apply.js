@@ -174,11 +174,21 @@ export async function applyLink(source, link, links, ctx, o0) {
       io = phaseOf(io, key, 'needs-grant', { reason: 'missing_bind_grant: ' + lacks.map((l) => l.resource_id + ' ' + l.operation).join(', ') });
       notes.push(label(p) + ' — 허가가 필요하다 (' + lacks.map((l) => l.operation).join(' · ') + ')'); continue;
     }
-    // 4) bind
-    const body = { source_resource_id: s.resource_id, source_endpoint_id: s.endpoint_id, target_resource_id: t.resource_id, target_endpoint_id: t.endpoint_id,
-      compatibility_policy: io.compatibility_policy || 'exact', qos_profile: io.qos_profile || '', idempotency_key: idempotencyKey(ctx.treeId, key) };
-    const r = await client.invoke(OPS.bindPost, body);
-    if (r.kind === 'ok' || r.kind === 'accepted') {
+    // 4) bind — 멱등 키는 쌍에서 나오므로 같은 키는 닫힌 옛 바인딩도 그대로 돌려준다(Master Create). 다시 만들 때는
+    //    앞 바인딩 id 를 키에 섞어 새 바인딩이 서게 한다(MD-50). 앞 id 를 잃었어도 닫힌 것이 돌아오면 그 id 를 앞으로 삼아 다시 묻는다.
+    let after = cur && cur.binding_id ? cur.binding_id : '', body, r, got;
+    for (let attempt = 0; attempt < BIND_ATTEMPTS; attempt++) {
+      body = { source_resource_id: s.resource_id, source_endpoint_id: s.endpoint_id, target_resource_id: t.resource_id, target_endpoint_id: t.endpoint_id,
+        compatibility_policy: io.compatibility_policy || 'exact', qos_profile: io.qos_profile || '', idempotency_key: idempotencyKey(ctx.treeId, after ? key + '|after:' + after : key) };
+      r = await client.invoke(OPS.bindPost, body);
+      got = (r.kind === 'ok' || r.kind === 'accepted') ? bindingView(r.data) : null;
+      if (got && got.desired_state === 'closed' && got.binding_id && got.binding_id !== after) { after = got.binding_id; continue; }
+      break;
+    }
+    if (got && got.desired_state === 'closed') {
+      io = phaseOf(io, key, 'closed', { binding_id: got.binding_id });
+      notes.push(label(p) + ' — 닫힌 바인딩이 계속 돌아온다');
+    } else if (r.kind === 'ok' || r.kind === 'accepted') {
       const id = r.data && (r.data.binding_id || (r.data.binding && r.data.binding.binding_id));
       io = phaseOf(io, key, 'binding', Object.assign({ idempotency_key: body.idempotency_key }, id ? { binding_id: id } : {}));
       applied++; notes.push(label(p) + ' — 연결 중');
@@ -198,6 +208,11 @@ export async function applyLink(source, link, links, ctx, o0) {
   if (first) io = Object.assign({}, io, { source: first.source, target: first.target });
   return { io: Object.assign({}, io, { checked_at: stamp() }), applied, notes };
 }
+
+/** bind 답의 바인딩 — Master 는 BindingView 를 그대로(또는 `binding` 아래) 돌려준다 */
+const bindingView = (d) => (d && d.binding && typeof d.binding === 'object' ? d.binding : d) || null;
+/** 닫힌 바인딩이 돌아올 때 앞 바인딩을 갈아 끼워 다시 묻는 최대 횟수 */
+const BIND_ATTEMPTS = 3;
 
 const label = (p) => p.source.resource_id + ' → ' + (p.target.resource_id || p.target.node_id);
 
