@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "id": "io.terra.agent",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "kind": "service",
   "name": "Terra Agent",
-  "description": "Terra Agent — 사람의 요청을 받아 이 노드의 Gateway 카탈로그로 계획하고, 계약이 정한 승인 규칙 아래 operation을 부르는 모듈. 상시 권한은 0이다: 매니페스트가 선언하는 코어 operation은 위임 관문 terra.gateway.delegate 하나이고, 관문은 사람이 terra agent grant로 발급해 맡긴 위임 자격 없이는 아무것도 하지 못한다. 모델 provider의 API key는 모듈 데이터 영역의 0600 파일에만 있다.",
+  "description": "Terra Agent — 사람의 요청을 받아 이 노드의 Gateway 카탈로그로 계획하고, 계약이 정한 승인 규칙 아래 operation을 부르는 모듈. 상시 권한은 둘뿐이다: 매니페스트가 선언하는 코어 operation은 위임 관문 terra.gateway.delegate와 읽기 전용 노드 신원 조회 terra.node.identity.get(status.get에 이 노드의 이름을 싣는 데만 쓴다)이고, 관문은 사람이 terra agent grant로 발급해 맡긴 위임 자격 없이는 아무것도 하지 못한다. 모델 provider의 API key는 모듈 데이터 영역의 0600 파일에만 있다.",
   "compatibility": {
     "products": [
       "leaf",
@@ -26,7 +26,7 @@
     "capabilities": [
       {
         "id": "io.terra.agent",
-        "version": "0.2.0"
+        "version": "0.3.0"
       }
     ]
   },
@@ -38,6 +38,9 @@
       {
         "id": "terra.gateway.delegate",
         "versionRange": ">=1.0.0 <2.0.0"
+      },
+      {
+        "id": "terra.node.identity.get"
       }
     ],
     "storage": [

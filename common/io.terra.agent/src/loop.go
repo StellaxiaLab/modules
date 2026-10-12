@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	agentcore "github.com/StellaxiaLab/terra-agent"
@@ -46,6 +47,10 @@ type engine struct {
 	transport func(owner string) agentcore.Transport
 	// approvalWait bounds one question; tests shorten it.
 	approvalWait time.Duration
+	// nameMu guards nodeNameKnown, the node's name once the host has told us
+	// (identity.go).
+	nameMu        sync.Mutex
+	nodeNameKnown string
 }
 
 func newEngine(sessions *sessionStore, credentials *credentialStore, providers *providerStore, mcp *mcpRegistry, core *modulesdk.CoreClient, now func() time.Time) *engine {
