@@ -41,13 +41,15 @@ export interface StoreDeps {
 }
 
 export type RefreshResult = { ok: true } | { ok: false; failure: CallFailure };
-export type AnswerResult = { ok: true; answered: ApprovalAnswered } | { ok: false; reason: 'not-actionable' | 'failed'; quiet: boolean; failure?: CallFailure };
+export type AnswerResult = { ok: true; answered: ApprovalAnswered } | { ok: false; reason: 'not-actionable' | 'in-flight' | 'failed'; quiet: boolean; failure?: CallFailure };
 export type CancelResult = { ok: true; cancelled: SessionCancelled } | { ok: false; reason: 'unknown-session' | 'terminal' | 'failed'; failure?: CallFailure };
 
 export function createDataStore(deps: StoreDeps) {
   const { client, now } = deps;
   let state: DataState = { viewer: null, owned: [], sessions: {}, listFailure: null };
   const listeners = new Set<() => void>();
+  /** approvals.post 를 보내고 응답을 기다리는 request_id — 같은 승인에 두 번째 요청이 나가지 않게 한다(저장소 층의 이중 가드). */
+  const answering = new Set<string>();
 
   function set(next: DataState): void {
     state = next;
@@ -141,7 +143,14 @@ export function createDataStore(deps: StoreDeps) {
       const view = this.viewOf(sessionId);
       const card = view?.cards.find((c) => c.requestId === requestId);
       if (!card?.actionable) return { ok: false, reason: 'not-actionable', quiet: true };
-      const response = await client.approvalsPost(requestId, decision);
+      if (answering.has(requestId)) return { ok: false, reason: 'in-flight', quiet: true };
+      answering.add(requestId);
+      let response: Awaited<ReturnType<typeof client.approvalsPost>>;
+      try {
+        response = await client.approvalsPost(requestId, decision);
+      } finally {
+        answering.delete(requestId);
+      }
       if (response.ok) {
         await this.refreshSession(sessionId);
         return { ok: true, answered: response.data };

@@ -4,6 +4,7 @@
    3) prefers-reduced-transparency · prefers-contrast:more · forced-colors 는 단색으로 떨어진다. */
 a:focus-visible,
 button:focus-visible,
+.appr:focus-visible,
 [role='tab']:focus-visible,
 .msgs:focus-visible,
 summary:focus-visible,
@@ -20,11 +21,13 @@ input:focus-visible {
   .app, .c1, .c3, .c2, .wh { background: #13161b; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .opt.on { background: #3a3470; }
   .ai .tx.err { background: #3a1416; }
+  .appr { background: #2a2312; }
+  .appr-foot, .appr-notice, .claim-text { background: #0f1216; }
   .inp .box:focus-within { background-color: #1b1f26; }
   body { background-image: none; }
 }
 @media (forced-colors: active) {
-  .chip, .btn, .card, .step, .ev, .opt, .notice, .ban, .dlg { border: 1px solid CanvasText; }
+  .chip, .btn, .card, .step, .ev, .opt, .notice, .ban, .dlg, .appr, .claim-text { border: 1px solid CanvasText; }
   .btn:disabled { border-style: dashed; }
   a:focus-visible, button:focus-visible, [role='tab']:focus-visible, .msgs:focus-visible, summary:focus-visible, input:focus-visible { outline-color: Highlight; }
   .inp .box:focus-within { box-shadow: none; outline: 2px solid Highlight; outline-offset: -3px; }

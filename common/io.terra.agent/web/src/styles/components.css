@@ -203,3 +203,39 @@ pre.raw { margin: 6px 0 0; padding: 8px 10px; border-radius: 12px; background: v
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* 승인 카드(화면 4·5) — 계약 사실(왼쪽)과 모델의 주장(오른쪽)을 갈라 그린다. 모델 글은 인용 상자일 뿐 컨트롤이 없다(I7). */
+.appr { align-self: stretch; border-radius: var(--r-card); background: var(--bg-warn-soft); overflow: hidden; display: flex; flex-direction: column; }
+.appr-head { display: flex; align-items: center; gap: 10px; padding: 11px 16px; flex-wrap: wrap; }
+.appr-title { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.appr-title .op { font-size: 12.5px; font-weight: 600; overflow-wrap: anywhere; }
+.warn-cap { color: var(--tx-warn); }
+.appr-marks { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.appr-clock { height: 24px; font-size: 12px; }
+.appr-clock.tick { background: var(--bg-err); color: var(--tx-err); animation: appr-tick 1s steps(2, jump-none) infinite; }
+@keyframes appr-tick { 50% { opacity: 0.6; } }
+.appr-body { display: grid; grid-template-columns: 1.1fr 1fr; font-size: 12px; }
+.appr-col { padding: 4px 16px 12px; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.appr-col .cap { margin: 0; }
+.appr-col.facts .cap { color: var(--paper); }
+.appr-col.claim .cap { color: var(--muted); }
+.appr-kv { grid-template-columns: 62px 1fr; gap: 5px 8px; margin: 0; }
+.appr-kv dd { margin: 0; }
+.appr-chips, .appr-effects { display: flex; gap: 4px; flex-wrap: wrap; }
+.appr-hint { font-size: 11px; color: var(--muted); margin: 0; }
+.appr-hint b { color: var(--sub); }
+.appr-judge { margin: 0; font-size: 11.5px; color: var(--sub); overflow-wrap: anywhere; }
+.appr-unreadable { margin: 0; color: var(--tx-warn); }
+.claim-text { margin: 0; border-radius: 16px; padding: 9px 12px; font-size: 12px; color: var(--sub); background: rgba(0, 0, 0, 0.62); font-style: italic; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.appr .appr-input { align-self: stretch; width: auto; padding: 0 16px 8px; }
+.appr-foot { padding: 11px 16px; background: rgba(0, 0, 0, 0.55); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.appr-foot-text { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 4px; }
+.appr-expired { font-size: 11.5px; color: var(--tx-err); }
+.appr-actions { display: flex; gap: 8px; }
+.appr-approve { padding: 0 22px; }
+.appr .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.appr-notice { margin: 0; padding: 9px 16px; font-size: 11.5px; background: rgba(0, 0, 0, 0.55); }
+.appr-notice.warn { color: var(--tx-warn); }
+.appr-notice.err { color: var(--tx-err); }
+@media (max-width: 640px) { .appr-body { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .appr-clock.tick { animation: none; } }
