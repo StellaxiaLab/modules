@@ -6,29 +6,11 @@
 // 앱의 카운트다운은 실제로 흐르는 글자를 조건으로 기다려 본다. 기다림은 모두 `until()` 이다.
 
 import { OP, agentApi, assert, mark, openApp, requestsOf, until } from '../lib/app.mjs';
+import { openAsk, pendingCard, slot, waitCard } from '../lib/cards.mjs';
 import { check } from '../lib/harness.mjs';
 
 const UI = { apps: ['ui'] };
 const RESTART = 'terra.daemon.modules.by-module-id.restart.post';
-
-/** 세션을 서버 쪽에서 심고 앱으로 연다. */
-async function openAsk(t, { id, scenario = 'approval-flow', autonomy = 'ask', ...rest }) {
-  const api = agentApi(t);
-  await api.open({ id, autonomy, scenario, ...rest });
-  const app = await openApp(t, { route: `#/s/${id}` });
-  await app.pane.waitFor({ state: 'visible' });
-  return { api, app };
-}
-
-const pendingCard = (app) => app.$('.appr[data-card-state="pending"]');
-const slot = (app, state) => app.$(`.approval-slot[data-card-state="${state}"]`);
-
-/** 대기 카드가 설 때까지 — 상태 칩 "승인 대기" 와 카드 둘 다. */
-async function waitCard(app) {
-  await app.waitChip('승인 대기');
-  await pendingCard(app).waitFor({ state: 'visible' });
-  return pendingCard(app);
-}
 
 // ───────── #3 승인 한 판 ─────────
 

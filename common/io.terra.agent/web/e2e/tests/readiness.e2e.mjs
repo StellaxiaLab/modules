@@ -1,4 +1,4 @@
-// 시연에 없던 점검(TODO-checks.md 둘째 표) 가운데 지금 화면이 받쳐 주는 것 — 준비 상태와 응답 유실.
+// 시연에 없던 점검(TODO-checks.md 둘째 표) 가운데 지금 화면이 받쳐 주는 것 — 준비 상태(위임 관문 포함)와 응답 유실.
 // 35개 이식 목록에는 들지 않는다. 가짜 환경이 이미 받쳐 주던 약속을 앱이 지키는지 본다.
 
 import { OP, agentApi, assert, mark, openApp, requestsOf, until } from '../lib/app.mjs';
@@ -53,4 +53,25 @@ check('응답 유실(I17): 보냈는데 응답을 잃으면 앱은 다시 보내
   assert.equal((await requestsOf(t, OP.messagesPost, before)).length, 1, '유실된 글을 앱이 다시 보냈다');
   assert.equal((await api.entries('lost')).filter((e) => e.kind === 'user').length, 1);
   assert.equal(await notice.getAttribute('role'), 'status');
+}, UI);
+
+check('준비 상태: 위임 관문이 없는 노드(delegate_door:false)는 "위임 관문" 단계만 막히고 — 나머지는 통과한 채 — 새 세션이 꺼진다. 세션 목록은 그대로 읽는다 (요구 §6.2)', async (t) => {
+  await agentApi(t).open({ id: 'door-old', autonomy: 'ask' });
+  await t.control.config({ door: false });
+  assert.equal((await t.control.state()).door, false);
+  const app = await openApp(t, {});
+  await until(async () => (await app.$('[data-role="readiness-chip"]').textContent())?.includes('준비 안 됨'), { message: '준비 안 됨이 서지 않았다' });
+  const steps = app.$('[data-role="readiness-guide"] .step');
+  assert.equal(await steps.count(), 6);
+  // 순서: 모듈 · 권한 · 위임 관문 · 모델 · 위임 자격 · 만료. 막힌 것은 관문 하나다.
+  assert.deepEqual(await steps.evaluateAll((els) => els.map((el) => el.className)), ['step ok', 'step ok', 'step bad', 'step ok', 'step ok', 'step ok']);
+  assert.match((await app.$('[data-role="readiness-guide"] .guide-headline').textContent()) ?? '', /위임 관문/);
+  assert.match((await steps.nth(2).locator('.st-detail').textContent()) ?? '', /읽기만 할 수 있고 새 세션은 열 수 없습니다/);
+  assert.equal(await newSession(app).getAttribute('aria-disabled'), 'true');
+  assert.equal(await app.$('[data-role="readiness-guide"] .proposal').isVisible(), false, '관문이 없는 것을 "자격을 맡기면 된다"는 제안으로 말했다 — 자격 문제가 아니다');
+  // 읽기는 된다: 이미 있던 세션이 목록에 서고 열린다.
+  await until(async () => (await app.$('a.sess').count()) === 1, { message: '관문이 없어도 읽을 수 있는 세션 목록이 서지 않았다' });
+  await app.goto('door-old');
+  await app.waitChip('대기');
+  assert.deepEqual(app.problems.all(), []);
 }, UI);
