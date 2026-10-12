@@ -687,12 +687,14 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 
 바이너리만 바꿔 같은 스택(같은 설정 · Master DB)을 다시 띄우고 같은 쌍을 모듈 코드로 붙였다. 데몬 로그의 `master_relay_inbound_rejected` **0건**, `target_prepare_failed`가 사라지고 바인딩이 소스 준비까지 간다 — `desired: active` · `observed: failed` · `reason: source_prepare_failed: backend_unavailable`. io-inventory가 프레임을 내지 않아서다(MD-49). 같은 재실측에서 **끊은 뒤 같은 쌍을 다시 적용하면 Master가 닫힌 옛 바인딩을 돌려준다**는 것을 찾았다 — 멱등 키가 tree와 쌍만으로 정해진다(MD-50).
 
-#### 결정이 필요한 것
+#### 결정이 필요했던 것
+
+> 2026-10-12 — PF-28 · PF-29는 Terra가 구현했다(아래 표). 위 A~E 결과는 측정 당시(Terra `832f8f2`) 그대로 둔다.
 
 | ID | 무엇 |
 | --- | --- |
-| PF-28 | `/api/v1/agent/nodes`가 관리자의 앱 토큰 · fleet 에이전트에게 다른 클러스터 노드를 나열한다(tree · leaf). 위임 입구(`nodes.get`)의 강등과 어긋난다. 그 노드로 노드 주소 호출이 되는지는 그 노드가 꺼져 있어 재지 못했다 |
-| PF-29 | Gateway 재시작으로 죽은 위임 자격이 `anonymous`로 읽혀 403 `MODULE_PERMISSION_DENIED`가 난다(401이 아니다) — 화면 · 에이전트 모듈이 "다시 로그인 · 다시 맡기기"를 알 수 없다. readonly의 도달 범위 거절도 같은 코드 · "권한" 글이다(D5). 429에 `Retry-After`가 없고, 위임 입구가 거절한 호출(403 · 429)은 감사 행이 없다(C8) |
+| PF-28 | `/api/v1/agent/nodes`가 관리자의 앱 토큰 · fleet 에이전트에게 다른 클러스터 노드를 나열한다(tree · leaf). 위임 입구(`nodes.get`)의 강등과 어긋난다. 그 노드로 노드 주소 호출이 되는지는 그 노드가 꺼져 있어 재지 못했다 **→ 구현됨: [Terra#197](https://github.com/StellaxiaLab/Terra/pull/197)(2026-10-12)** — 위임 자격의 중계가 관리자를 자기 클러스터로 낮춘다 |
+| PF-29 | Gateway 재시작으로 죽은 위임 자격이 `anonymous`로 읽혀 403 `MODULE_PERMISSION_DENIED`가 난다(401이 아니다) — 화면 · 에이전트 모듈이 "다시 로그인 · 다시 맡기기"를 알 수 없다. readonly의 도달 범위 거절도 같은 코드 · "권한" 글이다(D5). 429에 `Retry-After`가 없고, 위임 입구가 거절한 호출(403 · 429)은 감사 행이 없다(C8) **→ 구현됨: [Terra#196](https://github.com/StellaxiaLab/Terra/pull/196) · [Terra#198](https://github.com/StellaxiaLab/Terra/pull/198)(2026-10-12)** — 죽은 `tsa_` 401 · reach를 밝힌 403 · `Retry-After` · `master.delegated.refused` 감사 |
 | ADR-GW-006 | E절 — leaf 카탈로그에 Master op 0 · 관문 표면에 노드 주소 호출 없음 · `agent/nodes`는 열림 |
 
 ## 6. 코드 지도
