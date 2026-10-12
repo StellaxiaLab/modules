@@ -143,6 +143,27 @@ describe('데이터 저장소', () => {
     expect(second.ok).toBe(false);
     expect(second.ok === false && second.quiet).toBe(true);
   });
+  it('같은 승인의 응답을 기다리는 동안 두 번째 요청은 나가지 않는다 (저장소 층의 이중 가드)', async () => {
+    const w = world();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const inner = server(w);
+    const calls: CallRequest[] = [];
+    const call = async <T,>(req: CallRequest): Promise<CallResult<T>> => {
+      calls.push(req);
+      if (req.method === 'POST' && req.path.includes('/approvals/')) await gate;
+      return (await inner.call<T>(req)) as CallResult<T>;
+    };
+    const store = createDataStore({ client: createAgentClient(call), now: () => 1_000_000 });
+    store.setViewer('alice');
+    await store.refreshSession('mine');
+    const first = store.answerApproval('mine', 'apr_1', 'approve');
+    const second = await store.answerApproval('mine', 'apr_1', 'approve');
+    expect(second).toEqual({ ok: false, reason: 'in-flight', quiet: true });
+    release();
+    expect((await first).ok).toBe(true);
+    expect(calls.filter((c) => c.path.includes('/approvals/'))).toHaveLength(1);
+  });
   it('대기 승인이 아닌 카드에는 승인 요청을 보내지 않는다(I9)', async () => {
     const w = world();
     w.sessions['mine'] = snap({ session_id: 'mine', state: 'idle', pending_approvals: [] });

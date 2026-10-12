@@ -25,6 +25,7 @@ import { formatCount, formatKB, formatTokens } from '../app/format';
 import { h, icon } from '../app/dom';
 import type { ApprovalCard, CardState } from '../data/cards';
 import { describeCode } from '../data/errors';
+import { approvalCardSignature, previousDeniedChips, renderPendingCard, updateApprovalCard, type ApprovalUi } from './approval-card';
 
 export interface EntryContext {
   /** 소유자 principal. 본인의 user 줄은 오른쪽 말풍선. */
@@ -39,12 +40,16 @@ export interface EntryContext {
   lastDoneSeq: number | null;
   /** 세션 누적 입력+출력 토큰. */
   tokens: number;
+  /** 승인 카드가 앱에서 받는 시계·답하는 길. 없으면 카드는 답할 길이 없어 컨트롤을 그리지 않는다. */
+  approvals?: ApprovalUi;
 }
 
 export interface EntryRenderer<E extends Entry> {
   render(entry: E, ctx: EntryContext): HTMLElement;
   /** 줄을 다시 그려야 하는지 가르는 값. 바뀌지 않는 줄은 없음(빈 문자열). */
   signature?(entry: E, ctx: EntryContext): string;
+  /** 서명이 같아 노드를 그대로 둘 때 불린다 — 초점을 잃지 않게 글자만 맞춘다(카운트다운). */
+  update?(el: HTMLElement, entry: E, ctx: EntryContext): void;
 }
 
 export type EntryRenderers = { [K in Entry['kind']]: EntryRenderer<Extract<Entry, { kind: K }>> };
@@ -190,7 +195,7 @@ function renderExternal(entry: ExternalEntry): HTMLElement {
   );
 }
 
-// ── 승인 (카드는 G2 — 지금은 자리표시) ───────────────────────────────────
+// ── 승인 (대기 카드는 approval-card.ts, 끝난 카드는 한 줄) ───────────────────────────────────
 
 const CARD_TEXT: Record<CardState, { label: string; tone: string; text: string }> = {
   pending: { label: '승인 대기', tone: 'warn', text: '승인이 필요합니다' },
@@ -207,6 +212,7 @@ function renderApproval(entry: ApprovalEntry, ctx: EntryContext): HTMLElement {
   const state: CardState = card?.state ?? 'already-handled';
   const t = CARD_TEXT[state];
   const op = text(entry.operation_id) || text(entry.subject) || card?.operationId || '';
+  if (card && state === 'pending' && ctx.approvals) return line(entry, renderPendingCard(card, ctx.approvals));
   return line(
     entry,
     h(
@@ -214,11 +220,9 @@ function renderApproval(entry: ApprovalEntry, ctx: EntryContext): HTMLElement {
       { class: `ev approval-slot${state === 'pending' ? ' pending' : ''}`, attrs: { 'data-request-id': entry.request_id ?? '', 'data-card-state': state } },
       h('span', { class: `ev-ic ${t.tone}` }, icon('shield', 's')),
       h('span', {}, h('b', {}, t.text), op ? ' · ' : null, op ? h('span', { class: 'mono op' }, op) : null),
-      h('span', { class: 'r' }, chip(t.tone, t.label)),
+      h('span', { class: 'r' }, ...(card ? previousDeniedChips(card) : []), chip(t.tone, t.label)),
     ),
-    state === 'pending'
-      ? h('p', { class: 'slot-note' }, '이 화면은 아직 승인에 답하지 못합니다 — 승인 카드(계약 사실·마감·승인/거부)는 다음 단계에서 열립니다. 질문은 한 차례 시간 안에 닫힙니다.')
-      : null,
+    state === 'pending' ? h('p', { class: 'slot-note' }, '이 화면에서는 이 승인에 답할 수 없습니다. 질문은 한 차례 시간 안에 닫힙니다.') : null,
   );
 }
 
@@ -299,7 +303,12 @@ export const defaultEntryRenderers: EntryRenderers = {
     render: renderApproval,
     signature: (entry, ctx) => {
       const card = entry.request_id ? ctx.cards.get(entry.request_id) : undefined;
-      return card ? `${card.state}:${card.actionable ? 1 : 0}` : 'none';
+      return card ? approvalCardSignature(card, ctx.approvals) : 'none';
+    },
+    update: (el, entry, ctx) => {
+      const card = entry.request_id ? ctx.cards.get(entry.request_id) : undefined;
+      const section = el.querySelector<HTMLElement>('section.appr');
+      if (card && ctx.approvals && section) updateApprovalCard(section, card, ctx.approvals);
     },
   },
   approved: { render: renderApproved },
@@ -321,4 +330,10 @@ export function renderEntry(entry: Entry, ctx: EntryContext, renderers: EntryRen
 export function entrySignature(entry: Entry, ctx: EntryContext, renderers: EntryRenderers = defaultEntryRenderers): string {
   const r = renderers[entry.kind] as EntryRenderer<Entry>;
   return r.signature ? r.signature(entry, ctx) : '';
+}
+
+/** 서명이 같아 노드를 그대로 둘 때 호출한다. */
+export function entryUpdate(el: HTMLElement, entry: Entry, ctx: EntryContext, renderers: EntryRenderers = defaultEntryRenderers): void {
+  const r = renderers[entry.kind] as EntryRenderer<Entry>;
+  r.update?.(el, entry, ctx);
 }

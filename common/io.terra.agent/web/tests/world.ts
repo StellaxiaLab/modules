@@ -30,6 +30,10 @@ export class World {
   posted: Array<{ id: string; text: string }> = [];
   opened: Array<Record<string, unknown>> = [];
   cancelled: string[] = [];
+  /** approvals.post 로 온 답(요청 단위). */
+  answers: Array<{ requestId: string; deny: boolean }> = [];
+  /** approvals.post 의 답을 덮는다(실패·지연 시험). 함수면 호출마다 부른다. */
+  approvalReply: FakeReply | ((call: RecordedCall) => FakeReply | Promise<FakeReply>) | null = null;
 
   addSession(id: string, over: Partial<SessionSnapshot> = {}, entries: Array<[string, Record<string, unknown>?]> = []): WorldSession {
     const snap: SessionSnapshot = {
@@ -74,15 +78,36 @@ export class World {
     s.snap = { ...s.snap, state: pending.length ? 'waiting-approval' : s.snap.state, pending_approvals: pending.map((p) => ({ ...p, ...(contract ? { contract } : {}) })) };
   }
 
+  /** 승인 답: 대기 중이면 approved/denied 줄을 남기고 질문을 닫는다. 이미 닫혔으면 404 APPROVAL_NOT_FOUND. */
+  private answerApproval(requestId: string, call: RecordedCall): FakeReply | Promise<FakeReply> {
+    const deny = (call.body as { deny?: boolean } | undefined)?.deny === true;
+    this.answers.push({ requestId, deny });
+    const apply = (): FakeReply => {
+      for (const [id, s] of this.sessions) {
+        const pending = s.snap.pending_approvals?.find((p) => p.request_id === requestId);
+        if (!pending) continue;
+        this.push(id, deny ? 'denied' : 'approved', { request_id: requestId, note: deny ? 'denied by ' + this.viewer : '' });
+        s.snap = { ...s.snap, state: 'running', pending_approvals: (s.snap.pending_approvals ?? []).filter((p) => p.request_id !== requestId) };
+        return reply.ok({ request_id: requestId, session_id: id, operation_id: pending.operation_id, decision: deny ? 'denied' : 'approved' });
+      }
+      return reply.fail(404, 'APPROVAL_NOT_FOUND', 'no such approval');
+    };
+    const override = this.approvalReply;
+    if (typeof override === 'function') return Promise.resolve(override(call)).then((r) => r ?? apply());
+    return override ?? apply();
+  }
+
   /** FakeTransport 에 이 세계의 모든 호출을 건다. */
   install(transport: FakeTransport): FakeTransport {
     transport.otherwise((call) => this.handle(call));
     return transport;
   }
 
-  private handle(call: RecordedCall): FakeReply {
+  private handle(call: RecordedCall): FakeReply | Promise<FakeReply> {
     const url = new URL(call.path, 'http://x');
     const path = url.pathname.slice(AGENT.length);
+    const approval = /^\/approvals\/([^/]+)$/.exec(path);
+    if (call.method === 'POST' && approval) return this.answerApproval(decodeURIComponent(approval[1] ?? ''), call);
     if (call.method === 'GET' && path === '/status') {
       return this.statusReply ?? reply.ok({ status: 'ok', version: this.version, sessions: this.sessions.size, delegate_door: this.delegateDoor });
     }

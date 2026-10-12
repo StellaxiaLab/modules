@@ -7,7 +7,8 @@ import { h, icon, setClass, setText } from '../app/dom';
 import { ScrollFollower } from '../app/scroll';
 import { lastSeqOfKind, turnCallsByDone } from '../app/turns';
 import type { SessionView } from '../data/view';
-import { defaultEntryRenderers, entrySignature, renderEntry, type EntryContext, type EntryRenderers } from './entries';
+import type { ApprovalUi } from './approval-card';
+import { defaultEntryRenderers, entrySignature, entryUpdate, renderEntry, type EntryContext, type EntryRenderers } from './entries';
 import { createComposer, type ComposerHandlers, type ComposerModel, type ComposerView } from './composer';
 import type { View } from './types';
 
@@ -22,6 +23,8 @@ export interface SessionPaneModel {
   view: SessionView | null;
   loadProblem: string | null;
   composer: ComposerModel;
+  /** 승인 카드가 쓰는 시계·답하는 길. 없으면 카드는 답할 컨트롤을 그리지 않는다. */
+  approvals?: ApprovalUi;
 }
 
 export interface SessionPaneHandlers extends ComposerHandlers {
@@ -111,6 +114,7 @@ export function createSessionPane(handlers: SessionPaneHandlers, renderers: Entr
       turnCalls: turnCallsByDone(view.entries),
       lastDoneSeq: lastSeqOfKind(view.entries, 'done'),
       tokens: view.tokens,
+      ...(model.approvals ? { approvals: model.approvals } : {}),
     };
   }
 
@@ -133,12 +137,17 @@ export function createSessionPane(handlers: SessionPaneHandlers, renderers: Entr
       const sig = entrySignature(entry, ctx, renderers);
       const existing = rendered.get(entry.seq);
       if (existing && existing.sig === sig) {
+        entryUpdate(existing.el, entry, ctx, renderers); // 노드는 그대로 — 카운트다운 글자만 맞춘다
         prev = existing.el;
         continue;
       }
       const node = renderEntry(entry, ctx, renderers);
-      if (existing) existing.el.replaceWith(node);
-      else {
+      if (existing) {
+        // 다시 그리는 줄 안에 키보드 초점이 있었다면(방금 누른 승인 버튼) 카드로 옮겨 자리를 잃지 않게 한다.
+        const hadFocus = existing.el.contains(document.activeElement);
+        existing.el.replaceWith(node);
+        if (hadFocus) node.querySelector<HTMLElement>('[data-refocus]')?.focus({ preventScroll: true });
+      } else {
         if (prev) prev.after(node);
         else lines.prepend(node);
         if (entry.seq > lastSeenSeq) added += 1;

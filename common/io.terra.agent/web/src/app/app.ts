@@ -11,11 +11,12 @@ import { composeReadiness, type Readiness } from '../data/readiness';
 import { describeFailure } from '../data/errors';
 import { createDataStore, type DataStore } from '../data/store';
 import { sessionTab, type SessionTab } from '../data/status';
-import { PollScheduler, bindVisibility, type PollMode, type PollSchedulerOptions } from '../transport';
+import { PollScheduler, bindVisibility, realTimers, type PollMode, type PollSchedulerOptions, type Timers } from '../transport';
 import { h, icon, setText } from './dom';
 import { presentReadiness } from './readiness-model';
 import { parseHash, routeHash, type Route } from './router';
 import { buildInbox, buildRows, sessionTitle, tabCounts } from './session-rows';
+import type { ApprovalDecision, ApprovalNotice, ApprovalUi } from '../views/approval-card';
 import { createCancelDialog } from '../views/cancel-dialog';
 import type { ComposerNotice } from '../views/composer';
 import type { EntryRenderers } from '../views/entries';
@@ -45,6 +46,8 @@ export interface AppDeps {
   readinessEveryMs?: number;
   /** 세션 목록을 다시 읽는 최소 간격(세션을 열어 둔 동안). */
   listEveryMs?: number;
+  /** 승인 카드의 1초 카운트다운 시험용 — 타이머 주입(PollScheduler 와 같은 방식). 시계는 `now`. */
+  countdown?: { timers?: Timers; everyMs?: number };
   renderers?: EntryRenderers;
 }
 
@@ -78,6 +81,8 @@ export function createApp(deps: AppDeps): App {
   const readinessEveryMs = deps.readinessEveryMs ?? 20_000;
   const listEveryMs = deps.listEveryMs ?? 5_000;
   const renderers = deps.renderers ?? defaultEntryRenderers;
+  const clockTimers = deps.countdown?.timers ?? realTimers;
+  const clockEveryMs = deps.countdown?.everyMs ?? 1_000;
   const store = createDataStore({ client, now });
 
   // ── 화면 상태 ──
@@ -94,6 +99,12 @@ export function createApp(deps: AppDeps): App {
   const sending = new Set<string>();
   const notices = new Map<string, ComposerNotice>();
   const loadProblems = new Map<string, string>();
+  /** 답을 보내고 응답을 기다리는 승인(request_id → 누른 쪽). 같은 승인을 두 번 보내지 않는 가드이자 화면의 "처리 중". */
+  const answering = new Map<string, ApprovalDecision>();
+  const approvalNotices = new Map<string, ApprovalNotice>();
+  /** 마감이 지나 모듈에 상태를 물어 본 승인 — 한 번만 묻는다. */
+  const expiryAsked = new Set<string>();
+  let clockHandle: unknown = null;
   let cancel: CancelState = { open: false, busy: false, error: null };
   let newForm: { sessionId: string | null; creating: boolean; error: string | null } = { sessionId: null, creating: false, error: null };
   let started = false;
@@ -283,6 +294,73 @@ export function createApp(deps: AppDeps): App {
     }
   }
 
+  // 승인·거부 — approvals.post 는 재시도 never(I17). 응답을 못 받았으면(outcomeUnknown) 자동으로 다시 보내지 않고
+  // 세션을 새로 읽어 질문이 아직 열려 있을 때만 사람이 다시 누르게 한다. 같은 request_id 는 응답이 올 때까지 한 번만 간다.
+  async function answerApproval(requestId: string, decision: ApprovalDecision): Promise<void> {
+    if (route.name !== 'session' || answering.has(requestId)) return;
+    const id = route.id;
+    answering.set(requestId, decision);
+    approvalNotices.delete(requestId);
+    render();
+    try {
+      const result = await store.answerApproval(id, requestId, decision);
+      if (result.ok) {
+        scheduler.refreshNow();
+      } else if (result.reason === 'failed' && result.failure) {
+        const info = describeFailure(result.failure);
+        if (result.failure.outcomeUnknown) {
+          approvalNotices.set(requestId, {
+            tone: 'warn',
+            text: `${info.message} 자동으로 다시 보내지 않습니다. 기록을 새로 읽는 중입니다 — 카드가 아직 대기 중일 때만 다시 눌러 주세요.`,
+          });
+          await store.refreshSession(id);
+        } else if (!result.quiet) {
+          approvalNotices.set(requestId, { tone: info.severity === 'error' ? 'err' : 'warn', text: info.message });
+          scheduler.refreshNow();
+        }
+        // quiet(404 APPROVAL_NOT_FOUND)는 정상이다 — 저장소가 이미 세션을 새로 읽었고 카드는 "이미 처리됨"이 된다.
+      }
+    } finally {
+      answering.delete(requestId);
+      render();
+    }
+  }
+
+  const approvalUi: ApprovalUi = {
+    nowMs: 0,
+    busy: answering,
+    notices: approvalNotices,
+    onAnswer: (requestId, decision) => void answerApproval(requestId, decision),
+  };
+
+  // ── 카운트다운 ── 대기 승인이 있는 동안만 1초마다 다시 맞춘다. 숨겨진 탭에서도 시계는 주입된 now 를 따른다.
+  function ticking(t: number): boolean {
+    if (!started) return false;
+    if (store.inbox().some((item) => typeof item.approval.expires_ms === 'number' && item.approval.expires_ms > t)) return true;
+    if (route.name !== 'session') return false;
+    return (store.viewOf(route.id, t)?.cards ?? []).some((c) => c.actionable && c.deadline !== null && c.deadline.ms > t);
+  }
+  function syncClock(t: number): void {
+    const want = ticking(t);
+    if (want && clockHandle === null) {
+      clockHandle = clockTimers.setTimeout(() => {
+        clockHandle = null;
+        render();
+      }, clockEveryMs);
+    } else if (!want && clockHandle !== null) {
+      clockTimers.clearTimeout(clockHandle);
+      clockHandle = null;
+    }
+  }
+  /** 마감이 지났는데 아직 대기 카드면 모듈에 한 번 물어 본다 — 서버 판정이 먼저다. */
+  function askExpired(t: number): void {
+    if (route.name !== 'session') return;
+    const expired = (store.viewOf(route.id, t)?.cards ?? []).filter((c) => c.actionable && c.deadline !== null && c.deadline.ms <= t && !expiryAsked.has(c.requestId));
+    if (expired.length === 0) return;
+    for (const c of expired) expiryAsked.add(c.requestId);
+    void Promise.resolve().then(() => scheduler.refreshNow());
+  }
+
   async function confirmCancel(): Promise<void> {
     if (route.name !== 'session' || cancel.busy) return;
     const id = route.id;
@@ -378,6 +456,7 @@ export function createApp(deps: AppDeps): App {
       const screen = view?.screen ?? null;
       const noViewer = store.getState().viewer === null && readiness !== null;
       const problem = view ? null : (loadProblems.get(id) ?? (noViewer ? '위임 자격이 없어 이 세션을 읽을 수 없습니다. 홈의 준비 상태를 확인해 주세요.' : null));
+      approvalUi.nowMs = t;
       const locked = !screen || !screen.inputEnabled;
       const terminal = screen?.activity === 'ended';
       sessionPane.update({
@@ -401,6 +480,7 @@ export function createApp(deps: AppDeps): App {
               : '버튼은 대기 승인이 있을 때만 켜집니다.',
           notice: composerNotice(id),
         },
+        approvals: approvalUi,
       });
       info.update({ view });
     }
@@ -408,6 +488,8 @@ export function createApp(deps: AppDeps): App {
     const cancelTitle = route.name === 'session' ? (store.viewOf(route.id) ? sessionTitle(store.viewOf(route.id)?.snapshot.topic, route.id) : route.id) : '';
     dialog.update({ open: cancel.open && route.name === 'session', title: cancelTitle, busy: cancel.busy, error: cancel.error });
     deps.root.dataset['route'] = route.name;
+    askExpired(t);
+    syncClock(t);
   }
 
   // 저장소가 바뀌면 같은 마이크로태스크 안의 변경을 모아 한 번 그린다.
@@ -429,11 +511,14 @@ export function createApp(deps: AppDeps): App {
     start() {
       if (started) return;
       started = true;
+      syncClock(now());
       win.addEventListener('hashchange', onHash);
       unbindVisibility = bindVisibility(scheduler, doc);
       scheduler.start();
     },
     stop() {
+      if (clockHandle !== null) clockTimers.clearTimeout(clockHandle);
+      clockHandle = null;
       if (!started) return;
       started = false;
       scheduler.stop();
