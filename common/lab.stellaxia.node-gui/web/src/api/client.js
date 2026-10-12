@@ -49,6 +49,11 @@ export class TerraClient {
     this.catalog = new Map();
     /** 노드 카탈로그 캐시 — node_id → { ok, ops: Map, at } · 받는 중이면 { p, at } */
     this._ncat = new Map();
+    /**
+     * 읽기 중계가 409 NODE_OFFLINE 이면 다시 묻기 전에 기다리는 시간(ms) — 방금 시작했으면 Daemon 의 중계 연결이 몇 초 뒤에 선다(실측 §5.11).
+     * 쓰기는 다시 보내지 않는다(받았는지 모른다). 시험은 [] 로 끈다
+     */
+    this.offlineRetryMs = [500, 1000, 1500, 2000];
     /** 노드 카탈로그를 받으면 — 화면이 자물쇠를 다시 그린다(wire.js) */
     this.onNodeCatalog = null;
   }
@@ -75,8 +80,17 @@ export class TerraClient {
     return this.delegated && !this.masterBlocked && !this.upstreamMissing && id.startsWith(MASTER_PREFIX)
       && !!MASTER_DELEGATED[id] && this.catalog.size > 0 && !this.catalog.has(id);
   }
-  /** 이 op 를 부를 길이 있나 — 카탈로그에 있거나 경로로 부를 수 있다 */
-  reaches(id) { return this.has(id) || this.viaUpstream(id); }
+  /**
+   * 카탈로그에는 있는데 Master 위임 입구가 열지 않은 op — tree 게이트웨이는 `terra.master.*` 160여 개를 카탈로그에 싣지만
+   * 앱 토큰에는 master-delegated.js 의 op 만 연다(나머지는 403 DELEGATION_NOT_OPEN · 실측 real-data-layer.md §5.11).
+   * 카탈로그를 받기 전에는 판정하지 않는다
+   * @param {string} id
+   */
+  delegationClosed(id) {
+    return this.delegated && id.startsWith(MASTER_PREFIX) && this.catalog.size > 0 && this.catalog.has(id) && !MASTER_DELEGATED[id];
+  }
+  /** 이 op 를 부를 길이 있나 — 카탈로그에 있고 위임 입구가 열었거나, 경로로 부를 수 있다 (tree 의 카탈로그만으로는 닫힌 쓰기를 못 거른다) */
+  reaches(id) { return (this.has(id) && !this.delegationClosed(id)) || this.viaUpstream(id); }
 
   /** 카탈로그의 bindings('GET /api/modules/io.terra.file/v1/entries') → { method, path }. 없으면 fallback */
   binding(id, fallback) {
@@ -178,15 +192,16 @@ export class TerraClient {
     const cat = await this.nodeCatalog(nodeId), e = cat && cat.ok ? cat.ops.get(id) : null;
     if (cat && cat.ok && !e) return { kind: 'unavailable', reason: 'not-remote' };
     if (e && e.allowed === false) return { kind: 'forbidden', reason: 'remote-denied' };
-    let res;
-    try {
-      res = await this.fetch(`${this.base}/api/v1/nodes/${encodeURIComponent(nodeId)}/operations/${encodeURIComponent(id)}/invoke`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input ?? {}), signal: opts.signal
-      });
-    } catch (err) {
-      return { kind: 'unreachable', reason: String(err) };
+    const url = `${this.base}/api/v1/nodes/${encodeURIComponent(nodeId)}/operations/${encodeURIComponent(id)}/invoke`;
+    const send = () => this.fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input ?? {}), signal: opts.signal });
+    // 읽기(.get)만 — 막 시작한 노드의 NODE_OFFLINE 은 몇 초 안에 풀린다. 쓰기는 다시 보내지 않는다
+    const waits = /\.get$/.test(id) ? this.offlineRetryMs : [];
+    for (let k = 0; ; k++) {
+      let r;
+      try { r = await toResult(await send()); } catch (err) { return { kind: 'unreachable', reason: String(err) }; }
+      if (r.reason !== 'NODE_OFFLINE' || r.status !== 409 || k >= waits.length || (opts.signal && opts.signal.aborted)) return r;
+      await new Promise((done) => setTimeout(done, waits[k]));
     }
-    return toResult(res);
   }
 
   /**
@@ -307,7 +322,7 @@ const REASON = {
   'no-node-id': '그 노드의 node_id 를 모른다 — Master 노드 목록에 있는 노드만 부를 수 있다',
   'not-remote': '그 노드가 이 기능을 원격으로 열지 않았다(그 노드에서만 쓴다)',
   'remote-denied': '그 노드에서 이 기능을 쓸 권한이 없다',
-  NODE_OFFLINE: '그 노드가 오프라인이다',
+  NODE_OFFLINE: '그 노드가 오프라인이다 — 방금 시작했다면 Master와 노드의 중계 연결이 설 때까지 몇 초 걸린다. 잠시 뒤 다시',
   DESKTOP_OPEN_EXECUTABLE: '실행 파일은 열지 않는다 — 파일 관리자로만 보인다',
   DESKTOP_SESSION_UNAVAILABLE: 'Daemon 이 그 컴퓨터의 바탕화면 세션에 닿지 않는다',
   DESKTOP_LAUNCHER_UNAVAILABLE: '그 컴퓨터에 파일을 여는 프로그램(xdg-open 등)이 없다',
@@ -323,7 +338,7 @@ const REASON = {
   OPERATION_NOT_REMOTE: '그 노드가 이 기능을 원격으로 열지 않았다',
   'master-delegation': 'Master를 거치는 기능은 이 화면에 아직 열리지 않았다',
   'no-upstream': '이 노드의 게이트웨이에 상위 Master 가 없다 — 노드를 tree 에 등록한 뒤에 Master 를 본다',
-  DELEGATION_NOT_OPEN: 'Master가 이 기능을 앱 토큰에 아직 열지 않았다 — 지금은 읽기와 SVI 연결 · 허가(바인딩 · 본인 · 같은 클러스터 노드에게 주는 허가)만 열려 있다(Terra ADR-GW-003 · 004)',
+  DELEGATION_NOT_OPEN: 'Master 문에서 아직 열리지 않았다 — ADR-GW-004/007 (지금 앱 토큰에 열린 것은 읽기와 SVI 연결 · 허가뿐)',
   'not-in-catalog': '이 노드의 게이트웨이에 없다',
   'no-module': '이 노드에 그 모듈이 설치되어 있지 않다',
   LOCAL_API_UNAVAILABLE: '이 노드에서 그 모듈이 시작하지 않았거나 설치되어 있지 않다',

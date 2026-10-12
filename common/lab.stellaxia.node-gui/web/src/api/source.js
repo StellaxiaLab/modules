@@ -239,8 +239,11 @@ export class LiveSource {
    */
   lockFor(app, op, node) {
     const local = node === this.localNode, A = this.appFor(app, node), spec = forNode(A && A.acts ? A.acts[op] : null, local);
-    if (!spec || !spec.op || spec.form) return null;
+    if (!spec || !spec.op) return null;
     const why = (reason) => resultText({ kind: 'unavailable', reason });
+    // tree — 카탈로그는 위임 입구가 닫은 Master 쓰기도 싣는다. 폼으로 가는 동작(터널 · 명령 추가)도 열기 전에 잠근다
+    if (spec.where === 'T' && this.client.delegationClosed && this.client.delegationClosed(spec.op)) return why('DELEGATION_NOT_OPEN');
+    if (spec.form) return null;
     if (spec.none) return why(spec.none);
     if ((spec.where === 'L' || spec.where === 'M') && !local) {
       if (!this.relays()) return why('remote-node');
@@ -442,6 +445,8 @@ export class LiveSource {
     const steps = spec.steps ? spec.steps(v, it, cx) : [{ op: spec.op, body: spec.body ? spec.body(v, it, cx) : {} }];
     if (!Array.isArray(steps)) return { kind: 'unavailable', reason: (steps && steps.none) || 'no-operation' };
     if (!steps.length) return { kind: 'ok', data: null, same: true };
+    // 위임 입구가 닫은 Master 쓰기는 부르지 않는다 — 폼을 다 적은 뒤에 403 을 듣지 않게 (lockFor 와 같은 판정)
+    if (spec.where === 'T' && this.client.delegationClosed && steps.some((s) => this.client.delegationClosed(s.op))) return { kind: 'unavailable', reason: 'DELEGATION_NOT_OPEN', where: spec.where };
     let r = null;
     for (const s of steps) {   // 여러 번이면 차례로 — 하나가 실패하면 거기서 멈춘다(앞의 것은 이미 바뀌었다 — 목록을 다시 받아 보인다)
       r = await this.call({ op: s.op, where: spec.where }, node, s.body);
