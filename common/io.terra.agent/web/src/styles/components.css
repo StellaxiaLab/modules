@@ -265,3 +265,5 @@ pre.raw { margin: 6px 0 0; padding: 8px 10px; border-radius: 12px; background: v
 .appr-notice.err { color: var(--tx-err); }
 @media (max-width: 640px) { .appr-body { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .appr-clock.tick { animation: none; } }
+/* 헤더의 대상 노드 이름 — 길어도 자르지 않고 줄을 바꾼다(말줄임 없음). 전체가 글자로 DOM 에 있다. */
+.chip.node-name { height: auto; min-height: 20px; padding-block: 2px; white-space: normal; overflow-wrap: anywhere; min-width: 0; flex: 0 1 auto; max-width: 40ch; }

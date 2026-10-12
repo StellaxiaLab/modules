@@ -90,6 +90,7 @@ export function createEngine({ clock, scenarios }) {
     callDelayMs: 0, // Gateway 호출 지연(실제 시간)
     counters: { trace: 0, id: 0 },
     statusOverride: undefined,
+    nodeName: undefined, // status.get 의 node_name — 없으면 키가 없다(이전 모듈·코어 면 없는 호스트)
   };
   const calls = []; // 모델이 부른 operation 의 기록(시험이 본다)
 
@@ -809,6 +810,7 @@ export function createEngine({ clock, scenarios }) {
     state.door = true;
     state.features = { ...DEFAULT_FEATURES };
     state.statusOverride = undefined;
+    state.nodeName = undefined;
     state.modelDelayMs = 250;
     state.callDelayMs = 0;
     state.counters = { trace: 0, id: 0 };

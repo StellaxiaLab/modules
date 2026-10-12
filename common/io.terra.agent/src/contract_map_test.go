@@ -140,16 +140,33 @@ func loadManifest(t *testing.T) manifestPermissions {
 	return manifest
 }
 
-// The module's standing power is one door. If someone adds a second core
-// operation to the manifest, the module gains authority that exists whether
-// or not a person delegated anything — the exact thing §11.4 forbids.
-func TestManifestDeclaresOnlyTheDelegateDoor(t *testing.T) {
+// The module's standing power is exactly two core operations: the delegate
+// door, and a read-only question about which node this is. The first does
+// nothing without a person's delegated credential; the second answers a fact
+// the node already shows anyone who asks, and writes nothing. Any third
+// operation is authority that exists whether or not a person delegated
+// anything — the thing §11.4 forbids — so the set is pinned exactly and a new
+// entry has to change this test, in review, on purpose.
+func TestManifestDeclaresOnlyTheDoorAndTheNodeIdentityRead(t *testing.T) {
 	manifest := loadManifest(t)
 	if manifest.Permissions == nil {
 		t.Fatal("manifest declares no permissions")
 	}
-	if len(manifest.Permissions.CoreOperations) != 1 || manifest.Permissions.CoreOperations[0].ID != "terra.gateway.delegate" {
-		t.Fatalf("coreOperations = %+v, want exactly terra.gateway.delegate", manifest.Permissions.CoreOperations)
+	got := map[string]int{}
+	for _, operation := range manifest.Permissions.CoreOperations {
+		got[operation.ID]++
+	}
+	want := map[string]int{"terra.gateway.delegate": 1, "terra.node.identity.get": 1}
+	if len(got) != len(want) || len(manifest.Permissions.CoreOperations) != len(want) {
+		t.Fatalf("coreOperations = %+v, want exactly %v", manifest.Permissions.CoreOperations, want)
+	}
+	for id := range want {
+		if got[id] != 1 {
+			t.Fatalf("coreOperations = %+v, want exactly %v", manifest.Permissions.CoreOperations, want)
+		}
+	}
+	if nodeIdentityOperationID != "terra.node.identity.get" {
+		t.Fatalf("the code asks for %q, which is not the declared identity operation", nodeIdentityOperationID)
 	}
 	if len(manifest.Permissions.Storage) != 1 || manifest.Permissions.Storage[0] != "module-data" {
 		t.Fatalf("storage = %v, want [module-data]", manifest.Permissions.Storage)

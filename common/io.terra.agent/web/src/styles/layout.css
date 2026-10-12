@@ -11,12 +11,12 @@
   -webkit-backdrop-filter: blur(30px) saturate(1.45);
 }
 .wh {
-  height: 46px;
+  min-height: 46px;
   flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 14px 0 12px;
+  padding: 4px 14px 4px 12px;
   border-bottom: 1px solid var(--f-line);
   background: rgba(0, 0, 0, 0.3);
 }

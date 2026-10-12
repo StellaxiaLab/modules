@@ -338,6 +338,7 @@ export async function createFakeAgent(options = {}) {
           if (input.door !== undefined) engine.state.door = !!input.door;
           if (input.strict_gateway !== undefined) config.strictGateway = !!input.strict_gateway;
           if (input.default_permissions !== undefined) config.defaultPermissions = input.default_permissions;
+          if ('node_name' in input) engine.state.nodeName = input.node_name || undefined;
           if ('status_override' in input) engine.state.statusOverride = input.status_override ?? undefined;
           if (input.features) {
             for (const key of Object.keys(input.features)) {

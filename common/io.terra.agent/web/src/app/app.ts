@@ -127,6 +127,8 @@ export function createApp(deps: AppDeps): App {
   const appEl = h('div', { class: 'app', attrs: { 'data-role': 'app' } });
   const markEl = h('span', { class: 'mark' }, icon('spark'));
   const versionChip = h('span', { class: 'chip mut mono', attrs: { hidden: true } });
+  /** 대상 노드 이름 — status.get 이 node_name 을 줄 때만 DOM 에 있다(없으면 자리 자체가 없다). */
+  let nodeEl: HTMLElement | null = null;
   const pendingChip = h('span', { class: 'chip warn', attrs: { hidden: true, 'data-role': 'pending-chip' } });
   const headerEl = h(
     'header',
@@ -478,6 +480,20 @@ export function createApp(deps: AppDeps): App {
     return notices.get(id) ?? null;
   }
 
+  function syncNodeName(name: string | null): void {
+    if (name === null) {
+      nodeEl?.remove();
+      nodeEl = null;
+      return;
+    }
+    if (nodeEl === null) {
+      nodeEl = h('span', { class: 'chip mut mono node-name', attrs: { 'data-role': 'node-name' } });
+      versionChip.after(nodeEl);
+    }
+    setText(nodeEl, name);
+    nodeEl.title = name;
+    nodeEl.setAttribute('aria-label', `대상 노드 ${name}`);
+  }
   function render(): void {
     const data = store.getState();
     const t = now();
@@ -496,6 +512,7 @@ export function createApp(deps: AppDeps): App {
     setText(pendingChip, `승인 대기 ${inboxAll.length}`);
     pendingChip.replaceChildren(icon('clock', 's'), `승인 대기 ${inboxAll.length}`);
     pendingChip.hidden = inboxAll.length === 0;
+    syncNodeName(p.nodeName);
     versionChip.hidden = !p.version;
     if (p.version) setText(versionChip, `io.terra.agent ${p.version}`);
 
