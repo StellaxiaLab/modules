@@ -687,6 +687,19 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 
 바이너리만 바꿔 같은 스택(같은 설정 · Master DB)을 다시 띄우고 같은 쌍을 모듈 코드로 붙였다. 데몬 로그의 `master_relay_inbound_rejected` **0건**, `target_prepare_failed`가 사라지고 바인딩이 소스 준비까지 간다 — `desired: active` · `observed: failed` · `reason: source_prepare_failed: backend_unavailable`. io-inventory가 프레임을 내지 않아서다(MD-49). 같은 재실측에서 **끊은 뒤 같은 쌍을 다시 적용하면 Master가 닫힌 옛 바인딩을 돌려준다**는 것을 찾았다 — 멱등 키가 tree와 쌍만으로 정해진다(MD-50).
 
+#### E절 재실측 — Terra main `478ad0d`(2026-10-12)
+
+ADR-GW-006([Terra#186](https://github.com/StellaxiaLab/Terra/pull/186) — leaf 데몬이 위임 입구 op를 카탈로그에 싣는다)과 PF-28 · PF-29([Terra#196](https://github.com/StellaxiaLab/Terra/pull/196) · [#197](https://github.com/StellaxiaLab/Terra/pull/197) · [#198](https://github.com/StellaxiaLab/Terra/pull/198))가 들어간 main으로 바이너리만 바꿔 같은 스택에서 E절을 다시 쟀다. leaf-a Gateway · 새 fleet 자격.
+
+| # | 처음(`832f8f2`) | 다시(`478ad0d`) |
+| --- | --- | --- |
+| E1 | `terra.master.nodes.get` 404 `MODULE_ROUTE_NOT_FOUND` | **200** — leaf-a · leaf-b만. `route.candidates.get`(평평한 입력) 200(`route_graph_epoch` 7). 쓰기 `svi.bindings.post`는 403 `DELEGATION_NOT_OPEN` |
+| E2 | `/api/upstream/v1/nodes` 401 | 401 그대로(경로 통과는 여전히 에이전트를 받지 않는다) |
+| E3 | `agent/nodes` 200 · 3개(다른 클러스터 노드 포함) | 200 · **2개** — `other-cluster-node`가 빠졌다(PF-28) |
+| E4 | 노드 주소 호출 200 | 200 그대로 |
+| E5 | 검색 0 → `OPERATION_NOT_FOUND` | 관문으로 `route.candidates.get` **run · ok**(평평한 입력). 계약 모양 `{query:{…}}`로는 여전히 404 `NODE_NOT_FOUND`(PF-27). `terra_search_operations`는 낱말 하나(`route` 8개 · `candidates` 1개 · op id 1개)로는 찾고 **두 낱말 "route candidates"는 0** — 질의를 한 덩어리 부분 문자열로 본다(모델이 여러 낱말로 찾으면 놓친다) |
+| E6 | leaf 카탈로그 `terra.master.*` 0 | **33**(fleet 166 · 앱 토큰 170 · 관리자 187 중). 데몬 계약 자체의 Master op는 0 그대로 — Gateway가 위임 subset을 싣는다 |
+
 #### 결정이 필요했던 것
 
 > 2026-10-12 — PF-28 · PF-29는 Terra가 구현했다(아래 표). 위 A~E 결과는 측정 당시(Terra `832f8f2`) 그대로 둔다.
