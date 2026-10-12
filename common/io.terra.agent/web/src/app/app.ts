@@ -7,8 +7,10 @@
 
 import type { AgentClient } from '../api/client';
 import { generateSessionId } from '../api/client';
+import type { ModelsListResponse } from '../api/types';
 import { composeReadiness, type Readiness } from '../data/readiness';
 import { describeFailure } from '../data/errors';
+import type { NewSessionInput, ProviderChoice } from '../data/new-session-form';
 import { createDataStore, type DataStore } from '../data/store';
 import { sessionTab, type SessionTab } from '../data/status';
 import { PollScheduler, bindVisibility, realTimers, type PollMode, type PollSchedulerOptions, type Timers } from '../transport';
@@ -21,7 +23,7 @@ import { createCancelDialog } from '../views/cancel-dialog';
 import type { ComposerNotice } from '../views/composer';
 import type { EntryRenderers } from '../views/entries';
 import { defaultEntryRenderers } from '../views/entries';
-import { createNewSession } from '../views/new-session';
+import { createNewSession, type McpState, type NewSessionError } from '../views/new-session';
 import { createReadinessGuide } from '../views/readiness';
 import { createSessionInfo } from '../views/session-info';
 import { createSessionPane } from '../views/session-pane';
@@ -106,7 +108,17 @@ export function createApp(deps: AppDeps): App {
   const expiryAsked = new Set<string>();
   let clockHandle: unknown = null;
   let cancel: CancelState = { open: false, busy: false, error: null };
-  let newForm: { sessionId: string | null; creating: boolean; error: string | null } = { sessionId: null, creating: false, error: null };
+  /** 새 세션 폼의 상태. frozen: 응답을 못 받은 열기 — 값 칸을 잠가 같은 id 로 같은 값을 다시 보내게 한다. */
+  let formKey = 0;
+  const freshForm = (): { sessionId: string | null; creating: boolean; error: NewSessionError | null; frozen: boolean } => ({ sessionId: null, creating: false, error: null, frozen: false });
+  let newForm = freshForm();
+  /** models.list 가 준 사실(준비 상태를 읽을 때 같이 읽는다) — provider 선택의 재료다. */
+  let modelsFacts: ModelsListResponse | null = null;
+  let mcp: McpState = { status: 'loading' };
+  let mcpSeq = 0;
+  let mcpInflight: Promise<void> = Promise.resolve();
+  /** 마지막으로 보낸 열기 본문 — 응답을 못 받았을 때 그대로 다시 보낸다. */
+  let lastRequest: NewSessionInput | null = null;
   let started = false;
   let renderQueued = false;
   let pendingFlush: Promise<void> = Promise.resolve();
@@ -127,7 +139,11 @@ export function createApp(deps: AppDeps): App {
 
   const sidebar = createSidebar({ onTab: (t) => setTab(t) });
   const guide = createReadinessGuide({ onRecheck: () => void recheck() });
-  const newPane = createNewSession({ onSubmit: (input) => void openSession(input.topic), onClose: () => navigate({ name: 'home' }) });
+  const newPane = createNewSession({
+    onSubmit: (input) => void openSession(input),
+    onClose: () => navigate({ name: 'home' }),
+    onReloadMcp: () => void loadMcp(),
+  });
   const sessionPane = createSessionPane(
     {
       onSubmit: (text) => void send(text),
@@ -161,8 +177,12 @@ export function createApp(deps: AppDeps): App {
     const same = JSON.stringify(next) === JSON.stringify(route);
     route = next;
     if (next.name === 'session') followRouteTab = true;
-    if (next.name !== 'new') newForm = { sessionId: null, creating: false, error: null };
-    if (next.name === 'new' && newForm.sessionId === null) newForm.sessionId = generateSessionId(now(), random);
+    if (next.name !== 'new') newForm = freshForm();
+    if (next.name === 'new' && newForm.sessionId === null) {
+      newForm.sessionId = generateSessionId(now(), random);
+      formKey += 1;
+      void loadMcp();
+    }
     if (cancel.open && !same) cancel = { open: false, busy: false, error: null };
     if (!same) scheduler.refreshNow();
   }
@@ -176,7 +196,10 @@ export function createApp(deps: AppDeps): App {
     setRoute(parseHash(win.location.hash));
     render();
   };
-  if (route.name === 'new') newForm.sessionId = generateSessionId(now(), random);
+  if (route.name === 'new') {
+    newForm.sessionId = generateSessionId(now(), random);
+    void loadMcp();
+  }
 
   function setTab(next: SessionTab): void {
     tab = next;
@@ -191,6 +214,7 @@ export function createApp(deps: AppDeps): App {
       const status = await client.statusGet();
       let models, credentials;
       if (status.ok) [models, credentials] = await Promise.all([client.modelsList(), client.credentialsGet()]);
+      modelsFacts = models?.ok ? models.data : null;
       readiness = composeReadiness({ status, ...(models ? { models } : {}), ...(credentials ? { credentials } : {}) });
       readinessAt = now();
       // 소유자 필터의 기준 — 자격이 알려 준 principal. 모르면 아무 세션도 보이지 않는다(owner.ts).
@@ -378,21 +402,73 @@ export function createApp(deps: AppDeps): App {
     render();
   }
 
-  async function openSession(topic: string): Promise<void> {
-    if (route.name !== 'new' || newForm.creating) return;
+  /** 외부 MCP 서버 목록(읽기 전용) — 새 세션 화면에 들어올 때와 "다시 읽기"에서 읽는다. 늦게 온 옛 응답은 버린다. */
+  function loadMcp(): Promise<void> {
+    const seq = ++mcpSeq;
+    mcp = { status: 'loading' };
+    const run = (async () => {
+      const result = await client.mcpList();
+      if (seq !== mcpSeq) return;
+      if (result.ok) {
+        const servers = Array.isArray(result.data.servers) ? result.data.servers : [];
+        mcp = {
+          status: 'ready',
+          servers: servers
+            .filter((server) => typeof server.name === 'string' && server.name !== '')
+            .map((server) => {
+              const tools = Array.isArray(server.tools) ? server.tools : [];
+              return { name: server.name as string, tools: tools.length, readOnly: tools.filter((tool) => tool.read_only === true).length };
+            }),
+        };
+      } else {
+        mcp = { status: 'failed', message: describeFailure(result).message };
+      }
+      render();
+    })();
+    mcpInflight = run.catch(() => undefined);
+    return mcpInflight;
+  }
+
+  function providerChoices(): { providers: ProviderChoice[] | null; defaultProvider: string | null } {
+    if (modelsFacts === null || !Array.isArray(modelsFacts.providers)) return { providers: null, defaultProvider: null };
+    const providers = modelsFacts.providers.filter((p) => p.registered).map((p) => ({ provider: p.provider, model: p.model, default: p.default || p.provider === modelsFacts?.default }));
+    const defaultProvider = providers.find((p) => p.default)?.provider ?? null;
+    return { providers, defaultProvider };
+  }
+
+  async function openSession(input: NewSessionInput): Promise<void> {
+    if (route.name !== 'new' || newForm.creating) return; // 더블클릭: 응답이 올 때까지 한 번만
     if (!(readiness?.ready ?? false)) return;
     const sessionId = newForm.sessionId ?? generateSessionId(now(), random);
-    newForm = { sessionId, creating: true, error: null };
+    // 응답을 못 받은 뒤의 재시도는 처음 보낸 값 그대로여야 한다(같은 id 에 다른 값을 실으면 모듈이 무시한다).
+    const body: NewSessionInput = newForm.frozen && lastRequest ? lastRequest : input;
+    lastRequest = body;
+    newForm = { ...newForm, sessionId, creating: true, error: null };
     render();
     // 멱등 id: 응답을 못 받아 다시 눌러도 같은 id 로 간다 — 모듈이 created:false 로 답한다.
-    const result = await client.sessionsOpen({ session_id: sessionId, autonomy: 'plan', ...(topic !== '' ? { topic } : {}) });
+    const result = await client.sessionsOpen({ session_id: sessionId, ...body });
     if (result.ok) {
       if (store.getState().viewer === null) store.setViewer(result.data.viewer);
-      newForm = { sessionId: null, creating: false, error: null };
+      const opened = result.data;
+      lastRequest = null;
+      newForm = freshForm();
       listLoaded = false;
-      navigate({ name: 'session', id: result.data.session_id });
+      if (!opened.created) {
+        const differs = opened.autonomy !== (body.autonomy ?? 'plan') || opened.simulate !== (body.simulate === true) || (body.provider !== undefined && opened.provider !== body.provider);
+        if (differs) {
+          notices.set(opened.session_id, {
+            tone: 'warn',
+            text: `이미 열려 있던 세션입니다 — 처음 정해진 값이 유지됩니다(자율성 ${opened.autonomy}${opened.simulate ? ' · 시뮬레이션' : ''}). 요청한 값과 다릅니다.`,
+          });
+        }
+      }
+      navigate({ name: 'session', id: opened.session_id });
     } else {
-      newForm = { sessionId, creating: false, error: describeFailure(result.outcomeUnknown ? { ...result } : result).message };
+      const info = describeFailure(result);
+      const unknown = result.outcomeUnknown === true;
+      const message = unknown ? `${info.message} 세션이 이미 열렸을 수 있습니다 — 같은 id 로 다시 보내면 중복으로 열리지 않습니다.` : info.message;
+      newForm = { ...newForm, sessionId, creating: false, frozen: newForm.frozen || unknown, error: { message, code: info.code, ...(info.raw !== '' ? { raw: info.raw } : {}) } };
+      if (info.action === 'refresh-servers') void loadMcp();
       render();
     }
   }
@@ -443,12 +519,18 @@ export function createApp(deps: AppDeps): App {
     if (route.name === 'home') {
       guide.update({ presentation: p, hasSessions: data.owned.length > 0, checking });
     } else if (route.name === 'new') {
+      const choices = providerChoices();
       newPane.update({
         sessionId: newForm.sessionId ?? '',
+        formKey,
         creating: newForm.creating,
         canOpen: p.canOpenSession,
         blockedReason: p.canOpenSession ? null : readiness === null ? '준비 상태를 확인하는 중입니다.' : `새 세션을 열 수 없습니다 — ${p.headline}`,
         error: newForm.error,
+        frozen: newForm.frozen,
+        providers: choices.providers,
+        defaultProvider: choices.defaultProvider,
+        mcp,
       });
     } else {
       const id = route.id;
@@ -535,6 +617,7 @@ export function createApp(deps: AppDeps): App {
     navigate,
     flush: async () => {
       await pendingFlush;
+      await mcpInflight;
       await Promise.resolve();
     },
     ui: () => ({ route, tab, readiness }),

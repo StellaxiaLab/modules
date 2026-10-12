@@ -8,6 +8,7 @@ button:focus-visible,
 [role='tab']:focus-visible,
 .msgs:focus-visible,
 summary:focus-visible,
+select:focus-visible,
 input:focus-visible {
   outline: var(--focus-width) solid var(--focus);
   outline-offset: var(--focus-offset);
@@ -27,9 +28,9 @@ input:focus-visible {
   body { background-image: none; }
 }
 @media (forced-colors: active) {
-  .chip, .btn, .card, .step, .ev, .opt, .notice, .ban, .dlg, .appr, .claim-text { border: 1px solid CanvasText; }
+  .chip, .btn, .card, .step, .ev, .opt, .notice, .ban, .dlg, .appr, .claim-text, .mcp-item, .seg-radio { border: 1px solid CanvasText; }
   .btn:disabled { border-style: dashed; }
-  a:focus-visible, button:focus-visible, [role='tab']:focus-visible, .msgs:focus-visible, summary:focus-visible, input:focus-visible { outline-color: Highlight; }
+  a:focus-visible, button:focus-visible, [role='tab']:focus-visible, .msgs:focus-visible, summary:focus-visible, select:focus-visible, input:focus-visible { outline-color: Highlight; }
   .inp .box:focus-within { box-shadow: none; outline: 2px solid Highlight; outline-offset: -3px; }
   .seg button.on { border: 1px solid Highlight; }
 }

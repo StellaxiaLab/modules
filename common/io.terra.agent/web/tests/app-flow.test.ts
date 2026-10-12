@@ -323,6 +323,175 @@ describe('앱 통합 — 새 세션 (화면 2)', () => {
   });
 });
 
+describe('앱 통합 — 새 세션 폼 (GAP-9)', () => {
+  const POST_SESSIONS = { method: 'POST', path: `${AGENT}/sessions` } as const;
+  const GET_MCP = { method: 'GET', path: `${AGENT}/mcp/servers` } as const;
+  const twoProviders = reply.ok({
+    default: 'anthropic',
+    providers: [
+      { provider: 'anthropic', model: 'test-model', registered: true, default: true },
+      { provider: 'other', model: 'm2', registered: true, default: false },
+      { provider: 'draft', model: 'm3', registered: false, default: false },
+    ],
+  });
+  const radio = (name: string, value: string): void => {
+    const el = (m as Mounted).q<HTMLInputElement>(`input[name=${name}][value=${value}]`);
+    el.checked = true;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  const type = (selector: string, value: string): void => {
+    const el = (m as Mounted).q<HTMLInputElement>(selector);
+    el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  const press = async (): Promise<void> => {
+    (m as Mounted).q<HTMLButtonElement>('[data-role=open-session]').click();
+    await (m as Mounted).settle();
+    await tick();
+  };
+
+  it('ask·auto 를 열 수 있고 모든 칸이 열기 호출에 실린다 — provider 는 models.list 의 등록된 것에서 고른다', async () => {
+    m = mountApp((w) => {
+      w.modelsReply = twoProviders;
+    }, '#/new');
+    await m.refresh();
+    const select = m.q<HTMLSelectElement>('#new-provider');
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(['anthropic', 'other']); // 등록 안 된 draft 는 없다
+    expect(m.q<HTMLInputElement>('input[name=autonomy][value=ask]').disabled).toBe(false);
+    expect(m.q<HTMLInputElement>('input[name=autonomy][value=unattended]').disabled).toBe(true);
+    radio('autonomy', 'ask');
+    radio('simulate', 'on');
+    type('#new-topic', '점검');
+    select.value = 'other';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    const box = m.q<HTMLInputElement>('input[name=mcp][value=filesystem]');
+    box.checked = true;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    type('#new-max-steps', '40');
+    type('#new-max-seconds', '1800');
+    type('#new-token-budget', '50000');
+    await press();
+    expect(m.world.opened).toHaveLength(1);
+    expect(m.world.opened[0]).toEqual({
+      session_id: expect.stringMatching(/^s-/),
+      autonomy: 'ask',
+      simulate: true,
+      topic: '점검',
+      provider: 'other',
+      mcp_servers: ['filesystem'],
+      max_steps: 40,
+      max_seconds: 1800,
+      token_budget: 50000,
+    });
+    expect(m.app.ui().route.name).toBe('session');
+  });
+
+  it('새 세션 화면에 들어올 때 mcp.list 를 한 번 읽고, 모델 목록은 준비 상태가 읽은 것을 쓴다', async () => {
+    m = mountApp(() => {}, '#/new');
+    await m.refresh();
+    expect(m.transport.callsMatching(GET_MCP)).toHaveLength(1);
+    expect(m.qa('[data-role=mcp-item]').map((e) => e.textContent)).toEqual(['filesystem도구 3 · 읽기 전용 2', 'weather도구 1 · 읽기 전용 1']);
+  });
+
+  it('mcp.list 가 실패해도 서버 없이 열 수 있고, 다시 읽기로 되살린다', async () => {
+    m = mountApp((w) => {
+      w.mcpReply = reply.fail(503, 'AGENT_UNAVAILABLE', 'down');
+    }, '#/new');
+    await m.refresh();
+    expect(m.text('[data-role=mcp-state]')).toContain('에이전트 모듈이 지금 처리할 수 없습니다');
+    expect(m.qa('[data-role=mcp-item]')).toHaveLength(0);
+    m.world.mcpReply = null;
+    m.q<HTMLButtonElement>('[data-role=mcp-reload]').click();
+    await m.settle();
+    await tick();
+    expect(m.qa('[data-role=mcp-item]')).toHaveLength(2);
+    await press();
+    expect(m.world.opened[0]).toEqual({ session_id: expect.stringMatching(/^s-/), autonomy: 'plan' });
+  });
+
+  it('틀린 한도는 호출 없이 칸에서 막는다', async () => {
+    m = mountApp(() => {}, '#/new');
+    await m.refresh();
+    type('#new-max-seconds', '9999');
+    await press();
+    m.transport.expectNever(POST_SESSIONS);
+    expect(m.q('#new-max-seconds').getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(m.q('#new-max-seconds'));
+    expect(m.app.ui().route.name).toBe('new');
+  });
+
+  it('MCP_SERVER_UNKNOWN 이면 사전 문구를 보이고 서버 목록을 새로 읽는다 (refresh-servers)', async () => {
+    m = mountApp(() => {}, '#/new');
+    await m.refresh();
+    m.transport.queue(POST_SESSIONS, reply.fail(404, 'MCP_SERVER_UNKNOWN', 'unknown server "x"'));
+    const box = m.q<HTMLInputElement>('input[name=mcp][value=weather]');
+    box.checked = true;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    await press();
+    expect(m.text('.ban.err')).toContain('등록되지 않은 외부 서버입니다');
+    expect(m.text('.ban.err')).toContain('MCP_SERVER_UNKNOWN');
+    expect(m.text('.ban.err')).toContain('unknown server "x"'); // 원문은 접힌 상세에 있다
+    expect(m.transport.callsMatching(GET_MCP)).toHaveLength(2);
+  });
+
+  it('응답을 못 받으면(outcomeUnknown) 값 칸을 잠그고, 같은 id·같은 본문으로만 다시 보낸다', async () => {
+    m = mountApp(() => {}, '#/new');
+    await m.refresh();
+    radio('autonomy', 'auto');
+    type('#new-max-steps', '10');
+    m.transport.queue(POST_SESSIONS, reply.networkError());
+    await press();
+    expect(m.text('.ban.err')).toContain('OUTCOME_UNKNOWN');
+    expect(m.q('[data-role=frozen-note]').hidden).toBe(false);
+    expect(m.q<HTMLInputElement>('#new-max-steps').disabled).toBe(true);
+    expect(m.app.ui().route.name).toBe('new');
+    await press(); // 세션 열기 다시
+    const bodies = m.transport.callsMatching(POST_SESSIONS).map((c) => c.body);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]).toEqual(bodies[0]);
+    expect(bodies[0]).toMatchObject({ autonomy: 'auto', max_steps: 10 });
+    expect(m.app.ui().route.name).toBe('session');
+  });
+
+  it('이미 열려 있던 세션이면 처음 값이 유지된다고 알린다 (created:false, I10)', async () => {
+    m = mountApp((w) => {
+      w.addSession('s-dup', { autonomy: 'plan' });
+    }, '#/new');
+    await m.refresh();
+    m.transport.queue(POST_SESSIONS, reply.ok({ session_id: 's-dup', viewer: 'alice', state: 'idle', autonomy: 'plan', simulate: false, created: false }));
+    radio('autonomy', 'auto');
+    await press();
+    await m.refresh();
+    expect(m.app.ui().route).toEqual({ name: 'session', id: 's-dup' });
+    expect(m.root.textContent).toContain('이미 열려 있던 세션');
+    expect(m.root.textContent).toContain('plan');
+  });
+
+  it('두 번 눌러도 한 번만 나간다 (ask)', async () => {
+    m = mountApp(() => {}, '#/new');
+    await m.refresh();
+    radio('autonomy', 'ask');
+    m.q<HTMLButtonElement>('[data-role=open-session]').click();
+    m.q('form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    await m.settle();
+    await tick();
+    expect(m.world.opened).toHaveLength(1);
+  });
+
+  it('나갔다 들어오면 폼이 처음 값으로 돌아오고 id 도 새로 만든다', async () => {
+    m = mountApp(() => {}, '#/new');
+    await m.refresh();
+    const first = m.text('[data-role=new-session-pane] .pane-head .chip');
+    radio('autonomy', 'auto');
+    m.app.navigate({ name: 'home' });
+    m.app.navigate({ name: 'new' });
+    await m.settle();
+    expect(m.q<HTMLInputElement>('input[name=autonomy][value=plan]').checked).toBe(true);
+    expect(m.text('[data-role=new-session-pane] .pane-head .chip')).toBeTruthy();
+    expect(first).toBeTruthy();
+  });
+});
+
 describe('앱 통합 — 폴링', () => {
   function manualTimers(): Timers & { pending(): number; fire(): void; lastDelay(): number } {
     const q: Array<{ id: number; fn: () => void; ms: number }> = [];
