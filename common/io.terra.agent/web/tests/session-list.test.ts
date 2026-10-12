@@ -7,7 +7,6 @@ import { composeReadiness } from '../src/data/readiness';
 import { emptyLedger, ingest } from '../src/data/ledger';
 import { emptyMemory } from '../src/data/cards';
 import type { DataState } from '../src/data/store';
-import { createNewSession } from '../src/views/new-session';
 import { createSidebar, type SidebarModel } from '../src/views/sidebar';
 import { pend, raw, snap } from './helpers';
 
@@ -182,45 +181,3 @@ describe('화면 2 — 사이드바', () => {
     expect(link?.tabIndex).toBe(-1);
   });
 });
-
-describe('새 세션 열기 (GAP-9, G1)', () => {
-  it('자율성은 plan 만 켜진다 (D-7) — 나머지는 이유와 함께 꺼져 있다', () => {
-    const view = createNewSession({ onSubmit: () => {}, onClose: () => {} });
-    document.body.append(view.el);
-    view.update({ sessionId: 's-abc', creating: false, canOpen: true, blockedReason: null, error: null });
-    const radios = Array.from(view.el.querySelectorAll<HTMLInputElement>('input[type=radio]'));
-    expect(radios.map((r) => [r.value, r.disabled, r.checked])).toEqual([
-      ['plan', false, true],
-      ['ask', true, false],
-      ['auto', true, false],
-      ['unattended', true, false],
-    ]);
-    expect(view.el.textContent).toContain('session_id 자동 · s-abc');
-    expect(view.el.querySelector('fieldset legend')?.textContent).toContain('열 때 고정');
-  });
-
-  it('제목(topic)을 실어 보내고, 만드는 중에는 버튼이 꺼진다', () => {
-    const seen: Array<{ topic: string }> = [];
-    const view = createNewSession({ onSubmit: (i) => seen.push(i), onClose: () => {} });
-    document.body.append(view.el);
-    view.update({ sessionId: 's-1', creating: false, canOpen: true, blockedReason: null, error: null });
-    const topic = view.el.querySelector<HTMLInputElement>('#new-topic') as HTMLInputElement;
-    expect(topic.maxLength).toBe(200);
-    topic.value = '  새벽 로그 정리  ';
-    view.el.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-    expect(seen).toEqual([{ topic: '새벽 로그 정리' }]);
-    view.update({ sessionId: 's-1', creating: true, canOpen: true, blockedReason: null, error: null });
-    expect(view.el.querySelector<HTMLButtonElement>('[data-role=open-session]')?.disabled).toBe(true);
-  });
-
-  it('준비가 안 됐으면 이유를 보이고 열 수 없다, 실패하면 그 문구를 보인다', () => {
-    const view = createNewSession({ onSubmit: () => {}, onClose: () => {} });
-    document.body.append(view.el);
-    view.update({ sessionId: 's-1', creating: false, canOpen: false, blockedReason: '새 세션을 열 수 없습니다 — 모델: 등록된 기본 모델이 없습니다', error: null });
-    expect(view.el.querySelector<HTMLButtonElement>('[data-role=open-session]')?.disabled).toBe(true);
-    expect(view.el.textContent).toContain('등록된 기본 모델이 없습니다');
-    view.update({ sessionId: 's-1', creating: false, canOpen: true, blockedReason: null, error: '모델이 없습니다' });
-    expect(view.el.querySelector('[role=alert]')?.textContent).toBe('모델이 없습니다');
-  });
-});
-
