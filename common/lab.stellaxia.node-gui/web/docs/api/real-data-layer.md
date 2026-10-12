@@ -8,8 +8,8 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.15.0"
-last_updated: "2026-10-11"
+version: "0.16.0"
+last_updated: "2026-10-12"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -623,9 +623,9 @@ node tools/live-linkbind.mjs
 
 도구는 끝에 이번에 만든 내 허가를 지운다. Terra 쪽 확인(`svi-core-contract-decisions.md` §12.11 · `287bd9a9`)대로, 허가가 철회되거나 기한이 지나면 살아 있는 바인딩은 `degraded`가 아니라 **닫힌다**. 그래서 순서는 바인딩을 먼저 닫고 허가를 나중에 지운다. 화면에서도 내 허가의 기한(기본 30일)은 바인딩이 살아 있을 기간보다 길어야 한다.
 
-**같은 노드 쌍(Terra 쪽 메모)** — 소스와 싱크가 한 노드에 있으면(`test.stream` → 같은 Daemon의 `fs.md32-sink`) Master는 `observed active`라고 하지만 **싱크 파일은 0바이트 그대로다**. Daemon의 `BindingExecutor`가 바인딩 상태를 `binding_id` 하나로만 들고 있어서(`e.bindings[binding_id]`), 같은 바인딩의 source 역할 prepare가 target 역할 상태(열린 싱크)를 갈아 치운다. 모듈 쪽은 바꿀 것이 없다 — 상태는 Master가 말하는 대로 `active`로 보인다. 그래서 시험 도구는 두 끝이 같은 노드면 경고를 찍는다. 화면에 같은 노드 쌍을 막거나 표시할지는 Terra의 답(지원하지 않는 모양인지)을 보고 정한다.
+**같은 노드 쌍 — Terra `2076d158`로 고쳐졌다(2026-10-12 재측정).** 소스와 싱크가 한 노드에 있으면(`test.stream` → 같은 Daemon의 `fs.same`) 예전 Daemon은 Master가 `observed active`라고 해도 **싱크 파일이 0바이트 그대로**였다(`BindingExecutor`가 바인딩 상태를 `binding_id` 하나로만 들어서, 같은 바인딩의 source 역할 prepare가 target 역할 상태를 갈아 치웠다). Terra `2076d158`("Fix same-node SVI bindings dropping every frame" — 실행기가 `(binding_id, 역할)`로 키를 잡고, Master가 commit · rollback에 역할을 싣고, 중계가 자기 자신에게 가는 프레임을 되돌려 준다)가 이를 고쳤다. 다시 쟀다: Terra 브랜치 `ccr-3a501c29-lt1eml` 끝(`23d04c99` — `2076d158` 포함)을 `git archive`로 새 폴더에 내보내 Master · Daemon · 게이트웨이를 모두 새로 빌드하고(`tools/live-stack-up.sh`), 노드1의 Daemon에 Local API로 파일 싱크 `fs.same`을 선언한 뒤 `live-linkbind.mjs`를 **소스 `svi.<노드1>.test.stream` → 싱크 `svi.<노드1>.fs.same`**(같은 노드)으로 돌렸다. 결과 **16/16** — `binding → active` 510ms, 싱크 파일 102 → 458 바이트(끝이 `…terra-svi-frame-25`), 닫으면 `active → closed` 519ms, 닫은 뒤 458 → 458. 다른 노드 쌍과 똑같다. 모듈은 바꿀 것이 없었고, 도구의 경고만 "흐르지 않을 수 있다"에서 "2076d158 이후 Daemon에서는 흐른다(그 앞이면 흐름 검사가 가린다)"로 바꿨다.
 
-**Terra 쪽 상태** — Daemon의 `Source` 버그는 Terra 브랜치 `ccr-3a501c29-lt1eml`의 `c62fff73`("Give daemon SVI responses a Source so they pass envelope validation")이 고쳤다. `preparedResponse`와 `HandleManager.response`(핸들 열기 · 닫기 답도 같은 이유로 버려졌다)가 둘 다 `Source`를 싣고, 회귀 시험은 진짜 `Service.HandleIncoming`을 지난다. **(2026-10-11 갱신) 이 고침은 `main`에 들어갔고, `main` `c82c24e2`로 다시 재서 `16/16`을 확인했다.** 같은 노드 쌍은 그 고침과 따로이고, `main` `c82c24e2`에서도 그대로다 — 같은 노드 쌍(`fs.same`)은 `active`(`desired active / observed active`)까지 가고 싱크 파일은 `0 → 0` 바이트로 15/16(흐름 한 개만 ✗), 닫기는 정상이다. 아직 고칠 곳이 정해지지 않았다(로컬 상태를 `(binding_id, 역할)`로 들어야 한다 — commit · frame · close · 정리를 다 건드린다). **(2026-10-11 추가)** 같은 고침이 [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)로 `main`에 들어갔다(`e84e765`) — 수정 없는 `main`에서 §5.9의 `live-linkio.mjs` 27/27 통과를 확인했다.
+**Terra 쪽 상태** — Daemon의 `Source` 버그는 Terra 브랜치 `ccr-3a501c29-lt1eml`의 `c62fff73`("Give daemon SVI responses a Source so they pass envelope validation")이 고쳤다. `preparedResponse`와 `HandleManager.response`(핸들 열기 · 닫기 답도 같은 이유로 버려졌다)가 둘 다 `Source`를 싣고, 회귀 시험은 진짜 `Service.HandleIncoming`을 지난다. **(2026-10-11 갱신) 이 고침은 `main`에 들어갔고, `main` `c82c24e2`로 다시 재서 `16/16`을 확인했다.** 같은 노드 쌍은 그 고침과 따로여서 `c82c24e2`에서는 `active`까지 가도 싱크 파일이 `0 → 0` 바이트(15/16)였다. **(2026-10-12) `2076d158`이 그것을 고쳤다 — 위 "같은 노드 쌍".** **(2026-10-11 추가)** 같은 고침이 [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)로 `main`에 들어갔다(`e84e765`) — 수정 없는 `main`에서 §5.9의 `live-linkio.mjs` 27/27 통과를 확인했다.
 
 ### 5.11 tree 게이트웨이에서 Master 쓰기 E2E(MD-13) — 2026-10-11
 
@@ -673,7 +673,21 @@ Daemon 둘(같은 사용자)은 Master에 enroll만 하고 게이트웨이는 �
 
 **Terra 버그는 막힌 것이 없다.** 막힌 곳은 모두 설계된 닫힘(`DELEGATION_NOT_OPEN` · 노드 카탈로그 `allowed:false`)이다. 스택을 막 세운 직후에는 Daemon의 중계 연결이 아직 서지 않아 `409 NODE_OFFLINE`가 몇 초 나온다 — 도구가 기다린다.
 
-**후속(모듈)** — ① tree에서도 `MASTER_DELEGATED`(열린 op 목록)로 잠그기: `client.has`가 닫힌 쓰기에 참이다. ② 원격 선언 쓰기를 쓰려면 앱 매니페스트에 `node.config` 선언이 필요하다(Master의 `DefaultPermissions`에 `node.config`가 없다 — 사용자에게 따로 줘야 한다). 둘 다 이 라운드에서 고치지 않았다.
+**후속(모듈) — 2026-10-12에 ①을 처리했다. ② 는 결정대로 둔다(Q-10).**
+
+① **tree에서도 `MASTER_DELEGATED`로 잠그기 — 했다.** 카탈로그만 보면 닫힌 쓰기에도 `has()`가 참이라, `TerraClient.delegationClosed(id)`를 더했다: 위임 자격이고 · `terra.master.*`이고 · 카탈로그를 받았고 · 카탈로그에 있는데 · 위임 표에 **없으면** 닫힌 것이다. `reaches()`는 `(has && !delegationClosed) || viaUpstream`이 되어 tree와 leaf가 같은 표(`master-delegated.js`, CI가 Terra 계약과 대조)로 갈린다. 그 위의 길:
+- `LiveSource.lockFor` — 닫힌 `where: 'T'` 동작은 카드의 단추(피어 철회 · 터널 선언 지우기 · 핸들 열기 · 작업 취소 …)뿐 아니라 **폼으로 가는 동작**(터널 열기 · 명령 보내기)도 연 시점에 🔒 + 이유로 잠근다. 이유는 `Master 문에서 아직 열리지 않았다 — ADR-GW-004/007 (지금 앱 토큰에 열린 것은 읽기와 SVI 연결 · 허가뿐)`.
+- `LiveSource.crud` — 폼을 다 적고 저장해도 닫힌 Master 쓰기는 부르지 않고 같은 이유를 돌려준다(헛 호출 · 403을 듣지 않는다). 열린 쓰기(허가 · 바인딩)는 그대로 부른다.
+- `link-apply` · `link-sync` · `node-live`의 `masterWhy`는 `reaches`를 이미 쓰므로 따로 고칠 것이 없었다. 서버가 판정하는 `invoke` 자체는 그대로다 — 표가 낡아도 서버가 열었으면 부를 수 있다.
+- 열린 Master 읽기와 위임 쓰기 다섯은 tree에서 잠기지 않는다(시험이 `MASTER_DELEGATED` 전체를 돈다). 노드 중계(`terra.daemon.*`)의 잠금은 예전처럼 그 노드의 카탈로그가 정한다.
+
+ADR-GW-007(Terra 쪽)은 Accepted지만 3a(위임 입구로 작업 취소)는 아직 구현되지 않았다 — 위임 표는 그대로이고 다른 노드 작업의 취소 · 다시 실행 · 보내기는 잠긴 채다. 3a가 들어와 표가 다시 만들어지면 잠금이 저절로 풀린다.
+
+② 원격 선언 쓰기의 `node.config`는 Q-10대로 앱 매니페스트에 넣지 않는다.
+
+**앱 토큰 두 번 발급 — 모듈이 스스로 토큰을 죽일 수 있었다(2026-10-12 점검, 고쳤다).** 모듈은 토큰 발급 문(`/api/v1/gui/apps/<앱>/token`)을 직접 부르지 않는다 — 발급은 호스트(Terra 셸)가 하고 모듈은 frame 메시지만 보낸다(`terra.frame.refresh`). 모듈 안에서 그 메시지가 나가는 곳은 하나, `terra-frame-client.js`의 `fetch`가 401을 맞았을 때뿐이다(부트 · 재연결 · 보드 창은 토큰을 새로 청하지 않는다 — `onToken`을 듣고 호스트가 주는 것을 쓰고, 보드 창은 부모의 같은 연결을 빌린다). 그런데 참조 클라이언트는 **401마다 갱신을 따로** 보낸다. 토큰이 만료되거나 다른 창이 새로 발급해 앞 토큰이 죽으면, 화면이 동시에 보내던 요청(알람 · 네트워크 폴링 · 이벤트 · 노드 카탈로그 …)이 거의 한꺼번에 401을 맞고 갱신이 여럿 나간다 — 호스트가 토큰을 여럿 발급하고, 먼저 받은 토큰으로 다시 보낸 요청은 뒤에 발급된 토큰 때문에 또 401이다. 그래서 `src/api/frame-token.js`의 `singleFlightFrame`이 `frameReady`의 연결을 감싼다(참조 클라이언트 사본은 그대로 둔다): ① 갱신은 동시에 하나 — 진행 중이면 그 약속을 같이 기다린다, ② 401을 맞은 요청이 보낸 토큰이 이미 바뀌었으면 새로 발급하지 않고 지금 토큰으로 다시 보낸다, ③ 다시 보내기는 한 번뿐. 시험: `tests/frametoken.test.mjs`(다섯 요청이 낡은 토큰으로 나가도 발급은 한 번 · 이미 갱신됐으면 발급 없음). 모듈이 어쩔 수 없는 것: **같은 사용자가 같은 앱을 두 창에서 열면** 호스트가 서로의 토큰을 죽인다 — 호스트(셸)의 몫이다. 시험 도구(`live-*.mjs`)는 `live-*-up.sh`가 한 번 발급한 토큰 파일을 읽기만 하고 새로 발급하지 않는다(스택 올리기를 다시 하면 앞의 토큰 파일이 죽는다).
+
+**`409 NODE_OFFLINE` — 막 시작한 뒤 몇 초(2026-10-12).** 노드 주소 호출(`invokeAt`)은 이 코드를 `reason`에 그대로 싣고 화면 글은 "그 노드가 오프라인이다"뿐이었다. 이제 ① 글이 `그 노드가 오프라인이다 — 방금 시작했다면 Master와 노드의 중계 연결이 설 때까지 몇 초 걸린다. 잠시 뒤 다시`이고, ② **읽기(`….get`)만** 0.5 · 1 · 1.5 · 2초 간격으로 최대 네 번 더 묻는다(`TerraClient.offlineRetryMs` — 시험은 `[]`로 끈다). 쓰기는 받았는지 알 수 없어 다시 보내지 않는다. 취소 신호(`AbortSignal`)가 오면 그만 묻는다. 시험: `tests/api.test.mjs`("중계 읽기의 409 NODE_OFFLINE …").
 
 ## 6. 코드 지도
 
@@ -694,7 +708,8 @@ Daemon 둘(같은 사용자)은 Master에 enroll만 하고 게이트웨이는 �
 | `src/data/editors-live.js` | `realMaterial` · `realField` |
 | `src/data/live-host.js` | `liveHub`(노드 화면 → 보드) · `connectLive`(보드) · `absenceText` |
 | `src/api/source.js` | `appFor`(Daemon 쪽이면 `local` 대응) · `daemonView` · `pathInput`(op 이름의 `by-…` 자리만) · 다른 노드는 노드 주소 호출(`idOf`) · `lockFor`(누르기 전 자물쇠 — 그 노드 카탈로그) · 폴더 단계 읽기 · `guard` · `crud` · `upload`(이어서 — `resume_id`) · `stalledPush` · `download`(이어서 — `parts`) · `markStalled`(멈춘 전송) · `modConfig`(모듈 설정 스키마 · 값) · `guiApps` |
-| `src/api/client.js` | `TerraClient` — `invoke` · `invokeAt`(노드 주소 호출) · `invokeModuleAt`(원격 모듈 경로) · `binding` · `nodeCatalog`(60초) · `canRelay` · `request` · `get` · `fillRoute` · `toResult` · `resultText` · `reasonText` |
+| `src/api/frame-token.js` | `singleFlightFrame` — frame 연결의 토큰 갱신을 한 줄로(§5.11) |
+| `src/api/client.js` | `TerraClient` — `invoke` · `invokeAt`(노드 주소 호출 · 읽기의 NODE_OFFLINE 다시 묻기) · `delegationClosed`(tree의 닫힌 Master op) · `invokeModuleAt`(원격 모듈 경로) · `binding` · `nodeCatalog`(60초) · `canRelay` · `request` · `get` · `fillRoute` · `toResult` · `resultText` · `reasonText` |
 | `src/api/events.js` | 실시간 이벤트(B-5) — `openEvents`(fetch 스트림 · 이어 받기 · 끄기 · 다른 SSE op `op` · `input` · `raw` · 처음부터 이어 받을 자리 `last`) · `sseFrames` · `frameEvent`(`raw` — SVI 핸들 StreamMessage 는 벗기지 않는다) · `SIGNAL_APPS` |
 | `src/api/sha256.js` | SHA-256(조각씩) · base64 — 올리기 · 받기 검사(maingui 와 같은 코드) |
 | `src/api/operations.js` | `HELM_APPS`(목록 · 동작 · `form` · `upload` · `download` · `remote`) · `HELM_CRUD`(실제 본문 · `localOnly` · 모듈 수정 = 설정) · `CRUD_TEXT`(API 줄) · `GUI_APPS` · `fileBinding`(io.terra.file 경로 대응표) · `manualAdapter` · `scanLine` · `logLines` · `cfgForm` · `cfgPatch` · `cfgErrorKeys`(모듈 설정) |

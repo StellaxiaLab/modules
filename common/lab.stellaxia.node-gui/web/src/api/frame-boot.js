@@ -13,6 +13,7 @@
 //                 hello는 부모가 이미 보냈다. 여기서 또 보내면 셸이 아니라 부모 창으로 가서 버려진다.
 //                 그래서 보내지 않고 부모의 연결을 빌린다(아래 __terraFrameReady)
 import { connectTerra } from './terra-frame-client.js';
+import { singleFlightFrame } from './frame-token.js';
 
 /** @returns {'standalone' | 'frame' | 'board'} */
 export function frameRole(win = globalThis.window) {
@@ -44,7 +45,7 @@ export function borrowFrame(win = globalThis.window) {
  * @type {Promise<import('./terra-frame-client.js').TerraFrame | null>}
  */
 export const frameReady = role === 'frame'
-  ? connectTerra({ timeoutMs: 15000 }).catch((error) => {
+  ? connectTerra({ timeoutMs: 15000 }).then((terra) => singleFlightFrame(terra)).catch((error) => {   // 갱신은 한 줄로 — 앱 토큰은 사용자당 하나라 동시 갱신이 서로를 죽인다(frame-token.js)
     console.warn('[terra] frame의 init을 받지 못했다 — 데이터 없이 연다', error);
     return null;
   })

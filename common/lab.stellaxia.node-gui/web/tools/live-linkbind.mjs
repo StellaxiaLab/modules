@@ -8,7 +8,7 @@
 //
 // 쌍: Daemon 의 시험 흐름(`test.stream` · output · terra.bytes@1 — feature.enable_svi_test_stream) →
 //     다른 Daemon 설정의 파일 싱크(`svi.file_sinks` → `svi.<node>.fs.<name>` · append · terra.bytes@1). 두 노드 · 같은 소유자(PF-19 — 남의 자원과는 못 잇는다).
-//     같은 노드 안의 쌍은 Master 가 active 라고 해도 데이터가 흐르지 않는다(Daemon 이 한 바인딩의 두 역할을 binding_id 하나로 들고 있다) — §5.10.
+//     같은 노드 안의 쌍은 Terra 2076d158 이후 Daemon 에서 흐른다(그 앞에서는 Master 가 active 라고 해도 싱크 파일이 0바이트였다 — Daemon 이 한 바인딩의 두 역할을 binding_id 하나로 들었다) — §5.10.
 // 스택 만드는 법과 결과: docs/api/real-data-layer.md §5.10. 어긋난 쌍 · 위임 입구의 가드 · 공유는 live-linkio.mjs(§5.9)가 본다.
 import { readFileSync, statSync } from 'node:fs';
 const W = new URL('../src/', import.meta.url).href;
@@ -43,7 +43,7 @@ check('whoami — 앱 토큰의 사용자', /^user_\S+$/.test(userId), principal
 const epOf = async (res) => { const r = await client.invoke(OPS.endpoints, { resource_id: res }); return r.kind === 'ok' ? (r.data.items || r.data.endpoints || []) : []; };
 const srcEps = await epOf(SRC), sinkEps = await epOf(SINK);
 const out = srcEps.find((e) => e.endpoint_id === 'output'), app_ = sinkEps.find((e) => e.endpoint_id === 'append');
-if (SRC.split('.')[1] === SINK.split('.')[1]) console.log('! 소스 · 싱크가 같은 노드다 — active 가 돼도 데이터는 흐르지 않을 수 있다(real-data-layer §5.10)');
+if (SRC.split('.')[1] === SINK.split('.')[1]) console.log('· 소스 · 싱크가 같은 노드다 — Terra 2076d158 이후 Daemon 에서는 흐른다. 그 앞의 Daemon 이면 active 가 돼도 싱크 파일이 0바이트일 수 있다(아래 \'흐름\' 검사가 가린다 · real-data-layer §5.10)');
 check('호환되는 쌍 — 소스 output 과 싱크 append 가 같은 형식', !!out && !!app_ && out.output_schema === app_.input_schema,
   (out && out.output_schema) + ' → ' + (app_ && app_.input_schema));
 

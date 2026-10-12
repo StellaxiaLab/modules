@@ -88,7 +88,7 @@ test('위임 입구(ADR-GW-003)가 열지 않은 Master operation 은 그 하나
   const closed = await client.invoke('terra.master.fleets.get', {});
   assert.equal(closed.kind, 'unavailable');
   assert.equal(closed.reason, 'DELEGATION_NOT_OPEN');
-  assert.match(resultText(closed), /앱 토큰에 아직 열지 않았다/);
+  assert.match(resultText(closed), /Master 문에서 아직 열리지 않았다/);
   assert.equal(client.masterBlocked, false);
   const open = await client.invoke('terra.master.nodes.get', {});
   assert.equal(open.kind, 'ok');
@@ -140,6 +140,7 @@ test('다른 노드 — 노드 주소 호출(B-1): 그 노드 카탈로그를 �
     return json(404, {});
   });
   const client = new TerraClient('', { fetch: f });
+  client.offlineRetryMs = [];   // 다시 묻기는 아래 별도 시험
   await client.refreshCatalog();
   const source = new LiveSource(client, { localNode: 'edge-01', idOf: (n) => ({ 'leaf-b': 'node_b', 'leaf-c': 'node_c' }[n]) });
   const items = await source.list('leaf-b', 'io');
@@ -352,4 +353,75 @@ test('위임 대응표 — Terra 계약과 같다 (TERRA_CHECKOUT 이 있을 때
   const { readFileSync } = await import('node:fs');
   const contract = JSON.parse(readFileSync(process.env.TERRA_CHECKOUT + '/products/tree/master/contracts/api/terra-api.json', 'utf8'));
   assert.deepEqual(buildTable(contract), MASTER_DELEGATED);
+});
+
+// ───── tree: 카탈로그에 있어도 위임 입구가 닫은 op (real-data-layer.md §5.11 후속 ①) ─────
+const CLOSED = ['terra.master.network.mesh.wireguard.peers.revoke.post', 'terra.master.service-tunnels.open.post', 'terra.master.service-tunnels.plan.post',
+  'terra.master.service-tunnels.declarations.post', 'terra.master.service-tunnels.declarations.by-declaration-id.delete', 'terra.master.network.mesh.wireguard.reconcile.post',
+  'terra.master.commands.post', 'terra.master.jobs.by-job-id.cancel.post', 'terra.master.nodes.by-node-id.patch', 'terra.master.nodes.by-node-id.modules.assignments.post', 'terra.master.svi.handles.post'];
+const treeClient = (extra = []) => {
+  const c = new TerraClient('', { fetch: fakeFetch(() => json(200, {})), delegated: true });
+  c.catalog = new Map([...Object.keys(MASTER_DELEGATED), ...CLOSED, ...extra, RELAY_OP, NODE_CATALOG_OP].map((id) => [id, {}]));
+  return c;
+};
+
+test('tree — 카탈로그에 있는 Master op 라도 위임 입구가 닫은 것은 reaches 가 거짓이고, 연 것은 참이다', () => {
+  const c = treeClient();
+  for (const id of CLOSED) { assert.equal(c.has(id), true, id + ' 카탈로그에는 있다'); assert.equal(c.reaches(id), false, id); assert.equal(missingReason(c, id), 'DELEGATION_NOT_OPEN'); }
+  for (const id of Object.keys(MASTER_DELEGATED)) assert.equal(c.reaches(id), true, id);
+  assert.equal(c.reaches(RELAY_OP), true, 'Master 가 아닌 op 는 건드리지 않는다');
+  const user = new TerraClient('', { fetch: fakeFetch(() => json(200, {})) });   // 위임 자격이 아니면(사용자 세션) 표를 쓰지 않는다
+  user.catalog = c.catalog;
+  assert.equal(user.reaches(CLOSED[0]), true);
+  const early = new TerraClient('', { fetch: fakeFetch(() => json(200, {})), delegated: true });   // 카탈로그 전에는 막지 않는다
+  assert.equal(early.reaches(CLOSED[0]), true);
+});
+
+test('tree — 누르기 전 자물쇠: 닫힌 Master 쓰기는 폼으로 가는 것까지 잠그고, 열린 것(허가 · 바인딩 · 읽기)은 잠그지 않는다', () => {
+  const c = treeClient();
+  const source = new LiveSource(c, { localNode: 'tree-home', localId: 'node_t', idOf: () => null });
+  const reason = resultText({ kind: 'unavailable', reason: 'DELEGATION_NOT_OPEN' });
+  assert.match(reason, /Master 문에서 아직 열리지 않았다 — ADR-GW-004\/007/);
+  assert.equal(source.lockFor('wg', 'revoke', 'tree-home'), reason, 'peer 회수');
+  assert.equal(source.lockFor('tunnel', 'open', 'tree-home'), reason, '터널 열기(폼 동작)');
+  assert.equal(source.lockFor('tunnel', 'del', 'tree-home'), reason, '터널 선언 지우기');
+  // 노드 주소 호출 길이 없는 게이트웨이에서 다른 노드의 작업은 Master 경로(commands.post)다
+  const noRelay = treeClient(); noRelay.catalog.delete(RELAY_OP);
+  const s2 = new LiveSource(noRelay, { localNode: 'tree-home', localId: 'node_t', idOf: () => 'node_b' });
+  assert.equal(s2.lockFor('job', 'run', 'leaf-b'), reason, '명령 보내기(폼 동작)');
+  assert.equal(s2.lockFor('job', 'cancel', 'leaf-b'), reason, '다른 노드 작업 취소');
+  assert.equal(source.lockFor('svi', 'open', 'tree-home'), reason, '핸들 열기');
+  assert.equal(source.lockFor('grant', 'revoke', 'tree-home'), null, '허가 지우기는 열려 있다');
+  assert.equal(source.lockFor('grant', 'unbind', 'tree-home'), null, '바인딩 끊기는 열려 있다');
+  assert.equal(s2.lockFor('job', 'out', 'leaf-b'), null, '읽기는 열려 있다');
+});
+
+test('tree — 닫힌 Master 쓰기는 폼을 저장해도 부르지 않는다(crud) · 열린 쓰기는 부른다', async () => {
+  const f = fakeFetch(() => json(200, { ok: true, data: {} }));
+  const c = treeClient(); c.fetch = f;
+  const source = new LiveSource(c, { localNode: 'tree-home', localId: 'node_t', idOf: (n) => ({ 'leaf-b': 'node_b' }[n]) });
+  const r = await source.crud('tree-home', 'tunnel', 'create', { type: 'decl', to: 'leaf-b:22' }, null, { nodeIdOf: (n) => ({ 'leaf-b': 'node_b' }[n]) });
+  assert.deepEqual([r.kind, r.reason, f.calls.length], ['unavailable', 'DELEGATION_NOT_OPEN', 0]);
+  const g = await source.crud('tree-home', 'grant', 'create', { who: 'node_b', res: 'r1', ops: 'read', ttl: '1시간' }, null, {});
+  assert.notEqual(g && g.reason, 'DELEGATION_NOT_OPEN');
+  assert.equal(f.calls.length, 1);
+});
+
+// ───── NODE_OFFLINE — 막 시작한 노드의 중계 (§5.11) ─────
+test('중계 읽기의 409 NODE_OFFLINE 은 짧게 몇 번 다시 묻는다 — 쓰기는 다시 보내지 않는다 · 끝내 안 서면 그 코드 그대로', async () => {
+  let n = 0;
+  const f = fakeFetch(() => (++n < 3 ? json(409, { ok: false, error: { code: 'NODE_OFFLINE' } }) : json(200, { status: 'ok', data: { devices: [] }, meta: {} })));
+  const c = new TerraClient('', { fetch: f }); c.catalog = new Map([[RELAY_OP, {}]]); c.offlineRetryMs = [1, 1, 1];
+  c._ncat.set('n2', { ok: false, ops: new Map(), at: Date.now() });
+  const ok = await c.invoke('terra.daemon.io.devices.get', {}, { node: 'n2' });
+  assert.deepEqual([ok.kind, f.calls.length], ['ok', 3]);
+
+  const w = fakeFetch(() => json(409, { ok: false, error: { code: 'NODE_OFFLINE' } }));
+  const c2 = new TerraClient('', { fetch: w }); c2.catalog = new Map([[RELAY_OP, {}]]); c2.offlineRetryMs = [1, 1, 1];
+  c2._ncat.set('n2', { ok: false, ops: new Map(), at: Date.now() });
+  const post = await c2.invoke('terra.daemon.commands.execute.post', { command: 'x' }, { node: 'n2' });
+  assert.deepEqual([post.reason, w.calls.length], ['NODE_OFFLINE', 1], '쓰기는 한 번만');
+  const get = await c2.invoke('terra.daemon.io.devices.get', {}, { node: 'n2' });
+  assert.deepEqual([get.reason, w.calls.length], ['NODE_OFFLINE', 5], '읽기는 처음 + 세 번, 그다음 그대로 돌려준다');
+  assert.match(resultText(get), /몇 초 걸린다/);
 });

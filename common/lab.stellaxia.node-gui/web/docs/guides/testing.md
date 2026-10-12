@@ -7,8 +7,8 @@ doc_type: "guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.12.2"
-last_updated: "2026-10-11"
+version: "0.12.3"
+last_updated: "2026-10-12"
 language: "ko-KR"
 related:
   - "[[docs/README|개발 문서 MOC]]"
@@ -68,7 +68,8 @@ npm test        # node --test tests/*.test.mjs — 브라우저 없이 돈다
 
 | 파일 | 지키는 것 |
 | --- | --- |
-| `tests/api.test.mjs` | 봉투 벗기기 · 위임 자격의 Master 401 · 다른 노드(노드 주소 호출 — 그 노드 카탈로그 · 연 것만 · `allowed: false` · 길이 없는 게이트웨이 · `node_id` 모름 · Master 길 오류) · 다른 노드의 공유 폴더(원격 모듈 경로 · `fillRoute`) · frame 역할 · 보드 링크 |
+| `tests/api.test.mjs` | (2026-10-12 추가: tree — 카탈로그에 있어도 위임 표가 닫은 Master op 는 `reaches` 거짓 · `lockFor` 가 폼 동작까지 잠금 · `crud` 가 부르지 않음 · 열린 것은 안 잠금 / 중계 읽기의 `NODE_OFFLINE` 다시 묻기 — 쓰기는 한 번) 봉투 벗기기 · 위임 자격의 Master 401 · 다른 노드(노드 주소 호출 — 그 노드 카탈로그 · 연 것만 · `allowed: false` · 길이 없는 게이트웨이 · `node_id` 모름 · Master 길 오류) · 다른 노드의 공유 폴더(원격 모듈 경로 · `fillRoute`) · frame 역할 · 보드 링크 |
+| `tests/frametoken.test.mjs` | 앱 토큰 갱신 한 줄(§5.11) — 동시에 401 을 맞은 요청 다섯이 토큰을 한 번만 새로 받는다 · 이미 갱신됐으면 발급하지 않는다 · 절대 주소에는 토큰을 싣지 않는다 |
 | `tests/data.test.mjs` | 노드 이름 · 관계도 · 알림 · 보관함 칸 |
 | `tests/live.test.mjs` | 노드 화면 · 보드 · 편집기를 브라우저 없이 만들어 **상태와 렌더 값 전체에 예시 표식이 없는지**, 실제 응답 모양 → 화면 모양, 모듈 · Daemon 이 모르는 키를 싣지 않는지, WireGuard 꺼짐, 18칸을 넘는 자식, 권한(다른 노드는 노드 주소 호출로 닿을 때만 `관리자 · 중계`) |
 | `tests/module.test.mjs` | (MD-36 · MD-40 추가: 노드 카드 사용량 — 값이 없으면 막대 없음 · 이름만 다른 노드가 같은 값을 내지 않는다 · 받은 값은 반올림 · 0~100 · 80% 초과 경고색 / 창 본문 — 보드가 있는 창 · 없는 창 · 모듈 · 사용자 요약)  부트 프로필(`prep` · 공통 보정 — 빈 맵 · leaf 맵 자기 칸), LayoutStore(되살리기 — `ovhHide` · 메모 모양 포함 · 묶기 · 끊기 · 바뀐 것만 저장 · `loadWorld`가 저장본을 되살리고 로그아웃이 덮지 않기 · 상태 화면 · 폼 · 모듈 GUI 창을 비우기), 사용자 문서(`DocStore` — 앱 이름공간 경로 · 없음 404와 못 씀 501 · `base_revision` · 409 한 번 알림 · 모아서 쓰기 · 끊기 · 새 쪽이 이긴다 · 편집기 자산 받기 · 내보내기 · `loadWorld`가 서버 것이 새로우면 그 배치를, 브라우저 것이 새로우면 한 번 올리기 · 저장소가 없으면 브라우저만), 시작 화면(비밀번호 없음 · 로그인 카드 · 토큰이 있으면 내려가기 · 잃으면 돌아오기 · 다 내려간 뒤 로그아웃하면 판으로 · 내려간 뒤 아래 알약이 누름을 받지 않기), 자기 칸(캡슐 · 공유 연결 · 나가는 연결 규칙), 노드 이름이 바뀐 저장본(`remapNodes`), frame 연결 빌리기, 설치한 노드 자원 · 상태 화면의 앱 다시 받기(폴더는 위 칸까지), 오프라인 노드 = 정지 이벤트 |
