@@ -79,7 +79,7 @@ check('취소: 확인창은 Tab 이 창 안에서만 돈다', async (t) => {
 
 // ───────── 자율성 ─────────
 
-check('자율성: plan 새 세션 — 화면에서 열고, 모델의 호출은 "제안 · 실행 안 됨"으로만 남고 Gateway 에 닿지 않는다. ask·auto·unattended 는 아직 꺼져 있다', async (t) => {
+check('자율성: plan 새 세션 — 화면에서 열고, 모델의 호출은 "제안 · 실행 안 됨"으로만 남고 Gateway 에 닿지 않는다. ask·auto 는 열리고 unattended 만 G4 까지 꺼져 있다', async (t) => {
   await t.control.scenario('propose-call');
   const app = await openApp(t, {});
   await app.$('[data-role="new-session"]').waitFor({ state: 'visible' });
@@ -89,8 +89,8 @@ check('자율성: plan 새 세션 — 화면에서 열고, 모델의 호출은 "
   const radios = await app.$('input[name="autonomy"]').evaluateAll((els) => els.map((el) => ({ value: el.value, disabled: el.disabled, checked: el.checked })));
   assert.deepEqual(radios, [
     { value: 'plan', disabled: false, checked: true },
-    { value: 'ask', disabled: true, checked: false },
-    { value: 'auto', disabled: true, checked: false },
+    { value: 'ask', disabled: false, checked: false },
+    { value: 'auto', disabled: false, checked: false },
     { value: 'unattended', disabled: true, checked: false },
   ]);
   await app.$('[data-role="open-session"]').click();

@@ -58,6 +58,9 @@ export const MESSAGE_MAX_CHARS = 20000;
 export const TOPIC_MAX_CHARS = 200;
 export const MAX_STEPS_RANGE = { min: 1, max: 100 } as const;
 export const MAX_SECONDS_RANGE = { min: 1, max: 7200 } as const;
+/** 모듈의 기본값(session.go defaultMaxSteps·defaultMaxSeconds) — 폼이 채워 보이는 값이다. 보낼 때는 생략해 모듈이 정하게 한다. */
+export const DEFAULT_MAX_STEPS = 24;
+export const DEFAULT_MAX_SECONDS = 900;
 export const MESSAGES_LIMIT_MAX = 5000;
 export const API_KEY_MIN_CHARS = 8;
 

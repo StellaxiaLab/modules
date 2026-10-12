@@ -17,6 +17,12 @@ export class World {
   modelsReply: FakeReply | null = null;
   credentialsReply: FakeReply | null = null;
   listReply: FakeReply | null = null;
+  /** mcp.list 의 답. 기본은 서버 둘. */
+  mcpReply: FakeReply | null = null;
+  mcpServers: Array<Record<string, unknown>> = [
+    { name: 'filesystem', command: '/usr/bin/fs-mcp', env: ['FS_ROOT'], tools: [{ name: 'read', read_only: true }, { name: 'list', read_only: true }, { name: 'write', read_only: false }] },
+    { name: 'weather', command: '/usr/bin/weather-mcp', env: [], tools: [{ name: 'forecast', read_only: true }] },
+  ];
   /** messages.post 의 답을 덮는다(실패 시험). */
   postReply: FakeReply | null = null;
   version = '0.1.0';
@@ -123,15 +129,29 @@ export class World {
         ? reply.ok({ registered: true, principal: this.viewer, permissions: ['node.read'], reach: 'node', expires_at: '2030-01-01T00:00:00Z', expired: this.credentialExpired })
         : reply.ok({ registered: false });
     }
+    if (call.method === 'GET' && path === '/mcp/servers') return this.mcpReply ?? reply.ok({ servers: this.mcpServers });
     if (call.method === 'GET' && path === '/sessions') return this.listReply ?? reply.ok({ sessions: [...this.sessions.values()].map((s) => s.snap) });
     if (call.method === 'POST' && path === '/sessions') {
       const body = (call.body ?? {}) as Record<string, unknown>;
       this.opened.push(body);
       const id = String(body['session_id'] ?? 'auto');
       const existed = this.sessions.has(id);
-      if (!existed) this.addSession(id, { autonomy: (body['autonomy'] as 'plan') ?? 'plan', ...(typeof body['topic'] === 'string' ? { topic: body['topic'] } : {}), owner: this.viewer });
+      if (!existed) {
+        const num = (k: string): Partial<SessionSnapshot> => (typeof body[k] === 'number' ? { [k]: body[k] as number } : {});
+        this.addSession(id, {
+          autonomy: (body['autonomy'] as 'plan') ?? 'plan',
+          simulate: body['simulate'] === true,
+          ...(typeof body['topic'] === 'string' ? { topic: body['topic'] } : {}),
+          ...(typeof body['provider'] === 'string' ? { provider: body['provider'] } : {}),
+          ...(Array.isArray(body['mcp_servers']) ? { mcp_servers: body['mcp_servers'] as string[] } : {}),
+          ...num('max_steps'),
+          ...num('max_seconds'),
+          ...num('token_budget'),
+          owner: this.viewer,
+        });
+      }
       const snap = (this.sessions.get(id) as WorldSession).snap;
-      return reply.ok({ session_id: id, viewer: this.viewer, state: snap.state, autonomy: snap.autonomy, simulate: false, created: !existed }, existed ? 200 : 201);
+      return reply.ok({ session_id: id, viewer: this.viewer, state: snap.state, autonomy: snap.autonomy, simulate: snap.simulate, created: !existed, ...(snap.provider ? { provider: snap.provider } : {}) }, existed ? 200 : 201);
     }
     const m = /^\/sessions\/([^/]+)(\/messages|\/cancel)?$/.exec(path);
     if (m) {
