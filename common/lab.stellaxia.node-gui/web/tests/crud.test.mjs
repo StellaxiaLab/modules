@@ -13,7 +13,7 @@ const { TerraClient } = await import('../src/api/client.js');
 const { LiveSource } = await import('../src/api/source.js');
 const { CRUD_TEXT } = await import('../src/api/operations.js');
 const { withGui } = await import('../src/api/adapters.js');
-const { wireHelm } = await import('../src/api/wire.js');
+const { wireHelm, linkPrincipal } = await import('../src/api/wire.js');
 const { prep } = await import('../src/boot/module.js');
 const { default: NodeScreen } = await import('../src/screens/node.js');
 
@@ -366,4 +366,11 @@ test('허가 고치기 — svi.grants.by-grant-id.patch(operations · 기한만,
   const n = f.calls.length;
   assert.deepEqual(await source.crud(LOCAL, 'grant', 'update', { ops: 'read' }, { id: 'b-1', type: 'bind' }), { kind: 'unavailable', reason: 'bind-immutable' });
   assert.equal(f.calls.length, n, '바인딩은 부르지 않는다');
+});
+
+test('연결 적용의 내 신원은 whoami principal — 셸 로그인 표시(이메일)가 frame 값에 있어도(MD-46)', () => {
+  const who = { principal: 'user_me via lab.stellaxia.node-gui.web' };
+  assert.equal(linkPrincipal(who, 'admin@stack.local'), 'user_me via lab.stellaxia.node-gui.web');
+  assert.equal(linkPrincipal({ principal: '' }, 'admin@stack.local'), 'admin@stack.local');   // whoami 를 못 받았을 때만
+  assert.equal(linkPrincipal(null, ''), '');
 });

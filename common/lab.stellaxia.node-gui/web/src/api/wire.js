@@ -425,6 +425,17 @@ async function whoami(client) {
 }
 
 /**
+ * 연결 적용(허가 검사 · 허가 주체)에 넘길 내 신원. 게이트웨이 whoami 의 principal 이 먼저다 — frame 세션 값의
+ * principal 은 셸 로그인 표시(이메일)일 수 있고, 그것을 주체로 보내면 위임 입구가 403 이다(MD-46).
+ * @param {{ principal?: string } | null | undefined} who  whoami 결과
+ * @param {string} [shown]  화면에 보이는 신원(없을 때만 쓴다)
+ * @returns {string}
+ */
+export function linkPrincipal(who, shown) {
+  return (who && who.principal) || shown || '';
+}
+
+/**
  * frame 안. 토큰이 있는 동안만 실데이터에 붙는다.
  *
  * 토큰을 받으면: 카탈로그 → 이 노드 · tree · 자원(loadWorld) → 조타륜 앱(wireHelm, 진짜 로컬 노드 이름으로) → 알림 · 네트워크 폴링.
@@ -471,7 +482,7 @@ async function wireFrame(screen) {
     // 다른 노드는 관계도의 node_id 로 노드 주소 호출(B-1)을 한다 — 그 노드 카탈로그가 오면 자물쇠를 다시 그린다
     const source = new LiveSource(client, { localNode: screen.state.localNode.name, localId: screen.state.localNode.id, idOf: (name) => (screen.NET && screen.NET[name] && screen.NET[name].id) || null, parts: openParts() });
     source.client = client;
-    source.principal = principal;   // 연결 적용(link-wire.js)이 허가 검사에 쓰는 내 신원 — 게이트웨이 whoami 의 principal
+    source.principal = linkPrincipal(who, principal);
     client.onNodeCatalog = () => { if (key === next) screen.setState({}); };
     // 실시간 이벤트(B-5)가 열려 있으면 신호가 다시 받기를 맡는다 — 폴링은 여섯 번에 한 번(바닥)만
     let ev = '';

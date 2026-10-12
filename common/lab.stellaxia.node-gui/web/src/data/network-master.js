@@ -193,7 +193,7 @@ export const masterBlocks = {
       legend: Object.keys(RT).filter((k) => k !== 'local_loopback').map((k) => ({ t: k, c: RT[k], style: k === 'cloud_relay' || k === 'webrtc_p2p' ? 'dashed' : 'solid' }))
     }));
     const C = S.mCand;
-    out.push(this.table({ span: 5, title: '후보 라우트', sub: 'route.candidates.get · ' + (P.src && P.dst ? (names.get(P.src) || P.src) + ' → ' + (names.get(P.dst) || P.dst) + ' · ' + (P.channel || 'service_tunnel') : '그래프에서 두 노드를 고른다'),
+    out.push(this.table({ span: 5, title: '후보 라우트', sub: 'route.candidates.get · ' + (P.src && P.dst ? (names.get(P.src) || P.src) + ' → ' + (names.get(P.dst) || P.dst) + ' · ' + (P.channel || 'service.tunnel') : '그래프에서 두 노드를 고른다'),
       tags: C && C.kind === 'ok' && C.data.source ? [this.tag('policy_source: ' + C.data.source, 'vio')] : [],
       cols: '1.5fr 0.9fr 0.8fr 0.6fr 1.3fr', head: ['route_type', 'adapter', '상태', '지연', '이유'],
       rows: C && C.kind === 'ok' ? C.data.cands.map((c, i) => ({ hl: i === 0 ? 'rgba(122,167,255,0.07)' : 'transparent', cells: [this.cM(c.rt, { c: RT[c.rt] || '#ede9e1', fw: 700, sub: c.bw !== '—' ? c.bw : '' }), this.cM(c.ad), this.cB(c.healthy ? 'healthy' : 'unhealthy', c.healthy ? 'ok' : 'bad'), this.cM(c.lat), this.cT(c.reason, { c: '#9aa1ab' })] }))
