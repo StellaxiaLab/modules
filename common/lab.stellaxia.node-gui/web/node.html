@@ -1867,6 +1867,71 @@ html,body{height:100%}
           <sc-if value="{{w.fsFrame}}" hint-placeholder-val="{{false}}">
             <iframe class="win-fs-full" data-board="{{w.href}}" title="{{w.title}} 보드" style="display: block; border: 0; background: rgba(255,255,255,0.04);"></iframe>
           </sc-if>
+          <sc-if value="{{w.isAdm}}" hint-placeholder-val="{{false}}">
+            <div data-adm="1" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; font-size: 12.5px;">
+              <div role="tablist" style="flex-shrink: 0; display: flex; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid rgba(255,255,255,0.10);">
+                <sc-for list="{{adm.tabs}}" as="t" hint-placeholder-count="4">
+                  <button type="button" role="tab" data-adm-tab="{{t.k}}" onPointerDown="{{stopEv}}" onClick="{{t.click}}" style="height: 30px; padding: 0 12px; border: 0; border-bottom: 2px solid {{t.line}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border-radius: 6px 6px 0 0;">{{t.l}}</button>
+                </sc-for>
+              </div>
+              <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px;">
+                <sc-if value="{{adm.locked}}" hint-placeholder-val="{{false}}">
+                  <div data-adm-lock="1" style="padding: 14px; border-radius: 10px; border: 1px dashed rgba(245,184,61,0.5); background: rgba(245,184,61,0.07); color: #e8c46f; line-height: 1.6;">
+                    <b>지금은 쓸 수 없다</b><br><span style="color: #c7ccd4;">{{adm.lockWhy}}</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{adm.tabUsers}}" hint-placeholder-val="{{true}}">
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="flex-grow: 1; color: #9aa1ab; font-size: 11.5px;">클러스터 계정 {{adm.userN}}명 — 권한은 이름 옆 칩으로 켜고 끈다</span>
+                      <button type="button" data-adm-invite="1" onPointerDown="{{stopEv}}" onClick="{{adm.invite}}" disabled="{{adm.dis}}" style="height: 26px; padding: 0 11px; border: 1px solid rgba(255,255,255,0.18); border-radius: 13px; background: #ede9e1; color: #15171a; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; opacity: {{adm.btnOp}};">사용자 초대</button>
+                    </div>
+                    <sc-for list="{{adm.users}}" as="u" hint-placeholder-count="2">
+                      <div data-adm-user="{{u.n}}" style="border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; background: rgba(255,255,255,0.03); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <span style="width: 26px; height: 26px; border-radius: 13px; background: rgba(255,255,255,0.08); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px;">{{u.ini}}</span>
+                          <b style="flex-grow: 1;">{{u.n}}</b>
+                          <span style="height: 20px; padding: 0 8px; border-radius: 10px; background: {{u.cbg}}; color: {{u.cfg}}; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center;">{{u.role}}</span>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                          <sc-for list="{{u.perms}}" as="pm" hint-placeholder-count="4">
+                            <button type="button" data-adm-perm="{{pm.k}}" onPointerDown="{{stopEv}}" onClick="{{pm.click}}" disabled="{{pm.dis}}" title="{{pm.tip}}" style="height: 22px; padding: 0 9px; border-radius: 11px; border: 1px solid {{pm.line}}; background: {{pm.bg}}; color: {{pm.fg}}; font: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer; opacity: {{pm.op}};">{{pm.l}}</button>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{adm.tabCore}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="flex-grow: 1; color: #9aa1ab; font-size: 11.5px;">최신 코어 <b style="color: #ede9e1;">{{adm.latest}}</b> · 뿌리에 가까운 노드부터 차례로 바꾼다</span>
+                      <button type="button" data-adm-all="1" onPointerDown="{{stopEv}}" onClick="{{adm.applyAll}}" disabled="{{adm.dis}}" style="height: 26px; padding: 0 11px; border: 1px solid rgba(255,255,255,0.18); border-radius: 13px; background: #ede9e1; color: #15171a; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; opacity: {{adm.btnOp}};">전체 차례로 적용</button>
+                    </div>
+                    <sc-for list="{{adm.core}}" as="c" hint-placeholder-count="3">
+                      <div data-adm-core="{{c.n}}" style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; background: rgba(255,255,255,0.03);">
+                        <b style="flex-grow: 1;">{{c.n}}</b>
+                        <span class="mono" style="color: #9aa1ab; font-size: 11px;">{{c.ver}}</span>
+                        <span style="height: 20px; padding: 0 8px; border-radius: 10px; background: {{c.cbg}}; color: {{c.cfg}}; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center;">{{c.st}}</span>
+                        <button type="button" data-adm-apply="{{c.n}}" onPointerDown="{{stopEv}}" onClick="{{c.click}}" disabled="{{c.dis}}" style="height: 24px; padding: 0 10px; border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; background: transparent; color: #ede9e1; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; opacity: {{c.op}};">적용</button>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{adm.tabFleet}}" hint-placeholder-val="{{false}}">
+                  <div data-adm-frame="fleet" style="min-height: 150px; border: 1px dashed rgba(255,255,255,0.14); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; justify-content: center; gap: 6px; text-align: center; color: #9aa1ab;">
+                    <b style="color: #c7ccd4;">Fleet · Cell</b><span>같은 일을 하는 노드를 한 묶음(Fleet)으로, 한 배치 단위를 Cell로 다루는 자리. 틀만 잡아 두었다 — 설계는 M-4.</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{adm.tabTT}}" hint-placeholder-val="{{false}}">
+                  <div data-adm-frame="tt" style="min-height: 150px; border: 1px dashed rgba(255,255,255,0.14); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; justify-content: center; gap: 6px; text-align: center; color: #9aa1ab;">
+                    <b style="color: #c7ccd4;">Tree의 Tree</b><span>여러 클러스터를 한 위 클러스터로 묶어 보는 자리. 틀만 잡아 두었다 — 설계는 M-5.</span>
+                  </div>
+                </sc-if>
+                <span data-adm-msg="1" style="display: {{adm.msgDisp}}; padding: 6px 9px; border-radius: 7px; background: rgba(122,167,255,0.12); color: #9dbdff; font-size: 11.5px; font-weight: 700;">{{adm.msg}}</span>
+              </div>
+            </div>
+          </sc-if>
           <sc-if value="{{w.isEdBox}}" hint-placeholder-val="{{false}}">
             <div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
               <div style="min-height: 150px; border: 1px dashed rgba(255,255,255,0.10); border-radius: 8px; background: #101113; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 14px; text-align: center; color: #9aa1ab;">

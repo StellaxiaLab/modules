@@ -46,6 +46,8 @@ export function applyFixes(name, Screen) {
     P.ioDemo = () => false;
     // 원형 메뉴의 '노드 창 열기'는 노드 데스크톱이 모듈에 들어온 뒤에 켠다 — 그 전에는 항목을 빼서 누르면 아무 일도 없는 칸을 두지 않는다
     P.nodeWinOn = () => false;
+    // 클러스터 창(기능칸): Master 작업은 앱 토큰으로 부를 수 없어(PF-1) 값을 지어내지 않고 잠금 이유만 보인다
+    P.admLocked = () => true;
     P.IOEPS = function (res) {
       const items = res && this.hbItems ? this.hbItems(res.node, 'svi') : null;
       const it = Array.isArray(items) ? items.find((x) => x && x.id === res.id) : null;
