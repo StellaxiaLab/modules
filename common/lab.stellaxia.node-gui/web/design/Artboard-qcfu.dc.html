@@ -7046,14 +7046,26 @@ class Component extends DCLogic {
     return { anim: an, img: (an && this.animUrl(an)) || src || '', href: '#' + bt.id, ix: x0, iy: y0, iw: x1 - x0, ih: y1 - y0, imgDisp: src ? 'inline' : 'none', useDisp: src ? 'none' : 'inline' };
   }
   // ───── 원형 메뉴 항목 ─────
-  // 아직 무엇을 넣을지 정하지 않아 빈 슬롯 8개. 항목 = { id, label, icon(svg path), edit(편집 모드에서만), run(target) }
+  // 나머지는 아직 무엇을 넣을지 정하지 않아 빈 슬롯. 항목 = { id, label, icon(svg path), edit(편집 모드에서만), run(target) }
   // target = { kind: 'tile' | 'field', key, mode: 'edit' | 'view' }
+  // 맨 위(0°) 칸 = "노드 창 열기" — 타일에 노드가 있을 때만. 노드마다 창을 따로 연다(보드 "노드 데스크톱")
   radialItems(target) {
     const dot = 'M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0';
-    return [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
+    const items = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
       id: 'slot' + n, label: '슬롯 ' + n + ' (비어 있음)', icon: dot, edit: false,
       run: (t) => this.setState({ rmNote: '슬롯 ' + n + ' 선택 — 대상: ' + (t.kind === 'tile' ? '타일 ' + t.key : '빈 필드') })
     }));
+    const nd = target && target.kind === 'tile' && this.nodeWinOn() ? this.state.nodes[target.key] : null;
+    if (nd) items[0] = { id: 'nodewin', label: '노드 창 열기 — ' + nd.name, icon: 'M3 5h18v14H3z M3 9h18', edit: false, run: (t) => this.openNodeWindow(t.key) };
+    return items;
+  }
+  // 노드 창은 노드마다 따로 뜬다. 이미 열려 있으면 새로 열지 않고 앞으로 가져온다. 이 디자인에서는 열림만 기록하고 안내 글을 낸다
+  nodeWinOn() { return true; }
+  openNodeWindow(key) {
+    const S = this.state, n = S.nodes[key];
+    if (!n) return;
+    const open = S.ndWins || [], had = open.indexOf(key) >= 0;
+    this.setState({ ndWins: had ? open : open.concat(key), rmNote: (had ? '이미 열려 있다 — 앞으로 가져온다: ' : '노드 창을 연다 (노드마다 창 따로): ') + n.name });
   }
   // 기능 칸 · 서랍 카드가 함께 쓰는 기능 요약 (예시 — 연동 시 각 기능의 요약 값으로)
   utilInfo() {

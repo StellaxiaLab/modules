@@ -285,6 +285,28 @@ button{font-family:inherit}
         </sc-for>
       </div>
 
+      <!-- 앱 목록 (런처): Terra 기능 + 설치된 모듈의 앱. 바탕화면에는 바로가기로 둔다 -->
+      <sc-if value="{{lau.on}}" hint-placeholder-val="{{ false }}">
+        <div role="dialog" aria-label="앱 목록" onClick="{{lau.stop}}" onContextMenu="{{lau.stop}}" style="position: absolute; z-index: 1050; {{lau.pos}}; width: 380px; max-height: 470px; box-sizing: border-box; padding: 10px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; background: {{t.menu}}; border: 1px solid {{t.line2}}; border-radius: 14px; box-shadow: 0 14px 40px rgba(0,0,0,.45); backdrop-filter: blur(14px);">
+          <sc-for list="{{lau.groups}}" as="gp" hint-placeholder-count="2">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="padding: 4px 6px 2px; font-size: 10px; font-weight: 600; letter-spacing: .28em; color: {{t.dim}};">{{gp.title}}</span>
+              <sc-for list="{{gp.items}}" as="la" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 5px 6px; border-radius: 8px; background: {{la.bg}};">
+                  <button type="button" onClick="{{la.open}}" disabled="{{la.off}}" style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: 0; background: transparent; color: {{la.fg}}; font-size: 12.5px; text-align: left; padding: 0; cursor: pointer;">
+                    <span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: {{t.raise}}; border: 1px solid {{t.line}};"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{la.d}}"/></svg></span>
+                    <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{la.name}}</span>
+                    <span style="font-size: 11px; color: {{la.noteC}};">{{la.note}}</span>
+                  </button>
+                  <button type="button" onClick="{{la.pin}}" disabled="{{la.pinned}}" style="height: 24px; flex-shrink: 0; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{la.pinFg}}; font-size: 11.5px; cursor: pointer;">{{la.pinLabel}}</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+          <span style="padding: 6px 6px 2px; border-top: 1px solid {{t.line}}; font-size: 11px; line-height: 1.5; color: {{t.dim}};">새 모듈 설치와 카탈로그는 클러스터 관리라 맵의 기능칸에서 한다. 설치된 모듈의 앱은 여기에 저절로 나타난다.</span>
+        </div>
+      </sc-if>
+
       <!-- 우클릭 메뉴 -->
       <sc-if value="{{menu.on}}" hint-placeholder-val="{{ false }}">
         <div role="menu" style="position: absolute; z-index: 1100; left: {{menu.x}}px; top: {{menu.y}}px; width: 190px; box-sizing: border-box; padding: 5px; background: {{t.menu}}; border: 1px solid {{t.line2}}; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.40); backdrop-filter: blur(14px);">
@@ -297,7 +319,7 @@ button{font-family:inherit}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"lab-ws-02"},"$preview":{"width":1440,"height":900}}'>
 const D = {
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   doc: 'M6 3h9l3 3v15H6z M9 9h6 M9 13h6 M9 17h4',
@@ -375,11 +397,11 @@ class Component extends DCLogic {
         home:   { c: 0, r: 0, name: '내 폴더',     k: 'dir',   loc: 'home' },
         vault:  { c: 0, r: 1, name: '공유 폴더',   k: 'dir',   loc: 'vault' },
         tar:    { c: 0, r: 2, name: 'backup.tar',  k: 'file',  loc: 'home' },
-        agent:  { c: 1, r: 0, name: '에이전트',   k: 'short', app: 'mods', src: '모듈 · 에이전트' },
+        agent:  { c: 1, r: 0, name: '에이전트',   k: 'short', app: 'mods', mod: 'agent', src: '모듈 · 에이전트' },
         jobs:   { c: 1, r: 1, name: '작업 관리자', k: 'short', app: 'jobs', src: 'Terra 기능' },
         shell:  { c: 1, r: 2, name: '터미널',     k: 'short', app: 'term', src: 'Terra 기능' }
       },
-      iconSel: null, menu: null, ov: null,
+      iconSel: null, menu: null, ov: null, lau: false,
       setTab: 'wall', fmLoc: 'home', fmPick: null,
       term: [
         { t: 'Terra 연결 · 앱 스코프 토큰 · 노드 계정 stk', c: 'dim' },
@@ -425,7 +447,7 @@ class Component extends DCLogic {
   dockBox() {
     const d = this.deskDims(), left = this.state.prefs.dock === 'left';
     return left ? { x: 8, y: 32 + 8, w: 60, h: d.h - 32 - 16, dir: 'column', r: 14 }
-                : { x: Math.round(d.w / 2 - 190), y: d.h - 62, w: 380, h: 54, dir: 'row', r: 16 };
+                : { x: Math.round(d.w / 2 - 215), y: d.h - 62, w: 430, h: 54, dir: 'row', r: 16 };
   }
   workBox() {
     const d = this.deskDims(), left = this.state.prefs.dock === 'left';
@@ -544,7 +566,7 @@ class Component extends DCLogic {
   /* ---- 터미널 ---- */
   runCmd(raw) {
     const cmd = raw.trim();
-    const out = [{ t: 'stk@' + 'lab-ws-02' + ':~$ ' + raw, c: 'cmd' }];
+    const out = [{ t: 'stk@' + (this.props.nodeName || 'lab-ws-02') + ':~$ ' + raw, c: 'cmd' }];
     const add = (arr, c) => arr.forEach((t) => out.push({ t, c: c || 'out' }));
     const s = this.state;
     if (!cmd) { this.setState({ term: s.term.concat(out), termIn: '' }); return; }
@@ -553,7 +575,7 @@ class Component extends DCLogic {
     if (a === 'exit') { this.setState({ termIn: '' }); this.closeWin('term'); return; }
     if (a === 'help') add(SHELL_HELP);
     else if (a === 'whoami') add(['stk  (노드 계정)', '권한: node.read node.control process.execute']);
-    else if (a === 'node') add(['이름     lab-ws-02', '부모     tree-home', '등록     등록됨', '코어     0.9.4   모듈 0.4.3', '가동     3일 4시간']);
+    else if (a === 'node') add(['이름     ' + (this.props.nodeName || 'lab-ws-02'), '부모     tree-home', '등록     등록됨', '코어     0.9.4   모듈 0.4.3', '가동     3일 4시간']);
     else if (a === 'ls') add(['docs/  backup/  notes.md  backup.tar']);
     else if (a === 'jobs') s.jobs.forEach((j) => out.push({ t: j.id + '  ' + j.op.padEnd(16) + this.jobLabel(j).label + (j.st === 'run' || j.st === 'stall' ? ' ' + j.pct + '%' : ''), c: 'out' }));
     else if (a === 'svi') s.res.forEach((r) => out.push({ t: r.name.padEnd(16) + r.dir + '  ' + (r.open ? '열림' : '닫힘'), c: 'out' }));
@@ -692,8 +714,8 @@ class Component extends DCLogic {
         const tgl = (k, label, note) => ({ label, note, on: p[k], bg: p[k] ? '#3ecf8e' : 'rgba(128,128,128,.45)', knob: p[k] ? 19 : 3, flip: () => this.setPref(k, !p[k]) });
         o.toggles = [tgl('dark', '어두운 모양', '창과 바를 어둡게 그린다'), tgl('snap', '창 맞춤', '가장자리로 끌면 반쪽으로 붙는다'), tgl('anim', '창 움직임', '열고 닫을 때 짧은 움직임')];
         const rowsOf = { net: [['주소', '10.40.2.17', false], ['WireGuard', 'wg0 · 피어 3', false], ['서비스 터널', '2개 열림', false], ['접속 허용 범위', '같은 Tree 안', true]],
-          terra: [['노드 이름', s.prefsName || 'lab-ws-02', true], ['부모', 'tree-home', true], ['등록', '등록됨', false], ['코어', '0.9.4', false], ['모듈 묶음', '0.4.3', false]],
-          about: [['장치', 'lab-ws-02', false], ['운영체제', 'Linux 6.18', false], ['가동 시간', '3일 4시간', false], ['Terra 연결', '정상 · 앱 스코프', false]] }[s.setTab] || [];
+          terra: [['노드 이름', this.props.nodeName || 'lab-ws-02', true], ['부모', 'tree-home', true], ['등록', '등록됨', false], ['코어', '0.9.4', false], ['모듈 묶음', '0.4.3', false]],
+          about: [['장치', this.props.nodeName || 'lab-ws-02', false], ['운영체제', 'Linux 6.18', false], ['가동 시간', '3일 4시간', false], ['Terra 연결', '정상 · 앱 스코프', false]] }[s.setTab] || [];
         o.rows = rowsOf.map((r, i) => ({ k: r[0], v: r[1], lock: r[2], lockText: s.setTab === 'net' ? '허용 범위 · node.config' : 'node.config', bt: i === 0 ? 'none' : '1px solid ' + t.line }));
         o.saveC = s.save === 'saving' ? '#f5b83d' : '#3ecf8e';
         o.saveText = s.save === 'saving' ? '노드 계정 stk에 저장하는 중…' : '노드 계정 stk에 저장됨 — 다른 기기에서 열어도 같은 바탕화면이 나온다.';
@@ -716,7 +738,7 @@ class Component extends DCLogic {
     /* 독 */
     const db = this.dockBox(), left = p.dock === 'left';
     const dock = { x: db.x, y: db.y, w: db.w, h: db.h, dir: db.dir, r: db.r, bd: '1px solid ' + t.line };
-    const dockApps = DOCK.map((id) => {
+    const dockApps = [{ label: '앱 목록', d: 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z', bg: s.lau ? t.raiseH : 'transparent', bd: s.lau ? t.line2 : 'transparent', fg: t.ink, dot: 'transparent', dotPos: 'bottom: 2px; left: 18px', click: () => this.setState({ lau: !this.state.lau, menu: null }) }].concat(DOCK.map((id) => {
       const w = s.wins[id], open = !!w, isTop = open && !w.min && topId === id;
       return {
         label: APPS[id].title, d: APPS[id].d,
@@ -724,7 +746,15 @@ class Component extends DCLogic {
         dot: open ? t.accent : 'transparent', dotPos: left ? 'left: 3px; top: 18px' : 'bottom: 2px; left: 18px',
         click: () => { if (isTop) this.patchWin(id, { min: true }); else this.launch(id); }
       };
-    });
+    }));
+
+    /* 앱 목록 */
+    const pinnedApp = (appId, modId) => Object.keys(s.icons).some((k) => { const ic = s.icons[k]; return ic.k === 'short' && (modId ? ic.mod === modId : ic.app === appId && !ic.mod); });
+    const pin = (name, app, src, mod) => { const f = this.firstCell(), id = 'pin' + Date.now() % 100000; this.setState({ icons: { ...this.state.icons, [id]: { c: f.c, r: f.r, name, k: 'short', app, src, ...(mod ? { mod } : {}) } } }); this.persist(); };
+    const builtin = DOCK.map((id) => { const on = pinnedApp(id, null); return { name: APPS[id].title, d: APPS[id].d, note: s.wins[id] ? '열림' : '', noteC: t.dim, bg: 'transparent', fg: t.ink, off: false, pinned: on, pinLabel: on ? '바탕화면에 있음' : '바탕화면에 두기', pinFg: on ? t.dim : t.ink, open: () => { this.setState({ lau: false }); this.launch(id); }, pin: () => pin(APPS[id].title, id, 'Terra 기능', null) }; });
+    const modApps = s.mods.map((m) => { const on = pinnedApp('mods', m.id), up = m.st === 'run'; return { name: m.name, d: D.puzzle, note: up ? '' : '다시 시작 중', noteC: '#f5b83d', bg: 'transparent', fg: up ? t.ink : t.dim, off: !up, pinned: on, pinLabel: on ? '바탕화면에 있음' : '바탕화면에 두기', pinFg: on ? t.dim : t.ink, open: () => { this.setState({ lau: false }); this.launch('mods'); }, pin: () => pin(m.name, 'mods', '모듈 · ' + m.name, m.id) }; });
+    const lau = { on: s.lau, groups: [{ title: 'TERRA', items: builtin }, { title: '모듈', items: modApps }], stop: (e) => e.stopPropagation(),
+      pos: left ? 'left: 76px; top: 40px' : 'left: ' + db.x + 'px; bottom: 70px' };
 
     /* 우클릭 메뉴 */
     const menu = { on: !!s.menu, x: s.menu ? s.menu.x : 0, y: s.menu ? s.menu.y : 0, items: [] };
@@ -732,6 +762,7 @@ class Component extends DCLogic {
       const close = () => this.setState({ menu: null });
       menu.items = [
         { label: '새 폴더', run: () => { const id = 'new' + Date.now() % 100000, f = this.firstCell(); this.setState({ icons: { ...this.state.icons, [id]: { c: f.c, r: f.r, name: '새 폴더', k: 'dir', loc: 'desk' } }, menu: null }); this.persist(); } },
+        { label: '앱 목록', run: () => this.setState({ lau: true, menu: null }) },
         { label: '배경 바꾸기', run: () => { this.setState({ setTab: 'wall', menu: null }); this.launch('set'); } },
         { label: '터미널 열기', run: () => { close(); this.launch('term'); } },
         { label: '설정', run: () => { close(); this.launch('set'); } }
@@ -744,11 +775,11 @@ class Component extends DCLogic {
       : { text: '노드 계정에 저장됨', c: dark ? '#9aa1ab' : '#5b6472', d: D.check };
 
     return {
-      t, frame, wall, icons, iconBox, wins, dock, dockApps, menu, save: sv,
-      node: { name: 'lab-ws-02', parent: 'tree-home' },
+      t, frame, wall, icons, iconBox, wins, lau, dock, dockApps, menu, save: sv,
+      node: { name: this.props.nodeName || 'lab-ws-02', parent: 'tree-home' },
       focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
       toggleFull: () => { this.setState({ full: !this.state.full }); },
-      deskClick: () => this.setState({ menu: null, iconSel: null }),
+      deskClick: () => this.setState({ menu: null, iconSel: null, lau: false }),
       deskMenu: (e) => {
         e.preventDefault();
         const r = e.currentTarget.getBoundingClientRect(), D2 = this.deskDims();

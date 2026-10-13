@@ -44,6 +44,8 @@ export function applyFixes(name, Screen) {
     //   엔드포인트는 그 자원의 실제 목록(ADAPT.svi 항목의 flow.eps — id · 방향 · 방식. 형식 · QoS 는 모르니 비운다 — Master 가 판정한다),
     //   적용 · 허가는 wireLinkApply 가 인스턴스에 붙이는 linkApply · linkGrantSelf. 붙기 전(게이트웨이에 닿지 않음)에는 지어내지 않고 이유를 말한다(UP-14 원칙).
     P.ioDemo = () => false;
+    // 원형 메뉴의 '노드 창 열기'는 노드 데스크톱이 모듈에 들어온 뒤에 켠다 — 그 전에는 항목을 빼서 누르면 아무 일도 없는 칸을 두지 않는다
+    P.nodeWinOn = () => false;
     P.IOEPS = function (res) {
       const items = res && this.hbItems ? this.hbItems(res.node, 'svi') : null;
       const it = Array.isArray(items) ? items.find((x) => x && x.id === res.id) : null;
