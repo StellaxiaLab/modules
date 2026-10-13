@@ -13,6 +13,7 @@
 <style>
 body{margin:0}
 button{font-family:inherit}
+*{scrollbar-width:thin;scrollbar-color:rgba(160,160,160,.45) transparent}
 </style>
 </helmet>
 <div style="width: 1440px; height: 900px; position: relative; overflow: hidden; background: #07090c; font-family: 'Noto Sans KR','Noto Sans',system-ui,sans-serif; font-size: 13px; line-height: 1.5; color: #ede9e1;">
@@ -36,9 +37,11 @@ button{font-family:inherit}
     <!-- 바탕화면 -->
     <div onClick="{{deskClick}}" onContextMenu="{{deskMenu}}" style="position: relative; flex-grow: 1; overflow: hidden; background: {{wall.bg}};">
 
-      <!-- 바탕화면 아이콘 -->
+      <!-- 바탕화면 아이콘: 칸에 고정, 가려지면 아래(와 오른쪽)에 스크롤 바 -->
+      <div aria-label="바탕화면 아이콘" style="position: absolute; z-index: 1; left: {{iconBox.x}}px; top: {{iconBox.y}}px; width: {{iconBox.w}}px; height: {{iconBox.h}}px; overflow: auto;">
+      <div style="position: relative; width: {{iconBox.cw}}px; height: {{iconBox.ch}}px;">
       <sc-for list="{{icons}}" as="ic" hint-placeholder-count="6">
-        <div onPointerDown="{{ic.down}}" onPointerMove="{{ic.move}}" onPointerUp="{{ic.up}}" onDoubleClick="{{ic.open}}" onClick="{{ic.stop}}" style="position: absolute; left: {{ic.x}}px; top: {{ic.y}}px; width: 92px; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 4px; box-sizing: border-box; border-radius: 10px; background: {{ic.bg}}; border: 1px solid {{ic.bd}}; cursor: default; touch-action: none; user-select: none;">
+        <div onPointerDown="{{ic.down}}" onPointerMove="{{ic.move}}" onPointerUp="{{ic.up}}" onDoubleClick="{{ic.open}}" onClick="{{ic.stop}}" style="position: absolute; left: {{ic.x}}px; top: {{ic.y}}px; width: 92px; display: flex; z-index: {{ic.z}}; flex-direction: column; align-items: center; gap: 5px; padding: 6px 4px; box-sizing: border-box; border-radius: 10px; background: {{ic.bg}}; border: 1px solid {{ic.bd}}; cursor: default; touch-action: none; user-select: none;">
           <div style="position: relative; width: {{ic.tile}}px; height: {{ic.tile}}px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {{ic.tint}}; color: {{ic.fg}}; border: 1px solid rgba(255,255,255,.18); box-sizing: border-box;">
             <svg viewBox="0 0 24 24" width="{{ic.glyph}}" height="{{ic.glyph}}" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{ic.d}}"/></svg>
             <sc-if value="{{ic.isShort}}" hint-placeholder-val="{{ false }}">
@@ -48,6 +51,8 @@ button{font-family:inherit}
           <span style="max-width: 86px; text-align: center; font-size: 12px; line-height: 1.25; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.75); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ic.name}}</span>
         </div>
       </sc-for>
+      </div>
+      </div>
 
       <!-- 앱 창 -->
       <sc-for list="{{wins}}" as="w" hint-placeholder-count="2">
@@ -148,14 +153,6 @@ button{font-family:inherit}
                         <div style="display: flex; gap: 10px;">
                           <sc-for list="{{w.walls}}" as="wl" hint-placeholder-count="4">
                             <button type="button" aria-label="{{wl.label}}" aria-pressed="{{wl.on}}" onClick="{{wl.pick}}" style="width: 92px; height: 58px; box-sizing: border-box; padding: 0; border-radius: 9px; background: {{wl.bg}}; border: 2px solid {{wl.bd}}; cursor: pointer; display: flex; align-items: flex-end; justify-content: flex-start;"><span style="margin: 0 0 4px 6px; font-size: 11px; color: {{wl.ink}}; text-shadow: 0 1px 2px rgba(0,0,0,.4);">{{wl.label}}</span></button>
-                          </sc-for>
-                        </div>
-                      </div>
-                      <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="width: 92px; font-size: 12px; color: {{t.dim}};">아이콘 크기</span>
-                        <div style="display: flex; border: 1px solid {{t.line2}}; border-radius: 9px; overflow: hidden;">
-                          <sc-for list="{{w.sizes}}" as="sz" hint-placeholder-count="3">
-                            <button type="button" aria-pressed="{{sz.on}}" onClick="{{sz.pick}}" style="height: 28px; padding: 0 14px; border: 0; background: {{sz.bg}}; color: {{sz.fg}}; font-size: 12px; cursor: pointer;">{{sz.label}}</button>
                           </sc-for>
                         </div>
                       </div>
@@ -325,14 +322,17 @@ const D = {
   save: 'M5 3h11l3 3v15H5z M8 3v6h7V3 M8 21v-7h8v7',
   warn: 'M12 3l10 18H2z M12 10v5 M12 18v.01'
 };
+/* 창 크기는 베이스 창(노드 데스크톱)에 비례한다. fw·fh = 바탕화면 너비·높이에 대한 비율, 아래로는 minW·minH 밑으로 줄지 않는다 */
 const APPS = {
-  term:  { title: '터미널',     d: D.term,   w: 580, h: 380 },
-  files: { title: '파일 관리자', d: D.folder, w: 660, h: 430 },
-  set:   { title: '설정',       d: D.gear,   w: 720, h: 470 },
-  jobs:  { title: '작업 관리자', d: D.swap,   w: 640, h: 340 },
-  svi:   { title: '자원 보기',   d: D.net,    w: 620, h: 330 },
-  mods:  { title: '모듈',       d: D.puzzle, w: 600, h: 320 }
+  term:  { title: '터미널',     d: D.term,   fw: .47, fh: .55, minW: 380, minH: 240 },
+  files: { title: '파일 관리자', d: D.folder, fw: .53, fh: .62, minW: 420, minH: 280 },
+  set:   { title: '설정',       d: D.gear,   fw: .58, fh: .68, minW: 460, minH: 300 },
+  jobs:  { title: '작업 관리자', d: D.swap,   fw: .52, fh: .50, minW: 440, minH: 220 },
+  svi:   { title: '자원 보기',   d: D.net,    fw: .50, fh: .48, minW: 420, minH: 220 },
+  mods:  { title: '모듈',       d: D.puzzle, fw: .48, fh: .46, minW: 420, minH: 220 }
 };
+/* 바탕화면 아이콘은 크기가 늘 같고, 칸(열 · 행)에 고정된다. 왼쪽 위 칸이 (0, 0) */
+const CW = 100, CH = 112, TILE = 52, GLYPH = 26;
 const DOCK = ['files', 'term', 'svi', 'jobs', 'mods', 'set'];
 const WALLS = [
   { id: 'dusk',   label: '노을',   bg: 'linear-gradient(160deg,#1c2a44 0%,#3a2f55 45%,#7a4a4f 100%)', ink: '#fff' },
@@ -340,7 +340,6 @@ const WALLS = [
   { id: 'slate',  label: '석판',   bg: 'linear-gradient(160deg,#0d0f13 0%,#1b2027 100%)', ink: '#fff' },
   { id: 'paper',  label: '종이',   bg: 'linear-gradient(160deg,#e8e4da 0%,#cfd8d4 100%)', ink: '#222' }
 ];
-const SIZES = [{ id: 's', label: '작게', tile: 40, glyph: 20 }, { id: 'm', label: '보통', tile: 52, glyph: 26 }, { id: 'l', label: '크게', tile: 64, glyph: 32 }];
 const TABS = [
   { id: 'wall',  label: '바탕화면', d: D.palette, scope: 'browser' },
   { id: 'look',  label: '모양',     d: D.window,  scope: 'browser' },
@@ -366,21 +365,21 @@ class Component extends DCLogic {
     super(props);
     this.state = {
       full: false, save: 'saved',
-      prefs: { dark: true, wall: 'dusk', size: 'm', dock: 'bottom', snap: true, anim: true },
+      prefs: { dark: true, wall: 'dusk', dock: 'bottom', snap: true, anim: true },
       wins: {
-        files: { x: 150, y: 54, w: 660, h: 430, min: false, max: false },
-        term:  { x: 470, y: 250, w: 580, h: 380, min: false, max: false }
+        files: { fx: .12, fy: .09, fw: .53, fh: .62, min: false, max: false },
+        term:  { fx: .38, fy: .36, fw: .47, fh: .55, min: false, max: false }
       },
       order: ['files', 'term'],
       icons: {
-        home:   { x: 24, y: 48,  name: '내 폴더',     k: 'dir',   loc: 'home' },
-        vault:  { x: 24, y: 152, name: '공유 폴더',   k: 'dir',   loc: 'vault' },
-        tar:    { x: 24, y: 256, name: 'backup.tar',  k: 'file',  loc: 'home' },
-        agent:  { x: 1112, y: 48,  name: '에이전트',   k: 'short', app: 'mods', src: '모듈 · 에이전트' },
-        jobs:   { x: 1112, y: 152, name: '작업 관리자', k: 'short', app: 'jobs', src: 'Terra 기능' },
-        shell:  { x: 1112, y: 256, name: '터미널',     k: 'short', app: 'term', src: 'Terra 기능' }
+        home:   { c: 0, r: 0, name: '내 폴더',     k: 'dir',   loc: 'home' },
+        vault:  { c: 0, r: 1, name: '공유 폴더',   k: 'dir',   loc: 'vault' },
+        tar:    { c: 0, r: 2, name: 'backup.tar',  k: 'file',  loc: 'home' },
+        agent:  { c: 1, r: 0, name: '에이전트',   k: 'short', app: 'mods', src: '모듈 · 에이전트' },
+        jobs:   { c: 1, r: 1, name: '작업 관리자', k: 'short', app: 'jobs', src: 'Terra 기능' },
+        shell:  { c: 1, r: 2, name: '터미널',     k: 'short', app: 'term', src: 'Terra 기능' }
       },
-      iconSel: null, menu: null,
+      iconSel: null, menu: null, ov: null,
       setTab: 'wall', fmLoc: 'home', fmPick: null,
       term: [
         { t: 'Terra 연결 · 앱 스코프 토큰 · 노드 계정 stk', c: 'dim' },
@@ -446,8 +445,8 @@ class Component extends DCLogic {
       this.focus(app);
       return;
     }
-    const n = Object.keys(s.wins).length, a = APPS[app], wb = this.workBox();
-    const w = { x: wb.x + 60 + n * 30, y: wb.y + 24 + n * 26, w: a.w, h: a.h, min: false, max: false };
+    const n = Object.keys(s.wins).length, a = APPS[app];
+    const w = { fx: .10 + (n % 6) * .03, fy: .08 + (n % 6) * .04, fw: a.fw, fh: a.fh, min: false, max: false };
     this.setState({ wins: { ...s.wins, [app]: w }, order: s.order.filter((x) => x !== app).concat(app) });
   }
   closeWin(app) {
@@ -456,50 +455,84 @@ class Component extends DCLogic {
     this.persist();
   }
   patchWin(id, p) { this.setState({ wins: { ...this.state.wins, [id]: { ...this.state.wins[id], ...p } } }); }
+  /* 비율 → 화소. 최소 크기 밑으로는 줄지 않고, 바탕화면보다 커지지도 않는다 */
   geom(id) {
-    const w = this.state.wins[id];
-    if (!w.max) return w;
-    const b = this.workBox();
-    return { ...w, x: b.x, y: b.y, w: b.w, h: b.h };
+    const w = this.state.wins[id], a = APPS[id], D2 = this.deskDims();
+    if (w.max) { const b = this.workBox(); return { x: b.x, y: b.y, w: b.w, h: b.h }; }
+    const pw = clamp(Math.round(w.fw * D2.w), Math.min(a.minW, D2.w), D2.w);
+    const ph = clamp(Math.round(w.fh * D2.h), Math.min(a.minH, D2.h - 32), D2.h - 32);
+    return { x: clamp(Math.round(w.fx * D2.w), -(pw - 140), D2.w - 140), y: clamp(Math.round(w.fy * D2.h), 32, D2.h - 60), w: pw, h: ph };
   }
   begin(e, id, kind) {
     if (e.target && e.target.closest && e.target.closest('button')) return;
     if (e.currentTarget.setPointerCapture) { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} }
     const w = this.state.wins[id];
     if (w.max) return;
-    this.drag = { id, kind, sx: e.clientX, sy: e.clientY, ox: w.x, oy: w.y, ow: w.w, oh: w.h, moved: false };
+    const g = this.geom(id);
+    this.drag = { id, kind, sx: e.clientX, sy: e.clientY, ox: g.x, oy: g.y, ow: g.w, oh: g.h, moved: false };
     this.focus(id);
   }
   step(e, id) {
     const d = this.drag;
     if (!d || d.id !== id) return;
-    const dx = e.clientX - d.sx, dy = e.clientY - d.sy, D2 = this.deskDims();
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy, D2 = this.deskDims(), a = APPS[id];
     d.moved = true;
     if (d.kind === 'move') {
-      this.patchWin(id, { x: clamp(d.ox + dx, -(d.ow - 140), D2.w - 140), y: clamp(d.oy + dy, 32, D2.h - 60) });
+      const x = clamp(d.ox + dx, -(d.ow - 140), D2.w - 140), y = clamp(d.oy + dy, 32, D2.h - 60);
+      this.patchWin(id, { fx: x / D2.w, fy: y / D2.h });
     } else {
       const p = {};
-      if (d.kind !== 'b') p.w = clamp(d.ow + dx, 360, D2.w - d.ox);
-      if (d.kind !== 'r') p.h = clamp(d.oh + dy, 220, D2.h - d.oy);
+      if (d.kind !== 'b') p.fw = clamp(d.ow + dx, a.minW, D2.w - d.ox) / D2.w;
+      if (d.kind !== 'r') p.fh = clamp(d.oh + dy, a.minH, D2.h - d.oy) / D2.h;
       this.patchWin(id, p);
     }
   }
-  end() { const d = this.drag; this.drag = null; if (d && d.moved) this.persist(); }
+  end() {
+    const d = this.drag; this.drag = null;
+    if (d && d.kind === 'icon') { this.dropIcon(d.id); return; }
+    if (d && d.moved) this.persist();
+  }
 
-  /* ---- 아이콘 ---- */
+  /* ---- 아이콘: 칸에 고정 ---- */
+  freeCell(c, r, except) {
+    const used = {};
+    Object.keys(this.state.icons).forEach((k) => { if (k !== except) used[this.state.icons[k].c + ',' + this.state.icons[k].r] = 1; });
+    for (let d = 0; d < 40; d++) {
+      for (let dc = -d; dc <= d; dc++) for (let dr = -d; dr <= d; dr++) {
+        if (Math.max(Math.abs(dc), Math.abs(dr)) !== d) continue;
+        const cc = c + dc, rr = r + dr;
+        if (cc < 0 || rr < 0 || cc > 39 || rr > 29) continue;
+        if (!used[cc + ',' + rr]) return { c: cc, r: rr };
+      }
+    }
+    return { c, r };
+  }
+  firstCell() {
+    const rows = Math.max(1, Math.floor(this.workBox().h / CH));
+    for (let c = 0; c < 40; c++) for (let r = 0; r < rows; r++) {
+      const f = this.freeCell(c, r);
+      if (f.c === c && f.r === r) return f;
+    }
+    return { c: 0, r: 0 };
+  }
   iconDown(e, id) {
     if (e.currentTarget.setPointerCapture) { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} }
     const ic = this.state.icons[id];
-    this.drag = { id, kind: 'icon', sx: e.clientX, sy: e.clientY, ox: ic.x, oy: ic.y, moved: false };
+    this.drag = { id, kind: 'icon', sx: e.clientX, sy: e.clientY, ox: ic.c * CW, oy: ic.r * CH, moved: false };
     this.setState({ iconSel: id, menu: null });
   }
   iconMove(e, id) {
     const d = this.drag;
     if (!d || d.id !== id || d.kind !== 'icon') return;
-    const D2 = this.deskDims();
     d.moved = true;
-    const ic = this.state.icons[id];
-    this.setState({ icons: { ...this.state.icons, [id]: { ...ic, x: clamp(d.ox + e.clientX - d.sx, 0, D2.w - 92), y: clamp(d.oy + e.clientY - d.sy, 34, D2.h - 110) } } });
+    this.setState({ ov: { id, x: Math.max(0, d.ox + e.clientX - d.sx), y: Math.max(0, d.oy + e.clientY - d.sy) } });
+  }
+  dropIcon(id) {
+    const o = this.state.ov;
+    if (!o || o.id !== id) { return; }
+    const f = this.freeCell(clamp(Math.round(o.x / CW), 0, 39), clamp(Math.round(o.y / CH), 0, 29), id);
+    this.setState({ icons: { ...this.state.icons, [id]: { ...this.state.icons[id], c: f.c, r: f.r } }, ov: null });
+    this.persist();
   }
   iconOpen(id) {
     const ic = this.state.icons[id];
@@ -559,25 +592,28 @@ class Component extends DCLogic {
       ? { x: 0, y: 0, w: 1440, h: 900, r: 0, fullLabel: '전체화면 끝내기', fullIcon: D.shrink }
       : { x: 100, y: 70, w: 1240, h: 760, r: 14, fullLabel: '전체화면', fullIcon: D.expand };
     const wall = WALLS.find((w) => w.id === p.wall) || WALLS[0];
-    const sz = SIZES.find((x) => x.id === p.size) || SIZES[1];
     const wb = this.workBox();
     const lightWall = p.wall === 'paper';
 
     /* 아이콘 */
-    const icons = Object.keys(s.icons).map((id) => {
+    const ov = s.ov;
+    const keysI = Object.keys(s.icons);
+    const maxC = Math.max(0, ...keysI.map((k) => s.icons[k].c)), maxR = Math.max(0, ...keysI.map((k) => s.icons[k].r));
+    const iconBox = { x: wb.x, y: wb.y, w: wb.w, h: wb.h, cw: (maxC + 1) * CW + 8, ch: (maxR + 1) * CH + 8 };
+    const icons = keysI.map((id) => {
       const ic = s.icons[id], sel = s.iconSel === id;
       const isShort = ic.k === 'short';
       const d = ic.k === 'dir' ? D.folder : ic.k === 'file' ? D.doc : APPS[ic.app].d;
       const tint = ic.k === 'dir' ? 'rgba(240,166,58,.30)' : ic.k === 'file' ? 'rgba(255,255,255,.18)' : 'rgba(90,168,255,.28)';
       const fg = ic.k === 'dir' ? '#ffd29a' : ic.k === 'file' ? '#f3f1ea' : '#bcd8ff';
       return {
-        name: ic.name, x: ic.x, y: ic.y, d, tint, fg, isShort, tile: sz.tile, glyph: sz.glyph,
+        name: ic.name, x: ov && ov.id === id ? ov.x : ic.c * CW + 4, y: ov && ov.id === id ? ov.y : ic.r * CH + 4, z: ov && ov.id === id ? 5 : 1,
+        d, tint, fg, isShort, tile: TILE, glyph: GLYPH,
         bg: sel ? 'rgba(255,255,255,.20)' : 'transparent', bd: sel ? 'rgba(255,255,255,.32)' : 'transparent',
         down: (e) => this.iconDown(e, id), move: (e) => this.iconMove(e, id), up: () => this.end(),
         open: () => this.iconOpen(id), stop: (e) => e.stopPropagation()
       };
     });
-    if (lightWall) icons.forEach((i) => { i.fg = i.fg; });
 
     /* 창 */
     const keys = Object.keys(s.wins);
@@ -638,8 +674,8 @@ class Component extends DCLogic {
           this.setState({ icons: icons2, fmPick: null }); this.persist();
         };
         o.newFolder = () => {
-          const id = 'new' + Date.now() % 100000, n = Object.keys(this.state.icons).length;
-          this.setState({ icons: { ...this.state.icons, [id]: { x: 140 + (n % 5) * 100, y: 60 + (n % 3) * 104, name: '새 폴더', k: 'dir', loc: 'desk' } }, fmLoc: 'desk' });
+          const id = 'new' + Date.now() % 100000, f = this.firstCell();
+          this.setState({ icons: { ...this.state.icons, [id]: { c: f.c, r: f.r, name: '새 폴더', k: 'dir', loc: 'desk' } }, fmLoc: 'desk' });
           this.persist();
         };
       }
@@ -652,8 +688,7 @@ class Component extends DCLogic {
         o.sWall = s.setTab === 'wall'; o.sLook = s.setTab === 'look';
         o.sRows = ['net', 'terra', 'about'].includes(s.setTab); o.sAcct = s.setTab === 'acct';
         o.walls = WALLS.map((wl) => ({ label: wl.label, bg: wl.bg, ink: wl.ink, on: p.wall === wl.id, bd: p.wall === wl.id ? '#ffd84d' : t.line2, pick: () => this.setPref('wall', wl.id) }));
-        o.sizes = SIZES.map((z) => ({ label: z.label, on: p.size === z.id, bg: p.size === z.id ? t.ink : 'transparent', fg: p.size === z.id ? (dark ? '#111' : '#fff') : t.sub, pick: () => this.setPref('size', z.id) }));
-        o.docks = [{ id: 'bottom', label: '아래' }, { id: 'left', label: '왼쪽' }].map((z) => ({ label: z.label, on: p.dock === z.id, bg: p.dock === z.id ? t.ink : 'transparent', fg: p.dock === z.id ? (dark ? '#111' : '#fff') : t.sub, pick: () => this.setPref('dock', z.id) }));
+                o.docks = [{ id: 'bottom', label: '아래' }, { id: 'left', label: '왼쪽' }].map((z) => ({ label: z.label, on: p.dock === z.id, bg: p.dock === z.id ? t.ink : 'transparent', fg: p.dock === z.id ? (dark ? '#111' : '#fff') : t.sub, pick: () => this.setPref('dock', z.id) }));
         const tgl = (k, label, note) => ({ label, note, on: p[k], bg: p[k] ? '#3ecf8e' : 'rgba(128,128,128,.45)', knob: p[k] ? 19 : 3, flip: () => this.setPref(k, !p[k]) });
         o.toggles = [tgl('dark', '어두운 모양', '창과 바를 어둡게 그린다'), tgl('snap', '창 맞춤', '가장자리로 끌면 반쪽으로 붙는다'), tgl('anim', '창 움직임', '열고 닫을 때 짧은 움직임')];
         const rowsOf = { net: [['주소', '10.40.2.17', false], ['WireGuard', 'wg0 · 피어 3', false], ['서비스 터널', '2개 열림', false], ['접속 허용 범위', '같은 Tree 안', true]],
@@ -696,7 +731,7 @@ class Component extends DCLogic {
     if (s.menu) {
       const close = () => this.setState({ menu: null });
       menu.items = [
-        { label: '새 폴더', run: () => { const id = 'new' + Date.now() % 100000; this.setState({ icons: { ...this.state.icons, [id]: { x: s.menu.x, y: s.menu.y, name: '새 폴더', k: 'dir', loc: 'desk' } }, menu: null }); this.persist(); } },
+        { label: '새 폴더', run: () => { const id = 'new' + Date.now() % 100000, f = this.firstCell(); this.setState({ icons: { ...this.state.icons, [id]: { c: f.c, r: f.r, name: '새 폴더', k: 'dir', loc: 'desk' } }, menu: null }); this.persist(); } },
         { label: '배경 바꾸기', run: () => { this.setState({ setTab: 'wall', menu: null }); this.launch('set'); } },
         { label: '터미널 열기', run: () => { close(); this.launch('term'); } },
         { label: '설정', run: () => { close(); this.launch('set'); } }
@@ -709,7 +744,7 @@ class Component extends DCLogic {
       : { text: '노드 계정에 저장됨', c: dark ? '#9aa1ab' : '#5b6472', d: D.check };
 
     return {
-      t, frame, wall, icons, wins, dock, dockApps, menu, save: sv,
+      t, frame, wall, icons, iconBox, wins, dock, dockApps, menu, save: sv,
       node: { name: 'lab-ws-02', parent: 'tree-home' },
       focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
       toggleFull: () => { this.setState({ full: !this.state.full }); },
