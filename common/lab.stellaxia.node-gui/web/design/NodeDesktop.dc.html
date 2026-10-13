@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra 노드 데스크톱</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; background: #07090c; font-family: 'Noto Sans KR','Noto Sans',system-ui,sans-serif; font-size: 13px; line-height: 1.5; color: #ede9e1;">
+
+  <!-- 뒤에 깔린 맵 (이 창이 맵 위에 뜬다는 것을 보이는 배경) -->
+  <div aria-hidden="true" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: radial-gradient(circle at 18% 28%, rgba(240,166,58,.22) 0, rgba(240,166,58,0) 18%), radial-gradient(circle at 78% 62%, rgba(90,168,255,.20) 0, rgba(90,168,255,0) 20%), radial-gradient(circle at 52% 14%, rgba(90,168,255,.14) 0, rgba(90,168,255,0) 14%), linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px) 0 0 / 48px 48px, linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px) 0 0 / 48px 48px, #0b0d11;"></div>
+  <span aria-hidden="true" style="position: absolute; left: 36px; top: 24px; font-size: 10px; font-weight: 600; letter-spacing: .28em; color: #6b7280;">MAP</span>
+
+  <!-- 노드 데스크톱 창 -->
+  <div role="application" aria-label="노드 데스크톱" style="position: absolute; left: {{frame.x}}px; top: {{frame.y}}px; width: {{frame.w}}px; height: {{frame.h}}px; border-radius: {{frame.r}}px; overflow: hidden; display: flex; flex-direction: column; background: {{t.win}}; border: 1px solid {{t.line2}}; box-shadow: 0 24px 70px rgba(0,0,0,.55); box-sizing: border-box;">
+
+    <div style="height: 40px; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 14px; background: {{t.winHead}}; border-bottom: 1px solid {{t.line}}; color: {{t.sub}};">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; color: #5aa8ff;"><path d="M12 21v-7 M12 3a6 6 0 0 0-5 9h10a6 6 0 0 0-5-9z"/></svg>
+      <span style="font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px; color: {{t.ink}};">{{node.name}}</span>
+      <span style="font-size: 12px; color: {{t.dim}};">노드 데스크톱</span>
+      <span style="flex-grow: 1;"></span>
+      <button type="button" aria-label="{{frame.fullLabel}}" onClick="{{toggleFull}}" style="width: 30px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: {{t.sub}}; cursor: pointer;"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{frame.fullIcon}}"/></svg></button>
+      <button type="button" aria-label="이 창 닫기 (맵으로)" style="width: 30px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: {{t.sub}}; cursor: pointer;"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+
+    <!-- 바탕화면 -->
+    <div onClick="{{deskClick}}" onContextMenu="{{deskMenu}}" style="position: relative; flex-grow: 1; overflow: hidden; background: {{wall.bg}};">
+
+      <!-- 바탕화면 아이콘 -->
+      <sc-for list="{{icons}}" as="ic" hint-placeholder-count="6">
+        <div onPointerDown="{{ic.down}}" onPointerMove="{{ic.move}}" onPointerUp="{{ic.up}}" onDoubleClick="{{ic.open}}" onClick="{{ic.stop}}" style="position: absolute; left: {{ic.x}}px; top: {{ic.y}}px; width: 92px; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 4px; box-sizing: border-box; border-radius: 10px; background: {{ic.bg}}; border: 1px solid {{ic.bd}}; cursor: default; touch-action: none; user-select: none;">
+          <div style="position: relative; width: {{ic.tile}}px; height: {{ic.tile}}px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {{ic.tint}}; color: {{ic.fg}}; border: 1px solid rgba(255,255,255,.18); box-sizing: border-box;">
+            <svg viewBox="0 0 24 24" width="{{ic.glyph}}" height="{{ic.glyph}}" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{ic.d}}"/></svg>
+            <sc-if value="{{ic.isShort}}" hint-placeholder-val="{{ false }}">
+              <span title="화면 전용 바로가기" style="position: absolute; left: -4px; bottom: -4px; width: 17px; height: 17px; border-radius: 5px; background: #ede9e1; color: #111; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;"><path d="M7 17L17 7 M9 7h8v8"/></svg></span>
+            </sc-if>
+          </div>
+          <span style="max-width: 86px; text-align: center; font-size: 12px; line-height: 1.25; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.75); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ic.name}}</span>
+        </div>
+      </sc-for>
+
+      <!-- 앱 창 -->
+      <sc-for list="{{wins}}" as="w" hint-placeholder-count="2">
+        <section aria-label="{{w.title}}" onPointerDown="{{w.focus}}" onClick="{{w.stop}}" style="position: absolute; left: {{w.x}}px; top: {{w.y}}px; width: {{w.w}}px; height: {{w.h}}px; z-index: {{w.z}}; display: {{w.disp}}; flex-direction: column; box-sizing: border-box; border-radius: {{w.r}}px; overflow: hidden; background: {{t.win}}; border: 1px solid {{w.bd}}; box-shadow: {{w.shadow}}; backdrop-filter: blur(14px);">
+
+          <div onPointerDown="{{w.down}}" onPointerMove="{{w.move}}" onPointerUp="{{w.up}}" onDoubleClick="{{w.toggleMax}}" style="height: 38px; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 12px; background: {{t.winHead}}; border-bottom: 1px solid {{t.line}}; cursor: default; touch-action: none; user-select: none;">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; color: {{w.accent}};"><path d="{{w.d}}"/></svg>
+            <span style="font-size: 12.5px; font-weight: 600; color: {{w.titleInk}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{w.title}}</span>
+            <span style="flex-grow: 1;"></span>
+            <button type="button" aria-label="최소화" onClick="{{w.minimize}}" style="width: 28px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: {{t.sub}}; cursor: pointer;"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round;"><path d="M5 18h14"/></svg></button>
+            <button type="button" aria-label="{{w.maxLabel}}" onClick="{{w.toggleMax}}" style="width: 28px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: {{t.sub}}; cursor: pointer;"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{w.maxIcon}}"/></svg></button>
+            <button type="button" aria-label="닫기" onClick="{{w.close}}" style="width: 28px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: {{t.sub}}; cursor: pointer;"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round;"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+
+          <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; color: {{t.ink}};">
+
+            <!-- 터미널 -->
+            <sc-if value="{{w.isTerm}}" hint-placeholder-val="{{ false }}">
+              <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; background: {{t.term}};">
+                <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid {{t.line}}; font-size: 11.5px; color: {{t.dim}};">
+                  <span style="color: #3ecf8e;">●</span>
+                  <span>Terra 연결</span>
+                  <span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">stk@{{node.name}}</span>
+                  <span style="flex-grow: 1;"></span>
+                  <span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid rgba(122,167,255,.5); border-radius: 10px; background: rgba(122,167,255,.10); color: #7aa7ff; font-size: 11px;">process.execute</span>
+                </div>
+                <div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 8px 12px; gap: 1px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12.5px; line-height: 1.5;">
+                  <sc-for list="{{w.lines}}" as="ln" hint-placeholder-count="6">
+                    <div style="white-space: pre-wrap; word-break: break-all; color: {{ln.c}};">{{ln.t}}</div>
+                  </sc-for>
+                </div>
+                <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid {{t.line}}; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12.5px;">
+                  <span style="color: #3ecf8e;">stk@{{node.name}}:~$</span>
+                  <input type="text" aria-label="명령 입력" value="{{w.input}}" onInput="{{w.onInput}}" onKeyDown="{{w.onKey}}" placeholder="help" spellcheck="false" autocomplete="off" style="flex-grow: 1; min-width: 0; height: 24px; border: 0; outline: 0; background: transparent; color: {{t.ink}}; font: inherit;">
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- 파일 관리자 -->
+            <sc-if value="{{w.isFiles}}" hint-placeholder-val="{{ false }}">
+              <div style="flex-grow: 1; min-height: 0; display: flex;">
+                <nav aria-label="위치" style="width: 150px; flex-shrink: 0; box-sizing: border-box; padding: 10px 8px; border-right: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 2px;">
+                  <sc-for list="{{w.locs}}" as="lc" hint-placeholder-count="3">
+                    <button type="button" onClick="{{lc.pick}}" style="display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 0; border-radius: 7px; background: {{lc.bg}}; color: {{lc.fg}}; font-size: 12.5px; text-align: left; cursor: pointer;">
+                      <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{lc.d}}"/></svg>
+                      <span>{{lc.label}}</span>
+                    </button>
+                  </sc-for>
+                  <span style="margin-top: 8px; padding: 0 8px; font-size: 11px; line-height: 1.45; color: {{t.dim}};">{{w.locNote}}</span>
+                </nav>
+                <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+                  <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid {{t.line}};">
+                    <span style="font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px; color: {{t.sub}};">{{w.path}}</span>
+                    <span style="flex-grow: 1;"></span>
+                    <button type="button" onClick="{{w.newFolder}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: {{t.raise}}; color: {{t.ink}}; font-size: 12px; cursor: pointer;">새 폴더</button>
+                  </div>
+                  <div style="flex-grow: 1; min-height: 0; overflow: hidden; padding: 6px 8px; display: flex; flex-direction: column; gap: 1px;">
+                    <sc-for list="{{w.items}}" as="it" hint-placeholder-count="4">
+                      <button type="button" onClick="{{it.pick}}" style="display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 0; border-radius: 7px; background: {{it.bg}}; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">
+                        <span style="position: relative; width: 20px; height: 20px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: {{it.fg}};">
+                          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{it.d}}"/></svg>
+                        </span>
+                        <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{it.name}}</span>
+                        <span style="font-size: 11px; color: {{it.tagC}};">{{it.tag}}</span>
+                        <span style="width: 64px; text-align: right; font-size: 11.5px; color: {{t.dim}}; font-family: 'JetBrains Mono',ui-monospace,monospace;">{{it.size}}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                  <div style="flex-shrink: 0; box-sizing: border-box; min-height: 56px; padding: 8px 12px; border-top: 1px solid {{t.line}}; display: flex; align-items: center; gap: 12px; font-size: 12px; color: {{t.sub}};">
+                    <span style="flex-grow: 1; line-height: 1.45;">{{w.detail}}</span>
+                    <button type="button" onClick="{{w.remove}}" disabled="{{w.noPick}}" style="height: 28px; padding: 0 10px; border: 1px solid {{w.rmBd}}; border-radius: 9px; background: transparent; color: {{w.rmFg}}; font-size: 12px; cursor: pointer;">{{w.rmLabel}}</button>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- 설정 -->
+            <sc-if value="{{w.isSet}}" hint-placeholder-val="{{ false }}">
+              <div style="flex-grow: 1; min-height: 0; display: flex;">
+                <nav aria-label="설정 구역" style="width: 150px; flex-shrink: 0; box-sizing: border-box; padding: 10px 8px; border-right: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 2px;">
+                  <sc-for list="{{w.tabs}}" as="tb" hint-placeholder-count="7">
+                    <button type="button" onClick="{{tb.pick}}" style="display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 0; border-radius: 7px; background: {{tb.bg}}; color: {{tb.fg}}; font-size: 12.5px; text-align: left; cursor: pointer;">
+                      <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{tb.d}}"/></svg>
+                      <span>{{tb.label}}</span>
+                    </button>
+                  </sc-for>
+                </nav>
+                <div style="flex-grow: 1; min-width: 0; overflow: hidden; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <h2 style="margin: 0; font-size: 15px; font-weight: 600;">{{w.tabTitle}}</h2>
+                    <span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{w.scopeBd}}; border-radius: 10px; background: {{w.scopeBg}}; color: {{w.scopeFg}}; font-size: 11px;">{{w.scope}}</span>
+                  </div>
+
+                  <sc-if value="{{w.sWall}}" hint-placeholder-val="{{ true }}">
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                      <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <span style="font-size: 12px; color: {{t.dim}};">배경</span>
+                        <div style="display: flex; gap: 10px;">
+                          <sc-for list="{{w.walls}}" as="wl" hint-placeholder-count="4">
+                            <button type="button" aria-label="{{wl.label}}" aria-pressed="{{wl.on}}" onClick="{{wl.pick}}" style="width: 92px; height: 58px; box-sizing: border-box; padding: 0; border-radius: 9px; background: {{wl.bg}}; border: 2px solid {{wl.bd}}; cursor: pointer; display: flex; align-items: flex-end; justify-content: flex-start;"><span style="margin: 0 0 4px 6px; font-size: 11px; color: {{wl.ink}}; text-shadow: 0 1px 2px rgba(0,0,0,.4);">{{wl.label}}</span></button>
+                          </sc-for>
+                        </div>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="width: 92px; font-size: 12px; color: {{t.dim}};">아이콘 크기</span>
+                        <div style="display: flex; border: 1px solid {{t.line2}}; border-radius: 9px; overflow: hidden;">
+                          <sc-for list="{{w.sizes}}" as="sz" hint-placeholder-count="3">
+                            <button type="button" aria-pressed="{{sz.on}}" onClick="{{sz.pick}}" style="height: 28px; padding: 0 14px; border: 0; background: {{sz.bg}}; color: {{sz.fg}}; font-size: 12px; cursor: pointer;">{{sz.label}}</button>
+                          </sc-for>
+                        </div>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="width: 92px; font-size: 12px; color: {{t.dim}};">독 위치</span>
+                        <div style="display: flex; border: 1px solid {{t.line2}}; border-radius: 9px; overflow: hidden;">
+                          <sc-for list="{{w.docks}}" as="dk" hint-placeholder-count="2">
+                            <button type="button" aria-pressed="{{dk.on}}" onClick="{{dk.pick}}" style="height: 28px; padding: 0 14px; border: 0; background: {{dk.bg}}; color: {{dk.fg}}; font-size: 12px; cursor: pointer;">{{dk.label}}</button>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{w.sLook}}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                      <sc-for list="{{w.toggles}}" as="tg" hint-placeholder-count="3">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                          <div style="flex-grow: 1;">
+                            <div style="font-size: 13px;">{{tg.label}}</div>
+                            <div style="font-size: 11.5px; color: {{t.dim}};">{{tg.note}}</div>
+                          </div>
+                          <button type="button" role="switch" aria-checked="{{tg.on}}" aria-label="{{tg.label}}" onClick="{{tg.flip}}" style="position: relative; width: 38px; height: 22px; border: 0; border-radius: 11px; background: {{tg.bg}}; cursor: pointer;"><span style="position: absolute; top: 3px; left: {{tg.knob}}px; width: 16px; height: 16px; border-radius: 8px; background: #fff;"></span></button>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{w.sRows}}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; flex-direction: column; border: 1px solid {{t.line}}; border-radius: 10px; overflow: hidden;">
+                      <sc-for list="{{w.rows}}" as="rw" hint-placeholder-count="5">
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-top: {{rw.bt}};">
+                          <span style="width: 120px; flex-shrink: 0; font-size: 12px; color: {{t.dim}};">{{rw.k}}</span>
+                          <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px;">{{rw.v}}</span>
+                          <sc-if value="{{rw.lock}}" hint-placeholder-val="{{ false }}">
+                            <span style="height: 20px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid rgba(245,184,61,.5); border-radius: 10px; background: rgba(245,184,61,.10); color: #f5b83d; font-size: 11px;"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>{{rw.lockText}}</span>
+                          </sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{w.sAcct}}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid {{t.line}}; border-radius: 10px; font-size: 12.5px;">
+                      <span style="color: {{w.saveC}};">●</span>
+                      <span>{{w.saveText}}</span>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- 작업 관리자 -->
+            <sc-if value="{{w.isJobs}}" hint-placeholder-val="{{ false }}">
+              <div style="flex-grow: 1; min-height: 0; overflow: hidden; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;">
+                <div style="display: flex; gap: 10px; padding: 4px 8px; font-size: 11px; color: {{t.dim}};"><span style="width: 62px;">번호</span><span style="flex-grow: 1;">작업</span><span style="width: 120px;">operation</span><span style="width: 120px;">진행</span><span style="width: 64px;"></span></div>
+                <sc-for list="{{w.jobs}}" as="jb" hint-placeholder-count="4">
+                  <div style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; background: {{t.raise}};">
+                    <span style="width: 62px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.dim}};">{{jb.id}}</span>
+                    <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{jb.name}}</span>
+                    <span style="width: 120px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.sub}};">{{jb.op}}</span>
+                    <span style="width: 120px; display: flex; align-items: center; gap: 6px;">
+                      <span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{jb.bd}}; border-radius: 10px; background: {{jb.bg}}; color: {{jb.fg}}; font-size: 11px;">{{jb.label}}</span>
+                      <span style="font-size: 11.5px; color: {{t.dim}};">{{jb.pct}}</span>
+                    </span>
+                    <span style="width: 64px; text-align: right;"><sc-if value="{{jb.canCancel}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{jb.cancel}}" style="height: 24px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 11.5px; cursor: pointer;">취소</button></sc-if></span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <!-- 자원 보기 -->
+            <sc-if value="{{w.isSvi}}" hint-placeholder-val="{{ false }}">
+              <div style="flex-grow: 1; min-height: 0; overflow: hidden; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;">
+                <div style="display: flex; gap: 10px; padding: 4px 8px; font-size: 11px; color: {{t.dim}};"><span style="flex-grow: 1;">자원</span><span style="width: 56px;">방향</span><span style="width: 96px;">QoS</span><span style="width: 70px;">상태</span><span style="width: 64px;"></span></div>
+                <sc-for list="{{w.res}}" as="rs" hint-placeholder-count="4">
+                  <div style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; background: {{t.raise}};">
+                    <span style="flex-grow: 1; min-width: 0; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px;">{{rs.name}}</span>
+                    <span style="width: 56px; font-size: 12px; color: {{t.sub}};">{{rs.dir}}</span>
+                    <span style="width: 96px; font-size: 12px; color: {{t.sub}};">{{rs.qos}}</span>
+                    <span style="width: 70px;"><span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{rs.bd}}; border-radius: 10px; background: {{rs.bg}}; color: {{rs.fg}}; font-size: 11px;">{{rs.label}}</span></span>
+                    <span style="width: 64px; text-align: right;"><button type="button" onClick="{{rs.flip}}" style="height: 24px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 11.5px; cursor: pointer;">{{rs.act}}</button></span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <!-- 모듈 -->
+            <sc-if value="{{w.isMods}}" hint-placeholder-val="{{ false }}">
+              <div style="flex-grow: 1; min-height: 0; overflow: hidden; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;">
+                <div style="display: flex; gap: 10px; padding: 4px 8px; font-size: 11px; color: {{t.dim}};"><span style="flex-grow: 1;">모듈</span><span style="width: 150px;">식별자</span><span style="width: 90px;">상태</span><span style="width: 70px;"></span></div>
+                <sc-for list="{{w.mods}}" as="md" hint-placeholder-count="4">
+                  <div style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; background: {{t.raise}};">
+                    <span style="flex-grow: 1; min-width: 0;">{{md.name}}</span>
+                    <span style="width: 150px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.sub}};">{{md.id}}</span>
+                    <span style="width: 90px;"><span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{md.bd}}; border-radius: 10px; background: {{md.bg}}; color: {{md.fg}}; font-size: 11px;">{{md.label}}</span></span>
+                    <span style="width: 70px; text-align: right;"><button type="button" onClick="{{md.flip}}" disabled="{{md.core}}" style="height: 24px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{md.actFg}}; font-size: 11.5px; cursor: pointer;">{{md.act}}</button></span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{w.canSize}}" hint-placeholder-val="{{ true }}">
+            <div aria-hidden="true" onPointerDown="{{w.rDown}}" onPointerMove="{{w.rMove}}" onPointerUp="{{w.up}}" style="position: absolute; right: 0; top: 38px; bottom: 14px; width: 6px; cursor: ew-resize; touch-action: none;"></div>
+            <div aria-hidden="true" onPointerDown="{{w.bDown}}" onPointerMove="{{w.bMove}}" onPointerUp="{{w.up}}" style="position: absolute; left: 0; right: 14px; bottom: 0; height: 6px; cursor: ns-resize; touch-action: none;"></div>
+            <div aria-hidden="true" onPointerDown="{{w.cDown}}" onPointerMove="{{w.cMove}}" onPointerUp="{{w.up}}" style="position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none;"></div>
+          </sc-if>
+        </section>
+      </sc-for>
+
+      <!-- 상단 바 -->
+      <div role="status" style="position: absolute; left: 0; right: 0; top: 0; height: 32px; z-index: 1000; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: {{t.bar}}; backdrop-filter: blur(14px); border-bottom: 1px solid {{t.line}}; font-size: 12px; color: {{t.sub}};">
+        <span style="display: inline-flex; align-items: center; gap: 6px; color: {{t.ink}};"><span style="color: #3ecf8e;">●</span><span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">{{node.name}}</span></span>
+        <span style="color: {{t.dim}};">부모 {{node.parent}}</span>
+        <span style="flex-grow: 1; text-align: center; color: {{t.ink}}; font-weight: 600;">{{focusTitle}}</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; color: {{save.c}};"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="{{save.d}}"/></svg>{{save.text}}</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4z M10 21h4"/></svg>2</span>
+        <span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">10:36</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: {{t.ink}};"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M16 8a4 4 0 1 0-8 0a4 4 0 1 0 8 0 M4 21a8 8 0 0 1 16 0"/></svg>stk</span>
+      </div>
+
+      <!-- 독 -->
+      <div role="toolbar" aria-label="앱 실행기" style="position: absolute; z-index: 1000; left: {{dock.x}}px; top: {{dock.y}}px; width: {{dock.w}}px; height: {{dock.h}}px; box-sizing: border-box; display: flex; flex-direction: {{dock.dir}}; align-items: center; justify-content: center; gap: 8px; background: {{t.bar}}; backdrop-filter: blur(14px); border: {{dock.bd}}; border-radius: {{dock.r}}px;">
+        <sc-for list="{{dockApps}}" as="da" hint-placeholder-count="6">
+          <button type="button" aria-label="{{da.label}}" title="{{da.label}}" onClick="{{da.click}}" style="position: relative; width: 42px; height: 42px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid {{da.bd}}; border-radius: 11px; background: {{da.bg}}; color: {{da.fg}}; cursor: pointer;">
+            <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{da.d}}"/></svg>
+            <span style="position: absolute; {{da.dotPos}}; width: 5px; height: 5px; border-radius: 3px; background: {{da.dot}};"></span>
+          </button>
+        </sc-for>
+      </div>
+
+      <!-- 우클릭 메뉴 -->
+      <sc-if value="{{menu.on}}" hint-placeholder-val="{{ false }}">
+        <div role="menu" style="position: absolute; z-index: 1100; left: {{menu.x}}px; top: {{menu.y}}px; width: 190px; box-sizing: border-box; padding: 5px; background: {{t.menu}}; border: 1px solid {{t.line2}}; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.40); backdrop-filter: blur(14px);">
+          <sc-for list="{{menu.items}}" as="mi" hint-placeholder-count="4">
+            <button type="button" role="menuitem" onClick="{{mi.run}}" style="display: block; width: 100%; box-sizing: border-box; padding: 6px 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">{{mi.label}}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+const D = {
+  folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  doc: 'M6 3h9l3 3v15H6z M9 9h6 M9 13h6 M9 17h4',
+  term: 'M4 6l5 6-5 6 M12 18h8',
+  gear: 'M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M4.9 19.1L7 17 M17 7l2.1-2.1',
+  puzzle: 'M4 8h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4H4z',
+  swap: 'M7 4L3 8l4 4 M3 8h14 M17 20l4-4-4-4 M21 16H7',
+  net: 'M14.5 5a2.5 2.5 0 1 0-5 0a2.5 2.5 0 1 0 5 0 M7.5 19a2.5 2.5 0 1 0-5 0a2.5 2.5 0 1 0 5 0 M21.5 19a2.5 2.5 0 1 0-5 0a2.5 2.5 0 1 0 5 0 M12 7.5v4 M12 11.5L6.5 17 M12 11.5l5.5 5.5',
+  max: 'M6 6h12v12H6z',
+  restore: 'M8 8h11v11H8z M5 16V5h11',
+  expand: 'M14 4h6v6 M10 20H4v-6 M20 4l-7 7 M4 20l7-7',
+  shrink: 'M20 10h-6V4 M4 14h6v6 M14 10l7-7 M3 21l7-7',
+  user: 'M16 8a4 4 0 1 0-8 0a4 4 0 1 0 8 0 M4 21a8 8 0 0 1 16 0',
+  info: 'M21 12a9 9 0 1 0-18 0a9 9 0 1 0 18 0 M12 11v6 M12 7.5v.01',
+  palette: 'M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.5-2.2-.6-1.3.2-2.8 1.8-2.8H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3z',
+  window: 'M3 5h18v14H3z M3 9h18',
+  bell: 'M6 17V11a6 6 0 0 1 12 0v6l2 2H4z M10 21h4',
+  tree: 'M12 21v-7 M12 3a6 6 0 0 0-5 9h10a6 6 0 0 0-5-9z',
+  archive: 'M3 5h18v4H3z M5 9v11h14V9 M10 13h4',
+  home: 'M3 11l9-7 9 7v10H3z M10 21v-6h4v6',
+  check: 'M5 12l5 5 9-10',
+  save: 'M5 3h11l3 3v15H5z M8 3v6h7V3 M8 21v-7h8v7',
+  warn: 'M12 3l10 18H2z M12 10v5 M12 18v.01'
+};
+const APPS = {
+  term:  { title: '터미널',     d: D.term,   w: 580, h: 380 },
+  files: { title: '파일 관리자', d: D.folder, w: 660, h: 430 },
+  set:   { title: '설정',       d: D.gear,   w: 720, h: 470 },
+  jobs:  { title: '작업 관리자', d: D.swap,   w: 640, h: 340 },
+  svi:   { title: '자원 보기',   d: D.net,    w: 620, h: 330 },
+  mods:  { title: '모듈',       d: D.puzzle, w: 600, h: 320 }
+};
+const DOCK = ['files', 'term', 'svi', 'jobs', 'mods', 'set'];
+const WALLS = [
+  { id: 'dusk',   label: '노을',   bg: 'linear-gradient(160deg,#1c2a44 0%,#3a2f55 45%,#7a4a4f 100%)', ink: '#fff' },
+  { id: 'forest', label: '숲',     bg: 'linear-gradient(160deg,#0c2a24 0%,#12433a 60%,#1d5a45 100%)', ink: '#fff' },
+  { id: 'slate',  label: '석판',   bg: 'linear-gradient(160deg,#0d0f13 0%,#1b2027 100%)', ink: '#fff' },
+  { id: 'paper',  label: '종이',   bg: 'linear-gradient(160deg,#e8e4da 0%,#cfd8d4 100%)', ink: '#222' }
+];
+const SIZES = [{ id: 's', label: '작게', tile: 40, glyph: 20 }, { id: 'm', label: '보통', tile: 52, glyph: 26 }, { id: 'l', label: '크게', tile: 64, glyph: 32 }];
+const TABS = [
+  { id: 'wall',  label: '바탕화면', d: D.palette, scope: 'browser' },
+  { id: 'look',  label: '모양',     d: D.window,  scope: 'browser' },
+  { id: 'net',   label: '네트워크', d: D.net,     scope: 'node' },
+  { id: 'terra', label: 'Terra',    d: D.tree,    scope: 'node' },
+  { id: 'acct',  label: '계정',     d: D.user,    scope: 'acct' },
+  { id: 'about', label: '정보',     d: D.info,    scope: 'node' }
+];
+const LOCS = [
+  { id: 'home',  label: '홈',          d: D.home,    path: '/home/stk',        note: '' },
+  { id: 'vault', label: '폴더 보관함', d: D.archive, path: '폴더 보관함/',      note: '노드가 공유로 내놓은 폴더' },
+  { id: 'desk',  label: '바탕화면',    d: D.window,  path: '/home/stk/Desktop', note: '실제 파일 · 폴더와 화면 전용 바로가기가 같이 보인다' }
+];
+const FILES = {
+  home:  [{ n: 'docs', k: 'dir', sz: '—' }, { n: 'backup', k: 'dir', sz: '—' }, { n: 'notes.md', k: 'file', sz: '2.1 KB' }, { n: 'backup.tar', k: 'file', sz: '310 MB' }],
+  vault: [{ n: 'lab-share', k: 'dir', sz: '—' }, { n: '기록 (읽기 전용)', k: 'dir', sz: '—' }]
+};
+const SHELL_HELP = ['help          이 목록', 'whoami        지금 계정과 권한', 'node          이 노드 정보', 'ls            홈 폴더', 'jobs          작업 목록', 'svi           자원 목록', 'net           네트워크', 'terra status  Terra 연결 상태', 'clear         화면 지우기', 'exit          터미널 닫기'];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      full: false, save: 'saved',
+      prefs: { dark: true, wall: 'dusk', size: 'm', dock: 'bottom', snap: true, anim: true },
+      wins: {
+        files: { x: 150, y: 54, w: 660, h: 430, min: false, max: false },
+        term:  { x: 470, y: 250, w: 580, h: 380, min: false, max: false }
+      },
+      order: ['files', 'term'],
+      icons: {
+        home:   { x: 24, y: 48,  name: '내 폴더',     k: 'dir',   loc: 'home' },
+        vault:  { x: 24, y: 152, name: '공유 폴더',   k: 'dir',   loc: 'vault' },
+        tar:    { x: 24, y: 256, name: 'backup.tar',  k: 'file',  loc: 'home' },
+        agent:  { x: 1112, y: 48,  name: '에이전트',   k: 'short', app: 'mods', src: '모듈 · 에이전트' },
+        jobs:   { x: 1112, y: 152, name: '작업 관리자', k: 'short', app: 'jobs', src: 'Terra 기능' },
+        shell:  { x: 1112, y: 256, name: '터미널',     k: 'short', app: 'term', src: 'Terra 기능' }
+      },
+      iconSel: null, menu: null,
+      setTab: 'wall', fmLoc: 'home', fmPick: null,
+      term: [
+        { t: 'Terra 연결 · 앱 스코프 토큰 · 노드 계정 stk', c: 'dim' },
+        { t: 'help 를 입력하면 쓸 수 있는 명령이 나온다.', c: 'dim' }
+      ],
+      termIn: '',
+      jobs: [
+        { id: 'j-1041', name: 'backup.tar 보내기', op: 'file.push', pct: 62, st: 'run' },
+        { id: 'j-1040', name: '로그 묶기', op: 'process.execute', pct: 100, st: 'ok' },
+        { id: 'j-1039', name: '에이전트 다시 시작', op: 'module.restart', pct: 100, st: 'ok' },
+        { id: 'j-1038', name: '화면 저장본 내보내기', op: 'svi.handle', pct: 31, st: 'stall' }
+      ],
+      res: [
+        { name: 'camera/frames', dir: '내보냄', qos: 'best-effort', open: true },
+        { name: 'sensor/stats',  dir: '내보냄', qos: 'reliable',    open: true },
+        { name: 'display/sink',  dir: '받음',   qos: 'best-effort', open: false },
+        { name: 'ctl/log',       dir: '내보냄', qos: 'reliable',    open: false }
+      ],
+      mods: [
+        { name: '에이전트',      id: 'agent',          st: 'run' },
+        { name: '장치 인벤토리', id: 'inventory',      st: 'run' },
+        { name: '대화',          id: 'chat',           st: 'restart' },
+        { name: '파일',          id: 'io.terra.file',  st: 'run', core: true }
+      ]
+    };
+    this.drag = null;
+    this.timer = null;
+  }
+
+  componentWillUnmount() { if (this.timer) clearTimeout(this.timer); }
+
+  /* ---- 저장: 노드 계정에 ---- */
+  persist() {
+    this.setState({ save: 'saving' });
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.setState({ save: 'saved' }), 800);
+  }
+  setPref(k, v) { this.setState({ prefs: { ...this.state.prefs, [k]: v } }); this.persist(); }
+
+  /* ---- 크기 ---- */
+  frameDims() { return this.state.full ? { w: 1440, h: 900 } : { w: 1240, h: 760 }; }
+  deskDims() { const f = this.frameDims(); return { w: f.w, h: f.h - 40 }; }
+  dockBox() {
+    const d = this.deskDims(), left = this.state.prefs.dock === 'left';
+    return left ? { x: 8, y: 32 + 8, w: 60, h: d.h - 32 - 16, dir: 'column', r: 14 }
+                : { x: Math.round(d.w / 2 - 190), y: d.h - 62, w: 380, h: 54, dir: 'row', r: 16 };
+  }
+  workBox() {
+    const d = this.deskDims(), left = this.state.prefs.dock === 'left';
+    return { x: left ? 76 : 0, y: 32, w: d.w - (left ? 76 : 0), h: d.h - 32 - (left ? 0 : 70) };
+  }
+
+  /* ---- 창 ---- */
+  focus(id) {
+    const o = this.state.order;
+    if (o[o.length - 1] === id) return;
+    this.setState({ order: o.filter((x) => x !== id).concat(id) });
+  }
+  launch(app) {
+    const s = this.state;
+    if (s.wins[app]) {
+      this.setState({ wins: { ...s.wins, [app]: { ...s.wins[app], min: false } } });
+      this.focus(app);
+      return;
+    }
+    const n = Object.keys(s.wins).length, a = APPS[app], wb = this.workBox();
+    const w = { x: wb.x + 60 + n * 30, y: wb.y + 24 + n * 26, w: a.w, h: a.h, min: false, max: false };
+    this.setState({ wins: { ...s.wins, [app]: w }, order: s.order.filter((x) => x !== app).concat(app) });
+  }
+  closeWin(app) {
+    const wins = { ...this.state.wins }; delete wins[app];
+    this.setState({ wins, order: this.state.order.filter((x) => x !== app) });
+    this.persist();
+  }
+  patchWin(id, p) { this.setState({ wins: { ...this.state.wins, [id]: { ...this.state.wins[id], ...p } } }); }
+  geom(id) {
+    const w = this.state.wins[id];
+    if (!w.max) return w;
+    const b = this.workBox();
+    return { ...w, x: b.x, y: b.y, w: b.w, h: b.h };
+  }
+  begin(e, id, kind) {
+    if (e.target && e.target.closest && e.target.closest('button')) return;
+    if (e.currentTarget.setPointerCapture) { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} }
+    const w = this.state.wins[id];
+    if (w.max) return;
+    this.drag = { id, kind, sx: e.clientX, sy: e.clientY, ox: w.x, oy: w.y, ow: w.w, oh: w.h, moved: false };
+    this.focus(id);
+  }
+  step(e, id) {
+    const d = this.drag;
+    if (!d || d.id !== id) return;
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy, D2 = this.deskDims();
+    d.moved = true;
+    if (d.kind === 'move') {
+      this.patchWin(id, { x: clamp(d.ox + dx, -(d.ow - 140), D2.w - 140), y: clamp(d.oy + dy, 32, D2.h - 60) });
+    } else {
+      const p = {};
+      if (d.kind !== 'b') p.w = clamp(d.ow + dx, 360, D2.w - d.ox);
+      if (d.kind !== 'r') p.h = clamp(d.oh + dy, 220, D2.h - d.oy);
+      this.patchWin(id, p);
+    }
+  }
+  end() { const d = this.drag; this.drag = null; if (d && d.moved) this.persist(); }
+
+  /* ---- 아이콘 ---- */
+  iconDown(e, id) {
+    if (e.currentTarget.setPointerCapture) { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} }
+    const ic = this.state.icons[id];
+    this.drag = { id, kind: 'icon', sx: e.clientX, sy: e.clientY, ox: ic.x, oy: ic.y, moved: false };
+    this.setState({ iconSel: id, menu: null });
+  }
+  iconMove(e, id) {
+    const d = this.drag;
+    if (!d || d.id !== id || d.kind !== 'icon') return;
+    const D2 = this.deskDims();
+    d.moved = true;
+    const ic = this.state.icons[id];
+    this.setState({ icons: { ...this.state.icons, [id]: { ...ic, x: clamp(d.ox + e.clientX - d.sx, 0, D2.w - 92), y: clamp(d.oy + e.clientY - d.sy, 34, D2.h - 110) } } });
+  }
+  iconOpen(id) {
+    const ic = this.state.icons[id];
+    if (ic.k === 'short') { this.launch(ic.app); return; }
+    this.setState({ fmLoc: ic.loc || 'desk', fmPick: null });
+    this.launch('files');
+  }
+
+  /* ---- 터미널 ---- */
+  runCmd(raw) {
+    const cmd = raw.trim();
+    const out = [{ t: 'stk@' + 'lab-ws-02' + ':~$ ' + raw, c: 'cmd' }];
+    const add = (arr, c) => arr.forEach((t) => out.push({ t, c: c || 'out' }));
+    const s = this.state;
+    if (!cmd) { this.setState({ term: s.term.concat(out), termIn: '' }); return; }
+    const [a, b] = cmd.split(/\s+/);
+    if (a === 'clear') { this.setState({ term: [], termIn: '' }); return; }
+    if (a === 'exit') { this.setState({ termIn: '' }); this.closeWin('term'); return; }
+    if (a === 'help') add(SHELL_HELP);
+    else if (a === 'whoami') add(['stk  (노드 계정)', '권한: node.read node.control process.execute']);
+    else if (a === 'node') add(['이름     lab-ws-02', '부모     tree-home', '등록     등록됨', '코어     0.9.4   모듈 0.4.3', '가동     3일 4시간']);
+    else if (a === 'ls') add(['docs/  backup/  notes.md  backup.tar']);
+    else if (a === 'jobs') s.jobs.forEach((j) => out.push({ t: j.id + '  ' + j.op.padEnd(16) + this.jobLabel(j).label + (j.st === 'run' || j.st === 'stall' ? ' ' + j.pct + '%' : ''), c: 'out' }));
+    else if (a === 'svi') s.res.forEach((r) => out.push({ t: r.name.padEnd(16) + r.dir + '  ' + (r.open ? '열림' : '닫힘'), c: 'out' }));
+    else if (a === 'net') add(['주소      10.40.2.17', 'wg0       피어 3', '터널      2']);
+    else if (a === 'terra' && b === 'status') add(['연결     정상', '토큰     앱 스코프 · 만료 21:40', 'Gateway  닿음']);
+    else if (a === 'sudo') add(['권한 없음 — node.config 는 이 계정에 없다 (forbidden)'], 'err');
+    else add(['명령을 찾을 수 없다: ' + a + '  (help)'], 'err');
+    this.setState({ term: s.term.concat(out).slice(-60), termIn: '' });
+  }
+
+  /* ---- 목록 보조 ---- */
+  jobLabel(j) {
+    return ({ run: { label: '진행 중', c: '#7aa7ff' }, ok: { label: '끝남', c: '#3ecf8e' }, stall: { label: '멈춤', c: '#f5b83d' }, cancel: { label: '취소됨', c: '#9aa1ab' } })[j.st];
+  }
+  chip(c) { return { fg: c, bd: c + '80', bg: c + '1a' }; }
+
+  fmItems() {
+    const s = this.state;
+    if (s.fmLoc !== 'desk') {
+      return (FILES[s.fmLoc] || []).map((f) => ({ key: s.fmLoc + ':' + f.n, name: f.n, k: f.k, size: f.sz, real: true }));
+    }
+    return Object.keys(s.icons).map((id) => {
+      const ic = s.icons[id];
+      return { key: 'desk:' + id, id, name: ic.name, k: ic.k, size: ic.k === 'file' ? '310 MB' : '—', real: ic.k !== 'short', src: ic.src };
+    });
+  }
+
+  renderVals() {
+    const s = this.state, p = s.prefs;
+    const dark = p.dark;
+    const t = dark
+      ? { win: 'rgba(15,17,21,.94)', winHead: 'rgba(255,255,255,.04)', bar: 'rgba(10,12,16,.80)', menu: 'rgba(22,25,31,.96)', term: 'rgba(8,10,13,.88)', line: 'rgba(255,255,255,.10)', line2: 'rgba(255,255,255,.18)', ink: '#ede9e1', sub: '#b4bac3', dim: '#9aa1ab', raise: 'rgba(255,255,255,.05)', raiseH: 'rgba(255,255,255,.10)', accent: '#7aa7ff' }
+      : { win: 'rgba(250,249,246,.97)', winHead: 'rgba(0,0,0,.04)', bar: 'rgba(250,249,246,.82)', menu: 'rgba(252,251,248,.98)', term: 'rgba(244,243,238,.98)', line: 'rgba(0,0,0,.10)', line2: 'rgba(0,0,0,.20)', ink: '#16191f', sub: '#3b424d', dim: '#5b6472', raise: 'rgba(0,0,0,.045)', raiseH: 'rgba(0,0,0,.09)', accent: '#2563eb' };
+    const fd = this.frameDims(), full = s.full;
+    const frame = full
+      ? { x: 0, y: 0, w: 1440, h: 900, r: 0, fullLabel: '전체화면 끝내기', fullIcon: D.shrink }
+      : { x: 100, y: 70, w: 1240, h: 760, r: 14, fullLabel: '전체화면', fullIcon: D.expand };
+    const wall = WALLS.find((w) => w.id === p.wall) || WALLS[0];
+    const sz = SIZES.find((x) => x.id === p.size) || SIZES[1];
+    const wb = this.workBox();
+    const lightWall = p.wall === 'paper';
+
+    /* 아이콘 */
+    const icons = Object.keys(s.icons).map((id) => {
+      const ic = s.icons[id], sel = s.iconSel === id;
+      const isShort = ic.k === 'short';
+      const d = ic.k === 'dir' ? D.folder : ic.k === 'file' ? D.doc : APPS[ic.app].d;
+      const tint = ic.k === 'dir' ? 'rgba(240,166,58,.30)' : ic.k === 'file' ? 'rgba(255,255,255,.18)' : 'rgba(90,168,255,.28)';
+      const fg = ic.k === 'dir' ? '#ffd29a' : ic.k === 'file' ? '#f3f1ea' : '#bcd8ff';
+      return {
+        name: ic.name, x: ic.x, y: ic.y, d, tint, fg, isShort, tile: sz.tile, glyph: sz.glyph,
+        bg: sel ? 'rgba(255,255,255,.20)' : 'transparent', bd: sel ? 'rgba(255,255,255,.32)' : 'transparent',
+        down: (e) => this.iconDown(e, id), move: (e) => this.iconMove(e, id), up: () => this.end(),
+        open: () => this.iconOpen(id), stop: (e) => e.stopPropagation()
+      };
+    });
+    if (lightWall) icons.forEach((i) => { i.fg = i.fg; });
+
+    /* 창 */
+    const keys = Object.keys(s.wins);
+    const topId = s.order[s.order.length - 1];
+    const wins = keys.map((id) => {
+      const w = s.wins[id], g = this.geom(id), a = APPS[id], isTop = topId === id && !w.min;
+      const o = {
+        id, app: id, title: a.title, d: a.d, x: g.x, y: g.y, w: g.w, h: g.h, z: 10 + s.order.indexOf(id),
+        disp: w.min ? 'none' : 'flex', r: w.max ? 0 : 12,
+        bd: isTop ? t.line2 : t.line, titleInk: isTop ? t.ink : t.dim, accent: isTop ? t.accent : t.dim,
+        shadow: isTop ? '0 18px 50px rgba(0,0,0,.50)' : '0 8px 24px rgba(0,0,0,.30)',
+        canSize: !w.max, maxLabel: w.max ? '이전 크기' : '최대화', maxIcon: w.max ? D.restore : D.max,
+        focus: () => this.focus(id), stop: (e) => e.stopPropagation(),
+        down: (e) => this.begin(e, id, 'move'), move: (e) => this.step(e, id), up: () => this.end(),
+        rDown: (e) => this.begin(e, id, 'r'), rMove: (e) => this.step(e, id),
+        bDown: (e) => this.begin(e, id, 'b'), bMove: (e) => this.step(e, id),
+        cDown: (e) => this.begin(e, id, 'rb'), cMove: (e) => this.step(e, id),
+        minimize: () => this.patchWin(id, { min: true }),
+        toggleMax: () => { this.patchWin(id, { max: !w.max }); this.persist(); },
+        close: () => this.closeWin(id),
+        isTerm: id === 'term', isFiles: id === 'files', isSet: id === 'set', isJobs: id === 'jobs', isSvi: id === 'svi', isMods: id === 'mods'
+      };
+      if (id === 'term') {
+        const tone = { cmd: t.ink, out: t.sub, dim: t.dim, err: '#ff6b6b' };
+        o.lines = s.term.slice(-22).map((l) => ({ t: l.t, c: tone[l.c] || t.sub }));
+        o.input = s.termIn;
+        o.onInput = (e) => this.setState({ termIn: e.target.value });
+        o.onKey = (e) => { if (e.key === 'Enter') this.runCmd(this.state.termIn); };
+      }
+      if (id === 'files') {
+        const loc = LOCS.find((l) => l.id === s.fmLoc);
+        o.locs = LOCS.map((l) => ({ label: l.label, d: l.d, bg: l.id === s.fmLoc ? t.raiseH : 'transparent', fg: l.id === s.fmLoc ? t.ink : t.sub, pick: () => this.setState({ fmLoc: l.id, fmPick: null }) }));
+        o.locNote = loc.note;
+        o.path = loc.path;
+        const items = this.fmItems();
+        const pick = items.find((i) => i.key === s.fmPick) || null;
+        o.items = items.map((i) => {
+          const short = i.k === 'short';
+          return {
+            name: i.name, size: i.size, d: i.k === 'dir' ? D.folder : i.k === 'file' ? D.doc : APPS[s.icons[i.id].app].d,
+            fg: i.k === 'dir' ? '#f0a63a' : short ? '#5aa8ff' : t.sub,
+            tag: short ? '바로가기 · 화면 전용' : '실제', tagC: short ? '#5aa8ff' : t.dim,
+            bg: pick && pick.key === i.key ? t.raiseH : 'transparent',
+            pick: () => this.setState({ fmPick: i.key })
+          };
+        });
+        o.detail = !pick ? '항목을 고르면 여기에 설명이 나온다.'
+          : pick.k === 'short' ? pick.name + ' — 화면 전용 바로가기(' + pick.src + '). 지워도 앱 · 파일은 그대로 있다.'
+          : pick.name + ' — 노드에 있는 실제 ' + (pick.k === 'dir' ? '폴더' : '파일') + '. 지우면 노드에서 사라진다.';
+        o.noPick = !pick;
+        o.rmLabel = !pick ? '지우기' : pick.k === 'short' ? '바로가기 지우기' : '실제 파일 지우기';
+        const danger = pick && pick.k !== 'short';
+        o.rmFg = !pick ? t.dim : danger ? '#ff6b6b' : t.ink;
+        o.rmBd = danger ? 'rgba(255,107,107,.5)' : t.line2;
+        o.remove = () => {
+          if (!pick || !pick.id) return;
+          const icons2 = { ...this.state.icons }; delete icons2[pick.id];
+          this.setState({ icons: icons2, fmPick: null }); this.persist();
+        };
+        o.newFolder = () => {
+          const id = 'new' + Date.now() % 100000, n = Object.keys(this.state.icons).length;
+          this.setState({ icons: { ...this.state.icons, [id]: { x: 140 + (n % 5) * 100, y: 60 + (n % 3) * 104, name: '새 폴더', k: 'dir', loc: 'desk' } }, fmLoc: 'desk' });
+          this.persist();
+        };
+      }
+      if (id === 'set') {
+        const tab = TABS.find((x) => x.id === s.setTab);
+        o.tabs = TABS.map((x) => ({ label: x.label, d: x.d, bg: x.id === s.setTab ? t.raiseH : 'transparent', fg: x.id === s.setTab ? t.ink : t.sub, pick: () => this.setState({ setTab: x.id }) }));
+        o.tabTitle = tab.label;
+        const sc = { browser: ['이 브라우저에서만', '#9aa1ab'], node: ['노드에 적용', '#7aa7ff'], acct: ['노드 계정 stk', '#3ecf8e'] }[tab.scope];
+        o.scope = sc[0]; o.scopeFg = sc[1]; o.scopeBd = sc[1] + '80'; o.scopeBg = sc[1] + '1a';
+        o.sWall = s.setTab === 'wall'; o.sLook = s.setTab === 'look';
+        o.sRows = ['net', 'terra', 'about'].includes(s.setTab); o.sAcct = s.setTab === 'acct';
+        o.walls = WALLS.map((wl) => ({ label: wl.label, bg: wl.bg, ink: wl.ink, on: p.wall === wl.id, bd: p.wall === wl.id ? '#ffd84d' : t.line2, pick: () => this.setPref('wall', wl.id) }));
+        o.sizes = SIZES.map((z) => ({ label: z.label, on: p.size === z.id, bg: p.size === z.id ? t.ink : 'transparent', fg: p.size === z.id ? (dark ? '#111' : '#fff') : t.sub, pick: () => this.setPref('size', z.id) }));
+        o.docks = [{ id: 'bottom', label: '아래' }, { id: 'left', label: '왼쪽' }].map((z) => ({ label: z.label, on: p.dock === z.id, bg: p.dock === z.id ? t.ink : 'transparent', fg: p.dock === z.id ? (dark ? '#111' : '#fff') : t.sub, pick: () => this.setPref('dock', z.id) }));
+        const tgl = (k, label, note) => ({ label, note, on: p[k], bg: p[k] ? '#3ecf8e' : 'rgba(128,128,128,.45)', knob: p[k] ? 19 : 3, flip: () => this.setPref(k, !p[k]) });
+        o.toggles = [tgl('dark', '어두운 모양', '창과 바를 어둡게 그린다'), tgl('snap', '창 맞춤', '가장자리로 끌면 반쪽으로 붙는다'), tgl('anim', '창 움직임', '열고 닫을 때 짧은 움직임')];
+        const rowsOf = { net: [['주소', '10.40.2.17', false], ['WireGuard', 'wg0 · 피어 3', false], ['서비스 터널', '2개 열림', false], ['접속 허용 범위', '같은 Tree 안', true]],
+          terra: [['노드 이름', s.prefsName || 'lab-ws-02', true], ['부모', 'tree-home', true], ['등록', '등록됨', false], ['코어', '0.9.4', false], ['모듈 묶음', '0.4.3', false]],
+          about: [['장치', 'lab-ws-02', false], ['운영체제', 'Linux 6.18', false], ['가동 시간', '3일 4시간', false], ['Terra 연결', '정상 · 앱 스코프', false]] }[s.setTab] || [];
+        o.rows = rowsOf.map((r, i) => ({ k: r[0], v: r[1], lock: r[2], lockText: s.setTab === 'net' ? '허용 범위 · node.config' : 'node.config', bt: i === 0 ? 'none' : '1px solid ' + t.line }));
+        o.saveC = s.save === 'saving' ? '#f5b83d' : '#3ecf8e';
+        o.saveText = s.save === 'saving' ? '노드 계정 stk에 저장하는 중…' : '노드 계정 stk에 저장됨 — 다른 기기에서 열어도 같은 바탕화면이 나온다.';
+      }
+      if (id === 'jobs') {
+        o.jobs = s.jobs.map((j) => { const L = this.jobLabel(j), c = this.chip(L.c); return { id: j.id, name: j.name, op: j.op, label: L.label, fg: c.fg, bd: c.bd, bg: c.bg, pct: j.st === 'run' || j.st === 'stall' ? j.pct + '%' : '', canCancel: j.st === 'run' || j.st === 'stall', cancel: () => { this.setState({ jobs: this.state.jobs.map((x) => x.id === j.id ? { ...x, st: 'cancel' } : x) }); } }; });
+      }
+      if (id === 'svi') {
+        o.res = s.res.map((r, i) => { const c = this.chip(r.open ? '#3ecf8e' : '#9aa1ab'); return { name: r.name, dir: r.dir, qos: r.qos, label: r.open ? '열림' : '닫힘', fg: c.fg, bd: c.bd, bg: c.bg, act: r.open ? '닫기' : '열기', flip: () => { this.setState({ res: this.state.res.map((x, j) => j === i ? { ...x, open: !x.open } : x) }); } }; });
+      }
+      if (id === 'mods') {
+        o.mods = s.mods.map((m, i) => {
+          const col = m.st === 'run' ? '#3ecf8e' : '#f5b83d', c = this.chip(col);
+          return { name: m.name, id: m.id, label: m.st === 'run' ? '실행 중' : '다시 시작 중', fg: c.fg, bd: c.bd, bg: c.bg, core: !!m.core, act: m.core ? '고정' : m.st === 'run' ? '멈춤' : '시작', actFg: m.core ? t.dim : t.ink, flip: () => { this.setState({ mods: this.state.mods.map((x, j) => j === i ? { ...x, st: x.st === 'run' ? 'restart' : 'run' } : x) }); } };
+        });
+      }
+      return o;
+    });
+
+    /* 독 */
+    const db = this.dockBox(), left = p.dock === 'left';
+    const dock = { x: db.x, y: db.y, w: db.w, h: db.h, dir: db.dir, r: db.r, bd: '1px solid ' + t.line };
+    const dockApps = DOCK.map((id) => {
+      const w = s.wins[id], open = !!w, isTop = open && !w.min && topId === id;
+      return {
+        label: APPS[id].title, d: APPS[id].d,
+        bg: isTop ? t.raiseH : 'transparent', bd: isTop ? t.line2 : 'transparent', fg: open ? t.ink : t.sub,
+        dot: open ? t.accent : 'transparent', dotPos: left ? 'left: 3px; top: 18px' : 'bottom: 2px; left: 18px',
+        click: () => { if (isTop) this.patchWin(id, { min: true }); else this.launch(id); }
+      };
+    });
+
+    /* 우클릭 메뉴 */
+    const menu = { on: !!s.menu, x: s.menu ? s.menu.x : 0, y: s.menu ? s.menu.y : 0, items: [] };
+    if (s.menu) {
+      const close = () => this.setState({ menu: null });
+      menu.items = [
+        { label: '새 폴더', run: () => { const id = 'new' + Date.now() % 100000; this.setState({ icons: { ...this.state.icons, [id]: { x: s.menu.x, y: s.menu.y, name: '새 폴더', k: 'dir', loc: 'desk' } }, menu: null }); this.persist(); } },
+        { label: '배경 바꾸기', run: () => { this.setState({ setTab: 'wall', menu: null }); this.launch('set'); } },
+        { label: '터미널 열기', run: () => { close(); this.launch('term'); } },
+        { label: '설정', run: () => { close(); this.launch('set'); } }
+      ];
+    }
+
+    const focusWin = s.wins[topId];
+    const sv = s.save === 'saving'
+      ? { text: '노드 계정에 저장하는 중…', c: '#f5b83d', d: D.save }
+      : { text: '노드 계정에 저장됨', c: dark ? '#9aa1ab' : '#5b6472', d: D.check };
+
+    return {
+      t, frame, wall, icons, wins, dock, dockApps, menu, save: sv,
+      node: { name: 'lab-ws-02', parent: 'tree-home' },
+      focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
+      toggleFull: () => { this.setState({ full: !this.state.full }); },
+      deskClick: () => this.setState({ menu: null, iconSel: null }),
+      deskMenu: (e) => {
+        e.preventDefault();
+        const r = e.currentTarget.getBoundingClientRect(), D2 = this.deskDims();
+        this.setState({ menu: { x: clamp(e.clientX - r.left, 0, D2.w - 200), y: clamp(e.clientY - r.top, 34, D2.h - 180) } });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
