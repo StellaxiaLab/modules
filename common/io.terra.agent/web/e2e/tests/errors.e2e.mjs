@@ -191,6 +191,7 @@ const guide = (app) => app.$('[data-role="readiness-guide"]');
 for (const [label, effect, phrase] of [
   ['MODULE_UNAVAILABLE(모듈 정지)', { gateway_error: { code: 'MODULE_UNAVAILABLE', message: 'RAW english: module is stopped' } }, /에이전트 모듈이 꺼져 있습니다/],
   ['UNAUTHORIZED(로그인 세션 끝)', { gateway_error: { code: 'UNAUTHORIZED', message: 'RAW english: session ended' } }, /로그인 세션이 끝났습니다/],
+  ['MODULE_PERMISSION_DENIED(권한 부족 또는 도달 범위 밖)', { gateway_error: { code: 'MODULE_PERMISSION_DENIED', message: 'RAW english: permission denied' } }, /agent\.use 권한이 없거나 도달 범위 밖/],
   ['AGENT_UNAVAILABLE(모듈이 처리하지 못함)', { module_error: { code: 'AGENT_UNAVAILABLE', message: 'RAW english: store failed' } }, /에이전트 모듈이 지금 처리할 수 없습니다/],
   ['연결 끊김(응답 없음)', { drop: 'before' }, /연결할 수 없습니다/],
 ]) {
@@ -219,6 +220,22 @@ for (const [label, effect, phrase] of [
     assert.deepEqual(unexpected(app).filter((p) => effect.drop === undefined || !/ERR_EMPTY_RESPONSE/.test(p)), []);
   }, UI);
 }
+
+check('오류가 서는 자리(BRIDGE_NO_PERMISSIONS): 앱이 권한 선언 없이 열리면(`permissions=`) 준비 상태가 "셸이 요청을 막았습니다"를 말하고 — 모듈 탓으로 읽지 않으며 — 요청은 Gateway 에 닿지 않고 새 세션이 꺼진다', async (t) => {
+  const app = await openApp(t, { permissions: '' });
+  await until(async () => (await app.$('[data-role="readiness-chip"]').textContent())?.includes('준비 안 됨'), { message: '준비 안 됨이 서지 않았다' });
+  const steps = guide(app).locator('.step');
+  assert.equal(await steps.count(), 6);
+  assert.equal(await steps.first().getAttribute('class'), 'step bad');
+  assert.match((await steps.first().locator('.st-title').textContent()) ?? '', /선언된 권한이 없어 셸이 요청을 막았습니다/);
+  const headline = (await guide(app).locator('.guide-headline').textContent()) ?? '';
+  assert.match(headline, /선언된 권한이 없어 셸이 요청을 막았습니다/);
+  assert.doesNotMatch(headline, /지금 처리할 수 없습니다/, '모듈이 처리하지 못한 것으로 읽혔다');
+  for (let i = 1; i < 6; i += 1) assert.match((await steps.nth(i).locator('.st-title').textContent()) ?? '', /앞 단계를 먼저 해결해 주세요/);
+  assert.equal(await app.$('[data-role="new-session"]').getAttribute('aria-disabled'), 'true');
+  assert.deepEqual(await t.control.requests(''), [], '셸이 막았으니 Gateway 에 닿은 요청이 없어야 한다');
+  assert.deepEqual(unexpected(app), []);
+}, UI);
 
 check('오류가 서는 자리(UNAUTHORIZED): 로그인이 끝난 채(엄격 Gateway, 토큰 없음) 열면 준비 상태가 "로그인 세션이 끝났습니다"를 말하고 첫 호출 말고는 부르지 않는다', async (t) => {
   await t.control.config({ strict_gateway: true });
