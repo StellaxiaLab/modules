@@ -122,6 +122,14 @@ type entry struct {
 	// (A8), and ResultBytes is how much it answered with after the cap (R6).
 	Server      string `json:"server,omitempty"`
 	ResultBytes int    `json:"result_bytes,omitempty"`
+	// InputSummary, ResultSummary and OutputMode are what the call handed over,
+	// a bounded excerpt of what came back, and the contract's own output.mode
+	// (M-5). The core masks secrets before it fills them (I1). All three are
+	// optional: a line from before M-5, or from a core that does not send them,
+	// has none. OutputMode "accepted-job" means received, not finished (DC-18).
+	InputSummary  string `json:"input_summary,omitempty"`
+	ResultSummary string `json:"result_summary,omitempty"`
+	OutputMode    string `json:"output_mode,omitempty"`
 }
 
 // sessionMeta is the state a caller may see, in the contract's shape.
