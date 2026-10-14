@@ -97,6 +97,14 @@
       "w": 1440,
       "x": 1458,
       "y": 4146
+    },
+    "NodeDesktop.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "노드 데스크톱",
+      "w": 1440,
+      "x": 6018,
+      "y": 6330
     }
   },
   "createdOnFiles": {
@@ -227,7 +235,8 @@
     "Settings.dc.html",
     "Components.dc.html",
     "Helm.dc.html",
-    "HelmApps.dc.html"
+    "HelmApps.dc.html",
+    "NodeDesktop.dc.html"
   ],
   "pages": [],
   "title": "Terra GUI 디자인 탐색"
