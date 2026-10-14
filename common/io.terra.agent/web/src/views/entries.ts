@@ -132,12 +132,25 @@ function callStatus(entry: CallLike): { icon: string; tone: string; label: strin
   return { icon: 'info', tone: 'mut', label: status || '알 수 없음', iconTone: 'mut' };
 }
 
+/** 접수(accepted-job)이지 완료가 아닌 줄 — 실행되어 성공했고 계약의 결과 방식이 accepted-job 인 호출만이다(DC-18). */
+function isAccepted(entry: CallLike): boolean {
+  return entry.kind === 'call' && text(entry.status) === 'ok' && text(entry.output_mode) === 'accepted-job';
+}
+
+function outputModeText(mode: string): string {
+  return mode === 'accepted-job' ? 'accepted-job — 접수이지 완료가 아닙니다' : mode;
+}
+
 function callDetails(entry: CallLike): HTMLElement | null {
   const code = text((entry as CallEntry).error_code);
   const info = code ? describeCode(code) : null;
+  const mode = text((entry as CallEntry).output_mode);
   return details('상세', [
     ['판정', text(entry.decision) || null],
     ['오류', code ? `${code} — ${info?.message ?? ''}` : null],
+    ['결과 방식', mode ? outputModeText(mode) : null],
+    ['입력 (비밀로 이름 붙은 값은 가려짐)', text(entry.input_summary) || null],
+    ['결과 요약', text((entry as CallEntry).result_summary) || null],
     ['모델이 말한 이유 (주장이며 근거가 아닙니다)', text((entry as CallEntry).reason) || null],
     ['모듈의 판정 근거', text((entry as CallEntry).judgement) || null],
     ['trace id', text((entry as CallEntry).trace_id) || null],
@@ -147,6 +160,7 @@ function callDetails(entry: CallLike): HTMLElement | null {
 
 function renderCall(entry: CallEntry): HTMLElement {
   const s = callStatus(entry);
+  const accepted = isAccepted(entry);
   const op = text(entry.subject) || text(entry.operation_id) || '(이름 없음)';
   return line(
     entry,
@@ -155,7 +169,14 @@ function renderCall(entry: CallEntry): HTMLElement {
       { class: 'ev call', attrs: { 'data-status': text(entry.status) } },
       h('span', { class: `ev-ic ${s.iconTone}` }, icon(s.icon, 's')),
       h('span', { class: 'mono op' }, op),
-      h('span', { class: 'r' }, chip(s.tone, s.label), entry.error_code ? chip('mut', entry.error_code, 'mono') : null),
+      h(
+        'span',
+        { class: 'r' },
+        // 접수는 완료가 아니다 — ok 칩이 "끝났다"로 읽히지 않게 accepted-job 칩이 대신 선다(DC-18).
+        accepted ? h('span', { class: 'mono dim' }, '접수 ≠ 완료') : null,
+        accepted ? chip('info', 'accepted-job') : chip(s.tone, s.label),
+        entry.error_code ? chip('mut', entry.error_code, 'mono') : null,
+      ),
     ),
     callDetails(entry),
   );
