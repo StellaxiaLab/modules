@@ -16,7 +16,7 @@
 | 합계 | 35 |
 | 실패 | 0 |
 
-`npm run e2e -- --app ui` 는 51개를 돈다(이 작업 이전 2개 + 앱 점검 37개 + 승인 카드 12개). 앱 점검 37개에는 35개 목록 몫 외에 "시연에 없던 점검" 7개(`readiness.e2e.mjs` 6개, `auto` 의 쓰기를 묻지 않는 점검 1개)가 들어 있다.
+`npm run e2e -- --app ui` 는 85개를 돈다(이 작업 이전 2개 + 앱 점검 37개 + 승인 카드 12개 + 시연 밖 점검 34개). 앱 점검 37개에는 35개 목록 몫 외에 "시연에 없던 점검" 7개(`readiness.e2e.mjs` 6개, `auto` 의 쓰기를 묻지 않는 점검 1개)가 들어 있고, 시연 밖 점검 34개는 `tools` 5 · `guard` 3 · `errors` 13 · `compat` 8 · `polling` 2 · `boundary` 2 · `readiness` 1(관문 없음)이다 — 아래 "시연에 없던 점검" 표. probe 앱은 14개.
 
 ## 35개 대응표
 
@@ -79,12 +79,12 @@
 
 시계는 둘이다. 서버(가짜 Gateway)는 `control.advance` 로 감고, 브라우저의 앱은 실제 시계를 쓴다(밖에서 주입할 수 없다). 그래서 "마감이 지났다"는 서버가 질문을 닫는 것으로 보고, 앱의 카운트다운은 실제로 흐르는 글자를 `until()` 로 기다려 본다. 머리 칩("승인 대기 N")은 세션 목록(5초 폴링)에서 세므로 카드보다 늦게 따라온다 — 조건으로 기다린다.
 
-**남은 것**(아직 이식하지 않았다 — 시연에도 없던 몫):
+**승인 카드 몫에서 이식한 시연 밖 점검**은 아래 "시연에 없던 점검" 표에 있다(`tests/tools.e2e.mjs` · `tests/guard.e2e.mjs`).
 
-| 묶음 | 시나리오 / 제어 |
+**남은 것**(화면에서는 볼 수 없는 몫):
+
+| 묶음 | 이유 |
 | --- | --- |
-| 외부 도구·카드 | `external-write-ask`(계약 사실 없음) · `external-call`("감사에 없다" 줄) · `legacy-contract`("적지 않음") · `gateway-403-after-approve`(승인 뒤 Gateway 거절) |
-| 함정 6 | 폴링 지연 사이에 "y" 를 보내면 승인이 된다 — 앱은 보내기 직전 `sessions.get` 으로 `pending_approvals` 를 본다. `two-approvals` + 대기 중 글 "y" (입력이 잠기므로 보내기 가드 `send-guard` 의 e2e) |
 | 앱 시계로 마감이 지남 | 앱의 `now` 를 밖에서 주입할 수 없어 "마감 칩·컨트롤 꺼짐·서버에 새로 묻기"는 단위 시험(`tests/app-approvals.test.ts`)이 본다 |
 
 ## 화면 없음 — 구현하지 않은 점검
@@ -96,24 +96,42 @@
 
 ## 시연에 없던 점검 (가짜 환경이 이미 받쳐 준다)
 
-시연에 없었지만 요구 문서·계획서가 요구하는 것들. `✅` 는 이식했다(`tests/readiness.e2e.mjs`·`session.e2e.mjs`), 나머지는 아직이다.
+시연에 없었지만 요구 문서·계획서가 요구하는 것들. `✅` 는 이식했다, `⛔ 앱 버그` 는 점검을 써서 돌려 보니 앱이 어긋나 **커밋에서 뺐다**(아래 "앱 버그로 뺀 점검").
 
-| 점검 | 시나리오 / 제어 | 근거 | 상태 |
-| --- | --- | --- | :-: |
-| 권한 없음: `agent.use` 가 없는 계정은 준비 상태가 "권한 없음"이고 `status.get` 만 된다 | `openShell(t, {principal:'noperm'})` | 함정 10, GAP-2 | ✅ 준비 상태(`noperm`) |
-| 준비 상태 합성(자격·모델·관문) | 프리셋 `empty` · `no-model` · `no-credential` · `expired-credential` · `control.config({door:false})`(`delegate_door:false`) | 요구 §6.2 | ◐ 프리셋 4종만(`door:false` 는 아직) |
-| 폴링에서 줄이 빠지거나 겹치지 않는다 | `slow-model` 중 폴링, `inject {delay_ms}`, `messages.list` 중간 실패 `inject {module_error}` | WP-4 완료 조건 | ◐ 1200줄 쪽 넘김만(중간 실패 주입은 아직) |
-| 응답 유실(`outcomeUnknown`)이면 재전송하지 않고 `messages.list` 로 확인 | `control.inject({op:'io.terra.agent.messages.post'}, {drop:'after'})` — 서버에는 글이 쌓였고 앱은 502 를 받는다 | I17, 함정 12 | ✅ 응답 유실(I17) |
-| 오류 코드 사전: 15개 + Gateway 7개 + 브리지가 앱에 어떻게 보이는가 | `inject` 의 `module_error`·`gateway_error`, 프리셋, `permissions=` 빈 선언(`BRIDGE_NO_PERMISSIONS`), `login=0`(`UNAUTHORIZED`) | WP-3 완료 조건 | ◻ |
-| `last_error` 영어 문장 → 코드 사전 | `model-failure` · `step-limit` | 함정 5, GAP-7 | ◐ `lastErrorCode:false` 의 `STEP_LIMIT` 만 |
-| 함정 6: 폴링 지연 사이에 "y" 를 보내면 승인이 된다 | `two-approvals` + 대기 중 글 "y" — 앱은 보내기 직전 `sessions.get` 으로 `pending_approvals` 를 본다 | 함정 6 | ◻ |
-| 승인 뒤에도 Gateway 가 거절 | `gateway-403-after-approve` | I5 | ◻ |
-| 외부 도구 줄("감사에 없다")·외부 카드(계약 사실 없음) | `external-call` · `external-write-ask` | I12 | ◻ |
-| 시뮬레이션 `planned` 줄("실행되지 않았다") | `simulate-planned` | I13 | ◻ |
-| 계약 사실 "적지 않음" 표현 | `legacy-contract` | DC-17 | ◻ |
-| M-2~M-7 이전 모듈에 붙었을 때의 화면 | `features({contract:false, expires:false, reasonJudgement:false, lastErrorCode:false, modelFields:false})` | 계획서 §4 | ◻ |
-| 비밀이 어디에도 다시 보이지 않는다(키·자격·env 값) | `models.put`/`credentials.put` 뒤 DOM·`localStorage`·URL 검색, 서버 기록은 `***` | I1, I19 | ◻ |
-| 앱이 직접 `fetch` 하지 않고 브리지만 쓴다 | `control.requests()` 의 호출자가 모두 브리지(`Authorization` 있음) — 직접 호출은 엄격 Gateway 가 401 | §5.1 | ◻ |
+| 점검 | 시나리오 / 제어 | 근거 | 상태 | 파일 |
+| --- | --- | --- | :-: | --- |
+| 권한 없음: `agent.use` 가 없는 계정은 준비 상태가 "권한 없음"이고 `status.get` 만 된다 | `openShell(t, {principal:'noperm'})` | 함정 10, GAP-2 | ✅ | `readiness` |
+| 준비 상태 합성(자격·모델·관문) | 프리셋 `empty` · `no-model` · `no-credential` · `expired-credential` · `control.config({door:false})`(`delegate_door:false`) — 관문 단계만 막히고 나머지는 통과, 새 세션 꺼짐, 목록은 읽힘 | 요구 §6.2 | ✅ | `readiness` |
+| 폴링에서 줄이 빠지거나 겹치지 않는다 | 1200줄 쪽 넘김(`scroll`) · `messages.list` 중간 실패 `inject {module_error}` ×3(백오프 2초·4초의 아래쪽 경계, 같은 `after_seq` 에서 재개, 마지막에 화면 = 서버 기록) · 느린 읽기 `inject {delay_ms}`(겹쳐 부르지 않음) | WP-4 완료 조건 | ✅ | `scroll` · `polling` |
+| 응답 유실(`outcomeUnknown`)이면 재전송하지 않고 `messages.list` 로 확인 | `control.inject({op:'io.terra.agent.messages.post'}, {drop:'after'})` — 서버에는 글이 쌓였고 앱은 502 를 받는다 | I17, 함정 12 | ✅ | `readiness` |
+| 오류 코드 사전: 15개 + Gateway 7개가 화면에 어떻게 보이는가 | 보내기 실패 주입 `module_error`·`gateway_error` 22개를 한 입력칸에서 돌린다(한국어 문구·입력 보존·재전송 없음, 표가 `lib/errors.mjs` 와 어긋나면 깨짐) · 모르는 코드·HTML 502 · 서는 자리: 세션 읽기(`SESSION_NOT_FOUND`·`SESSION_NOT_OWNED`) · 목록 읽기 · 승인 답(`APPROVAL_NOT_FOUND` 는 조용히, 그 밖은 카드 안 안내) · 준비 상태(`MODULE_UNAVAILABLE`·`UNAUTHORIZED`·`AGENT_UNAVAILABLE`·연결 끊김, 복구 뒤 "다시 확인") · `login=0`(`UNAUTHORIZED`) · 세션 도중 `UNAUTHORIZED` | WP-3 완료 조건 | ✅ | `errors` |
+| 오류 코드 사전: `BRIDGE_NO_PERMISSIONS`(`permissions=` 빈 선언)가 화면에서 셸의 거절로 읽힌다 | `openApp(t, {permissions:''})` | WP-3 완료 조건 | ⛔ 앱 버그 | — |
+| `last_error` 영어 문장 → 코드 사전 | `model-failure`(`lastErrorCode` 켬·끔: 상태 옆 코드, 영어 원문은 접힌 상세에만) · 이전 모듈의 목록 행은 기록을 읽기 전엔 코드를 모른다고 둠 · `step-limit`(`session`) | 함정 5, GAP-7 | ✅ | `compat` · `session` |
+| 함정 6: 폴링 지연 사이에 "y" 를 보내면 승인이 된다 | `two-approvals` + 기록 읽기를 붙잡아 앱의 판독을 idle 로 굳힌 채 서버에 대기 승인을 세우고 "y"·"Deny please" 를 보냄 — 보내기 직전 `sessions.get` 이 막아 `messages.post` 가 가지 않고 승인도 안 됨. 대기 승인이 없으면 "y" 도 일반 글로 감 | 함정 6 | ✅ | `guard` |
+| 승인 뒤에도 Gateway 가 거절 | `gateway-403-after-approve` — 카드가 미리 "물어봤다"고 말함, error 줄 + `MODULE_PERMISSION_DENIED` 코드, ok 로 칠하지 않음 | I5 | ✅ | `tools` |
+| 외부 도구 줄("감사에 없다")·외부 카드(계약 사실 없음) | `external-call` · `external-write-ask` (`PUT /mcp/servers/fake-mcp` 를 `ext` 계정으로 먼저) | I12 | ✅ | `tools` |
+| 시뮬레이션 `planned` 줄("실행되지 않았다") | `simulate-planned` | I13 | ✅ | `tools` |
+| 계약 사실 "적지 않음" 표현 | `legacy-contract` — 한 카드에서 "적지 않음"(키 없음)과 "없음"(`[]`)이 갈림 | DC-17 | ✅ | `tools` |
+| M-2~M-7 이전 모듈에 붙었을 때의 화면 | `features({...:false})` 전부 + 하나씩(`contract`·`expires`·`reasonJudgement`·`modelFields`; `lastErrorCode` 는 위 행). 판정 근거는 `pending_approvals` 에 없어도 기록의 `approval` 줄 `note` 에서 읽는다 | 계획서 §4 | ✅ | `compat` |
+| 비밀이 어디에도 다시 보이지 않는다(키·자격·env 값) | 서버 쪽에서 `models.put`·`credentials.put`·`mcp.put` 뒤 앱을 한 바퀴 — 앱·셸의 DOM·속성·저장소·쿠키·주소·콘솔·브리지 기록·요청 주소에 없음, 응답에도 없고 서버 요청 기록은 `***` (앱에는 비밀을 맡기는 화면이 아직 없다) | I1, I19 | ✅ | `boundary` |
+| 앱이 직접 `fetch` 하지 않고 브리지만 쓴다 | 엄격 Gateway 에서 보내기·승인까지 돌림 — 서버가 받은 앱 호출 모두에 `Authorization`·선언 권한 머리말, 앱 프레임은 자산 밖으로 요청을 낸 적 없음, 머리말 없는 직접 호출은 401(대조) | §5.1 | ✅ | `boundary` |
+
+## 앱 버그로 뺀 점검
+
+점검을 쓰고 돌려 보니 앱이 요구와 어긋나는 것. 우회하지 않고 점검을 커밋에서 뺐다(건너뛰기·비활성으로 두지 않았다). 앱(`src/`)이 고쳐지면 아래 점검을 `tests/errors.e2e.mjs` 에 넣는다.
+
+### `BRIDGE_NO_PERMISSIONS` 가 준비 화면에서 "모듈이 처리할 수 없다"로 읽힌다
+
+- **재현**: `openApp(t, {permissions: ''})` — 셸이 앱에 선언 권한 없이 `ready` 를 준다(`permissions=` 빈 값). 앱의 브리지 전송은 보내지 않고 `403 BRIDGE_NO_PERMISSIONS` 를 만든다(`src/transport/bridge.ts` `send`).
+- **본 것**: 준비 상태 칩 "준비 안 됨", 머리글 `모듈: 에이전트 모듈이 지금 처리할 수 없습니다. 잠시 뒤 다시 시도합니다.` (첫 단계 "모듈"이 막힘, 나머지는 "앞 단계를 먼저 해결해 주세요"). 셸 호스트 기록(`window.__shell.log`)에는 요청이 하나도 없다 — 셸이 아니라 앱이 걸렀다.
+- **기대**: 오류 사전의 `BRIDGE_NO_PERMISSIONS` 문구 "이 앱에 선언된 권한이 없어 셸이 요청을 막았습니다."(`src/data/errors.ts`, 행동 `request-permission`). 모듈 탓이 아니고 기다린다고 풀리지도 않는다.
+- **원인(읽은 곳)**: `src/data/readiness.ts` `moduleBlock` 이 `status.get` 의 `403` + 코드를 모두 `module-error` 로 묶고, `src/app/readiness-model.ts` 가 그것을 `AGENT_UNAVAILABLE`(배너 + 백오프)의 문구로 옮긴다. `BRIDGE_NO_PERMISSIONS` 를 가르는 갈래가 없다. 요구 문서 §6.4 가 `BRIDGE_NO_PERMISSIONS`(403) 를 Gateway·브리지 오류 목록에 둔다.
+- **빼 둔 점검의 뼈대**: 준비 상태 머리글이 `/선언된 권한이 없어 셸이 요청을 막았습니다/` 와 맞고, 새 세션이 꺼져 있으며, `requests()` 에 호출이 없다.
+- 같은 일을 `smoke.e2e.mjs`(probe 앱)는 브리지 층에서 본다(셸이 `403 BRIDGE_NO_PERMISSIONS` 를 만들고 요청은 Gateway 에 닿지 않는다) — 이쪽은 통과한다.
+
+### 확인했지만 점검으로 묶지 않은 것
+
+- `door:false` 에서 이미 있는 idle 세션의 입력칸이 열려 있다(준비 상태의 관문 단계는 "읽기만 할 수 있고 새 세션은 열 수 없습니다"라고 쓴다). `Readiness.readOnly` 는 계산되지만 화면 어디에서도 쓰이지 않는다(`grep readOnly src`). 관문이 없는 노드에 세션이 이미 있을 수 있는지(재시작하면 archived 가 된다)가 불분명해 요구 위반으로 단정하지 않는다 — 요구 쪽의 판단을 기다린다.
 
 ## 이식할 때의 규칙
 

@@ -59,7 +59,7 @@ node e2e/serve.mjs --root ../ui --shell-origin http://127.0.0.1:4021   # 앱 정
 | `stack.mjs` | 셸 서버 + Gateway 서버(앱 서빙·가짜 모듈)를 **다른 origin** 으로 세운다 |
 | `run.mjs` · `lib/harness.mjs` · `lib/browser.mjs` | 러너 · 하네스(`check`/`until`/`openShell`) · Chromium·페이지 감시 |
 | `lib/app.mjs` | 실제 앱 점검의 공용 도구 — `agentApi`(세션을 서버 쪽에서 심고 읽기), `openApp`(앱을 셸 안에서 열고 화면 읽기), `requestsOf`·`mark`(서버가 받은 요청 세기) |
-| `tests/*.e2e.mjs` | 브라우저 점검 — `smoke`(서버·브리지·CSP)·`scenarios`(시나리오 구동)는 probe 앱, 나머지는 실제 앱(`--app ui`): `load`(불러오기·세션 셋) · `input`(입력) · `session`(취소·자율성·시간 초과·인박스·종료 세션·I20·차례 줄) · `scroll` · `a11y`(접근성·초점·대비·폴백) · `readiness`(준비 상태·응답 유실) |
+| `tests/*.e2e.mjs` | 브라우저 점검 — `smoke`(서버·브리지·CSP)·`scenarios`(시나리오 구동)는 probe 앱, 나머지는 실제 앱(`--app ui`): `load`(불러오기·세션 셋) · `input`(입력) · `session`(취소·자율성·시간 초과·인박스·종료 세션·I20·차례 줄) · `scroll` · `a11y`(접근성·초점·대비·폴백) · `readiness`(준비 상태·관문·응답 유실) · `tools`(외부 도구·계약 "적지 않음"·승인 뒤 Gateway 거절·시뮬레이션) · `guard`(보내기 직전 가드, 함정 6) · `errors`(오류 코드 사전이 화면의 어느 자리에 어떻게 서는가) · `compat`(이전 모듈 모양·`last_error` 문장→코드) · `polling`(기록 읽기 중간 실패·느림) · `boundary`(비밀이 다시 보이지 않음·브리지만 씀) |
 | `server/*.test.mjs` | 서버 단위 시험 48개 — `contract`(계약 대조) · `strict`(본문·principal·소유자) · `state`(상태기계·시나리오) · `gateway`(권한·봉투·주입·CSP·브리지 규칙) |
 | `fixtures/probe-app/` | 점검용 최소 앱(실제 앱이 아니다) |
 | `TODO-checks.md` | §5.3 점검 묶음 → 시나리오 매핑 |
@@ -214,11 +214,13 @@ export default {
 - **Chromium 은 끊긴 연결의 POST 를 조용히 다시 보낸다.** 재사용 중인 연결이 응답 없이 끊기면(`drop` 주입이 그렇다) 요청이 한 번 더 간다 — 실제 브라우저에서도 일어나는 중복 전송이다(I17 의 이유). 가짜 서버는 매 응답에서 `Connection: close` 를 보내 연결을 재사용하지 않게 해서, `drop: 'after'` 가 앱에 **한 번의 유실**로 보이게 한다. 재전송 동작 자체를 시험하려면 이 헤더를 빼야 한다.
 - **스트림(`messages.stream`)**: 서버는 SSE 를 낸다(직접 호출). 브리지는 응답 한 번뿐이라, 브리지로 부르면 Gateway 가 스트림을 닫을 때까지 응답이 오지 않는다(셸의 `fetch` → `response.json()` 이 기다린다). 앱은 폴링한다(함정 3).
 - 앱 CSP 의 `connect-src 'self'` 는 앱 origin(= Gateway origin)을 가리키므로 앱이 직접 `fetch` 해도 CSP 는 막지 않는다. 대신 엄격 모드 Gateway 가 토큰 없는 호출을 `401` 로 막는다 — 앱의 API 호출은 브리지를 거쳐야 한다. 다른 origin(셸 등)으로의 연결은 CSP 가 막는다.
+- **같은 주소의 요청은 앞의 것 뒤에 선다.** `inject {hang:true}` 로 한 주소를 붙잡아 두면 Chromium 이 같은 주소의 다음 요청(HTTP 캐시 잠금)을 서버에 보내지 않고 기다린다. 앱의 폴링을 붙잡으면서 보내기 직전의 `sessions.get` 은 통과시켜야 하는 점검(`guard.e2e.mjs`)은 기록 읽기(`messages.list`)를 붙잡는다 — 서로 다른 주소다. 지연(`delay_ms`)도 같은 주소의 뒤 요청을 그만큼 늦춘다.
+- **`hang` 은 앱의 요청 시간 제한(20초)이 풀어 준다.** 서버는 응답하지 않고, 앱이 끊고 다음 폴링으로 넘어간다. 점검은 그 안에 끝내야 한다.
 - 실패한 e2e 점검은 `e2e/.artifacts/` 에 스크린샷을 남긴다(`.gitignore` 됨).
 - `--app ui` 에 해당하는 점검이 하나도 없으면 러너가 **실패**한다(조용히 0개를 돌고 초록이라 말하지 않는다).
 
 ## 하지 않은 것
 
 - 무인 + 외부 MCP·DC-25 는 새 세션 화면에 그 조작이 서야 한다("화면 없음").
-- 전송 어댑터(`src/transport/errors.ts`)가 이 서버의 봉투를 읽는지 — 어댑터 시험은 Vitest 의 몫이다. 앱 e2e 는 모듈 봉투(`MODEL_UNAVAILABLE` 등은 기록의 줄로 온다), `403 MODULE_PERMISSION_DENIED`(권한 없음) 를 화면에서 확인하지만, 오류 코드 사전 전체(15 + 7)와 브리지 오류의 화면 모양은 아직 e2e 로 돌지 않았다.
+- 전송 어댑터(`src/transport/errors.ts`)가 이 서버의 봉투를 읽는지 — 어댑터 시험은 Vitest 의 몫이다. 앱 e2e 는 오류 코드 사전 전체(모듈 15 + Gateway 7)가 화면에 서는 모양을 `tests/errors.e2e.mjs` 로 돌린다. `BRIDGE_NO_PERMISSIONS` 의 화면 모양은 앱이 어긋나 점검을 뺐다([TODO-checks.md](TODO-checks.md) "앱 버그로 뺀 점검").
 - 실 모듈·실 Gateway 스모크(§5.3 넷째 층) — 별도 잡.
