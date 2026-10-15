@@ -51,6 +51,8 @@ const MODULE_BLOCK_CODE: Partial<Record<ReadinessBlock, string>> = {
   'session-ended': 'UNAUTHORIZED',
   unreachable: 'NETWORK_ERROR',
   'module-error': 'AGENT_UNAVAILABLE',
+  'bridge-no-permissions': 'BRIDGE_NO_PERMISSIONS',
+  'module-permission-denied': 'MODULE_PERMISSION_DENIED',
 };
 
 function toneOf(status: StepStatus): Tone {

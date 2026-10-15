@@ -163,6 +163,17 @@ const ioUi = await page.evaluate(async () => {
 check('입출력 설정 — 연결 줄 [설정]이 패널을 펼친다 (바인딩 · 엔드포인트 칸)', ioUi.closed && ioUi.open && ioUi.kind && ioUi.eps === ',frames,stats|,sink' && ioUi.applyOff, JSON.stringify([ioUi.closed, ioUi.open, ioUi.eps, ioUi.applyOff]));
 check('입출력 설정 — 모듈에는 상태 미리보기 칸이 없다', ioUi.demoSel === 'none', ioUi.demoSel);
 check('입출력 설정 — 엔드포인트 고름이 연결 io에 남는다 · 허가 칸', ioUi.chosen === JSON.stringify({ 'src:a': 'frames', 'dst:b': 'sink' }) && ioUi.grantAsk !== 'none', ioUi.chosen);
+// 클러스터 창(기능칸 · M-1/M-3) — Master 권한이 풀리기 전(PF-1)에는 계정 · 버전을 지어내지 않고 잠금 이유만 보인다
+const admUi = await page.evaluate(async () => {
+  const s = window.__screen, wait = (ms) => new Promise((r) => setTimeout(r, ms)), q = (x) => document.querySelector(x), all = (x) => [...document.querySelectorAll(x)];
+  const W = s.state.wins.adm; s.openWin('adm', W.x, W.y); await wait(300);
+  const out = { tabs: all('[data-adm-tab]').map((e) => e.dataset.admTab).join(','), lock: !!q('[data-adm-lock]') && /PF-1/.test(q('[data-adm-lock]').innerText) };
+  out.users = all('[data-adm-user]').length; out.invite = q('[data-adm-invite]') ? q('[data-adm-invite]').disabled : null;
+  q('[data-adm-tab="core"]').click(); await wait(200); out.core = all('[data-adm-core]').length;
+  q('[data-adm-tab="fleet"]').click(); await wait(200); out.frame = !!q('[data-adm-frame="fleet"]');
+  return out;
+});
+check('클러스터 창 — 네 탭이 있고 모듈에서는 잠금 이유(PF-1)만 보인다 · 계정 · 노드 버전을 지어내지 않는다', admUi.tabs === 'users,core,fleet,tt' && admUi.lock && admUi.users === 0 && admUi.core === 0 && admUi.frame, JSON.stringify(admUi));
 // 흐름 도로(UP-27) — 조건은 바인딩 active. 핸들이 없으면 fps 를 지어내지 않고, 바인딩이 아직이면 핸들이 흘러도 그리지 않는다
 const roadUi = await page.evaluate(async () => {
   const s = window.__screen, wait = (ms) => new Promise((r) => setTimeout(r, ms)), lbl = () => [...document.querySelectorAll('[data-svi-road-fps]')].map((e) => e.innerText.trim());

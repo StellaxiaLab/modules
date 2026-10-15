@@ -29,6 +29,22 @@ describe('준비 상태 합성(요구 §6.2 + GAP-2)', () => {
   it('1 연결 실패(코드 없음)는 도달 불가', () => {
     expect(composeReadiness(all({ status: failResult(0, undefined, 'offline') })).blocking).toBe('unreachable');
   });
+  it('1 status.get 이 403 이어도 코드가 사전대로 갈라진다 — 셸 차단·권한/범위·로그인 끝·그 밖의 403', () => {
+    const block = (code: string | undefined, http = 403) => composeReadiness(all({ status: failResult(http, code) })).blocking;
+    expect(block('BRIDGE_NO_PERMISSIONS')).toBe('bridge-no-permissions');
+    expect(block('MODULE_PERMISSION_DENIED')).toBe('module-permission-denied');
+    expect(block('UNAUTHORIZED', 401)).toBe('session-ended');
+    expect(block('UNAUTHORIZED')).toBe('session-ended');
+    expect(block('MODULE_UNAVAILABLE', 503)).toBe('module-down');
+    expect(block('SOMETHING_ELSE')).toBe('module-error');
+    expect(block('AGENT_UNAVAILABLE', 503)).toBe('module-error');
+    expect(block(undefined, 403)).toBe('unreachable');
+  });
+  it('1 셸 차단(BRIDGE_NO_PERMISSIONS)이면 뒤 단계는 건너뛴다', () => {
+    const r = composeReadiness(all({ status: failResult(403, 'BRIDGE_NO_PERMISSIONS') }));
+    expect(r.steps.find((s) => s.id === 'module')?.status).toBe('fail');
+    expect(r.steps.filter((s) => s.id !== 'module').every((s) => s.status === 'skipped')).toBe(true);
+  });
   it('권한 없음 — status.get 만 되고 나머지가 403 MODULE_PERMISSION_DENIED 면 agent.use 가 없다', () => {
     const denied = failResult(403, 'MODULE_PERMISSION_DENIED');
     const r = composeReadiness(all({ models: denied, credentials: denied }));
