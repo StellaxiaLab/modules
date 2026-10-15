@@ -16,6 +16,8 @@ export interface SidebarModel {
   /** 새 세션 버튼을 켜는가. */
   canOpenNew: boolean;
   newingActive: boolean;
+  /** 설정 화면이 열려 있는가 — 링크에 aria-current=page. 생략하면 false. */
+  settingsActive?: boolean;
   /** 목록을 읽지 못했을 때의 안내. */
   listProblem: string | null;
   loading: boolean;
@@ -74,7 +76,8 @@ export function createSidebar(handlers: SidebarHandlers): View<SidebarModel> {
   const list = h('div', { class: 'sess-list' });
   const panel = h('div', { class: 'sess-panel', attrs: { role: 'tabpanel', id: 'session-panel', 'aria-labelledby': 'tab-mine' } }, status, list);
 
-  const settings = h('div', { class: 'settings-stub', attrs: { 'aria-disabled': 'true' } }, icon('gear', 's'), '설정 · 모델 · 자격 (아직 없음)', icon('chevr', 's'));
+  // 설정 자리 — 읽기 전용 설정 화면(G3)으로 가는 켜진 링크다.
+  const settings = h('a', { class: 'settings-link', attrs: { href: routeHash({ name: 'settings' }), 'data-role': 'settings-link' } }, icon('gear', 's'), '설정 · 모델 · 자격', icon('chevr', 's'));
 
   const el = h(
     'nav',
@@ -110,6 +113,8 @@ export function createSidebar(handlers: SidebarHandlers): View<SidebarModel> {
       newLink.tabIndex = model.canOpenNew ? 0 : -1;
       newLink.classList.toggle('off', !model.canOpenNew);
       newLink.classList.toggle('active', model.newingActive);
+      if (model.settingsActive === true) settings.setAttribute('aria-current', 'page');
+      else settings.removeAttribute('aria-current');
 
       for (const t of TABS) {
         const b = tabButtons.get(t.id) as HTMLButtonElement;

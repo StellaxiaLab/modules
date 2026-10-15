@@ -57,9 +57,18 @@ G1 화면: 1 준비 상태(`views/readiness.ts`) · 2 세션 목록·새 세션(
 - 앱 e2e의 전제: 앱 자산 CSP(`script-src 'self'`)를 응답 머리로 싣는 정적 서버, 셸 역할의 부모 페이지(iframe `sandbox="allow-scripts allow-forms allow-same-origin"`, `hello`→`ready`→`request/response`), 가짜 Gateway. 이 PR의 브라우저 확인(임시, 커밋하지 않음)이 그 모양이었다.
 - 하네스의 `package.json`이 없고 Playwright는 전역 설치(`NODE_PATH=$(npm root -g)`)를 쓰는 규약은 e2e에서도 같게 두는 것이 낫다(CI 러너에 브라우저가 없다 — `test`와 분리).
 
+## 설정(G3, 읽기 전용) · 자격 거두기
+
+사이드바 아래의 "설정 · 모델 · 자격" 링크(`#/settings`)가 화면 6이다(보드 ④·⑧).
+
+- **읽기만 한다**: 모델 목록(`models.list`: provider·model·base_url·기본·등록 — 키는 어떤 응답에도 없다) · 자격 사실(`credentials.get`: 만료·권한·도달 범위·무인·대리인 — "만료 시각 전 — 폐기 여부는 확인하지 못함", R-10) · MCP 서버(`mcp.list`: 명령·도구 수·env **이름**) · 한도 기본값(새 세션 폼이 채우는 24 · 900 · 무제한). 응답은 `data/settings.ts` 가 허용 목록으로만 옮긴다 — 계약을 어기고 키·자격 문자열·env 값이 실려 와도 화면 모델에 들어오지 않는다(`tests/settings-data.test.ts`). `base_url` 의 사용자 정보·쿼리는 가려서 보인다.
+- **하지 않는 것**: 모델 등록·교체(`models.put`, R-9·R-11 모듈 선행이 없다) · 모델 삭제(기본 provider 승계 확인이 필요하다) · MCP 등록·삭제(D-4) · G4. 입력칸·쓰기 단추가 없고 터미널 명령으로 안내한다.
+- **자격 거두기**(`credentials.delete`, DC-20): 대화창이 세 단계를 한 버튼에 묶지 않는다. ① 열린 세션 취소(앱, `store.cancel`) → ② Gateway 폐기(사람 세션만 — 앱은 `terra agent revoke <id>` 를 보이고 복사하게 하고, 사람이 "폐기를 마쳤습니다"를 확인해야 한다) → ③ 자격 삭제(앱). 삭제는 열린 세션이 0 이고 폐기를 확인해야 풀리고(`aria-disabled` + 이유), 한 번만 나간다. 확인 단계는 "폐기 여부는 확인하지 못함"과, 턴 도중 거두면 HTTP 오류 없이 `call` 줄에 `GATEWAY_UNREACHABLE` 만 쌓일 수 있음을 말한다. 응답을 잃으면(`outcomeUnknown`) 다시 보내지 않고 자격을 읽어 확인한다. 삭제한 뒤에도 결과 화면에 "Gateway 폐기는 아직입니다"와 명령이 남는다. 대리인 id 가 명령에 안전한 글자가 아니면 명령을 만들지 않는다(셸에 붙이는 글).
+- 점검: `tests/settings-data.test.ts` · `tests/app-settings.test.ts`(Vitest) · `e2e/tests/settings.e2e.mjs`.
+
 ## 알려진 한계 / 미룬 것
 
 - 승인 카드·활동 상세·`ask`·`auto`·`unattended` 세션 열기는 G2 이후다. 새 세션 폼의 자율성은 `plan`만 켠다(D-7).
 - 오래된 줄은 기록 전체를 `after_seq`로 읽은 뒤 DOM에는 마지막 200줄만 그리고 "이전 줄 N개 더 보기"로 200줄씩 붙인다. 수천 줄 기록의 가상 스크롤은 아니다.
-- 헤더의 대상 노드 이름(GAP-13)은 `status.get` 의 선택 필드 `node_name`(모듈 0.3.0~)이 있을 때만 보인다. 이전 모듈이거나 호스트가 이름을 주지 않으면 자리 자체가 없다. 설정·모델·자격 화면(G3)은 자리 표시만 있다.
+- 헤더의 대상 노드 이름(GAP-13)은 `status.get` 의 선택 필드 `node_name`(모듈 0.3.0~)이 있을 때만 보인다. 이전 모듈이거나 호스트가 이름을 주지 않으면 자리 자체가 없다. 설정 화면(G3)은 읽기 전용만 있다 — 아래 "설정(G3, 읽기 전용)".
 - 시험은 jsdom이다 — 실제 한글 IME 조합과 실제 레이아웃(스크롤 지표)은 브라우저 확인에서 일부만 봤다.

@@ -2,14 +2,16 @@
 //   #/            준비 상태 + 세션 고르기
 //   #/new         새 세션 열기
 //   #/s/<id>      세션(대화)
+//   #/settings    설정(읽기 전용) · 자격 거두기
 
 import { isValidSessionId } from '../api/client';
 
-export type Route = { name: 'home' } | { name: 'new' } | { name: 'session'; id: string };
+export type Route = { name: 'home' } | { name: 'new' } | { name: 'settings' } | { name: 'session'; id: string };
 
 export function parseHash(hash: string): Route {
   const path = hash.replace(/^#/, '');
   if (path === '/new') return { name: 'new' };
+  if (path === '/settings') return { name: 'settings' };
   const m = /^\/s\/([^/?#]+)$/.exec(path);
   if (m) {
     let id: string;
@@ -25,6 +27,7 @@ export function parseHash(hash: string): Route {
 
 export function routeHash(route: Route): string {
   if (route.name === 'new') return '#/new';
+  if (route.name === 'settings') return '#/settings';
   if (route.name === 'session') return `#/s/${encodeURIComponent(route.id)}`;
   return '#/';
 }
