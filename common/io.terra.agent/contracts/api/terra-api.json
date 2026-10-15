@@ -1680,11 +1680,14 @@
                   "author": "agent",
                   "author_label": "agent",
                   "decision": "run",
+                  "input_summary": "{}",
                   "judgement": "read risk runs unasked",
                   "kind": "call",
                   "note": "run · ok · trace=trace-9f2c",
                   "operation_id": "terra.daemon.modules.list",
+                  "output_mode": "immediate",
                   "reason": "활성 모듈 목록을 먼저 본다",
+                  "result_summary": "{\"modules\":3}",
                   "seq": 2,
                   "status": "ok",
                   "subject": "terra.daemon.modules.list",
@@ -1726,6 +1729,11 @@
                     "title": "오류 코드",
                     "type": "string"
                   },
+                  "input_summary": {
+                    "description": "call·planned·external 줄에서 모델이 호출에 넘긴 입력의 요약 — 비밀로 이름 붙은 값(token·secret·password·private_key·authorization·credential·api_key·env)은 `***`로 가려진 JSON 글이고 480바이트에서 잘린다(잘리면 끝에 …). 입력이 JSON이 아니면 싣지 않는다. 가림은 키 이름 기준이라 값 안의 문장에 섞인 비밀은 잡지 못한다. 키가 없으면 이 기록이 입력을 싣지 않던 때의 줄이거나 입력을 읽을 수 없었던 호출이다.",
+                    "title": "입력 요약",
+                    "type": "string"
+                  },
                   "judgement": {
                     "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
                     "title": "판정 근거",
@@ -1751,6 +1759,11 @@
                     "title": "operation",
                     "type": "string"
                   },
+                  "output_mode": {
+                    "description": "call·planned 줄에서 이 operation 계약의 output.mode를 그대로 옮긴 값(immediate·accepted-job·stream·empty). accepted-job은 '접수'이지 '완료'가 아니다. 계약이 적지 않았거나 계약을 읽지 못했으면 키가 없다 — '없음'과 '적지 않음'을 가르지 않는다. external 줄에는 없다.",
+                    "title": "결과 방식",
+                    "type": "string"
+                  },
                   "provider": {
                     "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
                     "title": "모델 provider",
@@ -1771,6 +1784,11 @@
                     "minimum": 0,
                     "title": "결과 크기",
                     "type": "integer"
+                  },
+                  "result_summary": {
+                    "description": "call 줄에서 호출이 돌려받은 것의 요약 — 성공이면 응답을 같은 규칙으로 가려 480바이트로 자른 JSON 글, 실패면 '오류코드: 메시지'. 실행되지 않은 호출(planned·거절)과 external 줄에는 없다(external은 result_bytes가 크기를 말한다).",
+                    "title": "결과 요약",
+                    "type": "string"
                   },
                   "sent_bytes": {
                     "description": "모델 호출 하나에서 이 노드를 떠난 내용의 바이트 수 — 지시문·대화·되돌려 넣은 operation 출력의 합.",
@@ -2045,6 +2063,11 @@
                   "title": "오류 코드",
                   "type": "string"
                 },
+                "input_summary": {
+                  "description": "call·planned·external 줄에서 모델이 호출에 넘긴 입력의 요약 — 비밀로 이름 붙은 값(token·secret·password·private_key·authorization·credential·api_key·env)은 `***`로 가려진 JSON 글이고 480바이트에서 잘린다(잘리면 끝에 …). 입력이 JSON이 아니면 싣지 않는다. 가림은 키 이름 기준이라 값 안의 문장에 섞인 비밀은 잡지 못한다. 키가 없으면 이 기록이 입력을 싣지 않던 때의 줄이거나 입력을 읽을 수 없었던 호출이다.",
+                  "title": "입력 요약",
+                  "type": "string"
+                },
                 "judgement": {
                   "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
                   "title": "판정 근거",
@@ -2070,6 +2093,11 @@
                   "title": "operation",
                   "type": "string"
                 },
+                "output_mode": {
+                  "description": "call·planned 줄에서 이 operation 계약의 output.mode를 그대로 옮긴 값(immediate·accepted-job·stream·empty). accepted-job은 '접수'이지 '완료'가 아니다. 계약이 적지 않았거나 계약을 읽지 못했으면 키가 없다 — '없음'과 '적지 않음'을 가르지 않는다. external 줄에는 없다.",
+                  "title": "결과 방식",
+                  "type": "string"
+                },
                 "provider": {
                   "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
                   "title": "모델 provider",
@@ -2090,6 +2118,11 @@
                   "minimum": 0,
                   "title": "결과 크기",
                   "type": "integer"
+                },
+                "result_summary": {
+                  "description": "call 줄에서 호출이 돌려받은 것의 요약 — 성공이면 응답을 같은 규칙으로 가려 480바이트로 자른 JSON 글, 실패면 '오류코드: 메시지'. 실행되지 않은 호출(planned·거절)과 external 줄에는 없다(external은 result_bytes가 크기를 말한다).",
+                  "title": "결과 요약",
+                  "type": "string"
                 },
                 "sent_bytes": {
                   "description": "모델 호출 하나에서 이 노드를 떠난 내용의 바이트 수 — 지시문·대화·되돌려 넣은 operation 출력의 합.",
@@ -2339,6 +2372,11 @@
                   "title": "오류 코드",
                   "type": "string"
                 },
+                "input_summary": {
+                  "description": "call·planned·external 줄에서 모델이 호출에 넘긴 입력의 요약 — 비밀로 이름 붙은 값(token·secret·password·private_key·authorization·credential·api_key·env)은 `***`로 가려진 JSON 글이고 480바이트에서 잘린다(잘리면 끝에 …). 입력이 JSON이 아니면 싣지 않는다. 가림은 키 이름 기준이라 값 안의 문장에 섞인 비밀은 잡지 못한다. 키가 없으면 이 기록이 입력을 싣지 않던 때의 줄이거나 입력을 읽을 수 없었던 호출이다.",
+                  "title": "입력 요약",
+                  "type": "string"
+                },
                 "judgement": {
                   "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
                   "title": "판정 근거",
@@ -2364,6 +2402,11 @@
                   "title": "operation",
                   "type": "string"
                 },
+                "output_mode": {
+                  "description": "call·planned 줄에서 이 operation 계약의 output.mode를 그대로 옮긴 값(immediate·accepted-job·stream·empty). accepted-job은 '접수'이지 '완료'가 아니다. 계약이 적지 않았거나 계약을 읽지 못했으면 키가 없다 — '없음'과 '적지 않음'을 가르지 않는다. external 줄에는 없다.",
+                  "title": "결과 방식",
+                  "type": "string"
+                },
                 "provider": {
                   "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
                   "title": "모델 provider",
@@ -2384,6 +2427,11 @@
                   "minimum": 0,
                   "title": "결과 크기",
                   "type": "integer"
+                },
+                "result_summary": {
+                  "description": "call 줄에서 호출이 돌려받은 것의 요약 — 성공이면 응답을 같은 규칙으로 가려 480바이트로 자른 JSON 글, 실패면 '오류코드: 메시지'. 실행되지 않은 호출(planned·거절)과 external 줄에는 없다(external은 result_bytes가 크기를 말한다).",
+                  "title": "결과 요약",
+                  "type": "string"
                 },
                 "sent_bytes": {
                   "description": "모델 호출 하나에서 이 노드를 떠난 내용의 바이트 수 — 지시문·대화·되돌려 넣은 operation 출력의 합.",
@@ -3291,6 +3339,11 @@
                     "title": "오류 코드",
                     "type": "string"
                   },
+                  "input_summary": {
+                    "description": "call·planned·external 줄에서 모델이 호출에 넘긴 입력의 요약 — 비밀로 이름 붙은 값(token·secret·password·private_key·authorization·credential·api_key·env)은 `***`로 가려진 JSON 글이고 480바이트에서 잘린다(잘리면 끝에 …). 입력이 JSON이 아니면 싣지 않는다. 가림은 키 이름 기준이라 값 안의 문장에 섞인 비밀은 잡지 못한다. 키가 없으면 이 기록이 입력을 싣지 않던 때의 줄이거나 입력을 읽을 수 없었던 호출이다.",
+                    "title": "입력 요약",
+                    "type": "string"
+                  },
                   "judgement": {
                     "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
                     "title": "판정 근거",
@@ -3316,6 +3369,11 @@
                     "title": "operation",
                     "type": "string"
                   },
+                  "output_mode": {
+                    "description": "call·planned 줄에서 이 operation 계약의 output.mode를 그대로 옮긴 값(immediate·accepted-job·stream·empty). accepted-job은 '접수'이지 '완료'가 아니다. 계약이 적지 않았거나 계약을 읽지 못했으면 키가 없다 — '없음'과 '적지 않음'을 가르지 않는다. external 줄에는 없다.",
+                    "title": "결과 방식",
+                    "type": "string"
+                  },
                   "provider": {
                     "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
                     "title": "모델 provider",
@@ -3336,6 +3394,11 @@
                     "minimum": 0,
                     "title": "결과 크기",
                     "type": "integer"
+                  },
+                  "result_summary": {
+                    "description": "call 줄에서 호출이 돌려받은 것의 요약 — 성공이면 응답을 같은 규칙으로 가려 480바이트로 자른 JSON 글, 실패면 '오류코드: 메시지'. 실행되지 않은 호출(planned·거절)과 external 줄에는 없다(external은 result_bytes가 크기를 말한다).",
+                    "title": "결과 요약",
+                    "type": "string"
                   },
                   "sent_bytes": {
                     "description": "모델 호출 하나에서 이 노드를 떠난 내용의 바이트 수 — 지시문·대화·되돌려 넣은 operation 출력의 합.",

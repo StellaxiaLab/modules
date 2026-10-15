@@ -53,13 +53,13 @@ node e2e/serve.mjs --root ../ui --shell-origin http://127.0.0.1:4021   # 앱 정
 | `lib/engine.mjs` | 세션 상태기계·승인·턴 — `session.go`·`loop.go` 의 옮김 |
 | `lib/catalog.mjs` | 모델이 부르는 가짜 operation 과 게이트 판정(`decide`) |
 | `lib/validate.mjs` · `errors.mjs` · `clock.mjs` · `schema.mjs` | 본문 검증 · 오류 코드 표 · 가짜 시계 · 계약 스키마 검증기(시험용) |
-| `scenarios/*.mjs` | 시나리오 25개(턴 24 + 시드 1). 형식은 `scenarios/index.mjs` 머리말 |
+| `scenarios/*.mjs` | 시나리오 26개(턴 25 + 시드 1). 형식은 `scenarios/index.mjs` 머리말 |
 | `serve.mjs` | 앱 정적 서빙 + 앱 CSP 헤더 |
 | `shell-host.html` · `shell-host.mjs` · `shell-bridge.mjs` | 셸 호스트 페이지. 브리지 규칙 본체는 `shell-bridge.mjs`(웹앱 브리지 소스의 옮김) |
 | `stack.mjs` | 셸 서버 + Gateway 서버(앱 서빙·가짜 모듈)를 **다른 origin** 으로 세운다 |
 | `run.mjs` · `lib/harness.mjs` · `lib/browser.mjs` | 러너 · 하네스(`check`/`until`/`openShell`) · Chromium·페이지 감시 |
 | `lib/app.mjs` | 실제 앱 점검의 공용 도구 — `agentApi`(세션을 서버 쪽에서 심고 읽기), `openApp`(앱을 셸 안에서 열고 화면 읽기), `requestsOf`·`mark`(서버가 받은 요청 세기) |
-| `tests/*.e2e.mjs` | 브라우저 점검 — `smoke`(서버·브리지·CSP)·`scenarios`(시나리오 구동)는 probe 앱, 나머지는 실제 앱(`--app ui`): `load`(불러오기·세션 셋) · `input`(입력) · `session`(취소·자율성·시간 초과·인박스·종료 세션·I20·차례 줄) · `scroll` · `a11y`(접근성·초점·대비·폴백) · `readiness`(준비 상태·관문·응답 유실) · `tools`(외부 도구·계약 "적지 않음"·승인 뒤 Gateway 거절·시뮬레이션) · `guard`(보내기 직전 가드, 함정 6) · `errors`(오류 코드 사전이 화면의 어느 자리에 어떻게 서는가) · `compat`(이전 모듈 모양·`last_error` 문장→코드) · `polling`(기록 읽기 중간 실패·느림) · `boundary`(비밀이 다시 보이지 않음·브리지만 씀) |
+| `tests/*.e2e.mjs` | 브라우저 점검 — `smoke`(서버·브리지·CSP)·`scenarios`(시나리오 구동)는 probe 앱, 나머지는 실제 앱(`--app ui`): `load`(불러오기·세션 셋) · `input`(입력) · `session`(취소·자율성·시간 초과·인박스·종료 세션·I20·차례 줄) · `scroll` · `a11y`(접근성·초점·대비·폴백) · `readiness`(준비 상태·관문·응답 유실) · `tools`(외부 도구·계약 "적지 않음"·승인 뒤 Gateway 거절·시뮬레이션) · `guard`(보내기 직전 가드, 함정 6) · `errors`(오류 코드 사전이 화면의 어느 자리에 어떻게 서는가) · `compat`(이전 모듈 모양·`last_error` 문장→코드) · `polling`(기록 읽기 중간 실패·느림) · `boundary`(비밀이 다시 보이지 않음·브리지만 씀) · `call-details`(호출 줄의 입력·결과 요약·결과 방식, 접수 ≠ 완료) |
 | `server/*.test.mjs` | 서버 단위 시험 48개 — `contract`(계약 대조) · `strict`(본문·principal·소유자) · `state`(상태기계·시나리오) · `gateway`(권한·봉투·주입·CSP·브리지 규칙) |
 | `fixtures/probe-app/` | 점검용 최소 앱(실제 앱이 아니다) |
 | `TODO-checks.md` | §5.3 점검 묶음 → 시나리오 매핑 |
