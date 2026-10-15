@@ -96,7 +96,7 @@
 
 ## 시연에 없던 점검 (가짜 환경이 이미 받쳐 준다)
 
-시연에 없었지만 요구 문서·계획서가 요구하는 것들. `✅` 는 이식했다, `⛔ 앱 버그` 는 점검을 써서 돌려 보니 앱이 어긋나 **커밋에서 뺐다**(아래 "앱 버그로 뺀 점검").
+시연에 없었지만 요구 문서·계획서가 요구하는 것들. `✅` 는 이식했다. (`⛔ 앱 버그` 로 빼 둔 점검은 없다 — 아래 "앱 버그로 뺀 점검".)
 
 | 점검 | 시나리오 / 제어 | 근거 | 상태 | 파일 |
 | --- | --- | --- | :-: | --- |
@@ -105,7 +105,7 @@
 | 폴링에서 줄이 빠지거나 겹치지 않는다 | 1200줄 쪽 넘김(`scroll`) · `messages.list` 중간 실패 `inject {module_error}` ×3(백오프 2초·4초의 아래쪽 경계, 같은 `after_seq` 에서 재개, 마지막에 화면 = 서버 기록) · 느린 읽기 `inject {delay_ms}`(겹쳐 부르지 않음) | WP-4 완료 조건 | ✅ | `scroll` · `polling` |
 | 응답 유실(`outcomeUnknown`)이면 재전송하지 않고 `messages.list` 로 확인 | `control.inject({op:'io.terra.agent.messages.post'}, {drop:'after'})` — 서버에는 글이 쌓였고 앱은 502 를 받는다 | I17, 함정 12 | ✅ | `readiness` |
 | 오류 코드 사전: 15개 + Gateway 7개가 화면에 어떻게 보이는가 | 보내기 실패 주입 `module_error`·`gateway_error` 22개를 한 입력칸에서 돌린다(한국어 문구·입력 보존·재전송 없음, 표가 `lib/errors.mjs` 와 어긋나면 깨짐) · 모르는 코드·HTML 502 · 서는 자리: 세션 읽기(`SESSION_NOT_FOUND`·`SESSION_NOT_OWNED`) · 목록 읽기 · 승인 답(`APPROVAL_NOT_FOUND` 는 조용히, 그 밖은 카드 안 안내) · 준비 상태(`MODULE_UNAVAILABLE`·`UNAUTHORIZED`·`AGENT_UNAVAILABLE`·연결 끊김, 복구 뒤 "다시 확인") · `login=0`(`UNAUTHORIZED`) · 세션 도중 `UNAUTHORIZED` | WP-3 완료 조건 | ✅ | `errors` |
-| 오류 코드 사전: `BRIDGE_NO_PERMISSIONS`(`permissions=` 빈 선언)가 화면에서 셸의 거절로 읽힌다 | `openApp(t, {permissions:''})` | WP-3 완료 조건 | ⛔ 앱 버그 | — |
+| 오류 코드 사전: `BRIDGE_NO_PERMISSIONS`(`permissions=` 빈 선언)가 화면에서 셸의 거절로 읽힌다 | `openApp(t, {permissions:''})` — 머리글·첫 단계가 "셸이 요청을 막았습니다", 요청은 Gateway 에 닿지 않음 | WP-3 완료 조건 | ✅ | `errors` |
 | `last_error` 영어 문장 → 코드 사전 | `model-failure`(`lastErrorCode` 켬·끔: 상태 옆 코드, 영어 원문은 접힌 상세에만) · 이전 모듈의 목록 행은 기록을 읽기 전엔 코드를 모른다고 둠 · `step-limit`(`session`) | 함정 5, GAP-7 | ✅ | `compat` · `session` |
 | 함정 6: 폴링 지연 사이에 "y" 를 보내면 승인이 된다 | `two-approvals` + 기록 읽기를 붙잡아 앱의 판독을 idle 로 굳힌 채 서버에 대기 승인을 세우고 "y"·"Deny please" 를 보냄 — 보내기 직전 `sessions.get` 이 막아 `messages.post` 가 가지 않고 승인도 안 됨. 대기 승인이 없으면 "y" 도 일반 글로 감 | 함정 6 | ✅ | `guard` |
 | 승인 뒤에도 Gateway 가 거절 | `gateway-403-after-approve` — 카드가 미리 "물어봤다"고 말함, error 줄 + `MODULE_PERMISSION_DENIED` 코드, ok 로 칠하지 않음 | I5 | ✅ | `tools` |
@@ -118,16 +118,14 @@
 
 ## 앱 버그로 뺀 점검
 
-점검을 쓰고 돌려 보니 앱이 요구와 어긋나는 것. 우회하지 않고 점검을 커밋에서 뺐다(건너뛰기·비활성으로 두지 않았다). 앱(`src/`)이 고쳐지면 아래 점검을 `tests/errors.e2e.mjs` 에 넣는다.
+해소했다. 지금 빼 둔 점검은 없다.
 
-### `BRIDGE_NO_PERMISSIONS` 가 준비 화면에서 "모듈이 처리할 수 없다"로 읽힌다
+### `BRIDGE_NO_PERMISSIONS` 가 준비 화면에서 "모듈이 처리할 수 없다"로 읽히던 것 — 해소
 
-- **재현**: `openApp(t, {permissions: ''})` — 셸이 앱에 선언 권한 없이 `ready` 를 준다(`permissions=` 빈 값). 앱의 브리지 전송은 보내지 않고 `403 BRIDGE_NO_PERMISSIONS` 를 만든다(`src/transport/bridge.ts` `send`).
-- **본 것**: 준비 상태 칩 "준비 안 됨", 머리글 `모듈: 에이전트 모듈이 지금 처리할 수 없습니다. 잠시 뒤 다시 시도합니다.` (첫 단계 "모듈"이 막힘, 나머지는 "앞 단계를 먼저 해결해 주세요"). 셸 호스트 기록(`window.__shell.log`)에는 요청이 하나도 없다 — 셸이 아니라 앱이 걸렀다.
-- **기대**: 오류 사전의 `BRIDGE_NO_PERMISSIONS` 문구 "이 앱에 선언된 권한이 없어 셸이 요청을 막았습니다."(`src/data/errors.ts`, 행동 `request-permission`). 모듈 탓이 아니고 기다린다고 풀리지도 않는다.
-- **원인(읽은 곳)**: `src/data/readiness.ts` `moduleBlock` 이 `status.get` 의 `403` + 코드를 모두 `module-error` 로 묶고, `src/app/readiness-model.ts` 가 그것을 `AGENT_UNAVAILABLE`(배너 + 백오프)의 문구로 옮긴다. `BRIDGE_NO_PERMISSIONS` 를 가르는 갈래가 없다. 요구 문서 §6.4 가 `BRIDGE_NO_PERMISSIONS`(403) 를 Gateway·브리지 오류 목록에 둔다.
-- **빼 둔 점검의 뼈대**: 준비 상태 머리글이 `/선언된 권한이 없어 셸이 요청을 막았습니다/` 와 맞고, 새 세션이 꺼져 있으며, `requests()` 에 호출이 없다.
-- 같은 일을 `smoke.e2e.mjs`(probe 앱)는 브리지 층에서 본다(셸이 `403 BRIDGE_NO_PERMISSIONS` 를 만들고 요청은 Gateway 에 닿지 않는다) — 이쪽은 통과한다.
+- **원인**: `src/data/readiness.ts` `moduleBlock` 이 `status.get` 의 `403` + 코드를 모두 `module-error` 로 묶었고, `src/app/readiness-model.ts` 가 그것을 `AGENT_UNAVAILABLE`("지금 처리할 수 없습니다") 문구로 옮겼다.
+- **고침**: `moduleBlock` 이 `BRIDGE_NO_PERMISSIONS` → `bridge-no-permissions`, `MODULE_PERMISSION_DENIED` → `module-permission-denied` 로 가르고, 문구는 오류 사전에서 가져온다. 그 밖의 코드는 그대로 `module-error`.
+- **점검**: `tests/errors.e2e.mjs` — `permissions=` 빈 선언(요청이 Gateway 에 닿지 않음) · `status.get` 이 `MODULE_PERMISSION_DENIED` 일 때(복구 뒤 "다시 확인"). 단위: `tests/readiness.test.ts` · `tests/readiness-view.test.ts`.
+- 같은 일을 `smoke.e2e.mjs`(probe 앱)는 브리지 층에서 본다.
 
 ### 확인했지만 점검으로 묶지 않은 것
 

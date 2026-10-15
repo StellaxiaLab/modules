@@ -22,6 +22,8 @@ export type ReadinessBlock =
   | 'session-ended'
   | 'unreachable'
   | 'module-error'
+  | 'bridge-no-permissions'
+  | 'module-permission-denied'
   | 'no-permission'
   | 'no-door'
   | 'no-model'
@@ -62,6 +64,9 @@ function moduleBlock(status: Extract<CallResult<ModuleStatus>, { ok: false }>): 
   if (status.code === 'MODULE_UNAVAILABLE') return 'module-down';
   if (status.status === 401 || status.code === 'UNAUTHORIZED') return 'session-ended';
   if (status.status === 0 || status.code === undefined) return 'unreachable';
+  // 403 은 코드가 가른다 — 사전(errors.ts)이 둘 다 request-permission 이지만 문구가 다르다. 모듈이 못 처리한 것(module-error)이 아니다.
+  if (status.code === 'BRIDGE_NO_PERMISSIONS') return 'bridge-no-permissions';
+  if (status.code === 'MODULE_PERMISSION_DENIED') return 'module-permission-denied';
   return 'module-error';
 }
 

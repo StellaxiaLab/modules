@@ -30,6 +30,18 @@ describe('화면 1 — 준비 상태 모델', () => {
     expect(p.version).toBe('0.1.0');
   });
 
+  it('status.get 의 403 은 사전의 문구로 말한다 — BRIDGE_NO_PERMISSIONS 는 "셸이 요청을 막았습니다", 모듈 탓으로 읽지 않는다', () => {
+    const p = presentReadiness(composeReadiness({ ...READY, status: fail(403, 'BRIDGE_NO_PERMISSIONS') }));
+    expect(p.chip).toBe('준비 안 됨');
+    expect(p.canOpenSession).toBe(false);
+    expect(p.headline).toContain('이 앱에 선언된 권한이 없어 셸이 요청을 막았습니다');
+    expect(p.headline).not.toContain('지금 처리할 수 없습니다');
+    const d = presentReadiness(composeReadiness({ ...READY, status: fail(403, 'MODULE_PERMISSION_DENIED') }));
+    expect(d.headline).toContain('agent.use 권한이 없거나 도달 범위 밖');
+    const m = presentReadiness(composeReadiness({ ...READY, status: fail(403, 'SOMETHING_ELSE') }));
+    expect(m.headline).toContain('에이전트 모듈이 지금 처리할 수 없습니다');
+  });
+
   it('권한 없음(GAP-2): MODULE_PERMISSION_DENIED 를 권한 단계로 말하고 뒤 단계는 건너뛴다', () => {
     const p = presentReadiness(composeReadiness({ ...READY, models: fail(403, 'MODULE_PERMISSION_DENIED'), credentials: fail(403, 'MODULE_PERMISSION_DENIED') }));
     expect(p.canOpenSession).toBe(false);
