@@ -16,7 +16,19 @@
 | 합계 | 35 |
 | 실패 | 0 |
 
-`npm run e2e -- --app ui` 는 85개를 돈다(이 작업 이전 2개 + 앱 점검 37개 + 승인 카드 12개 + 시연 밖 점검 34개). 앱 점검 37개에는 35개 목록 몫 외에 "시연에 없던 점검" 7개(`readiness.e2e.mjs` 6개, `auto` 의 쓰기를 묻지 않는 점검 1개)가 들어 있고, 시연 밖 점검 34개는 `tools` 5 · `guard` 3 · `errors` 13 · `compat` 8 · `polling` 2 · `boundary` 2 · `readiness` 1(관문 없음)이다 — 아래 "시연에 없던 점검" 표. probe 앱은 14개.
+**현재 사실**(2026-10-15, modules `main` `85448b2` 위에서 `npm run build && npm run e2e -- --app ui` 를 돌려 확인): 앱 e2e **119/119 통과**(실제 앱 `--app ui`; probe 앱 전용 14개는 건너뜀 — `smoke` 7 + `scenarios` 7 이라 probe 로는 따로 돈다) · 서버 단위 시험 `npm run e2e:server` **48/48** · Vitest `npm test` 37파일 681개 통과. 브라우저는 개발 환경의 전역 playwright(`NODE_PATH=/opt/node22/lib/node_modules`)로 돌렸다.
+
+앞서 적었던 "85개"(이 작업 이전 2개 + 앱 점검 37개 + 승인 카드 12개 + 시연 밖 점검 34개)는 낡았다. 119개를 파일별로 세면(반복 점검은 펼쳐서 센다) 다음과 같다. 35개 대응표의 몫과 "시연에 없던 점검"·"시연 이후 더해진 점검"이 모두 여기에 들어 있고, 대응표 몫만 따로 뽑은 개수는 이번에 다시 세지 않았다.
+
+| 파일(`tests/`) | 개수 | 파일 | 개수 | 파일 | 개수 |
+| --- | :---: | --- | :---: | --- | :---: |
+| `a11y` | 7 | `guard` | 3 | `scroll` | 2 |
+| `approvals` | 12 | `input` | 6 | `session` | 15 |
+| `boundary` | 2 | `load` | 3 | `settings` | 10 |
+| `call-details` | 4 | `new-session` | 11 | `tools` | 5 |
+| `compat` | 8 | `node-name` | 4 | `fonts` | 1 |
+| `errors` | 17 | `polling` | 2 | `readiness` | 7 |
+| 합계 | **119** | | | | |
 
 ## 35개 대응표
 
@@ -32,12 +44,12 @@
 | 6 | 시간 초과: 카드 "시간 초과"·idle·`TIME_LIMIT` 한 줄·denied 줄 없음·입력 복귀 | ✅ | `session.e2e.mjs`(카드 밖의 몫) + `approvals.e2e.mjs` 2건 — 카드가 "시간 초과"(`data-card-state="timed-out"`)·컨트롤 사라짐. 30분 무응답은 "무응답 거부" |
 | 7 | 실행 중 취소: 확인창·cancelled·취소 뒤 줄 증가 없음 | ✅ | `session.e2e.mjs` 취소 2건(그대로 두기·Esc·Tab 가둠·`advance(20)` 뒤 서버/화면 줄 불변) |
 | 8 | 승인 대기 중 취소: 카드가 "취소됨" | ✅ | `approvals.e2e.mjs` 승인 대기 중 취소 — 확인창을 거쳐 카드가 "취소됨"·컨트롤 사라짐·`approvals.post`/Gateway 호출 없음·머리 칩 정리 |
-| 9 | 무인 + 외부 MCP: 충돌 배너·"세션 열기" 꺼짐·서버를 빼면 켜짐 | ⛔ 화면 없음 | 새 세션 화면에 MCP 선택·충돌 배너가 없다(`unattended` 라디오는 "G4에서 열립니다"로 꺼져 있다). 서버 쪽은 `sessions.post {mcp_servers}` → `409 MCP_UNATTENDED_CONFLICT` 로 준비돼 있다 |
-| 10 | DC-25: 무인 자격이 아니면 `unattended` 선택이 꺼짐 | ⛔ 화면 없음 | 지금은 자격과 무관하게 항상 꺼져 있다 — 구분할 수 없다. 프리셋 `ready` vs `unattended-credential` 로 준비돼 있다 |
-| 11 | 새 `plan` 세션: 제안만("실행 안 됨") | ✅ | `session.e2e.mjs` 자율성(plan): 화면에서 열기·ask/auto/unattended 라디오가 꺼져 있음·`refused` 줄·Gateway 에 닿지 않음 |
-| 12 | 새 `ask` 세션: 위험한 restart 를 묻는다 | ✅ | `approvals.e2e.mjs` ask — 서버에서 심은 `ask` 세션(새 세션 화면은 아직 못 연다, G2). restart 와 쓰기(files.write) 모두 하나씩 묻는다 |
+| 9 | 무인 + 외부 MCP: 충돌 배너·"세션 열기" 꺼짐·서버를 빼면 켜짐 | ⛔ 화면 없음 | 새 세션 폼(G2)에 외부 MCP 서버 선택은 생겼다(`new-session.e2e.mjs`). 그러나 `unattended` 라디오가 "무인 세션은 G4에서 열립니다"로 항상 꺼져 있어 화면에서 무인 + MCP 조합을 만들 수 없다 — 충돌 배너를 띄울 길이 없다. 서버 쪽은 `sessions.post {mcp_servers}` → `409 MCP_UNATTENDED_CONFLICT` 로 준비돼 있고(`server/state.test.mjs`), 폼 검증 함수가 그 조합을 따로 막는 것은 단위 시험(`tests/new-session-form.test.ts`)이 본다 |
+| 10 | DC-25: 무인 자격이 아니면 `unattended` 선택이 꺼짐 | ⛔ 화면 없음 | 아직도 자격과 무관하게 항상 꺼져 있다(`OPENABLE_AUTONOMIES` 가 `plan`·`ask`·`auto` 뿐) — "자격이 있으면 켜진다"를 구분할 수 없다. 프리셋 `ready` vs `unattended-credential` 로 준비돼 있다 |
+| 11 | 새 `plan` 세션: 제안만("실행 안 됨") | ✅ | `session.e2e.mjs` 자율성(plan): 화면에서 열기·`ask`·`auto` 라디오는 열리고 `unattended` 만 꺼져 있음·`refused` 줄·Gateway 에 닿지 않음 |
+| 12 | 새 `ask` 세션: 위험한 restart 를 묻는다 | ✅ | `approvals.e2e.mjs` ask — 서버에서 심은 `ask` 세션. restart 와 쓰기(files.write) 모두 하나씩 묻는다. 화면(새 세션 폼, G2)에서 `ask`·`auto` 로 여는 몫은 `new-session.e2e.mjs` |
 | 13 | 새 `auto` 세션: 위험한 restart 도 묻는다 | ✅ | `approvals.e2e.mjs` auto — 위험한 restart 는 카드가 서고, 판정 근거를 서버가 준 그대로 싣는다. 쓰기를 묻지 않음은 `session.e2e.mjs` 자율성(auto) |
-| 14 | 새 `unattended` 세션: 묻지 않고 `TERRA_APPROVAL_REQUIRED` 로 거절 | ◐ | 새 세션 화면이 아니라 **서버에서 심은** unattended 세션을 앱에서 본다(`session.e2e.mjs` 자율성(unattended)). 화면에서 여는 몫은 화면 없음(#9) |
+| 14 | 새 `unattended` 세션: 묻지 않고 `TERRA_APPROVAL_REQUIRED` 로 거절 | ◐ | 새 세션 화면이 아니라 **서버에서 심은** unattended 세션을 앱에서 본다(`session.e2e.mjs` 자율성(unattended)). 화면에서 여는 몫은 `unattended` 라디오가 G4 까지 꺼져 있어 화면 없음(#9) |
 | 15 | 한글 조합 중 Enter 는 보내지 않음 | ✅ | `input.e2e.mjs`. `isComposing`/`keyCode 229` 를 흉내 낸다 — 실제 IME 조합은 아니다 |
 | 16 | 공백만은 못 보냄 | ✅ | `input.e2e.mjs` |
 | 17 | 20000자 넘으면 차단 | ✅ | `input.e2e.mjs` (#31 과 한 점검) |
@@ -46,7 +58,7 @@
 | 20 | 연타해도 한 번 | ✅ | `input.e2e.mjs` — `messages.post` 지연 주입, 더블클릭+Enter 연타, 서버가 받은 `messages.post` 정확히 1 |
 | 21 | 다른 세션의 대기 승인이 인박스에 뜨고 열린다 | ✅ | `session.e2e.mjs` 인박스 — 남의 세션(bob)이 섞이지 않음·머리 칩·열면 인박스에서 빠짐. 카드 없이 상태만 본다 |
 | 22 | 세 차례 뒤에도 최신 줄이 보이고 오래된 줄에 닿는다 | ✅ | `scroll.e2e.mjs` 따라가기 |
-| 23 | 탭 "종료됨"·설정 푸터가 무엇인가에 이어진다 | ✅ | `a11y.e2e.mjs` 탭 + 설정 자리가 `aria-disabled`·"아직 없음" |
+| 23 | 탭 "종료됨"·설정 푸터가 무엇인가에 이어진다 | ✅ | `a11y.e2e.mjs` 탭(`role=tab`·방향키) + 설정 링크가 G3 읽기 전용 설정 화면 `#/settings` 로 이어짐(`aria-disabled` 없음·"아직 없음" 글자 없음 — 이식 당시의 "`aria-disabled`·아직 없음"은 modules#107 로 G3 가 병합되며 바뀌었다). 설정 화면 자체는 `settings.e2e.mjs` 10건 |
 | 24 | 실시간(가짜 시계 없이) 5초쯤 뒤 승인 카드가 선다 | ✅ | `approvals.e2e.mjs` 실시간 카드 — 서버 시계를 감지 않고 카드가 서며, 마감 시계 글자가 같은 노드에서 흐른다(실제 시간을 조건으로 기다림) |
 | 25 | a11y 한눈: 이름 없는 입력·단추, 새 줄의 live region | ✅ | `a11y.e2e.mjs` 접근성 |
 | 26 | I18: 거부한 같은 호출에 "이전에 거부함" 표식 | ✅ | `approvals.e2e.mjs` I18 3건 — 같은 입력 재제안: "이전에 거부한 같은 호출 1회"(첫 카드엔 없음) · 이전 모듈 모양(`reasonJudgement:false`) · 앱을 거부 뒤에 열면 "비교하지 못했다" 표식 |
@@ -91,7 +103,7 @@
 
 | 점검 | 막힌 이유 | 준비된 것 |
 | --- | --- | --- |
-| #9 무인 + 외부 MCP 충돌 배너·"세션 열기" 꺼짐 | 새 세션 화면에 MCP 서버 선택이 없다. `unattended` 라디오도 G4 까지 꺼져 있다 | 서버: `unattended-credential` 프리셋 + `ext` 로 MCP 등록(`PUT /mcp/servers/fake-mcp`), `sessions.post {autonomy:'unattended', mcp_servers:[…]}` → `409 MCP_UNATTENDED_CONFLICT`. 앱은 호출 전에 막아야 하니 `control.requests` 로 호출이 가지 않았음을 본다 |
+| #9 무인 + 외부 MCP 충돌 배너·"세션 열기" 꺼짐 | MCP 서버 선택은 G2 폼에 생겼지만 `unattended` 라디오가 G4 까지 꺼져 있어 무인 + MCP 조합을 화면에서 만들 수 없다 | 서버: `unattended-credential` 프리셋 + `ext` 로 MCP 등록(`PUT /mcp/servers/fake-mcp`), `sessions.post {autonomy:'unattended', mcp_servers:[…]}` → `409 MCP_UNATTENDED_CONFLICT`. 앱은 호출 전에 막아야 하니 `control.requests` 로 호출이 가지 않았음을 본다 |
 | #10 DC-25 무인 자격이 아니면 `unattended` 선택이 꺼짐 | 라디오가 자격과 무관하게 항상 꺼져 있어 "자격이 있으면 켜진다"를 시험할 수 없다 | 프리셋 `ready`(alice 는 무인 자격 아님) vs `unattended-credential`. `control.credential('alice', {unattended:true, pre_approved:[]})` 는 "사전 승인 없음"으로 서버가 `403 CREDENTIAL_NOT_UNATTENDED` |
 
 ## 시연에 없던 점검 (가짜 환경이 이미 받쳐 준다)
@@ -115,6 +127,20 @@
 | M-2~M-7 이전 모듈에 붙었을 때의 화면 | `features({...:false})` 전부 + 하나씩(`contract`·`expires`·`reasonJudgement`·`modelFields`; `lastErrorCode` 는 위 행). 판정 근거는 `pending_approvals` 에 없어도 기록의 `approval` 줄 `note` 에서 읽는다 | 계획서 §4 | ✅ | `compat` |
 | 비밀이 어디에도 다시 보이지 않는다(키·자격·env 값) | 서버 쪽에서 `models.put`·`credentials.put`·`mcp.put` 뒤 앱을 한 바퀴 — 앱·셸의 DOM·속성·저장소·쿠키·주소·콘솔·브리지 기록·요청 주소에 없음, 응답에도 없고 서버 요청 기록은 `***` (앱에는 비밀을 맡기는 화면이 아직 없다) | I1, I19 | ✅ | `boundary` |
 | 앱이 직접 `fetch` 하지 않고 브리지만 쓴다 | 엄격 Gateway 에서 보내기·승인까지 돌림 — 서버가 받은 앱 호출 모두에 `Authorization`·선언 권한 머리말, 앱 프레임은 자산 밖으로 요청을 낸 적 없음, 머리말 없는 직접 호출은 401(대조) | §5.1 | ✅ | `boundary` |
+
+## 시연 이후 더해진 점검 (G2·G3·글꼴·호출 상세)
+
+35개 목록과 위 "시연에 없던 점검" 뒤에 기능과 함께 들어온 앱 e2e 다(`✅` 는 119개 안에서 통과). 파일 이름 옆의 수는 위 파일별 집계다.
+
+| 파일 | 개수 | 무엇을 보는가 |
+| --- | :---: | --- |
+| `new-session` | 11 | G2 새 세션 폼 — 자율성 `plan`·`ask`·`auto` 열림·`unattended` 꺼짐(G4)·한도 기본값·provider·외부 MCP 선택, 아무것도 안 건드리면 `plan` 만 싣는 본문(D-7), 틀린 한도는 요청 없이 칸에서 막음, 더블클릭·Enter 연타에도 열기 호출 한 번, 응답 유실(I17) 때 같은 id·같은 본문, 열기 오류의 사전 문구, MCP 목록 읽기 실패, 키보드·이름·초점 고리 |
+| `settings` | 10 | G3 읽기 전용 설정 화면(`#/settings`) — 모델·자격·MCP·한도 읽기, 비밀이 어디에도 없음, 한 구역이 실패해도 나머지는 섬, 자격 거두기 3단계(열린 세션 취소 → Gateway 폐기 확인 → 삭제 한 번)와 응답 유실·거절·턴 도중 거두기 |
+| `node-name` | 4 | 헤더의 `status.get` `node_name` — 있을 때·이전 모듈이라 없을 때·마크업 모양 이름·긴 이름 |
+| `call-details` | 4 | 호출 줄의 접힌 상세 — `accepted-job` 은 ok 가 아니라 "접수 ≠ 완료"(M-5), 입력·결과 요약·결과 방식, 이전 모듈 호환, 시뮬레이션 `planned` 줄 |
+| `fonts` | 1 | 글꼴(D-11) — 한글 화면에서 Pretendard 조각이 필요한 만큼만 로드되고 실패·CSP 위반이 없음 |
+
+여기에 적지 않은 것: 위 표는 점검 이름과 파일에서 읽은 요약이다. 각 점검의 단언을 한 줄씩 다시 대조하지는 않았다.
 
 ## 앱 버그로 뺀 점검
 
