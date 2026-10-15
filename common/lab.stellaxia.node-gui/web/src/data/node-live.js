@@ -65,7 +65,7 @@ export function emptyWorld(screen, local) {
   return Object.assign(screen.defaultMap(local.name), {
     map: local.name, maps: {}, looks: {}, pending: [], localNode, shown: localNode,
     curTree: { name: '', role: 'Tree', bid: null }, trees: [],
-    memos: [], io: [], alarms: [], netTunnels: [], netPolled: '', notif: {}, hbd: {}, hbMsg: null, hbPath: '', hbArm: null, hbBusy: null,
+    memos: [], adm: { tab: 'users', msg: '', latest: '', seq: 0, users: [], core: [] }, io: [], alarms: [], netTunnels: [], netPolled: '', notif: {}, hbd: {}, hbMsg: null, hbPath: '', hbArm: null, hbBusy: null,
     // 자원 설치 · 연결하기 · 설정 창 · 상태 화면 · 자원 폼 · 모듈 GUI 창 · 그래프 고름의 진행 중 상태 (defaultMap 이 rsrc · links 를 비운다)
     place: null, placeMsg: '', rcfgKey: null, conn: null, pillOpen: null, pillSrc: null, evView: 'real',
     rst: null, hbForm: null, mgui: null, netSel: null,
@@ -496,6 +496,7 @@ export async function loadWorld(screen, client, session) {
     R.unbindLayout = bindLayout(screen, key, globalThis.window, live ? (d) => live.later(docKey, () => d) : null);
     if (live) {
       R.docs = live;
+      live.watchHide(globalThis.window);   // bindLayout 의 pagehide 뒤 — 닫기 직전 변경도 서버 문서로 간다
       live.onNote = (t, c) => screen.pushAlarm('◇', c, t);
       // 브라우저 것이 더 새로우면(서버가 없던 때 · 다른 기기보다 나중에 고쳤다) 한 번 올린다
       if (!fromDoc && Object.keys(stored).length) live.later(docKey, () => pickLayout(screen), DocStore.WAIT / 2);

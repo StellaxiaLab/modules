@@ -1680,9 +1680,14 @@
                   "author": "agent",
                   "author_label": "agent",
                   "decision": "run",
+                  "input_summary": "{}",
+                  "judgement": "read risk runs unasked",
                   "kind": "call",
                   "note": "run · ok · trace=trace-9f2c",
                   "operation_id": "terra.daemon.modules.list",
+                  "output_mode": "immediate",
+                  "reason": "활성 모듈 목록을 먼저 본다",
+                  "result_summary": "{\"modules\":3}",
                   "seq": 2,
                   "status": "ok",
                   "subject": "terra.daemon.modules.list",
@@ -1724,9 +1729,24 @@
                     "title": "오류 코드",
                     "type": "string"
                   },
+                  "input_summary": {
+                    "description": "call·planned·external 줄에서 모델이 호출에 넘긴 입력의 요약 — 비밀로 이름 붙은 값(token·secret·password·private_key·authorization·credential·api_key·env)은 `***`로 가려진 JSON 글이고 480바이트에서 잘린다(잘리면 끝에 …). 입력이 JSON이 아니면 싣지 않는다. 가림은 키 이름 기준이라 값 안의 문장에 섞인 비밀은 잡지 못한다. 키가 없으면 이 기록이 입력을 싣지 않던 때의 줄이거나 입력을 읽을 수 없었던 호출이다.",
+                    "title": "입력 요약",
+                    "type": "string"
+                  },
+                  "judgement": {
+                    "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                    "title": "판정 근거",
+                    "type": "string"
+                  },
                   "kind": {
                     "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                     "title": "종류",
+                    "type": "string"
+                  },
+                  "model": {
+                    "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "호출한 모델",
                     "type": "string"
                   },
                   "note": {
@@ -1739,6 +1759,21 @@
                     "title": "operation",
                     "type": "string"
                   },
+                  "output_mode": {
+                    "description": "call·planned 줄에서 이 operation 계약의 output.mode를 그대로 옮긴 값(immediate·accepted-job·stream·empty). accepted-job은 '접수'이지 '완료'가 아니다. 계약이 적지 않았거나 계약을 읽지 못했으면 키가 없다 — '없음'과 '적지 않음'을 가르지 않는다. external 줄에는 없다.",
+                    "title": "결과 방식",
+                    "type": "string"
+                  },
+                  "provider": {
+                    "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "모델 provider",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                    "title": "모델의 이유",
+                    "type": "string"
+                  },
                   "request_id": {
                     "description": "승인 줄이 가리키는 요청 id.",
                     "title": "승인 요청 ID",
@@ -1749,6 +1784,11 @@
                     "minimum": 0,
                     "title": "결과 크기",
                     "type": "integer"
+                  },
+                  "result_summary": {
+                    "description": "call 줄에서 호출이 돌려받은 것의 요약 — 성공이면 응답을 같은 규칙으로 가려 480바이트로 자른 JSON 글, 실패면 '오류코드: 메시지'. 실행되지 않은 호출(planned·거절)과 external 줄에는 없다(external은 result_bytes가 크기를 말한다).",
+                    "title": "결과 요약",
+                    "type": "string"
                   },
                   "sent_bytes": {
                     "description": "모델 호출 하나에서 이 노드를 떠난 내용의 바이트 수 — 지시문·대화·되돌려 넣은 operation 출력의 합.",
@@ -2023,9 +2063,24 @@
                   "title": "오류 코드",
                   "type": "string"
                 },
+                "input_summary": {
+                  "description": "call·planned·external 줄에서 모델이 호출에 넘긴 입력의 요약 — 비밀로 이름 붙은 값(token·secret·password·private_key·authorization·credential·api_key·env)은 `***`로 가려진 JSON 글이고 480바이트에서 잘린다(잘리면 끝에 …). 입력이 JSON이 아니면 싣지 않는다. 가림은 키 이름 기준이라 값 안의 문장에 섞인 비밀은 잡지 못한다. 키가 없으면 이 기록이 입력을 싣지 않던 때의 줄이거나 입력을 읽을 수 없었던 호출이다.",
+                  "title": "입력 요약",
+                  "type": "string"
+                },
+                "judgement": {
+                  "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                  "title": "판정 근거",
+                  "type": "string"
+                },
                 "kind": {
                   "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                   "title": "종류",
+                  "type": "string"
+                },
+                "model": {
+                  "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "호출한 모델",
                   "type": "string"
                 },
                 "note": {
@@ -2038,6 +2093,21 @@
                   "title": "operation",
                   "type": "string"
                 },
+                "output_mode": {
+                  "description": "call·planned 줄에서 이 operation 계약의 output.mode를 그대로 옮긴 값(immediate·accepted-job·stream·empty). accepted-job은 '접수'이지 '완료'가 아니다. 계약이 적지 않았거나 계약을 읽지 못했으면 키가 없다 — '없음'과 '적지 않음'을 가르지 않는다. external 줄에는 없다.",
+                  "title": "결과 방식",
+                  "type": "string"
+                },
+                "provider": {
+                  "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "모델 provider",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                  "title": "모델의 이유",
+                  "type": "string"
+                },
                 "request_id": {
                   "description": "승인 줄이 가리키는 요청 id.",
                   "title": "승인 요청 ID",
@@ -2048,6 +2118,11 @@
                   "minimum": 0,
                   "title": "결과 크기",
                   "type": "integer"
+                },
+                "result_summary": {
+                  "description": "call 줄에서 호출이 돌려받은 것의 요약 — 성공이면 응답을 같은 규칙으로 가려 480바이트로 자른 JSON 글, 실패면 '오류코드: 메시지'. 실행되지 않은 호출(planned·거절)과 external 줄에는 없다(external은 result_bytes가 크기를 말한다).",
+                  "title": "결과 요약",
+                  "type": "string"
                 },
                 "sent_bytes": {
                   "description": "모델 호출 하나에서 이 노드를 떠난 내용의 바이트 수 — 지시문·대화·되돌려 넣은 operation 출력의 합.",
@@ -2297,9 +2372,24 @@
                   "title": "오류 코드",
                   "type": "string"
                 },
+                "input_summary": {
+                  "description": "call·planned·external 줄에서 모델이 호출에 넘긴 입력의 요약 — 비밀로 이름 붙은 값(token·secret·password·private_key·authorization·credential·api_key·env)은 `***`로 가려진 JSON 글이고 480바이트에서 잘린다(잘리면 끝에 …). 입력이 JSON이 아니면 싣지 않는다. 가림은 키 이름 기준이라 값 안의 문장에 섞인 비밀은 잡지 못한다. 키가 없으면 이 기록이 입력을 싣지 않던 때의 줄이거나 입력을 읽을 수 없었던 호출이다.",
+                  "title": "입력 요약",
+                  "type": "string"
+                },
+                "judgement": {
+                  "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                  "title": "판정 근거",
+                  "type": "string"
+                },
                 "kind": {
                   "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                   "title": "종류",
+                  "type": "string"
+                },
+                "model": {
+                  "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "호출한 모델",
                   "type": "string"
                 },
                 "note": {
@@ -2312,6 +2402,21 @@
                   "title": "operation",
                   "type": "string"
                 },
+                "output_mode": {
+                  "description": "call·planned 줄에서 이 operation 계약의 output.mode를 그대로 옮긴 값(immediate·accepted-job·stream·empty). accepted-job은 '접수'이지 '완료'가 아니다. 계약이 적지 않았거나 계약을 읽지 못했으면 키가 없다 — '없음'과 '적지 않음'을 가르지 않는다. external 줄에는 없다.",
+                  "title": "결과 방식",
+                  "type": "string"
+                },
+                "provider": {
+                  "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                  "title": "모델 provider",
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                  "title": "모델의 이유",
+                  "type": "string"
+                },
                 "request_id": {
                   "description": "승인 줄이 가리키는 요청 id.",
                   "title": "승인 요청 ID",
@@ -2322,6 +2427,11 @@
                   "minimum": 0,
                   "title": "결과 크기",
                   "type": "integer"
+                },
+                "result_summary": {
+                  "description": "call 줄에서 호출이 돌려받은 것의 요약 — 성공이면 응답을 같은 규칙으로 가려 480바이트로 자른 JSON 글, 실패면 '오류코드: 메시지'. 실행되지 않은 호출(planned·거절)과 external 줄에는 없다(external은 result_bytes가 크기를 말한다).",
+                  "title": "결과 요약",
+                  "type": "string"
                 },
                 "sent_bytes": {
                   "description": "모델 호출 하나에서 이 노드를 떠난 내용의 바이트 수 — 지시문·대화·되돌려 넣은 operation 출력의 합.",
@@ -3229,9 +3339,24 @@
                     "title": "오류 코드",
                     "type": "string"
                   },
+                  "input_summary": {
+                    "description": "call·planned·external 줄에서 모델이 호출에 넘긴 입력의 요약 — 비밀로 이름 붙은 값(token·secret·password·private_key·authorization·credential·api_key·env)은 `***`로 가려진 JSON 글이고 480바이트에서 잘린다(잘리면 끝에 …). 입력이 JSON이 아니면 싣지 않는다. 가림은 키 이름 기준이라 값 안의 문장에 섞인 비밀은 잡지 못한다. 키가 없으면 이 기록이 입력을 싣지 않던 때의 줄이거나 입력을 읽을 수 없었던 호출이다.",
+                    "title": "입력 요약",
+                    "type": "string"
+                  },
+                  "judgement": {
+                    "description": "call·planned 줄에서 게이트가 이 결정(decision)을 내린 이유 — 계약의 어느 사실이 사람을 요구했거나 요구하지 않았는가.",
+                    "title": "판정 근거",
+                    "type": "string"
+                  },
                   "kind": {
                     "description": "user·assistant·model·call·external·planned·approval·approved·denied·done·cancelled·error 중 하나. model은 모델을 부른 사실(무엇이 나갔는가)이고 발화가 아니다. external은 외부 MCP 서버의 도구를 부른 사실이다 — Gateway 호출이 아니므로 Gateway 감사에는 줄이 없고, 이 줄이 유일한 기록이다(설계 §7.10 R8).",
                     "title": "종류",
+                    "type": "string"
+                  },
+                  "model": {
+                    "description": "model 줄이 부른 모델 id — 열 때 값이 아니라 이 호출의 값. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "호출한 모델",
                     "type": "string"
                   },
                   "note": {
@@ -3244,6 +3369,21 @@
                     "title": "operation",
                     "type": "string"
                   },
+                  "output_mode": {
+                    "description": "call·planned 줄에서 이 operation 계약의 output.mode를 그대로 옮긴 값(immediate·accepted-job·stream·empty). accepted-job은 '접수'이지 '완료'가 아니다. 계약이 적지 않았거나 계약을 읽지 못했으면 키가 없다 — '없음'과 '적지 않음'을 가르지 않는다. external 줄에는 없다.",
+                    "title": "결과 방식",
+                    "type": "string"
+                  },
+                  "provider": {
+                    "description": "model 줄이 보낸 곳의 provider 이름. note 문장을 해석하지 않고 읽는다. 이 칸이 생기기 전의 기록에는 없다.",
+                    "title": "모델 provider",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "description": "call·planned 줄에서 모델이 밝힌 호출 이유. 사실이 아니라 모델의 주장이다. 승인 없이 실행된 호출에도 남는다. 이유를 밝히지 않았으면 키가 없다.",
+                    "title": "모델의 이유",
+                    "type": "string"
+                  },
                   "request_id": {
                     "description": "승인 줄이 가리키는 요청 id.",
                     "title": "승인 요청 ID",
@@ -3254,6 +3394,11 @@
                     "minimum": 0,
                     "title": "결과 크기",
                     "type": "integer"
+                  },
+                  "result_summary": {
+                    "description": "call 줄에서 호출이 돌려받은 것의 요약 — 성공이면 응답을 같은 규칙으로 가려 480바이트로 자른 JSON 글, 실패면 '오류코드: 메시지'. 실행되지 않은 호출(planned·거절)과 external 줄에는 없다(external은 result_bytes가 크기를 말한다).",
+                    "title": "결과 요약",
+                    "type": "string"
                   },
                   "sent_bytes": {
                     "description": "모델 호출 하나에서 이 노드를 떠난 내용의 바이트 수 — 지시문·대화·되돌려 넣은 operation 출력의 합.",
@@ -3314,6 +3459,11 @@
             "last_error": {
               "description": "멈춘 이유가 있으면.",
               "title": "마지막 오류",
+              "type": "string"
+            },
+            "last_error_code": {
+              "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+              "title": "마지막 오류 코드",
               "type": "string"
             },
             "session_id": {
@@ -3723,7 +3873,18 @@
               "owner": "alice",
               "pending_approvals": [
                 {
+                  "contract": {
+                    "confirmation_mode": "conditional",
+                    "idempotency_mode": "none",
+                    "output_mode": "accepted-job",
+                    "permissions": [
+                      "node.control"
+                    ],
+                    "retry_mode": "never",
+                    "risk": "dangerous"
+                  },
                   "created_ms": 1757000100000,
+                  "expires_ms": 1757001000000,
                   "input": {
                     "module_id": "io.terra.sample"
                   },
@@ -3775,6 +3936,11 @@
               "title": "마지막 오류",
               "type": "string"
             },
+            "last_error_code": {
+              "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+              "title": "마지막 오류 코드",
+              "type": "string"
+            },
             "max_seconds": {
               "description": "한 차례(모델 호출 → 도구 호출 → 다음 호출)가 넘을 수 없는 벽시계 초. 세션이 사람의 답을 기다리며 쉬는 시간은 포함하지 않는다.",
               "minimum": 1,
@@ -3813,10 +3979,76 @@
                 "additionalProperties": false,
                 "description": "사람의 답을 기다리는 승인 요청 하나.",
                 "properties": {
+                  "contract": {
+                    "additionalProperties": false,
+                    "description": "이 operation의 계약이 말하는 실행 사실. 승인하는 사람이 읽을 것은 모델의 주장(reason)이 아니라 이쪽이다. 계약이 적지 않은 칸은 키가 없다 — '없음'(none·빈 목록)과 '적지 않음'(키 없음)은 다른 사실이다. Gateway 계약을 읽을 수 없는 호출(외부 MCP 도구)에는 이 객체 자체가 없다.",
+                    "properties": {
+                      "confirmation_mode": {
+                        "description": "execution.confirmation.mode. 계약이 적은 값 그대로(required·conditional·none 등).",
+                        "title": "확인 방식",
+                        "type": "string"
+                      },
+                      "idempotency_mode": {
+                        "description": "execution.idempotency.mode. 계약이 적은 값 그대로.",
+                        "title": "멱등",
+                        "type": "string"
+                      },
+                      "output_mode": {
+                        "description": "output.mode. immediate·accepted-job·stream·empty 중 계약이 적은 값. accepted-job은 접수이지 완료가 아니다.",
+                        "title": "결과 방식",
+                        "type": "string"
+                      },
+                      "permissions": {
+                        "description": "이 operation이 요구하는 권한. 키가 없으면 계약이 적지 않은 것이다.",
+                        "items": {
+                          "type": "string"
+                        },
+                        "title": "요구 권한",
+                        "type": "array"
+                      },
+                      "retry_mode": {
+                        "description": "execution.retry.mode. 계약이 적은 값 그대로.",
+                        "title": "재시도",
+                        "type": "string"
+                      },
+                      "risk": {
+                        "description": "execution.risk. read·write·dangerous·privileged 중 계약이 적은 값.",
+                        "title": "위험",
+                        "type": "string"
+                      },
+                      "side_effects": {
+                        "description": "계약이 적은 sideEffects. 키가 없으면 계약이 적지 않은 것이고, 빈 목록이면 계약이 '없다'고 적은 것이다.",
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "action": {
+                              "title": "동작",
+                              "type": "string"
+                            },
+                            "resource_id": {
+                              "title": "자원",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "title": "부작용",
+                        "type": "array"
+                      }
+                    },
+                    "title": "계약 사실",
+                    "type": "object"
+                  },
                   "created_ms": {
                     "description": "Unix epoch 밀리초.",
                     "minimum": 0,
                     "title": "생성 시각",
+                    "type": "integer"
+                  },
+                  "expires_ms": {
+                    "description": "이 질문이 답을 기다리기를 그만두는 시각(Unix epoch 밀리초) = 물은 시각 + min(질문당 대기 한도 30분, 이 차례의 남은 max_seconds). 이 시각 뒤에는 승인·거부가 닿지 않는다. 대기 시각을 못 구한 옛 기록에는 없다.",
+                    "minimum": 0,
+                    "title": "마감 시각",
                     "type": "integer"
                   },
                   "input": {
@@ -4139,6 +4371,11 @@
                     "title": "마지막 오류",
                     "type": "string"
                   },
+                  "last_error_code": {
+                    "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+                    "title": "마지막 오류 코드",
+                    "type": "string"
+                  },
                   "max_seconds": {
                     "description": "한 차례(모델 호출 → 도구 호출 → 다음 호출)가 넘을 수 없는 벽시계 초. 세션이 사람의 답을 기다리며 쉬는 시간은 포함하지 않는다.",
                     "minimum": 1,
@@ -4177,10 +4414,76 @@
                       "additionalProperties": false,
                       "description": "사람의 답을 기다리는 승인 요청 하나.",
                       "properties": {
+                        "contract": {
+                          "additionalProperties": false,
+                          "description": "이 operation의 계약이 말하는 실행 사실. 승인하는 사람이 읽을 것은 모델의 주장(reason)이 아니라 이쪽이다. 계약이 적지 않은 칸은 키가 없다 — '없음'(none·빈 목록)과 '적지 않음'(키 없음)은 다른 사실이다. Gateway 계약을 읽을 수 없는 호출(외부 MCP 도구)에는 이 객체 자체가 없다.",
+                          "properties": {
+                            "confirmation_mode": {
+                              "description": "execution.confirmation.mode. 계약이 적은 값 그대로(required·conditional·none 등).",
+                              "title": "확인 방식",
+                              "type": "string"
+                            },
+                            "idempotency_mode": {
+                              "description": "execution.idempotency.mode. 계약이 적은 값 그대로.",
+                              "title": "멱등",
+                              "type": "string"
+                            },
+                            "output_mode": {
+                              "description": "output.mode. immediate·accepted-job·stream·empty 중 계약이 적은 값. accepted-job은 접수이지 완료가 아니다.",
+                              "title": "결과 방식",
+                              "type": "string"
+                            },
+                            "permissions": {
+                              "description": "이 operation이 요구하는 권한. 키가 없으면 계약이 적지 않은 것이다.",
+                              "items": {
+                                "type": "string"
+                              },
+                              "title": "요구 권한",
+                              "type": "array"
+                            },
+                            "retry_mode": {
+                              "description": "execution.retry.mode. 계약이 적은 값 그대로.",
+                              "title": "재시도",
+                              "type": "string"
+                            },
+                            "risk": {
+                              "description": "execution.risk. read·write·dangerous·privileged 중 계약이 적은 값.",
+                              "title": "위험",
+                              "type": "string"
+                            },
+                            "side_effects": {
+                              "description": "계약이 적은 sideEffects. 키가 없으면 계약이 적지 않은 것이고, 빈 목록이면 계약이 '없다'고 적은 것이다.",
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "action": {
+                                    "title": "동작",
+                                    "type": "string"
+                                  },
+                                  "resource_id": {
+                                    "title": "자원",
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "title": "부작용",
+                              "type": "array"
+                            }
+                          },
+                          "title": "계약 사실",
+                          "type": "object"
+                        },
                         "created_ms": {
                           "description": "Unix epoch 밀리초.",
                           "minimum": 0,
                           "title": "생성 시각",
+                          "type": "integer"
+                        },
+                        "expires_ms": {
+                          "description": "이 질문이 답을 기다리기를 그만두는 시각(Unix epoch 밀리초) = 물은 시각 + min(질문당 대기 한도 30분, 이 차례의 남은 max_seconds). 이 시각 뒤에는 승인·거부가 닿지 않는다. 대기 시각을 못 구한 옛 기록에는 없다.",
+                          "minimum": 0,
+                          "title": "마감 시각",
                           "type": "integer"
                         },
                         "input": {
@@ -4353,7 +4656,7 @@
         "preconditions": [],
         "processing": [
           {
-            "description": "이 노드의 세션을 상태·자율성과 함께 나열한다.",
+            "description": "이 노드의 세션 가운데 호출자 본인의 것을 상태·자율성과 함께 나열한다.",
             "id": "sessions-list",
             "transaction": "none"
           }
@@ -4367,7 +4670,7 @@
         ]
       },
       "status": "stable",
-      "summary": "이 노드의 세션을 상태·자율성과 함께 나열한다.",
+      "summary": "이 노드의 세션 가운데 호출자 본인의 것을 상태·자율성과 함께 나열한다.",
       "tags": [
         "agent",
         "session",
@@ -4745,6 +5048,7 @@
             "value": {
               "delegate_door": true,
               "models_registered": 1,
+              "node_name": "tree-home",
               "sessions": 1,
               "status": "ok",
               "version": "0.1.0"
@@ -4765,6 +5069,12 @@
               "minimum": 0,
               "title": "등록 모델 수",
               "type": "integer"
+            },
+            "node_name": {
+              "description": "이 노드가 스스로를 부르는 이름(표시 이름, 없으면 노드 id). 호스트가 읽기 전용 신원 조회(terra.node.identity.get)로 알려 준 때만 있다 — 코어 면이 없거나 조회가 실패하면 키가 없다. 빈 문자열은 오지 않는다.",
+              "minLength": 1,
+              "title": "노드 이름",
+              "type": "string"
             },
             "sessions": {
               "description": "이 프로세스가 아는 세션 수.",
@@ -5048,6 +5358,11 @@
             "title": "마지막 오류",
             "type": "string"
           },
+          "last_error_code": {
+            "description": "last_error가 가리키는 오류 줄의 코드(TIME_LIMIT·TOKEN_BUDGET·STEP_LIMIT·MODEL_UNAVAILABLE·MODEL_REFUSED·MCP_SERVER_UNKNOWN). 영어 문장을 해석하지 않고 목록 행에서 읽는다. 이 칸이 생기기 전에 기록된 세션에는 없다.",
+            "title": "마지막 오류 코드",
+            "type": "string"
+          },
           "max_seconds": {
             "description": "한 차례(모델 호출 → 도구 호출 → 다음 호출)가 넘을 수 없는 벽시계 초. 세션이 사람의 답을 기다리며 쉬는 시간은 포함하지 않는다.",
             "minimum": 1,
@@ -5086,10 +5401,76 @@
               "additionalProperties": false,
               "description": "사람의 답을 기다리는 승인 요청 하나.",
               "properties": {
+                "contract": {
+                  "additionalProperties": false,
+                  "description": "이 operation의 계약이 말하는 실행 사실. 승인하는 사람이 읽을 것은 모델의 주장(reason)이 아니라 이쪽이다. 계약이 적지 않은 칸은 키가 없다 — '없음'(none·빈 목록)과 '적지 않음'(키 없음)은 다른 사실이다. Gateway 계약을 읽을 수 없는 호출(외부 MCP 도구)에는 이 객체 자체가 없다.",
+                  "properties": {
+                    "confirmation_mode": {
+                      "description": "execution.confirmation.mode. 계약이 적은 값 그대로(required·conditional·none 등).",
+                      "title": "확인 방식",
+                      "type": "string"
+                    },
+                    "idempotency_mode": {
+                      "description": "execution.idempotency.mode. 계약이 적은 값 그대로.",
+                      "title": "멱등",
+                      "type": "string"
+                    },
+                    "output_mode": {
+                      "description": "output.mode. immediate·accepted-job·stream·empty 중 계약이 적은 값. accepted-job은 접수이지 완료가 아니다.",
+                      "title": "결과 방식",
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "description": "이 operation이 요구하는 권한. 키가 없으면 계약이 적지 않은 것이다.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "요구 권한",
+                      "type": "array"
+                    },
+                    "retry_mode": {
+                      "description": "execution.retry.mode. 계약이 적은 값 그대로.",
+                      "title": "재시도",
+                      "type": "string"
+                    },
+                    "risk": {
+                      "description": "execution.risk. read·write·dangerous·privileged 중 계약이 적은 값.",
+                      "title": "위험",
+                      "type": "string"
+                    },
+                    "side_effects": {
+                      "description": "계약이 적은 sideEffects. 키가 없으면 계약이 적지 않은 것이고, 빈 목록이면 계약이 '없다'고 적은 것이다.",
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "action": {
+                            "title": "동작",
+                            "type": "string"
+                          },
+                          "resource_id": {
+                            "title": "자원",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "title": "부작용",
+                      "type": "array"
+                    }
+                  },
+                  "title": "계약 사실",
+                  "type": "object"
+                },
                 "created_ms": {
                   "description": "Unix epoch 밀리초.",
                   "minimum": 0,
                   "title": "생성 시각",
+                  "type": "integer"
+                },
+                "expires_ms": {
+                  "description": "이 질문이 답을 기다리기를 그만두는 시각(Unix epoch 밀리초) = 물은 시각 + min(질문당 대기 한도 30분, 이 차례의 남은 max_seconds). 이 시각 뒤에는 승인·거부가 닿지 않는다. 대기 시각을 못 구한 옛 기록에는 없다.",
+                  "minimum": 0,
+                  "title": "마감 시각",
                   "type": "integer"
                 },
                 "input": {

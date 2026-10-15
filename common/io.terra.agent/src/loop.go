@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	agentcore "github.com/StellaxiaLab/terra-agent"
@@ -46,6 +47,10 @@ type engine struct {
 	transport func(owner string) agentcore.Transport
 	// approvalWait bounds one question; tests shorten it.
 	approvalWait time.Duration
+	// nameMu guards nodeNameKnown, the node's name once the host has told us
+	// (identity.go).
+	nameMu        sync.Mutex
+	nodeNameKnown string
 }
 
 func newEngine(sessions *sessionStore, credentials *credentialStore, providers *providerStore, mcp *mcpRegistry, core *modulesdk.CoreClient, now func() time.Time) *engine {
@@ -280,6 +285,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		s.busy = false
 		s.cancel = nil
 		s.meta.LastError = err.Error()
+		s.meta.LastErrorCode = "MCP_SERVER_UNKNOWN"
 		s.setStateLocked(stateFailed)
 		s.mu.Unlock()
 		cancel()
@@ -300,7 +306,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		Tools: agent.ToolsFor(ctx),
 	}
 
-	end := func(state, failure string) {
+	end := func(state, failure, code string) {
 		cancel()
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -311,6 +317,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		}
 		if failure != "" {
 			s.meta.LastError = failure
+			s.meta.LastErrorCode = code
 		}
 		if finish && state == stateIdle {
 			state = stateDone
@@ -319,8 +326,8 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 	}
 
 	for step := 0; step < meta.MaxSteps; step++ {
-		if stopped, state, reason := e.stopped(ctx, s); stopped {
-			end(state, reason)
+		if stopped, state, reason, code := e.stopped(ctx, s); stopped {
+			end(state, reason, code)
 			return
 		}
 		request.Messages = s.historyCopy()
@@ -328,19 +335,20 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		// to "그때 뭐가 나갔지" does not depend on the call coming back.
 		s.append(entry{
 			Kind: kindModel, Author: authorTerra, SentBytes: promptBytes(request),
+			Provider: provider.Name(), Model: provider.Model(),
 			Note: fmt.Sprintf("%s/%s · %d B · %d tool result(s) carried", provider.Name(), provider.Model(),
 				promptBytes(request), toolResultCount(request.Messages)),
 		})
 		response, err := provider.Complete(ctx, request)
 		if err != nil {
-			if stopped, state, reason := e.stopped(ctx, s); stopped {
-				end(state, reason)
+			if stopped, state, reason, code := e.stopped(ctx, s); stopped {
+				end(state, reason, code)
 				return
 			}
 			// 모델 API 장애: 진행 중 호출은 끝냈고, 새 계획은 세우지 않고,
 			// 세션 상태를 남기고 멈춘다(§13).
 			s.append(entry{Kind: kindError, Author: authorTerra, Text: "model call failed: " + err.Error(), ErrorCode: "MODEL_UNAVAILABLE"})
-			end(stateFailed, err.Error())
+			end(stateFailed, err.Error(), "MODEL_UNAVAILABLE")
 			return
 		}
 		s.mu.Lock()
@@ -370,7 +378,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 				text += " (" + response.Refusal + ")"
 			}
 			s.append(entry{Kind: kindError, Author: authorTerra, Text: text, ErrorCode: "MODEL_REFUSED"})
-			end(stateIdle, text)
+			end(stateIdle, text, "MODEL_REFUSED")
 			return
 		}
 		if len(toolUses) == 0 {
@@ -378,7 +386,7 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 				s.append(entry{Kind: kindError, Author: authorTerra, Text: "the model's answer was cut at its token limit", ErrorCode: "MODEL_TRUNCATED"})
 			}
 			s.append(entry{Kind: kindDone, Author: authorTerra, Note: doneNote(s)})
-			end(stateIdle, "")
+			end(stateIdle, "", "")
 			return
 		}
 
@@ -387,21 +395,21 @@ func (e *engine) turn(parent context.Context, s *session, provider Provider, fin
 		for _, call := range toolUses {
 			result := agent.Call(ctx, call.Name, call.Input)
 			results = append(results, toolResultBlock(call.ID, result))
-			if stopped, state, reason := e.stopped(ctx, s); stopped {
-				end(state, reason)
+			if stopped, state, reason, code := e.stopped(ctx, s); stopped {
+				end(state, reason, code)
 				return
 			}
 		}
 		s.appendHistory(Message{Role: roleUser, Blocks: results})
 	}
 	s.append(entry{Kind: kindError, Author: authorTerra, Text: fmt.Sprintf("stopped: the session's limit of %d model turns was reached", meta.MaxSteps), ErrorCode: "STEP_LIMIT"})
-	end(stateIdle, "step limit reached")
+	end(stateIdle, "step limit reached", "STEP_LIMIT")
 }
 
 // stopped reports whether the turn must not continue, and how to say so. It
 // folds the three ways a turn ends short of an answer into one place: a person
 // cancelled it, its wall clock ran out, or the session spent its tokens.
-func (e *engine) stopped(ctx context.Context, s *session) (bool, string, string) {
+func (e *engine) stopped(ctx context.Context, s *session) (bool, string, string, string) {
 	if err := ctx.Err(); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			s.mu.Lock()
@@ -409,9 +417,9 @@ func (e *engine) stopped(ctx context.Context, s *session) (bool, string, string)
 			s.mu.Unlock()
 			reason := fmt.Sprintf("stopped: this turn ran past its limit of %ds", seconds)
 			s.append(entry{Kind: kindError, Author: authorTerra, Text: reason, ErrorCode: "TIME_LIMIT"})
-			return true, stateIdle, reason
+			return true, stateIdle, reason, "TIME_LIMIT"
 		}
-		return true, stateCancelled, ""
+		return true, stateCancelled, "", ""
 	}
 	s.mu.Lock()
 	budget, spent := s.meta.TokenBudget, s.meta.Usage.InputTokens+s.meta.Usage.OutputTokens
@@ -419,9 +427,9 @@ func (e *engine) stopped(ctx context.Context, s *session) (bool, string, string)
 	if budget > 0 && spent >= budget {
 		reason := fmt.Sprintf("stopped: this session spent its token budget (%d of %d)", spent, budget)
 		s.append(entry{Kind: kindError, Author: authorTerra, Text: reason, ErrorCode: "TOKEN_BUDGET"})
-		return true, stateIdle, reason
+		return true, stateIdle, reason, "TOKEN_BUDGET"
 	}
-	return false, "", ""
+	return false, "", "", ""
 }
 
 // promptBytes is how much of this request is content that leaves the node: the
@@ -481,61 +489,101 @@ func toolResultBlock(toolUseID string, result agentcore.ToolResult) Block {
 // own account of what was called comes from the gate and not from the model.
 func (e *engine) recorder(s *session) agentcore.Recorder {
 	return agentcore.RecorderFunc(func(record agentcore.Record) {
-		line := entry{
-			Kind: kindCall, Author: authorAgent, Subject: record.Tool,
-			Decision: string(record.Decision), Status: record.Status, ErrorCode: record.ErrorCode,
-			TraceID: record.TraceID,
-		}
-		if record.Tool == agentcore.ToolInvoke {
-			line.Subject = record.OperationID
-			line.OperationID = record.OperationID
-		}
-		if record.External {
-			// An external call is named by its kind rather than by an
-			// operation id it does not have, and the server is split back out
-			// of the qualified name so a reader sees WHICH third party this
-			// was without parsing anything (R8).
-			line.Kind = kindExternal
-			line.OperationID = ""
-			line.ResultBytes = record.ResultBytes
-			if server, _, ok := agentcore.ParseExternalToolName(record.Tool); ok {
-				line.Server = server
-			}
-		}
-		if record.Status == agentcore.StatusPlanned {
-			line.Kind = kindPlanned
-		}
-		notes := []string{}
-		if record.Decision != "" {
-			notes = append(notes, string(record.Decision))
-		}
-		notes = append(notes, record.Status)
-		if record.ErrorCode != "" {
-			notes = append(notes, record.ErrorCode)
-		}
-		if record.TraceID != "" {
-			// The join key rides in the note so a room shows it with the rest
-			// of the instrument, and `terra agent log` prints it without a
-			// second surface having to be invented for it.
-			notes = append(notes, "trace="+record.TraceID)
-		}
-		if record.External {
-			// Where a Gateway call prints its trace id, an external call prints
-			// the fact that there is none to print. Saying "no gateway audit"
-			// in the line itself is R8's second half: the absence has to be
-			// visible where somebody is already looking.
-			notes = append(notes, fmt.Sprintf("external · %d B · no gateway audit", record.ResultBytes))
-		}
-		line.Note = strings.Join(notes, " · ")
-		s.append(line)
+		s.append(entryFromRecord(record, detailsOf(record)))
 	})
+}
+
+// recordDetails are the fields M-5 adds to a call line: what the model handed
+// over, a bounded excerpt of the answer, and the contract's output.mode. The
+// core masks secrets before it fills them (I1); this module only carries them.
+type recordDetails struct {
+	InputSummary  string `json:"inputSummary"`
+	ResultSummary string `json:"resultSummary"`
+	OutputMode    string `json:"outputMode"`
+}
+
+// detailsOf reads the M-5 fields through the record's JSON form rather than
+// through Go fields. The core is a separately versioned module: reading by
+// name lets this module build against a core that predates the fields (they
+// come out empty) and pick them up unchanged once go.mod moves to one that
+// has them.
+func detailsOf(record any) recordDetails {
+	var details recordDetails
+	if encoded, err := json.Marshal(record); err == nil {
+		_ = json.Unmarshal(encoded, &details)
+	}
+	return details
+}
+
+// entryFromRecord is the transcript line for one gate record.
+func entryFromRecord(record agentcore.Record, details recordDetails) entry {
+	line := entry{
+		Kind: kindCall, Author: authorAgent, Subject: record.Tool,
+		Decision: string(record.Decision), Status: record.Status, ErrorCode: record.ErrorCode,
+		TraceID: record.TraceID, Reason: record.Reason, Judgement: record.Judgement,
+		InputSummary: details.InputSummary, ResultSummary: details.ResultSummary, OutputMode: details.OutputMode,
+	}
+	if record.Tool == agentcore.ToolInvoke {
+		line.Subject = record.OperationID
+		line.OperationID = record.OperationID
+	}
+	if record.External {
+		// An external call is named by its kind rather than by an
+		// operation id it does not have, and the server is split back out
+		// of the qualified name so a reader sees WHICH third party this
+		// was without parsing anything (R8).
+		line.Kind = kindExternal
+		line.OperationID = ""
+		line.ResultBytes = record.ResultBytes
+		if server, _, ok := agentcore.ParseExternalToolName(record.Tool); ok {
+			line.Server = server
+		}
+	}
+	if record.Status == agentcore.StatusPlanned {
+		line.Kind = kindPlanned
+	}
+	notes := []string{}
+	if record.Decision != "" {
+		notes = append(notes, string(record.Decision))
+	}
+	notes = append(notes, record.Status)
+	if record.ErrorCode != "" {
+		notes = append(notes, record.ErrorCode)
+	}
+	if record.TraceID != "" {
+		// The join key rides in the note so a room shows it with the rest
+		// of the instrument, and `terra agent log` prints it without a
+		// second surface having to be invented for it.
+		notes = append(notes, "trace="+record.TraceID)
+	}
+	if record.External {
+		// Where a Gateway call prints its trace id, an external call prints
+		// the fact that there is none to print. Saying "no gateway audit"
+		// in the line itself is R8's second half: the absence has to be
+		// visible where somebody is already looking.
+		notes = append(notes, fmt.Sprintf("external · %d B · no gateway audit", record.ResultBytes))
+	}
+	line.Note = strings.Join(notes, " · ")
+	return line
 }
 
 // approver is how the shared gate reaches the person: it puts the question in
 // the transcript and waits for `terra agent approve` or a typed answer.
 func (e *engine) approver(s *session) agentcore.Approver {
 	return agentcore.ApproverFunc(func(ctx context.Context, request agentcore.ApprovalRequest) (bool, error) {
-		pending := s.addApproval(request.OperationID, request.Reason, request.Judgement.Reason, request.Input)
+		wait := e.approvalWait
+		if wait <= 0 {
+			wait = approvalTimeout
+		}
+		// What is left of the turn is measured on the real clock the deadline
+		// runs on, then added to the session's own notion of "now".
+		var left time.Duration
+		deadline, hasDeadline := ctx.Deadline()
+		if hasDeadline {
+			left = time.Until(deadline)
+		}
+		pending := s.addApproval(request.OperationID, request.Reason, request.Judgement.Reason, request.Input, approvalContractOf(request.Operation),
+			func(asked time.Time) int64 { return approvalExpiry(asked, wait, left, hasDeadline) })
 		s.mu.Lock()
 		s.setStateLocked(stateWaiting)
 		s.appendLocked(entry{
@@ -545,10 +593,6 @@ func (e *engine) approver(s *session) agentcore.Approver {
 		})
 		s.mu.Unlock()
 
-		wait := e.approvalWait
-		if wait <= 0 {
-			wait = approvalTimeout
-		}
 		timer := time.NewTimer(wait)
 		defer timer.Stop()
 		var approved bool
@@ -579,6 +623,51 @@ func (e *engine) approver(s *session) agentcore.Approver {
 		s.mu.Unlock()
 		return approved, nil
 	})
+}
+
+// approvalContractOf reads the facts off the catalog operation the gate already
+// holds. It returns nil when there is no operation (nothing was read).
+func approvalContractOf(operation agentcore.CatalogOperation) *approvalContract {
+	if operation.OperationID == "" {
+		return nil
+	}
+	contract := &approvalContract{}
+	if execution := operation.Execution; execution != nil {
+		contract.Risk = execution.Risk
+		contract.ConfirmationMode = execution.ConfirmationMode
+		contract.IdempotencyMode = execution.IdempotencyMode
+		contract.RetryMode = execution.RetryMode
+	}
+	if operation.Output != nil {
+		contract.OutputMode = operation.Output.Mode
+	}
+	if operation.SideEffects != nil {
+		effects := make([]approvalSideEffect, 0, len(operation.SideEffects))
+		for _, effect := range operation.SideEffects {
+			effects = append(effects, approvalSideEffect{ResourceID: effect.ResourceID, Action: effect.Action})
+		}
+		contract.SideEffects = &effects
+	}
+	if operation.Permissions != nil {
+		permissions := append([]string{}, operation.Permissions...)
+		contract.Permissions = &permissions
+	}
+	return contract
+}
+
+// approvalExpiry is when a question asked at `asked` stops being answerable:
+// asked plus the earlier of the per-question wait and what is left of the
+// turn (`left`), whose deadline cancels the context under the waiting approver.
+// A turn with no deadline is bounded by the wait alone.
+func approvalExpiry(asked time.Time, wait, left time.Duration, hasDeadline bool) int64 {
+	span := wait
+	if hasDeadline && left < span {
+		span = left
+	}
+	if span < 0 {
+		span = 0
+	}
+	return millis(asked.Add(span))
 }
 
 // approvalText is what the person reads. It separates the contract's facts

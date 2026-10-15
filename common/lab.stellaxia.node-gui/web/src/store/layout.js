@@ -109,13 +109,15 @@ export function autoSave(screen, key) {
  */
 export function bindLayout(screen, key, win = globalThis.window, onSave = null) {
   let t = 0, on = true, last = '';
-  // 바뀐 것이 있을 때만 쓴다 — 같은 것을 다시 쓰면 _savedAt 만 새로워져, 묵은 브라우저 저장본이 다른 기기의 새 서버 문서를 이긴다
-  try { last = JSON.stringify(pickLayout(screen)); } catch { last = ''; }
+  // 바뀐 것이 있을 때만 쓴다 — 같은 것을 다시 쓰면 _savedAt 만 새로워져, 묵은 브라우저 저장본이 다른 기기의 새 서버 문서를 이긴다.
+  // 무엇을 골랐는지(maps.*.sel)는 바뀐 것으로 치지 않는다 — 노드 · 칸을 누를 때마다 저장 요청이 가지 않게(고른 것은 다른 변경과 함께 저장될 때 실린다)
+  const sig = (d) => JSON.stringify(d, function (k, v) { return k === 'sel' && this && this.fields !== undefined && this.placed !== undefined ? undefined : v; });
+  try { last = sig(pickLayout(screen)); } catch { last = ''; }
   const own = Object.prototype.hasOwnProperty.call(screen, 'setState');
   const orig = screen.setState;
   const save = () => {
     if (!on || screen.state.mt) return;
-    const d = pickLayout(screen), j = JSON.stringify(d);
+    const d = pickLayout(screen), j = sig(d);
     if (j === last) return;
     last = j;
     saveLayout(key, d);

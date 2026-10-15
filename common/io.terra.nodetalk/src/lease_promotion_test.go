@@ -144,42 +144,38 @@ func TestAPartitionedMainHasAlreadyStoodDown(t *testing.T) {
 // Reaching the main renews its lease and resets the challenger's patience, so an
 // ordinary slow tick never unseats anybody.
 //
-// This is the one test in this file whose assertion a SLOW machine can break.
-// Its siblings sleep past a lease and then assert that a promotion happened —
-// more delay only makes those surer. This one asserts a promotion did NOT
-// happen while ticking, so every tick has to land inside the lease window, and
-// a stalled runner produces the same symptom as a broken lease.
+// This is the one test in this file whose assertion a SLOW machine can break:
+// it asserts a promotion did NOT happen, so with real time every tick had to
+// land inside the lease window, and a stalled CI runner (2.2s between ticks
+// against a 1s window, 2026-10-12) produced the same symptom as a broken lease.
+// Widening the window only moves the cliff.
 //
-// Two things keep the two apart. The window is a second rather than the 120ms
-// it was, which is far past any scheduling jitter while still costing about a
-// second and a half of test time. And the loop measures the widest gap between
-// its own ticks, so a failure says which of the two happened instead of
-// leaving the reader to guess — the guess is expensive, because the honest
-// answer is usually "the runner", and reading it as "the lease" sends someone
-// after code that is fine.
+// So no real time is allowed to pass. The challenger's clock is one timestamp
+// (mainSeen), and "N seconds went by since the main was last reached" is that
+// timestamp moved N seconds into the past. Each round ages it by far more than
+// a tick interval, the sum is well past the lease window, and the only thing
+// that can keep node-b from promoting is the tick re-marking the main as seen.
+// The window is a minute each, so a real stall of any plausible size is
+// irrelevant. A control at the end ages the clock past the window WITHOUT a tick
+// and requires the promotion, so the test cannot pass by the clock being dead.
 func TestAReachableMainIsNeverUnseated(t *testing.T) {
-	const ttl, grace = 500 * time.Millisecond, 500 * time.Millisecond
+	const ttl, grace = time.Minute, time.Minute
+	const round = 40 * time.Second // each round alone is inside the window; four are not
 	_, storeB, loopB, id, _ := promotionRoom(t, ttl, grace)
 
-	// Keep syncing across more than a full lease window.
-	deadline := time.Now().Add(ttl + grace + 500*time.Millisecond)
-	previous, widest := time.Now(), time.Duration(0)
-	for time.Now().Before(deadline) {
-		loopB.tick(context.Background())
-		if gap := time.Since(previous); gap > widest {
-			widest = gap
+	for i := 0; i < 4; i++ {
+		loopB.mainSeen[id] = loopB.mainSeen[id].Add(-round) // time passes
+		loopB.tick(context.Background())                    // the main answers: renewed
+		if view, _, _ := storeB.Get(id); view.MainNodeID != "node-a" {
+			t.Fatalf("a main that answered every tick was unseated in round %d: %+v", i, view)
 		}
-		previous = time.Now()
-		time.Sleep(50 * time.Millisecond)
 	}
-	view, _, _ := storeB.Get(id)
-	if view.MainNodeID != "node-a" {
-		if widest >= ttl+grace {
-			t.Fatalf("this machine stalled %s between ticks, longer than the %s lease window, so the main "+
-				"went unreached through no fault of the lease: %+v", widest.Round(time.Millisecond), ttl+grace, view)
-		}
-		t.Fatalf("a main that answered every tick was unseated (widest gap between ticks %s, well inside "+
-			"the %s window): %+v", widest.Round(time.Millisecond), ttl+grace, view)
+
+	// Control: the same passage of time with no answer does unseat it.
+	loopB.mainSeen[id] = loopB.mainSeen[id].Add(-(ttl + grace + time.Second))
+	loopB.takeLapsedMains("node-b")
+	if view, _, _ := storeB.Get(id); view.MainNodeID != "node-b" {
+		t.Fatalf("control: a main silent past the window was not replaced, so the test above proves nothing: %+v", view)
 	}
 }
 

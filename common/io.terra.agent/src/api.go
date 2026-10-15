@@ -169,14 +169,21 @@ func (s *apiServer) ownedSession(w http.ResponseWriter, r *http.Request) (*sessi
 	return current, owner, true
 }
 
-func (s *apiServer) status(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
+func (s *apiServer) status(w http.ResponseWriter, r *http.Request) {
+	body := map[string]any{
 		"status":            "ok",
 		"version":           moduleVersion,
 		"sessions":          s.engine.sessions.count(),
 		"models_registered": s.engine.providers.count(),
 		"delegate_door":     s.engine.core != nil,
-	})
+	}
+	// node_name is additive and optional: it is there only when the host said
+	// what this node is called. A lookup that fails costs the key, never the
+	// answer — the readiness probe must not depend on an optional fact.
+	if name := s.engine.nodeName(r.Context()); name != "" {
+		body["node_name"] = name
+	}
+	writeJSON(w, http.StatusOK, body)
 }
 
 // credentialPut registers the caller's delegated credential after asking the
@@ -533,8 +540,15 @@ func sessionOpened(current *session, viewer string, created bool) map[string]any
 	}
 }
 
-func (s *apiServer) sessionList(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"sessions": s.engine.sessions.list()})
+func (s *apiServer) sessionList(w http.ResponseWriter, r *http.Request) {
+	// A list is not addressed by an id, so ownership cannot refuse it the way
+	// it refuses a read of one session: it filters. A session of someone else
+	// is absent here, along with its topic, answer and pending approvals.
+	owner, ok := principal(w, r)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"sessions": s.engine.sessions.list(owner)})
 }
 
 func (s *apiServer) sessionGet(w http.ResponseWriter, r *http.Request) {

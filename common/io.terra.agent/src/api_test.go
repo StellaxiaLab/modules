@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/StellaxiaLab/modules/common/io.terra.agent/internal/testwait"
+	modulert "github.com/StellaxiaLab/terra-sdk/modulert"
+	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
 // The operation surface, driven the way the Gateway drives it: the same paths
@@ -270,6 +272,49 @@ func TestSessionsAreOwnedByWhoOpenedThem(t *testing.T) {
 	}
 }
 
+// sessions.list is the one read that is not addressed by an id, so it is the
+// one place ownership has to be applied by filtering rather than by refusing:
+// a person sees their own sessions and no trace of anyone else's.
+func TestSessionListShowsOnlyTheCallersSessions(t *testing.T) {
+	s := newSurface(t)
+	if err := s.engine.credentials.put(credentialRecord{Principal: "bob", Credential: testCredential, Delegate: "agent:agn_bob", Reach: "local", Permissions: []string{"node.read", "node.control"}, ExpiresAt: "2999-01-01T00:00:00Z", RegisteredMS: 1}); err != nil {
+		t.Fatal(err)
+	}
+	for _, open := range []struct{ who, id, topic string }{
+		{testPrincipal, "mine", "내 비밀 주제"}, {"bob", "bobs", "밥의 비밀 주제"},
+	} {
+		if status, body := s.call(t, open.who, "POST", "/sessions", map[string]any{"session_id": open.id, "topic": open.topic}); status != 200 {
+			t.Fatalf("open %s: %d %v", open.id, status, body)
+		}
+	}
+	ids := func(principal string) (string, []any) {
+		status, body := s.call(t, principal, "GET", "/sessions", nil)
+		if status != 200 {
+			t.Fatalf("list as %s: %d %v", principal, status, body)
+		}
+		raw, _ := json.Marshal(body)
+		rows, _ := body["sessions"].([]any)
+		return string(raw), rows
+	}
+	raw, rows := ids(testPrincipal)
+	if len(rows) != 1 || rows[0].(map[string]any)["session_id"] != "mine" {
+		t.Fatalf("the owner should see exactly their own session: %s", raw)
+	}
+	if strings.Contains(raw, "bobs") || strings.Contains(raw, "밥의 비밀 주제") {
+		t.Fatalf("another principal's session leaked into the list: %s", raw)
+	}
+	raw, rows = ids("bob")
+	if len(rows) != 1 || rows[0].(map[string]any)["session_id"] != "bobs" || strings.Contains(raw, "내 비밀 주제") {
+		t.Fatalf("bob should see exactly his own session: %s", raw)
+	}
+	if _, rows = ids("carol"); len(rows) != 0 {
+		t.Fatalf("a principal with no sessions should see none: %v", rows)
+	}
+	if status, body := s.call(t, "", "GET", "/sessions", nil); status != 400 || errorCode(body) != "INVALID_REQUEST" {
+		t.Fatalf("a list without a principal must be refused, not answered for everyone: %d %v", status, body)
+	}
+}
+
 // openStream follows the session's SSE push and hands back the entries it
 // sees, until the wanted text arrives or the deadline passes.
 func (s *surface) openStream(t *testing.T, principal, sessionID string) (<-chan entry, func()) {
@@ -426,5 +471,92 @@ func TestATypedAnswerResolvesTheQuestion(t *testing.T) {
 	}
 	if status, body := s.call(t, testPrincipal, "POST", "/sessions/typed/messages", map[string]any{"session_id": "typed", "text": "more"}); status != 409 || errorCode(body) != "SESSION_FINISHED" {
 		t.Fatalf("after cancel: %d %v", status, body)
+	}
+}
+
+// identityHost serves only the core plane's identity operation, answering the
+// way the test says. calls counts how often the module asked.
+func identityHost(t *testing.T, answer func(w http.ResponseWriter)) (*modulesdk.CoreClient, *int) {
+	t.Helper()
+	const credential = "workload-credential"
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var invocation modulert.CoreInvocation
+		if r.URL.Path != modulert.CoreInvokePath || r.Header.Get(modulert.CredentialHeader) != credential ||
+			json.NewDecoder(r.Body).Decode(&invocation) != nil || invocation.OperationID != nodeIdentityOperationID {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		calls++
+		answer(w)
+	}))
+	t.Cleanup(server.Close)
+	return modulesdk.NewCoreClient(server.Listener.Addr().String(), credential, nil), &calls
+}
+
+func identityAnswer(output string) func(http.ResponseWriter) {
+	return func(w http.ResponseWriter) {
+		raw, _ := json.Marshal(map[string]any{"output": json.RawMessage(output)})
+		_, _ = w.Write(raw)
+	}
+}
+
+func statusWithCore(t *testing.T, core *modulesdk.CoreClient) map[string]any {
+	t.Helper()
+	s := newSurface(t)
+	s.engine.core = core
+	status, body := s.call(t, "", "GET", "/status", nil)
+	if status != 200 || body["status"] != "ok" {
+		t.Fatalf("status = %d %v", status, body)
+	}
+	return body
+}
+
+func TestStatusCarriesTheNodeDisplayName(t *testing.T) {
+	core, _ := identityHost(t, identityAnswer(`{"node_id":"node-7f","display_name":"tree-home"}`))
+	if got := statusWithCore(t, core)["node_name"]; got != "tree-home" {
+		t.Fatalf("node_name = %v, want tree-home", got)
+	}
+}
+
+func TestStatusFallsBackToTheNodeIDWithoutADisplayName(t *testing.T) {
+	core, _ := identityHost(t, identityAnswer(`{"node_id":"node-7f","display_name":"  "}`))
+	if got := statusWithCore(t, core)["node_name"]; got != "node-7f" {
+		t.Fatalf("node_name = %v, want node-7f", got)
+	}
+}
+
+// A name nobody knows is a missing key, never an empty string or a stand-in.
+func TestStatusOmitsTheNodeNameWhenItIsNotKnown(t *testing.T) {
+	failing := func(w http.ResponseWriter) { w.WriteHeader(http.StatusInternalServerError) }
+	cases := map[string]*modulesdk.CoreClient{}
+	empty, _ := identityHost(t, identityAnswer(`{"node_id":"","display_name":""}`))
+	cases["both empty"] = empty
+	garbled, _ := identityHost(t, identityAnswer(`"not an object"`))
+	cases["not an object"] = garbled
+	broken, _ := identityHost(t, failing)
+	cases["call fails"] = broken
+	cases["no core plane"] = nil
+	for name, core := range cases {
+		body := statusWithCore(t, core)
+		if _, present := body["node_name"]; present {
+			t.Errorf("%s: node_name present: %v", name, body["node_name"])
+		}
+		if body["delegate_door"] != (core != nil) {
+			t.Errorf("%s: delegate_door = %v", name, body["delegate_door"])
+		}
+	}
+}
+
+// A failed lookup is retried on the next status; a found name is kept.
+func TestStatusAsksOnceOnceItHasAName(t *testing.T) {
+	core, calls := identityHost(t, identityAnswer(`{"node_id":"n","display_name":"tree-home"}`))
+	s := newSurface(t)
+	s.engine.core = core
+	for i := 0; i < 3; i++ {
+		s.call(t, "", "GET", "/status", nil)
+	}
+	if *calls != 1 {
+		t.Fatalf("identity asked %d times, want 1", *calls)
 	}
 }

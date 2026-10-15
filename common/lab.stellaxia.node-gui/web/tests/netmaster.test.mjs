@@ -104,7 +104,7 @@ test('보드 — leaf 의 앱 토큰도 Master 묶음을 진짜 값으로 읽는
   await n.refresh();
   n.pickPair('n-a'); n.pickPair('n-b');
   await new Promise((r) => setTimeout(r, 10));
-  assert.ok(calls.some((u) => /\/api\/upstream\/v1\/route\/candidates\?source_node_id=n-a&target_node_id=n-b&channel=service_tunnel/.test(u)), calls.join(' '));
+  assert.ok(calls.some((u) => /\/api\/upstream\/v1\/route\/candidates\?source_node_id=n-a&target_node_id=n-b&channel=service\.tunnel/.test(u)), calls.join(' '));
   v = visible(n.renderVals());
   assert.match(v, /mesh_vpn_direct/); assert.match(v, /epoch 7/);
   assert.doesNotMatch(v, EXAMPLE);

@@ -53,7 +53,7 @@ export function realNetwork(Screen) {
       Object.assign(this.state, {
         role: null, demo: 'ok', sec: 'wg', polledAt: 0,
         reconcile: { status: 'unchanged', reason: '', at: '—', eligible: 0, updated: 0, removed: 0 },
-        networks: [], pair: { src: '', dst: '', channel: 'service_tunnel' }, probes: [], m: {}, mCand: null, waitProbe: null, policies: [], sessions: [], groups: [], decls: [],
+        networks: [], pair: { src: '', dst: '', channel: 'service.tunnel' }, probes: [], m: {}, mCand: null, waitProbe: null, policies: [], sessions: [], groups: [], decls: [],
         plan: { src: '', dst: '', service: '', tport: '', lport: '0', policy: 'auto' }, planned: null,
         ltunnels: [], wg: null, peers: [], peersOn: false, peersErr: '', logs: [],
         live: null, why: null, loading: true, nodeName: '', principal: '', perms: []
@@ -105,7 +105,7 @@ export function realNetwork(Screen) {
     async readCandidates() {
       const L = this.__live, P = this.state.pair;
       if (!L || !P.src || !P.dst) return;
-      const r = await L.client.invoke(NET_OPS.candidates, { source_node_id: P.src, target_node_id: P.dst, channel: P.channel || 'service_tunnel' });
+      const r = await L.client.invoke(NET_OPS.candidates, { source_node_id: P.src, target_node_id: P.dst, channel: P.channel || 'service.tunnel' });
       if (this.__live !== L || this.state.pair !== P) return;
       this.setState({ mCand: r.kind === 'ok' ? { kind: 'ok', data: candidateRows(r.data) } : r });
     }

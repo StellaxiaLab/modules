@@ -54,17 +54,48 @@ const CHANNEL = {
   'delegated-session': 's',
 };
 
+const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
+const AREAS = ['path', 'query', 'headers', 'body'];
+
+// Field names an operation's input carries, split the way Treebench sends them.
+//
+// The Master contract's input is flat (PF-27, contract 1.4.0): path variables,
+// query parameters and body fields are all top-level properties, and the runtime
+// (terra-module-runtime BuildOperationTarget) sends whatever the path template
+// does not consume as the query string for GET/DELETE and as the JSON body for
+// POST/PUT/PATCH. So the area is not written in the schema any more — it is the
+// method's. The raw-upload PUTs still declare the four-area form (their body is
+// bytes, not JSON), which is read as it always was.
+export function inputFields(operation) {
+  const schema = operation.input?.schema ?? {};
+  const properties = schema.properties ?? {};
+  const wrapped = AREAS.some((area) => properties[area]?.type === 'object' && properties[area]?.properties);
+  const fields = {};
+  if (wrapped) {
+    for (const [area, key] of [['body', 'b'], ['query', 'q']]) {
+      const names = properties[area]?.properties;
+      if (!names) continue;
+      fields[key] = { names: Object.keys(names), required: properties[area].required ?? [] };
+    }
+    return fields;
+  }
+  const binding = (operation.bindings ?? []).find((b) => b.method && b.path);
+  if (!binding) return fields;
+  const pathVariables = new Set([...binding.path.matchAll(/\{([^{}]+?)(?:\.\.\.)?\}/g)].map((m) => m[1]));
+  const names = Object.keys(properties).filter((name) => !pathVariables.has(name));
+  if (names.length === 0) return fields;
+  const key = BODY_METHODS.has(binding.method.toUpperCase()) ? 'b' : 'q';
+  fields[key] = { names, required: (schema.required ?? []).filter((name) => !pathVariables.has(name)) };
+  return fields;
+}
+
 export function buildMap(contract) {
   const map = {};
   for (const [id, operation] of Object.entries(contract.operations)) {
     const authentication = (operation.security?.authentication ?? ['terra-session'])[0];
     const entry = { c: CHANNEL[authentication] ?? 's' };
-    const areas = operation.input?.schema?.properties ?? {};
-    for (const [area, key] of [['body', 'b'], ['query', 'q']]) {
-      const properties = areas[area]?.properties;
-      if (!properties) continue;
-      entry[key] = Object.keys(properties);
-      const required = areas[area].required ?? [];
+    for (const [key, { names, required }] of Object.entries(inputFields(operation))) {
+      entry[key] = names;
       if (required.length > 0) entry[`${key}r`] = required;
     }
     map[id.replace('terra.master.', '')] = entry;

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -29,12 +30,21 @@ type contractOperation struct {
 	Input struct {
 		Schema struct {
 			Properties map[string]struct {
+				Type       json.RawMessage            `json:"type"`
 				Properties map[string]json.RawMessage `json:"properties"`
 				Required   []string                   `json:"required"`
 			} `json:"properties"`
+			Required []string `json:"required"`
 		} `json:"schema"`
 	} `json:"input"`
+	Bindings []struct {
+		Method string `json:"method"`
+		Path   string `json:"path"`
+	} `json:"bindings"`
 }
+
+// pathVariablePattern finds `{name}` and `{name...}` in a binding path.
+var pathVariablePattern = regexp.MustCompile(`\{([^{}]+?)(?:\.\.\.)?\}`)
 
 type mapEntry struct {
 	Channel       string   `json:"c"`
@@ -122,6 +132,86 @@ func loadGeneratedMap(t *testing.T) map[string]mapEntry {
 	return generated
 }
 
+// fillFields mirrors inputFields in tools/generate-contract-map.mjs.
+//
+// The Master contract's input is flat (PF-27, contract 1.4.0): path variables,
+// query parameters and body fields are all top-level properties, and the area a
+// field travels in is the method's — what the path template does not consume is
+// the query string for GET/DELETE and the JSON body for POST/PUT/PATCH. The
+// raw-upload PUTs keep the four-area form (their body is bytes), read as before.
+func fillFields(entry *mapEntry, operation contractOperation) {
+	properties := operation.Input.Schema.Properties
+	wrapped := false
+	for _, area := range []string{"path", "query", "headers", "body"} {
+		if declared, ok := properties[area]; ok && string(declared.Type) == `"object"` && len(declared.Properties) > 0 {
+			wrapped = true
+		}
+	}
+	if wrapped {
+		for area, target := range map[string]struct {
+			fields   *[]string
+			required *[]string
+		}{
+			"body":  {&entry.Body, &entry.BodyRequired},
+			"query": {&entry.Query, &entry.QueryRequired},
+		} {
+			schema, present := properties[area]
+			if !present || len(schema.Properties) == 0 {
+				continue
+			}
+			setFields(target.fields, target.required, keysOf(schema.Properties), schema.Required)
+		}
+		return
+	}
+	if len(operation.Bindings) == 0 {
+		return
+	}
+	binding := operation.Bindings[0]
+	pathVariables := map[string]bool{}
+	for _, match := range pathVariablePattern.FindAllStringSubmatch(binding.Path, -1) {
+		pathVariables[match[1]] = true
+	}
+	var names, required []string
+	for name := range properties {
+		if !pathVariables[name] {
+			names = append(names, name)
+		}
+	}
+	for _, name := range operation.Input.Schema.Required {
+		if !pathVariables[name] {
+			required = append(required, name)
+		}
+	}
+	switch strings.ToUpper(binding.Method) {
+	case "POST", "PUT", "PATCH":
+		setFields(&entry.Body, &entry.BodyRequired, names, required)
+	default:
+		setFields(&entry.Query, &entry.QueryRequired, names, required)
+	}
+}
+
+func keysOf(values map[string]json.RawMessage) []string {
+	names := make([]string, 0, len(values))
+	for name := range values {
+		names = append(names, name)
+	}
+	return names
+}
+
+func setFields(fields, required *[]string, names, requiredNames []string) {
+	if len(names) == 0 {
+		return
+	}
+	sorted := append([]string(nil), names...)
+	sort.Strings(sorted)
+	*fields = sorted
+	if len(requiredNames) > 0 {
+		sortedRequired := append([]string(nil), requiredNames...)
+		sort.Strings(sortedRequired)
+		*required = sortedRequired
+	}
+}
+
 func expectedMap(t *testing.T) map[string]mapEntry {
 	t.Helper()
 	raw, err := os.ReadFile(masterContractPath(t))
@@ -146,29 +236,7 @@ func expectedMap(t *testing.T) map[string]mapEntry {
 			code = "s"
 		}
 		entry := mapEntry{Channel: code}
-		for area, target := range map[string]*struct {
-			fields   *[]string
-			required *[]string
-		}{
-			"body":  {&entry.Body, &entry.BodyRequired},
-			"query": {&entry.Query, &entry.QueryRequired},
-		} {
-			schema, present := operation.Input.Schema.Properties[area]
-			if !present || len(schema.Properties) == 0 {
-				continue
-			}
-			names := make([]string, 0, len(schema.Properties))
-			for name := range schema.Properties {
-				names = append(names, name)
-			}
-			sort.Strings(names)
-			*target.fields = names
-			if len(schema.Required) > 0 {
-				required := append([]string(nil), schema.Required...)
-				sort.Strings(required)
-				*target.required = required
-			}
-		}
+		fillFields(&entry, operation)
 		expected[strings.TrimPrefix(id, "terra.master.")] = entry
 	}
 	return expected

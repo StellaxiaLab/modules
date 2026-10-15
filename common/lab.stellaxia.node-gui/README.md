@@ -4,8 +4,8 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "v0.17"
-last_updated: "2026-10-10"
+version: "v0.18"
+last_updated: "2026-10-11"
 ---
 
 # Terra 노드 (`lab.stellaxia.node-gui`)
@@ -198,7 +198,7 @@ Terra가 앱 토큰의 Master 위임 입구를 열었다([Terra#143](https://git
 이 모듈이 MD-34에서 생성기 패치로 들고 있던 UP-32(실행 중인 작업 카드에도 `출력` · `다시`는 두 번 누르기)가 원본에 올라갔다([maingui#7](https://github.com/StellaxiaLab/maingui/pull/7)).
 `design/Artboard-qcfu.dc.html`에 그 커밋의 UP-32 네 줄을 받았다 — 나머지 디자인 파일은 이미 같았다. 이 저장소가 디자인 원본에 직접 넣은 UP-22 · MD-35(입출력 설정 창)는 그대로 둔다.
 
-- 생성기의 UP-32 패치를 걷었다. 출력 단추의 권한만 모듈 전용 패치로 남는다 — 이 노드의 출력은 Daemon이 `process.execute`로 준다(원본은 Master 작업을 `node.read`로 읽는다). 2026-10-10 이 권한도 `web/design` 원본으로 옮기고 생성기 패치를 걷었다(maingui 은퇴 뒤 `web/design`이 원본이다).
+- 생성기의 UP-32 패치를 걷었다. 출력 단추의 권한만 모듈 전용 패치로 남는다 — 이 노드의 출력은 Daemon이 `process.execute`로 준다(원본은 Master 작업을 `node.read`로 읽는다). 2026-10-10 이 권한도 `web/design` 원본으로 옮기고 생성기 패치를 걷었다(maingui 은퇴 뒤 `web/design`이 원본이다). 2026-10-11 도로 이벤트(UP-26) · 흐름 도로를 바인딩 `active`로(UP-27) · `links` 모양의 `io`(UP-28)도 `web/design`에서 직접 했고 `MODULE_JS`는 비었다.
 - 생성된 카드 줄은 전과 같다. 원본 화면이 `job:rerun`을 겨누는 줄이 더해졌지만, 연동 층(`wire.js` `confirm`)이 먼저 받으므로 동작은 같다.
 - 시험: 단위 198 · 연기 통과.
 
@@ -210,6 +210,18 @@ Terra가 명령 작업의 출력과 다시 실행을 열었다([Terra#140](https
 - **다시** — 두 번 눌러 `tasks.by-task-id.rerun.post {task_id, confirmed: true}`. 이 노드에서 시작한 끝난 작업만 — Master가 보낸 작업은 부르지 않고 이유를 보인다.
 - **카드** — 실행 중에도 `출력`, 다시는 `정말 다시`. 생성기 `MODULE_JS`의 둘째 패치다(원본에 올릴 것 UP-32).
 - 시험: `tests/taskout.test.mjs` 5개 · 전체 196 통과 · `npm run build` 통과. 앱 토큰으로 진짜 스택 실측(2026-10-09, Terra main `1e13d75`) — `web/tools/live-taskout.mjs` 15개 통과([`real-data-layer.md`](web/docs/api/real-data-layer.md) §5.7). 브라우저 화면은 단위 · 연기 시험으로 본다.
+
+### 맵 쓰기 기능을 직접 눌러 보고 고치기 — MD-45 ~ MD-49 (2026-10-12, 0.4.3)
+
+최신 Terra(위임 입구 ADR-GW-003 · 004)로 띄운 진짜 스택에서 로그인 뒤 맵의 쓰기 기능을 직접 눌러 보았다. 건물 · 지형 · 도로 · 자원 · 명령 실행 · 작업 다시 실행은 저장까지 동작했고, 고친 것은 다음이다.
+
+- **허가 만들기(MD-45)** — [+ 허가]가 `subject_type` 없이 보내 노드에게 주는 허가가 항상 `403`이었다. 받는 이의 종류를 같이 보낸다 — 위임 입구에서 `POST` 201 · `PATCH` 200 · `DELETE` 200.
+- **닫기 직전 저장(MD-46)** — 서버 문서는 3초 모아 쓰는데 그 안에 닫으면 빠졌다. 닫힐 때 `keepalive`로 비운다.
+- **고르기 저장(MD-47)** — 노드 · 칸을 누를 때마다 가던 저장 요청을 없앴다.
+- **작업 제목(MD-48)** — `process.execute.request` 대신 "명령 실행".
+- **연출 판정(MD-49)** — 순수 함수로 빼 시험을 더했다.
+- 위임 입구 읽기 `401`은 모듈이 아니라 **오래된 Master 바이너리** 탓이었다(최신으로 다시 빌드하니 200).
+- 시험 236개 통과. 레지스트리로 0.4.2에서 0.4.3으로 올려 확인했다.
 
 ### 맵 진입 개선 — MD-35 · MD-36 · MD-38 · MD-40 · MD-43 (2026-10-09, 0.4.2)
 

@@ -8,8 +8,8 @@ doc_type: "integration-guide"
 scope: "project"
 target: "terra-gui"
 status: "draft"
-version: "0.13.0"
-last_updated: "2026-10-11"
+version: "0.17.0"
+last_updated: "2026-10-15"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -542,34 +542,154 @@ Terra ADR-GW-003 1차(Terra#143)로 앱 토큰이 Master 읽기에 닿는다. �
 - **부르는 길** — tree 는 operation id, leaf 는 `/api/upstream`(client.js `invokeUpstream`). 보드는 모른다. 묶음을 고를 때와 10초마다 그 묶음의 읽기만 부른다.
 - **쓰기는 없다** — 자동 조정 · 수동 계획 · 피어 철회 · probe 실행 · 정책 저장 · 세션 닫기는 Master 쓰기라 위임 입구 2차다. 버튼을 두지 않고 "보기만" 배너를 둔다. 연결 그룹(`connection-groups.*`)은 1차 28에 들지 않는다.
 - **닿지 않으면** — 예전 Terra(401 → `masterBlocked`) · 상위 Master 없음(501)이면 예전처럼 "닿지 않음"과 이유.
-- 시험: `tests/netmaster.test.mjs` 5개 — 응답 → 행(노드 × 네트워크 · 그래프 · 후보 · 정책 · 세션 · probe · 이력, Go 의 nil 목록 · 빈 time), leaf 앱 토큰의 보드가 `/api/upstream`으로 읽고 예시 · 쓰기 버튼이 없음, 401이면 "닿지 않음". 응답 모양은 Terra Master 코드(`routes_network.go` · `models/network_state.go` · `models/route_runtime.go`)를 읽고 맞췄다. **진짜 스택 실측 — §5.10(2026-10-11): 사설망 · 이력 · 쓰기 없음 · 닿지 않음은 맞고, 후보(쌍 고르기)는 채널 이름 때문에 409(MD-45).**
+- 시험: `tests/netmaster.test.mjs` 5개 — 응답 → 행(노드 × 네트워크 · 그래프 · 후보 · 정책 · 세션 · probe · 이력, Go 의 nil 목록 · 빈 time), leaf 앱 토큰의 보드가 `/api/upstream`으로 읽고 예시 · 쓰기 버튼이 없음, 401이면 "닿지 않음". 응답 모양은 Terra Master 코드(`routes_network.go` · `models/network_state.go` · `models/route_runtime.go`)를 읽고 맞췄다. **진짜 스택 실측 — §5.12(2026-10-11): 사설망 · 이력 · 쓰기 없음 · 닿지 않음은 맞고, 후보(쌍 고르기)는 채널 이름 때문에 409였다(MD-51 — modules#83으로 고쳐짐).**
 
-### 5.9 입출력 연결 — 위임 입구 쓰기 실측(MD-32) — 2026-10-10
+### 5.9 입출력 연결 — 위임 입구 쓰기 · 바인딩 active 실측(MD-32) — 2026-10-10~11
 
-Terra [Terra#154](https://github.com/StellaxiaLab/Terra/pull/154)(ADR-GW-004 2a · 2b — 2026-10-09 머지)로 앱 토큰이 SVI 바인딩 · 허가를 **쓴다**. 모듈의 연결 적용 코드(`TerraClient` · `applyLink` · `grantSelf` · `syncLinks` · `closeBindings`)를 그대로, 이 앱의 토큰(`tsa_`)으로 진짜 leaf 게이트웨이의 `/api/upstream`에 붙였다 — `web/tools/live-linkio.mjs` 19개 통과. 화면(브라우저)은 거치지 않는다.
+Terra [Terra#154](https://github.com/StellaxiaLab/Terra/pull/154)(ADR-GW-004 2a · 2b — 2026-10-09 머지)로 앱 토큰이 SVI 바인딩 · 허가를 **쓴다**. 모듈의 연결 적용 코드(`TerraClient` · `applyLink` · `grantSelf` · `syncLinks` · `closeBindings`)를 그대로, 이 앱의 토큰(`tsa_`)으로 진짜 leaf 게이트웨이의 `/api/upstream`에 붙였다 — `web/tools/live-linkio.mjs` **27개 통과**. 화면(브라우저)은 거치지 않는다.
 
-**스택(Terra main `f22cdcb`, Linux, 도커 없이 바이너리)** — `terra-master`(dev, sqlite) · `terra-daemon` 둘(같은 사용자 · 같은 클러스터) · `terra-gateway`(leaf 모양: `--master-url` · 노드 자격 · 데몬 계약 · 이 모듈의 `module.json`을 놓은 `--scene-root`). Go 1.25(툴체인 자동). 순서와 막혔던 곳:
+**스택** — `web/tools/live-stack-up.sh <Terra 체크아웃> <작업 폴더>`가 도커 없이 세운다: `terra-master`(dev, sqlite) · `terra-daemon` 둘(같은 사용자 · 같은 클러스터, 소스 노드 d1 · 싱크 노드 d2) · `terra-gateway`(leaf 모양: `--master-url` · 노드 자격 · 데몬 계약 · 이 모듈의 `module.json`을 놓은 `--scene-root`) · 앱 토큰. Go 1.25(툴체인 자동). 끝나면 `env.sh`가 생기고, `. env.sh && node tools/live-linkio.mjs`로 돈다. `--down`으로 내린다.
 
-| 단계 | 한 일 | 막혔던 곳 |
-| --- | --- | --- |
-| Master · Daemon | `go build` 셋 → Master 설정(`bootstrap_*` · `service_credential`) → Daemon `--enroll-*` | — |
-| 싱크 자원 | `terra module pack`(modules의 `io.terra.io-weave`, `--target linux-amd64`) → `terra module install --root <data_dir>/modules --dev --force` | 개발 디렉터리에 모듈을 **복사만 하면 시작되지 않는다**(`MODULE_VERSION_UNSELECTED` — Keeper 설치 기록이 필요). 설치 루트는 Daemon의 관리 루트(`<data_dir>/modules`)와 그 옆 `module-state`여야 한다 |
-| 앱 토큰 | 관리자에게 `node.read` · `node.control` 등을 주고 → 게이트웨이 `POST /api/v1/gui/apps/lab.stellaxia.node-gui.web/token` | 앱이 GUI 앱으로 **게이트웨이 장면 루트에 있어야** 한다 |
-
-**이 스택에서 되지 않는 것** — 호환되는 소스 · 싱크 쌍이 없다. `test.stream`은 `terra.bytes@1`을 내고, 싱크는 `io-weave.pointer`(`terra.input.mouse@1`)뿐이며, `io.terra.io-inventory`는 이 컨테이너에서 장치를 올리지 않는다(수동 등록도 카메라뿐). 그래서 **바인딩이 `active`가 되는 길은 이 시험에 없다** — 그 자리는 Terra의 Go e2e(`binding_delegated_e2e_test.go`)가 본다.
+| 쌍 | 어떻게 올렸나 |
+| --- | --- |
+| 소스 | Daemon이 스스로 올리는 `test.stream`(`output` = `terra.bytes@1`, 100ms마다 프레임) |
+| 싱크 | **런타임 선언** — d2의 Local API `POST /svi/declarations {family:"file", direction:"sink", path}`. 모듈 설치 없이 호환되는(`terra.bytes@1`) 싱크가 생긴다. 설정에 `svi.runtime.file_roots`가 있어야 하고, 경로는 **Daemon 자신의 디렉터리 바깥**이어야 한다(`SVI_DECLARATION_OUTSIDE_ENVELOPE`) |
 
 | 본 것 | 결과 |
 | --- | --- |
 | 위임 입구 읽기 | 엔드포인트 · 허가 목록 · 바인딩 목록이 읽힌다 |
-| 어긋난 쌍 | 모듈의 미리 검사가 `schema_incompatible: terra.bytes@1 → terra.input.mouse@1`로 막는다. 미리 검사를 건너뛰고 `bindings.post`를 직접 부르면 Master가 403 `SVI_BINDING_DENIED` |
-| 나에게 허가(2b) | `grantSelf`가 `bind.source` · `bind.target`을 user 주체로 만든다(기한 30일). 허가 목록에 기한과 함께 보인다 |
-| 위임 입구의 가드 | 91일 기한 · 기한 없음 · 남에게 주는 허가 모두 403 `FORBIDDEN`("a delegated entrance may grant only to yourself or a node in your cluster") |
-| 공유(자원 → 같은 클러스터 노드) | 노드 주체 허가(`read` · `subscribe` · `bind.source`, 30일)가 만들어진다 · 다시 적용하면 있는 허가를 쓴다 · `syncLinks`가 `shared`로 읽는다 · `grants.delete`로 철회하면 `closed` |
-| 없는 바인딩 닫기 | `closeBindings`가 이미 없는 것으로 친다 |
+| 어긋난 쌍(소스 `text` = `terra.text@1` → 싱크 bytes) | 모듈의 미리 검사가 `schema_incompatible`로 막고, 미리 검사를 건너뛰고 `bindings.post`를 직접 부르면 Master가 403 `SVI_BINDING_DENIED` |
+| 허가 없이 적용 | `needs-grant` · 부족한 허가 둘(`bind.source` · `bind.target`) · 바인딩은 만들지 않는다 |
+| 나에게 허가(2b) | `grantSelf`가 user 주체로 둘을 만든다(기한 30일). 허가 목록에 기한과 함께 보인다 |
+| 허가 뒤 적용(2a) | 바인딩이 만들어지고, 다시 적용하면 같은 바인딩을 쓴다(멱등) |
+| **`active` · 데이터** | `syncLinks`가 `requested → active`로 읽고, 싱크 파일이 자란다(102바이트 / 15초 안). 소스 노드 ≠ 싱크 노드 |
+| 닫기(2a delete) | `closeBindings` → `closed`, 파일이 더 자라지 않는다. 이미 닫힌 · 없는 바인딩은 오류로 치지 않는다 |
+| 위임 입구의 가드 | 91일 기한 · 기한 없음 · 남에게 주는 허가 모두 403 `FORBIDDEN` |
+| 공유(자원 → 같은 클러스터 노드) | 노드 주체 허가가 만들어지고(30일) · 다시 적용하면 있는 것을 쓰고 · `syncLinks`가 `shared`로 읽고 · `grants.delete`로 철회하면 `closed` |
 
-**실측에서 드러난 모듈 버그(고쳤다)** — 앱 토큰의 whoami `principal`은 `user_… via lab.stellaxia.node-gui.web`이다(`via <앱>`이 붙는다). 연결 적용은 이것을 그대로 사용자 id로 써서 `grantSelf`가 위임 입구에서 403이 났고, 허가 대조(`subject.id === userId`)도 영영 맞지 않았다. 단위 시험은 `user_me`로만 돌아 잡지 못했다. `link-apply.js`의 `userIdOf`가 `applyLink` · `grantSelf` 입구에서 `via` 접미사를 뗀다(시험 추가).
+**실측에서 드러난 것**
 
-### 5.10 위임 입구 화면 · 에이전트 실측 — 2026-10-11
+| # | 무엇 | 처리 |
+| --- | --- | --- |
+| 1 | 앱 토큰의 whoami `principal`은 `user_… via lab.stellaxia.node-gui.web`이다. 연결 적용이 이것을 그대로 사용자 id로 써서 `grantSelf`가 위임 입구에서 403, 허가 대조(`subject.id === userId`)도 영영 맞지 않았다. 단위 시험은 `user_me`로만 돌아 잡지 못했다 | **고쳤다** — `link-apply.js`의 `userIdOf`가 `applyLink` · `grantSelf` 입구에서 `via` 접미사를 뗀다([modules#69](https://github.com/StellaxiaLab/modules/pull/69), 시험 추가) |
+| 2 | Terra Daemon의 `svi.binding.prepared.response`에 `Source`가 없다. `Service.Send`가 채우지 않고 `ValidateEnvelope`가 요구해서, **실제 Daemon 바이너리에서는 응답이 `invalid communication envelope`로 거절**되고 Master가 바인딩을 `target_prepare_failed: context deadline exceeded`로 끝낸다. 기존 시험은 응답을 기록만 하는 `recordingSender`라 못 잡았다(핸들 열기 · 닫기 응답도 같았다) | Terra 쪽 결함 — **[Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)가 고쳤다**(2026-10-11, Terra main `e84e765`). 응답 만드는 곳 둘에 `Source`를 싣고 `HandleIncoming`이 빈 `Source`를 기본값으로 채운다. 이 시험이 같은 증상을 보고 낸 수정이다. 수정 없이 그 main에서 `live-linkio.mjs` 27/27 통과를 확인했다 |
+| 3 | 소스와 싱크가 **같은 노드**에 있는 바인딩은 `active`가 되지만 15초 동안 데이터가 흐르지 않았다(파일 0바이트). 다른 노드 사이에서는 흐른다 | 원인을 찾지 못했다. Terra 쪽 확인 필요(추측: 같은 노드 안의 데이터 길) |
+
+**함정(세울 때 겪은 것)**
+- 모듈을 개발 디렉터리에 **복사만 하면** 시작되지 않는다(`MODULE_VERSION_UNSELECTED` — Keeper 설치 기록이 필요). 쓰려면 `terra module pack` → `terra module install --root <data_dir>/modules --dev`. 이번 시험은 모듈 설치 없이 런타임 선언으로 해결했다.
+- 게이트웨이 앱 토큰은 그 앱이 GUI 앱으로 **장면 루트**에 있어야 나온다.
+- 스택을 세운 직후에는 자원 보고 · Local API 토큰이 아직 없다 — `live-stack-up.sh`가 준비될 때까지 기다린다.
+- `pkill -x`는 프로세스 이름이 15자를 넘으면 맞지 않는다(`pkill -f`는 자기 셸 명령 문자열에 걸린다).
+
+### 5.10 입출력 연결 — 바인딩 `active` · `closed` 실측(MD-32) — 2026-10-11
+
+§5.9에 없던 것 — **호환되는 소스 · 싱크 쌍**으로 모듈의 연결 적용 코드가 바인딩을 `active`까지 올리고, 연결을 지우면 `closed`가 되는지 — 를 진짜 스택에서 봤다. `web/tools/live-linkbind.mjs`가 화면이 쓰는 함수(`applyLink` · `lacksOf` · `grantSelf` · `syncLinks` · `orphanedBindings` · `closeBindings`)를 그대로, 앱 토큰(`tsa_`)으로 leaf 게이트웨이의 `/api/upstream`에 붙인다.
+
+**쌍 — 새 시험 모듈 없이 Terra에 있는 것만 썼다.**
+
+| 끝 | 자원 | 엔드포인트 · 형식 | 켜는 법 |
+| --- | --- | --- | --- |
+| 소스 | `svi.<노드1>.test.stream` | `output` · `terra.bytes@1`(`terra-svi-frame-<n>`을 0.1초마다) | Daemon 설정 `feature.enable_svi` · `feature.enable_svi_test_stream`(`svi/test_stream_adapter.go`) |
+| 싱크 | `svi.<노드2>.fs.<이름>` | `append` · `terra.bytes@1`(파일 끝에 붙인다) | Daemon 설정 `svi.file_sinks: [{name, path}]`(`svi/filesystem_adapter.go`) |
+
+두 끝은 **다른 노드 · 같은 소유자**다. 같은 소유자는 PF-19 때문이다(남의 자원은 허가가 있어도 `*_resource_not_found`). 다른 노드는 아래 "같은 노드 쌍" 때문이다.
+
+**스택** — §5.9와 같은 바이너리 방식(처음에는 Terra `832f8f23` 빌드에 Daemon만 `c62fff73`, 재측정은 모두 `main` `c82c24e2` · `terra-master` dev sqlite · `terra-daemon` 둘 · 노드1의 Daemon이 띄운 leaf 게이트웨이). 노드2는 `--enroll-email` · `--enroll-password-file`로 같은 사용자에 등록하고 게이트웨이 · 모듈은 끈다.
+
+```bash
+# web/ 에서
+TERRA_GW=http://127.0.0.1:28787 TERRA_APP_TOKEN_FILE=<app.tok> \
+TERRA_SRC_RES=svi.<노드1>.test.stream TERRA_SINK_RES=svi.<노드2>.fs.md32-sink2 TERRA_SINK_FILE=<그 싱크 파일> \
+node tools/live-linkbind.mjs
+```
+
+**처음 막힌 곳 — Terra Daemon 버그(모듈 밖).** `main` 그대로의 Daemon으로는 `bindings.post`가 받은 뒤 약 10초 만에 `failed`(`target_prepare_failed: context deadline exceeded`)가 된다. Daemon 기록: `master_relay_inbound_rejected message_type=svi.binding.prepare.request error="invalid communication envelope"`. 원인: `BindingExecutor.preparedResponse`(`svi/binding_executor.go`)가 답 봉투에 `Source`를 싣지 않는다. 그래서 `communication.Service.Send`의 `ValidateEnvelope`(`Source.App`이 비면 거절)가 relay 어댑터의 `normalizeOutbound`(빈 `Source`를 채운다)까지 가기 전에 버리고, Master는 prepare 답을 영영 받지 못한다. Terra의 Go e2e(`common/tests/svi-handle-integration`)는 자기 `Send`가 `Source`를 채워서 이것을 가린다. `HandleManager.response`도 같은 모양이다. Terra 쪽에 알렸다 — 아래 "Terra 쪽 상태".
+
+**결과 — Terra `main`(`c82c24e2`)의 Daemon으로 `16/16`.** 같은 스택 · 같은 도구에서, 이번에는 고침 브랜치가 아니라 **Terra `main` `c82c24e2`**(Daemon `Source` 고침 `dfbd1f9c` 핸들러 응답 기본값 · `c62fff73` 빌더 둘 다 포함)를 `git archive`로 깨끗이 내보내 Master · Daemon · 게이트웨이를 모두 새로 빌드해 다시 쟀다(`tools/live-stack-up.sh`). 예전에 `main`(`832f8f23`) Daemon으로는 `active` · Master 기록 · 흐름이 실패했다(`binding → failed`, 닫기는 된다). 지금은 두 노드 쌍이 처음부터 끝까지 통과한다. 싱크는 이번에는 Daemon Local API의 런타임 선언(`POST /svi/declarations`, `family file` · `direction sink`)으로 올렸다 — `svi.file_sinks` 설정과 같은 파일 싱크 어댑터다.
+
+| 단계 | 본 것 | 결과 |
+| --- | --- | --- |
+| 미리 확인 | 두 끝의 엔드포인트(위임 입구 GET) | `terra.bytes@1 → terra.bytes@1` |
+| 허가 없이 적용 | `applyLink` | `needs-grant` · `missing_bind_grant: <소스> bind.source, <싱크> bind.target`(Master는 부르지 않는다 — PF-18) |
+| 나에게 허가 | `lacksOf(쌍)` → `grantSelf` | 둘 다 만들어진다(user 주체 · 끝점 · 30일) |
+| 다시 적용 | `applyLink` → `svi.bindings.post` | 202 · `phase binding` · `binding_id` |
+| 상태 맞추기 | `syncLinks`를 0.5초마다 | `binding → active` 약 0.5초 · `schema_ref terra.bytes@1` · Master 기록 `desired active / observed active` · `qos reliable_ordered` · `route relay` |
+| 흐름 | 노드2의 싱크 파일(같은 컴퓨터라 직접 읽는다) | 2초에 102 → 458 바이트 · 끝이 `…terra-svi-frame-25` |
+| 다시 적용 | `applyLink` | 같은 `binding_id` · 새로 만들지 않는다 · 목록에 이 쌍의 살아 있는 바인딩은 하나 |
+| 연결 지우기 | `orphanedBindings` → `closeBindings`(`svi.bindings.by-binding-id.delete`) | 202 |
+| 상태 맞추기 | `syncLinks` | `active → closed` 약 0.5초 · Master 기록 `desired closed / observed closed` |
+| 흐름 멈춤 | 싱크 파일 | 닫은 뒤 458 → 458 바이트 |
+| 닫힌 것 다시 닫기 | `closeBindings` | 닫힌 것으로 친다 |
+
+도구는 끝에 이번에 만든 내 허가를 지운다. Terra 쪽 확인(`svi-core-contract-decisions.md` §12.11 · `287bd9a9`)대로, 허가가 철회되거나 기한이 지나면 살아 있는 바인딩은 `degraded`가 아니라 **닫힌다**. 그래서 순서는 바인딩을 먼저 닫고 허가를 나중에 지운다. 화면에서도 내 허가의 기한(기본 30일)은 바인딩이 살아 있을 기간보다 길어야 한다.
+
+**같은 노드 쌍 — Terra `2076d158`로 고쳐졌다(2026-10-12 재측정).** 소스와 싱크가 한 노드에 있으면(`test.stream` → 같은 Daemon의 `fs.same`) 예전 Daemon은 Master가 `observed active`라고 해도 **싱크 파일이 0바이트 그대로**였다(`BindingExecutor`가 바인딩 상태를 `binding_id` 하나로만 들어서, 같은 바인딩의 source 역할 prepare가 target 역할 상태를 갈아 치웠다). Terra `2076d158`("Fix same-node SVI bindings dropping every frame" — 실행기가 `(binding_id, 역할)`로 키를 잡고, Master가 commit · rollback에 역할을 싣고, 중계가 자기 자신에게 가는 프레임을 되돌려 준다)가 이를 고쳤다. 다시 쟀다: Terra 브랜치 `ccr-3a501c29-lt1eml` 끝(`23d04c99` — `2076d158` 포함)을 `git archive`로 새 폴더에 내보내 Master · Daemon · 게이트웨이를 모두 새로 빌드하고(`tools/live-stack-up.sh`), 노드1의 Daemon에 Local API로 파일 싱크 `fs.same`을 선언한 뒤 `live-linkbind.mjs`를 **소스 `svi.<노드1>.test.stream` → 싱크 `svi.<노드1>.fs.same`**(같은 노드)으로 돌렸다. 결과 **16/16** — `binding → active` 510ms, 싱크 파일 102 → 458 바이트(끝이 `…terra-svi-frame-25`), 닫으면 `active → closed` 519ms, 닫은 뒤 458 → 458. 다른 노드 쌍과 똑같다. 모듈은 바꿀 것이 없었고, 도구의 경고만 "흐르지 않을 수 있다"에서 "2076d158 이후 Daemon에서는 흐른다(그 앞이면 흐름 검사가 가린다)"로 바꿨다.
+
+**Terra 쪽 상태** — Daemon의 `Source` 버그는 Terra 브랜치 `ccr-3a501c29-lt1eml`의 `c62fff73`("Give daemon SVI responses a Source so they pass envelope validation")이 고쳤다. `preparedResponse`와 `HandleManager.response`(핸들 열기 · 닫기 답도 같은 이유로 버려졌다)가 둘 다 `Source`를 싣고, 회귀 시험은 진짜 `Service.HandleIncoming`을 지난다. **(2026-10-11 갱신) 이 고침은 `main`에 들어갔고, `main` `c82c24e2`로 다시 재서 `16/16`을 확인했다.** 같은 노드 쌍은 그 고침과 따로여서 `c82c24e2`에서는 `active`까지 가도 싱크 파일이 `0 → 0` 바이트(15/16)였다. **(2026-10-12) `2076d158`이 그것을 고쳤다 — 위 "같은 노드 쌍".** **(2026-10-11 추가)** 같은 고침이 [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)로 `main`에 들어갔다(`e84e765`) — 수정 없는 `main`에서 §5.9의 `live-linkio.mjs` 27/27 통과를 확인했다.
+
+### 5.11 tree 게이트웨이에서 Master 쓰기 E2E(MD-13) — 2026-10-11
+
+지금까지 진짜 스택(§5.9 · §5.10)은 **leaf**였다 — 게이트웨이 카탈로그에 `terra.master.*`가 없어서 모듈이 `/api/upstream` 경로로 Master에 갔다. 이번에는 **tree**를 세웠다. `web/tools/live-tree.mjs`가 화면이 쓰는 코드(`TerraClient` · `applyLink` · `grantSelf` · `syncLinks` · `closeBindings`)를 그대로, 앱 토큰(`tsa_`)으로 부른다.
+
+**tree 스택 세우기** — `tools/live-tree-up.sh <Terra 체크아웃> <작업 폴더>`(Terra `main` `c82c24e2`의 깨끗한 `git archive`에서 `go build`). 틀은 Terra의 `products/common/tests/remote-invocation-integration/delegated_session_e2e_test.go`다. leaf 스택(`live-stack-up.sh`)과 다른 점은 셋뿐이다.
+
+| | leaf 스택 | tree 스택 |
+| --- | --- | --- |
+| 게이트웨이 계약 | Daemon 계약 | **Master 계약**(`products/tree/master/contracts/api/terra-api.json`)을 provider로 |
+| Master 가는 길 | `--master-service-credential`에 노드 자격 | Master `service_credential`(Core-peer) + `--provider terra.master=<Master> --provider-forward-auth terra.master` |
+| 모듈 | `module.json`을 scene root에 | 같다 — 설치된 `lab.stellaxia.node-gui`가 앱 토큰 문(`/api/v1/gui/apps/<앱>/token`)을 연다 |
+
+Daemon 둘(같은 사용자)은 Master에 enroll만 하고 게이트웨이는 달지 않는다. 포트는 Master 38080 · 게이트웨이 38787 · Daemon 38321/38322(leaf 스택과 겹치지 않는다). 사용·결과: `. <폴더>/env.sh && node tools/live-tree.mjs` — 38개 통과.
+
+**tree에서 달라지는 것**
+
+- 카탈로그가 212개이고 그중 `terra.master.*`가 160개다(`terra.daemon.*`는 0). `client.viaUpstream()`은 꺼져 있고 Master op는 `/api/v1/operations/<op>/invoke`로 간다 — **operation id 길이 처음으로 실제로 불렸다**.
+- 카탈로그는 위임 입구가 닫은 op도 싣는다. 그래서 `client.has()` · `reaches()`는 닫힌 op에도 참이고(예 `peers.revoke.post`), 부르면 게이트웨이가 `403 DELEGATION_NOT_OPEN`을 준다(`masterAnswer`가 `unavailable`로 바꿔 준다). **카탈로그만 보는 화면 잠금은 tree에서 닫힌 쓰기를 거르지 못한다** — 잠그려면 열린 op 목록이 필요하다(아래 후속).
+- Daemon op는 카탈로그에 없다. 노드를 지정해야 한다(`invoke(op, input, { node })` → `/api/v1/nodes/{id}/operations/{op}/invoke`). 지정하지 않으면 `not-in-catalog`.
+- 앱 토큰을 새로 발급하면 앞의 토큰은 바로 죽는다(`whoami`가 `anonymous`, 카탈로그 88개로 줄어든다). 같은 앱·사용자당 하나다.
+
+**쓰기 경로별 결과** — 동작 / 거절(이유) / 닿지 않음(빠진 op)
+
+| 경로 | op | 결과 |
+| --- | --- | --- |
+| 허가 만들기(본인) | `svi.grants.post` | **동작** — 기한 필수 · 목록에 기한이 보인다 |
+| 허가 만들기(같은 클러스터 노드) | `svi.grants.post` `subject_type: node` | **동작** — `read` · `subscribe` |
+| 허가 고치기 — 줄이기 · 기한 줄이기 | `svi.grants.by-grant-id.patch` | **동작** — 줄이면 목록의 operations가 바뀐다 |
+| 허가 고치기 — 넓히기 | 같음 | 본인에게 `bind.source`는 **동작**(허용 집합), `write`는 **거절** `403 FORBIDDEN`(D-4) |
+| 허가 지우기 | `svi.grants.by-grant-id.delete` | **동작** — 본인 · 노드 허가, 지운 뒤 목록에서 사라진다 |
+| 허가 가드 | `svi.grants.post` | **거절** `403 FORBIDDEN` — 91일 · 기한 없음 · 다른 사용자 · `write` · `group` 주체. 없는 노드는 `404 NODE_NOT_FOUND` |
+| 바인딩 만들기 | `svi.bindings.post` | **동작** — 허가 없음(`needs-grant`) → `grantSelf` → 만들기 → `active` → 싱크 파일 자람(102바이트) |
+| 바인딩 닫기 | `svi.bindings.by-binding-id.delete` | **동작** — `closed` · 없는/닫힌 id 다시 닫기도 오류 아님 |
+| 선언 추가 · 철회(다른 노드, 중계) | `terra.daemon.svi.declarations.post` · `…undeclare.post` | **거절** `remote-denied` — 노드 카탈로그가 `allowed:false`(필요 권한 `node.config`★, 앱 매니페스트에 없다). `TREE_NODE_CONFIG=1`로 세우면(사용자와 설치본 `module.json`에 `node.config`) **동작** |
+| 다른 노드 작업(중계) | `terra.daemon.commands.execute.post` | **닿지 않음** `not-remote` — 그 노드가 원격으로 열지 않았다(노드 카탈로그에 없다) |
+| 다른 노드 작업(Master) | `terra.master.commands.post` · `jobs.by-job-id.cancel.post` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+| 터널 선언 · 열기 · 계획 · 선언 지우기 | `terra.master.service-tunnels.declarations.post` · `open.post` · `plan.post` · `declarations.by-declaration-id.delete` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+| 터널 닫기(다른 노드, 중계) | `terra.daemon.service-tunnels.by-tunnel-id.close.post` | **동작**(`accepted`) — 없는 id도 받는다(네트워크 화면의 경고와 같다: 닫혔는지는 목록을 다시 읽어 확인) |
+| peer 철회 · mesh 조정 · 수동 계획 | `terra.master.network.mesh.wireguard.peers.revoke.post` · `reconcile.post` · `plan.post` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+| 라우트 세션 · 연결 그룹 닫기 | `terra.master.route.sessions.by-session-id.close.post` · `connection-groups.by-group-id.close.post` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+| 노드 이름 · 모듈 할당 · 핸들 열기 · 노드 중계(세션 id 길) | `nodes.by-node-id.patch` · `…modules.assignments.post` · `svi.handles.post` · `nodes.by-node-id.operations.invoke.post` | **닿지 않음** `DELEGATION_NOT_OPEN` |
+
+요약: **위임 입구가 연 쓰기 다섯**(`svi.bindings.post|delete` · `svi.grants.post|patch|delete`, Terra `delegated_routes.go` `delegatedWrites`)은 tree에서 전부 동작하고, 그 밖의 `terra.master.*` 쓰기는 입구에서 닫혀 있다. 그 닫힌 쓰기가 §2·화면의 "터널 열기 · 피어 회수 · 다른 노드 작업"이다 — 본문을 Master 코드에 맞춰 놓은 것은 맞는지 **지금은 확인할 수 없다**(게이트웨이가 본문을 읽기 전에 막는다). 열려면 Terra ADR-GW-004에 단계를 더해야 한다(모듈이 정할 일이 아니다).
+
+**Terra 버그는 막힌 것이 없다.** 막힌 곳은 모두 설계된 닫힘(`DELEGATION_NOT_OPEN` · 노드 카탈로그 `allowed:false`)이다. 스택을 막 세운 직후에는 Daemon의 중계 연결이 아직 서지 않아 `409 NODE_OFFLINE`가 몇 초 나온다 — 도구가 기다린다.
+
+**후속(모듈) — 2026-10-12에 ①을 처리했다. ② 는 결정대로 둔다(Q-10).**
+
+① **tree에서도 `MASTER_DELEGATED`로 잠그기 — 했다.** 카탈로그만 보면 닫힌 쓰기에도 `has()`가 참이라, `TerraClient.delegationClosed(id)`를 더했다: 위임 자격이고 · `terra.master.*`이고 · 카탈로그를 받았고 · 카탈로그에 있는데 · 위임 표에 **없으면** 닫힌 것이다. `reaches()`는 `(has && !delegationClosed) || viaUpstream`이 되어 tree와 leaf가 같은 표(`master-delegated.js`, CI가 Terra 계약과 대조)로 갈린다. 그 위의 길:
+- `LiveSource.lockFor` — 닫힌 `where: 'T'` 동작은 카드의 단추(피어 철회 · 터널 선언 지우기 · 핸들 열기 · 작업 취소 …)뿐 아니라 **폼으로 가는 동작**(터널 열기 · 명령 보내기)도 연 시점에 🔒 + 이유로 잠근다. 이유는 `Master 문에서 아직 열리지 않았다 — ADR-GW-004/007 (지금 앱 토큰에 열린 것은 읽기와 SVI 연결 · 허가뿐)`.
+- `LiveSource.crud` — 폼을 다 적고 저장해도 닫힌 Master 쓰기는 부르지 않고 같은 이유를 돌려준다(헛 호출 · 403을 듣지 않는다). 열린 쓰기(허가 · 바인딩)는 그대로 부른다.
+- `link-apply` · `link-sync` · `node-live`의 `masterWhy`는 `reaches`를 이미 쓰므로 따로 고칠 것이 없었다. 서버가 판정하는 `invoke` 자체는 그대로다 — 표가 낡아도 서버가 열었으면 부를 수 있다.
+- 열린 Master 읽기와 위임 쓰기 다섯은 tree에서 잠기지 않는다(시험이 `MASTER_DELEGATED` 전체를 돈다). 노드 중계(`terra.daemon.*`)의 잠금은 예전처럼 그 노드의 카탈로그가 정한다.
+
+ADR-GW-007(Terra 쪽)은 Accepted지만 3a(위임 입구로 작업 취소)는 아직 구현되지 않았다 — 위임 표는 그대로이고 다른 노드 작업의 취소 · 다시 실행 · 보내기는 잠긴 채다. 3a가 들어와 표가 다시 만들어지면 잠금이 저절로 풀린다.
+
+② 원격 선언 쓰기의 `node.config`는 Q-10대로 앱 매니페스트에 넣지 않는다.
+
+**앱 토큰 두 번 발급 — 모듈이 스스로 토큰을 죽일 수 있었다(2026-10-12 점검, 고쳤다).** 모듈은 토큰 발급 문(`/api/v1/gui/apps/<앱>/token`)을 직접 부르지 않는다 — 발급은 호스트(Terra 셸)가 하고 모듈은 frame 메시지만 보낸다(`terra.frame.refresh`). 모듈 안에서 그 메시지가 나가는 곳은 하나, `terra-frame-client.js`의 `fetch`가 401을 맞았을 때뿐이다(부트 · 재연결 · 보드 창은 토큰을 새로 청하지 않는다 — `onToken`을 듣고 호스트가 주는 것을 쓰고, 보드 창은 부모의 같은 연결을 빌린다). 그런데 참조 클라이언트는 **401마다 갱신을 따로** 보낸다. 토큰이 만료되거나 다른 창이 새로 발급해 앞 토큰이 죽으면, 화면이 동시에 보내던 요청(알람 · 네트워크 폴링 · 이벤트 · 노드 카탈로그 …)이 거의 한꺼번에 401을 맞고 갱신이 여럿 나간다 — 호스트가 토큰을 여럿 발급하고, 먼저 받은 토큰으로 다시 보낸 요청은 뒤에 발급된 토큰 때문에 또 401이다. 그래서 `src/api/frame-token.js`의 `singleFlightFrame`이 `frameReady`의 연결을 감싼다(참조 클라이언트 사본은 그대로 둔다): ① 갱신은 동시에 하나 — 진행 중이면 그 약속을 같이 기다린다, ② 401을 맞은 요청이 보낸 토큰이 이미 바뀌었으면 새로 발급하지 않고 지금 토큰으로 다시 보낸다, ③ 다시 보내기는 한 번뿐. 시험: `tests/frametoken.test.mjs`(다섯 요청이 낡은 토큰으로 나가도 발급은 한 번 · 이미 갱신됐으면 발급 없음). 모듈이 어쩔 수 없는 것: **같은 사용자가 같은 앱을 두 창에서 열면** 호스트가 서로의 토큰을 죽인다 — 호스트(셸)의 몫이다. 시험 도구(`live-*.mjs`)는 `live-*-up.sh`가 한 번 발급한 토큰 파일을 읽기만 하고 새로 발급하지 않는다(스택 올리기를 다시 하면 앞의 토큰 파일이 죽는다).
+
+**`409 NODE_OFFLINE` — 막 시작한 뒤 몇 초(2026-10-12).** 노드 주소 호출(`invokeAt`)은 이 코드를 `reason`에 그대로 싣고 화면 글은 "그 노드가 오프라인이다"뿐이었다. 이제 ① 글이 `그 노드가 오프라인이다 — 방금 시작했다면 Master와 노드의 중계 연결이 설 때까지 몇 초 걸린다. 잠시 뒤 다시`이고, ② **읽기(`….get`)만** 0.5 · 1 · 1.5 · 2초 간격으로 최대 네 번 더 묻는다(`TerraClient.offlineRetryMs` — 시험은 `[]`로 끈다). 쓰기는 받았는지 알 수 없어 다시 보내지 않는다. 취소 신호(`AbortSignal`)가 오면 그만 묻는다. 시험: `tests/api.test.mjs`("중계 읽기의 409 NODE_OFFLINE …").
+
+### 5.12 위임 입구 화면 · 에이전트 실측 — 2026-10-11
 
 ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트 읽기)를 **시험이 닿지 않은 자리**에서 쟀다 — 사람이 보는 화면(tree · leaf), 실제 장치 쌍, 에이전트 모듈(`io.terra.agent`) 경로, leaf의 에이전트. 소스는 고치지 않았다. 찾은 버그는 재현 절차와 원인 추정만 적는다.
 
@@ -615,7 +735,7 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 | # | 결과 | 본 값 |
 | --- | --- | --- |
 | A1 | ✅ ✅ | 사설망: `terra-managed-wireguard` · `100.80.0.0/24` · `active`, 노드 × 네트워크 `stack-leaf-a 100.80.0.10` · `stack-leaf-b 100.80.0.11` · `online` · `internet · gen 2`. leaf 로컬 WireGuard `disabled` · `terra0` · `51820` · "WireGuard가 꺼져 있습니다 — 데몬: wireguard integration is disabled…". 모든 frame 글자에서 시연 표식 **0건**(`edge-01` · `tree-home` · `10.60.0.` · `epoch 42` …) — `10-사설망.png` · `14-로컬_WireGuard.png` |
-| A2 | ❌ ❌ | 그래프에서 두 노드를 고르면(`source` · `target` 표시) 후보 칸이 `오류 · ROUTE_UNAVAILABLE`. 보드가 `channel=service_tunnel`을 보내고 Master는 `unsupported direct route channel "service_tunnel"`(409)로 거절한다. 같은 쌍을 `channel` 없이 · `service.tunnel`로 부르면 200(`route_graph_epoch` 305, `cloud_relay` 후보 · `mesh_vpn_direct` 거부) — MD-45 · `20-route-pair.png` |
+| A2 | ❌ ❌ | 그래프에서 두 노드를 고르면(`source` · `target` 표시) 후보 칸이 `오류 · ROUTE_UNAVAILABLE`. 보드가 `channel=service_tunnel`을 보내고 Master는 `unsupported direct route channel "service_tunnel"`(409)로 거절한다. 같은 쌍을 `channel` 없이 · `service.tunnel`로 부르면 200(`route_graph_epoch` 305, `cloud_relay` 후보 · `mesh_vpn_direct` 거부) — MD-51 · `20-route-pair.png` |
 | A3 | ✅ ✅ | 관리자 Bearer로 서비스 터널 선언을 하나 만들고 지워 감사 행 둘을 낳았다 → 조작 이력 `service.tunnel.declaration.created` · `…deleted`(`md-a3-probe`, `12:01:22`). 그 전에는 "이 결과의 조작이 없습니다" — `21-oplog.png` |
 | A4 | ✅ ✅ | 자동 조정 · 계획 적용 · 철회 · probe 실행 · 정책 추가/저장 · 세션 닫기 — 어느 단계의 글자에도 없다. 묶음마다 "Master 읽기 — 보기만" |
 | A5 | ✅ | leaf의 Master 읽기 7개가 모두 `GET /api/upstream/v1/…`(`network/state` · `network/status` · `route/graph` · `route/policies` · `route/sessions` · `network/probes` · `network/logs?limit=100`). tree는 `POST /api/v1/operations/terra.master.*/invoke` |
@@ -627,15 +747,15 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 
 | # | 결과 | 본 값 |
 | --- | --- | --- |
-| B1 | ✅ | 이 기기의 실제 마우스 `io.mouse-046d-c548-67c52874`(`io.terra.io-inventory`, `terra.input.mouse@1`, endpoint `output`) → `io-weave.pointer`(`terra.input.mouse@1`, endpoint `input` · sink). 다른 장치: 카메라 · 마이크 · 화면은 `unavailable`, 키보드 · 마우스 · raw-bus는 승인 전 `disabled`. **다만 io-inventory는 자원만 선언하고 프레임을 내지 않는다**(`SVISource` 없음) — 바인딩이 서도 신호는 흐를 수 없다(MD-49) |
-| B2 | ❌ | 화면: 📍 설치 두 번 · 🔗 연결하기(끌기) → `binding · draft`(도로 3칸) → [설정] → 엔드포인트 둘을 고르고 [연결 적용] → `허가 필요`에서 더 가지 않는다(B3 · MD-46). 같은 쌍을 모듈 코드(`applyLink` · `grantSelf`)로 서버에 붙이면 바인딩 `svib_…85ad`가 생기지만 `observed_state: preparing` · `reason: target_prepare_failed: context deadline exceeded`에 멈춘다. leaf-a 데몬 로그 `master_relay_inbound_rejected … "message_type":"svi.binding.prepare.request" … "error":"invalid communication envelope"`(PF-26). 신호 흐름 확인은 할 수 없었다 — `12c-picked.png` · `13-apply.png` |
-| B3 | ❌ | 화면의 [나에게 허가 주기]가 `POST /api/upstream/v1/svi/grants {"subject_type":"user","subject_id":"admin@stack.local", …,"ttl_seconds":2592000}` 둘을 보내고 둘 다 403 `FORBIDDEN` "a delegated entrance may grant only to yourself or a node in your cluster". 글줄 "허가를 만들지 못했다 — … bind.source · FORBIDDEN, … bind.target · FORBIDDEN". 화면이 쥔 principal이 사용자 id가 아니라 **이메일**이다. 서버에 올바른 허가(user 주체 · 30일)를 따로 만들어도 화면은 계속 `허가 필요` — 대조도 이메일로 하기 때문이다(MD-46). 같은 함수를 whoami principal로 부르면 `bind.source` · `bind.target` · user 주체 · 기한 30일(`2026-11-10`)이 만들어진다 |
+| B1 | ✅ | 이 기기의 실제 마우스 `io.mouse-046d-c548-67c52874`(`io.terra.io-inventory`, `terra.input.mouse@1`, endpoint `output`) → `io-weave.pointer`(`terra.input.mouse@1`, endpoint `input` · sink). 다른 장치: 카메라 · 마이크 · 화면은 `unavailable`, 키보드 · 마우스 · raw-bus는 승인 전 `disabled`. **다만 io-inventory는 자원만 선언하고 프레임을 내지 않는다**(`SVISource` 없음) — 바인딩이 서도 신호는 흐를 수 없다(MD-55) |
+| B2 | ❌ | 화면: 📍 설치 두 번 · 🔗 연결하기(끌기) → `binding · draft`(도로 3칸) → [설정] → 엔드포인트 둘을 고르고 [연결 적용] → `허가 필요`에서 더 가지 않는다(B3 · MD-52). 같은 쌍을 모듈 코드(`applyLink` · `grantSelf`)로 서버에 붙이면 바인딩 `svib_…85ad`가 생기지만 `observed_state: preparing` · `reason: target_prepare_failed: context deadline exceeded`에 멈춘다. leaf-a 데몬 로그 `master_relay_inbound_rejected … "message_type":"svi.binding.prepare.request" … "error":"invalid communication envelope"`(PF-26). 신호 흐름 확인은 할 수 없었다 — `12c-picked.png` · `13-apply.png` |
+| B3 | ❌ | 화면의 [나에게 허가 주기]가 `POST /api/upstream/v1/svi/grants {"subject_type":"user","subject_id":"admin@stack.local", …,"ttl_seconds":2592000}` 둘을 보내고 둘 다 403 `FORBIDDEN` "a delegated entrance may grant only to yourself or a node in your cluster". 글줄 "허가를 만들지 못했다 — … bind.source · FORBIDDEN, … bind.target · FORBIDDEN". 화면이 쥔 principal이 사용자 id가 아니라 **이메일**이다. 서버에 올바른 허가(user 주체 · 30일)를 따로 만들어도 화면은 계속 `허가 필요` — 대조도 이메일로 하기 때문이다(MD-52). 같은 함수를 whoami principal로 부르면 `bind.source` · `bind.target` · user 주체 · 기한 30일(`2026-11-10`)이 만들어진다 |
 | B4 | ✅ | 화면의 [끊기] → 그 연결이 맵 · 설정 창에서 사라졌다(바인딩이 없던 연결 — B3 때문). 바인딩이 있는 경우는 같은 모듈 코드(`closeBindings`)로 서버에서 봤다: `DELETE` 202 → `desired_state: closed` · `observed_state: closed` · `reason: consumer_requested` |
 | B5 | ⏭ | leaf 맵에 공유받을 노드(`stack-leaf-b`)를 놓지 못했다("이웃한 노드 · 자원 없음") — 이번에는 재지 않았다. 서버 쪽 노드 주체 허가 경로는 §5.9가 보았고, 그 경로는 principal을 쓰지 않는다 |
 | B6 | ⏭ | B5와 같은 이유 |
 | B7 | ✅ | `test.stream`(bytes)을 놓고 포인터로 잇고 [연결 적용] → `invalid` · `schema_incompatible: terra.bytes@1 → terra.input.mouse@1`, 줄 상태 "맞지 않는다" — `31-badioset.png` |
 
-입출력 설정 화면에서 본 것 — 엔드포인트가 쪽마다 하나뿐인데 자동으로 고르지 않는다("고른다"). 형식이 적용 전에는 "모름 → 모름 · 형식을 알 수 없다 — Master가 판정한다"(미리 검사는 [연결 적용] 때 엔드포인트를 읽고서야 돈다). 허가 기한 고르기에 위임 입구가 늘 거절하는 **"기한 없음"**이 있다(C2). MD-47.
+입출력 설정 화면에서 본 것 — 엔드포인트가 쪽마다 하나뿐인데 자동으로 고르지 않는다("고른다"). 형식이 적용 전에는 "모름 → 모름 · 형식을 알 수 없다 — Master가 판정한다"(미리 검사는 [연결 적용] 때 엔드포인트를 읽고서야 돈다). 허가 기한 고르기에 위임 입구가 늘 거절하는 **"기한 없음"**이 있다(C2). MD-53.
 
 #### C. 위임 입구의 가드와 한도 — 앱 토큰으로 leaf `/api/upstream`
 
@@ -678,14 +798,14 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 
 | ID | 어디 | 재현 | 원인 추정 |
 | --- | --- | --- | --- |
-| MD-45 | 이 모듈 — 네트워크 보드 후보 | 보드 › 연결 진단 · 라우팅 › 그래프에서 노드 둘 → `오류 · ROUTE_UNAVAILABLE` | `src/data/network-live.js:56` · `:108`의 기본 채널 `'service_tunnel'`. Master의 채널 이름은 `service.tunnel`(후보의 `channels`도 그렇다). 한 줄짜리지만 묻고 고친다 |
-| MD-46 | 이 모듈 — 연결 적용의 내 신원 | leaf 셸에서 Scene 로그인 → 연결 → [나에게 허가 주기] → 403. 서버에 허가가 있어도 `허가 필요` | `src/api/wire.js:465` `principal = (value && value.principal) \|\| who.principal` — frame 세션 값의 `principal`(셸 로그인 표시 = 이메일)을 whoami보다 앞세운다. `source.principal`(연결 적용)만 whoami를 쓰면 된다. §5.9의 `userIdOf`는 `via` 접미사만 다뤘다 |
+| MD-51 | 이 모듈 — 네트워크 보드 후보 | 보드 › 연결 진단 · 라우팅 › 그래프에서 노드 둘 → `오류 · ROUTE_UNAVAILABLE` | `src/data/network-live.js:56` · `:108`의 기본 채널 `'service_tunnel'`. Master의 채널 이름은 `service.tunnel`(후보의 `channels`도 그렇다). 한 줄짜리지만 묻고 고친다 |
+| MD-52 | 이 모듈 — 연결 적용의 내 신원 | leaf 셸에서 Scene 로그인 → 연결 → [나에게 허가 주기] → 403. 서버에 허가가 있어도 `허가 필요` | `src/api/wire.js:465` `principal = (value && value.principal) \|\| who.principal` — frame 세션 값의 `principal`(셸 로그인 표시 = 이메일)을 whoami보다 앞세운다. `source.principal`(연결 적용)만 whoami를 쓰면 된다. §5.9의 `userIdOf`는 `via` 접미사만 다뤘다 |
 | PF-26 | Terra 데몬 — 바인딩 준비 응답 | 같은 노드 위 호환 쌍으로 바인딩 → `preparing` · `target_prepare_failed: context deadline exceeded` | `leaf/daemon/src/terra_daemon/svi/binding_executor.go:784`의 `preparedResponse`가 `Source`를 비운 봉투를 돌려준다. `communication.Service.Send`는 시각 · 판 · id만 채우고 `ValidateEnvelope`가 `Source.App == ""`로 `ErrInvalidEnvelope` → relay 읽기 루프가 `master_relay_inbound_rejected`로 적고 Master는 응답을 기다리다 시한 초과. 같은 파일의 다른 봉투(`:822` · `:858` · `:868`)는 `Source`를 싣는다. `binding_delegated_e2e_test.go`가 active를 보는 길이 relay가 아닌지 확인이 필요하다(코드 읽기 — 실행으로 확정하지 않았다). **→ 고쳐짐: [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)(`dfbd1f9`, 이 원인 그대로) — 아래 재실측** |
 | PF-27 | Terra — 계약 입력 스키마 ↔ Gateway invoke | `terra.master.route.candidates.get`을 `{"query":{"source_node_id":…,"target_node_id":…}}`로 invoke → 404 `NODE_NOT_FOUND`. 평평하게 보내면 200 | Master 계약의 GET op 입력 스키마가 `{query:{…}}`(`additionalProperties: false`)인데 `terra-module-runtime` `BuildOperationTarget`은 남은 키를 그대로 쿼리로 보낸다 — `query`가 키 하나가 된다. 계약을 읽는 에이전트(`terra_describe_operation`)는 계약대로 지어 실패한다 |
 
 #### 재실측 — Terra main `361efe8`(PF-26 수정 포함)
 
-바이너리만 바꿔 같은 스택(같은 설정 · Master DB)을 다시 띄우고 같은 쌍을 모듈 코드로 붙였다. 데몬 로그의 `master_relay_inbound_rejected` **0건**, `target_prepare_failed`가 사라지고 바인딩이 소스 준비까지 간다 — `desired: active` · `observed: failed` · `reason: source_prepare_failed: backend_unavailable`. io-inventory가 프레임을 내지 않아서다(MD-49). 같은 재실측에서 **끊은 뒤 같은 쌍을 다시 적용하면 Master가 닫힌 옛 바인딩을 돌려준다**는 것을 찾았다 — 멱등 키가 tree와 쌍만으로 정해진다(MD-50).
+바이너리만 바꿔 같은 스택(같은 설정 · Master DB)을 다시 띄우고 같은 쌍을 모듈 코드로 붙였다. 데몬 로그의 `master_relay_inbound_rejected` **0건**, `target_prepare_failed`가 사라지고 바인딩이 소스 준비까지 간다 — `desired: active` · `observed: failed` · `reason: source_prepare_failed: backend_unavailable`. io-inventory가 프레임을 내지 않아서다(MD-55). 같은 재실측에서 **끊은 뒤 같은 쌍을 다시 적용하면 Master가 닫힌 옛 바인딩을 돌려준다**는 것을 찾았다 — 멱등 키가 tree와 쌍만으로 정해진다(MD-50).
 
 #### E절 재실측 — Terra main `478ad0d`(2026-10-12)
 
@@ -729,7 +849,8 @@ ADR-GW-006([Terra#186](https://github.com/StellaxiaLab/Terra/pull/186) — leaf 
 | `src/data/editors-live.js` | `realMaterial` · `realField` |
 | `src/data/live-host.js` | `liveHub`(노드 화면 → 보드) · `connectLive`(보드) · `absenceText` |
 | `src/api/source.js` | `appFor`(Daemon 쪽이면 `local` 대응) · `daemonView` · `pathInput`(op 이름의 `by-…` 자리만) · 다른 노드는 노드 주소 호출(`idOf`) · `lockFor`(누르기 전 자물쇠 — 그 노드 카탈로그) · 폴더 단계 읽기 · `guard` · `crud` · `upload`(이어서 — `resume_id`) · `stalledPush` · `download`(이어서 — `parts`) · `markStalled`(멈춘 전송) · `modConfig`(모듈 설정 스키마 · 값) · `guiApps` |
-| `src/api/client.js` | `TerraClient` — `invoke` · `invokeAt`(노드 주소 호출) · `invokeModuleAt`(원격 모듈 경로) · `binding` · `nodeCatalog`(60초) · `canRelay` · `request` · `get` · `fillRoute` · `toResult` · `resultText` · `reasonText` |
+| `src/api/frame-token.js` | `singleFlightFrame` — frame 연결의 토큰 갱신을 한 줄로(§5.11) |
+| `src/api/client.js` | `TerraClient` — `invoke` · `invokeAt`(노드 주소 호출 · 읽기의 NODE_OFFLINE 다시 묻기) · `delegationClosed`(tree의 닫힌 Master op) · `invokeModuleAt`(원격 모듈 경로) · `binding` · `nodeCatalog`(60초) · `canRelay` · `request` · `get` · `fillRoute` · `toResult` · `resultText` · `reasonText` |
 | `src/api/events.js` | 실시간 이벤트(B-5) — `openEvents`(fetch 스트림 · 이어 받기 · 끄기 · 다른 SSE op `op` · `input` · `raw` · 처음부터 이어 받을 자리 `last`) · `sseFrames` · `frameEvent`(`raw` — SVI 핸들 StreamMessage 는 벗기지 않는다) · `SIGNAL_APPS` |
 | `src/api/sha256.js` | SHA-256(조각씩) · base64 — 올리기 · 받기 검사(maingui 와 같은 코드) |
 | `src/api/operations.js` | `HELM_APPS`(목록 · 동작 · `form` · `upload` · `download` · `remote`) · `HELM_CRUD`(실제 본문 · `localOnly` · 모듈 수정 = 설정) · `CRUD_TEXT`(API 줄) · `GUI_APPS` · `fileBinding`(io.terra.file 경로 대응표) · `manualAdapter` · `scanLine` · `logLines` · `cfgForm` · `cfgPatch` · `cfgErrorKeys`(모듈 설정) |

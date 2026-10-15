@@ -101,6 +101,11 @@ type entry struct {
 	Status      string `json:"status,omitempty"`
 	ErrorCode   string `json:"error_code,omitempty"`
 	RequestID   string `json:"request_id,omitempty"`
+	// Reason is what the model said it was doing when it made the call: a
+	// claim, not a fact. Judgement is the gate's own reason for the decision.
+	// Both are kept for every call, including ones that ran without asking.
+	Reason    string `json:"reason,omitempty"`
+	Judgement string `json:"judgement,omitempty"`
 	// TraceID is the Gateway's id for a call line. It is what joins this
 	// record to the Gateway's audit trail — the same call seen from the two
 	// sides — and it is the reason a person can check the agent's account of
@@ -108,10 +113,23 @@ type entry struct {
 	TraceID string `json:"trace_id,omitempty"`
 	// SentBytes is how much left this node on a model line (§8).
 	SentBytes int `json:"sent_bytes,omitempty"`
+	// Provider and Model name where a model line went, as structure, so a
+	// reader does not have to parse Note for it (M-7). They are the values of
+	// THIS call, which can differ from the session's value at open.
+	Provider string `json:"provider,omitempty"`
+	Model    string `json:"model,omitempty"`
 	// Server is the registered external MCP server an external line called
 	// (A8), and ResultBytes is how much it answered with after the cap (R6).
 	Server      string `json:"server,omitempty"`
 	ResultBytes int    `json:"result_bytes,omitempty"`
+	// InputSummary, ResultSummary and OutputMode are what the call handed over,
+	// a bounded excerpt of what came back, and the contract's own output.mode
+	// (M-5). The core masks secrets before it fills them (I1). All three are
+	// optional: a line from before M-5, or from a core that does not send them,
+	// has none. OutputMode "accepted-job" means received, not finished (DC-18).
+	InputSummary  string `json:"input_summary,omitempty"`
+	ResultSummary string `json:"result_summary,omitempty"`
+	OutputMode    string `json:"output_mode,omitempty"`
 }
 
 // sessionMeta is the state a caller may see, in the contract's shape.
@@ -134,8 +152,12 @@ type sessionMeta struct {
 	CreatedMS   int64  `json:"created_ms"`
 	UpdatedMS   int64  `json:"updated_ms"`
 	LastError   string `json:"last_error,omitempty"`
-	Answer      string `json:"answer,omitempty"`
-	Usage       Usage  `json:"usage"`
+	// LastErrorCode is the code of the error line that LastError describes
+	// (TIME_LIMIT, MODEL_UNAVAILABLE, ...), so a list row can show it without
+	// parsing an English sentence. Empty on records written before it existed.
+	LastErrorCode string `json:"last_error_code,omitempty"`
+	Answer        string `json:"answer,omitempty"`
+	Usage         Usage  `json:"usage"`
 	// MCPServers are the registered external MCP servers this session may use
 	// (A8). It is frozen at open, like autonomy: a session's surface does not
 	// widen under it, and a person reading the record later needs to know which
@@ -151,7 +173,36 @@ type approvalRequest struct {
 	Judgement   string          `json:"judgement,omitempty"`
 	Input       json.RawMessage `json:"input,omitempty"`
 	CreatedMS   int64           `json:"created_ms"`
-	answer      chan bool
+	// Contract is what the operation's contract says about running it — the
+	// facts a person approves, as opposed to Reason, which is the model's claim.
+	// It is absent when there is no Gateway contract to read (an external tool).
+	Contract *approvalContract `json:"contract,omitempty"`
+	// ExpiresMS is when this question gives up waiting (Unix epoch ms): the
+	// moment it was asked plus the earlier of the per-question wait and what is
+	// left of the turn's wall-clock limit. After it the card cannot be answered.
+	ExpiresMS int64 `json:"expires_ms,omitempty"`
+	answer    chan bool
+}
+
+// approvalContract carries the contract's own words. A field the contract did
+// not write is ABSENT from the JSON; a field it wrote as "none" or as an empty
+// list is present. "Not written" and "none" are different facts (DC-17), so
+// every value here is omitted when unwritten and never defaulted.
+type approvalContract struct {
+	Risk             string `json:"risk,omitempty"`
+	ConfirmationMode string `json:"confirmation_mode,omitempty"`
+	IdempotencyMode  string `json:"idempotency_mode,omitempty"`
+	RetryMode        string `json:"retry_mode,omitempty"`
+	OutputMode       string `json:"output_mode,omitempty"`
+	// SideEffects and Permissions are pointers to slices so that an empty list
+	// the contract wrote (`[]`) survives omitempty while an unwritten one does not.
+	SideEffects *[]approvalSideEffect `json:"side_effects,omitempty"`
+	Permissions *[]string             `json:"permissions,omitempty"`
+}
+
+type approvalSideEffect struct {
+	ResourceID string `json:"resource_id,omitempty"`
+	Action     string `json:"action,omitempty"`
 }
 
 type session struct {
@@ -322,12 +373,13 @@ func (s *session) appendHistory(message Message) {
 }
 
 // addApproval registers a question and returns it; the loop waits on answer.
-func (s *session) addApproval(operationID, reason, judgement string, input json.RawMessage) *approvalRequest {
+func (s *session) addApproval(operationID, reason, judgement string, input json.RawMessage, contract *approvalContract, expiry func(asked time.Time) int64) *approvalRequest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	asked := s.now()
 	request := &approvalRequest{
 		ID: randomID("apr_", 4), OperationID: operationID, Reason: reason, Judgement: judgement,
-		Input: input, CreatedMS: millis(s.now()), answer: make(chan bool, 1),
+		Input: input, Contract: contract, CreatedMS: millis(asked), ExpiresMS: expiry(asked), answer: make(chan bool, 1),
 	}
 	s.pending[request.ID] = request
 	s.order = append(s.order, request.ID)
@@ -472,11 +524,18 @@ func (st *sessionStore) get(id string) (*session, bool) {
 	return current, ok
 }
 
-func (st *sessionStore) list() []map[string]any {
+// list returns the sessions owned by owner, newest first. The filter lives
+// here, not in the handler, so no caller can forget it.
+func (st *sessionStore) list(owner string) []map[string]any {
 	st.mu.Lock()
 	sessions := make([]*session, 0, len(st.sessions))
 	for _, current := range st.sessions {
-		sessions = append(sessions, current)
+		current.mu.Lock()
+		mine := current.meta.Owner == owner
+		current.mu.Unlock()
+		if mine {
+			sessions = append(sessions, current)
+		}
 	}
 	st.mu.Unlock()
 	sort.Slice(sessions, func(i, j int) bool { return sessions[i].meta.CreatedMS > sessions[j].meta.CreatedMS })

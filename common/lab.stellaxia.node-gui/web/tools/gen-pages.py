@@ -108,14 +108,8 @@ MODULE_TPL = {
     ],
 }
 # 화면 스크립트(src/screens/*.js)에서 바꾸는 곳. 원본에 올릴 때까지 모듈이 들고 있고, 올라가면 걷는다
-MODULE_JS = {
-    'node': [
-        # [UP-26 · MD-31] 도로 이벤트: 연결(links)이 들고 있는 입출력 상태(io.phase — 대기 · 실패 · 정지 · 동작)를 끝 자원의 상태와 함께 본다.
-        # this.linkEv(l)(src/boot/fixes.js)는 화면 전용 연결이면 null — 예전 연결의 도로는 그대로다
-        ('[l.from, l.to].forEach((q) => { const x = evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; });',
-         '[l.from, l.to, l].forEach((q) => { const x = q === l ? (this.linkEv ? this.linkEv(l) : null) : evRaw(q); if (x && (!e || SEV[x] > SEV[e])) e = x; });'),
-    ],
-}
+# (지금은 비어 있다 — UP-26 도로 이벤트 패치는 design 원본으로 옮겼다. maingui 은퇴 뒤 web/design 이 원본이다)
+MODULE_JS = {}
 MODULE_BETWEEN = {
     # (시작 표지, 끝 표지, 바꿀 글) — 시작 ~ 끝 앞까지를 통째로 바꾼다. 둘 다 정확히 한 번 있어야 한다
     'index': [(INTRO_FORM_START, INTRO_FORM_END, INTRO_FORM_MODULE)],

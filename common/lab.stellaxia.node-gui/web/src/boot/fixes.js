@@ -36,14 +36,18 @@ export function applyFixes(name, Screen) {
         return r;
       };
     };
-    // [모듈에서 더함 · 원본에 올릴 것 — UP-26] 연결 상태 → 도로 이벤트(설계 §4.4). 화면 스크립트의 evOf 가 도로의 이벤트를 고를 때 연결도 함께 본다
-    // (tools/gen-pages.py MODULE_JS). 화면 전용 연결(io 없음 · screen)은 null — 지금처럼 끝 자원의 상태만 본다
+    // 연결 상태 → 도로 이벤트(설계 §4.4 · UP-26). 원본(design)의 evOf 가 이미 this.linkEv 를 부르고 원본에 기본 구현이 있다 — 여기서는 모듈의 엄격한 읽기(readLinkIO)로 덮는다.
+    // 화면 전용 연결(io 없음 · screen · 어긋난 판)은 null — 끝 자원의 상태만 본다
     P.linkEv = function (l) { const io = readLinkIO(l); return io.kind === 'screen' ? null : phaseEvent(io.phase); };
 
     // [모듈에서 더함 · 원본에 올릴 것 — UP-25] 입출력 설정 창(디자인의 ioPanel). 디자인의 예시 구현(엔드포인트 표 · 허가 · 타이머 적용)은 모듈에서 돌지 않는다:
     //   엔드포인트는 그 자원의 실제 목록(ADAPT.svi 항목의 flow.eps — id · 방향 · 방식. 형식 · QoS 는 모르니 비운다 — Master 가 판정한다),
     //   적용 · 허가는 wireLinkApply 가 인스턴스에 붙이는 linkApply · linkGrantSelf. 붙기 전(게이트웨이에 닿지 않음)에는 지어내지 않고 이유를 말한다(UP-14 원칙).
     P.ioDemo = () => false;
+    // 원형 메뉴의 '노드 창 열기'는 노드 데스크톱이 모듈에 들어온 뒤에 켠다 — 그 전에는 항목을 빼서 누르면 아무 일도 없는 칸을 두지 않는다
+    P.nodeWinOn = () => false;
+    // 클러스터 창(기능칸): Master 작업은 앱 토큰으로 부를 수 없어(PF-1) 값을 지어내지 않고 잠금 이유만 보인다
+    P.admLocked = () => true;
     P.IOEPS = function (res) {
       const items = res && this.hbItems ? this.hbItems(res.node, 'svi') : null;
       const it = Array.isArray(items) ? items.find((x) => x && x.id === res.id) : null;
