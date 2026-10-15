@@ -1,6 +1,6 @@
 // 오류 코드 사전 (요구 §6.4). 서버 문구는 영어이고 CLI 안내가 섞여 있으므로 화면은 `code` 로 자기 문구를 고르고 원문은 접는다.
 // 덮는 것: 모듈 HTTP 오류 15(계약) · Gateway·브리지 오류 8(MODULE_PERMISSION_DENIED 포함) · 기록 `error` 줄의 코드 ·
-// `call`·`external` 줄의 error_code · 이 층이 만드는 클라이언트 쪽 코드 셋.
+// `call`·`external` 줄의 error_code · 실제 스택에서 만난 코드(OBSERVED_ERROR_CODES) · 이 층이 만드는 클라이언트 쪽 코드 셋.
 // 완전성은 tests/errors.test.ts 가 계약 파일(contracts/api/terra-api.json)과 대조한다 — 계약 오류가 늘면 거기서 깨진다.
 
 import type { CallFailure } from '../api/client';
@@ -76,7 +76,7 @@ const entries: ErrorInfo[] = [
 
   // ── Gateway·브리지 오류 8 ──────────────────────────────────────────────
   info('MODULE_UNAVAILABLE', 'gateway', '에이전트 모듈이 꺼져 있습니다. 코어 GUI 의 모듈 화면에서 시작해 주세요.', 'module-down', { http: 503 }),
-  info('MODULE_PERMISSION_DENIED', 'gateway', '이 계정에 agent.use 권한이 없거나 도달 범위 밖입니다. (권한 부족과 범위 밖은 같은 문구로 옵니다 — 관리자에게 agent.use 부여를 요청해 주세요.)', 'request-permission', { http: 403 }),
+  info('MODULE_PERMISSION_DENIED', 'gateway', '이 계정에 agent.use 권한이 없거나 도달 범위 밖입니다. (권한 부족과 범위 밖은 같은 문구로 옵니다 — 관리자에게 agent.use 부여를 요청해 주세요. 권한이 필요한 호출은 로그인이 만료됐을 때도 Gateway 가 같은 코드·문구로 답합니다 — 권한이 있는 계정인데 막히면 다시 로그인해 보세요.)', 'request-permission', { http: 403 }),
   info('MODULE_INVOCATION_TIMEOUT', 'gateway', '모듈이 제때 답하지 않았습니다. 요청이 처리됐는지 확인한 뒤 다시 시도해 주세요.', 'verify-outcome', { http: 504, severity: 'warn' }),
   info('UNAUTHORIZED', 'gateway', '로그인 세션이 끝났습니다. 다시 로그인해 주세요.', 'session-ended', { http: 401 }),
   info('QUOTA_EXCEEDED', 'gateway', '요청이 너무 많습니다. 잠시 뒤 다시 시도해 주세요.', 'retry-later', { http: 429, severity: 'warn' }),
@@ -99,6 +99,16 @@ const entries: ErrorInfo[] = [
   info('TERRA_REACH_EXCEEDED', 'call', '자격의 도달 범위 밖이라 부르지 않았습니다.', 'inform', { severity: 'warn' }),
   info('TERRA_EXTERNAL_FAILED', 'call', '외부 도구 호출이 실패했습니다.', 'inform', { severity: 'warn' }),
   info('GATEWAY_UNREACHABLE', 'call', 'Gateway 에 닿지 못했습니다. 턴 도중 자격을 지우거나 자격이 만료돼도 이렇게 보입니다.', 'inform', { severity: 'warn' }),
+
+  // ── 실제 스택에서 만난 코드 (OBSERVED_ERROR_CODES) ──────────────────────
+  info('OPERATION_NOT_FOUND', 'gateway', 'Gateway 카탈로그에 없는 operation 입니다. 이름이 틀렸거나 그 모듈이 이 노드에 없습니다.', 'inform', { http: 404, severity: 'warn' }),
+  info('MODULE_ROUTE_NOT_FOUND', 'gateway', '모듈의 경로를 지금 찾지 못했습니다. 모듈이 다시 시작되는 중이면 잠시 뒤(1초 안팎) 다시 시도해 주세요.', 'retry-later', { http: 404, severity: 'warn' }),
+  info('DELEGATION_NOT_OPEN', 'gateway', '이 Master operation 은 위임 자격에 열려 있지 않습니다. 에이전트는 읽기만 부를 수 있습니다.', 'inform', { http: 403, severity: 'warn' }),
+  info('TERRA_UNKNOWN_TOOL', 'call', '에이전트가 모르는 도구 이름이라 부르지 않았습니다. 허용 목록에 없는 외부 서버의 도구일 수 있습니다.', 'inform', { severity: 'warn' }),
+  info('TERRA_INVALID_ARGUMENTS', 'call', '도구 인자가 맞지 않아 부르지 않았습니다. (operationId 가 없거나 형식이 틀렸습니다.)', 'inform', { severity: 'warn' }),
+  info('TERRA_INTERNAL', 'call', '에이전트 안쪽에서 예기치 않은 오류가 났습니다. 원문을 확인해 주세요.', 'inform', { severity: 'error' }),
+  info('TERRA_ENCODE_FAILED', 'call', '도구 결과를 JSON 으로 만들지 못했습니다. 호출은 갔을 수 있으니 결과를 단정하지 마세요.', 'inform', { severity: 'error' }),
+  info('GATEWAY_MALFORMED_RESPONSE', 'call', 'Gateway 의 응답을 읽을 수 없었습니다(JSON 이 아니었습니다). 호출은 갔을 수 있습니다.', 'inform', { severity: 'error' }),
 
   // ── 이 층이 만드는 코드 ─────────────────────────────────────────────────
   info('OUTCOME_UNKNOWN', 'client', '요청이 처리됐는지 알 수 없습니다. 다시 보내기 전에 기록에서 확인해 주세요. 자동으로 다시 보내지 않습니다.', 'verify-outcome', { severity: 'warn' }),
@@ -128,6 +138,24 @@ export function describeCode(code: string | undefined): ErrorInfo {
     return { code, known: true, source: 'call', http: status, message: `호출이 HTTP ${status} 로 끝났습니다.`, action: 'inform', severity: 'warn', showRaw: true };
   }
   return { ...GENERIC, code };
+}
+
+/**
+ * `call`·`external` 줄의 error_code 를 푼다. 같은 코드라도 줄의 자리가 말을 바꾼다: 호출 응답의 MODULE_PERMISSION_DENIED 는
+ * 로그인한 사람의 계정(agent.use)이지만, `call` 줄의 것은 에이전트가 위임 자격으로 부른 호출이 거절된 것이다 — 계정 권한이 아니라
+ * 자격의 permissions 가 모자라다(`call` 줄에는 오류 본문이 없어 자격 만료·무효와는 코드로 가를 수 없다).
+ */
+export function describeCallCode(code: string): ErrorInfo {
+  if (code === 'MODULE_PERMISSION_DENIED') {
+    return info(
+      code,
+      'call',
+      '위임 자격에 이 operation 에 필요한 권한이 없어 Gateway 가 거절했습니다. 사용자 계정의 agent.use 와는 별개입니다 — 자격의 permissions 를 확인하세요. (자격이 만료·폐기된 경우에도 같은 코드로 올 수 있습니다.)',
+      'inform',
+      { http: 403, severity: 'warn' },
+    );
+  }
+  return describeCode(code);
 }
 
 export interface FailureContext {

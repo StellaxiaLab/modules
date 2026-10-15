@@ -196,3 +196,29 @@ func TestSecretInputsAreDeclared(t *testing.T) {
 		}
 	}
 }
+
+// moduleVersion is what status.get reports and what the MCP client announces;
+// module.json is what the host installs and lists. They are one number: a
+// release bumps the manifest, and a constant left behind makes the running
+// module say it is an older build than the one the host shows. Reading the
+// manifest as plain JSON keeps this module buildable without a Terra checkout.
+// (contractVersion and each operation's "version" in terra-api.json version the
+// API surface, not the module, and move on their own.)
+func TestModuleVersionMatchesManifest(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "module.json"))
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	var manifest struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		t.Fatalf("decode manifest: %v", err)
+	}
+	if manifest.Version == "" {
+		t.Fatal("manifest declares no version")
+	}
+	if moduleVersion != manifest.Version {
+		t.Fatalf("moduleVersion = %q but module.json version = %q — bump both together (src/main.go)", moduleVersion, manifest.Version)
+	}
+}

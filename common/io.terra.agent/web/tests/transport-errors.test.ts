@@ -112,6 +112,29 @@ describe('Gateway·브리지 오류 8개', () => {
     expect(error.source).toBe('gateway');
     expect(error.status).toBe(403);
   });
+  it('실제 Gateway 봉투 {"error":{code,message,traceId}} (ok·meta 없음)도 읽는다', () => {
+    const error = fail(
+      normalizeResponse('GET', { ok: false, status: 403, data: { error: { code: 'MODULE_PERMISSION_DENIED', message: '호출에 필요한 권한이 없습니다: x', traceId: 'trace-1' } } }),
+    );
+    expect(error).toMatchObject({ source: 'gateway', code: 'MODULE_PERMISSION_DENIED', status: 403, message: '호출에 필요한 권한이 없습니다: x' });
+  });
+  it('403 MODULE_PERMISSION_DENIED 중 "로그인한 호출자가 필요" 는 토큰이 무효·만료인 것이다 — UNAUTHORIZED 로 읽고 원래 코드는 rawCode 에 남긴다', () => {
+    const message = '이 operation은 로그인한 호출자가 필요합니다: io.terra.agent.status.get';
+    const viaBody = fail(normalizeResponse('GET', { ok: false, status: 403, data: { error: { code: 'MODULE_PERMISSION_DENIED', message, traceId: 't' } } }));
+    expect(viaBody).toMatchObject({ source: 'gateway', code: 'UNAUTHORIZED', gatewayCode: 'UNAUTHORIZED', rawCode: 'MODULE_PERMISSION_DENIED', status: 403, retryable: false, outcomeUnknown: false });
+    const viaBridge = fail(normalizeResponse('POST', { ok: false, status: 403, error: { code: 'MODULE_PERMISSION_DENIED', message } }));
+    expect(viaBridge).toMatchObject({ code: 'UNAUTHORIZED', rawCode: 'MODULE_PERMISSION_DENIED', outcomeUnknown: false });
+  });
+  it('같은 403 이라도 진짜 권한 부족 문구나 다른 코드는 그대로다 — 문구 하나로 가르되 그 밖은 건드리지 않는다', () => {
+    const denied = fail(normalizeResponse('GET', { ok: false, status: 403, data: { error: { code: 'MODULE_PERMISSION_DENIED', message: '호출에 필요한 권한이 없습니다: io.terra.agent.models.list' } } }));
+    expect(denied.code).toBe('MODULE_PERMISSION_DENIED');
+    const other = fail(normalizeResponse('GET', { ok: false, status: 403, data: { error: { code: 'SESSION_NOT_OWNED', message: '이 operation은 로그인한 호출자가 필요합니다' } } }));
+    expect(other.code).toBe('SESSION_NOT_OWNED');
+  });
+  it('Gateway 의 404 MODULE_ROUTE_NOT_FOUND 는 사전에 없는 서버 코드라 UNKNOWN + 원문 코드로 남는다(사전이 푼다)', () => {
+    const error = fail(normalizeResponse('GET', { ok: false, status: 404, data: { error: { code: 'MODULE_ROUTE_NOT_FOUND', message: 'published route를 찾을 수 없습니다: x', traceId: 't' } } }));
+    expect(error).toMatchObject({ source: 'unknown', code: 'UNKNOWN', rawCode: 'MODULE_ROUTE_NOT_FOUND', status: 404 });
+  });
   it('서버가 retryable 을 실으면 그대로, 없으면 기본(MODULE_UNAVAILABLE 등 true)', () => {
     const withFlag = fail(normalizeResponse('GET', { ok: false, status: 503, data: { ok: false, error: { code: 'MODULE_UNAVAILABLE', message: 'x', retryable: false } } }));
     expect(withFlag.retryable).toBe(false);

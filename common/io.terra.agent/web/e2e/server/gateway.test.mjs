@@ -21,12 +21,15 @@ const begin = async (preset = 'ready') => {
   await ctx.control.config({ model_delay_ms: 5 });
 };
 
-test('권한: 계정 권한 ∩ 앱 선언 — 없으면 403 MODULE_PERMISSION_DENIED(Gateway 봉투), status.get 은 권한이 필요 없다', async () => {
+test('권한: 계정 권한 ∩ 앱 선언 — 없으면 403 MODULE_PERMISSION_DENIED(실제 Gateway 봉투 {error:{code,message,traceId}}), status.get 은 권한이 필요 없다', async () => {
   await begin();
   const denied = await ctx.api('GET', '/sessions', { principal: 'noperm' });
   assert.equal(denied.status, 403);
-  assert.deepEqual(Object.keys(denied.json).sort(), ['error', 'meta', 'ok']);
-  assert.deepEqual([denied.json.ok, denied.json.error.code, denied.json.error.retryable], [false, 'MODULE_PERMISSION_DENIED', false]);
+  assert.deepEqual(Object.keys(denied.json), ['error'], '실제 Gateway 는 ok·meta 를 싣지 않는다');
+  assert.deepEqual(Object.keys(denied.json.error).sort(), ['code', 'message', 'traceId']);
+  assert.equal(denied.json.error.code, 'MODULE_PERMISSION_DENIED');
+  assert.match(denied.json.error.message, /^호출에 필요한 권한이 없습니다: io\.terra\.agent\.sessions\.list$/);
+  assert.match(denied.json.error.traceId, /^trace-/);
   assert.equal((await ctx.api('GET', '/status', { principal: 'noperm' })).status, 200);
   assert.equal((await ctx.api('GET', '/models', { principal: 'noperm' })).status, 403, 'models.list 는 agent.use 가 필요하다(계약)');
 
@@ -44,7 +47,7 @@ test('권한: 계정 권한 ∩ 앱 선언 — 없으면 403 MODULE_PERMISSION_D
   assert.equal((await ctx.api('GET', '/sessions', { principal: 'carol' })).status, 200);
 });
 
-test('오류 봉투: 모듈 {error}, Gateway {ok:false,error,meta}, 성공은 기본 그대로·선택하면 {ok,data,meta}, 없는 경로는 평문', async () => {
+test('오류 봉투: 모듈 {error:{code,message}}, Gateway {error:{code,message,traceId}}, 성공은 기본 그대로·선택하면 {ok,data,meta}, 없는 경로·메서드는 404 MODULE_ROUTE_NOT_FOUND(JSON)', async () => {
   await begin();
   const moduleError = await ctx.api('GET', '/sessions/none');
   assert.deepEqual(Object.keys(moduleError.json), ['error']);
@@ -59,10 +62,13 @@ test('오류 봉투: 모듈 {error}, Gateway {ok:false,error,meta}, 성공은 �
   await ctx.control.config({ envelope: 'bare' });
 
   const nowhere = await ctx.api('GET', '/nothing-here');
-  assert.deepEqual([nowhere.status, nowhere.json, nowhere.text], [404, undefined, '404 page not found\n']);
+  assert.equal(nowhere.status, 404);
+  assert.deepEqual(Object.keys(nowhere.json), ['error']);
+  assert.deepEqual([nowhere.json.error.code, Object.keys(nowhere.json.error).sort()], ['MODULE_ROUTE_NOT_FOUND', ['code', 'message', 'traceId']]);
+  assert.match(nowhere.json.error.message, /published route를 찾을 수 없습니다: GET .*\/nothing-here$/);
   const wrongMethod = await ctx.api('PATCH', '/status', { principal: null });
-  assert.deepEqual([wrongMethod.status, wrongMethod.json], [405, undefined]);
-  assert.equal((await fetch(`${ctx.origin}/api/modules/other.module/v1/status`)).status, 404);
+  assert.deepEqual([wrongMethod.status, wrongMethod.json.error.code], [404, 'MODULE_ROUTE_NOT_FOUND'], '없는 메서드는 405 가 아니라 404 JSON 이다');
+  assert.equal((await fetch(`${ctx.origin}/api/modules/other.module/v1/status`)).status, 404, '다른 모듈의 경로는 이 서버의 몫이 아니다');
 });
 
 test('Gateway 오류 7개를 주입할 수 있다 — 코드·상태·retryable', async () => {
@@ -71,11 +77,14 @@ test('Gateway 오류 7개를 주입할 수 있다 — 코드·상태·retryable'
     await ctx.control.inject({ op: 'io.terra.agent.status.get' }, { gateway_error: { code } });
     const r = await ctx.api('GET', '/status', { principal: null });
     assert.equal(r.status, spec.status, code);
-    assert.deepEqual([r.json.ok, r.json.error.code, r.json.error.retryable], [false, code, spec.retryable], code);
+    assert.deepEqual([r.json.ok, r.json.error.code, r.json.error.retryable], [undefined, code, undefined], `${code}: 서버가 싣지 않으면 retryable 도 없다(앱이 코드별 기본을 쓴다)`);
+    assert.match(r.json.error.traceId, /^trace-/, code);
   }
   await ctx.control.inject({ op: 'io.terra.agent.status.get' }, { gateway_error: { code: 'MODULE_INVOCATION_TIMEOUT', status: 504, retryable: false, details: { after_ms: 15000 } } });
   const timeout = await ctx.api('GET', '/status', { principal: null });
-  assert.deepEqual([timeout.status, timeout.json.error.retryable, timeout.json.error.details], [504, false, { after_ms: 15000 }]);
+  assert.deepEqual([timeout.status, timeout.json.error.retryable, timeout.json.error.details], [504, undefined, { after_ms: 15000 }]);
+  await ctx.control.inject({ op: 'io.terra.agent.status.get' }, { gateway_error: { code: 'MODULE_UNAVAILABLE', retryable: true } });
+  assert.equal((await ctx.api('GET', '/status', { principal: null })).json.error.retryable, true, 'retryable 은 true 일 때만 싣는다');
   assert.equal((await ctx.api('GET', '/status', { principal: null })).status, 200, '주입은 한 번 쓰고 사라진다');
 });
 
@@ -117,17 +126,34 @@ test('주입: 모듈 오류·평문 본문·지연·건너뛰기·횟수·경로
   assert.deepEqual(seen[0].request, { text: '처리 전에 끊김' });
 });
 
-test('엄격한 Gateway: 토큰 없는 호출은 401 UNAUTHORIZED, Bearer fake.<이름> 이 호출자이며 X-Terra-Principal 위조는 무시된다', async () => {
+test('엄격한 Gateway: 권한 없는 operation(status.get)은 토큰 없음 401 UNAUTHORIZED·무효 토큰 403 MODULE_PERMISSION_DENIED(로그인 필요 문구), 권한 있는 operation 은 둘 다 403 권한 문구, Bearer fake.<이름> 이 호출자이며 X-Terra-Principal 위조는 무시된다', async () => {
   const strict = await startAgent({ strictGateway: true });
   try {
     const call = async (headers) => {
       const r = await fetch(`${strict.origin}${API_PREFIX}/sessions`, { headers });
       return { status: r.status, json: await r.json() };
     };
-    const none = await call({});
-    assert.deepEqual([none.status, none.json.error.code], [401, 'UNAUTHORIZED']);
+    const callStatus = async (headers) => {
+      const r = await fetch(`${strict.origin}${API_PREFIX}/status`, { headers });
+      return { status: r.status, json: await r.json() };
+    };
+    // 실제 Gateway(server.go admitInvocation): 권한을 선언하지 않은 operation 은 호출자가 누구인지만 묻는다.
+    const noToken = await callStatus({});
+    assert.deepEqual([noToken.status, noToken.json.error.code], [401, 'UNAUTHORIZED']);
+    assert.match(noToken.json.error.message, /로그인한 호출자가 필요합니다: io\.terra\.agent\.status\.get$/);
+    for (const authorization of ['Bearer expired', 'Bearer fake.', 'Basic abc']) {
+      const bad = await callStatus({ authorization });
+      assert.deepEqual([bad.status, bad.json.error.code], [403, 'MODULE_PERMISSION_DENIED'], authorization);
+      assert.match(bad.json.error.message, /로그인한 호출자가 필요합니다: io\.terra\.agent\.status\.get$/, authorization);
+    }
+    // 권한을 선언한 operation 은 호출자가 풀리지 않으면 그냥 권한이 없는 것이다 — 토큰 없음·무효가 진짜 권한 부족과 같은 문구로 온다.
+    for (const headers of [{}, { authorization: 'Bearer expired' }]) {
+      const none = await call(headers);
+      assert.deepEqual([none.status, none.json.error.code], [403, 'MODULE_PERMISSION_DENIED']);
+      assert.match(none.json.error.message, /^호출에 필요한 권한이 없습니다: io\.terra\.agent\.sessions\.list$/);
+    }
     const forged = await call({ 'x-terra-principal': 'alice' });
-    assert.equal(forged.status, 401, '헤더만으로는 호출자가 되지 못한다');
+    assert.equal(forged.status, 403, '헤더만으로는 호출자가 되지 못한다');
     assert.equal((await call({ authorization: 'Bearer fake.alice' })).status, 200);
     await strict.api('POST', '/sessions', { principal: null, headers: { authorization: 'Bearer fake.bob' }, body: { session_id: 'bobs' } });
     const mine = await fetch(`${strict.origin}${API_PREFIX}/sessions`, { headers: { authorization: 'Bearer fake.alice', 'x-terra-principal': 'bob' } });

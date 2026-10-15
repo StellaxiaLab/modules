@@ -24,7 +24,7 @@ import type {
 import { formatCount, formatKB, formatTokens } from '../app/format';
 import { h, icon } from '../app/dom';
 import type { ApprovalCard, CardState } from '../data/cards';
-import { describeCode } from '../data/errors';
+import { describeCallCode, describeCode } from '../data/errors';
 import { approvalCardSignature, previousDeniedChips, renderPendingCard, updateApprovalCard, type ApprovalUi } from './approval-card';
 
 export interface EntryContext {
@@ -143,7 +143,7 @@ function outputModeText(mode: string): string {
 
 function callDetails(entry: CallLike): HTMLElement | null {
   const code = text((entry as CallEntry).error_code);
-  const info = code ? describeCode(code) : null;
+  const info = code ? describeCallCode(code) : null;
   const mode = text((entry as CallEntry).output_mode);
   return details('상세', [
     ['판정', text(entry.decision) || null],

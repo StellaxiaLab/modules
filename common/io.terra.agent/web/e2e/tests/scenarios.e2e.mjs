@@ -103,7 +103,7 @@ check('응답 유실 주입(drop after): 앱은 502 BRIDGE_GATEWAY_UNREACHABLE �
   assert.equal(lines.filter((e) => e.kind === 'user' && e.text === '이 응답은 유실된다').length, 1, '요청은 처리되었다 — 확인은 messages.list 로');
 }, PROBE);
 
-check('오류 봉투 두 모양: 모듈 {error} 와 Gateway {ok:false,error,meta}, 성공 봉투 선택', async (t) => {
+check('오류 봉투 두 모양: 모듈 {error:{code,message}} 와 Gateway {error:{code,message,traceId}}, 성공 봉투 선택', async (t) => {
   const shell = await open(t);
   await t.control.inject({ op: 'io.terra.agent.sessions.list' }, { module_error: { code: 'AGENT_UNAVAILABLE', message: 'store broken' } });
   const moduleErr = await shell.call('GET', `${MODULE}/sessions`);
@@ -112,8 +112,8 @@ check('오류 봉투 두 모양: 모듈 {error} 와 Gateway {ok:false,error,meta
   await t.control.inject({ op: 'io.terra.agent.sessions.list' }, { gateway_error: { code: 'QUOTA_EXCEEDED', status: 429 } });
   const gatewayErr = await shell.call('GET', `${MODULE}/sessions`);
   assert.equal(gatewayErr.status, 429);
-  assert.deepEqual(Object.keys(gatewayErr.data).sort(), ['error', 'meta', 'ok']);
-  assert.deepEqual([gatewayErr.data.ok, gatewayErr.data.error.code, gatewayErr.data.error.retryable], [false, 'QUOTA_EXCEEDED', true]);
+  assert.deepEqual(Object.keys(gatewayErr.data), ['error']);
+  assert.deepEqual([gatewayErr.data.error.code, Object.keys(gatewayErr.data.error).sort()], ['QUOTA_EXCEEDED', ['code', 'message', 'traceId']]);
 
   await t.control.config({ envelope: 'gateway' });
   const wrapped = await shell.call('GET', `${MODULE}/sessions`);

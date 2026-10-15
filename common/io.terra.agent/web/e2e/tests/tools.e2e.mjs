@@ -142,7 +142,10 @@ check('승인 뒤에도 Gateway 가 거절(I5): 카드는 "승인은 물어봤�
   assert.equal(await call.locator('.chip.err').first().textContent(), 'error');
   const detail = app.$('.line[data-kind="call"] details');
   await detail.locator('summary').click();
-  assert.match((await detail.textContent()) ?? '', /MODULE_PERMISSION_DENIED — 이 계정에 agent\.use 권한이 없거나 도달 범위 밖/);
+  // call 줄의 거절은 에이전트가 위임 자격으로 부른 호출이다 — 사용자 계정의 agent.use 가 아니라 자격의 권한 부족으로 말한다(B3).
+  const detailText = (await detail.textContent()) ?? '';
+  assert.match(detailText, /MODULE_PERMISSION_DENIED — 위임 자격에 이 operation 에 필요한 권한이 없어/);
+  assert.doesNotMatch(detailText, /이 계정에 agent\.use 권한이 없거나/);
   // 승인 줄은 "실행됨이 아닙니다"라고 말한다.
   assert.match((await app.$('.line[data-kind="approved"]').textContent()) ?? '', /실행됨이 아닙니다/);
   const entries = await api.entries('g403');

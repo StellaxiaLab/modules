@@ -87,9 +87,13 @@ check('오류 사전(모듈 오류 15): 보내기가 어떤 모듈 오류로 실
   await composerNoticeFor(t, Object.entries(MODULE_PHRASES).map(([code, phrase]) => [code, { module_error: true }, phrase]));
 }, { ...UI, timeoutMs: 60_000 });
 
-check('오류 사전(Gateway 오류 7): Gateway 봉투 {ok:false,error,meta} 도 코드로 풀어 한국어 문구를 말한다 — 504 처럼 결과를 모르는 쓰기는 기록을 읽어 확인하라고 덧붙인다', async (t) => {
+check('오류 사전(Gateway 오류 7): Gateway 봉투 {error:{code,message,traceId}} 를 코드로 풀어 한국어 문구를 말한다 — 504 처럼 결과를 모르는 쓰기는 기록을 읽어 확인하라고 덧붙인다', async (t) => {
   await composerNoticeFor(t, Object.entries(GATEWAY_PHRASES).map(([code, phrase]) => [code, { gateway_error: true }, phrase]));
 }, { ...UI, timeoutMs: 60_000 });
+
+check('오류 사전(실제 Gateway 의 404 MODULE_ROUTE_NOT_FOUND): 모듈이 다시 시작되는 동안 잠시 나오는 이 코드를 "잠시 뒤 다시 시도"로 말하고 입력은 보존한다', async (t) => {
+  await composerNoticeFor(t, [['MODULE_ROUTE_NOT_FOUND', { gateway_error: true }, /잠시 뒤\(1초 안팎\) 다시 시도/]]);
+}, UI);
 
 check('오류 사전(낯선 응답): 모르는 코드는 "알 수 없는 오류"로, 봉투가 아닌 본문(HTML 502)은 "처리됐는지 알 수 없다"로 말한다 — 서버 원문을 그대로 띄우지 않는다', async (t) => {
   const api = agentApi(t);
@@ -244,6 +248,18 @@ check('오류가 서는 자리(UNAUTHORIZED): 로그인이 끝난 채(엄격 Gat
   assert.match((await guide(app).locator('.guide-headline').textContent()) ?? '', /로그인 세션이 끝났습니다/);
   assert.equal(await app.$('[data-role="new-session"]').getAttribute('aria-disabled'), 'true');
   assert.deepEqual((await t.control.requests('')).map((r) => [r.op, r.status]), [['io.terra.agent.status.get', 401]]);
+  assert.deepEqual(unexpected(app), []);
+}, UI);
+
+check('오류가 서는 자리(UNAUTHORIZED, 실제 Gateway 모양): 만료·무효 토큰은 403 MODULE_PERMISSION_DENIED(로그인 필요 문구)로 오는데도 준비 상태가 권한 부족이 아니라 "로그인 세션이 끝났습니다"를 말한다', async (t) => {
+  await t.control.config({ strict_gateway: true });
+  const app = await openApp(t, { login: 'expired' });
+  await until(async () => (await app.$('[data-role="readiness-chip"]').textContent())?.includes('준비 안 됨'), { message: '준비 안 됨이 서지 않았다' });
+  const headline = (await guide(app).locator('.guide-headline').textContent()) ?? '';
+  assert.match(headline, /로그인 세션이 끝났습니다/);
+  assert.doesNotMatch(headline, /agent\.use/);
+  assert.equal(await app.$('[data-role="new-session"]').getAttribute('aria-disabled'), 'true');
+  assert.deepEqual((await t.control.requests('')).map((r) => [r.op, r.status]), [['io.terra.agent.status.get', 403]]);
   assert.deepEqual(unexpected(app), []);
 }, UI);
 
