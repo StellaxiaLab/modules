@@ -496,6 +496,7 @@ export async function loadWorld(screen, client, session) {
     R.unbindLayout = bindLayout(screen, key, globalThis.window, live ? (d) => live.later(docKey, () => d) : null);
     if (live) {
       R.docs = live;
+      live.watchHide(globalThis.window);   // bindLayout 의 pagehide 뒤 — 닫기 직전 변경도 서버 문서로 간다
       live.onNote = (t, c) => screen.pushAlarm('◇', c, t);
       // 브라우저 것이 더 새로우면(서버가 없던 때 · 다른 기기보다 나중에 고쳤다) 한 번 올린다
       if (!fromDoc && Object.keys(stored).length) live.later(docKey, () => pickLayout(screen), DocStore.WAIT / 2);
