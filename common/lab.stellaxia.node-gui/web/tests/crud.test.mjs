@@ -378,7 +378,7 @@ test('허가 고치기 — svi.grants.by-grant-id.patch(operations · 기한만,
   assert.equal(f.calls.length, n, '바인딩은 부르지 않는다');
 });
 
-test('연결 적용의 내 신원은 whoami principal — 셸 로그인 표시(이메일)가 frame 값에 있어도(MD-46)', () => {
+test('연결 적용의 내 신원은 whoami principal — 셸 로그인 표시(이메일)가 frame 값에 있어도(MD-52)', () => {
   const who = { principal: 'user_me via lab.stellaxia.node-gui.web' };
   assert.equal(linkPrincipal(who, 'admin@stack.local'), 'user_me via lab.stellaxia.node-gui.web');
   assert.equal(linkPrincipal({ principal: '' }, 'admin@stack.local'), 'admin@stack.local');   // whoami 를 못 받았을 때만
