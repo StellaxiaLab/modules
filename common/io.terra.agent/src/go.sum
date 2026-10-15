@@ -1,5 +1,5 @@
-github.com/StellaxiaLab/terra-agent v0.1.0 h1:PvSVQ+/DtDF8HlGOyM5w0U/YsIz0c6KkZsTyLQAsudw=
-github.com/StellaxiaLab/terra-agent v0.1.0/go.mod h1:1P9yhOTBFUDYJvNc+5jy52tP4UD8+/GS1U+l5wqXqTc=
+github.com/StellaxiaLab/terra-agent v0.2.0 h1:KWX/VNhS2eQbO7nJsqn1pEPhH9fIwN5IMU9q3tPtzj0=
+github.com/StellaxiaLab/terra-agent v0.2.0/go.mod h1:1P9yhOTBFUDYJvNc+5jy52tP4UD8+/GS1U+l5wqXqTc=
 github.com/StellaxiaLab/terra-sdk v0.1.0 h1:JNcrwoT0SbdCvjJmYi2jTzGysmUChur1Io8usrDm0nk=
 github.com/StellaxiaLab/terra-sdk v0.1.0/go.mod h1:2z5ClnmVzDQQSLKltDO0l38I2ebS4xyCV38tATnfZpk=
 github.com/anthropics/anthropic-sdk-go v1.71.0 h1:DK9xG3s5t+xUIOp+R+1LIRjkU/wG57YyQO3630+gYOE=

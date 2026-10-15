@@ -3,7 +3,7 @@ module github.com/StellaxiaLab/modules/common/io.terra.agent
 go 1.24.0
 
 require (
-	github.com/StellaxiaLab/terra-agent v0.1.0
+	github.com/StellaxiaLab/terra-agent v0.2.0
 	github.com/StellaxiaLab/terra-sdk v0.1.0
 	github.com/anthropics/anthropic-sdk-go v1.71.0
 )
