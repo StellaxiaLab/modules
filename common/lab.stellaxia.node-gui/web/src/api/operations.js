@@ -269,7 +269,7 @@ export const HELM_CRUD = {
     del: { op: L('svi.declarations.by-family.by-name.undeclare.post'), where: 'L', body: (v, it) => ({ family: it.fam, name: it.name }), keep: true, verb: '철회' }   // 퇴역 원장에 남는다
   },
   grant: {
-    create: { op: T('svi.grants.post'), where: 'T', body: (v) => ({ subject_id: v.who, resource_id: v.res, operations: String(v.ops || 'read').split(' · '), ttl_seconds: ttlSec(v.ttl) }) },
+    create: { op: T('svi.grants.post'), where: 'T', body: (v) => Object.assign(grantSubject(v.who), { resource_id: v.res, operations: String(v.ops || 'read').split(' · '), ttl_seconds: ttlSec(v.ttl) }) },
     // 허가 고치기 — Master `svi.grants.by-grant-id.patch`(B-9): operations · endpoint_id · ttl_seconds 만 바꾼다(받는 이 · 자원은 못 바꾼다). 줄이면 그 operation 으로 연 핸들이 닫힌다.
     // 바인딩은 고치는 op 가 없다 — 끊고 새로 연결한다. 기한 칸을 비우면 기한은 건드리지 않는다
     update: (v, it) => (it && it.type === 'bind' ? { none: 'bind-immutable' }
@@ -459,6 +459,18 @@ function declBody(v) {
 function cmdLine(s) {
   const [command, ...args] = String(s || '').trim().split(/\s+/).filter(Boolean);
   return args.length ? { command: command || '', args } : { command: command || '' };
+}
+
+/**
+ * 허가의 받는 이 칸 → { subject_type, subject_id }. `node:<id>` · `node_…` 는 노드, 그 밖은 사용자다
+ * (목록이 노드를 'node:<id>' 로 보여 주는 것과 같다 — adapters.subjectOf). subject_type 을 안 보내면 Master 가 user 로 읽어
+ * 위임 입구(자기 자신 · 같은 클러스터 노드만)가 노드 ID 도 거절한다
+ */
+function grantSubject(who) {
+  const s = String(who || '').trim();
+  const m = /^node:(.+)$/.exec(s);
+  if (m) return { subject_type: 'node', subject_id: m[1].trim() };
+  return { subject_type: /^node_/.test(s) ? 'node' : 'user', subject_id: s };
 }
 
 /** '2시간' · '30분' · '1일' · '3600' → 초. 모르면 1시간 */

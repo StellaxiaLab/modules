@@ -32,6 +32,14 @@ export class World {
   modelRegistered = true;
   credentialRegistered = true;
   credentialExpired = false;
+  /** credentials.get 의 등록 사실을 통째로 덮는다(대리인 id·권한·무인 …). null 이면 기본. */
+  credentialFacts: Record<string, unknown> | null = null;
+  /** credentials.delete 의 답을 덮는다. 함수면 호출마다 부른다(응답 유실 시험: 지우고 던지기). */
+  deleteReply: FakeReply | ((call: RecordedCall) => FakeReply | Promise<FakeReply>) | null = null;
+  /** credentials.delete 로 온 요청 수(재시도·중복 전송을 센다). */
+  credentialDeletes = 0;
+  /** models.list 의 providers 를 통째로 덮는다(base_url · 키가 새는지 시험). null 이면 기본. */
+  modelProviders: Array<Record<string, unknown>> | null = null;
   sessions = new Map<string, WorldSession>();
   private nextSeq = new Map<string, number>();
   now = T0;
@@ -125,14 +133,25 @@ export class World {
     if (call.method === 'GET' && path === '/models') {
       return (
         this.modelsReply ??
-        reply.ok({ default: 'anthropic', providers: [{ provider: 'anthropic', model: 'test-model', registered: this.modelRegistered, default: true }] })
+        reply.ok({ default: 'anthropic', providers: this.modelProviders ?? [{ provider: 'anthropic', model: 'test-model', registered: this.modelRegistered, default: true }] })
       );
     }
     if (call.method === 'GET' && path === '/credentials') {
       if (this.credentialsReply) return this.credentialsReply;
       return this.credentialRegistered
-        ? reply.ok({ registered: true, principal: this.viewer, permissions: ['node.read'], reach: 'node', expires_at: '2030-01-01T00:00:00Z', expired: this.credentialExpired })
+        ? reply.ok(this.credentialFacts ?? { registered: true, principal: this.viewer, delegate: 'agent:agn_7f3a91c2', permissions: ['node.read'], reach: 'node', expires_at: '2030-01-01T00:00:00Z', expired: this.credentialExpired, unattended: false })
         : reply.ok({ registered: false });
+    }
+    if (call.method === 'DELETE' && path === '/credentials') {
+      this.credentialDeletes += 1;
+      const override = this.deleteReply;
+      const apply = (): FakeReply => {
+        const had = this.credentialRegistered;
+        this.credentialRegistered = false;
+        return reply.ok({ removed: had });
+      };
+      if (typeof override === 'function') return Promise.resolve(override(call)).then((r) => r ?? apply());
+      return override ?? apply();
     }
     if (call.method === 'GET' && path === '/mcp/servers') return this.mcpReply ?? reply.ok({ servers: this.mcpServers });
     if (call.method === 'GET' && path === '/sessions') return this.listReply ?? reply.ok({ sessions: [...this.sessions.values()].map((s) => s.snap) });

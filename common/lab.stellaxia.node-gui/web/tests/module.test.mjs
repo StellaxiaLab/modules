@@ -291,6 +291,28 @@ test('DocStore — 새 쪽이 이긴다(savedAt · _savedAt) · 모아서 쓰고
   } finally { DocStore.WAIT = was; }
 });
 
+test('DocStore — 닫히는 페이지(pagehide)면 모아 둔 쓰기를 기다리지 않고 keepalive 로 바로 보낸다 · 끊으면 그 리스너도 뗀다', async () => {
+  const was = DocStore.WAIT; DocStore.WAIT = 60000;   // 기다렸다면 시험이 끝나도록 안 간다
+  try {
+    const srv = docServer(), seen = [];
+    const request = srv.request.bind(srv);
+    srv.request = (m, p, b, o) => { seen.push([m, !!(o && o.keepalive)]); return request(m, p, b, o); };
+    const d = new DocStore(srv, 'a'), hooks = {};
+    const w = { addEventListener: (ev, fn) => { hooks[ev] = fn; }, removeEventListener: (ev, fn) => { if (hooks[ev] === fn) delete hooks[ev]; } };
+    d.watchHide(w); d.watchHide(w);   // 두 번 걸어도 한 번
+    d.later('k', () => ({ n: 1 })); d.later('k', () => ({ n: 2 })); d.later('j', () => ({ n: 9 }));
+    assert.equal(srv.reqs.filter((r) => r.method === 'PUT').length, 0, '아직 모으는 중');
+    hooks.pagehide();
+    await sleep(30);
+    assert.equal(srv.docs.get('k').value.data.n, 2);
+    assert.equal(srv.docs.get('j').value.data.n, 9);
+    assert.deepEqual(seen.filter(([m]) => m === 'PUT').map(([, k]) => k), [true, true], 'keepalive');
+    assert.equal(d.flush(), 0, '비운 뒤에는 보낼 것이 없다');
+    d.stop();
+    assert.equal(hooks.pagehide, undefined, '끊으면 리스너를 뗀다');
+  } finally { DocStore.WAIT = was; }
+});
+
 test('DocStore — 편집기 자산: 서버 것이 새로우면 받아 화면에 알리고, 편집기가 내보내면(storage 이벤트) 서버로', async () => {
   const was = DocStore.WAIT; DocStore.WAIT = 30;
   try {
@@ -335,6 +357,39 @@ test('LayoutStore — 바뀐 것이 있을 때만 저장하고 서버로 보낸�
   unbind();
   saveLayout(key, { markStyle: 'none' }, 1234);
   assert.equal(loadLayout(key)._savedAt, 1234);
+});
+
+test('진입 연출 준비 판정(MD-43) — 최소 250ms · 값을 기다리는 판은 값이 오면 바로 · 안 오면 3500ms · 노드 화면이 아니면 2000ms 까지만 본다', () => {
+  const d = (o) => IntroScreen.decideReady(Object.assign({ ok: true, live: false, need: false, waited: 0 }, o));
+  assert.equal(d({ live: true, need: true, waited: 100 }), 'wait', '250ms 전에는 값이 와도 기다린다');
+  assert.equal(d({ need: false, waited: 250 }), 'ready', '값이 필요 없는 판(토큰 없음 · frame 아님)은 250ms 뒤');
+  assert.equal(d({ need: true, live: true, waited: 250 }), 'ready', '값이 오면 바로');
+  assert.equal(d({ need: true, live: false, waited: 3499 }), 'wait');
+  assert.equal(d({ need: true, live: false, waited: 3500 }), 'ready', '값이 안 와도 3500ms 에는 연다');
+  assert.equal(d({ ok: false, waited: 1999 }), 'wait', '노드 화면이 아니면 2000ms 까지 다시 본다');
+  assert.equal(d({ ok: false, waited: 2000 }), 'giveup');
+  assert.equal(d({ ok: false, live: true, need: false, waited: 5000 }), 'giveup', '노드 화면이 아니면 값이 있어도 연 것으로 치지 않는다');
+  // 반드시 끝난다 — 어떤 입력이든 6초 안에 ready 나 giveup 이 난다(영원히 wait 가 아니다)
+  for (const ok of [true, false]) for (const need of [true, false]) for (const live of [true, false]) {
+    assert.notEqual(d({ ok, need, live, waited: 6000 }), 'wait', JSON.stringify({ ok, need, live }));
+  }
+});
+
+test('LayoutStore — 무엇을 골랐는지(sel)만 바뀐 것은 저장하지 않는다 · 다른 변경과 함께일 때는 실린다', async () => {
+  const s = new (prep('node', NodeScreen))({ skin: 'grass' });
+  const key = layoutKey('n-sel', 'u');
+  const sent = [];
+  const unbind = bindLayout(s, key, win, (d) => sent.push(d));
+  s.setState({ sel: '2-3' });
+  await sleep(900);
+  assert.equal(sent.length, 0, '고르기만으로는 저장 요청이 가지 않는다');
+  assert.equal(loadLayout(key), null);
+  s.setState({ sel: '3-3' });
+  s.setState({ markStyle: 'flat' });
+  await sleep(900);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].maps[sent[0].map].sel, '3-3', '다른 변경과 함께일 때는 고른 것도 실린다');
+  unbind();
 });
 
 test('loadWorld — 사용자 문서(서버)가 더 새로우면 그 배치를 쓰고, 브라우저 것이 새로우면 한 번 올린다 · 바꾸면 뒤따라 쓴다 · 저장소가 없으면 브라우저만', async () => {

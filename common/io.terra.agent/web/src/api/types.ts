@@ -132,7 +132,10 @@ export interface ModelEntry extends EntryBase {
   provider?: string;
   model?: string;
 }
-/** operation 호출. `status` ∈ ok·refused·error. `refused` 는 오류가 아니다. `reason`·`judgement` 는 M-4. */
+/**
+ * operation 호출. `status` ∈ ok·refused·error. `refused` 는 오류가 아니다. `reason`·`judgement` 는 M-4.
+ * `input_summary`(비밀로 이름 붙은 값은 모듈이 가림)·`result_summary`·`output_mode`(계약의 값 그대로) 는 M-5 — 모두 선택이고, 없으면 이전 모듈이다.
+ */
 export interface CallEntry extends EntryBase {
   kind: 'call';
   subject?: string;
@@ -144,6 +147,9 @@ export interface CallEntry extends EntryBase {
   note?: string;
   reason?: string;
   judgement?: string;
+  input_summary?: string;
+  result_summary?: string;
+  output_mode?: string;
 }
 /** 시뮬레이션 호출 예정 — 실행되지 않았다(I13). */
 export interface PlannedEntry extends EntryBase {
@@ -157,6 +163,8 @@ export interface PlannedEntry extends EntryBase {
   note?: string;
   reason?: string;
   judgement?: string;
+  input_summary?: string;
+  output_mode?: string;
 }
 /** 외부 MCP 도구 호출 — Gateway 감사에 없다(I12). */
 export interface ExternalEntry extends EntryBase {
@@ -168,6 +176,7 @@ export interface ExternalEntry extends EntryBase {
   status?: string;
   error_code?: string;
   note?: string;
+  input_summary?: string;
 }
 export interface ApprovalEntry extends EntryBase {
   kind: 'approval';
@@ -261,6 +270,9 @@ const STRING_FIELDS = [
   'trace_id',
   'reason',
   'judgement',
+  'input_summary',
+  'result_summary',
+  'output_mode',
   'server',
   'provider',
   'model',

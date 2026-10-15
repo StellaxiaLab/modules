@@ -426,7 +426,7 @@ async function whoami(client) {
 
 /**
  * 연결 적용(허가 검사 · 허가 주체)에 넘길 내 신원. 게이트웨이 whoami 의 principal 이 먼저다 — frame 세션 값의
- * principal 은 셸 로그인 표시(이메일)일 수 있고, 그것을 주체로 보내면 위임 입구가 403 이다(MD-46).
+ * principal 은 셸 로그인 표시(이메일)일 수 있고, 그것을 주체로 보내면 위임 입구가 403 이다(MD-52).
  * @param {{ principal?: string } | null | undefined} who  whoami 결과
  * @param {string} [shown]  화면에 보이는 신원(없을 때만 쓴다)
  * @returns {string}

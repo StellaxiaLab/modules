@@ -489,54 +489,82 @@ func toolResultBlock(toolUseID string, result agentcore.ToolResult) Block {
 // own account of what was called comes from the gate and not from the model.
 func (e *engine) recorder(s *session) agentcore.Recorder {
 	return agentcore.RecorderFunc(func(record agentcore.Record) {
-		line := entry{
-			Kind: kindCall, Author: authorAgent, Subject: record.Tool,
-			Decision: string(record.Decision), Status: record.Status, ErrorCode: record.ErrorCode,
-			TraceID: record.TraceID, Reason: record.Reason, Judgement: record.Judgement,
-		}
-		if record.Tool == agentcore.ToolInvoke {
-			line.Subject = record.OperationID
-			line.OperationID = record.OperationID
-		}
-		if record.External {
-			// An external call is named by its kind rather than by an
-			// operation id it does not have, and the server is split back out
-			// of the qualified name so a reader sees WHICH third party this
-			// was without parsing anything (R8).
-			line.Kind = kindExternal
-			line.OperationID = ""
-			line.ResultBytes = record.ResultBytes
-			if server, _, ok := agentcore.ParseExternalToolName(record.Tool); ok {
-				line.Server = server
-			}
-		}
-		if record.Status == agentcore.StatusPlanned {
-			line.Kind = kindPlanned
-		}
-		notes := []string{}
-		if record.Decision != "" {
-			notes = append(notes, string(record.Decision))
-		}
-		notes = append(notes, record.Status)
-		if record.ErrorCode != "" {
-			notes = append(notes, record.ErrorCode)
-		}
-		if record.TraceID != "" {
-			// The join key rides in the note so a room shows it with the rest
-			// of the instrument, and `terra agent log` prints it without a
-			// second surface having to be invented for it.
-			notes = append(notes, "trace="+record.TraceID)
-		}
-		if record.External {
-			// Where a Gateway call prints its trace id, an external call prints
-			// the fact that there is none to print. Saying "no gateway audit"
-			// in the line itself is R8's second half: the absence has to be
-			// visible where somebody is already looking.
-			notes = append(notes, fmt.Sprintf("external · %d B · no gateway audit", record.ResultBytes))
-		}
-		line.Note = strings.Join(notes, " · ")
-		s.append(line)
+		s.append(entryFromRecord(record, detailsOf(record)))
 	})
+}
+
+// recordDetails are the fields M-5 adds to a call line: what the model handed
+// over, a bounded excerpt of the answer, and the contract's output.mode. The
+// core masks secrets before it fills them (I1); this module only carries them.
+type recordDetails struct {
+	InputSummary  string `json:"inputSummary"`
+	ResultSummary string `json:"resultSummary"`
+	OutputMode    string `json:"outputMode"`
+}
+
+// detailsOf reads the M-5 fields through the record's JSON form rather than
+// through Go fields. The core is a separately versioned module: reading by
+// name lets this module build against a core that predates the fields (they
+// come out empty) and pick them up unchanged once go.mod moves to one that
+// has them.
+func detailsOf(record any) recordDetails {
+	var details recordDetails
+	if encoded, err := json.Marshal(record); err == nil {
+		_ = json.Unmarshal(encoded, &details)
+	}
+	return details
+}
+
+// entryFromRecord is the transcript line for one gate record.
+func entryFromRecord(record agentcore.Record, details recordDetails) entry {
+	line := entry{
+		Kind: kindCall, Author: authorAgent, Subject: record.Tool,
+		Decision: string(record.Decision), Status: record.Status, ErrorCode: record.ErrorCode,
+		TraceID: record.TraceID, Reason: record.Reason, Judgement: record.Judgement,
+		InputSummary: details.InputSummary, ResultSummary: details.ResultSummary, OutputMode: details.OutputMode,
+	}
+	if record.Tool == agentcore.ToolInvoke {
+		line.Subject = record.OperationID
+		line.OperationID = record.OperationID
+	}
+	if record.External {
+		// An external call is named by its kind rather than by an
+		// operation id it does not have, and the server is split back out
+		// of the qualified name so a reader sees WHICH third party this
+		// was without parsing anything (R8).
+		line.Kind = kindExternal
+		line.OperationID = ""
+		line.ResultBytes = record.ResultBytes
+		if server, _, ok := agentcore.ParseExternalToolName(record.Tool); ok {
+			line.Server = server
+		}
+	}
+	if record.Status == agentcore.StatusPlanned {
+		line.Kind = kindPlanned
+	}
+	notes := []string{}
+	if record.Decision != "" {
+		notes = append(notes, string(record.Decision))
+	}
+	notes = append(notes, record.Status)
+	if record.ErrorCode != "" {
+		notes = append(notes, record.ErrorCode)
+	}
+	if record.TraceID != "" {
+		// The join key rides in the note so a room shows it with the rest
+		// of the instrument, and `terra agent log` prints it without a
+		// second surface having to be invented for it.
+		notes = append(notes, "trace="+record.TraceID)
+	}
+	if record.External {
+		// Where a Gateway call prints its trace id, an external call prints
+		// the fact that there is none to print. Saying "no gateway audit"
+		// in the line itself is R8's second half: the absence has to be
+		// visible where somebody is already looking.
+		notes = append(notes, fmt.Sprintf("external · %d B · no gateway audit", record.ResultBytes))
+	}
+	line.Note = strings.Join(notes, " · ")
+	return line
 }
 
 // approver is how the shared gate reaches the person: it puts the question in

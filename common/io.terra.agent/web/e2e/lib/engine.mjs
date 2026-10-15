@@ -310,6 +310,10 @@ export function createEngine({ clock, scenarios }) {
     if (f.modelFields && e.model) view.model = e.model;
     if (e.server) view.server = e.server;
     if (e.result_bytes) view.result_bytes = e.result_bytes;
+    // M-5 — 켜진 호출(`details: true`)만 이 칸을 갖는다. 기능 플래그를 새로 두지 않는다(플래그 목록은 시험이 못 박고 있다).
+    if (e.input_summary) view.input_summary = e.input_summary;
+    if (e.result_summary) view.result_summary = e.result_summary;
+    if (e.output_mode) view.output_mode = e.output_mode;
     return view;
   }
 
@@ -534,6 +538,26 @@ export function createEngine({ clock, scenarios }) {
     }
   }
 
+  // M-5: 입력·결과 요약·output.mode 는 시나리오의 호출이 `details: true` 로 켠 때만 싣는다 — 켜지 않은 시나리오는
+  // 이전 모듈처럼 칸이 없다(앱이 칸 없음을 숨기는지 보는 쪽이 필요하다). 가림은 코어의 규칙(키 이름)을 옮긴 것이고, 코어가 Go 맵을 JSON 으로 쓰므로 키는 정렬된다.
+  const SECRET_KEY = /token|secret|password|private_key|authorization|credential|api_key|apikey/i;
+  const mask = (value) => {
+    if (Array.isArray(value)) return value.map(mask);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, v]) => [k, SECRET_KEY.test(k) || k.toLowerCase() === 'env' ? '***' : mask(v)]));
+    }
+    return value;
+  };
+  const bound = (text) => (text.length > 480 ? `${text.slice(0, 480)}…` : text);
+  function detailExtras(call, op, { result = false } = {}) {
+    if (call.details !== true) return {};
+    const extras = {};
+    if (call.input !== undefined) extras.input_summary = bound(JSON.stringify(mask(call.input)));
+    if (op?.output_mode) extras.output_mode = op.output_mode;
+    if (result && op?.result !== undefined) extras.result_summary = bound(JSON.stringify(mask(op.result)));
+    return extras;
+  }
+
   function callEntry(s, call, extra) {
     const entry = {
       kind: 'call', author: 'agent', subject: call.operation_id, operation_id: call.operation_id, reason: call.reason ?? '', ...extra,
@@ -564,11 +588,12 @@ export function createEngine({ clock, scenarios }) {
       append(s, {
         kind: 'planned', author: 'agent', subject: operationId, operation_id: operationId, decision: verdict.decision, status: 'planned',
         reason: call.reason ?? '', judgement: verdict.reason, note: `${verdict.decision} · planned (simulate: nothing was run)`,
+        ...detailExtras(call, op),
       });
       return { kind: 'planned', operation_id: operationId };
     }
     if (verdict.decision === 'plan' || verdict.decision === 'refuse') {
-      callEntry(s, call, { decision: verdict.decision, status: 'refused', error_code: verdict.errorCode, judgement: verdict.reason });
+      callEntry(s, call, { decision: verdict.decision, status: 'refused', error_code: verdict.errorCode, judgement: verdict.reason, ...detailExtras(call, op) });
       return { kind: 'refused', operation_id: operationId };
     }
 
@@ -595,6 +620,8 @@ export function createEngine({ clock, scenarios }) {
     callEntry(s, call, {
       decision: verdict.decision, status: failed ? 'error' : 'ok', error_code: failed ? call.outcome.error_code ?? 'MODULE_PERMISSION_DENIED' : '',
       judgement: verdict.reason, trace_id: `tr_${state.counters.trace.toString(16).padStart(6, '0')}`,
+      ...detailExtras(call, op, { result: !failed }),
+      ...(failed && call.details === true ? { result_summary: `${call.outcome.error_code ?? 'MODULE_PERMISSION_DENIED'}: the Gateway refused the call` } : {}),
     });
     return failed ? { kind: 'error', operation_id: operationId, approved, reached: true } : { kind: 'ok', operation_id: operationId, approved, reached: true, result: op.result };
   }
