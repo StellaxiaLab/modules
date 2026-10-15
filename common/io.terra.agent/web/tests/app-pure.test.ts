@@ -21,6 +21,12 @@ describe('router', () => {
     expect(routeHash({ name: 'new' })).toBe('#/new');
     expect(routeHash({ name: 'home' })).toBe('#/');
   });
+  it('설정(#/settings)은 읽기 전용 설정 화면이다 — 뒤에 무언가 붙으면 홈이다', () => {
+    expect(parseHash('#/settings')).toEqual({ name: 'settings' });
+    expect(routeHash({ name: 'settings' })).toBe('#/settings');
+    expect(parseHash('#/settings/x')).toEqual({ name: 'home' });
+    expect(parseHash('#/setting')).toEqual({ name: 'home' });
+  });
   it('세션 id 패턴에 맞지 않으면 홈으로 떨어진다', () => {
     expect(parseHash('#/s/')).toEqual({ name: 'home' });
     expect(parseHash('#/s/.bad')).toEqual({ name: 'home' });

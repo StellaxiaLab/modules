@@ -3,6 +3,7 @@
 //   · 준비 상태: status.get + models.list + credentials.get 을 composeReadiness 로 합성한다(권한 없음 포함).
 //   · 보내기·취소는 반드시 store.send / store.cancel 을 지난다(보내기 가드, 종료 상태 가드).
 //   · 화면은 상태가 바뀔 때마다 update 로 맞춘다 — DOM 을 다시 만들지 않으므로 초점·한글 조합·스크롤이 유지된다.
+//   · 설정(#/settings, G3): 읽기 전용 목록 + 자격 거두기 3단계 — 상태는 app/settings.ts, 그림은 views/settings.ts · revoke-dialog.ts.
 // 확장 지점(WP-5): `renderers`(승인 카드), `onAfterRender`.
 
 import type { AgentClient } from '../api/client';
@@ -10,6 +11,7 @@ import { generateSessionId } from '../api/client';
 import type { ModelsListResponse } from '../api/types';
 import { composeReadiness, type Readiness } from '../data/readiness';
 import { describeFailure } from '../data/errors';
+import { revokeCommand } from '../data/settings';
 import type { NewSessionInput, ProviderChoice } from '../data/new-session-form';
 import { createDataStore, type DataStore } from '../data/store';
 import { sessionTab, type SessionTab } from '../data/status';
@@ -26,8 +28,22 @@ import { defaultEntryRenderers } from '../views/entries';
 import { createNewSession, type McpState, type NewSessionError } from '../views/new-session';
 import { createReadinessGuide } from '../views/readiness';
 import { createSessionInfo } from '../views/session-info';
+import { createRevokeDialog } from '../views/revoke-dialog';
 import { createSessionPane } from '../views/session-pane';
+import { createSettingsView } from '../views/settings';
 import { createSidebar } from '../views/sidebar';
+import { createSettings } from './settings';
+
+/**
+ * 클립보드 — sandbox iframe 에는 `clipboard-write` 가 막혀 있을 수 있다. 막힌 줄 알면서 부르면 콘솔에 정책 위반 오류가 남으므로
+ * 문서의 권한 정책으로 먼저 묻고, 막혔으면 null(앱이 "직접 복사"로 안내한다).
+ */
+function clipboardOf(doc: Document): { writeText(text: string): Promise<void> } | null {
+  const policy = (doc as Document & { permissionsPolicy?: { allowsFeature(name: string): boolean }; featurePolicy?: { allowsFeature(name: string): boolean } }).permissionsPolicy ??
+    (doc as Document & { featurePolicy?: { allowsFeature(name: string): boolean } }).featurePolicy;
+  if (policy && !policy.allowsFeature('clipboard-write')) return null;
+  return doc.defaultView?.navigator.clipboard ?? null;
+}
 
 export interface AppWindow {
   location: { hash: string };
@@ -158,6 +174,30 @@ export function createApp(deps: AppDeps): App {
     renderers,
   );
   const info = createSessionInfo();
+  const settings = createSettings({
+    client,
+    store,
+    onChange: () => queueRender(),
+    afterDelete: async () => {
+      // 자격이 사라졌다 — 준비 상태가 다시 막히고 소유자 필터의 기준(viewer)도 사라진다.
+      await refreshReadiness();
+      scheduler.refreshNow();
+    },
+    afterCancel: () => scheduler.refreshNow(),
+    clipboard: () => clipboardOf(doc),
+  });
+  const settingsView = createSettingsView({ onReload: () => void settings.load(), onRevoke: () => settings.open() });
+  const revokeDialog = createRevokeDialog(
+    {
+      onClose: () => settings.close(),
+      onCancelSessions: () => void settings.cancelOpenSessions(),
+      onCopy: () => void settings.copyCommand(),
+      onConfirm: (checked) => settings.setConfirmed(checked),
+      onDelete: () => void settings.deleteCredential(),
+    },
+    appEl,
+    () => settingsView.heading,
+  );
   const dialog = createCancelDialog(
     {
       onKeep: () => {
@@ -170,9 +210,9 @@ export function createApp(deps: AppDeps): App {
     appEl,
   );
 
-  const main = h('main', { class: 'main', attrs: { id: 'main' } }, guide.el, newPane.el, sessionPane.el);
+  const main = h('main', { class: 'main', attrs: { id: 'main' } }, guide.el, newPane.el, settingsView.el, sessionPane.el);
   appEl.append(headerEl, h('div', { class: 'wb' }, sidebar.el, main, info.el));
-  root.replaceChildren(appEl, dialog.el);
+  root.replaceChildren(appEl, dialog.el, revokeDialog.el);
 
   // ── 라우팅 ──
   function setRoute(next: Route): void {
@@ -185,6 +225,8 @@ export function createApp(deps: AppDeps): App {
       formKey += 1;
       void loadMcp();
     }
+    if (next.name === 'settings' && !same) void settings.load();
+    if (!same && next.name !== 'settings') settings.close();
     if (cancel.open && !same) cancel = { open: false, busy: false, error: null };
     if (!same) scheduler.refreshNow();
   }
@@ -202,6 +244,7 @@ export function createApp(deps: AppDeps): App {
     newForm.sessionId = generateSessionId(now(), random);
     void loadMcp();
   }
+  if (route.name === 'settings') void settings.load();
 
   function setTab(next: SessionTab): void {
     tab = next;
@@ -494,6 +537,7 @@ export function createApp(deps: AppDeps): App {
     nodeEl.title = name;
     nodeEl.setAttribute('aria-label', `대상 노드 ${name}`);
   }
+  let shownRoute: Route['name'] | null = null;
   function render(): void {
     const data = store.getState();
     const t = now();
@@ -524,17 +568,28 @@ export function createApp(deps: AppDeps): App {
       counts: tabCounts(data),
       canOpenNew: p.canOpenSession,
       newingActive: route.name === 'new',
+      settingsActive: route.name === 'settings',
       listProblem: data.listFailure ? describeFailure(data.listFailure).message : null,
       loading: readiness === null || (data.viewer !== null && !listLoaded),
     });
 
     guide.el.hidden = route.name !== 'home';
     newPane.el.hidden = route.name !== 'new';
+    settingsView.el.hidden = route.name !== 'settings';
     sessionPane.el.hidden = route.name !== 'session';
     info.el.hidden = route.name !== 'session';
 
     if (route.name === 'home') {
       guide.update({ presentation: p, hasSessions: data.owned.length > 0, checking });
+    } else if (route.name === 'settings') {
+      const credential = settings.data().credential;
+      settingsView.update({
+        data: settings.data(),
+        nowMs: t,
+        openCount: settings.openCount(),
+        command: credential.status === 'ready' ? revokeCommand(credential.data.delegateId) : null,
+      });
+      if (shownRoute !== 'settings') settingsView.heading.focus({ preventScroll: true }); // 화면이 바뀐 것을 키보드·스크린 리더가 안다
     } else if (route.name === 'new') {
       const choices = providerChoices();
       newPane.update({
@@ -586,20 +641,38 @@ export function createApp(deps: AppDeps): App {
 
     const cancelTitle = route.name === 'session' ? (store.viewOf(route.id) ? sessionTitle(store.viewOf(route.id)?.snapshot.topic, route.id) : route.id) : '';
     dialog.update({ open: cancel.open && route.name === 'session', title: cancelTitle, busy: cancel.busy, error: cancel.error });
+    const rv = settings.revoke();
+    revokeDialog.update({
+      open: rv.open && route.name === 'settings',
+      phase: rv.phase,
+      result: rv.result,
+      command: rv.command,
+      commandUnreadable: rv.commandUnreadable,
+      openCount: settings.openCount(),
+      cancelling: rv.cancelling,
+      cancelError: rv.cancelError,
+      confirmed: rv.confirmed,
+      blocked: settings.blockedReason(),
+      error: rv.error,
+      copyNote: rv.copyNote,
+      selectCommand: rv.selectCommand,
+    });
+    shownRoute = route.name;
     deps.root.dataset['route'] = route.name;
     askExpired(t);
     syncClock(t);
   }
 
-  // 저장소가 바뀌면 같은 마이크로태스크 안의 변경을 모아 한 번 그린다.
-  const unsubscribe = store.subscribe(() => {
+  // 저장소(와 설정 상태)가 바뀌면 같은 마이크로태스크 안의 변경을 모아 한 번 그린다.
+  function queueRender(): void {
     if (renderQueued) return;
     renderQueued = true;
     pendingFlush = Promise.resolve().then(() => {
       renderQueued = false;
       render();
     });
-  });
+  }
+  const unsubscribe = store.subscribe(queueRender);
 
   render();
 
@@ -635,6 +708,7 @@ export function createApp(deps: AppDeps): App {
     flush: async () => {
       await pendingFlush;
       await mcpInflight;
+      await settings.inflight();
       await Promise.resolve();
     },
     ui: () => ({ route, tab, readiness }),

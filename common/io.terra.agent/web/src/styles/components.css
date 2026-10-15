@@ -213,6 +213,54 @@ pre.raw { margin: 6px 0 0; padding: 8px 10px; border-radius: 12px; background: v
 .dlg-error { font-size: 12px; color: var(--tx-err); }
 .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
+/* 설정(읽기 전용) · 자격 거두기 — 화면 6 */
+.chip.leaf { color: var(--leaf); background: var(--f-2); }
+.settings { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.settings-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 22px 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; align-items: start; }
+.settings-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.set-sec { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.set-state:empty { display: none; }
+.tbl-card { padding: 4px; overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tbl th { text-align: left; font-weight: 600; font-size: 10.5px; color: var(--muted); padding: 8px 10px; }
+.tbl td { padding: 8px 10px; border-top: 1px solid var(--f-line); overflow-wrap: anywhere; vertical-align: middle; }
+.limits-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; padding: 14px; }
+.limit { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.limit dt { font-size: 11px; color: var(--muted); }
+.limit dd { margin: 0; }
+.limit .big { font-size: 20px; font-weight: 600; }
+.cred-card { gap: 12px; padding: 14px; }
+.rv-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kv-wide { grid-template-columns: 74px 1fr; }
+.chips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.rv-card { border-top: 1px solid var(--f-line); padding-top: 12px; display: flex; flex-direction: column; gap: 9px; }
+.sub-cap { font-size: 11.5px; color: var(--sub); font-weight: 600; }
+.rv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; font-size: 11.5px; color: var(--muted); }
+.rv-li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rv-li .rv-tag { margin-left: auto; height: 18px; }
+.rv-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.code { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-radius: 14px; background: var(--f-in); font-family: var(--mono); font-size: 11.5px; color: var(--sub); overflow-wrap: anywhere; user-select: all; }
+.code i { font-style: normal; color: var(--dim); }
+.mcp-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mcp-cards:empty { display: none; }
+.mcp-card { padding: 12px 14px; gap: 7px; }
+.mcp-name { font-size: 12.5px; font-weight: 600; overflow-wrap: anywhere; }
+.mcp-tools { margin-left: auto; }
+.mcp-cmd { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.dlg-wide { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
+.dlg:focus { outline: none; }
+.rv-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rv-steps { display: flex; flex-direction: column; gap: 10px; }
+.rv-step { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 18px; background: var(--f-2); }
+.rv-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.rv-head .chip:last-child { margin-left: auto; }
+.rv-check { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--sub); cursor: pointer; }
+.rv-check input { width: 16px; height: 16px; margin: 1px 0 0; accent-color: var(--pri); flex: none; }
+.rv-check:focus-within { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); border-radius: 8px; }
+.rv-result { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 18px; background: var(--bg-warn-soft); font-size: 12.5px; color: var(--sub); line-height: 1.6; }
+.rv-result p { margin: 0; }
+.dlg button[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
+
 /* 셸 밖 안내 */
 .standalone { max-width: 520px; margin: 0 auto; padding: 18vh 24px 0; display: flex; flex-direction: column; gap: 12px; }
 .standalone h1 { font-size: 20px; }

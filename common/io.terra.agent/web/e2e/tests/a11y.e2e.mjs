@@ -40,10 +40,11 @@ check('접근성: 이름 있는 입력·단추, role=log(aria-live)·role=dialog
   assert.equal(await app.$('[data-role="inbox"], nav[aria-label="세션"]').first().count(), 1);
   // 확인창은 닫혀 있을 때 접근성 트리에서 빠지고(hidden), 열리면 이름을 가진 modal 이다.
   assert.equal(await app.$('[data-role="cancel-overlay"]').evaluate((el) => el.hidden), true);
-  // 아직 없는 기능은 켜진 척하지 않는다.
-  const settings = app.$('.settings-stub');
-  assert.equal(await settings.getAttribute('aria-disabled'), 'true');
-  assert.match((await settings.textContent()) ?? '', /아직 없음/);
+  // 설정 자리는 G3 에서 켜졌다 — 읽기 전용 설정 화면(#/settings)으로 가는 링크다(켜진 척이 아니라 실제로 켜졌다. 화면은 settings.e2e.mjs 가 본다).
+  const settings = app.$('[data-role="settings-link"]');
+  assert.equal(await settings.getAttribute('href'), '#/settings');
+  assert.equal(await settings.getAttribute('aria-disabled'), null);
+  assert.doesNotMatch((await settings.textContent()) ?? '', /아직 없음/);
   assert.deepEqual(app.problems.all(), []);
 }, UI);
 
