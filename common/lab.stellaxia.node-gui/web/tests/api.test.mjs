@@ -317,10 +317,10 @@ test('leaf — 누르기 전 자물쇠: 위임 입구가 연 읽기는 잠그지
   assert.equal(reaches({ has: () => false }, 'terra.master.nodes.get'), false, 'has 만 가진 가짜 클라이언트는 has 로 본다');
 });
 
-test('위임 대응표 — 읽기는 GET, 쓰기는 ADR-GW-004 가 연 것뿐(2a 바인딩 · 2b 허가)이고 Master 경로다', () => {
+test('위임 대응표 — 읽기는 GET, 쓰기는 연 것뿐(ADR-GW-004 2a 바인딩 · 2b 허가, ADR-GW-007 3a 내 job 취소)이고 Master 경로다', () => {
   const ids = Object.keys(MASTER_DELEGATED);
   const writes = ids.filter((id) => MASTER_DELEGATED[id][0] !== 'GET').sort();
-  assert.deepEqual(writes, ['terra.master.svi.bindings.by-binding-id.delete', 'terra.master.svi.bindings.post',
+  assert.deepEqual(writes, ['terra.master.jobs.by-job-id.cancel.post', 'terra.master.svi.bindings.by-binding-id.delete', 'terra.master.svi.bindings.post',
     'terra.master.svi.grants.by-grant-id.delete', 'terra.master.svi.grants.by-grant-id.patch', 'terra.master.svi.grants.post']);
   assert.equal(ids.length - writes.length, 28, '1차 읽기 28');
   for (const id of ids) {
@@ -358,7 +358,7 @@ test('위임 대응표 — Terra 계약과 같다 (TERRA_CHECKOUT 이 있을 때
 // ───── tree: 카탈로그에 있어도 위임 입구가 닫은 op (real-data-layer.md §5.11 후속 ①) ─────
 const CLOSED = ['terra.master.network.mesh.wireguard.peers.revoke.post', 'terra.master.service-tunnels.open.post', 'terra.master.service-tunnels.plan.post',
   'terra.master.service-tunnels.declarations.post', 'terra.master.service-tunnels.declarations.by-declaration-id.delete', 'terra.master.network.mesh.wireguard.reconcile.post',
-  'terra.master.commands.post', 'terra.master.jobs.by-job-id.cancel.post', 'terra.master.nodes.by-node-id.patch', 'terra.master.nodes.by-node-id.modules.assignments.post', 'terra.master.svi.handles.post'];
+  'terra.master.commands.post', 'terra.master.nodes.by-node-id.patch', 'terra.master.nodes.by-node-id.modules.assignments.post', 'terra.master.svi.handles.post'];
 const treeClient = (extra = []) => {
   const c = new TerraClient('', { fetch: fakeFetch(() => json(200, {})), delegated: true });
   c.catalog = new Map([...Object.keys(MASTER_DELEGATED), ...CLOSED, ...extra, RELAY_OP, NODE_CATALOG_OP].map((id) => [id, {}]));
