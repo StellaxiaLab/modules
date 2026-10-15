@@ -8,10 +8,10 @@ doc_type: "design-inventory"
 scope: "module"
 target: "terra-agent"
 status: "draft"
-version: "0.8.3"
+version: "0.8.4"
 last_updated: "2026-10-15"
 language: "ko-KR"
-measured_at: "Terra main 3dd67c1(작업 브랜치는 c6a5bc8 기준) · modules 69cea20(common/io.terra.agent 0.1.0). 계약 operation 19건·CLI 명령 18건·상태 7종·entry 12종을 계약과 모듈·코어·Gateway·CLI 소스에 대조했다. terra agent grant의 출력은 다섯 가지 출력 방식으로 재현했다(§8.1). 디자인 대조(§13)는 modules 0ae91c5(브랜치 design/terra-agent-gui)의 AgentGUI.dc.html 557줄을 읽고 맞댔고, 08a3914(691줄, 보드 8장)로 다시 맞댔다. 새 보드의 샘플 값은 Gateway·daemon 계약 129건과 코어·모듈 소스로 확인했다. 세 번째로 e27d389(AgentGUI 782줄, AgentGUILive 758줄)를 맞대고 동작하는 화면을 Chromium 141에서 돌려 31개 점검을 했다(§13.6). 네 번째로 73db596(AgentGUI 804줄, AgentGUILive 780줄)을 맞대고 같은 점검에 키보드 초점·글자 대비 점검을 더해 다시 돌렸다(§13.6). 다섯 번째로 modules 브랜치 design/agent-gui-dc22-29의 c378a12(AgentGUI 815줄, AgentGUILive 833줄)를 맞대고 같은 점검 35개(낡은 기대치 둘은 새 구조에 맞춰 고침)와 초점·글자 대비·선호 설정 폴백·스크롤·입력칸 점검을 돌렸다(§13.6). 모듈 소스·계약·매니페스트는 69cea20 이후 0줄 바뀌었고 에이전트에 걸린 코어 코드도 3dd67c1 이후 0줄 바뀌었다(구현 인수 문서 §1.1). v0.8.0(2026-10-11)에서는 modules main 6f55480의 sessionInput·Usage·계약 JSON과 AgentGUILive.dc.html(846줄, 368210a 포함)을 직접 읽어 §4.2·§13의 DC-23·DC-30·§14.3을 정정했다 — 이 문서의 나머지 수치는 위 측정 시점(69cea20)의 것이고, 그 뒤 modules #73·#74가 응답을 넓혔다(구현 인수 문서 §4.1·§4.2). v0.8.3(2026-10-15)에서는 modules main ae4d350(#104~#107 병합)과 terra-agent main 87060ae(#4 병합, 태그는 v0.1.0뿐)를 GitHub에서 확인하고 modules를 받아 Vitest·앱 e2e(119/119)·Go 시험을 Linux에서 돌려 §5.2·§6.4·§10 R-5·§14.3 ⑥·§14.4를 고쳤다 — 이 문서의 수치는 여전히 측정 시점(69cea20)의 것이다"
+measured_at: "Terra main 3dd67c1(작업 브랜치는 c6a5bc8 기준) · modules 69cea20(common/io.terra.agent 0.1.0). 계약 operation 19건·CLI 명령 18건·상태 7종·entry 12종을 계약과 모듈·코어·Gateway·CLI 소스에 대조했다. terra agent grant의 출력은 다섯 가지 출력 방식으로 재현했다(§8.1). 디자인 대조(§13)는 modules 0ae91c5(브랜치 design/terra-agent-gui)의 AgentGUI.dc.html 557줄을 읽고 맞댔고, 08a3914(691줄, 보드 8장)로 다시 맞댔다. 새 보드의 샘플 값은 Gateway·daemon 계약 129건과 코어·모듈 소스로 확인했다. 세 번째로 e27d389(AgentGUI 782줄, AgentGUILive 758줄)를 맞대고 동작하는 화면을 Chromium 141에서 돌려 31개 점검을 했다(§13.6). 네 번째로 73db596(AgentGUI 804줄, AgentGUILive 780줄)을 맞대고 같은 점검에 키보드 초점·글자 대비 점검을 더해 다시 돌렸다(§13.6). 다섯 번째로 modules 브랜치 design/agent-gui-dc22-29의 c378a12(AgentGUI 815줄, AgentGUILive 833줄)를 맞대고 같은 점검 35개(낡은 기대치 둘은 새 구조에 맞춰 고침)와 초점·글자 대비·선호 설정 폴백·스크롤·입력칸 점검을 돌렸다(§13.6). 모듈 소스·계약·매니페스트는 69cea20 이후 0줄 바뀌었고 에이전트에 걸린 코어 코드도 3dd67c1 이후 0줄 바뀌었다(구현 인수 문서 §1.1). v0.8.0(2026-10-11)에서는 modules main 6f55480의 sessionInput·Usage·계약 JSON과 AgentGUILive.dc.html(846줄, 368210a 포함)을 직접 읽어 §4.2·§13의 DC-23·DC-30·§14.3을 정정했다 — 이 문서의 나머지 수치는 위 측정 시점(69cea20)의 것이고, 그 뒤 modules #73·#74가 응답을 넓혔다(구현 인수 문서 §4.1·§4.2). v0.8.3(2026-10-15)에서는 modules main ae4d350(#104~#107 병합)과 terra-agent main 87060ae(#4 병합, 태그는 v0.1.0뿐)를 GitHub에서 확인하고 modules를 받아 Vitest·앱 e2e(119/119)·Go 시험을 Linux에서 돌려 §5.2·§6.4·§10 R-5·§14.3 ⑥·§14.4를 고쳤다 — 이 문서의 수치는 여전히 측정 시점(69cea20)의 것이다. v0.8.4(2026-10-15)에서는 terra-agent의 태그 목록(v0.1.0·v0.2.0 — v0.2.0은 커밋 87060ae를 가리킨다)을 `git ls-remote --tags`로 읽고, modules 승급 PR #110(초안·병합 전)의 브랜치에서 `TestARealCallFillsTheDetailsWhenTheCoreSupportsThem`이 건너뜀이 아닌 PASS임을 `go test -v`로 확인해 §10 R-5·§14.3 ⑥을 고쳤다 — modules `main`의 `go.mod`는 그 PR이 병합되기 전까지 v0.1.0이다"
 os_priority:
   - Linux
   - Windows
@@ -30,7 +30,7 @@ related:
   - "[[docs/guides/module-web-screen-guide|모듈 웹 화면 가이드]]"
 ---
 
-> **사본** — Terra 저장소 `docs/modules/terra-agent/design/terra-agent-gui-requirements.md`(v0.8.3, 2026-10-15 — Terra PR #218 브랜치 `docs/agent-gui-refresh-3` 기준이다. 그 PR이 `main`에 병합되기 전의 스냅샷이므로, 병합된 원본과 다르면 원본을 따른다)를 modules만 보는 세션이 읽도록 옮긴 스냅샷이다. 고칠 때는 원본을 고친다. 본문의 `[[링크]]`와 `docs/…` 경로는 Terra 저장소 기준이다.
+> **사본** — Terra 저장소 `docs/modules/terra-agent/design/terra-agent-gui-requirements.md`(v0.8.4, 2026-10-15 — Terra PR #224 브랜치 `docs/agent-gui-tag-v0.2.0` 기준이다. 그 PR이 `main`에 병합되기 전의 스냅샷이므로, 병합된 원본과 다르면 원본을 따른다)를 modules만 보는 세션이 읽도록 옮긴 스냅샷이다. 고칠 때는 원본을 고친다. 본문의 `[[링크]]`와 `docs/…` 경로는 Terra 저장소 기준이다.
 
 # Terra Agent GUI 필요 기능표 — 대화·승인·위임·설정 화면
 
@@ -622,7 +622,7 @@ sequenceDiagram
 | R-2 | `sessions.list`를 소유자로 거른다. 남의 `topic`·`answer`·`pending_approvals.input`이 나가지 않게 한다 | 모듈 | 화면이 걸러도 노출은 이미 일어났다 | G1 |
 | R-3 | 신원 키를 정한다(§9, D-2). 토큰 전송을 쓰면 `Subject` 이전과 위임 자격 거절 규칙을 한 변경으로 한다 | 결정 · 모듈 | 한 사람이 두 사람이 되고, 이전하면 모델의 자기 승인이 열린다 | G1 |
 | R-4 | `pending_approvals`에 계약 사실의 스냅샷(`risk`·`confirmation`·`idempotency`·`retry`·`sideEffects`·`output.mode`·`scopes`)을 넣는다. 모듈은 승인 판정을 계산할 때 이미 이 값을 갖고 있다(`approver`가 받는 `ApprovalRequest.Operation`에 계약 전체가 있어 코어 변경이 필요 없다 — 구현 인수 M-2) | 모듈 | 브리지는 카탈로그를 못 읽는다. 승인 카드의 핵심 재료다 | G2 |
-| R-5 | `call`·`planned` entry에 입력(비밀 가림 규칙 포함)·모델의 이유·결과 요약을 남긴다. 계약의 `output.mode`도 남겨 "접수 ≠ 완료"를 줄에서 가른다(DC-18). 이유·판정 근거는 `agentcore.Record`에 이미 있는데 모듈의 `recorder`가 옮기지 않을 뿐이라 모듈만으로 된다(구현 인수 M-4). 입력·결과 요약·`output.mode`는 `Record`에 없어 코어 확장이 따른다(M-5). **2026-10-15**: 코어 `Record` 확장은 terra-agent #4로, 모듈·계약·앱 몫은 modules #105로 병합됐다. terra-agent v0.2.0 태그가 없고 modules `go.mod`는 v0.1.0이라 값은 아직 채워지지 않는다 | 모듈 | 설계 §12는 입력이 남는다고 적지만 실제는 없다. 자동 실행된 호출의 인자가 어디에도 없다 | G2 |
+| R-5 | `call`·`planned` entry에 입력(비밀 가림 규칙 포함)·모델의 이유·결과 요약을 남긴다. 계약의 `output.mode`도 남겨 "접수 ≠ 완료"를 줄에서 가른다(DC-18). 이유·판정 근거는 `agentcore.Record`에 이미 있는데 모듈의 `recorder`가 옮기지 않을 뿐이라 모듈만으로 된다(구현 인수 M-4). 입력·결과 요약·`output.mode`는 `Record`에 없어 코어 확장이 따른다(M-5). **2026-10-15**: 코어 `Record` 확장은 terra-agent #4로, 모듈·계약·앱 몫은 modules #105로 병합됐다. terra-agent v0.2.0 태그는 생겼으나 modules `main`의 `go.mod`는 승급 PR(modules #110, 초안·병합 전)까지 v0.1.0이라 `main`에서 값은 아직 채워지지 않는다 | 모듈 | 설계 §12는 입력이 남는다고 적지만 실제는 없다. 자동 실행된 호출의 인자가 어디에도 없다 | G2 |
 | R-6 | 승인 마감 시각(`expires_ms`)을 `pending_approvals`에 넣는다. 실효 = `min(30분, 남은 max_seconds)` | 모듈 | 화면이 계산하면 틀린다 | G2 |
 | R-7 | `messages.stream`에 `id:`와 재개(`after_seq`)를 넣는다 | 모듈 | 이음새 절차(§5.3)로 우회는 되지만 구독 사이의 누락을 서버가 막는 편이 낫다 | G2 |
 | R-8 | 상태 변화를 알린다 — 상태 entry, 또는 `sessions.list`의 `since`·페이지 | 모듈 | 폴링 비용. 지금은 상태를 알려면 `sessions.get`을 불러야 한다 | G3 |
@@ -636,7 +636,7 @@ sequenceDiagram
 | R-16 | 원격 노드 operation 호출 도구(A6의 남은 절반) | 코어 | 화면 8(원격 노드)의 전제다 | G4 |
 | R-17 | §14.3의 문서·계약·소스 불일치를 정리한다. **소스를 정본으로 따른다**(2026-10-11: ⑰은 이 문서를 정정했고 ⑨는 소스 기준을 확인했다 — 나머지는 그대로) | 문서 | 화면이 어느 쪽을 믿을지 정해야 한다 | G1 |
 
-진행 상태(2026-10-15)는 구현 인수 문서 §4.1·§4가 소유한다 — 모듈 쪽 R-2·R-4·R-6은 modules `main`에 병합됐고 R-5는 이유·판정(M-4)에 이어 입력·결과 요약·`output.mode`의 모듈·계약·앱 몫(M-5, #105)과 코어 `Record` 칸(terra-agent #4)이 병합됐다. 코어 v0.2.0 태그가 없어 실제 호출에서는 세 칸이 비어 있다.
+진행 상태(2026-10-15)는 구현 인수 문서 §4.1·§4가 소유한다 — 모듈 쪽 R-2·R-4·R-6은 modules `main`에 병합됐고 R-5는 이유·판정(M-4)에 이어 입력·결과 요약·`output.mode`의 모듈·계약·앱 몫(M-5, #105)과 코어 `Record` 칸(terra-agent #4)이 병합됐다. 코어 v0.2.0 태그는 생겼으나 modules `go.mod` 승급(modules #110, 초안·병합 전)이 남아 `main`의 실제 호출에서는 세 칸이 아직 비어 있다.
 
 앱 안에서 해결하는 것(종류 = 앱): 소유자 필터(R-2 전 임시), 페이지·가상 스크롤, `seq` 이음새, 확인 단계(I16), 거부 기억 표식(I18), 오류 코드 사전, 사용량 합계.
 
@@ -915,7 +915,7 @@ modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 �
 | ③ | 상태도 — 매뉴얼 §3.6 | 한도 초과 → `failed`, `idle` → `archived` | 한도·거절은 `idle`/`done`. `archived`는 모듈이 재시작해 기록을 읽어 올 때 종료 상태 셋을 뺀 모든 상태에 붙는다(`session.go:560-567`) |
 | ④ | 무인 결정표 — 설계 §6.3 | `dangerous` 등은 무인에서 "중단" | 사전 승인된 id는 어느 행이든 실행한다(`approval.go:143-148`) |
 | ⑤ | 위임 흐름 — 매뉴얼 §3.1·UC-01 | `grant` 응답의 자격을 `credential set`에 넘긴다 | CLI가 `token`을 `***`로 가린다(§8.1) |
-| ⑥ | 기록 — 설계 §12 | 각 호출의 operation id와 **입력** | `call` entry에 입력·이유·결과가 없다(`loop.go:482`). 2026-10-11: 이유·판정은 modules #74(M-4)로 생겼다. 2026-10-15: 입력·결과 요약·`output.mode`의 전달 경로가 modules #105(M-5)와 terra-agent #4로 병합됐으나 코어 v0.2.0 태그가 없어 실제 호출에서는 아직 비어 있다 |
+| ⑥ | 기록 — 설계 §12 | 각 호출의 operation id와 **입력** | `call` entry에 입력·이유·결과가 없다(`loop.go:482`). 2026-10-11: 이유·판정은 modules #74(M-4)로 생겼다. 2026-10-15: 입력·결과 요약·`output.mode`의 전달 경로가 modules #105(M-5)와 terra-agent #4로 병합됐고 코어 v0.2.0 태그도 생겼으나 modules `go.mod` 승급(modules #110, 초안·병합 전)이 남아 `main`의 실제 호출에서는 아직 비어 있다 |
 | ⑦ | `mcp.delete` 권한 — 구현 노트 | `mcp.put`만 `agent.external` | 계약은 `mcp.delete`도 `agent.external` |
 | ⑧ | `status.status` | `degraded`가 있다 | 코드는 `ok`만 낸다 |
 | ⑨ | `usage.model_calls` | 계약에 있다 | 코드의 `Usage`에 없다(입력·출력·캐시 읽기·캐시 쓰기 토큰 넷뿐) — 화면은 `steps`를 쓴다. 2026-10-11에 `model.go`·계약 JSON을 다시 읽어도 같다 |
