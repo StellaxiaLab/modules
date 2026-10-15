@@ -20,7 +20,9 @@ import (
 	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
-const moduleVersion = "0.1.0"
+// moduleVersion mirrors module.json "version" (TestModuleVersionMatchesManifest
+// fails when they drift) — bump both in the same change.
+const moduleVersion = "0.3.0"
 
 // envDataDir lets a bench assembly (a hand-launched process, no host) keep its
 // data out of the real module home. A hosted run needs it not: the data home

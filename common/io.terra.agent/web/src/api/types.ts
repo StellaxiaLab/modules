@@ -440,3 +440,20 @@ export const CALL_ERROR_CODES = [
   'GATEWAY_UNREACHABLE',
 ] as const;
 export type CallErrorCode = (typeof CALL_ERROR_CODES)[number];
+
+/**
+ * 실제 스택(Gateway·에이전트 코어)에서 만났지만 계약·요구 목록에는 없던 코드. `call` 줄의 `error_code` 로 오거나(TERRA_*·GATEWAY_*·
+ * Gateway 응답 코드 그대로), 호출 응답으로 온다(MODULE_ROUTE_NOT_FOUND — 모듈이 다시 시작되는 동안 약 1초).
+ * 출처: terra-gateway-service errors.go·master_delegation.go, terra-agent-core tools.go·gateway.go.
+ */
+export const OBSERVED_ERROR_CODES = [
+  'OPERATION_NOT_FOUND',
+  'MODULE_ROUTE_NOT_FOUND',
+  'DELEGATION_NOT_OPEN',
+  'TERRA_UNKNOWN_TOOL',
+  'TERRA_INVALID_ARGUMENTS',
+  'TERRA_INTERNAL',
+  'TERRA_ENCODE_FAILED',
+  'GATEWAY_MALFORMED_RESPONSE',
+] as const;
+export type ObservedErrorCode = (typeof OBSERVED_ERROR_CODES)[number];

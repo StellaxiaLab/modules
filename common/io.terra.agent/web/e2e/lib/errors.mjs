@@ -3,9 +3,10 @@
 // 모듈 오류 15개는 계약(contracts/api/terra-api.json errors)의 httpStatus·retryable 과 같아야 하고,
 // 그 일치는 server/contract.test.mjs 가 매번 대조한다 — 여기를 손으로 고치면 시험이 알려 준다.
 //
-// 봉투 두 가지(전송 어댑터 errors.ts 와 같은 모양):
+// 봉투 두 가지(전송 어댑터 errors.ts 가 읽는 모양):
 //   모듈     {"error":{"code","message"}}                                       (api.go writeAPIError)
-//   Gateway  {"ok":false,"error":{"code","message","retryable","details"},"meta":{…}}
+//   Gateway  {"error":{"code","message","traceId"[,"details","retryable"]}}      (실제: terra-gateway-service writeError·
+//            writeErrorDetails — ok·meta 가 없고, retryable 은 true 일 때만 싣는다)
 // 성공은 모듈 본문 그대로(기본) 이거나, envelope='gateway' 설정일 때 {"ok":true,"data":…,"meta":{…}} 로 감싼다.
 
 export const MODULE_ERRORS = {
@@ -35,6 +36,11 @@ export const GATEWAY_ERRORS = {
   QUOTA_EXCEEDED: { status: 429, retryable: true },
   REQUEST_TOO_LARGE: { status: 413, retryable: false },
   SCOPE_TOKEN_DENIED: { status: 403, retryable: false },
+};
+
+/** 주입으로 만들 수는 없고 서버가 스스로 내는 Gateway 코드(실제 Gateway 의 errors.go). */
+export const GATEWAY_ROUTING_ERRORS = {
+  MODULE_ROUTE_NOT_FOUND: { status: 404, retryable: false },
 };
 
 /** 모듈 코드를 가진 HTTP 오류. 핸들러는 던지고, 바깥 계층이 봉투로 만든다. */
@@ -67,9 +73,14 @@ export function moduleBody(code, message) {
   return { error: { code, message } };
 }
 
-export function gatewayBody(code, message, { retryable, details, requestId = 'req_fake' } = {}) {
-  const known = GATEWAY_ERRORS[code];
-  const error = { code, message, retryable: retryable ?? known?.retryable ?? false };
+/** 실제 Gateway 의 오류 본문. retryable 은 true 일 때만 싣는다(writeError 는 아예 싣지 않는다) — 앱이 코드별 기본을 쓴다. */
+export function gatewayBody(code, message, { retryable, details, traceId = 'trace-fake' } = {}) {
+  const error = { code, message, traceId };
   if (details !== undefined) error.details = details;
-  return { ok: false, error, meta: { request_id: requestId } };
+  if (retryable === true) error.retryable = true;
+  return { error };
 }
+
+/** 호출자가 누구인지 묻는 문구와 권한 부족 문구 — 실제 Gateway server.go admitInvocation 의 것이다. 토큰이 무효·만료인 403 은 앞의 것이다. */
+export const LOGIN_REQUIRED_MESSAGE = (operationId) => `이 operation은 로그인한 호출자가 필요합니다: ${operationId}`;
+export const PERMISSION_DENIED_MESSAGE = (operationId) => `호출에 필요한 권한이 없습니다: ${operationId}`;

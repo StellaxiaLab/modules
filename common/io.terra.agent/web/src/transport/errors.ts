@@ -2,9 +2,11 @@
 //
 // 만나는 모양:
 //   모듈      {"error":{"code","message"}}                            (api.go writeAPIError)
-//   Gateway   {"ok":false,"error":{"code","message","retryable","details"},"meta":{…}}
+//   Gateway   {"error":{"code","message","traceId"[,"details","retryable"]}}   ← 실제(terra-gateway-service writeError)
+//             {"ok":false,"error":{"code","message","retryable","details"},"meta":{…}}   ← 예전에 가정한 모양(읽기는 한다)
 //   브리지    {ok:false,status,error:{code,message}}  (data 없음)       (webAppBridge.ts failure)
 //   그 밖     문자열 오류 · 코드만 있는 최상위 · HTML 본문 · 빈 본문 → UNKNOWN
+// 두 Gateway 모양은 읽는 길이 같다 — 본문의 `error` 객체만 본다(ok·meta 는 있어도 없어도 된다).
 
 import {
   GATEWAY_ERROR_CODES,
@@ -83,6 +85,19 @@ export function isModuleCode(code: string): code is ModuleErrorCode {
 }
 export function isGatewayCode(code: string): code is GatewayErrorCode {
   return GATEWAY_CODES.has(code);
+}
+
+/**
+ * 실제 Gateway 는 토큰이 없으면 401 UNAUTHORIZED 지만, 토큰이 있는데 호출자로 풀리지 않을 때(만료·무효)는
+ * 403 MODULE_PERMISSION_DENIED 로 답한다 — 진짜 권한 부족(\"호출에 필요한 권한이 없습니다\")과 코드·상태가 같다
+ * (terra-gateway-service server.go admitInvocation). 둘을 가르는 신호는 메시지 문구 하나뿐이다: 로그인한 호출자가
+ * 필요하다는 쪽만 이 표지를 가진다. 문구가 바뀌면 이 판별이 조용히 빠지고 403 은 권한 부족 문구로 돌아간다
+ * (tests/transport-errors.test.ts 가 표지를 고정한다).
+ */
+const LOGIN_REQUIRED_MARKER = '로그인한 호출자가 필요';
+
+function isLoginRequired(status: number, rawCode: string | undefined, message: string | undefined): boolean {
+  return status === 403 && rawCode === 'MODULE_PERMISSION_DENIED' && message !== undefined && message.includes(LOGIN_REQUIRED_MARKER);
 }
 
 /** 쓰기 호출이 응답을 못 받았거나 서버가 처리 여부를 확정하지 못한 상태인가. */
@@ -187,6 +202,11 @@ export function normalizeResponse<T = unknown>(method: HttpMethod, raw: unknown)
       code = 'BRIDGE_INVALID_REQUEST';
       source = 'gateway';
     }
+  }
+  // 만료·무효 토큰의 403 은 로그인 끝(UNAUTHORIZED)으로 읽는다. 서버가 보낸 원래 코드는 rawCode 에 남는다.
+  if (isLoginRequired(status, rawCode, fields.message)) {
+    code = 'UNAUTHORIZED';
+    source = 'gateway';
   }
   // 코드가 없는 403 은 권한 거절로 읽지 않는다 — 코드를 모르면 UNKNOWN 이다.
 

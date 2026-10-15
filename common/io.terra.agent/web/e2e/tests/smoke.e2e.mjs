@@ -36,9 +36,9 @@ check('권한 없는 계정: sessions.list 는 403 MODULE_PERMISSION_DENIED(Gate
   const sessions = JSON.parse(await shell.frame.textContent('#sessions'));
   assert.equal(sessions.ok, false);
   assert.equal(sessions.status, 403);
-  assert.equal(sessions.data.ok, false);
   assert.equal(sessions.data.error.code, 'MODULE_PERMISSION_DENIED');
-  assert.ok('meta' in sessions.data, 'Gateway 오류 봉투에는 meta 가 있다');
+  assert.ok(sessions.data.error.traceId, 'Gateway 오류 봉투에는 traceId 가 있다');
+  assert.ok(!('meta' in sessions.data) && !('ok' in sessions.data), '실제 Gateway 오류 봉투에는 ok·meta 가 없다');
 }, PROBE);
 
 check('선언 권한이 비면 BRIDGE_NO_PERMISSIONS — 요청은 Gateway 에 닿지 않는다', async (t) => {
@@ -59,7 +59,7 @@ check('브리지 규칙: 모듈 이름 공간 밖 경로·허용 밖 메서드�
   const method = await shell.call('TRACE', `${MODULE}/status`);
   assert.deepEqual([method.ok, method.status, method.error.code], [false, 405, 'BRIDGE_METHOD_NOT_ALLOWED']);
   assert.equal((await t.control.requests()).length, before);
-  // /api/nodes/ 는 통과한다(가짜 서버에는 그 경로가 없어 평문 404 가 온다 — 봉투가 아니다)
+  // /api/nodes/ 는 통과한다(가짜 서버에는 그 경로가 없어 404 MODULE_ROUTE_NOT_FOUND 가 온다)
   const nodes = await shell.call('GET', '/api/nodes/tree-02/modules/io.terra.agent/v1/status');
   assert.equal(nodes.status, 404);
 }, PROBE);

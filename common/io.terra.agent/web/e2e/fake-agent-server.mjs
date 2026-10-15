@@ -1,7 +1,7 @@
 // 가짜 Gateway + 모듈 서버 — 순수 Node http, 의존 없음.
 //
 // 한 포트가 둘을 겸한다:
-//   · Gateway 쪽  : 권한 교집합(X-Terra-Scope-Permissions ∩ 계정 권한) → 403 MODULE_PERMISSION_DENIED, 오류 주입,
+//   · Gateway 쪽  : 권한 교집합(X-Terra-Scope-Permissions ∩ 계정 권한) → 403 MODULE_PERMISSION_DENIED(엄격 모드의 무효 토큰 포함), 없는 경로·메서드 → 404 MODULE_ROUTE_NOT_FOUND, 오류 주입,
 //                   성공 봉투({ok,data,meta}) 선택, 입구 오류(UNAUTHORIZED·QUOTA_EXCEEDED·REQUEST_TOO_LARGE …).
 //   · 모듈 쪽     : 계약의 operation 19개를 /api/modules/io.terra.agent/v1/… 경로로(lib/routes.mjs, lib/engine.mjs).
 // 모델은 없다 — 시나리오(scenarios/*.mjs)가 "모델의 응답"이다. 제어는 /__control/… (README 참고).
@@ -13,7 +13,7 @@ import http from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { createClock } from './lib/clock.mjs';
 import { createEngine, DEFAULT_FEATURES } from './lib/engine.mjs';
-import { ApiError, GATEWAY_ERRORS, MODULE_ERRORS, gatewayBody, moduleBody } from './lib/errors.mjs';
+import { ApiError, GATEWAY_ERRORS, GATEWAY_ROUTING_ERRORS, LOGIN_REQUIRED_MESSAGE, MODULE_ERRORS, PERMISSION_DENIED_MESSAGE, gatewayBody, moduleBody } from './lib/errors.mjs';
 import { API_PREFIX, compileRoutes, createHandlers } from './lib/routes.mjs';
 import { loadScenarios } from './scenarios/index.mjs';
 
@@ -124,7 +124,8 @@ export async function createFakeAgent(options = {}) {
     const auth = String(headers.authorization ?? '');
     const bearer = /^Bearer fake\.([A-Za-z0-9._-]+)$/.exec(auth);
     if (bearer) return { principal: bearer[1], authenticated: true };
-    if (config.strictGateway) return { principal: '', authenticated: false };
+    // 토큰이 있는데 호출자로 풀리지 않는다(만료·무효) — 아예 없는 것과 Gateway 가 다르게 답한다.
+    if (config.strictGateway) return { principal: '', authenticated: false, tokenPresented: /^\S+\s+\S/.test(auth.trim()) };
     return { principal: String(headers['x-terra-principal'] ?? '').trim(), authenticated: false };
   }
 
@@ -150,26 +151,23 @@ export async function createFakeAgent(options = {}) {
       entry.status = status;
       send(res, status, body, headers);
     };
-    const gatewayFail = (code, message, extra = {}) => finish(extra.status ?? GATEWAY_ERRORS[code]?.status ?? 500, gatewayBody(code, message, { ...extra, requestId: `req_${seq}` }));
+    const gatewayFail = (code, message, extra = {}) =>
+      finish(extra.status ?? GATEWAY_ERRORS[code]?.status ?? GATEWAY_ROUTING_ERRORS[code]?.status ?? 500, gatewayBody(code, message, { ...extra, traceId: `trace-${seq}` }));
 
     let route;
     let params = {};
-    let methodMismatch = false;
     for (const candidate of routes) {
       const match = candidate.regex.exec(url.pathname);
       if (!match) continue;
-      if (candidate.method !== req.method) {
-        methodMismatch = true;
-        continue;
-      }
+      if (candidate.method !== req.method) continue;
       route = candidate;
       params = Object.fromEntries(candidate.names.map((name, index) => [name, decodeURIComponent(match[index + 1])]));
       break;
     }
     if (!route) {
-      // Go 의 ServeMux 가 내는 평문 — 봉투가 아니다(화면은 UNKNOWN 으로 읽어야 한다).
-      if (methodMismatch) return finish(405, 'Method Not Allowed\n', { allow: 'GET, POST, PUT, DELETE' });
-      return finish(404, '404 page not found\n');
+      // 실제 Gateway: 모듈은 있으나 그 메서드·경로의 published route 가 없으면 404 MODULE_ROUTE_NOT_FOUND(JSON).
+      // 메서드가 달라도 405 가 아니다. 모듈이 다시 시작되는 동안에도 잠시 이 답이 온다.
+      return gatewayFail('MODULE_ROUTE_NOT_FOUND', `published route를 찾을 수 없습니다: ${req.method} ${url.pathname}`);
     }
     entry.op = route.operationId;
 
@@ -187,7 +185,11 @@ export async function createFakeAgent(options = {}) {
 
     const identity = resolvePrincipal(req.headers);
     if (config.strictGateway && !identity.authenticated) {
-      return gatewayFail('UNAUTHORIZED', 'the session is missing or has ended');
+      // 실제 Gateway(admitInvocation): 권한을 선언한 operation 은 호출자가 풀리지 않으면 그냥 권한이 없다(진짜 권한 부족과 같은 문구).
+      // 권한을 선언하지 않은 operation(status.get)만 로그인이 필요하다고 말한다 — 토큰이 아예 없으면 401, 있는데 무효·만료면 403 MODULE_PERMISSION_DENIED.
+      if (route.permission) return gatewayFail('MODULE_PERMISSION_DENIED', PERMISSION_DENIED_MESSAGE(route.operationId));
+      if (identity.tokenPresented) return gatewayFail('MODULE_PERMISSION_DENIED', LOGIN_REQUIRED_MESSAGE(route.operationId));
+      return gatewayFail('UNAUTHORIZED', LOGIN_REQUIRED_MESSAGE(route.operationId));
     }
     if (effect.gateway_error) {
       const g = effect.gateway_error;
@@ -209,7 +211,7 @@ export async function createFakeAgent(options = {}) {
       const grants = grantsOf(identity.principal);
       const effective = scope ? grants.filter((p) => scope.includes(p)) : grants;
       if (!effective.includes(route.permission)) {
-        return gatewayFail('MODULE_PERMISSION_DENIED', 'permission denied');
+        return gatewayFail('MODULE_PERMISSION_DENIED', PERMISSION_DENIED_MESSAGE(route.operationId));
       }
     }
 

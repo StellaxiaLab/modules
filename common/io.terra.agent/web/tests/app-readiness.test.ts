@@ -38,6 +38,26 @@ describe('화면 1 — 준비 상태 (앱 통합)', () => {
     expect(guide).toContain('앞 단계를 먼저 해결해 주세요');
   });
 
+  it('만료·무효 토큰(실제 Gateway: 403 MODULE_PERMISSION_DENIED + 로그인 필요 문구)은 권한 부족이 아니라 로그인 끝으로 보인다(B1)', async () => {
+    const app = await open((w) => {
+      w.statusReply = reply.loginRequired();
+      w.modelsReply = reply.loginRequired('io.terra.agent.models.list');
+      w.credentialsReply = reply.loginRequired('io.terra.agent.credentials.get');
+    });
+    const guide = app.text('[data-role=readiness-guide]');
+    expect(guide).toContain('로그인 세션이 끝났습니다');
+    expect(guide).not.toContain('agent.use');
+    expect(app.q('[data-role=new-session]').getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('같은 403 이라도 진짜 권한 부족 문구면 여전히 agent.use 안내다(B1 대조)', async () => {
+    const app = await open((w) => {
+      w.statusReply = reply.gatewayFail(403, 'MODULE_PERMISSION_DENIED', '호출에 필요한 권한이 없습니다: io.terra.agent.status.get');
+    });
+    expect(app.text('[data-role=readiness-guide]')).toContain('agent.use');
+    expect(app.text('[data-role=readiness-guide]')).not.toContain('로그인 세션이 끝났습니다');
+  });
+
   it('모델 미등록: 등록된 기본 모델이 없다고 말한다', async () => {
     const app = await open((w) => {
       w.modelRegistered = false;

@@ -64,6 +64,14 @@ describe('화면 3 — 줄 렌더 12종 + 모르는 종류', () => {
     expect(err.querySelector('details')?.textContent).toContain('HTTP 500');
   });
 
+  it('call: error_code 가 MODULE_PERMISSION_DENIED 면 위임 자격의 권한 부족으로 말하고 사용자 계정의 agent.use 를 탓하지 않는다(B3)', () => {
+    const line = html(e(9, 'call', { subject: 'terra.daemon.modules.by-module-id.restart.post', status: 'error', decision: 'approved', error_code: 'MODULE_PERMISSION_DENIED' }));
+    const text = line.querySelector('details')?.textContent ?? '';
+    expect(text).toContain('MODULE_PERMISSION_DENIED');
+    expect(text).toContain('위임 자격');
+    expect(text).not.toContain('agent.use 권한이 없');
+  });
+
   it('call: 이유(M-4)는 "주장이며 근거가 아니다"로 판정 근거와 갈라 접어 둔다', () => {
     const line = html(e(4, 'call', { subject: 'op', status: 'ok', reason: '재시작이 필요합니다', judgement: 'risk=dangerous', trace_id: 'tr_1' }));
     const detail = line.querySelector('details');

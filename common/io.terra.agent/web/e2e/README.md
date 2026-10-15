@@ -76,7 +76,7 @@ node e2e/serve.mjs --root ../ui --shell-origin http://127.0.0.1:4021   # 앱 정
 ```
 
 - **브리지(셸 쪽)**: 메시지는 정확한 Gateway origin + 그 iframe 의 `contentWindow` 에서 온 것만 받는다. 경로는 `/api/modules/`·`/api/nodes/` 만, 메서드는 GET POST PUT PATCH DELETE, 선언 권한이 비면 `403 BRIDGE_NO_PERMISSIONS`, Gateway 에 못 닿으면 `502 BRIDGE_GATEWAY_UNREACHABLE`. 응답은 `{type:'terra.webapp.response', id, ok, status, data}` 한 번 — **스트림이 없다**. 앱에는 토큰이 없다.
-- **Gateway 쪽**: 호출자는 `Authorization: Bearer fake.<이름>`(엄격 모드 — 토큰이 없으면 `401 UNAUTHORIZED`)이고 서버가 `X-Terra-Principal` 을 찍는다. 앱이 선언한 권한(`X-Terra-Scope-Permissions`) ∩ 계정 권한에 operation 의 권한이 없으면 `403 MODULE_PERMISSION_DENIED`(Gateway 봉투). `status.get` 만 권한이 필요 없다.
+- **Gateway 쪽**: 호출자는 `Authorization: Bearer fake.<이름>`(엄격 모드 — 실제 Gateway 처럼: 권한을 선언하지 않은 `status.get` 은 토큰이 없으면 `401 UNAUTHORIZED`, 토큰이 있는데 무효·만료면 `403 MODULE_PERMISSION_DENIED`("로그인한 호출자가 필요합니다"); 권한을 선언한 operation 은 둘 다 `403 MODULE_PERMISSION_DENIED`("호출에 필요한 권한이 없습니다") — 진짜 권한 부족과 구분되지 않는다)이고 서버가 `X-Terra-Principal` 을 찍는다. 앱이 선언한 권한(`X-Terra-Scope-Permissions`) ∩ 계정 권한에 operation 의 권한이 없으면 `403 MODULE_PERMISSION_DENIED`(Gateway 봉투 `{error:{code,message,traceId}}` — 실제 Gateway 처럼 `ok`·`meta` 가 없고 `retryable` 은 true 일 때만 싣는다). 없는 경로·메서드는 `404 MODULE_ROUTE_NOT_FOUND`(JSON, 405 아님). `status.get` 만 권한이 필요 없다.
 - **모듈 쪽**: `X-Terra-Principal` 이 없으면 `400 INVALID_REQUEST`(M-1; `status`·`models.list`·`mcp.list` 는 보지 않는다 — 소스 그대로). 본문은 모르는 필드·틀린 타입이 400.
 
 단독으로 서버를 띄우면(`fake-agent-server.mjs`) 엄격 모드가 꺼져 있어 `X-Terra-Principal` 헤더를 직접 준다. `stack.mjs`·`run.mjs` 는 엄격 모드다.
@@ -118,7 +118,7 @@ node e2e/serve.mjs --root ../ui --shell-origin http://127.0.0.1:4021   # 앱 정
 | effect | 일어나는 일 |
 | --- | --- |
 | `{module_error:{code, message?, status?}}` | 모듈 오류 봉투 `{error:{code,message}}` — 15개 코드 어느 것이든 |
-| `{gateway_error:{code, status?, retryable?, details?}}` | Gateway 봉투 `{ok:false,error:{…},meta}` — 7개 코드(`MODULE_UNAVAILABLE`·`MODULE_PERMISSION_DENIED`·`MODULE_INVOCATION_TIMEOUT`·`UNAUTHORIZED`·`QUOTA_EXCEEDED`·`REQUEST_TOO_LARGE`·`SCOPE_TOKEN_DENIED`) |
+| `{gateway_error:{code, status?, retryable?, details?}}` | Gateway 봉투 `{error:{code,message,traceId[,details,retryable]}}` — 7개 코드(`MODULE_UNAVAILABLE`·`MODULE_PERMISSION_DENIED`·`MODULE_INVOCATION_TIMEOUT`·`UNAUTHORIZED`·`QUOTA_EXCEEDED`·`REQUEST_TOO_LARGE`·`SCOPE_TOKEN_DENIED`) |
 | `{status:502, body:'<html>…', content_type?}` | 봉투가 아닌 본문(UNKNOWN 으로 읽혀야 한다) |
 | `{delay_ms}` | 응답을 늦춘다(시간 초과 시험) |
 | `{hang:true}` | 응답하지 않는다 |

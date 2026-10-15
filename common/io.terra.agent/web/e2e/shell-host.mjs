@@ -11,7 +11,8 @@
 //   app=<경로>              앱 진입점. 기본 /api/v1/gui/apps/io.terra.agent/files/ui/index.html
 //   principal=<이름>        로그인한 사용자(Authorization: Bearer fake.<이름>). 기본 alice
 //   permissions=a,b         앱 매니페스트가 선언한 권한. 기본 agent.use. `permissions=` 로 비우면 BRIDGE_NO_PERMISSIONS
-//   login=0                 토큰 없이 부른다 — strict_gateway 일 때 401 UNAUTHORIZED
+//   login=0                 토큰 없이 부른다 — strict_gateway 일 때 status.get 은 401 UNAUTHORIZED
+//   login=expired           호출자로 풀리지 않는 토큰(Bearer expired)으로 부른다 — strict_gateway 일 때 status.get 은 403 MODULE_PERMISSION_DENIED(로그인 필요 문구)
 //   hello=ignore            hello 에 답하지 않는다(BRIDGE_HANDSHAKE_TIMEOUT 시험)
 //   hello_delay_ms=<ms>     ready 를 늦춘다
 //   response_delay_ms=<ms>  모든 response 를 늦춘다
@@ -35,7 +36,8 @@ const gatewayOrigin = config.gatewayOrigin;
 const principal = query.get('principal') ?? 'alice';
 const permissions = query.has('permissions') ? query.get('permissions').split(',').map((p) => p.trim()).filter(Boolean) : ['agent.use'];
 const appPath = query.get('app') ?? config.defaultAppPath;
-const token = query.get('login') === '0' ? undefined : `fake.${principal}`;
+const login = query.get('login');
+const token = login === '0' ? undefined : login === 'expired' ? 'expired' : `fake.${principal}`;
 const helloMode = query.get('hello');
 const helloDelayMs = Number(query.get('hello_delay_ms') ?? 0);
 const responseDelayMs = Number(query.get('response_delay_ms') ?? 0);

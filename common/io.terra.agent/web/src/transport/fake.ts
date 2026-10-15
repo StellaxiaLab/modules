@@ -29,9 +29,13 @@ export const reply = {
   fail(status: number, code: string, message = code, delayMs?: number): FakeReply {
     return { kind: 'raw', raw: { ok: false, status, data: { error: { code, message } } }, ...(delayMs !== undefined ? { delayMs } : {}) };
   },
-  /** Gateway 오류 봉투 `{ok:false,error:{code,message,retryable},meta}`. */
+  /** Gateway 오류 봉투 — 실제 모양 `{error:{code,message,traceId[,retryable]}}`(retryable 은 true 일 때만 싣는다). */
   gatewayFail(status: number, code: string, message = code, retryable = false): FakeReply {
-    return { kind: 'raw', raw: { ok: false, status, data: { ok: false, error: { code, message, retryable }, meta: { request_id: 'fake' } } } };
+    return { kind: 'raw', raw: { ok: false, status, data: { error: { code, message, traceId: 'trace-fake', ...(retryable ? { retryable: true } : {}) } } } };
+  },
+  /** 토큰이 있는데 호출자로 풀리지 않을 때(만료·무효)의 실제 Gateway 답: 403 MODULE_PERMISSION_DENIED + 로그인 필요 문구. */
+  loginRequired(operation = 'io.terra.agent.status.get'): FakeReply {
+    return reply.gatewayFail(403, 'MODULE_PERMISSION_DENIED', `이 operation은 로그인한 호출자가 필요합니다: ${operation}`);
   },
   /** 셸 브리지가 만드는 오류 응답(data 없이 error). */
   bridgeFail(status: number, code: string, message = code): FakeReply {
