@@ -317,10 +317,10 @@ test('leaf — 누르기 전 자물쇠: 위임 입구가 연 읽기는 잠그지
   assert.equal(reaches({ has: () => false }, 'terra.master.nodes.get'), false, 'has 만 가진 가짜 클라이언트는 has 로 본다');
 });
 
-test('위임 대응표 — 읽기는 GET, 쓰기는 연 것뿐(ADR-GW-004 2a 바인딩 · 2b 허가, ADR-GW-007 3a 내 job 취소)이고 Master 경로다', () => {
+test('위임 대응표 — 읽기는 GET, 쓰기는 연 것뿐(ADR-GW-004 2a 바인딩 · 2b 허가, ADR-GW-007 3a 내 job 취소 · 3b 다시 실행)이고 Master 경로다', () => {
   const ids = Object.keys(MASTER_DELEGATED);
   const writes = ids.filter((id) => MASTER_DELEGATED[id][0] !== 'GET').sort();
-  assert.deepEqual(writes, ['terra.master.jobs.by-job-id.cancel.post', 'terra.master.svi.bindings.by-binding-id.delete', 'terra.master.svi.bindings.post',
+  assert.deepEqual(writes, ['terra.master.jobs.by-job-id.cancel.post', 'terra.master.jobs.by-job-id.rerun.post', 'terra.master.svi.bindings.by-binding-id.delete', 'terra.master.svi.bindings.post',
     'terra.master.svi.grants.by-grant-id.delete', 'terra.master.svi.grants.by-grant-id.patch', 'terra.master.svi.grants.post']);
   assert.equal(ids.length - writes.length, 28, '1차 읽기 28');
   for (const id of ids) {
