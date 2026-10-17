@@ -389,7 +389,7 @@ test('tree — 누르기 전 자물쇠: 닫힌 Master 쓰기는 폼으로 가는
   const noRelay = treeClient(); noRelay.catalog.delete(RELAY_OP);
   const s2 = new LiveSource(noRelay, { localNode: 'tree-home', localId: 'node_t', idOf: () => 'node_b' });
   assert.equal(s2.lockFor('job', 'run', 'leaf-b'), reason, '명령 보내기(폼 동작)');
-  assert.equal(s2.lockFor('job', 'cancel', 'leaf-b'), reason, '다른 노드 작업 취소');
+  assert.equal(s2.lockFor('job', 'cancel', 'leaf-b'), null, '다른 노드 작업 취소 — 3a(jobs.by-job-id.cancel.post)가 열었다');
   assert.equal(source.lockFor('svi', 'open', 'tree-home'), reason, '핸들 열기');
   assert.equal(source.lockFor('grant', 'revoke', 'tree-home'), null, '허가 지우기는 열려 있다');
   assert.equal(source.lockFor('grant', 'unbind', 'tree-home'), null, '바인딩 끊기는 열려 있다');
@@ -405,6 +405,14 @@ test('tree — 닫힌 Master 쓰기는 폼을 저장해도 부르지 않는다(c
   const g = await source.crud('tree-home', 'grant', 'create', { who: 'node_b', res: 'r1', ops: 'read', ttl: '1시간' }, null, {});
   assert.notEqual(g && g.reason, 'DELEGATION_NOT_OPEN');
   assert.equal(f.calls.length, 1);
+  // 3a — 작업 취소는 commands.post{process.cancel.request} 가 아니라 위임 입구가 연 jobs.by-job-id.cancel.post (작업 id 는 경로 칸)
+  const f2 = fakeFetch(() => json(200, { ok: true, data: {} }));
+  const noRelay = treeClient(); noRelay.catalog.delete(RELAY_OP); noRelay.fetch = f2;
+  const s2 = new LiveSource(noRelay, { localNode: 'tree-home', localId: 'node_t', idOf: () => 'node_b' });
+  const x = await s2.crud('leaf-b', 'job', 'del', null, { id: 'job_7' }, {});
+  assert.notEqual(x && x.reason, 'DELEGATION_NOT_OPEN');
+  assert.equal(f2.calls.length, 1);
+  assert.match(f2.calls[0].url, /jobs\.by-job-id\.cancel\.post|jobs\/job_7\/cancel/);
 });
 
 // ───── NODE_OFFLINE — 막 시작한 노드의 중계 (§5.11) ─────
