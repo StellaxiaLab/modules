@@ -2499,7 +2499,7 @@ export default class Component extends DCLogic {
         api: { list: 'terra.daemon.wireguard.peers.get · wireguard.status.get', add: '⚠ 피어는 mesh 가입으로 생긴다 — terra.master.network.mesh.*', edit: '⚠ 피어를 고치는 op 없음 — 동기화(wireguard.sync.post)', del: 'terra.master.network.mesh.wireguard.peers.revoke.post (되돌릴 수 없다)' },
         make: () => ({ hs: '없음', health: 'never' }) },
       job: { need: ['process.execute'], key: 'cmd', fields: [TX('cmd', '명령', 'uptime')],
-        api: { list: 'terra.master.jobs.get · jobs.by-job-id.get ⚠', add: 'terra.master.commands.post {type: process.execute.request}', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행', del: 'commands.post {type: process.cancel.request} — 기록은 Master에 남는다' },
+        api: { list: 'terra.master.jobs.get · jobs.by-job-id.get ⚠', add: 'terra.master.commands.post {type: process.execute.request}', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행', del: 'terra.master.jobs.by-job-id.cancel.post — 기록은 Master에 남는다' },
         make: () => ({ id: 'job_' + uid(), state: 'running', t: 0, fin: 2, fout: '완료' }) },
       mod: { need: ['module.manage'], key: 'name', fields: [TX('name', '이름', '새 모듈'), TX('id', '모듈 id', 'local.my-module'), TX('ver', '버전', '0.1.0'), BO('gui', 'GUI 제공'), TX('ui', 'GUI 주소', '/ui/')],
         api: { list: 'terra.daemon.modules.get · tree: terra.master.nodes.by-node-id.modules.get', add: 'terra.master.nodes.by-node-id.modules.assignments.post {module_id, version} — 이 노드에만 깔린다', edit: 'terra.daemon.modules.by-module-id.config.patch {values, unset, base_revision} — 칸은 config.schema.get으로 만든다 · 실행 중이면 재시작', del: 'nodes.by-node-id.modules.assignments.by-module-id.delete — 지정을 풀면 retire' },
