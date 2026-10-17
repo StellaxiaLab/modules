@@ -136,7 +136,8 @@ export const HELM_APPS = {
     acts: {
       run: { op: T('commands.post'), where: 'T', perm: 'process.execute', resp: 'job', form: 'add', gate: '직계 자식만 (DELEGATION_REQUIRED)' },
       rerun: { op: T('commands.post'), where: 'T', perm: 'process.execute', resp: 'job' },
-      cancel: { op: T('commands.post'), where: 'T', perm: 'process.execute + process.cancel★', resp: 'job', input: { type: 'process.cancel.request' } },
+      // 3a(ADR-GW-007) — 위임 입구가 연 취소 라우트. 작업 id 는 경로 칸(by-job-id)이다. 본인 작업만(남의 것은 404)
+      cancel: { op: T('jobs.by-job-id.cancel.post'), where: 'T', perm: 'node.control', resp: 'job' },
       out: { op: T('jobs.by-job-id.get'), where: 'T', perm: 'node.read', resp: 'now', note: '출력은 폴링 — stdout · stderr 64 KiB' }
     },
     // 이 노드 자신의 작업은 Daemon 이 안다 — Master 를 거치지 않는다.
@@ -330,7 +331,7 @@ export const HELM_CRUD = {
   job: {
     create: { op: T('commands.post'), where: 'T', body: (v, it, ctx) => ({ target_node_id: ctx.nodeId, type: 'process.execute.request', payload: cmdLine(v.cmd) }) },
     update: null,   // 작업은 고칠 수 없다 — 다시 실행
-    del: { op: T('commands.post'), where: 'T', body: (v, it, ctx) => ({ target_node_id: ctx.nodeId, type: 'process.cancel.request', payload: { job_id: it.id } }), keep: true, verb: '취소' },
+    del: { op: T('jobs.by-job-id.cancel.post'), where: 'T', body: (v, it) => ({ job_id: it.id }), keep: true, verb: '취소' },
     // 이 노드 자신의 작업은 Daemon 이 받는다 — 명령 · 인자만(작업 id 는 202 의 task_id)
     // 명령 실행은 Daemon 이 원격으로 열지 않는다(scopes local) — 다른 노드는 노드 주소 호출로 닿아도 Master 명령으로 간다(localOnly)
     local: {
@@ -362,7 +363,7 @@ export const CRUD_TEXT = {
   xfer: { list: 'io.terra.file.transfers.list', add: '↑ 올리기 — io.terra.file.transfers.create → transfers.chunks.put → transfers.complete · 받기는 폴더 앱 — transfers.pulls.create → transfers.chunks.get → transfers.pulls.complete', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시 · 멈춘 전송은 카드의 이어서(resume_id · 이 브라우저에 받아 둔 조각)', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
   tunnel: { list: 'terra.daemon.service-tunnels.get + terra.master.service-tunnels.declarations.get', add: '선언 terra.master.service-tunnels.declarations.post · 즉석 terra.master.service-tunnels.open.post', edit: '⚠ 고치는 op 없음 — 지우고 다시', del: 'terra.daemon.service-tunnels.by-tunnel-id.close.post · 선언은 terra.master.service-tunnels.declarations.by-declaration-id.delete' },
   wg: { list: 'terra.daemon.wireguard.peers.get · wireguard.status.get', add: '⚠ 피어는 mesh 가입으로 생긴다', edit: '⚠ 피어를 고치는 op 없음 — 동기화(wireguard.sync.post)', del: 'terra.master.network.mesh.wireguard.peers.revoke.post {source_node_id · target_node_id} (되돌릴 수 없다)' },
-  job: { list: 'terra.daemon.tasks.get · tree: terra.master.jobs.get', add: 'terra.daemon.commands.execute.post · tree: terra.master.commands.post', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행(terra.daemon.tasks.by-task-id.rerun.post {confirmed} · 출력은 tasks.by-task-id.output.get)', del: 'terra.daemon.tasks.by-task-id.cancel.post · tree: commands.post {process.cancel.request}' },
+  job: { list: 'terra.daemon.tasks.get · tree: terra.master.jobs.get', add: 'terra.daemon.commands.execute.post · tree: terra.master.commands.post', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행(terra.daemon.tasks.by-task-id.rerun.post {confirmed} · 출력은 tasks.by-task-id.output.get)', del: 'terra.daemon.tasks.by-task-id.cancel.post · tree: terra.master.jobs.by-job-id.cancel.post' },
   mod: { list: 'terra.daemon.modules.get · GUI는 /api/v1/gui/apps', add: '⚠ 모듈 설치 op 없음 — 제안 terra.gateway.modules.post (패키지 · 서명)', edit: 'terra.daemon.modules.by-module-id.config.patch {values · unset · base_revision} — 칸은 terra.daemon.modules.by-module-id.config.schema.get · 값은 terra.daemon.modules.by-module-id.config.get · 실행 중이면 재시작', del: '⚠ 모듈 제거 — 제안 terra.gateway.modules.by-module-id.delete' }
 };
 

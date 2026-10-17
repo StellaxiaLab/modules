@@ -37,6 +37,7 @@
             "file.read",
             "file.write",
             "process.execute",
+            "process.execute.delegated",
             "module.manage"
           ]
         }
