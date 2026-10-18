@@ -153,7 +153,7 @@ related:
 - 모듈 API 목록은 일반 앱을 "런처·dock이 연다 — 코어 P0(`gui.apps.get`)가 이미 한다"고 적는다(§1).
 - 그러나 통합 셸 8화면(런처 홈·앱 등)은 base 분기 설계로 없어졌고(§0-4), node-gui가 `/api/v1/gui/apps`를 읽어 모듈 목록에 `gui`·`ui` 표시를 붙이는 것까지만 확인했다. **사람이 일반 앱을 실제로 여는 현재 경로는 소스에서 확인하지 못했다** `[I]`.
 - 그래서 결정 D-8로 올린다. 이 문서의 요구(§3~§7)는 앱이 어떻게 열리든 같다.
-- **그 뒤 소스로 확인했다(실행 시험은 하지 않았다)** `[V]` — 런처 "Terra Apps"(`io.terra.webapp-host`의 정적 앱, 권한 선언 없음)가 `/api/v1/gui/apps`를 읽어, 셸 안에서는 부모 셸에 `terra.webapp.mountApp`을 보내 dock에 띄우고(`ui/launcher.js` 354행), 셸 밖에서는 `/api/v1/gui/apps/<앱 id>/files/<entry>`를 새 탭으로 연다(같은 파일 385~392·711행 — 이때는 브리지가 없다). 앱 자산의 CSP는 `frame-ancestors`를 셸로 좁히고 인라인 스크립트를 막는다(`gui_apps.go:458`). 위 `[I]`는 이 경로로 풀린다 — D-8은 사용자 확인만 남았다. 포장·브리지·CSP의 확인된 규칙은 [[docs/implementation/terra-agent-gui-plan|구현 인수 문서]] §5.1에 모았다.
+- **그 뒤 소스로 확인했다(실행 시험은 하지 않았다)** `[V]` — (런처는 2026-10-18 삭제됨; 당시 기록) 런처 "Terra Apps"(`io.terra.webapp-host`의 정적 앱, 권한 선언 없음)가 `/api/v1/gui/apps`를 읽어, 셸 안에서는 부모 셸에 `terra.webapp.mountApp`을 보내 dock에 띄우고(`ui/launcher.js` 354행), 셸 밖에서는 `/api/v1/gui/apps/<앱 id>/files/<entry>`를 새 탭으로 연다(같은 파일 385~392·711행 — 이때는 브리지가 없다). 앱 자산의 CSP는 `frame-ancestors`를 셸로 좁히고 인라인 스크립트를 막는다(`gui_apps.go:458`). 위 `[I]`는 이 경로로 풀린다 — D-8은 사용자 확인만 남았다. 포장·브리지·CSP의 확인된 규칙은 [[docs/implementation/terra-agent-gui-plan|구현 인수 문서]] §5.1에 모았다.
 
 ## 3. 작업과 화면 묶음
 
@@ -970,7 +970,7 @@ modules 저장소에 올라온 화면 디자인을 이 문서와 항목별로 �
 
 - [io.terra.agent](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.agent) — 이 화면이 부르는 모듈
 - [io.terra.nodetalk](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.nodetalk) — 서비스 모듈이 자기 `ui/` 앱을 싣는 선례(대화방)
-- [io.terra.webapp-host](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.webapp-host) — 브리지 handshake의 참조 구현
+- [io.terra.webapp-host](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.webapp-host) — (삭제됨 2026-10-18, 링크는 git 이력) 브리지 handshake의 참조 구현
 - [lab.stellaxia.node-gui](https://github.com/StellaxiaLab/modules/tree/main/common/lab.stellaxia.node-gui) — main GUI. 앱 목록을 읽어 모듈에 `gui` 표시를 붙인다
 - [AgentGUI.dc.html](https://github.com/StellaxiaLab/modules/blob/73db5967a506f762f9c34ac7c7886d409601a8cd/common/io.terra.agent/web/design/AgentGUI.dc.html) · [AgentGUILive.dc.html](https://github.com/StellaxiaLab/modules/blob/73db5967a506f762f9c34ac7c7886d409601a8cd/common/io.terra.agent/web/design/AgentGUILive.dc.html) — 이 문서와 다섯 번 대조한 화면 디자인과 동작하는 화면(위 두 링크는 modules `main`의 `common/io.terra.agent/web/design/`, 처음엔 브랜치 `design/terra-agent-gui`, §13). 세 번째 판은 [`e27d389`](https://github.com/StellaxiaLab/modules/blob/e27d389797dedc776197b73c7d9870b5aee05a52/common/io.terra.agent/web/design/AgentGUI.dc.html), 두 번째 판은 [`08a3914`](https://github.com/StellaxiaLab/modules/blob/08a39148505568cf34c59626a92bd6c8fbcce460/common/io.terra.agent/web/design/AgentGUI.dc.html), 처음 판은 [`0ae91c5`](https://github.com/StellaxiaLab/modules/blob/0ae91c51027cf23507824797f45fee0d126d29a6/common/io.terra.agent/web/design/AgentGUI.dc.html) 다섯 번째 판은 브랜치 `design/agent-gui-dc22-29`의 [`c378a12`](https://github.com/StellaxiaLab/modules/blob/c378a1229ceca4464a6225bf477082a5a65f97bb/common/io.terra.agent/web/design/AgentGUI.dc.html)이고, 그 브랜치(후속 `368210a` 포함)는 modules #81로 `main`에 병합됐다
 - `products/common/packages/terra-agent-core` — 승인 판정 `Decide`, 메타도구

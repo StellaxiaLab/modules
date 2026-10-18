@@ -83,7 +83,7 @@ TERRA_CHECKOUT=../Terra node tree/io.terra.treebench/tools/generate-contract-map
 ### 제품 배치
 
 모듈이 설치되면 Gateway가 `contributions.gui.apps`를 스캔해
-`/apps/io.terra.treebench`에 올리고, 런처(`io.terra.webapp-host`) 목록에
+`/apps/io.terra.treebench`에 올리고, main GUI(`lab.stellaxia.node-gui`)의 앱 목록에
 나타난다. 모듈 호스트가 프로세스를 기동하면서 워크로드 자격을 발급하고
 라우트를 게시하므로 머신 채널 중계도 함께 산다.
 
