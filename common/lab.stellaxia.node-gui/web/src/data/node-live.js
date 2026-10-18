@@ -197,6 +197,22 @@ export function realNode(Screen) {
       return super.hbDel(app, id, node);
     }
 
+    // 🖥 GUI 열기 — 다른 모듈의 앱은 이 화면이 열지 못한다(스코프 토큰으로는 앱 토큰을 못 받는다: SCOPE_TOKEN_DENIED).
+    // 그래서 앱 id만 셸에 넘긴다: terra.emit('launch', appId) → Scene node-gui.app.launch → terra.app:launch → 셸의 WebAppDock.
+    // 앱 토큰은 셸이 사용자 세션으로 발급하고, 설치된 앱인지도 셸이 가린다(아니면 그 이유를 알린다).
+    // 보낼 수 없을 때(Terra 밖 · 다른 노드 · 앱 없음)는 종전처럼 창이 이유를 적는다.
+    mguiOpen(node, id) {
+      const it = (this.hbItems(node, 'mod') || []).find((x) => x.id === id) || {};
+      const app = (it.apps || [])[0], terra = this.__terra;
+      const local = this.state.localNode && node === this.state.localNode.name;
+      if (terra && local && it.gui && it.id !== SELF_MODULE && app && app.id) {
+        terra.emit('launch', String(app.id));
+        this.hbSay((app.name || it.name) + ' 앱을 연다 — Terra 셸이 연다', '#7aa7ff');
+        return;
+      }
+      return super.mguiOpen(node, id);
+    }
+
     // 모듈 GUI 창 — 다른 모듈의 앱은 이 창(iframe) 안에 띄울 수 없다: 앱마다 origin · 스코프 토큰이 따로고
     // terra.web/frame 은 자기 모듈의 앱만 감싼다. 무엇을 할 수 있는지 그대로 적는다
     mguiVals() {
