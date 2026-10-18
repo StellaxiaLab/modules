@@ -354,6 +354,26 @@ test('실데이터 층 — 모듈 GUI 창은 다른 모듈의 앱을 이 창에 
   assert.match(s.mguiVals().stopMsg, /GUI를 제공하지 않는다/);
 });
 
+test('실데이터 층 — 🖥 GUI 열기는 다른 모듈의 앱 id를 셸에 넘긴다(terra.emit launch) · 넘길 수 없을 때만 창이 이유를 적는다', () => {
+  const s = signedIn(), local = s.state.localNode.name, sent = [];
+  s.hbPut(local, 'mod', [
+    { id: 'lab.x', name: 'X', state: 'running', gui: true, ui: '/apps/lab.x.web', apps: [{ id: 'lab.x.web', name: 'X 앱' }] },
+    { id: 'lab.stellaxia.node-gui', name: 'Terra 노드', kind: 'scene', gui: true, apps: [{ id: 'lab.stellaxia.node-gui.web', name: 'Terra 노드' }] },
+    { id: 'io.terra.file', name: 'File', state: 'running', gui: false }
+  ]);
+  s.__terra = { emit: (event, value) => sent.push([event, value]) };
+  s.mguiOpen(local, 'lab.x');
+  assert.deepEqual(sent, [['launch', 'lab.x.web']]);
+  assert.equal(s.state.mgui, null, '셸이 여니 이 화면의 창은 열지 않는다');
+  s.mguiOpen(local, 'lab.stellaxia.node-gui');
+  s.mguiOpen(local, 'io.terra.file');
+  assert.equal(sent.length, 1, '자기 자신 · GUI 없는 모듈은 보내지 않는다');
+  assert.equal(s.mguiVals().on, true, '자기 자신 · GUI 없는 모듈은 창이 이유를 적는다');
+  s.__terra = null;
+  s.mguiOpen(local, 'lab.x');
+  assert.match(s.mguiVals().stopMsg, /셸의 앱 목록에서 X 앱/, 'Terra 밖이면 종전 안내');
+});
+
 test('실데이터 층 — 상태 화면의 노드 "로그인" 줄은 이 화면의 세션을 적는다(로그인 전을 "로그인됨"으로 그리지 않는다) · 메모 경로는 이 브라우저', () => {
   const login = (s) => (s.rstVals().kv || []).find((r) => r.k === '로그인').v;
   const out = new (prep('node', NodeScreen))({ skin: 'grass' });

@@ -20,7 +20,8 @@
     "contract/functions/signin.submit.function.json",
     "contract/functions/signout.function.json",
     "contract/functions/login.open.function.json",
-    "contract/functions/login.close.function.json"
+    "contract/functions/login.close.function.json",
+    "contract/functions/app.launch.function.json"
   ],
   "stores": [
     "contract/stores/credentials.store.json",

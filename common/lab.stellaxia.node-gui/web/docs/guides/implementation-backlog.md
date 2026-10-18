@@ -86,7 +86,7 @@ flowchart LR
   PF1 --> MD13["MD-13 tree CRUD E2E"]
   PF1 --> PF17["PF-17 문서 변경 신호"]
   PF1 -.->|"앱 토큰엔 빈 흐름도"| MD23
-  PF15["PF-15 셸의 앱 열기 — 남음"] --> MD14["MD-14 모듈 GUI 열기"]
+  PF15["PF-15 셸의 앱 열기 — 구현(실측 전)"] --> MD14["MD-14 모듈 GUI 열기"]
   DES["디자인: 입출력 설정 화면"] --> MD1
   DES --> MD2["MD-2 자원 설정 창 입출력"]
   MD1 -.->|"쪼갬 — §5"| IOD["입출력 연결 설계<br/>MD-27~MD-33 · UP-25~UP-31 · PF-18~PF-23"]
@@ -111,7 +111,7 @@ flowchart LR
 | **PF-9** | 앱 자산 CSP `frame-ancestors`에 앱 자신의 origin | 반쯤 — B-17 `--gui-frame-ancestors`(배치 설정)가 생겼다. 기본값은 그대로라 srcdoc 3겹 우회를 남긴다 | 우회로 돈다 | 낮음 |
 | **PF-10** | `terra.gateway.*`을 invoke로 부르면 앱 토큰이 익명이 된다 | 원인을 찾았다 — 게이트웨이는 자기 op를 loopback으로 되돌리는데 앱 토큰은 싣지 않는다. whoami뿐 아니라 사용자 문서(`me.documents`)도 invoke로는 403이었다. **고쳐 올렸다 — [Terra#118](https://github.com/StellaxiaLab/Terra/pull/118)**(자기 op는 프로세스 안에서 답한다 · 진짜 스택 실측) | 없음 — 모듈은 경로로 부른다(whoami · `me/documents` — `client.get` · `client.request`). #118이 들어가면 operationId로 바꿔도 된다 | 낮음 |
 | **PF-14** | 모듈 설치 · 제거 | 반쯤 — B-6 노드 지정(`nodes.by-node-id.modules.assignments.*`, `module.manage`★)이 생겼지만 Master op라 PF-1에 막힌다 — 쓰기라 ADR-GW-003의 2차다. **설정은 열렸다** — Daemon `modules.by-module-id.config.*`(Terra main `3195421`, 쓰기는 `module.manage`★) → MD-22 | 모듈 앱의 `＋ 추가` · `🗑` | 낮음 |
-| **PF-15** | 앱 안에서 **다른 모듈의 GUI**를 여는 길 | 남았다 — 스코프 토큰으로는 앱 토큰을 발급받지 못한다(실측 `SCOPE_TOKEN_DENIED` "앱 스코프 토큰 발급에는 사용자 세션이 필요합니다" — 설계대로). 셸에 "앱 열기" 요청(예: `emit('open-app', { app })`)이 필요하다 | 모듈 GUI 창(`🖥`) | 중간 |
+| **PF-15** | 앱 안에서 **다른 모듈의 GUI**를 여는 길 | 구현됨(단위 시험까지, 실기계 실측 전) — `terra.emit('launch', appId)` → Scene `node-gui.app.launch` → `terra.app:launch` → 셸 WebAppDock. 앱 토큰은 셸이 사용자 세션으로 발급한다(스코프 토큰은 `SCOPE_TOKEN_DENIED` — 설계대로) | 모듈 GUI 창(`🖥`) | 중간 |
 | **PF-16** | 노드의 공유 목록 | 반쯤 — C-3 노드 주체 허가 = 흐름 허용 목록(G6). 읽기가 Master `svi.grants.get {node_id …}` — ADR-GW-003 1차로 닿는다(2026-10-09) | 상태 화면의 공유 목록 · 네트워크 창의 공유 그래프 | 낮음 |
 | **PF-17** | 앱 토큰으로 받는 **사용자 문서 변경 신호** | 새로 찾았다 — 문서를 쓰면 Master가 그 사람에게만 `terra.documents.changed`를 낸다(`announceDocument`). 앱 토큰의 이벤트는 이 노드 Daemon 것(`terra.daemon.events.get`)이라 그 신호가 오지 않는다. Master 이벤트는 PF-1 경계 — ADR-GW-003은 Master SSE를 2차로 미뤘다(필터 주체와 함께) | 다른 창 · 기기가 바꾼 배치를 곧장 받지 못한다 — 다음 쓰기의 409 알림 · 새로 고침에 받는다(MD-15). 길: 게이트웨이가 앱 이름공간(`app:<appId>`)의 문서 신호만 그 앱 토큰의 SSE에 실어 준다 | 낮음 |
 | **PF-25** | 앱 토큰으로 읽는 **노드 사용량**(CPU · 메모리 · 디스크 %) | 없다 — leaf 게이트웨이 카탈로그(117개)에 사용량 op가 없고 `agent/nodes`도 주지 않는다. Master에는 `GET /api/v1/monitor/snapshot`(`cpu_percent` · `memory_percent` · `disk_percent` · `measured`)이 있으나 leaf 게이트웨이가 게시하지 않아 `terra.master.monitor.snapshot.get`이 `MODULE_ROUTE_NOT_FOUND`다. Daemon에도 procfs 모니터(`data_plane/monitoring`)가 있으나 op가 없다 | 노드 카드 사용량 막대(MD-36 — 받은 값만 그린다) | 중간 |
@@ -145,7 +145,7 @@ flowchart LR
 | **MD-9** | Terra 세션 띠의 디자인 자리 | 로그인 · 로그아웃 띠는 모듈이 그린 흰 캡슐이다(`frame-session.js`) — 원본 디자인에 자리가 없다 | 디자인 | 낮음 |
 | **MD-10** | 번들에 남은 예시 문자열 | 원본 미리보기의 예시 상수가 번들에 **문자열로** 남는다(화면 · 요청에는 나가지 않는다 — 시험이 지킨다). 지우려면 원본 미리보기 데이터를 따로 떼야 한다 | 원본 작업 방식 | 낮음 |
 | **MD-13** | tree 게이트웨이에서 Master 쪽 추가 · 수정 · 삭제 E2E | **tree 스택에서 돌렸다**(2026-10-11, Terra `main` `c82c24e2` · [[real-data-layer\|실데이터 층]] §5.11 · `web/tools/live-tree-up.sh` · `live-tree.mjs` 38개 통과). 위임 입구가 연 쓰기 다섯(`svi.grants.post·patch·delete` · `svi.bindings.post·delete`)은 operation id 길로 **전부 동작**한다 — 허가 만들기·줄이기·지우기, 가드 거절 6종, 바인딩 `active`·데이터·`closed`. **터널 선언·열기 · 피어 철회 · mesh 조정 · Master `commands.post`(다른 노드 작업)는 `403 DELEGATION_NOT_OPEN`**(Terra `delegated_routes.go`가 닫아 둠, 본문 모양은 확인 못 함). 중계 길의 선언 쓰기는 앱에 `node.config`가 없어 `remote-denied`, 다른 노드 `commands.execute`는 `not-remote`. **(2026-10-12) tree 화면 잠금을 했다** — `MASTER_DELEGATED`로 닫힌 쓰기는 카드 단추 · 폼 동작 · 폼 저장 모두 "Master 문에서 아직 열리지 않았다 — ADR-GW-004/007"로 잠긴다([[real-data-layer\|실데이터 층]] §5.11 후속 ①). 앱 토큰 동시 갱신이 서로를 죽이는 것을 막았고(`frame-token.js`), 막 시작한 노드의 `409 NODE_OFFLINE`는 읽기만 짧게 다시 묻는다. 남은 일: 선언 쓰기의 매니페스트 `node.config`는 Q-10대로 두었다 · 닫힌 쓰기를 여는 일은 Terra ADR-GW-007(3a 취소부터 — 아직 구현 전) | PF-1(위임) | 중간 |
-| **MD-14** | 모듈 GUI 창에서 그 모듈의 GUI 열기 | 지금은 `/api/v1/gui/apps`로 GUI가 있는지 · 주소만 보인다 | PF-15 | 낮음 |
+| **MD-14** | 모듈 GUI 창에서 그 모듈의 GUI 열기 | `🖥 GUI 열기`가 Terra 안·이 PC 노드·GUI 있는 다른 모듈이면 셸에 앱 id를 넘겨 연다(실측 전). 그 밖(Terra 밖·다른 노드)은 창이 이유를 적는다 | PF-15 | 낮음 |
 | **MD-51** | 네트워크 보드 후보 라우트의 **채널 이름** | 2026-10-11 실측([[real-data-layer\|실데이터 층]] §5.12 A2) — 그래프에서 쌍을 고르면 `channel=service_tunnel`을 보내 Master가 409 `ROUTE_UNAVAILABLE`("unsupported direct route channel"). Master 이름은 `service.tunnel`. `src/data/network-live.js:56` · `:108`(보드 부제 `network-master.js:196`도). **고쳐짐 — [modules#83](https://github.com/StellaxiaLab/modules/pull/83)**(`service.tunnel`) | — | ~~중간~~ 끝 |
 | **MD-52** | 연결 적용의 **내 신원이 이메일**이다 | 2026-10-11 실측(§5.12 B2 · B3) — 셸(Scene) 로그인 화면에서 [나에게 허가 주기]가 `subject_id: "admin@stack.local"`을 보내 위임 입구 403, 서버에 허가가 있어도 `허가 필요`에 머문다. `src/api/wire.js:465`가 frame 세션 값의 `principal`을 whoami보다 앞세운다. 연결 적용에는 whoami principal을 넘긴다. 단위 시험은 frame 값이 없는 경우만 본다. **고침 — [modules#83](https://github.com/StellaxiaLab/modules/pull/83)**(`linkPrincipal`) | — | ~~높음~~ 끝 |
 | **MD-53** | 입출력 설정 화면 다듬기 | 2026-10-11 실측(§5.12 B) — 쪽마다 엔드포인트가 하나여도 자동으로 고르지 않는다(설계 Q-27과 다름) · 적용 전 형식이 "모름 → 모름" · 허가 기한에 위임 입구가 늘 거절하는 "기한 없음"이 있다 · tree 보드 서비스 터널의 "앱 토큰은 Master에 닿지 않습니다"는 1차 이전 글 · 전체 화면 보드 위로 세션 캡슐이 겹친다 | — | 낮음 |
