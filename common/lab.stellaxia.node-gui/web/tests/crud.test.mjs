@@ -404,3 +404,45 @@ test('연결 적용의 내 신원은 whoami principal — 셸 로그인 표시(�
   assert.equal(linkPrincipal({ principal: '' }, 'admin@stack.local'), 'admin@stack.local');   // whoami 를 못 받았을 때만
   assert.equal(linkPrincipal(null, ''), '');
 });
+
+test('상세 창 — 모듈의 설치 삭제는 닿는 길이 없으면 잠그고 이유(Daemon op 없음 · 위임 입구 밖 · CLI)를 창에 적는다.', () => {
+  const s = signedIn(), local = s.state.localNode.name;
+  s.hbPut(local, 'mod', [{ id: 'lab.x', name: 'X', state: 'running', gui: false }]);
+  s.rstOpen({ kind: 'res', node: local, app: 'mod', id: 'lab.x', name: 'X' });
+  const v = s.rstVals();
+  assert.equal(v.isRes, true);
+  assert.match(v.delLabel, /설치 삭제/);
+  assert.equal(v.unWhyDisp, 'block');
+  assert.match(v.unWhy, /모듈 제거/);
+  assert.match(v.unWhy, /ADR-GW-003/);
+  assert.match(v.unWhy, /terra module uninstall/);
+  s.hbDel('mod', 'lab.x', local);   // 눌러도 확인 대기를 걸지 않는다 — 지울 길이 없다
+  assert.equal(s.state.hbArm, null);
+  assert.equal((s.hbItems(local, 'mod') || []).length, 1, '길이 없는데 목록에서 지우지 않는다');
+  // 다른 자원은 그대로 — 이름은 삭제, 이유 줄 없음
+  s.hbPut(local, 'job', [{ id: 'j1', name: 'J', state: 'success' }]);
+  s.rstOpen({ kind: 'res', node: local, app: 'job', id: 'j1', name: 'J' });
+  const j = s.rstVals();
+  assert.doesNotMatch(j.delLabel, /설치/);
+  assert.equal(j.unWhyDisp, 'none');
+});
+
+test('편집 창 — 맵의 자원 철거는 확인을 거쳐야 걷힌다 (철거 단추 → 확인 → 철거 / 취소)', () => {
+  const s = signedIn(), res = { app: 'mod', id: 'lab.x', node: 'edge-01', name: 'X', emoji: '🧩' };
+  s.placeAt('0-3', false, null, res);
+  s.state.winOpen.rcfg = false;
+  assert.deepEqual(Object.keys(s.state.rsrc), ['0-3']);
+  s.rsrcRemoveAsk('0-3');
+  assert.equal(s.state.rmAsk, '0-3');
+  assert.equal(s.state.winOpen.edit, true, '확인은 편집 창에서 묻는다');
+  assert.deepEqual(Object.keys(s.state.rsrc), ['0-3'], '묻기만 하고 걷지 않는다');
+  s.rsrcRemoveCancel();
+  assert.equal(s.state.rmAsk, null);
+  assert.deepEqual(Object.keys(s.state.rsrc), ['0-3'], '취소하면 그대로');
+  s.rsrcRemoveAsk('0-3');
+  s.rsrcRemove('0-3');
+  assert.deepEqual(Object.keys(s.state.rsrc), []);
+  assert.equal(s.state.rmAsk, null);
+  s.rsrcRemoveAsk('0-9');   // 없는 필드는 묻지 않는다
+  assert.equal(s.state.rmAsk, null);
+});

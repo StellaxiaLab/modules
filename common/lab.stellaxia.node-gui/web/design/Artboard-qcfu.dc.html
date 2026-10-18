@@ -1114,6 +1114,27 @@ section[data-win] header button:hover{background:rgba(255,255,255,.08) !importan
           </sc-for>
         </div>
       </section>
+      <sc-if value="{{rsrcEd.on}}" hint-placeholder-val="{{false}}">
+      <section aria-label="맵의 자원" data-rsrc-ed="1" style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 12px; font-weight: 700; color: #ede9e1;">맵의 자원 <span style="font-weight: 400; color: #9aa1ab;">— 필드에 설치된 {{rsrcEd.count}}개 · 철거는 여기서</span></span>
+        <sc-for list="{{rsrcEd.rows}}" as="rr" hint-placeholder-count="1">
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; background: rgba(255,255,255,0.03);">
+            <div style="display: {{rr.rowDisp}}; align-items: center; gap: 8px;">
+              <span style="font-size: 15px;">{{rr.emoji}}</span>
+              <button type="button" onClick="{{rr.focus}}" title="필드 보기" style="flex: 1 1 auto; min-width: 0; border: 0; background: transparent; color: #ede9e1; font: inherit; font-size: 12px; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{rr.name}} <span style="color: #9aa1ab;">· {{rr.at}} · {{rr.node}}</span></button>
+              <button type="button" data-rsrc-rm="{{rr.key}}" onClick="{{rr.ask}}" style="height: 26px; padding: 0 10px; border: 1px solid rgba(255,255,255,0.10); border-radius: 6px; background: rgba(255,255,255,0.04); color: #ff5d5d; font: inherit; font-size: 12px; cursor: pointer;">철거</button>
+            </div>
+            <div role="alertdialog" aria-label="자원 철거 확인" data-rsrc-confirm="{{rr.key}}" style="display: {{rr.askDisp}}; flex-direction: column; gap: 6px;">
+              <span style="font-size: 12px; line-height: 1.5; color: #ffb4b4;">{{rr.askText}}</span>
+              <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                <button type="button" data-rsrc-rm-no="1" onClick="{{rr.no}}" style="height: 26px; padding: 0 10px; border: 1px solid rgba(255,255,255,0.10); border-radius: 6px; background: rgba(255,255,255,0.04); color: #ede9e1; font: inherit; font-size: 12px; cursor: pointer;">취소</button>
+                <button type="button" data-rsrc-rm-yes="1" onClick="{{rr.yes}}" style="height: 26px; padding: 0 12px; border: 1px solid #ff5d5d; border-radius: 6px; background: #ff5d5d; color: #111111; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">철거</button>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </section>
+      </sc-if>
         <sc-if value="{{editOn}}" hint-placeholder-val="{{false}}">
         <div role="tablist" style="display: flex; gap: 4px; border-bottom: 1px solid rgba(255,255,255,0.10);">
           <button type="button" role="tab" aria-selected="{{tabBldgSel}}" onClick="{{goBldg}}" style="height: 34px; padding: 0 12px; border: 0; border-bottom: 2px solid {{tb.b}}; margin-bottom: -1px; background: transparent; color: {{tb.c}}; font: inherit; font-size: 13px; font-weight: {{tb.w}}; cursor: pointer;">건물</button>
@@ -1659,6 +1680,7 @@ section[data-win] header button:hover{background:rgba(255,255,255,.08) !importan
                     <button type="button" data-rst-edit="1" onClick="{{rst.edit}}" title="{{rst.lockTip}}" style="display: inline-flex; height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; align-items: center; gap: 4px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); color: #ede9e1;">{{rst.lock}}✏️ 수정</button>
                     <button type="button" data-rst-del="1" onClick="{{rst.del}}" title="{{rst.lockTip}}" style="display: inline-flex; height: 28px; padding: 0 11px; border-radius: 14px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; align-items: center; gap: 4px; border: 1px solid rgba(255,255,255,0.10); background: {{rst.delBg}}; color: {{rst.delFg}};">{{rst.lock}}{{rst.delLabel}}</button>
                   </div>
+                  <div data-rst-unwhy="1" style="display: {{rst.unWhyDisp}}; font-size: 11.5px; line-height: 1.5; color: #f5b83d;">{{rst.unWhy}}</div>
                   <sc-if value="{{rsForm.on}}" hint-placeholder-val="{{false}}">
                     <div data-hb-form="rst" onPointerDown="{{rsForm.stop}}" style="display: flex; flex-direction: column; border: 1.5px solid rgba(237,233,225,0.6); border-radius: 12px; overflow: hidden;">
               <div style="flex-shrink: 0; padding: 12px 14px 10px; border-bottom: 1px solid rgba(255,255,255,0.10); display: flex; align-items: center; gap: 8px;">
@@ -2197,6 +2219,7 @@ class Component extends DCLogic {
       rsrc: {},
       place: null,        // 설치할 필드를 고르는 중인 자원
       rcfgKey: null,      // 자원 설정 창이 보여 주는 필드
+      rmAsk: null,        // 편집 창에서 철거 확인을 묻는 중인 자원 필드(키)
       ioOpen: null,       // 자원 설정 창에서 펼친 연결(id) — 입출력 설정 (UP-25)
       ioGrants: {},       // 예시: 내가 허가를 받은 자원 id → 기한 글 (연결 적용 · 나에게 허가 주기가 만든다)
       ioForce: '',        // 예시 미리보기: 상태를 강제로 보여 본다 (디자인 검토용 — 서비스 · 모듈에서는 보이지 않는다)
@@ -4193,9 +4216,16 @@ class Component extends DCLogic {
   rsrcRemove(key) {
     const R = Object.assign({}, this.state.rsrc || {}), o = R[key]; if (!o) return;
     delete R[key];
-    this.setState({ rsrc: R, rcfgKey: null, links: (this.state.links || []).filter((l) => l.from !== key && l.to !== key), fieldNote: o.name + ' 자원을 철거했습니다' });
+    this.setState({ rsrc: R, rcfgKey: null, rmAsk: null, links: (this.state.links || []).filter((l) => l.from !== key && l.to !== key), fieldNote: o.name + ' 자원을 철거했습니다' });
     this.closeWin('rcfg');
   }
+  // 맵에서 자원 철거는 편집 창에서 한다 — 어디서 눌러도 편집 창을 열어 확인을 묻고, 확인해야 걷는다
+  rsrcRemoveAsk(key) {
+    if (!(this.state.rsrc || {})[key]) return;
+    this.setState({ rmAsk: key, sel: key });
+    const W = this.state.wins.edit; if (!this.state.winOpen.edit) this.openWin('edit', W.x, W.y); else this.winFront('edit');
+  }
+  rsrcRemoveCancel() { if (this.state.rmAsk) this.setState({ rmAsk: null }); }
   // ───── 연결하기: 설정 창의 🔗를 누른 채 끌어 노드 · 자원에 놓는다. 길은 빈 필드 · 그라운드 · 기존 도로로 자동으로 잇는다 ─────
   // 경유지: 왼쪽 버튼을 누른 채 오른쪽 버튼을 누르면 지금 칸을 경유지로 (이미 경유지면 뺀다). 두 번째 버튼은 pointerdown이 아니라 mousedown으로 온다
   connBind() {
@@ -4335,7 +4365,7 @@ class Component extends DCLogic {
       ins, outs, insNone: ins.length ? 'none' : 'inline', outsNone: outs.length ? 'none' : 'inline',
       mon, live: it ? '원본 ' + o.node + ' · ' + o.app + ' 목록과 이어져 있다' : '원본 항목을 찾지 못했다',
       nb, nbNone: nb.length === 0, nbLabel: nb.length ? '이웃 ' + nb.length + ' — 입출력 후보' : '이웃한 노드 · 자원 없음',
-      ip: this.ioPanel(k, lb), remove: () => this.rsrcRemove(k), focus: () => this.setState({ sel: k })
+      ip: this.ioPanel(k, lb), remove: () => this.rsrcRemoveAsk(k), focus: () => this.setState({ sel: k })
     };
   }
 
@@ -5024,6 +5054,8 @@ class Component extends DCLogic {
       const mk = Object.keys(S.rsrc || {}).find((k) => { const o = S.rsrc[k]; return o.node === R.node && o.app === R.app && o.id === R.id; });
       const nIn = mk ? LK.filter((l) => l.to === mk).length : 0, nOut = mk ? LK.filter((l) => l.from === mk).length : 0;
       const C = this.HBCRUD()[R.app], can = this.hbCan(R.app, R.node), gui = R.app === 'mod' && !!it.gui, arm = S.hbArm === 'del:' + R.id;
+      // 설치 삭제 = 모듈 제거. 닿는 길이 없으면(연결판 crudWhy) 단추는 잠그고 이유를 창에 적는다 — 누르면 같은 글이 왼쪽 글줄에도 뜬다
+      const unWhy = R.app === 'mod' ? (can.ok ? (this.crudWhy ? this.crudWhy('mod', 'del', R.node) : '') : '🔒 ' + can.why) : '';
       const acts = (card.acts || []).filter((a) => !/📍/.test(a.label));
       return Object.assign(base, {
         isRes: true, icon: card.icon || '', iconDisp: card.icon ? 'block' : 'none', emoji: card.icon ? '' : this.rsrcEmoji(R.app, it), title: card.name || it.name || it.cmd || it.id, app: this.appName(R.app), node: R.node, id: R.id,
@@ -5036,7 +5068,8 @@ class Component extends DCLogic {
         guiDisp: gui ? 'inline-flex' : 'none', gui: () => this.mguiOpen(R.node, R.id),
         mapLine: mk ? '맵 ' + this.cellName(mk) + ' · 입력 ' + nIn + ' · 출력 ' + nOut : '맵에 설치되지 않음 — 조타륜 카드를 끌어 필드에 놓는다', focusDisp: mk ? 'inline-flex' : 'none', focus: () => { if (mk) this.setState({ sel: mk }); },
         lock: can.ok ? '' : '🔒 ', lockTip: can.ok ? '' : can.why,
-        edit: () => this.hbFormOpen(R.app, 'edit', R.id, R.node, 'rst'), del: () => this.hbDel(R.app, R.id, R.node), delLabel: arm ? '정말 삭제' : '🗑️ 삭제', delBg: arm ? '#ff5d5d' : 'rgba(255,255,255,0.04)', delFg: arm ? '#111111' : '#ff5d5d',
+        edit: () => this.hbFormOpen(R.app, 'edit', R.id, R.node, 'rst'), del: () => this.hbDel(R.app, R.id, R.node), delLabel: R.app === 'mod' ? (arm ? '정말 설치 삭제' : '🗑️ 설치 삭제') : arm ? '정말 삭제' : '🗑️ 삭제',
+        unWhy: unWhy, unWhyDisp: unWhy ? 'block' : 'none', delBg: arm ? '#ff5d5d' : 'rgba(255,255,255,0.04)', delFg: arm ? '#111111' : '#ff5d5d',
         api: C ? [apiRow('조회', C.api.list, 'node.read'), apiRow('추가', C.api.add, C.need.join(' · ')), apiRow('수정', C.api.edit, C.need.join(' · ')), apiRow('삭제', C.api.del, C.need.join(' · '))] : []
       });
     }
@@ -5477,7 +5510,7 @@ class Component extends DCLogic {
     };
   }
   hxStart() {
-    const cv = document.querySelector('[data-hx-cv]'), zone = document.querySelector('[data-hx-zone]');
+    let cv = document.querySelector('[data-hx-cv]'), zone = document.querySelector('[data-hx-zone]');   // 다시 그리기가 DOM을 갈아 끼우면 loop가 새 요소로 갈아탄다 (아래 rebind)
     if (!cv || this._hx) return;
     const W = 600, H = 285, CX = W / 2, TOP = 139, DPX = 23, R_FLAT = 650, R_UP = 960, PEEK = 82, DPR = 2, TRAVEL = H - TOP - PEEK;
     // 로컬 자원 관리: 눈금판 위의 로고 띠 = 세로축으로 도는 원통(드럼)에 붙은 자원 로고. 조타륜을 돌리면 드럼이 돈다
@@ -5528,7 +5561,7 @@ class Component extends DCLogic {
     const STEP = 10, DRUM = 20, BT = 30, BH = 70, RD = 290, TILE = 52;   // 로고 띠 폭 ≈ 조타륜 폭(600) — 드럼 간격 20°라 한 번에 7~9개. 로고는 드럼을 따라 되풀이된다   // TILE = 픽셀 20칸 × 3
     const C = 'rgba(237,233,225,0.55)', D = '#ede9e1', L = 'rgba(237,233,225,0.22)', RED = '#ffd84d';   // ver.2: 어두운 도크 위 오프화이트 눈금 · 햇빛 바늘
     cv.width = W * DPR; cv.height = H * DPR;
-    const g = cv.getContext('2d');
+    let g = cv.getContext('2d');
     // 눈금판은 네 겹(위에서부터): ① 바깥 고리 · 눈금  ② 숫자  ③ 점 고리  ④ 빗금 띠
     // 겹마다 올라온 정도(s)와 속도(v)가 따로 있다 — 올라올 땐 ①부터 차례로(겹마다 70ms씩 늦게), 목표보다 살짝 더 올라갔다 내려앉는다(스프링)
     // 내려갈 땐 네 겹이 동시에, 튀지 않고 내려간다
@@ -5741,6 +5774,10 @@ class Component extends DCLogic {
     };
     const loop = (now) => {
       if (this._unmounted || !this._hx) return;
+      // 자원을 끌어 놓는 등 setState가 조타륜 DOM을 새로 만들면 캔버스가 비어(300×150) 눈금판이 사라진다 — 새 요소를 다시 잡고 크기 · 그림을 되살린다
+      { const cv2 = document.querySelector('[data-hx-cv]'), z2 = document.querySelector('[data-hx-zone]');
+        if (cv2 && cv2 !== cv) { cv = cv2; cv.width = W * DPR; cv.height = H * DPR; g = cv.getContext('2d'); hx.dirty = true; }
+        if (z2 && z2 !== zone) zone = z2; }
       if (hx.pullBack && !hx.drag) { hx.pullY = (hx.pullY || 0) * 0.78; if (hx.pullY < 0.5) { hx.pullY = 0; hx.pullBack = 0; } }   // 놓으면 배경도 조타륜 캔버스와 같이 제자리로
       hxBg();
       const dt = Math.min(0.033, (now - last) / 1000); last = now;
@@ -8001,6 +8038,11 @@ class Component extends DCLogic {
       roadSw: (() => { const on = this.state.roadsOn !== false, any = Object.values(this.state.placed || {}).some((p) => this.isRoad(p.bid));
         return { on, label: on ? '켬' : '끔', bg: on ? '#ede9e1' : 'rgba(255,255,255,0.04)', fg: on ? '#111111' : '#9aa1ab', toggle: () => this.setState({ roadsOn: !on }),
           chipDisp: any ? 'block' : 'none', chipBg: on ? 'rgba(13,15,19,0.82)' : 'rgba(255,216,77,0.14)', chipFg: on ? '#ede9e1' : '#ffd84d', line: on ? 'rgba(255,255,255,0.14)' : 'rgba(255,216,77,0.5)' }; })(),
+      rsrcEd: (() => { const R = this.state.rsrc || {}, ks = Object.keys(R), ask = this.state.rmAsk;
+        return { on: ks.length > 0, none: ks.length === 0, count: ks.length, rows: ks.map((k) => { const o = R[k], asking = ask === k;
+          return { key: k, emoji: o.emoji || '◆', name: o.name, at: this.cellName(k), node: o.node, askDisp: asking ? 'flex' : 'none', rowDisp: asking ? 'none' : 'flex',
+            askText: o.name + '을(를) ' + this.cellName(k) + ' 필드에서 철거할까요? 이 자원에 이어진 연결도 함께 걷힙니다 — 자원 자체(설치된 모듈 · 장치)는 그대로 있습니다.',
+            focus: () => this.setState({ sel: k }), ask: () => this.setState({ rmAsk: k }), yes: () => this.rsrcRemove(k), no: () => this.rsrcRemoveCancel() }; }) }; })(),
       markOpts: [['flag', '🚩 깃발'], ['flat', '🍃 눕힌 로고'], ['none', '없음']].map(([id, label]) => { const on = (this.state.markStyle || 'flag') === id;
         return { id, label, on, bg: on ? '#ede9e1' : 'transparent', fg: on ? '#111111' : '#9aa1ab', sh: 'none', pick: () => this.setState({ markStyle: id }) }; }),
       hasPending: pendingNodes.length > 0 && this.isTree((this.NET[this.state.map] || {}).role),
