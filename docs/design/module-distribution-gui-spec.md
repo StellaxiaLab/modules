@@ -36,7 +36,7 @@ related:
 
 | 구분 | 모듈 |
 | --- | --- |
-| `common/` | `dev.terrallo` · `io.terra.agent` · `io.terra.nodetalk` · `io.terra.sample.window` · `io.terra.scene.login-demo` · `io.terra.webapp-host` · `lab.stellaxia.node-gui` · `lab.stellaxia.scene.hello` · `lab.stellaxia.scene.main-test` |
+| `common/` | `dev.terrallo` · `io.terra.agent` · `io.terra.nodetalk` · `io.terra.sample.window` · `io.terra.scene.login-demo` · `lab.stellaxia.node-gui` · `lab.stellaxia.scene.hello` · `lab.stellaxia.scene.main-test` |
 | `leaf/` | `io.terra.file` · `io.terra.io-inventory` · `io.terra.io-weave` |
 | `tree/` | `io.terra.fleet` · `io.terra.treebench` |
 

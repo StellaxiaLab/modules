@@ -5,7 +5,7 @@
 //   앱 ──terra.webapp.request {id,method,path,body}──▶ 셸 ──▶ Gateway
 //   앱 ◀─terra.webapp.response {id,ok,status,data|error}── 셸      (응답은 요청마다 한 번뿐 — 스트림 없음)
 //
-// 참조: io.terra.webapp-host/ui/launcher.js(핸드셰이크), Terra 의 webAppBridge.ts·WebAppDock.tsx(셸 쪽).
+// 참조: Terra 의 webAppBridge.ts·WebAppDock.tsx(셸 쪽).
 // 셸은 메시지 출처를 "정확한 Gateway origin + 그 iframe 의 contentWindow" 두 겹으로 거른다.
 // 앱 쪽에서는 셸 origin 을 알 수 없으므로(샌드박스) 참조 구현처럼 `source === window.parent` 만 본다.
 

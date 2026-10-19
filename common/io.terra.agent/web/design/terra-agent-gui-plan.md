@@ -310,9 +310,9 @@ flowchart LR
 | `.gitignore` | `/ui/`를 더한다. 에이전트 모듈에는 WP-1이 `/ui/`를 더했다(2026-10-11) | `[V]` 두 `.gitignore` |
 | 앱 자산 CSP | `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors <셸>` | `[V]` `gui_apps.go:458-460` |
 | 빌드 설정 | `base:'./'`와 hash 라우팅은 바꾸지 않는다. 토큰은 메모리에만 둔다 | `[V]` [[docs/guides/module-web-screen-guide\|웹 화면 가이드]] §2·§4 |
-| 브리지(앱 쪽) | `hello` → `ready`(`permissions`) → `request`/`response`. 참조 구현은 `io.terra.webapp-host/ui/launcher.js`(핸드셰이크 912행, 요청 채널 330~400행) | `[V]` |
+| 브리지(앱 쪽) | `hello` → `ready`(`permissions`) → `request`/`response`. 참조 구현이던 `io.terra.webapp-host/ui/launcher.js`는 2026-10-18 런처 제거로 삭제됐다(이력은 git; 셸 쪽은 Terra `webAppBridge.ts`) | `[V]` |
 | 브리지(셸 쪽) | 경로는 `/api/modules/`·`/api/nodes/`만, 메서드 다섯 가지, 선언 권한이 비면 `BRIDGE_NO_PERMISSIONS`, 응답은 `{ok,status,data}` 한 번이다 | `[V]` `webAppBridge.ts` |
-| 앱 열기 | 런처 "Terra Apps"(`io.terra.webapp-host`, 정적 앱, 권한 선언 없음)가 `/api/v1/gui/apps`를 읽어 셸에 `terra.webapp.mountApp`을 보낸다. 셸 밖에서는 `/api/v1/gui/apps/<id>/files/<entry>`를 새 탭으로 연다 | `[V]` `launcher.js:354·385-392·711` — 실행 시험은 하지 않았다 |
+| 앱 열기 | (삭제됨 2026-10-18; 지금은 node-gui) 런처 "Terra Apps"(`io.terra.webapp-host`, 정적 앱, 권한 선언 없음)가 `/api/v1/gui/apps`를 읽어 셸에 `terra.webapp.mountApp`을 보낸다. 셸 밖에서는 `/api/v1/gui/apps/<id>/files/<entry>`를 새 탭으로 연다 | `[V]` `launcher.js:354·385-392·711` — 실행 시험은 하지 않았다 |
 | CI | `validate`(매니페스트·계약 일치) → `web`(`build-web.mjs`·`test-web.mjs`) → `pack`(Terra와 함께) | `[V]` `.github/workflows/ci.yml` |
 
 ### 5.2 앱 작업 묶음
@@ -418,7 +418,7 @@ flowchart LR
 
 - [io.terra.agent](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.agent) — 이 화면이 부르는 모듈
 - [AgentGUI.dc.html](https://github.com/StellaxiaLab/modules/blob/c378a1229ceca4464a6225bf477082a5a65f97bb/common/io.terra.agent/web/design/AgentGUI.dc.html) · [AgentGUILive.dc.html](https://github.com/StellaxiaLab/modules/blob/c378a1229ceca4464a6225bf477082a5a65f97bb/common/io.terra.agent/web/design/AgentGUILive.dc.html) — 이 문서가 검증한 시연 화면(`c378a12`, 후속 `368210a`까지 modules #81로 `main`에 병합됨)
-- [io.terra.webapp-host](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.webapp-host) — 런처와 브리지 앱 쪽 참조 구현(`ui/launcher.js`)
+- [io.terra.webapp-host](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.webapp-host) — (삭제됨 2026-10-18, 링크는 git 이력) 런처와 브리지 앱 쪽 참조 구현
 - [io.terra.nodetalk](https://github.com/StellaxiaLab/modules/tree/main/common/io.terra.nodetalk) — 서비스 모듈이 자기 `ui/`를 싣는 선례
 - [lab.stellaxia.node-gui](https://github.com/StellaxiaLab/modules/tree/main/common/lab.stellaxia.node-gui) — `web/` + `ui/`(빌드 산출물, 커밋하지 않음) 규약의 선례
 - `products/common/apps/terra-gateway-service/gui_apps.go` — 앱 자산 서빙과 CSP
