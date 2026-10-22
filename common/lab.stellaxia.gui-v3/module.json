@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "id": "lab.stellaxia.gui-v3",
+  "version": "0.0.1",
+  "kind": "scene",
+  "name": "Terra GUI v3",
+  "description": "Terra 노드 GUI 3판 — 설계 단계다. 아직 화면이 없고 문서(docs/)와 자리 표시 Scene 하나뿐이다. GUI 기여(contributions.gui)를 두지 않아 노드에 깔려도 base Scene의 목록 · main 자리에 나타나지 않는다. 기능 층은 lab.stellaxia.node-gui의 Terra 연동 코드를 이어받고 화면은 새로 짓는다.",
+  "compatibility": {
+    "products": ["leaf", "tree"],
+    "os": ["linux", "windows"]
+  },
+  "entrypoints": {
+    "scene": "scene/scene.json"
+  }
+}
