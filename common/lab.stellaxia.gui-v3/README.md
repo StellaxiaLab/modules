@@ -9,7 +9,7 @@ scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
 version: "0.0.1"
-last_updated: "2026-10-22"
+last_updated: "2026-10-25"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -50,6 +50,7 @@ common/lab.stellaxia.gui-v3/
 | --- | --- |
 | [[docs/analysis/legacy-node-gui-overview\|기존 node-gui 전체 분석]] | 구조 · 규모 · 유지할 것 · 부채 · 외부 제약 |
 | [[docs/analysis/legacy-app-layer\|기존 node-gui 기능 층 분석]] | 표현을 뺀 앱 계층 — 계층별 역할 · 재사용 판정 · 숨은 결합 · v3 경계 제안 |
+| [[docs/design/menu-hierarchy\|메뉴 계층 설계]] | 기존 입구 18곳의 문제 · 범위 먼저 · 세 단계 이하 계층 · 인스펙터 · 기존 → v3 대응표 |
 
 ## 관련 모듈
 
