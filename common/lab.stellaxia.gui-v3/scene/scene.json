@@ -1,0 +1,14 @@
+{
+  "$comment": "자리 표시 Scene — 모듈이 kind=scene 으로 서려면 entrypoint 가 하나 있어야 한다(docs/layout.md L-7). 화면은 아직 설계 중이라 글 한 줄뿐이고, module.json 에 contributions.gui 가 없으므로 base Scene 이 이것을 고르지 않는다.",
+  "schemaVersion": "0.1.0",
+  "id": "lab.stellaxia.gui-v3",
+  "version": "0.0.1",
+  "name": "Terra GUI v3",
+  "entryRoute": "/",
+  "routes": [{ "path": "/", "fragment": "gui-v3.main" }],
+  "functions": [],
+  "stores": [],
+  "fragments": ["surface/fragments/main.fragment.json"],
+  "requiredOperations": [],
+  "recoveryFragment": "gui-v3.main"
+}

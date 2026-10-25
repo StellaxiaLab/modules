@@ -1,0 +1,19 @@
+{
+  "$comment": "자리 표시 화면. bind 도 핸들러도 없다 — Store 와 Function 을 선언하지 않는다.",
+  "schemaVersion": "0.1.0",
+  "id": "gui-v3.main",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Terra GUI v3",
+  "root": {
+    "type": "column",
+    "id": "root",
+    "align": "center",
+    "justify": "center",
+    "a11y": { "role": "region", "label": "Terra GUI v3" },
+    "children": [
+      { "type": "text", "id": "title", "variant": "heading", "text": "Terra GUI v3" },
+      { "type": "text", "id": "note", "text": "설계 중 — 아직 화면이 없다" }
+    ]
+  }
+}
