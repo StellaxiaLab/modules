@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — Global Frame</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;700&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#040614;color:#e6eaf7}
+::selection{background:#e6eaf7;color:#070b1c}
+@font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
+</style>
+</helmet>
+<div onPointerMove="{{pmove}}" onPointerLeave="{{pleave}}" onPointerDown="{{tap}}" onPointerUp="{{pup}}" style="position: relative; min-height: 100vh; background: radial-gradient(42% 70% at 62% 58%, rgba(150, 110, 200, 0.08), transparent 70%), linear-gradient(118deg, transparent 22%, rgba(110, 130, 220, 0.05) 42%, rgba(170, 120, 210, 0.06) 56%, rgba(230, 150, 150, 0.04) 70%, transparent 84%), linear-gradient(178deg, #060a1d 0%, #040614 46%, #020308 100%); font-family: GmarketSans, Geist, 'Noto Sans KR', system-ui, sans-serif; color: #e6eaf7; overflow: hidden">
+<canvas data-field="blank" role="img" aria-label="{{label}}" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none"></canvas>
+<div data-ctlwin="field" data-slot="0" style="display: none"><div data-ctlbody="field"><dc-import name="NodeDesktopEmbed" chrome="none" node-name="{{ctlNode0}}" win-w="{{ctlW0}}" win-h="{{ctlH0}}" on-close="{{ctlCloseFn0}}" on-full="{{ctlFullFn0}}" zoom="{{ctlZoom0}}" on-zoom="{{ctlZoomFn0}}" hint-size="1240px,760px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="1" style="display: none"><div data-ctlbody="field"><dc-import name="NodeDesktopEmbed" chrome="none" node-name="{{ctlNode1}}" win-w="{{ctlW1}}" win-h="{{ctlH1}}" on-close="{{ctlCloseFn1}}" on-full="{{ctlFullFn1}}" zoom="{{ctlZoom1}}" on-zoom="{{ctlZoomFn1}}" hint-size="1240px,760px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="2" style="display: none"><div data-ctlbody="field"><dc-import name="NodeDesktopEmbed" chrome="none" node-name="{{ctlNode2}}" win-w="{{ctlW2}}" win-h="{{ctlH2}}" on-close="{{ctlCloseFn2}}" on-full="{{ctlFullFn2}}" zoom="{{ctlZoom2}}" on-zoom="{{ctlZoomFn2}}" hint-size="1240px,760px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="3" style="display: none"><div data-ctlbody="field"><dc-import name="NodeDesktopEmbed" chrome="none" node-name="{{ctlNode3}}" win-w="{{ctlW3}}" win-h="{{ctlH3}}" on-close="{{ctlCloseFn3}}" on-full="{{ctlFullFn3}}" zoom="{{ctlZoom3}}" on-zoom="{{ctlZoomFn3}}" hint-size="1240px,760px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="4" style="display: none"><div data-ctlbody="field"><dc-import name="NodeDesktopEmbed" chrome="none" node-name="{{ctlNode4}}" win-w="{{ctlW4}}" win-h="{{ctlH4}}" on-close="{{ctlCloseFn4}}" on-full="{{ctlFullFn4}}" zoom="{{ctlZoom4}}" on-zoom="{{ctlZoomFn4}}" hint-size="1240px,760px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="5" style="display: none"><div data-ctlbody="field"><dc-import name="NodeDesktopEmbed" chrome="none" node-name="{{ctlNode5}}" win-w="{{ctlW5}}" win-h="{{ctlH5}}" on-close="{{ctlCloseFn5}}" on-full="{{ctlFullFn5}}" zoom="{{ctlZoom5}}" on-zoom="{{ctlZoomFn5}}" hint-size="1240px,760px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="6" style="display: none"><div data-ctlbody="field"><dc-import name="StarMaker" win-w="{{smW}}" win-h="{{smH}}" load="{{smLoad}}" on-saved="{{smSavedFn}}" hint-size="1100px,720px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="7" style="display: none"><div data-ctlbody="field"><dc-import name="NodeConf" node-name="{{wNode7}}" node-kind="{{wKind7}}" parent-name="{{wPar7}}" node-key="{{wId7}}" node-path="{{wPath7}}" remote="{{wRemote7}}" on-skin="{{skinFn}}" win-w="{{ctlW7}}" win-h="{{ctlH7}}" hint-size="860px,600px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="8" style="display: none"><div data-ctlbody="field"><dc-import name="NodeStatus" node-name="{{wNode8}}" node-kind="{{wKind8}}" parent-name="{{wPar8}}" win-w="{{ctlW8}}" win-h="{{ctlH8}}" hint-size="560px,540px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="9" style="display: none"><div data-ctlbody="field"><dc-import name="NodeStatus" node-name="{{wNode9}}" node-kind="{{wKind9}}" parent-name="{{wPar9}}" win-w="{{ctlW9}}" win-h="{{ctlH9}}" hint-size="560px,540px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="10" style="display: none"><div data-ctlbody="field"><dc-import name="NodeStatus" node-name="{{wNode10}}" node-kind="{{wKind10}}" parent-name="{{wPar10}}" win-w="{{ctlW10}}" win-h="{{ctlH10}}" hint-size="560px,540px"></dc-import></div></div>
+<h1 style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0">Terra global frame</h1>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"path":{"editor":"enum","options":["/계정","/계정/01","/계정/01/01·c","/계정/01/01·c/serial/COM3"],"default":"/계정/01/01·c","section":"전역 틀"},"logoWidth":{"editor":"range","min":0.1,"max":0.25,"step":0.01,"default":0.2,"section":"전역 틀"},"showZones":{"editor":"boolean","default":false,"section":"전역 틀"},"holeDim":{"editor":"range","min":0.1,"max":0.9,"step":0.05,"default":0.6,"section":"전역 틀"},"tempo":{"editor":"range","min":0.25,"max":2,"step":0.05,"default":1,"section":"모션"},"palette":{"editor":"enum","options":["은하수","성운","단색"],"default":"은하수","section":"글자 장"},"speed":{"editor":"range","min":0,"max":2,"step":0.1,"default":1,"section":"글자 장"},"cell":{"editor":"int","min":11,"max":24,"default":14,"unit":"px","section":"글자 장"},"dim":{"editor":"range","min":0.3,"max":1,"step":0.05,"default":1,"section":"글자 장"},"motion":{"editor":"boolean","default":true,"section":"글자 장"},"$preview":{"width":1440,"height":900}}'>
+// 전역 틀 — 터미널을 연 것 같은 CLI 모양의 GUI. 바탕은 글자 장이고, 화면 왼쪽 1/4 이 컨트롤 구역(전역 틀)이다.
+// 전역 틀은 CLI 라서 마스크 · 텍스트 · 레거시 텍스트만 쓴다. 레거시 텍스트 = 글자 장 글자의 2배 크기 글자를 장면 위에 직접 그린다 — 융기 · 수렴 없이 텍스트처럼 랜덤 갱신만,
+//   그 글자에 가려진 바탕 칸은 모션 없이 곧바로 어두운 화면(보이는 색의 명도 × holeDim)으로. 실제 CLI 와 달리 구역으로 나뉜다 — 로고 구역 · 범위 구역 · …
+// 출력은 CLI 처럼: 글자는 왼쪽에서 오른쪽으로 찍히고, 줄은 위에서 아래로 내려간다. 텍스트 컴포넌트는 랜덤 갱신 · 주기 증가(감속).
+//   1 로고 구역 (왼쪽 위) — 처음엔 마스크 '>_' (TERRA 와 같은 글꼴 · 크기 · 색, 커서 깜박임). 호버하면 마스크 TERRA(메인 레퍼런스 워드마크)로 오른쪽 발광 생성. 너비 = 화면 가로의 1/3
+//     로고 둘레 네 모서리에 코너 괄호(┌ ┐ └ ┘) — 텍스트, 호버하는 동안만 (강조 표시)
+//   2 범위 구역 — 호버하는 동안, TERRA 가 생기기 시작하고 조금 뒤 경로를 레거시 텍스트 한 줄로 (2배 크기): 마커 '계정 >' + 나머지 경로 '/' 로. 색은 바탕 색을 조금 받는다. 떠나면 지워진다
+//   마커 — '이름 >' : 이름은 흰빛, '>' 는 보라. 이어지는 내용(경로)은 초록. 자주 쓰는 머리말 (시트 참고)
+//   마스크가 생기는(바뀌는) 동안 칸 글자는 랜덤 갱신 · 주기 증가 — 처음엔 프레임마다, 끝으로 갈수록 느긋하게
+class Component extends DCLogic {
+  componentDidMount() {
+    this._live = true;
+    this._boot = performance.now();
+    this.startField('blank');
+  }
+  componentWillUnmount() {
+    this._live = false;
+    this.cmdDispose();
+    this.stopField();
+  }
+
+  // ───── 글자 장 ─────
+  PALETTES() {
+    return {
+      '은하수': ['#9fb8ff', '#8c9cf5', '#a58cf0', '#c88fe0', '#e39ac9', '#f0a8a0'],
+      '성운': ['#dfe8ff', '#b9cdfa', '#93aef0', '#7d94d8', '#c7d6ff'],
+      '단색': ['#e6eaf7', '#c3cae3']
+    };
+  }
+  startField(id) {
+    const find = () => {
+      if (!this._live) return;
+      const cv = document.querySelector('canvas[data-field="' + id + '"]');
+      if (!cv) { this._findT = requestAnimationFrame(find); return; }
+      this._cv = cv; this._ctx = cv.getContext('2d');
+      this._glyphs = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789+-*/=<>:;.#%&|~^';
+      this._last = 0;
+      const p = new Uint8Array(256); for (let i = 0; i < 256; i++) p[i] = i;
+      for (let i = 255; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0, k = p[i]; p[i] = p[j]; p[j] = k; }
+      this._perm = new Uint8Array(512); for (let i = 0; i < 512; i++) this._perm[i] = p[i & 255];
+      this._ro = new ResizeObserver(() => this.sizeField()); this._ro.observe(cv);
+      if (window.IntersectionObserver) { this._io = new IntersectionObserver((es) => { this._onScreen = es[es.length - 1].isIntersecting; }); this._io.observe(cv); }
+      this.sizeField();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (this._live) this.sizeField(); });
+      if (document.fonts && document.fonts.load) { document.fonts.load('700 12px "Geist Mono"').catch(() => {}); if (document.fonts && document.fonts.load) Promise.all(['500', '700'].map((w) => document.fonts.load(w + ' 12px GmarketSans', '가'))).then(() => { if (this._live) { this._fullRedraw = true; this.sizeField(); } }).catch(() => {}); document.fonts.load('700 12px GmarketSans', '가').catch(() => {}); document.fonts.load('700 40px Geist').then(() => { if (this._live) this.sizeField(); }).catch(() => {}); }
+      const loop = (now) => { if (!this._live) return; if (this._onScreen !== false && !document.hidden) this.drawField(now); else this._prev = now; this._raf = requestAnimationFrame(loop); };
+      this._raf = requestAnimationFrame(loop);
+    };
+    find();
+  }
+  stopField() { cancelAnimationFrame(this._raf); cancelAnimationFrame(this._findT); if (this._ro) this._ro.disconnect(); if (this._io) this._io.disconnect(); }
+  sizeField() {
+    const cv = this._cv; if (!cv) return;
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(+({ '1.5': 1.5, '1': 1 }[this.props.renderScale]) || 2, window.devicePixelRatio || 1) /* 렌더 배율 상한 — renderScale(자동 = 2) */;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cs = Math.max(11, Math.min(24, this.props.cell ?? 14));
+    this._cw = Math.round(cs * 0.66); this._ch = Math.round(cs * 1.2); this._cs = cs;
+    this._cols = Math.ceil(w / this._cw) + 1; this._rows = Math.ceil(h / this._ch) + 1;
+    const n = this._cols * this._rows, G = this._glyphs.length;
+    this._g = new Uint8Array(n); for (let i = 0; i < n; i++) this._g[i] = (Math.random() * G) | 0;
+    this._star = new Float32Array(n); for (let i = 0; i < n; i++) if (Math.random() < 0.014 * this._cw * this._ch / 180) this._star[i] = 0.2 + Math.random();
+    this._jit = new Float32Array(n); for (let i = 0; i < n; i++) this._jit[i] = Math.random();
+    this._bw = new Float32Array(n);
+    this._ph = new Float32Array(n); for (let i = 0; i < n; i++) this._ph[i] = this._star[i] * 9.0;   // 반짝임 위상
+    this._wh = new Float32Array(n); this._whc = new Uint8Array(n); this._whd = new Uint8Array(n); this._whg = new Uint8Array(n); this._wrg = new Uint8Array(n); this._wrn = new Float32Array(n); this._W = null;
+    { const ax = w * 0.2, ay = -h * 0.05, bx = w * 0.84, by = h * 1.05, vx = bx - ax, vy = by - ay, L = Math.hypot(vx, vy), sp = Math.max(w, h) * 0.17;
+      for (let r = 0; r < this._rows; r++) for (let c = 0; c < this._cols; c++) { const px = c * this._cw, py = r * this._ch, d = Math.abs((px - ax) * vy - (py - ay) * vx) / L; this._bw[r * this._cols + c] = Math.exp(-(d / sp) * (d / sp)); } }
+    this._w = w; this._h = h;
+    this.layout();
+    this.drawField(performance.now(), true);
+  }
+
+  // ───── 구역 ─────
+  // 컨트롤 구역 = 화면 왼쪽 1/4. 구역은 위에서 아래로 쌓인다 (칸 단위). 여백 = 왼쪽 3칸 · 위 2줄
+  layout() {
+    const cols = this._cols, cw = this._cw, ch = this._ch, W = this._w;
+    const ctrlCols = Math.floor(W / 4 / cw), x0 = 3, y0 = 2; this._ctrlX = ctrlCols * cw;
+    // 로고 — 메인 레퍼런스의 TERRA 워드마크. 너비 = 화면 가로 × logoWidth(1/4)
+    this._logoW = Math.round(W * (this.props.logoWidth ?? 0.2));
+    const L = this.logoShape(this._logoW, x0 * cw, y0 * ch);   // TERRA + 같은 크기의 '>_'
+    const logoRows = Math.max(3, Math.ceil(L.h / ch));
+    const lc0 = x0, lc1 = x0 + Math.ceil(L.w / cw), lr0 = y0, lr1 = y0 + logoRows;
+    this._tx = this._tx || {};
+    this._logo = L; this._path = { idx: new Map(), w: 1, h: 0 }; this._pathLines = 0;
+    // ── 초안 — 컨트롤 구역 (위 → 아래). 글자(데이터)는 텍스트, 구역 나눔 · 틀 · 막대 · 계기 같은 GUI 는 레거시 ──
+    //   묶음: k = 로고 강조(켜져 있는 동안) · b = 기본 정보(호버) · c = 내용(TERRA 누르기). 같은 묶음 안에서 ord 순서로 시간차
+    const C = this.COL(), wCol = ctrlCols - x0 - 2, zL = lc0 - 2, zR = ctrlCols - 2;
+    this._pathText = this.props.path ?? '/계정/01/01·c'; const names = (this._nav || this._pathText).split('/').filter(Boolean), curN = this.nodeOf(names), VIEW = { root: '트리 뷰', tree: '리프 뷰', leaf: '리소스 뷰' };
+    const OLD = {}; for (const id of Object.keys(this._tx)) if (/^(ln\d+|mz.*|path\d*|c[TB][LR]v?)$/.test(id)) { OLD[id] = this._tx[id]; delete this._tx[id]; }
+    const rows = [], legs = [], ords = { b: 0, c: 0, k: 0 };
+    let r = lr1 + 2;
+    // 줄(텍스트) 하나 — parts: [글자, 색] 조각들, col: 시작 칸 (없으면 x0)
+    const line = (grp, row, parts, col, ord, key) => { const o = ord ?? ords[grp]++; if (parts.length) rows.push({ row, parts, grp, col, ord: o, key }); return o; };
+    const add = (grp, parts, dr) => { const o = line(grp, r, parts); r += dr == null ? 1 : dr; return o; };
+    // 레거시 GUI 하나 — x0 · x1: 쓸어 가는 범위(px), cells: 덮는 바탕 칸, draw(ctx): 장면 위에 직접 그리기
+    const L2 = { cw, ch, cols };
+    const fpLine = (set, xa, xb, y) => { const rr = Math.floor(y / ch); for (let c = Math.floor(xa / cw); c <= Math.floor((xb - 0.01) / cw); c++) set.add(rr * cols + c); };
+    const fpCol = (set, x, ya, yb) => { const c = Math.floor(x / cw); for (let rr = Math.floor(ya / ch); rr <= Math.floor((yb - 0.01) / ch); rr++) set.add(rr * cols + c); };
+    const leg = (grp, ord, x0p, x1p, cells, draw, key, sig) => legs.push({ id: key || 'g' + legs.length, sig: sig || '', grp, ord, x0: x0p, x1: x1p, cells, draw, st: null });
+    // 구역 머리 — 짧은 선 · 이름(텍스트) · 남은 너비의 선
+    const head = (t, hc, lc) => {
+      const yM = r * ch + ch / 2, xs = x0 * cw, xl = (x0 + 2) * cw - 4, xr0 = (x0 + 3 + this.dw(t)) * cw + 4, xe = zR * cw + cw / 2, cells = new Set();
+      fpLine(cells, xs, xl, yM); fpLine(cells, xr0, xe, yM);
+      const o = add('c', [[t, hc || C.head]].map(([a, b]) => [a, b]), 1); rows[rows.length - 1].col = x0 + 3;
+      leg('c', o, xs, xe, cells, (g) => { g.strokeStyle = lc || C.lineC; g.lineWidth = 1; g.beginPath(); g.moveTo(xs, yM + 0.5); g.lineTo(xl, yM + 0.5); g.moveTo(xr0, yM + 0.5); g.lineTo(xe, yM + 0.5); g.stroke(); });
+    };
+    // 로고 강조 — 로고 구역 네 모서리의 코너 괄호 (┌ ┐ └ ┘), 레거시. 높이 = TERRA 글자가 차지한 줄 + 위 · 아래 한 칸씩 여유
+    { const xa = zL * cw + cw / 2, xb = zR * cw + cw / 2, ya = (L.bTop - 1) * ch, yb = (L.bBot + 2) * ch - 1, arm = 3 * cw, armV = ch * 1.2, cells = new Set();
+      fpLine(cells, xa, xa + arm, ya); fpLine(cells, xb - arm, xb, ya); fpLine(cells, xa, xa + arm, yb); fpLine(cells, xb - arm, xb, yb);
+      fpCol(cells, xa, ya, ya + armV); fpCol(cells, xb, ya, ya + armV); fpCol(cells, xa, yb - armV, yb); fpCol(cells, xb, yb - armV, yb);
+      leg('k', 0, xa - 2, xb + 2, cells, (g) => { g.strokeStyle = C.lineB; g.lineWidth = 1.5; g.beginPath();
+        g.moveTo(xa, ya + armV); g.lineTo(xa, ya); g.lineTo(xa + arm, ya); g.moveTo(xb - arm, ya); g.lineTo(xb, ya); g.lineTo(xb, ya + armV);
+        g.moveTo(xa, yb - armV); g.lineTo(xa, yb); g.lineTo(xa + arm, yb); g.moveTo(xb - arm, yb); g.lineTo(xb, yb); g.lineTo(xb, yb - armV); g.stroke(); }); }
+    // 기본 정보 (호버) — 연결 · 로그인 · 범위(마커)
+    add('b', [['● ', C.ok], ['연결됨', C.key], ['  Terra 코어 1.7.0', C.val]]);
+    { const lr = r, lt = '● 로그인  admin · 관리자', lc = x0 + this.dw(lt) + 3, LT = '로그아웃 ⏻', o = add('b', [['● ', C.info], ['로그인', C.key], ['  admin · 관리자', C.val]]);
+      // 로그아웃 — 계정 이름 옆. 누르면 로그인 전환을 거꾸로(통합 화면: 항성계가 소실점으로 줄며 로그인 층이 닫히고, 글자 · 별이 바깥에서 날아와 로그인 화면 → 메인 화면)
+      line('b', lr, [[LT, C.key]], lc, o, 'mzLogout'); this._lo = { row: lr, x0: lc * cw, x1: (lc + this.dw(LT)) * cw };
+      leg('b', o, lc * cw, (lc + this.dw(LT)) * cw, new Set(), (g) => { const Q = this._lo; if (!Q || !this._loHov) return; g.fillStyle = 'rgba(255,170,150,0.85)'; g.fillRect(Q.x0, (Q.row + 1) * ch - 2, Q.x1 - Q.x0, 1); g.fillStyle = 'rgba(220,90,80,0.12)'; g.fillRect(Q.x0 - 3, Q.row * ch + 1, Q.x1 - Q.x0 + 6, ch - 2); }, 'loBar', ''); }
+    add('b', [[names[0] || '계정', C.mName], [' > ', C.mSign], [names.slice(1).join('/') || '·', C.path]], 2);
+    // 내용 (누르기)
+    head('대상');
+    // 속성 표 — 틀(바깥 사각 · 가운데 세로선)은 레거시, 칸 글자는 텍스트
+    const kv = [['이름', curN.name], ['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]], ['상태', '● 온라인'], ['자원', '3 · ssh · io'], ['가동', '4일 12시간']];
+    const kw = 6, vw = 14, tr0 = r;
+    { const xa = x0 * cw + cw / 2, xb = (x0 + kw + vw + 2) * cw + cw / 2, xm = (x0 + kw + 1) * cw + cw / 2, ya = tr0 * ch + ch / 2, yb = (tr0 + kv.length + 1) * ch + ch / 2, cells = new Set();
+      fpLine(cells, xa, xb, ya); fpLine(cells, xa, xb, yb); fpCol(cells, xa, ya, yb); fpCol(cells, xb, ya, yb); fpCol(cells, xm, ya, yb);
+      const o = add('c', []);
+      leg('c', o, xa, xb, cells, (g) => { g.strokeStyle = C.lineC; g.lineWidth = 1; g.strokeRect(xa + 0.5, ya + 0.5, xb - xa, yb - ya); g.beginPath(); g.moveTo(xm + 0.5, ya); g.lineTo(xm + 0.5, yb); g.stroke(); }); }
+    for (const [k, v] of kv) { const o = add('c', [[k, C.key]]); rows[rows.length - 1].col = x0 + 2; line('c', r - 1, [[v, v.startsWith('●') ? C.ok : C.val, true]], x0 + kw + 3, o); }
+    r += 2;
+    // 고리 계기 — 표 오른쪽, 레거시 그래픽 (HUD 원형 게이지): 바탕 고리(흐림) + 값 호(밝음, 12시에서 시계 방향 72%)
+    { const gx0 = x0 + kw + vw + 5, gW = Math.max(8, zR - gx0), R0 = Math.min(gW * cw, (kv.length + 2) * ch) / 2 - 3, cx = gx0 * cw + gW * cw / 2, cy = tr0 * ch + (kv.length + 2) * ch / 2, th = 4, pct = 0.72, cells = new Set();
+      for (let rr = Math.floor((cy - R0) / ch); rr <= Math.floor((cy + R0) / ch); rr++) for (let c = Math.floor((cx - R0) / cw); c <= Math.floor((cx + R0) / cw); c++) { const d = Math.hypot(c * cw + cw / 2 - cx, rr * ch + ch / 2 - cy); if (d <= R0 + cw * 0.6 && d >= R0 - th - cw * 0.6) cells.add(rr * cols + c); }
+      leg('c', ords.c - kv.length, cx - R0 - 4, cx + R0 + 4, cells, (g) => { g.lineWidth = th; g.strokeStyle = C.lineC; g.beginPath(); g.arc(cx, cy, R0 - th / 2, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = C.lineB; g.beginPath(); g.arc(cx, cy, R0 - th / 2, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2); g.stroke();
+        g.lineWidth = 1; for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2 - Math.PI / 2, r1 = R0 + 2, r2 = R0 + (k % 6 ? 4 : 7); g.beginPath(); g.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); g.stroke(); } });
+      line('c', Math.round(cy / ch - 1), [['72%', C.val]], Math.round(cx / cw - 1.5), ords.c - kv.length);
+      line('c', Math.round(cy / ch), [['가동률', C.key]], Math.round(cx / cw - 3), ords.c - kv.length + 1); }
+    head('부하');
+    // 막대 — 바탕 칸(흐림 틀) + 채움(밝음), 레거시. 이름 · 값은 텍스트
+    const bar = (lab, v) => { const o = add('c', [[lab, C.key]]), bx0 = (x0 + 5) * cw, bx1 = (x0 + 22) * cw, yM = (r - 1) * ch + ch / 2, hh = ch * 0.42, cells = new Set();
+      for (let c = Math.floor(bx0 / cw); c < Math.ceil(bx1 / cw); c++) cells.add((r - 1) * cols + c);
+      leg('c', o, bx0, bx1, cells, (g) => { g.strokeStyle = C.lineC; g.lineWidth = 1; g.strokeRect(bx0 + 0.5, yM - hh / 2 + 0.5, bx1 - bx0, hh); g.fillStyle = C.fill; g.fillRect(bx0 + 2, yM - hh / 2 + 2, (bx1 - bx0 - 3) * v, hh - 3); });
+      line('c', r - 1, [[Math.round(v * 100) + '%', C.val]], x0 + 23, o); };
+    bar('CPU', 0.42); bar('MEM', 0.61);
+    const sparkRow = rows.length; add('c', [[this.pad('NET', 5), C.key], [this.spark(17), C.ok], ['  1.2 MB/s', C.val]], 2);
+    const rb = this._rows - 2;
+    // 지도 — 우주 지도. 노드는 모두 궤도에(형제는 같은 궤도), 지도 뷰는 세 가지 — 트리 · 리프 · 리소스. 각 지도 뷰에선 그 뷰의 노드만 보이고(다른 뷰의 노드는 빼고) 궤도는 모두 보인다
+    //   트리 지도: 계정 · 트리 노드 / 리프 지도(들어온 트리): 그 트리 · 그 리프 / 리소스 지도(들어온 리프): 그 리프 · 그 리소스
+    //   누르기 = 포커싱 — 그 노드를 가운데로 확대만 (진입 없음). 포커싱된 노드를 한 번 더 누르면 부모 궤도로
+    //   두 번 누르기 = 진입 — 지도 뷰 전환 (트리 → 리프 지도 · 리프 → 리소스 지도). 들어오게 한 노드(가운데)를 다시 두 번 누르면 나간다
+    //   길게 누르기 = 전환 — 그 노드로 화면 전환 (워프 · 궤도 비행 · 리소스 진입). 누르는 동안 노드 둘레에 고리가 차오른다
+    //   글 설명 없음 — 오른쪽 끝 세로 눈금 3 = 지도 뷰(트리 · 리프 · 리소스), 지금 뷰는 밝은 막대
+    head('지도');
+    {
+      const MD = this.mapData(), cur = this.nodeOf(names), mr0 = r, mapRows = Math.max(8, Math.min(Math.round((zR - x0 - 1) * cw * 0.72 / ch), rb - 5 - r - 6 - 7)), mr1 = r + mapRows - 1,   /* 지도 = 크기 고정: 높이 = 판 너비 × 0.72 (화면 높이와 상관없이 같은 비율) — 남는 칸은 노드 제어로 */ ax0 = (x0 + 1) * cw, ax1 = zR * cw, ay0 = mr0 * ch, ay1 = mr1 * ch, ayM = ay0, H = ay1 - ayM;
+      if (!this._mv || !MD.byId[this._mv.root] || !MD.byId[this._mv.focus]) this._mv = this.mapViewOf(cur);
+      const MV = this._mv, root = MD.byId[MV.root], foc = MD.byId[MV.focus], o0 = ords.c - 1;
+      // 보이는 노드 — 이 지도 뷰의 것만
+      const VIS = (n) => MV.level === 'tree' ? (n.kind === 'root' || n.kind === 'tree') : MV.level === 'leaf' ? (n === root || (n.parent === root && n.kind === 'leaf')) : (n === root || n.parent === root);
+      // 세계 좌표 — 계정 (0, 0), 계정 둘레 궤도 R1. 자식 궤도 반지름 = min(부모 궤도 × 0.34, 형제 사이 거리 × 0.32) — 깊어질수록 · 형제가 많을수록 작게, 이웃과 겹치지 않게
+      const R1 = 100, pcx = Math.round((ax0 + ax1) / 2 - cw * 2), pcy = Math.round((ayM + ay1) / 2);
+      const place = (n, x, y, ring, a0) => { n.ox = x; n.oy = y; n.ring = ring; const k = n.kids.length; n.kids.forEach((c, j) => { const a = a0 + j / k * Math.PI * 2 - Math.PI / 2 + (n.parent ? 0.6 : 0); place(c, x + Math.cos(a) * ring, y + Math.sin(a) * ring, Math.min(ring * 0.34, 2 * Math.PI * ring / Math.max(1, k) * 0.32), a + 0.9); }); };
+      place(MD.root, 0, 0, R1, 0);
+      // 카메라 목표 — 포커싱 노드의 계(자식 궤도 + 그 아래 작은 궤도)가 판 높이에 꽉 차게. 자식이 이 지도 뷰에서 안 보이면(다른 뷰의 노드) 형제와 함께 보이게
+      const fitR = foc.kids.some(VIS) ? foc.ring * 1.4 : Math.max(4, (foc.parent ? foc.parent.ring : R1) * 1.1), tgt = { x: foc.ox, y: foc.oy, s: (H / 2 - 16) / fitR };
+      if (!this._mcam) this._mcam = { ...tgt }; this._mcamT = tgt;
+      // 마커 — 글자 크기에 맞춘 작은 지시선: 포커싱 노드에서 45° 로 한 줄 반쯤 올라가 꺾인 뒤 글자 폭만큼 가로선. 가로선 위 = 이름, 아래 = 속성(무슨 노드인지만). 늘 오른쪽으로
+      const KIND = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' };
+      const attr = KIND[foc.kind];   // 속성 — 무슨 노드인지만
+      const rn = Math.floor(pcy / ch), yl = (rn - 1) * ch, rise = pcy - yl, tw = Math.max(this.dw(foc.name), this.dw(attr)), mcR = Math.ceil((pcx + rise) / cw), toR = true;   // 늘 오른쪽으로   // 짧게 — 노드에서 한 줄 반쯤 45° 로 올라가 꺾이고, 가로선은 글자 폭만큼
+      const kx = toR ? pcx + rise : pcx - rise, mc0 = toR ? mcR : Math.floor(kx / cw) - tw, xe = toR ? (mc0 + tw) * cw : mc0 * cw;   // 가로선 = 글자 폭 그대로
+      Object.assign(this._mapGeo = this._mapGeo || {}, { pcx, pcy, ax0, ax1, ay0, ay1, ayM, foc, root, cur, MD, VIS, level: MV.level, mk: { kx, yl, xe } });
+      const P = (n) => { const c = this._mcam; return [pcx + (n.ox - c.x) * c.s, pcy + (n.oy - c.y) * c.s]; };
+      // 기호 — 계정: 점 + 고리 · 트리: 작은 고리 · 리프: 점 · 리소스: 작은 네모(■)
+      const sym = (g, n, x, y, big, hl) => {
+        const col = hl ? C.fillB : C.dot;
+        if (n.kind === 'root') { g.fillStyle = hl ? C.fillB : C.fill; g.beginPath(); g.arc(x, y, big ? 3.5 : 2.6, 0, Math.PI * 2); g.fill(); g.strokeStyle = C.lineC; g.lineWidth = 1; g.beginPath(); g.arc(x, y, big ? 8 : 5.5, 0, Math.PI * 2); g.stroke(); }
+        else if (n.kind === 'tree') { g.strokeStyle = col; g.lineWidth = big ? 1.4 : 1; g.beginPath(); g.arc(x, y, big ? 4.5 : 2.8, 0, Math.PI * 2); g.stroke(); if (big) { g.fillStyle = col; g.beginPath(); g.arc(x, y, 1.6, 0, Math.PI * 2); g.fill(); } }
+        else if (n.kind === 'leaf') { g.fillStyle = col; g.beginPath(); g.arc(x, y, big ? 3.2 : 2.2, 0, Math.PI * 2); g.fill(); }
+        else { const s2 = big ? 2.6 : 1.8; g.fillStyle = col; g.fillRect(x - s2, y - s2, s2 * 2, s2 * 2); } };
+      const cells = new Set(); for (let rr = Math.floor(ay0 / ch); rr <= Math.floor(ay1 / ch); rr++) for (let c = Math.floor((ax0 - cw) / cw); c <= Math.floor((ax1 + cw) / cw); c++) cells.add(rr * cols + c);
+      leg('c', o0, ax0 - cw, ax1 + cw, cells, (g) => {
+        const cam = this._mcam, G = this._mapGeo, fo = G.foc, cu = G.cur, hv = this._mapHover, HD = this._hold, now = performance.now();
+        g.save(); g.beginPath(); g.rect(ax0 - cw / 2, G.ayM, ax1 - ax0 + cw, ay1 - G.ayM); g.clip();
+        // 궤도 — 모두 그린다(다른 뷰의 것도). 포커싱 노드의 궤도는 또렷하게, 이 뷰 노드의 궤도는 보통, 나머지는 흐리게
+        g.lineWidth = 1; const ring = (n) => { if (!n.kids.length) return; const [x, y] = P(n), rr = n.ring * cam.s; if (rr > 2.5 && rr < 4000) { g.strokeStyle = n === G.root && G.level !== 'tree' ? C.lineB : n === fo ? C.lineC : G.VIS(n) ? C.lineF : C.lineFF; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.stroke(); } n.kids.forEach(ring); }; ring(MD.root);
+        // 노드 — 이 지도 뷰의 것만. 포커싱 노드 · 그 자식은 크게
+        for (const n of MD.all) { if (!G.VIS(n)) continue; const [x, y] = P(n); if (x < ax0 - 20 || x > ax1 + 20 || y < ay0 - 20 || y > ay1 + 20) continue; sym(g, n, x, y, n === fo || n.parent === fo, n === cu); }
+        // 진입한 노드 — 이중 고리 (지도 뷰를 나가기 전까지)
+        if (G.level !== 'tree') { const [x, y] = P(G.root); g.strokeStyle = C.fillB; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y, 12.5, 0, Math.PI * 2); g.stroke(); g.lineWidth = 1; g.beginPath(); g.arc(x, y, 15.5, 0, Math.PI * 2); g.stroke(); }
+        // 포커싱 노드 — 고리 + 십자 눈금
+        { const [x, y] = P(fo); g.strokeStyle = C.lineB; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 9, 0, Math.PI * 2); g.stroke(); g.beginPath(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { g.moveTo(x + dx * 11, y + dy * 11); g.lineTo(x + dx * 14, y + dy * 14); } g.stroke(); }
+        // 길게 누르는 중 — 노드 둘레에 고리가 시계 방향으로 차오른다 (다 차면 전환)
+        if (HD && !HD.fired && MD.byId[HD.id]) { const [x, y] = P(MD.byId[HD.id]), p = Math.min(1, (now - HD.t) / this.HOLD_MS()); g.strokeStyle = C.fillB; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 12, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2); g.stroke(); }
+        else if (hv && MD.byId[hv]) { const [x, y] = P(MD.byId[hv]); g.strokeStyle = C.lineC; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.stroke(); }
+        // 지금 위치 — 느린 맥박
+        if (cu && G.VIS(cu)) { const [x, y] = P(cu), p = (now / 1000 % 1.8) / 1.8; g.strokeStyle = 'rgba(208,255,150,' + (0.5 * (1 - p)).toFixed(3) + ')'; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 4 + p * 9, 0, Math.PI * 2); g.stroke(); }
+        g.restore();
+        // 지도 뷰 — 오른쪽 끝 세로 눈금 3 (위 = 트리 · 리프 · 리소스). 지금 뷰는 밝은 막대
+        const zx = ax1 + 2, zy0 = pcy - 18, LVL = ['tree', 'leaf', 'res']; for (let k = 0; k < 3; k++) { const on = LVL[k] === G.level, y = zy0 + k * 18; g.strokeStyle = on ? C.lineB : C.lineF; g.lineWidth = on ? 2 : 1; g.beginPath(); g.moveTo(zx - (on ? 6 : 3), y + 0.5); g.lineTo(zx + 1, y + 0.5); g.stroke(); }
+        g.strokeStyle = C.lineFF; g.lineWidth = 1; g.beginPath(); g.moveTo(zx + 1.5, zy0); g.lineTo(zx + 1.5, zy0 + 36); g.stroke();
+      }, 'map', 'map');
+      // 마커 선 — 따로 된 레거시: 노드(지금 자리) → 꺾임 → 가로선 끝. 덮는 칸 없음(배경 영향 없음), 포커싱이 바뀌면 왼쪽에서 오른쪽으로 다시 생성
+      leg('c', o0, pcx - 8, xe + 2, new Set(), (g) => { const G = this._mapGeo, K = G.mk, c = this._mcam, x = G.pcx + (G.foc.ox - c.x) * c.s, y = G.pcy + (G.foc.oy - c.y) * c.s; g.strokeStyle = C.lineB; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 6, y - 6); g.lineTo(K.kx, K.yl + 0.5); g.lineTo(K.xe, K.yl + 0.5); g.stroke(); }, 'mapMk@' + foc.id);   // 노드마다 새 레거시 — 포커싱이 바뀌면 왼쪽에서 오른쪽으로 새로 생성
+      // 이름 — 이 뷰에서 보이는 포커싱 노드와 그 자식만 (자식이 이 뷰에 없으면 형제) (카메라가 도착할 자리 기준, 바깥쪽으로)
+      const T2 = (n) => [pcx + (n.ox - tgt.x) * tgt.s, pcy + (n.oy - tgt.y) * tgt.s];
+      line('c', rn - 2, [[foc.name, foc === cur ? C.sel : C.val, true]], toR ? mc0 : mc0 + tw - this.dw(foc.name), o0, 'mz@' + foc.id);
+      line('c', rn - 1, [[attr, C.key]], toR ? mc0 : mc0 + tw - this.dw(attr), o0, 'mzA@' + foc.id);   // 노드마다 새 텍스트 — 포커싱이 바뀌면 이름처럼 처음부터 랜덤 갱신
+      (foc.kids.some(VIS) ? foc.kids : foc.parent ? foc.parent.kids.filter((q) => q !== foc) : []).forEach((n) => { if (!VIS(n)) return; const [x, y] = T2(n), t = n.name + (n.kind === 'tree' ? '/' : ''), w = this.dw(t), right = x >= pcx - 2, off = n.kids.some(VIS) ? Math.min(40, n.ring * tgt.s) + 6 : 9;
+        const cR = Math.floor((x + off) / cw), cL = Math.floor((x - off) / cw) - w, cc = (right && cR + w <= zR) || cL < x0 + 1 ? cR : cL;   // 바깥쪽에, 판을 넘으면 반대쪽에
+        line('c', Math.floor(y / ch), [[t, n === cur ? C.sel : C.val, true]], Math.max(x0 + 1, Math.min(zR - w, cc)), o0, 'mz@' + n.id); });
+      ords.c = o0 + 1; r = mr1 + 1;
+    }
+    // 노드 제어 — 남은 칸의 아래 절반. 두 모드: 전역(접근할 수 있는 모든 노드, 파랑) · 지역(지금 노드 아래만, 초록). 머리를 누르거나 입력 중 Tab 으로 전환 — 머리 이름과 입력 칸 색이 바뀐다
+    //   목록 = 자원 디렉토리: 노드(트리 · 리프)마다 제어기 · 공유 자원 · 기능, 트리는 그 아래 자식 노드. 디렉토리는 이름 뒤 ▼(접힘) · ▲(펼침), 파일은 이름 앞 기호 — 제어기 '>_' · 기능 'o' · 공유 자원 빈칸
+    //   입력하면 이름이 맞는 항목과 그 위 디렉토리를 모두 펼쳐 후보로. ↑ ↓ 로 고르고 Enter(또는 누르기) — 디렉토리는 펼치기/접기, 제어기는 노드 데스크톱 창(레거시), 기능 · 자원은 그 일
+    // 최소화 창 — 창 컴포넌트를 최소화하면 여기에 쌓인다(전역: 모든 노드의 창). 최근 두 개 + '더보기 ▶' — 호버하면 오른쪽에 찾기 판(노드 · 종류로 찾기)
+    //   줄을 누르면 그 창을 되살린다(중앙 생성). 높이는 늘 4줄(머리 · 두 줄 · 더보기)이라 아래 노드 제어가 밀리지 않는다
+    r += 1;
+    { const mins = this.winFind('', 'min'), MW = this._mw = { rows: [], x0: (x0 + 1) * cw, x1: zR * cw };
+      MW.hr = r; head('최소화 창');
+      const o = ords.c - 1;
+      for (let k = 0; k < 2; k++) { const e = mins[k], row = r + k;
+        if (e) { line('c', row, [['>_ ', C.key], [e.node.name, C.val, true], ['  ' + this.WINKIND()[e.kind], C.key], ['  ' + this.winAgo(e), C.hint]], x0 + 1, o, 'mzmw' + k); MW.rows.push({ row, id: e.id }); }
+        else if (k === 0) line('c', row, [['최소화한 창이 없어요', C.hint]], x0 + 1, o, 'mzmw0'); }
+      // 더보기 = 레벨바 — 최소화한 창이 얼마나 있는지(한계 50칸, 한 칸 = 창 하나). 50 을 넘으면 바 안 오른쪽 끝에 '+넘은 수'. 바 오른쪽 ▶ — 호버하면 찾기 판, 누르면 고정(다시 누를 때까지)
+      MW.more = r + 2; const LB = 50, n = mins.length, over = Math.max(0, n - LB), bc0 = x0 + 1, bc1 = zR - 3, ovT = over ? '+' + over : '', ovC = bc1 - this.dw(ovT);
+      MW.bar = { x0: bc0 * cw, x1: (bc1 + 1) * cw, row: MW.more, n: Math.min(n, LB), LB, ovX: over ? ovC * cw - 3 : null };
+      line('c', MW.more, [[this._flyPin ? '◀' : '▶', this._flyPin ? C.sel : C.key, true]], zR - 1, o, 'mzmore');
+      if (over) line('c', MW.more, [[ovT, C.sel, true]], ovC, o, 'mzmw2');
+      { const cells = new Set(); for (let c = bc0; c <= bc1; c++) if (!over || c < ovC) cells.add(MW.more * cols + c);
+        leg('c', o, bc0 * cw, (bc1 + 1) * cw, cells, (g) => { const B = this._mw && this._mw.bar; if (!B) return; const y0 = B.row * ch + 3, hh = ch - 6, x1 = B.ovX != null ? B.ovX : B.x1 - 2, gap = 1, sw = (B.x1 - 2 - (B.x0 + 2) - gap * (B.LB - 1)) / B.LB;
+          g.strokeStyle = C.lineC; g.lineWidth = 1; g.strokeRect(B.x0 + 0.5, y0 - 1.5, B.x1 - B.x0 - 1, hh + 3);
+          for (let k = 0; k < B.LB; k++) { const sx = B.x0 + 2 + k * (sw + gap); if (sx + sw > x1) break; g.fillStyle = k < B.n ? (k % 10 === 9 ? 'rgba(150,240,170,0.95)' : C.fill) : 'rgba(56,128,88,0.18)'; g.fillRect(sx, y0 + 0.5, Math.max(1, sw), hh); } }, 'minLv', ''); }
+      // 호버 줄 · 더보기 — 레거시 막대
+      leg('c', o, MW.x0, MW.x1, new Set(), (g) => { const W2 = this._mw; if (!W2) return; const hv = this._mwHover, fo = this._fly && this._fly.open;
+        for (const R of W2.rows) if (R.id === hv) { g.fillStyle = 'rgba(70,170,110,0.12)'; g.fillRect(W2.x0 - cw / 2, R.row * ch + 1, W2.x1 - W2.x0 + cw, ch - 2); }
+        if (fo) { g.fillStyle = 'rgba(70,160,108,0.95)'; g.fillRect(W2.x1 + cw / 2 - 2, W2.more * ch + 1, 2, ch - 2); } }, 'minBar', '');
+      r += 4; }
+    { const CT = this._ctl || (this._ctl = { mode: 'global', open: {}, qc: {}, sel: 0, scroll: 0 }), KC = this.CTL_COL(CT.mode), MD = this.mapData();
+      const scope = CT.mode === 'global' ? MD.root : curN, title = CT.mode === 'global' ? '전역 제어' : curN.name + ' 제어';
+      const hr = r; head(title + '  ⇄', KC.head, KC.line); CT.hr = hr; CT.title = title;
+      const q = ((this._cmd && this._cmd.text) || '').trim().toLowerCase(), list = this.ctlList(scope, q, CT), lr0 = hr + 1, lr1 = rb - 5, nv = Math.max(1, lr1 - lr0 + 1);
+      CT.sel = Math.max(0, Math.min(list.length - 1, CT.sel)); if (CT.sel < CT.scroll) CT.scroll = CT.sel; if (CT.sel >= CT.scroll + nv) CT.scroll = CT.sel - nv + 1; CT.scroll = Math.max(0, Math.min(Math.max(0, list.length - nv), CT.scroll));
+      CT.rows = []; CT.lr0 = lr0; CT.nv = nv; CT.list = list; CT.x0 = (x0 + 1) * cw; CT.x1 = zR * cw;
+      const o0 = ords.c;
+      for (let k = 0; k < nv && CT.scroll + k < list.length; k++) {
+        const it = list[CT.scroll + k], row = lr0 + k, ind = x0 + 1 + it.depth * 2, isDir = !!it.kids, pre = it.type === 'exec' || it.type === 'win' ? '>_ ' : it.type === 'link' ? 'o ' : it.sph ? '◍ ' : isDir ? '' : '   ';
+        const nameCol = it.hit ? KC.hit : isDir ? C.val : C.key, parts = [];
+        if (pre) parts.push([pre, it.type === 'exec' && it.ent.exec === 'ctl' ? KC.head : C.key]);
+        parts.push([it.name, nameCol, isDir || it.hit]);
+        if (isDir) parts.push([it.isNode ? (it.exp ? ' ▲' : ' ▼') : it.exp ? ' △' : ' ▽', C.key]);   // 노드 디렉토리(표지 파일이 있음) = 채운 삼각형 · 그냥 디렉토리 = 빈 삼각형
+        if (it.more) parts.push(['  ' + it.more, C.hint]);
+        line('c', row, parts, ind, o0, 'mzct' + k);   /* 줄 자리마다 같은 텍스트 — 내용이 바뀌면 그 줄만 다시 찍힌다(겹친 잔상 없음) */ CT.rows.push({ row, id: it.id, k: CT.scroll + k });
+      }
+      if (list.length > nv) line('c', lr1 + 1 > rb - 4 ? lr1 : lr1 + 1, [[(CT.scroll + nv < list.length ? '▼ ' : '  ') + (CT.scroll + 1) + '–' + Math.min(list.length, CT.scroll + nv) + ' / ' + list.length, C.hint]], zR - 12, o0, 'mzPg');
+      // 고른 줄 · 호버 줄 — 레거시 막대 (모드 색)
+      const cells = new Set();
+      leg('c', o0, CT.x0, CT.x1, cells, (g) => { const K = this._ctl; if (!K || !K.rows) return; const C2 = this.CTL_COL(K.mode);
+        if (this._ctlHeadHov) { g.fillStyle = C2.barH; g.fillRect(K.x0 - cw / 2, K.hr * ch + 1, K.x1 - K.x0 + cw, ch - 2); g.fillStyle = C2.line; g.fillRect(K.x0 + 2 * cw, (K.hr + 1) * ch - 2, (this.dw(K.title || '') + 1) * cw, 1); }   // 머리 호버 — 누르면 전역 ↔ 지역
+        for (const R of K.rows) { const on = R.k === K.sel, hv = R.id === this._ctlHover; if (!on && !hv) continue; g.fillStyle = on ? C2.bar : C2.barH; g.fillRect(K.x0 - cw / 2, R.row * ch + 1, K.x1 - K.x0 + cw, ch - 2); if (on) { g.fillStyle = C2.line; g.fillRect(K.x0 - cw / 2, R.row * ch + 1, 2, ch - 2); } } }, 'ctlBar', '');
+      ords.c = o0 + 1; r = lr1 + 1;
+    }
+    // 맨 아래 — 입력 칸(틀 없음, CLI 프롬프트): '>' + 입력한 글자(텍스트) + 커서(레거시 블록, 깜박임) + 밑줄(레거시 한 줄). 칸을 누르거나 Ctrl+K · '/' 로 입력, Enter 로 찾기, Esc 로 나감
+    { const CM = this._cmd || (this._cmd = { text: '', focus: false }), x1c = zR, room = Math.max(4, x1c - (x0 + 4) - 1);
+      let shown = CM.text; while (shown && this.dw(shown) > room) shown = shown.slice(1);   // 넘치면 앞쪽을 잘라 끝이 보이게
+      const cc = x0 + 4 + this.dw(shown), yr = rb - 3;
+      const KM = this.CTL_COL(this._ctl ? this._ctl.mode : 'global'), o = line('c', yr, shown ? [['> ', CM.focus ? KM.head : KM.dim], [shown, C.val, true]] : [['> ', CM.focus ? KM.head : KM.dim]], x0 + 2, undefined, 'cmd');
+      Object.assign(CM, { cc, yr, xa: (x0 + 2) * cw, xb: x1c * cw });
+      const cells = new Set(); fpLine(cells, CM.xa, CM.xb, (yr + 1) * ch - 2);
+      leg('c', o, CM.xa, CM.xb + cw, cells, (g) => { const K = this._cmd, now = performance.now(), on = K.focus, C3 = this.CTL_COL(this._ctl ? this._ctl.mode : 'global');
+        // 밑줄 — 입력 칸 너비만큼, 입력 중이면 밝게
+        g.strokeStyle = on ? C3.line : C3.lineF; g.lineWidth = 1; g.beginPath(); g.moveTo(K.xa, (K.yr + 1) * ch - 1.5); g.lineTo(K.xb, (K.yr + 1) * ch - 1.5); g.stroke();
+        // 커서 — 입력 중: 칸 크기 블록이 0.53초마다 깜박 · 아니면 흐린 짧은 밑줄
+        const X = K.cc * cw, Y = K.yr * ch; if (on) { if (((now - (K.at || 0)) / 530 | 0) % 2 === 0) { g.fillStyle = C3.fill; g.fillRect(X + 1, Y + 2, cw - 2, ch - 4); } } else { g.strokeStyle = C3.lineF; g.beginPath(); g.moveTo(X + 1, Y + ch - 3.5); g.lineTo(X + cw - 1, Y + ch - 3.5); g.stroke(); }
+      }, 'cmdUI', '');
+      this.cmdEl(CM, ch); }
+    line('c', rb - 1, [['ESC', C.val], [' 뒤로  ·  ', C.key], ['Ctrl+K', C.val], [' 찾기  ·  ', C.key], ['?', C.val], [' 도움말', C.key]]);
+    // 우클릭 속성 — 지도 마커와 같은 꼴: 노드 가장자리에서 45° 로 한 줄 반 올라가 꺾인 뒤 글자 폭만큼 가로선. 선 위 = 이름(볼드), 선 아래 = 종류, 그 아래로 속성 목록(이름 · 값)
+    //   선의 시작은 노드를 따라간다(공전해도 붙어 있음). 늘 오른쪽으로 — 화면을 넘으면 왼쪽으로. 글자는 텍스트(랜덤 갱신 · 주기 증가), 선 · 속성 왼쪽 세로 눈금은 레거시(배경 영향 없음)
+    if (this._pop) { const PO = this._pop, off = Math.max(5, (PO.r || 6) * 0.72), pr = PO.props || [];
+      const acts = PO.acts || [], kw = acts.reduce((a, q) => Math.max(a, this.dw(q.label)), 0), tw = Math.max(this.dw(PO.name), this.dw(PO.kind), acts.reduce((a, q) => Math.max(a, 2 + kw + 2 + this.dw(q.desc || '')), 0));
+      const rn = Math.floor((PO.y - off) / ch) - 1, yl = rn * ch, dyR = PO.y - off - yl;   // 꺾이는 높이 = 한 줄 ~ 두 줄 위, 45°
+      let toR = true, kx = PO.x + off + dyR; if (Math.ceil(kx / cw) + tw > cols - 2) { toR = false; kx = PO.x - off - dyR; }
+      const mc0 = toR ? Math.ceil(kx / cw) : Math.floor(kx / cw) - tw, xe = toR ? (mc0 + tw) * cw : mc0 * cw, K = 'mzp' + PO.k + '_';
+      PO.geo = { kx, yl, xe, toR, off, dyR, x0: mc0 * cw, x1: (mc0 + tw) * cw, r0: rn + 1, r1: rn + 1 + acts.length };
+      line('p', rn - 1, [[PO.name, C.sel, true]], toR ? mc0 : mc0 + tw - this.dw(PO.name), 0, K + 'n');
+      line('p', rn, [[PO.kind, C.key]], toR ? mc0 : mc0 + tw - this.dw(PO.kind), 1, K + 'k');
+      acts.forEach((q, j) => line('p', rn + 1 + j, [['› ', C.key], [this.pad(q.label, kw + 2), C.val, true], [q.desc || '', C.hint]], mc0, 2 + j, K + 'a' + j));   // 할 일 — 누르면 그 창 · 진입
+      leg('p', 0, Math.min(PO.x, kx, xe) - 8, Math.max(PO.x, kx, xe) + 8, new Set(), (g) => { const Q = this._pop; if (!Q || !Q.geo) return; const G = Q.geo, T2 = Q.track ? Q.track() : null, x = T2 ? T2[0] : Q.x, y = T2 ? T2[1] : Q.y, sx = G.toR ? x + G.off : x - G.off, sy = y - G.off;
+        g.strokeStyle = C.lineB; g.lineWidth = 1; g.beginPath(); g.moveTo(sx, sy); g.lineTo(G.kx, G.yl + 0.5); g.lineTo(G.xe, G.yl + 0.5); g.stroke();
+        g.strokeStyle = C.lineF; g.beginPath(); g.moveTo(G.x0 - cw / 2 + 0.5, (G.r0) * ch + 2); g.lineTo(G.x0 - cw / 2 + 0.5, G.r1 * ch - 2); g.stroke();
+        if (this._popHov != null) { const rr = G.r0 + this._popHov; g.fillStyle = 'rgba(70,170,110,0.2)'; g.fillRect(G.x0 - cw / 2 + 1, rr * ch + 1, G.x1 - G.x0 + cw, ch - 2); g.fillStyle = 'rgba(70,160,108,0.95)'; g.fillRect(G.x0 - cw / 2, rr * ch + 1, 2, ch - 2); }
+        g.fillStyle = C.fillB; g.beginPath(); g.arc(sx, sy, 1.6, 0, Math.PI * 2); g.fill(); }, 'popMk' + PO.k, ''); }
+    // 줄 → 텍스트. 이전과 같은 줄(같은 글자 · 자리)은 상태를 이어받고, 떠 있는 동안 바뀐 줄은 지금부터 다시 찍고(랜덤 갱신), 사라진 줄은 지운다(거꾸로)
+    const nowL = performance.now(), live = this._lg && this._lg.open && this._lg.cAt, ids = new Set(); let nk = 0, nch = 0;
+    rows.forEach((R) => {
+      const id = R.key || 'ln' + nk++, text = R.parts.map((q) => q[0]).join(''), segs = R.parts.map((q) => ({ n: this.cellsOf(q[0]).length, col: q[1], b: q[2] })), c0 = R.col ?? x0;
+      this.setText(id, text, c0, R.row, C.val, 0, 1, segs); ids.add(id);
+      const T = this._tx[id], P = OLD[id]; T.grp = R.grp; T.ord = R.ord;
+      if (live && this._ctlFxNow && /^mz(ct\d+|Pg|mw\d+|more)$/.test(id)) T.st = { dir: 'in', at: nowL + (R.row - (this._ctl ? this._ctl.lr0 : 0)) * 25 };   // 찾기 결과로 갱신 — 줄마다 조금씩 늦게 랜덤 갱신
+      else if (P && P.st && P.text === text && P.c0 === c0 && P.r0 === R.row) { T.st = P.st; T.g = P.g; T.next = P.next; }
+      else if (id === 'cmd' && P && P.st && P.st.dir === 'in') T.st = { dir: 'in', at: nowL - 1e5 };
+      else if (live && /^mz(ct\d+|Pg|mw\d+|more)$/.test(id)) T.st = { dir: 'in', at: nowL - 1e5 };   // 노드 제어 목록 — 펼치기 · 고르기 · 치는 동안엔 랜덤 갱신 없이 바로 (랜덤 갱신은 TERRA 를 열고 닫을 때와 찾기 결과 갱신 때만)   // 입력 줄 — 칠 때마다 다시 찍지 않고 바로
+      else if ((P && P.st && P.st.dir === 'in' || (!P && id.startsWith('mz'))) && (R.grp === 'b' ? this._lg && this._lg.on : live)) T.st = { dir: 'in', at: nowL + (id.startsWith('mz') ? 420 : 60) + (nch++) * 40 };   // 지도 이름은 카메라가 거의 도착한 뒤
+    });
+    const live2 = [...ids].map((id) => this._tx[id]), hitsLive = (T) => live2.some((L) => L.r0 === T.r0 && L.c0 < T.c0 + this.cellsOf(T.text).length && T.c0 < L.c0 + this.cellsOf(L.text).length);   // 새 줄과 겹치는 이전 줄은 사라지는 모습 없이 바로 뺀다 (겹치면 새 줄을 지움)
+    for (const id in OLD) if (!ids.has(id) && OLD[id].st && OLD[id].st.dir === 'in' && !hitsLive(OLD[id]) && !(live && /^mz(ct\d+|Pg|mw\d+|more)$/.test(id))) { const T = OLD[id]; T.grp = null; T.ghost = true; T.st = { dir: 'out', at: nowL }; this._tx['gh' + id + '_' + Math.round(nowL)] = T; }
+    this._ctlFxNow = false;
+    // 레거시 GUI — 이전 상태(진행)를 이어받는다
+    const prev = {}; (this._legs || []).forEach((e) => { prev[e.id] = e; });
+    legs.forEach((e) => { const P = prev[e.id]; if (!P) return; if (P.sig === e.sig) e.st = P.st; else if (P.st && P.st.dir === 'in') e.st = { dir: 'in', at: nowL }; });   // 바뀐 레거시(초점이 바뀐 확대 판)는 다시 오른쪽으로 생성
+    // 마커(선 · 이름 · 종류) — 포커싱 · 진입으로 카메라가 움직이면 숨겨 두고, 카메라가 다 도착한 뒤에 생성 (mapMkTick)
+    { const mk = legs.find((e) => e.id.startsWith('mapMk@')), tids = [...ids].filter((id) => id.startsWith('mzA@') || (mk && id === 'mz@' + mk.id.slice(6)));
+      if (live && mk && (!this._mkOn || this._mkOn !== mk.id)) { mk.st = null; tids.forEach((id) => { this._tx[id].st = null; }); this._mkPend = { leg: mk.id, tids }; this._mkOn = mk.id; }
+      else if (!live) { this._mkOn = mk ? mk.id : null; this._mkPend = null; } }
+    this._legs = legs; this._legCell = new Map(); legs.forEach((e, k) => e.cells.forEach((i) => { let a = this._legCell.get(i); if (!a) { a = []; this._legCell.set(i, a); } a.push(k); }));
+    this._lineN = rows.length; this._sparkId = 'ln' + sparkRow; this._ring = null;
+    const Z = {
+      ctrl: { c0: 0, c1: ctrlCols, r0: 0, r1: this._rows },
+      logo: { c0: zL, c1: ctrlCols - 1, r0: lr0, r1: lr1 },
+      info: { c0: x0, c1: x0 + wCol, r0: lr1 + 2, r1: lr1 + 5 },
+      content: { c0: x0, c1: x0 + wCol, r0: lr1 + 6, r1: r },
+      cmd: { c0: x0, c1: x0 + wCol, r0: rb - 4, r1: rb }
+    };
+    this._zones = Z;
+  }
+  // ───── 지도 데이터 — 계정 · 트리 · 리프 · 리소스 (형제는 같은 궤도) ─────
+  mapData() {
+    if (this._MD) return this._MD;
+    const lv = (pre, cs) => cs.split('').map((c) => ({ name: pre + c }));
+    const T = { name: '계정', kids: [
+      { name: '01', kids: lv('01·', 'abcdef') },
+      { name: '02', kids: [{ name: '02·1', kids: lv('02·1', 'abc') }, { name: '02·2', kids: lv('02·2', 'ab') }, { name: '02·a' }] },
+      { name: '03', kids: lv('03·', 'abcde') },
+      { name: '04', kids: [{ name: '04·1', kids: lv('04·1', 'abcd') }, { name: '04·a' }, { name: '04·b' }] }] };
+    const RES = ['ssh:22', 'tty0', 'gpio', 'mqtt', 'video0'];
+    const all = [], byId = {};
+    const walk = (n, parent) => { n.parent = parent; n.path = (parent ? parent.path : '') + '/' + n.name; n.id = n.path; n.kids = n.kids || []; n.kind = !parent ? 'root' : n.kids.length ? 'tree' : 'leaf'; all.push(n); byId[n.id] = n; n.kids.forEach((c) => walk(c, n)); };
+    walk(T, null);
+    for (const n of all.slice()) if (n.kind === 'leaf') { const k = 2 + (n.name.charCodeAt(n.name.length - 1) % 3); for (let j = 0; j < k; j++) { const c = { name: RES[j], kids: [], parent: n, kind: 'res' }; c.path = n.path + '/' + c.name; c.id = c.path; n.kids.push(c); all.push(c); byId[c.id] = c; } }   // 리프의 리소스
+    return (this._MD = { root: T, all, byId });
+  }
+  nodeOf(names) { let n = this.mapData().root; for (const nm of names.slice(1)) { const c = n.kids.find((q) => q.name === nm); if (!c) break; n = c; } return n; }
+  // 지도 뷰 — 지금 위치에서: 계정 → 트리 지도 · 트리 → 리프 지도(그 트리) · 리프 → 리소스 지도(그 리프). 씬에선 지금 뷰를 따른다(sceneLevel)
+  mapViewOf(cur) {
+    const lv = this.sceneLevel ? this.sceneLevel(cur) : cur.kind === 'root' ? 'tree' : cur.kind === 'tree' ? 'leaf' : 'res';
+    if (lv === 'tree') return { level: 'tree', root: this.mapData().root.id, focus: (cur.kind === 'tree' && cur.parent ? cur.parent : this.mapData().root).id };
+    return { level: lv, root: cur.id, focus: cur.id };
+  }
+  HOLD_MS() { return 550; }
+  // ───── 입력 칸 — 화면에 보이지 않는 실제 <input>(한글 조합 · 붙여넣기 · 커서 이동을 브라우저에 맡김)을 입력 줄 위에 겹쳐 두고, 글자는 텍스트 컴포넌트로 그린다 ─────
+  cmdEl(CM, ch) {
+    const host = this._cv && this._cv.parentElement; if (!host) return;
+    let el = this._cmdEl;
+    if (!el) {
+      el = this._cmdEl = document.createElement('input'); el.type = 'text'; el.autocomplete = 'off'; el.spellcheck = false; el.setAttribute('aria-label', '검색');
+      Object.assign(el.style, { position: 'absolute', zIndex: 4, opacity: 0, border: 0, padding: 0, margin: 0, background: 'transparent', color: 'transparent', caretColor: 'transparent', fontSize: '16px', outline: 'none' });
+      el.addEventListener('input', () => { this._cmd.text = el.value; this._cmd.at = performance.now(); if (this._ctl) { this._ctl.sel = 0; this._ctl.scroll = 0; this._ctl.qc = {}; } this.layout();
+        clearTimeout(this._ctlFxT); this._ctlFxT = setTimeout(() => { if (!this._live) return; this._ctlFxNow = true; this.layout(); }, 280); });   // 치기를 멈추면(0.28초) 찾기 결과를 랜덤 갱신으로 다시 찍는다
+      host.addEventListener('wheel', (e) => { const K = this._ctl, rc = this._cv.getBoundingClientRect(), y = e.clientY - rc.top, x = e.clientX - rc.left; if (!K || !K.rows || !(this._lg && this._lg.open) || x > K.x1 + this._cw || y < K.lr0 * this._ch || y > (K.lr0 + K.nv) * this._ch) return; e.preventDefault(); K.sel = Math.max(0, K.sel + (e.deltaY > 0 ? 1 : -1)); this.layout(); }, { passive: false });   // 목록 위 휠 — 고른 줄을 옮긴다
+      el.addEventListener('focus', () => { this._cmd.focus = true; this._cmd.at = performance.now(); this.layout(); });
+      el.addEventListener('blur', () => { this._cmd.focus = false; this.layout(); });
+      el.addEventListener('keydown', (e) => { e.stopPropagation();   // 입력 중엔 화면 단축키(ESC 뒤로 등)로 넘기지 않는다
+        if (e.key === 'Escape') { e.preventDefault(); if (this._ctlWin) this.ctlX(); else el.blur(); }
+        else if (e.key === 'Tab') { e.preventDefault(); this.ctlMode(); }
+        else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const K = this._ctl; if (K) { K.sel = Math.max(0, K.sel + (e.key === 'ArrowDown' ? 1 : -1)); this.layout(); } }
+        else if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); const K = this._ctl; if (K && K.list && K.list[K.sel]) this.ctlAct(K.list[K.sel]); } });
+      el.addEventListener('pointerdown', (e) => e.stopPropagation()); el.addEventListener('pointerup', (e) => e.stopPropagation());
+      this._cmdKey = (e) => { if (!this._live) return this.cmdDispose(); if (e.key === 'Escape' && this._ctlWin) { e.preventDefault(); e.stopPropagation(); this.ctlX(); return; }
+        if (this._ctlHovW && (e.ctrlKey || e.metaKey) && ['=', '+', '-', '0'].includes(e.key)) { e.preventDefault(); e.stopPropagation(); if (e.key === '0') this.ctlZoom(1, 0, this._ctlHovW); else this.ctlZoom(null, e.key === '-' ? -1 : 1); return; }   // 창 위에서 Ctrl + = / − / 0 const t = e.target && e.target.tagName; if (t === 'INPUT' || t === 'TEXTAREA') return;
+        if (((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) || e.key === '/') { if (this._lg && this._lg.open) { e.preventDefault(); e.stopPropagation(); el.focus(); } } };   // Ctrl+K · '/' — 입력 칸으로
+      window.addEventListener('keydown', this._cmdKey, true);
+      host.appendChild(el);
+    }
+    Object.assign(el.style, { left: CM.xa + 'px', top: CM.yr * ch + 'px', width: Math.max(10, CM.xb - CM.xa) + 'px', height: ch + 'px' });
+  }
+  // ───── 노드 제어 ─────
+  // 모드 색 — 전역: 파랑 · 지역(노드): 초록
+  CTL_COL(mode) {
+    return mode === 'global'
+      ? { head: [140, 182, 255], dim: [96, 124, 176], hit: [196, 218, 255], line: 'rgba(110,150,240,0.9)', lineF: 'rgba(90,120,200,0.3)', fill: 'rgba(150,186,255,0.9)', bar: 'rgba(90,130,230,0.22)', barH: 'rgba(90,130,230,0.1)', css: '#8cb6ff' }
+      : { head: [120, 232, 156], dim: [112, 156, 128], hit: [208, 255, 150], line: 'rgba(70,160,108,0.85)', lineF: 'rgba(56,128,88,0.3)', fill: 'rgba(150,240,170,0.9)', bar: 'rgba(70,170,110,0.22)', barH: 'rgba(70,170,110,0.1)', css: '#78e89c' };
+  }
+  ctlMode() { const K = this._ctl; if (!K) return; K.mode = K.mode === 'global' ? 'node' : 'global'; K.sel = 0; K.scroll = 0; K.qc = {}; if (this._cmd) this._cmd.at = performance.now(); this.layout(); }
+  // 자원 디렉토리 — 노드(트리 · 리프)는 디렉토리, 그 안: 제어기(파일) · 공유 자원(디렉토리, 공개 자원 파일) · 기능(디렉토리: 이동 · 지도에서 보기 · 설정), 트리는 이어서 자식 노드
+  // ───── 가상 파일 시스템(VFS) — 전역 제어 목록은 이 디렉토리 트리를 그대로 보여 준다(종류를 이름으로 정해 두지 않음) ─────
+  //   항목 { name, type: 'dir' | 'file' | 'link' | 'exec', kids?, data?, target?, exec?, mount? }
+  //   노드 인식 — 디렉토리 바로 아래에 디렉토리와 같은 이름의 파일이 있고, 그 내용이 { type: 'terra.node', id, kind } 이면 그 디렉토리는 노드
+  //     (표지 파일은 목록에서 숨기고, 노드 디렉토리는 채운 삼각형 ▼ · 그냥 디렉토리는 빈 삼각형 ▽)
+  //   기능 — 실행 파일(exec: 'ctl' 제어기 · 'starmaker' …) · 심볼릭 링크(link: '@go' 이동 · '@map' 지도에서 보기 · '@stat' 상태 · '@conf' 설정 · '@node:<id>' 다른 노드)
+  //   파일 내용으로 종류를 안다 — { type: 'terra.sphere' } = 구 데이터(◍). mount 디렉토리는 바깥 저장소를 그대로 비춘다(star = 스타메이커 보관함)
+  vfs() {
+    // 노드가 저장한 파일(프로필 등 — 설정 창이 'terra.fs' 에 쓴다)도 트리에 얹는다. 그 내용이 바뀌면 다시 만든다
+    let FS = { nodes: {} }, fsRaw = ''; try { fsRaw = localStorage.getItem('terra.fs') || ''; const v = JSON.parse(fsRaw || 'null'); if (v && v.nodes) FS = v; } catch (e) {}
+    const MD = this.mapData(), key = MD.all.length + ':' + (MD.root && MD.root.name) + ':' + fsRaw.length + ':' + fsRaw.slice(-40);
+    if (!this._fsEv) { this._fsEv = () => { this._vfs = null; this._ctlTree = null; this.layout(); }; try { window.addEventListener('terra-fs', this._fsEv); } catch (e) {} }   // 설정 창이 파일을 저장하면 목록을 바로 다시
+    if (this._vfs && this._vfs.key === key) return this._vfs;
+    const dir = (name, kids, extra) => Object.assign({ name, type: 'dir', kids: kids || [] }, extra || {}), file = (name, data) => ({ name, type: 'file', data: data || null });
+    const exec = (name, ex) => ({ name, type: 'exec', exec: ex }), link = (name, target) => ({ name, type: 'link', target });
+    const byNode = new Map();
+    // 데이터 폴더 — 기본 파일 + 노드가 저장한 파일(상대 경로 'a/b/c' → 하위 폴더) + 속성 파일(properties.json — 프로필 경로 등)
+    const dataDir = (n, base) => { const D = dir('데이터', base.map((t) => file(t))), N = FS.nodes[n.id];
+      if (N) { for (const rel of Object.keys(N.files || {})) { const parts = rel.split('/'); let cur = D; for (let k = 0; k < parts.length - 1; k++) { let sub = cur.kids.find((x) => x.type === 'dir' && x.name === parts[k]); if (!sub) { sub = dir(parts[k], []); cur.kids.push(sub); } cur = sub; }
+          cur.kids.push(file(parts[parts.length - 1], Object.assign({ type: 'terra.file', node: n.id, rel }, N.files[rel]))); }
+        if (N.props && Object.keys(N.props).length) D.kids.push(file('properties.json', { type: 'terra.props', node: n.id, props: N.props })); }
+      return D; };
+    const nodeDir = (n) => {
+      const h = [...n.name].reduce((a, ch) => a + ch.charCodeAt(0), 0), kids = [file(n.name, { type: 'terra.node', id: n.id, kind: n.kind })];   // 노드 표지
+      if (n.kind === 'root') kids.push(
+        dir('유틸', [dir('스타메이커', [exec('스타메이커', 'starmaker'), dir('star', [], { mount: 'star', mpath: 'star' })])].concat(['터미널', '파일 전송', '네트워크 진단', '작업 관리자', '로그 보기', '모듈 배포'].map((t) => exec(t, 'tool')))),
+        dir('설정', ['계정 · 세션', '사용자 · 권한', '알림', '화면 · 테마', '단축키', 'Terra 코어'].map((t) => exec(t, 'tool'))),
+        dataDir(n, ['accounts.db', 'audit', 'policy.toml']));
+      else {
+        const share = n.kind === 'leaf' ? n.kids.filter((c) => c.kind === 'res').map((c) => link(c.name, '@node:' + c.id)) : ['mcp:7000', 'store/data', 'logs-agg', 'backup', 'relay:9443'].slice(0, 2 + (h % 3)).map((t) => file(t));
+        kids.push(exec('제어기', 'ctl'), dir('공유 자원', share), dataDir(n, n.kind === 'tree' ? ['config.toml', 'state.db', 'logs', 'snapshots'] : ['config.toml', 'state.db', 'logs']),
+          dir('기능', [link('이동', '@go'), link('지도에서 보기', '@map'), link('상태', '@stat'), link('설정', '@conf')]));
+      }
+      for (const c of n.kids) if (c.kind === 'tree' || c.kind === 'leaf') kids.push(nodeDir(c));
+      const d = dir(n.name, kids); byNode.set(n.id, d); return d;
+    };
+    const root = nodeDir(MD.root);
+    return (this._vfs = { key, root, byNode });
+  }
+  // 노드 표지 읽기 — 디렉토리면 같은 이름 파일의 terra.node 내용, 아니면 null
+  vfsNodeOf(d) { if (!d || d.type !== 'dir') return null; const f = d.kids.find((k) => k.type === 'file' && k.name === d.name && k.data && k.data.type === 'terra.node'); return f ? f.data : null; }
+  // 디렉토리의 항목 — 표지 파일은 숨기고, mount 는 바깥 저장소에서 (star: 하위 폴더 먼저 이름순, 그다음 구 파일)
+  vfsList(d) {
+    if (d.mount === 'star') { const L = this.starIdx(), P = d.mpath, base = (p) => p.slice(p.lastIndexOf('/') + 1);
+      return L.folders.filter((f) => f.lastIndexOf('/') > 0 && f.slice(0, f.lastIndexOf('/')) === P).sort().map((f) => ({ name: base(f), type: 'dir', kids: [], mount: 'star', mpath: f }))
+        .concat(L.files.filter((f) => f.path === P).sort((a, b) => a.name.localeCompare(b.name)).map((f) => ({ name: f.name, type: 'file', data: { type: 'terra.sphere', id: f.id, kind: f.kind } }))); }
+    return d.kids.filter((k) => !(k.type === 'file' && k.name === d.name && k.data && k.data.type === 'terra.node'));
+  }
+  ctlKids(it) {
+    // 최소화 폴더 — 지금 떠 있거나 최소화한 창 (지역 모드면 그 노드 아래 창만). 늘 새로 (창이 열리고 닫히면 바로)
+    if (it.type === 'wdir') { const sc = it.scope, under = (n) => { for (let a = n; a; a = a.parent) if (a === sc) return true; return false; };
+      return this.winFind('', null).filter((e) => !sc || under(e.node)).map((e) => ({ id: 'win:' + e.id, name: e.node.name + ' ' + this.WINKIND()[e.kind], type: 'win', win: e, node: e.node, more: e.st === 'min' ? '최소화' : '열림' })); }
+    if (it.type !== 'dir' || !it.ent) return [];
+    const MD = this.mapData();
+    return this.vfsList(it.ent).map((e) => { const nd = this.vfsNodeOf(e), node = nd ? MD.byId[nd.id] || it.node : it.node, sph = e.type === 'file' && e.data && e.data.type === 'terra.sphere';
+      return { id: it.id + '/' + e.name, name: e.name, type: e.type, ent: e, node, isNode: !!nd, sid: sph ? e.data.id : null, sph,
+        more: sph ? (e.data.kind === 'planet' ? '행성' : '항성') : e.data && e.data.type === 'terra.file' ? Math.max(1, Math.round((e.data.size || 0) / 1024)) + 'KB' : e.data && e.data.type === 'terra.props' ? '속성' : e.type === 'link' && e.target.startsWith('@node:') ? '→ 자원' : '' }; });
+  }
+  isDirItem(it) { return it.type === 'dir' || it.type === 'wdir'; }
+  starIdx() { try { const v = JSON.parse(localStorage.getItem('terra.star.index') || 'null'); if (v && Array.isArray(v.files)) return { folders: v.folders || ['star'], files: v.files }; } catch (e) {} return { folders: ['star'], files: [] }; }
+  // 스타메이커 창 열기 — id 가 있으면 그 구 파일을 불러온 채로
+  smNode() { return this._smN || (this._smN = { id: ':sm', name: '유틸', kind: 'util', kids: [], parent: null }); }
+  smOpen(id) { if (id) this.setState({ smLoad: id + '#' + (this._smK = (this._smK || 0) + 1) }); this.ctlOpenWin(this.smNode(), null, 'star'); }
+  // 보이는 목록 — 범위(전역: 계정 노드 디렉토리 · 지역: 지금 노드 디렉토리)의 항목부터. 찾는 글자가 있으면 이름이 맞는 항목과 그 위 디렉토리를 모두 펼친다
+  ctlList(scope, q, CT) {
+    const V = this.vfs(), sd = V.byNode.get(scope.id) || V.root;
+    if (!this._ctlTree || this._ctlTree.root.ent !== sd) this._ctlTree = { root: { id: '/' + sd.name, type: 'dir', ent: sd, node: scope } };   // 지도 데이터가 바뀌면 다시
+    const R = this._ctlTree.root, out = [];
+    const match = (it) => it.name.toLowerCase().includes(q);
+    const hasHit = (it, d) => { if (d > 10 || !this.isDirItem(it)) return false; let v = false; for (const c of this.ctlKids(it)) if (match(c) || hasHit(c, d + 1)) { v = true; break; } return v; };
+    // 맨 위 — 최소화 폴더(빈 삼각형). 처음엔 비어 있고, 창이 열려 있거나 최소화돼 있으면 그 창들이 뜬다 (두 번 누르면 연다)
+    const WD = { id: ':wins', name: '최소화', type: 'wdir', scope: CT.mode === 'global' ? null : scope };
+    { const n = this.ctlKids(WD).length; WD.more = n ? n + '' : '비어 있음'; }
+    const walk = (it, depth, filter) => {
+      for (const c of (it === R ? [WD] : []).concat(this.ctlKids(it))) {
+        const dir = this.isDirItem(c), hit = !!q && match(c), anc = filter && dir && hasHit(c, 0);
+        if (filter && !hit && !anc) continue;
+        const exp = dir && (q ? (anc ? !CT.qc[c.id] : !!CT.qc[c.id]) : !!CT.open[c.id]);
+        out.push(Object.assign({}, c, { depth, kids: dir, exp, hit }));
+        if (exp) walk(c, depth + 1, filter && anc);
+      }
+    };
+    walk(R, 0, !!q);
+    return out;
+  }
+  // 누르기 · Enter — 디렉토리: 펼치기 · 접기 / 실행 파일: 그 창 / 링크: 그 일 / 구 데이터: 스타메이커로 열기
+  ctlAct(it) {
+    const K = this._ctl, q = ((this._cmd && this._cmd.text) || '').trim();
+    if (it.kids) { if (q) K.qc[it.id] = !K.qc[it.id]; else K.open[it.id] = !K.open[it.id]; this.layout(); return; }
+    if (it.type === 'win') return this.winOpen(it.win);
+    if (it.type === 'exec') { const x = it.ent.exec; if (x === 'ctl') return this.ctlOpenWin(it.node); if (x === 'starmaker') return this.smOpen(); return; }   // 'tool' — 화면은 아직 (자리만)
+    if (it.type === 'link') { const tg = it.ent.target, n = it.node;
+      if (tg === '@go') return this.warpTo(n); if (tg === '@map') return this.mapShow(n); if (tg === '@stat') return this.ctlOpenWin(n, undefined, 'stat'); if (tg === '@conf') return this.ctlOpenWin(n, undefined, 'conf');
+      if (tg.startsWith('@node:')) { const m = this.mapData().byId[tg.slice(6)]; if (m) this.mapShow(m); } return; }
+    if (it.sph) return this.smOpen(it.sid);
+  }
+  // 지도에서 보기 — 그 노드를 그 지도 뷰(트리 · 계정 → 트리 지도 · 리프 → 그 트리의 리프 지도 · 리소스 → 그 리프의 리소스 지도)로 포커싱
+  mapShow(n) {
+    const MD = this.mapData(); if (!n) return;
+    this._mv = n.kind === 'root' || n.kind === 'tree' ? { level: 'tree', root: MD.root.id, focus: n.id } : n.kind === 'leaf' ? { level: 'leaf', root: n.parent.id, focus: n.id } : { level: 'res', root: n.parent.id, focus: n.id };
+    this.layout();
+  }
+  ctlHitRow(x, y) { const K = this._ctl; if (x == null || !K || !K.rows || !(this._lg && this._lg.open)) return null; const rr = Math.floor(y / this._ch); if (x < K.x0 - this._cw || x > K.x1 + this._cw) return null; const R = K.rows.find((q) => q.row === rr); return R ? R.id : null; }
+  ctlTap(x, y) {
+    { const Q = this._lo; if (Q && this._lg && this._lg.on && Math.floor(y / this._ch) === Q.row && x >= Q.x0 - 4 && x <= Q.x1 + 4) { this.doLogout(); return true; } }   // 로그아웃
+    const K = this._ctl; if (!K || !(this._lg && this._lg.open)) return false;
+    const rr = Math.floor(y / this._ch); if (x < K.x0 - this._cw || x > K.x1 + this._cw) return false;
+    { const MW = this._mw; if (MW) { const mr = MW.rows.find((q) => q.row === rr); if (mr) { this.winOpen((this._wins || []).find((e) => e.id === mr.id)); return true; } if (rr === MW.more) { this._flyPin = !this._flyPin; this.minFly(this._flyPin); this._flyAt = performance.now(); this.layout(); return true; } } }   // 레벨바 누르기 = 찾기 판 고정 · 다시 누르면 풀고 닫기   // 최소화 창 — 줄 = 되살리기 · 더보기 = 찾기 판
+    if (rr === K.hr) { this.ctlMode(); return true; }
+    const R = K.rows && K.rows.find((q) => q.row === rr); if (!R) return false;
+    const it = K.list[R.k];
+    if (it && it.type === 'win') {   // 최소화 폴더 안의 창 — 한 번 = 고르기 · 두 번 = 열기
+      const now = performance.now(), D = this._wTap; K.sel = R.k;
+      if (D && D.id === it.id && now - D.t < 380) { this._wTap = null; this.winOpen(it.win); } else { this._wTap = { id: it.id, t: now }; this.layout(); }
+      return true; }
+    K.sel = R.k; this.ctlAct(it); return true;
+  }
+  // ───── 제어기 창 — 기본 레거시 컴포넌트 (메인 레퍼런스 '컴포넌트 생성 — 융기' 의 레거시와 같은 단계 · 값): 중앙 생성 + 어두운 화면 복원 ─────
+  //   1 생성(120ms): 창은 글자 장 뒤에 생긴다 — 비운 칸으로만 보이고 명도 0.38
+  //   2 소거(600ms, 앞 단계와 반쯤 겹침): 창 모양의 가장 안쪽(가운데 — 가장자리에서 가장 먼 곳)부터 가장자리 바깥 18px 까지, 가장자리와의 거리가 같은 선으로 글자를 비운다. 앞선 바로 바깥 26px 의 글자는 그 자리 색으로 빛남
+  //   3 부상: 소거가 끝나면 명도 0.38 → 1 (340ms), 다 밝아지면 글자 장 위로
+  //   4 어두운 화면 복원(600ms): 비운 칸을 소거의 거울(바깥 → 안)로 다시 채우되 holeDim 배로 어둡게 — 창 둘레 18px 가 어두운 테로 남는다
+  //   닫기: 같은 시간표를 거꾸로. 창: 머리줄(이름 · 최대화 · 닫기)을 끌어 이동, 가장자리 · 모서리를 끌어 크기(비율) 변경. 안은 노드 데스크톱(이전 버전 화면 컴포넌트)이 창 크기를 그대로 채움(0.8 배율)
+  CTLW() { return { minW: 420, minH: 300, M: 18, GB: 26, dim0: 0.38, END: 1600, TB: 30 }; }   // TB — 머리줄 높이
+  // 레거시 값 — τ(ms) 에서: er = 비운 범위(가장자리와의 부호 거리, 안쪽 음수) · ga = 발광 세기 · b = 명도 · top = 글자 장 위 · rer = 복원 앞선(이보다 바깥은 어둡게 다시 채움)
+  ctlVals(t, R) {
+    const T = this.CTLW(), ss = (p) => { p = Math.min(1, Math.max(0, p)); return p * p * p * (p * (p * 6 - 15) + 10); }, depth = Math.min(R.w, R.h) / 2, E0 = -depth - 1;
+    const P1 = [60, 660], P2end = 1000, P3 = [1000, 1600], brightAt = 660, BR = 340;
+    const v = { er: E0, ga: 0, b: 0.38, top: false, rer: null };
+    if (t > 0) { v.er = E0 + (T.M - E0) * ss((t - P1[0]) / (P1[1] - P1[0])); if (t >= P1[0] && t <= P1[1]) v.ga = Math.min(1, (t - P1[0]) / 90) * ss((P1[1] - t) / 160); }
+    v.b = t >= P2end ? 1 : 0.38 + 0.62 * ss((t - brightAt) / BR); v.top = t >= P2end;
+    if (t >= P3[0]) v.rer = T.M - (T.M - E0) * ss((t - P3[0]) / (P3[1] - P3[0]));   // 거울 — 바깥(M)에서 안(E0)으로
+    return v;
+  }
+  // ───── 창 여러 개 — 자리(slot) CTLN 개. 마크업의 [data-ctlwin][data-slot=k] 마다 노드 데스크톱 자식 컴포넌트가 하나씩 ─────
+  //   같은 노드의 창은 하나(다시 열면 맨 앞으로). 자리가 다 차면 가장 오래 뒤에 있던 창을 최소화 창으로 넣고 그 자리를 쓴다
+  //   누르면 맨 앞으로(앞 창 = 머리줄 밝게 · 틀 선 진하게, 뒤 창 = 흐리게). Esc · Ctrl+K 등은 맨 앞 창에
+  CTLN() { return 6; }
+  ctlWins() { return (this._ctlWs || (this._ctlWs = [])).filter(Boolean); }
+  ctlTopW() { let t = null; for (const W of this.ctlWins()) if (W.dir > 0 && (!t || W.z > t.z)) t = W; return t; }
+  ctlSync() { this._ctlWin = this.ctlTopW(); this._ctlAnim = this.ctlWins().some((W) => W.raf) || !!this._ctlDrag; }
+  ctlFront(W) {
+    W.z = this._ctlZ = (this._ctlZ || 0) + 1; W.wrap.style.zIndex = String(5 + W.z);
+    for (const V of this.ctlWins()) { const on = V === W, CH = V.wrap._chrome; V.wrap.style.borderColor = on ? 'rgba(70,160,108,0.75)' : 'rgba(70,160,108,0.3)'; if (CH) { CH.bar.style.background = V.see ? (on ? 'rgba(6,14,18,0.55)' : 'rgba(4,6,20,0.4)') : on ? 'rgba(6,14,18,0.98)' : 'rgba(4,6,20,0.98)'; CH.name.style.color = on ? 'rgb(214,244,222)' : 'rgb(140,170,150)'; CH.pr.style.color = on ? 'rgb(120,232,156)' : 'rgb(84,128,100)'; } }
+    this.ctlSync();
+  }
+  ctlOpenWin(node, Rr, kind) {
+    kind = kind || 'ctl';
+    const host = this._cv && this._cv.parentElement; if (!host || !node) return;
+    const T = this.CTLW(), vx0 = this._ctrlX || 0, w = this._w, h = this._h, WS = this._ctlWs || (this._ctlWs = []);
+    const same = WS.find((W) => W && W.node === node && W.kind === kind);
+    if (same && same.dir > 0) { this.ctlFront(same); return; }
+    if (same) this.ctlClose(same, true);
+    // 빈 자리 — 없으면 맨 뒤 창을 최소화해 비운다
+    const SL = this.WSLOT()[kind] || [0]; let k = -1; for (const i of SL) if (!WS[i]) { k = i; break; }   // 종류마다 자리 — 다 차면 그 종류에서 가장 오래 뒤에 있던 창을 최소화
+    if (k < 0) { let low = null; for (const i of SL) { const W = WS[i]; if (W && (!low || W.z < low.z)) low = W; } this.winPut(low, 'min'); k = low.slot; this.ctlClose(low, true); }
+    const wrap = host.querySelector('[data-ctlwin][data-slot="' + k + '"]'), body = wrap && wrap.querySelector('[data-ctlbody]'); if (!wrap || !body) return;
+    const ent = this.winGet(node, kind), nOpen = this.ctlWins().length, [BW, BH] = this.WSIZE(kind), SEE = this.WSEE(kind);
+    let R = Rr ? { ...Rr } : ent && ent.R ? { ...ent.R } : null;
+    if (!R && Rr === undefined && this._popAt) { R = { w: BW, h: BH, x: Math.min(w - BW - 12, Math.max(vx0 + 12, this._popAt[0] + 40)), y: Math.min(h - BH - 12, Math.max(12, this._popAt[1] - 60)) }; }   // 우클릭에서 연 창 — 그 노드 가까이
+    if (!R) { const sc = Math.min(1, (w - vx0) * 0.8 / BW, h * 0.84 / BH); R = { w: BW * sc, h: BH * sc }; R.x = vx0 + (w - vx0 - R.w) / 2 + nOpen * 28; R.y = (h - R.h) / 2 + nOpen * 24; }   // 새 창은 계단식으로 조금씩 비켜 놓는다
+    Object.assign(wrap.style, { display: 'block', position: 'absolute', overflow: 'hidden', boxSizing: 'border-box', background: SEE ? 'rgba(4,6,20,0.32)' : '#040614', border: '1px solid rgba(70,160,108,0.75)', borderRadius: '0', boxShadow: '0 0 0 1px rgba(2,3,10,.7), 0 22px 64px rgba(0,0,0,.6)', clipPath: 'inset(50%)', filter: 'brightness(0.38)', touchAction: 'none' });
+    Object.assign(body.style, { position: 'absolute', left: 0, top: T.TB + 'px', transformOrigin: '0 0' });
+    const W = { slot: k, node, kind, wrap, fr: body, body, R, tau: 0, dir: 1, raf: 0, max: null, z: 0 };
+    WS[k] = W; wrap._W = W;
+    if (kind === 'ctl') this.setState({ ['ctlNode' + k]: node.name });   // 그 자리의 자식 컴포넌트(노드 데스크톱)에 노드 이름
+    else if (kind === 'conf' || kind === 'stat') { const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }; this.setState({ ['wNode' + k]: node.name, ['wKind' + k]: KN[node.kind] || '노드', ['wPar' + k]: node.parent ? node.parent.name : '—', ['wId' + k]: node.id, ['wPath' + k]: node.path || '/' + node.name, ['wRemote' + k]: !!node.parent && node !== this.localNode() }); }
+    this.ctlChrome(wrap);
+    wrap._chrome.name.textContent = node.name; wrap._chrome.kind.textContent = this.WINKIND()[kind]; W.see = SEE;
+    this.winPut(W, 'open'); this.ctlFront(W); this.ctlPlace(W); this.ctlRun(W); this.layout();
+  }
+  // 틀 · 머리줄 · 손잡이 — 자리마다 한 번 만들고, 지금 그 자리의 창(wrap._W)에 대해 움직인다
+  ctlChrome(wrap) {
+    if (wrap._chrome) return wrap._chrome;
+    const T = this.CTLW(), CH = wrap._chrome = {}, Wof = () => wrap._W && wrap._W.dir > 0 ? wrap._W : null;
+    const mk = (tag, st, txt) => { const el = document.createElement(tag); Object.assign(el.style, st || {}); if (txt != null) el.textContent = txt; return el; };
+    const MONO = "'Geist Mono', GmarketSans, monospace", KR = "GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif";
+    // 머리줄 — 전역 틀의 줄과 같은 말씨: '>_' · 노드 이름(볼드) · 종류 · 흐려지는 레거시 선 · 배율 · 글자 단추(_ 최소화 · □ 최대화 · × 닫기)
+    const bar = mk('div', { position: 'absolute', left: 0, right: 0, top: 0, height: T.TB + 'px', zIndex: 2, display: 'flex', alignItems: 'center', gap: '9px', padding: '0 4px 0 12px', boxSizing: 'border-box', background: 'rgba(4,6,20,0.98)', borderBottom: '1px solid rgba(70,160,108,0.32)', font: '500 12px ' + KR, color: 'rgb(112,156,128)', cursor: 'move', userSelect: 'none', whiteSpace: 'nowrap' });
+    bar.setAttribute('data-ctltitle', '1');
+    CH.pr = mk('span', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' }, '>_'); bar.appendChild(CH.pr);
+    CH.name = mk('span', { fontWeight: '700', color: 'rgb(214,244,222)', letterSpacing: '0.02em' }); bar.appendChild(CH.name);
+    CH.kind = mk('span', { color: 'rgb(112,156,128)' }, '제어기'); bar.appendChild(CH.kind);
+    bar.appendChild(mk('span', { flex: '1', minWidth: '12px', height: '1px', background: 'linear-gradient(90deg, rgba(70,160,108,0.5), rgba(70,160,108,0.06))' }));
+    const btn = (txt, label, fn, danger) => { const b = mk('button', { width: '28px', height: '22px', border: '0', padding: '0', background: 'transparent', color: 'rgb(112,156,128)', font: '600 13px ' + MONO, lineHeight: '22px', cursor: 'pointer', textAlign: 'center' }, txt);
+      b.type = 'button'; b.setAttribute('aria-label', label); b.title = label;
+      b.addEventListener('pointerenter', () => { b.style.color = danger ? 'rgb(255,178,166)' : 'rgb(208,255,150)'; b.style.background = danger ? 'rgba(220,90,80,0.2)' : 'rgba(70,170,110,0.2)'; });
+      b.addEventListener('pointerleave', () => { b.style.color = 'rgb(112,156,128)'; b.style.background = 'transparent'; });
+      b.addEventListener('click', (e) => { e.stopPropagation(); const W = Wof(); if (W) fn(W); }); return b; };
+    CH.zoom = btn('100%', '화면 배율 — 누르면 100%', (W) => this.ctlZoom(1, 0, W)); Object.assign(CH.zoom.style, { width: 'auto', padding: '0 6px', font: '500 11px ' + MONO, display: 'none' }); bar.appendChild(CH.zoom);
+    bar.appendChild(btn('_', '최소화', (W) => this.ctlMin(W)));
+    CH.maxB = btn('□', '최대화', (W) => this.ctlMax(W)); bar.appendChild(CH.maxB);
+    bar.appendChild(btn('×', '닫기', (W) => this.ctlX(W), true));
+    wrap.appendChild(bar); CH.bar = bar;
+    // 모서리 괄호 — 로고 강조와 같은 레거시 코너 (틀 선보다 밝게)
+    for (const [x, y] of [['left', 'top'], ['right', 'top'], ['left', 'bottom'], ['right', 'bottom']]) { const c = mk('div', { position: 'absolute', width: '10px', height: '10px', zIndex: 4, pointerEvents: 'none' }); c.style[x] = '-1px'; c.style[y] = '-1px'; const B = '1.5px solid rgb(110,236,156)'; c.style['border' + (y === 'top' ? 'Top' : 'Bottom')] = B; c.style['border' + (x === 'left' ? 'Left' : 'Right')] = B; wrap.appendChild(c); }
+    // 끌기 — 머리줄(단추 빼고): 이동 · 가장자리 8곳: 크기(비율). 끄는 동안엔 화면(씬)의 마우스 피드백을 끈다
+    CH.drag = (e, mode) => { const W2 = Wof(); if (!W2 || e.button !== 0) return; e.preventDefault(); this.ctlFront(W2); const sx = e.clientX, sy = e.clientY, R0 = { ...W2.R }; W2.body.style.pointerEvents = 'none'; this._ctlDrag = true; this._mouse = null; this.ctlSync();
+      const mv = (ev) => { this._mouse = null; const dx = ev.clientX - sx, dy = ev.clientY - sy, A = this._w, B = this._h, v0 = this._ctrlX || 0, Rn = { ...R0 };
+        if (mode === 'move') { Rn.x = Math.max(-Rn.w + 80, Math.min(A - 80, R0.x + dx));   // 전역 틀 위로도 옮길 수 있다 (머리줄 80px 는 늘 화면 안)
+          Rn.y = Math.max(0, Math.min(B - 30, R0.y + dy)); }
+        else { if (mode.includes('e')) Rn.w = Math.max(T.minW, R0.w + dx); if (mode.includes('s')) Rn.h = Math.max(T.minH, R0.h + dy); if (mode.includes('w')) { Rn.w = Math.max(T.minW, R0.w - dx); Rn.x = R0.x + R0.w - Rn.w; } if (mode.includes('n')) { Rn.h = Math.max(T.minH, R0.h - dy); Rn.y = R0.y + R0.h - Rn.h; } }
+        W2.R = Rn; W2.max = null; this.ctlPlace(W2); };
+      const up = () => { window.removeEventListener('pointermove', mv, true); window.removeEventListener('pointerup', up, true); W2.body.style.pointerEvents = ''; this._ctlDrag = false; this.winPut(W2, 'open'); this.ctlSync(); };
+      window.addEventListener('pointermove', mv, true); window.addEventListener('pointerup', up, true); };
+    wrap.addEventListener('pointerdown', (e) => { const t = e.target, W = Wof(); if (!W) return; if (t && t.closest && t.closest('[data-ctltitle]') && !t.closest('button')) CH.drag(e, 'move'); else this.ctlFront(W); }, true);
+    // 화면 배율 — 창 위에서 Ctrl + 휠 (브라우저 확대 대신 그 창의 데스크톱만)
+    wrap.addEventListener('wheel', (e) => { if (!(e.ctrlKey || e.metaKey)) return; e.preventDefault(); const W = Wof(); if (W) this.ctlZoom(null, e.deltaY < 0 ? 1 : -1, W); }, { passive: false });
+    wrap.addEventListener('pointerenter', () => { this._ctlHovW = Wof(); }); wrap.addEventListener('pointerleave', () => { if (this._ctlHovW === wrap._W) this._ctlHovW = null; });
+    wrap.addEventListener('dblclick', (e) => { const t = e.target, W = Wof(); if (W && t && t.closest && t.closest('[data-ctltitle]') && !t.closest('button')) this.ctlMax(W); });
+    for (const [m, st] of [['n', { left: '10px', right: '10px', top: 0, height: '5px', cursor: 'ns-resize' }], ['s', { left: '10px', right: '10px', bottom: 0, height: '6px', cursor: 'ns-resize' }], ['w', { top: '10px', bottom: '10px', left: 0, width: '6px', cursor: 'ew-resize' }], ['e', { top: '10px', bottom: '10px', right: 0, width: '6px', cursor: 'ew-resize' }],
+      ['nw', { left: 0, top: 0, width: '10px', height: '10px', cursor: 'nwse-resize' }], ['ne', { right: 0, top: 0, width: '10px', height: '10px', cursor: 'nesw-resize' }], ['sw', { left: 0, bottom: 0, width: '12px', height: '12px', cursor: 'nesw-resize' }], ['se', { right: 0, bottom: 0, width: '12px', height: '12px', cursor: 'nwse-resize' }]]) {
+      const hd = mk('div', Object.assign({ position: 'absolute', zIndex: 3 }, st)); hd.addEventListener('pointerdown', (e) => { e.stopPropagation(); CH.drag(e, m); }); wrap.appendChild(hd); }
+    return CH;
+  }
+  // 자리 · 크기 — 데스크톱은 원래 크기(배율 1) 그대로 창 안(머리줄 아래)을 채운다. 창 크기가 바뀌면 바탕화면 넓이만 바뀌고, 안의 아이콘 · 앱 창 크기는 그대로
+  ctlPlace(W) {
+    W = W || this._ctlWin; if (!W) return; const R = W.R, TB = this.CTLW().TB, k = W.slot;
+    Object.assign(W.wrap.style, { left: R.x + 'px', top: R.y + 'px', width: R.w + 'px', height: R.h + 'px' });
+    const cw2 = Math.round(R.w - 2), ch2 = Math.round(R.h - 2 - TB); Object.assign(W.body.style, { width: cw2 + 'px', height: ch2 + 'px', transform: 'none' });
+    const CH = W.wrap._chrome; if (CH) { CH.maxB.textContent = W.max ? '❐' : '□'; CH.maxB.setAttribute('aria-label', W.max ? '이전 크기로' : '최대화'); const z = (this.state || {})['ctlZoom' + k] || 1; CH.zoom.style.display = Math.abs(z - 1) > 0.001 ? 'block' : 'none'; CH.zoom.textContent = Math.round(z * 100) + '%'; }
+    const SZ = this._ctlSzs || (this._ctlSzs = {}); if (!SZ[k] || SZ[k][0] !== cw2 || SZ[k][1] !== ch2) { SZ[k] = [cw2, ch2]; const Q = this._ctlSzQ || (this._ctlSzQ = {}); Q['ctlW' + k] = cw2; Q['ctlH' + k] = ch2; cancelAnimationFrame(this._ctlSzT); this._ctlSzT = requestAnimationFrame(() => { const q = this._ctlSzQ; this._ctlSzQ = {}; this.setState(q); }); }
+  }
+  // 화면 배율 — v 로 정하거나 dir(±1)로 한 단계 (50 – 200%, 브라우저와 같은 단계). 창마다 따로, 노드 데스크톱에 zoom 으로 넘긴다
+  ctlZoom(v, dir, W) {
+    W = W || this._ctlHovW || this._ctlWin; if (!W) return; const key = 'ctlZoom' + W.slot;
+    const Z = [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2], z = (this.state || {})[key] || 1;
+    if (v == null) { let i = Z.findIndex((q) => Math.abs(q - z) < 0.001); if (i < 0) i = Z.findIndex((q) => q > z) - (dir > 0 ? 1 : 0); v = Z[Math.max(0, Math.min(Z.length - 1, i + dir))]; }
+    this.setState({ [key]: Math.max(0.5, Math.min(2, v)) }, () => this.ctlPlace(W));
+  }
+  // 최대화 — 뷰 자리를 채움 · 한 번 더 누르면 이전 자리로
+  ctlMax(W) {
+    W = W || this._ctlWin; if (!W) return; const vx0 = this._ctrlX || 0;
+    if (W.max) { W.R = W.max; W.max = null; }
+    else { W.max = { ...W.R }; W.R = { x: 0, y: 0, w: this._w, h: this._h }; }   // 최대화 = 화면 전체 (전역 틀 위까지)
+    this.ctlFront(W); this._ctlAnim = true; this.ctlPlace(W); setTimeout(() => this.ctlSync(), 120);
+  }
+  // 진행 — 열기: τ 0 → END · 닫기: 같은 시간표를 거꾸로. 창은 비운 범위로만 보이고(글자 장 뒤), 부상 뒤엔 다 보인다
+  ctlRun(W) {
+    W = W || this._ctlWin; if (!W || W.raf) return; const T = this.CTLW(); let last = performance.now(); this._ctlAnim = true;
+    const tick = (now) => { W.raf = 0; if (!this._live) return this.ctlClose(W, true); const dt = Math.min(50, now - last); last = now;
+      W.tau = Math.max(0, Math.min(T.END, W.tau + W.dir * dt)); const V = this.ctlVals(W.tau, W.R);
+      W.wrap.style.clipPath = V.top ? 'none' : 'inset(' + Math.max(0, -V.er).toFixed(1) + 'px)'; W.wrap.style.filter = V.b < 0.999 ? 'brightness(' + V.b.toFixed(3) + ')' : 'none';
+      if (W.dir < 0 && W.tau <= 0) { this.ctlClose(W, true); return; }
+      if (W.dir < 0 || W.tau < T.END) W.raf = requestAnimationFrame(tick); else this.ctlSync(); };
+    W.raf = requestAnimationFrame(tick);
+  }
+  // 닫기 — instant: 바로 숨기고 자리를 비운다 · 아니면 같은 시간표를 거꾸로(레거시 역순) 진행한 뒤 비운다
+  ctlClose(W, instant) {
+    if (W === true) { instant = true; W = null; }
+    W = W || this._ctlWin; if (!W) return;
+    if (instant) { if (W.raf) cancelAnimationFrame(W.raf); W.raf = 0; W.wrap.style.display = 'none'; if (this._ctlWs && this._ctlWs[W.slot] === W) this._ctlWs[W.slot] = null; if (W.wrap._W === W) W.wrap._W = null; if (this._ctlHovW === W) this._ctlHovW = null; this._ctlAnim = true; setTimeout(() => this.ctlSync(), 80); this.ctlSync(); this._ctlAnim = true; return; }
+    W.dir = -1; this.ctlSync(); if (!W.raf) this.ctlRun(W);
+  }
+  ctlCloseAll() { for (const W of this.ctlWins()) this.ctlClose(W, true); }
+  // 글자 장 효과 (씬) — 창마다: 칸 가운데의 부호 거리 sd(창 가장자리 기준, 안쪽 음수): sd < er = 빈칸(구멍) · er ≤ sd < er + 26px = 발광 / 복원 중: rer ≤ sd < M = 어둡게 다시 채운 칸(holeDim 배)
+  ctlFieldFx(ctx, cols, cw, ch) {
+    if (!ctx) return; const T = this.CTLW(), dim = this.props.holeDim ?? 0.6;
+    for (const W of this.ctlWins().sort((a, b) => a.z - b.z)) { if (W.see) continue;   // 상태 창 — 바탕이 비친다 (구멍 없음)
+      const R = W.R, V = this.ctlVals(W.tau, R);
+      const c0 = Math.max(0, Math.floor((R.x - T.M - T.GB) / cw)), c1 = Math.min(cols - 1, Math.ceil((R.x + R.w + T.M + T.GB) / cw)), r0 = Math.max(0, Math.floor((R.y - T.M - T.GB) / ch)), r1 = Math.ceil((R.y + R.h + T.M + T.GB) / ch);
+      for (let y = r0; y <= r1; y++) for (let x = c0; x <= c1; x++) {
+        const i = y * cols + x; if (i >= ctx.n) continue; const px = x * cw + cw / 2, py = y * ch + ch / 2;
+        const ox = Math.max(R.x - px, 0, px - (R.x + R.w)), oy = Math.max(R.y - py, 0, py - (R.y + R.h)), sd = ox || oy ? Math.hypot(ox, oy) : -Math.min(px - R.x, R.x + R.w - px, py - R.y, R.y + R.h - py);
+        if (V.rer != null) { if (sd < V.rer) { ctx.css[i] = '#bg'; ctx.gl[i] = ''; } else if (sd < T.M && ctx.css[i] && ctx.css[i][0] === 'r') ctx.css[i] = this.cssMul(ctx.css[i], dim); }
+        else if (sd < V.er) { ctx.css[i] = '#bg'; ctx.gl[i] = ''; }
+        else if (V.ga > 0 && sd - V.er < T.GB && ctx.css[i] && ctx.css[i][0] === 'r') { const q = 1 - (sd - V.er) / T.GB; ctx.css[i] = this.cssGlow(ctx.css[i], V.ga * q * q * 0.85); }
+      }
+    }
+  }
+  // 자식 컴포넌트에 넘길 값 — 자리마다 노드 이름 · 크기 · 배율 · 닫기 · 전체화면 · 배율 바꾸기
+  ctlProps() {
+    const S = this.state || {}, o = {}, F = this._ctlPF || (this._ctlPF = {});
+    for (let k = 0; k < this.CTLN(); k++) {
+      const Wk = () => (this._ctlWs || [])[k];
+      o['ctlNode' + k] = S['ctlNode' + k] || 'lab-ws-02'; o['ctlW' + k] = S['ctlW' + k] || 1240; o['ctlH' + k] = S['ctlH' + k] || 760; o['ctlZoom' + k] = S['ctlZoom' + k] || 1;
+      o['ctlCloseFn' + k] = F['c' + k] || (F['c' + k] = () => { const W = Wk(); if (W) this.ctlX(W); });
+      o['ctlFullFn' + k] = F['f' + k] || (F['f' + k] = () => { const W = Wk(); if (W) this.ctlMax(W); });
+      o['ctlZoomFn' + k] = F['z' + k] || (F['z' + k] = (v) => { const W = Wk(); if (W) this.ctlZoom(v, 0, W); });
+    }
+    for (const k of [7, 8, 9, 10]) { o['wNode' + k] = S['wNode' + k] || 'lab-ws-02'; o['wKind' + k] = S['wKind' + k] || '리프'; o['wPar' + k] = S['wPar' + k] || '—'; o['wId' + k] = S['wId' + k] || ''; o['wPath' + k] = S['wPath' + k] || ''; o['wRemote' + k] = !!S['wRemote' + k]; o['ctlW' + k] = S['ctlW' + k] || this.WSIZE(k === 7 ? 'conf' : 'stat')[0]; o['ctlH' + k] = S['ctlH' + k] || this.WSIZE(k === 7 ? 'conf' : 'stat')[1]; }   // 설정(7) · 상태(8–10)
+    const k6 = this.CTLN(); o.smW = S['ctlW' + k6] || 1100; o.smH = S['ctlH' + k6] || 720; o.smLoad = S.smLoad || ''; o.skinFn = F.sk || (F.sk = () => { try { window.dispatchEvent(new Event('terra-skin')); } catch (e) {} });   /* 스킨 적용 → 장면이 바로 다시 읽음 */ o.smSavedFn = F.sm || (F.sm = () => { this._ctlTree = null; this.layout(); });   // 스타메이커 — 저장 · 지우기 · 새 폴더 → 전역 제어의 star 폴더를 다시
+    return o;
+  }
+  // 색 문자열 × k — 같은 (색, k) 는 늘 같은 답이라 기억해 둔다 (창 주변 칸마다 매 프레임 불려 정규식 · 조립이 부하의 큰 몫이었다)
+  cssMul(c, k) { const MM = this._cmM || (this._cmM = new Map()); let M = MM.get(k); if (!M) { if (MM.size > 16) MM.clear(); MM.set(k, (M = new Map())); } let r = M.get(c); if (r === undefined) { if (M.size > 20000) M.clear(); r = this.cssMul0(c, k); M.set(c, r); } return r; }
+  cssMul0(c, k) { const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) return c; const v = m[1].split(',').map(Number); return this.qcss((v.length > 3 ? 'rgba(' : 'rgb(') + Math.round(v[0] * k) + ',' + Math.round(v[1] * k) + ',' + Math.round(v[2] * k) + (v.length > 3 ? ',' + v[3] : '') + ')'); }
+  cssGlow(c, a) { const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) return c; const v = m[1].split(',').map(Number), g = (x) => Math.round(x + (255 - x) * a); return this.qcss('rgb(' + g(v[0]) + ',' + g(v[1]) + ',' + g(v[2]) + ')'); }
+  // ───── 창 목록 — 지금 떠 있는 창 · 최소화한 창 (전역: 모든 노드의 창). 종류: 제어기 (앞으로 더 늘어남) ─────
+  //   { id, node, kind, R, st: 'open' | 'min', at }. 같은 노드 · 같은 종류의 창은 하나
+  WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태' }; }
+  // 창 종류마다의 자리 · 기본 크기 · 바탕 — 상태 창은 CLI 처럼 바탕이 비친다(글자 장 구멍 없음)
+  // 이 GUI 가 떠 있는 노드(로컬) — 노드 설정 쓰기는 여기만 된다(terra.daemon.config.patch 는 로컬 전용). 시안: 지도의 첫 리프
+  localNode() { const MD = this.mapData(); return this._locN && MD.all.includes(this._locN) ? this._locN : (this._locN = MD.all.find((n) => n.kind === 'leaf') || MD.root); }
+  WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10] }; }
+  WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540] }[kind] || [900, 600]; }
+  WSEE(kind) { return kind === 'stat'; }
+  winGet(node, kind) { const L = this._wins || (this._wins = []); return L.find((q) => q.node === node && q.kind === (kind || 'ctl')) || null; }
+  winPut(W, st) { const L = this._wins || (this._wins = []), kd = W.kind || 'ctl'; let e = this.winGet(W.node, kd); if (!e) { e = { id: 'w' + (this._winN = (this._winN || 0) + 1), node: W.node, kind: kd }; L.push(e); } e.st = st; e.R = W.R ? { ...W.R } : e.R; e.at = performance.now(); return e; }
+  winDrop(node, kind) { if (this._wins) this._wins = this._wins.filter((q) => !(q.node === node && q.kind === (kind || 'ctl'))); }
+  winTitle(e) { return e.node.name + ' ' + this.WINKIND()[e.kind]; }
+  winAgo(e) { const s = Math.max(0, (performance.now() - e.at) / 1000); return s < 60 ? '방금' : s < 3600 ? Math.floor(s / 60) + '분 전' : Math.floor(s / 3600) + '시간 전'; }
+  // 찾기 — 노드 이름 · 종류 · 상태 글자 어디든 맞으면
+  winFind(q, st) { q = (q || '').trim().toLowerCase(); return (this._wins || []).filter((e) => (!st || e.st === st) && (!q || (e.node.name + ' ' + this.WINKIND()[e.kind] + ' ' + (e.st === 'min' ? '최소화' : '열림')).toLowerCase().includes(q))).sort((a, b) => b.at - a.at); }
+  // 우클릭 속성 — { x, y, r, name, kind, props: [[이름, 값]…], track: () => [x, y] | null } (씬이 노드를 골라 넘긴다). 다른 곳을 누르거나 ESC · 노드가 사라지면 닫힘
+  popRow(x, y) { const Q = this._pop, G = Q && Q.geo; if (!G) return null; const rr = Math.floor(y / this._ch); if (rr < G.r0 || rr >= G.r1 || x < G.x0 - this._cw || x > G.x1 + this._cw) return null; return rr - G.r0; }
+  popTap(x, y) { const j = this.popRow(x, y); if (j == null) return false; const a = (this._pop.acts || [])[j]; this._popAt = [this._pop.x, this._pop.y]; this.popHide(); if (a && a.run) a.run(); this._popAt = null; return true; }
+  popShow(P) { this._pop = Object.assign({}, P, { at: performance.now(), k: (this._popK = (this._popK || 0) + 1) }); this.layout(); }
+  popHide() { if (!this._pop) return; this._pop = null; this.layout(); }
+  // 로그아웃 — 통합 화면이면 씬이 로그인 전환을 거꾸로 돌린다 (전역 틀 단독 보드에선 할 일 없음)
+  doLogout() { if (this.sceneLogout) this.sceneLogout(); }
+  // 최소화 — 창을 거꾸로 닫고(레거시 역순) 목록에 '최소화' 로 남긴다 · 닫기(×) — 목록에서도 뺀다
+  ctlMin(W) { W = W || this._ctlWin; if (!W) return; this.winPut(W, 'min'); this.ctlClose(W); this.layout(); }
+  ctlX(W) { W = W || this._ctlWin; if (!W) return; this.winDrop(W.node, W.kind); this.ctlClose(W); this.layout(); }
+  // 되살리기 — 최소화 창 · 최소화 폴더에서. 저장해 둔 자리 · 크기로 중앙 생성
+  winOpen(e) { if (!e) return; if (!this._flyPin) this.minFly(false); this.ctlOpenWin(e.node, e.R, e.kind); if (this._fly && this._fly.open) this.minFlyList(); }
+  // ───── 더보기 ▶ — 오른쪽에 뜨는 최소화 창 찾기 판 (레거시 틀 + 입력 칸 + 목록). '더보기' 줄에 호버하면 열리고, 판과 줄을 모두 떠나면 0.25초 뒤 닫힌다 ─────
+  minFly(on) {
+    const host = this._cv && this._cv.parentElement; if (!host) return;
+    let F = this._fly;
+    if (!on) { if (F && F.open) { F.open = false; F.el.style.clipPath = 'inset(0 100% 0 0)'; F.el.style.opacity = '0'; F.el.style.pointerEvents = 'none'; if (document.activeElement === F.inp) F.inp.blur(); } return; }
+    if (!F) {
+      const mk = (tag, st, txt) => { const el = document.createElement(tag); Object.assign(el.style, st || {}); if (txt != null) el.textContent = txt; return el; };
+      const MONO = "'Geist Mono', GmarketSans, monospace", KR = "GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif";
+      const el = mk('div', { position: 'absolute', zIndex: 6, width: '360px', boxSizing: 'border-box', padding: '10px 12px 10px', background: 'rgba(4,6,20,0.96)', border: '1px solid rgba(70,160,108,0.5)', boxShadow: '0 18px 50px rgba(0,0,0,.55)', font: '500 12px ' + KR, color: 'rgb(112,156,128)', clipPath: 'inset(0 100% 0 0)', opacity: '0', transition: 'clip-path 220ms cubic-bezier(.2,.8,.2,1), opacity 160ms linear', pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '8px' });
+      el.setAttribute('data-minfly', '1'); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '최소화 창 찾기');
+      // 모서리 괄호 — 로고 강조와 같은 레거시 코너
+      for (const [l, t, b1, b2] of [['-1px', '-1px', 'Top', 'Left'], [null, '-1px', 'Top', 'Right'], ['-1px', null, 'Bottom', 'Left'], [null, null, 'Bottom', 'Right']]) { const c = mk('div', { position: 'absolute', width: '9px', height: '9px', pointerEvents: 'none' }); if (l) c.style.left = l; else c.style.right = '-1px'; if (t) c.style.top = t; else c.style.bottom = '-1px'; c.style['border' + b1] = '1.5px solid rgb(110,236,156)'; c.style['border' + b2] = '1.5px solid rgb(110,236,156)'; el.appendChild(c); }
+      // 머리 — 구역 머리와 같은 꼴: 짧은 선 · 이름 · 남은 선 · 개수
+      const hd = mk('div', { display: 'flex', alignItems: 'center', gap: '8px' });
+      hd.appendChild(mk('span', { width: '14px', height: '1px', background: 'rgba(70,160,108,0.85)' }));
+      hd.appendChild(mk('span', { color: 'rgb(120,232,156)', fontWeight: '700' }, '최소화 창'));
+      hd.appendChild(mk('span', { flex: '1', height: '1px', background: 'rgba(70,160,108,0.5)' }));
+      const cnt = mk('span', { font: '500 11px ' + MONO, color: 'rgb(84,128,100)' }); hd.appendChild(cnt);
+      const pin = mk('span', { font: '700 11px ' + MONO, color: 'rgb(208,255,150)', display: 'none' }, '고정'); hd.appendChild(pin);
+      // 입력 칸 — 전역 틀 입력 줄과 같은 CLI 프롬프트: '>' + 글자 + 밑줄
+      const ir = mk('label', { display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(56,128,88,0.5)', padding: '2px 0 4px', cursor: 'text' });
+      ir.appendChild(mk('span', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' }, '>'));
+      const inp = mk('input', { flex: '1', minWidth: '0', border: '0', outline: 'none', background: 'transparent', font: '500 12px ' + KR, color: 'rgb(214,244,222)', caretColor: 'rgb(150,240,170)', padding: '0' });
+      inp.type = 'text'; inp.placeholder = '노드 · 종류로 찾기'; inp.spellcheck = false; inp.autocomplete = 'off'; inp.setAttribute('aria-label', '최소화 창 찾기');
+      ir.appendChild(inp);
+      const list = mk('div', { display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: '320px', margin: '0 -6px' }); list.setAttribute('role', 'listbox');
+      const foot = mk('div', { font: '500 11px ' + MONO, color: 'rgb(84,128,100)' }, '↑↓ 고르기 · Enter 열기 · Esc 닫기'); foot.style.whiteSpace = 'nowrap';
+      el.appendChild(hd); el.appendChild(ir); el.appendChild(list); el.appendChild(foot);
+      F = this._fly = { el, inp, list, cnt, pin, open: false, sel: 0, hov: false, items: [] };
+      el.addEventListener('pointerenter', () => { F.hov = true; }); el.addEventListener('pointerleave', () => { F.hov = false; F.leftAt = performance.now(); });
+      el.addEventListener('pointerdown', (e) => e.stopPropagation()); el.addEventListener('pointerup', (e) => e.stopPropagation());
+      inp.addEventListener('input', () => { F.sel = 0; this.minFlyList(); });
+      inp.addEventListener('keydown', (e) => { e.stopPropagation();
+        if (e.key === 'Escape') { e.preventDefault(); this._flyPin = false; this.minFly(false); this.layout(); }
+        else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); F.sel = Math.max(0, Math.min(F.items.length - 1, F.sel + (e.key === 'ArrowDown' ? 1 : -1))); this.minFlyList(); }
+        else if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); const it = F.items[F.sel]; if (it) this.winOpen(it); } });
+      host.appendChild(el);
+    }
+    const MW = this._mw, cw = this._cw, ch = this._ch, top = MW ? Math.max(8, MW.hr * ch - 10) : 80, left = (this._ctrlX || 0) + 6;
+    Object.assign(F.el.style, { left: left + 'px', top: Math.min(top, Math.max(8, this._h - 420)) + 'px' });
+    if (F.open) this.minFlyList();
+    if (!F.open) { F.open = true; F.sel = 0; F.inp.value = ''; this.minFlyList(); requestAnimationFrame(() => { F.el.style.pointerEvents = 'auto'; F.el.style.opacity = '1'; F.el.style.clipPath = 'inset(0 0 0 0)'; }); }
+  }
+  minFlyList() {
+    const F = this._fly; if (!F) return;
+    const MONO = "'Geist Mono', GmarketSans, monospace", items = this.winFind(F.inp.value, 'min'), all = this.winFind('', 'min').length;
+    F.items = items; F.sel = Math.max(0, Math.min(items.length - 1, F.sel)); F.cnt.textContent = items.length + ' / ' + all; F.pin.style.display = this._flyPin ? 'inline' : 'none';
+    F.list.textContent = '';
+    if (!items.length) { const em = document.createElement('div'); Object.assign(em.style, { padding: '10px 6px', color: 'rgb(84,128,100)' }); em.textContent = all ? '맞는 창이 없어요' : '최소화한 창이 없어요 — 창 머리줄의 _ 로 최소화'; F.list.appendChild(em); return; }
+    items.forEach((e, k) => {
+      const row = document.createElement('div'), on = k === F.sel; row.setAttribute('role', 'option'); row.setAttribute('aria-selected', on ? 'true' : 'false');
+      Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 6px', cursor: 'pointer', background: on ? 'rgba(70,170,110,0.2)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 rgba(70,160,108,0.95)' : 'none' });
+      const sp = (t, st) => { const s2 = document.createElement('span'); s2.textContent = t; Object.assign(s2.style, st); row.appendChild(s2); };
+      sp('>_', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' });
+      sp(e.node.name, { fontWeight: '700', color: on ? 'rgb(208,255,150)' : 'rgb(214,244,222)' });
+      sp(this.WINKIND()[e.kind], { color: 'rgb(112,156,128)' });
+      sp('', { flex: '1' });
+      sp(this.winAgo(e), { font: '500 11px ' + MONO, color: 'rgb(84,128,100)' });
+      row.addEventListener('pointerenter', () => { if (F.sel !== k) { F.sel = k; this.minFlyList(); } });
+      row.addEventListener('click', () => this.winOpen(e));
+      F.list.appendChild(row);
+    });
+  }
+  // 걸음마다 — '더보기' 줄 호버로 열고, 판과 줄을 모두 떠나 0.25초가 지나면 닫는다 (입력 중이면 열어 둔다)
+  minFlyTick(now) {
+    const MW = this._mw, M = this._mouse, F = this._fly, on = this._lg && this._lg.open;
+    const overMore = !!(on && MW && M && Math.floor(M.y / this._ch) === MW.more && M.x >= MW.x0 - this._cw && M.x <= MW.x1);
+    if (overMore && !this._ctlDrag) { this.minFly(true); this._flyAt = now; return; }
+    if (F && F.open) { if (!on) { this._flyPin = false; return this.minFly(false); } if (this._flyPin || F.hov) { this._flyAt = now; } else if (now - (this._flyAt || 0) > 250) this.minFly(false); }   // 고정이면 늘 · 아니면 판 · 레벨바를 떠나 0.25초 뒤 접는다
+    this._mwHover = on && MW && M && M.x >= MW.x0 - this._cw && M.x <= MW.x1 ? (MW.rows.find((q) => q.row === Math.floor(M.y / this._ch)) || {}).id || null : null;
+  }
+  cmdDispose() { this.ctlCloseAll(); if (this._fly) { this._fly.el.remove(); this._fly = null; } if (this._ctlMsg) window.removeEventListener('message', this._ctlMsg); this._ctlMsg = null; if (this._cmdKey) window.removeEventListener('keydown', this._cmdKey, true); if (this._cmdEl) this._cmdEl.remove(); this._cmdEl = null; this._cmdKey = null; }
+  // 지도 칸 위치 — 지금 카메라 기준. 이 지도 뷰에서 보이는 노드만
+  mapHitsNow() {
+    const G = this._mapGeo, c = this._mcam; if (!G || !c) return null; const out = [];
+    for (const n of G.MD.all) { if (!G.VIS(n)) continue; const x = G.pcx + (n.ox - c.x) * c.s, y = G.pcy + (n.oy - c.y) * c.s; if (x < G.ax0 - 6 || x > G.ax1 + 6 || y < G.ayM || y > G.ay1) continue;
+      out.push({ id: n.id, x, y, r: n === G.foc || n.parent === G.foc ? 8 : 5 }); }
+    return out;
+  }
+  mapHitAt(x, y) { const H = this.mapHitsNow(); if (!H || !(this._lg && this._lg.open)) return null; let best = null, bd = 1e9; for (const h of H) { const d = Math.hypot(h.x - x, h.y - y); if (d <= h.r + 4 && d < bd) { bd = d; best = h; } } return best; }
+  // 누르기 시작 — 길게 누르기(전환)를 잰다
+  mapDown(x, y) { const h = this.mapHitAt(x, y); this._hold = h ? { id: h.id, t: performance.now(), x, y, fired: false } : null; return !!h; }
+  // 떼기 — 짧게: 누르기(포커싱) 또는 두 번 누르기(진입). 한 번 누르기는 두 번째를 잠깐(300ms) 기다린 뒤에
+  mapUp(x, y) {
+    const HD = this._hold; this._hold = null; if (!HD) return false; if (HD.fired) return true;
+    const h = this.mapHitAt(x, y); if (!h || h.id !== HD.id) return true;
+    const now = performance.now(), PC = this._pclick;
+    if (PC && PC.id === h.id && now - PC.t < 300) { this._pclick = null; this.mapEnter(this.mapData().byId[h.id]); }
+    else this._pclick = { id: h.id, t: now };
+    return true;
+  }
+  // 걸음마다 — 길게 누르기 다 찼으면 전환, 한 번 누르기는 기다림이 끝나면 포커싱
+  mapTick(now) {
+    const HD = this._hold, M = this._mouse;
+    if (HD && !HD.fired && now - HD.t >= this.HOLD_MS()) { if (M && Math.hypot(M.x - HD.x, M.y - HD.y) < 10) { HD.fired = true; this._pclick = null; const n = this.mapData().byId[HD.id]; if (n) this.warpTo(n.kind === 'res' ? n.parent : n); } else this._hold = null; }
+    if (this._pclick && now - this._pclick.t >= 300) { const n = this.mapData().byId[this._pclick.id]; this._pclick = null; if (n) this.mapFocus(n); }
+  }
+  // 포커싱 — 같은 지도 뷰 안에서의 이동: 그 노드를 가운데로 (이미 포커싱된 노드면 부모 궤도로 — 트리 지도: 계정 · 트리 / 리프 지도: 진입한 트리 · 그 리프 / 리소스 지도: 진입한 리프 · 그 리소스. 진입을 풀기 전엔 진입한 노드의 부모로 못 감)
+  mapFocus(n) {
+    const MV = this._mv; if (!MV) return;
+    if (MV.focus === n.id) { if (n.id === MV.root || !n.parent) return; MV.focus = n.parent.id; }   // 한 번 더 — 부모 궤도로 (진입한 노드 위로는 못 감)
+    else MV.focus = n.id;
+    this.layout();
+  }
+  // 진입 · 나가기 — 지도 뷰 전환
+  mapEnter(n) {
+    const MV = this._mv, MD = this.mapData(); if (!MV) return;
+    if (n.id === MV.root && MV.level !== 'tree') { const p = n.parent || MD.root; this._mv = MV.level === 'res' ? { level: 'leaf', root: p.id, focus: p.id } : { level: 'tree', root: MD.root.id, focus: (p.parent ? p.id : MD.root.id) }; }   // 들어오게 한 노드 — 나간다
+    else if (n.kind === 'tree') this._mv = { level: 'leaf', root: n.id, focus: n.id };
+    else if (n.kind === 'leaf') this._mv = { level: 'res', root: n.id, focus: n.id };
+    else return this.mapFocus(n);
+    this.layout();
+  }
+  // ───── 화면 전환 — 워프 (오른쪽 2/3 뷰 자리에서만. 전역 틀은 그대로) ─────
+  //   두 번 누르면 진입(이동 enterMs) → 최고 속도에서 잠깐(400ms) → 목적지로 경로를 바꾸고 해제. 가운데에 목적지 뷰 이름
+  warpTo(n) {
+    const W = this._W || (this._W = { e: 0, tgt: 0, v: 0, S: [], Z: 0 }); if (W.tgt || W.e > 0) return;
+    W.tgt = 1; W.dest = n; W.hold = 0;
+    const VIEW = { root: '트리 뷰', tree: '리프 뷰', leaf: '리소스 뷰' }, vc = Math.floor((this._ctrlX + (this._w - this._ctrlX) / 2) / this._cw), vr = Math.floor(this._h / 2 / this._ch);
+    const t0 = '→ ' + VIEW[n.kind], t1 = n.path;
+    this.setText('wp0', t0, vc - Math.round(this.dw(t0) / 2), vr - 1, [208, 255, 150]); this.setText('wp1', t1, vc - Math.round(this.dw(t1) / 2), vr + 1, [168, 240, 186]);
+    const now = performance.now(); this.textRun('wp0', 'in', now + 500); this.textRun('wp1', 'in', now + 640);
+  }
+  wF() { return Math.min(this._w - this._ctrlX, this._h) * 0.5; }
+  wNew(s, z) { const F = this.wF(), ax = (this._w - this._ctrlX) / 2 / F * 1.15, ay = this._h / 2 / F * 1.15; let x, y; do { x = (Math.random() * 2 - 1) * ax; y = (Math.random() * 2 - 1) * ay; } while (Math.hypot(x, y) < 0.04);
+    s.x = x; s.y = y; s.z = z; s.c = (Math.random() * 6) | 0; s.b = 0.55 + Math.random() * 0.45; s.a = 0; s.f = 1; s.on = true; s.lv0 = 0.3 + Math.random() * 0.5; s.g = (Math.random() * this._glyphs.length) | 0; return s; }
+  wRadK(s) { const F = this.wF(), rn = Math.min(1.2, Math.hypot(s.x / s.z * F, s.y / s.z * F) / Math.hypot((this._w - this._ctrlX) / 2, this._h / 2)); return 0.2 + 1.45 * Math.pow(rn, 1.4); }
+  wTw(i, now) { return this._moving === false ? 0.75 : 0.5 + 0.5 * Math.sin(now / 1000 * 1.4 * this._star[i] + this._ph[i]); }
+  warpStep(now, dt) {
+    const W = this._W; if (!W) return;
+    const eIn = 2200, eOut = 1600;
+    if (W.tgt > W.e) W.e = Math.min(1, W.e + dt / eIn); else if (W.tgt < W.e) W.e = Math.max(0, W.e - dt / eOut);
+    const e = W.e, v = Math.pow(e, 2.2); W.v = v;
+    const cols = this._cols, vx0 = this._ctrlX, F = this.wF(), cx = vx0 + (this._w - vx0) / 2, cy = this._h / 2;
+    if (e <= 0) { if (W.seeded) {   // 해제 끝 — 멈춘 별을 그 자리 · 그 글자 · 그 밝기 그대로 글자 장 별로
+        for (let i = 0; i < this._star.length; i++) if ((i % cols) * this._cw >= vx0) this._star[i] = 0;
+        for (const s of W.S) { if (!s.on || s.f < 0.5) continue; const c = Math.floor((cx + s.x / s.z * F) / this._cw), r = Math.floor((cy + s.y / s.z * F) / this._ch); if (c < 0 || r < 0 || c >= cols || r >= this._rows || c * this._cw < vx0) continue;
+          const i = r * cols + c, st = 0.2 + Math.random(), tw = Math.min(1, Math.max(0, (s.lv0 - 0.3) / 0.5)); this._star[i] = st; this._g[i] = s.g; this._ph[i] = Math.asin(tw * 2 - 1) - now / 1000 * 1.4 * st; }
+        W.seeded = false; W.S = []; } return; }
+    if (!W.seeded) {   // 진입 — 뷰 자리에 떠 있던 흰 별을 그 자리 그대로 3D 별로
+      W.S = []; for (let i = 0; i < this._star.length; i++) { if (!this._star[i]) continue; const px = (i % cols) * this._cw + this._cw / 2, py = ((i / cols) | 0) * this._ch + this._ch / 2; if (px < vx0 + this._cw || Math.hypot(px - cx, py - cy) < 6) continue;
+        const z = 0.55 + Math.random() * 0.45; W.S.push({ x: (px - cx) / F * z, y: (py - cy) / F * z, z, c: (Math.random() * 6) | 0, b: 0.6 + this._star[i] * 0.3, lv0: 0.3 + this.wTw(i, now) * 0.5, g: this._g[i], a: 1, f: 1, on: true }); }
+      W.nField = W.S.length; W.seeded = true; }
+    // 목적지 — 최고 속도에서 400ms 뒤 경로를 바꾸고(전역 틀 줄이 다시 찍힘) 해제
+    if (W.tgt === 1 && e >= 1) { if (!W.hold) W.hold = now; else if (now - W.hold > 400) { const n = W.dest; this._nav = n.path; this._mv = null; this.layout(); W.tgt = 0; this.textRun('wp0', 'out', now + 700); this.textRun('wp1', 'out', now + 760); } }
+    const N = Math.max(W.nField, 840), want = Math.round(W.nField + (N - W.nField) * Math.min(1, v / 0.7) ** 2);
+    let act = 0; for (const s of W.S) if (s.on) act++;
+    for (let k = act; k < want; k++) { const s = W.S.find((q) => !q.on) || (W.S.push({}), W.S[W.S.length - 1]); this.wNew(s, 0.7 + Math.random() * 0.3); }
+    for (const s of W.S) if (s.on && s.a < 1) s.a = Math.min(1, s.a + dt / 400);
+    if (W.tgt === 0) { let k = 0; for (const s of W.S) { if (!s.on) continue; if (k++ >= want) { s.f -= dt / 350; if (s.f <= 0) { s.on = false; s.f = 1; } } else if (s.f < 1) s.f = Math.min(1, s.f + dt / 350); } }
+    const dz = v * dt * 0.0026; act = 0; for (const s of W.S) if (s.on) act++;
+    for (const s of W.S) { if (!s.on) continue; s.z -= dz * this.wRadK(s); const px = cx + s.x / s.z * F, py = cy + s.y / s.z * F;
+      if (s.z < 0.04 || px < vx0 - 20 || px > this._w + 40 || Math.abs(py - cy) > this._h / 2 + 40) { if (act > want) { s.on = false; act--; } else this.wNew(s, 0.85 + Math.random() * 0.15); } }
+  }
+  // 워프 칸 — 꼬리를 칸에 찍는다 (방향 글자 - | \ /, 머리는 그 별 글자). 반환: 가는 선 목록
+  warpHeat(now) {
+    const W = this._W, cols = this._cols, rows = this._rows, cw = this._cw, ch = this._ch, heat = this._wh, hc = this._whc, hd = this._whd, hg = this._whg, LN = []; heat.fill(0);
+    const e = W.e, v = W.v, F = this.wF(), vx0 = this._ctrlX, cx = vx0 + (this._w - vx0) / 2, cy = this._h / 2, TR = 0.6 * v, cl = (x) => Math.min(1, Math.max(0, x)), c0min = Math.ceil(vx0 / cw);
+    for (const s of W.S) { if (!s.on) continue;
+      const k0 = this.wRadK(s), hx = cx + s.x / s.z * F, hy = cy + s.y / s.z * F, zt = Math.min(1.3, s.z + TR * (0.6 + s.z) * k0), tx = cx + s.x / zt * F, ty = cy + s.y / zt * F;
+      const born = s.a < 1 ? Math.sin(s.a * Math.PI) : 0, dep = cl(0.45 + (1 - s.z) * 0.8) * s.b, kk = cl(v / 0.25);
+      const bright = (s.lv0 + (dep - s.lv0) * kk) * s.a * s.f * (1 - 0.45 * cl(v * 2) * (1 - cl(k0 - 0.2)));
+      if (bright < 0.04) continue;
+      let a = Math.atan2(hy - ty, hx - tx) * 180 / Math.PI; if (a < 0) a += 180;
+      const dch = a < 22.5 || a >= 157.5 ? 0 : a < 67.5 ? 2 : a < 112.5 ? 1 : 3;
+      const C0 = tx / cw, R0 = ty / ch, C1 = hx / cw, R1 = hy / ch, n = Math.max(1, Math.ceil(Math.max(Math.abs(C1 - C0), Math.abs(R1 - R0))));
+      for (let k = 0; k <= n; k++) { const f = k / n, c = Math.floor(C0 + (C1 - C0) * f), r = Math.floor(R0 + (R1 - R0) * f);
+        if (c < c0min || r < 0 || c >= cols || r >= rows) continue;
+        const i = r * cols + c, hv = bright * (n === 1 ? 1 : f ** 1.3) + (k === n ? born * 0.5 : 0);
+        if (hv > heat[i] || (k === n && hv >= heat[i] * 0.98)) { heat[i] = hv; hc[i] = s.c; hd[i] = k === n ? 4 : dch; hg[i] = s.g; } }
+      if (v > 0.2 && n > 2) LN.push([Math.max(vx0, tx), ty, hx, hy, s.c, bright * cl((v - 0.2) / 0.5)]);
+    }
+    return LN;
+  }
+  // 워프 별 색 — 처음엔 글자 장 별 흰빛, 빨라지며(v 0.04 → 0.64) 짙은 청색으로
+  warpCol(v) { const Wc = [236, 241, 255], blue = [[120, 162, 255], [86, 128, 255], [150, 188, 255], [100, 146, 250], [176, 206, 255], [70, 112, 240]], k = Math.min(1, Math.max(0, (v - 0.04) / 0.6)), s = k * k * (3 - 2 * k); return blue.map((b) => (s > 0 ? this.lerpHsv(Wc, b, s) : Wc)); }
+  // 흐름 그래프(스파크라인) — ▁▂▃▄▅▆▇ 로 n 칸
+  spark(n) { const B = '▁▂▃▄▅▆▇'; this._sv = this._sv || []; while (this._sv.length < n) this._sv.push(0.3 + Math.random() * 0.5); if (this._sv.length > n) this._sv = this._sv.slice(-n); return this._sv.map((v) => B[Math.min(6, Math.max(0, Math.round(v * 6)))]).join(''); }
+  // 레거시 GUI 의 앞선(px) — 생성: 왼쪽 끝에서 오른쪽으로 legRate px/ms · 지우기: 오른쪽 끝에서 왼쪽으로 1.5배 빠르게
+  legFront(e, now) { const L = this.TL(); if (!e.st) return -1e9; const el = now - e.st.at; if (e.st.dir === 'in') return el < 0 ? -1e9 : e.x0 + el * L.legRate; return e.x1 + 30 - el * L.legRate * 1.5; }
+  // 초안 색 — 초록 바탕
+  COL() { return { head: [120, 232, 156], rule: [40, 96, 66], key: [112, 156, 128], val: [214, 244, 222], ok: [96, 226, 140], info: [140, 214, 196], mName: [214, 244, 222], mSign: [96, 226, 140], path: [168, 240, 186], sel: [208, 255, 150], hint: [84, 128, 100], lineC: 'rgba(70,160,108,0.85)', lineF: 'rgba(56,128,88,0.5)', lineFF: 'rgba(56,128,88,0.22)', dot: 'rgba(120,190,146,0.8)', fillB: 'rgb(208,255,150)', lineB: 'rgba(110,236,156,0.95)', fill: 'rgba(96,226,140,0.85)' }; }
+  // 화면 너비(칸) — 넓은 글자는 2 · 맞춤 채우기
+  dw(t) { return this.cellsOf(t).length; }
+  pad(t, n) { const d = this.dw(t); return d >= n ? t : t + ' '.repeat(n - d); }
+  // 글자를 칸으로 — 넓은 글자(한글 등)는 두 칸
+  cellsOf(text) {
+    const out = [];
+    for (const chr of text) { out.push(chr); if (/[ᄀ-ᅟ⺀-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/.test(chr)) out.push(''); }
+    return out;
+  }
+  // 마커 — '이름 > 내용'. 이름은 흰빛, '>' 는 보라, 내용은 col. segs = 칸 수별 색 (텍스트 · 레거시 텍스트 공용)
+  MARKER() { return { name: [232, 236, 250], sign: [176, 140, 255] }; }
+  marker(name, rest, col) {
+    const M = this.MARKER(), a = this.cellsOf(name).length, text = name + ' > ' + rest;
+    return { text, segs: [{ n: a, col: M.name }, { n: 1, col: null }, { n: 1, col: M.sign }, { n: 1, col: null }, { n: this.cellsOf(rest).length, col }] };
+  }
+  // 데이터는 볼드 — 조각에 굵기(세 번째 값)를 주면 그대로, 없으면 색으로: 값 · 고른 것 · 경로 · 마커 이름 = 데이터(볼드), 열쇠 · 머리 · 힌트 = 라벨(미디움)
+  segBold(T, j) { if (T.segs) { let k = 0; for (const sg of T.segs) { if (j < k + sg.n) { if (sg.b != null) return !!sg.b; break; } k += sg.n; } }
+    const c = this.segCol(T, j), C = this.COL(), S = String(c); return !!c && [C.val, C.sel, C.path, C.mName].some((x) => String(x) === S); }
+  segCol(T, j) { if (!T.segs) return T.col; let k = 0; for (const sg of T.segs) { if (j < k + sg.n) return sg.col || T.col; k += sg.n; } return T.col; }
+  // 텍스트 컴포넌트 — col: 데이터 색 (없으면 흰빛) · mix: 그 칸 바탕 색을 섞는 비율. 빈칸(' ')은 칸을 차지하지 않는다 (글자 장 그대로)
+  setText(id, text, c0, r0, col, mix, big, segs) {
+    this._tx = this._tx || {};
+    const T = this._tx[id], cells = this.cellsOf(text);
+    if (T && T.text === text && T.c0 === c0 && T.r0 === r0 && (T.big || 1) === (big || 1)) return;
+    this._tx[id] = { id, text, cells, c0, r0, big: big || 1, segs: segs || null, col: col || null, mix: mix || 0, st: T ? T.st : null, g: new Array(cells.length).fill(''), next: new Float64Array(cells.length) };
+  }
+  // TERRA 워드마크의 칸 — 칸 넓이의 45% 이상을 글자가 덮으면 그 칸. f = 왼쪽(0) → 오른쪽(1) (오른쪽으로 쓸어 가는 순서)
+  // 로고 구역의 두 마스크 — A: 프롬프트 '>_' · B: 워드마크 TERRA. 같은 글꼴(Geist 700) · 같은 크기 · 같은 자간 · 같은 자리(왼쪽 위 맞춤)
+  //   칸 넓이의 45% 이상을 글자가 덮으면 그 칸. f = 왼쪽(0) → 오른쪽(1) — 두 모양을 합친 너비로 재서 쓸기 앞선이 하나로 이어진다
+  // 글자 모양 → 칸. 칸 넓이의 45% 이상을 글자가 덮으면 그 칸 (Geist 700, 한글은 Noto Sans KR)
+  wordCells(word, size, ox, oy, track) {
+    const FONT = '700 ' + size + 'px GmarketSans, Geist, "Noto Sans KR", system-ui, sans-serif', mc = document.createElement('canvas').getContext('2d'); mc.font = FONT;
+    let w = 0; for (const ch of word) w += mc.measureText(ch).width; w = Math.ceil(w + size * track * (word.length - 1));
+    const h = Math.ceil(size * 0.78), cw = this._cw, chh = this._ch, cols = this._cols, rows = this._rows;
+    const oc = document.createElement('canvas'); oc.width = Math.max(1, w); oc.height = Math.max(1, Math.ceil(h + size * 0.22));   // 밑줄(_) · 한글 받침은 기준선 아래로
+    const o = oc.getContext('2d'); o.font = FONT; o.textBaseline = 'alphabetic'; o.fillStyle = '#fff';
+    let x = 0; for (const ch of word) { o.fillText(ch, x, h - size * 0.02); x += mc.measureText(ch).width + size * track; }
+    const px = o.getImageData(0, 0, oc.width, oc.height).data, set = new Set();
+    const c0 = Math.floor(ox / cw), c1 = Math.ceil((ox + w) / cw), r0 = Math.floor(oy / chh), r1 = Math.ceil((oy + oc.height) / chh);
+    for (let r = r0; r < r1 && r < rows; r++) for (let c = c0; c < c1 && c < cols; c++) {
+      let cov = 0, tot = 0;
+      for (let yy = r * chh; yy < (r + 1) * chh; yy += 2) for (let xx = c * cw; xx < (c + 1) * cw; xx += 2) { tot++; const lx = Math.round(xx - ox), ly = Math.round(yy - oy); if (lx >= 0 && ly >= 0 && lx < oc.width && ly < oc.height && px[(ly * oc.width + lx) * 4 + 3] > 110) cov++; }
+      if (cov / Math.max(1, tot) >= 0.45) set.add(r * cols + c);
+    }
+    return { w, h: oc.height, set };
+  }
+  // 경로 마스크 — 칸 → { f: 가로 순서 }
+  pathShape(text, size, ox, oy) {
+    const key = text + '|' + Math.round(size) + '|' + ox + '|' + oy + '|' + this._cw + '|' + this._ch + '|' + this._cols + '|' + (document.fonts && document.fonts.check && document.fonts.check('700 40px Geist') ? 1 : 0);
+    if (this._path && this._path.key === key) return this._path;
+    const P = this.wordCells(text, size, ox, oy, 0.06), idx = new Map(), cols = this._cols, cw = this._cw;
+    for (const i of P.set) idx.set(i, { f: Math.min(1, Math.max(0, ((i % cols) * cw + cw / 2 - ox) / P.w)) });
+    return { key, w: P.w, h: P.h, idx };
+  }
+  logoShape(targetW, ox, oy) {
+    const fOK = document.fonts && document.fonts.check ? (document.fonts.check('700 40px Geist') ? 1 : 0) : 1;   // 원본 글꼴(Geist 700)로 잰 모양인지 — 아직이면 대체 글꼴 모양을 쓰고, 불러오면 다시 만든다
+    const key = Math.round(targetW) + '|' + ox + '|' + oy + '|' + this._cw + '|' + this._ch + '|' + this._cols + '|' + fOK;
+    if (this._logo && this._logo.key === key) return this._logo;
+    const FONT = (s) => '700 ' + s + 'px GmarketSans, Geist, "Noto Sans KR", system-ui, sans-serif';
+    const mc = document.createElement('canvas').getContext('2d'), track = 0.16;   // 자간 (메인 레퍼런스와 같은 비율)
+    const widthOf = (word, s) => { mc.font = FONT(s); let t = 0; for (const ch of word) t += mc.measureText(ch).width; return t + s * track * (word.length - 1); };
+    const size = 100 * targetW / Math.max(1, widthOf('TERRA', 100)), h = Math.ceil(size * 0.78);
+    const cw = this._cw, chh = this._ch, cols = this._cols, rows = this._rows;
+    const cellsOf = (word) => {
+      const w = Math.ceil(widthOf(word, size));
+      const oc = document.createElement('canvas'); oc.width = Math.max(1, w); oc.height = Math.max(1, Math.ceil(h + size * 0.22));   // 밑줄(_)은 기준선 아래로 내려간다
+      const o = oc.getContext('2d'); o.font = FONT(size); o.textBaseline = 'alphabetic'; o.fillStyle = '#fff';
+      mc.font = FONT(size); let x = 0; for (const ch of word) { o.fillText(ch, x, h - size * 0.02); x += mc.measureText(ch).width + size * track; }
+      const px = o.getImageData(0, 0, oc.width, oc.height).data, set = new Set();
+      const c0 = Math.floor(ox / cw), c1 = Math.ceil((ox + w) / cw), r0 = Math.floor(oy / chh), r1 = Math.ceil((oy + h + size * 0.1) / chh);
+      for (let r = r0; r < r1 && r < rows; r++) for (let c = c0; c < c1 && c < cols; c++) {
+        let cov = 0, tot = 0;
+        for (let yy = r * chh; yy < (r + 1) * chh; yy += 2) for (let xx = c * cw; xx < (c + 1) * cw; xx += 2) { tot++; const lx = Math.round(xx - ox), ly = Math.round(yy - oy); if (lx >= 0 && ly >= 0 && lx < oc.width && ly < oc.height && px[(ly * oc.width + lx) * 4 + 3] > 110) cov++; }
+        if (cov / Math.max(1, tot) >= 0.45) set.add(r * cols + c);
+      }
+      return { w, set };
+    };
+    const A = cellsOf('>_'), A1 = cellsOf('>'), B = cellsOf('TERRA'), w = Math.max(A.w, B.w);
+    const idx = new Map();   // 칸 → { a: 프롬프트에 드나, cur: 커서(_) 칸인가, b: TERRA 에 드나, f: 가로 순서 }
+    for (const i of new Set([...A.set, ...B.set])) idx.set(i, { a: A.set.has(i), cur: A.set.has(i) && !A1.set.has(i), b: B.set.has(i), f: Math.min(1, Math.max(0, ((i % cols) * cw + cw / 2 - ox) / w)) });
+    let rTop = 1e9, rBot = -1; idx.forEach((_, i) => { const r = (i / cols) | 0; rTop = Math.min(rTop, r); rBot = Math.max(rBot, r); });
+    let bTop = 1e9, bBot = -1; B.set.forEach((i) => { const r = (i / cols) | 0; bTop = Math.min(bTop, r); bBot = Math.max(bBot, r); });   // TERRA 글자가 실제로 차지한 줄 ('>_' 의 밑줄 줄은 빼고)
+    return { key, w, h, x: ox, y: oy, idx, rTop, rBot, bTop, bBot, size };
+  }
+
+  // ───── 시간표 ─────
+  // 텍스트: 글자 하나 = 랜덤 갱신 cellDur 동안 (주기 증가 — 처음엔 프레임마다, 끝으로 갈수록 느긋하게) → 데이터 글자. 글자마다 step 늦게 (왼쪽 → 오른쪽)
+  // 마스크 로고: 왼쪽에서 오른쪽으로 spread 동안 쓸어 가며, 칸마다 cellDur 동안 지금 색 → 투영 색 (HSV). 앞선 바로 앞은 발광(G)
+  TL() { const k = 1 / Math.max(0.25, this.props.tempo ?? 1); return { cellDur: 520 * k, step: 38 * k, gap: 160 * k, mSpread: 520 * k, mCell: 360 * k, G: 150 * k, pathDelay: 220 * k, lineGap: 110 * k, contentGap: 90 * k, ringDur: 900 * k, legRate: 1.6 / k }; }
+  textRun(id, dir, at) { const T = this._tx && this._tx[id]; if (!T) return; T.st = { dir, at }; }
+  // 텍스트 하나의 칸별 진행 p (0 → 1). 들어갈 때(in): 데이터가 되어 가는 정도 · 나갈 때(out): 빈칸이 되어 가는 정도
+  textP(T, j, now) { const L = this.TL(); if (!T.st) return -1; return (now - T.st.at - j * L.step) / L.cellDur; }
+  textEnd(T) { const L = this.TL(); return T.st ? T.st.at + (T.cells.length - 1) * L.step + L.cellDur : 0; }
+
+  // ───── 그리기 ─────
+  hex(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  rgb2hsv(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let h = 0; if (d > 0) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, mx === 0 ? 0 : d / mx, mx]; }
+  hsv2rgb(h, s, v) { const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c; const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x]; return [(r + m) * 255, (g + m) * 255, (b + m) * 255]; }
+  lerpHsv(a, b, p) {
+    const A = this.rgb2hsv(a[0], a[1], a[2]), B = this.rgb2hsv(b[0], b[1], b[2]);
+    if (A[1] < 0.02) A[0] = B[0]; if (B[1] < 0.02) B[0] = A[0];
+    let dh = B[0] - A[0]; if (dh > 180) dh -= 360; if (dh < -180) dh += 360;
+    return this.hsv2rgb((A[0] + dh * p + 360) % 360, A[1] + (B[1] - A[1]) * p, A[2] + (B[2] - A[2]) * p);
+  }
+  pathSpread() { const L = this.TL(); return Math.max(260, L.mSpread * (this._path ? this._path.w : 1) / Math.max(1, this._logo ? this._logo.w : 1)); }
+  // 시나리오 — 처음 켜지면 마스크 '>_' 가 왼쪽에서 오른쪽으로 찍힌다(발광 생성).
+  //   로고 구역에 호버하면 같은 쓸기로 '>_' → TERRA, 생기기 시작하고 pathDelay 뒤에 경로(텍스트)가 찍힌다. 떠나면 경로는 지워지고 TERRA → '>_' 로 거꾸로
+  step(now, dt) {
+    this.warpStep(now, dt);
+    this.mapTick(now);
+    if (this._cmdEl) { const el = this._cmdEl, want = this._lg && this._lg.open ? 'block' : 'none'; if (el.style.display !== want) { el.style.display = want; if (want === 'none' && document.activeElement === el) el.blur(); } }   // 입력 칸 — 전역 틀이 열려 있을 때만
+    for (const id in this._tx) { const T = this._tx[id]; if (T.ghost && now > this.textEnd(T) + 400) delete this._tx[id]; }   // 다 지운 옛 줄
+    // 지도 카메라 — 목표로 부드럽게 (위치는 지수 보간, 배율은 로그 보간)
+    if (this._mcam && this._mcamT) { const c = this._mcam, t = this._mcamT, k = 1 - Math.exp(-dt / 150); c.x += (t.x - c.x) * k; c.y += (t.y - c.y) * k; c.s = Math.exp(Math.log(c.s) + (Math.log(t.s) - Math.log(c.s)) * k);
+      // 마커 — 카메라가 다 도착하면(1px · 배율 1% 안) 선을 왼쪽에서 오른쪽으로, 이어서 이름 · 종류를 랜덤 갱신으로 생성
+      const MP = this._mkPend; if (MP && Math.hypot((c.x - t.x) * t.s, (c.y - t.y) * t.s) < 1 && Math.abs(Math.log(c.s / t.s)) < 0.01) { this._mkPend = null; const e = (this._legs || []).find((q) => q.id === MP.leg); if (e) e.st = { dir: 'in', at: now }; MP.tids.forEach((id) => { const T = this._tx[id]; if (T) T.st = { dir: 'in', at: now + 60 }; }); } }
+    this._ctlHover = this.ctlHitRow(this._mouse && this._mouse.x, this._mouse && this._mouse.y);
+    this.minFlyTick(now);
+    if (this._pop && this._pop.track && !this._pop.track()) this.popHide();
+    { const M = this._mouse, j = this._pop && M ? this.popRow(M.x, M.y) : null; this._popHov = j; }
+    { const Q = this._lo, M = this._mouse; this._loHov = !!(Q && M && this._lg && this._lg.on && Math.floor(M.y / this._ch) === Q.row && M.x >= Q.x0 - 4 && M.x <= Q.x1 + 4); }
+    { const K = this._ctl, M = this._mouse; this._ctlHeadHov = !!(K && M && this._lg && this._lg.open && Math.floor(M.y / this._ch) === K.hr && M.x >= K.x0 - this._cw && M.x <= K.x1 + this._cw); }
+    { const M0 = this._mouse, HH = M0 && this._lg && this._lg.open ? this.mapHitsNow() : null; let hv = null, bd = 1e9; if (HH) for (const h of HH) { const dd = Math.hypot(h.x - M0.x, h.y - M0.y); if (dd <= h.r + 4 && dd < bd) { bd = dd; hv = h.id; } } this._mapHover = hv; if (this._cv && this._cv.parentElement) this._cv.parentElement.style.cursor = hv ? 'pointer' : ''; }
+    const L = this.TL(), Tm = L.mSpread + L.mCell + L.G;
+    const LG = this._lg || (this._lg = { mp: 0, m: 0, on: false, onAt: 0, open: false, cAt: 0, ring: 0 });
+    if (now - this._boot > 400) LG.mp = Math.min(Tm, LG.mp + dt);   // 프롬프트 찍기 (한 번)
+    const M = this._mouse, Z = this._zones.logo, cw = this._cw, ch = this._ch;
+    const hov = !!(M && M.x >= Z.c0 * cw - cw && M.x <= Z.c1 * cw + cw && M.y >= Z.r0 * ch - ch && M.y <= Z.r1 * ch + ch);
+    // TERRA 누르기 — 열기 / 닫기. 바로 누르면 TERRA 가 먼저 생기고 그 다음 내용, 호버로 이미 TERRA 가 떠 있으면 곧바로 내용
+    if (this._tapLogo) { this._tapLogo = false; if (LG.mp >= Tm) { LG.open = !LG.open; LG.cAt = 0; } }
+    const want = (hov || LG.open) && LG.mp >= Tm;
+    if (want && !LG.on) { LG.on = true; LG.onAt = now; }
+    // 코너 괄호(로고 강조) — 켜져 있는 동안만
+    if (!want && LG.on) LG.on = false;
+    LG.m = Math.max(0, Math.min(Tm, LG.m + (LG.on ? dt : -dt)));
+    const lines = Object.values(this._tx).filter((T) => T.grp);
+    const nb = lines.filter((T) => T.grp === 'b').length, nc = lines.filter((T) => T.grp === 'c').length;
+    // 기본 정보 (b) — 켜지고 pathDelay 뒤 위 → 아래. 꺼지면 아래 줄부터 지움
+    const bOn = LG.on && now - LG.onAt >= L.pathDelay;
+    // 내용 (c) — 열려 있고 TERRA 가 다 생긴 뒤: 한 줄씩 순서대로 시간차(contentGap). 닫으면 아래 줄부터
+    const cOn = LG.open && LG.m >= Tm;
+    if (cOn && !LG.cAt) LG.cAt = now; if (!cOn) LG.cAt = 0;
+    for (const T of lines) {
+      if (T.grp === 'p') { const PO = this._pop; if (PO && (!T.st || T.st.dir === 'out')) this.textRun(T.id, 'in', PO.at + 140 + T.ord * 45); if (!PO && T.st && T.st.dir === 'in') this.textRun(T.id, 'out', now); continue; }   // 우클릭 속성 — 선이 생긴 뒤 위 → 아래
+      const on = T.grp === 'b' ? bOn : cOn, n = T.grp === 'b' ? nb : nc;
+      if (on && (!T.st || T.st.dir === 'out') && !(this._mkPend && this._mkPend.tids.includes(T.id))) this.textRun(T.id, 'in', (T.grp === 'b' ? now : LG.cAt) + T.ord * (T.grp === 'b' ? L.lineGap : L.contentGap));
+      if (!on && T.st && T.st.dir === 'in') this.textRun(T.id, 'out', now + (n - 1 - T.ord) * 25);
+    }
+    // 레거시 GUI — 같은 묶음 · 순서의 줄과 같은 때 오른쪽으로 생성 (k: 로고 강조는 켜져 있는 동안)
+    for (const e of this._legs || []) {
+      const on = e.grp === 'p' ? !!this._pop : e.grp === 'k' ? LG.on : e.grp === 'b' ? bOn : cOn;
+      if (on && (!e.st || e.st.dir === 'out') && !(this._mkPend && this._mkPend.leg === e.id)) e.st = { dir: 'in', at: e.grp === 'p' ? this._pop.at : e.grp === 'c' ? LG.cAt + e.ord * L.contentGap : e.grp === 'b' ? now + e.ord * L.lineGap : now };
+      if (!on && e.st && e.st.dir === 'in') e.st = { dir: 'out', at: now };
+      if (e.st && e.st.dir === 'out' && this.legFront(e, now) < e.x0 - 30) e.st = null;
+    }
+    // 흐름 그래프 — 350ms 마다 한 칸씩 흐른다 (다 찍힌 뒤에는 글자만 바꾼다)
+    if (now - (this._sparkAt || 0) > 350) { this._sparkAt = now; this._sv = (this._sv || []).slice(1); const T = this._tx[this._sparkId]; if (T) { const t2 = T.text.replace(/[▁▂▃▄▅▆▇]+/, this.spark(18)); T.text = t2; T.cells = this.cellsOf(t2); } }
+  }
+  drawField(now, force) {
+    const ctx = this._ctx; if (!ctx || !this._tx) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const moving = (this.props.motion ?? true) && !reduce;
+    if (!force && now - this._last < 33) return;
+    const dt = Math.min(100, now - (this._last || now)); this._last = now;
+    if ((this.props.cell ?? 14) !== this._cs) { this.sizeField(); return; }
+    if ((this.props.path ?? '/계정/01/01·c') !== this._pathText && (this._nav = null, this._mv = null, true) || Math.round(this._w * (this.props.logoWidth ?? 0.2)) !== this._logoW) this.layout();
+    this.step(now, reduce ? 1e6 : dt);
+    const P = (this.PALETTES()[this.props.palette] || this.PALETTES()['은하수']).map((h) => this.hex(h));
+    const NP = P.length, cols = this._cols, rows = this._rows, G = this._glyphs, g = this._g, DIM = this.props.dim ?? 1;
+    const speed = moving ? (this.props.speed ?? 1) : 0;
+    this._tt = (this._tt || 0) + (moving ? (now - (this._prev || now)) / 1000 * speed : 0); this._prev = now;
+    const t = this._tt;
+    if (moving) { const k = Math.ceil(cols * rows * 0.006 * (1 + (this._W ? this._W.v : 0) * 5)); for (let i = 0; i < k; i++) g[(Math.random() * g.length) | 0] = (Math.random() * G.length) | 0; }
+    ctx.clearRect(0, 0, this._w, this._h);
+    const FN = '500 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", monospace', FB = FN.replace(/^\d+ /, '700 '), FG = '500 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", "Noto Sans KR", sans-serif', FGB = FG.replace(/^\d+ /, '700 ');   // 전역 틀 글자 — 기본 G마켓 산스 미디움, 강조할 데이터는 볼드
+    ctx.font = FN; ctx.textBaseline = 'top';
+    const P2 = this._perm;
+    const nz = (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, a0 = xi & 255, b0 = yi & 255;
+      const uu = xf * xf * (3 - 2 * xf), vv = yf * yf * (3 - 2 * yf);
+      const A = P2[P2[a0] + b0], B = P2[P2[a0 + 1] + b0], C = P2[P2[a0] + b0 + 1], D = P2[P2[a0 + 1] + b0 + 1];
+      return (A + (B - A) * uu + (C - A) * vv + (A - B - C + D) * uu * vv) / 255;
+    };
+    const styleOf = (key) => {
+      const parts = key.split('_'), q = +parts[1];
+      if (parts[0][0] === 'b') { const f = +parts[0].slice(1) / 7, inB = q === 1; return [15 - 7 * f + (inB ? 5 : 0), 21 - 11 * f + (inB ? 4 : 0), 46 - 26 * f + (inB ? 10 : 0), 1]; }
+      const c = parts[0] === 's' ? [236, 241, 255] : P[+parts[0]];
+      const a = q < 2 ? 0.16 + q * 0.06 : 0.12 + q * 0.12, mix = q < 3 ? 0.35 : 1;
+      return [c[0] * mix + 74 * (1 - mix), c[1] * mix + 90 * (1 - mix), c[2] * mix + 140 * (1 - mix), a];
+    };
+    const seenOf = (key, y) => { const s = styleOf(key), bg = y / rows < 0.46 ? [5, 8, 27] : [3, 5, 16]; return [s[0] * s[3] + bg[0] * (1 - s[3]), s[1] * s[3] + bg[1] * (1 - s[3]), s[2] * s[3] + bg[2] * (1 - s[3])]; };
+    // 텍스트 칸 표 — 칸 → [텍스트, 글자 번호]
+    const TX = new Map();
+    // 레거시 텍스트 — 보이는 글자가 덮는 바탕 칸(글자 하나 = big 칸 × big 줄, 넓은 글자는 두 배 너비)을 모은다 → 어두운 화면
+    const LEG = [], DIMS = new Set();
+    for (const id in this._tx) { const T = this._tx[id]; if (!T.st || T.big === 1) continue;
+      for (let j = 0; j < T.cells.length; j++) { const chr = T.cells[j]; if (chr === ' ') continue; const p = this.textP(T, j, now), out = T.st.dir === 'out';
+        if (!((!out && p > 0) || (out && p < 1))) continue;
+        if (chr !== '') LEG.push([T, j, p]);
+        const c0 = T.c0 + j * T.big; for (let dy = 0; dy < T.big; dy++) for (let dx = 0; dx < T.big; dx++) { const c = c0 + dx, r = T.r0 + dy; if (c < cols && r < rows) DIMS.add(r * cols + c); } } }
+    for (const id in this._tx) { const T = this._tx[id]; if (!T.st || T.big !== 1) continue; for (let j = 0; j < T.cells.length; j++) { const c = T.c0 + j; if (T.cells[j] === ' ' && !T.segs) continue; if (c < cols && T.r0 < rows) TX.set(T.r0 * cols + c, [T, j]); } }   // 초안 줄(segs)은 빈칸도 줄의 일부 — 바탕 글자를 비운다
+    // 마스크 로고 — 진행 m (ms). 칸마다 tau = m − f·spread
+    const L = this.TL(), LO = this._logo, LGm = this._lg ? this._lg.m : 0, LGp = this._lg ? this._lg.mp : 0, cl = (v) => Math.min(1, Math.max(0, v));
+    const rMid = (LO.rTop + LO.rBot) / 2, rSpan = Math.max(1, LO.rBot - LO.rTop);
+    this._moving = moving;
+    const WE = this._W ? this._W.e : 0, WV = this._W ? this._W.v : 0, wLN = WE > 0 ? this.warpHeat(now) : null, wh = this._wh, vc0 = Math.ceil(this._ctrlX / this._cw), wCells = [];
+    const buckets = new Map(), special = [];
+    const LGF = (this._legs || []).map((e) => this.legFront(e, now));   // 레거시 GUI 마다 이번 프레임 앞선
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x, W = this._bw[i], gx = x * this._cw / 15, gy = y * this._ch / 15;
+      const n1 = nz(gx * 0.045 - t * 0.09, gy * 0.045 + t * 0.012), n2 = nz(gx * 0.11 - t * 0.17 + 31.7, gy * 0.11 - t * 0.02 + 12.3);
+      const n = n1 * 0.62 + n2 * 0.38, cloud = Math.max(0, n - 0.42) / 0.58, dust = cloud * cloud;
+      const u = Math.min(0.999, Math.max(0, y / rows * 0.85 + (n1 - 0.5) * 0.3));
+      let lv = (0.05 + W * 0.13 + dust * (0.18 + 0.62 * W)) * DIM, star = false;
+      const st = this._star[i];
+      if (st && !(WE > 0 && x >= vc0)) { const tw = this.wTw(i, now); const sl = 0.36 + tw * 0.58; if (sl > lv) { lv = sl; star = true; } }
+      // 마스크 로고 칸
+      //   sA: 프롬프트가 찍힌 정도 · sB: TERRA 로 바뀐 정도 (둘 다 왼쪽 → 오른쪽). 세기 = TERRA 칸이면 max(sB, 프롬프트 세기), 프롬프트만의 칸이면 sA·(1 − sB)
+      let mk = null, glow = 0;
+      { const m = LO.idx.get(i); if (m) {
+        const tA = LGp - m.f * L.mSpread, tB = LGm - m.f * L.mSpread, sA = cl(tA / L.mCell), sB = cl(tB / L.mCell);
+        // 커서(_)는 깜박인다 — 프롬프트가 다 찍혀 있고 TERRA 로 바뀌지 않는 동안 530ms 켬 / 530ms 끔
+        const blinkOff = m.cur && LGp >= L.mSpread + L.mCell && LGm <= 0 && Math.floor((now - this._boot) / 530) % 2 === 1;
+        const sA2 = blinkOff ? 0 : sA;
+        const wgt = m.b ? Math.max(sB, m.a ? sA2 : 0) : m.a ? sA2 * (1 - sB) : 0;
+        const ga = (tau) => (tau > -L.G && tau < L.G ? (1 - Math.abs(tau) / L.G) ** 2 : 0);
+        glow = Math.max(m.a ? ga(tA) * (LGp < L.mSpread + L.mCell + L.G ? 1 : 0) : 0, LGm > 0 && LGm < L.mSpread + L.mCell + L.G ? ga(tB) : 0);
+        if (wgt > 0) mk = { p: wgt, n, rr: m.b && sB > 0 && sB < 1 ? sB : 0, uL: Math.min(0.999, Math.max(0, 0.42 + (y - rMid) / rSpan * 0.3 + (n1 - 0.5) * 0.3)) };   // 색 — 메인 레퍼런스의 TERRA 자리(화면 가운데쯤)의 은하수 색
+      } }
+      // 고리 계기 — 마스크 그래픽 · 초록. 값 안쪽은 밝게, 바깥(눈금 자리)은 흐리게. 시계 방향으로 쓸어 가며 생긴다
+      { const m = this._ring && this._ring.idx.get(i), rg = this._lg ? this._lg.ring : 0; if (m && rg > 0) {
+        const tR = rg - m.f * L.ringDur, sR = cl(tR / L.mCell);
+        if (tR > -L.G && tR < L.G && rg < L.ringDur + L.mCell) glow = Math.max(glow, (1 - Math.abs(tR) / L.G) ** 2);
+        if (sR > 0) mk = { p: sR * (m.on ? 1 : 0.4), n, green: true, rr: sR < 1 ? sR : 0, uL: 0.42 };
+      } }
+      // 경로 칸 — 마스크 · 초록
+      { const m = this._path.idx.get(i), mp2 = this._lg ? this._lg.mpath || 0 : 0; if (m && mp2 > 0) {
+        const SP = this.pathSpread(), tP = mp2 - m.f * SP, sP = cl(tP / L.mCell);
+        if (tP > -L.G && tP < L.G && mp2 < SP + L.mCell + L.G) glow = Math.max(glow, (1 - Math.abs(tP) / L.G) ** 2);
+        if (sP > 0) mk = { p: sP, n, green: true, rr: sP < 1 ? sP : 0, uL: Math.min(0.999, Math.max(0, 0.42 + (n1 - 0.5) * 0.3)) };
+      } }
+      // 레거시 GUI 칸 — 앞선이 지난 칸은 어두운 화면, 앞선 바로 앞 26px 은 그 자리 글자 색으로 발광 (배경을 여는 모션 없음)
+      let legDim = false;
+      { const ks = this._legCell && this._legCell.get(i); if (ks) { const px = x * this._cw + this._cw / 2; for (const k of ks) { const e = this._legs[k], fr = LGF[k]; if (fr <= -1e8) continue;
+        if (px < fr && px <= e.x1 + this._cw) legDim = true; else { const dd = px - fr; if (dd >= 0 && dd < 26 && fr < e.x1 + 26) glow = Math.max(glow, (1 - dd / 26) ** 2); } } } }
+      if (glow > 0.02) { lv = Math.min(1, Math.max(lv, 0.2) + glow * 0.8); star = false; }   // 발광 — 그 자리 글자 색으로 밝아진다
+      const q = Math.min(7, (lv * 8) | 0), pi = Math.min(NP - 1, (u * NP) | 0);
+      const key = star ? 's_' + q : q === 0 ? 'b' + Math.min(7, (y / rows * 8) | 0) + '_' + (W > 0.45 ? 1 : 0) : pi + '_' + q;
+      // 텍스트 칸
+      if (DIMS.has(i) || (legDim && !TX.has(i))) { special.push({ i, y, kind: 'dim', key }); continue; }   // 레거시 아래 — 어두운 화면
+      const tx = TX.get(i);
+      if (tx) {
+        const [T, j] = tx, p = this.textP(T, j, now), out = T.st.dir === 'out';
+        if (!out && p > 0) { special.push({ i, y, kind: 'txt', T, j, p, key }); continue; }
+        if (out) { if (p >= 1) { if (now - (T.st.at + j * L.step + L.cellDur) < 260 * this._jit[i]) continue; } else { special.push({ i, y, kind: 'txt', T, j, p: Math.max(0, p), key }); continue; } }   // 다 지운 칸은 잠깐 빈칸 → 칸마다 무작위로 글자 장이 돌아온다
+      }
+      if (WE > 0 && x >= vc0 && wh[i] > 0.16) { wCells.push(i); continue; }   // 워프 별 꼬리 칸
+      if (mk) { special.push({ i, y, kind: 'mask', p: mk.p, n: mk.n, green: !!mk.green, rr: mk.rr, pi: Math.min(NP - 1, (mk.uL * NP) | 0), key, glow }); continue; }
+      let b = buckets.get(key); if (!b) { b = []; buckets.set(key, b); } b.push(i);
+    }
+    buckets.forEach((list, key) => {
+      const s = styleOf(key);
+      ctx.fillStyle = 'rgba(' + Math.round(s[0]) + ',' + Math.round(s[1]) + ',' + Math.round(s[2]) + ',' + s[3].toFixed(3) + ')';
+      for (let k = 0; k < list.length; k++) { const i = list[k]; ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); }
+    });
+    // 워프 — 뷰 자리(오른쪽 2/3)만: 어두운 화면 막(가운데 소실점 더 어둡게) → 가는 선 → 꼬리 칸
+    if (WE > 0) {
+      const HD = this.props.holeDim ?? 0.6, dk = Math.min(1, WE / 0.2), vx0 = this._ctrlX, cx = vx0 + (this._w - vx0) / 2, cy = this._h / 2;
+      { const R = Math.hypot(cx - vx0, cy), gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, R), base = (1 - HD) * dk, core = Math.min(0.92, base + 0.55 * dk * Math.min(1, WV * 1.4 + 0.3));
+        gr.addColorStop(0, 'rgba(1,2,8,' + core.toFixed(3) + ')'); gr.addColorStop(0.14, 'rgba(1,2,8,' + (base + (core - base) * 0.35).toFixed(3) + ')'); gr.addColorStop(0.4, 'rgba(1,2,8,' + base.toFixed(3) + ')'); gr.addColorStop(1, 'rgba(1,2,8,' + base.toFixed(3) + ')');
+        ctx.fillStyle = gr; ctx.fillRect(vc0 * this._cw, 0, this._w - vc0 * this._cw, this._h); }
+      const SC = this.warpCol(WV);
+      if (wLN.length) { ctx.save(); ctx.beginPath(); ctx.rect(vc0 * this._cw, 0, this._w, this._h); ctx.clip(); ctx.lineWidth = 1.3; ctx.lineCap = 'round';
+        for (const [x0, y0, x1, y1, c, a] of wLN) { if (a < 0.03) continue; const Cc = SC[c], gl = ctx.createLinearGradient(x0, y0, x1, y1), rgb = Math.round(Cc[0]) + ',' + Math.round(Cc[1]) + ',' + Math.round(Cc[2]);
+          gl.addColorStop(0, 'rgba(' + rgb + ',0)'); gl.addColorStop(1, 'rgba(' + rgb + ',' + Math.min(1, a * 1.1).toFixed(3) + ')'); ctx.strokeStyle = gl; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+        ctx.restore(); }
+      const DCH = ['-', '|', '\\', '/'], dkB = 1 - (1 - HD) * dk, BG = [[5, 8, 27].map((c) => c * dkB), [3, 5, 16].map((c) => c * dkB)], groups = new Map(), hc = this._whc, hd = this._whd, hg = this._whg, rg = this._wrg, rn = this._wrn;
+      for (const i of wCells) { const lvl = Math.min(7, (wh[i] * 8) | 0), key = (hc[i] * 16 + lvl * 2 + (WV > 0.08 && (hd[i] === 4 || lvl >= 6) ? 1 : 0)) * 2 + (((i / cols) | 0) / rows < 0.46 ? 0 : 1); let a = groups.get(key); if (!a) { a = []; groups.set(key, a); } a.push(i); }
+      groups.forEach((list, key) => { const bg = BG[key & 1], k2 = key >> 1, c = SC[k2 >> 4], lvl = (k2 >> 1) & 7, bold = k2 & 1, al = Math.min(1, 0.12 + lvl * 0.12);
+        const css = 'rgb(' + Math.round(bg[0] + (c[0] - bg[0]) * al) + ',' + Math.round(bg[1] + (c[1] - bg[1]) * al) + ',' + Math.round(bg[2] + (c[2] - bg[2]) * al) + ')';
+        ctx.font = bold ? FB : FN; ctx.fillStyle = css; ctx.strokeStyle = css; ctx.lineWidth = 0.6;
+        for (const i of list) { let gl; if (hd[i] === 4 && WV < 0.06) gl = G[hg[i]]; else if (hd[i] === 4) { if (now >= rn[i]) { rg[i] = (Math.random() * G.length) | 0; rn[i] = now + (16 + 520 * (1 - WV) * (1 - WV)) * (0.6 + Math.random() * 0.8); } gl = G[rg[i]]; } else gl = DCH[hd[i]];
+          const X = (i % cols) * this._cw, Y = ((i / cols) | 0) * this._ch; ctx.fillText(gl, X, Y); if (bold) ctx.strokeText(gl, X, Y); } });
+      ctx.font = FN;
+    }
+    const DATA = [230, 234, 247], legBg = new Map();
+    for (const S of special) {
+      const X = (S.i % cols) * this._cw, Y = ((S.i / cols) | 0) * this._ch, from = seenOf(S.key, S.y);
+      if (S.kind === 'dim') {
+        legBg.set(S.i, from);   // 레거시 글자 색에 섞을 바탕 색
+        const hv = this.rgb2hsv(from[0], from[1], from[2]), c = this.hsv2rgb(hv[0], hv[1], hv[2] * (this.props.holeDim ?? 0.6));
+        ctx.font = FN; ctx.fillStyle = 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')'; ctx.fillText(G[g[S.i]], X, Y);
+        continue;
+      }
+      if (S.kind === 'txt') {
+        // 텍스트 — 랜덤 갱신 · 주기 증가(감속): 처음엔 프레임마다, 끝으로 갈수록 느긋하게. 들어갈 땐 데이터 글자에서 멈추고, 나갈 땐 빈칸에서
+        const T = S.T, j = S.j, chr = T.cells[j], out = T.st.dir === 'out', p = Math.min(1, S.p);
+        let glyph, c;
+        // 데이터 색 — 텍스트마다 (경로: 초록에 그 칸 바탕 색을 mix 만큼)
+        const DC = T.segs ? (this.segCol(T, j) || DATA) : T.col ? (T.mix ? [T.col[0] * (1 - T.mix) + from[0] * T.mix * 3, T.col[1] * (1 - T.mix) + from[1] * T.mix * 3, T.col[2] * (1 - T.mix) + from[2] * T.mix * 3].map((v) => Math.min(255, v)) : T.col) : DATA;
+        if (!out && p >= 1) { glyph = chr; c = DC; }
+        else {
+          const iv = 16 + 520 * p * p;
+          if (now >= T.next[j]) { T.g[j] = G[(Math.random() * G.length) | 0]; T.next[j] = now + iv * (0.6 + Math.random() * 0.8); }
+          glyph = out && p < 0.02 ? chr : T.g[j];
+          c = out ? this.lerpHsv(DC, from, p) : this.lerpHsv(from, DC, p);
+        }
+        if (!glyph || glyph === ' ') continue;
+        ctx.font = this.segBold(T, j) ? FGB : FG; ctx.fillStyle = 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';   // 기본 미디움 · 강조 데이터는 볼드
+        // 넓은 글자(한글)는 두 칸에 꽉 차게 — 칸 높이의 0.82 크기로 키워 두 칸 가운데에 (영문과 같은 글자 밀도)
+        const wide = glyph === chr && T.cells[j + 1] === '';
+        if (wide) { const fz = Math.round(this._ch * 0.82); ctx.font = ctx.font.replace(/[\d.]+px/, fz + 'px'); const mw = ctx.measureText(glyph).width, kx = Math.min(1, (2 * this._cw - 1) / Math.max(1, mw)); ctx.save(); ctx.translate(X + (2 * this._cw - mw * kx) / 2, Y + (this._ch - fz) / 2); ctx.scale(kx, 1); ctx.fillText(glyph, 0, 0); ctx.restore(); }
+        else ctx.fillText(glyph, X, Y);
+      } else {
+        // 마스크 — 메인 레퍼런스의 TERRA 처럼 글자 장 색을 밝게(0.5 + 무늬 0.5). 지금 보이는 색 → 그 색으로 HSV, 볼드
+        const lvM = 0.5 + S.n * 0.5, qM = Math.min(7, (lvM * 8) | 0);
+        let tgt = seenOf(S.pi + '_' + qM, Math.round(rows * 0.5));   // 바탕은 화면 가운데 것으로 (메인 레퍼런스와 같은 겹침)
+        // 경로 — 초록. 바탕(그 자리 은하수 색)을 30% 섞어 글자 장에 녹아들게, 밝기는 무늬를 따라 흔들린다
+        if (S.green) { const k = 0.55 + 0.45 * lvM, G0 = [96 * k, 226 * k, 140 * k]; tgt = [G0[0] * 0.7 + tgt[0] * 0.3, G0[1] * 0.7 + tgt[1] * 0.3, G0[2] * 0.7 + tgt[2] * 0.3]; }
+        let c = this.lerpHsv(from, tgt, S.p);
+        if (S.glow > 0.02) { const hv = this.rgb2hsv(c[0], c[1], c[2]); c = this.hsv2rgb(hv[0], hv[1] * (1 - 0.25 * S.glow), Math.min(1, Math.max(hv[2], 0.25) + S.glow * 0.6)); }
+        const css = 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';
+        ctx.font = FB; ctx.fillStyle = css; ctx.strokeStyle = css; ctx.lineWidth = 0.6;
+        // 생기는(바뀌는) 동안 — 랜덤 갱신 · 주기 증가: 간격 16 → 536ms (진행 p 가 오를수록 느긋하게)
+        let glyph = G[g[S.i]];
+        if (S.rr > 0) { const RR = this._rr || (this._rr = new Map()); let r = RR.get(S.i); if (!r) { r = { g: glyph, next: 0 }; RR.set(S.i, r); } if (now >= r.next) { r.g = G[(Math.random() * G.length) | 0]; r.next = now + (16 + 520 * S.rr * S.rr) * (0.6 + Math.random() * 0.8); } glyph = r.g; }
+        else if (this._rr) this._rr.delete(S.i);
+        ctx.fillText(glyph, X, Y); ctx.strokeText(glyph, X, Y);
+      }
+    }
+    // 레거시 GUI — 장면 위에 직접, 앞선 왼쪽만 (오른쪽으로 생성)
+    (this._legs || []).forEach((e, k) => { const fr = LGF[k]; if (fr <= e.x0) return; ctx.save(); ctx.beginPath(); ctx.rect(0, 0, Math.min(this._w, fr), this._h); ctx.clip(); e.draw(ctx); ctx.restore(); });
+    // 레거시 텍스트 — 장면 위에 2배 크기로 직접. 랜덤 갱신 · 주기 증가(모션 글자는 보통 굵기), 다 바뀐 데이터 글자는 볼드
+    if (LEG.length) {
+      const FL = '500 ' + Math.round(this._cs * 0.86 * 2) + 'px GmarketSans, "Geist Mono", "Noto Sans KR", monospace', FLB = FL.replace(/^\d+ /, '700 ');
+      for (const [T, j, p0] of LEG) {
+        const out = T.st.dir === 'out', p = Math.min(1, Math.max(0, p0)), chr = T.cells[j], X = (T.c0 + j * T.big) * this._cw, Y = T.r0 * this._ch + (T.big * this._ch - Math.round(this._cs * 0.86 * 2)) / 2;
+        // 색 — 글자 색에 그 글자가 덮은 바탕 칸들의 색(평균)을 섞는다: 바탕의 색상 · 채도를 mix(0.3)만큼, 명도는 글자 색 그대로
+        let DC = this.segCol(T, j) || DATA; const bgc = [10, 14, 34];
+        if (T.mix) { let sr = 0, sg = 0, sb = 0, sn = 0; const c0 = T.c0 + j * T.big; for (let dy = 0; dy < T.big; dy++) for (let dx = 0; dx < T.big * 2; dx++) { const b = legBg.get((T.r0 + dy) * cols + c0 + dx); if (b && dx < T.big * (T.cells[j + 1] === '' ? 2 : 1)) { sr += b[0]; sg += b[1]; sb += b[2]; sn++; } }
+          if (sn) { const hb = this.rgb2hsv(sr / sn, sg / sn, sb / sn), hd = this.rgb2hsv(DC[0], DC[1], DC[2]); DC = this.lerpHsv(DC, this.hsv2rgb(hb[0], hb[1], hd[2]), T.mix); } }
+        let glyph = chr, c = DC, bold = true;
+        if (out || p < 1) {
+          const iv = 16 + 520 * p * p;
+          if (now >= T.next[j]) { T.g[j] = G[(Math.random() * G.length) | 0]; T.next[j] = now + iv * (0.6 + Math.random() * 0.8); }
+          if (!(out && p < 0.02)) { glyph = T.g[j]; bold = false; }
+          c = out ? this.lerpHsv(DC, bgc, p) : this.lerpHsv(bgc, DC, p);
+        }
+        const css = 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';
+        ctx.font = bold ? FLB : FL; ctx.fillStyle = css; ctx.fillText(glyph, X, Y);
+        if (bold) { ctx.strokeStyle = css; ctx.lineWidth = 0.8; ctx.strokeText(glyph, X, Y); }
+      }
+    }
+    ctx.font = FN;
+    // 구역 표시 (확인용)
+    if (this.props.showZones) {
+      ctx.save(); ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+      const Z = this._zones, cw = this._cw, chh = this._ch;
+      for (const [k, z] of Object.entries(Z)) { ctx.strokeStyle = k === 'ctrl' ? 'rgba(255,196,64,0.5)' : 'rgba(120,220,255,0.7)'; ctx.strokeRect(z.c0 * cw + 0.5, z.r0 * chh + 0.5, (z.c1 - z.c0) * cw, (z.r1 - z.r0) * chh); }
+      ctx.restore();
+    }
+  }
+
+  renderVals() {
+    return {
+      ...this.ctlProps(),   // 제어기 창 자리 6 — 노드 데스크톱 자식 컴포넌트마다
+      label: 'Terra global frame on the glyph field — ' + (this.props.path ?? '/계정/01/01·c'),
+      pmove: (e) => { if (!e || !this._cv) return; if (this._ctlDrag || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-minfly]'))) { this._mouse = null; return; }   // 창을 끄는 동안 · 창과 찾기 판 위에선 마우스 피드백 없음
+        const rc = this._cv.getBoundingClientRect(); this._mouse = { x: e.clientX - rc.left, y: e.clientY - rc.top }; },
+      pleave: () => { this._mouse = null; },
+      // 로고(TERRA) 누르기 — 내용 열기 / 닫기
+      tap: (e) => { if (!e || !this._cv || !this._zones || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-minfly]'))) return; const rc = this._cv.getBoundingClientRect(), x = e.clientX - rc.left, y = e.clientY - rc.top, Z = this._zones.logo, cw = this._cw, ch = this._ch;
+        if (x >= Z.c0 * cw - cw && x <= Z.c1 * cw + cw && y >= Z.r0 * ch - ch && y <= Z.r1 * ch + ch) this._tapLogo = true; else if (!this.ctlTap(x, y)) this.mapDown(x, y); },
+      pup: (e) => { if (!e || !this._cv || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-minfly]'))) return; const rc = this._cv.getBoundingClientRect(); this.mapUp(e.clientX - rc.left, e.clientY - rc.top); }
+    };
+  }
+}
+</script>
+</body>
+</html>

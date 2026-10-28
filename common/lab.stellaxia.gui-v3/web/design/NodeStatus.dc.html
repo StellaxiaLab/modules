@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 노드 상태</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+::selection{background:#e6eaf7;color:#070b1c}
+@font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
+body{margin:0;background:transparent}
+.ns{scrollbar-width:thin;scrollbar-color:rgba(70,160,108,.4) transparent;text-shadow:0 0 3px #02030a,0 0 6px rgba(2,3,10,.8)}
+.ns-row{display:flex;align-items:center;gap:8px;min-height:20px;white-space:nowrap}
+.ns-p{color:#78e89c;font-weight:700}
+.ns-k{color:#709c80}
+.ns-v{color:#d6f4de;font-weight:700}
+.ns-h{display:flex;align-items:center;gap:8px;margin:12px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:#78e89c}
+.ns-hl{display:inline-block;width:14px;height:1px;background:rgba(70,160,108,.85);flex:none}
+.ns-hr{flex:1;height:1px;background:rgba(70,160,108,.45)}
+.ns-grid{display:grid;grid-template-columns:52px minmax(0,1fr) 52px minmax(0,1fr);gap:2px 10px}
+.ns-bar{display:grid;grid-template-columns:40px minmax(0,1fr) 44px 150px;align-items:center;gap:10px;min-height:22px;white-space:nowrap}
+.ns-track{position:relative;height:9px;border:1px solid rgba(70,160,108,.6)}
+.ns-fill{position:absolute;left:1px;top:1px;bottom:1px;max-width:calc(100% - 2px);transition:width .6s ease}
+.ns-tick{position:absolute;top:-3px;bottom:-3px;width:1px;background:rgba(255,190,150,.55)}
+.ns-spark{color:#60e28c;letter-spacing:-1px;overflow:hidden}
+.ns-hc{display:grid;grid-template-columns:14px 92px minmax(0,1fr) 54px 50px;align-items:center;gap:10px;min-height:21px;white-space:nowrap}
+.ns-lat{position:relative;height:1px;background:rgba(70,160,108,.3)}
+.ns-lat span{position:absolute;left:0;top:-1px;height:3px;transition:width .6s ease}
+.ns-ev{display:grid;grid-template-columns:64px 40px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap;overflow:hidden}
+.ns-cur{display:inline-block;width:7px;height:13px;background:#96f0aa;animation:nsb 1.06s steps(1) infinite}
+@keyframes nsb{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.ns-cur{animation:none}.ns-fill,.ns-lat span{transition:none}}
+</style>
+</helmet>
+<div class="ns" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
+  <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>status</span><b class="ns-v">{{name}}</b><span class="ns-k">{{kind}}</span><span style="flex: 1;"></span><span style="color: {{stCol}};">● {{stText}}</span><span class="ns-k">{{uptime}}</span></div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>동작<span class="ns-hr"></span><span class="ns-k">{{tick}}</span></h3>
+  <div class="ns-grid">
+    <span class="ns-k">상태</span><span class="ns-v">{{proc}}</span><span class="ns-k">pid</span><span>{{pid}}</span>
+    <span class="ns-k">코어</span><span>{{core}}</span><span class="ns-k">재시작</span><span>{{restarts}}</span>
+    <span class="ns-k">역할</span><span>{{role}}</span><span class="ns-k">부모</span><span>{{parent}}</span>
+  </div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>자원<span class="ns-hr"></span></h3>
+  <sc-for list="{{bars}}" as="b" hint-placeholder-count="3">
+    <div class="ns-bar"><span class="ns-k">{{b.name}}</span><span class="ns-track"><span class="ns-fill" style="width: {{b.pct}}%; background: {{b.col}};"></span><span class="ns-tick" style="left: 75%;"></span></span><span class="ns-v" style="text-align: right;">{{b.pctT}}</span><span class="ns-k">{{b.note}}</span></div>
+  </sc-for>
+  <div class="ns-bar"><span class="ns-k">NET</span><span class="ns-spark">{{spark}}</span><span class="ns-v" style="text-align: right;">{{netIn}}</span><span class="ns-k">↑ {{netOut}}</span></div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>healthcheck<span class="ns-hr"></span><span class="ns-k">{{hcSum}}</span></h3>
+  <sc-for list="{{checks}}" as="c" hint-placeholder-count="4">
+    <div class="ns-hc"><span style="color: {{c.col}}; font-weight: 700;">{{c.mark}}</span><span>{{c.name}}</span><span class="ns-lat"><span style="width: {{c.w}}%; background: {{c.col}};"></span></span><span style="text-align: right;">{{c.ms}}</span><span style="color: {{c.col}};">{{c.state}}</span></div>
+  </sc-for>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>최근 이벤트<span class="ns-hr"></span></h3>
+  <sc-for list="{{events}}" as="ev" hint-placeholder-count="4">
+    <div class="ns-ev"><span class="ns-k">{{ev.t}}</span><span style="color: {{ev.col}};">{{ev.lv}}</span><span>{{ev.msg}}</span></div>
+  </sc-for>
+  <div class="ns-row" style="margin-top: 6px;"><span class="ns-p">&gt;</span><span class="ns-cur"></span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"02·b"},"nodeKind":{"editor":"enum","options":["계정","트리","리프","리소스"],"default":"리프"},"parentName":{"editor":"text","default":"02"},"winW":{"editor":null},"winH":{"editor":null},"$preview":{"width":560,"height":540}}'>
+// 상태 창 — 노드의 동작 상태 · 자원 · healthcheck · 최근 이벤트를 CLI 처럼. 바탕은 비친다(글자 장이 보임) — 구역 나눔 · 막대 · 지연 선은 레거시 선, 글자는 텍스트
+//   값은 1초마다 갱신(시안 — 노드 이름으로 정해지는 예시 값에 흔들림). 막대의 붉은 눈금 = 경고 기준 75%
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { t: 0 }; this._ev = []; this._net = []; }   // 그리기가 마운트보다 먼저 올 수 있다
+  componentDidMount() { this._live = true; this._iv = setInterval(() => { if (this._live) this.setState({ t: this.state.t + 1 }); }, 1000); }
+  componentWillUnmount() { this._live = false; clearInterval(this._iv); }
+  seed() { const nm = this.props.nodeName || 'node', k = this.props.nodeKind || 'leaf'; let h = 7; for (const ch of nm + k) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
+  rnd(i) { const x = Math.sin(this.seed() * 0.001 + i * 12.9898) * 43758.5453; return x - Math.floor(x); }
+  renderVals() {
+    const t = this.state.t, nm = this.props.nodeName || 'lab-ws-02', kind = this.props.nodeKind || '리프', r = (i) => this.rnd(i), wob = (i, a) => Math.sin(t * (0.3 + r(i) * 0.5) + r(i + 9) * 6) * a;
+    const res = kind === '리소스', bad = r(40) < 0.18;
+    const cpu = Math.max(2, Math.min(99, 20 + r(1) * 55 + wob(2, 8))), mem = Math.max(5, Math.min(99, 30 + r(3) * 50 + wob(4, 3))), disk = 15 + r(5) * 60;
+    const col = (p) => p > 85 ? '#ff9c8c' : p > 75 ? '#ffd27a' : '#60e28c';
+    const net = this._net; if (net.length === 0 || net.t !== t) { net.push(Math.max(0, 0.4 + r(6) + wob(7, 0.6))); if (net.length > 22) net.shift(); net.t = t; }
+    const S = '▁▂▃▄▅▆▇', mx = Math.max(0.1, ...net), spark = net.map((v) => S[Math.min(6, Math.round(v / mx * 6))]).join('');
+    const hcs = res ? [['link', 8], ['driver', 14], ['owner', 22]] : [['core', 18], ['storage', 9], ['relay', 60], ['agent', 12], ['svi', 30]];
+    const checks = hcs.map(([n, base], i) => { const ms = Math.max(1, Math.round(base * (0.7 + r(10 + i) * 0.8) + wob(11 + i, base * 0.2) + (bad && i === 2 ? 260 : 0))), st = ms > 250 ? 'slow' : 'ok';
+      return { name: n, ms: ms + 'ms', w: Math.min(100, ms / 3), state: st, mark: st === 'ok' ? '✓' : '!', col: st === 'ok' ? '#60e28c' : '#ffd27a' }; });
+    const nOk = checks.filter((c) => c.state === 'ok').length;
+    if (!this._ev.length) { const now = Date.now(); for (let k = 5; k > 0; k--) this._ev.push({ at: now - k * 47000, lv: 'info', msg: ['heartbeat ok', 'config synced', 'svi lease renewed', 'job finished · backup', 'peer connected'][k % 5] }); }
+    if (t > 0 && t % 9 === 0 && this._evT !== t) { this._evT = t; this._ev.push({ at: Date.now(), lv: bad && t % 18 === 0 ? 'warn' : 'info', msg: bad && t % 18 === 0 ? 'relay latency ' + checks[2 % checks.length].ms : 'heartbeat ok' }); if (this._ev.length > 8) this._ev.shift(); }
+    const tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
+    const up = Math.floor(r(20) * 30) * 86400 + Math.floor(r(21) * 86400) + t;
+    return {
+      rootH: this.props.winH ? this.props.winH + 'px' : '100vh',
+      name: nm, kind, stText: bad ? '주의' : '온라인', stCol: bad ? '#ffd27a' : '#60e28c', uptime: Math.floor(up / 86400) + 'd ' + Math.floor(up % 86400 / 3600) + 'h ' + Math.floor(up % 3600 / 60) + 'm', tick: '1s',
+      proc: res ? 'bound' : 'running', pid: res ? '—' : String(1000 + Math.floor(r(22) * 8000)), core: res ? '—' : '1.7.' + Math.floor(r(23) * 4), restarts: String(Math.floor(r(24) * 3)),
+      role: { '계정': 'account', '트리': 'tree', '리프': 'leaf', '리소스': 'resource' }[kind] || kind, parent: this.props.parentName || '—',
+      bars: (res ? [['USE', cpu, '사용 중 · 1 연결'], ['BUF', mem, '버퍼']] : [['CPU', cpu, 'load ' + (cpu / 50).toFixed(2) + ' ' + (cpu / 55).toFixed(2)], ['MEM', mem, (mem / 100 * 8).toFixed(1) + ' / 8.0 GB'], ['DISK', disk, Math.round(disk * 2) + ' / 200 GB']])
+        .map(([n, p, note]) => ({ name: n, pct: p.toFixed(1), pctT: Math.round(p) + '%', col: col(p), note })),
+      spark, netIn: (net[net.length - 1] || 0).toFixed(1) + ' MB/s', netOut: (0.1 + r(8) * 0.6 + wob(9, 0.1)).toFixed(1) + ' MB/s',
+      checks, hcSum: nOk + ' / ' + checks.length + ' ok',
+      events: this._ev.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? '#ffd27a' : '#709c80' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

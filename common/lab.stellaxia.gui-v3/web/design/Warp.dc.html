@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 워프 전환</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;700&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#040614;color:#e6eaf7}
+::selection{background:#e6eaf7;color:#070b1c}
+:root{--ease-out:cubic-bezier(0.23,1,0.32,1)}
+.wb{flex:1;font:inherit;cursor:pointer;min-height:36px;padding:0 14px;border-radius:7px;font-size:13px;color:#e6eaf7;background:transparent;border:1px solid #2c3558;transition:transform 160ms var(--ease-out),border-color 150ms ease,color 150ms ease,background-color 150ms ease}
+.wb.sel{color:#040614;background:#e6eaf7;border-color:#e6eaf7}
+.wb:active{transform:scale(0.97)}
+.wb:focus-visible{outline:1px solid #e6eaf7;outline-offset:2px}
+@media (hover:hover) and (pointer:fine){.wb:not(.sel):hover{border-color:#56628f}}
+@font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; background: radial-gradient(42% 70% at 62% 58%, rgba(150, 110, 200, 0.08), transparent 70%), linear-gradient(118deg, transparent 22%, rgba(110, 130, 220, 0.05) 42%, rgba(170, 120, 210, 0.06) 56%, rgba(230, 150, 150, 0.04) 70%, transparent 84%), linear-gradient(178deg, #060a1d 0%, #040614 46%, #020308 100%); font-family: GmarketSans, Geist, 'Noto Sans KR', system-ui, sans-serif; color: #e6eaf7; overflow: hidden">
+<canvas data-field="warp" role="img" aria-label="{{label}}" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none"></canvas>
+<section aria-label="워프 전환" style="position: absolute; left: 32px; bottom: 32px; z-index: 3; width: 280px; box-sizing: border-box; padding: 16px; border-radius: 10px; background: #040614; border: 1px solid #1c2442; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h1 style="margin: 0; font-size: 14px; font-weight: 600">워프 전환</h1>
+<span aria-live="polite" style="font-family: GmarketSans, 'Geist Mono', monospace; font-size: 11.5px; color: #7682ab">{{phase}}</span>
+</div>
+<div role="group" aria-label="전환" style="display: flex; gap: 6px">
+<button class="wb {{goCls}}" type="button" aria-pressed="{{goOn}}" onClick="{{go}}">이동</button>
+<button class="wb {{offCls}}" type="button" aria-pressed="{{offOn}}" onClick="{{off}}">해제</button>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"enterMs":{"editor":"int","min":600,"max":5000,"default":2200,"unit":"ms","section":"워프"},"exitMs":{"editor":"int","min":400,"max":4000,"default":1600,"unit":"ms","section":"워프"},"stars":{"editor":"int","min":60,"max":2400,"default":840,"section":"워프"},"trail":{"editor":"range","min":0.1,"max":1.2,"step":0.05,"default":0.6,"section":"워프"},"lines":{"editor":"boolean","default":true,"section":"워프"},"zoom":{"editor":"boolean","default":true,"section":"워프"},"holeDim":{"editor":"range","min":0.1,"max":0.9,"step":0.05,"default":0.6,"section":"워프"},"palette":{"editor":"enum","options":["은하수","성운","단색"],"default":"은하수","section":"글자 장"},"speed":{"editor":"range","min":0,"max":2,"step":0.1,"default":1,"section":"글자 장"},"cell":{"editor":"int","min":11,"max":24,"default":14,"unit":"px","section":"글자 장"},"dim":{"editor":"range","min":0.3,"max":1,"step":0.05,"default":1,"section":"글자 장"},"motion":{"editor":"boolean","default":true,"section":"글자 장"},"$preview":{"width":1440,"height":900}}'>
+// 워프 전환 — 화면(씬) 사이를 건너가는 초공간 이동. 레퍼런스: 가운데에서 바깥으로 뻗는 별빛 줄기
+//   진행 e (0 → 1, 이동 enterMs · 해제 exitMs 동안 선형) → 속도 v = e² : 들어갈 땐 천천히 출발해 가속, 나올 땐 크게 꺾였다가 천천히 멈춤
+//   1 어두운 화면 — e 0 → 0.2 동안 글자 장 전체가 어두운 화면(명도 × holeDim)으로, 가운데는 더 어둡게(소실점)
+//   2 별 — 3D 점(x, y, z)을 가운데로 투영. 처음엔 글자 하나(머리)로 발광 생성 → 속도가 붙으면 꼬리가 생긴다
+//      꼬리 = 칸 줄: 지나는 칸을 방향 글자(- | / \)로 바꾸고 별 색을 꼬리 → 머리로 밝게 투영. 머리 칸은 랜덤 갱신, 볼드
+//      빠를 때는 꼬리 위에 레거시 가는 선(별 색, 꼬리 쪽 투명)을 겹친다 (lines)
+//   3 글자 장 줌 — 성운 무늬가 가운데에서 바깥으로 흘러 나간다 (두 배율 겹쳐 끊김 없이). 바뀌는 글자도 속도만큼 잦아진다
+//   해제 — 거꾸로: 속도가 줄며 꼬리가 머리로 줄어들고, 별은 사라지고, 어두운 화면이 원래 밝기로 돌아온다
+class Component extends DCLogic {
+  componentDidMount() {
+    this._live = true; this._boot = performance.now();
+    this._e = 0; this._tgt = 0; this._Z = 0;
+    this.state = { phase: '대기' };
+    this.startField('warp');
+  }
+  componentWillUnmount() { this._live = false; this.stopField(); }
+
+  // ───── 글자 장 ─────
+  PALETTES() {
+    return {
+      '은하수': ['#9fb8ff', '#8c9cf5', '#a58cf0', '#c88fe0', '#e39ac9', '#f0a8a0'],
+      '성운': ['#dfe8ff', '#b9cdfa', '#93aef0', '#7d94d8', '#c7d6ff'],
+      '단색': ['#e6eaf7', '#c3cae3']
+    };
+  }
+  startField(id) {
+    const find = () => {
+      if (!this._live) return;
+      const cv = document.querySelector('canvas[data-field="' + id + '"]');
+      if (!cv) { this._findT = requestAnimationFrame(find); return; }
+      this._cv = cv; this._ctx = cv.getContext('2d');
+      this._glyphs = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789+-*/=<>:;.#%&|~^';
+      this._last = 0;
+      const p = new Uint8Array(256); for (let i = 0; i < 256; i++) p[i] = i;
+      for (let i = 255; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0, k = p[i]; p[i] = p[j]; p[j] = k; }
+      this._perm = new Uint8Array(512); for (let i = 0; i < 512; i++) this._perm[i] = p[i & 255];
+      this._ro = new ResizeObserver(() => this.sizeField()); this._ro.observe(cv);
+      if (window.IntersectionObserver) { this._io = new IntersectionObserver((es) => { this._onScreen = es[es.length - 1].isIntersecting; }); this._io.observe(cv); }
+      this.sizeField();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (this._live) this.sizeField(); });
+      if (document.fonts && document.fonts.load) { document.fonts.load('700 12px "Geist Mono"').catch(() => {}); if (document.fonts && document.fonts.load) Promise.all(['500', '700'].map((w) => document.fonts.load(w + ' 12px GmarketSans', '가'))).then(() => { if (this._live) { this._fullRedraw = true; this.sizeField(); } }).catch(() => {}); document.fonts.load('700 40px Geist').then(() => { if (this._live) this.sizeField(); }).catch(() => {}); }
+      const loop = (now) => { if (!this._live) return; if (this._onScreen !== false && !document.hidden) this.drawField(now); else this._prev = now; this._raf = requestAnimationFrame(loop); };
+      this._raf = requestAnimationFrame(loop);
+    };
+    find();
+  }
+  stopField() { cancelAnimationFrame(this._raf); cancelAnimationFrame(this._findT); if (this._ro) this._ro.disconnect(); if (this._io) this._io.disconnect(); }
+  sizeField() {
+    const cv = this._cv; if (!cv) return;
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cs = Math.max(11, Math.min(24, this.props.cell ?? 14));
+    this._cw = Math.round(cs * 0.66); this._ch = Math.round(cs * 1.2); this._cs = cs;
+    this._cols = Math.ceil(w / this._cw) + 1; this._rows = Math.ceil(h / this._ch) + 1;
+    const n = this._cols * this._rows, G = this._glyphs.length;
+    this._g = new Uint8Array(n); for (let i = 0; i < n; i++) this._g[i] = (Math.random() * G) | 0;
+    this._star = new Float32Array(n); this._ph = new Float32Array(n); for (let i = 0; i < n; i++) if (Math.random() < 0.014 * this._cw * this._ch / 180) { this._star[i] = 0.2 + Math.random(); this._ph[i] = this._star[i] * 9.0; }
+    this._bw = new Float32Array(n);
+    { const ax = w * 0.2, ay = -h * 0.05, bx = w * 0.84, by = h * 1.05, vx = bx - ax, vy = by - ay, L = Math.hypot(vx, vy), sp = Math.max(w, h) * 0.17;
+      for (let r = 0; r < this._rows; r++) for (let c = 0; c < this._cols; c++) { const px = c * this._cw, py = r * this._ch, d = Math.abs((px - ax) * vy - (py - ay) * vx) / L; this._bw[r * this._cols + c] = Math.exp(-(d / sp) * (d / sp)); } }
+    this._heat = new Float32Array(n); this._hc = new Uint8Array(n); this._hd = new Uint8Array(n); this._rg = new Uint8Array(n); this._rn = new Float32Array(n);
+    this._w = w; this._h = h;
+    this._S = []; this._seeded = false; this._hg = new Uint8Array(n);
+    this.drawField(performance.now(), true);
+  }
+
+  // ───── 별 ─────
+  // 투영: 화면 = 가운데 + (x, y) / z · F. z 1(멀리) → ZMIN(눈앞). 처음 깔 때 z 를 고르게 → 화면 전체에 고르게 흩어짐
+  F() { return Math.min(this._w, this._h) * 0.5; }
+  newStar(s, zInit) {
+    const F = this.F(), ax = this._w / 2 / F * 1.15, ay = this._h / 2 / F * 1.15;
+    let x, y; do { x = (Math.random() * 2 - 1) * ax; y = (Math.random() * 2 - 1) * ay; } while (Math.hypot(x, y) < 0.04);
+    s.x = x; s.y = y; s.z = zInit != null ? zInit : 1; s.c = (Math.random() * 6) | 0; s.b = 0.55 + Math.random() * 0.45; s.ph = Math.random();
+    return s;
+  }
+  // 진입 시작 — 새 별을 한꺼번에 뿌리지 않고, 글자 장에 이미 떠 있던 반짝이는 별(칸)을 그 자리 그대로 3D 별로 바꾼다 (글자도 그 칸 글자)
+  seedFromField() {
+    const F = this.F(), cx = this._w / 2, cy = this._h / 2, cols = this._cols; this._S = [];
+    for (let i = 0; i < this._star.length; i++) { if (!this._star[i]) continue;
+      const px = (i % cols) * this._cw + this._cw / 2 - cx, py = ((i / cols) | 0) * this._ch + this._ch / 2 - cy; if (Math.abs(px) > this._w / 2 || Math.abs(py) > this._h / 2 || Math.hypot(px, py) < 6) continue;
+      const z = 0.55 + Math.random() * 0.45; const st = this._star[i], tw = this._twNow != null ? this.twinkle(i, this._twNow) : 0.75;
+      this._S.push({ x: px / F * z, y: py / F * z, z, c: (Math.random() * 6) | 0, b: 0.6 + st * 0.3, lv0: 0.3 + tw * 0.5, g: this._g[i], a: 1, on: true }); }
+    this._nField = this._S.length; this._seeded = true;
+  }
+  // 글자 장 별 반짝임 0..1 — 칸마다 위상 _ph (워프에서 돌아온 별은 멈춘 순간의 밝기에서 이어지도록 위상을 맞춘다)
+  twinkle(i, now) { return this._moving === false ? 0.75 : 0.5 + 0.5 * Math.sin(now / 1000 * 1.4 * this._star[i] + this._ph[i]); }
+  // 해제 끝 — 멈춘 워프 별을 그 자리 · 그 글자 · 그 밝기 그대로 글자 장 별로 되돌린다 (지우고 다시 놓지 않음)
+  bakeToField(now) {
+    const cols = this._cols, rows = this._rows; this._star.fill(0);
+    for (const s of this._S) { if (!s.on || (s.f ?? 1) < 0.5) continue;
+      const c = Math.floor((this._w / 2 + s.x / s.z * this.F()) / this._cw), r = Math.floor((this._h / 2 + s.y / s.z * this.F()) / this._ch); if (c < 0 || r < 0 || c >= cols || r >= rows) continue;
+      const i = r * cols + c, st = 0.2 + Math.random(), tw = Math.min(1, Math.max(0, (s.lv0 - 0.3) / 0.5));
+      this._star[i] = st; this._g[i] = s.g; this._ph[i] = Math.asin(tw * 2 - 1) - now / 1000 * 1.4 * st; }
+  }
+  // 반지름 속도 배율 — 화면 가운데는 느리게, 가장자리로 갈수록 점점 빠르게 (rn = 화면 중심에서의 거리 / 화면 반대각선)
+  radK(s) { const rn = Math.min(1.2, Math.hypot(s.x / s.z * this.F(), s.y / s.z * this.F()) / Math.hypot(this._w / 2, this._h / 2)); return 0.2 + 1.45 * Math.pow(rn, 1.4); }
+  // 지금 떠 있어야 할 별 수 — 기존 별 수에서 진행할수록 stars 까지 늘어난다 (e 0.1 → 0.85)
+  wantN() { const N = Math.max(this._nField || 0, this.props.stars ?? 840), k = Math.min(1, Math.max(0, (this._v || 0) / 0.7)); return Math.round((this._nField || 0) + (N - (this._nField || 0)) * k * k); }
+  // 별 색 6 — 푸른 흰빛 위주 (레퍼런스), 글자 장 팔레트를 조금 섞는다
+  //   진행할수록 청색으로 — 처음엔 글자 장 별빛(흰빛 + 팔레트), e 0.1 → 0.9 동안 HSV 로 짙은 청색 6 으로
+  //   처음엔 글자 장 별과 같은 흰빛(236,241,255) 그대로 — 속도 v 가 0.04 → 0.64 로 오르는 동안 HSV 로 짙은 청색 6 으로
+  STARCOL(v) { const W = [236, 241, 255], blue = [[120, 162, 255], [86, 128, 255], [150, 188, 255], [100, 146, 250], [176, 206, 255], [70, 112, 240]], k = Math.min(1, Math.max(0, (v - 0.04) / 0.6)), s = k * k * (3 - 2 * k);
+    return blue.map((b) => (s > 0 ? this.lerpHsv(W, b, s) : W)); }
+
+  // ───── 진행 ─────
+  setTarget(t) { this._tgt = t; }
+  step(now, dt) {
+    const eIn = Math.max(200, this.props.enterMs ?? 2200), eOut = Math.max(200, this.props.exitMs ?? 1600);
+    if (this._tgt > this._e) this._e = Math.min(1, this._e + dt / eIn); else if (this._tgt < this._e) this._e = Math.max(0, this._e - dt / eOut);
+    const e = this._e, ph = e <= 0 ? '대기' : e >= 1 ? '워프' : this._tgt ? '진입 ' + Math.round(e * 100) + '%' : '해제 ' + Math.round(e * 100) + '%';
+    const phS = ph.replace(/ \d+%$/, ''); if (phS !== this._phS) { this._phS = phS; this.setState({ phase: phS }); }
+    const v = Math.pow(e, 2.2); this._v = v;
+    if (e <= 0) { if (this._seeded) this.bakeToField(now); this._seeded = false; return; }
+    this._twNow = now;
+    if (!this._seeded) this.seedFromField();
+    // 별 수 — 늘어날 땐 멀리(z ≈ 1)에서 하나씩 나타나고(0.4초에 걸쳐 밝아짐), 줄어들 땐 눈앞을 지난 별부터 다시 나오지 않는다
+    const want = this.wantN(); let act = 0; for (const s of this._S) if (s.on) act++;
+    for (let k = act; k < want; k++) { const s = this._S.find((q) => !q.on) || (this._S.push({}), this._S[this._S.length - 1]); this.newStar(s, 0.7 + Math.random() * 0.3); s.a = 0; s.f = 1; s.on = true; s.lv0 = 0.3 + Math.random() * 0.5; s.g = (Math.random() * this._glyphs.length) | 0; }
+    for (const s of this._S) if (s.on && s.a < 1) s.a = Math.min(1, s.a + dt / 400);
+    // 해제 중 남는 별 — 원래 수(want)를 넘는 별은 그 자리에서 0.35초에 걸쳐 흐려져 사라진다 (나중에 생긴 별부터)
+    if (this._tgt === 0) { let k = 0; for (const s of this._S) { if (!s.on) continue; if (k++ >= want) { s.f = (s.f ?? 1) - dt / 350; if (s.f <= 0) { s.on = false; s.f = 1; } } else if ((s.f ?? 1) < 1) s.f = Math.min(1, s.f + dt / 350); } }
+    // 별 앞으로 — 최고 속도에서 z 1 → 0.05 를 약 0.9초에. 눈앞을 지났거나 화면 밖이면 멀리서 다시
+    const F = this.F(), dz = v * dt * 0.0026;   // 최고 속도 — z 1 → 0.05 를 약 0.45초에
+    act = 0; for (const s of this._S) if (s.on) act++;
+    for (const s of this._S) { if (!s.on) continue; s.z -= dz * this.radK(s); const px = s.x / s.z * F, py = s.y / s.z * F;
+      if (s.z < 0.04 || Math.abs(px) > this._w / 2 + 40 || Math.abs(py) > this._h / 2 + 40) { if (act > want) { s.on = false; act--; } else { this.newStar(s, 0.85 + Math.random() * 0.15); s.a = 0; s.f = 1; s.lv0 = 0.3 + Math.random() * 0.5; s.g = (Math.random() * this._glyphs.length) | 0; } } }
+    this._Z += (this.props.zoom ?? true) ? v * dt * 0.0009 : 0;
+  }
+
+  // ───── 그리기 ─────
+  hex(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  rgb2hsv(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let h = 0; if (d > 0) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, mx === 0 ? 0 : d / mx, mx]; }
+  hsv2rgb(h, s, v) { const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c; const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x]; return [(r + m) * 255, (g + m) * 255, (b + m) * 255]; }
+  lerpHsv(a, b, p) {
+    const A = this.rgb2hsv(a[0], a[1], a[2]), B = this.rgb2hsv(b[0], b[1], b[2]);
+    if (A[1] < 0.02) A[0] = B[0]; if (B[1] < 0.02) B[0] = A[0];
+    let dh = B[0] - A[0]; if (dh > 180) dh -= 360; if (dh < -180) dh += 360;
+    return this.hsv2rgb((A[0] + dh * p + 360) % 360, A[1] + (B[1] - A[1]) * p, A[2] + (B[2] - A[2]) * p);
+  }  drawField(now, force) {
+    const ctx = this._ctx; if (!ctx || !this._S) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const moving = (this.props.motion ?? true) && !reduce;
+    if (!force && now - this._last < 33) return;
+    const dt = Math.min(100, now - (this._last || now)); this._last = now;
+    if ((this.props.cell ?? 14) !== this._cs) { this.sizeField(); return; }
+    this.step(now, reduce ? 1e6 : dt);
+    const P = (this.PALETTES()[this.props.palette] || this.PALETTES()['은하수']).map((h) => this.hex(h));
+    const NP = P.length, cols = this._cols, rows = this._rows, G = this._glyphs, g = this._g, DIM = this.props.dim ?? 1, cw = this._cw, ch = this._ch;
+    const e = this._e, v = this._v, HD = this.props.holeDim ?? 0.6, cl = (x) => Math.min(1, Math.max(0, x));
+    const speed = moving ? (this.props.speed ?? 1) : 0;
+    this._tt = (this._tt || 0) + (moving ? (now - (this._prev || now)) / 1000 * speed : 0); this._prev = now;
+    const t = this._tt;
+    // 바뀌는 글자 — 속도만큼 잦아진다
+    if (moving) { const k = Math.ceil(cols * rows * 0.006 * (1 + v * 5)); for (let i = 0; i < k; i++) g[(Math.random() * g.length) | 0] = (Math.random() * G.length) | 0; }
+    ctx.clearRect(0, 0, this._w, this._h);
+    const FN = '500 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", monospace', FB = FN.replace(/^\d+ /, '700 ');
+    ctx.font = FN; ctx.textBaseline = 'top';
+    const P2 = this._perm;
+    const nz = (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, a0 = xi & 255, b0 = yi & 255;
+      const uu = xf * xf * (3 - 2 * xf), vv = yf * yf * (3 - 2 * yf);
+      const A = P2[P2[a0] + b0], B = P2[P2[a0 + 1] + b0], C = P2[P2[a0] + b0 + 1], D = P2[P2[a0 + 1] + b0 + 1];
+      return (A + (B - A) * uu + (C - A) * vv + (A - B - C + D) * uu * vv) / 255;
+    };
+    const styleOf = (key) => {
+      const parts = key.split('_'), q = +parts[1];
+      if (parts[0][0] === 'b') { const f = +parts[0].slice(1) / 7, inB = q === 1; return [15 - 7 * f + (inB ? 5 : 0), 21 - 11 * f + (inB ? 4 : 0), 46 - 26 * f + (inB ? 10 : 0), 1]; }
+      const c = parts[0] === 's' ? [236, 241, 255] : P[+parts[0]];
+      const a = q < 2 ? 0.16 + q * 0.06 : 0.12 + q * 0.12, mix = q < 3 ? 0.35 : 1;
+      return [c[0] * mix + 74 * (1 - mix), c[1] * mix + 90 * (1 - mix), c[2] * mix + 140 * (1 - mix), a];
+    };
+    // ── 별 꼬리를 칸에 찍는다: heat(밝기) · 색 번호 · 방향 글자 · 머리 표시
+    const heat = this._heat, hc = this._hc, hd = this._hd; heat.fill(0);
+    const F = this.F(), cx = this._w / 2, cy = this._h / 2, SC = this.STARCOL(v), LN = [], hg = this._hg;
+    this._moving = moving;
+    const TR = (this.props.trail ?? 0.6) * v;
+    if (e > 0) for (const s of this._S) { if (!s.on) continue;
+      const hx = cx + s.x / s.z * F, hy = cy + s.y / s.z * F, zt = Math.min(1.3, s.z + TR * (0.6 + s.z) * this.radK(s)), tx = cx + s.x / zt * F, ty = cy + s.y / zt * F;
+      const born = s.a < 1 ? Math.sin(s.a * Math.PI) : 0, dep = cl(0.45 + (1 - s.z) * 0.8) * s.b, kk = s.lv0 != null ? cl(v / 0.25) : 1, bright = (s.lv0 != null ? s.lv0 + (dep - s.lv0) * kk : dep) * s.a * (s.f ?? 1) * (1 - 0.45 * cl(v * 2) * (1 - cl(this.radK(s) - 0.2)));   // 느린 가운데 별은 속도가 붙을수록 흐리게 (몰려 보이지 않게)   // 새 별은 발광 생성 — 나타날 때 그 색으로 잠깐 빛남
+      if (bright < 0.04) continue;
+      // 방향 글자 — 칸 모양(가로 0.66 : 세로 1.2)을 고려한 화면 각
+      let a = Math.atan2(hy - ty, hx - tx) * 180 / Math.PI; if (a < 0) a += 180;
+      const dch = a < 22.5 || a >= 157.5 ? 0 : a < 67.5 ? 2 : a < 112.5 ? 1 : 3;   // 0 '-' · 1 '|' · 2 '\' · 3 '/'
+      const c0 = tx / cw, r0 = ty / ch, c1 = hx / cw, r1 = hy / ch, n = Math.max(1, Math.ceil(Math.max(Math.abs(c1 - c0), Math.abs(r1 - r0))));
+      for (let k = 0; k <= n; k++) { const f = k / n, c = Math.floor(c0 + (c1 - c0) * f), r = Math.floor(r0 + (r1 - r0) * f);
+        if (c < 0 || r < 0 || c >= cols || r >= rows) continue;
+        const i = r * cols + c, hv = bright * (n === 1 ? 1 : f ** 1.3) + (k === n ? born * 0.5 : 0);
+        if (hv > heat[i] || (k === n && hv >= heat[i] * 0.98)) { heat[i] = hv; hc[i] = s.c; hd[i] = k === n ? 4 : dch; hg[i] = s.g; } }
+      if ((this.props.lines ?? true) && v > 0.2 && n > 2) LN.push([tx, ty, hx, hy, s.c, bright * cl((v - 0.2) / 0.5)]);
+    }
+    // ── 글자 장 (줌: 두 배율을 겹쳐 가운데에서 바깥으로 흘러 나감)
+    const zf = this._Z - Math.floor(this._Z), sA = Math.pow(2, -zf), sB = sA * 2, wA = 1 - zf, gcx = cols * this._cw / 15 / 2, gcy = rows * this._ch / 15 / 2, ZOOM = this._Z > 0;
+    const buckets = new Map(), special = [];
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x, W = this._bw[i];
+      let n1, n;
+      const layer = (s) => { const gx = gcx + (x * this._cw / 15 - gcx) * s, gy = gcy + (y * this._ch / 15 - gcy) * s, a = nz(gx * 0.045 - t * 0.09, gy * 0.045 + t * 0.012), b = nz(gx * 0.11 - t * 0.17 + 31.7, gy * 0.11 - t * 0.02 + 12.3); return [a, a * 0.62 + b * 0.38]; };
+      if (ZOOM) { const A = layer(sA), B = layer(sB); n1 = A[0] * wA + B[0] * (1 - wA); n = A[1] * wA + B[1] * (1 - wA); } else { const A = layer(1); n1 = A[0]; n = A[1]; }
+      const cloud = Math.max(0, n - 0.42) / 0.58, dust = cloud * cloud;
+      const u = Math.min(0.999, Math.max(0, y / rows * 0.85 + (n1 - 0.5) * 0.3));
+      let lv = (0.05 + W * 0.13 + dust * (0.18 + 0.62 * W)) * DIM, star = false;
+      const st = this._star[i];   // 글자 장 별 — 진입 중엔 워프 별이 되어 여기선 꺼진다
+      if (st && e <= 0) { const tw = this.twinkle(i, now), sl = 0.36 + tw * 0.58; if (sl > lv) { lv = sl; star = true; } }
+      const q = Math.min(7, (lv * 8) | 0), pi = Math.min(NP - 1, (u * NP) | 0);
+      const key = star ? 's_' + q : q === 0 ? 'b' + Math.min(7, (y / rows * 8) | 0) + '_' + (W > 0.45 ? 1 : 0) : pi + '_' + q;
+      if (heat[i] > 0.16) { special.push(i); continue; }
+      let b = buckets.get(key); if (!b) { b = []; buckets.set(key, b); } b.push(i);
+    }
+    buckets.forEach((list, key) => {
+      const s = styleOf(key);
+      ctx.fillStyle = 'rgba(' + Math.round(s[0]) + ',' + Math.round(s[1]) + ',' + Math.round(s[2]) + ',' + s[3].toFixed(3) + ')';
+      for (let k = 0; k < list.length; k++) { const i = list[k]; ctx.fillText(G[g[i]], (i % cols) * cw, ((i / cols) | 0) * ch); }
+    });
+    // ── 어두운 화면 — 보이는 명도 × holeDim (검은 막 = 1 − holeDim), 가운데 소실점은 더 어둡게
+    const dk = cl(e / 0.2);
+    if (dk > 0) {
+      const R = Math.hypot(cx, cy), gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, R), base = (1 - HD) * dk, core = Math.min(0.92, base + 0.55 * dk * cl(v * 1.4 + 0.3));
+      gr.addColorStop(0, 'rgba(1,2,8,' + core.toFixed(3) + ')'); gr.addColorStop(0.14, 'rgba(1,2,8,' + (base + (core - base) * 0.35).toFixed(3) + ')'); gr.addColorStop(0.4, 'rgba(1,2,8,' + base.toFixed(3) + ')'); gr.addColorStop(1, 'rgba(1,2,8,' + base.toFixed(3) + ')');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, this._w, this._h);
+    }
+    // ── 레거시 가는 선 — 꼬리 위에 별 색으로 (꼬리 쪽 투명). 칸 글자 아래에 깔아 글자가 선을 타고 흐르는 모양
+    if (LN.length) { ctx.lineWidth = 1.3; ctx.lineCap = 'round';
+      for (const [x0, y0, x1, y1, c, a] of LN) { if (a < 0.03) continue; const C = SC[c], gl = ctx.createLinearGradient(x0, y0, x1, y1), rgb = Math.round(C[0]) + ',' + Math.round(C[1]) + ',' + Math.round(C[2]);
+        gl.addColorStop(0, 'rgba(' + rgb + ',0)'); gl.addColorStop(1, 'rgba(' + rgb + ',' + Math.min(1, a * 1.1).toFixed(3) + ')'); ctx.strokeStyle = gl; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); } }
+    // ── 꼬리 칸 — 별 색을 어두운 바탕에서 heat 만큼 (HSV), 색 × 단계 8 로 묶어 그린다. 머리 칸은 랜덤 갱신 · 볼드
+    const DCH = ['-', '|', '\\', '/'], dkB = 1 - (1 - HD) * dk, BG = [[5, 8, 27].map((c) => c * dkB), [3, 5, 16].map((c) => c * dkB)], groups = new Map(), rg = this._rg, rn = this._rn;
+    for (const i of special) {
+      const lvl = Math.min(7, (heat[i] * 8) | 0), head = hd[i] === 4, key = (hc[i] * 16 + lvl * 2 + (v > 0.08 && (head || lvl >= 6) ? 1 : 0)) * 2 + ((i / cols | 0) / rows < 0.46 ? 0 : 1);
+      let a = groups.get(key); if (!a) { a = []; groups.set(key, a); } a.push(i);
+    }
+    groups.forEach((list, key) => {
+      const bg = BG[key & 1], k2 = key >> 1, c = SC[k2 >> 4], lvl = (k2 >> 1) & 7, bold = k2 & 1;
+      const al = Math.min(1, 0.12 + lvl * 0.12), col = [bg[0] + (c[0] - bg[0]) * al, bg[1] + (c[1] - bg[1]) * al, bg[2] + (c[2] - bg[2]) * al], css = 'rgb(' + Math.round(col[0]) + ',' + Math.round(col[1]) + ',' + Math.round(col[2]) + ')';   // 글자 장 별과 같은 식 — 색 × 알파(0.12 + 단계 × 0.12)
+      ctx.font = bold ? FB : FN; ctx.fillStyle = css; ctx.strokeStyle = css; ctx.lineWidth = 0.6;
+      for (const i of list) { const X = (i % cols) * cw, Y = ((i / cols) | 0) * ch;
+        let gl;
+        if (hd[i] === 4 && v < 0.06) gl = G[hg[i]];   // 출발 직후 — 원래 칸 글자 그대로
+        else if (hd[i] === 4) { if (now >= rn[i]) { rg[i] = (Math.random() * G.length) | 0; rn[i] = now + (16 + 520 * (1 - v) * (1 - v)) * (0.6 + Math.random() * 0.8); } gl = G[rg[i]]; }   // 머리 — 랜덤 갱신 (빠를수록 잦게)
+        else gl = DCH[hd[i]];
+        ctx.fillText(gl, X, Y); if (bold) ctx.strokeText(gl, X, Y); }
+    });
+    ctx.font = FN;
+  }
+
+  renderVals() {
+    const S = this.state || {}, on = this._tgt === 1;
+    return {
+      label: '글자 장 워프 전환 — ' + (S.phase || '대기'),
+      phase: S.phase || '대기',
+      goCls: on ? 'sel' : '', goOn: on ? 'true' : 'false', offCls: on ? '' : 'sel', offOn: on ? 'false' : 'true',
+      go: () => { this.setTarget(1); this.setState({ tgt: 1 }); },
+      off: () => { this.setTarget(0); this.setState({ tgt: 0 }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
