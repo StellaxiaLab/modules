@@ -7,7 +7,7 @@ doc_type: "design"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.1.0"
+version: "0.2.0"
 last_updated: "2026-10-29"
 language: "ko-KR"
 based_on: "Terra main 8192add · modules main 459f3af — 매니페스트 스키마 · 모듈 호스트 · 참조 모듈(io.terra.sample.window · io.terra.agent · io.terra.nodetalk)을 읽음. 빌드 · 실행 · 시험은 하지 않음"
@@ -47,7 +47,7 @@ v3 백엔드가 맡을 일은 하나로 좁힌다. **노드에 붙는 GUI 데이
 | 모듈 env 설정은 호스트 아래에서 전달되지 않는다(허용 목록뿐). 모듈 설정은 매니페스트 `configuration.schema`로 받는다 | `terra-module-host/process.go:98-110` |
 
 **확인 못 한 것:** `scene` kind 모듈에 프로세스 진입점을 함께 둔 선례가 이 두 저장소에는 없다. 프로세스와 GUI를 함께 가진 모듈은 전부 `service` kind다(agent · nodetalk · fleet · treebench · sample.window).
-그래서 1차는 **kind를 `service`로 바꾸고 Scene 기여를 유지**하는 쪽을 권한다(§7 Q-B1).
+그래서 1차는 **kind를 `service`로 바꾸고 `entrypoints.scene`은 그대로 둔다**(§7 Q-B1) — 적용함.
 
 ## 3. 무엇을 어디서 처리하나
 
@@ -104,7 +104,7 @@ flowchart LR
 
 - `coreOperations`는 1차에 두지 않는다. 상태 집계(2차)를 할 때 읽기 op만 더한다.
 - GUI 앱 기여(`contributions.gui.apps[]`)를 만들 때 `permissions`에 화면이 직접 부르는 것(`node.read` · `node.config` · `session.identity`)과 v3 계약 권한(`gui-v3.view` · `gui-v3.customize`)을 함께 적는다.
-- 매니페스트를 실제로 바꾸는 것은 백엔드 바이너리가 생길 때다. 진입점만 먼저 적으면 호스트가 실행 파일을 찾지 못해 모듈이 오류 상태가 된다.
+- 1차에서 적용했다 — 실제 내용은 모듈의 `module.json`(위 안에 `configuration.schema`(`maxFileMB` · `maxTotalMB`)와 `update`가 더해졌다). 바이너리는 `tools/build-modules.mjs`가 `bin/<타깃>/`에 굽는다.
 
 ## 5. API 계약 초안 (`lab.stellaxia.gui-v3.api`)
 
@@ -112,13 +112,15 @@ flowchart LR
 
 | operation | 바인딩 | 권한 | 위험 | 내용 |
 | --- | --- | --- | --- | --- |
-| `lab.stellaxia.gui-v3.status.get` | `GET /status` | — | read | readiness · 버전 · 저장 용량 |
-| `lab.stellaxia.gui-v3.node-props.get` | `GET /node/props` | `gui-v3.view` | read | `properties.json` 전체 (예: `{profile:{image:"/<노드>/데이터/profile/image/me.gif"}}`) |
-| `lab.stellaxia.gui-v3.node-props.patch` | `PATCH /node/props` | `gui-v3.customize` | write | 키 단위로 바꾸기 · 지우기(`null`). 스키마로 검증 |
+| `lab.stellaxia.gui-v3.status.get` | `GET /status` | — | read | readiness · 버전 · 사용량 · 한도(파일 · 전체 · 청크) |
+| `lab.stellaxia.gui-v3.node-props.get` | `GET /node/props` | `gui-v3.view` | read | `properties.json` 전체 (예: `{profile:{image:"/데이터/profile/image/me.gif"}}`) |
+| `lab.stellaxia.gui-v3.node-props.patch` | `PATCH /node/props` `{set}` | `gui-v3.customize` | write | 키 단위로 바꾸기 · 지우기(`null`). 전부 적용되거나 전부 안 됨. `profile.image`는 저장된 그림을 가리켜야 한다 |
 | `lab.stellaxia.gui-v3.node-files.list` | `GET /node/files?dir=` | `gui-v3.view` | read | 상대 경로 · 크기 · 형식 · 시각 |
-| `lab.stellaxia.gui-v3.node-files.get` | `GET /node/files/{path}` | `gui-v3.view` | read | 파일 내용 (형식 머리글 그대로) |
-| `lab.stellaxia.gui-v3.node-files.put` | `PUT /node/files/{path}` | `gui-v3.customize` | write | 올리기. 형식 허용 목록 · 크기 한도 · 이름 정리 |
-| `lab.stellaxia.gui-v3.node-files.delete` | `DELETE /node/files/{path}` | `gui-v3.customize` | write | 지우기 |
+| `lab.stellaxia.gui-v3.node-files.get` | `GET /node/files/content?path=` | `gui-v3.view` | read | 파일 내용 (base64) |
+| `lab.stellaxia.gui-v3.node-files.put` | `PUT /node/files/content` `{path, mime, data, offset, total}` | `gui-v3.customize` | write | 올리기 — 청크 한 개는 원시 640 KiB까지(Gateway가 본문을 1 MiB에서 자른다), 더 크면 `offset`을 이어 가며 여러 번. 마지막 청크에서 형식을 판별해 저장 |
+| `lab.stellaxia.gui-v3.node-files.delete` | `DELETE /node/files/content?path=` | `gui-v3.customize` | write | 지우기 |
+
+경로는 쿼리 · 본문으로 받는다(`io.terra.file`과 같은 방식) — 경로 안의 `/`가 바인딩 경로와 섞이지 않게.
 
 계약이 정의하는 권한 두 개:
 
@@ -143,10 +145,11 @@ $TERRA_MODULE_DATA_DIR/
 | --- | --- |
 | 경로 | 상대 경로만, `..` · 절대 경로 · 심볼릭 링크 거부, `node-data/` 밖으로 못 나감 |
 | 형식 | `image/png · image/jpeg · image/gif · image/webp` 만 (내용 앞부분으로 다시 확인) |
-| 크기 | 파일 하나 8MB · 노드 전체 64MB (설정 `configuration.schema`로 바꿀 수 있게) |
+| 크기 | 파일 하나 8 MiB · 노드 전체 64 MiB — 매니페스트 `configuration.schema`의 `maxFileMB` · `maxTotalMB`(재시작 반영). 이 저장소에서 `configuration`을 쓰는 첫 모듈이다 |
+| 청크 | 원시 640 KiB(`maxChunkBytes`). 올리는 중인 것은 `node-data/.staging/`에, 1시간 지나면 버린다. 목록 · 사용량에 들지 않는다 |
 | 권한 | 파일 0600 · 디렉터리 0700 |
 | 감사 | 쓰기 · 지우기는 호출자(`X-Terra-Principal`)와 함께 모듈 로그에 남긴다 |
-| 이름 | 파일 이름의 `\ / : * ? " < > |` 는 `_` 로 (시안과 같은 규칙) |
+| 이름 | 파일 이름의 `\ / : * ? " < > \|` 는 거부(화면이 미리 `_` 로 바꾼다), 점으로 시작하는 이름 · 제어 문자 거부, 깊이 8 · 이름 128자 |
 
 전역 제어 목록의 VFS는 지금처럼 `/<노드>/데이터/` 아래에 이 내용을 얹는다. 화면 쪽 경로 표기는 바뀌지 않고, 저장 위치만 브라우저에서 노드로 옮겨진다.
 
@@ -162,9 +165,11 @@ $TERRA_MODULE_DATA_DIR/
 
 ## 8. 단계
 
-1. **1차** — 계약 초안 확정 · 백엔드(Go) `status · node-props · node-files` · 매니페스트 변경 · 화면의 프로필을 localStorage에서 백엔드 호출로 교체
-2. **2차** — 상태 집계 op(읽기 `coreOperations`) · 원격 노드 프로필 보기
-3. **3차** — `profile.put` 묶음 op · 용량 설정(`configuration.schema`)
+1. **1차 — 들어옴 (2026-10-29)** — 계약(`contracts/api/terra-api.json`, 7 operation · 권한 2) · 백엔드(Go, `src/`: `main.go` · `api.go` · `nodedata/`, 시험 포함) · 매니페스트(`service` · process · `module-data` · `configuration` · readiness) · 화면 클라이언트(`web/src/api/node-data.js`, 청크 나눔 · 프로필 바꾸기 순서). 캔버스 시안의 프로필 경로도 백엔드와 같은 꼴(`/데이터/…`)로 맞췄다
+2. **2차** — 웹 빌드(`ui/`)에서 시안의 localStorage 흉내를 클라이언트로 교체 · 상태 집계 op(읽기 `coreOperations`) · 원격 노드 프로필 보기
+3. **3차** — `profile.put` 묶음 op(원자성) · 사용자 문서 크기 한도에 따라 스타메이커 보관함을 백엔드로
+
+시험한 것: `go test -race`(저장소 규칙 · 경로 탈출 · 심볼릭 링크 · 형식 판별 · 한도 · 청크 · 속성 원자성 · API 오류 코드), 바이너리를 호스트 env 흉내로 띄워 자격 없는 요청 401 · 올리기 → 속성 → 목록 흐름, 계약을 Terra 계약 스키마(`terra-api-contract-v1`)로 검증, `tools/validate-modules.mjs` 오류 0. **실제 Terra 호스트 · Gateway 위에서는 아직 띄우지 않았다.**
 
 ## 관련 문서
 
