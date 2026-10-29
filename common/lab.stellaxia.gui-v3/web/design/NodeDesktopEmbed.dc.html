@@ -14,6 +14,80 @@
 body{margin:0}
 button{font-family:inherit}
 *{scrollbar-width:thin;scrollbar-color:rgba(160,160,160,.45) transparent}
+.nx-dark{--ink:#ede9e1;--sub:#b4bac3;--dim:#9aa1ab;--line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.18);--raise:rgba(255,255,255,.05);--raiseH:rgba(255,255,255,.10);--acc:#7aa7ff;--term:rgba(8,10,13,.88)}
+.nx-light{--ink:#16191f;--sub:#3b424d;--dim:#5b6472;--line:rgba(0,0,0,.10);--line2:rgba(0,0,0,.20);--raise:rgba(0,0,0,.045);--raiseH:rgba(0,0,0,.09);--acc:#2563eb;--term:rgba(244,243,238,.98)}
+.nx{flex-grow:1;min-height:0;display:flex;flex-direction:column;color:var(--ink);font-size:12.5px}
+.nx-in-set{gap:8px;flex-grow:0}
+.nx-bar{display:flex;align-items:center;gap:4px;padding:7px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.nx-bar-flat{padding:0 0 8px}
+.nx-sub{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--line);padding-bottom:4px;margin-top:4px}
+.nx-tab{height:26px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--sub);font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.nx-tab:hover{background:var(--raise)}
+.nx-tab.on{background:var(--raiseH);color:var(--ink);font-weight:600}
+.nx-n{font-size:10.5px;color:var(--dim);font-weight:500}
+.nx-fill{flex-grow:1}
+.nx-k{font-size:11.5px;color:var(--dim)}
+.nx-mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.nx-rm{display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:11.5px;color:#f5b83d;background:rgba(245,184,61,.08);border-bottom:1px solid rgba(245,184,61,.25)}
+.nx-lk{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.nx-body{flex-grow:1;min-height:0;display:flex}
+.nx-list{width:230px;flex-shrink:0;box-sizing:border-box;border-right:1px solid var(--line);overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:2px}
+.nx-list-foot{margin-top:auto;padding-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+.nx-li{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;padding:6px 8px;border:0;border-radius:7px;background:transparent;color:var(--ink);font-size:12.5px;text-align:left;cursor:pointer}
+.nx-li:hover{background:var(--raise)}
+.nx-li.on{background:var(--raiseH)}
+.nx-li-t{flex-grow:1;min-width:0;display:flex;flex-direction:column;line-height:1.3;overflow:hidden}
+.nx-li-t .nx-k{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nx-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#9aa1ab}
+.nx-dot.ok{background:#3ecf8e}.nx-dot.warn{background:#f5b83d}.nx-dot.err{background:#ff6b6b}.nx-dot.off{background:#6b7280}
+.nx-main{flex-grow:1;min-width:0;min-height:0;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.nx-h{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;font-weight:600;flex-wrap:wrap}
+.nx-h2{font-size:13px;margin-top:8px}
+.nx-chip{height:20px;display:inline-flex;align-items:center;padding:0 8px;border:1px solid rgba(154,161,171,.5);border-radius:10px;background:rgba(154,161,171,.1);color:#9aa1ab;font-size:11px;font-weight:500;white-space:nowrap}
+.nx-chip.ok{color:#3ecf8e;border-color:rgba(62,207,142,.5);background:rgba(62,207,142,.1)}
+.nx-chip.warn{color:#f5b83d;border-color:rgba(245,184,61,.5);background:rgba(245,184,61,.1)}
+.nx-chip.err{color:#ff6b6b;border-color:rgba(255,107,107,.5);background:rgba(255,107,107,.1)}
+.nx-chip.info{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 50%,transparent);background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.nx-chips{display:flex;flex-wrap:wrap;gap:4px}
+.nx-btns{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nx-sticky{position:sticky;bottom:0;padding:8px 0 2px;background:var(--term);border-top:1px solid var(--line)}
+.nx-btn{height:26px;padding:0 10px;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line2);border-radius:8px;background:transparent;color:var(--ink);font-size:11.5px;cursor:pointer;white-space:nowrap}
+.nx-btn:hover:not([disabled]){background:var(--raise)}
+.nx-btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.nx-btn.dan{color:#ff6b6b;border-color:rgba(255,107,107,.5)}
+.nx-btn.on{background:var(--raiseH)}
+.nx-btn[disabled]{opacity:.45;cursor:default}
+.nx-row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:7px;background:var(--raise);min-width:0;flex-wrap:wrap}
+.nx-row.bad{box-shadow:inset 2px 0 0 #ff6b6b}
+.nx-lab{flex-grow:1;min-width:120px;display:flex;flex-direction:column;line-height:1.35}
+.nx-err{color:#ff6b6b}
+.nx-grid{display:grid;grid-template-columns:92px minmax(0,1fr);gap:6px 12px;align-items:center}
+.nx-in{height:26px;box-sizing:border-box;min-width:0;flex:1;max-width:340px;padding:0 8px;border:1px solid var(--line2);border-radius:7px;background:transparent;color:var(--ink);font-size:12px;outline:none}
+.nx-in:focus{border-color:var(--acc)}
+.nx-in[readonly]{color:var(--dim);border-style:dashed}
+.nx-in-s{max-width:150px}
+.nx-sw{position:relative;width:38px;height:22px;flex-shrink:0;border:0;border-radius:11px;background:rgba(128,128,128,.45);cursor:pointer;padding:0}
+.nx-sw span{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:8px;background:#fff;transition:left .15s}
+.nx-sw.on{background:#3ecf8e}.nx-sw.on span{left:19px}
+.nx-sw[disabled]{opacity:.5;cursor:default}
+.nx-seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.nx-seg.nx-wrap{flex-wrap:wrap}
+.nx-seg button{height:26px;padding:0 10px;border:0;background:transparent;color:var(--sub);font-size:11.5px;cursor:pointer}
+.nx-seg button.on{background:var(--ink);color:var(--term)}
+.nx-seg button[disabled]{cursor:default;opacity:.6}
+.nx-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.nx-opts{display:flex;flex-direction:column;gap:4px}
+.nx-ck{display:flex;align-items:center;gap:8px;font-size:12px}
+.nx-ck .nx-k{margin-left:4px}
+.nx-ck.dim{opacity:.5}
+.nx-log{flex-grow:1;min-height:120px;overflow-y:auto;padding:8px 10px;border-radius:8px;background:var(--term);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;line-height:1.6}
+.nx-log .warn{color:#f5b83d}.nx-log .err{color:#ff6b6b}
+.nx-empty{margin:4px 0;color:var(--dim)}
+.nx-foot{flex-shrink:0;min-height:22px;display:flex;align-items:center;padding:0 12px;border-top:1px solid var(--line)}
+.nx-msg{font-size:11.5px;color:#3ecf8e}
+.nx-rn{border:0;background:transparent;color:var(--ink);font-size:12px;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:3px}
+.nx-rn:hover{color:var(--acc);text-decoration-color:var(--acc)}
+.nx button:focus-visible,.nx input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 </style>
 </helmet>
 <div style="width: {{frame.w}}px; height: {{frame.h}}px; transform: scale({{zoomK}}); transform-origin: 0 0; position: relative; overflow: hidden; background: #07090c; font-family: 'Noto Sans KR','Noto Sans',system-ui,sans-serif; font-size: 13px; line-height: 1.5; color: #ede9e1;">
@@ -140,7 +214,7 @@ button{font-family:inherit}
                     </button>
                   </sc-for>
                 </nav>
-                <div style="flex-grow: 1; min-width: 0; overflow: hidden; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
+                <div style="flex-grow: 1; min-width: 0; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
                   <div style="display: flex; align-items: center; gap: 10px;">
                     <h2 style="margin: 0; font-size: 15px; font-weight: 600;">{{w.tabTitle}}</h2>
                     <span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{w.scopeBd}}; border-radius: 10px; background: {{w.scopeBg}}; color: {{w.scopeFg}}; font-size: 11px;">{{w.scope}}</span>
@@ -193,17 +267,64 @@ button{font-family:inherit}
                     </div>
                   </sc-if>
 
-                  <sc-if value="{{w.sRows}}" hint-placeholder-val="{{ false }}">
-                    <div style="display: flex; flex-direction: column; border: 1px solid {{t.line}}; border-radius: 10px; overflow: hidden;">
-                      <sc-for list="{{w.rows}}" as="rw" hint-placeholder-count="5">
-                        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-top: {{rw.bt}};">
-                          <span style="width: 120px; flex-shrink: 0; font-size: 12px; color: {{t.dim}};">{{rw.k}}</span>
-                          <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px;">{{rw.v}}</span>
-                          <sc-if value="{{rw.lock}}" hint-placeholder-val="{{ false }}">
-                            <span style="height: 20px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid rgba(245,184,61,.5); border-radius: 10px; background: rgba(245,184,61,.10); color: #f5b83d; font-size: 11px;"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>{{rw.lockText}}</span>
-                          </sc-if>
+                  <sc-if value="{{w.sNode}}" hint-placeholder-val="{{ false }}">
+                    <div class="nx nx-in-set {{w.nx.theme}}">
+                      <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 노드 설정은 읽기 전용 (쓰기는 그 노드에서만)</div></sc-if>
+                      <div class="nx-bar nx-bar-flat">
+                        <sc-for list="{{w.nx.grps}}" as="gp" hint-placeholder-count="6"><button type="button" class="nx-tab {{gp.cls}}" onClick="{{gp.pick}}">{{gp.label}}<span class="nx-n">{{gp.n}}</span></button></sc-for>
+                        <span class="nx-fill"></span><input class="nx-in nx-in-s" type="search" value="{{w.nx.q}}" placeholder="키 · 이름 찾기" onInput="{{w.nx.qIn}}" aria-label="설정 찾기" spellcheck="false">
+                      </div>
+                      <sc-for list="{{w.nx.keys}}" as="ky" hint-placeholder-count="5">
+                        <div class="nx-row {{ky.errCls}}">
+                          <span class="nx-lab">{{ky.label}}<span class="nx-k nx-mono">{{ky.k}}</span><span class="nx-k nx-err">{{ky.err}}</span></span>
+                          <sc-if value="{{ky.isBool}}" hint-placeholder-val="{{ true }}"><button type="button" role="switch" aria-checked="{{ky.on}}" aria-label="{{ky.label}}" class="nx-sw {{ky.swCls}}" onClick="{{ky.flip}}" disabled="{{ky.dis}}"><span></span></button></sc-if>
+                          <sc-if value="{{ky.isSel}}" hint-placeholder-val="{{ false }}"><span class="nx-seg"><sc-for list="{{ky.opts}}" as="op" hint-placeholder-count="3"><button type="button" class="{{op.cls}}" aria-pressed="{{op.on}}" onClick="{{op.pick}}" disabled="{{ky.dis}}">{{op.label}}</button></sc-for></span></sc-if>
+                          <sc-if value="{{ky.isText}}" hint-placeholder-val="{{ false }}"><input class="nx-in nx-mono" type="text" value="{{ky.v}}" placeholder="{{ky.ph}}" onInput="{{ky.input}}" readonly="{{ky.ro}}" aria-label="{{ky.label}}" spellcheck="false"></sc-if>
+                          <span class="nx-chip {{ky.tagCls}}">{{ky.tag}}</span>
                         </div>
                       </sc-for>
+                      <div class="nx-btns nx-sticky"><span class="nx-k">{{w.nx.dirtyT}}</span><span class="nx-fill"></span><span class="nx-msg">{{w.nx.msg}}</span><sc-for list="{{w.nx.cfgBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{w.sNet}}" hint-placeholder-val="{{ false }}">
+                    <div class="nx nx-in-set {{w.nx.theme}}">
+                      <div class="nx-grid">
+                        <span class="nx-k">인터페이스</span><span class="nx-mono">{{w.nx.wg.iface}} · <span class="nx-chip {{w.nx.wg.stCls}}">{{w.nx.wg.st}}</span></span>
+                        <span class="nx-k">주소</span><span class="nx-mono">{{w.nx.wg.addr}}</span>
+                        <span class="nx-k">수신 포트</span><span class="nx-mono">{{w.nx.wg.port}}</span>
+                        <span class="nx-k">공개 키</span><span class="nx-mono nx-k">{{w.nx.wg.key}}</span>
+                        <span class="nx-k">설치</span><span class="nx-k">{{w.nx.wg.plan}}</span>
+                      </div>
+                      <div class="nx-btns"><sc-for list="{{w.nx.wgBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for><span class="nx-fill"></span><span class="nx-msg">{{w.nx.msg}}</span></div>
+                      <div class="nx-h nx-h2">피어<span class="nx-fill"></span><span class="nx-k">{{w.nx.wgApi}}</span></div>
+                      <sc-for list="{{w.nx.peers}}" as="pr" hint-placeholder-count="3"><div class="nx-row nx-mono"><span class="nx-lab">{{pr.node}}<span class="nx-k">{{pr.ep}}</span></span><span class="nx-k">{{pr.hs}}</span><span class="nx-k">↓ {{pr.rx}} ↑ {{pr.tx}}</span><span class="nx-chip {{pr.cls}}">{{pr.st}}</span></div></sc-for>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{w.sEnroll}}" hint-placeholder-val="{{ false }}">
+                    <div class="nx nx-in-set {{w.nx.theme}}">
+                      <div class="nx-grid">
+                        <span class="nx-k">상태</span><span><span class="nx-chip ok">{{w.nx.en.st}}</span></span>
+                        <span class="nx-k">부모 Tree</span><span class="nx-mono">{{w.nx.en.parent}}</span>
+                        <span class="nx-k">노드 ID</span><span class="nx-mono">{{w.nx.en.id}}</span>
+                        <span class="nx-k">등록일</span><span>{{w.nx.en.at}}</span>
+                      </div>
+                      <div class="nx-h nx-h2">등록 코드로 다시 등록<span class="nx-fill"></span><span class="nx-k">{{w.nx.enApi}}</span></div>
+                      <div class="nx-row"><input class="nx-in nx-mono" type="text" value="{{w.nx.en.code}}" placeholder="TR-XXXX" onInput="{{w.nx.en.codeIn}}" readonly="{{w.nx.en.ro}}" aria-label="등록 코드" spellcheck="false"><span class="nx-fill"></span><sc-for list="{{w.nx.en.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                      <div class="nx-k">{{w.nx.msg}}</div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{w.sAbout}}" hint-placeholder-val="{{ false }}">
+                    <div class="nx nx-in-set {{w.nx.theme}}">
+                      <div class="nx-grid">
+                        <sc-for list="{{w.nx.info}}" as="nf" hint-placeholder-count="5"><span class="nx-k">{{nf.k}}</span><span class="nx-mono">{{nf.v}}</span></sc-for>
+                      </div>
+                      <div class="nx-h nx-h2">상태 점검<span class="nx-fill"></span><sc-for list="{{w.nx.chkBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                      <div class="nx-chips"><sc-for list="{{w.nx.checks}}" as="ck" hint-placeholder-count="3"><span class="nx-chip {{ck.cls}}">{{ck.name}} · {{ck.st}}</span></sc-for></div>
+                      <div class="nx-h nx-h2">지원 기능</div>
+                      <div class="nx-chips"><sc-for list="{{w.nx.caps}}" as="cp" hint-placeholder-count="4"><span class="nx-chip info">{{cp}}</span></sc-for></div>
                     </div>
                   </sc-if>
 
@@ -236,34 +357,181 @@ button{font-family:inherit}
               </div>
             </sc-if>
 
-            <!-- 자원 보기 -->
+            <!-- 자원 관리 -->
             <sc-if value="{{w.isSvi}}" hint-placeholder-val="{{ false }}">
-              <div style="flex-grow: 1; min-height: 0; overflow: hidden; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;">
-                <div style="display: flex; gap: 10px; padding: 4px 8px; font-size: 11px; color: {{t.dim}};"><span style="flex-grow: 1;">자원</span><span style="width: 56px;">방향</span><span style="width: 96px;">QoS</span><span style="width: 70px;">상태</span><span style="width: 64px;"></span></div>
-                <sc-for list="{{w.res}}" as="rs" hint-placeholder-count="4">
-                  <div style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; background: {{t.raise}};">
-                    <span style="flex-grow: 1; min-width: 0; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px;">{{rs.name}}</span>
-                    <span style="width: 56px; font-size: 12px; color: {{t.sub}};">{{rs.dir}}</span>
-                    <span style="width: 96px; font-size: 12px; color: {{t.sub}};">{{rs.qos}}</span>
-                    <span style="width: 70px;"><span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{rs.bd}}; border-radius: 10px; background: {{rs.bg}}; color: {{rs.fg}}; font-size: 11px;">{{rs.label}}</span></span>
-                    <span style="width: 64px; text-align: right;"><button type="button" onClick="{{rs.flip}}" style="height: 24px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 11.5px; cursor: pointer;">{{rs.act}}</button></span>
+              <div class="nx {{w.nx.theme}}">
+                <div class="nx-bar">
+                  <sc-for list="{{w.nx.views}}" as="vw" hint-placeholder-count="4"><button type="button" class="nx-tab {{vw.cls}}" onClick="{{vw.pick}}">{{vw.label}}<span class="nx-n">{{vw.n}}</span></button></sc-for>
+                  <span class="nx-fill"></span><span class="nx-k">{{w.nx.api}}</span>
+                </div>
+                <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 잠금 표시는 그 노드에서만</div></sc-if>
+
+                <sc-if value="{{w.nx.vDev}}" hint-placeholder-val="{{ true }}">
+                  <div class="nx-body">
+                    <div class="nx-list" role="listbox" aria-label="장치">
+                      <sc-for list="{{w.nx.devs}}" as="dv" hint-placeholder-count="5">
+                        <button type="button" role="option" aria-selected="{{dv.on}}" class="nx-li {{dv.cls}}" onClick="{{dv.pick}}"><span class="nx-dot {{dv.stCls}}"></span><span class="nx-li-t">{{dv.name}}<span class="nx-k">{{dv.sub}}</span></span><span class="nx-chip {{dv.apCls}}">{{dv.apT}}</span></button>
+                      </sc-for>
+                      <div class="nx-list-foot"><sc-for list="{{w.nx.devTop}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    </div>
+                    <div class="nx-main">
+                      <sc-if value="{{w.nx.hasDev}}" hint-placeholder-val="{{ true }}">
+                        <div class="nx-h">{{w.nx.d.name}}<span class="nx-chip {{w.nx.d.apCls}}">{{w.nx.d.apT}}</span><span class="nx-chip {{w.nx.d.stCls}}">{{w.nx.d.pres}}</span><span class="nx-fill"></span><span class="nx-k nx-mono">{{w.nx.d.id}}</span></div>
+                        <div class="nx-grid">
+                          <span class="nx-k">종류</span><span>{{w.nx.d.kind}}</span>
+                          <span class="nx-k">별칭</span><span><input class="nx-in" type="text" value="{{w.nx.d.alias}}" onInput="{{w.nx.d.aliasIn}}" aria-label="별칭" spellcheck="false"></span>
+                          <span class="nx-k">근거</span><span class="nx-k">{{w.nx.d.basis}}</span>
+                          <span class="nx-k">사용</span><span>{{w.nx.d.usage}}</span>
+                          <span class="nx-k">자원</span><span>{{w.nx.d.decl}}</span>
+                        </div>
+                        <div class="nx-btns"><sc-for list="{{w.nx.d.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                      </sc-if>
+                      <sc-if value="{{w.nx.showTomb}}" hint-placeholder-val="{{ false }}">
+                        <div class="nx-h nx-h2">지운 기록<span class="nx-fill"></span><span class="nx-k">{{w.nx.tombApi}}</span></div>
+                        <sc-for list="{{w.nx.tombs}}" as="tb" hint-placeholder-count="1"><div class="nx-row"><span class="nx-lab">{{tb.name}}<span class="nx-k nx-mono">{{tb.id}}</span></span><span class="nx-k">{{tb.at}}</span></div></sc-for>
+                      </sc-if>
+                      <div class="nx-k">{{w.nx.watchT}}</div>
+                    </div>
                   </div>
-                </sc-for>
+                </sc-if>
+
+                <sc-if value="{{w.nx.vDecl}}" hint-placeholder-val="{{ false }}">
+                  <div class="nx-main">
+                    <div class="nx-h">자원 선언<span class="nx-fill"></span><span class="nx-k">{{w.nx.declNote}}</span><sc-for list="{{w.nx.declTop}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    <sc-for list="{{w.nx.decls}}" as="dc" hint-placeholder-count="4">
+                      <div class="nx-row"><span class="nx-chip info">{{dc.fam}}</span><button type="button" class="nx-rn nx-mono" title="자원 상태" onClick="{{dc.open}}">{{dc.name}}</button><span class="nx-k nx-lab">{{dc.src}} · {{dc.dir}}</span><span class="nx-chip {{dc.stCls}}">{{dc.st}}</span><span class="nx-k">{{dc.shared}}</span><sc-for list="{{dc.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    </sc-for>
+                    <div class="nx-card">
+                      <div class="nx-h">새 자원</div>
+                      <div class="nx-row"><span class="nx-lab">종류</span><span class="nx-seg"><sc-for list="{{w.nx.nd.fams}}" as="op" hint-placeholder-count="3"><button type="button" class="{{op.cls}}" aria-pressed="{{op.on}}" onClick="{{op.pick}}">{{op.label}}</button></sc-for></span></div>
+                      <div class="nx-row"><span class="nx-lab">대상</span><span class="nx-seg nx-wrap"><sc-for list="{{w.nx.nd.targets}}" as="op" hint-placeholder-count="3"><button type="button" class="{{op.cls}}" aria-pressed="{{op.on}}" onClick="{{op.pick}}">{{op.label}}</button></sc-for></span></div>
+                      <div class="nx-row"><span class="nx-lab">이름</span><input class="nx-in nx-mono" type="text" value="{{w.nx.nd.name}}" placeholder="serial/tty1" onInput="{{w.nx.nd.nameIn}}" aria-label="자원 이름" spellcheck="false"></div>
+                      <div class="nx-row"><span class="nx-lab">방향</span><span class="nx-seg"><sc-for list="{{w.nx.nd.dirs}}" as="op" hint-placeholder-count="3"><button type="button" class="{{op.cls}}" aria-pressed="{{op.on}}" onClick="{{op.pick}}">{{op.label}}</button></sc-for></span><span class="nx-fill"></span><sc-for list="{{w.nx.nd.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    </div>
+                    <sc-if value="{{w.nx.hasRetired}}" hint-placeholder-val="{{ false }}">
+                      <div class="nx-h nx-h2">은퇴한 선언</div>
+                      <sc-for list="{{w.nx.retired}}" as="rt" hint-placeholder-count="1"><div class="nx-row"><span class="nx-chip off">{{rt.fam}}</span><span class="nx-lab nx-mono">{{rt.name}}</span><sc-for list="{{rt.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div></sc-for>
+                    </sc-if>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{w.nx.vDir}}" hint-placeholder-val="{{ false }}">
+                  <div class="nx-main">
+                    <div class="nx-h">공유 폴더<span class="nx-fill"></span><span class="nx-k">{{w.nx.dirApi}}</span></div>
+                    <sc-for list="{{w.nx.dirs}}" as="dr" hint-placeholder-count="2">
+                      <div class="nx-row"><span class="nx-k">@</span><input class="nx-in nx-in-s nx-mono" type="text" value="{{dr.name}}" onInput="{{dr.nameIn}}" readonly="{{dr.ro}}" aria-label="공유 이름" spellcheck="false"><input class="nx-in nx-mono" type="text" value="{{dr.path}}" onInput="{{dr.pathIn}}" readonly="{{dr.ro}}" aria-label="공유 경로" spellcheck="false"><sc-for list="{{dr.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    </sc-for>
+                    <div class="nx-btns"><sc-for list="{{w.nx.dirAdd}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    <div class="nx-row"><span class="nx-lab">메모 폴더<span class="nx-k">storage.memos_dir</span></span><input class="nx-in nx-mono" type="text" value="{{w.nx.memos}}" placeholder="비우면 기본" onInput="{{w.nx.memosIn}}" readonly="{{w.nx.dirRo}}" aria-label="메모 폴더" spellcheck="false"></div>
+                    <div class="nx-row"><span class="nx-lab">이 기기 폴더 보기<span class="nx-k">local_fs.enabled</span></span><button type="button" role="switch" aria-checked="{{w.nx.lfOn}}" aria-label="이 기기 폴더 보기" class="nx-sw {{w.nx.lfCls}}" onClick="{{w.nx.lfFlip}}" disabled="{{w.nx.dirDis}}"><span></span></button></div>
+                    <div class="nx-btns"><span class="nx-k">{{w.nx.dirDirty}}</span><span class="nx-fill"></span><sc-for list="{{w.nx.dirBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{w.nx.vTun}}" hint-placeholder-val="{{ false }}">
+                  <div class="nx-main">
+                    <div class="nx-h">서비스 터널<span class="nx-fill"></span><span class="nx-k">{{w.nx.tunApi}}</span></div>
+                    <sc-if value="{{w.nx.noTun}}" hint-placeholder-val="{{ false }}"><p class="nx-empty">열린 터널 없음</p></sc-if>
+                    <sc-for list="{{w.nx.tuns}}" as="tn" hint-placeholder-count="2"><div class="nx-row"><span class="nx-lab nx-mono">{{tn.svc}} :{{tn.port}}</span><span class="nx-k">↔ {{tn.peer}}</span><span class="nx-k">{{tn.since}}</span><span class="nx-chip ok">열림</span><sc-for list="{{tn.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div></sc-for>
+                    <div class="nx-card">
+                      <div class="nx-h">새 터널</div>
+                      <div class="nx-row"><span class="nx-lab">포트</span><input class="nx-in nx-in-s nx-mono" type="text" value="{{w.nx.tn.port}}" placeholder="22" onInput="{{w.nx.tn.portIn}}" aria-label="포트" spellcheck="false"><span class="nx-lab">상대 노드</span><span class="nx-seg nx-wrap"><sc-for list="{{w.nx.tn.peers}}" as="op" hint-placeholder-count="3"><button type="button" class="{{op.cls}}" aria-pressed="{{op.on}}" onClick="{{op.pick}}">{{op.label}}</button></sc-for></span><span class="nx-fill"></span><sc-for list="{{w.nx.tn.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    </div>
+                  </div>
+                </sc-if>
+                <div class="nx-foot"><span class="nx-msg">{{w.nx.msg}}</span></div>
               </div>
             </sc-if>
 
             <!-- 모듈 -->
             <sc-if value="{{w.isMods}}" hint-placeholder-val="{{ false }}">
-              <div style="flex-grow: 1; min-height: 0; overflow: hidden; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;">
-                <div style="display: flex; gap: 10px; padding: 4px 8px; font-size: 11px; color: {{t.dim}};"><span style="flex-grow: 1;">모듈</span><span style="width: 150px;">식별자</span><span style="width: 90px;">상태</span><span style="width: 70px;"></span></div>
-                <sc-for list="{{w.mods}}" as="md" hint-placeholder-count="4">
-                  <div style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; background: {{t.raise}};">
-                    <span style="flex-grow: 1; min-width: 0;">{{md.name}}</span>
-                    <span style="width: 150px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.sub}};">{{md.id}}</span>
-                    <span style="width: 90px;"><span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{md.bd}}; border-radius: 10px; background: {{md.bg}}; color: {{md.fg}}; font-size: 11px;">{{md.label}}</span></span>
-                    <span style="width: 70px; text-align: right;"><button type="button" onClick="{{md.flip}}" disabled="{{md.core}}" style="height: 24px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{md.actFg}}; font-size: 11.5px; cursor: pointer;">{{md.act}}</button></span>
+              <div class="nx {{w.nx.theme}}">
+                <div class="nx-bar">
+                  <sc-for list="{{w.nx.views}}" as="vw" hint-placeholder-count="3"><button type="button" class="nx-tab {{vw.cls}}" onClick="{{vw.pick}}">{{vw.label}}<span class="nx-n">{{vw.n}}</span></button></sc-for>
+                  <span class="nx-fill"></span><span class="nx-k">{{w.nx.api}}</span>
+                </div>
+                <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 잠금 표시는 그 노드에서만</div></sc-if>
+
+                <sc-if value="{{w.nx.vInst}}" hint-placeholder-val="{{ true }}">
+                  <div class="nx-body">
+                    <div class="nx-list" role="listbox" aria-label="설치된 모듈">
+                      <sc-for list="{{w.nx.mods}}" as="md" hint-placeholder-count="5">
+                        <button type="button" role="option" aria-selected="{{md.on}}" class="nx-li {{md.cls}}" onClick="{{md.pick}}"><span class="nx-dot {{md.stCls}}"></span><span class="nx-li-t">{{md.name}}<span class="nx-k nx-mono">{{md.id}}</span></span><span class="nx-k">{{md.ver}}</span></button>
+                      </sc-for>
+                    </div>
+                    <div class="nx-main">
+                      <div class="nx-h">{{w.nx.m.name}}<span class="nx-chip {{w.nx.m.stCls}}">{{w.nx.m.stT}}</span><span class="nx-chip {{w.nx.m.trCls}}">{{w.nx.m.trust}}</span><span class="nx-fill"></span><span class="nx-k nx-mono">{{w.nx.m.id}} · {{w.nx.m.ver}}</span></div>
+                      <div class="nx-k">{{w.nx.m.meta}}</div>
+                      <div class="nx-btns"><sc-for list="{{w.nx.m.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                      <div class="nx-sub">
+                        <sc-for list="{{w.nx.m.tabs}}" as="mt" hint-placeholder-count="4"><button type="button" class="nx-tab {{mt.cls}}" onClick="{{mt.pick}}">{{mt.label}}</button></sc-for>
+                        <span class="nx-fill"></span><span class="nx-k">{{w.nx.m.tabApi}}</span>
+                      </div>
+                      <sc-if value="{{w.nx.m.tCfg}}" hint-placeholder-val="{{ true }}">
+                        <sc-if value="{{w.nx.m.noCfg}}" hint-placeholder-val="{{ false }}"><p class="nx-empty">설정 항목 없음</p></sc-if>
+                        <sc-for list="{{w.nx.m.cfg}}" as="cf" hint-placeholder-count="3">
+                          <div class="nx-row">
+                            <span class="nx-lab">{{cf.label}}<span class="nx-k">{{cf.note}}</span></span>
+                            <sc-if value="{{cf.isBool}}" hint-placeholder-val="{{ true }}"><button type="button" role="switch" aria-checked="{{cf.on}}" aria-label="{{cf.label}}" class="nx-sw {{cf.swCls}}" onClick="{{cf.flip}}" disabled="{{cf.dis}}"><span></span></button></sc-if>
+                            <sc-if value="{{cf.isSel}}" hint-placeholder-val="{{ false }}"><span class="nx-seg"><sc-for list="{{cf.opts}}" as="op" hint-placeholder-count="2"><button type="button" class="{{op.cls}}" aria-pressed="{{op.on}}" onClick="{{op.pick}}" disabled="{{cf.dis}}">{{op.label}}</button></sc-for></span></sc-if>
+                            <sc-if value="{{cf.isText}}" hint-placeholder-val="{{ false }}"><input class="nx-in" type="text" value="{{cf.v}}" onInput="{{cf.input}}" readonly="{{cf.ro}}" aria-label="{{cf.label}}" spellcheck="false"></sc-if>
+                            <sc-if value="{{cf.rs}}" hint-placeholder-val="{{ false }}"><span class="nx-chip warn">재시작</span></sc-if>
+                          </div>
+                        </sc-for>
+                        <div class="nx-btns"><span class="nx-k">{{w.nx.m.cfgDirty}}</span><span class="nx-fill"></span><sc-for list="{{w.nx.m.cfgBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                      </sc-if>
+                      <sc-if value="{{w.nx.m.tLog}}" hint-placeholder-val="{{ false }}">
+                        <div class="nx-log"><sc-for list="{{w.nx.m.logs}}" as="lg" hint-placeholder-count="6"><div class="{{lg.cls}}"><span class="nx-k">{{lg.t}}</span> {{lg.msg}}</div></sc-for></div>
+                      </sc-if>
+                      <sc-if value="{{w.nx.m.tOps}}" hint-placeholder-val="{{ false }}">
+                        <div class="nx-k">필요 권한</div>
+                        <div class="nx-chips"><sc-for list="{{w.nx.m.perms}}" as="pm" hint-placeholder-count="2"><span class="nx-chip info">{{pm}}</span></sc-for></div>
+                        <div class="nx-k">기능 {{w.nx.m.opsN}}개</div>
+                        <sc-for list="{{w.nx.m.ops}}" as="op" hint-placeholder-count="4"><div class="nx-row nx-mono"><span class="nx-lab">{{op.id}}</span><span class="nx-k">{{op.perm}}</span></div></sc-for>
+                      </sc-if>
+                      <sc-if value="{{w.nx.m.tApp}}" hint-placeholder-val="{{ false }}">
+                        <sc-if value="{{w.nx.m.noApps}}" hint-placeholder-val="{{ false }}"><p class="nx-empty">GUI 앱 없음</p></sc-if>
+                        <sc-for list="{{w.nx.m.apps}}" as="ap" hint-placeholder-count="1"><div class="nx-row"><span class="nx-lab">{{ap.name}}<span class="nx-k nx-mono">{{ap.id}}</span></span><span class="nx-chip {{ap.hCls}}">{{ap.health}}</span><sc-for list="{{ap.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div></sc-for>
+                      </sc-if>
+                    </div>
                   </div>
-                </sc-for>
+                </sc-if>
+
+                <sc-if value="{{w.nx.vAdd}}" hint-placeholder-val="{{ false }}">
+                  <div class="nx-main">
+                    <div class="nx-h">파일에서 설치<span class="nx-fill"></span><span class="nx-k">{{w.nx.add.api}}</span></div>
+                    <div class="nx-row"><span class="nx-lab">패키지</span><input class="nx-in nx-mono" type="text" value="{{w.nx.add.path}}" placeholder="~/Downloads/모듈.tmod" onInput="{{w.nx.add.input}}" readonly="{{w.nx.add.ro}}" aria-label="패키지 경로" spellcheck="false"><sc-for list="{{w.nx.add.pickBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    <sc-if value="{{w.nx.add.has}}" hint-placeholder-val="{{ false }}">
+                      <div class="nx-card">
+                        <div class="nx-h">{{w.nx.add.r.name}}<span class="nx-k nx-mono">{{w.nx.add.r.id}} · {{w.nx.add.r.ver}}</span></div>
+                        <div class="nx-grid">
+                          <span class="nx-k">서명</span><span><span class="nx-chip {{w.nx.add.r.trCls}}">{{w.nx.add.r.trust}}</span></span>
+                          <span class="nx-k">호환</span><span><span class="nx-chip {{w.nx.add.r.cpCls}}">{{w.nx.add.r.compat}}</span></span>
+                          <span class="nx-k">설치 상태</span><span>{{w.nx.add.r.exists}}</span>
+                          <span class="nx-k">권한</span><span class="nx-chips"><sc-for list="{{w.nx.add.r.perms}}" as="pm" hint-placeholder-count="2"><span class="nx-chip info">{{pm}}</span></sc-for></span>
+                          <span class="nx-k">권한 요약</span><span class="nx-mono nx-k">{{w.nx.add.r.digest}}</span>
+                        </div>
+                        <div class="nx-opts"><sc-for list="{{w.nx.add.opts}}" as="op" hint-placeholder-count="3"><label class="nx-ck {{op.cls}}"><input type="checkbox" checked="{{op.on}}" onChange="{{op.flip}}" disabled="{{op.dis}}">{{op.label}}<span class="nx-k">{{op.note}}</span></label></sc-for></div>
+                        <div class="nx-btns"><span class="nx-k {{w.nx.add.warnCls}}">{{w.nx.add.warn}}</span><span class="nx-fill"></span><sc-for list="{{w.nx.add.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                      </div>
+                    </sc-if>
+                    <div class="nx-h nx-h2">폴더 다시 읽기</div>
+                    <div class="nx-row"><span class="nx-lab">모듈 폴더<span class="nx-k nx-mono">{{w.nx.add.root}}</span></span><sc-for list="{{w.nx.add.scanBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    <div class="nx-h nx-h2">카탈로그<span class="nx-fill"></span><span class="nx-k">Tree 지정 → 제안으로 설치</span></div>
+                    <sc-for list="{{w.nx.add.cat}}" as="ct" hint-placeholder-count="3"><div class="nx-row"><span class="nx-lab">{{ct.name}}<span class="nx-k nx-mono">{{ct.id}} · {{ct.ver}}</span></span><span class="nx-chip {{ct.cls}}">{{ct.st}}</span></div></sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{w.nx.vOffer}}" hint-placeholder-val="{{ false }}">
+                  <div class="nx-main">
+                    <div class="nx-h">Tree 지정 모듈<span class="nx-fill"></span><span class="nx-k">{{w.nx.offApi}}</span></div>
+                    <sc-if value="{{w.nx.noOffers}}" hint-placeholder-val="{{ false }}"><p class="nx-empty">제안 없음</p></sc-if>
+                    <sc-for list="{{w.nx.offers}}" as="of" hint-placeholder-count="2">
+                      <div class="nx-row"><span class="nx-lab">{{of.name}}<span class="nx-k nx-mono">{{of.id}} · {{of.ver}} · {{of.size}}</span></span><span class="nx-k">{{of.by}}</span><span class="nx-chips"><sc-for list="{{of.perms}}" as="pm" hint-placeholder-count="1"><span class="nx-chip info">{{pm}}</span></sc-for></span><span class="nx-chip {{of.cls}}">{{of.st}}</span><sc-for list="{{of.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <div class="nx-foot"><span class="nx-msg">{{w.nx.msg}}</span></div>
               </div>
             </sc-if>
           </div>
@@ -331,7 +599,7 @@ button{font-family:inherit}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"lab-ws-02"},"winW":{"editor":null,"default":1240},"zoom":{"editor":null},"onZoom":{"editor":null},"onClose":{"editor":null},"onFull":{"editor":null},"chrome":{"editor":"enum","options":["own","none"],"default":"own"},"winH":{"editor":null,"default":760},"$preview":{"width":1240,"height":760}}'>
+<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"lab-ws-02"},"winW":{"editor":null,"default":1240},"zoom":{"editor":null},"onZoom":{"editor":null},"onClose":{"editor":null},"onFull":{"editor":null},"chrome":{"editor":"enum","options":["own","none"],"default":"own"},"winH":{"editor":null,"default":760},"remote":{"editor":"boolean","default":false},"onOpen":{"editor":null},"$preview":{"width":1240,"height":760}}'>
 const D = {
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   doc: 'M6 3h9l3 3v15H6z M9 9h6 M9 13h6 M9 17h4',
@@ -360,10 +628,10 @@ const D = {
 const APPS = {
   term:  { title: '터미널',     d: D.term,   fw: .47, fh: .55, minW: 380, minH: 240 },
   files: { title: '파일 관리자', d: D.folder, fw: .53, fh: .62, minW: 420, minH: 280 },
-  set:   { title: '설정',       d: D.gear,   fw: .58, fh: .68, minW: 460, minH: 300 },
+  set:   { title: '설정',       d: D.gear,   fw: .62, fh: .72, minW: 560, minH: 360 },
   jobs:  { title: '작업 관리자', d: D.swap,   fw: .52, fh: .50, minW: 440, minH: 220 },
-  svi:   { title: '자원 보기',   d: D.net,    fw: .50, fh: .48, minW: 420, minH: 220 },
-  mods:  { title: '모듈',       d: D.puzzle, fw: .48, fh: .46, minW: 420, minH: 220 }
+  svi:   { title: '자원 관리',   d: D.net,    fw: .64, fh: .70, minW: 620, minH: 400 },
+  mods:  { title: '모듈',       d: D.puzzle, fw: .64, fh: .70, minW: 620, minH: 400 }
 };
 /* 바탕화면 아이콘은 크기가 늘 같고, 칸(열 · 행)에 고정된다. 왼쪽 위 칸이 (0, 0) */
 const CW = 100, CH = 112, TILE = 52, GLYPH = 26;
@@ -374,13 +642,55 @@ const WALLS = [
   { id: 'slate',  label: '석판',   bg: 'linear-gradient(160deg,#0d0f13 0%,#1b2027 100%)', ink: '#fff' },
   { id: 'paper',  label: '종이',   bg: 'linear-gradient(160deg,#e8e4da 0%,#cfd8d4 100%)', ink: '#222' }
 ];
+/* 노드 설정 스키마 */
+/* 노드 설정 — Daemon config.json 스키마(terra.daemon.config.schema.get)의 분류 · 키. [분류, 키, 이름, 형, 기본값, 고르기 · 자리글, 소유(O 편집 · D 파생), 재시작] */
+const CFG = [
+  ['노드', 'daemon.device_name', '표시 이름', 'text', 'node', 'lab-ws-02', 'O', false],
+  ['노드', 'daemon.roles', '역할', 'text', 'leaf', '', 'D', false],
+  ['노드', 'daemon.data_dir', '데이터 폴더', 'text', '~/.terra', '', 'D', false],
+  ['노드', 'registration.parent', '부모 Tree', 'text', 'tree-02', '', 'D', false],
+  ['연결', 'master.url', 'Master 주소', 'text', 'https://tree-02.terra.local:8080', 'https://…', 'O', true],
+  ['연결', 'heartbeat.interval_sec', 'Heartbeat 주기(초)', 'text', '10', '1–60', 'O', true],
+  ['연결', 'gateway.listen', 'Gateway 주소', 'text', '127.0.0.1:8787', '', 'D', false],
+  ['저장', 'storage.memos_dir', '메모 폴더', 'text', '', '비우면 기본', 'O', true],
+  ['저장', 'local_fs.enabled', '이 기기 폴더 보기', 'bool', true, null, 'O', false],
+  ['네트워크', 'wireguard.enabled', 'WireGuard 메시', 'bool', true, null, 'O', true],
+  ['네트워크', 'wireguard.listen_port', 'WireGuard 포트', 'text', '51820', '1024–65535', 'O', true],
+  ['네트워크', 'wireguard.advertise_endpoint', '공개 주소', 'text', '', 'host:port', 'O', true],
+  ['네트워크', 'direct_tcp.enabled', '직접 TCP', 'bool', false, null, 'O', true],
+  ['네트워크', 'webrtc.enabled', 'WebRTC', 'bool', false, null, 'O', true],
+  ['업데이트', 'core_distribution.hold', '업데이트 보류', 'bool', false, null, 'O', true],
+  ['업데이트', 'core_distribution.hold_reason', '보류 사유', 'text', '', '예: 시연 중', 'O', true],
+  ['업데이트', 'core_distribution.allow_apply', '자동 적용', 'bool', true, null, 'O', true],
+  ['업데이트', 'core_distribution.maintenance_window', '정비 시간', 'text', '', '02:00-05:00', 'O', true],
+  ['업데이트', 'core_distribution.disk_quota_mb', '업데이트 용량(MB)', 'text', '4096', '512–16384', 'O', true],
+  ['모듈', 'module_distribution.enabled', '지정 모듈 설치', 'bool', true, null, 'O', true],
+  ['모듈', 'module_distribution.disk_quota_mb', '설치 용량(MB)', 'text', '0', '0 = 제한 없음', 'O', true],
+  ['모듈', 'modules.root', '모듈 폴더', 'text', '~/.terra/module', '', 'D', false],
+  ['로그', 'logging.level', '로그 수준', 'sel', 'info', ['debug', 'info', 'warn', 'error'], 'O', false],
+  ['로그', 'logging.max_size_mb', '파일 크기(MB)', 'text', '10', '1–100', 'O', true],
+  ['로그', 'logging.max_backups', '보관 개수', 'text', '5', '0–20', 'O', true]
+];
+// 검사 — terra.daemon.config.validate.post 가 할 일을 시안에서 흉내
+const CFG_RULE = {
+  'master.url': (v) => /^https?:\/\/\S+$/.test(v) ? '' : 'http(s):// 주소',
+  'heartbeat.interval_sec': (v) => /^\d+$/.test(v) && +v >= 1 && +v <= 60 ? '' : '1–60',
+  'wireguard.listen_port': (v) => /^\d+$/.test(v) && +v >= 1024 && +v <= 65535 ? '' : '1024–65535',
+  'wireguard.advertise_endpoint': (v) => !v || /^[\w.-]+:\d+$/.test(v) ? '' : 'host:port',
+  'core_distribution.maintenance_window': (v) => !v || /^\d\d:\d\d-\d\d:\d\d$/.test(v) ? '' : 'HH:MM-HH:MM',
+  'core_distribution.disk_quota_mb': (v) => /^\d+$/.test(v) && +v >= 512 && +v <= 16384 ? '' : '512–16384',
+  'module_distribution.disk_quota_mb': (v) => /^\d+$/.test(v) ? '' : '숫자',
+  'logging.max_size_mb': (v) => /^\d+$/.test(v) && +v >= 1 && +v <= 100 ? '' : '1–100',
+  'logging.max_backups': (v) => /^\d+$/.test(v) && +v <= 20 ? '' : '0–20'
+};
 const TABS = [
-  { id: 'wall',  label: '바탕화면', d: D.palette, scope: 'browser' },
-  { id: 'look',  label: '모양',     d: D.window,  scope: 'browser' },
-  { id: 'net',   label: '네트워크', d: D.net,     scope: 'node' },
-  { id: 'terra', label: 'Terra',    d: D.tree,    scope: 'node' },
-  { id: 'acct',  label: '계정',     d: D.user,    scope: 'acct' },
-  { id: 'about', label: '정보',     d: D.info,    scope: 'node' }
+  { id: 'wall',   label: '바탕화면',  d: D.palette, scope: 'browser' },
+  { id: 'look',   label: '모양',      d: D.window,  scope: 'browser' },
+  { id: 'node',   label: '노드 설정', d: D.gear,    scope: 'node' },
+  { id: 'net',    label: '네트워크',  d: D.net,     scope: 'node' },
+  { id: 'enroll', label: '등록',      d: D.tree,    scope: 'node' },
+  { id: 'acct',   label: '계정',      d: D.user,    scope: 'acct' },
+  { id: 'about',  label: '정보',      d: D.info,    scope: 'node' }
 ];
 const LOCS = [
   { id: 'home',  label: '홈',          d: D.home,    path: '/home/stk',        note: '' },
@@ -410,7 +720,7 @@ class Component extends DCLogic {
         jobs:   { c: 1, r: 1, name: '작업 관리자', k: 'short', app: 'jobs', src: 'Terra 기능' },
         shell:  { c: 1, r: 2, name: '터미널',     k: 'short', app: 'term', src: 'Terra 기능' }
       },
-      iconSel: null, menu: null, ov: null, lau: false,
+      iconSel: null, menu: null, ov: null, lau: false, nd: null, nxMsg: '', resTab: 'dev', devSel: 0, showTomb: false, ndDraft: null, tnDraft: null, modView: 'inst', modSel: 0, modTab: 'cfg', modCfg: null, inst: null, cfgGrp: null, cfgQ: '',
       setTab: 'wall', fmLoc: 'home', fmPick: null,
       term: [
         { t: 'Terra 연결 · 앱 스코프 토큰 · 노드 계정 stk', c: 'dim' },
@@ -453,6 +763,82 @@ class Component extends DCLogic {
 
   /* ---- 크기 ---- */
   // 통합 화면(Terra GUI v3)의 제어기 창으로 띄울 때 — 노드 이름은 주소의 ?node= 로, 닫기 · 전체화면은 부모 창에 알린다
+  /* ==== 노드 안 — 모듈 · 자원 관리 · 노드 설정 (시안 데이터. Terra 대응은 줄마다) ====
+     원격 노드(props.remote)면 그 노드에서만 되는 operation(local-only)은 잠금 표시 — 누를 수 없다 */
+  remote() { return !!this.props.remote; }
+  help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
+  api(t) { return this.help() ? t : ''; }
+  btn(label, run, o) { o = o || {}; const lock = !!o.local && this.remote(), off = !!o.off || lock;
+    return { label, run: off ? null : run, dis: off ? 'disabled' : null, lock, cls: 'nx-btn' + (o.pri ? ' pri' : '') + (o.dan ? ' dan' : '') + (o.on ? ' on' : ''), tip: lock ? '이 노드에서만 — 원격 제어기에서는 잠김' : (o.tip || '') }; }
+  seg(list, cur, pick) { return list.map((v) => { const id = Array.isArray(v) ? v[0] : v, label = Array.isArray(v) ? v[1] : v; return { label, cls: id === cur ? 'on' : '', on: id === cur ? 'true' : 'false', pick: () => pick(id) }; }); }
+  say(msg) { this.setState({ nxMsg: msg }); clearTimeout(this._nxT); this._nxT = setTimeout(() => this.setState({ nxMsg: '' }), 4000); }
+  // 노드 안 데이터 — 노드마다 한 벌. 실제로는 아래 operation 들의 응답
+  nd() { const nm = this.nodeNameQ(); if (!this.state.nd || this.state.nd.node !== nm) this.state.nd = this.ndSeed(nm); return this.state.nd; }
+  ndSet(fn) { const d = JSON.parse(JSON.stringify(this.nd())); fn(d); this.setState({ nd: d }); }
+  ndSeed(nm) {
+    const cfg = {}; CFG.forEach((c) => { cfg[c[1]] = c[4]; }); cfg['daemon.device_name'] = nm.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'node';
+    return { node: nm,
+      // terra.daemon.modules.get · by-module-id.get
+      mods: [
+        { id: 'io.terra.agent', name: '에이전트', ver: '0.6.2', prev: '0.6.1', kind: 'service', st: 'run', en: true, trust: '서명됨', src: 'Tree 지정', perms: ['node.read', 'agent.grant'], ops: ['sessions.list', 'sessions.create', 'turns.post', 'approvals.list', 'grants.issue'], apps: [{ id: 'chat', name: '대화', health: '정상' }], cfg: [['model', '모델', 'sel', 'small', ['small', 'large'], false], ['max_sessions', '최대 세션', 'text', '4', null, false], ['log_prompts', '프롬프트 기록', 'bool', false, null, true]] },
+        { id: 'io.terra.io-inventory', name: '장치 인벤토리', ver: '0.1.0', prev: '', kind: 'service', st: 'run', en: true, trust: '서명됨', src: '코어 묶음', core: true, perms: ['node.read', 'node.control'], ops: ['devices.list', 'devices.approve', 'devices.probe', 'scan', 'watch.get'], apps: [], cfg: [['watch', '감시', 'sel', 'auto', ['auto', 'poll', 'off'], true], ['settle_ms', '묶음 대기', 'text', '400', null, false]] },
+        { id: 'io.terra.nodetalk', name: '노드 대화', ver: '0.3.0', prev: '0.2.4', kind: 'service', st: 'restart', en: true, trust: '서명됨', src: 'Tree 지정', perms: ['node.read'], ops: ['rooms.list', 'messages.post', 'messages.list'], apps: [{ id: 'talk', name: '노드 대화', health: '다시 시작 중' }], cfg: [] },
+        { id: 'io.terra.file', name: '파일', ver: '1.2.0', prev: '', kind: 'service', st: 'run', en: true, trust: '서명됨', src: '코어 묶음', core: true, perms: ['file.read', 'file.write'], ops: ['roots.list', 'entries.list', 'entries.write', 'transfers.create'], apps: [], cfg: [['max_transfer_mb', '전송 한도', 'text', '2048', null, false]] },
+        { id: 'lab.stellaxia.gui-v3', name: 'GUI v3', ver: '0.1.0', prev: '', kind: 'service', st: 'stop', en: false, trust: '미서명 · 개발', src: '파일 설치', perms: ['gui-v3.view', 'gui-v3.customize'], ops: ['status', 'node-props.get', 'node-props.patch', 'node-files.put'], apps: [{ id: 'main', name: 'Terra GUI', health: '멈춤' }], cfg: [['maxFileMB', '파일 한도', 'text', '8', null, true], ['maxTotalMB', '전체 한도', 'text', '64', null, true]] }
+      ],
+      // terra.daemon.modules.offers.get — Tree(Master modules.assignments)가 이 노드에 지정한 것
+      offers: [{ id: 'io.terra.fleet', name: '플릿', ver: '0.2.0', size: '4.1 MB', by: 'Tree 02', perms: ['node.control'], st: 'wait' }, { id: 'io.terra.treebench', name: '트리 벤치', ver: '0.1.3', size: '1.2 MB', by: 'Tree 02', perms: ['node.read'], st: 'consent' }],
+      // terra.daemon.modules.catalog.get
+      catalog: [['io.terra.agent', '에이전트', '0.6.2'], ['io.terra.fleet', '플릿', '0.2.0'], ['io.terra.io-weave', 'I/O 엮기', '0.1.0'], ['io.terra.scene-studio', '장면 스튜디오', '0.4.1'], ['io.terra.treebench', '트리 벤치', '0.1.3']],
+      // io.terra.io-inventory.devices.list (= terra.daemon.io.devices.get)
+      devs: [
+        { id: 'usb-1a86-7523-0001', name: 'CH340 시리얼', alias: 'tty0', kind: 'serial', pres: 'present', ap: 'approved', en: true, basis: 'serial 번호', use: '모듈 1 · 열림 1', decl: 'serial/tty0' },
+        { id: 'v4l-046d-0825-a1', name: 'Logitech C270', alias: '', kind: 'camera', pres: 'present', ap: 'pending', en: false, basis: '부착 위치 · model', use: '—', decl: '' },
+        { id: 'gpio-chip0', name: 'gpiochip0', alias: 'gpio', kind: 'gpio', pres: 'present', ap: 'approved', en: true, basis: 'sysfs 이름', use: '열림 2', decl: 'gpio/gpio' },
+        { id: 'i2c-1-0x76', name: 'BME280', alias: 'sensor', kind: 'i2c', pres: 'missing', ap: 'approved', en: true, basis: '버스 · 주소', use: '—', decl: 'sensor/stats' },
+        { id: 'hid-046d-c31c', name: 'USB 키보드', alias: '', kind: 'hid', pres: 'present', ap: 'denied', en: false, basis: 'model', use: '—', decl: '' }
+      ],
+      tombs: [{ id: 'usb-2341-0043-07', name: 'Arduino Uno', at: '10-21 14:02' }],
+      // terra.daemon.svi.declarations.get
+      decls: [
+        { fam: 'serial', name: 'tty0', src: '장치 CH340', dir: '양방향', st: 'applied', shared: 2 },
+        { fam: 'gpio', name: 'gpio', src: '장치 gpiochip0', dir: '양방향', st: 'applied', shared: 1 },
+        { fam: 'service', name: 'ssh:22', src: '서비스 :22', dir: '양방향', st: 'applied', shared: 0 },
+        { fam: 'sensor', name: 'sensor/stats', src: '장치 BME280', dir: '내보냄', st: 'declared', shared: 0 }
+      ],
+      retired: [{ fam: 'fs', name: 'old-share' }],
+      // config storage.* · local_fs.enabled (terra.daemon.config.patch, 이 노드에서만)
+      dirs: [{ name: 'share-0', path: '~/TerraShare' }], memos: '', localFs: true, dirsBase: null,
+      // terra.daemon.service-tunnels.get
+      tuns: [{ id: 'tn-3', svc: 'ssh', port: 22, peer: '02·a', since: '12분 전' }],
+      cfg, cfgBase: JSON.parse(JSON.stringify(cfg)), cfgErr: {}, needApply: 0, needRestart: 0,
+      wg: { iface: 'wg0', up: true, addr: '10.40.2.17/16', port: 51820, key: 'Qm3x…Zk8=', plan: '설치됨 · wireguard-tools 1.0' },
+      peers: [['02·a', '192.168.0.21:51820', '12초 전', '1.2 MB', '840 KB', 'ok'], ['02·c', '중계 · Master', '1분 전', '210 KB', '96 KB', 'warn'], ['02', '10.40.0.1:51820', '4초 전', '3.4 MB', '2.9 MB', 'ok']],
+      en: { st: '등록됨', parent: 'tree-02 (02)', id: 'nd_' + (nm.length * 2654435761 >>> 0).toString(16).slice(0, 8), at: '2026-09-14', code: '' },
+      checks: [['health', 'ok'], ['ready', 'ok'], ['live', 'ok']]
+    };
+  }
+  modBtns(m, i) {
+    const set = (p, msg) => { this.ndSet((d) => Object.assign(d.mods[i], p)); this.say(msg); }, job = (name, op) => this.addJob(name, op);
+    if (m.core) return [this.btn('다시 시작', () => { set({ st: 'restart' }, m.name + ' 다시 시작'); job(m.name + ' 다시 시작', 'module.restart'); setTimeout(() => this.ndSet((d) => { d.mods[i].st = 'run'; }), 1500); }), this.btn('코어 묶음 — 고정', null, { off: true })];
+    return [
+      m.st === 'run' ? this.btn('멈춤', () => set({ st: 'stop' }, m.name + ' 멈춤')) : this.btn('시작', () => set({ st: 'run', en: true }, m.name + ' 시작'), { off: !m.en, pri: m.en }),   // modules.by-module-id.start · stop
+      this.btn('다시 시작', () => { set({ st: 'restart' }, m.name + ' 다시 시작'); job(m.name + ' 다시 시작', 'module.restart'); setTimeout(() => this.ndSet((d) => { d.mods[i].st = 'run'; }), 1500); }, { off: m.st === 'stop' }),
+      this.btn(m.en ? '끄기' : '켜기', () => set(m.en ? { en: false, st: 'stop' } : { en: true }, m.name + (m.en ? ' 끔' : ' 켬')), { local: true }),   // gateway modules.by-id.disable · enable (이 노드)
+      this.btn('되돌리기 ' + (m.prev || ''), () => set({ ver: m.prev, prev: m.ver }, m.name + ' ' + m.prev + '로 되돌림'), { off: !m.prev, local: true }),   // gateway modules.by-id.rollback
+      this.btn('제거', () => { this.ndSet((d) => { d.mods.splice(i, 1); }); this.setState({ modSel: 0 }); this.say(m.name + ' 제거'); job(m.name + ' 제거', 'module.uninstall'); }, { dan: true })   // modules.by-module-id.uninstall
+    ];
+  }
+  addJob(name, op) { const n = 1042 + (this._jobN = (this._jobN || 0) + 1); this.setState({ jobs: [{ id: 'j-' + n, name, op, pct: 0, st: 'run' }].concat(this.state.jobs) }); setTimeout(() => this.setState({ jobs: this.state.jobs.map((j) => j.id === 'j-' + n ? { ...j, pct: 100, st: 'ok' } : j) }), 1600); }
+  // 파일에서 설치 — terra module inspect <파일> → (권한 확인) → terra module install <파일> --grant-reviewed <요약> [--dev] [--force] [--start]
+  //   Daemon 에 설치 API 가 없어 명령 실행(terra.daemon.commands.execute, process.execute, 이 노드에서만)으로 돌리고, 끝나면 modules.scan
+  inspectPkg(path) { const p = String(path || '').trim(); if (!p) return null; const base = p.split(/[\\/]/).pop().replace(/\.tmod$/, '') || 'module', id = /\./.test(base) ? base.replace(/-\d.*$/, '') : 'lab.local.' + base.replace(/[^a-z0-9]+/gi, '-').toLowerCase(), ver = (base.match(/-(\d+\.\d+\.\d+)/) || [0, '1.0.0'])[1];
+    const trust = /broken|깨짐/.test(p) ? '깨짐' : /unsigned|dev|미서명/.test(p) ? '미서명' : '서명됨', compat = /arm|mac/.test(p) ? '이 노드 미지원' : '호환';
+    const exists = this.nd().mods.find((m) => m.id === id);
+    return { name: base.replace(/-\d+\.\d+.*$/, '').split('.').pop(), id, ver, trust, compat, exists: exists ? '설치됨 ' + exists.ver + (exists.ver === ver ? ' — 같은 버전' : ' → ' + ver) : '새 모듈', same: !!exists && exists.ver === ver, perms: ['node.read', 'svi.bind'], digest: 'sha256:' + (p.length * 40503 >>> 0).toString(16).padStart(8, '0') + '…' }; }
+  openOut(kind, arg) { if (this.props.onOpen) this.props.onOpen(kind, arg); else this.say((kind === 'res' ? arg + ' 자원 상태' : '자원 창') + ' (시안)'); }   // 장면의 창(자원 창 · 자원 상태 창)
+  addShortcut(M, a) { const at = this.freeCell(1, 3, null), key = 'm-' + M.id.replace(/\W+/g, '-') + '-' + a.id;
+    this.setState({ icons: { ...this.state.icons, [key]: { c: at.c, r: at.r, name: a.name, k: 'short', app: 'mods', mod: M.id + '/' + a.id, src: '모듈 · ' + M.name } } }); this.persist(); this.say(a.name + ' 바탕화면에 추가'); }
   nodeNameQ() { return this.props.nodeName || 'lab-ws-02'; }
   tellParent(m) { try { if (window.parent && window.parent !== window) window.parent.postMessage(m, '*'); } catch (e) {} }
   // 제어기 창 — 통합 화면 · 전역 틀의 자식 컴포넌트(dc-import)로: 데스크톱이 창 크기(winW · winH)를 그대로 채운다(원본 그대로 머리줄 포함). 머리줄을 끌면 바깥 창이 이동, 전체화면 · 닫기는 onFull · onClose 로 바깥 창에
@@ -726,10 +1112,10 @@ class Component extends DCLogic {
         const tab = TABS.find((x) => x.id === s.setTab);
         o.tabs = TABS.map((x) => ({ label: x.label, d: x.d, bg: x.id === s.setTab ? t.raiseH : 'transparent', fg: x.id === s.setTab ? t.ink : t.sub, pick: () => this.setState({ setTab: x.id }) }));
         o.tabTitle = tab.label;
-        const sc = { browser: ['이 브라우저에서만', '#9aa1ab'], node: ['노드에 적용', '#7aa7ff'], acct: ['노드 계정 stk', '#3ecf8e'] }[tab.scope];
+        const sc = { browser: ['이 브라우저에서만', '#9aa1ab'], node: this.remote() ? ['원격 · 읽기', '#f5b83d'] : ['노드에 적용', '#7aa7ff'], acct: ['노드 계정 stk', '#3ecf8e'] }[tab.scope];
         o.scope = sc[0]; o.scopeFg = sc[1]; o.scopeBd = sc[1] + '80'; o.scopeBg = sc[1] + '1a';
         o.sWall = s.setTab === 'wall'; o.sLook = s.setTab === 'look';
-        o.sRows = ['net', 'terra', 'about'].includes(s.setTab); o.sAcct = s.setTab === 'acct';
+        o.sNode = s.setTab === 'node'; o.sNet = s.setTab === 'net'; o.sEnroll = s.setTab === 'enroll'; o.sAbout = s.setTab === 'about'; o.sAcct = s.setTab === 'acct';
         o.walls = WALLS.map((wl) => ({ label: wl.label, bg: wl.bg, ink: wl.ink, on: p.wall === wl.id, bd: p.wall === wl.id ? '#ffd84d' : t.line2, pick: () => this.setPref('wall', wl.id) }));
                 o.docks = [{ id: 'bottom', label: '아래' }, { id: 'left', label: '왼쪽' }].map((z) => ({ label: z.label, on: p.dock === z.id, bg: p.dock === z.id ? t.ink : 'transparent', fg: p.dock === z.id ? (dark ? '#111' : '#fff') : t.sub, pick: () => this.setPref('dock', z.id) }));
         const tgl = (k, label, note) => ({ label, note, on: p[k], bg: p[k] ? '#3ecf8e' : 'rgba(128,128,128,.45)', knob: p[k] ? 19 : 3, flip: () => this.setPref(k, !p[k]) });
@@ -737,24 +1123,143 @@ class Component extends DCLogic {
         // 화면 배율 — 브라우저의 Ctrl + 휠과 같다 (데스크톱 전체)
         const zp = Math.round(this.zoom() * 100), zb = (on) => ({ bg: on ? '#5aa8ff' : 'transparent', fg: on ? '#06121f' : t.ink, bd: on ? '#5aa8ff' : t.line2 });
         o.zoom = { pct: zp + '%', minus: () => this.stepZoom(-1), plus: () => this.stepZoom(1), reset: () => this.setZoom(1), canMinus: zp > 50 ? 1 : 0.4, canPlus: zp < 200 ? 1 : 0.4, rb: zb(zp === 100) };
-        const rowsOf = { net: [['주소', '10.40.2.17', false], ['WireGuard', 'wg0 · 피어 3', false], ['서비스 터널', '2개 열림', false], ['접속 허용 범위', '같은 Tree 안', true]],
-          terra: [['노드 이름', this.nodeNameQ(), true], ['부모', 'tree-home', true], ['등록', '등록됨', false], ['코어', '0.9.4', false], ['모듈 묶음', '0.4.3', false]],
-          about: [['장치', this.nodeNameQ(), false], ['운영체제', 'Linux 6.18', false], ['가동 시간', '3일 4시간', false], ['Terra 연결', '정상 · 앱 스코프', false]] }[s.setTab] || [];
-        o.rows = rowsOf.map((r, i) => ({ k: r[0], v: r[1], lock: r[2], lockText: s.setTab === 'net' ? '허용 범위 · node.config' : 'node.config', bt: i === 0 ? 'none' : '1px solid ' + t.line }));
         o.saveC = s.save === 'saving' ? '#f5b83d' : '#3ecf8e';
         o.saveText = s.save === 'saving' ? '노드 계정 stk에 저장하는 중…' : '노드 계정 stk에 저장됨 — 다른 기기에서 열어도 같은 바탕화면이 나온다.';
       }
       if (id === 'jobs') {
         o.jobs = s.jobs.map((j) => { const L = this.jobLabel(j), c = this.chip(L.c); return { id: j.id, name: j.name, op: j.op, label: L.label, fg: c.fg, bd: c.bd, bg: c.bg, pct: j.st === 'run' || j.st === 'stall' ? j.pct + '%' : '', canCancel: j.st === 'run' || j.st === 'stall', cancel: () => { this.setState({ jobs: this.state.jobs.map((x) => x.id === j.id ? { ...x, st: 'cancel' } : x) }); } }; });
       }
+      o.nx = { theme: dark ? 'nx-dark' : 'nx-light', remote: this.remote(), msg: s.nxMsg || '' };
+      // ── 자원 관리 — 장치(io-inventory) · 자원 선언(SVI) · 공유 폴더(config) · 서비스 터널 ──
       if (id === 'svi') {
-        o.res = s.res.map((r, i) => { const c = this.chip(r.open ? '#3ecf8e' : '#9aa1ab'); return { name: r.name, dir: r.dir, qos: r.qos, label: r.open ? '열림' : '닫힘', fg: c.fg, bd: c.bd, bg: c.bg, act: r.open ? '닫기' : '열기', flip: () => { this.setState({ res: this.state.res.map((x, j) => j === i ? { ...x, open: !x.open } : x) }); } }; });
+        const N = this.nd(), X = o.nx, v = s.resTab || 'dev', R = this.remote();
+        X.views = [['dev', '장치', N.devs.length], ['decl', '자원 선언', N.decls.length], ['dir', '공유 폴더', N.dirs.length], ['tun', '서비스 터널', N.tuns.length]].map(([k, l, n]) => ({ label: l, n: '' + n, cls: v === k ? 'on' : '', pick: () => this.setState({ resTab: k }) }));
+        X.api = this.api({ dev: 'io.terra.io-inventory.*', decl: 'terra.daemon.svi.declarations.*', dir: 'terra.daemon.config.patch', tun: 'terra.daemon.service-tunnels.*' }[v]);
+        X.vDev = v === 'dev'; X.vDecl = v === 'decl'; X.vDir = v === 'dir'; X.vTun = v === 'tun';
+        const AP = { approved: ['승인', 'ok'], pending: ['대기', 'warn'], denied: ['거절', 'off'] }, ds = Math.min(s.devSel || 0, N.devs.length - 1);
+        X.devs = N.devs.map((d, i) => ({ name: d.alias || d.name, sub: d.alias ? d.name + ' · ' + d.kind : d.kind, on: i === ds ? 'true' : 'false', cls: i === ds ? 'on' : '', stCls: d.pres === 'missing' ? 'err' : d.en ? 'ok' : 'off', apT: AP[d.ap][0], apCls: AP[d.ap][1], pick: () => this.setState({ devSel: i }) }));
+        X.devTop = [this.btn('다시 찾기', () => { this.say('장치를 다시 찾는 중 — scan'); this.addJob('장치 다시 찾기', 'io.scan'); }), this.btn(s.showTomb ? '지운 기록 닫기' : '지운 기록', () => this.setState({ showTomb: !s.showTomb }), { on: s.showTomb })];
+        const D = N.devs[ds]; X.hasDev = !!D;
+        if (D) { const up = (pp, msg) => { this.ndSet((d) => Object.assign(d.devs[ds], pp)); if (msg) this.say(msg); };
+          X.d = { name: D.alias || D.name, id: D.id, kind: D.kind + ' · ' + D.name, alias: D.alias, aliasIn: (e) => up({ alias: e.target.value }), basis: D.basis, usage: D.use, decl: D.decl || '없음 — 자원 선언에서 감싸기', apT: AP[D.ap][0], apCls: AP[D.ap][1], pres: D.pres === 'missing' ? '연결 끊김' : '연결됨', stCls: D.pres === 'missing' ? 'err' : 'ok',
+            btns: (D.ap !== 'approved' ? [this.btn('승인', () => up({ ap: 'approved', en: true }, D.name + ' 승인'), { pri: true })] : []).concat(D.ap !== 'denied' ? [this.btn('거절', () => up({ ap: 'denied', en: false }, D.name + ' 거절'))] : [],
+              [this.btn(D.en ? '끄기' : '켜기', () => up({ en: !D.en }, D.name + (D.en ? ' 끔' : ' 켬')), { off: D.ap !== 'approved' }), this.btn('점검', () => this.say(D.name + ' 점검 — ' + (D.pres === 'missing' ? '응답 없음' : '정상')), { off: D.pres === 'missing' }),
+               this.btn('자원으로 감싸기', () => this.setState({ resTab: 'decl', ndDraft: { fam: 'dev', target: D.id, name: D.kind + '/' + (D.alias || D.kind), dir: 'both' } }), { off: !!D.decl || D.ap !== 'approved' }),
+               this.btn('잊기', () => { this.ndSet((d) => { d.tombs.unshift({ id: D.id, name: D.name, at: '방금' }); d.devs.splice(ds, 1); }); this.setState({ devSel: 0 }); this.say(D.name + ' 잊음 — 지운 기록에 남음'); }, { dan: true })]) }; }
+        X.showTomb = !!s.showTomb; X.tombApi = this.api('io.terra.io-inventory.tombstones.list'); X.tombs = N.tombs;
+        X.watchT = '감시 · netlink (연결 · 해제를 바로 반영)';
+        // 자원 선언
+        const ST = { applied: ['적용됨', 'ok'], declared: ['선언됨 · 적용 전', 'warn'] }, pend = N.decls.filter((d) => d.st === 'declared').length;
+        X.declNote = pend ? '적용 전 ' + pend : this.api('declarations.apply');
+        X.declTop = [this.btn('적용' + (pend ? ' ' + pend : ''), () => { this.ndSet((d) => d.decls.forEach((x) => { x.st = 'applied'; })); this.say('선언 적용 — 카탈로그에 올라감'); }, { pri: !!pend, off: !pend }), this.btn('자원 창 ›', () => this.openOut('share'))];
+        X.decls = N.decls.map((dc, i) => ({ fam: dc.fam, name: dc.name, src: dc.src, dir: dc.dir, st: ST[dc.st][0], stCls: ST[dc.st][1], shared: dc.shared ? '공유 ' + dc.shared : '공유 없음', open: () => this.openOut('res', dc.name),
+          btns: [this.btn('선언 해제', () => { this.ndSet((d) => { d.retired.unshift({ fam: dc.fam, name: dc.name }); d.decls.splice(i, 1); }); this.say(dc.name + ' 선언 해제 — 은퇴로'); })] }));
+        const dr = s.ndDraft || { fam: 'dev', target: '', name: '', dir: 'both' }, setD = (pp) => this.setState({ ndDraft: Object.assign({}, dr, pp) });
+        const tg = dr.fam === 'dev' ? N.devs.filter((d) => d.ap === 'approved' && !d.decl).map((d) => [d.id, d.alias || d.name]) : dr.fam === 'dir' ? N.dirs.map((d) => [d.name, '@' + d.name]) : [['22', ':22 ssh'], ['8080', ':8080 http'], ['5432', ':5432 db']];
+        X.nd = { fams: this.seg([['dev', '장치'], ['dir', '폴더'], ['svc', '서비스']], dr.fam, (f) => setD({ fam: f, target: '' })), targets: tg.length ? this.seg(tg, dr.target, (x) => setD({ target: x })) : [{ label: '대상 없음', cls: '', on: 'false', pick: null }],
+          name: dr.name, nameIn: (e) => setD({ name: e.target.value }), dirs: this.seg([['out', '내보냄'], ['in', '받음'], ['both', '양방향']], dr.dir, (x) => setD({ dir: x })),
+          btns: [this.btn('선언', () => { const nm = dr.name.trim(); if (!nm || !dr.target) { this.say('대상 · 이름 필요'); return; } const lab = (tg.find((x) => x[0] === dr.target) || [0, dr.target])[1];
+            this.ndSet((d) => { d.decls.push({ fam: dr.fam === 'dev' ? 'device' : dr.fam === 'dir' ? 'fs' : 'service', name: nm, src: { dev: '장치 ', dir: '폴더 ', svc: '서비스 ' }[dr.fam] + lab, dir: { out: '내보냄', in: '받음', both: '양방향' }[dr.dir], st: 'declared', shared: 0 }); const dv = d.devs.find((x) => x.id === dr.target); if (dv) dv.decl = nm; });
+            this.setState({ ndDraft: null }); this.say(nm + ' 선언 — 적용하면 공유할 수 있음'); }, { pri: true })] };
+        X.retired = N.retired.map((r, i) => ({ fam: r.fam, name: r.name, btns: [this.btn('잊기', () => this.ndSet((d) => { d.retired.splice(i, 1); }))] })); X.hasRetired = N.retired.length > 0;
+        // 공유 폴더 — config storage.shared_dirs · memos_dir · local_fs.enabled (쓰기는 이 노드에서만, 재시작 필요)
+        const base = N.dirsBase || { dirs: N.dirs, memos: N.memos, localFs: N.localFs }, dirty = JSON.stringify(base) !== JSON.stringify({ dirs: N.dirs, memos: N.memos, localFs: N.localFs });
+        const mark = (fn) => this.ndSet((d) => { if (!d.dirsBase) d.dirsBase = { dirs: JSON.parse(JSON.stringify(d.dirs)), memos: d.memos, localFs: d.localFs }; fn(d); });
+        X.dirApi = this.api('storage.shared_dirs · config.patch'); X.dirRo = R ? 'readonly' : null; X.dirDis = R ? 'disabled' : null;
+        X.dirs = N.dirs.map((d, i) => ({ name: d.name, path: d.path, ro: X.dirRo, nameIn: (e) => mark((q) => { q.dirs[i].name = e.target.value; }), pathIn: (e) => mark((q) => { q.dirs[i].path = e.target.value; }), btns: [this.btn('빼기', () => mark((q) => { q.dirs.splice(i, 1); }), { local: true })] }));
+        X.dirAdd = [this.btn('+ 공유 폴더', () => mark((q) => { q.dirs.push({ name: 'share-' + q.dirs.length, path: '' }); }), { local: true })];
+        X.memos = N.memos; X.memosIn = (e) => mark((q) => { q.memos = e.target.value; });
+        X.lfOn = N.localFs ? 'true' : 'false'; X.lfCls = N.localFs ? 'on' : ''; X.lfFlip = R ? null : () => mark((q) => { q.localFs = !q.localFs; });
+        X.dirDirty = dirty ? '바뀜 · 저장하면 재시작 필요' : '바뀐 것 없음';
+        X.dirBtns = [this.btn('되돌리기', () => this.ndSet((d) => { Object.assign(d, { dirs: base.dirs, memos: base.memos, localFs: base.localFs, dirsBase: null }); }), { off: !dirty, local: true }), this.btn('저장', () => { this.ndSet((d) => { d.dirsBase = null; d.needRestart++; }); this.say('저장 — 다시 시작하면 반영 (설정 › 노드 설정)'); }, { off: !dirty, pri: dirty, local: true })];
+        // 서비스 터널
+        X.tunApi = this.api('terra.daemon.service-tunnels.* (열기는 이 노드에서만)'); X.noTun = !N.tuns.length;
+        X.tuns = N.tuns.map((tn, i) => ({ svc: tn.svc, port: tn.port, peer: tn.peer, since: tn.since, btns: [this.btn('닫기', () => { this.ndSet((d) => { d.tuns.splice(i, 1); }); this.say(tn.svc + ' 터널 닫음'); })] }));
+        const td = s.tnDraft || { port: '', peer: '' }, setT = (pp) => this.setState({ tnDraft: Object.assign({}, td, pp) });
+        X.tn = { port: td.port, portIn: (e) => setT({ port: e.target.value }), peers: this.seg(['02·a', '02·c', '02'], td.peer, (x) => setT({ peer: x })),
+          btns: [this.btn('열기', () => { if (!/^\d+$/.test(td.port) || !td.peer) { this.say('포트 · 상대 노드 필요'); return; } this.ndSet((d) => { d.tuns.push({ id: 'tn-' + Date.now(), svc: { 22: 'ssh', 80: 'http', 8080: 'http', 5432: 'db' }[td.port] || 'tcp', port: +td.port, peer: td.peer, since: '방금' }); }); this.setState({ tnDraft: null }); }, { pri: true, local: true })] };
       }
+      // ── 모듈 — 설치됨 · 설치 · Tree 지정 ──
       if (id === 'mods') {
-        o.mods = s.mods.map((m, i) => {
-          const col = m.st === 'run' ? '#3ecf8e' : '#f5b83d', c = this.chip(col);
-          return { name: m.name, id: m.id, label: m.st === 'run' ? '실행 중' : '다시 시작 중', fg: c.fg, bd: c.bd, bg: c.bg, core: !!m.core, act: m.core ? '고정' : m.st === 'run' ? '멈춤' : '시작', actFg: m.core ? t.dim : t.ink, flip: () => { this.setState({ mods: this.state.mods.map((x, j) => j === i ? { ...x, st: x.st === 'run' ? 'restart' : 'run' } : x) }); } };
-        });
+        const N = this.nd(), X = o.nx, v = s.modView || 'inst', R = this.remote();
+        const offN = N.offers.filter((f) => f.st === 'wait').length;
+        X.views = [['inst', '설치됨', N.mods.length], ['add', '설치', ''], ['offer', 'Tree 지정', offN || '']].map(([k, l, n]) => ({ label: l, n: '' + n, cls: v === k ? 'on' : '', pick: () => this.setState({ modView: k }) }));
+        X.api = this.api({ inst: 'terra.daemon.modules.*', add: 'module inspect · install · modules.scan', offer: 'terra.daemon.modules.offers.*' }[v]);
+        X.vInst = v === 'inst'; X.vAdd = v === 'add'; X.vOffer = v === 'offer';
+        const STM = { run: ['실행 중', 'ok'], restart: ['다시 시작 중', 'warn'], stop: ['멈춤', 'off'] }, ms = Math.min(s.modSel || 0, N.mods.length - 1);
+        X.mods = N.mods.map((m, i) => ({ name: m.name, id: m.id, ver: m.ver, on: i === ms ? 'true' : 'false', cls: i === ms ? 'on' : '', stCls: m.en ? STM[m.st][1] : 'off', pick: () => this.setState({ modSel: i, modCfg: null }) }));
+        const M = N.mods[ms] || N.mods[0], mt = s.modTab || 'cfg';
+        if (M) {
+          const st = M.en ? STM[M.st] : ['꺼짐', 'off'], cd = s.modCfg && s.modCfg.id === M.id ? s.modCfg.v : null, cv = (k, d) => (cd && k in cd ? cd[k] : d), setC = (k, val) => this.setState({ modCfg: { id: M.id, v: Object.assign({}, cd || {}, { [k]: val }) } });
+          const cfgDirty = cd ? Object.keys(cd).filter((k) => { const c = M.cfg.find((x) => x[0] === k); return c && c[3] !== cd[k]; }) : [];
+          X.m = { name: M.name, id: M.id, ver: M.ver, stT: st[0], stCls: st[1], trust: M.trust, trCls: /미서명/.test(M.trust) ? 'warn' : 'ok', meta: M.kind + ' · ' + M.src + (M.prev ? ' · 이전 ' + M.prev : ''),
+            btns: this.modBtns(M, ms), tabs: [['cfg', '설정'], ['log', '로그'], ['ops', '기능 · 권한'], ['app', '앱']].map(([k, l]) => ({ label: l, cls: mt === k ? 'on' : '', pick: () => this.setState({ modTab: k }) })),
+            tabApi: this.api({ cfg: 'modules.by-module-id.config.{schema.get, get, patch}', log: 'modules.by-module-id.logs.get', ops: 'nodes.by-node.catalog.get', app: 'gateway gui.apps.* · window.health' }[mt]),
+            tCfg: mt === 'cfg', tLog: mt === 'log', tOps: mt === 'ops', tApp: mt === 'app', noCfg: !M.cfg.length,
+            cfg: M.cfg.map(([k, label, type, val, opts, rs]) => { const cur = cv(k, val); return { label, note: k, rs, dis: null, ro: null, isBool: type === 'bool', isSel: type === 'sel', isText: type === 'text', on: cur ? 'true' : 'false', swCls: cur ? 'on' : '', flip: () => setC(k, !cur), opts: opts ? this.seg(opts, cur, (x) => setC(k, x)) : [], v: String(cur), input: (e) => setC(k, e.target.value) }; }),
+            cfgDirty: cfgDirty.length ? '바뀐 ' + cfgDirty.length + (cfgDirty.some((k) => (M.cfg.find((x) => x[0] === k) || [])[5]) ? ' · 저장하면 모듈 다시 시작' : '') : '',
+            cfgBtns: [this.btn('되돌리기', () => this.setState({ modCfg: null }), { off: !cfgDirty.length }), this.btn('저장', () => { this.ndSet((d) => { const mm = d.mods[ms]; mm.cfg.forEach((c) => { if (cd && c[0] in cd) c[3] = cd[c[0]]; }); }); this.setState({ modCfg: null }); this.say(M.name + ' 설정 저장 (module.manage)'); }, { off: !cfgDirty.length, pri: !!cfgDirty.length })],
+            logs: [['09:12:03', 'info', 'started · pid 4182'], ['09:12:03', 'info', 'readiness ok'], ['10:40:17', 'info', 'config reloaded'], ['10:58:42', M.st === 'restart' ? 'warn' : 'info', M.st === 'restart' ? 'health check failed — restarting' : 'lease renewed'], ['11:02:10', 'info', M.ops[0] + ' 200 · 12ms']].map(([tt, lv, msg]) => ({ t: tt, cls: lv, msg })),
+            perms: M.perms, opsN: M.ops.length, ops: M.ops.map((x) => ({ id: M.id + '.' + x, perm: /list|get|status/.test(x) ? 'node.read' : M.perms[M.perms.length - 1] })),
+            noApps: !M.apps.length, apps: M.apps.map((a) => ({ name: a.name, id: M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
+              btns: [this.btn('열기', () => this.say(a.name + ' 앱 창 (시안)'), { off: M.st !== 'run' }), this.btn('바탕화면에 추가', () => this.addShortcut(M, a), { off: !!Object.values(s.icons).find((ic) => ic.mod === M.id + '/' + a.id) })] })) };
+        }
+        // 설치 — 파일(.tmod) · 폴더 다시 읽기 · 카탈로그
+        const ad = s.inst || { path: '', r: null, dev: false, force: false, start: true }, setA = (pp) => this.setState({ inst: Object.assign({}, ad, pp) }), r = ad.r;
+        X.add = { api: this.api('terra module inspect · install (commands.execute, 이 노드에서만)'), path: ad.path, ro: R ? 'readonly' : null, input: (e) => setA({ path: e.target.value, r: null }),
+          pickBtns: [this.btn('검사', () => { const rr = this.inspectPkg(ad.path); if (!rr) { this.say('패키지 경로 필요'); return; } setA({ r: rr }); }, { local: true })], has: !!r, root: (N.cfg['modules.root'] || '~/.terra/module'),
+          scanBtns: [this.btn('다시 읽기', () => { this.say('모듈 폴더를 다시 읽음 — modules.scan'); this.addJob('모듈 폴더 다시 읽기', 'module.scan'); })] };
+        if (r) { const broken = r.trust === '깨짐', unsigned = r.trust === '미서명', badC = r.compat !== '호환';
+          X.add.r = Object.assign({}, r, { trCls: broken ? 'err' : unsigned ? 'warn' : 'ok', cpCls: badC ? 'warn' : 'ok' });
+          X.add.opts = [['dev', '개발 모드 (--dev)', '미서명 패키지 허용', !unsigned], ['force', '덮어쓰기 (--force)', '같은 버전 · 미지원 대상', !(r.same || badC)], ['start', '설치 후 시작 (--start)', '', false]].map(([k, l, nt, dis]) => ({ label: l, note: nt, on: ad[k] ? 'checked' : null, dis: dis ? 'disabled' : null, cls: dis ? 'dim' : '', flip: () => setA({ [k]: !ad[k] }) }));
+          const why = broken ? '서명이 깨진 패키지는 설치할 수 없음' : unsigned && !ad.dev ? '미서명 — 개발 모드 필요' : badC && !ad.force ? '이 노드 미지원 — 덮어쓰기 필요' : r.same && !ad.force ? '같은 버전 — 덮어쓰기 필요' : '';
+          X.add.warn = why || '권한을 확인했으면 설치'; X.add.warnCls = why ? 'nx-err' : '';
+          X.add.btns = [this.btn('취소', () => setA({ r: null })), this.btn('권한 확인 · 설치', () => {
+            this.addJob(r.name + ' 설치', 'process.execute'); this.ndSet((d) => { const i = d.mods.findIndex((m) => m.id === r.id), m = { id: r.id, name: r.name, ver: r.ver, prev: i >= 0 ? d.mods[i].ver : '', kind: 'service', st: ad.start ? 'run' : 'stop', en: true, trust: unsigned ? '미서명 · 개발' : '서명됨', src: '파일 설치', perms: r.perms, ops: ['status'], apps: [], cfg: [] }; if (i >= 0) d.mods[i] = m; else d.mods.push(m); });
+            this.setState({ inst: null, modView: 'inst', modSel: this.nd().mods.length }); this.say(r.name + ' ' + r.ver + ' 설치 — terra module install --grant-reviewed ' + r.digest.slice(0, 15)); }, { pri: !why, off: !!why, local: true })];
+        }
+        X.add.cat = N.catalog.map(([cid, nm, ver]) => { const m = N.mods.find((x) => x.id === cid), f = N.offers.find((x) => x.id === cid); return { id: cid, name: nm, ver, st: m ? '설치됨 ' + m.ver : f ? 'Tree 지정됨' : '설치 안 됨', cls: m ? 'ok' : f ? 'info' : '' }; });
+        // Tree 지정 — 제안에 동의하면 Daemon 이 받아 설치(module_distribution), 동의 철회
+        const OS = { wait: ['동의 대기', 'warn'], consent: ['받는 중', 'info'], done: ['설치됨', 'ok'] };
+        X.offApi = this.api('offers.by-module-id.{consent, withdraw}'); X.noOffers = !N.offers.length;
+        X.offers = N.offers.map((f, i) => ({ id: f.id, name: f.name, ver: f.ver, size: f.size, by: f.by, perms: f.perms, st: OS[f.st][0], cls: OS[f.st][1],
+          btns: f.st === 'wait' ? [this.btn('동의', () => { this.ndSet((d) => { d.offers[i].st = 'consent'; }); this.addJob(f.name + ' 받기', 'module.distribution'); setTimeout(() => this.ndSet((d) => { const q = d.offers.find((x) => x.id === f.id); if (q) q.st = 'done'; if (!d.mods.find((m) => m.id === f.id)) d.mods.push({ id: f.id, name: f.name, ver: f.ver, prev: '', kind: 'service', st: 'run', en: true, trust: '서명됨', src: 'Tree 지정', perms: f.perms, ops: ['status'], apps: [], cfg: [] }); }), 1800); }, { pri: true })]
+            : f.st === 'consent' ? [this.btn('동의 철회', () => this.ndSet((d) => { d.offers[i].st = 'wait'; }))] : [] }));
+      }
+      // ── 설정 › 노드 설정 · 네트워크 · 등록 · 정보 ──
+      if (id === 'set' && ['node', 'net', 'enroll', 'about'].includes(s.setTab)) {
+        const N = this.nd(), X = o.nx, R = this.remote();
+        if (s.setTab === 'node') {
+          const G = [...new Set(CFG.map((c) => c[0]))], g = s.cfgGrp || G[0], q = (s.cfgQ || '').trim().toLowerCase(), dk = Object.keys(N.cfg).filter((k) => JSON.stringify(N.cfg[k]) !== JSON.stringify(N.cfgBase[k]));
+          X.grps = G.map((x) => { const n = CFG.filter((c) => c[0] === x && dk.includes(c[1])).length; return { label: x, n: n ? '●' + n : '', cls: x === g && !q ? 'on' : '', pick: () => this.setState({ cfgGrp: x, cfgQ: '' }) }; });
+          X.q = s.cfgQ || ''; X.qIn = (e) => this.setState({ cfgQ: e.target.value });
+          const setK = (k, val) => this.ndSet((d) => { d.cfg[k] = val; delete d.cfgErr[k]; });
+          X.keys = CFG.filter((c) => (q ? (c[1] + ' ' + c[2]).toLowerCase().includes(q) : c[0] === g)).map(([gg, k, label, type, def, opt, own, rs]) => { const val = N.cfg[k], ro = own !== 'O' || R, err = N.cfgErr[k] || '';
+            return { k, label, err, errCls: err ? 'bad' : '', isBool: type === 'bool' && !ro, isSel: type === 'sel' && !ro, isText: type === 'text' || ro, on: val ? 'true' : 'false', swCls: val ? 'on' : '', dis: ro ? 'disabled' : null, flip: () => setK(k, !val),
+              opts: Array.isArray(opt) ? this.seg(opt, val, (x) => setK(k, x)) : [], v: typeof val === 'boolean' ? (val ? '켬' : '끔') : String(val), ph: typeof opt === 'string' ? opt : '', ro: ro ? 'readonly' : null, input: (e) => setK(k, e.target.value),
+              tag: own !== 'O' ? '읽기 · 파생' : R ? '읽기 · 원격' : rs ? '재시작' : '즉시', tagCls: own !== 'O' || R ? '' : rs ? 'warn' : 'ok' }; });
+          const rsN = dk.filter((k) => (CFG.find((c) => c[1] === k) || [])[7]).length;
+          X.dirtyT = (dk.length ? '바뀐 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음') + (N.needRestart ? ' · 다시 시작 대기 ' + N.needRestart : '') + (this.help() ? ' — validate → patch{save} → apply · restart' : '');
+          const check = () => { const E = {}; dk.forEach((k) => { const f = CFG_RULE[k]; const m = f ? f(String(N.cfg[k])) : ''; if (m) E[k] = m; }); this.ndSet((d) => { d.cfgErr = E; }); return E; };
+          X.cfgBtns = [this.btn('되돌리기', () => this.ndSet((d) => { d.cfg = JSON.parse(JSON.stringify(d.cfgBase)); d.cfgErr = {}; }), { off: !dk.length, local: true }),
+            this.btn('검사', () => { const E = check(); this.say(Object.keys(E).length ? '고칠 곳 ' + Object.keys(E).length : '검사 통과'); }, { off: !dk.length, local: true }),
+            this.btn('저장', () => { const E = check(); if (Object.keys(E).length) { this.say('고칠 곳 ' + Object.keys(E).length + ' — 저장 안 함'); return; } this.ndSet((d) => { d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); d.needRestart += rsN; }); this.say('저장 ' + dk.length + (rsN ? ' · 다시 시작하면 반영' : ' · 바로 반영')); }, { off: !dk.length, pri: !!dk.length, local: true }),
+            this.btn('다시 시작', () => { this.ndSet((d) => { d.needRestart = 0; }); this.say('노드 다시 시작 — 잠깐 끊김'); this.addJob('노드 다시 시작', 'daemon.restart'); }, { off: !N.needRestart, local: true, dan: !!N.needRestart })];
+        }
+        if (s.setTab === 'net') {
+          const W = N.wg; X.wg = { iface: W.iface, st: W.up ? '켜짐' : '꺼짐', stCls: W.up ? 'ok' : 'off', addr: W.addr, port: W.port, key: W.key, plan: W.plan };
+          X.wgApi = this.api('terra.daemon.wireguard.{status, peers}.get');
+          X.peers = N.peers.map(([nn, ep, hs, rx, tx, c]) => ({ node: nn, ep, hs, rx, tx, st: c === 'ok' ? '직접' : '중계', cls: c }));
+          X.wgBtns = [this.btn('동기화', () => this.say('Master 와 피어 동기화 — wireguard.sync')), this.btn(W.up ? '내리기' : '올리기', () => this.ndSet((d) => { d.wg.up = !d.wg.up; }), { local: true, dan: W.up }), this.btn('다시 적용', () => this.say('wg0 다시 적용'), { local: true })];
+        }
+        if (s.setTab === 'enroll') { X.enApi = this.api('terra.daemon.enrollment.{status.get, code.post}');
+          X.en = Object.assign({}, N.en, { ro: R ? 'readonly' : null, codeIn: (e) => this.ndSet((d) => { d.en.code = e.target.value; }), btns: [this.btn('등록', () => this.say(/^TR-\w{4}$/.test(N.en.code) ? N.en.code + ' 로 등록 요청' : '코드 꼴: TR-XXXX'), { local: true, off: !N.en.code })] }); }
+        if (s.setTab === 'about') {
+          X.info = [['노드', this.nodeNameQ()], ['노드 ID', N.en.id], ['역할', N.cfg['daemon.roles']], ['코어', '1.7.0'], ['운영체제', 'Linux 6.18 · amd64'], ['가동', '3일 4시간'], ['데이터', N.cfg['daemon.data_dir']]].map(([k, v2]) => ({ k, v: v2 }));
+          X.checks = N.checks.map(([nn, st2]) => ({ name: nn, st: st2, cls: st2 === 'ok' ? 'ok' : 'err' }));
+          X.chkBtns = [this.btn('다시 점검', () => this.say('health · ready · live 정상'))];
+          X.caps = ['svi', 'io-inventory', 'wireguard', 'direct-tcp', 'module-host', 'gui-apps', 'service-tunnels', 'tasks'];
+        }
       }
       return o;
     });

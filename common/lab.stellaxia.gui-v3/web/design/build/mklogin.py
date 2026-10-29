@@ -63,9 +63,10 @@ rep("  loginOn() {","""  sceneCtx(e) {
     if (!mn) return null;
     const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }, acts = [];
     const here = this.sceneCur && this.sceneCur() === mn;
-    if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '이 트리의 리프 뷰로', leaf: '이 리프의 리소스 뷰로', res: '이 자원 쪽으로' }[mn.kind], run: () => this.navStart(mn) });
-    acts.push({ label: '상태', desc: '동작 · 자원 · health', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
-    acts.push({ label: '설정', desc: 'GUI · 클러스터', run: () => this.gf_ctlOpenWin(mn, undefined, 'conf') });
+    if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '리프 뷰', leaf: '리소스 뷰', res: '자원 보기' }[mn.kind], run: () => this.navStart(mn) });
+    acts.push({ label: '상태', desc: mn.kind === 'res' ? '값 · 연결' : '동작 · 상태', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
+    acts.push({ label: '설정', desc: mn.kind === 'tree' ? 'GUI · Terra · Tree' : mn.kind === 'leaf' ? 'GUI · Terra · Leaf' : 'GUI', run: () => this.gf_ctlOpenWin(mn, undefined, 'conf') });
+    if (mn.kind === 'leaf' || mn.kind === 'res') acts.push({ label: '자원', desc: '공유 · 등록', run: () => this.gf_ctlOpenWin(mn, undefined, 'share') });
     if (mn.kind === 'tree' || mn.kind === 'leaf') acts.push({ label: '제어기', desc: '노드 데스크톱', run: () => this.gf_ctlOpenWin(mn) });
     return { x, y, r, name: mn.name, kind: KN[mn.kind] || '노드', acts, track };
   }

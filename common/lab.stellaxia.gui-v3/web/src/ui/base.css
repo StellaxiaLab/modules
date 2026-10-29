@@ -1,0 +1,17 @@
+/* 앱 바탕 — 글꼴은 앱 origin 에서만 받는다(Gateway 앱 CSP font-src 'self' data:). Google Fonts 링크는 쓰지 않는다:
+   시안의 GmarketSans · Geist Mono · Noto Sans KR 은 라이선스를 확인해 web/public/fonts 에 두고 @font-face 로 (다음) */
+html, body { margin: 0; height: 100%; background: #040614; color: #d6f4de; font: 500 12px "Geist Mono", GmarketSans, "Noto Sans KR", ui-monospace, monospace; overflow: hidden; }
+#app { position: relative; width: 100%; height: 100%; }
+#field { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#windows { position: absolute; inset: 0; pointer-events: none; }
+#windows > * { pointer-events: auto; }
+.st { position: absolute; left: 10px; bottom: 8px; color: #709c80; font-size: 11px; pointer-events: none; }
+/* 창 틀 — 시안의 레거시 사각 틀(1px 노드 색 선, 머리줄 '>_ 이름 종류') */
+.tw { position: absolute; left: 0; top: 0; box-sizing: border-box; display: flex; flex-direction: column; background: #040614; border: 1px solid rgba(70,160,108,.75); box-shadow: 0 0 0 1px rgba(2,3,10,.7), 0 22px 64px rgba(0,0,0,.6); will-change: transform; contain: layout paint; }
+.tw.tw-see { background: rgba(4,6,20,.32); }
+.tw-head { height: 30px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border-bottom: 1px solid rgba(70,160,108,.4); cursor: default; user-select: none; touch-action: none; }
+.tw-p { color: #78e89c; font-weight: 700; } .tw-k { color: #709c80; } .tw-fill { flex: 1; }
+.tw-b { width: 24px; height: 22px; border: 0; background: transparent; color: #9cc4a8; cursor: pointer; }
+.tw-b:hover { color: #d0ff96; }
+.tw-body { flex: 1; min-height: 0; overflow: auto; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
