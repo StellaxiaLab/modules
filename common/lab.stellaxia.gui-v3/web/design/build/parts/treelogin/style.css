@@ -1,0 +1,70 @@
+body{margin:0;background:transparent}
+.tl{padding:14px 20px 12px;gap:8px;overflow:hidden;text-shadow:0 0 3px #02030a,0 0 6px rgba(2,3,10,.8)}
+.tl button:focus-visible,.tl input:focus-visible{outline:1px solid #f2f4fc;outline-offset:2px}
+.tl-plus{position:absolute;font:400 12px 'Geist Mono',monospace;color:#5a6488;pointer-events:none}
+.tl-prompt{display:flex;gap:8px;align-items:baseline;color:#f2f4fc;white-space:nowrap;overflow:hidden}
+.tl-o{color:#5a6488}
+.tl-dim{color:#848eb4}
+/* 포스터 패널 — 코너 괄호 · 큰 외곽 글자 · 사선 칸 · 작은 메타 글자 */
+.tl-poster{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;padding:12px 14px 10px;margin:2px 0}
+.tl-cn{position:absolute;width:14px;height:14px;border-color:#b0b8d6;border-style:solid;border-width:0}
+.tl-cn-tl{left:0;top:0;border-left-width:1px;border-top-width:1px}.tl-cn-tr{right:0;top:0;border-right-width:1px;border-top-width:1px}
+.tl-cn-bl{left:0;bottom:0;border-left-width:1px;border-bottom-width:1px}.tl-cn-br{right:0;bottom:0;border-right-width:1px;border-bottom-width:1px}
+.tl-p-left{min-width:0;display:flex;flex-direction:column;gap:4px}
+.tl-meta-row{display:flex;align-items:center;gap:10px}
+.tl-bar{background:#f2f4fc;color:#040614;font:800 11px 'Geist Mono',monospace;letter-spacing:.12em;padding:1px 8px}
+.tl-tiny{font:600 8.5px/1.25 'Geist Mono',monospace;letter-spacing:.08em;color:#b0b8d6;text-transform:uppercase}
+.tl-big{font:800 76px/0.95 'Geist Mono',GmarketSans,monospace;letter-spacing:-.02em;color:transparent;-webkit-text-stroke:2px #f2f4fc;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.tl-sub{color:#848eb4}
+.tl-p-right{display:flex;flex-direction:column;gap:8px}
+.tl-stripe{flex:1;min-height:72px;background:repeating-linear-gradient(135deg,#f2f4fc 0 7px,transparent 7px 18px)}
+.tl-stripe.warn{background:repeating-linear-gradient(135deg,#ffd27a 0 7px,transparent 7px 18px)}
+.tl-stripe.bad{background:repeating-linear-gradient(135deg,#ff9c8c 0 7px,transparent 7px 18px)}
+.tl-stripe.ok{background:repeating-linear-gradient(135deg,rgb(176,236,96) 0 7px,transparent 7px 18px)}
+.tl-codes{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tl-box-n{border:1px solid #f2f4fc;padding:0 5px;font:700 11px 'Geist Mono',monospace;color:#f2f4fc}
+/* 상태 줄 — CLI 의 ● 줄 */
+.tl-stat{display:flex;flex-direction:column;gap:3px;padding:2px 0 4px}
+.tl-sl{display:flex;gap:10px;align-items:baseline;white-space:nowrap;overflow:hidden;min-width:0}
+.tl-dot{width:10px;flex:none}
+.tl-key{width:64px;flex:none;color:#848eb4}
+.tl-url{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tl-cmd{display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap}
+.tl-ok{color:rgb(176,236,96)}
+/* 입력 — 둥근 1px 상자 안의 '>' 줄 (CLI 입력 칸) */
+.tl-input{margin:0;border:1px solid #b0b8d6;border-radius:6px;padding:6px 12px;display:flex;flex-direction:column;gap:2px}
+.tl-input.busy{border-color:#5a6488}
+.tl-input:focus-within{border-color:#f2f4fc}
+.tl-il{display:flex;align-items:center;gap:8px;min-width:0;min-height:26px}
+.tl-gt{color:#f2f4fc;font-weight:700}
+.tl-in{flex:1;min-width:0;border:0;padding:0;background:transparent;color:#f2f4fc;caret-color:#f2f4fc;font:600 13px 'Geist Mono',monospace;outline:none}
+.tl-in::placeholder{color:#3a446c}
+.tl-in[readonly]{color:#848eb4}
+.tl-il.bad .tl-key,.tl-il.bad .tl-gt{color:#ff9c8c}
+.tl-il-act{border-top:1px dashed #3a446c;margin-top:4px;padding-top:4px}
+.tl-auto{border:0;padding:2px 4px;background:transparent;color:#f2f4fc;font:600 12.5px 'Geist Mono',monospace;cursor:pointer;white-space:nowrap}
+.tl-auto:hover{background:rgba(242,244,252,.08)}
+.tl-login{border:0;padding:3px 12px;background:#f2f4fc;color:#040614;font:800 13px 'Geist Mono',monospace;letter-spacing:.04em;cursor:pointer}
+.tl-login:hover:not([disabled]){background:rgb(176,236,96)}
+.tl-login[disabled]{background:#3a446c;color:#848eb4;cursor:default}
+.tl-key-btn{border:1px solid #5a6488;padding:1px 10px;background:transparent;color:#e6eaf7;font:600 12px 'Geist Mono',monospace;cursor:pointer}
+.tl-key-btn:hover:not([disabled]){border-color:#f2f4fc}
+.tl-key-btn[disabled]{opacity:.45;cursor:default}
+.tl-blue{color:rgb(104,156,255);border-color:rgba(104,156,255,.6)}
+.tl-fill{flex:1}
+.tl-msg{margin:0;min-height:16px;font:600 12px 'Geist Mono',GmarketSans,monospace;color:#848eb4}
+.tl-msg.err{color:#ff9c8c}.tl-msg.ok{color:rgb(176,236,96)}
+.tl-help{margin:0;font:500 11px GmarketSans,'Geist Mono',sans-serif;color:#848eb4}
+.tl-keys{display:flex;align-items:center;gap:6px;color:#848eb4;font-size:11.5px}
+.tl-keys b{color:#f2f4fc;font-weight:700}
+.tl-keys span{margin-right:2px}
+.tl-tabs{display:flex;align-items:center;gap:10px;border-top:1px solid #3a446c;padding-top:6px}
+.tl-tab{background:#f2f4fc;color:#040614;font:800 10px 'Geist Mono',monospace;letter-spacing:.12em;padding:0 8px;min-width:64px}
+.tl-r{margin-left:auto;color:#5a6488}
+/* 채우기 — GUI 요소(코너 · 띠 · 사선 칸 · 테두리 · 단추 · 큰 글자)가 왼쪽에서 오른쪽으로 차오른다. 창이 열리거나 대상이 바뀔 때마다(g0 · g1 번갈아) 다시 */
+.tl .fx{animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.7,.2,1);animation-fill-mode:both}
+.tl.g0 .fx{animation-name:tlFillA}.tl.g1 .fx{animation-name:tlFillB}
+@keyframes tlFillA{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes tlFillB{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.tl .d0{animation-delay:0ms}.tl .d1{animation-delay:90ms}.tl .d2{animation-delay:160ms}.tl .d3{animation-delay:230ms}.tl .d4{animation-delay:300ms}.tl .d5{animation-delay:400ms}.tl .d6{animation-delay:500ms}.tl .d7{animation-delay:580ms}.tl .d8{animation-delay:660ms}
+@media (prefers-reduced-motion:reduce){.tl *{transition:none}.tl .fx{animation:none!important}}

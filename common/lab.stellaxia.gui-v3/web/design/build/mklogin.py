@@ -63,6 +63,7 @@ rep("  loginOn() {","""  sceneCtx(e) {
     if (!mn) return null;
     const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }, acts = [];
     const here = this.sceneCur && this.sceneCur() === mn;
+    if (mn.kind !== 'root' && this.gf_needLogin(mn)) acts.push({ label: '로그인', desc: (this.gf_treeOf(mn) || mn).name + ' 세션 없음', run: () => this.gf_loginOpen(mn) });
     if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '리프 뷰', leaf: '리소스 뷰', res: '자원 보기' }[mn.kind], run: () => this.navStart(mn) });
     acts.push({ label: '상태', desc: mn.kind === 'res' ? '값 · 연결' : '동작 · 상태', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
     acts.push({ label: '설정', desc: mn.kind === 'tree' ? 'GUI · Terra · Tree' : mn.kind === 'leaf' ? 'GUI · Terra · Leaf' : 'GUI', run: () => this.gf_ctlOpenWin(mn, undefined, 'conf') });
@@ -73,4 +74,5 @@ rep("  loginOn() {","""  sceneCtx(e) {
   loginOn() {""")
 rep("      loginDoneFn:","      ctxMenu: this._ctxF || (this._ctxF = (e) => this.sceneCtx(e)),\n      loginDoneFn:")
 
+rep("  navStart(n) {\n", "  navStart(n) {\n    if (this.gf_loginGate && this.gf_loginGate(n)) return;   // 세션 없는 Tree 로 — Tree 로그인 창이 먼저(로그인되면 이어서 간다)\n")
 open(P,'w').write(S); print('login ok')

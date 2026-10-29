@@ -1,0 +1,57 @@
+<div class="tl {{gen}}" style="position: relative; width: {{rootW}}; height: {{rootH}}; box-sizing: border-box; display: flex; flex-direction: column; background: transparent; color: #e6eaf7; font: 500 12.5px 'Geist Mono', GmarketSans, 'Noto Sans KR', ui-monospace, monospace;" onKeyDown="{{key}}">
+  <span class="tl-plus fx d0" style="left: 6px; top: 4px;">+</span><span class="tl-plus fx d2" style="right: 6px; top: 4px;">+</span><span class="tl-plus fx d6" style="left: 6px; bottom: 4px;">+</span><span class="tl-plus fx d8" style="right: 6px; bottom: 4px;">+</span>
+  <div class="tl-prompt"><span class="tl-o">○</span><span class="tl-dim">{{who}}</span><span class="tl-dim">%</span><span>{{L.cmd}}</span></div>
+
+  <div class="tl-poster">
+    <span class="tl-cn tl-cn-tl fx d1"></span><span class="tl-cn tl-cn-tr fx d2"></span><span class="tl-cn tl-cn-bl fx d3"></span><span class="tl-cn tl-cn-br fx d4"></span>
+    <div class="tl-p-left">
+      <div class="tl-meta-row"><span class="tl-bar fx d1">{{L.tree}}</span><span class="tl-tiny">{{L.meta1}}<br>{{L.meta2}}</span></div>
+      <div class="tl-big fx d2" aria-label="Tree {{name}}">{{bigT}}</div>
+      <div class="tl-tiny tl-sub">{{subT}}</div>
+    </div>
+    <div class="tl-p-right">
+      <div class="tl-stripe fx d3 {{stripeCls}}" aria-hidden="true"></div>
+      <div class="tl-codes"><span class="tl-tiny">{{codeA}}</span><span class="tl-box-n fx d4">{{codeB}}</span></div>
+    </div>
+  </div>
+
+  <div class="tl-stat">
+    <div class="tl-sl"><span class="tl-dot" style="color: {{dirCol}};">●</span><span class="tl-key">{{L.kRoute}}</span><span>{{dirT}}</span><span class="tl-dim">{{dirNote}}</span></div>
+    <div class="tl-sl"><span class="tl-dot" style="color: {{stCol}};">●</span><span class="tl-key">{{L.kMaster}}</span><span class="tl-url">{{urlT}}</span></div>
+    <div class="tl-sl"><span class="tl-dot" style="color: {{sessCol}};">{{sessDot}}</span><span class="tl-key">{{L.kSess}}</span><span>{{sessLine}}</span></div>
+  </div>
+
+  <sc-if value="{{isResolve}}" hint-placeholder-val="{{ false }}">
+    <div class="tl-cmd"><span class="tl-dim">#</span><span>{{L.noAddr}}</span><span class="tl-dim">{{resolveNote}}</span><span class="tl-fill"></span><button type="button" class="tl-key-btn tl-blue fx d5" onClick="{{resolve}}" disabled="{{busyD}}">{{resolveT}}</button></div>
+  </sc-if>
+  <sc-if value="{{isUnreach}}" hint-placeholder-val="{{ false }}">
+    <div class="tl-cmd"><span class="tl-dim">#</span><span>{{L.unreach}}</span><span class="tl-fill"></span>
+      <sc-if value="{{hasTunnel}}" hint-placeholder-val="{{ true }}"><button type="button" class="tl-key-btn tl-blue fx d5" onClick="{{useTunnel}}">{{tunT}}</button></sc-if>
+      <button type="button" class="tl-key-btn fx d6" onClick="{{manual}}">{{L.urlFlag}}</button></div>
+    <sc-if value="{{isManual}}" hint-placeholder-val="{{ false }}">
+      <form class="tl-input fx d0" onSubmit="{{manualOk}}"><label class="tl-il"><span class="tl-key">{{L.kUrl}}</span><span class="tl-gt">&gt;</span><input class="tl-in" type="url" value="{{manualUrl}}" placeholder="https://tree.example:8080" onInput="{{manualIn}}" spellcheck="false" aria-label="Tree 주소"></label></form>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{isForm}}" hint-placeholder-val="{{ true }}">
+    <form class="tl-input fx d5 {{formCls}}" onSubmit="{{submit}}" aria-label="{{name}} 로그인">
+      <label class="tl-il {{emailCls}}"><span class="tl-key">{{L.kEmail}}</span><span class="tl-gt">&gt;</span><input class="tl-in" type="email" name="email" autocomplete="username" value="{{email}}" placeholder="{{emailPh}}" onInput="{{emailIn}}" readonly="{{roI}}" spellcheck="false" aria-label="email" aria-invalid="{{emailBad}}"></label>
+      <label class="tl-il {{passCls}}"><span class="tl-key">{{L.kPass}}</span><span class="tl-gt">&gt;</span><input class="tl-in" type="password" name="password" autocomplete="current-password" value="{{pass}}" onInput="{{passIn}}" readonly="{{roI}}" aria-label="password" aria-invalid="{{passBad}}"></label>
+      <div class="tl-il tl-il-act">
+        <button type="button" class="tl-auto" role="checkbox" aria-checked="{{keepA}}" onClick="{{keep}}">[{{keepT}}] {{L.auto}}<span class="tl-dim">{{L.autoNote}}</span></button>
+        <span class="tl-fill"></span>
+        <button type="submit" class="tl-login fx d7" disabled="{{busyD}}">{{loginT}}</button>
+      </div>
+    </form>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <div class="tl-cmd tl-ok"><span>✓</span><span>{{L.loggedIn}}</span><span class="tl-dim">{{doneNote}}</span></div>
+  </sc-if>
+
+  <p class="tl-msg {{msgCls}}" aria-live="polite">{{msgT}}</p>
+  <sc-if value="{{help}}" hint-placeholder-val="{{ false }}"><p class="tl-help">{{helpT}}</p></sc-if>
+  <span class="tl-fill"></span>
+  <div class="tl-keys"><b>{{L.k1}}</b><span>{{L.k1t}}</span><span class="tl-dim">·</span><b>{{L.k2}}</b><span>{{L.k2t}}</span><span class="tl-dim">·</span><b>{{L.k3}}</b><span>{{L.k3t}}</span><span class="tl-fill"></span><button type="button" class="tl-key-btn fx d7" onClick="{{cancel}}">{{L.cancel}}</button></div>
+  <div class="tl-tabs fx d6"><span class="tl-tab fx d7">{{L.tab1}}</span><span class="tl-tab fx d8">{{L.tab2}}</span><span class="tl-tiny tl-r">{{footT}}</span></div>
+</div>
