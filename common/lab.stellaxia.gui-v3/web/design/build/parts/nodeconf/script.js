@@ -106,7 +106,7 @@ class Component extends DCLogic {
         pick: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.profPick(f); }, clear: () => { this._pend = null; this.set('profile', ''); } }]; }
     if (sec === 'skin') { const L = this.starIdx(), planet = (this.props.nodeKind || '리프') === '리프', pick = (id) => () => this.set('skin', id), C = (id) => (v.skin === id ? 'on' : '');
       const files = L.files.slice().sort((a, b) => (a.path + '/' + a.name).localeCompare(b.path + '/' + b.name));
-      return [{ label: '행성 스킨', sub: (planet ? '유틸/스타메이커/star' : '리프에서만 보임'), isSkin: true,
+      return [{ label: '행성 스킨', sub: '유틸/스타메이커/star · ' + (planet ? '행성 겉면' : '리프 뷰 가운데 항성'), isSkin: true,
         skins: [{ name: '기본', path: '타입 무늬', thumb: '', noThumb: true, hasThumb: false, cls: C(''), on: v.skin === '' ? 'true' : 'false', pick: pick('') }].concat(files.map((f) => ({ name: f.name, path: f.path + ' · ' + (f.kind === 'planet' ? '행성' : '항성'), thumb: f.thumb || '', noThumb: !f.thumb, hasThumb: !!f.thumb, cls: C(f.id), on: v.skin === f.id ? 'true' : 'false', pick: pick(f.id) }))),
         skinEmpty: files.length ? '' : 'star 폴더 비어 있음' }]; }
     if (sec === 'view') return [G('view', '시작 뷰', '', ['트리 뷰', '리프 뷰', '리소스 뷰']), T('dbl', '더블클릭 진입', '끄면 우클릭 › 진입'), T('badge', '알림 배지', '')];
