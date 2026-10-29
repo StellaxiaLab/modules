@@ -55,6 +55,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <div data-ctlwin="scene" data-slot="12" style="display: none"><div data-ctlbody="scene"><dc-import name="ResStatus" res-name="{{wNode12}}" node-name="{{wPar12}}" src="{{wSrc12}}" win-w="{{ctlW12}}" win-h="{{ctlH12}}" hint-size="600px,600px"></dc-import></div></div>
 <div data-ctlwin="scene" data-slot="13" style="display: none"><div data-ctlbody="scene"><dc-import name="ResStatus" res-name="{{wNode13}}" node-name="{{wPar13}}" src="{{wSrc13}}" win-w="{{ctlW13}}" win-h="{{ctlH13}}" hint-size="600px,600px"></dc-import></div></div>
 <div data-ctlwin="scene" data-slot="14" style="display: none"><div data-ctlbody="scene"><dc-import name="ResStatus" res-name="{{wNode14}}" node-name="{{wPar14}}" src="{{wSrc14}}" win-w="{{ctlW14}}" win-h="{{ctlH14}}" hint-size="600px,600px"></dc-import></div></div>
+<div data-ctlwin="scene" data-slot="15" style="display: none"><div data-ctlbody="scene"><dc-import name="TreeLogin" tree-name="{{wNode15}}" tree-key="{{wId15}}" direction="{{wDir15}}" login-url="{{wUrl15}}" reachable="{{wReach15}}" needs-resolve="{{wNeed15}}" tunnel-port="{{wTun15}}" current="{{wCur15}}" on-done="{{treeLoginDoneFn}}" on-cancel="{{treeLoginCancelFn}}" win-w="{{ctlW15}}" win-h="{{ctlH15}}" hint-size="600px,540px"></dc-import></div></div>
 <button class="replay" type="button" aria-label="뒤로 (ESC)" onPointerUp="{{stopProp}}" onClick="{{back.go}}" style="display: none; position: absolute; z-index: 3; left: 32px; top: 32px; gap: 8px; opacity: {{back.op}}; cursor: {{back.cur}}; background: #040614"><span style="font-family: GmarketSans, 'Geist Mono', monospace; font-size: 11px; padding: 1px 6px; border: 1px solid #2c3558; border-radius: 4px">ESC</span>뒤로</button>
 
 <button type="button" onPointerUp="{{stopProp}}" onClick="{{loginAgain}}" style="display: {{loginAgainD}}; position: absolute; right: 20px; bottom: 18px; z-index: 5; font: 600 12px 'Geist Mono', monospace; padding: 4px 9px; border-radius: 4px; border: 1px solid rgba(108,118,156,0.35); background: #040614; color: #9aa4c8; cursor: pointer;">TEST · 로그인부터</button>
@@ -659,10 +660,12 @@ class Component extends DCLogic {
     this.drawStar3D(ctx, Fr.sp[id], r, Fr.t);
   }
   drawStar3D(ctx, q, r, t) {
-    const T = this.starTex(), name = this.STAR(), ST = this.STAR_TYPES()[name], lut = this.starLut(name), D = Math.max(16, Math.min(260, Math.round(r * 2)));
+    // 항성 스킨 — 설정 창 › 스킨이 이 트리(지도 id 'T…')에 고른 구 파일. 행성과 같은 skinFor — 구 파일의 종류(항성 · 행성)는 가리지 않는다
+    const SK = this._leafId != null ? this.skinFor('T' + this._leafId) : null, SF = SK && SK.f, SB = SK && SK.proj === 'billboard';
+    const T = this.starTex(), sname = this.STAR(), name = sname + (SF ? '|skin' : ''), ST = this.STAR_TYPES()[sname], lut = this.starLut(sname), D = Math.max(16, Math.min(260, Math.round(r * 2)));
     // 크기가 바뀌었어도(진입 확대 중) 지난 그림이 1/15초 안이면 그것을 늘려 붙인다 — 매 프레임 구 좌표 · 표면을 새로 만들던 것을 막는다 (화면엔 같은 크기로)
     const nowS0 = performance.now(), G0 = this._sgeo;
-    if (G0 && G0.D !== D && G0.at && nowS0 - G0.at < 66 && G0.star === name) { ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(G0.cv, q[0] - r, q[1] - r, r * 2, r * 2); ctx.restore(); return; }
+    if (G0 && G0.D !== D && G0.at && nowS0 - G0.at < 66 && G0.star === name && G0.skinF === SF) { ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(G0.cv, q[0] - r, q[1] - r, r * 2, r * 2); ctx.restore(); return; }
     // 픽셀마다 구 좌표 — 크기마다 한 번 (지나온 크기는 기억해 둔다)
     const SGM = this._sgeoM || (this._sgeoM = new Map());
     if ((!this._sgeo || this._sgeo.D !== D) && SGM.has(D)) this._sgeo = SGM.get(D);
@@ -680,15 +683,22 @@ class Component extends DCLogic {
     }
     // 표면 갱신은 1/15초에 한 번 — 자전이 느려 차이가 보이지 않는다 (같은 크기면 지난 그림을 그대로)
     const nowS = performance.now();
-    if (this._sgeo.at && nowS - this._sgeo.at < 66 && this._sgeo.star === name) { ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(this._sgeo.cv, q[0] - r, q[1] - r, r * 2, r * 2); ctx.restore(); return; }
-    this._sgeo.at = nowS; this._sgeo.star = name;
+    if (this._sgeo.at && nowS - this._sgeo.at < 66 && this._sgeo.star === name && this._sgeo.skinF === SF) { ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(this._sgeo.cv, q[0] - r, q[1] - r, r * 2, r * 2); ctx.restore(); return; }
+    this._sgeo.at = nowS; this._sgeo.star = name; this._sgeo.skinF = SF;
     const G = this._sgeo, px = G.img.data, TW = T.TW, rotA = t * 0.12 * ST.rot, rotB = t * 0.17 * ST.rot,   /* 자전 2배 */ k2 = TW / (Math.PI * 2);
     let sr = 0, sg = 0, sb = 0, sn = 0;   // 항성 평균 색 — 하이라이트에 섞는다
     for (let i = 0; i < D * D; i++) {
       const o = i * 4; if (!G.inn[i]) { px[o + 3] = 0; continue; }
       const rw = G.row[i] * TW, la = G.lon[i];
       let ua = ((la + rotA) * k2) | 0, ub = ((la + rotB) * k2) | 0; ua %= TW; if (ua < 0) ua += TW; ub %= TW; if (ub < 0) ub += TW;
-      const z = G.nz[i], fn = T.fine[rw + ub];
+      const z = G.nz[i];
+      if (SF) {   // 스킨 — 구 파일의 표면 지도(equirect: 경도 · 위도, billboard: 화면 그대로)를 자전과 함께, 가장자리는 조금 어둡게
+        let fx, fy; if (SB) { fx = ((i % D) + 0.5) / D * SF.w | 0; fy = (((i / D) | 0) + 0.5) / D * SF.h | 0; }
+        else { let u = (la + rotA) / (Math.PI * 2); u -= Math.floor(u); fx = Math.min(SF.w - 1, u * SF.w | 0); fy = Math.min(SF.h - 1, G.row[i] / (T.TH - 1) * SF.h | 0); }
+        const so = (fy * SF.w + fx) * 4, sh = 0.78 + 0.22 * z;
+        px[o] = SF.px[so] * sh; px[o + 1] = SF.px[so + 1] * sh; px[o + 2] = SF.px[so + 2] * sh;
+        sr += px[o]; sg += px[o + 1]; sb += px[o + 2]; sn++; px[o + 3] = (z < 0.06 ? 255 * z / 0.06 : 255) * SF.px[so + 3] / 255; continue; }
+      const fn = T.fine[rw + ub];
       let v = (T.big[rw + ua] * 0.62 + fn * 0.45 - 0.5) * ST.con + 0.5 + ST.base + (fn > 0.6 ? (fn - 0.6) * ST.spk : 0);
       // 가장자리 — 뜨거운 별은 흰 테(+), 태양은 어두워짐(−)
       if (ST.limb >= 0) v = v * (0.92 + 0.15 * z) + Math.pow(1 - z, 2.2) * ST.limb;
@@ -883,6 +893,7 @@ class Component extends DCLogic {
     return { x: h.x, y: h.y, r, Rh: rF * 1.35 };
   }
   enterLeaf(id) {
+    { const t = this.sceneMap().byId['T' + id]; if (t && this.gf_loginGate && this.gf_loginGate(t, () => this.enterLeaf(id))) return; }   // 트리 뷰에서 항성을 눌러 들어가기 — 세션 없는 Tree 면 들어가기 전에 로그인 창(되면 그때 들어간다)
     this._leafId = id; this._pl = null;
     const now = performance.now(), cur = this._enter ? this._enter.tl || 0 : 0;
     this._enter = { id, dir: 'in', at: now, tl0: cur, tl: cur, e: this._enter ? this._enter.e || 0 : 0 };
@@ -2171,6 +2182,7 @@ class Component extends DCLogic {
   NAV_TL() { return { tilt: 700, dive: 1200, warpAt: 0.5, tiltRad: 0.75 }; }
   // 노드 이동 시작 — 먼저 마우스 피드백만 끄고(정렬), 시차 · 시선이 기본 자리로 돌아오면 그때 이동을 시작한다 (피드백이 풀리는 움직임과 이동이 겹쳐 끊겨 보이지 않게)
   navStart(n) {
+    if (this.gf_loginGate && this.gf_loginGate(n)) return;   // 세션 없는 Tree 로 — Tree 로그인 창이 먼저(로그인되면 이어서 간다)
     if (this._navS || (this._ws && (this._ws.tgt || this._ws.e > 0))) return;
     if (n.kind === 'leaf' && this._lv && n.ref === this._leafId && this._res && this._res.dir === 'in' && this._res.name === n.planet) return;   // 이미 거기
     // 리소스 뷰 → 그 행성이 속한 리프 뷰(자식 → 부모) — 화면 전환(워프) 대신, 리소스 뷰를 빠져나오는 카메라 이동(exitRes)을 그대로 쓴다 (정렬 대기도 없이 바로)
@@ -2501,7 +2513,8 @@ class Component extends DCLogic {
         const nameCol = it.hit ? KC.hit : isDir ? C.val : C.key, parts = [];
         if (pre) parts.push([pre, it.type === 'exec' && it.ent.exec === 'ctl' ? KC.head : C.key]);
         parts.push([it.name, nameCol, isDir || it.hit]);
-        if (isDir) parts.push([it.isNode ? (it.exp ? ' ▲' : ' ▼') : it.exp ? ' △' : ' ▽', C.key]);   // 노드 디렉토리(표지 파일이 있음) = 채운 삼각형 · 그냥 디렉토리 = 빈 삼각형
+        if (isDir) parts.push([it.isNode ? (it.exp ? ' ▲' : ' ▼') : it.exp ? ' △' : ' ▽', C.key]);
+        if (it.lock) parts.push([' ⊘', C.hint, true]);   // 잠김 — 세션 없는 Tree 의 노드 폴더   // 노드 디렉토리(표지 파일이 있음) = 채운 삼각형 · 그냥 디렉토리 = 빈 삼각형
         if (it.more) parts.push(['  ' + it.more, C.hint]);
         line('c', row, parts, ind, o0, 'mzct' + k);   /* 줄 자리마다 같은 텍스트 — 내용이 바뀌면 그 줄만 다시 찍힌다(겹친 잔상 없음) */ CT.rows.push({ row, id: it.id, k: CT.scroll + k });
       }
@@ -2677,6 +2690,8 @@ class Component extends DCLogic {
         more: sph ? (e.data.kind === 'planet' ? '행성' : '항성') : e.data && e.data.type === 'terra.file' ? Math.max(1, Math.round((e.data.size || 0) / 1024)) + 'KB' : e.data && e.data.type === 'terra.props' ? '속성' : e.type === 'link' && e.target.startsWith('@node:') ? '→ 자원' : '' }; });
   }
   gf_isDirItem(it) { return it.type === 'dir' || it.type === 'wdir'; }
+  // 잠긴 노드 폴더 — 세션 없는 Tree(또는 그 아래 리프)의 노드 폴더. 펼치지 않고, 찾기로도 안을 보여 주지 않는다(이름만). 열려고 하면 로그인 창부터
+  gf_ctlLocked(it) { return !!(it && it.isNode && it.node && it.node.kind !== 'root' && this.gf_needLogin(it.node)); }
   gf_starIdx() { try { const v = JSON.parse(localStorage.getItem('terra.star.index') || 'null'); if (v && Array.isArray(v.files)) return { folders: v.folders || ['star'], files: v.files }; } catch (e) {} return { folders: ['star'], files: [] }; }
   // 스타메이커 창 열기 — id 가 있으면 그 구 파일을 불러온 채로
   gf_smNode() { return this._q_smN || (this._q_smN = { id: ':sm', name: '유틸', kind: 'util', kids: [], parent: null }); }
@@ -2687,7 +2702,7 @@ class Component extends DCLogic {
     if (!this._q_ctlTree || this._q_ctlTree.root.ent !== sd) this._q_ctlTree = { root: { id: '/' + sd.name, type: 'dir', ent: sd, node: scope } };   // 지도 데이터가 바뀌면 다시
     const R = this._q_ctlTree.root, out = [];
     const match = (it) => it.name.toLowerCase().includes(q);
-    const hasHit = (it, d) => { if (d > 10 || !this.gf_isDirItem(it)) return false; let v = false; for (const c of this.gf_ctlKids(it)) if (match(c) || hasHit(c, d + 1)) { v = true; break; } return v; };
+    const hasHit = (it, d) => { if (d > 10 || !this.gf_isDirItem(it) || this.gf_ctlLocked(it)) return false; let v = false; for (const c of this.gf_ctlKids(it)) if (match(c) || hasHit(c, d + 1)) { v = true; break; } return v; };
     // 맨 위 — 최소화 폴더(빈 삼각형). 처음엔 비어 있고, 창이 열려 있거나 최소화돼 있으면 그 창들이 뜬다 (두 번 누르면 연다)
     const WD = { id: ':wins', name: '최소화', type: 'wdir', scope: CT.mode === 'global' ? null : scope };
     { const n = this.gf_ctlKids(WD).length; WD.more = n ? n + '' : '비어 있음'; }
@@ -2695,8 +2710,8 @@ class Component extends DCLogic {
       for (const c of (it === R ? [WD] : []).concat(this.gf_ctlKids(it))) {
         const dir = this.gf_isDirItem(c), hit = !!q && match(c), anc = filter && dir && hasHit(c, 0);
         if (filter && !hit && !anc) continue;
-        const exp = dir && (q ? (anc ? !CT.qc[c.id] : !!CT.qc[c.id]) : !!CT.open[c.id]);
-        out.push(Object.assign({}, c, { depth, kids: dir, exp, hit }));
+        const lock = dir && this.gf_ctlLocked(c), exp = dir && !lock && (q ? (anc ? !CT.qc[c.id] : !!CT.qc[c.id]) : !!CT.open[c.id]);
+        out.push(Object.assign({}, c, { depth, kids: dir, exp, hit }, lock ? { lock: true, more: '로그인 필요' } : null));
         if (exp) walk(c, depth + 1, filter && anc);
       }
     };
@@ -2706,7 +2721,10 @@ class Component extends DCLogic {
   // 누르기 · Enter — 디렉토리: 펼치기 · 접기 / 실행 파일: 그 창 / 링크: 그 일 / 구 데이터: 스타메이커로 열기
   gf_ctlAct(it) {
     const K = this._q_ctl, q = ((this._q_cmd && this._q_cmd.text) || '').trim();
-    if (it.kids) { if (q) K.qc[it.id] = !K.qc[it.id]; else K.open[it.id] = !K.open[it.id]; this.gf_layout(); return; }
+    if (it.kids) {
+      // 잠긴 노드 폴더 — 막고 로그인 창부터. 로그인되면 그 폴더를 펼친다 (창을 닫으면 그대로 잠김)
+      if (it.lock || this.gf_ctlLocked(it)) { const id = it.id, nd = it.node; this.gf_loginGate(nd, () => { if (q) K.qc[id] = true; else K.open[id] = true; this.gf_layout(); }); return; }
+      if (q) K.qc[it.id] = !K.qc[it.id]; else K.open[it.id] = !K.open[it.id]; this.gf_layout(); return; }
     if (it.type === 'win') return this.gf_winOpen(it.win);
     if (it.type === 'exec') { const x = it.ent.exec; if (x === 'ctl') return this.gf_ctlOpenWin(it.node); if (x === 'starmaker') return this.gf_smOpen(); return; }   // 'tool' — 화면은 아직 (자리만)
     if (it.type === 'link') { const tg = it.ent.target, n = it.node;
@@ -2717,6 +2735,7 @@ class Component extends DCLogic {
   // 지도에서 보기 — 그 노드를 그 지도 뷰(트리 · 계정 → 트리 지도 · 리프 → 그 트리의 리프 지도 · 리소스 → 그 리프의 리소스 지도)로 포커싱
   gf_mapShow(n) {
     const MD = this.sceneMap(); if (!n) return;
+    if ((n.kind === 'leaf' || n.kind === 'res') && this.gf_loginGate(n, () => this.gf_mapShow(n))) return;   // 다른 Tree 의 리프 · 리소스 지도 = 그 Tree 로 들어가는 것 — 보여 주기 전에 로그인
     this._q_mv = n.kind === 'root' || n.kind === 'tree' ? { level: 'tree', root: MD.root.id, focus: n.id } : n.kind === 'leaf' ? { level: 'leaf', root: n.parent.id, focus: n.id } : { level: 'res', root: n.parent.id, focus: n.id };
     this.gf_layout();
   }
@@ -2788,6 +2807,7 @@ class Component extends DCLogic {
     const W = { slot: k, node, kind, wrap, fr: body, body, R, tau: 0, dir: 1, raf: 0, max: null, z: 0 };
     WS[k] = W; wrap._W = W;
     if (kind === 'ctl') { this.setState({ ['ctlNode' + k]: node.name, ['ctlRemote' + k]: !!node.parent && node !== this.gf_localNode() }); this['_ctlNode' + k] = node; }   // 그 자리의 자식 컴포넌트(노드 데스크톱)에 노드 이름
+    else if (kind === 'login') { const R = this.gf_loginRoute(node), L = this.gf_treeOf(this.gf_localNode()); this.setState({ ['wNode' + k]: node.name, ['wId' + k]: node.id, ['wDir' + k]: R.dir, ['wUrl' + k]: R.url, ['wReach' + k]: R.reach, ['wNeed' + k]: R.need, ['wTun' + k]: R.tun, ['wCur' + k]: L ? L.name : '' }); }
     else if (kind === 'res') this.setState({ ['wNode' + k]: node.name, ['wPar' + k]: node.parent ? node.parent.name : '—', ['wSrc' + k]: rsSrc || node.src || '내 자원', ['wId' + k]: node.id });
     else if (kind === 'conf' || kind === 'stat' || kind === 'share') { const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }; this.setState({ ['wNode' + k]: node.name, ['wKind' + k]: KN[node.kind] || '노드', ['wPar' + k]: node.parent ? node.parent.name : '—', ['wId' + k]: node.id, ['wPath' + k]: node.path || '/' + node.name, ['wRemote' + k]: !!node.parent && node !== this.gf_localNode(), ['wRes' + k]: (node.kids || []).filter((c) => c.kind === 'res').map((c) => c.name), ['wFocus' + k]: focusRes, ['wPeers' + k]: this.gf_peerList() }); this['_wNode' + k] = node; }
     this.gf_ctlChrome(wrap);
@@ -2865,7 +2885,8 @@ class Component extends DCLogic {
     W = W || this._q_ctlWin; if (!W || W.raf) return; const T = this.gf_CTLW(); let last = performance.now(); this._q_ctlAnim = true;
     const tick = (now) => { W.raf = 0; if (!this._live) return this.gf_ctlClose(W, true); const dt = Math.min(50, now - last); last = now;
       W.tau = Math.max(0, Math.min(T.END, W.tau + W.dir * dt)); const V = this.gf_ctlVals(W.tau, W.R);
-      W.wrap.style.clipPath = V.top ? 'none' : 'inset(' + Math.max(0, -V.er).toFixed(1) + 'px)'; W.wrap.style.filter = V.b < 0.999 ? 'brightness(' + V.b.toFixed(3) + ')' : 'none';
+      if (W.kind === 'login') { const q = Math.min(1, W.tau / T.END), e = 1 - Math.pow(1 - q, 3); W.wrap.style.clipPath = q >= 1 ? 'none' : 'inset(0 ' + ((1 - e) * 100).toFixed(2) + '% 0 0)'; }   // 로그인 창 — 왼쪽에서 오른쪽으로 열린다(닫을 땐 거꾸로)
+      else W.wrap.style.clipPath = V.top ? 'none' : 'inset(' + Math.max(0, -V.er).toFixed(1) + 'px)'; W.wrap.style.filter = V.b < 0.999 ? 'brightness(' + V.b.toFixed(3) + ')' : 'none';
       if (W.dir < 0 && W.tau <= 0) { this.gf_ctlClose(W, true); return; }
       if (W.dir < 0 || W.tau < T.END) W.raf = requestAnimationFrame(tick); else this.gf_ctlSync(); };
     W.raf = requestAnimationFrame(tick);
@@ -2906,6 +2927,9 @@ class Component extends DCLogic {
     }
     for (const k of [7, 8, 9, 10, 11, 12, 13, 14]) { o['wSrc' + k] = S['wSrc' + k] || ''; o['wNode' + k] = S['wNode' + k] || 'lab-ws-02'; o['wKind' + k] = S['wKind' + k] || '리프'; o['wPar' + k] = S['wPar' + k] || '—'; o['wId' + k] = S['wId' + k] || ''; o['wPath' + k] = S['wPath' + k] || ''; o['wRemote' + k] = !!S['wRemote' + k]; o['wRes' + k] = S['wRes' + k] || []; o['wFocus' + k] = S['wFocus' + k] || ''; o['wPeers' + k] = S['wPeers' + k] || [];
       o['openFn' + k] = F['o' + k] || (F['o' + k] = (kind, arg) => { const n = this['_wNode' + k]; if (n) this.gf_ctlOpenWin(n, undefined, kind, arg); }); o['ctlW' + k] = S['ctlW' + k] || this.gf_WSIZE(k === 7 ? 'conf' : k === 11 ? 'share' : k >= 12 ? 'res' : 'stat')[0]; o['ctlH' + k] = S['ctlH' + k] || this.gf_WSIZE(k === 7 ? 'conf' : k === 11 ? 'share' : k >= 12 ? 'res' : 'stat')[1]; }   // 설정(7) · 상태(8–10)
+    { const k = 15; o.wNode15 = S.wNode15 || '02'; o.wId15 = S.wId15 || ''; o.wDir15 = S.wDir15 || 'sibling'; o.wUrl15 = S.wUrl15 || ''; o.wReach15 = S.wReach15 !== false; o.wNeed15 = !!S.wNeed15; o.wTun15 = S.wTun15 || 0; o.wCur15 = S.wCur15 || '';
+      o.ctlW15 = S.ctlW15 || this.gf_WSIZE('login')[0]; o.ctlH15 = S.ctlH15 || this.gf_WSIZE('login')[1];
+      o.treeLoginDoneFn = F.ld || (F.ld = (key, keep, email) => this.gf_loginDone(key, keep, email)); o.treeLoginCancelFn = F.lc || (F.lc = () => { const W = (this._q_ctlWs || [])[k]; this._q_loginDest = null; this._q_loginAfter = null; if (W) this.gf_ctlX(W); }); }   // Tree 로그인(15)
     const k6 = this.gf_CTLN(); o.smW = S['ctlW' + k6] || 1100; o.smH = S['ctlH' + k6] || 720; o.smLoad = S.smLoad || ''; o.skinFn = F.sk || (F.sk = () => { try { window.dispatchEvent(new Event('terra-skin')); } catch (e) {} });   /* 스킨 적용 → 장면이 바로 다시 읽음 */ o.smSavedFn = F.sm || (F.sm = () => { this._q_ctlTree = null; this.gf_layout(); });   // 스타메이커 — 저장 · 지우기 · 새 폴더 → 전역 제어의 star 폴더를 다시
     return o;
   }
@@ -2915,7 +2939,7 @@ class Component extends DCLogic {
   gf_cssGlow(c, a) { const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) return c; const v = m[1].split(',').map(Number), g = (x) => Math.round(x + (255 - x) * a); return this.qcss('rgb(' + g(v[0]) + ',' + g(v[1]) + ',' + g(v[2]) + ')'); }
   // ───── 창 목록 — 지금 떠 있는 창 · 최소화한 창 (전역: 모든 노드의 창). 종류: 제어기 (앞으로 더 늘어남) ─────
   //   { id, node, kind, R, st: 'open' | 'min', at }. 같은 노드 · 같은 종류의 창은 하나
-  gf_WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태' }; }
+  gf_WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인' }; }
   // 창 종류마다의 자리 · 기본 크기 · 바탕 — 상태 창은 CLI 처럼 바탕이 비친다(글자 장 구멍 없음)
   // 이 GUI 가 떠 있는 노드(로컬) — 노드 설정 쓰기는 여기만 된다(terra.daemon.config.patch 는 로컬 전용). 시안: 지도의 첫 리프
   gf_localNode() { const MD = this.sceneMap(); return this._q_locN && MD.all.includes(this._q_locN) ? this._q_locN : (this._q_locN = MD.all.find((n) => n.kind === 'leaf') || MD.root); }
@@ -2928,10 +2952,41 @@ class Component extends DCLogic {
     if (!M.has(key)) M.set(key, { id: key, name, kind: 'res', parent: prov, path: (prov.path || '/' + prov.name) + '/' + name, kids: [], src: src || '내 자원' });
     return M.get(key);
   }
+  // ───── Tree 세션 · 로그인 ─────
+  //   다른 Tree 로 옮겨 가려면 그 Tree(Master)의 세션이 있어야 한다. 이 노드가 속한 Tree 와 그 위(부모들)는 처음부터 있다(이 노드의 등록).
+  //   그 밖의 Tree 로 진입 · 워프 · 우클릭 › 진입 하면 로그인 창(자리 15)이 먼저 뜨고, 로그인되면 원래 가려던 곳으로 간다
+  //   'auto'(로그인 유지)면 terra.sess 에 남고(실제: Gateway auth.credentials 핸들), 아니면 이 화면이 열려 있는 동안만
+  gf_treeOf(n) { while (n && n.kind !== 'tree') n = n.parent; return n || null; }
+  // auto — 켜면 저장된 세션(terra.sess)으로 묻지 않고 옮겨 가고, 로그인 창의 'auto' 기본값도 켬. 끄면 Tree 를 옮길 때마다 묻는다(이번 실행의 '이번만' 세션은 그대로)
+  gf_autoOn() { try { return localStorage.getItem('terra.auto') !== '0'; } catch (e) { return true; } }
+  gf_sessMap() { try { return JSON.parse(localStorage.getItem('terra.sess') || '{}') || {}; } catch (e) { return {}; } }
+  gf_hasSess(t) { if (!t) return true; const L = this.gf_localNode(); for (let q = L; q; q = q.parent) if (q === t) return true; return (this.gf_autoOn() && !!this.gf_sessMap()[t.id]) || !!(this._q_sessMem && this._q_sessMem[t.id]); }
+  gf_needLogin(n) { const t = this.gf_treeOf(n); return !!t && !this.gf_hasSess(t); }
+  // 로그인 길 — Master login routing(A1)의 답을 흉내: 부모 · 형제는 주소를 안다, 자식은 그 자식에게 물어야 한다, 먼 Tree 는 길이 없다
+  gf_loginRoute(t) {
+    const L = this.gf_treeOf(this.gf_localNode()), slug = 'https://tree-' + t.name.replace(/[^\w]+/g, '-') + '.terra.local:8080';
+    let up = false; for (let q = L; q; q = q.parent) if (q === t) up = true;
+    let down = false; for (let q = t; q; q = q.parent) if (q === L) down = true;
+    const dir = up ? 'parent' : down ? 'child' : L && t.parent === L.parent ? 'sibling' : 'far';
+    // 먼 Tree(이 Tree 의 길에 없는 것) — 계정이 기억한 주소로. 시안: 이름에 4 가 든 Tree 는 이 기기에서 닿지 않는다(터널 포트만 광고)
+    const off = /4/.test(t.name) && dir !== 'parent';
+    return { dir, url: dir === 'child' ? '' : slug, reach: !off, need: dir === 'child', tun: off ? 17330 : 0 };
+  }
+  gf_loginGate(n, after) { if (!this.gf_needLogin(n)) return false; this._q_loginDest = n; this._q_loginAfter = after || null; this.gf_ctlOpenWin(this.gf_treeOf(n), undefined, 'login'); return true; }
+  gf_loginOpen(n) { this._q_loginDest = null; this._q_loginAfter = null; const t = this.gf_treeOf(n); if (t) this.gf_ctlOpenWin(t, undefined, 'login'); }   // 우클릭 › 로그인 — 로그인만 (옮겨 가지 않는다)
+  gf_loginDone(key, keep, email) {
+    const t = this.sceneMap().byId[key]; if (!t) return;
+    if (keep) { const m = this.gf_sessMap(); m[key] = { email, name: t.name, at: Date.now() }; try { localStorage.setItem('terra.sess', JSON.stringify(m)); } catch (e) {} }
+    else (this._q_sessMem || (this._q_sessMem = {}))[key] = { email, at: Date.now() };
+    const W = (this._q_ctlWs || [])[15]; if (W) this.gf_ctlX(W);
+    const dest = this._q_loginDest, after = this._q_loginAfter; this._q_loginDest = null; this._q_loginAfter = null;
+    try { window.dispatchEvent(new Event('terra-sess')); } catch (e) {}
+    if (after) after(); else if (dest) { if (this.navStart) this.navStart(dest); else if (this.warpTo) this.navStart(dest); }
+  }
   gf_peerList() { const KN = { tree: '트리', leaf: '리프' }; return this.sceneMap().all.filter((n) => n.kind === 'tree' || n.kind === 'leaf').map((n) => ({ id: n.id, name: n.name, kind: KN[n.kind], parent: n.parent ? n.parent.name : '' })); }
-  gf_WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14] }; }
-  gf_WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540], share: [860, 600], res: [600, 600] }[kind] || [900, 600]; }
-  gf_WSEE(kind) { return kind === 'stat' || kind === 'res'; }
+  gf_WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14], login: [15] }; }
+  gf_WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540], share: [860, 600], res: [600, 600], login: [600, 540] }[kind] || [900, 600]; }
+  gf_WSEE(kind) { return kind === 'stat' || kind === 'res' || kind === 'login'; }
   gf_winGet(node, kind) { const L = this._q_wins || (this._q_wins = []); return L.find((q) => q.node === node && q.kind === (kind || 'ctl')) || null; }
   gf_winPut(W, st) { const L = this._q_wins || (this._q_wins = []), kd = W.kind || 'ctl'; let e = this.gf_winGet(W.node, kd); if (!e) { e = { id: 'w' + (this._q_winN = (this._q_winN || 0) + 1), node: W.node, kind: kd }; L.push(e); } e.st = st; e.R = W.R ? { ...W.R } : e.R; e.at = performance.now(); return e; }
   gf_winDrop(node, kind) { if (this._q_wins) this._q_wins = this._q_wins.filter((q) => !(q.node === node && q.kind === (kind || 'ctl'))); }
@@ -3059,6 +3114,8 @@ class Component extends DCLogic {
   gf_mapEnter(n) {
     const MV = this._q_mv, MD = this.sceneMap(); if (!MV) return;
     if (n.id === MV.root && MV.level !== 'tree') { const p = n.parent || MD.root; this._q_mv = MV.level === 'res' ? { level: 'leaf', root: p.id, focus: p.id } : { level: 'tree', root: MD.root.id, focus: (p.parent ? p.id : MD.root.id) }; }   // 들어오게 한 노드 — 나간다
+    // 다른 Tree 의 리프 · 리소스 지도로 들어가는 것도 Tree 이동 — 세션이 없으면 로그인 창 먼저(되면 이어서 들어간다)
+    else if ((n.kind === 'tree' || n.kind === 'leaf') && this.gf_loginGate(n, () => this.gf_mapEnter(n))) return;
     else if (n.kind === 'tree') this._q_mv = { level: 'leaf', root: n.id, focus: n.id };
     else if (n.kind === 'leaf') this._q_mv = { level: 'res', root: n.id, focus: n.id };
     else return this.gf_mapFocus(n);
@@ -3405,8 +3462,15 @@ class Component extends DCLogic {
   // 로그인 — 처음엔 로그인 씬이 맨 위(패널 '로그인'), 전환이 끝나면 걷힌다. TEST · 로그인부터 = 다시 메인 화면부터
   sceneCtx(e) {
     if (!e) return; if (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]')) return; e.preventDefault(); if (this.loginOn() || !this._cv) return;
-    const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top, T = this.ctxTarget(mx, my);
-    if (T) this.gf_popShow(T); else this.gf_popHide();
+    // 우클릭 = 속성 — 누른 자리에 객체(씬 노드 · 전역 틀 지도 노드)가 있으면 그 속성(할 일 목록), 없으면 뒤로(ESC 와 같다: 속성이 열려 있으면 닫기부터)
+    const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
+    let T = null; const mh = this.gf_mapHitAt(mx, my);
+    if (mh) { const mn = this.sceneMap().byId[mh.id], hid = mh.id; if (mn) T = this.ctxFor(mn, mh.x, mh.y, mh.r || 6, () => { const q = (this.gf_mapHitsNow() || []).find((z) => z.id === hid); return q ? [q.x, q.y] : null; }); }
+    else if (!this.gfHit(mx, my) && !this.gfOver(mx, my)) T = this.ctxTarget(mx, my);
+    if (T) { this.gf_popShow(T); return; }
+    if (this._q_pop) { this.gf_popHide(); return; }
+    if (this._navS || (this._ws && (this._ws.tgt || this._ws.e > 0))) return;   // 이동 · 워프 중엔 뒤로 없음
+    this.goBack();
   }
   // 우클릭 대상 → 지도 노드(전역 틀과 같은 노드: 창 · 이동이 그대로 통함) + 할 일 목록
   ctxTarget(mx, my) {
@@ -3420,8 +3484,12 @@ class Component extends DCLogic {
       track = () => { const h = this._hitById && this._hitById.get(id); return h && h.vis >= 0.5 ? [h.x, h.y] : null; };
       mn = typeof id === 'string' && id.startsWith('p:') ? MD.byId['P' + lid + ':' + id.slice(2)] : MD.byId['T' + id]; }
     if (!mn) return null;
+    return this.ctxFor(mn, x, y, r, track);
+  }
+  ctxFor(mn, x, y, r, track) {
     const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }, acts = [];
     const here = this.sceneCur && this.sceneCur() === mn;
+    if (mn.kind !== 'root' && this.gf_needLogin(mn)) acts.push({ label: '로그인', desc: (this.gf_treeOf(mn) || mn).name + ' 세션 없음', run: () => this.gf_loginOpen(mn) });
     if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '리프 뷰', leaf: '리소스 뷰', res: '자원 보기' }[mn.kind], run: () => this.navStart(mn) });
     acts.push({ label: '상태', desc: mn.kind === 'res' ? '값 · 연결' : '동작 · 상태', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
     acts.push({ label: '설정', desc: mn.kind === 'tree' ? 'GUI · Terra · Tree' : mn.kind === 'leaf' ? 'GUI · Terra · Leaf' : 'GUI', run: () => this.gf_ctlOpenWin(mn, undefined, 'conf') });
@@ -3495,9 +3563,9 @@ class Component extends DCLogic {
       stopProp: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
       pmove: (e) => { if (!e || !this._cv) return; if (this._q_ctlDrag || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-minfly],[data-loginwrap]'))) { this._mouse = null; return; } const rc = this._cv.getBoundingClientRect(); this._mouse = { x: e.clientX - rc.left, y: e.clientY - rc.top }; },
       pleave: () => { this._mouse = null; },
-      pdown: (e) => { if (!e || !this._cv || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return; const rc = this._cv.getBoundingClientRect(); this.gfDown(e.clientX - rc.left, e.clientY - rc.top); },   // 지도 노드 — 길게 누르기를 잰다
+      pdown: (e) => { if (!e || e.button !== 0 || !this._cv || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return; const rc = this._cv.getBoundingClientRect(); this.gfDown(e.clientX - rc.left, e.clientY - rc.top); },   // 지도 노드 — 길게 누르기를 잰다
       tap: (e) => {
-        if (!e || !this._cv || !this._hits || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return;   // 제어기 창 안의 누르기는 창이 받는다
+        if (!e || e.button !== 0 || !this._cv || !this._hits || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return;   // 제어기 창 안의 누르기는 창이 받는다
         if (this._q_pop) { const rc0 = this._cv.getBoundingClientRect(); if (this.gf_popTap(e.clientX - rc0.left, e.clientY - rc0.top)) return; this.gf_popHide(); }   // 우클릭 할 일 누르기 · 다른 곳을 누르면 닫기
         const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
         if (this.gfHit(mx, my) || this._q_hold || this.gfOver(mx, my)) { this.gfTap(mx, my); return; }   // 전역 틀이 받는 자리만 (지도 노드를 누르고 있었으면 떼는 자리와 상관없이)
@@ -3511,7 +3579,9 @@ class Component extends DCLogic {
         }
         if (this._enter) return;   // 트리 → 리프 전환 중
         const best = this.pickHit(mx, my); if (!best) return;
-        if (best.id !== 0 && this._focus && this._focus.id === best.id && !this._focus.from) this.enterLeaf(best.id);
+        // 초점 맞은 항성을 한 번 더 누르면 들어가기 — 단 두 번 누름(0.32초 안에 두 번째)은 '초점 풀기'(뒤로 = ESC). 들어가기(와 로그인 창)는 두 번째 누름이 없다고 확인된 뒤에만
+        const EP = this._q_enterP; if (EP && performance.now() - EP.t < 320) { clearTimeout(EP.h); this._q_enterP = null; if (!this.goBack()) this.focusTo(0); return; }
+        if (best.id !== 0 && this._focus && this._focus.id === best.id && !this._focus.from) { const id = best.id; this._q_enterP = { t: performance.now(), h: setTimeout(() => { this._q_enterP = null; if (this._live && this._focus && this._focus.id === id && !this._enter && !this._lv) this.enterLeaf(id); }, 320) }; }
         else this.focusTo(best.id);
       }
     };

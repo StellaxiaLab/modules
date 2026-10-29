@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — Tree 로그인</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:transparent}
+.tl{padding:14px 20px 12px;gap:8px;overflow:hidden;text-shadow:0 0 3px #02030a,0 0 6px rgba(2,3,10,.8)}
+.tl button:focus-visible,.tl input:focus-visible{outline:1px solid #f2f4fc;outline-offset:2px}
+.tl-plus{position:absolute;font:400 12px 'Geist Mono',monospace;color:#5a6488;pointer-events:none}
+.tl-prompt{display:flex;gap:8px;align-items:baseline;color:#f2f4fc;white-space:nowrap;overflow:hidden}
+.tl-o{color:#5a6488}
+.tl-dim{color:#848eb4}
+/* 포스터 패널 — 코너 괄호 · 큰 외곽 글자 · 사선 칸 · 작은 메타 글자 */
+.tl-poster{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;padding:12px 14px 10px;margin:2px 0}
+.tl-cn{position:absolute;width:14px;height:14px;border-color:#b0b8d6;border-style:solid;border-width:0}
+.tl-cn-tl{left:0;top:0;border-left-width:1px;border-top-width:1px}.tl-cn-tr{right:0;top:0;border-right-width:1px;border-top-width:1px}
+.tl-cn-bl{left:0;bottom:0;border-left-width:1px;border-bottom-width:1px}.tl-cn-br{right:0;bottom:0;border-right-width:1px;border-bottom-width:1px}
+.tl-p-left{min-width:0;display:flex;flex-direction:column;gap:4px}
+.tl-meta-row{display:flex;align-items:center;gap:10px}
+.tl-bar{background:#f2f4fc;color:#040614;font:800 11px 'Geist Mono',monospace;letter-spacing:.12em;padding:1px 8px}
+.tl-tiny{font:600 8.5px/1.25 'Geist Mono',monospace;letter-spacing:.08em;color:#b0b8d6;text-transform:uppercase}
+.tl-big{font:800 76px/0.95 'Geist Mono',GmarketSans,monospace;letter-spacing:-.02em;color:transparent;-webkit-text-stroke:2px #f2f4fc;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.tl-sub{color:#848eb4}
+.tl-p-right{display:flex;flex-direction:column;gap:8px}
+.tl-stripe{flex:1;min-height:72px;background:repeating-linear-gradient(135deg,#f2f4fc 0 7px,transparent 7px 18px)}
+.tl-stripe.warn{background:repeating-linear-gradient(135deg,#ffd27a 0 7px,transparent 7px 18px)}
+.tl-stripe.bad{background:repeating-linear-gradient(135deg,#ff9c8c 0 7px,transparent 7px 18px)}
+.tl-stripe.ok{background:repeating-linear-gradient(135deg,rgb(176,236,96) 0 7px,transparent 7px 18px)}
+.tl-codes{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tl-box-n{border:1px solid #f2f4fc;padding:0 5px;font:700 11px 'Geist Mono',monospace;color:#f2f4fc}
+/* 상태 줄 — CLI 의 ● 줄 */
+.tl-stat{display:flex;flex-direction:column;gap:3px;padding:2px 0 4px}
+.tl-sl{display:flex;gap:10px;align-items:baseline;white-space:nowrap;overflow:hidden;min-width:0}
+.tl-dot{width:10px;flex:none}
+.tl-key{width:64px;flex:none;color:#848eb4}
+.tl-url{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tl-cmd{display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap}
+.tl-ok{color:rgb(176,236,96)}
+/* 입력 — 둥근 1px 상자 안의 '>' 줄 (CLI 입력 칸) */
+.tl-input{margin:0;border:1px solid #b0b8d6;border-radius:6px;padding:6px 12px;display:flex;flex-direction:column;gap:2px}
+.tl-input.busy{border-color:#5a6488}
+.tl-input:focus-within{border-color:#f2f4fc}
+.tl-il{display:flex;align-items:center;gap:8px;min-width:0;min-height:26px}
+.tl-gt{color:#f2f4fc;font-weight:700}
+.tl-in{flex:1;min-width:0;border:0;padding:0;background:transparent;color:#f2f4fc;caret-color:#f2f4fc;font:600 13px 'Geist Mono',monospace;outline:none}
+.tl-in::placeholder{color:#3a446c}
+.tl-in[readonly]{color:#848eb4}
+.tl-il.bad .tl-key,.tl-il.bad .tl-gt{color:#ff9c8c}
+.tl-il-act{border-top:1px dashed #3a446c;margin-top:4px;padding-top:4px}
+.tl-auto{border:0;padding:2px 4px;background:transparent;color:#f2f4fc;font:600 12.5px 'Geist Mono',monospace;cursor:pointer;white-space:nowrap}
+.tl-auto:hover{background:rgba(242,244,252,.08)}
+.tl-login{border:0;padding:3px 12px;background:#f2f4fc;color:#040614;font:800 13px 'Geist Mono',monospace;letter-spacing:.04em;cursor:pointer}
+.tl-login:hover:not([disabled]){background:rgb(176,236,96)}
+.tl-login[disabled]{background:#3a446c;color:#848eb4;cursor:default}
+.tl-key-btn{border:1px solid #5a6488;padding:1px 10px;background:transparent;color:#e6eaf7;font:600 12px 'Geist Mono',monospace;cursor:pointer}
+.tl-key-btn:hover:not([disabled]){border-color:#f2f4fc}
+.tl-key-btn[disabled]{opacity:.45;cursor:default}
+.tl-blue{color:rgb(104,156,255);border-color:rgba(104,156,255,.6)}
+.tl-fill{flex:1}
+.tl-msg{margin:0;min-height:16px;font:600 12px 'Geist Mono',GmarketSans,monospace;color:#848eb4}
+.tl-msg.err{color:#ff9c8c}.tl-msg.ok{color:rgb(176,236,96)}
+.tl-help{margin:0;font:500 11px GmarketSans,'Geist Mono',sans-serif;color:#848eb4}
+.tl-keys{display:flex;align-items:center;gap:6px;color:#848eb4;font-size:11.5px}
+.tl-keys b{color:#f2f4fc;font-weight:700}
+.tl-keys span{margin-right:2px}
+.tl-tabs{display:flex;align-items:center;gap:10px;border-top:1px solid #3a446c;padding-top:6px}
+.tl-tab{background:#f2f4fc;color:#040614;font:800 10px 'Geist Mono',monospace;letter-spacing:.12em;padding:0 8px;min-width:64px}
+.tl-r{margin-left:auto;color:#5a6488}
+/* 채우기 — GUI 요소(코너 · 띠 · 사선 칸 · 테두리 · 단추 · 큰 글자)가 왼쪽에서 오른쪽으로 차오른다. 창이 열리거나 대상이 바뀔 때마다(g0 · g1 번갈아) 다시 */
+.tl .fx{animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.7,.2,1);animation-fill-mode:both}
+.tl.g0 .fx{animation-name:tlFillA}.tl.g1 .fx{animation-name:tlFillB}
+@keyframes tlFillA{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes tlFillB{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.tl .d0{animation-delay:0ms}.tl .d1{animation-delay:90ms}.tl .d2{animation-delay:160ms}.tl .d3{animation-delay:230ms}.tl .d4{animation-delay:300ms}.tl .d5{animation-delay:400ms}.tl .d6{animation-delay:500ms}.tl .d7{animation-delay:580ms}.tl .d8{animation-delay:660ms}
+@media (prefers-reduced-motion:reduce){.tl *{transition:none}.tl .fx{animation:none!important}}
+
+.tl-err{display:flex;flex-direction:column;gap:3px;padding:7px 10px;border:1px solid rgba(255,156,140,.45);border-left:3px solid #ff9c8c;border-radius:6px;background:rgba(40,10,14,.55);font:500 12px GmarketSans,'Geist Mono',sans-serif;color:#f2d4d0}
+.tl-err-h{display:flex;align-items:center;gap:8px}.tl-err-h b{font:700 12.5px 'Geist Mono',GmarketSans,monospace;color:#ff9c8c}
+.tl-err-h code{font:600 11px 'Geist Mono',monospace;color:#ffb8ac;border:1px solid rgba(255,156,140,.35);border-radius:3px;padding:0 5px}
+.tl-err p{margin:0;color:#e6c4c0}.tl-err .tl-key-btn{align-self:flex-start;margin-top:2px}
+.tl-test{margin:0;font:500 10.5px 'Geist Mono',GmarketSans,monospace;color:#6c769c;border-top:1px dashed rgba(108,118,156,.35);padding-top:4px}
+</style>
+</helmet>
+<div class="tl {{gen}}" style="position: relative; width: {{rootW}}; height: {{rootH}}; box-sizing: border-box; display: flex; flex-direction: column; background: transparent; color: #e6eaf7; font: 500 12.5px 'Geist Mono', GmarketSans, 'Noto Sans KR', ui-monospace, monospace;" onKeyDown="{{key}}">
+  <span class="tl-plus fx d0" style="left: 6px; top: 4px;">+</span><span class="tl-plus fx d2" style="right: 6px; top: 4px;">+</span><span class="tl-plus fx d6" style="left: 6px; bottom: 4px;">+</span><span class="tl-plus fx d8" style="right: 6px; bottom: 4px;">+</span>
+  <div class="tl-prompt"><span class="tl-o">○</span><span class="tl-dim">{{who}}</span><span class="tl-dim">%</span><span>{{L.cmd}}</span></div>
+
+  <div class="tl-poster">
+    <span class="tl-cn tl-cn-tl fx d1"></span><span class="tl-cn tl-cn-tr fx d2"></span><span class="tl-cn tl-cn-bl fx d3"></span><span class="tl-cn tl-cn-br fx d4"></span>
+    <div class="tl-p-left">
+      <div class="tl-meta-row"><span class="tl-bar fx d1">{{L.tree}}</span><span class="tl-tiny">{{L.meta1}}<br>{{L.meta2}}</span></div>
+      <div class="tl-big fx d2" aria-label="Tree {{name}}">{{bigT}}</div>
+      <div class="tl-tiny tl-sub">{{subT}}</div>
+    </div>
+    <div class="tl-p-right">
+      <div class="tl-stripe fx d3 {{stripeCls}}" aria-hidden="true"></div>
+      <div class="tl-codes"><span class="tl-tiny">{{codeA}}</span><span class="tl-box-n fx d4">{{codeB}}</span></div>
+    </div>
+  </div>
+
+  <div class="tl-stat">
+    <div class="tl-sl"><span class="tl-dot" style="color: {{dirCol}};">●</span><span class="tl-key">{{L.kRoute}}</span><span>{{dirT}}</span><span class="tl-dim">{{dirNote}}</span></div>
+    <div class="tl-sl"><span class="tl-dot" style="color: {{stCol}};">●</span><span class="tl-key">{{L.kMaster}}</span><span class="tl-url">{{urlT}}</span></div>
+    <div class="tl-sl"><span class="tl-dot" style="color: {{sessCol}};">{{sessDot}}</span><span class="tl-key">{{L.kSess}}</span><span>{{sessLine}}</span></div>
+  </div>
+
+  <sc-if value="{{isResolve}}" hint-placeholder-val="{{ false }}">
+    <div class="tl-cmd"><span class="tl-dim">#</span><span>{{L.noAddr}}</span><span class="tl-dim">{{resolveNote}}</span><span class="tl-fill"></span><button type="button" class="tl-key-btn tl-blue fx d5" onClick="{{resolve}}" disabled="{{busyD}}">{{resolveT}}</button></div>
+  </sc-if>
+  <sc-if value="{{isUnreach}}" hint-placeholder-val="{{ false }}">
+    <div class="tl-cmd"><span class="tl-dim">#</span><span>{{L.unreach}}</span><span class="tl-fill"></span>
+      <sc-if value="{{hasTunnel}}" hint-placeholder-val="{{ true }}"><button type="button" class="tl-key-btn tl-blue fx d5" onClick="{{useTunnel}}">{{tunT}}</button></sc-if>
+      <button type="button" class="tl-key-btn fx d6" onClick="{{manual}}">{{L.urlFlag}}</button></div>
+    <sc-if value="{{isManual}}" hint-placeholder-val="{{ false }}">
+      <form class="tl-input fx d0" onSubmit="{{manualOk}}"><label class="tl-il"><span class="tl-key">{{L.kUrl}}</span><span class="tl-gt">&gt;</span><input class="tl-in" type="url" value="{{manualUrl}}" placeholder="https://tree.example:8080" onInput="{{manualIn}}" spellcheck="false" aria-label="Tree 주소"></label></form>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{isForm}}" hint-placeholder-val="{{ true }}">
+    <form class="tl-input fx d5 {{formCls}}" onSubmit="{{submit}}" aria-label="{{name}} 로그인">
+      <label class="tl-il {{emailCls}}"><span class="tl-key">{{L.kEmail}}</span><span class="tl-gt">&gt;</span><input class="tl-in" type="email" name="email" autocomplete="username" value="{{email}}" placeholder="{{emailPh}}" onInput="{{emailIn}}" readonly="{{roI}}" spellcheck="false" aria-label="email" aria-invalid="{{emailBad}}"></label>
+      <label class="tl-il {{passCls}}"><span class="tl-key">{{L.kPass}}</span><span class="tl-gt">&gt;</span><input class="tl-in" type="password" name="password" autocomplete="current-password" value="{{pass}}" onInput="{{passIn}}" readonly="{{roI}}" aria-label="password" aria-invalid="{{passBad}}"></label>
+      <div class="tl-il tl-il-act">
+        <button type="button" class="tl-auto" role="checkbox" aria-checked="{{keepA}}" onClick="{{keep}}">[{{keepT}}] {{L.auto}}<span class="tl-dim">{{L.autoNote}}</span></button>
+        <span class="tl-fill"></span>
+        <button type="submit" class="tl-login fx d7" disabled="{{busyD}}">{{loginT}}</button>
+      </div>
+    </form>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <div class="tl-cmd tl-ok"><span>✓</span><span>{{L.loggedIn}}</span><span class="tl-dim">{{doneNote}}</span></div>
+  </sc-if>
+
+  <p class="tl-msg {{msgCls}}" aria-live="polite">{{msgT}}</p>
+  <sc-if value="{{hasErr}}" hint-placeholder-val="{{ false }}">
+    <div class="tl-err fx d0" role="alert"><div class="tl-err-h"><b>{{errTitle}}</b><span class="tl-fill"></span><code>{{errCode}}</code></div><p>{{errHint}}</p>
+      <sc-if value="{{errAct}}" hint-placeholder-val="{{ false }}"><button type="button" class="tl-key-btn" onClick="{{errRun}}">{{errActT}}</button></sc-if></div>
+  </sc-if>
+  <sc-if value="{{help}}" hint-placeholder-val="{{ false }}"><p class="tl-help">{{helpT}}</p></sc-if>
+  <span class="tl-fill"></span>
+  <p class="tl-test">{{testT}}</p>
+  <div class="tl-keys"><b>{{L.k1}}</b><span>{{L.k1t}}</span><span class="tl-dim">·</span><b>{{L.k2}}</b><span>{{L.k2t}}</span><span class="tl-dim">·</span><b>{{L.k3}}</b><span>{{L.k3t}}</span><span class="tl-fill"></span><button type="button" class="tl-key-btn fx d7" onClick="{{cancel}}">{{L.cancel}}</button></div>
+  <div class="tl-tabs fx d6"><span class="tl-tab fx d7">{{L.tab1}}</span><span class="tl-tab fx d8">{{L.tab2}}</span><span class="tl-tiny tl-r">{{footT}}</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"treeName":{"editor":"text","default":"02"},"treeKey":{"editor":"text","default":""},"direction":{"editor":"enum","options":["parent","child","sibling","far"],"default":"sibling"},"loginUrl":{"editor":"text","default":"https://tree-02.terra.local:8080"},"reachable":{"editor":"boolean","default":true},"needsResolve":{"editor":"boolean","default":false},"tunnelPort":{"editor":"int","default":0},"current":{"editor":"text","default":"01"},"onDone":{"editor":null},"onCancel":{"editor":null},"winW":{"editor":null},"winH":{"editor":null},"$preview":{"width":600,"height":540}}'>
+// Tree 로그인 창 — 다른 Tree 로 옮겨 갈 때 그 Tree 의 세션이 없으면 뜬다(트리 진입 · 지도 · 우클릭 › 로그인).
+//   CLI 꼴(전역 틀 레퍼런스 01 · 02): 프롬프트 줄 '○ 나@지금 Tree % terra login tree <이름>' · ● 상태 줄(route · master · session) · 둥근 1px 입력 상자의 '>' 줄 · 단축키 줄
+//   포스터 HUD(레퍼런스 04): 코너 괄호 패널 · 흰 바탕 검은 글자 띠(TREE · ROUTE · AUTH) · 외곽선만 있는 큰 이름 · 사선 칸(상태 색) · 작은 대문자 메타 · 네 귀퉁이 '+'
+//   바탕은 투명(상태 창처럼 글자 장이 비친다 — 글자에 어두운 그림자). 생성 모션은 왼쪽 → 오른쪽:
+//     글자 — 로그인 씬과 같은 '랜덤 갱신 · 주기 증가': 칸마다 왼쪽부터 차례로 나타나 무작위 글자로 몇 번 바뀌며(간격이 점점 길어진다) 제 글자에 멈춘다. 값이 바뀐 줄(상태 · 알림)도 그 줄만 다시
+//     GUI — 채우기: 코너 · 띠 · 사선 칸 · 테두리 · 단추 · 큰 글자가 왼쪽에서 오른쪽으로 차오른다(clip-path, CSS — 창이 열리거나 대상이 바뀔 때마다)
+//   Terra 대응 — 로그인 길(Master login routing A1): 갈 곳을 알려줄 뿐 자격을 받지 않는다. 자격은 그 Tree 의 Master 로만 간다(이 Tree 를 거치지 않음)
+//     목록      terra.master.crossboundary.login-routes.get → { node_id, label, direction(parent · child · sibling), login_url, reachable, tunnel_port, needs_resolve }
+//     주소 묻기  …login-routes.by-node-id.resolve.post — 자식 Tree 만 자기 주소를 말할 수 있다(목록은 묻지 않는다)
+//     로그인    그 Tree 의 Gateway auth.credentials.post {email, password} → 세션 핸들(토큰은 Gateway 에 남고 이름만 받는다). 'auto' 를 끄면 auth.login.post(이번만)
+//     거절      401 CREDENTIAL_REJECTED — 어느 쪽이 틀렸는지 말하지 않는다(그래서 화면도 둘 다 붉게)
+//   실패 — 왜 실패했는지 창 안에 띄운다(제목 · HTTP 코드 · 다음에 할 일). Terra 가 실제로 구분해 주는 것만:
+//     입력(창에서) 빈 칸 · email 형식 / 401 자격 거절(CREDENTIAL_REJECTED · auto 끔이면 INVALID_CREDENTIALS — 어느 쪽인지는 말하지 않는다)
+//     501 CREDENTIAL_UNAVAILABLE(그 Gateway 에 자격 보관소 없음 — auto 를 끄면 이번만 가능) / 502 Master 에 닿지 않음 / 500 Master 내부 오류(재시도 가능)
+//     Gateway 자체에 닿지 않음(GATEWAY_UNREACHABLE — 주소 · 터널 확인)
+//   시안(TEST) — email 은 아무거나(@ 포함), password 도 아무거나면 로그인. 실패를 보려면 password 를 wrong · novault · offline · 500 · nogw 로
+class Component extends DCLogic {
+  constructor(props) { super(props); this._g = 0; this._chg = {}; this._t0 = typeof performance !== 'undefined' ? performance.now() : 0; this.state = { email: '', pass: '', keep: (() => { try { return localStorage.getItem('terra.auto') !== '0'; } catch (e) { return true; } })(), phase: null, msg: '', bad: false, manual: false, manualUrl: '', url: null, resolved: false };
+    try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} }
+  help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
+  name() { return this.props.treeName || '02'; }
+  // 대상이 바뀌면 처음부터 (같은 창 자리를 다른 Tree 가 쓴다)
+  sync() { const k = (this.props.treeKey || '') + '|' + this.name(); if (this._k !== k) { this._k = k; this._t0 = performance.now(); this._g ^= 1; this._chg = {}; Object.assign(this.state, { email: this.lastEmail(), pass: '', phase: null, msg: '', bad: false, err: null, manual: false, manualUrl: '', url: null, resolved: false }); } }
+  lastEmail() { try { return localStorage.getItem('terra.login.email') || ''; } catch (e) { return ''; } }
+  route() {
+    const P = this.props, dir = P.direction || 'sibling';
+    const url = this.state.url || P.loginUrl || '', needs = !!P.needsResolve && !this.state.resolved && !this.state.url;
+    return { dir, url, needs, reach: !!url && (P.reachable !== false || !!this.state.url), tunnel: +P.tunnelPort || 0 };
+  }
+  // 실패 — 칸 강조(bad: email · pass · both · null) + 오류 블록(err)
+  fail(bad, e) { this.setState({ phase: null, bad: bad || false, err: e, msg: e.title, pass: bad === 'both' ? '' : this.state.pass }); }
+  // 시안의 서버 답 — password 로 실패 종류를 고른다 (실제는 Gateway auth.credentials.post · auth.login.post 의 답)
+  testErr(S) {
+    const keep = S.keep, R = this.route(), p = S.pass;
+    if (p === 'nogw') return { bad: null, http: '', code: 'GATEWAY_UNREACHABLE', title: 'Gateway 에 닿지 않음', hint: (R.url || '그 주소') + ' 로 연결하지 못했어요 — 주소 · 터널(--url)을 확인하세요', act: 'retry' };
+    if (p === 'offline') return { bad: null, http: '502', code: keep ? 'CREDENTIAL_UNAVAILABLE' : 'LOGIN_UNAVAILABLE', title: 'Master 에 닿지 않음', hint: this.name() + ' 의 Gateway 가 Master 에 연결하지 못했어요 — Master 가 꺼져 있거나 망이 끊겼어요. 잠시 뒤 다시', act: 'retry' };
+    if (p === '500') return { bad: null, http: '500', code: 'INTERNAL_ERROR', title: 'Master 내부 오류', hint: 'Master 가 로그인을 처리하지 못했어요 (다시 시도 가능)', act: 'retry' };
+    if (p === 'novault' && keep) return { bad: null, http: '501', code: 'CREDENTIAL_UNAVAILABLE', title: '로그인 유지 불가', hint: '이 Gateway 에는 자격 보관소가 없어요 — auto 를 끄면 이번만 로그인할 수 있어요', act: 'once' };
+    if (p === 'wrong') return { bad: 'both', http: '401', code: keep ? 'CREDENTIAL_REJECTED' : 'INVALID_CREDENTIALS', title: '자격 거절', hint: 'email 또는 password 가 맞지 않아요 — Master 는 어느 쪽인지 알려주지 않아요', act: '' };
+    return null;
+  }
+  login() {
+    const S = this.state, em = S.email.trim();
+    if (!em) { this.fail('email', { http: '', code: 'INPUT', title: 'email 이 비었어요', hint: '그 Tree 계정의 email 을 입력하세요', act: '' }); return; }
+    if (!/^[^\s@]+@[^\s@]+$/.test(em)) { this.fail('email', { http: '', code: 'INPUT', title: 'email 형식이 아니에요', hint: '이름@도메인 꼴로 (예: admin@lab)', act: '' }); return; }
+    if (!S.pass) { this.fail('pass', { http: '', code: 'INPUT', title: 'password 가 비었어요', hint: 'password 를 입력하세요', act: '' }); return; }
+    this.setState({ phase: 'send', msg: '확인 중…', bad: false, err: null });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => {
+      const E = this.testErr(this.state); if (E) { this.fail(E.bad, E); return; }
+      try { localStorage.setItem('terra.login.email', S.email.trim()); } catch (e) {}
+      this.setState({ phase: 'done', msg: '', pass: '' });
+      this._t = setTimeout(() => { if (this.props.onDone) this.props.onDone(this.props.treeKey || this.name(), S.keep, S.email.trim()); }, 650);
+    }, 700);
+  }
+  componentWillUnmount() { clearTimeout(this._t); if (this._raf) cancelAnimationFrame(this._raf); this._raf = 0; }
+  // ── 랜덤 갱신 · 주기 증가 ──
+  // 글자 i 는 (시작 + i·14ms)에 나타나 16ms 에서 시작해 1.4배씩 길어지는 간격으로 6번 무작위 글자를 거쳐 제 글자에 멈춘다(글자 하나 약 0.26초).
+  // 넓은 글자(한글)는 한글로, 나머지는 기호 · 영숫자로 섞는다 — 줄 너비가 흔들리지 않는다. 아직 안 나온 칸은 같은 너비의 빈칸
+  scr(str, t0, now, salt) {
+    const P = 16, K = 6, RT = 1.4, A = '#%&*+=-/<>[]{}0123456789ABCDEFHKMNRSTXZ', H = '가각간갈감강거건검게경고곤골공관구국군귀그기길나남너노누다도두라로리마모무바보부사서소수시아오우이자조주지차초카타파하', out = [];
+    let i = 0, end = t0;
+    for (const ch of String(str)) {
+      const cp = ch.codePointAt(0), wide = (cp >= 0x1100 && cp <= 0x11ff) || (cp >= 0x3130 && cp <= 0x318f) || (cp >= 0xac00 && cp <= 0xd7a3), local = now - t0 - i * 14; i++;
+      if (ch === ' ' || ch === '\n') { out.push(ch); continue; }
+      if (local < 0) { out.push(wide ? '\u3000' : '\u00a0'); continue; }
+      let acc = 0, k = 0, p = P; while (k < K && acc + p <= local) { acc += p; p *= RT; k++; }
+      if (k >= K || ch === '·' || ch === '•') out.push(ch);
+      else { const hsh = (((i * 2654435761) ^ (k * 40503) ^ salt) >>> 0) % 997, set = wide ? H : A; out.push(set[hsh % set.length]); }
+    }
+    this._need = Math.max(this._need || 0, t0 + i * 14 + 270);
+    return out.join('');
+  }
+  // 줄마다 — 처음엔 열린 때 + 차례(base), 그 뒤로는 값이 바뀐 때부터 다시
+  tx(key, str, base, now) {
+    let r = this._chg[key];
+    if (!r || r.v !== str) { r = this._chg[key] = { v: str, t: r || now - this._t0 > 900 ? now : this._t0 + base, salt: (key.length * 131 + base) | 0 }; }
+    return now - r.t > 14 * String(str).length + 300 ? str : this.scr(str, r.t, now, r.salt);
+  }
+  renderVals() {
+    this.sync();
+    const S = this.state, R = this.route(), H = this.help(), busy = S.phase === 'send' || S.phase === 'ask';
+    const DIR = { parent: ['부모 Tree', 'up'], child: ['자식 Tree', 'down'], sibling: ['형제 Tree', 'side'], far: ['다른 Tree', ''] }[R.dir] || ['Tree', ''];
+    const state = R.needs ? 'resolve' : !R.reach ? 'unreach' : S.phase === 'done' ? 'done' : 'form';
+    const ST = { resolve: ['주소 모름', '#ffd27a'], unreach: ['닿지 않음', '#ff9c8c'], form: ['닿음', 'rgb(176,236,96)'], done: ['로그인됨', 'rgb(176,236,96)'] }[state];
+    const O = {
+      rootH: this.props.winH ? this.props.winH + 'px' : '100vh', rootW: this.props.winW ? this.props.winW + 'px' : '100%', name: this.name(), wordCls: '', dirT: DIR[0], dirCls: DIR[1], stT: ST[0], stCol: ST[1],
+      urlT: R.url || (R.needs ? '— 그 Tree 에 물어야 함' : '— 알려진 주소 없음'), apiT: H ? 'login-routes · ' + (R.dir === 'child' ? 'resolve' : 'listing') : '',
+      isResolve: state === 'resolve', isUnreach: state === 'unreach', isForm: state === 'form', isDone: state === 'done',
+      resolveNote: H ? '자식 Tree 만 자기 주소를 말한다 — 묻는 데 중계 한 번' : '', resolveT: S.phase === 'ask' ? '묻는 중…' : '주소 묻기',
+      resolve: () => { this.setState({ phase: 'ask' }); clearTimeout(this._t); this._t = setTimeout(() => { const ok = !/4/.test(this.name()); this.setState({ phase: null, resolved: true, url: ok ? 'https://tree-' + this.name().replace(/[^\w]+/g, '-') + '.terra.local:8080' : null, msg: ok ? '' : '이 Tree 는 주소를 내놓지 않았어요' }); }, 800); },
+      unreachNote: H ? '이 기기에서 그 주소로 직접 닿지 않는다 — 터널(A3)이나 다른 주소로' : '', hasTunnel: R.tunnel > 0, tunnel: R.tunnel,
+      useTunnel: () => this.setState({ url: 'http://127.0.0.1:' + R.tunnel, msg: '터널로 연결' }),
+      isManual: S.manual, manual: () => this.setState({ manual: !S.manual }), manualUrl: S.manualUrl, manualIn: (e) => this.setState({ manualUrl: e.target.value }),
+      manualOk: (e) => { if (e && e.preventDefault) e.preventDefault(); const u = S.manualUrl.trim(); if (!/^https?:\/\/\S+$/.test(u)) { this.setState({ msg: 'http(s):// 주소', bad: 'url' }); return; } this.setState({ url: u, manual: false, msg: '', bad: false }); },
+      email: S.email, emailPh: 'admin@', emailIn: (e) => this.setState({ email: e.target.value, bad: false, msg: '', err: null }), pass: S.pass, passIn: (e) => this.setState({ pass: e.target.value, bad: false, msg: '', err: null }),
+      emailCls: S.bad === 'email' || S.bad === 'both' ? 'bad' : '', passCls: S.bad === 'pass' || S.bad === 'both' ? 'bad' : '',
+      emailBad: S.bad ? 'true' : 'false', passBad: S.bad ? 'true' : 'false', roI: busy ? 'readonly' : null,
+      keepA: S.keep ? 'true' : 'false', keepT: S.keep ? '■' : '□', keep: () => this.setState({ keep: !S.keep }),
+      submit: (e) => { if (e && e.preventDefault) e.preventDefault(); if (!busy) this.login(); }, busyD: busy ? 'disabled' : null, loginT: S.phase === 'send' ? '…' : 'Login',
+      doneNote: (S.keep ? '유지 · ' : '이번만 · ') + this.name() + ' 로 들어갑니다',
+      msg: S.msg, msgCls: S.err || S.bad ? 'err' : S.phase === 'done' ? 'ok' : '', msgT: S.msg && !S.err ? (S.bad ? 'error: ' : S.phase === 'send' || S.phase === 'ask' ? '… ' : '› ') + S.msg : '',
+      hasErr: !!S.err && state === 'form', errTitle: S.err ? '✕ ' + S.err.title : '', errCode: S.err ? ((S.err.http ? S.err.http + ' ' : '') + S.err.code) : '', errHint: S.err ? '› ' + S.err.hint : '',
+      errAct: !!(S.err && S.err.act), errActT: S.err && S.err.act === 'once' ? 'auto 끄고 다시' : '다시 시도',
+      errRun: () => { const E = S.err; if (!E) return; if (E.act === 'once') this.setState({ keep: false }, () => this.login()); else this.login(); },
+      testT: 'TEST · email 아무거나(@ 포함) + password 아무거나 → 로그인 · 실패 보기: wrong · novault · offline · 500 · nogw',
+      who: (this.props.user || 'admin') + '@' + (this.props.current || '01'), bigT: this.name(), subT: DIR[0] + ' · ' + (R.dir === 'child' ? 'resolve required' : R.dir === 'parent' ? 'upward · direct' : R.dir === 'sibling' ? 'named by parent' : 'remembered address'),
+      stripeCls: state === 'unreach' ? 'bad' : state === 'resolve' ? 'warn' : state === 'done' ? 'ok' : '', codeA: 'RT-' + ({ parent: 'UP', child: 'DN', sibling: 'SB', far: 'XT' }[R.dir] || 'XT') + ' / ' + (R.tunnel ? 'TUN ' + R.tunnel : 'DIRECT'), codeB: String(this.name()).replace(/[^\w]/g, '').slice(-3).toUpperCase() || 'T',
+      dirCol: { parent: 'rgb(104,156,255)', child: 'rgb(110,236,156)', sibling: '#ffd27a' }[R.dir] || '#848eb4', dirNote: R.dir === 'child' ? '· 자식이 자기 주소를 말한다' : R.dir === 'far' ? '· 계정이 기억한 주소' : '',
+      sessDot: state === 'done' ? '●' : '○', sessCol: state === 'done' ? 'rgb(176,236,96)' : '#5a6488', sessLine: state === 'done' ? (S.keep ? '유지' : '이번만') + ' · ' + S.email : '없음 — 로그인 필요',
+      formCls: busy ? 'busy' : '', footT: 'TERRA // ' + (this.props.current || '01') + ' → ' + this.name(),
+      key: (e) => { if (e && e.key === 'Escape') { e.preventDefault(); clearTimeout(this._t); if (this.props.onCancel) this.props.onCancel(); } },
+      help: H, helpT: '# 자격은 ' + this.name() + ' 의 Master 로만 갑니다 — 지금 Tree 를 거치지 않아요. auto = 세션 핸들 저장(auth.credentials), 끄면 이번만(auth.login)',
+      sessT: this.props.current ? '지금 · ' + this.props.current : '',
+      cancel: () => { clearTimeout(this._t); if (this.props.onCancel) this.props.onCancel(); }
+    };
+    // 글자 — 랜덤 갱신 · 주기 증가 (왼쪽 · 위부터 차례로)
+    const now = typeof performance !== 'undefined' ? performance.now() : this._t0 + 1e6; this._need = 0;
+    const L = { cmd: 'terra login tree ' + this.name(), tree: 'TREE', meta1: 'CROSS-TREE', meta2: 'LOGIN // A1', kRoute: 'route', kMaster: 'master', kSess: 'session', noAddr: '주소 모름', unreach: '직접 닿지 않음', urlFlag: '--url', kUrl: 'url',
+      kEmail: 'email', kPass: 'password', auto: 'auto', autoNote: ' · 로그인 유지', loggedIn: 'logged in', k1: 'Enter', k1t: '로그인', k2: 'Esc', k2t: '취소', k3: 'Tab', k3t: '다음 칸', cancel: '취소', tab1: 'ROUTE', tab2: 'AUTH' };
+    const LB = { cmd: 60, tree: 100, meta1: 130, meta2: 150, kRoute: 380, kMaster: 420, kSess: 460, noAddr: 520, unreach: 520, urlFlag: 580, kUrl: 0, kEmail: 520, kPass: 560, auto: 600, autoNote: 620, loggedIn: 520, k1: 680, k1t: 700, k2: 720, k2t: 740, k3: 760, k3t: 780, cancel: 760, tab1: 780, tab2: 800 };
+    O.L = {}; for (const k of Object.keys(L)) O.L[k] = this.tx('L.' + k, L[k], LB[k], now);
+    O.tunT = 'tunnel :' + O.tunnel; O.loginT = (S.phase === 'send' ? '… ' : '⏎ ') + 'Login';
+    const TB = { who: 0, bigT: 200, subT: 280, codeA: 320, codeB: 340, dirT: 400, dirNote: 430, urlT: 450, sessLine: 490, resolveNote: 540, resolveT: 560, tunT: 560, loginT: 640, doneNote: 540, msgT: 0, helpT: 700, footT: 820 };
+    for (const k of Object.keys(TB)) if (typeof O[k] === 'string' && O[k]) O[k] = this.tx(k, O[k], TB[k], now);
+    O.gen = 'g' + this._g;
+    if (now < this._need && !this._raf && typeof requestAnimationFrame !== 'undefined') this._raf = requestAnimationFrame(() => { this._raf = 0; this.setState({ fr: performance.now() }); });
+    return O;
+  }
+}
+</script>
+</body>
+</html>

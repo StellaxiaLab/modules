@@ -147,6 +147,7 @@ body{margin:0;background:#040614}
     <button type="button" class="nc-btn nc-pri" onClick="{{apply}}" disabled="{{clean}}">적용</button>
   </footer>
 </div>
+</x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"02·b"},"nodeKind":{"editor":"enum","options":["트리","리프","리소스"],"default":"리프"},"nodeKey":{"editor":"text","default":""},"resList":{"editor":"text","default":"ssh:22,tty0,gpio"},"focusRes":{"editor":"text","default":""},"peers":{"editor":null},"onOpen":{"editor":null},"winW":{"editor":null},"winH":{"editor":null},"$preview":{"width":860,"height":600}}'>
 // 자원 창 — 리프의 자원을 소속 클러스터 안에서 주고받는다. 분류 둘:
 //   자원 공유 — 노드 데스크톱에서 공유한 자원(캡슐화 · 열기는 노드 안의 일)마다 어디에 줄지: 전체(소속 클러스터 전체) · Tree(부모) · Leaf(클러스터의 리프) · 계정

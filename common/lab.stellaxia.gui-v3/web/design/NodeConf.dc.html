@@ -95,6 +95,8 @@ body{margin:0;background:#040614}
 .nc-row:has(.nc-meta) .nc-lab{gap:3px}
 .nc-rn{border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(110,236,156,.45);text-underline-offset:3px}
 .nc-rn:hover{color:#d0ff96;text-decoration-color:#d0ff96}
+.nc-out{margin-left:10px;border:1px solid rgba(255,130,120,.38);background:transparent;color:#ff9c90;font:inherit;font-size:11px;padding:0 6px;border-radius:4px;cursor:pointer}
+.nc-out:hover{border-color:#ff9c90;background:rgba(255,130,120,.1)}
 </style>
 </helmet>
 <div class="nc" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; display: grid; grid-template-columns: 190px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; background: #040614; color: #d6f4de; font: 500 12px GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif;">
@@ -121,7 +123,7 @@ body{margin:0;background:#040614}
           <sc-if value="{{r.isProf}}" hint-placeholder-val="{{ false }}"><span class="nc-prof"><span class="nc-pav"><sc-if value="{{r.hasImg}}" hint-placeholder-val="{{ false }}"><img src="{{r.pImg}}" alt="프로필 미리보기"></sc-if><sc-if value="{{r.noImg}}" hint-placeholder-val="{{ true }}"><span class="nc-sk0">◍</span></sc-if></span><span class="nc-pcol"><span class="nc-prow"><label class="nc-btn">이미지 · GIF 올리기<input type="file" accept="image/*" onChange="{{r.pick}}" style="display: none;"></label><button type="button" class="nc-btn" onClick="{{r.clear}}">지우기</button></span><sc-if value="{{r.help}}" hint-placeholder-val="{{ false }}"><span class="nc-k">파일 › {{r.pPath}}</span><span class="nc-k">경로 기록 › {{r.pProps}}</span></sc-if></span></span></sc-if>
           <sc-if value="{{r.isSkin}}" hint-placeholder-val="{{ false }}"><span class="nc-skins" role="radiogroup" aria-label="{{r.label}}"><sc-for list="{{r.skins}}" as="k" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{k.on}}" class="nc-skin {{k.cls}}" onClick="{{k.pick}}"><sc-if value="{{k.noThumb}}" hint-placeholder-val="{{ false }}"><span class="nc-sk0">◍</span></sc-if><sc-if value="{{k.hasThumb}}" hint-placeholder-val="{{ true }}"><img src="{{k.thumb}}" alt="" width="40" height="40"></sc-if><span class="nc-skn">{{k.name}}</span><span class="nc-k">{{k.path}}</span></button></sc-for></span><span class="nc-k">{{r.skinEmpty}}</span></sc-if>
           <sc-if value="{{r.isDanger}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-danger {{r.dCls}}" onClick="{{r.act}}" disabled="{{r.dOff}}">{{r.dT}}</button></sc-if>
-          <sc-if value="{{r.isList}}" hint-placeholder-val="{{ false }}"><ul class="nc-list"><sc-for list="{{r.items}}" as="it" hint-placeholder-count="3"><li><sc-if value="{{it.hasRun}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-rn" title="자원 상태" onClick="{{it.run}}">{{it.t}}</button></sc-if><sc-if value="{{it.noRun}}" hint-placeholder-val="{{ true }}">{{it.t}}</sc-if></li></sc-for></ul></sc-if>
+          <sc-if value="{{r.isList}}" hint-placeholder-val="{{ false }}"><ul class="nc-list"><sc-for list="{{r.items}}" as="it" hint-placeholder-count="3"><li><sc-if value="{{it.hasRun}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-rn" title="자원 상태" onClick="{{it.run}}">{{it.t}}</button></sc-if><sc-if value="{{it.noRun}}" hint-placeholder-val="{{ true }}">{{it.t}}</sc-if><sc-if value="{{it.hasAct}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-out" onClick="{{it.act}}">{{it.actT}}</button></sc-if></li></sc-for></ul></sc-if>
           <sc-if value="{{r.isDirs}}" hint-placeholder-val="{{ false }}"><span class="nc-dirs"><sc-for list="{{r.dirs}}" as="dd" hint-placeholder-count="1"><span class="nc-dir"><label class="nc-in nc-in-s"><span>@</span><input type="text" value="{{dd.name}}" onInput="{{dd.inName}}" spellcheck="false" aria-label="공유 이름"></label><label class="nc-in"><span>&gt;</span><input type="text" value="{{dd.path}}" placeholder="~/TerraShare" onInput="{{dd.inPath}}" spellcheck="false" aria-label="공유 경로"></label><button type="button" class="nc-x" aria-label="이 공유 폴더 빼기" onClick="{{dd.del}}">×</button></span></sc-for><button type="button" class="nc-btn nc-add" onClick="{{r.add}}">+ 공유 폴더</button></span></sc-if>
           <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn" onClick="{{r.noteRun}}">{{r.actT}}</button></sc-if>
         </div>
@@ -135,6 +137,7 @@ body{margin:0;background:#040614}
     <button type="button" class="nc-btn nc-pri" onClick="{{apply}}" disabled="{{clean}}">적용</button>
   </footer>
 </div>
+</x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"02·b"},"nodeKind":{"editor":"enum","options":["계정","트리","리프","리소스"],"default":"리프"},"parentName":{"editor":"text","default":"02"},"nodeKey":{"editor":"text","default":""},"nodePath":{"editor":"text","default":""},"remote":{"editor":"boolean","default":false},"resList":{"editor":"text","default":"ssh:22,tty0,gpio"},"onOpen":{"editor":null},"onSkin":{"editor":null},"winW":{"editor":null},"winH":{"editor":null},"$preview":{"width":860,"height":600}}'>
 // 설정 창 — 노드를 두 쪽에서 관리. 왼쪽 분류, 오른쪽 항목, 아래 적용 · 되돌리기 (바뀐 수 · 재시작 필요 수)
 //   GUI(사람마다 · 노드마다 보이는 모습) — 표시 · 프로필 · 스킨 · 뷰
@@ -151,8 +154,13 @@ body{margin:0;background:#040614}
 //   시안 — 노드 설정 값은 이 창 안에서만 (적용하면 기준값이 바뀐다)
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { sec: 'show', v: null, base: null, draft: {}, msg: '', arm: null, needRestart: 0 };
-    try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} }
+    try { window.addEventListener('terra-help', () => this.setState({})); window.addEventListener('terra-sess', () => this.setState({})); } catch (e) {} }
   // 도움말 — 켜면 항목 설명 · 설정 키를 보인다 (기본 끔). 내 화면 설정이라 즉시 적용 · 자원 창과 같이 씀
+  // Tree 로그인 — GUI 쪽 값(이 브라우저): auto(terra.auto) · 저장된 세션(terra.sess, Tree id → { email, name, at })
+  autoOn() { try { return localStorage.getItem('terra.auto') !== '0'; } catch (e) { return true; } }
+  setAuto(on) { try { localStorage.setItem('terra.auto', on ? '1' : '0'); window.dispatchEvent(new Event('terra-sess')); } catch (e) {} this.setState({}); }
+  sessAll() { try { return JSON.parse(localStorage.getItem('terra.sess') || '{}') || {}; } catch (e) { return {}; } }
+  sessOut(id) { const m = this.sessAll(); const nm = (m[id] && m[id].name) || id; delete m[id]; try { localStorage.setItem('terra.sess', JSON.stringify(m)); window.dispatchEvent(new Event('terra-sess')); } catch (e) {} this.setState({ msg: nm + ' — 로그아웃 (저장된 세션 지움)' }); }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   setHelp(on) { try { localStorage.setItem('terra.help', on ? '1' : '0'); window.dispatchEvent(new Event('terra-help')); } catch (e) {} this.setState({}); }
   isNode() { const k = this.props.nodeKind || '리프'; return k === '트리' || k === '리프'; }
@@ -217,15 +225,15 @@ class Component extends DCLogic {
     if (!this.state.v) { const d = this.defaults(); this.state.v = JSON.parse(JSON.stringify(d)); this.state.base = JSON.parse(JSON.stringify(d)); } return this.state.v; }
   set(k, val) { const v = Object.assign({}, this.V(), { [k]: val }); this.setState({ v, msg: '' }); }
   dirty() { const v = this.V(), b = this.state.base; return Object.keys(v).filter((k) => JSON.stringify(v[k]) !== JSON.stringify(b[k])); }
-  SECS() { const etc = ['기타', [['etc', '도움말']]]; if (!this.isNode()) return [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰']]], ['Terra', [['ident', '노드 설정']]], etc];
-    const g = [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰']]], ['Terra', [['ident', '노드 정보'], ['conn', '연결'], ['net', '네트워크'], ['upd', '업데이트'], ['log', '로그'], ['danger', '노드 관리']]]];
+  SECS() { const etc = ['기타', [['etc', '도움말']]]; if (!this.isNode()) return [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['ident', '노드 설정']]], etc];
+    const g = [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['ident', '노드 정보'], ['conn', '연결'], ['net', '네트워크'], ['upd', '업데이트'], ['log', '로그'], ['danger', '노드 관리']]]];
     if (this.isTree()) g.push(['Tree', [['cluster', '클러스터'], ['users', '사용자'], ['enroll', '노드 등록'], ['deploy', '배포'], ['alerts', '경보']]]);
     if (this.isLeaf()) g.push(['Leaf', [['res', '자원'], ['mods', '모듈']]]);
     g.push(etc); return g; }
   KEYS() { return { show: ['label', 'orbit', 'color', 'proj'], skin: ['skin'], prof: ['profile'], view: ['view', 'dbl', 'badge'],
     ident: ['daemon.device_name'], conn: ['master.url', 'heartbeat.interval_sec'], net: ['wireguard.enabled', 'wireguard.listen_port', 'wireguard.advertise_endpoint', 'direct_tcp.enabled', 'webrtc.enabled'],
     upd: ['core_distribution.hold', 'core_distribution.hold_reason', 'core_distribution.allow_apply', 'core_distribution.maintenance_window', 'core_distribution.disk_quota_mb'], log: ['logging.level', 'logging.max_size_mb', 'logging.max_backups'], danger: [],
-    cluster: [], users: ['users'], enroll: ['codes'], deploy: [], alerts: ['alerts'], res: [], etc: [], mods: ['module_distribution.enabled', 'module_distribution.disk_quota_mb'] }; }
+    cluster: [], users: ['users'], enroll: ['codes'], deploy: [], alerts: ['alerts'], res: [], etc: [], tlog: [], mods: ['module_distribution.enabled', 'module_distribution.disk_quota_mb'] }; }
   // 노드 설정 줄의 머리표 — 키 이름 · 편집/읽기 · 재시작
   meta(k) { const D = this.DKEYS()[k]; if (!D) return {}; const ro = D[0] !== 'O' || this.remote(); return { keyT: k, tagT: ro ? '읽기' : '편집', tagCls: ro ? 'ro' : 'ed', rsT: D[1] && !ro ? '재시작 필요' : D[0] === 'O' && !D[1] && !ro ? '즉시' : '', isMeta: true }; }
   // 노드가 아닌 것 · 원격 노드 — 안내 줄
@@ -244,7 +252,7 @@ class Component extends DCLogic {
         pick: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.profPick(f); }, clear: () => { this._pend = null; this.set('profile', ''); } }]; }
     if (sec === 'skin') { const L = this.starIdx(), planet = (this.props.nodeKind || '리프') === '리프', pick = (id) => () => this.set('skin', id), C = (id) => (v.skin === id ? 'on' : '');
       const files = L.files.slice().sort((a, b) => (a.path + '/' + a.name).localeCompare(b.path + '/' + b.name));
-      return [{ label: '행성 스킨', sub: (planet ? '유틸/스타메이커/star' : '리프에서만 보임'), isSkin: true,
+      return [{ label: '행성 스킨', sub: '유틸/스타메이커/star · ' + (planet ? '행성 겉면' : '리프 뷰 가운데 항성'), isSkin: true,
         skins: [{ name: '기본', path: '타입 무늬', thumb: '', noThumb: true, hasThumb: false, cls: C(''), on: v.skin === '' ? 'true' : 'false', pick: pick('') }].concat(files.map((f) => ({ name: f.name, path: f.path + ' · ' + (f.kind === 'planet' ? '행성' : '항성'), thumb: f.thumb || '', noThumb: !f.thumb, hasThumb: !!f.thumb, cls: C(f.id), on: v.skin === f.id ? 'true' : 'false', pick: pick(f.id) }))),
         skinEmpty: files.length ? '' : 'star 폴더 비어 있음' }]; }
     if (sec === 'view') return [G('view', '시작 뷰', '', ['트리 뷰', '리프 뷰', '리소스 뷰']), T('dbl', '더블클릭 진입', '끄면 우클릭 › 진입'), T('badge', '알림 배지', '')];
@@ -283,6 +291,11 @@ class Component extends DCLogic {
       return head.concat([{ label: '자원 리스트', sub: 'SVI ' + R.length + '개 · 이름을 누르면 상태', isList: true, items: R.map((t) => ({ t, run: () => (this.props.onOpen ? this.props.onOpen('res', t) : this.setState({ msg: t + ' 상태 창 (시안)' })) })), keyT: 'terra.daemon.svi.declarations', tagT: '읽기', tagCls: 'ro', rsT: '', isMeta: true },
         this.noteRow('내부 자원 관리', '캡슐화 · 열기 · 실행 · 제어', { t: '노드 데스크톱', run: open('ctl') }),
         this.noteRow('자원 공유 · 외부 자원 등록', '소속 클러스터 안', { t: '자원 창', run: open('share') })]); }
+    if (sec === 'tlog') { const au = this.autoOn(), m = this.sessAll(), ids = Object.keys(m).sort((a, b) => (m[b].at || 0) - (m[a].at || 0));
+      const ago = (t) => { const d = (Date.now() - (t || 0)) / 60000; return d < 1 ? '방금' : d < 60 ? Math.round(d) + '분 전' : d < 1440 ? Math.round(d / 60) + '시간 전' : Math.round(d / 1440) + '일 전'; };
+      return [{ label: 'auto', sub: '저장된 세션으로 바로 이동 · 로그인 창 기본값', isToggle: true, on: au ? 'true' : 'false', tgCls: au ? 'on' : '', tgT: au ? '켬' : '끔', toggle: () => this.setAuto(!au) },
+        { label: '저장된 세션', sub: ids.length + '개 · ' + (au ? '이동 때 씀' : 'auto 꺼짐 — 이동 때마다 로그인'), isList: true,
+          items: ids.length ? ids.map((id) => ({ t: (m[id].name || id) + ' · ' + (m[id].email || '') + ' · ' + ago(m[id].at), noRun: true, hasAct: true, actT: '로그아웃', act: () => this.sessOut(id) })) : [{ t: '없음 — Tree 로그인 창에서 auto 를 켜고 로그인하면 남아요', noRun: true }] }]; }
     if (sec === 'etc') { const h = this.help(); return [{ label: '도움말', sub: '항목 설명 · 설정 키', isToggle: true, on: h ? 'true' : 'false', tgCls: h ? 'on' : '', tgT: h ? '켬' : '끔', toggle: () => this.setHelp(!h) }]; }
     if (sec === 'mods') return head.concat([T('module_distribution.enabled', '지정 모듈 설치', '트리가 지정'), N('module_distribution.disk_quota_mb', '설치 용량', '0 = 제한 없음', 0, 16384, 512, 'MB')]);
     return head.concat([D('restart', '다시 시작', '잠깐 끊김 · terra.daemon.restart.post', '다시 시작', '한 번 더 누르면 실행', this.remote()), D('detach', '트리 해제', '코어 동작 미확인', '준비 중', '', true)]);

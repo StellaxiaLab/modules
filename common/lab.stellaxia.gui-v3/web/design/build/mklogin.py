@@ -46,8 +46,15 @@ rep("      if (e.key !== 'Escape' || this.loginOn()) return;   // 로그인 중�
 rep("e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return;   // 제어기 창 안의 누르기는 창이 받는다","e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return;   // 제어기 창 안의 누르기는 창이 받는다\n        if (this._q_pop) { const rc0 = this._cv.getBoundingClientRect(); if (this.gf_popTap(e.clientX - rc0.left, e.clientY - rc0.top)) return; this.gf_popHide(); }   // 우클릭 할 일 누르기 · 다른 곳을 누르면 닫기")
 rep("  loginOn() {","""  sceneCtx(e) {
     if (!e) return; if (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]')) return; e.preventDefault(); if (this.loginOn() || !this._cv) return;
-    const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top, T = this.ctxTarget(mx, my);
-    if (T) this.gf_popShow(T); else this.gf_popHide();
+    // 우클릭 = 속성 — 누른 자리에 객체(씬 노드 · 전역 틀 지도 노드)가 있으면 그 속성(할 일 목록), 없으면 뒤로(ESC 와 같다: 속성이 열려 있으면 닫기부터)
+    const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
+    let T = null; const mh = this.gf_mapHitAt(mx, my);
+    if (mh) { const mn = this.sceneMap().byId[mh.id], hid = mh.id; if (mn) T = this.ctxFor(mn, mh.x, mh.y, mh.r || 6, () => { const q = (this.gf_mapHitsNow() || []).find((z) => z.id === hid); return q ? [q.x, q.y] : null; }); }
+    else if (!this.gfHit(mx, my) && !this.gfOver(mx, my)) T = this.ctxTarget(mx, my);
+    if (T) { this.gf_popShow(T); return; }
+    if (this._q_pop) { this.gf_popHide(); return; }
+    if (this._navS || (this._ws && (this._ws.tgt || this._ws.e > 0))) return;   // 이동 · 워프 중엔 뒤로 없음
+    this.goBack();
   }
   // 우클릭 대상 → 지도 노드(전역 틀과 같은 노드: 창 · 이동이 그대로 통함) + 할 일 목록
   ctxTarget(mx, my) {
@@ -61,8 +68,12 @@ rep("  loginOn() {","""  sceneCtx(e) {
       track = () => { const h = this._hitById && this._hitById.get(id); return h && h.vis >= 0.5 ? [h.x, h.y] : null; };
       mn = typeof id === 'string' && id.startsWith('p:') ? MD.byId['P' + lid + ':' + id.slice(2)] : MD.byId['T' + id]; }
     if (!mn) return null;
+    return this.ctxFor(mn, x, y, r, track);
+  }
+  ctxFor(mn, x, y, r, track) {
     const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }, acts = [];
     const here = this.sceneCur && this.sceneCur() === mn;
+    if (mn.kind !== 'root' && this.gf_needLogin(mn)) acts.push({ label: '로그인', desc: (this.gf_treeOf(mn) || mn).name + ' 세션 없음', run: () => this.gf_loginOpen(mn) });
     if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '리프 뷰', leaf: '리소스 뷰', res: '자원 보기' }[mn.kind], run: () => this.navStart(mn) });
     acts.push({ label: '상태', desc: mn.kind === 'res' ? '값 · 연결' : '동작 · 상태', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
     acts.push({ label: '설정', desc: mn.kind === 'tree' ? 'GUI · Terra · Tree' : mn.kind === 'leaf' ? 'GUI · Terra · Leaf' : 'GUI', run: () => this.gf_ctlOpenWin(mn, undefined, 'conf') });
@@ -73,4 +84,13 @@ rep("  loginOn() {","""  sceneCtx(e) {
   loginOn() {""")
 rep("      loginDoneFn:","      ctxMenu: this._ctxF || (this._ctxF = (e) => this.sceneCtx(e)),\n      loginDoneFn:")
 
+rep("        if (best.id !== 0 && this._focus && this._focus.id === best.id && !this._focus.from) this.enterLeaf(best.id);\n        else this.focusTo(best.id);\n",
+"        // 초점 맞은 항성을 한 번 더 누르면 들어가기 — 단 두 번 누름(0.32초 안에 두 번째)은 '초점 풀기'(뒤로 = ESC). 들어가기(와 로그인 창)는 두 번째 누름이 없다고 확인된 뒤에만\n"
+"        const EP = this._q_enterP; if (EP && performance.now() - EP.t < 320) { clearTimeout(EP.h); this._q_enterP = null; if (!this.goBack()) this.focusTo(0); return; }\n"
+"        if (best.id !== 0 && this._focus && this._focus.id === best.id && !this._focus.from) { const id = best.id; this._q_enterP = { t: performance.now(), h: setTimeout(() => { this._q_enterP = null; if (this._live && this._focus && this._focus.id === id && !this._enter && !this._lv) this.enterLeaf(id); }, 320) }; }\n"
+"        else this.focusTo(best.id);\n")
+rep("  enterLeaf(id) {\n", "  enterLeaf(id) {\n    { const t = this.sceneMap().byId['T' + id]; if (t && this.gf_loginGate && this.gf_loginGate(t, () => this.enterLeaf(id))) return; }   // 트리 뷰에서 항성을 눌러 들어가기 — 세션 없는 Tree 면 들어가기 전에 로그인 창(되면 그때 들어간다)\n")
+rep("      pdown: (e) => { if (!e || !this._cv", "      pdown: (e) => { if (!e || e.button !== 0 || !this._cv")   # 누르기 · 길게 누르기 = 좌클릭만 (우클릭은 속성)
+rep("      tap: (e) => {\n        if (!e || !this._cv", "      tap: (e) => {\n        if (!e || e.button !== 0 || !this._cv")   # 클릭 = 좌클릭만 — 우클릭(button 2) · 가운데(1)는 누르기로 치지 않는다
+rep("  navStart(n) {\n", "  navStart(n) {\n    if (this.gf_loginGate && this.gf_loginGate(n)) return;   // 세션 없는 Tree 로 — Tree 로그인 창이 먼저(로그인되면 이어서 간다)\n")
 open(P,'w').write(S); print('login ok')

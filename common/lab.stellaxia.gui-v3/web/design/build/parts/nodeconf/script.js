@@ -13,8 +13,13 @@
 //   시안 — 노드 설정 값은 이 창 안에서만 (적용하면 기준값이 바뀐다)
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { sec: 'show', v: null, base: null, draft: {}, msg: '', arm: null, needRestart: 0 };
-    try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} }
+    try { window.addEventListener('terra-help', () => this.setState({})); window.addEventListener('terra-sess', () => this.setState({})); } catch (e) {} }
   // 도움말 — 켜면 항목 설명 · 설정 키를 보인다 (기본 끔). 내 화면 설정이라 즉시 적용 · 자원 창과 같이 씀
+  // Tree 로그인 — GUI 쪽 값(이 브라우저): auto(terra.auto) · 저장된 세션(terra.sess, Tree id → { email, name, at })
+  autoOn() { try { return localStorage.getItem('terra.auto') !== '0'; } catch (e) { return true; } }
+  setAuto(on) { try { localStorage.setItem('terra.auto', on ? '1' : '0'); window.dispatchEvent(new Event('terra-sess')); } catch (e) {} this.setState({}); }
+  sessAll() { try { return JSON.parse(localStorage.getItem('terra.sess') || '{}') || {}; } catch (e) { return {}; } }
+  sessOut(id) { const m = this.sessAll(); const nm = (m[id] && m[id].name) || id; delete m[id]; try { localStorage.setItem('terra.sess', JSON.stringify(m)); window.dispatchEvent(new Event('terra-sess')); } catch (e) {} this.setState({ msg: nm + ' — 로그아웃 (저장된 세션 지움)' }); }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   setHelp(on) { try { localStorage.setItem('terra.help', on ? '1' : '0'); window.dispatchEvent(new Event('terra-help')); } catch (e) {} this.setState({}); }
   isNode() { const k = this.props.nodeKind || '리프'; return k === '트리' || k === '리프'; }
@@ -79,15 +84,15 @@ class Component extends DCLogic {
     if (!this.state.v) { const d = this.defaults(); this.state.v = JSON.parse(JSON.stringify(d)); this.state.base = JSON.parse(JSON.stringify(d)); } return this.state.v; }
   set(k, val) { const v = Object.assign({}, this.V(), { [k]: val }); this.setState({ v, msg: '' }); }
   dirty() { const v = this.V(), b = this.state.base; return Object.keys(v).filter((k) => JSON.stringify(v[k]) !== JSON.stringify(b[k])); }
-  SECS() { const etc = ['기타', [['etc', '도움말']]]; if (!this.isNode()) return [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰']]], ['Terra', [['ident', '노드 설정']]], etc];
-    const g = [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰']]], ['Terra', [['ident', '노드 정보'], ['conn', '연결'], ['net', '네트워크'], ['upd', '업데이트'], ['log', '로그'], ['danger', '노드 관리']]]];
+  SECS() { const etc = ['기타', [['etc', '도움말']]]; if (!this.isNode()) return [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['ident', '노드 설정']]], etc];
+    const g = [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['ident', '노드 정보'], ['conn', '연결'], ['net', '네트워크'], ['upd', '업데이트'], ['log', '로그'], ['danger', '노드 관리']]]];
     if (this.isTree()) g.push(['Tree', [['cluster', '클러스터'], ['users', '사용자'], ['enroll', '노드 등록'], ['deploy', '배포'], ['alerts', '경보']]]);
     if (this.isLeaf()) g.push(['Leaf', [['res', '자원'], ['mods', '모듈']]]);
     g.push(etc); return g; }
   KEYS() { return { show: ['label', 'orbit', 'color', 'proj'], skin: ['skin'], prof: ['profile'], view: ['view', 'dbl', 'badge'],
     ident: ['daemon.device_name'], conn: ['master.url', 'heartbeat.interval_sec'], net: ['wireguard.enabled', 'wireguard.listen_port', 'wireguard.advertise_endpoint', 'direct_tcp.enabled', 'webrtc.enabled'],
     upd: ['core_distribution.hold', 'core_distribution.hold_reason', 'core_distribution.allow_apply', 'core_distribution.maintenance_window', 'core_distribution.disk_quota_mb'], log: ['logging.level', 'logging.max_size_mb', 'logging.max_backups'], danger: [],
-    cluster: [], users: ['users'], enroll: ['codes'], deploy: [], alerts: ['alerts'], res: [], etc: [], mods: ['module_distribution.enabled', 'module_distribution.disk_quota_mb'] }; }
+    cluster: [], users: ['users'], enroll: ['codes'], deploy: [], alerts: ['alerts'], res: [], etc: [], tlog: [], mods: ['module_distribution.enabled', 'module_distribution.disk_quota_mb'] }; }
   // 노드 설정 줄의 머리표 — 키 이름 · 편집/읽기 · 재시작
   meta(k) { const D = this.DKEYS()[k]; if (!D) return {}; const ro = D[0] !== 'O' || this.remote(); return { keyT: k, tagT: ro ? '읽기' : '편집', tagCls: ro ? 'ro' : 'ed', rsT: D[1] && !ro ? '재시작 필요' : D[0] === 'O' && !D[1] && !ro ? '즉시' : '', isMeta: true }; }
   // 노드가 아닌 것 · 원격 노드 — 안내 줄
@@ -106,7 +111,7 @@ class Component extends DCLogic {
         pick: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.profPick(f); }, clear: () => { this._pend = null; this.set('profile', ''); } }]; }
     if (sec === 'skin') { const L = this.starIdx(), planet = (this.props.nodeKind || '리프') === '리프', pick = (id) => () => this.set('skin', id), C = (id) => (v.skin === id ? 'on' : '');
       const files = L.files.slice().sort((a, b) => (a.path + '/' + a.name).localeCompare(b.path + '/' + b.name));
-      return [{ label: '행성 스킨', sub: (planet ? '유틸/스타메이커/star' : '리프에서만 보임'), isSkin: true,
+      return [{ label: '행성 스킨', sub: '유틸/스타메이커/star · ' + (planet ? '행성 겉면' : '리프 뷰 가운데 항성'), isSkin: true,
         skins: [{ name: '기본', path: '타입 무늬', thumb: '', noThumb: true, hasThumb: false, cls: C(''), on: v.skin === '' ? 'true' : 'false', pick: pick('') }].concat(files.map((f) => ({ name: f.name, path: f.path + ' · ' + (f.kind === 'planet' ? '행성' : '항성'), thumb: f.thumb || '', noThumb: !f.thumb, hasThumb: !!f.thumb, cls: C(f.id), on: v.skin === f.id ? 'true' : 'false', pick: pick(f.id) }))),
         skinEmpty: files.length ? '' : 'star 폴더 비어 있음' }]; }
     if (sec === 'view') return [G('view', '시작 뷰', '', ['트리 뷰', '리프 뷰', '리소스 뷰']), T('dbl', '더블클릭 진입', '끄면 우클릭 › 진입'), T('badge', '알림 배지', '')];
@@ -145,6 +150,11 @@ class Component extends DCLogic {
       return head.concat([{ label: '자원 리스트', sub: 'SVI ' + R.length + '개 · 이름을 누르면 상태', isList: true, items: R.map((t) => ({ t, run: () => (this.props.onOpen ? this.props.onOpen('res', t) : this.setState({ msg: t + ' 상태 창 (시안)' })) })), keyT: 'terra.daemon.svi.declarations', tagT: '읽기', tagCls: 'ro', rsT: '', isMeta: true },
         this.noteRow('내부 자원 관리', '캡슐화 · 열기 · 실행 · 제어', { t: '노드 데스크톱', run: open('ctl') }),
         this.noteRow('자원 공유 · 외부 자원 등록', '소속 클러스터 안', { t: '자원 창', run: open('share') })]); }
+    if (sec === 'tlog') { const au = this.autoOn(), m = this.sessAll(), ids = Object.keys(m).sort((a, b) => (m[b].at || 0) - (m[a].at || 0));
+      const ago = (t) => { const d = (Date.now() - (t || 0)) / 60000; return d < 1 ? '방금' : d < 60 ? Math.round(d) + '분 전' : d < 1440 ? Math.round(d / 60) + '시간 전' : Math.round(d / 1440) + '일 전'; };
+      return [{ label: 'auto', sub: '저장된 세션으로 바로 이동 · 로그인 창 기본값', isToggle: true, on: au ? 'true' : 'false', tgCls: au ? 'on' : '', tgT: au ? '켬' : '끔', toggle: () => this.setAuto(!au) },
+        { label: '저장된 세션', sub: ids.length + '개 · ' + (au ? '이동 때 씀' : 'auto 꺼짐 — 이동 때마다 로그인'), isList: true,
+          items: ids.length ? ids.map((id) => ({ t: (m[id].name || id) + ' · ' + (m[id].email || '') + ' · ' + ago(m[id].at), noRun: true, hasAct: true, actT: '로그아웃', act: () => this.sessOut(id) })) : [{ t: '없음 — Tree 로그인 창에서 auto 를 켜고 로그인하면 남아요', noRun: true }] }]; }
     if (sec === 'etc') { const h = this.help(); return [{ label: '도움말', sub: '항목 설명 · 설정 키', isToggle: true, on: h ? 'true' : 'false', tgCls: h ? 'on' : '', tgT: h ? '켬' : '끔', toggle: () => this.setHelp(!h) }]; }
     if (sec === 'mods') return head.concat([T('module_distribution.enabled', '지정 모듈 설치', '트리가 지정'), N('module_distribution.disk_quota_mb', '설치 용량', '0 = 제한 없음', 0, 16384, 512, 'MB')]);
     return head.concat([D('restart', '다시 시작', '잠깐 끊김 · terra.daemon.restart.post', '다시 시작', '한 번 더 누르면 실행', this.remote()), D('detach', '트리 해제', '코어 동작 미확인', '준비 중', '', true)]);

@@ -82,3 +82,5 @@ body{margin:0;background:#040614}
 .nc-row:has(.nc-meta) .nc-lab{gap:3px}
 .nc-rn{border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(110,236,156,.45);text-underline-offset:3px}
 .nc-rn:hover{color:#d0ff96;text-decoration-color:#d0ff96}
+.nc-out{margin-left:10px;border:1px solid rgba(255,130,120,.38);background:transparent;color:#ff9c90;font:inherit;font-size:11px;padding:0 6px;border-radius:4px;cursor:pointer}
+.nc-out:hover{border-color:#ff9c90;background:rgba(255,130,120,.1)}

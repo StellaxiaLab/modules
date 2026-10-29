@@ -41,7 +41,7 @@ web/
 ├─ tests/                        npm test(브라우저 없이) · smoke.mjs(Chromium)
 ├─ bench/                        렌더러 비교 페이지 (빌드에 넣지 않는다)
 ├─ tools/                        bench-field.mjs · gen-op-scope.mjs
-└─ design/                       캔버스 보드 원본 (캔버스 'Terra GUI v3' 버전 254와 같다)
+└─ design/                       캔버스 보드 원본 (캔버스 'Terra GUI v3' 버전 263과 같다)
    ├─ canvas.json · Scene.dc.html(생성물) · Field · Login · 창 컴포넌트 · 단독 시안 보드 · Sheet
    └─ build/                     보드를 굽는 도구 (아래)
 ```
@@ -66,7 +66,7 @@ npm run gen:op-scope -- --terra <Terra 체크아웃> [--check]   # 원격 잠금
 | 무엇 | 명령 | 하는 일 |
 | --- | --- | --- |
 | 통합 화면 | `python3 web/design/build/mkglobal.py` | `build/scene_base.html`(장면) + `Field.dc.html`(전역 틀) + `build/gf_scene_methods.js` → `Scene.dc.html`, 이어서 `mklogin.py`(로그인 층 · 우클릭)와 `atlas.py`(글자 타일) 를 적용 |
-| 창 보드 셋 | `python3 web/design/build/build_parts.py [nodeconf\|nodestatus\|starmaker\|nodeshare\|resstatus]` | `build/parts/<보드>/{markup.html, style.css, script.js}` → 그 보드의 해당 자리만 교체 |
+| 창 보드 셋 | `python3 web/design/build/build_parts.py [nodeconf\|nodestatus\|starmaker\|nodeshare\|resstatus\|treelogin]` | `build/parts/<보드>/{markup.html, style.css, script.js}` → 그 보드의 해당 자리만 교체 |
 
 규칙: `Scene.dc.html` 은 생성물이다. 장면은 `build/scene_base.html`, 전역 틀은 `Field.dc.html`, 창 보드는 `build/parts/` 를 고친 뒤 굽는다.
 굽고 나면 class 스크립트를 뽑아 `node --check` 로 문법을 확인한다.
