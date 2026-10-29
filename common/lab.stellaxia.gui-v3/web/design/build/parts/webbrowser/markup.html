@@ -1,0 +1,44 @@
+<div class="wb" style="position: relative; width: {{rootW}}; height: {{rootH}}; box-sizing: border-box; display: flex; flex-direction: column; background: #0a0e1c; color: #dfe5f5; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace;">
+  <div class="wb-bar">
+    <button type="button" class="wb-ic" aria-label="뒤로" disabled="{{backD}}" onClick="{{back}}">←</button>
+    <button type="button" class="wb-ic" aria-label="앞으로" disabled="{{fwdD}}" onClick="{{fwd}}">→</button>
+    <button type="button" class="wb-ic" aria-label="새로고침" onClick="{{reload}}">⟳</button>
+    <button type="button" class="wb-ic" aria-label="시작 페이지" onClick="{{home}}">⌂</button>
+    <form class="wb-addr {{addrCls}}" onSubmit="{{go}}">
+      <span class="wb-lock" title="{{lockTip}}">{{lockT}}</span>
+      <input type="text" value="{{input}}" onInput="{{inp}}" onFocus="{{selAll}}" spellcheck="false" aria-label="주소" placeholder="주소 또는 모듈 이름">
+    </form>
+    <a class="wb-ic wb-out" href="{{extHref}}" target="_blank" rel="noopener noreferrer" aria-label="새 탭으로" style="display: {{extD}};">↗</a>
+  </div>
+  <div class="wb-sub"><sc-for list="{{chips}}" as="c" hint-placeholder-count="3"><span class="wb-chip {{c.cls}}">{{c.t}}</span></sc-for><span style="flex: 1;"></span><span class="wb-api">{{apiT}}</span></div>
+  <div class="wb-page">
+    <sc-if value="{{isStart}}" hint-placeholder-val="{{ false }}">
+      <div class="wb-start">
+        <div class="wb-sh"><b>terra://start</b><span>{{startNote}}</span></div>
+        <div class="wb-grid">
+          <sc-for list="{{cards}}" as="k" hint-placeholder-count="4">
+            <button type="button" class="wb-card {{k.cls}}" onClick="{{k.open}}" disabled="{{k.off}}"><b>{{k.app}}</b><span>{{k.mod}}</span><span class="wb-cm"><i class="{{k.modeCls}}">{{k.mode}}</i>{{k.node}}</span><span class="wb-cst">{{k.st}}</span></button>
+          </sc-for>
+        </div>
+        <sc-if value="{{noCards}}" hint-placeholder-val="{{ false }}"><p class="wb-dim">이 노드엔 화면이 있는 모듈이 없어요.</p></sc-if>
+        <p class="wb-dim">주소창에 http(s) 주소나 모듈 이름을 넣으면 열어요. 모듈 GUI 는 Gateway 가 sandbox 로 내주는 화면이에요.</p>
+      </div>
+    </sc-if>
+    <sc-if value="{{isLoad}}" hint-placeholder-val="{{ false }}">
+      <div class="wb-load"><sc-for list="{{steps}}" as="s" hint-placeholder-count="3"><div class="wb-step {{s.cls}}"><span>{{s.mark}}</span><span>{{s.t}}</span><span class="wb-dim">{{s.api}}</span></div></sc-for></div>
+    </sc-if>
+    <sc-if value="{{isSync}}" hint-placeholder-val="{{ false }}">
+      <div class="wb-load"><div class="wb-step warn"><span>!</span><span>{{syncT}}</span></div><p class="wb-dim">{{syncNote}}</p><button type="button" class="wb-btn" onClick="{{sync}}">자산 동기화</button></div>
+    </sc-if>
+    <sc-if value="{{isErr}}" hint-placeholder-val="{{ false }}">
+      <div class="wb-load"><div class="wb-step err"><span>✕</span><span>{{errT}}</span></div><p class="wb-dim">{{errNote}}</p></div>
+    </sc-if>
+    <sc-if value="{{isDoc}}" hint-placeholder-val="{{ false }}">
+      <iframe class="wb-frame" title="{{frameTitle}}" srcdoc="{{doc}}" sandbox="" referrerpolicy="no-referrer"></iframe>
+    </sc-if>
+    <sc-if value="{{isWeb}}" hint-placeholder-val="{{ false }}">
+      <iframe class="wb-frame wb-white" title="{{frameTitle}}" src="{{src}}" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" referrerpolicy="no-referrer"></iframe>
+    </sc-if>
+  </div>
+  <div class="wb-st"><span>{{statusT}}</span><span style="flex: 1;"></span><span class="wb-dim">{{noteT}}</span></div>
+</div>

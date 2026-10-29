@@ -41,7 +41,9 @@ class Component extends DCLogic {
       const n = n3(X * 2.2 + 9, Y * 2.2 + 3, Z * 2.2) * 0.65 + n3(X * 7 + 1, Y * 7 + 5, Z * 7 + 2) * 0.35, k = Math.min(1, Math.max(0, (n - 0.25) / 0.6)), j = (y * W + x) * 4;
       im.data[j] = L(40, 236, k * k); im.data[j + 1] = L(70, 244, k); im.data[j + 2] = L(170, 255, Math.sqrt(k)); im.data[j + 3] = 255; }
     c.putImageData(im, 0, 0);
-    this._tex = [{ cv, im, d: 100 }]; this._texSrc = 'default'; this._proj = 'equirect';
+    // 기본 무늬도 원본이다 — 고른 구 형성 방법이 그대로 적용된다 (전에는 이미지 · GIF 를 불러와야만 방법이 먹었다)
+    this._src = { name: '기본 무늬', frames: [{ cv, d: 100 }], w: W, h: H, type: 'none' };
+    this.build(); this._texSrc = 'default';
   }
   // 원본 불러오기 — 이미지 · GIF(ImageDecoder 로 프레임마다, 최대 48장) / 구 데이터(JSON)
   async loadFile(f) {
@@ -68,7 +70,7 @@ class Component extends DCLogic {
     if (A === 'billboard') {   // 원판 — 원본 가운데 정사각(꽉 채우기)을 원으로 잘라 W × W 그대로 (투영 없음)
       for (const fr of S.frames) { const cv = document.createElement('canvas'); cv.width = cv.height = W; const c = cv.getContext('2d'), sw = fr.cv.width, sh = fr.cv.height, m = Math.min(sw, sh);
         c.save(); c.beginPath(); c.arc(W / 2, W / 2, W / 2, 0, Math.PI * 2); c.clip(); c.drawImage(fr.cv, (sw - m) / 2, (sh - m) / 2, m, m, 0, 0, W, W); c.restore(); out.push({ cv, im: c.getImageData(0, 0, W, W), d: fr.d }); }
-      this._tex = out; this._texSrc = 'build'; this._proj = 'billboard'; this.setState({ texW: W, rev: this.state.rev + 1 }); return;
+      this._tex = out; this._texSrc = this._src.type === 'none' ? 'default' : 'build'; this._proj = 'billboard'; this.built(W); return;
     }
     this._proj = 'equirect';
     for (const fr of S.frames) {
@@ -82,8 +84,9 @@ class Component extends DCLogic {
         else { const co = (0.5 - la / Math.PI), rr = co * R; samp((cx + Math.cos(lo) * rr) / sw, (cy + Math.sin(lo) * rr) / sh, j); } } }
       c.putImageData(im, 0, 0); out.push({ cv, im, d: fr.d });
     }
-    this._tex = out; this._texSrc = 'build'; this.setState({ texW: W, rev: this.state.rev + 1 });
+    this._tex = out; this._texSrc = this._src.type === 'none' ? 'default' : 'build'; this.built(W);
   }
+  built(W) { if (this._live) this.setState({ texW: W, rev: (this.state.rev || 0) + 1 }); else Object.assign(this.state, { texW: W, rev: (this.state.rev || 0) + 1 }); }   // 생성자에서도 부른다(기본 무늬)
   // 구 데이터 받아오기 — terra.sphere v1. 표면 프레임 이미지를 그대로 쓰고(형성 단계 건너뜀), 렌더 값을 따른다
   async loadSphere(J, id) {
     if (!J || J.format !== 'terra.sphere') { this.say('terra.sphere 형식이 아니에요', true); return; }
@@ -102,8 +105,8 @@ class Component extends DCLogic {
     const enc = (cv) => { let u = ''; try { u = cv.toDataURL('image/webp', q); } catch (e) {} return u && u.startsWith('data:image/webp') ? u : cv.toDataURL('image/png'); };
     const id = S.cur || 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     return { format: 'terra.sphere', version: 1, id, name: (S.name || '이름 없는 구').trim(), kind: S.kind, created: new Date().toISOString(),
-      source: { type: this._texSrc === 'sphere' ? 'sphere' : this._src ? this._src.type : 'procedural', name: this._src ? this._src.name : null, w: this._src ? this._src.w : null, h: this._src ? this._src.h : null },
-      build: { algo: this._texSrc === 'build' ? S.algo : null, res: T[0] ? T[0].cv.width : S.res },
+      source: { type: this._texSrc === 'sphere' ? 'sphere' : this._src && this._src.type !== 'none' ? this._src.type : 'procedural', name: this._src ? this._src.name : null, w: this._src ? this._src.w : null, h: this._src ? this._src.h : null },
+      build: { algo: this._texSrc === 'build' || this._texSrc === 'default' ? S.algo : null, res: T[0] ? T[0].cv.width : S.res },
       surface: { projection: this._proj || 'equirect', w: T[0] ? T[0].cv.width : 0, h: T[0] ? T[0].cv.height : 0, fps: anim ? S.fps : 0, loop: true, frames: T.map((t) => ({ data: enc(t.cv), d: Math.round(1000 / S.fps) })) },
       render: { spin: S.spin, tilt: S.tilt, gain: S.gain, limb: S.limb, light: S.kind === 'planet' ? S.light : null, ambient: 0.22 },
       thumb: this.thumb(), ext: {} };

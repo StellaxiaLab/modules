@@ -143,6 +143,11 @@ button{font-family:inherit}
 
           <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; color: {{t.ink}};">
 
+            <!-- 웹 브라우저 — 브라우저 창과 같은 보드(WebBrowser). 시작 페이지 = 이 노드의 모듈 화면 -->
+            <sc-if value="{{w.isWeb}}" hint-placeholder-val="{{ false }}">
+              <div style="flex-grow: 1; min-height: 0; overflow: hidden; background: #0a0e1c;"><dc-import name="WebBrowser" url="{{w.webUrl}}" catalog="{{catalog}}" node-name="{{nodeNameV}}" win-w="{{w.webW}}" win-h="{{w.webH}}" hint-size="900px,560px"></dc-import></div>
+            </sc-if>
+
             <!-- 터미널 -->
             <sc-if value="{{w.isTerm}}" hint-placeholder-val="{{ false }}">
               <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; background: {{t.term}};">
@@ -228,7 +233,23 @@ button{font-family:inherit}
                           <sc-for list="{{w.walls}}" as="wl" hint-placeholder-count="4">
                             <button type="button" aria-label="{{wl.label}}" aria-pressed="{{wl.on}}" onClick="{{wl.pick}}" style="width: 92px; height: 58px; box-sizing: border-box; padding: 0; border-radius: 9px; background: {{wl.bg}}; border: 2px solid {{wl.bd}}; cursor: pointer; display: flex; align-items: flex-end; justify-content: flex-start;"><span style="margin: 0 0 4px 6px; font-size: 11px; color: {{wl.ink}}; text-shadow: 0 1px 2px rgba(0,0,0,.4);">{{wl.label}}</span></button>
                           </sc-for>
+                          <button type="button" aria-label="이미지 · GIF 바탕" aria-pressed="{{w.wImg.on}}" onClick="{{w.wImg.pick}}" style="width: 92px; height: 58px; box-sizing: border-box; padding: 0; border-radius: 9px; background: {{w.wImg.bg}}; border: 2px solid {{w.wImg.bd}}; cursor: pointer; display: flex; align-items: flex-end; justify-content: flex-start;"><span style="margin: 0 0 4px 6px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6);">{{w.wImg.name}}</span></button>
                         </div>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="width: 92px; font-size: 12px; color: {{t.dim}};">이미지 · GIF</span>
+                        <label style="height: 28px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 9px; font-size: 12px; cursor: pointer;">파일 고르기<input type="file" accept="image/*" onChange="{{w.wImg.file}}" style="display: none;"></label>
+                        <sc-if value="{{w.wImg.has}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.wImg.clear}}" style="height: 28px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.sub}}; font-size: 12px; cursor: pointer;">지우기</button></sc-if>
+                        <span style="font-size: 11.5px; color: {{t.dim}};">{{w.wImg.msg}}</span>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="width: 92px; font-size: 12px; color: {{t.dim}};">맞춤</span>
+                        <div style="display: flex; border: 1px solid {{t.line2}}; border-radius: 9px; overflow: hidden;">
+                          <sc-for list="{{w.fits}}" as="ft" hint-placeholder-count="4">
+                            <button type="button" aria-pressed="{{ft.on}}" disabled="{{ft.off}}" onClick="{{ft.pick}}" style="height: 28px; padding: 0 12px; border: 0; background: {{ft.bg}}; color: {{ft.fg}}; font-size: 12px; cursor: pointer;">{{ft.label}}</button>
+                          </sc-for>
+                        </div>
+                        <span style="font-size: 11.5px; color: {{t.dim}};">이 브라우저 · 이 노드</span>
                       </div>
                       <div style="display: flex; align-items: center; gap: 12px;">
                         <span style="width: 92px; font-size: 12px; color: {{t.dim}};">독 위치</span>
@@ -599,7 +620,7 @@ button{font-family:inherit}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"lab-ws-02"},"winW":{"editor":null,"default":1240},"zoom":{"editor":null},"onZoom":{"editor":null},"onClose":{"editor":null},"onFull":{"editor":null},"chrome":{"editor":"enum","options":["own","none"],"default":"own"},"winH":{"editor":null,"default":760},"remote":{"editor":"boolean","default":false},"onOpen":{"editor":null},"$preview":{"width":1240,"height":760}}'>
+<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"lab-ws-02"},"catalog":{"editor":null},"winW":{"editor":null,"default":1240},"zoom":{"editor":null},"onZoom":{"editor":null},"onClose":{"editor":null},"onFull":{"editor":null},"chrome":{"editor":"enum","options":["own","none"],"default":"own"},"winH":{"editor":null,"default":760},"remote":{"editor":"boolean","default":false},"onOpen":{"editor":null},"$preview":{"width":1240,"height":760}}'>
 const D = {
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   doc: 'M6 3h9l3 3v15H6z M9 9h6 M9 13h6 M9 17h4',
@@ -614,6 +635,8 @@ const D = {
   shrink: 'M20 10h-6V4 M4 14h6v6 M14 10l7-7 M3 21l7-7',
   user: 'M16 8a4 4 0 1 0-8 0a4 4 0 1 0 8 0 M4 21a8 8 0 0 1 16 0',
   info: 'M21 12a9 9 0 1 0-18 0a9 9 0 1 0 18 0 M12 11v6 M12 7.5v.01',
+  globe: 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z M3 12h18 M12 3c3.2 3.6 3.2 14.4 0 18 M12 3c-3.2 3.6-3.2 14.4 0 18',
+  image: 'M4 5h16v14H4z M4 16l5-5 4 4 3-3 4 4 M15.5 9.5v.01',
   palette: 'M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.5-2.2-.6-1.3.2-2.8 1.8-2.8H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3z',
   window: 'M3 5h18v14H3z M3 9h18',
   bell: 'M6 17V11a6 6 0 0 1 12 0v6l2 2H4z M10 21h4',
@@ -631,11 +654,12 @@ const APPS = {
   set:   { title: '설정',       d: D.gear,   fw: .62, fh: .72, minW: 560, minH: 360 },
   jobs:  { title: '작업 관리자', d: D.swap,   fw: .52, fh: .50, minW: 440, minH: 220 },
   svi:   { title: '자원 관리',   d: D.net,    fw: .64, fh: .70, minW: 620, minH: 400 },
-  mods:  { title: '모듈',       d: D.puzzle, fw: .64, fh: .70, minW: 620, minH: 400 }
+  mods:  { title: '모듈',       d: D.puzzle, fw: .64, fh: .70, minW: 620, minH: 400 },
+  web:   { title: '웹 브라우저', d: D.globe,  fw: .70, fh: .74, minW: 560, minH: 360 }
 };
 /* 바탕화면 아이콘은 크기가 늘 같고, 칸(열 · 행)에 고정된다. 왼쪽 위 칸이 (0, 0) */
 const CW = 100, CH = 112, TILE = 52, GLYPH = 26;
-const DOCK = ['files', 'term', 'svi', 'jobs', 'mods', 'set'];
+const DOCK = ['files', 'web', 'term', 'svi', 'jobs', 'mods', 'set'];
 const WALLS = [
   { id: 'dusk',   label: '노을',   bg: 'linear-gradient(160deg,#1c2a44 0%,#3a2f55 45%,#7a4a4f 100%)', ink: '#fff' },
   { id: 'forest', label: '숲',     bg: 'linear-gradient(160deg,#0c2a24 0%,#12433a 60%,#1d5a45 100%)', ink: '#fff' },
@@ -766,6 +790,17 @@ class Component extends DCLogic {
   /* ==== 노드 안 — 모듈 · 자원 관리 · 노드 설정 (시안 데이터. Terra 대응은 줄마다) ====
      원격 노드(props.remote)면 그 노드에서만 되는 operation(local-only)은 잠금 표시 — 누를 수 없다 */
   remote() { return !!this.props.remote; }
+  // 바탕화면 이미지 · GIF — 이 브라우저에 노드마다 (terra.wall.<노드>, data URL · 2.5MB 까지). GIF 는 CSS 배경으로 그대로 움직인다
+  wallKey() { return 'terra.wall.' + this.nodeNameQ(); }
+  wallImg() { try { const v = JSON.parse(localStorage.getItem(this.wallKey()) || 'null'); return v && v.data ? v.data : ''; } catch (e) { return ''; } }
+  wallName() { try { const v = JSON.parse(localStorage.getItem(this.wallKey()) || 'null'); return v ? v.name : ''; } catch (e) { return ''; } }
+  wallPick(f) {
+    if (!f) return; if (!/^image\//.test(f.type)) { this.setState({ wallMsg: '이미지 · GIF 만' }); return; }
+    if (f.size > 2.5 * 1024 * 1024) { this.setState({ wallMsg: '2.5MB 이하만 — 브라우저 저장소가 작아요 (' + (f.size / 1048576).toFixed(1) + 'MB)' }); return; }
+    const rd = new FileReader(); rd.onload = () => { try { localStorage.setItem(this.wallKey(), JSON.stringify({ name: f.name, type: f.type, data: rd.result, at: Date.now() })); } catch (e) { this.setState({ wallMsg: '저장 공간이 모자라요 — 더 작은 파일로' }); return; }
+      this.setState({ wallMsg: f.name + (/gif$/i.test(f.type) ? ' · GIF (움직임)' : '') }); this.setPref('wall', 'img'); }; rd.readAsDataURL(f);
+  }
+  wallClear() { try { localStorage.removeItem(this.wallKey()); } catch (e) {} this.setState({ wallMsg: '' }); if (this.state.prefs.wall === 'img') this.setPref('wall', 'dusk'); }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   api(t) { return this.help() ? t : ''; }
   btn(label, run, o) { o = o || {}; const lock = !!o.local && this.remote(), off = !!o.off || lock;
@@ -1020,7 +1055,8 @@ class Component extends DCLogic {
     const fd = this.frameDims(), full = s.full;
     const NC = this.props.chrome === 'none';
     const frame = { x: 0, y: 0, w: fd.w, h: fd.h, r: NC ? 0 : 14, bd: NC ? '0' : '1px solid ' + t.line2, sh: NC ? 'none' : '0 24px 70px rgba(0,0,0,.55)', fullLabel: full ? '전체화면 끝내기' : '전체화면', fullIcon: full ? D.shrink : D.expand };
-    const wall = WALLS.find((w) => w.id === p.wall) || WALLS[0];
+    const wImg = p.wall === 'img' ? this.wallImg() : '', FIT = { cover: 'center / cover no-repeat', contain: 'center / contain no-repeat', center: 'center / auto no-repeat', tile: 'left top / auto repeat' };
+    const wall = wImg ? { id: 'img', bg: "url('" + wImg + "') " + (FIT[p.wallFit] || FIT.cover) + ", #0b0f1a", ink: '#fff' } : WALLS.find((w) => w.id === p.wall) || WALLS[0];   // 이미지 · GIF 바탕 — GIF 는 그대로 움직인다
     const wb = this.workBox();
     const lightWall = p.wall === 'paper';
 
@@ -1063,7 +1099,8 @@ class Component extends DCLogic {
         minimize: () => this.patchWin(id, { min: true }),
         toggleMax: () => { this.patchWin(id, { max: !w.max }); this.persist(); },
         close: () => this.closeWin(id),
-        isTerm: id === 'term', isFiles: id === 'files', isSet: id === 'set', isJobs: id === 'jobs', isSvi: id === 'svi', isMods: id === 'mods'
+        isTerm: id === 'term', isFiles: id === 'files', isSet: id === 'set', isJobs: id === 'jobs', isSvi: id === 'svi', isMods: id === 'mods', isWeb: id === 'web',
+        webW: Math.max(200, g.w - 2), webH: Math.max(120, g.h - 40), webUrl: s.webUrl || 'terra://start'
       };
       if (id === 'term') {
         const tone = { cmd: t.ink, out: t.sub, dim: t.dim, err: '#ff6b6b' };
@@ -1117,6 +1154,10 @@ class Component extends DCLogic {
         o.sWall = s.setTab === 'wall'; o.sLook = s.setTab === 'look';
         o.sNode = s.setTab === 'node'; o.sNet = s.setTab === 'net'; o.sEnroll = s.setTab === 'enroll'; o.sAbout = s.setTab === 'about'; o.sAcct = s.setTab === 'acct';
         o.walls = WALLS.map((wl) => ({ label: wl.label, bg: wl.bg, ink: wl.ink, on: p.wall === wl.id, bd: p.wall === wl.id ? '#ffd84d' : t.line2, pick: () => this.setPref('wall', wl.id) }));
+        { const im = this.wallImg(), on = p.wall === 'img' && !!im;
+          o.wImg = { has: !!im, none: !im, bg: im ? "url('" + im + "') center / cover no-repeat, #0b0f1a" : 'repeating-linear-gradient(45deg,' + t.line + ' 0 6px,transparent 6px 12px)', bd: on ? '#ffd84d' : t.line2, on: on ? 'true' : 'false', name: this.wallName() || '이미지 · GIF', pick: () => { if (im) this.setPref('wall', 'img'); },
+            file: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.wallPick(f); }, clear: () => this.wallClear(), msg: s.wallMsg || '' };
+          o.fits = [['cover', '채우기'], ['contain', '맞추기'], ['center', '가운데'], ['tile', '바둑판']].map(([id, label]) => ({ label, on: (p.wallFit || 'cover') === id, bg: (p.wallFit || 'cover') === id ? t.ink : 'transparent', fg: (p.wallFit || 'cover') === id ? (dark ? '#111' : '#fff') : t.sub, pick: () => this.setPref('wallFit', id), off: on ? null : 'disabled' })); }
                 o.docks = [{ id: 'bottom', label: '아래' }, { id: 'left', label: '왼쪽' }].map((z) => ({ label: z.label, on: p.dock === z.id, bg: p.dock === z.id ? t.ink : 'transparent', fg: p.dock === z.id ? (dark ? '#111' : '#fff') : t.sub, pick: () => this.setPref('dock', z.id) }));
         const tgl = (k, label, note) => ({ label, note, on: p[k], bg: p[k] ? '#3ecf8e' : 'rgba(128,128,128,.45)', knob: p[k] ? 19 : 3, flip: () => this.setPref(k, !p[k]) });
         o.toggles = [tgl('dark', '어두운 모양', '창과 바를 어둡게 그린다'), tgl('snap', '창 맞춤', '가장자리로 끌면 반쪽으로 붙는다'), tgl('anim', '창 움직임', '열고 닫을 때 짧은 움직임')];
@@ -1305,6 +1346,7 @@ class Component extends DCLogic {
 
     return {
       headD: this.props.chrome === 'none' ? 'none' : 'flex',
+      catalog: Array.isArray(this.props.catalog) ? this.props.catalog : [], nodeNameV: this.nodeNameQ(),
       t, frame, wall, icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, zoomK: this.zoom(),
       node: { name: this.nodeNameQ(), parent: 'tree-home' },
       focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
