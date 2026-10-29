@@ -7,11 +7,11 @@ doc_type: "design"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.2.0"
+version: "0.3.0"
 last_updated: "2026-10-29"
 language: "ko-KR"
 based_on:
-  - "캔버스 'Terra GUI v3' 버전 264(web/design 과 같다)의 Scene.dc.html(fieldRec · glyphAtlas · fieldFlush) · 창 보드들"
+  - "캔버스 'Terra GUI v3' 버전 266(web/design 과 같다)의 Scene.dc.html(fieldRec · glyphAtlas · fieldFlush) · 창 보드들"
   - "Terra main 2026-10-28 — Gateway gui_apps.go(appAssetCSP · capabilities), Daemon 계약 terra-api.json"
 os_priority:
   - Linux
@@ -22,6 +22,7 @@ related:
   - "[[backend|v3 모듈 백엔드 설계]]"
   - "[[menu-hierarchy|메뉴 계층 설계]]"
   - "[[settings-inventory|GUI v3 설정 종합]]"
+  - "[[node-data|노드 데이터와 분할 — PA/EL]]"
 ---
 
 # GUI v3 웹 구조
@@ -188,8 +189,13 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 | `api/terra.js` | `invoke(id, input, { node })` — 이 노드는 `/api/v1/operations/{id}/invoke`, 다른 노드는 `/api/v1/nodes/{node}/operations/{id}/invoke`(Master 중계). `stream()` — 티켓(30초) → WebSocket |
 | `api/op-scope.json` | Daemon operation 78개의 원격 개방(`availability.scopes`) · 권한 · 위험도. **그 노드에서만인 것 26개** — 원격 제어기의 잠금 표시가 읽는다. `tools/gen-op-scope.mjs --terra <체크아웃>` 이 Terra 계약에서 뽑고, `--check` 로 어긋남을 본다 |
 | `api/node-data.js` | v3 백엔드 — 프로필 · 노드 속성([[backend\|백엔드 설계]]) |
+| `api/session.js` | B 모드 로그인 — `POST /api/v1/auth/credentials` → 자격 핸들(이 탭에만), 실패 말, 로그아웃 폐기 |
+| `api/transport.js` | 노드 데이터 층(보드 `TerraNodes`)의 Gateway 전송 — 로컬 · 원격 길, 장면 노드 ↔ Terra 노드 묶기, Master 관측, 보기 상태를 계정 문서로([[node-data\|노드 데이터와 분할]]) |
 
 `canRemote(id)` 가 false 인 operation 을 다른 노드로 부르면 나가기 전에 `LOCAL_ONLY` 로 멈춘다.
+자격은 두 갈래 — `authorization()`(B 모드: `Handle <id>`)이 있으면 그것을, 없으면 `token()`(A 모드: 셸이 준 스코프 토큰 `Bearer tsa_…`). Gateway 에 못 닿으면 `NETWORK`, 코드 없는 502 · 504 는 `GATEWAY_UNREACHABLE` · `TIMEOUT` 으로 이름을 붙인다 — 노드 데이터 층이 분할로 읽는다.
+
+`boot/main.js` 는 보드를 고치지 않고 두 자리만 잇는다: 로그인 보드의 `login()`(Gateway 로그인이 되면 시안의 전환) · 씬의 `sceneLogout()`(핸들 폐기 · 사본 비우기). `window.TerraTransport` 를 세우면 보드 `TerraNodes` 가 목업 대신 그것을 쓴다. `?demo` 면 둘 다 하지 않는다(목업).
 
 명령 실행(`terra.daemon.commands.execute`)은 `command` 와 `args` 를 **빈칸으로 이어 붙여 시스템 셸에 한 줄로** 넘긴다(계약 설명).
 그래서 제어기의 "파일에서 설치"(`terra module install <파일> --grant-reviewed …`)는 경로를 셸에 맞게 감싼다 — `shellArg()` · `moduleInstallCommand()`.
@@ -198,7 +204,7 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 
 | 항목 | 값 |
 | --- | --- |
-| 앱 | `contributions.gui.apps[0]` — `lab.stellaxia.gui-v3.web`, `static`, `ui/index.html`, `sandboxed`, capabilities 없음 |
+| 앱 | `contributions.gui.apps[0]` — `lab.stellaxia.gui-v3.web`, `static`, `ui/index.html`, `sandboxed`, capabilities 없음. 이 길(A 모드)로 열리면 셸이 준 스코프 토큰으로 부른다. 제품 셸의 첫 화면으로 띄울 때가 B 모드(스스로 로그인) — [[node-data\|노드 데이터와 분할]] §5 |
 | 빌드 | `web/` → `../ui`(Vite, `base: './'` — Gateway 가 `/api/v1/gui/apps/<앱 id>/files/` 아래에서 낸다). `ui/` 는 산출물이라 커밋하지 않는다 |
 | 글꼴 | 앱 CSP 가 `font-src 'self' data:` 라 앱 안에서 낸다(`src/ui/fonts.css`): Geist · Geist Mono(OFL, @fontsource). 한글은 시안의 **GmarketSans 자리에 Pretendard Variable(OFL, dynamic subset 92조각)** — GmarketSans 파일은 배포 조건을 확인한 뒤 같은 이름으로 바꿔 넣는다(보드의 글꼴 스택을 고치지 않으려고 이름을 그대로 둔다) |
 | 런처 | 지금 있는 것 — Windows WebView2 런처, 그 밖은 terra-shell(브라우저 앱 모드). 별도 엔진 · Electron · Tauri 없음 |
@@ -207,8 +213,8 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 
 | 명령 | 보는 것 |
 | --- | --- |
-| `npm test` | 칸 모델 · 색 · 기록기 · 타일 배치 · 부하 · signals · 창 자리 규칙 · operation 호출 · 원격 잠금 · 셸 인자 · 백엔드 클라이언트 · **보드 → 모듈(씬에서 닿는 보드 전부가 모듈 문법으로 맞는지)** (브라우저 없이) |
-| `node tests/smoke.mjs` | 구운 `ui/` 를 Gateway 와 같은 CSP 로 내고 Chromium 으로 연다 — 씬 보드(보드 24개 인스턴스)가 Worker+WebGL2 · 메인 WebGL2 · Canvas 2D 세 길로 서는지, 로그인 → 트리 뷰, 제어기 창, 모듈 상태 › GUI ↗ → 브라우저 창, 오류가 없는지 |
+| `npm test` | 칸 모델 · 색 · 기록기 · 타일 배치 · 부하 · signals · 창 자리 규칙 · operation 호출 · 원격 잠금 · 셸 인자 · 백엔드 클라이언트 · **보드 → 모듈(씬에서 닿는 보드 전부가 모듈 문법으로 맞는지)** · **노드 데이터 층 PA/EL · B 모드 로그인 · Gateway 전송** (브라우저 없이) |
+| `node tests/smoke.mjs` | 구운 `ui/` 를 Gateway 와 같은 CSP 로 내고 Chromium 으로 연다 — 씬 보드(보드 25개 인스턴스)가 Worker+WebGL2 · 메인 WebGL2 · Canvas 2D 세 길로 서는지(`?demo`), 로그인 → 트리 뷰, 제어기 창, 모듈 상태 › GUI ↗ → 브라우저 창, 오류가 없는지. 이어서 **가짜 Gateway 로 B 모드**: 핸들 로그인 · 로컬/원격 제어기 · 끊김(PA) · 목록에 없는 노드 · 보기 상태 계정 문서([[node-data\|노드 데이터와 분할]] §6) |
 | `npm run bench` | 렌더러 비교(§4) |
 
 ## 9. 다음
@@ -217,7 +223,7 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 
 1. 장면 계산을 Worker 로 — 씬 코드의 DOM 접근(캔버스 · `setState` · 창)을 떼어 칸 기록 계산만 Worker 에서. 지금은 그리기만 Worker
 2. 전역 틀 글자 층(`data-gf`)과 로그인 장면의 글자 장도 같은 GPU 렌더러로, 별 · 궤도 · 행성(3D 2D 층)을 같은 GL 층으로
-3. 시안의 예시 값을 api 호출로 — 로그인 · Tree 로그인(Gateway auth) · 모듈 상태(daemon modules) · 브라우저(Gateway gui/apps) · 제어기 앱
+3. 시안의 예시 값을 api 호출로 — 0.3.0 에서 로그인(B 모드) · 노드 폴더 › 모듈 · 모듈 상태(시작 · 멈춤 · 다시 시작) · 제어기 묶음 읽기가 노드 데이터 층으로 붙었다. 남은 것: 지도(Master 노드 목록) · Tree 로그인 · 브라우저(Gateway gui/apps) · 제어기 편집 → operation([[node-data\|노드 데이터와 분할]] §7)
 4. GmarketSans 파일 · 가상 목록 · 실 GPU 에서 `npm run bench -- --gpu`
 
 ## 관련 문서
@@ -226,3 +232,4 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 - [[backend|v3 모듈 백엔드 설계]] — 계약 · 저장 규칙
 - [[menu-hierarchy|메뉴 계층 설계]] — 창 갈래
 - [[settings-inventory|GUI v3 설정 종합]] — 저장 위치 원칙
+- [[node-data|노드 데이터와 분할 — PA/EL]] — 노드 데이터 층 · B 모드

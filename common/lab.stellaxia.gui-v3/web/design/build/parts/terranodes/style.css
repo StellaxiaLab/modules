@@ -1,0 +1,11 @@
+body{margin:0;background:transparent}
+.tn{box-sizing:border-box;width:100%;min-height:100vh;padding:14px 16px;background:#060a14;color:#cfe9d6;font:12px/1.55 'Geist Mono','JetBrains Mono',ui-monospace,monospace;overflow:auto}
+.tn-h{display:flex;align-items:center;gap:10px;color:#709c80}
+.tn-h b{color:#d6f4de;font-weight:600}
+.tn-sp{flex:1}
+.tn-h button{font:inherit;color:#96f0aa;background:transparent;border:1px solid rgba(70,160,108,.6);padding:1px 8px;cursor:pointer}
+.tn-rule{margin:8px 0 10px;color:#54806a}
+.tn-r{display:grid;grid-template-columns:1.3fr .8fr .7fr .9fr 1.6fr;gap:8px;padding:2px 0;border-bottom:1px solid rgba(70,160,108,.14)}
+.tn-r span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tn-hd{color:#709c80}
+.tn-empty{color:#54806a;padding:8px 0}

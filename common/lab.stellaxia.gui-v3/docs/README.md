@@ -7,7 +7,7 @@ doc_type: "moc"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.3.0"
+version: "0.4.0"
 last_updated: "2026-10-29"
 language: "ko-KR"
 os_priority:
@@ -23,6 +23,7 @@ related:
   - "[[settings-modules|modules 설정 전수표]]"
   - "[[backend|v3 모듈 백엔드 설계]]"
   - "[[web-architecture|GUI v3 웹 구조]]"
+  - "[[node-data|노드 데이터와 분할 — PA/EL]]"
 ---
 
 # Terra GUI v3 문서 MOC
@@ -43,6 +44,7 @@ flowchart LR
   D --> S
   S --> BE["v3 모듈 백엔드 설계"]
   BE --> WA["웹 구조 (장면 층 · 창 층)"]
+  WA --> ND["노드 데이터와 분할 (PA/EL · B 모드)"]
 ```
 
 | 하려는 일 | 문서 |
@@ -55,6 +57,7 @@ flowchart LR
 | modules의 매니페스트 · 모듈별 저장 상태 · node-gui 저장소 · 모듈 env 전부 | [[settings-modules\|modules 설정 전수표]] |
 | v3 모듈의 백엔드(프로세스 · 계약 · 노드에 붙는 GUI 데이터) | [[backend\|v3 모듈 백엔드 설계]] |
 | 실제 웹 빌드의 구조 — 왜 웹인가, 장면 층(WebGL2 · Worker) · 창 층(DOM · signals) · API · 측정 | [[web-architecture\|GUI v3 웹 구조]] |
+| 다른 노드의 값을 어떻게 가져오고, 끊겼을 때 무엇을 보이는지(PA/EL) · 제어기 보기 상태 · B 모드 로그인 | [[node-data\|노드 데이터와 분할]] |
 
 ## 폴더
 
@@ -62,7 +65,7 @@ flowchart LR
 | --- | --- |
 | `docs/` | 이 MOC |
 | `docs/analysis/` | [[legacy-node-gui-overview\|전체 분석]] · [[legacy-app-layer\|기능 층 분석]] · [[settings-inventory\|설정 종합]] · [[settings-terra-core\|코어 설정 전수표]] · [[settings-modules\|modules 설정 전수표]] |
-| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] |
+| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] · [[node-data\|노드 데이터와 분할]] |
 
 ## 기준
 

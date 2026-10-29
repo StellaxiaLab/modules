@@ -12,7 +12,7 @@ const closure = () => { const seen = new Set(), q = ['Scene']; while (q.length) 
 
 test('씬에서 닿는 보드 — 창 보드가 다 들어 있다', () => {
   const L = closure();
-  for (const n of ['Scene', 'Login', 'NodeDesktopEmbed', 'StarMaker', 'NodeConf', 'NodeStatus', 'NodeShare', 'ResStatus', 'TreeLogin', 'ModStatus', 'WebBrowser']) assert.ok(L.includes(n), n);
+  for (const n of ['Scene', 'Login', 'NodeDesktopEmbed', 'StarMaker', 'NodeConf', 'NodeStatus', 'NodeShare', 'ResStatus', 'TreeLogin', 'ModStatus', 'WebBrowser', 'TerraNodes']) assert.ok(L.includes(n), n);
 });
 
 test('parseBoard — 마크업 · 로직 · 속성 기본값 · 바깥 글꼴 버림', () => {

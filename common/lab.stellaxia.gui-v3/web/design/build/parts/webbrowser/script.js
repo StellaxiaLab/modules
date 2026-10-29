@@ -12,7 +12,7 @@ class Component extends DCLogic {
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   GW() { return 'http://127.0.0.1:8787'; }
   cat() { return Array.isArray(this.props.catalog) ? this.props.catalog : []; }
-  stOf(e) { try { const o = (JSON.parse(localStorage.getItem('terra.mod.st') || '{}') || {})[e.nodeId + '|' + e.modId]; return o || e.st || 'run'; } catch (x) { return e.st || 'run'; } }
+  stOf(e) { const T = typeof window !== 'undefined' ? window.TerraNodes : null; if (T) { const d = T.read(e.nodeId, 'modules').data, m = d && d.find((q) => q.id === e.modId); return (m && m.st) || e.st || 'run'; } try { const o = (JSON.parse(localStorage.getItem('terra.mod.st') || '{}') || {})[e.nodeId + '|' + e.modId]; return o || e.st || 'run'; } catch (x) { return e.st || 'run'; } }
   urlOf(e) { if (e.mode === 'window') return 'http://127.0.0.1:' + (e.port || 17440) + '/';
     return this.GW() + (e.remote ? '/api/v1/gui/remote/' + e.nodeId + '/' + e.modId + '/' + e.appId : '/api/v1/gui/apps/' + e.appId) + '/files/' + (e.entry || ''); }
   // 주소 → 무엇을 열지

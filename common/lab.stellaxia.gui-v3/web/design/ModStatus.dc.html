@@ -72,7 +72,7 @@ body{margin:0;background:transparent}
 </style>
 </helmet>
 <div class="ns ms" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
-  <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>module</span><b class="ns-v">{{name}}</b><span class="ns-k">{{id}}</span><span style="flex: 1;"></span><span style="color: {{stCol}};">● {{stT}}</span></div>
+  <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>module</span><b class="ns-v">{{name}}</b><span class="ns-k">{{id}}</span><span style="flex: 1;"></span><span style="color: {{linkCol}};">{{linkT}}</span><span style="color: {{stCol}};">● {{stT}}</span></div>
 
   <h3 class="ns-h"><span class="ns-hl"></span>상태<span class="ns-hr"></span><span class="ns-k">{{apiS}}</span></h3>
   <div class="ns-grid">
@@ -127,16 +127,18 @@ body{margin:0;background:transparent}
 //     GUI 목록 — Gateway GET /api/v1/gui/apps (이 노드) · GET /api/v1/gui/remote/{node}/apps (다른 노드 — Master 가 아는 카탈로그, 자산 cached|stale|absent)
 //     동작 — …modules.by-module-id.restart.post · stop.post · start.post (local · cluster, node.control) — 원격 노드도 된다
 //     로그 — …modules.by-module-id.logs.get
-//   시안 — 시작 · 멈춤은 이 브라우저(terra.mod.st)에 남겨 노드 폴더 목록과 같이 바뀐다
+//   값은 노드 데이터 층(window.TerraNodes)에서 — 그 노드의 모듈 사본을 읽고(EL: 바로 · 낡으면 뒤에서), 시작 · 멈춤은 그 층으로 쓴다(낙관 반영 · 실패하면 되돌림).
+//   노드와 끊기면(PA) 마지막 사본을 그대로 보여 주고 동작은 막는다 — '끊김 · N분 전 사본 · 읽기 전용'
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { t: 0, busy: null }; this._log = []; this._k = '';
     try { window.addEventListener('terra-help', () => this.setState({})); window.addEventListener('terra-mod', () => this.setState({})); } catch (e) {} }
-  componentDidMount() { this._live = true; this._iv = setInterval(() => { if (this._live) this.setState({ t: this.state.t + 1 }); }, 1000); }
-  componentWillUnmount() { this._live = false; clearInterval(this._iv); clearTimeout(this._bt); }
+  componentDidMount() { this._live = true; this._iv = setInterval(() => { if (this._live) this.setState({ t: this.state.t + 1 }); }, 1000); const T = this.TN(); if (T) this._un = T.subscribe((n) => { if (this._live && n === this.M().nodeId) this.setState({}); }); }
+  componentWillUnmount() { this._live = false; clearInterval(this._iv); clearTimeout(this._bt); if (this._un) this._un(); }
+  TN() { return typeof window !== 'undefined' ? window.TerraNodes || null : null; }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
-  M() { const m = this.props.mod; return m && m.id ? m : { id: 'io.terra.agent', name: 'Terra Agent', ver: '0.3.0', kind: 'service', apps: [{ id: 'io.terra.agent', name: 'Terra Agent', mode: 'static', entry: 'ui/index.html' }], perms: ['coreOperations', 'storage', 'network'], svi: ['ctl/log'], st: 'run', node: '01·a', nodeId: 'L1', remote: false }; }
+  M() { const m0 = this.props.mod, T = this.TN(); if (m0 && m0.id && T) { const d = T.read(m0.nodeId, 'modules').data, live = d && d.find((q) => q.id === m0.id); if (live) return Object.assign({}, m0, live); } const m = m0; return m && m.id ? m : { id: 'io.terra.agent', name: 'Terra Agent', ver: '0.3.0', kind: 'service', apps: [{ id: 'io.terra.agent', name: 'Terra Agent', mode: 'static', entry: 'ui/index.html' }], perms: ['coreOperations', 'storage', 'network'], svi: ['ctl/log'], st: 'run', node: '01·a', nodeId: 'L1', remote: false }; }
   stMap() { try { return JSON.parse(localStorage.getItem('terra.mod.st') || '{}') || {}; } catch (e) { return {}; } }
-  st() { const m = this.M(), o = this.stMap()[m.nodeId + '|' + m.id]; return o || m.st || 'run'; }
+  st() { const m = this.M(); if (this.TN()) return m.st || 'run'; const o = this.stMap()[m.nodeId + '|' + m.id]; return o || m.st || 'run'; }
   setSt(v) { const m = this.M(), map = this.stMap(); map[m.nodeId + '|' + m.id] = v; try { localStorage.setItem('terra.mod.st', JSON.stringify(map)); window.dispatchEvent(new Event('terra-mod')); } catch (e) {} }
   seed() { let h = 11; for (const ch of this.M().id + this.M().nodeId) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
   rnd(i) { const x = Math.sin(this.seed() * 0.001 + i * 12.9898) * 43758.5453; return x - Math.floor(x); }
@@ -145,6 +147,13 @@ class Component extends DCLogic {
     const m = this.M(); if (m.core && kind === 'stop') return;
     const to = { restart: 'run', stop: 'stop', start: 'run' }[kind], verb = { restart: '다시 시작', stop: '멈춤', start: '시작' }[kind];
     this.setState({ busy: kind }); this.log('info', verb + ' 요청 · ' + m.node);
+    const T = this.TN();
+    if (T) {   // 노드 데이터 층으로 — daemon modules.by-module-id.{restart|stop|start}.post (cluster 범위라 원격도), 사본에 먼저 반영
+      const op = 'terra.daemon.modules.by-module-id.' + kind + '.post', id = m.id;
+      T.write(m.nodeId, op, { module_id: id }, { res: 'modules', apply: (d) => (d || []).map((q) => (q.id === id ? Object.assign({}, q, { st: to }) : q)) })
+        .then(() => { this.log(to === 'run' ? 'info' : 'warn', to === 'run' ? '실행 중' : '멈춤'); this.setState({ busy: null, err: null }); },
+          (e) => { this.log('warn', verb + ' 못 함 — ' + ((e && e.message) || (e && e.code) || '오류')); this.setState({ busy: null, err: (e && e.code) || 'ERROR' }); });
+      return; }
     clearTimeout(this._bt); this._bt = setTimeout(() => { this.setSt(to); this.log(to === 'run' ? 'info' : 'warn', to === 'run' ? '실행 중' : '멈춤'); this.setState({ busy: null }); }, kind === 'restart' ? 1300 : 800);
   }
   renderVals() {
@@ -166,14 +175,16 @@ class Component extends DCLogic {
         off: run ? null : 'disabled', tip: run ? a.name + ' 을 브라우저 창으로' : '모듈이 ' + ST[0] + ' — 시작한 뒤에',
         open: () => { if (!run) return; if (this.props.onOpen) this.props.onOpen('web', 'mod|' + m.nodeId + '|' + m.id + '|' + a.id); } };
     });
-    const busy = !!S.busy, tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
+    const T = this.TN(), RD = T ? T.read(m.nodeId, 'modules') : null, LK = T ? T.linkText(m.nodeId, RD && RD.at) : { t: '', cls: '', ro: false }, ro = !!LK.ro;
+    const busy = !!S.busy || ro, tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: m.name, id: m.id, stT: ST[0], stCol: ST[1], node: m.node + (m.remote ? ' (원격)' : ''), ver: m.ver, kind: KIND[m.kind] || m.kind, up,
       path: (m.core ? '코어 내장 · ' : '~/.terra/module/') + (m.core ? m.id : m.id + '/' + m.ver), owner: m.core ? '코어 (지울 수 없음)' : m.dist ? 'Tree 배포' : '직접 설치',
       running: run, cpuP: Math.min(100, Math.round(cpu * 4)), cpuCol: cpu > 18 ? '#ffd27a' : '#60e28c', cpuT: cpu.toFixed(1) + '%', cpuS: spark, memP: Math.min(100, Math.round(mem / 4)), memT: mem + ' MB', memN: 'RSS',
       apps, noGui: !apps.length, guiNote: !!apps.length && !run, guiNoteT: '모듈이 ' + ST[0] + ' 상태라 GUI 를 열 수 없어요 — 시작하면 열 수 있어요',
+      linkT: LK.t ? '[' + LK.t + ']' : '', linkCol: LK.cls === 'off' ? '#ffd27a' : LK.cls === 'local' ? '#709c80' : '#96f0aa',
       busyD: busy ? 'disabled' : null, togD: busy || (run && m.core) ? 'disabled' : null, restart: () => this.act('restart'), toggle: () => this.act(run ? 'stop' : 'start'), toggleT: run ? (m.core ? '멈춤 불가 (코어)' : '멈춤') : '시작',
-      ctl: () => { if (this.props.onOpen) this.props.onOpen('ctl', m.id); }, actNote: busy ? (S.busy === 'restart' ? '다시 시작 중…' : '요청 중…') : m.remote ? '원격 노드 · node.control' : '',
+      ctl: () => { if (this.props.onOpen) this.props.onOpen('ctl', m.id); }, actNote: ro ? '노드와 끊김 — 돌아오면 다시 (쌓아 두지 않는다)' : S.busy ? (S.busy === 'restart' ? '다시 시작 중…' : '요청 중…') : S.err ? '못 함 · ' + S.err : m.remote ? '원격 노드 · node.control' : '',
       svi: (m.svi || []).map((n) => ({ name: n, open: () => { if (this.props.onOpen) this.props.onOpen('res', n + '|내 자원|' + m.node); } })), noSvi: !(m.svi || []).length,
       perms: m.perms || [], noPerm: !(m.perms || []).length,
       logs: this._log.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? '#ffd27a' : e.lv === 'error' ? '#ff9c8c' : '#709c80', msg: e.msg })),

@@ -80,7 +80,26 @@ rep("  loginOn() {","""  sceneCtx(e) {
     acts.push({ label: '설정', desc: mn.kind === 'tree' ? 'GUI · Terra · Tree' : mn.kind === 'leaf' ? 'GUI · Terra · Leaf' : 'GUI', run: () => this.gf_ctlOpenWin(mn, undefined, 'conf') });
     if (mn.kind === 'leaf' || mn.kind === 'res') acts.push({ label: '자원', desc: '공유 · 등록', run: () => this.gf_ctlOpenWin(mn, undefined, 'share') });
     if (mn.kind === 'tree' || mn.kind === 'leaf') acts.push({ label: '제어기', desc: '노드 데스크톱', run: () => this.gf_ctlOpenWin(mn) });
+    { const TN = typeof window !== 'undefined' && window.TerraNodes, tp = TN && TN.t; if (tp && tp.kind === 'mock' && (mn.kind === 'tree' || mn.kind === 'leaf') && mn !== this.gf_localNode()) { const cut = tp.cut().has(mn.id);   // 시안 시험 — 분할(PA)을 흉내: 그 노드를 끊고 잇는다
+      acts.push({ label: cut ? '잇기 (시험)' : '끊기 (시험)', desc: cut ? '노드 다시 닿음' : '노드 꺼짐 흉내 · PA', run: () => { tp.setCut(mn.id, !cut); for (const r in TN.RES) if (TN.cache.has(mn.id + '|' + r)) TN.refresh(mn.id, r); } }); } }
     return { x, y, r, name: mn.name, kind: KN[mn.kind] || '노드', acts, track };
+  }
+  // 로컬 위치(전역 틀의 '⌖ 로컬' 줄) — 이 GUI 를 띄운 노드로. 클러스터(같은 Tree) 안이면 장면 안 비행, 밖이면 워프
+  sceneHere() {
+    const L = this.gf_localNode(), cur = this.sceneCur(), tL = this.gf_treeOf(L), tC = cur && cur.kind !== 'root' ? this.gf_treeOf(cur) : null;
+    if (cur === L) return { mode: 'here', L, tL };
+    if (!this._lv) return { mode: 'fly', L, tL, star: true };   // 트리 뷰 — 그 항성이 보인다: 항성계로 들어가 궤도로
+    return tC === tL ? { mode: 'fly', L, tL } : { mode: 'warp', L, tL };   // 같은 항성계(클러스터) 안 = 궤도 비행 · 다른 항성계 = 워프
+  }
+  sceneHereMode() { const H = this.sceneHere(); return { here: '지금 여기', fly: H.star ? '항성계로 · 비행' : '클러스터 안 · 비행', warp: '다른 클러스터 · 워프' }[H.mode]; }
+  sceneGoHere() {
+    const H = this.sceneHere(); if (H.mode === 'here' || !H.L) return;
+    if (this._navS || (this._ws && (this._ws.tgt || this._ws.e > 0)) || (this._enter && this._enter.dir === 'out')) return;   // 이동 중엔 받지 않는다
+    if (H.mode === 'warp' || !H.star) { this.navStart(H.L); return; }   // 워프(dive → wsTo) · 같은 항성계면 navBegin 이 궤도 비행(orbStart · enterRes)으로
+    if (this.gf_loginGate && this.gf_loginGate(H.tL, () => this.sceneGoHere())) return;
+    this.enterLeaf(H.tL.ref);   // 트리 뷰 → 그 항성으로 들어가기(장면 안), 들어가면 그 행성으로
+    const t0 = performance.now(), go = () => { if (!this._live) return; if (this._lv && !this._entL && !this._navS && this._leafId === H.tL.ref) { this.navStart(H.L); return; } if (performance.now() - t0 < 9000) setTimeout(go, 120); };
+    setTimeout(go, 200);
   }
   loginOn() {""")
 rep("      loginDoneFn:","      ctxMenu: this._ctxF || (this._ctxF = (e) => this.sceneCtx(e)),\n      loginDoneFn:")

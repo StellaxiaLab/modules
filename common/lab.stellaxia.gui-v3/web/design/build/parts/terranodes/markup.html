@@ -1,0 +1,11 @@
+<div data-terranodes="1" class="tn" style="display: {{disp}};">
+  <div class="tn-h"><b>노드 데이터 층</b><span>PA/EL · {{kind}}</span><span class="tn-sp"></span><span>로컬 {{local}}</span><button type="button" onClick="{{clear}}">비우기</button></div>
+  <div class="tn-rule">분할(P) → 가용성: 마지막 사본을 나이 · 출처와 읽기 전용으로 · 그 밖(E) → 지연: 사본 먼저, TTL 지나면 뒤에서 새로</div>
+  <div class="tn-t">
+    <div class="tn-r tn-hd"><span>노드</span><span>자원</span><span>나이</span><span>출처</span><span>링크</span></div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+      <div class="tn-r"><span>{{r.node}}</span><span>{{r.res}}</span><span>{{r.age}}</span><span>{{r.src}}</span><span style="color: {{r.col}};">{{r.link}}</span></div>
+    </sc-for>
+    <div class="tn-empty" style="display: {{emptyD}};">아직 사본이 없다 — 제어기 · 노드 폴더를 열면 채워진다</div>
+  </div>
+</div>
