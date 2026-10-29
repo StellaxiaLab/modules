@@ -75,6 +75,7 @@ rep("  loginOn() {","""  sceneCtx(e) {
     const here = this.sceneCur && this.sceneCur() === mn;
     if (mn.kind !== 'root' && this.gf_needLogin(mn)) acts.push({ label: '로그인', desc: (this.gf_treeOf(mn) || mn).name + ' 세션 없음', run: () => this.gf_loginOpen(mn) });
     if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '리프 뷰', leaf: '리소스 뷰', res: '자원 보기' }[mn.kind], run: () => this.navStart(mn) });
+    acts.push({ label: '지도', desc: '지도에서 보기', run: () => this.gf_mapShow(mn) });   // 전역 틀 지도를 그 노드로 옮긴다 (다른 Tree 의 리프 · 리소스면 로그인부터)
     acts.push({ label: '상태', desc: mn.kind === 'res' ? '값 · 연결' : '동작 · 상태', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
     acts.push({ label: '설정', desc: mn.kind === 'tree' ? 'GUI · Terra · Tree' : mn.kind === 'leaf' ? 'GUI · Terra · Leaf' : 'GUI', run: () => this.gf_ctlOpenWin(mn, undefined, 'conf') });
     if (mn.kind === 'leaf' || mn.kind === 'res') acts.push({ label: '자원', desc: '공유 · 등록', run: () => this.gf_ctlOpenWin(mn, undefined, 'share') });

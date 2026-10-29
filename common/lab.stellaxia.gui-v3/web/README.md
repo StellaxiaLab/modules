@@ -41,7 +41,7 @@ web/
 ├─ tests/                        npm test(브라우저 없이) · smoke.mjs(Chromium)
 ├─ bench/                        렌더러 비교 페이지 (빌드에 넣지 않는다)
 ├─ tools/                        bench-field.mjs · gen-op-scope.mjs
-└─ design/                       캔버스 보드 원본 (캔버스 'Terra GUI v3' 버전 263과 같다)
+└─ design/                       캔버스 보드 원본 (캔버스 'Terra GUI v3' 버전 264와 같다)
    ├─ canvas.json · Scene.dc.html(생성물) · Field · Login · 창 컴포넌트 · 단독 시안 보드 · Sheet
    └─ build/                     보드를 굽는 도구 (아래)
 ```
