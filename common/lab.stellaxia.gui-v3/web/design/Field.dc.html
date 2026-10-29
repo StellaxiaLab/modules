@@ -527,6 +527,7 @@ class Component extends DCLogic {
   // 지도에서 보기 — 그 노드를 그 지도 뷰(트리 · 계정 → 트리 지도 · 리프 → 그 트리의 리프 지도 · 리소스 → 그 리프의 리소스 지도)로 포커싱
   mapShow(n) {
     const MD = this.mapData(); if (!n) return;
+    if ((n.kind === 'leaf' || n.kind === 'res') && this.loginGate(n, () => this.mapShow(n))) return;   // 다른 Tree 의 리프 · 리소스 지도 = 그 Tree 로 들어가는 것 — 보여 주기 전에 로그인
     this._mv = n.kind === 'root' || n.kind === 'tree' ? { level: 'tree', root: MD.root.id, focus: n.id } : n.kind === 'leaf' ? { level: 'leaf', root: n.parent.id, focus: n.id } : { level: 'res', root: n.parent.id, focus: n.id };
     this.layout();
   }

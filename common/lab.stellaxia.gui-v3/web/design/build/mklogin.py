@@ -74,5 +74,6 @@ rep("  loginOn() {","""  sceneCtx(e) {
   loginOn() {""")
 rep("      loginDoneFn:","      ctxMenu: this._ctxF || (this._ctxF = (e) => this.sceneCtx(e)),\n      loginDoneFn:")
 
+rep("  enterLeaf(id) {\n", "  enterLeaf(id) {\n    { const t = this.sceneMap().byId['T' + id]; if (t && this.gf_loginGate && this.gf_loginGate(t, () => this.enterLeaf(id))) return; }   // 트리 뷰에서 항성을 눌러 들어가기 — 세션 없는 Tree 면 들어가기 전에 로그인 창(되면 그때 들어간다)\n")
 rep("  navStart(n) {\n", "  navStart(n) {\n    if (this.gf_loginGate && this.gf_loginGate(n)) return;   // 세션 없는 Tree 로 — Tree 로그인 창이 먼저(로그인되면 이어서 간다)\n")
 open(P,'w').write(S); print('login ok')
