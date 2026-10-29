@@ -37,7 +37,7 @@ export class FieldHost {
         const off = this.canvas.transferControlToOffscreen();
         this.worker = o.workerUrl ? new Worker(o.workerUrl, { type: 'module' }) : new Worker(new URL('./field-worker.js', import.meta.url), { type: 'module' });   // 이 꼴 그대로여야 Vite 가 Worker 파일을 따로 굽는다
         this.kind = await new Promise((ok, no) => {
-          const t = setTimeout(() => no(new Error('Worker 응답 없음')), 5000);
+          const t = setTimeout(() => no(new Error('Worker 응답 없음')), o.readyMs || 5000);   // 메인 스레드가 바쁘면(장면 첫 준비) 늦게 닿는다 — 부르는 쪽이 늘릴 수 있다
           this.worker.onmessage = (e) => { if (e.data.type === 'ready') { clearTimeout(t); ok(e.data.kind); } };
           this.worker.onerror = (e) => { clearTimeout(t); no(e); };
           this.worker.postMessage({ type: 'init', canvas: off, prefer: o.prefer, bg: o.bg }, [off]);
@@ -65,6 +65,12 @@ export class FieldHost {
   setBackground(top, bottom) {
     if (this.mode === 'worker') this.worker.postMessage({ type: 'background', bg: [top, bottom] });
     else this.R.setBackground(top, bottom);
+  }
+
+  /** 바탕 그림(ImageBitmap) — Worker 로는 넘긴다(복사 없음) */
+  setBackgroundImage(img) {
+    if (this.mode === 'worker') this.worker.postMessage({ type: 'bgimage', img }, img ? [img] : []);
+    else this.R.setBackgroundImage(img);
   }
 
   fontsChanged() {

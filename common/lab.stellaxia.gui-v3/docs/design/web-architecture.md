@@ -7,11 +7,11 @@ doc_type: "design"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.1.0"
+version: "0.2.0"
 last_updated: "2026-10-29"
 language: "ko-KR"
 based_on:
-  - "캔버스 'Terra GUI v3' 버전 254의 Scene.dc.html(fieldRec · glyphAtlas · fieldFlush)"
+  - "캔버스 'Terra GUI v3' 버전 264(web/design 과 같다)의 Scene.dc.html(fieldRec · glyphAtlas · fieldFlush) · 창 보드들"
   - "Terra main 2026-10-28 — Gateway gui_apps.go(appAssetCSP · capabilities), Daemon 계약 terra-api.json"
 os_priority:
   - Linux
@@ -43,6 +43,31 @@ related:
 
 ## 2. 구조
 
+> **0.2.0 — 시안을 그대로 돌린다.** 장면 · 전역 틀 · 창을 손으로 다시 짜지 않고, 캔버스 보드(`web/design/*.dc.html`)를 빌드 때 모듈로 바꿔
+> 앱 안의 **보드 실행기**(`src/ui/dc/runtime.js`)로 띄운다. 시안과 웹이 같은 코드라 디자인을 고치면 웹이 그대로 따라온다.
+> 장면 층은 그 위에서 바꿨다: 씬이 매 프레임 채우는 칸 기록을 [[#3. 장면 층 — 글자 장|GPU 렌더러]]로(§2.1).
+
+### 2.1 보드 실행
+
+```mermaid
+flowchart LR
+  D["web/design/*.dc.html<br/>(캔버스 보드 · 버전 264)"] -- "빌드: tools/dc-board.mjs<br/>(vite 플러그인 boards())" --> M["보드 모듈<br/>로직 class · 마크업 · 속성 기본값"]
+  M --> RT["보드 실행기<br/>src/ui/dc/runtime.js"]
+  RT --> DOM["DOM — 씬 · 전역 틀 · 창 10종 · 로그인"]
+  RT --> SB["scene-bridge.js<br/>Scene.fieldFlush 만 갈아 끼움"]
+  SB --> FH["FieldHost → Worker · WebGL2"]
+```
+
+| 부분 | 하는 일 |
+| --- | --- |
+| `tools/dc-board.mjs` | 보드 파일을 셋으로 — `<helmet>` 의 `<style>`(캔버스 저장소 글꼴 `/_blob/…` · 외부 글꼴 링크는 버림) · 마크업 · 로직 `<script>` 와 `data-props` 기본값. 로직은 **모듈 코드**가 된다(eval · `new Function` 없음 — 앱 CSP `script-src 'self'` 그대로). 보드마다 자기 모듈 범위라 맨 위 상수가 부딪치지 않는다 |
+| `vite.config.js` `boards()` | `board:이름` · `virtual:boards`(씬에서 `dc-import` 로 닿는 보드 전부 — 지금 13개) |
+| `src/ui/dc/runtime.js` | React 없는 실행기. `{{a.b}}` 값 경로(식 없음) · `<sc-if>` · `<sc-for>`(같은 자리 DOM 재사용) · `<dc-import>`(kebab → camel props, `hint-*` 버림) · `on*`(요소당 리스너 하나, 매 렌더 함수만 교체, onFocus/onBlur 는 거품). 템플릿이 보는 값 = `{ ...props, ...renderVals() }`, `setState` 는 바로 합치고 렌더는 마이크로태스크로 모은다. 수명: 안쪽 보드부터 `componentDidMount`, 떼면 `componentWillUnmount` |
+| `src/scene/scene-bridge.js` | 씬 보드의 로직을 이어받아 **`fieldFlush` 만** 바꾼다 — 칸 기록(색 문자열 · 글자 · 굵기, `#bg` · `#hole`)을 `FieldGrid` 로 옮겨 `FieldHost` 에. 바탕 그림(`bgPaint`)은 ImageBitmap 으로 한 번 넘겨 셰이더가 칸 바탕에서 읽는다. GPU 가 서기 전 · 실패하면 시안의 2D 길 |
+
+**메인 스레드에 남은 것(정직하게):** 장면 계산(트리 · 리프 · 리소스 뷰, 융기 · 워프, 노이즈)과 그 위 2D 층(전역 틀 글자 · 3D 구 · 선 · 창 효과)은 아직 메인 스레드다.
+Worker 로 간 것은 **글자 장 그리기**(시안에서 가장 무거웠던 칸마다의 `drawImage`)다. 계산을 Worker 로 옮기려면 씬 코드에서 DOM 접근(캔버스 · 상태 · 창)을 떼어야 해서 다음 단계로 둔다(§9).
+
 ```mermaid
 flowchart TB
   subgraph Main["메인 스레드"]
@@ -70,9 +95,10 @@ flowchart TB
 | 층 | 자리 | 하는 일 |
 | --- | --- | --- |
 | 장면 층 | `src/scene/` | 장면 코드가 칸 모델에 그리고, 렌더러가 GPU 로 낸다. 되면 Worker 의 OffscreenCanvas, 안 되면 메인의 WebGL2, 그것도 안 되면 Canvas 2D |
-| 창 층 | `src/ui/` | 장면 위 DOM 창. 값(signal)에 묶인 자리만 고친다. 창을 끌어도 장면을 다시 계산하지 않는다 |
+| 보드 | `src/ui/dc/` · `tools/dc-board.mjs` | 시안의 씬 · 전역 틀 · 창 보드를 그대로 띄운다(§2.1) |
+| 창 층 | `src/ui/` | 장면 위 DOM 창. 지금 앱의 창은 시안의 창 관리(보드 안)를 그대로 쓴다. `WindowLayer`(signals)는 보드 밖 셸 화면용으로 남겨 둔다(§5) |
 | API | `src/api/` | Gateway 하나로 operation 을 부른다. 원격 잠금 표는 Terra 계약에서 뽑는다 |
-| 입구 | `src/boot/` | 두 층을 세우고 크기 · 글꼴 변화를 잇는다 |
+| 입구 | `src/boot/` | 씬 보드를 띄우고 GPU 다리를 건다. `?render=main` · `?gl=2d` · `?gpu=off`(시안 2D 그대로 — 비교용) |
 
 ## 3. 장면 층 — 글자 장
 
@@ -153,6 +179,8 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 
 1초마다 흐르는 값(자원 상태 창의 그래프 · 상태 창)은 그 값에 묶인 DOM 자리만 고친다. 긴 목록(장치 · 모듈 · 로그)은 보이는 줄만 그린다(가상 목록 — 다음).
 
+**0.2.0:** 앱의 창(제어기 · 스타메이커 · 설정 · 상태 · 자원 · 자원 상태 · Tree 로그인 · 모듈 상태 · 브라우저)은 시안의 창 관리(전역 틀의 `ctlOpenWin` — 자리 0–20, 레거시 생성 · 소거 효과, 최소화 판)를 보드 실행기로 그대로 띄운 DOM 창이다. 위 `WindowLayer` 는 같은 규칙의 signals 판으로, 씬 밖 화면(설치 · 진단 따위)이 생기면 쓴다.
+
 ## 6. API
 
 | 파일 | 하는 일 |
@@ -172,23 +200,25 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 | --- | --- |
 | 앱 | `contributions.gui.apps[0]` — `lab.stellaxia.gui-v3.web`, `static`, `ui/index.html`, `sandboxed`, capabilities 없음 |
 | 빌드 | `web/` → `../ui`(Vite, `base: './'` — Gateway 가 `/api/v1/gui/apps/<앱 id>/files/` 아래에서 낸다). `ui/` 는 산출물이라 커밋하지 않는다 |
-| 글꼴 | 앱 CSP 가 `font-src 'self' data:` 라 Google Fonts 를 못 쓴다. 시안의 GmarketSans · Geist Mono · Noto Sans KR 은 라이선스를 확인해 `web/public/fonts` 에 두고 `@font-face` 로(다음) |
+| 글꼴 | 앱 CSP 가 `font-src 'self' data:` 라 앱 안에서 낸다(`src/ui/fonts.css`): Geist · Geist Mono(OFL, @fontsource). 한글은 시안의 **GmarketSans 자리에 Pretendard Variable(OFL, dynamic subset 92조각)** — GmarketSans 파일은 배포 조건을 확인한 뒤 같은 이름으로 바꿔 넣는다(보드의 글꼴 스택을 고치지 않으려고 이름을 그대로 둔다) |
 | 런처 | 지금 있는 것 — Windows WebView2 런처, 그 밖은 terra-shell(브라우저 앱 모드). 별도 엔진 · Electron · Tauri 없음 |
 
 ## 8. 시험
 
 | 명령 | 보는 것 |
 | --- | --- |
-| `npm test` | 칸 모델 · 색 · 기록기 · 타일 배치 · 부하 · signals · 창 자리 규칙 · operation 호출 · 원격 잠금 · 셸 인자 · 백엔드 클라이언트 (브라우저 없이) |
-| `node tests/smoke.mjs` | 구운 `ui/` 를 Gateway 와 같은 CSP 로 내고 Chromium 으로 연다 — Worker+WebGL2 · 메인 WebGL2 · Canvas 2D 세 길이 서는지, 창 층이 도는지, 오류가 없는지 |
+| `npm test` | 칸 모델 · 색 · 기록기 · 타일 배치 · 부하 · signals · 창 자리 규칙 · operation 호출 · 원격 잠금 · 셸 인자 · 백엔드 클라이언트 · **보드 → 모듈(씬에서 닿는 보드 전부가 모듈 문법으로 맞는지)** (브라우저 없이) |
+| `node tests/smoke.mjs` | 구운 `ui/` 를 Gateway 와 같은 CSP 로 내고 Chromium 으로 연다 — 씬 보드(보드 24개 인스턴스)가 Worker+WebGL2 · 메인 WebGL2 · Canvas 2D 세 길로 서는지, 로그인 → 트리 뷰, 제어기 창, 모듈 상태 › GUI ↗ → 브라우저 창, 오류가 없는지 |
 | `npm run bench` | 렌더러 비교(§4) |
 
 ## 9. 다음
 
-1. 장면 이식 — 시안의 트리 · 리프 · 리소스 뷰 · 융기 · 워프를 기록기 위로 옮기고, 그 계산을 Worker 로
-2. 별 · 궤도 · 행성(지금 시안의 3D 층)을 같은 GL 층으로
-3. 창 이식 — 설정 · 상태 · 자원 · 자원 상태 · 제어기 앱을 signals 창으로, 시안의 값을 api 호출로
-4. 글꼴 번들 · 가상 목록 · 실 GPU 에서 `npm run bench -- --gpu`
+0.2.0 에서 시안 전체(씬 · 전역 틀 · 창)가 웹 빌드에서 돈다. 남은 것:
+
+1. 장면 계산을 Worker 로 — 씬 코드의 DOM 접근(캔버스 · `setState` · 창)을 떼어 칸 기록 계산만 Worker 에서. 지금은 그리기만 Worker
+2. 전역 틀 글자 층(`data-gf`)과 로그인 장면의 글자 장도 같은 GPU 렌더러로, 별 · 궤도 · 행성(3D 2D 층)을 같은 GL 층으로
+3. 시안의 예시 값을 api 호출로 — 로그인 · Tree 로그인(Gateway auth) · 모듈 상태(daemon modules) · 브라우저(Gateway gui/apps) · 제어기 앱
+4. GmarketSans 파일 · 가상 목록 · 실 GPU 에서 `npm run bench -- --gpu`
 
 ## 관련 문서
 

@@ -1,11 +1,12 @@
-/* 앱 바탕 — 글꼴은 앱 origin 에서만 받는다(Gateway 앱 CSP font-src 'self' data:). Google Fonts 링크는 쓰지 않는다:
-   시안의 GmarketSans · Geist Mono · Noto Sans KR 은 라이선스를 확인해 web/public/fonts 에 두고 @font-face 로 (다음) */
+/* 앱 바탕 — 글꼴은 fonts.css(앱 안에서). 씬 보드가 화면 전체를 쓴다 */
 html, body { margin: 0; height: 100%; background: #040614; color: #d6f4de; font: 500 12px "Geist Mono", GmarketSans, "Noto Sans KR", ui-monospace, monospace; overflow: hidden; }
 #app { position: relative; width: 100%; height: 100%; }
+#app > .sc-host { height: 100%; }
+.sc-host { position: relative; }
 #field { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #windows { position: absolute; inset: 0; pointer-events: none; }
 #windows > * { pointer-events: auto; }
-.st { position: absolute; left: 10px; bottom: 8px; color: #709c80; font-size: 11px; pointer-events: none; }
+.st { position: fixed; z-index: 100; right: 12px; top: 8px; color: #709c80; font-size: 11px; pointer-events: none; transition: opacity .6s; }   /* 렌더러 알림 — 잠깐 보이고 사라진다 */
 /* 창 틀 — 시안의 레거시 사각 틀(1px 노드 색 선, 머리줄 '>_ 이름 종류') */
 .tw { position: absolute; left: 0; top: 0; box-sizing: border-box; display: flex; flex-direction: column; background: #040614; border: 1px solid rgba(70,160,108,.75); box-shadow: 0 0 0 1px rgba(2,3,10,.7), 0 22px 64px rgba(0,0,0,.6); will-change: transform; contain: layout paint; }
 .tw.tw-see { background: rgba(4,6,20,.32); }

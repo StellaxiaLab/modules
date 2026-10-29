@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "kind": "service",
   "name": "Terra GUI v3",
-  "description": "Terra 노드 GUI 3판. 화면 설계 원본은 web/design 의 캔버스 보드이고, 실제 웹 빌드(web/ → ui/)가 서기 시작했다 — 장면 층(WebGL2 글자 장, Worker 의 OffscreenCanvas)과 창 층(DOM · signals). 지금 앱은 글자 장 바탕과 창 층만 띄운다(장면 이식 전). 백엔드는 노드에 붙는 GUI 데이터(프로필 사진 · 노드 속성)를 모듈 데이터 영역에 두고 계약의 operation(status · node-props · node-files)으로 낸다.",
+  "description": "Terra 노드 GUI 3판. 화면 설계 원본은 web/design 의 캔버스 보드이고, 웹 빌드(web/ → ui/)는 그 보드를 빌드 때 모듈로 바꿔 앱 안의 보드 실행기로 그대로 띄운다(씬 · 전역 틀 · 창 · 로그인). 글자 장 그리기는 GPU(WebGL2, Worker 의 OffscreenCanvas)로 바꿔 끼웠고, 장면 계산은 아직 메인 스레드다. 백엔드는 노드에 붙는 GUI 데이터(프로필 사진 · 노드 속성)를 모듈 데이터 영역에 두고 계약의 operation(status · node-props · node-files)으로 낸다.",
   "compatibility": {
     "products": [
       "leaf",

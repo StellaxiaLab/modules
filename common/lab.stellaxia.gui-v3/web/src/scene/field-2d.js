@@ -28,7 +28,10 @@ export class Field2D {
     this.bgTop = css(top); this.bgBot = css(bottom || top); this.bgGrad = null; this.full = true;
   }
 
-  invalidateGlyphs() { this.atlas = null; this.full = true; }
+  /** 바탕 그림 — FieldGL 과 같은 뜻. 칸 바탕을 그 그림(화면 크기로 늘림)에서 칠한다 */
+  setBackgroundImage(img) { this.bgImg = img || null; this.bgGrad = null; this.full = true; }
+
+  invalidateGlyphs() { this.atlas = null; this.bgGrad = null; this.full = true; }   // 크기가 바뀌어도 불린다 — 바탕도 새로
 
   tiles(cw, ch, fonts, dpr) {
     const key = cw + 'x' + ch + '|' + fonts.join('|');
@@ -61,7 +64,9 @@ export class Field2D {
     const P = this.prev && this.prev.n === n ? this.prev : null, full = this.full || !P;
     this.full = false;
     const G = grid.glyph, C = grid.color, F = grid.flags;
-    if (!this.bgGrad) { const gr = RC.createLinearGradient(0, 0, 0, this.canvas.height); gr.addColorStop(0, this.bgTop || this.bg); gr.addColorStop(1, this.bgBot || this.bg); this.bgGrad = gr; }
+    if (!this.bgGrad) {
+      if (this.bgImg) { const pt = RC.createPattern(this.bgImg, 'no-repeat'); if (pt.setTransform && typeof DOMMatrix !== 'undefined') pt.setTransform(new DOMMatrix().scaleSelf(this.canvas.width / this.bgImg.width, this.canvas.height / this.bgImg.height)); this.bgGrad = pt; this.bgW = this.canvas.width; }
+      else { const gr = RC.createLinearGradient(0, 0, 0, this.canvas.height); gr.addColorStop(0, this.bgTop || this.bg); gr.addColorStop(1, this.bgBot || this.bg); this.bgGrad = gr; } }
     RC.setTransform(1, 0, 0, 1, 0, 0);
     const dirty = [];
     if (full) { RC.clearRect(0, 0, this.canvas.width, this.canvas.height); for (let i = 0; i < n; i++) dirty.push(i); }
