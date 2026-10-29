@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 트리 뷰 (블랙홀, 보관)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#040614;color:#e6eaf7}
+::selection{background:#e6eaf7;color:#040614}
+:root{--ease-out:cubic-bezier(0.23,1,0.32,1)}
+.preset{font:inherit;cursor:pointer;flex:1;min-height:32px;padding:0 6px;border-radius:6px;font-size:12px;color:#7682ab;background:transparent;border:1px solid #1c2442;transition:transform 160ms var(--ease-out),border-color 150ms ease,color 150ms ease}
+.preset.sel{color:#040614;background:#e6eaf7;border-color:#e6eaf7}
+.preset:active{transform:scale(0.97)}
+.preset:focus-visible{outline:1px solid #e6eaf7;outline-offset:2px}
+@media (hover:hover) and (pointer:fine){.preset:not(.sel):hover{border-color:#56628f;color:#e6eaf7}}
+@media (prefers-reduced-motion:reduce){.preset{transition:border-color 150ms ease,color 150ms ease}.preset:active{transform:none}}
+</style>
+</helmet>
+<div onPointerDown="{{dragStart}}" onPointerMove="{{dragMove}}" onPointerUp="{{dragEnd}}" onPointerCancel="{{dragEnd}}" style="position: relative; min-height: 100vh; background: linear-gradient(178deg, #060a1d 0%, #040614 46%, #020308 100%); font-family: Geist, 'Noto Sans KR', system-ui, sans-serif; color: #e6eaf7; overflow: hidden; touch-action: none; cursor: {{cursor}}">
+<canvas data-scene="treebh" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: {{sceneZ}}; visibility: {{sceneVis}}"></canvas>
+<canvas data-field="treebh" role="img" aria-label="{{sceneLabel}}" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 1"></canvas>
+
+<section aria-label="트리 뷰" onPointerDown="{{stopProp}}" style="position: absolute; z-index: 3; left: 32px; bottom: 32px; width: 300px; box-sizing: border-box; padding: 16px; border-radius: 10px; background: #040614; border: 1px solid #1c2442; display: flex; flex-direction: column; gap: 12px; cursor: default">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h1 style="margin: 0; font-size: 14px; font-weight: 600">트리 뷰</h1>
+<span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; color: #7682ab">{{stat}}</span>
+</div>
+<div role="group" aria-label="표시 방식" style="display: flex; gap: 4px">
+<sc-for list="{{modes}}" as="md" hint-placeholder-count="2">
+<button class="preset {{md.cls}}" type="button" aria-pressed="{{md.pressed}}" onClick="{{md.pick}}">{{md.name}}</button>
+</sc-for>
+</div>
+<div role="group" aria-label="예시 트리" style="display: flex; gap: 4px">
+<sc-for list="{{presets}}" as="p" hint-placeholder-count="5">
+<button class="preset {{p.cls}}" type="button" aria-pressed="{{p.pressed}}" aria-label="{{p.label}}" onClick="{{p.pick}}">{{p.name}}</button>
+</sc-for>
+</div>
+<span style="font-size: 12px; line-height: 1.5; color: #7682ab">블랙홀을 누르면 그쪽으로 · 계정을 누르면 처음으로<br>끌어서 돌리기</span>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"preset":{"editor":"enum","options":["자식 2","자식 3","자식 4","자식 5","깊이 3"],"default":"깊이 3","section":"트리"},"spin":{"editor":"range","min":0,"max":2,"step":0.05,"default":0.5,"section":"트리"},"shrink":{"editor":"range","min":0.4,"max":0.9,"step":0.02,"default":0.62,"section":"트리"},"sizeRatio":{"editor":"range","min":0.3,"max":0.9,"step":0.02,"default":0.5,"section":"트리"},"spacing":{"editor":"range","min":1,"max":3,"step":0.05,"default":1.7,"section":"트리"},"edges":{"editor":"boolean","default":true,"section":"트리"},"diskSpeed":{"editor":"range","min":0,"max":3,"step":0.1,"default":1,"section":"블랙홀"},"tiltRange":{"editor":"range","min":0,"max":60,"step":1,"default":35,"unit":"°","section":"블랙홀"},"hueRange":{"editor":"range","min":0,"max":90,"step":1,"default":40,"unit":"°","section":"블랙홀"},"glow":{"editor":"range","min":0,"max":1.5,"step":0.05,"default":1,"section":"블랙홀"},"palette":{"editor":"enum","options":["은하수","성운","단색"],"default":"은하수","section":"글자 장"},"cell":{"editor":"int","min":9,"max":24,"default":11,"unit":"px","section":"글자 장"},"motion":{"editor":"boolean","default":true,"section":"글자 장"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { preset: null, dragging: false, focus: 0, mode: 'mask', top: false };
+  }
+  componentDidMount() {
+    this._live = true;
+    this._yaw = 0.6; this._pitch = 0.32; this._zoom = 1; this._idleAt = 0;
+    this.startScene();   // 글자 장보다 먼저 — 글자 장이 크기를 정할 때 장면 캔버스도 같이 맞춘다
+    this.startField('treebh');
+  }
+  componentWillUnmount() {
+    this._live = false;
+    this.stopField();
+    
+  }
+
+  // ───── 트리 데이터 (예시) ─────
+  // 자식 배열의 중첩으로 쓴다. [] = 자식 없음. 가장 바깥이 계정(가운데)
+  PRESET() { return this.state.preset ?? this.props.preset ?? '깊이 3'; }
+  SPECS() {
+    return {
+      '자식 2': [[], []],
+      '자식 3': [[], [], []],
+      '자식 4': [[], [], [], []],
+      '자식 5': [[], [], [], [], []],
+      '깊이 3': [[[], [[], []], [[]]], [[], []], [[[], [], []]], [[], [], [], []]]
+    };
+  }
+
+  // ───── 3차원 배치 ─────
+  // 자식이 서로 가장 멀리 떨어지게 — 정다면체 꼭짓점 위에 둔다.
+  // 계정(가운데): 자식 n 개 → 꼭짓점이 n 개 이상인 가장 작은 모양 (2 선 · 3 정삼각형 · 4 정사면체 · 6 정팔면체 · 8 정육면체 · 12 정이십면체 · 20 정십이면체 · 그 위는 구면 고르게)
+  // 그 밖의 노드: 부모로 가는 축이 꼭짓점 하나를 차지한다 → 자식 k 개 + 축 1 = k + 1 개의 모양. 자식 3 이면 축과 함께 정사면체.
+  // 꼭짓점이 남으면 비워 둔다 (가장 서로 멀어지는 꼭짓점부터 채운다)
+  POLY(m) {
+    const n = (v) => { const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; };
+    const g = (1 + Math.sqrt(5)) / 2;
+    if (m <= 1) return [[1, 0, 0]];
+    if (m === 2) return [[1, 0, 0], [-1, 0, 0]];
+    if (m === 3) return [0, 1, 2].map((k) => [Math.cos(k * 2 * Math.PI / 3), Math.sin(k * 2 * Math.PI / 3), 0]);
+    if (m === 4) return [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map(n);
+    if (m <= 6) return [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+    if (m <= 8) { const r = []; for (const x of [1, -1]) for (const y of [1, -1]) for (const z of [1, -1]) r.push(n([x, y, z])); return r; }
+    if (m <= 12) { const r = []; for (const a of [1, -1]) for (const b of [g, -g]) { r.push(n([0, a, b]), n([a, b, 0]), n([b, 0, a])); } return r; }
+    if (m <= 20) {
+      const r = [], ig = 1 / g;
+      for (const x of [1, -1]) for (const y of [1, -1]) for (const z of [1, -1]) r.push(n([x, y, z]));
+      for (const a of [ig, -ig]) for (const b of [g, -g]) r.push(n([0, a, b]), n([a, b, 0]), n([b, 0, a]));
+      return r;
+    }
+    const r = [], ga = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < m; i++) { const y = 1 - (i / (m - 1)) * 2, rad = Math.sqrt(1 - y * y), th = ga * i; r.push([Math.cos(th) * rad, y, Math.sin(th) * rad]); }
+    return r;
+  }
+  // 회전: 축 k 둘레로 각 a (로드리게스)
+  rot(v, k, a) {
+    const c = Math.cos(a), s = Math.sin(a), d = k[0] * v[0] + k[1] * v[1] + k[2] * v[2];
+    const x = [k[1] * v[2] - k[2] * v[1], k[2] * v[0] - k[0] * v[2], k[0] * v[1] - k[1] * v[0]];
+    return [v[0] * c + x[0] * s + k[0] * d * (1 - c), v[1] * c + x[1] * s + k[1] * d * (1 - c), v[2] * c + x[2] * s + k[2] * d * (1 - c)];
+  }
+  // a 를 b 로 보내는 가장 작은 회전을 점들에 적용
+  alignTo(pts, a, b) {
+    const d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    if (d > 0.999999) return pts.slice();
+    let k;
+    if (d < -0.999999) { k = Math.abs(a[0]) < 0.9 ? [0, -a[2], a[1]] : [-a[1], a[0], 0]; }
+    else k = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const l = Math.hypot(k[0], k[1], k[2]); k = [k[0] / l, k[1] / l, k[2] / l];
+    const ang = Math.acos(Math.max(-1, Math.min(1, d)));
+    return pts.map((p) => this.rot(p, k, ang));
+  }
+  // 남은 꼭짓점 가운데 이미 고른 것들과 가장 먼 것부터 k 개
+  pickFar(cands, taken, k) {
+    const out = [], used = taken.slice(), rest = cands.slice();
+    while (out.length < k && rest.length) {
+      let bi = 0, bd = -1;
+      for (let i = 0; i < rest.length; i++) {
+        let md = Infinity; for (const u of used) md = Math.min(md, Math.hypot(rest[i][0] - u[0], rest[i][1] - u[1], rest[i][2] - u[2]));
+        if (!used.length) md = 0;
+        if (md > bd + 1e-9) { bd = md; bi = i; }
+      }
+      out.push(rest[bi]); used.push(rest[bi]); rest.splice(bi, 1);
+    }
+    return out;
+  }
+  layout() {
+    const spec = this.SPECS()[this.PRESET()] || this.SPECS()['깊이 3'];
+    const shrink = this.props.shrink ?? 0.62;
+    const spacing = this.props.spacing ?? 1.7;   // 가지 길이 배율 — 블랙홀 크기는 그대로 두고 사이만 넓힌다
+    const sizeRatio = this.props.sizeRatio ?? 0.5;   // 깊이가 하나 내려갈 때 블랙홀 크기 비율
+    const key = this.PRESET() + '|' + shrink + '|' + spacing + '|' + sizeRatio;
+    if (this._lay && this._lay.key === key) return this._lay;
+    const nodes = [];
+    const root = { id: 0, depth: 0, p: [0, 0, 0], parent: null, axis: [0.32, 0.92, 0.22], r: 0.17 };
+    { const a = root.axis, l = Math.hypot(a[0], a[1], a[2]); root.axis = [a[0] / l, a[1] / l, a[2] / l]; }
+    nodes.push(root);
+    const place = (node, kids) => {
+      const k = kids.length; if (!k) return;
+      const L = spacing * Math.pow(shrink, node.depth);   // 가지 길이 = 1 × 비율^깊이 — 크기와 같은 비율
+      let dirs;
+      if (!node.parent) {
+        dirs = this.pickFar(this.POLY(k), [], k);
+        // 계정 둘레는 화면에서 보기 좋게 살짝 기울인다
+        dirs = dirs.map((d) => this.rot(this.rot(d, [1, 0, 0], 0.5), [0, 1, 0], 0.3));
+      } else {
+        const up = [node.parent.p[0] - node.p[0], node.parent.p[1] - node.p[1], node.parent.p[2] - node.p[2]];
+        const ul = Math.hypot(up[0], up[1], up[2]), u = [up[0] / ul, up[1] / ul, up[2] / ul];
+        const poly = this.alignTo(this.POLY(k + 1), this.POLY(k + 1)[0], u);
+        // 축 둘레로 돌려 볼 수 있다 — 이미 놓인 노드들과 가장 멀어지는 각을 고른다 (다른 가지와 덜 겹치게)
+        let best = null, bestScore = -1;
+        for (let s = 0; s < 24; s++) {
+          const ang = s / 24 * Math.PI * 2;
+          const cand = poly.slice(1).map((v) => this.rot(v, u, ang));
+          const chosen = this.pickFar(cand, [u], k);
+          let score = Infinity;
+          for (const d of chosen) { const q = [node.p[0] + d[0] * L, node.p[1] + d[1] * L, node.p[2] + d[2] * L]; for (const o of nodes) if (o !== node) score = Math.min(score, Math.hypot(q[0] - o.p[0], q[1] - o.p[1], q[2] - o.p[2])); }
+          if (score > bestScore + 1e-9) { bestScore = score; best = chosen; }
+        }
+        dirs = best;
+      }
+      const made = dirs.map((d, j) => {
+        const c = { id: nodes.length, depth: node.depth + 1, p: [node.p[0] + d[0] * L, node.p[1] + d[1] * L, node.p[2] + d[2] * L], parent: node, axis: d, r: 0.17 * Math.pow(sizeRatio, node.depth + 1) };   // 블랙홀 크기 = 계정 × 크기 비율^깊이 (기본 절반씩)
+        nodes.push(c); return c;
+      });
+      // 넓게 먼저: 한 층을 다 놓고 다음 층 — 가지끼리 비교할 노드가 먼저 자리 잡는다
+      made.forEach((c, j) => { c._kids = kids[j]; });
+      return made;
+    };
+    let level = [root]; root._kids = spec;
+    while (level.length) { const next = []; for (const nd of level) { const m = place(nd, nd._kids || []); if (m) next.push(...m); } level = next; }
+    let bound = 0.3; for (const nd of nodes) bound = Math.max(bound, Math.hypot(nd.p[0], nd.p[1], nd.p[2]) + nd.r * 5);
+    let bound2 = 0.3; for (const nd of nodes) if (nd.depth <= 2) bound2 = Math.max(bound2, Math.hypot(nd.p[0], nd.p[1], nd.p[2]) + nd.r * 3);
+    let depth = 0; for (const nd of nodes) depth = Math.max(depth, nd.depth);
+    // 노드마다 원반 결 무늬의 씨앗
+    for (const nd of nodes) {
+      nd.seed = Math.random() * 1000; nd.phase = Math.random() * Math.PI * 2;
+      nd.tiltU = Math.random() * Math.PI * 2; nd.tiltV = Math.random() * 2 - 1;   // 원반을 기울일 방향과 정도(−1..1)
+      nd.hueV = Math.random() * 2 - 1; nd.warmV = Math.random() * 2 - 1;          // 색조 이동(−1..1) · 안쪽 온도(−1..1)
+    }
+    this._lay = { key, nodes, bound, bound2, depth };
+    this._focus = { id: 0, from: null };
+    return this._lay;
+  }
+
+  // ───── 표시 방식: 마스크 ↔ 레거시 ─────
+  // 마스크: 블랙홀은 글자 장 뒤에 있고, 그 빛이 글자 색으로 투영된다 (기본)
+  // 레거시로: 블랙홀마다 중심에서 바깥으로 글자 장이 비워지고(곧 비워질 글자는 빛난다), 뒤의 블랙홀이 밝아진 뒤 맨 위로 올라온다
+  // 마스크로: 같은 곡선을 거꾸로 — 배경 뒤로 내려가 어두워지고, 글자가 다시 채워지면 투영 상태로 남는다
+  LEGACY() { return { dis: 700, br: 340 }; }
+  setMode(mode) {
+    if (mode === this.state.mode && !this._lg) return;
+    const now = performance.now(), T = this.LEGACY(), total = T.dis + T.br;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // 진행 중이면 그 지점에서 되돌아간다
+    let at = 0;
+    if (this._lg) { const tr = Math.min(total, now - this._lg.t0); at = this._lg.dir === 'in' ? tr : total - tr; }
+    else at = this.state.mode === 'legacy' ? total : 0;
+    const dir = mode === 'legacy' ? 'in' : 'out';
+    this._lg = { dir, t0: dir === 'in' ? now - at : now - (total - at), reduce };
+    this.setState({ mode: 'legacy', top: dir === 'in' ? false : this.state.top });
+  }
+  legacyVals(now) {
+    const T = this.LEGACY(), total = T.dis + T.br, ss = (p) => p * p * p * (p * (p * 6 - 15) + 10);
+    if (!this._lg) return this.state.mode === 'legacy' ? { fr: 1, b: 1, top: true, ga: 0 } : null;
+    const tr = now - this._lg.t0, t = this._lg.reduce ? (this._lg.dir === 'in' ? total : 0) : this._lg.dir === 'in' ? Math.min(total, tr) : Math.max(0, total - tr);
+    const done = this._lg.reduce || tr >= total;
+    const fr = ss(Math.min(1, t / T.dis));
+    const ga = t > 0 && t < T.dis ? Math.min(1, t / 90) * ss(Math.min(1, (T.dis - t) / 160)) : 0;
+    const b = 0.38 + 0.62 * ss(Math.min(1, Math.max(0, (t - T.dis) / T.br)));
+    return { fr, b, ga, top: t >= total, done, dir: this._lg.dir };
+  }
+  // ───── 장면 (블랙홀) ─────
+  // 블랙홀 장면은 화면에 직접 보이지 않는다 — 화면 밖 캔버스에 그린 뒤 글자 장에 마스크로 투영한다
+  startScene() {
+    this._scv = document.createElement('canvas'); this._sctx = this._scv.getContext('2d');
+    this._mid = document.createElement('canvas'); this._sm = document.createElement('canvas');
+    this._smx = this._sm.getContext('2d', { willReadFrequently: true });
+  }
+  sizeScene(w, h) {
+    if (!this._scv) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    this._scv.width = Math.max(1, Math.round(w * dpr)); this._scv.height = Math.max(1, Math.round(h * dpr));
+    this._sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this._sw = w; this._sh = h;
+  }
+  // 칸마다 장면 픽셀의 평균 — 두 번에 나눠 줄여 고르게 평균 낸다 (한 번에 줄이면 가는 결이 깜박인다)
+  sampleScene() {
+    const cols = this._cols, rows = this._rows; if (!this._scv || !cols) return;
+    const mw = cols * 3, mh = rows * 3;
+    if (this._mid.width !== mw || this._mid.height !== mh) { this._mid.width = mw; this._mid.height = mh; }
+    if (this._sm.width !== cols || this._sm.height !== rows) { this._sm.width = cols; this._sm.height = rows; }
+    const m = this._mid.getContext('2d'); m.imageSmoothingEnabled = true; m.imageSmoothingQuality = 'high';
+    m.clearRect(0, 0, mw, mh); m.drawImage(this._scv, 0, 0, this._scv.width, this._scv.height, 0, 0, this._sw / this._cw * 3, this._sh / this._ch * 3);
+    const s2 = this._smx; s2.imageSmoothingEnabled = true; s2.imageSmoothingQuality = 'high';
+    s2.clearRect(0, 0, cols, rows); s2.drawImage(this._mid, 0, 0, mw, mh, 0, 0, cols, rows);
+    this._mask = s2.getImageData(0, 0, cols, rows).data;
+  }
+  drawScene(now, dt) {
+    const ctx = this._sctx; if (!ctx) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const moving = (this.props.motion ?? true) && !reduce;
+    const L = this.layout(), w = this._sw, h = this._sh;
+    // 손을 뗀 뒤 잠시 쉬었다가 다시 천천히 돈다
+    if (moving && !this._drag && now - this._idleAt > 1500) this._yaw += dt * 0.12 * (this.props.spin ?? 0.5);
+    this._dt = (this._dt || 0) + (moving ? dt * (this.props.diskSpeed ?? 1) : 0);
+    const cy = Math.cos(this._yaw), sy = Math.sin(this._yaw), cp = Math.cos(this._pitch), sp = Math.sin(this._pitch);
+    const toCam = (v) => { const x1 = v[0] * cy + v[2] * sy, z1 = -v[0] * sy + v[2] * cy; return [x1, v[1] * cp - z1 * sp, v[1] * sp + z1 * cp]; };
+    const rel = (p) => [(p[0] - F.p[0]) * F.Z, (p[1] - F.p[1]) * F.Z, (p[2] - F.p[2]) * F.Z];
+    const F = this.focusNow(now, L);
+    const B = L.bound2, D = 3.2, S0 = (Math.min(w, h) / 2 / 2 / 3.2) / L.nodes[0].r * this._zoom, S = S0 * F.Z, ox = w * 0.5, oy = h * 0.5;   // 초점 블랙홀이 화면 한가운데. 계정 블랙홀의 눈에 띄는 원반(그림자의 약 3.2 배)이 화면 짧은 변의 1/2
+    const proj = (v) => { const c = toCam(rel(v)), f = D / Math.max(0.15, D - c[2]); return { x: ox + c[0] * S0 * f, y: oy - c[1] * S0 * f, z: c[2], f, behind: c[2] > D * 0.85 }; };
+
+    ctx.clearRect(0, 0, w, h);
+    const P = L.nodes.map((nd) => ({ nd, s: proj(nd.p) }));
+    this._hits = P.map((q) => ({ id: q.nd.id, x: q.s.x, y: q.s.y, r: q.nd.r * S * q.s.f, z: q.s.z, behind: q.s.behind }));
+    // 가지 — 부모와 자식을 잇는 가는 빛줄. 멀수록 흐리게
+    if (this.props.edges ?? true) {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+      for (const q of P) {
+        const nd = q.nd; if (!nd.parent) continue;
+        const a = P[nd.parent.id].s, b = q.s; if (a.behind || b.behind) continue;
+        const depthA = 0.5 + 0.5 * Math.max(-1, Math.min(1, (a.z + b.z) / 2 / B));
+        const gr = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+        gr.addColorStop(0, 'rgba(200,150,255,' + (0.10 + 0.22 * depthA).toFixed(3) + ')');
+        gr.addColorStop(1, 'rgba(150,120,255,' + (0.05 + 0.14 * depthA).toFixed(3) + ')');
+        ctx.strokeStyle = gr; ctx.lineWidth = Math.max(0.6, 1.4 * (a.f + b.f) / 2);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // 먼 것부터 그린다
+    P.sort((p, q) => p.s.z - q.s.z);
+    for (const q of P) if (!q.s.behind) this.drawHole(ctx, q.nd, q.s, toCam, S, this._dt, B);
+  }
+  // 지금 초점 — 블랙홀을 누르면 그 자리(p)로 옮겨 가며 계정 크기만큼 보이게 확대(Z = 계정 r / 그 r)
+  focusNow(now, L) {
+    const Fc = this._focus || (this._focus = { id: 0, from: null });
+    const nd = L.nodes[Fc.id] || L.nodes[0], to = { p: nd.p, Z: L.nodes[0].r / nd.r };
+    if (!Fc.from) return to;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const k = reduce ? 1 : Math.min(1, (now - Fc.at) / 900);
+    if (k >= 1) { Fc.from = null; return to; }
+    const e = 1 - Math.pow(1 - k, 4);   // 빠르게 출발해 부드럽게 멈춘다
+    // 배율은 로그 공간에서 섞는다 — 몇 배씩 커질 때도 속도가 고르게 느껴진다
+    const lz = Math.log(Fc.from.Z) + (Math.log(to.Z) - Math.log(Fc.from.Z)) * e;
+    return { p: [0, 1, 2].map((i) => Fc.from.p[i] + (to.p[i] - Fc.from.p[i]) * e), Z: Math.exp(lz) };
+  }
+  focusTo(id) {
+    const L = this.layout(), now = performance.now(), cur = this.focusNow(now, L);
+    this._focus = { id, from: { p: cur.p.slice(), Z: cur.Z }, at: now };
+    this._idleAt = now;
+    this.setState({ focus: id });
+  }
+  // 원반 면의 법선 — 가지 축에서 시작해, 축에 수직인 임의 방향 둘레로 ±기울기 범위 안에서 돌린다
+  diskNormal(nd) {
+    const a = nd.axis, deg = (this.props.tiltRange ?? 35) * nd.tiltV, k = Math.abs(a[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+    let p = [a[1] * k[2] - a[2] * k[1], a[2] * k[0] - a[0] * k[2], a[0] * k[1] - a[1] * k[0]];
+    const l = Math.hypot(p[0], p[1], p[2]); p = [p[0] / l, p[1] / l, p[2] / l];
+    p = this.rot(p, a, nd.tiltU);   // 기울일 축을 축 둘레 임의 방향으로
+    return this.rot(a, p, deg * Math.PI / 180);
+  }
+  // 노드 색 — 원래 색을 색조 범위 안에서 돌리고, 안쪽(살구빛)은 따뜻함/차가움을 조금 바꾼다
+  tint(nd, c, inner) {
+    const sh = (this.props.hueRange ?? 40) * nd.hueV + (inner ? nd.warmV * 12 : 0);
+    if (!sh) return c[0] + ',' + c[1] + ',' + c[2];
+    const key = sh.toFixed(1) + '|' + c.join(','), cache = this._tintC || (this._tintC = new Map());
+    let v = cache.get(key);
+    if (!v) {
+      const r = c[0] / 255, g = c[1] / 255, b = c[2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+      let h = 0; if (d > 0) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h = ((h * 60 + sh) % 360 + 360) % 360; const sv = mx === 0 ? 0 : d / mx, C = mx * sv, X = C * (1 - Math.abs(((h / 60) % 2) - 1)), m = mx - C;
+      const [R, Gc, B] = h < 60 ? [C, X, 0] : h < 120 ? [X, C, 0] : h < 180 ? [0, C, X] : h < 240 ? [0, X, C] : h < 300 ? [X, 0, C] : [C, 0, X];
+      v = Math.round((R + m) * 255) + ',' + Math.round((Gc + m) * 255) + ',' + Math.round((B + m) * 255);
+      if (cache.size > 4000) cache.clear(); cache.set(key, v);
+    }
+    return v;
+  }
+  // 블랙홀 하나 — 빛무리 · 원반 뒤쪽 · 휘어 보이는 고리 · 그림자 · 원반 앞쪽
+  drawHole(ctx, nd, s, toCam, S, t, bound) {
+    const r = nd.r * S * s.f;   // 그림자 반지름 (px)
+    if (r < 0.6) return;
+    const fog = 0.55 + 0.45 * Math.max(-1, Math.min(1, s.z / bound));   // 멀수록 어둡게
+    const G = this.props.glow ?? 1;
+    // 원반 면: 노드의 가지 축에 수직. 카메라 좌표로 옮겨 화면 위 타원의 두 축을 구한다
+    const n = toCam(this.diskNormal(nd));
+    let e1 = [n[1], -n[0], 0]; let l1 = Math.hypot(e1[0], e1[1]); if (l1 < 1e-4) { e1 = [1, 0, 0]; l1 = 1; } e1 = [e1[0] / l1, e1[1] / l1, 0];
+    const e2 = [n[1] * e1[2] - n[2] * e1[1], n[2] * e1[0] - n[0] * e1[2], n[0] * e1[1] - n[1] * e1[0]];
+    const E1 = [e1[0], -e1[1]], E2 = [e2[0], -e2[1]], nearSign = e2[2] >= 0 ? 1 : -1;
+    const x = s.x, y = s.y;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    // 빛무리는 그리지 않는다 — 글자 장에 투영하면 블랙홀 둘레에 경계가 또렷한 원판으로 보인다
+    ctx.restore();
+    // 원반: 안쪽 살구빛 → 분홍 → 보라 → 바깥 남보라. 결은 점선, 안쪽일수록 빨리 돈다(케플러)
+    const RINGS = r < 4 ? 5 : r < 10 ? 9 : 16;
+    const ringCol = (u) => {
+      const st = [[0, [255, 214, 170]], [0.22, [255, 160, 200]], [0.5, [200, 120, 255]], [0.8, [140, 90, 255]], [1, [90, 60, 220]]];
+      for (let i = 1; i < st.length; i++) if (u <= st[i][0]) { const a = st[i - 1], b = st[i], k = (u - a[0]) / (b[0] - a[0]); return a[1].map((c, j) => Math.round(c + (b[1][j] - c) * k)); }
+      return st[st.length - 1][1];
+    };
+    const diskHalf = (front) => {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+      for (let k = 0; k < RINGS; k++) {
+        const u = k / (RINGS - 1), R = r * (1.55 + 2.7 * Math.pow(u, 1.2));
+        const col = ringCol(u), colS = this.tint(nd, col, u < 0.2), baseA = (0.55 - 0.38 * u) * fog * G;
+        ctx.lineWidth = Math.max(0.5, r * (0.26 - 0.14 * u));
+        const dash = Math.max(2, R * (0.7 + ((nd.seed * (k + 3)) % 1) * 1.1));
+        ctx.setLineDash(r < 4 ? [] : [dash, dash * (0.04 + ((nd.seed * (k + 7)) % 1) * 0.16)]);
+        // 결이 흐르는 속도 — 궤도 속도처럼 안쪽이 빠르다 (v ∝ R^-1/2). 화면 위 px/초
+        ctx.lineDashOffset = -t * r * 1.1 * Math.pow(1.55 / (R / r), 0.5) + k * 13;
+        // 반쪽 고리를 한 줄로 이어 그린다 — 점선 무늬가 끊기지 않아 깜박이지 않는다.
+        // 다가오는 쪽(E1 끝)이 밝다 (도플러): 밝기는 조각마다 바꾸지 않고 E1 방향 그라데이션으로
+        const sgn = front ? nearSign : -nearSign;
+        const gx = E1[0] * R, gy = E1[1] * R, lg = ctx.createLinearGradient(x - gx, y - gy, x + gx, y + gy);
+        lg.addColorStop(0, 'rgba(' + colS + ',' + (baseA * 0.45).toFixed(3) + ')');
+        lg.addColorStop(1, 'rgba(' + colS + ',' + Math.min(1, baseA * 1.45).toFixed(3) + ')');
+        ctx.strokeStyle = lg;
+        ctx.beginPath();
+        const SEG = 40;
+        for (let j = 0; j <= SEG; j++) {
+          const th = (j / SEG) * Math.PI * sgn;
+          const px = x + R * (Math.cos(th) * E1[0] + Math.sin(th) * E2[0]), py = y + R * (Math.cos(th) * E1[1] + Math.sin(th) * E2[1]);
+          if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+    diskHalf(false);
+    // 휘어 보이는 고리 — 원반 뒤쪽이 그림자 위아래로 휘어 올라온 빛. 원반과 수직인 방향이 가장 밝다
+    if (r >= 2) {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const ang = Math.atan2(E1[1], E1[0]);
+      const cg = ctx.createConicGradient ? ctx.createConicGradient(ang, x, y) : null;
+      const a1 = (0.85 * fog * G).toFixed(3), a0 = (0.18 * fog * G).toFixed(3);
+      if (cg) {
+        cg.addColorStop(0, 'rgba(' + this.tint(nd, [255,170,120], true) + ',' + a0 + ')'); cg.addColorStop(0.25, 'rgba(' + this.tint(nd, [255,205,160], true) + ',' + a1 + ')');
+        cg.addColorStop(0.5, 'rgba(' + this.tint(nd, [255,170,120], true) + ',' + a0 + ')'); cg.addColorStop(0.75, 'rgba(' + this.tint(nd, [240,150,220], false) + ',' + (0.55 * fog * G).toFixed(3) + ')');
+        cg.addColorStop(1, 'rgba(' + this.tint(nd, [255,170,120], true) + ',' + a0 + ')');
+      }
+      ctx.strokeStyle = cg || 'rgba(' + this.tint(nd, [255,190,150], true) + ',' + a1 + ')';
+      ctx.lineWidth = r * 0.5; ctx.beginPath(); ctx.arc(x, y, r * 1.3, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = r * 0.9; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(x, y, r * 1.45, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.lineWidth = Math.max(0.6, r * 0.09); ctx.strokeStyle = 'rgba(' + this.tint(nd, [255,236,210], true) + ',' + (0.9 * fog * G).toFixed(3) + ')';
+      ctx.beginPath(); ctx.arc(x, y, r * 1.06, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+    // 그림자
+    const sh = ctx.createRadialGradient(x, y, r * 0.2, x, y, r * 1.02);
+    sh.addColorStop(0, '#000'); sh.addColorStop(0.85, '#030108'); sh.addColorStop(1, 'rgba(' + this.tint(nd, [10,4,20], false) + ',0.9)');
+    ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    diskHalf(true);
+  }
+
+  // ───── 글자 장 (배경) ─────
+  PALETTES() {
+    return {
+      '은하수': ['#9fb8ff', '#8c9cf5', '#a58cf0', '#c88fe0', '#e39ac9', '#f0a8a0'],
+      '성운': ['#dfe8ff', '#b9cdfa', '#93aef0', '#7d94d8', '#c7d6ff'],
+      '단색': ['#e6eaf7', '#c3cae3']
+    };
+  }
+  startField(id) {
+    const find = () => {
+      if (!this._live) return;
+      const cv = document.querySelector('canvas[data-field="' + id + '"]');
+      if (!cv) { this._findT = requestAnimationFrame(find); return; }
+      this._cv = cv; this._ctx = cv.getContext('2d');
+      const sc = document.querySelector('canvas[data-scene="treebh"]');
+      if (sc) { this._scv = sc; this._sctx = sc.getContext('2d'); }
+      this._glyphs = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789+-*/=<>:;.#%&|~^';
+      this._last = 0;
+      const p = new Uint8Array(256); for (let i = 0; i < 256; i++) p[i] = i;
+      for (let i = 255; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0, k = p[i]; p[i] = p[j]; p[j] = k; }
+      this._perm = new Uint8Array(512); for (let i = 0; i < 512; i++) this._perm[i] = p[i & 255];
+      this._ro = new ResizeObserver(() => this.sizeField()); this._ro.observe(cv);
+      this.sizeField();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (this._live) this.sizeField(); });
+      // 한 박자에: 장면(블랙홀) → 칸 평균 → 글자 장. 30fps
+      let prev = performance.now();
+      const loop = (now) => {
+        if (!this._live) return;
+        if (now - this._last >= 33) {
+          const dt = Math.min(0.08, (now - prev) / 1000); prev = now;
+          const LV = this.legacyVals(now);
+          if (LV && LV.done) {
+            this._lg = null;
+            if (LV.dir === 'out') this.setState({ mode: 'mask', top: false }); else if (!this.state.top) this.setState({ top: true });
+          } else if (LV && LV.top !== this.state.top) this.setState({ top: LV.top });
+          if (this._scv) { const f = LV ? 'brightness(' + LV.b.toFixed(3) + ')' : 'none'; if (this._scv.style.filter !== f) this._scv.style.filter = f; }
+          this._LV = LV && !LV.done ? LV : this.legacyVals(now);
+          this.drawScene(now, dt); this.sampleScene(); this.drawField(now, true);
+        }
+        this._raf = requestAnimationFrame(loop);
+      };
+      this._raf = requestAnimationFrame(loop);
+    };
+    find();
+  }
+  stopField() { cancelAnimationFrame(this._raf); cancelAnimationFrame(this._findT); if (this._ro) this._ro.disconnect(); }
+  sizeField() {
+    const cv = this._cv; if (!cv) return;
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cs = Math.max(9, Math.min(24, this.props.cell ?? 11));   // 블랙홀이 칸 단위로 보이므로 메인보다 촘촘하게
+    this._cw = Math.round(cs * 0.66); this._ch = Math.round(cs * 1.2); this._cs = cs;
+    this._cols = Math.ceil(w / this._cw) + 1; this._rows = Math.ceil(h / this._ch) + 1;
+    const n = this._cols * this._rows, G = this._glyphs.length;
+    this._g = new Uint8Array(n); for (let i = 0; i < n; i++) this._g[i] = (Math.random() * G) | 0;
+    this._star = new Float32Array(n); for (let i = 0; i < n; i++) if (Math.random() < 0.014) this._star[i] = 0.2 + Math.random();
+    this._bw = new Float32Array(n);
+    { const ax = w * 0.2, ay = -h * 0.05, bx = w * 0.84, by = h * 1.05, vx = bx - ax, vy = by - ay, Ln = Math.hypot(vx, vy), sp = Math.max(w, h) * 0.17;
+      for (let r = 0; r < this._rows; r++) for (let c = 0; c < this._cols; c++) { const px = c * this._cw, py = r * this._ch, d = Math.abs((px - ax) * vy - (py - ay) * vx) / Ln; this._bw[r * this._cols + c] = Math.exp(-(d / sp) * (d / sp)); } }
+    this._w = w; this._h = h; this._bg = null; this._mask = null;
+    this.sizeScene(w, h);
+    this.drawField(performance.now(), true);
+  }
+  hex(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  drawField(now, force) {
+    const ctx = this._ctx; if (!ctx) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const moving = (this.props.motion ?? true) && !reduce;
+    if (!force && now - this._last < 33) return;   // 배경은 30fps 면 충분하다
+    this._last = now;
+    if ((this.props.cell ?? 11) !== this._cs) { this.sizeField(); return; }
+    const P = (this.PALETTES()[this.props.palette] || this.PALETTES()['은하수']).map((h) => this.hex(h));
+    const NP = P.length, cols = this._cols, rows = this._rows, G = this._glyphs, g = this._g;
+    this._tt = (this._tt || 0) + (moving ? (now - (this._prev || now)) / 1000 * 0.6 : 0); this._prev = now;
+    const t = this._tt;
+    if (moving && now - (this._rollAt || 0) > 33) { this._rollAt = now; const k = Math.ceil(cols * rows * 0.004); for (let i = 0; i < k; i++) g[(Math.random() * g.length) | 0] = (Math.random() * G.length) | 0; }
+    if (!this._bg) { const gr = ctx.createLinearGradient(0, 0, 0, this._h); gr.addColorStop(0, '#060a1d'); gr.addColorStop(0.46, '#040614'); gr.addColorStop(1, '#020308'); this._bg = gr; }
+    ctx.fillStyle = this._bg; ctx.fillRect(0, 0, this._w, this._h);
+    ctx.font = '500 ' + Math.round(this._cs * 0.86) + 'px "Geist Mono", ui-monospace, monospace';
+    ctx.textBaseline = 'top';
+    const P2 = this._perm, buckets = new Map(), MS = this._mask && this._mask.length === cols * rows * 4 ? this._mask : null;
+    const nz = (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, a0 = xi & 255, b0 = yi & 255;
+      const uu = xf * xf * (3 - 2 * xf), vv = yf * yf * (3 - 2 * yf);
+      const A = P2[P2[a0] + b0], B = P2[P2[a0 + 1] + b0], C = P2[P2[a0] + b0 + 1], D = P2[P2[a0 + 1] + b0 + 1];
+      return (A + (B - A) * uu + (C - A) * vv + (A - B - C + D) * uu * vv) / 255;
+    };
+    // 레거시: 블랙홀마다 중심에서 바깥으로(반지름 4.6r 까지) 앞선이 번진다. 그 안에서 블랙홀 빛이 닿는 칸(투영 칸)을 비운다
+    const LV = this._LV, HN = this._holeN && this._holeN.length === cols * rows ? this._holeN : (this._holeN = new Uint8Array(cols * rows)), GW = this._glowN && this._glowN.length === cols * rows ? this._glowN : (this._glowN = new Float32Array(cols * rows));
+    HN.fill(0); GW.fill(0);
+    if (LV && MS && this._hits) {
+      for (const hh of this._hits) {
+        if (hh.behind || hh.r < 1) continue;
+        const R = hh.r * 4.6, x0 = Math.max(0, Math.floor((hh.x - R) / this._cw)), x1 = Math.min(cols - 1, Math.ceil((hh.x + R) / this._cw));
+        const y0 = Math.max(0, Math.floor((hh.y - R) / this._ch)), y1 = Math.min(rows - 1, Math.ceil((hh.y + R) / this._ch));
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+          const i = y * cols + x; if (MS[i * 4 + 3] < 14) continue;   // 블랙홀 빛이 닿지 않는 칸은 그대로
+          const d = Math.hypot(x * this._cw + this._cw / 2 - hh.x, y * this._ch + this._ch / 2 - hh.y) / R;
+          if (d < LV.fr) HN[i] = 1;
+          else if (LV.ga > 0) { const dd = (d - LV.fr) * R; if (dd < 26) { const q = 1 - dd / 26; GW[i] = Math.max(GW[i], LV.ga * q * q); } }
+        }
+      }
+    }
+    const holes = [];
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x, W = this._bw[i], gx = x * 0.66, gy = y * 1.2;
+      if (HN[i]) { holes.push(i); continue; }
+      const n1 = nz(gx * 0.045 - t * 0.09, gy * 0.045 + t * 0.012), n2 = nz(gx * 0.11 - t * 0.17 + 31.7, gy * 0.11 - t * 0.02 + 12.3);
+      const n = n1 * 0.62 + n2 * 0.38, cloud = Math.max(0, n - 0.42) / 0.58, dust = cloud * cloud;
+      const u = Math.min(0.999, Math.max(0, y / rows * 0.85 + (n1 - 0.5) * 0.3));
+      // 장면이 주인공이라 글자 장은 메인보다 한 단계 낮게
+      let lv = (0.05 + W * 0.13 + dust * (0.18 + 0.62 * W)) * 0.7, star = false;
+      const st = this._star[i];
+      if (st) { const tw = moving ? 0.5 + 0.5 * Math.sin(now / 1000 * 1.4 * st + st * 9.0) : 0.75; const sl = 0.3 + tw * 0.5; if (sl > lv) { lv = sl; star = true; } }
+      const gw = GW[i]; if (gw > 0.02) { lv = Math.min(1, Math.max(lv, 0.2) + gw * 0.8); star = false; }   // 곧 비워질 글자 — 제 색으로 빛난다
+      const q = Math.min(7, (lv * 8) | 0), pi = Math.min(NP - 1, (u * NP) | 0);
+      let key = star ? 's_' + q : q === 0 ? 'b' + Math.min(7, (y / rows * 8) | 0) + '_' + (W > 0.45 ? 1 : 0) : pi + '_' + q;
+      // 블랙홀 투영 — 그 칸이 덮는 장면 픽셀의 평균 빛. 그림자(검게 덮인 칸)는 글자를 비운다
+      if (MS) {
+        const j = i * 4, a = MS[j + 3] / 255;
+        if (a > 0.02) {
+          const er = MS[j] / 255 * a, eg = MS[j + 1] / 255 * a, eb = MS[j + 2] / 255 * a, lum = Math.max(er, eg, eb);
+          if (a * (1 - lum * 1.3) > 0.5) continue;   // 그림자
+          if (lum > 0.03) {
+            const qr = Math.round(er / lum * 15), qg = Math.round(eg / lum * 15), qb = Math.round(eb / lum * 15), ql = Math.min(9, ((Math.pow(Math.min(1, lum * 2.5), 0.6) + gw * 0.5) * 10) | 0);   // 어두운 빛도 글자로 보이게 감마를 올린다
+            key = 'm' + qr + '_' + qg + '_' + qb + '_' + ql;
+          }
+        }
+      }
+      let b = buckets.get(key); if (!b) { b = []; buckets.set(key, b); } b.push(i);
+    }
+    // 비운 칸은 바탕까지 투명하게 — 그 아래 블랙홀(장면)이 보인다
+    for (let k = 0; k < holes.length; k++) { const i = holes[k]; ctx.clearRect((i % cols) * this._cw, ((i / cols) | 0) * this._ch, this._cw, this._ch); }
+    buckets.forEach((list, key) => {
+      if (key[0] === 'm') {
+        // 투영 칸 색: 빛의 색조(정규화) × 밝기. 가장 밝은 곳(고리)은 흰빛 쪽으로
+        const v = key.slice(1).split('_').map(Number), L = v[3] / 9, wmix = Math.max(0, L - 0.7) * 1.6;
+        const c = [v[0], v[1], v[2]].map((x) => { const b = x / 15 * 255; return Math.round(b + (255 - b) * wmix); });
+        ctx.fillStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (0.12 + 0.88 * L).toFixed(3) + ')';
+        for (let k = 0; k < list.length; k++) { const i = list[k]; ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); }
+        return;
+      }
+      const parts = key.split('_'), q = +parts[1];
+      if (parts[0][0] === 'b') { const f = +parts[0].slice(1) / 7, inB = q === 1; ctx.fillStyle = 'rgb(' + Math.round(15 - 7 * f + (inB ? 5 : 0)) + ',' + Math.round(21 - 11 * f + (inB ? 4 : 0)) + ',' + Math.round(46 - 26 * f + (inB ? 10 : 0)) + ')'; }
+      else {
+        const c = parts[0] === 's' ? [236, 241, 255] : P[+parts[0]];
+        const a = q < 2 ? 0.16 + q * 0.06 : 0.12 + q * 0.12, mix = q < 3 ? 0.35 : 1;
+        ctx.fillStyle = 'rgba(' + Math.round(c[0] * mix + 74 * (1 - mix)) + ',' + Math.round(c[1] * mix + 90 * (1 - mix)) + ',' + Math.round(c[2] * mix + 140 * (1 - mix)) + ',' + a.toFixed(3) + ')';
+      }
+      for (let k = 0; k < list.length; k++) { const i = list[k]; ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); }
+    });
+  }
+
+  // ───── 화면 값 ─────
+  renderVals() {
+    const L = this.layout(), cur = this.PRESET();
+    return {
+      stat: '노드 ' + (L.nodes.length - 1) + ' · 깊이 ' + L.depth,
+      sceneLabel: '계정을 중심으로 한 트리 ' + (L.nodes.length - 1) + '개의 3차원 배치',
+      cursor: this.state.dragging ? 'grabbing' : 'grab',
+      sceneVis: this.state.mode === 'legacy' ? 'visible' : 'hidden',
+      sceneZ: this.state.top ? 2 : 0,
+      modes: [['mask', '마스크'], ['legacy', '레거시']].map(([id, name]) => {
+        const sel = this._lg ? this._lg.dir === (id === 'legacy' ? 'in' : 'out') : this.state.mode === id;
+        return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => this.setMode(id) };
+      }),
+      presets: Object.keys(this.SPECS()).map((name) => ({
+        name: name.replace('자식 ', ''), label: name, cls: name === cur ? 'sel' : '', pressed: name === cur ? 'true' : 'false',
+        pick: () => { if (name !== cur) this.setState({ preset: name }); }
+      })),
+      stopProp: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      dragStart: (e) => {
+        if (!e) return;
+        this._drag = { x: e.clientX, y: e.clientY, yaw: this._yaw, pitch: this._pitch };
+        if (e.currentTarget && e.currentTarget.setPointerCapture && e.pointerId != null) e.currentTarget.setPointerCapture(e.pointerId);
+        this.setState({ dragging: true });
+      },
+      dragMove: (e) => {
+        const D = this._drag; if (!D || !e) return;
+        this._yaw = D.yaw + (e.clientX - D.x) * 0.006;
+        this._pitch = Math.max(-1.3, Math.min(1.3, D.pitch + (e.clientY - D.y) * 0.006));
+      },
+      dragEnd: (e) => {
+        if (!this._drag) return;
+        if (e && Math.hypot(e.clientX - this._drag.x, e.clientY - this._drag.y) < 5 && this._scv && this._hits) {
+          const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
+          let best = null;
+          for (const h of this._hits) { if (h.behind) continue; const d = Math.hypot(mx - h.x, my - h.y); if (d < Math.max(10, h.r * 1.8) && (!best || h.z > best.z)) best = h; }
+          if (best) this.focusTo(best.id);
+        }
+        this._drag = null; this._idleAt = performance.now();
+        if (e && e.currentTarget && e.currentTarget.releasePointerCapture && e.pointerId != null) { try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {} }
+        this.setState({ dragging: false });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

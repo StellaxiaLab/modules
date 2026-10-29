@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 메인 레퍼런스</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#040614;color:#e6eaf7}
+::selection{background:#e6eaf7;color:#070b1c}
+@font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; background: radial-gradient(42% 70% at 62% 58%, rgba(150, 110, 200, 0.08), transparent 70%), linear-gradient(118deg, transparent 22%, rgba(110, 130, 220, 0.05) 42%, rgba(170, 120, 210, 0.06) 56%, rgba(230, 150, 150, 0.04) 70%, transparent 84%), linear-gradient(178deg, #060a1d 0%, #040614 46%, #020308 100%); font-family: GmarketSans, Geist, 'Noto Sans KR', system-ui, sans-serif; color: #e6eaf7; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+<canvas data-field="main" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none"></canvas>
+<h1 style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0">Terra</h1>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"palette":{"editor":"enum","options":["은하수","성운","단색"],"default":"은하수","section":"글자 장"},"speed":{"editor":"range","min":0,"max":2,"step":0.1,"default":1,"section":"글자 장"},"cell":{"editor":"int","min":11,"max":24,"default":15,"unit":"px","section":"글자 장"},"motion":{"editor":"boolean","default":true,"section":"글자 장"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._live = true;
+    this.startField('main');
+  }
+  componentWillUnmount() {
+    this._live = false;
+    this.stopField();
+  }
+
+  // ───── 글자 장 + 워드마크 마스크 ─────
+  PALETTES() {
+    return {
+      '은하수': ['#9fb8ff', '#8c9cf5', '#a58cf0', '#c88fe0', '#e39ac9', '#f0a8a0'],
+      '성운': ['#dfe8ff', '#b9cdfa', '#93aef0', '#7d94d8', '#c7d6ff'],
+      '단색': ['#e6eaf7', '#c3cae3']
+    };
+  }
+  startField(id) {
+    const find = () => {
+      if (!this._live) return;
+      const cv = document.querySelector('canvas[data-field="' + id + '"]');
+      if (!cv) { this._findT = requestAnimationFrame(find); return; }
+      this._cv = cv; this._ctx = cv.getContext('2d'); this._rip = [];
+      this._glyphs = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789+-*/=<>:;.#%&|~^';
+      this._last = 0; this._calmAt = 0; this._boost = 0;
+      // 성운 구름용 값 노이즈 — 섞은 순열 표
+      const p = new Uint8Array(256); for (let i = 0; i < 256; i++) p[i] = i;
+      for (let i = 255; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0, k = p[i]; p[i] = p[j]; p[j] = k; }
+      this._perm = new Uint8Array(512); for (let i = 0; i < 512; i++) this._perm[i] = p[i & 255];
+      this._ro = new ResizeObserver(() => this.sizeField()); this._ro.observe(cv);
+      if (window.IntersectionObserver) { this._io = new IntersectionObserver((es) => { this._onScreen = es[es.length - 1].isIntersecting; }); this._io.observe(cv); }
+      this.sizeField();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (this._live) this.sizeField(); }); if (document.fonts && document.fonts.load) Promise.all(['500', '700'].map((w) => document.fonts.load(w + ' 12px GmarketSans', '가'))).then(() => { if (this._live) { this._fullRedraw = true; this.sizeField(); } }).catch(() => {});
+      // 화면 밖이거나 탭이 숨겨졌으면 쉰다 (돌아오면 이어서)
+      const loop = (now) => { if (!this._live) return; if (this._onScreen !== false && !document.hidden) this.drawField(now); else this._prev = now; this._raf = requestAnimationFrame(loop); };
+      this._raf = requestAnimationFrame(loop);
+    };
+    find();
+  }
+  stopField() { cancelAnimationFrame(this._raf); cancelAnimationFrame(this._findT); if (this._ro) this._ro.disconnect(); if (this._io) this._io.disconnect(); }
+  sizeField() {
+    const cv = this._cv; if (!cv) return;
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cs = Math.max(11, Math.min(24, this.props.cell ?? 15));
+    this._cw = Math.round(cs * 0.66); this._ch = Math.round(cs * 1.2); this._cs = cs;
+    this._cols = Math.ceil(w / this._cw) + 1; this._rows = Math.ceil(h / this._ch) + 1;
+    const n = this._cols * this._rows, G = this._glyphs.length;
+    this._g = new Uint8Array(n); for (let i = 0; i < n; i++) this._g[i] = (Math.random() * G) | 0;
+    this._calm = new Uint8Array(n);
+    // 별: 칸의 1.4% — 저마다 다른 박자로 반짝인다 · 은하수 띠: 화면을 비스듬히 가로지르는 선에서의 거리
+    this._star = new Float32Array(n); for (let i = 0; i < n; i++) if (Math.random() < 0.014) this._star[i] = 0.2 + Math.random();
+    this._bw = new Float32Array(n);
+    { const ax = w * 0.2, ay = -h * 0.05, bx = w * 0.84, by = h * 1.05, vx = bx - ax, vy = by - ay, L = Math.hypot(vx, vy), sp = Math.max(w, h) * 0.17;
+      for (let r = 0; r < this._rows; r++) for (let c = 0; c < this._cols; c++) { const px = c * this._cw, py = r * this._ch, d = Math.abs((px - ax) * vy - (py - ay) * vx) / L; this._bw[r * this._cols + c] = Math.exp(-(d / sp) * (d / sp)); } }
+    this._w = w; this._h = h; this._calmAt = 0;
+    this.buildMask();
+    this.drawField(performance.now(), true);
+  }
+  // 워드마크 TERRA — 글자 모양 안에 드는 칸을 표시한다 (칸 하나 = 화면 위 한 글자)
+  buildMask() {
+    const w = Math.max(1, Math.round(this._w)), h = Math.max(1, Math.round(this._h));
+    const oc = document.createElement('canvas'); oc.width = w; oc.height = h;
+    const o = oc.getContext('2d');
+    const size = Math.min(w * 0.19, h * 0.36);
+    o.font = '700 ' + Math.round(size) + 'px GmarketSans, Geist, "Noto Sans KR", system-ui, sans-serif';
+    o.textBaseline = 'middle'; o.fillStyle = '#fff';
+    const word = 'TERRA', track = size * 0.16;
+    let total = 0; const ws = [];
+    for (const ch of word) { const m = o.measureText(ch).width; ws.push(m); total += m; }
+    total += track * (word.length - 1);
+    let x = (w - total) / 2; const y = h * 0.5;
+    for (let i = 0; i < word.length; i++) { o.fillText(word[i], x, y); x += ws[i] + track; }
+    const data = o.getImageData(0, 0, w, h).data, cols = this._cols, rows = this._rows;
+    this._mask = new Uint8Array(cols * rows);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const px = Math.min(w - 1, Math.round(c * this._cw + this._cw / 2)), py = Math.min(h - 1, Math.round(r * this._ch + this._ch / 2));
+      if (data[(py * w + px) * 4 + 3] > 110) this._mask[r * cols + c] = 1;
+    }
+  }
+  markCalm() {
+    const cv = this._cv, r0 = cv.getBoundingClientRect(), C = this._calm, cols = this._cols, rows = this._rows, pad = 10;
+    C.fill(0);
+    document.querySelectorAll('[data-calm]').forEach((el) => {
+      const r = el.getBoundingClientRect(); if (!r.width || !r.height) return;
+      const x0 = Math.max(0, Math.floor((r.left - r0.left - pad) / this._cw)), x1 = Math.min(cols - 1, Math.ceil((r.right - r0.left + pad) / this._cw));
+      const y0 = Math.max(0, Math.floor((r.top - r0.top - pad) / this._ch)), y1 = Math.min(rows - 1, Math.ceil((r.bottom - r0.top + pad) / this._ch));
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) C[y * cols + x] = 1;
+    });
+  }
+  hex(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  drawField(now, force) {
+    const ctx = this._ctx; if (!ctx) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const moving = (this.props.motion ?? true) && !reduce;
+    if (!force && now - this._last < 33) return;
+    if (!force && !moving && this._drawn && !this._rip.length) return;
+    this._last = now; this._drawn = true;
+    if ((this.props.cell ?? 15) !== this._cs) { this.sizeField(); return; }
+    if (now - this._calmAt > 400) { this.markCalm(); this._calmAt = now; }
+    const P = (this.PALETTES()[this.props.palette] || this.PALETTES()['은하수']).map((h) => this.hex(h));
+    const NP = P.length, cols = this._cols, rows = this._rows, G = this._glyphs, g = this._g, C = this._calm, M = this._mask;
+    this._boost = Math.max(0, this._boost - 0.012);
+    const speed = moving ? (this.props.speed ?? 1) * (1 + this._boost * 2.5) : 0;
+    this._tt = (this._tt || 0) + (moving ? (now - (this._prev || now)) / 1000 * speed : 0); this._prev = now;
+    const t = this._tt;
+    if (moving) { const k = Math.ceil(cols * rows * (0.006 + this._boost * 0.03)); for (let i = 0; i < k; i++) g[(Math.random() * g.length) | 0] = (Math.random() * G.length) | 0; }
+    const rips = this._rip.filter((r) => now - r.t0 < 3200); this._rip = rips;
+    ctx.clearRect(0, 0, this._w, this._h);
+    ctx.font = '500 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", monospace';
+    ctx.textBaseline = 'top';
+    const buckets = new Map(), P2 = this._perm;
+    // 값 노이즈 한 겹 — 격자 꼭짓점의 난수를 부드럽게 잇는다 (반복 무늬가 없다)
+    const nz = (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, a0 = xi & 255, b0 = yi & 255;
+      const uu = xf * xf * (3 - 2 * xf), vv = yf * yf * (3 - 2 * yf);
+      const A = P2[P2[a0] + b0], B = P2[P2[a0 + 1] + b0], C = P2[P2[a0] + b0 + 1], D = P2[P2[a0 + 1] + b0 + 1];
+      return (A + (B - A) * uu + (C - A) * vv + (A - B - C + D) * uu * vv) / 255;
+    };
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x; if (C[i]) continue;
+      // 성운 구름 — 두 겹의 노이즈가 서로 다른 속도로 은하수 띠를 따라 흘러간다
+      const W = this._bw[i], gx = x * 0.66, gy = y * 1.2;
+      // 오른쪽으로 흘른다 — 작은 겹(n2)이 큰 겹(n1)보다 빨라 깊이가 생긴다
+      const n1 = nz(gx * 0.045 - t * 0.09, gy * 0.045 + t * 0.012);
+      const n2 = nz(gx * 0.11 - t * 0.17 + 31.7, gy * 0.11 - t * 0.02 + 12.3);
+      const n = n1 * 0.62 + n2 * 0.38;
+      const cloud = Math.max(0, n - 0.42) / 0.58, dust = cloud * cloud;
+      const u = Math.min(0.999, Math.max(0, y / rows * 0.85 + (n1 - 0.5) * 0.3));
+      let lv = M && M[i] ? 0.5 + n * 0.5 : 0.05 + W * 0.13 + dust * (0.18 + 0.62 * W);
+      let rr = -1;
+      const st = this._star[i];
+      if (st) { const tw = moving ? 0.5 + 0.5 * Math.sin(now / 1000 * 1.4 * st + st * 9.0) : 0.75; const sl = 0.36 + tw * 0.58; if (sl > lv) { lv = sl; rr = -2; } }
+      for (let j = 0; j < rips.length; j++) {
+        const R = rips[j], age = (now - R.t0) / 1000, dx = (x - R.x) * 0.66, dy = (y - R.y) * 1.2, d = Math.sqrt(dx * dx + dy * dy), dd = d - age * 34;
+        const e = Math.exp(-(dd * dd) / 26) * (1 - age / 3.2) * R.amp;
+        if (e > 0.05) { lv = Math.min(1, lv + e * 0.7); if (e > 0.3) rr = j; }
+      }
+      const q = Math.min(7, (lv * 8) | 0);
+      const pi = Math.min(NP - 1, (u * NP) | 0);
+      // 배경도 글자다 — 빈 칸은 바탕색보다 살짝 밝은 글자로 (세로 8단 × 은하수 띠 안팎)
+      const key = rr >= 0 ? 'r' + rr + '_' + q : rr === -2 ? 's_' + q : q === 0 ? 'b' + Math.min(7, (y / rows * 8) | 0) + '_' + (W > 0.45 ? 1 : 0) : pi + '_' + q;
+      let b = buckets.get(key); if (!b) { b = []; buckets.set(key, b); } b.push(i);
+    }
+    buckets.forEach((list, key) => {
+      const parts = key.split('_'), q = +parts[1];
+      if (parts[0][0] === 'b') {
+        // 바탕 그라데이션(위 #060a1d → 아래 #020308)을 따라가며 그보다 한 끝 밝다
+        const f = +parts[0].slice(1) / 7, inB = q === 1;
+        ctx.fillStyle = 'rgb(' + Math.round(15 - 7 * f + (inB ? 5 : 0)) + ',' + Math.round(21 - 11 * f + (inB ? 4 : 0)) + ',' + Math.round(46 - 26 * f + (inB ? 10 : 0)) + ')';
+        for (let k = 0; k < list.length; k++) { const i = list[k]; ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); }
+        return;
+      }
+      const c = parts[0] === 's' ? [236, 241, 255] : parts[0][0] === 'r' ? rips[+parts[0].slice(1)].rgb : P[+parts[0]];
+      const a = q < 2 ? 0.16 + q * 0.06 : 0.12 + q * 0.12, mix = q < 3 ? 0.35 : 1;
+      ctx.fillStyle = 'rgba(' + Math.round(c[0] * mix + 74 * (1 - mix)) + ',' + Math.round(c[1] * mix + 90 * (1 - mix)) + ',' + Math.round(c[2] * mix + 140 * (1 - mix)) + ',' + a.toFixed(3) + ')';
+      for (let k = 0; k < list.length; k++) { const i = list[k]; ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); }
+    });
+  }
+
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

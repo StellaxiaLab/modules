@@ -8,7 +8,7 @@ scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
 version: "0.2.0"
-last_updated: "2026-10-25"
+last_updated: "2026-10-29"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -18,6 +18,10 @@ related:
   - "[[legacy-node-gui-overview|기존 node-gui 전체 분석]]"
   - "[[legacy-app-layer|기존 node-gui 기능 층 분석]]"
   - "[[menu-hierarchy|메뉴 계층 설계]]"
+  - "[[settings-inventory|GUI v3 설정 종합]]"
+  - "[[settings-terra-core|Terra 코어 설정 전수표]]"
+  - "[[settings-modules|modules 설정 전수표]]"
+  - "[[backend|v3 모듈 백엔드 설계]]"
 ---
 
 # Terra GUI v3 문서 MOC
@@ -33,6 +37,10 @@ flowchart LR
   A --> D["메뉴 계층 설계"]
   B --> D
   B --> C["v3 core · app 인터페이스 (다음)"]
+  E["코어 설정 전수표"] --> S["GUI v3 설정 종합"]
+  F["modules 설정 전수표"] --> S
+  D --> S
+  S --> BE["v3 모듈 백엔드 설계"]
 ```
 
 | 하려는 일 | 문서 |
@@ -40,14 +48,18 @@ flowchart LR
 | 기존 GUI가 어떻게 생겼고 무엇이 부채인지 | [[legacy-node-gui-overview\|기존 node-gui 전체 분석]] |
 | 기존 GUI에서 Terra와 붙는 코드 중 무엇을 그대로 가져가는지 | [[legacy-app-layer\|기존 node-gui 기능 층 분석]] |
 | v3의 메뉴 · 화면 갈래 · 그릇 · 기존 입구와의 대응 | [[menu-hierarchy\|메뉴 계층 설계]] |
+| v3가 관리할 설정 · 변수가 어디에 있고, 시안의 설정 창 항목이 무엇에 대응하는지 | [[settings-inventory\|GUI v3 설정 종합]] |
+| Terra 코어의 설정 파일 · 키 · env · 포트 · API 전부 | [[settings-terra-core\|Terra 코어 설정 전수표]] |
+| modules의 매니페스트 · 모듈별 저장 상태 · node-gui 저장소 · 모듈 env 전부 | [[settings-modules\|modules 설정 전수표]] |
+| v3 모듈의 백엔드(프로세스 · 계약 · 노드에 붙는 GUI 데이터) | [[backend\|v3 모듈 백엔드 설계]] |
 
 ## 폴더
 
 | 폴더 | 문서 |
 | --- | --- |
 | `docs/` | 이 MOC |
-| `docs/analysis/` | [[legacy-node-gui-overview\|전체 분석]] · [[legacy-app-layer\|기능 층 분석]] |
-| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] |
+| `docs/analysis/` | [[legacy-node-gui-overview\|전체 분석]] · [[legacy-app-layer\|기능 층 분석]] · [[settings-inventory\|설정 종합]] · [[settings-terra-core\|코어 설정 전수표]] · [[settings-modules\|modules 설정 전수표]] |
+| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] |
 
 ## 기준
 
