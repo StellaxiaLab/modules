@@ -192,7 +192,7 @@
       if (N.dest.kind === 'leaf' && !N.resGo && W && W.e < 0.35) { N.resGo = true; this.enterRes(N.dest.planet); }
       if (!W || W.e <= 0) { this._navZ = null; if (N.dest.kind === 'leaf') { N.phase = 'res'; if (!N.resGo) { N.resGo = true; this.enterRes(N.dest.planet); } } else this._navS = null; }
       return; }
-    if (N.phase === 'res') { if (!this._res || (this._rs && !this._rs.animating)) this._navS = null; }
+    if (N.phase === 'res') { const R0 = this._res; if (!R0 || (this._rs && !this._rs.animating) || (R0.dir === 'in' && now - R0.at > 2400)) this._navS = null; }   // 진입 끝 — 그리기가 쉬어 _rs 가 멈춰 있어도 시간으로 끝낸다(안 그러면 다음 이동이 막힌다)
   }
   // 트리 뷰의 빈 틈 — 초점 트리의 자식 궤도 사이(가장 안쪽은 노드 몸체 바깥 ~ 첫 궤도) 중 화면 안에서 가장 넓은 틈, 각도는 자식 노드에서 가장 먼 쪽
   gapTree() {

@@ -136,7 +136,9 @@ srep("    return {\n      // 지금 어디인지 — 범위 경로","    return 
 srep("      tap: (e) => {\n        if (!e || !this._cv || !this._hits) return;","      tap: (e) => {\n        if (!e || !this._cv || !this._hits || (e.target && e.target.closest && e.target.closest('[data-ctlwin]'))) return;   // 제어기 창 안의 누르기는 창이 받는다")
 # 창 자리 16 이상 (모듈 상태 · 브라우저 …) — 전역 틀 보드의 자리 줄을 그대로 씬으로 옮긴다 (field → scene)
 _extra=[l.replace('data-ctlwin="field"','data-ctlwin="scene"').replace('data-ctlbody="field"','data-ctlbody="scene"') for l in F.split('\n') if re.match(r'<div data-ctlwin="field" data-slot="(1[6-9]|[2-9]\d)"',l)]
-S=re.sub(r'on-open="\{\{ctlOpenFn(\d)\}\}"(?! catalog)', r'on-open="{{ctlOpenFn\1}}" catalog="{{ctlCat\1}}"', S)   # 제어기 — 그 노드의 모듈 화면 목록(웹 브라우저 앱의 시작 페이지)
+S=re.sub(r'on-open="\{\{ctlOpenFn(\d)\}\}"(?! catalog)', r'on-open="{{ctlOpenFn\1}}" catalog="{{ctlCat\1}}"', S)
+S=re.sub(r'catalog="\{\{ctlCat(\d)\}\}"(?! node-key)', r'catalog="{{ctlCat\1}}" node-key="{{ctlKey\1}}"', S)   # 제어기 — 노드 키(노드 데이터 층 · 노드별 화면 상태)
+if '<dc-import name="TerraNodes"' not in S: S=S.replace('<div data-ctlwin="scene" data-slot="0"','<dc-import name="TerraNodes" quiet="1" hint-size="1px,1px"></dc-import>\n<div data-ctlwin="scene" data-slot="0"',1)   # 노드 데이터 층(PA/EL)   # 제어기 — 그 노드의 모듈 화면 목록(웹 브라우저 앱의 시작 페이지)
 _i=S.index('<div data-ctlwin="scene" data-slot="15"'); _j=S.index('\n',_i)
 S=S[:_j]+''.join('\n'+l for l in _extra)+S[_j:]
 # 메서드 붙이기 — 클래스 끝(renderVals 앞)
