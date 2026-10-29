@@ -80,7 +80,7 @@ export function issuersView(r) {
     enabled: x.enabled === true,
     mfa: x.require_mfa === true,
     cachedAt: shortTime(x.cached_at),
-    kids: Array.isArray(x.key_ids) ? x.key_ids.map(String) : []
+    kids: [].concat(Array.isArray(x.cached_key_ids) ? x.cached_key_ids : [], Array.isArray(x.pinned_key_ids) ? x.pinned_key_ids : [], Array.isArray(x.key_ids) ? x.key_ids : []).map(String).filter((k, i, a) => a.indexOf(k) === i)
   }));
   const on = issuers.filter((x) => x.enabled).length;
   return { state: issuers.length ? 'ok' : 'empty', issuers, on, why: '' };
