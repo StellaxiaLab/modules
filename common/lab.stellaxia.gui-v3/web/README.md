@@ -20,14 +20,14 @@ related:
 
 두 갈래가 함께 있다.
 
-- **웹 빌드**(`index.html` · `src/` → `../ui`) — 모듈의 실제 앱(`lab.stellaxia.gui-v3.web`). 장면 층(WebGL2 글자 장, Worker)과 창 층(DOM · signals). 구조와 이유는 [[web-architecture|GUI v3 웹 구조]].
+- **웹 빌드**(`index.html` · `src/` → `../ui`) — 모듈의 실제 앱(`lab.stellaxia.gui-v3.web`). 캔버스 보드를 빌드 때 모듈로 바꿔 **보드 실행기로 그대로 띄우고**(씬 · 전역 틀 · 창 · 로그인), 글자 장 그리기만 GPU(WebGL2, Worker)로 바꿔 끼운다. 구조와 이유는 [[web-architecture|GUI v3 웹 구조]].
 - **캔버스 원본**(`design/*.dc.html`) — Claude Design 캔버스 보드. 화면 설계의 기준이고 포장되지 않는다(`web/` 은 개발 전용, `docs/layout.md`).
 
 ```text
 web/
 ├─ index.html · vite.config.js · package.json   웹 빌드 (npm run build → ../ui)
 ├─ src/
-│  ├─ boot/main.js               입구 — 두 층을 세운다
+│  ├─ boot/main.js               입구 — 씬 보드를 띄우고 GPU 다리를 건다
 │  ├─ scene/                     장면 층
 │  │  ├─ field-grid.js           칸 모델(형식 배열) · 색 · 캔버스 꼴 기록기
 │  │  ├─ glyph-atlas.js          글자 타일(알파 마스크) — GPU 렌더러용
@@ -35,12 +35,13 @@ web/
 │  │  ├─ field-2d.js             Canvas 2D 렌더러 — 돌아가는 길 · 시안 알고리즘 비교 기준
 │  │  ├─ field-worker.js         Worker(OffscreenCanvas)
 │  │  ├─ field-host.js           렌더러 고르기(Worker → 메인 WebGL2 → 2D)
+│  │  ├─ scene-bridge.js         씬 보드의 fieldFlush 를 GPU 렌더러로 (바탕 그림 포함)
 │  │  └─ workload.js             비교용 부하(idle · mask · labels)
-│  ├─ ui/                        창 층 — signals.js · dom.js · window-layer.js · base.css
+│  ├─ ui/                        dc/runtime.js(보드 실행기) · fonts.css · fonts/(Pretendard) · signals.js · dom.js · window-layer.js · base.css
 │  └─ api/                       terra.js(operation invoke · stream · 원격 잠금) · op-scope.json · node-data.js(v3 백엔드)
 ├─ tests/                        npm test(브라우저 없이) · smoke.mjs(Chromium)
 ├─ bench/                        렌더러 비교 페이지 (빌드에 넣지 않는다)
-├─ tools/                        bench-field.mjs · gen-op-scope.mjs
+├─ tools/                        dc-board.mjs(보드 → 모듈) · bench-field.mjs · gen-op-scope.mjs
 └─ design/                       캔버스 보드 원본 (캔버스 'Terra GUI v3' 버전 264와 같다)
    ├─ canvas.json · Scene.dc.html(생성물) · Field · Login · 창 컴포넌트 · 단독 시안 보드 · Sheet
    └─ build/                     보드를 굽는 도구 (아래)
@@ -51,7 +52,8 @@ web/
 ```bash
 cd common/lab.stellaxia.gui-v3/web
 npm install
-npm run dev            # http://localhost:5174 — ?render=main(메인 스레드) · ?gl=2d(Canvas 2D)
+npm run dev            # http://localhost:5174 — ?render=main(메인 스레드) · ?gl=2d(Canvas 2D) · ?gpu=off(시안 2D 그대로)
+                       # design/*.dc.html 을 고치면 dev 서버가 그 보드를 다시 굽는다
 npm run build          # → ../ui
 npm test               # 브라우저 없이
 node tests/smoke.mjs   # 구운 ui/ 를 Gateway 와 같은 CSP 로 Chromium 에서

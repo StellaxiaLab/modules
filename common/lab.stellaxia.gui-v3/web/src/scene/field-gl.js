@@ -40,11 +40,13 @@ void main() {
 
 const FS = `#version 300 es
 precision highp float; precision highp int;
-uniform sampler2D uTex; uniform int uPass; uniform vec4 uBgTop; uniform vec4 uBgBot; uniform vec2 uView;
+uniform sampler2D uTex; uniform sampler2D uBgTex; uniform int uBgImg; uniform int uPass; uniform vec4 uBgTop; uniform vec4 uBgBot; uniform vec2 uView;
 in vec4 vColor; in vec2 vLocal; flat in ivec2 vTile;
 out vec4 o;
 void main() {
-  if (uPass == 0) { vec4 b = mix(uBgTop, uBgBot, clamp(1.0 - gl_FragCoord.y / uView.y, 0.0, 1.0)); o = vec4(b.rgb * b.a, b.a); return; }
+  if (uPass == 0) {
+    if (uBgImg == 1) { vec4 t = texture(uBgTex, vec2(gl_FragCoord.x / uView.x, 1.0 - gl_FragCoord.y / uView.y)); o = vec4(t.rgb * t.a, t.a); return; }   // 바탕 그림(장면의 bgPaint) — 화면 크기에 맞춰 늘린다
+    vec4 b = mix(uBgTop, uBgBot, clamp(1.0 - gl_FragCoord.y / uView.y, 0.0, 1.0)); o = vec4(b.rgb * b.a, b.a); return; }
   float a = texelFetch(uTex, vTile + ivec2(floor(vLocal)), 0).a * vColor.a;
   o = vec4(vColor.rgb * a, a);
 }`;
@@ -69,7 +71,7 @@ export class FieldGL {
     gl.attachShader(p, compile(gl, gl.VERTEX_SHADER, VS)); gl.attachShader(p, compile(gl, gl.FRAGMENT_SHADER, FS));
     gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('셰이더 연결: ' + gl.getProgramInfoLog(p));
-    this.u = {}; for (const k of ['uView', 'uCell', 'uCols', 'uPass', 'uAtlas', 'uTex', 'uBgTop', 'uBgBot']) this.u[k] = gl.getUniformLocation(p, k);
+    this.u = {}; for (const k of ['uView', 'uCell', 'uCols', 'uPass', 'uAtlas', 'uTex', 'uBgTop', 'uBgBot', 'uBgTex', 'uBgImg']) this.u[k] = gl.getUniformLocation(p, k);
     this.vao = gl.createVertexArray(); gl.bindVertexArray(this.vao);
     this.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
     gl.enableVertexAttribArray(0); gl.vertexAttribIPointer(0, 2, gl.UNSIGNED_INT, 8, 0); gl.vertexAttribDivisor(0, 1);
@@ -82,6 +84,16 @@ export class FieldGL {
 
   /** 바탕 — 위 · 아래 색 [r, g, b, a] (0–1). 시안의 _bg 세로 그라데이션 */
   setBackground(top, bottom) { this.bg = [top, bottom || top]; }
+
+  /** 바탕 그림 — 장면이 그린 바탕(그라데이션 · 띠 · 성운 빛)을 그대로. null 이면 위 · 아래 색으로 돌아간다 */
+  setBackgroundImage(img) {
+    const gl = this.gl;
+    if (!img) { this.bgImg = false; return; }
+    if (!this.bgTex) { this.bgTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, this.bgTex); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
+    gl.bindTexture(gl.TEXTURE_2D, this.bgTex); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    this.bgImg = true; if (img.close) img.close();
+  }
 
   /** 칸 크기 · 배율 · 글꼴이 바뀌면 타일을 새로 */
   ensureAtlas(cwCss, chCss, dpr, fonts) {
@@ -125,6 +137,7 @@ export class FieldGL {
     gl.uniform2f(this.u.uView, W, H); gl.uniform2f(this.u.uCell, m.cw * m.dpr, m.ch * m.dpr); gl.uniform1i(this.u.uCols, grid.cols);
     gl.uniform3i(this.u.uAtlas, A.L.cw, A.L.ch, A.L.perRow); gl.uniform1i(this.u.uTex, 0);
     gl.uniform4fv(this.u.uBgTop, this.bg[0]); gl.uniform4fv(this.u.uBgBot, this.bg[1]);
+    gl.uniform1i(this.u.uBgImg, this.bgImg ? 1 : 0); gl.uniform1i(this.u.uBgTex, 1); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.bgImg ? this.bgTex : this.tex); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.uniform1i(this.u.uPass, 0); gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, n);
     gl.uniform1i(this.u.uPass, 1); gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, n);

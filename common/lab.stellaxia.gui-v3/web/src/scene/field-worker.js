@@ -21,6 +21,7 @@ self.onmessage = (e) => {
   }
   if (msg.type === 'resize') { R.canvas.width = msg.w; R.canvas.height = msg.h; if (R.kind === 'canvas2d') R.invalidateGlyphs(); return; }
   if (msg.type === 'background') { R.setBackground(msg.bg[0], msg.bg[1]); return; }
+  if (msg.type === 'bgimage') { R.setBackgroundImage(msg.img); return; }
   if (msg.type === 'fonts') { R.invalidateGlyphs(); return; }
   if (msg.type === 'frame') {
     const s = msg.grid, t0 = performance.now();
