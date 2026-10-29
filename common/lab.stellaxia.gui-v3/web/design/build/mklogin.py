@@ -74,6 +74,7 @@ rep("  loginOn() {","""  sceneCtx(e) {
     const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }, acts = [];
     const here = this.sceneCur && this.sceneCur() === mn;
     if (mn.kind !== 'root' && this.gf_needLogin(mn)) acts.push({ label: '로그인', desc: (this.gf_treeOf(mn) || mn).name + ' 세션 없음', run: () => this.gf_loginOpen(mn) });
+    { const RR = typeof window !== 'undefined' ? window.TerraLoginRoutes : null, t = this.gf_treeOf(mn), r = RR && t && t.rid && RR[t.rid]; if (r && mn.kind === 'tree') acts.push({ label: 'Tree 로그인', desc: (r.login_url ? '그 Tree 의 GUI 로' : '주소 묻기') + ' · ' + (r.direction || ''), run: () => this.gf_loginOpen(mn) }); }   // 실제 길이 있는 자식 · 형제 Tree — 그 Tree 의 GUI 로 옮겨 가 로그인
     if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '리프 뷰', leaf: '리소스 뷰', res: '자원 보기' }[mn.kind], run: () => this.navStart(mn) });
     acts.push({ label: '지도', desc: '지도에서 보기', run: () => this.gf_mapShow(mn) });   // 전역 틀 지도를 그 노드로 옮긴다 (다른 Tree 의 리프 · 리소스면 로그인부터)
     acts.push({ label: '상태', desc: mn.kind === 'res' ? '값 · 연결' : '동작 · 상태', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
@@ -113,4 +114,15 @@ rep("  enterLeaf(id) {\n", "  enterLeaf(id) {\n    { const t = this.sceneMap().b
 rep("      pdown: (e) => { if (!e || !this._cv", "      pdown: (e) => { if (!e || e.button !== 0 || !this._cv")   # 누르기 · 길게 누르기 = 좌클릭만 (우클릭은 속성)
 rep("      tap: (e) => {\n        if (!e || !this._cv", "      tap: (e) => {\n        if (!e || e.button !== 0 || !this._cv")   # 클릭 = 좌클릭만 — 우클릭(button 2) · 가운데(1)는 누르기로 치지 않는다
 rep("  navStart(n) {\n", "  navStart(n) {\n    if (this.gf_loginGate && this.gf_loginGate(n)) return;   // 세션 없는 Tree 로 — Tree 로그인 창이 먼저(로그인되면 이어서 간다)\n")
+
+# 실제 노드 지도 — window.TerraTopology(웹 빌드 B 모드: Master 노드 목록에서 만든 트리 · 리프)가 있으면 시안의 SPECS · 예시 행성 대신 그것으로
+#   TerraTopology = { rev, localId, spec: 중첩 배열(트리의 자식 트리), label(경로) → 트리 이름, rid(경로) → 노드 id, leaves(경로) → [{ name, id }] }
+#   경로 = 1 부터 센 자식 번호들([1, 2] = 첫 트리의 둘째 자식 트리). 없으면(캔버스 · ?demo) 지금 그대로
+rep("  build() {\n    const spec = this.SPECS()[this.PRESET()] || this.SPECS()['깊이 3'];\n    const key = this.PRESET();",
+    "  TOPO() { const T = typeof window !== 'undefined' ? window.TerraTopology : null; return T && T.spec ? T : null; }\n  topoLeaves(id) { const TP = this.TOPO(), nd = TP && this.build().nodes[id]; return nd && nd.tpath ? TP.leaves(nd.tpath) : null; }\n  build() {\n    const TP = this.TOPO(), spec = TP ? TP.spec : this.SPECS()[this.PRESET()] || this.SPECS()['깊이 3'];\n    const key = TP ? 'topo:' + TP.rev : this.PRESET();")
+rep("          label: path.concat(j + 1).map((n) => String(n).padStart(2, '0')).join('.'),",
+    "          label: (TP && TP.label(path.concat(j + 1))) || path.concat(j + 1).map((n) => String(n).padStart(2, '0')).join('.'), tpath: path.concat(j + 1), rid: TP ? TP.rid(path.concat(j + 1)) : '',")
+rep("    const id = this._leafId, N = Math.max(1, Math.min(12, this.props.planets ?? 6)), key = id + ':' + N + ':v4';",
+    "    const id = this._leafId, LV = this.topoLeaves(id), N = LV ? LV.length : Math.max(1, Math.min(12, this.props.planets ?? 6)), key = id + ':' + N + ':v4' + (LV ? ':' + this.TOPO().rev : '');")
+rep("      list.push({ name: tn + '·' + String.fromCharCode(97 + k),","      list.push({ name: LV ? LV[k].name : tn + '·' + String.fromCharCode(97 + k),")
 open(P,'w').write(S); print('login ok')
