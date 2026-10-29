@@ -68,3 +68,9 @@ body{margin:0;background:transparent}
 @keyframes tlFillB{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 .tl .d0{animation-delay:0ms}.tl .d1{animation-delay:90ms}.tl .d2{animation-delay:160ms}.tl .d3{animation-delay:230ms}.tl .d4{animation-delay:300ms}.tl .d5{animation-delay:400ms}.tl .d6{animation-delay:500ms}.tl .d7{animation-delay:580ms}.tl .d8{animation-delay:660ms}
 @media (prefers-reduced-motion:reduce){.tl *{transition:none}.tl .fx{animation:none!important}}
+
+.tl-err{display:flex;flex-direction:column;gap:3px;padding:7px 10px;border:1px solid rgba(255,156,140,.45);border-left:3px solid #ff9c8c;border-radius:6px;background:rgba(40,10,14,.55);font:500 12px GmarketSans,'Geist Mono',sans-serif;color:#f2d4d0}
+.tl-err-h{display:flex;align-items:center;gap:8px}.tl-err-h b{font:700 12.5px 'Geist Mono',GmarketSans,monospace;color:#ff9c8c}
+.tl-err-h code{font:600 11px 'Geist Mono',monospace;color:#ffb8ac;border:1px solid rgba(255,156,140,.35);border-radius:3px;padding:0 5px}
+.tl-err p{margin:0;color:#e6c4c0}.tl-err .tl-key-btn{align-self:flex-start;margin-top:2px}
+.tl-test{margin:0;font:500 10.5px 'Geist Mono',GmarketSans,monospace;color:#6c769c;border-top:1px dashed rgba(108,118,156,.35);padding-top:4px}

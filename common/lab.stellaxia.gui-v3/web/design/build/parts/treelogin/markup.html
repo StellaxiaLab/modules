@@ -50,8 +50,13 @@
   </sc-if>
 
   <p class="tl-msg {{msgCls}}" aria-live="polite">{{msgT}}</p>
+  <sc-if value="{{hasErr}}" hint-placeholder-val="{{ false }}">
+    <div class="tl-err fx d0" role="alert"><div class="tl-err-h"><b>{{errTitle}}</b><span class="tl-fill"></span><code>{{errCode}}</code></div><p>{{errHint}}</p>
+      <sc-if value="{{errAct}}" hint-placeholder-val="{{ false }}"><button type="button" class="tl-key-btn" onClick="{{errRun}}">{{errActT}}</button></sc-if></div>
+  </sc-if>
   <sc-if value="{{help}}" hint-placeholder-val="{{ false }}"><p class="tl-help">{{helpT}}</p></sc-if>
   <span class="tl-fill"></span>
+  <p class="tl-test">{{testT}}</p>
   <div class="tl-keys"><b>{{L.k1}}</b><span>{{L.k1t}}</span><span class="tl-dim">·</span><b>{{L.k2}}</b><span>{{L.k2t}}</span><span class="tl-dim">·</span><b>{{L.k3}}</b><span>{{L.k3t}}</span><span class="tl-fill"></span><button type="button" class="tl-key-btn fx d7" onClick="{{cancel}}">{{L.cancel}}</button></div>
   <div class="tl-tabs fx d6"><span class="tl-tab fx d7">{{L.tab1}}</span><span class="tl-tab fx d8">{{L.tab2}}</span><span class="tl-tiny tl-r">{{footT}}</span></div>
 </div>

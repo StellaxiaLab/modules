@@ -3456,8 +3456,15 @@ class Component extends DCLogic {
   // 로그인 — 처음엔 로그인 씬이 맨 위(패널 '로그인'), 전환이 끝나면 걷힌다. TEST · 로그인부터 = 다시 메인 화면부터
   sceneCtx(e) {
     if (!e) return; if (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]')) return; e.preventDefault(); if (this.loginOn() || !this._cv) return;
-    const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top, T = this.ctxTarget(mx, my);
-    if (T) this.gf_popShow(T); else this.gf_popHide();
+    // 우클릭 = 속성 — 누른 자리에 객체(씬 노드 · 전역 틀 지도 노드)가 있으면 그 속성(할 일 목록), 없으면 뒤로(ESC 와 같다: 속성이 열려 있으면 닫기부터)
+    const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
+    let T = null; const mh = this.gf_mapHitAt(mx, my);
+    if (mh) { const mn = this.sceneMap().byId[mh.id], hid = mh.id; if (mn) T = this.ctxFor(mn, mh.x, mh.y, mh.r || 6, () => { const q = (this.gf_mapHitsNow() || []).find((z) => z.id === hid); return q ? [q.x, q.y] : null; }); }
+    else if (!this.gfHit(mx, my) && !this.gfOver(mx, my)) T = this.ctxTarget(mx, my);
+    if (T) { this.gf_popShow(T); return; }
+    if (this._q_pop) { this.gf_popHide(); return; }
+    if (this._navS || (this._ws && (this._ws.tgt || this._ws.e > 0))) return;   // 이동 · 워프 중엔 뒤로 없음
+    this.goBack();
   }
   // 우클릭 대상 → 지도 노드(전역 틀과 같은 노드: 창 · 이동이 그대로 통함) + 할 일 목록
   ctxTarget(mx, my) {
@@ -3471,6 +3478,9 @@ class Component extends DCLogic {
       track = () => { const h = this._hitById && this._hitById.get(id); return h && h.vis >= 0.5 ? [h.x, h.y] : null; };
       mn = typeof id === 'string' && id.startsWith('p:') ? MD.byId['P' + lid + ':' + id.slice(2)] : MD.byId['T' + id]; }
     if (!mn) return null;
+    return this.ctxFor(mn, x, y, r, track);
+  }
+  ctxFor(mn, x, y, r, track) {
     const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }, acts = [];
     const here = this.sceneCur && this.sceneCur() === mn;
     if (mn.kind !== 'root' && this.gf_needLogin(mn)) acts.push({ label: '로그인', desc: (this.gf_treeOf(mn) || mn).name + ' 세션 없음', run: () => this.gf_loginOpen(mn) });
@@ -3547,9 +3557,9 @@ class Component extends DCLogic {
       stopProp: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
       pmove: (e) => { if (!e || !this._cv) return; if (this._q_ctlDrag || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-minfly],[data-loginwrap]'))) { this._mouse = null; return; } const rc = this._cv.getBoundingClientRect(); this._mouse = { x: e.clientX - rc.left, y: e.clientY - rc.top }; },
       pleave: () => { this._mouse = null; },
-      pdown: (e) => { if (!e || !this._cv || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return; const rc = this._cv.getBoundingClientRect(); this.gfDown(e.clientX - rc.left, e.clientY - rc.top); },   // 지도 노드 — 길게 누르기를 잰다
+      pdown: (e) => { if (!e || e.button !== 0 || !this._cv || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return; const rc = this._cv.getBoundingClientRect(); this.gfDown(e.clientX - rc.left, e.clientY - rc.top); },   // 지도 노드 — 길게 누르기를 잰다
       tap: (e) => {
-        if (!e || !this._cv || !this._hits || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return;   // 제어기 창 안의 누르기는 창이 받는다
+        if (!e || e.button !== 0 || !this._cv || !this._hits || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return;   // 제어기 창 안의 누르기는 창이 받는다
         if (this._q_pop) { const rc0 = this._cv.getBoundingClientRect(); if (this.gf_popTap(e.clientX - rc0.left, e.clientY - rc0.top)) return; this.gf_popHide(); }   // 우클릭 할 일 누르기 · 다른 곳을 누르면 닫기
         const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
         if (this.gfHit(mx, my) || this._q_hold || this.gfOver(mx, my)) { this.gfTap(mx, my); return; }   // 전역 틀이 받는 자리만 (지도 노드를 누르고 있었으면 떼는 자리와 상관없이)
@@ -3563,7 +3573,9 @@ class Component extends DCLogic {
         }
         if (this._enter) return;   // 트리 → 리프 전환 중
         const best = this.pickHit(mx, my); if (!best) return;
-        if (best.id !== 0 && this._focus && this._focus.id === best.id && !this._focus.from) this.enterLeaf(best.id);
+        // 초점 맞은 항성을 한 번 더 누르면 들어가기 — 단 두 번 누름(0.32초 안에 두 번째)은 '초점 풀기'(뒤로 = ESC). 들어가기(와 로그인 창)는 두 번째 누름이 없다고 확인된 뒤에만
+        const EP = this._q_enterP; if (EP && performance.now() - EP.t < 320) { clearTimeout(EP.h); this._q_enterP = null; if (!this.goBack()) this.focusTo(0); return; }
+        if (best.id !== 0 && this._focus && this._focus.id === best.id && !this._focus.from) { const id = best.id; this._q_enterP = { t: performance.now(), h: setTimeout(() => { this._q_enterP = null; if (this._live && this._focus && this._focus.id === id && !this._enter && !this._lv) this.enterLeaf(id); }, 320) }; }
         else this.focusTo(best.id);
       }
     };
