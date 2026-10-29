@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 자원 관계</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#040614}
+.nc-nav{border-right:1px solid rgba(70,160,108,.32);padding:12px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;grid-row:1 / span 2}
+.nc-id{display:flex;flex-direction:column;gap:2px;padding:0 4px 10px;border-bottom:1px solid rgba(70,160,108,.22);margin-bottom:6px}
+.nc-id b{font-weight:700;color:#d0ff96}
+.nc-k{font:500 11px 'Geist Mono',GmarketSans,monospace;color:#709c80}
+.nc-gh{display:flex;align-items:center;gap:6px;margin:10px 0 4px;font:700 11px GmarketSans,'Geist Mono',sans-serif;color:#78e89c}
+.nc-hl{display:inline-block;width:12px;height:1px;background:rgba(70,160,108,.85);flex:none}
+.nc-hr{flex:1;height:1px;background:rgba(70,160,108,.4)}
+.nc-ni{display:flex;align-items:center;gap:6px;width:100%;padding:6px 8px;border:0;background:transparent;color:#9cc4a8;font:500 12px GmarketSans,'Geist Mono',sans-serif;text-align:left;cursor:pointer}
+.nc-ni:hover{background:rgba(70,170,110,.1);color:#d6f4de}
+.nc-ni.on{background:rgba(70,170,110,.2);color:#d0ff96;box-shadow:inset 2px 0 0 rgba(70,160,108,.95)}
+.nc-badge{margin-left:auto;font:600 10px 'Geist Mono',monospace;color:#ffd27a}
+.nc-main{overflow-y:auto;padding:14px 18px 10px}
+.nc-h{display:flex;align-items:center;gap:8px;margin:0 0 10px;font:700 13px GmarketSans,'Geist Mono',sans-serif;color:#78e89c}
+.nc-seg{display:inline-flex;border:1px solid rgba(70,160,108,.45)}
+.nc-seg button{border:0;background:transparent;color:#709c80;font:600 11px GmarketSans,'Geist Mono',sans-serif;padding:4px 10px;cursor:pointer}
+.nc-seg button.on{background:rgba(70,170,110,.25);color:#d0ff96}
+.nc-in{display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(56,128,88,.55);padding:3px 0 4px;flex:1;max-width:320px}
+.nc-in span{font:700 12px 'Geist Mono',monospace;color:#78e89c}
+.nc-in input{flex:1;min-width:0;border:0;outline:none;background:transparent;color:#d6f4de;font:500 12px 'Geist Mono',GmarketSans,monospace;padding:0}
+.nc-in input[readonly]{color:#709c80}
+.nc-in:focus-within{border-bottom-color:rgba(110,236,156,.9)}
+.nc-in-s{max-width:150px}
+.nc-foot{display:flex;align-items:center;gap:10px;padding:8px 18px;border-top:1px solid rgba(70,160,108,.32)}
+.nc-msg{font:500 11px GmarketSans,'Geist Mono',sans-serif;color:#96f0aa}
+.nc-btn{min-height:28px;padding:0 14px;border:1px solid rgba(70,160,108,.45);background:transparent;color:#d6f4de;font:600 12px GmarketSans,'Geist Mono',sans-serif;cursor:pointer}
+.nc-btn:hover:not([disabled]){border-color:rgba(110,236,156,.8);background:rgba(70,170,110,.16)}
+.nc-btn[disabled]{opacity:.4;cursor:default}
+.nc-pri{background:rgba(70,170,110,.22);border-color:rgba(110,236,156,.85);color:#d0ff96}
+.sh button:focus-visible,.nc input:focus-visible{outline:1px solid #d0ff96;outline-offset:2px}
+.nc-x{border:0;background:transparent;color:#709c80;cursor:pointer;font-size:14px;width:22px}
+.nc-x:hover{color:#ffb2a6}
+.sh button:focus-visible,.sh input:focus-visible{outline:1px solid #d0ff96;outline-offset:2px}
+.sh-sub{color:#5d8a6c;font-weight:500}
+.sh-res{font-family:'Geist Mono',GmarketSans,monospace}
+.sh-dot{color:#78e89c;margin-right:2px}
+.sh-desk{margin-top:auto;border:0;background:transparent;color:#709c80;font:500 11px GmarketSans,'Geist Mono',sans-serif;text-align:left;padding:8px 6px;cursor:pointer}
+.sh-desk:hover{color:#d0ff96}
+.sh-empty{margin:4px 0 10px;color:#709c80}
+.sh-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(70,160,108,.14);min-width:0;flex-wrap:wrap}
+.sh-type{font:600 10px GmarketSans,'Geist Mono',sans-serif;padding:0 5px;border:1px solid;flex:none}
+.sh-type.nd{color:#96f0aa;border-color:rgba(110,236,156,.55)}
+.sh-type.us{color:#9ab8ff;border-color:rgba(130,160,255,.5)}
+.sh-type.sc{color:#ffd27a;border-color:rgba(255,210,122,.55)}
+.sh-type.tr{color:#d0ff96;border-color:rgba(208,255,150,.6)}
+.sh-type.ex{color:#ffb2a6;border-color:rgba(255,178,166,.55)}
+.sh-who{color:#d0ff96;font-weight:700;min-width:64px}
+.sh-res-n{font-family:'Geist Mono',monospace}
+.sh-perm{border:1px solid rgba(70,160,108,.45);padding:0 6px;color:#d6f4de}
+.sh-via{flex:1;min-width:0}
+.sh-state{flex:1;min-width:0}
+.sh-state.on{color:#96f0aa}
+.sh-compose{margin:12px 0 4px;padding:10px 12px;border:1px solid rgba(70,160,108,.32);display:flex;flex-direction:column;gap:8px}
+.sh-offer .sh-compose{margin:4px 0 8px 46px}
+.sh-c-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.sh-lab{font:600 11px GmarketSans,'Geist Mono',sans-serif;color:#78e89c;min-width:52px}
+.sh-who-in{position:relative;flex:1;min-width:0;max-width:420px}
+.sh-who-in .nc-in{max-width:none}
+.sh-cands{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:2;background:#060a1d;border:1px solid rgba(70,160,108,.5);display:flex;flex-direction:column}
+.sh-cand{display:flex;align-items:center;gap:8px;border:0;background:transparent;color:#d6f4de;font:500 12px GmarketSans,'Geist Mono',sans-serif;text-align:left;padding:5px 8px;cursor:pointer}
+.sh-cand:hover,.sh-cand.on{background:rgba(70,170,110,.16)}
+.sh-cand .nc-k{margin-left:auto}
+.sh-ops{font-size:10px}
+.sh-link{padding:2px 0 6px;border-bottom:1px solid rgba(70,160,108,.14)}
+.sh-link .sh-row{border-bottom:0}
+.sh-sum{padding-left:46px}
+.sh-picks{display:flex;flex-wrap:wrap;gap:6px}
+.sh-pick{border:1px solid rgba(70,160,108,.4);background:transparent;color:#9cc4a8;font:500 11px 'Geist Mono',GmarketSans,monospace;padding:2px 8px;cursor:pointer}
+.sh-pick.on{background:rgba(70,170,110,.25);color:#d0ff96;border-color:rgba(110,236,156,.85)}
+.sh-h2{margin-top:18px}
+.sh-rn{border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(110,236,156,.45);text-underline-offset:3px}
+.sh-rn:hover{color:#d0ff96;text-decoration-color:#d0ff96}
+</style>
+</helmet>
+<div class="sh" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; display: grid; grid-template-columns: 190px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; background: #040614; color: #d6f4de; font: 500 12px GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif;">
+  <nav aria-label="자원 창 분류" class="nc-nav">
+    <div class="nc-id"><b>{{name}}</b><span class="nc-k">{{kind}} · {{cluster}}</span></div>
+    <div class="nc-gh"><span class="nc-hl"></span>자원<span class="nc-hr"></span></div>
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+      <button type="button" class="nc-ni {{t.cls}}" aria-current="{{t.cur}}" onClick="{{t.pick}}">{{t.name}}<span class="nc-badge sh-sub">{{t.n}}</span></button>
+    </sc-for>
+    <sc-if value="{{isShare}}" hint-placeholder-val="{{ true }}">
+      <div class="nc-gh"><span class="nc-hl"></span>공유한 자원<span class="nc-hr"></span></div>
+      <sc-for list="{{resItems}}" as="r" hint-placeholder-count="3">
+        <button type="button" class="nc-ni sh-res {{r.cls}}" onClick="{{r.pick}}"><span class="sh-dot">◍</span>{{r.name}}<span class="nc-badge">{{r.n}}</span></button>
+      </sc-for>
+    </sc-if>
+    <button type="button" class="sh-desk" onClick="{{openDesk}}">노드 데스크톱 ›</button>
+  </nav>
+  <main class="nc-main">
+    <sc-if value="{{isShare}}" hint-placeholder-val="{{ true }}">
+      <h2 class="nc-h"><span class="nc-hl"></span><button type="button" class="sh-rn" title="자원 상태" onClick="{{openRes}}">{{res}}</button> 공유 설정<span class="nc-hr"></span><span class="nc-k">{{apiG}}</span></h2>
+      <sc-if value="{{noRes}}" hint-placeholder-val="{{ false }}"><p class="sh-empty">공유한 자원 없음 — 노드 데스크톱에서 공유</p></sc-if>
+      <sc-if value="{{noGrants}}" hint-placeholder-val="{{ false }}"><p class="sh-empty">공유 대상 없음</p></sc-if>
+      <sc-for list="{{grants}}" as="g" hint-placeholder-count="2">
+        <div class="sh-row">
+          <span class="sh-type {{g.typeCls}}">{{g.type}}</span>
+          <span class="sh-who">{{g.who}}</span>
+          <span class="sh-perm" title="{{g.ops}}">{{g.perm}}</span>
+          <span class="nc-k sh-via">{{g.ttl}}</span>
+          <button type="button" class="nc-x" aria-label="{{g.who}} 공유 해제" onClick="{{g.del}}">×</button>
+        </div>
+      </sc-for>
+      <sc-if value="{{hasRes}}" hint-placeholder-val="{{ true }}"><div class="sh-compose">
+        <div class="sh-c-row"><span class="sh-lab">대상</span><span class="nc-seg"><sc-for list="{{whoOpts}}" as="o" hint-placeholder-count="4"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span class="nc-k">{{whoNote}}</span></div>
+        <sc-if value="{{hasPicks}}" hint-placeholder-val="{{ false }}"><div class="sh-c-row"><span class="sh-lab"></span><span class="sh-picks"><sc-for list="{{picks}}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{p.on}}" class="sh-pick {{p.cls}}" onClick="{{p.pick}}">{{p.name}}</button></sc-for></span></div></sc-if>
+        <div class="sh-c-row"><span class="sh-lab">권한</span><span class="nc-seg"><sc-for list="{{permOpts}}" as="o" hint-placeholder-count="5"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span class="nc-k sh-ops">{{permOps}}</span></div>
+        <div class="sh-c-row"><span class="sh-lab">기한</span><span class="nc-seg"><sc-for list="{{ttlOpts}}" as="o" hint-placeholder-count="4"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span style="flex: 1;"></span><button type="button" class="nc-btn nc-pri" onClick="{{give}}">공유</button></div>
+      </div></sc-if>
+    </sc-if>
+    <sc-if value="{{isReg}}" hint-placeholder-val="{{ false }}">
+      <h2 class="nc-h"><span class="nc-hl"></span>등록한 자원<span class="nc-hr"></span><span class="nc-k">{{apiB}}</span></h2>
+      <sc-if value="{{noRegs}}" hint-placeholder-val="{{ false }}"><p class="sh-empty">등록한 자원 없음</p></sc-if>
+      <sc-for list="{{regs}}" as="o" hint-placeholder-count="2">
+        <div class="sh-row"><span class="sh-type {{o.srcCls}}">{{o.src}}</span><button type="button" class="sh-rn sh-res-n" title="자원 상태" onClick="{{o.open}}">{{o.res}}</button><span class="nc-k">{{o.from}}</span><span class="nc-k sh-state on">→ {{o.target}} · {{o.qos}}</span><button type="button" class="nc-btn" onClick="{{o.cut}}">해제</button></div>
+      </sc-for>
+      <h2 class="nc-h sh-h2"><span class="nc-hl"></span>등록 가능 자원<span class="nc-hr"></span><span class="nc-k">{{apiV}}</span></h2>
+      <sc-if value="{{noAvail}}" hint-placeholder-val="{{ false }}"><p class="sh-empty">등록 가능 자원 없음</p></sc-if>
+      <sc-for list="{{avail}}" as="o" hint-placeholder-count="3">
+        <div class="sh-offer">
+          <div class="sh-row"><span class="sh-type {{o.srcCls}}">{{o.src}}</span><button type="button" class="sh-rn sh-res-n" title="자원 상태" onClick="{{o.open}}">{{o.res}}</button><span class="nc-k">{{o.from}}</span><span class="sh-perm">{{o.perm}}</span><span class="nc-k sh-state">{{o.state}}</span>
+            <sc-if value="{{o.canReg}}" hint-placeholder-val="{{ true }}"><button type="button" class="nc-btn" onClick="{{o.reg}}">등록</button></sc-if></div>
+          <sc-if value="{{o.editing}}" hint-placeholder-val="{{ false }}"><div class="sh-compose">
+            <div class="sh-c-row"><span class="sh-lab">수신 위치</span><span class="nc-seg"><sc-for list="{{o.targets}}" as="t" hint-placeholder-count="3"><button type="button" aria-pressed="{{t.on}}" class="{{t.cls}}" onClick="{{t.pick}}">{{t.name}}</button></sc-for></span></div>
+            <div class="sh-c-row"><span class="sh-lab">품질</span><span class="nc-seg"><sc-for list="{{o.qosOpts}}" as="q" hint-placeholder-count="4"><button type="button" aria-pressed="{{q.on}}" class="{{q.cls}}" onClick="{{q.pick}}">{{q.name}}</button></sc-for></span><span style="flex: 1;"></span><button type="button" class="nc-btn" onClick="{{o.cancel}}">취소</button><button type="button" class="nc-btn nc-pri" onClick="{{o.ok}}">확인</button></div>
+          </div></sc-if>
+        </div>
+      </sc-for>
+    </sc-if>
+  </main>
+  <footer class="nc-foot">
+    <span class="nc-k">{{dirtyT}}</span><span style="flex: 1;"></span><span class="nc-msg" aria-live="polite">{{msg}}</span>
+    <button type="button" class="nc-btn" onClick="{{revert}}" disabled="{{clean}}">되돌리기</button>
+    <button type="button" class="nc-btn nc-pri" onClick="{{apply}}" disabled="{{clean}}">적용</button>
+  </footer>
+</div>
+<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"02·b"},"nodeKind":{"editor":"enum","options":["트리","리프","리소스"],"default":"리프"},"nodeKey":{"editor":"text","default":""},"resList":{"editor":"text","default":"ssh:22,tty0,gpio"},"focusRes":{"editor":"text","default":""},"peers":{"editor":null},"onOpen":{"editor":null},"winW":{"editor":null},"winH":{"editor":null},"$preview":{"width":860,"height":600}}'>
+// 자원 창 — 리프의 자원을 소속 클러스터 안에서 주고받는다. 분류 둘:
+//   자원 공유 — 노드 데스크톱에서 공유한 자원(캡슐화 · 열기는 노드 안의 일)마다 어디에 줄지: 전체(소속 클러스터 전체) · Tree(부모) · Leaf(클러스터의 리프) · 계정
+//   외부 자원 등록 — 이 노드가 볼 수 있는 자원 중 골라 등록해 쓴다. 등록 가능 = 이 노드를 지명한 것 · 전체 공유된 것 · Tree 가 클러스터 밖에서 가져온 것(Tree 가 지명 · 전체)
+//     등록한 자원 = 수신 위치 · 품질을 정해 이은 것
+//   자원 이름을 누르면 자원 상태 창(onOpen('res', '이름|출처|제공 노드'))
+//   자원은 같은 클러스터 안에서만 주고받는다. 클러스터 밖과는 Tree 가 받고 준다(Tree 의 자원 창 — 다음)
+//   Terra 대응 (트리 Master):
+//     공유 — terra.master.svi.grants.post { subject_type: node|user, subject_id, resource_id, operations[], ttl_seconds? } · grants.delete
+//       전체 · Leaf · Tree → 노드 주체 허가(흐름 허용 목록, SVI 계약 §12.10). 전체는 Terra 에 클러스터 주체가 없어 지금 있는 노드로 펼친다(이후 추가 노드 제외)
+//       계정 → 사용자 주체 허가
+//     등록 가능 — terra.master.svi.grants.list (subject_type=node · subject_id=이 노드) + 카탈로그
+//     등록 — terra.master.svi.bindings.post { source_resource_id/endpoint_id, target_resource_id/endpoint_id, qos_profile } · bindings.delete
+//     클러스터 밖 자원(외부) — Terra 코어에 아직 길이 없다(SVI 허가 · 바인딩은 클러스터 안) — 시안
+//   시안 — 바뀐 것은 창 안에서만, 적용하면 기준이 바뀐다
+class Component extends DCLogic {
+  constructor(props) { super(props); try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} this.state = { tab: 'share', res: null, base: null, cur: null, draft: { who: '전체', picks: [], perm: '읽기', ttl: '없음', target: '', qos: '신뢰 순서' }, msg: '', open: null }; }
+  help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }   // 설정 › 기타 › 도움말
+  PERMS() { return { 보기: ['discover', 'inspect'], 읽기: ['discover', 'inspect', 'read', 'list', 'watch', 'subscribe'], 쓰기: ['discover', 'inspect', 'read', 'list', 'watch', 'subscribe', 'write'], 제어: ['discover', 'inspect', 'read', 'list', 'watch', 'subscribe', 'write', 'invoke'], '연결 원천': ['discover', 'inspect', 'bind.source'] }; }
+  TTL() { return { 없음: 0, '1시간': 3600, '1일': 86400, '7일': 604800 }; }
+  QOS() { return { '실시간 최신': 'realtime_latest', '실시간 순서': 'realtime_ordered', '신뢰 순서': 'reliable_ordered', '대용량 재개': 'bulk_resumable' }; }
+  ACCTS() { return ['admin', 'ops', 'viewer']; }
+  // 공유한 자원 — 노드 데스크톱에서 공유로 내놓은 것(시안: 위성 이름). 실제로는 Daemon SVI 선언
+  resList() { const r = this.props.resList; return Array.isArray(r) ? r : typeof r === 'string' && r ? r.split(',') : ['ssh:22', 'tty0', 'gpio']; }
+  peers() { const p = this.props.peers; if (Array.isArray(p) && p.length) return p;
+    return [['01', '트리', ''], ['02', '트리', ''], ['01·a', '리프', '01'], ['02·a', '리프', '02'], ['02·b', '리프', '02'], ['02·c', '리프', '02'], ['03·b', '리프', '03']].map(([name, kind, parent]) => ({ id: name, name, kind, parent })); }
+  sinks() { const k = this.props.sinkList; return Array.isArray(k) && k.length ? k : ['store/data', 'display/sink', 'log/in']; }
+  me() { return this.props.nodeName || '02·b'; }
+  // 소속 클러스터 — 부모 Tree 와 그 아래 리프
+  par() { const m = this.peers().find((p) => p.name === this.me()); return (m && m.parent) || this.props.parentName || String(this.me()).split('·')[0]; }
+  leaves() { const pa = this.par(); return this.peers().filter((p) => p.name !== this.me() && p.kind === '리프' && p.parent === pa); }
+  clusterN() { return this.leaves().length + 1; }
+  // 시안 데이터 — 노드 이름으로 정해지는 예시
+  seed() {
+    const L = this.leaves(), R = this.resList(), pa = this.par(), lf = (i) => (L.length ? L[i % L.length].name : pa);
+    const shares = {}; R.forEach((r, i) => { shares[r] = i === 0 ? [{ who: pa, type: 'Tree', perm: '읽기', ttl: '없음' }, { who: 'ops', type: '계정', perm: '제어', ttl: '1일' }] : i === 1 ? [{ who: '클러스터 전체', type: '전체', perm: '연결 원천', ttl: '없음' }] : []; });
+    const avail = [{ res: 'camera/frames', from: lf(0), src: '지명', perm: '연결 원천' }, { res: 'sensor/stats', from: lf(1), src: '전체', perm: '읽기', bound: 'store/data', qos: '신뢰 순서' },
+      { res: 'gpu/infer', from: pa, src: '외부', origin: '클러스터 03', perm: '연결 원천' }, { res: 'log/archive', from: pa, src: '외부', origin: '클러스터 01', perm: '읽기' }];
+    return { shares, avail: avail.map((a) => Object.assign({ bound: '', qos: '' }, a)) };
+  }
+  V() { const nk = (this.props.nodeKey || '') + '|' + this.me(); if (this._vk !== nk) { this._vk = nk; this.state.cur = null; this.state.res = null; this.state.open = null; }   // 다른 노드로 열리면 처음부터
+    if (!this.state.cur) { const s = this.seed(); this.state.cur = JSON.parse(JSON.stringify(s)); this.state.base = JSON.parse(JSON.stringify(s)); } return this.state.cur; }
+  set(fn) { const c = JSON.parse(JSON.stringify(this.V())); fn(c); this.setState({ cur: c, msg: '' }); }
+  dirtyN() { const a = this.V(), b = this.state.base; let n = 0;
+    for (const r of Object.keys(a.shares)) if (JSON.stringify(a.shares[r]) !== JSON.stringify(b.shares[r] || [])) n++;
+    a.avail.forEach((o, i) => { if (JSON.stringify(o) !== JSON.stringify(b.avail[i])) n++; });
+    return n; }
+  giveNow(res) {
+    const D = this.state.draft, pa = this.par(), row = (who, type) => ({ who, type, perm: D.perm, ttl: D.ttl });
+    const list = D.who === '전체' ? [row('클러스터 전체', '전체')] : D.who === 'Tree' ? [row(pa, 'Tree')] : D.picks.map((w) => row(w, D.who));
+    if (!list.length) { this.setState({ msg: (D.who === '계정' ? '계정' : 'Leaf') + ' 선택 필요' }); return; }
+    this.set((v) => { const g = v.shares[res] || (v.shares[res] = []); for (const x of list) { const i = g.findIndex((y) => y.who === x.who && y.type === x.type); if (i >= 0) g[i] = x; else g.push(x); } });
+    this.setState({ draft: Object.assign({}, D, { picks: [] }), msg: D.who === '전체' && this.help() ? '전체 · 지금 ' + this.clusterN() + '곳 (이후 추가 노드 제외)' : '' });
+  }
+  renderVals() {
+    const F = this.props.focusRes || ''; if (F !== this._fseen) { this._fseen = F; if (F) { this.state.res = F; this.state.tab = 'share'; } }   // 위성에서 열었으면 그 자원을 고른 채로
+    const S = this.state, v = this.V(), R = this.resList(), res = S.res && R.includes(S.res) ? S.res : R[0] || '', D = S.draft, PM = this.PERMS(), n = this.dirtyN(), H = this.help();
+    const sg = (opts, cur, fn) => opts.map((o) => ({ name: o, cls: cur === o ? 'on' : '', on: cur === o ? 'true' : 'false', pick: () => fn(o) }));
+    const TC = { 전체: 'sc', Tree: 'tr', Leaf: 'nd', 계정: 'us', 지명: 'nd', 외부: 'ex' };
+    const G = v.shares[res] || [], regs = v.avail.map((o, j) => [o, j]).filter(([o]) => o.bound), av = v.avail.map((o, j) => [o, j]).filter(([o]) => !o.bound);
+    const fromT = (o) => (o.src === '외부' ? 'Tree ← ' + o.origin : o.from);
+    const openRs = (name, src, from) => () => (this.props.onOpen ? this.props.onOpen('res', name + '|' + (src || '') + '|' + (from || '')) : this.setState({ msg: name + ' 상태 창 (시안)' }));
+    const pickOpts = D.who === 'Leaf' ? this.leaves().map((p) => p.name) : D.who === '계정' ? this.ACCTS() : [];
+    return {
+      rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.me(), kind: this.props.nodeKind || '리프', cluster: '클러스터 ' + this.par(),
+      tabs: [['share', '자원 공유', R.length], ['reg', '외부 자원 등록', regs.length]].map(([id, nm, c]) => ({ name: nm, n: c ? '' + c : '', cls: S.tab === id ? 'on' : '', cur: S.tab === id ? 'page' : 'false', pick: () => this.setState({ tab: id, open: null }) })),
+      isShare: S.tab === 'share', isReg: S.tab === 'reg',
+      apiG: H ? 'svi.grants' : '', apiB: H ? 'svi.bindings' : '', apiV: H ? '지명 · 전체 · Tree 외부' : '',
+      resItems: R.map((r) => ({ name: r, n: (v.shares[r] || []).length ? '' + (v.shares[r] || []).length : '', cls: r === res ? 'on' : '', pick: () => this.setState({ res: r }) })),
+      openRes: openRs(res, '', ''), res, hasRes: R.length > 0, noRes: R.length === 0, noGrants: R.length > 0 && G.length === 0,
+      grants: G.map((g, j) => ({ who: g.who, type: g.type, typeCls: TC[g.type] || 'nd', perm: g.perm, ops: PM[g.perm].join(' · '), ttl: g.ttl === '없음' ? '기한 없음' : g.ttl,
+        del: () => this.set((c) => { c.shares[res] = (c.shares[res] || []).filter((x, q) => q !== j); }) })),
+      whoOpts: sg(['전체', 'Tree', 'Leaf', '계정'], D.who, (o) => this.setState({ draft: Object.assign({}, D, { who: o, picks: [] }) })),
+      whoNote: D.who === '전체' ? (H ? '소속 클러스터 전체 · ' + this.clusterN() + '곳' : '소속 클러스터') : D.who === 'Tree' ? this.par() + (H ? ' — 클러스터 밖은 Tree 가 전달' : '') : '',
+      hasPicks: pickOpts.length > 0,
+      picks: pickOpts.map((w) => { const on = D.picks.includes(w); return { name: w, on: on ? 'true' : 'false', cls: on ? 'on' : '', pick: () => this.setState({ draft: Object.assign({}, D, { picks: on ? D.picks.filter((x) => x !== w) : D.picks.concat([w]) }) }) }; }),
+      permOpts: sg(Object.keys(PM), D.perm, (o) => this.setState({ draft: Object.assign({}, D, { perm: o }) })), permOps: H ? PM[D.perm].join(' · ') : '',
+      ttlOpts: sg(Object.keys(this.TTL()), D.ttl, (o) => this.setState({ draft: Object.assign({}, D, { ttl: o }) })),
+      give: () => this.giveNow(res),
+      regs: regs.map(([o, j]) => ({ open: openRs(o.res, o.src, o.from), res: o.res, src: o.src, srcCls: TC[o.src] || 'sc', from: fromT(o), target: o.bound, qos: o.qos, cut: () => this.set((c) => { c.avail[j].bound = ''; c.avail[j].qos = ''; }) })),
+      noRegs: regs.length === 0,
+      avail: av.map(([o, j]) => { const editing = S.open === 'reg' + j, bindable = o.perm === '연결 원천';
+        return { open: openRs(o.res, o.src, o.from), res: o.res, src: o.src, srcCls: TC[o.src] || 'sc', from: fromT(o), perm: o.perm, state: bindable ? '' : H ? '읽기 — 연결 원천 권한이면 이어 받기' : '읽기', canReg: !editing, editing,
+          reg: () => this.setState({ open: 'reg' + j, draft: Object.assign({}, D, { target: this.sinks()[0] }) }),
+          targets: sg(this.sinks(), D.target, (t) => this.setState({ draft: Object.assign({}, D, { target: t }) })), qosOpts: sg(Object.keys(this.QOS()), D.qos, (q) => this.setState({ draft: Object.assign({}, D, { qos: q }) })),
+          ok: () => { this.set((c) => { c.avail[j].bound = D.target; c.avail[j].qos = D.qos; }); this.setState({ open: null }); }, cancel: () => this.setState({ open: null }) }; }),
+      noAvail: av.length === 0,
+      dirtyT: n ? '변경 ' + n : '변경 없음', clean: n ? null : 'disabled', msg: S.msg,
+      apply: () => this.setState({ base: JSON.parse(JSON.stringify(v)), msg: '적용 ' + n + '건' + (H ? ' (시안 · svi.grants · svi.bindings)' : '') }),
+      revert: () => this.setState({ cur: JSON.parse(JSON.stringify(S.base)), msg: '되돌림', open: null }),
+      openDesk: () => (this.props.onOpen ? this.props.onOpen('ctl') : this.setState({ msg: '노드 데스크톱을 엽니다 (시안)' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

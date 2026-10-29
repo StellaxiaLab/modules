@@ -1,0 +1,62 @@
+<div class="sh" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; display: grid; grid-template-columns: 190px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; background: #040614; color: #d6f4de; font: 500 12px GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif;">
+  <nav aria-label="자원 창 분류" class="nc-nav">
+    <div class="nc-id"><b>{{name}}</b><span class="nc-k">{{kind}} · {{cluster}}</span></div>
+    <div class="nc-gh"><span class="nc-hl"></span>자원<span class="nc-hr"></span></div>
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+      <button type="button" class="nc-ni {{t.cls}}" aria-current="{{t.cur}}" onClick="{{t.pick}}">{{t.name}}<span class="nc-badge sh-sub">{{t.n}}</span></button>
+    </sc-for>
+    <sc-if value="{{isShare}}" hint-placeholder-val="{{ true }}">
+      <div class="nc-gh"><span class="nc-hl"></span>공유한 자원<span class="nc-hr"></span></div>
+      <sc-for list="{{resItems}}" as="r" hint-placeholder-count="3">
+        <button type="button" class="nc-ni sh-res {{r.cls}}" onClick="{{r.pick}}"><span class="sh-dot">◍</span>{{r.name}}<span class="nc-badge">{{r.n}}</span></button>
+      </sc-for>
+    </sc-if>
+    <button type="button" class="sh-desk" onClick="{{openDesk}}">노드 데스크톱 ›</button>
+  </nav>
+  <main class="nc-main">
+    <sc-if value="{{isShare}}" hint-placeholder-val="{{ true }}">
+      <h2 class="nc-h"><span class="nc-hl"></span><button type="button" class="sh-rn" title="자원 상태" onClick="{{openRes}}">{{res}}</button> 공유 설정<span class="nc-hr"></span><span class="nc-k">{{apiG}}</span></h2>
+      <sc-if value="{{noRes}}" hint-placeholder-val="{{ false }}"><p class="sh-empty">공유한 자원 없음 — 노드 데스크톱에서 공유</p></sc-if>
+      <sc-if value="{{noGrants}}" hint-placeholder-val="{{ false }}"><p class="sh-empty">공유 대상 없음</p></sc-if>
+      <sc-for list="{{grants}}" as="g" hint-placeholder-count="2">
+        <div class="sh-row">
+          <span class="sh-type {{g.typeCls}}">{{g.type}}</span>
+          <span class="sh-who">{{g.who}}</span>
+          <span class="sh-perm" title="{{g.ops}}">{{g.perm}}</span>
+          <span class="nc-k sh-via">{{g.ttl}}</span>
+          <button type="button" class="nc-x" aria-label="{{g.who}} 공유 해제" onClick="{{g.del}}">×</button>
+        </div>
+      </sc-for>
+      <sc-if value="{{hasRes}}" hint-placeholder-val="{{ true }}"><div class="sh-compose">
+        <div class="sh-c-row"><span class="sh-lab">대상</span><span class="nc-seg"><sc-for list="{{whoOpts}}" as="o" hint-placeholder-count="4"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span class="nc-k">{{whoNote}}</span></div>
+        <sc-if value="{{hasPicks}}" hint-placeholder-val="{{ false }}"><div class="sh-c-row"><span class="sh-lab"></span><span class="sh-picks"><sc-for list="{{picks}}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{p.on}}" class="sh-pick {{p.cls}}" onClick="{{p.pick}}">{{p.name}}</button></sc-for></span></div></sc-if>
+        <div class="sh-c-row"><span class="sh-lab">권한</span><span class="nc-seg"><sc-for list="{{permOpts}}" as="o" hint-placeholder-count="5"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span class="nc-k sh-ops">{{permOps}}</span></div>
+        <div class="sh-c-row"><span class="sh-lab">기한</span><span class="nc-seg"><sc-for list="{{ttlOpts}}" as="o" hint-placeholder-count="4"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span style="flex: 1;"></span><button type="button" class="nc-btn nc-pri" onClick="{{give}}">공유</button></div>
+      </div></sc-if>
+    </sc-if>
+    <sc-if value="{{isReg}}" hint-placeholder-val="{{ false }}">
+      <h2 class="nc-h"><span class="nc-hl"></span>등록한 자원<span class="nc-hr"></span><span class="nc-k">{{apiB}}</span></h2>
+      <sc-if value="{{noRegs}}" hint-placeholder-val="{{ false }}"><p class="sh-empty">등록한 자원 없음</p></sc-if>
+      <sc-for list="{{regs}}" as="o" hint-placeholder-count="2">
+        <div class="sh-row"><span class="sh-type {{o.srcCls}}">{{o.src}}</span><button type="button" class="sh-rn sh-res-n" title="자원 상태" onClick="{{o.open}}">{{o.res}}</button><span class="nc-k">{{o.from}}</span><span class="nc-k sh-state on">→ {{o.target}} · {{o.qos}}</span><button type="button" class="nc-btn" onClick="{{o.cut}}">해제</button></div>
+      </sc-for>
+      <h2 class="nc-h sh-h2"><span class="nc-hl"></span>등록 가능 자원<span class="nc-hr"></span><span class="nc-k">{{apiV}}</span></h2>
+      <sc-if value="{{noAvail}}" hint-placeholder-val="{{ false }}"><p class="sh-empty">등록 가능 자원 없음</p></sc-if>
+      <sc-for list="{{avail}}" as="o" hint-placeholder-count="3">
+        <div class="sh-offer">
+          <div class="sh-row"><span class="sh-type {{o.srcCls}}">{{o.src}}</span><button type="button" class="sh-rn sh-res-n" title="자원 상태" onClick="{{o.open}}">{{o.res}}</button><span class="nc-k">{{o.from}}</span><span class="sh-perm">{{o.perm}}</span><span class="nc-k sh-state">{{o.state}}</span>
+            <sc-if value="{{o.canReg}}" hint-placeholder-val="{{ true }}"><button type="button" class="nc-btn" onClick="{{o.reg}}">등록</button></sc-if></div>
+          <sc-if value="{{o.editing}}" hint-placeholder-val="{{ false }}"><div class="sh-compose">
+            <div class="sh-c-row"><span class="sh-lab">수신 위치</span><span class="nc-seg"><sc-for list="{{o.targets}}" as="t" hint-placeholder-count="3"><button type="button" aria-pressed="{{t.on}}" class="{{t.cls}}" onClick="{{t.pick}}">{{t.name}}</button></sc-for></span></div>
+            <div class="sh-c-row"><span class="sh-lab">품질</span><span class="nc-seg"><sc-for list="{{o.qosOpts}}" as="q" hint-placeholder-count="4"><button type="button" aria-pressed="{{q.on}}" class="{{q.cls}}" onClick="{{q.pick}}">{{q.name}}</button></sc-for></span><span style="flex: 1;"></span><button type="button" class="nc-btn" onClick="{{o.cancel}}">취소</button><button type="button" class="nc-btn nc-pri" onClick="{{o.ok}}">확인</button></div>
+          </div></sc-if>
+        </div>
+      </sc-for>
+    </sc-if>
+  </main>
+  <footer class="nc-foot">
+    <span class="nc-k">{{dirtyT}}</span><span style="flex: 1;"></span><span class="nc-msg" aria-live="polite">{{msg}}</span>
+    <button type="button" class="nc-btn" onClick="{{revert}}" disabled="{{clean}}">되돌리기</button>
+    <button type="button" class="nc-btn nc-pri" onClick="{{apply}}" disabled="{{clean}}">적용</button>
+  </footer>
+</div>

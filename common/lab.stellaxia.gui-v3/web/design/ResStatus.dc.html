@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 자원 상태</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+::selection{background:#e6eaf7;color:#070b1c}
+@font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
+body{margin:0;background:transparent}
+.ns{scrollbar-width:thin;scrollbar-color:rgba(70,160,108,.4) transparent;text-shadow:0 0 3px #02030a,0 0 6px rgba(2,3,10,.8)}
+.ns-row{display:flex;align-items:center;gap:8px;min-height:20px;white-space:nowrap}
+.ns-p{color:#78e89c;font-weight:700}
+.ns-k{color:#709c80}
+.ns-v{color:#d6f4de;font-weight:700}
+.ns-h{display:flex;align-items:center;gap:8px;margin:12px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:#78e89c}
+.ns-hl{display:inline-block;width:14px;height:1px;background:rgba(70,160,108,.85);flex:none}
+.ns-hr{flex:1;height:1px;background:rgba(70,160,108,.45)}
+.ns-grid{display:grid;grid-template-columns:52px minmax(0,1fr) 52px minmax(0,1fr);gap:2px 10px}
+.ns-bar{display:grid;grid-template-columns:40px minmax(0,1fr) 44px 150px;align-items:center;gap:10px;min-height:22px;white-space:nowrap}
+.ns-track{position:relative;height:9px;border:1px solid rgba(70,160,108,.6)}
+.ns-fill{position:absolute;left:1px;top:1px;bottom:1px;max-width:calc(100% - 2px);transition:width .6s ease}
+.ns-tick{position:absolute;top:-3px;bottom:-3px;width:1px;background:rgba(255,190,150,.55)}
+.ns-spark{color:#60e28c;letter-spacing:-1px;overflow:hidden}
+.ns-hc{display:grid;grid-template-columns:14px 92px minmax(0,1fr) 54px 50px;align-items:center;gap:10px;min-height:21px;white-space:nowrap}
+.ns-lat{position:relative;height:1px;background:rgba(70,160,108,.3)}
+.ns-lat span{position:absolute;left:0;top:-1px;height:3px;transition:width .6s ease}
+.ns-ev{display:grid;grid-template-columns:64px 40px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap;overflow:hidden}
+.ns-cur{display:inline-block;width:7px;height:13px;background:#96f0aa;animation:nsb 1.06s steps(1) infinite}
+@keyframes nsb{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.ns-cur{animation:none}.ns-fill,.ns-lat span{transition:none}}
+.rs-tag{font:600 10px GmarketSans,'Geist Mono',sans-serif;padding:0 5px;border:1px solid;color:#d0ff96;border-color:rgba(208,255,150,.6)}
+.rs-tag.nd{color:#96f0aa;border-color:rgba(110,236,156,.55)}
+.rs-tag.sc{color:#ffd27a;border-color:rgba(255,210,122,.55)}
+.rs-tag.ex{color:#ffb2a6;border-color:rgba(255,178,166,.55)}
+.rs-btn{border:1px solid rgba(70,160,108,.5);background:rgba(4,6,20,.6);color:#d6f4de;font:600 11px GmarketSans,'Geist Mono',sans-serif;padding:1px 8px;cursor:pointer}
+.rs-btn:hover{border-color:rgba(110,236,156,.85)}
+.rs-seg{display:inline-flex;border:1px solid rgba(70,160,108,.45);margin:0 0 6px;background:rgba(4,6,20,.5)}
+.rs-seg button{border:0;background:transparent;color:#709c80;font:600 11px GmarketSans,'Geist Mono',sans-serif;padding:2px 10px;cursor:pointer}
+.rs-seg button.on{background:rgba(70,170,110,.25);color:#d0ff96}
+.rs-now{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.rs-now b{font:700 20px 'Geist Mono',monospace;color:#d0ff96}
+.rs-graph{display:flex;align-items:flex-end;gap:1px;height:72px;margin-top:4px;border-bottom:1px solid rgba(70,160,108,.6);border-left:1px solid rgba(70,160,108,.3)}
+.rs-graph span{flex:1;min-width:1px;opacity:.85;transition:height .4s ease}
+.rs-axis{display:flex;justify-content:space-between;font-size:10px}
+.rs-ep{display:grid;grid-template-columns:minmax(90px,auto) 110px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap;overflow:hidden}
+.rs button:focus-visible{outline:1px solid #d0ff96;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.rs-graph span{transition:none}}
+</style>
+</helmet>
+<div class="ns rs" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
+  <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>resource</span><b class="ns-v">{{name}}</b><span class="ns-k">{{type}}</span><span style="flex: 1;"></span><span style="color: {{stCol}};">● {{stT}}</span></div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>상태<span class="ns-hr"></span><span class="ns-k">{{apiR}}</span></h3>
+  <div class="ns-grid">
+    <span class="ns-k">제공</span><span class="ns-v">{{node}}</span><span class="ns-k">출처</span><span><span class="rs-tag {{srcCls}}">{{src}}</span></span>
+    <span class="ns-k">승인</span><span>{{approve}}</span><span class="ns-k">presence</span><span>{{presence}}</span>
+    <span class="ns-k">갱신</span><span>{{seen}}</span><span class="ns-k">lease</span><span>{{lease}}</span>
+  </div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>값<span class="ns-hr"></span><span class="ns-k">{{apiV}}</span><span class="ns-k">{{liveT}}</span><button type="button" class="rs-btn" onClick="{{pause}}">{{pauseT}}</button></h3>
+  <sc-if value="{{hasMetrics}}" hint-placeholder-val="{{ true }}"><div class="rs-seg"><sc-for list="{{metrics}}" as="m" hint-placeholder-count="3"><button type="button" aria-pressed="{{m.on}}" class="{{m.cls}}" onClick="{{m.pick}}">{{m.name}}</button></sc-for></div></sc-if>
+  <div class="rs-now"><b>{{nowT}}</b><span class="ns-k">{{unitT}}</span><span style="flex: 1;"></span><span class="ns-k">최소</span><span>{{minT}}</span><span class="ns-k">평균</span><span>{{avgT}}</span><span class="ns-k">최대</span><span>{{maxT}}</span></div>
+  <div class="rs-graph" aria-label="최근 60초 값"><sc-for list="{{bars}}" as="b" hint-placeholder-count="60"><span style="height: {{b.h}}%; background: {{b.col}};"></span></sc-for></div>
+  <div class="rs-axis ns-k"><span>-60s</span><span>-30s</span><span>지금</span></div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>끝점<span class="ns-hr"></span></h3>
+  <sc-for list="{{eps}}" as="e" hint-placeholder-count="2">
+    <div class="rs-ep"><span class="ns-v">{{e.id}}</span><span class="ns-k">{{e.dir}}</span><span class="ns-k">{{e.schema}}</span></div>
+  </sc-for>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>연결<span class="ns-hr"></span><span class="ns-k">{{apiB}}</span></h3>
+  <sc-if value="{{noBinds}}" hint-placeholder-val="{{ false }}"><div class="ns-k">연결 없음</div></sc-if>
+  <sc-for list="{{binds}}" as="b" hint-placeholder-count="1">
+    <div class="rs-ep"><span>→ {{b.to}}</span><span class="ns-k">{{b.q}}</span><span class="ns-v">{{b.rate}}</span></div>
+  </sc-for>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>최근 이벤트<span class="ns-hr"></span></h3>
+  <sc-for list="{{events}}" as="ev" hint-placeholder-count="4">
+    <div class="ns-ev"><span class="ns-k">{{ev.t}}</span><span style="color: {{ev.col}};">{{ev.lv}}</span><span>{{ev.msg}}</span></div>
+  </sc-for>
+  <div class="ns-row" style="margin-top: 6px;"><span class="ns-p">&gt;</span><span class="ns-cur"></span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"resName":{"editor":"text","default":"gpio"},"nodeName":{"editor":"text","default":"02·b"},"src":{"editor":"enum","options":["내 자원","지명","전체","외부"],"default":"내 자원"},"winW":{"editor":null},"winH":{"editor":null},"$preview":{"width":600,"height":600}}'>
+// 자원 상태 창 — 자원 하나의 상태 · 값 모니터링 · 끝점 · 연결 · 최근 이벤트를 CLI 처럼 (상태 창과 같은 결, 바탕이 비친다)
+//   열기 — 자원 이름을 누르면(자원 창 · 설정 › Leaf › 자원) · 위성 우클릭 › 상태. 자원마다 창 하나, 같은 자원이면 앞으로
+//   Terra 대응 (트리 Master):
+//     정보 · 상태 — terra.master.svi.resources.by-resource-id.get · 끝점 — …endpoints.get
+//     값 — terra.master.svi.handles.post { resource_id, endpoint_id, operations: [subscribe] } → handles.by-handle-id.stream.get (닫을 때 handles.by-handle-id.delete)
+//     연결 — terra.master.svi.bindings.get (source · target = 이 자원)
+//   시안 — 값은 1초마다 (자원 이름으로 정해지는 예시 값에 흔들림). 일시정지하면 그래프만 멈춘다
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { t: 0, metric: 0, paused: false }; this._hist = {}; this._ev = []; try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} }
+  componentDidMount() { this._live = true; this._iv = setInterval(() => { if (this._live) this.setState({ t: this.state.t + 1 }); }, 1000); }
+  componentWillUnmount() { this._live = false; clearInterval(this._iv); }
+  help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
+  name() { return this.props.resName || 'gpio'; }
+  seed() { let h = 7; for (const ch of this.name() + (this.props.nodeName || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
+  rnd(i) { const x = Math.sin(this.seed() * 0.001 + i * 12.9898) * 43758.5453; return x - Math.floor(x); }
+  // 자원 종류 — 이름에서 (시안). 실제로는 SVI 자원 설명의 kind · 끝점 스키마
+  profile() {
+    const n = this.name().toLowerCase();
+    const P = (type, metrics, eps) => ({ type, metrics, eps });
+    if (/^ssh|:22/.test(n)) return P('service · ssh', [['세션', '개', 2, 1, 0], ['수신', 'KB/s', 40, 30, 1], ['송신', 'KB/s', 12, 10, 1]], [['session', 'source · sink', 'terra.stream.bytes@1']]);
+    if (/^tty|serial/.test(n)) return P('serial', [['수신', 'B/s', 900, 400, 0], ['송신', 'B/s', 120, 80, 0]], [['rx', 'source', 'terra.serial.bytes@1'], ['tx', 'sink', 'terra.serial.bytes@1']]);
+    if (/gpio/.test(n)) return P('gpio', [['pin 17', '', 0.5, 0.5, 2], ['pin 27', '', 0.5, 0.5, 2], ['pin 22', '', 0.5, 0.5, 2]], [['pins', 'source · sink', 'terra.gpio.level@1']]);
+    if (/camera|frame/.test(n)) return P('camera', [['fps', 'fps', 29, 2, 1], ['지연', 'ms', 38, 12, 0]], [['frames', 'source', 'terra.video.frame@1']]);
+    if (/sensor|stat/.test(n)) return P('sensor', [['온도', '°C', 41, 4, 1], ['습도', '%', 46, 6, 0]], [['stats', 'source', 'terra.sensor.sample@1']]);
+    if (/gpu|infer/.test(n)) return P('compute · gpu', [['사용률', '%', 62, 25, 0], ['대기열', '개', 3, 3, 0], ['메모리', 'GB', 9.4, 1.5, 1]], [['infer', 'source · sink', 'terra.infer.request@1']]);
+    if (/log/.test(n)) return P('log', [['줄', '줄/s', 140, 90, 0]], [['lines', 'source', 'terra.log.line@1']]);
+    return P('resource', [['처리량', 'KB/s', 50, 30, 1]], [['data', 'source', 'terra.bytes@1']]);
+  }
+  value(m, i, t) { const [, , base, amp, dec] = m, r = (k) => this.rnd(k + i * 7), w = Math.sin(t * (0.25 + r(1) * 0.6) + r(2) * 6) + Math.sin(t * (0.9 + r(3)) + r(4) * 3) * 0.35;
+    if (dec === 2) return w + r(5) * 0.6 - 0.3 > 0 ? 1 : 0;   // 디지털 — 0 / 1
+    return Math.max(0, base + w * amp * 0.75); }
+  fmt(v, m) { return m[4] === 2 ? (v ? 'HIGH' : 'LOW') : v.toFixed(m[4]) + (m[1] ? ' ' + m[1] : ''); }
+  renderVals() {
+    const S = this.state, t = S.t, P = this.profile(), H = this.help(), r = (i) => this.rnd(i), src = this.props.src || '내 자원';
+    const down = r(40) < 0.12, busy = r(41) < 0.5;
+    // 값 기록 — 지표마다 60칸. 일시정지면 그래프는 멈추고 지금 값만 흐른다
+    P.metrics.forEach((m, i) => { const h = this._hist[i] || (this._hist[i] = []); if (!h.length) for (let k = 59; k >= 0; k--) h.push(down ? 0 : this.value(m, i, t - k)); if (!S.paused && h.t !== t) { h.push(down ? 0 : this.value(m, i, t)); if (h.length > 60) h.shift(); h.t = t; } });
+    const mi = Math.min(S.metric, P.metrics.length - 1), M = P.metrics[mi], hist = this._hist[mi], now = down ? 0 : this.value(M, mi, t);
+    const mx = Math.max(...hist, M[4] === 2 ? 1 : 0.0001), mn = Math.min(...hist), avg = hist.reduce((a, b) => a + b, 0) / hist.length;
+    if (!this._ev.length) { const t0 = Date.now(); [['info', '선언됨 · 승인'], ['info', '연결 → store/data'], ['info', 'lease 갱신'], [down ? 'warn' : 'info', down ? 'presence missing' : 'presence ok']].forEach((e, k) => this._ev.push({ at: t0 - (4 - k) * 61000, lv: e[0], msg: e[1] })); }
+    if (t > 0 && t % 11 === 0 && this._evT !== t) { this._evT = t; this._ev.push({ at: Date.now(), lv: 'info', msg: M[0] + ' ' + this.fmt(now, M) }); if (this._ev.length > 6) this._ev.shift(); }
+    const tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
+    const peer = ['02·a', '02·c', '02', '01·a'][Math.floor(r(30) * 4)];
+    const binds = down ? [] : busy ? [[peer, 'store/data', '신뢰 순서', Math.round(20 + r(31) * 80) + ' KB/s']] : [];
+    const stT = down ? '끊김' : binds.length ? '사용 중' : '사용 가능', stCol = down ? '#ff9c8c' : binds.length ? '#ffd27a' : '#60e28c';
+    return {
+      rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.name(), type: P.type, stT, stCol, src, srcCls: { 지명: 'nd', 전체: 'sc', 외부: 'ex' }[src] || 'tr',
+      node: this.props.nodeName || '02·b', approve: down ? '승인 · 없음' : '승인', presence: down ? 'missing' : 'present', seen: down ? Math.floor(40 + r(32) * 200) + '초 전' : '방금', lease: Math.floor(20 + r(33) * 40) + '분 남음',
+      metrics: P.metrics.map((m, i) => ({ name: m[0], cls: i === mi ? 'on' : '', on: i === mi ? 'true' : 'false', pick: () => this.setState({ metric: i }) })), hasMetrics: P.metrics.length > 1,
+      nowT: down ? '—' : this.fmt(now, M), unitT: M[0], minT: this.fmt(mn, M), avgT: M[4] === 2 ? Math.round(avg * 100) + '% HIGH' : this.fmt(avg, M), maxT: this.fmt(mx, M),
+      bars: hist.map((v) => ({ h: Math.max(2, Math.round((v - (M[4] === 2 ? 0 : mn * 0.8)) / Math.max(0.0001, mx - (M[4] === 2 ? 0 : mn * 0.8)) * 100)), col: down ? '#ff9c8c' : '#60e28c' })),
+      pauseT: S.paused ? '재개' : '일시정지', pause: () => this.setState({ paused: !S.paused }), liveT: S.paused ? '멈춤' : '1s',
+      eps: P.eps.map(([id, dir, schema]) => ({ id, dir, schema: H ? schema : '' })),
+      binds: binds.map(([to, ep, q, rate]) => ({ to: to + ' › ' + ep, q, rate })), noBinds: binds.length === 0,
+      events: this._ev.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? '#ffd27a' : '#709c80', msg: e.msg })),
+      apiR: H ? 'svi.resources' : '', apiV: H ? 'svi.handles · stream' : '', apiB: H ? 'svi.bindings' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

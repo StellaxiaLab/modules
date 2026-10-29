@@ -125,9 +125,25 @@
     "NodeConf.dc.html": {
       "h": 600,
       "is_interactive": true,
-      "title": "설정 창 — GUI · 클러스터 (우클릭 › 설정)",
+      "title": "설정 창",
       "w": 860,
       "x": 13860,
+      "y": 1200
+    },
+    "NodeShare.dc.html": {
+      "h": 600,
+      "is_interactive": true,
+      "title": "자원 창",
+      "w": 860,
+      "x": 14840,
+      "y": 1200
+    },
+    "ResStatus.dc.html": {
+      "h": 600,
+      "is_interactive": true,
+      "title": "자원 상태 창",
+      "w": 600,
+      "x": 15820,
       "y": 1200
     }
   },
@@ -185,7 +201,9 @@
     "Login.dc.html",
     "StarMaker.dc.html",
     "NodeStatus.dc.html",
-    "NodeConf.dc.html"
+    "NodeConf.dc.html",
+    "NodeShare.dc.html",
+    "ResStatus.dc.html"
   ],
   "pages": [],
   "title": "Terra GUI v3 베이스"

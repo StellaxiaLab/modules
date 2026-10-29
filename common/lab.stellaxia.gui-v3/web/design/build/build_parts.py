@@ -1,4 +1,4 @@
-# 창 보드 셋(설정 창 · 상태 창 · 스타메이커)을 parts/<보드>/ 의 markup.html · style.css · script.js 로 다시 굽는다.
+# 창 보드(설정 창 · 상태 창 · 스타메이커 · 자원 창 · 자원 상태 창)을 parts/<보드>/ 의 markup.html · style.css · script.js 로 다시 굽는다.
 #   python3 build_parts.py            — 셋 다
 #   python3 build_parts.py nodeconf   — 하나만
 # 보드의 나머지(머리 · 글꼴 · data-props)는 그대로 두고, 세 조각이 들어가는 자리만 바꾼다:
@@ -11,6 +11,8 @@ BOARDS = {
     'nodeconf':   ('NodeConf.dc.html',   '<div class="nc"'),
     'nodestatus': ('NodeStatus.dc.html', '<div class="ns"'),
     'starmaker':  ('StarMaker.dc.html',  '<div data-smroot="1"'),
+    'nodeshare':  ('NodeShare.dc.html',  '<div class="sh"'),
+    'resstatus':  ('ResStatus.dc.html',  '<div class="ns'),
 }
 
 def build(key):
