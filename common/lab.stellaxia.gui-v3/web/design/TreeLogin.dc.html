@@ -154,7 +154,7 @@
 //     거절      401 CREDENTIAL_REJECTED — 어느 쪽이 틀렸는지 말하지 않는다(그래서 화면도 둘 다 붉게)
 //   시안 — 비밀번호 'wrong' 이면 거절, 주소는 Tree 이름으로 정해지는 예시
 class Component extends DCLogic {
-  constructor(props) { super(props); this._g = 0; this._chg = {}; this._t0 = typeof performance !== 'undefined' ? performance.now() : 0; this.state = { email: '', pass: '', keep: true, phase: null, msg: '', bad: false, manual: false, manualUrl: '', url: null, resolved: false };
+  constructor(props) { super(props); this._g = 0; this._chg = {}; this._t0 = typeof performance !== 'undefined' ? performance.now() : 0; this.state = { email: '', pass: '', keep: (() => { try { return localStorage.getItem('terra.auto') !== '0'; } catch (e) { return true; } })(), phase: null, msg: '', bad: false, manual: false, manualUrl: '', url: null, resolved: false };
     try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   name() { return this.props.treeName || '02'; }

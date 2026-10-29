@@ -720,7 +720,7 @@ class Component extends DCLogic {
       o['openFn' + k] = F['o' + k] || (F['o' + k] = (kind, arg) => { const n = this['_wNode' + k]; if (n) this.ctlOpenWin(n, undefined, kind, arg); }); o['ctlW' + k] = S['ctlW' + k] || this.WSIZE(k === 7 ? 'conf' : k === 11 ? 'share' : k >= 12 ? 'res' : 'stat')[0]; o['ctlH' + k] = S['ctlH' + k] || this.WSIZE(k === 7 ? 'conf' : k === 11 ? 'share' : k >= 12 ? 'res' : 'stat')[1]; }   // 설정(7) · 상태(8–10)
     { const k = 15; o.wNode15 = S.wNode15 || '02'; o.wId15 = S.wId15 || ''; o.wDir15 = S.wDir15 || 'sibling'; o.wUrl15 = S.wUrl15 || ''; o.wReach15 = S.wReach15 !== false; o.wNeed15 = !!S.wNeed15; o.wTun15 = S.wTun15 || 0; o.wCur15 = S.wCur15 || '';
       o.ctlW15 = S.ctlW15 || this.WSIZE('login')[0]; o.ctlH15 = S.ctlH15 || this.WSIZE('login')[1];
-      o.treeLoginDoneFn = F.ld || (F.ld = (key, keep, email) => this.loginDone(key, keep, email)); o.treeLoginCancelFn = F.lc || (F.lc = () => { const W = (this._ctlWs || [])[k]; this._loginDest = null; if (W) this.ctlX(W); }); }   // Tree 로그인(15)
+      o.treeLoginDoneFn = F.ld || (F.ld = (key, keep, email) => this.loginDone(key, keep, email)); o.treeLoginCancelFn = F.lc || (F.lc = () => { const W = (this._ctlWs || [])[k]; this._loginDest = null; this._loginAfter = null; if (W) this.ctlX(W); }); }   // Tree 로그인(15)
     const k6 = this.CTLN(); o.smW = S['ctlW' + k6] || 1100; o.smH = S['ctlH' + k6] || 720; o.smLoad = S.smLoad || ''; o.skinFn = F.sk || (F.sk = () => { try { window.dispatchEvent(new Event('terra-skin')); } catch (e) {} });   /* 스킨 적용 → 장면이 바로 다시 읽음 */ o.smSavedFn = F.sm || (F.sm = () => { this._ctlTree = null; this.layout(); });   // 스타메이커 — 저장 · 지우기 · 새 폴더 → 전역 제어의 star 폴더를 다시
     return o;
   }
@@ -748,8 +748,10 @@ class Component extends DCLogic {
   //   그 밖의 Tree 로 진입 · 워프 · 우클릭 › 진입 하면 로그인 창(자리 15)이 먼저 뜨고, 로그인되면 원래 가려던 곳으로 간다
   //   'auto'(로그인 유지)면 terra.sess 에 남고(실제: Gateway auth.credentials 핸들), 아니면 이 화면이 열려 있는 동안만
   treeOf(n) { while (n && n.kind !== 'tree') n = n.parent; return n || null; }
+  // auto — 켜면 저장된 세션(terra.sess)으로 묻지 않고 옮겨 가고, 로그인 창의 'auto' 기본값도 켬. 끄면 Tree 를 옮길 때마다 묻는다(이번 실행의 '이번만' 세션은 그대로)
+  autoOn() { try { return localStorage.getItem('terra.auto') !== '0'; } catch (e) { return true; } }
   sessMap() { try { return JSON.parse(localStorage.getItem('terra.sess') || '{}') || {}; } catch (e) { return {}; } }
-  hasSess(t) { if (!t) return true; const L = this.localNode(); for (let q = L; q; q = q.parent) if (q === t) return true; return !!this.sessMap()[t.id] || !!(this._sessMem && this._sessMem[t.id]); }
+  hasSess(t) { if (!t) return true; const L = this.localNode(); for (let q = L; q; q = q.parent) if (q === t) return true; return (this.autoOn() && !!this.sessMap()[t.id]) || !!(this._sessMem && this._sessMem[t.id]); }
   needLogin(n) { const t = this.treeOf(n); return !!t && !this.hasSess(t); }
   // 로그인 길 — Master login routing(A1)의 답을 흉내: 부모 · 형제는 주소를 안다, 자식은 그 자식에게 물어야 한다, 먼 Tree 는 길이 없다
   loginRoute(t) {
@@ -761,15 +763,16 @@ class Component extends DCLogic {
     const off = /4/.test(t.name) && dir !== 'parent';
     return { dir, url: dir === 'child' ? '' : slug, reach: !off, need: dir === 'child', tun: off ? 17330 : 0 };
   }
-  loginGate(n) { if (!this.needLogin(n)) return false; this._loginDest = n; this.ctlOpenWin(this.treeOf(n), undefined, 'login'); return true; }
-  loginOpen(n) { this._loginDest = null; const t = this.treeOf(n); if (t) this.ctlOpenWin(t, undefined, 'login'); }   // 우클릭 › 로그인 — 로그인만 (옮겨 가지 않는다)
+  loginGate(n, after) { if (!this.needLogin(n)) return false; this._loginDest = n; this._loginAfter = after || null; this.ctlOpenWin(this.treeOf(n), undefined, 'login'); return true; }
+  loginOpen(n) { this._loginDest = null; this._loginAfter = null; const t = this.treeOf(n); if (t) this.ctlOpenWin(t, undefined, 'login'); }   // 우클릭 › 로그인 — 로그인만 (옮겨 가지 않는다)
   loginDone(key, keep, email) {
     const t = this.mapData().byId[key]; if (!t) return;
-    if (keep) { const m = this.sessMap(); m[key] = { email, at: Date.now() }; try { localStorage.setItem('terra.sess', JSON.stringify(m)); } catch (e) {} }
+    if (keep) { const m = this.sessMap(); m[key] = { email, name: t.name, at: Date.now() }; try { localStorage.setItem('terra.sess', JSON.stringify(m)); } catch (e) {} }
     else (this._sessMem || (this._sessMem = {}))[key] = { email, at: Date.now() };
     const W = (this._ctlWs || [])[15]; if (W) this.ctlX(W);
-    const dest = this._loginDest; this._loginDest = null;
-    if (dest) { if (this.navStart) this.navStart(dest); else if (this.warpTo) this.warpTo(dest); }
+    const dest = this._loginDest, after = this._loginAfter; this._loginDest = null; this._loginAfter = null;
+    try { window.dispatchEvent(new Event('terra-sess')); } catch (e) {}
+    if (after) after(); else if (dest) { if (this.navStart) this.navStart(dest); else if (this.warpTo) this.warpTo(dest); }
   }
   peerList() { const KN = { tree: '트리', leaf: '리프' }; return this.mapData().all.filter((n) => n.kind === 'tree' || n.kind === 'leaf').map((n) => ({ id: n.id, name: n.name, kind: KN[n.kind], parent: n.parent ? n.parent.name : '' })); }
   WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14], login: [15] }; }
@@ -902,6 +905,8 @@ class Component extends DCLogic {
   mapEnter(n) {
     const MV = this._mv, MD = this.mapData(); if (!MV) return;
     if (n.id === MV.root && MV.level !== 'tree') { const p = n.parent || MD.root; this._mv = MV.level === 'res' ? { level: 'leaf', root: p.id, focus: p.id } : { level: 'tree', root: MD.root.id, focus: (p.parent ? p.id : MD.root.id) }; }   // 들어오게 한 노드 — 나간다
+    // 다른 Tree 의 리프 · 리소스 지도로 들어가는 것도 Tree 이동 — 세션이 없으면 로그인 창 먼저(되면 이어서 들어간다)
+    else if ((n.kind === 'tree' || n.kind === 'leaf') && this.loginGate(n, () => this.mapEnter(n))) return;
     else if (n.kind === 'tree') this._mv = { level: 'leaf', root: n.id, focus: n.id };
     else if (n.kind === 'leaf') this._mv = { level: 'res', root: n.id, focus: n.id };
     else return this.mapFocus(n);

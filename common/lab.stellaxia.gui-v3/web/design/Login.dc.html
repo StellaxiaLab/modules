@@ -65,15 +65,16 @@ class Component extends DCLogic {
   cellsOf(t) { const out = []; for (const c of t) { out.push(c); if (/[ᄀ-ᅟ가-힣]/.test(c)) out.push(''); } return out; }
   layoutLogin() {
     const w = this._w, h = this._h, cw = this._cw, ch = this._ch;
-    // 노드 타입 낱말 = 5칸 높이(rW ~ rW+4) · 그 아래 두 줄 띄고 admin
-    const size = Math.min(w * 0.19, h * 0.36), logoH = size * 0.74, WR = 5;
-    const stack = logoH + ch * 2.2 + (WR + 2) * ch + 12 * ch, top = Math.max(ch * 2, (h - stack) / 2);
-    const logoY1 = top + logoH / 2, rW = Math.ceil((top + logoH + ch * 2.2) / ch), r0 = rW + WR + 2, ms = 0, maskY = 0;
-    const c0 = Math.round(w / 2 / cw) - 16, rA = r0, rB = r0 + 2, rD = r0 + 5, rE = r0 + 7, rS = r0 + 10;
-    const fld = (r) => ({ x: (c0 + 11) * cw, y: r * ch - 3, w: 21 * cw, h: ch + 6 });
-    const zr0 = rW - 1;
-    this._L = { zone: { c0: c0 - 4, c1: c0 + 34, r0: zr0, r1: rS + 1 }, size, ms, logoY0: h * 0.5, logoY1, dyRows: Math.round((logoY1 - h * 0.5) / ch), maskY, rW, WR, c0, rA, rB, rD, rE, rS, room: 20,
-      hit: { auto: { c0: c0 + 12, c1: c0 + 17, r: rD }, login: { c0: c0 + 26, c1: c0 + 30, r: rD }, nt: { c0: c0, c1: c0 + 15, r: rE } } };
+    // CLI 틀 + 포스터 — 머리 줄(┌─ TERRA // LOGIN ─ 01/02 ─┐) · 프롬프트 · 메타 · 노드 타입 낱말(6줄 마스크) + 빗금 블록 · 구분 줄 · 입력 둘 · social · auto / Login · New Tree · 아래 줄(키)
+    const size = Math.min(w * 0.19, h * 0.36), logoH = size * 0.74, WR = 6, PW = 40, BODY = 25;
+    const stack = logoH + ch * 1.6 + BODY * ch, top = Math.max(ch * 2, (h - stack) / 2);
+    const logoY1 = top + logoH / 2, rT = Math.ceil((top + logoH + ch * 1.6) / ch), ms = 0, maskY = 0;
+    const rP = rT + 1, rM = rT + 2, rW = rT + 4, rR = rW + WR + 1, rA = rR + 2, rB = rA + 2, rC = rB + 2, rD = rC + 2, rE = rD + 2, rK = rE + 2, rS = rK + 2;
+    const c0 = Math.round(w / 2 / cw) - PW / 2, room = PW - 12;
+    const fld = (r) => ({ x: (c0 + 11) * cw, y: r * ch - 3, w: (room + 1) * cw, h: ch + 6 });
+    this._L = { zone: { c0: c0 - 3, c1: c0 + PW + 2, r0: rT - 1, r1: rS + 1 }, size, ms, logoY0: h * 0.5, logoY1, dyRows: Math.round((logoY1 - h * 0.5) / ch), maskY, PW, rT, rP, rM, rW, WR, rR, c0, rA, rB, rC, rD, rE, rK, rS, room,
+      stripe: { c0: c0 + PW - 8, c1: c0 + PW - 1 },
+      hit: { auto: { c0: c0, c1: c0 + 7, r: rD }, login: { c0: c0 + PW - 7, c1: c0 + PW - 1, r: rD }, nt: { c0: c0, c1: c0 + 17, r: rE } } };
     const px = (o) => ({ x: Math.round(o.c0 * cw - 4), y: Math.round(o.r * ch - 4), w: Math.round((o.c1 - o.c0 + 1) * cw + 8), h: ch + 8 }), H = this._L.hit;
     const pos = { ia: fld(rA), ip: fld(rB), ab: px(H.auto), lb: px(H.login), nb: px(H.nt) };
     if (JSON.stringify(pos) !== JSON.stringify((this.state || {}).pos)) this.setState({ pos });
@@ -88,18 +89,32 @@ class Component extends DCLogic {
   }
   // 글자 줄 — 입력 칸도 텍스트: 친 글자(흰색) + 남은 자리 점(흐림)
   loginItems() {
-    const L = this._L, S = this.state || {}, room = L.room, cut = (t) => (t.length > room - 1 ? t.slice(t.length - room + 1) : t);
-    const A = cut(S.va || ''), Pw = cut('•'.repeat((S.vp || '').length));
+    const L = this._L, S = this.state || {}, room = L.room, PW = L.PW, c0 = L.c0, cut = (t) => (t.length > room - 1 ? t.slice(t.length - room + 1) : t);
+    const A = cut(S.va || ''), Pw = cut('•'.repeat((S.vp || '').length)), dash = (n) => '─'.repeat(Math.max(0, n));
+    const isT = (this._wCur || (this.INSTALLED().tree && !this.INSTALLED().leaf ? 2 : 3)) === 2, ty = isT ? 'tree' : 'leaf', TY = ty.toUpperCase();
     const it = [
-      { k: 'aL', t: 'admin', c: L.c0, r: L.rA, col: 'white' }, { k: 'aC', t: ':', c: L.c0 + 9, r: L.rA, col: 'label' },
-      { k: 'aV', t: A, c: L.c0 + 11, r: L.rA, col: 'white', live: true }, { k: 'aD', t: '·'.repeat(room - A.length), c: L.c0 + 11 + A.length, r: L.rA, col: 'dim', live: true },
-      { k: 'pL', t: 'password', c: L.c0, r: L.rB, col: 'white' }, { k: 'pC', t: ':', c: L.c0 + 9, r: L.rB, col: 'label' },
-      { k: 'pV', t: Pw, c: L.c0 + 11, r: L.rB, col: 'white', live: true }, { k: 'pD', t: '·'.repeat(room - Pw.length), c: L.c0 + 11 + Pw.length, r: L.rB, col: 'dim', live: true },
-      { k: 'so', t: 'social', c: L.c0, r: L.rD, col: 'bgb' }, { k: 'au', t: 'auto', c: L.c0 + 12, r: L.rD, col: 'bgb', hv: 'auto' }, { k: 'ab', t: S.autoOn ? '■' : '□', c: L.c0 + 17, r: L.rD, col: 'bgb', hv: 'auto', live: true },
-      { k: 'lg', t: 'Login', c: L.c0 + 26, r: L.rD, col: 'white', hv: 'login' },
-      { k: 'nt', t: 'New Tree Connect', c: L.c0, r: L.rE, col: 'blue', hv: 'nt' }
+      // 머리 줄 — 틀 모서리 · 제목 · 쪽 번호
+      { k: 't0', t: '┌─', c: c0 - 2, r: L.rT, col: 'dim' }, { k: 't1', t: 'TERRA // LOGIN', c: c0 + 1, r: L.rT, col: 'label', thin: true },
+      { k: 't2', t: dash(PW - 23), c: c0 + 16, r: L.rT, col: 'dim' }, { k: 't3', t: '01/02', c: c0 + PW - 6, r: L.rT, col: 'label', thin: true }, { k: 't4', t: '─┐', c: c0 + PW, r: L.rT, col: 'dim' },
+      // 프롬프트 · 메타
+      { k: 'p0', t: '○', c: c0, r: L.rP, col: 'ty' }, { k: 'p1', t: 'terra login --as', c: c0 + 2, r: L.rP, col: 'hint' }, { k: 'p2', t: ty, c: c0 + 19, r: L.rP, col: 'white', live: true },
+      { k: 'm0', t: 'NODE AUTH // GATEWAY', c: c0, r: L.rM, col: 'label', thin: true }, { k: 'm1', t: '[' + TY + ']', c: c0 + PW - 6, r: L.rM, col: 'ty', live: true },
+      // 구분 줄 — 낱말 아래
+      { k: 'r0', t: 'NODE TYPE', c: c0, r: L.rR, col: 'label', thin: true }, { k: 'r1', t: dash(PW - 16), c: c0 + 10, r: L.rR, col: 'dim' }, { k: 'r2', t: isT ? 'T/02' : 'L/03', c: c0 + PW - 4, r: L.rR, col: 'ty', live: true },
+      // 입력 — CLI 줄
+      { k: 'aL', t: 'admin', c: c0, r: L.rA, col: 'white' }, { k: 'aC', t: '>', c: c0 + 9, r: L.rA, col: 'label' },
+      { k: 'aV', t: A, c: c0 + 11, r: L.rA, col: 'white', live: true }, { k: 'aD', t: '·'.repeat(room - A.length), c: c0 + 11 + A.length, r: L.rA, col: 'dim', live: true },
+      { k: 'pL', t: 'password', c: c0, r: L.rB, col: 'white' }, { k: 'pC', t: '>', c: c0 + 9, r: L.rB, col: 'label' },
+      { k: 'pV', t: Pw, c: c0 + 11, r: L.rB, col: 'white', live: true }, { k: 'pD', t: '·'.repeat(room - Pw.length), c: c0 + 11 + Pw.length, r: L.rB, col: 'dim', live: true },
+      { k: 'so', t: 'social', c: c0, r: L.rC, col: 'bgb' }, { k: 'sd', t: dash(PW - 7), c: c0 + 7, r: L.rC, col: 'dim', thin: true },
+      // auto · Login
+      { k: 'ab', t: S.autoOn ? '[■]' : '[ ]', c: c0, r: L.rD, col: 'bgb', hv: 'auto', live: true }, { k: 'au', t: 'auto', c: c0 + 4, r: L.rD, col: 'bgb', hv: 'auto' }, { k: 'an', t: '· 로그인 유지', c: c0 + 9, r: L.rD, col: 'hint', thin: true },
+      { k: 'lg', t: '⏎ Login', c: c0 + PW - 7, r: L.rD, col: 'white', hv: 'login' },
+      { k: 'nt', t: '+ New Tree Connect', c: c0, r: L.rE, col: 'blue', hv: 'nt' },
+      // 아래 줄 — 키
+      { k: 'b0', t: '└─', c: c0 - 2, r: L.rK, col: 'dim' }, { k: 'b1', t: 'enter · tab · esc', c: c0 + 1, r: L.rK, col: 'hint', thin: true }, { k: 'b2', t: dash(PW - 19) + '─┘', c: c0 + 19, r: L.rK, col: 'dim' }
     ];
-    if (S.msg) { const cl = this.cellsOf(S.msg).length; it.push({ k: 'ms', t: S.msg, c: L.c0 + Math.max(0, Math.round((31 - cl) / 2)), r: L.rS, col: 'hint', thin: true }); }
+    if (S.msg) { const cl = this.cellsOf(S.msg).length; it.push({ k: 'ms', t: S.msg, c: c0 + Math.max(0, Math.round((PW - cl) / 2)), r: L.rS, col: 'hint', thin: true }); }
     return it;
   }
   // 나타나는 시각 — 열 때: 줄 차례로(0.12초씩) · 그 뒤 바뀐 줄: 그때부터 · 입력처럼 계속 바뀌는 줄(live)은 처음 나타난 뒤로는 바로
@@ -132,6 +147,8 @@ class Component extends DCLogic {
     const o = [[V, t, p], [q, V, p], [p, V, t], [p, q, V], [t, p, V], [V, p, q]][i % 6];
     return [o[0] * 255, o[1] * 255, o[2] * 255];
   }
+  // 농도 글자 — 값 0–1 을 네 단으로. 같은 칸은 늘 같은 글자(단 안에서 칸 번호로 고른다)
+  rampG(v, i) { const R = v < 0.4 ? ':-·' : v < 0.62 ? '+=*' : v < 0.84 ? '#%&' : '@#$'; return R[(i * 7 + (i / 97 | 0)) % R.length]; }
   mixC(a, b, k) { return [a[0] * (1 - k) + b[0] * k, a[1] * (1 - k) + b[1] * k, a[2] * (1 - k) + b[2] * k]; }
   brightBg(c) { const m = Math.max(c[0], c[1], c[2]) || 1, k = 236 / m; return [Math.min(255, c[0] * k), Math.min(255, c[1] * k), Math.min(255, c[2] * k)]; }
   // 랜덤 갱신 — p 0 → 1: 갱신 주기가 점점 길어지며(16 → 536ms) 제 글자로 멈춘다
@@ -330,23 +347,40 @@ class Component extends DCLogic {
       const px = Math.min(w - 1, Math.round(c * this._cw + this._cw / 2)), py = Math.min(h - 1, Math.round(r * this._ch + this._ch / 2));
       if (data[(py * w + px) * 4 + 3] > 110) this._mask[r * cols + c] = 1;
     }
-    // 노드 타입 — 로고의 1/3 크기 마스크, 한 낱말만. TREE · LEAF 를 같은 자리(admin 과 같은 왼쪽 열)에 따로 재 둔다 (칸 중심 한 점으로 안/밖)
-    this._mT = new Uint8Array(cols * rows); this._mLf = new Uint8Array(cols * rows);
+    // 노드 타입 — 마스크는 화면 밖 층에 그려 칸마다 값을 낸다
+    //   낱말(TREE · LEAF) = 평균 — 칸 넓이의 잉크 비율(0–255). 획 가장자리가 반쯤 걸친 칸은 반 밝기로 남아 5–6줄에서도 글자가 읽힌다 (중심점 한 점이면 획이 끊긴다)
+    //   빗금 블록 = 중앙값 — 칸 안 3×3 점의 가운데 값. 단색 · 빗금처럼 면이 또렷해야 하는 모양은 켜짐/꺼짐으로 깔끔하게
+    this._mT = new Uint8Array(cols * rows); this._mLf = new Uint8Array(cols * rows); this._mSt = new Uint8Array(cols * rows);
     if (this._L) {
+      const LL = this._L, cw = this._cw, chh = this._ch;
       const o2 = document.createElement('canvas').getContext('2d', { willReadFrequently: true }); o2.canvas.width = w; o2.canvas.height = h;
-      // 글자 크기 — 잉크 높이가 정확히 WR 줄의 칸 중심을 덮게(위 · 아래 0.3칸 여유) · 첫 줄 위 0.3칸에 잉크 꼭대기를 맞춘다
+      const avg = (d, M, r0, r1, c0, c1) => { for (let r = Math.max(0, r0); r <= Math.min(rows - 1, r1); r++) for (let c = Math.max(0, c0); c <= Math.min(cols - 1, c1); c++) {
+        const x0 = Math.floor(c * cw), x1 = Math.min(w, Math.ceil((c + 1) * cw)), y0 = Math.floor(r * chh), y1 = Math.min(h, Math.ceil((r + 1) * chh)); let s = 0, k = 0;
+        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { s += d[(y * w + x) * 4 + 3]; k++; }
+        M[r * cols + c] = k ? Math.round(s / k) : 0; } };
+      const med = (d, M, r0, r1, c0, c1) => { const v = new Array(9); for (let r = Math.max(0, r0); r <= Math.min(rows - 1, r1); r++) for (let c = Math.max(0, c0); c <= Math.min(cols - 1, c1); c++) {
+        let k = 0; for (let j = 0; j < 3; j++) for (let q = 0; q < 3; q++) { const x = Math.min(w - 1, Math.round((c + (q + 0.5) / 3) * cw)), y = Math.min(h - 1, Math.round((r + (j + 0.5) / 3) * chh)); v[k++] = d[(y * w + x) * 4 + 3]; }
+        v.sort((p, q) => p - q); M[r * cols + c] = v[4]; } };
+      // 글자 크기 — 잉크 높이가 WR 줄(위 · 아래 0.25칸 여유)에 맞되, 빗금 블록 왼쪽(PW - 10칸)을 넘지 않게
       const FF = 'px GmarketSans, Geist, "Noto Sans KR", system-ui, sans-serif'; o2.textBaseline = 'alphabetic'; o2.font = '700 100' + FF;
-      const m0 = o2.measureText('TREE'), ink0 = (m0.actualBoundingBoxAscent + m0.actualBoundingBoxDescent) || 72, fs = 100 * (this._L.WR - 0.6) * this._ch / ink0;
-      o2.font = '700 ' + fs.toFixed(2) + FF; const asc = o2.measureText('TREE').actualBoundingBoxAscent || fs * 0.72;
-      const tr = fs * 0.08, y2 = (this._L.rW + 0.3) * this._ch + asc;
+      const m0 = o2.measureText('TREE'), ink0 = (m0.actualBoundingBoxAscent + m0.actualBoundingBoxDescent) || 72, wd0 = Math.max(o2.measureText('TREE').width, o2.measureText('LEAF').width) * 1.24;
+      const fs = 100 * (LL.WR - 0.5) * chh / ink0, kx = Math.min(1, (LL.stripe.c0 - 2 - LL.c0) * cw / (wd0 * fs / 100));   // 높이에 맞추고, 넓으면 가로로만 좁힌다(포스터의 좁은 글꼴처럼)
+      o2.font = '700 ' + fs.toFixed(2) + FF; const asc = o2.measureText('TREE').actualBoundingBoxAscent || fs * 0.72, inkH = (o2.measureText('TREE').actualBoundingBoxDescent || 0) + asc;
+      const tr = fs * 0.08, y2 = LL.rW * chh + (LL.WR * chh - inkH) / 2 + asc;
       for (const [word, M] of [['TREE', this._mT], ['LEAF', this._mLf]]) {
-        o2.clearRect(0, 0, w, h); o2.fillStyle = '#fff';
-        // 글자 왼쪽 여백(베어링)을 빼서 잉크가 정확히 c0 열에서 시작하게
-        let x2 = this._L.c0 * this._cw + this._cw / 2 - (o2.measureText(word[0]).actualBoundingBoxLeft || 0);
+        o2.setTransform(1, 0, 0, 1, 0, 0); o2.clearRect(0, 0, w, h); o2.fillStyle = '#fff';
+        const lx = LL.c0 * cw; o2.setTransform(kx, 0, 0, 1, lx, 0);
+        let x2 = -(o2.measureText(word[0]).actualBoundingBoxLeft || 0);   // 잉크가 c0 열 왼쪽 끝에서 시작
         for (const chr of word) { o2.fillText(chr, x2, y2); x2 += o2.measureText(chr).width + tr; }
-        const d2 = o2.getImageData(0, 0, w, h).data;
-        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const px = Math.min(w - 1, Math.round(c * this._cw + this._cw / 2)), py = Math.min(h - 1, Math.round(r * this._ch + this._ch / 2)); if (d2[(py * w + px) * 4 + 3] > 110) M[r * cols + c] = 1; }
+        o2.setTransform(1, 0, 0, 1, 0, 0);
+        avg(o2.getImageData(0, 0, w, h).data, M, LL.rW, LL.rW + LL.WR - 1, LL.c0, LL.stripe.c0 - 2);
       }
+      // 빗금 블록 — 포스터의 사선 띠 (60°, 굵기 1.3칸 · 간격 3칸)
+      o2.clearRect(0, 0, w, h); o2.save(); const bx = LL.stripe.c0 * cw, by = LL.rW * chh, bw = (LL.stripe.c1 - LL.stripe.c0 + 1) * cw, bh = LL.WR * chh;
+      o2.beginPath(); o2.rect(bx, by, bw, bh); o2.clip(); o2.strokeStyle = '#fff'; o2.lineWidth = cw * 1.3;
+      for (let x = bx - bh; x < bx + bw + bh; x += cw * 3) { o2.beginPath(); o2.moveTo(x, by + bh); o2.lineTo(x + bh * 0.58, by); o2.stroke(); }
+      o2.restore();
+      med(o2.getImageData(0, 0, w, h).data, this._mSt, LL.rW, LL.rW + LL.WR - 1, LL.stripe.c0, LL.stripe.c1);
     }
   }
   markCalm() {
@@ -438,15 +472,18 @@ class Component extends DCLogic {
         if (tx) { const p = OV.open ? (now - tx.it.at - tx.j * LT.cell) / LT.dur : 1 - (OV.out - Math.max(0, 40 - (x - LL.c0)) * 8) / LT.out;
           if (p > 0) { SP.push([i, tx, 0, P[pi], n, p]); continue; } }
         else if (LL && MW[2] && !WV) {
-          // 노드 타입 낱말 — 앞선(t0 + 열마다 14ms)이 지나간 칸: 새 낱말 칸은 만들고, 옛 낱말에만 있던 칸은 지운다 (둘 다 랜덤 갱신)
-          const inC = MW[WS.cur][i], inP = WS.prev ? MW[WS.prev][i] : 0;
-          if (inC || inP) { let mk = 0, p = 0, gl = 0;
-            if (!OV.open) { mk = WS.cur; p = inC ? 1 - (OV.out - Math.max(0, 40 - (x - LL.c0)) * 8) / LT.out : 0; }
+          // 노드 타입 낱말 (평균 값) — 앞선(t0 + 열마다 14ms)이 지나간 칸: 새 낱말 칸은 만들고, 옛 낱말에만 있던 칸은 지운다 (둘 다 랜덤 갱신). 값이 MTH 아래인 칸은 바탕
+          const MTH = 52, vC = MW[WS.cur][i], vP = WS.prev ? MW[WS.prev][i] : 0, inC = vC >= MTH, inP = vP >= MTH, sv = this._mSt ? this._mSt[i] : 0;
+          if (inC || inP) { let mk = 0, p = 0, gl = 0, cv = 0;
+            if (!OV.open) { mk = WS.cur; cv = vC / 255; p = inC ? 1 - (OV.out - Math.max(0, 40 - (x - LL.c0)) * 8) / LT.out : 0; }
             else { const tc = WS.t0 + (x - LL.c0) * 14, q = (now - tc) / LT.dur;
               // 직전 발광 — 옛 낱말 칸은 앞선이 닿기 150ms 전부터 그 자리 색으로 명도가 올라(앞선에서 가장 밝게) 앞선이 닿는 순간 지워진다. 새 낱말 칸은 그 뒤 랜덤 갱신으로 생긴다
-              if (q < 0) { if (inP) { mk = WS.prev; p = 1; const a = (tc - now) / 150; gl = Math.max(0, 1 - a); gl *= gl; } }
-              else if (inC) { mk = WS.cur; p = q; } }
-            if (mk && p > 0) { SP.push([i, null, mk, P[pi], n, p, gl]); continue; } } } }
+              if (q < 0) { if (inP) { mk = WS.prev; cv = vP / 255; p = 1; const a = (tc - now) / 150; gl = Math.max(0, 1 - a); gl *= gl; } }
+              else if (inC) { mk = WS.cur; cv = vC / 255; p = q; } }
+            if (mk && p > 0) { SP.push([i, null, mk, P[pi], n, p, gl, cv]); continue; } }
+          else if (sv >= 128) {   // 빗금 블록 (중앙값) — 열 때 낱말보다 조금 늦게 왼쪽부터
+            const p = OV.open ? (now - (OV.showAt + 420 + (x - LL.stripe.c0) * 22)) / LT.dur : 1 - (OV.out - Math.max(0, 40 - (x - LL.c0)) * 8) / LT.out;
+            if (p > 0) { SP.push([i, null, 4, P[pi], n, p, 0, 1]); continue; } } } }
       // 배경도 글자다 — 빈 칸은 바탕색보다 살짝 밝은 글자로 (세로 8단 × 은하수 띠 안팎)
       const key = rr >= 0 ? 'r' + rr + '_' + q : rr === -2 ? 's_' + q : q === 0 ? 'b' + Math.min(7, (y / rows * 8) | 0) + '_' + (W > 0.45 ? 1 : 0) : pi + '_' + q;
       let b = buckets.get(key); if (!b) { b = []; buckets.set(key, b); } b.push(i);
@@ -534,18 +571,20 @@ class Component extends DCLogic {
     const LL = this._L; if (!LL) return; const K = this.LCOL(), cw = this._cw, ch = this._ch, cols = this._cols, G = this._glyphs, g = this._g, S = this.state || {};
     const FB = '700 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", monospace', css = (c) => 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';
     const MS = this._MS || (this._MS = new Map());
-    for (const [i, tx, mk, pal, n, p0, gl] of SP) {
+    const TYC = this._wCur === 2 ? this.mixC(K.tree, [242, 244, 252], 0.22) : K.leaf;
+    for (const [i, tx, mk, pal, n, p0, gl, cv0] of SP) {
       const p = Math.min(1, p0), X = (i % cols) * cw, Y = ((i / cols) | 0) * ch;
       let tgt;
-      if (tx) { const cc = tx.it.col; tgt = cc === 'bgb' ? this.mixC(this.brightBg(pal), [242, 244, 252], 0.3) : K[cc]; if (tx.it.hv && tx.it.hv === this._hov) tgt = this.mixC(tgt, [255, 255, 255], 0.3); }
-      else tgt = this.mixC(mk === 2 ? K.tree : K.leaf, [8, 12, 30], 0.08 - n * 0.08);   // 설치된 타입만 나오므로 늘 높은 명도
+      if (tx) { const cc = tx.it.col; tgt = cc === 'bgb' ? this.mixC(this.brightBg(pal), [242, 244, 252], 0.3) : cc === 'ty' ? TYC : K[cc]; if (tx.it.hv && tx.it.hv === this._hov) tgt = this.mixC(tgt, [255, 255, 255], 0.3); }
+      else { const cv = cv0 == null ? 1 : cv0, base = mk === 4 ? this.mixC(TYC, [8, 12, 30], 0.42) : mk === 2 ? this.mixC(K.tree, [242, 244, 252], 0.12) : K.leaf;
+        tgt = this.mixC([12, 18, 42], base, 0.28 + 0.72 * cv); }   // 평균 값이 곧 밝기 — 획 가장자리 칸은 어둡게, 속은 밝게
       const fin = gl > 0.02 ? this.glowC(this.mixC(tgt, pal, 0.2), gl) : this.mixC(tgt, pal, 0.2), col = p < 1 ? this.mixC(this.mixC(pal, [10, 14, 34], 0.55), fin, p) : fin;
       let glyph;
       if (p < 1) { let st = tx ? tx.it : MS.get(i); if (!st) { st = { g: [], nx: [] }; MS.set(i, st); } glyph = this.rnd(st, tx ? tx.j : 0, p, now); }
-      else glyph = tx ? tx.chr : G[g[i]];
+      else glyph = tx ? tx.chr : mk === 4 ? '/' : this.rampG(cv0 == null ? 1 : cv0, i);   // 마스크 칸 글자 = 값의 농도 (평균이 낮으면 성긴 글자 · 높으면 빽빽한 글자) · 빗금은 사선
       const cc = this.lq(css(col)); if (SNAP) SNAP.push({ i, css: cc, g: glyph, b: true, k: 't' });
       // 모양 — 1 볼드(획 덧그림) · 2 넓은 글자 볼드(두 칸, 칸 높이 0.82) · 0 가는 글자 · 4 넓은 가는 글자 (두 칸이면 다음 칸은 9 = 이어짐)
-      const wide = tx && tx.wide && p >= 1, sty = tx && tx.it.thin ? (wide ? 4 : 0) : wide ? 2 : 1;
+      const wide = tx && tx.wide && p >= 1, sty = tx ? (tx.it.thin ? (wide ? 4 : 0) : wide ? 2 : 1) : (cv0 == null || cv0 > 0.55 ? 1 : 0);
       cell(i, cc, glyph, sty); if (wide) cell(i + 1, cc, '', 9);
     }
     // 커서 — 입력 중인 칸의 다음 자리에 깜박이는 블록 (점 자리를 덮는다)
