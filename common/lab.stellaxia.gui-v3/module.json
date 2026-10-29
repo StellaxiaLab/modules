@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "kind": "service",
   "name": "Terra GUI v3",
-  "description": "Terra 노드 GUI 3판. 화면은 설계 중(web/design 의 캔버스 원본)이고, 백엔드 1차가 들어왔다 — 노드에 붙는 GUI 데이터(프로필 사진 · 노드 속성)를 모듈 데이터 영역에 두고 계약의 operation(status · node-props · node-files)으로 낸다. 노드 설정 · 사용자 문서는 화면이 코어 operation 을 직접 부르므로 백엔드가 대신 쓰지 않는다. GUI 기여(contributions.gui)는 아직 없어 base Scene 의 목록 · main 자리에 나타나지 않는다.",
+  "description": "Terra 노드 GUI 3판. 화면 설계 원본은 web/design 의 캔버스 보드이고, 실제 웹 빌드(web/ → ui/)가 서기 시작했다 — 장면 층(WebGL2 글자 장, Worker 의 OffscreenCanvas)과 창 층(DOM · signals). 지금 앱은 글자 장 바탕과 창 층만 띄운다(장면 이식 전). 백엔드는 노드에 붙는 GUI 데이터(프로필 사진 · 노드 속성)를 모듈 데이터 영역에 두고 계약의 operation(status · node-props · node-files)으로 낸다.",
   "compatibility": {
     "products": [
       "leaf",
@@ -33,6 +33,29 @@
   },
   "contracts": {
     "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "gui": {
+      "apps": [
+        {
+          "id": "lab.stellaxia.gui-v3.web",
+          "name": "Terra GUI v3",
+          "mode": "static",
+          "entry": "ui/index.html",
+          "isolation": "sandboxed",
+          "permissions": [
+            "session.identity",
+            "node.read",
+            "node.control",
+            "node.config",
+            "file.read",
+            "file.write",
+            "process.execute",
+            "module.manage"
+          ]
+        }
+      ]
+    }
   },
   "permissions": {
     "storage": [

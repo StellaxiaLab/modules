@@ -1,0 +1,760 @@
+{
+ "$comment": "tools/gen-op-scope.mjs 가 Terra Daemon 계약에서 뽑은 표 — 손으로 고치지 않는다",
+ "contractVersion": "1.1.0",
+ "operations": {
+  "terra.daemon.capabilities.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.commands.execute.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.config.apply.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.config.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.config.patch": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.config.save.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.config.schema.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.config.validate.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.debug.config.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.debug.routes.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.desktop.open.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.enrollment.code.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.enroll"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.enrollment.register.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.enroll"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.enrollment.status.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.events.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.files.list.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "file.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.health.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.io.devices.by-device-id.alias.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.io.devices.by-device-id.approve.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.io.devices.by-device-id.deny.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.io.devices.by-device-id.disable.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.io.devices.by-device-id.enable.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.io.devices.by-device-id.forget.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.io.devices.by-device-id.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.io.devices.by-device-id.probe.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.io.devices.by-device-id.usage.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.io.devices.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.io.devices.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.io.scan.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.io.tombstones.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.io.usage.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.io.watch.events.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.io.watch.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.live.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.local-fs.entries.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "file.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.local-fs.roots.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "file.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.by-module-id.config.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.by-module-id.config.patch": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.modules.by-module-id.config.schema.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.by-module-id.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.by-module-id.logs.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.by-module-id.restart.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.modules.by-module-id.start.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.modules.by-module-id.stop.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.modules.by-module-id.uninstall.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.modules.catalog.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.offers.by-module-id.consent.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.modules.offers.by-module-id.withdraw.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.modules.offers.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.scan.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.node.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.ready.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.restart.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.service-tunnels.by-tunnel-id.close.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.service-tunnels.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.service-tunnels.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.status.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.svi.declarations.apply.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.svi.declarations.by-family.by-name.undeclare.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.svi.declarations.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.svi.declarations.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.svi.declarations.retired.by-family.by-name.forget.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.tasks.by-task-id.cancel.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.tasks.by-task-id.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.tasks.by-task-id.output.events.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.tasks.by-task-id.output.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.tasks.by-task-id.rerun.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.tasks.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.wireguard.apply.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.wireguard.down.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.wireguard.install-plan.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.wireguard.managed-config.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.wireguard.managed-key.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.wireguard.peers.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.wireguard.report.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.wireguard.status.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.wireguard.sync.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  }
+ }
+}
