@@ -2513,7 +2513,8 @@ class Component extends DCLogic {
         const nameCol = it.hit ? KC.hit : isDir ? C.val : C.key, parts = [];
         if (pre) parts.push([pre, it.type === 'exec' && it.ent.exec === 'ctl' ? KC.head : C.key]);
         parts.push([it.name, nameCol, isDir || it.hit]);
-        if (isDir) parts.push([it.isNode ? (it.exp ? ' ▲' : ' ▼') : it.exp ? ' △' : ' ▽', C.key]);   // 노드 디렉토리(표지 파일이 있음) = 채운 삼각형 · 그냥 디렉토리 = 빈 삼각형
+        if (isDir) parts.push([it.isNode ? (it.exp ? ' ▲' : ' ▼') : it.exp ? ' △' : ' ▽', C.key]);
+        if (it.lock) parts.push([' ⊘', C.hint, true]);   // 잠김 — 세션 없는 Tree 의 노드 폴더   // 노드 디렉토리(표지 파일이 있음) = 채운 삼각형 · 그냥 디렉토리 = 빈 삼각형
         if (it.more) parts.push(['  ' + it.more, C.hint]);
         line('c', row, parts, ind, o0, 'mzct' + k);   /* 줄 자리마다 같은 텍스트 — 내용이 바뀌면 그 줄만 다시 찍힌다(겹친 잔상 없음) */ CT.rows.push({ row, id: it.id, k: CT.scroll + k });
       }
@@ -2689,6 +2690,8 @@ class Component extends DCLogic {
         more: sph ? (e.data.kind === 'planet' ? '행성' : '항성') : e.data && e.data.type === 'terra.file' ? Math.max(1, Math.round((e.data.size || 0) / 1024)) + 'KB' : e.data && e.data.type === 'terra.props' ? '속성' : e.type === 'link' && e.target.startsWith('@node:') ? '→ 자원' : '' }; });
   }
   gf_isDirItem(it) { return it.type === 'dir' || it.type === 'wdir'; }
+  // 잠긴 노드 폴더 — 세션 없는 Tree(또는 그 아래 리프)의 노드 폴더. 펼치지 않고, 찾기로도 안을 보여 주지 않는다(이름만). 열려고 하면 로그인 창부터
+  gf_ctlLocked(it) { return !!(it && it.isNode && it.node && it.node.kind !== 'root' && this.gf_needLogin(it.node)); }
   gf_starIdx() { try { const v = JSON.parse(localStorage.getItem('terra.star.index') || 'null'); if (v && Array.isArray(v.files)) return { folders: v.folders || ['star'], files: v.files }; } catch (e) {} return { folders: ['star'], files: [] }; }
   // 스타메이커 창 열기 — id 가 있으면 그 구 파일을 불러온 채로
   gf_smNode() { return this._q_smN || (this._q_smN = { id: ':sm', name: '유틸', kind: 'util', kids: [], parent: null }); }
@@ -2699,7 +2702,7 @@ class Component extends DCLogic {
     if (!this._q_ctlTree || this._q_ctlTree.root.ent !== sd) this._q_ctlTree = { root: { id: '/' + sd.name, type: 'dir', ent: sd, node: scope } };   // 지도 데이터가 바뀌면 다시
     const R = this._q_ctlTree.root, out = [];
     const match = (it) => it.name.toLowerCase().includes(q);
-    const hasHit = (it, d) => { if (d > 10 || !this.gf_isDirItem(it)) return false; let v = false; for (const c of this.gf_ctlKids(it)) if (match(c) || hasHit(c, d + 1)) { v = true; break; } return v; };
+    const hasHit = (it, d) => { if (d > 10 || !this.gf_isDirItem(it) || this.gf_ctlLocked(it)) return false; let v = false; for (const c of this.gf_ctlKids(it)) if (match(c) || hasHit(c, d + 1)) { v = true; break; } return v; };
     // 맨 위 — 최소화 폴더(빈 삼각형). 처음엔 비어 있고, 창이 열려 있거나 최소화돼 있으면 그 창들이 뜬다 (두 번 누르면 연다)
     const WD = { id: ':wins', name: '최소화', type: 'wdir', scope: CT.mode === 'global' ? null : scope };
     { const n = this.gf_ctlKids(WD).length; WD.more = n ? n + '' : '비어 있음'; }
@@ -2707,8 +2710,8 @@ class Component extends DCLogic {
       for (const c of (it === R ? [WD] : []).concat(this.gf_ctlKids(it))) {
         const dir = this.gf_isDirItem(c), hit = !!q && match(c), anc = filter && dir && hasHit(c, 0);
         if (filter && !hit && !anc) continue;
-        const exp = dir && (q ? (anc ? !CT.qc[c.id] : !!CT.qc[c.id]) : !!CT.open[c.id]);
-        out.push(Object.assign({}, c, { depth, kids: dir, exp, hit }));
+        const lock = dir && this.gf_ctlLocked(c), exp = dir && !lock && (q ? (anc ? !CT.qc[c.id] : !!CT.qc[c.id]) : !!CT.open[c.id]);
+        out.push(Object.assign({}, c, { depth, kids: dir, exp, hit }, lock ? { lock: true, more: '로그인 필요' } : null));
         if (exp) walk(c, depth + 1, filter && anc);
       }
     };
@@ -2718,7 +2721,10 @@ class Component extends DCLogic {
   // 누르기 · Enter — 디렉토리: 펼치기 · 접기 / 실행 파일: 그 창 / 링크: 그 일 / 구 데이터: 스타메이커로 열기
   gf_ctlAct(it) {
     const K = this._q_ctl, q = ((this._q_cmd && this._q_cmd.text) || '').trim();
-    if (it.kids) { if (q) K.qc[it.id] = !K.qc[it.id]; else K.open[it.id] = !K.open[it.id]; this.gf_layout(); return; }
+    if (it.kids) {
+      // 잠긴 노드 폴더 — 막고 로그인 창부터. 로그인되면 그 폴더를 펼친다 (창을 닫으면 그대로 잠김)
+      if (it.lock || this.gf_ctlLocked(it)) { const id = it.id, nd = it.node; this.gf_loginGate(nd, () => { if (q) K.qc[id] = true; else K.open[id] = true; this.gf_layout(); }); return; }
+      if (q) K.qc[it.id] = !K.qc[it.id]; else K.open[it.id] = !K.open[it.id]; this.gf_layout(); return; }
     if (it.type === 'win') return this.gf_winOpen(it.win);
     if (it.type === 'exec') { const x = it.ent.exec; if (x === 'ctl') return this.gf_ctlOpenWin(it.node); if (x === 'starmaker') return this.gf_smOpen(); return; }   // 'tool' — 화면은 아직 (자리만)
     if (it.type === 'link') { const tg = it.ent.target, n = it.node;
