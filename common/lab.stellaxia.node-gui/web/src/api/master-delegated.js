@@ -41,4 +41,5 @@ export const MASTER_DELEGATED = {
   'terra.master.svi.resources.by-resource-id.endpoints.get': ['GET', '/api/v1/svi/resources/{resource_id}/endpoints'],
   'terra.master.svi.resources.by-resource-id.get': ['GET', '/api/v1/svi/resources/{resource_id}'],
   'terra.master.svi.resources.get': ['GET', '/api/v1/svi/resources'],
+  'terra.master.users.by-user-id.external-identities.get': ['GET', '/api/v1/users/{user_id}/external-identities'],
 };

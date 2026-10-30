@@ -9,11 +9,14 @@
 //   계정             terra.gateway.agent.whoami.get · 로그아웃은 셸(terra.emit('logout'))
 //   로컬 자원         files.list · svi.declarations · io.devices · modules.offers (Daemon)
 //   클러스터 · 서버    Master 의 것 — 이 화면의 토큰은 닿지 않는다
+//   Terra ID         Master admin.external-issuers.* (클러스터 탭 · master_admin) · users.by-user-id.external-identities.* (계정 탭) — terra-id.js
 
 import { connectLive, absenceText } from './live-host.js';
 import { resultText } from '../api/client.js';
 import { roleOf } from './network-live.js';
 import { invokeIfModule, MODULE_OF } from '../api/module-gate.js';
+import { userIdOf } from '../api/link-apply.js';
+import { TERRA_ID_OPS as TID, EXCHANGE_PATH, TRUST_EMPTY_TEXT, issuersView, identitiesView, linkStatusTag, externalErrorText, issuerAddBody, tokenPeek, audIsTree } from './terra-id.js';
 
 const D = (op) => 'terra.daemon.' + op;
 const ok = (r) => r && r.kind === 'ok';
@@ -65,7 +68,9 @@ export function realSettings(Screen) {
         role: null, perm: false, demo: 'ok', cur, draft: {}, pending: {}, errors: {}, grants: [],
         users: [], me: '', usersState: 'error', uf: null, enrSt: { state: 'none' },
         live: null, why: null, loading: true, loadErr: '', nodeName: '', principal: '', who: null, configPath: '', schemaN: null, operatorN: null,
-        res: { roots: null, decls: null, envelope: null, devices: null, offers: null, errs: {} }
+        res: { roots: null, decls: null, envelope: null, devices: null, offers: null, errs: {} },
+        // Terra ID — 보기 모델(terra-id.js) · 열린 폼. null = 아직 안 읽음
+        tidIss: null, tidLinks: null, tidUser: '', tidAf: null, tidLf: null
       });
     }
 
@@ -83,7 +88,8 @@ export function realSettings(Screen) {
       this.__live = live;
       if (!live) {
         this.DEV = {};
-        this.setState({ live: false, why, loading: false, users: [], me: '', usersState: 'error', enrSt: { state: 'none' }, role: null, perm: false, who: null, principal: '', nodeName: '', draft: {}, pending: {}, errors: {} });
+        this.setState({ live: false, why, loading: false, users: [], me: '', usersState: 'error', enrSt: { state: 'none' }, role: null, perm: false, who: null, principal: '', nodeName: '', draft: {}, pending: {}, errors: {},
+          tidIss: null, tidLinks: null, tidUser: '', tidAf: null, tidLf: null });
         return;
       }
       const role = roleOf(live.client.catalog);
@@ -167,6 +173,7 @@ export function realSettings(Screen) {
       patch.res = { roots: take(roots, 'roots', 'roots'), decls: take(decls, 'decls', 'declarations'), envelope: ok(decls) && decls.data ? decls.data.envelope || null : null,
         devices: take(devs, 'devices', 'devices'), offers: take(offers, 'offers', 'offers'), errs };
       this.setState(patch);
+      void this.loadTerraId(patch.who);
     }
 
     // 객체 목록 키(공유 폴더 { name, path } 등)는 입력 칸 하나로 고칠 수 없다 — 읽기만
@@ -260,8 +267,144 @@ export function realSettings(Screen) {
           this.row('비밀번호 변경', '자기 비밀번호를 바꾸는 operation이 없다 — 관리자 재설정만', '없음', { help: true, vc: '#8b95a6', badges: [this.tag('API 없음', 'off')] })
         ] }),
         this.card({ span: 5, title: '에이전트 위임 자격', sub: 'agent.grants.* — 목록 operation이 없다', acts: [this.btn('+ 발급', () => {}, { dis: true, tip: 'agent.grant — 이 화면의 앱 권한 밖' })],
-          rows: [this.row('목록 없음', '발급한 자격을 다시 읽는 operation이 없다 — 발급한 화면만 안다', '', { vc: '#8b95a6', badges: [this.tag('API 없음', 'off')] })] })
+          rows: [this.row('목록 없음', '발급한 자격을 다시 읽는 operation이 없다 — 발급한 화면만 안다', '', { vc: '#8b95a6', badges: [this.tag('API 없음', 'off')] })] }),
+        this.linkCard()
       ];
+    }
+
+    // ── Terra ID (P2 외부 신원 입구) ── 신뢰는 기본 꺼짐. 목록이 빈 Tree는 비밀번호 로그인만 받는다
+    /** 내 연결 목록(누구나) · 신뢰 목록(tree 게이트웨이 — 클러스터 탭)을 읽는다. 못 받으면 '못 봤음'으로 남긴다 */
+    async loadTerraId(who) {
+      const L = this.__live;
+      if (!L) return;
+      const c = L.client, W = who || this.state.who || {}, tree = this.state.role === 'tree';
+      const uid = userIdOf(W.principal || L.principal || '');
+      const [iss, links] = await Promise.all([
+        tree ? c.invoke(TID.issuers, {}) : Promise.resolve(null),
+        uid ? c.invoke(TID.links, { user_id: uid }) : Promise.resolve(null)
+      ]);
+      if (this.__live !== L) return;
+      this.setState({ tidUser: uid, tidIss: tree ? issuersView(iss) : null,
+        tidLinks: uid ? identitiesView(links) : { state: 'unseen', identities: [], why: '내 신원(whoami principal)을 모릅니다 — 다시 로그인하세요' } });
+    }
+
+    /** Terra ID op 하나 — 성공이면 알리고 다시 읽는다. 실패 글은 외부 신원 코드를 풀어 쓴다 */
+    async tidCall(op, input, label) {
+      const L = this.__live;
+      if (!L) return { ok: false, msg: 'Terra에 연결되지 않았다' };
+      const r = await L.client.invoke(op, input);
+      const good = r.kind === 'ok' || r.kind === 'accepted';
+      if (good) this.toast('●', '#3ecf8e', label, op);
+      void this.loadTerraId();
+      return good ? { ok: true } : { ok: false, msg: externalErrorText(r) };
+    }
+
+    tidToggle(x) {
+      const to = !x.enabled;
+      const run = async () => { const r = await this.tidCall(TID.issuerPatch, { issuer: x.issuer, enabled: to }, to ? 'Terra ID 신뢰를 켰습니다' : 'Terra ID 신뢰를 껐습니다'); if (!r.ok) this.toast('■', '#ff6b81', '하지 못했습니다', r.msg); };
+      this.setState({ dlg: to
+        ? { title: (x.name || x.issuer) + '을(를) 신뢰할까요?', op: TID.issuerPatch + ' { enabled: true }',
+          rows: [['발급자', x.issuer], ['대상(aud)', x.audience || '(비어 있음 — 켤 수 없습니다)'], ['2단계 인증 요구', x.mfa ? '예' : '아니오'], ['열리는 문', EXCHANGE_PATH]],
+          warn: '켜면 교환 문(' + EXCHANGE_PATH + ')이 열리고, 이 발급자가 서명한 이 Tree용 토큰으로 로그인할 수 있게 됩니다. 로그인할 수 있는 것은 이 Tree의 사용자에 미리 연결한 Terra ID 계정뿐입니다 — 연결 없는 계정은 받지 않습니다. 비밀번호 로그인은 그대로입니다.',
+          okLabel: '신뢰 켜기', ok: run }
+        : { title: (x.name || x.issuer) + ' 신뢰를 끌까요?', op: TID.issuerPatch + ' { enabled: false }',
+          rows: [['발급자', x.issuer]],
+          warn: '끄면 이 발급자의 토큰으로는 로그인할 수 없습니다. 이미 열린 세션은 다음 갱신(refresh)에서 끊깁니다. 연결 기록은 지워지지 않습니다. 켠 발급자가 하나도 남지 않으면 교환 문이 닫힙니다(404).',
+          okLabel: '끄기', ok: run } });
+    }
+
+    tidMfa(x) {
+      void this.tidCall(TID.issuerPatch, { issuer: x.issuer, require_mfa: !x.mfa }, x.mfa ? '2단계 인증 요구를 껐습니다' : '2단계 인증을 요구합니다').then((r) => { if (!r.ok) this.toast('■', '#ff6b81', '하지 못했습니다', r.msg); });
+    }
+
+    tidDelete(x) {
+      this.setState({ dlg: { title: (x.name || x.issuer) + '을(를) 지울까요?', op: TID.issuerDelete, rows: [['발급자', x.issuer], ['지금', x.enabled ? '켜짐' : '꺼짐']],
+        warn: '신뢰 목록에서 지웁니다. 사용자 연결 기록은 남고, 이 발급자로 연 세션은 다음 갱신(refresh)에서 끊깁니다. 다시 쓰려면 새로 추가하고 켜야 합니다.', okLabel: '지우기',
+        ok: async () => { const r = await this.tidCall(TID.issuerDelete, { issuer: x.issuer }, '발급자를 지웠습니다'); if (!r.ok) this.toast('■', '#ff6b81', '하지 못했습니다', r.msg); } } });
+    }
+
+    tidAfSet(p) { this.setState({ tidAf: Object.assign({}, this.state.tidAf, p, { msg: p.msg != null ? p.msg : '' }) }); }
+    async tidAddSubmit() {
+      const f = this.state.tidAf; if (!f || f.busy) return;
+      const b = issuerAddBody(f);
+      if (!b.ok) { this.tidAfSet({ msg: b.msg }); return; }
+      this.tidAfSet({ busy: true });
+      const r = await this.tidCall(TID.issuerAdd, b.body, '발급자를 추가했습니다 — 꺼진 채로');
+      if (!r.ok) { this.setState({ tidAf: Object.assign({}, this.state.tidAf, { busy: false, msg: r.msg }) }); return; }
+      this.setState({ tidAf: null });
+    }
+    tidAddForm() {
+      const f = this.state.tidAf; if (!f) return {};
+      const set = (k) => (e) => this.tidAfSet({ [k]: e.target.value });
+      return { hasForm: true, formId: 'tid-issuer', formTitle: '발급자 추가 — 꺼진 채로 추가된다', fields: [
+        { key: 'issuer', label: '발급자 주소 (issuer) *', span: 1, isIn: true, type: 'url', v: f.issuer, ph: 'https://id.terra.example', set: set('issuer') },
+        { key: 'name', label: '표시 이름', span: 1, isIn: true, type: 'text', v: f.name, ph: 'Terra ID', set: set('name') },
+        { key: 'jwks', label: 'JWKS 주소 (비우면 discovery)', span: 2, isIn: true, type: 'url', v: f.jwks, ph: 'https://id.terra.example/.well-known/jwks.json', set: set('jwks') },
+        { key: 'pinned', label: '고정 키 묶음 JSON (선택 — 발급자에 닿지 못할 때 쓰는 키)', span: 2, isIn: true, type: 'text', v: f.pinned, ph: '{"keys":[{"kty":"OKP","crv":"Ed25519","kid":"…","x":"…"}]}', set: set('pinned') }],
+        fmsg: f.msg, fmsgDisp: f.msg ? 'block' : 'none', fcancel: () => this.setState({ tidAf: null }), fok: () => this.tidAddSubmit(),
+        fokLabel: f.busy ? '보내는 중…' : '추가', fbusy: f.busy ? 'true' : 'false', fop: f.busy ? 0.6 : 1 };
+    }
+
+    /** Terra ID 신뢰 카드 — master_admin만(목록이 403이면 그리지 않는다). 없음(빈 목록)과 못 봤음(오류 · 길 없음)을 가른다 */
+    trustCard() {
+      const V = this.state.tidIss;
+      if (!V) return this.stateCard('rotate', '#9aa1ab', 'Terra ID 신뢰 목록을 불러오는 중…', '잠시만 기다리세요.');
+      if (V.state === 'denied') return null;
+      if (V.state === 'unseen') return this.stateCard('lock', '#ff6b81', 'Terra ID 신뢰 목록을 받지 못했습니다', 'Master에 닿지 않았거나 이 Gateway에 외부 발급자 관리 길(terra.master.admin.external-issuers.*)이 없습니다 — 신뢰가 꺼져 있다는 뜻이 아닙니다. ' + V.why);
+      const add = this.btn('+ 발급자', () => this.setState({ tidAf: { issuer: '', name: '', jwks: '', pinned: '', busy: false, msg: '' } }), { primary: !V.issuers.length });
+      const rows = V.issuers.length ? V.issuers.map((x) => {
+        const badges = [this.tag(x.enabled ? '신뢰 켜짐' : '꺼짐', x.enabled ? 'ok' : 'off', x.enabled ? '교환 문으로 이 발급자의 토큰을 받는다 — 연결한 사용자만' : '이 발급자의 토큰을 받지 않는다 (기본)')];
+        if (x.mfa) badges.push(this.tag('2단계 인증 요구', 'info'));
+        if (!x.audienceSet) badges.push(this.tag('aud 없음', 'warn', '실효 대상(aud)이 비어 있으면 켤 수 없다 (400)'));
+        const d = [x.audience ? 'aud ' + x.audience : '', x.jwksUri ? 'JWKS ' + x.jwksUri : 'JWKS discovery', x.kids.length ? '키 ' + x.kids.join(', ') : '키 없음', x.cachedAt ? '받은 때 ' + x.cachedAt : ''].filter(Boolean).join(' · ');
+        return this.row(x.name ? x.name + ' — ' + x.issuer : x.issuer, d, x.enabled ? '켜짐' : '꺼짐', { tmono: !x.name, badges, op: x.enabled ? 1 : 0.85,
+          btns: [this.btn(x.enabled ? '끄기' : '켜기', () => this.tidToggle(x), { primary: !x.enabled && x.audienceSet, dis: !x.enabled && !x.audienceSet, tip: !x.enabled && !x.audienceSet ? '실효 aud가 비어 있다' : '' }),
+            this.btn(x.mfa ? '2단계 요구 끄기' : '2단계 요구', () => this.tidMfa(x)),
+            this.btn('지우기', () => this.tidDelete(x), { danger: true })] });
+      }) : [this.row('신뢰 없음', TRUST_EMPTY_TEXT, '꺼짐', { vc: '#9aa1ab', badges: [this.tag('기본', 'off')] })];
+      return this.card(Object.assign({ span: 12, title: 'Terra ID 신뢰', sub: 'admin.external-issuers.* · master_admin 유형만 · ' + (V.on ? '켜짐 ' + V.on + ' · 교환 문 열림' : '교환 문 닫힘'), acts: [add], rows }, this.tidAddForm()));
+    }
+
+    tidLfSet(p) { this.setState({ tidLf: Object.assign({}, this.state.tidLf, p, { msg: p.msg != null ? p.msg : '' }) }); }
+    async tidLinkSubmit() {
+      const f = this.state.tidLf, uid = this.state.tidUser; if (!f || f.busy) return;
+      if (!uid) { this.tidLfSet({ msg: '내 신원을 모릅니다 — 다시 로그인하세요' }); return; }
+      const t = tokenPeek(f.token);
+      if (!t.ok) { this.tidLfSet({ msg: t.msg }); return; }
+      if (!audIsTree(t.aud) && !f.force) { this.tidLfSet({ msg: '토큰의 대상(aud)이 tree:<id>가 아닙니다 (' + (t.aud.join(', ') || '없음') + ') — 이 Tree용 로그인 토큰인지 보세요. 그래도 보내려면 한 번 더 누르세요.', force: true }); return; }
+      this.tidLfSet({ busy: true });
+      const r = await this.tidCall(TID.link, { user_id: uid, token: t.token }, 'Terra ID를 연결했습니다');
+      if (!r.ok) { this.setState({ tidLf: Object.assign({}, this.state.tidLf, { busy: false, force: false, msg: r.msg }) }); return; }
+      this.setState({ tidLf: null });
+    }
+    tidLinkForm() {
+      const f = this.state.tidLf; if (!f) return {};
+      return { hasForm: true, formId: 'tid-link', formTitle: 'Terra ID 로그인 토큰으로 연결', fields: [
+        { key: 'token', label: 'Terra ID 로그인 토큰 (aud = tree:<이 Tree id>) — Terra ID에서 이 Tree로 오는 화면이 붙기 전까지는 붙여 넣는다', span: 2, isIn: true, type: 'text', v: f.token, ph: 'eyJhbGciOiJFZERTQSIs…', set: (e) => this.tidLfSet({ token: e.target.value, force: false }) }],
+        fmsg: f.msg, fmsgDisp: f.msg ? 'block' : 'none', fcancel: () => this.setState({ tidLf: null }), fok: () => this.tidLinkSubmit(),
+        fokLabel: f.busy ? '보내는 중…' : '연결', fbusy: f.busy ? 'true' : 'false', fop: f.busy ? 0.6 : 1 };
+    }
+    tidUnlink(x) {
+      const uid = this.state.tidUser;
+      this.setState({ dlg: { title: '이 Terra ID 연결을 풀까요?', op: TID.unlink, rows: [['발급자', x.issuer], ['subject', x.subject], ['상태', linkStatusTag(x.status)[0]]],
+        warn: '풀면 이 Terra ID 계정으로는 이 Tree에 로그인할 수 없습니다. 비밀번호 로그인은 그대로입니다. 다시 쓰려면 새 토큰으로 다시 연결합니다.', okLabel: '연결 풀기',
+        ok: async () => { const r = await this.tidCall(TID.unlink, { user_id: uid, issuer: x.issuer, subject: x.subject }, '연결을 풀었습니다'); if (!r.ok) this.toast('■', '#ff6b81', '하지 못했습니다', r.msg); } } });
+    }
+
+    /** Terra ID로 연결 카드 — 로그인한 사람 누구나. 내 연결만 보인다 */
+    linkCard() {
+      const V = this.state.tidLinks;
+      const open = this.btn('연결', () => this.setState({ tidLf: { token: '', busy: false, msg: '', force: false } }), { primary: true });
+      let rows;
+      if (!V) rows = [this.row('불러오는 중…', '', '', { vc: '#9aa1ab' })];
+      else if (V.state === 'unseen') rows = [this.row('읽지 못함', '내 Terra ID 연결 목록을 받지 못했습니다 — 연결이 없다는 뜻이 아닙니다. Master에 닿지 않았거나 이 Gateway에 길(terra.master.users.by-user-id.external-identities.*)이 없습니다. ' + V.why, '', { vc: '#b4283c' })];
+      else if (V.state === 'empty') rows = [this.row('연결 없음', '이 계정에 연결한 Terra ID가 없습니다 — 비밀번호로만 로그인합니다', '', { vc: '#9aa1ab' })];
+      else rows = V.identities.map((x) => {
+        const [t, tone] = linkStatusTag(x.status);
+        return this.row(x.issuer, 'subject ' + x.subject + (x.linkedAt ? ' · 연결한 때 ' + x.linkedAt : ''), t, { tmono: true, badges: [this.tag(t, tone, x.status === 'suspended' ? '정지된 연결로는 로그인할 수 없다 — Tree 관리자가 푼다' : '')], op: x.status === 'suspended' ? 0.7 : 1,
+          btns: [this.btn('연결 풀기', () => this.tidUnlink(x), { danger: true })] });
+      });
+      return this.card(Object.assign({ span: 12, title: 'Terra ID로 연결', sub: 'users.by-user-id.external-identities.* · 이 Tree가 신뢰를 켠 발급자만', acts: [open], rows }, this.tidLinkForm()));
     }
 
     renderVals() {
@@ -286,6 +429,13 @@ export function realSettings(Screen) {
       if (!S.live) { only([this.stateCard('🔑', '#dde8fd', S.why === 'STANDALONE' ? 'Terra 밖에서 열었습니다' : '로그인이 필요합니다', absenceText(S.why) + ' "일반" 탭의 이 브라우저 선호만 바꿀 수 있습니다.')]); return v; }
       if (S.loading) { only([this.stateCard('⟳', '#dde8fd', '불러오는 중', '이 노드의 게이트웨이에서 값을 읽고 있습니다.')]); return v; }
       if (tab === 'account') { only(this.accountCards()); v.page.sub = 'terra.gateway.agent.whoami.get'; return v; }
+      if (tab === 'cluster' && !leaf) {
+        // Terra ID 신뢰만 이 화면에서 다룬다 — master_admin이 아니면(403) 카드가 없다. 나머지 클러스터 레코드는 여전히 닿지 않는다
+        const tc = this.trustCard();
+        only((tc ? [tc] : []).concat([this.stateCard('⛓', '#eef1f5', '사용자 · 클러스터 · 네트워크 정책은 이 화면에서 닿지 않습니다',
+          '이것들은 Master(terra.master.*)의 레코드입니다. 이 화면이 받은 앱 토큰은 Master에 닿지 않습니다 — tree 쪽 관리 화면이나 terra CLI에서 봅니다.')]));
+        return v;
+      }
       if (tab === 'cluster' || tab === 'server') {
         only([this.stateCard('⛓', '#eef1f5', (tab === 'cluster' ? '클러스터' : '서버') + ' 탭은 이 화면에서 닿지 않습니다', tab === 'cluster'
           ? '사용자 · 클러스터 · 네트워크 정책은 Master(terra.master.*)의 레코드입니다. 이 화면이 받은 앱 토큰은 Master에 닿지 않습니다 — tree 쪽 관리 화면이나 terra CLI에서 봅니다.'
