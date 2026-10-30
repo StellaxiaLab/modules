@@ -35,6 +35,7 @@ export function createGatewayTransport(o) {
     /** 장면 노드 → Terra 노드 id. 로컬이면 null(로컬 길) */
     async realId(n) {
       if (n === sceneLocal) return null;
+      if (meta[n] && meta[n].rid) return meta[n].rid;   // 실제 지도(TerraTopology)면 장면 노드가 Terra id 를 들고 있다
       if (real.has(n)) { const id = real.get(n); if (!id) throw new TerraError('NODE_UNMAPPED', (meta[n] && meta[n].name || n) + ' — Terra 노드 목록에 없음', 404); return id; }
       const list = await nodes(), m = meta[n] || {}, nm = m.name || n;
       const hit = list.find((x) => x.node_id === n || x.id === n || x.display_name === nm || x.device_name === nm || x.name === nm);

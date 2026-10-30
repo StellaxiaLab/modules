@@ -35,15 +35,17 @@
   }
   // 지도 데이터 — 씬의 트리(계정 · 트리 · 하위 트리) · 트리마다의 리프(행성) · 리프마다의 리소스(위성). 형제는 같은 궤도
   sceneMap() {
-    const sys = this.build(), N = Math.max(1, Math.min(12, this.props.planets ?? 6)), key = sys.key + ':' + N;
+    const sys = this.build(), N = Math.max(1, Math.min(12, this.props.planets ?? 6)), TP = this.TOPO ? this.TOPO() : null, key = sys.key + ':' + N + (TP ? ':' + TP.rev + ':' + TP.localId : '');
     if (this._smap && this._smap.key === key) return this._smap;
     const all = [], byId = {}, mk = (o) => { all.push(o); byId[o.id] = o; return o; };
-    const conv = (nd, parent) => { const name = nd.depth === 0 ? '계정' : nd.label, o = mk({ id: 'T' + nd.id, ref: nd.id, name, parent, kids: [], kind: nd.depth === 0 ? 'root' : 'tree', path: (parent ? parent.path : '') + '/' + name });
+    const conv = (nd, parent) => { const name = nd.depth === 0 ? '계정' : nd.label, o = mk({ id: 'T' + nd.id, ref: nd.id, name, parent, rid: nd.rid || '', kids: [], kind: nd.depth === 0 ? 'root' : 'tree', path: (parent ? parent.path : '') + '/' + name });
       sys.nodes.filter((m) => m.parent === nd).forEach((m) => o.kids.push(conv(m, o)));
-      if (nd.depth > 0) for (let k = 0; k < N; k++) { const pn = nd.label + '·' + String.fromCharCode(97 + k), L = mk({ id: 'P' + nd.id + ':' + pn, ref: nd.id, planet: pn, name: pn, parent: o, kids: [], kind: 'leaf', path: o.path + '/' + pn }); o.kids.push(L);
+      const LV = TP && nd.tpath ? TP.leaves(nd.tpath) : null;   // 실제 노드(Master 노드 목록) — 그 트리에 등록된 리프 · 없으면 시안 행성
+      if (nd.depth > 0) for (let k = 0; k < (LV ? LV.length : N); k++) { const pn = LV ? LV[k].name : nd.label + '·' + String.fromCharCode(97 + k), L = mk({ id: 'P' + nd.id + ':' + pn, rid: LV ? LV[k].id : '', ref: nd.id, planet: pn, name: pn, parent: o, kids: [], kind: 'leaf', path: o.path + '/' + pn }); o.kids.push(L);
         for (const sat of this.SATS(pn)) L.kids.push(mk({ id: 'R' + nd.id + ':' + pn + ':' + sat.name, ref: nd.id, planet: pn, name: sat.name, parent: L, kids: [], kind: 'res', path: L.path + '/' + sat.name })); }   // 리프의 리소스(위성)
       return o; };
     const root = conv(sys.nodes[0], null);
+    if (TP && TP.localId) { const me = all.find((n) => n.rid === TP.localId); if (me) me.local = true; }   // 이 GUI 를 띄운 노드
     return (this._smap = { key, root, all, byId });
   }
   // 지금 위치 — 리소스 뷰: 그 행성(리프) · 리프 뷰: 들어간 트리 · 트리 뷰: 초점 트리(처음엔 계정)

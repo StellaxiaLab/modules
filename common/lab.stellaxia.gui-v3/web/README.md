@@ -40,10 +40,11 @@ web/
 │  ├─ ui/                        dc/runtime.js(보드 실행기) · fonts.css · fonts/(Pretendard) · signals.js · dom.js · window-layer.js · base.css
 │  └─ api/                       terra.js(operation invoke · stream · 원격 잠금) · op-scope.json · node-data.js(v3 백엔드)
 │                                 session.js(B 모드 로그인 — 자격 핸들) · transport.js(노드 데이터 층의 Gateway 전송)
+│                                 topology.js(Master 노드 목록 → 지도) · push.js(로컬 이벤트 → 사본 다시 받기)
 ├─ tests/                        npm test(브라우저 없이) · smoke.mjs(Chromium)
 ├─ bench/                        렌더러 비교 페이지 (빌드에 넣지 않는다)
 ├─ tools/                        dc-board.mjs(보드 → 모듈) · bench-field.mjs · gen-op-scope.mjs
-└─ design/                       캔버스 보드 원본 (캔버스 'Terra GUI v3' 버전 266과 같다)
+└─ design/                       캔버스 보드 원본 (캔버스 'Terra GUI v3' 버전 267과 같다)
    ├─ canvas.json · Scene.dc.html(생성물) · Field · Login · 창 컴포넌트 · TerraNodes(노드 데이터 층) · 단독 시안 보드 · Sheet
    └─ build/                     보드를 굽는 도구 (아래)
 ```

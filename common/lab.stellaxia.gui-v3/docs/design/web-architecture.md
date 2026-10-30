@@ -11,7 +11,7 @@ version: "0.3.0"
 last_updated: "2026-10-29"
 language: "ko-KR"
 based_on:
-  - "캔버스 'Terra GUI v3' 버전 266(web/design 과 같다)의 Scene.dc.html(fieldRec · glyphAtlas · fieldFlush) · 창 보드들"
+  - "캔버스 'Terra GUI v3' 버전 267(web/design 과 같다)의 Scene.dc.html(fieldRec · glyphAtlas · fieldFlush) · 창 보드들"
   - "Terra main 2026-10-28 — Gateway gui_apps.go(appAssetCSP · capabilities), Daemon 계약 terra-api.json"
 os_priority:
   - Linux
@@ -190,12 +190,14 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 | `api/op-scope.json` | Daemon operation 78개의 원격 개방(`availability.scopes`) · 권한 · 위험도. **그 노드에서만인 것 26개** — 원격 제어기의 잠금 표시가 읽는다. `tools/gen-op-scope.mjs --terra <체크아웃>` 이 Terra 계약에서 뽑고, `--check` 로 어긋남을 본다 |
 | `api/node-data.js` | v3 백엔드 — 프로필 · 노드 속성([[backend\|백엔드 설계]]) |
 | `api/session.js` | B 모드 로그인 — `POST /api/v1/auth/credentials` → 자격 핸들(이 탭에만), 실패 말, 로그아웃 폐기 |
+| `api/topology.js` | Master 노드 목록 → 씬 지도(`window.TerraTopology` — 트리 · 리프 · 로컬)([[node-data\|노드 데이터와 분할]] §5) |
+| `api/push.js` | 로컬 Daemon 이벤트 스트림 → 건드린 자원의 사본을 곧바로 다시 받기 |
 | `api/transport.js` | 노드 데이터 층(보드 `TerraNodes`)의 Gateway 전송 — 로컬 · 원격 길, 장면 노드 ↔ Terra 노드 묶기, Master 관측, 보기 상태를 계정 문서로([[node-data\|노드 데이터와 분할]]) |
 
 `canRemote(id)` 가 false 인 operation 을 다른 노드로 부르면 나가기 전에 `LOCAL_ONLY` 로 멈춘다.
 자격은 두 갈래 — `authorization()`(B 모드: `Handle <id>`)이 있으면 그것을, 없으면 `token()`(A 모드: 셸이 준 스코프 토큰 `Bearer tsa_…`). Gateway 에 못 닿으면 `NETWORK`, 코드 없는 502 · 504 는 `GATEWAY_UNREACHABLE` · `TIMEOUT` 으로 이름을 붙인다 — 노드 데이터 층이 분할로 읽는다.
 
-`boot/main.js` 는 보드를 고치지 않고 두 자리만 잇는다: 로그인 보드의 `login()`(Gateway 로그인이 되면 시안의 전환) · 씬의 `sceneLogout()`(핸들 폐기 · 사본 비우기). `window.TerraTransport` 를 세우면 보드 `TerraNodes` 가 목업 대신 그것을 쓴다. `?demo` 면 둘 다 하지 않는다(목업).
+`boot/main.js` 는 보드를 고치지 않고 몇 자리만 잇는다: 로그인 보드의 `login()`(Gateway 로그인 → 지도 · Tree 길 받기 → 시안의 전환) · Tree 로그인 보드의 `login()` · [주소 묻기](그 Tree 의 GUI 로 옮겨 감) · 씬의 `sceneLogout()`(핸들 폐기 · 사본 · 지도 비우기 · 스트림 닫기). `window.TerraTransport` 를 세우면 보드 `TerraNodes` 가 목업 대신 그것을 쓴다. `?demo` 면 둘 다 하지 않는다(목업).
 
 명령 실행(`terra.daemon.commands.execute`)은 `command` 와 `args` 를 **빈칸으로 이어 붙여 시스템 셸에 한 줄로** 넘긴다(계약 설명).
 그래서 제어기의 "파일에서 설치"(`terra module install <파일> --grant-reviewed …`)는 경로를 셸에 맞게 감싼다 — `shellArg()` · `moduleInstallCommand()`.
@@ -223,7 +225,7 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 
 1. 장면 계산을 Worker 로 — 씬 코드의 DOM 접근(캔버스 · `setState` · 창)을 떼어 칸 기록 계산만 Worker 에서. 지금은 그리기만 Worker
 2. 전역 틀 글자 층(`data-gf`)과 로그인 장면의 글자 장도 같은 GPU 렌더러로, 별 · 궤도 · 행성(3D 2D 층)을 같은 GL 층으로
-3. 시안의 예시 값을 api 호출로 — 0.3.0 에서 로그인(B 모드) · 노드 폴더 › 모듈 · 모듈 상태(시작 · 멈춤 · 다시 시작) · 제어기 묶음 읽기가 노드 데이터 층으로 붙었다. 남은 것: 지도(Master 노드 목록) · Tree 로그인 · 브라우저(Gateway gui/apps) · 제어기 편집 → operation([[node-data\|노드 데이터와 분할]] §7)
+3. 시안의 예시 값을 api 호출로 — 로그인(B 모드) · 지도(Master 노드 목록) · 노드 폴더 › 모듈 · 모듈 상태 · 제어기 읽기 · 편집 → operation · Tree 로그인(옮겨 가기) · 로컬 이벤트 밀어 받기가 붙었다. 남은 것: 브라우저(Gateway gui/apps) · 실제 응답 모양 맞추기([[node-data\|노드 데이터와 분할]] §7)
 4. GmarketSans 파일 · 가상 목록 · 실 GPU 에서 `npm run bench -- --gpu`
 
 ## 관련 문서

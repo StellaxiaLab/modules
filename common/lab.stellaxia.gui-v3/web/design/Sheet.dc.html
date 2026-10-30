@@ -265,6 +265,11 @@ TEST(창 아래 점선 위 한 줄) — email 아무거나(@ 포함) + password 
 <li>보기 상태는 노드 데이터가 아니다 — 제어기 창 배치 · 바탕화면 · 아이콘 · 열린 앱 · 설정 탭 · 터미널 기록은 GUI 것. 노드 키마다 따로 저장(웹 빌드: 계정 문서 <code>me/documents/gui-v3/view/desk.&lt;노드&gt;</code>, 이 브라우저에도 사본). 제어기를 닫았다 다시 열어도 · 같은 자리를 다른 노드가 써도 섞이지 않는다(노드가 바뀌면 지금 것을 저장하고 그 노드 것을 불러옴). 상단 바 '화면 배치 저장됨'</li>
 <li>시험(시안) — 우클릭 › '끊기 (시험)' · '잇기 (시험)' 으로 그 노드를 끊고 잇는다. 보드 '노드 데이터 층'을 열면 사본 표(노드 · 자원 · 나이 · 출처 · 링크)</li>
 <li>로그인(B 모드 · 제품 셸) — 로그인 화면의 Login 이 Gateway 에 로그인(<code>POST /api/v1/auth/credentials</code>) → 토큰 대신 자격 핸들, 그 뒤 모든 호출에 <code>Authorization: Handle …</code>(이 탭에만). 실패하면 그 자리에 말(이메일 또는 비밀번호가 맞지 않아요 · Gateway 에 닿지 못해요 …). 로그아웃은 Gateway 에서도 폐기하고 사본을 비운다. 로그인 전에는 노드를 두드리지 않는다. 주소 뒤 <code>?demo</code> = Terra 없이 목업</li>
+<li>실제 지도(B 모드) — 로그인되면 전환 전에 Master 노드 목록(<code>terra.master.nodes.get</code>)을 받아 항성계를 그것으로 그린다: 트리 = 다른 노드의 부모이거나 역할이 tree, 트리끼리 parent_node_id 로 잇고 리프는 그 부모 트리의 행성(트리마다 12 개까지, 이름 · 상태 그대로). 로컬 = 로컬 Daemon status 의 node_id. 4초 안에 못 받으면 시안 지도로 들어가고 오면 바꾼다. 실제 지도의 노드는 지금 세션의 범위라 Tree 로그인 문이 서지 않는다</li>
+<li>제어기 편집 → operation — 모듈 시작 · 멈춤 · 다시 시작 · 제거 · 설정 저장(<code>modules.by-module-id.*</code>), 장치 승인 · 거절 · 켜기 · 끄기 · 점검 · 잊기 · 별칭(칸을 떠날 때, <code>io.devices.by-device-id.*</code>), 자원 선언(서비스 = net · 폴더 = file, 이름은 소문자 · 숫자 · -) · 선언 해제 · 은퇴 잊기(<code>svi.declarations.*</code>), 터널 닫기, Tree 지정 동의 · 철회, 노드 설정 · 공유 폴더 저장(<code>config.patch{set, save}</code>, 이 노드에서만), 노드 다시 시작. 보내기 전에 사본에 먼저(낙관), 끝나면 그 노드에서 다시 받는다. 입력 중인 초안(설정 값 · 별칭 글자)은 사본에만</li>
+<li>다른 Tree 로그인(실제) — 앱 CSP 가 다른 Gateway 를 부르지 못하게 하므로 그 Tree 의 GUI(login_url)로 <b>옮겨 가</b> 거기서 로그인한다. 길은 Master crossboundary login-routes(부모 · 형제 · 자식), 자식은 [주소 묻기](resolve)로 주소를 받는다. 주소가 없으면 '로그인 주소가 없음'. 우클릭 › Tree 로그인</li>
+<li>밀어 받기 — 로컬 Daemon 이벤트 스트림(<code>events.get</code>)이 오면 건드린 자원(모듈 · 작업 · 장치 · 설정 · 자원 선언 · 상태)의 사본을 곧바로 다시 받는다(0.3초 묶음). 끊기면 5초부터 두 배씩 최대 60초 뒤 다시. 원격 노드는 TTL 그대로</li>
+<li>상단 바 '부모' — 그 노드의 부모 트리 이름(지도에서)</li>
 </ul></div>
 <div class="card"><h3>전역 틀 — 로컬 위치</h3>
 <ul>
