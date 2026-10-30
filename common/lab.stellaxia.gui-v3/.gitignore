@@ -1,0 +1,4 @@
+bin/
+/ui/
+web/node_modules/
+__pycache__/

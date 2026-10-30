@@ -1,0 +1,27 @@
+<div class="ns" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
+  <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>status</span><b class="ns-v">{{name}}</b><span class="ns-k">{{kind}}</span><span style="flex: 1;"></span><span style="color: {{stCol}};">● {{stText}}</span><span class="ns-k">{{uptime}}</span></div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>동작<span class="ns-hr"></span><span class="ns-k">{{tick}}</span></h3>
+  <div class="ns-grid">
+    <span class="ns-k">상태</span><span class="ns-v">{{proc}}</span><span class="ns-k">pid</span><span>{{pid}}</span>
+    <span class="ns-k">코어</span><span>{{core}}</span><span class="ns-k">재시작</span><span>{{restarts}}</span>
+    <span class="ns-k">역할</span><span>{{role}}</span><span class="ns-k">부모</span><span>{{parent}}</span>
+  </div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>자원<span class="ns-hr"></span></h3>
+  <sc-for list="{{bars}}" as="b" hint-placeholder-count="3">
+    <div class="ns-bar"><span class="ns-k">{{b.name}}</span><span class="ns-track"><span class="ns-fill" style="width: {{b.pct}}%; background: {{b.col}};"></span><span class="ns-tick" style="left: 75%;"></span></span><span class="ns-v" style="text-align: right;">{{b.pctT}}</span><span class="ns-k">{{b.note}}</span></div>
+  </sc-for>
+  <div class="ns-bar"><span class="ns-k">NET</span><span class="ns-spark">{{spark}}</span><span class="ns-v" style="text-align: right;">{{netIn}}</span><span class="ns-k">↑ {{netOut}}</span></div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>healthcheck<span class="ns-hr"></span><span class="ns-k">{{hcSum}}</span></h3>
+  <sc-for list="{{checks}}" as="c" hint-placeholder-count="4">
+    <div class="ns-hc"><span style="color: {{c.col}}; font-weight: 700;">{{c.mark}}</span><span>{{c.name}}</span><span class="ns-lat"><span style="width: {{c.w}}%; background: {{c.col}};"></span></span><span style="text-align: right;">{{c.ms}}</span><span style="color: {{c.col}};">{{c.state}}</span></div>
+  </sc-for>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>최근 이벤트<span class="ns-hr"></span></h3>
+  <sc-for list="{{events}}" as="ev" hint-placeholder-count="4">
+    <div class="ns-ev"><span class="ns-k">{{ev.t}}</span><span style="color: {{ev.col}};">{{ev.lv}}</span><span>{{ev.msg}}</span></div>
+  </sc-for>
+  <div class="ns-row" style="margin-top: 6px;"><span class="ns-p">&gt;</span><span class="ns-cur"></span></div>
+</div>

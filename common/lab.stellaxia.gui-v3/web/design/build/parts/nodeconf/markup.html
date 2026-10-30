@@ -1,0 +1,38 @@
+<div class="nc" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; display: grid; grid-template-columns: 190px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; background: #040614; color: #d6f4de; font: 500 12px GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif;">
+  <nav aria-label="설정 분류" class="nc-nav">
+    <div class="nc-id"><b>{{name}}</b><span class="nc-k">{{kind}} · {{nodeId}}</span></div>
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+      <div class="nc-gh"><span class="nc-hl"></span>{{g.name}}<span class="nc-hr"></span></div>
+      <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+        <button type="button" class="nc-ni {{it.cls}}" aria-current="{{it.cur}}" onClick="{{it.pick}}">{{it.name}}<span class="nc-badge">{{it.badge}}</span></button>
+      </sc-for>
+    </sc-for>
+  </nav>
+  <main class="nc-main" aria-label="{{secName}}">
+    <h2 class="nc-h"><span class="nc-hl"></span>{{secName}}<span class="nc-hr"></span><span class="nc-k">{{secGroup}}</span></h2>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+      <div class="nc-row">
+        <div class="nc-lab"><span>{{r.label}}</span><span class="nc-k">{{r.sub}}</span><sc-if value="{{r.isMeta}}" hint-placeholder-val="{{ false }}"><span class="nc-meta"><code>{{r.keyT}}</code><span class="nc-tag {{r.tagCls}}">{{r.tagT}}</span><span class="nc-rs">{{r.rsT}}</span></span></sc-if></div>
+        <div class="nc-ctl">
+          <sc-if value="{{r.isToggle}}" hint-placeholder-val="{{ true }}"><button type="button" class="nc-tg {{r.tgCls}}" aria-pressed="{{r.on}}" onClick="{{r.toggle}}"><span class="nc-tgk"></span>{{r.tgT}}</button></sc-if>
+          <sc-if value="{{r.isSeg}}" hint-placeholder-val="{{ false }}"><span class="nc-seg"><sc-for list="{{r.opts}}" as="o" hint-placeholder-count="3"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span></sc-if>
+          <sc-if value="{{r.isText}}" hint-placeholder-val="{{ false }}"><label class="nc-in"><span>&gt;</span><input type="text" value="{{r.val}}" placeholder="{{r.ph}}" onInput="{{r.input}}" spellcheck="false" aria-label="{{r.label}}" readonly="{{r.ro}}"></label></sc-if>
+          <sc-if value="{{r.isRange}}" hint-placeholder-val="{{ false }}"><input type="range" min="{{r.min}}" max="{{r.max}}" step="{{r.step}}" value="{{r.val}}" onInput="{{r.input}}" aria-label="{{r.label}}"><span class="nc-val">{{r.valT}}</span></sc-if>
+          <sc-if value="{{r.isChips}}" hint-placeholder-val="{{ false }}"><span class="nc-chips"><sc-for list="{{r.chips}}" as="c" hint-placeholder-count="2"><span class="nc-chip">{{c.name}}<button type="button" aria-label="{{c.name}} 빼기" onClick="{{c.del}}">×</button></span></sc-for><label class="nc-in nc-in-s"><span>+</span><input type="text" placeholder="이름 — Enter" value="{{r.draft}}" onInput="{{r.input}}" onKeyDown="{{r.key}}" spellcheck="false" aria-label="{{r.label}} 더하기"></label></span></sc-if>
+          <sc-if value="{{r.isProf}}" hint-placeholder-val="{{ false }}"><span class="nc-prof"><span class="nc-pav"><sc-if value="{{r.hasImg}}" hint-placeholder-val="{{ false }}"><img src="{{r.pImg}}" alt="프로필 미리보기"></sc-if><sc-if value="{{r.noImg}}" hint-placeholder-val="{{ true }}"><span class="nc-sk0">◍</span></sc-if></span><span class="nc-pcol"><span class="nc-prow"><label class="nc-btn">이미지 · GIF 올리기<input type="file" accept="image/*" onChange="{{r.pick}}" style="display: none;"></label><button type="button" class="nc-btn" onClick="{{r.clear}}">지우기</button></span><sc-if value="{{r.help}}" hint-placeholder-val="{{ false }}"><span class="nc-k">파일 › {{r.pPath}}</span><span class="nc-k">경로 기록 › {{r.pProps}}</span></sc-if></span></span></sc-if>
+          <sc-if value="{{r.isSkin}}" hint-placeholder-val="{{ false }}"><span class="nc-skins" role="radiogroup" aria-label="{{r.label}}"><sc-for list="{{r.skins}}" as="k" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{k.on}}" class="nc-skin {{k.cls}}" onClick="{{k.pick}}"><sc-if value="{{k.noThumb}}" hint-placeholder-val="{{ false }}"><span class="nc-sk0">◍</span></sc-if><sc-if value="{{k.hasThumb}}" hint-placeholder-val="{{ true }}"><img src="{{k.thumb}}" alt="" width="40" height="40"></sc-if><span class="nc-skn">{{k.name}}</span><span class="nc-k">{{k.path}}</span></button></sc-for></span><span class="nc-k">{{r.skinEmpty}}</span></sc-if>
+          <sc-if value="{{r.isDanger}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-danger {{r.dCls}}" onClick="{{r.act}}" disabled="{{r.dOff}}">{{r.dT}}</button></sc-if>
+          <sc-if value="{{r.isList}}" hint-placeholder-val="{{ false }}"><ul class="nc-list"><sc-for list="{{r.items}}" as="it" hint-placeholder-count="3"><li><sc-if value="{{it.hasRun}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-rn" title="자원 상태" onClick="{{it.run}}">{{it.t}}</button></sc-if><sc-if value="{{it.noRun}}" hint-placeholder-val="{{ true }}">{{it.t}}</sc-if><sc-if value="{{it.hasAct}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-out" onClick="{{it.act}}">{{it.actT}}</button></sc-if></li></sc-for></ul></sc-if>
+          <sc-if value="{{r.isDirs}}" hint-placeholder-val="{{ false }}"><span class="nc-dirs"><sc-for list="{{r.dirs}}" as="dd" hint-placeholder-count="1"><span class="nc-dir"><label class="nc-in nc-in-s"><span>@</span><input type="text" value="{{dd.name}}" onInput="{{dd.inName}}" spellcheck="false" aria-label="공유 이름"></label><label class="nc-in"><span>&gt;</span><input type="text" value="{{dd.path}}" placeholder="~/TerraShare" onInput="{{dd.inPath}}" spellcheck="false" aria-label="공유 경로"></label><button type="button" class="nc-x" aria-label="이 공유 폴더 빼기" onClick="{{dd.del}}">×</button></span></sc-for><button type="button" class="nc-btn nc-add" onClick="{{r.add}}">+ 공유 폴더</button></span></sc-if>
+          <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn" onClick="{{r.noteRun}}">{{r.actT}}</button></sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </main>
+  <footer class="nc-foot">
+    <span class="nc-k">{{dirtyT}}</span><span style="flex: 1;"></span><span class="nc-msg" aria-live="polite">{{msg}}</span>
+    <button type="button" class="nc-btn nc-warn" style="display: {{restartD}};" onClick="{{restartNow}}">지금 다시 시작</button>
+    <button type="button" class="nc-btn" onClick="{{revert}}" disabled="{{clean}}">되돌리기</button>
+    <button type="button" class="nc-btn nc-pri" onClick="{{apply}}" disabled="{{clean}}">적용</button>
+  </footer>
+</div>

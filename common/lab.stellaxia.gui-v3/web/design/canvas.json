@@ -1,0 +1,246 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Emerge.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "is_interactive": true,
+      "title": "컴포넌트 생성 — 융기 6단계",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "Field.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "is_interactive": true,
+      "title": "글자 장 — 빈 화면",
+      "w": 1440,
+      "x": 6080,
+      "y": 1200
+    },
+    "GlobalRef.dc.html": {
+      "h": 1700,
+      "title": "전역 틀 레퍼런스",
+      "w": 1440,
+      "x": 1520,
+      "y": 2400
+    },
+    "Leaf.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "is_interactive": true,
+      "title": "리프 뷰",
+      "w": 1440,
+      "x": 1520,
+      "y": 1200
+    },
+    "Login.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "is_interactive": true,
+      "title": "로그인 — 씬",
+      "w": 1440,
+      "x": 10440,
+      "y": 1200
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "is_interactive": true,
+      "title": "메인 레퍼런스 — 글자 장 · 로고",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "ModStatus.dc.html": {
+      "h": 620,
+      "is_interactive": true,
+      "title": "모듈 상태 창",
+      "w": 600,
+      "x": 17260,
+      "y": 1200
+    },
+    "NodeConf.dc.html": {
+      "h": 600,
+      "is_interactive": true,
+      "title": "설정 창",
+      "w": 860,
+      "x": 13860,
+      "y": 1200
+    },
+    "NodeDesktopEmbed.dc.html": {
+      "h": 760,
+      "is_interactive": true,
+      "title": "제어기 창 — 노드 데스크톱 (V2, 씬 · 전역 틀이 불러 씀)",
+      "w": 1240,
+      "x": 9120,
+      "y": 1200
+    },
+    "NodeShare.dc.html": {
+      "h": 600,
+      "is_interactive": true,
+      "title": "자원 창",
+      "w": 860,
+      "x": 14840,
+      "y": 1200
+    },
+    "NodeStatus.dc.html": {
+      "h": 540,
+      "is_interactive": true,
+      "title": "상태 창 — 동작 · 자원 · healthcheck (우클릭 › 상태)",
+      "w": 560,
+      "x": 13180,
+      "y": 1200
+    },
+    "ResStatus.dc.html": {
+      "h": 600,
+      "is_interactive": true,
+      "title": "자원 상태 창",
+      "w": 600,
+      "x": 15820,
+      "y": 1200
+    },
+    "Resource.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "is_interactive": true,
+      "title": "리소스 뷰",
+      "w": 1440,
+      "x": 3040,
+      "y": 1200
+    },
+    "Scene.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "is_interactive": true,
+      "title": "씬 — 트리 · 리프 · 리소스 한 화면",
+      "w": 1440,
+      "x": 4521,
+      "y": 1314
+    },
+    "Sheet.dc.html": {
+      "expand": "fill",
+      "h": 4700,
+      "title": "컴포넌트 시트",
+      "w": 1440,
+      "x": 0,
+      "y": 2400
+    },
+    "StarMaker.dc.html": {
+      "h": 720,
+      "is_interactive": true,
+      "title": "스타메이커 — 구(항성 · 행성) 만들기 창 (유틸 › 스타메이커)",
+      "w": 1100,
+      "x": 11960,
+      "y": 1200
+    },
+    "TerraNodes.dc.html": {
+      "h": 360,
+      "is_interactive": true,
+      "title": "노드 데이터 층 — 사본 · PA/EL",
+      "w": 720,
+      "x": 19100,
+      "y": 1200
+    },
+    "Tree.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "is_interactive": true,
+      "title": "트리 뷰 — 항성계",
+      "w": 1440,
+      "x": 0,
+      "y": 1200
+    },
+    "TreeLogin.dc.html": {
+      "h": 540,
+      "is_interactive": true,
+      "title": "Tree 로그인 창",
+      "w": 600,
+      "x": 16540,
+      "y": 1200
+    },
+    "Warp.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "is_interactive": true,
+      "title": "화면 전환 — 워프",
+      "w": 1440,
+      "x": 7600,
+      "y": 1200
+    },
+    "WebBrowser.dc.html": {
+      "h": 680,
+      "is_interactive": true,
+      "title": "브라우저 창",
+      "w": 1000,
+      "x": 17980,
+      "y": 1200
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-25T10:30:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "noteOrder": [
+    "title-base",
+    "title-views",
+    "title-sheet"
+  ],
+  "notes": {
+    "title-base": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "메인 레퍼런스 — 글자 장(場)",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "title-sheet": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "시트 — 컴포넌트 타입 · 종류 · 옵션",
+      "w": 240,
+      "x": 0,
+      "y": 2260
+    },
+    "title-views": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "뷰 — 트리 · 리프 · 리소스 · 씬(통합)",
+      "w": 240,
+      "x": 0,
+      "y": 1060
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Emerge.dc.html",
+    "Tree.dc.html",
+    "Leaf.dc.html",
+    "Resource.dc.html",
+    "Scene.dc.html",
+    "Sheet.dc.html",
+    "GlobalRef.dc.html",
+    "Field.dc.html",
+    "Warp.dc.html",
+    "NodeDesktopEmbed.dc.html",
+    "Login.dc.html",
+    "StarMaker.dc.html",
+    "NodeStatus.dc.html",
+    "NodeConf.dc.html",
+    "NodeShare.dc.html",
+    "ResStatus.dc.html",
+    "TreeLogin.dc.html",
+    "ModStatus.dc.html",
+    "WebBrowser.dc.html",
+    "TerraNodes.dc.html"
+  ],
+  "pages": [],
+  "title": "Terra GUI v3 베이스"
+}

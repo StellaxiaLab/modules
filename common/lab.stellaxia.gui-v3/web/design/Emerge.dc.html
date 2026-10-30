@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 컴포넌트 융기</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;700&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#040614;color:#e6eaf7}
+::selection{background:#e6eaf7;color:#040614}
+:root{--ease-out:cubic-bezier(0.23,1,0.32,1)}
+.stage{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;min-height:28px;padding:0 10px;border-radius:6px;font-size:13px;color:#7682ab}
+.stage .no{font-family:GmarketSans,"Geist Mono",monospace;font-size:12px}
+.stage .ms{font-family:GmarketSans,"Geist Mono",monospace;font-size:11.5px}
+.stage.on{color:#e6eaf7}
+.stage.now{color:#040614;background:#e6eaf7}
+.stage.off{color:#46507a;text-decoration:line-through}
+.replay{font:inherit;cursor:pointer;display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:7px;font-size:13px;color:#e6eaf7;background:transparent;border:1px solid #2c3558;transition:transform 160ms var(--ease-out),border-color 150ms ease}
+.replay:active{transform:scale(0.97)}
+.type{flex:1;font:inherit;cursor:pointer;min-height:32px;padding:0 6px;border-radius:6px;font-size:12px;color:#7682ab;background:transparent;border:1px solid #1c2442;transition:transform 160ms var(--ease-out),border-color 150ms ease,color 150ms ease}
+.type.sel{color:#040614;background:#e6eaf7;border-color:#e6eaf7}
+.type:active{transform:scale(0.97)}
+.type:focus-visible{outline:1px solid #e6eaf7;outline-offset:2px}
+@media (hover:hover) and (pointer:fine){.type:not(.sel):hover{border-color:#56628f;color:#e6eaf7}}
+.replay:focus-visible{outline:1px solid #e6eaf7;outline-offset:3px}
+@media (hover:hover) and (pointer:fine){.replay:hover{border-color:#56628f}}
+@media (prefers-reduced-motion:reduce){.replay{transition:border-color 150ms ease}.replay:active{transform:none}}
+@font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
+</style>
+</helmet>
+<div onPointerDown="{{spawnAt}}" style="position: relative; min-height: 100vh; background: linear-gradient(178deg, #060a1d 0%, #040614 46%, #020308 100%); font-family: GmarketSans, Geist, 'Noto Sans KR', system-ui, sans-serif; color: #e6eaf7; overflow: hidden; isolation: isolate; cursor: crosshair">
+
+<canvas data-under="emerge" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 0"></canvas>
+<div data-comp="1" aria-hidden="{{compHidden}}" onPointerDown="{{dragStart}}" onPointerMove="{{dragMove}}" onPointerUp="{{dragEnd}}" onPointerCancel="{{dragEnd}}" style="touch-action: none; cursor: {{comp.cursor}}; position: absolute; left: {{comp.left}}; top: {{comp.top}}; width: {{comp.w}}; height: {{comp.h}}; z-index: {{comp.z}}; visibility: {{comp.vis}}; box-sizing: border-box; background: {{comp.bg}}; border: {{comp.border}}; border-radius: 10px; padding: {{comp.pad}}; display: flex; flex-direction: column; justify-content: space-between">
+<canvas data-comp-text="1" role="img" aria-label="{{comp.text}}" style="display: {{comp.textDisp}}; position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none"></canvas>
+<div style="display: {{comp.rectDisp}}; flex-direction: column; gap: 6px">
+<span style="font-size: 16px; font-weight: 500">사각형 컴포넌트</span>
+<span style="font-size: 13px; color: #9ba6c9">글자 장 아래에서 솟아오른다</span>
+</div>
+<span style="display: {{comp.labelDisp}}; font-family: GmarketSans, 'Geist Mono', monospace; font-size: 12px; color: #7682ab">{{comp.label}}</span>
+</div>
+
+<sc-for list="{{parts}}" as="pt" hint-placeholder-count="0">
+<canvas data-part="{{pt.id}}" role="img" aria-label="{{pt.text}}" style="position: absolute; left: {{pt.left}}; top: {{pt.top}}; width: {{pt.w}}; height: {{pt.h}}; z-index: {{pt.z}}; visibility: {{pt.vis}}; pointer-events: none"></canvas>
+</sc-for>
+<canvas data-field="emerge" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 1"></canvas>
+
+<section aria-label="융기 단계" onPointerDown="{{stopProp}}" style="position: absolute; left: 32px; bottom: 32px; z-index: 3; width: 320px; box-sizing: border-box; padding: 16px; border-radius: 10px; background: #040614; border: 1px solid #1c2442; display: flex; flex-direction: column; gap: 12px; cursor: default">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h1 style="margin: 0; font-size: 14px; font-weight: 600">{{heading}}</h1>
+<span style="font-family: GmarketSans, 'Geist Mono', monospace; font-size: 11.5px; color: #7682ab">{{total}}</span>
+</div>
+<div role="group" aria-label="컴포넌트 종류" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px">
+<sc-for list="{{kinds}}" as="kd" hint-placeholder-count="4">
+<button class="type {{kd.cls}}" type="button" aria-pressed="{{kd.pressed}}" onClick="{{kd.pick}}">{{kd.name}}</button>
+</sc-for>
+</div>
+<div role="group" aria-label="원본" style="display: flex; gap: 4px">
+<sc-for list="{{types}}" as="ty" hint-placeholder-count="3">
+<button class="type {{ty.cls}}" type="button" aria-pressed="{{ty.pressed}}" onClick="{{ty.pick}}">{{ty.name}}</button>
+</sc-for>
+</div>
+<button class="type {{rs.cls}}" type="button" aria-pressed="{{rs.pressed}}" onClick="{{rs.toggle}}" style="display: {{rs.disp}}">{{rs.label}}</button>
+<button class="type {{hb.cls}}" type="button" aria-pressed="{{hb.pressed}}" onClick="{{hb.toggle}}" style="display: {{hb.disp}}">{{hb.label}}</button>
+<button class="type {{tr.cls}}" type="button" aria-pressed="{{tr.pressed}}" onClick="{{tr.toggle}}" style="display: {{tr.disp}}">{{tr.label}}</button>
+<button class="type {{gl.cls}}" type="button" aria-pressed="{{gl.pressed}}" onClick="{{gl.toggle}}" style="display: {{gl.disp}}">{{gl.label}}</button>
+<div role="group" aria-label="텍스트 모션" style="display: {{tm.disp}}; gap: 4px; align-items: center">
+<span style="font-size: 12px; color: #7682ab; white-space: nowrap; padding-right: 4px">모션</span>
+<sc-for list="{{tm.opts}}" as="to" hint-placeholder-count="3">
+<button class="type {{to.cls}}" type="button" aria-pressed="{{to.pressed}}" onClick="{{to.pick}}">{{to.name}}</button>
+</sc-for>
+</div>
+<div role="group" aria-label="랜덤 갱신 주기" style="display: {{tc.disp}}; gap: 4px; align-items: center">
+<span style="font-size: 12px; color: #7682ab; white-space: nowrap; padding-right: 4px">갱신 주기</span>
+<sc-for list="{{tc.opts}}" as="tq" hint-placeholder-count="2">
+<button class="type {{tq.cls}}" type="button" aria-pressed="{{tq.pressed}}" onClick="{{tq.pick}}">{{tq.name}}</button>
+</sc-for>
+</div>
+<div role="group" aria-label="영역 확장 방향" style="display: {{ex.disp}}; gap: 4px; align-items: center">
+<span style="font-size: 12px; color: #7682ab; white-space: nowrap; padding-right: 4px">{{ex.label}}</span>
+<sc-for list="{{ex.opts}}" as="eo" hint-placeholder-count="5">
+<button class="type {{eo.cls}}" type="button" aria-pressed="{{eo.pressed}}" aria-label="{{eo.label}}" onClick="{{eo.pick}}">{{eo.name}}</button>
+</sc-for>
+</div>
+<div role="group" aria-label="비운 자리에 보일 것" style="display: {{mb.disp}}; gap: 4px; align-items: center">
+<span style="font-size: 12px; color: #7682ab; white-space: nowrap; padding-right: 4px">비운 자리</span>
+<sc-for list="{{mb.opts}}" as="mo" hint-placeholder-count="2">
+<button class="type {{mo.cls}}" type="button" aria-pressed="{{mo.pressed}}" onClick="{{mo.pick}}">{{mo.name}}</button>
+</sc-for>
+</div>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{stages}}" as="s" hint-placeholder-count="4">
+<li class="stage {{s.cls}}"><span class="no">{{s.no}}</span><span>{{s.name}}</span><span class="ms">{{s.ms}}</span></li>
+</sc-for>
+</ol>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<span style="font-size: 12px; line-height: 1.5; color: #7682ab">끌어 옮기기<br>빈 곳을 누르면 새로</span>
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px">
+<button class="replay" type="button" onClick="{{replay}}">솟기</button>
+<button class="replay" type="button" onClick="{{sinkIt}}">들어가기</button>
+<button class="replay" type="button" onClick="{{switchIt}}" style="display: {{sw.disp}}">{{sw.label}}</button>
+</div>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"stage1_create":{"editor":"boolean","default":true,"section":"단계"},"stage2_dissolve":{"editor":"boolean","default":true,"section":"단계"},"stage3_rise":{"editor":"boolean","default":true,"section":"단계"},"stage4_restore":{"editor":"boolean","default":false,"section":"단계"},"overlap":{"editor":"range","min":0,"max":0.85,"step":0.05,"default":0.5,"section":"재생"},"tempo":{"editor":"range","min":0.25,"max":2,"step":0.05,"default":1,"section":"재생"},"loop":{"editor":"boolean","default":false,"section":"재생"},"compType":{"editor":"enum","options":["레거시","마스크","혼합","텍스트"],"default":"레거시","section":"컴포넌트"},"legacySrc":{"editor":"enum","options":["사각형","글자"],"default":"사각형","section":"컴포넌트"},"maskSrc":{"editor":"enum","options":["이미지","카드","글자"],"default":"이미지","section":"컴포넌트"},"text":{"editor":"enum","options":["TERRA","Gateway","노드"],"default":"TERRA","section":"컴포넌트"},"elemSize":{"editor":"range","min":32,"max":200,"step":4,"default":96,"unit":"px","section":"컴포넌트"},"expandFrom":{"editor":"enum","options":["중앙","위","아래","왼쪽","오른쪽"],"default":"중앙","section":"단계"},"holeBack":{"editor":"enum","options":["어둡게","비움"],"default":"어둡게","section":"단계"},"holeDim":{"editor":"range","min":0.1,"max":0.9,"step":0.05,"default":0.6,"section":"단계"},"holeFloor":{"editor":"range","min":0,"max":1,"step":0.05,"default":0.6,"section":"단계"},"mixBack":{"editor":"enum","options":["원본 컴포넌트","배경"],"default":"원본 컴포넌트","section":"컴포넌트"},"maskCell":{"editor":"enum","options":["넓이","중심점"],"default":"넓이","section":"컴포넌트"},"maskTextSize":{"editor":"range","min":80,"max":320,"step":4,"default":180,"unit":"px","section":"컴포넌트"},"dataText":{"editor":"enum","options":["TERRA GUI v3","node-07 · 온라인","CPU 42% · MEM 61%","트리 3 · 리프 12"],"default":"node-07 · 온라인","section":"텍스트"},"dataDir":{"editor":"enum","options":["좌","우","중","동시"],"default":"좌","section":"텍스트"},"textMotion":{"editor":"enum","options":["랜덤 갱신","명도 번짐","발광"],"default":"랜덤 갱신","section":"텍스트"},"refreshCurve":{"editor":"enum","options":["가속","감속"],"default":"가속","section":"텍스트"},"trail":{"editor":"boolean","default":false,"section":"이동"},"glowMs":{"editor":"range","min":50,"max":1500,"step":10,"default":200,"unit":"ms","section":"이동"},"palette":{"editor":"enum","options":["은하수","성운","단색"],"default":"은하수","section":"글자 장"},"speed":{"editor":"range","min":0,"max":2,"step":0.1,"default":1,"section":"글자 장"},"cell":{"editor":"int","min":11,"max":24,"default":15,"unit":"px","section":"글자 장"},"motion":{"editor":"boolean","default":true,"section":"글자 장"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { top: false, cur: -1, hidden: true, cx: 0.5, cy: 0.42, run: 0, dir: '', kind: null, lsrc: null, msrc: null };
+  }
+  componentDidMount() {
+    this._live = true;
+    this.startField('emerge');
+    setTimeout(() => { if (this._live) this.play(); }, 500);
+  }
+  componentWillUnmount() {
+    this._live = false;
+    clearTimeout(this._loopT);
+    this.stopField();
+  }
+
+  // ───── 융기 단계 ─────
+  // 단계마다: 이름 · 기본 길이(ms) · 켜기 prop. 꺼진 단계는 길이 0 — 그 단계가 맡던 값은 아래 규칙대로 건너뛴다.
+  // 발광(중심이 밝아지고 범위가 커지는 것)은 쓰지 않는다 — 생성 다음 곧바로 소거로 들어간다
+  STAGES() {
+    return [
+      { key: 'stage1_create', no: '1', name: '생성 — 배경 뒤', back: '제거 — 컴포넌트가 사라짐', ms: 120 },
+      { key: 'stage2_dissolve', no: '2', name: '소거 — 글자가 빛난 뒤 사라짐', back: '메움 — 글자가 빛나며 다시 채움', ms: 600 },
+      { key: 'stage3_rise', no: '3', name: '부상 — 밝아진 뒤 맨 위로', back: '하강 — 배경 뒤로, 어두워짐', ms: 180 },
+      { key: 'stage4_restore', no: '4', name: '복원 — 소거와 같은 속도로', back: '다시 비움 — 복원의 거울', ms: 600 }
+    ];
+  }
+  // 컴포넌트 종류 2개
+  //  레거시 — 글자 장이 비면서 그 아래의 컴포넌트가 솟는다 (원본: 사각형 · 글자)
+  //  마스크 — 컴포넌트는 배경 뒤에 그대로 있고, 그 모양과 색이 글자 장에 투영된다 (원본: 이미지 · 카드 · 글자)
+  KIND() { const k = this.state.kind ?? this.props.compType ?? '레거시'; return k === '마스크' ? 'mask' : k === '혼합' ? 'mix' : k === '텍스트' ? 'data' : 'legacy'; }
+  // 텍스트 — 원본 컴포넌트가 없다. 글자 장의 글자가 그 자리에서 데이터 문자열로 바뀐다 (서체·크기는 글자 장 그대로)
+  DATA() { return this.props.dataText ?? 'node-07 · 온라인'; }
+  DDIR() { return this.state.ddir ?? this.props.dataDir ?? '좌'; }
+  // ───── 모션 ─────
+  // 발광 생성 — 레거시 특유의 '지워지기 직전 글자가 그 자리 색으로 빛남'. 모든 타입에 켜고 끌 수 있다 (생성 · 삭제 모두)
+  //   레거시 · 혼합: 소거 앞선 바로 바깥 / 마스크: 번지는 앞선 바로 앞 칸 (번짐 방향 그대로) / 텍스트: 모션 '발광' — 바뀌기 직전 · 지우기 직전에 빛남
+  //   기본: 레거시 · 혼합 켬, 마스크 끔
+  GLOW() { const k = this.KIND(), o = this.state.glowBy || {}; return o[k] ?? (k === 'legacy' || k === 'mix'); }
+  // 텍스트 모션 — 랜덤 갱신(기본) · 명도 번짐(마스크처럼 색만 HSV 로, 발광 없음) · 발광(바뀌기 직전 빛남)
+  TMOTION() { return this.state.tmotion ?? this.props.textMotion ?? '랜덤 갱신'; }
+  // 랜덤 갱신 주기 — 가속: 갱신 간격이 점점 줄어든다(느긋 → 프레임마다) / 감속: 점점 늘어난다(프레임마다 → 느긋)
+  TCURVE() { return this.state.tcurve ?? this.props.refreshCurve ?? '가속'; }
+  // 갱신 간격(ms) — p: 0 → 1 진행
+  refreshIv(p) { return this.TCURVE() === '감속' ? 16 + 520 * p * p : 16 + 520 * (1 - p) * (1 - p); }
+  GLOW_MS() { return 150 / Math.max(0.25, this.props.tempo ?? 1); }   // 발광 띠의 시간 폭 (마스크 · 텍스트)
+  // 배경 복원 — 레거시 단계 4. 패널에서 켜고 끈다 (혼합은 기본으로 켬: 데이터 글자 뒤로 바탕 투영이 다시 채워진다)
+  // 레거시 영역 확장 시작점 — 중앙 · 위 · 아래 · 왼쪽 · 오른쪽
+  EXPAND() { return this.state.expand ?? this.props.expandFrom ?? '중앙'; }
+  // 한 방향으로 쓸어 가는 앞선 좌표 0..1 — 시작 변(여백 M 바깥)에서 반대 변까지. 반환 [좌표, 길이 px]
+  sweepOf(dir, px, py, x0, y0, w, h, M) {
+    const vert = dir === '위' || dir === '아래', span = (vert ? h : w) + M * 2;
+    let c = vert ? (py - (y0 - M)) / span : (px - (x0 - M)) / span;
+    if (dir === '아래' || dir === '오른쪽') c = 1 - c;
+    return [c * 0.97, span];
+  }
+  // 레거시 배경 — 비운 자리에 원래 글자 장을 어둡게 깔아 둔다 (늘 컴포넌트 아래 층). '비움'이면 지금처럼 바탕만
+  // 잔상 — 비었다가 다시 생긴 칸이 잠깐 빛나는 효과 (레거시 공통, 기본 끔)
+  TRAIL() { return this.state.trail ?? this.props.trail ?? false; }
+  HOLEBACK() { return this.state.holeBack ?? this.props.holeBack ?? '어둡게'; }
+  MIXBACK() { return this.state.mixBack ?? this.props.mixBack ?? '원본 컴포넌트'; }
+  RESTORE() { return this.state.restore ?? (this.KIND() === 'mix' ? true : (this.props.stage4_restore ?? false)); }
+  MSRC() { return this.state.msrc ?? this.props.maskSrc ?? '이미지'; }
+  TYPE() {
+    if (this.KIND() === 'mask') return 'mask';
+    if (this.KIND() === 'mix') return 'mixed';
+    if (this.KIND() === 'data') return 'data';
+    return (this.state.lsrc ?? this.props.legacySrc ?? '사각형') === '글자' ? 'text' : 'rect';
+  }
+  // 컴포넌트 크기 (px) — 모양의 둘레 상자
+  SIZE() { const Sh = this.shape(); return { w: Sh.w, h: Sh.h }; }
+  // 모양 — 둘레 상자 + 부호 거리 sd(px, py) (상자 왼쪽 위 기준, px). 안쪽은 음수, 가장자리 0.
+  // 비우는 범위는 이 거리로 잰다 — 가장자리에서 어디나 같은 너비(M px)만큼 넓게
+  shape() {
+    const type = this.TYPE(), text = this.props.text ?? 'TERRA', src = type === 'mask' ? this.MSRC() : '';
+    const size = type === 'mask' ? (this.props.maskTextSize ?? 180) : (this.props.elemSize ?? 96);
+    const key = type + '|' + src + '|' + text + '|' + size + '|' + (this._fontGen || 0);
+    if (this._shape && this._shape.key === key) return this._shape;
+    let Sh;
+    if (type === 'data') {
+      const cw = this._cw || 10, ch = this._ch || 18, txt = this.DATA(), cells = [];
+      for (const chr of txt) { const wide = /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]/.test(chr); cells.push(chr); if (wide) cells.push(''); }
+      const k2 = key + '|' + cw + '|' + ch + '|' + txt;
+      if (this._shape && this._shape.key === k2) return this._shape;
+      Sh = { key: k2, type, cells, w: cells.length * cw, h: ch, M: 0, depth: 1, sd: () => 99 };
+      this._shape = Sh; this._dState = null;
+      return Sh;
+    }
+    if (type === 'mixed') {
+      // 바탕: 카드 면과 테두리만 — 투영된다. 데이터 글자는 각각 레거시 부품 (카드 안 자리 · 글자 모양 거리)
+      const w = 420, h = 260, hw = w / 2, hh = h / 2, r = 10;
+      Sh = { key, type, src: '카드바탕', w, h, M: 18, depth: Math.min(hw, hh),
+        sd: (px, py) => { const qx = Math.abs(px - hw) - (hw - r), qy = Math.abs(py - hh) - (hh - r); return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r; } };
+      const rc = document.createElement('canvas'); rc.width = w; rc.height = h;
+      const c = rc.getContext('2d'); this.drawSource(c, Sh); Sh.px = c.getImageData(0, 0, w, h).data;
+      const K = '"Noto Sans KR", system-ui, sans-serif';
+      Sh.parts = [
+        { id: 'title', text: '사각형 컴포넌트', font: '500 16px GmarketSans, Geist, ' + K, color: '#e6eaf7', tx: 24, ty: 22 },
+        { id: 'sub', text: '글자 장 아래에서 솟아오른다', font: '400 13px GmarketSans, Geist, ' + K, color: '#9ba6c9', tx: 24, ty: 50 },
+        { id: 'meta', text: '데이터 — 레거시', font: '400 12px GmarketSans, "Geist Mono", monospace', color: '#7682ab', tx: 24, ty: h - 34 }
+      ].map((p) => { const T = this.textShape(p.text, p.font); return Object.assign(T, p, { x: p.tx - 4, y: p.ty - 4 }); });
+      this._shape = Sh; this._maskCache = null;
+      return Sh;
+    }
+    if (type === 'mask') {
+      // 원본을 1px 단위로 그려 둔다 — 투영은 이 픽셀들의 색을 칸마다 평균 내어 쓴다
+      Sh = { key, type, src, text, M: 0, depth: 1, sd: () => 99 };
+      if (src === '글자') {
+        Sh.font = '700 ' + size + 'px GmarketSans, Geist, "Noto Sans KR", system-ui, sans-serif';
+        const mc = document.createElement('canvas').getContext('2d'); mc.font = Sh.font;
+        const m = mc.measureText(text), L = m.actualBoundingBoxLeft || 0, R = m.actualBoundingBoxRight || m.width, A = m.actualBoundingBoxAscent || size * 0.72, D = m.actualBoundingBoxDescent || 0;
+        Sh.w = Math.ceil(L + R) + 8; Sh.h = Math.ceil(A + D) + 8; Sh.ox = 4 + L; Sh.oy = 4 + A;
+      } else if (src === '카드') { Sh.w = 420; Sh.h = 260; }
+      else { Sh.w = 420; Sh.h = 280; }
+      const rc = document.createElement('canvas'); rc.width = Sh.w; rc.height = Sh.h;
+      const c = rc.getContext('2d'); this.drawSource(c, Sh);
+      Sh.px = c.getImageData(0, 0, Sh.w, Sh.h).data;
+      Sh.M = 18;
+      if (src === '글자') {
+        const st = 2, ex = 40, gw = Math.ceil((Sh.w + ex * 2) / st), gh = Math.ceil((Sh.h + ex * 2) / st), inside = new Uint8Array(gw * gh);
+        for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) { const X = gx * st - ex + 1, Y = gy * st - ex + 1; if (X >= 0 && Y >= 0 && X < Sh.w && Y < Sh.h && Sh.px[(Y * Sh.w + X) * 4 + 3] > 127) inside[gy * gw + gx] = 1; }
+        const dOut = this.edt(inside, gw, gh, 1), dIn = this.edt(inside, gw, gh, 0), SD = new Float32Array(gw * gh); let depth = 1;
+        for (let i = 0; i < gw * gh; i++) { const v = inside[i] ? -(Math.sqrt(dIn[i]) - 0.5) * st : (Math.sqrt(dOut[i]) - 0.5) * st; SD[i] = v; if (-v > depth) depth = -v; }
+        Sh.depth = depth;
+        Sh.sd = (x, y) => { const gx = Math.floor((x + ex) / st), gy = Math.floor((y + ex) / st); if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) return 99; return SD[gy * gw + gx]; };
+      } else {
+        const hw = Sh.w / 2, hh = Sh.h / 2, r = 10; Sh.depth = Math.min(hw, hh);
+        Sh.sd = (px, py) => { const qx = Math.abs(px - hw) - (hw - r), qy = Math.abs(py - hh) - (hh - r); return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r; };
+      }
+      this._shape = Sh; this._maskCache = null;
+      return Sh;
+    }
+    if (type === 'rect') {
+      const w = 420, h = 260, r = 10, hw = w / 2, hh = h / 2;
+      Sh = { key, type, w, h, M: 18, depth: Math.min(hw, hh),
+        sd: (px, py) => { const qx = Math.abs(px - hw) - (hw - r), qy = Math.abs(py - hh) - (hh - r); return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r; } };
+    } else {
+      const font = (type === 'field' ? '700 ' : '600 ') + size + 'px GmarketSans, Geist, "Noto Sans KR", system-ui, sans-serif';
+      const mc = document.createElement('canvas').getContext('2d'); mc.font = font;
+      const m = mc.measureText(text);
+      const L = m.actualBoundingBoxLeft || 0, R = m.actualBoundingBoxRight || m.width, A = m.actualBoundingBoxAscent || size * 0.72, D = m.actualBoundingBoxDescent || 0;
+      const pad = 4, w = Math.ceil(L + R) + pad * 2, h = Math.ceil(A + D) + pad * 2, ox = pad + L, oy = pad + A;
+      // 2px 격자에 글자를 찍고, 안팎 거리 변환(유클리드)으로 부호 거리를 만든다
+      const st = 2, ex = 40, gw = Math.ceil((w + ex * 2) / st), gh = Math.ceil((h + ex * 2) / st);
+      const cv = document.createElement('canvas'); cv.width = gw; cv.height = gh;
+      const c = cv.getContext('2d'); c.scale(1 / st, 1 / st); c.font = font; c.fillStyle = '#fff'; c.textBaseline = 'alphabetic';
+      c.fillText(text, ex + ox, ex + oy);
+      const px = c.getImageData(0, 0, gw, gh).data, inside = new Uint8Array(gw * gh);
+      for (let i = 0; i < gw * gh; i++) inside[i] = px[i * 4 + 3] > 127 ? 1 : 0;
+      const dOut = this.edt(inside, gw, gh, 1), dIn = this.edt(inside, gw, gh, 0);
+      const SD = new Float32Array(gw * gh); let depth = 1;
+      for (let i = 0; i < gw * gh; i++) { const v = inside[i] ? -(Math.sqrt(dIn[i]) - 0.5) * st : (Math.sqrt(dOut[i]) - 0.5) * st; SD[i] = v; if (-v > depth) depth = -v; }
+      Sh = { key, type, w, h, M: type === 'field' ? 12 : 18, depth, font, text, ox, oy,
+        sd: (x, y) => { const gx = Math.floor((x + ex) / st), gy = Math.floor((y + ex) / st); if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) return 99; return SD[gy * gw + gx]; } };
+    }
+    this._shape = Sh;
+    return Sh;
+  }
+  // 글자 하나의 모양 — 둘레 상자(안쪽 여백 4px) + 부호 거리 (2px 격자의 거리 변환)
+  textShape(text, font) {
+    const mc = document.createElement('canvas').getContext('2d'); mc.font = font;
+    const m = mc.measureText(text), size = parseFloat(font.split(' ')[1]) || 16;
+    const L = m.actualBoundingBoxLeft || 0, R = m.actualBoundingBoxRight || m.width, A = m.actualBoundingBoxAscent || size * 0.72, D = m.actualBoundingBoxDescent || 0;
+    const pad = 4, w = Math.ceil(L + R) + pad * 2, h = Math.ceil(A + D) + pad * 2, ox = pad + L, oy = pad + A;
+    const st = 2, ex = 40, gw = Math.ceil((w + ex * 2) / st), gh = Math.ceil((h + ex * 2) / st);
+    const cv = document.createElement('canvas'); cv.width = gw; cv.height = gh;
+    const c = cv.getContext('2d'); c.scale(1 / st, 1 / st); c.font = font; c.fillStyle = '#fff'; c.textBaseline = 'alphabetic';
+    c.fillText(text, ex + ox, ex + oy);
+    const px = c.getImageData(0, 0, gw, gh).data, inside = new Uint8Array(gw * gh);
+    for (let i = 0; i < gw * gh; i++) inside[i] = px[i * 4 + 3] > 60 ? 1 : 0;
+    const dOut = this.edt(inside, gw, gh, 1), dIn = this.edt(inside, gw, gh, 0), SD = new Float32Array(gw * gh); let depth = 1;
+    for (let i = 0; i < gw * gh; i++) { const v = inside[i] ? -(Math.sqrt(dIn[i]) - 0.5) * st : (Math.sqrt(dOut[i]) - 0.5) * st; SD[i] = v; if (-v > depth) depth = -v; }
+    return { w, h, ox, oy, depth, M: 18,
+      sd: (x, y) => { const gx = Math.floor((x + ex) / st), gy = Math.floor((y + ex) / st); if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) return 99; return SD[gy * gw + gx]; } };
+  }
+  // 거리 변환 (Felzenszwalb) — want 칸까지의 제곱 거리 (격자 칸 단위)
+  edt(mask, w, h, want) {
+    const INF = 1e20, d = new Float64Array(w * h);
+    for (let i = 0; i < w * h; i++) d[i] = mask[i] === want ? 0 : INF;
+    const n = Math.max(w, h), f = new Float64Array(n), z = new Float64Array(n + 1), v = new Int32Array(n), o = new Float64Array(n);
+    const pass = (len) => {
+      let k = 0; v[0] = 0; z[0] = -INF; z[1] = INF;
+      for (let q = 1; q < len; q++) {
+        let sx = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+        while (sx <= z[k]) { k--; sx = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]); }
+        k++; v[k] = q; z[k] = sx; z[k + 1] = INF;
+      }
+      k = 0; for (let q = 0; q < len; q++) { while (z[k + 1] < q) k++; o[q] = (q - v[k]) * (q - v[k]) + f[v[k]]; }
+    };
+    for (let x = 0; x < w; x++) { for (let y = 0; y < h; y++) f[y] = d[y * w + x]; pass(h); for (let y = 0; y < h; y++) d[y * w + x] = o[y]; }
+    for (let y = 0; y < h; y++) { for (let x = 0; x < w; x++) f[x] = d[y * w + x]; pass(w); for (let x = 0; x < w; x++) d[y * w + x] = o[x]; }
+    return d;
+  }
+  // 단계 배치 — 다음 단계는 앞 단계가 (1 − 겹침)만큼 지났을 때 시작한다. 꺼진 단계는 자리를 차지하지 않는다.
+  // 단, 복원(4)은 앞 단계가 다 끝난 뒤에 — 컴포넌트가 위로 오기 전에 글자가 돌아오면 다시 덮이기 때문이다
+  plan() {
+    const tempo = Math.max(0.25, this.props.tempo ?? 1), o = Math.min(0.85, Math.max(0, this.props.overlap ?? 0.5));
+    const BR = 340 / tempo;   // 글자가 다 사라진 뒤 컴포넌트가 밝아지는 시간
+    let prev = null;
+    const P = this.STAGES().map((s, k) => {
+      const on = k === 3 ? this.RESTORE() : this.props[s.key] ?? true;   // 복원(4)은 기본으로 끔 — 지운 범위를 수렴시키지 않고 유지한다
+      // 복원은 소거와 같은 길이 — 같은 곡선을 시간만 거꾸로 돌려 확장과 수렴의 속도가 같다
+      const d = !on ? 0 : k === 3 && (this.props.stage2_dissolve ?? true) ? this.STAGES()[1].ms / tempo : s.ms / tempo;
+      let start = prev ? prev.start + prev.dur * (1 - o) : 0;
+      if (k === 3 && prev) start = Math.max(start, prev.end);   // 복원은 앞 단계가 다 끝난 뒤에
+      let end = start + d;
+      if (k === 2 && on && prev && prev.k === 1) end = Math.max(end, prev.end + BR);   // 부상은 소거가 끝나고 컴포넌트가 다 밝아진 뒤에 끝난다
+      else if (k === 2 && on) end = Math.max(end, start + BR);
+      const r = { on, k, start, end, dur: end - start };
+      if (on) prev = r;
+      return r;
+    });
+    P.endAll = Math.max(0, ...P.map((r) => r.end));
+    P.brightAt = P[1].on ? P[1].end : P[2].start;   // 밝아지기 시작 — 컴포넌트 위의 글자가 다 사라진 때
+    P.brightDur = BR;
+    return P;
+  }
+  // 마스크 — 한 글자가 바뀌는 시간 = 레거시 전체 시간의 절반. 중심에서 가장 먼 칸까지 번지는 데 나머지 절반
+  maskPlan() {
+    const T = Math.max(200, this.plan().endAll);
+    const P = { mask: true, endAll: T, cellDur: T / 2, spread: T / 2 };
+    return P;
+  }
+  // 텍스트 — 한 글자: 색이 HSV 로 바뀌며 갱신이 점점 빨라지다 데이터로 (cellDur). 전파: 좌·우·중 은 spread 동안 번지고, 동시는 한꺼번에
+  dataPlan() {
+    const tempo = Math.max(0.25, this.props.tempo ?? 1), M = this.TMOTION(), cellDur = (M === '발광' ? 300 : M === '명도 번짐' ? 600 : 900) / tempo, spread = this.DDIR() === '동시' ? 0 : 600 / tempo;
+    return { data: true, cellDur, spread, endAll: cellDur + spread + (M === '발광' ? this.GLOW_MS() : 0) };
+  }
+  mixPlan() {
+    const Mp = this.maskPlan(), L = this.plan(), Sh = this.shape();
+    const delays = (Sh.parts || []).map((_, k) => Mp.endAll * 0.5 + k * 90);
+    return { mix: true, endAll: Math.max(Mp.endAll, (delays.length ? delays[delays.length - 1] : 0) + L.endAll), cellDur: Mp.cellDur, spread: Mp.spread, maskEnd: Mp.endAll, legacy: L, delays };
+  }
+  endDrag() {
+    if (this._dragPos) this.setState({ cx: this._dragPos.cx, cy: this._dragPos.cy });
+    this._drag = null;
+  }
+  play(cx, cy) {
+    clearTimeout(this._loopT);
+    const POS = this._dragPos || this.state; this._drag = null; this._dragPos = null;
+    if (cx == null) { cx = POS.cx; cy = POS.cy; }
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this._seq = { t0: performance.now(), plan: this.KIND() === 'mask' ? this.maskPlan() : this.KIND() === 'mix' ? this.mixPlan() : this.KIND() === 'data' ? this.dataPlan() : this.plan(), reduce, dir: 'in' };
+    const M = !!(this._seq.plan.mask || this._seq.plan.mix || this._seq.plan.data), s1 = M || this._seq.plan[0].on;
+    this.setState({ cx: cx ?? this.state.cx, cy: cy ?? this.state.cy, hidden: false, top: !M && (reduce || !s1), cur: 0, dir: 'in', mode: M ? 'mask' : 'legacy', ready: false, ptop: '', run: this.state.run + 1 });
+  }
+  // 들어가기 — 솟을 때의 값을 끝에서 처음으로 거꾸로 돈다. 솟는 중이면 그 지점에서 곧바로 되돌아간다
+  // 타입 전환 (마스크 종류만)
+  //  마스크 → 레거시: 배경 뒤에 있던 컴포넌트를 레거시 융기로 올린다 (투영은 그대로 두고 그 위를 비운다)
+  //  레거시 → 마스크: 레거시 침강으로 배경 뒤로 내린다. 다 내려가면 사라지지 않고 투영 상태로 남는다
+  switchMode() {
+    if (this.state.hidden || this.KIND() !== 'mask') return;
+    clearTimeout(this._loopT); this.endDrag();
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (this.state.mode === 'legacy') { this.sink(true); return; }
+    // 투영이 아직 번지는 중이면 끝까지 채운 상태로 보고 올린다
+    this._seq = { t0: performance.now(), plan: this.plan(), reduce, dir: 'in' };
+    this.setState({ mode: 'legacy', ready: false, top: reduce || !this._seq.plan[0].on, cur: 0, dir: 'in' });
+  }
+  sink(toMask) {
+    if (this.state.hidden) return;
+    clearTimeout(this._loopT);
+    this.endDrag();
+    const now = performance.now(), reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const Q = this._seq, plan = Q && Q.dir === 'in' ? Q.plan : this.KIND() === 'data' ? this.dataPlan() : this.KIND() === 'mix' ? this.mixPlan() : this.KIND() === 'mask' && this.state.mode !== 'legacy' ? this.maskPlan() : this.plan();
+    if (plan.data) { this._seq = { t0: now, plan: this.dataPlan(), reduce, dir: 'out' }; this.setState({ dir: 'out', ready: false }); return; }   // 텍스트 삭제 — 처음부터 앞으로 (목표 = 빈칸)
+    const at = Q && Q.dir === 'in' && !Q.ended ? Math.min(plan.endAll, now - Q.t0) : plan.endAll;   // 지금 솟은 만큼
+    this._seq = { t0: now - (plan.endAll - at), plan, reduce, dir: 'out', toMask: !!toMask && !plan.mask && !plan.mix };
+    this.setState({ dir: 'out', ready: false });
+  }
+  // 지금 시각의 융기 값 — er(소거 범위) · top(컴포넌트가 위인가) · b(컴포넌트 명도) · cur(지금 단계)
+  // 범위는 컴포넌트 모양으로 정규화한 거리다: 0 = 중심, 1 = 컴포넌트 가장자리
+  seqVals(now) {
+    const Q = this._seq; if (!Q) return null;
+    // 모든 곡선은 시작과 끝에서 속도가 0으로 부드럽게 붙는다 — 겹친 단계가 서로 이어받을 때 튀지 않는다
+    const ss = (p) => p * p * p * (p * (p * 6 - 15) + 10);
+    const P = Q.plan, Sh = this.shape(), tr = now - Q.t0;
+    if (P.mask) {
+      // 마스크: 컴포넌트는 늘 배경 뒤. mt = 투영 시계 (들어갈 때는 거꾸로)
+      const mt = Q.reduce ? (Q.dir === 'out' ? 0 : 1e9) : Q.dir === 'out' ? Math.max(0, P.endAll - tr) : tr;
+      const done = Q.reduce ? true : Q.dir === 'out' ? tr >= P.endAll : tr >= P.endAll;
+      return { mask: true, mt, er: -1e9, ga: 0, b: 1, top: false, ready: done && Q.dir === 'in', cur: done ? -1 : 0, done };
+    }
+    if (P.data) {
+      // 텍스트: dt = 변환 시계 (들어갈 때는 거꾸로 — 데이터가 다시 빨라지는 갱신으로 풀리고 늦춰지며 원래 색으로)
+      // 삭제(out)는 거꾸로 돌리지 않는다 — 같은 모션으로 앞으로 가며 최종 목표가 빈칸
+      const dt = Q.reduce ? 1e9 : tr;
+      const done = Q.reduce ? true : tr >= P.endAll;
+      return { data: true, out: Q.dir === 'out', mask: true, mt: 0, dt, er: -1e9, ga: 0, b: 1, top: false, ready: done && Q.dir === 'in', cur: done ? -1 : 0, done };
+    }
+    if (P.mix) {
+      // 혼합: 바탕은 마스크 시계, 데이터 글자는 각자 늦춰 시작하는 레거시 값
+      const t = Q.reduce ? (Q.dir === 'out' ? 0 : 1e9) : Q.dir === 'out' ? Math.max(0, P.endAll - tr) : tr;
+      const done = Q.reduce ? true : tr >= P.endAll, L = P.legacy;
+      const parts = Sh.parts.map((pt, k) => Q.reduce
+        ? (Q.dir === 'out' ? { er: -1e9, fr: 0, reach: 0, ga: 0, top: false, b: 1, cur: -1 } : { er: -1e9, fr: L[3].on ? 0 : 1, reach: L[2].on ? pt.M : 0, ga: 0, top: true, b: 1, cur: -1 })
+        : ((v) => { if (!this.GLOW()) v.ga = 0; return v; })(this.legacyVals(L, t - P.delays[k], pt)));
+      return { mask: true, mix: true, mt: t, er: -1e9, ga: 0, b: 1, top: false, ready: done && Q.dir === 'in', cur: parts.length ? parts[0].cur : -1, done, parts };
+    }
+    const t = Q.dir === 'out' ? Math.max(0, P.endAll - tr) : tr;   // 들어갈 때는 같은 곡선을 거꾸로
+    if (Q.reduce) { const E0 = -Sh.depth - 1; return Q.dir === 'out' ? { er: E0, fr: 0, reach: 0, ga: 0, top: false, cur: 0, done: true, b: 1 } : { er: P[2].on && !P[3].on ? Sh.M : E0, fr: P[3].on ? 0 : 1, reach: P[2].on ? Sh.M : 0, ga: 0, top: true, cur: 3, done: tr > 200, b: 1 }; }
+    const v = this.legacyVals(P, t, Sh);
+    if (!this.GLOW()) v.ga = 0;   // 발광 끔
+    v.done = Q.dir === 'out' ? tr >= P.endAll : t >= P.endAll;
+    return v;
+  }
+  // 레거시 값 — 계획 P · 시각 t · 모양 Sh 하나에 대해
+  legacyVals(P, t, Sh) {
+    const ss = (p) => p * p * p * (p * (p * 6 - 15) + 10);
+    const E0 = -Sh.depth - 1;   // 아직 아무 칸도 비우지 않은 값
+    const v = { er: E0, fr: 0, reach: P[2].on ? Sh.M : 0, ga: 0, top: !P[0].on, cur: -1, done: false, b: 1 };
+    const prog = (k) => (P[k].dur <= 0 ? (t >= P[k].start ? 1 : 0) : Math.min(1, Math.max(0, (t - P[k].start) / P[k].dur)));
+    for (let k = 0; k < 4; k++) if (P[k].on && t >= P[k].start && t < P[k].end) v.cur = k;   // 겹치면 나중에 시작한 단계
+    // 2 소거: 곡선 하나로 모양의 가장 안쪽에서 가장자리 바깥 M px 까지 — 부상을 끄면 가장자리(0)까지만
+    const reach = P[2].on ? Sh.M : 0;
+    if (P[1].on) {
+      v.er = E0 + (reach - E0) * ss(prog(1)); v.fr = ss(prog(1));
+      // 발광은 번지는 동안에만 — 시작과 끝에서 부드럽게 켜지고 꺼진다
+      if (t >= P[1].start && t <= P[1].end) v.ga = Math.min(1, (t - P[1].start) / 90) * ss(Math.min(1, (P[1].end - t) / 160));
+    }
+    // 3 부상: 소거가 컴포넌트보다 넓어지고 다 밝아지면 맨 위로 (건너뛰면 배경 뒤에 남는다)
+    if (P[2].on && t >= P[2].end) v.top = true;
+    // 명도: 배경 뒤에 있는 동안 낮게(0.38) — 컴포넌트 위 글자가 다 사라지면 서서히 올라오고, 다 올라온 뒤에 맨 위로 간다
+    if (P[0].on) {
+      const lit = P[2].on ? ss(Math.min(1, Math.max(0, (t - P.brightAt) / P.brightDur))) : 0;
+      v.b = v.top ? 1 : 0.38 + 0.62 * lit;
+    }
+    // 4 복원: 사라졌던 글자가 되돌아온다 — 이제 컴포넌트 뒤에서 (건너뛰면 구멍이 남는다)
+    if (P[3].on && P[1].on && t >= P[3].start) { v.er = E0 + (reach - E0) * (1 - ss(prog(3))); v.fr = 1 - ss(prog(3)); }   // = 소거 곡선의 거울: 같은 길이 · 같은 곡선
+    return v;
+  }
+
+  // ───── 글자 장 ─────
+  // 바탕 — 메인 레퍼런스와 같은 세 겹: 세로 그라데이션 + 보랏빛 성운 안개(타원 · 118° 비스듬한 띠). 화면 크기의 숨은 캔버스에 한 번 그려 무늬(pattern)로 쓴다
+  bgPaint(c) {
+    const w = Math.max(1, Math.round(this._w)), h = Math.max(1, Math.round(this._h)), oc = document.createElement('canvas'); oc.width = w; oc.height = h; const o = oc.getContext('2d');
+    const g0 = o.createLinearGradient(0, 0, 0, h); g0.addColorStop(0, '#060a1d'); g0.addColorStop(0.46, '#040614'); g0.addColorStop(1, '#020308'); o.fillStyle = g0; o.fillRect(0, 0, w, h);
+    const a = 118 * Math.PI / 180, dx = Math.sin(a), dy = -Math.cos(a), L = Math.abs(w * dx) + Math.abs(h * dy), x0 = w / 2 - dx * L / 2, y0 = h / 2 - dy * L / 2;
+    const g1 = o.createLinearGradient(x0, y0, x0 + dx * L, y0 + dy * L);
+    g1.addColorStop(0.22, 'rgba(110,130,220,0)'); g1.addColorStop(0.42, 'rgba(110,130,220,0.05)'); g1.addColorStop(0.56, 'rgba(170,120,210,0.06)'); g1.addColorStop(0.70, 'rgba(230,150,150,0.04)'); g1.addColorStop(0.84, 'rgba(230,150,150,0)');
+    o.fillStyle = g1; o.fillRect(0, 0, w, h);
+    const rx = w * 0.42, ry = h * 0.70, cx = w * 0.62, cy = h * 0.58; o.save(); o.translate(cx, cy); o.scale(rx, ry);
+    const g2 = o.createRadialGradient(0, 0, 0, 0, 0, 1); g2.addColorStop(0, 'rgba(150,110,200,0.08)'); g2.addColorStop(0.7, 'rgba(150,110,200,0)'); o.fillStyle = g2; o.fillRect(-cx / rx, -cy / ry, w / rx, h / ry); o.restore();
+    return c.createPattern(oc, 'no-repeat');
+  }
+  PALETTES() {
+    return {
+      '은하수': ['#9fb8ff', '#8c9cf5', '#a58cf0', '#c88fe0', '#e39ac9', '#f0a8a0'],
+      '성운': ['#dfe8ff', '#b9cdfa', '#93aef0', '#7d94d8', '#c7d6ff'],
+      '단색': ['#e6eaf7', '#c3cae3']
+    };
+  }
+  startField(id) {
+    const find = () => {
+      if (!this._live) return;
+      const cv = document.querySelector('canvas[data-field="' + id + '"]');
+      if (!cv) { this._findT = requestAnimationFrame(find); return; }
+      this._cv = cv; this._ctx = cv.getContext('2d');
+      this._glyphs = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789+-*/=<>:;.#%&|~^';
+      this._last = 0;
+      const p = new Uint8Array(256); for (let i = 0; i < 256; i++) p[i] = i;
+      for (let i = 255; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0, k = p[i]; p[i] = p[j]; p[j] = k; }
+      this._perm = new Uint8Array(512); for (let i = 0; i < 512; i++) this._perm[i] = p[i & 255];
+      this._ro = new ResizeObserver(() => this.sizeField()); this._ro.observe(cv);
+      if (window.IntersectionObserver) { this._io = new IntersectionObserver((es) => { this._onScreen = es[es.length - 1].isIntersecting; }); this._io.observe(cv); }
+      this.sizeField();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (this._live) { this._fontGen = (this._fontGen || 0) + 1; this.sizeField(); } });
+      // 볼드(700) 글꼴은 캔버스에서만 쓰여 브라우저가 스스로 받지 않는다 — 직접 불러온다 (안 그러면 보통 굵기로 대신 그려진다)
+      if (document.fonts && document.fonts.load) document.fonts.load('700 12px "Geist Mono"').catch(() => {}); if (document.fonts && document.fonts.load) Promise.all(['500', '700'].map((w) => document.fonts.load(w + ' 12px GmarketSans', '가'))).then(() => { if (this._live) { this._fullRedraw = true; this.sizeField(); } }).catch(() => {});
+      // 화면 밖이거나 탭이 숨겨졌으면 쉰다 (돌아오면 이어서)
+      const loop = (now) => { if (!this._live) return; if (this._onScreen !== false && !document.hidden) this.drawField(now); else this._prev = now; this._raf = requestAnimationFrame(loop); };
+      this._raf = requestAnimationFrame(loop);
+    };
+    find();
+  }
+  stopField() { cancelAnimationFrame(this._raf); cancelAnimationFrame(this._findT); if (this._ro) this._ro.disconnect(); if (this._io) this._io.disconnect(); }
+  sizeField() {
+    const cv = this._cv; if (!cv) return;
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cs = Math.max(11, Math.min(24, this.props.cell ?? 15));
+    this._cw = Math.round(cs * 0.66); this._ch = Math.round(cs * 1.2); this._cs = cs;
+    this._cols = Math.ceil(w / this._cw) + 1; this._rows = Math.ceil(h / this._ch) + 1;
+    const n = this._cols * this._rows, G = this._glyphs.length;
+    this._g = new Uint8Array(n); for (let i = 0; i < n; i++) this._g[i] = (Math.random() * G) | 0;
+    this._star = new Float32Array(n); for (let i = 0; i < n; i++) if (Math.random() < 0.014) this._star[i] = 0.2 + Math.random();
+    this._jit = new Float32Array(n); for (let i = 0; i < n; i++) this._jit[i] = Math.random();   // 소거 가장자리를 글자 단위로 흩는다
+    this._holePrev = new Uint8Array(n); this._holeNow = new Uint8Array(n);   // 지난 프레임 · 이번 프레임에 지운 칸
+    this._regenAt = new Float64Array(n);   // 다시 생긴 시각 — 이 시각부터 잠깐 빛난다
+    this._bw = new Float32Array(n);
+    { const ax = w * 0.2, ay = -h * 0.05, bx = w * 0.84, by = h * 1.05, vx = bx - ax, vy = by - ay, L = Math.hypot(vx, vy), sp = Math.max(w, h) * 0.17;
+      for (let r = 0; r < this._rows; r++) for (let c = 0; c < this._cols; c++) { const px = c * this._cw, py = r * this._ch, d = Math.abs((px - ax) * vy - (py - ay) * vx) / L; this._bw[r * this._cols + c] = Math.exp(-(d / sp) * (d / sp)); } }
+    this._w = w; this._h = h;
+    { const uc = document.querySelector('canvas[data-under="emerge"]');
+      if (uc) { this._ucv = uc; this._uctx = uc.getContext('2d'); uc.width = Math.round(w * dpr); uc.height = Math.round(h * dpr); this._uctx.setTransform(dpr, 0, 0, dpr, 0, 0); } }
+    this._bg = null;
+    this.drawField(performance.now(), true);
+  }
+  // 마스크 원본 — 이미지 · 카드 · 글자
+  drawSource(c, Sh) {
+    const w = Sh.w, h = Sh.h;
+    c.clearRect(0, 0, w, h);
+    if (Sh.src === '글자') {
+      const gr = c.createLinearGradient(0, 0, w, 0);
+      gr.addColorStop(0, '#7fd4ff'); gr.addColorStop(0.5, '#c88fe0'); gr.addColorStop(1, '#ffb08a');
+      c.font = Sh.font; c.textBaseline = 'alphabetic'; c.fillStyle = gr; c.fillText(Sh.text, Sh.ox, Sh.oy);
+      return;
+    }
+    c.save(); c.beginPath(); c.roundRect(0.5, 0.5, w - 1, h - 1, 10); c.clip();
+    if (Sh.src === '카드바탕') {
+      c.fillStyle = '#0b1128'; c.fillRect(0, 0, w, h);
+      c.restore(); c.strokeStyle = '#2b3666'; c.lineWidth = 1; c.beginPath(); c.roundRect(0.5, 0.5, w - 1, h - 1, 10); c.stroke();
+      return;
+    }
+    if (Sh.src === '카드') {
+      c.fillStyle = '#0b1128'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#e6eaf7'; c.font = '500 16px GmarketSans, Geist, "Noto Sans KR", sans-serif'; c.textBaseline = 'top'; c.fillText('마스크 컴포넌트', 24, 22);
+      c.fillStyle = '#9ba6c9'; c.font = '400 13px GmarketSans, Geist, "Noto Sans KR", sans-serif'; c.fillText('배경 뒤에서 글자 장에 투영된다', 24, 48);
+      c.fillStyle = '#7682ab'; c.font = '400 12px GmarketSans, "Geist Mono", monospace'; c.fillText('투영', 24, h - 34);
+      c.restore(); c.strokeStyle = '#2b3666'; c.lineWidth = 1; c.beginPath(); c.roundRect(0.5, 0.5, w - 1, h - 1, 10); c.stroke();
+      return;
+    }
+    // 이미지 — 노을진 하늘과 행성 (자리 표시용 그림)
+    const sky = c.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, '#1d2d7a'); sky.addColorStop(0.55, '#7a3a8c'); sky.addColorStop(1, '#f08a5d');
+    c.fillStyle = sky; c.fillRect(0, 0, w, h);
+    const pl = c.createRadialGradient(w * 0.6, h * 0.36, 8, w * 0.66, h * 0.44, 92);
+    pl.addColorStop(0, '#ffe3a3'); pl.addColorStop(0.55, '#f2a65a'); pl.addColorStop(1, '#a9433d');
+    c.fillStyle = pl; c.beginPath(); c.arc(w * 0.66, h * 0.44, 78, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(255,236,200,0.85)'; c.lineWidth = 6; c.beginPath(); c.ellipse(w * 0.66, h * 0.44, 128, 26, -0.28, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = '#0d1a3f'; c.beginPath(); c.moveTo(0, h); c.lineTo(0, h * 0.78); c.lineTo(w * 0.22, h * 0.66); c.lineTo(w * 0.42, h * 0.8); c.lineTo(w * 0.7, h * 0.7); c.lineTo(w, h * 0.84); c.lineTo(w, h); c.fill();
+    c.restore();
+  }
+  // 컴포넌트 안 캔버스 — 레거시 글자는 실제 글자, 마스크는 원본 그림을 같은 자리에 찍는다
+  paintCompText(Sh) {
+    if (Sh.type !== 'text' && Sh.type !== 'mask' && Sh.type !== 'mixed') return;
+    const cv = this._ctCv && this._ctCv.isConnected ? this._ctCv : (this._ctCv = document.querySelector('canvas[data-comp-text]'));
+    if (!cv) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), k = Sh.key + '|' + dpr;
+    if (cv._k === k && cv.width === Math.round(Sh.w * dpr)) return;
+    cv.width = Math.round(Sh.w * dpr); cv.height = Math.round(Sh.h * dpr); cv._k = k;
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, Sh.w, Sh.h);
+    if (Sh.type === 'mask' || Sh.type === 'mixed') { this.drawSource(c, Sh); return; }
+    c.font = Sh.font; c.textBaseline = 'alphabetic'; c.fillStyle = '#e6eaf7'; c.fillText(Sh.text, Sh.ox, Sh.oy);
+  }
+  // 칸 판정(maskCell) — 넓이: 칸 넓이의 45% 이상을 원본이 덮는 칸만 · 중심점: 칸 중심 한 점이 원본 안(알파 > 110)인 칸만 (안/밖 둘로 — 경계가 계단처럼 딱 떨어진다)
+  // 색은 둘 다 그 칸에 걸친 원본 픽셀의 평균(알파 가중 — 빈 픽셀은 빼고). 자리가 바뀌면 다시 잰다
+  maskCells(Sh, cx, cy) {
+    const cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows;
+    const DIRM = this.EXPAND(), CM = this.props.maskCell ?? '넓이', k = Sh.key + '|' + Math.round(cx) + '|' + Math.round(cy) + '|' + cw + '|' + cols + '|' + DIRM + '|' + CM;
+    if (this._maskCache && this._maskCache.k === k) return this._maskCache;
+    const n = cols * rows, idx = new Int32Array(n).fill(-1), list = [];
+    const ox = cx - Sh.w / 2, oy = cy - Sh.h / 2, px = Sh.px;
+    if (!Sh.sat) {
+      const W = Sh.w + 1, H = Sh.h + 1, A = new Float64Array(W * H), R = new Float64Array(W * H), Gc = new Float64Array(W * H), B = new Float64Array(W * H);
+      for (let y = 1; y < H; y++) { let ra = 0, rr = 0, rg = 0, rb = 0;
+        for (let x = 1; x < W; x++) { const j = ((y - 1) * Sh.w + (x - 1)) * 4, a = px[j + 3]; ra += a; rr += px[j] * a; rg += px[j + 1] * a; rb += px[j + 2] * a;
+          const k = y * W + x, u = k - W; A[k] = A[u] + ra; R[k] = R[u] + rr; Gc[k] = Gc[u] + rg; B[k] = B[u] + rb; } }
+      Sh.sat = { W, A, R, G: Gc, B };
+    }
+    const T = Sh.sat, box = (M, ax, ay, bx, by) => M[by * T.W + bx] - M[ay * T.W + bx] - M[by * T.W + ax] + M[ay * T.W + ax];
+    const x0 = Math.max(0, Math.floor(ox / cw)), x1 = Math.min(cols - 1, Math.floor((ox + Sh.w) / cw));
+    const y0 = Math.max(0, Math.floor(oy / ch)), y1 = Math.min(rows - 1, Math.floor((oy + Sh.h) / ch));
+    let dMax = 1;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const ax = Math.max(0, Math.floor(x * cw - ox)), bx = Math.min(Sh.w, Math.floor((x + 1) * cw - ox));
+      const ay = Math.max(0, Math.floor(y * ch - oy)), by = Math.min(Sh.h, Math.floor((y + 1) * ch - oy));
+      let sa = 0, sr = 0, sg = 0, sb = 0;
+      if (bx > ax && by > ay) { sa = box(T.A, ax, ay, bx, by); sr = box(T.R, ax, ay, bx, by); sg = box(T.G, ax, ay, bx, by); sb = box(T.B, ax, ay, bx, by); }
+      if (CM === '중심점') { const qx = Math.floor(x * cw + cw / 2 - ox), qy = Math.floor(y * ch + ch / 2 - oy); if (qx < 0 || qy < 0 || qx >= Sh.w || qy >= Sh.h || px[(qy * Sh.w + qx) * 4 + 3] <= 110 || sa <= 0) continue; }
+      else if (sa < 255 * cw * ch * 0.45) continue;
+      const d = Math.hypot(x * cw + cw / 2 - cx, y * ch + ch / 2 - cy);
+      if (d > dMax) dMax = d;
+      idx[y * cols + x] = list.length;
+      list.push({ i: y * cols + x, c: [sr / sa, sg / sa, sb / sa], d });
+    }
+    for (const m of list) m.f = m.d / dMax;   // 0 = 중심, 1 = 가장 먼 칸
+    // 번짐 방향 — 위 · 아래 · 왼쪽 · 오른쪽이면 그 변에서 쓸어 간다 (0 = 시작 변, 1 = 반대 변)
+    if (DIRM !== '중앙') for (const m of list) { const x = m.i % cols, y = (m.i / cols) | 0; m.f = Math.min(1, Math.max(0, this.sweepOf(DIRM, x * cw + cw / 2, y * ch + ch / 2, ox, oy, Sh.w, Sh.h, 0)[0] / 0.97)); }
+    return (this._maskCache = { k, idx, list });
+  }
+  // 텍스트가 놓일 칸 — 한 줄, 가운데 정렬해 칸에 맞춘다. f = 전파 순서(0 먼저 … 1 나중)
+  dataCells(Sh, cx, cy) {
+    const cols = this._cols, rows = this._rows, n = Sh.cells.length, dir = this.DDIR();
+    const x0 = Math.round((cx - Sh.w / 2) / this._cw), y0 = Math.max(0, Math.min(rows - 1, Math.round((cy - Sh.h / 2) / this._ch)));
+    const k = Sh.key + '|' + x0 + '|' + y0 + '|' + dir + '|' + cols;
+    if (!this._dState || this._dState.n !== n) this._dState = { n, g: new Array(n).fill(''), next: new Float64Array(n) };
+    if (this._dataCache && this._dataCache.k === k) return this._dataCache;
+    const idx = new Int32Array(cols * rows).fill(-1), f = new Float32Array(n), m = (n - 1) / 2 || 1;
+    for (let j = 0; j < n; j++) {
+      const x = x0 + j; if (x < 0 || x >= cols) continue;
+      idx[y0 * cols + x] = j;
+      f[j] = dir === '좌' ? j / Math.max(1, n - 1) : dir === '우' ? 1 - j / Math.max(1, n - 1) : dir === '중' ? Math.abs(j - (n - 1) / 2) / m : 0;
+    }
+    return (this._dataCache = { k, idx, f });
+  }
+  // HSV 사이를 선형으로 — 색상(H)은 가까운 쪽으로 돈다
+  rgb2hsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let h = 0;
+    if (d > 0) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [(h * 60 + 360) % 360, mx === 0 ? 0 : d / mx, mx];
+  }
+  hsv2rgb(h, s, v) {
+    const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+    return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+  }
+  lerpHsv(a, b, p) {
+    const A = this.rgb2hsv(a[0], a[1], a[2]), B = this.rgb2hsv(b[0], b[1], b[2]);
+    // 무채색 쪽은 색상이 없으니 상대 색상을 그대로 쓴다 (회색에서 엉뚱한 색을 지나지 않게)
+    if (A[1] < 0.02) A[0] = B[0]; if (B[1] < 0.02) B[0] = A[0];
+    let dh = B[0] - A[0]; if (dh > 180) dh -= 360; if (dh < -180) dh += 360;
+    return this.hsv2rgb((A[0] + dh * p + 360) % 360, A[1] + (B[1] - A[1]) * p, A[2] + (B[2] - A[2]) * p);
+  }
+  // 혼합의 데이터 글자 — 각자 캔버스에 같은 서체로 찍고, 명도는 그 글자의 레거시 값으로
+  paintParts(Sh, V) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const els = document.querySelectorAll('canvas[data-part]');
+    for (const el of els) {
+      const id = el.getAttribute('data-part'), k = Sh.parts.findIndex((p) => p.id === id); if (k < 0) continue;
+      const pt = Sh.parts[k], pv = V.parts[k], key = Sh.key + '|' + id + '|' + dpr;
+      if (el._k !== key) {
+        el.width = Math.round(pt.w * dpr); el.height = Math.round(pt.h * dpr); el._k = key;
+        const c = el.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, pt.w, pt.h);
+        c.font = pt.font; c.textBaseline = 'alphabetic'; c.fillStyle = pt.color; c.fillText(pt.text, pt.ox, pt.oy);
+      }
+      const f = 'brightness(' + pv.b.toFixed(3) + ')'; if (el.style.filter !== f) el.style.filter = f;
+    }
+  }
+  hex(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  drawField(now, force) {
+    const ctx = this._ctx; if (!ctx) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const moving = (this.props.motion ?? true) && !reduce;
+    if (!force && now - this._last < 16) return;
+    this._last = now;
+    if ((this.props.cell ?? 15) !== this._cs) { this.sizeField(); return; }
+
+    // 융기 값 · 단계가 바뀔 때만 화면 상태를 고친다
+    const V = this.seqVals(now);
+    if (V) {
+      const el = this._compEl || (this._compEl = document.querySelector('[data-comp]'));
+      if (el) { const f = 'brightness(' + V.b.toFixed(3) + ')'; if (el.style.filter !== f) el.style.filter = f; }
+      const ptop = V.mix ? V.parts.map((p) => (p.top ? '1' : '0')).join('') : '';
+      if (V.top !== this.state.top || V.cur !== this.state.cur || !!V.ready !== !!this.state.ready || ptop !== (this.state.ptop || '')) this.setState({ top: V.top, cur: V.cur, ready: !!V.ready, ptop });
+      if (V.mix) this.paintParts(this.shape(), V);
+      if (V.done && !this._seq.ended && this._seq.dir === 'out' && this._seq.toMask) {
+        // 레거시 → 마스크: 다 내려갔다 — 투영이 다 채워진 마스크 상태로 남는다
+        const Pm = this.maskPlan();
+        this._seq = { t0: now - Pm.endAll, plan: Pm, reduce: this._seq.reduce, dir: 'in', ended: true };
+        this.setState({ mode: 'mask', top: false, ready: true, cur: -1, dir: 'in' });
+      } else if (V.done && !this._seq.ended && this._seq.dir === 'out') {
+        if (V.data && this._dataCache) { const cells = []; this._dataCache.idx.forEach((k, i) => { if (k >= 0) cells.push(i); }); this._blank = { t0: now, cells: new Set(cells) }; }   // 빈칸으로 끝난 자리 — 글자 장이 칸마다 무작위로 돌아온다
+        this._seq = null; this.endDrag();
+        this.setState({ hidden: true, top: false, cur: -1, dir: '' });
+      } else if (V.done && !this._seq.ended) {
+        this._seq.ended = true;
+        if ((this.props.loop ?? false) && !this._drag) this._loopT = setTimeout(() => { if (this._live) { this.setState({ hidden: true, top: false, cur: -1 }); this._seq = null; setTimeout(() => { if (this._live) this.play(); }, 500); } }, 1600);
+      }
+    }
+    const P = (this.PALETTES()[this.props.palette] || this.PALETTES()['은하수']).map((h) => this.hex(h));
+    const NP = P.length, cols = this._cols, rows = this._rows, G = this._glyphs, g = this._g;
+    const speed = moving ? (this.props.speed ?? 1) : 0;
+    this._tt = (this._tt || 0) + (moving ? (now - (this._prev || now)) / 1000 * speed : 0); this._prev = now;
+    const t = this._tt;
+    if (moving && now - (this._rollAt || 0) > 33) { this._rollAt = now; const k = Math.ceil(cols * rows * 0.006); for (let i = 0; i < k; i++) g[(Math.random() * g.length) | 0] = (Math.random() * G.length) | 0; }
+
+    // 바탕은 불투명하게 칠한다 — 그래야 컴포넌트가 글자 장 뒤에 있을 때 가려지고, 지운 칸에서만 비친다
+    if (!this._bg) this._bg = this.bgPaint(ctx);
+    ctx.clearRect(0, 0, this._w, this._h);
+    ctx.fillStyle = this._bg; ctx.fillRect(0, 0, this._w, this._h);
+    ctx.font = '500 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", monospace';
+    ctx.textBaseline = 'top';
+
+    // 컴포넌트 모양 — px 부호 거리. 0 = 모양 가장자리, 안쪽 음수. 어느 방향이든 같은 px 로 잰다
+    const Sh = this.shape(), FIELD = Sh.type === 'field';
+    // 상태가 옮긴 자리를 따라잡았으면 임시 자리를 놓는다
+    if (this._dragPos && !this._drag && this.state.cx === this._dragPos.cx && this.state.cy === this._dragPos.cy) this._dragPos = null;
+    const POS = this._dragPos || this.state;
+    const S = this.SIZE(), cx = POS.cx * this._w, cy = POS.cy * this._h, hw = S.w / 2, hh = S.h / 2;
+    // 옮기는 중: 컴포넌트와 데이터 글자의 DOM 자리를 이 프레임의 글자 장과 같은 값으로 — 둘이 어긋나지 않는다
+    if (this._dragPos) {
+      const el = this._compEl && this._compEl.isConnected ? this._compEl : (this._compEl = document.querySelector('[data-comp]'));
+      if (el) { el.style.left = (cx - hw) + 'px'; el.style.top = (cy - hh) + 'px'; }
+      if (Sh.parts) for (const pe of document.querySelectorAll('canvas[data-part]')) { const p = Sh.parts.find((q) => q.id === pe.getAttribute('data-part')); if (p) { pe.style.left = (cx - hw + p.x) + 'px'; pe.style.top = (cy - hh + p.y) + 'px'; } }
+    }
+    const live = V && !this.state.hidden;
+    const DI = live && Sh.type === 'data' && V.data ? this.dataCells(Sh, cx, cy) : null, dataDraw = [];
+    const MK = live && (Sh.type === 'mask' || Sh.type === 'mixed') ? this.maskCells(Sh, cx, cy) : null, masked = [], MT = V && V.mask ? V.mt : 1e12;
+    const holeMask = new Map();   // 비운 칸 중 마스크 투영이 있던 칸 → [진행, 투영]
+    // 발광 생성 (마스크) — 앞선 띠의 시간 폭 G
+    const MPm = MK && this._seq && (this._seq.plan.mask || this._seq.plan.mix) ? this._seq.plan : null;
+    const MGL = MK && MPm && this.GLOW() && V.mask && !V.done ? { spread: MPm.spread, G: this.GLOW_MS() } : null;
+    const TGL = DI && this.TMOTION() === '발광' ? { spread: this._seq.plan.spread, G: this.GLOW_MS() } : null;
+    const BLK = this._blank ? (() => { const a = (now - this._blank.t0) / 500; if (a >= 1 || !this.state.hidden) { this._blank = null; return null; } return { cells: this._blank.cells, a }; })() : null;
+    this.paintCompText(Sh);
+    // 옮기는 동안은 가장자리 바깥 M px 까지 비운다 — 배경 복원이 꺼진 경우만
+    // 옮길 때 비우기 — 배경 복원이 꺼진 레거시만. 복원이 켜져 있으면 글자는 컴포넌트 뒤에 그대로 있고, 컴포넌트만 위에서 움직인다
+    const QP = this._seq && this._seq.plan, restoreOn = !!(QP && (QP.mix ? QP.legacy[3].on : QP[3] && QP[3].on));
+    const dragHole = this._drag && !V.mask && !restoreOn;
+    const erNow = live ? Math.max(V.er, dragHole ? Sh.M : -1e9) : -1e9;
+    const HN = this._holeNow, HP = this._holePrev, RG = this._regenAt, REGEN_MS = Math.max(50, this.props.glowMs ?? 200);
+    HN.fill(0);
+    // 칸 중심의 부호 거리(px) — 가장자리를 글자 단위로 살짝 흩는다(±3px). 글자 장 종류는 흩지 않는다(모양이 또렷하게)
+    const sdRaw = (x, y) => Sh.sd(x * this._cw + this._cw / 2 - (cx - hw), y * this._ch + this._ch / 2 - (cy - hh));
+    const TEXT = Sh.type === 'text' || (Sh.type === 'mask' && Sh.src === '글자'), RMAX = Math.hypot(hw, hh) + Sh.M;
+    // 글자 요소: 중심에서 잰 거리 0..1 (가장 먼 모서리 + 여백 = 1). 가장자리를 칸 단위로 살짝 흩는다
+    const DIRX = this.EXPAND(), SWEEP = DIRX !== '중앙', FRONT = TEXT || SWEEP;
+    // 앞선 좌표: 중앙이면 중심에서 잰 원형 거리, 그 밖이면 시작 변에서 쓸어 가는 거리
+    const coordOf = (x, y, i) => SWEEP ? this.sweepOf(DIRX, x * this._cw + this._cw / 2, y * this._ch + this._ch / 2, cx - hw, cy - hh, S.w, S.h, Sh.M)[0] + (this._jit[i] - 0.5) * 0.04 : dcOf(x, y, i);
+    const coordScale = SWEEP ? ((DIRX === '위' || DIRX === '아래' ? S.h : S.w) + Sh.M * 2) : RMAX;
+    const dcOf = (x, y, i) => Math.hypot(x * this._cw + this._cw / 2 - cx, y * this._ch + this._ch / 2 - cy) / RMAX + (this._jit[i] - 0.5) * 0.04;
+    const frNow = live ? (dragHole ? 1 : V.fr || 0) : 0, reachNow = live ? (dragHole ? Sh.M : V.reach || 0) : 0;
+    const ndOf = (x, y, i) => sdRaw(x, y) + (FIELD ? 0 : (this._jit[i] - 0.5) * 6);
+    const LT = this._litNow || (this._litNow = new Uint8Array(HN.length)); if (LT.length !== HN.length) this._litNow = new Uint8Array(HN.length);
+    const LIT = this._litNow; LIT.fill(0);
+    // 지울 칸: 컴포넌트 둘레 상자 + 여백 안만 본다
+    // 글자 장 종류: 모양 안 칸은 지우지 않고 밝힌다 — 경계 바깥 띠만 비운다
+    if (live && erNow > -Sh.depth - 1) {
+      const ex = hw + Math.max(0, erNow) + 30, ey = hh + Math.max(0, erNow) + 30;
+      const x0 = Math.max(0, Math.floor((cx - ex) / this._cw)), x1 = Math.min(cols - 1, Math.ceil((cx + ex) / this._cw));
+      const y0 = Math.max(0, Math.floor((cy - ey) / this._ch)), y1 = Math.min(rows - 1, Math.ceil((cy + ey) / this._ch));
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const i = y * cols + x;
+        if (FRONT) { if (frNow > 0 && ndOf(x, y, i) < reachNow && coordOf(x, y, i) < frNow) HN[i] = 1; continue; }
+        const d = ndOf(x, y, i); if (d < erNow) { if (FIELD && sdRaw(x, y) < 0) LIT[i] = 1; else HN[i] = 1; } }
+    }
+    // 혼합: 데이터 글자마다 레거시 소거 — 글자 하나를 하나의 컴포넌트로 보고 그 중심에서 번진다
+    const GLW = V && V.mix ? (this._glw && this._glw.length === HN.length ? this._glw : (this._glw = new Float32Array(HN.length))) : null;
+    if (GLW) GLW.fill(0);
+    if (live && GLW) {
+      for (let k = 0; k < Sh.parts.length; k++) {
+        const pt = Sh.parts[k], pv = V.parts[k], dh = this._drag && pv.top && !restoreOn;
+        const fr = dh ? 1 : pv.fr, reach = dh ? pt.M : pv.reach, ga = pv.ga;
+        if (fr <= 0 && ga <= 0) continue;
+        const px0 = cx - hw + pt.x, py0 = cy - hh + pt.y, pcx = px0 + pt.w / 2, pcy = py0 + pt.h / 2, RM = Math.hypot(pt.w / 2, pt.h / 2) + pt.M;
+        const m = pt.M + 30;
+        const x0 = Math.max(0, Math.floor((px0 - m) / this._cw)), x1 = Math.min(cols - 1, Math.ceil((px0 + pt.w + m) / this._cw));
+        const y0 = Math.max(0, Math.floor((py0 - m) / this._ch)), y1 = Math.min(rows - 1, Math.ceil((py0 + pt.h + m) / this._ch));
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+          const i = y * cols + x, ccx = x * this._cw + this._cw / 2, ccy = y * this._ch + this._ch / 2;
+          const sd = pt.sd(ccx - px0, ccy - py0) + (this._jit[i] - 0.5) * 6;
+          if (sd >= reach) continue;
+          const sw = SWEEP ? this.sweepOf(DIRX, ccx, ccy, px0, py0, pt.w, pt.h, pt.M) : null;
+          const dc = (SWEEP ? sw[0] : Math.hypot(ccx - pcx, ccy - pcy) / RM) + (this._jit[i] - 0.5) * 0.04;
+          if (fr > 0 && dc < fr) { HN[i] = 1; continue; }
+          if (ga > 0) { const dd = (dc - fr) * (SWEEP ? sw[1] : RM); if (dd >= 0 && dd < 26) { const q = 1 - dd / 26; GLW[i] = Math.max(GLW[i], ga * q * q); } }
+        }
+      }
+    }
+    const buckets = new Map(), P2 = this._perm, holes = [], holeKeys = [];
+    const nz = (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, a0 = xi & 255, b0 = yi & 255;
+      const uu = xf * xf * (3 - 2 * xf), vv = yf * yf * (3 - 2 * yf);
+      const A = P2[P2[a0] + b0], B = P2[P2[a0 + 1] + b0], C = P2[P2[a0] + b0 + 1], D = P2[P2[a0 + 1] + b0 + 1];
+      return (A + (B - A) * uu + (C - A) * vv + (A - B - C + D) * uu * vv) / 255;
+    };
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x;
+      let glow = GLW ? GLW[i] : 0;
+      const isHole = HN[i];
+      if (live && V.ga > 0) {
+        const ndj = ndOf(x, y, i);
+        // 지워지기 직전 — 소거 경계 바깥 26px 띠. 경계에 가까울수록 밝다
+        if (FRONT) {
+          // 글자 요소: 앞선 바로 바깥(약 26px)의, 곧 비워질 칸이 빛난다
+          if (ndj < reachNow) { const dd = (coordOf(x, y, i) - frNow) * coordScale, GB = 26; if (dd >= 0 && dd < GB) { const g = 1 - dd / GB; glow = V.ga * g * g; } }
+        } else { const dd = ndj - V.er, GB = 26; if (dd >= 0 && dd < GB && Math.abs(ndj) < 400) { const g = 1 - dd / GB; glow = V.ga * g * g; } }
+      }
+      // 텍스트 삭제가 끝난 빈칸 — 칸마다 무작위 시각에 글자 장이 돌아온다 (500ms 안)
+      if (BLK && BLK.cells.has(i) && BLK.a < this._jit[i]) continue;
+      // 마스크 발광 — 번지는 앞선 바로 앞(곧 바뀔 칸)과 막 바뀌기 시작한 칸이 그 자리 색으로 빛난다
+      if (MGL && MK.idx[i] >= 0) { const m = MK.list[MK.idx[i]], tau = MT - m.f * MGL.spread, a = Math.abs(tau) / MGL.G; if (a < 1) glow = Math.max(glow, (1 - a) * (1 - a)); }
+      // 텍스트 '발광' — 바뀌기 직전 칸이 빛난다 (생성: 배경 글자가 빛난 뒤 데이터로)
+      if (TGL && DI.idx[i] >= 0 && !V.out) { const tau = V.dt - DI.f[DI.idx[i]] * TGL.spread; if (tau < 0 && tau > -TGL.G) { const a = -tau / TGL.G; glow = Math.max(glow, (1 - a) * (1 - a)); } }
+      // 텍스트 삭제 중 — 이미 빈칸이 된 칸은 그리지 않는다
+      if (DI && DI.idx[i] >= 0 && V.out) { const pz = (V.dt - DI.f[DI.idx[i]] * this._seq.plan.spread) / this._seq.plan.cellDur; if (pz >= 1) continue; }
+      // 비어 있던 칸에 글자가 다시 생겼다 — 생성 때와 같은 발광으로 시작해 지연 시간 동안 원래 밝기로 잦아든다
+      if (HP[i] && live && !isHole && this.TRAIL()) RG[i] = now;   // 비어 있다가 다시 생긴 칸만 (지금도 비어 있는 칸은 아니다)
+      if (RG[i] && !isHole) { const age = (now - RG[i]) / REGEN_MS; if (age >= 1) RG[i] = 0; else { const g = 1 - age; glow = Math.max(glow, g * g); } }
+      const W = this._bw[i], gx = x * 0.66, gy = y * 1.2;
+      const n1 = nz(gx * 0.045 - t * 0.09, gy * 0.045 + t * 0.012);
+      const n2 = nz(gx * 0.11 - t * 0.17 + 31.7, gy * 0.11 - t * 0.02 + 12.3);
+      const n = n1 * 0.62 + n2 * 0.38, cloud = Math.max(0, n - 0.42) / 0.58, dust = cloud * cloud;
+      const u = Math.min(0.999, Math.max(0, y / rows * 0.85 + (n1 - 0.5) * 0.3));
+      let lv = LIT[i] ? 0.5 + n * 0.5 : 0.05 + W * 0.13 + dust * (0.18 + 0.62 * W);   // 글자 장 종류: 모양 안은 메인 로고처럼 밝게
+      let star = false;
+      const st = this._star[i];
+      if (st && !LIT[i]) { const tw = moving ? 0.5 + 0.5 * Math.sin(now / 1000 * 1.4 * st + st * 9.0) : 0.75; const sl = 0.36 + tw * 0.58; if (sl > lv) { lv = sl; star = true; } }
+      // 발광 — 흰색이 아니라 그 자리 글자의 색(배경 글자 색)으로 밝아진다
+      if (glow > 0.02) { lv = Math.min(1, Math.max(lv, 0.2) + glow * 0.8); star = false; }
+      const q = Math.min(7, (lv * 8) | 0), pi = Math.min(NP - 1, (u * NP) | 0);
+      let key;
+      if (star) key = 's_' + q;
+      else if (q === 0) key = 'b' + Math.min(7, (y / rows * 8) | 0) + '_' + (W > 0.45 ? 1 : 0);
+      else key = pi + '_' + q;
+      if (isHole) {
+        holes.push(i); holeKeys.push(key);
+        // 이 칸에 마스크 투영이 진행 중이었다면 — 아래 층은 그 '보였을' 색을 어둡게 한다
+        if (MK && MK.idx[i] >= 0) { const m = MK.list[MK.idx[i]], Pm = this._seq && (this._seq.plan.mask || this._seq.plan.mix) ? this._seq.plan : this.maskPlan(), p = Math.min(1, Math.max(0, (MT - m.f * Pm.spread) / Pm.cellDur)); if (p > 0) holeMask.set(i, [p, m]); }
+        continue;
+      }
+      // 텍스트 칸 — 그 글자의 진행(p)이 시작됐으면 따로 그린다
+      if (DI && DI.idx[i] >= 0) {
+        const k = DI.idx[i], Pd = this._seq.plan, p = Math.min(1, Math.max(0, (V.dt - DI.f[k] * Pd.spread) / Pd.cellDur));
+        if (p > 0 || V.out) { dataDraw.push(i, p, k, key); continue; }   // 삭제 중엔 아직 차례가 오지 않은 칸도 데이터 글자 그대로
+      }
+      // 마스크 투영 칸 — 중심에서 먼 칸일수록 늦게 시작해, 한 칸은 cellDur 동안 지금 색에서 원본 색으로
+      if (MK && MK.idx[i] >= 0) {
+        const m = MK.list[MK.idx[i]], Pm = this._seq && (this._seq.plan.mask || this._seq.plan.mix) ? this._seq.plan : this.maskPlan();
+        const p = Math.min(1, Math.max(0, (MT - m.f * Pm.spread) / Pm.cellDur));
+        if (p > 0) { masked.push(i, p, m, key, glow); continue; }
+      }
+      let b = buckets.get(key); if (!b) { b = []; buckets.set(key, b); } b.push(i);
+    }
+    if (live) this._holePrev.set(HN); else { this._holePrev.fill(0); this._regenAt.fill(0); }
+    // 글자 색 — [r, g, b, a]
+    const styleOf = (key) => {
+      const parts = key.split('_'), q = +parts[1];
+      if (parts[0][0] === 'b') { const f = +parts[0].slice(1) / 7, inB = q === 1; return [15 - 7 * f + (inB ? 5 : 0), 21 - 11 * f + (inB ? 4 : 0), 46 - 26 * f + (inB ? 10 : 0), 1]; }
+      const c = parts[0] === 's' ? [236, 241, 255] : P[+parts[0]];
+      const a = q < 2 ? 0.16 + q * 0.06 : 0.12 + q * 0.12, mix = q < 3 ? 0.35 : 1;
+      return [c[0] * mix + 74 * (1 - mix), c[1] * mix + 90 * (1 - mix), c[2] * mix + 140 * (1 - mix), a];
+    };
+    // 아래 층: 비운 칸에 원래 글자를 어둡게 — 컴포넌트 밑에 깔리므로, 둘레의 비운 자리가 움푹 팬 구멍처럼 보인다
+    if (this._uctx) {
+      const u = this._uctx; u.clearRect(0, 0, this._w, this._h);
+      if (this.HOLEBACK() === '어둡게' && holes.length) {
+        u.font = ctx.font; u.textBaseline = 'top';
+        const DIM = this.props.holeDim ?? 0.6, FLOOR = this.props.holeFloor ?? 0.6;   // 구멍 안의 명도 배율 (낮을수록 어둡다) · 바닥은 그보다 FLOOR 배 더
+        // 구멍 바닥 — 그 자리 바탕색을 같은 배율로 어둡게
+        for (let k = 0; k < holes.length; k++) { const i = holes[k], by = ((i / cols) | 0) / rows, b0 = by < 0.46 ? [5, 8, 27] : [3, 5, 16];
+          u.fillStyle = 'rgb(' + Math.round(b0[0] * DIM * FLOOR) + ',' + Math.round(b0[1] * DIM * FLOOR) + ',' + Math.round(b0[2] * DIM * FLOOR) + ')';   // 바닥은 글자보다 한 단계 더 어둡게 — 글자가 도드라지게
+          u.fillRect((i % cols) * this._cw, ((i / cols) | 0) * this._ch, this._cw, this._ch); }
+        const ub = new Map(); for (let k = 0; k < holes.length; k++) { let l = ub.get(holeKeys[k]); if (!l) { l = []; ub.set(holeKeys[k], l); } l.push(holes[k]); }
+        ub.forEach((list, key) => {
+          // 그 자리 배경 글자의 보이는 색(바탕 위에 겹친 색)에서 명도(HSV 의 V)만 낮춘다 — 색조·채도는 그대로
+          const sv = styleOf(key), i0 = list[0], by = ((i0 / cols) | 0) / rows, bg = by < 0.46 ? [5, 8, 27] : [3, 5, 16];
+          const seen = [sv[0] * sv[3] + bg[0] * (1 - sv[3]), sv[1] * sv[3] + bg[1] * (1 - sv[3]), sv[2] * sv[3] + bg[2] * (1 - sv[3])];
+          const hv = this.rgb2hsv(seen[0], seen[1], seen[2]), dc = this.hsv2rgb(hv[0], hv[1], hv[2] * DIM);
+          const dcs = 'rgb(' + Math.round(dc[0]) + ',' + Math.round(dc[1]) + ',' + Math.round(dc[2]) + ')';
+          u.fillStyle = dcs;
+          for (let k = 0; k < list.length; k++) {
+            const i = list[k], hm = holeMask.get(i);
+            if (hm) {   // 투영 색(지금 보였을 색)을 어둡게
+              const c = this.lerpHsv(seen, hm[1].c, hm[0]), h2 = this.rgb2hsv(c[0], c[1], c[2]), d2 = this.hsv2rgb(h2[0], h2[1], h2[2] * DIM);
+              u.fillStyle = 'rgb(' + Math.round(d2[0]) + ',' + Math.round(d2[1]) + ',' + Math.round(d2[2]) + ')'; u.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); u.fillStyle = dcs; continue;
+            }
+            u.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch);
+          }
+        });
+      }
+    }
+    // 지운 칸은 바탕까지 비운다 — 그 아래(컴포넌트 · 어둡게 깐 글자)가 보인다
+    for (let k = 0; k < holes.length; k++) { const i = holes[k]; ctx.clearRect((i % cols) * this._cw, ((i / cols) | 0) * this._ch, this._cw, this._ch); }
+    buckets.forEach((list, key) => {
+      const s = styleOf(key);
+      ctx.fillStyle = 'rgba(' + Math.round(s[0]) + ',' + Math.round(s[1]) + ',' + Math.round(s[2]) + ',' + s[3].toFixed(3) + ')';
+      for (let k = 0; k < list.length; k++) { const i = list[k]; ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); }
+    });
+    // 텍스트 칸: 지금 색 → 데이터 색 (HSV 선형). 갱신 간격은 p 가 오를수록 짧아지고, p = 1 에서 데이터 글자로 멈춘다
+    if (dataDraw.length) {
+      const D = this._dState, tgt = [230, 234, 247];   // 데이터 글자 색
+      for (let k = 0; k < dataDraw.length; k += 4) {
+        const i = dataDraw[k], p = dataDraw[k + 1], j = dataDraw[k + 2], s = styleOf(dataDraw[k + 3]);
+        const chr = Sh.cells[j];
+        if (p >= 1 && chr === '') continue;   // 넓은 글자의 뒤 칸
+        const by = ((i / cols) | 0) / rows, bg = by < 0.46 ? [5, 8, 27] : [3, 5, 16];
+        const from = [s[0] * s[3] + bg[0] * (1 - s[3]), s[1] * s[3] + bg[1] * (1 - s[3]), s[2] * s[3] + bg[2] * (1 - s[3])];
+        const TM = this.TMOTION(), OUT = !!V.out, GMS = this.GLOW_MS(), tau = V.dt - DI.f[j] * this._seq.plan.spread;
+        let c, glyph;
+        if (TM === '랜덤 갱신') {
+          // 생성: 지금 색 → 데이터 색, 갱신하다 데이터 글자로 멈춘다 / 삭제: 데이터 색 → 어둠, 갱신하다 빈칸으로
+          c = OUT ? this.lerpHsv(tgt, [bg[0], bg[1], bg[2]], p) : this.lerpHsv(from, tgt, p);
+          if (!OUT && p >= 1) glyph = chr;
+          else {
+            const iv = this.refreshIv(p);   // 가속: 간격이 줄어든다 · 감속: 늘어난다
+            if (now >= D.next[j]) { D.g[j] = G[(Math.random() * G.length) | 0]; D.next[j] = now + iv * (0.6 + Math.random() * 0.8); }
+            glyph = OUT && p < 0.02 ? chr : D.g[j];
+          }
+        } else if (TM === '명도 번짐') {
+          // 마스크 번짐처럼 — 글자는 곧바로 데이터로, 색(명도)만 HSV 로. 발광 없음. 삭제는 어둠까지 낮춘 뒤 빈칸
+          glyph = chr; c = OUT ? this.lerpHsv(tgt, [bg[0], bg[1], bg[2]], p) : this.lerpHsv(from, tgt, p);
+        } else {
+          // 발광 — 생성: (앞선 바로 앞에서 빛난 뒤) 데이터 글자가 빛을 머금고 나타나 잦아든다 / 삭제: 데이터 글자가 빛난 뒤 빈칸
+          glyph = chr;
+          const gl = OUT ? Math.min(1, Math.max(0, tau / GMS)) : 1 - Math.min(1, Math.max(0, tau / GMS));
+          const h = this.rgb2hsv(tgt[0], tgt[1], tgt[2]); c = this.hsv2rgb(h[0], h[1] * (1 - 0.6 * gl), Math.min(1, h[2] + gl * 0.3));
+          if (OUT && tau >= GMS) continue;
+        }
+        if (glyph === '') continue;
+        ctx.fillStyle = 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';
+        ctx.fillText(glyph, (i % cols) * this._cw, ((i / cols) | 0) * this._ch);
+      }
+    }
+    // 투영 칸: 지금 보이는 색(바탕 위에 겹친 색)에서 원본 색으로 HSV 선형 보간 — 마스크 컴포넌트는 볼드
+    const FONT_N2 = ctx.font; ctx.font = FONT_N2.replace(/^\d+ /, '700 ');
+    for (let k = 0; k < masked.length; k += 5) {
+      const i = masked[k], p = masked[k + 1], m = masked[k + 2], s = styleOf(masked[k + 3]);
+      const by = ((i / cols) | 0) / rows, bg = by < 0.46 ? [5, 8, 27] : [3, 5, 16];
+      const from = [s[0] * s[3] + bg[0] * (1 - s[3]), s[1] * s[3] + bg[1] * (1 - s[3]), s[2] * s[3] + bg[2] * (1 - s[3])];
+      let c = this.lerpHsv(from, m.c, p);
+      // 투영된 칸도 지워지기 직전에는 빛난다 — 흰색이 아니라 그 칸의 색 그대로 밝기(V)만 올린다
+      const gl = masked[k + 4];
+      if (gl > 0.02) { const h = this.rgb2hsv(c[0], c[1], c[2]); c = this.hsv2rgb(h[0], h[1] * (1 - 0.25 * gl), Math.min(1, Math.max(h[2], 0.25) + gl * 0.6)); }
+      ctx.fillStyle = 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';
+      ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.strokeText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch);
+    }
+    ctx.font = FONT_N2;
+  }
+
+  // ───── 화면 값 ─────
+  renderVals() {
+    const S = this.state, POS = this._dragPos || this.state, Z = this.SIZE(), plan = this.plan(), MIX = this.KIND() === 'mix', DT = this.KIND() === 'data', MV = this.KIND() === 'mask' && S.mode !== 'legacy';   // MV = 마스크로 보이는 중
+    const totalMs = Math.round(plan.endAll);
+    const out = S.dir === 'out';
+    const stages = this.STAGES().map((s, k) => ({
+      no: s.no, name: out ? s.back : s.name, ms: plan[k].on ? Math.round(plan[k].dur) + 'ms' : '생략',
+      cls: !plan[k].on ? 'off' : S.cur === k ? 'now' : 'on'
+    }));
+    return {
+      stages: DT ? (() => { const Dp = this.dataPlan(); return [
+        { no: '1', name: (out ? '삭제 — ' : '생성 — ') + ({ '랜덤 갱신': out ? '갱신하다 빈칸으로' : '갱신하다 데이터로', '명도 번짐': out ? '명도를 낮춰 빈칸으로' : '명도만 HSV 로 (발광 없음)', '발광': out ? '빛난 뒤 빈칸으로' : '빛난 뒤 데이터로' })[this.TMOTION()], ms: Math.round(Dp.spread) + 'ms', cls: S.cur === 0 ? 'now' : 'on' },
+        { no: '·', name: '글자 하나' + (this.TMOTION() === '랜덤 갱신' ? ' (HSV · 갱신 ' + this.TCURVE() + ')' : this.TMOTION() === '발광' ? ' (발광)' : ' (HSV)'), ms: Math.round(Dp.cellDur) + 'ms', cls: 'on' }]; })()
+        : MIX ? [{ no: 'M', name: out ? '바탕 걷힘 (마스크)' : '바탕 투영 (마스크)', ms: Math.round(this.maskPlan().endAll) + 'ms', cls: 'on' }].concat(out ? stages.slice().reverse() : stages)
+        : MV ? (() => { const M = this.maskPlan(); const run = S.cur === 0; return [
+        { no: '1', name: out ? '걷힘 — 바깥부터 원래 색으로' : '투영 — 중심에서 바깥으로 번짐', ms: Math.round(M.spread) + 'ms', cls: run ? 'now' : 'on' },
+        { no: '·', name: '글자 하나가 바뀌는 시간 (HSV)', ms: Math.round(M.cellDur) + 'ms', cls: 'on' }]; })()
+        : out ? stages.slice().reverse() : stages, total: totalMs + 'ms',
+      heading: DT ? (out ? '텍스트 — 글자 장으로 돌아가는 중' : S.hidden ? '텍스트 — 글자 장이 데이터로' : '텍스트 — 데이터') : MIX ? (out ? '혼합 — 들어가는 중' : S.hidden ? '혼합 — 바탕 마스크 · 데이터 레거시' : '혼합 — 솟음') : MV ? (out ? '마스크 — 걷히는 중' : S.hidden ? '마스크 투영' : '마스크 투영 — 비침') : out ? '컴포넌트 침강 — 들어가는 중' : S.hidden ? '컴포넌트 융기' : '컴포넌트 융기 — 솟음',
+      sinkIt: () => this.sink(),
+      switchIt: () => this.switchMode(),
+      // 혼합: 데이터 글자가 비울 때 그 자리에 보일 것 — 배경 뒤의 원본 컴포넌트(카드 면) 또는 바탕(검은 배경)
+      ex: { disp: DT ? 'none' : 'flex', label: MV ? '번짐' : '확장', opts: [['중', '중앙'], ['상', '위'], ['하', '아래'], ['좌', '왼쪽'], ['우', '오른쪽']].map(([name, val]) => {
+        const sel = this.EXPAND() === val;
+        return { name, label: val + '에서 확장', cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false',
+          pick: () => { if (sel) return; this.endDrag(); this.setState({ expand: val }); setTimeout(() => { if (this._live) this.play(); }, 30); } };
+      }) },
+      mb: { disp: MIX ? 'flex' : 'none', opts: ['원본 컴포넌트', '배경'].map((name) => {
+        const sel = this.MIXBACK() === name;
+        return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => { if (!sel) this.setState({ mixBack: name }); } };
+      }) },
+      gl: { disp: DT ? 'none' : 'block', cls: this.GLOW() ? 'sel' : '', pressed: this.GLOW() ? 'true' : 'false', label: '발광 생성 — ' + (this.GLOW() ? '켬' : '끔'),
+        toggle: () => { const o = Object.assign({}, this.state.glowBy || {}); o[this.KIND()] = !this.GLOW(); this.endDrag(); this.setState({ glowBy: o }); setTimeout(() => { if (this._live) this.play(); }, 30); } },
+      tm: { disp: DT ? 'flex' : 'none', opts: ['랜덤 갱신', '명도 번짐', '발광'].map((name) => { const sel = this.TMOTION() === name;
+        return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => { if (sel) return; this.endDrag(); this._seq = null; this.setState({ tmotion: name, hidden: true, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); } }; }) },
+      tc: { disp: DT && this.TMOTION() === '랜덤 갱신' ? 'flex' : 'none', opts: ['가속', '감속'].map((name) => { const sel = this.TCURVE() === name;
+        return { name: name + (name === '가속' ? ' — 주기 줄임' : ' — 주기 늘림'), cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => { if (sel) return; this.endDrag(); this._seq = null; this.setState({ tcurve: name, hidden: true, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); } }; }) },
+      tr: { disp: MV || DT ? 'none' : 'block', cls: this.TRAIL() ? 'sel' : '', pressed: this.TRAIL() ? 'true' : 'false', label: '잔상 — ' + (this.TRAIL() ? '켬' : '끔'), toggle: () => this.setState({ trail: !this.TRAIL() }) },
+      hb: { disp: MV || DT ? 'none' : 'block', cls: this.HOLEBACK() === '어둡게' ? 'sel' : '', pressed: this.HOLEBACK() === '어둡게' ? 'true' : 'false', label: '레거시 배경 — ' + (this.HOLEBACK() === '어둡게' ? '어둡게' : '비움'),
+        toggle: () => this.setState({ holeBack: this.HOLEBACK() === '어둡게' ? '비움' : '어둡게' }) },
+      rs: { disp: MV || DT ? 'none' : 'block', cls: this.RESTORE() ? 'sel' : '', pressed: this.RESTORE() ? 'true' : 'false', label: '배경 복원 — ' + (this.RESTORE() ? '켬' : '끔'),
+        toggle: () => { const on = !this.RESTORE(); this.endDrag(); this.setState({ restore: on }); setTimeout(() => { if (this._live && this.KIND() !== 'mask') this.play(); }, 30); } },
+      parts: MIX && this.shape().parts ? this.shape().parts.map((p, k) => ({
+        id: p.id, text: p.text, w: p.w + 'px', h: p.h + 'px',
+        left: 'calc(' + (POS.cx * 100).toFixed(3) + '% - ' + (Z.w / 2 - p.x) + 'px)', top: 'calc(' + (POS.cy * 100).toFixed(3) + '% - ' + (Z.h / 2 - p.y) + 'px)',
+        z: (S.ptop || '')[k] === '1' ? 2 : 0, vis: S.hidden ? 'hidden' : 'visible'
+      })) : [],
+      sw: { disp: this.KIND() === 'mask' ? 'inline-flex' : 'none', label: S.mode === 'legacy' ? '마스크로' : '레거시로' },
+      compHidden: S.hidden ? 'true' : 'false',
+      kinds: [['legacy', '레거시'], ['mask', '마스크'], ['mix', '혼합'], ['data', '텍스트']].map(([id, name]) => ({
+        name, cls: this.KIND() === id ? 'sel' : '', pressed: this.KIND() === id ? 'true' : 'false',
+        pick: () => { if (this.KIND() === id) return; this.endDrag(); this._seq = null; this.setState({ kind: name, hidden: true, top: false, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); }
+      })),
+      types: (DT ? ['좌', '우', '중', '동시'] : this.KIND() === 'mask' ? ['이미지', '카드', '글자'] : this.KIND() === 'mix' ? [] : ['사각형', '글자']).map((name) => {
+        const sel = DT ? this.DDIR() === name : this.KIND() === 'mask' ? this.MSRC() === name : (this.state.lsrc ?? this.props.legacySrc ?? '사각형') === name;
+        if (DT) return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => { if (sel) return; this.endDrag(); this._seq = null; this.setState({ ddir: name, hidden: true, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); } };
+        return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false',
+          pick: () => { if (sel) return; this.endDrag(); this._seq = null; this.setState(this.KIND() === 'mask' ? { msrc: name, hidden: true, top: false, cur: -1, dir: '' } : { lsrc: name, hidden: true, top: false, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); } };
+      }),
+      comp: {
+        bg: this.TYPE() === 'rect' ? '#0b1128' : 'transparent', border: this.TYPE() === 'rect' ? '1px solid #2b3666' : '0',
+        pad: this.TYPE() === 'rect' ? '22px 24px' : '0', rectDisp: this.TYPE() === 'rect' ? 'flex' : 'none', labelDisp: this.TYPE() === 'rect' ? 'inline' : 'none',
+        textDisp: this.TYPE() === 'rect' || (MIX && this.MIXBACK() === '배경') ? 'none' : 'block', text: this.TYPE() === 'mask' ? this.MSRC() + ' 컴포넌트' : this.props.text ?? 'TERRA',
+        left: 'calc(' + (POS.cx * 100).toFixed(3) + '% - ' + Z.w / 2 + 'px)', top: 'calc(' + (POS.cy * 100).toFixed(3) + '% - ' + Z.h / 2 + 'px)',
+        w: Z.w + 'px', h: Z.h + 'px', z: S.top ? 2 : 0, vis: S.hidden ? 'hidden' : 'visible',
+        label: S.top ? '맨 위' : '배경 뒤', cursor: S.top || ((MV || MIX || DT) && S.ready) ? 'grab' : 'default'
+      },
+      spawnAt: (e) => {
+        const r = e && e.currentTarget && e.currentTarget.getBoundingClientRect ? e.currentTarget.getBoundingClientRect() : null;
+        if (!r) return;
+        this.play((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+      },
+      stopProp: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      replay: () => this.play(),
+      dragStart: (e) => {
+        if (!e) return;
+        if (e.stopPropagation) e.stopPropagation();   // 바탕의 '그 자리에서 새로'를 막는다
+        if (!(this.state.top || (((this.KIND() === 'mask' && this.state.mode !== 'legacy') || this.KIND() === 'mix' || this.KIND() === 'data') && this.state.ready)) || this.state.hidden) return;   // 맨 위로 올라온 뒤(마스크는 투영이 다 된 뒤)에만 옮긴다
+        const root = e.currentTarget.parentElement, r = root.getBoundingClientRect();
+        const P0 = this._dragPos || this.state;
+        this._drag = { r, dx: e.clientX - (r.left + P0.cx * r.width), dy: e.clientY - (r.top + P0.cy * r.height) };
+        clearTimeout(this._loopT);
+        if (e.currentTarget.setPointerCapture && e.pointerId != null) e.currentTarget.setPointerCapture(e.pointerId);
+      },
+      dragMove: (e) => {
+        const D = this._drag; if (!D || !e) return;
+        const Z = this.SIZE(), mx = Z.w / 2 / D.r.width, my = Z.h / 2 / D.r.height;
+        const cx = Math.min(1 - mx, Math.max(mx, (e.clientX - D.dx - D.r.left) / D.r.width));
+        const cy = Math.min(1 - my, Math.max(my, (e.clientY - D.dy - D.r.top) / D.r.height));
+        this._dragPos = { cx, cy };   // 다시 그리지 않는다 — 다음 글자 장 프레임이 DOM 과 함께 옮긴다
+      },
+      dragEnd: (e) => {
+        if (!this._drag) return;
+        this.endDrag();
+        if (e && e.currentTarget && e.currentTarget.releasePointerCapture && e.pointerId != null) { try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {} }
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

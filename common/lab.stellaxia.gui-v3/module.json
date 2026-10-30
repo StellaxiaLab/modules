@@ -1,15 +1,101 @@
 {
   "schemaVersion": 2,
   "id": "lab.stellaxia.gui-v3",
-  "version": "0.0.1",
-  "kind": "scene",
+  "version": "0.1.0",
+  "kind": "service",
   "name": "Terra GUI v3",
-  "description": "Terra 노드 GUI 3판 — 설계 단계다. 아직 화면이 없고 문서(docs/)와 자리 표시 Scene 하나뿐이다. GUI 기여(contributions.gui)를 두지 않아 노드에 깔려도 base Scene의 목록 · main 자리에 나타나지 않는다. 기능 층은 lab.stellaxia.node-gui의 Terra 연동 코드를 이어받고 화면은 새로 짓는다.",
+  "description": "Terra 노드 GUI 3판. 화면 설계 원본은 web/design 의 캔버스 보드이고, 웹 빌드(web/ → ui/)는 그 보드를 빌드 때 모듈로 바꿔 앱 안의 보드 실행기로 그대로 띄운다(씬 · 전역 틀 · 창 · 로그인). 글자 장 그리기는 GPU(WebGL2, Worker 의 OffscreenCanvas)로 바꿔 끼웠고, 장면 계산은 아직 메인 스레드다. 백엔드는 노드에 붙는 GUI 데이터(프로필 사진 · 노드 속성)를 모듈 데이터 영역에 두고 계약의 operation(status · node-props · node-files)으로 낸다.",
   "compatibility": {
-    "products": ["leaf", "tree"],
-    "os": ["linux", "windows"]
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "os": [
+      "linux",
+      "windows"
+    ]
   },
   "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-gui-v3",
+      "linux-arm64": "bin/linux-arm64/terra-gui-v3",
+      "windows-amd64": "bin/windows-amd64/terra-gui-v3.exe"
+    },
     "scene": "scene/scene.json"
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "lab.stellaxia.gui-v3",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "gui": {
+      "apps": [
+        {
+          "id": "lab.stellaxia.gui-v3.web",
+          "name": "Terra GUI v3",
+          "mode": "static",
+          "entry": "ui/index.html",
+          "isolation": "sandboxed",
+          "permissions": [
+            "session.identity",
+            "node.read",
+            "node.control",
+            "node.config",
+            "file.read",
+            "file.write",
+            "process.execute",
+            "module.manage"
+          ]
+        }
+      ]
+    }
+  },
+  "permissions": {
+    "storage": [
+      "module-data"
+    ]
+  },
+  "configuration": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxFileMB": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64,
+          "default": 8,
+          "title": "파일 하나 한도 (MiB)",
+          "description": "프로필 사진처럼 노드에 올리는 그림 하나의 최대 크기.",
+          "x-terra-restart": true
+        },
+        "maxTotalMB": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024,
+          "default": 64,
+          "title": "노드 GUI 데이터 전체 한도 (MiB)",
+          "description": "이 노드에 쌓이는 GUI 데이터 전체의 최대 크기.",
+          "x-terra-restart": true
+        }
+      }
+    }
+  },
+  "readiness": {
+    "operationId": "lab.stellaxia.gui-v3.status.get",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
   }
 }

@@ -1,0 +1,23 @@
+{
+  "name": "terra-gui-v3",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Terra GUI v3 웹 — 장면 층(WebGL2 글자 장 · Worker) + 창 층(DOM · signals). 모듈 lab.stellaxia.gui-v3 의 웹 앱(빌드 결과는 ../ui). 설계 원본은 design/ 의 캔버스 보드",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.mjs src/api/*.test.mjs",
+    "bench": "node tools/bench-field.mjs",
+    "gen:op-scope": "node tools/gen-op-scope.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/geist": "^5.3.0",
+    "@fontsource/geist-mono": "^5.3.0",
+    "vite": "^6.0.0"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

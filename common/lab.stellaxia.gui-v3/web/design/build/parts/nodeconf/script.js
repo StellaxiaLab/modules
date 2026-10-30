@@ -1,0 +1,182 @@
+// 설정 창 — 노드를 두 쪽에서 관리. 왼쪽 분류, 오른쪽 항목, 아래 적용 · 되돌리기 (바뀐 수 · 재시작 필요 수)
+//   GUI(사람마다 · 노드마다 보이는 모습) — 표시 · 프로필 · 스킨 · 뷰
+//     표시 · 뷰 · 스킨 → 사용자 문서 me/documents (app:lab.stellaxia.gui-v3/…) — 어느 기기에서든 같다
+//     프로필 → v3 모듈 백엔드(노드의 모듈 데이터 영역 · lab.stellaxia.gui-v3.node-files.*) — 그 노드를 보는 모든 사람에게 같다
+//     (시안에서는 셋 다 localStorage 로 흉내: 'terra.skin' · 'terra.fs' · 'terra.fs.f.<노드 id>:<상대 경로>')
+//   Terra(공통 — 모든 노드의 Daemon 설정 config.json, 실제 키 이름 그대로) — 정체 · 연결 · 네트워크 · 업데이트 · 로그 · 위험
+//     읽기 terra.daemon.config.get(+schema.get) · 쓰기 terra.daemon.config.patch {set, save:true} — 쓰기는 로컬 노드만(권한 node.config)
+//     원격 노드(remote)면 전부 읽기 + "그 노드에서 열기". 계정 · 리소스는 노드가 아니라 노드 설정이 없다
+//   Tree(트리 노드만 — 그 트리의 Master 가 관리하는 것) — 클러스터 · 사용자 · 노드 등록 · 배포 · 경보 (terra.master.*, 권한 master.admin · node.control · core.publish)
+//   Leaf(리프 노드만) — 자원(요약 + 노드 데스크톱 · 자원 창으로) · 모듈 받기
+//     나눔 원칙: 노드 **안**의 일(자원 캡슐화 · 공유 폴더 · 실행 · 제어)은 노드 데스크톱에서, 노드 **사이**의 일(어떤 노드 · 범위에 어떤 자원을 주고, 무엇을 받아 올지)은 자원 창에서
+//     키마다 소유자(편집 = operator · 읽기 = installer/derived)와 재시작 필요 여부를 함께 보인다. 비밀 키 · 효과 없는 키 · 포트 편집은 두지 않는다
+//   시안 — 노드 설정 값은 이 창 안에서만 (적용하면 기준값이 바뀐다)
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sec: 'show', v: null, base: null, draft: {}, msg: '', arm: null, needRestart: 0 };
+    try { window.addEventListener('terra-help', () => this.setState({})); window.addEventListener('terra-sess', () => this.setState({})); } catch (e) {} }
+  // 도움말 — 켜면 항목 설명 · 설정 키를 보인다 (기본 끔). 내 화면 설정이라 즉시 적용 · 자원 창과 같이 씀
+  // Tree 로그인 — GUI 쪽 값(이 브라우저): auto(terra.auto) · 저장된 세션(terra.sess, Tree id → { email, name, at })
+  autoOn() { try { return localStorage.getItem('terra.auto') !== '0'; } catch (e) { return true; } }
+  setAuto(on) { try { localStorage.setItem('terra.auto', on ? '1' : '0'); window.dispatchEvent(new Event('terra-sess')); } catch (e) {} this.setState({}); }
+  sessAll() { try { return JSON.parse(localStorage.getItem('terra.sess') || '{}') || {}; } catch (e) { return {}; } }
+  sessOut(id) { const m = this.sessAll(); const nm = (m[id] && m[id].name) || id; delete m[id]; try { localStorage.setItem('terra.sess', JSON.stringify(m)); window.dispatchEvent(new Event('terra-sess')); } catch (e) {} this.setState({ msg: nm + ' — 로그아웃 (저장된 세션 지움)' }); }
+  help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
+  setHelp(on) { try { localStorage.setItem('terra.help', on ? '1' : '0'); window.dispatchEvent(new Event('terra-help')); } catch (e) {} this.setState({}); }
+  isNode() { const k = this.props.nodeKind || '리프'; return k === '트리' || k === '리프'; }
+  remote() { return !!this.props.remote; }
+  // Daemon 설정 키 — [키, 소유자(O 편집 · I/D 읽기), 재시작 필요]. 근거: Terra products/leaf/daemon/src/terra_daemon/core/config.go (스키마 140키 중 v3 1차 노출분)
+  DKEYS() { return {
+    'daemon.device_name': ['O', false], 'daemon.roles': ['D', false], 'registration.node_id': ['D', false], 'registration.parent': ['D', false],
+    'master.url': ['O', true], 'wireguard.advertise_endpoint': ['O', true], 'heartbeat.interval_sec': ['O', true],
+    'storage.shared_dirs': ['O', true], 'storage.memos_dir': ['O', true], 'local_fs.enabled': ['O', false],
+    'core.version': ['D', false], 'core_distribution.hold': ['O', true], 'core_distribution.hold_reason': ['O', true], 'core_distribution.allow_apply': ['O', true], 'core_distribution.maintenance_window': ['O', true], 'core_distribution.disk_quota_mb': ['O', true],
+    'logging.level': ['O', false], 'logging.max_size_mb': ['O', true], 'logging.max_backups': ['O', true],
+    'wireguard.enabled': ['O', true], 'wireguard.listen_port': ['O', true], 'direct_tcp.enabled': ['O', true], 'webrtc.enabled': ['O', true],
+    'module_distribution.enabled': ['O', true], 'module_distribution.disk_quota_mb': ['O', true] }; }
+  isTree() { return (this.props.nodeKind || '리프') === '트리'; }
+  isLeaf() { return (this.props.nodeKind || '리프') === '리프'; }
+  // 자원 — 노드 안에서 캡슐화한 것(시안: 지도의 위성 이름). 실제로는 Daemon SVI 선언(terra.daemon.svi.declarations.get)
+  resList() { const r = this.props.resList; return Array.isArray(r) ? r : typeof r === 'string' && r ? r.split(',') : ['ssh:22', 'tty0', 'gpio']; }
+  defaults() {
+    const k = this.props.nodeKind || '리프', nm = this.props.nodeName || 'lab-ws-02', slug = nm.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'node', par = this.props.parentName || '—';
+    return { label: true, orbit: true, color: '기본', proj: '마스크', view: k === '트리' ? '리프 뷰' : k === '리프' ? '리소스 뷰' : '트리 뷰', dbl: true, badge: true, skin: this.skinOf(), profile: this.profOf(),
+      // 노드 설정 — 시안 값 (실제로는 GET /config 의 실행 중 값)
+      'daemon.device_name': slug, 'daemon.roles': k === '트리' ? 'tree' : 'leaf', 'registration.parent': par, 'registration.node_id': this.nodeId(),
+      'master.url': 'https://' + (par.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tree') + '.terra.local:8080', 'wireguard.advertise_endpoint': '', 'heartbeat.interval_sec': 10,
+      'storage.shared_dirs': [{ name: 'share-0', path: '~/TerraShare' }], 'storage.memos_dir': '', 'local_fs.enabled': true,
+      'core.version': '1.7.0', 'core_distribution.hold': false, 'core_distribution.hold_reason': '', 'core_distribution.allow_apply': true, 'core_distribution.maintenance_window': '', 'core_distribution.disk_quota_mb': 4096,
+      'logging.level': 'info', 'logging.max_size_mb': 10, 'logging.max_backups': 5,
+      'wireguard.enabled': true, 'wireguard.listen_port': 51820, 'direct_tcp.enabled': false, 'webrtc.enabled': false,
+      'module_distribution.enabled': true, 'module_distribution.disk_quota_mb': 0,
+      // Tree (Master) — 시안 값
+      users: [['admin', 'master.admin'], ['ops', 'node.control'], ['viewer', 'node.read']], codes: [['TR-7Q2K', '24시간 · 남은 3회'], ['TR-M8VD', '1시간 · 남은 1회']], alerts: [['경고', (k === '트리' ? nm : '02') + '·b 디스크 92%', '2분 전'], ['정보', 'core 1.7.1 롤아웃 40%', '12분 전']] };
+  }
+  // 스킨 — 노드 id 로 저장한 구 id ('' = 기본 무늬). 보관함은 스타메이커와 같은 terra.star.index
+  // ── 노드 파일 (프로필) ──
+  fsAll() { try { const v = JSON.parse(localStorage.getItem('terra.fs') || 'null'); if (v && v.nodes) return v; } catch (e) {} return { nodes: {} }; }
+  fsNode(F, id) { return F.nodes[id] || (F.nodes[id] = { files: {}, props: {} }); }
+  profOf() { const N = this.fsAll().nodes[this.props.nodeKey || '']; return (N && N.props && N.props.profile && N.props.profile.image) || ''; }
+  nodeBase() { return this.props.nodePath || '/' + (this.props.nodeName || 'node'); }
+  // 속성에 적는 경로는 노드 상대 '/데이터/…' (백엔드 lab.stellaxia.gui-v3.node-props 와 같은 꼴) — 화면엔 노드 경로를 앞에 붙여 보인다. 예전 꼴(노드 경로 포함)도 읽는다
+  relOf(path) { if (!path) return ''; const a = '/데이터/', b = this.nodeBase() + '/데이터/'; return path.startsWith(a) ? path.slice(a.length) : path.startsWith(b) ? path.slice(b.length) : ''; }
+  profData(path) { const id = this.props.nodeKey || '', rel = this.relOf(path); if (!rel) return ''; try { return localStorage.getItem('terra.fs.f.' + id + ':' + rel) || ''; } catch (e) { return ''; } }
+  profPick(f) {
+    if (!f) return; if (!/^image\//.test(f.type)) { this.setState({ msg: '이미지 · GIF 파일만 올릴 수 있어요' }); return; }
+    if (f.size > 2.5 * 1024 * 1024) { this.setState({ msg: '2.5MB 이하만 — 브라우저 저장소가 작아요 (' + (f.size / 1048576).toFixed(1) + 'MB)' }); return; }
+    const rd = new FileReader(); rd.onload = () => { const nm = (f.name || 'profile').replace(/[\\/:*?"<>|]+/g, '_'); this._pend = { name: nm, mime: f.type, size: f.size, data: rd.result }; this.set('profile', '(새 파일) ' + nm + ' · ' + Date.now()); }; rd.readAsDataURL(f);
+  }
+  profApply(v) {
+    const id = this.props.nodeKey || '', F = this.fsAll(), N = this.fsNode(F, id), old = N.props.profile && N.props.profile.image;
+    // 지난 프로필 파일은 지운다 (프로필 폴더엔 지금 것 하나만)
+    if (this.relOf(old)) { const rel = this.relOf(old); delete N.files[rel]; try { localStorage.removeItem('terra.fs.f.' + id + ':' + rel); } catch (e) {} }
+    if (v.profile && this._pend) { const P = this._pend, rel = 'profile/image/' + P.name;
+      try { localStorage.setItem('terra.fs.f.' + id + ':' + rel, P.data); } catch (e) { this.setState({ msg: '저장 공간이 모자라요 — 더 작은 파일로' }); return false; }
+      N.files[rel] = { mime: P.mime, size: P.size, at: Date.now() }; N.props.profile = { image: '/데이터/' + rel }; this._pend = null; }
+    else delete N.props.profile;
+    try { localStorage.setItem('terra.fs', JSON.stringify(F)); } catch (e) {}
+    try { window.dispatchEvent(new Event('terra-fs')); } catch (e) {}
+    return true;
+  }
+  skinMap() { try { return JSON.parse(localStorage.getItem('terra.skin') || '{}') || {}; } catch (e) { return {}; } }
+  skinOf() { return this.skinMap()[this.props.nodeKey || ''] || ''; }
+  starIdx() { try { const v = JSON.parse(localStorage.getItem('terra.star.index') || 'null'); if (v && Array.isArray(v.files)) return v; } catch (e) {} return { folders: ['star'], files: [] }; }
+  V() { const nk = (this.props.nodeKey || '') + '|' + (this.props.nodeName || ''); if (this._vk !== nk) { this._vk = nk; this.state.v = null; this._pend = null; }   // 다른 노드로 열리면 처음부터
+    if (!this.state.v) { const d = this.defaults(); this.state.v = JSON.parse(JSON.stringify(d)); this.state.base = JSON.parse(JSON.stringify(d)); } return this.state.v; }
+  set(k, val) { const v = Object.assign({}, this.V(), { [k]: val }); this.setState({ v, msg: '' }); }
+  dirty() { const v = this.V(), b = this.state.base; return Object.keys(v).filter((k) => JSON.stringify(v[k]) !== JSON.stringify(b[k])); }
+  SECS() { const etc = ['기타', [['etc', '도움말']]]; if (!this.isNode()) return [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['ident', '노드 설정']]], etc];
+    const g = [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['ident', '노드 정보'], ['conn', '연결'], ['net', '네트워크'], ['upd', '업데이트'], ['log', '로그'], ['danger', '노드 관리']]]];
+    if (this.isTree()) g.push(['Tree', [['cluster', '클러스터'], ['users', '사용자'], ['enroll', '노드 등록'], ['deploy', '배포'], ['alerts', '경보']]]);
+    if (this.isLeaf()) g.push(['Leaf', [['res', '자원'], ['mods', '모듈']]]);
+    g.push(etc); return g; }
+  KEYS() { return { show: ['label', 'orbit', 'color', 'proj'], skin: ['skin'], prof: ['profile'], view: ['view', 'dbl', 'badge'],
+    ident: ['daemon.device_name'], conn: ['master.url', 'heartbeat.interval_sec'], net: ['wireguard.enabled', 'wireguard.listen_port', 'wireguard.advertise_endpoint', 'direct_tcp.enabled', 'webrtc.enabled'],
+    upd: ['core_distribution.hold', 'core_distribution.hold_reason', 'core_distribution.allow_apply', 'core_distribution.maintenance_window', 'core_distribution.disk_quota_mb'], log: ['logging.level', 'logging.max_size_mb', 'logging.max_backups'], danger: [],
+    cluster: [], users: ['users'], enroll: ['codes'], deploy: [], alerts: ['alerts'], res: [], etc: [], tlog: [], mods: ['module_distribution.enabled', 'module_distribution.disk_quota_mb'] }; }
+  // 노드 설정 줄의 머리표 — 키 이름 · 편집/읽기 · 재시작
+  meta(k) { const D = this.DKEYS()[k]; if (!D) return {}; const ro = D[0] !== 'O' || this.remote(); return { keyT: k, tagT: ro ? '읽기' : '편집', tagCls: ro ? 'ro' : 'ed', rsT: D[1] && !ro ? '재시작 필요' : D[0] === 'O' && !D[1] && !ro ? '즉시' : '', isMeta: true }; }
+  // 노드가 아닌 것 · 원격 노드 — 안내 줄
+  noteRow(t, sub, act) { return { label: t, sub, isNote: true, noteAct: act || null, hasAct: !!act, actT: act ? act.t : '' }; }
+  rows(sec) {
+    const v = this.V(), S = this.state, RO = (k) => { const D = this.DKEYS()[k]; return !!D && (D[0] !== 'O' || this.remote()); }, M = (k, r) => Object.assign(r, this.meta(k));
+    const T = (k, label, sub) => (RO(k) ? X(k, label, sub) : M(k, { label, sub, isToggle: true, on: v[k] ? 'true' : 'false', tgCls: v[k] ? 'on' : '', tgT: v[k] ? '켬' : '끔', toggle: () => this.set(k, !v[k]) }));
+    const G = (k, label, sub, opts) => (RO(k) ? X(k, label, sub) : M(k, { label, sub, isSeg: true, opts: opts.map((o) => ({ name: o, on: v[k] === o ? 'true' : 'false', cls: v[k] === o ? 'on' : '', pick: () => this.set(k, o) })) }));
+    const X = (k, label, sub, ph) => M(k, { label, sub, isText: true, val: typeof v[k] === 'boolean' ? (v[k] ? '켬' : '끔') : Array.isArray(v[k]) ? v[k].map((d) => (d.name ? d.name + ' = ' : '') + d.path).join(' · ') : String(v[k] ?? ''), ph: ph || '', ro: RO(k) ? 'readonly' : null, input: (e) => this.set(k, e.target.value) });
+    const N = (k, label, sub, min, max, step, unit) => (RO(k) ? X(k, label, sub) : M(k, { label, sub, isRange: true, min, max, step: step || 1, val: v[k], valT: v[k] + unit, input: (e) => this.set(k, +e.target.value) }));
+    const D = (id, label, sub, t1, t2, off) => ({ label, sub, isDanger: true, dOff: off ? 'disabled' : null, dCls: S.arm === id ? 'arm' : '', dT: off ? t1 : S.arm === id ? t2 : t1, act: () => { if (off) return; if (S.arm === id) { this.setState({ arm: null, needRestart: 0, msg: label + ' — 요청을 보냈어요 (시안 · POST /restart)' }); } else { this.setState({ arm: id }); clearTimeout(this._armT); this._armT = setTimeout(() => this.setState({ arm: null }), 4000); } } });
+    if (sec === 'show') return [T('label', '이름표', '항상 표시'), T('orbit', '궤도 선', ''), G('color', '노드 색', '', ['기본', '파랑', '초록', '주황']), G('proj', '표시 방식', '', ['마스크', '레거시', '혼합'])];
+    if (sec === 'prof') { const cur = v.profile, pend = cur && cur.startsWith('(새 파일) ') && this._pend, img = pend ? this._pend.data : this.profData(cur);
+      return [{ label: '프로필 사진', sub: '이미지 · GIF · 2.5MB 이하', isProf: true, pImg: img || '', hasImg: !!img, noImg: !img,
+        pPath: pend ? '적용하면 → ' + this.nodeBase() + '/데이터/profile/image/' + this._pend.name : cur ? (cur.startsWith('/데이터/') ? this.nodeBase() + cur : cur) : '없음', pProps: this.nodeBase() + '/데이터/properties.json › profile.image',
+        pick: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.profPick(f); }, clear: () => { this._pend = null; this.set('profile', ''); } }]; }
+    if (sec === 'skin') { const L = this.starIdx(), planet = (this.props.nodeKind || '리프') === '리프', pick = (id) => () => this.set('skin', id), C = (id) => (v.skin === id ? 'on' : '');
+      const files = L.files.slice().sort((a, b) => (a.path + '/' + a.name).localeCompare(b.path + '/' + b.name));
+      return [{ label: '행성 스킨', sub: '유틸/스타메이커/star · ' + (planet ? '행성 겉면' : '리프 뷰 가운데 항성'), isSkin: true,
+        skins: [{ name: '기본', path: '타입 무늬', thumb: '', noThumb: true, hasThumb: false, cls: C(''), on: v.skin === '' ? 'true' : 'false', pick: pick('') }].concat(files.map((f) => ({ name: f.name, path: f.path + ' · ' + (f.kind === 'planet' ? '행성' : '항성'), thumb: f.thumb || '', noThumb: !f.thumb, hasThumb: !!f.thumb, cls: C(f.id), on: v.skin === f.id ? 'true' : 'false', pick: pick(f.id) }))),
+        skinEmpty: files.length ? '' : 'star 폴더 비어 있음' }]; }
+    if (sec === 'view') return [G('view', '시작 뷰', '', ['트리 뷰', '리프 뷰', '리소스 뷰']), T('dbl', '더블클릭 진입', '끄면 우클릭 › 진입'), T('badge', '알림 배지', '')];
+    // ── 노드 설정 (Daemon) ──
+    if (!this.isNode() && !['show', 'prof', 'skin', 'view', 'etc'].includes(sec)) return [this.noteRow('노드 설정 없음', this.props.nodeKind === '계정' ? '계정 · 권한은 트리 › 사용자' : '자원 공유는 부모 리프 › 자원')];
+    const head = this.remote() ? [this.noteRow('원격 노드 · 읽기 전용', '노드 설정 쓰기는 그 노드에서만 (terra.daemon.config.patch)', { t: '그 노드에서 열기', run: () => this.setState({ msg: '그 노드의 GUI 를 엽니다 (시안)' }) })] : [];
+    if (sec === 'ident') return head.concat([X('daemon.device_name', '표시 이름', '지도 · 목록의 이름', 'lab-ws-02'), X('daemon.roles', '역할', '변경은 인스톨러로'), X('registration.parent', '부모 트리', ''), X('registration.node_id', '노드 ID', '등록 때 정해짐'),
+      this.noteRow('사용자 권한', '트리 › 사용자에서 관리')]);
+    if (sec === 'net') return head.concat([T('wireguard.enabled', 'WireGuard 메시', '끄면 Master 중계'), N('wireguard.listen_port', '수신 포트', 'WireGuard UDP', 1024, 65535, 1, ''), X('wireguard.advertise_endpoint', '공개 주소', 'host:port · 비우면 자동', 'host:51820'),
+      T('direct_tcp.enabled', '직접 TCP', '같은 망 · 17322'), T('webrtc.enabled', 'WebRTC', 'NAT 너머 스트림'), this.noteRow('노드 간 경로', '트리 › 클러스터')]);
+    if (sec === 'conn') return head.concat([X('master.url', 'Master 주소', 'https 권장', 'https://tree.example:8080'), N('heartbeat.interval_sec', 'Heartbeat 주기', '', 1, 60, 1, '초'),
+      { label: '포트', sub: '고정값 (endpoints.json)', isList: true, items: ['Gateway 8787 (leaf) · 8788 (tree)', 'Local API 17321', 'Master 8080', 'direct TCP 17322 · mesh 17323 · gRPC 17325 (기본 꺼짐)', 'WireGuard 51820'].map((t) => ({ t })), keyT: 'host/endpoints.go', tagT: '읽기', tagCls: 'ro', rsT: '', isMeta: true }]);
+    if (sec === 'upd') return head.concat([X('core.version', '코어 버전', '트리가 배포'), T('core_distribution.hold', '업데이트 보류', ''), X('core_distribution.hold_reason', '보류 사유', '트리에 보고', '예: 시연 중'),
+      T('core_distribution.allow_apply', '자동 적용', '끄면 받기만'), X('core_distribution.maintenance_window', '정비 시간', 'HH:MM-HH:MM · 비우면 언제든', '02:00-05:00'), N('core_distribution.disk_quota_mb', '업데이트 용량', '', 512, 16384, 512, 'MB')]);
+    if (sec === 'log') return head.concat([G('logging.level', '로그 수준', 'daemon · job · audit', ['debug', 'info', 'warn', 'error']), N('logging.max_size_mb', '파일 크기', '', 1, 100, 1, 'MB'), N('logging.max_backups', '보관 개수', '', 0, 20, 1, '개')]);
+    // ── Tree (Master) ──
+    const MT = (k, ro) => ({ keyT: k, tagT: ro ? '읽기' : '편집', tagCls: ro ? 'ro' : 'ed', rsT: '', isMeta: true });
+    if (sec === 'cluster') return [Object.assign(this.noteRow('Master 설정 · 읽기 전용', 'config API 없음 — terra master config set + 재시작'), {}),
+      Object.assign(X('tree_display_name', '트리 이름', ''), MT('master: tree_display_name (파일)', true), { val: this.props.nodeName || '02', ro: 'readonly' }),
+      Object.assign(X('tree_login_url', '로그인 주소', ''), MT('master: tree_login_url (파일)', true), { val: 'https://' + (this.props.nodeName || 'tree').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.terra.example', ro: 'readonly' }),
+      Object.assign({ label: '경로 정책', sub: '', isList: true, items: [{ t: '기본: 직접 → 메시 → 중계' }, { t: '02·b ↔ 01·c : 중계만 (방화벽)' }] }, MT('terra.master.route.policies.*', false))];
+    if (sec === 'users') { const k = 'users', U = v[k] || [];
+      return [Object.assign({ label: '사용자 목록', sub: '', isChips: true, chips: U.map((u, j) => ({ name: u[0] + ' · ' + u[1], del: () => this.set(k, U.filter((x, q) => q !== j)) })), draft: S.draft.user || '',
+        input: (e) => this.setState({ draft: Object.assign({}, S.draft, { user: e.target.value }) }), key: (e) => { if (e.key === 'Enter' && !e.isComposing) { const n = (S.draft.user || '').trim(); if (n && !U.some((u) => u[0] === n)) this.set(k, U.concat([[n, 'node.read']])); this.setState({ draft: Object.assign({}, S.draft, { user: '' }) }); } } }, MT('terra.master.admin.users.* (master.admin)', false)),
+        this.noteRow('권한 단계', 'node.read · node.control · node.config · module.manage · core.publish · master.admin')]; }
+    if (sec === 'enroll') { const k = 'codes', C = v[k] || [];
+      return [Object.assign({ label: '등록 코드', sub: '일회용', isList: true, items: C.map((c) => ({ t: c[0].slice(0, 3) + '••••  ' + c[1] })) }, MT('terra.master.nodes.enroll-codes.* (node.control)', false)),
+        this.noteRow('코드 발급', '24시간 · 3회', { t: '발급', run: () => this.set(k, C.concat([['TR-' + Math.random().toString(36).slice(2, 6).toUpperCase(), '24시간 · 남은 3회']])) })]; }
+    if (sec === 'deploy') return [Object.assign({ label: '코어 릴리스', sub: '', isList: true, items: [{ t: '1.7.1  롤아웃 40% · 12분 전' }, { t: '1.7.0  적용됨 · 전체' }] }, MT('terra.master.core.releases.* (core.publish)', false)),
+      Object.assign({ label: '모듈 배포', sub: '', isList: true, items: [{ t: '승인 상한: 서명된 모듈만 자동' }, { t: '접두사: lab.stellaxia' }] }, MT('terra.master.modules.* (module.approve · module.publish)', false)),
+      this.noteRow('배포 도구', '유틸 › 배포 도구')];
+    if (sec === 'alerts') { const k = 'alerts', A = v[k] || [];
+      return A.length ? A.map((a, j) => Object.assign(this.noteRow(a[1], a[0] + ' · ' + a[2], { t: '확인', run: () => this.set(k, A.filter((x, q) => q !== j)) }))) : [this.noteRow('경보 없음', '')]; }
+    // ── Leaf ──
+    if (sec === 'res') { const R = this.resList(), open = (kind) => () => (this.props.onOpen ? this.props.onOpen(kind) : this.setState({ msg: kind + ' 창을 엽니다 (시안)' }));
+      return head.concat([{ label: '자원 리스트', sub: 'SVI ' + R.length + '개 · 이름을 누르면 상태', isList: true, items: R.map((t) => ({ t, run: () => (this.props.onOpen ? this.props.onOpen('res', t) : this.setState({ msg: t + ' 상태 창 (시안)' })) })), keyT: 'terra.daemon.svi.declarations', tagT: '읽기', tagCls: 'ro', rsT: '', isMeta: true },
+        this.noteRow('내부 자원 관리', '캡슐화 · 열기 · 실행 · 제어', { t: '노드 데스크톱', run: open('ctl') }),
+        this.noteRow('자원 공유 · 외부 자원 등록', '소속 클러스터 안', { t: '자원 창', run: open('share') })]); }
+    if (sec === 'tlog') { const au = this.autoOn(), m = this.sessAll(), ids = Object.keys(m).sort((a, b) => (m[b].at || 0) - (m[a].at || 0));
+      const ago = (t) => { const d = (Date.now() - (t || 0)) / 60000; return d < 1 ? '방금' : d < 60 ? Math.round(d) + '분 전' : d < 1440 ? Math.round(d / 60) + '시간 전' : Math.round(d / 1440) + '일 전'; };
+      return [{ label: 'auto', sub: '저장된 세션으로 바로 이동 · 로그인 창 기본값', isToggle: true, on: au ? 'true' : 'false', tgCls: au ? 'on' : '', tgT: au ? '켬' : '끔', toggle: () => this.setAuto(!au) },
+        { label: '저장된 세션', sub: ids.length + '개 · ' + (au ? '이동 때 씀' : 'auto 꺼짐 — 이동 때마다 로그인'), isList: true,
+          items: ids.length ? ids.map((id) => ({ t: (m[id].name || id) + ' · ' + (m[id].email || '') + ' · ' + ago(m[id].at), noRun: true, hasAct: true, actT: '로그아웃', act: () => this.sessOut(id) })) : [{ t: '없음 — Tree 로그인 창에서 auto 를 켜고 로그인하면 남아요', noRun: true }] }]; }
+    if (sec === 'etc') { const h = this.help(); return [{ label: '도움말', sub: '항목 설명 · 설정 키', isToggle: true, on: h ? 'true' : 'false', tgCls: h ? 'on' : '', tgT: h ? '켬' : '끔', toggle: () => this.setHelp(!h) }]; }
+    if (sec === 'mods') return head.concat([T('module_distribution.enabled', '지정 모듈 설치', '트리가 지정'), N('module_distribution.disk_quota_mb', '설치 용량', '0 = 제한 없음', 0, 16384, 512, 'MB')]);
+    return head.concat([D('restart', '다시 시작', '잠깐 끊김 · terra.daemon.restart.post', '다시 시작', '한 번 더 누르면 실행', this.remote()), D('detach', '트리 해제', '코어 동작 미확인', '준비 중', '', true)]);
+  }
+  nodeId() { let h = 7; for (const ch of (this.props.nodeName || 'node')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return 'nd_' + h.toString(16).padStart(8, '0').slice(0, 8); }
+  renderVals() {
+    const SEC0 = this.SECS(); if (!SEC0.some((g) => g[1].some((i) => i[0] === this.state.sec))) this.state.sec = 'show';   // 다른 종류의 노드로 열렸으면(트리 → 리프) 처음 분류로
+    const S = this.state, v = this.V(), dk = this.dirty(), K = this.KEYS(), sec = S.sec, grp = this.SECS().find((g) => g[1].some((i) => i[0] === sec)), DK = this.DKEYS(),
+      filled = (r) => Object.assign({ isToggle: false, isSeg: false, isText: false, isRange: false, isChips: false, isDanger: false, isSkin: false, isProf: false, isNote: false, isList: false, isDirs: false, isMeta: false, hasAct: false, sub: '', keyT: '', tagT: '', tagCls: '', rsT: '', ph: '', dOff: null }, r);
+    const rsN = dk.filter((k) => DK[k] && DK[k][1]).length;
+    return {
+      rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.props.nodeName || 'lab-ws-02', kind: (this.props.nodeKind || '리프') + (this.remote() ? ' · 원격' : ''), nodeId: this.nodeId(),
+      groups: this.SECS().map(([g, items]) => ({ name: g, items: items.map(([id, nm]) => { const n = K[id].filter((k) => dk.includes(k)).length; return { name: nm, cls: id === sec ? 'on' : '', cur: id === sec ? 'page' : 'false', badge: n ? '●' + n : '', pick: () => this.setState({ sec: id, arm: null }) }; }) })),
+      secName: (grp[1].find((i) => i[0] === sec) || [])[1], secGroup: grp[0] === '기타' ? '' : grp[0],
+      rows: this.rows(sec).map(filled).map((r) => (r.items ? Object.assign(r, { items: r.items.map((it) => Object.assign({}, it, { hasRun: !!it.run, noRun: !it.run, run: it.run || null })) }) : r)).map((r) => (this.help() ? Object.assign(r, { help: true }) : Object.assign(r, { sub: '', isMeta: false, help: false }))).map((r) => (r.isNote && r.noteAct ? Object.assign(r, { noteRun: r.noteAct.run }) : Object.assign(r, { noteRun: null }))),
+      dirtyT: dk.length ? '바뀐 항목 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음', clean: dk.length ? null : 'disabled', msg: S.msg,
+      restartD: S.needRestart ? 'inline-flex' : 'none', restartNow: () => this.setState({ needRestart: 0, msg: '다시 시작 요청을 보냈어요 (시안 · POST /restart)' }),
+      apply: () => { if (dk.includes('profile') && !this.profApply(v)) return; if (dk.includes('skin')) { const m = this.skinMap(), key = this.props.nodeKey || ''; if (v.skin) m[key] = v.skin; else delete m[key]; try { localStorage.setItem('terra.skin', JSON.stringify(m)); } catch (e) {} if (this.props.onSkin) this.props.onSkin(key, v.skin); }
+        // 노드 설정 — 실제로는 바뀐 키만 terra.daemon.config.patch {set:{…}, save:true} 한 번 (전부 적용되거나 전부 안 됨, 키별 오류는 그 줄에). path 인자는 넘기지 않는다
+        const nd = dk.filter((k) => DK[k]);
+        this.setState({ base: JSON.parse(JSON.stringify(v)), needRestart: (S.needRestart || 0) + rsN, msg: '적용했어요 — ' + dk.length + '개' + (nd.length ? ' (노드 설정 ' + nd.length + '개 · 시안)' : '') + (rsN ? ' · 재시작해야 반영되는 항목 ' + rsN + '개' : '') }); },
+      revert: () => { this._pend = null; this.setState({ v: JSON.parse(JSON.stringify(S.base)), msg: '되돌렸어요' }); }
+    };
+  }
+}

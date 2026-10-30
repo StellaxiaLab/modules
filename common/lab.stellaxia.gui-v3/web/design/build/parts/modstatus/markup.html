@@ -1,0 +1,47 @@
+<div class="ns ms" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
+  <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>module</span><b class="ns-v">{{name}}</b><span class="ns-k">{{id}}</span><span style="flex: 1;"></span><span style="color: {{linkCol}};">{{linkT}}</span><span style="color: {{stCol}};">● {{stT}}</span></div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>상태<span class="ns-hr"></span><span class="ns-k">{{apiS}}</span></h3>
+  <div class="ns-grid">
+    <span class="ns-k">노드</span><span class="ns-v">{{node}}</span><span class="ns-k">버전</span><span>{{ver}}</span>
+    <span class="ns-k">종류</span><span><span class="ms-tag">{{kind}}</span></span><span class="ns-k">가동</span><span>{{up}}</span>
+    <span class="ns-k">위치</span><span class="ms-path" title="{{path}}">{{path}}</span><span class="ns-k">관리</span><span>{{owner}}</span>
+  </div>
+  <sc-if value="{{running}}" hint-placeholder-val="{{ true }}">
+    <div class="ns-bar" style="margin-top: 6px;"><span class="ns-k">CPU</span><span class="ns-track"><span class="ns-fill" style="width: {{cpuP}}%; background: {{cpuCol}};"></span></span><span>{{cpuT}}</span><span class="ns-spark">{{cpuS}}</span></div>
+    <div class="ns-bar"><span class="ns-k">MEM</span><span class="ns-track"><span class="ns-fill" style="width: {{memP}}%; background: #60e28c;"></span></span><span>{{memT}}</span><span class="ns-k">{{memN}}</span></div>
+  </sc-if>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>GUI<span class="ns-hr"></span><span class="ns-k">{{apiG}}</span></h3>
+  <sc-if value="{{noGui}}" hint-placeholder-val="{{ false }}"><div class="ns-k">화면 없음 — contributions.gui.apps 가 비어 있어요</div></sc-if>
+  <sc-for list="{{apps}}" as="a" hint-placeholder-count="1">
+    <div class="ms-app">
+      <span class="ms-mode {{a.modeCls}}">{{a.mode}}</span>
+      <span class="ms-an"><b>{{a.name}}</b><span class="ns-k">{{a.where}}</span></span>
+      <span class="ns-k">{{a.state}}</span>
+      <button type="button" class="ms-gui" disabled="{{a.off}}" onClick="{{a.open}}" title="{{a.tip}}">GUI ↗</button>
+    </div>
+  </sc-for>
+  <sc-if value="{{guiNote}}" hint-placeholder-val="{{ false }}"><div class="ns-k">{{guiNoteT}}</div></sc-if>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>동작<span class="ns-hr"></span><span class="ns-k">{{apiA}}</span></h3>
+  <div class="ms-acts">
+    <button type="button" class="rs-btn" disabled="{{busyD}}" onClick="{{restart}}">다시 시작</button>
+    <button type="button" class="rs-btn" disabled="{{togD}}" onClick="{{toggle}}">{{toggleT}}</button>
+    <button type="button" class="rs-btn" onClick="{{ctl}}">제어기 › 모듈</button>
+    <span class="ns-k">{{actNote}}</span>
+  </div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>내놓는 자원<span class="ns-hr"></span></h3>
+  <sc-if value="{{noSvi}}" hint-placeholder-val="{{ false }}"><div class="ns-k">없음</div></sc-if>
+  <div class="ms-chips"><sc-for list="{{svi}}" as="r" hint-placeholder-count="1"><button type="button" class="ms-res" onClick="{{r.open}}">{{r.name}}</button></sc-for></div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>권한<span class="ns-hr"></span></h3>
+  <div class="ms-chips"><sc-for list="{{perms}}" as="p" hint-placeholder-count="2"><span class="ms-perm">{{p}}</span></sc-for><sc-if value="{{noPerm}}" hint-placeholder-val="{{ false }}"><span class="ns-k">요청 없음</span></sc-if></div>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>최근 로그<span class="ns-hr"></span><span class="ns-k">{{apiL}}</span></h3>
+  <sc-for list="{{logs}}" as="ev" hint-placeholder-count="4">
+    <div class="ns-ev"><span class="ns-k">{{ev.t}}</span><span style="color: {{ev.col}};">{{ev.lv}}</span><span>{{ev.msg}}</span></div>
+  </sc-for>
+  <div class="ns-row" style="margin-top: 6px;"><span class="ns-p">&gt;</span><span class="ns-cur"></span></div>
+</div>

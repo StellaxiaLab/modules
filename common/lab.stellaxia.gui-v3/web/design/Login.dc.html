@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 로그인</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#040614;color:#e6eaf7}
+::selection{background:#e6eaf7;color:#070b1c}
+@font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
+@font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
+</style>
+</helmet>
+<div data-loginroot="1" style="position: relative; min-height: 100vh; background: radial-gradient(42% 70% at 62% 58%, rgba(150, 110, 200, 0.08), transparent 70%), linear-gradient(118deg, transparent 22%, rgba(110, 130, 220, 0.05) 42%, rgba(170, 120, 210, 0.06) 56%, rgba(230, 150, 150, 0.04) 70%, transparent 84%), linear-gradient(178deg, #060a1d 0%, #040614 46%, #020308 100%); font-family: GmarketSans, Geist, 'Noto Sans KR', system-ui, sans-serif; color: #e6eaf7; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end" onPointerMove="{{pmove}}" onPointerLeave="{{pleave}}" onKeyDown="{{key}}">
+<canvas data-field="login" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none"></canvas>
+<h1 style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0">Terra 로그인</h1>
+<button type="button" aria-label="로그인 열기 — 화면을 누르면 로고가 올라가고 로그인이 나타난다" onClick="{{openFn}}" style="position: absolute; inset: 0; display: {{openD}}; opacity: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: pointer;"></button>
+<form aria-label="Terra 로그인" onSubmit="{{submit}}" style="position: absolute; inset: 0; margin: 0; pointer-events: none;">
+<input type="text" name="admin" aria-label="admin" autocomplete="username" spellcheck="false" onInput="{{inA}}" onFocus="{{focA}}" onBlur="{{blur}}" style="position: absolute; left: {{pos.ia.x}}px; top: {{pos.ia.y}}px; width: {{pos.ia.w}}px; height: {{pos.ia.h}}px; pointer-events: {{pe}}; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; color: transparent; caret-color: transparent; background: transparent; cursor: text;">
+<input type="password" name="password" aria-label="password" autocomplete="current-password" onInput="{{inP}}" onFocus="{{focP}}" onBlur="{{blur}}" style="position: absolute; left: {{pos.ip.x}}px; top: {{pos.ip.y}}px; width: {{pos.ip.w}}px; height: {{pos.ip.h}}px; pointer-events: {{pe}}; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; color: transparent; caret-color: transparent; background: transparent; cursor: text;">
+<button type="button" aria-label="auto — 로그인 유지" aria-pressed="{{autoP}}" onClick="{{auto}}" style="position: absolute; left: {{pos.ab.x}}px; top: {{pos.ab.y}}px; width: {{pos.ab.w}}px; height: {{pos.ab.h}}px; pointer-events: {{pe}}; opacity: 0; border: 0; padding: 0; cursor: pointer;">auto</button>
+<button type="button" aria-label="Login" onClick="{{loginFn}}" style="position: absolute; left: {{pos.lb.x}}px; top: {{pos.lb.y}}px; width: {{pos.lb.w}}px; height: {{pos.lb.h}}px; pointer-events: {{pe}}; opacity: 0; border: 0; padding: 0; cursor: pointer;">Login</button>
+<button type="button" aria-label="New Tree Connect" onClick="{{newTree}}" style="position: absolute; left: {{pos.nb.x}}px; top: {{pos.nb.y}}px; width: {{pos.nb.w}}px; height: {{pos.nb.h}}px; pointer-events: {{pe}}; opacity: 0; border: 0; padding: 0; cursor: pointer;">New Tree Connect</button>
+</form>
+<div role="group" aria-label="테스트 — 설치된 타입" style="position: absolute; left: 20px; bottom: 18px; display: {{testD}}; align-items: center; gap: 6px; font: 600 12px 'Geist Mono', monospace; color: #6c769c; z-index: 6;">
+<span style="margin-right: 4px; letter-spacing: 0.04em;">TEST · 설치된 타입</span>
+<button type="button" onClick="{{mLeaf}}" aria-pressed="{{mLeafP}}" style="font: inherit; padding: 4px 9px; border-radius: 4px; border: 1px solid {{mLeafB}}; background: transparent; color: {{mLeafC}}; cursor: pointer;">Leaf</button>
+<button type="button" onClick="{{mTree}}" aria-pressed="{{mTreeP}}" style="font: inherit; padding: 4px 9px; border-radius: 4px; border: 1px solid {{mTreeB}}; background: transparent; color: {{mTreeC}}; cursor: pointer;">Tree</button>
+<button type="button" onClick="{{mBoth}}" aria-pressed="{{mBothP}}" style="font: inherit; padding: 4px 9px; border-radius: 4px; border: 1px solid {{mBothB}}; background: transparent; color: {{mBothC}}; cursor: pointer;">Tree + Leaf</button>
+<button type="button" onClick="{{replay}}" style="font: inherit; margin-left: 10px; padding: 4px 9px; border-radius: 4px; border: 1px solid rgba(108,118,156,0.35); background: #040614; color: #9aa4c8; cursor: pointer;">처음부터</button>
+</div>
+<div data-treewrap="login" aria-hidden="{{treeHid}}" style="position: absolute; inset: 0; z-index: 4; display: {{treeD}}; pointer-events: {{treePE}}; transform-origin: 50% 50%; will-change: transform, opacity;"><dc-import name="Tree" bare="true" hint-size="1440px,900px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"embed":{"editor":"boolean","default":false,"section":"삽입"},"palette":{"editor":"enum","options":["은하수","성운","단색"],"default":"은하수","section":"글자 장"},"speed":{"editor":"range","min":0,"max":2,"step":0.1,"default":1,"section":"글자 장"},"cell":{"editor":"int","min":11,"max":24,"default":15,"unit":"px","section":"글자 장"},"motion":{"editor":"boolean","default":true,"section":"글자 장"},"installed":{"editor":"enum","options":["Tree","Leaf","Tree + Leaf"],"default":"Leaf","section":"로그인"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._live = true;
+    this.startField('login');
+  }
+  componentWillUnmount() {
+    this._live = false;
+    this.stopField();
+  }
+
+  // ───── 메인 → 로그인 ─────
+  //   처음(메인): 메인 레퍼런스처럼 TERRA 만. 화면을 한 번 누르면 로고(마스크)가 위로 올라가고(0.7초), 비운 자리에 로그인 컴포넌트가 차례로 나타난다. Esc = 메인으로 (거꾸로)
+  //   로그인 컴포넌트 — 기본은 텍스트 컴포넌트(글자 장의 칸 글자가 바뀐다), TREE LEAF 만 마스크
+  //       TREE · LEAF                       마스크, 로고의 1/3 — 이 노드에 설치된 타입은 높은 명도 · 아니면 낮은 명도 (TREE 어두운 초록 · LEAF 연두)
+  //   admin     : admin_______________      입력 칸도 텍스트 — 빈 칸은 흐린 점(·), 친 글자는 흰색, 입력 중이면 커서 칸이 깜박
+  //   password  : ••••················
+  //   social       auto □       Login       social · auto: 밝힌 바탕색 · auto 는 누르면 ■ (로그인 유지) · Login: 흰색
+  //   New Tree Connect                      파랑
+  //   전부 볼드, 랜덤 갱신 · 오른쪽으로 발생 · 주기 증가. 색은 정해져 있되 그 칸 바탕색 20% 섞임
+  INSTALLED() { const v = (this.state || {}).inst ?? this.props.installed ?? 'Leaf'; return { tree: v !== 'Leaf', leaf: v !== 'Tree' }; }
+  LCOL() { return { tree: [44, 150, 86], leaf: [176, 236, 96], white: [242, 244, 252], blue: [104, 156, 255], dim: [58, 68, 108], label: [176, 184, 214], hint: [132, 142, 180] }; }
+  LT() { return { move: 850, after: 150, step: 120, cell: 38, dur: 520, out: 320 }; }
+  cellsOf(t) { const out = []; for (const c of t) { out.push(c); if (/[ᄀ-ᅟ가-힣]/.test(c)) out.push(''); } return out; }
+  layoutLogin() {
+    const w = this._w, h = this._h, cw = this._cw, ch = this._ch;
+    // CLI 틀 + 포스터 — 머리 줄(┌─ TERRA // LOGIN ─ 01/02 ─┐) · 프롬프트 · 메타 · 노드 타입 낱말(6줄 마스크) + 빗금 블록 · 구분 줄 · 입력 둘 · social · auto / Login · New Tree · 아래 줄(키)
+    const size = Math.min(w * 0.19, h * 0.36), logoH = size * 0.74, WR = 6, PW = 40, BODY = 25;
+    const stack = logoH + ch * 1.6 + BODY * ch, top = Math.max(ch * 2, (h - stack) / 2);
+    const logoY1 = top + logoH / 2, rT = Math.ceil((top + logoH + ch * 1.6) / ch), ms = 0, maskY = 0;
+    const rP = rT + 1, rM = rT + 2, rW = rT + 4, rR = rW + WR + 1, rA = rR + 2, rB = rA + 2, rC = rB + 2, rD = rC + 2, rE = rD + 2, rK = rE + 2, rS = rK + 2;
+    const c0 = Math.round(w / 2 / cw) - PW / 2, room = PW - 12;
+    const fld = (r) => ({ x: (c0 + 11) * cw, y: r * ch - 3, w: (room + 1) * cw, h: ch + 6 });
+    this._L = { zone: { c0: c0 - 3, c1: c0 + PW + 2, r0: rT - 1, r1: rS + 1 }, size, ms, logoY0: h * 0.5, logoY1, dyRows: Math.round((logoY1 - h * 0.5) / ch), maskY, PW, rT, rP, rM, rW, WR, rR, c0, rA, rB, rC, rD, rE, rK, rS, room,
+      stripe: { c0: c0 + PW - 8, c1: c0 + PW - 1 },
+      hit: { auto: { c0: c0, c1: c0 + 7, r: rD }, login: { c0: c0 + PW - 7, c1: c0 + PW - 1, r: rD }, nt: { c0: c0, c1: c0 + 17, r: rE } } };
+    const px = (o) => ({ x: Math.round(o.c0 * cw - 4), y: Math.round(o.r * ch - 4), w: Math.round((o.c1 - o.c0 + 1) * cw + 8), h: ch + 8 }), H = this._L.hit;
+    const pos = { ia: fld(rA), ip: fld(rB), ab: px(H.auto), lb: px(H.login), nb: px(H.nt) };
+    if (JSON.stringify(pos) !== JSON.stringify((this.state || {}).pos)) this.setState({ pos });
+  }
+  // 열림 정도 — 로고 이동(0 → 1) · 컴포넌트가 나타나기 시작하는 시각
+  openVals(now) {
+    // 로고 이동 — 등가속 → 등감속 (가속 구간 40% · 감속 구간 60% — 감속이 더 완만하게 길다). 속도는 0 에서 시작해 0 으로 멈춘다
+    const S = this.state || {}, T = this.LT(), F = 0.4, ss = (x) => { x = Math.min(1, Math.max(0, x)); return x < F ? x * x / F : 1 - (1 - x) * (1 - x) / (1 - F); };
+    if (S.open) return { e: ss((now - (this._openAt || now)) / T.move), showAt: (this._openAt || now) + T.move + T.after, open: true };
+    const t = now - (this._closeAt || -1e9), n = this._outN || 0, outEnd = n * 20 + T.out;   // 닫기: 글자가 먼저 사라지고(오른쪽부터), 그다음 로고가 내려온다
+    return { e: 1 - ss((t - outEnd) / T.move), out: t, open: false };
+  }
+  // 글자 줄 — 입력 칸도 텍스트: 친 글자(흰색) + 남은 자리 점(흐림)
+  loginItems() {
+    const L = this._L, S = this.state || {}, room = L.room, PW = L.PW, c0 = L.c0, cut = (t) => (t.length > room - 1 ? t.slice(t.length - room + 1) : t);
+    const A = cut(S.va || ''), Pw = cut('•'.repeat((S.vp || '').length)), dash = (n) => '─'.repeat(Math.max(0, n));
+    const isT = (this._wCur || (this.INSTALLED().tree && !this.INSTALLED().leaf ? 2 : 3)) === 2, ty = isT ? 'tree' : 'leaf', TY = ty.toUpperCase();
+    const it = [
+      // 머리 줄 — 틀 모서리 · 제목 · 쪽 번호
+      { k: 't0', t: '┌─', c: c0 - 2, r: L.rT, col: 'dim' }, { k: 't1', t: 'TERRA // LOGIN', c: c0 + 1, r: L.rT, col: 'label', thin: true },
+      { k: 't2', t: dash(PW - 23), c: c0 + 16, r: L.rT, col: 'dim' }, { k: 't3', t: '01/02', c: c0 + PW - 6, r: L.rT, col: 'label', thin: true }, { k: 't4', t: '─┐', c: c0 + PW, r: L.rT, col: 'dim' },
+      // 프롬프트 · 메타
+      { k: 'p0', t: '○', c: c0, r: L.rP, col: 'ty' }, { k: 'p1', t: 'terra login --as', c: c0 + 2, r: L.rP, col: 'hint' }, { k: 'p2', t: ty, c: c0 + 19, r: L.rP, col: 'white', live: true },
+      { k: 'm0', t: 'NODE AUTH // GATEWAY', c: c0, r: L.rM, col: 'label', thin: true }, { k: 'm1', t: '[' + TY + ']', c: c0 + PW - 6, r: L.rM, col: 'ty', live: true },
+      // 구분 줄 — 낱말 아래
+      { k: 'r0', t: 'NODE TYPE', c: c0, r: L.rR, col: 'label', thin: true }, { k: 'r1', t: dash(PW - 16), c: c0 + 10, r: L.rR, col: 'dim' }, { k: 'r2', t: isT ? 'T/02' : 'L/03', c: c0 + PW - 4, r: L.rR, col: 'ty', live: true },
+      // 입력 — CLI 줄
+      { k: 'aL', t: 'admin', c: c0, r: L.rA, col: 'white' }, { k: 'aC', t: '>', c: c0 + 9, r: L.rA, col: 'label' },
+      { k: 'aV', t: A, c: c0 + 11, r: L.rA, col: 'white', live: true }, { k: 'aD', t: '·'.repeat(room - A.length), c: c0 + 11 + A.length, r: L.rA, col: 'dim', live: true },
+      { k: 'pL', t: 'password', c: c0, r: L.rB, col: 'white' }, { k: 'pC', t: '>', c: c0 + 9, r: L.rB, col: 'label' },
+      { k: 'pV', t: Pw, c: c0 + 11, r: L.rB, col: 'white', live: true }, { k: 'pD', t: '·'.repeat(room - Pw.length), c: c0 + 11 + Pw.length, r: L.rB, col: 'dim', live: true },
+      { k: 'so', t: 'social', c: c0, r: L.rC, col: 'bgb' }, { k: 'sd', t: dash(PW - 7), c: c0 + 7, r: L.rC, col: 'dim', thin: true },
+      // auto · Login
+      { k: 'ab', t: S.autoOn ? '[■]' : '[ ]', c: c0, r: L.rD, col: 'bgb', hv: 'auto', live: true }, { k: 'au', t: 'auto', c: c0 + 4, r: L.rD, col: 'bgb', hv: 'auto' }, { k: 'an', t: '· 로그인 유지', c: c0 + 9, r: L.rD, col: 'hint', thin: true },
+      { k: 'lg', t: '⏎ Login', c: c0 + PW - 7, r: L.rD, col: 'white', hv: 'login' },
+      { k: 'nt', t: '+ New Tree Connect', c: c0, r: L.rE, col: 'blue', hv: 'nt' },
+      // 아래 줄 — 키
+      { k: 'b0', t: '└─', c: c0 - 2, r: L.rK, col: 'dim' }, { k: 'b1', t: 'enter · tab · esc', c: c0 + 1, r: L.rK, col: 'hint', thin: true }, { k: 'b2', t: dash(PW - 19) + '─┘', c: c0 + 19, r: L.rK, col: 'dim' }
+    ];
+    if (S.msg) { const cl = this.cellsOf(S.msg).length; it.push({ k: 'ms', t: S.msg, c: c0 + Math.max(0, Math.round((PW - cl) / 2)), r: L.rS, col: 'hint', thin: true }); }
+    return it;
+  }
+  // 나타나는 시각 — 열 때: 줄 차례로(0.12초씩) · 그 뒤 바뀐 줄: 그때부터 · 입력처럼 계속 바뀌는 줄(live)은 처음 나타난 뒤로는 바로
+  syncItems(now, OV) {
+    const T = this._TX || (this._TX = {}), items = this.loginItems(), LT = this.LT(); let ord = 0;
+    for (const it of items) { const P = T[it.k], first = OV.showAt + 120 + (ord++) * LT.step;
+      if (!P || P.gen !== this._gen) T[it.k] = Object.assign({}, it, { at: first, gen: this._gen, g: [], nx: [] });
+      else if (P.t !== it.t || P.c !== it.c || P.r !== it.r) Object.assign(P, it, { at: it.live && now > P.at ? now - 1e5 : Math.max(now, P.at), g: [], nx: [] });
+      else Object.assign(P, { col: it.col, hv: it.hv }); }
+    for (const k in T) if (!items.find((q) => q.k === k)) delete T[k];
+  }
+  // 노드 타입 낱말 — 설치된 것 하나. 둘 다 설치면 LEAF → TREE 를 4초마다 번갈아. 바뀔 때는 지우기와 만들기를 같은 앞선으로 동시에 오른쪽으로 쓸어 간다
+  wordState(now, OV) {
+    const I = this.INSTALLED(), W = I.leaf && I.tree ? [3, 2] : I.tree ? [2] : [3], PER = 4000;
+    if (!OV.open) return { cur: this._wCur || W[0], prev: 0, t0: -1e12 };
+    // 모드를 바꾸면 그 순간부터 다시 센다 — 보이던 낱말에서 새 낱말로 같은 쓸기로 바뀐다 (같은 낱말이면 그대로)
+    const md = this._modeAt && this._modeAt > OV.showAt, base = md ? this._modeAt : OV.showAt;
+    const k = W.length > 1 ? Math.max(0, Math.floor((now - base) / PER)) : 0, cur = W[k % W.length];
+    let prev = k > 0 ? W[(k - 1) % W.length] : md ? this._wFrom : 0, t0 = base + k * PER;
+    if (k === 0 && md && prev === cur) { prev = 0; t0 = -1e12; }
+    this._wCur = cur;
+    return { cur, prev, t0 };
+  }
+  // 직전 발광 색 — 흰색이 아니라 그 자리 글자 색으로 빛난다 (레거시 · 마스크 발광과 같은 식: 채도 ×(1 - 0.25g) · 명도 max(V, 0.25) + 0.6g)
+  glowC(c, g) {
+    const r = c[0] / 255, gg = c[1] / 255, b = c[2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), d = mx - mn;
+    let h = 0; if (d) h = mx === r ? ((gg - b) / d) % 6 : mx === gg ? (b - r) / d + 2 : (r - gg) / d + 4; h /= 6; if (h < 0) h += 1;
+    const S = (mx ? d / mx : 0) * (1 - 0.25 * g), V = Math.min(1, Math.max(mx, 0.25) + 0.6 * g);
+    const i = Math.floor(h * 6), f = h * 6 - i, p = V * (1 - S), q = V * (1 - f * S), t = V * (1 - (1 - f) * S);
+    const o = [[V, t, p], [q, V, p], [p, V, t], [p, q, V], [t, p, V], [V, p, q]][i % 6];
+    return [o[0] * 255, o[1] * 255, o[2] * 255];
+  }
+  // 농도 글자 — 값 0–1 을 네 단으로. 같은 칸은 늘 같은 글자(단 안에서 칸 번호로 고른다)
+  rampG(v, i) { const R = v < 0.4 ? ':-·' : v < 0.62 ? '+=*' : v < 0.84 ? '#%&' : '@#$'; return R[(i * 7 + (i / 97 | 0)) % R.length]; }
+  mixC(a, b, k) { return [a[0] * (1 - k) + b[0] * k, a[1] * (1 - k) + b[1] * k, a[2] * (1 - k) + b[2] * k]; }
+  brightBg(c) { const m = Math.max(c[0], c[1], c[2]) || 1, k = 236 / m; return [Math.min(255, c[0] * k), Math.min(255, c[1] * k), Math.min(255, c[2] * k)]; }
+  // 랜덤 갱신 — p 0 → 1: 갱신 주기가 점점 길어지며(16 → 536ms) 제 글자로 멈춘다
+  rnd(st, j, p, now) { const G = this._glyphs; if (!st.g[j] || now >= (st.nx[j] || 0)) { st.g[j] = G[(Math.random() * G.length) | 0]; st.nx[j] = now + (16 + 520 * p * p) * (0.6 + Math.random() * 0.8); } return st.g[j]; }
+  openLogin() { const S = this.state || {}; if (S.open) return; this._openAt = performance.now(); this._gen = (this._gen || 0) + 1; this._MS = new Map(); this._modeAt = 0; this.setState({ open: true, msg: null }); }
+  setMode(v) { if (this.INSTALLED() && v === ((this.state || {}).inst ?? this.props.installed ?? 'Leaf')) return; this._wFrom = this._wCur; this._modeAt = performance.now(); this.setState({ inst: v }); }
+  closeLogin() { const S = this.state || {}; if (!S.open) return; this._hov = null; this._closeAt = performance.now(); this._outN = 32; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); this.setState({ open: false, ready: false, foc: null }); }
+  hovAt(x, y) { const LL = this._L; if (!LL || !(this.state || {}).open) return null; const c = Math.floor(x / this._cw), r = Math.floor(y / this._ch); for (const k in LL.hit) { const h = LL.hit[k]; if (r === h.r && c >= h.c0 && c <= h.c1) return k; } return null; }
+  ripAt(k, rgb) { const h = this._L && this._L.hit[k]; if (h) this._rip.push({ x: (h.c0 + h.c1) / 2, y: h.r, t0: performance.now(), amp: 1, rgb }); }
+  login() {
+    const S = this.state || {};
+    if (!S.va || !S.vp) { this.setState({ msg: !S.va ? 'admin 을 입력하세요' : 'password 를 입력하세요' }); this.ripAt('login', [242, 244, 252]); return; }
+    this.warpStart();   // 전환 땐 물결을 띄우지 않는다 — 배경은 그대로
+  }
+  // ───── 로그인 → 트리 뷰 전환 (워프 전환을 줄여 쓴다) ─────
+  //   워프 전환 씬의 방식(3D 점을 가운데로 투영 · 속도 v = e^2.2 · 가장자리일수록 빠름 · 꼬리는 방향 글자) — 단,
+  //   · 움직이는 것은 로고(TERRA) · 별 · 컴포넌트 텍스트(로그인 글자 · 노드 타입 낱말)뿐. 배경 글자 장은 그대로(줌 · 어두운 화면 없음)
+  //   · 최고 속도는 워프의 40% · 색은 바꾸지 않는다(청색 변화 없음 — 칸마다 원래 색 · 원래 글자 그대로 날아간다)
+  //   · 텍스트(로고 + 글자)가 거의(90%) 화면 밖으로 나가면, 트리 뷰 씬이 가운데 소실점에서 같은 속도 증가 곡선(u^2.2)으로 확대되어 들어온다
+  // 확대 진행 k(u) — 앞 65% 는 속도 증가 곡선(u^2.2), 뒤 35% 는 감속(2차)으로 부드럽게 멈춘다. 이어지는 지점에서 위치 · 속도가 같다
+  //   거리 z = z0^(1−k) — 배율(1/z)을 로그로 움직여, 눈에 보이는 확대 빠르기가 k 의 빠르기를 그대로 따른다
+  zoomK(u) { const F = 0.65, A = 2 * F / (2.2 * (1 - F) + 2 * F); u = Math.min(1, Math.max(0, u)); if (u < F) return A * Math.pow(u / F, 2.2); const q = (u - F) / (1 - F); return A + (1 - A) * (1 - (1 - q) * (1 - q)); }
+  // 통합 화면(embed) — 그 씬 자신(window.__terraScene). 칸 크기도 그 씬을 따른다
+  owner() { if (!this.props.embed) return null; const o = window.__terraScene; return o && o._live && o._cs ? o : null; }
+  CELL() { const o = this.owner(); return o ? o._cs : (this.props.cell ?? 15); }
+  WT() { return { enter: 1700, vmax: 0.00105, trail: 0.25, zoom: 1700, z0: 12, leave: 0.9 }; }
+  warpStart() {
+    if (this._WP) return;
+    const el = document.activeElement; if (el && el.blur) el.blur();
+    this._hov = null; this._WP = { t0: performance.now() + 120, snap: true };
+    this.setState({ ready: false, msg: null, foc: null });
+  }
+  warpReset() {
+    this._WP = null; this._closeAt = -1e9; this._drawn = false;
+    for (const el of [document.querySelector('[data-treewrap]'), document.querySelector('[data-loginzoom]'), this._cv && this._cv.closest('[data-loginroot]')]) if (el) { el.style.transform = ''; el.style.opacity = ''; el.style.webkitMaskImage = ''; el.style.maskImage = ''; }
+    this.setState({ treeOn: false, open: false, ready: false, msg: null, foc: null });
+  }
+  // 반지름 속도 배율 — 워프와 같다: 가운데는 느리게, 가장자리로 갈수록 빠르게
+  wRadK(p) { const rn = Math.min(1.2, Math.hypot(p.x / p.z, p.y / p.z) / Math.hypot(this._w / 2, this._h / 2)); return (p.k === 't' ? 0.4 : 0.2) + 1.45 * Math.pow(rn, 1.4); }   // 텍스트는 가운데에서도 조금 더 빨리 (가운데 글자가 오래 남지 않게)
+  // 한 프레임 진행 — 점을 앞으로(z ↓). 화면 밖으로 나간 텍스트는 끝, 별은 멀리서 다시(그 별의 원래 색). 그릴 칸 목록을 돌려준다
+  // ───── 로그아웃 — 로그인 전환을 거꾸로 ─────
+  //   ① 구멍 닫기(0.35초): 모서리까지 열려 있던 로그인 층의 구멍이 항성계 크기로 좁혀진다
+  //   ② 항성계 축소(1.7초): 확대 곡선을 시간으로 뒤집어(k(1−u)) 소실점으로 줄고, 구멍도 함께 닫혀 로그인 층이 다시 덮는다
+  //   ③ 날아오기(1.7초): 로고 · 별 · 글자가 바깥(z 0.07)에서 제자리(z 1)로 — 처음엔 빠르고 끝에서 감속(1 − (1 − q)^2.2), 꼬리는 바깥쪽으로
+  //   ④ 다 모이면 로그인 화면 그대로 → 곧바로 닫기(글자가 오른쪽부터 랜덤 갱신으로 빠지고 로고가 가운데로 내려옴) = 메인 화면. 입력했던 글자는 지운다
+  warpBack() {
+    const WP = this._WP; if (!this.props.embed || !WP || !WP.parts) { this.warpReset(); return; }
+    WP.back = { t0: performance.now() }; WP.done = false; WP.last = null;
+    for (const p of WP.parts) { p.on = true; p.a = 1; p.z = 1; p.x = p.x0; p.y = p.y0; }
+  }
+  warpBackStep(now) {
+    const WP = this._WP, B = WP.back, T = this.WT(), t = now - B.t0, H1 = 350, ZD = T.zoom, cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows, cx = this._w / 2, cy = this._h / 2;
+    const rt = this._cv && this._cv.closest('[data-loginroot]'), m = Math.min(this._w, this._h) / 2, D = Math.hypot(this._w, this._h) / 2 + 4, out = [];
+    if (t < H1 + ZD) {
+      let r1, sc = 1;
+      if (t < H1) { const v = t / H1; r1 = D - (D - 0.95 * m) * v * v; }
+      else { const u = Math.min(1, (t - H1) / ZD), k = this.zoomK(1 - u); sc = 1 / Math.pow(T.z0, 1 - k); r1 = sc * m * 0.95 * (1 - u * u); }
+      const r2 = r1 + 40 + sc * m * 0.25;
+      if (this.props.onZoom) this.props.onZoom(sc);
+      if (rt) { const MK = 'radial-gradient(circle at 50% 50%, transparent ' + Math.max(0, r1).toFixed(1) + 'px, #000 ' + r2.toFixed(1) + 'px)'; rt.style.webkitMaskImage = MK; rt.style.maskImage = MK; }
+      return { out, e: 1 };
+    }
+    if (rt && !B.shut) { B.shut = true; rt.style.webkitMaskImage = ''; rt.style.maskImage = ''; }
+    const q = Math.min(1, (t - H1 - ZD) / T.enter), ez = 1 - Math.pow(1 - q, 2.2), zs = 0.07, z = zs + (1 - zs) * ez, TR = T.trail * (1 - ez) * 0.8;
+    for (const p of WP.parts) {
+      p.z = z; const hx = cx + p.x / z, hy = cy + p.y / z;
+      if (hx < -40 || hy < -40 || hx > this._w + 40 || hy > this._h + 40) continue;
+      const zt = Math.max(0.03, z - TR * (0.6 + z)), tx = cx + p.x / zt, ty = cy + p.y / zt;   // 꼬리 — 바깥쪽(지나온 쪽)으로
+      let a = Math.atan2(hy - ty, hx - tx) * 180 / Math.PI; if (a < 0) a += 180;
+      const dch = a < 22.5 || a >= 157.5 ? '-' : a < 67.5 ? '\\' : a < 112.5 ? '|' : '/';
+      const c0 = tx / cw, r0 = ty / ch, c1 = hx / cw, r1 = hy / ch, n = q >= 1 ? 1 : Math.max(1, Math.min(40, Math.ceil(Math.max(Math.abs(c1 - c0), Math.abs(r1 - r0)))));
+      for (let k = n === 1 ? 1 : 0; k <= n; k++) { const f = k / n, c = Math.floor(c0 + (c1 - c0) * f), r = Math.floor(r0 + (r1 - r0) * f); if (c < 0 || r < 0 || c >= cols || r >= rows) continue;
+        out.push([r * cols + c, k === n ? p.g : dch, p.css, k === n ? 1 : 0.15 + 0.6 * Math.pow(f, 1.3), k === n && p.b]); }
+    }
+    if (q >= 1) {   // ④ 다 모였다 — 로그인 화면(살아 있는 글자)으로 넘기고 곧바로 닫는다
+      this._WP = null; if (this.props.onZoom) this.props.onZoom(1);
+      this.closeLogin();
+      setTimeout(() => { if (!this._live) return; document.querySelectorAll('form[aria-label="Terra 로그인"] input').forEach((el) => { el.value = ''; }); this.setState({ va: '', vp: '', msg: null }); }, 1400);
+    }
+    return { out, e: 1 };
+  }
+  warpStep(now) {
+    if (this._WP.back) return this.warpBackStep(now);
+    const WP = this._WP, T = this.WT(), cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows, cx = this._w / 2, cy = this._h / 2;
+    const dt = Math.min(100, now - (WP.last || now)); WP.last = now;
+    const e = Math.min(1, Math.max(0, (now - WP.t0) / T.enter)), v = Math.pow(e, 2.2), dz = v * dt * T.vmax, TR = T.trail * v, out = [];
+    let onT = 0;
+    for (const p of WP.parts) { if (!p.on) continue;
+      p.z -= dz * this.wRadK(p); if (p.a < 1) p.a = Math.min(1, p.a + dt / 400);
+      const hx = cx + p.x / p.z, hy = cy + p.y / p.z;
+      if (p.z < 0.04 || hx < -40 || hy < -40 || hx > this._w + 40 || hy > this._h + 40) {
+        if (p.k === 's' && !WP.done) { const z = 0.85 + Math.random() * 0.15; p.x = (Math.random() - 0.5) * this._w * z; p.y = (Math.random() - 0.5) * this._h * z; p.z = z; p.a = 0; if (Math.hypot(p.x, p.y) < 20) p.x += 40; continue; }
+        p.on = false; continue; }
+      if (p.k === 't' && hx >= 0 && hy >= 0 && hx < this._w && hy < this._h) onT++;
+      // 꼬리 — 워프처럼 지난 자리의 칸을 방향 글자로 (같은 색, 꼬리 쪽으로 흐리게)
+      const zt = Math.min(1, p.z + TR * (0.6 + p.z) * this.wRadK(p)), tx = cx + p.x / zt, ty = cy + p.y / zt;
+      let a = Math.atan2(hy - ty, hx - tx) * 180 / Math.PI; if (a < 0) a += 180;
+      const dch = a < 22.5 || a >= 157.5 ? '-' : a < 67.5 ? '\\' : a < 112.5 ? '|' : '/';
+      const c0 = tx / cw, r0 = ty / ch, c1 = hx / cw, r1 = hy / ch, n = Math.max(1, Math.ceil(Math.max(Math.abs(c1 - c0), Math.abs(r1 - r0))));
+      for (let k = n === 1 ? 1 : 0; k <= n; k++) { const f = k / n, c = Math.floor(c0 + (c1 - c0) * f), r = Math.floor(r0 + (r1 - r0) * f); if (c < 0 || r < 0 || c >= cols || r >= rows) continue;
+        out.push([r * cols + c, k === n ? p.g : dch, p.css, (k === n ? 1 : 0.15 + 0.6 * Math.pow(f, 1.3)) * p.a, k === n && p.b]); }
+    }
+    if (!WP.zoomAt && WP.nT && onT <= WP.nT * (1 - T.leave)) { WP.zoomAt = now; this.setState({ treeOn: true }); }
+    // 트리 뷰 확대 — 거리 z: z0 → 1 을 u^2.2 로 (처음엔 멀리서 천천히, 갈수록 빨라짐) · 화면 배율 = 1 / z · 가장자리는 둥글게 흐려 소실점에서 열리듯
+    if (WP.zoomAt && this.props.embed) {
+      // 통합 화면에 붙었을 때(embed) — 통합 화면 전체가 아니라 그 안의 항성계(궤도 · 노드 컴포넌트)만 확대된다: 배율을 onZoom 으로 넘기면 씬이 자기 카메라 배율에 곱한다.
+      //   바탕은 이미 같은 글자 장이라, 로그인 층은 항성계가 차지한 만큼 가운데부터 둥글게 걷히기만 한다 (배율이 1 이 된 뒤 0.35초 더 열려 모서리까지 — 끝나면 onDone)
+      const rt = this._cv && this._cv.closest('[data-loginroot]'), u = Math.min(1, (now - WP.zoomAt) / T.zoom), k = this.zoomK(u), sc = 1 / Math.pow(T.z0, 1 - k);
+      const D = Math.hypot(this._w, this._h) / 2 + 4, m = Math.min(this._w, this._h) / 2;
+      let r1 = sc * m * 0.95, r2 = r1 + 40 + sc * m * 0.25;
+      if (u >= 1) { const v2 = Math.min(1, (now - WP.zoomAt - T.zoom) / 350), e2 = 1 - (1 - v2) * (1 - v2); r1 = 0.95 * m + (D - 0.95 * m) * e2; r2 = r1 + 40 + 0.25 * m; if (v2 >= 1) { WP.done = true; if (this.props.onDone) this.props.onDone(); } }
+      if (this.props.onZoom) this.props.onZoom(u >= 1 ? 1 : sc);
+      if (rt) { const MK = 'radial-gradient(circle at 50% 50%, transparent ' + r1.toFixed(1) + 'px, #000 ' + r2.toFixed(1) + 'px)'; rt.style.webkitMaskImage = MK; rt.style.maskImage = MK; } }
+    else if (WP.zoomAt) { const tw = document.querySelector('[data-treewrap]'), u = Math.min(1, (now - WP.zoomAt) / T.zoom), k = this.zoomK(u), z = Math.pow(T.z0, 1 - k);
+      if (tw) { tw.style.transform = u >= 1 ? '' : 'scale(' + (1 / z).toFixed(4) + ')'; tw.style.opacity = Math.min(1, u / 0.2).toFixed(3); const R = 30 + 70 * k, M = u >= 1 ? '' : 'radial-gradient(closest-side, #000 ' + R.toFixed(1) + '%, transparent ' + Math.min(100, R + 30).toFixed(1) + '%)'; tw.style.webkitMaskImage = M; tw.style.maskImage = M; }
+      if (u >= 1) WP.done = true; }
+    return { out, e };
+  }
+
+  // ───── 글자 장 + 워드마크 마스크 ─────
+  PALETTES() {
+    return {
+      '은하수': ['#9fb8ff', '#8c9cf5', '#a58cf0', '#c88fe0', '#e39ac9', '#f0a8a0'],
+      '성운': ['#dfe8ff', '#b9cdfa', '#93aef0', '#7d94d8', '#c7d6ff'],
+      '단색': ['#e6eaf7', '#c3cae3']
+    };
+  }
+  startField(id) {
+    const find = () => {
+      if (!this._live) return;
+      const cv = document.querySelector('canvas[data-field="' + id + '"]');
+      if (!cv) { this._findT = requestAnimationFrame(find); return; }
+      this._cv = cv; this._ctx = cv.getContext('2d'); this._rip = [];
+      // 덧그림 층 — 칸이 아닌 것(입력 커서 · 호버 밑줄)만. 글자 장은 바뀐 칸만 다시 그리므로 이런 것은 따로 그려 매 박자 지운다
+      { const ov = document.createElement('canvas'); ov.setAttribute('aria-hidden', 'true'); ov.style.cssText = cv.style.cssText; cv.parentNode.insertBefore(ov, cv.nextSibling); this._ov = ov; this._ovx = ov.getContext('2d'); }
+      this._glyphs = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789+-*/=<>:;.#%&|~^';
+      this._last = 0; this._calmAt = 0; this._boost = 0;
+      // 성운 구름용 값 노이즈 — 섞은 순열 표
+      const p = new Uint8Array(256); for (let i = 0; i < 256; i++) p[i] = i;
+      for (let i = 255; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0, k = p[i]; p[i] = p[j]; p[j] = k; }
+      this._perm = new Uint8Array(512); for (let i = 0; i < 512; i++) this._perm[i] = p[i & 255];
+      this._ro = new ResizeObserver(() => this.sizeField()); this._ro.observe(cv);
+      if (window.IntersectionObserver) { this._io = new IntersectionObserver((es) => { this._onScreen = es[es.length - 1].isIntersecting; }); this._io.observe(cv); }
+      this.sizeField();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (this._live) this.sizeField(); }); if (document.fonts && document.fonts.load) Promise.all(['500', '700'].map((w) => document.fonts.load(w + ' 12px GmarketSans', '가'))).then(() => { if (this._live) { this._fullRedraw = true; this.sizeField(); } }).catch(() => {});
+      // 화면 밖이거나 탭이 숨겨졌으면 쉰다 (돌아오면 이어서)
+      const loop = (now) => { if (!this._live) return; if (this._onScreen !== false && !document.hidden) this.drawField(now); else this._prev = now; this._raf = requestAnimationFrame(loop); };
+      this._raf = requestAnimationFrame(loop);
+    };
+    find();
+  }
+  stopField() { cancelAnimationFrame(this._raf); cancelAnimationFrame(this._findT); if (this._ro) this._ro.disconnect(); if (this._io) this._io.disconnect(); }
+  sizeField() {
+    const cv = this._cv; if (!cv) return;
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (this._ov) { this._ov.width = cv.width; this._ov.height = cv.height; this._ovx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+    this._fullRedraw = true; this._lgA = null; this._rec = null;   // 크기 · 칸이 바뀌면 다음 그리기는 통째로, 글자 타일도 새로
+    const cs = Math.max(9, Math.min(24, this.CELL()));
+    this._cw = Math.round(cs * 0.66); this._ch = Math.round(cs * 1.2); this._cs = cs;
+    this._cols = Math.ceil(w / this._cw) + 1; this._rows = Math.ceil(h / this._ch) + 1;
+    const n = this._cols * this._rows, G = this._glyphs.length;
+    this._g = new Uint8Array(n); for (let i = 0; i < n; i++) this._g[i] = (Math.random() * G) | 0;
+    this._calm = new Uint8Array(n);
+    // 별: 칸의 1.4% — 저마다 다른 박자로 반짝인다 · 은하수 띠: 화면을 비스듬히 가로지르는 선에서의 거리
+    this._star = new Float32Array(n); for (let i = 0; i < n; i++) if (Math.random() < 0.014) this._star[i] = 0.2 + Math.random();
+    this._bw = new Float32Array(n);
+    { const ax = w * 0.2, ay = -h * 0.05, bx = w * 0.84, by = h * 1.05, vx = bx - ax, vy = by - ay, L = Math.hypot(vx, vy), sp = Math.max(w, h) * 0.17;
+      for (let r = 0; r < this._rows; r++) for (let c = 0; c < this._cols; c++) { const px = c * this._cw, py = r * this._ch, d = Math.abs((px - ax) * vy - (py - ay) * vx) / L; this._bw[r * this._cols + c] = Math.exp(-(d / sp) * (d / sp)); } }
+    this._w = w; this._h = h; this._calmAt = 0;
+    this.layoutLogin();
+    this.buildMask();
+    this.drawField(performance.now(), true);
+  }
+  // 워드마크 TERRA — 글자 모양 안에 드는 칸을 표시한다 (칸 하나 = 화면 위 한 글자)
+  buildMask() {
+    const w = Math.max(1, Math.round(this._w)), h = Math.max(1, Math.round(this._h));
+    const oc = document.createElement('canvas'); oc.width = w; oc.height = h;
+    const o = oc.getContext('2d');
+    const size = Math.min(w * 0.19, h * 0.36);
+    o.font = '700 ' + Math.round(size) + 'px GmarketSans, Geist, "Noto Sans KR", system-ui, sans-serif';
+    o.textBaseline = 'middle'; o.fillStyle = '#fff';
+    const word = 'TERRA', track = size * 0.16;
+    let total = 0; const ws = [];
+    for (const ch of word) { const m = o.measureText(ch).width; ws.push(m); total += m; }
+    total += track * (word.length - 1);
+    let x = (w - total) / 2; const y = h * 0.5;   // 메인 자리(가운데)에 만들고, 그릴 때 줄 단위로 올린다
+    for (let i = 0; i < word.length; i++) { o.fillText(word[i], x, y); x += ws[i] + track; }
+    const data = o.getImageData(0, 0, w, h).data, cols = this._cols, rows = this._rows;
+    // 로고 알파를 픽셀 단위로 남겨 둔다 — 움직이는 동안 칸 중심 한 점을 (위치 - 이동량) 에서 읽어, 줄 단위가 아니라 픽셀 단위로 부드럽게 올라간다
+    this._logoA = new Uint8Array(w * h); for (let k = 0; k < w * h; k++) this._logoA[k] = data[k * 4 + 3]; this._logoW = w; this._logoH = h;
+    this._pxc = new Int32Array(cols); for (let c = 0; c < cols; c++) this._pxc[c] = Math.min(w - 1, Math.round(c * this._cw + this._cw / 2));
+    this._mask = new Uint8Array(cols * rows);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const px = Math.min(w - 1, Math.round(c * this._cw + this._cw / 2)), py = Math.min(h - 1, Math.round(r * this._ch + this._ch / 2));
+      if (data[(py * w + px) * 4 + 3] > 110) this._mask[r * cols + c] = 1;
+    }
+    // 노드 타입 — 마스크는 화면 밖 층에 그려 칸마다 값을 낸다
+    //   낱말(TREE · LEAF) = 평균 — 칸 넓이의 잉크 비율(0–255). 획 가장자리가 반쯤 걸친 칸은 반 밝기로 남아 5–6줄에서도 글자가 읽힌다 (중심점 한 점이면 획이 끊긴다)
+    //   빗금 블록 = 중앙값 — 칸 안 3×3 점의 가운데 값. 단색 · 빗금처럼 면이 또렷해야 하는 모양은 켜짐/꺼짐으로 깔끔하게
+    this._mT = new Uint8Array(cols * rows); this._mLf = new Uint8Array(cols * rows); this._mSt = new Uint8Array(cols * rows);
+    if (this._L) {
+      const LL = this._L, cw = this._cw, chh = this._ch;
+      const o2 = document.createElement('canvas').getContext('2d', { willReadFrequently: true }); o2.canvas.width = w; o2.canvas.height = h;
+      const avg = (d, M, r0, r1, c0, c1) => { for (let r = Math.max(0, r0); r <= Math.min(rows - 1, r1); r++) for (let c = Math.max(0, c0); c <= Math.min(cols - 1, c1); c++) {
+        const x0 = Math.floor(c * cw), x1 = Math.min(w, Math.ceil((c + 1) * cw)), y0 = Math.floor(r * chh), y1 = Math.min(h, Math.ceil((r + 1) * chh)); let s = 0, k = 0;
+        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { s += d[(y * w + x) * 4 + 3]; k++; }
+        M[r * cols + c] = k ? Math.round(s / k) : 0; } };
+      const med = (d, M, r0, r1, c0, c1) => { const v = new Array(9); for (let r = Math.max(0, r0); r <= Math.min(rows - 1, r1); r++) for (let c = Math.max(0, c0); c <= Math.min(cols - 1, c1); c++) {
+        let k = 0; for (let j = 0; j < 3; j++) for (let q = 0; q < 3; q++) { const x = Math.min(w - 1, Math.round((c + (q + 0.5) / 3) * cw)), y = Math.min(h - 1, Math.round((r + (j + 0.5) / 3) * chh)); v[k++] = d[(y * w + x) * 4 + 3]; }
+        v.sort((p, q) => p - q); M[r * cols + c] = v[4]; } };
+      // 글자 크기 — 잉크 높이가 WR 줄(위 · 아래 0.25칸 여유)에 맞되, 빗금 블록 왼쪽(PW - 10칸)을 넘지 않게
+      const FF = 'px GmarketSans, Geist, "Noto Sans KR", system-ui, sans-serif'; o2.textBaseline = 'alphabetic'; o2.font = '700 100' + FF;
+      const m0 = o2.measureText('TREE'), ink0 = (m0.actualBoundingBoxAscent + m0.actualBoundingBoxDescent) || 72, wd0 = Math.max(o2.measureText('TREE').width, o2.measureText('LEAF').width) * 1.24;
+      const fs = 100 * (LL.WR - 0.5) * chh / ink0, kx = Math.min(1, (LL.stripe.c0 - 2 - LL.c0) * cw / (wd0 * fs / 100));   // 높이에 맞추고, 넓으면 가로로만 좁힌다(포스터의 좁은 글꼴처럼)
+      o2.font = '700 ' + fs.toFixed(2) + FF; const asc = o2.measureText('TREE').actualBoundingBoxAscent || fs * 0.72, inkH = (o2.measureText('TREE').actualBoundingBoxDescent || 0) + asc;
+      const tr = fs * 0.08, y2 = LL.rW * chh + (LL.WR * chh - inkH) / 2 + asc;
+      for (const [word, M] of [['TREE', this._mT], ['LEAF', this._mLf]]) {
+        o2.setTransform(1, 0, 0, 1, 0, 0); o2.clearRect(0, 0, w, h); o2.fillStyle = '#fff';
+        const lx = LL.c0 * cw; o2.setTransform(kx, 0, 0, 1, lx, 0);
+        let x2 = -(o2.measureText(word[0]).actualBoundingBoxLeft || 0);   // 잉크가 c0 열 왼쪽 끝에서 시작
+        for (const chr of word) { o2.fillText(chr, x2, y2); x2 += o2.measureText(chr).width + tr; }
+        o2.setTransform(1, 0, 0, 1, 0, 0);
+        avg(o2.getImageData(0, 0, w, h).data, M, LL.rW, LL.rW + LL.WR - 1, LL.c0, LL.stripe.c0 - 2);
+      }
+      // 빗금 블록 — 포스터의 사선 띠 (60°, 굵기 1.3칸 · 간격 3칸)
+      o2.clearRect(0, 0, w, h); o2.save(); const bx = LL.stripe.c0 * cw, by = LL.rW * chh, bw = (LL.stripe.c1 - LL.stripe.c0 + 1) * cw, bh = LL.WR * chh;
+      o2.beginPath(); o2.rect(bx, by, bw, bh); o2.clip(); o2.strokeStyle = '#fff'; o2.lineWidth = cw * 1.3;
+      for (let x = bx - bh; x < bx + bw + bh; x += cw * 3) { o2.beginPath(); o2.moveTo(x, by + bh); o2.lineTo(x + bh * 0.58, by); o2.stroke(); }
+      o2.restore();
+      med(o2.getImageData(0, 0, w, h).data, this._mSt, LL.rW, LL.rW + LL.WR - 1, LL.stripe.c0, LL.stripe.c1);
+    }
+  }
+  markCalm() {
+    const cv = this._cv, r0 = cv.getBoundingClientRect(), C = this._calm, cols = this._cols, rows = this._rows, pad = 10;
+    C.fill(0);
+    document.querySelectorAll('[data-calm]').forEach((el) => {
+      const r = el.getBoundingClientRect(); if (!r.width || !r.height) return;
+      const x0 = Math.max(0, Math.floor((r.left - r0.left - pad) / this._cw)), x1 = Math.min(cols - 1, Math.ceil((r.right - r0.left + pad) / this._cw));
+      const y0 = Math.max(0, Math.floor((r.top - r0.top - pad) / this._ch)), y1 = Math.min(rows - 1, Math.ceil((r.bottom - r0.top + pad) / this._ch));
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) C[y * cols + x] = 1;
+    });
+  }
+  hex(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  drawField(now, force) {
+    const ctx = this._ctx; if (!ctx) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const moving = (this.props.motion ?? true) && !reduce;
+    if (!force && now - this._last < 33) return;
+    if (!force && !moving && this._drawn && !this._rip.length) return;
+    this._last = now; this._drawn = true;
+    if (this.CELL() !== this._cs) { this.sizeField(); return; }
+    if (this._rsSeen === undefined) this._rsSeen = this.props.reset ?? 0;
+    if (this._loSeen === undefined) this._loSeen = this.props.logout ?? 0;
+    if ((this.props.logout ?? 0) !== this._loSeen) { this._loSeen = this.props.logout ?? 0; this.warpBack(); }   // 통합 화면의 로그아웃 — 전환을 거꾸로
+    if ((this.props.reset ?? 0) !== this._rsSeen) { this._rsSeen = this.props.reset ?? 0; this.warpReset(); }   // 통합 화면의 '로그인부터' — 메인 화면부터 다시
+    if (this._WP && this._WP.done) return;   // 트리 뷰가 화면을 다 덮으면 쉰다
+    if (now - this._calmAt > 400) { this.markCalm(); this._calmAt = now; }
+    const P = (this.PALETTES()[this.props.palette] || this.PALETTES()['은하수']).map((h) => this.hex(h));
+    // 통합 화면에 붙었을 때 — 바탕 글자 장은 통합 화면의 것을 그대로 읽어 그린다(같은 칸 · 같은 글자 · 같은 별 · 같은 무늬 · 같은 시간). 그래서 로그인 층이 걷혀도 바탕이 바뀌지 않는다
+    { const O0 = this.owner(); if (O0) O0._lgCover = !this._WP; }   // 통합 화면에 알림 — 전환 전엔 이 층이 화면을 다 덮으니 그 씬은 쉬어도 된다
+    const OW = this.owner(), SH = OW && OW._cols === this._cols && OW._rows === this._rows && OW._g && OW._star && OW._bw && OW._perm ? OW : null;
+    const NP = P.length, cols = this._cols, rows = this._rows, G = this._glyphs, g = SH ? SH._g : this._g, C = this._calm, M = this._mask, STAR = SH ? SH._star : this._star, BW = SH ? SH._bw : this._bw;
+    const SIX = SH && SH._scr ? SH._scr.ox : 0, SIY = SH && SH._scr ? SH._scr.oy : 0;
+    // 로그인 — 열림 정도(OV) · 로고를 올린 줄 수(dy) · 칸에 놓인 글자(TX) · 특수 칸(SP: 글자 · TREE LEAF 마스크)
+    const OV = this.openVals(now), S0 = this.state || {}, LT = this.LT(), LL = this._L, TXM = new Map(), SP = [];
+    if (OV.open) { this.syncItems(now, OV); if (!S0.ready && now >= OV.showAt + 900) this.setState({ ready: true }, () => { const el = document.querySelector('form[aria-label="Terra 로그인"] input[name="admin"]'); if (el && (this.state || {}).open) el.focus({ preventScroll: true }); }); }
+    const offPx = LL ? OV.e * (LL.logoY1 - LL.logoY0) : 0, LA = this._logoA, LW = this._logoW, LH = this._logoH, PXC = this._pxc, QZ = LL && LL.zone, sm = (v) => { v = Math.min(1, Math.max(0, v)); return v * v * (3 - 2 * v); };
+    // 전환 — 첫 프레임은 평소대로 그리며 로고 · 별 · 글자 칸을 그 색 · 그 글자 그대로 담아 두고(SNAP), 다음 프레임부터 그것들이 날아간다(WV)
+    const WP = this._WP && now >= this._WP.t0 - 120 ? this._WP : null, SNAP = WP && WP.snap ? [] : null, WV = WP && !WP.snap ? this.warpStep(now) : null, FL = SNAP ? new Uint8Array(cols * this._rows) : null, OCC = new Map();
+    if (WV) for (const d of WV.out) { const o = OCC.get(d[0]); if (!o || d[3] > o[3]) OCC.set(d[0], d); }
+    const QA = (OV.open ? sm((now - OV.showAt + 150) / 500) : 1 - sm((OV.out || 0) / 700));   // 전환 중에도 바탕(조용한 자리 포함)은 그대로 둔다
+    if (LL && this._TX && !WV) for (const k in this._TX) { const it = this._TX[k], cl = this.cellsOf(it.t); cl.forEach((chr, j) => { if (chr !== '') TXM.set(it.r * cols + it.c + j, { it, j, chr, wide: cl[j + 1] === '' }); }); }
+    const WS = this.wordState(now, OV), MW = { 2: this._mT, 3: this._mLf };
+    this._boost = Math.max(0, this._boost - 0.012);
+    const speed = moving ? (this.props.speed ?? 1) * (1 + this._boost * 2.5) : 0;
+    this._tt = (this._tt || 0) + (moving ? (now - (this._prev || now)) / 1000 * speed : 0); this._prev = now;
+    const t = SH ? SH._tt || 0 : this._tt;
+    if (moving && !SH) { const k = Math.ceil(cols * rows * (0.006 + this._boost * 0.03)); for (let i = 0; i < k; i++) g[(Math.random() * g.length) | 0] = (Math.random() * G.length) | 0; }
+    const rips = this._rip.filter((r) => now - r.t0 < 3200); this._rip = rips;
+    // 칸 기록 — 칸마다 (색 · 글자 · 모양)만 적어 두고 끝에서 지난 박자와 달라진 칸만 실제로 그린다 (통합 화면 글자 장과 같은 방식 · 글자 타일)
+    const RC = this.lgRec(), cell = (i, css, gl, st) => { RC.css[i] = css; RC.gl[i] = gl; RC.st[i] = st; };
+    RC.css.fill('#bg'); RC.gl.fill(''); RC.st.fill(0);
+    const buckets = new Map(), P2 = SH ? SH._perm : this._perm;
+    // 값 노이즈 한 겹 — 격자 꼭짓점의 난수를 부드럽게 잇는다 (반복 무늬가 없다)
+    const nz = (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, a0 = xi & 255, b0 = yi & 255;
+      const uu = xf * xf * (3 - 2 * xf), vv = yf * yf * (3 - 2 * yf);
+      const A = P2[P2[a0] + b0], B = P2[P2[a0 + 1] + b0], C = P2[P2[a0] + b0 + 1], D = P2[P2[a0 + 1] + b0 + 1];
+      return (A + (B - A) * uu + (C - A) * vv + (A - B - C + D) * uu * vv) / 255;
+    };
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x; if (C[i] && !TXM.has(i)) continue; if (OCC.has(i)) continue;
+      // 성운 구름 — 두 겹의 노이즈가 서로 다른 속도로 은하수 띠를 따라 흘러간다
+      const W = BW[i], gx = (x + SIX) * this._cw / 15, gy = (y + SIY) * this._ch / 15;
+      // 오른쪽으로 흘른다 — 작은 겹(n2)이 큰 겹(n1)보다 빨라 깊이가 생긴다
+      const n1 = nz(gx * 0.045 - t * 0.09, gy * 0.045 + t * 0.012);
+      const n2 = nz(gx * 0.11 - t * 0.17 + 31.7, gy * 0.11 - t * 0.02 + 12.3);
+      const n = n1 * 0.62 + n2 * 0.38;
+      const cloud = Math.max(0, n - 0.42) / 0.58, dust = cloud * cloud;
+      const u = Math.min(0.999, Math.max(0, y / rows * 0.85 + (n1 - 0.5) * 0.3));
+      const sy = Math.round(y * this._ch + this._ch / 2 - offPx), inLogo = !WV && (LA ? sy >= 0 && sy < LH && LA[sy * LW + PXC[x]] > 110 : M && M[i] === 1);
+      if (FL && inLogo) FL[i] = 1;
+      let lv = inLogo ? 0.5 + n * 0.5 : 0.05 + W * 0.13 + dust * (0.18 + 0.62 * W);
+      let rr = -1;
+      // 조용한 자리 — 로그인 구역(+ 바깥 3칸에 걸쳐 서서히)의 배경 글자는 낮게, 별은 끈다 (글자가 또렷이 읽히게)
+      let qz = 1;
+      if (QZ) { const dx = Math.max(QZ.c0 - x, 0, x - QZ.c1), dyq = Math.max(QZ.r0 - y, 0, y - QZ.r1) * 1.8, dd = Math.hypot(dx, dyq), f = Math.min(1, dd / 4); qz = 1 - QA * (1 - (0.28 + 0.72 * f * f * (3 - 2 * f))); if (qz < 1 && !inLogo) lv *= qz; }
+      const st = STAR[i];
+      if (st && qz > 0.9 && !WV) { const tw = moving ? 0.5 + 0.5 * Math.sin(now / 1000 * 1.4 * st + st * 9.0) : 0.75; const sl = 0.36 + tw * 0.58; if (sl > lv) { lv = sl; rr = -2; if (FL && !inLogo) FL[i] = 2; } }
+      for (let j = 0; j < rips.length; j++) {
+        const R = rips[j], age = (now - R.t0) / 1000, dx = (x - R.x) * 0.66, dy = (y - R.y) * 1.2, d = Math.sqrt(dx * dx + dy * dy), dd = d - age * 34;
+        const e = Math.exp(-(dd * dd) / 26) * (1 - age / 3.2) * R.amp;
+        if (e > 0.05) { lv = Math.min(1, lv + e * 0.7); if (e > 0.3) rr = j; }
+      }
+      const q = Math.min(7, (lv * 8) | 0);
+      const pi = Math.min(NP - 1, (u * NP) | 0);
+      // 열 때: 랜덤 갱신 · 오른쪽으로 · 주기 증가 — 닫을 때: 오른쪽 칸부터 거꾸로 (주기가 다시 짧아지며 바탕 글자로 돌아간다)
+      { const tx = TXM.get(i);
+        if (tx) { const p = OV.open ? (now - tx.it.at - tx.j * LT.cell) / LT.dur : 1 - (OV.out - Math.max(0, 40 - (x - LL.c0)) * 8) / LT.out;
+          if (p > 0) { SP.push([i, tx, 0, P[pi], n, p]); continue; } }
+        else if (LL && MW[2] && !WV) {
+          // 노드 타입 낱말 (평균 값) — 앞선(t0 + 열마다 14ms)이 지나간 칸: 새 낱말 칸은 만들고, 옛 낱말에만 있던 칸은 지운다 (둘 다 랜덤 갱신). 값이 MTH 아래인 칸은 바탕
+          const MTH = 52, vC = MW[WS.cur][i], vP = WS.prev ? MW[WS.prev][i] : 0, inC = vC >= MTH, inP = vP >= MTH, sv = this._mSt ? this._mSt[i] : 0;
+          if (inC || inP) { let mk = 0, p = 0, gl = 0, cv = 0;
+            if (!OV.open) { mk = WS.cur; cv = vC / 255; p = inC ? 1 - (OV.out - Math.max(0, 40 - (x - LL.c0)) * 8) / LT.out : 0; }
+            else { const tc = WS.t0 + (x - LL.c0) * 14, q = (now - tc) / LT.dur;
+              // 직전 발광 — 옛 낱말 칸은 앞선이 닿기 150ms 전부터 그 자리 색으로 명도가 올라(앞선에서 가장 밝게) 앞선이 닿는 순간 지워진다. 새 낱말 칸은 그 뒤 랜덤 갱신으로 생긴다
+              if (q < 0) { if (inP) { mk = WS.prev; cv = vP / 255; p = 1; const a = (tc - now) / 150; gl = Math.max(0, 1 - a); gl *= gl; } }
+              else if (inC) { mk = WS.cur; cv = vC / 255; p = q; } }
+            if (mk && p > 0) { SP.push([i, null, mk, P[pi], n, p, gl, cv]); continue; } }
+          else if (sv >= 128) {   // 빗금 블록 (중앙값) — 열 때 낱말보다 조금 늦게 왼쪽부터
+            const p = OV.open ? (now - (OV.showAt + 420 + (x - LL.stripe.c0) * 22)) / LT.dur : 1 - (OV.out - Math.max(0, 40 - (x - LL.c0)) * 8) / LT.out;
+            if (p > 0) { SP.push([i, null, 4, P[pi], n, p, 0, 1]); continue; } } } }
+      // 배경도 글자다 — 빈 칸은 바탕색보다 살짝 밝은 글자로 (세로 8단 × 은하수 띠 안팎)
+      const key = rr >= 0 ? 'r' + rr + '_' + q : rr === -2 ? 's_' + q : q === 0 ? 'b' + Math.min(7, (y / rows * 8) | 0) + '_' + (W > 0.45 ? 1 : 0) : pi + '_' + q;
+      let b = buckets.get(key); if (!b) { b = []; buckets.set(key, b); } b.push(i);
+    }
+    buckets.forEach((list, key) => {
+      const parts = key.split('_'), q = +parts[1];
+      if (parts[0][0] === 'b') {
+        // 바탕 그라데이션(위 #060a1d → 아래 #020308)을 따라가며 그보다 한 끝 밝다
+        const f = +parts[0].slice(1) / 7, inB = q === 1;
+        const bcs = 'rgb(' + Math.round(15 - 7 * f + (inB ? 5 : 0)) + ',' + Math.round(21 - 11 * f + (inB ? 4 : 0)) + ',' + Math.round(46 - 26 * f + (inB ? 10 : 0)) + ')';
+        for (let k = 0; k < list.length; k++) { const i = list[k]; cell(i, bcs, G[g[i]], 0); }
+        return;
+      }
+      const c = parts[0] === 's' ? [236, 241, 255] : parts[0][0] === 'r' ? rips[+parts[0].slice(1)].rgb : P[+parts[0]];
+      const a = q < 2 ? 0.16 + q * 0.06 : 0.12 + q * 0.12, mix = q < 3 ? 0.35 : 1;
+      const ccs = 'rgba(' + Math.round(c[0] * mix + 74 * (1 - mix)) + ',' + Math.round(c[1] * mix + 90 * (1 - mix)) + ',' + Math.round(c[2] * mix + 140 * (1 - mix)) + ',' + a.toFixed(3) + ')';
+      for (let k = 0; k < list.length; k++) { const i = list[k]; cell(i, ccs, G[g[i]], 0); if (FL && FL[i]) SNAP.push({ i, css: ccs, g: G[g[i]], b: false, k: FL[i] === 2 ? 's' : 't' }); }
+    });
+    this.drawLogin(cell, SP, now, SNAP);
+    // 전환 — 담아 둔 칸을 3D 점으로 (z = 1 이면 제자리) · 날아가는 칸 그리기(머리 = 원래 글자 · 볼드는 볼드로, 꼬리 = 방향 글자, 둘 다 원래 색)
+    if (SNAP) { const cx = this._w / 2, cy = this._h / 2; WP.parts = SNAP.map((q) => ({ x: (q.i % cols) * this._cw + this._cw / 2 - cx, y: ((q.i / cols) | 0) * this._ch + this._ch / 2 - cy, x0: (q.i % cols) * this._cw + this._cw / 2 - cx, y0: ((q.i / cols) | 0) * this._ch + this._ch / 2 - cy, z: 1, a: 1, on: true, css: q.css, g: q.g, b: q.b, k: q.k })); WP.nT = WP.parts.filter((q) => q.k === 't').length; WP.snap = false; WP.last = now; }
+    if (WV) { const FN = '500 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", monospace', FB = FN.replace(/^500 /, '700 ');
+      OCC.forEach(([i, gl, css, al, bold]) => { cell(i, this.withA(css, Math.min(1, al)), gl, bold ? 1 : 0); }); }
+    this.lgFlush(RC);
+  }
+  // 로그인 — 특수 칸(볼드) · 레거시(입력 칸 틀 · 커서 · New Tree Connect · 호버 밑줄)
+  // ───── 글자 장 그리기 — 바뀐 칸만 · 글자 타일 (통합 화면 글자 장과 같은 방식) ─────
+  //   매 박자 칸 1.5만 개를 모두 지우고 다시 쓰던 것을, 칸마다 (색 · 글자 · 모양)을 기록해 두고 지난 박자와 달라진 칸만 그 칸을 지우고 타일을 붙인다
+  //   타일 = 글자 하나 × 색 × 모양을 칸 크기로 잘라 화면 밖 캔버스에 한 번만 그려 둔 것 → 잉크가 칸 밖으로 나가지 않아 바뀐 칸만 그려도 찌꺼기(노이즈)가 남지 않는다
+  //   칸 경계는 기기 픽셀로 반올림(배율 1.25 · 1.5 화면에서 경계 픽셀에 지난 글자가 반쯤 남지 않게)
+  lgRec() { const n = this._cols * this._rows; let R = this._rec; if (!R || R.n !== n) R = this._rec = { n, css: new Array(n).fill('#bg'), gl: new Array(n).fill(''), st: new Uint8Array(n), pcss: null, pgl: null, pst: null }; return R; }
+  // 색 묶기 — 통합 화면 글자 장(qcss)과 같은 단계: RGB 6 · 알파 0.02 (변하는 중인 색이 칸마다 달라 타일이 끝없이 늘지 않게, 눈에 보이는 차이는 없다)
+  lq(c) { const M = this._lqM || (this._lqM = new Map()); let q = M.get(c); if (q !== undefined) return q; if (M.size > 30000) M.clear();
+    const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) { M.set(c, c); return c; } const v = m[1].split(',').map(Number), r = (x) => Math.min(255, Math.round(x / 6) * 6);
+    q = v.length > 3 ? 'rgba(' + r(v[0]) + ',' + r(v[1]) + ',' + r(v[2]) + ',' + (Math.round(v[3] * 50) / 50) + ')' : 'rgb(' + r(v[0]) + ',' + r(v[1]) + ',' + r(v[2]) + ')'; M.set(c, q); return q; }
+  withA(c, a) { if (a >= 0.999) return this.lq(c); const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) return c; const v = m[1].split(',').map(Number); return this.lq('rgba(' + v[0] + ',' + v[1] + ',' + v[2] + ',' + ((v.length > 3 ? v[3] : 1) * a) + ')'); }
+  lgAtlas(dpr) {
+    const cw = this._cw, ch = this._ch, cwD = Math.ceil(cw * dpr), chD = Math.ceil(ch * dpr), key = cwD + 'x' + chD + '|' + this._cs + '|' + dpr;
+    let A = this._lgA; if (A && A.key === key) return A;
+    const PG = 1024, perRow = Math.floor(PG / (cwD * 2)), perPage = perRow * Math.floor(PG / chD), FS = Math.round(this._cs * 0.86), FAM = 'px GmarketSans, "Geist Mono", monospace';
+    A = this._lgA = { key, map: new Map(), pages: [], slot: 0 };
+    A.tile = (g, css, st) => {
+      const k = st + css + '\u0001' + g; let t = A.map.get(k); if (t) return t;
+      if (A.slot >= perPage * 12) { A.map.clear(); A.slot = 0; }
+      const p = Math.floor(A.slot / perPage), s2 = A.slot % perPage; A.slot++;
+      let pg = A.pages[p]; if (!pg) { const cv = document.createElement('canvas'); cv.width = PG; cv.height = PG; pg = A.pages[p] = { cv, x: cv.getContext('2d') }; }
+      const sx = (s2 % perRow) * cwD * 2, sy = Math.floor(s2 / perRow) * chD, wide = st === 2 || st === 4, tw = wide ? cwD * 2 : cwD, o = pg.x;
+      o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(sx, sy, cwD * 2, chD); o.beginPath(); o.rect(sx, sy, tw, chD); o.clip();
+      // 칸 안에서는 예전 그리기와 같은 식 (CSS 좌표 · 위 기준선)
+      o.setTransform(dpr, 0, 0, dpr, sx, sy); o.textBaseline = 'top'; o.fillStyle = css; o.strokeStyle = css; o.lineWidth = 0.6;
+      if (st === 2) { const fz = Math.round(ch * 0.82); o.font = '700 ' + fz + FAM; const mw = o.measureText(g).width, kx = Math.min(1, (2 * cw - 1) / Math.max(1, mw)); o.translate((2 * cw - mw * kx) / 2, (ch - fz) / 2); o.scale(kx, 1); o.fillText(g, 0, 0); }
+      else if (st === 4) { const fz = Math.round(Math.min(ch * 0.92, 2 * cw * 0.8)); o.font = '500 ' + fz + FAM; o.fillText(g, (2 * cw - o.measureText(g).width) / 2, (ch - fz) / 2); }
+      else {   // 한 칸 글자 — 통합 화면 글자 장 타일과 같은 자리(왼쪽 IN · 위 INY 기기 픽셀)와 같은 가로 줄임 → 로그인 층이 걷혀도 글자 자리가 1픽셀도 어긋나지 않는다
+        o.font = (st === 1 ? '700 ' : '500 ') + FS + FAM; const IN = Math.max(1, Math.round(0.5 * dpr)) / dpr, INY = Math.round(1.5 * dpr) / dpr, mw = o.measureText(g).width, avail = cw - IN - 1 / dpr, kx = mw > avail ? avail / mw : 1;
+        o.translate(IN, INY); if (kx < 1) o.scale(kx, 1); o.fillText(g, 0, 0); if (st === 1) o.strokeText(g, 0, 0); }
+      o.restore();
+      t = { cv: pg.cv, x: sx, y: sy, w: tw, h: chD, wide }; A.map.set(k, t); return t;
+    };
+    return A;
+  }
+  lgFlush(R) {
+    const RC = this._ctx; if (!RC) return; const n = R.n, cols = this._cols, cw = this._cw, ch = this._ch, dpr = RC.canvas.width / Math.max(1, this._w);
+    const X = (c) => Math.round(c * cw * dpr), Y = (r) => Math.round(r * ch * dpr), full = !R.pcss || this._fullRedraw; this._fullRedraw = false;
+    RC.setTransform(1, 0, 0, 1, 0, 0);
+    const dirty = [];
+    if (full) { RC.clearRect(0, 0, RC.canvas.width, RC.canvas.height); for (let i = 0; i < n; i++) if (R.gl[i]) dirty.push(i); }
+    else {
+      const ds = new Uint8Array(n);
+      for (let i = 0; i < n; i++) if (R.css[i] !== R.pcss[i] || R.gl[i] !== R.pgl[i] || R.st[i] !== R.pst[i]) ds[i] = 1;
+      // 두 칸 글자 — 한쪽이 바뀌면 짝도 함께 (지우고 다시 붙인다)
+      for (let i = 0; i < n; i++) if (ds[i] === 1) { if ((R.st[i] === 9 || R.pst[i] === 9) && i > 0) ds[i - 1] = ds[i - 1] || 2; if ((R.st[i] === 2 || R.st[i] === 4 || R.pst[i] === 2 || R.pst[i] === 4) && i + 1 < n) ds[i + 1] = ds[i + 1] || 2; }
+      for (let i = 0; i < n; i++) if (ds[i]) { const c = i % cols, r = (i / cols) | 0, x0 = X(c), y0 = Y(r); RC.clearRect(x0, y0, X(c + 1) - x0, Y(r + 1) - y0); dirty.push(i); }
+    }
+    // 두 번에 나눈다 — 타일을 먼저 다 만들고, 그다음 한꺼번에 붙인다
+    const A = this.lgAtlas(dpr), TL = [];
+    for (const i of dirty) { const g = R.gl[i], st = R.st[i]; if (!g || st === 9 || R.css[i] === '#bg') continue; TL.push(i, A.tile(g, R.css[i], st)); }
+    for (let k = 0; k < TL.length; k += 2) { const i = TL[k], t = TL[k + 1], c0 = i % cols, r0 = (i / cols) | 0, x0 = X(c0), y0 = Y(r0);
+      const w = Math.min(t.w, X(c0 + (t.wide ? 2 : 1)) - x0), h = Math.min(t.h, Y(r0 + 1) - y0); if (w > 0 && h > 0) RC.drawImage(t.cv, t.x, t.y, w, h, x0, y0, w, h); }
+    RC.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const a = R.pcss || new Array(n), b = R.pgl || new Array(n), c = R.pst || new Uint8Array(n);
+    R.pcss = R.css; R.pgl = R.gl; R.pst = R.st; R.css = a; R.gl = b; R.st = c;
+  }
+  drawLogin(cell, SP, now, SNAP) {
+    const ctx = this._ovx; if (ctx) ctx.clearRect(0, 0, this._w, this._h);   // 덧그림 층은 매 박자 새로
+    const LL = this._L; if (!LL) return; const K = this.LCOL(), cw = this._cw, ch = this._ch, cols = this._cols, G = this._glyphs, g = this._g, S = this.state || {};
+    const FB = '700 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", monospace', css = (c) => 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';
+    const MS = this._MS || (this._MS = new Map());
+    const TYC = this._wCur === 2 ? this.mixC(K.tree, [242, 244, 252], 0.22) : K.leaf;
+    for (const [i, tx, mk, pal, n, p0, gl, cv0] of SP) {
+      const p = Math.min(1, p0), X = (i % cols) * cw, Y = ((i / cols) | 0) * ch;
+      let tgt;
+      if (tx) { const cc = tx.it.col; tgt = cc === 'bgb' ? this.mixC(this.brightBg(pal), [242, 244, 252], 0.3) : cc === 'ty' ? TYC : K[cc]; if (tx.it.hv && tx.it.hv === this._hov) tgt = this.mixC(tgt, [255, 255, 255], 0.3); }
+      else { const cv = cv0 == null ? 1 : cv0, base = mk === 4 ? this.mixC(TYC, [8, 12, 30], 0.42) : mk === 2 ? this.mixC(K.tree, [242, 244, 252], 0.12) : K.leaf;
+        tgt = this.mixC([12, 18, 42], base, 0.28 + 0.72 * cv); }   // 평균 값이 곧 밝기 — 획 가장자리 칸은 어둡게, 속은 밝게
+      const fin = gl > 0.02 ? this.glowC(this.mixC(tgt, pal, 0.2), gl) : this.mixC(tgt, pal, 0.2), col = p < 1 ? this.mixC(this.mixC(pal, [10, 14, 34], 0.55), fin, p) : fin;
+      let glyph;
+      if (p < 1) { let st = tx ? tx.it : MS.get(i); if (!st) { st = { g: [], nx: [] }; MS.set(i, st); } glyph = this.rnd(st, tx ? tx.j : 0, p, now); }
+      else glyph = tx ? tx.chr : mk === 4 ? '/' : this.rampG(cv0 == null ? 1 : cv0, i);   // 마스크 칸 글자 = 값의 농도 (평균이 낮으면 성긴 글자 · 높으면 빽빽한 글자) · 빗금은 사선
+      const cc = this.lq(css(col)); if (SNAP) SNAP.push({ i, css: cc, g: glyph, b: true, k: 't' });
+      // 모양 — 1 볼드(획 덧그림) · 2 넓은 글자 볼드(두 칸, 칸 높이 0.82) · 0 가는 글자 · 4 넓은 가는 글자 (두 칸이면 다음 칸은 9 = 이어짐)
+      const wide = tx && tx.wide && p >= 1, sty = tx ? (tx.it.thin ? (wide ? 4 : 0) : wide ? 2 : 1) : (cv0 == null || cv0 > 0.55 ? 1 : 0);
+      cell(i, cc, glyph, sty); if (wide) cell(i + 1, cc, '', 9);
+    }
+    // 커서 — 입력 중인 칸의 다음 자리에 깜박이는 블록 (점 자리를 덮는다)
+    if (S.ready && S.open) for (const [key, r, v] of [['a', LL.rA, S.va || ''], ['p', LL.rB, S.vp || '']]) {
+      if (S.foc === key && ((now - (S.focAt || 0)) / 530 | 0) % 2 === 0) { const cc = LL.c0 + 11 + Math.min(LL.room - 1, v.length); ctx.fillStyle = 'rgba(242,244,252,0.85)'; ctx.fillRect(cc * cw + 1, r * ch + 2, cw - 2, ch - 4); }
+    }
+    // 호버 — 누를 수 있는 것(auto · Login · New Tree Connect) 밑에 짧은 밑줄
+    if (this._hov && S.ready) { const hb = LL.hit[this._hov]; if (hb) { ctx.fillStyle = this._hov === 'nt' ? 'rgba(104,156,255,0.8)' : 'rgba(242,244,252,0.7)'; ctx.fillRect(hb.c0 * cw, (hb.r + 1) * ch - 2, (hb.c1 - hb.c0 + 1) * cw, 1.5); } }
+  }
+
+  renderVals() {
+    const S = this.state || {}, z = { x: 0, y: 0, w: 0, h: 0 }, pos = S.pos || { ia: z, ip: z, ab: z, lb: z, nb: z };
+    const MV = S.inst ?? this.props.installed ?? 'Leaf', mb = (v) => ({ P: MV === v ? 'true' : 'false', B: MV === v ? 'rgba(230,234,247,0.55)' : 'rgba(108,118,156,0.35)', C: MV === v ? '#e6eaf7' : '#6c769c' });
+    const mL = mb('Leaf'), mT = mb('Tree'), mB = mb('Tree + Leaf');
+    return {
+      mLeaf: (e) => { if (e) e.stopPropagation(); this.setMode('Leaf'); }, mTree: (e) => { if (e) e.stopPropagation(); this.setMode('Tree'); }, mBoth: (e) => { if (e) e.stopPropagation(); this.setMode('Tree + Leaf'); },
+      mLeafP: mL.P, mLeafB: mL.B, mLeafC: mL.C, mTreeP: mT.P, mTreeB: mT.B, mTreeC: mT.C, mBothP: mB.P, mBothB: mB.B, mBothC: mB.C,
+      testD: this.props.embed ? 'none' : 'flex', treeD: S.treeOn && !this.props.embed ? 'block' : 'none', treePE: S.treeOn ? 'auto' : 'none', treeHid: S.treeOn ? 'false' : 'true', replay: (e) => { if (e) e.stopPropagation(); this.warpReset(); },
+      pos, pe: S.ready && S.open ? 'auto' : 'none', openD: S.open ? 'none' : 'block',
+      openFn: (e) => { this.openLogin(); if (e && this._cv) { const rc = this._cv.getBoundingClientRect(); this._rip.push({ x: (e.clientX - rc.left) / this._cw, y: (e.clientY - rc.top) / this._ch, t0: performance.now(), amp: 0.7, rgb: [200, 210, 255] }); } },
+      key: (e) => { const KS = this.state || {}; if (e.key === 'Enter' && KS.open && KS.ready && !this._WP) { e.preventDefault(); this.login(); return; } if (e.key === 'Escape' && KS.open && !this._WP) { e.preventDefault(); this.closeLogin(); } },
+      autoP: S.autoOn ? 'true' : 'false',
+      inA: (e) => this.setState({ va: e.target.value }), inP: (e) => this.setState({ vp: e.target.value }),
+      focA: () => this.setState({ foc: 'a', focAt: performance.now() }), focP: () => this.setState({ foc: 'p', focAt: performance.now() }), blur: () => this.setState({ foc: null }),
+      auto: () => this.setState({ autoOn: !S.autoOn }),
+      submit: (e) => { if (e && e.preventDefault) e.preventDefault(); this.login(); },
+      loginFn: (e) => { if (e && e.preventDefault) e.preventDefault(); this.login(); },
+      newTree: () => { this.setState({ msg: '새 Tree 연결 — 주소 · 등록 코드 창이 이어질 자리' }); this.ripAt('nt', [104, 156, 255]); },
+      pmove: (e) => { if (!e || !this._cv) return; const rc = this._cv.getBoundingClientRect(); this._hov = this.hovAt(e.clientX - rc.left, e.clientY - rc.top); },
+      pleave: () => { this._hov = null; }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<div data-smroot="1" onDragOver="{{dragOver}}" onDrop="{{drop}}" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; display: grid; grid-template-columns: 300px minmax(0, 1fr); background: #040614; color: #d6f4de; font: 500 12px GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif; overflow: hidden;">
+
+  <!-- 왼쪽 — 단계: 원본 · 구 형성 · 표면 · 렌더 · 저장 · 보관함 -->
+  <aside class="sm-side" aria-label="스타메이커 설정" style="overflow-y: auto; border-right: 1px solid rgba(70,160,108,0.32); padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 14px;">
+
+    <button type="button" class="sm-help {{helpCls}}" aria-pressed="{{helpOn}}" onClick="{{toggleHelp}}"><span class="sm-dot">{{helpDot}}</span>도움말<span class="sm-note" style="margin-left: auto;">{{helpT}}</span></button>
+    <section aria-label="원본">
+      <h2 class="sm-h"><span class="sm-hl"></span>원본<span class="sm-hr"></span><span class="sm-n">1</span></h2>
+      <div style="display: flex; gap: 6px;">
+        <label class="sm-btn" style="flex: 1;">이미지 · GIF<input type="file" accept="image/*" onChange="{{pickImg}}" style="display: none;"></label>
+        <label class="sm-btn" style="flex: 1;">구 데이터<input type="file" accept=".json,application/json" onChange="{{pickSphere}}" style="display: none;"></label>
+      </div>
+      <p class="sm-note" style="margin: 8px 0 0;">{{srcLabel}}</p>
+    </section>
+
+    <section aria-label="표면">
+      <h2 class="sm-h"><span class="sm-hl"></span>표면<span class="sm-hr"></span><span class="sm-n">2</span></h2>
+      <div class="sm-kv"><span>해상도</span><span class="sm-seg"><sc-for list="{{resList}}" as="r" hint-placeholder-count="3"><button type="button" aria-pressed="{{r.on}}" onClick="{{r.pick}}" class="{{r.cls}}">{{r.name}}</button></sc-for></span></div>
+      <label class="sm-kv"><span>밝기</span><input type="range" min="0.4" max="1.8" step="0.05" value="{{gain}}" onInput="{{setGain}}"><span class="sm-val">{{gainT}}</span></label>
+      <label class="sm-kv sm-kvi"><span>자전</span><input type="range" min="-0.4" max="0.4" step="0.01" value="{{spin}}" onInput="{{setSpin}}"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" class="sm-ic"><g transform="rotate({{tiltIc}} 10 10)"><ellipse cx="10" cy="10" rx="7.5" ry="2.8" class="sm-icl"/><g transform="translate(10 10) scale({{spinDir}} 1) translate(-10 -10)"><path d="M12 11.2 L9.4 12.8 L12 14.4" class="sm-ica"/></g></g></svg><span class="sm-val">{{spinT}}</span></label>
+      <label class="sm-kv sm-kvi"><span>기울기</span><input type="range" min="-40" max="40" step="1" value="{{tilt}}" onInput="{{setTilt}}"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" class="sm-ic"><circle cx="10" cy="10" r="5.5" class="sm-icl"/><g transform="rotate({{tiltIc}} 10 10)"><line x1="10" y1="1.5" x2="10" y2="18.5" class="sm-ica"/><circle cx="10" cy="2.5" r="1.4" class="sm-icf"/></g></svg><span class="sm-val">{{tiltT}}</span></label>
+      <sc-if value="{{isAnim}}" hint-placeholder-val="{{ false }}">
+        <label class="sm-kv"><span>프레임</span><input type="range" min="2" max="30" step="1" value="{{fps}}" onInput="{{setFps}}"><span class="sm-val">{{fpsT}}</span></label>
+      </sc-if>
+    </section>
+
+    <section aria-label="렌더">
+      <h2 class="sm-h"><span class="sm-hl"></span>렌더<span class="sm-hr"></span><span class="sm-n">3</span></h2>
+      <div class="sm-kv"><span>종류</span><span class="sm-seg"><sc-for list="{{kinds}}" as="k" hint-placeholder-count="2"><button type="button" aria-pressed="{{k.on}}" onClick="{{k.pick}}" class="{{k.cls}}">{{k.name}}</button></sc-for></span></div>
+      <label class="sm-kv"><span>가장자리</span><input type="range" min="0" max="1" step="0.05" value="{{limb}}" onInput="{{setLimb}}"><span class="sm-val">{{limbT}}</span></label>
+      <sc-if value="{{isPlanet}}" hint-placeholder-val="{{ false }}">
+        <label class="sm-kv sm-kvi"><span>빛 방향</span><input type="range" min="0" max="360" step="5" value="{{light}}" onInput="{{setLight}}"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" class="sm-ic"><circle cx="10" cy="10" r="4.5" class="sm-icl"/><g transform="rotate({{lightIc}} 10 10)"><circle cx="18" cy="10" r="1.8" class="sm-icf"/><line x1="16" y1="10" x2="15" y2="10" class="sm-ica"/><path d="M10 5.5 A4.5 4.5 0 0 1 10 14.5 Z" class="sm-icf" opacity="0.55"/></g></svg><span class="sm-val">{{lightT}}</span></label>
+      </sc-if>
+    </section>
+
+    <section aria-label="저장">
+      <h2 class="sm-h"><span class="sm-hl"></span>저장<span class="sm-hr"></span><span class="sm-n">4</span></h2>
+      <label class="sm-in"><span>&gt;</span><input type="text" placeholder="이름" value="{{name}}" onInput="{{setName}}" spellcheck="false" aria-label="이름"></label>
+      <div class="sm-note" style="margin: 8px 0 4px;">폴더</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+        <sc-for list="{{folders}}" as="f" hint-placeholder-count="2"><button type="button" aria-pressed="{{f.on}}" onClick="{{f.pick}}" class="sm-chip {{f.cls}}">{{f.name}}</button></sc-for>
+      </div>
+      <label class="sm-in" style="margin-top: 6px;"><span>+</span><input type="text" placeholder="{{nfHolder}}" value="{{newFolder}}" onInput="{{setNewFolder}}" onKeyDown="{{newFolderKey}}" spellcheck="false" aria-label="새 폴더"></label>
+      <div style="display: flex; gap: 6px; margin-top: 10px;">
+        <button type="button" class="sm-btn sm-pri {{saveCls}}" onClick="{{save}}" style="flex: 1;">{{saveT}}</button>
+        <button type="button" class="sm-btn" onClick="{{exportFile}}">내보내기</button>
+      </div>
+      <p class="sm-note" aria-live="polite" style="margin: 8px 0 0; color: {{msgCol}};">{{msg}}</p>
+    </section>
+
+    <section aria-label="보관함">
+      <h2 class="sm-h"><span class="sm-hl"></span>보관함 · star<span class="sm-hr"></span><span class="sm-n">{{libN}}</span></h2>
+      <sc-for list="{{lib}}" as="L" hint-placeholder-count="2">
+        <div class="sm-lib {{L.cls}}"><button type="button" onClick="{{L.load}}" class="sm-libb"><img src="{{L.thumb}}" alt="" width="28" height="28"><span style="display: flex; flex-direction: column; gap: 1px; min-width: 0; text-align: left;"><b style="font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{L.name}}</b><span class="sm-note">{{L.path}} · {{L.kind}} · {{L.size}}</span></span></button><button type="button" onClick="{{L.del}}" aria-label="{{L.name}} 지우기" class="sm-x">×</button></div>
+      </sc-for>
+      <sc-if value="{{libEmpty}}" hint-placeholder-val="{{ true }}"><p class="sm-note" style="margin: 0;">{{libEmptyT}}</p></sc-if>
+    </section>
+  </aside>
+
+  <!-- 오른쪽 — 미리보기 (구) + 표면 지도(등장방형) -->
+  <main style="position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid rgba(70,160,108,0.22);">
+      <span class="sm-hl"></span><b style="color: #78e89c; font-weight: 700;">미리보기</b><span class="sm-note">{{prevNote}}</span>
+      <span style="flex: 1;"></span>
+      <span class="sm-seg"><sc-for list="{{views}}" as="v" hint-placeholder-count="2"><button type="button" aria-pressed="{{v.on}}" onClick="{{v.pick}}" class="{{v.cls}}">{{v.name}}</button></sc-for></span>
+      <button type="button" class="sm-btn" onClick="{{togglePlay}}" aria-label="{{playLabel}}" style="min-width: 54px;">{{playT}}</button>
+    </div>
+    <div data-smstage="1" style="position: relative; flex: 1; min-height: 0;">
+      <canvas data-smprev="1" aria-label="구 미리보기" role="img" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block;"></canvas>
+      <sc-if value="{{dropOn}}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 12px; border: 1px dashed rgba(110,236,156,0.7); display: flex; align-items: center; justify-content: center; color: #d0ff96; background: rgba(4,6,20,0.6); pointer-events: none;">놓으면 불러와요 — 이미지 · GIF · 구 데이터(.json)</div></sc-if>
+    </div>
+    <!-- 표면 지도 — 구 형성 방법을 지도 위에 띄운다. 지도는 지구본 고어(오렌지 껍질처럼 자른 조각)로 — 펴진 표면이 어떻게 구를 감싸는지 그대로 보인다 -->
+    <section aria-label="구 형성 · 표면 지도" style="position: relative; border-top: 1px solid rgba(70,160,108,0.22); height: 196px; flex: none;">
+      <canvas data-smtex="1" aria-label="표면 지도" role="img" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block;"></canvas>
+      <div style="position: absolute; left: 12px; top: 10px; right: 12px; display: flex; align-items: flex-start; gap: 10px; pointer-events: none;">
+        <div style="display: flex; flex-direction: column; gap: 6px; pointer-events: auto;">
+          <div style="display: flex; align-items: center; gap: 8px;"><span class="sm-hl"></span><b style="color: #78e89c; font-weight: 700;">구 형성</b><span class="sm-n">1 · 2</span></div>
+          <div role="radiogroup" aria-label="구 형성 방법" class="sm-algo">
+            <sc-for list="{{algos}}" as="a" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{a.on}}" onClick="{{a.pick}}" title="{{a.desc}}" class="{{a.cls}}">{{a.dot}} {{a.name}}</button></sc-for>
+          </div>
+          <sc-if value="{{help}}" hint-placeholder-val="{{ false }}"><span class="sm-note sm-algo-d">{{algoDesc}}</span></sc-if>
+        </div>
+        <span style="flex: 1;"></span>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: auto;">
+          <span class="sm-seg"><sc-for list="{{maps}}" as="g" hint-placeholder-count="3"><button type="button" aria-pressed="{{g.on}}" onClick="{{g.pick}}" class="{{g.cls}}">{{g.name}}</button></sc-for></span>
+          <span class="sm-note">{{texNote}}</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
