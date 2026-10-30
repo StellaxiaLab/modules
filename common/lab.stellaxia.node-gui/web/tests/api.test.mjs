@@ -323,7 +323,7 @@ test('위임 대응표 — 읽기는 GET, 쓰기는 연 것뿐(ADR-GW-004 2a 바
   assert.deepEqual(writes, ['terra.master.jobs.by-job-id.cancel.post', 'terra.master.jobs.by-job-id.rerun.post', 'terra.master.nodes.by-node-id.modules.assignments.by-module-id.delete', 'terra.master.nodes.by-node-id.modules.assignments.post',
     'terra.master.svi.bindings.by-binding-id.delete', 'terra.master.svi.bindings.post',
     'terra.master.svi.grants.by-grant-id.delete', 'terra.master.svi.grants.by-grant-id.patch', 'terra.master.svi.grants.post']);
-  assert.equal(ids.length - writes.length, 28, '1차 읽기 28');
+  assert.equal(ids.length - writes.length, 29, '1차 읽기 29(내 외부 신원 목록 포함)');
   for (const id of ids) {
     const [, path] = MASTER_DELEGATED[id];
     assert.ok(id.startsWith('terra.master.'), id);
