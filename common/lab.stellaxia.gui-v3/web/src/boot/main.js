@@ -15,6 +15,8 @@ import { createGatewayTransport } from '../api/transport.js';
 import { loadTopology } from '../api/topology.js';
 import { startPush } from '../api/push.js';
 import { pickMode, connectApp } from '../api/mode.js';
+import * as deskAdapt from '../api/desk-adapt.js';
+import { startAlarms } from '../api/alarms.js';
 
 const q = new URLSearchParams(location.search), status = document.getElementById('status'), MODE = pickMode(q);
 const appReady = MODE === 'app' ? connectApp() : Promise.resolve(null);   // A 모드 — hello 는 가장 먼저(마운트가 이벤트 루프를 붙잡기 전에)
@@ -25,7 +27,7 @@ if (q.get('gpu') !== 'off') useGpuField('Scene', { mode: q.get('render') === 'ma
 else say('글자 장 시안 2D');
 
 // 보드를 고치지 않고 몇 자리만 잇는다: 로그인(Login.login) · Tree 로그인 · 로그아웃(Scene.sceneLogout). 노드 데이터는 TerraNodes 가 window.TerraTransport 를 쓴다
-let terra = null, session = null, transport = null, push = null;
+let terra = null, session = null, transport = null, push = null, alarms = null;
 if (MODE !== 'demo') {
   session = createSession();
   // 자격 — B: 자격 핸들(Handle) · A: 셸이 준 앱 토큰(Bearer), 401 이면 셸에게 새로 받아 한 번 더
@@ -79,9 +81,19 @@ if (MODE !== 'demo') {
     TerraTreeLogin.__terra = true; TL.Logic = TerraTreeLogin;
   }
   // 로그인 뒤 한 번 — 지도 · Tree 길 · 보기 상태 · 밀어 받기
-  const afterLogin = () => { transport.ready(); loadRoutes(); if (push) push.stop(); push = startPush({ terra, store: () => window.TerraNodes }); };
+  // 노드 데스크톱이 쓰는 것 — 실제 응답 → 보드 모양(desk-adapt) · 이 Gateway 의 앱 목록(모듈 › 앱 탭) · 다른 모듈 앱 열기(셸에 부탁)
+  window.TerraDesk = deskAdapt;
+  window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
+  const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; });
+  // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50). 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
+  const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } window.TerraAlarms = []; };
+  const afterLogin = () => {
+    transport.ready(); loadRoutes(); loadApps(); stopLive();
+    alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m) }); window.TerraAlarms = alarms.list;
+    push = startPush({ terra, store: () => window.TerraNodes, onEvent: () => alarms && alarms.poke() });
+  };
   const SC = boardDef('Scene');
-  if (SC && SC.Logic.prototype.sceneLogout && !SC.Logic.__terraOut) { const out = SC.Logic.prototype.sceneLogout; SC.Logic.prototype.sceneLogout = function (...a) { if (MODE === 'app') return appLogout(); if (MODE === 'shell') session.logout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; if (push) { push.stop(); push = null; } return out.apply(this, a); }; SC.Logic.__terraOut = true; }
+  if (SC && SC.Logic.prototype.sceneLogout && !SC.Logic.__terraOut) { const out = SC.Logic.prototype.sceneLogout; SC.Logic.prototype.sceneLogout = function (...a) { if (MODE === 'app') return appLogout(); if (MODE === 'shell') session.logout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive(); return out.apply(this, a); }; SC.Logic.__terraOut = true; }
   // A 모드의 로그인 · 로그아웃 — 웹은 비밀번호를 받지 않는다. main Scene(scene/)이 감쌌으면 그 껍데기가 로그인을 맡는다:
   //   토큰이 없으면 [로그인] → emit('login') → Scene 의 /login 카드 → Handle → 호스트가 frame 에 새 토큰(또는 / 로 돌아와 frame 을 새로 띄운다)
   //   로그아웃 → emit('logout') — 그 Scene 이 쥔 Handle 이 있을 때만(session.state, node-gui 와 같은 규칙). 셸 세션의 토큰이면 셸에서 로그아웃한다
@@ -99,7 +111,7 @@ if (MODE !== 'demo') {
     gate.append(msg, b); document.body.appendChild(gate);
   };
   const appLogout = () => {
-    if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; if (push) { push.stop(); push = null; }
+    if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive();
     if (frame && signedIn()) frame.emit('logout'); else say('셸의 로그인으로 열렸어요 — 로그아웃은 셸에서');
   };
   const appSignedIn = () => { showGate(false); loadTopology(terra).then((t) => t && setTopology(t)); afterLogin(); };
@@ -109,7 +121,7 @@ if (MODE !== 'demo') {
     let had = !!f.token();
     if (f.onToken) f.onToken((tok) => {   // 토큰이 바뀌면(다른 사용자 · 로그인 · 로그아웃) 앞의 사본을 버린다
       if (window.TerraNodes) window.TerraNodes.clear();
-      if (tok && !had) appSignedIn(); else if (!tok) { if (push) { push.stop(); push = null; } showGate(true); }
+      if (tok && !had) appSignedIn(); else if (!tok) { stopLive(); showGate(true); }
       had = !!tok;
     });
     if (had) { appSignedIn(); say('앱 모드 — 셸의 앱 토큰'); } else showGate(true);

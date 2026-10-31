@@ -63,8 +63,10 @@ const RES = {   // 자원 이름 → 읽기 operation · TTL(ms) · 끊겼을 �
   tasks:   { op: 'terra.daemon.tasks.get', ttl: 5000 },
   svi:     { op: 'terra.daemon.svi.declarations.get', ttl: 30000 },
   wg:      { op: 'terra.daemon.wireguard.status.get', ttl: 15000 },
+  tunnels: { op: 'terra.daemon.service-tunnels.get', ttl: 15000 },
+  enroll:  { op: 'terra.daemon.enrollment.status.get', ttl: 60000 },
   // 제어기(노드 데스크톱) 묶음 — 위 자원들을 한 화면 모양으로. 목업은 보드 씨앗, 웹 빌드 전송은 operation 여럿을 불러 묶는다(desk.js)
-  desk:    { op: 'gui-v3.desk', ttl: 15000, compose: ['config', 'modules', 'offers', 'devices', 'tasks', 'svi', 'wg'] }
+  desk:    { op: 'gui-v3.desk', ttl: 15000, compose: ['config', 'modules', 'offers', 'devices', 'tasks', 'svi', 'wg', 'tunnels', 'enroll'] }
 };
 const PARTITION = new Set(['NODE_OFFLINE', 'RELAY_NOT_CONNECTED', 'NETWORK', 'TIMEOUT', 'GATEWAY_UNREACHABLE']);   // 이 코드면 분할로 본다
 const LS = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } } };
@@ -75,7 +77,7 @@ class NodeStore {
     this.cache = new Map(Object.entries(LS.get('terra.cache') || {}));   // 새로 띄워도 마지막 사본이 남는다(끊긴 채 시작해도 보인다)
     this._saveT = 0;
   }
-  key(n, r) { return n + '|' + r; }
+  key(n, r, inp) { return n + '|' + r + (inp ? '|' + JSON.stringify(inp) : ''); }   // 입력이 있는 읽기(모듈 로그 · 모듈 설정 스키마)는 입력마다 따로
   emit(n) { for (const f of this.subs) { try { f(n); } catch (e) {} } }
   subscribe(f) { this.subs.add(f); return () => this.subs.delete(f); }
   persist() { clearTimeout(this._saveT); this._saveT = setTimeout(() => { const o = {}; for (const [k, v] of this.cache) o[k] = v; if (!LS.set('terra.cache', o)) LS.set('terra.cache', {}); }, 400); }
@@ -83,17 +85,17 @@ class NodeStore {
   link(n) { if (this.isLocal(n)) return { state: 'local' }; return this.links.get(n) || { state: 'unknown' }; }
   setLink(n, L) { const o = this.links.get(n); this.links.set(n, Object.assign({}, L, { at: Date.now() })); if (!o || o.state !== L.state || o.code !== L.code) this.emit(n); }
 
-  /** 읽기 — 사본을 바로(EL). 없거나 낡았으면 뒤에서 받는다. 끊겼으면 사본(PA) */
+  /** 읽기 — 사본을 바로(EL). 없거나 낡았으면 뒤에서 받는다. 끊겼으면 사본(PA). o.input — 그 operation 의 입력(자원 이름 대신 op id 를 줄 때) */
   read(n, res, o = {}) {
-    const R = RES[res] || { op: res, ttl: 15000 }, k = this.key(n, res), e = this.cache.get(k), now = Date.now(), age = e ? now - e.at : Infinity, L = this.link(n);
+    const R = RES[res] || { op: res, ttl: 15000 }, k = this.key(n, res, o.input), e = this.cache.get(k), now = Date.now(), age = e ? now - e.at : Infinity, L = this.link(n);
     const wait = !o.force && ((L.state === 'offline' && L.retryAt > now) || (e && e.err && now - (e.errAt || 0) < 5000));   // 끊긴 노드 · 실패한 자원은 5초에 한 번만 다시 두드린다(그리기마다 부르지 않게)
-    if ((age > (o.ttl ?? R.ttl) || o.force) && !wait && !this.inflight.has(k)) this.refresh(n, res);
+    if ((age > (o.ttl ?? R.ttl) || o.force) && !wait && !this.inflight.has(k)) this.refresh(n, res, o.input);
     return { data: e ? e.data : null, at: e ? e.at : 0, age, src: e ? e.src : '', stale: age > (o.ttl ?? R.ttl), loading: this.inflight.has(k), link: L, err: e && e.err };
   }
-  refresh(n, res) {
-    const R = RES[res] || { op: res }, k = this.key(n, res);
+  refresh(n, res, input) {
+    const R = RES[res] || { op: res }, k = this.key(n, res, input);
     if (this.inflight.has(k)) return this.inflight.get(k);
-    const p = this.fetchRes(n, res, R).then((data) => {
+    const p = this.fetchRes(n, res, R, input).then((data) => {
       this.cache.set(k, { data, at: Date.now(), src: this.isLocal(n) ? '로컬' : '노드' }); if (!this.isLocal(n)) this.setLink(n, { state: 'online' });   // 받았으면 지난 오류는 지운다
     }, (err) => {
       const code = (err && err.code) || 'ERROR', e0 = this.cache.get(k);
@@ -110,9 +112,9 @@ class NodeStore {
   }
 
   // 묶음 자원(compose) — 목업은 한 번에, 실제 전송은 operation 들을 함께 불러 보드의 모양(shapes[res])으로. 다 분할로 실패하면 분할
-  fetchRes(n, res, R) {
+  fetchRes(n, res, R, input) {
     const meta = (this.t.meta && this.t.meta[n]) || { id: n };
-    if (!R.compose || this.t.kind === 'mock' || !this.shapes[res]) return this.t.invoke(n, R.op, {}).then((d) => (this.t.kind !== 'mock' && this.shapes[res] ? this.shapes[res](d, meta) : d));
+    if (!R.compose || this.t.kind === 'mock' || !this.shapes[res]) return this.t.invoke(n, R.op, input || {}).then((d) => (this.t.kind !== 'mock' && this.shapes[res] ? this.shapes[res](d, meta) : d));
     return Promise.allSettled(R.compose.map((r) => this.t.invoke(n, RES[r].op, {}))).then((rs) => {
       const P = {}; let fail = null, ok = 0;
       rs.forEach((x, i) => { if (x.status === 'fulfilled') { P[R.compose[i]] = x.value; ok++; } else if (!fail || PARTITION.has(x.reason && x.reason.code)) fail = x.reason; });

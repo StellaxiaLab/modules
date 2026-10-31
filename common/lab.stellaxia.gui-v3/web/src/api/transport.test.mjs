@@ -58,7 +58,10 @@ test('transport — 장면 노드 묶기: 로컬은 로컬 길, 나머지는 Mas
   assert.deepEqual(await tp.invoke('B', 'gui-v3.desk.patch', {}), { ok: true, local: true });   // 화면 안 초안은 보내지 않는다
   await tp.master('B', 'terra.master.nodes.by-node-id.modules.get');
   assert.deepEqual(calls.at(-1).slice(1), ['/api/v1/operations/terra.master.nodes.by-node-id.modules.get/invoke', { node_id: 'nd_b' }]);
-  // 보기 상태 — 계정 문서에서 미리 받고, 쓰면 계정에 덮어 쓴다
+  // Master 쓰기는 노드로 중계하지 않는다 — 로컬 Gateway 로, 그 노드의 Master id 를 실어
+  await tp.invoke('B', 'terra.master.nodes.by-node-id.modules.assignments.post', { module_id: 'io.terra.agent', version: '0.6.2' });
+  assert.deepEqual(calls.at(-1).slice(1), ['/api/v1/operations/terra.master.nodes.by-node-id.modules.assignments.post/invoke', { module_id: 'io.terra.agent', version: '0.6.2', node_id: 'nd_b' }]);
+    // 보기 상태 — 계정 문서에서 미리 받고, 쓰면 계정에 덮어 쓴다
   assert.equal(await tp.ready(), true);
   assert.deepEqual(tp.loadView('desk.A'), { wins: { term: {} } });
   tp.saveView('desk.B', { wins: {} }); await new Promise((r) => setTimeout(r, 10));
@@ -71,4 +74,19 @@ test('transport — 로그인 전이면 부르지 않는다', async () => {
   await assert.rejects(tp.invoke('A', 'terra.daemon.modules.get', {}), { code: 'UNAUTHENTICATED' });
   await assert.rejects(tp.master('B', 'terra.master.nodes.by-node-id.get'), { code: 'UNAUTHENTICATED' });
   assert.equal(n, 0);
+});
+
+test('transport — 로컬 노드의 Master id 는 Daemon status 에서, 등록 전이면 NODE_NOT_ENROLLED', async () => {
+  const calls = []; let nid = 'nd_a';
+  const fetch = async (path, init) => { calls.push([path, init.body ? JSON.parse(init.body) : null]);
+    if (path.endsWith('/terra.daemon.status.get/invoke')) return J(200, { status: 'ok', data: { daemon: { node_id: nid } } });
+    return J(200, { ok: true, data: {} }); };
+  const T = createTerra({ fetch, authorization: () => 'Handle h' }), tp = createGatewayTransport({ terra: T, storage: mem() });
+  tp.bindScene('A', [{ id: 'A', name: 'a' }]);
+  await tp.invoke('A', 'terra.master.nodes.by-node-id.modules.assignments.by-module-id.delete', { module_id: 'm' });
+  assert.deepEqual(calls.at(-1), ['/api/v1/operations/terra.master.nodes.by-node-id.modules.assignments.by-module-id.delete/invoke', { module_id: 'm', node_id: 'nd_a' }]);
+  await tp.invoke('A', 'terra.master.nodes.get', {});   // by-node-id 가 아닌 Master op 에는 싣지 않는다
+  assert.deepEqual(calls.at(-1), ['/api/v1/operations/terra.master.nodes.get/invoke', {}]);
+  nid = ''; const tp2 = createGatewayTransport({ terra: T, storage: mem() }); tp2.bindScene('A', []);
+  await assert.rejects(tp2.invoke('A', 'terra.master.nodes.by-node-id.modules.assignments.post', { module_id: 'm' }), { code: 'NODE_NOT_ENROLLED' });
 });
