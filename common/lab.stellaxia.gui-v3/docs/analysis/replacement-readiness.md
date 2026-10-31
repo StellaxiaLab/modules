@@ -55,17 +55,17 @@ related:
 | 영역 | gui-v3 상태 | 근거 | 난이도 | 코어 변경 |
 | --- | --- | --- | --- | --- |
 | 로그인/로그아웃(껍데기) | 0.3.0 에서 됨 | §5 | — | — |
-| 시작 화면 · 지도(topology) | 됨. **단, 부모 Tree 가 목록에 없는 리프(단독 리프)는 지도가 비어** 시안 지도로 떨어지고 로컬 노드가 묶이지 않는다(격리 스택에서 발견) | 실측 | 小 | 없음 |
+| 시작 화면 · 지도(topology) | **됨** — 부모가 없는 리프(단독 리프)는 이름 없는 'Tree'(Master 자신, rid 없음) 아래로 모은다. 지도에 'Tree' 궤도와 자기 노드가 보이고, 제어기가 로컬 노드에 스스로 묶인다 | 실측(격리 Master 의 단독 리프) | — | — |
 | 노드 자원(CPU 등) | **부분** — 전역 틀 대상 표의 상태 · 하트비트 · CPU · MEM · 디스크를 Master 하트비트 자원 스냅샷(`resource`)으로. 자원 수 · NET 그래프 · 모듈 상태 창의 CPU/MEM 은 아직 시안(노드별 실시간 지표 op 가 없다) | 시험 | 小 | 없음(실시간 지표는 코어) |
 | 모듈 목록·상태·시작/정지/재시작·제거 | 됨 | 실측(목록) | — | — |
 | 모듈 로그 | **됨** — 모듈 › 로그 = `modules.by-module-id.logs.get`(탭을 볼 때만) | 실측(200 · 줄 0) | — | — |
 | 모듈 설정 편집 | **됨** — 스키마 폼(`config.schema.get` + `config.get`, enum · boolean · 수 · JSON · 비밀 제외 · 재시작 표시), 저장은 형 변환 + `base_revision` | 실측(maxFileMB 8→9→8, revision 0→1) | — | — |
-| 노드 설정 | 부분 — 하드코딩 25키(node-gui 는 `config.schema.get` 135키) | — | 中 | 없음 |
+| 노드 설정 | **됨** — 행 = Daemon `config.schema.get`(이 Terra 에서 140키 · 23묶음). 시안 25키는 한국어 이름 · 고르기 · 검사를 그대로, 운영자 키만 쓰기 · 설치기/파생은 읽기 · 비밀은 숨김. 저장은 스키마 형(int · bool · string_list · object_list)으로 `config.patch {set, save}` | 실측 — 묶음 · 실제 값 · 형 검사('port — 정수를 적어야 해요') · 저장(`daemon.device_name` → daemon.json 반영) | — | — |
 | 제안 수락(offers consent/withdraw) | **됨** — 실제 노드의 제안을 매핑하지 않아 'Tree 지정' 탭이 늘 비어 있던 결함을 고침(offered · accepted · stale · managed · pinned → 세 칸) | 시험(격리 노드에 제안 0건) | — | — |
 | 모듈 배정(master assignments) | **됨** — 설치 › 'Tree 에 지정'(module id · 버전) = `assignments.post`, 제안 › '지정 해제' = delete. 전송이 Master id 를 스스로 찾는다 | 실측 — 앱 토큰으로 위임 통과, Master 가 `MODULE_NOT_FOUND`(이 격리 Tree 에 게시본 없음). **끝까지(게시 → 제안 → 동의 → 설치)는 못 봤다** | — | 없음 |
 | 모듈 설치(파일) | 실제 노드에서 **잠그고 이유를 적는다** — `.tmod` 파일 설치는 `commands.execute`(process.execute · 이 노드만)로 `terra module install` 을 돌려야 하는데 위험이 커 하지 않았다. 대신 Tree 지정 | 시험 | 中 | 없음(결정 필요) |
 | 설정 창(NodeConf) | 시안 | — | 中 | 없음 |
-| 파일(io.terra.file · local-fs · desktop.open) | 없음/시안 | — | 中 | 없음 |
+| 파일(io.terra.file · local-fs · desktop.open) | **됨** — 위치 = 공유 폴더(io.terra.file roots) · 로컬 루트(local-fs, 이 노드만 · 읽기만) · 바탕화면 바로가기. 폴더 들어가기 · '..', 공유 폴더에 새 폴더(mkdir) · 지우기(remove), 로컬은 '노드에서 열기 / 노드 파일 관리자로'(desktop.open). 읽을 수 없는 뿌리는 🔒 와 이유. 파일 내용 열기 · 올리기 · 내려받기(entries.read · transfers.*)는 아직 | 실측 — 공유 목록 · 새 폴더 · 지우기 · 들어가기 · 잠긴 뿌리. **desktop.open 은 실행하지 않았다**(격리 데몬이라도 이 PC 화면에 창을 연다) | 中(전송) | 없음 |
 | 작업 · 출력 | **부분→됨(읽기)** — 작업 관리자 줄을 누르면 `tasks.by-task-id.output.get`(도는 동안 3초 폴링). SSE 따라가기 · master jobs 는 없음 | 시험(격리 노드에 작업 0건) | 小 | 없음 |
 | WireGuard | **됨** — 올리기/다시 적용 = `apply.post`, 내리기 = `down.post`, 동기화 = `sync.post`. managed-key/config 는 아직 | 실측(sync 202, 앱 토큰). apply/down 은 실행하지 않음 | 小 | 없음 |
 | mesh · routes · probes · 네트워크 로그 · connection groups | 없음 | — | 大 | §3-1 |
@@ -75,7 +75,7 @@ related:
 | 알림(alarms) | **부분** — 작업 · 모듈 상태 변화를 알림 한 줄로(상태 줄 · `window.TerraAlarms`), 밀어 받기 이벤트에 바로 다시 읽음. **목록 화면은 없다**(전역 틀 '알림' 메뉴 자리만) | 시험 | 小 | 없음 |
 | 편집기(건물·재료·도로·지면·필드) | 부분(Field · StarMaker) | — | 大 | §3-1 |
 | 등록 상태(enrollment) | **됨(읽기)** — 등록 여부 · Master 주소 · 노드 id · 등록일 · 자격. 등록 코드는 잠금(`node.enroll` 이 앱 권한에 없다) | 실측 | — | — |
-| Terra ID 신뢰 카드 · external identities | 없음. **A 모드로는 읽기만 닿는다** — 위임 표에 `users.by-user-id.external-identities.get` 하나, 발급자 관리(admin.external-issuers.*)와 연결/해제는 위임 밖. 그릴 자리(설정 창)도 시안 | — | 中 | 쓰기는 코어(위임) 또는 B 모드 |
+| Terra ID 신뢰 카드 · external identities | **읽기 됨** — 설정 › 계정: whoami(principal · 권한) + 내 외부 신원 연결(`users.by-user-id.external-identities.get`), '연결 없음'과 '못 봤음'을 가른다. **한계를 화면에 적었다**: 연결 · 해제와 Tree 의 신뢰 발급자(admin.external-issuers.*)는 앱 위임 밖이라 여기서 하지 않는다(Tree 의 웹 콘솔에서) | 실측(B 모드 — '연결 없음', 권한 목록) | — | 쓰기는 코어(위임) |
 | 밀어 받기(events) | 됨(거칠게) | — | — | — |
 | 보기 상태 문서(node-gui 배치 넘겨받기) | **막힘** — Gateway 가 앱 토큰을 `app:<자기 앱 id>` 로 고정하고(`documents.go` 18~21행, 시험 `TestDocumentAppTokenCannotReachAnotherNamespace` 가 node-gui 이름공간을 예로 거절), 사람 세션은 `app:` 이름공간을 못 쓴다. 게다가 node-gui 가 둔 것(`layout/<node_id>` 육각 맵 배치 · 노드 모습 · 연결 · 메모 · 창 자리, `assets` 건물 · 도로)은 gui-v3 에 대응 모델이 거의 없다(창 자리 · 메모 정도) | 코드 확인 | — | **있음** — 결정 필요 |
 | Master 위임 표(Terra CI 스텝 대응) | **됨** — `web/tools/gen-master-delegated.mjs --terra … --check`(§4-3) | 시험 · 생성 확인(38 op) | — | ci.yml 경로 교체만 |
@@ -125,3 +125,12 @@ related:
 - B 모드(앱 주소 직접): 로그인 → 노드 데스크톱 묶음 8부분(config · modules · offers · tasks · svi · wg · tunnels · enroll) · 등록 실값 · 모듈 로그 200 · 설정 스키마 칸(maxFileMB · maxTotalMB, integer · 재시작) · 설정 patch 8→9→8 · 배정 → Master `MODULE_NOT_FOUND`. 장면 노드를 로컬에 묶는 것은 지도가 비어 **JS 로 했다**(`TerraNodes.t.bindScene`) — 화면을 눌러 연 것이 아니다.
 - A 모드 자격: `POST /api/v1/gui/apps/lab.stellaxia.gui-v3.web/token` 으로 받은 `tsa_` 토큰으로 `assignments.post`(위임 통과 → Master 답) · `logs.get` · `service-tunnels.get` · `enrollment.status.get` · `wireguard.sync.post`(202) 확인, `crossboundary.login-routes.get` 은 예상대로 닿지 않음.
 - 못 본 것: main Scene 안(A 모드) 화면 조작 — 브라우저 도구의 클릭 · 키가 다른 origin iframe 안으로 가지 않았다(로그인 문 클릭도 같은 이유로 보임). 알림 · 작업 출력 · 제안 행은 격리 노드에 작업 · 제안이 없어 시험만.
+
+### 6-1. 2순위 나머지 실측 (2026-11-01)
+
+같은 격리 스택(b34ed4aa)에 io.terra.file 0.2.1(릴리스 v2026.10.31-2, 서명 · built-in · 해시 일치)을 더 깔았다. B 모드로 몰았고 이번에는 **장면 노드를 JS 로 묶지 않았다** — 단독 리프 수정으로 지도가 로컬 노드를 스스로 묶는다(제어기는 `gf_ctlOpenWin` 으로 열고, 그 뒤 창 · 탭은 화면을 눌러 몰았다).
+- 지도: 'Tree' 궤도 + `iso-leaf`, 로컬 = `P1:iso-leaf`(Master id 있음).
+- 노드 설정: 스키마 묶음 · 실제 값(local_api.port 17331 등) · 설치기 키 읽기 · 형 검사 · 저장(`daemon.device_name` = iso-leaf, 실행 중 설정과 daemon.json 모두). 찾은 결함(값 없는 키가 'undefined')은 고치고 다시 확인했다.
+- 파일: 공유 폴더 `share-0` 목록(docs · readme.txt 6 B) · 새 폴더 → 지우기 · 들어가기/위로 · 잠긴 로컬 뿌리. 찾은 결함(잠긴 뿌리가 '빈 폴더')은 고치고 다시 확인했다. 로컬 루트 목록에는 이 PC 의 실제 드라이브가 나온다(격리 데몬도 같은 기계라서) — 그 안으로는 들어가지 않았다.
+- Terra ID: 계정 카드 · '연결 없음' · 한계 문장.
+- 못 본 것: A 모드 화면(앞과 같은 이유), desktop.open 실행, 파일 내용 · 전송.
