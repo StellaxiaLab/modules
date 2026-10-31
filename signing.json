@@ -1,0 +1,22 @@
+{
+  "$comment": "릴리스가 어느 키로 어느 모듈을 서명하는지 (Terra ADR-MD-005). 접두사는 <prefix>. 경계로 맞추고, 가장 긴 것이 이긴다. 맞는 키가 없는 모듈이 있으면 포장이 실패한다 — 미서명으로 조용히 나가지 않는다. keyId 는 `terra module keygen` 이 쓴 .keyring.json 의 값이고 Terra builtin_keys.json 의 항목과 같아야 한다. 비어 있으면 릴리스가 선다. 2026-10-31 발급분: terra-modules-builtin-2026, stellaxia-modules-2026. secret 은 release.yml 이 환경 module-signing 에서 넘기는 시크릿 이름이다. 비밀키는 이 파일에도 저장소에도 두지 않는다.",
+  "schemaVersion": 1,
+  "keys": [
+    {
+      "name": "terra-modules-builtin",
+      "secret": "MODULE_SIGNING_KEY_BUILTIN",
+      "keyId": "IUjrzmXOwebwKrEi",
+      "issuer": "Terra",
+      "tier": "built-in",
+      "prefixes": ["io.terra"]
+    },
+    {
+      "name": "stellaxia-modules",
+      "secret": "MODULE_SIGNING_KEY_STELLAXIA",
+      "keyId": "XniLxQdTNTF4yzCa",
+      "issuer": "StellaxiaLab",
+      "tier": "trusted-third-party",
+      "prefixes": ["lab.stellaxia", "dev.terrallo"]
+    }
+  ]
+}

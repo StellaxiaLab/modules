@@ -1,6 +1,7 @@
 // 모든 모듈을 `.tmod` 로 포장하고, 릴리스가 실을 목록(modules.json)을 함께 낸다.
 //
-//   node tools/pack-modules.mjs --cli <terra> --terra ../terra --tag v2026.09.29 [--out dist]
+//   node tools/pack-modules.mjs --cli <terra> --terra ../terra --tag v2026.09.29 [--out dist] \
+//     (--signing signing.json --key-dir <dir> | --unsigned)
 //
 // **왜 스크립트인가** — CI 의 `pack` 잡은 모듈 하나를 통째로 포장해 "설치가 되는가"만
 // 본다. 릴리스는 그것으로 모자란다. 타깃마다 따로 구워야 하고(아래), 무엇이 실렸는지
@@ -23,6 +24,12 @@
 // 일이다. 이 스크립트는 `bin/` 이 비어 있으면 `pack` 이 내는 MODULE_ENTRYPOINT_MISSING
 // 을 그대로 통과시킨다. 굽는 단계를 빠뜨린 릴리스는 조용히 반쪽이 되는 대신 **거기서
 // 선다.**
+//
+// **서명** (Terra ADR-MD-005) — `--signing` 이 모듈마다 어느 키로 서명할지 정하고
+// (signing.json, 접두사 → 키), `--key-dir` 에 tools/signing.mjs write-keys 가 쓴 키
+// 파일이 있다. 서명하지 않으려면 `--unsigned` 를 **명시**해야 한다 — 둘 다 없으면
+// 선다. 서명 대상인데 맞는 키가 없는 모듈이 하나라도 있으면 **아무것도 포장하기 전에**
+// 선다. 미서명이 조용히 섞인 릴리스가 가장 나쁜 결과다(G-12).
 
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync } from 'node:fs';
@@ -31,6 +38,7 @@ import { spawn } from 'node:child_process';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { checkKeyFile, keyFilePath, keyForModule, loadSigningPlan } from './signing.mjs';
 import { appEntryProblems } from './web-workspace.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -47,13 +55,25 @@ function parseArgs(argv) {
   let terra = process.env.TERRA_CHECKOUT ?? '';
   let out = '';
   let tag = process.env.GITHUB_REF_NAME ?? '';
+  let signing = '';
+  let keyDir = '';
+  let unsigned = false;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--cli') cli = argv[++index] ?? '';
     else if (argument === '--terra') terra = argv[++index] ?? '';
     else if (argument === '--out') out = argv[++index] ?? '';
     else if (argument === '--tag') tag = argv[++index] ?? '';
+    else if (argument === '--signing') signing = argv[++index] ?? '';
+    else if (argument === '--key-dir') keyDir = argv[++index] ?? '';
+    else if (argument === '--unsigned') unsigned = true;
     else throw new Error(`알 수 없는 인자: ${argument}`);
+  }
+  if (unsigned ? Boolean(signing || keyDir) : !(signing && keyDir)) {
+    throw new Error(
+      '서명 여부를 명시해야 한다 — `--signing <signing.json> --key-dir <dir>` 또는 `--unsigned` 중 하나.\n' +
+        '릴리스는 서명한다(Terra ADR-MD-005). --unsigned 는 로컬 시험용이다.'
+    );
   }
   if (!cli) {
     throw new Error('terra CLI 가 필요하다 — --cli <path> 또는 TERRA_CLI 환경변수.');
@@ -75,7 +95,9 @@ function parseArgs(argv) {
     cli: isAbsolute(cli) ? cli : resolve(process.cwd(), cli),
     terraRoot,
     outDir: isAbsolute(out || 'dist') ? out : resolve(repoRoot, out || 'dist'),
-    tag
+    tag,
+    signing: signing ? resolve(process.cwd(), signing) : null,
+    keyDir: keyDir ? resolve(process.cwd(), keyDir) : null
   };
 }
 
@@ -131,7 +153,7 @@ async function sha256(path) {
 // --- 본체 ---------------------------------------------------------------
 
 async function main() {
-  const { cli, terraRoot, outDir, tag } = parseArgs(process.argv.slice(2));
+  const { cli, terraRoot, outDir, tag, signing, keyDir } = parseArgs(process.argv.slice(2));
   const modules = allModules();
 
   // 빈 릴리스를 만들지 않는다. G-7 이 코어에서 보여 준 것과 같은 모양이다 —
@@ -139,6 +161,33 @@ async function main() {
   if (modules.length === 0) {
     console.error('::error::포장할 모듈이 없다 — 빈 릴리스는 만들지 않는다');
     return 1;
+  }
+
+  // 모든 모듈의 키를 포장 전에 정한다. 중간에서 서면 앞의 모듈만 포장된 dist 가
+  // 남는다 — 실패 원인은 처음에 한꺼번에 보여야 한다.
+  const signerFor = new Map();
+  if (signing) {
+    const plan = loadSigningPlan(signing);
+    const problems = [];
+    for (const module of modules) {
+      const key = keyForModule(plan, module.id);
+      if (key === null) problems.push(`${module.tier}/${module.id}: signing.json 에 맞는 접두사가 없다`);
+      else signerFor.set(module.id, key);
+    }
+    for (const key of new Set(signerFor.values())) {
+      try {
+        checkKeyFile(keyDir, key);
+      } catch (error) {
+        problems.push(`${key.name}: ${error.message}`);
+      }
+    }
+    if (problems.length > 0) {
+      for (const problem of problems) console.error(`::error::${problem}`);
+      console.error('::error::서명할 수 없는 모듈이 있어 아무것도 포장하지 않는다');
+      return 1;
+    }
+  } else {
+    console.warn('::warning::--unsigned — 서명하지 않은 패키지를 만든다. 운영 Terra 는 이것을 격리한다');
   }
 
   // 자산을 다시 만들기 전에 지운다. 지난 실행이 남긴 `.tmod` 가 섞이면 개수는
@@ -190,12 +239,15 @@ async function main() {
             args: ['--target', target]
           }));
 
+    const signer = signerFor.get(module.id);
+    const signArgs = signer ? ['--sign-key', keyFilePath(keyDir, signer), '--issuer', signer.issuer] : [];
+
     const assets = [];
     for (const job of jobs) {
       const outPath = join(outDir, job.name);
       const label = job.target ? `${module.id} → ${job.target}` : module.id;
-      console.log(`::group::terra module pack ${label}`);
-      const code = await run(cli, ['module', 'pack', module.dir, '--out', outPath, ...job.args]);
+      console.log(`::group::terra module pack ${label}${signer ? ` (서명: ${signer.name})` : ''}`);
+      const code = await run(cli, ['module', 'pack', module.dir, '--out', outPath, ...job.args, ...signArgs]);
       console.log('::endgroup::');
       if (code !== 0) {
         console.error(
@@ -263,7 +315,9 @@ async function main() {
   );
   for (const entry of entries) {
     const targets = entry.assets.map((a) => a.target ?? '타깃 없음').join(' · ');
-    console.log(`  ${entry.tier}/${entry.id} ${entry.version} — ${targets}`);
+    const signer = signerFor.get(entry.id);
+    const signedBy = signer ? `${signer.name} (${signer.tier})` : '미서명';
+    console.log(`  ${entry.tier}/${entry.id} ${entry.version} — ${targets} — ${signedBy}`);
   }
   console.log(`  modules.json (${listingPath})`);
   return 0;
