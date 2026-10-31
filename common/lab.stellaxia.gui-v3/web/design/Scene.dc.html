@@ -1470,7 +1470,7 @@ class Component extends DCLogic {
         // 4) 화면 밖이거나 탭이 숨겨졌으면 쉰다 (돌아오면 이어서)
         if (this._onScreen === false || document.hidden) { prev = now; }
         // 초점을 옮기는 동안(확대·이동)은 매 프레임(60fps), 그 밖엔 30fps
-        else if (now - this._last >= ((this._focus && this._focus.from) || (this._enter && !this._lv && (this._enter.dir === 'out' || this._enter.tl < this.ENTER_TL().end)) || this._hlBusy || this._entL || this._q_ctlAnim || this._q_ctlWin || this._navS || (this._ws && this._ws.e > 0) || (this._res && this._rs && this._rs.animating) ? 15 : 33)) { const dt = Math.min(0.08, (now - prev) / 1000); prev = now; this.tick(now, dt); }
+        else if (now - this._last >= ((this._focus && this._focus.from) || (this._enter && !this._lv && (this._enter.dir === 'out' || this._enter.tl < this.ENTER_TL().end)) || this._hlBusy || this._entL || this._q_ctlAnim || this._navS || (this._ws && this._ws.e > 0) || (this._res && this._rs && this._rs.animating) ? 15 : 33)) { const dt = Math.min(0.08, (now - prev) / 1000); prev = now; this.tick(now, dt); }
         this._raf = requestAnimationFrame(loop);
       };
       this._raf = requestAnimationFrame(loop);
