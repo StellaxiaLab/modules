@@ -355,6 +355,15 @@ button{font-family:inherit}
                       <span style="color: {{w.saveC}};">●</span>
                       <span>{{w.saveText}}</span>
                     </div>
+                    <sc-if value="{{w.tid.on}}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top: 10px; padding: 10px 12px; border: 1px solid {{t.line}}; border-radius: 10px; font-size: 12.5px; display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; gap: 8px;"><b>계정</b><span style="flex-grow: 1;"></span><span style="font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.sub}};">{{w.tid.who}}</span></div>
+                        <div style="font-size: 11.5px; color: {{t.dim}};">{{w.tid.perms}}</div>
+                        <div style="display: flex; gap: 8px; margin-top: 4px;"><b>Terra ID 연결</b><span style="flex-grow: 1;"></span><span style="font-size: 11.5px; color: {{t.dim}};">{{w.tid.state}}</span></div>
+                        <sc-for list="{{w.tid.rows}}" as="ti" hint-placeholder-count="1"><div style="display: flex; gap: 8px; font-size: 12px;"><span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ti.issuer}}</span><span style="font-family: 'JetBrains Mono',ui-monospace,monospace; color: {{t.sub}};">{{ti.subject}}</span><span>{{ti.status}}</span><span style="color: {{t.dim}};">{{ti.at}}</span></div></sc-for>
+                        <div style="font-size: 11.5px; line-height: 1.45; color: {{t.dim}};">{{w.tid.limit}}</div>
+                      </div>
+                    </sc-if>
                   </sc-if>
                 </div>
               </div>
@@ -870,6 +879,17 @@ class Component extends DCLogic {
     if (r.err && !rows.length) return [{ t: '', cls: 'err', msg: '로그를 못 받음 · ' + r.err.code }];
     return rows.length ? rows.slice(-200) : [{ t: '', cls: 'info', msg: r.loading ? '받는 중…' : '로그 없음' }];
   }
+  // 계정 · Terra ID — whoami(window.TerraWho)와 내 외부 신원 연결(Master users.by-user-id.external-identities.get). 읽기만
+  terraId() {
+    const T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null, W = typeof window !== 'undefined' ? window.TerraWho : null;
+    if (!T || !A || !this.nd().real) return { on: false };
+    const uid = W ? A.userIdOf(W.principal) : '', r = uid ? T.read(this.nodeKey(), 'terra.master.users.by-user-id.external-identities.get', { input: { user_id: uid }, ttl: 60000 }) : null;
+    const V = r ? A.identities(r.data, !r.data && r.err) : { state: 'unseen', rows: [], why: W ? '사용자 id 를 모른다' : '계정 정보를 받는 중' };
+    const app = !!(W && W.delegate);
+    return { on: true, who: W ? (W.principal || '—') + (app ? ' · 앱 ' + W.delegate : '') : '받는 중…', perms: W && W.permissions ? '권한 ' + W.permissions.join(' · ') : '',
+      rows: V.rows, state: V.state === 'ok' ? V.rows.length + '개' : V.state === 'empty' ? '연결 없음' : V.why || (r && r.loading ? '받는 중…' : '못 봤음'),
+      limit: '읽기만 — ' + (app ? '이 화면은 앱 자격(main Scene)이라 Master 위임 표에 Terra ID 는 연결 목록 읽기 하나뿐이다. ' : '') + '연결 · 해제와 Tree 의 Terra ID 신뢰(발급자) 설정은 앱 위임 밖이라 여기서 하지 않는다 — Tree 의 웹 콘솔에서.' };
+  }
   // 작업 출력 — 실제 노드에서 고른 작업의 stdout · stderr(tasks.by-task-id.output.get · process.execute). 도는 동안은 3초마다 다시 읽는다
   jobOut(id, t) {
     const N = this.nd(), T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null, j = id && (N.jobs || []).find((x) => x.id === id);
@@ -1310,7 +1330,7 @@ class Component extends DCLogic {
         const sc = { browser: ['이 브라우저에서만', '#9aa1ab'], node: this.remote() ? ['원격 · 읽기', '#f5b83d'] : ['노드에 적용', '#7aa7ff'], acct: ['노드 계정 stk', '#3ecf8e'] }[tab.scope];
         o.scope = sc[0]; o.scopeFg = sc[1]; o.scopeBd = sc[1] + '80'; o.scopeBg = sc[1] + '1a';
         o.sWall = s.setTab === 'wall'; o.sLook = s.setTab === 'look';
-        o.sNode = s.setTab === 'node'; o.sNet = s.setTab === 'net'; o.sEnroll = s.setTab === 'enroll'; o.sAbout = s.setTab === 'about'; o.sAcct = s.setTab === 'acct';
+        o.sNode = s.setTab === 'node'; o.sNet = s.setTab === 'net'; o.sEnroll = s.setTab === 'enroll'; o.sAbout = s.setTab === 'about'; o.sAcct = s.setTab === 'acct'; o.tid = s.setTab === 'acct' ? this.terraId() : { on: false };
         o.walls = WALLS.map((wl) => ({ label: wl.label, bg: wl.bg, ink: wl.ink, on: p.wall === wl.id, bd: p.wall === wl.id ? '#ffd84d' : t.line2, pick: () => this.setPref('wall', wl.id) }));
         { const im = this.wallImg(), on = p.wall === 'img' && !!im;
           o.wImg = { has: !!im, none: !im, bg: im ? "url('" + im + "') center / cover no-repeat, #0b0f1a" : 'repeating-linear-gradient(45deg,' + t.line + ' 0 6px,transparent 6px 12px)', bd: on ? '#ffd84d' : t.line2, on: on ? 'true' : 'false', name: this.wallName() || '이미지 · GIF', pick: () => { if (im) this.setPref('wall', 'img'); },

@@ -103,3 +103,12 @@ test('파일 — 뿌리 · 항목(폴더 먼저), 읽을 수 없는 것은 잠�
   assert.match(e[1].time, /^2026-10-31 \d\d:02$/);
   assert.equal(parentRel('a/b/c'), 'a/b'); assert.equal(parentRel('a'), ''); assert.equal(fmtSize(5), '5 B');
 });
+
+test('Terra ID — principal → 사용자 id, 연결 목록 · 없음 · 못 봤음을 가른다', async () => {
+  const { userIdOf, identities } = await import('./desk-adapt.js');
+  assert.equal(userIdOf('user_1 via lab.stellaxia.gui-v3.web'), 'user_1'); assert.equal(userIdOf(''), '');
+  assert.deepEqual(identities({ identities: [{ issuer: 'https://id.terra', subject: 's1', status: 'linked', linked_at: '2026-10-30T01:00:00Z' }, { issuer: 'x' }] }),
+    { state: 'ok', rows: [{ issuer: 'https://id.terra', subject: 's1', status: '연결됨', at: '2026-10-30' }], why: '' });
+  assert.equal(identities({ identities: [] }).state, 'empty');
+  assert.deepEqual(identities(null, { code: 'DELEGATION_NOT_OPEN' }), { state: 'unseen', rows: [], why: '앱 자격으로는 닿지 않는다' });
+});

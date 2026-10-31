@@ -157,3 +157,17 @@ export function fileEntries(d, rel) {
 
 /** 위의 폴더 — 'a/b/c' → 'a/b', 'a' → '' */
 export const parentRel = (rel) => String(rel || '').split('/').slice(0, -1).join('/');
+
+// ── Terra ID — 내 계정에 연결된 외부 신원(Master users.by-user-id.external-identities.get) ──
+//   앱 자격(A 모드)의 Master 위임 표에는 이 읽기 하나뿐이다. 연결 · 해제(post · delete)와 Tree 의 신뢰 발급자(admin.external-issuers.*)는
+//   위임 밖이라 이 화면에서 하지 않는다 — 화면과 문서에 그 한계를 적는다. "없음"(빈 목록)과 "못 봤음"(오류)은 다르다
+/** whoami principal → Master 사용자 id ('user_x via app' → 'user_x') */
+export const userIdOf = (principal) => String(principal || '').split(/\s+via\s+/)[0].trim();
+/** @returns {{ state: 'ok'|'empty'|'unseen', rows: { issuer: string, subject: string, status: string, at: string }[], why: string }} */
+export function identities(d, err) {
+  if (err) return { state: 'unseen', rows: [], why: err.code === 'DELEGATION_NOT_OPEN' ? '앱 자격으로는 닿지 않는다' : '못 받음 · ' + err.code };
+  const L = Array.isArray(d) ? d : d && Array.isArray(d.identities) ? d.identities : null;
+  if (!L) return { state: 'unseen', rows: [], why: d ? '응답에 identities 목록이 없다' : '' };
+  const rows = L.filter((x) => x && x.issuer && x.subject).map((x) => ({ issuer: String(x.issuer), subject: String(x.subject), status: x.status === 'suspended' ? '정지됨' : '연결됨', at: String(x.linked_at || '').slice(0, 10) }));
+  return { state: rows.length ? 'ok' : 'empty', rows, why: '' };
+}
