@@ -25,6 +25,8 @@ related:
   - "[[web-architecture|GUI v3 웹 구조]]"
   - "[[terra-reach|Terra 도달 분석]]"
   - "[[node-data|노드 데이터와 분할 — PA/EL]]"
+  - "[[main-scene|main Scene — 껍데기와 로그인]]"
+  - "[[replacement-readiness|node-gui 대체 준비도]]"
 ---
 
 # Terra GUI v3 문서 MOC
@@ -61,7 +63,7 @@ flowchart LR
 | v3 모듈의 백엔드(프로세스 · 계약 · 노드에 붙는 GUI 데이터) | [[backend\|v3 모듈 백엔드 설계]] |
 | 실제 웹 빌드의 구조 — 왜 웹인가, 장면 층(WebGL2 · Worker) · 창 층(DOM · signals) · API · 측정 | [[web-architecture\|GUI v3 웹 구조]] |
 | Terra 코어 프로세스 · 모듈 기능 중 GUI 가 끌어낼 수 있는 것 — 계약 327개 대조, 앱 자격 · 위임 문 · 셸 모드 선택지 | [[terra-reach\|Terra 도달 분석]] |
-| 다른 노드의 값을 어떻게 가져오고, 끊겼을 때 무엇을 보이는지(PA/EL) · 제어기 보기 상태 · B 모드 로그인 | [[node-data\|노드 데이터와 분할]] |
+| 다른 노드의 값을 어떻게 가져오고, 끊겼을 때 무엇을 보이는지(PA/EL) · 제어기 보기 상태 · B 모드 로그인 | [[node-data\| · [[node-data|노드 데이터와 분할]] · [[main-scene|main Scene]] |
 
 ## 폴더
 
@@ -69,7 +71,7 @@ flowchart LR
 | --- | --- |
 | `docs/` | 이 MOC |
 | `docs/analysis/` | [[legacy-node-gui-overview\|전체 분석]] · [[legacy-app-layer\|기능 층 분석]] · [[settings-inventory\|설정 종합]] · [[settings-terra-core\|코어 설정 전수표]] · [[settings-modules\|modules 설정 전수표]] · [[terra-reach\|Terra 도달 분석]] |
-| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] · [[node-data\|노드 데이터와 분할]] |
+| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] · [[node-data|노드 데이터와 분할]] · [[main-scene|main Scene]] |\|노드 데이터와 분할]] |
 
 ## 기준
 

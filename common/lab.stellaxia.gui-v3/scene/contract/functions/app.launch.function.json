@@ -1,0 +1,26 @@
+{
+  "$comment": "웹이 다른 모듈의 GUI를 열고 싶다(terra.frame.emit('launch', appId)). Scene은 iframe도 창도 못 연다 — 호스트가 듣는 terra.app:launch 신호로 올릴 뿐이다. 앱 토큰은 셸이 사용자 세션으로 발급하므로 이 Scene도 웹도 다른 앱의 토큰을 받지 않는다. 설치된 앱인지는 셸(WebAppDock)이 GET /api/v1/gui/apps로 판정하고, 아니면 그 이유만 알린다.",
+  "schemaVersion": "1.0.0",
+  "id": "gui-v3.app.launch",
+  "version": "0.1.0",
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "ask",
+        "type": "emit",
+        "signal": "terra.app:launch",
+        "payload": {
+          "appId": "$input.value"
+        }
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}

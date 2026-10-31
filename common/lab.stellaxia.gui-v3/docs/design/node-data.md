@@ -117,11 +117,11 @@ flowchart LR
 
 | 모드 | 언제 | 자격 | 로그인 화면 | 보기 상태 문서 |
 | --- | --- | --- | --- | --- |
-| A — 앱 | 다른 셸(terra.web/frame)이 모듈 앱으로 감쌌다(부모가 다른 origin) | 셸이 준 앱 토큰 `Bearer tsa_…`, 401 이면 셸에게 새로 받아 한 번 더 | 건너뜀(셸이 이미 로그인) | `app:<앱 id>`(Gateway 가 고정) |
+| A — 앱 | 다른 셸(terra.web/frame)이 모듈 앱으로 감쌌다(부모가 다른 origin) | 셸이 준 앱 토큰 `Bearer tsa_…`, 401 이면 셸에게 새로 받아 한 번 더 | 웹에는 없음 — 토큰이 없으면 로그인 문 → `emit('login')` → main Scene 의 `/login` 카드([[main-scene|main Scene]]) | `app:<앱 id>`(Gateway 가 고정) |
 | B — 제품 셸 | 단독으로 열림(제품 셸의 첫 화면) | 스스로 로그인한 자격 핸들 `Handle …` | 씀 | `gui-v3` |
 | demo | `?demo` | 없음(목업) | 씀(아무 값) | 이 브라우저 |
 
-A 모드는 hello 를 마운트보다 먼저 보내고(셸이 15초 안에 init 을 주지 않으면 데이터 없이 연다), 토큰이 바뀌면 사본을 버린다. A 모드에서 Master 는 위임 문 37개만 열려 — 지도(`nodes.get`)는 되고 Tree 길(crossboundary)은 안 된다([[terra-reach|Terra 도달 분석]] §5).
+main Scene(0.3.0, `branch: "main"`)으로 실리면 언제나 A 모드다 — 비밀번호는 Scene 껍데기만 받는다([[main-scene|main Scene]] §2). A 모드는 hello 를 마운트보다 먼저 보내고(셸이 15초 안에 init 을 주지 않으면 데이터 없이 연다), 토큰이 바뀌면 사본을 버린다. A 모드에서 Master 는 위임 문 37개만 열려 — 지도(`nodes.get`)는 되고 Tree 길(crossboundary)은 안 된다([[terra-reach|Terra 도달 분석]] §5).
 
 ## 5-1. B 모드 — 제품 셸로 로그인
 
