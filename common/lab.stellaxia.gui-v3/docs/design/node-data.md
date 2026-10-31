@@ -8,7 +8,7 @@ doc_type: "design"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.2.0"
+version: "0.3.0"
 last_updated: "2026-10-29"
 language: "ko-KR"
 based_on:
@@ -111,7 +111,19 @@ flowchart LR
 | `far` | `직접 닿지 않음 · <via> 경유 필요 · 읽기 전용`(`DELEGATION_REQUIRED`) | 안 됨 |
 | `none` | `Terra 에 없는 노드 · 시안 자리`(`NODE_NOT_FOUND` · `NODE_UNMAPPED`) | 안 됨 |
 
-## 5. B 모드 — 제품 셸로 로그인
+## 5. 실행 모드 — A · B · demo
+
+같은 웹 빌드가 어디서 열렸는지 보고 길을 고른다(`src/api/mode.js`). 주소 뒤 `?mode=app|shell` 로 고를 수도 있다.
+
+| 모드 | 언제 | 자격 | 로그인 화면 | 보기 상태 문서 |
+| --- | --- | --- | --- | --- |
+| A — 앱 | 다른 셸(terra.web/frame)이 모듈 앱으로 감쌌다(부모가 다른 origin) | 셸이 준 앱 토큰 `Bearer tsa_…`, 401 이면 셸에게 새로 받아 한 번 더 | 건너뜀(셸이 이미 로그인) | `app:<앱 id>`(Gateway 가 고정) |
+| B — 제품 셸 | 단독으로 열림(제품 셸의 첫 화면) | 스스로 로그인한 자격 핸들 `Handle …` | 씀 | `gui-v3` |
+| demo | `?demo` | 없음(목업) | 씀(아무 값) | 이 브라우저 |
+
+A 모드는 hello 를 마운트보다 먼저 보내고(셸이 15초 안에 init 을 주지 않으면 데이터 없이 연다), 토큰이 바뀌면 사본을 버린다. A 모드에서 Master 는 위임 문 37개만 열려 — 지도(`nodes.get`)는 되고 Tree 길(crossboundary)은 안 된다([[terra-reach|Terra 도달 분석]] §5).
+
+## 5-1. B 모드 — 제품 셸로 로그인
 
 [[terra-reach|Terra 도달 분석]]의 B 모드를 기본으로 한다. GUI v3 가 스스로 로그인한다.
 
@@ -174,12 +186,28 @@ flowchart LR
 | `node tests/smoke.mjs` | 가짜 Gateway 로 B 모드 끝까지: 틀린 비밀번호 말 → 로그인 → **지도 = 노드 목록**(트리 home · lab, 리프 ws-a · ws-b · cam, 로컬 ws-a) → 로컬 제어기 `로컬` · 노드 폴더 모듈 = 실제 응답 → 원격 제어기 노드 주소 호출 → 끊김 `읽기 전용` → 모듈 멈춤이 `stop.post` 로 → 화면 배치가 계정 문서로 → 자식 Tree 주소 묻기 → 그 Tree 의 GUI 로 옮겨 감 |
 | 캔버스 | 우클릭 › '끊기 (시험)' · '잇기 (시험)', 보드 '노드 데이터 층'의 사본 표 |
 
-## 7. 다음
+## 7. 실 데이터 현황 (0.2.0)
 
-1. 실제 Terra 에서 응답 모양 맞추기 — 장치 · 자원 선언 · WireGuard · 작업 · 오퍼의 응답 칸 이름은 계약에 스키마가 없어(봉투만) 가짜 Gateway 기준이다. 실제 노드에 붙여 `deskShape` 를 맞춘다
-2. 손자 노드 — Master 는 직계 자식만 중계한다(`DELEGATION_REQUIRED · via`). 지도는 그 Master 의 등록 노드만 그리므로 자식 Tree 안은 그 Tree 의 GUI 로 간다
-3. 모듈 GUI 목록을 Gateway `gui/apps` · `gui/remote/{node}/apps` 로(지금은 알려진 모듈의 시안 목록)
-4. 원격 노드 밀어 받기 — Daemon 이벤트가 로컬 전용이라 지금은 TTL. Master 이벤트가 생기면 그것으로
+A · B 모드에서 화면이 무엇을 실제 Terra 에서 읽고, 무엇이 아직 시안 값인가.
+
+| 화면 | 실제 | 아직 시안 값 |
+| --- | --- | --- |
+| 지도 · 항성계 · 노드 제어 목록 | 트리 · 리프(Master 노드 목록), 로컬 노드 | 리소스 뷰의 위성(자원) — `RESOURCES()` 예시. 노드 제어 목록의 기능 · 데이터 폴더 |
+| 전역 틀 기본 정보 · 대상 · 부하 | 경로 · 로컬 위치 | `연결됨 · Terra 코어 1.7.0` · `로그인 admin · 관리자` · 대상 표(상태 · 자원 · 가동) · CPU 42% · MEM 61% · NET 줄 |
+| 노드 폴더 › 모듈 · 모듈 상태 창 머리 | 모듈 목록 · 상태 · 버전, 시작 · 멈춤 · 다시 시작 | 모듈 상태 창의 CPU · MEM · 가동 시간 · 경로 · 최근 로그 · 권한 · 내놓는 자원 · GUI 앱 목록(알려진 모듈의 시안 표) |
+| 브라우저 창 | 모듈 상태(실행 중인가) | 시작 페이지의 앱 목록 · 앱 화면(시안 srcdoc) |
+| 제어기(노드 데스크톱) | 모듈 · 설정 값 · 작업 · 장치 · 자원 선언 · WireGuard 읽기(응답 모양은 가정), 편집 → operation | 상단 바 시계 `10:36` · 알림 `2` · 계정 `stk`, 정보 탭(코어 · OS · 가동), 터미널 명령 답, 파일 관리자 목록, 모듈 로그 탭 · 기능 · 권한 · 앱 탭, 카탈로그 · 피어 · 등록 상태 · 공유 폴더 · 터널(묶음 응답에 없음) |
+| 상태 창 · 설정 창 · 자원 창 · 자원 상태 창 | — | 전부 시안 값(노드 데이터 층을 아직 안 거침). 설정 창의 GUI 값(스킨 · 도움말 · 세션)은 이 브라우저 · 프로필 사진은 v3 백엔드 대신 이 브라우저(`terra.fs`) |
+| Tree 로그인 창 | 실제 지도의 트리 → login-routes · resolve · 옮겨 가기 | 시안 노드(실제 지도 밖)는 시험 비밀번호 흉내 |
+| 스타메이커 | — | GUI 것(이 브라우저에 저장) — 노드 데이터가 아니다 |
+
+## 8. 다음
+
+1. **7 의 시안 값을 걷어내기** — 상태 창(`status` · health) · 자원 창 · 자원 상태 창(svi · grants · handles) · 전역 틀 기본 정보(whoami · status · 자원 사용량) · 모듈 상태 창(by-module-id.get · logs.get · Gateway gui/apps)부터
+2. 실제 Terra 에서 응답 모양 맞추기 — 장치 · 자원 선언 · WireGuard · 작업 · 오퍼의 응답 칸 이름은 계약에 스키마가 없어(봉투만) 가짜 Gateway 기준이다. 실제 노드에 붙여 `deskShape` 를 맞춘다
+3. 손자 노드 — Master 는 직계 자식만 중계한다(`DELEGATION_REQUIRED · via`). 지도는 그 Master 의 등록 노드만 그리므로 자식 Tree 안은 그 Tree 의 GUI 로 간다
+4. 모듈 GUI 목록을 Gateway `gui/apps` · `gui/remote/{node}/apps` 로(지금은 알려진 모듈의 시안 목록)
+5. 원격 노드 밀어 받기 — Daemon 이벤트가 로컬 전용이라 지금은 TTL. Master 이벤트가 생기면 그것으로
 
 ## 관련 문서
 

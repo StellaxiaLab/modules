@@ -189,6 +189,7 @@ JS 로 모자란 곳이 측정으로 드러나면 그 부분만 Rust/C++ → WAS
 | `api/terra.js` | `invoke(id, input, { node })` — 이 노드는 `/api/v1/operations/{id}/invoke`, 다른 노드는 `/api/v1/nodes/{node}/operations/{id}/invoke`(Master 중계). `stream()` — 티켓(30초) → WebSocket |
 | `api/op-scope.json` | Daemon operation 78개의 원격 개방(`availability.scopes`) · 권한 · 위험도. **그 노드에서만인 것 26개** — 원격 제어기의 잠금 표시가 읽는다. `tools/gen-op-scope.mjs --terra <체크아웃>` 이 Terra 계약에서 뽑고, `--check` 로 어긋남을 본다 |
 | `api/node-data.js` | v3 백엔드 — 프로필 · 노드 속성([[backend\|백엔드 설계]]) |
+| `api/mode.js` · `terra-frame-client.js` · `frame-token.js` | 실행 모드 고르기(A 앱 · B 제품 셸 · demo) · 셸의 frame 연결(node-gui 의 스캐폴드 사본 그대로) · 토큰 갱신을 한 줄로 |
 | `api/session.js` | B 모드 로그인 — `POST /api/v1/auth/credentials` → 자격 핸들(이 탭에만), 실패 말, 로그아웃 폐기 |
 | `api/topology.js` | Master 노드 목록 → 씬 지도(`window.TerraTopology` — 트리 · 리프 · 로컬)([[node-data\|노드 데이터와 분할]] §5) |
 | `api/push.js` | 로컬 Daemon 이벤트 스트림 → 건드린 자원의 사본을 곧바로 다시 받기 |

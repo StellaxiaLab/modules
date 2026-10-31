@@ -8,8 +8,8 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "0.1.0"
-last_updated: "2026-10-29"
+version: "0.2.0"
+last_updated: "2026-10-30"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -21,7 +21,7 @@ related:
 
 # Terra GUI v3 (`lab.stellaxia.gui-v3`)
 
-Terra 노드 GUI의 3판이다. **화면은 설계 단계**(캔버스 원본 `web/design/`)이고, **백엔드 1차가 들어왔다** — 노드에 붙는 GUI 데이터(프로필 사진 · 노드 속성)를 그 노드의 모듈 데이터 영역에 두고 계약의 operation으로 낸다.
+Terra 노드 GUI의 3판이다. 화면 원본은 캔버스 보드(`web/design/`)이고, **웹 빌드(`web/` → `ui/`)가 그 보드를 그대로 띄워 실제 Terra 에 붙는다** — 모듈 앱으로 열리면 셸의 앱 토큰(A), 제품 셸의 첫 화면으로 열리면 스스로 로그인(B). 노드에 딸린 값은 노드 데이터 층(PA/EL)으로 읽고 쓰며([[docs/design/node-data|노드 데이터와 분할]]), 아직 시안 값이 남은 화면은 그 문서 §7 에 적었다. 백엔드는 노드에 붙는 GUI 데이터(프로필 사진 · 노드 속성)를 그 노드의 모듈 데이터 영역에 두고 계약의 operation으로 낸다.
 
 방향은 하나다 — **화면(표현)은 새로 짓고, Terra 코어와 붙는 기능 층은 [`lab.stellaxia.node-gui`](../lab.stellaxia.node-gui/README.md)의 것을 이어받는다.**
 노드 설정 · 사용자 문서는 화면이 코어 operation을 직접 부르고, 백엔드는 그 둘로 담을 수 없는 것만 맡는다([[docs/design/backend|백엔드 설계]]).
@@ -30,11 +30,11 @@ Terra 노드 GUI의 3판이다. **화면은 설계 단계**(캔버스 원본 `we
 
 ```text
 common/lab.stellaxia.gui-v3/
-├─ module.json        kind=service · 0.1.0 · process(terra-gui-v3) + scene · module-data · configuration(maxFileMB · maxTotalMB) · readiness
+├─ module.json        kind=service · 0.2.0 · gui.apps(웹 앱, A 모드) · process(terra-gui-v3) + scene · module-data · configuration(maxFileMB · maxTotalMB) · readiness
 ├─ contracts/api/     terra-api.json — status · node-props.get/patch · node-files.list/get/put/delete, 권한 gui-v3.view · gui-v3.customize
 ├─ src/               백엔드 (Go, terra-sdk/modulesdk) — main.go · api.go · nodedata/ (+ 시험)
-├─ scene/             자리 표시 Scene (글 한 줄)
-├─ web/               캔버스 보드 원본 · 보드 굽는 도구 · 백엔드 클라이언트 — 포장되지 않는다
+├─ scene/             자리 표시 Scene (글 한 줄 — 화면은 웹 앱)
+├─ web/               캔버스 보드 원본 · 보드 굽는 도구 · 웹 빌드(→ ui/, 포장되는 것은 ui/) — web/ 자체는 포장되지 않는다
 ├─ docs/              설계 문서 — 포장되지 않는다(L-8 경고는 의도한 것)
 └─ README.md
 ```

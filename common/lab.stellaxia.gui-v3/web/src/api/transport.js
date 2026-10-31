@@ -15,7 +15,8 @@ import { TerraError } from './terra.js';
 export const VIEW_NS = 'gui-v3';
 
 /**
- * @param {{ terra: ReturnType<import('./terra.js').createTerra>, authed?: () => boolean, storage?: Storage, saveMs?: number }} o
+ * @param {{ terra: ReturnType<import('./terra.js').createTerra>, authed?: () => boolean, storage?: Storage, saveMs?: number, ns?: string | (() => string) }} o
+ *   ns — 보기 상태 문서의 이름공간. B 모드(자격 핸들)는 'gui-v3', A 모드(앱 토큰)는 Gateway 가 app:<앱 id> 로 고정하므로 앱 id
  *   authed — 로그인 전이면 false: 아무 데도 부르지 않고 UNAUTHENTICATED 로 답한다(로그인 화면 뒤에서 노드를 두드리지 않게)
  */
 export function createGatewayTransport(o) {
@@ -25,7 +26,7 @@ export function createGatewayTransport(o) {
   const nodes = () => nodesP || (nodesP = T.invoke('terra.master.nodes.get', {}).then((d) => (Array.isArray(d) ? d : (d && d.nodes) || []), (e) => { nodesP = null; throw e; }));
   const lsGet = (k) => { try { return JSON.parse(LS.getItem('terra.view.' + k) || 'null'); } catch { return null; } };
   const lsSet = (k, v) => { try { LS.setItem('terra.view.' + k, JSON.stringify(v)); } catch {} };
-  const docPath = (k) => '/api/v1/me/documents/' + VIEW_NS + '/view/' + k.split('/').map(encodeURIComponent).join('/');
+  const NS = () => (typeof o.ns === 'function' ? o.ns() : o.ns) || VIEW_NS, docPath = (k) => '/api/v1/me/documents/' + encodeURIComponent(NS()) + '/view/' + k.split('/').map(encodeURIComponent).join('/');
 
   const tp = {
     kind: 'gateway', meta,
@@ -64,7 +65,7 @@ export function createGatewayTransport(o) {
     /** 계정에 둔 보기 상태를 미리 받는다(로그인 뒤 한 번) */
     async ready() {
       try {
-        const d = await T.http('GET', '/api/v1/me/documents/' + VIEW_NS);
+        const d = await T.http('GET', '/api/v1/me/documents/' + encodeURIComponent(NS()));
         const items = (d && (d.documents || d.items)) || (Array.isArray(d) ? d : []);
         await Promise.all(items.filter((x) => String(x.key || '').startsWith('view/')).map(async (x) => {
           const k = x.key.slice(5), v = 'value' in x ? x.value : (await T.http('GET', docPath(k))).value;

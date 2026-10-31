@@ -26,7 +26,8 @@ export function canRemote(id) {
 export const permissionsOf = (id) => (SCOPE.operations[id] && SCOPE.operations[id].permissions) || [];
 
 /**
- * @param {{ fetch?: typeof fetch, token?: () => string|null, authorization?: () => string|null }} [o]
+ * @param {{ fetch?: typeof fetch, token?: () => string|null, authorization?: () => string|null, refresh?: () => Promise<string|undefined> }} [o]
+ *   refresh — A 모드: 앱 토큰으로 401 을 맞으면 셸에게 새 토큰을 받아 한 번 다시 보낸다
  *   token 은 frame 이 준 앱 토큰(상대 경로에만 Bearer — frame 규칙, A 모드) · authorization 은 그대로 실을 Authorization 값(B 모드: 'Handle <id>')
  */
 export function createTerra(o = {}) {
@@ -47,7 +48,9 @@ export function createTerra(o = {}) {
     async invoke(id, input = {}, at = {}) {
       if (at.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' 은 그 노드에서만 부를 수 있다', 0);
       const path = at.node ? `/api/v1/nodes/${encodeURIComponent(at.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
-      return unwrap(await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input) }));
+      let res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input) });
+      if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input) }); }
+      return unwrap(res);
     },
     /** Gateway 자기 길(HTTP 바인딩) — me/documents 따위 @param {string} method @param {string} path @param {object} [body] */
     async http(method, path, body) { return unwrap(await send(path, { method, headers: headers(), body: body === undefined ? undefined : JSON.stringify(body) })); },
