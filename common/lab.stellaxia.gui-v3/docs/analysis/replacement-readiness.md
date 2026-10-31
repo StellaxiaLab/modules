@@ -33,8 +33,8 @@ related:
 | main 은 사용자가 정한다 | **모듈 선언**만 정한다 — `contributions.gui.scenes[].branch:"main"`. main 1개면 곧장, 2개 이상·dev 있으면 고르는 화면, 0개면 MAIN_NOT_FOUND | 0.3.0 module.json. 격리 스택으로 세 경우 확인(§5) |
 | 모듈 설치·제거는 API 가 없다(`terra module install` 명령뿐) | 제거는 daemon op `POST /modules/{id}/uninstall`(Terra #237). 설치는 Master `POST/DELETE /api/v1/nodes/{node_id}/modules/assignments` 가 **앱 토큰 위임에 열렸다**(#236 · ADR-GW-008 B1 · 계약 1.7.0 · `module.manage`) | terra-reach 두 줄 갱신. **화면 연결은 아직 없다**(§3) |
 | 모듈 설정·start/stop/restart/logs 는 계약만 | Terra #230 + modules #117 로 설정 schema/get/patch · 수명 op 가 실제로 선다 | gui-v3 의 설정 patch·수명 버튼은 이미 부른다. 스키마 폼은 없음(§3) |
-| 릴리스 `.tmod` 는 설치할 수 있다 | **서명이 없다.** `terra module inspect` 가 `PACKAGE_QUARANTINED / signature-missing` — node-gui 0.4.5 도 같다. modules 릴리스 파이프라인이 서명하지 않는 것이 원인(gui-v3 만의 문제가 아니다). `--dev` 로만 깔린다 | 이 PR 의 범위 밖 — 사실로만 적는다(modules 서명 트랙 ADR-MD-005 가 소유) |
-| `terra module inspect` 가 요구 권한을 다 보인다 | PERMISSIONS 는 최상위 `permissions` 만 보인다. GUI 앱의 권한 8개는 안 나온다 | Terra 쪽 결함 — 고치지 않았다 |
+| 릴리스 `.tmod` 는 설치할 수 있다 | v2026.10.31 까지는 **서명이 없어** `PACKAGE_QUARANTINED / signature-missing`(node-gui 0.4.5 도). **해결됨** — modules #136(ADR-MD-005)로 첫 서명 릴리스 v2026.10.31-2(34개 전부 서명), Terra 0.6.8(keyring) · 0.6.9(핀 v2026.10.31-2). `tools/pack-modules.mjs` 는 이제 `--signing`/`--unsigned` 를 명시해야 한다 | 사실만 갱신 |
+| `terra module inspect` 가 요구 권한을 다 보인다 | 0.6.7 까지는 최상위 `permissions` 만 보였다(GUI 앱 권한 8개 빠짐). **해결됨** — Terra #269 로 inspect · `.tmod` 확인 화면이 GUI 앱 권한을 보인다(0.6.8 부터) | 사실만 갱신 |
 | 웹 시험은 어디서나 통과한다 | Windows 에서 10건 실패(`new URL().pathname` 의 `C:\C:\…` · 공백 경로) | `fileURLToPath` · `pathToFileURL` 로 고침(§2) |
 | B 모드 로그인은 시험으로 보호된다 | `session.js` 가 handle 을 객체째 저장해 헤더가 `Handle [object Object]` — 이후 호출 전부 403. 가짜 Gateway 시험이 handle 을 문자열로 돌려줘 못 잡았다 | id 만 저장 · 옛 저장본도 읽기 · 시험의 가짜 응답을 실제 모양 `{id, issuer, expiresAt}` 으로(§2) |
 | 로그인·신원 흐름은 그대로다 | 접속 서비스 트랙(Terra #252~#268: Terra ID · 위임 · 이름 · terra-access)이 10/28~30 에 들어왔다. **이 점검은 깊이 읽지 않았다** — 비밀번호 로그인 길(Gateway `/api/v1/auth/credentials` → Master `/api/v1/auth/login`)은 origin/main 5c6ace6c 의 격리 Master 로 그대로 통과한다. Terra ID · 외부 신원 연결은 gui-v3 에 없다(node-gui 의 `P6-gui` 카드, modules #121 에 해당) | 격차표에 올림(§3) |
@@ -88,7 +88,7 @@ related:
 3b. `tests/shipped-scenes.test.ts`(`TERRA_MODULES_ROOT` 로 modules 의 출하 Scene 을 걷는다) — 0.3.0 으로 `shipped-scenes` · `login-demo-scene` 54개 통과를 확인했다(gui-v3 포함). node-gui 를 빼도 통과할 것.
 4. 시험 픽스처의 node-gui id — `terra-installer` 의 `catalog_test` · `catalogbuild/{build,declarations}_test` · `installer/{setup_remote_*,ui_api,ui_preview}_test` · `remote_test` · `sigverify/verify_test`, `terra-gateway-service` 의 `master_delegation_test` · `documents_test`, Master `delegated_*`·`job_*` 시험, `svi-handle-integration`. 동작과 무관한 예시 id(위임은 앱 id 로 막지 않는다 — 시험 fixture 일 뿐). 이름을 정리할 때 함께.
 5. 설치본 교체 — 설치기가 node-gui 를 받아 깐다. 전례: 0.6.6 때 `terra-setup update --force` 가 손으로 교체한 node-gui 폴더를 되돌렸다. gui-v3 로 바꾼 노드는 업데이트가 node-gui 를 다시 깔지 않는지(선언이 바뀐 뒤)를 확인해야 한다.
-6. 서명 — 릴리스 `.tmod` 가 무서명이라 엄격 설치·더블클릭 확인 화면(#249)이 거절한다. 설치기·번들 경로가 `--dev` 로 까는지와 별개로 서명 파이프라인 결정이 필요하다(ADR-MD-005 트랙).
+6. 서명 — **해결됨**(modules #136 · v2026.10.31-2 부터 서명, Terra 0.6.8 keyring · 0.6.9 핀). 대체 릴리스도 같은 파이프라인(`pack-modules.mjs --signing`)으로 나가야 한다.
 7. (선택) 셸 dock 규약 — dock 은 `terra.webapp.*` 만 안다. embed 앱은 dock 에 안 나오므로 main 화 이후 필수는 아니다. gui-v3 를 dock 에서도 쓰려면 브리지 규약을 구현해야 한다.
 
 **순서**: (a) 이 PR 병합 → 그때부터 node-gui 와 같이 깔린 노드는 **CHOOSE**(릴리스 전엔 영향 없음). (b) 기능 격차를 메운다. (c) modules 릴리스를 낼 때 **같은 태그에서 node-gui 의 main 을 내리거나(dev 로) node-gui 를 릴리스에서 뺀다** — 빠뜨리면 기존 노드 모두에 CHOOSE 가 뜬다. (d) Terra `installer-modules.json` 등을 그 태그로, CI 의 node-gui 스텝 교체. (e) 설치본 교체. (c)~(e) 는 사용자의 결정이다.
