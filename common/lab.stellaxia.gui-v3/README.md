@@ -56,8 +56,41 @@ TERRA_WORKLOAD_CREDENTIAL=dev TERRA_LOOPBACK_ENDPOINT=127.0.0.1:18799 TERRA_MODU
 curl -H 'X-Terra-Workload-Credential: dev' http://127.0.0.1:18799/api/modules/lab.stellaxia.gui-v3/v1/status
 ```
 
-> [!NOTE] 노드에 깔려도 화면은 보이지 않는다
-> `contributions.gui`가 없으므로 base Scene(`io.terra.scene.terra`)은 이 모듈을 main · dev 후보로 고르지 않는다. 백엔드 프로세스는 돌고 operation은 게시된다.
+## 노드에 설치하고 열기
+
+릴리스(저장소 태그 `v<날짜>`)가 모듈마다 `.tmod` 를 굽는다 — 타깃별로 따로(`lab.stellaxia.gui-v3-<버전>-linux-amd64.tmod` 꼴)이고, 화면은 `ui/`(웹 빌드)가 실린다. 노드에 까는 길은 둘이다.
+
+**1. 파일로 — 그 노드에서**
+
+```bash
+terra module inspect lab.stellaxia.gui-v3-0.2.0-linux-amd64.tmod     # 신뢰 · 호환 · 요청 권한과 그 요약(permissions_digest)
+terra module install lab.stellaxia.gui-v3-0.2.0-linux-amd64.tmod --grant-reviewed <permissions_digest> --start
+terra module installed                                               # 깔린 것 · 고른 버전
+```
+
+`--grant-reviewed` 는 inspect 로 본 권한 요약을 그대로 준다 — 권한을 읽었다는 표시다. 이미 깔린 같은 버전을 다시 깔면 `--force`, 서명이 없는 개발 빌드는 `--dev`. 되돌리기는 `terra module rollback lab.stellaxia.gui-v3`.
+GUI v3 안에서도 된다 — 제어기 › 모듈 › 설치(파일 경로 → 검사 → 권한 확인 · 설치). 이것은 명령 실행으로 같은 `terra module install` 을 부르므로 그 노드에서만 된다.
+
+**2. Tree 레지스트리로 — 여러 노드에**
+
+```bash
+terra module publish lab.stellaxia.gui-v3-0.2.0-linux-amd64.tmod     # Tree(Master)에 올린다 — lab.stellaxia 접두사 소유가 필요
+```
+
+Tree 가 노드에 지정하면 노드는 '동의'한 뒤 스스로 받아 설치한다(`module_distribution`). GUI v3 의 제어기 › 모듈 › Tree 지정에서 동의 · 철회한다.
+
+**열기**
+
+| 길 | 어떻게 | 모드 |
+| --- | --- | --- |
+| 셸의 앱 목록 | Terra 셸(Windows WebView2 런처 · terra-shell)에서 'Terra GUI v3' — 셸이 앱 토큰을 준다 | A — 로그인 화면 없이, 사용자 ∩ 앱 권한 |
+| 제품 셸의 첫 화면 | 앱 주소를 그대로 연다(`…/api/v1/gui/apps/lab.stellaxia.gui-v3.web/files/ui/index.html`) — 로그인 화면이 Gateway 에 로그인 | B — 사용자 권한 전부 |
+| 목업 | 같은 주소 뒤 `?demo` | Terra 없이 |
+
+권한 — 앱이 요청하는 것은 `module.json` 의 `gui.apps[0].permissions`(node.read · node.control · node.config · file.* · process.execute · module.manage). 새 사용자 기본 권한에는 `node.config` · `module.manage` 가 없어서, 노드 설정 저장 · 모듈 설치 · 관리는 관리자가 그 권한을 줘야 된다.
+
+> [!NOTE] 자리 표시 Scene
+> `scene/` 은 entrypoint 자리를 채우는 글 한 줄이다. GUI v3 의 화면은 Scene 이 아니라 웹 앱이다.
 
 ## 문서
 
