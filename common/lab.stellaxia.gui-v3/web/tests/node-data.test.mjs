@@ -75,8 +75,18 @@ test('묶음 자원(desk) · 모양 — 실제 전송이면 operation 여럿을 
   const t = fake(); t.invoke = (n, op) => op === 'terra.daemon.tasks.get' ? Promise.reject({ code: 'FORBIDDEN' }) : Promise.resolve({ op });
   const S = await loadStore(t); S.shapes.desk = (P) => ({ got: Object.keys(P).sort() });
   await S.refresh('L', 'desk');
-  assert.deepEqual(S.read('L', 'desk').data.got, ['config', 'devices', 'modules', 'offers', 'svi', 'wg']);
+  assert.deepEqual(S.read('L', 'desk').data.got, ['config', 'devices', 'enroll', 'modules', 'offers', 'svi', 'tunnels', 'wg']);
   S.clear(); assert.equal(S.read('L', 'desk').data, null);   // 로그아웃 — 앞 사람의 사본을 남기지 않는다
+});
+
+test('입력이 있는 읽기 — op id 와 입력으로, 입력마다 따로 사본(모듈 로그 · 설정 스키마)', async () => {
+  const t = fake(), seen = []; t.invoke = (n, op, input) => { seen.push([op, input]); return Promise.resolve({ lines: [input.module_id] }); };
+  const S = await loadStore(t), op = 'terra.daemon.modules.by-module-id.logs.get';
+  S.read('L', op, { input: { module_id: 'a' } }); S.read('L', op, { input: { module_id: 'b' } }); await tick(5);
+  assert.deepEqual(seen, [[op, { module_id: 'a' }], [op, { module_id: 'b' }]]);
+  assert.deepEqual(S.read('L', op, { input: { module_id: 'b' } }).data, { lines: ['b'] });
+  assert.deepEqual(S.read('L', op, { input: { module_id: 'a' } }).data, { lines: ['a'] });
+  assert.equal(seen.length, 2);   // TTL 안에서는 다시 부르지 않는다
 });
 
 test('보기 상태 — 노드 키마다 따로(GUI 것, 노드 데이터가 아니다)', async () => {

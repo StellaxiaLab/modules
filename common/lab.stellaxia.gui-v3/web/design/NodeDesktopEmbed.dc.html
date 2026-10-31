@@ -539,6 +539,7 @@ button{font-family:inherit}
                     <div class="nx-h nx-h2">폴더 다시 읽기</div>
                     <div class="nx-row"><span class="nx-lab">모듈 폴더<span class="nx-k nx-mono">{{w.nx.add.root}}</span></span><sc-for list="{{w.nx.add.scanBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
                     <div class="nx-h nx-h2">카탈로그<span class="nx-fill"></span><span class="nx-k">Tree 지정 → 제안으로 설치</span></div>
+                    <sc-if value="{{w.nx.add.real}}" hint-placeholder-val="{{ false }}"><div class="nx-row"><input class="nx-in nx-mono" type="text" value="{{w.nx.add.asg.id}}" placeholder="모듈 id — io.terra.agent" onInput="{{w.nx.add.asg.idIn}}" aria-label="지정할 모듈 id" spellcheck="false"><input class="nx-in nx-mono" type="text" value="{{w.nx.add.asg.ver}}" placeholder="버전 — 0.6.2" onInput="{{w.nx.add.asg.verIn}}" aria-label="지정할 버전" spellcheck="false"><span class="nx-fill"></span><sc-for list="{{w.nx.add.asg.btns}}" as="bt" hint-placeholder-count="1"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div><div class="nx-k">{{w.nx.add.asg.note}}</div></sc-if>
                     <sc-for list="{{w.nx.add.cat}}" as="ct" hint-placeholder-count="3"><div class="nx-row"><span class="nx-lab">{{ct.name}}<span class="nx-k nx-mono">{{ct.id}} · {{ct.ver}}</span></span><span class="nx-chip {{ct.cls}}">{{ct.st}}</span></div></sc-for>
                   </div>
                 </sc-if>
@@ -745,6 +746,10 @@ function deskShape(P, meta, empty) {
   const SV = P.svi && (P.svi.declarations || P.svi);
   if (Array.isArray(SV)) d.decls = SV.map((x) => ({ fam: x.family || x.kind || '', name: x.name || x.id, src: x.source || '', dir: x.direction || '', st: x.state === 'applied' ? 'applied' : 'declared', shared: x.shared || 0 }));
   const WG = P.wg; if (WG && typeof WG === 'object') d.wg = Object.assign({}, d.wg, { iface: WG.interface || WG.iface || d.wg.iface, up: WG.up ?? WG.enabled ?? d.wg.up, addr: WG.address || '', port: WG.listen_port || d.wg.port, key: WG.public_key ? String(WG.public_key).slice(0, 4) + '…' : '' });
+  const A = typeof window !== 'undefined' ? window.TerraDesk : null;   // 웹 빌드의 응답 → 모양(src/api/desk-adapt.js). 캔버스에는 없다
+  if (A && P.offers) d.offers = A.offers(P.offers);
+  if (A && P.tunnels) d.tuns = A.tunnels(P.tunnels);
+  if (A && P.enroll) d.en = Object.assign({}, d.en, A.enroll(P.enroll), { code: '' });
   d.parts = Object.keys(P).filter((k) => P[k] != null);
   return d;
 }
@@ -797,7 +802,7 @@ class Component extends DCLogic {
     const key = this.nodeKey(); if (this._bound === key) return;
     if (this._bound) { clearTimeout(this._vt); this.viewSave(this._bound); }
     const v = this.viewLoad(key), base = JSON.parse(JSON.stringify(this._v0));
-    Object.assign(this.state, base, v || {}, { nd: null, menu: null, ov: null, lau: false, iconSel: null, fmPick: null, ndDraft: null, tnDraft: null, modCfg: null, inst: null, nxMsg: '', save: 'saved' });
+    Object.assign(this.state, base, v || {}, { nd: null, menu: null, ov: null, lau: false, iconSel: null, fmPick: null, ndDraft: null, tnDraft: null, modCfg: null, inst: null, asg: null, nxMsg: '', save: 'saved' });
     this._bound = key; this._vj = JSON.stringify(this.viewPick(this.state));
     if (!this._un && this.TN()) this._un = this.TN().subscribe((n) => { if (n === this._bound) this.setState({}); });
   }
@@ -848,6 +853,28 @@ class Component extends DCLogic {
     if (r.data) return r.data;
     if (!this._empty || this._empty.node !== nm) this._empty = this.ndEmpty(nm);   // 아직 사본이 없다 — 빈 묶음(받는 중)
     return this._empty;
+  }
+  // 모듈 로그 — 실제 노드면 그 노드의 Daemon 로그(terra.daemon.modules.by-module-id.logs.get, 탭을 볼 때만). 시안이면 null(씨앗 줄)
+  modLogs(M, on) {
+    const N = this.nd(), T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null;
+    if (!N.real || !T || !A || !M.id) return null;
+    if (!on) return [];
+    const r = T.read(this.nodeKey(), 'terra.daemon.modules.by-module-id.logs.get', { input: { module_id: M.id, tail: 200 }, ttl: 5000 });
+    const rows = r.data ? A.logLines(r.data) : [];
+    if (r.err && !rows.length) return [{ t: '', cls: 'err', msg: '로그를 못 받음 · ' + r.err.code }];
+    return rows.length ? rows.slice(-200) : [{ t: '', cls: 'info', msg: r.loading ? '받는 중…' : '로그 없음' }];
+  }
+  // 모듈의 앱 — 실제 노드(로컬)면 Gateway 앱 목록(window.TerraGuiApps)의 그 모듈 것. 원격 노드의 앱 목록은 아직 안 받는다(빈 칸)
+  modApps(M) {
+    const N = this.nd(), A = typeof window !== 'undefined' ? window.TerraDesk : null;
+    if (!N.real || !A) return M.apps;
+    return this.remote() ? [] : A.moduleApps(window.TerraGuiApps || [], M.id, M.st === 'run');
+  }
+  // 다른 모듈 앱 열기 — 감싼 셸(Scene)에 terra.app:launch 를 부탁한다(emit('launch')). 셸이 화면 안 창으로 연다
+  openApp(a) {
+    const go = typeof window !== 'undefined' && window.TerraLaunch;
+    if (!a.full) { this.say(a.name + ' 앱 창 (시안)'); return; }
+    this.say(go && go(a.id) ? a.name + ' 여는 중 — 셸이 창으로 연다' : '셸(main Scene) 안에서만 다른 앱을 열 수 있어요');
   }
   ndEmpty(nm) { const d = this.ndSeed(nm); for (const k of ['mods', 'offers', 'catalog', 'devs', 'tombs', 'decls', 'retired', 'dirs', 'tuns', 'peers', 'checks', 'jobs', 'res']) d[k] = []; d.empty = true; return d; }
   // 노드 데이터 쓰기 — 끊겼으면 막고(PA), 아니면 사본에 먼저 반영하고 노드로 보낸다(EL · 실패하면 되돌림)
@@ -1285,8 +1312,9 @@ class Component extends DCLogic {
         X.tunApi = this.api('terra.daemon.service-tunnels.* (열기는 이 노드에서만)'); X.noTun = !N.tuns.length;
         X.tuns = N.tuns.map((tn, i) => ({ svc: tn.svc, port: tn.port, peer: tn.peer, since: tn.since, btns: [this.btn('닫기', () => { this.ndSet((d) => { d.tuns.splice(i, 1); }, 'terra.daemon.service-tunnels.by-tunnel-id.close.post', { tunnel_id: tn.id }); this.say(tn.svc + ' 터널 닫음'); })] }));
         const td = s.tnDraft || { port: '', peer: '' }, setT = (pp) => this.setState({ tnDraft: Object.assign({}, td, pp) });
+        X.tunOpenWhy = N.real ? '여는 것은 Master 가 경로 표를 내야 한다(terra.master.service-tunnels.open.post) — 앱 위임 밖' : '';
         X.tn = { port: td.port, portIn: (e) => setT({ port: e.target.value }), peers: this.seg(['02·a', '02·c', '02'], td.peer, (x) => setT({ peer: x })),
-          btns: [this.btn('열기', () => { if (!/^\d+$/.test(td.port) || !td.peer) { this.say('포트 · 상대 노드 필요'); return; } this.ndSet((d) => { d.tuns.push({ id: 'tn-' + Date.now(), svc: { 22: 'ssh', 80: 'http', 8080: 'http', 5432: 'db' }[td.port] || 'tcp', port: +td.port, peer: td.peer, since: '방금' }); }); this.setState({ tnDraft: null }); }, { pri: true, local: true })] };
+          btns: [this.btn('열기', () => { if (!/^\d+$/.test(td.port) || !td.peer) { this.say('포트 · 상대 노드 필요'); return; } this.ndSet((d) => { d.tuns.push({ id: 'tn-' + Date.now(), svc: { 22: 'ssh', 80: 'http', 8080: 'http', 5432: 'db' }[td.port] || 'tcp', port: +td.port, peer: td.peer, since: '방금' }); }); this.setState({ tnDraft: null }); }, { pri: true, local: true, off: !!X.tunOpenWhy, tip: X.tunOpenWhy })] };
       }
       // ── 모듈 — 설치됨 · 설치 · Tree 지정 ──
       if (id === 'mods') {
@@ -1308,10 +1336,10 @@ class Component extends DCLogic {
             cfg: M.cfg.map(([k, label, type, val, opts, rs]) => { const cur = cv(k, val); return { label, note: k, rs, dis: null, ro: null, isBool: type === 'bool', isSel: type === 'sel', isText: type === 'text', on: cur ? 'true' : 'false', swCls: cur ? 'on' : '', flip: () => setC(k, !cur), opts: opts ? this.seg(opts, cur, (x) => setC(k, x)) : [], v: String(cur), input: (e) => setC(k, e.target.value) }; }),
             cfgDirty: cfgDirty.length ? '바뀐 ' + cfgDirty.length + (cfgDirty.some((k) => (M.cfg.find((x) => x[0] === k) || [])[5]) ? ' · 저장하면 모듈 다시 시작' : '') : '',
             cfgBtns: [this.btn('되돌리기', () => this.setState({ modCfg: null }), { off: !cfgDirty.length }), this.btn('저장', () => { const vals = {}; cfgDirty.forEach((k) => { vals[k] = cd[k]; }); this.ndSet((d) => { const mm = d.mods[ms]; mm.cfg.forEach((c) => { if (cd && c[0] in cd) c[3] = cd[c[0]]; }); }, 'terra.daemon.modules.by-module-id.config.patch', { module_id: M.id, values: vals }); this.setState({ modCfg: null }); this.say(M.name + ' 설정 저장 (module.manage)'); }, { off: !cfgDirty.length, pri: !!cfgDirty.length })],
-            logs: [['09:12:03', 'info', 'started · pid 4182'], ['09:12:03', 'info', 'readiness ok'], ['10:40:17', 'info', 'config reloaded'], ['10:58:42', M.st === 'restart' ? 'warn' : 'info', M.st === 'restart' ? 'health check failed — restarting' : 'lease renewed'], ['11:02:10', 'info', M.ops[0] + ' 200 · 12ms']].map(([tt, lv, msg]) => ({ t: tt, cls: lv, msg })),
+            logs: this.modLogs(M, mt === 'log') || [['09:12:03', 'info', 'started · pid 4182'], ['09:12:03', 'info', 'readiness ok'], ['10:40:17', 'info', 'config reloaded'], ['10:58:42', M.st === 'restart' ? 'warn' : 'info', M.st === 'restart' ? 'health check failed — restarting' : 'lease renewed'], ['11:02:10', 'info', M.ops[0] + ' 200 · 12ms']].map(([tt, lv, msg]) => ({ t: tt, cls: lv, msg })),
             perms: M.perms, opsN: M.ops.length, ops: M.ops.map((x) => ({ id: M.id + '.' + x, perm: /list|get|status/.test(x) ? 'node.read' : M.perms[M.perms.length - 1] })),
-            noApps: !M.apps.length, apps: M.apps.map((a) => ({ name: a.name, id: M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
-              btns: [this.btn('열기', () => this.say(a.name + ' 앱 창 (시안)'), { off: M.st !== 'run' }), this.btn('바탕화면에 추가', () => this.addShortcut(M, a), { off: !!Object.values(s.icons).find((ic) => ic.mod === M.id + '/' + a.id) })] })) };
+            noApps: !this.modApps(M).length, apps: this.modApps(M).map((a) => ({ name: a.name, id: a.full ? a.id : M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
+              btns: [this.btn('열기', () => this.openApp(a), { off: M.st !== 'run' }), this.btn('바탕화면에 추가', () => this.addShortcut(M, a), { off: !!Object.values(s.icons).find((ic) => ic.mod === M.id + '/' + a.id) })] })) };
         }
         // 설치 — 파일(.tmod) · 폴더 다시 읽기 · 카탈로그
         const ad = s.inst || { path: '', r: null, dev: false, force: false, start: true }, setA = (pp) => this.setState({ inst: Object.assign({}, ad, pp) }), r = ad.r;
@@ -1321,12 +1349,21 @@ class Component extends DCLogic {
         if (r) { const broken = r.trust === '깨짐', unsigned = r.trust === '미서명', badC = r.compat !== '호환';
           X.add.r = Object.assign({}, r, { trCls: broken ? 'err' : unsigned ? 'warn' : 'ok', cpCls: badC ? 'warn' : 'ok' });
           X.add.opts = [['dev', '개발 모드 (--dev)', '미서명 패키지 허용', !unsigned], ['force', '덮어쓰기 (--force)', '같은 버전 · 미지원 대상', !(r.same || badC)], ['start', '설치 후 시작 (--start)', '', false]].map(([k, l, nt, dis]) => ({ label: l, note: nt, on: ad[k] ? 'checked' : null, dis: dis ? 'disabled' : null, cls: dis ? 'dim' : '', flip: () => setA({ [k]: !ad[k] }) }));
-          const why = broken ? '서명이 깨진 패키지는 설치할 수 없음' : unsigned && !ad.dev ? '미서명 — 개발 모드 필요' : badC && !ad.force ? '이 노드 미지원 — 덮어쓰기 필요' : r.same && !ad.force ? '같은 버전 — 덮어쓰기 필요' : '';
+          const why = N.real ? '파일 설치는 이 화면에서 못 한다 — 노드에서 terra module install, 또는 아래 Tree 지정' : broken ? '서명이 깨진 패키지는 설치할 수 없음' : unsigned && !ad.dev ? '미서명 — 개발 모드 필요' : badC && !ad.force ? '이 노드 미지원 — 덮어쓰기 필요' : r.same && !ad.force ? '같은 버전 — 덮어쓰기 필요' : '';
           X.add.warn = why || '권한을 확인했으면 설치'; X.add.warnCls = why ? 'nx-err' : '';
           X.add.btns = [this.btn('취소', () => setA({ r: null })), this.btn('권한 확인 · 설치', () => {
             this.addJob(r.name + ' 설치', 'process.execute'); this.ndSet((d) => { const i = d.mods.findIndex((m) => m.id === r.id), m = { id: r.id, name: r.name, ver: r.ver, prev: i >= 0 ? d.mods[i].ver : '', kind: 'service', st: ad.start ? 'run' : 'stop', en: true, trust: unsigned ? '미서명 · 개발' : '서명됨', src: '파일 설치', perms: r.perms, ops: ['status'], apps: [], cfg: [] }; if (i >= 0) d.mods[i] = m; else d.mods.push(m); });
             this.setState({ inst: null, modView: 'inst', modSel: this.nd().mods.length }); this.say(r.name + ' ' + r.ver + ' 설치 — terra module install --grant-reviewed ' + r.digest.slice(0, 15)); }, { pri: !why, off: !!why, local: true })];
         }
+        // Tree 지정(실제 노드) — Master 의 이 노드 배정에 적는다(terra.master.nodes.by-node-id.modules.assignments.post · module.manage · #236).
+        //   Daemon 이 그 배정을 '제안'으로 받고(Tree 지정 탭), 동의하면 받아 설치한다. 노드가 꺼져 있어도 Master 에는 적힌다(원하는 상태)
+        const ag = s.asg || { id: '', ver: '' }, setG = (pp) => this.setState({ asg: Object.assign({}, ag, pp) });
+        X.add.real = !!N.real;
+        X.add.asg = { id: ag.id, ver: ag.ver, idIn: (e) => setG({ id: e.target.value.trim() }), verIn: (e) => setG({ ver: e.target.value.trim() }),
+          note: this.help() ? 'terra.master.nodes.by-node-id.modules.assignments.post {module_id, version} — 이 노드에만' : '지정하면 이 노드가 제안으로 받는다 — Tree 지정 탭에서 동의',
+          btns: [this.btn('Tree 에 지정', () => { if (!/^[a-z0-9][a-z0-9.-]+$/.test(ag.id)) { this.say('모듈 id 꼴: io.terra.agent'); return; }
+            const inp = ag.ver ? { module_id: ag.id, version: ag.ver } : { module_id: ag.id };
+            this.ndSet(() => {}, 'terra.master.nodes.by-node-id.modules.assignments.post', inp); this.setState({ asg: null, modView: 'offer' }); this.say(ag.id + (ag.ver ? ' ' + ag.ver : '') + ' 을 이 노드에 지정 — 제안이 오면 동의'); }, { pri: true, off: !ag.id })] };
         X.add.cat = N.catalog.map(([cid, nm, ver]) => { const m = N.mods.find((x) => x.id === cid), f = N.offers.find((x) => x.id === cid); return { id: cid, name: nm, ver, st: m ? '설치됨 ' + m.ver : f ? 'Tree 지정됨' : '설치 안 됨', cls: m ? 'ok' : f ? 'info' : '' }; });
         // Tree 지정 — 제안에 동의하면 Daemon 이 받아 설치(module_distribution), 동의 철회
         const OS = { wait: ['동의 대기', 'warn'], consent: ['받는 중', 'info'], done: ['설치됨', 'ok'] };
@@ -1334,6 +1371,7 @@ class Component extends DCLogic {
         X.offers = N.offers.map((f, i) => ({ id: f.id, name: f.name, ver: f.ver, size: f.size, by: f.by, perms: f.perms, st: OS[f.st][0], cls: OS[f.st][1],
           btns: f.st === 'wait' ? [this.btn('동의', () => { this.ndSet((d) => { d.offers[i].st = 'consent'; }, 'terra.daemon.modules.offers.by-module-id.consent.post', { module_id: f.id }); }, { pri: true })]
             : f.st === 'consent' ? [this.btn('동의 철회', () => this.ndSet((d) => { d.offers[i].st = 'wait'; }, 'terra.daemon.modules.offers.by-module-id.withdraw.post', { module_id: f.id }))] : [] }));
+        if (N.real) X.offers.forEach((x, i) => { const f = N.offers[i]; if (f.st !== 'done') x.btns = x.btns.concat([this.btn('지정 해제', () => { this.ndSet((d) => { d.offers.splice(i, 1); }, 'terra.master.nodes.by-node-id.modules.assignments.by-module-id.delete', { module_id: f.id }); this.say(f.id + ' 지정 해제 — Master 배정에서 뺐다'); }, { dan: true })]); });
       }
       // ── 설정 › 노드 설정 · 네트워크 · 등록 · 정보 ──
       if (id === 'set' && ['node', 'net', 'enroll', 'about'].includes(s.setTab)) {
@@ -1362,7 +1400,8 @@ class Component extends DCLogic {
           X.wgBtns = [this.btn('동기화', () => this.say('Master 와 피어 동기화 — wireguard.sync')), this.btn(W.up ? '내리기' : '올리기', () => this.ndSet((d) => { d.wg.up = !d.wg.up; }), { local: true, dan: W.up }), this.btn('다시 적용', () => this.say('wg0 다시 적용'), { local: true })];
         }
         if (s.setTab === 'enroll') { X.enApi = this.api('terra.daemon.enrollment.{status.get, code.post}');
-          X.en = Object.assign({}, N.en, { ro: R ? 'readonly' : null, codeIn: (e) => this.ndSet((d) => { d.en.code = e.target.value; }), btns: [this.btn('등록', () => this.say(/^TR-\w{4}$/.test(N.en.code) ? N.en.code + ' 로 등록 요청' : '코드 꼴: TR-XXXX'), { local: true, off: !N.en.code })] }); }
+          X.en = Object.assign({}, N.en, { ro: R || N.real ? 'readonly' : null, codeIn: (e) => this.ndSet((d) => { d.en.code = e.target.value; }), btns: [this.btn('등록', () => this.say(/^TR-\w{4}$/.test(N.en.code) ? N.en.code + ' 로 등록 요청' : '코드 꼴: TR-XXXX'), { local: true, off: !N.en.code || N.real, tip: N.real ? '등록은 설치기 · terra enroll 로 — 앱 권한에 node.enroll 없음' : '' })] });
+          if (N.real) X.en.code = N.en.registered ? '' : '등록은 이 노드에서 — 설치기 · terra enroll (앱 권한에 node.enroll 이 없다)'; }
         if (s.setTab === 'about') {
           X.info = [['노드', this.nodeNameQ()], ['노드 ID', N.en.id], ['역할', N.cfg['daemon.roles']], ['코어', '1.7.0'], ['운영체제', 'Linux 6.18 · amd64'], ['가동', '3일 4시간'], ['데이터', N.cfg['daemon.data_dir']]].map(([k, v2]) => ({ k, v: v2 }));
           X.checks = N.checks.map(([nn, st2]) => ({ name: nn, st: st2, cls: st2 === 'ok' ? 'ok' : 'err' }));
