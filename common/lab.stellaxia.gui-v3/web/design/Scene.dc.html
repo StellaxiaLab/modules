@@ -2397,7 +2397,9 @@ class Component extends DCLogic {
     // 내용 (누르기)
     head('대상');
     // 속성 표 — 틀(바깥 사각 · 가운데 세로선)은 레거시, 칸 글자는 텍스트
-    const kv = [['이름', curN.name], ['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]], ['상태', '● 온라인'], ['자원', '3 · ssh · io'], ['가동', '4일 12시간']];
+    // 실제 지도면 Master 의 노드 기록(하트비트 자원 스냅샷 · 상태)으로 — window.TerraNodeStats(src/api/topology.js nodeStats). 시안이면 예시 값
+    const TPn = this.TOPO(), RN = TPn && TPn.node && curN.rid ? TPn.node(curN.rid) : null, NS = RN && typeof window !== 'undefined' && window.TerraNodeStats ? window.TerraNodeStats(RN) : null;
+    const kv = [['이름', curN.name], ['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]], ['상태', NS ? NS.status : '● 온라인'], ['자원', NS ? '—' : '3 · ssh · io'], ['가동', NS ? (NS.seen ? '하트비트 ' + NS.seen : '—') : '4일 12시간']];
     const kw = 6, vw = 14, tr0 = r;
     { const xa = x0 * cw + cw / 2, xb = (x0 + kw + vw + 2) * cw + cw / 2, xm = (x0 + kw + 1) * cw + cw / 2, ya = tr0 * ch + ch / 2, yb = (tr0 + kv.length + 1) * ch + ch / 2, cells = new Set();
       fpLine(cells, xa, xb, ya); fpLine(cells, xa, xb, yb); fpCol(cells, xa, ya, yb); fpCol(cells, xb, ya, yb); fpCol(cells, xm, ya, yb);
@@ -2406,20 +2408,20 @@ class Component extends DCLogic {
     for (const [k, v] of kv) { const o = add('c', [[k, C.key]]); rows[rows.length - 1].col = x0 + 2; line('c', r - 1, [[v, v.startsWith('●') ? C.ok : C.val, true]], x0 + kw + 3, o); }
     r += 2;
     // 고리 계기 — 표 오른쪽, 레거시 그래픽 (HUD 원형 게이지): 바탕 고리(흐림) + 값 호(밝음, 12시에서 시계 방향 72%)
-    { const gx0 = x0 + kw + vw + 5, gW = Math.max(8, zR - gx0), R0 = Math.min(gW * cw, (kv.length + 2) * ch) / 2 - 3, cx = gx0 * cw + gW * cw / 2, cy = tr0 * ch + (kv.length + 2) * ch / 2, th = 4, pct = 0.72, cells = new Set();
+    { const gx0 = x0 + kw + vw + 5, gW = Math.max(8, zR - gx0), R0 = Math.min(gW * cw, (kv.length + 2) * ch) / 2 - 3, cx = gx0 * cw + gW * cw / 2, cy = tr0 * ch + (kv.length + 2) * ch / 2, th = 4, pct = NS ? NS.disk ?? 0 : 0.72, cells = new Set();
       for (let rr = Math.floor((cy - R0) / ch); rr <= Math.floor((cy + R0) / ch); rr++) for (let c = Math.floor((cx - R0) / cw); c <= Math.floor((cx + R0) / cw); c++) { const d = Math.hypot(c * cw + cw / 2 - cx, rr * ch + ch / 2 - cy); if (d <= R0 + cw * 0.6 && d >= R0 - th - cw * 0.6) cells.add(rr * cols + c); }
       leg('c', ords.c - kv.length, cx - R0 - 4, cx + R0 + 4, cells, (g) => { g.lineWidth = th; g.strokeStyle = C.lineC; g.beginPath(); g.arc(cx, cy, R0 - th / 2, 0, Math.PI * 2); g.stroke();
         g.strokeStyle = C.lineB; g.beginPath(); g.arc(cx, cy, R0 - th / 2, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2); g.stroke();
         g.lineWidth = 1; for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2 - Math.PI / 2, r1 = R0 + 2, r2 = R0 + (k % 6 ? 4 : 7); g.beginPath(); g.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); g.stroke(); } });
-      line('c', Math.round(cy / ch - 1), [['72%', C.val]], Math.round(cx / cw - 1.5), ords.c - kv.length);
-      line('c', Math.round(cy / ch), [['가동률', C.key]], Math.round(cx / cw - 3), ords.c - kv.length + 1); }
+      line('c', Math.round(cy / ch - 1), [[NS ? (NS.disk == null ? '—' : Math.round(NS.disk * 100) + '%') : '72%', C.val]], Math.round(cx / cw - 1.5), ords.c - kv.length);
+      line('c', Math.round(cy / ch), [[NS ? '디스크' : '가동률', C.key]], Math.round(cx / cw - 3), ords.c - kv.length + 1); }
     head('부하');
     // 막대 — 바탕 칸(흐림 틀) + 채움(밝음), 레거시. 이름 · 값은 텍스트
     const bar = (lab, v) => { const o = add('c', [[lab, C.key]]), bx0 = (x0 + 5) * cw, bx1 = (x0 + 22) * cw, yM = (r - 1) * ch + ch / 2, hh = ch * 0.42, cells = new Set();
       for (let c = Math.floor(bx0 / cw); c < Math.ceil(bx1 / cw); c++) cells.add((r - 1) * cols + c);
-      leg('c', o, bx0, bx1, cells, (g) => { g.strokeStyle = C.lineC; g.lineWidth = 1; g.strokeRect(bx0 + 0.5, yM - hh / 2 + 0.5, bx1 - bx0, hh); g.fillStyle = C.fill; g.fillRect(bx0 + 2, yM - hh / 2 + 2, (bx1 - bx0 - 3) * v, hh - 3); });
-      line('c', r - 1, [[Math.round(v * 100) + '%', C.val]], x0 + 23, o); };
-    bar('CPU', 0.42); bar('MEM', 0.61);
+      leg('c', o, bx0, bx1, cells, (g) => { g.strokeStyle = C.lineC; g.lineWidth = 1; g.strokeRect(bx0 + 0.5, yM - hh / 2 + 0.5, bx1 - bx0, hh); g.fillStyle = C.fill; g.fillRect(bx0 + 2, yM - hh / 2 + 2, (bx1 - bx0 - 3) * (v || 0), hh - 3); });
+      line('c', r - 1, [[v == null ? '—' : Math.round(v * 100) + '%', C.val]], x0 + 23, o); };
+    bar('CPU', NS ? NS.cpu : 0.42); bar('MEM', NS ? NS.mem : 0.61);
     const sparkRow = rows.length; add('c', [[this.gf_pad('NET', 5), C.key], [this.gf_spark(17), C.ok], ['  1.2 MB/s', C.val]], 2);
     const rb = this._q_rows - 2;
     // 지도 — 우주 지도. 노드는 모두 궤도에(형제는 같은 궤도), 지도 뷰는 세 가지 — 트리 · 리프 · 리소스. 각 지도 뷰에선 그 뷰의 노드만 보이고(다른 뷰의 노드는 빼고) 궤도는 모두 보인다

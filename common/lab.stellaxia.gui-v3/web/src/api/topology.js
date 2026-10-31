@@ -40,7 +40,22 @@ export function buildTopology(nodes, o = {}) {
     rid(path) { const e = at(path); return e ? e.tree.node_id : ''; },
     leaves(path) { const e = at(path); return e ? e.leaves.slice(0, MAX_LEAVES).map((n) => ({ name: clean(n.display_name) || n.node_id.slice(0, 10), id: n.node_id, status: n.status || '', relay: !!n.relay_connected })) : null; },
     more(path) { const e = at(path); return e ? e.more : 0; },
+    /** Master 의 노드 기록 그대로(상태 · resource · last_heartbeat_at) — 없으면 null */
+    node(rid) { return (rid && byId.get(rid)) || null; },
   };
+}
+
+const STATUS = { online: ['● 온라인', true], offline: ['○ 꺼짐', false], degraded: ['◐ 저하', true], pending: ['◇ 대기', false] };
+/**
+ * Master 노드 기록 → 전역 틀 대상 표의 값. 하트비트의 자원 스냅샷(resource)을 쓰고, 없는 칸은 null(화면은 '—')
+ * @returns {{ status: string, online: boolean, cpu: number|null, mem: number|null, disk: number|null, seen: string }}
+ */
+export function nodeStats(n, now = Date.now()) {
+  const r = (n && n.resource) || {}, pct = (v) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v / 100)) : null);
+  const s = STATUS[String((n && n.status) || '').toLowerCase()] || [n && n.status ? '◇ ' + n.status : '—', false];
+  const hb = Date.parse((n && n.last_heartbeat_at) || ''), sec = Number.isNaN(hb) ? -1 : Math.max(0, (now - hb) / 1000);
+  const seen = sec < 0 ? '' : sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + '분 전' : sec < 86400 ? Math.round(sec / 3600) + '시간 전' : Math.round(sec / 86400) + '일 전';
+  return { status: s[0], online: s[1], cpu: pct(r.cpu_percent), mem: pct(r.memory_percent), disk: pct(r.disk_percent), seen };
 }
 
 /**
