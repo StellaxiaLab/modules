@@ -1,7 +1,7 @@
 // node --test — Master 노드 목록 → 씬 지도(TerraTopology)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTopology, loadTopology, MAX_LEAVES } from './topology.js';
+import { buildTopology, loadTopology, nodeStats, MAX_LEAVES } from './topology.js';
 
 const N = [
   { node_id: 'tr-root', display_name: 'home', roles: ['tree'] },
@@ -33,4 +33,13 @@ test('loadTopology — 노드 목록 · 로컬 id, 못 받으면 null', async ()
   const terra = { invoke: async (op) => op === 'terra.master.nodes.get' ? { nodes: N } : { daemon: { node_id: 'x' }, enrollment: { node_id: 'lf-a' } } };
   const T = await loadTopology(terra); assert.equal(T.localId, 'lf-a'); assert.equal(T.count, 7);
   assert.equal(await loadTopology({ invoke: async () => { throw new Error('no'); } }), null);
+});
+
+test('nodeStats — 하트비트 자원 스냅샷 · 상태 · 마지막 하트비트, 없는 칸은 null', () => {
+  const now = Date.parse('2026-10-31T12:00:00Z');
+  assert.deepEqual(nodeStats({ status: 'online', resource: { cpu_percent: 42, memory_percent: 61.5 }, last_heartbeat_at: '2026-10-31T11:59:50Z' }, now), { status: '● 온라인', online: true, cpu: 0.42, mem: 0.615, disk: null, seen: '방금' });
+  assert.equal(nodeStats({ status: 'offline', last_heartbeat_at: '2026-10-31T09:00:00Z' }, now).seen, '3시간 전');
+  assert.deepEqual(nodeStats(null, now), { status: '—', online: false, cpu: null, mem: null, disk: null, seen: '' });
+  const T = buildTopology([{ node_id: 't', roles: ['tree'], display_name: 'home' }, { node_id: 'l', parent_node_id: 't', resource: { cpu_percent: 5 } }]);
+  assert.equal(T.node('l').resource.cpu_percent, 5); assert.equal(T.node('x'), null);
 });
