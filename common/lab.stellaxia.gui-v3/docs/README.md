@@ -63,7 +63,9 @@ flowchart LR
 | v3 모듈의 백엔드(프로세스 · 계약 · 노드에 붙는 GUI 데이터) | [[backend\|v3 모듈 백엔드 설계]] |
 | 실제 웹 빌드의 구조 — 왜 웹인가, 장면 층(WebGL2 · Worker) · 창 층(DOM · signals) · API · 측정 | [[web-architecture\|GUI v3 웹 구조]] |
 | Terra 코어 프로세스 · 모듈 기능 중 GUI 가 끌어낼 수 있는 것 — 계약 327개 대조, 앱 자격 · 위임 문 · 셸 모드 선택지 | [[terra-reach\|Terra 도달 분석]] |
-| 다른 노드의 값을 어떻게 가져오고, 끊겼을 때 무엇을 보이는지(PA/EL) · 제어기 보기 상태 · B 모드 로그인 | [[node-data\| · [[node-data|노드 데이터와 분할]] · [[main-scene|main Scene]] |
+| 다른 노드의 값을 어떻게 가져오고, 끊겼을 때 무엇을 보이는지(PA/EL) · 제어기 보기 상태 · B 모드 로그인 | [[node-data\|노드 데이터와 분할]] |
+| main GUI 로 실리는 법 — 얇은 껍데기 · 로그인 · A 모드 | [[main-scene\|main Scene]] |
+| node-gui 를 대체하려면 — 현황 점검(2026-10-31) · 기능 격차 · Terra 쪽 같이 바꿀 것 | [[replacement-readiness\|node-gui 대체 준비도]] |
 
 ## 폴더
 

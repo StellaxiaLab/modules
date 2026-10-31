@@ -22,7 +22,9 @@ export const LOGIN_MSG = {
  */
 export function createSession(o = {}) {
   const f = o.fetch || globalThis.fetch.bind(globalThis), S = store(o.storage || globalThis.sessionStorage);
-  let cur = S.get();
+  // Gateway 는 handle 을 객체 {id, issuer, expiresAt} 로 돌려준다(credential_vault) — 헤더에는 id 만. 옛 저장본(문자열 · 객체)도 받는다
+  const hid = (h) => (h && typeof h === 'object' ? h.id : h) || null;
+  let cur = S.get(); if (cur) { const id = hid(cur.handle); cur = id ? { ...cur, handle: id } : null; }
   const subs = new Set(), emit = () => { for (const fn of subs) try { fn(cur); } catch {} };
   return {
     get handle() { return cur && cur.handle; },
@@ -40,8 +42,8 @@ export function createSession(o = {}) {
         throw new TerraError(code, LOGIN_MSG[code] || e.message || '로그인 못 함 (' + code + ')', res.status);
       }
       const d = 'data' in body ? body.data : body;
-      if (!d || !d.handle) throw new TerraError('BAD_RESPONSE', '핸들이 없는 응답', res.status);
-      cur = { handle: d.handle, session: d.session || {}, at: Date.now() }; S.set(cur); emit();
+      if (!d || !hid(d.handle)) throw new TerraError('BAD_RESPONSE', '핸들이 없는 응답', res.status);
+      cur = { handle: hid(d.handle), session: d.session || {}, at: Date.now() }; S.set(cur); emit();
       return cur;
     },
     /** Gateway 에서도 폐기 — 핸들이 이미 없었어도 같은 답(떠보기 막기) */
