@@ -1,0 +1,272 @@
+{
+ "$comment": "tools/gen-master-delegated.mjs 가 Terra Master 계약에서 뽑은 표 — 손으로 고치지 않는다",
+ "contractVersion": "1.7.0",
+ "operations": {
+  "terra.master.jobs.by-job-id.cancel.post": {
+   "method": "POST",
+   "path": "/api/v1/jobs/{job_id}/cancel",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.jobs.by-job-id.get": {
+   "method": "GET",
+   "path": "/api/v1/jobs/{job_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.jobs.by-job-id.rerun.post": {
+   "method": "POST",
+   "path": "/api/v1/jobs/{job_id}/rerun",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.jobs.get": {
+   "method": "GET",
+   "path": "/api/v1/jobs",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.logs.get": {
+   "method": "GET",
+   "path": "/api/v1/network/logs",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.mesh.wireguard.peers.get": {
+   "method": "GET",
+   "path": "/api/v1/network/mesh/wireguard/peers",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.networks.get": {
+   "method": "GET",
+   "path": "/api/v1/network/networks",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.nodes.by-node-id.get": {
+   "method": "GET",
+   "path": "/api/v1/network/nodes/{node_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.probes.by-probe-id.get": {
+   "method": "GET",
+   "path": "/api/v1/network/probes/{probe_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.probes.get": {
+   "method": "GET",
+   "path": "/api/v1/network/probes",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.state.get": {
+   "method": "GET",
+   "path": "/api/v1/network/state",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.status.get": {
+   "method": "GET",
+   "path": "/api/v1/network/status",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.nodes.by-node-id.core.get": {
+   "method": "GET",
+   "path": "/api/v1/nodes/{node_id}/core",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.nodes.by-node-id.get": {
+   "method": "GET",
+   "path": "/api/v1/nodes/{node_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.nodes.by-node-id.modules.assignments.by-module-id.delete": {
+   "method": "DELETE",
+   "path": "/api/v1/nodes/{node_id}/modules/assignments/{module_id}",
+   "permissions": [
+    "module.manage"
+   ]
+  },
+  "terra.master.nodes.by-node-id.modules.assignments.post": {
+   "method": "POST",
+   "path": "/api/v1/nodes/{node_id}/modules/assignments",
+   "permissions": [
+    "module.manage"
+   ]
+  },
+  "terra.master.nodes.by-node-id.modules.get": {
+   "method": "GET",
+   "path": "/api/v1/nodes/{node_id}/modules",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.nodes.get": {
+   "method": "GET",
+   "path": "/api/v1/nodes",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.route.candidates.get": {
+   "method": "GET",
+   "path": "/api/v1/route/candidates",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.route.graph.get": {
+   "method": "GET",
+   "path": "/api/v1/route/graph",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.route.policies.by-policy-id.get": {
+   "method": "GET",
+   "path": "/api/v1/route/policies/{policy_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.route.policies.get": {
+   "method": "GET",
+   "path": "/api/v1/route/policies",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.route.sessions.by-session-id.get": {
+   "method": "GET",
+   "path": "/api/v1/route/sessions/{session_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.route.sessions.get": {
+   "method": "GET",
+   "path": "/api/v1/route/sessions",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.bindings.by-binding-id.delete": {
+   "method": "DELETE",
+   "path": "/api/v1/svi/bindings/{binding_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.bindings.by-binding-id.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/bindings/{binding_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.bindings.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/bindings",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.bindings.post": {
+   "method": "POST",
+   "path": "/api/v1/svi/bindings",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.grants.by-grant-id.delete": {
+   "method": "DELETE",
+   "path": "/api/v1/svi/grants/{grant_id}",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.svi.grants.by-grant-id.patch": {
+   "method": "PATCH",
+   "path": "/api/v1/svi/grants/{grant_id}",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.svi.grants.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/grants",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.grants.post": {
+   "method": "POST",
+   "path": "/api/v1/svi/grants",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.svi.handles.by-handle-id.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/handles/{handle_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.handles.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/handles",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.resources.by-resource-id.endpoints.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/resources/{resource_id}/endpoints",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.resources.by-resource-id.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/resources/{resource_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.resources.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/resources",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.users.by-user-id.external-identities.get": {
+   "method": "GET",
+   "path": "/api/v1/users/{user_id}/external-identities",
+   "permissions": [
+    "node.read"
+   ]
+  }
+ }
+}

@@ -15,7 +15,7 @@ export function resourcesFor(ev) {
 }
 
 /**
- * @param {{ terra: ReturnType<import('./terra.js').createTerra>, store: () => any, delayMs?: number }} o
+ * @param {{ terra: ReturnType<import('./terra.js').createTerra>, store: () => any, delayMs?: number, onEvent?: (ev: object) => void }} o
  * @returns {{ stop(): void, state(): string }}
  */
 export function startPush(o) {
@@ -29,7 +29,7 @@ export function startPush(o) {
   };
   const open = () => {
     if (stopped) return; st = 'opening';
-    o.terra.stream('terra.daemon.events.get', {}, (ev) => { st = 'open'; wait = 5000; kick(ev); }, () => { close = null; st = 'closed'; again(); })
+    o.terra.stream('terra.daemon.events.get', {}, (ev) => { st = 'open'; wait = 5000; kick(ev); if (o.onEvent) try { o.onEvent(ev); } catch {} }, () => { close = null; st = 'closed'; again(); })
       .then((c) => { if (stopped) c(); else { close = c; st = 'open'; } }, () => { st = 'failed'; again(); });
   };
   const again = () => { if (stopped) return; clearTimeout(timer); timer = setTimeout(open, wait); wait = Math.min(60000, wait * 2); };
