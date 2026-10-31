@@ -3,10 +3,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { parseBoard, boardModule, importsOf } from '../tools/dc-board.mjs';
 
-const D = new URL('../design/', import.meta.url).pathname;
+const D = fileURLToPath(new URL('../design/', import.meta.url));
 const read = (n) => readFileSync(join(D, n + '.dc.html'), 'utf8');
 const closure = () => { const seen = new Set(), q = ['Scene']; while (q.length) { const n = q.shift(); if (seen.has(n)) continue; seen.add(n); q.push(...importsOf(read(n))); } return [...seen]; };
 

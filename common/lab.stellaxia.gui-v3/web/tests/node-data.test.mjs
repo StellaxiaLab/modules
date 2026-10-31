@@ -3,10 +3,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 import { boardModule } from '../tools/dc-board.mjs';
 
-const D = new URL('../design/', import.meta.url).pathname;
+const D = fileURLToPath(new URL('../design/', import.meta.url));
 const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
 const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms));
 
@@ -14,8 +15,8 @@ async function loadStore(transport) {
   globalThis.localStorage = mem(); globalThis.window = { TerraTransport: transport };
   const dir = mkdtempSync(join(tmpdir(), 'tn-')), rt = join(dir, 'rt.mjs'), f = join(dir, 'TerraNodes.mjs');
   writeFileSync(rt, 'export class DCLogic { constructor(p) { this.props = p || {}; this.state = {}; } setState() {} }\nexport const defineBoard = (d) => d;\n');
-  writeFileSync(f, boardModule(readFileSync(join(D, 'TerraNodes.dc.html'), 'utf8'), 'TerraNodes', rt));
-  const def = (await import(f)).default; new def.Logic({ quiet: true });
+  writeFileSync(f, boardModule(readFileSync(join(D, 'TerraNodes.dc.html'), 'utf8'), 'TerraNodes', './rt.mjs'));   // 같은 폴더 상대 지정자 — 절대 경로(C:\…)는 ESM 지정자가 아니다
+  const def = (await import(pathToFileURL(f).href)).default; new def.Logic({ quiet: true });
   return globalThis.window.TerraNodes;
 }
 // 시험 전송 — 노드마다 값 · 끊김을 손으로
