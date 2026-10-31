@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "node --test tests/*.test.mjs src/api/*.test.mjs",
     "bench": "node tools/bench-field.mjs",
-    "gen:op-scope": "node tools/gen-op-scope.mjs"
+    "gen:op-scope": "node tools/gen-op-scope.mjs",
+    "gen:master-delegated": "node tools/gen-master-delegated.mjs"
   },
   "devDependencies": {
     "@fontsource/geist": "^5.3.0",
