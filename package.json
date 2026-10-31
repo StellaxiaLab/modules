@@ -9,7 +9,7 @@
     "check:schema": "node tools/check-schema-drift.mjs --self-only",
     "build": "node tools/build-modules.mjs",
     "test": "node tools/test-modules.mjs",
-    "test:tools": "node --test tools/race-policy.test.mjs",
+    "test:tools": "node --test tools/race-policy.test.mjs tools/signing.test.mjs",
     "build:web": "node tools/build-web.mjs",
     "test:web": "node tools/test-web.mjs",
     "test:scenes": "node tools/test-scenes.mjs",

@@ -18,10 +18,22 @@
 # 경우가 있고, 이 잡이 무엇을 굽든 그 자리에서 validate·schema·pack 을 전부 다시
 # 돌기 때문에 검사받지 않은 것이 실리지는 않는다.
 #
-# 서명은 아직 하지 않는다(Q-13). `terra module pack` 에 `--sign-key` 가 있지만,
-# 검증하는 쪽(코어 설치기)에 신뢰 앵커가 없는 동안의 서명은 보안이 아니라 장식이고
-# "서명돼 있으니 안전하다"는 오해를 만든다. 이번 단계는 modules.json 의 sha256 으로
-# 덮는다.
+# **서명한다** (Terra ADR-MD-005). Q-13 은 "검증하는 쪽에 신뢰 앵커가 없는 동안의
+# 서명은 장식"이라며 미뤘다 — 그 판단은 옳았고, 그래서 서명은 앵커와 **함께** 선다:
+#
+#   - 무엇을 어느 키로: signing.json (접두사 → 키·tier·keyId). 맞는 키가 없는 모듈이
+#     있으면 포장이 선다.
+#   - 비밀키: 환경 `module-signing` 의 시크릿에만 있다. 포장 직전에 임시 파일로 쓰고
+#     `always()` 에서 지운다. 이 잡 밖에는 존재하지 않는다.
+#   - 앵커: 아래 "Verify signatures as Terra would" 가 Terra main 으로 빌드한 CLI 의
+#     `module inspect` 로 모든 .tmod 를 다시 판정한다. Terra main 의 builtin_keys.json 이
+#     그 키를 기대한 tier 로 모르면 **릴리스가 선다.** 키를 모르는 Terra 에 서명된 모듈은
+#     미서명보다 나쁘기 때문이다(dev 모드에서도 격리된다 — ADR-MD-005 §1).
+#   - 시크릿이 없거나, signing.json 의 keyId 가 비었거나, 시크릿의 키가 그 keyId 가 아니면
+#     선다. 조용히 미서명으로 내보내지 않는다(G-12).
+#
+# 사람이 한 번 해야 하는 일(키 생성·공개키 등록·시크릿): Terra
+# docs/architecture/operations/module-signing-key-procedure.md
 
 name: Release
 
@@ -36,6 +48,8 @@ jobs:
   release:
     name: Pack and publish
     runs-on: [self-hosted, linux, x64, docker, homelab]
+    # 서명 키는 이 환경의 시크릿이다. 보호 규칙(승인자)은 환경 설정에서 건다.
+    environment: module-signing
     steps:
       - uses: actions/checkout@v4
         with:
@@ -118,6 +132,19 @@ jobs:
         working-directory: modules
         run: node tools/test-web.mjs
 
+      # 키 파일은 포장 바로 앞에서 쓴다 — 모듈 코드를 돌리는 빌드·시험 단계가 끝난 뒤.
+      # write-keys 가 시크릿의 키를 signing.json 의 keyId 와 대조하고, 하나라도 틀리면
+      # 아무것도 쓰지 않고 선다.
+      - name: Write the signing keys
+        working-directory: modules
+        env:
+          MODULE_SIGNING_KEY_BUILTIN: ${{ secrets.MODULE_SIGNING_KEY_BUILTIN }}
+          MODULE_SIGNING_KEY_STELLAXIA: ${{ secrets.MODULE_SIGNING_KEY_STELLAXIA }}
+        run: |
+          set -euo pipefail
+          umask 077
+          node tools/signing.mjs write-keys --signing signing.json --out "$RUNNER_TEMP/module-signing"
+
       # 타깃마다 따로 굽는다. 실측: 타깃 셋을 선언한 모듈을 안 좁히고 포장하면
       # 자산 하나가 4.9 MB → 14.3 MB 로 2.9배가 되고, 리눅스 노드가 윈도우·arm
       # 바이너리까지 받는다.
@@ -128,7 +155,24 @@ jobs:
             --cli "$RUNNER_TEMP/terra" \
             --terra "$GITHUB_WORKSPACE/terra" \
             --tag "$GITHUB_REF_NAME" \
-            --out "$RUNNER_TEMP/dist"
+            --out "$RUNNER_TEMP/dist" \
+            --signing signing.json \
+            --key-dir "$RUNNER_TEMP/module-signing"
+
+      - name: Remove the signing keys
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/module-signing"
+
+      # pack 의 성공은 "서명을 붙였다"까지다. 노드가 믿는지는 Terra 의 keyring 이 정하고,
+      # 이 CLI 는 Terra main 으로 빌드됐다 — 그래서 이 단계가 "Terra main 이 이 패키지를
+      # 기대한 키·tier 로 믿는다"를 확인한다. 하나라도 아니면 업로드하지 않는다.
+      - name: Verify signatures as Terra would
+        working-directory: modules
+        run: |
+          node tools/verify-signatures.mjs \
+            --cli "$RUNNER_TEMP/terra" \
+            --dist "$RUNNER_TEMP/dist" \
+            --signing signing.json
 
       # 독립적으로 한 번 더 센다. pack-modules 의 훑기가 조용히 한 tier 를
       # 빠뜨려도 여기서 걸린다 — 셸이 세는 수와 스크립트가 적은 수가 달라진다.
