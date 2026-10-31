@@ -1,19 +1,42 @@
 {
-  "$comment": "자리 표시 화면 — 화면은 웹 앱(Terra GUI v3)이다. bind 도 핸들러도 없다 — Store 와 Function 을 선언하지 않는다.",
+  "$comment": "엘리먼트는 custom 하나이고 Fragment 루트다 — 셸의 [data-scene-root]:has(> [data-component='terra.web/frame']) 규칙이 틀을 벗겨 창 전체를 준다. terra.web/frame 이 props.app 의 앱을 앱별 origin 의 sandbox iframe 으로 띄우고 스코프 토큰을 건넨다. bind 는 session Store 전체(state · principal)를 웹에 terra.frame.value 로, on 은 웹의 login · logout · launch 를 Function 으로 받는다.",
   "schemaVersion": "0.1.0",
   "id": "gui-v3.main",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "renderer": "dom.basic",
   "title": "Terra GUI v3",
+  "stores": [
+    "session"
+  ],
+  "functions": [
+    "gui-v3.login.open",
+    "gui-v3.signout",
+    "gui-v3.app.launch"
+  ],
   "root": {
-    "type": "column",
-    "id": "root",
-    "align": "center",
-    "justify": "center",
-    "a11y": { "role": "region", "label": "Terra GUI v3" },
-    "children": [
-      { "type": "text", "id": "title", "variant": "heading", "text": "Terra GUI v3" },
-      { "type": "text", "id": "note", "text": "화면은 앱 목록의 Terra GUI v3 로 연다" }
-    ]
+    "type": "custom",
+    "id": "frame",
+    "component": "terra.web/frame",
+    "props": {
+      "app": "lab.stellaxia.gui-v3.web"
+    },
+    "bind": {
+      "store": "session",
+      "path": ""
+    },
+    "on": {
+      "login": {
+        "function": "gui-v3.login.open"
+      },
+      "logout": {
+        "function": "gui-v3.signout"
+      },
+      "launch": {
+        "function": "gui-v3.app.launch"
+      }
+    },
+    "a11y": {
+      "label": "Terra GUI v3"
+    }
   }
 }

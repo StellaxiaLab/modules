@@ -1,0 +1,10 @@
+{
+  "$comment": "이 Scene의 로그인 상태. main Fragment의 frame이 bind로 웹에 건넨다(terra.frame.value) — 웹은 이것으로 로그아웃을 보일지 정한다. 입력칸 값(비밀번호)이 든 signin과 일부러 나눴다: bind된 값은 웹으로 가기 때문이다. memory lifetime이라 Route를 바꿔도 남는다.",
+  "schemaVersion": "0.1.0",
+  "id": "session",
+  "kind": "memory",
+  "initial": {
+    "state": "signedOut",
+    "principal": ""
+  }
+}

@@ -8,7 +8,7 @@ scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
 version: "0.1.0"
-last_updated: "2026-10-29"
+last_updated: "2026-10-31"
 language: "ko-KR"
 based_on: "Terra main 74f3504a(2026-10-29) — 계약 셋(daemon 78 · master 195 · gateway 54 operation)과 Gateway 인증 · 위임 코드를 읽음. 빌드 · 실행은 하지 않음. GUI 쪽은 캔버스 버전 264(web/design)"
 os_priority:
@@ -23,6 +23,8 @@ related:
   - "[[web-architecture|GUI v3 웹 구조]]"
   - "[[backend|v3 모듈 백엔드 설계]]"
 ---
+
+> **2026-10-31 갱신** — Terra origin/main 5c6ace6c 기준으로 두 줄(uninstall op · assignments 위임)과 '셸 모드'만 맞췄다(나머지 표는 74f3504a 기준 그대로). 이후 코어 변화 요약은 [[replacement-readiness]] §1.
 
 # Terra 도달 분석 — GUI v3가 끌어낼 수 있는 것
 
@@ -146,12 +148,12 @@ flowchart LR
 | 기능 | 어디로 | GUI v3 |
 | --- | --- | --- |
 | kind — application · runtime · scene · service · adapter · extension | 매니페스트 v2 | 노드 폴더 › 모듈의 종류 표시(시안은 service · scene · runtime · extension · core) |
-| 수명 — install · scan · start · stop · restart · uninstall | daemon(node.control · module.manage) · Gateway | 모듈 상태 창 · 제어기 › 모듈. install 은 API 가 아니라 `terra module install`(commands.execute, 로컬) |
+| 수명 — install · scan · start · stop · restart · uninstall | daemon(node.control · module.manage) · Gateway | 모듈 상태 창 · 제어기 › 모듈. **uninstall 은 daemon op `POST /modules/{id}/uninstall` 이 생겼다(Terra #237, module.manage · local · cluster)**. install 은 daemon API 가 아니라 `terra module install`(commands.execute, 로컬) — 앱 자격으로 깔게 하는 길은 아래 assignments |
 | enable · disable · rollback | Gateway 만 — daemon 백엔드 501 | 넣지 않는다 |
 | config — `configuration.schema` (`x-terra-secret` · `x-terra-restart`) | daemon config get · schema · patch | 제어기 › 모듈 › 설정 — 비밀 값 가림 · 재시작 표시를 스키마로 |
 | logs | daemon · Gateway | 모듈 상태 창 › 최근 로그 |
 | offers · consent · withdraw | daemon(node.control) | 제어기 › 모듈 (제안) |
-| Tree 배포 — publications · rollout · promotions · node assignments | Master(module.publish · approve) + assignments(위임, module.manage) | 설정 › Tree › 배포 — 배포 지정만 앱 자격으로 됨 |
+| Tree 배포 — publications · rollout · promotions · node assignments | Master(module.publish · approve) + assignments(위임, module.manage) | 설정 › Tree › 배포 — 배포 지정만 앱 자격으로 됨. **`POST/DELETE /api/v1/nodes/{node_id}/modules/assignments` 가 앱 토큰 위임에 열렸다(Terra #236, ADR-GW-008 B1, 계약 1.7.0)** — GUI '모듈 설치'의 길(Tree 가 그 노드에 지정 → 노드가 동의 후 받아 설치) |
 | contributions — `gui.apps`(static · proxied · window, 늘 sandboxed, capabilities blob-images · workers · wasm) · `gui.scenes` · `gui.extensions` · `cli` · service 어댑터 · `svi.sink` | Gateway 발견 길(`/api/v1/gui/*` · `/api/v1/cli/commands`) | 앱 → 브라우저 창. scenes · extensions · cli 는 아직 화면 없음 |
 
 ## 5. 막히는 이유 — 다섯 가지
