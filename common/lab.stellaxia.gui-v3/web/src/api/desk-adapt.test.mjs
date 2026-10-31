@@ -1,7 +1,7 @@
 // node --test — 노드 데스크톱의 실제 응답 → 보드 모양(터널 · 등록 · 모듈 로그 · 모듈 앱)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tunnels, enroll, logLines, moduleApps, offers, ago } from './desk-adapt.js';
+import { tunnels, enroll, logLines, moduleApps, offers, cfgFields, castCfg, taskOutput, ago } from './desk-adapt.js';
 
 const NOW = Date.parse('2026-10-31T12:00:00Z');
 
@@ -43,4 +43,31 @@ test('offers — Daemon 동의 상태를 보드의 세 칸으로, 권한 · 지�
   assert.deepEqual(r.map((x) => x.st), ['wait', 'consent', 'done', 'wait']);
   assert.equal(r[2].by, 'auto');
   assert.deepEqual(offers({}), []);
+});
+
+test('cfgFields — 스키마 최상위 키가 칸, 비밀은 빼고, 값이 없으면 기본값, 재시작 표시', () => {
+  const schema = { schema: { type: 'object', properties: {
+    maxFileMB: { type: 'integer', default: 8, title: '파일 하나 한도 (MiB)', 'x-terra-restart': true },
+    mode: { type: 'string', enum: ['a', 'b'], default: 'a' }, on: { type: 'boolean' }, tags: { type: 'array' },
+    token: { type: 'string', 'x-terra-secret': true }, key2: { type: 'string' } } }, secret_keys: ['key2'] };
+  const r = cfgFields(schema, { values: { maxFileMB: 16, tags: ['x'], on: true }, revision: 3, restart_pending: true });
+  assert.deepEqual(r.fields, [['maxFileMB', '파일 하나 한도 (MiB)', 'text', '16', null, true, 'integer'], ['mode', 'mode', 'sel', 'a', ['a', 'b'], false, 'string'], ['on', 'on', 'bool', true, null, false, 'boolean'], ['tags', 'tags', 'text', '["x"]', null, false, 'json']]);
+  assert.deepEqual(r.secrets.sort(), ['key2', 'token']); assert.equal(r.revision, 3); assert.equal(r.restartPending, true);
+  assert.deepEqual(cfgFields(null, null).fields, []);
+});
+
+test('castCfg — 저장할 때 스키마 형으로, 틀리면 화면 말', () => {
+  assert.equal(castCfg(['n', 'N', 'text', '', null, false, 'integer'], '12'), 12);
+  assert.throws(() => castCfg(['n', 'N', 'text', '', null, false, 'integer'], '1.5'), /정수/);
+  assert.deepEqual(castCfg(['t', 'T', 'text', '', null, false, 'json'], '["a"]'), ['a']);
+  assert.throws(() => castCfg(['t', 'T', 'text', '', null, false, 'json'], '[a'), /JSON/);
+  assert.equal(castCfg(['s', 'S', 'text', '', null, false, 'string'], 'x'), 'x');
+  assert.equal(castCfg(['b', 'B', 'bool', true, null, false, 'boolean'], false), false);
+});
+
+test('taskOutput — 조각을 줄로, stderr 는 표시, 버린 것 · 안 남김은 말로', () => {
+  const r = taskOutput({ captured: true, state: 'running', chunks: [{ seq: 1, stream: 'stdout', text: 'a\n' }, { seq: 2, stream: 'stderr', text: 'b\n' }], dropped: { bytes: 10 } });
+  assert.equal(r.text, 'a\n! b'); assert.match(r.note, /10바이트/); assert.equal(r.done, false);
+  assert.equal(taskOutput({ captured: false, complete: true }).note, '이 작업은 출력을 남기지 않는다');
+  assert.equal(taskOutput(null).text, '');
 });

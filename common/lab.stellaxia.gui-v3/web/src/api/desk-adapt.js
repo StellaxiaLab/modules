@@ -5,6 +5,8 @@
 //   enroll    terra.daemon.enrollment.status.get { enabled, registered, node_id, master_url, registered_at, credential_ready }
 //   logLines  terra.daemon.modules.by-module-id.logs.get { module_id, lines: [{ at, stream, text }], truncated }
 //   offers    terra.daemon.modules.offers.get    { offers: [{ module_id, version, state: offered|accepted|stale|managed|pinned, permissions, installed_version, published_by, pinned_by }] }
+//   cfgFields terra.daemon.modules.by-module-id.config.schema.get { schema, secret_keys } + config.get { values, revision, restart_pending }
+//   taskOutput terra.daemon.tasks.by-task-id.output.get { captured, state, chunks: [{ seq, stream, text }], dropped: { bytes }, complete, truncated } — process.execute
 //   moduleApps  Gateway 앱 목록(GET /api/v1/gui/apps)의 그 모듈 것 — embed 앱(Scene 안에서만 뜬다)은 뺀다
 
 const arr = (d, k) => (Array.isArray(d) ? d : (d && Array.isArray(d[k]) ? d[k] : []));
@@ -56,4 +58,41 @@ const OFFER_ST = { offered: 'wait', stale: 'wait', accepted: 'consent', managed:
 export function offers(d) {
   return arr(d, 'offers').map((f) => ({ id: f.module_id, name: f.module_id, ver: f.version || '', size: '', by: f.pinned_by || f.published_by || f.policy || '',
     perms: Array.isArray(f.permissions) ? f.permissions : [], st: OFFER_ST[f.state] || 'wait', state: f.state || '' }));
+}
+
+/**
+ * 모듈 설정 스키마 · 값 → 보드의 칸 [키, 이름, 'bool'|'sel'|'text', 값, 고르기|null, 저장하면 재시작, json 형]
+ *   칸 = configuration.schema 의 최상위 키(node-gui cfgForm 과 같은 규칙). 비밀(x-terra-secret · secret_keys)은 칸에 내지 않는다 — 값을 보이지 않는다
+ *   값은 글로 들고(입력칸), 저장할 때 castCfg 로 스키마 형에 맞춘다
+ * @returns {{ fields: any[][], secrets: string[], revision: number|null, restartPending: boolean }}
+ */
+export function cfgFields(schemaData, cfgData) {
+  const sc = (schemaData && schemaData.schema) || {}, props = sc.properties || {}, vals = (cfgData && cfgData.values) || {};
+  const secrets = [...new Set([].concat((schemaData && schemaData.secret_keys) || [], Object.keys(props).filter((k) => props[k] && props[k]['x-terra-secret'])))];
+  const fields = Object.keys(props).filter((k) => !secrets.includes(k)).map((k) => {
+    const p = props[k] || {}, v = k in vals ? vals[k] : p.default, jt = Array.isArray(p.type) ? p.type.find((x) => x !== 'null') : p.type;
+    const kind = Array.isArray(p.enum) ? 'sel' : jt === 'boolean' ? 'bool' : 'text';
+    const shown = kind === 'bool' ? !!v : v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+    return [k, p.title || k, kind, shown, kind === 'sel' ? p.enum.map(String) : null, !!p['x-terra-restart'], jt === 'integer' || jt === 'number' ? jt : jt === 'array' || jt === 'object' ? 'json' : jt || 'string'];
+  });
+  return { fields, secrets, revision: cfgData && cfgData.revision != null ? cfgData.revision : null, restartPending: !!(cfgData && cfgData.restart_pending) };
+}
+
+/** 입력칸의 글 → 스키마 형. 못 바꾸면 Error(화면 말) */
+export function castCfg(field, v) {
+  const jt = field && field[6];
+  if (jt === 'integer' || jt === 'number') { const n = Number(v); if (v === '' || !Number.isFinite(n) || (jt === 'integer' && !Number.isInteger(n))) throw new Error((field[1] || field[0]) + ' — ' + (jt === 'integer' ? '정수' : '수') + '를 적어야 해요'); return n; }
+  if (jt === 'json') { try { return JSON.parse(v); } catch { throw new Error((field[1] || field[0]) + ' — JSON 꼴이 아니에요'); } }
+  return v;
+}
+
+/** 작업 출력 → 출력 칸의 글 + 머리 말. 따라가기(SSE)는 하지 않는다 — 도는 작업은 보드가 몇 초마다 다시 읽는다 */
+export function taskOutput(d) {
+  const p = d || {}, chunks = Array.isArray(p.chunks) ? p.chunks : [];
+  const text = chunks.map((c) => (c.stream === 'stderr' ? '! ' : '') + String(c.text ?? '').replace(/\n$/, '')).join('\n');
+  const notes = [];
+  if (p.captured === false) notes.push('이 작업은 출력을 남기지 않는다');
+  if (p.dropped && p.dropped.bytes) notes.push('앞 ' + p.dropped.bytes + '바이트는 버려졌다(보관 한도)');
+  if (p.truncated || p.more) notes.push('끝 부분만');
+  return { text, note: notes.join(' · '), done: !!p.complete, state: p.state || '' };
 }

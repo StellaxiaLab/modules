@@ -364,7 +364,7 @@ button{font-family:inherit}
               <div style="flex-grow: 1; min-height: 0; overflow: hidden; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;">
                 <div style="display: flex; gap: 10px; padding: 4px 8px; font-size: 11px; color: {{t.dim}};"><span style="width: 62px;">번호</span><span style="flex-grow: 1;">작업</span><span style="width: 120px;">operation</span><span style="width: 120px;">진행</span><span style="width: 64px;"></span></div>
                 <sc-for list="{{w.jobs}}" as="jb" hint-placeholder-count="4">
-                  <div style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; background: {{t.raise}};">
+                  <div onClick="{{jb.pick}}" style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; background: {{jb.rowBg}}; cursor: pointer;">
                     <span style="width: 62px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.dim}};">{{jb.id}}</span>
                     <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{jb.name}}</span>
                     <span style="width: 120px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.sub}};">{{jb.op}}</span>
@@ -375,6 +375,10 @@ button{font-family:inherit}
                     <span style="width: 64px; text-align: right;"><sc-if value="{{jb.canCancel}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{jb.cancel}}" style="height: 24px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 11.5px; cursor: pointer;">취소</button></sc-if></span>
                   </div>
                 </sc-for>
+                <sc-if value="{{w.out.on}}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top: 6px; display: flex; gap: 8px; font-size: 11px; color: {{t.dim}};"><span>출력 · {{w.out.id}}</span><span style="flex-grow: 1;"></span><span>{{w.out.note}}</span></div>
+                  <pre style="flex-grow: 1; min-height: 60px; margin: 0; padding: 8px; overflow: auto; border-radius: 7px; background: {{t.raise}}; color: {{t.sub}}; font: 11.5px/1.45 'JetBrains Mono',ui-monospace,monospace; white-space: pre-wrap;">{{w.out.text}}</pre>
+                </sc-if>
               </div>
             </sc-if>
 
@@ -802,7 +806,7 @@ class Component extends DCLogic {
     const key = this.nodeKey(); if (this._bound === key) return;
     if (this._bound) { clearTimeout(this._vt); this.viewSave(this._bound); }
     const v = this.viewLoad(key), base = JSON.parse(JSON.stringify(this._v0));
-    Object.assign(this.state, base, v || {}, { nd: null, menu: null, ov: null, lau: false, iconSel: null, fmPick: null, ndDraft: null, tnDraft: null, modCfg: null, inst: null, asg: null, nxMsg: '', save: 'saved' });
+    Object.assign(this.state, base, v || {}, { nd: null, menu: null, ov: null, lau: false, iconSel: null, fmPick: null, ndDraft: null, tnDraft: null, modCfg: null, inst: null, asg: null, jobSel: null, nxMsg: '', save: 'saved' });
     this._bound = key; this._vj = JSON.stringify(this.viewPick(this.state));
     if (!this._un && this.TN()) this._un = this.TN().subscribe((n) => { if (n === this._bound) this.setState({}); });
   }
@@ -864,6 +868,25 @@ class Component extends DCLogic {
     if (r.err && !rows.length) return [{ t: '', cls: 'err', msg: '로그를 못 받음 · ' + r.err.code }];
     return rows.length ? rows.slice(-200) : [{ t: '', cls: 'info', msg: r.loading ? '받는 중…' : '로그 없음' }];
   }
+  // 작업 출력 — 실제 노드에서 고른 작업의 stdout · stderr(tasks.by-task-id.output.get · process.execute). 도는 동안은 3초마다 다시 읽는다
+  jobOut(id, t) {
+    const N = this.nd(), T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null, j = id && (N.jobs || []).find((x) => x.id === id);
+    if (!j || !N.real || !T || !A) return { on: false };
+    const r = T.read(this.nodeKey(), 'terra.daemon.tasks.by-task-id.output.get', { input: { task_id: j.id, tail: 400 }, ttl: j.st === 'run' ? 3000 : 60000 });
+    const O = r.data ? A.taskOutput(r.data) : { text: '', note: '' };
+    return { on: true, id: j.id, text: O.text || (r.err ? '출력을 못 받음 · ' + r.err.code : r.loading ? '받는 중…' : '(출력 없음)'), note: O.note };
+  }
+  // 모듈 설정 칸 — 실제 노드면 그 모듈이 선언한 configuration.schema 와 지금 값(config.schema.get · config.get)으로 폼을 짓는다. 시안이면 씨앗 칸
+  withCfg(M, on) {
+    const N = this.nd(), T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null;
+    if (!N.real || !T || !A || !M.id || !on) return M;
+    const n = this.nodeKey(), inp = { module_id: M.id };
+    const sc = T.read(n, 'terra.daemon.modules.by-module-id.config.schema.get', { input: inp, ttl: 60000 }), cv = T.read(n, 'terra.daemon.modules.by-module-id.config.get', { input: inp, ttl: 10000 });
+    if (!sc.data) return Object.assign({}, M, { cfg: [] });
+    const F = A.cfgFields(sc.data, cv.data);
+    return Object.assign({}, M, { cfg: F.fields, cfgRev: F.revision, cfgReal: true, cfgSecrets: F.secrets });
+  }
+  castCfg(M, k, v) { const A = typeof window !== 'undefined' ? window.TerraDesk : null, f = (M.cfg || []).find((c) => c[0] === k); return A && M.cfgReal ? A.castCfg(f, v) : v; }
   // 모듈의 앱 — 실제 노드(로컬)면 Gateway 앱 목록(window.TerraGuiApps)의 그 모듈 것. 원격 노드의 앱 목록은 아직 안 받는다(빈 칸)
   modApps(M) {
     const N = this.nd(), A = typeof window !== 'undefined' ? window.TerraDesk : null;
@@ -884,7 +907,7 @@ class Component extends DCLogic {
     const L = this.link(); if (L.ro) { this.say('노드와 끊김 — 읽기 전용 · 돌아오면 다시 (쌓아 두지 않는다)'); return; }
     const base = this.nd();
     if (base.empty) { this.say('아직 받는 중 — 잠시 뒤에'); return; }
-    T.write(this.nodeKey(), op || 'gui-v3.desk.patch', input || {}, { res: 'desk', refresh: !!op, apply: (d) => { const c = JSON.parse(JSON.stringify(d || base)); fn(c); return c; } })
+    return T.write(this.nodeKey(), op || 'gui-v3.desk.patch', input || {}, { res: 'desk', refresh: !!op, apply: (d) => { const c = JSON.parse(JSON.stringify(d || base)); fn(c); return c; } })
       .catch((e) => this.say('못 함 · ' + ((e && e.message) || (e && e.code) || '오류')));
   }
   ndSeed(nm) {
@@ -1260,7 +1283,8 @@ class Component extends DCLogic {
         o.saveText = s.save === 'saving' ? '노드 계정 stk에 저장하는 중…' : '노드 계정 stk에 저장됨 — 다른 기기에서 열어도 같은 바탕화면이 나온다.';
       }
       if (id === 'jobs') {
-        o.jobs = (this.nd().jobs || []).map((j) => { const L = this.jobLabel(j), c = this.chip(L.c); return { id: j.id, name: j.name, op: j.op, label: L.label, fg: c.fg, bd: c.bd, bg: c.bg, pct: j.st === 'run' || j.st === 'stall' ? j.pct + '%' : '', canCancel: j.st === 'run' || j.st === 'stall', cancel: () => { this.ndSet((d) => { d.jobs = d.jobs.map((x) => x.id === j.id ? { ...x, st: 'cancel' } : x); }, 'terra.daemon.tasks.by-task-id.cancel.post', { task_id: j.id }); } }; });
+        o.out = this.jobOut(s.jobSel, t);
+        o.jobs = (this.nd().jobs || []).map((j) => { const L = this.jobLabel(j), c = this.chip(L.c); return { pick: () => this.setState({ jobSel: s.jobSel === j.id ? null : j.id }), rowBg: s.jobSel === j.id ? t.raiseH : t.raise, id: j.id, name: j.name, op: j.op, label: L.label, fg: c.fg, bd: c.bd, bg: c.bg, pct: j.st === 'run' || j.st === 'stall' ? j.pct + '%' : '', canCancel: j.st === 'run' || j.st === 'stall', cancel: () => { this.ndSet((d) => { d.jobs = d.jobs.map((x) => x.id === j.id ? { ...x, st: 'cancel' } : x); }, 'terra.daemon.tasks.by-task-id.cancel.post', { task_id: j.id }); } }; });
       }
       o.nx = { theme: dark ? 'nx-dark' : 'nx-light', remote: this.remote(), msg: s.nxMsg || '' };
       // ── 자원 관리 — 장치(io-inventory) · 자원 선언(SVI) · 공유 폴더(config) · 서비스 터널 ──
@@ -1325,7 +1349,7 @@ class Component extends DCLogic {
         X.vInst = v === 'inst'; X.vAdd = v === 'add'; X.vOffer = v === 'offer';
         const STM = { run: ['실행 중', 'ok'], restart: ['다시 시작 중', 'warn'], stop: ['멈춤', 'off'] }, ms = Math.min(s.modSel || 0, N.mods.length - 1);
         X.mods = N.mods.map((m, i) => ({ name: m.name, id: m.id, ver: m.ver, on: i === ms ? 'true' : 'false', cls: i === ms ? 'on' : '', stCls: m.en ? STM[m.st][1] : 'off', pick: () => this.setState({ modSel: i, modCfg: null }) }));
-        const M = N.mods[ms] || N.mods[0] || { name: '—', id: '', ver: '', st: 'stop', trust: '', kind: '', src: '', prev: '', perms: [], ops: [], apps: [], cfg: [] }, mt = s.modTab || 'cfg';
+        const mt = s.modTab || 'cfg', M = this.withCfg(N.mods[ms] || N.mods[0] || { name: '—', id: '', ver: '', st: 'stop', trust: '', kind: '', src: '', prev: '', perms: [], ops: [], apps: [], cfg: [] }, mt === 'cfg');
         if (M) {
           const st = M.en ? STM[M.st] : ['꺼짐', 'off'], cd = s.modCfg && s.modCfg.id === M.id ? s.modCfg.v : null, cv = (k, d) => (cd && k in cd ? cd[k] : d), setC = (k, val) => this.setState({ modCfg: { id: M.id, v: Object.assign({}, cd || {}, { [k]: val }) } });
           const cfgDirty = cd ? Object.keys(cd).filter((k) => { const c = M.cfg.find((x) => x[0] === k); return c && c[3] !== cd[k]; }) : [];
@@ -1335,7 +1359,7 @@ class Component extends DCLogic {
             tCfg: mt === 'cfg', tLog: mt === 'log', tOps: mt === 'ops', tApp: mt === 'app', noCfg: !M.cfg.length,
             cfg: M.cfg.map(([k, label, type, val, opts, rs]) => { const cur = cv(k, val); return { label, note: k, rs, dis: null, ro: null, isBool: type === 'bool', isSel: type === 'sel', isText: type === 'text', on: cur ? 'true' : 'false', swCls: cur ? 'on' : '', flip: () => setC(k, !cur), opts: opts ? this.seg(opts, cur, (x) => setC(k, x)) : [], v: String(cur), input: (e) => setC(k, e.target.value) }; }),
             cfgDirty: cfgDirty.length ? '바뀐 ' + cfgDirty.length + (cfgDirty.some((k) => (M.cfg.find((x) => x[0] === k) || [])[5]) ? ' · 저장하면 모듈 다시 시작' : '') : '',
-            cfgBtns: [this.btn('되돌리기', () => this.setState({ modCfg: null }), { off: !cfgDirty.length }), this.btn('저장', () => { const vals = {}; cfgDirty.forEach((k) => { vals[k] = cd[k]; }); this.ndSet((d) => { const mm = d.mods[ms]; mm.cfg.forEach((c) => { if (cd && c[0] in cd) c[3] = cd[c[0]]; }); }, 'terra.daemon.modules.by-module-id.config.patch', { module_id: M.id, values: vals }); this.setState({ modCfg: null }); this.say(M.name + ' 설정 저장 (module.manage)'); }, { off: !cfgDirty.length, pri: !!cfgDirty.length })],
+            cfgBtns: [this.btn('되돌리기', () => this.setState({ modCfg: null }), { off: !cfgDirty.length }), this.btn('저장', () => { const vals = {}; try { cfgDirty.forEach((k) => { vals[k] = this.castCfg(M, k, cd[k]); }); } catch (e) { this.say(e.message); return; } const inp = { module_id: M.id, values: vals }; if (M.cfgRev != null) inp.base_revision = M.cfgRev; const sent = this.ndSet((d) => { const mm = d.mods[ms]; mm.cfg.forEach((c) => { if (cd && c[0] in cd) c[3] = cd[c[0]]; }); }, 'terra.daemon.modules.by-module-id.config.patch', inp); if (M.cfgReal && sent) sent.then(() => this.TN().refresh(this.nodeKey(), 'terra.daemon.modules.by-module-id.config.get', { module_id: M.id })); this.setState({ modCfg: null }); this.say(M.name + ' 설정 저장 (module.manage)'); }, { off: !cfgDirty.length, pri: !!cfgDirty.length })],
             logs: this.modLogs(M, mt === 'log') || [['09:12:03', 'info', 'started · pid 4182'], ['09:12:03', 'info', 'readiness ok'], ['10:40:17', 'info', 'config reloaded'], ['10:58:42', M.st === 'restart' ? 'warn' : 'info', M.st === 'restart' ? 'health check failed — restarting' : 'lease renewed'], ['11:02:10', 'info', M.ops[0] + ' 200 · 12ms']].map(([tt, lv, msg]) => ({ t: tt, cls: lv, msg })),
             perms: M.perms, opsN: M.ops.length, ops: M.ops.map((x) => ({ id: M.id + '.' + x, perm: /list|get|status/.test(x) ? 'node.read' : M.perms[M.perms.length - 1] })),
             noApps: !this.modApps(M).length, apps: this.modApps(M).map((a) => ({ name: a.name, id: a.full ? a.id : M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
@@ -1398,6 +1422,12 @@ class Component extends DCLogic {
           X.wgApi = this.api('terra.daemon.wireguard.{status, peers}.get');
           X.peers = N.peers.map(([nn, ep, hs, rx, tx, c]) => ({ node: nn, ep, hs, rx, tx, st: c === 'ok' ? '직접' : '중계', cls: c }));
           X.wgBtns = [this.btn('동기화', () => this.say('Master 와 피어 동기화 — wireguard.sync')), this.btn(W.up ? '내리기' : '올리기', () => this.ndSet((d) => { d.wg.up = !d.wg.up; }), { local: true, dan: W.up }), this.btn('다시 적용', () => this.say('wg0 다시 적용'), { local: true })];
+          if (N.real) {   // 실제 노드 — Daemon 의 WireGuard op(node.control). 올리기 · 다시 적용 = apply, 내리기 = down, 동기화 = Master 와 피어 맞추기(sync)
+            const wi = W.iface ? { interface_name: W.iface } : {};
+            X.wgBtns = [this.btn('동기화', () => { this.ndSet(() => {}, 'terra.daemon.wireguard.sync.post', {}); this.say('Master 와 피어 동기화 요청'); }, { local: true }),
+              this.btn(W.up ? '내리기' : '올리기', () => { this.ndSet((d) => { d.wg.up = !d.wg.up; }, W.up ? 'terra.daemon.wireguard.down.post' : 'terra.daemon.wireguard.apply.post', wi); this.say((W.iface || 'wg') + (W.up ? ' 내림' : ' 올림')); }, { local: true, dan: W.up }),
+              this.btn('다시 적용', () => { this.ndSet(() => {}, 'terra.daemon.wireguard.apply.post', wi); this.say((W.iface || 'wg') + ' 다시 적용'); }, { local: true, off: !W.up })];
+          }
         }
         if (s.setTab === 'enroll') { X.enApi = this.api('terra.daemon.enrollment.{status.get, code.post}');
           X.en = Object.assign({}, N.en, { ro: R || N.real ? 'readonly' : null, codeIn: (e) => this.ndSet((d) => { d.en.code = e.target.value; }), btns: [this.btn('등록', () => this.say(/^TR-\w{4}$/.test(N.en.code) ? N.en.code + ' 로 등록 요청' : '코드 꼴: TR-XXXX'), { local: true, off: !N.en.code || N.real, tip: N.real ? '등록은 설치기 · terra enroll 로 — 앱 권한에 node.enroll 없음' : '' })] });
