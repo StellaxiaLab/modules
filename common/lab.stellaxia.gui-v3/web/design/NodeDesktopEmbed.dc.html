@@ -1200,7 +1200,7 @@ class Component extends DCLogic {
     o.path = loc.root + ':/' + rel;
     o.items = items.map((i) => ({ name: i.name, size: i.size, d: i.dir ? D.folder : D.doc, fg: i.dir ? '#f0a63a' : t.sub, tag: i.locked ? '🔒' : i.up ? '' : i.time, tagC: t.dim, bg: pick && pick.path === i.path ? t.raiseH : 'transparent',
       pick: () => { if (i.up) return go({ fmRel: i.path }); if (i.dir && !i.locked && s.fmPick === i.path) return go({ fmRel: i.path }); this.setState({ fmPick: i.path }); } }));
-    if (!items.length) o.items = [{ name: L && L.loading ? '받는 중…' : L && L.err ? '못 받음 · ' + L.err.code : '빈 폴더', size: '', d: D.doc, fg: t.dim, tag: '', tagC: t.dim, bg: 'transparent', pick: () => {} }];
+    if (!items.length) o.items = [{ name: loc.locked ? '🔒 읽을 수 없는 뿌리 — ' + loc.reason : L && L.loading ? '받는 중…' : L && L.err ? '못 받음 · ' + L.err.code : '빈 폴더', size: '', d: D.doc, fg: t.dim, tag: '', tagC: t.dim, bg: 'transparent', pick: () => {} }];
     o.detail = !pick ? '항목을 고르면 여기에 설명이 나온다. 폴더는 다시 누르면 들어간다.' : pick.name + (pick.locked ? ' — 🔒 ' + pick.reason : ' — ' + (pick.dir ? '폴더' : '파일 · ' + pick.size) + (pick.time ? ' · ' + pick.time : '')) + (share ? '' : ' · 로컬 탐색은 읽기만');
     o.noPick = !pick || !share; o.rmLabel = share ? '노드에서 지우기' : '지우기(읽기만)'; o.rmFg = pick && share ? '#ff6b6b' : t.dim; o.rmBd = pick && share ? 'rgba(255,107,107,.5)' : t.line2;
     const after = () => T.refresh(n, listOp, inp);
@@ -1473,7 +1473,7 @@ class Component extends DCLogic {
           const setK = (k, val) => this.ndSet((d) => { d.cfg[k] = val; delete d.cfgErr[k]; });
           X.keys = ROWS.filter((c) => (q ? (c[1] + ' ' + c[2]).toLowerCase().includes(q) : c[0] === g)).map(([gg, k, label, type, def, opt, own, rs]) => { const val = N.cfg[k], ro = own !== 'O' || R, err = N.cfgErr[k] || '';
             return { k, label, err, errCls: err ? 'bad' : '', isBool: type === 'bool' && !ro, isSel: type === 'sel' && !ro, isText: type === 'text' || ro, on: val ? 'true' : 'false', swCls: val ? 'on' : '', dis: ro ? 'disabled' : null, flip: () => setK(k, !val),
-              opts: Array.isArray(opt) ? this.seg(opt, val, (x) => setK(k, x)) : [], v: typeof val === 'boolean' ? (val ? '켬' : '끔') : String(val), ph: typeof opt === 'string' ? opt : '', ro: ro ? 'readonly' : null, input: (e) => setK(k, e.target.value),
+              opts: Array.isArray(opt) ? this.seg(opt, val, (x) => setK(k, x)) : [], v: typeof val === 'boolean' ? (val ? '켬' : '끔') : val == null ? '' : String(val), ph: typeof opt === 'string' ? opt : '', ro: ro ? 'readonly' : null, input: (e) => setK(k, e.target.value),
               tag: own !== 'O' ? '읽기 · 파생' : R ? '읽기 · 원격' : rs ? '재시작' : '즉시', tagCls: own !== 'O' || R ? '' : rs ? 'warn' : 'ok' }; });
           const rsN = dk.filter((k) => rowOf(k)[7]).length;
           X.dirtyT = (dk.length ? '바뀐 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음') + (N.needRestart ? ' · 다시 시작 대기 ' + N.needRestart : '') + (this.help() ? ' — validate → patch{save} → apply · restart' : '');
