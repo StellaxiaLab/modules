@@ -43,3 +43,14 @@ test('nodeStats — 하트비트 자원 스냅샷 · 상태 · 마지막 하트�
   const T = buildTopology([{ node_id: 't', roles: ['tree'], display_name: 'home' }, { node_id: 'l', parent_node_id: 't', resource: { cpu_percent: 5 } }]);
   assert.equal(T.node('l').resource.cpu_percent, 5); assert.equal(T.node('x'), null);
 });
+
+test('단독 리프 — 부모가 없는 리프는 이름 없는 Tree(Master 자신, rid 없음) 아래로, 로컬도 그 안에서 찾는다', () => {
+  const T = buildTopology([{ node_id: 'node_a', display_name: 'iso-leaf', status: 'online' }], { localId: 'node_a' });
+  assert.equal(T.spec.length, 1);
+  assert.equal(T.label([1]), 'Tree'); assert.equal(T.rid([1]), '');   // Master 자신 — 노드 주소 호출을 하지 않는다
+  assert.deepEqual(T.leaves([1]).map((l) => l.id), ['node_a']);
+  // 진짜 Tree 가 있으면 그 아래 리프는 그대로, 부모 없는 리프만 따로 모인다
+  const U = buildTopology([{ node_id: 't', roles: ['tree'], display_name: 'home' }, { node_id: 'l', parent_node_id: 't' }, { node_id: 'x' }]);
+  assert.deepEqual(U.spec.length, 2);
+  assert.deepEqual([U.label([1]), U.label([2])].sort(), ['Tree', 'home']);
+});
