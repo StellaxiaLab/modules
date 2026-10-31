@@ -742,7 +742,8 @@ function deskShape(P, meta, empty) {
   const M = P.modules && (P.modules.modules || P.modules);
   if (Array.isArray(M)) d.mods = M.map((m) => ({ id: m.id, name: m.name || m.id, ver: m.version || '', prev: '', kind: m.kind || '', st: MOD_ST[m.state] || 'stop', en: !!m.enabled, trust: m.trust || '—', src: m.directory || '', core: false, perms: [], ops: [], apps: [], cfg: [], err: m.last_error || '' }));
   const C = P.config && (P.config.config || P.config);
-  if (C && typeof C === 'object') { const f = flatCfg(C, '', {}); for (const k in d.cfg) if (k in f) d.cfg[k] = typeof d.cfg[k] === 'boolean' ? !!f[k] : String(f[k] ?? ''); d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); }
+  if (C && typeof C === 'object' && typeof window !== 'undefined' && window.TerraDesk) { d.cfg = window.TerraDesk.nodeCfgValues(C); d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); }   // 실제 노드 — 스키마의 모든 키(설정 탭이 스키마로 행을 짓는다)
+  else if (C && typeof C === 'object') { const f = flatCfg(C, '', {}); for (const k in d.cfg) if (k in f) d.cfg[k] = typeof d.cfg[k] === 'boolean' ? !!f[k] : String(f[k] ?? ''); d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); }
   const TK = P.tasks && (P.tasks.tasks || P.tasks);
   if (Array.isArray(TK)) d.jobs = TK.slice(0, 40).map((t) => ({ id: t.ID || t.id, name: t.Type || t.type || t.Kind || '작업', op: t.Type || t.type || '', pct: 0, st: TASK_ST[String(t.State || t.state || '').toLowerCase()] || 'run' }));
   const DV = P.devices && (P.devices.devices || P.devices);
@@ -1401,20 +1402,23 @@ class Component extends DCLogic {
       if (id === 'set' && ['node', 'net', 'enroll', 'about'].includes(s.setTab)) {
         const N = this.nd(), X = o.nx, R = this.remote();
         if (s.setTab === 'node') {
-          const G = [...new Set(CFG.map((c) => c[0]))], g = s.cfgGrp || G[0], q = (s.cfgQ || '').trim().toLowerCase(), dk = Object.keys(N.cfg).filter((k) => JSON.stringify(N.cfg[k]) !== JSON.stringify(N.cfgBase[k]));
-          X.grps = G.map((x) => { const n = CFG.filter((c) => c[0] === x && dk.includes(c[1])).length; return { label: x, n: n ? '●' + n : '', cls: x === g && !q ? 'on' : '', pick: () => this.setState({ cfgGrp: x, cfgQ: '' }) }; });
+          // 실제 노드면 행 = Daemon 설정 스키마(config.schema.get, 140키 — 시안 25키는 이름 · 고르기 · 검사를 그대로), 시안이면 CFG
+          const TNs = this.TN(), A0 = typeof window !== 'undefined' ? window.TerraDesk : null, sch = N.real && TNs && A0 ? TNs.read(this.nodeKey(), 'terra.daemon.config.schema.get', { ttl: 300000 }) : null;
+          const ROWS = sch && sch.data ? A0.nodeCfgRows(sch.data, CFG) : CFG, rowOf = (k) => ROWS.find((c) => c[1] === k) || [];
+          const G = [...new Set(ROWS.map((c) => c[0]))], g = s.cfgGrp && G.includes(s.cfgGrp) ? s.cfgGrp : G[0], q = (s.cfgQ || '').trim().toLowerCase(), dk = Object.keys(N.cfg).filter((k) => JSON.stringify(N.cfg[k]) !== JSON.stringify(N.cfgBase[k]));
+          X.grps = G.map((x) => { const n = ROWS.filter((c) => c[0] === x && dk.includes(c[1])).length; return { label: x, n: n ? '●' + n : '', cls: x === g && !q ? 'on' : '', pick: () => this.setState({ cfgGrp: x, cfgQ: '' }) }; });
           X.q = s.cfgQ || ''; X.qIn = (e) => this.setState({ cfgQ: e.target.value });
           const setK = (k, val) => this.ndSet((d) => { d.cfg[k] = val; delete d.cfgErr[k]; });
-          X.keys = CFG.filter((c) => (q ? (c[1] + ' ' + c[2]).toLowerCase().includes(q) : c[0] === g)).map(([gg, k, label, type, def, opt, own, rs]) => { const val = N.cfg[k], ro = own !== 'O' || R, err = N.cfgErr[k] || '';
+          X.keys = ROWS.filter((c) => (q ? (c[1] + ' ' + c[2]).toLowerCase().includes(q) : c[0] === g)).map(([gg, k, label, type, def, opt, own, rs]) => { const val = N.cfg[k], ro = own !== 'O' || R, err = N.cfgErr[k] || '';
             return { k, label, err, errCls: err ? 'bad' : '', isBool: type === 'bool' && !ro, isSel: type === 'sel' && !ro, isText: type === 'text' || ro, on: val ? 'true' : 'false', swCls: val ? 'on' : '', dis: ro ? 'disabled' : null, flip: () => setK(k, !val),
               opts: Array.isArray(opt) ? this.seg(opt, val, (x) => setK(k, x)) : [], v: typeof val === 'boolean' ? (val ? '켬' : '끔') : String(val), ph: typeof opt === 'string' ? opt : '', ro: ro ? 'readonly' : null, input: (e) => setK(k, e.target.value),
               tag: own !== 'O' ? '읽기 · 파생' : R ? '읽기 · 원격' : rs ? '재시작' : '즉시', tagCls: own !== 'O' || R ? '' : rs ? 'warn' : 'ok' }; });
-          const rsN = dk.filter((k) => (CFG.find((c) => c[1] === k) || [])[7]).length;
+          const rsN = dk.filter((k) => rowOf(k)[7]).length;
           X.dirtyT = (dk.length ? '바뀐 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음') + (N.needRestart ? ' · 다시 시작 대기 ' + N.needRestart : '') + (this.help() ? ' — validate → patch{save} → apply · restart' : '');
-          const check = () => { const E = {}; dk.forEach((k) => { const f = CFG_RULE[k]; const m = f ? f(String(N.cfg[k])) : ''; if (m) E[k] = m; }); this.ndSet((d) => { d.cfgErr = E; }); return E; };
+          const check = () => { const E = {}; dk.forEach((k) => { const f = CFG_RULE[k]; let m = f ? f(String(N.cfg[k])) : ''; if (!m && rowOf(k)[8] && A0) try { A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]); } catch (e) { m = e.message; } if (m) E[k] = m; }); this.ndSet((d) => { d.cfgErr = E; }); return E; };
           X.cfgBtns = [this.btn('되돌리기', () => this.ndSet((d) => { d.cfg = JSON.parse(JSON.stringify(d.cfgBase)); d.cfgErr = {}; }), { off: !dk.length, local: true }),
             this.btn('검사', () => { const E = check(); this.say(Object.keys(E).length ? '고칠 곳 ' + Object.keys(E).length : '검사 통과'); }, { off: !dk.length, local: true }),
-            this.btn('저장', () => { const E = check(); if (Object.keys(E).length) { this.say('고칠 곳 ' + Object.keys(E).length + ' — 저장 안 함'); return; } const set = {}; dk.forEach((k) => { set[k] = N.cfg[k]; }); this.ndSet((d) => { d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); d.needRestart += rsN; }, 'terra.daemon.config.patch', { set, save: true }); this.say('저장 ' + dk.length + (rsN ? ' · 다시 시작하면 반영' : ' · 바로 반영')); }, { off: !dk.length, pri: !!dk.length, local: true }),
+            this.btn('저장', () => { const E = check(); if (Object.keys(E).length) { this.say('고칠 곳 ' + Object.keys(E).length + ' — 저장 안 함'); return; } const set = {}; dk.forEach((k) => { set[k] = rowOf(k)[8] && A0 ? A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]) : N.cfg[k]; }); this.ndSet((d) => { d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); d.needRestart += rsN; }, 'terra.daemon.config.patch', { set, save: true }); this.say('저장 ' + dk.length + (rsN ? ' · 다시 시작하면 반영' : ' · 바로 반영')); }, { off: !dk.length, pri: !!dk.length, local: true }),
             this.btn('다시 시작', () => { this.ndSet((d) => { d.needRestart = 0; }, 'terra.daemon.restart.post', {}); this.say('노드 다시 시작 — 잠깐 끊김'); }, { off: !N.needRestart, local: true, dan: !!N.needRestart })];
         }
         if (s.setTab === 'net') {

@@ -96,3 +96,43 @@ export function taskOutput(d) {
   if (p.truncated || p.more) notes.push('끝 부분만');
   return { text, note: notes.join(' · '), done: !!p.complete, state: p.state || '' };
 }
+
+// ── 노드 설정 — Daemon 설정 스키마(terra.daemon.config.schema.get { fields: { 점 키: { type, owner, restart_required, description } } }) ──
+//   보드의 행 [묶음, 키, 이름, 'bool'|'sel'|'text', 기본, 고르기|자리 글, 소유('O' 운영자 · 그 밖은 읽기), 재시작]. 시안의 25키는 이름 · 고르기를 그대로 쓰고,
+//   나머지는 키의 첫 마디로 묶는다. 비밀(owner secret)은 행에 내지 않는다 — 값을 보이지 않는다
+const SEG = { daemon: '노드', master: '연결', heartbeat: '연결', gateway_service: '연결', local_api: '로컬 API', logging: '로그', storage: '저장소', local_fs: '저장소',
+  modules: '모듈', module_distribution: '모듈 배포', core_distribution: '코어 배포', security: '보안', enrollment: '등록', wireguard: 'WireGuard', mesh_vpn: '메시 VPN',
+  direct_tcp: '직접 연결', grpc_transport: '직접 연결', webrtc: '직접 연결', service_tunnels: '서비스 터널', task_queue: '작업', feature: '기능', fleet_host: '플릿', remote_operations: '원격 작업' };
+const HINT = { int: '정수', string_list: '쉼표로 여러 개', object_list: 'JSON 목록 — [{"name":…, "path":…}]' };
+
+/** @param {any} schemaData config.schema.get 의 data @param {any[][]} known 보드의 시안 행(CFG) @returns {any[][]} */
+export function nodeCfgRows(schemaData, known = []) {
+  const F = (schemaData && schemaData.fields) || {}, byKey = new Map(known.map((r) => [r[1], r]));
+  const rows = [];
+  for (const k of Object.keys(F).sort()) {
+    const f = F[k] || {}; if (f.owner === 'secret') continue;
+    const K = byKey.get(k), seg = k.split('.')[0], own = f.owner === 'operator' ? 'O' : 'D';
+    const type = f.type === 'bool' ? 'bool' : K && K[3] === 'sel' ? 'sel' : 'text';
+    rows.push([K ? K[0] : SEG[seg] || seg, k, K ? K[2] : f.description ? k.slice(seg.length + 1) + ' — ' + f.description : k.slice(seg.length + 1), type, K ? K[4] : '', K && K[5] ? K[5] : HINT[f.type] || '', own, !!f.restart_required, f.type || 'string']);
+  }
+  return rows;
+}
+
+/** config.get 의 값(중첩) → 점 키 → 화면 값(목록은 쉼표 글, 객체 목록은 JSON 글, 켜기는 참/거짓) */
+export function nodeCfgValues(cfg, out = {}, pre = '') {
+  for (const [k, v] of Object.entries(cfg || {})) {
+    const key = pre ? pre + '.' + k : k;
+    if (v && typeof v === 'object' && !Array.isArray(v)) nodeCfgValues(v, out, key);
+    else out[key] = Array.isArray(v) ? (v.some((x) => x && typeof x === 'object') ? JSON.stringify(v) : v.join(', ')) : typeof v === 'boolean' ? v : v == null ? '' : String(v);
+  }
+  return out;
+}
+
+/** 화면 값 → patch 값(스키마 형). 못 바꾸면 Error(화면 말) */
+export function nodeCfgWire(type, v, label) {
+  if (type === 'bool') return v === true || v === 'true';
+  if (type === 'int') { const n = Number(v); if (v === '' || !Number.isInteger(n)) throw new Error((label || '') + ' — 정수를 적어야 해요'); return n; }
+  if (type === 'string_list') return String(v).split(',').map((x) => x.trim()).filter(Boolean);
+  if (type === 'object_list') { try { const a = JSON.parse(v || '[]'); if (!Array.isArray(a)) throw 0; return a; } catch { throw new Error((label || '') + ' — JSON 목록이 아니에요'); } }
+  return String(v == null ? '' : v);
+}

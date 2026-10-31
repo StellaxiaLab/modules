@@ -1,7 +1,7 @@
 // node --test — 노드 데스크톱의 실제 응답 → 보드 모양(터널 · 등록 · 모듈 로그 · 모듈 앱)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tunnels, enroll, logLines, moduleApps, offers, cfgFields, castCfg, taskOutput, ago } from './desk-adapt.js';
+import { tunnels, enroll, logLines, moduleApps, offers, cfgFields, castCfg, taskOutput, nodeCfgRows, nodeCfgValues, nodeCfgWire, ago } from './desk-adapt.js';
 
 const NOW = Date.parse('2026-10-31T12:00:00Z');
 
@@ -70,4 +70,27 @@ test('taskOutput — 조각을 줄로, stderr 는 표시, 버린 것 · 안 남�
   assert.equal(r.text, 'a\n! b'); assert.match(r.note, /10바이트/); assert.equal(r.done, false);
   assert.equal(taskOutput({ captured: false, complete: true }).note, '이 작업은 출력을 남기지 않는다');
   assert.equal(taskOutput(null).text, '');
+});
+
+test('nodeCfgRows — 스키마 140키 꼴: 시안 행은 이름 그대로, 나머지는 첫 마디로 묶고, 비밀은 빼고, 운영자 키만 쓰기', () => {
+  const schema = { fields: { 'daemon.device_name': { type: 'string', owner: 'operator', restart_required: false }, 'logging.level': { type: 'string', owner: 'operator' },
+    'local_api.port': { type: 'int', owner: 'installer', restart_required: true }, 'security.private_key_path': { type: 'string', owner: 'secret' }, 'modules.auto_start': { type: 'bool', owner: 'operator', restart_required: true, description: 'start on boot' },
+    'storage.shared_dirs': { type: 'object_list', owner: 'operator', restart_required: true } } };
+  const known = [['노드', 'daemon.device_name', '표시 이름', 'text', 'node', 'lab-ws-02', 'O', false], ['로그', 'logging.level', '수준', 'sel', 'info', ['debug', 'info'], 'O', false]];
+  const r = nodeCfgRows(schema, known), by = Object.fromEntries(r.map((x) => [x[1], x]));
+  assert.equal(r.length, 5); assert.equal(by['security.private_key_path'], undefined);
+  assert.deepEqual(by['daemon.device_name'], ['노드', 'daemon.device_name', '표시 이름', 'text', 'node', 'lab-ws-02', 'O', false, 'string']);
+  assert.equal(by['logging.level'][3], 'sel');
+  assert.deepEqual(by['local_api.port'].slice(0, 8), ['로컬 API', 'local_api.port', 'port', 'text', '', '정수', 'D', true]);
+  assert.equal(by['modules.auto_start'][2], 'auto_start — start on boot'); assert.equal(by['modules.auto_start'][3], 'bool');
+  assert.match(by['storage.shared_dirs'][5], /JSON/);
+});
+
+test('nodeCfgValues · nodeCfgWire — 중첩 → 점 키 · 화면 값, 저장 땐 스키마 형으로', () => {
+  assert.deepEqual(nodeCfgValues({ daemon: { device_name: 'a', roles: ['leaf', 'tree'] }, modules: { auto_start: true }, storage: { shared_dirs: [{ name: 's', path: '/x' }] }, x: null }),
+    { 'daemon.device_name': 'a', 'daemon.roles': 'leaf, tree', 'modules.auto_start': true, 'storage.shared_dirs': '[{"name":"s","path":"/x"}]', x: '' });
+  assert.equal(nodeCfgWire('int', '17'), 17); assert.throws(() => nodeCfgWire('int', 'x', '포트'), /포트 — 정수/);
+  assert.deepEqual(nodeCfgWire('string_list', 'a, b,,'), ['a', 'b']);
+  assert.deepEqual(nodeCfgWire('object_list', '[{"name":"s"}]'), [{ name: 's' }]); assert.throws(() => nodeCfgWire('object_list', '{'), /JSON 목록/);
+  assert.equal(nodeCfgWire('bool', 'true'), true); assert.equal(nodeCfgWire('string', 3), '3');
 });
