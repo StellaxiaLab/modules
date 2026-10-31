@@ -1,7 +1,7 @@
 // node --test — 노드 데스크톱의 실제 응답 → 보드 모양(터널 · 등록 · 모듈 로그 · 모듈 앱)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tunnels, enroll, logLines, moduleApps, offers, cfgFields, castCfg, taskOutput, nodeCfgRows, nodeCfgValues, nodeCfgWire, ago } from './desk-adapt.js';
+import { tunnels, enroll, logLines, moduleApps, offers, cfgFields, castCfg, taskOutput, nodeCfgRows, nodeCfgValues, nodeCfgWire, fileRoots, fileEntries, parentRel, fmtSize, ago } from './desk-adapt.js';
 
 const NOW = Date.parse('2026-10-31T12:00:00Z');
 
@@ -93,4 +93,13 @@ test('nodeCfgValues · nodeCfgWire — 중첩 → 점 키 · 화면 값, 저장 
   assert.deepEqual(nodeCfgWire('string_list', 'a, b,,'), ['a', 'b']);
   assert.deepEqual(nodeCfgWire('object_list', '[{"name":"s"}]'), [{ name: 's' }]); assert.throws(() => nodeCfgWire('object_list', '{'), /JSON 목록/);
   assert.equal(nodeCfgWire('bool', 'true'), true); assert.equal(nodeCfgWire('string', 3), '3');
+});
+
+test('파일 — 뿌리 · 항목(폴더 먼저), 읽을 수 없는 것은 잠금과 이유, 위 폴더', () => {
+  assert.deepEqual(fileRoots({ roots: [{ name: 'share', path: '/srv/share' }] }, 'share'), [{ id: 'share:share', kind: 'share', root: 'share', label: '공유 · share', path: '/srv/share', locked: false, reason: '' }]);
+  assert.equal(fileRoots({ roots: [{ name: 'C', readable: false, reason: 'denied' }] }, 'lfs')[0].reason, 'denied');
+  const e = fileEntries({ entries: [{ name: 'b.txt', size: 2048, modified_at: '2026-10-31T01:02:00Z' }, { name: 'a', is_dir: true }, { name: 'x', path: '/sub/x', readable: false }] }, 'sub');
+  assert.deepEqual(e.map((x) => [x.name, x.path, x.dir, x.size, x.locked]), [['a', 'sub/a', true, '—', false], ['b.txt', 'sub/b.txt', false, '2.0 KB', false], ['x', 'sub/x', false, '0 B', true]]);
+  assert.match(e[1].time, /^2026-10-31 \d\d:02$/);
+  assert.equal(parentRel('a/b/c'), 'a/b'); assert.equal(parentRel('a'), ''); assert.equal(fmtSize(5), '5 B');
 });

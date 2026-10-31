@@ -202,6 +202,7 @@ button{font-family:inherit}
                   </div>
                   <div style="flex-shrink: 0; box-sizing: border-box; min-height: 56px; padding: 8px 12px; border-top: 1px solid {{t.line}}; display: flex; align-items: center; gap: 12px; font-size: 12px; color: {{t.sub}};">
                     <span style="flex-grow: 1; line-height: 1.45;">{{w.detail}}</span>
+                    <sc-if value="{{w.openOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.openRun}}" disabled="{{w.openDis}}" title="{{w.openTip}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">{{w.openLabel}}</button></sc-if>
                     <button type="button" onClick="{{w.remove}}" disabled="{{w.noPick}}" style="height: 28px; padding: 0 10px; border: 1px solid {{w.rmBd}}; border-radius: 9px; background: transparent; color: {{w.rmFg}}; font-size: 12px; cursor: pointer;">{{w.rmLabel}}</button>
                   </div>
                 </div>
@@ -807,7 +808,7 @@ class Component extends DCLogic {
     const key = this.nodeKey(); if (this._bound === key) return;
     if (this._bound) { clearTimeout(this._vt); this.viewSave(this._bound); }
     const v = this.viewLoad(key), base = JSON.parse(JSON.stringify(this._v0));
-    Object.assign(this.state, base, v || {}, { nd: null, menu: null, ov: null, lau: false, iconSel: null, fmPick: null, ndDraft: null, tnDraft: null, modCfg: null, inst: null, asg: null, jobSel: null, nxMsg: '', save: 'saved' });
+    Object.assign(this.state, base, v || {}, { nd: null, menu: null, ov: null, lau: false, iconSel: null, fmPick: null, ndDraft: null, tnDraft: null, modCfg: null, inst: null, asg: null, jobSel: null, fmRel: '', nxMsg: '', save: 'saved' });
     this._bound = key; this._vj = JSON.stringify(this.viewPick(this.state));
     if (!this._un && this.TN()) this._un = this.TN().subscribe((n) => { if (n === this._bound) this.setState({}); });
   }
@@ -1150,10 +1151,51 @@ class Component extends DCLogic {
   }
   chip(c) { return { fg: c, bd: c + '80', bg: c + '1a' }; }
 
-  fmItems() {
-    const s = this.state;
-    if (s.fmLoc !== 'desk') {
-      return (FILES[s.fmLoc] || []).map((f) => ({ key: s.fmLoc + ':' + f.n, name: f.n, k: f.k, size: f.sz, real: true }));
+  // 파일 — 실제 노드면 공유 폴더(io.terra.file) · 로컬 탐색(Daemon local-fs, 읽기만 · 이 노드만) · 바탕화면 바로가기. 채웠으면 true
+  //   폴더는 한 번 눌러 고르고, 고른 폴더를 다시 누르면 들어간다. '..' 은 위로. 새 폴더 · 지우기는 공유 폴더만(file.write), 노드에서 열기는 로컬 탐색만(desktop.open · node.control)
+  fmRealView(o, t, s) {
+    const N = this.nd(), T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null;
+    if (!N.real || !T || !A) return false;
+    const n = this.nodeKey(), R = this.remote(), rel = s.fmRel || '';
+    const sh = T.read(n, 'io.terra.file.roots.list', { ttl: 60000 }), lf = R ? null : T.read(n, 'terra.daemon.local-fs.roots.get', { ttl: 60000 });
+    const locs = (sh.data ? A.fileRoots(sh.data, 'share') : []).concat(lf && lf.data ? A.fileRoots(lf.data, 'lfs') : [], [{ id: 'desk', kind: '', label: '바탕화면', path: '바탕화면 바로가기', locked: false }]);
+    const loc = locs.find((l) => l.id === s.fmLoc) || locs[0];
+    const go = (pp) => this.setState(Object.assign({ fmPick: null }, pp));
+    o.locs = locs.map((l) => ({ label: l.label, d: l.kind === 'share' ? D.archive : l.kind === 'lfs' ? D.home : D.window, bg: l.id === loc.id ? t.raiseH : 'transparent', fg: l.id === loc.id ? t.ink : t.sub, pick: () => go({ fmLoc: l.id, fmRel: '' }) }));
+    const why = [!sh.data && sh.err ? '공유 폴더를 못 받음 · ' + sh.err.code + (sh.err.code === 'MODULE_ROUTE_NOT_FOUND' ? '(io.terra.file 이 없는 노드)' : '') : '', lf && !lf.data && lf.err ? '로컬 탐색 못 받음 · ' + lf.err.code : '', R ? '로컬 탐색 · 노드에서 열기는 이 노드에서만' : ''].filter(Boolean).join(' · ');
+    if (!loc.kind) {   // 바탕화면 — 화면 전용 바로가기(보기 상태)
+      const items = this.fmItems('desk'), pick = items.find((i) => i.key === s.fmPick) || null;
+      o.locNote = why || '화면에 둔 바로가기 — 노드의 파일이 아니다'; o.path = loc.path;
+      o.items = items.map((i) => ({ name: i.name, size: i.size, d: i.k === 'dir' ? D.folder : i.k === 'file' ? D.doc : APPS[s.icons[i.id].app].d, fg: i.k === 'dir' ? '#f0a63a' : '#5aa8ff', tag: '바로가기 · 화면 전용', tagC: '#5aa8ff', bg: pick && pick.key === i.key ? t.raiseH : 'transparent', pick: () => this.setState({ fmPick: i.key }) }));
+      o.detail = pick ? pick.name + ' — 화면 전용 바로가기. 지워도 노드의 파일은 그대로다.' : '항목을 고르면 여기에 설명이 나온다.'; o.noPick = !pick; o.rmLabel = '바로가기 지우기'; o.rmFg = pick ? t.ink : t.dim; o.rmBd = t.line2;
+      o.remove = () => { if (!pick) return; const ic = { ...this.state.icons }; delete ic[pick.id]; this.setState({ icons: ic, fmPick: null }); this.persist(); };
+      o.newFolder = () => this.say('바탕화면은 화면 전용 — 노드에 폴더를 만들려면 공유 폴더에서'); o.openOn = false;
+      return true;
+    }
+    const share = loc.kind === 'share', listOp = share ? 'io.terra.file.entries.list' : 'terra.daemon.local-fs.entries.get';
+    const inp = share ? (rel ? { root: loc.root, path: rel } : { root: loc.root }) : (rel ? { root: loc.root, path: rel, limit: 500 } : { root: loc.root, limit: 500 });
+    const L = loc.locked ? null : T.read(n, listOp, { input: inp, ttl: 15000 }), rows = L && L.data ? A.fileEntries(L.data, rel) : [];
+    const items = (rel ? [{ name: '..', path: A.parentRel(rel), dir: true, up: true, size: '', time: '' }] : []).concat(rows), pick = items.find((i) => i.path === s.fmPick && !i.up) || null;
+    o.locNote = loc.locked ? '🔒 ' + loc.reason : (share ? '노드가 공유로 내놓은 폴더 · io.terra.file' : '이 노드의 로컬 폴더 · 읽기만') + (why ? ' — ' + why : '');
+    o.path = loc.root + ':/' + rel;
+    o.items = items.map((i) => ({ name: i.name, size: i.size, d: i.dir ? D.folder : D.doc, fg: i.dir ? '#f0a63a' : t.sub, tag: i.locked ? '🔒' : i.up ? '' : i.time, tagC: t.dim, bg: pick && pick.path === i.path ? t.raiseH : 'transparent',
+      pick: () => { if (i.up) return go({ fmRel: i.path }); if (i.dir && !i.locked && s.fmPick === i.path) return go({ fmRel: i.path }); this.setState({ fmPick: i.path }); } }));
+    if (!items.length) o.items = [{ name: L && L.loading ? '받는 중…' : L && L.err ? '못 받음 · ' + L.err.code : '빈 폴더', size: '', d: D.doc, fg: t.dim, tag: '', tagC: t.dim, bg: 'transparent', pick: () => {} }];
+    o.detail = !pick ? '항목을 고르면 여기에 설명이 나온다. 폴더는 다시 누르면 들어간다.' : pick.name + (pick.locked ? ' — 🔒 ' + pick.reason : ' — ' + (pick.dir ? '폴더' : '파일 · ' + pick.size) + (pick.time ? ' · ' + pick.time : '')) + (share ? '' : ' · 로컬 탐색은 읽기만');
+    o.noPick = !pick || !share; o.rmLabel = share ? '노드에서 지우기' : '지우기(읽기만)'; o.rmFg = pick && share ? '#ff6b6b' : t.dim; o.rmBd = pick && share ? 'rgba(255,107,107,.5)' : t.line2;
+    const after = () => T.refresh(n, listOp, inp);
+    o.remove = () => { if (!pick || !share) return; T.write(n, 'io.terra.file.entries.remove', { root: loc.root, path: pick.path, recursive: !!pick.dir }).then(() => { this.say(pick.name + ' 지움'); go({}); after(); }, (e) => this.say('못 지움 · ' + ((e && e.code) || '오류'))); };
+    o.newFolder = () => { if (!share) { this.say('로컬 탐색은 읽기만 — 폴더는 공유 폴더에서 만든다'); return; } const nm = '새 폴더 ' + (Date.now() % 10000), path = rel ? rel + '/' + nm : nm;
+      T.write(n, 'io.terra.file.entries.mkdir', { root: loc.root, path, parents: false }).then(() => { this.say(nm + ' 만듦'); after(); }, (e) => this.say('못 만듦 · ' + ((e && e.code) || '오류'))); };
+    o.openOn = true; o.openLabel = pick ? '노드에서 열기' : '노드 파일 관리자로'; o.openDis = share || R ? 'disabled' : null;
+    o.openTip = share ? '공유 폴더는 노드의 바탕화면에서 열 수 없다 — 로컬 탐색에서' : R ? '이 노드에서만(desktop.open 은 local)' : 'desktop.open — 그 노드의 화면에서 연다(node.control)';
+    o.openRun = () => { T.write(n, 'terra.daemon.desktop.open.post', { root: loc.root, path: pick ? pick.path : rel, action: pick ? 'open' : 'reveal' }).then(() => this.say((pick ? pick.name : loc.root + ':/' + rel) + ' — 노드 화면에서 열었다'), (e) => this.say('못 엶 · ' + ((e && e.code) || '오류'))); };
+    return true;
+  }
+  fmItems(locId) {
+    const s = this.state, L = locId || s.fmLoc;
+    if (L !== 'desk') {
+      return (FILES[L] || []).map((f) => ({ key: s.fmLoc + ':' + f.n, name: f.n, k: f.k, size: f.sz, real: true }));
     }
     return Object.keys(s.icons).map((id) => {
       const ic = s.icons[id];
@@ -1225,7 +1267,7 @@ class Component extends DCLogic {
         o.onInput = (e) => this.setState({ termIn: e.target.value });
         o.onKey = (e) => { if (e.key === 'Enter') this.runCmd(this.state.termIn); };
       }
-      if (id === 'files') {
+      if (id === 'files') { if (!this.fmRealView(o, t, s)) {
         const loc = LOCS.find((l) => l.id === s.fmLoc);
         o.locs = LOCS.map((l) => ({ label: l.label, d: l.d, bg: l.id === s.fmLoc ? t.raiseH : 'transparent', fg: l.id === s.fmLoc ? t.ink : t.sub, pick: () => this.setState({ fmLoc: l.id, fmPick: null }) }));
         o.locNote = loc.note;
@@ -1260,7 +1302,7 @@ class Component extends DCLogic {
           this.setState({ icons: { ...this.state.icons, [id]: { c: f.c, r: f.r, name: '새 폴더', k: 'dir', loc: 'desk' } }, fmLoc: 'desk' });
           this.persist();
         };
-      }
+      } }
       if (id === 'set') {
         const tab = TABS.find((x) => x.id === s.setTab);
         o.tabs = TABS.map((x) => ({ label: x.label, d: x.d, bg: x.id === s.setTab ? t.raiseH : 'transparent', fg: x.id === s.setTab ? t.ink : t.sub, pick: () => this.setState({ setTab: x.id }) }));

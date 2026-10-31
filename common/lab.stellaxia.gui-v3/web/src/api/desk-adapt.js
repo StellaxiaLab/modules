@@ -136,3 +136,24 @@ export function nodeCfgWire(type, v, label) {
   if (type === 'object_list') { try { const a = JSON.parse(v || '[]'); if (!Array.isArray(a)) throw 0; return a; } catch { throw new Error((label || '') + ' — JSON 목록이 아니에요'); } }
   return String(v == null ? '' : v);
 }
+
+// ── 파일 — 공유 폴더(io.terra.file roots.list · entries.list, file.read/write)와 로컬 탐색(Daemon local-fs, 읽기만 · 이 노드만) ──
+const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
+export function fmtSize(bytes) { let n = Number(bytes) || 0, i = 0; while (n >= 1024 && i < UNITS.length - 1) { n /= 1024; i += 1; } return (i === 0 ? String(n) : n.toFixed(n < 10 ? 1 : 0)) + ' ' + UNITS[i]; }
+function fmtTime(iso) { const d = new Date(iso || ''); return Number.isNaN(d.getTime()) ? '' : d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+
+/** 뿌리 목록 → 위치. kind 'share'(공유 폴더) | 'lfs'(로컬 탐색) @returns {{ id: string, kind: string, root: string, label: string, path: string, locked: boolean, reason: string }[]} */
+export function fileRoots(d, kind) {
+  return arr(d, 'roots').filter((r) => r && r.name).map((r) => ({ id: kind + ':' + r.name, kind, root: r.name, label: (kind === 'lfs' ? '로컬 · ' : '공유 · ') + r.name,
+    path: r.path || '', locked: r.readable === false, reason: r.readable === false ? r.reason || '읽을 수 없음' : '' }));
+}
+
+/** 한 폴더의 항목 → 줄(폴더 먼저, 이름 순). rel = 뿌리 상대 경로 @returns {{ name: string, path: string, dir: boolean, size: string, time: string, locked: boolean, reason: string }[]} */
+export function fileEntries(d, rel) {
+  return arr(d, 'entries').filter((e) => e && e.name).map((e) => ({ name: e.name, path: e.path ? String(e.path).replace(/^\/+/, '') : (rel ? rel + '/' + e.name : e.name),
+    dir: !!e.is_dir, size: e.is_dir ? '—' : fmtSize(e.size), time: fmtTime(e.modified_at), locked: e.readable === false, reason: e.readable === false ? e.reason || '읽을 수 없음' : '' }))
+    .sort((a, b) => (a.dir === b.dir ? a.name.localeCompare(b.name) : a.dir ? -1 : 1));
+}
+
+/** 위의 폴더 — 'a/b/c' → 'a/b', 'a' → '' */
+export const parentRel = (rel) => String(rel || '').split('/').slice(0, -1).join('/');
