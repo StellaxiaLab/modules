@@ -37,7 +37,7 @@ last_updated: "2026-10-11"
 
 ```text
 common/lab.stellaxia.node-gui/
-├─ module.json                 kind=scene · gui.scenes(branch: main) · gui.apps(embed: scene)
+├─ module.json                 kind=scene · gui.scenes(branch 없음) · gui.apps(embed: scene)
 ├─ scene/                      셸 Scene — frame 하나와 로그인 Route
 │  ├─ scene.json
 │  ├─ contract/
@@ -74,7 +74,7 @@ flowchart LR
 
 | 자리 | 하는 일 |
 | --- | --- |
-| `contributions.gui.scenes[0]` | `branch: "main"`, `role: "application"`. base Scene은 main 1 · dev 0이면 이것을 곧장 연다 |
+| `contributions.gui.scenes[0]` | `role: "application"`, `branch` 없음 — 0.4.6(2026-11)에 main을 `lab.stellaxia.gui-v3`에 넘겼다. 0.4.5까지는 `branch: "main"`이었다 |
 | `contributions.gui.apps[0]` | `mode: static` · `embed: "scene"` · `entry: ui/index.html`(시작 화면 — 세션이 있으면 노드 화면으로 내려간다). 게이트웨이가 앱별 origin(`app-….localhost`)에서 서빙한다. 권한 7개(`session.identity` · `node.read` · `node.control` · `file.read` · `file.write` · `process.execute` · `module.manage`) — 토큰에 실리는 것은 **사용자 권한 ∩ 이 목록**이다 |
 | `node-gui.main` (`/`) | 루트가 `terra.web/frame` 하나다(Fragment 루트라 셸의 1120px 틀을 벗는다). `bind: session` → `terra.frame.value`, `on: login → node-gui.login.open · logout → node-gui.signout` |
 | `node-gui.login` (`/login`) | 자격 로그인. **웹은 비밀번호를 보지 않는다.** 성공하면 `session`(memory)을 `signedIn`으로 쓰고 `/`로 돌아간다 — frame은 새 토큰과 값을 받는다 |
@@ -139,7 +139,7 @@ Master의 **위임 입구**로 보내고, Master는 그 입구에 연 op(1차: �
 새 GUI를 올리며 생긴 결정 **Q-7~Q-13**(시작 화면을 entry로 · Terra 안 로그인 모양 · 연동 층 일원화 · `node.config`★ · 디자인 노트 페이지 ·
 maingui를 따라가는 방법 · "삭제"의 뜻)은 [`web/docs/guides/implementation-backlog.md`](web/docs/guides/implementation-backlog.md) §4.
 
-> [!NOTE] `branch`는 처음부터 `main`이다 — 판정서 §6과 다른 점
+> [!NOTE] (0.4.5까지의 기록) `branch`는 처음부터 `main`이었다 — 판정서 §6과 다른 점
 > 판정서 §6은 `branch: "dev"`로 시작해 마지막 단계에서 `main`으로 올리자고 적었다. 예시 데이터뿐인 화면이 설치만으로
 > 노드의 main 자리를 차지하지 않게 하려는 순서였다. 이 모듈은 처음부터 `main`으로 간다.
 >
