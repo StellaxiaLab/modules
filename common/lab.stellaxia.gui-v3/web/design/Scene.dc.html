@@ -2857,6 +2857,7 @@ class Component extends DCLogic {
     this.gf_ctlSync();
   }
   gf_ctlOpenWin(node, Rr, kind, arg) {
+    this.gf_TN();   // 창(자원 · 자원 상태 · 제어기)이 실제 노드를 찾을 수 있게 — 장면 노드 ↔ 전송의 노드 묶기를 먼저(늦게 묶이면 자원 창이 시안으로 떨어졌다)
     let focusRes = '', rsSrc = '';
     if (kind === 'stat' && node && node.kind === 'res') kind = 'res';   // 위성(자원)의 상태 = 자원 상태 창
     if (kind === 'res' && node && node.kind !== 'res') { const a = String(arg || '').split('|'); rsSrc = a[1] || ''; node = this.gf_resNodeFor(node, a[0], rsSrc, a[2]); }   // 자원 이름을 눌러 연 자원 상태 창 — 'name|출처|제공 노드'
