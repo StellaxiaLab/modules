@@ -8,7 +8,7 @@
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { t: 0, metric: 0, paused: false }; this._hist = {}; this._ev = []; try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} }
   componentDidMount() { this._live = true; this._iv = setInterval(() => { if (this._live) this.setState({ t: this.state.t + 1 }); }, 1000); }
-  componentWillUnmount() { this._live = false; clearInterval(this._iv); }
+  componentWillUnmount() { this._live = false; clearInterval(this._iv); if (this._un) { this._un(); this._un = null; } }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   name() { return this.props.resName || 'gpio'; }
   seed() { let h = 7; for (const ch of this.name() + (this.props.nodeName || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
@@ -30,7 +30,42 @@ class Component extends DCLogic {
     if (dec === 2) return w + r(5) * 0.6 - 0.3 > 0 ? 1 : 0;   // 디지털 — 0 / 1
     return Math.max(0, base + w * amp * 0.75); }
   fmt(v, m) { return m[4] === 2 ? (v ? 'HIGH' : 'LOW') : v.toFixed(m[4]) + (m[1] ? ' ' + m[1] : ''); }
+  // ── 실제 Tree(웹 빌드 · 로그인) — Master SVI 를 부른다(src/api/svi-read.js = window.TerraSvi). 캔버스 · 실제 지도 밖 노드는 시안 그대로 ──
+  RT() {
+    const W = typeof window !== 'undefined' ? window : null, TN = W && W.TerraNodes, SV = W && W.TerraSvi, key = this.props.nodeKey || (TN && TN.t.localId());
+    if (!TN || !SV || TN.t.kind !== 'gateway' || !key) return null;
+    const meta = TN.t.meta || {}, me = meta[key]; if (!me || !me.rid) return null;
+    const TP = W.TerraTopology, raw = TP && TP.node ? TP.node(me.rid) : null, parent = (raw && raw.parent_node_id) || '';
+    const names = new Map(Object.values(meta).filter((m) => m.rid).map((m) => [m.rid, m.name]));
+    const rd = (op, input) => TN.read(key, op, input ? { input, ttl: 10000 } : { ttl: 10000 });
+    return { TN, SV, key, rid: me.rid, parent, names, metas: Object.values(meta).filter((m) => m.rid), rd };
+  }
+  live() { if (this._un || typeof window === 'undefined' || !window.TerraNodes) return; this._un = window.TerraNodes.subscribe(() => this.setState({})); }
+  // 자원 상태 창 — 실제: 정보 · 끝점(svi.resources.*) · 연결(svi.bindings.get) · 쓰는 곳(svi.handles.get, 10초마다 다시).
+  //   값(스트림)은 보이지 못한다 — 핸들을 여는 svi.handles.post 와 handles.by-handle-id.stream · events 가 앱 위임 밖이다. SSE 대신 열린 핸들 목록을 조회한다
+  realVals() {
+    const C = this.RT(); if (!C) return null; this.live();
+    const SV = C.SV, H = this.help(), res = C.rd('terra.master.svi.resources.get'), all = SV.resources(res.data);
+    const nodeRid = [...C.names.entries()].find(([, nm]) => nm === this.props.nodeName);
+    const R = all.find((r) => r.name === this.name() && (!nodeRid || r.node === nodeRid[0])) || all.find((r) => r.name === this.name()) || null;
+    const base = { rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.name(), src: this.props.src || '내 자원', srcCls: { 지명: 'nd', 전체: 'sc', 외부: 'ex' }[this.props.src] || 'tr',
+      metrics: [], hasMetrics: false, nowT: '—', unitT: '값', minT: '—', avgT: '—', maxT: '—', bars: [], pauseT: '', pause: () => {}, liveT: '10초 조회', apiR: H ? 'svi.resources' : '', apiV: H ? 'svi.handles.get (조회)' : '', apiB: H ? 'svi.bindings' : '' };
+    if (!R) return Object.assign(base, { type: '—', stT: res.loading && !res.data ? '받는 중' : '없음', stCol: '#9aa1ab', node: this.props.nodeName || '—', approve: '—', presence: '—', seen: '—', lease: '—', eps: [], binds: [], noBinds: true,
+      events: [{ t: '', lv: 'warn', col: '#ffd27a', msg: res.err && !res.data ? 'svi.resources 를 못 받음 · ' + res.err.code : 'Master 의 SVI 목록에 이 이름의 자원이 없다' }] });
+    const bi = C.rd('terra.master.svi.bindings.get'), hd = C.rd('terra.master.svi.handles.get', { resource_id: R.id });
+    const binds = SV.bindings(bi.data).filter((b) => b.srcRes === R.id || b.tgtRes === R.id);
+    const ok = /available/.test(R.status), busy = binds.length > 0;
+    const evs = SV.handleRows(hd.data, R.id).map((e) => Object.assign(e, { col: e.lv === 'warn' ? '#ffd27a' : '#709c80' }));
+    evs.unshift({ t: '', lv: 'info', col: '#9aa1ab', msg: '값은 보이지 않는다 — 핸들 열기 · 스트림(svi.handles.post · stream)이 앱 위임 밖. 이 자원을 열어 쓰는 곳만 10초마다 읽는다' });
+    if (hd.err && !hd.data) evs.push({ t: '', lv: 'warn', col: '#ffd27a', msg: '쓰는 곳을 못 받음 · ' + hd.err.code });
+    return Object.assign(base, { type: R.kind || 'resource', stT: !ok ? R.status || '알 수 없음' : busy ? '사용 중' : '사용 가능', stCol: !ok ? '#ff9c8c' : busy ? '#ffd27a' : '#60e28c',
+      node: C.names.get(R.node) || R.node || '—', approve: '—', presence: R.status || '—', seen: '—', lease: '—',
+      eps: R.eps.map((e) => ({ id: e.id, dir: e.dir, schema: '' })),
+      binds: binds.map((b) => ({ to: (b.srcRes === R.id ? '→ ' + (C.names.get(b.tgtNode) || b.tgtNode) + ' › ' + b.tgtRes + (b.tgtEp ? '#' + b.tgtEp : '') : '← ' + (C.names.get(b.srcNode) || b.srcNode) + ' › ' + b.srcRes), q: b.qos, rate: b.state + (b.reason ? ' · ' + b.reason : '') })),
+      noBinds: binds.length === 0, events: evs });
+  }
   renderVals() {
+    const RV = this.realVals(); if (RV) return RV;
     const S = this.state, t = S.t, P = this.profile(), H = this.help(), r = (i) => this.rnd(i), src = this.props.src || '내 자원';
     const down = r(40) < 0.12, busy = r(41) < 0.5;
     // 값 기록 — 지표마다 60칸. 일시정지면 그래프는 멈추고 지금 값만 흐른다
