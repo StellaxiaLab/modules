@@ -68,27 +68,32 @@ related:
 | 파일(io.terra.file · local-fs · desktop.open) | **됨** — 위치 = 공유 폴더(io.terra.file roots) · 로컬 루트(local-fs, 이 노드만 · 읽기만) · 바탕화면 바로가기. 폴더 들어가기 · '..', 공유 폴더에 새 폴더(mkdir) · 지우기(remove), 로컬은 '노드에서 열기 / 노드 파일 관리자로'(desktop.open). 읽을 수 없는 뿌리는 🔒 와 이유. 파일 내용 열기 · 올리기 · 내려받기(entries.read · transfers.*)는 아직 | 실측 — 공유 목록 · 새 폴더 · 지우기 · 들어가기 · 잠긴 뿌리. **desktop.open 은 실행하지 않았다**(격리 데몬이라도 이 PC 화면에 창을 연다) | 中(전송) | 없음 |
 | 작업 · 출력 | **부분→됨(읽기)** — 작업 관리자 줄을 누르면 `tasks.by-task-id.output.get`(도는 동안 3초 폴링). SSE 따라가기 · master jobs 는 없음 | 시험(격리 노드에 작업 0건) | 小 | 없음 |
 | WireGuard | **됨** — 올리기/다시 적용 = `apply.post`, 내리기 = `down.post`, 동기화 = `sync.post`. managed-key/config 는 아직 | 실측(sync 202, 앱 토큰). apply/down 은 실행하지 않음 | 小 | 없음 |
-| mesh · routes · probes · 네트워크 로그 · connection groups | 없음 | — | 大 | §3-1 |
+| 네트워크 보기(mesh · 피어 · 네트워크 · 경로 그래프 · 세션 · 정책 · probe · 조작 이력) | **됨(읽기 전용)** — 노드 데스크톱 '네트워크' 앱. Master 위임 표의 읽기만, 창에 '보기만' 문장. node-gui 의 network-master.js 순수 함수와 시험을 옮겼다 | 실측(노드 · 메시 행 · 네트워크 행 · 빈 피어/경로 — 이 격리 Tree 의 실제 값) | — | — |
+| 네트워크 쓰기(조정 · 계획 · 피어 철회 · probe 실행 · 정책 저장 · 세션 닫기 · 연결 그룹 닫기) | **하지 않음** — 위임 밖. node-gui 도 A 모드에서 하지 못한다(보기만) — **대체로 잃는 기능이 아니다**. §3-1 | 실측(앱 토큰 · 사람 세션 모두 리프 Gateway 에서 404) | — | **있음** — §3-1 |
 | 서비스 터널 | **목록 · 닫기 됨**, 열기는 잠금 — 여는 것은 Master `service-tunnels.open.post` 인데 앱 위임 밖 | 실측(목록 200 · 0건) | — | 열기는 코어(위임) |
-| SVI 자원·grants·bindings·handles · 링크 흐름 | 시안 | — | 大 | §3-1 |
+| SVI — 자원 창(NodeShare) · 자원 상태 창(ResStatus) | **됨** — 자원 공유 = 이 노드의 SVI 자원마다 허가 목록 · 주기 · 지우기, 외부 자원 등록 = 이 노드를 지명한 허가 + 바인딩 만들기 · 끊기, 자원 상태 = 정보 · 끝점 · 연결 · 쓰는 곳(열린 핸들 10초 조회). 허가는 Master 위임 가드에 맞춰 노드에게 '읽기'(read · subscribe) · '연결 원천'(+ bind.source)만, 기한 1시간~90일. **값(스트림) 보기는 없다** — 핸들 열기 · stream · events 가 위임 밖(§3-1). 계정 주체도 없다(사용자 목록이 위임 밖) | 실측 — 자원 · 끝점 · 빈 허가/바인딩/핸들 화면, 허가 만들기 · 좁히기 · 지우기(앱 토큰), 가드 거절 규칙. **화면으로 허가 · 바인딩을 만드는 것은 못 봤다**(단독 리프라 줄 노드 · 받는 끝점이 없다) | — | 값 보기는 코어(위임) |
 | 다른 모듈 앱 열기 | **됨** — 모듈 › 앱 = Gateway 앱 목록(embed 앱 제외), '열기' = `emit('launch')` → Scene `gui-v3.app.launch` → `terra.app:launch` | 실측(목록 · B 모드에서 '셸 안에서만' 경로). **A 모드에서 창이 뜨는 것은 못 봤다**(iframe 안을 누를 수 없음) | — | — |
 | 알림(alarms) | **부분** — 작업 · 모듈 상태 변화를 알림 한 줄로(상태 줄 · `window.TerraAlarms`), 밀어 받기 이벤트에 바로 다시 읽음. **목록 화면은 없다**(전역 틀 '알림' 메뉴 자리만) | 시험 | 小 | 없음 |
-| 편집기(건물·재료·도로·지면·필드) | 부분(Field · StarMaker) | — | 大 | §3-1 |
+| 편집기(건물·재료·도로·지면·필드) | **대체 범위 밖(사용자 결정 11/1)** — gui-v3 는 Field · StarMaker 만 두고 node-gui 의 편집기를 옮기지 않는다 | — | — | — |
 | 등록 상태(enrollment) | **됨(읽기)** — 등록 여부 · Master 주소 · 노드 id · 등록일 · 자격. 등록 코드는 잠금(`node.enroll` 이 앱 권한에 없다) | 실측 | — | — |
 | Terra ID 신뢰 카드 · external identities | **읽기 됨** — 설정 › 계정: whoami(principal · 권한) + 내 외부 신원 연결(`users.by-user-id.external-identities.get`), '연결 없음'과 '못 봤음'을 가른다. **한계를 화면에 적었다**: 연결 · 해제와 Tree 의 신뢰 발급자(admin.external-issuers.*)는 앱 위임 밖이라 여기서 하지 않는다(Tree 의 웹 콘솔에서) | 실측(B 모드 — '연결 없음', 권한 목록) | — | 쓰기는 코어(위임) |
 | 밀어 받기(events) | 됨(거칠게) | — | — | — |
-| 보기 상태 문서(node-gui 배치 넘겨받기) | **막힘** — Gateway 가 앱 토큰을 `app:<자기 앱 id>` 로 고정하고(`documents.go` 18~21행, 시험 `TestDocumentAppTokenCannotReachAnotherNamespace` 가 node-gui 이름공간을 예로 거절), 사람 세션은 `app:` 이름공간을 못 쓴다. 게다가 node-gui 가 둔 것(`layout/<node_id>` 육각 맵 배치 · 노드 모습 · 연결 · 메모 · 창 자리, `assets` 건물 · 도로)은 gui-v3 에 대응 모델이 거의 없다(창 자리 · 메모 정도) | 코드 확인 | — | **있음** — 결정 필요 |
+| 보기 상태 문서(node-gui 배치 넘겨받기) | **대체 범위 밖(사용자 결정 11/1)**. 참고로 기술적으로도 막혀 있다 — Gateway 가 앱 토큰을 `app:<자기 앱 id>` 로 고정하고(`documents.go` 18~21행, 시험 `TestDocumentAppTokenCannotReachAnotherNamespace` 가 node-gui 이름공간을 예로 거절), 사람 세션은 `app:` 이름공간을 못 쓴다. 게다가 node-gui 가 둔 것(`layout/<node_id>` 육각 맵 배치 · 노드 모습 · 연결 · 메모 · 창 자리, `assets` 건물 · 도로)은 gui-v3 에 대응 모델이 거의 없다(창 자리 · 메모 정도) | 코드 확인 | — | **있음** — 결정 필요 |
 | Master 위임 표(Terra CI 스텝 대응) | **됨** — `web/tools/gen-master-delegated.mjs --terra … --check`(§4-3) | 시험 · 생성 확인(38 op) | — | ci.yml 경로 교체만 |
 | 권한 | gui-v3 앱은 node.config(설정 patch · 재시작) · module.manage(배정) · node.control(WireGuard · 터널 닫기) · process.execute(작업 출력)를 쓴다. 격리 Master 의 부트스트랩 관리자는 `DefaultPermissions()` 라 **module.manage · node.config 가 없어** 쓰기가 403 이었다 — 실제 Tree 의 역할 구성도 확인해야 한다 | 실측 | — | — |
 
-### 3-1. 大 항목 — 범위와 순서 (착수 전 결정)
+### 3-1. 大 항목 — 결정(11/1)과 결과
 
-| 묶음 | node-gui 가 하는 것 | 닿는 길(A 모드) | 제안 순서 |
-| --- | --- | --- | --- |
-| 네트워크 보기 | mesh peers · networks · state/status · probes · routes(graph · candidates · policies · sessions) · 로그 | Master 위임 표에 **읽기는 다 있다**(peers.get · networks · state · status · probes · route.* · logs) | 1. 읽기 전용 '네트워크' 창(노드 · 피어 · 경로 표) — 中 |
-| 네트워크 쓰기 | mesh plan/reconcile/revoke · connection-groups close · route session close | **위임 밖**(mesh plan · reconcile · revoke · connection-groups close · route sessions close 모두 표에 없다) | 2. 코어 위임 결정 뒤 — 그 전엔 B 모드만 |
-| SVI | 자원 · 엔드포인트 · grants(만들기 · 고치기 · 지우기) · bindings · handles · 링크 흐름(SSE) | 위임 표에 resources · grants(post/patch/delete) · bindings(get/post/delete) · handles 가 **있다**. handle 이벤트 SSE 는 표에 없다 | 3. 자원 상태 창(ResStatus) · 자원 창(NodeShare)을 실데이터로 — 大(링크 흐름 포함) |
-| 편집기 | 건물 · 재료 · 도로 · 지면 · 필드 화면(맵 자산) | 코어 op 없음 — GUI 자산(보기 상태 문서) | 4. gui-v3 의 디자인 방향(우주 지도)과 맞는지부터 — 다시 만들지 결정 필요 |
+사용자 결정(11/1): **네트워크 읽기 → SVI 순서로 하고, 편집기와 node-gui 배치 이전은 이번 대체 범위에서 뺀다.** 아래는 그 결과와, 위임 밖이라 하지 않은 것.
+
+| 묶음 | 결과 | 코어(Terra)에서 열어야 하는 것 |
+| --- | --- | --- |
+| 네트워크 보기 | **됨** — §3 | — |
+| 네트워크 쓰기 | **하지 않음.** `network.mesh.wireguard.plan.post` · `.reconcile.post` · `.peers.revoke.post` · `network.probes.post` · `network.networks.post` · `route.policies.put` / `.by-policy-id.delete` · `route.sessions.by-session-id.close.post` · `connection-groups.by-group-id.close.post` 는 Master 계약에 `delegated-session` 이 없어 앱 토큰으로 닿지 않는다. 리프 Gateway 는 이 op 들을 **사람 세션(Handle)으로도 잇지 않는다**(실측 404 `MODULE_ROUTE_NOT_FOUND`) — 리프에서는 어떤 GUI 로도 못 한다 | ① Master 계약에서 위 op 에 `security.authentication: delegated-session` 을 연다(ADR-GW-003 의 다음 단계 — SVI 허가처럼 무엇을 · 누구에게 열지 가드와 함께). ② 리프 Gateway 의 Master 중계가 그 op 를 잇는다. 그 뒤 `web/tools/gen-master-delegated.mjs` 를 다시 돌리면 gui-v3 가 버튼을 열 수 있다(위임 표에 들어온 op 만 부르게 시험이 막고 있다) |
+| node-gui 는 지금 이 쓰기를 하나? | **아니다.** node-gui 의 실데이터 층(`web/src/data/network-master.js` 머리말 · `masterBlocks.writeNote`)은 "여기서는 보기만 합니다 … 위임 입구는 아직 읽기만" — 쓰기 단추는 디자인 캔버스(`screens/network.js`)의 시연뿐이고, 클라이언트(`api/client.js`)는 위임 표에 없는 Master op 를 부르지 않는다 → **전환은 기능 후퇴가 아니다** | — |
+| SVI | **됨** — §3. 허가 · 바인딩은 위임 표에 있다. Master 의 위임 가드(`api/delegated_grant_guard.go`, ADR-GW-004 2b)가 앱 자격의 허가를 노드에게 read · subscribe · bind.source, 사람 자신에게 inspect · read · subscribe · bind.source/target 으로, 기한 90일 이하로 묶는다 — 화면이 그 안에서만 고르게 했다 | — |
+| SVI 값(흐름) | **하지 않음.** `svi.handles.post`(핸들 열기) · `handles.by-handle-id.stream.get` · `.events.get`(SSE) · `.write.get` 이 위임 밖(실측 404). **대체**: 자원 상태 창이 `svi.handles.get {resource_id}` 를 10초마다 불러 '이 자원을 누가 열어 쓰는지'를 보인다 — 값 대신 사용 현황. SSE 를 앱 iframe 에서 받으려 해도 위임 입구가 스트림을 잇지 않으므로 조회가 유일한 길이다 | 값을 보이려면 `svi.handles.post`(subscribe 만이라도)와 `handles.by-handle-id.events.get`(또는 stream)을 위임 입구에 열고, Gateway 가 앱 토큰으로 스트림을 잇게 해야 한다 |
+| 편집기 · 배치 이전 | **대체 범위 밖(사용자 결정 11/1)** | — |
 
 ## 4. 대체하는 날 Terra 쪽에서 같이 바꿀 것 (Terra 는 고치지 않았다)
 
@@ -134,3 +139,14 @@ related:
 - 파일: 공유 폴더 `share-0` 목록(docs · readme.txt 6 B) · 새 폴더 → 지우기 · 들어가기/위로 · 잠긴 로컬 뿌리. 찾은 결함(잠긴 뿌리가 '빈 폴더')은 고치고 다시 확인했다. 로컬 루트 목록에는 이 PC 의 실제 드라이브가 나온다(격리 데몬도 같은 기계라서) — 그 안으로는 들어가지 않았다.
 - Terra ID: 계정 카드 · '연결 없음' · 한계 문장.
 - 못 본 것: A 모드 화면(앞과 같은 이유), desktop.open 실행, 파일 내용 · 전송.
+
+### 6-2. 네트워크 · SVI 실측 (2026-11-01)
+
+같은 격리 스택(b34ed4aa · 단독 리프 · 격리 Master). 앱 토큰(`tsa_`)과 B 모드 화면으로.
+- 네트워크 읽기 9개 모두 200 — `network.state`(실제 할당 100.80.0.10 · terra-managed-wireguard), `status`, `networks`, `peers{node_id}`(빈 목록), `route.graph`(epoch 7 · 간선 없음), `sessions` · `policies` · `probes` · `logs`(빈 목록). 화면: 노드 · 메시 행 1(iso-leaf · online · 중계 예 · 100.80.0.10 · 관측 internet), 네트워크 행 1, 피어 '비어 있음'.
+- 네트워크 쓰기: `reconcile` · `plan` · `peers.revoke` · `sessions.close` — 앱 토큰 · 사람 세션 모두 404 `MODULE_ROUTE_NOT_FOUND`.
+- SVI: `svi.resources.get` → 이 노드의 `test.stream`(Deterministic test stream, 끝점 output · text — 둘 다 source). 자원 창 · 자원 상태 창이 그것을 그렸다(허가 · 바인딩 · 핸들은 빈 목록).
+- 허가(앱 토큰): 노드 주체에 read · subscribe · bind.source + 기한 1시간 → 201, 좁히는 patch 200, delete 200. discover · inspect · write · list · watch · invoke · bind.target → 403, 기한 없음 · 100일 → 403. 시험으로 만든 허가는 모두 지웠다.
+- 핸들: `svi.handles.post` 404(위임 밖) — 값 그래프 대신 핸들 목록 조회.
+- 찾은 결함: 제어기를 거치지 않고 자원 창을 바로 열면 시안으로 떨어졌다(장면 노드 묶기가 늦음) — 고치고 다시 확인. 연산 이름이 `bind.source` 인 것도 실측으로 바로잡았다.
+- 못 본 것: 화면으로 허가 · 바인딩을 실제로 만드는 것(줄 다른 노드 · 받는 끝점이 없는 단독 리프), A 모드 화면.
