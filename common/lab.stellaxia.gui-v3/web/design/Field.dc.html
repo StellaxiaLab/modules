@@ -867,7 +867,7 @@ class Component extends DCLogic {
   peerList() { const KN = { tree: '트리', leaf: '리프' }; return this.mapData().all.filter((n) => n.kind === 'tree' || n.kind === 'leaf').map((n) => ({ id: n.id, name: n.name, kind: KN[n.kind], parent: n.parent ? n.parent.name : '' })); }
   WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14], login: [15], mod: [16, 17, 18], web: [19, 20] }; }
   WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540], share: [860, 600], res: [600, 600], login: [600, 540], mod: [600, 620], web: [1000, 680] }[kind] || [900, 600]; }
-  WSEE(kind) { return kind === 'stat' || kind === 'res' || kind === 'login' || kind === 'mod'; }
+  WSEE(kind) { return kind === 'stat' || kind === 'res' || kind === 'login'; }   // 바탕이 비치는 창 — 모듈 상태 창은 제어기 창처럼 불투명(글자 장이 글 사이로 비쳐 읽기 어려웠다)
   winGet(node, kind, arg) { const L = this._wins || (this._wins = []); return L.find((q) => q.node === node && q.kind === (kind || 'ctl') && (q.arg || '') === (arg || '')) || null; }
   winPut(W, st) { const L = this._wins || (this._wins = []), kd = W.kind || 'ctl'; let e = this.winGet(W.node, kd, W.arg); if (!e) { e = { id: 'w' + (this._winN = (this._winN || 0) + 1), node: W.node, kind: kd, arg: W.arg || '' }; L.push(e); } e.st = st; e.R = W.R ? { ...W.R } : e.R; e.at = performance.now(); return e; }
   winDrop(node, kind) { if (this._wins) this._wins = this._wins.filter((q) => !(q.node === node && q.kind === (kind || 'ctl'))); }

@@ -3073,7 +3073,7 @@ class Component extends DCLogic {
   gf_peerList() { const KN = { tree: '트리', leaf: '리프' }; return this.sceneMap().all.filter((n) => n.kind === 'tree' || n.kind === 'leaf').map((n) => ({ id: n.id, name: n.name, kind: KN[n.kind], parent: n.parent ? n.parent.name : '' })); }
   gf_WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14], login: [15], mod: [16, 17, 18], web: [19, 20] }; }
   gf_WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540], share: [860, 600], res: [600, 600], login: [600, 540], mod: [600, 620], web: [1000, 680] }[kind] || [900, 600]; }
-  gf_WSEE(kind) { return kind === 'stat' || kind === 'res' || kind === 'login' || kind === 'mod'; }
+  gf_WSEE(kind) { return kind === 'stat' || kind === 'res' || kind === 'login'; }   // 바탕이 비치는 창 — 모듈 상태 창은 제어기 창처럼 불투명(글자 장이 글 사이로 비쳐 읽기 어려웠다)
   gf_winGet(node, kind, arg) { const L = this._q_wins || (this._q_wins = []); return L.find((q) => q.node === node && q.kind === (kind || 'ctl') && (q.arg || '') === (arg || '')) || null; }
   gf_winPut(W, st) { const L = this._q_wins || (this._q_wins = []), kd = W.kind || 'ctl'; let e = this.gf_winGet(W.node, kd, W.arg); if (!e) { e = { id: 'w' + (this._q_winN = (this._q_winN || 0) + 1), node: W.node, kind: kd, arg: W.arg || '' }; L.push(e); } e.st = st; e.R = W.R ? { ...W.R } : e.R; e.at = performance.now(); return e; }
   gf_winDrop(node, kind) { if (this._q_wins) this._q_wins = this._q_wins.filter((q) => !(q.node === node && q.kind === (kind || 'ctl'))); }
@@ -3627,7 +3627,7 @@ class Component extends DCLogic {
     const heading = { legacy: '레거시', mask: S.mode === 'legacy' ? '마스크 → 레거시' : '마스크', mix: '혼합 — 궤도 마스크 · 행성 레거시', data: '텍스트 — 궤도 마스크 · 이름표 텍스트' }[K];
     const LON = this.loginOn();
     return {
-      loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON ? 'none' : 'block', loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
+      loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON || (typeof window !== 'undefined' && window.TerraTransport) ? 'none' : 'block',   /* 'TEST · 로그인부터' 는 시안(캔버스 · ?demo)에서만 — 실제 Terra 에 붙은 화면엔 없다 */ loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
       ctxMenu: this._ctxF || (this._ctxF = (e) => this.sceneCtx(e)),
       loginDoneFn: this._lgDF || (this._lgDF = () => { this._introS = 1; this.setState({ loginOn: false }); }), loginZoomFn: this._lgZF || (this._lgZF = (s) => { this._introS = s; }),
       loginAgain: () => this.setState({ loginOn: true, loginKey: (S.loginKey || 0) + 1 }),
