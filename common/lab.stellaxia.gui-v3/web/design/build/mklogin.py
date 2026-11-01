@@ -25,7 +25,7 @@ rep("  renderVals() {\n    const S = this.state, sys = this.build()","""  // 로
     const S = this.state, sys = this.build()""")
 rep("    return {\n      ...this.gf_ctlProps(),","""    const LON = this.loginOn();
     return {
-      loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON ? 'none' : 'block', loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
+      loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON || (typeof window !== 'undefined' && window.TerraTransport) ? 'none' : 'block',   /* 'TEST · 로그인부터' 는 시안(캔버스 · ?demo)에서만 — 실제 Terra 에 붙은 화면엔 없다 */ loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
       loginDoneFn: this._lgDF || (this._lgDF = () => this.setState({ loginOn: false })),
       loginAgain: () => this.setState({ loginOn: true, loginKey: (S.loginKey || 0) + 1 }),
       ...this.gf_ctlProps(),""")

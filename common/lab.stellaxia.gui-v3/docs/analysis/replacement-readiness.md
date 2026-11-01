@@ -12,12 +12,15 @@ last_updated: "2026-10-31"
 language: "ko-KR"
 based_on: "Terra origin/main 5c6ace6c · modules origin/main 19d713d(2026-10-31). 0.2.0 .tmod 검사(코어 세션, Terra 1f0b569b)와 0.3.0 격리 스택 실측(이 문서 §5)을 합쳤다"
 related:
+  - "[[design-ops-gaps|시안 ↔ 실제 운영 격차]]"
   - "[[main-scene|main Scene]]"
   - "[[terra-reach|Terra 도달 분석]]"
   - "[[legacy-node-gui-overview|node-gui 개요]]"
 ---
 
 # node-gui 대체 준비도
+
+> **화면 단위 격차는 [[design-ops-gaps|시안 ↔ 실제 운영 격차]]** — 아래 표의 '됨'이 그 기능이 보이는 모든 창에서 실제라는 뜻은 아니다(2026-11-01 점검).
 
 사용자의 목표는 node-gui(`lab.stellaxia.node-gui`)를 gui-v3 로 **완전히 대체**하는 것이다. 0.3.0 은 그 첫 문턱 —
 **main GUI 로 실리는 것** — 만 넘긴다. 이 문서는 (1) 최근 코어·모듈 변화에 맞춘 현황, (2) 아직 남은 기능 격차,
