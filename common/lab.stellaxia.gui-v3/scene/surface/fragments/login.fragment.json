@@ -1,10 +1,10 @@
 {
-  "$comment": "로그인 카드. 내장 엘리먼트로 그린다 — 이 화면은 자유 디자인이 아니다. 웹이 비밀번호를 받으면 모듈 코드가 사용자의 Terra 비밀번호를 보게 된다(웹 프로그램 감싸기 설계 §3.3.1). 로그인에 성공하면 signin.submit이 / 로 돌려보낸다. 이미 로그인한 채 들어오면 로그아웃과 돌아가기만 보인다.",
+  "$comment": "로그인 카드. 내장 엘리먼트로 그린다 — 이 화면은 자유 디자인이 아니다. 웹이 비밀번호를 받으면 모듈 코드가 사용자의 Terra 비밀번호를 보게 된다(웹 프로그램 감싸기 설계 §3.3.1). 모양은 web/design/Login.dc.html 을 따른다(a안): 바탕 · 빛무리 · TERRA 로고 · CLI 틀은 포스터 그림(data: SVG — 호스트 CSP img-src 'self' data:)이 싣고, 입력 · 버튼은 호스트의 내장 엘리먼트 그대로 CLI 줄 모양(admin > · password > · ⏎ Login)으로 놓는다. 글자 장 · 움직임 · 칸 글자 입력처럼 내장 엘리먼트로 못 옮기는 것은 docs/design/main-scene.md §1-1. 로그인에 성공하면 signin.submit이 / 로 돌려보낸다. 이미 로그인한 채 들어오면 로그아웃과 돌아가기만 보인다.",
   "schemaVersion": "0.1.0",
   "id": "gui-v3.login",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "renderer": "dom.basic",
-  "title": "Terra GUI v3 — 로그인",
+  "title": "Terra — 로그인",
   "stores": [
     "signin"
   ],
@@ -17,11 +17,24 @@
   "root": {
     "type": "column",
     "id": "root",
+    "align": "center",
+    "justify": "center",
+    "gap": "lg",
     "children": [
+      {
+        "type": "image",
+        "id": "poster",
+        "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20640%20240%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22bg%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220.07%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23060a1d%22%2F%3E%3Cstop%20offset%3D%220.46%22%20stop-color%3D%22%23040614%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23020308%22%2F%3E%3C%2FlinearGradient%3E%3CradialGradient%20id%3D%22glow%22%20cx%3D%220.62%22%20cy%3D%220.58%22%20r%3D%220.55%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23966ec8%22%20stop-opacity%3D%220.22%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23966ec8%22%20stop-opacity%3D%220%22%2F%3E%3C%2FradialGradient%3E%3ClinearGradient%20id%3D%22band%22%20x1%3D%220%22%20y1%3D%220.2%22%20x2%3D%221%22%20y2%3D%220.8%22%3E%3Cstop%20offset%3D%220.22%22%20stop-color%3D%22%236e82dc%22%20stop-opacity%3D%220%22%2F%3E%3Cstop%20offset%3D%220.42%22%20stop-color%3D%22%236e82dc%22%20stop-opacity%3D%220.08%22%2F%3E%3Cstop%20offset%3D%220.56%22%20stop-color%3D%22%23aa78d2%22%20stop-opacity%3D%220.09%22%2F%3E%3Cstop%20offset%3D%220.7%22%20stop-color%3D%22%23e69696%22%20stop-opacity%3D%220.06%22%2F%3E%3Cstop%20offset%3D%220.84%22%20stop-color%3D%22%23e69696%22%20stop-opacity%3D%220%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22640%22%20height%3D%22240%22%20rx%3D%228%22%20fill%3D%22url(%23bg)%22%2F%3E%3Crect%20width%3D%22640%22%20height%3D%22240%22%20rx%3D%228%22%20fill%3D%22url(%23band)%22%2F%3E%3Crect%20width%3D%22640%22%20height%3D%22240%22%20rx%3D%228%22%20fill%3D%22url(%23glow)%22%2F%3E%3Cg%20font-family%3D%22'Geist%20Mono'%2CConsolas%2C'Cascadia%20Mono'%2Cmonospace%22%20font-size%3D%2213%22%20font-weight%3D%22600%22%3E%3Ctext%20x%3D%2228%22%20y%3D%2234%22%20fill%3D%22%233a446c%22%3E%E2%94%8C%E2%94%80%3C%2Ftext%3E%3Ctext%20x%3D%2252%22%20y%3D%2234%22%20fill%3D%22%23b0b8d6%22%20font-weight%3D%22400%22%3ETERRA%20%2F%2F%20LOGIN%3C%2Ftext%3E%3Ctext%20x%3D%22180%22%20y%3D%2234%22%20fill%3D%22%233a446c%22%3E%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%3C%2Ftext%3E%3Ctext%20x%3D%22548%22%20y%3D%2234%22%20fill%3D%22%23b0b8d6%22%20font-weight%3D%22400%22%3E01%2F02%3C%2Ftext%3E%3Ctext%20x%3D%22594%22%20y%3D%2234%22%20fill%3D%22%233a446c%22%3E%E2%94%80%E2%94%90%3C%2Ftext%3E%3Ctext%20x%3D%2228%22%20y%3D%22216%22%20fill%3D%22%233a446c%22%3E%E2%94%94%E2%94%80%3C%2Ftext%3E%3Ctext%20x%3D%2252%22%20y%3D%22216%22%20fill%3D%22%23848eb4%22%20font-weight%3D%22400%22%3ENODE%20AUTH%20%2F%2F%20GATEWAY%3C%2Ftext%3E%3Ctext%20x%3D%22246%22%20y%3D%22216%22%20fill%3D%22%233a446c%22%3E%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%E2%94%80%3C%2Ftext%3E%3Ctext%20x%3D%22594%22%20y%3D%22216%22%20fill%3D%22%233a446c%22%3E%E2%94%80%E2%94%98%3C%2Ftext%3E%3C%2Fg%3E%3Ctext%20x%3D%22320%22%20y%3D%22146%22%20text-anchor%3D%22middle%22%20fill%3D%22%23e6eaf7%22%20font-family%3D%22Geist%2C'Segoe%20UI'%2Csystem-ui%2Csans-serif%22%20font-size%3D%2288%22%20font-weight%3D%22700%22%20letter-spacing%3D%2214%22%3ETERRA%3C%2Ftext%3E%3C%2Fsvg%3E",
+        "alt": "TERRA",
+        "width": "min(440px, 100%)",
+        "a11y": {
+          "role": "img",
+          "label": "TERRA // LOGIN"
+        }
+      },
       {
         "type": "card",
         "id": "signin",
-        "title": "Terra 로그인",
         "visible": {
           "not": {
             "store": "signin",
@@ -34,60 +47,120 @@
         "children": [
           {
             "type": "text",
-            "id": "signinHint",
-            "text": "Terra GUI v3 가 노드 · 트리의 실데이터를 보이려면 Terra 로그인이 필요합니다. 비밀번호는 게이트웨이의 Credential Service로만 가고, 화면이 받는 것은 그것을 가리키는 이름뿐입니다."
+            "id": "prompt",
+            "variant": "mono",
+            "text": "○ terra login --as user"
           },
           {
-            "type": "input",
-            "id": "email",
-            "placeholder": "아이디",
-            "bind": {
-              "store": "signin",
-              "path": "/email"
-            },
-            "onChange": {
-              "function": "gui-v3.signin.field",
-              "input": {
-                "field": "email"
+            "type": "column",
+            "id": "adminRow",
+            "layout": "row",
+            "align": "center",
+            "gap": "sm",
+            "children": [
+              {
+                "type": "text",
+                "id": "adminLabel",
+                "variant": "mono",
+                "text": "admin    >"
+              },
+              {
+                "type": "input",
+                "id": "email",
+                "placeholder": "아이디",
+                "bind": {
+                  "store": "signin",
+                  "path": "/email"
+                },
+                "onChange": {
+                  "function": "gui-v3.signin.field",
+                  "input": {
+                    "field": "email"
+                  }
+                },
+                "a11y": {
+                  "label": "아이디"
+                }
               }
-            },
-            "a11y": {
-              "label": "아이디"
-            }
+            ]
           },
           {
-            "type": "input",
-            "id": "password",
-            "inputType": "secret",
-            "placeholder": "비밀번호",
-            "bind": {
-              "store": "signin",
-              "path": "/password"
-            },
-            "onChange": {
-              "function": "gui-v3.signin.field",
-              "input": {
-                "field": "password"
+            "type": "column",
+            "id": "passwordRow",
+            "layout": "row",
+            "align": "center",
+            "gap": "sm",
+            "children": [
+              {
+                "type": "text",
+                "id": "passwordLabel",
+                "variant": "mono",
+                "text": "password >"
+              },
+              {
+                "type": "input",
+                "id": "password",
+                "inputType": "secret",
+                "placeholder": "••••••••",
+                "bind": {
+                  "store": "signin",
+                  "path": "/password"
+                },
+                "onChange": {
+                  "function": "gui-v3.signin.field",
+                  "input": {
+                    "field": "password"
+                  }
+                },
+                "onSubmit": {
+                  "function": "gui-v3.signin.submit"
+                },
+                "a11y": {
+                  "label": "비밀번호"
+                }
               }
-            },
-            "onSubmit": {
-              "function": "gui-v3.signin.submit"
-            },
-            "a11y": {
-              "label": "비밀번호"
-            }
+            ]
           },
           {
-            "type": "button",
-            "id": "submit",
-            "text": "로그인",
-            "onClick": {
-              "function": "gui-v3.signin.submit"
-            }
+            "type": "divider",
+            "id": "rule"
+          },
+          {
+            "type": "column",
+            "id": "actions",
+            "layout": "row",
+            "align": "center",
+            "justify": "between",
+            "gap": "sm",
+            "children": [
+              {
+                "type": "button",
+                "id": "cancel",
+                "text": "← 돌아가기",
+                "onClick": {
+                  "function": "gui-v3.login.close"
+                },
+                "a11y": {
+                  "label": "로그인하지 않고 돌아가기"
+                }
+              },
+              {
+                "type": "button",
+                "id": "submit",
+                "text": "⏎ Login",
+                "onClick": {
+                  "function": "gui-v3.signin.submit"
+                },
+                "a11y": {
+                  "label": "로그인"
+                }
+              }
+            ]
           },
           {
             "type": "text",
             "id": "signinMessage",
+            "variant": "mono",
             "bind": {
               "store": "signin",
               "path": "/message"
@@ -99,19 +172,22 @@
             }
           },
           {
-            "type": "button",
-            "id": "cancel",
-            "text": "로그인하지 않고 돌아가기",
-            "onClick": {
-              "function": "gui-v3.login.close"
-            }
+            "type": "text",
+            "id": "keys",
+            "variant": "caption",
+            "text": "enter · 로그인"
+          },
+          {
+            "type": "text",
+            "id": "signinHint",
+            "variant": "caption",
+            "text": "비밀번호는 게이트웨이의 Credential Service로만 갑니다."
           }
         ]
       },
       {
         "type": "card",
         "id": "session",
-        "title": "로그인되어 있습니다",
         "visible": {
           "store": "signin",
           "path": "/state",
@@ -122,7 +198,14 @@
         "children": [
           {
             "type": "text",
+            "id": "sessionPrompt",
+            "variant": "mono",
+            "text": "● terra login — 로그인되어 있습니다"
+          },
+          {
+            "type": "text",
             "id": "principal",
+            "variant": "mono",
             "bind": {
               "store": "signin",
               "path": "/message"
@@ -130,20 +213,37 @@
             "empty": ""
           },
           {
-            "type": "button",
-            "id": "signout",
-            "text": "로그아웃",
-            "onClick": {
-              "function": "gui-v3.signout"
-            }
+            "type": "divider",
+            "id": "sessionRule"
           },
           {
-            "type": "button",
-            "id": "back",
-            "text": "GUI 로 돌아가기",
-            "onClick": {
-              "function": "gui-v3.login.close"
-            }
+            "type": "column",
+            "id": "sessionActions",
+            "layout": "row",
+            "align": "center",
+            "justify": "between",
+            "gap": "sm",
+            "children": [
+              {
+                "type": "button",
+                "id": "signout",
+                "text": "로그아웃",
+                "onClick": {
+                  "function": "gui-v3.signout"
+                }
+              },
+              {
+                "type": "button",
+                "id": "back",
+                "text": "⏎ GUI 로 돌아가기",
+                "onClick": {
+                  "function": "gui-v3.login.close"
+                },
+                "a11y": {
+                  "label": "GUI 로 돌아가기"
+                }
+              }
+            ]
           }
         ]
       }
