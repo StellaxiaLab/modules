@@ -232,8 +232,8 @@ class Component extends DCLogic {
     const give = () => {
       if (!cur) return; const subs = who === '전체' ? [C.parent].concat(leaves.map((l) => l.id)).filter(Boolean) : who === 'Tree' ? [C.parent].filter(Boolean) : D.picks.map((nm) => (leaves.find((l) => l.name === nm) || {}).id).filter(Boolean);
       if (!subs.length) { say(who === 'Tree' ? '부모 Tree 를 모른다(단독 리프)' : 'Leaf 선택 필요'); return; }
-      const ttl = this.TTL()[D.ttl] || 0;
-      Promise.all(subs.map((id) => C.TN.write(C.key, 'terra.master.svi.grants.post', Object.assign({ subject_type: 'node', subject_id: id, resource_id: cur.id, operations: P[D.perm] || P['읽기'] }, ttl ? { ttl_seconds: ttl } : {}))))
+      const ttl = SV.TTLS[D.ttl] || SV.TTLS['7일'];   // 위임 허가는 기한이 있어야 한다(90일 이하)
+      Promise.all(subs.map((id) => C.TN.write(C.key, 'terra.master.svi.grants.post', { subject_type: 'node', subject_id: id, resource_id: cur.id, operations: P[D.perm] || P['읽기'], ttl_seconds: ttl })))
         .then(() => { say('허가 ' + subs.length + '건 — ' + D.perm); C.TN.refresh(C.key, 'terra.master.svi.grants.get'); }, fail);
       this.setState({ draft: Object.assign({}, D, { picks: [] }) });
     };
@@ -249,12 +249,12 @@ class Component extends DCLogic {
       whoNote: who === '전체' ? '부모 Tree 와 지금 보이는 노드 ' + (leaves.length + (C.parent ? 1 : 0)) + '곳(이후 추가 노드 제외)' : who === 'Tree' ? (C.names.get(C.parent) || C.parent || '부모 없음') : '' + (H ? ' · 계정 주체는 사용자 목록이 위임 밖이라 뺐다' : ''),
       hasPicks: who === 'Leaf' && leaves.length > 0,
       picks: (who === 'Leaf' ? leaves : []).map((l) => { const on = D.picks.includes(l.name); return { name: l.name, on: on ? 'true' : 'false', cls: on ? 'on' : '', pick: () => this.setState({ draft: Object.assign({}, D, { picks: on ? D.picks.filter((x) => x !== l.name) : D.picks.concat([l.name]) }) }) }; }),
-      permOpts: sg(Object.keys(P), D.perm in P ? D.perm : '읽기', (o) => this.setState({ draft: Object.assign({}, D, { perm: o }) })), permOps: H ? (P[D.perm] || []).join(' · ') : '',
-      ttlOpts: sg(Object.keys(this.TTL()), D.ttl, (o) => this.setState({ draft: Object.assign({}, D, { ttl: o }) })), give,
+      permOpts: sg(Object.keys(P), D.perm in P ? D.perm : '읽기', (o) => this.setState({ draft: Object.assign({}, D, { perm: o }) })), permOps: (H ? (P[D.perm] || P['읽기']).join(' · ') + ' · ' : '') + '앱 자격으로는 읽기 · 연결 원천만, 기한 90일 이하(Master 위임 가드)',
+      ttlOpts: sg(Object.keys(SV.TTLS), D.ttl in SV.TTLS ? D.ttl : '7일', (o) => this.setState({ draft: Object.assign({}, D, { ttl: o }) })), give,
       regs: regs.map((o) => ({ open: openRs(o.res, o.src, o.from), res: o.res, src: o.src, srcCls: 'nd', from: o.from, target: o.bound, qos: o.qos, cut: () => W('terra.master.svi.bindings.by-binding-id.delete', { binding_id: o.bindId }, 'terra.master.svi.bindings.get') })),
       noRegs: regs.length === 0,
       avail: av.map((o, j) => { const editing = S.open === 'reg' + j, tg = sk.find((x) => x.label === D.target) || sk[0];
-        return { open: openRs(o.res, o.src, o.from), res: o.res, src: o.src, srcCls: 'nd', from: o.from, perm: o.perm, state: o.canBind ? (sk.length ? '' : '이 노드에 받는 끝점(sink)이 없다') : '읽기 — 연결 원천(bind_source) 허가면 이어 받기', canReg: !editing && o.canBind && sk.length > 0, editing,
+        return { open: openRs(o.res, o.src, o.from), res: o.res, src: o.src, srcCls: 'nd', from: o.from, perm: o.perm, state: o.canBind ? (sk.length ? '' : '이 노드에 받는 끝점(sink)이 없다') : '읽기 — 연결 원천(bind.source) 허가면 이어 받기', canReg: !editing && o.canBind && sk.length > 0, editing,
           reg: () => this.setState({ open: 'reg' + j, draft: Object.assign({}, D, { target: sk[0] ? sk[0].label : '' }) }),
           targets: sg(sk.map((x) => x.label), tg ? tg.label : '', (v) => this.setState({ draft: Object.assign({}, D, { target: v }) })), qosOpts: sg(Object.keys(QOS), D.qos, (q) => this.setState({ draft: Object.assign({}, D, { qos: q }) })),
           ok: () => { if (!tg) return; W('terra.master.svi.bindings.post', SV.bindBody(o, tg, QOS[D.qos]), 'terra.master.svi.bindings.get'); this.setState({ open: null }); }, cancel: () => this.setState({ open: null }) }; }),

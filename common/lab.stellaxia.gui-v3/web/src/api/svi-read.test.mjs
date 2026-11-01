@@ -1,21 +1,25 @@
 // node --test — SVI 응답 → 자원 창 · 자원 상태 창 모양
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PERMS, permOf, resources, grantRows, availRows, bindings, sinks, handleRows, bindBody } from './svi-read.js';
+import { PERMS, TTLS, permOf, resources, grantRows, availRows, bindings, sinks, handleRows, bindBody } from './svi-read.js';
 
 const RES = { items: [
   { resource_id: 'r-cam', node_id: 'nB', kind: 'camera', display_name: 'camera/frames', status: 'available', endpoints: [{ endpoint_id: 'frames', direction: 'source' }] },
   { resource_id: 'r-store', node_id: 'nA', kind: 'store', canonical_name: 'store/data', status: 'available', endpoints: [{ endpoint_id: 'in', direction: 'sink' }, { endpoint_id: 'meta', direction: 'source' }] }] };
 const GR = { items: [
-  { grant_id: 'g1', subject: { type: 'node', id: 'nA' }, resource_id: 'r-cam', operations: PERMS['연결 원천'] },
+  { grant_id: 'g1', subject: { type: 'node', id: 'nA' }, resource_id: 'r-cam', operations: ['read', 'subscribe', 'bind.source'] },
   { grant_id: 'g2', subject: { type: 'user', id: 'u1' }, resource_id: 'r-store', operations: PERMS['읽기'], expires_at: '2026-11-02T12:00:00Z' },
   { grant_id: 'g3', subject: { type: 'node', id: 'nT' }, resource_id: 'r-store', operations: ['discover', 'inspect'] }] };
 const BI = { items: [{ binding_id: 'b1', source: { resource_id: 'r-cam', endpoint_id: 'frames' }, target: { resource_id: 'r-store', endpoint_id: 'in' }, source_node_id: 'nB', target_node_id: 'nA', observed_state: 'active', qos_profile: 'realtime_latest' }] };
 const names = new Map([['nA', 'leaf-a'], ['nB', 'leaf-b'], ['nT', 'tree']]);
 
 test('permOf — operations → 권한 낱말', () => {
-  assert.equal(permOf(PERMS['읽기']), '읽기'); assert.equal(permOf(PERMS['제어']), '제어'); assert.equal(permOf(PERMS['연결 원천']), '연결 원천');
-  assert.equal(permOf(['discover']), '보기'); assert.equal(permOf([]), '—');
+  assert.equal(permOf(PERMS['읽기']), '읽기'); assert.equal(permOf(PERMS['연결 원천']), '연결 원천');
+  assert.equal(permOf(['discover', 'inspect']), '보기'); assert.equal(permOf(['read', 'write']), '쓰기'); assert.equal(permOf(['invoke']), '제어'); assert.equal(permOf([]), '—');
+  // 위임 입구 가드: 노드에게는 read · subscribe · bind.source 만, 기한은 90일 이하
+  const allowed = new Set(['read', 'subscribe', 'bind.source']);
+  for (const ops of Object.values(PERMS)) for (const o of ops) assert.ok(allowed.has(o), o);
+  for (const s of Object.values(TTLS)) assert.ok(s > 0 && s <= 90 * 86400);
 });
 
 test('resources · grantRows — 이름 · 끝점, 허가는 주체(Tree · Leaf · 계정)와 기한으로', () => {

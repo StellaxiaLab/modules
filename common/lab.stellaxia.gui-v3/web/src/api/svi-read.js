@@ -11,20 +11,25 @@
 
 const arr = (d, ...keys) => { if (Array.isArray(d)) return d; for (const k of keys) if (d && Array.isArray(d[k])) return d[k]; return []; };
 
-/** 화면의 권한 낱말 → SVI operations. 값은 terra-svi validOperation 의 것(discover · inspect · read · write · list · watch · subscribe · invoke · bind_source · bind_target) */
+/** 화면에서 노드에게 줄 수 있는 권한 낱말 → SVI operations.
+ *  Master 의 위임 입구 가드(api/delegated_grant_guard.go, ADR-GW-004 2b)가 앱 자격으로 노드에게 주는 것을 read · subscribe · bind.source 로,
+ *  기한은 반드시 · 90일 이하로 묶는다(실측: discover · inspect · write · list · watch · invoke · bind.target 은 403, 기한 없음 · 100일은 403).
+ *  그래서 '보기 · 쓰기 · 제어'는 내지 않는다 — 그것은 Tree 의 웹 콘솔 · CLI(사람의 직접 호출)에서 */
 export const PERMS = {
-  보기: ['discover', 'inspect'],
-  읽기: ['discover', 'inspect', 'read', 'list', 'watch', 'subscribe'],
-  쓰기: ['discover', 'inspect', 'read', 'list', 'watch', 'subscribe', 'write'],
-  제어: ['discover', 'inspect', 'read', 'list', 'watch', 'subscribe', 'write', 'invoke'],
-  '연결 원천': ['discover', 'inspect', 'read', 'subscribe', 'bind_source']
+  읽기: ['read', 'subscribe'],
+  '연결 원천': ['read', 'subscribe', 'bind.source']
 };
-/** operations → 가장 가까운 권한 낱말(정확히 같은 것이 없으면 가장 큰 것) */
+/** 기한 — 위임 허가는 기한이 있어야 하고 90일 이하 */
+export const TTLS = { '1시간': 3600, '1일': 86400, '7일': 604800, '30일': 2592000, '90일': 7776000 };
+/** operations → 권한 낱말(이미 있는 허가를 보일 때 — 다른 길로 준 넓은 허가도 이름은 붙인다) */
 export function permOf(ops) {
   const s = new Set(ops || []);
-  if (s.has('bind_source')) return '연결 원천';
-  for (const k of ['제어', '쓰기', '읽기', '보기']) if (PERMS[k].every((o) => s.has(o)) || (k === '보기' && s.size)) return k;
-  return '—';
+  if (!s.size) return '—';
+  if (s.has('bind.source') || s.has('bind_source')) return '연결 원천';
+  if (s.has('invoke')) return '제어';
+  if (s.has('write')) return '쓰기';
+  if (s.has('read') || s.has('subscribe') || s.has('list') || s.has('watch')) return '읽기';
+  return '보기';
 }
 
 /** 자원 목록 @returns {{ id: string, node: string, kind: string, name: string, status: string, eps: { id: string, dir: string }[] }[]} */
@@ -47,7 +52,7 @@ export function availRows(grantsD, resD, bindD, myNode, names = new Map()) {
   const res = new Map(resources(resD).map((r) => [r.id, r])), binds = bindings(bindD);
   return arr(grantsD, 'items', 'grants').filter((g) => { const s = g.subject || {}; return s.type === 'node' && s.id === myNode; }).map((g) => {
     const r = res.get(g.resource_id) || { id: g.resource_id, name: g.resource_id, node: '', eps: [] }, b = binds.find((x) => x.srcRes === g.resource_id && x.tgtNode === myNode);
-    return { grant: g.grant_id, resId: r.id, res: r.name, from: names.get(r.node) || r.node || '—', src: '지명', perm: permOf(g.operations), canBind: (g.operations || []).includes('bind_source'),
+    return { grant: g.grant_id, resId: r.id, res: r.name, from: names.get(r.node) || r.node || '—', src: '지명', perm: permOf(g.operations), canBind: (g.operations || []).some((o) => o === 'bind.source' || o === 'bind_source'),
       srcEp: (r.eps.find((e) => /source/.test(e.dir)) || r.eps[0] || {}).id || '', bound: b ? b.tgtRes + (b.tgtEp ? '#' + b.tgtEp : '') : '', bindId: b ? b.id : '', qos: b ? b.qos : '' };
   });
 }
