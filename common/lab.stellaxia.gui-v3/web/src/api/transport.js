@@ -4,6 +4,7 @@
 //   로컬 노드(이 GUI 를 띄운 노드)   POST /api/v1/operations/{op}/invoke
 //   다른 노드                         POST /api/v1/nodes/{node}/operations/{op}/invoke   (Master 중계 · 직계 자식만)
 //   Master 가 마지막으로 관측한 값    terra.master.nodes.by-node-id(.modules).get        (끊겼을 때 사본이 없으면)
+//   Master 에 쓰는 것(모듈 배정 …)    terra.master.* 는 노드로 중계하지 않고 로컬 Gateway 로 — 입력에 그 노드의 Master id(node_id)를 싣는다
 //   GUI 보기 상태(제어기 창 배치 …)   /api/v1/me/documents/gui-v3/view/<키>            (계정에 — 다른 브라우저에서도 같은 배치)
 // 실패는 TerraError(code) 로 — 보드가 code 로 분할(NODE_OFFLINE · RELAY_NOT_CONNECTED · NETWORK · TIMEOUT · GATEWAY_UNREACHABLE)인지 가른다.
 //
@@ -22,7 +23,7 @@ export const VIEW_NS = 'gui-v3';
 export function createGatewayTransport(o) {
   const T = o.terra, LS = o.storage || globalThis.localStorage, saveMs = o.saveMs ?? 800;
   const meta = {}, real = new Map(), views = new Map(), saveT = new Map();
-  let sceneLocal = '', nodesP = null;
+  let sceneLocal = '', nodesP = null, localRid = null;
   const nodes = () => nodesP || (nodesP = T.invoke('terra.master.nodes.get', {}).then((d) => (Array.isArray(d) ? d : (d && d.nodes) || []), (e) => { nodesP = null; throw e; }));
   const lsGet = (k) => { try { return JSON.parse(LS.getItem('terra.view.' + k) || 'null'); } catch { return null; } };
   const lsSet = (k, v) => { try { LS.setItem('terra.view.' + k, JSON.stringify(v)); } catch {} };
@@ -45,9 +46,19 @@ export function createGatewayTransport(o) {
       return id;
     },
 
+    /** 장면 노드 → Master 의 노드 id. 로컬이면 지도가 든 id, 없으면 로컬 Daemon status 의 node_id(등록 전이면 빈 칸) */
+    async masterId(n) {
+      if (n !== sceneLocal) return tp.realId(n);
+      if (meta[n] && meta[n].rid) return meta[n].rid;
+      if (!localRid) localRid = T.invoke('terra.daemon.status.get', {}).then((d) => (d && ((d.enrollment && d.enrollment.node_id) || (d.daemon && d.daemon.node_id))) || '', (e) => { localRid = null; throw e; });
+      const id = await localRid; if (!id) throw new TerraError('NODE_NOT_ENROLLED', '이 노드는 아직 Tree 에 등록되지 않았어요', 409);
+      return id;
+    },
+
     async invoke(n, op, input) {
       if (o.authed && !o.authed()) throw new TerraError('UNAUTHENTICATED', '로그인 전', 401);
       if (op.startsWith('gui-v3.')) return { ok: true, local: true };   // 화면 안 초안(보낼 operation 이 아직 없는 편집) — 노드로 보내지 않는다
+      if (op.startsWith('terra.master.')) { const inp = Object.assign({}, input); if (!inp.node_id && /\.by-node-id\./.test(op)) inp.node_id = await tp.masterId(n); return T.invoke(op, inp); }   // Master 는 로컬 Gateway 가 잇는다
       const id = await tp.realId(n);
       return T.invoke(op, input || {}, id ? { node: id } : {});
     },

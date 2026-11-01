@@ -202,7 +202,69 @@ class Component extends DCLogic {
     this.set((v) => { const g = v.shares[res] || (v.shares[res] = []); for (const x of list) { const i = g.findIndex((y) => y.who === x.who && y.type === x.type); if (i >= 0) g[i] = x; else g.push(x); } });
     this.setState({ draft: Object.assign({}, D, { picks: [] }), msg: D.who === '전체' && this.help() ? '전체 · 지금 ' + this.clusterN() + '곳 (이후 추가 노드 제외)' : '' });
   }
+  // ── 실제 Tree(웹 빌드 · 로그인) — Master SVI 를 부른다(src/api/svi-read.js = window.TerraSvi). 캔버스 · 실제 지도 밖 노드는 시안 그대로 ──
+  RT() {
+    const W = typeof window !== 'undefined' ? window : null, TN = W && W.TerraNodes, SV = W && W.TerraSvi, key = this.props.nodeKey || (TN && TN.t.localId());
+    if (!TN || !SV || TN.t.kind !== 'gateway' || !key) return null;
+    const meta = TN.t.meta || {}, me = meta[key]; if (!me || !me.rid) return null;
+    const TP = W.TerraTopology, raw = TP && TP.node ? TP.node(me.rid) : null, parent = (raw && raw.parent_node_id) || '';
+    const names = new Map(Object.values(meta).filter((m) => m.rid).map((m) => [m.rid, m.name]));
+    const rd = (op, input) => TN.read(key, op, input ? { input, ttl: 10000 } : { ttl: 10000 });
+    return { TN, SV, key, rid: me.rid, parent, names, metas: Object.values(meta).filter((m) => m.rid), rd };
+  }
+  componentWillUnmount() { if (this._un) { this._un(); this._un = null; } }
+  live() { if (this._un || typeof window === 'undefined' || !window.TerraNodes) return; this._un = window.TerraNodes.subscribe(() => this.setState({})); }
+  // 자원 창 — 실제: 자원 공유 = 이 노드의 SVI 자원(svi.resources.get)마다 허가(svi.grants.*), 외부 자원 등록 = 이 노드를 지명한 허가 + 바인딩(svi.bindings.*).
+  //   적용은 바로 Master 에 간다(시안의 '적용' 단계 없음). 계정 주체는 뺐다 — 사용자 목록은 앱 위임 밖이라 고를 수 없다
+  realVals() {
+    const C = this.RT(); if (!C) return null; this.live();
+    const S = this.state, D = S.draft, H = this.help(), SV = C.SV, P = SV.PERMS, QOS = this.QOS(), TC = { 전체: 'sc', Tree: 'tr', Leaf: 'nd', 계정: 'us', 지명: 'nd' };
+    const res = C.rd('terra.master.svi.resources.get'), gr = C.rd('terra.master.svi.grants.get'), bi = C.rd('terra.master.svi.bindings.get');
+    const mine = SV.resources(res.data).filter((r) => r.node === C.rid), cur = mine.find((r) => r.name === S.res) || mine[0] || null;
+    const say = (m) => this.setState({ msg: m }), fail = (e) => say('못 함 · ' + ((e && (e.message || e.code)) || '오류'));
+    const W = (op, input, after) => C.TN.write(C.key, op, input).then(() => { C.TN.refresh(C.key, after); }, fail);
+    const sg = (opts, v, fn) => opts.map((o) => ({ name: o, cls: v === o ? 'on' : '', on: v === o ? 'true' : 'false', pick: () => fn(o) }));
+    const leaves = C.metas.filter((m) => m.rid !== C.rid && m.rid !== C.parent).map((m) => ({ id: m.rid, name: m.name }));
+    const G = cur ? SV.grantRows(gr.data, cur.id, C.names, C.parent) : [], AV = SV.availRows(gr.data, res.data, bi.data, C.rid, C.names), sk = SV.sinks(res.data, C.rid);
+    const regs = AV.filter((o) => o.bound), av = AV.filter((o) => !o.bound), who = D.who === '계정' ? '전체' : D.who;
+    const openRs = (name, src, from) => () => (this.props.onOpen ? this.props.onOpen('res', name + '|' + (src || '') + '|' + (from || '')) : null);
+    const why = [res, gr, bi].map((r, i) => (r.err && !r.data ? ['svi.resources', 'svi.grants', 'svi.bindings'][i] + ' · ' + r.err.code : '')).filter(Boolean).join(' · ');
+    const give = () => {
+      if (!cur) return; const subs = who === '전체' ? [C.parent].concat(leaves.map((l) => l.id)).filter(Boolean) : who === 'Tree' ? [C.parent].filter(Boolean) : D.picks.map((nm) => (leaves.find((l) => l.name === nm) || {}).id).filter(Boolean);
+      if (!subs.length) { say(who === 'Leaf' && leaves.length ? 'Leaf 선택 필요' : '줄 노드가 없다 — ' + (C.parent ? '보이는 다른 노드가 없다' : '부모 Tree 도 다른 노드도 보이지 않는다(단독 리프)')); return; }
+      const ttl = SV.TTLS[D.ttl] || SV.TTLS['7일'];   // 위임 허가는 기한이 있어야 한다(90일 이하)
+      Promise.all(subs.map((id) => C.TN.write(C.key, 'terra.master.svi.grants.post', { subject_type: 'node', subject_id: id, resource_id: cur.id, operations: P[D.perm] || P['읽기'], ttl_seconds: ttl })))
+        .then(() => { say('허가 ' + subs.length + '건 — ' + D.perm); C.TN.refresh(C.key, 'terra.master.svi.grants.get'); }, fail);
+      this.setState({ draft: Object.assign({}, D, { picks: [] }) });
+    };
+    return {
+      rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.me(), kind: this.props.nodeKind || '리프', cluster: C.parent ? '클러스터 ' + (C.names.get(C.parent) || C.parent) : '단독 리프',
+      tabs: [['share', '자원 공유', mine.length], ['reg', '외부 자원 등록', regs.length]].map(([id, nm, c]) => ({ name: nm, n: c ? '' + c : '', cls: S.tab === id ? 'on' : '', cur: S.tab === id ? 'page' : 'false', pick: () => this.setState({ tab: id, open: null }) })),
+      isShare: S.tab === 'share', isReg: S.tab === 'reg', apiG: H ? 'svi.grants' : '', apiB: H ? 'svi.bindings' : '', apiV: H ? '이 노드를 지명한 허가' : '',
+      resItems: mine.map((r) => ({ name: r.name, n: '', cls: cur && r.id === cur.id ? 'on' : '', pick: () => this.setState({ res: r.name }) })),
+      openRes: cur ? openRs(cur.name, '', '') : () => {}, res: cur ? cur.name : '', hasRes: !!cur, noRes: !cur, noGrants: !!cur && G.length === 0,
+      grants: G.map((g) => ({ who: g.who, type: g.type, typeCls: TC[g.type] || 'nd', perm: g.perm, ops: g.ops, ttl: g.ttl === '없음' ? '기한 없음' : g.ttl,
+        del: () => W('terra.master.svi.grants.by-grant-id.delete', { grant_id: g.id }, 'terra.master.svi.grants.get') })),
+      whoOpts: sg(['전체', 'Tree', 'Leaf'], who, (o) => this.setState({ draft: Object.assign({}, D, { who: o, picks: [] }) })),
+      whoNote: who === '전체' ? '부모 Tree 와 지금 보이는 노드 ' + (leaves.length + (C.parent ? 1 : 0)) + '곳(이후 추가 노드 제외)' : who === 'Tree' ? (C.names.get(C.parent) || C.parent || '부모 없음') : '' + (H ? ' · 계정 주체는 사용자 목록이 위임 밖이라 뺐다' : ''),
+      hasPicks: who === 'Leaf' && leaves.length > 0,
+      picks: (who === 'Leaf' ? leaves : []).map((l) => { const on = D.picks.includes(l.name); return { name: l.name, on: on ? 'true' : 'false', cls: on ? 'on' : '', pick: () => this.setState({ draft: Object.assign({}, D, { picks: on ? D.picks.filter((x) => x !== l.name) : D.picks.concat([l.name]) }) }) }; }),
+      permOpts: sg(Object.keys(P), D.perm in P ? D.perm : '읽기', (o) => this.setState({ draft: Object.assign({}, D, { perm: o }) })), permOps: (H ? (P[D.perm] || P['읽기']).join(' · ') + ' · ' : '') + '앱 자격으로는 읽기 · 연결 원천만, 기한 90일 이하(Master 위임 가드)',
+      ttlOpts: sg(Object.keys(SV.TTLS), D.ttl in SV.TTLS ? D.ttl : '7일', (o) => this.setState({ draft: Object.assign({}, D, { ttl: o }) })), give,
+      regs: regs.map((o) => ({ open: openRs(o.res, o.src, o.from), res: o.res, src: o.src, srcCls: 'nd', from: o.from, target: o.bound, qos: o.qos, cut: () => W('terra.master.svi.bindings.by-binding-id.delete', { binding_id: o.bindId }, 'terra.master.svi.bindings.get') })),
+      noRegs: regs.length === 0,
+      avail: av.map((o, j) => { const editing = S.open === 'reg' + j, tg = sk.find((x) => x.label === D.target) || sk[0];
+        return { open: openRs(o.res, o.src, o.from), res: o.res, src: o.src, srcCls: 'nd', from: o.from, perm: o.perm, state: o.canBind ? (sk.length ? '' : '이 노드에 받는 끝점(sink)이 없다') : '읽기 — 연결 원천(bind.source) 허가면 이어 받기', canReg: !editing && o.canBind && sk.length > 0, editing,
+          reg: () => this.setState({ open: 'reg' + j, draft: Object.assign({}, D, { target: sk[0] ? sk[0].label : '' }) }),
+          targets: sg(sk.map((x) => x.label), tg ? tg.label : '', (v) => this.setState({ draft: Object.assign({}, D, { target: v }) })), qosOpts: sg(Object.keys(QOS), D.qos, (q) => this.setState({ draft: Object.assign({}, D, { qos: q }) })),
+          ok: () => { if (!tg) return; W('terra.master.svi.bindings.post', SV.bindBody(o, tg, QOS[D.qos]), 'terra.master.svi.bindings.get'); this.setState({ open: null }); }, cancel: () => this.setState({ open: null }) }; }),
+      noAvail: av.length === 0,
+      dirtyT: '바로 반영 — Master', clean: 'disabled', msg: S.msg || why || (res.loading && !res.data ? '받는 중…' : ''),
+      apply: () => {}, revert: () => {}, openDesk: () => (this.props.onOpen ? this.props.onOpen('ctl') : null)
+    };
+  }
   renderVals() {
+    const RV = this.realVals(); if (RV) return RV;
     const F = this.props.focusRes || ''; if (F !== this._fseen) { this._fseen = F; if (F) { this.state.res = F; this.state.tab = 'share'; } }   // 위성에서 열었으면 그 자원을 고른 채로
     const S = this.state, v = this.V(), R = this.resList(), res = S.res && R.includes(S.res) ? S.res : R[0] || '', D = S.draft, PM = this.PERMS(), n = this.dirtyN(), H = this.help();
     const sg = (opts, cur, fn) => opts.map((o) => ({ name: o, cls: cur === o ? 'on' : '', on: cur === o ? 'true' : 'false', pick: () => fn(o) }));
