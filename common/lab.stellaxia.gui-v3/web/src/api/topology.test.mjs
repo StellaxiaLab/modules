@@ -1,7 +1,7 @@
 // node --test — Master 노드 목록 → 씬 지도(TerraTopology)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTopology, loadTopology, nodeStats, MAX_LEAVES } from './topology.js';
+import { buildTopology, loadTopology, nodeStats, fmtBytes, MAX_LEAVES, STALE_SEC } from './topology.js';
 
 const N = [
   { node_id: 'tr-root', display_name: 'home', roles: ['tree'] },
@@ -37,9 +37,10 @@ test('loadTopology — 노드 목록 · 로컬 id, 못 받으면 null', async ()
 
 test('nodeStats — 하트비트 자원 스냅샷 · 상태 · 마지막 하트비트, 없는 칸은 null', () => {
   const now = Date.parse('2026-10-31T12:00:00Z');
-  assert.deepEqual(nodeStats({ status: 'online', resource: { cpu_percent: 42, memory_percent: 61.5 }, last_heartbeat_at: '2026-10-31T11:59:50Z' }, now), { status: '● 온라인', online: true, cpu: 0.42, mem: 0.615, disk: null, seen: '방금' });
+  const E = { version: '', relay: null, memTotal: null, memUsed: null, diskTotal: null, diskUsed: null };
+  assert.deepEqual(nodeStats({ status: 'online', resource: { cpu_percent: 42, memory_percent: 61.5 }, last_heartbeat_at: '2026-10-31T11:59:50Z' }, now), { status: '● 온라인', online: true, cpu: 0.42, mem: 0.615, disk: null, seen: '방금', ...E });
   assert.equal(nodeStats({ status: 'offline', last_heartbeat_at: '2026-10-31T09:00:00Z' }, now).seen, '3시간 전');
-  assert.deepEqual(nodeStats(null, now), { status: '—', online: false, cpu: null, mem: null, disk: null, seen: '' });
+  assert.deepEqual(nodeStats(null, now), { status: '—', online: false, cpu: null, mem: null, disk: null, seen: '', ...E });
   const T = buildTopology([{ node_id: 't', roles: ['tree'], display_name: 'home' }, { node_id: 'l', parent_node_id: 't', resource: { cpu_percent: 5 } }]);
   assert.equal(T.node('l').resource.cpu_percent, 5); assert.equal(T.node('x'), null);
 });
@@ -53,4 +54,25 @@ test('단독 리프 — 부모가 없는 리프는 이름 없는 Tree(Master 자
   const U = buildTopology([{ node_id: 't', roles: ['tree'], display_name: 'home' }, { node_id: 'l', parent_node_id: 't' }, { node_id: 'x' }]);
   assert.deepEqual(U.spec.length, 2);
   assert.deepEqual([U.label([1]), U.label([2])].sort(), ['Tree', 'home']);
+});
+
+test('nodeStats — 지어내지 않는다: 낡은 online 은 응답 없음, 총량 · 버전은 보고된 것만', () => {
+  const now = Date.parse('2026-11-01T12:00:00Z'), ago = (s) => new Date(now - s * 1000).toISOString();
+  // hanium 같은 노드 — 9/24 이후 하트비트 없음. 기록이 online 으로 남아 있어도 연결로 치지 않는다
+  const stale = nodeStats({ status: 'online', last_heartbeat_at: '2026-09-24T02:12:04Z', relay_connected: false }, now);
+  assert.equal(stale.online, false); assert.equal(stale.status, '◌ 응답 없음'); assert.equal(stale.relay, false);
+  assert.equal(nodeStats({ status: 'online', last_heartbeat_at: ago(STALE_SEC + 1) }, now).online, false);
+  assert.equal(nodeStats({ status: 'online', last_heartbeat_at: ago(STALE_SEC - 5) }, now).online, true);
+  assert.equal(nodeStats({ status: 'online' }, now).online, false);   // 하트비트가 한 번도 없으면 연결이 아니다
+  assert.equal(nodeStats({ status: 'offline', last_heartbeat_at: ago(5) }, now).status, '○ 꺼짐');
+  // 총량 — Master 가 실어 준 바이트만. 0 · 없음은 null(화면은 '보고 없음'), 200 GB 같은 기본값을 만들지 않는다
+  const full = nodeStats({ status: 'online', last_heartbeat_at: ago(3), daemon_version: '0.6.10', resource: { disk_percent: 80.99, disk_total_bytes: 512 * 2 ** 30, disk_used_bytes: 415 * 2 ** 30, memory_total_bytes: 0 } }, now);
+  assert.equal(full.version, '0.6.10'); assert.equal(full.diskTotal, 512 * 2 ** 30); assert.equal(full.diskUsed, 415 * 2 ** 30); assert.equal(full.memTotal, null);
+  const bare = nodeStats({ status: 'online', last_heartbeat_at: ago(3), resource: { disk_percent: 7.4 } }, now);
+  assert.equal(bare.diskTotal, null); assert.equal(bare.version, '');
+});
+
+test('fmtBytes — 바이트를 읽을 수 있게, 없으면 빈 글자', () => {
+  assert.equal(fmtBytes(512 * 2 ** 30), '512 GB'); assert.equal(fmtBytes(15.5 * 2 ** 30), '15.5 GB'); assert.equal(fmtBytes(1.5 * 2 ** 40), '1.5 TB');
+  assert.equal(fmtBytes(0), ''); assert.equal(fmtBytes(null), ''); assert.equal(fmtBytes(undefined), '');
 });

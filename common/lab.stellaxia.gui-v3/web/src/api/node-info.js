@@ -72,7 +72,9 @@ export function nodeInfo(rec, D = {}, o = {}) {
       gen: mesh && mesh.gen != null ? String(mesh.gen) : stRow.network_generation != null ? String(stRow.network_generation) : '—',
       routes, sessions: sessions.map((s) => ({ ...s, at: when(s.at) })),
     },
-    res: { cpu: st.cpu, mem: st.mem, disk: st.disk, rx: Number(res.network_rx_bytes) || 0, tx: Number(res.network_tx_bytes) || 0, rxT: res.network_rx_bytes ? bytes(res.network_rx_bytes) : '—', txT: res.network_tx_bytes ? bytes(res.network_tx_bytes) : '—' },
+    res: { cpu: st.cpu, mem: st.mem, disk: st.disk, memUsed: st.memUsed, memTotal: st.memTotal, diskUsed: st.diskUsed, diskTotal: st.diskTotal,   // 총량 — Master 가 실어 준 바이트만(없으면 null)
+      stale: !st.online && !!st.seen,   // 꺼진 · 응답 없는 노드 — 자원 값은 마지막 보고
+      rx: Number(res.network_rx_bytes) || 0, tx: Number(res.network_tx_bytes) || 0, rxT: res.network_rx_bytes ? bytes(res.network_rx_bytes) : '—', txT: res.network_tx_bytes ? bytes(res.network_tx_bytes) : '—' },
     recent: { heartbeat: when(r.last_heartbeat_at), hbAt: ts(r.last_heartbeat_at), events: ev.slice(0, 8) },
   };
 }

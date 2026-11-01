@@ -136,7 +136,7 @@ class Component extends DCLogic {
     const rate = (v) => v >= 1048576 ? (v / 1048576).toFixed(1) + ' MB/s' : v >= 1024 ? Math.round(v / 1024) + ' KB/s' : Math.round(v) + ' B/s';
     const note = R && !rid ? 'Terra 노드 목록에 없는 노드(시안 지도) — 값 없음' : R && !I ? '불러오는 중…' : I && I.miss && I.miss.length ? '읽지 못함 · ' + I.miss.join(' · ') + ' — 그 칸은 —' : '';
     const id = (I && I.ident) || {}, cm = (I && I.comm) || {}, rs = (I && I.res) || {}, net = this._net, S = '▁▂▃▄▅▆▇', mx = Math.max(1, ...net.map((x) => x.i)), last = net[net.length - 1];
-    const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : col(p), note: note2 });
+    const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : /^마지막 보고/.test(note2) ? '#709c80' : col(p), note: note2 });
     const evs = ((I && I.recent && I.recent.events) || []).map((e) => ({ t: e.at ? tm(e.at) : D, lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? '#ffd27a' : '#709c80' }));
     const routes = (cm.routes || []), sess = (cm.sessions || []);
     const copyId = () => { const v = id.nodeId; if (!v || v === D) return; try { navigator.clipboard.writeText(v).then(() => { this.setState({ copied: true }); setTimeout(() => this._live && this.setState({ copied: false }), 1500); }, () => {}); } catch (e) {} };
@@ -150,7 +150,9 @@ class Component extends DCLogic {
       comm: [['네트워크', cm.net], ['원하는', cm.desired], ['관측', cm.observed], ['태그', id.tags]].map(([k, v]) => ({ k, v: v || D })),
       routes: routes.map((x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? '#60e28c' : '#ffd27a', peer: x.peer, rt: x.rt, ad: x.ad, lat: x.lat })), routeSum: routes.length ? routes.length + '개' : '없음',
       sessions: sess.map((x) => ({ dir: x.dir, peer: x.peer, channel: x.channel, rt: x.rt, state: x.state + (x.err ? ' · ' + x.err : ''), col: x.err ? '#ffd27a' : '#d6f4de' })), sessSum: sess.length ? sess.length + '개' : '없음',
-      bars: [bar('CPU', rs.cpu, ''), bar('MEM', rs.mem, ''), bar('DISK', rs.disk, '')],
+      // 총량은 Master 가 실어 준 것만(지어내지 않는다), 꺼진 노드는 '마지막 보고 · N 전' — 지금 값처럼 보이지 않게
+      bars: (() => { const fb = (typeof window !== 'undefined' && window.TerraFmtBytes) || (() => ''), sz = (u, t) => (t && fb(t) ? (fb(u) || '?') + ' / ' + fb(t) : R && I ? '총량 보고 없음' : ''), old = R && rs.stale ? '마지막 보고 · ' + ((I && I.seen) || '') : '';
+        return [bar('CPU', rs.cpu, old), bar('MEM', rs.mem, old || sz(rs.memUsed, rs.memTotal)), bar('DISK', rs.disk, old || sz(rs.diskUsed, rs.diskTotal))]; })(),
       spark: net.length ? net.map((x) => S[Math.min(6, Math.round(x.i / mx * 6))]).join('') : R ? '하트비트 두 번 뒤부터' : '', netIn: last ? rate(last.i) : D, netOut: last ? rate(last.o) : (rs.txT && rs.txT !== D ? '누적 ' + rs.txT : D),
       hb: (I && I.recent && I.recent.heartbeat) || D, events: evs, noEv: !!I && evs.length === 0,
     };
