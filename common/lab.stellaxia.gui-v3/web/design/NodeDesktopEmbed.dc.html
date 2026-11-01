@@ -369,6 +369,22 @@ button{font-family:inherit}
               </div>
             </sc-if>
 
+            <!-- 네트워크 (읽기 전용 — Master 위임 읽기) -->
+            <sc-if value="{{w.isNet}}" hint-placeholder-val="{{ false }}">
+              <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column;">
+                <div style="flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 10px; border-bottom: 1px solid {{t.line}};">
+                  <sc-for list="{{w.net.tabs}}" as="tb" hint-placeholder-count="6"><button type="button" onClick="{{tb.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 8px; background: {{tb.bg}}; color: {{tb.fg}}; font-size: 12px; cursor: pointer;">{{tb.label}}<span style="margin-left: 5px; color: {{t.dim}};">{{tb.n}}</span></button></sc-for>
+                  <span style="flex-grow: 1;"></span><span style="font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11px; color: {{t.dim}};">{{w.net.api}}</span>
+                </div>
+                <div style="flex-shrink: 0; padding: 6px 12px; font-size: 11.5px; line-height: 1.45; color: {{t.dim}};">{{w.net.note}}</div>
+                <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 0 10px 10px;">
+                  <div style="display: grid; grid-template-columns: {{w.net.grid}}; gap: 0 10px; padding: 4px 6px; font-size: 11px; color: {{t.dim}}; border-bottom: 1px solid {{t.line}};"><sc-for list="{{w.net.cols}}" as="c" hint-placeholder-count="4"><span>{{c}}</span></sc-for></div>
+                  <sc-for list="{{w.net.rows}}" as="r" hint-placeholder-count="3"><div style="display: grid; grid-template-columns: {{w.net.grid}}; gap: 0 10px; padding: 5px 6px; font-size: 12px; border-bottom: 1px solid {{t.line}};"><sc-for list="{{r.cells}}" as="v" hint-placeholder-count="4"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{v}}">{{v}}</span></sc-for></div></sc-for>
+                  <div style="padding: 10px 6px; font-size: 12px; color: {{t.dim}};">{{w.net.empty}}</div>
+                </div>
+              </div>
+            </sc-if>
+
             <!-- 작업 관리자 -->
             <sc-if value="{{w.isJobs}}" hint-placeholder-val="{{ false }}">
               <div style="flex-grow: 1; min-height: 0; overflow: hidden; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;">
@@ -670,12 +686,13 @@ const APPS = {
   set:   { title: '설정',       d: D.gear,   fw: .62, fh: .72, minW: 560, minH: 360 },
   jobs:  { title: '작업 관리자', d: D.swap,   fw: .52, fh: .50, minW: 440, minH: 220 },
   svi:   { title: '자원 관리',   d: D.net,    fw: .64, fh: .70, minW: 620, minH: 400 },
+  net:   { title: '네트워크',     d: D.tree,   fw: .70, fh: .70, minW: 620, minH: 360 },
   mods:  { title: '모듈',       d: D.puzzle, fw: .64, fh: .70, minW: 620, minH: 400 },
   web:   { title: '웹 브라우저', d: D.globe,  fw: .70, fh: .74, minW: 560, minH: 360 }
 };
 /* 바탕화면 아이콘은 크기가 늘 같고, 칸(열 · 행)에 고정된다. 왼쪽 위 칸이 (0, 0) */
 const CW = 100, CH = 112, TILE = 52, GLYPH = 26;
-const DOCK = ['files', 'web', 'term', 'svi', 'jobs', 'mods', 'set'];
+const DOCK = ['files', 'web', 'term', 'svi', 'net', 'jobs', 'mods', 'set'];
 const WALLS = [
   { id: 'dusk',   label: '노을',   bg: 'linear-gradient(160deg,#1c2a44 0%,#3a2f55 45%,#7a4a4f 100%)', ink: '#fff' },
   { id: 'forest', label: '숲',     bg: 'linear-gradient(160deg,#0c2a24 0%,#12433a 60%,#1d5a45 100%)', ink: '#fff' },
@@ -817,7 +834,7 @@ class Component extends DCLogic {
     const key = this.nodeKey(); if (this._bound === key) return;
     if (this._bound) { clearTimeout(this._vt); this.viewSave(this._bound); }
     const v = this.viewLoad(key), base = JSON.parse(JSON.stringify(this._v0));
-    Object.assign(this.state, base, v || {}, { nd: null, menu: null, ov: null, lau: false, iconSel: null, fmPick: null, ndDraft: null, tnDraft: null, modCfg: null, inst: null, asg: null, jobSel: null, fmRel: '', nxMsg: '', save: 'saved' });
+    Object.assign(this.state, base, v || {}, { nd: null, menu: null, ov: null, lau: false, iconSel: null, fmPick: null, ndDraft: null, tnDraft: null, modCfg: null, inst: null, asg: null, jobSel: null, fmRel: '', netTab: null, nxMsg: '', save: 'saved' });
     this._bound = key; this._vj = JSON.stringify(this.viewPick(this.state));
     if (!this._un && this.TN()) this._un = this.TN().subscribe((n) => { if (n === this._bound) this.setState({}); });
   }
@@ -889,6 +906,26 @@ class Component extends DCLogic {
     return { on: true, who: W ? (W.principal || '—') + (app ? ' · 앱 ' + W.delegate : '') : '받는 중…', perms: W && W.permissions ? '권한 ' + W.permissions.join(' · ') : '',
       rows: V.rows, state: V.state === 'ok' ? V.rows.length + '개' : V.state === 'empty' ? '연결 없음' : V.why || (r && r.loading ? '받는 중…' : '못 봤음'),
       limit: '읽기만 — ' + (app ? '이 화면은 앱 자격(main Scene)이라 Master 위임 표에 Terra ID 는 연결 목록 읽기 하나뿐이다. ' : '') + '연결 · 해제와 Tree 의 Terra ID 신뢰(발급자) 설정은 앱 위임 밖이라 여기서 하지 않는다 — Tree 의 웹 콘솔에서.' };
+  }
+  // 네트워크 창 — Master 의 네트워크 · 경로 읽기(net-read.js, 모두 앱 위임 표에 있다). 보기만: 쓰기는 위임 밖(readiness §3-1)
+  netView(t, s) {
+    const T = this.TN(), NR = typeof window !== 'undefined' ? window.TerraNet : null, tab = s.netTab || 'mesh';
+    const tabs = NR ? NR.NET_TABS : [['mesh', '노드 · 메시', []]];
+    const out = { tabs: tabs.map(([id, label]) => ({ label, n: '', bg: id === tab ? t.raiseH : 'transparent', fg: id === tab ? t.ink : t.sub, pick: () => this.setState({ netTab: id }) })),
+      note: '보기만 — 자동 조정 · 수동 계획 · 피어 철회 · probe 실행 · 정책 저장 · 세션 닫기 · 연결 그룹 닫기는 Master 쓰기라 앱 위임 밖이다(노드 GUI 도 같다).', cols: [], rows: [], grid: '1fr', empty: '', api: '' };
+    if (!NR || !T || !this.nd().real) { out.empty = '실제 Tree 에 로그인하면 Master 의 네트워크 · 경로가 보인다'; return out; }
+    const cur = tabs.find((x) => x[0] === tab) || tabs[0], n = this.nodeKey(), D = {}, errs = [];
+    let loading = false;
+    for (const k of cur[2]) {
+      const op = NR.NET_READS[k], inp = k === 'peers' ? { input: { node_id: (this.TN().t.meta[n] || {}).rid || '' } } : {};
+      if (k === 'peers' && !inp.input.node_id) { errs.push('이 노드의 Master id 를 모른다'); continue; }
+      const r = T.read(n, op, Object.assign({ ttl: 15000 }, inp)); D[k] = r.data; if (r.loading && !r.data) loading = true; if (r.err && !r.data) errs.push(op.replace('terra.master.', '') + ' · ' + r.err.code);
+    }
+    const tb = NR.netTable(tab, D);
+    out.cols = tb.cols; out.rows = tb.rows.map((cells) => ({ cells })); out.grid = tb.cols.map(() => 'minmax(0, 1fr)').join(' ') || '1fr';
+    out.api = this.help() ? cur[2].map((k) => NR.NET_READS[k].replace('terra.master.', '')).join(' · ') : '';
+    out.empty = tb.rows.length ? '' : errs.length ? '못 받음 — ' + errs.join(' · ') : loading ? '받는 중…' : '비어 있음';
+    return out;
   }
   // 작업 출력 — 실제 노드에서 고른 작업의 stdout · stderr(tasks.by-task-id.output.get · process.execute). 도는 동안은 3초마다 다시 읽는다
   jobOut(id, t) {
@@ -1277,7 +1314,7 @@ class Component extends DCLogic {
         minimize: () => this.patchWin(id, { min: true }),
         toggleMax: () => { this.patchWin(id, { max: !w.max }); this.persist(); },
         close: () => this.closeWin(id),
-        isTerm: id === 'term', isFiles: id === 'files', isSet: id === 'set', isJobs: id === 'jobs', isSvi: id === 'svi', isMods: id === 'mods', isWeb: id === 'web',
+        isTerm: id === 'term', isFiles: id === 'files', isSet: id === 'set', isJobs: id === 'jobs', isSvi: id === 'svi', isMods: id === 'mods', isWeb: id === 'web', isNet: id === 'net',
         webW: Math.max(200, g.w - 2), webH: Math.max(120, g.h - 40), webUrl: s.webUrl || 'terra://start'
       };
       if (id === 'term') {
@@ -1345,6 +1382,7 @@ class Component extends DCLogic {
         o.saveC = s.save === 'saving' ? '#f5b83d' : '#3ecf8e';
         o.saveText = s.save === 'saving' ? '노드 계정 stk에 저장하는 중…' : '노드 계정 stk에 저장됨 — 다른 기기에서 열어도 같은 바탕화면이 나온다.';
       }
+      if (id === 'net') o.net = this.netView(t, s);
       if (id === 'jobs') {
         o.out = this.jobOut(s.jobSel, t);
         o.jobs = (this.nd().jobs || []).map((j) => { const L = this.jobLabel(j), c = this.chip(L.c); return { pick: () => this.setState({ jobSel: s.jobSel === j.id ? null : j.id }), rowBg: s.jobSel === j.id ? t.raiseH : t.raise, id: j.id, name: j.name, op: j.op, label: L.label, fg: c.fg, bd: c.bd, bg: c.bg, pct: j.st === 'run' || j.st === 'stall' ? j.pct + '%' : '', canCancel: j.st === 'run' || j.st === 'stall', cancel: () => { this.ndSet((d) => { d.jobs = d.jobs.map((x) => x.id === j.id ? { ...x, st: 'cancel' } : x); }, 'terra.daemon.tasks.by-task-id.cancel.post', { task_id: j.id }); } }; });

@@ -17,6 +17,7 @@ import { startPush } from '../api/push.js';
 import { pickMode, connectApp } from '../api/mode.js';
 import * as deskAdapt from '../api/desk-adapt.js';
 import { startAlarms } from '../api/alarms.js';
+import * as netRead from '../api/net-read.js';
 
 const q = new URLSearchParams(location.search), status = document.getElementById('status'), MODE = pickMode(q);
 const appReady = MODE === 'app' ? connectApp() : Promise.resolve(null);   // A 모드 — hello 는 가장 먼저(마운트가 이벤트 루프를 붙잡기 전에)
@@ -82,7 +83,7 @@ if (MODE !== 'demo') {
   }
   // 로그인 뒤 한 번 — 지도 · Tree 길 · 보기 상태 · 밀어 받기
   // 노드 데스크톱이 쓰는 것 — 실제 응답 → 보드 모양(desk-adapt) · 이 Gateway 의 앱 목록(모듈 › 앱 탭) · 다른 모듈 앱 열기(셸에 부탁)
-  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats;   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
+  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraNet = netRead;   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; });
   // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50). 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
