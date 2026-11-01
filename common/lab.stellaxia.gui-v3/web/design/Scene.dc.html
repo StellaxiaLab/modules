@@ -2398,7 +2398,7 @@ class Component extends DCLogic {
     head('대상');
     // 속성 표 — 틀(바깥 사각 · 가운데 세로선)은 레거시, 칸 글자는 텍스트
     // 실제 지도면 Master 의 노드 기록(하트비트 자원 스냅샷 · 상태)으로 — window.TerraNodeStats(src/api/topology.js nodeStats). 시안이면 예시 값
-    const TPn = this.TOPO(), RN = TPn && TPn.node && curN.rid ? TPn.node(curN.rid) : null, NS = RN && typeof window !== 'undefined' && window.TerraNodeStats ? window.TerraNodeStats(RN) : null;
+    const TPn = this.TOPO ? this.TOPO() : null, RN = TPn && TPn.node && curN.rid ? TPn.node(curN.rid) : null, NS = RN && typeof window !== 'undefined' && window.TerraNodeStats ? window.TerraNodeStats(RN) : null;
     const kv = [['이름', curN.name], ['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]], ['상태', NS ? NS.status : '● 온라인'], ['자원', NS ? '—' : '3 · ssh · io'], ['가동', NS ? (NS.seen ? '하트비트 ' + NS.seen : '—') : '4일 12시간']];
     const kw = 6, vw = 14, tr0 = r;
     { const xa = x0 * cw + cw / 2, xb = (x0 + kw + vw + 2) * cw + cw / 2, xm = (x0 + kw + 1) * cw + cw / 2, ya = tr0 * ch + ch / 2, yb = (tr0 + kv.length + 1) * ch + ch / 2, cells = new Set();
