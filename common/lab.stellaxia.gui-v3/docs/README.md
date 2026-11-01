@@ -8,7 +8,7 @@ scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
 version: "0.4.0"
-last_updated: "2026-10-29"
+last_updated: "2026-11-01"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -27,6 +27,7 @@ related:
   - "[[node-data|노드 데이터와 분할 — PA/EL]]"
   - "[[main-scene|main Scene — 껍데기와 로그인]]"
   - "[[replacement-readiness|node-gui 대체 준비도]]"
+  - "[[design-ops-gaps|시안 ↔ 실제 운영 격차]]"
 ---
 
 # Terra GUI v3 문서 MOC
@@ -66,13 +67,14 @@ flowchart LR
 | 다른 노드의 값을 어떻게 가져오고, 끊겼을 때 무엇을 보이는지(PA/EL) · 제어기 보기 상태 · B 모드 로그인 | [[node-data\|노드 데이터와 분할]] |
 | main GUI 로 실리는 법 — 얇은 껍데기 · 로그인 · A 모드 | [[main-scene\|main Scene]] |
 | node-gui 를 대체하려면 — 현황 점검(2026-10-31) · 기능 격차 · Terra 쪽 같이 바꿀 것 | [[replacement-readiness\|node-gui 대체 준비도]] |
+| 보드가 실제 화면에서 의도대로 안 되는 곳 — 창마다 실제냐 시안이냐 · 고칠 곳 · 어긋나지 않게 하는 절차 | [[design-ops-gaps\|시안 ↔ 실제 운영 격차]] |
 
 ## 폴더
 
 | 폴더 | 문서 |
 | --- | --- |
 | `docs/` | 이 MOC |
-| `docs/analysis/` | [[legacy-node-gui-overview\|전체 분석]] · [[legacy-app-layer\|기능 층 분석]] · [[settings-inventory\|설정 종합]] · [[settings-terra-core\|코어 설정 전수표]] · [[settings-modules\|modules 설정 전수표]] · [[terra-reach\|Terra 도달 분석]] |
+| `docs/analysis/` | [[legacy-node-gui-overview\|전체 분석]] · [[legacy-app-layer\|기능 층 분석]] · [[settings-inventory\|설정 종합]] · [[settings-terra-core\|코어 설정 전수표]] · [[settings-modules\|modules 설정 전수표]] · [[terra-reach\|Terra 도달 분석]] · [[design-ops-gaps\|시안 ↔ 운영 격차]] |
 | `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] · [[node-data|노드 데이터와 분할]] · [[main-scene|main Scene]] |\|노드 데이터와 분할]] |
 
 ## 기준

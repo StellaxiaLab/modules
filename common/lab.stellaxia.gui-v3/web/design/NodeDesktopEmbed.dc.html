@@ -1204,7 +1204,7 @@ class Component extends DCLogic {
 
   /* ---- 목록 보조 ---- */
   jobLabel(j) {
-    return ({ run: { label: '진행 중', c: '#7aa7ff' }, ok: { label: '끝남', c: '#3ecf8e' }, stall: { label: '멈춤', c: '#f5b83d' }, cancel: { label: '취소됨', c: '#9aa1ab' } })[j.st];
+    return ({ run: { label: '진행 중', c: '#7aa7ff' }, ok: { label: '끝남', c: '#3ecf8e' }, stall: { label: '멈춤', c: '#f5b83d' }, cancel: { label: '취소됨', c: '#9aa1ab' }, fail: { label: '실패', c: '#ff6b6b' } })[j.st] || { label: '알 수 없음 · ' + j.st, c: '#9aa1ab' };   // 실제 상태(deskShape TASK_ST)에 fail 이 있다 — 없으면 그리기 전체가 빈칸이 됐다
   }
   chip(c) { return { fg: c, bd: c + '80', bg: c + '1a' }; }
 
@@ -1448,11 +1448,11 @@ class Component extends DCLogic {
         X.views = [['inst', '설치됨', N.mods.length], ['add', '설치', ''], ['offer', 'Tree 지정', offN || '']].map(([k, l, n]) => ({ label: l, n: '' + n, cls: v === k ? 'on' : '', pick: () => this.setState({ modView: k }) }));
         X.api = this.api({ inst: 'terra.daemon.modules.*', add: 'module inspect · install · modules.scan', offer: 'terra.daemon.modules.offers.*' }[v]);
         X.vInst = v === 'inst'; X.vAdd = v === 'add'; X.vOffer = v === 'offer';
-        const STM = { run: ['실행 중', 'ok'], restart: ['다시 시작 중', 'warn'], stop: ['멈춤', 'off'] }, ms = Math.min(s.modSel || 0, N.mods.length - 1);
-        X.mods = N.mods.map((m, i) => ({ name: m.name, id: m.id, ver: m.ver, on: i === ms ? 'true' : 'false', cls: i === ms ? 'on' : '', stCls: m.en ? STM[m.st][1] : 'off', pick: () => this.setState({ modSel: i, modCfg: null }) }));
+        const STM = { run: ['실행 중', 'ok'], restart: ['다시 시작 중', 'warn'], stop: ['멈춤', 'off'], fail: ['실패', 'err'] }, ms = Math.min(s.modSel || 0, N.mods.length - 1);
+        X.mods = N.mods.map((m, i) => ({ name: m.name, id: m.id, ver: m.ver, on: i === ms ? 'true' : 'false', cls: i === ms ? 'on' : '', stCls: m.en ? (STM[m.st] || ['알 수 없음', 'off'])[1] : 'off', pick: () => this.setState({ modSel: i, modCfg: null }) }));
         const mt = s.modTab || 'cfg', M = this.withCfg(N.mods[ms] || N.mods[0] || { name: '—', id: '', ver: '', st: 'stop', trust: '', kind: '', src: '', prev: '', perms: [], ops: [], apps: [], cfg: [] }, mt === 'cfg');
         if (M) {
-          const st = M.en ? STM[M.st] : ['꺼짐', 'off'], cd = s.modCfg && s.modCfg.id === M.id ? s.modCfg.v : null, cv = (k, d) => (cd && k in cd ? cd[k] : d), setC = (k, val) => this.setState({ modCfg: { id: M.id, v: Object.assign({}, cd || {}, { [k]: val }) } });
+          const st = M.en ? STM[M.st] || ['알 수 없음 · ' + M.st, 'off'] : ['꺼짐', 'off'], cd = s.modCfg && s.modCfg.id === M.id ? s.modCfg.v : null, cv = (k, d) => (cd && k in cd ? cd[k] : d), setC = (k, val) => this.setState({ modCfg: { id: M.id, v: Object.assign({}, cd || {}, { [k]: val }) } });
           const cfgDirty = cd ? Object.keys(cd).filter((k) => { const c = M.cfg.find((x) => x[0] === k); return c && c[3] !== cd[k]; }) : [];
           X.m = { name: M.name, id: M.id, ver: M.ver, stT: st[0], stCls: st[1], trust: M.trust, trCls: /미서명/.test(M.trust) ? 'warn' : 'ok', meta: M.kind + ' · ' + M.src + (M.prev ? ' · 이전 ' + M.prev : ''),
             btns: this.modBtns(M, ms), tabs: [['cfg', '설정'], ['log', '로그'], ['ops', '기능 · 권한'], ['app', '앱']].map(([k, l]) => ({ label: l, cls: mt === k ? 'on' : '', pick: () => this.setState({ modTab: k }) })),
