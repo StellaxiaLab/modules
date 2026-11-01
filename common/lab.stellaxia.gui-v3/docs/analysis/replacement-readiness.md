@@ -97,8 +97,8 @@ related:
 
 ## 4. 대체하는 날 Terra 쪽에서 같이 바꿀 것 (Terra 는 고치지 않았다)
 
-1. `installer-modules.json` — node-gui(10행 부근)를 `required` 로 선언한다. gui-v3 로 바꾸거나(둘을 다 두려면 main 은 하나만), `release.tag`(v2026.10.19)를 gui-v3 main 판이 든 modules 릴리스 태그로 올린다. 카탈로그 빌드가 그 태그의 `modules.json` 과 대조하므로 태그에 gui-v3 가 있어야 한다.
-2. `bundled-modules.json` — node-gui 는 이 파일에 **없다**(설치기 쪽 `installer-modules.json` 에만). 번들에 싣는다면 같은 id 를 두 파일에 두지 말 것(번들 쪽이 소유). 핀 `release.tag` 는 같은 태그로.
+1. `installer-modules.json` — node-gui(10행 부근)를 `required` 로 선언한다. gui-v3 로 바꾸거나(둘을 다 두려면 main 은 하나만), `release.tag`(지금 v2026.10.31-2)를 gui-v3 main 판이 든 modules 릴리스 태그로 올린다. 카탈로그 빌드가 그 태그의 `modules.json` 과 대조하므로 태그에 gui-v3 가 있어야 한다.
+2. `bundled-modules.json` — node-gui 는 이 파일에 **없다**(설치기 쪽 `installer-modules.json` 에만). 번들에 싣는다면 같은 id 를 두 파일에 두지 말 것(번들 쪽이 소유). 핀 `release.tag`(지금 v2026.10.31-2)는 같은 태그로.
 3. Terra CI `.github/workflows/ci.yml` 의 "Check node-gui's Master delegation table against Terra" 스텝(529~532행)이 `common/lab.stellaxia.node-gui/web/tools/gen-master-delegated.mjs` 를 부른다. node-gui 가 modules 에서 빠지면 깨진다 → **gui-v3 대응 도구가 생겼다**: `common/lab.stellaxia.gui-v3/web/tools/gen-master-delegated.mjs --terra "$GITHUB_WORKSPACE" --check`(인자 같음, 출력은 `src/api/master-delegated.json` — gui-v3 는 Master op 를 id 로 부르므로 op id → method · path · permissions). 값으로 비교해 Windows 줄 끝에 흔들리지 않는다. 대체 때 ci.yml 529~532행의 경로만 바꾸면 된다. 시험 `tests/master-delegated.test.mjs` 가 gui-v3 가 부르는 Master op 가 모두 위임 표에 있거나 B 모드 전용으로 적혀 있는지 본다.
 3b. `tests/shipped-scenes.test.ts`(`TERRA_MODULES_ROOT` 로 modules 의 출하 Scene 을 걷는다) — 0.3.0 으로 `shipped-scenes` · `login-demo-scene` 54개 통과를 확인했다(gui-v3 포함). node-gui 를 빼도 통과할 것.
 4. 시험 픽스처의 node-gui id — `terra-installer` 의 `catalog_test` · `catalogbuild/{build,declarations}_test` · `installer/{setup_remote_*,ui_api,ui_preview}_test` · `remote_test` · `sigverify/verify_test`, `terra-gateway-service` 의 `master_delegation_test` · `documents_test`, Master `delegated_*`·`job_*` 시험, `svi-handle-integration`. 동작과 무관한 예시 id(위임은 앱 id 로 막지 않는다 — 시험 fixture 일 뿐). 이름을 정리할 때 함께.
@@ -107,6 +107,37 @@ related:
 7. (선택) 셸 dock 규약 — dock 은 `terra.webapp.*` 만 안다. embed 앱은 dock 에 안 나오므로 main 화 이후 필수는 아니다. gui-v3 를 dock 에서도 쓰려면 브리지 규약을 구현해야 한다.
 
 **순서**: (a) 이 PR 병합 → 그때부터 node-gui 와 같이 깔린 노드는 **CHOOSE**(릴리스 전엔 영향 없음). (b) 기능 격차를 메운다. (c) modules 릴리스를 낼 때 **같은 태그에서 node-gui 의 main 을 내리거나(dev 로) node-gui 를 릴리스에서 뺀다** — 빠뜨리면 기존 노드 모두에 CHOOSE 가 뜬다. (d) Terra `installer-modules.json` 등을 그 태그로, CI 의 node-gui 스텝 교체. (e) 설치본 교체. (c)~(e) 는 사용자의 결정이다.
+
+## 4-1. 전환 체크리스트 (대체 릴리스에 같이 실을 것)
+
+modules 릴리스는 사람이 찍는 **저장소 전체 태그**다. gui-v3 의 main 선언(#137)이 main 에 들어가는 순간, 그 뒤의 태그는 무엇을 위한 것이든
+node-gui 가 깔린 모든 노드에 **CHOOSE** 를 띄운다. 그래서 #137 과 #139 는 대체 릴리스 직전까지 main 에 넣지 않고, 대체가 결정되면 **한 번에** 넣는다.
+아래는 그날 같이 움직여야 하는 것 — **적기만 했다**(병합 · 태그 · 릴리스 · Terra 변경 · node-gui 수정은 모두 사용자 승인 대상).
+
+### modules (StellaxiaLab/modules)
+| # | 할 것 | 승인 | 비고 |
+| --- | --- | --- | --- |
+| M1 | #139(격차) → #137 브랜치(`claude/gui-v3-main-scene`)로 병합 | 사용자 | 둘을 따로 main 에 넣지 않는다 |
+| M2 | #137 → main 병합 | 사용자 | 이때부터 main 은 CHOOSE 상태 — M3 를 같은 태그 전에 |
+| M3 | **node-gui 의 main 내리기** — `common/lab.stellaxia.node-gui/module.json` 의 `contributions.gui.scenes[].branch` 를 `"main"` 에서 빼거나 `"dev"` 로(또는 node-gui 를 릴리스에서 뺀다) | **사용자(node-gui 수정)** | 빠뜨리면 기존 노드 전부 CHOOSE. dev 로 두면 main 1개 + dev 1개 → 여전히 CHOOSE(base 분기 설계: dev 가 있으면 고르게 한다) — **빼거나 릴리스에서 내리는 쪽**이 곧장 진입 |
+| M4 | gui-v3 `module.json` 버전 올리기(지금 0.3.0) · 서명 포장(`tools/pack-modules.mjs --signing`) | 사용자(태그) | 서명 파이프라인은 #136 그대로 |
+| M5 | modules 태그(예: `v2026.11.xx`) — 릴리스 `modules.json` 에 gui-v3(대상 3개) | 사용자 | 이 태그가 Terra 핀의 기준 |
+
+### Terra (StellaxiaLab/Terra) — modules 태그 뒤에
+| # | 파일 · 줄(origin/main dadbb842 기준) | 바꿀 것 |
+| --- | --- | --- |
+| T1 | `installer-modules.json:10` — `lab.stellaxia.node-gui` `required: true` | `lab.stellaxia.gui-v3` 로(필수 main GUI 가 없으면 MAIN_NOT_FOUND). node-gui 를 같이 두려면 required 는 gui-v3 만 |
+| T2 | `installer-modules.json:6` · `bundled-modules.json:6` — `release.tag: v2026.10.31-2` | M5 의 태그로(카탈로그 빌드가 그 태그의 modules.json 과 대조 — `catalogbuild/build.go:267 · 297`) |
+| T3 | `.github/workflows/ci.yml:529-532` — `common/lab.stellaxia.node-gui/web/tools/gen-master-delegated.mjs --terra … --check` | `common/lab.stellaxia.gui-v3/web/tools/gen-master-delegated.mjs` (인자 같음, 출력은 `src/api/master-delegated.json`, 값 비교). node-gui 를 modules 에서 빼면 이 스텝이 먼저 깨진다 |
+| T4 | 시험 픽스처의 `lab.stellaxia.node-gui` id — 21개 파일(terra-installer: catalog · catalogbuild/{build,declarations} · installer/{setup_remote_e2e, setup_remote_modules, ui_api, ui_preview} · remote · sigverify/verify, gateway: documents · master_delegation, Master api: delegated_grant_guard · delegated_session · job_cancel_delegate · job_rerun · relayed_delegate · routes_documents, control_plane/dispatcher, tests/svi-handle-integration/binding_delegated_e2e, terra-scene-runtime/tests/shipped-scenes) | 대부분 동작과 무관한 예시 id 다. 이름을 정리할 때 함께 — 필수는 아니다. `shipped-scenes.test.ts` 는 modules main 을 라이브로 걸으니 M2 뒤에 Terra CI 가 gui-v3 Scene 을 마운트해 본다(0.3.0 으로 통과 확인 — §4-3b) |
+
+### 순서
+1. **modules 태그**(M1 → M2 · M3 → M4 → M5, M2 와 M3 는 같은 태그 안에)
+2. **Terra 핀 PR**(T1 · T2 · T3, T4 는 선택) — Terra CI 가 새 태그 · gui-v3 도구로 초록인지
+3. **Terra 릴리스**
+4. **카탈로그**(installer-catalog — 새 핀으로 release-index 를 만든다)
+
+그 뒤 설치본 교체(§4-5: 업데이트가 node-gui 를 되살리지 않는지)와 사용 중 노드의 확인(main 하나 → 곧장 gui-v3).
 
 ## 5. 격리 스택 실측 (2026-10-31)
 
