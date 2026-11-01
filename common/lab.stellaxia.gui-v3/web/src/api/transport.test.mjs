@@ -55,7 +55,7 @@ test('transport — 장면 노드 묶기: 로컬은 로컬 길, 나머지는 Mas
   assert.deepEqual(await tp.invoke('B', 'terra.daemon.modules.get', {}), { path: '/api/v1/nodes/nd_b/operations/terra.daemon.modules.get/invoke' });
   await assert.rejects(tp.invoke('C', 'terra.daemon.modules.get', {}), { code: 'NODE_UNMAPPED' });
   assert.equal(calls.filter((c) => c[1].includes('master.nodes.get')).length, 1);   // 노드 목록은 한 번만
-  assert.deepEqual(await tp.invoke('B', 'gui-v3.desk.patch', {}), { ok: true, local: true });   // 화면 안 초안은 보내지 않는다
+  await assert.rejects(tp.invoke('B', 'gui-v3.desk.patch', {}), (e) => e instanceof TerraError && e.code === 'OP_UNSUPPORTED' && e.status === 501);   // 모르는 gui-v3.* 쓰기는 가짜 성공 대신 거절
   await tp.master('B', 'terra.master.nodes.by-node-id.modules.get');
   assert.deepEqual(calls.at(-1).slice(1), ['/api/v1/operations/terra.master.nodes.by-node-id.modules.get/invoke', { node_id: 'nd_b' }]);
   // Master 쓰기는 노드로 중계하지 않는다 — 로컬 Gateway 로, 그 노드의 Master id 를 실어

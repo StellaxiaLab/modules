@@ -9,6 +9,10 @@
 // 경로 = 1 부터 센 자식 번호들 — [1] 맨 위 첫 트리 · [1, 2] 그 트리의 둘째 자식 트리.
 
 export const MAX_LEAVES = 12;
+// 대상 표 · 지도의 리프 한 줄 — Master 의 노드 기록을 그대로(지어내지 않는다: 없는 칸은 null · '')
+const leafRow = (n, now) => { const st = nodeStats(n, now);
+  return { name: clean(n.display_name) || n.node_id.slice(0, 10), id: n.node_id, nodeId: n.node_id, status: n.status || '', relay: !!n.relay_connected, relayConnected: st.relay,
+    cpu: st.cpu, mem: st.mem, seen: st.seen, seenAt: st.seenAt, ageSec: st.ageSec, stale: st.stale, online: st.online }; };
 const clean = (s) => String(s || '').replace(/\//g, '∕').trim();   // 경로 구분자와 겹치지 않게
 
 /**
@@ -36,19 +40,25 @@ export function buildTopology(nodes, o = {}) {
     P.set(path.join('.'), { tree: t, leaves: lv, more: Math.max(0, lv.length - MAX_LEAVES) });
     return sub.map((c, i) => walk(c, path.concat(i + 1)));
   };
+  const now = o.now ?? Date.now();
   const spec = top.map((t, i) => walk(t, [i + 1]));
   const at = (path) => P.get(path.join('.'));
   return {
     rev: String(o.rev ?? Date.now()), localId: o.localId || '', spec, count: byId.size,
     label(path) { const e = at(path); if (!e) return ''; const t = e.tree; return clean(t.display_name) || (t.synthetic ? 'Tree' : t.node_id.slice(0, 10)); },
     rid(path) { const e = at(path); return e && !e.tree.master ? e.tree.node_id : ''; },
-    leaves(path) { const e = at(path); return e ? e.leaves.slice(0, MAX_LEAVES).map((n) => ({ name: clean(n.display_name) || n.node_id.slice(0, 10), id: n.node_id, status: n.status || '', relay: !!n.relay_connected })) : null; },
+    leaves(path) { const e = at(path); return e ? e.leaves.slice(0, MAX_LEAVES).map((n) => leafRow(n, now)) : null; },
     more(path) { const e = at(path); return e ? e.more : 0; },
+    /** 항성계가 받는 12 개를 넘은 리프 — 개수(more)만이 아니라 행 자체(대상 표가 이어 보여 줄 수 있게) */
+    overflow(path) { const e = at(path); return e ? e.leaves.slice(MAX_LEAVES).map((n) => leafRow(n, now)) : []; },
+    /** Master(Tree 자신) — 노드 목록에 없어 기록이 없다. 로컬 Daemon 등록 상태가 아는 것(주소 · 등록 여부)만, 모르면 null */
+    master: o.master || null,
     /** Master 의 노드 기록 그대로(상태 · resource · last_heartbeat_at) — 없으면 null */
     node(rid) { return (rid && byId.get(rid)) || null; },
   };
 }
 
+const STATUS_ONLINE = new Set(['online', 'degraded']);
 const STATUS = { online: ['● 온라인', true], offline: ['○ 꺼짐', false], degraded: ['◐ 저하', true], pending: ['◇ 대기', false] };
 // Master 가 하트비트 2분(LivenessGrace)을 넘긴 노드를 offline 으로 읽어 준다. 지도는 주기적으로 다시 받지만 그 사이에 낡을 수 있어
 //   여기서도 같은 기준으로 한 번 더 — 'online' 인데 마지막 하트비트가 2분을 넘었으면 '응답 없음'
@@ -65,8 +75,9 @@ export function nodeStats(n, now = Date.now()) {
   const hb = Date.parse((n && n.last_heartbeat_at) || ''), sec = Number.isNaN(hb) ? -1 : Math.max(0, (now - hb) / 1000);
   let s = STATUS[String((n && n.status) || '').toLowerCase()] || [n && n.status ? '◇ ' + n.status : '—', false];
   if (s[1] && (sec < 0 || sec > STALE_SEC)) s = ['◌ 응답 없음', false];   // 하트비트가 없거나 낡은 'online' 은 연결로 치지 않는다
+  const stale = !!(STATUS_ONLINE.has(String((n && n.status) || '').toLowerCase()) && s[1] === false);   // Master 는 online 이라는데 하트비트가 없거나 낡았다
   const seen = sec < 0 ? '' : sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + '분 전' : sec < 86400 ? Math.round(sec / 3600) + '시간 전' : Math.round(sec / 86400) + '일 전';
-  return { status: s[0], online: s[1], cpu: pct(r.cpu_percent), mem: pct(r.memory_percent), disk: pct(r.disk_percent), seen,
+  return { status: s[0], online: s[1], stale, ageSec: sec < 0 ? null : Math.round(sec), seenAt: sec < 0 ? null : hb, cpu: pct(r.cpu_percent), mem: pct(r.memory_percent), disk: pct(r.disk_percent), seen,
     version: (n && typeof n.daemon_version === 'string' && n.daemon_version.trim()) || '', relay: n && typeof n.relay_connected === 'boolean' ? n.relay_connected : null,
     memTotal: bytes(r.memory_total_bytes), memUsed: bytes(r.memory_used_bytes), diskTotal: bytes(r.disk_total_bytes), diskUsed: bytes(r.disk_used_bytes) };
 }
@@ -82,12 +93,24 @@ export function fmtBytes(v) {
  * Master 노드 목록 · 로컬 노드 id 를 받아 지도를 만든다. 실패하면 null(씬은 시안 그대로)
  * @param {ReturnType<import('./terra.js').createTerra>} terra
  */
-export async function loadTopology(terra) {
-  const [list, st] = await Promise.all([
-    terra.invoke('terra.master.nodes.get', {}).then((d) => (Array.isArray(d) ? d : (d && d.nodes) || []), () => null),
+export async function loadTopology(terra) { return (await loadTopologyState(terra)).topo; }
+
+/**
+ * 지도를 받고 왜 못 받았는지까지 — { topo, state: 'ok'|'empty'|'error', error?, at }
+ *   error  nodes.get 이 실패(Master 에 못 닿음 · 권한) — 시안 지도를 실제인 양 보이지 않도록 화면이 "받지 못함"으로 읽는다
+ *   empty  받았지만 노드가 없다
+ */
+export async function loadTopologyState(terra) {
+  const at = Date.now();
+  const [lr, st, en] = await Promise.all([
+    terra.invoke('terra.master.nodes.get', {}).then((d) => ({ list: Array.isArray(d) ? d : (d && d.nodes) || [] }), (e) => ({ error: (e && (e.code || e.message)) || 'ERROR' })),
     terra.invoke('terra.daemon.status.get', {}).catch(() => null),
+    terra.invoke('terra.daemon.enrollment.status.get', {}).catch(() => null),
   ]);
-  if (!list || !list.length) return null;
+  if (lr.error) return { topo: null, state: 'error', error: lr.error, at };
+  if (!lr.list.length) return { topo: null, state: 'empty', at };
+  const e = en || (st && st.enrollment) || null, list = lr.list;
   const localId = (st && ((st.enrollment && st.enrollment.node_id) || (st.daemon && st.daemon.node_id))) || '';
-  return buildTopology(list, { localId, rev: list.map((n) => n.node_id).join(',').length + ':' + list.length });
+  const master = e && (e.master_url || e.registered != null) ? { url: e.master_url || '', registered: e.registered == null ? null : !!e.registered, registeredAt: e.registered_at || '' } : null;
+  return { topo: buildTopology(list, { localId, master, rev: list.map((n) => n.node_id).join(',').length + ':' + list.length }), state: 'ok', at };
 }

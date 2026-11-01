@@ -844,6 +844,7 @@ class Component extends DCLogic {
     this._vj = j; if (this.state.save !== 'saving') this.state.save = 'saving';
     clearTimeout(this._vt); const key = this._bound; this._vt = setTimeout(() => { this.viewSave(key); this.setState({ save: 'saved' }); }, 500);
   }
+  real() { const T = this.TN(); return !!(T && T.t && T.t.kind !== 'mock'); }
   link() { const T = this.TN(); if (!T) return { t: '', cls: '', ro: false }; const r = T.read(this.nodeKey(), 'desk'); return Object.assign(T.linkText(this.nodeKey(), r.at), { src: r.src, loading: r.loading && !r.data }); }
   ro() { return !!this.link().ro; }
 
@@ -960,12 +961,17 @@ class Component extends DCLogic {
   }
   ndEmpty(nm) { const d = this.ndSeed(nm); for (const k of ['mods', 'offers', 'catalog', 'devs', 'tombs', 'decls', 'retired', 'dirs', 'tuns', 'peers', 'checks', 'jobs', 'res']) d[k] = []; d.empty = true; return d; }
   // 노드 데이터 쓰기 — 끊겼으면 막고(PA), 아니면 사본에 먼저 반영하고 노드로 보낸다(EL · 실패하면 되돌림)
-  ndSet(fn, op, input) {
+  //   실제 모드(Gateway 전송)에서 보낼 operation 이 없는 변경은 성공으로 꾸미지 않는다 — 거절하고 false. 저장 전 입력 초안(o.draft)만 이 화면 사본에서 고친다
+  ndSet(fn, op, input, o) {
     const T = this.TN();
     if (!T) { const d = JSON.parse(JSON.stringify(this.nd())); fn(d); this.setState({ nd: d }); return; }
-    const L = this.link(); if (L.ro) { this.say('노드와 끊김 — 읽기 전용 · 돌아오면 다시 (쌓아 두지 않는다)'); return; }
+    const L = this.link(); if (L.ro) { this.say('노드와 끊김 — 읽기 전용 · 돌아오면 다시 (쌓아 두지 않는다)'); return false; }
     const base = this.nd();
-    if (base.empty) { this.say('아직 받는 중 — 잠시 뒤에'); return; }
+    if (base.empty) { this.say('아직 받는 중 — 잠시 뒤에'); return false; }
+    if (!op && T.t && T.t.kind !== 'mock') {
+      if (o && o.draft) { T.draft(this.nodeKey(), 'desk', (d) => { const c = JSON.parse(JSON.stringify(d || base)); fn(c); return c; }); return true; }
+      this.say('노드에 보낼 operation 이 아직 없어 적용하지 않았다'); return false;
+    }
     return T.write(this.nodeKey(), op || 'gui-v3.desk.patch', input || {}, { res: 'desk', refresh: !!op, apply: (d) => { const c = JSON.parse(JSON.stringify(d || base)); fn(c); return c; } })
       .catch((e) => this.say('못 함 · ' + ((e && e.message) || (e && e.code) || '오류')));
   }
@@ -1027,7 +1033,7 @@ class Component extends DCLogic {
     };
   }
   modBtns(m, i) {
-    const set = (p, msg, op) => { this.ndSet((d) => Object.assign(d.mods[i], p), op && 'terra.daemon.modules.by-module-id.' + op + '.post', op && { module_id: m.id }); this.say(msg); }, job = (name, op) => this.addJob(name, op);
+    const set = (p, msg, op) => { if (this.ndSet((d) => Object.assign(d.mods[i], p), op && 'terra.daemon.modules.by-module-id.' + op + '.post', op && { module_id: m.id }) !== false) this.say(msg); }, job = (name, op) => this.addJob(name, op);
     if (m.core) return [this.btn('다시 시작', () => { set({ st: 'restart' }, m.name + ' 다시 시작', 'restart'); }), this.btn('코어 묶음 — 고정', null, { off: true })];
     return [
       m.st === 'run' ? this.btn('멈춤', () => set({ st: 'stop' }, m.name + ' 멈춤', 'stop')) : this.btn('시작', () => set({ st: 'run', en: true }, m.name + ' 시작', 'start'), { off: !m.en, pri: m.en }),   // modules.by-module-id.start · stop
@@ -1037,7 +1043,7 @@ class Component extends DCLogic {
       this.btn('제거', () => { this.ndSet((d) => { d.mods.splice(i, 1); }, 'terra.daemon.modules.by-module-id.uninstall.post', { module_id: m.id }); this.setState({ modSel: 0 }); this.say(m.name + ' 제거'); }, { dan: true })   // modules.by-module-id.uninstall
     ];
   }
-  addJob(name, op) { const n = 1042 + (this._jobN = (this._jobN || 0) + 1), id = 'j-' + n + '-' + (Date.now() % 1000); this.ndSet((d) => { d.jobs = [{ id, name, op, pct: 0, st: 'run' }].concat(d.jobs || []); }); setTimeout(() => this.ndSet((d) => { d.jobs = (d.jobs || []).map((j) => j.id === id ? { ...j, pct: 100, st: 'ok' } : j); }), 1600); }
+  addJob(name, op) { const n = 1042 + (this._jobN = (this._jobN || 0) + 1), id = 'j-' + n + '-' + (Date.now() % 1000); if (this.ndSet((d) => { d.jobs = [{ id, name, op, pct: 0, st: 'run' }].concat(d.jobs || []); }) === false) return false; setTimeout(() => this.ndSet((d) => { d.jobs = (d.jobs || []).map((j) => j.id === id ? { ...j, pct: 100, st: 'ok' } : j); }), 1600); }
   // 파일에서 설치 — terra module inspect <파일> → (권한 확인) → terra module install <파일> --grant-reviewed <요약> [--dev] [--force] [--start]
   //   Daemon 에 설치 API 가 없어 명령 실행(terra.daemon.commands.execute, process.execute, 이 노드에서만)으로 돌리고, 끝나면 modules.scan
   inspectPkg(path) { const p = String(path || '').trim(); if (!p) return null; const base = p.split(/[\\/]/).pop().replace(/\.tmod$/, '') || 'module', id = /\./.test(base) ? base.replace(/-\d.*$/, '') : 'lab.local.' + base.replace(/[^a-z0-9]+/gi, '-').toLowerCase(), ver = (base.match(/-(\d+\.\d+\.\d+)/) || [0, '1.0.0'])[1];
@@ -1419,7 +1425,7 @@ class Component extends DCLogic {
         // 자원 선언
         const ST = { applied: ['적용됨', 'ok'], declared: ['선언됨 · 적용 전', 'warn'] }, pend = N.decls.filter((d) => d.st === 'declared').length;
         X.declNote = pend ? '적용 전 ' + pend : this.api('declarations.apply');
-        X.declTop = [this.btn('적용' + (pend ? ' ' + pend : ''), () => { this.ndSet((d) => d.decls.forEach((x) => { x.st = 'applied'; })); this.say('선언 적용 — 카탈로그에 올라감'); }, { pri: !!pend, off: !pend }), this.btn('자원 창 ›', () => this.openOut('share'))];
+        X.declTop = [this.btn('적용' + (pend ? ' ' + pend : ''), () => { if (this.ndSet((d) => d.decls.forEach((x) => { x.st = 'applied'; })) !== false) this.say('선언 적용 — 카탈로그에 올라감'); }, { pri: !!pend, off: !pend }), this.btn('자원 창 ›', () => this.openOut('share'))];
         X.decls = N.decls.map((dc, i) => ({ fam: dc.fam, name: dc.name, src: dc.src, dir: dc.dir, st: ST[dc.st][0], stCls: ST[dc.st][1], shared: dc.shared ? '공유 ' + dc.shared : '공유 없음', open: () => this.openOut('res', dc.name),
           btns: [this.btn('선언 해제', () => { this.ndSet((d) => { d.retired.unshift({ fam: dc.fam, name: dc.name }); d.decls.splice(i, 1); }, 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post', { family: dc.fam, name: dc.name }); this.say(dc.name + ' 선언 해제 — 은퇴로'); })] }));
         const dr = s.ndDraft || { fam: 'dev', target: '', name: '', dir: 'both' }, setD = (pp) => this.setState({ ndDraft: Object.assign({}, dr, pp) });
@@ -1435,14 +1441,14 @@ class Component extends DCLogic {
         X.retired = N.retired.map((r, i) => ({ fam: r.fam, name: r.name, btns: [this.btn('잊기', () => this.ndSet((d) => { d.retired.splice(i, 1); }, 'terra.daemon.svi.declarations.retired.by-family.by-name.forget.post', { family: r.fam, name: r.name }))] })); X.hasRetired = N.retired.length > 0;
         // 공유 폴더 — config storage.shared_dirs · memos_dir · local_fs.enabled (쓰기는 이 노드에서만, 재시작 필요)
         const base = N.dirsBase || { dirs: N.dirs, memos: N.memos, localFs: N.localFs }, dirty = JSON.stringify(base) !== JSON.stringify({ dirs: N.dirs, memos: N.memos, localFs: N.localFs });
-        const mark = (fn) => this.ndSet((d) => { if (!d.dirsBase) d.dirsBase = { dirs: JSON.parse(JSON.stringify(d.dirs)), memos: d.memos, localFs: d.localFs }; fn(d); });
+        const mark = (fn) => this.ndSet((d) => { if (!d.dirsBase) d.dirsBase = { dirs: JSON.parse(JSON.stringify(d.dirs)), memos: d.memos, localFs: d.localFs }; fn(d); }, null, null, { draft: true });
         X.dirApi = this.api('storage.shared_dirs · config.patch'); X.dirRo = R ? 'readonly' : null; X.dirDis = R ? 'disabled' : null;
         X.dirs = N.dirs.map((d, i) => ({ name: d.name, path: d.path, ro: X.dirRo, nameIn: (e) => mark((q) => { q.dirs[i].name = e.target.value; }), pathIn: (e) => mark((q) => { q.dirs[i].path = e.target.value; }), btns: [this.btn('빼기', () => mark((q) => { q.dirs.splice(i, 1); }), { local: true })] }));
         X.dirAdd = [this.btn('+ 공유 폴더', () => mark((q) => { q.dirs.push({ name: 'share-' + q.dirs.length, path: '' }); }), { local: true })];
         X.memos = N.memos; X.memosIn = (e) => mark((q) => { q.memos = e.target.value; });
         X.lfOn = N.localFs ? 'true' : 'false'; X.lfCls = N.localFs ? 'on' : ''; X.lfFlip = R ? null : () => mark((q) => { q.localFs = !q.localFs; });
         X.dirDirty = dirty ? '바뀜 · 저장하면 재시작 필요' : '바뀐 것 없음';
-        X.dirBtns = [this.btn('되돌리기', () => this.ndSet((d) => { Object.assign(d, { dirs: base.dirs, memos: base.memos, localFs: base.localFs, dirsBase: null }); }), { off: !dirty, local: true }), this.btn('저장', () => { this.ndSet((d) => { d.dirsBase = null; d.needRestart++; }, 'terra.daemon.config.patch', { set: { 'storage.shared_dirs': N.dirs.map((x) => ({ name: x.name, path: x.path })), 'storage.memos_dir': N.memos, 'local_fs.enabled': !!N.localFs }, save: true }); this.say('저장 — 다시 시작하면 반영 (설정 › 노드 설정)'); }, { off: !dirty, pri: dirty, local: true })];
+        X.dirBtns = [this.btn('되돌리기', () => this.ndSet((d) => { Object.assign(d, { dirs: base.dirs, memos: base.memos, localFs: base.localFs, dirsBase: null }); }, null, null, { draft: true }), { off: !dirty, local: true }), this.btn('저장', () => { this.ndSet((d) => { d.dirsBase = null; d.needRestart++; }, 'terra.daemon.config.patch', { set: { 'storage.shared_dirs': N.dirs.map((x) => ({ name: x.name, path: x.path })), 'storage.memos_dir': N.memos, 'local_fs.enabled': !!N.localFs }, save: true }); this.say('저장 — 다시 시작하면 반영 (설정 › 노드 설정)'); }, { off: !dirty, pri: dirty, local: true })];
         // 서비스 터널
         X.tunApi = this.api('terra.daemon.service-tunnels.* (열기는 이 노드에서만)'); X.noTun = !N.tuns.length;
         X.tuns = N.tuns.map((tn, i) => ({ svc: tn.svc, port: tn.port, peer: tn.peer, since: tn.since, btns: [this.btn('닫기', () => { this.ndSet((d) => { d.tuns.splice(i, 1); }, 'terra.daemon.service-tunnels.by-tunnel-id.close.post', { tunnel_id: tn.id }); this.say(tn.svc + ' 터널 닫음'); })] }));
@@ -1480,7 +1486,7 @@ class Component extends DCLogic {
         const ad = s.inst || { path: '', r: null, dev: false, force: false, start: true }, setA = (pp) => this.setState({ inst: Object.assign({}, ad, pp) }), r = ad.r;
         X.add = { api: this.api('terra module inspect · install (commands.execute, 이 노드에서만)'), path: ad.path, ro: R ? 'readonly' : null, input: (e) => setA({ path: e.target.value, r: null }),
           pickBtns: [this.btn('검사', () => { const rr = this.inspectPkg(ad.path); if (!rr) { this.say('패키지 경로 필요'); return; } setA({ r: rr }); }, { local: true })], has: !!r, root: (N.cfg['modules.root'] || '~/.terra/module'),
-          scanBtns: [this.btn('다시 읽기', () => { this.say('모듈 폴더를 다시 읽음 — modules.scan'); this.addJob('모듈 폴더 다시 읽기', 'module.scan'); })] };
+          scanBtns: [this.btn('다시 읽기', () => { if (this.real()) { const T = this.TN(); if (T && !this.link().ro) T.write(this.nodeKey(), 'terra.daemon.modules.scan.post', {}, { res: 'modules' }).then(() => this.say('모듈 폴더를 다시 읽음'), (e) => this.say('못 읽음 · ' + ((e && e.code) || '오류'))); else this.say('노드와 끊김 — 읽기 전용'); return; } this.say('모듈 폴더를 다시 읽음 — modules.scan'); this.addJob('모듈 폴더 다시 읽기', 'module.scan'); })] };
         if (r) { const broken = r.trust === '깨짐', unsigned = r.trust === '미서명', badC = r.compat !== '호환';
           X.add.r = Object.assign({}, r, { trCls: broken ? 'err' : unsigned ? 'warn' : 'ok', cpCls: badC ? 'warn' : 'ok' });
           X.add.opts = [['dev', '개발 모드 (--dev)', '미서명 패키지 허용', !unsigned], ['force', '덮어쓰기 (--force)', '같은 버전 · 미지원 대상', !(r.same || badC)], ['start', '설치 후 시작 (--start)', '', false]].map(([k, l, nt, dis]) => ({ label: l, note: nt, on: ad[k] ? 'checked' : null, dis: dis ? 'disabled' : null, cls: dis ? 'dim' : '', flip: () => setA({ [k]: !ad[k] }) }));
@@ -1518,15 +1524,15 @@ class Component extends DCLogic {
           const G = [...new Set(ROWS.map((c) => c[0]))], g = s.cfgGrp && G.includes(s.cfgGrp) ? s.cfgGrp : G[0], q = (s.cfgQ || '').trim().toLowerCase(), dk = Object.keys(N.cfg).filter((k) => JSON.stringify(N.cfg[k]) !== JSON.stringify(N.cfgBase[k]));
           X.grps = G.map((x) => { const n = ROWS.filter((c) => c[0] === x && dk.includes(c[1])).length; return { label: x, n: n ? '●' + n : '', cls: x === g && !q ? 'on' : '', pick: () => this.setState({ cfgGrp: x, cfgQ: '' }) }; });
           X.q = s.cfgQ || ''; X.qIn = (e) => this.setState({ cfgQ: e.target.value });
-          const setK = (k, val) => this.ndSet((d) => { d.cfg[k] = val; delete d.cfgErr[k]; });
+          const setK = (k, val) => this.ndSet((d) => { d.cfg[k] = val; delete d.cfgErr[k]; }, null, null, { draft: true });
           X.keys = ROWS.filter((c) => (q ? (c[1] + ' ' + c[2]).toLowerCase().includes(q) : c[0] === g)).map(([gg, k, label, type, def, opt, own, rs]) => { const val = N.cfg[k], ro = own !== 'O' || R, err = N.cfgErr[k] || '';
             return { k, label, err, errCls: err ? 'bad' : '', isBool: type === 'bool' && !ro, isSel: type === 'sel' && !ro, isText: type === 'text' || ro, on: val ? 'true' : 'false', swCls: val ? 'on' : '', dis: ro ? 'disabled' : null, flip: () => setK(k, !val),
               opts: Array.isArray(opt) ? this.seg(opt, val, (x) => setK(k, x)) : [], v: typeof val === 'boolean' ? (val ? '켬' : '끔') : val == null ? '' : String(val), ph: typeof opt === 'string' ? opt : '', ro: ro ? 'readonly' : null, input: (e) => setK(k, e.target.value),
               tag: own !== 'O' ? '읽기 · 파생' : R ? '읽기 · 원격' : rs ? '재시작' : '즉시', tagCls: own !== 'O' || R ? '' : rs ? 'warn' : 'ok' }; });
           const rsN = dk.filter((k) => rowOf(k)[7]).length;
           X.dirtyT = (dk.length ? '바뀐 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음') + (N.needRestart ? ' · 다시 시작 대기 ' + N.needRestart : '') + (this.help() ? ' — validate → patch{save} → apply · restart' : '');
-          const check = () => { const E = {}; dk.forEach((k) => { const f = CFG_RULE[k]; let m = f ? f(String(N.cfg[k])) : ''; if (!m && rowOf(k)[8] && A0) try { A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]); } catch (e) { m = e.message; } if (m) E[k] = m; }); this.ndSet((d) => { d.cfgErr = E; }); return E; };
-          X.cfgBtns = [this.btn('되돌리기', () => this.ndSet((d) => { d.cfg = JSON.parse(JSON.stringify(d.cfgBase)); d.cfgErr = {}; }), { off: !dk.length, local: true }),
+          const check = () => { const E = {}; dk.forEach((k) => { const f = CFG_RULE[k]; let m = f ? f(String(N.cfg[k])) : ''; if (!m && rowOf(k)[8] && A0) try { A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]); } catch (e) { m = e.message; } if (m) E[k] = m; }); this.ndSet((d) => { d.cfgErr = E; }, null, null, { draft: true }); return E; };
+          X.cfgBtns = [this.btn('되돌리기', () => this.ndSet((d) => { d.cfg = JSON.parse(JSON.stringify(d.cfgBase)); d.cfgErr = {}; }, null, null, { draft: true }), { off: !dk.length, local: true }),
             this.btn('검사', () => { const E = check(); this.say(Object.keys(E).length ? '고칠 곳 ' + Object.keys(E).length : '검사 통과'); }, { off: !dk.length, local: true }),
             this.btn('저장', () => { const E = check(); if (Object.keys(E).length) { this.say('고칠 곳 ' + Object.keys(E).length + ' — 저장 안 함'); return; } const set = {}; dk.forEach((k) => { set[k] = rowOf(k)[8] && A0 ? A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]) : N.cfg[k]; }); this.ndSet((d) => { d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); d.needRestart += rsN; }, 'terra.daemon.config.patch', { set, save: true }); this.say('저장 ' + dk.length + (rsN ? ' · 다시 시작하면 반영' : ' · 바로 반영')); }, { off: !dk.length, pri: !!dk.length, local: true }),
             this.btn('다시 시작', () => { this.ndSet((d) => { d.needRestart = 0; }, 'terra.daemon.restart.post', {}); this.say('노드 다시 시작 — 잠깐 끊김'); }, { off: !N.needRestart, local: true, dan: !!N.needRestart })];
@@ -1544,7 +1550,7 @@ class Component extends DCLogic {
           }
         }
         if (s.setTab === 'enroll') { X.enApi = this.api('terra.daemon.enrollment.{status.get, code.post}');
-          X.en = Object.assign({}, N.en, { ro: R || N.real ? 'readonly' : null, codeIn: (e) => this.ndSet((d) => { d.en.code = e.target.value; }), btns: [this.btn('등록', () => this.say(/^TR-\w{4}$/.test(N.en.code) ? N.en.code + ' 로 등록 요청' : '코드 꼴: TR-XXXX'), { local: true, off: !N.en.code || N.real, tip: N.real ? '등록은 설치기 · terra enroll 로 — 앱 권한에 node.enroll 없음' : '' })] });
+          X.en = Object.assign({}, N.en, { ro: R || N.real ? 'readonly' : null, codeIn: (e) => this.ndSet((d) => { d.en.code = e.target.value; }, null, null, { draft: true }), btns: [this.btn('등록', () => this.say(/^TR-\w{4}$/.test(N.en.code) ? N.en.code + ' 로 등록 요청' : '코드 꼴: TR-XXXX'), { local: true, off: !N.en.code || N.real, tip: N.real ? '등록은 설치기 · terra enroll 로 — 앱 권한에 node.enroll 없음' : '' })] });
           if (N.real) X.en.code = N.en.registered ? '' : '등록은 이 노드에서 — 설치기 · terra enroll (앱 권한에 node.enroll 이 없다)'; }
         if (s.setTab === 'about') {
           const L = this.liveRec(), NO = '보고 없음', LN = L && L.ns, LR = L && L.rec;
