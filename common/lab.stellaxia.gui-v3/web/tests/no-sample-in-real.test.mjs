@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseBoard } from '../tools/dc-board.mjs';
 import { buildTopology, nodeStats, fmtBytes } from '../src/api/topology.js';
+import { nodeInfo } from '../src/api/node-info.js';
 
 const read = (n) => readFileSync(fileURLToPath(new URL('../design/' + n + '.dc.html', import.meta.url)), 'utf8');
 class DCLogic { constructor(p) { this.props = p || {}; this.state = {}; } setState(p) { Object.assign(this.state, typeof p === 'function' ? p(this.state, this.props) : p); } }
@@ -18,39 +19,34 @@ const NODES = [
   { node_id: 'n-rdk', display_name: 'hanium', roles: ['leaf'], status: 'online', relay_connected: false, last_heartbeat_at: '2026-09-24T02:12:04Z', daemon_version: '0.5.5', resource: { cpu_percent: 66, memory_percent: 35, disk_percent: 71.3 } },
 ];
 const withWindow = (fn) => {
-  const prev = globalThis.window;
-  globalThis.window = { TerraTransport: {}, TerraTopology: buildTopology(NODES), TerraNodeStats: nodeStats, TerraFmtBytes: fmtBytes };
+  const prev = globalThis.window, T = buildTopology(NODES);
+  globalThis.window = { TerraTransport: {}, TerraTopology: T, TerraNodeStats: nodeStats, TerraFmtBytes: fmtBytes, TerraNodeInfo: async (rid) => nodeInfo(T.node(rid), {}, { id: rid }) };
   try { return fn(); } finally { globalThis.window = prev; }
 };
-const render = (props) => withWindow(() => { const C = board('NodeStatus'); const c = new C(props); return c.renderVals(); });
+// 상태 창은 TerraNodeInfo(비동기)로 받은 값을 state.info 에 둔다 — 시험은 그 값을 바로 넣고 그린다
+const render = (props) => withWindow(() => { const C = board('NodeStatus'), c = new C(props); if (props.nodeRid) c.state.info = nodeInfo(window.TerraTopology.node(props.nodeRid), {}, { id: props.nodeRid }); return c.renderVals(); });
 const text = (v) => JSON.stringify(v);
 
-test('NodeStatus 실제 — Master 기록 그대로, 200 GB · 1.7.x · 지어낸 healthcheck 없음', () => {
+test('NodeStatus 실제 — Master 기록 그대로, 200 GB · 1.7.x 없음, 총량은 실린 것만', () => {
   const v = render({ nodeName: 'MARUI-NANO-DESK', nodeKind: '리프', nodeRid: 'n-desk' });
-  assert.equal(v.core, '0.6.10'); assert.equal(v.stText, '온라인');
+  assert.equal(v.stText, '● 온라인'); assert.equal(v.src, 'Master 노드 기록');
+  assert.equal(v.ident.find((x) => x.k === '버전').v, '0.6.10');
   const disk = v.bars.find((b) => b.name === 'DISK');
   assert.equal(disk.pctT, '81%'); assert.equal(disk.note, '829 GB / 1 TB');
   assert.equal(v.bars.find((b) => b.name === 'MEM').note, '총량 보고 없음');   // Master 가 총량을 안 실었으면 만들지 않는다
-  assert.deepEqual(v.checks, []); assert.equal(v.pid, '—');
-  assert.doesNotMatch(text(v), /200 GB|8\.0 GB|1\.7\.|heartbeat ok|svi lease/);
+  assert.doesNotMatch(text(v), /200 GB|8\.0 GB|1\.7\./);
 });
 
-test('NodeStatus 실제 — 9/24 이후 끊긴 노드는 온라인이 아니다', () => {
+test('NodeStatus 실제 — 9/24 이후 끊긴 노드는 온라인이 아니고, 자원은 마지막 보고', () => {
   const v = render({ nodeName: 'hanium', nodeKind: '리프', nodeRid: 'n-rdk' });
-  assert.notEqual(v.stText, '온라인'); assert.equal(v.stText, '응답 없음'); assert.equal(v.core, '0.5.5');
-  assert.match(v.uptime, /하트비트 \d+일 전/);
+  assert.doesNotMatch(v.stText, /온라인/); assert.equal(v.stText, '◌ 응답 없음');
+  for (const b of v.bars) assert.match(b.note, /^마지막 보고 · \d+일 전$/, b.name);
 });
 
 test('NodeStatus 실제 — Master 목록에 없는 노드(시안 지도 · rid 없음)는 값 없이', () => {
   const v = render({ nodeName: 'lab-ws-02', nodeKind: '리프', nodeRid: '' });
-  assert.equal(v.stText, 'Master 기록 없음'); assert.deepEqual(v.bars, []); assert.equal(v.core, '—');
+  assert.match(v.note, /노드 목록에 없는 노드/); assert.equal(v.stText, '—');
   assert.doesNotMatch(text(v), /온라인|200 GB|1\.7\./);
-});
-
-test('NodeStatus 시안(캔버스 · ?demo) — 예시 값은 그대로 남는다', () => {
-  const prev = globalThis.window; globalThis.window = undefined;
-  try { const C = board('NodeStatus'); const v = new C({ nodeName: '02·b', nodeKind: '리프' }).renderVals(); assert.match(v.bars[2].note, /\/ 200 GB/); }
-  finally { globalThis.window = prev; }
 });
 
 test('NodeConf 실제 — 코어 1.7.0 · 지어낸 노드 id · 사용자 · 경보 대신 Master 기록 · 빈 값', () => withWindow(() => {
@@ -62,9 +58,3 @@ test('NodeConf 실제 — 코어 1.7.0 · 지어낸 노드 id · 사용자 · �
   assert.doesNotMatch(JSON.stringify(d), /1\.7\.|terra\.local|TR-7Q2K|디스크 92%/);
 }));
 
-test('NodeStatus 실제 — 꺼진 노드의 자원 값은 마지막 보고로 표시', () => {
-  const v = render({ nodeName: 'hanium', nodeKind: '리프', nodeRid: 'n-rdk' });
-  for (const b of v.bars) assert.match(b.note, /^마지막 보고 · \d+일 전$/, b.name);
-  const live = render({ nodeName: 'marui-server', nodeKind: '리프', nodeRid: 'n-server' });
-  assert.equal(live.bars[0].note, ''); assert.equal(live.bars[2].note, '총량 보고 없음');
-});

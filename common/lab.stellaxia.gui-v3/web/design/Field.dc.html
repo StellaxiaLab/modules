@@ -28,10 +28,10 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <div data-ctlwin="field" data-slot="4" style="display: none"><div data-ctlbody="field"><dc-import name="NodeDesktopEmbed" chrome="none" node-name="{{ctlNode4}}" win-w="{{ctlW4}}" win-h="{{ctlH4}}" on-close="{{ctlCloseFn4}}" on-full="{{ctlFullFn4}}" zoom="{{ctlZoom4}}" on-zoom="{{ctlZoomFn4}}" remote="{{ctlRemote4}}" on-open="{{ctlOpenFn4}}" catalog="{{ctlCat4}}" node-key="{{ctlKey4}}" parent-name="{{ctlPar4}}" hint-size="1240px,760px"></dc-import></div></div>
 <div data-ctlwin="field" data-slot="5" style="display: none"><div data-ctlbody="field"><dc-import name="NodeDesktopEmbed" chrome="none" node-name="{{ctlNode5}}" win-w="{{ctlW5}}" win-h="{{ctlH5}}" on-close="{{ctlCloseFn5}}" on-full="{{ctlFullFn5}}" zoom="{{ctlZoom5}}" on-zoom="{{ctlZoomFn5}}" remote="{{ctlRemote5}}" on-open="{{ctlOpenFn5}}" catalog="{{ctlCat5}}" node-key="{{ctlKey5}}" parent-name="{{ctlPar5}}" hint-size="1240px,760px"></dc-import></div></div>
 <div data-ctlwin="field" data-slot="6" style="display: none"><div data-ctlbody="field"><dc-import name="StarMaker" win-w="{{smW}}" win-h="{{smH}}" load="{{smLoad}}" on-saved="{{smSavedFn}}" hint-size="1100px,720px"></dc-import></div></div>
-<div data-ctlwin="field" data-slot="7" style="display: none"><div data-ctlbody="field"><dc-import name="NodeConf" node-name="{{wNode7}}" node-kind="{{wKind7}}" parent-name="{{wPar7}}" node-key="{{wId7}}" node-path="{{wPath7}}" remote="{{wRemote7}}" on-skin="{{skinFn}}" res-list="{{wRes7}}" on-open="{{openFn7}}" win-w="{{ctlW7}}" win-h="{{ctlH7}}" hint-size="860px,600px"></dc-import></div></div>
-<div data-ctlwin="field" data-slot="8" style="display: none"><div data-ctlbody="field"><dc-import name="NodeStatus" node-name="{{wNode8}}" node-kind="{{wKind8}}" parent-name="{{wPar8}}" win-w="{{ctlW8}}" win-h="{{ctlH8}}" hint-size="560px,540px"></dc-import></div></div>
-<div data-ctlwin="field" data-slot="9" style="display: none"><div data-ctlbody="field"><dc-import name="NodeStatus" node-name="{{wNode9}}" node-kind="{{wKind9}}" parent-name="{{wPar9}}" win-w="{{ctlW9}}" win-h="{{ctlH9}}" hint-size="560px,540px"></dc-import></div></div>
-<div data-ctlwin="field" data-slot="10" style="display: none"><div data-ctlbody="field"><dc-import name="NodeStatus" node-name="{{wNode10}}" node-kind="{{wKind10}}" parent-name="{{wPar10}}" win-w="{{ctlW10}}" win-h="{{ctlH10}}" hint-size="560px,540px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="7" style="display: none"><div data-ctlbody="field"><dc-import name="NodeConf" node-name="{{wNode7}}" node-kind="{{wKind7}}" parent-name="{{wPar7}}" node-key="{{wId7}}" node-rid="{{wRid7}}" node-path="{{wPath7}}" remote="{{wRemote7}}" on-skin="{{skinFn}}" res-list="{{wRes7}}" on-open="{{openFn7}}" win-w="{{ctlW7}}" win-h="{{ctlH7}}" hint-size="860px,600px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="8" style="display: none"><div data-ctlbody="field"><dc-import name="NodeStatus" node-name="{{wNode8}}" node-kind="{{wKind8}}" parent-name="{{wPar8}}" node-rid="{{wRid8}}" win-w="{{ctlW8}}" win-h="{{ctlH8}}" hint-size="560px,540px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="9" style="display: none"><div data-ctlbody="field"><dc-import name="NodeStatus" node-name="{{wNode9}}" node-kind="{{wKind9}}" parent-name="{{wPar9}}" node-rid="{{wRid9}}" win-w="{{ctlW9}}" win-h="{{ctlH9}}" hint-size="560px,540px"></dc-import></div></div>
+<div data-ctlwin="field" data-slot="10" style="display: none"><div data-ctlbody="field"><dc-import name="NodeStatus" node-name="{{wNode10}}" node-kind="{{wKind10}}" parent-name="{{wPar10}}" node-rid="{{wRid10}}" win-w="{{ctlW10}}" win-h="{{ctlH10}}" hint-size="560px,540px"></dc-import></div></div>
 <div data-ctlwin="field" data-slot="11" style="display: none"><div data-ctlbody="field"><dc-import name="NodeShare" node-name="{{wNode11}}" node-kind="{{wKind11}}" node-key="{{wId11}}" res-list="{{wRes11}}" focus-res="{{wFocus11}}" peers="{{wPeers11}}" on-open="{{openFn11}}" win-w="{{ctlW11}}" win-h="{{ctlH11}}" hint-size="860px,600px"></dc-import></div></div>
 <div data-ctlwin="field" data-slot="12" style="display: none"><div data-ctlbody="field"><dc-import name="ResStatus" res-name="{{wNode12}}" node-name="{{wPar12}}" src="{{wSrc12}}" win-w="{{ctlW12}}" win-h="{{ctlH12}}" hint-size="600px,600px"></dc-import></div></div>
 <div data-ctlwin="field" data-slot="13" style="display: none"><div data-ctlbody="field"><dc-import name="ResStatus" res-name="{{wNode13}}" node-name="{{wPar13}}" src="{{wSrc13}}" win-w="{{ctlW13}}" win-h="{{ctlH13}}" hint-size="600px,600px"></dc-import></div></div>
@@ -161,8 +161,11 @@ class Component extends DCLogic {
         g.moveTo(xa, ya + armV); g.lineTo(xa, ya); g.lineTo(xa + arm, ya); g.moveTo(xb - arm, ya); g.lineTo(xb, ya); g.lineTo(xb, ya + armV);
         g.moveTo(xa, yb - armV); g.lineTo(xa, yb); g.lineTo(xa + arm, yb); g.moveTo(xb - arm, yb); g.lineTo(xb, yb); g.lineTo(xb, yb - armV); g.stroke(); }); }
     // 기본 정보 (호버) — 연결 · 로그인 · 범위(마커)
-    add('b', [['● ', C.ok], ['연결됨', C.key], ['  Terra 코어 1.7.0', C.val]]);
-    { const lr = r, lt = '● 로그인  admin · 관리자', lc = x0 + this.dw(lt) + 3, LT = '로그아웃 ⏻', o = add('b', [['● ', C.info], ['로그인', C.key], ['  admin · 관리자', C.val]]);
+    // 실제(앱이 Terra 에 붙음): 로컬 노드의 Master 기록(daemon_version · 상태)과 whoami 의 principal 만. 모르면 '보고 없음' — 시안 값(코어 1.7.0 · admin)은 시안에서만
+    const RL = typeof window !== 'undefined' && !!window.TerraTransport, TPl = RL && this.TOPO ? this.TOPO() : null, LR = TPl && TPl.localId && TPl.node ? TPl.node(TPl.localId) : null, LS = LR && window.TerraNodeStats ? window.TerraNodeStats(LR) : null, WHO = RL ? window.TerraWho : null;
+    const cTxt = !RL ? '연결됨' : LS ? (LS.online ? '연결됨' : LS.status.replace(/^[●○◐◇◌]\s*/, '')) : '연결 보고 없음', cVer = !RL ? '  Terra 코어 1.7.0' : LS && LS.version ? '  Terra 코어 ' + LS.version : '  코어 버전 보고 없음';
+    add('b', [['● ', !RL || (LS && LS.online) ? C.ok : C.hint], [cTxt, C.key], [cVer, C.val]]);
+    { const wTxt = !RL ? '  admin · 관리자' : '  ' + ((WHO && WHO.principal) || '받는 중…'), lr = r, lt = '● 로그인' + wTxt, lc = x0 + this.dw(lt) + 3, LT = '로그아웃 ⏻', o = add('b', [['● ', C.info], ['로그인', C.key], [wTxt, C.val]]);
       // 로그아웃 — 계정 이름 옆. 누르면 로그인 전환을 거꾸로(통합 화면: 항성계가 소실점으로 줄며 로그인 층이 닫히고, 글자 · 별이 바깥에서 날아와 로그인 화면 → 메인 화면)
       line('b', lr, [[LT, C.key]], lc, o, 'mzLogout'); this._lo = { row: lr, x0: lc * cw, x1: (lc + this.dw(LT)) * cw };
       leg('b', o, lc * cw, (lc + this.dw(LT)) * cw, new Set(), (g) => { const Q = this._lo; if (!Q || !this._loHov) return; g.fillStyle = 'rgba(255,170,150,0.85)'; g.fillRect(Q.x0, (Q.row + 1) * ch - 2, Q.x1 - Q.x0, 1); g.fillStyle = 'rgba(220,90,80,0.12)'; g.fillRect(Q.x0 - 3, Q.row * ch + 1, Q.x1 - Q.x0 + 6, ch - 2); }, 'loBar', ''); }
@@ -174,7 +177,11 @@ class Component extends DCLogic {
     // 내용 (누르기)
     head('대상');
     // 속성 표 — 틀(바깥 사각 · 가운데 세로선)은 레거시, 칸 글자는 텍스트
-    const kv = [['이름', curN.name], ['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]], ['상태', '● 온라인'], ['자원', '3 · ssh · io'], ['가동', '4일 12시간']];
+    // 실제 지도면 Master 의 노드 기록(하트비트 자원 스냅샷 · 상태)으로 — window.TerraNodeStats(src/api/topology.js nodeStats). 시안이면 예시 값
+    const TPn = this.TOPO ? this.TOPO() : null, RN = TPn && TPn.node && curN.rid ? TPn.node(curN.rid) : null, NS = RN && typeof window !== 'undefined' && window.TerraNodeStats ? window.TerraNodeStats(RN) : null;
+    // 실제(앱이 Terra 에 붙음)인데 Master 기록이 없는 노드(시안 지도 · 계정 · Master 자신)는 시안 값 대신 '—' — 온라인으로 지어내지 않는다
+    const RLn = typeof window !== 'undefined' && !!window.TerraTransport, SMP = !NS && !RLn;
+    const kv = [['이름', curN.name], ['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]], ['상태', NS ? NS.status : SMP ? '● 온라인' : '—'], ['자원', SMP ? '3 · ssh · io' : '—'], ['가동', NS ? (NS.seen ? '하트비트 ' + NS.seen : '—') : SMP ? '4일 12시간' : '—']];
     const kw = 6, vw = 14, tr0 = r;
     { const xa = x0 * cw + cw / 2, xb = (x0 + kw + vw + 2) * cw + cw / 2, xm = (x0 + kw + 1) * cw + cw / 2, ya = tr0 * ch + ch / 2, yb = (tr0 + kv.length + 1) * ch + ch / 2, cells = new Set();
       fpLine(cells, xa, xb, ya); fpLine(cells, xa, xb, yb); fpCol(cells, xa, ya, yb); fpCol(cells, xb, ya, yb); fpCol(cells, xm, ya, yb);
@@ -183,21 +190,21 @@ class Component extends DCLogic {
     for (const [k, v] of kv) { const o = add('c', [[k, C.key]]); rows[rows.length - 1].col = x0 + 2; line('c', r - 1, [[v, v.startsWith('●') ? C.ok : C.val, true]], x0 + kw + 3, o); }
     r += 2;
     // 고리 계기 — 표 오른쪽, 레거시 그래픽 (HUD 원형 게이지): 바탕 고리(흐림) + 값 호(밝음, 12시에서 시계 방향 72%)
-    { const gx0 = x0 + kw + vw + 5, gW = Math.max(8, zR - gx0), R0 = Math.min(gW * cw, (kv.length + 2) * ch) / 2 - 3, cx = gx0 * cw + gW * cw / 2, cy = tr0 * ch + (kv.length + 2) * ch / 2, th = 4, pct = 0.72, cells = new Set();
+    { const gx0 = x0 + kw + vw + 5, gW = Math.max(8, zR - gx0), R0 = Math.min(gW * cw, (kv.length + 2) * ch) / 2 - 3, cx = gx0 * cw + gW * cw / 2, cy = tr0 * ch + (kv.length + 2) * ch / 2, th = 4, pct = NS ? NS.disk ?? 0 : SMP ? 0.72 : 0, cells = new Set();
       for (let rr = Math.floor((cy - R0) / ch); rr <= Math.floor((cy + R0) / ch); rr++) for (let c = Math.floor((cx - R0) / cw); c <= Math.floor((cx + R0) / cw); c++) { const d = Math.hypot(c * cw + cw / 2 - cx, rr * ch + ch / 2 - cy); if (d <= R0 + cw * 0.6 && d >= R0 - th - cw * 0.6) cells.add(rr * cols + c); }
       leg('c', ords.c - kv.length, cx - R0 - 4, cx + R0 + 4, cells, (g) => { g.lineWidth = th; g.strokeStyle = C.lineC; g.beginPath(); g.arc(cx, cy, R0 - th / 2, 0, Math.PI * 2); g.stroke();
         g.strokeStyle = C.lineB; g.beginPath(); g.arc(cx, cy, R0 - th / 2, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2); g.stroke();
         g.lineWidth = 1; for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2 - Math.PI / 2, r1 = R0 + 2, r2 = R0 + (k % 6 ? 4 : 7); g.beginPath(); g.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); g.stroke(); } });
-      line('c', Math.round(cy / ch - 1), [['72%', C.val]], Math.round(cx / cw - 1.5), ords.c - kv.length);
-      line('c', Math.round(cy / ch), [['가동률', C.key]], Math.round(cx / cw - 3), ords.c - kv.length + 1); }
+      line('c', Math.round(cy / ch - 1), [[NS ? (NS.disk == null ? '—' : Math.round(NS.disk * 100) + '%') : SMP ? '72%' : '—', C.val]], Math.round(cx / cw - 1.5), ords.c - kv.length);
+      line('c', Math.round(cy / ch), [[SMP ? '가동률' : '디스크', C.key]], Math.round(cx / cw - 3), ords.c - kv.length + 1); }
     head('부하');
     // 막대 — 바탕 칸(흐림 틀) + 채움(밝음), 레거시. 이름 · 값은 텍스트
     const bar = (lab, v) => { const o = add('c', [[lab, C.key]]), bx0 = (x0 + 5) * cw, bx1 = (x0 + 22) * cw, yM = (r - 1) * ch + ch / 2, hh = ch * 0.42, cells = new Set();
       for (let c = Math.floor(bx0 / cw); c < Math.ceil(bx1 / cw); c++) cells.add((r - 1) * cols + c);
-      leg('c', o, bx0, bx1, cells, (g) => { g.strokeStyle = C.lineC; g.lineWidth = 1; g.strokeRect(bx0 + 0.5, yM - hh / 2 + 0.5, bx1 - bx0, hh); g.fillStyle = C.fill; g.fillRect(bx0 + 2, yM - hh / 2 + 2, (bx1 - bx0 - 3) * v, hh - 3); });
-      line('c', r - 1, [[Math.round(v * 100) + '%', C.val]], x0 + 23, o); };
-    bar('CPU', 0.42); bar('MEM', 0.61);
-    const sparkRow = rows.length; add('c', [[this.pad('NET', 5), C.key], [this.spark(17), C.ok], ['  1.2 MB/s', C.val]], 2);
+      leg('c', o, bx0, bx1, cells, (g) => { g.strokeStyle = C.lineC; g.lineWidth = 1; g.strokeRect(bx0 + 0.5, yM - hh / 2 + 0.5, bx1 - bx0, hh); g.fillStyle = C.fill; g.fillRect(bx0 + 2, yM - hh / 2 + 2, (bx1 - bx0 - 3) * (v || 0), hh - 3); });
+      line('c', r - 1, [[v == null ? '—' : Math.round(v * 100) + '%', C.val]], x0 + 23, o); };
+    bar('CPU', NS ? NS.cpu : SMP ? 0.42 : null); bar('MEM', NS ? NS.mem : SMP ? 0.61 : null);
+    const sparkRow = rows.length; add('c', [[this.pad('NET', 5), C.key], [SMP ? this.spark(17) : this.pad('—', 17), SMP ? C.ok : C.hint], [SMP ? '  1.2 MB/s' : '  보고 없음', C.val]], 2);   // Daemon 은 네트워크를 보내지 않는다(probe 없음)
     const rb = this._rows - 2;
     // 지도 — 우주 지도. 노드는 모두 궤도에(형제는 같은 궤도), 지도 뷰는 세 가지 — 트리 · 리프 · 리소스. 각 지도 뷰에선 그 뷰의 노드만 보이고(다른 뷰의 노드는 빼고) 궤도는 모두 보인다
     //   트리 지도: 계정 · 트리 노드 / 리프 지도(들어온 트리): 그 트리 · 그 리프 / 리소스 지도(들어온 리프): 그 리프 · 그 리소스
@@ -649,6 +656,7 @@ class Component extends DCLogic {
     this.ctlSync();
   }
   ctlOpenWin(node, Rr, kind, arg) {
+    this.TN();   // 창(자원 · 자원 상태 · 제어기)이 실제 노드를 찾을 수 있게 — 장면 노드 ↔ 전송의 노드 묶기를 먼저(늦게 묶이면 자원 창이 시안으로 떨어졌다)
     let focusRes = '', rsSrc = '';
     if (kind === 'stat' && node && node.kind === 'res') kind = 'res';   // 위성(자원)의 상태 = 자원 상태 창
     if (kind === 'res' && node && node.kind !== 'res') { const a = String(arg || '').split('|'); rsSrc = a[1] || ''; node = this.resNodeFor(node, a[0], rsSrc, a[2]); }   // 자원 이름을 눌러 연 자원 상태 창 — 'name|출처|제공 노드'
@@ -679,7 +687,7 @@ class Component extends DCLogic {
     else if (kind === 'mod') { const m = this.modsOf(node).find((q) => q.id === wArg) || this.modsOf(node)[0]; this.setState({ ['wMod' + k]: m || null }); this['_wNode' + k] = node; }
     else if (kind === 'web') { this.setState({ ['wWeb' + k]: wArg, ['wCat' + k]: this.modCatalog(node), ['wNode' + k]: node.name }); this['_wNode' + k] = node; }
     else if (kind === 'res') this.setState({ ['wNode' + k]: node.name, ['wPar' + k]: node.parent ? node.parent.name : '—', ['wSrc' + k]: rsSrc || node.src || '내 자원', ['wId' + k]: node.id });
-    else if (kind === 'conf' || kind === 'stat' || kind === 'share') { const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }; this.setState({ ['wNode' + k]: node.name, ['wKind' + k]: KN[node.kind] || '노드', ['wPar' + k]: node.parent ? node.parent.name : '—', ['wId' + k]: node.id, ['wPath' + k]: node.path || '/' + node.name, ['wRemote' + k]: !!node.parent && node !== this.localNode(), ['wRes' + k]: (node.kids || []).filter((c) => c.kind === 'res').map((c) => c.name), ['wFocus' + k]: focusRes, ['wPeers' + k]: this.peerList() }); this['_wNode' + k] = node; }
+    else if (kind === 'conf' || kind === 'stat' || kind === 'share') { const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }; this.setState({ ['wNode' + k]: node.name, ['wKind' + k]: KN[node.kind] || '노드', ['wPar' + k]: node.parent ? node.parent.name : '—', ['wId' + k]: node.id, ['wRid' + k]: node.rid || '', ['wPath' + k]: node.path || '/' + node.name, ['wRemote' + k]: !!node.parent && node !== this.localNode(), ['wRes' + k]: (node.kids || []).filter((c) => c.kind === 'res').map((c) => c.name), ['wFocus' + k]: focusRes, ['wPeers' + k]: this.peerList() }); this['_wNode' + k] = node; }
     this.ctlChrome(wrap);
     { const m = kind === 'mod' ? this.modsOf(node).find((q) => q.id === wArg) : null, wa = kind === 'web' && wArg.startsWith('mod|') ? this.modCatalog(node).find((q) => q.arg === wArg) : null;
       wrap._chrome.name.textContent = m ? m.name + ' · ' + node.name : wa ? wa.appName + ' · ' + node.name : node.name; }
@@ -798,7 +806,7 @@ class Component extends DCLogic {
       o['ctlCat' + k] = S['ctlCat' + k] || []; o['ctlKey' + k] = S['ctlKey' + k] || ''; o['ctlPar' + k] = S['ctlPar' + k] || '';
       o['ctlRemote' + k] = !!S['ctlRemote' + k]; o['ctlOpenFn' + k] = F['n' + k] || (F['n' + k] = (kind, arg) => { const n = this['_ctlNode' + k]; if (!n) return; if (kind === 'share' && n.kind !== 'leaf') return; this.ctlOpenWin(n, undefined, kind, arg); });   // 제어기 → 자원 창 · 자원 상태 창
     }
-    for (const k of [7, 8, 9, 10, 11, 12, 13, 14]) { o['wSrc' + k] = S['wSrc' + k] || ''; o['wNode' + k] = S['wNode' + k] || 'lab-ws-02'; o['wKind' + k] = S['wKind' + k] || '리프'; o['wPar' + k] = S['wPar' + k] || '—'; o['wId' + k] = S['wId' + k] || ''; o['wPath' + k] = S['wPath' + k] || ''; o['wRemote' + k] = !!S['wRemote' + k]; o['wRes' + k] = S['wRes' + k] || []; o['wFocus' + k] = S['wFocus' + k] || ''; o['wPeers' + k] = S['wPeers' + k] || [];
+    for (const k of [7, 8, 9, 10, 11, 12, 13, 14]) { o['wSrc' + k] = S['wSrc' + k] || ''; o['wNode' + k] = S['wNode' + k] || 'lab-ws-02'; o['wKind' + k] = S['wKind' + k] || '리프'; o['wPar' + k] = S['wPar' + k] || '—'; o['wId' + k] = S['wId' + k] || ''; o['wRid' + k] = S['wRid' + k] || ''; o['wPath' + k] = S['wPath' + k] || ''; o['wRemote' + k] = !!S['wRemote' + k]; o['wRes' + k] = S['wRes' + k] || []; o['wFocus' + k] = S['wFocus' + k] || ''; o['wPeers' + k] = S['wPeers' + k] || [];
       o['openFn' + k] = F['o' + k] || (F['o' + k] = (kind, arg) => { const n = this['_wNode' + k]; if (n) this.ctlOpenWin(n, undefined, kind, arg); }); o['ctlW' + k] = S['ctlW' + k] || this.WSIZE(k === 7 ? 'conf' : k === 11 ? 'share' : k >= 12 ? 'res' : 'stat')[0]; o['ctlH' + k] = S['ctlH' + k] || this.WSIZE(k === 7 ? 'conf' : k === 11 ? 'share' : k >= 12 ? 'res' : 'stat')[1]; }   // 설정(7) · 상태(8–10)
     { const k = 15; o.wNode15 = S.wNode15 || '02'; o.wId15 = S.wId15 || ''; o.wDir15 = S.wDir15 || 'sibling'; o.wUrl15 = S.wUrl15 || ''; o.wReach15 = S.wReach15 !== false; o.wNeed15 = !!S.wNeed15; o.wTun15 = S.wTun15 || 0; o.wCur15 = S.wCur15 || '';
       o.ctlW15 = S.ctlW15 || this.WSIZE('login')[0]; o.ctlH15 = S.ctlH15 || this.WSIZE('login')[1];
@@ -864,7 +872,7 @@ class Component extends DCLogic {
   peerList() { const KN = { tree: '트리', leaf: '리프' }; return this.mapData().all.filter((n) => n.kind === 'tree' || n.kind === 'leaf').map((n) => ({ id: n.id, name: n.name, kind: KN[n.kind], parent: n.parent ? n.parent.name : '' })); }
   WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14], login: [15], mod: [16, 17, 18], web: [19, 20] }; }
   WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540], share: [860, 600], res: [600, 600], login: [600, 540], mod: [600, 620], web: [1000, 680] }[kind] || [900, 600]; }
-  WSEE(kind) { return kind === 'stat' || kind === 'res' || kind === 'login' || kind === 'mod'; }
+  WSEE(kind) { return kind === 'stat' || kind === 'res' || kind === 'login'; }   // 바탕이 비치는 창 — 모듈 상태 창은 제어기 창처럼 불투명(글자 장이 글 사이로 비쳐 읽기 어려웠다)
   winGet(node, kind, arg) { const L = this._wins || (this._wins = []); return L.find((q) => q.node === node && q.kind === (kind || 'ctl') && (q.arg || '') === (arg || '')) || null; }
   winPut(W, st) { const L = this._wins || (this._wins = []), kd = W.kind || 'ctl'; let e = this.winGet(W.node, kd, W.arg); if (!e) { e = { id: 'w' + (this._winN = (this._winN || 0) + 1), node: W.node, kind: kd, arg: W.arg || '' }; L.push(e); } e.st = st; e.R = W.R ? { ...W.R } : e.R; e.at = performance.now(); return e; }
   winDrop(node, kind) { if (this._wins) this._wins = this._wins.filter((q) => !(q.node === node && q.kind === (kind || 'ctl'))); }

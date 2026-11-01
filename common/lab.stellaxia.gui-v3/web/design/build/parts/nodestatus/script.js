@@ -1,60 +1,71 @@
-// 상태 창 — 노드의 동작 상태 · 자원 · healthcheck · 최근 이벤트를 CLI 처럼. 바탕은 비친다(글자 장이 보임) — 구역 나눔 · 막대 · 지연 선은 레거시 선, 글자는 텍스트
-//   막대의 붉은 눈금 = 경고 기준 75%
-//   실제(앱이 Terra 에 붙음 — window.TerraTransport): Master 노드 기록(window.TerraTopology.node(nodeRid))만 쓴다 — 상태 · 하트비트 · daemon_version · 자원 스냅샷.
-//     기록에 없는 값은 '보고 없음' · '—'. 지어내지 않는다(healthcheck · 이벤트 · pid · 네트워크는 Master 가 노드별로 주지 않는다)
-//   시안(캔버스 · ?demo): 노드 이름으로 정해지는 예시 값에 1초마다 흔들림
+// 상태 창 — 노드의 식별 · 통신 · 자원 · 최근 활동을 CLI 처럼. 바탕은 비친다(글자 장이 보임) — 구역 나눔 · 막대는 레거시 선, 글자는 텍스트
+//   실제(웹 빌드): window.TerraNodeInfo(rid) — Master 노드 기록 + 네트워크 · 경로 · 조작 이력 읽기(src/api/node-info.js). 10초마다 다시 읽는다
+//   시안(캔버스): 같은 모양의 예시 값(노드 이름으로 정해지는 값에 흔들림) — 실제 값과 칸 · 순서가 같아야 한다(시안 ↔ 운영이 어긋나지 않게)
+//   pid · 재시작 · healthcheck 는 Terra 가 내놓지 않는 값이라 시안에서도 뺐다(Sheet '상태 창')
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { t: 0 }; this._ev = []; this._net = []; }   // 그리기가 마운트보다 먼저 올 수 있다
-  componentDidMount() { this._live = true; this._iv = setInterval(() => { if (this._live) this.setState({ t: this.state.t + 1 }); }, 1000); }
+  constructor(props) { super(props); this.state = { t: 0, info: null, copied: false }; this._net = []; this._rx = null; }   // 그리기가 마운트보다 먼저 올 수 있다
+  componentDidMount() {
+    this._live = true;
+    this._iv = setInterval(() => { if (!this._live) return; const t = this.state.t + 1; this.setState({ t }); if (t % 10 === 0) this.pull(); }, 1000);
+    this.pull();
+  }
   componentWillUnmount() { this._live = false; clearInterval(this._iv); }
+  componentDidUpdate(prev) { if (prev && prev.nodeRid !== this.props.nodeRid) { this._net = []; this._rx = null; this.setState({ info: null }); this.pull(); } }
+  real() { return typeof window !== 'undefined' && typeof window.TerraNodeInfo === 'function'; }
+  pull() {
+    const rid = this.props.nodeRid; if (!this.real() || !rid) return;
+    window.TerraNodeInfo(rid).then((info) => { if (!this._live || this.props.nodeRid !== rid || !info) return;
+      // NET — 하트비트 사이 바이트 차이로 속도(스냅샷이 누적값이라)
+      const R = info.res, at = info.recent.hbAt; if (this._rx && at > this._rx.at && R.rx >= this._rx.rx) { const dt = (at - this._rx.at) / 1000; this._net.push({ i: (R.rx - this._rx.rx) / dt, o: (R.tx - this._rx.tx) / dt }); if (this._net.length > 22) this._net.shift(); }
+      if (!this._rx || at !== this._rx.at) this._rx = { rx: R.rx, tx: R.tx, at };
+      this.setState({ info }); }, () => {});
+  }
   seed() { const nm = this.props.nodeName || 'node', k = this.props.nodeKind || 'leaf'; let h = 7; for (const ch of nm + k) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
   rnd(i) { const x = Math.sin(this.seed() * 0.001 + i * 12.9898) * 43758.5453; return x - Math.floor(x); }
-  real() { return typeof window !== 'undefined' && !!window.TerraTransport; }
-  realVals() {
-    const P = this.props, kind = P.nodeKind || '리프', T = window.TerraTopology, rec = T && T.node && P.nodeRid ? T.node(P.nodeRid) : null;
-    const NS = rec && window.TerraNodeStats ? window.TerraNodeStats(rec) : null, fb = window.TerraFmtBytes || (() => ''), NO = '보고 없음';
-    const col = (p) => p > 85 ? '#ff9c8c' : p > 75 ? '#ffd27a' : '#60e28c';
-    // 꺼진 · 응답 없는 노드의 값은 마지막 보고 그대로다 — 지금 값처럼 보이지 않게 '마지막 보고 · N일 전'을 붙인다
-    const bar = (n, v, used, total, sized, NS) => { const has = v != null, p = has ? v * 100 : 0, tot = fb(total), old = has && NS && !NS.online ? '마지막 보고 · ' + (NS.seen || '시각 모름') : '';
-      return { name: n, pct: p.toFixed(1), pctT: has ? Math.round(p) + '%' : '—', col: old ? '#709c80' : col(p), note: !has ? NO : old || (!sized ? '' : tot ? (fb(used) || '?') + ' / ' + tot : '총량 ' + NO) }; };
-    const base = { rootH: P.winH ? P.winH + 'px' : '100vh', name: P.nodeName || '—', kind, tick: '15s', pid: '—', restarts: '—', parent: P.parentName || '—',
-      spark: '', netIn: '—', netOut: NO, checks: [], hcSum: NO };
-    if (!NS) return Object.assign(base, { stText: rec ? '—' : 'Master 기록 없음', stCol: '#709c80', uptime: '', proc: '—', core: '—',
-      role: { '계정': 'account', '트리': 'tree', '리프': 'leaf', '리소스': 'resource' }[kind] || kind, bars: [], events: [{ t: '', lv: '', msg: rec ? NO : '이 노드는 Master 노드 목록에 없어요 — 보여 줄 실제 값이 없음', col: '#709c80' }] });
-    const stCol = NS.online ? '#60e28c' : /저하/.test(NS.status) ? '#ffd27a' : '#ff9c8c';
-    return Object.assign(base, {
-      stText: NS.status.replace(/^[●○◐◇◌]\s*/, ''), stCol, uptime: NS.seen ? '하트비트 ' + NS.seen : '하트비트 ' + NO,
-      proc: NS.online ? 'running' : '—', core: NS.version || NO, role: (rec.roles || []).join(' · ') || '—',
-      bars: [bar('CPU', NS.cpu, 0, 0, false, NS), bar('MEM', NS.mem, NS.memUsed, NS.memTotal, true, NS), bar('DISK', NS.disk, NS.diskUsed, NS.diskTotal, true, NS)],
-      events: [{ t: '', lv: '', msg: '이벤트 ' + NO + ' — Master 노드 기록에 이벤트 목록이 없음', col: '#709c80' }]
-    });
+  /** 시안 값 — src/api/node-info.js nodeInfo() 와 같은 모양 */
+  sample() {
+    const t = this.state.t, r = (i) => this.rnd(i), wob = (i, a) => Math.sin(t * (0.3 + r(i) * 0.5) + r(i + 9) * 6) * a, nm = this.props.nodeName || 'lab-ws-02', kind = this.props.nodeKind || '리프';
+    const hex = (i, n) => { let s = ''; for (let k = 0; k < n; k++) s += '0123456789abcdef'[Math.floor(this.rnd(i + k) * 16)]; return s; };
+    const bad = r(40) < 0.18, now = Date.now(), peers = ['01·a', '02', '03·c', 'nas-01'].filter((p) => p !== nm);
+    const ev = [['heartbeat · 온라인', 'info', 40], ['session ← ' + peers[0] + ' · open', 'info', 95], ['probe ' + peers[1] + ' · wireguard ' + (bad ? '닿지 않음 · TIMEOUT' : 'ok'), bad ? 'warn' : 'info', 240], ['network.plan · ok', 'info', 1900], ['peer.connect · ok', 'info', 7400]];
+    if (!this._net.length || this._net.t !== t) { this._net.push({ i: Math.max(0, (0.4 + r(6) + wob(7, 0.6)) * 1048576), o: Math.max(0, (0.1 + r(8) * 0.6 + wob(9, 0.1)) * 1048576) }); if (this._net.length > 22) this._net.shift(); this._net.t = t; }
+    return {
+      real: false, miss: [], name: nm, status: bad ? '◐ 저하' : '● 온라인', online: true, seen: Math.floor(r(30) * 50 + 5) + '초 전',
+      ident: { nodeId: 'nd_' + hex(50, 4) + '-' + hex(60, 12), deviceId: 'dev_' + hex(80, 10), roles: { '계정': 'Master', '트리': 'Tree', '리프': 'Leaf', '리소스': '자원' }[kind] || kind, parent: this.props.parentName || '— (맨 위)', depth: kind === '트리' ? '0' : '1',
+        address: '10.80.' + Math.floor(r(70) * 9) + '.' + Math.floor(r(71) * 200 + 10), dns: nm.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.terra', version: '1.7.' + Math.floor(r(23) * 4), created: '10-0' + (1 + Math.floor(r(24) * 8)) + ' 09:12:40', tags: 'lab', caps: 'exec, files, svi' },
+      comm: { via: bad ? 'relay' : 'direct', relay: true, net: 'lab-mesh', desired: 'wireguard', observed: bad ? 'relay' : 'direct', gen: String(3 + Math.floor(r(72) * 6)),
+        routes: peers.slice(0, 2).map((p, i) => ({ peer: p, rt: bad && i === 1 ? 'relay' : 'direct', ad: 'wireguard', healthy: !(bad && i === 1), lat: Math.round(3 + r(73 + i) * 20 + wob(74 + i, 2)) + 'ms' })),
+        sessions: [{ peer: peers[0], dir: '←', channel: 'svi', rt: 'direct', state: 'open', err: '' }] },
+      res: { cpu: Math.max(0.02, Math.min(0.99, 0.2 + r(1) * 0.55 + wob(2, 0.08))), mem: Math.max(0.05, Math.min(0.99, 0.3 + r(3) * 0.5 + wob(4, 0.03))), disk: 0.15 + r(5) * 0.6 },
+      recent: { heartbeat: '방금', events: ev.map(([msg, lv, ago]) => ({ at: now - ago * 1000, lv, msg })) },
+    };
   }
   renderVals() {
-    if (this.real()) return this.realVals();
-    const t = this.state.t, nm = this.props.nodeName || 'lab-ws-02', kind = this.props.nodeKind || '리프', r = (i) => this.rnd(i), wob = (i, a) => Math.sin(t * (0.3 + r(i) * 0.5) + r(i + 9) * 6) * a;
-    const res = kind === '리소스', bad = r(40) < 0.18;
-    const cpu = Math.max(2, Math.min(99, 20 + r(1) * 55 + wob(2, 8))), mem = Math.max(5, Math.min(99, 30 + r(3) * 50 + wob(4, 3))), disk = 15 + r(5) * 60;
-    const col = (p) => p > 85 ? '#ff9c8c' : p > 75 ? '#ffd27a' : '#60e28c';
-    const net = this._net; if (net.length === 0 || net.t !== t) { net.push(Math.max(0, 0.4 + r(6) + wob(7, 0.6))); if (net.length > 22) net.shift(); net.t = t; }
-    const S = '▁▂▃▄▅▆▇', mx = Math.max(0.1, ...net), spark = net.map((v) => S[Math.min(6, Math.round(v / mx * 6))]).join('');
-    const hcs = res ? [['link', 8], ['driver', 14], ['owner', 22]] : [['core', 18], ['storage', 9], ['relay', 60], ['agent', 12], ['svi', 30]];
-    const checks = hcs.map(([n, base], i) => { const ms = Math.max(1, Math.round(base * (0.7 + r(10 + i) * 0.8) + wob(11 + i, base * 0.2) + (bad && i === 2 ? 260 : 0))), st = ms > 250 ? 'slow' : 'ok';
-      return { name: n, ms: ms + 'ms', w: Math.min(100, ms / 3), state: st, mark: st === 'ok' ? '✓' : '!', col: st === 'ok' ? '#60e28c' : '#ffd27a' }; });
-    const nOk = checks.filter((c) => c.state === 'ok').length;
-    if (!this._ev.length) { const now = Date.now(); for (let k = 5; k > 0; k--) this._ev.push({ at: now - k * 47000, lv: 'info', msg: ['heartbeat ok', 'config synced', 'svi lease renewed', 'job finished · backup', 'peer connected'][k % 5] }); }
-    if (t > 0 && t % 9 === 0 && this._evT !== t) { this._evT = t; this._ev.push({ at: Date.now(), lv: bad && t % 18 === 0 ? 'warn' : 'info', msg: bad && t % 18 === 0 ? 'relay latency ' + checks[2 % checks.length].ms : 'heartbeat ok' }); if (this._ev.length > 8) this._ev.shift(); }
+    const R = this.real(), rid = this.props.nodeRid || '', I = R ? this.state.info : this.sample(), kind = this.props.nodeKind || '리프';
+    const col = (p) => p > 0.85 ? '#ff9c8c' : p > 0.75 ? '#ffd27a' : '#60e28c', D = '—';
     const tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
-    const up = Math.floor(r(20) * 30) * 86400 + Math.floor(r(21) * 86400) + t;
+    const rate = (v) => v >= 1048576 ? (v / 1048576).toFixed(1) + ' MB/s' : v >= 1024 ? Math.round(v / 1024) + ' KB/s' : Math.round(v) + ' B/s';
+    const note = R && !rid ? 'Terra 노드 목록에 없는 노드(시안 지도) — 값 없음' : R && !I ? '불러오는 중…' : I && I.miss && I.miss.length ? '읽지 못함 · ' + I.miss.join(' · ') + ' — 그 칸은 —' : '';
+    const id = (I && I.ident) || {}, cm = (I && I.comm) || {}, rs = (I && I.res) || {}, net = this._net, S = '▁▂▃▄▅▆▇', mx = Math.max(1, ...net.map((x) => x.i)), last = net[net.length - 1];
+    const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : /^마지막 보고/.test(note2) ? '#709c80' : col(p), note: note2 });
+    const evs = ((I && I.recent && I.recent.events) || []).map((e) => ({ t: e.at ? tm(e.at) : D, lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? '#ffd27a' : '#709c80' }));
+    const routes = (cm.routes || []), sess = (cm.sessions || []);
+    const copyId = () => { const v = id.nodeId; if (!v || v === D) return; try { navigator.clipboard.writeText(v).then(() => { this.setState({ copied: true }); setTimeout(() => this._live && this.setState({ copied: false }), 1500); }, () => {}); } catch (e) {} };
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh',
-      name: nm, kind, stText: bad ? '주의' : '온라인', stCol: bad ? '#ffd27a' : '#60e28c', uptime: Math.floor(up / 86400) + 'd ' + Math.floor(up % 86400 / 3600) + 'h ' + Math.floor(up % 3600 / 60) + 'm', tick: '1s',
-      proc: res ? 'bound' : 'running', pid: res ? '—' : String(1000 + Math.floor(r(22) * 8000)), core: res ? '—' : '1.7.' + Math.floor(r(23) * 4), restarts: String(Math.floor(r(24) * 3)),
-      role: { '계정': 'account', '트리': 'tree', '리프': 'leaf', '리소스': 'resource' }[kind] || kind, parent: this.props.parentName || '—',
-      bars: (res ? [['USE', cpu, '사용 중 · 1 연결'], ['BUF', mem, '버퍼']] : [['CPU', cpu, 'load ' + (cpu / 50).toFixed(2) + ' ' + (cpu / 55).toFixed(2)], ['MEM', mem, (mem / 100 * 8).toFixed(1) + ' / 8.0 GB'], ['DISK', disk, Math.round(disk * 2) + ' / 200 GB']])
-        .map(([n, p, note]) => ({ name: n, pct: p.toFixed(1), pctT: Math.round(p) + '%', col: col(p), note })),
-      spark, netIn: (net[net.length - 1] || 0).toFixed(1) + ' MB/s', netOut: (0.1 + r(8) * 0.6 + wob(9, 0.1)).toFixed(1) + ' MB/s',
-      checks, hcSum: nOk + ' / ' + checks.length + ' ok',
-      events: this._ev.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? '#ffd27a' : '#709c80' }))
+      name: (I && I.name) || this.props.nodeName || D, kind, stText: I ? I.status : D, stCol: I && I.online ? (/저하/.test(I.status) ? '#ffd27a' : '#60e28c') : '#ff9c8c', seen: I && I.seen ? I.seen : '',
+      noteOn: !!note, note, src: R ? 'Master 노드 기록' : '시안 값',
+      nodeId: id.nodeId || D, copyT: this.state.copied ? '복사됨' : '복사', copyOff: !id.nodeId || id.nodeId === D, copyId,
+      ident: [['장치', id.deviceId], ['역할', id.roles], ['부모', id.parent], ['깊이', id.depth], ['주소', id.address], ['DNS', id.dns], ['버전', id.version], ['등록', id.created]].map(([k, v]) => ({ k, v: v || D })),
+      via: cm.via || D, viaCol: cm.via === 'direct' ? '#60e28c' : cm.via && cm.via !== D ? '#ffd27a' : '#709c80', relayT: I ? (cm.relay ? '연결됨' : '끊김') : D, relayCol: cm.relay ? '#60e28c' : '#ff9c8c', gen: cm.gen || D,
+      comm: [['네트워크', cm.net], ['원하는', cm.desired], ['관측', cm.observed], ['태그', id.tags]].map(([k, v]) => ({ k, v: v || D })),
+      routes: routes.map((x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? '#60e28c' : '#ffd27a', peer: x.peer, rt: x.rt, ad: x.ad, lat: x.lat })), routeSum: routes.length ? routes.length + '개' : '없음',
+      sessions: sess.map((x) => ({ dir: x.dir, peer: x.peer, channel: x.channel, rt: x.rt, state: x.state + (x.err ? ' · ' + x.err : ''), col: x.err ? '#ffd27a' : '#d6f4de' })), sessSum: sess.length ? sess.length + '개' : '없음',
+      // 총량은 Master 가 실어 준 것만(지어내지 않는다), 꺼진 노드는 '마지막 보고 · N 전' — 지금 값처럼 보이지 않게
+      bars: (() => { const fb = (typeof window !== 'undefined' && window.TerraFmtBytes) || (() => ''), sz = (u, t) => (t && fb(t) ? (fb(u) || '?') + ' / ' + fb(t) : R && I ? '총량 보고 없음' : ''), old = R && rs.stale ? '마지막 보고 · ' + ((I && I.seen) || '') : '';
+        return [bar('CPU', rs.cpu, old), bar('MEM', rs.mem, old || sz(rs.memUsed, rs.memTotal)), bar('DISK', rs.disk, old || sz(rs.diskUsed, rs.diskTotal))]; })(),
+      spark: net.length ? net.map((x) => S[Math.min(6, Math.round(x.i / mx * 6))]).join('') : R ? '하트비트 두 번 뒤부터' : '', netIn: last ? rate(last.i) : D, netOut: last ? rate(last.o) : (rs.txT && rs.txT !== D ? '누적 ' + rs.txT : D),
+      hb: (I && I.recent && I.recent.heartbeat) || D, events: evs, noEv: !!I && evs.length === 0,
     };
   }
 }

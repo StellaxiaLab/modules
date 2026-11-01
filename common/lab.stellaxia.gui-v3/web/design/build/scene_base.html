@@ -220,14 +220,16 @@ class Component extends DCLogic {
   // 행성(리프)의 자원 가운데, 밖과 데이터를 주고받는 것(ssh 터널 · 입출력 장치 · 포트 포워딩 …)만 위성이 된다. 나머지(캐시 · 로그 …)는 위성이 아니다
   // 모양은 레퍼런스 없이 특수문자 ■ (흰색) — 텍스트 컴포넌트: 글자 장의 그 칸 글자가 ■ 로 바뀐다
   // 공전축은 아무 방향이나(구 위에서 고르게), 반지름은 최소 · 최대 사이를 층으로 나눠 칸마다 정규분포
+  //   실제 지도(TerraTopology — Master 노드 목록)의 리프에는 위성을 지어 붙이지 않는다 — 이름 해시로 뽑은 시안 자원(serial/COM3 · mqtt:1883 …)이 실제 노드의 자원처럼 보였다
   RESOURCES(name) {
+    if (this.TOPO()) return [];
     const pool = [['ssh-tunnel:22', 1], ['tty/USB0', 1], ['gpio-in', 1], ['mqtt:1883', 1], ['video0', 1], ['fwd:8080', 1], ['serial/COM3', 1], ['vpn-wg0', 1], ['cache', 0], ['logs', 0], ['config', 0], ['tmp', 0]];
     let sd = 0; for (const ch of name) sd = (sd * 31 + ch.charCodeAt(0)) % 233280; const rnd = () => { sd = (sd * 9301 + 49297) % 233280; return sd / 233280; };
     const arr = pool.slice(); for (let i = arr.length - 1; i > 0; i--) { const j = (rnd() * (i + 1)) | 0, x = arr[i]; arr[i] = arr[j]; arr[j] = x; }
     return arr.slice(0, 5 + ((rnd() * 4) | 0)).map(([n, ext]) => ({ name: n, ext: !!ext }));
   }
   SATS(planet) {
-    const key = planet + ':s1'; this._satCache = this._satCache || {}; if (this._satCache[key]) return this._satCache[key];
+    const key = planet + ':s1' + (this.TOPO() ? ':real' : ''); this._satCache = this._satCache || {}; if (this._satCache[key]) return this._satCache[key];
     const ext = this.RESOURCES(planet).filter((r) => r.ext), n = ext.length;
     let sd = 7; for (const ch of planet) sd = (sd * 17 + ch.charCodeAt(0)) % 233280; const rnd = () => { sd = (sd * 9301 + 49297) % 233280; return sd / 233280; };
     const list = ext.map((r, k) => {

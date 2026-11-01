@@ -103,6 +103,7 @@ class Component extends DCLogic {
       hasErr: !!S.err && state === 'form', errTitle: S.err ? '✕ ' + S.err.title : '', errCode: S.err ? ((S.err.http ? S.err.http + ' ' : '') + S.err.code) : '', errHint: S.err ? '› ' + S.err.hint : '',
       errAct: !!(S.err && S.err.act), errActT: S.err && S.err.act === 'once' ? 'auto 끄고 다시' : '다시 시도',
       errRun: () => { const E = S.err; if (!E) return; if (E.act === 'once') this.setState({ keep: false }, () => this.login()); else this.login(); },
+      testD: typeof window !== 'undefined' && window.TerraTransport ? 'none' : 'block',   // 시험 안내는 시안에서만 — 실제 Terra 에 붙은 화면엔 없다
       testT: 'TEST · email 아무거나(@ 포함) + password 아무거나 → 로그인 · 실패 보기: wrong · novault · offline · 500 · nogw',
       who: (this.props.user || 'admin') + '@' + (this.props.current || '01'), bigT: this.name(), subT: DIR[0] + ' · ' + (R.dir === 'child' ? 'resolve required' : R.dir === 'parent' ? 'upward · direct' : R.dir === 'sibling' ? 'named by parent' : 'remembered address'),
       stripeCls: state === 'unreach' ? 'bad' : state === 'resolve' ? 'warn' : state === 'done' ? 'ok' : '', codeA: 'RT-' + ({ parent: 'UP', child: 'DN', sibling: 'SB', far: 'XT' }[R.dir] || 'XT') + ' / ' + (R.tunnel ? 'TUN ' + R.tunnel : 'DIRECT'), codeB: String(this.name()).replace(/[^\w]/g, '').slice(-3).toUpperCase() || 'T',
