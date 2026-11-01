@@ -138,7 +138,7 @@ body{margin:0;background:#040614}
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"02·b"},"nodeKind":{"editor":"enum","options":["계정","트리","리프","리소스"],"default":"리프"},"parentName":{"editor":"text","default":"02"},"nodeKey":{"editor":"text","default":""},"nodePath":{"editor":"text","default":""},"remote":{"editor":"boolean","default":false},"resList":{"editor":"text","default":"ssh:22,tty0,gpio"},"onOpen":{"editor":null},"onSkin":{"editor":null},"winW":{"editor":null},"winH":{"editor":null},"$preview":{"width":860,"height":600}}'>
+<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"02·b"},"nodeKind":{"editor":"enum","options":["계정","트리","리프","리소스"],"default":"리프"},"parentName":{"editor":"text","default":"02"},"nodeKey":{"editor":"text","default":""},"nodeRid":{"editor":"text","default":""},"nodePath":{"editor":"text","default":""},"remote":{"editor":"boolean","default":false},"resList":{"editor":"text","default":"ssh:22,tty0,gpio"},"onOpen":{"editor":null},"onSkin":{"editor":null},"winW":{"editor":null},"winH":{"editor":null},"$preview":{"width":860,"height":600}}'>
 // 설정 창 — 노드를 두 쪽에서 관리. 왼쪽 분류, 오른쪽 항목, 아래 적용 · 되돌리기 (바뀐 수 · 재시작 필요 수)
 //   GUI(사람마다 · 노드마다 보이는 모습) — 표시 · 프로필 · 스킨 · 뷰
 //     표시 · 뷰 · 스킨 → 사용자 문서 me/documents (app:lab.stellaxia.gui-v3/…) — 어느 기기에서든 같다
@@ -190,7 +190,15 @@ class Component extends DCLogic {
       'wireguard.enabled': true, 'wireguard.listen_port': 51820, 'direct_tcp.enabled': false, 'webrtc.enabled': false,
       'module_distribution.enabled': true, 'module_distribution.disk_quota_mb': 0,
       // Tree (Master) — 시안 값
-      users: [['admin', 'master.admin'], ['ops', 'node.control'], ['viewer', 'node.read']], codes: [['TR-7Q2K', '24시간 · 남은 3회'], ['TR-M8VD', '1시간 · 남은 1회']], alerts: [['경고', (k === '트리' ? nm : '02') + '·b 디스크 92%', '2분 전'], ['정보', 'core 1.7.1 롤아웃 40%', '12분 전']] };
+      users: [['admin', 'master.admin'], ['ops', 'node.control'], ['viewer', 'node.read']], codes: [['TR-7Q2K', '24시간 · 남은 3회'], ['TR-M8VD', '1시간 · 남은 1회']], alerts: [['경고', (k === '트리' ? nm : '02') + '·b 디스크 92%', '2분 전'], ['정보', 'core 1.7.1 롤아웃 40%', '12분 전']], ...this.realOverrides() };
+  }
+  // 실제 모드(앱이 Terra 에 붙음 — window.TerraTransport): 이 창은 아직 노드 설정을 읽지 않는다. 사실처럼 보이는 시안 값(코어 1.7.0 · 노드 id · 사용자 · 등록 코드 · 경보 · 롤아웃)은
+  //   Master 노드 기록에서 아는 것만 넣고 나머지는 비운다 — 실제 설정은 노드 데스크톱 › 설정
+  real() { return typeof window !== 'undefined' && !!window.TerraTransport; }
+  realOverrides() {
+    if (!this.real()) return {};
+    const TP = window.TerraTopology, rid = this.props.nodeRid || '', rec = rid && TP && TP.node ? TP.node(rid) : null, NS = rec && window.TerraNodeStats ? window.TerraNodeStats(rec) : null, NO = '보고 없음';
+    return { 'core.version': (NS && NS.version) || NO, 'registration.node_id': rid || NO, 'master.url': NO, 'storage.shared_dirs': [], 'daemon.roles': rec && rec.roles ? rec.roles.join(',') : NO, users: [], codes: [], alerts: [] };
   }
   // 스킨 — 노드 id 로 저장한 구 id ('' = 기본 무늬). 보관함은 스타메이커와 같은 terra.star.index
   // ── 노드 파일 (프로필) ──
@@ -281,8 +289,8 @@ class Component extends DCLogic {
     if (sec === 'enroll') { const k = 'codes', C = v[k] || [];
       return [Object.assign({ label: '등록 코드', sub: '일회용', isList: true, items: C.map((c) => ({ t: c[0].slice(0, 3) + '••••  ' + c[1] })) }, MT('terra.master.nodes.enroll-codes.* (node.control)', false)),
         this.noteRow('코드 발급', '24시간 · 3회', { t: '발급', run: () => this.set(k, C.concat([['TR-' + Math.random().toString(36).slice(2, 6).toUpperCase(), '24시간 · 남은 3회']])) })]; }
-    if (sec === 'deploy') return [Object.assign({ label: '코어 릴리스', sub: '', isList: true, items: [{ t: '1.7.1  롤아웃 40% · 12분 전' }, { t: '1.7.0  적용됨 · 전체' }] }, MT('terra.master.core.releases.* (core.publish)', false)),
-      Object.assign({ label: '모듈 배포', sub: '', isList: true, items: [{ t: '승인 상한: 서명된 모듈만 자동' }, { t: '접두사: lab.stellaxia' }] }, MT('terra.master.modules.* (module.approve · module.publish)', false)),
+    if (sec === 'deploy') return [Object.assign({ label: '코어 릴리스', sub: '', isList: true, items: this.real() ? [{ t: '보고 없음 — 이 창은 릴리스 목록을 읽지 않는다(Tree 웹 콘솔에서)' }] : [{ t: '1.7.1  롤아웃 40% · 12분 전' }, { t: '1.7.0  적용됨 · 전체' }] }, MT('terra.master.core.releases.* (core.publish)', false)),
+      Object.assign({ label: '모듈 배포', sub: '', isList: true, items: this.real() ? [{ t: '보고 없음' }] : [{ t: '승인 상한: 서명된 모듈만 자동' }, { t: '접두사: lab.stellaxia' }] }, MT('terra.master.modules.* (module.approve · module.publish)', false)),
       this.noteRow('배포 도구', '유틸 › 배포 도구')];
     if (sec === 'alerts') { const k = 'alerts', A = v[k] || [];
       return A.length ? A.map((a, j) => Object.assign(this.noteRow(a[1], a[0] + ' · ' + a[2], { t: '확인', run: () => this.set(k, A.filter((x, q) => q !== j)) }))) : [this.noteRow('경보 없음', '')]; }
@@ -300,7 +308,7 @@ class Component extends DCLogic {
     if (sec === 'mods') return head.concat([T('module_distribution.enabled', '지정 모듈 설치', '트리가 지정'), N('module_distribution.disk_quota_mb', '설치 용량', '0 = 제한 없음', 0, 16384, 512, 'MB')]);
     return head.concat([D('restart', '다시 시작', '잠깐 끊김 · terra.daemon.restart.post', '다시 시작', '한 번 더 누르면 실행', this.remote()), D('detach', '트리 해제', '코어 동작 미확인', '준비 중', '', true)]);
   }
-  nodeId() { let h = 7; for (const ch of (this.props.nodeName || 'node')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return 'nd_' + h.toString(16).padStart(8, '0').slice(0, 8); }
+  nodeId() { if (this.real()) return this.props.nodeRid || '—'; let h = 7; for (const ch of (this.props.nodeName || 'node')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return 'nd_' + h.toString(16).padStart(8, '0').slice(0, 8); }
   renderVals() {
     const SEC0 = this.SECS(); if (!SEC0.some((g) => g[1].some((i) => i[0] === this.state.sec))) this.state.sec = 'show';   // 다른 종류의 노드로 열렸으면(트리 → 리프) 처음 분류로
     const S = this.state, v = this.V(), dk = this.dirty(), K = this.KEYS(), sec = S.sec, grp = this.SECS().find((g) => g[1].some((i) => i[0] === sec)), DK = this.DKEYS(),

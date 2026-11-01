@@ -50,16 +50,32 @@ export function buildTopology(nodes, o = {}) {
 }
 
 const STATUS = { online: ['● 온라인', true], offline: ['○ 꺼짐', false], degraded: ['◐ 저하', true], pending: ['◇ 대기', false] };
+// Master 가 하트비트 2분(LivenessGrace)을 넘긴 노드를 offline 으로 읽어 준다. 지도는 주기적으로 다시 받지만 그 사이에 낡을 수 있어
+//   여기서도 같은 기준으로 한 번 더 — 'online' 인데 마지막 하트비트가 2분을 넘었으면 '응답 없음'
+export const STALE_SEC = 120;
 /**
- * Master 노드 기록 → 전역 틀 대상 표의 값. 하트비트의 자원 스냅샷(resource)을 쓰고, 없는 칸은 null(화면은 '—')
- * @returns {{ status: string, online: boolean, cpu: number|null, mem: number|null, disk: number|null, seen: string }}
+ * Master 노드 기록 → 상태 창 · 전역 틀 대상 표의 값. 하트비트의 자원 스냅샷(resource)과 daemon_version 을 쓰고, 없는 칸은 null(화면은 '—' · '보고 없음').
+ * 지어내지 않는다 — 총량(바이트)은 Daemon 이 보낸 것만(옛 Master · Daemon 은 퍼센트만 준다)
+ * @returns {{ status: string, online: boolean, cpu: number|null, mem: number|null, disk: number|null, seen: string,
+ *   version: string, relay: boolean|null, memTotal: number|null, memUsed: number|null, diskTotal: number|null, diskUsed: number|null }}
  */
 export function nodeStats(n, now = Date.now()) {
   const r = (n && n.resource) || {}, pct = (v) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v / 100)) : null);
-  const s = STATUS[String((n && n.status) || '').toLowerCase()] || [n && n.status ? '◇ ' + n.status : '—', false];
+  const bytes = (v) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
   const hb = Date.parse((n && n.last_heartbeat_at) || ''), sec = Number.isNaN(hb) ? -1 : Math.max(0, (now - hb) / 1000);
+  let s = STATUS[String((n && n.status) || '').toLowerCase()] || [n && n.status ? '◇ ' + n.status : '—', false];
+  if (s[1] && (sec < 0 || sec > STALE_SEC)) s = ['◌ 응답 없음', false];   // 하트비트가 없거나 낡은 'online' 은 연결로 치지 않는다
   const seen = sec < 0 ? '' : sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + '분 전' : sec < 86400 ? Math.round(sec / 3600) + '시간 전' : Math.round(sec / 86400) + '일 전';
-  return { status: s[0], online: s[1], cpu: pct(r.cpu_percent), mem: pct(r.memory_percent), disk: pct(r.disk_percent), seen };
+  return { status: s[0], online: s[1], cpu: pct(r.cpu_percent), mem: pct(r.memory_percent), disk: pct(r.disk_percent), seen,
+    version: (n && typeof n.daemon_version === 'string' && n.daemon_version.trim()) || '', relay: n && typeof n.relay_connected === 'boolean' ? n.relay_connected : null,
+    memTotal: bytes(r.memory_total_bytes), memUsed: bytes(r.memory_used_bytes), diskTotal: bytes(r.disk_total_bytes), diskUsed: bytes(r.disk_used_bytes) };
+}
+
+/** 바이트 → '12.3 GB' 식. 없으면 '' */
+export function fmtBytes(v) {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) return '';
+  const U = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']; let i = 0; while (v >= 1024 && i < U.length - 1) { v /= 1024; i++; }
+  return (v >= 100 || i === 0 ? String(Math.round(v)) : v.toFixed(1).replace(/\.0$/, '')) + ' ' + U[i];
 }
 
 /**

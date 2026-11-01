@@ -154,7 +154,7 @@ button{font-family:inherit}
                 <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid {{t.line}}; font-size: 11.5px; color: {{t.dim}};">
                   <span style="color: #3ecf8e;">●</span>
                   <span>Terra 연결</span>
-                  <span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">stk@{{node.name}}</span>
+                  <span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">{{node.acct}}@{{node.name}}</span>
                   <span style="flex-grow: 1;"></span>
                   <span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid rgba(122,167,255,.5); border-radius: 10px; background: rgba(122,167,255,.10); color: #7aa7ff; font-size: 11px;">process.execute</span>
                 </div>
@@ -164,7 +164,7 @@ button{font-family:inherit}
                   </sc-for>
                 </div>
                 <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid {{t.line}}; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12.5px;">
-                  <span style="color: #3ecf8e;">stk@{{node.name}}:~$</span>
+                  <span style="color: #3ecf8e;">{{node.acct}}@{{node.name}}:~$</span>
                   <input type="text" aria-label="명령 입력" value="{{w.input}}" onInput="{{w.onInput}}" onKeyDown="{{w.onKey}}" placeholder="help" spellcheck="false" autocomplete="off" style="flex-grow: 1; min-width: 0; height: 24px; border: 0; outline: 0; background: transparent; color: {{t.ink}}; font: inherit;">
                 </div>
               </div>
@@ -807,7 +807,7 @@ class Component extends DCLogic {
       iconSel: null, menu: null, ov: null, lau: false, nd: null, nxMsg: '', resTab: 'dev', devSel: 0, showTomb: false, ndDraft: null, tnDraft: null, modView: 'inst', modSel: 0, modTab: 'cfg', modCfg: null, inst: null, cfgGrp: null, cfgQ: '',
       setTab: 'wall', fmLoc: 'home', fmPick: null,
       term: [
-        { t: 'Terra 연결 · 앱 스코프 토큰 · 노드 계정 stk', c: 'dim' },
+        { t: 'Terra 연결 · 앱 스코프 토큰', c: 'dim' },
         { t: 'help 를 입력하면 쓸 수 있는 명령이 나온다.', c: 'dim' }
       ],
       termIn: ''
@@ -1048,6 +1048,14 @@ class Component extends DCLogic {
   addShortcut(M, a) { const at = this.freeCell(1, 3, null), key = 'm-' + M.id.replace(/\W+/g, '-') + '-' + a.id;
     this.setState({ icons: { ...this.state.icons, [key]: { c: at.c, r: at.r, name: a.name, k: 'short', app: 'mods', mod: M.id + '/' + a.id, src: '모듈 · ' + M.name } } }); this.persist(); this.say(a.name + ' 바탕화면에 추가'); }
   nodeNameQ() { return this.props.nodeName || 'lab-ws-02'; }
+  // 실제 모드(Gateway 전송)면 Master 노드 기록(상태 · daemon_version · 하트비트 · capabilities)과 whoami. 시안(목업 전송 · 캔버스)이면 null
+  //   기록이 없는 칸은 '보고 없음' — 코어 버전 · 가동 · 계정 이름을 지어내지 않는다
+  liveRec() {
+    const T = this.TN(); if (!T || T.t.kind === 'mock') return null;
+    const m = T.t.meta && T.t.meta[this.nodeKey()], rid = (m && m.rid) || '', TP = window.TerraTopology, rec = rid && TP && TP.node ? TP.node(rid) : null;
+    return { rec, ns: rec && window.TerraNodeStats ? window.TerraNodeStats(rec) : null, who: window.TerraWho || null };
+  }
+  acct() { const L = this.liveRec(); return L ? (L.who && L.who.principal) || 'terra' : 'stk'; }
   tellParent(m) { try { if (window.parent && window.parent !== window) window.parent.postMessage(m, '*'); } catch (e) {} }
   // 제어기 창 — 통합 화면 · 전역 틀의 자식 컴포넌트(dc-import)로: 데스크톱이 창 크기(winW · winH)를 그대로 채운다(원본 그대로 머리줄 포함). 머리줄을 끌면 바깥 창이 이동, 전체화면 · 닫기는 onFull · onClose 로 바깥 창에
   // 화면 배율 — 브라우저의 Ctrl + 휠처럼 데스크톱 전체(글자 · 아이콘 · 창 · 바)를 한꺼번에 키우고 줄인다. 배율 z 면 z 배로 그리고, 그만큼 바탕화면 넓이는 1/z
@@ -1182,7 +1190,7 @@ class Component extends DCLogic {
   /* ---- 터미널 ---- */
   runCmd(raw) {
     const cmd = raw.trim();
-    const out = [{ t: 'stk@' + (this.nodeNameQ()) + ':~$ ' + raw, c: 'cmd' }];
+    const out = [{ t: this.acct() + '@' + (this.nodeNameQ()) + ':~$ ' + raw, c: 'cmd' }], L = this.liveRec(), NO = '보고 없음';
     const add = (arr, c) => arr.forEach((t) => out.push({ t, c: c || 'out' }));
     const s = this.state;
     if (!cmd) { this.setState({ term: s.term.concat(out), termIn: '' }); return; }
@@ -1190,8 +1198,10 @@ class Component extends DCLogic {
     if (a === 'clear') { this.setState({ term: [], termIn: '' }); return; }
     if (a === 'exit') { this.setState({ termIn: '' }); this.closeWin('term'); return; }
     if (a === 'help') add(SHELL_HELP);
-    else if (a === 'whoami') add(['stk  (노드 계정)', '권한: node.read node.control process.execute']);
-    else if (a === 'node') add(['이름     ' + (this.nodeNameQ()), '부모     tree-home', '등록     등록됨', '코어     0.9.4   모듈 0.4.3', '가동     3일 4시간']);
+    else if (a === 'whoami') add(L ? [(L.who && L.who.principal) || NO, '권한: ' + ((L.who && L.who.permissions && L.who.permissions.join(' ')) || NO)] : ['stk  (노드 계정)', '권한: node.read node.control process.execute']);
+    else if (a === 'node') add(L ? ['이름     ' + this.nodeNameQ(), '부모     ' + (this.props.parentName || '—'), '상태     ' + (L.ns ? L.ns.status : 'Master 기록 없음'), '코어     ' + ((L.ns && L.ns.version) || NO), '하트비트 ' + ((L.ns && L.ns.seen) || NO)]
+      : ['이름     ' + (this.nodeNameQ()), '부모     tree-home', '등록     등록됨', '코어     0.9.4   모듈 0.4.3', '가동     3일 4시간']);
+    else if (L && (a === 'ls' || a === 'net' || (a === 'terra' && b === 'status'))) add([NO + ' — 이 터미널은 노드 셸이 아니다(화면 안 흉내). 실제 값은 파일 · 네트워크 창에서'], 'err');
     else if (a === 'ls') add(['docs/  backup/  notes.md  backup.tar']);
     else if (a === 'jobs') (this.nd().jobs || []).forEach((j) => out.push({ t: j.id + '  ' + j.op.padEnd(16) + this.jobLabel(j).label + (j.st === 'run' || j.st === 'stall' ? ' ' + j.pct + '%' : ''), c: 'out' }));
     else if (a === 'svi') (this.nd().res || []).forEach((r) => out.push({ t: r.name.padEnd(16) + r.dir + '  ' + (r.open ? '열림' : '닫힘'), c: 'out' }));
@@ -1364,7 +1374,7 @@ class Component extends DCLogic {
         const tab = TABS.find((x) => x.id === s.setTab);
         o.tabs = TABS.map((x) => ({ label: x.label, d: x.d, bg: x.id === s.setTab ? t.raiseH : 'transparent', fg: x.id === s.setTab ? t.ink : t.sub, pick: () => this.setState({ setTab: x.id }) }));
         o.tabTitle = tab.label;
-        const sc = { browser: ['이 브라우저에서만', '#9aa1ab'], node: this.remote() ? ['원격 · 읽기', '#f5b83d'] : ['노드에 적용', '#7aa7ff'], acct: ['노드 계정 stk', '#3ecf8e'] }[tab.scope];
+        const sc = { browser: ['이 브라우저에서만', '#9aa1ab'], node: this.remote() ? ['원격 · 읽기', '#f5b83d'] : ['노드에 적용', '#7aa7ff'], acct: ['노드 계정 ' + this.acct(), '#3ecf8e'] }[tab.scope];
         o.scope = sc[0]; o.scopeFg = sc[1]; o.scopeBd = sc[1] + '80'; o.scopeBg = sc[1] + '1a';
         o.sWall = s.setTab === 'wall'; o.sLook = s.setTab === 'look';
         o.sNode = s.setTab === 'node'; o.sNet = s.setTab === 'net'; o.sEnroll = s.setTab === 'enroll'; o.sAbout = s.setTab === 'about'; o.sAcct = s.setTab === 'acct'; o.tid = s.setTab === 'acct' ? this.terraId() : { on: false };
@@ -1380,7 +1390,7 @@ class Component extends DCLogic {
         const zp = Math.round(this.zoom() * 100), zb = (on) => ({ bg: on ? '#5aa8ff' : 'transparent', fg: on ? '#06121f' : t.ink, bd: on ? '#5aa8ff' : t.line2 });
         o.zoom = { pct: zp + '%', minus: () => this.stepZoom(-1), plus: () => this.stepZoom(1), reset: () => this.setZoom(1), canMinus: zp > 50 ? 1 : 0.4, canPlus: zp < 200 ? 1 : 0.4, rb: zb(zp === 100) };
         o.saveC = s.save === 'saving' ? '#f5b83d' : '#3ecf8e';
-        o.saveText = s.save === 'saving' ? '노드 계정 stk에 저장하는 중…' : '노드 계정 stk에 저장됨 — 다른 기기에서 열어도 같은 바탕화면이 나온다.';
+        o.saveText = s.save === 'saving' ? '노드 계정 ' + this.acct() + '에 저장하는 중…' : '노드 계정 ' + this.acct() + '에 저장됨 — 다른 기기에서 열어도 같은 바탕화면이 나온다.';
       }
       if (id === 'net') o.net = this.netView(t, s);
       if (id === 'jobs') {
@@ -1537,10 +1547,11 @@ class Component extends DCLogic {
           X.en = Object.assign({}, N.en, { ro: R || N.real ? 'readonly' : null, codeIn: (e) => this.ndSet((d) => { d.en.code = e.target.value; }), btns: [this.btn('등록', () => this.say(/^TR-\w{4}$/.test(N.en.code) ? N.en.code + ' 로 등록 요청' : '코드 꼴: TR-XXXX'), { local: true, off: !N.en.code || N.real, tip: N.real ? '등록은 설치기 · terra enroll 로 — 앱 권한에 node.enroll 없음' : '' })] });
           if (N.real) X.en.code = N.en.registered ? '' : '등록은 이 노드에서 — 설치기 · terra enroll (앱 권한에 node.enroll 이 없다)'; }
         if (s.setTab === 'about') {
-          X.info = [['노드', this.nodeNameQ()], ['노드 ID', N.en.id], ['역할', N.cfg['daemon.roles']], ['코어', '1.7.0'], ['운영체제', 'Linux 6.18 · amd64'], ['가동', '3일 4시간'], ['데이터', N.cfg['daemon.data_dir']]].map(([k, v2]) => ({ k, v: v2 }));
+          const L = this.liveRec(), NO = '보고 없음', LN = L && L.ns, LR = L && L.rec;
+          X.info = [['노드', this.nodeNameQ()], ['노드 ID', N.en.id], ['역할', N.cfg['daemon.roles']], ['코어', L ? (LN && LN.version) || NO : '1.7.0'], ['운영체제', L ? NO : 'Linux 6.18 · amd64'], [L ? '상태' : '가동', L ? (LN ? LN.status + (LN.seen ? ' · 하트비트 ' + LN.seen : '') : 'Master 기록 없음') : '3일 4시간'], ['데이터', N.cfg['daemon.data_dir']]].map(([k, v2]) => ({ k, v: v2 }));
           X.checks = N.checks.map(([nn, st2]) => ({ name: nn, st: st2, cls: st2 === 'ok' ? 'ok' : 'err' }));
-          X.chkBtns = [this.btn('다시 점검', () => this.say('health · ready · live 정상'))];
-          X.caps = ['svi', 'io-inventory', 'wireguard', 'direct-tcp', 'module-host', 'gui-apps', 'service-tunnels', 'tasks'];
+          X.chkBtns = [this.btn('다시 점검', () => this.say(L ? '점검 결과 ' + NO + ' — Master 노드 기록에 health 가 없다' : 'health · ready · live 정상'))];
+          X.caps = L ? (LR && Array.isArray(LR.capabilities) && LR.capabilities.length ? LR.capabilities : [NO]) : ['svi', 'io-inventory', 'wireguard', 'direct-tcp', 'module-host', 'gui-apps', 'service-tunnels', 'tasks'];
         }
       }
       return o;
@@ -1592,7 +1603,7 @@ class Component extends DCLogic {
       headD: this.props.chrome === 'none' ? 'none' : 'flex',
       catalog: Array.isArray(this.props.catalog) ? this.props.catalog : [], nodeNameV: this.nodeNameQ(),
       t, frame, wall, icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, zoomK: this.zoom(),
-      node: { name: this.nodeNameQ(), parent: this.props.parentName || (this.props.chrome === 'none' ? '—' : 'tree-home') },
+      node: { name: this.nodeNameQ(), acct: this.acct(), parent: this.props.parentName || (this.props.chrome === 'none' ? '—' : 'tree-home') },
       focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
       toggleFull: () => { const on = !this.state.full; this.setState({ full: on }); if (this.props.onFull) this.props.onFull(on); },   // 전체화면 — 바깥 창(통합 화면 · 전역 틀)이 뷰 자리를 채운다
       closeMe: () => { if (this.props.onClose) this.props.onClose(); },   // 닫기 — 바깥 창이 레거시 역순으로 닫는다

@@ -1,12 +1,36 @@
 // 상태 창 — 노드의 동작 상태 · 자원 · healthcheck · 최근 이벤트를 CLI 처럼. 바탕은 비친다(글자 장이 보임) — 구역 나눔 · 막대 · 지연 선은 레거시 선, 글자는 텍스트
-//   값은 1초마다 갱신(시안 — 노드 이름으로 정해지는 예시 값에 흔들림). 막대의 붉은 눈금 = 경고 기준 75%
+//   막대의 붉은 눈금 = 경고 기준 75%
+//   실제(앱이 Terra 에 붙음 — window.TerraTransport): Master 노드 기록(window.TerraTopology.node(nodeRid))만 쓴다 — 상태 · 하트비트 · daemon_version · 자원 스냅샷.
+//     기록에 없는 값은 '보고 없음' · '—'. 지어내지 않는다(healthcheck · 이벤트 · pid · 네트워크는 Master 가 노드별로 주지 않는다)
+//   시안(캔버스 · ?demo): 노드 이름으로 정해지는 예시 값에 1초마다 흔들림
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { t: 0 }; this._ev = []; this._net = []; }   // 그리기가 마운트보다 먼저 올 수 있다
   componentDidMount() { this._live = true; this._iv = setInterval(() => { if (this._live) this.setState({ t: this.state.t + 1 }); }, 1000); }
   componentWillUnmount() { this._live = false; clearInterval(this._iv); }
   seed() { const nm = this.props.nodeName || 'node', k = this.props.nodeKind || 'leaf'; let h = 7; for (const ch of nm + k) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
   rnd(i) { const x = Math.sin(this.seed() * 0.001 + i * 12.9898) * 43758.5453; return x - Math.floor(x); }
+  real() { return typeof window !== 'undefined' && !!window.TerraTransport; }
+  realVals() {
+    const P = this.props, kind = P.nodeKind || '리프', T = window.TerraTopology, rec = T && T.node && P.nodeRid ? T.node(P.nodeRid) : null;
+    const NS = rec && window.TerraNodeStats ? window.TerraNodeStats(rec) : null, fb = window.TerraFmtBytes || (() => ''), NO = '보고 없음';
+    const col = (p) => p > 85 ? '#ff9c8c' : p > 75 ? '#ffd27a' : '#60e28c';
+    // 꺼진 · 응답 없는 노드의 값은 마지막 보고 그대로다 — 지금 값처럼 보이지 않게 '마지막 보고 · N일 전'을 붙인다
+    const bar = (n, v, used, total, sized, NS) => { const has = v != null, p = has ? v * 100 : 0, tot = fb(total), old = has && NS && !NS.online ? '마지막 보고 · ' + (NS.seen || '시각 모름') : '';
+      return { name: n, pct: p.toFixed(1), pctT: has ? Math.round(p) + '%' : '—', col: old ? '#709c80' : col(p), note: !has ? NO : old || (!sized ? '' : tot ? (fb(used) || '?') + ' / ' + tot : '총량 ' + NO) }; };
+    const base = { rootH: P.winH ? P.winH + 'px' : '100vh', name: P.nodeName || '—', kind, tick: '15s', pid: '—', restarts: '—', parent: P.parentName || '—',
+      spark: '', netIn: '—', netOut: NO, checks: [], hcSum: NO };
+    if (!NS) return Object.assign(base, { stText: rec ? '—' : 'Master 기록 없음', stCol: '#709c80', uptime: '', proc: '—', core: '—',
+      role: { '계정': 'account', '트리': 'tree', '리프': 'leaf', '리소스': 'resource' }[kind] || kind, bars: [], events: [{ t: '', lv: '', msg: rec ? NO : '이 노드는 Master 노드 목록에 없어요 — 보여 줄 실제 값이 없음', col: '#709c80' }] });
+    const stCol = NS.online ? '#60e28c' : /저하/.test(NS.status) ? '#ffd27a' : '#ff9c8c';
+    return Object.assign(base, {
+      stText: NS.status.replace(/^[●○◐◇◌]\s*/, ''), stCol, uptime: NS.seen ? '하트비트 ' + NS.seen : '하트비트 ' + NO,
+      proc: NS.online ? 'running' : '—', core: NS.version || NO, role: (rec.roles || []).join(' · ') || '—',
+      bars: [bar('CPU', NS.cpu, 0, 0, false, NS), bar('MEM', NS.mem, NS.memUsed, NS.memTotal, true, NS), bar('DISK', NS.disk, NS.diskUsed, NS.diskTotal, true, NS)],
+      events: [{ t: '', lv: '', msg: '이벤트 ' + NO + ' — Master 노드 기록에 이벤트 목록이 없음', col: '#709c80' }]
+    });
+  }
   renderVals() {
+    if (this.real()) return this.realVals();
     const t = this.state.t, nm = this.props.nodeName || 'lab-ws-02', kind = this.props.nodeKind || '리프', r = (i) => this.rnd(i), wob = (i, a) => Math.sin(t * (0.3 + r(i) * 0.5) + r(i + 9) * 6) * a;
     const res = kind === '리소스', bad = r(40) < 0.18;
     const cpu = Math.max(2, Math.min(99, 20 + r(1) * 55 + wob(2, 8))), mem = Math.max(5, Math.min(99, 30 + r(3) * 50 + wob(4, 3))), disk = 15 + r(5) * 60;

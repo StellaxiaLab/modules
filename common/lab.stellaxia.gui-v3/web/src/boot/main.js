@@ -12,7 +12,7 @@ import { useGpuField } from '../scene/scene-bridge.js';
 import { createTerra } from '../api/terra.js';
 import { createSession } from '../api/session.js';
 import { createGatewayTransport } from '../api/transport.js';
-import { loadTopology, nodeStats } from '../api/topology.js';
+import { loadTopology, nodeStats, fmtBytes } from '../api/topology.js';
 import { startPush } from '../api/push.js';
 import { pickMode, connectApp } from '../api/mode.js';
 import * as deskAdapt from '../api/desk-adapt.js';
@@ -29,7 +29,7 @@ if (q.get('gpu') !== 'off') useGpuField('Scene', { mode: q.get('render') === 'ma
 else say('글자 장 시안 2D');
 
 // 보드를 고치지 않고 몇 자리만 잇는다: 로그인(Login.login) · Tree 로그인 · 로그아웃(Scene.sceneLogout). 노드 데이터는 TerraNodes 가 window.TerraTransport 를 쓴다
-let terra = null, session = null, transport = null, push = null, alarms = null;
+let terra = null, session = null, transport = null, push = null, alarms = null, topoTimer = 0;
 if (MODE !== 'demo') {
   session = createSession();
   // 자격 — B: 자격 핸들(Handle) · A: 셸이 준 앱 토큰(Bearer), 401 이면 셸에게 새로 받아 한 번 더
@@ -84,15 +84,18 @@ if (MODE !== 'demo') {
   }
   // 로그인 뒤 한 번 — 지도 · Tree 길 · 보기 상태 · 밀어 받기
   // 노드 데스크톱이 쓰는 것 — 실제 응답 → 보드 모양(desk-adapt) · 이 Gateway 의 앱 목록(모듈 › 앱 탭) · 다른 모듈 앱 열기(셸에 부탁)
-  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraNet = netRead; window.TerraSvi = sviRead;   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
+  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead;   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; });
   // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50). 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
-  const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } window.TerraAlarms = []; };
+  const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; };
+  // 노드 기록(상태 · 하트비트 · 자원)은 로그인 때 한 번만 받으면 낡는다 — 15초마다 다시. 노드 목록이 같으면(rev 같음) 기록만 바꿔 끼우고 씬은 다시 짓지 않는다
+  const refreshTopology = () => loadTopology(terra).then((t) => { if (!t) return; const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t); }, () => {});
   const afterLogin = () => {
     transport.ready(); loadRoutes(); loadApps(); stopLive();
     terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { window.TerraWho = w; }, () => { window.TerraWho = null; });   // 계정 탭 — principal · 권한 · Terra ID 연결의 사용자 id
     alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m) }); window.TerraAlarms = alarms.list;
+    topoTimer = setInterval(refreshTopology, 15000);
     push = startPush({ terra, store: () => window.TerraNodes, onEvent: () => alarms && alarms.poke() });
   };
   const SC = boardDef('Scene');
