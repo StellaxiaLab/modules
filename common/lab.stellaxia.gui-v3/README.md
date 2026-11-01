@@ -8,8 +8,8 @@ doc_type: "module-design"
 scope: "module"
 target: "stellaxialab/modules"
 status: "draft"
-version: "0.2.0"
-last_updated: "2026-10-30"
+version: "0.3.0"
+last_updated: "2026-10-31"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -30,10 +30,10 @@ Terra 노드 GUI의 3판이다. 화면 원본은 캔버스 보드(`web/design/`)
 
 ```text
 common/lab.stellaxia.gui-v3/
-├─ module.json        kind=service · 0.2.0 · gui.apps(웹 앱, A 모드) · process(terra-gui-v3) + scene · module-data · configuration(maxFileMB · maxTotalMB) · readiness
+├─ module.json        kind=service · 0.3.0 · gui.scenes(main, 얇은 껍데기) · gui.apps(웹 앱, embed=scene) · process(terra-gui-v3) + scene · module-data · configuration(maxFileMB · maxTotalMB) · readiness
 ├─ contracts/api/     terra-api.json — status · node-props.get/patch · node-files.list/get/put/delete, 권한 gui-v3.view · gui-v3.customize
 ├─ src/               백엔드 (Go, terra-sdk/modulesdk) — main.go · api.go · nodedata/ (+ 시험)
-├─ scene/             자리 표시 Scene (글 한 줄 — 화면은 웹 앱)
+├─ scene/             main Scene — 얇은 껍데기(terra.web/frame 이 웹 앱을 감싼다 · /login 카드). 화면은 웹 앱
 ├─ web/               캔버스 보드 원본 · 보드 굽는 도구 · 웹 빌드(→ ui/, 포장되는 것은 ui/) — web/ 자체는 포장되지 않는다
 ├─ docs/              설계 문서 — 포장되지 않는다(L-8 경고는 의도한 것)
 └─ README.md
@@ -63,8 +63,8 @@ curl -H 'X-Terra-Workload-Credential: dev' http://127.0.0.1:18799/api/modules/la
 **1. 파일로 — 그 노드에서**
 
 ```bash
-terra module inspect lab.stellaxia.gui-v3-0.2.0-linux-amd64.tmod     # 신뢰 · 호환 · 요청 권한과 그 요약(permissions_digest)
-terra module install lab.stellaxia.gui-v3-0.2.0-linux-amd64.tmod --grant-reviewed <permissions_digest> --start
+terra module inspect lab.stellaxia.gui-v3-0.3.0-linux-amd64.tmod     # 신뢰 · 호환 · 요청 권한과 그 요약(permissions_digest)
+terra module install lab.stellaxia.gui-v3-0.3.0-linux-amd64.tmod --grant-reviewed <permissions_digest> --start
 terra module installed                                               # 깔린 것 · 고른 버전
 ```
 
@@ -74,7 +74,7 @@ GUI v3 안에서도 된다 — 제어기 › 모듈 › 설치(파일 경로 →
 **2. Tree 레지스트리로 — 여러 노드에**
 
 ```bash
-terra module publish lab.stellaxia.gui-v3-0.2.0-linux-amd64.tmod     # Tree(Master)에 올린다 — lab.stellaxia 접두사 소유가 필요
+terra module publish lab.stellaxia.gui-v3-0.3.0-linux-amd64.tmod     # Tree(Master)에 올린다 — lab.stellaxia 접두사 소유가 필요
 ```
 
 Tree 가 노드에 지정하면 노드는 '동의'한 뒤 스스로 받아 설치한다(`module_distribution`). GUI v3 의 제어기 › 모듈 › Tree 지정에서 동의 · 철회한다.
@@ -83,7 +83,8 @@ Tree 가 노드에 지정하면 노드는 '동의'한 뒤 스스로 받아 설�
 
 | 길 | 어떻게 | 모드 |
 | --- | --- | --- |
-| 셸의 앱 목록 | Terra 셸(Windows WebView2 런처 · terra-shell)에서 'Terra GUI v3' — 셸이 앱 토큰을 준다 | A — 로그인 화면 없이, 사용자 ∩ 앱 권한 |
+| main GUI (0.3.0~) | base Scene 이 gui-v3 의 main Scene 을 띄운다 — 다른 main 이 없을 때 곧장, 둘 이상이면 고르는 화면. 로그인은 Scene 의 `/login` 카드, 웹은 그 앱 토큰으로 부른다 | A — 사용자 ∩ 앱 권한 (웹은 비밀번호를 받지 않는다) |
+| 셸의 앱 목록 | `embed:"scene"` 앱은 앱 목록(WebAppDock)에 나오지 않는다 — dock 은 `terra.webapp.*` 브리지만 알고 웹은 `terra.frame.*` 만 안다 | — |
 | 제품 셸의 첫 화면 | 앱 주소를 그대로 연다(`…/api/v1/gui/apps/lab.stellaxia.gui-v3.web/files/ui/index.html`) — 로그인 화면이 Gateway 에 로그인 | B — 사용자 권한 전부 |
 | 목업 | 같은 주소 뒤 `?demo` | Terra 없이 |
 

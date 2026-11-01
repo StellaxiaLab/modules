@@ -3,10 +3,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 import { boardModule } from '../tools/dc-board.mjs';
 
-const D = new URL('../design/', import.meta.url).pathname;
+const D = fileURLToPath(new URL('../design/', import.meta.url));
 const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
 const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms));
 
@@ -14,8 +15,8 @@ async function loadStore(transport) {
   globalThis.localStorage = mem(); globalThis.window = { TerraTransport: transport };
   const dir = mkdtempSync(join(tmpdir(), 'tn-')), rt = join(dir, 'rt.mjs'), f = join(dir, 'TerraNodes.mjs');
   writeFileSync(rt, 'export class DCLogic { constructor(p) { this.props = p || {}; this.state = {}; } setState() {} }\nexport const defineBoard = (d) => d;\n');
-  writeFileSync(f, boardModule(readFileSync(join(D, 'TerraNodes.dc.html'), 'utf8'), 'TerraNodes', rt));
-  const def = (await import(f)).default; new def.Logic({ quiet: true });
+  writeFileSync(f, boardModule(readFileSync(join(D, 'TerraNodes.dc.html'), 'utf8'), 'TerraNodes', './rt.mjs'));   // 같은 폴더 상대 지정자 — 절대 경로(C:\…)는 ESM 지정자가 아니다
+  const def = (await import(pathToFileURL(f).href)).default; new def.Logic({ quiet: true });
   return globalThis.window.TerraNodes;
 }
 // 시험 전송 — 노드마다 값 · 끊김을 손으로
@@ -74,8 +75,18 @@ test('묶음 자원(desk) · 모양 — 실제 전송이면 operation 여럿을 
   const t = fake(); t.invoke = (n, op) => op === 'terra.daemon.tasks.get' ? Promise.reject({ code: 'FORBIDDEN' }) : Promise.resolve({ op });
   const S = await loadStore(t); S.shapes.desk = (P) => ({ got: Object.keys(P).sort() });
   await S.refresh('L', 'desk');
-  assert.deepEqual(S.read('L', 'desk').data.got, ['config', 'devices', 'modules', 'offers', 'svi', 'wg']);
+  assert.deepEqual(S.read('L', 'desk').data.got, ['config', 'devices', 'enroll', 'modules', 'offers', 'svi', 'tunnels', 'wg']);
   S.clear(); assert.equal(S.read('L', 'desk').data, null);   // 로그아웃 — 앞 사람의 사본을 남기지 않는다
+});
+
+test('입력이 있는 읽기 — op id 와 입력으로, 입력마다 따로 사본(모듈 로그 · 설정 스키마)', async () => {
+  const t = fake(), seen = []; t.invoke = (n, op, input) => { seen.push([op, input]); return Promise.resolve({ lines: [input.module_id] }); };
+  const S = await loadStore(t), op = 'terra.daemon.modules.by-module-id.logs.get';
+  S.read('L', op, { input: { module_id: 'a' } }); S.read('L', op, { input: { module_id: 'b' } }); await tick(5);
+  assert.deepEqual(seen, [[op, { module_id: 'a' }], [op, { module_id: 'b' }]]);
+  assert.deepEqual(S.read('L', op, { input: { module_id: 'b' } }).data, { lines: ['b'] });
+  assert.deepEqual(S.read('L', op, { input: { module_id: 'a' } }).data, { lines: ['a'] });
+  assert.equal(seen.length, 2);   // TTL 안에서는 다시 부르지 않는다
 });
 
 test('보기 상태 — 노드 키마다 따로(GUI 것, 노드 데이터가 아니다)', async () => {

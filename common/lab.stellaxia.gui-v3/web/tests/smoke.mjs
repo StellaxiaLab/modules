@@ -4,9 +4,10 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
-const root = new URL('../../ui/', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../../ui/', import.meta.url));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css' };
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'";   // Gateway 앱 CSP(appAssetCSP) 와 같게
 // 가짜 Gateway — 실제 길과 같은 주소 · 봉투. 핸들 없이 부르면 401
@@ -17,7 +18,7 @@ const DATA = { 'terra.master.nodes.get': { nodes: NODES }, 'terra.daemon.status.
 async function gw(req, res, path) {
   const send = (st, body) => { res.writeHead(st, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
   let body = ''; for await (const c of req) body += c; const inp = body ? JSON.parse(body) : {};
-  if (path === '/api/v1/auth/credentials') { if (req.method === 'DELETE') return send(200, { status: 'ok', data: { revoked: true } }); return inp.password === 'pw' ? send(200, { status: 'ok', data: { handle: 'h-smoke', session: { principal: 'u', displayName: 'admin' } } }) : send(401, { status: 'error', error: { code: 'CREDENTIAL_REJECTED', message: 'rejected' } }); }
+  if (path === '/api/v1/auth/credentials') { if (req.method === 'DELETE') return send(200, { status: 'ok', data: { revoked: true } }); return inp.password === 'pw' ? send(200, { status: 'ok', data: { handle: { id: 'h-smoke', issuer: 'gateway', expiresAt: '2099-01-01T00:00:00Z' }, session: { principal: 'u', displayName: 'admin' } } }) : send(401, { status: 'error', error: { code: 'CREDENTIAL_REJECTED', message: 'rejected' } }); }
   GW.auth.push(req.headers.authorization || '');
   if (req.headers.authorization !== 'Handle h-smoke' && req.headers.authorization !== 'Bearer tsa_smoke') return send(401, { status: 'error', error: { code: 'UNAUTHENTICATED', message: 'no session' } });
   GW.calls.push(req.method + ' ' + path);

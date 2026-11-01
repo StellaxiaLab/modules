@@ -27,6 +27,8 @@ related:
 
 # GUI v3가 관리할 설정 · 변수 — Terra · modules · v3 시안 종합
 
+> **2026-10-31 점검** — 이 문서 이후 코어가 바뀌었다(모듈 설치·제거 길 #236·#237, 모듈 설정 #230, 화면 안 창 #247, 런처 제거). 맞춘 내용과 남은 격차는 [[replacement-readiness]].
+
 ## 1. 한 줄
 
 Terra의 설정은 **전부 JSON**이고, Daemon · Master 설정 키마다 **소유자**(installer · operator · derived · secret)가 정해져 있다.

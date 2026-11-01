@@ -1,14 +1,36 @@
 {
-  "$comment": "자리 표시 Scene — entrypoints.scene 자리를 채운다(docs/layout.md L-7). GUI v3 의 화면은 이 Scene 이 아니라 contributions.gui.apps 의 웹 앱(ui/index.html)이다. 여기에는 그 앱으로 가라는 글 한 줄뿐.",
+  "$comment": "main GUI 의 얇은 껍데기(웹 프로그램 감싸기 설계 §3.3 · base 분기 설계 — contributions.gui.scenes[].branch \"main\"). 화면은 같은 모듈의 embed 앱(lab.stellaxia.gui-v3.web)이 그린다. 웹은 셸 안(다른 origin 부모)이라 A 모드로 돈다 — 앱 스코프 토큰만 쓰고 비밀번호를 받지 않는다. 로그인은 이 껍데기가 맡는다(§3.3.1): 토큰이 없으면 웹이 terra.frame.emit('login') → /login 의 내장 엘리먼트 카드가 credential.login 으로 Handle 을 credentials /session 에 두고, 호스트가 그 Handle 로 frame 에 새 토큰을 준다. 로그아웃은 emit('logout'), 다른 모듈 앱 열기는 emit('launch', appId) → terra.app:launch. 구조는 lab.stellaxia.node-gui 의 껍데기와 같다(id 만 gui-v3). 웹의 호출은 Scene Function 을 거치지 않으므로 requiredOperations 는 비어 있다.",
   "schemaVersion": "0.1.0",
-  "id": "lab.stellaxia.gui-v3",
-  "version": "0.0.2",
+  "id": "lab.stellaxia.gui-v3.ui",
+  "version": "0.2.0",
   "name": "Terra GUI v3",
   "entryRoute": "/",
-  "routes": [{ "path": "/", "fragment": "gui-v3.main" }],
-  "functions": [],
-  "stores": [],
-  "fragments": ["surface/fragments/main.fragment.json"],
-  "requiredOperations": [],
-  "recoveryFragment": "gui-v3.main"
+  "routes": [
+    {
+      "path": "/",
+      "fragment": "gui-v3.main"
+    },
+    {
+      "path": "/login",
+      "fragment": "gui-v3.login"
+    }
+  ],
+  "functions": [
+    "contract/functions/signin.field.function.json",
+    "contract/functions/signin.submit.function.json",
+    "contract/functions/signout.function.json",
+    "contract/functions/login.open.function.json",
+    "contract/functions/login.close.function.json",
+    "contract/functions/app.launch.function.json"
+  ],
+  "stores": [
+    "contract/stores/credentials.store.json",
+    "contract/stores/signin.store.json",
+    "contract/stores/session.store.json"
+  ],
+  "fragments": [
+    "surface/fragments/main.fragment.json",
+    "surface/fragments/login.fragment.json"
+  ],
+  "requiredOperations": []
 }

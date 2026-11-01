@@ -1,0 +1,183 @@
+---
+title: "node-gui 대체 준비도 — 현황 점검 · 기능 격차 · Terra 쪽 같이 바꿀 것"
+aliases:
+  - "node-gui 대체 준비도"
+  - "gui-v3 replacement readiness"
+doc_type: "analysis"
+scope: "module"
+target: "lab.stellaxia.gui-v3"
+status: "draft"
+version: "0.2.0"
+last_updated: "2026-10-31"
+language: "ko-KR"
+based_on: "Terra origin/main 5c6ace6c · modules origin/main 19d713d(2026-10-31). 0.2.0 .tmod 검사(코어 세션, Terra 1f0b569b)와 0.3.0 격리 스택 실측(이 문서 §5)을 합쳤다"
+related:
+  - "[[main-scene|main Scene]]"
+  - "[[terra-reach|Terra 도달 분석]]"
+  - "[[legacy-node-gui-overview|node-gui 개요]]"
+---
+
+# node-gui 대체 준비도
+
+사용자의 목표는 node-gui(`lab.stellaxia.node-gui`)를 gui-v3 로 **완전히 대체**하는 것이다. 0.3.0 은 그 첫 문턱 —
+**main GUI 로 실리는 것** — 만 넘긴다. 이 문서는 (1) 최근 코어·모듈 변화에 맞춘 현황, (2) 아직 남은 기능 격차,
+(3) 대체하는 날 Terra 쪽에서 같이 바꿀 것을 적는다. 구현 계획이 아니라 점검표다.
+
+## 1. 현황 점검 — 낡았던 가정
+
+이 모듈의 문서·README 는 디자인 중심 작업에서 이어져 10/19 이후의 코어 변화가 반영돼 있지 않았다.
+
+| 낡은 가정 (문서·0.2.0) | 지금 (origin/main) | 어떻게 맞췄나 |
+| --- | --- | --- |
+| 앱은 "셸의 앱 목록"에서 열면 A 모드로 돈다 | 런처는 10/19 에 없어졌고 진입은 base → main(Terra #246 의 `terra-gui.exe`). 앱 목록은 runtime-core 의 WebAppDock 이고 **앱을 화면 안 창으로 연다**(#244 설계 · #247 구현). dock 은 `terra.webapp.hello/ready/request` 브리지만 알고, gui-v3 웹은 `terra.frame.*`(terra.web/frame 규약)만 알아 **dock 에서 열면 토큰을 영영 못 받는다**(격리 스택 실측) | main Scene 선언 + 앱 `embed:"scene"`(embed 앱은 dock 에 나오지 않는다). README 의 '열기' 표 고침 |
+| main 은 사용자가 정한다 | **모듈 선언**만 정한다 — `contributions.gui.scenes[].branch:"main"`. main 1개면 곧장, 2개 이상·dev 있으면 고르는 화면, 0개면 MAIN_NOT_FOUND | 0.3.0 module.json. 격리 스택으로 세 경우 확인(§5) |
+| 모듈 설치·제거는 API 가 없다(`terra module install` 명령뿐) | 제거는 daemon op `POST /modules/{id}/uninstall`(Terra #237). 설치는 Master `POST/DELETE /api/v1/nodes/{node_id}/modules/assignments` 가 **앱 토큰 위임에 열렸다**(#236 · ADR-GW-008 B1 · 계약 1.7.0 · `module.manage`) | terra-reach 두 줄 갱신. **화면 연결은 아직 없다**(§3) |
+| 모듈 설정·start/stop/restart/logs 는 계약만 | Terra #230 + modules #117 로 설정 schema/get/patch · 수명 op 가 실제로 선다 | gui-v3 의 설정 patch·수명 버튼은 이미 부른다. 스키마 폼은 없음(§3) |
+| 릴리스 `.tmod` 는 설치할 수 있다 | v2026.10.31 까지는 **서명이 없어** `PACKAGE_QUARANTINED / signature-missing`(node-gui 0.4.5 도). **해결됨** — modules #136(ADR-MD-005)로 첫 서명 릴리스 v2026.10.31-2(34개 전부 서명), Terra 0.6.8(keyring) · 0.6.9(핀 v2026.10.31-2). `tools/pack-modules.mjs` 는 이제 `--signing`/`--unsigned` 를 명시해야 한다 | 사실만 갱신 |
+| `terra module inspect` 가 요구 권한을 다 보인다 | 0.6.7 까지는 최상위 `permissions` 만 보였다(GUI 앱 권한 8개 빠짐). **해결됨** — Terra #269 로 inspect · `.tmod` 확인 화면이 GUI 앱 권한을 보인다(0.6.8 부터) | 사실만 갱신 |
+| 웹 시험은 어디서나 통과한다 | Windows 에서 10건 실패(`new URL().pathname` 의 `C:\C:\…` · 공백 경로) | `fileURLToPath` · `pathToFileURL` 로 고침(§2) |
+| B 모드 로그인은 시험으로 보호된다 | `session.js` 가 handle 을 객체째 저장해 헤더가 `Handle [object Object]` — 이후 호출 전부 403. 가짜 Gateway 시험이 handle 을 문자열로 돌려줘 못 잡았다 | id 만 저장 · 옛 저장본도 읽기 · 시험의 가짜 응답을 실제 모양 `{id, issuer, expiresAt}` 으로(§2) |
+| 로그인·신원 흐름은 그대로다 | 접속 서비스 트랙(Terra #252~#268: Terra ID · 위임 · 이름 · terra-access)이 10/28~30 에 들어왔다. **이 점검은 깊이 읽지 않았다** — 비밀번호 로그인 길(Gateway `/api/v1/auth/credentials` → Master `/api/v1/auth/login`)은 origin/main 5c6ace6c 의 격리 Master 로 그대로 통과한다. Terra ID · 외부 신원 연결은 gui-v3 에 없다(node-gui 의 `P6-gui` 카드, modules #121 에 해당) | 격차표에 올림(§3) |
+
+## 2. 0.3.0 이 바꾼 것
+
+- `module.json` 0.2.0 → 0.3.0: `gui.scenes[lab.stellaxia.gui-v3.ui]`(role application · branch main · scene.json 의 id 와 같다 — 다르면 Gateway `CodeGuiIDMismatch`) · 웹 앱 `embed:"scene"`.
+- `scene/`: 자리 표시를 node-gui 의 얇은 껍데기 구조로 교체(`/` = `terra.web/frame` · `/login` = 로그인 카드). 설계는 [[main-scene]].
+- 웹 A 모드: 토큰 없이 init 이 오면 로그인 문 → `emit('login')`, 토큰이 오면 지도·밀어 받기, 로그아웃은 `emit('logout')`. 웹은 비밀번호를 받지 않는다(web-frame 설계 §3.3.1). B 모드(웹이 직접 로그인)는 앱 주소를 직접 열 때만 — 개발·시험용.
+- `web/src/api/session.js`: handle 객체 → id. 시험 `session.test.mjs` 추가, `tests/smoke.mjs` 의 가짜 Gateway 가 객체를 돌려준다.
+- 웹 시험의 Windows 경로: `tests/boards` · `node-data` · `smoke` · `tools/bench-field` 의 `URL.pathname` → `fileURLToPath`, node-data 시험의 `import(path)` → `pathToFileURL` + 같은 폴더 상대 지정자. 공백 있는 경로·없는 경로 모두 통과.
+
+## 3. 기능 격차 (node-gui 대비)
+
+2026-10-31 격차 작업(이 문서를 작업 목록으로) 뒤의 표다. **근거** 칸: `실측` = 격리 스택(Terra origin/main b34ed4aa 소스 · 등록된 리프 · 격리 Master)에서 실제 응답을 봤다, `시험` = `npm test` 만, `—` = 손대지 않음.
+실측의 한계: 브라우저 도구가 **다른 origin iframe(main Scene 의 frame) 안을 누르거나 키를 보내지 못해** A 모드 화면은 눈으로 몰지 못했다. 같은 보드 코드를 B 모드(앱 주소 직접 · 최상위 문서)로 몰았고, A 모드 자격은 **실제 앱 토큰(`tsa_`)으로 같은 op 를 불러** 위임을 확인했다.
+
+| 영역 | gui-v3 상태 | 근거 | 난이도 | 코어 변경 |
+| --- | --- | --- | --- | --- |
+| 로그인/로그아웃(껍데기) | 0.3.0 에서 됨 | §5 | — | — |
+| 시작 화면 · 지도(topology) | **됨** — 부모가 없는 리프(단독 리프)는 이름 없는 'Tree'(Master 자신, rid 없음) 아래로 모은다. 지도에 'Tree' 궤도와 자기 노드가 보이고, 제어기가 로컬 노드에 스스로 묶인다 | 실측(격리 Master 의 단독 리프) | — | — |
+| 노드 자원(CPU 등) | **부분** — 전역 틀 대상 표의 상태 · 하트비트 · CPU · MEM · 디스크를 Master 하트비트 자원 스냅샷(`resource`)으로. 자원 수 · NET 그래프 · 모듈 상태 창의 CPU/MEM 은 아직 시안(노드별 실시간 지표 op 가 없다) | 시험 | 小 | 없음(실시간 지표는 코어) |
+| 모듈 목록·상태·시작/정지/재시작·제거 | 됨 | 실측(목록) | — | — |
+| 모듈 로그 | **됨** — 모듈 › 로그 = `modules.by-module-id.logs.get`(탭을 볼 때만) | 실측(200 · 줄 0) | — | — |
+| 모듈 설정 편집 | **됨** — 스키마 폼(`config.schema.get` + `config.get`, enum · boolean · 수 · JSON · 비밀 제외 · 재시작 표시), 저장은 형 변환 + `base_revision` | 실측(maxFileMB 8→9→8, revision 0→1) | — | — |
+| 노드 설정 | **됨** — 행 = Daemon `config.schema.get`(이 Terra 에서 140키 · 23묶음). 시안 25키는 한국어 이름 · 고르기 · 검사를 그대로, 운영자 키만 쓰기 · 설치기/파생은 읽기 · 비밀은 숨김. 저장은 스키마 형(int · bool · string_list · object_list)으로 `config.patch {set, save}` | 실측 — 묶음 · 실제 값 · 형 검사('port — 정수를 적어야 해요') · 저장(`daemon.device_name` → daemon.json 반영) | — | — |
+| 제안 수락(offers consent/withdraw) | **됨** — 실제 노드의 제안을 매핑하지 않아 'Tree 지정' 탭이 늘 비어 있던 결함을 고침(offered · accepted · stale · managed · pinned → 세 칸) | 시험(격리 노드에 제안 0건) | — | — |
+| 모듈 배정(master assignments) | **됨** — 설치 › 'Tree 에 지정'(module id · 버전) = `assignments.post`, 제안 › '지정 해제' = delete. 전송이 Master id 를 스스로 찾는다 | 실측 — 앱 토큰으로 위임 통과, Master 가 `MODULE_NOT_FOUND`(이 격리 Tree 에 게시본 없음). **끝까지(게시 → 제안 → 동의 → 설치)는 못 봤다** | — | 없음 |
+| 모듈 설치(파일) | 실제 노드에서 **잠그고 이유를 적는다** — `.tmod` 파일 설치는 `commands.execute`(process.execute · 이 노드만)로 `terra module install` 을 돌려야 하는데 위험이 커 하지 않았다. 대신 Tree 지정 | 시험 | 中 | 없음(결정 필요) |
+| 설정 창(NodeConf) | 시안 | — | 中 | 없음 |
+| 파일(io.terra.file · local-fs · desktop.open) | **됨** — 위치 = 공유 폴더(io.terra.file roots) · 로컬 루트(local-fs, 이 노드만 · 읽기만) · 바탕화면 바로가기. 폴더 들어가기 · '..', 공유 폴더에 새 폴더(mkdir) · 지우기(remove), 로컬은 '노드에서 열기 / 노드 파일 관리자로'(desktop.open). 읽을 수 없는 뿌리는 🔒 와 이유. 파일 내용 열기 · 올리기 · 내려받기(entries.read · transfers.*)는 아직 | 실측 — 공유 목록 · 새 폴더 · 지우기 · 들어가기 · 잠긴 뿌리. **desktop.open 은 실행하지 않았다**(격리 데몬이라도 이 PC 화면에 창을 연다) | 中(전송) | 없음 |
+| 작업 · 출력 | **부분→됨(읽기)** — 작업 관리자 줄을 누르면 `tasks.by-task-id.output.get`(도는 동안 3초 폴링). SSE 따라가기 · master jobs 는 없음 | 시험(격리 노드에 작업 0건) | 小 | 없음 |
+| WireGuard | **됨** — 올리기/다시 적용 = `apply.post`, 내리기 = `down.post`, 동기화 = `sync.post`. managed-key/config 는 아직 | 실측(sync 202, 앱 토큰). apply/down 은 실행하지 않음 | 小 | 없음 |
+| 네트워크 보기(mesh · 피어 · 네트워크 · 경로 그래프 · 세션 · 정책 · probe · 조작 이력) | **됨(읽기 전용)** — 노드 데스크톱 '네트워크' 앱. Master 위임 표의 읽기만, 창에 '보기만' 문장. node-gui 의 network-master.js 순수 함수와 시험을 옮겼다 | 실측(노드 · 메시 행 · 네트워크 행 · 빈 피어/경로 — 이 격리 Tree 의 실제 값) | — | — |
+| 네트워크 쓰기(조정 · 계획 · 피어 철회 · probe 실행 · 정책 저장 · 세션 닫기 · 연결 그룹 닫기) | **하지 않음** — 위임 밖. node-gui 도 A 모드에서 하지 못한다(보기만) — **대체로 잃는 기능이 아니다**. §3-1 | 실측(앱 토큰 · 사람 세션 모두 리프 Gateway 에서 404) | — | **있음** — §3-1 |
+| 서비스 터널 | **목록 · 닫기 됨**, 열기는 잠금 — 여는 것은 Master `service-tunnels.open.post` 인데 앱 위임 밖 | 실측(목록 200 · 0건) | — | 열기는 코어(위임) |
+| SVI — 자원 창(NodeShare) · 자원 상태 창(ResStatus) | **됨** — 자원 공유 = 이 노드의 SVI 자원마다 허가 목록 · 주기 · 지우기, 외부 자원 등록 = 이 노드를 지명한 허가 + 바인딩 만들기 · 끊기, 자원 상태 = 정보 · 끝점 · 연결 · 쓰는 곳(열린 핸들 10초 조회). 허가는 Master 위임 가드에 맞춰 노드에게 '읽기'(read · subscribe) · '연결 원천'(+ bind.source)만, 기한 1시간~90일. **값(스트림) 보기는 없다** — 핸들 열기 · stream · events 가 위임 밖(§3-1). 계정 주체도 없다(사용자 목록이 위임 밖) | 실측 — 자원 · 끝점 · 빈 허가/바인딩/핸들 화면, 허가 만들기 · 좁히기 · 지우기(앱 토큰), 가드 거절 규칙. **화면으로 허가 · 바인딩을 만드는 것은 못 봤다**(단독 리프라 줄 노드 · 받는 끝점이 없다) | — | 값 보기는 코어(위임) |
+| 다른 모듈 앱 열기 | **됨** — 모듈 › 앱 = Gateway 앱 목록(embed 앱 제외), '열기' = `emit('launch')` → Scene `gui-v3.app.launch` → `terra.app:launch` | 실측(목록 · B 모드에서 '셸 안에서만' 경로). **A 모드에서 창이 뜨는 것은 못 봤다**(iframe 안을 누를 수 없음) | — | — |
+| 알림(alarms) | **부분** — 작업 · 모듈 상태 변화를 알림 한 줄로(상태 줄 · `window.TerraAlarms`), 밀어 받기 이벤트에 바로 다시 읽음. **목록 화면은 없다**(전역 틀 '알림' 메뉴 자리만) | 시험 | 小 | 없음 |
+| 편집기(건물·재료·도로·지면·필드) | **대체 범위 밖(사용자 결정 11/1)** — gui-v3 는 Field · StarMaker 만 두고 node-gui 의 편집기를 옮기지 않는다 | — | — | — |
+| 등록 상태(enrollment) | **됨(읽기)** — 등록 여부 · Master 주소 · 노드 id · 등록일 · 자격. 등록 코드는 잠금(`node.enroll` 이 앱 권한에 없다) | 실측 | — | — |
+| Terra ID 신뢰 카드 · external identities | **읽기 됨** — 설정 › 계정: whoami(principal · 권한) + 내 외부 신원 연결(`users.by-user-id.external-identities.get`), '연결 없음'과 '못 봤음'을 가른다. **한계를 화면에 적었다**: 연결 · 해제와 Tree 의 신뢰 발급자(admin.external-issuers.*)는 앱 위임 밖이라 여기서 하지 않는다(Tree 의 웹 콘솔에서) | 실측(B 모드 — '연결 없음', 권한 목록) | — | 쓰기는 코어(위임) |
+| 밀어 받기(events) | 됨(거칠게) | — | — | — |
+| 보기 상태 문서(node-gui 배치 넘겨받기) | **대체 범위 밖(사용자 결정 11/1)**. 참고로 기술적으로도 막혀 있다 — Gateway 가 앱 토큰을 `app:<자기 앱 id>` 로 고정하고(`documents.go` 18~21행, 시험 `TestDocumentAppTokenCannotReachAnotherNamespace` 가 node-gui 이름공간을 예로 거절), 사람 세션은 `app:` 이름공간을 못 쓴다. 게다가 node-gui 가 둔 것(`layout/<node_id>` 육각 맵 배치 · 노드 모습 · 연결 · 메모 · 창 자리, `assets` 건물 · 도로)은 gui-v3 에 대응 모델이 거의 없다(창 자리 · 메모 정도) | 코드 확인 | — | **있음** — 결정 필요 |
+| Master 위임 표(Terra CI 스텝 대응) | **됨** — `web/tools/gen-master-delegated.mjs --terra … --check`(§4-3) | 시험 · 생성 확인(38 op) | — | ci.yml 경로 교체만 |
+| 권한 | gui-v3 앱은 node.config(설정 patch · 재시작) · module.manage(배정) · node.control(WireGuard · 터널 닫기) · process.execute(작업 출력)를 쓴다. 격리 Master 의 부트스트랩 관리자는 `DefaultPermissions()` 라 **module.manage · node.config 가 없어** 쓰기가 403 이었다 — 실제 Tree 의 역할 구성도 확인해야 한다 | 실측 | — | — |
+
+### 3-1. 大 항목 — 결정(11/1)과 결과
+
+사용자 결정(11/1): **네트워크 읽기 → SVI 순서로 하고, 편집기와 node-gui 배치 이전은 이번 대체 범위에서 뺀다.** 아래는 그 결과와, 위임 밖이라 하지 않은 것.
+
+| 묶음 | 결과 | 코어(Terra)에서 열어야 하는 것 |
+| --- | --- | --- |
+| 네트워크 보기 | **됨** — §3 | — |
+| 네트워크 쓰기 | **하지 않음.** `network.mesh.wireguard.plan.post` · `.reconcile.post` · `.peers.revoke.post` · `network.probes.post` · `network.networks.post` · `route.policies.put` / `.by-policy-id.delete` · `route.sessions.by-session-id.close.post` · `connection-groups.by-group-id.close.post` 는 Master 계약에 `delegated-session` 이 없어 앱 토큰으로 닿지 않는다. 리프 Gateway 는 이 op 들을 **사람 세션(Handle)으로도 잇지 않는다**(실측 404 `MODULE_ROUTE_NOT_FOUND`) — 리프에서는 어떤 GUI 로도 못 한다 | ① Master 계약에서 위 op 에 `security.authentication: delegated-session` 을 연다(ADR-GW-003 의 다음 단계 — SVI 허가처럼 무엇을 · 누구에게 열지 가드와 함께). ② 리프 Gateway 의 Master 중계가 그 op 를 잇는다. 그 뒤 `web/tools/gen-master-delegated.mjs` 를 다시 돌리면 gui-v3 가 버튼을 열 수 있다(위임 표에 들어온 op 만 부르게 시험이 막고 있다) |
+| node-gui 는 지금 이 쓰기를 하나? | **아니다.** node-gui 의 실데이터 층(`web/src/data/network-master.js` 머리말 · `masterBlocks.writeNote`)은 "여기서는 보기만 합니다 … 위임 입구는 아직 읽기만" — 쓰기 단추는 디자인 캔버스(`screens/network.js`)의 시연뿐이고, 클라이언트(`api/client.js`)는 위임 표에 없는 Master op 를 부르지 않는다 → **전환은 기능 후퇴가 아니다** | — |
+| SVI | **됨** — §3. 허가 · 바인딩은 위임 표에 있다. Master 의 위임 가드(`api/delegated_grant_guard.go`, ADR-GW-004 2b)가 앱 자격의 허가를 노드에게 read · subscribe · bind.source, 사람 자신에게 inspect · read · subscribe · bind.source/target 으로, 기한 90일 이하로 묶는다 — 화면이 그 안에서만 고르게 했다 | — |
+| SVI 값(흐름) | **하지 않음.** `svi.handles.post`(핸들 열기) · `handles.by-handle-id.stream.get` · `.events.get`(SSE) · `.write.get` 이 위임 밖(실측 404). **대체**: 자원 상태 창이 `svi.handles.get {resource_id}` 를 10초마다 불러 '이 자원을 누가 열어 쓰는지'를 보인다 — 값 대신 사용 현황. SSE 를 앱 iframe 에서 받으려 해도 위임 입구가 스트림을 잇지 않으므로 조회가 유일한 길이다 | 값을 보이려면 `svi.handles.post`(subscribe 만이라도)와 `handles.by-handle-id.events.get`(또는 stream)을 위임 입구에 열고, Gateway 가 앱 토큰으로 스트림을 잇게 해야 한다 |
+| 편집기 · 배치 이전 | **대체 범위 밖(사용자 결정 11/1)** | — |
+
+## 4. 대체하는 날 Terra 쪽에서 같이 바꿀 것 (Terra 는 고치지 않았다)
+
+1. `installer-modules.json` — node-gui(10행 부근)를 `required` 로 선언한다. gui-v3 로 바꾸거나(둘을 다 두려면 main 은 하나만), `release.tag`(지금 v2026.10.31-2)를 gui-v3 main 판이 든 modules 릴리스 태그로 올린다. 카탈로그 빌드가 그 태그의 `modules.json` 과 대조하므로 태그에 gui-v3 가 있어야 한다.
+2. `bundled-modules.json` — node-gui 는 이 파일에 **없다**(설치기 쪽 `installer-modules.json` 에만). 번들에 싣는다면 같은 id 를 두 파일에 두지 말 것(번들 쪽이 소유). 핀 `release.tag`(지금 v2026.10.31-2)는 같은 태그로.
+3. Terra CI `.github/workflows/ci.yml` 의 "Check node-gui's Master delegation table against Terra" 스텝(529~532행)이 `common/lab.stellaxia.node-gui/web/tools/gen-master-delegated.mjs` 를 부른다. node-gui 가 modules 에서 빠지면 깨진다 → **gui-v3 대응 도구가 생겼다**: `common/lab.stellaxia.gui-v3/web/tools/gen-master-delegated.mjs --terra "$GITHUB_WORKSPACE" --check`(인자 같음, 출력은 `src/api/master-delegated.json` — gui-v3 는 Master op 를 id 로 부르므로 op id → method · path · permissions). 값으로 비교해 Windows 줄 끝에 흔들리지 않는다. 대체 때 ci.yml 529~532행의 경로만 바꾸면 된다. 시험 `tests/master-delegated.test.mjs` 가 gui-v3 가 부르는 Master op 가 모두 위임 표에 있거나 B 모드 전용으로 적혀 있는지 본다.
+3b. `tests/shipped-scenes.test.ts`(`TERRA_MODULES_ROOT` 로 modules 의 출하 Scene 을 걷는다) — 0.3.0 으로 `shipped-scenes` · `login-demo-scene` 54개 통과를 확인했다(gui-v3 포함). node-gui 를 빼도 통과할 것.
+4. 시험 픽스처의 node-gui id — `terra-installer` 의 `catalog_test` · `catalogbuild/{build,declarations}_test` · `installer/{setup_remote_*,ui_api,ui_preview}_test` · `remote_test` · `sigverify/verify_test`, `terra-gateway-service` 의 `master_delegation_test` · `documents_test`, Master `delegated_*`·`job_*` 시험, `svi-handle-integration`. 동작과 무관한 예시 id(위임은 앱 id 로 막지 않는다 — 시험 fixture 일 뿐). 이름을 정리할 때 함께.
+5. 설치본 교체 — 설치기가 node-gui 를 받아 깐다. 전례: 0.6.6 때 `terra-setup update --force` 가 손으로 교체한 node-gui 폴더를 되돌렸다. gui-v3 로 바꾼 노드는 업데이트가 node-gui 를 다시 깔지 않는지(선언이 바뀐 뒤)를 확인해야 한다.
+6. 서명 — **해결됨**(modules #136 · v2026.10.31-2 부터 서명, Terra 0.6.8 keyring · 0.6.9 핀). 대체 릴리스도 같은 파이프라인(`pack-modules.mjs --signing`)으로 나가야 한다.
+7. (선택) 셸 dock 규약 — dock 은 `terra.webapp.*` 만 안다. embed 앱은 dock 에 안 나오므로 main 화 이후 필수는 아니다. gui-v3 를 dock 에서도 쓰려면 브리지 규약을 구현해야 한다.
+
+**순서**: (a) 이 PR 병합 → 그때부터 node-gui 와 같이 깔린 노드는 **CHOOSE**(릴리스 전엔 영향 없음). (b) 기능 격차를 메운다. (c) modules 릴리스를 낼 때 **같은 태그에서 node-gui 의 main 을 내리거나(dev 로) node-gui 를 릴리스에서 뺀다** — 빠뜨리면 기존 노드 모두에 CHOOSE 가 뜬다. (d) Terra `installer-modules.json` 등을 그 태그로, CI 의 node-gui 스텝 교체. (e) 설치본 교체. (c)~(e) 는 사용자의 결정이다.
+
+## 4-1. 전환 체크리스트 (대체 릴리스에 같이 실을 것)
+
+modules 릴리스는 사람이 찍는 **저장소 전체 태그**다. gui-v3 의 main 선언(#137)이 main 에 들어가는 순간, 그 뒤의 태그는 무엇을 위한 것이든
+node-gui 가 깔린 모든 노드에 **CHOOSE** 를 띄운다. 그래서 #137 과 #139 는 대체 릴리스 직전까지 main 에 넣지 않고, 대체가 결정되면 **한 번에** 넣는다.
+아래는 그날 같이 움직여야 하는 것 — **적기만 했다**(병합 · 태그 · 릴리스 · Terra 변경 · node-gui 수정은 모두 사용자 승인 대상).
+
+### modules (StellaxiaLab/modules)
+| # | 할 것 | 승인 | 비고 |
+| --- | --- | --- | --- |
+| M1 | #139(격차) → #137 브랜치(`claude/gui-v3-main-scene`)로 병합 | 사용자 | 둘을 따로 main 에 넣지 않는다 |
+| M2 | #137 → main 병합 | 사용자 | 이때부터 main 은 CHOOSE 상태 — M3 를 같은 태그 전에 |
+| M3 | **node-gui 의 main 내리기** — `common/lab.stellaxia.node-gui/module.json` 의 `contributions.gui.scenes[].branch` 를 `"main"` 에서 빼거나 `"dev"` 로(또는 node-gui 를 릴리스에서 뺀다) | **사용자(node-gui 수정)** | 빠뜨리면 기존 노드 전부 CHOOSE. dev 로 두면 main 1개 + dev 1개 → 여전히 CHOOSE(base 분기 설계: dev 가 있으면 고르게 한다) — **빼거나 릴리스에서 내리는 쪽**이 곧장 진입 |
+| M4 | gui-v3 `module.json` 버전 올리기(지금 0.3.0) · 서명 포장(`tools/pack-modules.mjs --signing`) | 사용자(태그) | 서명 파이프라인은 #136 그대로 |
+| M5 | modules 태그(예: `v2026.11.xx`) — 릴리스 `modules.json` 에 gui-v3(대상 3개) | 사용자 | 이 태그가 Terra 핀의 기준 |
+
+### Terra (StellaxiaLab/Terra) — modules 태그 뒤에
+| # | 파일 · 줄(origin/main dadbb842 기준) | 바꿀 것 |
+| --- | --- | --- |
+| T1 | `installer-modules.json:10` — `lab.stellaxia.node-gui` `required: true` | `lab.stellaxia.gui-v3` 로(필수 main GUI 가 없으면 MAIN_NOT_FOUND). node-gui 를 같이 두려면 required 는 gui-v3 만 |
+| T2 | `installer-modules.json:6` · `bundled-modules.json:6` — `release.tag: v2026.10.31-2` | M5 의 태그로(카탈로그 빌드가 그 태그의 modules.json 과 대조 — `catalogbuild/build.go:267 · 297`) |
+| T3 | `.github/workflows/ci.yml:529-532` — `common/lab.stellaxia.node-gui/web/tools/gen-master-delegated.mjs --terra … --check` | `common/lab.stellaxia.gui-v3/web/tools/gen-master-delegated.mjs` (인자 같음, 출력은 `src/api/master-delegated.json`, 값 비교). node-gui 를 modules 에서 빼면 이 스텝이 먼저 깨진다 |
+| T4 | 시험 픽스처의 `lab.stellaxia.node-gui` id — 21개 파일(terra-installer: catalog · catalogbuild/{build,declarations} · installer/{setup_remote_e2e, setup_remote_modules, ui_api, ui_preview} · remote · sigverify/verify, gateway: documents · master_delegation, Master api: delegated_grant_guard · delegated_session · job_cancel_delegate · job_rerun · relayed_delegate · routes_documents, control_plane/dispatcher, tests/svi-handle-integration/binding_delegated_e2e, terra-scene-runtime/tests/shipped-scenes) | 대부분 동작과 무관한 예시 id 다. 이름을 정리할 때 함께 — 필수는 아니다. `shipped-scenes.test.ts` 는 modules main 을 라이브로 걸으니 M2 뒤에 Terra CI 가 gui-v3 Scene 을 마운트해 본다(0.3.0 으로 통과 확인 — §4-3b) |
+
+### 순서
+1. **modules 태그**(M1 → M2 · M3 → M4 → M5, M2 와 M3 는 같은 태그 안에)
+2. **Terra 핀 PR**(T1 · T2 · T3, T4 는 선택) — Terra CI 가 새 태그 · gui-v3 도구로 초록인지
+3. **Terra 릴리스**
+4. **카탈로그**(installer-catalog — 새 핀으로 release-index 를 만든다)
+
+그 뒤 설치본 교체(§4-5: 업데이트가 node-gui 를 되살리지 않는지)와 사용 중 노드의 확인(main 하나 → 곧장 gui-v3).
+
+## 5. 격리 스택 실측 (2026-10-31)
+
+임시 data_dir · 가짜 홈 · 별도 포트(daemon 27331 · gateway 28797 · host 27521 · Master 28080)에 Terra origin/main 5c6ace6c 소스의 daemon·gateway·host·Master 와 base `io.terra.scene.terra` 0.2.1 · scene-runtime · player 를 띄우고 gui-v3 0.3.0 `.tmod`(`terra module pack --target windows-amd64`)를 `--dev`·격리 root 에 깔았다. 이 PC 의 실행 중 Terra · `%LOCALAPPDATA%\Terra` · `~/.terra` 는 건드리지 않았다.
+
+| 확인 | 결과 |
+| --- | --- |
+| gui-v3 단독 | base 가 **곧장 gui-v3** 로 진입(0.2.0 은 MAIN_NOT_FOUND) |
+| gui-v3 + node-gui 0.4.5 | **CHOOSE** (main 2개 · dev 0개) — 두 항목 '열기' |
+| 로그인 문(웹) 클릭 | **동작한다** → Scene `/login` 카드로 이동. (코어 세션이 로컬 커밋에서 본 '클릭이 안 먹음'은 이 스택에선 재현되지 않았다) |
+| 로그인 카드 → 로그인 | `POST /api/v1/auth/credentials` 200 → `POST …/gui/apps/lab.stellaxia.gui-v3.web/token` 200 → frame 이 새로 떠 시작 화면(방사형 지도). 로그인 문은 사라졌다 |
+| 로그인 뒤 데이터 | Gateway 감사 로그에 `via lab.stellaxia.gui-v3.web delegate=lab.stellaxia.gui-v3.web` 로 `terra.daemon.status.get` · `terra.daemon.events.get`(스트림) · `terra.master.nodes.get` 가 사용자 principal 로 찍혔다 — **A 모드 위임으로 실데이터 호출이 돈다** |
+| **못 본 것** | 앱은 sandboxed iframe(별도 origin)이라 화면 안쪽을 읽을 수 없었고, 시작 화면의 노드 점을 눌러도 화면이 바뀌지 않았다. 이 격리 Master 에는 등록된 노드가 없어 '노드 화면'(제어기)의 실데이터를 눈으로 확인하지 못했다. 로그아웃(`emit('logout')`)과 Scene 의 `signout` 도 화면에서는 확인하지 않았다(시험은 있다) |
+
+## 6. 격차 작업 실측 (2026-10-31 저녁)
+
+- 스택: Terra origin/main **b34ed4aa**(서명 keyring 포함) 소스의 daemon · gateway · host · Master · CLI, 임시 data_dir · 가짜 홈 · 별도 포트, 모듈 배포(module_distribution) 켬. 이 PC 의 실행 중 Terra 와 `~/.terra` 는 건드리지 않았고 정리는 격리 폴더의 실행 파일만.
+- 서명: 릴리스 v2026.10.31-2 의 `io.terra.sample.window` 는 새 CLI 로 `installable true · tier built-in · issuer Terra` — `--dev` 없이 깔린다. 옛 CLI(1f0b569b)는 같은 패키지를 `signature-unknown-key` 로 격리했다(keyring 이전).
+- 등록: 격리 Master `POST /api/v1/nodes/enroll-codes` → Daemon `POST /enrollment/code` → 재시작. Master 노드 목록에 리프 하나(부모 Tree 없음) — 그래서 지도가 비었다(§3 첫 줄).
+- 권한: 부트스트랩 관리자에게 격리 Master 에서만 `module.manage` · `node.config` 를 더했다(`PATCH /api/v1/admin/users/{id}`). 그 전에는 설정 patch · 배정이 403.
+- B 모드(앱 주소 직접): 로그인 → 노드 데스크톱 묶음 8부분(config · modules · offers · tasks · svi · wg · tunnels · enroll) · 등록 실값 · 모듈 로그 200 · 설정 스키마 칸(maxFileMB · maxTotalMB, integer · 재시작) · 설정 patch 8→9→8 · 배정 → Master `MODULE_NOT_FOUND`. 장면 노드를 로컬에 묶는 것은 지도가 비어 **JS 로 했다**(`TerraNodes.t.bindScene`) — 화면을 눌러 연 것이 아니다.
+- A 모드 자격: `POST /api/v1/gui/apps/lab.stellaxia.gui-v3.web/token` 으로 받은 `tsa_` 토큰으로 `assignments.post`(위임 통과 → Master 답) · `logs.get` · `service-tunnels.get` · `enrollment.status.get` · `wireguard.sync.post`(202) 확인, `crossboundary.login-routes.get` 은 예상대로 닿지 않음.
+- 못 본 것: main Scene 안(A 모드) 화면 조작 — 브라우저 도구의 클릭 · 키가 다른 origin iframe 안으로 가지 않았다(로그인 문 클릭도 같은 이유로 보임). 알림 · 작업 출력 · 제안 행은 격리 노드에 작업 · 제안이 없어 시험만.
+
+### 6-1. 2순위 나머지 실측 (2026-11-01)
+
+같은 격리 스택(b34ed4aa)에 io.terra.file 0.2.1(릴리스 v2026.10.31-2, 서명 · built-in · 해시 일치)을 더 깔았다. B 모드로 몰았고 이번에는 **장면 노드를 JS 로 묶지 않았다** — 단독 리프 수정으로 지도가 로컬 노드를 스스로 묶는다(제어기는 `gf_ctlOpenWin` 으로 열고, 그 뒤 창 · 탭은 화면을 눌러 몰았다).
+- 지도: 'Tree' 궤도 + `iso-leaf`, 로컬 = `P1:iso-leaf`(Master id 있음).
+- 노드 설정: 스키마 묶음 · 실제 값(local_api.port 17331 등) · 설치기 키 읽기 · 형 검사 · 저장(`daemon.device_name` = iso-leaf, 실행 중 설정과 daemon.json 모두). 찾은 결함(값 없는 키가 'undefined')은 고치고 다시 확인했다.
+- 파일: 공유 폴더 `share-0` 목록(docs · readme.txt 6 B) · 새 폴더 → 지우기 · 들어가기/위로 · 잠긴 로컬 뿌리. 찾은 결함(잠긴 뿌리가 '빈 폴더')은 고치고 다시 확인했다. 로컬 루트 목록에는 이 PC 의 실제 드라이브가 나온다(격리 데몬도 같은 기계라서) — 그 안으로는 들어가지 않았다.
+- Terra ID: 계정 카드 · '연결 없음' · 한계 문장.
+- 못 본 것: A 모드 화면(앞과 같은 이유), desktop.open 실행, 파일 내용 · 전송.
+
+### 6-2. 네트워크 · SVI 실측 (2026-11-01)
+
+같은 격리 스택(b34ed4aa · 단독 리프 · 격리 Master). 앱 토큰(`tsa_`)과 B 모드 화면으로.
+- 네트워크 읽기 9개 모두 200 — `network.state`(실제 할당 100.80.0.10 · terra-managed-wireguard), `status`, `networks`, `peers{node_id}`(빈 목록), `route.graph`(epoch 7 · 간선 없음), `sessions` · `policies` · `probes` · `logs`(빈 목록). 화면: 노드 · 메시 행 1(iso-leaf · online · 중계 예 · 100.80.0.10 · 관측 internet), 네트워크 행 1, 피어 '비어 있음'.
+- 네트워크 쓰기: `reconcile` · `plan` · `peers.revoke` · `sessions.close` — 앱 토큰 · 사람 세션 모두 404 `MODULE_ROUTE_NOT_FOUND`.
+- SVI: `svi.resources.get` → 이 노드의 `test.stream`(Deterministic test stream, 끝점 output · text — 둘 다 source). 자원 창 · 자원 상태 창이 그것을 그렸다(허가 · 바인딩 · 핸들은 빈 목록).
+- 허가(앱 토큰): 노드 주체에 read · subscribe · bind.source + 기한 1시간 → 201, 좁히는 patch 200, delete 200. discover · inspect · write · list · watch · invoke · bind.target → 403, 기한 없음 · 100일 → 403. 시험으로 만든 허가는 모두 지웠다.
+- 핸들: `svi.handles.post` 404(위임 밖) — 값 그래프 대신 핸들 목록 조회.
+- 찾은 결함: 제어기를 거치지 않고 자원 창을 바로 열면 시안으로 떨어졌다(장면 노드 묶기가 늦음) — 고치고 다시 확인. 연산 이름이 `bind.source` 인 것도 실측으로 바로잡았다.
+- 못 본 것: 화면으로 허가 · 바인딩을 실제로 만드는 것(줄 다른 노드 · 받는 끝점이 없는 단독 리프), A 모드 화면.
