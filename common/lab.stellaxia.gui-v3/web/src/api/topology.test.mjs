@@ -1,7 +1,7 @@
 // node --test — Master 노드 목록 → 씬 지도(TerraTopology)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTopology, loadTopology, nodeStats, fmtBytes, MAX_LEAVES, STALE_SEC } from './topology.js';
+import { buildTopology, loadTopology, loadTopologyState, nodeStats, fmtBytes, MAX_LEAVES, STALE_SEC } from './topology.js';
 
 const N = [
   { node_id: 'tr-root', display_name: 'home', roles: ['tree'] },
@@ -37,10 +37,10 @@ test('loadTopology — 노드 목록 · 로컬 id, 못 받으면 null', async ()
 
 test('nodeStats — 하트비트 자원 스냅샷 · 상태 · 마지막 하트비트, 없는 칸은 null', () => {
   const now = Date.parse('2026-10-31T12:00:00Z');
-  const E = { version: '', relay: null, memTotal: null, memUsed: null, diskTotal: null, diskUsed: null };
-  assert.deepEqual(nodeStats({ status: 'online', resource: { cpu_percent: 42, memory_percent: 61.5 }, last_heartbeat_at: '2026-10-31T11:59:50Z' }, now), { status: '● 온라인', online: true, cpu: 0.42, mem: 0.615, disk: null, seen: '방금', ...E });
+  const E = { stale: false, version: '', relay: null, memTotal: null, memUsed: null, diskTotal: null, diskUsed: null };
+  assert.deepEqual(nodeStats({ status: 'online', resource: { cpu_percent: 42, memory_percent: 61.5 }, last_heartbeat_at: '2026-10-31T11:59:50Z' }, now), { status: '● 온라인', online: true, ageSec: 10, seenAt: Date.parse('2026-10-31T11:59:50Z'), cpu: 0.42, mem: 0.615, disk: null, seen: '방금', ...E });
   assert.equal(nodeStats({ status: 'offline', last_heartbeat_at: '2026-10-31T09:00:00Z' }, now).seen, '3시간 전');
-  assert.deepEqual(nodeStats(null, now), { status: '—', online: false, cpu: null, mem: null, disk: null, seen: '', ...E });
+  assert.deepEqual(nodeStats(null, now), { status: '—', online: false, ageSec: null, seenAt: null, cpu: null, mem: null, disk: null, seen: '', ...E });
   const T = buildTopology([{ node_id: 't', roles: ['tree'], display_name: 'home' }, { node_id: 'l', parent_node_id: 't', resource: { cpu_percent: 5 } }]);
   assert.equal(T.node('l').resource.cpu_percent, 5); assert.equal(T.node('x'), null);
 });
@@ -75,4 +75,33 @@ test('nodeStats — 지어내지 않는다: 낡은 online 은 응답 없음, 총
 test('fmtBytes — 바이트를 읽을 수 있게, 없으면 빈 글자', () => {
   assert.equal(fmtBytes(512 * 2 ** 30), '512 GB'); assert.equal(fmtBytes(15.5 * 2 ** 30), '15.5 GB'); assert.equal(fmtBytes(1.5 * 2 ** 40), '1.5 TB');
   assert.equal(fmtBytes(0), ''); assert.equal(fmtBytes(null), ''); assert.equal(fmtBytes(undefined), '');
+});
+
+test('대상 표 행 — node_id · relay · CPU/MEM · 마지막 보고 나이 · stale, 12 개 넘는 리프는 overflow 로', () => {
+  const now = Date.parse('2026-11-01T00:10:00Z');
+  const nodes = [{ node_id: 'tr', display_name: 'T', roles: ['tree'] }];
+  for (let i = 0; i < 14; i++) nodes.push({ node_id: 'lf' + String(i).padStart(2, '0'), display_name: 'n' + String(i).padStart(2, '0'), parent_node_id: 'tr', status: 'online', relay_connected: i % 2 === 0, last_heartbeat_at: i === 0 ? '2026-11-01T00:09:30Z' : '2026-11-01T00:00:00Z', resource: i === 0 ? { cpu_percent: 40, memory_percent: 55 } : undefined });
+  const T = buildTopology(nodes, { now }), r = T.leaves([1]);
+  assert.equal(r.length, MAX_LEAVES); assert.equal(T.more([1]), 2);
+  assert.deepEqual(T.overflow([1]).map((l) => l.nodeId), ['lf12', 'lf13']);
+  assert.equal(r[0].nodeId, 'lf00'); assert.equal(r[0].relayConnected, true); assert.equal(r[0].cpu, 0.4); assert.equal(r[0].mem, 0.55);
+  assert.equal(r[0].ageSec, 30); assert.equal(r[0].stale, false); assert.equal(r[0].online, true);
+  assert.equal(r[1].stale, true); assert.equal(r[1].online, false); assert.equal(r[1].cpu, null); assert.equal(r[1].ageSec, 600); assert.equal(r[1].relayConnected, false);
+  assert.deepEqual(T.overflow([9]), []);
+});
+
+test('nodeStats — stale: online 이라지만 하트비트가 없거나 낡은 것만, offline 은 stale 아님', () => {
+  const now = Date.parse('2026-11-01T00:10:00Z');
+  assert.equal(nodeStats({ status: 'online' }, now).stale, true); assert.equal(nodeStats({ status: 'online' }, now).ageSec, null);
+  assert.equal(nodeStats({ status: 'offline', last_heartbeat_at: '2026-10-01T00:00:00Z' }, now).stale, false);
+  assert.equal(nodeStats({ status: 'online', last_heartbeat_at: '2026-11-01T00:09:59Z' }, now).stale, false);
+});
+
+test('loadTopologyState — 실패 · 빈 목록을 가르고, Master 는 등록 상태에서', async () => {
+  const mk = (nodes, fail) => ({ invoke: async (op) => { if (op === 'terra.master.nodes.get') { if (fail) { const e = new Error('x'); e.code = 'GATEWAY_UNREACHABLE'; throw e; } return nodes; } if (op === 'terra.daemon.enrollment.status.get') return { registered: true, master_url: 'https://m', registered_at: '2026-10-01' }; return { enrollment: { node_id: 'lf' } }; } });
+  const bad = await loadTopologyState(mk([], true)); assert.equal(bad.state, 'error'); assert.equal(bad.error, 'GATEWAY_UNREACHABLE'); assert.equal(bad.topo, null);
+  const empty = await loadTopologyState(mk([])); assert.equal(empty.state, 'empty'); assert.equal(empty.topo, null);
+  const ok = await loadTopologyState(mk([{ node_id: 'lf', display_name: 'a', parent_node_id: 'tr' }]));
+  assert.equal(ok.state, 'ok'); assert.deepEqual(ok.topo.master, { url: 'https://m', registered: true, registeredAt: '2026-10-01' }); assert.equal(ok.topo.localId, 'lf');
+  assert.equal(await loadTopology(mk([], true)), null);
 });

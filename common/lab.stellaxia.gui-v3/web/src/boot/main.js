@@ -9,10 +9,10 @@
 import 'virtual:boards';
 import { mountBoard, boardDef } from '../ui/dc/runtime.js';
 import { useGpuField } from '../scene/scene-bridge.js';
-import { createTerra } from '../api/terra.js';
+import { createTerra, canRemote, permissionsOf } from '../api/terra.js';
 import { createSession } from '../api/session.js';
 import { createGatewayTransport } from '../api/transport.js';
-import { loadTopology, nodeStats, fmtBytes } from '../api/topology.js';
+import { loadTopology, loadTopologyState, nodeStats, fmtBytes } from '../api/topology.js';
 import { startPush } from '../api/push.js';
 import { pickMode, connectApp } from '../api/mode.js';
 import * as deskAdapt from '../api/desk-adapt.js';
@@ -85,18 +85,25 @@ if (MODE !== 'demo') {
   }
   // 로그인 뒤 한 번 — 지도 · Tree 길 · 보기 상태 · 밀어 받기
   // 노드 데스크톱이 쓰는 것 — 실제 응답 → 보드 모양(desk-adapt) · 이 Gateway 의 앱 목록(모듈 › 앱 탭) · 다른 모듈 앱 열기(셸에 부탁)
-  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology);   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
+  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraCanRemote = canRemote; window.TerraPermissionsOf = permissionsOf; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology);   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; });
   // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50). 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
   const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; };
-  // 노드 기록(상태 · 하트비트 · 자원)은 로그인 때 한 번만 받으면 낡는다 — 15초마다 다시. 노드 목록이 같으면(rev 같음) 기록만 바꿔 끼우고 씬은 다시 짓지 않는다
-  const refreshTopology = () => loadTopology(terra).then((t) => { if (!t) return; const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t); }, () => {});
+  // 노드 기록(상태 · 하트비트 · 자원)은 로그인 때 한 번만 받으면 낡는다 — 30초마다 다시(보일 때만). 노드 목록이 같으면(rev 같음) 기록만 바꿔 끼우고 씬은 다시 짓지 않는다
+  //   window.TerraTopologyState = { state: 'ok'|'empty'|'error', error?, at } — 못 받았을 때 화면이 시안 지도를 실제처럼 두지 않고 "받지 못함 / 노드 없음"을 보일 신호('terra-topology-state' 이벤트도)
+  const refreshTopology = () => loadTopologyState(terra).then((r) => {
+    window.TerraTopologyState = { state: r.state, error: r.error || '', at: r.at }; try { window.dispatchEvent(new Event('terra-topology-state')); } catch {}
+    const t = r.topo; if (!t) return; const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t);
+  }, () => {});
+  const TOPO_MS = 30000;   // 지도 · 대상 표 갱신 주기 — 탭이 보일 때만(숨겨진 탭은 Master 를 두드리지 않고, 다시 보이면 바로 한 번)
+  const topoTick = () => { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') refreshTopology(); };
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (topoTimer && document.visibilityState === 'visible') refreshTopology(); });
   const afterLogin = () => {
     transport.ready(); loadRoutes(); loadApps(); stopLive();
     terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { window.TerraWho = w; }, () => { window.TerraWho = null; });   // 계정 탭 — principal · 권한 · Terra ID 연결의 사용자 id
     alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m) }); window.TerraAlarms = alarms.list;
-    topoTimer = setInterval(refreshTopology, 15000);
+    topoTimer = setInterval(topoTick, TOPO_MS); refreshTopology();
     push = startPush({ terra, store: () => window.TerraNodes, onEvent: () => alarms && alarms.poke() });
   };
   const SC = boardDef('Scene');
