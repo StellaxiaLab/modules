@@ -62,6 +62,8 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <div data-ctlwin="scene" data-slot="18" style="display: none"><div data-ctlbody="scene"><dc-import name="ModStatus" mod="{{wMod18}}" on-open="{{openFn18}}" win-w="{{ctlW18}}" win-h="{{ctlH18}}" hint-size="600px,620px"></dc-import></div></div>
 <div data-ctlwin="scene" data-slot="19" style="display: none"><div data-ctlbody="scene"><dc-import name="WebBrowser" url="{{wWeb19}}" catalog="{{wCat19}}" node-name="{{wNode19}}" win-w="{{ctlW19}}" win-h="{{ctlH19}}" hint-size="1000px,680px"></dc-import></div></div>
 <div data-ctlwin="scene" data-slot="20" style="display: none"><div data-ctlbody="scene"><dc-import name="WebBrowser" url="{{wWeb20}}" catalog="{{wCat20}}" node-name="{{wNode20}}" win-w="{{ctlW20}}" win-h="{{ctlH20}}" hint-size="1000px,680px"></dc-import></div></div>
+<div data-ctlwin="scene" data-slot="21" style="display: none"><div data-ctlbody="scene"><dc-import name="NodeNet" node-name="{{wNode21}}" node-kind="{{wKind21}}" node-rid="{{wRid21}}" win-w="{{ctlW21}}" win-h="{{ctlH21}}" hint-size="680px,720px"></dc-import></div></div>
+<div data-ctlwin="scene" data-slot="22" style="display: none"><div data-ctlbody="scene"><dc-import name="NodeNet" node-name="{{wNode22}}" node-kind="{{wKind22}}" node-rid="{{wRid22}}" win-w="{{ctlW22}}" win-h="{{ctlH22}}" hint-size="680px,720px"></dc-import></div></div>
 <button class="replay" type="button" aria-label="뒤로 (ESC)" onPointerUp="{{stopProp}}" onClick="{{back.go}}" style="display: none; position: absolute; z-index: 3; left: 32px; top: 32px; gap: 8px; opacity: {{back.op}}; cursor: {{back.cur}}; background: #040614"><span style="font-family: GmarketSans, 'Geist Mono', monospace; font-size: 11px; padding: 1px 6px; border: 1px solid #2c3558; border-radius: 4px">ESC</span>뒤로</button>
 
 <button type="button" onPointerUp="{{stopProp}}" onClick="{{loginAgain}}" style="display: {{loginAgainD}}; position: absolute; right: 20px; bottom: 18px; z-index: 5; font: 600 12px 'Geist Mono', monospace; padding: 4px 9px; border-radius: 4px; border: 1px solid rgba(108,118,156,0.35); background: #040614; color: #9aa4c8; cursor: pointer;">TEST · 로그인부터</button>
@@ -2659,7 +2661,7 @@ class Component extends DCLogic {
   //   항목 { name, type: 'dir' | 'file' | 'link' | 'exec', kids?, data?, target?, exec?, mount? }
   //   노드 인식 — 디렉토리 바로 아래에 디렉토리와 같은 이름의 파일이 있고, 그 내용이 { type: 'terra.node', id, kind } 이면 그 디렉토리는 노드
   //     (표지 파일은 목록에서 숨기고, 노드 디렉토리는 채운 삼각형 ▼ · 그냥 디렉토리는 빈 삼각형 ▽)
-  //   기능 — 실행 파일(exec: 'ctl' 제어기 · 'starmaker' …) · 심볼릭 링크(link: '@go' 이동 · '@map' 지도에서 보기 · '@stat' 상태 · '@conf' 설정 · '@node:<id>' 다른 노드)
+  //   기능 — 실행 파일(exec: 'ctl' 제어기 · 'starmaker' …) · 심볼릭 링크(link: '@go' 이동 · '@map' 지도에서 보기 · '@stat' 상태 · '@net' 네트워크 속성 · '@conf' 설정 · '@node:<id>' 다른 노드)
   //   파일 내용으로 종류를 안다 — { type: 'terra.sphere' } = 구 데이터(◍). mount 디렉토리는 바깥 저장소를 그대로 비춘다(star = 스타메이커 보관함)
   gf_vfs() {
     // 노드가 저장한 파일(프로필 등 — 설정 창이 'terra.fs' 에 쓴다)도 트리에 얹는다. 그 내용이 바뀌면 다시 만든다
@@ -2685,7 +2687,7 @@ class Component extends DCLogic {
       else {
         const share = n.kind === 'leaf' ? n.kids.filter((c) => c.kind === 'res').map((c) => link(c.name, '@node:' + c.id)) : ['mcp:7000', 'store/data', 'logs-agg', 'backup', 'relay:9443'].slice(0, 2 + (h % 3)).map((t) => file(t));
         kids.push(exec('제어기', 'ctl'), dir('공유 자원', share), dir('모듈', [], { modsNode: n }),   /* 안은 펼칠 때 — 노드 데이터 층에서 그 노드의 모듈 사본 (모든 노드를 한꺼번에 묻지 않는다) */ dataDir(n, n.kind === 'tree' ? ['config.toml', 'state.db', 'logs', 'snapshots'] : ['config.toml', 'state.db', 'logs']),
-          dir('기능', [link('이동', '@go'), link('지도에서 보기', '@map'), link('상태', '@stat'), link('설정', '@conf')].concat(n.kind === 'leaf' ? [link('자원', '@share')] : [])));
+          dir('기능', [link('이동', '@go'), link('지도에서 보기', '@map'), link('상태', '@stat'), link('네트워크', '@net'), link('설정', '@conf')].concat(n.kind === 'leaf' ? [link('자원', '@share')] : [])));
       }
       for (const c of n.kids) if (c.kind === 'tree' || c.kind === 'leaf') kids.push(nodeDir(c));
       const d = dir(n.name, kids); byNode.set(n.id, d); return d;
@@ -2806,7 +2808,7 @@ class Component extends DCLogic {
     if (it.type === 'win') return this.gf_winOpen(it.win);
     if (it.type === 'exec') { const x = it.ent.exec; if (x === 'ctl') return this.gf_ctlOpenWin(it.node); if (x === 'starmaker') return this.gf_smOpen(); return; }   // 'tool' — 화면은 아직 (자리만)
     if (it.type === 'link') { const tg = it.ent.target, n = it.node;
-      if (tg === '@go') return this.navStart(n); if (tg === '@map') return this.gf_mapShow(n); if (tg === '@stat') return this.gf_ctlOpenWin(n, undefined, 'stat'); if (tg === '@conf') return this.gf_ctlOpenWin(n, undefined, 'conf'); if (tg === '@share') return this.gf_ctlOpenWin(n, undefined, 'share');
+      if (tg === '@go') return this.navStart(n); if (tg === '@map') return this.gf_mapShow(n); if (tg === '@stat') return this.gf_ctlOpenWin(n, undefined, 'stat'); if (tg === '@net') return this.gf_ctlOpenWin(n, undefined, 'net'); if (tg === '@conf') return this.gf_ctlOpenWin(n, undefined, 'conf'); if (tg === '@share') return this.gf_ctlOpenWin(n, undefined, 'share');
       if (tg.startsWith('@node:')) { const m = this.sceneMap().byId[tg.slice(6)]; if (m) this.gf_mapShow(m); } return; }
     if (it.type === 'mod') return this.gf_ctlOpenWin(it.node, undefined, 'mod', it.ent.mod.id);   // 모듈 — 모듈 상태 창 (GUI ↗ 는 거기서 브라우저 창으로)
     if (it.sph) return this.gf_smOpen(it.sid);
@@ -2895,7 +2897,7 @@ class Component extends DCLogic {
     else if (kind === 'mod') { const m = this.gf_modsOf(node).find((q) => q.id === wArg) || this.gf_modsOf(node)[0]; this.setState({ ['wMod' + k]: m || null }); this['_wNode' + k] = node; }
     else if (kind === 'web') { this.setState({ ['wWeb' + k]: wArg, ['wCat' + k]: this.gf_modCatalog(node), ['wNode' + k]: node.name }); this['_wNode' + k] = node; }
     else if (kind === 'res') this.setState({ ['wNode' + k]: node.name, ['wPar' + k]: node.parent ? node.parent.name : '—', ['wSrc' + k]: rsSrc || node.src || '내 자원', ['wId' + k]: node.id });
-    else if (kind === 'conf' || kind === 'stat' || kind === 'share') { const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }; this.setState({ ['wNode' + k]: node.name, ['wKind' + k]: KN[node.kind] || '노드', ['wPar' + k]: node.parent ? node.parent.name : '—', ['wId' + k]: node.id, ['wRid' + k]: node.rid || '', ['wPath' + k]: node.path || '/' + node.name, ['wRemote' + k]: !!node.parent && node !== this.gf_localNode(), ['wRes' + k]: (node.kids || []).filter((c) => c.kind === 'res').map((c) => c.name), ['wFocus' + k]: focusRes, ['wPeers' + k]: this.gf_peerList() }); this['_wNode' + k] = node; }
+    else if (kind === 'conf' || kind === 'stat' || kind === 'share' || kind === 'net') { const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }; this.setState({ ['wNode' + k]: node.name, ['wKind' + k]: KN[node.kind] || '노드', ['wPar' + k]: node.parent ? node.parent.name : '—', ['wId' + k]: node.id, ['wRid' + k]: node.rid || '', ['wPath' + k]: node.path || '/' + node.name, ['wRemote' + k]: !!node.parent && node !== this.gf_localNode(), ['wRes' + k]: (node.kids || []).filter((c) => c.kind === 'res').map((c) => c.name), ['wFocus' + k]: focusRes, ['wPeers' + k]: this.gf_peerList() }); this['_wNode' + k] = node; }
     this.gf_ctlChrome(wrap);
     { const m = kind === 'mod' ? this.gf_modsOf(node).find((q) => q.id === wArg) : null, wa = kind === 'web' && wArg.startsWith('mod|') ? this.gf_modCatalog(node).find((q) => q.arg === wArg) : null;
       wrap._chrome.name.textContent = m ? m.name + ' · ' + node.name : wa ? wa.appName + ' · ' + node.name : node.name; }
@@ -3021,6 +3023,7 @@ class Component extends DCLogic {
       o.treeLoginDoneFn = F.ld || (F.ld = (key, keep, email) => this.gf_loginDone(key, keep, email)); o.treeLoginCancelFn = F.lc || (F.lc = () => { const W = (this._q_ctlWs || [])[k]; this._q_loginDest = null; this._q_loginAfter = null; if (W) this.gf_ctlX(W); }); }   // Tree 로그인(15)
     for (const k of [16, 17, 18]) { o['wMod' + k] = S['wMod' + k] || null; o['ctlW' + k] = S['ctlW' + k] || this.gf_WSIZE('mod')[0]; o['ctlH' + k] = S['ctlH' + k] || this.gf_WSIZE('mod')[1];
       o['openFn' + k] = F['o' + k] || (F['o' + k] = (kind, arg) => { const n = this['_wNode' + k]; if (!n) return; if (kind === 'ctl') return this.gf_ctlOpenWin(n); this.gf_ctlOpenWin(n, undefined, kind, arg); }); }   // 모듈 상태(16–18) — GUI ↗ · 자원 · 제어기
+    for (const k of [21, 22]) { o['wNode' + k] = S['wNode' + k] || 'lab-ws-02'; o['wKind' + k] = S['wKind' + k] || '리프'; o['wRid' + k] = S['wRid' + k] || ''; o['ctlW' + k] = S['ctlW' + k] || this.gf_WSIZE('net')[0]; o['ctlH' + k] = S['ctlH' + k] || this.gf_WSIZE('net')[1]; }   // 네트워크 속성(21 · 22) — 주소 · 전송 · 노드 간 연결
     for (const k of [19, 20]) { o['wWeb' + k] = S['wWeb' + k] || 'terra://start'; o['wCat' + k] = S['wCat' + k] || []; o['wNode' + k] = S['wNode' + k] || ''; o['ctlW' + k] = S['ctlW' + k] || this.gf_WSIZE('web')[0]; o['ctlH' + k] = S['ctlH' + k] || this.gf_WSIZE('web')[1]; }   // 브라우저(19 · 20)
     const k6 = this.gf_CTLN(); o.smW = S['ctlW' + k6] || 1100; o.smH = S['ctlH' + k6] || 720; o.smLoad = S.smLoad || ''; o.skinFn = F.sk || (F.sk = () => { try { window.dispatchEvent(new Event('terra-skin')); } catch (e) {} });   /* 스킨 적용 → 장면이 바로 다시 읽음 */ o.smSavedFn = F.sm || (F.sm = () => { this._q_ctlTree = null; this.gf_layout(); });   // 스타메이커 — 저장 · 지우기 · 새 폴더 → 전역 제어의 star 폴더를 다시
     return o;
@@ -3031,7 +3034,7 @@ class Component extends DCLogic {
   gf_cssGlow(c, a) { const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) return c; const v = m[1].split(',').map(Number), g = (x) => Math.round(x + (255 - x) * a); return this.qcss('rgb(' + g(v[0]) + ',' + g(v[1]) + ',' + g(v[2]) + ')'); }
   // ───── 창 목록 — 지금 떠 있는 창 · 최소화한 창 (전역: 모든 노드의 창). 종류: 제어기 (앞으로 더 늘어남) ─────
   //   { id, node, kind, R, st: 'open' | 'min', at }. 같은 노드 · 같은 종류의 창은 하나
-  gf_WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인', mod: '모듈', web: '브라우저' }; }
+  gf_WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인', mod: '모듈', web: '브라우저', net: '네트워크' }; }
   // 창 종류마다의 자리 · 기본 크기 · 바탕 — 상태 창은 CLI 처럼 바탕이 비친다(글자 장 구멍 없음)
   // 이 GUI 가 떠 있는 노드(로컬) — 노드 설정 쓰기는 여기만 된다(terra.daemon.config.patch 는 로컬 전용). 시안: 지도의 첫 리프
   gf_localNode() { const MD = this.sceneMap(); return this._q_locN && MD.all.includes(this._q_locN) ? this._q_locN : (this._q_locN = MD.all.find((n) => n.local) || MD.all.find((n) => n.kind === 'leaf') || MD.root); }   // 실제 지도면 이 GUI 를 띄운 노드(local), 시안이면 첫 리프
@@ -3078,8 +3081,8 @@ class Component extends DCLogic {
     if (after) after(); else if (dest) { if (this.navStart) this.navStart(dest); else if (this.warpTo) this.navStart(dest); }
   }
   gf_peerList() { const KN = { tree: '트리', leaf: '리프' }; return this.sceneMap().all.filter((n) => n.kind === 'tree' || n.kind === 'leaf').map((n) => ({ id: n.id, name: n.name, kind: KN[n.kind], parent: n.parent ? n.parent.name : '' })); }
-  gf_WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14], login: [15], mod: [16, 17, 18], web: [19, 20] }; }
-  gf_WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540], share: [860, 600], res: [600, 600], login: [600, 540], mod: [600, 620], web: [1000, 680] }[kind] || [900, 600]; }
+  gf_WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14], login: [15], mod: [16, 17, 18], web: [19, 20], net: [21, 22] }; }   // 네트워크 속성(21 · 22)
+  gf_WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540], share: [860, 600], res: [600, 600], login: [600, 540], mod: [600, 620], web: [1000, 680], net: [680, 720] }[kind] || [900, 600]; }
   gf_WSEE(kind) { return kind === 'stat' || kind === 'res' || kind === 'login'; }   // 바탕이 비치는 창 — 모듈 상태 창은 제어기 창처럼 불투명(글자 장이 글 사이로 비쳐 읽기 어려웠다)
   gf_winGet(node, kind, arg) { const L = this._q_wins || (this._q_wins = []); return L.find((q) => q.node === node && q.kind === (kind || 'ctl') && (q.arg || '') === (arg || '')) || null; }
   gf_winPut(W, st) { const L = this._q_wins || (this._q_wins = []), kd = W.kind || 'ctl'; let e = this.gf_winGet(W.node, kd, W.arg); if (!e) { e = { id: 'w' + (this._q_winN = (this._q_winN || 0) + 1), node: W.node, kind: kd, arg: W.arg || '' }; L.push(e); } e.st = st; e.R = W.R ? { ...W.R } : e.R; e.at = performance.now(); return e; }
@@ -3592,6 +3595,7 @@ class Component extends DCLogic {
     if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '리프 뷰', leaf: '리소스 뷰', res: '자원 보기' }[mn.kind], run: () => this.navStart(mn) });
     acts.push({ label: '지도', desc: '지도에서 보기', run: () => this.gf_mapShow(mn) });   // 전역 틀 지도를 그 노드로 옮긴다 (다른 Tree 의 리프 · 리소스면 로그인부터)
     acts.push({ label: '상태', desc: mn.kind === 'res' ? '값 · 연결' : '동작 · 상태', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
+    if (mn.kind === 'tree' || mn.kind === 'leaf') acts.push({ label: '네트워크', desc: '주소 · 노드 간 연결', run: () => this.gf_ctlOpenWin(mn, undefined, 'net') });   // 네트워크 속성 창 — 가진 주소 · 광고 전송 · 다른 노드와 어떤 경로로
     acts.push({ label: '설정', desc: mn.kind === 'tree' ? 'GUI · Terra · Tree' : mn.kind === 'leaf' ? 'GUI · Terra · Leaf' : 'GUI', run: () => this.gf_ctlOpenWin(mn, undefined, 'conf') });
     if (mn.kind === 'leaf' || mn.kind === 'res') acts.push({ label: '자원', desc: '공유 · 등록', run: () => this.gf_ctlOpenWin(mn, undefined, 'share') });
     if (mn.kind === 'tree' || mn.kind === 'leaf') acts.push({ label: '제어기', desc: '노드 데스크톱', run: () => this.gf_ctlOpenWin(mn) });

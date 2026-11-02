@@ -10,6 +10,7 @@ d = os.path.dirname(os.path.abspath(__file__)) + '/'
 BOARDS = {
     'nodeconf':   ('NodeConf.dc.html',   '<div class="nc"'),
     'nodestatus': ('NodeStatus.dc.html', '<div class="ns"'),
+    'nodenet':    ('NodeNet.dc.html',    '<div class="nn"'),
     'starmaker':  ('StarMaker.dc.html',  '<div data-smroot="1"'),
     'nodeshare':  ('NodeShare.dc.html',  '<div class="sh"'),
     'resstatus':  ('ResStatus.dc.html',  '<div class="ns'),

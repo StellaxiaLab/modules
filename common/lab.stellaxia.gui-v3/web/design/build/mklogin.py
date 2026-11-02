@@ -78,6 +78,7 @@ rep("  loginOn() {","""  sceneCtx(e) {
     if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '리프 뷰', leaf: '리소스 뷰', res: '자원 보기' }[mn.kind], run: () => this.navStart(mn) });
     acts.push({ label: '지도', desc: '지도에서 보기', run: () => this.gf_mapShow(mn) });   // 전역 틀 지도를 그 노드로 옮긴다 (다른 Tree 의 리프 · 리소스면 로그인부터)
     acts.push({ label: '상태', desc: mn.kind === 'res' ? '값 · 연결' : '동작 · 상태', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
+    if (mn.kind === 'tree' || mn.kind === 'leaf') acts.push({ label: '네트워크', desc: '주소 · 노드 간 연결', run: () => this.gf_ctlOpenWin(mn, undefined, 'net') });   // 네트워크 속성 창 — 가진 주소 · 광고 전송 · 다른 노드와 어떤 경로로
     acts.push({ label: '설정', desc: mn.kind === 'tree' ? 'GUI · Terra · Tree' : mn.kind === 'leaf' ? 'GUI · Terra · Leaf' : 'GUI', run: () => this.gf_ctlOpenWin(mn, undefined, 'conf') });
     if (mn.kind === 'leaf' || mn.kind === 'res') acts.push({ label: '자원', desc: '공유 · 등록', run: () => this.gf_ctlOpenWin(mn, undefined, 'share') });
     if (mn.kind === 'tree' || mn.kind === 'leaf') acts.push({ label: '제어기', desc: '노드 데스크톱', run: () => this.gf_ctlOpenWin(mn) });
