@@ -83,7 +83,9 @@ class Component extends DCLogic {
   openVals(now) {
     // 로고 이동 — 등가속 → 등감속 (가속 구간 40% · 감속 구간 60% — 감속이 더 완만하게 길다). 속도는 0 에서 시작해 0 으로 멈춘다
     const S = this.state || {}, T = this.LT(), F = 0.4, ss = (x) => { x = Math.min(1, Math.max(0, x)); return x < F ? x * x / F : 1 - (1 - x) * (1 - x) / (1 - F); };
-    if (S.open) return { e: ss((now - (this._openAt || now)) / T.move), showAt: (this._openAt || now) + T.move + T.after, open: true };
+    // 융기 외곽이 먼저 — 로고가 다 올라가면 돋보기가 펼쳐지고(inMs), 다 펼쳐진 뒤 로그인 줄이 나타나기 시작한다
+    const t0 = (this._openAt || now) + T.move + T.after, LI = this.LENS_CFG().inMs;
+    if (S.open) return { e: ss((now - (this._openAt || now)) / T.move), lensAt: t0, showAt: t0 + LI, open: true };
     const t = now - (this._closeAt || -1e9), n = this._outN || 0, outEnd = n * 20 + T.out;   // 닫기: 글자가 먼저 사라지고(오른쪽부터), 그다음 로고가 내려온다
     return { e: 1 - ss((t - outEnd) / T.move), out: t, open: false };
   }
@@ -416,6 +418,7 @@ class Component extends DCLogic {
     const SIX = SH && SH._scr ? SH._scr.ox : 0, SIY = SH && SH._scr ? SH._scr.oy : 0;
     // 로그인 — 열림 정도(OV) · 로고를 올린 줄 수(dy) · 칸에 놓인 글자(TX) · 특수 칸(SP: 글자 · TREE LEAF 마스크)
     const OV = this.openVals(now), S0 = this.state || {}, LT = this.LT(), LL = this._L, TXM = new Map(), SP = [];
+    if (OV.open && now >= OV.lensAt && !this._lensAt && !this._lensOut && !this._WP) this._lensAt = now - OV.lensAt < 200 ? OV.lensAt : now;   // 융기 외곽 시작(로그아웃으로 돌아온 때처럼 늦게 알면 지금부터)
     if (OV.open) { this.syncItems(now, OV); if (!S0.ready && now >= OV.showAt + 900) this.setState({ ready: true }, () => { const el = document.querySelector('form[aria-label="Terra 로그인"] input[name="admin"]'); if (el && (this.state || {}).open) el.focus({ preventScroll: true }); }); }
     const offPx = LL ? OV.e * (LL.logoY1 - LL.logoY0) : 0, LA = this._logoA, LW = this._logoW, LH = this._logoH, PXC = this._pxc, QZ = LL && LL.zone, sm = (v) => { v = Math.min(1, Math.max(0, v)); return v * v * (3 - 2 * v); };
     // 전환 — 첫 프레임은 평소대로 그리며 로고 · 별 · 글자 칸을 그 색 · 그 글자 그대로 담아 두고(SNAP), 다음 프레임부터 그것들이 날아간다(WV)
@@ -574,8 +577,7 @@ class Component extends DCLogic {
     const FB = '700 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", monospace', css = (c) => 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';
     const MS = this._MS || (this._MS = new Map());
     const TYC = this._wCur === 2 ? this.mixC(K.tree, [242, 244, 252], 0.22) : K.leaf;
-    let allP = SP.length > 0;   // 로그인 창의 생성 이벤트(줄 · 마스크 칸)가 다 끝났나
-    for (const [i, tx, mk, pal, n, p0, gl, cv0] of SP) { if (p0 < 1) allP = false;
+    for (const [i, tx, mk, pal, n, p0, gl, cv0] of SP) {
       const p = Math.min(1, p0), X = (i % cols) * cw, Y = ((i / cols) | 0) * ch;
       let tgt;
       if (tx) { const cc = tx.it.col; tgt = cc === 'bgb' ? this.mixC(this.brightBg(pal), [242, 244, 252], 0.3) : cc === 'ty' ? TYC : K[cc]; if (tx.it.hv && tx.it.hv === this._hov) tgt = this.mixC(tgt, [255, 255, 255], 0.3); }
@@ -590,8 +592,6 @@ class Component extends DCLogic {
       const wide = tx && tx.wide && p >= 1, sty = tx ? (tx.it.thin ? (wide ? 4 : 0) : wide ? 2 : 1) : (cv0 == null || cv0 > 0.55 ? 1 : 0);
       cell(i, cc, glyph, sty); if (wide) cell(i + 1, cc, '', 9);
     }
-    // 융기 외곽 — 생성 이벤트가 모두 끝난 다음 박자부터 펼친다(입력 칸이 열린 뒤 · 전환 중이 아닐 때)
-    if (S.open && S.ready && allP && !this._lensAt && !this._lensOut && !this._WP) this._lensAt = now;
     let ovSig = '';
     // 커서 — 입력 중인 칸의 다음 자리에 깜박이는 블록 (점 자리를 덮는다)
     if (S.ready && S.open) for (const [key, r, v] of [['a', LL.rA, S.va || ''], ['p', LL.rB, S.vp || '']]) {
@@ -603,11 +603,11 @@ class Component extends DCLogic {
   }
 
   // ───── 융기 외곽 — 로그인 창 영역을 돋보기로(컴포넌트 생성 씬의 돋보기 · 테두리 '융기 외곽'과 같은 식) ─────
-  //   영역 = 로그인 창 틀(zone)의 1.2 배 · 형태 둥근 사각(초타원 p 9) · 배율 ×1.3 · 광각 약(n 2.5) · 빛번짐 약. 렌즈 점 p 는 p·g 를 본다, g = 1/z + (1 − 1/z)·min(1, u/0.86)ⁿ, u = (|x/hw|ᵖ + |y/hh|ᵖ)^(1/p)
+  //   영역 = 로그인 창 틀(zone)의 1.2 배 · 형태 둥근 사각(초타원 p 9) · 배율 ×1.2 · 광각 약(n 2.5) · 빛번짐 약. 렌즈 점 p 는 p·g 를 본다, g = 1/z + (1 − 1/z)·min(1, u/0.86)ⁿ, u = (|x/hw|ᵖ + |y/hh|ᵖ)^(1/p)
   //   가운데는 z 배, 가장자리에서 급히 1 배로 줄어 바깥 글자 장과 그대로 이어진다(테두리 없음). 글자는 비트맵을 늘리지 않고 이번 박자의 칸(글자 · 색 · 모양)을 z 배 타일로 다시 붙인다
-  //   생성 — 로그인 창의 생성 이벤트(줄 · 마스크 칸)가 다 끝난 뒤, 배율 1 → 1.3 을 700ms 사다리꼴 속도(처음 · 끝 속도 0, 가운데 일정). 닫기 · 로그아웃 거꾸로 350ms, 로그인 성공(전환)은 120ms
+  //   생성 — 돋보기가 먼저: 로고가 다 올라가면 배율 1 → 1.2 를 700ms 사다리꼴 속도(처음 · 끝 속도 0, 가운데 일정), 다 펼친 뒤 로그인 줄이 나타난다. 닫기는 거꾸로(줄이 다 사라진 뒤 350ms), 로그인 성공(전환)은 120ms
   //   누르는 자리(입력 칸 · 단추)와 호버도 보이는 자리로 옮긴다
-  LENS_CFG() { return { z: 1.3, n: 2.5, bleed: 0.55, inMs: 700, outMs: 350, warpMs: 120, area: 1.2, p: 9, info: true, frame: true }; }   // area = 로그인 창 틀의 몇 배 · p = 둥근 사각(초타원 지수)
+  LENS_CFG() { return { z: 1.2, n: 2.5, bleed: 0.55, inMs: 700, outMs: 350, warpMs: 120, area: 1.2, p: 9, info: true, frame: false }; }   // area = 로그인 창 틀의 몇 배 · p = 둥근 사각(초타원 지수)
   easeTrap(t) { const r = 0.3, v = 1 / (1 - r); t = Math.max(0, Math.min(1, t)); return t < r ? v * t * t / (2 * r) : t > 1 - r ? 1 - v * (1 - t) * (1 - t) / (2 * r) : v * (t - r / 2); }
   // 영역 — 로그인 창 틀(zone)을 가운데 그대로 area 배 · 그 영역이 걸친 칸
   lensBox() { const Z = this._L && this._L.zone; if (!Z) return null; const C = this.LENS_CFG(), cw = this._cw, ch = this._ch, zw = (Z.c1 + 1 - Z.c0) * cw, zh = (Z.r1 + 1 - Z.r0) * ch, W = zw * C.area, H = zh * C.area, cx = Z.c0 * cw + zw / 2, cy = Z.r0 * ch + zh / 2;
@@ -636,7 +636,9 @@ class Component extends DCLogic {
   lensOff(k, w, h) { const M = this._lOff || (this._lOff = {}); let o = M[k]; if (!o) { const cv = document.createElement('canvas'); o = M[k] = { cv, c: cv.getContext('2d') }; } if (o.cv.width !== w || o.cv.height !== h) { o.cv.width = w; o.cv.height = h; } o.c.setTransform(1, 0, 0, 1, 0, 0); o.c.globalAlpha = 1; o.c.globalCompositeOperation = 'source-over'; o.c.filter = 'none'; o.c.clearRect(0, 0, w, h); return o; }
   lensDraw(now) {
     const C = this.LENS_CFG(), S = this.state || {}, R = this._rec;
-    if ((!S.open || this._WP) && this._lensAt && !this._lensOut) this._lensOut = { t0: now, from: this._lensZ || 1, ms: this._WP ? C.warpMs : C.outMs };
+    // 닫기는 거꾸로 — 로그인 줄이 다 사라진 뒤 돋보기가 접힌다. 로그인 성공(전환)은 바로
+    const goneAt = (this._closeAt || 0) + (this._outN || 0) * 20 + this.LT().out;
+    if (this._lensAt && !this._lensOut && (this._WP || (!S.open && now >= goneAt))) this._lensOut = { t0: now, from: this._lensZ || 1, ms: this._WP ? C.warpMs : C.outMs };
     let z = 1;
     if (this._lensOut) { const q = (now - this._lensOut.t0) / this._lensOut.ms; z = 1 + (this._lensOut.from - 1) * (1 - this.easeTrap(q)); if (q >= 1) { this._lensAt = 0; this._lensOut = null; z = 1; } }
     else if (this._lensAt) z = 1 + (C.z - 1) * this.easeTrap((now - this._lensAt) / C.inMs);
