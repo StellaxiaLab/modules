@@ -15,6 +15,7 @@ import { createGatewayTransport } from '../api/transport.js';
 import { loadTopology, loadTopologyState, nodeStats, fmtBytes } from '../api/topology.js';
 import { startPush } from '../api/push.js';
 import { pickMode, connectApp } from '../api/mode.js';
+import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret } from '../api/host-secret.js';
 import * as deskAdapt from '../api/desk-adapt.js';
 import { startAlarms } from '../api/alarms.js';
 import * as netRead from '../api/net-read.js';
@@ -42,13 +43,38 @@ if (MODE !== 'demo') {
       constructor(p) { super(p); TerraLogin.last = this; }
       login() {
         const S = this.state || {};
-        if (MODE === 'app') { if (frame && frame.token()) return this.warpStart(); if (frame) { frame.emit('login'); return; } this.setState({ msg: '셸이 응답하지 않아요 — 셸에서 로그인한 뒤 다시' }); return; }   // A 모드 — 비밀번호를 받지 않는다: 로그인은 감싼 Scene 의 /login 카드가(웹 프로그램 감싸기 설계 §3.3.1)
+        if (MODE === 'app') {   // A 모드 — 비밀번호를 받지 않는다
+          if (frame && frame.token()) return this.warpStart();
+          const sec = hostSecretOf(frame); if (sec) return this.hostLogin(sec);   // 셸이 비밀번호 칸을 준다(§4.9) — 이 보드가 그리고, 값은 셸 칸에서 Scene 으로
+          if (frame) { frame.emit('login'); return; }   // 칸을 모르는 셸 — 감싼 Scene 의 /login 카드가(웹 프로그램 감싸기 설계 §3.3.1)
+          this.setState({ msg: '셸이 응답하지 않아요 — 셸에서 로그인한 뒤 다시' }); return;
+        }
         if (!S.va || !S.vp || this._busy) return super.login();   // 빈 칸 안내는 시안 그대로
         this._busy = true; this.setState({ msg: '확인 중…' });
         session.login(S.va, S.vp)
           .then(() => Promise.race([loadTopology(terra), new Promise((r) => setTimeout(() => r(null), 4000))]))   // 실제 지도 — 전환(워프) 전에 받아 둔다(4초 넘으면 시안 지도로 들어가고 오면 바꾼다)
           .then((topo) => { this._busy = false; if (window.TerraNodes) window.TerraNodes.clear(); if (topo) setTopology(topo); else loadTopology(terra).then((t) => t && setTopology(t)); afterLogin(); super.login(); },   // 로그인 전의 '로그인 전' 답은 지우고 새로   // 됐으면 시안의 전환(워프)
           (e) => { this._busy = false; this.setState({ msg: e.message || '로그인 못 함' }); this.ripAt('login', [255, 120, 110]); });
+      }
+      // A 모드 + 셸 비밀번호 칸 — 빈 칸 안내는 시안 그대로(비밀번호가 비었는지는 셸이 알려 준다), 보내는 것은 비밀이 아닌 값뿐
+      hostLogin(sec) {
+        const S = this.state || {};
+        if (this._busy) return;
+        if (!S.va || sec.state().empty) { this.setState({ msg: !S.va ? 'admin 을 입력하세요' : 'password 를 입력하세요' }); this.ripAt('login', [242, 244, 252]); return; }
+        const attempt = nextAttempt(); this._busy = true; this.setState({ msg: '확인 중…' });
+        const answer = waitHostLogin(frame, attempt);
+        sec.submit({ email: S.va, auto: !!S.autoOn, node: String(S.inst ?? this.props.installed ?? 'Leaf'), attempt });
+        answer.then((r) => {
+          this._busy = false;
+          if (r.ok) { this.warpStart(); return; }   // 토큰이 왔다 — 지도 · 밀어 받기는 frame.onToken 이 시작한다(appSignedIn)
+          this.setState({ msg: r.message }); this.ripAt('login', [255, 120, 110]); sec.focus();   // 다시 칠 자리로
+        });
+      }
+      loginItems() { const it = super.loginItems(), sec = MODE === 'app' && hostSecretOf(frame); return sec ? passwordRowItems(it, sec.state().empty) : it; }
+      renderVals() {
+        const v = super.renderVals(), sec = MODE === 'app' && hostSecretOf(frame);
+        if (sec) { v.inP = () => {}; v.focP = () => sec.focus(); }   // 보드의 숨은 password 칸은 받지 않는다 — Tab 으로 오면 셸 칸으로 넘긴다
+        return v;
       }
     }
     TerraLogin.__terra = true; L.Logic = TerraLogin;
@@ -107,7 +133,8 @@ if (MODE !== 'demo') {
     push = startPush({ terra, store: () => window.TerraNodes, onEvent: () => alarms && alarms.poke() });
   };
   const SC = boardDef('Scene');
-  if (SC && SC.Logic.prototype.sceneLogout && !SC.Logic.__terraOut) { const out = SC.Logic.prototype.sceneLogout; SC.Logic.prototype.sceneLogout = function (...a) { if (MODE === 'app') return appLogout(); if (MODE === 'shell') session.logout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive(); return out.apply(this, a); }; SC.Logic.__terraOut = true; }
+  let sceneOut = null;   // 보드의 원래 로그아웃(로그인 층을 전환을 거꾸로 해 다시 올린다)
+  if (SC && SC.Logic.prototype.sceneLogout && !SC.Logic.__terraOut) { const out = sceneOut = SC.Logic.prototype.sceneLogout; SC.Logic.prototype.sceneLogout = function (...a) { if (MODE === 'app') { const back = !!hostSecretOf(frame) && signedIn(); appLogout(); return back ? out.apply(this, a) : undefined; } if (MODE === 'shell') session.logout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive(); return out.apply(this, a); }; SC.Logic.__terraOut = true; }
   // A 모드의 로그인 · 로그아웃 — 웹은 비밀번호를 받지 않는다. main Scene(scene/)이 감쌌으면 그 껍데기가 로그인을 맡는다:
   //   토큰이 없으면 [로그인] → emit('login') → Scene 의 /login 카드 → Handle → 호스트가 frame 에 새 토큰(또는 / 로 돌아와 frame 을 새로 띄운다)
   //   로그아웃 → emit('logout') — 그 Scene 이 쥔 Handle 이 있을 때만(session.state, node-gui 와 같은 규칙). 셸 세션의 토큰이면 셸에서 로그아웃한다
@@ -129,18 +156,27 @@ if (MODE !== 'demo') {
     if (frame && signedIn()) frame.emit('logout'); else say('셸의 로그인으로 열렸어요 — 로그아웃은 셸에서');
   };
   const appSignedIn = () => { showGate(false); loadTopology(terra).then((t) => t && setTopology(t)); afterLogin(); };
-  // A 모드 — 셸의 init 을 받으면 지도부터. 토큰 없이 왔으면 로그인 문을 띄운다. 셸이 답하지 않으면(15초) 데이터 없이 연다
+  // 셸 비밀번호 칸이 있으면 로그인 문 대신 보드의 로그인 층을 올린다(이미 올라와 있으면 그대로)
+  const showLogin = () => { const sc = window.__terra && window.__terra.scene; if (sc && sceneOut && sc.loginOn && !sc.loginOn()) sceneOut.call(sc); };
+  // A 모드 — 셸의 init 을 받으면 지도부터. 토큰 없이 왔으면 로그인(셸 칸이 있으면 보드의 로그인 층, 없으면 로그인 문)을 띄운다. 셸이 답하지 않으면(15초) 데이터 없이 연다
   if (MODE === 'app') appReady.then((f) => {
     frame = f; if (!f) { say('셸이 응답하지 않아요 — Terra 데이터 없이'); return; }
+    const sec = hostSecretOf(f);
+    if (sec) bindHostSecret({ secret: sec, login: () => window.__terra && window.__terra.login(), scene: () => window.__terra && window.__terra.scene });
     let had = !!f.token();
     if (f.onToken) f.onToken((tok) => {   // 토큰이 바뀌면(다른 사용자 · 로그인 · 로그아웃) 앞의 사본을 버린다
       if (window.TerraNodes) window.TerraNodes.clear();
-      if (tok && !had) appSignedIn(); else if (!tok) { stopLive(); showGate(true); }
+      if (tok && !had) appSignedIn(); else if (!tok) { stopLive(); if (sec) showLogin(); else showGate(true); }
       had = !!tok;
     });
-    if (had) { appSignedIn(); say('앱 모드 — 셸의 앱 토큰'); } else showGate(true);
+    if (had) { appSignedIn(); say('앱 모드 — 셸의 앱 토큰'); } else if (sec) showLogin(); else showGate(true);
   });
 } else say('목업 — Terra 없이 시안 데이터');
 
-const host = mountBoard('Scene', document.getElementById('app'), MODE === 'app' ? { login: false } : {});   // A 모드는 로그인 층 없이 바로 트리 뷰
-window.__terra = { mode: MODE, frame: () => frame, host, scene: host.logic, terra, session, transport, login: () => { const L = boardDef('Login'); return L && L.Logic.last; } };   // 연기 시험 · 개발 도구용
+// A 모드는 셸의 init 을 조금(3초) 기다렸다가 띄운다 — 토큰 없이 셸 비밀번호 칸이 오면 로그인 층부터, 아니면 로그인 층 없이 바로 트리 뷰
+const mount = (props) => {
+  const host = mountBoard('Scene', document.getElementById('app'), props);
+  window.__terra = { mode: MODE, frame: () => frame, host, scene: host.logic, terra, session, transport, login: () => { const L = boardDef('Login'); return L && L.Logic.last; } };   // 연기 시험 · 개발 도구용
+};
+if (MODE === 'app') Promise.race([appReady, new Promise((r) => setTimeout(() => r(null), 3000))]).then((f) => mount(f && hostSecretOf(f) && !f.token() ? {} : { login: false }));
+else mount({});

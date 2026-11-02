@@ -1,14 +1,15 @@
 {
-  "$comment": "엘리먼트는 custom 하나이고 Fragment 루트다 — 셸의 [data-scene-root]:has(> [data-component='terra.web/frame']) 규칙이 틀을 벗겨 창 전체를 준다. terra.web/frame 이 props.app 의 앱을 앱별 origin 의 sandbox iframe 으로 띄우고 스코프 토큰을 건넨다. bind 는 session Store 전체(state · principal)를 웹에 terra.frame.value 로, on 은 웹의 login · logout · launch 를 Function 으로 받는다.",
+  "$comment": "엘리먼트는 custom 하나이고 Fragment 루트다 — 셸의 [data-scene-root]:has(> [data-component='terra.web/frame']) 규칙이 틀을 벗겨 창 전체를 준다. terra.web/frame 이 props.app 의 앱을 앱별 origin 의 sandbox iframe 으로 띄우고 스코프 토큰을 건넨다. bind 는 session Store 전체(state · principal)를 웹에 terra.frame.value 로, on 은 웹의 login · logout · launch 를 Function 으로 받는다. props.secret 은 호스트 비밀번호 칸(웹 프로그램 감싸기 설계 §4.9)을 켠다 — 칸의 값은 signin 이벤트로만 나가고(gui-v3.signin.host), 이 칸을 모르는 이전 Terra 는 props.secret 을 무시한다(웹은 init.features 로 감지해 login → /login 카드로 돌아간다).",
   "schemaVersion": "0.1.0",
   "id": "gui-v3.main",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "renderer": "dom.basic",
   "title": "Terra GUI v3",
   "stores": [
     "session"
   ],
   "functions": [
+    "gui-v3.signin.host",
     "gui-v3.login.open",
     "gui-v3.signout",
     "gui-v3.app.launch"
@@ -18,13 +19,19 @@
     "id": "frame",
     "component": "terra.web/frame",
     "props": {
-      "app": "lab.stellaxia.gui-v3.web"
+      "app": "lab.stellaxia.gui-v3.web",
+      "secret": {
+        "event": "signin"
+      }
     },
     "bind": {
       "store": "session",
       "path": ""
     },
     "on": {
+      "signin": {
+        "function": "gui-v3.signin.host"
+      },
       "login": {
         "function": "gui-v3.login.open"
       },

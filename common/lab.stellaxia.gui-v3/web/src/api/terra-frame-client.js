@@ -18,6 +18,14 @@ export const FRAME_SIGNED_OUT = 'terra.frame.signedOut';
 export const FRAME_REFRESH = 'terra.frame.refresh';
 export const FRAME_VALUE = 'terra.frame.value';
 export const FRAME_EMIT = 'terra.frame.emit';
+/** 호스트 비밀번호 칸(설계 §4.9). frame이 `init.features`에 `secret`을 실었을 때만 쓴다. */
+export const FRAME_SECRET_PLACE = 'terra.frame.secret.place';
+export const FRAME_SECRET_HIDE = 'terra.frame.secret.hide';
+export const FRAME_SECRET_FOCUS = 'terra.frame.secret.focus';
+export const FRAME_SECRET_SUBMIT = 'terra.frame.secret.submit';
+export const FRAME_SECRET_STATE = 'terra.frame.secret.state';
+export const FRAME_SECRET_KEY = 'terra.frame.secret.key';
+export const FRAME_SECRET_SENT = 'terra.frame.secret.sent';
 const DEFAULT_TIMEOUT_MS = 5_000;
 /** frame에 `hello`를 보내고 `init`을 기다린다. */
 export function connectTerra(options = {}) {
@@ -39,8 +47,13 @@ export function connectTerra(options = {}) {
         let value;
         let ids = { appId: '', moduleId: '', sceneId: '', apiBase: '' };
         let waiting = [];
+        let features = [];
+        let secretState = { shown: false, focused: false, empty: true };
         const tokenListeners = new Set();
         const valueListeners = new Set();
+        const secretStateListeners = new Set();
+        const secretKeyListeners = new Set();
+        const secretSentListeners = new Set();
         const setToken = (next, nextPermissions, reason) => {
             token = typeof next === 'string' && next ? next : undefined;
             permissions = Array.isArray(nextPermissions)
@@ -71,6 +84,24 @@ export function connectTerra(options = {}) {
             waiting.push(finish);
             post({ type: FRAME_REFRESH });
         });
+        const place = (rect, placeOptions = {}) => post({
+            type: FRAME_SECRET_PLACE,
+            rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+            ...(placeOptions.style ? { style: { ...placeOptions.style } } : {}),
+            ...(placeOptions.label ? { label: placeOptions.label } : {}),
+            ...(placeOptions.placeholder ? { placeholder: placeOptions.placeholder } : {})
+        });
+        const secret = {
+            place,
+            follow: (element, placeOptions) => follow(element, (rect) => place(rect, placeOptions)),
+            hide: () => post({ type: FRAME_SECRET_HIDE }),
+            focus: () => post({ type: FRAME_SECRET_FOCUS }),
+            submit: (fields = {}) => post({ type: FRAME_SECRET_SUBMIT, fields: { ...fields } }),
+            state: () => ({ ...secretState }),
+            onState: (listener) => subscribe(secretStateListeners, listener),
+            onKey: (listener) => subscribe(secretKeyListeners, listener),
+            onSent: (listener) => subscribe(secretSentListeners, listener)
+        };
         const frame = {
             get appId() {
                 return ids.appId;
@@ -92,12 +123,19 @@ export function connectTerra(options = {}) {
             fetch: (path, init) => sendWithToken(doFetch, ids.apiBase, path, init, () => token, refresh),
             refresh,
             emit: (event, eventValue) => post({ type: FRAME_EMIT, event, value: eventValue }),
+            features: () => features.slice(),
+            get secret() {
+                return features.includes('secret') ? secret : undefined;
+            },
             onToken: (listener) => subscribe(tokenListeners, listener),
             onValue: (listener) => subscribe(valueListeners, listener),
             close: () => {
                 win.removeEventListener('message', listener);
                 tokenListeners.clear();
                 valueListeners.clear();
+                secretStateListeners.clear();
+                secretKeyListeners.clear();
+                secretSentListeners.clear();
             }
         };
         const listener = (event) => {
@@ -119,6 +157,9 @@ export function connectTerra(options = {}) {
                         sceneId: text(data.sceneId),
                         apiBase: text(data.apiBase)
                     };
+                    features = Array.isArray(data.features)
+                        ? data.features.filter((item) => typeof item === 'string')
+                        : [];
                     setToken(data.token, data.permissions, data.reason);
                     if (!connected) {
                         connected = true;
@@ -141,6 +182,22 @@ export function connectTerra(options = {}) {
                 case FRAME_VALUE:
                     if (connected)
                         setValue(data.value);
+                    return;
+                case FRAME_SECRET_STATE:
+                    if (!connected)
+                        return;
+                    secretState = { shown: data.shown === true, focused: data.focused === true, empty: data.empty !== false };
+                    secretStateListeners.forEach((listener) => listener({ ...secretState }));
+                    return;
+                case FRAME_SECRET_KEY:
+                    if (connected && isSecretKey(data.key)) {
+                        const key = data.key;
+                        secretKeyListeners.forEach((listener) => listener(key));
+                    }
+                    return;
+                case FRAME_SECRET_SENT:
+                    if (connected)
+                        secretSentListeners.forEach((listener) => listener());
                     return;
                 default:
                     return;
@@ -183,6 +240,8 @@ function devFrame(options, doFetch) {
         fetch: (path, init) => sendWithToken(doFetch, apiBase, path, init, () => token, renewed),
         refresh: renewed,
         emit: () => undefined,
+        features: () => [],
+        secret: undefined,
         onToken: () => () => undefined,
         onValue: () => () => undefined,
         close: () => undefined
@@ -204,6 +263,59 @@ async function sendWithToken(doFetch, apiBase, path, init, current, refresh) {
     if (!renewed)
         return first;
     return attempt(renewed);
+}
+/**
+ * 요소의 자리를 재어 `place`로 보낸다. 창 크기·스크롤·요소 크기 변화는 한 프레임에 한 번으로 모은다.
+ * 자리가 같으면 보내지 않는다.
+ */
+function follow(element, send) {
+    const view = element.ownerDocument?.defaultView ?? undefined;
+    const raf = view?.requestAnimationFrame
+        ? view.requestAnimationFrame.bind(view)
+        : (run) => setTimeout(run, 16);
+    const caf = view?.cancelAnimationFrame ? view.cancelAnimationFrame.bind(view) : (id) => clearTimeout(id);
+    let last = '';
+    let pending = 0;
+    let stopped = false;
+    const measure = () => {
+        pending = 0;
+        if (stopped)
+            return;
+        const box = element.getBoundingClientRect();
+        const rect = { x: box.left, y: box.top, width: box.width, height: box.height };
+        const key = `${rect.x},${rect.y},${rect.width},${rect.height}`;
+        if (key === last)
+            return;
+        last = key;
+        send(rect);
+    };
+    const schedule = () => {
+        if (!pending && !stopped)
+            pending = raf(measure);
+    };
+    const Observer = view?.ResizeObserver;
+    const observer = Observer ? new Observer(schedule) : undefined;
+    observer?.observe(element);
+    view?.addEventListener('resize', schedule);
+    view?.addEventListener('scroll', schedule, true);
+    measure();
+    return {
+        update: () => {
+            last = '';
+            measure();
+        },
+        stop: () => {
+            stopped = true;
+            if (pending)
+                caf(pending);
+            observer?.disconnect();
+            view?.removeEventListener('resize', schedule);
+            view?.removeEventListener('scroll', schedule, true);
+        }
+    };
+}
+function isSecretKey(value) {
+    return value === 'Enter' || value === 'Tab' || value === 'ShiftTab' || value === 'Escape';
 }
 function subscribe(listeners, listener) {
     listeners.add(listener);
