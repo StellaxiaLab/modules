@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "id": "lab.stellaxia.sample.camera",
+  "name": "Sample RTSP Camera",
+  "version": "0.1.0",
+  "kind": "service",
+  "description": "The reference resourcizer module (Terra resourcizer framework R4): one type, camera.rtsp, turns an RTSP address into an SVI source resource. A user fills its form (address, user, password) in the controller, the node declares the instance, and the module streams the camera's RTP packets as binding frames — to a file sink to record, or to any node a grant allows. It is the source seam's first consumer until remote-view takes that place.",
+  "compatibility": {
+    "products": [
+      "leaf"
+    ],
+    "os": [
+      "linux",
+      "windows"
+    ]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-sample-camera",
+      "linux-arm64": "bin/linux-arm64/terra-sample-camera",
+      "windows-amd64": "bin/windows-amd64/terra-sample-camera.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "lab.stellaxia.sample.camera",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "svi": {
+      "resources": true,
+      "source": true,
+      "resourcizers": true
+    }
+  },
+  "readiness": {
+    "operationId": "lab.stellaxia.sample.camera.status.get",
+    "versionRange": ">=0.1.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}
