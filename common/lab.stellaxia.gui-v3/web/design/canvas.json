@@ -89,7 +89,7 @@
     "NodeStatus.dc.html": {
       "h": 540,
       "is_interactive": true,
-      "title": "상태 창 — 동작 · 자원 · healthcheck (우클릭 › 상태)",
+      "title": "상태 창 — 식별 · 통신 · 자원 · 최근 활동 (우클릭 › 상태)",
       "w": 560,
       "x": 13180,
       "y": 1200
@@ -177,6 +177,14 @@
       "w": 1000,
       "x": 17980,
       "y": 1200
+    },
+    "NodeNet.dc.html": {
+      "h": 720,
+      "is_interactive": true,
+      "title": "네트워크 속성 창 — 주소 · 광고 전송 · 노드 간 연결 (우클릭 › 네트워크)",
+      "w": 680,
+      "x": 13180,
+      "y": 1820
     }
   },
   "createdOnFiles": {
@@ -233,6 +241,7 @@
     "Login.dc.html",
     "StarMaker.dc.html",
     "NodeStatus.dc.html",
+    "NodeNet.dc.html",
     "NodeConf.dc.html",
     "NodeShare.dc.html",
     "ResStatus.dc.html",
