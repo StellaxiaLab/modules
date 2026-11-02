@@ -1117,7 +1117,7 @@ class Component extends DCLogic {
     const Fo = this.off('F', W, H), f = Fo.c, ox0 = OW / 2, oy0 = OH / 2, dpr = Oo.cv.width / OW;
     if (!k) f.drawImage(Oo.cv, (OW - W) / 2 * dpr, (OH - H) / 2 * dpr, W * dpr, H * dpr, 0, 0, W, H);
     else { const T = Math.max(5, Math.round(Math.max(W, H) / 140)), hw = W / 2, hh = H / 2, PB = SEAM ? this.lensPolar(sh) : null, NE = (L.wide || 0) > 1 ? 5 : 2.5;
-      const MP = (x, y) => { const nx = x / hw, ny = y / hh, u = Math.hypot(nx, ny) / PB(Math.atan2(ny, nx)), g = 1 / z + (1 - 1 / z) * Math.pow(Math.min(1, u / 0.86), NE); return [x * g * zO, y * g * zO, u]; };   // 융기 외곽 — 렌즈 점 → O 의 점(가운데 기준) · u   f.imageSmoothingEnabled = true;   // 큰 돋보기는 조각도 크게 — 조각 수를 ~140² 아래로
+      const MP = (x, y) => { const nx = x / hw, ny = y / hh, u = Math.hypot(nx, ny) / PB(Math.atan2(ny, nx)), g = 1 / z + (1 - 1 / z) * Math.pow(Math.min(1, u / 0.86), NE); return [x * g * zO, y * g * zO, u]; }; f.imageSmoothingEnabled = true;   // 융기 외곽 — 렌즈 점 → O 의 점(가운데 기준) · u   · 큰 돋보기는 조각도 크게
       for (let ty = 0; ty < H; ty += T) for (let tx = 0; tx < W; tx += T) {
         const px = tx + T / 2 - hw, py = ty + T / 2 - hh;
         if (SEAM) {   // 렌즈 점 p(형태 경계까지의 비 u)는 p·g 를 본다, g = 1/z + (1 − 1/z)·min(1, u/0.86)ⁿ — 가운데 z 배, 가장자리에서 급히 1 배로. 0.9 넘어서는 같은 그림이라 흐려 이어 붙인다
@@ -1148,7 +1148,7 @@ class Component extends DCLogic {
     c.save(); this.lensPath(c, sh, cx, cy, hw, hh); c.clip(); c.drawImage(FC, X, Y, W, H); c.restore();
     // 틀 — 레거시: 1px 선 · 괄호(사각) 또는 끝점 눈금 · 십자 눈금 · 크기 손잡이
     const LINE = 'rgba(155,166,201,' + (0.6 * e).toFixed(3) + ')', HI = 'rgba(230,234,247,' + e.toFixed(3) + ')';
-    if (!SEAM) { c.lineWidth = 1; c.strokeStyle = this._lensFocus ? HI : LINE; this.lensPath(c, sh, cx, cy, hw - 0.5, hh - 0.5); c.stroke(); }   // 이음 — 테두리 없음
+    if (!SEAM) { c.lineWidth = 1; c.strokeStyle = this._lensFocus ? HI : LINE; this.lensPath(c, sh, cx, cy, hw - 0.5, hh - 0.5); c.stroke(); }   // 융기 외곽 — 테두리 없음
     c.strokeStyle = HI; c.lineWidth = 1.5; const B = Math.min(14, hw / 3);
     if (BIND || SEAM) {}   // 혼합 — 틀은 1px 선만 · 융기 외곽 — 괄호 · 눈금도 없음
     else if (sh.rect) { c.beginPath(); for (const [px, py, dx, dy] of [[cx - hw, cy - hh, 1, 1], [cx + hw, cy - hh, -1, 1], [cx - hw, cy + hh, 1, -1], [cx + hw, cy + hh, -1, -1]]) { c.moveTo(px + dx * B, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * B); } c.stroke(); }
