@@ -2182,7 +2182,7 @@ class Component extends DCLogic {
         const X = (i % cols) * cw, Y = ((i / cols) | 0) * ch; ctx.fillStyle = bgc; ctx.fillRect(X, Y, cw, ch); ctx.fillStyle = css; ctx.fillText(gl, X, Y); if (bold) { ctx.strokeStyle = css; ctx.lineWidth = 0.6; ctx.strokeText(gl, X, Y); } } });
   }
   // ───── 노드 이동 (지도 두 번 누르기) — 떠나기 → 워프 → 도착 [→ 리소스 카메라]. 그동안 마우스 위치 피드백(시차 · 호버 · 시선)은 끄고, 다 끝난 뒤 다시 따라간다 ─────
-  //   떠나기 — 트리 · 리프 뷰: 궤도 사이 빈 틈에 초점을 잡고 궤도가 화면 밖으로 나갈 때까지 확대(1.2초, 절반쯤에서 워프 시작)
+  //   떠나기 — 트리 · 리프 뷰: 궤도 사이 빈 틈에 초점을 잡고 궤도가 화면 밖으로 나갈 때까지 확대(1.2초, 절반쯤에서 워프 시작). 궤도가 없으면(리프 없는 Tree) 천체 옆 빈 곳(gapAround) — 화면 가운데로 확대하면 천체를 뚫는다
   //            리소스 뷰: 먼저 시선을 위로(행성과 겹치지 않게, 0.7초) → 화면 가운데로 확대
   //   도착 — 크기 0 에서 워프 감속(속도 v)에 맞춰 커진다: 배율 = 1 − v. 리소스 뷰로 가면 그 리프 뷰로 도착한 뒤(배율 0.9 쯤) 기존 리소스 진입(카메라 이동)으로 끊김 없이 이어 간다
   // 전환 중인가 — 어떤 전환이든(노드 이동 · 워프 · 궤도 비행 · 트리 초점 이동 · 트리 ↔ 리프 진입 · 나가기 · 리소스 진입 · 나가기 · 뷰 생성) 마우스 피드백(시차 · 시선 · 호버 · 위성 호버)을 끈다. 끝나면 부드럽게 다시 따라감
@@ -2239,11 +2239,12 @@ class Component extends DCLogic {
   // 트리 뷰의 빈 틈 — 초점 트리의 자식 궤도 사이(가장 안쪽은 노드 몸체 바깥 ~ 첫 궤도) 중 화면 안에서 가장 넓은 틈, 각도는 자식 노드에서 가장 먼 쪽
   gapTree() {
     const sys = this.build(), fid = this._focus ? this._focus.id : 0, fn = sys.nodes[fid] || sys.nodes[0], H = this._hits, S = this._lastS; if (!H || !S || !H[fid]) return null;
-    const c = H[fid], kids = sys.nodes.filter((m) => m.parent === fn); if (!kids.length) return null;
+    const c = H[fid], kids = sys.nodes.filter((m) => m.parent === fn), around = () => this.gapAround(c, H.filter((h) => h.vis));   // 궤도 틈이 없으면 — 초점 노드 둘레의 빈 곳
+    if (!kids.length) return around();
     const rs = [...new Set(kids.map((m) => m.orbit))].sort((a, b) => a - b), cand = []; let prev = rs.length > 1 ? rs[0] : c.r / S * 1.8; for (const r of rs) { if (r > prev) cand.push([prev, r]); prev = r; }   // 궤도 사이만 (궤도가 하나면 몸체 ~ 궤도)
     const lim = 0.46 * Math.min(this._sw || this._w, this._sh || this._h); let best = null;
     for (const [a, b] of cand) { const mid = (a + b) / 2 * S, d = (b - a) * S; if (mid > lim) continue; if (!best || d > best.d) best = { mid, d }; }
-    if (!best) return null;
+    if (!best) return around();
     const angs = kids.map((m) => Math.atan2(H[m.id].y - c.y, H[m.id].x - c.x)); let ba = 0, bs = -1;
     for (let k = 0; k < 72; k++) { const a = k / 72 * Math.PI * 2; let s = Math.PI; for (const q of angs) s = Math.min(s, Math.abs(((a - q + Math.PI * 3) % (Math.PI * 2)) - Math.PI)); s += 0.15 * Math.abs(Math.cos(a)); if (s > bs) { bs = s; ba = a; } }
     return { x: c.x + Math.cos(ba) * best.mid, y: c.y + Math.sin(ba) * best.mid, d: best.d };
@@ -2256,6 +2257,15 @@ class Component extends DCLogic {
       if (Pm[0] < 60 || Pm[0] > W - 60 || Pm[1] < 60 || Pm[1] > Hh - 60) continue;
       const d = Math.hypot(P2[0] - P1[0], P2[1] - P1[1]); let near = Math.hypot(PN.sc[0] - Pm[0], PN.sc[1] - Pm[1]) - PN.sr * 1.5; for (const o of PN.pl) near = Math.min(near, Math.hypot(o.x - Pm[0], o.y - Pm[1]) - o.r);   // 항성 · 행성에서 멀리
       const sc = Math.min(d, Math.max(0, near) * 2) * (1 - 0.6 * Math.hypot(Pm[0] - W / 2, Pm[1] - Hh / 2) / Math.hypot(W / 2, Hh / 2)); if (!best || sc > best.sc) best = { sc, x: Pm[0], y: Pm[1], d }; }   // 화면 가운데에 가까운 틈을 더 고른다
+    return best || this.gapAround({ x: PN.sc[0], y: PN.sc[1], r: PN.sr }, PN.pl);   // 행성이 없다(리프 없는 Tree) — 항성 둘레의 빈 곳
+  }
+  // 궤도 틈이 없을 때(리프 없는 Tree 의 리프 뷰 · 자식 궤도 없는 초점) — 천체 b(화면 x · y · 반지름 r) 바깥, 화면 안에서 다른 천체(obs)와 겹치지 않는 빈 곳
+  //   null 이면 navBegin 이 화면 가운데(= 그 천체)로 확대해 천체를 뚫고 지나갔다. 틈 너비 d 는 천체 가장자리에서 그 자리까지의 두 배
+  gapAround(b, obs) {
+    const W = this._sw || this._w, Hh = this._sh || this._h, gap = Math.max(b.r * 0.8, 0.16 * Math.min(W, Hh)), rho = b.r + gap; let best = null;
+    for (let k = 0; k < 48; k++) { const an = k / 48 * Math.PI * 2, x = b.x + Math.cos(an) * rho, y = b.y + Math.sin(an) * rho; if (x < 60 || x > W - 60 || y < 60 || y > Hh - 60) continue;
+      let clr = gap; for (const o of obs || []) if (o !== b && (o.x !== b.x || o.y !== b.y)) clr = Math.min(clr, Math.hypot(o.x - x, o.y - y) - o.r); if (clr <= 0) continue;
+      const sc = clr - 0.3 * Math.hypot(x - W / 2, y - Hh / 2) + 0.15 * gap * Math.abs(Math.cos(an)); if (!best || sc > best.sc) best = { sc, x, y, d: 2 * clr }; }   // 다른 천체에서 멀고 화면 가운데에 가까운 자리 · 옆쪽을 조금 더
     return best;
   }
   // ───── 같은 트리 안의 리프로 — 궤도 비행 (워프 대신, 리소스 뷰에서) ─────
