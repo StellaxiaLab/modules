@@ -1,0 +1,46 @@
+<div class="nn" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
+  <div class="nn-row"><span class="nn-p">&gt;</span><span>netprops</span><b class="nn-v nn-cut">{{name}}</b><span class="nn-k">{{kind}}</span><span style="flex: 1;"></span><span style="color: {{stCol}};">● {{status}}</span><span class="nn-k">·</span><span class="nn-k">중계</span><span style="color: {{relayCol}};">{{relayT}}</span></div>
+  <div class="nn-row nn-k">세대 {{gen}} · 경로 그래프 {{epoch}} · WireGuard 보고 {{reported}} · {{src}}</div>
+  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="nn-note">{{note}}</div></sc-if>
+
+  <h3 class="nn-h"><span class="nn-hl"></span>주소<span class="nn-hr"></span><span class="nn-k">값 · 어디서 왔나</span></h3>
+  <sc-for list="{{addrs}}" as="a" hint-placeholder-count="9">
+    <div class="nn-addr" title="{{a.hint}}"><span class="nn-k">{{a.k}}</span><span class="nn-v nn-cut nn-sel" style="color: {{a.col}};">{{a.v}}</span><span class="nn-k nn-cut" title="{{a.src}}">{{a.src}}</span></div>
+  </sc-for>
+  <div class="nn-addr"><span class="nn-k">NAT 매핑</span><span class="nn-cut">{{nat}}</span><span class="nn-k nn-cut" title="{{stun}}">STUN {{stun}}</span></div>
+
+  <h3 class="nn-h"><span class="nn-hl"></span>사설망<span class="nn-hr"></span><span class="nn-k">{{netSum}}</span></h3>
+  <div class="nn-net nn-dim"><span>이름</span><span>CIDR</span><span>게이트웨이</span><span>DNS</span><span>이 노드</span></div>
+  <sc-for list="{{nets}}" as="n" hint-placeholder-count="1">
+    <div class="nn-net"><span class="nn-cut">{{n.name}}</span><span>{{n.cidr}}</span><span>{{n.gw}}</span><span class="nn-cut">{{n.dns}}</span><b class="nn-v">{{n.ip}}</b></div>
+  </sc-for>
+
+  <h3 class="nn-h"><span class="nn-hl"></span>광고 중인 전송<span class="nn-hr"></span><span class="nn-k">{{capSum}}</span></h3>
+  <div class="nn-cap nn-dim"><span>adapter</span><span>닿는 곳</span><span>endpoint</span><span>상태</span><span>출처</span></div>
+  <sc-for list="{{caps}}" as="c" hint-placeholder-count="3">
+    <div class="nn-cap"><b class="nn-v">{{c.ad}}</b><span>{{c.reach}}</span><span class="nn-cut nn-sel" title="{{c.ep}}">{{c.ep}}</span><span style="color: {{c.col}};">{{c.st}}</span><span class="nn-k nn-cut">{{c.from}}</span></div>
+  </sc-for>
+
+  <h3 class="nn-h"><span class="nn-hl"></span>다른 노드와의 연결<span class="nn-hr"></span><span class="nn-k">{{linkSum}}</span></h3>
+  <div class="nn-legend">고르는 순서 — mesh 직결(WireGuard) → LAN 직결(TCP) → WebRTC P2P → Master 중계(정책이 허용할 때). 줄을 누르면 자세히</div>
+  <div class="nn-link nn-dim" style="cursor: default;"><span></span><span>노드</span><span>지금 경로</span><span>adapter</span><span>지연</span><span>근거</span></div>
+  <sc-for list="{{links}}" as="l" hint-placeholder-count="3">
+    <button type="button" class="nn-link" aria-expanded="{{l.exp}}" onClick="{{l.toggle}}"><span style="color: {{l.col}}; font-weight: 700;">{{l.mark}}</span><span class="nn-cut">{{l.peer}}</span><b style="color: {{l.col}};">{{l.rt}}</b><span class="nn-k">{{l.ad}}</span><span>{{l.lat}}</span><span class="nn-k nn-cut">{{l.from}}</span></button>
+    <sc-if value="{{l.open}}" hint-placeholder-val="{{ false }}">
+      <div class="nn-det">
+        <div class="nn-dl">
+          <sc-for list="{{l.rows}}" as="d" hint-placeholder-count="4"><span class="nn-k">{{d.k}}</span><span class="nn-cut" title="{{d.v}}" style="color: {{d.col}};">{{d.v}}</span></sc-for>
+        </div>
+        <div class="nn-row" style="margin-top: 4px;"><button type="button" class="nn-btn" disabled="{{l.candOff}}" onClick="{{l.loadCand}}">{{l.candT}}</button><span class="nn-k">{{l.candNote}}</span></div>
+        <sc-for list="{{l.cands}}" as="q" hint-placeholder-count="0">
+          <div class="nn-cand"><span style="color: {{q.col}};">{{q.mark}}</span><span>{{q.rt}}</span><span class="nn-k">{{q.ad}}</span><span>{{q.lat}}</span><span class="nn-k nn-cut" title="{{q.why}}">{{q.why}}</span></div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </sc-for>
+  <sc-if value="{{noLinks}}" hint-placeholder-val="{{ false }}"><div class="nn-k">연결 기록 없음 — 경로 그래프 · WireGuard 쌍 · 세션 어디에도 이 노드가 없다</div></sc-if>
+
+  <h3 class="nn-h"><span class="nn-hl"></span>Terra 가 보고하지 않는 것<span class="nn-hr"></span></h3>
+  <sc-for list="{{gaps}}" as="g" hint-placeholder-count="3"><div class="nn-gap">· {{g.t}}</div></sc-for>
+  <div class="nn-row" style="margin-top: 6px;"><span class="nn-p">&gt;</span><span class="nn-cur"></span></div>
+</div>

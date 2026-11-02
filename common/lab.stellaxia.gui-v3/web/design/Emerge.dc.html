@@ -51,11 +51,18 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <canvas data-part="{{pt.id}}" role="img" aria-label="{{pt.text}}" style="position: absolute; left: {{pt.left}}; top: {{pt.top}}; width: {{pt.w}}; height: {{pt.h}}; z-index: {{pt.z}}; visibility: {{pt.vis}}; pointer-events: none"></canvas>
 </sc-for>
 <canvas data-field="emerge" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 1"></canvas>
+<canvas data-lens="emerge" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 3"></canvas>
+<div data-lens-hit="1" role="region" tabindex="0" aria-label="{{lens.aria}}" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Plus Minus Escape" onPointerDown="{{lens.down}}" onPointerMove="{{lens.move}}" onPointerUp="{{lens.up}}" onPointerCancel="{{lens.up}}" onWheel="{{lens.wheel}}" onKeyDown="{{lens.key}}" onDoubleClick="{{lens.dbl}}" onFocus="{{lens.focus}}" onBlur="{{lens.blur}}" style="display: {{lens.disp}}; position: absolute; left: {{lens.left}}; top: {{lens.top}}; width: {{lens.w}}; height: {{lens.h}}; z-index: 3; border-radius: {{lens.br}}; cursor: {{lens.cursor}}; touch-action: none; outline-offset: 3px"></div>
 
-<section aria-label="융기 단계" onPointerDown="{{stopProp}}" style="position: absolute; left: 32px; bottom: 32px; z-index: 3; width: 320px; box-sizing: border-box; padding: 16px; border-radius: 10px; background: #040614; border: 1px solid #1c2442; display: flex; flex-direction: column; gap: 12px; cursor: default">
+<section aria-label="융기 단계" onPointerDown="{{stopProp}}" style="position: absolute; left: 32px; bottom: 32px; z-index: 4; width: 320px; box-sizing: border-box; padding: 16px; border-radius: 10px; background: #040614; border: 1px solid #1c2442; display: flex; flex-direction: column; gap: 12px; cursor: default">
 <div style="display: flex; align-items: baseline; justify-content: space-between">
 <h1 style="margin: 0; font-size: 14px; font-weight: 600">{{heading}}</h1>
 <span style="font-family: GmarketSans, 'Geist Mono', monospace; font-size: 11.5px; color: #7682ab">{{total}}</span>
+</div>
+<div role="group" aria-label="돋보기" style="display: flex; gap: 4px; align-items: center">
+<button class="type {{lp.cls}}" type="button" aria-pressed="{{lp.pressed}}" onClick="{{lp.toggle}}" style="flex: 0 0 auto; padding: 0 10px">돋보기</button>
+<sc-for list="{{lp.zs}}" as="lz" hint-placeholder-count="4"><button class="type {{lz.cls}}" type="button" aria-pressed="{{lz.pressed}}" aria-label="{{lz.label}}" onClick="{{lz.pick}}" disabled="{{lp.off}}">{{lz.name}}</button></sc-for>
+<sc-for list="{{lp.shapes}}" as="ls" hint-placeholder-count="2"><button class="type {{ls.cls}}" type="button" aria-pressed="{{ls.pressed}}" aria-label="{{ls.label}}" onClick="{{ls.pick}}" disabled="{{lp.off}}">{{ls.name}}</button></sc-for>
 </div>
 <div role="group" aria-label="컴포넌트 종류" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px">
 <sc-for list="{{kinds}}" as="kd" hint-placeholder-count="4">
@@ -508,6 +515,8 @@ class Component extends DCLogic {
     this._w = w; this._h = h;
     { const uc = document.querySelector('canvas[data-under="emerge"]');
       if (uc) { this._ucv = uc; this._uctx = uc.getContext('2d'); uc.width = Math.round(w * dpr); uc.height = Math.round(h * dpr); this._uctx.setTransform(dpr, 0, 0, dpr, 0, 0); } }
+    { const lc = document.querySelector('canvas[data-lens="emerge"]');   // 돋보기 — 같은 크기 · 배율
+      if (lc) { this._lcv = lc; this._lctx = lc.getContext('2d'); lc.width = Math.round(w * dpr); lc.height = Math.round(h * dpr); this._lctx.setTransform(dpr, 0, 0, dpr, 0, 0); } }
     this._bg = null;
     this.drawField(performance.now(), true);
   }
@@ -869,10 +878,12 @@ class Component extends DCLogic {
     }
     // 지운 칸은 바탕까지 비운다 — 그 아래(컴포넌트 · 어둡게 깐 글자)가 보인다
     for (let k = 0; k < holes.length; k++) { const i = holes[k]; ctx.clearRect((i % cols) * this._cw, ((i / cols) | 0) * this._ch, this._cw, this._ch); }
+    const LR = this.lensRec(cols * rows);   // 돋보기 — 이번 프레임에 칸마다 그린 글자 · 색 · 굵기
     buckets.forEach((list, key) => {
       const s = styleOf(key);
       ctx.fillStyle = 'rgba(' + Math.round(s[0]) + ',' + Math.round(s[1]) + ',' + Math.round(s[2]) + ',' + s[3].toFixed(3) + ')';
-      for (let k = 0; k < list.length; k++) { const i = list[k]; ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); }
+      const fs = ctx.fillStyle;
+      for (let k = 0; k < list.length; k++) { const i = list[k]; ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); if (LR) { LR.f[i] = LR.n; LR.c[i] = fs; LR.g[i] = G[g[i]]; LR.b[i] = 0; } }
     });
     // 텍스트 칸: 지금 색 → 데이터 색 (HSV 선형). 갱신 간격은 p 가 오를수록 짧아지고, p = 1 에서 데이터 글자로 멈춘다
     if (dataDraw.length) {
@@ -907,6 +918,7 @@ class Component extends DCLogic {
         if (glyph === '') continue;
         ctx.fillStyle = 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';
         ctx.fillText(glyph, (i % cols) * this._cw, ((i / cols) | 0) * this._ch);
+        if (LR) { LR.f[i] = LR.n; LR.c[i] = ctx.fillStyle; LR.g[i] = glyph; LR.b[i] = 0; }
       }
     }
     // 투영 칸: 지금 보이는 색(바탕 위에 겹친 색)에서 원본 색으로 HSV 선형 보간 — 마스크 컴포넌트는 볼드
@@ -921,8 +933,116 @@ class Component extends DCLogic {
       if (gl > 0.02) { const h = this.rgb2hsv(c[0], c[1], c[2]); c = this.hsv2rgb(h[0], h[1] * (1 - 0.25 * gl), Math.min(1, Math.max(h[2], 0.25) + gl * 0.6)); }
       ctx.fillStyle = 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')';
       ctx.fillText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.strokeText(G[g[i]], (i % cols) * this._cw, ((i / cols) | 0) * this._ch);
+      if (LR) { LR.f[i] = LR.n; LR.c[i] = ctx.fillStyle; LR.g[i] = G[g[i]]; LR.b[i] = 1; }
     }
     ctx.font = FONT_N2;
+    for (let k = 0; k < holes.length; k++) if (LR) LR.f[holes[k]] = 0;   // 지운 칸 — 돋보기에서도 비어 있다
+    this.drawLens(now);
+  }
+
+  // ───── 돋보기 — 일정 구역을 확대하는 컴포넌트 ─────
+  // 글자 장의 한 구역을 z 배로 — 비트맵을 늘리지 않고, 이번 프레임에 그 칸들에 그린 글자 · 색을 z 배 칸으로 다시 쓴다(또렷하다).
+  //   바탕은 아래 캔버스(마스크 원본 · 어둡게 깐 글자)를 z 배로 늘려 깐다. 지운 칸은 돋보기 안에서도 비어 있다
+  //   틀 = 레거시 1px 선 + 네 모서리 괄호 · 가운데 십자 눈금 · 오른쪽 아래 크기 손잡이. 머리 = '돋보기 ×z' · 보는 칸(열 · 행)
+  //   열기 · 닫기 = 가운데에서 펼쳐지며(220ms) 안의 글자가 랜덤 갱신하다 제 글자로 멈춘다(닫기는 거꾸로)
+  //   다루기 = 끌어 옮김 · 오른쪽 아래 모서리 끌어 크기 · 휠 · + − 배율 · 두 번 누름 = 배율 차례로 · 화살표 옮김(Shift = 크게) · Esc 닫기
+  LENS_Z() { return [1.5, 2, 3, 4, 6]; }
+  LENS() { return this.state.lens || { on: false, x: 0.7, y: 0.36, w: 300, h: 210, z: 3, shape: '사각' }; }
+  setLens(p) { const L = Object.assign({}, this.LENS(), p); L.w = Math.max(120, Math.min(this._w ? this._w * 0.9 : 900, L.w)); L.h = Math.max(90, Math.min(this._h ? this._h * 0.9 : 700, L.h)); if (L.shape === '원') L.h = L.w; this.setState({ lens: L }); }
+  lensToggle(on) {
+    const L = this.LENS(); on = on ?? !L.on; if (on === L.on && !(this._lensA && this._lensA.dir)) return;
+    this._lensA = { t0: performance.now(), dir: on ? 1 : -1 }; this.setLens({ on });
+  }
+  /** 이번 프레임 기록 — 칸마다 f(그린 프레임) · c(색) · g(글자) · b(볼드). 돋보기가 보이지 않으면 기록하지 않는다 */
+  lensRec(n) {
+    const L = this.LENS(), A = this._lensA; if (!L.on && !(A && A.dir < 0)) return null;
+    let R = this._lr; if (!R || R.f.length !== n) R = this._lr = { f: new Uint32Array(n), c: new Array(n), g: new Array(n), b: new Uint8Array(n), n: 0 };
+    R.n = (R.n + 1) >>> 0 || 1; return R;
+  }
+  drawLens(now) {
+    const cv = this._lcv || (this._lcv = document.querySelector('canvas[data-lens="emerge"]')); if (!cv) return;
+    const c = this._lctx || (this._lctx = cv.getContext('2d')), L = this.LENS(), A = this._lensA, R = this._lr;
+    c.clearRect(0, 0, this._w, this._h);
+    let a = L.on ? 1 : 0;
+    if (A) { const p = Math.min(1, (now - A.t0) / 220); a = A.dir > 0 ? p : 1 - p; if (p >= 1) this._lensA = null; }
+    if (a <= 0 || !R) return;
+    const e = a < 1 ? 1 - Math.pow(1 - a, 3) : 1, z = L.z, W = L.w, H = L.h, X = L.x * this._w - W / 2, Y = L.y * this._h - H / 2, cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows;
+    const RW = W * e, RH = H * e, rx = X + (W - RW) / 2, ry = Y + (H - RH) / 2, round = L.shape === '원';
+    // 보는 구역(원래 좌표) — 돋보기 가운데를 중심으로 W/z × H/z
+    const sw = W / z, sh = H / z, sx = L.x * this._w - sw / 2, sy = L.y * this._h - sh / 2;
+    c.save(); c.beginPath(); if (round) c.arc(rx + RW / 2, ry + RH / 2, Math.min(RW, RH) / 2, 0, Math.PI * 2); else c.rect(rx, ry, RW, RH); c.clip();
+    c.fillStyle = '#040614'; c.fillRect(rx, ry, RW, RH);
+    const uc = this._ucv; if (uc) { const k = uc.width / this._w; c.globalAlpha = 0.9; c.imageSmoothingEnabled = true; c.drawImage(uc, sx * k, sy * k, sw * k, sh * k, X, Y, W, H); c.globalAlpha = 1; }
+    // 컴포넌트(DOM · 자기 캔버스)도 z 배로 — 글자 장 뒤에 있으면 글자 아래(지운 칸으로만 보임), 맨 위면 글자 위
+    const comp = this._compEl && this._compEl.isConnected ? this._compEl : document.querySelector('[data-comp]'), compTop = comp && +(comp.style.zIndex || 0) >= 2;
+    const domPaint = () => { const root = cv.parentElement, rr = root && root.getBoundingClientRect(); if (!rr) return;
+      const toL = (b) => [X + (b.left - rr.left - sx) * z, Y + (b.top - rr.top - sy) * z, b.width * z, b.height * z];
+      const vis = (el) => el && el.isConnected && getComputedStyle(el).visibility !== 'hidden' && getComputedStyle(el).display !== 'none';
+      if (vis(comp)) this.lensDom(c, comp, toL, z);
+      for (const pc of document.querySelectorAll('canvas[data-part]')) if (vis(pc) && pc.width) { const [lx, ly, lw, lh] = toL(pc.getBoundingClientRect()); c.drawImage(pc, lx, ly, lw, lh); } };
+    if (!compTop) domPaint();
+    const fz = Math.round(this._cs * 0.86 * z), x0 = Math.max(0, Math.floor(sx / cw)), x1 = Math.min(cols - 1, Math.ceil((sx + sw) / cw)), y0 = Math.max(0, Math.floor(sy / ch)), y1 = Math.min(rows - 1, Math.ceil((sy + sh) / ch));
+    const G = this._glyphs, FN = fz + 'px GmarketSans, "Geist Mono", monospace'; c.textBaseline = 'top'; let bold = -1;
+    for (let yy = y0; yy <= y1; yy++) for (let xx = x0; xx <= x1; xx++) {
+      const i = yy * cols + xx; if (R.f[i] !== R.n) continue;
+      let gl = R.g[i]; if (a < 1 && this._jit[i] > e) gl = G[(Math.random() * G.length) | 0];   // 펼쳐지는 동안 — 랜덤 갱신하다 제 글자로
+      if (R.b[i] !== bold) { bold = R.b[i]; c.font = (bold ? '700 ' : '500 ') + FN; }
+      c.fillStyle = R.c[i]; c.fillText(gl, X + (xx * cw - sx) * z, Y + (yy * ch - sy) * z);
+    }
+    if (compTop) domPaint();
+    c.restore();
+    // 틀 — 레거시: 1px 선 · 네 모서리 괄호 · 가운데 십자 눈금 · 크기 손잡이
+    const LINE = 'rgba(155,166,201,' + (0.55 * e).toFixed(3) + ')', HI = 'rgba(230,234,247,' + e.toFixed(3) + ')', foc = this._lensFocus;
+    c.lineWidth = 1; c.strokeStyle = foc ? HI : LINE; c.beginPath();
+    if (round) c.arc(rx + RW / 2, ry + RH / 2, Math.min(RW, RH) / 2 - 0.5, 0, Math.PI * 2); else c.rect(rx + 0.5, ry + 0.5, RW - 1, RH - 1); c.stroke();
+    c.strokeStyle = HI; c.lineWidth = 1.5; const B = Math.min(14, RW / 5);
+    if (!round) { c.beginPath(); for (const [px, py, dx, dy] of [[rx, ry, 1, 1], [rx + RW, ry, -1, 1], [rx, ry + RH, 1, -1], [rx + RW, ry + RH, -1, -1]]) { c.moveTo(px + dx * B, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * B); } c.stroke(); }
+    const mx = rx + RW / 2, my = ry + RH / 2; c.lineWidth = 1; c.strokeStyle = 'rgba(230,234,247,' + (0.35 * e).toFixed(3) + ')'; c.beginPath(); c.moveTo(mx - 6, my + 0.5); c.lineTo(mx - 2, my + 0.5); c.moveTo(mx + 2, my + 0.5); c.lineTo(mx + 6, my + 0.5); c.moveTo(mx + 0.5, my - 6); c.lineTo(mx + 0.5, my - 2); c.moveTo(mx + 0.5, my + 2); c.lineTo(mx + 0.5, my + 6); c.stroke();
+    if (e > 0.9) { const hx = round ? rx + RW / 2 + RW * 0.354 : rx + RW, hy = round ? ry + RH / 2 + RH * 0.354 : ry + RH; c.fillStyle = HI; c.beginPath(); c.moveTo(hx - 1, hy - 10); c.lineTo(hx - 1, hy - 1); c.lineTo(hx - 10, hy - 1); c.closePath(); c.fill(); }
+    // 머리 — 틀 위 왼쪽에 '돋보기 ×z', 오른쪽에 보는 칸(열 · 행)
+    if (e > 0.6) { c.font = '500 11px GmarketSans, "Geist Mono", monospace'; c.textBaseline = 'alphabetic'; const ty = ry - 6;
+      c.fillStyle = HI; c.fillText('돋보기 ×' + z, rx, ty);
+      const t2 = 'c ' + Math.round(L.x * this._w / cw) + ' · r ' + Math.round(L.y * this._h / ch); c.fillStyle = 'rgba(118,130,171,' + e.toFixed(3) + ')'; c.fillText(t2, rx + RW - c.measureText(t2).width, ty); }
+  }
+  /** DOM 한 덩이를 돋보기 캔버스에 z 배로 — 바탕 · 테 · 둥근 모서리 · 글자 · 안의 캔버스. 단순한 컴포넌트(사각 카드 · 글자 캔버스)를 위한 것 */
+  lensDom(c, el, toL, z) {
+    const walk = (n) => {
+      if (n.nodeType === 3) { const t = n.textContent.trim(); if (!t) return; const pe = n.parentElement, cs = getComputedStyle(pe); if (cs.visibility === 'hidden' || cs.display === 'none') return;
+        const rg = document.createRange(); rg.selectNodeContents(n); const b = rg.getBoundingClientRect(); if (!b.width) return; const [lx, ly] = toL(b);
+        c.font = cs.fontWeight + ' ' + parseFloat(cs.fontSize) * z + 'px ' + cs.fontFamily; c.fillStyle = cs.color; c.textBaseline = 'top'; c.fillText(t, lx, ly + (b.height * z - parseFloat(cs.fontSize) * z) / 2); return; }
+      if (n.nodeType !== 1) return; const cs = getComputedStyle(n); if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      if (n.tagName === 'CANVAS') { if (n.width) { const [lx, ly, lw, lh] = toL(n.getBoundingClientRect()); c.drawImage(n, lx, ly, lw, lh); } return; }
+      const b = n.getBoundingClientRect(), [lx, ly, lw, lh] = toL(b), rad = (parseFloat(cs.borderTopLeftRadius) || 0) * z, bg = cs.backgroundColor, bw = parseFloat(cs.borderTopWidth) || 0;
+      const box = () => { c.beginPath(); if (c.roundRect) c.roundRect(lx, ly, lw, lh, rad); else c.rect(lx, ly, lw, lh); };
+      if (bg && !/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) { box(); c.fillStyle = bg; c.fill(); }
+      if (bw > 0 && cs.borderTopStyle !== 'none') { box(); c.lineWidth = bw * z; c.strokeStyle = cs.borderTopColor; c.stroke(); }
+      for (const k of n.childNodes) walk(k);
+    };
+    c.save(); c.globalAlpha = (parseFloat(getComputedStyle(el).opacity) || 1); walk(el); c.restore();
+  }
+  lensVals() {
+    const L = this.LENS(), A = this._lensA, shown = L.on || !!(A && A.dir < 0), Z = this.LENS_Z(), step = (d) => { const i = Z.indexOf(L.z); this.setLens({ z: Z[Math.max(0, Math.min(Z.length - 1, (i < 0 ? 2 : i) + d))] }); };
+    const W = this._w || 1, H = this._h || 1, at = (e) => { const r = e.currentTarget.parentElement.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    return {
+      lens: { disp: L.on ? 'block' : 'none', left: 'calc(' + (L.x * 100).toFixed(3) + '% - ' + L.w / 2 + 'px)', top: 'calc(' + (L.y * 100).toFixed(3) + '% - ' + L.h / 2 + 'px)', w: L.w + 'px', h: L.h + 'px', br: L.shape === '원' ? '50%' : '0',
+        cursor: this._lensDrag ? (this._lensDrag.size ? 'nwse-resize' : 'grabbing') : 'grab', aria: '돋보기 ×' + L.z + ' — 끌어 옮기기 · 휠 또는 + − 로 배율 · 화살표로 옮기기 · Esc 닫기',
+        down: (e) => { e.stopPropagation(); const [px, py] = at(e), cx = L.x * W, cy = L.y * H, sz = px > cx + L.w / 2 - 18 && py > cy + L.h / 2 - 18; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} e.currentTarget.focus && e.currentTarget.focus();
+          this._lensDrag = { px, py, x: L.x, y: L.y, w: L.w, h: L.h, size: sz }; this.setState({}); },
+        move: (e) => { const D = this._lensDrag; if (!D) return; const [px, py] = at(e), dx = px - D.px, dy = py - D.py;
+          if (D.size) this.setLens({ w: D.w + dx * 2, h: D.h + dy * 2 }); else this.setLens({ x: Math.max(0, Math.min(1, D.x + dx / W)), y: Math.max(0, Math.min(1, D.y + dy / H)) }); },
+        up: (e) => { this._lensDrag = null; try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (x) {} this.setState({}); },
+        wheel: (e) => { e.preventDefault(); step(e.deltaY < 0 ? 1 : -1); },
+        focus: () => { this._lensFocus = true; }, blur: () => { this._lensFocus = false; },
+        dbl: (e) => { e.stopPropagation(); const i = Z.indexOf(L.z); this.setLens({ z: Z[(i + 1) % Z.length] }); },
+        key: (e) => { const k = e.key, m = e.shiftKey ? 40 : 8;
+          if (k === 'Escape') { e.preventDefault(); this.lensToggle(false); return; }
+          if (k === '+' || k === '=') { e.preventDefault(); step(1); return; } if (k === '-' || k === '_') { e.preventDefault(); step(-1); return; }
+          const d = { ArrowLeft: [-m, 0], ArrowRight: [m, 0], ArrowUp: [0, -m], ArrowDown: [0, m] }[k]; if (d) { e.preventDefault(); this.setLens({ x: Math.max(0, Math.min(1, L.x + d[0] / W)), y: Math.max(0, Math.min(1, L.y + d[1] / H)) }); } } },
+      lp: { cls: L.on ? 'sel' : '', pressed: L.on ? 'true' : 'false', toggle: () => this.lensToggle(), off: !L.on,
+        zs: Z.map((z) => ({ name: '×' + z, label: z + '배', cls: L.z === z ? 'sel' : '', pressed: L.z === z ? 'true' : 'false', pick: () => this.setLens({ z }) })),
+        shapes: [['사각', '▢'], ['원', '◯']].map(([k, n]) => ({ name: n, label: k + ' 돋보기', cls: L.shape === k ? 'sel' : '', pressed: L.shape === k ? 'true' : 'false', pick: () => this.setLens({ shape: k }) })) },
+      _shown: shown,
+    };
   }
 
   // ───── 화면 값 ─────
@@ -934,7 +1054,9 @@ class Component extends DCLogic {
       no: s.no, name: out ? s.back : s.name, ms: plan[k].on ? Math.round(plan[k].dur) + 'ms' : '생략',
       cls: !plan[k].on ? 'off' : S.cur === k ? 'now' : 'on'
     }));
+    const LV = this.lensVals();
     return {
+      lens: LV.lens, lp: LV.lp,
       stages: DT ? (() => { const Dp = this.dataPlan(); return [
         { no: '1', name: (out ? '삭제 — ' : '생성 — ') + ({ '랜덤 갱신': out ? '갱신하다 빈칸으로' : '갱신하다 데이터로', '명도 번짐': out ? '명도를 낮춰 빈칸으로' : '명도만 HSV 로 (발광 없음)', '발광': out ? '빛난 뒤 빈칸으로' : '빛난 뒤 데이터로' })[this.TMOTION()], ms: Math.round(Dp.spread) + 'ms', cls: S.cur === 0 ? 'now' : 'on' },
         { no: '·', name: '글자 하나' + (this.TMOTION() === '랜덤 갱신' ? ' (HSV · 갱신 ' + this.TCURVE() + ')' : this.TMOTION() === '발광' ? ' (발광)' : ' (HSV)'), ms: Math.round(Dp.cellDur) + 'ms', cls: 'on' }]; })()

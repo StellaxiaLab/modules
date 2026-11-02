@@ -152,20 +152,22 @@ button{font-family:inherit}
             <sc-if value="{{w.isTerm}}" hint-placeholder-val="{{ false }}">
               <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; background: {{t.term}};">
                 <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid {{t.line}}; font-size: 11.5px; color: {{t.dim}};">
-                  <span style="color: #3ecf8e;">●</span>
-                  <span>Terra 연결</span>
-                  <span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">{{node.acct}}@{{node.name}}</span>
+                  <span style="color: {{w.tDot}};">●</span>
+                  <span>{{w.tLabel}}</span>
                   <span style="flex-grow: 1;"></span>
-                  <span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid rgba(122,167,255,.5); border-radius: 10px; background: rgba(122,167,255,.10); color: #7aa7ff; font-size: 11px;">process.execute</span>
+                  <span style="color: #f5b83d;">{{w.tBusy}}</span>
+                  <span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid rgba(122,167,255,.5); border-radius: 10px; background: rgba(122,167,255,.10); color: #7aa7ff; font-size: 11px;">{{w.tBadge}}</span>
                 </div>
-                <div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 8px 12px; gap: 1px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12.5px; line-height: 1.5;">
-                  <sc-for list="{{w.lines}}" as="ln" hint-placeholder-count="6">
-                    <div style="white-space: pre-wrap; word-break: break-all; color: {{ln.c}};">{{ln.t}}</div>
-                  </sc-for>
+                <div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column-reverse; padding: 8px 12px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12.5px; line-height: 1.5;">
+                  <div style="display: flex; flex-direction: column; gap: 1px;">
+                    <sc-for list="{{w.lines}}" as="ln" hint-placeholder-count="6">
+                      <div style="white-space: pre-wrap; word-break: break-all; color: {{ln.c}};">{{ln.t}}</div>
+                    </sc-for>
+                  </div>
                 </div>
                 <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid {{t.line}}; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12.5px;">
-                  <span style="color: #3ecf8e;">{{node.acct}}@{{node.name}}:~$</span>
-                  <input type="text" aria-label="명령 입력" value="{{w.input}}" onInput="{{w.onInput}}" onKeyDown="{{w.onKey}}" placeholder="help" spellcheck="false" autocomplete="off" style="flex-grow: 1; min-width: 0; height: 24px; border: 0; outline: 0; background: transparent; color: {{t.ink}}; font: inherit;">
+                  <span style="color: {{w.tDot}}; flex-shrink: 0;">{{w.prompt}}</span>
+                  <input type="text" aria-label="명령 입력" autofocus value="{{w.input}}" onInput="{{w.onInput}}" onKeyDown="{{w.onKey}}" placeholder="{{w.ph}}" spellcheck="false" autocomplete="off" style="flex-grow: 1; min-width: 0; height: 24px; border: 0; outline: 0; background: transparent; color: {{t.ink}}; font: inherit;">
                 </div>
               </div>
             </sc-if>
@@ -190,7 +192,7 @@ button{font-family:inherit}
                   </div>
                   <div style="flex-grow: 1; min-height: 0; overflow-y: auto; padding: 6px 8px; display: flex; flex-direction: column; gap: 1px;">
                     <sc-for list="{{w.items}}" as="it" hint-placeholder-count="4">
-                      <button type="button" onClick="{{it.pick}}" style="display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 0; border-radius: 7px; background: {{it.bg}}; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">
+                      <button type="button" onClick="{{it.pick}}" onContextMenu="{{it.ctx}}" style="display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 0; border-radius: 7px; background: {{it.bg}}; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">
                         <span style="position: relative; width: 20px; height: 20px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: {{it.fg}};">
                           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{it.d}}"/></svg>
                         </span>
@@ -203,6 +205,7 @@ button{font-family:inherit}
                   <div style="flex-shrink: 0; box-sizing: border-box; min-height: 56px; padding: 8px 12px; border-top: 1px solid {{t.line}}; display: flex; align-items: center; gap: 12px; font-size: 12px; color: {{t.sub}};">
                     <span style="flex-grow: 1; line-height: 1.45;">{{w.detail}}</span>
                     <sc-if value="{{w.openOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.openRun}}" disabled="{{w.openDis}}" title="{{w.openTip}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">{{w.openLabel}}</button></sc-if>
+                    <sc-if value="{{w.mkResOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.mkRes}}" disabled="{{w.mkResOff}}" title="{{w.mkResTip}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">자원으로 만들기</button></sc-if>
                     <button type="button" onClick="{{w.remove}}" disabled="{{w.noPick}}" style="height: 28px; padding: 0 10px; border: 1px solid {{w.rmBd}}; border-radius: 9px; background: transparent; color: {{w.rmFg}}; font-size: 12px; cursor: pointer;">{{w.rmLabel}}</button>
                   </div>
                 </div>
@@ -609,10 +612,10 @@ button{font-family:inherit}
       </div>
 
       <!-- 독 -->
-      <div role="toolbar" aria-label="앱 실행기" style="position: absolute; z-index: 1000; left: {{dock.x}}px; top: {{dock.y}}px; width: {{dock.w}}px; height: {{dock.h}}px; box-sizing: border-box; display: flex; flex-direction: {{dock.dir}}; align-items: center; justify-content: center; gap: 8px; background: {{t.bar}}; backdrop-filter: blur(14px); border: {{dock.bd}}; border-radius: {{dock.r}}px;">
+      <div role="toolbar" aria-label="앱 실행기" style="position: absolute; z-index: 1000; left: {{dock.x}}px; top: {{dock.y}}px; width: {{dock.w}}px; height: {{dock.h}}px; box-sizing: border-box; display: flex; flex-direction: {{dock.dir}}; align-items: center; justify-content: center; gap: {{dock.gap}}px; padding: 0 {{dock.pad}}px; background: {{t.bar}}; backdrop-filter: blur(14px); border: {{dock.bd}}; border-radius: {{dock.r}}px;">
         <sc-for list="{{dockApps}}" as="da" hint-placeholder-count="6">
-          <button type="button" aria-label="{{da.label}}" title="{{da.label}}" onClick="{{da.click}}" style="position: relative; width: 42px; height: 42px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid {{da.bd}}; border-radius: 11px; background: {{da.bg}}; color: {{da.fg}}; cursor: pointer;">
-            <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{da.d}}"/></svg>
+          <button type="button" aria-label="{{da.label}}" title="{{da.label}}" onClick="{{da.click}}" style="position: relative; width: {{dock.S}}px; height: {{dock.S}}px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid {{da.bd}}; border-radius: {{dock.br}}px; background: {{da.bg}}; color: {{da.fg}}; cursor: pointer;">
+            <svg viewBox="0 0 24 24" width="{{dock.ic}}" height="{{dock.ic}}" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{da.d}}"/></svg>
             <span style="position: absolute; {{da.dotPos}}; width: 5px; height: 5px; border-radius: 3px; background: {{da.dot}};"></span>
           </button>
         </sc-for>
@@ -620,7 +623,7 @@ button{font-family:inherit}
 
       <!-- 앱 목록 (런처): Terra 기능 + 설치된 모듈의 앱. 바탕화면에는 바로가기로 둔다 -->
       <sc-if value="{{lau.on}}" hint-placeholder-val="{{ false }}">
-        <div role="dialog" aria-label="앱 목록" onClick="{{lau.stop}}" onContextMenu="{{lau.stop}}" style="position: absolute; z-index: 1050; {{lau.pos}}; width: 380px; max-height: 470px; box-sizing: border-box; padding: 10px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; background: {{t.menu}}; border: 1px solid {{t.line2}}; border-radius: 14px; box-shadow: 0 14px 40px rgba(0,0,0,.45); backdrop-filter: blur(14px);">
+        <div role="dialog" aria-label="앱 목록" onClick="{{lau.stop}}" onContextMenu="{{lau.stop}}" style="position: absolute; z-index: 1050; {{lau.pos}}; width: min(380px, calc(100% - 16px)); max-height: min(470px, calc(100% - 96px)); box-sizing: border-box; padding: 10px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; background: {{t.menu}}; border: 1px solid {{t.line2}}; border-radius: 14px; box-shadow: 0 14px 40px rgba(0,0,0,.45); backdrop-filter: blur(14px);">
           <sc-for list="{{lau.groups}}" as="gp" hint-placeholder-count="2">
             <div style="display: flex; flex-direction: column; gap: 2px;">
               <span style="padding: 4px 6px 2px; font-size: 10px; font-weight: 600; letter-spacing: .28em; color: {{t.dim}};">{{gp.title}}</span>
@@ -657,6 +660,7 @@ const D = {
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   doc: 'M6 3h9l3 3v15H6z M9 9h6 M9 13h6 M9 17h4',
   term: 'M4 6l5 6-5 6 M12 18h8',
+  tterm: 'M3 6l4 4-4 4 M10 6h10 M15 6v12',
   gear: 'M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M4.9 19.1L7 17 M17 7l2.1-2.1',
   puzzle: 'M4 8h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4H4z',
   swap: 'M7 4L3 8l4 4 M3 8h14 M17 20l4-4-4-4 M21 16H7',
@@ -681,7 +685,8 @@ const D = {
 };
 /* 창 크기는 베이스 창(노드 데스크톱)에 비례한다. fw·fh = 바탕화면 너비·높이에 대한 비율, 아래로는 minW·minH 밑으로 줄지 않는다 */
 const APPS = {
-  term:  { title: '터미널',     d: D.term,   fw: .47, fh: .55, minW: 380, minH: 240 },
+  term:  { title: '노드 터미널', d: D.term,  fw: .50, fh: .58, minW: 400, minH: 240 },   // 그 노드의 OS 셸 — commands.execute(이 노드에서만)
+  tterm: { title: 'Terra 터미널', d: D.tterm, fw: .50, fh: .58, minW: 400, minH: 240 },   // terra shell 낱말 → Terra operation(어느 노드든)
   files: { title: '파일 관리자', d: D.folder, fw: .53, fh: .62, minW: 420, minH: 280 },
   set:   { title: '설정',       d: D.gear,   fw: .62, fh: .72, minW: 560, minH: 360 },
   jobs:  { title: '작업 관리자', d: D.swap,   fw: .52, fh: .50, minW: 440, minH: 220 },
@@ -692,7 +697,7 @@ const APPS = {
 };
 /* 바탕화면 아이콘은 크기가 늘 같고, 칸(열 · 행)에 고정된다. 왼쪽 위 칸이 (0, 0) */
 const CW = 100, CH = 112, TILE = 52, GLYPH = 26;
-const DOCK = ['files', 'web', 'term', 'svi', 'net', 'jobs', 'mods', 'set'];
+const DOCK = ['files', 'web', 'term', 'tterm', 'svi', 'net', 'jobs', 'mods', 'set'];
 const WALLS = [
   { id: 'dusk',   label: '노을',   bg: 'linear-gradient(160deg,#1c2a44 0%,#3a2f55 45%,#7a4a4f 100%)', ink: '#fff' },
   { id: 'forest', label: '숲',     bg: 'linear-gradient(160deg,#0c2a24 0%,#12433a 60%,#1d5a45 100%)', ink: '#fff' },
@@ -758,7 +763,7 @@ const FILES = {
   home:  [{ n: 'docs', k: 'dir', sz: '—' }, { n: 'backup', k: 'dir', sz: '—' }, { n: 'notes.md', k: 'file', sz: '2.1 KB' }, { n: 'backup.tar', k: 'file', sz: '310 MB' }],
   vault: [{ n: 'lab-share', k: 'dir', sz: '—' }, { n: '기록 (읽기 전용)', k: 'dir', sz: '—' }]
 };
-const SHELL_HELP = ['help          이 목록', 'whoami        지금 계정과 권한', 'node          이 노드 정보', 'ls            홈 폴더', 'jobs          작업 목록', 'svi           자원 목록', 'net           네트워크', 'terra status  Terra 연결 상태', 'clear         화면 지우기', 'exit          터미널 닫기'];
+const TERRA_HELP_SAMPLE = ['Terra 터미널 — terra shell 과 같은 낱말. 명령 앞의 terra 는 써도 되고 안 써도 된다', '  help · clear · history · !! · !<번호>         셸', '  set var <이름> <값> · vars                     변수 — 명령에서 $이름', '  use <노드>                                    현재 노드', '  status · whoami                               연결 · 로그인 주체와 권한', '  node list · node get [노드]                   Master 노드 기록', '  network status · network node [노드]          광고 전송 · 주소 · 노드 간 경로', '  route graph · route candidates <가> <나>       경로 후보 · 거부 사유', '  session list · probe list                     라우트 세션 · 연결 진단 기록', '  module list [노드] · task list [노드]          그 노드의 모듈 · 작업', '  api <operation-id> [--input <json>]           계약의 operation 을 바로 (terra api)'];   // src/api/shells.js TERRA_HELP 와 같게
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // 실제 노드의 응답들(terra.daemon.*) → 노드 데스크톱 묶음. 모르는 칸은 비운다(지어내지 않는다)
 const MOD_ST = { running: 'run', ready: 'stop', stopped: 'stop', disabled: 'stop', discovered: 'stop', starting: 'restart', stopping: 'restart', failed: 'fail', unavailable: 'fail', unsupported: 'fail', config_invalid: 'fail' };
@@ -786,7 +791,7 @@ function deskShape(P, meta, empty) {
   return d;
 }
 const VIEW_BTN = new Set(['바탕화면에 추가', '자원 창 ›', '열기', '닫기', '취소']);   // 끊겨도 되는 단추(보기만 바꾼다)
-const VIEW_KEYS = ['full', 'prefs', 'wins', 'order', 'icons', 'setTab', 'fmLoc', 'term', 'modView', 'modSel', 'modTab', 'resTab', 'devSel', 'cfgGrp'];   // 노드마다 저장하는 보기 상태
+const VIEW_KEYS = ['full', 'prefs', 'wins', 'order', 'icons', 'setTab', 'fmLoc', 'term', 'tterm', 'ttHist', 'ttVars', 'termCwd', 'modView', 'modSel', 'modTab', 'resTab', 'devSel', 'cfgGrp'];   // 노드마다 저장하는 보기 상태
 
 class Component extends DCLogic {
   constructor(props) {
@@ -802,15 +807,20 @@ class Component extends DCLogic {
         tar:    { c: 0, r: 2, name: 'backup.tar',  k: 'file',  loc: 'home' },
         agent:  { c: 1, r: 0, name: '에이전트',   k: 'short', app: 'mods', mod: 'agent', src: '모듈 · 에이전트' },
         jobs:   { c: 1, r: 1, name: '작업 관리자', k: 'short', app: 'jobs', src: 'Terra 기능' },
-        shell:  { c: 1, r: 2, name: '터미널',     k: 'short', app: 'term', src: 'Terra 기능' }
+        shell:  { c: 1, r: 2, name: '노드 터미널', k: 'short', app: 'term', src: 'Terra 기능' },
+        tshell: { c: 1, r: 3, name: 'Terra 터미널', k: 'short', app: 'tterm', src: 'Terra 기능' }
       },
       iconSel: null, menu: null, ov: null, lau: false, nd: null, nxMsg: '', resTab: 'dev', devSel: 0, showTomb: false, ndDraft: null, tnDraft: null, modView: 'inst', modSel: 0, modTab: 'cfg', modCfg: null, inst: null, cfgGrp: null, cfgQ: '',
       setTab: 'wall', fmLoc: 'home', fmPick: null,
       term: [
-        { t: 'Terra 연결 · 앱 스코프 토큰', c: 'dim' },
-        { t: 'help 를 입력하면 쓸 수 있는 명령이 나온다.', c: 'dim' }
+        { t: '노드 터미널 — 이 노드의 OS 셸(/bin/sh · cmd). 한 줄씩 실행 · Ctrl+C 로 멈춤', c: 'dim' },
+        { t: 'Terra 명령은 Terra 터미널에서 (독의 >T)', c: 'dim' }
       ],
-      termIn: ''
+      termIn: '', termCwd: '', termBusy: false,
+      tterm: [
+        { t: 'Terra 터미널 — terra shell 과 같은 낱말. help 로 명령 목록', c: 'dim' }
+      ],
+      ttermIn: '', ttHist: [], ttVars: {}, ttCur: '', ttCurName: '', ttBusy: false
     };
     this.drag = null;
     this.timer = null;
@@ -1074,14 +1084,19 @@ class Component extends DCLogic {
   deskDims() { const f = this.frameDims(); return { w: f.w, h: f.h - (this.props.chrome === 'none' ? 0 : 40) }; }   // chrome='none' — 바깥 창(전역 틀의 제어기 창)이 머리줄을 그린다
   // 앱 창의 자리 · 크기 비율의 기준 — 바깥 창(제어기) 크기와 상관없이 고정. 그래서 제어기 창을 키우거나 비율을 바꿔도 안의 앱 창 · 아이콘 크기는 그대로이고, 안에서 끌어야만 바뀐다 (넘치면 바탕화면 안으로만 줄임)
   baseDesk() { return { w: 1240, h: 720 }; }
+  // 아래 바(독) — 단추 수(앱 목록 + DOCK)와 바탕화면 크기로 잰다. 단추 42px · 사이 8px · 안쪽 8px 가 기본, 들어가지 않으면 함께 줄인다(단추 26px 까지)
+  //   전에는 폭 430px 고정이라 단추 9개(458px)가 바 밖으로 넘치고, 작은 제어기 창에서는 바탕화면 아이콘을 덮었다
   dockBox() {
-    const d = this.deskDims(), left = this.state.prefs.dock === 'left';
-    return left ? { x: 8, y: 32 + 8, w: 60, h: d.h - 32 - 16, dir: 'column', r: 14 }
-                : { x: Math.round(d.w / 2 - 215), y: d.h - 62, w: 430, h: 54, dir: 'row', r: 16 };
+    const d = this.deskDims(), left = this.state.prefs.dock === 'left', n = DOCK.length + 1, pad = 8;
+    const avail = left ? d.h - 32 - 16 : d.w - 24, nat = n * 42 + (n - 1) * 8 + pad * 2, k = Math.min(1, Math.max(0, avail) / nat, (left ? d.w : d.h) / 600);   // 작은 창(높이 600 아래)에서는 바도 함께 얇게
+    const S = Math.max(26, Math.floor(42 * k)), gap = Math.max(3, Math.floor(8 * k)), len = n * S + (n - 1) * gap + pad * 2, th = S + 12, r = Math.round(S * 0.38);
+    const b = { S, gap, pad, ic: Math.round(S / 2), br: Math.round(S * 0.26), th };
+    return left ? Object.assign(b, { x: 8, y: 32 + Math.max(8, Math.round((d.h - 32 - len) / 2)), w: th, h: len, dir: 'column', r })
+                : Object.assign(b, { x: Math.round(d.w / 2 - len / 2), y: d.h - th - 8, w: len, h: th, dir: 'row', r });
   }
   workBox() {
-    const d = this.deskDims(), left = this.state.prefs.dock === 'left';
-    return { x: left ? 76 : 0, y: 32, w: d.w - (left ? 76 : 0), h: d.h - 32 - (left ? 0 : 70) };
+    const d = this.deskDims(), left = this.state.prefs.dock === 'left', th = this.dockBox().th + 16;
+    return { x: left ? th : 0, y: 32, w: d.w - (left ? th : 0), h: d.h - 32 - (left ? 0 : th) };
   }
 
   /* ---- 창 ---- */
@@ -1193,29 +1208,74 @@ class Component extends DCLogic {
     this.launch('files');
   }
 
-  /* ---- 터미널 ---- */
+  /* ---- 터미널 둘 ----
+     노드 터미널  그 노드의 OS 셸. 실제(웹 빌드): window.TerraShells.node — commands.execute → task 출력(src/api/shells.js). 이 GUI 를 띄운 노드에서만
+                  (commands.execute 는 계약상 scope local). cd 는 화면이 기억해 working_dir 로 싣는다. Ctrl+C = 작업 취소
+     Terra 터미널 Terra CLI 의 terra shell 낱말(help · status · whoami · history · !! · set var · use · node · network · route · session · probe · module · task · api)
+                  실제: window.TerraShells.terra — 같은 이름의 operation 을 Gateway 로(다른 노드는 Master 중계)
+     시안(캔버스): 둘 다 '시안' 표시와 함께 예시 출력 — 실제 출력을 흉내 내지 않는 명령은 '실제 연결에서' 로 답한다 */
+  shells() { return this.liveRec() && typeof window !== 'undefined' && window.TerraShells ? window.TerraShells : null; }
+  shellRid() { const T = this.TN(), m = T && T.t.meta && T.t.meta[this.nodeKey()]; return (m && m.rid) || ''; }
+  nodeShellOk() { const S = this.shells(); return !S || S.node.can(this.shellRid()); }
+  termPush(key, lines) { this.setState({ [key]: (this.state[key] || []).concat(lines).slice(-600) }); }
+  stopCmd(TT) { const sig = TT ? this._ttSig : this._termSig; if (sig) sig.stop = true; }
   runCmd(raw) {
-    const cmd = raw.trim();
-    const out = [{ t: this.acct() + '@' + (this.nodeNameQ()) + ':~$ ' + raw, c: 'cmd' }], L = this.liveRec(), NO = '보고 없음';
-    const add = (arr, c) => arr.forEach((t) => out.push({ t, c: c || 'out' }));
-    const s = this.state;
-    if (!cmd) { this.setState({ term: s.term.concat(out), termIn: '' }); return; }
-    const [a, b] = cmd.split(/\s+/);
-    if (a === 'clear') { this.setState({ term: [], termIn: '' }); return; }
-    if (a === 'exit') { this.setState({ termIn: '' }); this.closeWin('term'); return; }
-    if (a === 'help') add(SHELL_HELP);
-    else if (a === 'whoami') add(L ? [(L.who && L.who.principal) || NO, '권한: ' + ((L.who && L.who.permissions && L.who.permissions.join(' ')) || NO)] : ['stk  (노드 계정)', '권한: node.read node.control process.execute']);
-    else if (a === 'node') add(L ? ['이름     ' + this.nodeNameQ(), '부모     ' + (this.props.parentName || '—'), '상태     ' + (L.ns ? L.ns.status : 'Master 기록 없음'), '코어     ' + ((L.ns && L.ns.version) || NO), '하트비트 ' + ((L.ns && L.ns.seen) || NO)]
-      : ['이름     ' + (this.nodeNameQ()), '부모     tree-home', '등록     등록됨', '코어     0.9.4   모듈 0.4.3', '가동     3일 4시간']);
-    else if (L && (a === 'ls' || a === 'net' || (a === 'terra' && b === 'status'))) add([NO + ' — 이 터미널은 노드 셸이 아니다(화면 안 흉내). 실제 값은 파일 · 네트워크 창에서'], 'err');
-    else if (a === 'ls') add(['docs/  backup/  notes.md  backup.tar']);
-    else if (a === 'jobs') (this.nd().jobs || []).forEach((j) => out.push({ t: j.id + '  ' + j.op.padEnd(16) + this.jobLabel(j).label + (j.st === 'run' || j.st === 'stall' ? ' ' + j.pct + '%' : ''), c: 'out' }));
-    else if (a === 'svi') (this.nd().res || []).forEach((r) => out.push({ t: r.name.padEnd(16) + r.dir + '  ' + (r.open ? '열림' : '닫힘'), c: 'out' }));
-    else if (a === 'net') add(['주소      10.40.2.17', 'wg0       피어 3', '터널      2']);
-    else if (a === 'terra' && b === 'status') add(['연결     정상', '토큰     앱 스코프 · 만료 21:40', 'Gateway  닿음']);
-    else if (a === 'sudo') add(['권한 없음 — node.config 는 이 계정에 없다 (forbidden)'], 'err');
-    else add(['명령을 찾을 수 없다: ' + a + '  (help)'], 'err');
-    this.setState({ term: s.term.concat(out).slice(-60), termIn: '' });
+    const line = raw.trim(), s = this.state, prompt = this.acct() + '@' + this.nodeNameQ() + ':' + (s.termCwd || '~') + '$ ';
+    this.setState({ termIn: '' }); this.termPush('term', [{ t: prompt + raw, c: 'cmd' }]);
+    if (!line) return;
+    if (line === 'clear') { this.setState({ term: [] }); return; }
+    if (line === 'exit') { this.closeWin('term'); return; }
+    const S = this.shells(), rid = this.shellRid();
+    if (!S) return this.termPush('term', this.sampleShell(line));
+    if (!S.node.can(rid)) return this.termPush('term', [{ t: '이 노드(' + this.nodeNameQ() + ')의 셸은 여기서 열 수 없다 — Terra 의 명령 실행(commands.execute)은 그 노드에서만. 이 노드의 GUI 를 열거나, 읽기는 Terra 터미널에서(use ' + this.nodeNameQ() + ')', c: 'warn' }]);
+    const cd = /^cd(\s+(.*))?$/.exec(line);
+    this.setState({ termBusy: true }); const sig = this._termSig = { stop: false }, done = () => { this._termSig = null; this.setState({ termBusy: false }); };
+    if (cd) { S.node.cd(rid, (cd[2] || '').trim(), s.termCwd).then((p) => { this.setState({ termCwd: p }); done(); }, (e) => { this.termPush('term', [{ t: e.message || String(e), c: 'err' }]); done(); }); return; }
+    let buf = { stdout: '', stderr: '' };
+    const flush = (st, all) => { const parts = buf[st].split('\n'), keep = all ? '' : parts.pop(); buf[st] = keep; if (parts.length && !(parts.length === 1 && parts[0] === '' && all)) this.termPush('term', parts.filter((x, i) => !(all && i === parts.length - 1 && x === '')).map((t) => ({ t, c: st === 'stderr' ? 'err' : 'out' }))); };
+    S.node.run(rid, line, { cwd: s.termCwd || undefined, signal: sig, onChunk: (c) => { const st = c.stream === 'stderr' ? 'stderr' : 'stdout'; buf[st] += c.text; flush(st, false); } })
+      .then((r) => { flush('stdout', true); flush('stderr', true); if (r.state === 'cancelled') this.termPush('term', [{ t: '^C — 멈춤', c: 'warn' }]); else if (r.exit != null && r.exit !== 0) this.termPush('term', [{ t: '[종료 코드 ' + r.exit + ']', c: 'warn' }]); done(); },
+        (e) => { this.termPush('term', [{ t: (e.code ? e.code + ' — ' : '') + (e.message || String(e)), c: 'err' }]); done(); });
+  }
+  runTerra(raw) {
+    const s = this.state, hist = s.ttHist || [], line0 = raw.trim(), prompt = 'terra[' + (s.ttCurName || this.nodeNameQ()) + ']> ';
+    this.setState({ ttermIn: '' });
+    if (!line0) { this.termPush('tterm', [{ t: prompt, c: 'cmd' }]); return; }
+    const S = this.shells(), line = S ? null : line0;
+    let L = line0; if (/^!(!|\d+)$/.test(line0)) { const m = line0 === '!!' ? hist[hist.length - 1] : hist[Number(line0.slice(1)) - 1]; if (m == null) { this.termPush('tterm', [{ t: prompt + raw, c: 'cmd' }, { t: line0 + ': 히스토리에 없다', c: 'err' }]); return; } L = m; }
+    this.termPush('tterm', [{ t: prompt + L, c: 'cmd' }]); this.setState({ ttHist: hist.concat(L).slice(-200) });
+    if (!S) { const r = this.sampleTerra(L); if (r === 'clear') this.setState({ tterm: [] }); else this.termPush('tterm', r); return; }
+    this.setState({ ttBusy: true }); const sig = this._ttSig = { stop: false };
+    S.terra.run(L, { cur: s.ttCur, curName: s.ttCurName, vars: s.ttVars, hist: hist.concat(L) }).then((r) => {
+      if (sig.stop) return; const p = { ttBusy: false };
+      if (r.clear) p.tterm = []; if (r.vars) p.ttVars = r.vars; if (r.cur !== undefined) { p.ttCur = r.cur; p.ttCurName = r.curName || ''; }
+      this.setState(p); if (r.lines && r.lines.length) this.termPush('tterm', r.lines);
+    }, (e) => { this.setState({ ttBusy: false }); if (!sig.stop) this.termPush('tterm', [{ t: (e.code ? e.code + ' — ' : '') + (e.message || String(e)), c: 'err' }]); }).finally(() => { if (sig.stop) { this.setState({ ttBusy: false }); this.termPush('tterm', [{ t: '^C — 결과를 버림', c: 'warn' }]); } this._ttSig = null; });
+  }
+  // 시안 — 노드 셸 예시(실제 노드에서는 그 노드의 /bin/sh 가 돈다)
+  sampleShell(line) {
+    const a = line.split(/\s+/)[0], O = (arr, c) => arr.map((t) => ({ t, c: c || 'out' }));
+    if (a === 'help') return O(['노드 터미널 — 그 노드의 OS 셸. 쓰는 명령은 그 노드의 셸 그대로(ls · cat · ps · ip addr · systemctl …)', 'clear · exit 는 화면이, cd 는 화면이 기억해 다음 줄의 작업 폴더로', '(시안) 아래 명령만 예시 출력: ls · pwd · whoami · uname -a · ip addr'], 'dim');
+    if (a === 'ls') return O(['Desktop  Documents  Downloads  terra-data  notes.md']);
+    if (a === 'pwd') return O([this.state.termCwd || '/home/stk']);
+    if (a === 'whoami') return O(['stk']);
+    if (a === 'uname') return O(['Linux ' + this.nodeNameQ() + ' 6.8.0-45-generic #45-Ubuntu SMP x86_64 GNU/Linux']);
+    if (a === 'ip') return O(['1: lo: <LOOPBACK,UP> inet 127.0.0.1/8', '2: enp3s0: <UP> inet 192.168.0.21/24', '3: wg0: <POINTOPOINT,UP> inet 10.40.2.17/16']);
+    if (a === 'cd') { this.setState({ termCwd: (line.split(/\s+/)[1] || '~') }); return []; }
+    return O(['(시안) ' + a + ' — 실제 연결에서는 이 노드의 셸이 실행한다'], 'dim');
+  }
+  // 시안 — Terra 터미널 예시. 실제는 src/api/shells.js
+  sampleTerra(line) {
+    const w = line.replace(/^terra\s+/, '').split(/\s+/), O = (arr, c) => arr.map((t) => ({ t, c: c || 'out' })), nm = this.nodeNameQ();
+    if (w[0] === 'help' || w[0] === '?') return O(TERRA_HELP_SAMPLE, 'dim');
+    if (w[0] === 'clear') return 'clear';
+    if (w[0] === 'history') return O((this.state.ttHist || []).map((h, i) => String(i + 1).padStart(4) + '  ' + h), 'dim');
+    if (w[0] === 'status') return O(['Gateway   닿음', '노드      ' + nm + '  nd_7f3a9c21-4b8e  running', '등록      등록됨', 'Master    닿음 · 노드 5개', '주체      user:stk', '현재 노드 이 노드']);
+    if (w[0] === 'whoami') return O(['주체      user:stk', '종류      app', '권한      node.read node.control process.execute']);
+    if (w[0] === 'node' && (w[1] || 'list') === 'list') return O(['이름       node_id       상태     중계    주소          버전', nm.padEnd(11) + 'nd_7f3a9c21   online   예      100.80.0.22   0.6.10', '02         nd_1c88a0e4   online   예      100.80.0.2    0.6.10', 'hanium     nd_9e01b7c2   offline  아니오  100.80.0.31   0.5.5']);
+    if (w[0] === 'route' && /candidates|diagnose|explain/.test(w[1] || '')) return O([(w[2] || nm) + ' → ' + (w[3] || '02') + ' · 정책 default', '✓ mesh 직결    wireguard  4ms    mesh endpoints on same network', '✓ Master 중계  websocket         fallback allowed by policy']).concat(O(['× LAN 직결     tcp               no fresh pairwise tcp probe'], 'dim'));
+    if (w[0] === 'use') { this.setState({ ttCur: w[1] ? 'nd_' + w[1] : '', ttCurName: w[1] || '' }); return O(['현재 노드 = ' + (w[1] || '이 노드')], 'dim'); }
+    return O(['(시안) ' + line + ' — 실제 연결에서 Terra 에 묻는다'], 'dim');
   }
 
   /* ---- 목록 보조 ---- */
@@ -1260,6 +1320,10 @@ class Component extends DCLogic {
     o.remove = () => { if (!pick || !share) return; T.write(n, 'io.terra.file.entries.remove', { root: loc.root, path: pick.path, recursive: !!pick.dir }).then(() => { this.say(pick.name + ' 지움'); go({}); after(); }, (e) => this.say('못 지움 · ' + ((e && e.code) || '오류'))); };
     o.newFolder = () => { if (!share) { this.say('로컬 탐색은 읽기만 — 폴더는 공유 폴더에서 만든다'); return; } const nm = '새 폴더 ' + (Date.now() % 10000), path = rel ? rel + '/' + nm : nm;
       T.write(n, 'io.terra.file.entries.mkdir', { root: loc.root, path, parents: false }).then(() => { this.say(nm + ' 만듦'); after(); }, (e) => this.say('못 만듦 · ' + ((e && e.code) || '오류'))); };
+    { const abs = (i) => { const b = String(loc.path || ''); return /^(\/|[A-Za-z]:[\\/])/.test(b) ? b.replace(/[\\/]+$/, '') + (b.includes('\\') && !b.includes('/') ? '\\' : '/') + i.path.replace(/^\/+/, '') : ''; };
+      const mk = (i) => { const p = abs(i); if (!p || i.dir) { this.say(i.dir ? '폴더는 자원화할 수 없다 — 파일을 고른다' : '이 뿌리의 절대 경로를 몰라 자원으로 만들 수 없다'); return; } this.openOut('svi', JSON.stringify({ tab: 'make', type: 'file', name: i.name.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40), values: { path: p, direction: 'source' } })); };
+      o.mkResOn = true; o.mkResOff = !pick || pick.dir || !abs(pick); o.mkResTip = !pick ? '파일을 고른다' : pick.dir ? '폴더는 자원화할 수 없다' : !abs(pick) ? '이 뿌리의 절대 경로를 모른다' : '자원화 창에서 이 파일을 파일 자원으로 — ' + abs(pick); o.mkRes = () => pick && mk(pick);
+      o.items.forEach((it, j) => { const i = items[j]; it.ctx = (e) => { if (!i || i.up) return; e.preventDefault(); e.stopPropagation(); this.setState({ fmPick: i.path }); mk(i); }; }); }
     o.openOn = true; o.openLabel = pick ? '노드에서 열기' : '노드 파일 관리자로'; o.openDis = share || R ? 'disabled' : null;
     o.openTip = share ? '공유 폴더는 노드의 바탕화면에서 열 수 없다 — 로컬 탐색에서' : R ? '이 노드에서만(desktop.open 은 local)' : 'desktop.open — 그 노드의 화면에서 연다(node.control)';
     o.openRun = () => { T.write(n, 'terra.daemon.desktop.open.post', { root: loc.root, path: pick ? pick.path : rel, action: pick ? 'open' : 'reveal' }).then(() => this.say((pick ? pick.name : loc.root + ':/' + rel) + ' — 노드 화면에서 열었다'), (e) => this.say('못 엶 · ' + ((e && e.code) || '오류'))); };
@@ -1330,15 +1394,20 @@ class Component extends DCLogic {
         minimize: () => this.patchWin(id, { min: true }),
         toggleMax: () => { this.patchWin(id, { max: !w.max }); this.persist(); },
         close: () => this.closeWin(id),
-        isTerm: id === 'term', isFiles: id === 'files', isSet: id === 'set', isJobs: id === 'jobs', isSvi: id === 'svi', isMods: id === 'mods', isWeb: id === 'web', isNet: id === 'net',
+        isTerm: id === 'term' || id === 'tterm', isFiles: id === 'files', isSet: id === 'set', isJobs: id === 'jobs', isSvi: id === 'svi', isMods: id === 'mods', isWeb: id === 'web', isNet: id === 'net',
         webW: Math.max(200, g.w - 2), webH: Math.max(120, g.h - 40), webUrl: s.webUrl || 'terra://start'
       };
-      if (id === 'term') {
-        const tone = { cmd: t.ink, out: t.sub, dim: t.dim, err: '#ff6b6b' };
-        o.lines = s.term.slice(-22).map((l) => ({ t: l.t, c: tone[l.c] || t.sub }));
-        o.input = s.termIn;
-        o.onInput = (e) => this.setState({ termIn: e.target.value });
-        o.onKey = (e) => { if (e.key === 'Enter') this.runCmd(this.state.termIn); };
+      if (id === 'term' || id === 'tterm') { const TT = id === 'tterm', busy = TT ? s.ttBusy : s.termBusy, live = !!this.liveRec();
+        const tone = { cmd: t.ink, out: t.sub, dim: t.dim, err: '#ff6b6b', warn: '#f5b83d' };
+        o.lines = (s[id] || []).slice(-300).map((l) => ({ t: l.t, c: tone[l.c] || t.sub }));
+        o.input = TT ? s.ttermIn : s.termIn;
+        o.onInput = (e) => this.setState({ [TT ? 'ttermIn' : 'termIn']: e.target.value });
+        o.onKey = (e) => { if (e.key === 'Enter' && !busy) { if (TT) this.runTerra(this.state.ttermIn); else this.runCmd(this.state.termIn); } else if ((e.key === 'c' || e.key === 'C') && e.ctrlKey && busy) { e.preventDefault(); this.stopCmd(TT); } else if (e.key === 'ArrowUp' && TT && s.ttHist.length) { e.preventDefault(); this.setState({ ttermIn: s.ttHist[s.ttHist.length - 1] }); } };
+        o.prompt = TT ? 'terra[' + (s.ttCurName || this.nodeNameQ()) + ']>' : this.acct() + '@' + this.nodeNameQ() + ':' + (s.termCwd || '~') + '$';
+        o.tLabel = TT ? (live ? 'Terra · ' + (s.ttCurName ? '현재 노드 ' + s.ttCurName : '이 노드') : 'Terra · 시안') : (live ? (this.nodeShellOk() ? '노드 셸 · ' + this.nodeNameQ() : '노드 셸 — 이 노드에서만') : '노드 셸 · 시안');
+        o.tDot = TT ? '#7aa7ff' : live && !this.nodeShellOk() ? '#f5b83d' : '#3ecf8e';
+        o.tBadge = TT ? 'Terra API' : 'process.execute'; o.tBusy = busy ? '실행 중 · Ctrl+C' : '';
+        o.ph = busy ? '실행 중 — Ctrl+C 로 멈춤' : TT ? 'help · node list · route candidates <가> <나>' : 'ls · pwd · uname -a';
       }
       if (id === 'files') { if (!this.fmRealView(o, t, s)) {
         const loc = LOCS.find((l) => l.id === s.fmLoc);
@@ -1354,9 +1423,13 @@ class Component extends DCLogic {
             fg: i.k === 'dir' ? '#f0a63a' : short ? '#5aa8ff' : t.sub,
             tag: short ? '바로가기 · 화면 전용' : '실제', tagC: short ? '#5aa8ff' : t.dim,
             bg: pick && pick.key === i.key ? t.raiseH : 'transparent',
-            pick: () => this.setState({ fmPick: i.key })
+            pick: () => this.setState({ fmPick: i.key }),
+            ctx: (e) => { if (i.k !== 'file') return; e.preventDefault(); e.stopPropagation(); this.setState({ fmPick: i.key }); mkS(i); }
           };
         });
+        // 시안 — 파일을 자원화 창(파일 유형)으로. 경로는 시안의 공유 폴더(/srv/share) 아래로 친다
+        const mkS = (i) => this.openOut('svi', JSON.stringify({ tab: 'make', type: 'file', name: i.name.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), values: { path: '/srv/share/' + i.name, direction: 'source' } }));
+        o.mkResOn = true; o.mkResOff = !pick || pick.k !== 'file'; o.mkResTip = pick && pick.k === 'file' ? '자원화 창에서 파일 자원으로' : '파일을 고른다'; o.mkRes = () => pick && pick.k === 'file' && mkS(pick);
         o.detail = !pick ? '항목을 고르면 여기에 설명이 나온다.'
           : pick.k === 'short' ? pick.name + ' — 화면 전용 바로가기(' + pick.src + '). 지워도 앱 · 파일은 그대로 있다.'
           : pick.name + ' — 노드에 있는 실제 ' + (pick.k === 'dir' ? '폴더' : '파일') + '. 지우면 노드에서 사라진다.';
@@ -1425,7 +1498,7 @@ class Component extends DCLogic {
         // 자원 선언
         const ST = { applied: ['적용됨', 'ok'], declared: ['선언됨 · 적용 전', 'warn'] }, pend = N.decls.filter((d) => d.st === 'declared').length;
         X.declNote = pend ? '적용 전 ' + pend : this.api('declarations.apply');
-        X.declTop = [this.btn('적용' + (pend ? ' ' + pend : ''), () => { if (this.ndSet((d) => d.decls.forEach((x) => { x.st = 'applied'; })) !== false) this.say('선언 적용 — 카탈로그에 올라감'); }, { pri: !!pend, off: !pend }), this.btn('자원 창 ›', () => this.openOut('share'))];
+        X.declTop = [this.btn('적용' + (pend ? ' ' + pend : ''), () => { if (this.ndSet((d) => d.decls.forEach((x) => { x.st = 'applied'; })) !== false) this.say('선언 적용 — 카탈로그에 올라감'); }, { pri: !!pend, off: !pend }), this.btn('자원 만들기 ›', () => this.openOut('svi', JSON.stringify({ tab: 'make' }))), this.btn('자원 창 ›', () => this.openOut('share'))];
         X.decls = N.decls.map((dc, i) => ({ fam: dc.fam, name: dc.name, src: dc.src, dir: dc.dir, st: ST[dc.st][0], stCls: ST[dc.st][1], shared: dc.shared ? '공유 ' + dc.shared : '공유 없음', open: () => this.openOut('res', dc.name),
           btns: [this.btn('선언 해제', () => { this.ndSet((d) => { d.retired.unshift({ fam: dc.fam, name: dc.name }); d.decls.splice(i, 1); }, 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post', { family: dc.fam, name: dc.name }); this.say(dc.name + ' 선언 해제 — 은퇴로'); })] }));
         const dr = s.ndDraft || { fam: 'dev', target: '', name: '', dir: 'both' }, setD = (pp) => this.setState({ ndDraft: Object.assign({}, dr, pp) });
@@ -1565,13 +1638,13 @@ class Component extends DCLogic {
 
     /* 독 */
     const db = this.dockBox(), left = p.dock === 'left';
-    const dock = { x: db.x, y: db.y, w: db.w, h: db.h, dir: db.dir, r: db.r, bd: '1px solid ' + t.line };
-    const dockApps = [{ label: '앱 목록', d: 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z', bg: s.lau ? t.raiseH : 'transparent', bd: s.lau ? t.line2 : 'transparent', fg: t.ink, dot: 'transparent', dotPos: 'bottom: 2px; left: 18px', click: () => this.setState({ lau: !this.state.lau, menu: null }) }].concat(DOCK.map((id) => {
+    const dock = { x: db.x, y: db.y, w: db.w, h: db.h, dir: db.dir, r: db.r, S: db.S, gap: db.gap, pad: db.pad, ic: db.ic, br: db.br, bd: '1px solid ' + t.line }, dotC = Math.round(db.S / 2 - 2.5);
+    const dockApps = [{ label: '앱 목록', d: 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z', bg: s.lau ? t.raiseH : 'transparent', bd: s.lau ? t.line2 : 'transparent', fg: t.ink, dot: 'transparent', dotPos: 'bottom: 2px; left: ' + dotC + 'px', click: () => this.setState({ lau: !this.state.lau, menu: null }) }].concat(DOCK.map((id) => {
       const w = s.wins[id], open = !!w, isTop = open && !w.min && topId === id;
       return {
         label: APPS[id].title, d: APPS[id].d,
         bg: isTop ? t.raiseH : 'transparent', bd: isTop ? t.line2 : 'transparent', fg: open ? t.ink : t.sub,
-        dot: open ? t.accent : 'transparent', dotPos: left ? 'left: 3px; top: 18px' : 'bottom: 2px; left: 18px',
+        dot: open ? t.accent : 'transparent', dotPos: left ? 'left: 3px; top: ' + dotC + 'px' : 'bottom: 2px; left: ' + dotC + 'px',
         click: () => { if (isTop) this.patchWin(id, { min: true }); else this.launch(id); }
       };
     }));
@@ -1582,7 +1655,7 @@ class Component extends DCLogic {
     const builtin = DOCK.map((id) => { const on = pinnedApp(id, null); return { name: APPS[id].title, d: APPS[id].d, note: s.wins[id] ? '열림' : '', noteC: t.dim, bg: 'transparent', fg: t.ink, off: false, pinned: on, pinLabel: on ? '바탕화면에 있음' : '바탕화면에 두기', pinFg: on ? t.dim : t.ink, open: () => { this.setState({ lau: false }); this.launch(id); }, pin: () => pin(APPS[id].title, id, 'Terra 기능', null) }; });
     const modApps = this.nd().mods.map((m) => { const on = pinnedApp('mods', m.id), up = m.st === 'run'; return { name: m.name, d: D.puzzle, note: up ? '' : '다시 시작 중', noteC: '#f5b83d', bg: 'transparent', fg: up ? t.ink : t.dim, off: !up, pinned: on, pinLabel: on ? '바탕화면에 있음' : '바탕화면에 두기', pinFg: on ? t.dim : t.ink, open: () => { this.setState({ lau: false }); this.launch('mods'); }, pin: () => pin(m.name, 'mods', '모듈 · ' + m.name, m.id) }; });
     const lau = { on: s.lau, groups: [{ title: 'TERRA', items: builtin }, { title: '모듈', items: modApps }], stop: (e) => e.stopPropagation(),
-      pos: left ? 'left: 76px; top: 40px' : 'left: ' + db.x + 'px; bottom: 70px' };
+      pos: left ? 'left: ' + (db.th + 16) + 'px; top: 40px' : 'left: ' + Math.max(8, Math.min(db.x, this.deskDims().w - 388)) + 'px; bottom: ' + (db.th + 16) + 'px' };   // 바 바로 위(옆) — 바 크기를 따라
 
     /* 우클릭 메뉴 */
     const menu = { on: !!s.menu, x: s.menu ? s.menu.x : 0, y: s.menu ? s.menu.y : 0, items: [] };
@@ -1592,7 +1665,8 @@ class Component extends DCLogic {
         { label: '새 폴더', run: () => { const id = 'new' + Date.now() % 100000, f = this.firstCell(); this.setState({ icons: { ...this.state.icons, [id]: { c: f.c, r: f.r, name: '새 폴더', k: 'dir', loc: 'desk' } }, menu: null }); this.persist(); } },
         { label: '앱 목록', run: () => this.setState({ lau: true, menu: null }) },
         { label: '배경 바꾸기', run: () => { this.setState({ setTab: 'wall', menu: null }); this.launch('set'); } },
-        { label: '터미널 열기', run: () => { close(); this.launch('term'); } },
+        { label: '노드 터미널 열기', run: () => { close(); this.launch('term'); } },
+        { label: 'Terra 터미널 열기', run: () => { close(); this.launch('tterm'); } },
         { label: '설정', run: () => { close(); this.launch('set'); } }
       ];
     }
