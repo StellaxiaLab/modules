@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/StellaxiaLab/modules/common/io.terra.nodetalk/talk"
@@ -140,6 +141,18 @@ type syncLoop struct {
 	// failCounts tracks consecutive pull failures per conversation|author so a
 	// finally-successful pull can stamp how many attempts it truly took.
 	failCounts map[string]int
+
+	// mu guards eligibleSince, mainSeen, failCounts and backoff: peers are
+	// synced concurrently (syncpool.go), so the per-conversation bookkeeping
+	// they share must not be touched bare. It is never held across a door call.
+	mu sync.Mutex
+	// backoff is the per-peer retry schedule (syncpool.go).
+	backoff map[string]*peerBackoff
+	// now, peerBudget and parallel are test seams; zero values mean the
+	// production behaviour (time.Now, 2×interval, maxSyncParallel).
+	now        func() time.Time
+	peerBudget time.Duration
+	parallel   int
 }
 
 func newSyncLoop(store *talk.Store, door doorFunc, self func(context.Context) string, dataRoot string) *syncLoop {
@@ -173,6 +186,7 @@ func newSyncLoop(store *talk.Store, door doorFunc, self func(context.Context) st
 		settle:        settle,
 		eligibleSince: map[string]time.Time{},
 		failCounts:    map[string]int{},
+		backoff:       map[string]*peerBackoff{},
 	}
 }
 
@@ -237,21 +251,15 @@ func (l *syncLoop) tick(ctx context.Context) {
 		}
 	}
 	sort.Strings(peers)
-	for _, peer := range peers {
-		if peer == selfID {
-			continue
-		}
-		askPeerName(ctx, l.door, l.names, peer)
-		if err := l.syncPeer(ctx, peer, selfID); err != nil {
-			l.logger.Printf("peer %s: %v", peer, err)
-		}
-	}
+	l.syncPeers(ctx, peers, selfID)
 	l.takeLapsedMains(selfID)
 }
 
 // markMainSeen starts or restarts the clock this node measures the main's
 // silence by.
 func (l *syncLoop) markMainSeen(id string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if l.mainSeen == nil {
 		l.mainSeen = map[string]time.Time{}
 	}
@@ -293,7 +301,9 @@ func (l *syncLoop) takeLapsedMains(selfID string) {
 		// vacuously, which would let a node that has never seen a single line
 		// promote itself over a main it never met. Seeding the clock here (which
 		// this used to do) turned exactly that into a timer.
+		l.mu.Lock()
 		seen, observed := l.mainSeen[id]
+		l.mu.Unlock()
 		if !observed {
 			continue
 		}
@@ -466,16 +476,22 @@ func (l *syncLoop) considerClaim(ctx context.Context, peer, id string, view talk
 		rankOf(view, selfID) < rankOf(view, view.MainNodeID) &&
 		covers(mine, theirMarks)
 	if !eligible {
+		l.mu.Lock()
 		delete(l.eligibleSince, id)
+		l.mu.Unlock()
 		return nil
 	}
 	settle := l.settle
 	if override, overridden := l.faults.settleOverride(); overridden {
 		settle = override
 	}
+	l.mu.Lock()
 	since, observed := l.eligibleSince[id]
 	if !observed {
 		l.eligibleSince[id] = time.Now()
+	}
+	l.mu.Unlock()
+	if !observed {
 		if settle > 0 {
 			return nil
 		}
@@ -500,7 +516,9 @@ func (l *syncLoop) considerClaim(ctx context.Context, peer, id string, view talk
 		l.logger.Printf("claim %s at %s: %v", id, peer, err)
 		return nil
 	}
+	l.mu.Lock()
 	delete(l.eligibleSince, id)
+	l.mu.Unlock()
 	l.logger.Printf("claimed main of %s (epoch %d)", id, view.Epoch+1)
 	// Adopt the ex-main's raised meta now — it names this node as main, which
 	// also opens the local hysteresis window (replica.go adoption rule).
@@ -553,7 +571,9 @@ func (l *syncLoop) pullRange(ctx context.Context, peer, id, author string, after
 	started := time.Now()
 	raw, err := l.door(ctx, peer, "GET", path, nil)
 	if err != nil {
+		l.mu.Lock()
 		l.failCounts[attemptKey]++
+		l.mu.Unlock()
 		return 0, err
 	}
 	rtt := int(time.Since(started).Milliseconds())
@@ -567,16 +587,20 @@ func (l *syncLoop) pullRange(ctx context.Context, peer, id, author string, after
 		return 0, fmt.Errorf("decode replica: %w", err)
 	}
 	if len(slice.Entries) == 0 {
+		l.mu.Lock()
 		delete(l.failCounts, attemptKey)
+		l.mu.Unlock()
 		return 0, nil
 	}
 	transport := &talk.Transport{Rung: "L1", RTTMs: rtt}
 	// Retries are real data: a pull that finally landed after injected (or
 	// genuine) failures carries how many attempts it truly took.
+	l.mu.Lock()
 	if failures := l.failCounts[attemptKey]; failures > 0 {
 		transport.Attempts = failures + 1
 	}
 	delete(l.failCounts, attemptKey)
+	l.mu.Unlock()
 	result, err := l.store.MergeEntries(id, slice.Entries, slice.Epoch, transport)
 	if err != nil {
 		return 0, err
