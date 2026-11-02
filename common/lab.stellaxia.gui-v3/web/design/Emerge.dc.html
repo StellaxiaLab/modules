@@ -497,7 +497,7 @@ class Component extends DCLogic {
     o.fillStyle = g1; o.fillRect(0, 0, w, h);
     const rx = w * 0.42, ry = h * 0.70, cx = w * 0.62, cy = h * 0.58; o.save(); o.translate(cx, cy); o.scale(rx, ry);
     const g2 = o.createRadialGradient(0, 0, 0, 0, 0, 1); g2.addColorStop(0, 'rgba(150,110,200,0.08)'); g2.addColorStop(0.7, 'rgba(150,110,200,0)'); o.fillStyle = g2; o.fillRect(-cx / rx, -cy / ry, w / rx, h / ry); o.restore();
-    this._bgCv = oc;   // 돋보기 이음이 바탕만(글자 없이) 가져다 쓴다
+    this._bgCv = oc;   // 돋보기 융기 외곽이 바탕만(글자 없이) 가져다 쓴다
     return c.createPattern(oc, 'no-repeat');
   }
   PALETTES() {
@@ -1010,6 +1010,8 @@ class Component extends DCLogic {
     if (!B) { if (el.style.display !== 'none') el.style.display = 'none'; return; }
     Object.assign(el.style, { display: 'block', left: B.x + 'px', top: B.y + 'px', width: B.w + 'px', height: B.h + 'px' }); }
   /** 형태 경계까지의 반지름(정규화 좌표) — 각도 θ → R(θ). 가운데에서 쏜 반직선이 닫힌 선과 만나는 가장 먼 점. 256 칸 표로 */
+  /** 사다리꼴 속도 — 앞 30% 는 속도를 0 에서 고르게 올리고, 가운데는 일정한 속도(선형), 끝 30% 는 고르게 내려 0 에서 멈춘다. 0 → 1 */
+  easeTrap(t) { const r = 0.3, v = 1 / (1 - r); t = Math.max(0, Math.min(1, t)); return t < r ? v * t * t / (2 * r) : t > 1 - r ? 1 - v * (1 - t) * (1 - t) / (2 * r) : v * (t - r / 2); }
   lensPolar(sh) {
     const key = sh.pts.length + '|' + sh.pts[0] + '|' + sh.pts[(sh.pts.length / 3) | 0]; if (this._polarC && this._polarC.key === key) return this._polarC.fn;
     const P = sh.pts, N = 256, T = new Float32Array(N);
@@ -1057,10 +1059,11 @@ class Component extends DCLogic {
     c.clearRect(0, 0, this._w, this._h);
     if (this._lensDrawPts && this._lensDrawPts.length > 1) { const P = this._lensDrawPts; c.strokeStyle = 'rgba(230,234,247,.9)'; c.lineWidth = 1.5; c.setLineDash([4, 4]); c.beginPath(); P.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.lineTo(P[0][0], P[0][1]); c.stroke(); c.setLineDash([]); }
     let a = L.on ? 1 : 0;
-    if (A) { const p = Math.min(1, (now - A.t0) / 240); a = A.dir > 0 ? p : 1 - p; if (p >= 1) this._lensA = null; }
+    const RIDGE = !!(L.seam && L.wide && !L.bind);   // 융기 외곽 — 열기 · 닫기는 펼침 대신 배율이 1 에서 목표까지(사다리꼴 속도)
+    if (A) { const p = Math.min(1, (now - A.t0) / (RIDGE ? 700 : 240)); a = A.dir > 0 ? p : 1 - p; if (p >= 1) this._lensA = null; }
     if (!L.bind || a <= 0 || !R) this.lensHitBox(null);
     if (a <= 0 || !R) return;
-    const e = a < 1 ? 1 - Math.pow(1 - a, 3) : 1, cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows;
+    const e = RIDGE ? 1 : a < 1 ? 1 - Math.pow(1 - a, 3) : 1, cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows;
     let W = L.w, H = L.h, cx = L.x * this._w, cy = L.y * this._h, sh = this.lensPts(L.shape || { id: 'rect' }), BIND = null, z = L.z, vx = cx, vy = cy;
     if (L.bind) {   // 돋보기 혼합 — 안 보이는 컴포넌트를 확대한 모습: 자리(가운데) = 그 컴포넌트, 크기 = 그 영역 × 배율, 그 위 층. 담는 것은 그 컴포넌트 뿐(바탕 · 둘레 글자 없음)
       const ce = this._compEl && this._compEl.isConnected ? this._compEl : document.querySelector('[data-comp]'), root = cv.parentElement;
@@ -1077,7 +1080,8 @@ class Component extends DCLogic {
     // 광각이면 가장자리(형태의 가장 먼 점 u²)까지 볼 곳이 넓어진다 — 사각의 꼭짓점(u² = 2)까지 채운다
     let U2 = 1; for (const [x, y] of sh.pts) U2 = Math.max(U2, x * x + y * y);
     const k = [0, 0.35, 0.8][L.wide || 0], bl = [0, 0.55, 1][L.bleed || 0], SEAM = !!(L.seam && k && !BIND);
-    // 이음(테두리 없음) — 가장자리에서 보는 점 = 그 자리(배율 1)라 바탕과 이어진다. O 는 렌즈 넓이 그대로를 zO 배로(너무 크면 zO 를 낮춤)
+    if (SEAM && a < 1) z = 1 + (z - 1) * this.easeTrap(a);   // 융기 외곽 생성 — 배율 1(바탕과 같음) → 목표, 가운데는 일정한 속도 · 처음과 끝은 속도 0
+    // 융기 외곽(테두리 없음) — 가장자리에서 보는 점 = 그 자리(배율 1)라 바탕과 이어진다. O 는 렌즈 넓이 그대로를 zO 배로(너무 크면 zO 를 낮춤)
     const zO = SEAM ? Math.min(z, 3600 / Math.max(W, H)) : z, Ex = SEAM ? zO * 1.04 : BIND ? 1 : 1 + k * U2 + 0.02, OW = W * Ex, OH = H * Ex;   // 혼합은 가로 · 세로 따로 휘어(아래 ②) 네 변 · 네 꼭짓점이 꼭 그 컴포넌트 끝에 닿는다
     // 혼합 + 글자 칸이 없는 컴포넌트(레거시 사각 · 원 — DOM 한 덩이)는 확대 모습이 자리와 무관 — 크기 · 배율 · 광각 · 빛번짐 · 내용이 같으면 ①–③ 을 다시 하지 않는다(끄는 동안도)
     const ceK = BIND && !this._compCells && e >= 1 ? (this._compEl && this._compEl.isConnected ? this._compEl : document.querySelector('[data-comp]')) : null;
@@ -1087,7 +1091,7 @@ class Component extends DCLogic {
     // ① 곧은 확대 — O 의 (ox, oy) 는 보는 점 (cx + (ox − OW/2)/z, cy + (oy − OH/2)/z)
     const sw = OW / zO, shh = OH / zO, sx = vx - sw / 2, sy = vy - shh / 2, Oo = this.off('O', OW, OH), o = Oo.c;
     o.fillStyle = '#040614'; o.fillRect(0, 0, OW, OH);
-    const bgc = SEAM ? this._bgCv : null;   // 이음 — 바탕은 글자 장의 바탕 그림 그대로(글자 없이) — 테 안팎 색이 같고, 글자를 뭉갠 번짐이 생기지 않는다
+    const bgc = SEAM ? this._bgCv : null;   // 융기 외곽 — 바탕은 글자 장의 바탕 그림 그대로(글자 없이) — 테 안팎 색이 같고, 글자를 뭉갠 번짐이 생기지 않는다
     if (bgc) { const kk = bgc.width / this._w; o.imageSmoothingEnabled = true; o.drawImage(bgc, sx * kk, sy * kk, sw * kk, shh * kk, 0, 0, OW, OH); }
     if (BIND) { o.save(); o.beginPath(); o.rect((BIND.x0 - sx) * zO, (BIND.y0 - sy) * zO, (BIND.x1 - BIND.x0) * zO, (BIND.y1 - BIND.y0) * zO); o.clip(); }   // 확대하는 것은 그 컴포넌트 영역 뿐
     const uc = BIND || SEAM ? null : this._ucv; if (uc) { const kk = uc.width / this._w; o.globalAlpha = 0.9; o.imageSmoothingEnabled = true; o.drawImage(uc, sx * kk, sy * kk, sw * kk, shh * kk, 0, 0, OW, OH); o.globalAlpha = 1; }
@@ -1103,7 +1107,7 @@ class Component extends DCLogic {
     const G = this._glyphs, FN = fz + 'px GmarketSans, "Geist Mono", monospace'; o.textBaseline = 'top'; let bold = -1;
     for (let yy = y0; yy <= y1; yy++) for (let xx = x0; xx <= x1; xx++) {
       const i = yy * cols + xx; if (R.f[i] !== R.n || (CC && !(CC[i] >= 0))) continue;
-      let gl = R.g[i]; if (a < 1 && this._jit[i] > e) gl = G[(Math.random() * G.length) | 0];   // 펼쳐지는 동안 — 랜덤 갱신하다 제 글자로
+      let gl = R.g[i]; if (a < 1 && !SEAM && this._jit[i] > e) gl = G[(Math.random() * G.length) | 0];   // 펼쳐지는 동안 — 랜덤 갱신하다 제 글자로
       if (R.b[i] !== bold) { bold = R.b[i]; o.font = (bold ? '700 ' : '500 ') + FN; }
       o.fillStyle = R.c[i]; o.fillText(gl, (xx * cw - sx) * zO, (yy * ch - sy) * zO);
     }
@@ -1113,7 +1117,7 @@ class Component extends DCLogic {
     const Fo = this.off('F', W, H), f = Fo.c, ox0 = OW / 2, oy0 = OH / 2, dpr = Oo.cv.width / OW;
     if (!k) f.drawImage(Oo.cv, (OW - W) / 2 * dpr, (OH - H) / 2 * dpr, W * dpr, H * dpr, 0, 0, W, H);
     else { const T = Math.max(5, Math.round(Math.max(W, H) / 140)), hw = W / 2, hh = H / 2, PB = SEAM ? this.lensPolar(sh) : null, NE = (L.wide || 0) > 1 ? 5 : 2.5;
-      const MP = (x, y) => { const nx = x / hw, ny = y / hh, u = Math.hypot(nx, ny) / PB(Math.atan2(ny, nx)), g = 1 / z + (1 - 1 / z) * Math.pow(Math.min(1, u / 0.86), NE); return [x * g * zO, y * g * zO, u]; };   // 이음 — 렌즈 점 → O 의 점(가운데 기준) · u   f.imageSmoothingEnabled = true;   // 큰 돋보기는 조각도 크게 — 조각 수를 ~140² 아래로
+      const MP = (x, y) => { const nx = x / hw, ny = y / hh, u = Math.hypot(nx, ny) / PB(Math.atan2(ny, nx)), g = 1 / z + (1 - 1 / z) * Math.pow(Math.min(1, u / 0.86), NE); return [x * g * zO, y * g * zO, u]; };   // 융기 외곽 — 렌즈 점 → O 의 점(가운데 기준) · u   f.imageSmoothingEnabled = true;   // 큰 돋보기는 조각도 크게 — 조각 수를 ~140² 아래로
       for (let ty = 0; ty < H; ty += T) for (let tx = 0; tx < W; tx += T) {
         const px = tx + T / 2 - hw, py = ty + T / 2 - hh;
         if (SEAM) {   // 렌즈 점 p(형태 경계까지의 비 u)는 p·g 를 본다, g = 1/z + (1 − 1/z)·min(1, u/0.86)ⁿ — 가운데 z 배, 가장자리에서 급히 1 배로. 0.9 넘어서는 같은 그림이라 흐려 이어 붙인다
@@ -1125,7 +1129,7 @@ class Component extends DCLogic {
         const u2 = (px / hw) * (px / hw) + (py / hh) * (py / hh), g = 1 + k * u2, s = T * (1 + 2 * k * u2);
         const qx = ox0 + px * g, qy = oy0 + py * g; f.drawImage(Oo.cv, (qx - s / 2) * dpr, (qy - s / 2) * dpr, s * dpr, s * dpr, tx, ty, T + 0.6, T + 0.6); }
       f.globalAlpha = 1;
-      // 가장자리 어둠 — 렌즈 테 쪽이 조금 가라앉는다(이음이면 없음)
+      // 가장자리 어둠 — 렌즈 테 쪽이 조금 가라앉는다(융기 외곽이면 없음)
       if (!SEAM) { f.save(); f.translate(W / 2, H / 2); f.scale(W / 2, H / 2); const vg = f.createRadialGradient(0, 0, 0.55, 0, 0, 1.05); vg.addColorStop(0, 'rgba(2,3,10,0)'); vg.addColorStop(1, 'rgba(2,3,10,' + (0.35 * k / 0.8).toFixed(3) + ')'); f.fillStyle = vg; f.fillRect(-1, -1, 2, 2); f.restore(); } }
     // ③ 빛번짐 — 번진 빛 · 색 갈라짐 · 가로 끌림. 광각이면 가장자리일수록 세게(왜곡이 심한 곳)
     if (bl) { const Bo = this.off('B', W, H), b = Bo.c, Co = this.off('C', W, H), cc = Co.c, sp = 1.5 + 3.5 * bl + (k ? 3 * k : 0);
@@ -1146,12 +1150,12 @@ class Component extends DCLogic {
     const LINE = 'rgba(155,166,201,' + (0.6 * e).toFixed(3) + ')', HI = 'rgba(230,234,247,' + e.toFixed(3) + ')';
     if (!SEAM) { c.lineWidth = 1; c.strokeStyle = this._lensFocus ? HI : LINE; this.lensPath(c, sh, cx, cy, hw - 0.5, hh - 0.5); c.stroke(); }   // 이음 — 테두리 없음
     c.strokeStyle = HI; c.lineWidth = 1.5; const B = Math.min(14, hw / 3);
-    if (BIND || SEAM) {}   // 혼합 — 틀은 1px 선만 · 이음 — 괄호 · 눈금도 없음
+    if (BIND || SEAM) {}   // 혼합 — 틀은 1px 선만 · 융기 외곽 — 괄호 · 눈금도 없음
     else if (sh.rect) { c.beginPath(); for (const [px, py, dx, dy] of [[cx - hw, cy - hh, 1, 1], [cx + hw, cy - hh, -1, 1], [cx - hw, cy + hh, 1, -1], [cx + hw, cy + hh, -1, -1]]) { c.moveTo(px + dx * B, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * B); } c.stroke(); }
     else { let L0 = null, R0 = null, T0 = null, B0 = null; for (const [x, y] of sh.pts) { if (!L0 || x < L0[0]) L0 = [x, y]; if (!R0 || x > R0[0]) R0 = [x, y]; if (!T0 || y < T0[1]) T0 = [x, y]; if (!B0 || y > B0[1]) B0 = [x, y]; }
       c.beginPath(); for (const [p, dx, dy] of [[L0, -1, 0], [R0, 1, 0], [T0, 0, -1], [B0, 0, 1]]) { const qx = cx + p[0] * hw, qy = cy + p[1] * hh; c.moveTo(qx + dx * 2, qy + dy * 2); c.lineTo(qx + dx * 8, qy + dy * 8); } c.stroke(); }
     if (!BIND && !SEAM) { c.lineWidth = 1; c.strokeStyle = 'rgba(230,234,247,' + (0.35 * e).toFixed(3) + ')'; c.beginPath(); c.moveTo(cx - 6, cy + 0.5); c.lineTo(cx - 2, cy + 0.5); c.moveTo(cx + 2, cy + 0.5); c.lineTo(cx + 6, cy + 0.5); c.moveTo(cx + 0.5, cy - 6); c.lineTo(cx + 0.5, cy - 2); c.moveTo(cx + 0.5, cy + 2); c.lineTo(cx + 0.5, cy + 6); c.stroke(); }
-    if (e > 0.9 && !BIND && (!SEAM || this._lensFocus || this._lensDrag)) {   // 이음 — 손잡이는 잡았을 때만
+    if (e > 0.9 && !BIND && (!SEAM || this._lensFocus || this._lensDrag)) {   // 융기 외곽 — 손잡이는 잡았을 때만
       const hx = cx + hw, hy = cy + hh; c.fillStyle = HI; c.beginPath(); c.moveTo(hx + 2, hy - 8); c.lineTo(hx + 2, hy + 2); c.lineTo(hx - 8, hy + 2); c.closePath(); c.fill(); }
     // 정보 — 머리: '돋보기 ×z · 광각 · 빛번짐' · 보는 칸(열 · 행)
     if (L.info && e > 0.6) { c.font = '500 11px GmarketSans, "Geist Mono", monospace'; c.textBaseline = 'alphabetic'; const ty = cy - hh - 7, WN = ['', ' · 광각 약', ' · 광각 강'][L.wide || 0], BN = ['', ' · 빛번짐 약', ' · 빛번짐 강'][L.bleed || 0];
@@ -1215,8 +1219,8 @@ class Component extends DCLogic {
         info: seg([[true, '보임'], [false, '숨김']], !!L.info, (v) => this.setLens({ info: v })),
         wide: seg([[0, '끔'], [1, '약'], [2, '강']], L.wide || 0, (v) => this.setLens({ wide: v })),
         bleed: seg([[0, '끔'], [1, '약'], [2, '강']], L.bleed || 0, (v) => this.setLens({ bleed: v })),
-        seam: seg([[false, '있음'], [true, '없음 — 이음']], !!L.seam, (v) => this.setLens({ seam: v })), seamDisp: L.wide && !L.bind ? 'flex' : 'none',
-        shapeDisp: L.bind ? 'none' : 'flex', openT: L.on ? '닫기' : '열기', open: () => this.lensToggle(), note: drawing ? '화면에 닫힌 선을 그린다\n손을 떼면 처음 점과 잇는다 · Esc 취소' : L.bind ? '컴포넌트 자리에 그 확대 모습만\n끌면 함께 · 바탕은 담지 않는다' : L.seam && L.wide ? '가운데는 크게, 가장자리에서 급히 줄어\n바탕과 이어진다 — 테두리 없음' : '끌어 옮김 · 모서리로 크기 · 휠 배율\n빈 곳을 누르면 그 자리로' },
+        seam: seg([[false, '있음'], [true, '융기 외곽']], !!L.seam, (v) => this.setLens({ seam: v })), seamDisp: L.wide && !L.bind ? 'flex' : 'none',
+        shapeDisp: L.bind ? 'none' : 'flex', openT: L.on ? '닫기' : '열기', open: () => this.lensToggle(), note: drawing ? '화면에 닫힌 선을 그린다\n손을 떼면 처음 점과 잇는다 · Esc 취소' : L.bind ? '컴포넌트 자리에 그 확대 모습만\n끌면 함께 · 바탕은 담지 않는다' : L.seam && L.wide ? '융기 외곽 — 가운데는 크게, 가장자리에서\n급히 줄어 바탕과 이어진다(테두리 없음)' : '끌어 옮김 · 모서리로 크기 · 휠 배율\n빈 곳을 누르면 그 자리로' },
     };
   }
 
