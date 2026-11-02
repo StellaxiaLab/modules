@@ -258,7 +258,7 @@ func (s *Store) RemoveMember(id, node string) (Member, Entry, error) {
 func (s *Store) appendMembershipEntryLocked(id string, meta storedMeta, kind, member string) (Entry, error) {
 	selfID := s.self()
 	ownLog := filepath.Join(s.conversationDir(id), "log", selfID+".jsonl")
-	own, err := readLog(ownLog)
+	own, err := s.summarizeLogLocked(ownLog)
 	if err != nil {
 		return Entry{}, err
 	}
@@ -266,10 +266,7 @@ func (s *Store) appendMembershipEntryLocked(id string, meta storedMeta, kind, me
 	if err != nil {
 		return Entry{}, err
 	}
-	lastSeq := 0
-	if len(own) > 0 {
-		lastSeq = own[len(own)-1].Seq
-	}
+	lastSeq := own.lastSeq
 	entry := Entry{
 		AuthorNodeID: selfID,
 		Kind:         kind,

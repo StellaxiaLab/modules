@@ -144,14 +144,11 @@ func (s *Store) MergeEntries(id string, entries []Entry, senderEpoch int, transp
 		lines := byAuthor[author]
 		sort.Slice(lines, func(i, j int) bool { return lines[i].Seq < lines[j].Seq })
 		logPath := filepath.Join(s.conversationDir(id), "log", author+".jsonl")
-		existing, err := readLog(logPath)
+		existing, err := s.summarizeLogLocked(logPath)
 		if err != nil {
 			return result, err
 		}
-		mark := 0
-		if len(existing) > 0 {
-			mark = existing[len(existing)-1].Seq
-		}
+		mark := existing.lastSeq
 		for _, entry := range lines {
 			switch {
 			case entry.Seq <= mark:
