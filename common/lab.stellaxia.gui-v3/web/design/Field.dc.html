@@ -1215,7 +1215,9 @@ class Component extends DCLogic {
     const LG = this._lg || (this._lg = { mp: 0, m: 0, on: false, onAt: 0, open: false, cAt: 0, ring: 0 });
     if (now - this._boot > 400) LG.mp = Math.min(Tm, LG.mp + dt);   // 프롬프트 찍기 (한 번)
     const M = this._mouse, Z = this._zones.logo, cw = this._cw, ch = this._ch;
-    const hov = !!(M && M.x >= Z.c0 * cw - cw && M.x <= Z.c1 * cw + cw && M.y >= Z.r0 * ch - ch && M.y <= Z.r1 * ch + ch);
+    const inZ = (A) => !!(M && A && M.x >= A.c0 * cw - cw && M.x <= A.c1 * cw + cw && M.y >= A.r0 * ch - ch && M.y <= A.r1 * ch + ch);
+    // 켜진 동안은 기본 정보 줄(로그인 · 로그아웃 · 로컬)도 호버 자리다 — 로고만 보면 로그아웃 줄로 내려가는 순간 꺼져 그 누르기를 버린다
+    const hov = inZ(Z) || (LG.on && inZ(this._zones.info));
     // TERRA 누르기 — 열기 / 닫기. 바로 누르면 TERRA 가 먼저 생기고 그 다음 내용, 호버로 이미 TERRA 가 떠 있으면 곧바로 내용
     if (this._tapLogo) { this._tapLogo = false; if (LG.mp >= Tm) { LG.open = !LG.open; LG.cAt = 0; } }
     const want = (hov || LG.open) && LG.mp >= Tm;
