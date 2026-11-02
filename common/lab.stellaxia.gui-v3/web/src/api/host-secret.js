@@ -4,7 +4,7 @@
 // 비밀번호 칸 하나만 셸 문서(다른 origin)에 있다 — frame 이 그 칸을 보드의 password 자리 위에 겹친다. 이 웹은 그 값을 볼 수 없다:
 // 셸이 알려 주는 것은 칸의 상태(보임 · 포커스 · 비었는지)와 칸에서 눌린 키뿐이다.
 //   제출   frame.secret.submit({ email, auto, node, attempt }) → 셸이 칸의 값을 더해 Scene 의 signin 이벤트로 → gui-v3.signin.host(credential.login)
-//   결과   성공 = 새 토큰(onToken) · 실패 = session Store 의 error { message, attempt }(onValue) — attempt 로 내 시도의 답인지 안다
+//   결과   성공 = 새 토큰(onToken) · 실패 = session Store 의 error { message, attempt } 이면서 state 가 signedIn 이 아님(onValue) — attempt 로 내 시도의 답인지 안다
 // 셸이 이 칸을 모르면(이전 Terra) frame.secret 이 없다 → 지금까지처럼 emit('login') 으로 Scene 의 /login 카드에 맡긴다.
 
 const FORM = 'form[aria-label="Terra 로그인"]';
@@ -17,16 +17,24 @@ export function hostSecretOf(frame) {
 
 /**
  * 제출한 시도의 답을 기다린다. 성공은 토큰이 오는 것, 실패는 session 의 error.attempt 가 이 시도와 같아지는 것이다.
+ * 단 gui-v3.signin.host 는 성공할 때도 error { message: '', attempt } 를 적는다(내 시도의 답이라는 표시) — 그 값은 state 가 signedIn 이고,
+ * 셸이 토큰을 받아 오는 것(fetch)보다 먼저 온다. 그것을 실패로 읽으면 서버가 맞다고 한 로그인을 "로그인 못 함"으로 보이고, 늦게 온 토큰이
+ * 비밀번호 칸을 걷어 다음 누르기가 입력과 상관없이 워프한다. 그래서 signedIn 인 답은 실패가 아니라 "토큰을 기다려라"다.
  * @returns {Promise<{ ok: true } | { ok: false, message: string }>}
  */
 export function waitHostLogin(frame, attempt, timeoutMs = HOST_LOGIN_TIMEOUT_MS) {
   return new Promise((done) => {
-    let offToken = null, offValue = null, timer = 0, ended = false;
+    let offToken = null, offValue = null, timer = 0, ended = false, accepted = false;
     const end = (result) => { if (ended) return; ended = true; if (offToken) offToken(); if (offValue) offValue(); clearTimeout(timer); done(result); };
-    offToken = frame.onToken((token) => { if (token) end({ ok: true }); });
+    offToken = frame.onToken((token) => {
+      if (token) end({ ok: true });
+      else if (accepted) end({ ok: false, message: '로그인은 됐지만 앱 토큰을 받지 못했어요' });   // 셸이 토큰 대신 signedOut 을 보냈다
+    });
     offValue = frame.onValue((value) => {
       const error = value && value.error;
-      if (error && error.attempt === attempt) end({ ok: false, message: (typeof error.message === 'string' && error.message) || '로그인 못 함' });
+      if (!error || error.attempt !== attempt) return;
+      if (value.state === 'signedIn') { accepted = true; return; }   // 성공의 답 — 토큰이 뒤따른다
+      end({ ok: false, message: (typeof error.message === 'string' && error.message) || '로그인 못 함' });
     });
     timer = setTimeout(() => end({ ok: false, message: '응답이 늦어요 — 다시 시도' }), timeoutMs);
   });

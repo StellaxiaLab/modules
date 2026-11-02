@@ -40,7 +40,7 @@ const server = createServer(async (req, res) => {
 });
 await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
 const { chromium } = createRequire(import.meta.url)('playwright');
-const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
@@ -60,6 +60,22 @@ await page.mouse.click(640, 420); await page.waitForTimeout(3500);
 await page.locator('input[name=admin]').fill('admin'); await page.locator('input[name=password]').fill('pw'); await page.keyboard.press('Enter');
 await page.waitForFunction(() => window.__terra.scene.state.loginOn === false, null, { timeout: 40000 });
 ok(true, '로그인 → 트리 뷰');
+// 로그아웃 — 사람처럼: 로고에 올려 기본 정보를 펼치고, 아래 '로그아웃' 줄로 내려가 누른다(로고만 호버 자리이던 때는 내려가는 순간 접혀 누르기가 버려졌다)
+{
+  const at = await page.evaluate(() => { const s = window.__terra.scene, Z = s._q_zones.logo, cw = s._q_cw, ch = s._q_ch; return { lx: (Z.c0 + 2) * cw, ly: (Z.r0 + 1) * ch }; });
+  await page.mouse.move(at.lx, at.ly); await page.waitForTimeout(1500);
+  const lo = await page.evaluate(() => { const s = window.__terra.scene, Q = s._q_lo; return Q && { x: (Q.x0 + Q.x1) / 2, y: (Q.row + 0.5) * s._q_ch }; });
+  await page.mouse.move(lo.x, at.ly, { steps: 3 }); await page.mouse.move(lo.x, lo.y, { steps: 6 }); await page.waitForTimeout(300);
+  await page.mouse.click(lo.x, lo.y);
+  await page.waitForFunction(() => window.__terra.scene.state.loginOn === true, null, { timeout: 8000 }).catch(() => {});
+  ok(await page.evaluate(() => window.__terra.scene.state.loginOn === true), '로그아웃 줄 누르기 → 로그인 층');
+  // 아래 창 시험은 로그인한 트리 뷰에서 — 새로 열어 다시 로그인한다
+  await page.goto(`http://127.0.0.1:${server.address().port}/index.html?demo`);
+  await page.waitForFunction(() => window.__terra && window.__terra.scene.__gpu && window.__terra.scene.__gpu.host, null, { timeout: 30000 });
+  await page.waitForTimeout(800); await page.mouse.click(640, 420); await page.waitForTimeout(3500);
+  await page.locator('input[name=admin]').fill('admin'); await page.locator('input[name=password]').fill('pw'); await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.__terra.scene.state.loginOn === false, null, { timeout: 40000 });
+}
 await page.evaluate(() => { const s = window.__terra.scene; s.gf_ctlOpenWin(s.gf_localNode()); });
 await page.waitForTimeout(2500);
 ok(await page.evaluate(() => getComputedStyle(document.querySelector('[data-ctlwin][data-slot="0"]')).display !== 'none'), '제어기 창');

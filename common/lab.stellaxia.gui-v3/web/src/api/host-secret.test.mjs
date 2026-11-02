@@ -46,6 +46,24 @@ test('waitHostLogin — 토큰이 오면 성공, 내 시도의 error 면 실패,
   assert.equal(slow.ok, false);
 });
 
+test('waitHostLogin — 성공의 답(signedIn + 내 attempt, 빈 message)이 토큰보다 먼저 와도 실패가 아니다', async () => {
+  // 셸 순서 그대로: signin.host 가 session 을 쓰면 값은 곧바로 오고, 토큰은 발급(fetch) 뒤에 온다
+  const f = fakeFrame();
+  const ok = waitHostLogin(f, 11, 1000);
+  f.value({ state: 'signedIn', principal: 'admin', error: { message: '', attempt: 11 } });
+  f.token('tsa_9');
+  assert.deepEqual(await ok, { ok: true });
+
+  const lost = waitHostLogin(f, 12, 1000);
+  f.value({ state: 'signedIn', principal: 'admin', error: { message: '', attempt: 12 } });
+  f.token(undefined);
+  assert.equal((await lost).ok, false);
+
+  const bad = waitHostLogin(f, 13, 1000);
+  f.value({ state: 'signedOut', error: { message: '', attempt: 13 } });
+  assert.deepEqual(await bad, { ok: false, message: '로그인 못 함' });
+});
+
 test('nextAttempt — 같은 시각이어도 늘 커진다', () => {
   const a = nextAttempt(1000), b = nextAttempt(1000), c = nextAttempt(5);
   assert.ok(b > a && c > b);
