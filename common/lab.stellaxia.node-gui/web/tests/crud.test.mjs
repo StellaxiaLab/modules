@@ -1,7 +1,7 @@
 // 조타륜 자원 추가 · 수정 · 삭제 — 본문이 실제 서버의 입력과 맞는지, 화면이 항목을 지어내지 않는지.
 //   npm test
 // 본문 모양은 서버 코드에서 확인했다: Daemon local API(DisallowUnknownFields) · Master 라우트(decodeJSON — 모르는 키 거절) ·
-// io.terra.file 계약(additionalProperties: false). 게이트웨이는 경로 자리({device_id} …)를 채우고 본문에서 뺀다.
+// lab.stellaxia.file 계약(additionalProperties: false). 게이트웨이는 경로 자리({device_id} …)를 채우고 본문에서 뺀다.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -37,9 +37,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 test('폴더 — 추가는 폴더면 mkdir, 파일이면 빈 파일(exclusive). 공유 폴더(맨 위 칸) 자리에는 만들지 않는다', async () => {
   const { f, source } = live();
   await source.crud(LOCAL, 'folder', 'create', { name: 'logs', dir: true }, null, { path: 'share-0/docs' });
-  assert.deepEqual([opOf(f.calls[0].url), f.calls[0].body], ['io.terra.file.entries.mkdir', { root: 'share-0', path: 'docs/logs' }]);
+  assert.deepEqual([opOf(f.calls[0].url), f.calls[0].body], ['lab.stellaxia.file.entries.mkdir', { root: 'share-0', path: 'docs/logs' }]);
   await source.crud(LOCAL, 'folder', 'create', { name: 'a.txt', dir: false }, null, { path: 'share-0' });
-  assert.deepEqual([opOf(f.calls[1].url), f.calls[1].body], ['io.terra.file.entries.write', { root: 'share-0', path: 'a.txt', data: '', exclusive: true }]);
+  assert.deepEqual([opOf(f.calls[1].url), f.calls[1].body], ['lab.stellaxia.file.entries.write', { root: 'share-0', path: 'a.txt', data: '', exclusive: true }]);
   const top = await source.crud(LOCAL, 'folder', 'create', { name: 'x', dir: true }, null, { path: '' });
   assert.deepEqual([top.kind, top.reason], ['unavailable', 'share-root']);
   assert.equal((await source.crud(LOCAL, 'folder', 'create', { name: 'a/b', dir: true }, null, { path: 'share-0' })).reason, 'bad-name');
@@ -49,9 +49,9 @@ test('폴더 — 추가는 폴더면 mkdir, 파일이면 빈 파일(exclusive). 
 test('폴더 — 이름 바꾸기는 같은 공유 폴더 안의 rename(새 칸 id 를 돌려준다), 지우기는 폴더면 recursive', async () => {
   const { f, source } = live();
   const r = await source.crud(LOCAL, 'folder', 'update', { name: 'new.md' }, { id: 'share-0/docs/old.md', dir: false });
-  assert.deepEqual([opOf(f.calls[0].url), f.calls[0].body, r.id], ['io.terra.file.entries.rename', { root: 'share-0', path: 'docs/old.md', to: 'docs/new.md' }, 'share-0/docs/new.md']);
+  assert.deepEqual([opOf(f.calls[0].url), f.calls[0].body, r.id], ['lab.stellaxia.file.entries.rename', { root: 'share-0', path: 'docs/old.md', to: 'docs/new.md' }, 'share-0/docs/new.md']);
   const d = await source.crud(LOCAL, 'folder', 'del', null, { id: 'share-0/docs', dir: true });
-  assert.deepEqual([opOf(f.calls[1].url), f.calls[1].body, d.verb], ['io.terra.file.entries.remove', { root: 'share-0', path: 'docs', recursive: true }, '지움']);
+  assert.deepEqual([opOf(f.calls[1].url), f.calls[1].body, d.verb], ['lab.stellaxia.file.entries.remove', { root: 'share-0', path: 'docs', recursive: true }, '지움']);
   assert.equal((await source.crud(LOCAL, 'folder', 'del', null, { id: 'share-0', dir: true, root: true })).reason, 'share-root');
   assert.equal((await source.crud(LOCAL, 'folder', 'update', { name: 'x' }, { id: 'share-0', dir: true, root: true })).reason, 'share-root');
 });
@@ -162,10 +162,10 @@ test('전송 — 폼으로는 만들지 않는다(↑ 올리기로 파일을 고
   const done = await source.crud(LOCAL, 'xfer', 'del', null, { id: 'tr-1', state: 'completed' });
   assert.deepEqual([done.screen, done.verb, f.calls.length], [true, '치움', 0]);
   const r = await source.crud(LOCAL, 'xfer', 'del', null, { id: 'tr-2', state: 'transferring' });
-  assert.deepEqual([opOf(f.calls[0].url), f.calls[0].body, r.keep, r.verb], ['io.terra.file.transfers.abort', { transfer_id: 'tr-2', keep_partial: false }, true, '중단']);
-  // 중단해 둔 것(부분 남김 — io.terra.file 0.2.1)은 서버에 남는다 — 화면에서만 치우면 다음 목록에 다시 온다
+  assert.deepEqual([opOf(f.calls[0].url), f.calls[0].body, r.keep, r.verb], ['lab.stellaxia.file.transfers.abort', { transfer_id: 'tr-2', keep_partial: false }, true, '중단']);
+  // 중단해 둔 것(부분 남김 — lab.stellaxia.file 0.2.1)은 서버에 남는다 — 화면에서만 치우면 다음 목록에 다시 온다
   const p = await source.crud(LOCAL, 'xfer', 'del', null, { id: 'tr-3', state: 'aborted' });
-  assert.deepEqual([opOf(f.calls[1].url), f.calls[1].body, p.keep, p.verb], ['io.terra.file.transfers.abort', { transfer_id: 'tr-3', keep_partial: false }, true, '치움']);
+  assert.deepEqual([opOf(f.calls[1].url), f.calls[1].body, p.keep, p.verb], ['lab.stellaxia.file.transfers.abort', { transfer_id: 'tr-3', keep_partial: false }, true, '치움']);
 });
 
 test('길이 없는 것 — SVI 자원 · 모듈 설치 · 제거 · 피어 추가는 null(화면이 지어내지 않는다). 이 노드의 게이트웨이에 없는 op 는 부르지 않는다', async () => {
@@ -183,7 +183,7 @@ test('길이 없는 것 — SVI 자원 · 모듈 설치 · 제거 · 피어 추�
 
 test('모듈 앱 — 게이트웨이의 설치된 GUI 앱(/api/v1/gui/apps)으로 gui · ui 를 붙인다. 못 읽으면 GUI 가 없다고 단정하지 않는다', async () => {
   const apps = [{ id: 'lab.x.web', moduleId: 'lab.x', name: 'X 앱', route: '/apps/lab.x.web', embed: 'scene', origin: 'http://app-lab--x--web.localhost:28787' }];
-  const items = [{ id: 'lab.x', name: 'X', gui: false }, { id: 'io.terra.file', name: 'File', gui: false }];
+  const items = [{ id: 'lab.x', name: 'X', gui: false }, { id: 'lab.stellaxia.file', name: 'File', gui: false }];
   const out = withGui(items, apps);
   assert.deepEqual([out[0].gui, out[0].ui, out[0].apps[0].id, out[1].gui], [true, '/apps/lab.x.web', 'lab.x.web', false]);
   assert.equal(withGui(items, null), items);
@@ -341,7 +341,7 @@ test('실데이터 층 — 모듈 GUI 창은 다른 모듈의 앱을 이 창에 
   s.hbPut(local, 'mod', [
     { id: 'lab.x', name: 'X', state: 'running', gui: true, ui: '/apps/lab.x.web', apps: [{ id: 'lab.x.web', name: 'X 앱' }] },
     { id: 'lab.stellaxia.node-gui', name: 'Terra 노드', state: 'stopped', kind: 'scene', gui: true, ui: '/apps/lab.stellaxia.node-gui.web', apps: [{ id: 'lab.stellaxia.node-gui.web', name: 'Terra 노드' }] },
-    { id: 'io.terra.file', name: 'File', state: 'running', gui: false }
+    { id: 'lab.stellaxia.file', name: 'File', state: 'running', gui: false }
   ]);
   s.mguiOpen(local, 'lab.x');
   const v = s.mguiVals();
@@ -350,7 +350,7 @@ test('실데이터 층 — 모듈 GUI 창은 다른 모듈의 앱을 이 창에 
   s.mguiOpen(local, 'lab.stellaxia.node-gui');
   assert.match(s.mguiVals().stopMsg, /지금 보고 있는 이 화면/);
   assert.equal(s.mguiVals().state, '화면 모듈', 'Scene 모듈은 프로세스가 없다 — 멈춤이 아니다');
-  s.mguiOpen(local, 'io.terra.file');
+  s.mguiOpen(local, 'lab.stellaxia.file');
   assert.match(s.mguiVals().stopMsg, /GUI를 제공하지 않는다/);
 });
 
@@ -359,14 +359,14 @@ test('실데이터 층 — 🖥 GUI 열기는 다른 모듈의 앱 id를 셸에 
   s.hbPut(local, 'mod', [
     { id: 'lab.x', name: 'X', state: 'running', gui: true, ui: '/apps/lab.x.web', apps: [{ id: 'lab.x.web', name: 'X 앱' }] },
     { id: 'lab.stellaxia.node-gui', name: 'Terra 노드', kind: 'scene', gui: true, apps: [{ id: 'lab.stellaxia.node-gui.web', name: 'Terra 노드' }] },
-    { id: 'io.terra.file', name: 'File', state: 'running', gui: false }
+    { id: 'lab.stellaxia.file', name: 'File', state: 'running', gui: false }
   ]);
   s.__terra = { emit: (event, value) => sent.push([event, value]) };
   s.mguiOpen(local, 'lab.x');
   assert.deepEqual(sent, [['launch', 'lab.x.web']]);
   assert.equal(s.state.mgui, null, '셸이 여니 이 화면의 창은 열지 않는다');
   s.mguiOpen(local, 'lab.stellaxia.node-gui');
-  s.mguiOpen(local, 'io.terra.file');
+  s.mguiOpen(local, 'lab.stellaxia.file');
   assert.equal(sent.length, 1, '자기 자신 · GUI 없는 모듈은 보내지 않는다');
   assert.equal(s.mguiVals().on, true, '자기 자신 · GUI 없는 모듈은 창이 이유를 적는다');
   s.__terra = null;

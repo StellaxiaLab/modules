@@ -453,7 +453,7 @@ sequenceDiagram
 | 서비스 터널 | 선언(늘 열기) · 터널(리스너 → 대상, 연결 수 · 바이트 · 마지막 오류) | 늘 열기 · 대기 중 · 연결 중 · 닫는 중 · 실패 | 선언 지우기(고치는 API 없음) · 터널 닫기 (`node.control`) | + 즉석 열기 (`node.control`, 저장 안 됨) |
 | WireGuard 피어 | 피어 — 주소 · 끝점 · 마지막 핸드셰이크 | 정상 · 오래됨 · 본 적 없음 | 회수 (`node.control`, **두 번 눌러야** — 되돌릴 수 없음) | ⟳ 동기화 (`node.control`) |
 | 명령 · 작업 | 작업 — 명령 · id · 경과 · exit | 대기 · 실행 중 · 성공 · 실패 | 취소(`process.execute` + `process.cancel` — 기본 권한 밖) · 출력(`node.read`) · 다시(`process.execute`) | + 실행 (`process.execute`) |
-| 모듈 | 모듈 — 이름 · id · 버전 · 한 줄(기여한 SVI 자원 · 마지막 오류). 코어 모듈 넷(`io.terra.file` · `io-inventory` · `io-weave` · `virtual-device`) + 그 노드 고유 모듈 | 실행 중 · 저하 · 실패 · 멈춤 | 멈춤 · 재시작 · 시작 (`module.manage`★ — 기본 권한 밖, 로컬 소유자만) · 로그(`node.read`) | ⟳ 상태 확인 (`node.read`) |
+| 모듈 | 모듈 — 이름 · id · 버전 · 한 줄(기여한 SVI 자원 · 마지막 오류). 코어 모듈 넷(`lab.stellaxia.file` · `io-inventory` · `io-weave` · `virtual-device`) + 그 노드 고유 모듈 | 실행 중 · 저하 · 실패 · 멈춤 | 멈춤 · 재시작 · 시작 (`module.manage`★ — 기본 권한 밖, 로컬 소유자만) · 로그(`node.read`) | ⟳ 상태 확인 (`node.read`) |
 
 - 명령 · 작업은 원격 노드면 **로그인한 tree의 직계 자식**이어야 한다 — 아니면 "직계 자식이 아니다 — 위임 필요 (DELEGATION_REQUIRED)"로 잠근다.
 - WireGuard "계획(plan)"은 되돌릴 수 없는 쓰기라 바에 두지 않는다 — 네트워크 화면 몫.

@@ -48,7 +48,7 @@ flowchart LR
 | --- | --- |
 | 로컬 노드 (A) | leaf Gateway에 그대로 (`terra.daemon.*`) |
 | 다른 노드의 Daemon op (L) | **노드 주소 호출**(Terra B-1) — `client.invoke(op, input, { node: node_id })` → `POST /api/v1/nodes/{node_id}/operations/{id}/invoke`. Master가 중계하고 대상 Daemon이 자기 계약으로 다시 판정한다. 그 노드 카탈로그(`GET /api/v1/nodes/{node_id}/catalog`, 60초)에 있는 것만 부르고 누르기 전에 잠근다. 로컬 전용(명령 실행 · `local-fs` · `desktop.open` · 재시작 · 이벤트)은 그 카탈로그에 없다 — [[real-data-layer\|실데이터 층]] §2.7 |
-| 다른 노드의 모듈 op (M) | `io.terra.file`은 scopes `local` · `node`라 그 노드 카탈로그에 없다 — **원격 모듈 경로** `/api/nodes/{node_id}/modules/io.terra.file/v1/…`(Master 중계)로 부른다. 경로는 카탈로그 `bindings`(없으면 대응표), `{transfer_id}`를 채우고 GET · DELETE 는 query(`client.invokeModuleAt` · `fillRoute`) |
+| 다른 노드의 모듈 op (M) | `lab.stellaxia.file`은 scopes `local` · `node`라 그 노드 카탈로그에 없다 — **원격 모듈 경로** `/api/nodes/{node_id}/modules/lab.stellaxia.file/v1/…`(Master 중계)로 부른다. 경로는 카탈로그 `bindings`(없으면 대응표), `{transfer_id}`를 채우고 GET · DELETE 는 query(`client.invokeModuleAt` · `fillRoute`) |
 | Master op (T) | tree Gateway에 `node_id`를 본문에 실어서. **Terra frame 안에서는 닿지 않는다** — 앱 스코프 토큰은 Master로 넘어가지 않아 `unavailable · master-delegation`이 된다([[architecture#7. Terra 안에서 — frame\|구조 §7]]) |
 
 ### 1.2 권한
@@ -148,11 +148,11 @@ flowchart LR
 
 | | operation | 권한 |
 | --- | --- | --- |
-| 루트 · 항목 | `terra.daemon.files.list.get` (L) · 들어가면 `io.terra.file.entries.list` (M) | `file.read` |
-| 받기 | `io.terra.file.transfers.pulls.create {root, path}` → `transfers.chunks.get {transfer_id, offset}`(eof까지 · 조각마다 SHA-256) → 전체 SHA-256 → `transfers.pulls.complete` → 브라우저 저장. 어긋나면 `transfers.pulls.abort` — 모듈이 지었다(`source.download`). 받은 조각은 이 브라우저 IndexedDB에 두어 다시 받으면 거기서부터(SHA-256 · 크기가 같을 때) | `file.read` |
-| 지우기 · 새 폴더 | `entries.remove` · `entries.mkdir` (M ⚠) | `file.write` — 모듈 op가 계약에 선언한다(io.terra.file 0.2.0) |
+| 루트 · 항목 | `terra.daemon.files.list.get` (L) · 들어가면 `lab.stellaxia.file.entries.list` (M) | `file.read` |
+| 받기 | `lab.stellaxia.file.transfers.pulls.create {root, path}` → `transfers.chunks.get {transfer_id, offset}`(eof까지 · 조각마다 SHA-256) → 전체 SHA-256 → `transfers.pulls.complete` → 브라우저 저장. 어긋나면 `transfers.pulls.abort` — 모듈이 지었다(`source.download`). 받은 조각은 이 브라우저 IndexedDB에 두어 다시 받으면 거기서부터(SHA-256 · 크기가 같을 때) | `file.read` |
+| 지우기 · 새 폴더 | `entries.remove` · `entries.mkdir` (M ⚠) | `file.write` — 모듈 op가 계약에 선언한다(lab.stellaxia.file 0.2.0) |
 | 전송 목록 · 올리기 | `transfers.list` · `transfers.create {push}` → `transfers.chunks.put`(409면 서버 `offset`부터) → `transfers.complete` | `file.read` / `file.write` |
-| 중단 | `transfers.abort {keep_partial: true}` — 부분 파일 · 기록을 남긴다(io.terra.file 0.2.1부터 — 0.2.0은 invoke 본문의 `keep_partial`을 듣지 않아 늘 포기) | `file.write` |
+| 중단 | `transfers.abort {keep_partial: true}` — 부분 파일 · 기록을 남긴다(lab.stellaxia.file 0.2.1부터 — 0.2.0은 invoke 본문의 `keep_partial`을 듣지 않아 늘 포기) | `file.write` |
 | 이어서 | 멈춘 전송(보내던 · 받던 화면이 닫혔다)의 카드. 올리기 — 파일 고르기 → 크기 · SHA-256이 같으면 `transfers.create {…, resume_id}` → 서버 `offset`부터. 받기 — 다시 받기(이 브라우저에 둔 조각부터) · 멈춘 받기는 `transfers.pulls.abort` | `file.write` / `file.read` |
 | 치우기 · 삭제 | 중단해 둔 것 — `transfers.abort {keep_partial: false}`(부분 파일도 지운다). 도는 것의 삭제도 같다(포기) | `file.write` |
 

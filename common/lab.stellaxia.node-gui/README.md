@@ -100,10 +100,10 @@ flowchart LR
 | 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버가 받는 본문으로 부른다 — 폴더(만들기 · 빈 파일 · 이름 바꾸기 · 지우기) · 장치(별명 · 승인 · 켜기 · 잊기 · 스캔) · 작업(실행 · 취소) · 전송(포기 · 중단해 둔 것의 치우기) · 모듈 설정(모듈이 선언한 칸 — 바뀐 키만 · 저장은 `module.manage`★). 서버에 길이 없으면 **항목을 지어 넣지 않고** 그렇다고 말한다 |
 | 상태 화면 · 모듈 GUI 창 | 원본 앱 목록의 그 항목 · 이 노드의 권한 / 설치된 GUI 앱(`/api/v1/gui/apps`). 다른 모듈의 앱은 이 창에 띄울 수 없다고 적는다(frame은 자기 모듈의 앱만) |
 | 조타륜 앱 — SVI 자원 · 허가 | Master operation — **읽기는 위임 입구로 닿는다**(Terra ADR-GW-003 1차): 자원 · 허가 · 열린 핸들 · 바인딩 목록. tree 에서는 operation id 로, leaf 에서는 `/api/upstream/…` 경로로 부른다(`src/api/master-delegated.js`). SVI 자원 앱 창은 흐름도(maingui A-28) · 상태 화면의 흐름 칸 · 맵의 흐르는 도로(MD-24) — 흐름 이벤트(SSE)는 2차라 열리지 않아 흐름 칸 · 도로는 움직이지 않는다(예시 흐름도 돌지 않는다). 허가 만들기 · 연결(bind)은 쓰기라 `DELEGATION_NOT_OPEN`으로 잠긴다 |
-| 폴더 보관함 | Terra 저장소 = 이 노드의 공유 폴더(`io.terra.file`). 폴더 탐색기 = 이 노드의 로컬 최상위 루트(`local-fs` — 닫힌 폴더는 🔒), 파일 · 폴더는 그 노드의 바탕화면에 연다(`desktop.open` — 그 컴퓨터에서 볼 때만). 메모는 LayoutStore(브라우저 + 사용자 문서) |
+| 폴더 보관함 | Terra 저장소 = 이 노드의 공유 폴더(`lab.stellaxia.file`). 폴더 탐색기 = 이 노드의 로컬 최상위 루트(`local-fs` — 닫힌 폴더는 🔒), 파일 · 폴더는 그 노드의 바탕화면에 연다(`desktop.open` — 그 컴퓨터에서 볼 때만). 메모는 LayoutStore(브라우저 + 사용자 문서) |
 | 네트워크 보드 | 로컬 WireGuard · 로컬 서비스 터널은 실데이터. 사설망(네트워크 · 노드 × 네트워크 · 배포) · 연결 진단(라우트 그래프 · 쌍의 후보 · probe 기록) · 라우팅(정책 · 세션) · 조작 이력은 **Master 읽기**로 진짜 값(위임 입구 1차 — tree 는 op id, leaf 는 `/api/upstream`, `src/data/network-master.js`). 보기만 한다 — 조정 · 계획 · 철회 · probe 실행 · 정책 저장 · 세션 닫기는 Master 쓰기(2차), 연결 그룹은 1차에 들지 않는다. 닿지 않으면 "닿지 않음" |
 | 설정 보드 | 로컬 노드 135키(값 · 소유 · 반영 · 설치값 차이)와 저장, 계정(whoami), 로컬 자원. 클러스터 · 서버 탭은 Master — "닿지 않음" |
-| 다른 노드 | 노드 주소 호출(Terra B-1)로 그 노드의 Daemon — I/O 장치 · 모듈(로그 포함) · 작업 · 선언 · 터널 · WireGuard. 그 노드 카탈로그로 누르기 전에 잠근다(로컬 전용은 잠김). 공유 폴더 · 전송 · 올리기 · 받기는 원격 모듈 경로(`/api/nodes/{node_id}/modules/io.terra.file/…`) |
+| 다른 노드 | 노드 주소 호출(Terra B-1)로 그 노드의 Daemon — I/O 장치 · 모듈(로그 포함) · 작업 · 선언 · 터널 · WireGuard. 그 노드 카탈로그로 누르기 전에 잠근다(로컬 전용은 잠김). 공유 폴더 · 전송 · 올리기 · 받기는 원격 모듈 경로(`/api/nodes/{node_id}/modules/lab.stellaxia.file/…`) |
 | 다른 tree | 비어 있다 — 연결 목록을 둘 곳 · 가는 길이 없다 |
 | 편집기에서 내보낸 도로 · 건물 | 이 브라우저(`localStorage`) — 노드 화면이 바로 받아 다시 굽는다 · 사용자 문서 `assets`로 뒤따라 |
 | 로그인 전 · 토큰을 잃었을 때 | **빈 세계**(`이 노드` 한 칸 · `로그인 전`). 띠가 *"Terra에 로그인하지 않았습니다 — 로그인하면 이 노드의 데이터가 보입니다"* 와 [로그인]을 보인다 |
@@ -232,7 +232,7 @@ Terra가 명령 작업의 출력과 다시 실행을 열었다([Terra#140](https
 - **지어낸 값(MD-36)** — 노드 카드의 CPU · 메모리 · 디스크가 노드 이름 해시로 만든 값이었다. 받은 값만 그리고 없으면 "아직 알려 주지 않는다"(Terra PF-25).
 - **빈 창(MD-40)** — 보드가 있는 창은 [전체 화면으로 열기], 없는 창은 "이 앱에 아직 없다". 누르면 노드 화면이 깨지던 "보드에서 열기 →" 링크를 없앴다.
 - **연출(MD-43)** — 연출은 이미 구름에서 맵을 기다리고 있었다. 미리 읽기 시작 · 준비 판정 · 자동 로그인 대기의 고정 지연을 줄였다.
-- **모듈 없음(MD-38)** — `io.terra.io-inventory` · `io.terra.file`이 없는 노드에서 503을 부르지 않는다(`src/api/module-gate.js`).
+- **모듈 없음(MD-38)** — `lab.stellaxia.io-inventory` · `lab.stellaxia.file`이 없는 노드에서 503을 부르지 않는다(`src/api/module-gate.js`).
 - **하지 않은 것** — MD-37(요청을 먼저)은 효과가 없었고(요청이 와도 메인 스레드가 없었다) MD-39(캐시)는 필요 없어졌다.
 - 시험 206개 통과. 레지스트리에 0.4.2를 올려 노드가 합의해 업그레이드(롤백 0.4.1 보존)한 설치본으로 다시 쟀다(7.3초).
 
@@ -299,9 +299,9 @@ Terra가 명령 작업의 출력과 다시 실행을 열었다([Terra#140](https
 | MD-21 다시 | Terra main 스택에서도 올리기 · 받기 · 멈춘 카드 · 중단 · 치우기가 31%부터 이어졌다 |
 | 시험 | `npm test` 116 · `test:smoke` · `validate` · `test:web` 통과 · 페이지 오류 0 |
 
-### 끊긴 뒤 이어서 — MD-21 (2026-10-05, 0.3.0 · io.terra.file 0.2.1)
+### 끊긴 뒤 이어서 — MD-21 (2026-10-05, 0.3.0 · lab.stellaxia.file 0.2.1)
 
-같은 스택에 io.terra.file 0.2.1과 이 모듈을 깔고, leaf UI 셸 안에서 4 MB 파일(조각 16개)을 주고받다가 **페이지를 떠나** 끊은 뒤 다시 로그인해 이었다.
+같은 스택에 lab.stellaxia.file 0.2.1과 이 모듈을 깔고, leaf UI 셸 안에서 4 MB 파일(조각 16개)을 주고받다가 **페이지를 떠나** 끊은 뒤 다시 로그인해 이었다.
 내용은 SHA-256으로 견줬다 — 자세히는 [`web/docs/api/real-data-layer.md`](web/docs/api/real-data-layer.md) §5.4.
 
 | 항목 | 진짜 스택에서 |
@@ -310,12 +310,12 @@ Terra가 명령 작업의 출력과 다시 실행을 열었다([Terra#140](https
 | 받기 | 31%에서 끊김 → 이 브라우저 IndexedDB에 1310720 B → 다시 `받기` → `31%부터 이어서` · 내용이 같다 · 앞선 받기는 닫혔다 |
 | 멈춘 카드 | 15초 뒤 `어긋남` · `멈췄다 · 31%에서 보내던 화면이 닫혔다` · [이어서 · 중단] → 이름이 다른 같은 파일로 이었다 |
 | 중단 · 치우기 | 중단 → `중단됨` · `31% 남겨 둠` · 부분 파일 1310720 B → 같은 파일 다시 올리기로 이었다. 치우기 → 카드 · 기록 · 부분 파일이 모두 사라졌다 |
-| io.terra.file 0.2.1 | 0.2.0은 invoke로 보낸 중단의 `keep_partial`을 듣지 않았다(`kept_partial: false` · 기록 404 · 부분 파일 없음) → 0.2.1은 `kept_partial: true` · 기록 200 · 부분 파일 남음 |
-| 시험 | `npm test` 111 · `test:smoke`(진짜 IndexedDB 포함) · io.terra.file `go test`(고치기 전 코드로는 새 시험이 실패) · `validate` · `test:web` · `test:scenes` 통과 · 페이지 오류 0 |
+| lab.stellaxia.file 0.2.1 | 0.2.0은 invoke로 보낸 중단의 `keep_partial`을 듣지 않았다(`kept_partial: false` · 기록 404 · 부분 파일 없음) → 0.2.1은 `kept_partial: true` · 기록 200 · 부분 파일 남음 |
+| 시험 | `npm test` 111 · `test:smoke`(진짜 IndexedDB 포함) · lab.stellaxia.file `go test`(고치기 전 코드로는 새 시험이 실패) · `validate` · `test:web` · `test:scenes` 통과 · 페이지 오류 0 |
 
 ### Terra G0~G6 연동 — MD-11 · MD-12 · MD-15~MD-19 (2026-10-05, 0.3.0)
 
-Terra(main + [Terra#118](https://github.com/StellaxiaLab/Terra/pull/118))로 빌드한 스택에 이 모듈 0.3.0과 modules main의 `io.terra.file` · `io.terra.io-inventory` 0.2.0을 깔고,
+Terra(main + [Terra#118](https://github.com/StellaxiaLab/Terra/pull/118))로 빌드한 스택에 이 모듈 0.3.0과 modules main의 `lab.stellaxia.file` · `lab.stellaxia.io-inventory` 0.2.0을 깔고,
 이 모듈 앱 토큰으로 Chromium(Playwright)에서 돌렸다. 결과는 관리자 토큰으로 서버에 직접 물어 견줬다 — 자세히는 [`web/docs/api/real-data-layer.md`](web/docs/api/real-data-layer.md) §5.3.
 
 | 항목 | 진짜 스택에서 |
@@ -375,7 +375,7 @@ maingui `f24c3bc`에 맞춘 0.2.0을 같은 스택에 깔고, 화면을 사람�
 
 ### 실데이터 — 진짜 스택 (2026-10-03)
 
-진짜 Master · Daemon(등록) · 게이트웨이 · `io.terra.file` · `io.terra.io-inventory` · leaf UI 셸(Vite) 위에 포장물을
+진짜 Master · Daemon(등록) · 게이트웨이 · `lab.stellaxia.file` · `lab.stellaxia.io-inventory` · leaf UI 셸(Vite) 위에 포장물을
 `terra module install --dev --force`로 깔고 Chromium(Playwright)으로 돌렸다. 화면에 보이는 글자 전체(보드 iframe 포함)에서
 예전 예시 표식 60여 개(노드 이름 · 장치 · 메모 · 알림 · IP · `21:40` · `예시 데이터` · `시연` …)를 찾았다.
 
@@ -433,7 +433,7 @@ Daemon만 가짜다.
 ## 관련 모듈
 
 - `io.terra.scene.terra` (Terra 코어) — 이 main을 띄우는 base Scene
-- [`io.terra.file`](../../leaf/io.terra.file) · [`io.terra.io-inventory`](../../leaf/io.terra.io-inventory) — 공유 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · I/O 장치(0.2.0 손 등록) 데이터의 출처
+- [`lab.stellaxia.file`](../../leaf/lab.stellaxia.file) · [`lab.stellaxia.io-inventory`](../../leaf/lab.stellaxia.io-inventory) — 공유 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · I/O 장치(0.2.0 손 등록) 데이터의 출처
 - [`lab.stellaxia.scene.hello`](../lab.stellaxia.scene.hello/README.md) — 같은 tree 레지스트리 경로의 가장 작은 Scene 모듈
 - GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) — 디자인 원본 · service 판(뿌리) · demo 판(`examples/`). 이 모듈의 `design/`은 `4ec0685`와 같다
 

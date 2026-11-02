@@ -85,7 +85,7 @@ npm test        # node --test tests/*.test.mjs — 브라우저 없이 돈다
 | `tests/crud.test.mjs` | 추가 · 수정 · 삭제 — 앱마다 **본문이 실제 서버의 입력과 같은지**(서버 코드로 확인한 모양), Master POST에 `node_id`를 싣지 않기, 길이 없는 것은 `null` · 카탈로그에 없는 op는 부르지 않기(중단해 둔 전송의 삭제는 서버에서 포기), GUI 앱 붙이기. 실데이터 층 화면과 함께 — 폼 저장이 지어내지 않기 · 두 번 누름 · 맵 자리 걷기 · 취소는 남기기 · 이름 · 칸 id 따라가기 · 폼을 여는 동작 · 끊으면 되돌리기 · API 줄 ⚠ · 자리 표시자 · 모듈 GUI 창 · 상태 화면 로그인 줄 |
 | `tests/module-gate.test.mjs` | 모듈 게이트(MD-38) — 모듈이 없으면 부르지 않고 `no-module` · 있으면 부른다 · `modules.get` 15초 캐시(첫 화면과 설정 보드가 한 번만) · 못 받으면 막지 않는다 · `LOCAL_API_UNAVAILABLE` 글 |
 
-실제 응답 모양은 진짜 스택(Master · Daemon · 게이트웨이 · `io.terra.file` · `io.terra.io-inventory`)에서 받은 것을 줄였다.
+실제 응답 모양은 진짜 스택(Master · Daemon · 게이트웨이 · `lab.stellaxia.file` · `lab.stellaxia.io-inventory`)에서 받은 것을 줄였다.
 진짜 스택 위에서 끝까지 돌린 결과는 [[real-data-layer|실데이터 층]] §5.
 
 ## 4. 알아 둘 것
@@ -119,7 +119,7 @@ Terra 셸과 진짜 게이트웨이 위에서 끝까지 돌린 기록은 모듈 
 
 | 단계 | 보는 것 |
 | --- | --- |
-| 준비 | Master · Daemon(등록) · 게이트웨이 · `io.terra.file` · `io.terra.io-inventory` · leaf UI 셸(Vite) — 모듈을 `terra module pack` → `terra module install --dev --force`, 게이트웨이가 새 판을 읽게 Daemon을 다시 띄운다 |
+| 준비 | Master · Daemon(등록) · 게이트웨이 · `lab.stellaxia.file` · `lab.stellaxia.io-inventory` · leaf UI 셸(Vite) — 모듈을 `terra module pack` → `terra module install --dev --force`, 게이트웨이가 새 판을 읽게 Daemon을 다시 띄운다 |
 | 시작 화면 | 로그인 전 판 · 비밀번호 칸 없음 → [Terra 로그인] → 셸의 로그인 카드 → 들어가는 중 → 노드 화면(srcdoc) |
 | 노드 화면 | 이 노드 · 부모 tree · 권한 · 조타륜 앱(I/O 장치 · 폴더 · 모듈 · 작업 · WireGuard) |
 | 새 기능 | 노드 자원 설치 2개 → 조타륜을 닫아도 모니터링 값이 이어진다 · 연결하기(길 찾기 · 도로) · 메모 · 표지 바꾸기 → LayoutStore 저장본 · 도로 편집기 내보내기 → 노드 화면이 받는다 |
@@ -132,8 +132,8 @@ Terra 셸과 진짜 게이트웨이 위에서 끝까지 돌린 기록은 모듈 
 | 모든 단계 | 모든 frame의 보이는 글에서 예시 표식 0건 · 콘솔 오류는 셸의 `/api/product/session` 404뿐 |
 | 모듈 설정(MD-22) | 스택을 Terra main(모듈 설정 op 셋)으로 빌드하고, `configuration.schema`를 선언한 시험 모듈(scratchpad — 저장소에 담지 않는다)을 깐다. 관리자에게 `module.manage`★를 따로 준다(기본 권한 밖 — `PATCH /api/v1/admin/users/{id} {permissions}`). 앱 전체 화면에서 그 모듈의 `✎` → 거절(키) · 저장 · 다시 열기 · 겹침(다른 쪽이 먼저 `config.patch`) · 비우기 · 설정 없는 모듈 · 권한을 빼면 볼 수만. 결과는 관리자 토큰의 `config.get` 으로 견준다 |
 | SVI 흐름도(MD-23) | 같은 스택에 모듈을 다시 깔고 앱 전체 화면에서 SVI 자원 앱(흐름도 · 카드 보기)과 네트워크 화면(`네트워크 화면` 탭 → 보드)을 연다(`e2e-md23`). 화면이 부른 operation 을 모두 적는다 — `svi` 가 들어간 것 0 · Master 네트워크 읽기 0, 이유 글이 10초 뒤에도 남고, `state.sviEv` 가 비어 있다 |
-| 끊긴 뒤 이어서(MD-21) | 준비에 io.terra.file 0.2.1(부분을 남기는 중단). 4 MB 올리기 · 받기를 가운데서 **페이지를 떠나** 끊고(`context.route`로 조각마다 120ms 늦춘다) 다시 로그인해 잇는다 — 같은 파일 다시 올리기 · 다시 받기(IndexedDB) · 멈춘 카드의 이어서(이름이 다른 같은 파일) · 중단 → 다시 올리기 · 치우기. 내용은 디스크 · 내려받은 파일의 SHA-256 으로, 건너뛴 것은 다시 보낸 · 받은 조각 수로 본다 |
-| Terra G0~G6 연동 | 준비에 modules main의 io.terra.file · io-inventory 0.2.0(`node tools/build-modules.mjs --terra <Terra> --target linux-amd64` → pack → install)을 더한다. 실시간 이벤트(`open` · 신호 → 그 목록만) · 손 등록 폼 → Daemon `manual.rtsp` · 노드 주소 호출(그 노드 카탈로그 · 중계 · 로컬 전용은 잠금) · 모듈 로그 출력 칸 · 폴더 탐색기 · 바탕화면 열기 · `↑ 올리기` **단추를 눌러** 파일 고르기 → 서버 크기 · 폴더 앱 `받기` → 다운로드 내용이 같다 · 사용자 문서 → **새 브라우저(빈 저장소)**로 로그인해 같은 배치 → 겹쳐 쓰면 409 한 번 알림 |
+| 끊긴 뒤 이어서(MD-21) | 준비에 lab.stellaxia.file 0.2.1(부분을 남기는 중단). 4 MB 올리기 · 받기를 가운데서 **페이지를 떠나** 끊고(`context.route`로 조각마다 120ms 늦춘다) 다시 로그인해 잇는다 — 같은 파일 다시 올리기 · 다시 받기(IndexedDB) · 멈춘 카드의 이어서(이름이 다른 같은 파일) · 중단 → 다시 올리기 · 치우기. 내용은 디스크 · 내려받은 파일의 SHA-256 으로, 건너뛴 것은 다시 보낸 · 받은 조각 수로 본다 |
+| Terra G0~G6 연동 | 준비에 modules main의 lab.stellaxia.file · io-inventory 0.2.0(`node tools/build-modules.mjs --terra <Terra> --target linux-amd64` → pack → install)을 더한다. 실시간 이벤트(`open` · 신호 → 그 목록만) · 손 등록 폼 → Daemon `manual.rtsp` · 노드 주소 호출(그 노드 카탈로그 · 중계 · 로컬 전용은 잠금) · 모듈 로그 출력 칸 · 폴더 탐색기 · 바탕화면 열기 · `↑ 올리기` **단추를 눌러** 파일 고르기 → 서버 크기 · 폴더 앱 `받기` → 다운로드 내용이 같다 · 사용자 문서 → **새 브라우저(빈 저장소)**로 로그인해 같은 배치 → 겹쳐 쓰면 409 한 번 알림 |
 | 입출력 연결(MD-32) | `tools/live-stack-up.sh <Terra> <폴더>` 로 스택을 세우고 `. <폴더>/env.sh && node tools/live-linkio.mjs` — 모듈의 연결 적용 코드를 앱 토큰으로 leaf 게이트웨이의 위임 입구에 붙인다(허가 · 공유 · 거절 · 가드 · 바인딩 `active` · 데이터 · 닫기, 27개). `active` 단계는 [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)(2026-10-11) 이 들어간 Terra 가 필요하다. 세우는 법 · 찾은 것 · 함정은 [[real-data-layer\|실데이터 층]] §5.9 |
 | 바인딩 active · closed(MD-32) | `node tools/live-linkbind.mjs` — 호환되는 쌍(노드1 `test.stream` → 노드2 파일 싱크, 같은 소유자)으로 허가 없음(needs-grant) → 나에게 허가 → 적용 → `active` → 싱크 파일이 자란다 → 연결을 지우면 `closed` · 흐름 멈춤(16개). Daemon 설정 · 막힌 곳은 [[real-data-layer\|실데이터 층]] §5.10 |
 | tree 쓰기 E2E(MD-13) | `tools/live-tree-up.sh <Terra> <폴더>` 로 tree 스택(Master + 자기 게이트웨이 + 설치된 모듈)을 세우고 `. <폴더>/env.sh && node tools/live-tree.mjs` — 허가 만들기·고치기·지우기 · 가드 · 바인딩 `active`→`closed` · 닫힌 쓰기(`DELEGATION_NOT_OPEN`) · 중계 쓰기를 경로별 표로 찍는다(38개). 결과는 [[real-data-layer\|실데이터 층]] §5.11 |

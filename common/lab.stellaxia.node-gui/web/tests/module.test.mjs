@@ -144,7 +144,7 @@ function fakeClient() {
     'terra.daemon.files.list.get': { roots: [] },
     'terra.daemon.modules.get': { modules: [] },
     'terra.daemon.tasks.get': { tasks: [] },
-    'io.terra.file.roots.list': { roots: [] },
+    'lab.stellaxia.file.roots.list': { roots: [] },
     'terra.daemon.service-tunnels.get': { tunnels: [] },
     'terra.daemon.wireguard.status.get': { enabled: false },
     'terra.daemon.config.schema.get': { fields: {} }

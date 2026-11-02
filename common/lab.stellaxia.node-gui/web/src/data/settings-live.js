@@ -230,12 +230,12 @@ export function realSettings(Screen) {
       const err = (k) => (R.errs && R.errs[k] ? [this.row('읽지 못함', R.errs[k], '', { vc: '#b4283c' })] : []);
       const roots = R.roots || [], decls = R.decls || [], devs = R.devices || [], offers = R.offers || [];
       return [
-        this.card({ span: 6, title: '공유 폴더', sub: 'files.list.get — 이 노드가 io.terra.file에 연 루트 · 설정 키 storage.shared_dirs', acts: [this.btn('로컬 노드 › 저장소에서 보기', () => this.setState({ tab: 'node', group: 0, q: '' }))],
+        this.card({ span: 6, title: '공유 폴더', sub: 'files.list.get — 이 노드가 lab.stellaxia.file에 연 루트 · 설정 키 storage.shared_dirs', acts: [this.btn('로컬 노드 › 저장소에서 보기', () => this.setState({ tab: 'node', group: 0, q: '' }))],
           rows: err('roots').concat(roots.length ? roots.map((r) => this.row(r.name, r.path || '', '', { tmono: true })) : R.roots ? [this.row('없음', '공유 폴더가 없다 — modules.shared_roots', '', { vc: '#8b95a6' })] : []) }),
         this.card({ span: 6, title: 'SVI 자원 선언', sub: 'svi.declarations.get' + (R.envelope ? ' · 울타리 process ' + R.envelope.process + ' · 상한 ' + R.envelope.max_declarations : ''),
           rows: err('decls').concat(decls.length ? decls.map((x) => this.row(x.family + '/' + x.name, x.direction + ' · ' + (x.origin === 'file' ? '설정 파일' : '런타임') + (x.reason ? ' · ' + x.reason : ''), x.state, { mono: true, badges: [this.tag(x.state, x.state === 'applied' ? 'ok' : x.state === 'shadowed' ? 'warn' : 'bad')] }))
             : R.decls ? [this.row('없음', '선언된 자원이 없다 — 바꾸기는 node.config★(조타륜 › 자원 선언)', '', { vc: '#8b95a6' })] : []) }),
-        this.card({ span: 7, title: 'I/O 장치', sub: 'io.devices.* · io.terra.io-inventory 모듈이 없으면 503',
+        this.card({ span: 7, title: 'I/O 장치', sub: 'io.devices.* · lab.stellaxia.io-inventory 모듈이 없으면 503',
           rows: err('devices').concat(devs.length ? devs.map((d) => {
             const btns = d.approval === 'pending' ? [this.btn('승인', () => this.act(D('io.devices.by-device-id.approve.post'), { device_id: d.id }, d.name + ' 승인'), { dis: !ctl, tip: why }), this.btn('거부', () => this.act(D('io.devices.by-device-id.deny.post'), { device_id: d.id }, d.name + ' 거부'), { danger: true, dis: !ctl, tip: why })]
               : d.approval === 'approved' ? [d.enabled ? this.btn('끄기', () => this.act(D('io.devices.by-device-id.disable.post'), { device_id: d.id }, d.name + ' 끔'), { dis: !ctl, tip: why }) : this.btn('켜기', () => this.act(D('io.devices.by-device-id.enable.post'), { device_id: d.id }, d.name + ' 켬'), { dis: !ctl, tip: why })]

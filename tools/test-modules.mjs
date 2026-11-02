@@ -1,6 +1,6 @@
 // Go 소스를 가진 모듈의 시험을 돈다.
 //
-//   node tools/test-modules.mjs [--terra ../terra] [--module io.terra.file] [--require-race]
+//   node tools/test-modules.mjs [--terra ../terra] [--module lab.stellaxia.file] [--require-race]
 //
 // **왜 이 파일이 있나 (분리 검토 G-14)** — 이주 전에는 코어의 CI 가 모듈의 Go
 // 시험을 돌고 있었다. Terra 의 `ci.yml` 은 `git ls-files '*go.mod'` 로 저장소의
@@ -53,7 +53,7 @@ function cgoIsEnabled(env) {
  */
 const RACE_PACKAGES = [
   {
-    id: 'io.terra.io-weave',
+    id: 'lab.stellaxia.io-weave',
     packages: ['./...'],
     // io-weave 는 가상 입력 장치와 watchdog 을 갖는데, 그 watchdog 은 멈춘
     // 쓰기가 쥔 락을 잡지 않고 장치를 없애야 한다(io-weave 설계 D-22 4계층).
@@ -73,7 +73,7 @@ const RACE_PACKAGES = [
  * 어디선가 돈다 (Terra 쪽 변경은 PR 본문에 적어 넘겼다).
  */
 const NEEDS_TERRA = {
-  'io.terra.treebench': {
+  'lab.stellaxia.treebench': {
     pattern: '^(TestGeneratedContractMapMatchesMasterContract|TestChannelSplitIsCovered)$',
     names: ['TestGeneratedContractMapMatchesMasterContract', 'TestChannelSplitIsCovered'],
     why: 'Terra Master 계약(products/tree/master/contracts/api/terra-api.json)과 대조한다. Terra 쪽 CI 몫'
@@ -133,7 +133,7 @@ async function main() {
   //
   // `TERRA_CHECKOUT` 도 넘긴다. 모듈이 Terra 안에 있을 때는 Terra 의 파일을
   // 상대경로로 읽어도 맞았지만, 이 저장소에서는 그 깊이가 체크아웃 밖을
-  // 가리킨다. 실측(2026-09-30): `io.terra.treebench` 의 contract_map_test 가
+  // 가리킨다. 실측(2026-09-30): `io.terra.treebench`(현 lab.stellaxia.treebench) 의 contract_map_test 가
   // `../../../../products/tree/master/contracts/api/terra-api.json` 을 읽어
   // 시험 둘이 이 저장소에서 터졌다 — 이 단계가 없었으면 아무도 몰랐다.
   const env = { ...process.env, GOWORK: workspace.GOWORK };
