@@ -541,11 +541,14 @@ func appendLine(path string, line storedEntry) error {
 	if err != nil {
 		return fmt.Errorf("talk: encode entry: %w", err)
 	}
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return fmt.Errorf("talk: open log for append: %w", err)
 	}
 	defer func() { _ = file.Close() }()
+	if err := dropTornTail(file, path); err != nil {
+		return err
+	}
 	if _, err := file.Write(append(payload, '\n')); err != nil {
 		return fmt.Errorf("talk: append entry: %w", err)
 	}
