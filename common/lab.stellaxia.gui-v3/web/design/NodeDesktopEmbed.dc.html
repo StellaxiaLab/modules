@@ -192,7 +192,7 @@ button{font-family:inherit}
                   </div>
                   <div style="flex-grow: 1; min-height: 0; overflow-y: auto; padding: 6px 8px; display: flex; flex-direction: column; gap: 1px;">
                     <sc-for list="{{w.items}}" as="it" hint-placeholder-count="4">
-                      <button type="button" onClick="{{it.pick}}" style="display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 0; border-radius: 7px; background: {{it.bg}}; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">
+                      <button type="button" onClick="{{it.pick}}" onContextMenu="{{it.ctx}}" style="display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 0; border-radius: 7px; background: {{it.bg}}; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">
                         <span style="position: relative; width: 20px; height: 20px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: {{it.fg}};">
                           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{it.d}}"/></svg>
                         </span>
@@ -205,6 +205,7 @@ button{font-family:inherit}
                   <div style="flex-shrink: 0; box-sizing: border-box; min-height: 56px; padding: 8px 12px; border-top: 1px solid {{t.line}}; display: flex; align-items: center; gap: 12px; font-size: 12px; color: {{t.sub}};">
                     <span style="flex-grow: 1; line-height: 1.45;">{{w.detail}}</span>
                     <sc-if value="{{w.openOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.openRun}}" disabled="{{w.openDis}}" title="{{w.openTip}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">{{w.openLabel}}</button></sc-if>
+                    <sc-if value="{{w.mkResOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.mkRes}}" disabled="{{w.mkResOff}}" title="{{w.mkResTip}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">자원으로 만들기</button></sc-if>
                     <button type="button" onClick="{{w.remove}}" disabled="{{w.noPick}}" style="height: 28px; padding: 0 10px; border: 1px solid {{w.rmBd}}; border-radius: 9px; background: transparent; color: {{w.rmFg}}; font-size: 12px; cursor: pointer;">{{w.rmLabel}}</button>
                   </div>
                 </div>
@@ -1319,6 +1320,10 @@ class Component extends DCLogic {
     o.remove = () => { if (!pick || !share) return; T.write(n, 'io.terra.file.entries.remove', { root: loc.root, path: pick.path, recursive: !!pick.dir }).then(() => { this.say(pick.name + ' 지움'); go({}); after(); }, (e) => this.say('못 지움 · ' + ((e && e.code) || '오류'))); };
     o.newFolder = () => { if (!share) { this.say('로컬 탐색은 읽기만 — 폴더는 공유 폴더에서 만든다'); return; } const nm = '새 폴더 ' + (Date.now() % 10000), path = rel ? rel + '/' + nm : nm;
       T.write(n, 'io.terra.file.entries.mkdir', { root: loc.root, path, parents: false }).then(() => { this.say(nm + ' 만듦'); after(); }, (e) => this.say('못 만듦 · ' + ((e && e.code) || '오류'))); };
+    { const abs = (i) => { const b = String(loc.path || ''); return /^(\/|[A-Za-z]:[\\/])/.test(b) ? b.replace(/[\\/]+$/, '') + (b.includes('\\') && !b.includes('/') ? '\\' : '/') + i.path.replace(/^\/+/, '') : ''; };
+      const mk = (i) => { const p = abs(i); if (!p || i.dir) { this.say(i.dir ? '폴더는 자원화할 수 없다 — 파일을 고른다' : '이 뿌리의 절대 경로를 몰라 자원으로 만들 수 없다'); return; } this.openOut('svi', JSON.stringify({ tab: 'make', type: 'file', name: i.name.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40), values: { path: p, direction: 'source' } })); };
+      o.mkResOn = true; o.mkResOff = !pick || pick.dir || !abs(pick); o.mkResTip = !pick ? '파일을 고른다' : pick.dir ? '폴더는 자원화할 수 없다' : !abs(pick) ? '이 뿌리의 절대 경로를 모른다' : '자원화 창에서 이 파일을 파일 자원으로 — ' + abs(pick); o.mkRes = () => pick && mk(pick);
+      o.items.forEach((it, j) => { const i = items[j]; it.ctx = (e) => { if (!i || i.up) return; e.preventDefault(); e.stopPropagation(); this.setState({ fmPick: i.path }); mk(i); }; }); }
     o.openOn = true; o.openLabel = pick ? '노드에서 열기' : '노드 파일 관리자로'; o.openDis = share || R ? 'disabled' : null;
     o.openTip = share ? '공유 폴더는 노드의 바탕화면에서 열 수 없다 — 로컬 탐색에서' : R ? '이 노드에서만(desktop.open 은 local)' : 'desktop.open — 그 노드의 화면에서 연다(node.control)';
     o.openRun = () => { T.write(n, 'terra.daemon.desktop.open.post', { root: loc.root, path: pick ? pick.path : rel, action: pick ? 'open' : 'reveal' }).then(() => this.say((pick ? pick.name : loc.root + ':/' + rel) + ' — 노드 화면에서 열었다'), (e) => this.say('못 엶 · ' + ((e && e.code) || '오류'))); };
@@ -1418,9 +1423,13 @@ class Component extends DCLogic {
             fg: i.k === 'dir' ? '#f0a63a' : short ? '#5aa8ff' : t.sub,
             tag: short ? '바로가기 · 화면 전용' : '실제', tagC: short ? '#5aa8ff' : t.dim,
             bg: pick && pick.key === i.key ? t.raiseH : 'transparent',
-            pick: () => this.setState({ fmPick: i.key })
+            pick: () => this.setState({ fmPick: i.key }),
+            ctx: (e) => { if (i.k !== 'file') return; e.preventDefault(); e.stopPropagation(); this.setState({ fmPick: i.key }); mkS(i); }
           };
         });
+        // 시안 — 파일을 자원화 창(파일 유형)으로. 경로는 시안의 공유 폴더(/srv/share) 아래로 친다
+        const mkS = (i) => this.openOut('svi', JSON.stringify({ tab: 'make', type: 'file', name: i.name.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), values: { path: '/srv/share/' + i.name, direction: 'source' } }));
+        o.mkResOn = true; o.mkResOff = !pick || pick.k !== 'file'; o.mkResTip = pick && pick.k === 'file' ? '자원화 창에서 파일 자원으로' : '파일을 고른다'; o.mkRes = () => pick && pick.k === 'file' && mkS(pick);
         o.detail = !pick ? '항목을 고르면 여기에 설명이 나온다.'
           : pick.k === 'short' ? pick.name + ' — 화면 전용 바로가기(' + pick.src + '). 지워도 앱 · 파일은 그대로 있다.'
           : pick.name + ' — 노드에 있는 실제 ' + (pick.k === 'dir' ? '폴더' : '파일') + '. 지우면 노드에서 사라진다.';
@@ -1489,7 +1498,7 @@ class Component extends DCLogic {
         // 자원 선언
         const ST = { applied: ['적용됨', 'ok'], declared: ['선언됨 · 적용 전', 'warn'] }, pend = N.decls.filter((d) => d.st === 'declared').length;
         X.declNote = pend ? '적용 전 ' + pend : this.api('declarations.apply');
-        X.declTop = [this.btn('적용' + (pend ? ' ' + pend : ''), () => { if (this.ndSet((d) => d.decls.forEach((x) => { x.st = 'applied'; })) !== false) this.say('선언 적용 — 카탈로그에 올라감'); }, { pri: !!pend, off: !pend }), this.btn('자원 창 ›', () => this.openOut('share'))];
+        X.declTop = [this.btn('적용' + (pend ? ' ' + pend : ''), () => { if (this.ndSet((d) => d.decls.forEach((x) => { x.st = 'applied'; })) !== false) this.say('선언 적용 — 카탈로그에 올라감'); }, { pri: !!pend, off: !pend }), this.btn('자원 만들기 ›', () => this.openOut('svi', JSON.stringify({ tab: 'make' }))), this.btn('자원 창 ›', () => this.openOut('share'))];
         X.decls = N.decls.map((dc, i) => ({ fam: dc.fam, name: dc.name, src: dc.src, dir: dc.dir, st: ST[dc.st][0], stCls: ST[dc.st][1], shared: dc.shared ? '공유 ' + dc.shared : '공유 없음', open: () => this.openOut('res', dc.name),
           btns: [this.btn('선언 해제', () => { this.ndSet((d) => { d.retired.unshift({ fam: dc.fam, name: dc.name }); d.decls.splice(i, 1); }, 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post', { family: dc.fam, name: dc.name }); this.say(dc.name + ' 선언 해제 — 은퇴로'); })] }));
         const dr = s.ndDraft || { fam: 'dev', target: '', name: '', dir: 'both' }, setD = (pp) => this.setState({ ndDraft: Object.assign({}, dr, pp) });
