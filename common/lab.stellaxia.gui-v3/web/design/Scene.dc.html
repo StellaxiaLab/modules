@@ -2406,7 +2406,7 @@ class Component extends DCLogic {
     const TPn = this.TOPO ? this.TOPO() : null, RN = TPn && TPn.node && curN.rid ? TPn.node(curN.rid) : null, NS = RN && typeof window !== 'undefined' && window.TerraNodeStats ? window.TerraNodeStats(RN) : null;
     // 실제(앱이 Terra 에 붙음)인데 Master 기록이 없는 노드(시안 지도 · 계정 · Master 자신)는 시안 값 대신 '—' — 온라인으로 지어내지 않는다
     const RLn = typeof window !== 'undefined' && !!window.TerraTransport, SMP = !NS && !RLn;
-    const kv = [['이름', curN.name], ['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]], ['상태', NS ? NS.status : SMP ? '● 온라인' : '—'], ['자원', SMP ? '3 · ssh · io' : '—'], ['가동', NS ? (NS.seen ? '하트비트 ' + NS.seen : '—') : SMP ? '4일 12시간' : '—']];
+    const kv = [['이름', curN.name], ['역할', this.gf_rolesText(curN)], ['상태', NS ? NS.status : SMP ? '● 온라인' : '—'], ['자원', SMP ? '3 · ssh · io' : '—'], ['가동', NS ? (NS.seen ? '하트비트 ' + NS.seen : '—') : SMP ? '4일 12시간' : '—']];
     const kw = 6, vw = 14, tr0 = r;
     { const xa = x0 * cw + cw / 2, xb = (x0 + kw + vw + 2) * cw + cw / 2, xm = (x0 + kw + 1) * cw + cw / 2, ya = tr0 * ch + ch / 2, yb = (tr0 + kv.length + 1) * ch + ch / 2, cells = new Set();
       fpLine(cells, xa, xb, ya); fpLine(cells, xa, xb, yb); fpCol(cells, xa, ya, yb); fpCol(cells, xb, ya, yb); fpCol(cells, xm, ya, yb);
@@ -3033,8 +3033,13 @@ class Component extends DCLogic {
   //   { id, node, kind, R, st: 'open' | 'min', at }. 같은 노드 · 같은 종류의 창은 하나
   gf_WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인', mod: '모듈', web: '브라우저' }; }
   // 창 종류마다의 자리 · 기본 크기 · 바탕 — 상태 창은 CLI 처럼 바탕이 비친다(글자 장 구멍 없음)
+  // 역할 칸 — 실제 지도면 그 노드의 Master 기록 roles(Tree 이면서 Leaf 인 노드는 '트리 · 리프', Master 가 도는 노드는 'Master' 도), 시안이면 씬 노드 종류
+  gf_rolesText(n) { const K = { root: '계정', tree: '트리', leaf: '리프' }, TP = this.TOPO(); if (!n) return '—';
+    const bn = TP && n.kind === 'tree' ? this.build().nodes[n.ref] : null, rec = TP && n.kind === 'leaf' && n.rid && TP.node ? TP.node(n.rid) : null;
+    const R = bn && bn.tpath && TP.roles ? TP.roles(bn.tpath) : rec ? (rec.roles || []).map((x) => String(x).toLowerCase()) : null;
+    if (!R || !R.length) return K[n.kind] || '—'; const L = { master: 'Master', tree: '트리', leaf: '리프' }; return ['master', 'tree', 'leaf'].filter((r) => R.includes(r)).map((r) => L[r]).concat(R.filter((r) => !L[r])).join(' · '); }
   // 이 GUI 가 떠 있는 노드(로컬) — 노드 설정 쓰기는 여기만 된다(terra.daemon.config.patch 는 로컬 전용). 시안: 지도의 첫 리프
-  gf_localNode() { const MD = this.sceneMap(); return this._q_locN && MD.all.includes(this._q_locN) ? this._q_locN : (this._q_locN = MD.all.find((n) => n.local) || MD.all.find((n) => n.kind === 'leaf') || MD.root); }   // 실제 지도면 이 GUI 를 띄운 노드(local), 시안이면 첫 리프
+  gf_localNode() { const MD = this.sceneMap(); return this._q_locN && MD.all.includes(this._q_locN) ? this._q_locN : (this._q_locN = MD.all.find((n) => n.local) || (this.TOPO() ? null : MD.all.find((n) => n.kind === 'leaf')) || MD.root); }   // 실제 지도면 이 GUI 를 띄운 노드(local) — 못 찾으면 계정(첫 리프로 떨어지면 이름순 첫 노드를 로컬로 착각했다: BOOK-… 의 값이 '로컬'로 보였다), 시안이면 첫 리프
   // 자원 창의 대상 후보 — 지도의 트리 · 리프 (이름 · 종류 · 부모)
   // 자원 상태 창의 노드 — 이 리프의 위성이면 그 위성, 아니면(다른 노드가 준 자원 · 클러스터 밖) 제공 노드 아래 가상 자원. 같은 자원은 같은 노드라 창이 하나
   gf_resNodeFor(leaf, name, src, from) {
