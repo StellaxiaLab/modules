@@ -165,10 +165,22 @@ button{font-family:inherit}
                     </sc-for>
                   </div>
                 </div>
-                <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid {{t.line}}; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12.5px;">
-                  <span style="color: {{w.tDot}}; flex-shrink: 0;">{{w.prompt}}</span>
-                  <input type="text" aria-label="명령 입력" autofocus value="{{w.input}}" onInput="{{w.onInput}}" onKeyDown="{{w.onKey}}" placeholder="{{w.ph}}" spellcheck="false" autocomplete="off" style="flex-grow: 1; min-width: 0; height: 24px; border: 0; outline: 0; background: transparent; color: {{t.ink}}; font: inherit;">
-                </div>
+                <!-- 노드 셸 잠금 — 설계(docs/design/node-shell.md) 전까지 입력 줄이 없다 -->
+                <sc-if value="{{w.locked}}" hint-placeholder-val="{{ false }}">
+                  <div role="status" aria-label="노드 셸 잠김" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-top: 1px solid {{t.line}}; font-size: 12px; color: {{t.sub}};">
+                    <div style="display: flex; align-items: center; gap: 8px; color: #f5b83d;"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 11h12v9H6z M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg><span>{{w.lockWhy}}</span></div>
+                    <sc-for list="{{w.lockInstead}}" as="li" hint-placeholder-count="3">
+                      <div style="padding-left: 22px; color: {{t.dim}};">· {{li}}</div>
+                    </sc-for>
+                    <div style="padding-left: 22px; color: {{t.dim}}; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11px;">설계 · {{w.lockDoc}}</div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{w.open}}" hint-placeholder-val="{{ true }}">
+                  <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid {{t.line}}; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12.5px;">
+                    <span style="color: {{w.tDot}}; flex-shrink: 0;">{{w.prompt}}</span>
+                    <input type="text" aria-label="명령 입력" autofocus value="{{w.input}}" onInput="{{w.onInput}}" onKeyDown="{{w.onKey}}" placeholder="{{w.ph}}" spellcheck="false" autocomplete="off" style="flex-grow: 1; min-width: 0; height: 24px; border: 0; outline: 0; background: transparent; color: {{t.ink}}; font: inherit;">
+                  </div>
+                </sc-if>
               </div>
             </sc-if>
 
@@ -763,7 +775,8 @@ const FILES = {
   home:  [{ n: 'docs', k: 'dir', sz: '—' }, { n: 'backup', k: 'dir', sz: '—' }, { n: 'notes.md', k: 'file', sz: '2.1 KB' }, { n: 'backup.tar', k: 'file', sz: '310 MB' }],
   vault: [{ n: 'lab-share', k: 'dir', sz: '—' }, { n: '기록 (읽기 전용)', k: 'dir', sz: '—' }]
 };
-const TERRA_HELP_SAMPLE = ['Terra 터미널 — terra shell 과 같은 낱말. 명령 앞의 terra 는 써도 되고 안 써도 된다', '  help · clear · history · !! · !<번호>         셸', '  set var <이름> <값> · vars                     변수 — 명령에서 $이름', '  use <노드>                                    현재 노드', '  status · whoami                               연결 · 로그인 주체와 권한', '  node list · node get [노드]                   Master 노드 기록', '  network status · network node [노드]          광고 전송 · 주소 · 노드 간 경로', '  route graph · route candidates <가> <나>       경로 후보 · 거부 사유', '  session list · probe list                     라우트 세션 · 연결 진단 기록', '  module list [노드] · task list [노드]          그 노드의 모듈 · 작업', '  api <operation-id> [--input <json>]           계약의 operation 을 바로 (terra api)'];   // src/api/shells.js TERRA_HELP 와 같게
+const TERRA_HELP_SAMPLE = ['Terra 터미널 — terra shell 과 같은 낱말(읽기만). 명령 앞의 terra 는 써도 되고 안 써도 된다 · 셸 문법은 받지 않는다', '  help · clear · history · !! · !<번호>         셸', '  use <노드>                                    현재 노드', '  status · whoami                               연결 · 로그인 주체와 권한', '  node list · node get [노드]                   Master 노드 기록', '  network status · network node [노드]          광고 전송 · 주소 · 노드 간 경로', '  route graph · route candidates <가> <나>       경로 후보 · 거부 사유', '  session list · probe list                     라우트 세션 · 연결 진단 기록', '  module list [노드] · task list [노드]          그 노드의 모듈 · 작업', '  api <operation-id> [이름=값 …]                위임표의 읽기 operation 을 바로 (terra api)', '  쓰기(모듈 시작 · 설정 · 작업 취소 …)는 각 창에서 — 노드 셸은 잠김'];   // src/api/shells.js TERRA_HELP 와 같게
+const NODE_SHELL_LOCK = { locked: true, reason: '노드 셸은 잠겨 있다 — 누가 열 수 있는지 · 다른 노드 허용 · 감사 기록 · 대화형 전송(PTY)을 정하는 설계가 먼저다', design: 'docs/design/node-shell.md', instead: ['읽기 · 상태는 Terra 터미널(독의 >T)', '모듈 시작 · 멈춤은 모듈 창', '작업 출력 · 취소는 작업 관리자', '그 노드에서 직접: terra CLI 또는 OS 터미널'] };   // src/api/shells.js NODE_SHELL 과 같게
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // 실제 노드의 응답들(terra.daemon.*) → 노드 데스크톱 묶음. 모르는 칸은 비운다(지어내지 않는다)
 const MOD_ST = { running: 'run', ready: 'stop', stopped: 'stop', disabled: 'stop', discovered: 'stop', starting: 'restart', stopping: 'restart', failed: 'fail', unavailable: 'fail', unsupported: 'fail', config_invalid: 'fail' };
@@ -791,7 +804,7 @@ function deskShape(P, meta, empty) {
   return d;
 }
 const VIEW_BTN = new Set(['바탕화면에 추가', '자원 창 ›', '열기', '닫기', '취소']);   // 끊겨도 되는 단추(보기만 바꾼다)
-const VIEW_KEYS = ['full', 'prefs', 'wins', 'order', 'icons', 'setTab', 'fmLoc', 'term', 'tterm', 'ttHist', 'ttVars', 'termCwd', 'modView', 'modSel', 'modTab', 'resTab', 'devSel', 'cfgGrp'];   // 노드마다 저장하는 보기 상태
+const VIEW_KEYS = ['full', 'prefs', 'wins', 'order', 'icons', 'setTab', 'fmLoc', 'tterm', 'ttHist', 'modView', 'modSel', 'modTab', 'resTab', 'devSel', 'cfgGrp'];   // 노드마다 저장하는 보기 상태
 
 class Component extends DCLogic {
   constructor(props) {
@@ -813,14 +826,12 @@ class Component extends DCLogic {
       iconSel: null, menu: null, ov: null, lau: false, nd: null, nxMsg: '', resTab: 'dev', devSel: 0, showTomb: false, ndDraft: null, tnDraft: null, modView: 'inst', modSel: 0, modTab: 'cfg', modCfg: null, inst: null, cfgGrp: null, cfgQ: '',
       setTab: 'wall', fmLoc: 'home', fmPick: null,
       term: [
-        { t: '노드 터미널 — 이 노드의 OS 셸(/bin/sh · cmd). 한 줄씩 실행 · Ctrl+C 로 멈춤', c: 'dim' },
-        { t: 'Terra 명령은 Terra 터미널에서 (독의 >T)', c: 'dim' }
+        { t: '노드 터미널 — 이 노드의 OS 셸. 잠겨 있다(설계 먼저) — 아래에 이유와 대신 할 곳', c: 'dim' }
       ],
-      termIn: '', termCwd: '', termBusy: false,
       tterm: [
         { t: 'Terra 터미널 — terra shell 과 같은 낱말. help 로 명령 목록', c: 'dim' }
       ],
-      ttermIn: '', ttHist: [], ttVars: {}, ttCur: '', ttCurName: '', ttBusy: false
+      termIn: '', ttermIn: '', ttHist: [], ttCur: '', ttCurName: '', ttBusy: false
     };
     this.drag = null;
     this.timer = null;
@@ -1209,33 +1220,20 @@ class Component extends DCLogic {
   }
 
   /* ---- 터미널 둘 ----
-     노드 터미널  그 노드의 OS 셸. 실제(웹 빌드): window.TerraShells.node — commands.execute → task 출력(src/api/shells.js). 이 GUI 를 띄운 노드에서만
-                  (commands.execute 는 계약상 scope local). cd 는 화면이 기억해 working_dir 로 싣는다. Ctrl+C = 작업 취소
-     Terra 터미널 Terra CLI 의 terra shell 낱말(help · status · whoami · history · !! · set var · use · node · network · route · session · probe · module · task · api)
-                  실제: window.TerraShells.terra — 같은 이름의 operation 을 Gateway 로(다른 노드는 Master 중계)
-     시안(캔버스): 둘 다 '시안' 표시와 함께 예시 출력 — 실제 출력을 흉내 내지 않는 명령은 '실제 연결에서' 로 답한다 */
+     노드 터미널  그 노드의 OS 셸 — 잠김(NODE_SHELL · src/api/shells.js). 설계(docs/design/node-shell.md: 권한 · 원격 · 감사 · PTY 전송 · 수명)가
+                  정해지기 전까지 아무것도 실행하지 않는다. 시안에서도 셸 출력을 흉내 내지 않는다
+     Terra 터미널 Terra CLI 의 terra shell 낱말(help · status · whoami · history · !! · use · node · network · route · session · probe · module · task · api) — 읽기만
+                  실제: window.TerraShells.terra — 같은 이름의 operation 을 Gateway 로(다른 노드는 Master 중계). 셸 문법 · 위임 밖 operation 은 거절
+     시안(캔버스): Terra 터미널은 '시안' 표시와 함께 예시 출력 — 실제 출력을 흉내 내지 않는 명령은 '실제 연결에서' 로 답한다 */
   shells() { return this.liveRec() && typeof window !== 'undefined' && window.TerraShells ? window.TerraShells : null; }
-  shellRid() { const T = this.TN(), m = T && T.t.meta && T.t.meta[this.nodeKey()]; return (m && m.rid) || ''; }
-  nodeShellOk() { const S = this.shells(); return !S || S.node.can(this.shellRid()); }
+  nodeShell() { const S = typeof window !== 'undefined' && window.TerraShells; return (S && S.NODE_SHELL) || NODE_SHELL_LOCK; }
   termPush(key, lines) { this.setState({ [key]: (this.state[key] || []).concat(lines).slice(-600) }); }
-  stopCmd(TT) { const sig = TT ? this._ttSig : this._termSig; if (sig) sig.stop = true; }
-  runCmd(raw) {
-    const line = raw.trim(), s = this.state, prompt = this.acct() + '@' + this.nodeNameQ() + ':' + (s.termCwd || '~') + '$ ';
-    this.setState({ termIn: '' }); this.termPush('term', [{ t: prompt + raw, c: 'cmd' }]);
-    if (!line) return;
-    if (line === 'clear') { this.setState({ term: [] }); return; }
-    if (line === 'exit') { this.closeWin('term'); return; }
-    const S = this.shells(), rid = this.shellRid();
-    if (!S) return this.termPush('term', this.sampleShell(line));
-    if (!S.node.can(rid)) return this.termPush('term', [{ t: '이 노드(' + this.nodeNameQ() + ')의 셸은 여기서 열 수 없다 — Terra 의 명령 실행(commands.execute)은 그 노드에서만. 이 노드의 GUI 를 열거나, 읽기는 Terra 터미널에서(use ' + this.nodeNameQ() + ')', c: 'warn' }]);
-    const cd = /^cd(\s+(.*))?$/.exec(line);
-    this.setState({ termBusy: true }); const sig = this._termSig = { stop: false }, done = () => { this._termSig = null; this.setState({ termBusy: false }); };
-    if (cd) { S.node.cd(rid, (cd[2] || '').trim(), s.termCwd).then((p) => { this.setState({ termCwd: p }); done(); }, (e) => { this.termPush('term', [{ t: e.message || String(e), c: 'err' }]); done(); }); return; }
-    let buf = { stdout: '', stderr: '' };
-    const flush = (st, all) => { const parts = buf[st].split('\n'), keep = all ? '' : parts.pop(); buf[st] = keep; if (parts.length && !(parts.length === 1 && parts[0] === '' && all)) this.termPush('term', parts.filter((x, i) => !(all && i === parts.length - 1 && x === '')).map((t) => ({ t, c: st === 'stderr' ? 'err' : 'out' }))); };
-    S.node.run(rid, line, { cwd: s.termCwd || undefined, signal: sig, onChunk: (c) => { const st = c.stream === 'stderr' ? 'stderr' : 'stdout'; buf[st] += c.text; flush(st, false); } })
-      .then((r) => { flush('stdout', true); flush('stderr', true); if (r.state === 'cancelled') this.termPush('term', [{ t: '^C — 멈춤', c: 'warn' }]); else if (r.exit != null && r.exit !== 0) this.termPush('term', [{ t: '[종료 코드 ' + r.exit + ']', c: 'warn' }]); done(); },
-        (e) => { this.termPush('term', [{ t: (e.code ? e.code + ' — ' : '') + (e.message || String(e)), c: 'err' }]); done(); });
+  stopCmd() { const sig = this._ttSig; if (sig) sig.stop = true; }
+  runCmd(raw) {   // 노드 셸 — 잠김. 들어온 줄은 실행하지 않고 이유만(입력 줄이 없어 보통은 오지 않는다)
+    const L = this.nodeShell(); this.setState({ termIn: '' });
+    if (raw === 'clear') { this.setState({ term: [] }); return; }
+    if (raw === 'exit') { this.closeWin('term'); return; }
+    this.termPush('term', [{ t: L.reason + ' — 실행하지 않았다', c: 'warn' }].concat(L.instead.map((t) => ({ t: '  · ' + t, c: 'dim' }))));
   }
   runTerra(raw) {
     const s = this.state, hist = s.ttHist || [], line0 = raw.trim(), prompt = 'terra[' + (s.ttCurName || this.nodeNameQ()) + ']> ';
@@ -1246,23 +1244,11 @@ class Component extends DCLogic {
     this.termPush('tterm', [{ t: prompt + L, c: 'cmd' }]); this.setState({ ttHist: hist.concat(L).slice(-200) });
     if (!S) { const r = this.sampleTerra(L); if (r === 'clear') this.setState({ tterm: [] }); else this.termPush('tterm', r); return; }
     this.setState({ ttBusy: true }); const sig = this._ttSig = { stop: false };
-    S.terra.run(L, { cur: s.ttCur, curName: s.ttCurName, vars: s.ttVars, hist: hist.concat(L) }).then((r) => {
+    S.terra.run(L, { cur: s.ttCur, curName: s.ttCurName, hist: hist.concat(L) }).then((r) => {
       if (sig.stop) return; const p = { ttBusy: false };
-      if (r.clear) p.tterm = []; if (r.vars) p.ttVars = r.vars; if (r.cur !== undefined) { p.ttCur = r.cur; p.ttCurName = r.curName || ''; }
+      if (r.clear) p.tterm = []; if (r.cur !== undefined) { p.ttCur = r.cur; p.ttCurName = r.curName || ''; }
       this.setState(p); if (r.lines && r.lines.length) this.termPush('tterm', r.lines);
     }, (e) => { this.setState({ ttBusy: false }); if (!sig.stop) this.termPush('tterm', [{ t: (e.code ? e.code + ' — ' : '') + (e.message || String(e)), c: 'err' }]); }).finally(() => { if (sig.stop) { this.setState({ ttBusy: false }); this.termPush('tterm', [{ t: '^C — 결과를 버림', c: 'warn' }]); } this._ttSig = null; });
-  }
-  // 시안 — 노드 셸 예시(실제 노드에서는 그 노드의 /bin/sh 가 돈다)
-  sampleShell(line) {
-    const a = line.split(/\s+/)[0], O = (arr, c) => arr.map((t) => ({ t, c: c || 'out' }));
-    if (a === 'help') return O(['노드 터미널 — 그 노드의 OS 셸. 쓰는 명령은 그 노드의 셸 그대로(ls · cat · ps · ip addr · systemctl …)', 'clear · exit 는 화면이, cd 는 화면이 기억해 다음 줄의 작업 폴더로', '(시안) 아래 명령만 예시 출력: ls · pwd · whoami · uname -a · ip addr'], 'dim');
-    if (a === 'ls') return O(['Desktop  Documents  Downloads  terra-data  notes.md']);
-    if (a === 'pwd') return O([this.state.termCwd || '/home/stk']);
-    if (a === 'whoami') return O(['stk']);
-    if (a === 'uname') return O(['Linux ' + this.nodeNameQ() + ' 6.8.0-45-generic #45-Ubuntu SMP x86_64 GNU/Linux']);
-    if (a === 'ip') return O(['1: lo: <LOOPBACK,UP> inet 127.0.0.1/8', '2: enp3s0: <UP> inet 192.168.0.21/24', '3: wg0: <POINTOPOINT,UP> inet 10.40.2.17/16']);
-    if (a === 'cd') { this.setState({ termCwd: (line.split(/\s+/)[1] || '~') }); return []; }
-    return O(['(시안) ' + a + ' — 실제 연결에서는 이 노드의 셸이 실행한다'], 'dim');
   }
   // 시안 — Terra 터미널 예시. 실제는 src/api/shells.js
   sampleTerra(line) {
@@ -1274,6 +1260,8 @@ class Component extends DCLogic {
     if (w[0] === 'whoami') return O(['주체      user:stk', '종류      app', '권한      node.read node.control process.execute']);
     if (w[0] === 'node' && (w[1] || 'list') === 'list') return O(['이름       node_id       상태     중계    주소          버전', nm.padEnd(11) + 'nd_7f3a9c21   online   예      100.80.0.22   0.6.10', '02         nd_1c88a0e4   online   예      100.80.0.2    0.6.10', 'hanium     nd_9e01b7c2   offline  아니오  100.80.0.31   0.5.5']);
     if (w[0] === 'route' && /candidates|diagnose|explain/.test(w[1] || '')) return O([(w[2] || nm) + ' → ' + (w[3] || '02') + ' · 정책 default', '✓ mesh 직결    wireguard  4ms    mesh endpoints on same network', '✓ Master 중계  websocket         fallback allowed by policy']).concat(O(['× LAN 직결     tcp               no fresh pairwise tcp probe'], 'dim'));
+    if (/[^A-Za-z0-9가-힣._:@/=+,%\s-]/.test(line)) return O(['SHELL_SYNTAX — 셸 문법은 받지 않는다 — Terra 터미널은 셸이 아니다'], 'err');
+    if (/^(module (install|uninstall|start|stop|restart|enable|disable)|task (cancel|rerun|output)|config|daemon restart|enroll|wg|wireguard|svi|exec|run|shell|sh|bash|cmd|powershell|sudo|set|login)\b/.test(w.join(' '))) return O(['NOT_HERE — 쓰기 · 셸은 Terra 터미널에서 하지 않는다 — 여기서 못 함. 대신: 각 창(모듈 · 작업 관리자 · 설정 …), 노드 셸은 잠김'], 'err');
     if (w[0] === 'use') { this.setState({ ttCur: w[1] ? 'nd_' + w[1] : '', ttCurName: w[1] || '' }); return O(['현재 노드 = ' + (w[1] || '이 노드')], 'dim'); }
     return O(['(시안) ' + line + ' — 실제 연결에서 Terra 에 묻는다'], 'dim');
   }
@@ -1397,17 +1385,19 @@ class Component extends DCLogic {
         isTerm: id === 'term' || id === 'tterm', isFiles: id === 'files', isSet: id === 'set', isJobs: id === 'jobs', isSvi: id === 'svi', isMods: id === 'mods', isWeb: id === 'web', isNet: id === 'net',
         webW: Math.max(200, g.w - 2), webH: Math.max(120, g.h - 40), webUrl: s.webUrl || 'terra://start'
       };
-      if (id === 'term' || id === 'tterm') { const TT = id === 'tterm', busy = TT ? s.ttBusy : s.termBusy, live = !!this.liveRec();
+      if (id === 'term' || id === 'tterm') { const TT = id === 'tterm', busy = TT && s.ttBusy, live = !!this.liveRec(), NS = this.nodeShell(), lock = !TT && NS.locked;
         const tone = { cmd: t.ink, out: t.sub, dim: t.dim, err: '#ff6b6b', warn: '#f5b83d' };
         o.lines = (s[id] || []).slice(-300).map((l) => ({ t: l.t, c: tone[l.c] || t.sub }));
+        o.locked = lock; o.open = !lock;
+        o.lockWhy = NS.reason; o.lockInstead = NS.instead; o.lockDoc = NS.design;
         o.input = TT ? s.ttermIn : s.termIn;
         o.onInput = (e) => this.setState({ [TT ? 'ttermIn' : 'termIn']: e.target.value });
-        o.onKey = (e) => { if (e.key === 'Enter' && !busy) { if (TT) this.runTerra(this.state.ttermIn); else this.runCmd(this.state.termIn); } else if ((e.key === 'c' || e.key === 'C') && e.ctrlKey && busy) { e.preventDefault(); this.stopCmd(TT); } else if (e.key === 'ArrowUp' && TT && s.ttHist.length) { e.preventDefault(); this.setState({ ttermIn: s.ttHist[s.ttHist.length - 1] }); } };
-        o.prompt = TT ? 'terra[' + (s.ttCurName || this.nodeNameQ()) + ']>' : this.acct() + '@' + this.nodeNameQ() + ':' + (s.termCwd || '~') + '$';
-        o.tLabel = TT ? (live ? 'Terra · ' + (s.ttCurName ? '현재 노드 ' + s.ttCurName : '이 노드') : 'Terra · 시안') : (live ? (this.nodeShellOk() ? '노드 셸 · ' + this.nodeNameQ() : '노드 셸 — 이 노드에서만') : '노드 셸 · 시안');
-        o.tDot = TT ? '#7aa7ff' : live && !this.nodeShellOk() ? '#f5b83d' : '#3ecf8e';
-        o.tBadge = TT ? 'Terra API' : 'process.execute'; o.tBusy = busy ? '실행 중 · Ctrl+C' : '';
-        o.ph = busy ? '실행 중 — Ctrl+C 로 멈춤' : TT ? 'help · node list · route candidates <가> <나>' : 'ls · pwd · uname -a';
+        o.onKey = (e) => { if (!TT) return; if (e.key === 'Enter' && !busy) this.runTerra(this.state.ttermIn); else if ((e.key === 'c' || e.key === 'C') && e.ctrlKey && busy) { e.preventDefault(); this.stopCmd(); } else if (e.key === 'ArrowUp' && s.ttHist.length) { e.preventDefault(); this.setState({ ttermIn: s.ttHist[s.ttHist.length - 1] }); } };
+        o.prompt = TT ? 'terra[' + (s.ttCurName || this.nodeNameQ()) + ']>' : '';
+        o.tLabel = TT ? (live ? 'Terra · ' + (s.ttCurName ? '현재 노드 ' + s.ttCurName : '이 노드') : 'Terra · 시안') : '노드 셸 · 잠김';
+        o.tDot = TT ? '#7aa7ff' : '#f5b83d';
+        o.tBadge = TT ? 'Terra API · 읽기' : '설계 먼저'; o.tBusy = busy ? '실행 중 · Ctrl+C' : '';
+        o.ph = busy ? '실행 중 — Ctrl+C 로 멈춤' : 'help · node list · route candidates <가> <나>';
       }
       if (id === 'files') { if (!this.fmRealView(o, t, s)) {
         const loc = LOCS.find((l) => l.id === s.fmLoc);

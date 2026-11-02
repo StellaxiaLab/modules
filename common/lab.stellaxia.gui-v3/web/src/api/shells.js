@@ -1,36 +1,62 @@
-// 제어기의 두 터미널 — 노드 터미널(그 노드의 OS 셸) · Terra 터미널(terra shell 을 닮은 Terra 명령 해석기).
+// 제어기의 두 터미널 — 노드 터미널(그 노드의 OS 셸, 잠김) · Terra 터미널(terra shell 을 닮은 Terra 명령 해석기).
 //
-// 노드 터미널   terra.daemon.commands.execute.post { command, working_dir, timeout_sec } → { task_id } →
-//               terra.daemon.tasks.by-task-id.output.get { task_id, tail } 을 끝날 때까지 읽는다(새 조각만 넘긴다). Ctrl+C = tasks.by-task-id.cancel.post
-//               commands.execute 는 계약상 scope local — **이 GUI 를 띄운 노드에서만** 열린다(다른 노드는 Master 중계 밖, LOCAL_ONLY).
-//               명령줄은 시스템 기본 셸(/bin/sh -c · cmd /C)에 한 줄로 넘어간다. 한 줄마다 새 셸이라 cd 는 화면이 기억해 working_dir 로 싣는다
+// 노드 터미널   잠겼다(NODE_SHELL). 설계(docs/design/node-shell.md)가 정해지기 전까지 실행하지 않는다 — 명령 한 줄을 시스템 셸로 돌리는
+//               terra.daemon.commands.execute.post 를 웹에서 부르면 앱 토큰의 process.execute 하나로 그 노드의 임의 실행이 열리고,
+//               managed 승격 데몬(Windows)에서는 그것이 관리자 실행이 된다. 누가 · 어느 노드에서 · 무엇이 남는가를 정한 뒤 연다.
 // Terra 터미널  Terra CLI 의 `terra shell`(docs/reference/cli/terra-cli-command-reference.ko.md)과 같은 낱말 — help · status · whoami · clear · history ·
-//               !! · !<n> · set var · use(현재 노드) 와 node · network · route · session · probe · module · task · daemon · api.
+//               !! · !<n> · use(현재 노드) 와 node · network · route · session · probe · module · task · daemon · api.
 //               CLI 프로세스를 띄우지 않고 같은 이름의 operation 을 Gateway 로 부른다 — 그래서 어느 노드에서나(다른 노드는 Master 중계) 쓴다.
-//               `api <operation-id> [--input <json>]` 은 CLI 의 `terra api` 와 같이 계약의 operation 을 바로 부른다(권한은 앱 선언 ∩ 사용자)
+//               셸이 아니다: 따옴표 · $변수 · ; | & < > ` \ ( ) { } * ? ! ~ 따위는 받지 않는다(낱말은 SAFE_WORD 만).
+//               부르는 operation 은 모두 읽기이고, 위임표(op-scope.json · master-delegated.json)에 있는 것뿐이다(TERRA_OPS).
+//               `api <operation-id> [이름=값 …]` 도 그 표에서 risk read(Master 는 GET)인 것만 — 쓰기 · 위험 operation 은 "여기서 못 함 + 대신 할 곳"으로 답한다.
 
 import { TerraError, canRemote } from './terra.js';
 import { netProps, ROUTE } from './net-props.js';
+import SCOPE from './op-scope.json' with { type: 'json' };
+import MASTER from './master-delegated.json' with { type: 'json' };
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const pad = (s, n) => { s = String(s ?? '—'); let w = 0; for (const ch of s) w += /[ᄀ-ᇿ㄰-㆏가-힣一-鿿]/.test(ch) ? 2 : 1; return s + ' '.repeat(Math.max(1, n - w)); };
 const table = (cols, rows) => { const W = cols.map((c, i) => Math.min(28, Math.max(String(c[1] ?? c).length + 2, ...rows.map((r) => String(r[i] ?? '—').length + 2)))); return [cols.map((c, i) => pad(c, W[i])).join('').trimEnd(), ...rows.map((r) => r.map((v, i) => pad(v ?? '—', W[i])).join('').trimEnd())]; };
 const when = (iso) => { const t = Date.parse(iso || ''); if (Number.isNaN(t) || /^0001-/.test(String(iso))) return '—'; const d = new Date(t), p = (n) => String(n).padStart(2, '0'); return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()); };
 
-/** 한 줄 → 낱말. 큰따옴표 · 작은따옴표로 묶고, $이름 은 변수로 바꾼다(작은따옴표 안은 그대로) */
-export function tokenize(line, vars = {}) {
-  const out = []; let cur = '', q = '', has = false;
-  const flush = () => { if (has) out.push(cur); cur = ''; has = false; };
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (q) { if (c === q) { q = ''; continue; } if (c === '$' && q === '"') { const m = /^\$([A-Za-z_]\w*)/.exec(line.slice(i)); if (m) { cur += vars[m[1]] ?? ''; i += m[0].length - 1; continue; } } cur += c; continue; }
-    if (c === '"' || c === "'") { q = c; has = true; continue; }
-    if (/\s/.test(c)) { flush(); continue; }
-    if (c === '$') { const m = /^\$([A-Za-z_]\w*)/.exec(line.slice(i)); if (m) { cur += vars[m[1]] ?? ''; i += m[0].length - 1; has = true; continue; } }
-    cur += c; has = true;
-  }
-  if (q) throw new TerraError('BAD_INPUT', '따옴표가 닫히지 않았다', 0);
-  flush(); return out;
+/** 노드 터미널 — 잠금과 그 이유. 설계가 정해지면 여기서 연다(보드는 이 값만 본다) */
+export const NODE_SHELL = Object.freeze({
+  locked: true,
+  reason: '노드 셸은 잠겨 있다 — 누가 열 수 있는지 · 다른 노드 허용 · 감사 기록 · 대화형 전송(PTY)을 정하는 설계가 먼저다',
+  design: 'docs/design/node-shell.md',
+  instead: Object.freeze(['읽기 · 상태는 Terra 터미널(독의 >T)', '모듈 시작 · 멈춤은 모듈 창', '작업 출력 · 취소는 작업 관리자', '그 노드에서 직접: terra CLI 또는 OS 터미널']),
+});
+
+/** Gateway 자기 operation 중 Terra 터미널이 부르는 것(위임표 둘 밖 — Gateway 가 앱 토큰으로 직접 답한다) */
+export const GATEWAY_READS = Object.freeze(['terra.gateway.agent.whoami.get']);
+
+/** 명령 → 부르는 operation. 시험이 이 표의 모든 op 가 위임표에 있고 읽기인지 본다 */
+export const TERRA_OPS = Object.freeze({
+  status: ['terra.daemon.status.get', 'terra.gateway.agent.whoami.get', 'terra.master.nodes.get'],
+  whoami: ['terra.gateway.agent.whoami.get'],
+  node: ['terra.master.nodes.get'],
+  use: ['terra.master.nodes.get'],
+  network: ['terra.master.network.status.get', 'terra.master.network.state.get', 'terra.master.route.graph.get', 'terra.master.nodes.get'],
+  route: ['terra.master.route.graph.get', 'terra.master.route.candidates.get', 'terra.master.nodes.get'],
+  session: ['terra.master.route.sessions.get', 'terra.master.nodes.get'],
+  probe: ['terra.master.network.probes.get', 'terra.master.nodes.get'],
+  module: ['terra.daemon.modules.get', 'terra.master.nodes.get'],
+  task: ['terra.daemon.tasks.get', 'terra.daemon.tasks.by-task-id.get', 'terra.master.nodes.get'],
+  daemon: ['terra.daemon.status.get', 'terra.master.nodes.get'],
+});
+
+/** 낱말 하나에 허용하는 글자 — 이름 · id · 주소 · 이름=값. 이 밖의 글자가 하나라도 있으면 줄 전체를 거절한다 */
+export const SAFE_WORD = /^[A-Za-z0-9가-힣._:@/=+,%-]+$/;
+
+/** 한 줄 → 낱말. 셸 문법(따옴표 · $변수 · 메타문자)은 해석하지 않고 거절한다 */
+export function tokenize(line) {
+  line = String(line);
+  if (/[\r\n]/.test(line)) throw new TerraError('SHELL_SYNTAX', '여러 줄은 받지 않는다 — 한 줄에 명령 하나', 0);
+  const words = line.trim().split(/[ \t]+/).filter(Boolean);
+  const bad = words.find((w) => !SAFE_WORD.test(w));
+  if (bad) { const ch = [...bad].find((c) => !SAFE_WORD.test(c)); throw new TerraError('SHELL_SYNTAX', '셸 문법은 받지 않는다(' + JSON.stringify(ch) + ') — Terra 터미널은 셸이 아니다. 노드 셸은 잠겨 있다(' + NODE_SHELL.design + ')', 0); }
+  return words;
 }
 
 /** 히스토리 펼치기 — !! · !<번호>. 펼친 줄(없으면 null) */
@@ -41,10 +67,47 @@ export function expandHistory(line, hist) {
   return line;
 }
 
+const LOCKED_SHELL = '노드 셸 — 잠김(' + NODE_SHELL.design + ')';
+/** 위임 밖 명령 — 여기서 못 하는 것과 대신 할 곳. [첫 낱말, 둘째 낱말(null 이면 무엇이든), 대신 할 곳] */
+export const ELSEWHERE = Object.freeze([
+  ['module', /^(install|uninstall|start|stop|restart|enable|disable|config|scan|assign|unassign)$/, '모듈 창(제어기 독의 퍼즐) — 설치는 검토 요약을 본 뒤에'],
+  ['task', /^(cancel|rerun|run|exec|output)$/, '작업 관리자'],
+  ['job', null, '작업 관리자'], ['jobs', null, '작업 관리자'],
+  ['config', null, '설정 창 › 노드 설정(검사 · 저장 · 적용)'],
+  ['daemon', /^(restart|stop|start|config)$/, '그 노드의 terra CLI(terra daemon …)'],
+  ['enroll', null, '설정 창 › 등록'],
+  ['wireguard', null, '네트워크 창 · 설정 창 › 네트워크'], ['wg', null, '네트워크 창 · 설정 창 › 네트워크'],
+  ['tunnel', null, '네트워크 창(서비스 터널)'],
+  ['svi', null, '자원 관리 창'], ['grant', null, '자원 관리 창'], ['bind', null, '자원 관리 창'],
+  ['io', null, '자원 관리 창 › 장치'], ['device', null, '자원 관리 창 › 장치'],
+  ['login', null, '셸의 로그인 화면 — 웹은 비밀번호를 받지 않는다'], ['logout', null, '전역 틀의 로그아웃'],
+  ['exec', null, LOCKED_SHELL], ['run', null, LOCKED_SHELL], ['shell', null, LOCKED_SHELL],
+  ['sh', null, LOCKED_SHELL], ['bash', null, LOCKED_SHELL], ['cmd', null, LOCKED_SHELL], ['powershell', null, LOCKED_SHELL], ['sudo', null, LOCKED_SHELL],
+  ['set', null, 'Terra 터미널에는 변수가 없다 — 값을 그대로 쓴다'], ['vars', null, 'Terra 터미널에는 변수가 없다'],
+]);
+const elsewhere = (cmd, sub) => { const r = ELSEWHERE.find(([a, b]) => a === cmd && (!b || b.test(sub || ''))); return r ? r[2] : null; };
+
+function whereFor(op) {
+  const R = [[/commands\.execute/, LOCKED_SHELL], [/\.modules\./, '모듈 창'], [/\.tasks\.|\.jobs\./, '작업 관리자'], [/\.config\./, '설정 창 › 노드 설정'],
+    [/\.wireguard\.|\.service-tunnels/, '네트워크 창'], [/\.svi\.|\.io\./, '자원 관리 창'], [/\.enrollment\./, '설정 창 › 등록'], [/desktop\.open/, '파일 관리자 › 노드에서 열기'], [/\.restart\./, '그 노드의 terra CLI']];
+  const r = R.find(([re]) => re.test(op)); return r ? r[1] : '그 기능의 창, 또는 그 노드의 terra CLI';
+}
+
+/** api 로 부를 수 있는 operation 인가 — 위임표에 있고 읽기인 것만. { ok, kind } 또는 { ok: false, code, why, where } */
+export function apiAllowed(op) {
+  if (GATEWAY_READS.includes(op)) return { ok: true, kind: 'gateway' };
+  const D = SCOPE.operations[op];
+  if (D) return D.risk === 'read' && !D.permissions.includes('process.execute') ? { ok: true, kind: 'daemon' } : { ok: false, code: 'NOT_HERE', why: op + ' — ' + D.risk + ' operation(' + D.permissions.join(' ') + ')은 Terra 터미널에서 부르지 않는다', where: whereFor(op) };
+  const M = MASTER.operations[op];
+  if (M) return M.method === 'GET' ? { ok: true, kind: 'master' } : { ok: false, code: 'NOT_HERE', why: op + ' — Master 쓰기(' + M.method + ')는 Terra 터미널에서 부르지 않는다', where: whereFor(op) };
+  if (op.startsWith('terra.master.')) return { ok: false, code: 'DELEGATION_NOT_OPEN', why: op + ' — 앱 자격(위임 입구)으로 닿지 않는 Master operation', where: 'B 모드(단독 GUI · 자격 핸들) 또는 그 Tree 의 terra CLI' };
+  return { ok: false, code: 'NOT_DELEGATED', why: op + ' — 위임표(op-scope · master-delegated)에 없는 operation', where: '그 기능의 창, 또는 그 노드의 terra CLI(terra api)' };
+}
+const notHere = (why, where, code) => new TerraError(code || 'NOT_HERE', why + ' — 여기서 못 함. 대신: ' + where, 0);
+
 export const TERRA_HELP = [
-  'Terra 터미널 — terra shell 과 같은 낱말. 명령 앞의 terra 는 써도 되고 안 써도 된다',
+  'Terra 터미널 — terra shell 과 같은 낱말(읽기만). 명령 앞의 terra 는 써도 되고 안 써도 된다 · 셸 문법은 받지 않는다',
   '  help · clear · history · !! · !<번호>         셸',
-  '  set var <이름> <값> · vars                     변수 — 명령에서 $이름',
   '  use <노드>                                    현재 노드(노드 이름 · node_id 앞부분 · .terra · 클러스터 주소)',
   '  status · whoami                               연결 · 로그인 주체와 권한',
   '  node list · node get [노드]                   Master 노드 기록',
@@ -53,7 +116,8 @@ export const TERRA_HELP = [
   '  session list · probe list                     라우트 세션 · 연결 진단 기록',
   '  module list [노드] · task list [노드]          그 노드의 모듈 · 작업(Daemon — 다른 노드는 중계)',
   '  task get <id> · daemon status [노드]',
-  '  api <operation-id> [--input <json>]           계약의 operation 을 현재 노드에서 바로 (terra api)',
+  '  api <operation-id> [이름=값 …]                위임표의 읽기 operation 을 현재 노드에서 (terra api)',
+  '  쓰기(모듈 시작 · 설정 · 작업 취소 …)는 각 창에서 — 노드 셸은 잠김',
 ];
 
 /**
@@ -75,43 +139,12 @@ export function createShells(terra, topo) {
     return hit.node_id;
   };
 
-  // ── 노드 터미널 ──
+  // ── 노드 터미널 — 잠김(NODE_SHELL). 실행 길은 두지 않는다 ──
   const node = {
-    /** 이 노드에서 열 수 있나 — commands.execute 는 scope local */
-    can(rid) { return !rid || rid === localId(); },
-    /**
-     * @param {string} rid 그 노드(빈 칸 = 로컬)
-     * @param {string} line 셸 한 줄
-     * @param {{ cwd?: string, timeoutSec?: number, onChunk?: (c: { stream: string, text: string }) => void, signal?: { stop?: boolean, taskId?: string }, pollMs?: number, sleep?: (ms: number) => Promise<void> }} [o]
-     */
-    async run(rid, line, o = {}) {
-      if (!node.can(rid)) throw new TerraError('LOCAL_ONLY', '노드 셸은 이 GUI 를 띄운 노드에서만 — Terra 의 명령 실행(commands.execute)은 다른 노드로 중계되지 않는다. Terra 터미널은 어느 노드에서나 된다', 0);
-      const sleep = o.sleep || ((ms) => new Promise((r) => setTimeout(r, ms))), input = { command: line, timeout_sec: o.timeoutSec ?? 120 };
-      if (o.cwd) input.working_dir = o.cwd;
-      const acc = await terra.invoke('terra.daemon.commands.execute.post', input), id = acc && (acc.task_id || acc.id);
-      if (!id) throw new TerraError('BAD_RESPONSE', '작업 id 를 받지 못했다', 0);
-      if (o.signal) o.signal.taskId = id;
-      let seq = -1, state = '', guard = 0;
-      for (;;) {
-        const d = await terra.invoke('terra.daemon.tasks.by-task-id.output.get', { task_id: id, tail: 400 });
-        for (const c of arr(d && d.chunks)) { const s = c.seq ?? -1; if (s > seq) { seq = s; if (o.onChunk) o.onChunk({ stream: c.stream || 'stdout', text: String(c.text ?? '') }); } }
-        state = (d && d.state) || state;
-        if (d && (d.complete || d.captured === false)) break;
-        if (o.signal && o.signal.stop) { await terra.invoke('terra.daemon.tasks.by-task-id.cancel.post', { task_id: id }).catch(() => {}); state = 'cancelled'; break; }
-        if (++guard > 2000) break;
-        await sleep(o.pollMs ?? 600);
-      }
-      let exit = null; try { const t = await terra.invoke('terra.daemon.tasks.by-task-id.get', { task_id: id }); exit = t && (t.exit_code ?? (t.result && t.result.exit_code)); state = (t && (t.state || t.status)) || state; } catch (e) { /* 상태를 못 읽어도 출력은 이미 보였다 */ }
-      return { taskId: id, state, exit };
-    },
-    /** cd — 한 줄마다 새 셸이라 화면이 cwd 를 기억한다. 그 노드에서 cd 한 뒤의 pwd 를 받아 온다 */
-    async cd(rid, dir, cwd) {
-      let out = '';
-      const r = await node.run(rid, 'cd ' + (dir || '~') + ' && pwd', { cwd, timeoutSec: 10, onChunk: (c) => { if (c.stream !== 'stderr') out += c.text; } });
-      const p = out.trim().split('\n').pop();
-      if (!p || (r.exit != null && r.exit !== 0)) throw new TerraError('NOT_FOUND', 'cd: ' + dir + ' — 그런 폴더가 없다', 0);
-      return p;
-    },
+    locked: NODE_SHELL.locked,
+    can() { return false; },
+    async run() { throw new TerraError('LOCKED', NODE_SHELL.reason + ' (' + NODE_SHELL.design + ')', 0); },
+    async cd() { throw new TerraError('LOCKED', NODE_SHELL.reason, 0); },
   };
 
   // ── Terra 터미널 ──
@@ -165,35 +198,35 @@ export function createShells(terra, topo) {
       const id = a[1] ? await resolve(a[1]) : cx.cur, d = await terra.invoke('terra.daemon.status.get', {}, at(id));
       return say(JSON.stringify(d, null, 2).split('\n')); },
     async api(a, cx) {
-      const op = a[0]; if (!op) throw new TerraError('BAD_INPUT', 'api <operation-id> [--input <json>]', 0);
-      const i = a.indexOf('--input'); let input = {}; if (i >= 0) { try { input = JSON.parse(a[i + 1] || '{}'); } catch { throw new TerraError('BAD_INPUT', '--input 은 JSON 객체', 0); } }
-      if (cx.cur && cx.cur !== localId() && !canRemote(op)) throw new TerraError('LOCAL_ONLY', op + ' 은 그 노드에서만 — 현재 노드가 다른 노드라 부를 수 없다(use 로 이 노드로)', 0);
-      const d = await terra.invoke(op, input, op.startsWith('terra.master.') ? {} : at(cx.cur));
+      const op = a[0]; if (!op) throw new TerraError('BAD_INPUT', 'api <operation-id> [이름=값 …]', 0);
+      const ok = apiAllowed(op); if (!ok.ok) throw notHere(ok.why, ok.where, ok.code);
+      const input = {}; for (const kv of a.slice(1)) { const m = /^([A-Za-z_][\w.-]*)=(.*)$/.exec(kv); if (!m) throw new TerraError('BAD_INPUT', kv + ' — 입력은 이름=값', 0); input[m[1]] = m[2]; }
+      if (ok.kind === 'daemon' && cx.cur && cx.cur !== localId() && !canRemote(op)) throw new TerraError('LOCAL_ONLY', op + ' 은 그 노드에서만 — 현재 노드가 다른 노드라 부를 수 없다(use 로 이 노드로)', 0);
+      const d = await terra.invoke(op, input, ok.kind === 'daemon' ? at(cx.cur) : {});
       return say(JSON.stringify(d, null, 2).split('\n').slice(0, 400));
     },
   };
   terraCmd.sessions = terraCmd.session; terraCmd.probes = terraCmd.probe; terraCmd.modules = terraCmd.module; terraCmd.tasks = terraCmd.task; terraCmd.nodes = terraCmd.node;
 
   /**
-   * Terra 터미널 한 줄. 셸 낱말(help · clear · history · set var · use)은 화면이 상태를 들고 있어 여기서는 결과만 돌려준다
+   * Terra 터미널 한 줄. 셸 낱말(help · clear · history · use)은 화면이 상태를 들고 있어 여기서는 결과만 돌려준다
    * @param {string} line
-   * @param {{ cur?: string, curName?: string, vars?: Record<string,string>, hist?: string[] }} cx
-   * @returns {Promise<{ lines: { t: string, c: string }[], clear?: boolean, cur?: string, curName?: string, vars?: Record<string,string> }>}
+   * @param {{ cur?: string, curName?: string, hist?: string[] }} cx
+   * @returns {Promise<{ lines: { t: string, c: string }[], clear?: boolean, cur?: string, curName?: string }>}
    */
   const terraRun = async (line, cx = {}) => {
-    const words = tokenize(line, cx.vars || {}); if (words[0] === 'terra') words.shift();
+    const words = tokenize(line); if (words[0] === 'terra') words.shift();
     const [cmd, ...a] = words;
     if (!cmd) return { lines: [] };
     if (cmd === 'help' || cmd === '?') return { lines: say(TERRA_HELP, 'dim') };
     if (cmd === 'clear') return { lines: [], clear: true };
     if (cmd === 'history') return { lines: say((cx.hist || []).map((h, i) => String(i + 1).padStart(4) + '  ' + h), 'dim') };
-    if (cmd === 'vars') return { lines: say(Object.entries(cx.vars || {}).map(([k, v]) => k + '=' + v)) };
-    if (cmd === 'set') { if (a[0] !== 'var' || !a[1]) throw new TerraError('BAD_INPUT', 'set var <이름> <값>', 0); return { lines: [], vars: Object.assign({}, cx.vars, { [a[1]]: a.slice(2).join(' ') }) }; }
+    const away = elsewhere(cmd, a[0]); if (away) throw notHere(words.join(' '), away);
     if (cmd === 'use') { if (!a[0] || a[0] === '.' || a[0] === 'self') return { lines: say(['현재 노드 = 이 노드'], 'dim'), cur: '', curName: '' }; const id = await resolve(a[0]), list = await nodes(); return { lines: say(['현재 노드 = ' + nameOf(list, id) + ' (' + id + ')'], 'dim'), cur: id, curName: nameOf(list, id) }; }
     const f = terraCmd[cmd];
     if (!f) throw new TerraError('NOT_FOUND', cmd + ' — 모르는 명령 (help)', 0);
     return { lines: await f(a, cx) };
   };
 
-  return { node, terra: { run: terraRun, resolve } };
+  return { NODE_SHELL, node, terra: { run: terraRun, resolve } };
 }
