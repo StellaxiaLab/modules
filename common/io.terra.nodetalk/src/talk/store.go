@@ -52,6 +52,9 @@ type Store struct {
 	// DefaultLeaseTTL; a negative value disables the lease, which is what an
 	// assembly with no sync loop wants — nothing renews there.
 	leaseTTL time.Duration
+	// logIdx caches each author log's summary (logindex.go) so a write does not
+	// re-parse the whole conversation. Guarded by mu.
+	logIdx map[string]*logIndex
 }
 
 // storedEntry is the on-disk line: the API entry plus append-side bookkeeping
@@ -243,17 +246,15 @@ func (s *Store) AppendMessage(id, text, key string) (Entry, error) {
 	}
 
 	ownLog := filepath.Join(s.conversationDir(id), "log", selfID+".jsonl")
-	own, err := readLog(ownLog)
+	own, err := s.summarizeLogLocked(ownLog)
 	if err != nil {
 		return Entry{}, err
 	}
 	// Idempotency: the same key answers the same entry, and the log gains no
 	// second line — duplicates on a lossy path stay harmless.
 	if key != "" {
-		for _, line := range own {
-			if line.IdempotencyKey == key {
-				return line.Entry, nil
-			}
+		if existing, ok := own.keyed[key]; ok {
+			return existing, nil
 		}
 	}
 
@@ -261,10 +262,7 @@ func (s *Store) AppendMessage(id, text, key string) (Entry, error) {
 	if err != nil {
 		return Entry{}, err
 	}
-	lastSeq := 0
-	if len(own) > 0 {
-		lastSeq = own[len(own)-1].Seq
-	}
+	lastSeq := own.lastSeq
 	entry := Entry{
 		AuthorNodeID: selfID,
 		Kind:         KindMessage,
@@ -417,12 +415,12 @@ func (s *Store) watermarksLocked(id string) (map[string]int, error) {
 		if !ok || !ValidNodeID(author) {
 			continue
 		}
-		lines, err := readLog(filepath.Join(logDir, file.Name()))
+		summary, err := s.summarizeLogLocked(filepath.Join(logDir, file.Name()))
 		if err != nil {
 			return nil, err
 		}
-		if len(lines) > 0 {
-			marks[author] = lines[len(lines)-1].Seq
+		if summary.lastSeq > 0 {
+			marks[author] = summary.lastSeq
 		}
 	}
 	return marks, nil
@@ -462,14 +460,25 @@ func (s *Store) allEntriesLocked(id string) ([]Entry, error) {
 }
 
 func (s *Store) lamportClockLocked(id string) (int, error) {
-	all, err := s.allEntriesLocked(id)
+	logDir := filepath.Join(s.conversationDir(id), "log")
+	files, err := os.ReadDir(logDir)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0, nil
+	}
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("talk: list logs: %w", err)
 	}
 	clock := 0
-	for _, entry := range all {
-		if entry.Lamport > clock {
-			clock = entry.Lamport
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".jsonl") {
+			continue
+		}
+		summary, err := s.summarizeLogLocked(filepath.Join(logDir, file.Name()))
+		if err != nil {
+			return 0, err
+		}
+		if summary.maxLamport > clock {
+			clock = summary.maxLamport
 		}
 	}
 	return clock, nil
@@ -532,11 +541,14 @@ func appendLine(path string, line storedEntry) error {
 	if err != nil {
 		return fmt.Errorf("talk: encode entry: %w", err)
 	}
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return fmt.Errorf("talk: open log for append: %w", err)
 	}
 	defer func() { _ = file.Close() }()
+	if err := dropTornTail(file, path); err != nil {
+		return err
+	}
 	if _, err := file.Write(append(payload, '\n')); err != nil {
 		return fmt.Errorf("talk: append entry: %w", err)
 	}

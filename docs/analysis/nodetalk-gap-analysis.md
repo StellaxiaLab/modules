@@ -133,3 +133,14 @@ README(N-4의 일부)는 개명이 `docs`·경로를 크게 건드리므로 개�
 Terra ADR-MD-002 v1.2와 개명 계획은 `io.terra.nodetalk` → `lab.stellaxia.nodetalk`을 정했다. modules `origin/main`은 아직 `io.terra.*`이고 개명 브랜치(`claude/prefix-rename-lab-stellaxia`)는 미병합이다. 개명은 `module.json`·계약·`dataDir()`의 `modulesdk.DataDir("io.terra.nodetalk")` 등 id 문자열을 다수 바꾼다. 이 보강은 id 문자열 파일을 피하고 `talk/` 내부 변경 위주로 한다.
 
 또한 데이터 이주: `module-data/<id>/`가 개명으로 빈 디렉터리가 되면 Terra 계획 §16의 결함 경로가 그대로 열린다. nodetalk은 **자기 줄을 피어에게서 복구할 수 없으므로**(§2-1) 이주가 빠지면 영구 손실이다. 개명 계획은 디렉터리를 옮기기로 했으나, 개명 릴리스 전에 nodetalk 대화 디렉터리 이주를 실측으로 확인할 것을 권한다.
+
+## 8. 보강 결과 (2026-11-02)
+
+| ID | 결과 |
+| --- | --- |
+| N-1 | 저자 로그 요약 캐시(`talk/logindex.go`). 같은 벤치로 재측정: 10만 줄에서 append 781→31ms, Get 372→0.8ms, List 323→0.8ms. 1천~10만 줄 구간에서 평탄(append 19~31ms는 fsync 고정비). 덧붙은 바이트만 파싱하고, 파일이 짧아지거나 마지막 줄이 달라지면 처음부터 다시 읽는다. 시험: `readLog`와 요약이 append·꼬리 손상·교체·축소·NUL·삭제 전부에서 같은 답을 내는지 직접 대조 |
+| N-1b | 하지 않았다. `Entries`는 전사 전체를 정렬해야 하는 읽기 경로라 색인으로 풀리지 않는다(페이지 단위 읽기는 계약 변경 여지가 있어 결정 사항으로 둔다) |
+| N-4 | `main.go` 머리말 정정, `moduleVersion`↔`module.json` 일치 시험. README는 개명 뒤로 미뤘다 |
+| **새로 찾은 결함** | 개행 없이 끊긴 꼬리 뒤에 append하면 새 줄이 조각에 붙어 한 줄 손상이 되고, 응답은 성공인데 전사에서 사라진다(시험으로 재현, 수정 전 `transcript = [before]`). `talk/torntail.go`: 응답한 적 없는 조각은 자르고, 개행만 빠진 온전한 줄은 살리며, NUL이 든 꼬리는 거절한다. 별도 커밋 |
+
+이 결함은 N-1과 무관하게 기존 `readLog` 의미에서도 성립한다(이 분석의 §3에 없던 것 — 색인 작업 중 꼬리 처리 의미를 대조하다 찾았다). 자르는 동작은 "append-only" 서술과 부딪치는 듯 보이나, 잘리는 것은 한 번도 확인 응답을 받은 적 없는 바이트뿐이다.

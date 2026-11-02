@@ -4,10 +4,12 @@
 // docs/implementation/nodetalk-implementation-plan.md; the API surface is owned
 // by contracts/api/terra-api.json — change that file first, then this code.
 //
-// M1 scope: conversations, messages and the local SSE stream are real, backed
-// by per-author append-only logs under the module data home. Replication,
-// handover, deletion and fault injection still refuse honestly with 501
-// naming their milestone.
+// Every operation in the contract is implemented: conversations and messages
+// over per-author append-only logs under the module data home (talk/), pull
+// replication with push-on-append, main handover and lease promotion,
+// deletion by tombstone, and fault injection. The design and its history live
+// in the Terra repository's nodetalk implementation plan; the shortfalls found
+// since are in docs/analysis/nodetalk-gap-analysis.md.
 package main
 
 import (
