@@ -1,0 +1,200 @@
+{
+  "$schema": "../../../../../docs/contracts/api/schemas/terra-api-contract-v1.schema.json",
+  "$id": "https://contracts.terra.dev/modules/lab.stellaxia.sample.camera/0.1.0/terra-api.json",
+  "schemaVersion": "1.0.0",
+  "contractId": "lab.stellaxia.sample.camera.api",
+  "contractVersion": "0.1.0",
+  "defaultLocale": "ko-KR",
+  "title": "Sample RTSP Camera API",
+  "summary": "견본 RTSP 카메라 자원화 모듈의 상태를 조회합니다.",
+  "description": "Terra 자원화 틀 R4의 참조 모듈입니다. 자원화 유형 camera.rtsp 하나로 RTSP 주소를 SVI 원천 자원으로 만듭니다. API 표면은 readiness를 위한 단일 status 조회뿐이고, 자원화는 호스트↔모듈 seam(/terra/svi/resourcizers·instances·source)으로 합니다.",
+  "provider": {
+    "id": "lab.stellaxia.sample.camera",
+    "name": "Sample RTSP Camera",
+    "version": "0.1.0",
+    "kind": "module",
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "hostRoles": [
+      "leaf-node",
+      "tree-control"
+    ],
+    "moduleId": "lab.stellaxia.sample.camera",
+    "ownership": {
+      "source": "module/common/lab.stellaxia.sample.camera",
+      "team": "terra-platform"
+    }
+  },
+  "authentication": {
+    "workload-identity": {
+      "type": "workload-identity",
+      "description": "Module Runtime이 실행 instance에 발급한 단기 Workload Identity를 사용합니다."
+    }
+  },
+  "operations": {
+    "lab.stellaxia.sample.camera.status.get": {
+      "version": "0.1.0",
+      "status": "stable",
+      "title": "상태 조회",
+      "summary": "견본 카메라 모듈의 상태와 인스턴스 수를 조회합니다.",
+      "description": "Module Runtime의 readiness probe와 Gateway 라우팅을 검증하기 위한 read-only 상태 조회 Operation입니다. 부수효과 없이 즉시 응답합니다.",
+      "category": "status",
+      "tags": [
+        "status",
+        "health",
+        "read"
+      ],
+      "useCases": [
+        "Module Runtime이 readiness probe로 Module 상태를 확인합니다.",
+        "모듈이 응답하는지 확인합니다."
+      ],
+      "availability": {
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "scopes": [
+          "local",
+          "node"
+        ],
+        "requiresProviderState": "ready"
+      },
+      "security": {
+        "authentication": [
+          "workload-identity"
+        ],
+        "permissions": [],
+        "workloadPermissions": [],
+        "dataClassification": "internal",
+        "audit": {
+          "required": false
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "빈 요청",
+            "description": "status 조회는 입력 파라미터가 없습니다.",
+            "value": {}
+          }
+        ]
+      },
+      "semantics": {
+        "preconditions": [],
+        "processing": [
+          {
+            "id": "read-status",
+            "description": "모듈의 현재 상태와 인스턴스 수를 조회합니다.",
+            "transaction": "none"
+          }
+        ],
+        "postconditions": [],
+        "sideEffects": []
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "required": [
+            "status",
+            "version"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "title": "상태",
+              "description": "Module의 현재 상태입니다.",
+              "enum": [
+                "ok",
+                "degraded"
+              ]
+            },
+            "version": {
+              "type": "string",
+              "title": "버전",
+              "description": "Module의 semantic 버전입니다.",
+              "minLength": 1
+            },
+            "instances": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "이 모듈이 지금 가진 카메라 인스턴스 수입니다."
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": [
+          {
+            "name": "정상",
+            "value": {
+              "status": "ok",
+              "version": "0.1.0",
+              "instances": 2
+            }
+          }
+        ]
+      },
+      "execution": {
+        "risk": "read",
+        "idempotency": {
+          "mode": "safe"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        },
+        "cancellation": "before-dispatch",
+        "retry": {
+          "mode": "safe-only",
+          "maximumAttempts": 3,
+          "backoff": "exponential"
+        },
+        "concurrency": {
+          "mode": "unlimited"
+        }
+      },
+      "bindings": [
+        {
+          "type": "gateway-http",
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.sample.camera/v1/status",
+          "successStatus": 200
+        }
+      ],
+      "authoring": {
+        "studioVisible": false,
+        "functionNode": false,
+        "group": "Status/Health",
+        "recommendedLabel": "상태 확인",
+        "keywords": [
+          "status",
+          "health",
+          "상태"
+        ],
+        "outputPorts": [
+          {
+            "name": "status",
+            "pointer": "/status"
+          },
+          {
+            "name": "version",
+            "pointer": "/version"
+          }
+        ]
+      }
+    }
+  }
+}

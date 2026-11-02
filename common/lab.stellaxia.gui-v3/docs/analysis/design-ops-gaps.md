@@ -36,7 +36,7 @@ related:
 | --- | --- | --- | --- | --- | --- |
 | H1 | C/D | NodeDesktopEmbed `STM`(모듈) · `jobLabel`(작업) | 실패한 모듈 · 작업이 하나라도 있으면 그리기 예외 → **노드 데스크톱 전체가 빈칸**. `deskShape` 는 failed → `'fail'` 로 바꾸는데 보드 표에 `fail` 이 없었다 | 보드 — `fail` · 모르는 상태 기본값 | **고침** #146 |
 | H2 | B/C | NodeDesktopEmbed `ndSet` 기본 op `gui-v3.desk.patch` + api `transport.invoke`(`gui-v3.*` 는 보내지 않고 `{ok:true}`) | 모듈 끄기/켜기 · 되돌리기 · 자원 선언 '적용' · 장치 '다시 찾기' · 모듈 '다시 읽기' 가 **성공했다고 뜨지만 노드는 그대로**. 사본이 거짓 상태로 남는다 | 보드 — 실제 노드면 op 를 잇거나 잠금. api — 모르는 `gui-v3.*` 쓰기는 거절 | 열림 |
-| H3 | A/B | NodeDesktopEmbed 터미널(`runCmd`, 첫 줄) | `whoami` → stk, `node` → 'tree-home · 코어 0.9.4', `net` → 10.40.2.17 등 **고정 출력** | 보드 — 실제 모드에선 숨기거나 `TerraWho` · status 로 받은 것만 | **고침** #151 — 노드 터미널(commands.execute) · Terra 터미널(terra shell 낱말), [[terminals\|두 터미널]] |
+| H3 | A/B | NodeDesktopEmbed 터미널(`runCmd`, 첫 줄) | `whoami` → stk, `node` → 'tree-home · 코어 0.9.4', `net` → 10.40.2.17 등 **고정 출력** | 보드 — 실제 모드에선 숨기거나 `TerraWho` · status 로 받은 것만 | **고침** #151 — 두 터미널로 나눔, 이어서 노드 터미널은 잠금(설계 [[node-shell\|노드 셸]]) · Terra 터미널은 위임표 읽기만 · 셸 문법 거절([[terminals\|두 터미널]]) |
 | H4 | A | Scene `RESOURCES()` · `sceneMap` | 실제 리프마다 **없는 ssh · tty · gpio 위성**. 자원 뷰 · 공유 자원 폴더 · NodeConf 자원 목록 · 자원 상태 창으로 퍼지고, 누르면 'SVI 목록에 없다' | 보드(Field) — 실제 지도면 `svi.resources.get` 의 그 노드 자원으로 | 열림 |
 | H5 | A | api `topology.loadTopology` → Scene `build()` | `nodes.get` 실패 · 빈 목록이면 **시안 지도(01 · 02 · 03 · 04)로 조용히** — 그 위의 TreeLogin 은 아무 비밀번호나 통과 | main · 보드 — 실제 모드면 '노드 없음 / 못 받음' 빈 지도 | 열림 |
 | H6 | A/B | NodeConf 전체(`window.Terra*` 분기 없음) | 기능 › 설정 · 우클릭 › 설정으로 **시안 설정 창**(master.url · 사용자 admin · 등록 코드 · 경보) — 적용은 '(시안)' | 보드 — 실제 모드면 Terra/Tree 구역을 숨기거나 노드 데스크톱 › 설정(실제)으로 보냄 | 열림 |
