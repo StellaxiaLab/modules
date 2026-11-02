@@ -52,23 +52,47 @@ body{margin:0;background:#040614;color:#e6eaf7}
 </sc-for>
 <canvas data-field="emerge" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 1"></canvas>
 <canvas data-lens="emerge" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 3"></canvas>
-<div data-lens-hit="1" role="region" tabindex="0" aria-label="{{lens.aria}}" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Plus Minus Escape" onPointerDown="{{lens.down}}" onPointerMove="{{lens.move}}" onPointerUp="{{lens.up}}" onPointerCancel="{{lens.up}}" onWheel="{{lens.wheel}}" onKeyDown="{{lens.key}}" onDoubleClick="{{lens.dbl}}" onFocus="{{lens.focus}}" onBlur="{{lens.blur}}" style="display: {{lens.disp}}; position: absolute; left: {{lens.left}}; top: {{lens.top}}; width: {{lens.w}}; height: {{lens.h}}; z-index: 3; border-radius: {{lens.br}}; cursor: {{lens.cursor}}; touch-action: none; outline-offset: 3px"></div>
+<div data-lens-hit="1" role="region" tabindex="0" aria-label="{{lens.aria}}" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Plus Minus Escape" onPointerDown="{{lens.down}}" onPointerMove="{{lens.move}}" onPointerUp="{{lens.up}}" onPointerCancel="{{lens.up}}" onWheel="{{lens.wheel}}" onKeyDown="{{lens.key}}" onDoubleClick="{{lens.dbl}}" onFocus="{{lens.focus}}" onBlur="{{lens.blur}}" style="display: {{lens.disp}}; position: absolute; left: {{lens.left}}; top: {{lens.top}}; width: {{lens.w}}; height: {{lens.h}}; z-index: 3; clip-path: {{lens.clip}}; cursor: {{lens.cursor}}; touch-action: none; outline: none"></div>
+<div data-lens-size="1" aria-hidden="true" onPointerDown="{{lens.down}}" onPointerMove="{{lens.move}}" onPointerUp="{{lens.up}}" onPointerCancel="{{lens.up}}" style="display: {{lens.disp}}; position: absolute; left: {{lens.hx}}; top: {{lens.hy}}; width: 20px; height: 20px; z-index: 3; cursor: nwse-resize; touch-action: none"></div>
+<div data-lens-draw="1" role="application" tabindex="0" aria-label="돋보기 형태 그리기 — 닫힌 선을 그린다 · Esc 취소" onPointerDown="{{ldraw.down}}" onPointerMove="{{ldraw.move}}" onPointerUp="{{ldraw.up}}" onPointerCancel="{{ldraw.up}}" onKeyDown="{{ldraw.esc}}" style="display: {{ldraw.disp}}; position: absolute; inset: 0; z-index: 3; cursor: crosshair; touch-action: none"></div>
 
 <section aria-label="융기 단계" onPointerDown="{{stopProp}}" style="position: absolute; left: 32px; bottom: 32px; z-index: 4; width: 320px; box-sizing: border-box; padding: 16px; border-radius: 10px; background: #040614; border: 1px solid #1c2442; display: flex; flex-direction: column; gap: 12px; cursor: default">
 <div style="display: flex; align-items: baseline; justify-content: space-between">
 <h1 style="margin: 0; font-size: 14px; font-weight: 600">{{heading}}</h1>
 <span style="font-family: GmarketSans, 'Geist Mono', monospace; font-size: 11.5px; color: #7682ab">{{total}}</span>
 </div>
-<div role="group" aria-label="돋보기" style="display: flex; gap: 4px; align-items: center">
-<button class="type {{lp.cls}}" type="button" aria-pressed="{{lp.pressed}}" onClick="{{lp.toggle}}" style="flex: 0 0 auto; padding: 0 10px">돋보기</button>
-<sc-for list="{{lp.zs}}" as="lz" hint-placeholder-count="4"><button class="type {{lz.cls}}" type="button" aria-pressed="{{lz.pressed}}" aria-label="{{lz.label}}" onClick="{{lz.pick}}" disabled="{{lp.off}}">{{lz.name}}</button></sc-for>
-<sc-for list="{{lp.shapes}}" as="ls" hint-placeholder-count="2"><button class="type {{ls.cls}}" type="button" aria-pressed="{{ls.pressed}}" aria-label="{{ls.label}}" onClick="{{ls.pick}}" disabled="{{lp.off}}">{{ls.name}}</button></sc-for>
-</div>
-<div role="group" aria-label="컴포넌트 종류" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px">
-<sc-for list="{{kinds}}" as="kd" hint-placeholder-count="4">
+<div role="group" aria-label="컴포넌트 종류" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px">
+<sc-for list="{{kinds}}" as="kd" hint-placeholder-count="5">
 <button class="type {{kd.cls}}" type="button" aria-pressed="{{kd.pressed}}" onClick="{{kd.pick}}">{{kd.name}}</button>
 </sc-for>
 </div>
+<div style="display: {{lensDisp}}; flex-direction: column; gap: 8px">
+<div role="group" aria-label="배율" style="display: flex; gap: 4px; align-items: center">
+<span style="font-size: 12px; color: #7682ab; white-space: nowrap; width: 44px; flex: none">배율</span>
+<sc-for list="{{lp.zs}}" as="lz" hint-placeholder-count="3"><button class="type {{lz.cls}}" type="button" aria-pressed="{{lz.pressed}}" onClick="{{lz.pick}}" style="padding: 0 4px">{{lz.name}}</button></sc-for>
+</div>
+<div role="group" aria-label="형태" style="display: flex; gap: 4px; align-items: center">
+<span style="font-size: 12px; color: #7682ab; white-space: nowrap; width: 44px; flex: none">형태</span>
+<span style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; flex: 1"><sc-for list="{{lp.shapes}}" as="ls" hint-placeholder-count="3"><button class="type {{ls.cls}}" type="button" aria-pressed="{{ls.pressed}}" onClick="{{ls.pick}}" style="padding: 0 4px; white-space: nowrap">{{ls.name}}</button></sc-for></span>
+</div>
+<div role="group" aria-label="정보" style="display: flex; gap: 4px; align-items: center">
+<span style="font-size: 12px; color: #7682ab; white-space: nowrap; width: 44px; flex: none">정보</span>
+<sc-for list="{{lp.info}}" as="li" hint-placeholder-count="3"><button class="type {{li.cls}}" type="button" aria-pressed="{{li.pressed}}" onClick="{{li.pick}}" style="padding: 0 4px">{{li.name}}</button></sc-for>
+</div>
+<div role="group" aria-label="광각" style="display: flex; gap: 4px; align-items: center">
+<span style="font-size: 12px; color: #7682ab; white-space: nowrap; width: 44px; flex: none">광각</span>
+<sc-for list="{{lp.wide}}" as="lw" hint-placeholder-count="3"><button class="type {{lw.cls}}" type="button" aria-pressed="{{lw.pressed}}" onClick="{{lw.pick}}" style="padding: 0 4px">{{lw.name}}</button></sc-for>
+</div>
+<div role="group" aria-label="빛번짐" style="display: flex; gap: 4px; align-items: center">
+<span style="font-size: 12px; color: #7682ab; white-space: nowrap; width: 44px; flex: none">빛번짐</span>
+<sc-for list="{{lp.bleed}}" as="lb" hint-placeholder-count="3"><button class="type {{lb.cls}}" type="button" aria-pressed="{{lb.pressed}}" onClick="{{lb.pick}}" style="padding: 0 4px">{{lb.name}}</button></sc-for>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px">
+<span style="font-size: 12px; line-height: 1.5; color: #7682ab; white-space: pre-line">{{lp.note}}</span>
+<button class="replay" type="button" onClick="{{lp.open}}" style="white-space: nowrap; flex: none">{{lp.openT}}</button>
+</div>
+</div>
+<div style="display: {{emDisp}}; flex-direction: column; gap: 12px">
 <div role="group" aria-label="원본" style="display: flex; gap: 4px">
 <sc-for list="{{types}}" as="ty" hint-placeholder-count="3">
 <button class="type {{ty.cls}}" type="button" aria-pressed="{{ty.pressed}}" onClick="{{ty.pick}}">{{ty.name}}</button>
@@ -115,10 +139,11 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <button class="replay" type="button" onClick="{{switchIt}}" style="display: {{sw.disp}}">{{sw.label}}</button>
 </div>
 </div>
+</div>
 </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"stage1_create":{"editor":"boolean","default":true,"section":"단계"},"stage2_dissolve":{"editor":"boolean","default":true,"section":"단계"},"stage3_rise":{"editor":"boolean","default":true,"section":"단계"},"stage4_restore":{"editor":"boolean","default":false,"section":"단계"},"overlap":{"editor":"range","min":0,"max":0.85,"step":0.05,"default":0.5,"section":"재생"},"tempo":{"editor":"range","min":0.25,"max":2,"step":0.05,"default":1,"section":"재생"},"loop":{"editor":"boolean","default":false,"section":"재생"},"compType":{"editor":"enum","options":["레거시","마스크","혼합","텍스트"],"default":"레거시","section":"컴포넌트"},"legacySrc":{"editor":"enum","options":["사각형","글자"],"default":"사각형","section":"컴포넌트"},"maskSrc":{"editor":"enum","options":["이미지","카드","글자"],"default":"이미지","section":"컴포넌트"},"text":{"editor":"enum","options":["TERRA","Gateway","노드"],"default":"TERRA","section":"컴포넌트"},"elemSize":{"editor":"range","min":32,"max":200,"step":4,"default":96,"unit":"px","section":"컴포넌트"},"expandFrom":{"editor":"enum","options":["중앙","위","아래","왼쪽","오른쪽"],"default":"중앙","section":"단계"},"holeBack":{"editor":"enum","options":["어둡게","비움"],"default":"어둡게","section":"단계"},"holeDim":{"editor":"range","min":0.1,"max":0.9,"step":0.05,"default":0.6,"section":"단계"},"holeFloor":{"editor":"range","min":0,"max":1,"step":0.05,"default":0.6,"section":"단계"},"mixBack":{"editor":"enum","options":["원본 컴포넌트","배경"],"default":"원본 컴포넌트","section":"컴포넌트"},"maskCell":{"editor":"enum","options":["넓이","중심점"],"default":"넓이","section":"컴포넌트"},"maskTextSize":{"editor":"range","min":80,"max":320,"step":4,"default":180,"unit":"px","section":"컴포넌트"},"dataText":{"editor":"enum","options":["TERRA GUI v3","node-07 · 온라인","CPU 42% · MEM 61%","트리 3 · 리프 12"],"default":"node-07 · 온라인","section":"텍스트"},"dataDir":{"editor":"enum","options":["좌","우","중","동시"],"default":"좌","section":"텍스트"},"textMotion":{"editor":"enum","options":["랜덤 갱신","명도 번짐","발광"],"default":"랜덤 갱신","section":"텍스트"},"refreshCurve":{"editor":"enum","options":["가속","감속"],"default":"가속","section":"텍스트"},"trail":{"editor":"boolean","default":false,"section":"이동"},"glowMs":{"editor":"range","min":50,"max":1500,"step":10,"default":200,"unit":"ms","section":"이동"},"palette":{"editor":"enum","options":["은하수","성운","단색"],"default":"은하수","section":"글자 장"},"speed":{"editor":"range","min":0,"max":2,"step":0.1,"default":1,"section":"글자 장"},"cell":{"editor":"int","min":11,"max":24,"default":15,"unit":"px","section":"글자 장"},"motion":{"editor":"boolean","default":true,"section":"글자 장"},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"stage1_create":{"editor":"boolean","default":true,"section":"단계"},"stage2_dissolve":{"editor":"boolean","default":true,"section":"단계"},"stage3_rise":{"editor":"boolean","default":true,"section":"단계"},"stage4_restore":{"editor":"boolean","default":false,"section":"단계"},"overlap":{"editor":"range","min":0,"max":0.85,"step":0.05,"default":0.5,"section":"재생"},"tempo":{"editor":"range","min":0.25,"max":2,"step":0.05,"default":1,"section":"재생"},"loop":{"editor":"boolean","default":false,"section":"재생"},"compType":{"editor":"enum","options":["레거시","마스크","혼합","텍스트","돋보기"],"default":"레거시","section":"컴포넌트"},"legacySrc":{"editor":"enum","options":["사각형","글자"],"default":"사각형","section":"컴포넌트"},"maskSrc":{"editor":"enum","options":["이미지","카드","글자"],"default":"이미지","section":"컴포넌트"},"text":{"editor":"enum","options":["TERRA","Gateway","노드"],"default":"TERRA","section":"컴포넌트"},"elemSize":{"editor":"range","min":32,"max":200,"step":4,"default":96,"unit":"px","section":"컴포넌트"},"expandFrom":{"editor":"enum","options":["중앙","위","아래","왼쪽","오른쪽"],"default":"중앙","section":"단계"},"holeBack":{"editor":"enum","options":["어둡게","비움"],"default":"어둡게","section":"단계"},"holeDim":{"editor":"range","min":0.1,"max":0.9,"step":0.05,"default":0.6,"section":"단계"},"holeFloor":{"editor":"range","min":0,"max":1,"step":0.05,"default":0.6,"section":"단계"},"mixBack":{"editor":"enum","options":["원본 컴포넌트","배경"],"default":"원본 컴포넌트","section":"컴포넌트"},"maskCell":{"editor":"enum","options":["넓이","중심점"],"default":"넓이","section":"컴포넌트"},"maskTextSize":{"editor":"range","min":80,"max":320,"step":4,"default":180,"unit":"px","section":"컴포넌트"},"dataText":{"editor":"enum","options":["TERRA GUI v3","node-07 · 온라인","CPU 42% · MEM 61%","트리 3 · 리프 12"],"default":"node-07 · 온라인","section":"텍스트"},"dataDir":{"editor":"enum","options":["좌","우","중","동시"],"default":"좌","section":"텍스트"},"textMotion":{"editor":"enum","options":["랜덤 갱신","명도 번짐","발광"],"default":"랜덤 갱신","section":"텍스트"},"refreshCurve":{"editor":"enum","options":["가속","감속"],"default":"가속","section":"텍스트"},"trail":{"editor":"boolean","default":false,"section":"이동"},"glowMs":{"editor":"range","min":50,"max":1500,"step":10,"default":200,"unit":"ms","section":"이동"},"palette":{"editor":"enum","options":["은하수","성운","단색"],"default":"은하수","section":"글자 장"},"speed":{"editor":"range","min":0,"max":2,"step":0.1,"default":1,"section":"글자 장"},"cell":{"editor":"int","min":11,"max":24,"default":15,"unit":"px","section":"글자 장"},"motion":{"editor":"boolean","default":true,"section":"글자 장"},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -127,7 +152,7 @@ class Component extends DCLogic {
   componentDidMount() {
     this._live = true;
     this.startField('emerge');
-    setTimeout(() => { if (this._live) this.play(); }, 500);
+    setTimeout(() => { if (!this._live) return; this.play(); if (this.LENSMODE()) setTimeout(() => this._live && this.lensToggle(true), 1600); }, 500);
   }
   componentWillUnmount() {
     this._live = false;
@@ -150,6 +175,7 @@ class Component extends DCLogic {
   //  레거시 — 글자 장이 비면서 그 아래의 컴포넌트가 솟는다 (원본: 사각형 · 글자)
   //  마스크 — 컴포넌트는 배경 뒤에 그대로 있고, 그 모양과 색이 글자 장에 투영된다 (원본: 이미지 · 카드 · 글자)
   KIND() { const k = this.state.kind ?? this.props.compType ?? '레거시'; return k === '마스크' ? 'mask' : k === '혼합' ? 'mix' : k === '텍스트' ? 'data' : 'legacy'; }
+  LENSMODE() { return this.state.lensMode ?? (this.props.compType === '돋보기'); }   // 돋보기 — 지금 컴포넌트(레거시 · 마스크 · 혼합 · 텍스트)를 그대로 두고 그 위에서 확대
   // 텍스트 — 원본 컴포넌트가 없다. 글자 장의 글자가 그 자리에서 데이터 문자열로 바뀐다 (서체·크기는 글자 장 그대로)
   DATA() { return this.props.dataText ?? 'node-07 · 온라인'; }
   DDIR() { return this.state.ddir ?? this.props.dataDir ?? '좌'; }
@@ -940,18 +966,48 @@ class Component extends DCLogic {
     this.drawLens(now);
   }
 
-  // ───── 돋보기 — 일정 구역을 확대하는 컴포넌트 ─────
-  // 글자 장의 한 구역을 z 배로 — 비트맵을 늘리지 않고, 이번 프레임에 그 칸들에 그린 글자 · 색을 z 배 칸으로 다시 쓴다(또렷하다).
-  //   바탕은 아래 캔버스(마스크 원본 · 어둡게 깐 글자)를 z 배로 늘려 깐다. 지운 칸은 돋보기 안에서도 비어 있다
-  //   틀 = 레거시 1px 선 + 네 모서리 괄호 · 가운데 십자 눈금 · 오른쪽 아래 크기 손잡이. 머리 = '돋보기 ×z' · 보는 칸(열 · 행)
-  //   열기 · 닫기 = 가운데에서 펼쳐지며(220ms) 안의 글자가 랜덤 갱신하다 제 글자로 멈춘다(닫기는 거꾸로)
-  //   다루기 = 끌어 옮김 · 오른쪽 아래 모서리 끌어 크기 · 휠 · + − 배율 · 두 번 누름 = 배율 차례로 · 화살표 옮김(Shift = 크게) · Esc 닫기
+  // ───── 돋보기 컴포넌트 — 일정 구역을 확대(주 용도: 작은 텍스트 컴포넌트를 읽게) ─────
+  // 컴포넌트 종류 다섯째(레거시 · 마스크 · 혼합 · 텍스트 · 돋보기). 그리는 순서:
+  //   ① 곧은 확대(O) — 보는 구역을 z 배로. 비트맵을 늘리지 않고 이번 프레임에 칸마다 그린 글자 · 색 · 굵기를 z 배 칸으로 다시 쓴다(또렷함).
+  //      바탕은 아래 캔버스 z 배, 컴포넌트 DOM(바탕 · 테 · 글자 · 안의 캔버스)도 z 배 — 글자 장 뒤면 지운 칸으로만, 맨 위면 글자 위
+  //   ② 광각(F) — 가장자리로 갈수록 더 넓은 곳을 눌러 담는 통형 왜곡: 렌즈의 점 p(정규화 반경 u)는 보는 점 p·(1 + k·u²)/z 를 본다.
+  //      O 를 8px 조각으로 나눠 조각마다 옮겨 담는다(가장자리 글자는 작고 촘촘해진다). k = 끔 0 · 약 0.35 · 강 0.8
+  //   ③ 빛번짐 — 번진 빛(흐림) · 색 갈라짐(빨강 · 파랑이 좌우로) · 가로 끌림. 광각이 없으면 고르게, 광각이 있으면 왜곡이 심한 가장자리일수록 세게
+  //   ④ 형태 — 닫힌 곡선이면 무엇이든: 사각 · 둥근 · 원 · 육각 · 곡선 · 그리기(화면에 손으로 그린 닫힌 선). 잡는 자리도 그 곡선(clip-path)
+  //   틀 = 레거시 1px 선 · (사각) 네 모서리 괄호 · (그 밖) 네 끝점 눈금 · 십자 눈금 · 오른쪽 아래 크기 손잡이. 정보(보임/숨김) = 머리 '돋보기 ×z · 광각 · 빛번짐' · 보는 칸
+  //   다루기 = 끌어 옮김 · 손잡이로 크기 · 휠 · + − 배율 · 두 번 누름 = 배율 차례 · 화살표(Shift 크게) · Esc 닫기 · 빈 곳을 누르면 그 자리로
   LENS_Z() { return [1.5, 2, 3, 4, 6]; }
-  LENS() { return this.state.lens || { on: false, x: 0.7, y: 0.36, w: 300, h: 210, z: 3, shape: '사각' }; }
-  setLens(p) { const L = Object.assign({}, this.LENS(), p); L.w = Math.max(120, Math.min(this._w ? this._w * 0.9 : 900, L.w)); L.h = Math.max(90, Math.min(this._h ? this._h * 0.9 : 700, L.h)); if (L.shape === '원') L.h = L.w; this.setState({ lens: L }); }
+  LENS_SHAPES() { return [['rect', '사각'], ['round', '둥근'], ['circle', '원'], ['hex', '육각'], ['blob', '곡선'], ['draw', '✎ 그리기']]; }
+  LENS() { return this.state.lens || { on: false, x: 0.62, y: 0.4, w: 320, h: 220, z: 3, shape: { id: 'rect' }, info: true, wide: 0, bleed: 0 }; }
+  setLens(p) { const L = Object.assign({}, this.LENS(), p); L.w = Math.max(100, Math.min(this._w ? this._w * 0.9 : 900, L.w)); L.h = Math.max(80, Math.min(this._h ? this._h * 0.9 : 700, L.h)); if (L.shape.id === 'circle' && p.shape) L.h = L.w; this.setState({ lens: L }); }
   lensToggle(on) {
     const L = this.LENS(); on = on ?? !L.on; if (on === L.on && !(this._lensA && this._lensA.dir)) return;
     this._lensA = { t0: performance.now(), dir: on ? 1 : -1 }; this.setLens({ on });
+  }
+  /** 형태 → 정규화 점들([-1, 1]²) · 매끈하게 이을지 · 사각인지 */
+  lensPts(S) {
+    if (S.pts) return { pts: S.pts, smooth: !!S.smooth, rect: false };
+    const ring = (n, f) => Array.from({ length: n }, (_, i) => f((i / n) * Math.PI * 2));
+    if (S.id === 'circle') return { pts: ring(72, (a) => [Math.cos(a), Math.sin(a)]), smooth: false };
+    if (S.id === 'round') return { pts: ring(96, (a) => { const c = Math.cos(a), s = Math.sin(a), n = 5; return [Math.sign(c) * Math.pow(Math.abs(c), 2 / n), Math.sign(s) * Math.pow(Math.abs(s), 2 / n)]; }), smooth: false };
+    if (S.id === 'hex') return { pts: ring(6, (a) => [Math.cos(a), Math.sin(a) * 1.1547]).map(([x, y]) => [x, Math.max(-1, Math.min(1, y))]), smooth: false };
+    if (S.id === 'blob') { const P = ring(96, (a) => { const r = 1 - 0.13 * Math.sin(3 * a + 0.6) - 0.08 * Math.cos(5 * a - 0.3); return [r * Math.cos(a), r * Math.sin(a) * 0.92]; }); return { pts: this.normPts(P), smooth: false }; }
+    return { pts: [[-1, -1], [1, -1], [1, 1], [-1, 1]], smooth: false, rect: true };
+  }
+  normPts(P) { let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (const [x, y] of P) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } const sx = 2 / (x1 - x0 || 1), sy = 2 / (y1 - y0 || 1); return P.map(([x, y]) => [(x - x0) * sx - 1, (y - y0) * sy - 1]); }
+  /** 곡선 → 캔버스 경로(중심 cx, cy · 반폭 hw, hh) — 매끈이면 중점 사이를 2차 곡선으로 */
+  lensPath(c, sh, cx, cy, hw, hh) {
+    const P = sh.pts.map(([x, y]) => [cx + x * hw, cy + y * hh]), n = P.length; c.beginPath();
+    if (!sh.smooth) { P.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); return; }
+    const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], m0 = mid(P[n - 1], P[0]); c.moveTo(m0[0], m0[1]);
+    for (let i = 0; i < n; i++) { const p = P[i], m = mid(p, P[(i + 1) % n]); c.quadraticCurveTo(p[0], p[1], m[0], m[1]); } c.closePath();
+  }
+  /** 같은 곡선 → SVG 경로 글(잡는 자리 clip-path, 상자 왼쪽 위 기준) */
+  lensSvg(sh, w, h) {
+    const P = sh.pts.map(([x, y]) => [((x + 1) * w / 2).toFixed(1), ((y + 1) * h / 2).toFixed(1)]), n = P.length;
+    if (!sh.smooth) return 'M' + P.map((p) => p.join(' ')).join(' L') + ' Z';
+    const mid = (a, b) => [((+a[0] + +b[0]) / 2).toFixed(1), ((+a[1] + +b[1]) / 2).toFixed(1)]; let d = 'M' + mid(P[n - 1], P[0]).join(' ');
+    for (let i = 0; i < n; i++) d += ' Q' + P[i].join(' ') + ' ' + mid(P[i], P[(i + 1) % n]).join(' '); return d + ' Z';
   }
   /** 이번 프레임 기록 — 칸마다 f(그린 프레임) · c(색) · g(글자) · b(볼드). 돋보기가 보이지 않으면 기록하지 않는다 */
   lensRec(n) {
@@ -959,52 +1015,75 @@ class Component extends DCLogic {
     let R = this._lr; if (!R || R.f.length !== n) R = this._lr = { f: new Uint32Array(n), c: new Array(n), g: new Array(n), b: new Uint8Array(n), n: 0 };
     R.n = (R.n + 1) >>> 0 || 1; return R;
   }
+  off(key, w, h) { const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.max(1, Math.round(w * dpr)), H = Math.max(1, Math.round(h * dpr)); let o = (this._off || (this._off = {}))[key];
+    if (!o) o = this._off[key] = { cv: document.createElement('canvas') }; if (o.cv.width !== W || o.cv.height !== H) { o.cv.width = W; o.cv.height = H; o.c = o.cv.getContext('2d'); } o.c.setTransform(dpr, 0, 0, dpr, 0, 0); o.c.clearRect(0, 0, w, h); o.c.globalAlpha = 1; o.c.globalCompositeOperation = 'source-over'; o.c.filter = 'none'; return o; }
   drawLens(now) {
     const cv = this._lcv || (this._lcv = document.querySelector('canvas[data-lens="emerge"]')); if (!cv) return;
     const c = this._lctx || (this._lctx = cv.getContext('2d')), L = this.LENS(), A = this._lensA, R = this._lr;
     c.clearRect(0, 0, this._w, this._h);
+    if (this._lensDrawPts && this._lensDrawPts.length > 1) { const P = this._lensDrawPts; c.strokeStyle = 'rgba(230,234,247,.9)'; c.lineWidth = 1.5; c.setLineDash([4, 4]); c.beginPath(); P.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.lineTo(P[0][0], P[0][1]); c.stroke(); c.setLineDash([]); }
     let a = L.on ? 1 : 0;
-    if (A) { const p = Math.min(1, (now - A.t0) / 220); a = A.dir > 0 ? p : 1 - p; if (p >= 1) this._lensA = null; }
+    if (A) { const p = Math.min(1, (now - A.t0) / 240); a = A.dir > 0 ? p : 1 - p; if (p >= 1) this._lensA = null; }
     if (a <= 0 || !R) return;
-    const e = a < 1 ? 1 - Math.pow(1 - a, 3) : 1, z = L.z, W = L.w, H = L.h, X = L.x * this._w - W / 2, Y = L.y * this._h - H / 2, cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows;
-    const RW = W * e, RH = H * e, rx = X + (W - RW) / 2, ry = Y + (H - RH) / 2, round = L.shape === '원';
-    // 보는 구역(원래 좌표) — 돋보기 가운데를 중심으로 W/z × H/z
-    const sw = W / z, sh = H / z, sx = L.x * this._w - sw / 2, sy = L.y * this._h - sh / 2;
-    c.save(); c.beginPath(); if (round) c.arc(rx + RW / 2, ry + RH / 2, Math.min(RW, RH) / 2, 0, Math.PI * 2); else c.rect(rx, ry, RW, RH); c.clip();
-    c.fillStyle = '#040614'; c.fillRect(rx, ry, RW, RH);
-    const uc = this._ucv; if (uc) { const k = uc.width / this._w; c.globalAlpha = 0.9; c.imageSmoothingEnabled = true; c.drawImage(uc, sx * k, sy * k, sw * k, sh * k, X, Y, W, H); c.globalAlpha = 1; }
-    // 컴포넌트(DOM · 자기 캔버스)도 z 배로 — 글자 장 뒤에 있으면 글자 아래(지운 칸으로만 보임), 맨 위면 글자 위
+    const e = a < 1 ? 1 - Math.pow(1 - a, 3) : 1, z = L.z, W = L.w, H = L.h, cx = L.x * this._w, cy = L.y * this._h, X = cx - W / 2, Y = cy - H / 2, cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows;
+    const k = [0, 0.35, 0.8][L.wide || 0], bl = [0, 0.55, 1][L.bleed || 0], Ex = 1 + k, OW = W * Ex, OH = H * Ex, sh = this.lensPts(L.shape || { id: 'rect' });
+    // ① 곧은 확대 — O 의 (ox, oy) 는 보는 점 (cx + (ox − OW/2)/z, cy + (oy − OH/2)/z)
+    const sw = OW / z, shh = OH / z, sx = cx - sw / 2, sy = cy - shh / 2, Oo = this.off('O', OW, OH), o = Oo.c;
+    o.fillStyle = '#040614'; o.fillRect(0, 0, OW, OH);
+    const uc = this._ucv; if (uc) { const kk = uc.width / this._w; o.globalAlpha = 0.9; o.imageSmoothingEnabled = true; o.drawImage(uc, sx * kk, sy * kk, sw * kk, shh * kk, 0, 0, OW, OH); o.globalAlpha = 1; }
     const comp = this._compEl && this._compEl.isConnected ? this._compEl : document.querySelector('[data-comp]'), compTop = comp && +(comp.style.zIndex || 0) >= 2;
     const domPaint = () => { const root = cv.parentElement, rr = root && root.getBoundingClientRect(); if (!rr) return;
-      const toL = (b) => [X + (b.left - rr.left - sx) * z, Y + (b.top - rr.top - sy) * z, b.width * z, b.height * z];
+      const toL = (b) => [(b.left - rr.left - sx) * z, (b.top - rr.top - sy) * z, b.width * z, b.height * z];
       const vis = (el) => el && el.isConnected && getComputedStyle(el).visibility !== 'hidden' && getComputedStyle(el).display !== 'none';
-      if (vis(comp)) this.lensDom(c, comp, toL, z);
-      for (const pc of document.querySelectorAll('canvas[data-part]')) if (vis(pc) && pc.width) { const [lx, ly, lw, lh] = toL(pc.getBoundingClientRect()); c.drawImage(pc, lx, ly, lw, lh); } };
+      if (vis(comp)) this.lensDom(o, comp, toL, z);
+      for (const pc of document.querySelectorAll('canvas[data-part]')) if (vis(pc) && pc.width) { const [lx, ly, lw, lh] = toL(pc.getBoundingClientRect()); o.drawImage(pc, lx, ly, lw, lh); } };
     if (!compTop) domPaint();
-    const fz = Math.round(this._cs * 0.86 * z), x0 = Math.max(0, Math.floor(sx / cw)), x1 = Math.min(cols - 1, Math.ceil((sx + sw) / cw)), y0 = Math.max(0, Math.floor(sy / ch)), y1 = Math.min(rows - 1, Math.ceil((sy + sh) / ch));
-    const G = this._glyphs, FN = fz + 'px GmarketSans, "Geist Mono", monospace'; c.textBaseline = 'top'; let bold = -1;
+    const fz = Math.round(this._cs * 0.86 * z), x0 = Math.max(0, Math.floor(sx / cw)), x1 = Math.min(cols - 1, Math.ceil((sx + sw) / cw)), y0 = Math.max(0, Math.floor(sy / ch)), y1 = Math.min(rows - 1, Math.ceil((sy + shh) / ch));
+    const G = this._glyphs, FN = fz + 'px GmarketSans, "Geist Mono", monospace'; o.textBaseline = 'top'; let bold = -1;
     for (let yy = y0; yy <= y1; yy++) for (let xx = x0; xx <= x1; xx++) {
       const i = yy * cols + xx; if (R.f[i] !== R.n) continue;
       let gl = R.g[i]; if (a < 1 && this._jit[i] > e) gl = G[(Math.random() * G.length) | 0];   // 펼쳐지는 동안 — 랜덤 갱신하다 제 글자로
-      if (R.b[i] !== bold) { bold = R.b[i]; c.font = (bold ? '700 ' : '500 ') + FN; }
-      c.fillStyle = R.c[i]; c.fillText(gl, X + (xx * cw - sx) * z, Y + (yy * ch - sy) * z);
+      if (R.b[i] !== bold) { bold = R.b[i]; o.font = (bold ? '700 ' : '500 ') + FN; }
+      o.fillStyle = R.c[i]; o.fillText(gl, (xx * cw - sx) * z, (yy * ch - sy) * z);
     }
     if (compTop) domPaint();
-    c.restore();
-    // 틀 — 레거시: 1px 선 · 네 모서리 괄호 · 가운데 십자 눈금 · 크기 손잡이
-    const LINE = 'rgba(155,166,201,' + (0.55 * e).toFixed(3) + ')', HI = 'rgba(230,234,247,' + e.toFixed(3) + ')', foc = this._lensFocus;
-    c.lineWidth = 1; c.strokeStyle = foc ? HI : LINE; c.beginPath();
-    if (round) c.arc(rx + RW / 2, ry + RH / 2, Math.min(RW, RH) / 2 - 0.5, 0, Math.PI * 2); else c.rect(rx + 0.5, ry + 0.5, RW - 1, RH - 1); c.stroke();
-    c.strokeStyle = HI; c.lineWidth = 1.5; const B = Math.min(14, RW / 5);
-    if (!round) { c.beginPath(); for (const [px, py, dx, dy] of [[rx, ry, 1, 1], [rx + RW, ry, -1, 1], [rx, ry + RH, 1, -1], [rx + RW, ry + RH, -1, -1]]) { c.moveTo(px + dx * B, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * B); } c.stroke(); }
-    const mx = rx + RW / 2, my = ry + RH / 2; c.lineWidth = 1; c.strokeStyle = 'rgba(230,234,247,' + (0.35 * e).toFixed(3) + ')'; c.beginPath(); c.moveTo(mx - 6, my + 0.5); c.lineTo(mx - 2, my + 0.5); c.moveTo(mx + 2, my + 0.5); c.lineTo(mx + 6, my + 0.5); c.moveTo(mx + 0.5, my - 6); c.lineTo(mx + 0.5, my - 2); c.moveTo(mx + 0.5, my + 2); c.lineTo(mx + 0.5, my + 6); c.stroke();
-    if (e > 0.9) { const hx = round ? rx + RW / 2 + RW * 0.354 : rx + RW, hy = round ? ry + RH / 2 + RH * 0.354 : ry + RH; c.fillStyle = HI; c.beginPath(); c.moveTo(hx - 1, hy - 10); c.lineTo(hx - 1, hy - 1); c.lineTo(hx - 10, hy - 1); c.closePath(); c.fill(); }
-    // 머리 — 틀 위 왼쪽에 '돋보기 ×z', 오른쪽에 보는 칸(열 · 행)
-    if (e > 0.6) { c.font = '500 11px GmarketSans, "Geist Mono", monospace'; c.textBaseline = 'alphabetic'; const ty = ry - 6;
-      c.fillStyle = HI; c.fillText('돋보기 ×' + z, rx, ty);
-      const t2 = 'c ' + Math.round(L.x * this._w / cw) + ' · r ' + Math.round(L.y * this._h / ch); c.fillStyle = 'rgba(118,130,171,' + e.toFixed(3) + ')'; c.fillText(t2, rx + RW - c.measureText(t2).width, ty); }
+    // ② 광각 — F 의 점 p(렌즈 가운데 기준)는 O 의 p·(1 + k·u²) + O 가운데
+    const Fo = this.off('F', W, H), f = Fo.c, ox0 = OW / 2, oy0 = OH / 2, dpr = Oo.cv.width / OW;
+    if (!k) f.drawImage(Oo.cv, (OW - W) / 2 * dpr, (OH - H) / 2 * dpr, W * dpr, H * dpr, 0, 0, W, H);
+    else { const T = 5, hw = W / 2, hh = H / 2; f.imageSmoothingEnabled = true;
+      for (let ty = 0; ty < H; ty += T) for (let tx = 0; tx < W; tx += T) {
+        const px = tx + T / 2 - hw, py = ty + T / 2 - hh, u2 = (px / hw) * (px / hw) + (py / hh) * (py / hh), g = 1 + k * u2, s = T * (1 + 2 * k * u2);
+        const qx = ox0 + px * g, qy = oy0 + py * g; f.drawImage(Oo.cv, (qx - s / 2) * dpr, (qy - s / 2) * dpr, s * dpr, s * dpr, tx, ty, T + 0.6, T + 0.6); }
+      // 가장자리 어둠 — 렌즈 테 쪽이 조금 가라앉는다
+      f.save(); f.translate(W / 2, H / 2); f.scale(W / 2, H / 2); const vg = f.createRadialGradient(0, 0, 0.55, 0, 0, 1.05); vg.addColorStop(0, 'rgba(2,3,10,0)'); vg.addColorStop(1, 'rgba(2,3,10,' + (0.35 * k / 0.8).toFixed(3) + ')'); f.fillStyle = vg; f.fillRect(-1, -1, 2, 2); f.restore(); }
+    // ③ 빛번짐 — 번진 빛 · 색 갈라짐 · 가로 끌림. 광각이면 가장자리일수록 세게(왜곡이 심한 곳)
+    if (bl) { const Bo = this.off('B', W, H), b = Bo.c, Co = this.off('C', W, H), cc = Co.c, sp = 1.5 + 3.5 * bl + (k ? 3 * k : 0);
+      b.filter = 'blur(' + (3 + 5 * bl).toFixed(1) + 'px)'; b.globalAlpha = 0.9; b.drawImage(Fo.cv, 0, 0, W, H); b.filter = 'none';   // 번진 빛
+      b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.18 * bl; for (const d of [-8, -4, 4, 8]) b.drawImage(Fo.cv, d * (1 + k), 0, W, H);   // 가로 끌림
+      for (const [col, d] of [['#ff3b2f', sp], ['#2fb4ff', -sp]]) { cc.globalCompositeOperation = 'source-over'; cc.clearRect(0, 0, W, H); cc.drawImage(Fo.cv, 0, 0, W, H); cc.globalCompositeOperation = 'multiply'; cc.fillStyle = col; cc.fillRect(0, 0, W, H); cc.globalCompositeOperation = 'destination-in'; cc.drawImage(Fo.cv, 0, 0, W, H);
+        b.globalAlpha = 0.32 * bl; b.drawImage(Co.cv, d, 0, W, H); }   // 색 갈라짐 — 빨강은 오른쪽, 파랑은 왼쪽
+      b.globalCompositeOperation = 'destination-in'; b.globalAlpha = 1; b.save(); b.translate(W / 2, H / 2); b.scale(W / 2, H / 2);
+      const m = b.createRadialGradient(0, 0, 0, 0, 0, 1.1); if (k) { m.addColorStop(0, 'rgba(0,0,0,0.12)'); m.addColorStop(0.55, 'rgba(0,0,0,0.3)'); m.addColorStop(1, 'rgba(0,0,0,1)'); } else { m.addColorStop(0, 'rgba(0,0,0,0.62)'); m.addColorStop(1, 'rgba(0,0,0,0.62)'); }
+      b.fillStyle = m; b.fillRect(-1.2, -1.2, 2.4, 2.4); b.restore();
+      f.globalCompositeOperation = 'screen'; f.globalAlpha = 0.9; f.drawImage(Bo.cv, 0, 0, W, H); f.globalCompositeOperation = 'source-over'; f.globalAlpha = 1; }
+    // ④ 형태로 잘라 화면에 — 열기 · 닫기는 가운데에서 펼쳐진다
+    const hw = W / 2 * e, hh = H / 2 * e;
+    c.save(); this.lensPath(c, sh, cx, cy, hw, hh); c.clip(); c.drawImage(Fo.cv, X, Y, W, H); c.restore();
+    // 틀 — 레거시: 1px 선 · 괄호(사각) 또는 끝점 눈금 · 십자 눈금 · 크기 손잡이
+    const LINE = 'rgba(155,166,201,' + (0.6 * e).toFixed(3) + ')', HI = 'rgba(230,234,247,' + e.toFixed(3) + ')';
+    c.lineWidth = 1; c.strokeStyle = this._lensFocus ? HI : LINE; this.lensPath(c, sh, cx, cy, hw - 0.5, hh - 0.5); c.stroke();
+    c.strokeStyle = HI; c.lineWidth = 1.5; const B = Math.min(14, hw / 3);
+    if (sh.rect) { c.beginPath(); for (const [px, py, dx, dy] of [[cx - hw, cy - hh, 1, 1], [cx + hw, cy - hh, -1, 1], [cx - hw, cy + hh, 1, -1], [cx + hw, cy + hh, -1, -1]]) { c.moveTo(px + dx * B, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * B); } c.stroke(); }
+    else { let L0 = null, R0 = null, T0 = null, B0 = null; for (const [x, y] of sh.pts) { if (!L0 || x < L0[0]) L0 = [x, y]; if (!R0 || x > R0[0]) R0 = [x, y]; if (!T0 || y < T0[1]) T0 = [x, y]; if (!B0 || y > B0[1]) B0 = [x, y]; }
+      c.beginPath(); for (const [p, dx, dy] of [[L0, -1, 0], [R0, 1, 0], [T0, 0, -1], [B0, 0, 1]]) { const qx = cx + p[0] * hw, qy = cy + p[1] * hh; c.moveTo(qx + dx * 2, qy + dy * 2); c.lineTo(qx + dx * 8, qy + dy * 8); } c.stroke(); }
+    c.lineWidth = 1; c.strokeStyle = 'rgba(230,234,247,' + (0.35 * e).toFixed(3) + ')'; c.beginPath(); c.moveTo(cx - 6, cy + 0.5); c.lineTo(cx - 2, cy + 0.5); c.moveTo(cx + 2, cy + 0.5); c.lineTo(cx + 6, cy + 0.5); c.moveTo(cx + 0.5, cy - 6); c.lineTo(cx + 0.5, cy - 2); c.moveTo(cx + 0.5, cy + 2); c.lineTo(cx + 0.5, cy + 6); c.stroke();
+    if (e > 0.9) { const hx = cx + hw, hy = cy + hh; c.fillStyle = HI; c.beginPath(); c.moveTo(hx + 2, hy - 8); c.lineTo(hx + 2, hy + 2); c.lineTo(hx - 8, hy + 2); c.closePath(); c.fill(); }
+    // 정보 — 머리: '돋보기 ×z · 광각 · 빛번짐' · 보는 칸(열 · 행)
+    if (L.info && e > 0.6) { c.font = '500 11px GmarketSans, "Geist Mono", monospace'; c.textBaseline = 'alphabetic'; const ty = cy - hh - 7, WN = ['', ' · 광각 약', ' · 광각 강'][L.wide || 0], BN = ['', ' · 빛번짐 약', ' · 빛번짐 강'][L.bleed || 0];
+      c.fillStyle = HI; c.fillText('돋보기 ×' + z + WN + BN, cx - hw, ty);
+      const t2 = 'c ' + Math.round(cx / cw) + ' · r ' + Math.round(cy / ch); c.fillStyle = 'rgba(118,130,171,' + e.toFixed(3) + ')'; c.fillText(t2, cx + hw - c.measureText(t2).width, ty); }
   }
-  /** DOM 한 덩이를 돋보기 캔버스에 z 배로 — 바탕 · 테 · 둥근 모서리 · 글자 · 안의 캔버스. 단순한 컴포넌트(사각 카드 · 글자 캔버스)를 위한 것 */
+  /** DOM 한 덩이를 캔버스에 z 배로 — 바탕 · 테 · 둥근 모서리 · 글자 · 안의 캔버스. 단순한 컴포넌트(사각 카드 · 글자 캔버스)를 위한 것 */
   lensDom(c, el, toL, z) {
     const walk = (n) => {
       if (n.nodeType === 3) { const t = n.textContent.trim(); if (!t) return; const pe = n.parentElement, cs = getComputedStyle(pe); if (cs.visibility === 'hidden' || cs.display === 'none') return;
@@ -1021,15 +1100,19 @@ class Component extends DCLogic {
     c.save(); c.globalAlpha = (parseFloat(getComputedStyle(el).opacity) || 1); walk(el); c.restore();
   }
   lensVals() {
-    const L = this.LENS(), A = this._lensA, shown = L.on || !!(A && A.dir < 0), Z = this.LENS_Z(), step = (d) => { const i = Z.indexOf(L.z); this.setLens({ z: Z[Math.max(0, Math.min(Z.length - 1, (i < 0 ? 2 : i) + d))] }); };
-    const W = this._w || 1, H = this._h || 1, at = (e) => { const r = e.currentTarget.parentElement.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const L = this.LENS(), Z = this.LENS_Z(), step = (d) => { const i = Z.indexOf(L.z); this.setLens({ z: Z[Math.max(0, Math.min(Z.length - 1, (i < 0 ? 2 : i) + d))] }); };
+    const W = this._w || 1, H = this._h || 1, at = (e) => { const r = e.currentTarget.parentElement.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }, sh = this.lensPts(L.shape || { id: 'rect' });
+    const seg = (opts, cur, pick) => opts.map(([v, n]) => ({ name: n, cls: cur === v ? 'sel' : '', pressed: cur === v ? 'true' : 'false', pick: () => pick(v) }));
+    const drawing = !!this.state.lensDraw;
     return {
-      lens: { disp: L.on ? 'block' : 'none', left: 'calc(' + (L.x * 100).toFixed(3) + '% - ' + L.w / 2 + 'px)', top: 'calc(' + (L.y * 100).toFixed(3) + '% - ' + L.h / 2 + 'px)', w: L.w + 'px', h: L.h + 'px', br: L.shape === '원' ? '50%' : '0',
-        cursor: this._lensDrag ? (this._lensDrag.size ? 'nwse-resize' : 'grabbing') : 'grab', aria: '돋보기 ×' + L.z + ' — 끌어 옮기기 · 휠 또는 + − 로 배율 · 화살표로 옮기기 · Esc 닫기',
-        down: (e) => { e.stopPropagation(); const [px, py] = at(e), cx = L.x * W, cy = L.y * H, sz = px > cx + L.w / 2 - 18 && py > cy + L.h / 2 - 18; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} e.currentTarget.focus && e.currentTarget.focus();
-          this._lensDrag = { px, py, x: L.x, y: L.y, w: L.w, h: L.h, size: sz }; this.setState({}); },
+      lens: { disp: L.on && !drawing ? 'block' : 'none', left: 'calc(' + (L.x * 100).toFixed(3) + '% - ' + L.w / 2 + 'px)', top: 'calc(' + (L.y * 100).toFixed(3) + '% - ' + L.h / 2 + 'px)', w: L.w + 'px', h: L.h + 'px',
+        clip: "path('" + this.lensSvg(sh, L.w, L.h) + "')", cursor: this._lensDrag ? 'grabbing' : 'grab',
+        hx: 'calc(' + (L.x * 100).toFixed(3) + '% + ' + (L.w / 2 - 10) + 'px)', hy: 'calc(' + (L.y * 100).toFixed(3) + '% + ' + (L.h / 2 - 10) + 'px)',
+        aria: '돋보기 ×' + L.z + ' — 끌어 옮기기 · 휠 또는 + − 로 배율 · 화살표로 옮기기 · Esc 닫기',
+        down: (e) => { e.stopPropagation(); const [px, py] = at(e); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} if (e.currentTarget.focus) e.currentTarget.focus();
+          this._lensDrag = { px, py, x: L.x, y: L.y, w: L.w, h: L.h, size: !!e.currentTarget.dataset.lensSize }; this.setState({}); },
         move: (e) => { const D = this._lensDrag; if (!D) return; const [px, py] = at(e), dx = px - D.px, dy = py - D.py;
-          if (D.size) this.setLens({ w: D.w + dx * 2, h: D.h + dy * 2 }); else this.setLens({ x: Math.max(0, Math.min(1, D.x + dx / W)), y: Math.max(0, Math.min(1, D.y + dy / H)) }); },
+          if (D.size) this.setLens({ w: D.w + dx * 2, h: (L.shape && L.shape.id === 'circle') ? D.w + dx * 2 : D.h + dy * 2 }); else this.setLens({ x: Math.max(0, Math.min(1, D.x + dx / W)), y: Math.max(0, Math.min(1, D.y + dy / H)) }); },
         up: (e) => { this._lensDrag = null; try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (x) {} this.setState({}); },
         wheel: (e) => { e.preventDefault(); step(e.deltaY < 0 ? 1 : -1); },
         focus: () => { this._lensFocus = true; }, blur: () => { this._lensFocus = false; },
@@ -1038,10 +1121,24 @@ class Component extends DCLogic {
           if (k === 'Escape') { e.preventDefault(); this.lensToggle(false); return; }
           if (k === '+' || k === '=') { e.preventDefault(); step(1); return; } if (k === '-' || k === '_') { e.preventDefault(); step(-1); return; }
           const d = { ArrowLeft: [-m, 0], ArrowRight: [m, 0], ArrowUp: [0, -m], ArrowDown: [0, m] }[k]; if (d) { e.preventDefault(); this.setLens({ x: Math.max(0, Math.min(1, L.x + d[0] / W)), y: Math.max(0, Math.min(1, L.y + d[1] / H)) }); } } },
-      lp: { cls: L.on ? 'sel' : '', pressed: L.on ? 'true' : 'false', toggle: () => this.lensToggle(), off: !L.on,
-        zs: Z.map((z) => ({ name: '×' + z, label: z + '배', cls: L.z === z ? 'sel' : '', pressed: L.z === z ? 'true' : 'false', pick: () => this.setLens({ z }) })),
-        shapes: [['사각', '▢'], ['원', '◯']].map(([k, n]) => ({ name: n, label: k + ' 돋보기', cls: L.shape === k ? 'sel' : '', pressed: L.shape === k ? 'true' : 'false', pick: () => this.setLens({ shape: k }) })) },
-      _shown: shown,
+      // 그리기 — 화면에 닫힌 선을 그리면 그 곡선이 돋보기 형태(손을 떼면 처음 점과 잇는다)
+      ldraw: { disp: drawing ? 'block' : 'none',
+        down: (e) => { e.stopPropagation(); const [px, py] = at(e); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} this._lensDrawPts = [[px, py]]; },
+        move: (e) => { const P = this._lensDrawPts; if (!P) return; const [px, py] = at(e), q = P[P.length - 1]; if (Math.hypot(px - q[0], py - q[1]) >= 4) P.push([px, py]); },
+        up: (e) => { const P = this._lensDrawPts; this._lensDrawPts = null; try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (x) {}
+          if (!P || P.length < 8) { this.setState({ lensDraw: false }); return; }
+          let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (const [x, y] of P) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+          if (x1 - x0 < 60 || y1 - y0 < 50) { this.setState({ lensDraw: false }); return; }
+          const step2 = Math.max(1, Math.floor(P.length / 120)), Q = P.filter((_, i) => i % step2 === 0);
+          this._lensA = { t0: performance.now(), dir: 1 }; this.setState({ lensDraw: false }); this.setLens({ on: true, x: (x0 + x1) / 2 / W, y: (y0 + y1) / 2 / H, w: x1 - x0, h: y1 - y0, shape: { id: 'draw', pts: this.normPts(Q), smooth: true } }); },
+        esc: (e) => { if (e.key === 'Escape') { this._lensDrawPts = null; this.setState({ lensDraw: false }); } } },
+      lp: { zs: Z.map((z) => ({ name: '×' + z, label: z + '배', cls: L.z === z ? 'sel' : '', pressed: L.z === z ? 'true' : 'false', pick: () => this.setLens({ z }) })),
+        shapes: this.LENS_SHAPES().map(([id, n]) => { const on = id === 'draw' ? drawing || (L.shape && L.shape.id === 'draw') : !drawing && L.shape && L.shape.id === id;
+          return { name: n, cls: on ? 'sel' : '', pressed: on ? 'true' : 'false', pick: () => { if (id === 'draw') { this.setState({ lensDraw: true }); return; } this._lensA = { t0: performance.now(), dir: 1 }; this.setState({ lensDraw: false }); this.setLens({ on: true, shape: { id }, h: id === 'circle' ? L.w : L.h }); } }; }),
+        info: seg([[true, '보임'], [false, '숨김']], !!L.info, (v) => this.setLens({ info: v })),
+        wide: seg([[0, '끔'], [1, '약'], [2, '강']], L.wide || 0, (v) => this.setLens({ wide: v })),
+        bleed: seg([[0, '끔'], [1, '약'], [2, '강']], L.bleed || 0, (v) => this.setLens({ bleed: v })),
+        openT: L.on ? '닫기' : '열기', open: () => this.lensToggle(), note: drawing ? '화면에 닫힌 선을 그린다\n손을 떼면 처음 점과 잇는다 · Esc 취소' : '끌어 옮김 · 모서리로 크기 · 휠 배율\n빈 곳을 누르면 그 자리로' },
     };
   }
 
@@ -1096,10 +1193,12 @@ class Component extends DCLogic {
       })) : [],
       sw: { disp: this.KIND() === 'mask' ? 'inline-flex' : 'none', label: S.mode === 'legacy' ? '마스크로' : '레거시로' },
       compHidden: S.hidden ? 'true' : 'false',
-      kinds: [['legacy', '레거시'], ['mask', '마스크'], ['mix', '혼합'], ['data', '텍스트']].map(([id, name]) => ({
-        name, cls: this.KIND() === id ? 'sel' : '', pressed: this.KIND() === id ? 'true' : 'false',
-        pick: () => { if (this.KIND() === id) return; this.endDrag(); this._seq = null; this.setState({ kind: name, hidden: true, top: false, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); }
-      })),
+      kinds: [['legacy', '레거시'], ['mask', '마스크'], ['mix', '혼합'], ['data', '텍스트'], ['lens', '돋보기']].map(([id, name]) => { const LM = this.LENSMODE(), on = id === 'lens' ? LM : !LM && this.KIND() === id;
+        return { name, cls: on ? 'sel' : '', pressed: on ? 'true' : 'false',
+          pick: () => { if (id === 'lens') { if (!LM) { this.setState({ lensMode: true }); this.lensToggle(true); } return; }   // 돋보기 — 지금 컴포넌트는 그대로, 그 위에 돋보기를 펼친다
+            if (LM) { this.setState({ lensMode: false, lensDraw: false }); this.lensToggle(false); if (this.KIND() === id) return; }
+            if (this.KIND() === id) return; this.endDrag(); this._seq = null; this.setState({ kind: name, hidden: true, top: false, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); } }; }),
+      emDisp: this.LENSMODE() ? 'none' : 'flex', lensDisp: this.LENSMODE() ? 'flex' : 'none', ldraw: LV.ldraw,
       types: (DT ? ['좌', '우', '중', '동시'] : this.KIND() === 'mask' ? ['이미지', '카드', '글자'] : this.KIND() === 'mix' ? [] : ['사각형', '글자']).map((name) => {
         const sel = DT ? this.DDIR() === name : this.KIND() === 'mask' ? this.MSRC() === name : (this.state.lsrc ?? this.props.legacySrc ?? '사각형') === name;
         if (DT) return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => { if (sel) return; this.endDrag(); this._seq = null; this.setState({ ddir: name, hidden: true, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); } };
@@ -1117,11 +1216,12 @@ class Component extends DCLogic {
       spawnAt: (e) => {
         const r = e && e.currentTarget && e.currentTarget.getBoundingClientRect ? e.currentTarget.getBoundingClientRect() : null;
         if (!r) return;
+        if (this.LENSMODE()) { this._lensA = { t0: performance.now(), dir: 1 }; this.setLens({ on: true, x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }); return; }   // 돋보기 — 누른 자리로 펼친다
         this.play((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
       },
       stopProp: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
       replay: () => this.play(),
-      dragStart: (e) => {
+      dragStart: (e) => { if (this.LENSMODE()) return;   // 돋보기 모드 — 컴포넌트를 누르면 그 자리로 돋보기(바닥의 spawnAt 이 받는다)
         if (!e) return;
         if (e.stopPropagation) e.stopPropagation();   // 바탕의 '그 자리에서 새로'를 막는다
         if (!(this.state.top || (((this.KIND() === 'mask' && this.state.mode !== 'legacy') || this.KIND() === 'mix' || this.KIND() === 'data') && this.state.ready)) || this.state.hidden) return;   // 맨 위로 올라온 뒤(마스크는 투영이 다 된 뒤)에만 옮긴다
