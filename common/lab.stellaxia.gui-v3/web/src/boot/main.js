@@ -15,13 +15,14 @@ import { createGatewayTransport } from '../api/transport.js';
 import { loadTopology, loadTopologyState, nodeStats, fmtBytes } from '../api/topology.js';
 import { startPush } from '../api/push.js';
 import { pickMode, connectApp } from '../api/mode.js';
-import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret } from '../api/host-secret.js';
+import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems } from '../api/host-secret.js';
 import * as deskAdapt from '../api/desk-adapt.js';
 import { startAlarms } from '../api/alarms.js';
 import * as netRead from '../api/net-read.js';
 import { createNodeInfo } from '../api/node-info.js';
 import { createNetProps } from '../api/net-props.js';
 import { createShells } from '../api/shells.js';
+import { createSviMake, moduleTypes } from '../api/svi-make.js';
 import * as sviRead from '../api/svi-read.js';
 
 const q = new URLSearchParams(location.search), status = document.getElementById('status'), MODE = pickMode(q);
@@ -47,6 +48,7 @@ if (MODE !== 'demo') {
         const S = this.state || {};
         if (MODE === 'app') {   // A 모드 — 비밀번호를 받지 않는다
           if (frame && frame.token()) return this.warpStart();
+          if (rememberedMode(frame, S)) return this.rememberedLogin();   // auto — 기억된 id 로, 비밀번호 없이
           const sec = hostSecretOf(frame); if (sec) return this.hostLogin(sec);   // 셸이 비밀번호 칸을 준다(§4.9) — 이 보드가 그리고, 값은 셸 칸에서 Scene 으로
           if (frame) { frame.emit('login'); return; }   // 칸을 모르는 셸 — 감싼 Scene 의 /login 카드가(웹 프로그램 감싸기 설계 §3.3.1)
           this.setState({ msg: '셸이 응답하지 않아요 — 셸에서 로그인한 뒤 다시' }); return;
@@ -72,11 +74,29 @@ if (MODE !== 'demo') {
           this.setState({ msg: r.message }); this.ripAt('login', [255, 120, 110]); sec.focus();   // 다시 칠 자리로
         });
       }
+      // 기억된 로그인(auto) — Gateway 가 기억한 refresh token 으로 들어간다. 이 웹은 id 만 보낸다.
+      //   거절되면(만료 · 폐기 · 다른 곳에서 로그아웃) Gateway 가 기억을 지웠다 — 이쪽도 잊고 일반 로그인(셸 칸)으로
+      rememberedLogin() {
+        const S = this.state || {};
+        if (this._busy) return;
+        const attempt = nextAttempt(); this._busy = true; this.setState({ msg: '확인 중…' });
+        const answer = waitHostLogin(frame, attempt);
+        frame.remember.resume({ email: S.va, attempt });
+        answer.then((r) => {
+          this._busy = false;
+          if (r.ok) { this.warpStart(); return; }
+          frame.remember.forget();
+          this.setState({ msg: '기억된 로그인이 끝났어요 — 비밀번호를 입력하세요' }); this.ripAt('login', [255, 120, 110]);
+          const sec = hostSecretOf(frame); if (sec) sec.focus();
+        });
+      }
       // A 모드에서 TERRA 화면을 누르면 — 이미 로그인했으면 폼 없이 워프, 셸 칸이 없으면(이전 Terra) 폼 대신 Scene 의 /login 카드로
       openLogin() {
         if (MODE === 'app') {
           if (frame && frame.token()) return this.enterSignedIn();
           if (!hostSecretOf(frame)) { if (frame) frame.emit('login'); return; }   // 이 보드의 폼은 웹이 비밀번호를 받는 칸이다 — 셸 칸 없이는 열지 않는다(§3.3.1)
+          const R = rememberedOf(frame), S = this.state || {};
+          if (R && !S.va) this.setState({ va: R.email, autoOn: true });   // auto — 기억된 id 를 채우고 고정 점으로
         }
         return super.openLogin();
       }
@@ -91,12 +111,19 @@ if (MODE !== 'demo') {
           if (S.ready) { clearInterval(this._enter); this._enter = 0; this.warpStart(); }
         }, 50);
       }
-      loginItems() { const it = super.loginItems(), sec = MODE === 'app' && hostSecretOf(frame); return sec ? passwordRowItems(it, sec.state().empty) : it; }
+      loginItems() {
+        const it = super.loginItems();
+        if (MODE === 'app' && rememberedMode(frame, this.state)) return rememberedRowItems(it);
+        const sec = MODE === 'app' && hostSecretOf(frame); return sec ? passwordRowItems(it, sec.state().empty) : it;
+      }
       renderVals() {
         const v = super.renderVals();
         if (MODE === 'app') {   // A 모드에서 보드의 숨은 password 칸은 받지 않는다 — Tab 으로 오면 셸 칸으로 넘긴다(셸 칸이 없으면 놓는다)
           const sec = hostSecretOf(frame);
-          v.inP = () => {}; v.focP = (e) => { if (sec) sec.focus(); else if (e && e.target && e.target.blur) e.target.blur(); };
+          v.inP = () => {}; v.focP = (e) => { if (sec && !rememberedMode(frame, this.state)) sec.focus(); else if (e && e.target && e.target.blur) e.target.blur(); };
+          // auto 를 끄면 기억을 지운다(Gateway 의 봉한 refresh token 까지) — 다음부터는 비밀번호로
+          const S0 = this.state || {};
+          v.auto = () => { const on = !S0.autoOn; if (!on && rememberedOf(frame)) frame.remember.forget(); this.setState({ autoOn: on }); };
         }
         return v;
       }
@@ -135,9 +162,10 @@ if (MODE !== 'demo') {
   }
   // 로그인 뒤 한 번 — 지도 · Tree 길 · 보기 상태 · 밀어 받기
   // 노드 데스크톱이 쓰는 것 — 실제 응답 → 보드 모양(desk-adapt) · 이 Gateway 의 앱 목록(모듈 › 앱 탭) · 다른 모듈 앱 열기(셸에 부탁)
-  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraCanRemote = canRemote; window.TerraPermissionsOf = permissionsOf; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology); window.TerraNetProps = createNetProps(terra, () => window.TerraTopology); window.TerraShells = createShells(terra, () => window.TerraTopology);   // 제어기의 노드 터미널(commands.execute · 이 노드에서만) · Terra 터미널(terra shell 낱말 → operation)   // 네트워크 속성 창 — 주소 · 광고 전송 · 노드 간 연결   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
+  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraCanRemote = canRemote; window.TerraPermissionsOf = permissionsOf; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology); window.TerraNetProps = createNetProps(terra, () => window.TerraTopology); window.TerraShells = createShells(terra, () => window.TerraTopology); window.TerraSviMake = createSviMake(terra, () => window.TerraTopology, () => window.TerraWho); window.TerraSviTypes = () => moduleTypes(window.TerraSviMods || []);   // 자원화 창 — 선언 · 허가 · 연결, 모듈이 내놓은 유형(contributions.svi.types — 코어 대기)   // 제어기의 노드 터미널(commands.execute · 이 노드에서만) · Terra 터미널(terra shell 낱말 → operation)   // 네트워크 속성 창 — 주소 · 광고 전송 · 노드 간 연결   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
-  const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; });
+  const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; })
+    .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = []; }));   // 자원화 유형을 내놓는 모듈(contributions.svi.types)
   // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50). 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
   const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; };
   // 노드 기록(상태 · 하트비트 · 자원)은 로그인 때 한 번만 받으면 낡는다 — 30초마다 다시(보일 때만). 노드 목록이 같으면(rev 같음) 기록만 바꿔 끼우고 씬은 다시 짓지 않는다
@@ -166,7 +194,8 @@ if (MODE !== 'demo') {
   const signedIn = () => { const v = frame && frame.value && frame.value(); return !!(v && v.state === 'signedIn'); };
   const appLogout = () => {
     if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive();
-    if (frame && signedIn()) frame.emit('logout'); else say('셸의 로그인으로 열렸어요 — 로그아웃은 셸에서');
+    if (frame && signedIn()) { frame.emit('logout'); if (rememberedOf(frame)) frame.remember.forget(); }   // 로그아웃은 기억도 지운다(Gateway 는 그 세션의 기억을 이미 지운다 — 여기는 이 웹이 쥔 id 사본)
+    else say('셸의 로그인으로 열렸어요 — 로그아웃은 셸에서');
   };
   const appSignedIn = () => { loadTopology(terra).then((t) => t && setTopology(t)); afterLogin(); };
   // 토큰을 잃으면 보드의 로그인 층을 다시 올린다(이미 올라와 있으면 그대로)
@@ -181,7 +210,7 @@ if (MODE !== 'demo') {
   if (MODE === 'app') appReady.then((f) => {
     frame = f; if (!f) { say('셸이 응답하지 않아요 — Terra 데이터 없이'); return; }
     const sec = hostSecretOf(f);
-    if (sec) bindHostSecret({ secret: sec, login: () => window.__terra && window.__terra.login(), scene: () => window.__terra && window.__terra.scene, wanted: () => !f.token() });   // 토큰이 있으면(이미 로그인) 칸을 두지 않는다
+    if (sec) bindHostSecret({ secret: sec, login: () => window.__terra && window.__terra.login(), scene: () => window.__terra && window.__terra.scene, wanted: () => { const lg = window.__terra && window.__terra.login(); return !f.token() && !rememberedMode(f, lg && lg.state); } });   // 토큰이 있으면(이미 로그인) · 기억으로 들어갈 자리면 칸을 두지 않는다
     let had = !!f.token();
     if (f.onToken) f.onToken((tok) => {   // 토큰이 바뀌면(다른 사용자 · 로그인 · 로그아웃) 앞의 사본을 버린다
       if (window.TerraNodes) window.TerraNodes.clear();

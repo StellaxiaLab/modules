@@ -1,0 +1,86 @@
+<div class="sv" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; display: grid; grid-template-columns: 176px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; background: #040614; color: #d6f4de; font: 500 12px GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif;">
+  <nav aria-label="자원화 분류" class="nc-nav">
+    <div class="nc-id"><b>{{name}}</b><span class="nc-k">{{kind}} · {{src}}</span></div>
+    <div class="nc-gh"><span class="nc-hl"></span>자원화<span class="nc-hr"></span></div>
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+      <button type="button" class="nc-ni {{t.cls}}" aria-current="{{t.cur}}" onClick="{{t.pick}}">{{t.name}}<span class="nc-badge sv-sub">{{t.n}}</span></button>
+    </sc-for>
+    <div class="nc-gh"><span class="nc-hl"></span>이 노드의 울타리<span class="nc-hr"></span></div>
+    <sc-for list="{{env}}" as="e" hint-placeholder-count="3"><div class="sv-env"><span class="nc-k">{{e.k}}</span><span title="{{e.v}}">{{e.v}}</span></div></sc-for>
+    <div class="nc-k sv-envnote">울타리는 노드 설정 파일 + 재시작으로만 넓힌다(svi.runtime)</div>
+  </nav>
+
+  <main class="nc-main" aria-live="polite">
+    <!-- 만들기 — 유형을 고르면 그 스키마로 양식이 그려진다 -->
+    <sc-if value="{{isMake}}" hint-placeholder-val="{{ true }}">
+      <h3 class="nc-h">자원 만들기<span class="nc-hr"></span><span class="nc-k">유형 → 값 → 만들기</span></h3>
+      <div class="sv-make">
+        <div class="sv-types" role="listbox" aria-label="자원화 유형">
+          <sc-for list="{{typeGroups}}" as="g" hint-placeholder-count="2">
+            <div class="sv-tg">{{g.title}}<span class="sv-sub">{{g.note}}</span></div>
+            <sc-for list="{{g.items}}" as="ty" hint-placeholder-count="3">
+              <button type="button" role="option" aria-selected="{{ty.on}}" class="sv-type {{ty.cls}}" onClick="{{ty.pick}}"><b>{{ty.title}}</b><span class="sv-sub">{{ty.from}}</span><span class="sv-tdesc">{{ty.desc}}</span></button>
+            </sc-for>
+            <sc-if value="{{g.empty}}" hint-placeholder-val="{{ false }}"><div class="sv-tnone">{{g.emptyT}}</div></sc-if>
+          </sc-for>
+        </div>
+        <form class="sv-form" onSubmit="{{submit}}" aria-label="{{typeTitle}} 자원 값">
+          <div class="sv-fh"><b>{{typeTitle}}</b><span class="sv-sub">{{typeFrom}}</span></div>
+          <label class="sv-f"><span class="sv-fl">이름 <i>*</i></span><span class="nc-in"><input type="text" value="{{fname}}" onInput="{{onName}}" placeholder="cam-front" spellcheck="false" autocomplete="off" aria-invalid="{{nameBad}}"></span><span class="sv-err">{{nameErr}}</span></label>
+          <sc-for list="{{fields}}" as="f" hint-placeholder-count="3">
+            <div class="sv-f">
+              <span class="sv-fl">{{f.title}} <i>{{f.req}}</i></span>
+              <sc-if value="{{f.isText}}" hint-placeholder-val="{{ true }}"><span class="nc-in"><input type="{{f.itype}}" value="{{f.value}}" onInput="{{f.onInput}}" placeholder="{{f.ph}}" spellcheck="false" autocomplete="off" aria-label="{{f.title}}" aria-invalid="{{f.bad}}"></span></sc-if>
+              <sc-if value="{{f.isEnum}}" hint-placeholder-val="{{ false }}"><span class="nc-seg" role="radiogroup" aria-label="{{f.title}}"><sc-for list="{{f.opts}}" as="op" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{op.on}}" class="{{op.cls}}" onClick="{{op.pick}}">{{op.label}}</button></sc-for></span></sc-if>
+              <sc-if value="{{f.isBool}}" hint-placeholder-val="{{ false }}"><button type="button" role="switch" aria-checked="{{f.on}}" class="sv-sw {{f.swCls}}" onClick="{{f.toggle}}" aria-label="{{f.title}}">{{f.swT}}</button></sc-if>
+              <span class="sv-fd">{{f.desc}}</span><span class="sv-err">{{f.err}}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{envBad}}" hint-placeholder-val="{{ false }}"><div class="sv-warn">울타리 밖 — {{envWhy}}</div></sc-if>
+          <sc-if value="{{exists}}" hint-placeholder-val="{{ false }}"><label class="sv-rep"><input type="checkbox" checked="{{replace}}" onChange="{{onReplace}}"> 같은 이름의 자원을 바꾼다 — 그 위의 연결은 끝난다</label></sc-if>
+          <div class="sv-act"><button type="submit" class="nc-btn nc-pri" disabled="{{makeOff}}">{{makeT}}</button><span class="nc-k">{{makeApi}}</span></div>
+        </form>
+      </div>
+    </sc-if>
+
+    <!-- 자원 · 허가 -->
+    <sc-if value="{{isRes}}" hint-placeholder-val="{{ false }}">
+      <h3 class="nc-h">이 노드의 자원<span class="nc-hr"></span><span class="nc-k">허가 기한 <span class="nc-seg"><sc-for list="{{ttls}}" as="tt" hint-placeholder-count="3"><button type="button" class="{{tt.cls}}" onClick="{{tt.pick}}">{{tt.label}}</button></sc-for></span></span></h3>
+      <sc-for list="{{decls}}" as="d" hint-placeholder-count="2">
+        <div class="sv-res">
+          <div class="sh-row"><b class="sh-res">{{d.name}}</b><span class="sv-chip {{d.stCls}}">{{d.st}}</span><span class="sv-sub">{{d.fam}} · {{d.dir}}</span><span class="sv-sub sv-cut" title="{{d.detail}}">{{d.detail}}</span><span style="flex: 1;"></span><button type="button" class="nc-btn" onClick="{{d.undeclare}}" disabled="{{d.off}}">해제</button></div>
+          <sc-if value="{{d.hasReason}}" hint-placeholder-val="{{ false }}"><div class="sv-warn">{{d.reason}}</div></sc-if>
+          <div class="sv-grants"><span class="nc-k">허가한 노드</span>
+            <sc-for list="{{d.nodes}}" as="g" hint-placeholder-count="3"><button type="button" class="sv-gn {{g.cls}}" aria-pressed="{{g.on}}" onClick="{{g.toggle}}" title="{{g.tip}}" disabled="{{g.off}}">{{g.name}}<span class="sv-sub">{{g.perm}}</span></button></sc-for>
+            <sc-if value="{{d.noNodes}}" hint-placeholder-val="{{ false }}"><span class="sv-sub">허가할 다른 노드 없음</span></sc-if>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{noDecls}}" hint-placeholder-val="{{ false }}"><div class="sh-empty">이 노드에 선언한 자원이 없다 — 만들기에서</div></sc-if>
+    </sc-if>
+
+    <!-- 연결 — 원천을 대상에 끌어다 놓는다(또는 원천을 누르고 대상을 누른다) -->
+    <sc-if value="{{isLink}}" hint-placeholder-val="{{ false }}">
+      <h3 class="nc-h">연결<span class="nc-hr"></span><span class="nc-k">원천을 대상에 끌어다 놓기 · 또는 원천 누르고 대상 누르기</span></h3>
+      <div class="sv-cols">
+        <div><div class="sv-colh">원천 — 내보내는 끝 <span class="sv-sub">{{srcN}}</span></div>
+          <sc-for list="{{srcs}}" as="e" hint-placeholder-count="3">
+            <button type="button" class="sv-ep {{e.cls}}" draggable="true" onDragStart="{{e.drag}}" onDragEnd="{{e.dragEnd}}" onClick="{{e.pick}}" aria-pressed="{{e.on}}"><b>{{e.res}}</b><span class="sv-sub">{{e.node}} · {{e.ep}}</span><span class="sv-sub">{{e.fmt}}</span></button>
+          </sc-for></div>
+        <div class="sv-arrow" aria-hidden="true">→</div>
+        <div><div class="sv-colh">대상 — 받는 끝 <span class="sv-sub">{{dstN}}</span></div>
+          <sc-for list="{{dsts}}" as="e" hint-placeholder-count="3">
+            <button type="button" class="sv-ep sv-dst {{e.cls}}" onDragOver="{{e.over}}" onDragLeave="{{e.leave}}" onDrop="{{e.drop}}" onClick="{{e.pick}}" disabled="{{e.off}}" title="{{e.why}}"><b>{{e.res}}</b><span class="sv-sub">{{e.node}} · {{e.ep}}</span><span class="sv-sub">{{e.fmt}}</span><span class="sv-why">{{e.why}}</span></button>
+          </sc-for></div>
+      </div>
+      <h3 class="nc-h" style="margin-top: 16px;">연결 상태<span class="nc-hr"></span><span class="nc-k">{{bindSum}}</span></h3>
+      <div class="sv-bh nc-k"><span>원천 → 대상</span><span>상태</span><span>사유</span><span>흐름</span><span></span></div>
+      <sc-for list="{{binds}}" as="b" hint-placeholder-count="2">
+        <div class="sv-bind"><span class="sv-cut" title="{{b.pair}}">{{b.pair}}</span><span class="sv-chip {{b.cls}}">{{b.label}}</span><span class="sv-cut sv-sub" title="{{b.reason}}">{{b.reason}}</span><span class="sv-sub" title="{{b.idleTip}}">{{b.idle}}</span><button type="button" class="nc-x" aria-label="연결 끊기" onClick="{{b.unlink}}" disabled="{{b.off}}">✕</button></div>
+      </sc-for>
+      <sc-if value="{{noBinds}}" hint-placeholder-val="{{ false }}"><div class="sh-empty">연결 없음</div></sc-if>
+    </sc-if>
+  </main>
+
+  <footer class="nc-foot" style="grid-column: 1 / span 2;"><span class="nc-msg" role="status">{{msg}}</span><span style="flex: 1;"></span><span class="nc-k" style="color: #ffd27a;">{{miss}}</span></footer>
+</div>

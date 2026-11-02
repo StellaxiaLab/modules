@@ -1,10 +1,13 @@
 // 실제 노드 지도 — Master 노드 목록(terra.master.nodes.get)을 씬이 읽는 꼴(window.TerraTopology)로.
 //
 // 씬(보드 Scene)은 트리를 중첩 배열(spec)로 놓고 항성계를 그린다. 시안은 고정 예시(SPECS · 트리마다 행성 6개)였고,
-// TerraTopology 가 있으면 그것으로 그린다:
-//   트리 = 다른 노드의 부모이거나 roles 에 tree 가 든 노드. 트리끼리 parent_node_id 로 잇는다 — 부모가 목록에 없으면 맨 위
-//   리프 = 나머지. 그 부모(parent_node_id) 트리의 행성 — 트리마다 12 개까지(항성계 배치가 받는 만큼, 넘는 것은 개수로만)
-//   부모가 목록에 없는 리프 — 그 부모 id 로 이름 없는 트리를 하나 세운다(이 Master 자신일 때가 많다)
+// TerraTopology 가 있으면 그것으로 그린다. 단위는 노드다 — 한 노드는 지도에 한 번만(Tree 이면서 Leaf 인 노드도 항성계 하나, 역할 둘):
+//   Master 노드 = Master 가 도는 노드(nodes.get 의 master_node_id · 노드의 master_host). Master 에서 parent_node_id 가 빈 노드는
+//                 "이 Master 바로 아래"라서, Master 노드를 알면 그 노드들은 Master 노드의 행성 · 자식 트리다
+//   트리 = Master 노드 · roles 에 tree 가 든 노드 · 다른 노드의 부모인 노드. 트리끼리 parent_node_id 로 잇는다
+//   리프 = 나머지. 그 부모 트리의 행성 — 트리마다 12 개까지(항성계 배치가 받는 만큼, 넘는 것은 개수로만)
+//   Master 노드를 모를 때만(옛 Master) 부모 빈 리프를 이름 없는 'Master' 항성계(rid 없음)로 모은다 — 대체 표시
+//   부모가 목록에 없는 리프 — 그 부모 id 로 이름 없는 트리를 하나 세운다
 //   localId — 이 GUI 를 띄운 노드(로컬 daemon status 의 node_id). 씬의 '로컬'
 // 경로 = 1 부터 센 자식 번호들 — [1] 맨 위 첫 트리 · [1, 2] 그 트리의 둘째 자식 트리.
 
@@ -16,21 +19,23 @@ const leafRow = (n, now) => { const st = nodeStats(n, now);
 const clean = (s) => String(s || '').replace(/\//g, '∕').trim();   // 경로 구분자와 겹치지 않게
 
 /**
- * @param {Array<{ node_id: string, display_name?: string, parent_node_id?: string, roles?: string[], depth?: number }>} nodes
- * @param {{ localId?: string, rev?: string|number }} [o]
+ * @param {Array<{ node_id: string, display_name?: string, parent_node_id?: string, roles?: string[], depth?: number, master_host?: boolean }>} nodes
+ * @param {{ localId?: string, rev?: string|number, masterId?: string }} [o] masterId — Master 가 도는 노드(nodes.get 의 master_node_id)
  */
 export function buildTopology(nodes, o = {}) {
   const byId = new Map(), kids = new Map();
   for (const n of nodes || []) if (n && n.node_id) byId.set(n.node_id, n);
-  // 부모가 없는 리프(단독 리프 — Master 가 노드 목록에 자기를 싣지 않는 Tree 에 바로 붙은 리프)는 이름 없는 'Tree' 아래로 모은다.
-  //   그 Tree 는 Master 자신이라 노드 id 가 없다(rid '' — 노드 주소 호출을 하지 않는다). 이것이 없으면 그런 리프는 지도에서 빠지고 로컬 노드가 묶이지 않는다
-  const ORPHAN = '(master)', isTreeRole = (n) => (n.roles || []).some((r) => /tree|master/i.test(r));
+  const isTreeRole = (n) => (n.roles || []).some((r) => /tree|master/i.test(r));
+  // Master 노드 — Master 가 알려 준 것만(지어내지 않는다). roles 에 tree 가 든 부모 없는 노드는 자식 Tree 일 수도 있어 짐작하지 않는다
+  const mid = (o.masterId && byId.has(o.masterId) ? o.masterId : '') || ([...byId.values()].find((n) => n.master_host) || {}).node_id || '';
+  // 부모가 빈 노드 — Master 노드를 알면 그 아래로. 모르면 리프만 이름 없는 'Master' 아래로 모은다(대체 표시: 그 항성계는 노드 기록이 없어 rid '')
+  const ORPHAN = mid ? '' : '(master)';
   const hasKids = new Set((nodes || []).map((n) => n && n.parent_node_id).filter(Boolean));
-  const parentOf = (n) => n.parent_node_id || (n.node_id !== ORPHAN && !isTreeRole(n) && !hasKids.has(n.node_id) ? ORPHAN : '');
+  const parentOf = (n) => n.parent_node_id || (n.node_id === mid ? '' : mid || (n.node_id !== ORPHAN && !isTreeRole(n) && !hasKids.has(n.node_id) ? ORPHAN : ''));
   for (const n of byId.values()) { const p = parentOf(n); if (p) { if (!kids.has(p)) kids.set(p, []); kids.get(p).push(n); } }
   // 목록에 없는 부모 — 이름 없는 트리로 세운다
   for (const p of kids.keys()) if (!byId.has(p)) byId.set(p, { node_id: p, display_name: '', roles: ['tree'], synthetic: true, master: p === ORPHAN });
-  const isTree = (n) => (n.roles || []).some((r) => /tree|master/i.test(r)) || kids.has(n.node_id);
+  const isTree = (n) => n.node_id === mid || isTreeRole(n) || kids.has(n.node_id);
   const trees = [...byId.values()].filter(isTree), byName = (a, b) => String(a.display_name || a.node_id).localeCompare(String(b.display_name || b.node_id));
   const top = trees.filter((t) => !byId.has(parentOf(t)) || !isTree(byId.get(parentOf(t)))).sort(byName);
   const P = new Map();   // 경로 키 → { tree, leaves }
@@ -44,9 +49,12 @@ export function buildTopology(nodes, o = {}) {
   const spec = top.map((t, i) => walk(t, [i + 1]));
   const at = (path) => P.get(path.join('.'));
   return {
-    rev: String(o.rev ?? Date.now()), localId: o.localId || '', spec, count: byId.size,
-    label(path) { const e = at(path); if (!e) return ''; const t = e.tree; return clean(t.display_name) || (t.synthetic ? 'Tree' : t.node_id.slice(0, 10)); },
+    rev: String(o.rev ?? Date.now()), localId: o.localId || '', spec, count: byId.size, masterId: mid,
+    label(path) { const e = at(path); if (!e) return ''; const t = e.tree; return clean(t.display_name) || (t.master ? 'Master' : t.synthetic ? 'Tree' : t.node_id.slice(0, 10)); },
     rid(path) { const e = at(path); return e && !e.tree.master ? e.tree.node_id : ''; },
+    /** 그 항성계 노드의 역할 — Master 기록의 roles 그대로(Tree 이면서 Leaf 면 둘 다). Master 노드는 'master' 를 덧붙인다. 대체 'Master' 는 ['master'] */
+    roles(path) { const e = at(path); if (!e) return []; const t = e.tree, r = t.master ? [] : (t.roles || []).map((x) => String(x).toLowerCase());
+      return t.master || t.node_id === mid ? [...new Set(r.concat('master'))] : r; },
     leaves(path) { const e = at(path); return e ? e.leaves.slice(0, MAX_LEAVES).map((n) => leafRow(n, now)) : null; },
     more(path) { const e = at(path); return e ? e.more : 0; },
     /** 항성계가 받는 12 개를 넘은 리프 — 개수(more)만이 아니라 행 자체(대상 표가 이어 보여 줄 수 있게) */
@@ -103,7 +111,7 @@ export async function loadTopology(terra) { return (await loadTopologyState(terr
 export async function loadTopologyState(terra) {
   const at = Date.now();
   const [lr, st, en] = await Promise.all([
-    terra.invoke('terra.master.nodes.get', {}).then((d) => ({ list: Array.isArray(d) ? d : (d && d.nodes) || [] }), (e) => ({ error: (e && (e.code || e.message)) || 'ERROR' })),
+    terra.invoke('terra.master.nodes.get', {}).then((d) => ({ list: Array.isArray(d) ? d : (d && d.nodes) || [], masterId: (d && !Array.isArray(d) && typeof d.master_node_id === 'string' && d.master_node_id) || '' }), (e) => ({ error: (e && (e.code || e.message)) || 'ERROR' })),
     terra.invoke('terra.daemon.status.get', {}).catch(() => null),
     terra.invoke('terra.daemon.enrollment.status.get', {}).catch(() => null),
   ]);
@@ -112,5 +120,5 @@ export async function loadTopologyState(terra) {
   const e = en || (st && st.enrollment) || null, list = lr.list;
   const localId = (st && ((st.enrollment && st.enrollment.node_id) || (st.daemon && st.daemon.node_id))) || '';
   const master = e && (e.master_url || e.registered != null) ? { url: e.master_url || '', registered: e.registered == null ? null : !!e.registered, registeredAt: e.registered_at || '' } : null;
-  return { topo: buildTopology(list, { localId, master, rev: list.map((n) => n.node_id).join(',').length + ':' + list.length }), state: 'ok', at };
+  return { topo: buildTopology(list, { localId, master, masterId: lr.masterId, rev: list.map((n) => n.node_id).join(',').length + ':' + list.length + ':' + lr.masterId }), state: 'ok', at };
 }

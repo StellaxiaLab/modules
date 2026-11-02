@@ -30,6 +30,7 @@ related:
   - "[[design-ops-gaps|시안 ↔ 실제 운영 격차]]"
   - "[[net-props|네트워크 속성 창]]"
   - "[[terminals|제어기의 두 터미널]]"
+  - "[[svi-make|자원화 창]]"
   - "[[node-shell|노드 셸 설계]]"
 ---
 
@@ -71,6 +72,7 @@ flowchart LR
 | main GUI 로 실리는 법 — 얇은 껍데기 · 로그인 · A 모드 | [[main-scene\|main Scene]] |
 | 노드가 가진 주소 · 광고 전송 · 다른 노드와 어떤 경로로 붙었는지 — 근거 Terra 문서 · 읽기 · 보고 안 되는 것 | [[net-props\|네트워크 속성 창]] |
 | 제어기의 노드 터미널(OS 셸) · Terra 터미널(terra shell) — 부르는 것 · 어느 노드 · 코어에 남은 것 | [[terminals\|제어기의 두 터미널]] |
+| 자원화 — 유형 스키마로 양식 · 선언 · 허가 · 끌어다 연결 · 연결 상태, 코어에 필요한 것(모듈 유형 · 유휴) | [[svi-make\|자원화 창]] |
 | 노드 셸(실제 터미널, 잠김) — 누가 · 원격 · 감사 · PTY 전송 · 수명, 결정할 것 | [[node-shell\|노드 셸 설계]] |
 | node-gui 를 대체하려면 — 현황 점검(2026-10-31) · 기능 격차 · Terra 쪽 같이 바꿀 것 | [[replacement-readiness\|node-gui 대체 준비도]] |
 | 보드가 실제 화면에서 의도대로 안 되는 곳 — 창마다 실제냐 시안이냐 · 고칠 곳 · 어긋나지 않게 하는 절차 | [[design-ops-gaps\|시안 ↔ 실제 운영 격차]] |
@@ -81,7 +83,7 @@ flowchart LR
 | --- | --- |
 | `docs/` | 이 MOC |
 | `docs/analysis/` | [[legacy-node-gui-overview\|전체 분석]] · [[legacy-app-layer\|기능 층 분석]] · [[settings-inventory\|설정 종합]] · [[settings-terra-core\|코어 설정 전수표]] · [[settings-modules\|modules 설정 전수표]] · [[terra-reach\|Terra 도달 분석]] · [[design-ops-gaps\|시안 ↔ 운영 격차]] |
-| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] · [[node-data\|노드 데이터와 분할]] · [[main-scene\|main Scene]] · [[net-props\|네트워크 속성 창]] · [[terminals\|두 터미널]] · [[node-shell\|노드 셸]] |
+| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] · [[node-data\|노드 데이터와 분할]] · [[main-scene\|main Scene]] · [[net-props\|네트워크 속성 창]] · [[terminals\|두 터미널]] · [[svi-make\|자원화 창]] · [[node-shell\|노드 셸]] |
 
 ## 기준
 

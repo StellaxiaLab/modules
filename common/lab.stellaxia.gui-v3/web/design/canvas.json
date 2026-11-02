@@ -185,6 +185,14 @@
       "w": 680,
       "x": 13180,
       "y": 1820
+    },
+    "NodeSvi.dc.html": {
+      "h": 640,
+      "is_interactive": true,
+      "title": "자원화 창 — 유형 스키마 양식 · 허가 · 끌어다 연결 (우클릭 › 자원화)",
+      "w": 900,
+      "x": 13860,
+      "y": 1820
     }
   },
   "createdOnFiles": {
@@ -242,6 +250,7 @@
     "StarMaker.dc.html",
     "NodeStatus.dc.html",
     "NodeNet.dc.html",
+    "NodeSvi.dc.html",
     "NodeConf.dc.html",
     "NodeShare.dc.html",
     "ResStatus.dc.html",

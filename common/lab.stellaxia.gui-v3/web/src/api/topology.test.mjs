@@ -45,15 +45,68 @@ test('nodeStats — 하트비트 자원 스냅샷 · 상태 · 마지막 하트�
   assert.equal(T.node('l').resource.cpu_percent, 5); assert.equal(T.node('x'), null);
 });
 
-test('단독 리프 — 부모가 없는 리프는 이름 없는 Tree(Master 자신, rid 없음) 아래로, 로컬도 그 안에서 찾는다', () => {
+test('단독 리프 — Master 노드를 모르면(옛 Master) 부모 없는 리프는 이름 없는 Master(rid 없음) 아래로 — 대체 표시', () => {
   const T = buildTopology([{ node_id: 'node_a', display_name: 'iso-leaf', status: 'online' }], { localId: 'node_a' });
   assert.equal(T.spec.length, 1);
-  assert.equal(T.label([1]), 'Tree'); assert.equal(T.rid([1]), '');   // Master 자신 — 노드 주소 호출을 하지 않는다
+  assert.equal(T.label([1]), 'Master'); assert.equal(T.rid([1]), '');   // 노드 기록이 없다 — 노드 주소 호출을 하지 않는다
+  assert.deepEqual(T.roles([1]), ['master']); assert.equal(T.masterId, '');
   assert.deepEqual(T.leaves([1]).map((l) => l.id), ['node_a']);
   // 진짜 Tree 가 있으면 그 아래 리프는 그대로, 부모 없는 리프만 따로 모인다
   const U = buildTopology([{ node_id: 't', roles: ['tree'], display_name: 'home' }, { node_id: 'l', parent_node_id: 't' }, { node_id: 'x' }]);
   assert.deepEqual(U.spec.length, 2);
-  assert.deepEqual([U.label([1]), U.label([2])].sort(), ['Tree', 'home']);
+  assert.deepEqual([U.label([1]), U.label([2])].sort(), ['Master', 'home']);
+});
+
+// 11/2 실제 Master(marui-server) 모양 — 클러스터 하나, 노드 넷, 부모는 전부 빈 값(= 이 Master 바로 아래), 서버만 leaf+tree
+const LIVE = [
+  { node_id: 'node_srv', display_name: 'marui-server', roles: ['leaf', 'tree'], parent_node_id: '', depth: 0, status: 'online' },
+  { node_id: 'node_desk', display_name: 'MARUI-NANO-DESK', roles: ['leaf'], parent_node_id: '', depth: 0, status: 'online' },
+  { node_id: 'node_sub2', display_name: 'marui-sub2', roles: ['leaf'], parent_node_id: '', depth: 0, status: 'offline' },
+  { node_id: 'node_book', display_name: 'BOOK-SB82N10UHA', roles: ['leaf'], parent_node_id: '', depth: 0, status: 'offline' },
+];
+
+test('노드 단위 — Master 가 도는 노드를 알면 그 노드가 항성계 하나(트리 · 리프 둘 다), 나머지는 그 행성', () => {
+  for (const [how, list, o] of [['master_node_id', LIVE, { masterId: 'node_srv' }], ['master_host', LIVE.map((n) => (n.node_id === 'node_srv' ? { ...n, master_host: true } : n)), {}]]) {
+    const T = buildTopology(list, { localId: 'node_desk', ...o });
+    assert.deepEqual(T.spec, [[]], how + ' — 항성계 하나, 가짜 Tree 없음');
+    assert.equal(T.label([1]), 'marui-server', how); assert.equal(T.rid([1]), 'node_srv', how);   // 상태는 서버 자신의 기록
+    assert.deepEqual(T.roles([1]).sort(), ['leaf', 'master', 'tree'], how);
+    assert.equal(T.node(T.rid([1])).display_name, 'marui-server', how);
+    const names = T.leaves([1]).map((l) => l.name);
+    assert.deepEqual(names, ['BOOK-SB82N10UHA', 'MARUI-NANO-DESK', 'marui-sub2'], how);
+    assert.ok(!names.includes('marui-server'), how + ' — 서버를 행성으로 한 번 더 그리지 않는다');
+    assert.equal(T.count, 4, how + ' — 지어낸 노드 없음');
+  }
+});
+
+test('노드 단위 — 목록에 없는 masterId 는 믿지 않고 대체 표시로', () => {
+  const T = buildTopology(LIVE, { masterId: 'node_gone' });
+  assert.equal(T.masterId, '');
+  assert.deepEqual(T.spec.map((_, i) => T.label([i + 1])).sort(), ['Master', 'marui-server']);
+});
+
+test('부모가 채워진 모양 — 중간 Tree(TreeNodeID) 아래 리프 · 자식 Tree, Master 노드가 맨 위', () => {
+  const L = [
+    { node_id: 'tr_mid', display_name: 'mid', roles: ['tree'] },
+    { node_id: 'tr_child', display_name: 'child', roles: ['tree', 'leaf'], parent_node_id: 'tr_mid' },
+    { node_id: 'lf_a', display_name: 'a', roles: ['leaf'], parent_node_id: 'tr_mid' },
+    { node_id: 'lf_b', display_name: 'b', roles: ['leaf'], parent_node_id: 'tr_child' },
+  ];
+  const T = buildTopology(L, { masterId: 'tr_mid' });
+  assert.deepEqual(T.spec, [[[]]]);
+  assert.equal(T.rid([1]), 'tr_mid'); assert.equal(T.rid([1, 1]), 'tr_child');
+  assert.deepEqual(T.roles([1, 1]).sort(), ['leaf', 'tree']);   // 이중 역할 자식 Tree 도 항성계 하나
+  assert.deepEqual(T.leaves([1]).map((l) => l.id), ['lf_a']); assert.deepEqual(T.leaves([1, 1]).map((l) => l.id), ['lf_b']);
+  // masterId 없이도 부모가 채워진 지도는 그대로
+  assert.deepEqual(buildTopology(L).spec, [[[]]]);
+});
+
+test('loadTopologyState — nodes.get 의 master_node_id 를 지도에 싣는다', async () => {
+  const terra = { invoke: async (op) => op === 'terra.master.nodes.get' ? { nodes: LIVE, master_node_id: 'node_srv' } : { enrollment: { node_id: 'node_desk' } } };
+  const { topo } = await loadTopologyState(terra);
+  assert.equal(topo.masterId, 'node_srv'); assert.deepEqual(topo.spec, [[]]);
+  const old = await loadTopologyState({ invoke: async (op) => op === 'terra.master.nodes.get' ? { nodes: LIVE } : null });
+  assert.equal(old.topo.masterId, ''); assert.equal(old.topo.spec.length, 2);   // 옛 Master — 대체 표시
 });
 
 test('nodeStats — 지어내지 않는다: 낡은 online 은 응답 없음, 총량 · 버전은 보고된 것만', () => {
