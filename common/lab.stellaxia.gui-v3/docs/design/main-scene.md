@@ -7,8 +7,8 @@ doc_type: "design"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.1.0"
-last_updated: "2026-11-01"
+version: "0.2.0"
+last_updated: "2026-11-02"
 language: "ko-KR"
 related:
   - "[[web-architecture|GUI v3 웹 구조]]"
@@ -40,10 +40,10 @@ dev 가 있으면 고르는 화면(CHOOSE)을 띄운다(Terra `docs/modules/terr
 
 | 자리 | 파일 | 하는 일 |
 | --- | --- | --- |
-| `/` | `surface/fragments/main.fragment.json` | 루트가 `terra.web/frame` 하나 — 셸 틀을 벗고 창 전체. `bind` 로 `session` Store(state · principal)를 웹에, `on` 으로 웹의 `login` · `logout` · `launch` 를 받는다 |
-| `/login` | `surface/fragments/login.fragment.json` | 내장 엘리먼트 로그인 카드(자유 디자인 아님 — 모양은 Login.dc.html 에 맞춤, §1-1) |
+| `/` | `surface/fragments/main.fragment.json` | 루트가 `terra.web/frame` 하나 — 셸 틀을 벗고 창 전체. `bind` 로 `session` Store(state · principal · error)를 웹에, `on` 으로 웹의 `signin` · `login` · `logout` · `launch` 를 받는다. `props.secret` 이 호스트 비밀번호 칸을 켠다(§1-2) |
+| `/login` | `surface/fragments/login.fragment.json` | 내장 엘리먼트 로그인 카드 — **호스트 비밀번호 칸을 모르는 이전 Terra 에서만** 쓰인다(§1-1 · §1-2) |
 | Store | `credentials`(secret, Handle 은 `/session`) · `signin`(view, 입력칸) · `session`(memory, 웹에 가는 값) | 호스트는 `credentials` `/session` 의 Handle 을 따라가 frame 에 토큰을 준다 |
-| Function | `signin.field` · `signin.submit`(credential.login) · `signout`(credential.revoke) · `login.open` · `login.close` · `app.launch`(terra.app:launch) | |
+| Function | `signin.host`(셸 칸 → credential.login, §1-2) · `signin.field` · `signin.submit`(credential.login) · `signout`(credential.revoke) · `login.open` · `login.close` · `app.launch`(terra.app:launch) | |
 
 ### 1-1. `/login` 카드의 모양 — Login.dc.html 에 맞춘 것과 못 옮긴 것 (0.3.1)
 
@@ -71,13 +71,38 @@ A 모드의 로그인은 웹 보드(`web/design/Login.dc.html`)가 아니라 이
 | 누를 수 있는 것 밑의 호버 밑줄 · `enter · tab · esc` | `enter · 로그인` 만 | Esc 키를 받을 길이 없어 `← 돌아가기` 버튼으로 |
 | 메시지를 틀 아래 가운데 흐린 글로 | `mono` 상태 글(`role=status`) | 정렬 · 색 속성이 없다 |
 
+### 1-2. 디자인 로그인 — 호스트 비밀번호 칸 (0.4.0, Terra PR #301 이후)
+
+§1-1 의 표는 "비밀번호 입력이 호스트 소유여야 한다"는 규칙 하나 때문에 생겼다. Terra 의 `terra.web/frame` 이 **호스트 비밀번호
+칸**(웹 프로그램 감싸기 설계 §4.9)을 갖게 되면서 이 규칙을 지킨 채 보드를 그대로 쓴다: 로그인 화면은 웹의 Login 보드가 그리고,
+비밀번호 `<input>` 하나만 셸 문서(다른 origin)에 있어 보드의 `password >` 자리에 겹친다. 웹은 그 값을 볼 수 없다.
+
+| 단계 | 어디서 |
+| --- | --- |
+| 켜기 | `main.fragment.json` 의 frame `props.secret = { "event": "signin" }`. 셸이 알면 `init.features` 에 `secret` 이 온다 |
+| 감지 | `web/src/api/host-secret.js` `hostSecretOf(frame)` — 없으면(이전 Terra) 지금까지처럼 로그인 문 → `emit('login')` → `/login` 카드 |
+| 자리 | `bindHostSecret` 이 매 프레임 보드의 숨은 password 칸 자리를 재어 바뀔 때만 `secret.place`. 로그인이 열려 입력을 받을 때만 둔다(닫힘 · 워프 · 층 내려감이면 걷는다) |
+| 모양 | 셸에는 보드의 글꼴이 없어 `monospace` 로, 그 글꼴 `•` 너비를 재어 글자 사이를 띄워 점이 칸에 한 칸씩 앉게 한다. 셸 칸에 글자가 있으면 보드는 그 줄의 점 · 남은 자리를 비운다 |
+| 키 | 칸의 Enter → 보드 `login()`, Esc → `closeLogin()`, Tab → auto, Shift+Tab → admin. 보드의 숨은 password 칸으로 Tab 이 오면 셸 칸으로 넘긴다 |
+| 제출 | `secret.submit({ email, auto, node, attempt })` → 셸이 칸의 값을 더해 `signin` → `gui-v3.signin.host` 가 `credential.login` |
+| 결과 | 성공 = 새 토큰 → 워프 전환 · 실데이터. 실패 = `session.error { message, attempt }` → 보드 아래 문구 + 물결, 칸으로 포커스 |
+
+이것으로 §1-1 표의 글자 장 · 바탕 · 여는 연출 · 칸 글자 입력(아이디) · TREE/LEAF 낱말 · auto · New Tree Connect · 글꼴 · 색 · 호버 밑줄 ·
+`enter · tab · esc` · 메시지 자리가 **A 모드에서도 보드 그대로**다. 남는 것:
+
+- **비밀번호 줄의 점은 셸이 그린다** — 웹은 몇 글자인지 모른다(셸은 비었는지만 알려 준다). 글꼴이 `monospace` 라 보드의 칸 글자와 굵기가 조금 다르고, 커서는 비었을 때만 보드의 칸 커서, 글자가 있으면 셸 칸의 캐럿이다.
+- **auto(로그인 유지)** 는 값이 Function 까지 가지만 `credential.login` 에 유지 옵션이 없어 쓰이지 않는다(B 모드도 같다).
+- **TREE/LEAF** 는 보드의 표시 그대로(B 모드와 같다) — 이 노드의 설치 타입을 읽어 오는 것은 별도.
+- **New Tree Connect** 는 보드에서도 기능 없는 자리다.
+
 ## 2. 로그인은 누가 하나 — Scene 이 한다, 웹은 비밀번호를 받지 않는다
 
 | | node-gui | gui-v3 (main Scene 안 = A 모드) | gui-v3 단독(B 모드, 개발 · 시험) |
 | --- | --- | --- | --- |
-| 비밀번호를 받는 곳 | Scene `/login` 카드 | Scene `/login` 카드 | 웹의 Login 보드 → `POST /api/v1/auth/credentials` |
+| 비밀번호를 받는 곳 | Scene `/login` 카드 | 셸 문서의 비밀번호 칸(웹 Login 보드 위에 겹침, §1-2) → Scene `signin.host`. 이전 Terra 는 Scene `/login` 카드 | 웹의 Login 보드 → `POST /api/v1/auth/credentials` |
 | 웹이 쓰는 자격 | 앱 스코프 토큰(`Bearer tsa_`) | 앱 스코프 토큰(`Bearer tsa_`) | 자격 핸들(`Handle …`, 사용자 권한 전부) |
-| 토큰이 없을 때 | 시작 화면의 [로그인] → `emit('login')` | 화면 위 로그인 문 [로그인] → `emit('login')` | 로그인 층(보드) |
+| 첫 화면 | 시작 화면 | **로그인 보드(TERRA 연출)** — B 와 같다. 토큰이 있으면 연출 뒤 폼 없이 워프로 트리 뷰 | 로그인 보드 |
+| 토큰이 없을 때 | 시작 화면의 [로그인] → `emit('login')` | 보드의 폼 + 셸 비밀번호 칸(§1-2). 이전 Terra 는 TERRA 를 누르면 폼 대신 `emit('login')` → `/login` 카드 | 로그인 층(보드) |
 | 로그아웃 | `emit('logout')` (session.state 가 signedIn 일 때만) | 같다. 셸 세션 토큰이면 "셸에서 로그아웃" 안내 | `DELETE /api/v1/auth/credentials` |
 | 다른 모듈 앱 열기 | `emit('launch', appId)` | Scene 은 받을 수 있다(`gui-v3.app.launch`). **웹은 아직 보내지 않는다** — 격차표 | — |
 
@@ -87,11 +112,12 @@ B 모드(커밋 df5149f)는 **웹이 스스로 비밀번호를 받는다.** 그�
 
 ### A 모드 흐름 (`web/src/boot/main.js`)
 
-1. 마운트 전에 `hello` → frame 의 `init`(appId · 토큰 또는 없음 · `session` 값)
+1. 첫 화면은 B 와 같은 로그인 보드(TERRA 연출)다. 마운트 전에 `hello` → frame 의 `init`(appId · 토큰 또는 없음 · `session` 값 · `features`)
 2. 토큰이 있으면 지도(`terra.master.nodes.get` + 로컬 status) · Tree 길 · 보기 상태 · 밀어 받기
-3. 없으면 화면 위에 로그인 문(`[data-gate=login]`) — [로그인] 이 `emit('login')` → Scene 이 `/login` 으로
-4. 로그인하면 `signin.submit` 이 `/` 로 돌려보낸다 → frame 이 새로 서서 토큰이 든 `init` 이 온다(같은 frame 에 `terra.frame.token` 이 와도 2 로 간다)
-5. 씬의 로그아웃(`sceneLogout`)은 A 모드에서 보드의 로그인 층을 띄우지 않고 `emit('logout')` → `signout` 이 Handle 을 폐기 → frame 이 `signed_out` → 3
+3. 토큰이 있으면(셸 세션 · `/login` 카드에서 로그인하고 돌아옴) 연출을 1.4초 보이고 폼을 열어 줄이 다 서면 입력을 받지 않고 워프로 트리 뷰(누르면 바로). 셸 칸은 두지 않는다 — 워프는 열린 폼의 글자를 날려 보내는 전환이라 닫힌 TERRA 화면에서는 시작하지 않는다
+4. 없으면 — 셸 칸이 있으면 보드의 폼으로 로그인(§1-2), 없으면(이전 Terra) TERRA 를 누를 때 폼을 열지 않고 `emit('login')` → Scene 이 `/login` 으로. 보드의 숨은 password 칸은 A 모드에서 값을 받지 않는다
+5. 카드로 로그인하면 `signin.submit` 이 `/` 로 돌려보낸다 → frame 이 새로 서서 토큰이 든 `init` 이 온다 → 3(같은 frame 에 `terra.frame.token` 이 와도 3)
+6. 씬의 로그아웃(`sceneLogout`)은 이 Scene 이 로그인했으면 `emit('logout')` 과 함께 보드의 로그인 층을 거꾸로 띄운다 → `signout` 이 Handle 을 폐기 → frame 이 `signed_out`. 셸 세션 토큰이면 "셸에서 로그아웃" 안내만. 토큰을 잃어도 로그인 층으로 돌아간다
 
 ### A 모드의 한계 (그대로 node-gui 와 같다)
 

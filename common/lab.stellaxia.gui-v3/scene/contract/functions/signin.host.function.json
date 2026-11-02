@@ -1,0 +1,64 @@
+{
+  "$comment": "호스트 비밀번호 칸으로 온 로그인(웹 프로그램 감싸기 설계 §4.9 — terra.web/frame 의 호스트 비밀번호 칸(Terra PR #301)). 로그인 화면은 웹(Login 보드)이 그리고, 비밀번호는 frame 이 호스트 문서에 둔 칸에서만 온다: frame 이 props.secret.event('signin') 로 { email, auto, node, attempt, password } 를 넘긴다. 웹은 비밀번호를 보지 않는다. 비밀번호는 어느 Store 에도 적지 않고 credential.login 으로만 넘긴다 — session 은 frame 에 bind 돼 웹으로 가기 때문이다. 실패하면 session /error 에 문구와 웹이 붙인 attempt 번호를 적는다(웹은 같은 번호로 자기 시도의 답인지 안다). 성공하면 Handle 을 credentials /session 에 두고, 호스트가 그것을 따라가 frame 에 토큰을 준다. auto(로그인 유지)는 credential.login 에 유지 옵션이 없어 아직 쓰지 않는다.",
+  "schemaVersion": "1.0.0",
+  "id": "gui-v3.signin.host",
+  "version": "0.1.0",
+  "timeoutMs": 10000,
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "auth",
+        "type": "credential.login",
+        "input": {
+          "email": "$input.value.email",
+          "password": "$input.value.password"
+        },
+        "onError": [
+          {
+            "id": "markFailed",
+            "type": "store.write",
+            "storeId": "session",
+            "path": "/error",
+            "value": {
+              "message": "$auth.error.message",
+              "attempt": "$input.value.attempt"
+            }
+          },
+          {
+            "id": "bail",
+            "type": "return",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "keepHandle",
+        "type": "store.write",
+        "storeId": "credentials",
+        "path": "/session",
+        "value": "$auth.output.handle"
+      },
+      {
+        "id": "keepSession",
+        "type": "store.write",
+        "storeId": "session",
+        "value": {
+          "state": "signedIn",
+          "principal": "$auth.output.session.principal",
+          "error": {
+            "message": "",
+            "attempt": "$input.value.attempt"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}
