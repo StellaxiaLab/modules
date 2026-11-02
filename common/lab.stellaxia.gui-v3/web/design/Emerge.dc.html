@@ -497,6 +497,7 @@ class Component extends DCLogic {
     o.fillStyle = g1; o.fillRect(0, 0, w, h);
     const rx = w * 0.42, ry = h * 0.70, cx = w * 0.62, cy = h * 0.58; o.save(); o.translate(cx, cy); o.scale(rx, ry);
     const g2 = o.createRadialGradient(0, 0, 0, 0, 0, 1); g2.addColorStop(0, 'rgba(150,110,200,0.08)'); g2.addColorStop(0.7, 'rgba(150,110,200,0)'); o.fillStyle = g2; o.fillRect(-cx / rx, -cy / ry, w / rx, h / ry); o.restore();
+    this._bgCv = oc;   // 돋보기 이음이 바탕만(글자 없이) 가져다 쓴다
     return c.createPattern(oc, 'no-repeat');
   }
   PALETTES() {
@@ -1086,9 +1087,8 @@ class Component extends DCLogic {
     // ① 곧은 확대 — O 의 (ox, oy) 는 보는 점 (cx + (ox − OW/2)/z, cy + (oy − OH/2)/z)
     const sw = OW / zO, shh = OH / zO, sx = vx - sw / 2, sy = vy - shh / 2, Oo = this.off('O', OW, OH), o = Oo.c;
     o.fillStyle = '#040614'; o.fillRect(0, 0, OW, OH);
-    const fcv = SEAM ? document.querySelector('canvas[data-field="emerge"]') : null;
-    if (fcv && fcv.width) { const kk = fcv.width / this._w, Sb = this.off('Sb', Math.max(2, Math.round(sw / cw)), Math.max(2, Math.round(shh / ch))), bw2 = Math.max(2, Math.round(sw / cw)), bh2 = Math.max(2, Math.round(shh / ch));   // 이음 — 바탕은 글자 장 그대로(칸 하나 = 한 점으로 줄였다 키워 글자는 지우고 색만) — 가장자리 색이 밖과 같다
-      Sb.c.imageSmoothingEnabled = true; Sb.c.drawImage(fcv, sx * kk, sy * kk, sw * kk, shh * kk, 0, 0, bw2, bh2); o.imageSmoothingEnabled = true; o.drawImage(Sb.cv, 0, 0, Sb.cv.width, Sb.cv.height, 0, 0, OW, OH); }
+    const bgc = SEAM ? this._bgCv : null;   // 이음 — 바탕은 글자 장의 바탕 그림 그대로(글자 없이) — 테 안팎 색이 같고, 글자를 뭉갠 번짐이 생기지 않는다
+    if (bgc) { const kk = bgc.width / this._w; o.imageSmoothingEnabled = true; o.drawImage(bgc, sx * kk, sy * kk, sw * kk, shh * kk, 0, 0, OW, OH); }
     if (BIND) { o.save(); o.beginPath(); o.rect((BIND.x0 - sx) * zO, (BIND.y0 - sy) * zO, (BIND.x1 - BIND.x0) * zO, (BIND.y1 - BIND.y0) * zO); o.clip(); }   // 확대하는 것은 그 컴포넌트 영역 뿐
     const uc = BIND || SEAM ? null : this._ucv; if (uc) { const kk = uc.width / this._w; o.globalAlpha = 0.9; o.imageSmoothingEnabled = true; o.drawImage(uc, sx * kk, sy * kk, sw * kk, shh * kk, 0, 0, OW, OH); o.globalAlpha = 1; }
     const comp = this._compEl && this._compEl.isConnected ? this._compEl : document.querySelector('[data-comp]'), compTop = comp && +(comp.style.zIndex || 0) >= 2;
