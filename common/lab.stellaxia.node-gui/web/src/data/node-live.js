@@ -36,7 +36,7 @@ const SCREEN_PERMS = ['node.read', 'node.control', 'node.config', 'process.execu
 const SELF_MODULE = 'lab.stellaxia.node-gui';
 
 /** operationId 처럼 보이는 낱말 — API 줄에서 이 노드의 게이트웨이에 있는지 견준다 */
-const OPID = /\b(?:terra\.(?:daemon|master|gateway)|io\.terra\.file)\.[a-z0-9_.-]*[a-z0-9]/g;
+const OPID = /\b(?:terra\.(?:daemon|master|gateway)|lab\.stellaxia\.file)\.[a-z0-9_.-]*[a-z0-9]/g;
 
 /** 폼 칸 — 화면(HBCRUD)의 것과 같은 모양 */
 const TX = (k, label, ph) => ({ k, label, type: 'text', ph: ph || '' });
@@ -303,13 +303,13 @@ export function realNode(Screen) {
       return Object.assign(m, { nodes, pending });
     }
 
-    // 폴더 보관함 — Terra 저장소 = 이 노드의 진짜 공유 폴더(io.terra.file) · 폴더 탐색기 = Daemon 로컬 탐색(local-fs, 읽기만)
+    // 폴더 보관함 — Terra 저장소 = 이 노드의 진짜 공유 폴더(lab.stellaxia.file) · 폴더 탐색기 = Daemon 로컬 탐색(local-fs, 읽기만)
     FBDATA() { return this.__real.fb; }
 
     FBMODES() {
       const M = super.FBMODES(), R = this.__real;
       return Object.assign({}, M, {
-        repo: Object.assign({}, M.repo, { desc: '이 노드의 공유 폴더 (io.terra.file) — 읽기만', os: '' }),
+        repo: Object.assign({}, M.repo, { desc: '이 노드의 공유 폴더 (lab.stellaxia.file) — 읽기만', os: '' }),
         local: Object.assign({}, M.local, { os: '',
           desc: R.localFs === false ? '이 노드의 Daemon에 로컬 탐색(local-fs)이 없다 — 또는 file.read 권한이 없다' : '이 노드의 로컬 최상위 루트 (Daemon local-fs) — 읽기만' }),
         memo: Object.assign({}, M.memo, { root: 'memos', rootLabel: '메모', os: '',
@@ -556,7 +556,7 @@ export async function loadAlarms(screen, client, first = false) {
 /** 폴더 보관함 — 공유 폴더(맨 위 칸) · 폴더 탐색기의 로컬 최상위 루트 */
 async function loadRoots(screen, client) {
   const LFS = 'terra.daemon.local-fs.roots.get', haveLocal = known(client, LFS);
-  const [r, l] = await Promise.all([client.invoke('io.terra.file.roots.list', {}), haveLocal ? client.invoke(LFS, {}) : null]);
+  const [r, l] = await Promise.all([client.invoke('lab.stellaxia.file.roots.list', {}), haveLocal ? client.invoke(LFS, {}) : null]);
   const roots = ok(r) && r.data ? r.data.roots : [];
   screen.__real.fb = { repo: rootItems(roots), local: ok(l) && l.data ? localRootItems(l.data.roots) : [] };
   screen.__real.localFs = ok(l);
@@ -606,7 +606,7 @@ export async function loadFolder(screen, client, id) {
   const { root, rel } = splitId(id);
   if (!root || screen.__real.loaded.has(id)) return;
   screen.__real.loaded.add(id);
-  const r = await client.invoke('io.terra.file.entries.list', rel ? { root, path: rel } : { root });
+  const r = await client.invoke('lab.stellaxia.file.entries.list', rel ? { root, path: rel } : { root });
   if (!ok(r) || !r.data) { screen.__real.loaded.delete(id); return; }
   const fb = screen.__real.fb;
   fb.repo = fb.repo.filter((x) => x.parent !== id).concat(entryItems(root, rel, r.data.entries));

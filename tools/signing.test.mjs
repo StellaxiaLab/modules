@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { decodePrivateKey, keyForModule, parseSigningPlan, writeKeys } from './signing.mjs';
+import { decodePrivateKey, keyForModule, loadSigningPlan, parseSigningPlan, writeKeys } from './signing.mjs';
 
 // Go 로 만든 벡터: ed25519.NewKeyFromSeed(0x00..0x1f) 와 terra-sdk TrustKeyID.
 // 시드가 0,1,2,… 인 **공개된 시험용 키**다. 어떤 keyring 에도 없다.
@@ -32,6 +32,23 @@ function plan(overrides = {}) {
     ...overrides
   };
 }
+
+// ADR-MD-002 v1.2: io.terra.* 에서 개명된 9개는 built-in 등급을 잃지 않는다 —
+// 등급은 서명 키가 정하고, 공유 루트는 built-in 이상만 받는다. 다른 lab.stellaxia
+// 모듈은 그대로 stellaxia 키로 간다.
+test('저장소 signing.json: 개명된 9개는 builtin 키, 나머지 lab.stellaxia 는 stellaxia 키', () => {
+  const real = loadSigningPlan(new URL('../signing.json', import.meta.url), { requireKeyIds: false });
+  for (const id of [
+    'lab.stellaxia.agent', 'lab.stellaxia.nodetalk', 'lab.stellaxia.sample.window',
+    'lab.stellaxia.scene.login-demo', 'lab.stellaxia.file', 'lab.stellaxia.io-inventory',
+    'lab.stellaxia.io-weave', 'lab.stellaxia.fleet', 'lab.stellaxia.treebench'
+  ]) {
+    assert.equal(keyForModule(real, id)?.tier, 'built-in', id);
+  }
+  for (const id of ['lab.stellaxia.gui-v3', 'lab.stellaxia.node-gui', 'lab.stellaxia.file-extra', 'dev.terrallo']) {
+    assert.equal(keyForModule(real, id)?.tier, 'trusted-third-party', id);
+  }
+});
 
 test('keyId 는 Go 의 TrustKeyID 와 같다', () => {
   assert.equal(decodePrivateKey(GO_VECTOR.privateKey).keyId, GO_VECTOR.keyId);

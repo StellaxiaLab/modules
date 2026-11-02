@@ -1,0 +1,22 @@
+{
+  "$comment": "Terra 로그인 데모 Scene. Route 하나, Fragment 하나, Function 셋, Store 셋. requiredOperations가 비어 있는 것은 빠뜨린 것이 아니다 — 로그인은 operation 호출이 아니라 Credential Service로 가기 때문이고, 그래서 이 Scene은 어느 제품의 계약에도 매이지 않는다.",
+  "schemaVersion": "0.1.0",
+  "id": "lab.stellaxia.scene.login-demo",
+  "version": "0.1.0",
+  "name": "Terra 로그인 데모",
+  "entryRoute": "/",
+  "routes": [{ "path": "/", "fragment": "logindemo.login" }],
+  "functions": [
+    "contract/functions/login.field.function.json",
+    "contract/functions/login.submit.function.json",
+    "contract/functions/login.reset.function.json"
+  ],
+  "stores": [
+    "contract/stores/form.store.json",
+    "contract/stores/result.store.json",
+    "contract/stores/credential.store.json"
+  ],
+  "fragments": ["surface/fragments/login.fragment.json"],
+  "requiredOperations": [],
+  "recoveryFragment": "logindemo.login"
+}

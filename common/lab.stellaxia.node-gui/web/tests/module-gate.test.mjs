@@ -25,16 +25,16 @@ test('모듈이 없으면 부르지 않고 no-module 로 답한다', async () =>
 });
 
 test('모듈이 있으면 부른다', async () => {
-  const c = fakeClient(['io.terra.io-inventory', 'io.terra.file']);
-  const a = await invokeIfModule(c, 'io.terra.io-inventory', 'terra.daemon.io.devices.get', {});
-  const b = await invokeIfModule(c, 'io.terra.file', 'terra.daemon.files.list.get', {});
+  const c = fakeClient(['lab.stellaxia.io-inventory', 'lab.stellaxia.file']);
+  const a = await invokeIfModule(c, 'lab.stellaxia.io-inventory', 'terra.daemon.io.devices.get', {});
+  const b = await invokeIfModule(c, 'lab.stellaxia.file', 'terra.daemon.files.list.get', {});
   assert.deepEqual([a.kind, b.kind], ['ok', 'ok']);
   assert.deepEqual(c.calls, ['terra.daemon.modules.get', 'terra.daemon.io.devices.get', 'terra.daemon.files.list.get']);
 });
 
 test('modules.get 은 15초 동안 한 번만 — 첫 화면과 설정 보드가 함께 쓴다', async () => {
-  const c = fakeClient(['io.terra.file']);
-  await Promise.all([invokeIfModule(c, 'io.terra.file', 'terra.daemon.files.list.get', {}), invokeIfModule(c, 'io.terra.io-inventory', 'terra.daemon.io.devices.get', {}), modulesResult(c)]);
+  const c = fakeClient(['lab.stellaxia.file']);
+  await Promise.all([invokeIfModule(c, 'lab.stellaxia.file', 'terra.daemon.files.list.get', {}), invokeIfModule(c, 'lab.stellaxia.io-inventory', 'terra.daemon.io.devices.get', {}), modulesResult(c)]);
   assert.equal(c.calls.filter((x) => x === 'terra.daemon.modules.get').length, 1);
   const real = Date.now;
   try {
@@ -47,7 +47,7 @@ test('modules.get 은 15초 동안 한 번만 — 첫 화면과 설정 보드가
 test('modules.get 을 못 받으면 막지 않는다 — 부르고 서버가 판정한다', async () => {
   const c = fakeClient(null);
   assert.equal(await installedModuleIds(c), null);
-  const r = await invokeIfModule(c, 'io.terra.file', 'terra.daemon.files.list.get', {});
+  const r = await invokeIfModule(c, 'lab.stellaxia.file', 'terra.daemon.files.list.get', {});
   assert.equal(r.kind, 'ok');
   assert.ok(c.calls.includes('terra.daemon.files.list.get'));
 });
@@ -57,7 +57,7 @@ test('LOCAL_API_UNAVAILABLE 503 은 모듈이 시작하지 않았거나 없다�
 });
 
 test('모듈이 바뀌었다는 신호 뒤에는 캐시를 버리고 새로 본다', async () => {
-  const c = fakeClient(['io.terra.file']);
+  const c = fakeClient(['lab.stellaxia.file']);
   await modulesResult(c);
   await modulesResult(c);
   assert.equal(c.calls.filter((x) => x === 'terra.daemon.modules.get').length, 1);

@@ -60,7 +60,7 @@ export function pathInput(op, id, item) {
 /** 다른 노드에서 볼 때 바꿔 낄 것(spec.remote) — 게이트웨이 op 는 그 노드에 없다. 모듈 로그는 그 노드 Daemon 의 것으로 */
 function forNode(spec, local) { return spec && !local && spec.remote ? Object.assign({}, spec, spec.remote) : spec; }
 
-/** io.terra.file 이 root 를 비웠을 때 쓰는 공유 폴더(api.go defaultRootName) — 전송 기록의 root 는 이 이름으로 남는다 */
+/** lab.stellaxia.file 이 root 를 비웠을 때 쓰는 공유 폴더(api.go defaultRootName) — 전송 기록의 root 는 이 이름으로 남는다 */
 const DEFAULT_ROOT = 'share-0';
 /** 이만큼 서버 기록이 움직이지 않았고 이 화면이 보내지도 받지도 않으면 멈춘 전송이다 — 서버 시각(updated_at)으로 */
 export const STALL_MS = 60000;
@@ -131,7 +131,7 @@ export class LiveSource {
   appFor(app, node) { return appFor(app, this.daemonView(node)); }
 
   // L(Daemon) op — 이 노드면 invoke, 다른 노드면 노드 주소 호출(client.invoke 의 node = node_id).
-  // M(모듈) op — 이 노드면 invoke, 다른 노드면 원격 모듈 경로(client.invokeModuleAt — io.terra.file 은 노드 카탈로그에 없다). node_id 를 모르면 부르지 않는다.
+  // M(모듈) op — 이 노드면 invoke, 다른 노드면 원격 모듈 경로(client.invokeModuleAt — lab.stellaxia.file 은 노드 카탈로그에 없다). node_id 를 모르면 부르지 않는다.
   // T(Master) 의 읽기 · 지우기(GET · DELETE)는 node_id 를 query 로 싣는다(화면 이름이 아니라 진짜 node_id — 로컬 노드면 localId).
   // 본문이 있는 Master 호출(POST)에는 싣지 않는다 — Master 의 본문 해석기도 모르는 키를 거절한다(decodeJSON DisallowUnknownFields)
   call(spec0, node, input) {
@@ -226,7 +226,7 @@ export class LiveSource {
       const path = parts.slice(0, k).join('/'), key = root + '/' + path;
       if (seen.has(key)) continue;
       seen.add(key);
-      const r = await this.call({ op: 'io.terra.file.entries.list', where: 'M' }, node, path ? { root, path } : { root });
+      const r = await this.call({ op: 'lab.stellaxia.file.entries.list', where: 'M' }, node, path ? { root, path } : { root });
       if (r.kind !== 'ok') { if (k === 0 && !lenient) throw r; break; }
       out.push(...ADAPT.folderEntries(root, path, r.data));
     }
@@ -266,7 +266,7 @@ export class LiveSource {
   }
 
   /**
-   * 파일 올리기 — io.terra.file 전송: transfers.create(push · 크기 · SHA-256) → transfers.chunks.put(조각마다 —
+   * 파일 올리기 — lab.stellaxia.file 전송: transfers.create(push · 크기 · SHA-256) → transfers.chunks.put(조각마다 —
    * 409 면 서버가 받은 offset 부터 이어서) → transfers.complete(모듈이 전체 SHA-256 을 검사한다)
    * 끊긴 뒤 이어서(MD-21) — 보내던 화면을 닫으면 부분 파일이 남아 새로 만들기는 FILE_TARGET_EXISTS 다. 그 자리에 같은 파일
    * (크기 · SHA-256)을 보내다 멈춘 전송이 있으면 새로 만들지 않고 그 전송을 다시 연다(resume_id — 서버가 받은 곳부터).
@@ -278,7 +278,7 @@ export class LiveSource {
    * @returns {Promise<import('./client.js').Result & { from?: number }>}  from — 이어서 보냈으면 시작한 바이트
    */
   async upload(node, file, dir, onProgress, opts = {}) {
-    const M = (op, input) => this.call({ op: 'io.terra.file.' + op, where: 'M' }, node, input);
+    const M = (op, input) => this.call({ op: 'lab.stellaxia.file.' + op, where: 'M' }, node, input);
     const sha = await sha256Blob(file);
     let cr;
     if (opts.resume) {
@@ -332,7 +332,7 @@ export class LiveSource {
    * @returns {Promise<{ rec?: any } & Partial<import('./client.js').Result>>}  rec — 이을 전송 · reason — 이을 수 없는 까닭 · {} — 그런 전송이 없다
    */
   async stalledPush(node, root, path, size, sha) {
-    const r = await this.call({ op: 'io.terra.file.transfers.list', where: 'M' }, node, {});
+    const r = await this.call({ op: 'lab.stellaxia.file.transfers.list', where: 'M' }, node, {});
     if (r.kind !== 'ok') return {};
     const here = markStalled(ADAPT.xfer(r.data), this.active).filter((t) => t.dir === 'push' && t.root === root && t.path === path && /^(transferring|stalled|failed|aborted)$/.test(t.state));
     if (!here.length) return {};
@@ -342,7 +342,7 @@ export class LiveSource {
     if (!same.length) return { kind: 'unavailable', reason: 'xfer-other' };
     const t = same[0];
     await new Promise((res) => setTimeout(res, LiveSource.PROBE_MS));
-    const g = await this.call({ op: 'io.terra.file.transfers.get', where: 'M' }, node, { transfer_id: t.id });
+    const g = await this.call({ op: 'lab.stellaxia.file.transfers.get', where: 'M' }, node, { transfer_id: t.id });
     const now = trOf(g);
     if (g.reason === 'TRANSFER_EXPIRED') return { rec: t };   // 기한이 지났다 — 보내는 쪽이 없다
     if (g.kind === 'ok' && /^(prepared|transferring)$/.test(now.state) && Math.min(1, (now.offset || 0) / Math.max(1, t.bytes)) === t.off) return { rec: t };
@@ -350,7 +350,7 @@ export class LiveSource {
   }
 
   /**
-   * 파일 받기 — io.terra.file 받기(0.2.0): transfers.pulls.create(root · path) → transfers.chunks.get(offset 부터 eof 까지 —
+   * 파일 받기 — lab.stellaxia.file 받기(0.2.0): transfers.pulls.create(root · path) → transfers.chunks.get(offset 부터 eof 까지 —
    * 조각마다 SHA-256 을 견준다) → 전체 SHA-256 을 서버의 것과 견주고 transfers.pulls.complete. 어긋나면 pulls.abort 로 닫는다
    * 끊긴 뒤 이어서(MD-21) — 받은 조각을 이 브라우저(this.parts — IndexedDB)에 둔다. 같은 파일을 다시 받으면 새로 연 받기의
    * SHA-256 · 크기가 저장본과 같을 때 둔 곳부터 잇는다(다르면 그 사이 파일이 바뀌었다 — 처음부터). 앞서 받다 만 전송은 닫는다
@@ -360,7 +360,7 @@ export class LiveSource {
    * @returns {Promise<import('./client.js').Result & { blob?: Blob, name?: string, from?: number }>}  from — 이어 받았으면 시작한 바이트
    */
   async download(node, id, onProgress, opts = {}) {
-    const M = (op, input) => this.call({ op: 'io.terra.file.' + op, where: 'M' }, node, input);
+    const M = (op, input) => this.call({ op: 'lab.stellaxia.file.' + op, where: 'M' }, node, input);
     const s = String(id || ''), i = s.indexOf('/'), root = i < 0 ? '' : s.slice(0, i), path = i < 0 ? '' : s.slice(i + 1);
     if (!root || !path) return { kind: 'unavailable', reason: 'share-root' };
     const cr = await M('transfers.pulls.create', { root, path });

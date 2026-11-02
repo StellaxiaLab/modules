@@ -653,7 +653,7 @@ class Component extends DCLogic {
     const E = (o) => Object.assign({ lineStyle: 'solid', line: '#eef1f5', bg: '#ffffff', hexFill: 'none', hexDash: '0', btnDisp: 'inline-block', btnFg: '#16191f' }, o);
     const empties = [
       E({ title: '비어 있음', code: '200 · 0건', c: '#8b95a6', hexDash: '4 4', lineStyle: 'dashed', line: '#d8dde5', icon: 'M12 5v14M5 12h14', say: '아직 열린 터널이 없습니다', btn: '터널 열기', btnFg: '#2563eb' }),
-      E({ title: '모듈 내려감', code: '503 · io.terra.file', c: '#a65f00', hexFill: '#fff7e8', icon: 'M12 7v6M12 17h.01', say: '파일 모듈이 멈춰 있어 목록을 못 읽습니다', btn: '모듈 시작' }),
+      E({ title: '모듈 내려감', code: '503 · lab.stellaxia.file', c: '#a65f00', hexFill: '#fff7e8', icon: 'M12 7v6M12 17h.01', say: '파일 모듈이 멈춰 있어 목록을 못 읽습니다', btn: '모듈 시작' }),
       E({ title: '이 노드엔 없음', code: '501 · 파일 경계 없음', c: '#8b95a6', icon: 'M5 5l14 14M9 4h10v10M5 9v10h10', say: '파일 경계 없이 조립된 노드 — 여기선 쓸 수 없는 기능', btnDisp: 'none' }),
       E({ title: 'Master 연결 없음', code: 'upstream 없음', c: '#8b95a6', hexFill: '#f4f6f9', icon: 'M4 4l16 16M9 5.5A9 9 0 0 1 21 9M3 9a9 9 0 0 1 3-2M7 13a5 5 0 0 1 3-1.5M17 13a5 5 0 0 0-1.5-1M12 18h.01', say: '노드 요약은 Master를 거쳐 옵니다 — 이 장치만 보입니다', btn: '다시 연결' }),
       E({ title: '권한 없음', code: 'node.config ★', c: '#a65f00', hexFill: '#fff7e8', icon: lockIcon, say: '설정을 바꾸려면 node.config 권한이 필요합니다', btn: '권한 요청 방법' }),

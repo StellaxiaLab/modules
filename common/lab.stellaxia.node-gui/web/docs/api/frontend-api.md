@@ -165,7 +165,7 @@ window.__screen.goMap('nas-01');
 | --- | --- |
 | `fbToggle(mode?)` | 사이드 바 열기 · 닫기. `mode`를 주면 그 바로가기로 바로 → `fb` |
 | `FBMODES()` | 바로가기 셋 정의(이름 · 루트 · 읽기 전용 여부 · OS 경로) |
-| `FBDATA()` | **seam** — 저장소 · 탐색기 트리. 원본은 예시, 실데이터 층은 공유 폴더(`io.terra.file`) · 탐색기는 로컬 최상위 루트(`local-fs`) |
+| `FBDATA()` | **seam** — 저장소 · 탐색기 트리. 원본은 예시, 실데이터 층은 공유 폴더(`lab.stellaxia.file`) · 탐색기는 로컬 최상위 루트(`local-fs`) |
 | `fbList(mode)` | 그 모드의 항목들 (메모장은 `memos`) |
 | `fbOpenItem(entry)` | 폴더면 들어가기, 읽기 전용 파일이면 로컬 프로그램으로 열기(**seam**), 메모면 메모장 칸 |
 | `fbApp(name)` | 확장자 → 로컬 기본 프로그램 이름 |
@@ -226,7 +226,7 @@ sequenceDiagram
 | `NET` · `parentOfNode` | 예시 관계 | 이 노드 · 부모 tree · `GET /api/v1/agent/nodes` | `loadWorld` ✅ |
 | `startLogin` | 가짜 성공/실패 | 부르지 않는다 — **frame 안에서는 셸이 로그인한다**(§6.5) | — |
 | `beginSwitch(pick)` | tree 전환 연출 | 다른 tree로 가지 않고 글만 — 다른 tree의 게이트웨이에는 이 화면이 닿지 않는다 | `realNode` ✅ |
-| `FBDATA()` · `fbList('repo')` · `fbList('local')` | 예시 트리 | `io.terra.file.roots.list` · `entries.list` · 탐색기 `terra.daemon.local-fs.roots.get` · `entries.get` | `realNode` · `loadFolder` · `loadLocalFolder` ✅ |
+| `FBDATA()` · `fbList('repo')` · `fbList('local')` | 예시 트리 | `lab.stellaxia.file.roots.list` · `entries.list` · 탐색기 `terra.daemon.local-fs.roots.get` · `entries.get` | `realNode` · `loadFolder` · `loadLocalFolder` ✅ |
 | `fbOpenItem` · `fbOS` | 안내 글만 | 폴더는 들어가 읽고, 파일은 그 노드의 로컬 프로그램으로 · 파일 관리자로(`desktop.open` — 그 컴퓨터에서 볼 때만) | `realNode` · `deskOpen` ✅ |
 | `utilInfo()` · `renderVals()` | 예시 수치 · 창 요약 · 세션 띠 | 진짜 값(없으면 `—`) · `who` 바인딩 | `realNode` ✅ |
 | `memoSave` · `memoDel` · `memoMkdir` · `memos` | 메모리 | LayoutStore(브라우저 + 사용자 문서) | `bindLayout` · `DocStore` ✅ |
@@ -317,7 +317,7 @@ HELM_APPS.io = {
 
 ### 6.3 `ADAPT` (`adapters.js`)
 
-`ADAPT[app](응답, ctx) → 화면 모양[]`. `ctx`는 `{ local, grants, bindings, declarations }`(앱의 `extra` 결과). 필드 이름은 실제 응답(Daemon local API · `io.terra.file` 계약)으로 맞췄다.
+`ADAPT[app](응답, ctx) → 화면 모양[]`. `ctx`는 `{ local, grants, bindings, declarations }`(앱의 `extra` 결과). 필드 이름은 실제 응답(Daemon local API · `lab.stellaxia.file` 계약)으로 맞췄다.
 상태는 화면의 낱말로 옮긴다(`modState` · `jobState` · `xferState` · `tunnelState` · `sviState` · `declState`) — 화면의 상태 표(`ST`)에 없는 값이 오면 렌더 전체가 멈추기 때문이다.
 `withGui(items, apps)` — 모듈 목록에 게이트웨이의 설치된 GUI 앱을 붙인다(`gui` · `ui` = 앱 `route` · `apps[]`). 앱 목록을 못 읽었으면 그대로 둔다.
 

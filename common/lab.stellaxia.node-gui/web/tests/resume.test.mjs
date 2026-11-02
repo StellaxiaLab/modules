@@ -4,7 +4,7 @@
 //         FILE_TARGET_EXISTS 다. 그 자리에 같은 파일(크기 · SHA-256)을 보내다 멈춘 전송이 있으면 resume_id 로 그 전송을 다시 연다.
 // 받기:   받은 조각을 이 브라우저(src/store/parts.js — IndexedDB)에 둔다. 같은 파일을 다시 받으면 새로 연 받기의 SHA-256 · 크기가
 //         같을 때 둔 곳부터 잇는다. IndexedDB 자체는 Chromium 에서 본다(tests/smoke.mjs) — 여기서는 같은 약속의 메모리 판을 쓴다.
-// 입력 모양은 io.terra.file 계약 · api.go 에서 확인했다: transfers.create { …, resume_id } · transfers.list → { transfers: [기록] } ·
+// 입력 모양은 lab.stellaxia.file 계약 · api.go 에서 확인했다: transfers.create { …, resume_id } · transfers.list → { transfers: [기록] } ·
 //   기록 { transfer_id, direction, root, path, size_bytes, checksum_sha256, mode, offset, state, updated_at, expires_at }
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -29,7 +29,7 @@ function fakeFetch(answer) {
   f.calls = calls;
   return f;
 }
-const ops = (f, op) => f.calls.filter((c) => c.op === 'io.terra.file.' + op);
+const ops = (f, op) => f.calls.filter((c) => c.op === 'lab.stellaxia.file.' + op);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const iso = (ms) => new Date(ms).toISOString();
 LiveSource.PROBE_MS = 5;   // 다른 화면이 보내는 중인지 다시 볼 때 기다리는 시간
@@ -83,18 +83,18 @@ test('멈춘 전송 — 이 화면이 하지 않고, 기한이 지났거나 STAL
 function pushServer(data, sha, o = {}) {
   let next = 3;
   return fakeFetch((c) => {
-    if (c.op === 'io.terra.file.transfers.create') {
+    if (c.op === 'lab.stellaxia.file.transfers.create') {
       if (c.body.resume_id) return json(202, { status: 'accepted', data: { transfer: { transfer_id: c.body.resume_id, root: c.body.root, path: c.body.path, size_bytes: data.length, checksum_sha256: sha, chunk_size: 4, offset: next, state: 'prepared' } } });
       return json(409, { error: { code: 'FILE_TARGET_EXISTS', message: 'the target already exists' } });
     }
-    if (c.op === 'io.terra.file.transfers.list') return json(200, { transfers: o.list || [] });
-    if (c.op === 'io.terra.file.transfers.chunks.put') {
+    if (c.op === 'lab.stellaxia.file.transfers.list') return json(200, { transfers: o.list || [] });
+    if (c.op === 'lab.stellaxia.file.transfers.chunks.put') {
       if (o.expireAt === c.body.offset && !o.expired) { o.expired = true; next = c.body.offset; return json(409, { error: { code: 'TRANSFER_EXPIRED' } }); }
       if (o.stopped) return json(409, { error: { code: 'TRANSFER_WRONG_STATE' } });
       next = c.body.offset + atob(c.body.data).length;
       return json(200, { next_offset: next, size_bytes: data.length });
     }
-    if (c.op === 'io.terra.file.transfers.complete') return json(200, { transfer_id: c.body.transfer_id, bytes: data.length, checksum_sha256: sha, verified: true });
+    if (c.op === 'lab.stellaxia.file.transfers.complete') return json(200, { transfer_id: c.body.transfer_id, bytes: data.length, checksum_sha256: sha, verified: true });
     return json(404, {});
   });
 }
@@ -107,7 +107,7 @@ test('올리기 — 같은 자리에 같은 파일을 보내다 멈춘 전송이
   const seen = [];
   const r = await new LiveSource(new TerraClient('', { fetch: f }), { localNode: 'leaf-a' }).upload('leaf-a', file, '', (off) => seen.push(off));
   assert.deepEqual([r.kind, r.from], ['ok', 3]);
-  assert.deepEqual(f.calls.map((c) => c.op.replace('io.terra.file.', '')).slice(0, 3), ['transfers.create', 'transfers.list', 'transfers.create']);
+  assert.deepEqual(f.calls.map((c) => c.op.replace('lab.stellaxia.file.', '')).slice(0, 3), ['transfers.create', 'transfers.list', 'transfers.create']);
   assert.deepEqual(ops(f, 'transfers.create')[1].body, { direction: 'push', root: 'share-0', path: 'hi.txt', size_bytes: data.length, checksum_sha256: sha, mode: 'create', resume_id: 'tr-old' });
   assert.deepEqual(ops(f, 'transfers.chunks.put').map((c) => c.body.offset), [3, 7], '서버가 받은 곳(3)부터');
   assert.deepEqual(seen, [3, 7, 11]);
@@ -130,7 +130,7 @@ test('올리기 — 방금까지 움직인 것은 잠깐 기다려 다시 본다
   const rec = { transfer_id: 'tr-just', direction: 'push', root: 'share-0', path: 'hi.txt', size_bytes: data.length, checksum_sha256: sha, offset: 3, state: 'transferring', updated_at: iso(now - 500), expires_at: iso(now + 600e3) };
   const run = async (later) => {
     const base = pushServer(data, sha, { list: [rec] });
-    const f = fakeFetch((c) => (c.op === 'io.terra.file.transfers.get' ? json(200, { transfer: Object.assign({}, rec, later) }) : base(c.url, { body: c.body ? JSON.stringify(c.body) : undefined })));
+    const f = fakeFetch((c) => (c.op === 'lab.stellaxia.file.transfers.get' ? json(200, { transfer: Object.assign({}, rec, later) }) : base(c.url, { body: c.body ? JSON.stringify(c.body) : undefined })));
     const r = await new LiveSource(new TerraClient('', { fetch: f }), { localNode: 'n' }).upload('n', file, '');
     return [r.kind, r.reason || r.from, ops(f, 'transfers.get').length];
   };
@@ -163,18 +163,18 @@ function pullServer(body, o = {}) {
   let n = 0;
   const sum = o.sum;
   return fakeFetch((c) => {
-    if (c.op === 'io.terra.file.transfers.pulls.create') {
+    if (c.op === 'lab.stellaxia.file.transfers.pulls.create') {
       if (c.body.resume_id) return json(202, { transfer: { transfer_id: c.body.resume_id, direction: 'pull', size_bytes: body.length, checksum_sha256: sum, chunk_size: 4, state: 'prepared' } });
       return json(202, { transfer: { transfer_id: (o.prefix || 'p') + (++n), direction: 'pull', root: c.body.root, path: c.body.path, size_bytes: body.length, checksum_sha256: sum, chunk_size: 4, offset: 0, state: 'prepared' } });
     }
-    if (c.op === 'io.terra.file.transfers.chunks.get') {
+    if (c.op === 'lab.stellaxia.file.transfers.chunks.get') {
       if (o.cut === c.body.offset) { o.cut = null; return json(502, { error: { code: 'UPSTREAM_UNREACHABLE' } }); }
       if (o.expireAt === c.body.offset) { o.expireAt = null; return json(409, { error: { code: 'TRANSFER_EXPIRED' } }); }
       const b = new TextEncoder().encode(body.slice(c.body.offset, c.body.offset + 4));
       return json(200, { offset: c.body.offset, data: toB64(b), sha256: new Sha256().update(b).hex(), eof: c.body.offset + 4 >= body.length });
     }
-    if (c.op === 'io.terra.file.transfers.pulls.complete') return json(200, { transfer_id: c.body.transfer_id, bytes: body.length, checksum_sha256: sum, verified: true });
-    if (c.op === 'io.terra.file.transfers.pulls.abort') return json(200, { transfer_id: c.body.transfer_id, state: 'aborted', kept_partial: false });
+    if (c.op === 'lab.stellaxia.file.transfers.pulls.complete') return json(200, { transfer_id: c.body.transfer_id, bytes: body.length, checksum_sha256: sum, verified: true });
+    if (c.op === 'lab.stellaxia.file.transfers.pulls.abort') return json(200, { transfer_id: c.body.transfer_id, state: 'aborted', kept_partial: false });
     return json(404, {});
   });
 }
@@ -230,7 +230,7 @@ test('전송 앱 카드의 이어서 — 받기는 다시 받되 멈춘 전송�
   ];
   const pull = pullServer(body, { sum }), push = pushServer(body, sum);
   const f = fakeFetch((c) => {
-    if (c.op === 'io.terra.file.transfers.list') return json(200, { transfers: recs });
+    if (c.op === 'lab.stellaxia.file.transfers.list') return json(200, { transfers: recs });
     return (/pulls|chunks\.get/.test(c.op) ? pull : push)(c.url, { body: c.body ? JSON.stringify(c.body) : undefined });
   });
   const source = new LiveSource(new TerraClient('', { fetch: f }), { localNode: local, localId: 'node_a', parts: memParts() });
@@ -254,12 +254,12 @@ test('전송 앱 카드의 이어서 — 받기는 다시 받되 멈춘 전송�
     assert.equal(source.lockFor('xfer', 'resume', local), null, '잠그지 않는다');
     await s.hbAct('xfer', 'p-old', 'resume', local);
     await sleep(20);
-    assert.ok(f.calls.some((c) => c.op === 'io.terra.file.transfers.pulls.abort' && c.body.transfer_id === 'p-old'), '멈춘 받기를 닫았다');
+    assert.ok(f.calls.some((c) => c.op === 'lab.stellaxia.file.transfers.pulls.abort' && c.body.transfer_id === 'p-old'), '멈춘 받기를 닫았다');
     assert.ok(said.some((t) => /↓ hi\.txt 받음 — 검사 통과/.test(t)), said.join(' | '));
     assert.deepEqual(saved, ['hi.txt'], '브라우저로 저장했다');
     await s.hbAct('xfer', 'tr-old', 'resume', local);
     await sleep(40);
-    const resumed = f.calls.find((c) => c.op === 'io.terra.file.transfers.create' && c.body.resume_id);
+    const resumed = f.calls.find((c) => c.op === 'lab.stellaxia.file.transfers.create' && c.body.resume_id);
     assert.deepEqual([resumed && resumed.body.root, resumed && resumed.body.path], ['share-0', 'up/hi.txt']);
     assert.ok(said.some((t) => /↑ hi\.txt 올림 — 검사 통과 \(share-0\/up\/hi\.txt · 16%부터 이어서\)/.test(t)), said.join(' | '));
     unwire();
@@ -272,8 +272,8 @@ test('중단 · 치우기 — 중단은 부분을 남기고(이어서 올릴 수
   await source.act('leaf-a', 'xfer', 'tr-1', 'abort', { id: 'tr-1', dir: 'push', name: 'a.bin', state: 'transferring' });
   const c = await source.act('leaf-a', 'xfer', 'tr-1', 'clear', { id: 'tr-1', dir: 'push', name: 'a.bin', state: 'aborted' });
   assert.deepEqual(f.calls.map((x) => [x.op, x.body]), [
-    ['io.terra.file.transfers.abort', { transfer_id: 'tr-1', keep_partial: true }],
-    ['io.terra.file.transfers.abort', { transfer_id: 'tr-1', keep_partial: false }]
+    ['lab.stellaxia.file.transfers.abort', { transfer_id: 'tr-1', keep_partial: true }],
+    ['lab.stellaxia.file.transfers.abort', { transfer_id: 'tr-1', keep_partial: false }]
   ]);
   assert.equal(c.say, 'a.bin 치움 — 남겨 둔 부분 파일도 지웠다');
   assert.equal((await source.act('leaf-a', 'xfer', 'p-1', 'clear', { id: 'p-1', dir: 'pull', name: 'b.bin', state: 'aborted' })).say, 'b.bin 치움');

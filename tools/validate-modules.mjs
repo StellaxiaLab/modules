@@ -236,7 +236,7 @@ for (const module of modules) {
   // **오류다 (2026-10-03 승격).** 경고였던 이유는 사정이었다 — 규칙을 세울 때 들어온
   // 첫 모듈이 평면 배치라, 규칙을 세우자고 이미 도는 모듈을 막지 않았다. 이 자리의
   // 앞 판이 *"그 모듈이 옮겨지면 오류로 승격한다"* 고 적어 뒀고, 그 조건이 충족됐다:
-  // modules#19 가 io.terra.scene.login-demo 를 계층형으로 옮기면서 경고가 셋에서
+  // modules#19 가 io.terra.scene.login-demo(현 lab.stellaxia.scene.login-demo) 를 계층형으로 옮기면서 경고가 셋에서
   // 0 이 됐다. 경고로 둔 동안 같은 일이 한 번 더 조용히 들어왔다는 것이
   // (그 모듈이 평면으로 머지된 것이) 승격의 실제 근거다 — 경고는 막지 못한다.
   const sceneDir = join(module.dir, "scene");

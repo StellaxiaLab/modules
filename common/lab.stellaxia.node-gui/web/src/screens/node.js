@@ -2449,9 +2449,9 @@ export default class Component extends DCLogic {
       // 모듈: 코어 모듈 넷(io.terra.*) + 이 노드 고유 모듈(관계도의 '모듈' 자원). state = running · degraded · failed · stopped
       const own = res.filter((r) => r[1] === '모듈').map((r, i) => ({ id: 'local.' + n + '.m' + i, name: r[0], ver: '0.' + (3 + i) + '.' + (h % 7), state: pick(i + 2) ? 'running' : 'degraded', svi: 0, trust: 'local', note: pick(i + 2) ? '' : '응답 느림 — 재시도 3회', gui: i % 2 === 0, ui: i % 2 === 0 ? '/api/nodes/' + n + '/modules/local.m' + i + '/ui/' : '' }));
       return [
-        { id: 'io.terra.file', name: '파일', ver: '1.4.0', state: 'running', svi: 0, trust: 'core', note: '공유 폴더 1 · 전송 2', gui: true, ui: '/api/nodes/' + n + '/modules/io.terra.file/ui/' },
-        { id: 'io.terra.io-inventory', name: 'I/O 장치 원장', ver: '1.2.1', state: 'running', svi: 4, trust: 'core', note: 'SVI 자원 4 기여' },
-        { id: 'io.terra.io-weave', name: 'io-weave', ver: '0.9.2', state: loc ? 'running' : 'stopped', svi: 1, trust: 'core', note: 'pointer 입력 1', gui: true, ui: '/api/nodes/' + n + '/modules/io.terra.io-weave/ui/',
+        { id: 'lab.stellaxia.file', name: '파일', ver: '1.4.0', state: 'running', svi: 0, trust: 'core', note: '공유 폴더 1 · 전송 2', gui: true, ui: '/api/nodes/' + n + '/modules/lab.stellaxia.file/ui/' },
+        { id: 'lab.stellaxia.io-inventory', name: 'I/O 장치 원장', ver: '1.2.1', state: 'running', svi: 4, trust: 'core', note: 'SVI 자원 4 기여' },
+        { id: 'lab.stellaxia.io-weave', name: 'io-weave', ver: '0.9.2', state: loc ? 'running' : 'stopped', svi: 1, trust: 'core', note: 'pointer 입력 1', gui: true, ui: '/api/nodes/' + n + '/modules/lab.stellaxia.io-weave/ui/',
           cfg: { revision: 3, fields: [{ k: 'poll_ms', label: '읽기 간격 (ms)', type: 'num', ph: '기본 50' }, { k: 'mode', label: '모드', type: 'sel', opts: ['relative', 'absolute'] }, { k: 'share_cursor', label: '커서 공유', type: 'bool' }, { k: 'relay_token', label: '중계 토큰 🔒', type: 'secret', ph: '설정됨 — 비워 두면 그대로' }], vals: { poll_ms: '50', mode: 'relative', share_cursor: true, relay_token: '' } } },
         { id: 'io.terra.virtual-device', name: '가상 장치', ver: '0.6.0', state: 'failed', svi: 0, trust: 'core', note: 'vdevice 시작 실패 — uinput 권한' }
       ].concat(own);
@@ -2495,10 +2495,10 @@ export default class Component extends DCLogic {
         api: { list: 'terra.master.svi.grants.get + svi.bindings.get', add: 'terra.master.svi.grants.post', edit: 'terra.master.svi.grants.by-grant-id.patch {operations} — 줄이면 그 operation의 핸들이 닫힌다', del: 'svi.grants.by-grant-id.delete · 바인딩은 svi.bindings.by-binding-id.delete' },
         make: () => ({ id: 'g-' + uid(), type: 'grant', alive: true }) },
       folder: { need: ['file.write'], key: 'name', fields: [TX('name', '이름', '새 폴더'), BO('dir', '폴더'), TX('size', '크기', '12 KB'), TX('info', '메모', '오늘')],
-        api: { list: 'terra.daemon.files.list.get · 원격 io.terra.file.entries.list ⚠', add: 'io.terra.file.entries.mkdir · entries.write ⚠', edit: 'io.terra.file.entries.rename ⚠', del: 'io.terra.file.entries.remove ⚠' },
+        api: { list: 'terra.daemon.files.list.get · 원격 lab.stellaxia.file.entries.list ⚠', add: 'lab.stellaxia.file.entries.mkdir · entries.write ⚠', edit: 'lab.stellaxia.file.entries.rename ⚠', del: 'lab.stellaxia.file.entries.remove ⚠' },
         make: (v, node, S) => { const p = S.hbPath || ''; return { id: (p ? p + '/' : '') + v.name, parent: p, root: !p && !!v.dir }; } },
       xfer: { need: ['file.write'], key: 'name', fields: [TX('name', '파일', 'upload.dat'), SEL('dir', '방향', ['push', 'pull']), NU('total', '크기 (MB)')],
-        api: { list: 'io.terra.file.transfers.list', add: 'io.terra.file.transfers.create {direction}', edit: '⚠ 전송을 고치는 op 없음 — 중단(transfers.abort) 뒤 다시', del: 'io.terra.file.transfers.abort {keep_partial} · 끝난 기록은 치우기' },
+        api: { list: 'lab.stellaxia.file.transfers.list', add: 'lab.stellaxia.file.transfers.create {direction}', edit: '⚠ 전송을 고치는 op 없음 — 중단(transfers.abort) 뒤 다시', del: 'lab.stellaxia.file.transfers.abort {keep_partial} · 끝난 기록은 치우기' },
         make: () => ({ id: 'tr-' + uid(), off: 0, state: 'transferring' }) },
       tunnel: { need: ['node.control'], key: 'name', fields: [TX('name', '이름', 'ssh → nas-01'), SEL('type', '유형', ['decl', 'tun']), TX('to', '대상', 'nas-01:22'), TX('bind', '로컬 주소', '127.0.0.1:2222')],
         api: { list: 'terra.daemon.service-tunnels.get + terra.master.service-tunnels.declarations.get', add: '선언 ⚠ terra.master.service-tunnels.declarations.post · 즉석은 service-tunnels.open.post', edit: '⚠ 고치는 op 없음 — 지우고 다시', del: 'service-tunnels.by-tunnel-id.close.post · declarations.by-declaration-id.delete' },
@@ -3241,7 +3241,7 @@ export default class Component extends DCLogic {
       heads = [B('+ 허가', 'add', null, false, CTL)];
     } else if (px === 'folder') {
       const path = S.hbPath && list.some((x) => x.id === S.hbPath) ? S.hbPath : '', here = list.filter((x) => x.parent === path), RW = ['file.write'];
-      cards = here.map((d, i) => card(Object.assign({ id: d.id, name: d.name + (d.dir ? '/' : ''), sub: d.root ? '공유 폴더 · ' + d.info : d.dir ? '폴더 · ' + d.info : d.size + ' · ' + d.info, raw: (loc ? '' : '/api/nodes/' + node + '/modules/io.terra.file/v1 · ') + d.id,
+      cards = here.map((d, i) => card(Object.assign({ id: d.id, name: d.name + (d.dir ? '/' : ''), sub: d.root ? '공유 폴더 · ' + d.info : d.dir ? '폴더 · ' + d.info : d.size + ' · ' + d.info, raw: (loc ? '' : '/api/nodes/' + node + '/modules/lab.stellaxia.file/v1 · ') + d.id,
         icon: IC.app.folder, fresh: d.fresh,
         acts: d.dir ? [B('열기', 'open', d.id, true, ['file.read'])].concat(d.root ? [] : [B('지우기', 'del', d.id, false, RW)])
           : [B('받기', 'get', d.id, true, ['file.read']), B('지우기', 'del', d.id, false, RW)] }, d.root ? chip('루트', 'off') : d.dir ? chip('폴더', 'off') : chip('파일', 'ok')), i));

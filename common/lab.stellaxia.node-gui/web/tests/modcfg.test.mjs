@@ -80,7 +80,7 @@ function cfgServer(o = {}) {
       rev++;
       return json(202, { status: 'accepted', data: { module_id: 'lab.cfgtest', revision: rev, changed: Object.keys(c.body.values || {}).concat(c.body.unset || []), restart: true, module: { id: 'lab.cfgtest', state: 'running' } } });
     }
-    if (c.op === 'terra.daemon.modules.get') return json(200, { status: 'ok', data: { modules: [{ id: 'lab.cfgtest', name: 'cfg test', state: 'running' }, { id: 'io.terra.file', name: 'Terra File', state: 'running' }] } });
+    if (c.op === 'terra.daemon.modules.get') return json(200, { status: 'ok', data: { modules: [{ id: 'lab.cfgtest', name: 'cfg test', state: 'running' }, { id: 'lab.stellaxia.file', name: 'Terra File', state: 'running' }] } });
     return json(200, { status: 'ok', data: {} });
   });
 }
@@ -103,7 +103,7 @@ test('source — modConfig 는 스키마 · 값을 받아 폼 모양으로(다�
   await source.modConfig('leaf-b', 'lab.cfgtest');
   const opsB = f.calls.filter((c) => c.op);
   assert.ok(opsB.length === 2 && opsB.every((c) => c.url.startsWith('/api/v1/nodes/node_b/operations/')), f.calls.map((c) => c.url).join(' '));
-  const u = await new LiveSource(new TerraClient('', { fetch: cfgServer({ undeclared: true }) }), { localNode: 'leaf-a' }).modConfig('leaf-a', 'io.terra.file');
+  const u = await new LiveSource(new TerraClient('', { fetch: cfgServer({ undeclared: true }) }), { localNode: 'leaf-a' }).modConfig('leaf-a', 'lab.stellaxia.file');
   assert.deepEqual([u.cfg, u.r.reason], [null, 'MODULE_CONFIG_UNDECLARED']);
 });
 
@@ -120,7 +120,7 @@ test('wire — 모듈 수정 폼: 열기 전에 설정을 받아 그 칸으로 �
   const source = new LiveSource(client, { localNode: local, localId: 'node_a' });
   const unwire = wireHelm(s, source, { pollMs: 60000 });
   try {
-  s.hbPut(local, 'mod', [{ id: 'lab.cfgtest', name: 'cfg test', state: 'running' }, { id: 'io.terra.file', name: 'Terra File', state: 'running' }]);
+  s.hbPut(local, 'mod', [{ id: 'lab.cfgtest', name: 'cfg test', state: 'running' }, { id: 'lab.stellaxia.file', name: 'Terra File', state: 'running' }]);
   await s.hbFormOpen('mod', 'edit', 'lab.cfgtest', local, 'fs');
   const F = s.state.hbForm;
   assert.ok(F, '폼이 열렸다');
@@ -163,7 +163,7 @@ test('wire — 모듈 수정 폼: 열기 전에 설정을 받아 그 칸으로 �
   s.__real.perms = ['node.read', 'node.control', 'module.manage', 'file.read'];
   // 설정을 선언하지 않은 모듈 — 폼을 열지 않고 그렇다고 말한다(화면 원본의 글)
   opts.undeclared = true;
-  await s.hbFormOpen('mod', 'edit', 'io.terra.file', local, 'fs');
+  await s.hbFormOpen('mod', 'edit', 'lab.stellaxia.file', local, 'fs');
   assert.equal(s.state.hbForm, null);
   assert.ok(said.some((t) => /설정을 선언하지 않은 모듈이다/.test(t)), said.join(' | '));
   } finally {

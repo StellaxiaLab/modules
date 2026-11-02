@@ -24,7 +24,7 @@ const UPSTREAM_PREFIX = '/api/upstream';
 /** 노드 주소 호출 (Terra B-1 · ADR-GW-001) — 다른 노드의 operation 을 Master 가 중계하고, 대상 Daemon 이 자기 계약으로 다시 판정한다.
  *    POST /api/v1/nodes/{node_id}/operations/{id}/invoke  — 대상의 답(Daemon 봉투 · 202 포함)이 그대로 온다
  *    GET  /api/v1/nodes/{node_id}/catalog                 — 그 노드가 클러스터에 연 operation (availability.scopes 에 cluster)
- *  로컬 전용(명령 실행 · local-fs · desktop.open · 재시작 · 이벤트)과 io.terra.file(scopes local · node)은 그 카탈로그에 없다 */
+ *  로컬 전용(명령 실행 · local-fs · desktop.open · 재시작 · 이벤트)과 lab.stellaxia.file(scopes local · node)은 그 카탈로그에 없다 */
 export const RELAY_OP = 'terra.gateway.nodes.by-node.operations.by-id.invoke.post';
 export const NODE_CATALOG_OP = 'terra.gateway.nodes.by-node.catalog.get';
 /** 노드 카탈로그를 다시 받는 간격 — 노드가 모듈을 깔고 지우면 바뀐다 */
@@ -92,7 +92,7 @@ export class TerraClient {
   /** 이 op 를 부를 길이 있나 — 카탈로그에 있고 위임 입구가 열었거나, 경로로 부를 수 있다 (tree 의 카탈로그만으로는 닫힌 쓰기를 못 거른다) */
   reaches(id) { return (this.has(id) && !this.delegationClosed(id)) || this.viaUpstream(id); }
 
-  /** 카탈로그의 bindings('GET /api/modules/io.terra.file/v1/entries') → { method, path }. 없으면 fallback */
+  /** 카탈로그의 bindings('GET /api/modules/lab.stellaxia.file/v1/entries') → { method, path }. 없으면 fallback */
   binding(id, fallback) {
     const e = this.entry(id), b = (e && e.bindings) || [];
     for (const s of b) { const m = /^([A-Z]+)\s+(\/\S+)$/.exec(String(s)); if (m) return { method: m[1], path: m[2] }; }
@@ -206,7 +206,7 @@ export class TerraClient {
 
   /**
    * 다른 노드의 **모듈** operation — 원격 모듈 경로 `/api/nodes/{node_id}/modules/{모듈}/…`(Master 중계).
-   * 모듈 op(io.terra.file …)는 scopes 가 local · node 라 노드 주소 호출(그 노드 카탈로그)에 없다 — 모듈 경로로 간다.
+   * 모듈 op(lab.stellaxia.file …)는 scopes 가 local · node 라 노드 주소 호출(그 노드 카탈로그)에 없다 — 모듈 경로로 간다.
    * 경로는 카탈로그의 bindings(없으면 fallback)에서 — `{name}` 자리를 채우고, GET · DELETE 는 나머지를 query 로, 그 밖은 본문으로
    * @param {string} nodeId @param {string} id @param {object} [input] @param {{ method: string, path: string }} [fallback]
    * @returns {Promise<Result>}

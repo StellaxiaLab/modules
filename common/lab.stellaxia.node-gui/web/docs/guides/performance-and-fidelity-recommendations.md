@@ -50,7 +50,7 @@ related:
 | P-4 | 진입 연출이 데이터 준비 뒤에 시작된다 | `autoMs` 1.4초 + 내려가는 연출 약 4~5초가 데이터 뒤에 직렬 | 연출과 로딩을 겹치기 | 낮음 | 작음 | **코드** (원본 `design/`) | MD-43 (UP-35 흡수) |
 | F-1 | 노드 카드의 CPU · 메모리 · 디스크가 **지어낸 값**이다 | 노드 이름 해시로 계산(`node.js:4393`). 실제는 0~2% · 6% · 28%인데 24% · 48% · 87%가 뜬다 | 실데이터로 잇거나 칸을 숨긴다 | **높음**(신뢰) | 작음 | **코드** (원본 `design/`) | MD-36 (UP-34 흡수) |
 | F-2 | 모듈 · 사용자 · 설정 창의 본문이 빈 안내문이다 | "…화면이 이 창 안에 들어옵니다"만 보이고 숫자 한 줄이 전부 | 본문을 잇거나 "보드에서 열기"를 눈에 띄게 | 중간 | 중간 | **코드** (원본 `design/` + 연동 층) | MD-40 (UP-36 흡수) |
-| E-1 | `io.devices.get` · `files.list.get`이 503이다 | 이 데몬에 `io.terra.io-inventory` · `io.terra.file`이 없는 환경 | 모듈 없음과 오류를 구분해 보인다 | 낮음 | 작음 | **코드** | MD-38 |
+| E-1 | `io.devices.get` · `files.list.get`이 503이다 | 이 데몬에 `lab.stellaxia.io-inventory` · `lab.stellaxia.file`이 없는 환경 | 모듈 없음과 오류를 구분해 보인다 | 낮음 | 작음 | **코드** | MD-38 |
 
 > [!NOTE] 2026-10-09 — 담당 구분이 없어졌다
 > 처음에는 `src/screens/*.js`가 maingui 디자인 원본의 생성 파일이라 굽기 · 예시 미터 · 연출 · 빈 창은 **디자인(maingui)** 이, 요청 순서 · 오류 처리는 **코드(modules)** 가 맡는 것으로 나눴다.
@@ -217,7 +217,7 @@ meters: [['CPU', m(0)], ['메모리', m(7) + 12], ['디스크', m(13) + 18]]
 
 ### E-1. 모듈 없음과 오류를 구분한다 (낮음)
 
-`terra.daemon.io.devices.get` · `terra.daemon.files.list.get`이 503이다. 이 환경의 데몬에는 `io.terra.io-inventory` · `io.terra.file`을 설치하지 않았다. 모듈이 없어서 닫혀 있는 것이므로 오류가 아니다.
+`terra.daemon.io.devices.get` · `terra.daemon.files.list.get`이 503이다. 이 환경의 데몬에는 `lab.stellaxia.io-inventory` · `lab.stellaxia.file`을 설치하지 않았다. 모듈이 없어서 닫혀 있는 것이므로 오류가 아니다.
 
 - 응답 503의 사유(모듈 미설치)를 화면이 읽어 "이 노드에 입출력 모듈이 없다"로 보이게 한다.
 - 콘솔의 오류 로그가 정상 흐름에서도 남지 않도록 첫 호출 전에 `modules.get` 결과로 건너뛴다.

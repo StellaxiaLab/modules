@@ -87,7 +87,7 @@ flowchart TB
 | 관리하는 자원(속성 창) | `io.devices.get` · `files.list.get` · `modules.get` 의 개수 | 없음 |
 | 알림 | `terra.daemon.tasks.get` — 신호 `terra.tasks.changed`(§2.6)마다, 이벤트가 없으면 10초마다. 새로 생기거나 상태가 바뀐 작업 | 없음 |
 | 유틸 카드 · 창 요약 | 위 값 + `config.schema.get`(키 수) · `wireguard.status.get` · `service-tunnels.get` · 화면 자산 수(설계도 · 스킨 · 자재) | `—` |
-| 폴더 보관함 › Terra 저장소 | `io.terra.file.roots.list` → 들어가면 `io.terra.file.entries.list` | 비어 있음 |
+| 폴더 보관함 › Terra 저장소 | `lab.stellaxia.file.roots.list` → 들어가면 `lab.stellaxia.file.entries.list` | 비어 있음 |
 | 폴더 보관함 › 폴더 탐색기 | `terra.daemon.local-fs.roots.get` → 들어가면 `local-fs.entries.get {root, path?, limit: 500}`(B-11, `file.read`). Daemon 이 닫은 폴더(`readable: false` — 자기 데이터 폴더 등)는 🔒 + 이유. 파일 = 그 노드의 로컬 프로그램으로(`desktop.open.post {action: open}`), `파일 관리자로` = 지금 폴더(`reveal`) — B-12 · `node.control` · 그 컴퓨터에서 이 화면을 볼 때만(앱 origin 이 `*.localhost`) | 비어 있음 |
 | 폴더 보관함 › 메모장 | LayoutStore — 이 브라우저 + 사용자 문서(§2.8) | 화면 메모리(로그인하면 저장본으로) |
 | tree 목록(관리 노드 창) | 없음 — 사용자가 등록한 연결 목록을 둘 곳이 없다. 다른 tree 로 가는 길도 없다(`beginSwitch` 가 막는다) | 같다 |
@@ -97,8 +97,8 @@ flowchart TB
 | 앱 | 목록 | 동작 |
 | --- | --- | --- |
 | I/O 장치 | `terra.daemon.io.devices.get` | 승인 · 거부 · 켜기 · 끄기 · 잊기 · 스캔(결과를 `스캔 — 장치 n · 새 · 바뀜 · 사라짐`으로) (`node.control`). `＋ 추가` = 카메라 주소로 손 등록(§2.4). 고치기 · 삭제는 §2.4 |
-| 공유 폴더 | `files.list.get` + 들어간 경로 · **맵에 설치한 칸 · 상태 화면이 보는 칸의 위 칸**까지 단계마다 `io.terra.file.entries.list`(겹치는 단계는 한 번) | 들어가기 · `+ 폴더`. 추가(폴더 · 빈 파일) · 이름 바꾸기 · 지우기는 §2.4. 파일 카드의 `받기` = §2.9 |
-| 파일 전송 | `io.terra.file.transfers.list` | `↑ 올리기` = 파일 고르기 → 조각 전송(§2.9) · 중단(`transfers.abort` · 부분 파일 남김) |
+| 공유 폴더 | `files.list.get` + 들어간 경로 · **맵에 설치한 칸 · 상태 화면이 보는 칸의 위 칸**까지 단계마다 `lab.stellaxia.file.entries.list`(겹치는 단계는 한 번) | 들어가기 · `+ 폴더`. 추가(폴더 · 빈 파일) · 이름 바꾸기 · 지우기는 §2.4. 파일 카드의 `받기` = §2.9 |
+| 파일 전송 | `lab.stellaxia.file.transfers.list` | `↑ 올리기` = 파일 고르기 → 조각 전송(§2.9) · 중단(`transfers.abort` · 부분 파일 남김) |
 | 서비스 터널 | `service-tunnels.get` | 닫기(`by-tunnel-id.close.post`). `+ 즉석 열기`는 폼을 연다 — 여는 것 · 선언은 Master(§2.4) |
 | WireGuard 피어 | `wireguard.status.get` 이 꺼져 있으면 부르지 않는다, 켜져 있으면 `wireguard.peers.get` | 동기화. 회수는 Master — 본문은 두 끝(`source_node_id` · `target_node_id`) |
 | 자원 선언 | `svi.declarations.get` — 요약 줄은 울타리(`envelope.process` · `max_declarations`) | `+ 선언` · `다시 선언`은 폼을 연다. 선언 · 철회는 `node.config`★ — 앱이 선언하지 않은 권한이라 잠기고, 그 op 들이 게이트웨이 카탈로그에도 없다(§5.1) |
@@ -137,7 +137,7 @@ flowchart TB
 | 앱 | 추가 | 수정 | 삭제 |
 | --- | --- | --- | --- |
 | I/O 장치 | 손 등록 `terra.daemon.io.devices.post {kind: camera, name, adapter_id, address}` — 주소의 scheme 이 어댑터를 고른다(`rtsp` · `rtsps` → `manual.rtsp`, `http` · `https` → `manual.http-camera` — io-inventory 수동 원천). 주소를 비우면 `io.scan.post {}`(스캔이 찾는다), 모르는 scheme 은 부르지 않는다 | 바뀐 것만 차례로: `io.devices.by-device-id.alias.post {device_id, alias}` · `approve` · `deny` · `enable` · `disable`(`{device_id}`). 종류는 못 바꾼다 · 승인 대기로 되돌리는 op 는 없다 · 하나가 실패하면 거기서 멈춘다 | `io.devices.by-device-id.forget.post` (잊음) |
-| 공유 폴더 | 폴더 `io.terra.file.entries.mkdir {root, path}` · 파일 `entries.write {root, path, data: '', exclusive: true}`(빈 파일 — 있으면 거절). 공유 폴더(맨 위 칸) 자리에는 만들지 않는다 | `entries.rename {root, path, to}` — 같은 공유 폴더 안. 이름에 `/` 는 안 된다 | `entries.remove {root, path, recursive}` — 폴더면 recursive. 공유 폴더 자신은 지우지 않는다 |
+| 공유 폴더 | 폴더 `lab.stellaxia.file.entries.mkdir {root, path}` · 파일 `entries.write {root, path, data: '', exclusive: true}`(빈 파일 — 있으면 거절). 공유 폴더(맨 위 칸) 자리에는 만들지 않는다 | `entries.rename {root, path, to}` — 같은 공유 폴더 안. 이름에 `/` 는 안 된다 | `entries.remove {root, path, recursive}` — 폴더면 recursive. 공유 폴더 자신은 지우지 않는다 |
 | 파일 전송 | — 폼이 아니다: 올리기는 머리의 `↑ 올리기`, 받기는 공유 폴더 파일 카드의 `받기`(§2.9) | — | 도는 전송 · 중단해 둔 전송은 포기 `transfers.abort {transfer_id, keep_partial: false}`, 끝난 전송은 화면에서만 치운다 |
 | 서비스 터널 | Master — 선언 `terra.master.service-tunnels.declarations.post` · 즉석 `service-tunnels.open.post`, 본문 `{source_node_id, target_node_id, target_port, local_bind_host, local_port}`(대상은 맵의 노드 이름 → `node_id` · loopback 만) | — 지우고 다시 | 즉석 `terra.daemon.service-tunnels.by-tunnel-id.close.post` · 선언은 Master `declarations.by-declaration-id.delete` |
 | WireGuard 피어 | — mesh 가입으로 생긴다 | — | Master `network.mesh.wireguard.peers.revoke.post {source_node_id, target_node_id}` — 공개 키뿐인 피어는 못 한다 |
@@ -147,7 +147,7 @@ flowchart TB
 | 모듈 | — 설치 op 가 없다(노드 지정은 Master — PF-14) | **모듈 설정**(B-6 설정 · maingui A-29) — 폼을 열기 전에 `terra.daemon.modules.by-module-id.config.schema.get` · `config.get`(`node.read`)으로 칸 · 값을 받아 항목에 붙인다(`item.cfg` — `cfgForm`: 수 · 고르기 · 예/아니오 · 글 · 비밀). 저장은 `config.patch {module_id, values, unset, base_revision}`(`module.manage`★) — 바뀐 키만(`cfgPatch`), 비운 칸은 `unset`(기본값으로), 비밀은 적었을 때만. 거절은 키를 적는다(`error.detail.keys`) · 겹치면 409 · 설정을 선언하지 않은 모듈은 폼을 열지 않고 그렇다고. 다른 노드는 노드 주소 호출 | — 제거 op 가 없다 |
 | SVI 자원 | — 선언에서 생긴다 | — | — |
 
-본문은 서버 코드에서 확인했다 — Daemon local API(`DisallowUnknownFields`) · Master 라우트(`decodeJSON` — 모르는 키 거절) · `io.terra.file` 계약
+본문은 서버 코드에서 확인했다 — Daemon local API(`DisallowUnknownFields`) · Master 라우트(`decodeJSON` — 모르는 키 거절) · `lab.stellaxia.file` 계약
 (`additionalProperties: false`). 게이트웨이 invoke 는 경로 자리(`{device_id}` …)를 채우고 본문에서 뺀다(`resolvePathParameters`).
 그래서 Master 의 **본문이 있는 호출(POST)에는 `node_id` 를 싣지 않는다** — 읽기 · 지우기(GET · DELETE)만 query 로 싣는다.
 
@@ -212,7 +212,7 @@ fetch 스트림으로 읽는다(frame 의 `terra.fetch` 가 앱 토큰을 싣는
 - `node_id` 는 관계도(`NET[이름].id`)에서 — 모르는 이름(부모 tree 등)은 부르지 않는다(`no-node-id`).
 - 그 노드의 카탈로그(`GET /api/v1/nodes/{node_id}/catalog` — 60초 캐시)에 있는 것만 부른다. 누르기 전에 잠근다(`lockFor` — `그 노드가 이 기능을 원격으로 열지 않았다` · `allowed: false` 면 `권한이 없다`). 카탈로그가 오면 자물쇠를 다시 그린다.
 - 원격으로 열린 것(`availability.scopes` 에 `cluster` — Daemon 계약 70개 중 47개): I/O 장치 · 모듈(로그 포함) · 작업 목록 · 기록 · 취소 · 자원 선언 · 서비스 터널 목록 · 닫기 · WireGuard. 열리지 않은 것: 명령 실행 · `local-fs` · `desktop.open` · 재시작 · 이벤트 · 설정 쓰기.
-- **모듈 op**(`io.terra.file` — scopes `local` · `node`)는 노드 카탈로그에 없다 — 원격 모듈 경로 `/api/nodes/{node_id}/modules/io.terra.file/v1/…`로 부른다(`client.invokeModuleAt` — Master 중계). 경로는 카탈로그의 `bindings`(이 노드에 io.terra.file 이 없으면 대응표 `fileBinding`), `{transfer_id}` 자리는 채우고 GET · DELETE 는 나머지를 query 로(`fillRoute`). 그래서 다른 노드의 공유 폴더 안 · 전송 · 올리기 · 받기 · 지우기도 된다.
+- **모듈 op**(`lab.stellaxia.file` — scopes `local` · `node`)는 노드 카탈로그에 없다 — 원격 모듈 경로 `/api/nodes/{node_id}/modules/lab.stellaxia.file/v1/…`로 부른다(`client.invokeModuleAt` — Master 중계). 경로는 카탈로그의 `bindings`(이 노드에 lab.stellaxia.file 이 없으면 대응표 `fileBinding`), `{transfer_id}` 자리는 채우고 GET · DELETE 는 나머지를 query 로(`fillRoute`). 그래서 다른 노드의 공유 폴더 안 · 전송 · 올리기 · 받기 · 지우기도 된다.
 - 게이트웨이 op 는 그 노드 카탈로그에 없다 — 모듈 로그는 다른 노드면 그 Daemon 의 `modules.by-module-id.logs.get` 으로(`remote`).
 - 앱 토큰은 Master 작업 기록(`jobs.get`)을 읽지만(PF-1 1차) 명령 보내기 · 취소는 Master 쓰기(2차)다 — 다른 노드의 작업도 그 Daemon 의 작업 목록으로 본다(`daemonView`). Master 의 길 오류(`NODE_OFFLINE` · `RELAY_NOT_CONNECTED` · `DELEGATION_REQUIRED` · `NODE_NOT_FOUND`)는 화면 글로 옮긴다.
 
@@ -262,7 +262,7 @@ sequenceDiagram
 | 받기 | 공유 폴더 파일 카드 `받기` → `transfers.pulls.create {root, path}` → `transfers.chunks.get {transfer_id, offset}`(eof 까지) → `transfers.pulls.complete` → 브라우저 저장(`a[download]` — frame 은 `allow-downloads`) | 조각마다 SHA-256 · 끝에서 전체 SHA-256 을 서버의 것과 견준다. 어긋나면 `transfers.pulls.abort` 로 닫고 저장하지 않는다 |
 
 SHA-256 은 직접 계산한다(`sha256.js` — maingui 와 같은 코드). `crypto.subtle` 은 한 번에 다 넣어야 하고 https 가 아닌 사설망 주소에서는 아예 없다.
-받기는 io.terra.file 0.2.0(modules #24 — `transfers.pulls.*`)이 있어야 한다. 그 op 가 카탈로그에 없으면 누르기 전에 잠근다.
+받기는 lab.stellaxia.file 0.2.0(modules #24 — `transfers.pulls.*`)이 있어야 한다. 그 op 가 카탈로그에 없으면 누르기 전에 잠근다.
 
 **끊긴 뒤 이어서(MD-21)** — 페이지를 닫았다 다시 열어도(다른 브라우저여도) 올리기 · 받기를 잇는다.
 
@@ -294,7 +294,7 @@ flowchart TD
   end
 ```
 
-부분을 남기는 중단은 io.terra.file **0.2.1**부터다 — 0.2.0은 `keep_partial` 을 query 에서만 읽어, 게이트웨이 invoke(POST 입력은 본문으로 간다)로 보낸 중단이 늘 포기(부분 파일 삭제 · 기록 잊음)였다(§5.1).
+부분을 남기는 중단은 lab.stellaxia.file **0.2.1**부터다 — 0.2.0은 `keep_partial` 을 query 에서만 읽어, 게이트웨이 invoke(POST 입력은 본문으로 간다)로 보낸 중단이 늘 포기(부분 파일 삭제 · 기록 잊음)였다(§5.1).
 
 ### 2.10 작업 출력 · 다시 실행 — Terra PF-7 (`src/api/task-output.js`)
 
@@ -316,7 +316,7 @@ Daemon 이 명령 작업마다 출력의 꼬리(256 KiB — 노드 전체 32 MiB
 - **타일 · 건물 · 도로 그림은 쓰일 때 굽는다.** 마운트 때 라이브러리 전체(타일 30 + 프레임 35 · 건물 10 × 4방향 · 도로 3 — SVG 38MB)를 굽던 것을 `needTile`(타일) · `needBld`(건물) · `roadImgOf`(도로)가 화면이 쓰는 것만 줄에 세운다.
   줄(`bakeEnq`/`bakePump`)은 한 번에 한 장씩 `requestIdleCallback` 틱 사이에 돈다 — 팔레트 도로 카드는 낮은 우선순위. 아직 안 구워진 것은 기존대로 **벡터로** 그린다(`tileDefs`는 쓰이는 미완료 타일만 문서에 둔다).
 - **PNG 인코딩은 비동기다**(`pngUrl` — `canvas.toBlob` + `FileReader`). **CSP가 `img-src 'self' data:`라 `blob:` URL은 못 쓴다** — 데이터 URL로 바꿔 쓴다. 이 줄을 건드릴 때 `createObjectURL`로 바꾸면 그림이 사라진다.
-- **모듈이 없는 노드는 그 모듈의 operation을 부르지 않는다**(`src/api/module-gate.js`). `terra.daemon.io.devices.get` ← `io.terra.io-inventory` · `terra.daemon.files.list.get` ← `io.terra.file`. `modules.get`(15초 캐시)을 먼저 보고 없으면 `{ kind: 'unavailable', reason: 'no-module' }`.
+- **모듈이 없는 노드는 그 모듈의 operation을 부르지 않는다**(`src/api/module-gate.js`). `terra.daemon.io.devices.get` ← `lab.stellaxia.io-inventory` · `terra.daemon.files.list.get` ← `lab.stellaxia.file`. `modules.get`(15초 캐시)을 먼저 보고 없으면 `{ kind: 'unavailable', reason: 'no-module' }`.
   `modules.get`을 못 받으면 막지 않는다(서버가 판정한다). 첫 화면(`loadResources`)과 설정 보드가 함께 쓴다.
 - **노드 카드의 CPU · 메모리 · 디스크는 받은 값만 그린다**(`nodeMeters(nd)` ← `__real.meters[노드 이름] = { cpu, mem, disk }`, 0~100). 지금은 아무도 채우지 않는다 — leaf 게이트웨이가 사용량을 앱 토큰에 주지 않는다(backlog **PF-25**).
   값이 없으면 막대 대신 "사용량 — 이 노드의 게이트웨이가 아직 알려 주지 않는다". 예전의 노드 이름 해시 값은 없다.
@@ -354,7 +354,7 @@ Daemon 이 명령 작업마다 출력의 꼬리(256 KiB — 노드 전체 32 MiB
 
 ## 5. 실측 — 진짜 스택 위에서
 
-2026-10-03. 진짜 Master · Daemon(등록) · 게이트웨이 · `io.terra.file` · `io.terra.io-inventory` 와 leaf UI 셸(Vite) 위에
+2026-10-03. 진짜 Master · Daemon(등록) · 게이트웨이 · `lab.stellaxia.file` · `lab.stellaxia.io-inventory` 와 leaf UI 셸(Vite) 위에
 포장물을 `terra module install --dev --force` 로 깔고 Chromium(Playwright)으로 돌렸다. 화면에 **보이는 글자 전체**(보드 iframe 포함)에서
 예전 예시 표식(노드 이름 · 장치 · 메모 · 알림 · IP · `21:40` · `예시 데이터` · `시연` … 60여 개)을 찾았다.
 
@@ -407,7 +407,7 @@ Daemon 이 명령 작업마다 출력의 꼬리(256 KiB — 노드 전체 32 MiB
 | `svi.declarations` 의 POST 계열(선언 · 철회 · 잊기)은 Daemon local API 에 있지만 게이트웨이 카탈로그에 없다 | `이 노드의 게이트웨이에 없다` |
 | `terra.daemon.commands.execute.post` 는 `{command, args, working_dir, timeout_sec, env, capture_output}`만 받고 `202 {task_id}` | 이 노드의 실행은 Master 를 거치지 않는다 |
 | (G0~G6 뒤) 사용자 문서 GET 은 없으면 404 `DOCUMENT_NOT_FOUND`, PUT 은 `base_revision` 없이 있는 문서를 쓰면 · 어긋나면 409 `DOCUMENT_REVISION_CONFLICT {current_revision}` | 없음은 "저장소가 있다"로 읽고 처음 쓰기가 만든다 · 409 는 한 번 알리고 지금 판 위에 다시 쓴다 |
-| 노드 카탈로그는 Daemon 계약의 `availability.scopes` 에 `cluster` 가 있는 것만 — 이 스택에서 49개(Daemon 47 + 모듈). `io.terra.file` 은 scopes `local` · `node` 라 없다 | 그 노드 카탈로그로 누르기 전에 잠근다(§2.7) |
+| 노드 카탈로그는 Daemon 계약의 `availability.scopes` 에 `cluster` 가 있는 것만 — 이 스택에서 49개(Daemon 47 + 모듈). `lab.stellaxia.file` 은 scopes `local` · `node` 라 없다 | 그 노드 카탈로그로 누르기 전에 잠근다(§2.7) |
 | Daemon 모듈 로그(`modules.by-module-id.logs.get`)의 줄은 글이 아니라 `{at, stream, text}` 다 — 게이트웨이 것은 글(`logs`) | 둘 다 글로 옮긴다(`logLines`) |
 | `local-fs.roots.get` 은 Daemon 자기 폴더(데이터 · 설정 디렉터리)를 품은 루트를 `readable: false` · `reason: denied` 로 준다 | 🔒 + 이유, 누르면 들어가지 않고 그렇다고 말한다 |
 | `desktop.open.post` 의 실행 파일 거절은 409 `DESKTOP_OPEN_EXECUTABLE`, 바탕화면 세션이 없으면 503 `DESKTOP_SESSION_UNAVAILABLE`, 여는 프로그램이 없으면 503 `DESKTOP_LAUNCHER_UNAVAILABLE` | 코드마다 화면 글(머리말 없이) |
@@ -416,7 +416,7 @@ Daemon 이 명령 작업마다 출력의 꼬리(256 KiB — 노드 전체 32 MiB
 | (Terra main `3195421`) SVI 자원 · 허가 · 핸들 · 바인딩 · 흐름 이벤트는 모두 Master op(`terra.master.svi.*`)다 — Daemon 에는 선언(`svi.declarations.*`)뿐이다. 허가 목록은 `{items[{grant_id, subject{type, id}, resource_id, operations, created_at, expires_at?}]}`(기한이 없으면 `expires_at` 이 없다 — `routes_svi_grants.go` `sviGrantView`), 바인딩 목록은 `{items[{binding_id, source{resource_id, endpoint_id}, target{…}, source_node_id, target_node_id, desired_state, observed_state, reason, qos_profile}]}`(`BindingView`) | 허가 · 바인딩 어댑터를 그 모양으로 고쳤다 — 예전 키(`grants` · `subject_id` · `source_resource_id`)는 없는 키였다(MD-23). 앱 토큰으로는 빈 흐름도 + 이유 |
 | maingui A-20 의 네트워크 읽기 다섯(`network.networks.get` · `network.probes.get` · `route.policies.get` · `route.sessions.get` · `connection-groups.get`)도 Master op 다 — tree Gateway 가 중계한다 | 네트워크 보드의 Master 묶음은 그대로 `Master operation — 이 화면에서 닿지 않음` — **2026-10-09: 위임 입구 1차로 읽는다(§5.8)** |
 | 설정 스키마는 Daemon 이 키를 정렬해 준다(Go map) — 폼 칸은 키 이름 순서다. 기본값은 값에 채우지 않는다(`values` 는 저장된 것만) | 기본값은 자리 표시자(`기본 50`)로 보인다 |
-| io.terra.file 0.2.0 의 중단(`transfers.abort` · `pulls.abort`)은 `keep_partial` · `reason` 을 **query 에서만** 읽었다. 게이트웨이 invoke 는 POST 입력을 본문으로 보내므로(`BuildOperationTarget`) 앱이 보낸 `keep_partial: true` 가 들리지 않아 늘 포기였다 — 실측 `kept_partial: false` · 기록 404 · 부분 파일 없음 | io.terra.file 0.2.1이 본문도 읽는다(본문이 이긴다 · query 도 그대로) — 같은 실측이 `kept_partial: true` · 기록 200 · 부분 파일 262144 B |
+| lab.stellaxia.file 0.2.0 의 중단(`transfers.abort` · `pulls.abort`)은 `keep_partial` · `reason` 을 **query 에서만** 읽었다. 게이트웨이 invoke 는 POST 입력을 본문으로 보내므로(`BuildOperationTarget`) 앱이 보낸 `keep_partial: true` 가 들리지 않아 늘 포기였다 — 실측 `kept_partial: false` · 기록 404 · 부분 파일 없음 | lab.stellaxia.file 0.2.1이 본문도 읽는다(본문이 이긴다 · query 도 그대로) — 같은 실측이 `kept_partial: true` · 기록 200 · 부분 파일 262144 B |
 | 받기 전용 문(`pulls.complete` · `pulls.abort`)은 기한이 지난 받기를 닫지 못했다(`TRANSFER_EXPIRED`) — 받던 화면이 닫히면 그 받기가 목록에 계속 남는다 | 0.2.1 — 방향만 보고 닫는다 |
 | 전송 기록은 끝나면(완료 · 포기) 지워진다 — 목록에 남는 것은 도는 것과 부분을 남기고 중단한 것뿐이다. 기한(1시간)은 조각마다 늘지 않는다 | 멈춘 것 · 중단한 것만 이어서 · 치우기를 붙인다 · 기한이 지나면 `resume_id` 로 다시 연다 |
 
@@ -442,7 +442,7 @@ GUI 원본 저장소 `StellaxiaLab/maingui`(`f24c3bc`)에 맞춘 모듈을 같�
 
 ### 5.3 Terra G0~G6 연동 — 이벤트 · 다른 노드 · 사용자 문서 · 로그 · 탐색기 · 올리기 · 받기 · 손 등록 — 2026-10-05
 
-Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules main(#24 io.terra.file 0.2.0 · #26 io-inventory 수동 원천)을 깔고,
+Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules main(#24 lab.stellaxia.file 0.2.0 · #26 io-inventory 수동 원천)을 깔고,
 이 모듈 앱 토큰으로 Chromium(Playwright)에서 돌렸다(`e2e-v5`). 결과는 관리자 토큰으로 서버에 직접 물어 견줬다.
 
 | 단계 | 관찰 |
@@ -453,13 +453,13 @@ Terra(`ccr-e8e58f18-5qjmgy` = main + Terra#118)로 빌드한 스택에 modules m
 | 모듈 로그(MD-16) | 모듈 앱 `로그` → 상태 화면 출력 칸 `Terra File 로그` |
 | 폴더 탐색기(MD-16) | 루트 `root` · `home🔒`(Daemon 자기 폴더를 품어 닫힘) → `root` 아래 `bin · boot · dev · etc …` → `etc` 153개. `home` 을 누르면 `🔒 home — denied`. `파일 관리자로` · 파일 열기 → `Daemon 이 그 컴퓨터의 바탕화면 세션에 닿지 않는다`(이 컨테이너에 바탕화면이 없다 — 503) |
 | 올리기 · 받기(MD-17) | 전송 앱 `↑ 올리기` **단추를 눌러** 파일 고르기 → 300 KB(조각 둘) → `올림 — 검사 통과 (share-0)` · 서버 `entries.stat` 300031 B. 폴더 앱 `받기` → 브라우저 다운로드 300031 B · 내용이 같다 · `받음 — 검사 통과` |
-| 다른 노드의 공유 폴더(MD-20) | 모듈 코드(`TerraClient` · `LiveSource`)를 Node에서 그대로, 앱 토큰(`tsa_`)으로 진짜 게이트웨이에 붙여 이 노드를 다른 이름으로 불렀다. 루트 = 노드 주소 호출 `files.list.get` · 올리기 400 KB(`POST …/transfers` → `PUT …/transfers/{tr}/chunks` → `complete`) · 목록 · 받기(`…/transfers/pulls` → `chunks` → `pulls/{tr}/complete` — 내용이 같다) · 지우기(`DELETE …/entries`)가 모두 `/api/nodes/{node}/modules/io.terra.file/v1/…`로 갔다 |
+| 다른 노드의 공유 폴더(MD-20) | 모듈 코드(`TerraClient` · `LiveSource`)를 Node에서 그대로, 앱 토큰(`tsa_`)으로 진짜 게이트웨이에 붙여 이 노드를 다른 이름으로 불렀다. 루트 = 노드 주소 호출 `files.list.get` · 올리기 400 KB(`POST …/transfers` → `PUT …/transfers/{tr}/chunks` → `complete`) · 목록 · 받기(`…/transfers/pulls` → `chunks` → `pulls/{tr}/complete` — 내용이 같다) · 지우기(`DELETE …/entries`)가 모두 `/api/nodes/{node}/modules/lab.stellaxia.file/v1/…`로 갔다 |
 | 사용자 문서(MD-15) | 이름공간 `app:lab.stellaxia.node-gui.web`. 표지 `flat` · 메모를 바꾸자 문서 `layout/<node_id>` 에 들어갔다. **새 브라우저**(빈 저장소)로 로그인하자 같은 표지 · 메모. 그 브라우저에서 되돌린 뒤 첫 브라우저가 쓰자 409 → `다른 창 · 기기에서 … 바뀌었다` 한 번 → 덮었다 |
 | 콘솔 | 페이지 오류 0. 남은 응답 오류는 예상한 것 — 셸의 `/api/product/session` 404 · 아직 없는 `assets` 문서 404 · 바탕화면 503 · 일부러 낸 409 |
 
 ### 5.4 끊긴 뒤 이어서(MD-21) — 2026-10-05
 
-같은 스택에 io.terra.file 0.2.1과 이 모듈을 깔고, leaf UI 셸 안에서 Chromium(Playwright)으로 4 MB 파일(조각 16개)을 주고받다가
+같은 스택에 lab.stellaxia.file 0.2.1과 이 모듈을 깔고, leaf UI 셸 안에서 Chromium(Playwright)으로 4 MB 파일(조각 16개)을 주고받다가
 **페이지를 떠나(닫은 것과 같다)** 끊었다(`e2e-md21`). 다시 로그인해 이었다. 내용은 디스크의 파일 · 내려받은 파일의 SHA-256 으로 견줬다.
 스택을 Terra main `3195421` 로 다시 빌드한 뒤(§5.5)에도 같은 결과였다 — 다시 보낸 · 받은 조각 수까지 같다.
 
@@ -691,7 +691,7 @@ ADR-GW-007(Terra 쪽)은 Accepted지만 3a(위임 입구로 작업 취소)는 �
 
 ### 5.12 위임 입구 화면 · 에이전트 실측 — 2026-10-11
 
-ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트 읽기)를 **시험이 닿지 않은 자리**에서 쟀다 — 사람이 보는 화면(tree · leaf), 실제 장치 쌍, 에이전트 모듈(`io.terra.agent`) 경로, leaf의 에이전트. 소스는 고치지 않았다. 찾은 버그는 재현 절차와 원인 추정만 적는다.
+ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트 읽기)를 **시험이 닿지 않은 자리**에서 쟀다 — 사람이 보는 화면(tree · leaf), 실제 장치 쌍, 에이전트 모듈(`lab.stellaxia.agent`) 경로, leaf의 에이전트. 소스는 고치지 않았다. 찾은 버그는 재현 절차와 원인 추정만 적는다.
 
 **결과: ✅ 30 · ❌ 3 · ⏭ 2** (35항목 — A 6 · B 7 · C 8 · D 8 · E 6. A1 · A2 · A3 · A4 · A6은 tree와 leaf를 둘 다 보고 하나로 센다)
 
@@ -708,7 +708,7 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 | tree Gateway | **Master가 띄운 것**(`gateway.addr` `18788`) — Master provider · forward-auth · 장면 루트에 `io.terra.scene.terra`(base) · node-gui |
 | 데몬 둘 | `stack-leaf-a`(`node_…13_54fd…`) · `stack-leaf-b`(`node_…74_3395…`) — 같은 사용자 · 같은 클러스터, `--enroll-email`로 등록. WireGuard · mesh · gRPC · direct TCP 끔 |
 | leaf Gateway | **각 데몬이 띄운 것**(`gateway_service`, `18201` · `18202`) — 노드 자격은 `POST /api/v1/daemon/nodes/{id}/gateway-credential`(장치 토큰)로 받아 `gateway_service.master_service_credential`에 넣었다. 데몬 계약이 provider, 장면 루트 = 데몬 모듈 폴더 |
-| 모듈 | `terra module pack` → `install --root <data>/modules --state-root <data>/module-state --dev --force`: leaf-a에 node-gui 0.4.2 · `io.terra.scene.terra` 0.2.1 · `io.terra.io-inventory` 0.2.0 · `io.terra.io-weave` 0.1.0 · `io.terra.agent` 0.1.0, leaf-b에 node-gui · base Scene, Tree Host에 `io.terra.agent` |
+| 모듈 | `terra module pack` → `install --root <data>/modules --state-root <data>/module-state --dev --force`: leaf-a에 node-gui 0.4.2 · `io.terra.scene.terra` 0.2.1 · `lab.stellaxia.io-inventory` 0.2.0 · `lab.stellaxia.io-weave` 0.1.0 · `lab.stellaxia.agent` 0.1.0, leaf-b에 node-gui · base Scene, Tree Host에 `lab.stellaxia.agent` |
 | 화면 | leaf UI 셸(`products/leaf/ui`, Vite `18301`) · tree UI 셸(`products/tree/ui`, `18302`) — `VITE_TERRA_GATEWAY_URL`(게이트웨이 직접) · `VITE_TERRA_GATEWAY_PROXY_TARGET` |
 | 권한 | 관리자에게 기본 권한 + `agent.grant` · `agent.unattended`. 다른 클러스터 확인용으로 사용자 하나와 그 노드(`other-cluster-node`, 꺼짐)를 만들었다 |
 | 토큰 | 앱 토큰 = `POST /api/v1/gui/apps/lab.stellaxia.node-gui.web/token`(권한 `node.read · node.control · process.execute · file.read · file.write · session.identity`). 에이전트 = 사람 세션으로 `POST /api/v1/agent/grants`. 토큰은 파일로만 다뤘고 기록에 남기지 않았다 |
@@ -725,7 +725,7 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 | leaf 셸 → Scene | `BASE_UNAVAILABLE` "게이트웨이에서 Scene을 받지 못했습니다: 이 셸에 Gateway 주소가 없습니다" | `VITE_TERRA_GATEWAY_URL` |
 | leaf 셸 → node-gui | base Scene이 없으면 셸이 node-gui(application)를 base로 띄우고 `terra.web/frame`이 `data-role="custom-missing"` — 빈 화면에 Scene 파일 요청이 되풀이된다(499건) | `io.terra.scene.terra`를 장면 루트에 깔았다 |
 | 위임 자격 | Gateway가 다시 뜨면(데몬 · Master 재시작) 받은 `tsa_`가 `principal: anonymous`로 읽힌다 — invoke는 401이 아니라 403 `MODULE_PERMISSION_DENIED` | 다시 발급(아래 PF-29) |
-| `io.terra.agent` | `credentials.put` 403 `CREDENTIAL_REJECTED` "the Gateway did not treat this value as a delegated credential" — 위의 죽은 자격이었다 | 새 자격으로 200 |
+| `lab.stellaxia.agent` | `credentials.put` 403 `CREDENTIAL_REJECTED` "the Gateway did not treat this value as a delegated credential" — 위의 죽은 자격이었다 | 새 자격으로 200 |
 | 모델 | provider가 `anthropic` 하나이고 API key가 필요하다 | 진짜 키는 넣지 않았다. `base_url`을 **각본대로 답하는 가짜 Messages 서버**로 돌렸다 — 모델의 판단은 재지 않았고 관문 경로만 쟀다 |
 | 조타륜 | headless에서 마우스를 대도 조타륜이 올라오지 않았다 | 앱 바만 상태로 열었다(`setState({hb:'svi'})`). 그 뒤의 📍 설치 · 칸 고르기 · 연결하기(끌기) · 설정 · 적용 · 끊기는 실제 누름 |
 | 연결 적용 | `source_disabled` — 마우스가 승인 전 | 이 스택 데몬에서만 그 마우스를 `approve` · `enable`(10초 뒤 SVI 자원 `available`) |
@@ -747,7 +747,7 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 
 | # | 결과 | 본 값 |
 | --- | --- | --- |
-| B1 | ✅ | 이 기기의 실제 마우스 `io.mouse-046d-c548-67c52874`(`io.terra.io-inventory`, `terra.input.mouse@1`, endpoint `output`) → `io-weave.pointer`(`terra.input.mouse@1`, endpoint `input` · sink). 다른 장치: 카메라 · 마이크 · 화면은 `unavailable`, 키보드 · 마우스 · raw-bus는 승인 전 `disabled`. **다만 io-inventory는 자원만 선언하고 프레임을 내지 않는다**(`SVISource` 없음) — 바인딩이 서도 신호는 흐를 수 없다(MD-55) |
+| B1 | ✅ | 이 기기의 실제 마우스 `io.mouse-046d-c548-67c52874`(`lab.stellaxia.io-inventory`, `terra.input.mouse@1`, endpoint `output`) → `io-weave.pointer`(`terra.input.mouse@1`, endpoint `input` · sink). 다른 장치: 카메라 · 마이크 · 화면은 `unavailable`, 키보드 · 마우스 · raw-bus는 승인 전 `disabled`. **다만 io-inventory는 자원만 선언하고 프레임을 내지 않는다**(`SVISource` 없음) — 바인딩이 서도 신호는 흐를 수 없다(MD-55) |
 | B2 | ❌ | 화면: 📍 설치 두 번 · 🔗 연결하기(끌기) → `binding · draft`(도로 3칸) → [설정] → 엔드포인트 둘을 고르고 [연결 적용] → `허가 필요`에서 더 가지 않는다(B3 · MD-52). 같은 쌍을 모듈 코드(`applyLink` · `grantSelf`)로 서버에 붙이면 바인딩 `svib_…85ad`가 생기지만 `observed_state: preparing` · `reason: target_prepare_failed: context deadline exceeded`에 멈춘다. leaf-a 데몬 로그 `master_relay_inbound_rejected … "message_type":"svi.binding.prepare.request" … "error":"invalid communication envelope"`(PF-26). 신호 흐름 확인은 할 수 없었다 — `12c-picked.png` · `13-apply.png` |
 | B3 | ❌ | 화면의 [나에게 허가 주기]가 `POST /api/upstream/v1/svi/grants {"subject_type":"user","subject_id":"admin@stack.local", …,"ttl_seconds":2592000}` 둘을 보내고 둘 다 403 `FORBIDDEN` "a delegated entrance may grant only to yourself or a node in your cluster". 글줄 "허가를 만들지 못했다 — … bind.source · FORBIDDEN, … bind.target · FORBIDDEN". 화면이 쥔 principal이 사용자 id가 아니라 **이메일**이다. 서버에 올바른 허가(user 주체 · 30일)를 따로 만들어도 화면은 계속 `허가 필요` — 대조도 이메일로 하기 때문이다(MD-52). 같은 함수를 whoami principal로 부르면 `bind.source` · `bind.target` · user 주체 · 기한 30일(`2026-11-10`)이 만들어진다 |
 | B4 | ✅ | 화면의 [끊기] → 그 연결이 맵 · 설정 창에서 사라졌다(바인딩이 없던 연결 — B3 때문). 바인딩이 있는 경우는 같은 모듈 코드(`closeBindings`)로 서버에서 봤다: `DELETE` 202 → `desired_state: closed` · `observed_state: closed` · `reason: consumer_requested` |
@@ -781,7 +781,7 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 | D5 | ✅ | readonly 자격(`reach: local`, `node.read` 있음) → 403 `MODULE_PERMISSION_DENIED` "호출에 필요한 권한이 없습니다". readonly 카탈로그에 `terra.master.*` 0개(전체 47) — 막은 것은 도달 범위인데 오류 글은 "권한"이다 |
 | D6 | ✅ | `"unattended":true` 자격(15분) → 401 `UNAUTHORIZED` |
 | D7 | ✅ | 60행 모두 `delegate: agent:agn_955b6ddab20f8176` · `principal: user_…` |
-| D8 | ✅ | **처음 밟은 경로.** tree Tree Host의 `io.terra.agent`에 모델(가짜) · fleet 자격을 맡기고 세션 대화로 "노드 사이 경로 후보 보여줘" → 기록 `call terra.master.route.candidates.get: run · ok` → `terra.gateway.delegate` → tree Gateway → Master 200(`route_graph_epoch` 54), 감사 행 `delegate: agent:agn_c1a8b6eccc8cd31a` · `GET /api/v1/route/candidates` · 200. 모델에 주어지는 도구: `terra_search_operations` · `terra_describe_operation` · `terra_invoke(operationId, input, reason)` · `terra_session` · `terra_nodes`. **단, 계약대로 입력을 지으면 실패한다** — 계약 입력 스키마는 `{query:{source_node_id,…}}`인데 Gateway invoke는 입력을 평평하게 읽어 `query=<JSON>` 한 개로 보내고 Master가 404 `NODE_NOT_FOUND`. 관리자 Bearer로 invoke해도 같다(PF-27) |
+| D8 | ✅ | **처음 밟은 경로.** tree Tree Host의 `lab.stellaxia.agent`에 모델(가짜) · fleet 자격을 맡기고 세션 대화로 "노드 사이 경로 후보 보여줘" → 기록 `call terra.master.route.candidates.get: run · ok` → `terra.gateway.delegate` → tree Gateway → Master 200(`route_graph_epoch` 54), 감사 행 `delegate: agent:agn_c1a8b6eccc8cd31a` · `GET /api/v1/route/candidates` · 200. 모델에 주어지는 도구: `terra_search_operations` · `terra_describe_operation` · `terra_invoke(operationId, input, reason)` · `terra_session` · `terra_nodes`. **단, 계약대로 입력을 지으면 실패한다** — 계약 입력 스키마는 `{query:{source_node_id,…}}`인데 Gateway invoke는 입력을 평평하게 읽어 `query=<JSON>` 한 개로 보내고 Master가 404 `NODE_NOT_FOUND`. 관리자 Bearer로 invoke해도 같다(PF-27) |
 
 #### E. 에이전트 — leaf 기준선(ADR-GW-006 준비)
 
@@ -791,7 +791,7 @@ ADR-GW-003(읽기) · ADR-GW-004(SVI 쓰기 2a · 2b) · ADR-GW-005(에이전트
 | E2 | ✅ | 401 `UNAUTHORIZED` |
 | E3 | ✅ | 200 · `count 3` — leaf-a · leaf-b와 함께 **다른 클러스터의 `other-cluster-node`**(꺼짐)도 나온다. tree의 `agent/nodes`도, 앱 토큰도 같다. 위임 입구의 `nodes.get`은 거르는데 이 목록(세션 id 중계 · `VisibleNodes`)은 관리자 세션을 그대로 읽는다(PF-28) |
 | E4 | ✅ | leaf-a에서 `GET /api/v1/nodes/{leaf-b}/catalog` 200(51개) · `POST /api/v1/nodes/{leaf-b}/operations/terra.daemon.status.get/invoke` 200 |
-| E5 | ✅ | leaf-a의 `io.terra.agent`(가짜 모델)에 같은 말 → `terra_search_operations "route candidates"` → `{"count":0}`, `terra_invoke terra.master.route.candidates.get` → `OPERATION_NOT_FOUND` "operation을 catalog에서 찾을 수 없습니다"(404), `terra_nodes` → 위 E3과 같은 3개. 진짜 모델이 그다음 무엇을 대신 할지는 재지 못했다(가짜 모델). 관문의 허용 표면(`delegateSurfaceAllows`)에 노드 주소 호출 `/api/v1/nodes/{id}/operations/…`가 없고 `terra_invoke`에 노드 인자가 없어, leaf 에이전트는 다른 노드의 데몬 op도 관문으로는 못 부른다 |
+| E5 | ✅ | leaf-a의 `lab.stellaxia.agent`(가짜 모델)에 같은 말 → `terra_search_operations "route candidates"` → `{"count":0}`, `terra_invoke terra.master.route.candidates.get` → `OPERATION_NOT_FOUND` "operation을 catalog에서 찾을 수 없습니다"(404), `terra_nodes` → 위 E3과 같은 3개. 진짜 모델이 그다음 무엇을 대신 할지는 재지 못했다(가짜 모델). 관문의 허용 표면(`delegateSurfaceAllows`)에 노드 주소 호출 `/api/v1/nodes/{id}/operations/…`가 없고 `terra_invoke`에 노드 인자가 없어, leaf 에이전트는 다른 노드의 데몬 op도 관문으로는 못 부른다 |
 | E6 | ✅ | leaf-a 카탈로그(관리자 Bearer 154 · 앱 토큰 136 · fleet 132) 중 `terra.master.*` **0**. leaf 데몬 계약 77 op 중 Master op **0** |
 
 #### 찾은 버그 · 원인 추정
@@ -853,7 +853,7 @@ ADR-GW-006([Terra#186](https://github.com/StellaxiaLab/Terra/pull/186) — leaf 
 | `src/api/client.js` | `TerraClient` — `invoke` · `invokeAt`(노드 주소 호출 · 읽기의 NODE_OFFLINE 다시 묻기) · `delegationClosed`(tree의 닫힌 Master op) · `invokeModuleAt`(원격 모듈 경로) · `binding` · `nodeCatalog`(60초) · `canRelay` · `request` · `get` · `fillRoute` · `toResult` · `resultText` · `reasonText` |
 | `src/api/events.js` | 실시간 이벤트(B-5) — `openEvents`(fetch 스트림 · 이어 받기 · 끄기 · 다른 SSE op `op` · `input` · `raw` · 처음부터 이어 받을 자리 `last`) · `sseFrames` · `frameEvent`(`raw` — SVI 핸들 StreamMessage 는 벗기지 않는다) · `SIGNAL_APPS` |
 | `src/api/sha256.js` | SHA-256(조각씩) · base64 — 올리기 · 받기 검사(maingui 와 같은 코드) |
-| `src/api/operations.js` | `HELM_APPS`(목록 · 동작 · `form` · `upload` · `download` · `remote`) · `HELM_CRUD`(실제 본문 · `localOnly` · 모듈 수정 = 설정) · `CRUD_TEXT`(API 줄) · `GUI_APPS` · `fileBinding`(io.terra.file 경로 대응표) · `manualAdapter` · `scanLine` · `logLines` · `cfgForm` · `cfgPatch` · `cfgErrorKeys`(모듈 설정) |
+| `src/api/operations.js` | `HELM_APPS`(목록 · 동작 · `form` · `upload` · `download` · `remote`) · `HELM_CRUD`(실제 본문 · `localOnly` · 모듈 수정 = 설정) · `CRUD_TEXT`(API 줄) · `GUI_APPS` · `fileBinding`(lab.stellaxia.file 경로 대응표) · `manualAdapter` · `scanLine` · `logLines` · `cfgForm` · `cfgPatch` · `cfgErrorKeys`(모듈 설정) |
 | `src/api/task-output.js` | 작업 출력(PF-7 · §2.10) — `OutputView`(읽은 쪽 · 따라온 조각 → 칸의 글 · 겹친 순번 버리기 · 끝 512 K 글자) · `followOutput`(이 노드의 출력 SSE · `end` 에 닫기) · `OUTPUT_OP` · `OUTPUT_EVENTS_OP` |
 | `src/api/wire.js` | `wireHelm` — 목록 · 동작 · 폼 저장 · 두 번째 누름 · 값을 적어야 하는 동작의 폼 열기 · 올리기(파일 고르기) · 받기(`saveBlob`) · 멈춘 전송의 이어서 · 모듈 설정 폼(열기 전에 받기 · 다시 받아도 칸 유지 · 거절한 키) · SVI 흐름 칸 · 맵 도로(`wireSviStreams` — `src/api/svi-live.js`) · SVI 열기 직후 붙기(`_sviPrime`) · 보고 있는 앱의 목록 실패 이유 남기기(`hbMsg.sticky`) · 출력 칸(`outText`) · 작업 출력 따라가기(`showOutput` — 칸이 다른 것을 보이면 닫기) · 확인이 필요한 동작의 두 번 누름(`confirm` — 작업 다시 실행) · 폴링(이벤트가 열려 있으면 느리게) · `_hbRefresh` · `formValues`. `wireFrame` — 토큰 → 세계 · 조타륜(받기 조각 보관 `openParts`) · 이벤트 |
 | `src/api/adapters.js` | 상태를 화면 낱말로(`modState` · `jobState` · `xferState` · `tunnelState` …) — 표에 없는 값이 오면 렌더 전체가 멈추기 때문. `withGui`(모듈 ← GUI 앱). `ADAPT.svi` 의 `flow`(흐름도 — 늘 채운다) · `handle`, `ADAPT.grant`(Master 의 답 모양 — `items` · `subject` · `source{resource_id}`) |
@@ -900,7 +900,7 @@ npm test
 ## 관련 모듈
 
 - `lab.stellaxia.node-gui` — 이 웹을 `ui/` 로 싣는 모듈(모듈 README "무엇이 실데이터인가")
-- `io.terra.file` · `io.terra.io-inventory` — 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · 장치(0.2.0 손 등록) 데이터의 출처
+- `lab.stellaxia.file` · `lab.stellaxia.io-inventory` — 폴더 · 전송(0.2.0 받기 · 0.2.1 부분을 남기는 중단) · 장치(0.2.0 손 등록) 데이터의 출처
 - Terra 게이트웨이 — 노드 주소 호출(B-1) · 사용자 문서(C-1) · 이벤트 중계(B-5)
 
 ## 관련 흐름
