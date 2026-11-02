@@ -1,27 +1,37 @@
 <div class="ns" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
-  <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>status</span><b class="ns-v">{{name}}</b><span class="ns-k">{{kind}}</span><span style="flex: 1;"></span><span style="color: {{stCol}};">● {{stText}}</span><span class="ns-k">{{uptime}}</span></div>
+  <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>status</span><b class="ns-v ns-cut">{{name}}</b><span class="ns-k">{{kind}}</span><span style="flex: 1;"></span><span style="color: {{stCol}};">{{stText}}</span><span class="ns-k">{{seen}}</span></div>
+  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="ns-note">{{note}}</div></sc-if>
 
-  <h3 class="ns-h"><span class="ns-hl"></span>동작<span class="ns-hr"></span><span class="ns-k">{{tick}}</span></h3>
+  <h3 class="ns-h"><span class="ns-hl"></span>식별<span class="ns-hr"></span><span class="ns-k">{{src}}</span></h3>
+  <div class="ns-row ns-id"><span class="ns-k" style="width: 52px; flex: none;">node id</span><b class="ns-v ns-sel" title="{{nodeId}}">{{nodeId}}</b><button type="button" class="ns-btn" disabled="{{copyOff}}" onClick="{{copyId}}" aria-label="node id 복사">{{copyT}}</button></div>
   <div class="ns-grid">
-    <span class="ns-k">상태</span><span class="ns-v">{{proc}}</span><span class="ns-k">pid</span><span>{{pid}}</span>
-    <span class="ns-k">코어</span><span>{{core}}</span><span class="ns-k">재시작</span><span>{{restarts}}</span>
-    <span class="ns-k">역할</span><span>{{role}}</span><span class="ns-k">부모</span><span>{{parent}}</span>
+    <sc-for list="{{ident}}" as="i" hint-placeholder-count="8"><span class="ns-k">{{i.k}}</span><span class="ns-cut" title="{{i.v}}">{{i.v}}</span></sc-for>
   </div>
 
-  <h3 class="ns-h"><span class="ns-hl"></span>자원<span class="ns-hr"></span></h3>
+  <h3 class="ns-h"><span class="ns-hl"></span>통신<span class="ns-hr"></span><span class="ns-k">세대 {{gen}}</span></h3>
+  <div class="ns-row"><span class="ns-k" style="width: 52px; flex: none;">연결</span><b style="color: {{viaCol}};">{{via}}</b><span class="ns-k">·</span><span class="ns-k">중계</span><span style="color: {{relayCol}};">{{relayT}}</span></div>
+  <div class="ns-grid">
+    <sc-for list="{{comm}}" as="c" hint-placeholder-count="4"><span class="ns-k">{{c.k}}</span><span class="ns-cut" title="{{c.v}}">{{c.v}}</span></sc-for>
+  </div>
+  <div class="ns-sub">경로 <span class="ns-k">{{routeSum}}</span></div>
+  <sc-for list="{{routes}}" as="r" hint-placeholder-count="2">
+    <div class="ns-rt"><span style="color: {{r.col}}; font-weight: 700;">{{r.mark}}</span><span class="ns-cut">{{r.peer}}</span><span>{{r.rt}}</span><span class="ns-k">{{r.ad}}</span><span class="ns-k" style="text-align: right;">{{r.lat}}</span></div>
+  </sc-for>
+  <div class="ns-sub">세션 <span class="ns-k">{{sessSum}}</span></div>
+  <sc-for list="{{sessions}}" as="s" hint-placeholder-count="2">
+    <div class="ns-rt"><span class="ns-k">{{s.dir}}</span><span class="ns-cut">{{s.peer}}</span><span>{{s.channel}}</span><span class="ns-k">{{s.rt}}</span><span style="text-align: right; color: {{s.col}};">{{s.state}}</span></div>
+  </sc-for>
+
+  <h3 class="ns-h"><span class="ns-hl"></span>자원<span class="ns-hr"></span><span class="ns-k">하트비트 스냅샷</span></h3>
   <sc-for list="{{bars}}" as="b" hint-placeholder-count="3">
     <div class="ns-bar"><span class="ns-k">{{b.name}}</span><span class="ns-track"><span class="ns-fill" style="width: {{b.pct}}%; background: {{b.col}};"></span><span class="ns-tick" style="left: 75%;"></span></span><span class="ns-v" style="text-align: right;">{{b.pctT}}</span><span class="ns-k">{{b.note}}</span></div>
   </sc-for>
   <div class="ns-bar"><span class="ns-k">NET</span><span class="ns-spark">{{spark}}</span><span class="ns-v" style="text-align: right;">{{netIn}}</span><span class="ns-k">↑ {{netOut}}</span></div>
 
-  <h3 class="ns-h"><span class="ns-hl"></span>healthcheck<span class="ns-hr"></span><span class="ns-k">{{hcSum}}</span></h3>
-  <sc-for list="{{checks}}" as="c" hint-placeholder-count="4">
-    <div class="ns-hc"><span style="color: {{c.col}}; font-weight: 700;">{{c.mark}}</span><span>{{c.name}}</span><span class="ns-lat"><span style="width: {{c.w}}%; background: {{c.col}};"></span></span><span style="text-align: right;">{{c.ms}}</span><span style="color: {{c.col}};">{{c.state}}</span></div>
-  </sc-for>
-
-  <h3 class="ns-h"><span class="ns-hl"></span>최근 이벤트<span class="ns-hr"></span></h3>
+  <h3 class="ns-h"><span class="ns-hl"></span>최근 활동<span class="ns-hr"></span><span class="ns-k">하트비트 {{hb}}</span></h3>
   <sc-for list="{{events}}" as="ev" hint-placeholder-count="4">
-    <div class="ns-ev"><span class="ns-k">{{ev.t}}</span><span style="color: {{ev.col}};">{{ev.lv}}</span><span>{{ev.msg}}</span></div>
+    <div class="ns-ev"><span class="ns-k">{{ev.t}}</span><span style="color: {{ev.col}};">{{ev.lv}}</span><span class="ns-cut" title="{{ev.msg}}">{{ev.msg}}</span></div>
   </sc-for>
+  <sc-if value="{{noEv}}" hint-placeholder-val="{{ false }}"><div class="ns-k">기록 없음</div></sc-if>
   <div class="ns-row" style="margin-top: 6px;"><span class="ns-p">&gt;</span><span class="ns-cur"></span></div>
 </div>

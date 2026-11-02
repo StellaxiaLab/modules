@@ -89,6 +89,8 @@ class NodeStore {
       (err) => { if (k && prev) this.cache.set(k, prev); if (PARTITION.has(err && err.code)) this.setLink(n, { state: 'offline', code: err.code }); this.emit(n); throw err; });
   }
 
+  /** 보낼 operation 이 없는 저장 전 초안 — 사본만 고친다(노드로 보내지 않는다 · 다음 받기에 노드 값으로 돌아온다) */
+  draft(n, res, apply) { const k = this.key(n, res), e = this.cache.get(k); if (!e) return false; this.cache.set(k, Object.assign({}, e, { data: apply(e.data) })); this.emit(n); return true; }
   /** 비우기 — 로그아웃 때(다음 사람이 앞 사람의 사본을 보지 않게) */
   clear() { this.cache.clear(); this.links.clear(); this.views.clear(); this.inflight.clear(); try { localStorage.removeItem('terra.cache'); } catch (e) {} for (const f of this.subs) { try { f(''); } catch (e) {} } }
   /** GUI 보기 상태 — 노드 키마다 (노드 데이터가 아니다) */

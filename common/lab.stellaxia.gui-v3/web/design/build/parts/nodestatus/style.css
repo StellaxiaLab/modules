@@ -17,6 +17,15 @@ body{margin:0;background:transparent}
 .ns-lat{position:relative;height:1px;background:rgba(70,160,108,.3)}
 .ns-lat span{position:absolute;left:0;top:-1px;height:3px;transition:width .6s ease}
 .ns-ev{display:grid;grid-template-columns:64px 40px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap;overflow:hidden}
+.ns-cut{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ns-sel{user-select:all;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ns-note{margin:4px 0 0;padding:3px 8px;border-left:2px solid #ffd27a;color:#ffd27a;white-space:normal}
+.ns-btn{flex:none;margin-left:auto;padding:1px 8px;border:1px solid rgba(70,160,108,.6);background:transparent;color:#78e89c;font:inherit;cursor:pointer}
+.ns-btn:hover:not(:disabled){background:rgba(70,160,108,.18)}
+.ns-btn:focus-visible{outline:1px solid #96f0aa;outline-offset:1px}
+.ns-btn:disabled{opacity:.4;cursor:default}
+.ns-sub{margin:8px 0 2px;color:#78e89c}
+.ns-rt{display:grid;grid-template-columns:14px minmax(0,1fr) 70px 80px 54px;gap:10px;min-height:20px;white-space:nowrap}
 .ns-cur{display:inline-block;width:7px;height:13px;background:#96f0aa;animation:nsb 1.06s steps(1) infinite}
 @keyframes nsb{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.ns-cur{animation:none}.ns-fill,.ns-lat span{transition:none}}
