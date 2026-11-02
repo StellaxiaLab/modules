@@ -1,7 +1,7 @@
 // A 모드 디자인 로그인 — 셸 비밀번호 칸 잇기(host-secret.js). 셸(frame)은 가짜로 세운다.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, secretStyle, bindHostSecret } from './host-secret.js';
+import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, secretStyle, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems, REMEMBERED_DOTS } from './host-secret.js';
 
 function fakeFrame() {
   const tokenL = new Set(), valueL = new Set();
@@ -62,6 +62,28 @@ test('waitHostLogin — 성공의 답(signedIn + 내 attempt, 빈 message)이 �
   const bad = waitHostLogin(f, 13, 1000);
   f.value({ state: 'signedOut', error: { message: '', attempt: 13 } });
   assert.deepEqual(await bad, { ok: false, message: '로그인 못 함' });
+});
+
+test('rememberedOf · rememberedMode — 기억된 id 그대로 · auto 켜짐 · 토큰 없음일 때만 기억으로 들어간다', () => {
+  assert.equal(rememberedOf(null), null);
+  assert.equal(rememberedOf({ secret: {} }), null);   // 기억을 모르는 셸(이전 Terra)
+  let token;
+  const f = { token: () => token, remember: { remembered: () => ({ email: 'admin@terra' }) } };
+  assert.deepEqual(rememberedOf(f), { email: 'admin@terra' });
+  assert.equal(rememberedMode(f, { va: 'admin@terra', autoOn: true }), true);
+  assert.equal(rememberedMode(f, { va: 'admin@terra' }), true);   // auto 를 아직 건드리지 않았다
+  assert.equal(rememberedMode(f, { va: 'someone', autoOn: true }), false);   // id 를 고쳤다 → 비밀번호로
+  assert.equal(rememberedMode(f, { va: 'admin@terra', autoOn: false }), false);   // auto 를 껐다
+  token = 'tsa_1'; assert.equal(rememberedMode(f, { va: 'admin@terra' }), false);   // 이미 로그인
+  assert.equal(rememberedMode({ token: () => undefined, remember: { remembered: () => undefined } }, { va: '' }), false);
+});
+
+test('rememberedRowItems — password 줄은 고정 점, 남은 자리는 그만큼 민다', () => {
+  const items = [{ k: 'pV', t: '', c: 11 }, { k: 'pD', t: '··········', c: 11 }, { k: 'aV', t: 'admin', c: 11 }];
+  const out = rememberedRowItems(items);
+  assert.equal(out[0].t, REMEMBERED_DOTS);
+  assert.equal(out[1].t, '··'); assert.equal(out[1].c, 11 + REMEMBERED_DOTS.length);
+  assert.equal(out[2], items[2]);
 });
 
 test('nextAttempt — 같은 시각이어도 늘 커진다', () => {
