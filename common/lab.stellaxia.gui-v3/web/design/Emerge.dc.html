@@ -744,6 +744,7 @@ class Component extends DCLogic {
     const live = V && !this.state.hidden;
     const DI = live && Sh.type === 'data' && V.data ? this.dataCells(Sh, cx, cy) : null, dataDraw = [];
     const MK = live && (Sh.type === 'mask' || Sh.type === 'mixed') ? this.maskCells(Sh, cx, cy) : null, masked = [], MT = V && V.mask ? V.mt : 1e12;
+    this._compCells = DI ? DI.idx : MK ? MK.idx : null;   // 돋보기 혼합이 담을 그 컴포넌트의 칸
     const holeMask = new Map();   // 비운 칸 중 마스크 투영이 있던 칸 → [진행, 투영]
     // 발광 생성 (마스크) — 앞선 띠의 시간 폭 G
     const MPm = MK && this._seq && (this._seq.plan.mask || this._seq.plan.mix) ? this._seq.plan : null;
@@ -1033,6 +1034,10 @@ class Component extends DCLogic {
   drawLens(now) {
     const cv = this._lcv || (this._lcv = document.querySelector('canvas[data-lens="emerge"]')); if (!cv) return;
     const c = this._lctx || (this._lctx = cv.getContext('2d')), L = this.LENS(), A = this._lensA, R = this._lr;
+    // 혼합 · 담은 모습 그대로(①–③ 재사용)이고 컴포넌트도 그 자리면 — 이 프레임은 지우지도 그리지도 않는다
+    const fastSig = () => { const ce = this._compEl && this._compEl.isConnected ? this._compEl : null, b = ce && ce.getBoundingClientRect(); return b ? [b.left, b.top, b.width, b.height, ce.textContent, this.state.kind, this.state.top, this.state.hidden, this._lensFocus, this._w, this._h].join('|') : ''; };
+    if (this._lensFast && L.bind && !A && !this._lensDrawPts && this._lensFast.L === L && this._lensFast.sig === fastSig()) return;
+    this._lensFast = null;
     c.clearRect(0, 0, this._w, this._h);
     if (this._lensDrawPts && this._lensDrawPts.length > 1) { const P = this._lensDrawPts; c.strokeStyle = 'rgba(230,234,247,.9)'; c.lineWidth = 1.5; c.setLineDash([4, 4]); c.beginPath(); P.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.lineTo(P[0][0], P[0][1]); c.stroke(); c.setLineDash([]); }
     let a = L.on ? 1 : 0;
@@ -1041,28 +1046,32 @@ class Component extends DCLogic {
     if (a <= 0 || !R) return;
     const e = a < 1 ? 1 - Math.pow(1 - a, 3) : 1, cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows;
     let W = L.w, H = L.h, cx = L.x * this._w, cy = L.y * this._h, sh = this.lensPts(L.shape || { id: 'rect' }), BIND = null, z = L.z, vx = cx, vy = cy;
-    if (L.bind) {   // 돋보기 혼합 — 보는 곳 = 그 컴포넌트 영역(칸에 맞춰), 돋보기 = 그 영역 × 배율. 컴포넌트 바로 위(자리 없으면 아래)에 붙어 한 몸으로 움직인다
+    if (L.bind) {   // 돋보기 혼합 — 안 보이는 컴포넌트를 확대한 모습: 자리(가운데) = 그 컴포넌트, 크기 = 그 영역 × 배율, 그 위 층. 담는 것은 그 컴포넌트 뿐(바탕 · 둘레 글자 없음)
       const ce = this._compEl && this._compEl.isConnected ? this._compEl : document.querySelector('[data-comp]'), root = cv.parentElement;
       if (!ce || !root || this.state.hidden || getComputedStyle(ce).visibility === 'hidden') { this.lensHitBox(null); return; }
       const rr = root.getBoundingClientRect(), b = ce.getBoundingClientRect(), bx = b.left - rr.left, by = b.top - rr.top;
-      BIND = { x0: Math.floor(bx / cw) * cw, y0: Math.floor(by / ch) * ch, x1: Math.ceil((bx + b.width) / cw) * cw, y1: Math.ceil((by + b.height) / ch) * ch };
+      BIND = { x0: bx, y0: by, x1: bx + b.width, y1: by + b.height };   // 그 컴포넌트 상자 그대로 — 옮겨도 크기가 칸 단위로 출렁이지 않는다
       const DC = this.KIND() === 'data' && this._dataCache; if (DC && DC.n) BIND = { x0: (DC.x0 - 1) * cw, y0: (DC.y0 - 0.5) * ch, x1: (DC.x0 + DC.n + 1) * cw, y1: (DC.y0 + 1.5) * ch };   // 텍스트 — 글자가 실제로 놓인 칸 (한 칸 여백)
-      const bw = BIND.x1 - BIND.x0, bh = BIND.y1 - BIND.y0; z = Math.max(1, Math.min(z, (this._w - 24) / bw, (this._h * 0.45) / bh));   // 화면에 다 들어오게 — 넘치면 배율을 낮춘다
+      const bw = BIND.x1 - BIND.x0, bh = BIND.y1 - BIND.y0; z = Math.max(1, Math.min(z, (this._w - 16) / bw, (this._h - 16) / bh));   // 화면보다 크면 배율을 낮춘다
       W = bw * z; H = bh * z; vx = BIND.x0 + bw / 2; vy = BIND.y0 + bh / 2;
-      const gap = 10 + (L.info ? 16 : 0); cx = Math.max(W / 2 + 8, Math.min(this._w - W / 2 - 8, vx)); cy = BIND.y0 - gap - H / 2;
-      if (cy - H / 2 - (L.info ? 16 : 0) < 4) cy = BIND.y1 + 10 + (L.info ? 16 : 0) + H / 2;   // 위에 자리가 없으면 아래
+      cx = vx; cy = vy;   // 같은 자리 — 컴포넌트는 돋보기 밑에 가려 화면에는 돋보기만
       sh = { pts: this.rrPts(W, H, Math.min(12, (parseFloat(getComputedStyle(ce).borderTopLeftRadius) || 0) * 1.2)), smooth: false, rect: false };
       this.lensHitBox({ x: cx - W / 2, y: cy - H / 2, w: W, h: H }); }
     const X = cx - W / 2, Y = cy - H / 2;
     // 광각이면 가장자리(형태의 가장 먼 점 u²)까지 볼 곳이 넓어진다 — 사각의 꼭짓점(u² = 2)까지 채운다
     let U2 = 1; for (const [x, y] of sh.pts) U2 = Math.max(U2, x * x + y * y);
     const k = [0, 0.35, 0.8][L.wide || 0], bl = [0, 0.55, 1][L.bleed || 0], Ex = BIND ? 1 : 1 + k * U2 + 0.02, OW = W * Ex, OH = H * Ex;   // 혼합은 가로 · 세로 따로 휘어(아래 ②) 네 변 · 네 꼭짓점이 꼭 그 컴포넌트 끝에 닿는다
+    // 혼합 + 글자 칸이 없는 컴포넌트(레거시 사각 · 원 — DOM 한 덩이)는 확대 모습이 자리와 무관 — 크기 · 배율 · 광각 · 빛번짐 · 내용이 같으면 ①–③ 을 다시 하지 않는다(끄는 동안도)
+    const ceK = BIND && !this._compCells && e >= 1 ? (this._compEl && this._compEl.isConnected ? this._compEl : document.querySelector('[data-comp]')) : null;
+    const KEY = ceK ? [Math.round(W), Math.round(H), z, k, bl, this.TYPE(), this.state.top ? 1 : 0, ceK.textContent, this.state.kind || ''].join('|') : null;
+    const reuse = !!(KEY && this._lensKey === KEY && this._off && this._off.F); this._lensKey = KEY;
+    if (!reuse) {
     // ① 곧은 확대 — O 의 (ox, oy) 는 보는 점 (cx + (ox − OW/2)/z, cy + (oy − OH/2)/z)
     const zO = z;
     const sw = OW / zO, shh = OH / zO, sx = vx - sw / 2, sy = vy - shh / 2, Oo = this.off('O', OW, OH), o = Oo.c;
     o.fillStyle = '#040614'; o.fillRect(0, 0, OW, OH);
     if (BIND) { o.save(); o.beginPath(); o.rect((BIND.x0 - sx) * zO, (BIND.y0 - sy) * zO, (BIND.x1 - BIND.x0) * zO, (BIND.y1 - BIND.y0) * zO); o.clip(); }   // 확대하는 것은 그 컴포넌트 영역 뿐
-    const uc = this._ucv; if (uc) { const kk = uc.width / this._w; o.globalAlpha = 0.9; o.imageSmoothingEnabled = true; o.drawImage(uc, sx * kk, sy * kk, sw * kk, shh * kk, 0, 0, OW, OH); o.globalAlpha = 1; }
+    const uc = BIND ? null : this._ucv; if (uc) { const kk = uc.width / this._w; o.globalAlpha = 0.9; o.imageSmoothingEnabled = true; o.drawImage(uc, sx * kk, sy * kk, sw * kk, shh * kk, 0, 0, OW, OH); o.globalAlpha = 1; }
     const comp = this._compEl && this._compEl.isConnected ? this._compEl : document.querySelector('[data-comp]'), compTop = comp && +(comp.style.zIndex || 0) >= 2;
     const domPaint = () => { const root = cv.parentElement, rr = root && root.getBoundingClientRect(); if (!rr) return;
       const toL = (b) => [(b.left - rr.left - sx) * zO, (b.top - rr.top - sy) * zO, b.width * zO, b.height * zO];
@@ -1071,9 +1080,10 @@ class Component extends DCLogic {
       for (const pc of document.querySelectorAll('canvas[data-part]')) if (vis(pc) && pc.width) { const [lx, ly, lw, lh] = toL(pc.getBoundingClientRect()); o.drawImage(pc, lx, ly, lw, lh); } };
     if (!compTop) domPaint();
     const fz = Math.round(this._cs * 0.86 * zO), x0 = Math.max(0, Math.floor(sx / cw)), x1 = Math.min(cols - 1, Math.ceil((sx + sw) / cw)), y0 = Math.max(0, Math.floor(sy / ch)), y1 = Math.min(rows - 1, Math.ceil((sy + shh) / ch));
+    const CC = BIND ? (this._compCells || { length: 0 }) : null;   // 혼합 — 그 컴포넌트의 칸만(텍스트 글자 · 마스크 칸)
     const G = this._glyphs, FN = fz + 'px GmarketSans, "Geist Mono", monospace'; o.textBaseline = 'top'; let bold = -1;
     for (let yy = y0; yy <= y1; yy++) for (let xx = x0; xx <= x1; xx++) {
-      const i = yy * cols + xx; if (R.f[i] !== R.n) continue;
+      const i = yy * cols + xx; if (R.f[i] !== R.n || (CC && !(CC[i] >= 0))) continue;
       let gl = R.g[i]; if (a < 1 && this._jit[i] > e) gl = G[(Math.random() * G.length) | 0];   // 펼쳐지는 동안 — 랜덤 갱신하다 제 글자로
       if (R.b[i] !== bold) { bold = R.b[i]; o.font = (bold ? '700 ' : '500 ') + FN; }
       o.fillStyle = R.c[i]; o.fillText(gl, (xx * cw - sx) * zO, (yy * ch - sy) * zO);
@@ -1083,7 +1093,7 @@ class Component extends DCLogic {
     // ② 광각 — F 의 점 p(렌즈 가운데 기준)는 O 의 p·(1 + k·u²) + O 가운데
     const Fo = this.off('F', W, H), f = Fo.c, ox0 = OW / 2, oy0 = OH / 2, dpr = Oo.cv.width / OW;
     if (!k) f.drawImage(Oo.cv, (OW - W) / 2 * dpr, (OH - H) / 2 * dpr, W * dpr, H * dpr, 0, 0, W, H);
-    else { const T = 5, hw = W / 2, hh = H / 2; f.imageSmoothingEnabled = true;
+    else { const T = Math.max(5, Math.round(Math.max(W, H) / 140)), hw = W / 2, hh = H / 2;   // 큰 돋보기는 조각도 크게 — 조각 수를 ~140² 아래로 f.imageSmoothingEnabled = true;
       for (let ty = 0; ty < H; ty += T) for (let tx = 0; tx < W; tx += T) {
         const px = tx + T / 2 - hw, py = ty + T / 2 - hh;
         if (BIND) { const ux = px / hw, uy = py / hh, n = 1 + k, qx = ox0 + px * (1 + k * ux * ux) / n, qy = oy0 + py * (1 + k * uy * uy) / n, sx2 = T * (1 + 3 * k * ux * ux) / n, sy2 = T * (1 + 3 * k * uy * uy) / n;   // 축마다 u(1 + k·u²)/(1 + k) — 가운데는 (1 + k) 배 더 크게, 끝은 끝으로
@@ -1102,24 +1112,26 @@ class Component extends DCLogic {
       const m = b.createRadialGradient(0, 0, 0, 0, 0, 1.1); if (k) { m.addColorStop(0, 'rgba(0,0,0,0.12)'); m.addColorStop(0.55, 'rgba(0,0,0,0.3)'); m.addColorStop(1, 'rgba(0,0,0,1)'); } else { m.addColorStop(0, 'rgba(0,0,0,0.62)'); m.addColorStop(1, 'rgba(0,0,0,0.62)'); }
       b.fillStyle = m; b.fillRect(-1.2, -1.2, 2.4, 2.4); b.restore();
       f.globalCompositeOperation = 'screen'; f.globalAlpha = 0.9; f.drawImage(Bo.cv, 0, 0, W, H); f.globalCompositeOperation = 'source-over'; f.globalAlpha = 1; }
+    }
+    const FC = this._off.F.cv;
     // ④ 형태로 잘라 화면에 — 열기 · 닫기는 가운데에서 펼쳐진다
     const hw = W / 2 * e, hh = H / 2 * e;
-    c.save(); this.lensPath(c, sh, cx, cy, hw, hh); c.clip(); c.drawImage(Fo.cv, X, Y, W, H); c.restore();
+    c.save(); this.lensPath(c, sh, cx, cy, hw, hh); c.clip(); c.drawImage(FC, X, Y, W, H); c.restore();
     // 틀 — 레거시: 1px 선 · 괄호(사각) 또는 끝점 눈금 · 십자 눈금 · 크기 손잡이
     const LINE = 'rgba(155,166,201,' + (0.6 * e).toFixed(3) + ')', HI = 'rgba(230,234,247,' + e.toFixed(3) + ')';
     c.lineWidth = 1; c.strokeStyle = this._lensFocus ? HI : LINE; this.lensPath(c, sh, cx, cy, hw - 0.5, hh - 0.5); c.stroke();
     c.strokeStyle = HI; c.lineWidth = 1.5; const B = Math.min(14, hw / 3);
-    if (sh.rect) { c.beginPath(); for (const [px, py, dx, dy] of [[cx - hw, cy - hh, 1, 1], [cx + hw, cy - hh, -1, 1], [cx - hw, cy + hh, 1, -1], [cx + hw, cy + hh, -1, -1]]) { c.moveTo(px + dx * B, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * B); } c.stroke(); }
+    if (BIND) {}   // 혼합 — 틀은 1px 선만(괄호 · 눈금 · 손잡이 없음)
+    else if (sh.rect) { c.beginPath(); for (const [px, py, dx, dy] of [[cx - hw, cy - hh, 1, 1], [cx + hw, cy - hh, -1, 1], [cx - hw, cy + hh, 1, -1], [cx + hw, cy + hh, -1, -1]]) { c.moveTo(px + dx * B, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * 0.75); c.lineTo(px + dx * 0.75, py + dy * B); } c.stroke(); }
     else { let L0 = null, R0 = null, T0 = null, B0 = null; for (const [x, y] of sh.pts) { if (!L0 || x < L0[0]) L0 = [x, y]; if (!R0 || x > R0[0]) R0 = [x, y]; if (!T0 || y < T0[1]) T0 = [x, y]; if (!B0 || y > B0[1]) B0 = [x, y]; }
       c.beginPath(); for (const [p, dx, dy] of [[L0, -1, 0], [R0, 1, 0], [T0, 0, -1], [B0, 0, 1]]) { const qx = cx + p[0] * hw, qy = cy + p[1] * hh; c.moveTo(qx + dx * 2, qy + dy * 2); c.lineTo(qx + dx * 8, qy + dy * 8); } c.stroke(); }
-    c.lineWidth = 1; c.strokeStyle = 'rgba(230,234,247,' + (0.35 * e).toFixed(3) + ')'; c.beginPath(); c.moveTo(cx - 6, cy + 0.5); c.lineTo(cx - 2, cy + 0.5); c.moveTo(cx + 2, cy + 0.5); c.lineTo(cx + 6, cy + 0.5); c.moveTo(cx + 0.5, cy - 6); c.lineTo(cx + 0.5, cy - 2); c.moveTo(cx + 0.5, cy + 2); c.lineTo(cx + 0.5, cy + 6); c.stroke();
-    if (BIND) { c.save(); c.strokeStyle = 'rgba(155,166,201,' + (0.45 * e).toFixed(3) + ')'; c.lineWidth = 1; c.setLineDash([2, 3]); c.strokeRect(BIND.x0 - 2.5, BIND.y0 - 2.5, BIND.x1 - BIND.x0 + 5, BIND.y1 - BIND.y0 + 5);   // 보는 곳 — 그 컴포넌트 영역
-      const up = cy < BIND.y0, ly0 = up ? cy + hh : cy - hh, ly1 = up ? BIND.y0 - 2.5 : BIND.y1 + 2.5, mx = Math.max(BIND.x0, Math.min(BIND.x1, cx)); c.setLineDash([]); c.beginPath(); c.moveTo(mx + 0.5, ly0); c.lineTo(mx + 0.5, ly1); c.stroke(); c.restore(); }   // 한 몸 — 잇는 선
+    if (!BIND) { c.lineWidth = 1; c.strokeStyle = 'rgba(230,234,247,' + (0.35 * e).toFixed(3) + ')'; c.beginPath(); c.moveTo(cx - 6, cy + 0.5); c.lineTo(cx - 2, cy + 0.5); c.moveTo(cx + 2, cy + 0.5); c.lineTo(cx + 6, cy + 0.5); c.moveTo(cx + 0.5, cy - 6); c.lineTo(cx + 0.5, cy - 2); c.moveTo(cx + 0.5, cy + 2); c.lineTo(cx + 0.5, cy + 6); c.stroke(); }
     if (e > 0.9 && !BIND) { const hx = cx + hw, hy = cy + hh; c.fillStyle = HI; c.beginPath(); c.moveTo(hx + 2, hy - 8); c.lineTo(hx + 2, hy + 2); c.lineTo(hx - 8, hy + 2); c.closePath(); c.fill(); }
     // 정보 — 머리: '돋보기 ×z · 광각 · 빛번짐' · 보는 칸(열 · 행)
     if (L.info && e > 0.6) { c.font = '500 11px GmarketSans, "Geist Mono", monospace'; c.textBaseline = 'alphabetic'; const ty = cy - hh - 7, WN = ['', ' · 광각 약', ' · 광각 강'][L.wide || 0], BN = ['', ' · 빛번짐 약', ' · 빛번짐 강'][L.bleed || 0];
       c.fillStyle = HI; c.fillText('돋보기 ×' + (+z.toFixed(1)) + WN + BN, cx - hw, ty);
       const t2 = 'c ' + Math.round(vx / cw) + ' · r ' + Math.round(vy / ch); c.fillStyle = 'rgba(118,130,171,' + e.toFixed(3) + ')'; c.fillText(t2, cx + hw - c.measureText(t2).width, ty); }
+    if (reuse) this._lensFast = { L, sig: fastSig() };
   }
   /** DOM 한 덩이를 캔버스에 z 배로 — 바탕 · 테 · 둥근 모서리 · 글자 · 안의 캔버스. 단순한 컴포넌트(사각 카드 · 글자 캔버스)를 위한 것 */
   lensDom(c, el, toL, z) {
@@ -1177,7 +1189,7 @@ class Component extends DCLogic {
         info: seg([[true, '보임'], [false, '숨김']], !!L.info, (v) => this.setLens({ info: v })),
         wide: seg([[0, '끔'], [1, '약'], [2, '강']], L.wide || 0, (v) => this.setLens({ wide: v })),
         bleed: seg([[0, '끔'], [1, '약'], [2, '강']], L.bleed || 0, (v) => this.setLens({ bleed: v })),
-        shapeDisp: L.bind ? 'none' : 'flex', openT: L.on ? '닫기' : '열기', open: () => this.lensToggle(), note: drawing ? '화면에 닫힌 선을 그린다\n손을 떼면 처음 점과 잇는다 · Esc 취소' : L.bind ? '컴포넌트와 한 몸 — 끌면 함께\n그 컴포넌트 영역만 확대' : '끌어 옮김 · 모서리로 크기 · 휠 배율\n빈 곳을 누르면 그 자리로' },
+        shapeDisp: L.bind ? 'none' : 'flex', openT: L.on ? '닫기' : '열기', open: () => this.lensToggle(), note: drawing ? '화면에 닫힌 선을 그린다\n손을 떼면 처음 점과 잇는다 · Esc 취소' : L.bind ? '컴포넌트 자리에 그 확대 모습만\n끌면 함께 · 바탕은 담지 않는다' : '끌어 옮김 · 모서리로 크기 · 휠 배율\n빈 곳을 누르면 그 자리로' },
     };
   }
 
