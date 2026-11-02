@@ -54,7 +54,8 @@ export function passwordRowItems(items, empty) {
 /**
  * 셸 칸을 보드에 잇는다. 매 프레임 보드의 password 자리를 재어 바뀌었을 때만 놓는다(여는 연출 · 창 크기 · 칸 크기를 따라간다).
  * 로그인이 열려 입력을 받는 동안에만 칸이 있다 — 닫힘 · 전환(워프) · 로그인 층이 내려간 뒤에는 걷는다(셸이 값도 지운다).
- * @param {{ secret: object, login: () => any, scene: () => any, doc?: Document, raf?: Function, caf?: Function, advance?: (px: number) => number }} o
+ * `wanted` 가 false 를 돌려주면(이미 로그인 — 폼을 받지 않고 워프할 때) 칸을 두지 않는다.
+ * @param {{ secret: object, login: () => any, scene: () => any, wanted?: () => boolean, doc?: Document, raf?: Function, caf?: Function, advance?: (px: number) => number }} o
  * @returns {{ stop(): void }}
  */
 export function bindHostSecret(o) {
@@ -66,7 +67,7 @@ export function bindHostSecret(o) {
     if (stopped) return;
     id = raf(tick);
     const lg = o.login(), S = (lg && lg.state) || {}, sc = o.scene();
-    const on = !!(lg && S.open && S.ready && !lg._WP && (!sc || !sc.loginOn || sc.loginOn()));
+    const on = !!(lg && S.open && S.ready && !lg._WP && (!sc || !sc.loginOn || sc.loginOn()) && (!o.wanted || o.wanted()));
     const el = on ? q('input[name="password"]') : null, r = el && el.getBoundingClientRect();
     if (!r || !(r.width > 0) || !(r.height > 0)) { if (placed) { sec.hide(); placed = ''; } return; }
     const cw = lg._cw || 10, ch = lg._ch || 18, key = [r.left, r.top, r.width, r.height, cw, ch].join();

@@ -101,7 +101,8 @@ A 모드의 로그인은 웹 보드(`web/design/Login.dc.html`)가 아니라 이
 | --- | --- | --- | --- |
 | 비밀번호를 받는 곳 | Scene `/login` 카드 | 셸 문서의 비밀번호 칸(웹 Login 보드 위에 겹침, §1-2) → Scene `signin.host`. 이전 Terra 는 Scene `/login` 카드 | 웹의 Login 보드 → `POST /api/v1/auth/credentials` |
 | 웹이 쓰는 자격 | 앱 스코프 토큰(`Bearer tsa_`) | 앱 스코프 토큰(`Bearer tsa_`) | 자격 핸들(`Handle …`, 사용자 권한 전부) |
-| 토큰이 없을 때 | 시작 화면의 [로그인] → `emit('login')` | 로그인 층(보드). 이전 Terra 는 화면 위 로그인 문 [로그인] → `emit('login')` | 로그인 층(보드) |
+| 첫 화면 | 시작 화면 | **로그인 보드(TERRA 연출)** — B 와 같다. 토큰이 있으면 연출 뒤 폼 없이 워프로 트리 뷰 | 로그인 보드 |
+| 토큰이 없을 때 | 시작 화면의 [로그인] → `emit('login')` | 보드의 폼 + 셸 비밀번호 칸(§1-2). 이전 Terra 는 TERRA 를 누르면 폼 대신 `emit('login')` → `/login` 카드 | 로그인 층(보드) |
 | 로그아웃 | `emit('logout')` (session.state 가 signedIn 일 때만) | 같다. 셸 세션 토큰이면 "셸에서 로그아웃" 안내 | `DELETE /api/v1/auth/credentials` |
 | 다른 모듈 앱 열기 | `emit('launch', appId)` | Scene 은 받을 수 있다(`gui-v3.app.launch`). **웹은 아직 보내지 않는다** — 격차표 | — |
 
@@ -111,11 +112,12 @@ B 모드(커밋 df5149f)는 **웹이 스스로 비밀번호를 받는다.** 그�
 
 ### A 모드 흐름 (`web/src/boot/main.js`)
 
-1. 마운트 전에 `hello` → frame 의 `init`(appId · 토큰 또는 없음 · `session` 값 · `features`). 마운트는 `init` 을 3초까지 기다린다 — 토큰 없이 `secret` 이 오면 로그인 층부터 띄운다
+1. 첫 화면은 B 와 같은 로그인 보드(TERRA 연출)다. 마운트 전에 `hello` → frame 의 `init`(appId · 토큰 또는 없음 · `session` 값 · `features`)
 2. 토큰이 있으면 지도(`terra.master.nodes.get` + 로컬 status) · Tree 길 · 보기 상태 · 밀어 받기
-3. 없으면 — 셸 칸이 있으면 보드의 로그인 층(§1-2), 없으면 화면 위에 로그인 문(`[data-gate=login]`) — [로그인] 이 `emit('login')` → Scene 이 `/login` 으로
-4. 로그인하면 `signin.submit` 이 `/` 로 돌려보낸다 → frame 이 새로 서서 토큰이 든 `init` 이 온다(같은 frame 에 `terra.frame.token` 이 와도 2 로 간다)
-5. 씬의 로그아웃(`sceneLogout`)은 셸 칸이 있고 이 Scene 이 로그인했으면 `emit('logout')` 과 함께 보드의 로그인 층을 거꾸로 띄운다. 칸이 없으면 로그인 층을 띄우지 않고 `emit('logout')` → `signout` 이 Handle 을 폐기 → frame 이 `signed_out` → 3
+3. 토큰이 있으면(셸 세션 · `/login` 카드에서 로그인하고 돌아옴) 연출을 1.4초 보이고 폼을 열어 줄이 다 서면 입력을 받지 않고 워프로 트리 뷰(누르면 바로). 셸 칸은 두지 않는다 — 워프는 열린 폼의 글자를 날려 보내는 전환이라 닫힌 TERRA 화면에서는 시작하지 않는다
+4. 없으면 — 셸 칸이 있으면 보드의 폼으로 로그인(§1-2), 없으면(이전 Terra) TERRA 를 누를 때 폼을 열지 않고 `emit('login')` → Scene 이 `/login` 으로. 보드의 숨은 password 칸은 A 모드에서 값을 받지 않는다
+5. 카드로 로그인하면 `signin.submit` 이 `/` 로 돌려보낸다 → frame 이 새로 서서 토큰이 든 `init` 이 온다 → 3(같은 frame 에 `terra.frame.token` 이 와도 3)
+6. 씬의 로그아웃(`sceneLogout`)은 이 Scene 이 로그인했으면 `emit('logout')` 과 함께 보드의 로그인 층을 거꾸로 띄운다 → `signout` 이 Handle 을 폐기 → frame 이 `signed_out`. 셸 세션 토큰이면 "셸에서 로그아웃" 안내만. 토큰을 잃어도 로그인 층으로 돌아간다
 
 ### A 모드의 한계 (그대로 node-gui 와 같다)
 
