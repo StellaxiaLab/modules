@@ -26,6 +26,9 @@ export const FRAME_SECRET_SUBMIT = 'terra.frame.secret.submit';
 export const FRAME_SECRET_STATE = 'terra.frame.secret.state';
 export const FRAME_SECRET_KEY = 'terra.frame.secret.key';
 export const FRAME_SECRET_SENT = 'terra.frame.secret.sent';
+/** 기억된 로그인(auto). frame이 `init.features`에 `remember`를 실었을 때만 쓴다. */
+export const FRAME_SECRET_RESUME = 'terra.frame.secret.resume';
+export const FRAME_SECRET_FORGET = 'terra.frame.secret.forget';
 const DEFAULT_TIMEOUT_MS = 5_000;
 /** frame에 `hello`를 보내고 `init`을 기다린다. */
 export function connectTerra(options = {}) {
@@ -48,6 +51,7 @@ export function connectTerra(options = {}) {
         let ids = { appId: '', moduleId: '', sceneId: '', apiBase: '' };
         let waiting = [];
         let features = [];
+        let remembered;
         let secretState = { shown: false, focused: false, empty: true };
         const tokenListeners = new Set();
         const valueListeners = new Set();
@@ -102,6 +106,14 @@ export function connectTerra(options = {}) {
             onKey: (listener) => subscribe(secretKeyListeners, listener),
             onSent: (listener) => subscribe(secretSentListeners, listener)
         };
+        const remember = {
+            remembered: () => (remembered ? { ...remembered } : undefined),
+            resume: (fields = {}) => post({ type: FRAME_SECRET_RESUME, fields: { ...fields } }),
+            forget: () => {
+                remembered = undefined;
+                post({ type: FRAME_SECRET_FORGET });
+            }
+        };
         const frame = {
             get appId() {
                 return ids.appId;
@@ -126,6 +138,9 @@ export function connectTerra(options = {}) {
             features: () => features.slice(),
             get secret() {
                 return features.includes('secret') ? secret : undefined;
+            },
+            get remember() {
+                return features.includes('remember') ? remember : undefined;
             },
             onToken: (listener) => subscribe(tokenListeners, listener),
             onValue: (listener) => subscribe(valueListeners, listener),
@@ -160,6 +175,7 @@ export function connectTerra(options = {}) {
                     features = Array.isArray(data.features)
                         ? data.features.filter((item) => typeof item === 'string')
                         : [];
+                    remembered = readRemembered(data.remembered);
                     setToken(data.token, data.permissions, data.reason);
                     if (!connected) {
                         connected = true;
@@ -242,6 +258,7 @@ function devFrame(options, doFetch) {
         emit: () => undefined,
         features: () => [],
         secret: undefined,
+        remember: undefined,
         onToken: () => () => undefined,
         onValue: () => () => undefined,
         close: () => undefined
@@ -313,6 +330,10 @@ function follow(element, send) {
             view?.removeEventListener('scroll', schedule, true);
         }
     };
+}
+function readRemembered(value) {
+    const email = value && typeof value === 'object' ? value.email : undefined;
+    return typeof email === 'string' && email.trim() ? { email: email.trim() } : undefined;
 }
 function isSecretKey(value) {
     return value === 'Enter' || value === 'Tab' || value === 'ShiftTab' || value === 'Escape';
