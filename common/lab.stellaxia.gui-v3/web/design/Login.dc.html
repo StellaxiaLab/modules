@@ -664,15 +664,14 @@ class Component extends DCLogic {
       const l = MP(px - T / 2, py), rr = MP(px + T / 2, py), t0 = MP(px, py - T / 2), b0 = MP(px, py + T / 2), sw = Math.max(0.5, rr[0] - l[0]), sh = Math.max(0.5, b0[1] - t0[1]);
       if (c0[2] > 1.02) continue; f.globalAlpha = Math.max(0, Math.min(1, (1 - c0[2]) / 0.1)); f.drawImage(O.cv, c0[0] - sw / 2, c0[1] - sh / 2, sw, sh, tx, ty, T + 0.6, T + 0.6); }
     f.globalAlpha = 1;
-    // ③ 빛번짐 약 — 번진 빛 · 가로 끌림 · 색 갈라짐. 가장자리(0.92~)에서 0 이라 이음이 드러나지 않는다
+    // ③ 빛번짐 약 — 레트로 모니터처럼 RGB 가 갈라진다: 빨강 · 초록 · 파랑을 떼어 채널마다 배율을 조금 달리해(빨강 바깥 · 파랑 안쪽) 다시 더한다. 가운데 0 · 바깥으로 갈수록 크게, 가장자리(0.74~0.88)에서 0 으로 — 이음 유지
     const bl = C.bleed * Math.min(1, (z - 1) / (C.z - 1));
-    if (bl > 0.01) { const B = this.lensOff('B', F.cv.width, F.cv.height), b = B.c, Cc = this.lensOff('C', F.cv.width, F.cv.height), cc = Cc.c, Wd = F.cv.width, Hd = F.cv.height, sp = (1.5 + 3.5 * bl) * dpr;
-      b.filter = 'blur(' + ((3 + 5 * bl) * dpr).toFixed(1) + 'px)'; b.globalAlpha = 0.9; b.drawImage(F.cv, 0, 0); b.filter = 'none';
-      b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.18 * bl; for (const d of [-8, -4, 4, 8]) b.drawImage(F.cv, d * dpr, 0);
-      for (const [col, d] of [['#ff3b2f', sp], ['#2fb4ff', -sp]]) { cc.globalCompositeOperation = 'source-over'; cc.clearRect(0, 0, Wd, Hd); cc.drawImage(F.cv, 0, 0); cc.globalCompositeOperation = 'multiply'; cc.fillStyle = col; cc.fillRect(0, 0, Wd, Hd); cc.globalCompositeOperation = 'destination-in'; cc.drawImage(F.cv, 0, 0); b.globalAlpha = 0.32 * bl; b.drawImage(Cc.cv, d, 0); }
-      b.globalCompositeOperation = 'destination-in'; b.globalAlpha = 1; b.save(); b.translate(Wd / 2, Hd / 2); b.scale(Wd / 2, Hd / 2); const m = b.createRadialGradient(0, 0, 0, 0, 0, 1.1);
-      m.addColorStop(0, 'rgba(0,0,0,0.12)'); m.addColorStop(0.55, 'rgba(0,0,0,0.45)'); m.addColorStop(0.78, 'rgba(0,0,0,0.6)'); m.addColorStop(0.92, 'rgba(0,0,0,0)'); b.fillStyle = m; b.fillRect(-1.2, -1.2, 2.4, 2.4); b.restore();
-      f.setTransform(1, 0, 0, 1, 0, 0); f.globalCompositeOperation = 'screen'; f.globalAlpha = 0.9; f.drawImage(B.cv, 0, 0); f.globalCompositeOperation = 'source-over'; f.globalAlpha = 1; }
+    if (bl > 0.01) { const Wd = F.cv.width, Hd = F.cv.height, B = this.lensOff('B', Wd, Hd), b = B.c, Cc = this.lensOff('C', Wd, Hd), cc = Cc.c, sd = 0.006 + 0.014 * bl;
+      b.globalCompositeOperation = 'lighter';
+      for (const [col, dir] of [['#ff0000', 1], ['#00ff00', 0], ['#0000ff', -1]]) { cc.globalCompositeOperation = 'source-over'; cc.clearRect(0, 0, Wd, Hd); cc.drawImage(F.cv, 0, 0); cc.globalCompositeOperation = 'multiply'; cc.fillStyle = col; cc.fillRect(0, 0, Wd, Hd); cc.globalCompositeOperation = 'destination-in'; cc.drawImage(F.cv, 0, 0);
+        const sc = 1 + dir * sd; b.drawImage(Cc.cv, Wd / 2 * (1 - sc), Hd / 2 * (1 - sc), Wd * sc, Hd * sc); }
+      b.globalCompositeOperation = 'destination-in'; b.save(); b.translate(Wd / 2, Hd / 2); b.scale(Wd / 2, Hd / 2); const m = b.createRadialGradient(0, 0, 0, 0, 0, 1); m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop(0.74, 'rgba(0,0,0,1)'); m.addColorStop(0.88, 'rgba(0,0,0,0)'); b.fillStyle = m; b.fillRect(-1.2, -1.2, 2.4, 2.4); b.restore();
+      f.setTransform(1, 0, 0, 1, 0, 0); f.globalCompositeOperation = 'source-over'; f.globalAlpha = 1; f.drawImage(B.cv, 0, 0); }
     // ④ 화면에 — 둥근 사각 영역에만(테두리 없음 — 밖은 투명, 끝은 흐려 이음)
     const L = this._lcx; L.setTransform(1, 0, 0, 1, 0, 0); L.clearRect(0, 0, cv.width, cv.height); L.drawImage(F.cv, Math.round(G.x0 * dpr), Math.round(G.y0 * dpr)); this._lensShown = true;
     // 정보 — 머리: '돋보기 ×z · 광각 약 · 빛번짐 약' · 보는 칸(열 · 행). 컴포넌트 생성 씬 돋보기의 정보와 같은 글꼴 · 색, 배율이 오르는 만큼 나타난다

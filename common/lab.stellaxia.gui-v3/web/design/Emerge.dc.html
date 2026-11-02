@@ -1131,16 +1131,14 @@ class Component extends DCLogic {
       f.globalAlpha = 1;
       // 가장자리 어둠 — 렌즈 테 쪽이 조금 가라앉는다(융기 외곽이면 없음)
       if (!SEAM) { f.save(); f.translate(W / 2, H / 2); f.scale(W / 2, H / 2); const vg = f.createRadialGradient(0, 0, 0.55, 0, 0, 1.05); vg.addColorStop(0, 'rgba(2,3,10,0)'); vg.addColorStop(1, 'rgba(2,3,10,' + (0.35 * k / 0.8).toFixed(3) + ')'); f.fillStyle = vg; f.fillRect(-1, -1, 2, 2); f.restore(); } }
-    // ③ 빛번짐 — 번진 빛 · 색 갈라짐 · 가로 끌림. 광각이면 가장자리일수록 세게(왜곡이 심한 곳)
-    if (bl) { const Bo = this.off('B', W, H), b = Bo.c, Co = this.off('C', W, H), cc = Co.c, sp = 1.5 + 3.5 * bl + (k ? 3 * k : 0);
-      b.filter = 'blur(' + (3 + 5 * bl).toFixed(1) + 'px)'; b.globalAlpha = 0.9; b.drawImage(Fo.cv, 0, 0, W, H); b.filter = 'none';   // 번진 빛
-      b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.18 * bl; for (const d of [-8, -4, 4, 8]) b.drawImage(Fo.cv, d * (1 + k), 0, W, H);   // 가로 끌림
-      for (const [col, d] of [['#ff3b2f', sp], ['#2fb4ff', -sp]]) { cc.globalCompositeOperation = 'source-over'; cc.clearRect(0, 0, W, H); cc.drawImage(Fo.cv, 0, 0, W, H); cc.globalCompositeOperation = 'multiply'; cc.fillStyle = col; cc.fillRect(0, 0, W, H); cc.globalCompositeOperation = 'destination-in'; cc.drawImage(Fo.cv, 0, 0, W, H);
-        b.globalAlpha = 0.32 * bl; b.drawImage(Co.cv, d, 0, W, H); }   // 색 갈라짐 — 빨강은 오른쪽, 파랑은 왼쪽
-      b.globalCompositeOperation = 'destination-in'; b.globalAlpha = 1; b.save(); b.translate(W / 2, H / 2); b.scale(W / 2, H / 2);
-      const m = b.createRadialGradient(0, 0, 0, 0, 0, 1.1); if (SEAM) { m.addColorStop(0, 'rgba(0,0,0,0.12)'); m.addColorStop(0.55, 'rgba(0,0,0,0.45)'); m.addColorStop(0.78, 'rgba(0,0,0,0.6)'); m.addColorStop(0.92, 'rgba(0,0,0,0)'); } else if (k) { m.addColorStop(0, 'rgba(0,0,0,0.12)'); m.addColorStop(0.55, 'rgba(0,0,0,0.3)'); m.addColorStop(1, 'rgba(0,0,0,1)'); } else { m.addColorStop(0, 'rgba(0,0,0,0.62)'); m.addColorStop(1, 'rgba(0,0,0,0.62)'); }
-      b.fillStyle = m; b.fillRect(-1.2, -1.2, 2.4, 2.4); b.restore();
-      f.globalCompositeOperation = 'screen'; f.globalAlpha = 0.9; f.drawImage(Bo.cv, 0, 0, W, H); f.globalCompositeOperation = 'source-over'; f.globalAlpha = 1; }
+    // ③ 빛번짐 — 레트로 모니터처럼 RGB 가 갈라진다: 빨강 · 초록 · 파랑 채널을 따로 떼어 빨강은 바깥(오른쪽), 파랑은 안쪽(왼쪽)으로 비켜 다시 더한다(흐림 · 번진 빛 없음)
+    //   광각이 없으면 고르게 가로로(약 1.6px · 강 2.4px), 광각이면 채널마다 배율을 조금 달리해 가운데 0 · 바깥으로 갈수록 크게(왜곡이 심한 곳일수록). 융기 외곽은 가장자리에서 0 — 이음 유지
+    if (bl) { const Bo = this.off('B', W, H), b = Bo.c, Co = this.off('C', W, H), cc = Co.c, tx = 0.6 + 1.8 * bl, sd = 0.006 + 0.014 * bl;
+      b.globalCompositeOperation = 'lighter';
+      for (const [col, dir] of [['#ff0000', 1], ['#00ff00', 0], ['#0000ff', -1]]) { cc.globalCompositeOperation = 'source-over'; cc.clearRect(0, 0, W, H); cc.drawImage(Fo.cv, 0, 0, W, H); cc.globalCompositeOperation = 'multiply'; cc.fillStyle = col; cc.fillRect(0, 0, W, H); cc.globalCompositeOperation = 'destination-in'; cc.drawImage(Fo.cv, 0, 0, W, H);
+        if (k) { const sc = 1 + dir * sd; b.drawImage(Co.cv, W / 2 * (1 - sc), H / 2 * (1 - sc), W * sc, H * sc); } else b.drawImage(Co.cv, dir * tx, 0, W, H); }
+      if (SEAM) { b.globalCompositeOperation = 'destination-in'; b.save(); b.translate(W / 2, H / 2); b.scale(W / 2, H / 2); const m = b.createRadialGradient(0, 0, 0, 0, 0, 1); m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop(0.74, 'rgba(0,0,0,1)'); m.addColorStop(0.88, 'rgba(0,0,0,0)'); b.fillStyle = m; b.fillRect(-1.2, -1.2, 2.4, 2.4); b.restore(); }
+      f.globalCompositeOperation = 'source-over'; f.globalAlpha = 1; f.drawImage(Bo.cv, 0, 0, W, H); }
     }
     const FC = this._off.F.cv;
     // ④ 형태로 잘라 화면에 — 열기 · 닫기는 가운데에서 펼쳐진다
