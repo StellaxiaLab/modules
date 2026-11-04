@@ -326,13 +326,13 @@ class Component extends DCLogic {
   componentWillUnmount() { this._live = false; clearInterval(this._iv); }
   componentDidUpdate(prev) {
     if (prev && prev.pre !== this.props.pre && this.props.pre) { try { const p = JSON.parse(this.props.pre); this.setState({ tab: p.tab || 'make', typeId: p.type || this.state.typeId, vals: p.values || {}, fname: p.name || '' }); } catch (e) {} }
-    if (prev && prev.nodeRid !== this.props.nodeRid) { this.setState({ data: null }); this.pull(); }
+    if (prev && prev.nodeRid !== this.props.nodeRid) { this.setState({ data: null, msg: '', pick: null }); this.pull(); }
   }
   real() { return typeof window !== 'undefined' && !!window.TerraSviMake; }
   pull() {
     if (!this.real()) { if (!this.state.data) this.setState({ data: this.sample() }); return; }
     const rid = this.props.nodeRid; if (!rid) return;
-    window.TerraSviMake.load(rid).then((data) => this._live && this.props.nodeRid === rid && this.setState({ data }), (e) => this._live && this.setState({ msg: '읽지 못함 · ' + ((e && e.code) || '') }));
+    window.TerraSviMake.load(rid).then((data) => this._live && this.props.nodeRid === rid && this.setState({ data }), (e) => this._live && this.props.nodeRid === rid && this.setState({ msg: '읽지 못함 · ' + ((e && e.code) || '') }));
   }
   say(m) { this.setState({ msg: m }); }
   /** 실제 부르기 — 시안이면 사본만 고친다 */
