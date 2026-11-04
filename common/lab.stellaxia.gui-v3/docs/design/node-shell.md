@@ -8,13 +8,14 @@ doc_type: "design"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.1.0"
-last_updated: "2026-11-02"
+version: "0.2.0"
+last_updated: "2026-11-04"
 language: "ko-KR"
 related:
   - "[[terminals|제어기의 두 터미널]]"
   - "[[terra-reach|Terra 도달 분석]]"
   - "[[design-ops-gaps|시안 ↔ 실제 운영 격차]]"
+  - "[[desk-flows|제어기의 쓰기 흐름]]"
 ---
 
 # 노드 셸(실제 터미널) 설계
@@ -139,3 +140,17 @@ Gateway 의 스트림 중계는 **이미 양방향**이다(`relayWebSocket` 이 
 
 - 코어(Terra): ADR(권한 · 감사 · 수명) → Daemon 계약에 §5.1 operation → PTY 구현(Linux 먼저) → `audit.log` 사건 → Gateway 는 바꿀 것 없음(1단계).
 - gui-v3: `module.json` 앱 권한에 `process.terminal` · `terra.js stream` 에 보내기 · 터미널 그리기 · `NODE_SHELL.locked = false` 와 잠금 시험 바꾸기.
+
+## 9. 화면 흐름(0.2.0 — 그려 둠, 마지막 단추만 잠김)
+
+결정 전에도 화면은 다 그려 둔다. 잠금 판의 **열기 확인 단계 ›** 로 걸어 보고, 마지막 **셸 열기**만 이 문서의 결정(§7)까지 잠긴다(why = `NODE_SHELL.reason` — 이 문서). 확인 단계는 제어기의 공용 대화상자([[desk-flows]] §1)다.
+
+| 단계 | 보이는 것 | 체크 |
+| --- | --- | --- |
+| 1 무엇이 되는가 | 노드(이 노드에서만 — 원격 제어기면 1단계는 안 된다는 줄) · 셸(로그인한 OS 사용자의 PTY · Windows W1 전 거절) · 수명(유휴 15분 · 상한 8시간 · 다시 붙기 없음, §6) · 감사(`audit.log` `terminal.session.*`, §4) · 내용(기본 남기지 않음 · 켜면 "기록 중") | 이 노드에서만 열리고 그 노드에 남는다 |
+| 2 권한 경고 | 권한 `process.terminal`(제안 — `process.execute` 로는 열지 않는다) · 위험도 dangerous(빨간 띠) · 누가 보나(나 · 노드 소유자 · 원격이면 부모 Master 이벤트 한 줄) · 여는 사람 기본값 · 셸(main Scene) 확인 카드 | 친 명령은 되돌릴 수 없다 |
+| 3 두 터미널 구분 | 미리 보기 둘 — 노드 셸: 노란 줄무늬 띠 · 머리 표지 `OS 셸 · 이 노드` · 프롬프트 `사용자@노드:~$`(노랑) / Terra 터미널: 파란 띠 · `Terra API` · `terra[노드]>`(파랑) | — |
+| 셸 열기 | 잠금 상자 — why · 결정되면 `terra.daemon.terminal.sessions.post` 의 문(gate)이 연다 | — |
+
+창 자체도 같은 표지를 단다 — 제어기의 노드 터미널 창 머리에 노란 줄무늬 띠와 `OS 셸 · 이 노드`, Terra 터미널 창에 파란 띠와 `Terra API`.
+결정 뒤 바꿀 곳: `NODE_SHELL.locked`(shells.js · 보드 사본) · 셸 열기의 실행(스트림 · 터미널 그리기, §8).

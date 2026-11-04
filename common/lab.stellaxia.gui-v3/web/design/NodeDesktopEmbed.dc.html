@@ -410,12 +410,19 @@ button{font-family:inherit}
                       <span>{{w.saveText}}</span>
                     </div>
                     <sc-if value="{{w.tid.on}}" hint-placeholder-val="{{ false }}">
-                      <div style="margin-top: 10px; padding: 10px 12px; border: 1px solid {{t.line}}; border-radius: 10px; font-size: 12.5px; display: flex; flex-direction: column; gap: 6px;">
-                        <div style="display: flex; gap: 8px;"><b>계정</b><span style="flex-grow: 1;"></span><span style="font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.sub}};">{{w.tid.who}}</span></div>
-                        <div style="font-size: 11.5px; color: {{t.dim}};">{{w.tid.perms}}</div>
-                        <div style="display: flex; gap: 8px; margin-top: 4px;"><b>Terra ID 연결</b><span style="flex-grow: 1;"></span><span style="font-size: 11.5px; color: {{t.dim}};">{{w.tid.state}}</span></div>
-                        <sc-for list="{{w.tid.rows}}" as="ti" hint-placeholder-count="1"><div style="display: flex; gap: 8px; font-size: 12px;"><span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ti.issuer}}</span><span style="font-family: 'JetBrains Mono',ui-monospace,monospace; color: {{t.sub}};">{{ti.subject}}</span><span>{{ti.status}}</span><span style="color: {{t.dim}};">{{ti.at}}</span></div></sc-for>
-                        <div style="font-size: 11.5px; line-height: 1.45; color: {{t.dim}};">{{w.tid.limit}}</div>
+                      <div class="nx nx-in-set {{w.nx.theme}}" style="margin-top: 10px;">
+                        <div class="nx-card">
+                          <div class="nx-btns"><b>계정</b><span class="nx-fill"></span><span class="nx-k nx-mono">{{w.tid.who}}</span></div>
+                          <div class="nx-k">{{w.tid.perms}}</div>
+                          <div class="nx-h nx-h2" style="margin-top: 2px;">외부 신원(Terra ID) 연결<span class="nx-k" style="font-weight: 400;">{{w.tid.state}}</span><span class="nx-fill"></span><sc-for list="{{w.tid.linkBtns}}" as="bt" hint-placeholder-count="1"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                          <sc-for list="{{w.tid.rows}}" as="ti" hint-placeholder-count="1"><div class="nx-row"><span class="nx-lab">{{ti.issuer}}<span class="nx-k nx-mono">{{ti.subject}} · {{ti.at}}</span></span><span class="nx-chip ok">{{ti.status}}</span><sc-for list="{{ti.btns}}" as="bt" hint-placeholder-count="1"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div></sc-for>
+                          <sc-if value="{{w.tid.limit}}" hint-placeholder-val="{{ false }}"><div class="nx-lockbox" role="note"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" class="nx-lk" style="margin-top: 2px;"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>{{w.tid.limit}}</span></div></sc-if>
+                        </div>
+                        <div class="nx-card">
+                          <div class="nx-h nx-h2" style="margin: 0;">Tree 의 신뢰 발급자<span class="nx-k" style="font-weight: 400;">이 Tree 가 믿는 외부 신원 발급자 · 관리자 일</span><span class="nx-fill"></span><sc-for list="{{w.tid.issBtns}}" as="bt" hint-placeholder-count="1"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                          <sc-for list="{{w.tid.issuers}}" as="is" hint-placeholder-count="1"><div class="nx-row"><span class="nx-lab">{{is.name}}<span class="nx-k nx-mono">{{is.issuer}}</span></span><span class="nx-k">{{is.tags}}</span><sc-for list="{{is.btns}}" as="bt" hint-placeholder-count="1"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div></sc-for>
+                          <sc-if value="{{w.tid.issWhy}}" hint-placeholder-val="{{ false }}"><div class="nx-k">{{w.tid.issWhy}}</div></sc-if>
+                        </div>
                       </div>
                     </sc-if>
                   </sc-if>
@@ -430,7 +437,7 @@ button{font-family:inherit}
                   <sc-for list="{{w.net.tabs}}" as="tb" hint-placeholder-count="6"><button type="button" onClick="{{tb.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 8px; background: {{tb.bg}}; color: {{tb.fg}}; font-size: 12px; cursor: pointer;">{{tb.label}}<span style="margin-left: 5px; color: {{t.dim}};">{{tb.n}}</span></button></sc-for>
                   <span style="flex-grow: 1;"></span><span style="font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11px; color: {{t.dim}};">{{w.net.api}}</span>
                 </div>
-                <div style="flex-shrink: 0; padding: 6px 12px; font-size: 11.5px; line-height: 1.45; color: {{t.dim}};">{{w.net.note}}</div>
+                <div class="{{w.nx.theme}}" style="flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 12px 0;"><sc-for list="{{w.net.acts}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for><span style="font-size: 11.5px; line-height: 1.45; color: {{t.dim}};">{{w.net.note}}</span></div>
                 <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 0 10px 10px;">
                   <div style="display: grid; grid-template-columns: {{w.net.grid}}; gap: 0 10px; padding: 4px 6px; font-size: 11px; color: {{t.dim}}; border-bottom: 1px solid {{t.line}};"><sc-for list="{{w.net.cols}}" as="c" hint-placeholder-count="4"><span>{{c}}</span></sc-for></div>
                   <sc-for list="{{w.net.rows}}" as="r" hint-placeholder-count="3"><div style="display: grid; grid-template-columns: {{w.net.grid}}; gap: 0 10px; padding: 5px 6px; font-size: 12px; border-bottom: 1px solid {{t.line}};"><sc-for list="{{r.cells}}" as="v" hint-placeholder-count="4"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{v}}">{{v}}</span></sc-for></div></sc-for>
@@ -539,8 +546,12 @@ button{font-family:inherit}
                     <sc-if value="{{w.nx.noTun}}" hint-placeholder-val="{{ false }}"><p class="nx-empty">열린 터널 없음</p></sc-if>
                     <sc-for list="{{w.nx.tuns}}" as="tn" hint-placeholder-count="2"><div class="nx-row"><span class="nx-lab nx-mono">{{tn.svc}} :{{tn.port}}</span><span class="nx-k">↔ {{tn.peer}}</span><span class="nx-k">{{tn.since}}</span><span class="nx-chip ok">열림</span><sc-for list="{{tn.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div></sc-for>
                     <div class="nx-card">
-                      <div class="nx-h">새 터널</div>
-                      <div class="nx-row"><span class="nx-lab">포트</span><input class="nx-in nx-in-s nx-mono" type="text" value="{{w.nx.tn.port}}" placeholder="22" onInput="{{w.nx.tn.portIn}}" aria-label="포트" spellcheck="false"><span class="nx-lab">상대 노드</span><span class="nx-seg nx-wrap"><sc-for list="{{w.nx.tn.peers}}" as="op" hint-placeholder-count="3"><button type="button" class="{{op.cls}}" aria-pressed="{{op.on}}" onClick="{{op.pick}}">{{op.label}}</button></sc-for></span><span class="nx-fill"></span><sc-for list="{{w.nx.tn.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                      <div class="nx-h">새 터널<span class="nx-fill"></span><span class="nx-k">이 노드 → 다른 노드의 서비스 · loopback 만</span></div>
+                      <div class="nx-row"><span class="nx-lab">대상 노드</span><span class="nx-seg nx-wrap"><sc-for list="{{w.nx.tn.peers}}" as="op" hint-placeholder-count="3"><button type="button" class="{{op.cls}}" aria-pressed="{{op.on}}" onClick="{{op.pick}}">{{op.label}}</button></sc-for></span></div>
+                      <div class="nx-row"><span class="nx-lab">대상 포트<span class="nx-k">그 노드의 127.0.0.1</span></span><input class="nx-in nx-in-s nx-mono" type="text" value="{{w.nx.tn.tport}}" placeholder="22" onInput="{{w.nx.tn.tportIn}}" aria-label="대상 포트" spellcheck="false"><span class="nx-lab">서비스 이름<span class="nx-k">비우면 tcp-포트</span></span><input class="nx-in nx-in-s nx-mono" type="text" value="{{w.nx.tn.svc}}" placeholder="ssh" onInput="{{w.nx.tn.svcIn}}" aria-label="서비스 이름" spellcheck="false"></div>
+                      <div class="nx-row"><span class="nx-lab">로컬 포트<span class="nx-k">이 노드의 127.0.0.1 · 0 이나 비우면 자동</span></span><input class="nx-in nx-in-s nx-mono" type="text" value="{{w.nx.tn.lport}}" placeholder="자동" onInput="{{w.nx.tn.lportIn}}" aria-label="로컬 포트" spellcheck="false"><span class="nx-lab">최대 연결</span><input class="nx-in nx-in-s nx-mono" type="text" value="{{w.nx.tn.max}}" placeholder="1" onInput="{{w.nx.tn.maxIn}}" aria-label="최대 연결" spellcheck="false"></div>
+                      <div class="nx-k">{{w.nx.tn.ttl}}</div>
+                      <div class="nx-btns"><span class="nx-k nx-err">{{w.nx.tn.err}}</span><span class="nx-fill"></span><sc-for list="{{w.nx.tn.btns}}" as="bt" hint-placeholder-count="1"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
                     </div>
                   </div>
                 </sc-if>
@@ -1248,23 +1259,76 @@ class Component extends DCLogic {
     if (r.err && !rows.length) return [{ t: '', cls: 'err', msg: '로그를 못 받음 · ' + r.err.code }];
     return rows.length ? rows.slice(-200) : [{ t: '', cls: 'info', msg: r.loading ? '받는 중…' : '로그 없음' }];
   }
-  // 계정 · Terra ID — whoami(window.TerraWho)와 내 외부 신원 연결(Master users.by-user-id.external-identities.get). 읽기만
+  // 계정 · Terra ID — whoami(window.TerraWho)와 내 외부 신원 연결(Master users.by-user-id.external-identities.get · 위임 표에 있다)
+  //   연결 · 해제(external-identities.post · delete)와 Tree 의 신뢰 발급자(admin.external-issuers.*)는 화면을 다 그리고 문(gate)이 잠근다 —
+  //   Master 계약이 연결을 위임 세션에 일부러 닫았다(앱이 남의 계정을 붙이면 영구 로그인 뒷문). 시안은 예시 줄 · 결과 '(시안)'
   terraId() {
-    const T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null, W = typeof window !== 'undefined' ? window.TerraWho : null;
-    if (!T || !A || !this.nd().real) return { on: false };
-    const uid = W ? A.userIdOf(W.principal) : '', r = uid ? T.read(this.nodeKey(), 'terra.master.users.by-user-id.external-identities.get', { input: { user_id: uid }, ttl: 60000 }) : null;
-    const V = r ? A.identities(r.data, !r.data && r.err) : { state: 'unseen', rows: [], why: W ? '사용자 id 를 모른다' : '계정 정보를 받는 중' };
-    const app = !!(W && W.delegate);
-    return { on: true, who: W ? (W.principal || '—') + (app ? ' · 앱 ' + W.delegate : '') : '받는 중…', perms: W && W.permissions ? '권한 ' + W.permissions.join(' · ') : '',
-      rows: V.rows, state: V.state === 'ok' ? V.rows.length + '개' : V.state === 'empty' ? '연결 없음' : V.why || (r && r.loading ? '받는 중…' : '못 봤음'),
-      limit: '읽기만 — ' + (app ? '이 화면은 앱 자격(main Scene)이라 Master 위임 표에 Terra ID 는 연결 목록 읽기 하나뿐이다. ' : '') + '연결 · 해제와 Tree 의 Terra ID 신뢰(발급자) 설정은 앱 위임 밖이라 여기서 하지 않는다 — Tree 의 웹 콘솔에서.' };
+    const T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null, W = typeof window !== 'undefined' ? window.TerraWho : null, n = this.nodeKey(), real = !this.sim();   // 실제 연결이면 시안 줄을 절대 쓰지 않는다(받는 중이면 받는 중)
+    let o;
+    if (real) {
+      const uid = W && A ? A.userIdOf(W.principal) : '', r = uid ? T.read(n, 'terra.master.users.by-user-id.external-identities.get', { input: { user_id: uid }, ttl: 60000 }) : null;
+      const V = r ? A.identities(r.data, !r.data && r.err) : { state: 'unseen', rows: [], why: W ? '사용자 id 를 모른다' : '계정 정보를 받는 중' }, app = !!(W && W.delegate);
+      o = { on: true, uid, who: W ? (W.principal || '—') + (app ? ' · 앱 ' + W.delegate : '') : '받는 중…', perms: W && W.permissions ? '권한 ' + W.permissions.join(' · ') : '', rows: V.rows,
+        state: V.state === 'ok' ? V.rows.length + '개' : V.state === 'empty' ? '연결 없음' : V.why || (r && r.loading ? '받는 중…' : '못 봤음') };
+    } else o = { on: true, uid: 'u_stk', who: 'user:stk (시안)', perms: '권한 node.read · node.control (시안)', rows: [{ issuer: 'https://id.terra.example', subject: 'stk', status: '연결됨', at: '2026-09-14' }], state: '1개 (시안)' };
+    const pOp = 'terra.master.users.by-user-id.external-identities.post', dOp = 'terra.master.users.by-user-id.external-identities.delete', gP = this.gateOf(pOp), gD = this.gateOf(dOp);
+    const refresh = () => { if (real) T.refresh(n, 'terra.master.users.by-user-id.external-identities.get', { user_id: o.uid }); };
+    o.rows = o.rows.map((x) => Object.assign({}, x, { btns: [this.actBtn('해제', gD, () => this.ask({ title: '외부 신원 해제', sub: x.issuer + ' · ' + x.subject, op: dOp, risk: 'write',
+      steps: [{ label: '확인', rows: [['무엇', '이 외부 계정과 내 Tree 계정의 연결을 끊는다 — 그 계정으로 이 Tree 에 로그인하지 못한다'], ['발급자', x.issuer], ['외부 id', x.subject], ['기록', 'Master 감사(audit) — 누가 · 무엇을'], ['되돌리기', '다시 연결 — 그 발급자에서 이 Tree 용 토큰을 새로 받는다']],
+        checks: [['cut', '이 외부 계정으로는 더 로그인하지 못한다는 것을 안다']] }],
+      final: { label: '해제', run: () => (this.sim() ? [['해제', x.issuer + ' · ' + x.subject]] : T.write(n, dOp, { user_id: o.uid, issuer: x.issuer, subject: x.subject }).then(() => { refresh(); return [['해제', x.issuer + ' · ' + x.subject]]; })) },
+      undo: '다시 연결 — 새 토큰으로' }), { dan: true })] }));
+    const iss = [...new Set(o.rows.map((x) => x.issuer))];
+    o.linkBtns = [this.actBtn('+ 외부 신원 연결', gP, () => this.ask({ title: '외부 신원 연결', sub: o.who + ' 에 외부 계정을 붙인다', op: pOp, risk: 'write', values: { issuer: iss[0] || '' },
+      check: (v) => (!v.issuer ? '발급자' : !v.token ? '토큰' : ''), nodes: iss.map((x) => [x, x]),
+      steps: [{ label: '발급자', rows: [['무엇', '외부 신원 발급자(Terra ID 같은 OIDC) — 이 Tree 가 믿는 것만 된다(신뢰 발급자 목록)']], fields: [['issuer', '발급자(issuer)', 'https://id.terra.example', 'text']].concat(iss.length ? [['issuer', '아는 발급자', '', 'node']] : []) },
+        { label: '외부 로그인', rows: [['어떻게', '그 발급자에 로그인해 이 Tree 용 로그인 토큰을 받는다(발급자의 로그인 화면) — 그 토큰이 그 외부 계정이 내 것이라는 증명이다'], ['보관', '토큰은 이 화면에 남기지 않는다(보내고 버린다)']], fields: [['token', '이 Tree 용 로그인 토큰', 'eyJ…', 'secret']] },
+        { label: '확인', rows: [['사용자', o.who], ['연결', '발급자의 (iss, sub) 하나를 이 계정에 — 이메일로 잇지 않는다'], ['겹침', '이미 다른 사용자에 붙어 있으면 409 EXTERNAL_IDENTITY_CONFLICT'], ['기록', 'Master 감사(audit)'], ['되돌리기', '같은 줄의 해제']],
+          checks: [['mine', '이 외부 계정은 내 것이다']] }],
+      final: { label: '연결', fail: (c) => (c === 'EXTERNAL_IDENTITY_CONFLICT' ? '그 외부 계정은 이미 다른 사용자에 붙어 있다' : ''),
+        run: (v) => (this.sim() ? [['연결', v.issuer]] : T.write(n, pOp, { user_id: o.uid, token: v.token }).then(() => { refresh(); return [['연결', v.issuer]]; })) },
+      undo: '해제' }), { pri: gP.open })];
+    // Tree 의 신뢰 발급자 — master.admin(관리자) 일. 읽기부터 위임 밖이면 목록 대신 why
+    const lOp = 'terra.master.admin.external-issuers.get', aOp = 'terra.master.admin.external-issuers.post', rOp = 'terra.master.admin.external-issuers.delete', gL = this.gateOf(lOp), gA = this.gateOf(aOp), gR = this.gateOf(rOp);
+    let IL = [];
+    if (!gL.open) o.issWhy = '목록을 읽을 수 없다 — ' + gL.why;
+    else if (real) { const r = T.read(n, lOp, { ttl: 60000 }), d = r.data && (r.data.issuers || r.data.items || r.data); IL = Array.isArray(d) ? d.map((x) => ({ issuer: x.issuer, name: x.display_name || '', mfa: !!x.require_mfa, on: x.enabled !== false })) : []; o.issWhy = r.err && !r.data ? '못 받음 · ' + r.err.code : IL.length ? '' : r.loading ? '받는 중…' : '비어 있음'; }
+    else { IL = [{ issuer: 'https://id.terra.example', name: 'Terra ID (시안)', mfa: true, on: true }]; o.issWhy = ''; }
+    o.issuers = IL.map((x) => ({ issuer: x.issuer, name: x.name, tags: (x.on ? '켜짐' : '꺼짐') + (x.mfa ? ' · MFA 필요' : ''), btns: [this.actBtn('빼기', gR, () => this.ask({ title: '신뢰 발급자 빼기', sub: x.issuer, op: rOp, risk: 'dangerous',
+      steps: [{ label: '확인', rows: [['무엇', '이 Tree 가 이 발급자를 더는 믿지 않는다'], ['영향', '그 발급자로 연결한 모든 사용자의 외부 로그인이 막힌다(연결 기록은 남는다)', 'nx-err'], ['되돌리기', '같은 설정으로 다시 더하기']], checks: [['all', '모든 사용자의 그 발급자 로그인이 막힌다는 것을 안다']] }],
+      final: { label: '빼기', run: () => (this.sim() ? [['뺐다', x.issuer]] : T.write(n, rOp, { issuer: x.issuer }).then(() => { T.refresh(n, lOp); return [['뺐다', x.issuer]]; })) }, undo: '다시 더하기' }), { dan: true })] }));
+    o.issBtns = [this.actBtn('+ 발급자', gA, () => this.ask({ title: '신뢰 발급자 더하기', sub: '이 Tree 가 믿는 외부 신원 발급자', op: aOp, risk: 'write', values: { require_mfa: false },
+      check: (v) => (!/^https:\/\/\S+$/.test(v.issuer || '') ? 'issuer 는 https:// 주소' : ''),
+      steps: [{ label: '발급자', fields: [['issuer', 'issuer', 'https://id.terra.example', 'text'], ['display_name', '보일 이름', 'Terra ID', 'text'], ['jwks_uri', 'JWKS 주소(비우면 발견)', 'https://…/.well-known/jwks.json', 'text'], ['audience', 'audience', '이 Tree 의 id', 'text'], ['require_mfa', 'MFA 필요', '', 'bool']],
+        rows: [['무엇', '이 발급자가 서명한 로그인 토큰을 이 Tree 가 받는다 — 사용자는 외부 신원을 연결해 로그인'], ['권한', 'master.admin — Tree 관리자 일'], ['되돌리기', '같은 줄의 빼기']] }],
+      final: { label: '더하기', run: (v) => { const inp = { issuer: v.issuer, enabled: true, require_mfa: !!v.require_mfa }; for (const k of ['display_name', 'jwks_uri', 'audience']) if (v[k]) inp[k] = v[k];
+        return this.sim() ? [['더했다', v.issuer]] : T.write(n, aOp, inp).then(() => { T.refresh(n, lOp); return [['더했다', v.issuer]]; }); } }, undo: '빼기' }))];
+    o.limit = gP.open ? '' : '연결 · 해제 잠김 — ' + gP.why;
+    return o;
+  }
+  // 네트워크 쓰기 확인 단계 — 무엇 · 어디에 · 위험도 · 칸 → 결과(접수) · 되돌리기 안내. 실제는 Master op 를 부르고 이 탭의 읽기를 다시 받는다
+  netAsk(x) {
+    const T = this.TN(), n = this.nodeKey(), NR = typeof window !== 'undefined' ? window.TerraNet : null, me = this.rid();
+    this.ask({ title: '네트워크 · ' + x.label, sub: x.where + ' — Master 의 원하는 상태를 바꾼다', op: x.op, risk: x.risk, check: x.check, values: Object.assign({ bidirectional: true }, x.f.some((f) => f[0] === 'source_node_id') ? { source_node_id: me } : {}),
+      nodes: [[me, this.nodeNameQ() + ' (이 노드)']].concat(this.nodeChoices()),
+      steps: [{ label: '확인', rows: [['무엇', x.what], ['어디에', x.where], ['기록', 'Master 조작 이력(network.logs) — 누가 · 무엇을 · 결과'], ['되돌리기', x.undo]], fields: x.f,
+        warns: x.risk === 'dangerous' ? [{ t: '바로 적용된다 — 그 노드들 사이의 연결이 끊길 수 있다', cls: 'err' }] : [], checks: x.risk === 'dangerous' ? [['now', '바로 적용되고 ' + x.undo.split(' — ')[0] + '을 안다']] : [] }],
+      final: { label: x.label, fail: (c) => ({ NODE_NOT_FOUND: '이 Tree 의 노드가 아니다', PROBE_SOURCE_NOT_CONNECTED: '출발 노드가 Master 와 이어져 있지 않다', INVALID_ROUTE_POLICY: '정책 꼴이 틀렸다 — 경로 이름 확인', NOT_IMPLEMENTED: '이 Master 에는 그 기능이 꺼져 있다' })[c] || '',
+        run: (v) => { const input = x.input(v);
+          if (this.sim()) return [['보낼 것', JSON.stringify(input)], ['결과', '접수 — 실제 연결에서 Master 가 답한다']];
+          return T.write(n, x.op, input).then((d) => { if (NR) { const cur = NR.NET_TABS.find((t) => t[0] === x.tab); if (cur) for (const k of cur[2]) T.refresh(n, NR.NET_READS[k]); } const r = (d && d.data) || d || {}; return [['결과', r.accepted ? '접수됨' : '됨'], ['응답', JSON.stringify(r).slice(0, 160)]]; }); } },
+      undo: x.undo });
   }
   // 네트워크 창 — Master 의 네트워크 · 경로 읽기(net-read.js, 모두 앱 위임 표에 있다). 보기만: 쓰기는 위임 밖(readiness §3-1)
   netView(t, s) {
     const T = this.TN(), NR = typeof window !== 'undefined' ? window.TerraNet : null, tab = s.netTab || 'mesh';
-    const tabs = NR ? NR.NET_TABS : [['mesh', '노드 · 메시', []]];
+    const tabs = NR ? NR.NET_TABS : [['mesh', '노드 · 메시', []], ['peers', '피어', []], ['sessions', '경로 세션', []], ['policies', '경로 정책', []], ['probes', 'probe', []]];   // 시안 — 쓰기가 있는 탭만(읽기는 실제 연결에서)
     const out = { tabs: tabs.map(([id, label]) => ({ label, n: '', bg: id === tab ? t.raiseH : 'transparent', fg: id === tab ? t.ink : t.sub, pick: () => this.setState({ netTab: id }) })),
-      note: '보기만 — 자동 조정 · 수동 계획 · 피어 철회 · probe 실행 · 정책 저장 · 세션 닫기 · 연결 그룹 닫기는 Master 쓰기라 앱 위임 밖이다(노드 GUI 도 같다).', cols: [], rows: [], grid: '1fr', empty: '', api: '' };
+      note: '', cols: [], rows: [], grid: '1fr', empty: '', api: '' };
+    // 쓰기 — 이 탭의 조작(NET_WRITES · Master 계약의 op). 단추마다 확인 단계 → 결과 · 되돌리기 안내. 위임 밖이면 문(gate)이 마지막 단추를 잠근다(why)
+    const W = NET_WRITES.filter((x) => x.tab === tab), GW = W.map((x) => this.gateOf(x.op)), shut = GW.find((g) => !g.open);
+    out.acts = W.map((x, k) => this.actBtn(x.label, GW[k], () => this.netAsk(x), { dan: x.risk === 'dangerous', view: true }));
+    out.note = W.length ? (shut ? '쓰기 잠김 — ' + shut.why + ' · 눌러 확인 단계는 볼 수 있다' : '쓰기 — 단추마다 확인 단계를 거친다') : '이 탭은 보기만';
     if (!NR || !T || !this.nd().real) { out.empty = '실제 Tree 에 로그인하면 Master 의 네트워크 · 경로가 보인다'; return out; }
     const cur = tabs.find((x) => x[0] === tab) || tabs[0], n = this.nodeKey(), D = {}, errs = [];
     let loading = false;
@@ -1883,10 +1947,23 @@ class Component extends DCLogic {
         // 서비스 터널
         X.tunApi = this.api('terra.daemon.service-tunnels.* (열기는 이 노드에서만)'); X.noTun = !N.tuns.length;
         X.tuns = N.tuns.map((tn, i) => ({ svc: tn.svc, port: tn.port, peer: tn.peer, since: tn.since, btns: [this.btn('닫기', () => { this.ndSet((d) => { d.tuns.splice(i, 1); }, 'terra.daemon.service-tunnels.by-tunnel-id.close.post', { tunnel_id: tn.id }); this.say(tn.svc + ' 터널 닫음'); })] }));
-        const td = s.tnDraft || { port: '', peer: '' }, setT = (pp) => this.setState({ tnDraft: Object.assign({}, td, pp) });
-        X.tunOpenWhy = N.real ? '여는 것은 Master 가 경로 표를 내야 한다(terra.master.service-tunnels.open.post) — 앱 위임 밖' : '';
-        X.tn = { port: td.port, portIn: (e) => setT({ port: e.target.value }), peers: this.seg(['02·a', '02·c', '02'], td.peer, (x) => setT({ peer: x })),
-          btns: [this.btn('열기', () => { if (!/^\d+$/.test(td.port) || !td.peer) { this.say('포트 · 상대 노드 필요'); return; } this.ndSet((d) => { d.tuns.push({ id: 'tn-' + Date.now(), svc: { 22: 'ssh', 80: 'http', 8080: 'http', 5432: 'db' }[td.port] || 'tcp', port: +td.port, peer: td.peer, since: '방금' }); }); this.setState({ tnDraft: null }); }, { pri: true, local: true, off: !!X.tunOpenWhy, tip: X.tunOpenWhy })] };
+        // 새 터널 — Master service-tunnels.open.post(경로를 정하고 표를 내 출발 노드 = 이 노드의 Daemon 에 보낸다 → Daemon service-tunnels.post 가 듣기 시작).
+        //   Daemon 의 service-tunnels.post 는 혼자 열지 못한다(입력에 Master 의 경로 결정 · 표가 있어야 한다 — Provider DTO OpenRequest) — 그래서 문은 Master open 하나로 본다
+        const tf = s.tnF || { target: '', tport: '', svc: '', lport: '', max: '1' }, setT = (pp) => this.setState({ tnF: Object.assign({}, this.state.tnF || tf, pp) });
+        const top = 'terra.master.service-tunnels.open.post', tGate = this.gateOf(top), me = this.rid(), TI = tunnelInput({ target_node_id: tf.target, target_port: tf.tport, service_id: tf.svc, local_port: tf.lport, max_connections: tf.max }, me);
+        const tch = this.nodeChoices(), tname = (tch.find((x) => x[0] === tf.target) || [0, tf.target])[1];
+        X.tn = { tport: tf.tport, tportIn: (e) => setT({ tport: e.target.value.trim() }), svc: tf.svc, svcIn: (e) => setT({ svc: e.target.value.trim() }), lport: tf.lport, lportIn: (e) => setT({ lport: e.target.value.trim() }), max: tf.max, maxIn: (e) => setT({ max: e.target.value.trim() }),
+          peers: tch.length ? this.seg(tch, tf.target, (x) => setT({ target: x })) : [{ label: '고를 노드 없음', cls: '', on: 'false', pick: null }], err: (tf.target || tf.tport) && TI.err ? TI.err : '',
+          ttl: '기한 — 계약에 칸이 없다: 닫기 전까지 열려 있고, 표(ticket)의 쓰임 · 만료는 Master 가 정한다. 대신 최대 연결로 묶는다',
+          btns: [this.actBtn('열기 ›', tGate, () => this.ask({ title: '서비스 터널 열기', sub: this.nodeNameQ() + ' → ' + tname + ' :' + TI.input.target_port, op: top, risk: 'dangerous',
+            steps: [{ label: '확인', rows: [['무엇', '이 노드 127.0.0.1:' + (TI.input.local_port || '자동') + ' 에 들어온 연결을 ' + tname + ' 의 127.0.0.1:' + TI.input.target_port + ' 로 잇는다(양쪽 다 loopback 만)'],
+                ['서비스', TI.input.service_id + ' · 최대 연결 ' + TI.input.max_connections], ['길', 'Master 가 경로(메시 직결 · 중계 …)를 고르고 표를 내 이 노드의 Daemon 에 보낸다 — 202 는 접수, 진행은 경로 세션(rt_…)이 opening → active'],
+                ['기한', '닫기 전까지 — 계약에 기한 칸이 없다'], ['기록', 'Master 조작 이력 service.tunnel.open.requested(누가 · 출발 · 도착 · 포트)'], ['되돌리기', '이 목록의 닫기 — 그 터널의 연결이 모두 끊긴다']],
+              warns: [{ t: '이 노드의 로컬 프로그램 누구나 그 포트로 ' + tname + ' 의 서비스에 닿는다 — 다 쓰면 닫는다', cls: 'warn' }] }],
+            final: { label: '열기', fail: (c) => ({ SOURCE_DAEMON_NOT_CONNECTED: '이 노드의 Daemon 이 Master 와 이어져 있지 않다 — 하트비트 확인', TARGET_DAEMON_NOT_CONNECTED: '대상 노드가 Master 와 이어져 있지 않다' })[c] || '',
+              run: () => { if (this.sim()) { this.ndSet((d) => { d.tuns.push({ id: 'tn-' + Date.now(), svc: TI.input.service_id, port: TI.input.local_port || 40000 + (Date.now() % 1000), peer: tname + ':' + TI.input.target_port, since: '방금' }); }); this.setState({ tnF: null }); return [['접수', '경로 세션 rt_시안'], ['듣는 곳', '127.0.0.1:' + (TI.input.local_port || '자동')]]; }
+                const T = this.TN(); return T.write(this.nodeKey(), top, TI.input).then((d) => { const x = (d && d.data) || d || {}, pl = x.plan || {}; T.refresh(this.nodeKey(), 'desk'); this.setState({ tnF: null }); return [['접수', x.accepted ? '됨 · ' + (x.message_id || '') : '—'], ['경로 세션', (pl.ticket && pl.ticket.id) || '—'], ['경로', (pl.decision && pl.decision.candidate && pl.decision.candidate.route_type) || '—']]; }); } },
+            undo: '목록의 닫기(service-tunnels.by-tunnel-id.close)' }), { pri: !TI.err && tGate.open, off: !!TI.err })] };
       }
       // ── 모듈 — 설치됨 · 설치 · Tree 지정 ──
       if (id === 'mods') {
