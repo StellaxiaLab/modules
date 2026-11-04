@@ -25,6 +25,9 @@ import { createShells } from '../api/shells.js';
 import { createSviMake, moduleTypes } from '../api/svi-make.js';
 import * as sviRead from '../api/svi-read.js';
 import { gate, gateAll, riskOf } from '../api/gates.js';
+import * as fileTransfer from '../api/file-transfer.js';
+import * as taskFollow from '../api/task-follow.js';
+import * as changes from '../api/changes.js';
 
 const q = new URLSearchParams(location.search), status = document.getElementById('status'), MODE = pickMode(q);
 const appReady = MODE === 'app' ? connectApp() : Promise.resolve(null);   // A 모드 — hello 는 가장 먼저(마운트가 이벤트 루프를 붙잡기 전에)
@@ -166,6 +169,10 @@ if (MODE !== 'demo') {
   window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraCanRemote = canRemote; window.TerraPermissionsOf = permissionsOf; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology); window.TerraNetProps = createNetProps(terra, () => window.TerraTopology); window.TerraShells = createShells(terra, () => window.TerraTopology); window.TerraSviMake = createSviMake(terra, () => window.TerraTopology, () => window.TerraWho); window.TerraSviTypes = () => moduleTypes(window.TerraSviMods || []);   // 자원화 창 — 선언 · 허가 · 연결, 모듈이 내놓은 유형(contributions.svi.types — 코어 대기)   // 제어기의 노드 터미널(commands.execute · 이 노드에서만) · Terra 터미널(terra shell 낱말 → operation)   // 네트워크 속성 창 — 주소 · 광고 전송 · 노드 간 연결   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
   // 문 — 코어가 앱 토큰에 열지 않은 단추를 잠그고 이유를 적는다(src/api/gates.js). 사람 권한은 whoami 로. 보드는 window.TerraGate 가 없으면(시안) 연다
   window.TerraGate = (op, o = {}) => gate(op, Object.assign({ who: window.TerraWho }, o)); window.TerraGateAll = (ops, o = {}) => gateAll(ops, Object.assign({ who: window.TerraWho }, o)); window.TerraRisk = riskOf;
+  // 제어기의 파일 · 작업 · 밀어 받기 — 공유 폴더 내용 · 전송(io.terra.file), 작업 출력 따라가기(이 노드 SSE · 다른 노드 폴링), 바뀐 줄 찾기
+  window.TerraFileTransfer = Object.assign({ create: (invoke) => fileTransfer.createFileTransfer({ invoke }) }, fileTransfer);
+  window.TerraTaskFollow = Object.assign((n, taskId, onUpdate) => taskFollow.followTask({ taskId, onUpdate, sse: n === transport.localId() ? (op, i, h) => terra.sse(op, i, h) : null, poll: (i) => transport.invoke(n, 'terra.daemon.tasks.by-task-id.output.get', i) }), taskFollow);
+  window.TerraChanges = changes;
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; })
     .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = []; }));   // 자원화 유형을 내놓는 모듈(contributions.svi.types)

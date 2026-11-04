@@ -88,6 +88,14 @@ button{font-family:inherit}
 .nx-rn{border:0;background:transparent;color:var(--ink);font-size:12px;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:3px}
 .nx-rn:hover{color:var(--acc);text-decoration-color:var(--acc)}
 .nx button:focus-visible,.nx input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+/* 밀어 받기 반영 — 다시 읽은 뒤 달라진 줄: 1.2초 깜박임 + '새로' · '바뀜' 배지(changes.js · marks()) */
+@keyframes nxFl{0%{background-color:rgba(122,167,255,.32);box-shadow:inset 2px 0 0 #7aa7ff}70%{box-shadow:inset 2px 0 0 #7aa7ff}100%{background-color:transparent;box-shadow:inset 2px 0 0 transparent}}
+.nx-fl{animation:nxFl 1.2s ease-out 1}
+.nx-chg,.nx-li.nx-fl::after{flex-shrink:0;height:16px;display:inline-flex;align-items:center;padding:0 6px;margin-left:4px;border-radius:8px;font-size:10px;font-weight:600;line-height:1;white-space:nowrap;color:#7aa7ff;border:1px solid rgba(122,167,255,.5);background:rgba(122,167,255,.12)}
+.nx-li.nx-fl-new::after{content:'새로'}
+.nx-li.nx-fl-chg::after{content:'바뀜'}
+.nx-chg.chg,.nx-li.nx-fl-chg::after{color:#f5b83d;border-color:rgba(245,184,61,.5);background:rgba(245,184,61,.12)}
+@media (prefers-reduced-motion: reduce){.nx-fl{animation:none;box-shadow:inset 2px 0 0 #7aa7ff}}
 </style>
 </helmet>
 <div style="width: {{frame.w}}px; height: {{frame.h}}px; transform: scale({{zoomK}}); transform-origin: 0 0; position: relative; overflow: hidden; background: #07090c; font-family: 'Noto Sans KR','Noto Sans',system-ui,sans-serif; font-size: 13px; line-height: 1.5; color: #ede9e1;">
@@ -184,7 +192,7 @@ button{font-family:inherit}
               </div>
             </sc-if>
 
-            <!-- 파일 관리자 -->
+            <!-- 파일 관리자 — 목록 · 미리보기(내용 열기) · 올리기(끌어다 놓기 · 단추) · 전송 줄 -->
             <sc-if value="{{w.isFiles}}" hint-placeholder-val="{{ false }}">
               <div style="flex-grow: 1; min-height: 0; display: flex;">
                 <nav aria-label="위치" style="width: 150px; flex-shrink: 0; box-sizing: border-box; padding: 10px 8px; border-right: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 2px;">
@@ -198,28 +206,76 @@ button{font-family:inherit}
                 </nav>
                 <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
                   <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid {{t.line}};">
-                    <span style="font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px; color: {{t.sub}};">{{w.path}}</span>
+                    <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px; color: {{t.sub}};">{{w.path}}</span>
                     <span style="flex-grow: 1;"></span>
+                    <label title="{{w.fx.upTip}}" aria-disabled="{{w.fx.upOff}}" style="height: 28px; display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; box-sizing: border-box; border: 1px solid {{t.line2}}; border-radius: 9px; background: {{t.raise}}; color: {{t.ink}}; font-size: 12px; cursor: pointer; opacity: {{w.fx.upOp}};"><sc-if value="{{w.fx.upLock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M12 16V4 M7 9l5-5 5 5 M4 20h16"/></svg>올리기<input type="file" multiple aria-label="올릴 파일 고르기" disabled="{{w.fx.upDis}}" onChange="{{w.fx.upPick}}" style="display: none;"></label>
                     <button type="button" onClick="{{w.newFolder}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: {{t.raise}}; color: {{t.ink}}; font-size: 12px; cursor: pointer;">새 폴더</button>
                   </div>
-                  <div style="flex-grow: 1; min-height: 0; overflow-y: auto; padding: 6px 8px; display: flex; flex-direction: column; gap: 1px;">
-                    <sc-for list="{{w.items}}" as="it" hint-placeholder-count="4">
-                      <button type="button" onClick="{{it.pick}}" onContextMenu="{{it.ctx}}" style="display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 0; border-radius: 7px; background: {{it.bg}}; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">
-                        <span style="position: relative; width: 20px; height: 20px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: {{it.fg}};">
-                          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{it.d}}"/></svg>
-                        </span>
-                        <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{it.name}}</span>
-                        <span style="font-size: 11px; color: {{it.tagC}};">{{it.tag}}</span>
-                        <span style="width: 64px; text-align: right; font-size: 11.5px; color: {{t.dim}}; font-family: 'JetBrains Mono',ui-monospace,monospace;">{{it.size}}</span>
-                      </button>
-                    </sc-for>
+                  <div style="position: relative; flex-grow: 1; min-height: 0; display: flex; flex-direction: column;">
+                    <div onDragOver="{{w.fx.over}}" onDragLeave="{{w.fx.leave}}" onDrop="{{w.fx.drop}}" style="position: relative; flex-grow: 1; min-height: 0; overflow-y: auto; padding: 6px 8px; display: flex; flex-direction: column; gap: 1px;">
+                      <sc-for list="{{w.items}}" as="it" hint-placeholder-count="4">
+                        <button type="button" class="{{it.fl}}" onClick="{{it.pick}}" onDoubleClick="{{it.open}}" onContextMenu="{{it.ctx}}" style="display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 0; border-radius: 7px; background: {{it.bg}}; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">
+                          <span style="position: relative; width: 20px; height: 20px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: {{it.fg}};">
+                            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="{{it.d}}"/></svg>
+                          </span>
+                          <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{it.name}}</span>
+                          <sc-if value="{{it.chgOn}}" hint-placeholder-val="{{ false }}"><span class="nx-chg {{it.chgCls}}">{{it.chg}}</span></sc-if>
+                          <span style="font-size: 11px; color: {{it.tagC}};">{{it.tag}}</span>
+                          <span style="width: 64px; text-align: right; font-size: 11.5px; color: {{t.dim}}; font-family: 'JetBrains Mono',ui-monospace,monospace;">{{it.size}}</span>
+                        </button>
+                      </sc-for>
+                      <sc-if value="{{w.fx.dragOn}}" hint-placeholder-val="{{ false }}">
+                        <div aria-hidden="true" style="position: absolute; left: 6px; right: 6px; top: 6px; bottom: 6px; z-index: 2; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px; box-sizing: border-box; border: 1.5px dashed {{w.fx.dragC}}; border-radius: 10px; background: {{w.fx.dragBg}}; color: {{w.fx.dragC}}; font-size: 12.5px; line-height: 1.5; pointer-events: none;">{{w.fx.dragT}}</div>
+                      </sc-if>
+                    </div>
+                    <div style="flex-shrink: 0; box-sizing: border-box; min-height: 56px; padding: 8px 12px; border-top: 1px solid {{t.line}}; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: {{t.sub}};">
+                      <span style="flex: 1 1 240px; min-width: 0; line-height: 1.45;">{{w.detail}}</span>
+                      <sc-for list="{{w.fx.btns}}" as="bt" hint-placeholder-count="2"><button type="button" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}" style="height: 28px; display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer; opacity: {{bt.op}};"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for>
+                      <sc-if value="{{w.openOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.openRun}}" disabled="{{w.openDis}}" title="{{w.openTip}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">{{w.openLabel}}</button></sc-if>
+                      <sc-if value="{{w.mkResOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.mkRes}}" disabled="{{w.mkResOff}}" title="{{w.mkResTip}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">자원으로 만들기</button></sc-if>
+                      <button type="button" onClick="{{w.remove}}" disabled="{{w.noPick}}" style="height: 28px; padding: 0 10px; border: 1px solid {{w.rmBd}}; border-radius: 9px; background: transparent; color: {{w.rmFg}}; font-size: 12px; cursor: pointer;">{{w.rmLabel}}</button>
+                    </div>
+                    <!-- 미리보기 — 글은 앞부분(고정폭) · 그림은 그대로 · 그 밖은 정보 + 내려받기 -->
+                    <sc-if value="{{w.pv.on}}" hint-placeholder-val="{{ false }}">
+                      <div role="dialog" aria-label="미리보기 · {{w.pv.name}}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 3; display: flex; flex-direction: column; background: {{w.pv.bg}};">
+                        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid {{t.line}};">
+                          <button type="button" aria-label="목록으로" onClick="{{w.pv.close}}" style="height: 26px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: {{t.sub}}; font-size: 12px; cursor: pointer;">← 목록</button>
+                          <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px; color: {{t.ink}};">{{w.pv.name}}</span>
+                          <span style="height: 18px; display: inline-flex; align-items: center; padding: 0 7px; border: 1px solid {{w.pv.chipBd}}; border-radius: 9px; background: {{w.pv.chipBg}}; color: {{w.pv.chipFg}}; font-size: 10.5px; white-space: nowrap;">{{w.pv.kindT}}</span>
+                          <span style="font-size: 11px; color: {{t.dim}}; white-space: nowrap;">{{w.pv.sizeT}}</span>
+                          <span style="flex-grow: 1;"></span>
+                          <sc-for list="{{w.pv.btns}}" as="bt" hint-placeholder-count="1"><button type="button" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}" style="height: 26px; display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 11.5px; cursor: pointer; opacity: {{bt.op}};"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for>
+                        </div>
+                        <sc-if value="{{w.pv.isText}}" hint-placeholder-val="{{ true }}">
+                          <pre style="flex-grow: 1; min-height: 0; margin: 0; padding: 10px 12px; overflow: auto; background: {{t.term}}; color: {{t.sub}}; font: 11.5px/1.55 'JetBrains Mono',ui-monospace,monospace; white-space: pre-wrap; word-break: break-all; tab-size: 4;">{{w.pv.text}}</pre>
+                        </sc-if>
+                        <sc-if value="{{w.pv.isImg}}" hint-placeholder-val="{{ false }}">
+                          <div style="flex-grow: 1; min-height: 0; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box; background: repeating-conic-gradient({{t.raise}} 0% 25%, transparent 0% 50%) 0 0 / 16px 16px;"><img alt="{{w.pv.name}}" src="{{w.pv.url}}" style="max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: auto;"></div>
+                        </sc-if>
+                        <sc-if value="{{w.pv.isInfo}}" hint-placeholder-val="{{ false }}">
+                          <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 14px 16px; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 6px 12px; align-content: start; font-size: 12px;">
+                            <sc-for list="{{w.pv.info}}" as="nf" hint-placeholder-count="4"><span style="color: {{t.dim}};">{{nf.k}}</span><span style="min-width: 0; overflow-wrap: anywhere; font-family: 'JetBrains Mono',ui-monospace,monospace; color: {{t.ink}};">{{nf.v}}</span></sc-for>
+                          </div>
+                        </sc-if>
+                        <div style="flex-shrink: 0; padding: 5px 12px; border-top: 1px solid {{t.line}}; font-size: 11px; line-height: 1.45; color: {{w.pv.noteC}};">{{w.pv.note}}</div>
+                      </div>
+                    </sc-if>
                   </div>
-                  <div style="flex-shrink: 0; box-sizing: border-box; min-height: 56px; padding: 8px 12px; border-top: 1px solid {{t.line}}; display: flex; align-items: center; gap: 12px; font-size: 12px; color: {{t.sub}};">
-                    <span style="flex-grow: 1; line-height: 1.45;">{{w.detail}}</span>
-                    <sc-if value="{{w.openOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.openRun}}" disabled="{{w.openDis}}" title="{{w.openTip}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">{{w.openLabel}}</button></sc-if>
-                    <sc-if value="{{w.mkResOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.mkRes}}" disabled="{{w.mkResOff}}" title="{{w.mkResTip}}" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 9px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">자원으로 만들기</button></sc-if>
-                    <button type="button" onClick="{{w.remove}}" disabled="{{w.noPick}}" style="height: 28px; padding: 0 10px; border: 1px solid {{w.rmBd}}; border-radius: 9px; background: transparent; color: {{w.rmFg}}; font-size: 12px; cursor: pointer;">{{w.rmLabel}}</button>
-                  </div>
+                  <!-- 전송 줄 — 이름 · 방향 · 진행 막대 · 속도 · 취소/다시 -->
+                  <sc-if value="{{w.fx.txOn}}" hint-placeholder-val="{{ false }}">
+                    <div role="region" aria-label="전송" style="flex-shrink: 0; max-height: 128px; overflow-y: auto; box-sizing: border-box; padding: 4px 8px 6px; border-top: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 2px;">
+                      <div style="display: flex; align-items: center; gap: 8px; padding: 2px 4px; font-size: 11px; color: {{t.dim}};"><span style="font-weight: 600; letter-spacing: .08em;">전송</span><span>{{w.fx.txSum}}</span><span style="flex-grow: 1;"></span><sc-if value="{{w.fx.txClearOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.fx.txClear}}" style="height: 20px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: {{t.sub}}; font-size: 11px; cursor: pointer;">끝난 것 지우기</button></sc-if></div>
+                      <sc-for list="{{w.fx.tx}}" as="tx" hint-placeholder-count="2">
+                        <div title="{{tx.tip}}" style="display: grid; grid-template-columns: 14px minmax(0, 1fr) minmax(60px, 120px) auto auto; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 7px; background: {{t.raise}}; font-size: 12px;">
+                          <span aria-label="{{tx.dirT}}" style="color: {{tx.dc}}; font-size: 12px; text-align: center;">{{tx.arrow}}</span>
+                          <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{tx.name}}<span style="margin-left: 6px; font-size: 10.5px; color: {{t.dim}}; font-family: 'JetBrains Mono',ui-monospace,monospace;">{{tx.where}}</span></span>
+                          <span role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{tx.pct}}" style="position: relative; height: 5px; border-radius: 3px; background: {{t.line}}; overflow: hidden;"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{tx.pct}}%; border-radius: 3px; background: {{tx.barC}};"></span></span>
+                          <span style="min-width: 92px; text-align: right; font-size: 11px; color: {{tx.statC}}; font-family: 'JetBrains Mono',ui-monospace,monospace; white-space: nowrap;">{{tx.stat}}</span>
+                          <span style="display: inline-flex; gap: 4px;"><sc-for list="{{tx.btns}}" as="bt" hint-placeholder-count="1"><button type="button" onClick="{{bt.run}}" title="{{bt.tip}}" style="height: 22px; padding: 0 8px; border: 1px solid {{bt.bd}}; border-radius: 7px; background: transparent; color: {{bt.fg}}; font-size: 11px; cursor: pointer; white-space: nowrap;">{{bt.label}}</button></sc-for></span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
                 </div>
               </div>
             </sc-if>
@@ -400,26 +456,89 @@ button{font-family:inherit}
               </div>
             </sc-if>
 
-            <!-- 작업 관리자 -->
+            <!-- 작업 관리자 — 이 노드 작업(Daemon tasks · 출력 따라가기) / Master 작업(jobs · 상세 · 취소 · 다시) -->
             <sc-if value="{{w.isJobs}}" hint-placeholder-val="{{ false }}">
-              <div style="flex-grow: 1; min-height: 0; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;">
-                <div style="display: flex; gap: 10px; padding: 4px 8px; font-size: 11px; color: {{t.dim}};"><span style="width: 62px;">번호</span><span style="flex-grow: 1;">작업</span><span style="width: 120px;">operation</span><span style="width: 120px;">진행</span><span style="width: 64px;"></span></div>
-                <sc-for list="{{w.jobs}}" as="jb" hint-placeholder-count="4">
-                  <div onClick="{{jb.pick}}" style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; background: {{jb.rowBg}}; cursor: pointer;">
-                    <span style="width: 62px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.dim}};">{{jb.id}}</span>
-                    <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{jb.name}}</span>
-                    <span style="width: 120px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.sub}};">{{jb.op}}</span>
-                    <span style="width: 120px; display: flex; align-items: center; gap: 6px;">
-                      <span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{jb.bd}}; border-radius: 10px; background: {{jb.bg}}; color: {{jb.fg}}; font-size: 11px;">{{jb.label}}</span>
-                      <span style="font-size: 11.5px; color: {{t.dim}};">{{jb.pct}}</span>
-                    </span>
-                    <span style="width: 64px; text-align: right;"><sc-if value="{{jb.canCancel}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{jb.cancel}}" style="height: 24px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 11.5px; cursor: pointer;">취소</button></sc-if></span>
+              <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column;">
+                <div style="flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-bottom: 1px solid {{t.line}};">
+                  <sc-for list="{{w.jb.tabs}}" as="tb" hint-placeholder-count="2"><button type="button" aria-pressed="{{tb.on}}" onClick="{{tb.pick}}" style="height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: {{tb.bg}}; color: {{tb.fg}}; font-size: 12px; font-weight: {{tb.fw}}; cursor: pointer;">{{tb.label}}<span style="margin-left: 6px; font-size: 10.5px; color: {{t.dim}};">{{tb.n}}</span></button></sc-for>
+                  <span style="flex-grow: 1;"></span><span style="font-size: 11px; color: {{t.dim}};">{{w.jb.note}}</span>
+                </div>
+                <sc-if value="{{w.jb.vNode}}" hint-placeholder-val="{{ true }}">
+                  <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 10px 8px; gap: 2px;">
+                    <div style="flex-shrink: 0; display: flex; gap: 10px; padding: 4px 8px; font-size: 11px; color: {{t.dim}};"><span style="width: 62px;">번호</span><span style="flex-grow: 1;">작업</span><span style="width: 120px;">operation</span><span style="width: 120px;">진행</span><span style="width: 96px;"></span></div>
+                    <div style="flex: {{w.jb.listFlex}}; min-height: 48px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;">
+                      <sc-for list="{{w.jobs}}" as="jb" hint-placeholder-count="4">
+                        <div class="{{jb.fl}}" onClick="{{jb.pick}}" style="display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; background: {{jb.rowBg}}; cursor: pointer;">
+                          <span style="width: 62px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.dim}}; overflow: hidden; text-overflow: ellipsis;">{{jb.id}}</span>
+                          <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{jb.name}}</span>
+                          <span style="width: 120px; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.sub}}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{jb.op}}</span>
+                          <span style="width: 120px; display: flex; align-items: center; gap: 6px;">
+                            <span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{jb.bd}}; border-radius: 10px; background: {{jb.bg}}; color: {{jb.fg}}; font-size: 11px;">{{jb.label}}</span>
+                            <span style="font-size: 11.5px; color: {{t.dim}};">{{jb.pct}}</span>
+                          </span>
+                          <span style="width: 96px; display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px;"><sc-if value="{{jb.chgOn}}" hint-placeholder-val="{{ false }}"><span class="nx-chg {{jb.chgCls}}">{{jb.chg}}</span></sc-if><sc-if value="{{jb.canCancel}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{jb.cancel}}" style="height: 24px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 11.5px; cursor: pointer;">취소</button></sc-if></span>
+                        </div>
+                      </sc-for>
+                      <sc-if value="{{w.jb.noJobs}}" hint-placeholder-val="{{ false }}"><p style="margin: 6px 8px; font-size: 12px; color: {{t.dim}};">작업 없음</p></sc-if>
+                    </div>
+                    <!-- 로그 창 — stdout/stderr · 시각 · 끝 상태 줄. 따라가기(끝에 붙음) · 위로 올리면 멈춤 · 멈춤 중 새 줄 수 -->
+                    <sc-if value="{{w.out.on}}" hint-placeholder-val="{{ false }}">
+                      <div style="flex: 3; min-height: 120px; display: flex; flex-direction: column; margin-top: 6px; border: 1px solid {{t.line}}; border-radius: 8px; overflow: hidden;">
+                        <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 10px; border-bottom: 1px solid {{t.line}}; font-size: 11px; color: {{t.dim}};">
+                          <span style="white-space: nowrap;">출력 · <span style="font-family: 'JetBrains Mono',ui-monospace,monospace; color: {{t.sub}};">{{w.out.id}}</span></span>
+                          <span title="{{w.out.modeTip}}" style="height: 18px; display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; border: 1px solid {{w.out.modeBd}}; border-radius: 9px; color: {{w.out.modeC}}; font-size: 10.5px; white-space: nowrap;"><span>{{w.out.modeDot}}</span>{{w.out.modeT}}</span>
+                          <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{w.out.note}}</span>
+                          <sc-if value="{{w.out.newOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.out.resume}}" style="height: 20px; padding: 0 8px; border: 1px solid rgba(122,167,255,.5); border-radius: 10px; background: rgba(122,167,255,.14); color: #7aa7ff; font-size: 11px; cursor: pointer; white-space: nowrap;">새 줄 {{w.out.newN}} ↓</button></sc-if>
+                          <button type="button" aria-pressed="{{w.out.followOn}}" onClick="{{w.out.toggle}}" title="{{w.out.followTip}}" style="height: 22px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{w.out.followBg}}; color: {{t.ink}}; font-size: 11px; cursor: pointer; white-space: nowrap;">{{w.out.followT}}</button>
+                          <button type="button" aria-label="출력 닫기" onClick="{{w.out.close}}" style="width: 22px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: {{t.sub}}; font-size: 13px; cursor: pointer;">×</button>
+                        </div>
+                        <div data-log="1" onScroll="{{w.out.scroll}}" style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column-reverse; padding: 6px 10px; background: {{t.term}}; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; line-height: 1.55;">
+                          <div style="display: flex; flex-direction: column;">
+                            <sc-for list="{{w.out.lines}}" as="ln" hint-placeholder-count="6">
+                              <div style="display: flex; gap: 10px; min-width: 0;"><span style="flex-shrink: 0; width: 58px; color: {{t.dim}}; font-size: 10.5px; opacity: .8;">{{ln.at}}</span><span style="min-width: 0; white-space: pre-wrap; word-break: break-all; color: {{ln.c}};">{{ln.t}}</span></div>
+                            </sc-for>
+                            <sc-if value="{{w.out.endOn}}" hint-placeholder-val="{{ false }}"><div role="status" style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed {{t.line2}}; color: {{w.out.endC}};">■ {{w.out.endT}}</div></sc-if>
+                          </div>
+                        </div>
+                      </div>
+                    </sc-if>
                   </div>
-                </sc-for>
-                <sc-if value="{{w.out.on}}" hint-placeholder-val="{{ false }}">
-                  <div style="margin-top: 6px; display: flex; gap: 8px; font-size: 11px; color: {{t.dim}};"><span>출력 · {{w.out.id}}</span><span style="flex-grow: 1;"></span><span>{{w.out.note}}</span></div>
-                  <pre style="flex-grow: 1; min-height: 60px; margin: 0; padding: 8px; overflow: auto; border-radius: 7px; background: {{t.raise}}; color: {{t.sub}}; font: 11.5px/1.45 'JetBrains Mono',ui-monospace,monospace; white-space: pre-wrap;">{{w.out.text}}</pre>
                 </sc-if>
+                <sc-if value="{{w.jb.vMaster}}" hint-placeholder-val="{{ false }}">
+                  <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 10px 8px; gap: 2px;">
+                    <sc-if value="{{w.jb.mLock}}" hint-placeholder-val="{{ false }}"><div role="status" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(245,184,61,.08); color: #f5b83d; font-size: 12px;"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" style="flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>{{w.jb.mWhy}}</div></sc-if>
+                    <div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 2px 4px; font-size: 11.5px; color: {{t.sub}};"><sc-for list="{{w.jb.scope}}" as="sc" hint-placeholder-count="2"><button type="button" aria-pressed="{{sc.on}}" onClick="{{sc.pick}}" style="height: 22px; padding: 0 9px; border: 1px solid {{t.line2}}; border-radius: 11px; background: {{sc.bg}}; color: {{sc.fg}}; font-size: 11px; cursor: pointer;">{{sc.label}}</button></sc-for><span style="flex-grow: 1;"></span><span style="color: {{t.dim}};">{{w.jb.mNote}}</span></div>
+                    <div style="flex-shrink: 0; display: grid; grid-template-columns: {{w.jb.grid}}; gap: 10px; padding: 4px 8px; font-size: 11px; color: {{t.dim}};"><span>번호</span><span>종류</span><span>대상 노드</span><span>상태</span><span>만든 때</span></div>
+                    <div style="flex: {{w.jb.mListFlex}}; min-height: 48px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;">
+                      <sc-for list="{{w.jb.mjobs}}" as="mj" hint-placeholder-count="3">
+                        <div class="{{mj.fl}}" onClick="{{mj.pick}}" style="display: grid; grid-template-columns: {{w.jb.grid}}; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 7px; background: {{mj.rowBg}}; font-size: 12px; cursor: pointer;">
+                          <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11px; color: {{t.dim}};">{{mj.id}}</span>
+                          <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px; color: {{t.sub}};">{{mj.type}}</span>
+                          <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{mj.node}}</span>
+                          <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{mj.bd}}; border-radius: 10px; background: {{mj.bg}}; color: {{mj.fg}}; font-size: 11px; white-space: nowrap;">{{mj.label}}</span><sc-if value="{{mj.chgOn}}" hint-placeholder-val="{{ false }}"><span class="nx-chg {{mj.chgCls}}">{{mj.chg}}</span></sc-if></span>
+                          <span style="font-size: 11px; color: {{t.dim}}; white-space: nowrap;">{{mj.at}}</span>
+                        </div>
+                      </sc-for>
+                      <p style="margin: 6px 8px; font-size: 12px; color: {{t.dim}};">{{w.jb.mEmpty}}</p>
+                    </div>
+                    <sc-if value="{{w.jb.dOn}}" hint-placeholder-val="{{ false }}">
+                      <div style="flex: 3; min-height: 140px; overflow-y: auto; margin-top: 6px; padding: 10px 12px; border: 1px solid {{t.line}}; border-radius: 8px; display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"><b style="font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 12px;">{{w.jb.d.id}}</b><span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{w.jb.d.bd}}; border-radius: 10px; background: {{w.jb.d.bg}}; color: {{w.jb.d.fg}}; font-size: 11px;">{{w.jb.d.label}}</span><span style="flex-grow: 1;"></span><sc-for list="{{w.jb.d.btns}}" as="bt" hint-placeholder-count="2"><button type="button" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}" style="height: 26px; display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; border: 1px solid {{bt.bd}}; border-radius: 8px; background: transparent; color: {{bt.fg}}; font-size: 11.5px; cursor: pointer; opacity: {{bt.op}};"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
+                        <sc-if value="{{w.jb.ask.on}}" hint-placeholder-val="{{ false }}">
+                          <div role="alertdialog" aria-label="{{w.jb.ask.title}}" style="padding: 10px 12px; border: 1px solid {{w.jb.ask.bd}}; border-radius: 9px; background: {{w.jb.ask.bg}}; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; align-items: center; gap: 8px;"><b>{{w.jb.ask.title}}</b><span style="height: 18px; display: inline-flex; align-items: center; padding: 0 7px; border: 1px solid {{w.jb.ask.bd}}; border-radius: 9px; color: {{w.jb.ask.fg}}; font-size: 10.5px;">{{w.jb.ask.risk}}</span></div>
+                            <div style="display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 3px 10px; font-size: 11.5px;"><sc-for list="{{w.jb.ask.rows}}" as="ar" hint-placeholder-count="3"><span style="color: {{t.dim}};">{{ar.k}}</span><span style="min-width: 0; overflow-wrap: anywhere;">{{ar.v}}</span></sc-for></div>
+                            <div style="display: flex; gap: 6px; justify-content: flex-end;"><button type="button" onClick="{{w.jb.ask.no}}" style="height: 26px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 11.5px; cursor: pointer;">그만두기</button><button type="button" onClick="{{w.jb.ask.yes}}" style="height: 26px; padding: 0 12px; border: 1px solid {{w.jb.ask.fg}}; border-radius: 8px; background: {{w.jb.ask.fg}}; color: #0b0d11; font-size: 11.5px; font-weight: 600; cursor: pointer;">{{w.jb.ask.yesT}}</button></div>
+                          </div>
+                        </sc-if>
+                        <div style="display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 12px;"><sc-for list="{{w.jb.d.rows}}" as="dr" hint-placeholder-count="5"><span style="color: {{t.dim}};">{{dr.k}}</span><span style="min-width: 0; overflow-wrap: anywhere; font-family: 'JetBrains Mono',ui-monospace,monospace; font-size: 11.5px;">{{dr.v}}</span></sc-for></div>
+                        <sc-if value="{{w.jb.d.outOn}}" hint-placeholder-val="{{ false }}"><pre style="margin: 0; padding: 8px 10px; max-height: 180px; overflow: auto; border-radius: 7px; background: {{t.term}}; font: 11.5px/1.5 'JetBrains Mono',ui-monospace,monospace; white-space: pre-wrap; word-break: break-all;"><span style="color: {{t.sub}};">{{w.jb.d.stdout}}</span><span style="color: #ff8f8f;">{{w.jb.d.stderr}}</span></pre></sc-if>
+                        <span style="font-size: 11px; color: {{t.dim}};">{{w.jb.d.note}}</span>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+                <div style="flex-shrink: 0; min-height: 20px; display: flex; align-items: center; padding: 0 12px; border-top: 1px solid {{t.line}}; font-size: 11.5px; color: #3ecf8e;">{{w.jb.msg}}</div>
               </div>
             </sc-if>
 
@@ -805,6 +924,19 @@ function deskShape(P, meta, empty) {
 }
 const VIEW_BTN = new Set(['바탕화면에 추가', '자원 창 ›', '열기', '닫기', '취소']);   // 끊겨도 되는 단추(보기만 바꾼다)
 const VIEW_KEYS = ['full', 'prefs', 'wins', 'order', 'icons', 'setTab', 'fmLoc', 'tterm', 'ttHist', 'modView', 'modSel', 'modTab', 'resTab', 'devSel', 'cfgGrp'];   // 노드마다 저장하는 보기 상태
+// 밀어 받기 반영 — src/api/changes.js 와 같은 비교(캔버스에는 그 파일이 없다 · tests/desk-files-jobs.test.mjs 가 둘이 같게 답하는지 본다)
+const CHG = {
+  signMap(rows, id, sig) { const m = new Map(); for (const r of rows || []) { const k = id(r); if (k === '' || k === null || k === undefined) continue; m.set(String(k), sig(r)); } return m; },
+  diffSigns(prev, next) { const added = new Set(), changed = new Set(), removed = new Set(); if (!prev) return { added, changed, removed }; for (const [k, v] of next) { if (!prev.has(k)) added.add(k); else if (prev.get(k) !== v) changed.add(k); } for (const k of prev.keys()) if (!next.has(k)) removed.add(k); return { added, changed, removed }; }
+};
+const FLASH_KEEP = 2400;   // 깜박임 1.2초(CSS nxFl) · 배지는 2.4초
+const PV_MAX = { text: 64 * 1024, image: 4 * 1024 * 1024 };   // 미리보기 상한 — src/api/file-transfer.js PREVIEW 와 같게
+// 시안 — Master 작업 기록(terra.master.jobs.get 의 jobs[] 꼴). 실제 모드에서는 쓰지 않는다
+const MJOBS_SAMPLE = [
+  { job_id: 'job_7f3a21', type: 'process.execute.request', status: 'running', created_at: new Date(Date.now() - 95e3).toISOString(), started_at: new Date(Date.now() - 90e3).toISOString(), request: { command: 'tar', args: ['czf', 'backup.tar', 'docs'] } },
+  { job_id: 'job_7f3a07', type: 'process.execute.request', status: 'success', created_at: new Date(Date.now() - 42e5).toISOString(), finished_at: new Date(Date.now() - 41e5).toISOString(), request: { command: 'uname', args: ['-a'] }, result: { exit_code: 0 }, output: { stdout: '(시안) 실제 연결에서 노드가 보낸 출력' } },
+  { job_id: 'job_7f39c2', type: 'module.restart.request', status: 'failed', created_at: new Date(Date.now() - 9e6).toISOString(), result: { exit_code: 1, error: 'module not running' } }
+];
 
 class Component extends DCLogic {
   constructor(props) {
@@ -869,7 +1001,7 @@ class Component extends DCLogic {
   link() { const T = this.TN(); if (!T) return { t: '', cls: '', ro: false }; const r = T.read(this.nodeKey(), 'desk'); return Object.assign(T.linkText(this.nodeKey(), r.at), { src: r.src, loading: r.loading && !r.data }); }
   ro() { return !!this.link().ro; }
 
-  componentWillUnmount() { if (this._bound && this._vt) { clearTimeout(this._vt); this.viewSave(this._bound); } if (this._un) this._un(); if (this.timer) clearTimeout(this.timer); if (this._onRs) window.removeEventListener('resize', this._onRs); }
+  componentWillUnmount() { this.followStop(); this.pvDrop(); for (const x of this._tx || []) { if (x.t) clearTimeout(x.t); if (x.job && x.job.cancel && !x.sample) x.job.cancel(); } if (this._bound && this._vt) { clearTimeout(this._vt); this.viewSave(this._bound); } if (this._un) this._un(); if (this.timer) clearTimeout(this.timer); if (this._onRs) window.removeEventListener('resize', this._onRs); }
   rsWatch() { if (this._onRs) return; this._onRs = () => this.setState({ vwTick: (this.state.vwTick || 0) + 1 }); window.addEventListener('resize', this._onRs); }
 
   /* ---- 저장: 노드 계정에 ---- */
@@ -1291,6 +1423,7 @@ class Component extends DCLogic {
       o.detail = pick ? pick.name + ' — 화면 전용 바로가기. 지워도 노드의 파일은 그대로다.' : '항목을 고르면 여기에 설명이 나온다.'; o.noPick = !pick; o.rmLabel = '바로가기 지우기'; o.rmFg = pick ? t.ink : t.dim; o.rmBd = t.line2;
       o.remove = () => { if (!pick) return; const ic = { ...this.state.icons }; delete ic[pick.id]; this.setState({ icons: ic, fmPick: null }); this.persist(); };
       o.newFolder = () => this.say('바탕화면은 화면 전용 — 노드에 폴더를 만들려면 공유 폴더에서'); o.openOn = false;
+      o.fx = { real: true, share: false, lockWhy: '바탕화면은 화면 전용 바로가기 — 노드의 파일이 아니다', pick: null };
       return true;
     }
     const share = loc.kind === 'share', listOp = share ? 'io.terra.file.entries.list' : 'terra.daemon.local-fs.entries.get';
@@ -1312,6 +1445,12 @@ class Component extends DCLogic {
       const mk = (i) => { const p = abs(i); if (!p || i.dir) { this.say(i.dir ? '폴더는 자원화할 수 없다 — 파일을 고른다' : '이 뿌리의 절대 경로를 몰라 자원으로 만들 수 없다'); return; } this.openOut('svi', JSON.stringify({ tab: 'make', type: 'file', name: i.name.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40), values: { path: p, direction: 'source' } })); };
       o.mkResOn = true; o.mkResOff = !pick || pick.dir || !abs(pick); o.mkResTip = !pick ? '파일을 고른다' : pick.dir ? '폴더는 자원화할 수 없다' : !abs(pick) ? '이 뿌리의 절대 경로를 모른다' : '자원화 창에서 이 파일을 파일 자원으로 — ' + abs(pick); o.mkRes = () => pick && mk(pick);
       o.items.forEach((it, j) => { const i = items[j]; it.ctx = (e) => { if (!i || i.up) return; e.preventDefault(); e.stopPropagation(); this.setState({ fmPick: i.path }); mk(i); }; }); }
+    { const raw = L && L.data ? (Array.isArray(L.data) ? L.data : L.data.entries || []) : [], rawOf = (p) => raw.find((e) => e && (e.path ? String(e.path).replace(/^\/+/, '') : (rel ? rel + '/' + e.name : e.name)) === p);   // 파일 내용 · 전송 — 고른 줄의 바이트 크기(미리보기 상한)
+      const P = pick && !pick.dir ? Object.assign({}, pick, { bytes: Number((rawOf(pick.path) || {}).size), sizeT: pick.size }) : null;
+      const cx = o.fx = { real: true, share: share && !loc.locked, root: loc.root, rel, pick: P, pickDir: !!(pick && pick.dir), lockWhy: loc.locked ? loc.reason : share ? '' : '로컬 탐색은 읽기 op 가 없다(Daemon local-fs 는 목록만) — 내용 · 전송은 공유 폴더에서',
+        open: (i) => { if (i.up || (i.dir && !i.locked)) return go({ fmRel: i.path }); if (!i.dir) this.pvOpen(Object.assign({}, i, { bytes: Number((rawOf(i.path) || {}).size), sizeT: i.size }), cx); } };
+      const mk = L && L.data ? this.marks('files|' + loc.id + '|' + rel, rows, (r) => r.path, (r) => r.size + '|' + r.time) : null;   // 밀어 받기 · 다시 읽기로 바뀐 줄
+      o.items.forEach((it, j) => { const i = items[j]; if (!i) return; it.fl = mk && !i.up ? mk(i) : ''; Object.assign(it, mk && !i.up ? mk.chip(i) : { chgOn: false }); it.open = () => cx.open(i); }); }
     o.openOn = true; o.openLabel = pick ? '노드에서 열기' : '노드 파일 관리자로'; o.openDis = share || R ? 'disabled' : null;
     o.openTip = share ? '공유 폴더는 노드의 바탕화면에서 열 수 없다 — 로컬 탐색에서' : R ? '이 노드에서만(desktop.open 은 local)' : 'desktop.open — 그 노드의 화면에서 연다(node.control)';
     o.openRun = () => { T.write(n, 'terra.daemon.desktop.open.post', { root: loc.root, path: pick ? pick.path : rel, action: pick ? 'open' : 'reveal' }).then(() => this.say((pick ? pick.name : loc.root + ':/' + rel) + ' — 노드 화면에서 열었다'), (e) => this.say('못 엶 · ' + ((e && e.code) || '오류'))); };
@@ -1327,6 +1466,272 @@ class Component extends DCLogic {
       return { key: 'desk:' + id, id, name: ic.name, k: ic.k, size: ic.k === 'file' ? '310 MB' : '—', real: ic.k !== 'short', src: ic.src };
     });
   }
+
+  /* ==== 밀어 받기 반영 — 다시 읽은 목록에서 달라진 줄(src/api/changes.js · 캔버스에는 아래 CHG) ====
+     key 마다 지난 서명을 들고 있다가, 지금 목록과 견줘 새로 · 바뀐 id 에 짧은 깜박임(1.2초) · 배지(2.4초). 처음 보는 목록은 아무것도 깜박이지 않는다 */
+  marks(key, rows, idf, sigf) {
+    const C = (typeof window !== 'undefined' && window.TerraChanges) || CHG, M = this._mk || (this._mk = new Map()), now = Date.now(), k = (this._bound || '') + '|' + key;
+    const e = M.get(k) || { sig: null, fl: new Map() }; M.set(k, e);
+    const next = C.signMap(rows, idf, sigf), d = C.diffSigns(e.sig, next);
+    for (const id of d.added) e.fl.set(id, { t: now, kind: 'new' });
+    for (const id of d.changed) e.fl.set(id, { t: now, kind: 'chg' });
+    e.sig = next;
+    for (const [id, f] of e.fl) if (now - f.t > FLASH_KEEP) e.fl.delete(id);
+    if (e.fl.size && !this._mkT) this._mkT = setTimeout(() => { this._mkT = 0; this.setState({}); }, 400);   // 배지가 사라질 때까지 몇 번 더 그린다
+    const fn = (r) => { const f = e.fl.get(String(idf(r))); return f ? ' nx-fl nx-fl-' + f.kind : ''; };
+    fn.chip = (r) => { const f = e.fl.get(String(idf(r))); return f ? { chgOn: true, chg: f.kind === 'new' ? '새로' : '바뀜', chgCls: f.kind } : { chgOn: false, chg: '', chgCls: '' }; };   // 줄 안에 자리가 있는 목록(작업 · 파일)은 배지를 마크업으로
+    return fn;
+  }
+  rr() { if (this._rrT) return; this._rrT = setTimeout(() => { this._rrT = 0; this.setState({}); }, 120); }   // 잦은 진행 · 출력 알림은 몰아서 다시 그린다
+  gateOf(op) { const G = typeof window !== 'undefined' && window.TerraGate; const g = G ? G(op, { remote: this.remote() }) : null; return g && !g.open ? { open: false, why: g.why } : { open: true, why: '' }; }   // 시안(문 없음)은 열린 것으로
+  szOf(t) { const m = /^([\d.]+)\s*(B|KB|MB|GB|TB)$/.exec(String(t || '').trim()); return m ? Math.round(+m[1] * 1024 ** ['B', 'KB', 'MB', 'GB', 'TB'].indexOf(m[2])) : 0; }
+  fmtB(n) { const F = typeof window !== 'undefined' && window.TerraFileTransfer; if (F && F.fmtBytes) return F.fmtBytes(n); n = Number(n) || 0; let i = 0; const U = ['B', 'KB', 'MB', 'GB', 'TB']; while (n >= 1024 && i < 4) { n /= 1024; i++; } return (i ? n.toFixed(n < 10 ? 1 : 0) : String(n)) + ' ' + U[i]; }
+
+  /* ==== 파일 내용 · 전송 — 공유 폴더(io.terra.file)에서만 ====
+     미리보기  entries.read(앞에서부터 — 글 64 KiB · 그림 4 MiB 상한, 넘으면 정보 + 내려받기)
+     올리기    transfers.create → chunks.put(응답의 chunk_size) → complete   · 끌어다 놓기 · 올리기 단추
+     내려받기  transfers.pulls.create → chunks.get → pulls.complete → 브라우저 저장
+     실행은 src/api/file-transfer.js(window.TerraFileTransfer). 로컬 탐색(local-fs)은 읽기 op 가 없어 잠그고 이유. 다른 노드는 그 노드의 io.terra.file 로(Master 중계) — 없으면 MODULE_* 그대로.
+     시안(캔버스)은 가짜 진행으로 흉내 — 실제 모드에서는 시안 전송을 보이지 않는다(txList) */
+  fileApi() {
+    const F = typeof window !== 'undefined' && window.TerraFileTransfer, T = this.TN(); if (!F || !T || !this.real()) return null;
+    const n = this.nodeKey(), A = this._fapi || (this._fapi = {}); return A[n] || (A[n] = F.create((op, input) => T.t.invoke(n, op, input)));
+  }
+  fxGate(cx, kind) {
+    if (!cx || !cx.share) return { open: false, why: (cx && cx.lockWhy) || '공유 폴더에서만' };
+    if (this.ro()) return { open: false, why: '노드와 끊김 — 읽기 전용(돌아오면 다시)' };
+    if (this.real() && !this.fileApi()) return { open: false, why: '실제 연결의 전송 길(TerraFileTransfer)이 없다' };
+    return this.gateOf(kind === 'up' ? 'io.terra.file.transfers.create' : kind === 'down' ? 'io.terra.file.transfers.pulls.create' : 'io.terra.file.entries.read');
+  }
+  txList() { const real = this.real(), n = this._bound; return (this._tx || []).filter((x) => x.node === n && !x.sample === real); }
+  txAdd(x) { (this._tx = this._tx || []).push(x); if (this._tx.length > 40) this._tx.splice(0, this._tx.length - 40); this.rr(); }
+  txSample(dir, name, where, size) {   // 시안 — 4초쯤 걸리는 가짜 진행(노드에 쓰지 않는다)
+    const x = { node: this._bound, sample: true, where }, j = x.job = { dir, name, size: size || 3 * 1048576, done: 0, state: 'run', rate: 0, err: null };
+    const step = () => { if (j.state !== 'run') return; const inc = Math.max(32768, Math.round(j.size / 16)); j.done = Math.min(j.size, j.done + inc); j.rate = inc * 4; if (j.done >= j.size) { j.state = 'done'; j.rate = 0; } else x.t = setTimeout(step, 250); this.rr(); };
+    j.cancel = () => { clearTimeout(x.t); j.state = 'cancel'; j.rate = 0; this.rr(); };
+    j.retry = () => { if (j.state === 'cancel') j.done = 0; j.state = 'run'; clearTimeout(x.t); x.t = setTimeout(step, 250); this.rr(); };
+    x.t = setTimeout(step, 250); return x;
+  }
+  upStart(files, cx) {
+    const list = Array.from(files || []); if (!list.length) return;
+    const g = this.fxGate(cx, 'up'); if (!g.open) { this.say(g.why); return; }
+    const n = this._bound, root = cx.root, rel = cx.rel || '', API = this.fileApi();
+    for (const f of list) {
+      const path = (rel ? rel + '/' : '') + f.name, where = root + ':/' + path;
+      if (!API) { this.txAdd(this.txSample('up', f.name, where, f.size)); continue; }
+      const x = { node: n, sample: false, where };
+      x.job = API.upload({ root, path, file: f, mode: 'create', onChange: (j) => { if (j.state === 'done' && !x.seen) { x.seen = true; const T = this.TN(); if (T) T.refresh(n, 'io.terra.file.entries.list', rel ? { root, path: rel } : { root }); } this.rr(); } });
+      this.txAdd(x);
+    }
+  }
+  downStart(it, cx) {
+    const g = this.fxGate(cx, 'down'); if (!g.open) { this.say(g.why); return; }
+    const where = cx.root + ':/' + it.path, API = this.fileApi();
+    if (!API) { this.txAdd(this.txSample('down', it.name, where, it.bytes)); return; }
+    const x = { node: this._bound, sample: false, where };
+    x.job = API.download({ root: cx.root, path: it.path, name: it.name, mime: this.pvKind(it.name, it.bytes).mime, onChange: (j) => { if (j.state === 'done' && j.blob && !x.saved) { x.saved = true; this.saveBlob(j.blob, j.name); } this.rr(); } });
+    this.txAdd(x);
+  }
+  saveBlob(b, name) { try { const u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = name || 'download'; a.style.display = 'none'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); } catch (e) { this.say('저장 못 함 · ' + ((e && e.message) || e)); } }
+  txRows(t) {
+    const B = (bd, fg) => ({ bd, fg }), row = (x) => {
+      const j = x.job, pct = j.size ? Math.min(100, Math.round((j.done / j.size) * 100)) : j.state === 'done' ? 100 : 0, up = j.dir === 'up', live = j.state === 'prep' || j.state === 'run' || j.state === 'verify';
+      const F = typeof window !== 'undefined' && window.TerraFileTransfer, rate = j.rate > 0 ? (F && F.fmtRate ? F.fmtRate(j.rate) : this.fmtB(Math.round(j.rate)) + '/s') : '';
+      const exists = j.err && j.err.code === 'FILE_TARGET_EXISTS';
+      const stat = j.state === 'run' ? pct + '%' + (rate ? ' · ' + rate : '') + (j.resumed ? ' · 이어서' : '') : j.state === 'prep' ? j.note || '준비 중…' : j.state === 'verify' ? '검증 중…'
+        : j.state === 'done' ? '끝 · ' + this.fmtB(j.size) + (x.sample ? ' · 시안' : '') : j.state === 'cancel' ? '취소됨' : exists ? '같은 이름이 있다' : '실패 · ' + ((j.err && j.err.code) || '오류');
+      const btns = [];
+      if (live) btns.push(Object.assign({ label: '취소', tip: up ? '멈추고 노드의 부분 파일을 지운다(abort)' : '멈추고 받은 것을 버린다', run: () => j.cancel() }, B(t.line2, t.ink)));
+      if (exists) btns.push(Object.assign({ label: x.ask ? '정말 덮어쓰기 — 되돌릴 수 없음' : '덮어쓰기…', tip: '노드의 ' + x.where + ' 를 이 파일로 바꾼다 — 지금 파일은 사라진다', run: () => { if (!x.ask) { x.ask = true; this.rr(); return; } x.ask = false; j.mode = 'overwrite'; j.retry(); this.rr(); } }, B('rgba(255,107,107,.5)', '#ff6b6b')));
+      else if (j.state === 'fail' || j.state === 'cancel') btns.push(Object.assign({ label: '다시', tip: j.state === 'fail' && j.tid ? '받은 데부터 이어서(resume_id)' : '처음부터', run: () => { j.retry(); this.rr(); } }, B(t.line2, t.ink)));
+      if (j.state === 'done' && !up && j.blob) btns.push(Object.assign({ label: '저장', tip: '브라우저로 다시 저장', run: () => this.saveBlob(j.blob, j.name) }, B(t.line2, t.ink)));
+      if (!live) btns.push(Object.assign({ label: '×', tip: '줄 지우기', run: () => { this._tx = (this._tx || []).filter((y) => y !== x); this.rr(); } }, B('transparent', t.sub)));
+      return { arrow: up ? '↑' : '↓', dirT: up ? '올리기' : '내려받기', dc: up ? '#7aa7ff' : '#3ecf8e', name: j.name, where: x.where, pct, barC: j.state === 'fail' ? '#ff6b6b' : j.state === 'done' ? '#3ecf8e' : j.state === 'cancel' ? t.dim : '#7aa7ff',
+        stat, statC: j.state === 'fail' ? '#ff6b6b' : j.state === 'done' ? '#3ecf8e' : j.state === 'cancel' ? t.dim : t.sub, btns,
+        tip: (up ? '올리기 ' : '내려받기 ') + x.where + (j.err ? ' — ' + j.err.code + (j.err.msg && j.err.msg !== j.err.code ? ' · ' + j.err.msg : '') : '') + (x.sample ? ' — 시안(노드에 쓰지 않는다)' : '') };
+    };
+    return this.txList().slice().reverse().map(row);
+  }
+  // 미리보기 꼴 — 실제는 file-transfer.js previewKind, 캔버스는 같은 규칙의 짧은 판
+  pvKind(name, size) {
+    const F = typeof window !== 'undefined' && window.TerraFileTransfer; if (F && F.previewKind) return F.previewKind(name, size);
+    const n = String(name || ''), ext = (n.match(/\.([^.]+)$/) || [0, ''])[1].toLowerCase();
+    if (/^(png|jpe?g|gif|webp|svg|bmp)$/.test(ext)) return size > PV_MAX.image ? { kind: 'other', why: '그림이 미리보기 상한 4 MB 를 넘는다 — 내려받아 연다' } : { kind: 'image', mime: 'image/' + ext };
+    if (!ext || /^(txt|md|log|json|ya?ml|toml|ini|conf|csv|xml|html?|css|js|ts|py|go|rs|sh|sql)$/.test(ext)) return { kind: 'text', mime: 'text/plain', part: size > PV_MAX.text };
+    return { kind: 'other', mime: 'application/octet-stream', why: '미리보기 없는 형식 — 내려받아 연다' };
+  }
+  pvOpen(it, cx) {
+    if (!it || it.dir) return;
+    const g = this.fxGate(cx, 'read'); if (!g.open) { this.say(g.why); return; }
+    this.pvDrop();
+    const K = this.pvKind(it.name, it.bytes), F = typeof window !== 'undefined' && window.TerraFileTransfer;
+    const P = this._pv = { node: this._bound, key: cx.root + ':' + it.path, name: it.name, path: it.path, root: cx.root, bytes: it.bytes, sizeT: it.sizeT, time: it.time || '', kind: K.kind, mime: K.mime, why: K.why || '', state: 'load', text: '', url: '', cut: !!K.part, sample: !this.real(), cx, it };
+    this.setState({ pvKey: P.key });
+    if (K.kind === 'other') { P.state = 'ok'; return; }
+    if (P.sample) {   // 시안 — 내용을 지어내지 않고 무엇이 보일지만 말한다
+      P.state = 'ok'; if (K.kind === 'text') P.text = '(시안) ' + it.name + ' — 실제 연결에서는 그 노드의 이 파일을 앞에서부터 ' + this.fmtB(PV_MAX.text) + ' 까지 읽어(io.terra.file entries.read) 고정폭으로 보인다.\n\n줄 바꿈 · 들여쓰기 · 탭은 그대로,\n이진 파일(NUL)이면 정보 + 내려받기로 바뀐다.'; else { P.kind = 'other'; P.why = '(시안) 그림은 실제 연결에서 그대로 보인다'; } return;
+    }
+    const API = this.fileApi();
+    API.readHead({ root: cx.root, path: it.path, max: K.kind === 'text' ? F.PREVIEW.text : F.PREVIEW.image }).then((r) => {
+      if (this._pv !== P) return;
+      if (r.size) P.bytes = r.size;
+      if (K.kind === 'text') { if (F.looksBinary(r.bytes)) { P.kind = 'other'; P.why = '글이 아니다(이진) — 내려받아 연다'; } else { P.text = F.decodeText(r.bytes); P.cut = r.cut; } }
+      else P.url = URL.createObjectURL(new Blob([r.bytes], { type: K.mime }));
+      P.state = 'ok'; this.setState({});
+    }, (e) => { if (this._pv !== P) return; P.state = 'err'; P.err = (e && e.code) || '오류'; P.errMsg = (e && e.message) || ''; this.setState({}); });
+  }
+  pvDrop() { const P = this._pv; if (P && P.url) { try { URL.revokeObjectURL(P.url); } catch (e) {} } this._pv = null; this.state.pvKey = null; }
+  pvView(t) {
+    const P = this._pv; if (!P || P.node !== this._bound || this.state.pvKey !== P.key) return { on: false };
+    const ok = P.state === 'ok', sz = P.bytes ? this.fmtB(P.bytes) : P.sizeT || '—', KC = { text: '#7aa7ff', image: '#3ecf8e', other: '#9aa1ab' }[P.kind] || '#9aa1ab';
+    const dg = this.fxGate(P.cx, 'down');
+    const info = [['이름', P.name], ['위치', P.root + ':/' + P.path], ['크기', sz], ['수정', P.time || '—']];
+    if (P.state === 'load') info.push(['상태', '받는 중…']); if (P.state === 'err') info.push(['상태', '못 읽음 · ' + P.err + (P.errMsg && P.errMsg !== P.err ? ' — ' + P.errMsg : '')]); if (ok && P.kind === 'other') info.push(['미리보기', P.why || '없음']);
+    return { on: true, bg: this.state.prefs && this.state.prefs.dark === false ? '#faf9f6' : '#111318', name: P.name, sizeT: sz, kindT: P.kind === 'text' ? (P.cut ? '글 · 앞부분' : '글') : P.kind === 'image' ? '그림' : '정보', chipFg: KC, chipBd: KC + '80', chipBg: KC + '1a',
+      isText: ok && P.kind === 'text', isImg: ok && P.kind === 'image' && !!P.url, isInfo: !ok || P.kind === 'other' || (P.kind === 'image' && !P.url), text: P.text, url: P.url, info: info.map(([k, v]) => ({ k, v })),
+      note: P.state === 'err' ? '못 읽음 · ' + P.err + (P.err === 'MODULE_NOT_FOUND' || P.err === 'MODULE_ROUTE_NOT_FOUND' ? ' — 그 노드에 io.terra.file 이 없다' : '') : P.sample ? '시안 — 노드의 내용을 읽지 않았다' : P.kind === 'text' ? (P.cut ? '앞 ' + this.fmtB(PV_MAX.text) + ' 만 · 전체 ' + sz + ' — 나머지는 내려받기' : '전체 · ' + sz) : P.kind === 'image' ? '그림 그대로 · 미리보기 상한 ' + this.fmtB(PV_MAX.image) : P.why,
+      noteC: P.state === 'err' ? '#ff6b6b' : t.dim, close: () => { this.pvDrop(); this.setState({}); },
+      btns: [{ label: '내려받기', run: dg.open ? () => this.downStart(P.it, P.cx) : null, dis: dg.open ? null : 'disabled', lock: !dg.open, tip: dg.open ? '노드에서 받아 이 브라우저에 저장 — transfers.pulls.*' : dg.why, op: dg.open ? 1 : 0.5 }] };
+  }
+  // 파일 관리자 공통 — 올리기 단추 · 끌어다 놓기 · 미리보기 · 내려받기 · 전송 줄(o.fx = 위치 맥락 — fmRealView · 시안 갈래가 채운다)
+  fmExtras(o, t, s) {
+    const cx = o.fx || { share: false, lockWhy: '' }, ug = this.fxGate(cx, 'up'), rg = this.fxGate(cx, 'read'), dg = this.fxGate(cx, 'down'), P = cx.pick;
+    for (const it of o.items || []) { if (it.fl === undefined) it.fl = ''; if (it.chgOn === undefined) it.chgOn = false; if (!it.open) it.open = () => {}; }
+    const where = cx.root ? cx.root + ':/' + (cx.rel || '') : '';
+    const fb = (label, run, g, offTip) => { const lock = !g.open, off = lock || !run; return { label, run: off ? null : run, dis: off ? 'disabled' : null, lock, tip: lock ? g.why : !run ? offTip : '', op: off ? 0.5 : 1 }; };
+    const pickWhy = cx.pickDir ? '폴더는 두 번 눌러 들어간다' : '파일을 고른다';
+    const tx = this.txRows(t), live = tx.filter((r) => r.btns.some((b) => b.label === '취소')).length;
+    o.fx = { upOff: ug.open ? 'false' : 'true', upDis: ug.open ? null : 'disabled', upLock: !ug.open, upOp: ug.open ? 1 : 0.5, upTip: ug.open ? where + ' 에 올린다 — 여러 개 · 끌어다 놓기도 된다' : ug.why,
+      upPick: (e) => { const f = e.target.files; this.upStart(f, cx); try { e.target.value = ''; } catch (x) {} },
+      over: (e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = ug.open ? 'copy' : 'none'; if (!this.state.fmDrag) this.setState({ fmDrag: true }); },
+      leave: (e) => { if (e.currentTarget && e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return; if (this.state.fmDrag) this.setState({ fmDrag: false }); },
+      drop: (e) => { e.preventDefault(); this.setState({ fmDrag: false }); if (!ug.open) { this.say(ug.why); return; } this.upStart(e.dataTransfer && e.dataTransfer.files, cx); },
+      dragOn: !!s.fmDrag, dragC: ug.open ? '#7aa7ff' : '#f5b83d', dragBg: ug.open ? 'rgba(122,167,255,.10)' : 'rgba(245,184,61,.08)',
+      dragT: ug.open ? '여기에 놓으면 ' + where + ' 에 올린다 · 같은 이름이 있으면 묻는다' : '🔒 ' + ug.why,
+      btns: [fb('미리보기', P ? () => this.pvOpen(P, cx) : null, rg, pickWhy), fb('내려받기', P ? () => this.downStart(P, cx) : null, dg, pickWhy)],
+      tx, txOn: tx.length > 0, txSum: tx.length + '개' + (live ? ' · 진행 ' + live : ''), txClearOn: tx.length > live, txClear: () => { const L = new Set(this.txList().filter((x) => !['prep', 'run', 'verify'].includes(x.job.state))); this._tx = (this._tx || []).filter((x) => !L.has(x)); this.rr(); } };
+    o.pv = this.pvView(t);
+  }
+
+  /* ==== 작업 관리자 — 이 노드 작업(출력 따라가기) / Master 작업 ====
+     이 노드   Daemon tasks(desk 묶음) · 고른 작업의 출력: 이 노드면 SSE(output.events.get), 다른 노드면 3초마다 output.get(window.TerraTaskFollow · task-follow.js)
+     로그 창   stdout · stderr 색 · 시각 · gap/overflow 줄 · 끝 상태 줄(exit code). 따라가기 = 끝에 붙어 있음(column-reverse) · 위로 올리면 멈춤(보이는 줄을 그대로 두고 새 줄 수만 센다)
+     Master    terra.master.jobs.get · jobs.by-job-id.get · .cancel.post · .rerun.post — 위임 표(master-delegated.json)에 있다. 문(TerraGate)이 닫으면 잠그고 이유. 취소 · 다시는 확인 단계 */
+  jobsView(o, t, s) {
+    const N = this.nd(), tab = s.jbTab || 'node', M = this.masterJobs(t, s);
+    o.jb = { tabs: [['node', '이 노드 작업', String((N.jobs || []).length)], ['master', 'Master 작업', M.n]].map(([id, label, n]) => ({ label, n, on: id === tab ? 'true' : 'false', bg: id === tab ? t.raiseH : 'transparent', fg: id === tab ? t.ink : t.sub, fw: id === tab ? 600 : 400, pick: () => this.setState({ jbTab: id, mjAsk: null }) })),
+      vNode: tab === 'node', vMaster: tab === 'master', note: tab === 'node' ? this.api('terra.daemon.tasks.*') : this.api('terra.master.jobs.*'), msg: s.jbMsg || '' };
+    if (tab !== 'node') { Object.assign(o.jb, M.view); o.out = { on: false }; o.jobs = []; return; }
+    o.out = this.jobLog(s.jobSel, t, s);
+    const jobs = N.jobs || [], mk = this.marks('jobs', jobs, (j) => j.id, (j) => j.st);
+    o.jobs = jobs.map((j) => { const L = this.jobLabel(j), c = this.chip(L.c); return { fl: mk(j), ...mk.chip(j), pick: () => this.setState({ jobSel: s.jobSel === j.id ? null : j.id, logPause: null }), rowBg: s.jobSel === j.id ? t.raiseH : t.raise, id: j.id, name: j.name, op: j.op, label: L.label, fg: c.fg, bd: c.bd, bg: c.bg, pct: j.st === 'run' || j.st === 'stall' ? j.pct + '%' : '', canCancel: j.st === 'run' || j.st === 'stall', cancel: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.ndSet((d) => { d.jobs = d.jobs.map((x) => x.id === j.id ? { ...x, st: 'cancel' } : x); }, 'terra.daemon.tasks.by-task-id.cancel.post', { task_id: j.id }); } }; });
+    o.jb.noJobs = !jobs.length; o.jb.listFlex = o.out.on ? '2' : '1';
+  }
+  followStop() { const F = this._fw; if (F) { if (F.h) try { F.h.stop(); } catch (e) {} if (F.t) clearInterval(F.t); } this._fw = null; }
+  logSample(F, j) {   // 시안 — 출력을 흉내 내되 '시안' 으로 밝힌다. 도는 작업은 0.6초마다 한 줄
+    const at = () => new Date().toISOString(), L = F.L = { lines: [], end: false, cut: 0, state: '', exit: null, error: '', timedOut: false }, add = (text, stream) => L.lines.push({ k: 'out', stream: stream || 'stdout', at: at(), text });
+    F.info = { mode: 'sample', why: '시안 — 실제 연결에서 이 노드는 SSE 로 따라가고, 다른 노드는 3초마다 읽는다' };
+    add('$ ' + (j.op || 'task') + ' · ' + j.name + '   (시안 출력)');
+    const fin = (st) => { L.end = true; L.state = st === 'ok' ? 'succeeded' : st === 'cancel' ? 'cancelled' : st === 'fail' ? 'failed' : st === 'stall' ? 'timeout' : ''; L.exit = st === 'ok' ? 0 : st === 'fail' ? 1 : null; L.timedOut = st === 'stall'; };
+    if (j.st !== 'run') { for (let k = 1; k <= 6; k++) add('단계 ' + k + '/6 · 완료'); if (j.st === 'fail' || j.st === 'stall') add('오류 — 대상이 응답하지 않음', 'stderr'); fin(j.st); return; }
+    let k = 0; F.t = setInterval(() => { k++; if (k % 7 === 0) add('경고 — 느린 응답 · 다시 시도 ' + k / 7, 'stderr'); else add('진행 ' + Math.min(99, k * 3) + '% · 조각 ' + k); if (k >= 30) { clearInterval(F.t); F.t = 0; add('보냄 · 체크섬 확인'); fin('ok'); } this.rr(); }, 600);
+  }
+  jobLog(id, t, s) {
+    const N = this.nd(), j = id && (N.jobs || []).find((x) => x.id === id);
+    if (!j) { this.followStop(); return { on: false }; }
+    const TF = typeof window !== 'undefined' ? window.TerraTaskFollow : null, n = this.nodeKey();
+    let F = this._fw;
+    if (!F || F.id !== j.id || F.node !== n) {
+      this.followStop(); F = this._fw = { id: j.id, node: n, L: null, info: { mode: 'opening', why: '' } };
+      if (this.real() && N.real && TF) F.h = TF(n, j.id, (L, info) => { if (this._fw !== F) return; F.L = L; F.info = info; this.rr(); });
+      else if (!this.real()) this.logSample(F, j);
+      else F.info = { mode: 'none', why: '작업 출력 길(TerraTaskFollow)이 없다' };
+    }
+    const L = F.L || { lines: [], end: false, cut: 0 }, pz = s.logPause && s.logPause.id === j.id ? s.logPause : null, tone = { stdout: t.sub, stderr: '#ff8f8f' };
+    let lines = L.lines, newN = 0;
+    if (pz) { const keep = Math.max(0, pz.n - ((L.cut || 0) - pz.cut)); newN = Math.max(0, lines.length - keep); lines = lines.slice(0, keep); }
+    const hms = (a) => { if (TF && TF.hms) return TF.hms(a); const d = new Date(a || ''); return Number.isNaN(d.getTime()) ? '' : d.toTimeString().slice(0, 8); };
+    const E = L.end ? (TF && TF.endLine ? TF.endLine(L) : this.endOf(L)) : null;
+    const MODE = { live: ['●', '실시간 · SSE', '#3ecf8e'], poll: ['◌', '몇 초마다 읽기', '#9aa1ab'], again: ['…', '다시 붙는 중', '#f5b83d'], opening: ['…', '여는 중', '#9aa1ab'], sample: ['◇', '시안', '#9aa1ab'], none: ['⊘', '길 없음', '#f5b83d'] }[F.info.mode] || ['…', F.info.mode, '#9aa1ab'];
+    const pause = () => this.setState({ logPause: { id: j.id, n: L.lines.length, cut: L.cut || 0 } }), resume = () => { this.setState({ logPause: null }); const el = this._logEl; if (el) setTimeout(() => { try { el.scrollTop = 0; } catch (e) {} }, 0); };
+    return { on: true, id: j.id, lines: lines.slice(-800).map((ln) => ({ at: ln.k === 'out' ? hms(ln.at) : '', t: ln.text, c: ln.k === 'gap' ? '#f5b83d' : ln.k === 'note' ? t.dim : tone[ln.stream] || t.sub })),
+      endOn: !!E, endT: E ? E.text : '', endC: E ? { ok: '#3ecf8e', err: '#ff6b6b', warn: '#f5b83d', dim: t.dim }[E.tone] || t.sub : t.dim,
+      modeDot: MODE[0], modeT: MODE[1], modeC: MODE[2], modeBd: MODE[2] + '80', modeTip: F.info.why || '',
+      note: F.info.why || (L.cut ? '앞 ' + L.cut + '줄은 화면에서 버림' : '') || (!L.lines.length ? (E ? '(출력 없음)' : '받는 중…') : ''),
+      followOn: pz ? 'false' : 'true', followT: pz ? '따라가기' : '멈춤', followBg: pz ? 'transparent' : t.raiseH, followTip: pz ? '끝으로 가서 새 줄을 따라간다' : '지금 보이는 줄에서 멈춘다(위로 올려도 멈춘다)',
+      toggle: pz ? resume : pause, resume, newOn: !!pz && newN > 0, newN: String(newN),
+      scroll: (e) => { const el = e.currentTarget; this._logEl = el; const up = Math.abs(el.scrollTop) > 6, P = this.state.logPause; if (up && !P) pause(); else if (!up && P && P.id === j.id) this.setState({ logPause: null }); },
+      close: () => this.setState({ jobSel: null, logPause: null }) };
+  }
+  endOf(L) {   // 끝 상태 줄 — task-follow.js endLine 과 같은 말(캔버스용)
+    const st = String(L.state || ''), code = L.exit === null || L.exit === undefined ? '' : ' · exit ' + L.exit;
+    if (L.timedOut || st === 'timeout') return { text: '끝 · 시간 초과' + code, tone: 'warn' };
+    if (/cancel/.test(st)) return { text: '끝 · 취소됨' + code, tone: 'dim' };
+    if (/fail|error/.test(st) || (L.exit !== null && L.exit !== undefined && L.exit !== 0)) return { text: '끝 · 실패' + code + (L.error ? ' · ' + L.error : ''), tone: 'err' };
+    return { text: '끝 · 성공' + code, tone: 'ok' };
+  }
+  jbSay(m) { this.setState({ jbMsg: m }); clearTimeout(this._jbT); this._jbT = setTimeout(() => this.setState({ jbMsg: '' }), 5000); }
+  masterJobs(t, s) {
+    const T = this.TN(), real = this.real() && this.nd().real, n = this.nodeKey(), scope = s.mjScope || 'node';
+    const MST = { queued: ['대기', '#9aa1ab'], sent: ['보냄', '#7aa7ff'], running: ['진행 중', '#7aa7ff'], success: ['성공', '#3ecf8e'], failed: ['실패', '#ff6b6b'], cancelled: ['취소됨', '#9aa1ab'], cancel_sent: ['취소 보냄', '#f5b83d'] };
+    const meta = (T && T.t && T.t.meta) || {}, rid = (meta[n] && meta[n].rid) || '', nameOf = (id) => { for (const k in meta) if (meta[k] && meta[k].rid === id) return meta[k].name || id; return id ? String(id).slice(0, 14) : '—'; };
+    const gl = this.gateOf('terra.master.jobs.get'), V = { mLock: !gl.open, mWhy: gl.why, grid: '96px minmax(0, 1.3fr) minmax(0, 1fr) 124px 80px', mListFlex: s.mjSel ? '2' : '1' };
+    let rows = [], empty = '', loading = false;
+    if (!real) rows = MJOBS_SAMPLE.map((r) => Object.assign({}, r, { target_node_id: r.target_node_id || this.nodeNameQ() }));
+    else if (gl.open) {
+      const inp = scope === 'node' && rid ? { node_id: rid, limit: 50 } : { limit: 50 }, r = T.read(n, 'terra.master.jobs.get', { input: inp, ttl: 10000 });
+      rows = Array.isArray(r.data) ? r.data : (r.data && Array.isArray(r.data.jobs) ? r.data.jobs : []); loading = r.loading && !r.data;
+      if (r.err && !r.data) empty = '못 받음 · ' + r.err.code;
+    }
+    if (!empty) empty = !gl.open ? '' : loading ? '받는 중…' : rows.length ? '' : '작업 없음';
+    V.mNote = !real ? '시안 — 실제 연결에서 Master 작업 기록' : scope === 'node' && !rid ? '이 노드의 Master id 를 몰라 전부' : '최신순 · 50개까지';
+    V.scope = [['node', '이 노드로 간 것'], ['all', '전부']].map(([id, label]) => ({ label, on: id === scope ? 'true' : 'false', bg: id === scope ? t.raiseH : 'transparent', fg: id === scope ? t.ink : t.sub, pick: () => this.setState({ mjScope: id }) }));
+    const mk = this.marks('mjobs|' + scope, rows, (r) => r.job_id, (r) => r.status);
+    const chip = (st) => { const m = MST[st] || [st || '—', '#9aa1ab'], c = this.chip(m[1]); return { label: m[0], fg: c.fg, bd: c.bd, bg: c.bg }; };
+    V.mjobs = rows.map((r) => Object.assign({ fl: mk(r), ...mk.chip(r), id: r.job_id, type: r.type || '—', node: nameOf(r.target_node_id), at: this.ago(r.created_at), rowBg: s.mjSel === r.job_id ? t.raiseH : t.raise, pick: () => this.setState({ mjSel: s.mjSel === r.job_id ? null : r.job_id, mjAsk: null }) }, chip(r.status)));
+    V.mEmpty = empty;
+    // 상세
+    const base = rows.find((r) => r.job_id === s.mjSel);
+    V.dOn = !!(s.mjSel && (base || real));
+    if (V.dOn) {
+      let J = base || { job_id: s.mjSel };
+      if (real && gl.open) { const live = !J.status || /queued|sent|running|cancel_sent/.test(J.status), r = T.read(n, 'terra.master.jobs.by-job-id.get', { input: { job_id: s.mjSel }, ttl: live ? 3000 : 30000 }); if (r.data) J = r.data.job || r.data; }
+      const st = J.status || '', req = J.request && typeof J.request === 'object' ? J.request : null, res = J.result && typeof J.result === 'object' ? J.result : null, out = J.output || null;
+      const cmd = req ? [req.command, ...(Array.isArray(req.args) ? req.args : [])].filter((x) => x !== undefined && x !== null && x !== '').join(' ') : '';
+      const canC = /queued|sent|running/.test(st), canR = /success|failed/.test(st) && /process\.execute/.test(J.type || '');
+      const cg = this.gateOf('terra.master.jobs.by-job-id.cancel.post'), rg2 = this.gateOf('terra.master.jobs.by-job-id.rerun.post'), cut = this.ro();
+      const mb = (label, kind, can, g, dan) => { const lock = !g.open || cut, off = lock || !can; return { label, run: off ? null : () => this.setState({ mjAsk: { kind, id: J.job_id } }), dis: off ? 'disabled' : null, lock, op: off ? 0.5 : 1, bd: dan ? 'rgba(255,107,107,.5)' : t.line2, fg: dan ? '#ff6b6b' : t.ink, tip: !g.open ? g.why : cut ? '노드와 끊김 — 읽기 전용(돌아오면 다시)' : !can ? (kind === 'cancel' ? '끝난 작업은 취소할 수 없다' : '끝난 process.execute 작업만 다시 보낸다') : '' }; };
+      V.d = Object.assign({ id: J.job_id, btns: [mb('취소', 'cancel', canC, cg, false), mb('다시 보내기', 'rerun', canR, rg2, true)],
+        rows: [['종류', J.type || '—'], ['대상 노드', nameOf(J.target_node_id) + (J.target_node_id && nameOf(J.target_node_id) !== J.target_node_id ? ' · ' + J.target_node_id : '')], ['만든 때', this.ago(J.created_at) || '—'], ['시작', this.ago(J.started_at) || '—'], ['끝', this.ago(J.finished_at) || '—'], ['명령', cmd || '—'], ['결과', res ? (res.exit_code !== undefined ? 'exit ' + res.exit_code : '') + (res.error ? ' · ' + res.error : '') + (res.timed_out ? ' · 시간 초과' : '') || JSON.stringify(res).slice(0, 120) : '—']].concat(J.rerun_of ? [['다시 보낸 원본', J.rerun_of]] : []).map(([k, v]) => ({ k, v })),
+        outOn: !!(out && (out.stdout || out.stderr)), stdout: out && out.stdout ? out.stdout : '', stderr: out && out.stderr ? (out.stdout ? '\n' : '') + out.stderr : '',
+        note: (out && out.truncated ? '출력은 Master 보관 한도에서 잘렸다 · ' : '') + (real ? 'Master 기록 — 노드가 보낸 출력' : '시안 — Master 에 보내지 않는다') }, chip(st));
+      const A = s.mjAsk && s.mjAsk.id === J.job_id ? s.mjAsk : null;
+      V.ask = { on: !!A };
+      if (A) {
+        const op = A.kind === 'cancel' ? 'terra.master.jobs.by-job-id.cancel.post' : 'terra.master.jobs.by-job-id.rerun.post', rk = (typeof window !== 'undefined' && window.TerraRisk && window.TerraRisk(op)) || (A.kind === 'cancel' ? 'write' : 'dangerous');
+        const C = rk === 'dangerous' ? '#ff6b6b' : '#f5b83d', nm = nameOf(J.target_node_id);
+        V.ask = { on: true, title: A.kind === 'cancel' ? '이 작업을 취소할까?' : '이 작업을 다시 보낼까?', risk: { read: '읽기', write: '쓰기', dangerous: '위험' }[rk] || rk, fg: C, bd: C + '80', bg: C + '12', yesT: A.kind === 'cancel' ? '취소하기' : '다시 보내기',
+          rows: (A.kind === 'cancel'
+            ? [['무엇을', 'Master 작업 ' + J.job_id + ' 취소' + (J.type ? ' · ' + J.type : '')], ['어디에', '대상 노드 ' + nm + ' — 아직 안 나갔으면 Master 에서 끝내고, 나갔으면 노드에 취소를 전달'], ['되돌리기', '없음 — 취소한 작업은 다시 돌지 않는다(끝난 뒤 다시 보내기는 새 작업)']]
+            : [['무엇을', '같은 명령을 새 작업으로 — ' + (cmd || J.type || J.job_id)], ['어디에', '대상 노드 ' + nm + ' — Master 기록 그대로, 바꿀 수 없음'], ['되돌리기', '없음 — 명령이 한 번 더 돈다. 정책이 확인을 요구하면 Master 가 확인 id 로 답한다']]).map(([k, v]) => ({ k, v })),
+          no: () => this.setState({ mjAsk: null }), yes: () => this.mjRun(A.kind, J, op) };
+      }
+    }
+    return { n: real && !gl.open ? '🔒' : String(rows.length), view: V };
+  }
+  mjRun(kind, J, op) {
+    this.setState({ mjAsk: null });
+    if (!this.real() || !this.nd().real) { this.jbSay('(시안) ' + (kind === 'cancel' ? '취소' : '다시 보내기') + ' — 실제 연결에서 Master 에 보낸다. 아무것도 바뀌지 않았다'); return; }
+    const T = this.TN(), n = this.nodeKey(), inp = kind === 'cancel' ? { job_id: J.job_id } : { job_id: J.job_id, confirmed: true };
+    this.jbSay((kind === 'cancel' ? '취소' : '다시 보내기') + ' 보내는 중…');
+    T.write(n, op, inp).then((r) => {
+      const st = r && r.status;
+      this.jbSay(kind === 'cancel' ? (st === 'cancel_sent' ? '노드에 취소를 전달했다 — 진행은 상세에서' : st === 'cancelled' ? 'Master 에서 취소했다' : '취소 요청 · ' + (st || '응답'))
+        : st === 'confirmation_required' ? '정책이 확인을 요구한다 — 확인 id ' + (r.confirmation_id || '—') + ' (이 화면에서는 확인하지 않는다)' : '새 작업 ' + ((r && (r.job_id || (r.job && r.job.job_id))) || '') + ' 을 보냈다');
+      T.refresh(n, 'terra.master.jobs.get', (this.state.mjScope || 'node') === 'node' && (T.t.meta[n] || {}).rid ? { node_id: T.t.meta[n].rid, limit: 50 } : { limit: 50 }); T.refresh(n, 'terra.master.jobs.by-job-id.get', { job_id: J.job_id });
+    }, (e) => this.jbSay('못 함 · ' + ((e && e.code) || '오류') + (e && e.message && e.message !== e.code ? ' — ' + e.message : '')));
+  }
+  ago(iso) { const A = typeof window !== 'undefined' && window.TerraDesk; if (A && A.ago) return A.ago(iso); const ts = Date.parse(iso || ''); if (Number.isNaN(ts)) return ''; const sec = Math.max(0, (Date.now() - ts) / 1000); return sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + '분 전' : sec < 86400 ? Math.round(sec / 3600) + '시간 전' : Math.round(sec / 86400) + '일 전'; }
 
   renderVals() {
     this.bind(); this.viewWatch();
@@ -1438,7 +1843,11 @@ class Component extends DCLogic {
           this.setState({ icons: { ...this.state.icons, [id]: { c: f.c, r: f.r, name: '새 폴더', k: 'dir', loc: 'desk' } }, fmLoc: 'desk' });
           this.persist();
         };
+        { const P = pick && pick.k === 'file' ? { name: pick.name, path: pick.name, dir: false, bytes: this.szOf(pick.size), sizeT: pick.size, time: '' } : null;   // 시안 — 내용 · 전송은 흉내(노드에 쓰지 않음)
+          const cx = o.fx = { real: false, share: true, root: (loc && loc.label) || s.fmLoc, rel: '', pick: P, pickDir: !!(pick && pick.k === 'dir'), lockWhy: '' };   // 시안의 바탕화면은 실제 파일 · 바로가기가 섞여 있다 — 바로가기는 pick 이 없다
+          o.items.forEach((it, j) => { const i = items[j]; it.open = () => { if (i && i.k === 'file') this.pvOpen({ name: i.name, path: i.name, dir: false, bytes: this.szOf(i.size), sizeT: i.size, time: '' }, cx); }; }); }
       } }
+      if (id === 'files') this.fmExtras(o, t, s);
       if (id === 'set') {
         const tab = TABS.find((x) => x.id === s.setTab);
         o.tabs = TABS.map((x) => ({ label: x.label, d: x.d, bg: x.id === s.setTab ? t.raiseH : 'transparent', fg: x.id === s.setTab ? t.ink : t.sub, pick: () => this.setState({ setTab: x.id }) }));
@@ -1462,10 +1871,7 @@ class Component extends DCLogic {
         o.saveText = s.save === 'saving' ? '노드 계정 ' + this.acct() + '에 저장하는 중…' : '노드 계정 ' + this.acct() + '에 저장됨 — 다른 기기에서 열어도 같은 바탕화면이 나온다.';
       }
       if (id === 'net') o.net = this.netView(t, s);
-      if (id === 'jobs') {
-        o.out = this.jobOut(s.jobSel, t);
-        o.jobs = (this.nd().jobs || []).map((j) => { const L = this.jobLabel(j), c = this.chip(L.c); return { pick: () => this.setState({ jobSel: s.jobSel === j.id ? null : j.id }), rowBg: s.jobSel === j.id ? t.raiseH : t.raise, id: j.id, name: j.name, op: j.op, label: L.label, fg: c.fg, bd: c.bd, bg: c.bg, pct: j.st === 'run' || j.st === 'stall' ? j.pct + '%' : '', canCancel: j.st === 'run' || j.st === 'stall', cancel: () => { this.ndSet((d) => { d.jobs = d.jobs.map((x) => x.id === j.id ? { ...x, st: 'cancel' } : x); }, 'terra.daemon.tasks.by-task-id.cancel.post', { task_id: j.id }); } }; });
-      }
+      if (id === 'jobs') this.jobsView(o, t, s);
       o.nx = { theme: dark ? 'nx-dark' : 'nx-light', remote: this.remote(), msg: s.nxMsg || '' };
       // ── 자원 관리 — 장치(io-inventory) · 자원 선언(SVI) · 공유 폴더(config) · 서비스 터널 ──
       if (id === 'svi') {
@@ -1623,8 +2029,11 @@ class Component extends DCLogic {
           X.caps = L ? (LR && Array.isArray(LR.capabilities) && LR.capabilities.length ? LR.capabilities : [NO]) : ['svi', 'io-inventory', 'wireguard', 'direct-tcp', 'module-host', 'gui-apps', 'service-tunnels', 'tasks'];
         }
       }
+      if (id === 'mods' && o.nx && Array.isArray(o.nx.mods)) { const mk = this.marks('mods', o.nx.mods, (r) => r.id, (r) => r.stCls + '|' + r.ver); o.nx.mods.forEach((r) => { r.cls = (r.cls || '') + mk(r); }); }   // 밀어 받기 — 상태가 바뀐 모듈 줄
       return o;
     });
+    if (!s.wins.jobs && this._fw) this.followStop();   // 작업 관리자를 닫으면 따라가기도 끊는다
+    if (!s.wins.files && this._pv) this.pvDrop();
 
     /* 독 */
     const db = this.dockBox(), left = p.dock === 'left';
