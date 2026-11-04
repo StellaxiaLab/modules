@@ -21,7 +21,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <div data-loginroot="1" style="position: relative; min-height: 100vh; background: radial-gradient(42% 70% at 62% 58%, rgba(150, 110, 200, 0.08), transparent 70%), linear-gradient(118deg, transparent 22%, rgba(110, 130, 220, 0.05) 42%, rgba(170, 120, 210, 0.06) 56%, rgba(230, 150, 150, 0.04) 70%, transparent 84%), linear-gradient(178deg, #060a1d 0%, #040614 46%, #020308 100%); font-family: GmarketSans, Geist, 'Noto Sans KR', system-ui, sans-serif; color: #e6eaf7; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end" onPointerMove="{{pmove}}" onPointerLeave="{{pleave}}" onKeyDown="{{key}}">
 <canvas data-field="login" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none"></canvas>
 <h1 style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0">Terra 로그인</h1>
-<button type="button" aria-label="로그인 열기 — 화면을 누르면 로고가 올라가고 로그인이 나타난다" onClick="{{openFn}}" style="position: absolute; inset: 0; display: {{openD}}; opacity: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: pointer;"></button>
+<button type="button" aria-label="로그인 열기" onClick="{{openFn}}" style="position: absolute; inset: 0; display: {{openD}}; opacity: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: pointer;"></button>
 <form aria-label="Terra 로그인" onSubmit="{{submit}}" style="position: absolute; inset: 0; margin: 0; pointer-events: none;">
 <input type="text" name="admin" aria-label="admin" autocomplete="username" spellcheck="false" onInput="{{inA}}" onFocus="{{focA}}" onBlur="{{blur}}" style="position: absolute; left: {{pos.ia.x}}px; top: {{pos.ia.y}}px; width: {{pos.ia.w}}px; height: {{pos.ia.h}}px; pointer-events: {{pe}}; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; color: transparent; caret-color: transparent; background: transparent; cursor: text;">
 <input type="password" name="password" aria-label="password" autocomplete="current-password" onInput="{{inP}}" onFocus="{{focP}}" onBlur="{{blur}}" style="position: absolute; left: {{pos.ip.x}}px; top: {{pos.ip.y}}px; width: {{pos.ip.w}}px; height: {{pos.ip.h}}px; pointer-events: {{pe}}; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; color: transparent; caret-color: transparent; background: transparent; cursor: text;">
@@ -162,7 +162,7 @@ class Component extends DCLogic {
   ripAt(k, rgb) { const h = this._L && this._L.hit[k]; if (h) this._rip.push({ x: (h.c0 + h.c1) / 2, y: h.r, t0: performance.now(), amp: 1, rgb }); }
   login() {
     const S = this.state || {};
-    if (!S.va || !S.vp) { this.setState({ msg: !S.va ? 'admin 을 입력하세요' : 'password 를 입력하세요' }); this.ripAt('login', [242, 244, 252]); return; }
+    if (!S.va || !S.vp) { this.setState({ msg: !S.va ? 'admin 입력 필요' : 'password 입력 필요' }); this.ripAt('login', [242, 244, 252]); return; }
     this.warpStart();   // 전환 땐 물결을 띄우지 않는다 — 배경은 그대로
   }
   // ───── 로그인 → 트리 뷰 전환 (워프 전환을 줄여 쓴다) ─────
@@ -702,7 +702,7 @@ class Component extends DCLogic {
       auto: () => this.setState({ autoOn: !S.autoOn }),
       submit: (e) => { if (e && e.preventDefault) e.preventDefault(); this.login(); },
       loginFn: (e) => { if (e && e.preventDefault) e.preventDefault(); this.login(); },
-      newTree: () => { this.setState({ msg: '새 Tree 연결 — 주소 · 등록 코드 창이 이어질 자리' }); this.ripAt('nt', [104, 156, 255]); },
+      newTree: () => { this.setState({ msg: '새 Tree 연결 — 주소 · 등록 코드 (준비 중)' }); this.ripAt('nt', [104, 156, 255]); },
       pmove: (e) => { if (!e || !this._cv) return; const rc = this._cv.getBoundingClientRect(); this._hov = this.hovAt(e.clientX - rc.left, e.clientY - rc.top); },
       pleave: () => { this._hov = null; }
     };

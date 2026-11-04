@@ -143,6 +143,7 @@ _extra=[l.replace('data-ctlwin="field"','data-ctlwin="scene"').replace('data-ctl
 S=re.sub(r'on-open="\{\{ctlOpenFn(\d)\}\}"(?! catalog)', r'on-open="{{ctlOpenFn\1}}" catalog="{{ctlCat\1}}"', S)
 S=re.sub(r'catalog="\{\{ctlCat(\d)\}\}"(?! node-key)', r'catalog="{{ctlCat\1}}" node-key="{{ctlKey\1}}"', S)
 S=re.sub(r'node-key="\{\{ctlKey(\d)\}\}"(?! parent-name)', r'node-key="{{ctlKey\1}}" parent-name="{{ctlPar\1}}"', S)   # 상단 바의 '부모'   # 제어기 — 노드 키(노드 데이터 층 · 노드별 화면 상태)
+S=re.sub(r'parent-name="\{\{ctlPar(\d)\}\}"(?! launch)', r'parent-name="{{ctlPar\1}}" launch="{{ctlLaunch\1}}"', S)   # 제어기 — 바로 띄울 앱(설정 › 노드 설정 · 작업 관리자)
 if '<dc-import name="TerraNodes"' not in S: S=S.replace('<div data-ctlwin="scene" data-slot="0"','<dc-import name="TerraNodes" quiet="1" hint-size="1px,1px"></dc-import>\n<div data-ctlwin="scene" data-slot="0"',1)   # 노드 데이터 층(PA/EL)   # 제어기 — 그 노드의 모듈 화면 목록(웹 브라우저 앱의 시작 페이지)
 _i=S.index('<div data-ctlwin="scene" data-slot="15"'); _j=S.index('\n',_i)
 S=S[:_j]+''.join('\n'+l for l in _extra)+S[_j:]

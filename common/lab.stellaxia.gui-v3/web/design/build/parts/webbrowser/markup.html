@@ -20,8 +20,8 @@
             <button type="button" class="wb-card {{k.cls}}" onClick="{{k.open}}" disabled="{{k.off}}"><b>{{k.app}}</b><span>{{k.mod}}</span><span class="wb-cm"><i class="{{k.modeCls}}">{{k.mode}}</i>{{k.node}}</span><span class="wb-cst">{{k.st}}</span></button>
           </sc-for>
         </div>
-        <sc-if value="{{noCards}}" hint-placeholder-val="{{ false }}"><p class="wb-dim">이 노드엔 화면이 있는 모듈이 없어요.</p></sc-if>
-        <p class="wb-dim">주소창에 http(s) 주소나 모듈 이름을 넣으면 열어요. 모듈 GUI 는 Gateway 가 sandbox 로 내주는 화면이에요.</p>
+        <sc-if value="{{noCards}}" hint-placeholder-val="{{ false }}"><p class="wb-dim">화면 있는 모듈 없음</p></sc-if>
+        <p class="wb-dim">주소창 : http(s) 주소 · 모듈 이름 · 모듈 GUI : Gateway 제공 sandbox 화면</p>
       </div>
     </sc-if>
     <sc-if value="{{isLoad}}" hint-placeholder-val="{{ false }}">

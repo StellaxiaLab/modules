@@ -26,24 +26,24 @@ export const ROUTE = {
   gateway_lan: { t: 'LAN 경유', rank: 3 }, webrtc_p2p: { t: 'WebRTC P2P', rank: 4 }, cloud_relay: { t: 'Master 중계', rank: 5 },
 };
 export const REACH = { local: '같은 노드', lan: 'LAN', mesh: 'mesh', internet: '인터넷' };
-const SRC = { stun: 'STUN', configured: '운영자 설정', nat_mapping: 'NAT 매핑', nat_pmp: 'NAT-PMP', pcp: 'PCP', upnp: 'UPnP', stun_assumed: 'STUN(포트는 설정값 가정)',
+const SRC = { stun: 'STUN', configured: '운영자 설정', nat_mapping: 'NAT 매핑', nat_pmp: 'NAT-PMP', pcp: 'PCP', upnp: 'UPnP', stun_assumed: 'STUN(포트 : 설정값 가정)',
   lan: 'LAN', public: '공인', peer_reflexive: '상대가 본 주소', reported: '노드 보고', operator: '운영자' };
 /** 화면이 펼칠 때 부르는 읽기 */
 export const NETP_READS = { status: NET_READS.status, state: NET_READS.state, graph: NET_READS.graph, sessions: NET_READS.sessions, probes: NET_READS.probes,
   peers: NET_READS.peers, candidates: 'terra.master.route.candidates.get', wg: 'terra.daemon.wireguard.status.get', wgPeers: 'terra.daemon.wireguard.peers.get' };
 /** Terra 가 보고하지 않는 것 — 창 아래에 그대로 적는다 */
 export const NOT_REPORTED = [
-  '모든 IP · 인터페이스 목록 · 서브넷 — Daemon 이 보고에 싣지만 Master 가 LAN 주소 하나만 남긴다',
-  'WebRTC ICE 후보 · 고른 경로 쌍 · 연결 상태 — Terra 가 내놓지 않는다',
-  '연결 진단(probe) 새로 실행 — 앱 자격에 열리지 않음(network.probes.post)',
+  '모든 IP · 인터페이스 목록 · 서브넷 — Daemon 보고에 있음 · Master 는 LAN 주소 하나만 보관',
+  'WebRTC ICE 후보 · 고른 경로 쌍 · 연결 상태 — Terra 미제공',
+  '연결 진단(probe) 새로 실행 — 위임 없음 (network.probes.post)',
 ];
 const arr = (v) => (Array.isArray(v) ? v : []);
 const ep = (e) => { if (!e) return ''; if (e.url) return e.url; if (e.host) return e.host + (e.port ? ':' + e.port : ''); if (e.peer_id) return 'peer ' + String(e.peer_id).slice(0, 12); return ''; };
 const src = (s) => (s ? SRC[s] || s : '');
 const rt = (r) => (r && ROUTE[r] ? ROUTE[r].t : r || '—');
 const ts = (iso) => { const t = Date.parse(iso || ''); return Number.isNaN(t) || /^0001-/.test(String(iso)) ? 0 : t; };
-const agoT = (sec) => (sec == null || sec < 0 ? '' : sec < 60 ? Math.round(sec) + '초 전' : sec < 3600 ? Math.round(sec / 60) + '분 전' : sec < 86400 ? Math.round(sec / 3600) + '시간 전' : Math.round(sec / 86400) + '일 전');
-const bytes = (n) => { let v = Number(n) || 0, i = 0; const U = ['B', 'KB', 'MB', 'GB', 'TB']; while (v >= 1024 && i < U.length - 1) { v /= 1024; i += 1; } return (i ? v.toFixed(v < 10 ? 1 : 0) : String(v)) + ' ' + U[i]; };
+const agoT = (sec) => (sec == null || sec < 0 ? '' : sec < 60 ? Math.round(sec) + 's 전' : sec < 3600 ? Math.round(sec / 60) + 'm 전' : sec < 86400 ? Math.round(sec / 3600) + 'h 전' : Math.round(sec / 86400) + 'd 전');
+const bytes = (n) => { let v = Number(n) || 0, i = 0; const U = ['B', 'KiB', 'MiB', 'GiB', 'TiB']; while (v >= 1024 && i < U.length - 1) { v /= 1024; i += 1; } return (i ? v.toFixed(v < 10 ? 1 : 0) : String(v)) + U[i]; };
 /** 후보 하나 → 화면 줄 */
 const cand = (c) => ({ rt: c.route_type || '', rtT: rt(c.route_type), ad: c.adapter || '', healthy: !!c.healthy, lat: c.latency_ms != null ? c.latency_ms + 'ms' : '', reason: c.reason || '',
   from: ep(c.source && c.source.endpoint), to: ep(c.target && c.target.endpoint), probe: when(c.last_probe_at) });
@@ -69,13 +69,13 @@ export function netProps(rec, D = {}, o = {}) {
 
   // 주소 — 무엇인지 · 값 · 어디서 왔나. 없는 칸은 줄째 빼지 않고 '—'(무엇이 비었는지 보이게)
   const addrs = [
-    { k: 'Terra 주소', v: r.cluster_address || '', src: '클러스터 안 노드 주소 · Master 배정', hint: 'Terra 전용 — 경로가 아니라 이름' },
+    { k: 'Terra 주소', v: r.cluster_address || '', src: '클러스터 안 노드 주소 · Master 배정', hint: 'Terra 전용 — 경로 아닌 이름' },
     { k: '.terra 이름', v: r.dns_label ? r.dns_label + '.terra' : '', src: 'Terra DNS' },
     ...asg.map((a) => { const n = nets.get(a.network_id) || {}; return { k: '사설망 IP', v: a.assigned_ip || '', src: (n.name || a.network_id || '사설망') + (n.cidr ? ' · ' + n.cidr : '') + (a.status && a.status !== 'active' ? ' · ' + a.status : ''), hint: 'WireGuard 인터페이스 주소 · 상대의 AllowedIPs' }; }),
     { k: 'mesh 인터페이스', v: wg && wg.address_cidr ? wg.address_cidr : '', src: wg ? 'WireGuard ' + (wg.interface_name || '') + (wg.ready === false ? ' · 준비 안 됨' + (wg.reason ? '(' + wg.reason + ')' : '') : '') : 'Daemon 읽기' },
     { k: '로컬(LAN)', v: det.lan_endpoint || '', src: det.lan_endpoint ? 'WireGuard 보고' : '' },
-    { k: '공인 IP', v: det.nat_identity || '', src: src(det.nat_identity_source), hint: '나가는 공인 IPv4 — 같으면 같은 NAT 뒤' },
-    { k: '공인 endpoint', v: det.public_endpoint || '', src: src(det.public_source), hint: 'NAT 밖 상대가 거는 주소' },
+    { k: '공인 IP', v: det.nat_identity || '', src: src(det.nat_identity_source), hint: '나가는 공인 IPv4 — 같음 : 같은 NAT 뒤' },
+    { k: '공인 endpoint', v: det.public_endpoint || '', src: src(det.public_source), hint: 'NAT 밖 상대의 접속 주소' },
     { k: 'WG 수신 포트', v: det.listen_port ? String(det.listen_port) : wg && wg.listen_port ? String(wg.listen_port) : '', src: det.listen_port ? 'WireGuard 보고' : wg && wg.listen_port ? '설정' : '' },
     { k: 'WG 공개키', v: (boot && boot.endpoint && boot.endpoint.public_key) || (wg && wg.public_key) || '', src: '' },
   ].map((a) => ({ ...a, v: a.v || '—' }));

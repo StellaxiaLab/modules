@@ -11,10 +11,10 @@ const store = (s) => ({ get() { try { return JSON.parse(s.getItem(KEY) || 'null'
 
 // 로그인 화면에 띄울 말 — 어느 쪽이 틀렸는지는 Gateway 도 말하지 않는다(CREDENTIAL_REJECTED 하나)
 export const LOGIN_MSG = {
-  CREDENTIAL_REJECTED: '이메일 또는 비밀번호가 맞지 않아요',
-  CREDENTIAL_UNAVAILABLE: 'Master 에 닿지 못해요 — 이 노드가 Tree 에 이어져 있는지 확인',
-  NETWORK: 'Gateway 에 닿지 못해요 — Terra 가 켜져 있는지 확인',
-  GATEWAY_UNREACHABLE: 'Master 에 닿지 못해요', TIMEOUT: '응답이 늦어요 — 다시 시도', HTTP_501: '이 Gateway 는 Master 연결이 없어요',
+  CREDENTIAL_REJECTED: '이메일 · 비밀번호 불일치',
+  CREDENTIAL_UNAVAILABLE: 'Master 연결 불가 — 이 노드의 Tree 연결 확인',
+  NETWORK: 'Gateway 연결 불가 — Terra 실행 확인',
+  GATEWAY_UNREACHABLE: 'Master 연결 불가', TIMEOUT: '응답 지연 — 재시도', HTTP_501: 'Master 연결 없음 (이 Gateway)',
 };
 
 /**
@@ -39,10 +39,10 @@ export function createSession(o = {}) {
       let body = null; try { body = await res.json(); } catch {}
       if (!res.ok || !body || (body.status === 'error') || body.error) {
         const e = (body && (body.error || body)) || {}, code = e.code || (res.status === 401 ? 'CREDENTIAL_REJECTED' : 'HTTP_' + res.status);
-        throw new TerraError(code, LOGIN_MSG[code] || e.message || '로그인 못 함 (' + code + ')', res.status);
+        throw new TerraError(code, LOGIN_MSG[code] || e.message || '로그인 실패 (' + code + ')', res.status);
       }
       const d = 'data' in body ? body.data : body;
-      if (!d || !hid(d.handle)) throw new TerraError('BAD_RESPONSE', '핸들이 없는 응답', res.status);
+      if (!d || !hid(d.handle)) throw new TerraError('BAD_RESPONSE', '응답에 핸들 없음', res.status);
       cur = { handle: hid(d.handle), session: d.session || {}, at: Date.now() }; S.set(cur); emit();
       return cur;
     },

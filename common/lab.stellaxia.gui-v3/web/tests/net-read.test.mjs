@@ -47,7 +47,7 @@ test('응답 → 후보 · 정책 · 세션 · probe · 이력 행', () => {
   const p = policyRows({ policies: [{ id: 'pol1', scope: { source_node_id: 'n-a', channel: 'control' }, policy: { mode: 'prefer', prefer: ['lan_direct'], fallback: true }, updated_at: '2026-10-09T10:00:00Z' }] }, names);
   assert.deepEqual([p[0].src, p[0].dst, p[0].channel, p[0].mode, p[0].prefer, p[0].fallback], ['alpha', '*', 'control', 'prefer', 'lan_direct', '예']);
   const s = sessionRows({ sessions: [{ id: 's1', source_node_id: 'n-a', target_node_id: 'n-b', route_type: 'lan_direct', state: 'active', health: { bytes_sent: 2048, bytes_received: 0 } }] }, names);
-  assert.deepEqual([s[0].src, s[0].dst, s[0].sent, s[0].recv], ['alpha', 'beta', '2.0 KB', '0 B']);
+  assert.deepEqual([s[0].src, s[0].dst, s[0].sent, s[0].recv], ['alpha', 'beta', '2.0KiB', '0B']);
   const pr = probeRows({ probes: [{ id: 'pr1', source_node_id: 'n-a', target_node_id: 'n-b', adapter: 'tcp', fresh: false, stale_reason: 'probe_expired', result: { reachable: true, observed_at: '2026-10-09T10:00:00Z' } }] }, names);
   assert.deepEqual([pr[0].src, pr[0].reachable, pr[0].fresh, pr[0].stale], ['alpha', true, false, 'probe_expired']);
   const l = logRows({ logs: [{ action: 'network.probe', result: 'accepted', target_type: 'probe', target_id: 'x', detail: { a: 1 }, created_at: '2026-10-09T10:00:00Z' }] });

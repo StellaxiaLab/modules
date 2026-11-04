@@ -43,10 +43,10 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <h1 style="margin: 0; font-size: 14px; font-weight: 600">리프 뷰 — 트리 {{leafName}}</h1>
 <div style="display: {{res.disp}}; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 8px; border: 1px solid #2c3558">
 <span style="font-size: 13px; font-weight: 600">리소스 뷰 — 행성 {{res.name}}</span>
-<span style="font-size: 12px; line-height: 1.5; color: #7682ab">여기서부터는 리소스 뷰 보드에서 이어진다</span>
-<button class="replay" type="button" onClick="{{res.back}}" style="align-self: flex-start">리프 뷰로 돌아가기 · ESC</button>
+<span style="font-size: 12px; line-height: 1.5; color: #7682ab; word-break: keep-all">이후 : 리소스 뷰 보드</span>
+<button class="replay" type="button" onClick="{{res.back}}" style="align-self: flex-start">리프 뷰로 · ESC</button>
 </div>
-<span style="font-size: 12px; line-height: 1.5; color: #7682ab">트리 뷰가 배경을 열고 트리를 어둠 상태로 둔 자리에서 이어받는다 — 항성을 놓고 닫은 뒤 행성이 궤도 작은 순서로 · 행성을 누르면 리소스 뷰로</span>
+<span style="font-size: 12px; line-height: 1.5; color: #7682ab; word-break: keep-all">시작 : 트리 뷰가 연 배경 · 트리 어둠 상태<br>항성 → 행성(궤도 작은 순) · 행성 누름 : 리소스 뷰</span>
 <div role="group" aria-label="항성 레퍼런스" style="display: flex; flex-wrap: wrap; gap: 4px">
 <sc-for list="{{stars}}" as="st" hint-placeholder-count="4">
 <button class="type {{st.cls}}" type="button" aria-pressed="{{st.pressed}}" onClick="{{st.pick}}">{{st.name}}</button>
@@ -841,7 +841,7 @@ class Component extends DCLogic {
       { key: 'stage1_create', no: '1', name: '생성 — 배경 뒤', back: '제거 — 사라짐', ms: 120 },
       { key: 'stage2_dissolve', no: '2', name: '소거 — 글자가 빛난 뒤 사라짐', back: '메움 — 글자가 빛나며 다시 채움', ms: 600 },
       { key: 'stage3_rise', no: '3', name: '부상 — 밝아진 뒤 맨 위로', back: '하강 — 배경 뒤로, 어두워짐', ms: 180 },
-      { key: 'stage4_restore', no: '4', name: '복원 — 소거와 같은 속도로', back: '다시 비움 — 복원의 거울', ms: 600 }
+      { key: 'stage4_restore', no: '4', name: '복원 — 소거와 같은 속도', back: '다시 비움 — 복원의 거울', ms: 600 }
     ];
   }
   plan() {
@@ -1805,9 +1805,9 @@ class Component extends DCLogic {
     const legView = K === 'legacy' || K === 'mix' || (K === 'mask' && S.mode === 'legacy');
     const plan = this.plan(), M = this.maskPlan(), D = this.dataPlan();
     const legStages = this.STAGES().map((s, k) => ({ no: s.no, name: out ? s.back : s.name, ms: plan[k].on ? Math.round(plan[k].dur) + 'ms' : '생략', cls: !plan[k].on ? 'off' : S.cur === k ? 'now' : 'on' }));
-    const mStage = { no: 'M', name: out ? '걷힘 — 바깥부터 원래 색으로' : '투영 — 중심에서 바깥으로 번짐', ms: Math.round(M.spread) + 'ms', cls: 'on' };
-    const mCell = { no: '·', name: '글자 하나가 바뀌는 시간 (HSV)', ms: Math.round(M.cellDur) + 'ms', cls: 'on' };
-    const tStage = { no: 'T', name: out ? '풀림 — 이름표가 다시 글자 장으로' : '갱신 — 이름표가 점점 빨라지며 데이터로', ms: Math.round(D.endAll) + 'ms', cls: 'on' };
+    const mStage = { no: 'M', name: out ? '걷힘 — 바깥부터 원래 색' : '투영 — 중심 → 바깥 번짐', ms: Math.round(M.spread) + 'ms', cls: 'on' };
+    const mCell = { no: '·', name: '글자당 바뀜 (HSV)', ms: Math.round(M.cellDur) + 'ms', cls: 'on' };
+    const tStage = { no: 'T', name: out ? '풀림 — 이름표 → 글자 장' : '갱신 — 이름표 가속 → 데이터', ms: Math.round(D.endAll) + 'ms', cls: 'on' };
     const stages = K === 'mix' ? [mStage].concat(out ? legStages.slice().reverse() : legStages)
       : K === 'data' ? [mStage, tStage]
       : legView ? (out ? legStages.slice().reverse() : legStages) : [mStage, mCell];
@@ -1818,13 +1818,13 @@ class Component extends DCLogic {
       bgm: ['없음', '상', '하', '좌', '우'].map((name) => { const on = this.BGMOVE() === name; return { name, cls: on ? 'sel' : '', pressed: on ? 'true' : 'false', pick: () => { if (!on) this.setState({ bgMove: name }); } }; }),
       res: { disp: S.resIn ? 'flex' : 'none', name: S.resName || '', back: () => this.exitRes() },
       stars: Object.keys(this.STAR_TYPES()).map((name) => { const on = this.STAR() === name; return { name, cls: on ? 'sel' : '', pressed: on ? 'true' : 'false', pick: () => { if (!on) this.setState({ star: name }); } }; }),
-      tr: { pressed: this.TRAILS() ? 'true' : 'false', label: '잔상 ' + (this.TRAILS() ? 'ON' : 'OFF'), bg: this.TRAILS() ? '#e6eaf7' : 'transparent', fg: this.TRAILS() ? '#040614' : '#e6eaf7', toggle: () => this.setState({ trails: !this.TRAILS() }) },
-      mk: { pressed: this.STARMASK() ? 'true' : 'false', label: '마스크 ' + (this.STARMASK() ? 'ON' : 'OFF'), bg: this.STARMASK() ? '#e6eaf7' : 'transparent', fg: this.STARMASK() ? '#040614' : '#e6eaf7', toggle: () => this.setState({ starMask: !this.STARMASK() }) },
+      tr: { pressed: this.TRAILS() ? 'true' : 'false', label: '잔상 : ' + (this.TRAILS() ? 'ON' : 'OFF'), bg: this.TRAILS() ? '#e6eaf7' : 'transparent', fg: this.TRAILS() ? '#040614' : '#e6eaf7', toggle: () => this.setState({ trails: !this.TRAILS() }) },
+      mk: { pressed: this.STARMASK() ? 'true' : 'false', label: '마스크 : ' + (this.STARMASK() ? 'ON' : 'OFF'), bg: this.STARMASK() ? '#e6eaf7' : 'transparent', fg: this.STARMASK() ? '#040614' : '#e6eaf7', toggle: () => this.setState({ starMask: !this.STARMASK() }) },
       stat: '트리 ' + (sys.nodes.length - 1) + ' · 깊이 ' + sys.depth,
       // 화면의 ESC 버튼 — 키 입력이 보드에 닿지 않는 환경을 위해. 돌아갈 곳이 없으면 흐리게
       back: { go: () => this.goBack(), op: S.entered || this._enter || (this._hist && this._hist.length) ? '1' : '0.4', cur: S.entered || (this._hist && this._hist.length) ? 'pointer' : 'default' },
       leaf: { disp: S.entered ? 'flex' : 'none', name: S.entered && this._enter ? (sys.nodes[this._enter.id] || {}).label : '', back: () => this.exitLeaf() },
-      heading: heading + (S.hidden ? '' : out ? ' — 들어가는 중' : ''),
+      heading: heading + (S.hidden ? '' : out ? ' — 침강 중' : ''),
       sceneLabel: '계정을 항성으로 한 트리 ' + (sys.nodes.length - 1) + '개의 항성계',
       kinds: [['legacy', '레거시'], ['mask', '마스크'], ['mix', '혼합'], ['data', '텍스트']].map(([id, name]) => ({
         name, cls: K === id ? 'sel' : '', pressed: K === id ? 'true' : 'false', pick: () => { if (K !== id) pick({ kind: name, mode: 'mask' }); }
@@ -1836,12 +1836,12 @@ class Component extends DCLogic {
       optsLabel: K === 'data' ? '전파' : K === 'mix' ? '비운 자리' : '', optsDisp: K === 'data' || K === 'mix' ? 'flex' : 'none',
       ex: { disp: legView ? 'flex' : 'none', opts: [['중', '중앙'], ['상', '위'], ['하', '아래'], ['좌', '왼쪽'], ['우', '오른쪽']].map(([name, val]) => {
         const sel = this.EXPAND() === val;
-        return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', label: val + '에서 확장', pick: () => { if (!sel) pick({ expand: val, mode: S.mode }); } };
+        return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', label: '확장 : ' + val, pick: () => { if (!sel) pick({ expand: val, mode: S.mode }); } };
       }) },
-      rs: { disp: legView ? 'block' : 'none', cls: this.RESTORE() ? 'sel' : '', pressed: this.RESTORE() ? 'true' : 'false', label: '배경 복원 — ' + (this.RESTORE() ? '켬' : '끔'), toggle: () => pick({ restore: !this.RESTORE(), mode: S.mode }) },
-      tr: { disp: legView ? 'flex' : 'none', cls: this.TRAIL() ? 'sel' : '', pressed: this.TRAIL() ? 'true' : 'false', label: '잔상 — ' + (this.TRAIL() ? '켬' : '끔'), toggle: () => this.setState({ trail: !this.TRAIL() }) },
-      te: { cls: this.TRAIL_EDGE() ? 'sel' : '', pressed: this.TRAIL_EDGE() ? 'true' : 'false', label: '가지 잔상 — ' + (this.TRAIL_EDGE() ? '켬' : '끔'), toggle: () => this.setState({ trailEdge: !this.TRAIL_EDGE() }) },
-      hb: { disp: legView ? 'block' : 'none', cls: this.HOLEBACK() === '어둡게' ? 'sel' : '', pressed: this.HOLEBACK() === '어둡게' ? 'true' : 'false', label: '레거시 배경 — ' + this.HOLEBACK(), toggle: () => this.setState({ holeBack: this.HOLEBACK() === '어둡게' ? '비움' : '어둡게' }) },
+      rs: { disp: legView ? 'block' : 'none', cls: this.RESTORE() ? 'sel' : '', pressed: this.RESTORE() ? 'true' : 'false', label: '배경 복원 : ' + (this.RESTORE() ? '켬' : '끔'), toggle: () => pick({ restore: !this.RESTORE(), mode: S.mode }) },
+      tr: { disp: legView ? 'flex' : 'none', cls: this.TRAIL() ? 'sel' : '', pressed: this.TRAIL() ? 'true' : 'false', label: '잔상 : ' + (this.TRAIL() ? '켬' : '끔'), toggle: () => this.setState({ trail: !this.TRAIL() }) },
+      te: { cls: this.TRAIL_EDGE() ? 'sel' : '', pressed: this.TRAIL_EDGE() ? 'true' : 'false', label: '가지 잔상 : ' + (this.TRAIL_EDGE() ? '켬' : '끔'), toggle: () => this.setState({ trailEdge: !this.TRAIL_EDGE() }) },
+      hb: { disp: legView ? 'block' : 'none', cls: this.HOLEBACK() === '어둡게' ? 'sel' : '', pressed: this.HOLEBACK() === '어둡게' ? 'true' : 'false', label: '레거시 배경 : ' + this.HOLEBACK(), toggle: () => this.setState({ holeBack: this.HOLEBACK() === '어둡게' ? '비움' : '어둡게' }) },
       stages, total: Math.round(this.timeline(K, S.mode).endAll) + 'ms',
       replay: () => { this._seq = null; this.setState({ hidden: true }); setTimeout(() => { if (this._live) this.play(); }, 30); },
       entry: () => { if (this._res && this._res.dir === 'in') return; this.startEntry(); },

@@ -7,7 +7,7 @@ const NOW = Date.parse('2026-10-31T12:00:00Z');
 
 test('tunnels — 로컬 주소에서 포트, 상대는 노드:포트, 열린 지 얼마', () => {
   const r = tunnels({ tunnels: [{ tunnel_id: 't1', service_id: 'ssh', target_node_id: 'nd_b', target_port: 22, local_address: '127.0.0.1:40022', status: 'open', opened_at: '2026-10-31T11:48:00Z' }, { id: 't2', local_bind_host: '127.0.0.1', local_port: '5000' }] }, NOW);
-  assert.deepEqual(r[0], { id: 't1', svc: 'ssh', port: 40022, peer: 'nd_b:22', since: '12분 전', st: 'open' });
+  assert.deepEqual(r[0], { id: 't1', svc: 'ssh', port: 40022, peer: 'nd_b:22', since: '12m 전', st: 'open' });
   assert.equal(r[1].port, 5000); assert.equal(r[1].svc, 'tcp'); assert.equal(r[1].since, '');
   assert.deepEqual(tunnels(null), []);
 });
@@ -35,7 +35,7 @@ test('moduleApps — 그 모듈의 앱만, embed 앱(Scene 안에서만)은 뺀�
   assert.equal(moduleApps(list, 'io.terra.agent', false)[0].health, '멈춤');
 });
 
-test('ago', () => { assert.equal(ago('2026-10-31T11:59:30Z', NOW), '방금'); assert.equal(ago('2026-10-29T12:00:00Z', NOW), '2일 전'); assert.equal(ago('', NOW), ''); });
+test('ago', () => { assert.equal(ago('2026-10-31T11:59:30Z', NOW), '방금'); assert.equal(ago('2026-10-29T12:00:00Z', NOW), '2d 전'); assert.equal(ago('', NOW), ''); });
 
 test('offers — Daemon 동의 상태를 보드의 세 칸으로, 권한 · 지정한 쪽은 그대로', () => {
   const r = offers({ offers: [{ module_id: 'io.terra.agent', version: '0.6.2', state: 'offered', permissions: ['node.read'], pinned_by: 'admin' }, { module_id: 'b', state: 'accepted' }, { module_id: 'c', state: 'managed', policy: 'auto' }, { module_id: 'd', state: 'stale' }] });
@@ -67,8 +67,8 @@ test('castCfg — 저장할 때 스키마 형으로, 틀리면 화면 말', () =
 
 test('taskOutput — 조각을 줄로, stderr 는 표시, 버린 것 · 안 남김은 말로', () => {
   const r = taskOutput({ captured: true, state: 'running', chunks: [{ seq: 1, stream: 'stdout', text: 'a\n' }, { seq: 2, stream: 'stderr', text: 'b\n' }], dropped: { bytes: 10 } });
-  assert.equal(r.text, 'a\n! b'); assert.match(r.note, /10바이트/); assert.equal(r.done, false);
-  assert.equal(taskOutput({ captured: false, complete: true }).note, '이 작업은 출력을 남기지 않는다');
+  assert.equal(r.text, 'a\n! b'); assert.match(r.note, /10B 버림/); assert.equal(r.done, false);
+  assert.equal(taskOutput({ captured: false, complete: true }).note, '출력 기록 없음 (capture 꺼짐)');
   assert.equal(taskOutput(null).text, '');
 });
 
@@ -99,9 +99,9 @@ test('파일 — 뿌리 · 항목(폴더 먼저), 읽을 수 없는 것은 잠�
   assert.deepEqual(fileRoots({ roots: [{ name: 'share', path: '/srv/share' }] }, 'share'), [{ id: 'share:share', kind: 'share', root: 'share', label: '공유 · share', path: '/srv/share', locked: false, reason: '' }]);
   assert.equal(fileRoots({ roots: [{ name: 'C', readable: false, reason: 'denied' }] }, 'lfs')[0].reason, 'denied');
   const e = fileEntries({ entries: [{ name: 'b.txt', size: 2048, modified_at: '2026-10-31T01:02:00Z' }, { name: 'a', is_dir: true }, { name: 'x', path: '/sub/x', readable: false }] }, 'sub');
-  assert.deepEqual(e.map((x) => [x.name, x.path, x.dir, x.size, x.locked]), [['a', 'sub/a', true, '—', false], ['b.txt', 'sub/b.txt', false, '2.0 KB', false], ['x', 'sub/x', false, '0 B', true]]);
+  assert.deepEqual(e.map((x) => [x.name, x.path, x.dir, x.size, x.locked]), [['a', 'sub/a', true, '—', false], ['b.txt', 'sub/b.txt', false, '2.0KiB', false], ['x', 'sub/x', false, '0B', true]]);
   assert.match(e[1].time, /^2026-10-31 \d\d:02$/);
-  assert.equal(parentRel('a/b/c'), 'a/b'); assert.equal(parentRel('a'), ''); assert.equal(fmtSize(5), '5 B');
+  assert.equal(parentRel('a/b/c'), 'a/b'); assert.equal(parentRel('a'), ''); assert.equal(fmtSize(5), '5B');
 });
 
 test('Terra ID — principal → 사용자 id, 연결 목록 · 없음 · 못 봤음을 가른다', async () => {
@@ -110,5 +110,5 @@ test('Terra ID — principal → 사용자 id, 연결 목록 · 없음 · 못 �
   assert.deepEqual(identities({ identities: [{ issuer: 'https://id.terra', subject: 's1', status: 'linked', linked_at: '2026-10-30T01:00:00Z' }, { issuer: 'x' }] }),
     { state: 'ok', rows: [{ issuer: 'https://id.terra', subject: 's1', status: '연결됨', at: '2026-10-30' }], why: '' });
   assert.equal(identities({ identities: [] }).state, 'empty');
-  assert.deepEqual(identities(null, { code: 'DELEGATION_NOT_OPEN' }), { state: 'unseen', rows: [], why: '앱 자격으로는 닿지 않는다' });
+  assert.deepEqual(identities(null, { code: 'DELEGATION_NOT_OPEN' }), { state: 'unseen', rows: [], why: '앱 자격 밖 (위임 없음)' });
 });

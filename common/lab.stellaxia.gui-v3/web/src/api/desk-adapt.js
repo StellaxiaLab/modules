@@ -12,11 +12,11 @@
 const arr = (d, k) => (Array.isArray(d) ? d : (d && Array.isArray(d[k]) ? d[k] : []));
 const pad = (n) => String(n).padStart(2, '0');
 
-/** ISO 시각 → 'N분 전' 꼴(없으면 '') */
+/** ISO 시각 → 'Nm 전' 꼴(s · m · h · d, 없으면 '') */
 export function ago(iso, now = Date.now()) {
   const t = Date.parse(iso || ''); if (Number.isNaN(t)) return '';
   const s = Math.max(0, (now - t) / 1000);
-  return s < 60 ? '방금' : s < 3600 ? Math.round(s / 60) + '분 전' : s < 86400 ? Math.round(s / 3600) + '시간 전' : Math.round(s / 86400) + '일 전';
+  return s < 60 ? '방금' : s < 3600 ? Math.round(s / 60) + 'm 전' : s < 86400 ? Math.round(s / 3600) + 'h 전' : Math.round(s / 86400) + 'd 전';
 }
 
 /** @returns {{ id: string, svc: string, port: number, peer: string, since: string, st: string }[]} */
@@ -81,8 +81,8 @@ export function cfgFields(schemaData, cfgData) {
 /** 입력칸의 글 → 스키마 형. 못 바꾸면 Error(화면 말) */
 export function castCfg(field, v) {
   const jt = field && field[6];
-  if (jt === 'integer' || jt === 'number') { const n = Number(v); if (v === '' || !Number.isFinite(n) || (jt === 'integer' && !Number.isInteger(n))) throw new Error((field[1] || field[0]) + ' — ' + (jt === 'integer' ? '정수' : '수') + '를 적어야 해요'); return n; }
-  if (jt === 'json') { try { return JSON.parse(v); } catch { throw new Error((field[1] || field[0]) + ' — JSON 꼴이 아니에요'); } }
+  if (jt === 'integer' || jt === 'number') { const n = Number(v); if (v === '' || !Number.isFinite(n) || (jt === 'integer' && !Number.isInteger(n))) throw new Error((field[1] || field[0]) + ' — ' + (jt === 'integer' ? '정수' : '수') + ' 필요'); return n; }
+  if (jt === 'json') { try { return JSON.parse(v); } catch { throw new Error((field[1] || field[0]) + ' — JSON 꼴 아님'); } }
   return v;
 }
 
@@ -91,8 +91,8 @@ export function taskOutput(d) {
   const p = d || {}, chunks = Array.isArray(p.chunks) ? p.chunks : [];
   const text = chunks.map((c) => (c.stream === 'stderr' ? '! ' : '') + String(c.text ?? '').replace(/\n$/, '')).join('\n');
   const notes = [];
-  if (p.captured === false) notes.push('이 작업은 출력을 남기지 않는다');
-  if (p.dropped && p.dropped.bytes) notes.push('앞 ' + p.dropped.bytes + '바이트는 버려졌다(보관 한도)');
+  if (p.captured === false) notes.push('출력 기록 없음 (capture 꺼짐)');
+  if (p.dropped && p.dropped.bytes) notes.push('앞 ' + p.dropped.bytes + 'B 버림 (보관 한도)');
   if (p.truncated || p.more) notes.push('끝 부분만');
   return { text, note: notes.join(' · '), done: !!p.complete, state: p.state || '' };
 }
@@ -103,7 +103,7 @@ export function taskOutput(d) {
 const SEG = { daemon: '노드', master: '연결', heartbeat: '연결', gateway_service: '연결', local_api: '로컬 API', logging: '로그', storage: '저장소', local_fs: '저장소',
   modules: '모듈', module_distribution: '모듈 배포', core_distribution: '코어 배포', security: '보안', enrollment: '등록', wireguard: 'WireGuard', mesh_vpn: '메시 VPN',
   direct_tcp: '직접 연결', grpc_transport: '직접 연결', webrtc: '직접 연결', service_tunnels: '서비스 터널', task_queue: '작업', feature: '기능', fleet_host: '플릿', remote_operations: '원격 작업' };
-const HINT = { int: '정수', string_list: '쉼표로 여러 개', object_list: 'JSON 목록 — [{"name":…, "path":…}]' };
+const HINT = { int: '정수', string_list: '쉼표 구분', object_list: 'JSON 목록 — [{"name":…, "path":…}]' };
 
 /** @param {any} schemaData config.schema.get 의 data @param {any[][]} known 보드의 시안 행(CFG) @returns {any[][]} */
 export function nodeCfgRows(schemaData, known = []) {
@@ -131,15 +131,15 @@ export function nodeCfgValues(cfg, out = {}, pre = '') {
 /** 화면 값 → patch 값(스키마 형). 못 바꾸면 Error(화면 말) */
 export function nodeCfgWire(type, v, label) {
   if (type === 'bool') return v === true || v === 'true';
-  if (type === 'int') { const n = Number(v); if (v === '' || !Number.isInteger(n)) throw new Error((label || '') + ' — 정수를 적어야 해요'); return n; }
+  if (type === 'int') { const n = Number(v); if (v === '' || !Number.isInteger(n)) throw new Error((label || '') + ' — 정수 필요'); return n; }
   if (type === 'string_list') return String(v).split(',').map((x) => x.trim()).filter(Boolean);
-  if (type === 'object_list') { try { const a = JSON.parse(v || '[]'); if (!Array.isArray(a)) throw 0; return a; } catch { throw new Error((label || '') + ' — JSON 목록이 아니에요'); } }
+  if (type === 'object_list') { try { const a = JSON.parse(v || '[]'); if (!Array.isArray(a)) throw 0; return a; } catch { throw new Error((label || '') + ' — JSON 목록 아님'); } }
   return String(v == null ? '' : v);
 }
 
 // ── 파일 — 공유 폴더(io.terra.file roots.list · entries.list, file.read/write)와 로컬 탐색(Daemon local-fs, 읽기만 · 이 노드만) ──
-const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
-export function fmtSize(bytes) { let n = Number(bytes) || 0, i = 0; while (n >= 1024 && i < UNITS.length - 1) { n /= 1024; i += 1; } return (i === 0 ? String(n) : n.toFixed(n < 10 ? 1 : 0)) + ' ' + UNITS[i]; }
+const UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+export function fmtSize(bytes) { let n = Number(bytes) || 0, i = 0; while (n >= 1024 && i < UNITS.length - 1) { n /= 1024; i += 1; } return (i === 0 ? String(n) : n.toFixed(n < 10 ? 1 : 0)) + UNITS[i]; }
 function fmtTime(iso) { const d = new Date(iso || ''); return Number.isNaN(d.getTime()) ? '' : d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
 
 /** 뿌리 목록 → 위치. kind 'share'(공유 폴더) | 'lfs'(로컬 탐색) @returns {{ id: string, kind: string, root: string, label: string, path: string, locked: boolean, reason: string }[]} */
@@ -165,9 +165,9 @@ export const parentRel = (rel) => String(rel || '').split('/').slice(0, -1).join
 export const userIdOf = (principal) => String(principal || '').split(/\s+via\s+/)[0].trim();
 /** @returns {{ state: 'ok'|'empty'|'unseen', rows: { issuer: string, subject: string, status: string, at: string }[], why: string }} */
 export function identities(d, err) {
-  if (err) return { state: 'unseen', rows: [], why: err.code === 'DELEGATION_NOT_OPEN' ? '앱 자격으로는 닿지 않는다' : '못 받음 · ' + err.code };
+  if (err) return { state: 'unseen', rows: [], why: err.code === 'DELEGATION_NOT_OPEN' ? '앱 자격 밖 (위임 없음)' : '못 받음 · ' + err.code };
   const L = Array.isArray(d) ? d : d && Array.isArray(d.identities) ? d.identities : null;
-  if (!L) return { state: 'unseen', rows: [], why: d ? '응답에 identities 목록이 없다' : '' };
+  if (!L) return { state: 'unseen', rows: [], why: d ? '응답에 identities 없음' : '' };
   const rows = L.filter((x) => x && x.issuer && x.subject).map((x) => ({ issuer: String(x.issuer), subject: String(x.subject), status: x.status === 'suspended' ? '정지됨' : '연결됨', at: String(x.linked_at || '').slice(0, 10) }));
   return { state: rows.length ? 'ok' : 'empty', rows, why: '' };
 }

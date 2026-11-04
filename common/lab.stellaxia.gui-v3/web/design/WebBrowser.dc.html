@@ -68,8 +68,8 @@ body{margin:0;background:#0a0e1c}
             <button type="button" class="wb-card {{k.cls}}" onClick="{{k.open}}" disabled="{{k.off}}"><b>{{k.app}}</b><span>{{k.mod}}</span><span class="wb-cm"><i class="{{k.modeCls}}">{{k.mode}}</i>{{k.node}}</span><span class="wb-cst">{{k.st}}</span></button>
           </sc-for>
         </div>
-        <sc-if value="{{noCards}}" hint-placeholder-val="{{ false }}"><p class="wb-dim">이 노드엔 화면이 있는 모듈이 없어요.</p></sc-if>
-        <p class="wb-dim">주소창에 http(s) 주소나 모듈 이름을 넣으면 열어요. 모듈 GUI 는 Gateway 가 sandbox 로 내주는 화면이에요.</p>
+        <sc-if value="{{noCards}}" hint-placeholder-val="{{ false }}"><p class="wb-dim">화면 있는 모듈 없음</p></sc-if>
+        <p class="wb-dim">주소창 : http(s) 주소 · 모듈 이름 · 모듈 GUI : Gateway 제공 sandbox 화면</p>
       </div>
     </sc-if>
     <sc-if value="{{isLoad}}" hint-placeholder-val="{{ false }}">
@@ -113,7 +113,7 @@ class Component extends DCLogic {
   resolve(u) {
     u = String(u || '').trim(); if (!u || u === 'terra://start') return { kind: 'start', url: 'terra://start' };
     const C = this.cat();
-    if (u.startsWith('mod|')) { const e = C.find((q) => q.arg === u); return e ? { kind: 'mod', e, url: this.urlOf(e) } : { kind: 'err', url: u, err: '이 창이 모르는 모듈 화면', note: '노드 폴더 › 모듈 에서 다시 열어 주세요' }; }
+    if (u.startsWith('mod|')) { const e = C.find((q) => q.arg === u); return e ? { kind: 'mod', e, url: this.urlOf(e) } : { kind: 'err', url: u, err: '이 창이 모르는 모듈 화면', note: '노드 폴더 › 모듈 에서 다시 열기' }; }
     const e = C.find((q) => this.urlOf(q) === u || u.startsWith(this.urlOf(q).replace(/\/files\/.*$/, '/files/')) || q.appId === u || q.modId === u || (q.appName || '').toLowerCase() === u.toLowerCase() || (q.modName || '').toLowerCase() === u.toLowerCase());
     if (e) return { kind: 'mod', e, url: this.urlOf(e) };
     if (/^https?:\/\/\S+$/i.test(u)) return { kind: 'web', url: u };
@@ -124,7 +124,7 @@ class Component extends DCLogic {
   syncFrame() { if (!this._raf) this._raf = requestAnimationFrame(() => { this._raf = 0; this.setState({ fr: performance.now() }); }); }
   steps(R) {
     const e = R.e, S = this.state, run = this.stOf(e) === 'run';
-    if (!run) return { err: '모듈이 ' + ({ stop: '멈춰', fail: '실패해', restart: '다시 시작 중이라' }[this.stOf(e)] || '멈춰') + ' 있어요', note: e.modName + ' 을 시작한 뒤에 다시 — 노드 폴더 › 모듈 › 상태 창에서 시작' };
+    if (!run) return { err: '모듈 ' + ({ stop: '멈춤', fail: '실패', restart: '다시 시작 중' }[this.stOf(e)] || '멈춤'), note: e.modName + ' 시작 후 재시도 — 노드 폴더 › 모듈 › 상태 창' };
     const L = [];
     if (e.mode === 'window') { L.push(['health 확인', 'window/health'], ['자기 origin 열기 · 런처가 띄운 창', '']); return { L }; }
     if (e.remote) { L.push(['Master 카탈로그에서 찾기', 'gui/remote/' + e.nodeId + '/apps']);
@@ -153,17 +153,17 @@ class Component extends DCLogic {
       O.statusT = '시작 페이지'; O.chips = [{ t: 'terra://start', cls: '' }];
     } else if (R.kind === 'err') { O.isErr = true; O.errT = R.err; O.errNote = R.note; O.statusT = '열지 못함'; }
     else if (R.kind === 'web') { O.isWeb = true; O.src = R.url; O.frameTitle = R.url; O.extD = 'inline-flex'; O.extHref = R.url; O.chips = [{ t: 'web', cls: '' }, { t: 'sandbox', cls: 'sb' }];
-      O.statusT = '외부 사이트'; O.noteT = '사이트가 창 안 표시를 막으면 비어 보여요 — ↗ 새 탭'; }
+      O.statusT = '외부 사이트'; O.noteT = '창 안 표시 차단 사이트 : 빈 화면 — ↗ 새 탭'; }
     else {
       const e = R.e, MD = { static: ['static', 'ok'], proxied: ['proxied', 'px'], window: ['window', 'wd'] }[e.mode] || [e.mode, ''];
       O.chips = [{ t: MD[0], cls: MD[1] }, { t: e.mode === 'window' ? '자기 origin' : 'sandbox · CSP', cls: 'sb' }, { t: e.node + (e.remote ? ' · 원격' : ''), cls: '' }, { t: e.modId + ' ' + (e.ver || ''), cls: '' }];
       const st = this.steps(R);
       if (st.err) { O.isErr = true; O.errT = st.err; O.errNote = st.note; O.statusT = 'GUI_APP_UNAVAILABLE'; }
-      else if (st.sync) { O.isSync = true; O.syncT = e.node + ' 의 자산이 ' + (e.asset === 'absent' ? '아직 없어요 (absent)' : '오래됐어요 (stale)'); O.syncNote = '다른 노드의 화면은 버전마다 한 번 이 Gateway 로 받아 둬야 열려요 — POST /api/v1/gui/remote/' + e.nodeId + '/' + e.modId + '/' + e.appId + '/sync';
+      else if (st.sync) { O.isSync = true; O.syncT = e.node + ' 자산 : ' + (e.asset === 'absent' ? '없음 (absent)' : '오래됨 (stale)'); O.syncNote = '다른 노드 화면 : 버전마다 1회 이 Gateway 로 동기화 필요 — POST /api/v1/gui/remote/' + e.nodeId + '/' + e.modId + '/' + e.appId + '/sync';
         O.sync = () => this.setState({ synced: { ...this.state.synced, [e.arg]: true }, t0: performance.now() }); O.statusT = '동기화 필요'; }
       else { const STEP = 230, k = Math.floor(el / STEP);
         if (k < st.L.length) { O.isLoad = true; O.steps = st.L.map(([t, api], i) => ({ t, api: H ? api : '', mark: i < k ? '✓' : i === k ? '›' : '·', cls: i < k ? 'ok' : i === k ? 'on' : '' })); O.statusT = '불러오는 중…'; this.syncFrame(); }
-        else { O.isDoc = true; O.doc = this.page(e); O.frameTitle = e.appName; O.statusT = '완료 · ' + (st.L.length * STEP / 1000).toFixed(2) + 's'; O.noteT = e.mode === 'window' ? '런처가 띄운 창 — 자산은 Gateway 를 거치지 않아요' : 'Gateway 가 내준 화면 · sandbox iframe'; } }
+        else { O.isDoc = true; O.doc = this.page(e); O.frameTitle = e.appName; O.statusT = '완료 · ' + (st.L.length * STEP / 1000).toFixed(2) + 's'; O.noteT = e.mode === 'window' ? '런처가 띄운 창 — 자산 : Gateway 미경유' : 'Gateway 가 내준 화면 · sandbox iframe'; } }
       O.apiT = H ? (e.mode === 'window' ? 'gui/apps/' + e.appId + '/window/health' : e.remote ? 'gui/remote/{node}/{module}/{app}/files' : 'gui/apps/{id}/files') : '';
     }
     return O;

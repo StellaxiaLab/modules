@@ -85,3 +85,9 @@ body{margin:0;background:#040614}
 .sv-why:empty{display:none}
 .sv-bh,.sv-bind{display:grid;grid-template-columns:minmax(0,1.6fr) 70px minmax(0,1.4fr) 92px 24px;gap:10px;align-items:center;min-height:24px}
 .sv-bind{border-bottom:1px solid rgba(70,160,108,.12)}
+.sv-gbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+.sv-ops{display:inline-flex;flex-wrap:wrap;gap:4px}
+.sv-op{padding:2px 8px;border:1px solid rgba(70,160,108,.35);background:transparent;color:#9cc4a8;font:500 11px GmarketSans,'Geist Mono',sans-serif;cursor:pointer}
+.sv-op.on{border-color:rgba(110,236,156,.9);background:rgba(70,170,110,.2);color:#d0ff96}
+.sv-op[disabled]{opacity:.42;cursor:not-allowed;text-decoration:line-through;text-decoration-color:rgba(255,178,166,.6)}
+.sv-gnote{font-size:10px;margin:0 0 10px}

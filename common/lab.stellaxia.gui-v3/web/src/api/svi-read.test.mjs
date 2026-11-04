@@ -22,10 +22,11 @@ test('permOf — operations → 권한 낱말', () => {
   for (const s of Object.values(TTLS)) assert.ok(s > 0 && s <= 90 * 86400);
 });
 
-test('resources · grantRows — 이름 · 끝점, 허가는 주체(Tree · Leaf · 계정)와 기한으로', () => {
-  assert.deepEqual(resources(RES)[1], { id: 'r-store', node: 'nA', kind: 'store', name: 'store/data', status: 'available', eps: [{ id: 'in', dir: 'sink', interaction: '' }, { id: 'meta', dir: 'source', interaction: '' }] });
+test('resources · grantRows — 이름 · 끝점, 허가는 주체(Tree · Leaf · 사람)와 기한으로', () => {
+  assert.deepEqual(resources(RES)[1], { id: 'r-store', node: 'nA', kind: 'store', name: 'store/data', status: 'available', eps: [{ id: 'in', dir: 'sink', interaction: '', schema: '' }, { id: 'meta', dir: 'source', interaction: '', schema: '' }] });
   const g = grantRows(GR, 'r-store', names, 'nT', Date.parse('2026-11-01T12:00:00Z'));
-  assert.deepEqual(g.map((x) => [x.who, x.type, x.perm, x.ttl]), [['u1', '계정', '읽기', '1일 남음'], ['tree', 'Tree', '보기', '없음']]);
+  assert.deepEqual(g.map((x) => [x.who, x.type, x.perm, x.ttl]), [['u1', '사람', '읽기', '1d 남음'], ['tree', 'Tree', '보기', '없음']]);
+  assert.equal(grantRows(GR, 'r-store', names, 'nT', 0, 'u1')[0].who, '나 · u1');
 });
 
 test('availRows · bindings · sinks — 이 노드에 지명된 자원과 이미 이은 바인딩, 받는 끝점', () => {
