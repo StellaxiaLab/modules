@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/StellaxiaLab/modules/common/lab.stellaxia.nodetalk/talk"
 )
@@ -46,10 +47,13 @@ const learnedPeerLimit = 256
 type peerLearner struct {
 	mu    sync.Mutex
 	peers map[string]bool
+	// heard is when each learned peer last knocked. The sync loop uses it to cut
+	// a failing peer's backoff short: a peer that is calling us is reachable.
+	heard map[string]time.Time
 }
 
 func newPeerLearner() *peerLearner {
-	return &peerLearner{peers: map[string]bool{}}
+	return &peerLearner{peers: map[string]bool{}, heard: map[string]time.Time{}}
 }
 
 // learn records one origin, reporting whether it was new — the caller logs
@@ -60,11 +64,26 @@ func (l *peerLearner) learn(node string) bool {
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.peers[node] || len(l.peers) >= learnedPeerLimit {
+	if l.peers[node] {
+		l.heard[node] = time.Now()
+		return false
+	}
+	if len(l.peers) >= learnedPeerLimit {
 		return false
 	}
 	l.peers[node] = true
+	l.heard[node] = time.Now()
 	return true
+}
+
+// heardSince reports whether node knocked after t.
+func (l *peerLearner) heardSince(node string, t time.Time) bool {
+	if l == nil {
+		return false
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.heard[node].After(t)
 }
 
 // known answers the learned set in a stable order.
