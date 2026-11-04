@@ -93,8 +93,8 @@ body{margin:0;background:transparent}
   <h3 class="ns-h"><span class="ns-hl"></span>값<span class="ns-hr"></span><span class="ns-k">{{apiV}}</span><span class="rs-chip {{connCls}}" role="status">{{connT}}</span><button type="button" class="rs-btn" onClick="{{toggleSub}}" disabled="{{subOff}}">{{subT}}</button></h3>
   <sc-if value="{{hasVEps}}" hint-placeholder-val="{{ true }}"><div class="rs-seg" role="tablist" aria-label="끝점"><sc-for list="{{vEps}}" as="e" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{e.on}}" class="{{e.cls}}" onClick="{{e.pick}}">{{e.name}}<span class="rs-sk">{{e.k}}</span></button></sc-for></div></sc-if>
   <div class="rs-vmeta ns-k">{{vMeta}}</div>
-  <sc-if value="{{noEp}}" hint-placeholder-val="{{ false }}"><div class="ns-k">내보내는 끝점이 없다 — 볼 값이 없다</div></sc-if>
-  <sc-if value="{{locked}}" hint-placeholder-val="{{ false }}"><div class="rs-lock"><div class="rs-lock-h"><span class="rs-lk" aria-hidden="true">⊘</span><b>값 보기 잠김</b></div><div class="rs-why">{{lockWhy}}</div><div class="ns-k">{{lockAlt}}</div></div></sc-if>
+  <sc-if value="{{noEp}}" hint-placeholder-val="{{ false }}"><div class="ns-k">내보내는 끝점 없음 — 볼 값 없음</div></sc-if>
+  <sc-if value="{{locked}}" hint-placeholder-val="{{ false }}"><div class="rs-lock"><div class="rs-lock-h"><span class="rs-lk" aria-hidden="true">⊘</span><b>값 보기</b></div><div class="rs-why">{{lockWhy}}</div><div class="ns-k">{{lockAlt}}</div></div></sc-if>
   <sc-if value="{{unlocked}}" hint-placeholder-val="{{ true }}">
     <sc-if value="{{isNum}}" hint-placeholder-val="{{ true }}">
       <div class="rs-now"><b>{{nowT}}</b><span class="ns-k">{{unitT}}</span><span style="flex: 1;"></span><span class="ns-k">최소</span><span>{{minT}}</span><span class="ns-k">평균</span><span>{{avgT}}</span><span class="ns-k">최대</span><span>{{maxT}}</span></div>
@@ -102,19 +102,19 @@ body{margin:0;background:transparent}
       <div class="rs-axis ns-k"><span>-60</span><span>-30</span><span>지금</span></div>
     </sc-if>
     <sc-if value="{{isText}}" hint-placeholder-val="{{ false }}">
-      <div class="rs-log" aria-live="off"><sc-if value="{{noLines}}" hint-placeholder-val="{{ false }}"><div class="ns-k">줄을 기다린다</div></sc-if><sc-for list="{{lines}}" as="l" hint-placeholder-count="6"><div>{{l.t}}</div></sc-for></div>
+      <div class="rs-log" aria-live="off"><sc-if value="{{noLines}}" hint-placeholder-val="{{ false }}"><div class="ns-k">줄 대기</div></sc-if><sc-for list="{{lines}}" as="l" hint-placeholder-count="6"><div>{{l.t}}</div></sc-for></div>
       <div class="rs-tools"><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
     </sc-if>
     <sc-if value="{{isBytes}}" hint-placeholder-val="{{ false }}">
-      <div class="rs-hex"><sc-if value="{{noHex}}" hint-placeholder-val="{{ false }}"><div class="ns-k">바이트를 기다린다</div></sc-if><sc-for list="{{hex}}" as="h" hint-placeholder-count="3"><div class="rs-hr"><span class="ns-k">{{h.off}}</span><span>{{h.hex}}</span><span class="rs-asc">{{h.txt}}</span></div></sc-for></div>
-      <div class="rs-tools"><span class="ns-k">마지막 조각 · 앞 128 바이트</span><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
+      <div class="rs-hex"><sc-if value="{{noHex}}" hint-placeholder-val="{{ false }}"><div class="ns-k">바이트 대기</div></sc-if><sc-for list="{{hex}}" as="h" hint-placeholder-count="3"><div class="rs-hr"><span class="ns-k">{{h.off}}</span><span>{{h.hex}}</span><span class="rs-asc">{{h.txt}}</span></div></sc-for></div>
+      <div class="rs-tools"><span class="ns-k">마지막 조각 · 앞 128B</span><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
     </sc-if>
     <sc-if value="{{isImg}}" hint-placeholder-val="{{ false }}">
       <div class="rs-frame"><sc-if value="{{hasImg}}" hint-placeholder-val="{{ false }}"><img src="{{imgSrc}}" alt="마지막 프레임"></sc-if><span class="rs-fnote ns-k">{{imgNote}}</span></div>
       <div class="rs-tools"><span class="ns-k">{{imgCap}}</span><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
     </sc-if>
     <sc-if value="{{isEvent}}" hint-placeholder-val="{{ false }}">
-      <sc-if value="{{noEv}}" hint-placeholder-val="{{ false }}"><div class="ns-k">사건을 기다린다</div></sc-if>
+      <sc-if value="{{noEv}}" hint-placeholder-val="{{ false }}"><div class="ns-k">사건 대기</div></sc-if>
       <sc-for list="{{evRows}}" as="e" hint-placeholder-count="4"><div class="rs-evr"><span class="ns-k">{{e.t}}</span><span class="rs-ty">{{e.ty}}</span><span class="rs-cut" title="{{e.text}}">{{e.text}}</span></div></sc-for>
       <div class="rs-tools"><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
     </sc-if>
@@ -181,7 +181,7 @@ function frameValue(msg, kind) {
   const bytes = b64bytes(msg && msg.data), enc = String((msg && msg.encoding) || '').toLowerCase();
   if (kind === 'number') { const t = utf8(bytes).trim(); let v = Number(t); if (!t || Number.isNaN(v)) { try { const j = JSON.parse(t); v = typeof j === 'number' ? j : j && typeof j.value === 'number' ? j.value : NaN; } catch (e) { v = NaN; } } return { n: Number.isFinite(v) ? v : null, size: bytes.length }; }
   if (kind === 'text') return { lines: utf8(bytes).replace(/\r\n?/g, '\n').split('\n').filter((x, i, a) => x !== '' || i < a.length - 1), size: bytes.length };
-  if (kind === 'image' || kind === 'video') { const mime = IMG_ENC[enc]; return { src: mime ? 'data:' + mime + ';base64,' + msg.data : '', note: mime ? '' : (enc || '인코딩 모름') + ' — 브라우저에서 바로 풀 수 없는 인코딩', size: bytes.length, enc }; }
+  if (kind === 'image' || kind === 'video') { const mime = IMG_ENC[enc]; return { src: mime ? 'data:' + mime + ';base64,' + msg.data : '', note: mime ? '' : (enc || '인코딩 모름') + ' — 브라우저 미지원 인코딩', size: bytes.length, enc }; }
   if (kind === 'event') { const t = utf8(bytes).trim(); let j = null; try { j = JSON.parse(t); } catch (e) { j = null; }
     const sum = j && typeof j === 'object' ? Object.entries(j).slice(0, 6).map(([k, v]) => k + '=' + (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(' · ') : t;
     return { type: (j && (j.type || j.kind || j.event || j.state)) || '', text: sum.slice(0, 160), size: bytes.length }; }
@@ -211,7 +211,7 @@ function reduceView(st, msg, o = {}) {
 function connLabel(st) {
   if (st.conn === 'idle' || st.conn === 'stopped') return { label: '멈춤', cls: 'dim' };
   if (st.conn === 'error') return { label: '못 엶' + (st.why ? ' · ' + st.why : ''), cls: 'err' };
-  if (st.conn === 'lost') return { label: '끊김 · 다시 붙는 중' + (st.tries > 1 ? ' (' + st.tries + '번째)' : ''), cls: 'warn' };
+  if (st.conn === 'lost') return { label: '끊김 · 재연결 중' + (st.tries > 1 ? ' (' + st.tries + '번째)' : ''), cls: 'warn' };
   if (st.conn === 'opening' || (st.conn === 'live' && OPENING.has(st.state))) return { label: '여는 중', cls: 'busy' };
   if (st.conn === 'ended' || TERMINAL.has(st.state)) return { label: { closed: '닫힘', denied: '거절', failed: '실패', expired: '만료' }[st.state] + (st.reason ? ' · ' + st.reason : ''), cls: st.state === 'closed' || st.state === 'expired' ? 'dim' : 'err' };
   if (st.state === 'degraded') return { label: '끊김 · 원천 쪽 복구 중' + (st.reason ? ' · ' + st.reason : ''), cls: 'warn' };
@@ -281,7 +281,7 @@ class Component extends DCLogic {
     else if (st.conn === 'live' && (v.kind === 'video' || q % 4 === 0)) st = reduceView(st, this.fake(ep, v.kind, (st.seq || 0) + 1 + (q % 97 === 0 ? 2 : 0), t), { hold: S.hold });
     this._vs[key] = st;
     if (t > 0 && q % 44 === 0) { this._ev.push({ at: Date.now(), lv: 'info', msg: ep.id + ' · 프레임 ' + st.frames }); if (this._ev.length > 6) this._ev.shift(); }
-    if (q % 160 === 120 && S.sub) this._ev.push({ at: Date.now(), lv: 'warn', msg: '구독 끊김 — 다시 붙는 중(시안)' });
+    if (q % 160 === 120 && S.sub) this._ev.push({ at: Date.now(), lv: 'warn', msg: '구독 끊김 — 재연결 중 (시안)' });
     this.setState({ q });
   }
   // ── 실제 Tree(웹 빌드 · 로그인) — Master SVI 를 부른다(src/api/svi-read.js = window.TerraSvi). 캔버스 · 실제 지도 밖 노드는 시안 그대로 ──
@@ -308,7 +308,7 @@ class Component extends DCLogic {
     const S = this.state, v = viewerOf(epCur ? epCur.schema : '', epCur ? epCur.enc : ''), C = connLabel(st), now = Date.now(), H = this.help();
     const T = st.times.filter((t) => now - t <= 3000), fps = T.length < 2 ? 0 : (T.length - 1) / Math.max(0.001, (T[T.length - 1] - T[0]) / 1000);
     const m = epCur && epCur.m, fmtN = (x) => (x == null ? '—' : m && m[4] === 2 ? (x ? 'HIGH' : 'LOW') : (+x).toFixed(m ? m[4] : Math.abs(x) < 10 ? 2 : 1)), N = numStats(st.num.hist);
-    const kb = (b) => (b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB');
+    const kb = (b) => (b < 1024 ? b + 'B' : b < 1048576 ? (b / 1024).toFixed(1) + 'KB' : (b / 1048576).toFixed(1) + 'MB');
     const meta = [epCur && epCur.schema ? epCur.schema + (epCur.enc ? ' · ' + epCur.enc : '') : '형식 모름', v.label, st.frames ? '프레임 ' + st.frames : '', st.seq ? '#' + st.seq : '', v.kind === 'video' && fps ? fps.toFixed(1) + ' fps' : '', st.bytes ? kb(st.bytes) : '', st.gaps ? '빠짐 ' + st.gaps : ''].filter(Boolean).join(' · ');
     return {
       vEps: eps.map((e) => { const on = epCur && e.id === epCur.id; return { name: e.id, k: viewerOf(e.schema, e.enc).label, cls: on ? 'on' : '', on: on ? 'true' : 'false', pick: () => { this.setState({ ep: e.id }); } }; }), hasVEps: eps.length > 1,
@@ -320,7 +320,7 @@ class Component extends DCLogic {
       bars: N.bars.map((h) => ({ h, col: C.cls === 'warn' ? '#ffd27a' : '#60e28c' })),
       lines: st.lines.slice(-14).map((x) => ({ t: x })), noLines: !st.lines.length,
       hex: hexRows(st.raw, 8), noHex: !st.raw.length,
-      imgSrc: st.img || '', hasImg: !!st.img, imgNote: st.imgNote || (st.img ? '' : '프레임을 기다린다'), imgCap: v.kind === 'video' ? (fps ? fps.toFixed(1) + ' fps · ' : '') + (st.imgSize ? kb(st.imgSize) + '/프레임' : '') : st.imgSize ? kb(st.imgSize) : '',
+      imgSrc: st.img || '', hasImg: !!st.img, imgNote: st.imgNote || (st.img ? '' : '프레임 대기'), imgCap: v.kind === 'video' ? (fps ? fps.toFixed(1) + ' fps · ' : '') + (st.imgSize ? kb(st.imgSize) + '/프레임' : '') : st.imgSize ? kb(st.imgSize) : '',
       evRows: st.events.slice(0, 8).map((e) => { const d = new Date(e.at); return { t: [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'), ty: e.type || '—', text: e.text }; }), noEv: !st.events.length,
       apiV: H ? 'svi.handles.post → handles.events' : ''
     };
@@ -332,23 +332,23 @@ class Component extends DCLogic {
     const nodeRid = [...C.names.entries()].find(([, nm]) => nm === this.props.nodeName);
     const R = all.find((r) => r.name === this.name() && (!nodeRid || r.node === nodeRid[0])) || all.find((r) => r.name === this.name()) || null;
     const base = { rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.name(), src: this.props.src || '내 자원', srcCls: { 지명: 'nd', 전체: 'sc', 외부: 'ex' }[this.props.src] || 'tr',
-      liveT: '', apiR: H ? 'svi.resources' : '', apiB: H ? 'svi.bindings' : '', apiE: H ? 'svi.handles.get (10초 조회)' : '', evH: '쓰는 곳 · 최근 사건' };
+      liveT: '', apiR: H ? 'svi.resources' : '', apiB: H ? 'svi.bindings' : '', apiE: H ? 'svi.handles.get · 갱신 : 10s' : '', evH: '쓰는 곳 · 최근 사건' };
     if (!R) { this.unwatch(); return Object.assign(base, this.viewVals([], null, viewInit('bytes'), { lockWhy: '' }), { type: '—', stT: res.loading && !res.data ? '받는 중' : '없음', stCol: '#9aa1ab', node: this.props.nodeName || '—', approve: '—', presence: '—', seen: '—', lease: '—', eps: [], binds: [], noBinds: true,
-      events: [{ t: '', lv: 'warn', col: '#ffd27a', msg: res.err && !res.data ? 'svi.resources 를 못 받음 · ' + res.err.code : 'Master 의 SVI 목록에 이 이름의 자원이 없다' }] }); }
+      events: [{ t: '', lv: 'warn', col: '#ffd27a', msg: res.err && !res.data ? 'svi.resources 미수신 · ' + res.err.code : 'Master SVI 목록에 이 이름 없음' }] }); }
     const bi = C.rd('terra.master.svi.bindings.get'), hd = C.rd('terra.master.svi.handles.get', { resource_id: R.id });
     const binds = SV.bindings(bi.data).filter((b) => b.srcRes === R.id || b.tgtRes === R.id);
     const ok = /available/.test(R.status), busy = binds.length > 0;
     const evs = SV.handleRows(hd.data, R.id).map((e) => Object.assign(e, { col: e.lv === 'warn' ? '#ffd27a' : '#709c80' }));
-    if (hd.err && !hd.data) evs.push({ t: '', lv: 'warn', col: '#ffd27a', msg: '쓰는 곳을 못 받음 · ' + hd.err.code });
-    if (!evs.length) evs.push({ t: '', lv: 'info', col: '#709c80', msg: hd.loading && !hd.data ? '받는 중…' : '지금 이 자원을 열어 쓰는 곳 없음' });
+    if (hd.err && !hd.data) evs.push({ t: '', lv: 'warn', col: '#ffd27a', msg: '쓰는 곳 미수신 · ' + hd.err.code });
+    if (!evs.length) evs.push({ t: '', lv: 'info', col: '#709c80', msg: hd.loading && !hd.data ? '받는 중…' : '쓰는 곳 없음' });
     // 값 — 내보내는 끝점만. 문이 닫혀 있으면 잠그고 이유 · 대체(쓰는 곳 조회)를 옆에
     const vis = R.eps.filter((e) => /source|duplex/.test(e.dir)).map((e) => ({ id: e.id, dir: e.dir, schema: e.schema || '', enc: '' }));
     const epCur = vis.find((e) => e.id === this.state.ep) || vis[0] || null, kind = viewerOf(epCur ? epCur.schema : '').kind;
-    const G = W.TerraGateAll ? W.TerraGateAll(WATCH_OPS) : { open: false, why: '문 판정(TerraGate)이 없다' };
+    const G = W.TerraGateAll ? W.TerraGateAll(WATCH_OPS) : { open: false, why: '잠김 : 문 판정(TerraGate) 없음' };
     const vkey = epCur ? R.id + '#' + epCur.id : '';
     if (!G.open || !this.state.rsub || !epCur) this.unwatch(); else this.watch(R, epCur, kind);
     const st = (vkey && this._vs[vkey]) || viewInit(kind);
-    const V = this.viewVals(vis, epCur, G.open ? st : viewInit(kind), { lockWhy: G.open ? '' : G.why, lockAlt: '대신 — 이 자원을 누가 열어 쓰는지(svi.handles.get)를 10초마다 아래 ‘쓰는 곳’에 보인다', toggleSub: () => this.setState({ rsub: !this.state.rsub }), sub: this.state.rsub });
+    const V = this.viewVals(vis, epCur, G.open ? st : viewInit(kind), { lockWhy: G.open ? '' : G.why, lockAlt: '대신 : 아래 ‘쓰는 곳’ (svi.handles.get · 갱신 : 10s)', toggleSub: () => this.setState({ rsub: !this.state.rsub }), sub: this.state.rsub });
     if (!G.open) { V.connT = '잠김'; V.connCls = 'dim'; V.subT = '구독 시작'; }
     return Object.assign(base, V, { type: R.kind || 'resource', stT: !ok ? R.status || '알 수 없음' : busy ? '사용 중' : '사용 가능', stCol: !ok ? '#ff9c8c' : busy ? '#ffd27a' : '#60e28c',
       node: C.names.get(R.node) || R.node || '—', approve: '—', presence: R.status || '—', seen: '—', lease: '—',
@@ -365,12 +365,12 @@ class Component extends DCLogic {
     if (!this._ev.length) { const t0 = Date.now(); [['info', '선언됨 · 승인'], ['info', '연결 → store/data'], ['info', 'lease 갱신'], [down ? 'warn' : 'info', down ? 'presence missing' : 'presence ok']].forEach((e, k) => this._ev.push({ at: t0 - (4 - k) * 61000, lv: e[0], msg: e[1] })); }
     const tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
     const peer = ['02·a', '02·c', '02', '01·a'][Math.floor(r(30) * 4)];
-    const binds = down ? [] : busy ? [[peer, 'store/data', '신뢰 순서', Math.round(20 + r(31) * 80) + ' KB/s']] : [];
+    const binds = down ? [] : busy ? [[peer, 'store/data', '신뢰 순서', Math.round(20 + r(31) * 80) + 'KB/s']] : [];
     const stT = down ? '끊김' : binds.length ? '사용 중' : '사용 가능', stCol = down ? '#ff9c8c' : binds.length ? '#ffd27a' : '#60e28c';
     const V = this.viewVals(vis, epCur, st, { lockWhy: '', toggleSub: () => this.setState({ sub: !S.sub }) });
     return Object.assign({
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.name(), type: P.type, stT, stCol, src, srcCls: { 지명: 'nd', 전체: 'sc', 외부: 'ex' }[src] || 'tr',
-      node: this.props.nodeName || '02·b', approve: down ? '승인 · 없음' : '승인', presence: down ? 'missing' : 'present', seen: down ? Math.floor(40 + r(32) * 200) + '초 전' : '방금', lease: Math.floor(20 + r(33) * 40) + '분 남음',
+      node: this.props.nodeName || '02·b', approve: down ? '승인 · 없음' : '승인', presence: down ? 'missing' : 'present', seen: down ? Math.floor(40 + r(32) * 200) + 's 전' : '방금', lease: Math.floor(20 + r(33) * 40) + 'm 남음',
       liveT: '시안', eps: P.eps.map((e) => ({ id: e.id, dir: e.dir, schema: e.schema + (e.enc && H ? ' · ' + e.enc : '') })),
       binds: binds.map(([to, ep, q, rate]) => ({ to: to + ' › ' + ep, q, rate })), noBinds: binds.length === 0,
       events: this._ev.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? '#ffd27a' : '#709c80', msg: e.msg })), evH: '최근 이벤트',

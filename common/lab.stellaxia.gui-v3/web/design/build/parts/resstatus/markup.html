@@ -11,8 +11,8 @@
   <h3 class="ns-h"><span class="ns-hl"></span>값<span class="ns-hr"></span><span class="ns-k">{{apiV}}</span><span class="rs-chip {{connCls}}" role="status">{{connT}}</span><button type="button" class="rs-btn" onClick="{{toggleSub}}" disabled="{{subOff}}">{{subT}}</button></h3>
   <sc-if value="{{hasVEps}}" hint-placeholder-val="{{ true }}"><div class="rs-seg" role="tablist" aria-label="끝점"><sc-for list="{{vEps}}" as="e" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{e.on}}" class="{{e.cls}}" onClick="{{e.pick}}">{{e.name}}<span class="rs-sk">{{e.k}}</span></button></sc-for></div></sc-if>
   <div class="rs-vmeta ns-k">{{vMeta}}</div>
-  <sc-if value="{{noEp}}" hint-placeholder-val="{{ false }}"><div class="ns-k">내보내는 끝점이 없다 — 볼 값이 없다</div></sc-if>
-  <sc-if value="{{locked}}" hint-placeholder-val="{{ false }}"><div class="rs-lock"><div class="rs-lock-h"><span class="rs-lk" aria-hidden="true">⊘</span><b>값 보기 잠김</b></div><div class="rs-why">{{lockWhy}}</div><div class="ns-k">{{lockAlt}}</div></div></sc-if>
+  <sc-if value="{{noEp}}" hint-placeholder-val="{{ false }}"><div class="ns-k">내보내는 끝점 없음 — 볼 값 없음</div></sc-if>
+  <sc-if value="{{locked}}" hint-placeholder-val="{{ false }}"><div class="rs-lock"><div class="rs-lock-h"><span class="rs-lk" aria-hidden="true">⊘</span><b>값 보기</b></div><div class="rs-why">{{lockWhy}}</div><div class="ns-k">{{lockAlt}}</div></div></sc-if>
   <sc-if value="{{unlocked}}" hint-placeholder-val="{{ true }}">
     <sc-if value="{{isNum}}" hint-placeholder-val="{{ true }}">
       <div class="rs-now"><b>{{nowT}}</b><span class="ns-k">{{unitT}}</span><span style="flex: 1;"></span><span class="ns-k">최소</span><span>{{minT}}</span><span class="ns-k">평균</span><span>{{avgT}}</span><span class="ns-k">최대</span><span>{{maxT}}</span></div>
@@ -20,19 +20,19 @@
       <div class="rs-axis ns-k"><span>-60</span><span>-30</span><span>지금</span></div>
     </sc-if>
     <sc-if value="{{isText}}" hint-placeholder-val="{{ false }}">
-      <div class="rs-log" aria-live="off"><sc-if value="{{noLines}}" hint-placeholder-val="{{ false }}"><div class="ns-k">줄을 기다린다</div></sc-if><sc-for list="{{lines}}" as="l" hint-placeholder-count="6"><div>{{l.t}}</div></sc-for></div>
+      <div class="rs-log" aria-live="off"><sc-if value="{{noLines}}" hint-placeholder-val="{{ false }}"><div class="ns-k">줄 대기</div></sc-if><sc-for list="{{lines}}" as="l" hint-placeholder-count="6"><div>{{l.t}}</div></sc-for></div>
       <div class="rs-tools"><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
     </sc-if>
     <sc-if value="{{isBytes}}" hint-placeholder-val="{{ false }}">
-      <div class="rs-hex"><sc-if value="{{noHex}}" hint-placeholder-val="{{ false }}"><div class="ns-k">바이트를 기다린다</div></sc-if><sc-for list="{{hex}}" as="h" hint-placeholder-count="3"><div class="rs-hr"><span class="ns-k">{{h.off}}</span><span>{{h.hex}}</span><span class="rs-asc">{{h.txt}}</span></div></sc-for></div>
-      <div class="rs-tools"><span class="ns-k">마지막 조각 · 앞 128 바이트</span><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
+      <div class="rs-hex"><sc-if value="{{noHex}}" hint-placeholder-val="{{ false }}"><div class="ns-k">바이트 대기</div></sc-if><sc-for list="{{hex}}" as="h" hint-placeholder-count="3"><div class="rs-hr"><span class="ns-k">{{h.off}}</span><span>{{h.hex}}</span><span class="rs-asc">{{h.txt}}</span></div></sc-for></div>
+      <div class="rs-tools"><span class="ns-k">마지막 조각 · 앞 128B</span><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
     </sc-if>
     <sc-if value="{{isImg}}" hint-placeholder-val="{{ false }}">
       <div class="rs-frame"><sc-if value="{{hasImg}}" hint-placeholder-val="{{ false }}"><img src="{{imgSrc}}" alt="마지막 프레임"></sc-if><span class="rs-fnote ns-k">{{imgNote}}</span></div>
       <div class="rs-tools"><span class="ns-k">{{imgCap}}</span><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
     </sc-if>
     <sc-if value="{{isEvent}}" hint-placeholder-val="{{ false }}">
-      <sc-if value="{{noEv}}" hint-placeholder-val="{{ false }}"><div class="ns-k">사건을 기다린다</div></sc-if>
+      <sc-if value="{{noEv}}" hint-placeholder-val="{{ false }}"><div class="ns-k">사건 대기</div></sc-if>
       <sc-for list="{{evRows}}" as="e" hint-placeholder-count="4"><div class="rs-evr"><span class="ns-k">{{e.t}}</span><span class="rs-ty">{{e.ty}}</span><span class="rs-cut" title="{{e.text}}">{{e.text}}</span></div></sc-for>
       <div class="rs-tools"><span style="flex: 1;"></span><button type="button" class="rs-btn" onClick="{{toggleHold}}">{{holdT}}</button></div>
     </sc-if>

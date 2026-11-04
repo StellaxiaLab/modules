@@ -17,7 +17,7 @@ export const GUARD_OPS = { user: ['inspect', 'read', 'subscribe', 'bind.source',
 export const GRANT_DEFAULTS = { user: ['inspect', 'read', 'subscribe'], node: ['read', 'subscribe', 'bind.source'] };
 export const GUARD_MAX_TTL = 90 * 86400;
 /** 기한 — 위임 허가는 기한이 있어야 하고 90일 이하('기한 없음'은 내지 않는다) */
-export const GRANT_TTLS = [['1시간', 3600], ['1일', 86400], ['7일', 604800], ['30일', 2592000], ['90일', 7776000]];
+export const GRANT_TTLS = [['1h', 3600], ['1d', 86400], ['7d', 604800], ['30d', 2592000], ['90d', 7776000]];
 export const OP_KO = { discover: '찾기', inspect: '살펴보기', read: '읽기', list: '목록', watch: '지켜보기', subscribe: '구독', 'bind.source': '연결 원천', 'bind.target': '연결 대상', write: '쓰기', invoke: '호출' };
 const KIND_KO = { user: '사람', node: '노드' };
 
@@ -35,11 +35,11 @@ export function selfIdOf(who) {
 export function subjectRule(type, id, selfId) {
   const allow = GUARD_OPS[type] || [];
   let why = '';
-  if (!allow.length) why = '위임 가드 — 앱 자격으로는 나 자신 또는 같은 클러스터의 노드에게만';
-  else if (type === 'user' && !selfId) why = '로그인한 사용자를 알 수 없다';
-  else if (type === 'user' && id !== selfId) why = '위임 가드 — 앱 자격으로는 사람 가운데 나 자신에게만 줄 수 있다(ADR-GW-004 D-3)';
+  if (!allow.length) why = '위임 가드 — 나 자신 · 같은 클러스터 노드만';
+  else if (type === 'user' && !selfId) why = '로그인 사용자 모름';
+  else if (type === 'user' && id !== selfId) why = '위임 가드 — 사람은 나 자신만 (ADR-GW-004 D-3)';
   return { ok: !why, why,
-    ops: GRANT_OPS.map((op) => { const ok = allow.includes(op); return { op, label: OP_KO[op] || op, ok, why: ok ? '' : '앱 자격으로는 ' + (KIND_KO[type] || type) + '에게 ' + op + ' 를 줄 수 없다' }; }),
+    ops: GRANT_OPS.map((op) => { const ok = allow.includes(op); return { op, label: OP_KO[op] || op, ok, why: ok ? '' : '위임 가드 — ' + (KIND_KO[type] || type) + ' : ' + op + ' 불가' }; }),
     defaults: (GRANT_DEFAULTS[type] || []).slice(), ttls: GRANT_TTLS.slice() };
 }
 
@@ -64,14 +64,14 @@ export function toggleOp(type, picked, op) {
 export function checkGrant(g, selfId) {
   const no = (why) => ({ ok: false, why });
   const type = (g && g.subject_type) || 'user', allow = GUARD_OPS[type];
-  if (!allow) return no('위임 가드 — 앱 자격으로는 나 자신 또는 같은 클러스터의 노드에게만');
-  if (!g.subject_id) return no('받는 이가 없다');
-  if (type === 'user' && g.subject_id !== selfId) return no(selfId ? '위임 가드 — 사람 가운데 나 자신에게만' : '로그인한 사용자를 알 수 없다');
+  if (!allow) return no('위임 가드 — 나 자신 · 같은 클러스터 노드만');
+  if (!g.subject_id) return no('받는 이 없음');
+  if (type === 'user' && g.subject_id !== selfId) return no(selfId ? '위임 가드 — 사람은 나 자신만' : '로그인 사용자 모름');
   const ops = Array.isArray(g.operations) ? g.operations : [];
-  if (!ops.length) return no('작업을 하나 이상 고른다');
-  const bad = ops.find((o) => !allow.includes(o)); if (bad) return no('앱 자격으로는 ' + KIND_KO[type] + '에게 ' + bad + ' 를 줄 수 없다');
-  if (!(g.ttl_seconds > 0)) return no('위임 허가는 기한이 있어야 한다(90일 이하)');
-  if (g.ttl_seconds > GUARD_MAX_TTL) return no('위임 허가는 90일까지');
+  if (!ops.length) return no('작업 1개 이상 선택');
+  const bad = ops.find((o) => !allow.includes(o)); if (bad) return no('위임 가드 — ' + KIND_KO[type] + ' : ' + bad + ' 불가');
+  if (!(g.ttl_seconds > 0)) return no('기한 필요 — 위임 허가 · 90d 이하');
+  if (g.ttl_seconds > GUARD_MAX_TTL) return no('기한 : 90d 까지 (위임 허가)');
   return { ok: true, why: '' };
 }
 

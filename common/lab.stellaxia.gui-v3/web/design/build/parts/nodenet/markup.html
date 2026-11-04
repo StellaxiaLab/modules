@@ -3,7 +3,7 @@
   <div class="nn-row nn-k">세대 {{gen}} · 경로 그래프 {{epoch}} · WireGuard 보고 {{reported}} · {{src}}</div>
   <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="nn-note">{{note}}</div></sc-if>
 
-  <h3 class="nn-h"><span class="nn-hl"></span>주소<span class="nn-hr"></span><span class="nn-k">값 · 어디서 왔나</span></h3>
+  <h3 class="nn-h"><span class="nn-hl"></span>주소<span class="nn-hr"></span><span class="nn-k">값 · 출처</span></h3>
   <sc-for list="{{addrs}}" as="a" hint-placeholder-count="9">
     <div class="nn-addr" title="{{a.hint}}"><span class="nn-k">{{a.k}}</span><span class="nn-v nn-cut nn-sel" style="color: {{a.col}};">{{a.v}}</span><span class="nn-k nn-cut" title="{{a.src}}">{{a.src}}</span></div>
   </sc-for>
@@ -22,7 +22,7 @@
   </sc-for>
 
   <h3 class="nn-h"><span class="nn-hl"></span>다른 노드와의 연결<span class="nn-hr"></span><span class="nn-k">{{linkSum}}</span></h3>
-  <div class="nn-legend">고르는 순서 — mesh 직결(WireGuard) → LAN 직결(TCP) → WebRTC P2P → Master 중계(정책이 허용할 때). 줄을 누르면 자세히</div>
+  <div class="nn-legend">우선순위 : mesh 직결(WireGuard) → LAN 직결(TCP) → WebRTC P2P → Master 중계(정책 허용 시) · 줄 누르기 : 자세히</div>
   <div class="nn-link nn-dim" style="cursor: default;"><span></span><span>노드</span><span>지금 경로</span><span>adapter</span><span>지연</span><span>근거</span></div>
   <sc-for list="{{links}}" as="l" hint-placeholder-count="3">
     <button type="button" class="nn-link" aria-expanded="{{l.exp}}" onClick="{{l.toggle}}"><span style="color: {{l.col}}; font-weight: 700;">{{l.mark}}</span><span class="nn-cut">{{l.peer}}</span><b style="color: {{l.col}};">{{l.rt}}</b><span class="nn-k">{{l.ad}}</span><span>{{l.lat}}</span><span class="nn-k nn-cut">{{l.from}}</span></button>
@@ -38,7 +38,7 @@
       </div>
     </sc-if>
   </sc-for>
-  <sc-if value="{{noLinks}}" hint-placeholder-val="{{ false }}"><div class="nn-k">연결 기록 없음 — 경로 그래프 · WireGuard 쌍 · 세션 어디에도 이 노드가 없다</div></sc-if>
+  <sc-if value="{{noLinks}}" hint-placeholder-val="{{ false }}"><div class="nn-k">연결 기록 없음 — 경로 그래프 · WireGuard 쌍 · 세션에 이 노드 없음</div></sc-if>
 
   <h3 class="nn-h"><span class="nn-hl"></span>Terra 가 보고하지 않는 것<span class="nn-hr"></span></h3>
   <sc-for list="{{gaps}}" as="g" hint-placeholder-count="3"><div class="nn-gap">· {{g.t}}</div></sc-for>

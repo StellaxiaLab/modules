@@ -24,19 +24,19 @@ const ABS = '^(/|[A-Za-z]:[\\\\/])';   // 절대 경로(Linux · Windows)
 export const BUILTIN_TYPES = [
   { id: 'file', family: 'file', title: '파일', icon: 'file', desc: '파일 하나를 자원으로 — 읽기(처음부터 끝까지 한 번 흘림) 또는 쓰기',
     schema: { type: 'object', required: ['path'], properties: {
-      path: { type: 'string', title: '경로', description: '절대 경로 — 울타리(file_roots) 안이어야', pattern: ABS, format: 'path' },
+      path: { type: 'string', title: '경로', description: '절대 경로 — 울타리(file_roots) 안', pattern: ABS, format: 'path' },
       direction: { type: 'string', title: '방향', enum: ['source', 'sink'], 'x-labels': ['읽기 — 내보냄', '쓰기 — 받음'], default: 'source' } } } },
-  { id: 'process', family: 'process', title: '프로그램', icon: 'term', desc: '프로그램을 실행해 그 표준 입출력을 자원으로',
+  { id: 'process', family: 'process', title: '프로그램', icon: 'term', desc: '프로그램 실행 — 표준 입출력을 자원으로',
     schema: { type: 'object', required: ['command'], properties: {
-      command: { type: 'string', title: '실행 파일', description: '절대 경로 — 울타리(process · process_commands)가 허락한 것', pattern: ABS, format: 'path' },
+      command: { type: 'string', title: '실행 파일', description: '절대 경로 — 울타리(process · process_commands) 허용분', pattern: ABS, format: 'path' },
       args: { type: 'array', items: { type: 'string' }, title: '인자', description: '빈칸으로 나눔' },
-      direction: { type: 'string', title: '방향', enum: ['source', 'sink'], 'x-labels': ['출력을 내보냄', '입력을 받음'], default: 'source' } } } },
-  { id: 'net', family: 'net', title: '네트워크 주소', icon: 'net', desc: 'TCP · UDP 주소에 붙거나(연결) 기다려(수신) 바이트를 주고받음',
+      direction: { type: 'string', title: '방향', enum: ['source', 'sink'], 'x-labels': ['출력 내보냄', '입력 받음'], default: 'source' } } } },
+  { id: 'net', family: 'net', title: '네트워크 주소', icon: 'net', desc: 'TCP · UDP 주소 — 연결 또는 수신 · 바이트 송수신',
     schema: { type: 'object', required: ['address'], properties: {
       address: { type: 'string', title: '주소', description: 'tcp://호스트:포트 또는 udp://호스트:포트 — 울타리(net_endpoints) 안', pattern: '^(tcp|udp)://[^\\s/]+:\\d{1,5}$' },
-      mode: { type: 'string', title: '방식', enum: ['connect', 'listen'], 'x-labels': ['연결 — 그 주소로 붙음', '수신 — 그 주소에서 기다림'], default: 'connect' },
+      mode: { type: 'string', title: '방식', enum: ['connect', 'listen'], 'x-labels': ['연결 — 그 주소로 접속', '수신 — 그 주소에서 대기'], default: 'connect' },
       framing: { type: 'string', title: '나눔', enum: ['chunk', 'line'], 'x-labels': ['조각', '줄'], default: 'chunk' },
-      direction: { type: 'string', title: '방향', enum: ['source', 'sink'], 'x-labels': ['받은 것을 내보냄', '들어온 것을 보냄'], default: 'source' } } } },
+      direction: { type: 'string', title: '방향', enum: ['source', 'sink'], 'x-labels': ['받은 것 내보냄', '들어온 것 보냄'], default: 'source' } } } },
 ];
 /** 모듈이 내놓은 유형 — module.json contributions.svi.types(제안). 지금 Terra 에는 이 자리가 없어 모듈 목록에 있으면 보이기만 한다 */
 export function moduleTypes(mods) {
@@ -78,19 +78,19 @@ export const NAME_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 /** 이름 · 스키마 검사 → { 칸: 사유 } (빈 객체면 통과) */
 export function validate(schema, name, raw) {
   const e = {}, P = (schema && schema.properties) || {}, v = castValues(schema, raw);
-  if (!name) e.name = '이름이 필요하다'; else if (!NAME_RE.test(name)) e.name = '소문자 · 숫자 · - 만(앞뒤는 - 아님)';
-  for (const k of (schema && schema.required) || []) if (v[k] == null || (Array.isArray(v[k]) && !v[k].length)) e[k] = '필요하다';
+  if (!name) e.name = '이름 필요'; else if (!NAME_RE.test(name)) e.name = '소문자 · 숫자 · - 만(앞뒤는 - 아님)';
+  for (const k of (schema && schema.required) || []) if (v[k] == null || (Array.isArray(v[k]) && !v[k].length)) e[k] = '필요';
   for (const [k, p] of Object.entries(P)) {
     if (e[k] || v[k] == null) continue;
-    if (p.pattern && typeof v[k] === 'string' && !new RegExp(p.pattern).test(v[k])) e[k] = p.format === 'path' ? '절대 경로여야 한다' : '꼴이 맞지 않는다';
-    if (p.enum && !p.enum.includes(v[k])) e[k] = '고를 수 있는 값이 아니다';
-    if ((p.type === 'integer' || p.type === 'number') && Number.isNaN(v[k])) e[k] = '수여야 한다';
+    if (p.pattern && typeof v[k] === 'string' && !new RegExp(p.pattern).test(v[k])) e[k] = p.format === 'path' ? '절대 경로 필요' : '형식 불일치';
+    if (p.enum && !p.enum.includes(v[k])) e[k] = '선택지 밖 값';
+    if ((p.type === 'integer' || p.type === 'number') && Number.isNaN(v[k])) e[k] = '숫자 필요';
   }
   return e;
 }
 /** 내장 유형 → declarations.post 입력 */
 export function toDeclaration(type, name, raw, o = {}) {
-  if (!type.family) throw new TerraError('NOT_SUPPORTED', type.title + ' — 모듈 유형으로 자원을 만드는 길이 Terra 에 아직 없다', 0);
+  if (!type.family) throw new TerraError('NOT_SUPPORTED', type.title + ' — 모듈 유형 자원 만들기 : Terra 미지원', 0);
   const v = castValues(type.schema, raw), d = { family: type.family, name, direction: v.direction || 'source' };
   if (type.family === 'file') d.path = v.path;
   if (type.family === 'process') { d.command = v.command; if (v.args && v.args.length) d.args = v.args; }
@@ -103,9 +103,9 @@ export function envelopeCheck(env, type, raw) {
   if (!env || !type.family) return { ok: true, why: '' };
   const v = castValues(type.schema, raw), A = (x) => (Array.isArray(x) ? x : []);
   const under = (p, roots) => roots.some((r) => { const R = String(r.path || r).replace(/[\\/]+$/, ''); return p === R || p.startsWith(R + '/') || p.startsWith(R + '\\'); });
-  if (type.family === 'file') { const roots = A(env.file_roots); if (!roots.length) return { ok: false, why: '이 노드는 파일 자원을 열어 두지 않았다(file_roots 비어 있음)' }; if (v.path && !under(v.path, roots)) return { ok: false, why: '열린 폴더 밖 — ' + roots.map((r) => r.path || r).join(', ') }; }
-  if (type.family === 'process') { const m = env.process || 'off'; if (m === 'off') return { ok: false, why: '이 노드는 프로그램 자원을 닫아 두었다(process off)' }; if (m === 'allowlist' && v.command && !A(env.process_commands).includes(v.command)) return { ok: false, why: '허락된 프로그램이 아니다 — ' + (A(env.process_commands).join(', ') || '없음') }; }
-  if (type.family === 'net') { if (env.net === false || env.net === 'off') return { ok: false, why: '이 노드는 네트워크 자원을 닫아 두었다(net off)' }; const E = A(env.net_endpoints); if (E.length && v.address && !E.some((x) => String(x.address || x) === v.address)) return { ok: false, why: '허락된 주소가 아니다 — ' + E.map((x) => x.address || x).join(', ') }; }
+  if (type.family === 'file') { const roots = A(env.file_roots); if (!roots.length) return { ok: false, why: '파일 자원 닫힘 (file_roots 비어 있음)' }; if (v.path && !under(v.path, roots)) return { ok: false, why: '열린 폴더 밖 — ' + roots.map((r) => r.path || r).join(', ') }; }
+  if (type.family === 'process') { const m = env.process || 'off'; if (m === 'off') return { ok: false, why: '프로그램 자원 닫힘 (process off)' }; if (m === 'allowlist' && v.command && !A(env.process_commands).includes(v.command)) return { ok: false, why: '허용 목록 밖 프로그램 — ' + (A(env.process_commands).join(', ') || '없음') }; }
+  if (type.family === 'net') { if (env.net === false || env.net === 'off') return { ok: false, why: '네트워크 자원 닫힘 (net off)' }; const E = A(env.net_endpoints); if (E.length && v.address && !E.some((x) => String(x.address || x) === v.address)) return { ok: false, why: '허용 목록 밖 주소 — ' + E.map((x) => x.address || x).join(', ') }; }
   return { ok: true, why: '' };
 }
 /** 울타리 요약 한 줄씩 */
@@ -113,7 +113,7 @@ export function envelopeLines(env) {
   if (!env) return [];
   const A = (x) => (Array.isArray(x) ? x : []);
   return [['파일', A(env.file_roots).length ? A(env.file_roots).map((r) => (r.path || r) + (r.mode ? ' (' + r.mode + ')' : '')).join(', ') : '닫힘'],
-    ['프로그램', (env.process || 'off') === 'off' ? '닫힘' : env.process === 'any' ? '모두' : '허락 목록 — ' + (A(env.process_commands).join(', ') || '없음')],
+    ['프로그램', (env.process || 'off') === 'off' ? '닫힘' : env.process === 'any' ? '모두' : '허용 목록 — ' + (A(env.process_commands).join(', ') || '없음')],
     ['네트워크', env.net === false || env.net === 'off' || (!env.net && !A(env.net_endpoints).length) ? '닫힘' : A(env.net_endpoints).map((x) => x.address || x).join(', ') || '열림'],
     ['최대 선언', env.max_declarations != null ? String(env.max_declarations) : '—']];
 }
@@ -125,16 +125,16 @@ const schemaName = (s) => String(s || '').replace(/@\d+$/, ''), schemaMajor = (s
 export function canLink(src, dst) {
   if (!src || !dst) return { ok: false, why: '' };
   if (src.resId === dst.resId) return { ok: false, why: '같은 자원' };
-  if (!['source', 'duplex'].includes(src.dir)) return { ok: false, why: '원천이 내보내지 않는다' };
-  if (!['sink', 'duplex'].includes(dst.dir)) return { ok: false, why: '대상이 받지 않는다' };
-  if (src.interaction && dst.interaction && !(PAIRS[src.interaction] || []).includes(dst.interaction)) return { ok: false, why: src.interaction + ' → ' + dst.interaction + ' 은 이을 수 없다' };
-  if (src.schema && dst.schema && schemaName(src.schema) !== schemaName(dst.schema)) return { ok: false, why: '형식이 다르다 — ' + src.schema + ' → ' + dst.schema };
-  if (src.schema && dst.schema && schemaMajor(src.schema) !== schemaMajor(dst.schema)) return { ok: true, why: '판이 달라 변환이 필요할 수 있다' };
+  if (!['source', 'duplex'].includes(src.dir)) return { ok: false, why: '원천 : 내보냄 없음' };
+  if (!['sink', 'duplex'].includes(dst.dir)) return { ok: false, why: '대상 : 받음 없음' };
+  if (src.interaction && dst.interaction && !(PAIRS[src.interaction] || []).includes(dst.interaction)) return { ok: false, why: src.interaction + ' → ' + dst.interaction + ' 연결 불가' };
+  if (src.schema && dst.schema && schemaName(src.schema) !== schemaName(dst.schema)) return { ok: false, why: '형식 불일치 — ' + src.schema + ' → ' + dst.schema };
+  if (src.schema && dst.schema && schemaMajor(src.schema) !== schemaMajor(dst.schema)) return { ok: true, why: '판 다름 — 변환 필요 가능' };
   return { ok: true, why: '' };
 }
 const REASON = {
-  participant_disconnected: '한쪽 노드 연결 끊김', participant_closed: '한쪽이 닫음', route_failed: '경로 실패', consumer_requested: '사용자가 닫음', source_completed: '원천이 끝남(파일 끝 등)',
-  resource_withdrawn: '자원 선언 해제', resource_replaced: '자원이 교체됨', grant_revoked: '허가 회수', authorization_lost: '권한 잃음', flow_not_allowed: '흐름 허용 목록 밖',
+  participant_disconnected: '한쪽 노드 연결 끊김', participant_closed: '한쪽 닫음', route_failed: '경로 실패', consumer_requested: '사용자 닫음', source_completed: '원천 끝남(파일 끝 등)',
+  resource_withdrawn: '자원 선언 해제', resource_replaced: '자원 교체됨', grant_revoked: '허가 회수', authorization_lost: '권한 잃음', flow_not_allowed: '흐름 허용 목록 밖',
   missing_bind_grant: '연결 허가 없음', no_common_qos_profile: '맞는 품질 없음', target_commit_failed: '대상 확정 실패', source_commit_failed: '원천 확정 실패',
 };
 export const reasonText = (r) => { if (!r) return ''; const raw = String(r), k = raw.split(':')[0].trim(), t = REASON[k], rest = raw.includes(':') ? raw.slice(raw.indexOf(':') + 1).trim() : ''; return t ? t + (rest ? ' — ' + rest : '') : raw; };
@@ -159,7 +159,7 @@ export function createSviMake(terra, topo, who) {
   let selfP = null;
   /** 본인 사용자 id — 이미 있는 본인 허가의 주체, 없으면 whoami principal('… via 앱' 앞 · 'user:' 뒤) */
   const self = () => selfP || (selfP = terra.invoke('terra.master.svi.grants.get', { subject_type: 'user', limit: 50 }).then((d) => { const g = A(d, 'items', 'grants').find((x) => x.subject && x.subject.type === 'user'); if (g) return g.subject.id; throw 0; })
-    .catch(() => { const p = selfIdOf(who()); if (!p) { selfP = null; throw new TerraError('NO_USER', '로그인한 사용자를 알 수 없다', 0); } return p; }));
+    .catch(() => { const p = selfIdOf(who()); if (!p) { selfP = null; throw new TerraError('NO_USER', '로그인 사용자 모름', 0); } return p; }));
   const api = {
     /** 그 노드의 선언 · 울타리 + 클러스터의 자원(끝) · 허가 · 연결 */
     async load(rid) {

@@ -38,7 +38,7 @@ test('주소 — Terra 주소 · 사설망 · mesh 인터페이스 · LAN · 공
   assert.equal(A(v, '사설망 IP').v, '10.40.2.17'); assert.match(A(v, '사설망 IP').src, /home-mesh · 10\.40\.0\.0\/16/);
   assert.equal(A(v, 'mesh 인터페이스').v, '10.40.2.17/16'); assert.equal(A(v, '로컬(LAN)').v, '192.168.0.21:51820');
   assert.equal(A(v, '공인 IP').v, '121.157.70.45'); assert.equal(A(v, '공인 IP').src, 'STUN');
-  assert.equal(A(v, '공인 endpoint').src, 'STUN(포트는 설정값 가정)'); assert.equal(A(v, 'WG 수신 포트').v, '51820');
+  assert.equal(A(v, '공인 endpoint').src, 'STUN(포트 : 설정값 가정)'); assert.equal(A(v, 'WG 수신 포트').v, '51820');
   assert.equal(v.nat, 'auto · pcp/nat_pmp'); assert.deepEqual(v.nets[0], { name: 'home-mesh', cidr: '10.40.0.0/16', gw: '10.40.0.1', dns: '10.40.0.1', ip: '10.40.2.17' });
 });
 
@@ -50,7 +50,7 @@ test('광고 전송 — Master 광고 + 관측만 있는 adapter + relay', () =>
 test('노드 간 연결 — 세션 > 고를 경로 > WireGuard 쌍, 지연 · 거부 수 · handshake', () => {
   const v = netProps(REC, D, { now: NOW }), by = Object.fromEntries(v.links.map((l) => [l.peer, l]));
   assert.equal(by.server.via.rtT, 'mesh 직결'); assert.equal(by.server.via.ad, 'wireguard'); assert.equal(by.server.ok, true); assert.equal(by.server.lat, '4ms'); assert.equal(by.server.denied, 1);
-  assert.equal(by.server.wg.src, 'LAN'); assert.equal(by.server.hs.ago, '42초 전'); assert.equal(by.server.hs.rx, '5.0 MB'); assert.equal(by.server.inn.rtT, 'mesh 직결');
+  assert.equal(by.server.wg.src, 'LAN'); assert.equal(by.server.hs.ago, '42s 전'); assert.equal(by.server.hs.rx, '5.0MB'); assert.equal(by.server.inn.rtT, 'mesh 직결');
   assert.equal(by.laptop.via.rtT, 'Master 중계'); assert.equal(by.laptop.via.from, '열린 세션'); assert.equal(by.laptop.sess[0].dir, '←');
   assert.equal(by.hanium.via.rtT, 'WebRTC P2P'); assert.equal(by.hanium.ok, false);
   assert.deepEqual(v.links.map((l) => l.peer), ['laptop', 'server', 'hanium']);   // 닿는 것 먼저
