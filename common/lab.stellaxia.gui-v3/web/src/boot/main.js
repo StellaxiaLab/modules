@@ -18,6 +18,7 @@ import { pickMode, connectApp } from '../api/mode.js';
 import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems } from '../api/host-secret.js';
 import * as deskAdapt from '../api/desk-adapt.js';
 import { startAlarms } from '../api/alarms.js';
+import { createMetrics } from '../api/metrics.js';
 import * as netRead from '../api/net-read.js';
 import { createNodeInfo } from '../api/node-info.js';
 import { createNetProps } from '../api/net-props.js';
@@ -177,9 +178,11 @@ if (MODE !== 'demo') {
   //   window.TerraTopologyState = { state: 'ok'|'empty'|'error', error?, at } — 못 받았을 때 화면이 시안 지도를 실제처럼 두지 않고 "받지 못함 / 노드 없음"을 보일 신호('terra-topology-state' 이벤트도)
   const refreshTopology = () => loadTopologyState(terra).then((r) => {
     window.TerraTopologyState = { state: r.state, error: r.error || '', at: r.at }; try { window.dispatchEvent(new Event('terra-topology-state')); } catch {}
-    const t = r.topo; if (!t) return; const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t);
+    const t = r.topo; if (!t) return; if (t.records) { window.TerraMetrics.ingest(t.records(), r.at); try { window.dispatchEvent(new Event('terra-metrics')); } catch {} }   // 자원 추이 — 받은 하트비트 스냅샷을 노드마다 쌓는다(같은 하트비트는 하나로)
+    const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t);
   }, () => {});
   const TOPO_MS = 30000;   // 지도 · 대상 표 갱신 주기 — 탭이 보일 때만(숨겨진 탭은 Master 를 두드리지 않고, 다시 보이면 바로 한 번)
+  window.TerraMetrics = createMetrics({ pollMs: TOPO_MS });   // 전역 틀 대상 표의 그래프 — 하트비트 스냅샷 점열(src/api/metrics.js). 실시간 지표 op 는 코어에 없다
   const topoTick = () => { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') refreshTopology(); };
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (topoTimer && document.visibilityState === 'visible') refreshTopology(); });
   const afterLogin = () => {

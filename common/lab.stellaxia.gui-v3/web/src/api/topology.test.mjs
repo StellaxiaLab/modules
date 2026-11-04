@@ -158,3 +158,8 @@ test('loadTopologyState — 실패 · 빈 목록을 가르고, Master 는 등록
   assert.equal(ok.state, 'ok'); assert.deepEqual(ok.topo.master, { url: 'https://m', registered: true, registeredAt: '2026-10-01' }); assert.equal(ok.topo.localId, 'lf');
   assert.equal(await loadTopology(mk([], true)), null);
 });
+
+test('records — Master 노드 기록 전부, 세운 트리는 빼고', () => {
+  const T = buildTopology([{ node_id: 'l1', parent_node_id: 'gone', display_name: 'a' }, { node_id: 'm', master_host: true }]);
+  assert.deepEqual(T.records().map((n) => n.node_id).sort(), ['l1', 'm']);
+});

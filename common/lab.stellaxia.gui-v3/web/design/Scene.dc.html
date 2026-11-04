@@ -2443,7 +2443,12 @@ class Component extends DCLogic {
       leg('c', o, bx0, bx1, cells, (g) => { g.strokeStyle = C.lineC; g.lineWidth = 1; g.strokeRect(bx0 + 0.5, yM - hh / 2 + 0.5, bx1 - bx0, hh); g.fillStyle = C.fill; g.fillRect(bx0 + 2, yM - hh / 2 + 2, (bx1 - bx0 - 3) * (v || 0), hh - 3); });
       line('c', r - 1, [[v == null ? '—' : Math.round(v * 100) + '%', C.val]], x0 + 23, o); };
     bar('CPU', NS ? NS.cpu : SMP ? 0.42 : null); bar('MEM', NS ? NS.mem : SMP ? 0.61 : null);
-    const sparkRow = rows.length; add('c', [[this.gf_pad('NET', 5), C.key], [SMP ? this.gf_spark(17) : this.gf_pad('—', 17), SMP ? C.ok : C.hint], [SMP ? '  1.2 MB/s' : '  보고 없음', C.val]], 2);   // Daemon 은 네트워크를 보내지 않는다(probe 없음)
+    // 추이 — 실제면 Master 하트비트 스냅샷을 받을 때마다 쌓은 점열(window.TerraMetrics · src/api/metrics.js). 실시간이 아니다: 주기 · 나이를 아래 줄에 적는다
+    //   NET — 스냅샷에 네트워크 처리량이 없고 코어에 노드별 실시간 지표 op 도 없다 → '—' 와 까닭. 시안이면 예시 그래프(움직임)
+    const MT = !SMP && RN && typeof window !== 'undefined' && window.TerraMetrics ? window.TerraMetrics : null, mSp = MT ? MT.spark(RN.node_id, 'cpu', 17) : '';
+    if (!SMP) add('c', [[this.gf_pad('추이', 5), C.key], [mSp || this.gf_pad('—', 17), mSp ? C.ok : C.hint], [mSp ? '  CPU' : '  보고 없음', C.hint]]);
+    const sparkRow = rows.length; add('c', [[this.gf_pad('NET', 5), C.key], [SMP ? this.gf_spark(17) : '—', SMP ? C.ok : C.hint], [SMP ? '  1.2 MB/s' : '  코어: 실시간 지표 op 없음', SMP ? C.val : C.hint]], SMP ? 2 : 1);
+    if (!SMP) add('c', [[MT ? MT.cadence(RN.node_id).text : '하트비트 스냅샷 없음 · Master 노드 기록 밖', C.hint]], 2);   // 갱신 주기 — 실시간인 척하지 않는다
     const rb = this._q_rows - 2;
     // 지도 — 우주 지도. 노드는 모두 궤도에(형제는 같은 궤도), 지도 뷰는 세 가지 — 트리 · 리프 · 리소스. 각 지도 뷰에선 그 뷰의 노드만 보이고(다른 뷰의 노드는 빼고) 궤도는 모두 보인다
     //   트리 지도: 계정 · 트리 노드 / 리프 지도(들어온 트리): 그 트리 · 그 리프 / 리소스 지도(들어온 리프): 그 리프 · 그 리소스
@@ -2618,7 +2623,7 @@ class Component extends DCLogic {
       if (live && mk && (!this._q_mkOn || this._q_mkOn !== mk.id)) { mk.st = null; tids.forEach((id) => { this._q_tx[id].st = null; }); this._q_mkPend = { leg: mk.id, tids }; this._q_mkOn = mk.id; }
       else if (!live) { this._q_mkOn = mk ? mk.id : null; this._q_mkPend = null; } }
     this._q_legs = legs; this._q_legCell = new Map(); legs.forEach((e, k) => e.cells.forEach((i) => { let a = this._q_legCell.get(i); if (!a) { a = []; this._q_legCell.set(i, a); } a.push(k); }));
-    this._q_lineN = rows.length; this._q_sparkId = 'ln' + sparkRow; this._q_ring = null;
+    this._q_lineN = rows.length; this._q_sparkId = SMP ? 'ln' + sparkRow : '';   /* 시안 그래프만 움직인다 — 실제 점열은 받을 때만 바뀐다 */ this._q_ring = null;
     const Z = {
       ctrl: { c0: 0, c1: ctrlCols, r0: 0, r1: this._q_rows },
       logo: { c0: zL, c1: ctrlCols - 1, r0: lr0, r1: lr1 },
@@ -2747,7 +2752,7 @@ class Component extends DCLogic {
     const MD0 = this.sceneMap(); if (this._q_tnFor !== T || this._q_tnMap !== MD0) { const first = this._q_tnFor !== T; this._q_tnFor = T; this._q_tnMap = MD0; this._q_locN = null; const tp = T.t, MD = MD0;
       if (tp.bindScene) tp.bindScene(this.gf_localNode().id, MD.all.map((n) => ({ id: n.id, name: n.name, kind: n.kind, path: n.path, rid: n.rid || '' })));   // 장면 노드 ↔ 전송의 노드(목업: 그대로 · Gateway: 이 노드 = 로컬, 나머지는 이름으로 Master 노드에)
       T.shapes.modules = (snap) => { const P = this.gf_MODPOOL(), M = (snap && (snap.modules || snap)) || [], S = { running: 'run', starting: 'restart', stopping: 'restart', failed: 'fail', unavailable: 'fail', unsupported: 'fail', config_invalid: 'fail' };   // 실제 응답(modulehost Snapshot) → 모듈 목록 모양
-        return Array.isArray(M) ? M.map((m) => { const k = P.find((q) => q.id === m.id); return { id: m.id, name: m.name || m.id, ver: m.version || '', kind: m.kind || '', core: false, apps: k ? k.apps : [], perms: k ? k.perms : [], svi: k ? k.svi : [], st: S[m.state] || 'stop', err: m.last_error || '' }; }) : []; };
+        return Array.isArray(M) ? M.map((m) => { const k = P.find((q) => q.id === m.id); return { id: m.id, name: m.name || m.id, ver: m.version || '', kind: m.kind || '', core: false, apps: k ? k.apps : [], perms: k ? k.perms : [], svi: k ? k.svi : [], st: S[m.state] || 'stop', err: m.last_error || '', startedAt: m.started_at || '', pid: m.pid || 0, restarts: typeof m.restart_count === 'number' ? m.restart_count : null }; }) : []; };   // 가동 시각 · pid · 다시 시작 수 — 모듈 상태 창(modulehost Status)
       if (tp.kind === 'mock') { tp.seeds.modules = (meta) => { const n = this.sceneMap().byId[meta.id]; return n ? this.gf_modSeed(n).map((m) => { const o = Object.assign({}, m); delete o.node; delete o.nodeId; delete o.remote; return o; }) : []; }; }
       if (first) T.subscribe(() => { this._q_vfs = null; this._q_ctlTree = null; if (this._live !== false) this.gf_layout(); }); }
     return T;
@@ -3067,7 +3072,7 @@ class Component extends DCLogic {
   gf_alarmOpen() { const n = this.gf_localNode(); if (n) this.gf_ctlOpenWin(n, undefined, 'alarm'); }
   gf_alarmUnread() {
     if (typeof window === 'undefined') return 0;
-    if (!this._q_alEv) { this._q_alEv = () => { if (this._live !== false) this.gf_layout(); }; try { window.addEventListener('terra-alarms', this._q_alEv); } catch (e) {} }
+    if (!this._q_alEv) { this._q_alEv = () => { if (this._live !== false) this.gf_layout(); }; try { window.addEventListener('terra-alarms', this._q_alEv); window.addEventListener('terra-metrics', this._q_alEv); } catch (e) {} }   // 자원 추이 — 스냅샷을 받으면 그래프 · 나이를 다시
     const B = window.TerraTransport ? window.TerraAlarmBook : window.TerraAlarmDemo; try { return B ? B.unread() : 0; } catch (e) { return 0; }
   }
   gf_localNode() { const MD = this.sceneMap(); return this._q_locN && MD.all.includes(this._q_locN) ? this._q_locN : (this._q_locN = MD.all.find((n) => n.local) || (this.TOPO() ? null : MD.all.find((n) => n.kind === 'leaf')) || MD.root); }   // 실제 지도면 이 GUI 를 띄운 노드(local) — 못 찾으면 계정(첫 리프로 떨어지면 이름순 첫 노드를 로컬로 착각했다: BOOK-… 의 값이 '로컬'로 보였다), 시안이면 첫 리프
