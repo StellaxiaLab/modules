@@ -169,8 +169,10 @@ if (MODE !== 'demo') {
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; })
     .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = []; }));   // 자원화 유형을 내놓는 모듈(contributions.svi.types)
-  // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50). 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
-  const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; };
+  // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50), 읽음 · 지우기는 window.TerraAlarmBook(src/api/alarms.js).
+  //   바뀌면 'terra-alarms' 신호 — 알림 창 · 전역 틀 배지가 다시 그린다. 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
+  const alarmSig = () => { try { window.dispatchEvent(new Event('terra-alarms')); } catch {} };
+  const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; window.TerraAlarmBook = null; if (window.TerraMetrics) window.TerraMetrics.clear(); alarmSig(); };
   // 노드 기록(상태 · 하트비트 · 자원)은 로그인 때 한 번만 받으면 낡는다 — 30초마다 다시(보일 때만). 노드 목록이 같으면(rev 같음) 기록만 바꿔 끼우고 씬은 다시 짓지 않는다
   //   window.TerraTopologyState = { state: 'ok'|'empty'|'error', error?, at } — 못 받았을 때 화면이 시안 지도를 실제처럼 두지 않고 "받지 못함 / 노드 없음"을 보일 신호('terra-topology-state' 이벤트도)
   const refreshTopology = () => loadTopologyState(terra).then((r) => {
@@ -183,7 +185,7 @@ if (MODE !== 'demo') {
   const afterLogin = () => {
     transport.ready(); loadRoutes(); loadApps(); stopLive();
     terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { window.TerraWho = w; }, () => { window.TerraWho = null; });   // 계정 탭 — principal · 권한 · Terra ID 연결의 사용자 id
-    alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m) }); window.TerraAlarms = alarms.list;
+    alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m), onChange: alarmSig }); window.TerraAlarms = alarms.list; window.TerraAlarmBook = alarms.book; alarmSig();
     topoTimer = setInterval(topoTick, TOPO_MS); refreshTopology();
     push = startPush({ terra, store: () => window.TerraNodes, onEvent: () => alarms && alarms.poke() });
   };
