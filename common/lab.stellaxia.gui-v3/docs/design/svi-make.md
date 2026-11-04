@@ -8,8 +8,8 @@ doc_type: "design"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.1.0"
-last_updated: "2026-11-02"
+version: "0.2.0"
+last_updated: "2026-11-04"
 language: "ko-KR"
 related:
   - "[[terra-reach|Terra 도달 분석]]"
@@ -64,3 +64,15 @@ related:
 | 창 우클릭 "자원으로 만들기" | window kind 어댑터가 없다 | 프로그램 창 어댑터(모듈) + 위 길 | 시안의 "프로그램 창" 유형 |
 | 3. "유휴" 구분 | binding 에 마지막 프레임 시각 · 수가 없다 | binding 관측에 `last_frame_at` · 프레임 수(또는 idle 상태) | 연결됨 줄의 '흐름'은 **보고 없음** |
 | 울타리를 GUI 에서 넓히기 | 의도적으로 없음 — 설정 파일 + 재시작 | — | 창 왼쪽에 울타리 요약 · 그 한 줄 안내 |
+
+## 4. 허가 주체 — 노드 · 사람 (2026-11-04)
+
+Master 위임 가드(Terra `api/delegated_grant_guard.go`, ADR-GW-004 2b · D-3 · D-4 · Q14)를 `web/src/api/svi-grant.js`(+ 시험 — Terra 원본이 있으면 표를 대조)로 옮겼다. 자원 창(NodeShare) · 자원화 창(NodeSvi)이 같은 규칙을 쓴다(보드 사본은 `tests/svi-grant-boards.test.mjs`).
+
+| 주체 | 고를 수 있는 것 | 작업(칩) | 기한 |
+| --- | --- | --- | --- |
+| 노드 | 같은 클러스터의 노드(NodeShare: 전체 · Tree · Leaf) | read · subscribe · bind.source | 1시간 · 1일 · 7일 · 30일 · 90일(필수 · 90일 이하) |
+| 사람 | **나**(whoami principal → 사용자 id) — 다른 사람은 잠근 칩 + 가드 why. 사람 목록(`terra.master.admin.users.get`)은 위임 밖이라 문이 잠근다 | inspect · read · subscribe · bind.source · bind.target | 같음 |
+
+write · invoke(그리고 노드에게 inspect · bind.target)는 칩으로 그리되 잠그고 이유를 단다. 보내기 전에 `checkGrant` 가 가드와 같은 거절을 화면에서 낸다 — 부르지 않은 것을 '됨'이라 하지 않는다. 허가 목록의 사람 주체는 `사람` 꼬리표, 이 계정이면 `나 · id`.
+

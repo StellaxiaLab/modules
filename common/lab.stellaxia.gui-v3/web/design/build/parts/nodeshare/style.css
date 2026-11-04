@@ -70,3 +70,6 @@ body{margin:0;background:#040614}
 .sh-h2{margin-top:18px}
 .sh-rn{border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(110,236,156,.45);text-underline-offset:3px}
 .sh-rn:hover{color:#d0ff96;text-decoration-color:#d0ff96}
+.sh-pick[disabled]{opacity:.42;cursor:not-allowed;text-decoration:line-through;text-decoration-color:rgba(255,178,166,.6)}
+.sh-op{font-family:GmarketSans,'Geist Mono',sans-serif}
+.sh-lock{font-size:11px;color:#ffd27a;white-space:normal}

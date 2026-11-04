@@ -37,3 +37,27 @@ body{margin:0;background:transparent}
 .rs-ep{display:grid;grid-template-columns:minmax(90px,auto) 110px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap;overflow:hidden}
 .rs button:focus-visible{outline:1px solid #d0ff96;outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.rs-graph span{transition:none}}
+.rs-chip{flex:none;padding:0 6px;border:1px solid currentColor;font:600 10px GmarketSans,'Geist Mono',sans-serif}
+.rs-chip.ok{color:#60e28c}.rs-chip.warn{color:#ffd27a}.rs-chip.err{color:#ff9c8c}.rs-chip.busy{color:#7aa7ff}.rs-chip.dim{color:#709c80}
+.rs-btn[disabled]{opacity:.45;cursor:default}
+.rs-sk{margin-left:6px;font-weight:500;color:#5d8a6c}
+.rs-seg button.on .rs-sk{color:#9cc4a8}
+.rs-vmeta{font-size:10px;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rs-lock{border:1px dashed rgba(255,210,122,.45);background:rgba(40,30,6,.25);padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+.rs-lock-h{display:flex;align-items:center;gap:8px;color:#ffd27a}
+.rs-lock-h .ns-k{margin-left:auto;font-size:10px}
+.rs-lk{font-size:13px}
+.rs-why{color:#ffd27a;white-space:normal}
+.rs-log{height:150px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;border-left:1px solid rgba(70,160,108,.3);padding-left:8px;font:500 11px 'Geist Mono',monospace;color:#c4e8cf;white-space:nowrap}
+.rs-log div{overflow:hidden;text-overflow:ellipsis}
+.rs-hex{font:500 11px 'Geist Mono',monospace;min-height:60px}
+.rs-hr{display:grid;grid-template-columns:38px minmax(0,1fr) 128px;gap:10px;white-space:nowrap}
+.rs-hr span:nth-child(2){overflow:hidden;color:#c4e8cf}
+.rs-asc{color:#d0ff96;letter-spacing:.5px;overflow:hidden}
+.rs-frame{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:16/9;max-height:190px;border:1px solid rgba(70,160,108,.45);background:#02040c}
+.rs-frame img{width:100%;height:100%;object-fit:contain;image-rendering:auto}
+.rs-fnote{position:absolute;left:8px;bottom:6px;font-size:10px}
+.rs-evr{display:grid;grid-template-columns:64px 84px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap}
+.rs-ty{color:#d0ff96;overflow:hidden;text-overflow:ellipsis}
+.rs-cut{overflow:hidden;text-overflow:ellipsis}
+.rs-tools{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:10px}

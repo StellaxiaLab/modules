@@ -16,6 +16,7 @@
 //   "유휴"(이어졌지만 흐르지 않음) — binding 에 마지막 프레임 시각 · 수가 없다
 
 import { TerraError } from './terra.js';
+import { checkGrant, selfIdOf } from './svi-grant.js';
 
 // ── 유형 ──
 const ABS = '^(/|[A-Za-z]:[\\\\/])';   // 절대 경로(Linux · Windows)
@@ -158,7 +159,7 @@ export function createSviMake(terra, topo, who) {
   let selfP = null;
   /** 본인 사용자 id — 이미 있는 본인 허가의 주체, 없으면 whoami principal('… via 앱' 앞 · 'user:' 뒤) */
   const self = () => selfP || (selfP = terra.invoke('terra.master.svi.grants.get', { subject_type: 'user', limit: 50 }).then((d) => { const g = A(d, 'items', 'grants').find((x) => x.subject && x.subject.type === 'user'); if (g) return g.subject.id; throw 0; })
-    .catch(() => { const w = who() || {}; const p = String(w.principal || '').split(' via ')[0].replace(/^user:/, '').trim(); if (!p || p === 'anonymous') { selfP = null; throw new TerraError('NO_USER', '로그인한 사용자를 알 수 없다', 0); } return p; }));
+    .catch(() => { const p = selfIdOf(who()); if (!p) { selfP = null; throw new TerraError('NO_USER', '로그인한 사용자를 알 수 없다', 0); } return p; }));
   const api = {
     /** 그 노드의 선언 · 울타리 + 클러스터의 자원(끝) · 허가 · 연결 */
     async load(rid) {
@@ -181,7 +182,17 @@ export function createSviMake(terra, topo, who) {
     },
     declare: (rid, input) => terra.invoke('terra.daemon.svi.declarations.post', input, at(rid)),
     undeclare: (rid, family, name) => terra.invoke('terra.daemon.svi.declarations.by-family.by-name.undeclare.post', { family, name }, at(rid)),
-    grant: (resId, nodeId, ops, ttl) => terra.invoke('terra.master.svi.grants.post', { subject_type: 'node', subject_id: nodeId, resource_id: resId, operations: ops, ttl_seconds: ttl }),
+    grant: (resId, nodeId, ops, ttl) => api.grantTo('node', nodeId, resId, ops, ttl),
+    /** 주체(node · user) 허가 — 위임 가드(svi-grant.js checkGrant)를 먼저 보고 막히면 부르지 않는다. user 는 나 자신만 */
+    async grantTo(type, id, resId, ops, ttl) {
+      const g = { subject_type: type, subject_id: id, resource_id: resId, operations: ops, ttl_seconds: ttl }, c = checkGrant(g, type === 'user' ? await self() : '');
+      if (!c.ok) throw new TerraError('FORBIDDEN', c.why, 0);
+      return terra.invoke('terra.master.svi.grants.post', g);
+    },
+    /** 이 계정의 사용자 id(본인 허가 · '나' 칩) */
+    selfId: () => self(),
+    /** 바로 아는 사용자 id — whoami 에서(없으면 '') */
+    selfNow: () => selfIdOf(who()),
     revoke: (grantId) => terra.invoke('terra.master.svi.grants.by-grant-id.delete', { grant_id: grantId }),
     /** 끌어다 놓기 한 번 — 본인 허가(원천 bind.source · 대상 bind.target, 없으면 7일) → bindings.post */
     async link(src, dst, o = {}) {
