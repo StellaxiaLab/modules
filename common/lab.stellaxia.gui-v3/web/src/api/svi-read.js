@@ -32,18 +32,21 @@ export function permOf(ops) {
   return '보기';
 }
 
-/** 자원 목록 @returns {{ id: string, node: string, kind: string, name: string, status: string, eps: { id: string, dir: string }[] }[]} */
+/** 자원 목록 @returns {{ id: string, node: string, kind: string, name: string, status: string, eps: { id: string, dir: string, interaction: string, schema: string }[] }[]} */
+export { subjectRule, allowedOps, toggleOp, checkGrant, selfIdOf, opsText, GRANT_OPS, GRANT_TTLS, OP_KO } from './svi-grant.js';
 export function resources(d) {
   return arr(d, 'items', 'resources').map((r) => ({ id: r.resource_id, node: r.node_id || '', kind: r.kind || '', name: r.display_name || r.canonical_name || r.resource_id, status: r.status || '',
-    eps: arr(r.endpoints).map((e) => ({ id: e.endpoint_id, dir: e.direction || '', interaction: e.interaction || '' })) }));
+    eps: arr(r.endpoints).map((e) => ({ id: e.endpoint_id, dir: e.direction || '', interaction: e.interaction || '', schema: (e.direction === 'sink' ? e.input_schema || e.output_schema : e.output_schema || e.input_schema) || '' })) }));
 }
 
 const ttlText = (iso, now) => { const t = Date.parse(iso || ''); if (Number.isNaN(t)) return '없음'; const h = (t - now) / 3600000; return h <= 0 ? '만료' : h < 24 ? Math.ceil(h) + '시간 남음' : Math.ceil(h / 24) + '일 남음'; };
 /** 허가 목록 → 그 자원의 줄. names: node_id → 이름, parent: 부모 Tree 의 node_id @returns {{ id: string, who: string, type: string, perm: string, ops: string, ttl: string, subject: { type: string, id: string } }[]} */
-export function grantRows(d, resourceId, names = new Map(), parent = '', now = Date.now()) {
+//   주체가 사람이면 type '사람', 이 계정(selfId)이면 who '나'
+export function grantRows(d, resourceId, names = new Map(), parent = '', now = Date.now(), selfId = '') {
   return arr(d, 'items', 'grants').filter((g) => g.resource_id === resourceId).map((g) => {
-    const s = g.subject || { type: g.subject_type, id: g.subject_id }, node = s.type === 'node';
-    return { id: g.grant_id, who: node ? names.get(s.id) || s.id : s.id, type: node ? (s.id === parent ? 'Tree' : 'Leaf') : '계정', perm: permOf(g.operations), ops: (g.operations || []).join(' · '), ttl: ttlText(g.expires_at, now), subject: s };
+    const s = g.subject || { type: g.subject_type, id: g.subject_id }, node = s.type === 'node', me = !node && !!selfId && s.id === selfId;
+    return { id: g.grant_id, who: node ? names.get(s.id) || s.id : me ? '나 · ' + s.id : s.id, type: node ? (s.id === parent ? 'Tree' : 'Leaf') : s.type === 'user' || !s.type ? '사람' : s.type, self: me,
+      perm: permOf(g.operations), ops: (g.operations || []).join(' · '), ttl: ttlText(g.expires_at, now), subject: s };
   });
 }
 

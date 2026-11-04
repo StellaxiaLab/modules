@@ -14,6 +14,13 @@ const B_ONLY = {
   'terra.master.crossboundary.login-routes.get': '다른 Tree 로그인 길 — 위임 밖(terra-reach §5)',
   'terra.master.crossboundary.login-routes.by-node-id.resolve.post': '자식 Tree 주소 묻기 — 위임 밖'
 };
+// 위임 밖이지만 문(window.TerraGate · TerraGateAll) 뒤에서만 부르는 것 — 화면은 잠그고 why 를 보인다. 코어가 열면 표만 다시 뽑아 저절로 열린다
+const GATED = {
+  'terra.master.svi.handles.post': '자원 상태 창 값 보기 — 핸들 열기(svi-view.js WATCH_OPS)',
+  'terra.master.svi.handles.by-handle-id.events.get': '자원 상태 창 값 보기 — SSE 구독',
+  'terra.master.svi.handles.by-handle-id.delete': '자원 상태 창 값 보기 — 핸들 닫기',
+  'terra.master.admin.users.get': '허가 주체 — 사람 목록(나 말고는 위임 가드도 막는다)'
+};
 const files = (dir, ext) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name), ext) : ext.test(e.name) && !/\.test\.mjs$/.test(e.name) ? [join(dir, e.name)] : []));
 
 test('표 — 계약에서 뽑은 모양(op id → method · path · permissions)', () => {
@@ -26,6 +33,7 @@ test('gui-v3 가 부르는 Master op — 모두 위임 표에 있거나 B 모드
   const used = new Set();
   for (const f of [...files(join(web, 'src'), /\.js$/), ...files(join(web, 'design'), /\.dc\.html$/)]) for (const m of readFileSync(f, 'utf8').matchAll(/'(terra\.master\.[a-z0-9.-]+)'/g)) used.add(m[1]);
   assert.ok(used.size > 0);
-  const out = [...used].filter((id) => !table.operations[id] && !B_ONLY[id]);
+  const out = [...used].filter((id) => !table.operations[id] && !B_ONLY[id] && !GATED[id]);
+  for (const id of Object.keys(GATED)) assert.ok(!table.operations[id], id + ' 가 위임 표에 생겼다 — GATED 에서 빼라(화면은 저절로 열린다)');
   assert.deepEqual(out, [], '위임 밖인데 B 모드 전용으로 적히지 않은 Master op');
 });
