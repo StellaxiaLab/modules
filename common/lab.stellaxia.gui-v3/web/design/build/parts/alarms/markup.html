@@ -27,7 +27,7 @@
   </sc-for>
   <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="al-k al-empty">{{emptyT}}</div></sc-if>
 
-  <h3 class="al-h"><span class="al-hl"></span>알림이 다루지 않는 것<span class="al-hr"></span></h3>
+  <h3 class="al-h"><span class="al-hl"></span>범위 밖<span class="al-hr"></span></h3>
   <sc-for list="{{gaps}}" as="g" hint-placeholder-count="3"><div class="al-gap">· {{g.t}}</div></sc-for>
   <div class="al-row" style="margin-top: 6px;"><span class="al-p">&gt;</span><span class="al-cur"></span></div>
 </div>

@@ -48,7 +48,7 @@ test('NodeShare 실제 — 사람: 나만 고를 수 있고 사람 목록은 문
   c.state.draft = Object.assign({}, c.state.draft, { kind: 'user' });
   let v = c.renderVals();
   assert.equal(v.isUserKind, true); assert.deepEqual(v.people.map((p) => [p.name, p.off]), [['나 · u-me', null]]);
-  assert.match(v.peopleWhy, /사람 목록 잠김 — 코어 — Master 계약이 terra\.master\.admin\.users\.get 를 앱 위임/); assert.match(v.peopleWhy, /위임 가드/);
+  assert.match(v.peopleWhy, /잠김 : 위임 없음 — terra\.master\.admin\.users\.get/); assert.match(v.peopleWhy, /위임 가드/);
   assert.deepEqual(v.opChips.filter((x) => !x.off).map((x) => x.name), ['살펴보기', '읽기', '구독', '연결 원천', '연결 대상']);
   assert.equal(v.opChips.find((x) => x.name === '쓰기').off, 'disabled');
   v.opChips.find((x) => x.name === '연결 대상').pick(); v = c.renderVals(); v.give(); await new Promise((r) => setTimeout(r, 0));
@@ -81,7 +81,7 @@ test('NodeSvi 실제 — 주체 사람이면 나 칩 하나(이미 있으면 켜
     const c = new SV.Component({ nodeName: 'desk', nodeRid: 'n1' }); c._live = true; c.state.data = DATA; c.state.tab = 'res';
     let v = c.renderVals(); assert.equal(v.decls[0].gLabel, '허가한 노드'); assert.deepEqual(v.decls[0].nodes.map((n) => n.name), ['srv']);
     c.state.subj = 'user'; v = c.renderVals(); assert.equal(v.decls[0].gLabel, '허가한 사람'); assert.deepEqual(v.decls[0].nodes.map((n) => [n.name, n.on]), [['나 · u-me', 'true']]);
-    assert.match(v.grantNote, /사람 목록 잠김 — 코어/); assert.deepEqual(v.opChips.filter((x) => !x.off).map((x) => x.label), ['살펴보기', '읽기', '구독', '연결 원천', '연결 대상']);
+    assert.match(v.grantNote, /사람 목록 잠김 — 잠김 : 위임 없음/); assert.deepEqual(v.opChips.filter((x) => !x.off).map((x) => x.label), ['살펴보기', '읽기', '구독', '연결 원천', '연결 대상']);
     v.decls[0].nodes[0].toggle(); await new Promise((r) => setTimeout(r, 0)); assert.deepEqual(calls[0], ['revoke', 'g9']);
     c.state.data = Object.assign({}, DATA, { grants: [] }); c.renderVals().decls[0].nodes[0].toggle(); await new Promise((r) => setTimeout(r, 0));
     assert.deepEqual(calls[1], ['grantTo', 'user', 'u-me', 'r1', ['inspect', 'read', 'subscribe'], 604800]);

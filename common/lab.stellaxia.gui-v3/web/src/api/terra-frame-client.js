@@ -39,7 +39,7 @@ export function connectTerra(options = {}) {
         const dev = devFrame(options, doFetch);
         return dev
             ? Promise.resolve(dev)
-            : Promise.reject(new Error('terra.web/frame 안이 아닙니다. 단독으로 돌리려면 devToken과 devModuleId를 주세요'));
+            : Promise.reject(new Error('terra.web/frame 밖 — 단독 실행 : devToken · devModuleId 필요'));
     }
     return new Promise((resolve, reject) => {
         let parentOrigin = '';
@@ -228,7 +228,7 @@ export function connectTerra(options = {}) {
                 resolve(dev);
                 return;
             }
-            reject(new Error(`terra.web/frame이 ${timeoutMs}ms 안에 ${FRAME_INIT}을 보내지 않았습니다`));
+            reject(new Error(`terra.web/frame 응답 없음 — ${FRAME_INIT} ${timeoutMs}ms 초과`));
         }, timeoutMs);
         win.addEventListener('message', listener);
         // hello에는 비밀이 없다. 부모의 origin을 아직 모르므로 '*'로 보낸다.

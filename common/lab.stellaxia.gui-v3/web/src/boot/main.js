@@ -36,8 +36,8 @@ const appReady = MODE === 'app' ? connectApp() : Promise.resolve(null);   // A �
 let frame = null;
 const say = (t) => { if (!status) return; status.textContent = t; status.style.opacity = ''; clearTimeout(say.t); say.t = setTimeout(() => { status.style.opacity = '0'; }, 5000); };   // 잠깐 보이고 사라진다(전역 틀 아래 줄과 겹치지 않게)
 
-if (q.get('gpu') !== 'off') useGpuField('Scene', { mode: q.get('render') === 'main' ? 'main' : 'worker', prefer: q.get('gl') === '2d' ? '2d' : 'webgl2', onReady: (h) => say('글자 장 ' + h.kind + ' · ' + (h.mode === 'worker' ? 'Worker' : '메인 스레드')) });
-else say('글자 장 시안 2D');
+if (q.get('gpu') !== 'off') useGpuField('Scene', { mode: q.get('render') === 'main' ? 'main' : 'worker', prefer: q.get('gl') === '2d' ? '2d' : 'webgl2', onReady: (h) => say('글자 장 : ' + h.kind + ' · ' + (h.mode === 'worker' ? 'Worker' : '메인 스레드')) });
+else say('글자 장 : 시안 2D');
 
 // 보드를 고치지 않고 몇 자리만 잇는다: 로그인(Login.login) · Tree 로그인 · 로그아웃(Scene.sceneLogout). 노드 데이터는 TerraNodes 가 window.TerraTransport 를 쓴다
 let terra = null, session = null, transport = null, push = null, alarms = null, topoTimer = 0;
@@ -57,20 +57,20 @@ if (MODE !== 'demo') {
           if (rememberedMode(frame, S)) return this.rememberedLogin();   // auto — 기억된 id 로, 비밀번호 없이
           const sec = hostSecretOf(frame); if (sec) return this.hostLogin(sec);   // 셸이 비밀번호 칸을 준다(§4.9) — 이 보드가 그리고, 값은 셸 칸에서 Scene 으로
           if (frame) { frame.emit('login'); return; }   // 칸을 모르는 셸 — 감싼 Scene 의 /login 카드가(웹 프로그램 감싸기 설계 §3.3.1)
-          this.setState({ msg: '셸이 응답하지 않아요 — 셸에서 로그인한 뒤 다시' }); return;
+          this.setState({ msg: '셸 응답 없음 — 셸에서 로그인 후 재시도' }); return;
         }
         if (!S.va || !S.vp || this._busy) return super.login();   // 빈 칸 안내는 시안 그대로
         this._busy = true; this.setState({ msg: '확인 중…' });
         session.login(S.va, S.vp)
           .then(() => Promise.race([loadTopology(terra), new Promise((r) => setTimeout(() => r(null), 4000))]))   // 실제 지도 — 전환(워프) 전에 받아 둔다(4초 넘으면 시안 지도로 들어가고 오면 바꾼다)
           .then((topo) => { this._busy = false; if (window.TerraNodes) window.TerraNodes.clear(); if (topo) setTopology(topo); else loadTopology(terra).then((t) => t && setTopology(t)); afterLogin(); super.login(); },   // 로그인 전의 '로그인 전' 답은 지우고 새로   // 됐으면 시안의 전환(워프)
-          (e) => { this._busy = false; this.setState({ msg: e.message || '로그인 못 함' }); this.ripAt('login', [255, 120, 110]); });
+          (e) => { this._busy = false; this.setState({ msg: e.message || '로그인 실패' }); this.ripAt('login', [255, 120, 110]); });
       }
       // A 모드 + 셸 비밀번호 칸 — 빈 칸 안내는 시안 그대로(비밀번호가 비었는지는 셸이 알려 준다), 보내는 것은 비밀이 아닌 값뿐
       hostLogin(sec) {
         const S = this.state || {};
         if (this._busy) return;
-        if (!S.va || sec.state().empty) { this.setState({ msg: !S.va ? 'admin 을 입력하세요' : 'password 를 입력하세요' }); this.ripAt('login', [242, 244, 252]); return; }
+        if (!S.va || sec.state().empty) { this.setState({ msg: !S.va ? 'admin 입력 필요' : 'password 입력 필요' }); this.ripAt('login', [242, 244, 252]); return; }
         const attempt = nextAttempt(); this._busy = true; this.setState({ msg: '확인 중…' });
         const answer = waitHostLogin(frame, attempt);
         sec.submit({ email: S.va, auto: !!S.autoOn, node: String(S.inst ?? this.props.installed ?? 'Leaf'), attempt });
@@ -92,7 +92,7 @@ if (MODE !== 'demo') {
           this._busy = false;
           if (r.ok) { this.warpStart(); return; }
           frame.remember.forget();
-          this.setState({ msg: '기억된 로그인이 끝났어요 — 비밀번호를 입력하세요' }); this.ripAt('login', [255, 120, 110]);
+          this.setState({ msg: '기억된 로그인 만료 — 비밀번호 입력 필요' }); this.ripAt('login', [255, 120, 110]);
           const sec = hostSecretOf(frame); if (sec) sec.focus();
         });
       }
@@ -151,16 +151,16 @@ if (MODE !== 'demo') {
       login() {
         const R = this.route(), rid = ridOf(this.props.treeKey);
         if (!rid) return super.login();   // 시안 노드(실제 지도 밖) — 시안 그대로
-        if (!R.url) { this.fail(null, { http: '', code: 'NO_ROUTE', title: '로그인 주소가 없음', hint: R.needs ? '[주소 묻기] 로 그 Tree 에게 주소를 물어보세요' : '이 Tree 로 가는 길을 Master 가 모르고 있어요 — 운영자에게 주소를 받아 --url 로', act: '' }); return; }
+        if (!R.url) { this.fail(null, { http: '', code: 'NO_ROUTE', title: '로그인 주소가 없음', hint: R.needs ? '[주소 묻기] — 그 Tree 에 주소 요청' : 'Master 에 이 Tree 경로 없음 — 운영자에게 주소 받아 --url', act: '' }); return; }
         try { localStorage.setItem('terra.login.email', (this.state.email || '').trim()); } catch (e) {}
-        this.setState({ phase: 'send', msg: R.url + ' 로 옮겨 가는 중…', bad: false, err: null });
+        this.setState({ phase: 'send', msg: '이동 중 : ' + R.url, bad: false, err: null });
         setTimeout(() => window.location.assign(R.url), 300);   // 그 Tree 의 GUI 에서 로그인 — 비밀번호는 그 Gateway 만 받는다
       }
       renderVals() {
         const v = super.renderVals(), rid = ridOf(this.props.treeKey);
         if (rid) v.resolve = () => { this.setState({ phase: 'ask' }); terra.invoke('terra.master.crossboundary.login-routes.by-node-id.resolve.post', { node_id: rid })
-          .then((r) => { const url = r && (r.login_url || (r.route && r.route.login_url)); this.setState({ phase: null, resolved: true, url: url || null, msg: url ? '' : '이 Tree 는 주소를 내놓지 않았어요' }); },
-            (e) => this.setState({ phase: null, resolved: true, url: null, msg: '주소를 묻지 못함 · ' + (e.code || '') })); };
+          .then((r) => { const url = r && (r.login_url || (r.route && r.route.login_url)); this.setState({ phase: null, resolved: true, url: url || null, msg: url ? '' : '주소 없음 (이 Tree)' }); },
+            (e) => this.setState({ phase: null, resolved: true, url: null, msg: '주소 요청 실패 · ' + (e.code || '') })); };
         return v;
       }
     }
@@ -211,7 +211,7 @@ if (MODE !== 'demo') {
   const appLogout = () => {
     if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive();
     if (frame && signedIn()) { frame.emit('logout'); if (rememberedOf(frame)) frame.remember.forget(); }   // 로그아웃은 기억도 지운다(Gateway 는 그 세션의 기억을 이미 지운다 — 여기는 이 웹이 쥔 id 사본)
-    else say('셸의 로그인으로 열렸어요 — 로그아웃은 셸에서');
+    else say('셸 로그인 세션 — 로그아웃 : 셸에서');
   };
   const appSignedIn = () => { loadTopology(terra).then((t) => t && setTopology(t)); afterLogin(); };
   // 토큰을 잃으면 보드의 로그인 층을 다시 올린다(이미 올라와 있으면 그대로)
@@ -224,7 +224,7 @@ if (MODE !== 'demo') {
   }, AUTO_WARP_MS);
   // A 모드 — 셸의 init 을 받으면 지도부터. 셸이 답하지 않으면(15초) 데이터 없이 연다(로그인 보드는 "셸이 응답하지 않아요")
   if (MODE === 'app') appReady.then((f) => {
-    frame = f; if (!f) { say('셸이 응답하지 않아요 — Terra 데이터 없이'); return; }
+    frame = f; if (!f) { say('셸 응답 없음 — Terra 데이터 없음'); return; }
     const sec = hostSecretOf(f);
     if (sec) bindHostSecret({ secret: sec, login: () => window.__terra && window.__terra.login(), scene: () => window.__terra && window.__terra.scene, wanted: () => { const lg = window.__terra && window.__terra.login(); return !f.token() && !rememberedMode(f, lg && lg.state); } });   // 토큰이 있으면(이미 로그인) · 기억으로 들어갈 자리면 칸을 두지 않는다
     let had = !!f.token();
@@ -234,9 +234,9 @@ if (MODE !== 'demo') {
       else if (!tok) { stopLive(); showLogin(); }
       had = !!tok;
     });
-    if (had) { appSignedIn(); autoWarp(); say('앱 모드 — 셸의 앱 토큰'); }
+    if (had) { appSignedIn(); autoWarp(); say('앱 모드 · 셸 앱 토큰'); }
   });
-} else say('목업 — Terra 없이 시안 데이터');
+} else say('목업 · 시안 데이터 (Terra 없음)');
 
 // 첫 화면은 모드와 상관없이 로그인 보드다(A 모드도 — 로그인 뒤 워프로 트리 뷰)
 const host = mountBoard('Scene', document.getElementById('app'), {});

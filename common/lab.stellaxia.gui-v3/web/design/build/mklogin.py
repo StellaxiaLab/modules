@@ -74,7 +74,7 @@ rep("  loginOn() {","""  sceneCtx(e) {
     const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }, acts = [];
     const here = this.sceneCur && this.sceneCur() === mn;
     if (mn.kind !== 'root' && this.gf_needLogin(mn)) acts.push({ label: '로그인', desc: (this.gf_treeOf(mn) || mn).name + ' 세션 없음', run: () => this.gf_loginOpen(mn) });
-    { const RR = typeof window !== 'undefined' ? window.TerraLoginRoutes : null, t = this.gf_treeOf(mn), r = RR && t && t.rid && RR[t.rid]; if (r && mn.kind === 'tree') acts.push({ label: 'Tree 로그인', desc: (r.login_url ? '그 Tree 의 GUI 로' : '주소 묻기') + ' · ' + (r.direction || ''), run: () => this.gf_loginOpen(mn) }); }   // 실제 길이 있는 자식 · 형제 Tree — 그 Tree 의 GUI 로 옮겨 가 로그인
+    { const RR = typeof window !== 'undefined' ? window.TerraLoginRoutes : null, t = this.gf_treeOf(mn), r = RR && t && t.rid && RR[t.rid]; if (r && mn.kind === 'tree') acts.push({ label: 'Tree 로그인', desc: (r.login_url ? 'Tree GUI 로 이동' : '주소 묻기') + ' · ' + (r.direction || ''), run: () => this.gf_loginOpen(mn) }); }   // 실제 길이 있는 자식 · 형제 Tree — 그 Tree 의 GUI 로 옮겨 가 로그인
     if (mn.kind !== 'root' && !here) acts.push({ label: '진입', desc: { tree: '리프 뷰', leaf: '리소스 뷰', res: '자원 보기' }[mn.kind], run: () => this.navStart(mn) });
     acts.push({ label: '지도', desc: '지도에서 보기', run: () => this.gf_mapShow(mn) });   // 전역 틀 지도를 그 노드로 옮긴다 (다른 Tree 의 리프 · 리소스면 로그인부터)
     acts.push({ label: '상태', desc: mn.kind === 'res' ? '값 · 연결' : '동작 · 상태', run: () => this.gf_ctlOpenWin(mn, undefined, 'stat') });
@@ -84,7 +84,7 @@ rep("  loginOn() {","""  sceneCtx(e) {
     if (mn.kind === 'leaf' || mn.kind === 'res') acts.push({ label: '자원', desc: '공유 · 등록', run: () => this.gf_ctlOpenWin(mn, undefined, 'share') });
     if (mn.kind === 'tree' || mn.kind === 'leaf') acts.push({ label: '제어기', desc: '노드 데스크톱', run: () => this.gf_ctlOpenWin(mn) });
     { const TN = typeof window !== 'undefined' && window.TerraNodes, tp = TN && TN.t; if (tp && tp.kind === 'mock' && (mn.kind === 'tree' || mn.kind === 'leaf') && mn !== this.gf_localNode()) { const cut = tp.cut().has(mn.id);   // 시안 시험 — 분할(PA)을 흉내: 그 노드를 끊고 잇는다
-      acts.push({ label: cut ? '잇기 (시험)' : '끊기 (시험)', desc: cut ? '노드 다시 닿음' : '노드 꺼짐 흉내 · PA', run: () => { tp.setCut(mn.id, !cut); for (const r in TN.RES) if (TN.cache.has(mn.id + '|' + r)) TN.refresh(mn.id, r); } }); } }
+      acts.push({ label: cut ? '잇기 (시험)' : '끊기 (시험)', desc: cut ? '노드 재연결' : '노드 꺼짐 흉내 · PA', run: () => { tp.setCut(mn.id, !cut); for (const r in TN.RES) if (TN.cache.has(mn.id + '|' + r)) TN.refresh(mn.id, r); } }); } }
     return { x, y, r, name: mn.name, kind: KN[mn.kind] || '노드', acts, track };
   }
   // 로컬 위치(전역 틀의 '⌖ 로컬' 줄) — 이 GUI 를 띄운 노드로. 클러스터(같은 Tree) 안이면 장면 안 비행, 밖이면 워프

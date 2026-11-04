@@ -16,8 +16,6 @@ import MD from './master-delegated.json' with { type: 'json' };
 /** 이 앱(lab.stellaxia.gui-v3.web)이 module.json 에 선언한 권한 — tests 가 module.json 과 같은지 본다 */
 export const APP_PERMS = ['session.identity', 'node.read', 'node.control', 'node.config', 'file.read', 'file.write', 'process.execute', 'module.manage'];
 
-const PERM_KO = { 'node.enroll': '노드 등록(node.enroll)', 'node.control': '노드 제어(node.control)', 'node.config': '노드 설정(node.config)', 'process.execute': '명령 실행(process.execute)', 'module.manage': '모듈 관리(module.manage)', 'file.write': '파일 쓰기(file.write)', 'file.read': '파일 읽기(file.read)', 'node.read': '노드 읽기(node.read)' };
-const ko = (p) => PERM_KO[p] || p;
 
 /**
  * @param {string} op
@@ -27,18 +25,18 @@ const ko = (p) => PERM_KO[p] || p;
 export function gate(op, o = {}) {
   const shut = (needs, why) => ({ open: false, needs, why, op });
   if (op.startsWith('terra.master.')) {
-    if (!MD.operations[op]) return shut('core', '코어 — Master 계약이 ' + op + ' 를 앱 위임(delegated-session)에 열지 않았다');
+    if (!MD.operations[op]) return shut('core', '잠김 : 위임 없음 — ' + op);
     const need = (MD.operations[op].permissions || []).filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
-    if (need.length) return shut('user-perm', '이 계정에 ' + need.map(ko).join(' · ') + ' 권한이 없다');
+    if (need.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + need.join(' · '));
     return { open: true, needs: '', why: '', op };
   }
   const S = SCOPE.operations[op];
-  if (!S) return op.startsWith('terra.daemon.') ? shut('core', '코어 — Daemon 계약에 ' + op + ' 가 없다') : { open: true, needs: '', why: '', op };
+  if (!S) return op.startsWith('terra.daemon.') ? shut('core', '잠김 : 계약 없음 — ' + op) : { open: true, needs: '', why: '', op };
   const app = S.permissions.filter((p) => !APP_PERMS.includes(p));
-  if (app.length) return shut('app-perm', '앱 권한에 ' + app.map(ko).join(' · ') + ' 이 없다 — module.json 과 Terra 의 앱 권한 승인이 필요');
-  if (o.remote && !S.scopes.includes('cluster')) return shut('local', '이 노드에서만 — 다른 노드에서는 부를 수 없다(local 전용)');
+  if (app.length) return shut('app-perm', '잠김 : 앱 권한 없음 — ' + app.join(' · '));
+  if (o.remote && !S.scopes.includes('cluster')) return shut('local', '잠김 : 이 노드에서만');
   const user = S.permissions.filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
-  if (user.length) return shut('user-perm', '이 계정에 ' + user.map(ko).join(' · ') + ' 권한이 없다');
+  if (user.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + user.join(' · '));
   return { open: true, needs: '', why: '', op };
 }
 

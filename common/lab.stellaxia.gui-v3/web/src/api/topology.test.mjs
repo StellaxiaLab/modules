@@ -39,7 +39,7 @@ test('nodeStats — 하트비트 자원 스냅샷 · 상태 · 마지막 하트�
   const now = Date.parse('2026-10-31T12:00:00Z');
   const E = { stale: false, version: '', relay: null, memTotal: null, memUsed: null, diskTotal: null, diskUsed: null };
   assert.deepEqual(nodeStats({ status: 'online', resource: { cpu_percent: 42, memory_percent: 61.5 }, last_heartbeat_at: '2026-10-31T11:59:50Z' }, now), { status: '● 온라인', online: true, ageSec: 10, seenAt: Date.parse('2026-10-31T11:59:50Z'), cpu: 0.42, mem: 0.615, disk: null, seen: '방금', ...E });
-  assert.equal(nodeStats({ status: 'offline', last_heartbeat_at: '2026-10-31T09:00:00Z' }, now).seen, '3시간 전');
+  assert.equal(nodeStats({ status: 'offline', last_heartbeat_at: '2026-10-31T09:00:00Z' }, now).seen, '3h 전');
   assert.deepEqual(nodeStats(null, now), { status: '—', online: false, ageSec: null, seenAt: null, cpu: null, mem: null, disk: null, seen: '', ...E });
   const T = buildTopology([{ node_id: 't', roles: ['tree'], display_name: 'home' }, { node_id: 'l', parent_node_id: 't', resource: { cpu_percent: 5 } }]);
   assert.equal(T.node('l').resource.cpu_percent, 5); assert.equal(T.node('x'), null);

@@ -10,7 +10,7 @@ test('diff — 처음은 조용히, 바뀐 끝 상태만 알림', () => {
   assert.deepEqual(b.alarms.map((x) => x.m), ['작업 module.install 실패', '작업 t2 완료', '모듈 에이전트 — failed · exit 1']);
   assert.equal(b.alarms[0].at, 5);
   const c = diff(b.next, { tasks: [{ id: 't1', state: 'failed' }] }, { modules: [{ id: 'm', name: '에이전트', state: 'running' }] });
-  assert.deepEqual(c.alarms.map((x) => x.m), ['모듈 에이전트 다시 돈다']);   // 같은 실패는 다시 알리지 않는다
+  assert.deepEqual(c.alarms.map((x) => x.m), ['모듈 에이전트 — 재가동']);   // 같은 실패는 다시 알리지 않는다
 });
 
 test('diff — 새로 생긴 모듈이 처음부터 실패면 알리지 않는다(앞 상태가 없다)', () => {
