@@ -2357,6 +2357,14 @@ class Component extends DCLogic {
     this.gf_drawField(performance.now(), true);
   }
 
+  // 데이터가 바뀌어 다시 배치(노드 사본 · 하트비트 스냅샷 · 알림) — 조용히: 값이 바뀐 줄은 그 자리에서 바로 바꾸고 랜덤 갱신 · 그래프 다시 긋기를 하지 않는다.
+  //   한 프레임에 몰려온 신호(사본 하나를 받을 때 시작 · 끝 두 번 알린다)는 한 번으로. 사람이 누른 것(펼치기 · 고르기 · 찾기)은 layout() 그대로
+  gf_dataLayout() {
+    if (this._q_dataT) return;
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f) => setTimeout(f, 16);
+    this._q_dataT = raf(() => { this._q_dataT = 0; if (this._live === false) return; this._q_quiet = true; try { this.gf_layout(); } finally { this._q_quiet = false; } });
+  }
+
   // ───── 구역 ─────
   // 컨트롤 구역 = 화면 왼쪽 1/4. 구역은 위에서 아래로 쌓인다 (칸 단위). 여백 = 왼쪽 3칸 · 위 2줄
   gf_layout() {
@@ -2608,16 +2616,17 @@ class Component extends DCLogic {
       const T = this._q_tx[id], P = OLD[id]; T.grp = R.grp; T.ord = R.ord;
       if (live && this._q_ctlFxNow && /^mz(ct\d+|Pg|mw\d+|more)$/.test(id)) T.st = { dir: 'in', at: nowL + (R.row - (this._q_ctl ? this._q_ctl.lr0 : 0)) * 25 };   // 찾기 결과로 갱신 — 줄마다 조금씩 늦게 랜덤 갱신
       else if (P && P.st && P.text === text && P.c0 === c0 && P.r0 === R.row) { T.st = P.st; T.g = P.g; T.next = P.next; }
+      else if (this._q_quiet && P && P.st && P.st.dir === 'in') T.st = { dir: 'in', at: nowL - 1e5 };   // 데이터 갱신 — 떠 있던 줄은 새 값으로 바로(다시 찍지 않는다)
       else if (id === 'cmd' && P && P.st && P.st.dir === 'in') T.st = { dir: 'in', at: nowL - 1e5 };
       else if (live && /^mz(ct\d+|Pg|mw\d+|more)$/.test(id)) T.st = { dir: 'in', at: nowL - 1e5 };   // 노드 제어 목록 — 펼치기 · 고르기 · 치는 동안엔 랜덤 갱신 없이 바로 (랜덤 갱신은 TERRA 를 열고 닫을 때와 찾기 결과 갱신 때만)   // 입력 줄 — 칠 때마다 다시 찍지 않고 바로
       else if ((P && P.st && P.st.dir === 'in' || (!P && id.startsWith('mz'))) && (R.grp === 'b' ? this._q_lg && this._q_lg.on : live)) T.st = { dir: 'in', at: nowL + (id.startsWith('mz') ? 420 : 60) + (nch++) * 40 };   // 지도 이름은 카메라가 거의 도착한 뒤
     });
     const live2 = [...ids].map((id) => this._q_tx[id]), hitsLive = (T) => live2.some((L) => L.r0 === T.r0 && L.c0 < T.c0 + this.gf_cellsOf(T.text).length && T.c0 < L.c0 + this.gf_cellsOf(L.text).length);   // 새 줄과 겹치는 이전 줄은 사라지는 모습 없이 바로 뺀다 (겹치면 새 줄을 지움)
-    for (const id in OLD) if (!ids.has(id) && OLD[id].st && OLD[id].st.dir === 'in' && !hitsLive(OLD[id]) && !(live && /^mz(ct\d+|Pg|mw\d+|more)$/.test(id))) { const T = OLD[id]; T.grp = null; T.ghost = true; T.st = { dir: 'out', at: nowL }; this._q_tx['gh' + id + '_' + Math.round(nowL)] = T; }
+    for (const id in OLD) if (!this._q_quiet && !ids.has(id) && OLD[id].st && OLD[id].st.dir === 'in' && !hitsLive(OLD[id]) && !(live && /^mz(ct\d+|Pg|mw\d+|more)$/.test(id))) { const T = OLD[id]; T.grp = null; T.ghost = true; T.st = { dir: 'out', at: nowL }; this._q_tx['gh' + id + '_' + Math.round(nowL)] = T; }
     this._q_ctlFxNow = false;
     // 레거시 GUI — 이전 상태(진행)를 이어받는다
     const prev = {}; (this._q_legs || []).forEach((e) => { prev[e.id] = e; });
-    legs.forEach((e) => { const P = prev[e.id]; if (!P) return; if (P.sig === e.sig) e.st = P.st; else if (P.st && P.st.dir === 'in') e.st = { dir: 'in', at: nowL }; });   // 바뀐 레거시(초점이 바뀐 확대 판)는 다시 오른쪽으로 생성
+    legs.forEach((e) => { const P = prev[e.id]; if (!P) return; if (P.sig === e.sig || this._q_quiet) e.st = P.st; else if (P.st && P.st.dir === 'in') e.st = { dir: 'in', at: nowL }; });   // 바뀐 레거시(초점이 바뀐 확대 판)는 다시 오른쪽으로 생성
     // 마커(선 · 이름 · 종류) — 포커싱 · 진입으로 카메라가 움직이면 숨겨 두고, 카메라가 다 도착한 뒤에 생성 (mapMkTick)
     { const mk = legs.find((e) => e.id.startsWith('mapMk@')), tids = [...ids].filter((id) => id.startsWith('mzA@') || (mk && id === 'mz@' + mk.id.slice(6)));
       if (live && mk && (!this._q_mkOn || this._q_mkOn !== mk.id)) { mk.st = null; tids.forEach((id) => { this._q_tx[id].st = null; }); this._q_mkPend = { leg: mk.id, tids }; this._q_mkOn = mk.id; }
@@ -2754,7 +2763,7 @@ class Component extends DCLogic {
       T.shapes.modules = (snap) => { const P = this.gf_MODPOOL(), M = (snap && (snap.modules || snap)) || [], S = { running: 'run', starting: 'restart', stopping: 'restart', failed: 'fail', unavailable: 'fail', unsupported: 'fail', config_invalid: 'fail' };   // 실제 응답(modulehost Snapshot) → 모듈 목록 모양
         return Array.isArray(M) ? M.map((m) => { const k = P.find((q) => q.id === m.id); return { id: m.id, name: m.name || m.id, ver: m.version || '', kind: m.kind || '', core: false, apps: k ? k.apps : [], perms: k ? k.perms : [], svi: k ? k.svi : [], st: S[m.state] || 'stop', err: m.last_error || '', startedAt: m.started_at || '', pid: m.pid || 0, restarts: typeof m.restart_count === 'number' ? m.restart_count : null }; }) : []; };   // 가동 시각 · pid · 다시 시작 수 — 모듈 상태 창(modulehost Status)
       if (tp.kind === 'mock') { tp.seeds.modules = (meta) => { const n = this.sceneMap().byId[meta.id]; return n ? this.gf_modSeed(n).map((m) => { const o = Object.assign({}, m); delete o.node; delete o.nodeId; delete o.remote; return o; }) : []; }; }
-      if (first) T.subscribe(() => { this._q_vfs = null; this._q_ctlTree = null; if (this._live !== false) this.gf_layout(); }); }
+      if (first) T.subscribe(() => { this._q_vfs = null; this._q_ctlTree = null; if (this._live !== false) this.gf_dataLayout(); }); }
     return T;
   }
   // 모듈 목록 — 그 노드의 사본(EL: 바로, 낡으면 뒤에서 · PA: 끊기면 마지막 사본). 사본이 없으면 빈 목록(받는 중)
@@ -3072,7 +3081,7 @@ class Component extends DCLogic {
   gf_alarmOpen() { const n = this.gf_localNode(); if (n) this.gf_ctlOpenWin(n, undefined, 'alarm'); }
   gf_alarmUnread() {
     if (typeof window === 'undefined') return 0;
-    if (!this._q_alEv) { this._q_alEv = () => { if (this._live !== false) this.gf_layout(); }; try { window.addEventListener('terra-alarms', this._q_alEv); window.addEventListener('terra-metrics', this._q_alEv); } catch (e) {} }   // 자원 추이 — 스냅샷을 받으면 그래프 · 나이를 다시
+    if (!this._q_alEv) { this._q_alEv = () => { if (this._live !== false) this.gf_dataLayout(); }; try { window.addEventListener('terra-alarms', this._q_alEv); window.addEventListener('terra-metrics', this._q_alEv); } catch (e) {} }   // 자원 추이 — 스냅샷을 받으면 그래프 · 나이를 다시
     const B = window.TerraTransport ? window.TerraAlarmBook : window.TerraAlarmDemo; try { return B ? B.unread() : 0; } catch (e) { return 0; }
   }
   gf_localNode() { const MD = this.sceneMap(); return this._q_locN && MD.all.includes(this._q_locN) ? this._q_locN : (this._q_locN = MD.all.find((n) => n.local) || (this.TOPO() ? null : MD.all.find((n) => n.kind === 'leaf')) || MD.root); }   // 실제 지도면 이 GUI 를 띄운 노드(local) — 못 찾으면 계정(첫 리프로 떨어지면 이름순 첫 노드를 로컬로 착각했다: BOOK-… 의 값이 '로컬'로 보였다), 시안이면 첫 리프
