@@ -7,8 +7,8 @@ doc_type: "moc"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.4.0"
-last_updated: "2026-11-02"
+version: "0.5.0"
+last_updated: "2026-11-04"
 language: "ko-KR"
 os_priority:
   - Linux
@@ -32,6 +32,10 @@ related:
   - "[[terminals|제어기의 두 터미널]]"
   - "[[svi-make|자원화 창]]"
   - "[[node-shell|노드 셸 설계]]"
+  - "[[global-windows|전역 틀의 창 — 알림 · 자원 추이 · 설정 창]]"
+  - "[[controller-files-jobs|제어기 파일 · 작업 · 밀어 받기]]"
+  - "[[desk-flows|제어기 쓰기 흐름]]"
+  - "[[svi-view|자원 상태 창의 값 보기]]"
 ---
 
 # Terra GUI v3 문서 MOC
@@ -74,6 +78,10 @@ flowchart LR
 | 제어기의 노드 터미널(OS 셸) · Terra 터미널(terra shell) — 부르는 것 · 어느 노드 · 코어에 남은 것 | [[terminals\|제어기의 두 터미널]] |
 | 자원화 — 유형 스키마로 양식 · 선언 · 허가 · 끌어다 연결 · 연결 상태, 코어에 필요한 것(모듈 유형 · 유휴) | [[svi-make\|자원화 창]] |
 | 노드 셸(실제 터미널, 잠김) — 누가 · 원격 · 감사 · PTY 전송 · 수명, 결정할 것 | [[node-shell\|노드 셸 설계]] |
+| 전역 틀의 알림 창(읽음 · 지우기 · 거르기) · 하트비트 스냅샷 자원 추이 · 설정 창을 나눈 까닭 | [[global-windows\|전역 틀의 창]] |
+| 제어기 파일 미리보기 · 올리기 · 내려받기(io.terra.file 전송) · 작업 출력 따라가기(SSE) · Master 작업 · 밀어 받기 바뀐 줄 표시 | [[controller-files-jobs\|제어기 파일 · 작업 · 밀어 받기]] |
+| 제어기 쓰기 흐름 — 공용 확인 단계 · 등록 마법사 · .tmod 읽기 · 모듈 배정 진행 · 네트워크 쓰기 · 터널 열기 · 외부 신원, 문(gate)으로 잠근 것 | [[desk-flows\|제어기 쓰기 흐름]] |
+| 자원 상태 창의 값 보기(형식별 뷰어 · 구독) · 허가 주체(노드 · 사람) | [[svi-view\|자원 상태 창의 값 보기]] |
 | node-gui 를 대체하려면 — 현황 점검(2026-10-31) · 기능 격차 · Terra 쪽 같이 바꿀 것 | [[replacement-readiness\|node-gui 대체 준비도]] |
 | 보드가 실제 화면에서 의도대로 안 되는 곳 — 창마다 실제냐 시안이냐 · 고칠 곳 · 어긋나지 않게 하는 절차 | [[design-ops-gaps\|시안 ↔ 실제 운영 격차]] |
 
