@@ -40,7 +40,7 @@ test('NodeStatus 실제 — Master 기록 그대로, 200 GB · 1.7.x 없음, 총
 test('NodeStatus 실제 — 9/24 이후 끊긴 노드는 온라인이 아니고, 자원은 마지막 보고', () => {
   const v = render({ nodeName: 'hanium', nodeKind: '리프', nodeRid: 'n-rdk' });
   assert.doesNotMatch(v.stText, /온라인/); assert.equal(v.stText, '◌ 응답 없음');
-  for (const b of v.bars) assert.match(b.note, /^마지막 보고 · \d+일 전$/, b.name);
+  for (const b of v.bars) assert.match(b.note, /^마지막 보고 · \d+d 전$/, b.name);
 });
 
 test('NodeStatus 실제 — Master 목록에 없는 노드(시안 지도 · rid 없음)는 값 없이', () => {

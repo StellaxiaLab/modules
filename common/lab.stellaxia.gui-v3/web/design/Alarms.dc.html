@@ -95,7 +95,7 @@ body{margin:0;background:transparent}
   </sc-for>
   <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="al-k al-empty">{{emptyT}}</div></sc-if>
 
-  <h3 class="al-h"><span class="al-hl"></span>알림이 다루지 않는 것<span class="al-hr"></span></h3>
+  <h3 class="al-h"><span class="al-hl"></span>범위 밖<span class="al-hr"></span></h3>
   <sc-for list="{{gaps}}" as="g" hint-placeholder-count="3"><div class="al-gap">· {{g.t}}</div></sc-for>
   <div class="al-row" style="margin-top: 6px;"><span class="al-p">&gt;</span><span class="al-cur"></span></div>
 </div>
@@ -161,7 +161,7 @@ class Component extends DCLogic {
   sampleOne(at, kind, id, st, name, extra) {
     const T = { succeeded: ['완료', '●', '#4ade80', 'ok'], failed: ['실패', '■', '#ff6b81', 'bad'], timed_out: ['시간 초과', '■', '#ff6b81', 'bad'], canceled: ['취소됨', '◐', '#fbbf24', 'warn'] };
     if (kind === 'task') { const K = T[st]; return { at, kind, id, g: K[1], c: K[2], m: '작업 ' + name + ' ' + K[0], sev: K[3], st, name }; }
-    if (st === 'running') return { at, kind, id, g: '●', c: '#4ade80', m: '모듈 ' + name + ' 다시 돈다', sev: 'ok', st, name };
+    if (st === 'running') return { at, kind, id, g: '●', c: '#4ade80', m: '모듈 ' + name + ' — 재가동', sev: 'ok', st, name };
     return { at, kind, id, g: '■', c: '#ff6b81', m: '모듈 ' + name + ' — ' + st + (extra || ''), sev: 'bad', st, name };
   }
   demoTick() { const D = this.demo(), n = (this._dn = (this._dn || 0) + 1), ok = n % 3 !== 0; D.add([this.sampleOne(Date.now(), 'task', 't_9' + String(n).padStart(3, '0'), ok ? 'succeeded' : 'failed', ok ? 'svi.declare' : 'process.execute')]); }
@@ -178,9 +178,9 @@ class Component extends DCLogic {
   renderVals() {
     const R = this.real(), B = this.book(), S = this.state, f = S.f, L = B ? B.list : [], C = countAlarms(L), shown = filterAlarms(L, f), now = Date.now(), D = '—';
     const pad = (x) => String(x).padStart(2, '0'), hms = (ms) => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); };
-    const ago = (ms) => { const s = Math.max(0, (now - ms) / 1000); return s < 60 ? '방금' : s < 3600 ? Math.round(s / 60) + '분 전' : s < 86400 ? Math.round(s / 3600) + '시간 전' : Math.round(s / 86400) + '일 전'; };
+    const ago = (ms) => { const s = Math.max(0, (now - ms) / 1000); return s < 60 ? '방금' : s < 3600 ? Math.round(s / 60) + 'm 전' : s < 86400 ? Math.round(s / 3600) + 'h 전' : Math.round(s / 86400) + 'd 전'; };
     const fName = (ALARM_FILTERS.find((x) => x[0] === f) || [0, '전체'])[1], keys = shown.map(alarmKey), unShown = shown.filter((a) => !a.read).map(alarmKey);
-    const note = R && !B ? '로그인 뒤에 알림을 받는다 — 아직 이 노드 Daemon 을 읽지 않았다' : '';
+    const note = R && !B ? '로그인 뒤에 수신 — 이 노드 Daemon 아직 안 읽음' : '';
     const items = shown.map((a) => ({
       cls: a.read ? 'rd' : '', dot: a.read ? '○' : '●', dotCol: a.read ? '#4f6e5a' : a.sev === 'bad' ? '#ff9c8c' : '#96f0aa',
       t: now - a.at < 86400000 ? hms(a.at) : ago(a.at), full: new Date(a.at).toLocaleString() + ' · ' + ago(a.at), g: a.g, c: a.c,
@@ -190,19 +190,19 @@ class Component extends DCLogic {
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.props.nodeName || D,
       unread: C.unread, total: C.all, unCol: C.unread ? '#96f0aa' : '#4f6e5a',
-      srcT: R ? 'terra.daemon.tasks.get · modules.get · 10초마다 + 밀어 받기 · 최근 50 · 읽음은 이 브라우저에만' : '시안 값 · diff() 모양 · 40초마다 하나',
+      srcT: R ? '출처 : terra.daemon.tasks.get · modules.get · 갱신 : 10s + 밀어 받기 · 최근 50 · 읽음 : 이 브라우저만' : '시안 값 · diff() 모양 · 갱신 : 40s',
       noteOn: !!note, note,
       filters: ALARM_FILTERS.map(([k, nm]) => ({ name: nm, n: C[k], on: f === k ? 'true' : 'false', cls: f === k ? 'on' : '', pick: () => this.setState({ f: k, arm: false }) })),
-      readT: f === 'all' ? '모두 읽음' : fName + ' 읽음', readOff: unShown.length ? null : 'disabled', readTip: unShown.length + '개를 읽음으로',
+      readT: f === 'all' ? '모두 읽음' : fName + ' 읽음', readOff: unShown.length ? null : 'disabled', readTip: '읽음 : ' + unShown.length + '개',
       readAll: () => B && B.read(f === 'all' ? '*' : unShown),
-      clrT: S.arm ? '한 번 더 — ' + keys.length + '개 지움' : f === 'all' ? '모두 지우기' : fName + ' 지우기', clrCls: S.arm ? 'arm' : '', clrOff: keys.length ? null : 'disabled',
-      clrTip: '이 화면의 알림 ' + keys.length + '개 — 되돌릴 수 없다', clearAll: () => this.clearAll(keys),
-      armOn: !!S.arm, armT: '지울 것: ' + (f === 'all' ? '알림 전부' : fName) + ' ' + keys.length + '개 · 어디: 이 화면의 목록(Terra 의 작업 · 모듈은 그대로) · 되돌리기: 못 함 — 4초 안에 한 번 더 누르면 지운다',
+      clrT: S.arm ? '한 번 더 : ' + keys.length + '개 지움' : f === 'all' ? '모두 지우기' : fName + ' 지우기', clrCls: S.arm ? 'arm' : '', clrOff: keys.length ? null : 'disabled',
+      clrTip: '알림 ' + keys.length + '개 · 되돌리기 : 불가', clearAll: () => this.clearAll(keys),
+      armOn: !!S.arm, armT: '무엇 : ' + (f === 'all' ? '알림 전부' : fName) + ' ' + keys.length + '개 · 어디 : 이 목록 (Terra 작업 · 모듈 그대로) · 되돌리기 : 불가 · 4s 안에 다시',
       listSum: f === 'all' ? C.all + '개' : fName + ' ' + shown.length + ' / ' + C.all,
       items, empty: !items.length,
-      emptyT: !B ? (R ? '받는 중…' : D) : C.all ? fName + ' 알림 없음' : '알림 없음 — 작업이 끝나거나 모듈 상태가 바뀌면 여기에',
-      gaps: [{ t: '처음 읽은 상태 — 이 화면을 열기 전에 이미 끝난 작업 · 실패한 모듈은 알리지 않는다(바뀐 것만)' }, { t: '다른 노드의 알림 — 이 GUI 를 띄운 노드의 Daemon 만 읽는다(노드마다는 그 노드의 제어기 › 작업 관리자)' },
-        { t: '읽음 · 지움 — Terra 에 알림 상태가 없어 이 브라우저 메모리에만(새로 띄우면 처음부터)' }],
+      emptyT: !B ? (R ? '받는 중…' : D) : C.all ? fName + ' 알림 없음' : '알림 없음 — 작업 종료 · 모듈 상태 변화 시 표시',
+      gaps: [{ t: '첫 상태 — 열기 전 끝난 작업 · 실패 모듈 알림 없음 (변화만)' }, { t: '다른 노드 — 이 노드 Daemon 만 (그 밖 : 그 노드 제어기 › 작업 관리자)' },
+        { t: '읽음 · 지움 — 이 브라우저 메모리만 (Terra 에 알림 상태 없음 · 새로고침 시 초기화)' }],
     };
   }
 }

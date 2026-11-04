@@ -185,7 +185,7 @@ class Component extends DCLogic {
     const TPn = this.TOPO ? this.TOPO() : null, RN = TPn && TPn.node && curN.rid ? TPn.node(curN.rid) : null, NS = RN && typeof window !== 'undefined' && window.TerraNodeStats ? window.TerraNodeStats(RN) : null;
     // 실제(앱이 Terra 에 붙음)인데 Master 기록이 없는 노드(시안 지도 · 계정 · Master 자신)는 시안 값 대신 '—' — 온라인으로 지어내지 않는다
     const RLn = typeof window !== 'undefined' && !!window.TerraTransport, SMP = !NS && !RLn;
-    const kv = [['이름', curN.name], ['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]], ['상태', NS ? NS.status : SMP ? '● 온라인' : '—'], ['자원', SMP ? '3 · ssh · io' : '—'], ['가동', NS ? (NS.seen ? '하트비트 ' + NS.seen : '—') : SMP ? '4일 12시간' : '—']];
+    const kv = [['이름', curN.name], ['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]], ['상태', NS ? NS.status : SMP ? '● 온라인' : '—'], ['자원', SMP ? '3 · ssh · io' : '—'], ['가동', NS ? (NS.seen ? '하트비트 ' + NS.seen : '—') : SMP ? '4d 12h' : '—']];
     const kw = 6, vw = 14, tr0 = r;
     { const xa = x0 * cw + cw / 2, xb = (x0 + kw + vw + 2) * cw + cw / 2, xm = (x0 + kw + 1) * cw + cw / 2, ya = tr0 * ch + ch / 2, yb = (tr0 + kv.length + 1) * ch + ch / 2, cells = new Set();
       fpLine(cells, xa, xb, ya); fpLine(cells, xa, xb, yb); fpCol(cells, xa, ya, yb); fpCol(cells, xb, ya, yb); fpCol(cells, xm, ya, yb);
@@ -212,8 +212,8 @@ class Component extends DCLogic {
     //   NET — 스냅샷에 네트워크 처리량이 없고 코어에 노드별 실시간 지표 op 도 없다 → '—' 와 까닭. 시안이면 예시 그래프(움직임)
     const MT = !SMP && RN && typeof window !== 'undefined' && window.TerraMetrics ? window.TerraMetrics : null, mSp = MT ? MT.spark(RN.node_id, 'cpu', 17) : '';
     if (!SMP) add('c', [[this.pad('추이', 5), C.key], [mSp || this.pad('—', 17), mSp ? C.ok : C.hint], [mSp ? '  CPU' : '  보고 없음', C.hint]]);
-    const sparkRow = rows.length; add('c', [[this.pad('NET', 5), C.key], [SMP ? this.spark(17) : '—', SMP ? C.ok : C.hint], [SMP ? '  1.2 MB/s' : '  코어: 실시간 지표 op 없음', SMP ? C.val : C.hint]], SMP ? 2 : 1);
-    if (!SMP) add('c', [[MT ? MT.cadence(RN.node_id).text : '하트비트 스냅샷 없음 · Master 노드 기록 밖', C.hint]], 2);   // 갱신 주기 — 실시간인 척하지 않는다
+    const sparkRow = rows.length; add('c', [[this.pad('NET', 5), C.key], [SMP ? this.spark(17) : '—', SMP ? C.ok : C.hint], [SMP ? '  1.2 MB/s' : '  코어 : 실시간 지표 op 없음', SMP ? C.val : C.hint]], SMP ? 2 : 1);
+    if (!SMP) add('c', [[MT ? MT.cadence(RN.node_id).text : '갱신 : — · Master 노드 기록 밖', C.hint]], 2);   // 갱신 주기 — 실시간인 척하지 않는다
     const rb = this._rows - 2;
     // 지도 — 우주 지도. 노드는 모두 궤도에(형제는 같은 궤도), 지도 뷰는 세 가지 — 트리 · 리프 · 리소스. 각 지도 뷰에선 그 뷰의 노드만 보이고(다른 뷰의 노드는 빼고) 궤도는 모두 보인다
     //   트리 지도: 계정 · 트리 노드 / 리프 지도(들어온 트리): 그 트리 · 그 리프 / 리소스 지도(들어온 리프): 그 리프 · 그 리소스
@@ -293,7 +293,7 @@ class Component extends DCLogic {
       const o = ords.c - 1;
       for (let k = 0; k < 2; k++) { const e = mins[k], row = r + k;
         if (e) { line('c', row, [['>_ ', C.key], [e.node.name, C.val, true], ['  ' + this.WINKIND()[e.kind], C.key], ['  ' + this.winAgo(e), C.hint]], x0 + 1, o, 'mzmw' + k); MW.rows.push({ row, id: e.id }); }
-        else if (k === 0) line('c', row, [['최소화한 창이 없어요', C.hint]], x0 + 1, o, 'mzmw0'); }
+        else if (k === 0) line('c', row, [['최소화 창 없음', C.hint]], x0 + 1, o, 'mzmw0'); }
       // 더보기 = 레벨바 — 최소화한 창이 얼마나 있는지(한계 50칸, 한 칸 = 창 하나). 50 을 넘으면 바 안 오른쪽 끝에 '+넘은 수'. 바 오른쪽 ▶ — 호버하면 찾기 판, 누르면 고정(다시 누를 때까지)
       MW.more = r + 2; const LB = 50, n = mins.length, over = Math.max(0, n - LB), bc0 = x0 + 1, bc1 = zR - 3, ovT = over ? '+' + over : '', ovC = bc1 - this.dw(ovT);
       MW.bar = { x0: bc0 * cw, x1: (bc1 + 1) * cw, row: MW.more, n: Math.min(n, LB), LB, ovX: over ? ovC * cw - 3 : null };
@@ -726,7 +726,7 @@ class Component extends DCLogic {
       b.addEventListener('pointerenter', () => { b.style.color = danger ? 'rgb(255,178,166)' : 'rgb(208,255,150)'; b.style.background = danger ? 'rgba(220,90,80,0.2)' : 'rgba(70,170,110,0.2)'; });
       b.addEventListener('pointerleave', () => { b.style.color = 'rgb(112,156,128)'; b.style.background = 'transparent'; });
       b.addEventListener('click', (e) => { e.stopPropagation(); const W = Wof(); if (W) fn(W); }); return b; };
-    CH.zoom = btn('100%', '화면 배율 — 누르면 100%', (W) => this.ctlZoom(1, 0, W)); Object.assign(CH.zoom.style, { width: 'auto', padding: '0 6px', font: '500 11px ' + MONO, display: 'none' }); bar.appendChild(CH.zoom);
+    CH.zoom = btn('100%', '화면 배율 — 100% 로', (W) => this.ctlZoom(1, 0, W)); Object.assign(CH.zoom.style, { width: 'auto', padding: '0 6px', font: '500 11px ' + MONO, display: 'none' }); bar.appendChild(CH.zoom);
     bar.appendChild(btn('_', '최소화', (W) => this.ctlMin(W)));
     CH.maxB = btn('□', '최대화', (W) => this.ctlMax(W)); bar.appendChild(CH.maxB);
     bar.appendChild(btn('×', '닫기', (W) => this.ctlX(W), true));
@@ -903,7 +903,7 @@ class Component extends DCLogic {
   winPut(W, st) { const L = this._wins || (this._wins = []), kd = W.kind || 'ctl'; let e = this.winGet(W.node, kd, W.arg); if (!e) { e = { id: 'w' + (this._winN = (this._winN || 0) + 1), node: W.node, kind: kd, arg: W.arg || '' }; L.push(e); } e.st = st; e.R = W.R ? { ...W.R } : e.R; e.at = performance.now(); return e; }
   winDrop(node, kind) { if (this._wins) this._wins = this._wins.filter((q) => !(q.node === node && q.kind === (kind || 'ctl'))); }
   winTitle(e) { const m = e.kind === 'mod' ? this.modsOf(e.node).find((q) => q.id === e.arg) : null, a = e.kind === 'web' && (e.arg || '').startsWith('mod|') ? this.modCatalog(e.node).find((q) => q.arg === e.arg) : null; return (m ? m.name + ' · ' : a ? a.appName + ' · ' : '') + e.node.name + ' ' + this.WINKIND()[e.kind]; }
-  winAgo(e) { const s = Math.max(0, (performance.now() - e.at) / 1000); return s < 60 ? '방금' : s < 3600 ? Math.floor(s / 60) + '분 전' : Math.floor(s / 3600) + '시간 전'; }
+  winAgo(e) { const s = Math.max(0, (performance.now() - e.at) / 1000); return s < 60 ? '방금' : s < 3600 ? Math.floor(s / 60) + 'm 전' : Math.floor(s / 3600) + 'h 전'; }
   // 찾기 — 노드 이름 · 종류 · 상태 글자 어디든 맞으면
   winFind(q, st) { q = (q || '').trim().toLowerCase(); return (this._wins || []).filter((e) => (!st || e.st === st) && (!q || (this.winTitle(e) + ' ' + (e.st === 'min' ? '최소화' : '열림')).toLowerCase().includes(q))).sort((a, b) => b.at - a.at); }
   // 우클릭 속성 — { x, y, r, name, kind, props: [[이름, 값]…], track: () => [x, y] | null } (씬이 노드를 골라 넘긴다). 다른 곳을 누르거나 ESC · 노드가 사라지면 닫힘
@@ -969,7 +969,7 @@ class Component extends DCLogic {
     const MONO = "'Geist Mono', GmarketSans, monospace", items = this.winFind(F.inp.value, 'min'), all = this.winFind('', 'min').length;
     F.items = items; F.sel = Math.max(0, Math.min(items.length - 1, F.sel)); F.cnt.textContent = items.length + ' / ' + all; F.pin.style.display = this._flyPin ? 'inline' : 'none';
     F.list.textContent = '';
-    if (!items.length) { const em = document.createElement('div'); Object.assign(em.style, { padding: '10px 6px', color: 'rgb(84,128,100)' }); em.textContent = all ? '맞는 창이 없어요' : '최소화한 창이 없어요 — 창 머리줄의 _ 로 최소화'; F.list.appendChild(em); return; }
+    if (!items.length) { const em = document.createElement('div'); Object.assign(em.style, { padding: '10px 6px', color: 'rgb(84,128,100)' }); em.textContent = all ? '맞는 창 없음' : '최소화 창 없음 — 머리줄 _ : 최소화'; F.list.appendChild(em); return; }
     items.forEach((e, k) => {
       const row = document.createElement('div'), on = k === F.sel; row.setAttribute('role', 'option'); row.setAttribute('aria-selected', on ? 'true' : 'false');
       Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 6px', cursor: 'pointer', background: on ? 'rgba(70,170,110,0.2)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 rgba(70,160,108,0.95)' : 'none' });

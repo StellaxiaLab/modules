@@ -86,7 +86,7 @@ export function nodeStats(n, now = Date.now()) {
   let s = STATUS[String((n && n.status) || '').toLowerCase()] || [n && n.status ? '◇ ' + n.status : '—', false];
   if (s[1] && (sec < 0 || sec > STALE_SEC)) s = ['◌ 응답 없음', false];   // 하트비트가 없거나 낡은 'online' 은 연결로 치지 않는다
   const stale = !!(STATUS_ONLINE.has(String((n && n.status) || '').toLowerCase()) && s[1] === false);   // Master 는 online 이라는데 하트비트가 없거나 낡았다
-  const seen = sec < 0 ? '' : sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + '분 전' : sec < 86400 ? Math.round(sec / 3600) + '시간 전' : Math.round(sec / 86400) + '일 전';
+  const seen = sec < 0 ? '' : sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + 'm 전' : sec < 86400 ? Math.round(sec / 3600) + 'h 전' : Math.round(sec / 86400) + 'd 전';
   return { status: s[0], online: s[1], stale, ageSec: sec < 0 ? null : Math.round(sec), seenAt: sec < 0 ? null : hb, cpu: pct(r.cpu_percent), mem: pct(r.memory_percent), disk: pct(r.disk_percent), seen,
     version: (n && typeof n.daemon_version === 'string' && n.daemon_version.trim()) || '', relay: n && typeof n.relay_connected === 'boolean' ? n.relay_connected : null,
     memTotal: bytes(r.memory_total_bytes), memUsed: bytes(r.memory_used_bytes), diskTotal: bytes(r.disk_total_bytes), diskUsed: bytes(r.disk_used_bytes) };

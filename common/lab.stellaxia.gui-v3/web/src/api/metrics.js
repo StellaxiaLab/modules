@@ -33,16 +33,16 @@ export function sparkText(pts, n) {
   return '·'.repeat(Math.max(0, n - L.length)) + L.map((p) => B[Math.min(6, Math.max(0, Math.round(p.v * 6)))]).join('');
 }
 
-const ago = (s) => (s < 60 ? Math.round(s) + '초 전' : s < 3600 ? Math.round(s / 60) + '분 전' : s < 86400 ? Math.round(s / 3600) + '시간 전' : Math.round(s / 86400) + '일 전');
+const ago = (s) => (s < 60 ? Math.round(s) + 's 전' : s < 3600 ? Math.round(s / 60) + 'm 전' : s < 86400 ? Math.round(s / 3600) + 'h 전' : Math.round(s / 86400) + 'd 전');
 /**
  * 갱신 주기 · 나이 — 화면이 '실시간인 척하지 않게' 쓰는 글.
  * @returns {{ n: number, lastAt: number|null, ageSec: number|null, everySec: number, text: string }}
  */
 export function cadence(buf, now = Date.now(), pollMs = POLL_MS) {
   const B = buf || [], last = B[B.length - 1], every = Math.round(pollMs / 1000);
-  if (!last) return { n: 0, lastAt: null, ageSec: null, everySec: every, text: '하트비트 스냅샷 · ' + every + '초마다 · 아직 없음' };
+  if (!last) return { n: 0, lastAt: null, ageSec: null, everySec: every, text: '갱신 : ' + every + 's · 아직 없음 (하트비트)' };
   const age = Math.max(0, (now - last.at) / 1000);
-  return { n: B.length, lastAt: last.at, ageSec: Math.round(age), everySec: every, text: '하트비트 스냅샷 · ' + every + '초마다 · ' + ago(age) };
+  return { n: B.length, lastAt: last.at, ageSec: Math.round(age), everySec: every, text: '갱신 : ' + every + 's · ' + ago(age) + ' (하트비트)' };
 }
 
 /**

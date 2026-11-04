@@ -30,15 +30,15 @@ export function waitHostLogin(frame, attempt, timeoutMs = HOST_LOGIN_TIMEOUT_MS)
     const end = (result) => { if (ended) return; ended = true; if (offToken) offToken(); if (offValue) offValue(); clearTimeout(timer); done(result); };
     offToken = frame.onToken((token) => {
       if (token) end({ ok: true });
-      else if (accepted) end({ ok: false, message: '로그인은 됐지만 앱 토큰을 받지 못했어요' });   // 셸이 토큰 대신 signedOut 을 보냈다
+      else if (accepted) end({ ok: false, message: '로그인 완료 · 앱 토큰 없음' });   // 셸이 토큰 대신 signedOut 을 보냈다
     });
     offValue = frame.onValue((value) => {
       const error = value && value.error;
       if (!error || error.attempt !== attempt) return;
       if (value.state === 'signedIn') { accepted = true; return; }   // 성공의 답 — 토큰이 뒤따른다
-      end({ ok: false, message: (typeof error.message === 'string' && error.message) || '로그인 못 함' });
+      end({ ok: false, message: (typeof error.message === 'string' && error.message) || '로그인 실패' });
     });
-    timer = setTimeout(() => end({ ok: false, message: '응답이 늦어요 — 다시 시도' }), timeoutMs);
+    timer = setTimeout(() => end({ ok: false, message: '응답 지연 — 재시도' }), timeoutMs);
   });
 }
 

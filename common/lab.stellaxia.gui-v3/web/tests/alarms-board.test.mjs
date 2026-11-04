@@ -61,7 +61,7 @@ test('거르기 · 모두 읽음 · 지우기는 두 번 누르기(무엇을 · 
     v = c.renderVals(); assert.equal(v.items.length, 2); assert.equal(v.readT, '작업 읽음');
     v.readAll(); assert.equal(B.unread(), 1);   // 거른 것만 읽음
     v = c.renderVals(); v.clearAll(); assert.equal(B.list.length, 3);   // 한 번은 무장만
-    v = c.renderVals(); assert.equal(v.armOn, true); assert.match(v.armT, /작업 2개.*Terra 의 작업 · 모듈은 그대로.*못 함/);
+    v = c.renderVals(); assert.equal(v.armOn, true); assert.match(v.armT, /작업 2개.*Terra 작업 · 모듈 그대로.*되돌리기 : 불가/);
     v.clearAll(); assert.deepEqual(B.list.map((a) => a.kind), ['module']);   // 거른 것만 지운다
     clearTimeout(c._armT);
   } finally { done(); }

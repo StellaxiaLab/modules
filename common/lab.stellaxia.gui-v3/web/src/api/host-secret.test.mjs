@@ -61,7 +61,7 @@ test('waitHostLogin — 성공의 답(signedIn + 내 attempt, 빈 message)이 �
 
   const bad = waitHostLogin(f, 13, 1000);
   f.value({ state: 'signedOut', error: { message: '', attempt: 13 } });
-  assert.deepEqual(await bad, { ok: false, message: '로그인 못 함' });
+  assert.deepEqual(await bad, { ok: false, message: '로그인 실패' });
 });
 
 test('rememberedOf · rememberedMode — 기억된 id 그대로 · auto 켜짐 · 토큰 없음일 때만 기억으로 들어간다', () => {

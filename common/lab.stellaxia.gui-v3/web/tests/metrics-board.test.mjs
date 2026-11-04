@@ -38,9 +38,9 @@ test('ModStatus 실제 — 시작 시각이 없으면 까닭, 로그를 못 받�
 test('전역 틀 — 실제면 추이는 TerraMetrics 점열 · NET 은 까닭 · 갱신 주기 줄, 시안 그래프만 움직인다', () => {
   const F = read('Field');
   assert.match(F, /MT\.spark\(RN\.node_id, 'cpu', 17\)/);
-  assert.match(F, /코어: 실시간 지표 op 없음/);
+  assert.match(F, /코어 : 실시간 지표 op 없음/);
   assert.match(F, /MT\.cadence\(RN\.node_id\)\.text/);
   assert.match(F, /this\._sparkId = SMP \? 'ln' \+ sparkRow : ''/);
   assert.match(F, /startedAt: m\.started_at/);
-  const S = read('Scene'); assert.match(S, /코어: 실시간 지표 op 없음/);
+  const S = read('Scene'); assert.match(S, /코어 : 실시간 지표 op 없음/);
 });

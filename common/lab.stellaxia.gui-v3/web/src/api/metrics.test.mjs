@@ -28,11 +28,11 @@ test('series · sparkText — 보고한 점만, 모자란 앞자리는 ·', () =
 });
 
 test('cadence — 주기 · 나이를 적는다(실시간인 척하지 않는다)', () => {
-  assert.equal(cadence([], T0).text, '하트비트 스냅샷 · 30초마다 · 아직 없음');
+  assert.equal(cadence([], T0).text, '갱신 : 30s · 아직 없음 (하트비트)');
   const B = [pointOf(rec('a', 0, 1, 1))];
   const c = cadence(B, T0 + 12000);
-  assert.deepEqual([c.n, c.ageSec, c.everySec], [1, 12, 30]); assert.equal(c.text, '하트비트 스냅샷 · 30초마다 · 12초 전');
-  assert.equal(cadence(B, T0 + 600000, 60000).text, '하트비트 스냅샷 · 60초마다 · 10분 전');
+  assert.deepEqual([c.n, c.ageSec, c.everySec], [1, 12, 30]); assert.equal(c.text, '갱신 : 30s · 12s 전 (하트비트)');
+  assert.equal(cadence(B, T0 + 600000, 60000).text, '갱신 : 60s · 10m 전 (하트비트)');
 });
 
 test('createMetrics — 노드 기록들을 받을 때마다 노드마다 쌓는다', () => {
@@ -42,7 +42,7 @@ test('createMetrics — 노드 기록들을 받을 때마다 노드마다 쌓는
   now = T0 + 40000; M.ingest([rec('a', 30, 40, 20)]);
   assert.deepEqual(M.series('a', 'cpu').map((p) => p.v), [0.1, 0.4]);
   assert.equal(M.spark('a', 'cpu', 3), '·▂▃');
-  assert.equal(M.cadence('a').text, '하트비트 스냅샷 · 30초마다 · 10초 전');
+  assert.equal(M.cadence('a').text, '갱신 : 30s · 10s 전 (하트비트)');
   assert.deepEqual(M.points('zz'), []);
   M.clear(); assert.deepEqual(M.points('a'), []);
 });

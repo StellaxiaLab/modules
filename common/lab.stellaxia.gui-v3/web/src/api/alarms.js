@@ -34,7 +34,7 @@ export function diff(prev, tasksData, modsData, now = Date.now()) {
     next.mods.set(id, st);
     const was = prev && prev.mods.get(id);
     if (prev && was !== undefined && was !== st && MOD_BAD.has(st)) alarms.push({ at: now, kind: 'module', id, g: '■', c: '#ff6b81', m: '모듈 ' + (m.name || id) + ' — ' + st + (m.last_error ? ' · ' + m.last_error : ''), sev: 'bad', st, name: m.name || id });
-    else if (prev && MOD_BAD.has(was) && st === 'running') alarms.push({ at: now, kind: 'module', id, g: '●', c: '#4ade80', m: '모듈 ' + (m.name || id) + ' 다시 돈다', sev: 'ok', st, name: m.name || id });
+    else if (prev && MOD_BAD.has(was) && st === 'running') alarms.push({ at: now, kind: 'module', id, g: '●', c: '#4ade80', m: '모듈 ' + (m.name || id) + ' — 재가동', sev: 'ok', st, name: m.name || id });
   }
   return { next, alarms };
 }

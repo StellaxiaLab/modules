@@ -32,18 +32,18 @@ class Component extends DCLogic {
   // 시안의 서버 답 — password 로 실패 종류를 고른다 (실제는 Gateway auth.credentials.post · auth.login.post 의 답)
   testErr(S) {
     const keep = S.keep, R = this.route(), p = S.pass;
-    if (p === 'nogw') return { bad: null, http: '', code: 'GATEWAY_UNREACHABLE', title: 'Gateway 에 닿지 않음', hint: (R.url || '그 주소') + ' 로 연결하지 못했어요 — 주소 · 터널(--url)을 확인하세요', act: 'retry' };
-    if (p === 'offline') return { bad: null, http: '502', code: keep ? 'CREDENTIAL_UNAVAILABLE' : 'LOGIN_UNAVAILABLE', title: 'Master 에 닿지 않음', hint: this.name() + ' 의 Gateway 가 Master 에 연결하지 못했어요 — Master 가 꺼져 있거나 망이 끊겼어요. 잠시 뒤 다시', act: 'retry' };
-    if (p === '500') return { bad: null, http: '500', code: 'INTERNAL_ERROR', title: 'Master 내부 오류', hint: 'Master 가 로그인을 처리하지 못했어요 (다시 시도 가능)', act: 'retry' };
-    if (p === 'novault' && keep) return { bad: null, http: '501', code: 'CREDENTIAL_UNAVAILABLE', title: '로그인 유지 불가', hint: '이 Gateway 에는 자격 보관소가 없어요 — auto 를 끄면 이번만 로그인할 수 있어요', act: 'once' };
-    if (p === 'wrong') return { bad: 'both', http: '401', code: keep ? 'CREDENTIAL_REJECTED' : 'INVALID_CREDENTIALS', title: '자격 거절', hint: 'email 또는 password 가 맞지 않아요 — Master 는 어느 쪽인지 알려주지 않아요', act: '' };
+    if (p === 'nogw') return { bad: null, http: '', code: 'GATEWAY_UNREACHABLE', title: 'Gateway 에 닿지 않음', hint: (R.url || '그 주소') + ' 연결 실패 — 주소 · 터널(--url) 확인', act: 'retry' };
+    if (p === 'offline') return { bad: null, http: '502', code: keep ? 'CREDENTIAL_UNAVAILABLE' : 'LOGIN_UNAVAILABLE', title: 'Master 에 닿지 않음', hint: this.name() + ' Gateway → Master 연결 실패 — Master 꺼짐 · 망 끊김 · 잠시 뒤 재시도', act: 'retry' };
+    if (p === '500') return { bad: null, http: '500', code: 'INTERNAL_ERROR', title: 'Master 내부 오류', hint: 'Master 로그인 처리 실패 (재시도 가능)', act: 'retry' };
+    if (p === 'novault' && keep) return { bad: null, http: '501', code: 'CREDENTIAL_UNAVAILABLE', title: '로그인 유지 불가', hint: '자격 보관소 없음 (이 Gateway) — auto 끄면 이번만 로그인', act: 'once' };
+    if (p === 'wrong') return { bad: 'both', http: '401', code: keep ? 'CREDENTIAL_REJECTED' : 'INVALID_CREDENTIALS', title: '자격 거절', hint: 'email · password 불일치 — 어느 쪽인지 비공개 (Master)', act: '' };
     return null;
   }
   login() {
     const S = this.state, em = S.email.trim();
-    if (!em) { this.fail('email', { http: '', code: 'INPUT', title: 'email 이 비었어요', hint: '그 Tree 계정의 email 을 입력하세요', act: '' }); return; }
-    if (!/^[^\s@]+@[^\s@]+$/.test(em)) { this.fail('email', { http: '', code: 'INPUT', title: 'email 형식이 아니에요', hint: '이름@도메인 꼴로 (예: admin@lab)', act: '' }); return; }
-    if (!S.pass) { this.fail('pass', { http: '', code: 'INPUT', title: 'password 가 비었어요', hint: 'password 를 입력하세요', act: '' }); return; }
+    if (!em) { this.fail('email', { http: '', code: 'INPUT', title: 'email 비어 있음', hint: '그 Tree 계정 email 입력 필요', act: '' }); return; }
+    if (!/^[^\s@]+@[^\s@]+$/.test(em)) { this.fail('email', { http: '', code: 'INPUT', title: 'email 형식 아님', hint: '형식 : 이름@도메인 (예: admin@lab)', act: '' }); return; }
+    if (!S.pass) { this.fail('pass', { http: '', code: 'INPUT', title: 'password 비어 있음', hint: 'password 입력 필요', act: '' }); return; }
     this.setState({ phase: 'send', msg: '확인 중…', bad: false, err: null });
     clearTimeout(this._t);
     this._t = setTimeout(() => {
@@ -87,9 +87,9 @@ class Component extends DCLogic {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', rootW: this.props.winW ? this.props.winW + 'px' : '100%', name: this.name(), wordCls: '', dirT: DIR[0], dirCls: DIR[1], stT: ST[0], stCol: ST[1],
       urlT: R.url || (R.needs ? '— 그 Tree 에 물어야 함' : '— 알려진 주소 없음'), apiT: H ? 'login-routes · ' + (R.dir === 'child' ? 'resolve' : 'listing') : '',
       isResolve: state === 'resolve', isUnreach: state === 'unreach', isForm: state === 'form', isDone: state === 'done',
-      resolveNote: H ? '자식 Tree 만 자기 주소를 말한다 — 묻는 데 중계 한 번' : '', resolveT: S.phase === 'ask' ? '묻는 중…' : '주소 묻기',
-      resolve: () => { this.setState({ phase: 'ask' }); clearTimeout(this._t); this._t = setTimeout(() => { const ok = !/4/.test(this.name()); this.setState({ phase: null, resolved: true, url: ok ? 'https://tree-' + this.name().replace(/[^\w]+/g, '-') + '.terra.local:8080' : null, msg: ok ? '' : '이 Tree 는 주소를 내놓지 않았어요' }); }, 800); },
-      unreachNote: H ? '이 기기에서 그 주소로 직접 닿지 않는다 — 터널(A3)이나 다른 주소로' : '', hasTunnel: R.tunnel > 0, tunnel: R.tunnel,
+      resolveNote: H ? '주소 : 자식 Tree 만 응답 — 중계 1회' : '', resolveT: S.phase === 'ask' ? '묻는 중…' : '주소 묻기',
+      resolve: () => { this.setState({ phase: 'ask' }); clearTimeout(this._t); this._t = setTimeout(() => { const ok = !/4/.test(this.name()); this.setState({ phase: null, resolved: true, url: ok ? 'https://tree-' + this.name().replace(/[^\w]+/g, '-') + '.terra.local:8080' : null, msg: ok ? '' : '주소 없음 (이 Tree)' }); }, 800); },
+      unreachNote: H ? '직접 연결 불가 (이 기기) — 터널(A3) · 다른 주소' : '', hasTunnel: R.tunnel > 0, tunnel: R.tunnel,
       useTunnel: () => this.setState({ url: 'http://127.0.0.1:' + R.tunnel, msg: '터널로 연결' }),
       isManual: S.manual, manual: () => this.setState({ manual: !S.manual }), manualUrl: S.manualUrl, manualIn: (e) => this.setState({ manualUrl: e.target.value }),
       manualOk: (e) => { if (e && e.preventDefault) e.preventDefault(); const u = S.manualUrl.trim(); if (!/^https?:\/\/\S+$/.test(u)) { this.setState({ msg: 'http(s):// 주소', bad: 'url' }); return; } this.setState({ url: u, manual: false, msg: '', bad: false }); },
@@ -98,7 +98,7 @@ class Component extends DCLogic {
       emailBad: S.bad ? 'true' : 'false', passBad: S.bad ? 'true' : 'false', roI: busy ? 'readonly' : null,
       keepA: S.keep ? 'true' : 'false', keepT: S.keep ? '■' : '□', keep: () => this.setState({ keep: !S.keep }),
       submit: (e) => { if (e && e.preventDefault) e.preventDefault(); if (!busy) this.login(); }, busyD: busy ? 'disabled' : null, loginT: S.phase === 'send' ? '…' : 'Login',
-      doneNote: (S.keep ? '유지 · ' : '이번만 · ') + this.name() + ' 로 들어갑니다',
+      doneNote: (S.keep ? '유지 · ' : '이번만 · ') + this.name() + ' 진입',
       msg: S.msg, msgCls: S.err || S.bad ? 'err' : S.phase === 'done' ? 'ok' : '', msgT: S.msg && !S.err ? (S.bad ? 'error: ' : S.phase === 'send' || S.phase === 'ask' ? '… ' : '› ') + S.msg : '',
       hasErr: !!S.err && state === 'form', errTitle: S.err ? '✕ ' + S.err.title : '', errCode: S.err ? ((S.err.http ? S.err.http + ' ' : '') + S.err.code) : '', errHint: S.err ? '› ' + S.err.hint : '',
       errAct: !!(S.err && S.err.act), errActT: S.err && S.err.act === 'once' ? 'auto 끄고 다시' : '다시 시도',
@@ -107,11 +107,11 @@ class Component extends DCLogic {
       testT: 'TEST · email 아무거나(@ 포함) + password 아무거나 → 로그인 · 실패 보기: wrong · novault · offline · 500 · nogw',
       who: (this.props.user || 'admin') + '@' + (this.props.current || '01'), bigT: this.name(), subT: DIR[0] + ' · ' + (R.dir === 'child' ? 'resolve required' : R.dir === 'parent' ? 'upward · direct' : R.dir === 'sibling' ? 'named by parent' : 'remembered address'),
       stripeCls: state === 'unreach' ? 'bad' : state === 'resolve' ? 'warn' : state === 'done' ? 'ok' : '', codeA: 'RT-' + ({ parent: 'UP', child: 'DN', sibling: 'SB', far: 'XT' }[R.dir] || 'XT') + ' / ' + (R.tunnel ? 'TUN ' + R.tunnel : 'DIRECT'), codeB: String(this.name()).replace(/[^\w]/g, '').slice(-3).toUpperCase() || 'T',
-      dirCol: { parent: 'rgb(104,156,255)', child: 'rgb(110,236,156)', sibling: '#ffd27a' }[R.dir] || '#848eb4', dirNote: R.dir === 'child' ? '· 자식이 자기 주소를 말한다' : R.dir === 'far' ? '· 계정이 기억한 주소' : '',
+      dirCol: { parent: 'rgb(104,156,255)', child: 'rgb(110,236,156)', sibling: '#ffd27a' }[R.dir] || '#848eb4', dirNote: R.dir === 'child' ? '· 주소 : 자식이 응답' : R.dir === 'far' ? '· 계정이 기억한 주소' : '',
       sessDot: state === 'done' ? '●' : '○', sessCol: state === 'done' ? 'rgb(176,236,96)' : '#5a6488', sessLine: state === 'done' ? (S.keep ? '유지' : '이번만') + ' · ' + S.email : '없음 — 로그인 필요',
       formCls: busy ? 'busy' : '', footT: 'TERRA // ' + (this.props.current || '01') + ' → ' + this.name(),
       key: (e) => { if (e && e.key === 'Escape') { e.preventDefault(); clearTimeout(this._t); if (this.props.onCancel) this.props.onCancel(); } },
-      help: H, helpT: '# 자격은 ' + this.name() + ' 의 Master 로만 갑니다 — 지금 Tree 를 거치지 않아요. auto = 세션 핸들 저장(auth.credentials), 끄면 이번만(auth.login)',
+      help: H, helpT: '# 자격 → ' + this.name() + ' Master 만 (지금 Tree 경유 없음) · auto : 세션 핸들 저장(auth.credentials) · 끔 : 이번만(auth.login)',
       sessT: this.props.current ? '지금 · ' + this.props.current : '',
       cancel: () => { clearTimeout(this._t); if (this.props.onCancel) this.props.onCancel(); }
     };

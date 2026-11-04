@@ -60,7 +60,7 @@ const real = (gateOpen, fn) => { const prev = globalThis.window, opened = []; gl
 
 test('실제 — 문이 닫혀 있으면 값 뷰어 자리에 잠금 + why, 대체는 쓰는 곳(handles.get), 핸들을 열지 않는다', () => real(false, (c, opened) => {
   const v = c.renderVals();
-  assert.equal(v.locked, true); assert.equal(v.unlocked, false); assert.match(v.lockWhy, /terra\.master\.svi\.handles\.post/); assert.match(v.lockAlt, /svi\.handles\.get/);
+  assert.equal(v.locked, true); assert.equal(v.unlocked, false); assert.match(v.lockWhy, /잠김 : 위임 없음 — terra\.master\.svi\.handles\.post/); assert.match(v.lockAlt, /svi\.handles\.get/);
   assert.equal(v.subOff, 'disabled'); assert.equal(v.connT, '잠김'); assert.match(v.vMeta, /terra\.video\.frame@1 · 영상/);
   assert.equal(v.evH, '쓰는 곳 · 최근 사건'); assert.match(v.events[0].msg, /subscribe · video — active/);
   assert.equal(v.eps.find((e) => e.id === 'video').schema, 'stream · terra.video.frame@1');
