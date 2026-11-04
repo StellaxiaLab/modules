@@ -113,12 +113,17 @@ export class BoardHost {
   }
   didMount() { if (this.mounted) return; this.mounted = true; if (this.logic.componentDidMount) { try { this.logic.componentDidMount(); } catch (e) { console.error(this.name + '.componentDidMount', e); } } }
 
+  // 속성이 바뀌면 다시 그리고 componentDidUpdate(이전 props, 이전 state) — 시안 실행기(React)와 같다.
+  // 보드는 여기서 대상(nodeRid 등)이 바뀐 것을 보고 이전 값을 비운다(제어기 자리는 다른 노드로 다시 쓰인다)
   update(props) {
     const old = this.rawProps; let same = true;
     for (const k in props) if (props[k] !== old[k]) { same = false; break; }
     if (same) for (const k in old) if (!(k in props)) { same = false; break; }
+    if (same) { this.rawProps = props; return; }
+    const prevProps = this.props(), prevState = this.logic.state;
     this.rawProps = props;
-    if (!same) { const mounts = []; this.renderNow(mounts); for (const h of mounts) h.didMount(); }
+    const mounts = []; this.renderNow(mounts); for (const h of mounts) h.didMount();
+    if (this.mounted && this.logic.componentDidUpdate) { try { this.logic.componentDidUpdate(prevProps, prevState); } catch (e) { console.error(this.name + '.componentDidUpdate', e); } }
   }
 
   schedule(cb) {
