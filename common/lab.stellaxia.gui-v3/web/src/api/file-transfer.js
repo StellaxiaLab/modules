@@ -23,9 +23,9 @@ const IMG_EXT = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 
 /** 이름 · 크기 → 미리보기 꼴. text 는 앞부분만(상한), image 는 상한 안에서만, 그 밖은 정보 + 내려받기 */
 export function previewKind(name, size) {
   const n = String(name || ''), ext = (n.match(/\.([^.]+)$/) || [, ''])[1].toLowerCase(), sz = Number(size) || 0;
-  if (IMG_EXT[ext]) return sz > PREVIEW.image ? { kind: 'other', mime: IMG_EXT[ext], why: '그림이 미리보기 상한 ' + fmtBytes(PREVIEW.image) + ' 를 넘는다 — 내려받아 연다' } : { kind: 'image', mime: IMG_EXT[ext], limit: PREVIEW.image };
+  if (IMG_EXT[ext]) return sz > PREVIEW.image ? { kind: 'other', mime: IMG_EXT[ext], why: '미리보기 상한 초과 (' + fmtBytes(PREVIEW.image) + ') — 내려받기' } : { kind: 'image', mime: IMG_EXT[ext], limit: PREVIEW.image };
   if (TEXT_EXT.test(n) || /^(readme|license|makefile|dockerfile)$/i.test(n) || !ext) return { kind: 'text', mime: 'text/plain', limit: PREVIEW.text, part: sz > PREVIEW.text };
-  return { kind: 'other', mime: 'application/octet-stream', why: '미리보기 없는 형식 — 내려받아 연다' };
+  return { kind: 'other', mime: 'application/octet-stream', why: '미리보기 없는 형식 — 내려받기' };
 }
 
 /** 글로 보일 수 있나 — NUL 이 있거나 제어 문자가 많으면 이진 */
@@ -53,12 +53,12 @@ export function unb64(str) {
   const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u;
 }
 export async function sha256Hex(bytes, subtle = globalThis.crypto && globalThis.crypto.subtle) {
-  if (!subtle) throw Object.assign(new Error('이 브라우저는 SHA-256(crypto.subtle)을 못 한다 — https 또는 localhost 에서 연다'), { code: 'NO_SUBTLE' });
+  if (!subtle) throw Object.assign(new Error('이 브라우저 SHA-256(crypto.subtle) 불가 — https 또는 localhost 필요'), { code: 'NO_SUBTLE' });
   const h = new Uint8Array(await subtle.digest('SHA-256', bytes)); let s = ''; for (const b of h) s += b.toString(16).padStart(2, '0'); return s;
 }
 
-const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
-export function fmtBytes(n) { n = Number(n) || 0; let i = 0; while (n >= 1024 && i < UNITS.length - 1) { n /= 1024; i++; } return (i ? n.toFixed(n < 10 ? 1 : 0) : String(n)) + ' ' + UNITS[i]; }
+const UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+export function fmtBytes(n) { n = Number(n) || 0; let i = 0; while (n >= 1024 && i < UNITS.length - 1) { n /= 1024; i++; } return (i ? n.toFixed(n < 10 ? 1 : 0) : String(n)) + UNITS[i]; }
 /** 속도 — 최근 3초의 표본 [{ t, bytes }](bytes 는 누적) → 초당 바이트 */
 export function rateOf(samples, now = Date.now(), win = 3000) {
   const s = (samples || []).filter((x) => now - x.t <= win); if (s.length < 2) return 0;
@@ -86,7 +86,7 @@ export function createFileTransfer(o) {
     while (have < max) {
       const r = await inv('io.terra.file.entries.read', { root, path, offset: have, length: Math.min(PREVIEW.piece, max - have) });
       const d = unb64(r && r.data); size = Number(r && r.size) || size; eof = !!(r && r.eof);
-      if (!d.length && !eof) throw fail('TRANSFER_STALLED', '빈 조각인데 끝도 아니다 — 노드가 잘못 답했다');
+      if (!d.length && !eof) throw fail('TRANSFER_STALLED', '빈 조각 · 끝 아님 — 노드 응답 오류');
       parts.push(d); have += d.length; if (eof) break;
     }
     const bytes = new Uint8Array(have); let p = 0; for (const x of parts) { bytes.set(x, p); p += x.length; }
@@ -96,7 +96,7 @@ export function createFileTransfer(o) {
   function job(dir, base) {
     const j = Object.assign({ id: 'tx-' + (++seq) + '-' + (now() % 100000), dir, state: 'prep', done: 0, size: 0, rate: 0, err: null, tid: '', note: '', samples: [] }, base);
     const emit = () => { j.rate = rateOf(j.samples, now()); if (base.onChange) try { base.onChange(j); } catch {} };
-    j.cancel = () => { if (j.state === 'prep' || j.state === 'run' || j.state === 'verify') { j._cancel = true; j.note = '취소하는 중…'; emit(); } };
+    j.cancel = () => { if (j.state === 'prep' || j.state === 'run' || j.state === 'verify') { j._cancel = true; j.note = '취소 중…'; emit(); } };
     j.retry = () => { if (j.state !== 'fail' && j.state !== 'cancel') return j.promise; if (j.state === 'cancel') { j.tid = ''; j.parts = null; } j._cancel = false; j.err = null; j.note = ''; j.state = 'prep'; j.promise = run(); return j.promise; };
     const tick = (n) => { j.done = n; j.samples.push({ t: now(), bytes: n }); if (j.samples.length > 40) j.samples.shift(); emit(); };
     const stop = async (abortOp, reason) => { if (j.tid) { try { await inv(abortOp, { transfer_id: j.tid, reason }); } catch {} } };
@@ -108,12 +108,12 @@ export function createFileTransfer(o) {
   async function up(j, emit, tick, stop) {
     try {
       emit();
-      if (j.size > BROWSER_MAX) throw fail('TOO_LARGE_FOR_BROWSER', '브라우저에서 올리기는 ' + fmtBytes(BROWSER_MAX) + ' 까지 — 더 큰 파일은 terra file send');
+      if (j.size > BROWSER_MAX) throw fail('TOO_LARGE_FOR_BROWSER', '브라우저 올리기 상한 : ' + fmtBytes(BROWSER_MAX) + ' — 더 큰 파일은 terra file send');
       if (!j.bytes) { j.note = '체크섬 계산 중…'; emit(); j.bytes = new Uint8Array(await j.file.arrayBuffer()); j.sum = await sha(j.bytes); j.note = ''; }
       if (j._cancel) { j.state = 'cancel'; j.note = ''; return emit(); }
       const r = await inv('io.terra.file.transfers.create', Object.assign({ direction: 'push', root: j.root, path: j.path, size_bytes: j.size, checksum_sha256: j.sum, mode: j.mode || 'create' }, j.tid ? { resume_id: j.tid } : {}));
       const T = (r && r.transfer) || r || {}; j.tid = T.transfer_id || ''; const cs = Number(T.chunk_size) || 0;
-      if (!j.tid || !cs) throw fail('TRANSFER_FAILED', '모듈이 전송 id · 청크 크기를 답하지 않았다');
+      if (!j.tid || !cs) throw fail('TRANSFER_FAILED', '모듈 응답에 전송 id · 청크 크기 없음');
       let off = Number(T.offset ?? T.resume_offset ?? 0) || 0, tries = 0; j.chunk = cs; j.resumed = off > 0; j.state = 'run'; tick(off);
       while (off < j.size) {
         if (j._cancel) break;
@@ -121,7 +121,7 @@ export function createFileTransfer(o) {
         try {
           const a = await inv('io.terra.file.transfers.chunks.put', { transfer_id: j.tid, offset: off, data: b64(slice), sha256: await sha(slice) });
           const next = Number(a && a.next_offset);
-          if (!(next > off)) { await stop('io.terra.file.transfers.abort', 'stalled'); throw fail('TRANSFER_STALLED', off + ' 에서 받았다면서 나아가지 않았다'); }
+          if (!(next > off)) { await stop('io.terra.file.transfers.abort', 'stalled'); throw fail('TRANSFER_STALLED', 'offset ' + off + ' 에서 진행 없음'); }
           off = next; tries = 0; tick(off);
         } catch (e) {
           if ((e.code === 'CHUNK_OUT_OF_ORDER' || e.code === 'CHUNK_CHECKSUM_MISMATCH') && ++tries <= RETRIES) {
@@ -133,7 +133,7 @@ export function createFileTransfer(o) {
       if (j._cancel) { await stop('io.terra.file.transfers.abort', 'cancelled'); j.state = 'cancel'; j.note = ''; return emit(); }
       j.state = 'verify'; emit();
       const c = await inv('io.terra.file.transfers.complete', { transfer_id: j.tid });
-      if (!c || c.verified !== true) throw fail('CHECKSUM_MISMATCH', '노드가 받은 파일이 체크섬과 맞지 않는다 — 부분 파일은 지워졌다');
+      if (!c || c.verified !== true) throw fail('CHECKSUM_MISMATCH', '체크섬 불일치 (노드) — 부분 파일 삭제됨');
       j.state = 'done'; j.bytes = null; tick(j.size);
     } catch (e) { j.state = 'fail'; j.err = why(e); j.note = ''; if (e.code === 'CHECKSUM_MISMATCH' || e.code === 'TRANSFER_STALLED') j.tid = ''; emit(); }
   }
@@ -143,23 +143,23 @@ export function createFileTransfer(o) {
       emit();
       const r = await inv('io.terra.file.transfers.pulls.create', Object.assign({ root: j.root, path: j.path }, j.tid ? { resume_id: j.tid } : {}));
       const T = (r && r.transfer) || r || {}; j.tid = T.transfer_id || ''; j.size = Number(T.size_bytes) || 0; j.sum = T.checksum_sha256 || '';
-      if (!j.tid) throw fail('TRANSFER_FAILED', '모듈이 전송 id 를 답하지 않았다');
-      if (j.size > BROWSER_MAX) { await stop('io.terra.file.transfers.pulls.abort', 'too large for browser'); j.tid = ''; throw fail('TOO_LARGE_FOR_BROWSER', '브라우저로 받기는 ' + fmtBytes(BROWSER_MAX) + ' 까지 — 더 큰 파일은 terra file get'); }
+      if (!j.tid) throw fail('TRANSFER_FAILED', '모듈 응답에 전송 id 없음');
+      if (j.size > BROWSER_MAX) { await stop('io.terra.file.transfers.pulls.abort', 'too large for browser'); j.tid = ''; throw fail('TOO_LARGE_FOR_BROWSER', '브라우저 받기 상한 : ' + fmtBytes(BROWSER_MAX) + ' — 더 큰 파일은 terra file get'); }
       if (!j.parts) j.parts = [];
       let have = j.parts.reduce((s, x) => s + x.length, 0), tries = 0; j.resumed = have > 0; j.state = 'run'; tick(have);
       for (;;) {
         if (j._cancel) break;
         const g = await inv('io.terra.file.transfers.chunks.get', { transfer_id: j.tid, offset: have });
         const d = unb64(g && g.data), eof = !!(g && g.eof);
-        if (g && g.sha256 && d.length && (await sha(d)) !== g.sha256) { if (++tries <= RETRIES) continue; throw fail('CHUNK_CHECKSUM_MISMATCH', have + ' 의 청크가 다이제스트와 맞지 않는다'); }
-        if (!d.length && !eof) { await stop('io.terra.file.transfers.pulls.abort', 'stalled'); j.tid = ''; j.parts = null; throw fail('TRANSFER_STALLED', have + ' 에서 빈 청크인데 끝도 아니다 — 노드가 잘못 답했다'); }
+        if (g && g.sha256 && d.length && (await sha(d)) !== g.sha256) { if (++tries <= RETRIES) continue; throw fail('CHUNK_CHECKSUM_MISMATCH', 'offset ' + have + ' 청크 다이제스트 불일치'); }
+        if (!d.length && !eof) { await stop('io.terra.file.transfers.pulls.abort', 'stalled'); j.tid = ''; j.parts = null; throw fail('TRANSFER_STALLED', 'offset ' + have + ' 빈 청크 · 끝 아님 — 노드 응답 오류'); }
         tries = 0; if (d.length) { j.parts.push(d); have += d.length; tick(have); }
         if (eof) break;
       }
       if (j._cancel) { await stop('io.terra.file.transfers.pulls.abort', 'cancelled'); j.state = 'cancel'; j.note = ''; return emit(); }
       j.state = 'verify'; emit();
       const all = new Uint8Array(have); let p = 0; for (const x of j.parts) { all.set(x, p); p += x.length; }
-      if (j.sum && (await sha(all)) !== j.sum) { j.parts = null; j.tid = ''; throw fail('CHECKSUM_MISMATCH', '받은 파일이 합의한 체크섬과 맞지 않는다 — 버렸다'); }
+      if (j.sum && (await sha(all)) !== j.sum) { j.parts = null; j.tid = ''; throw fail('CHECKSUM_MISMATCH', '체크섬 불일치 (받은 파일) — 버림'); }
       try { await inv('io.terra.file.transfers.pulls.complete', { transfer_id: j.tid }); } catch {}
       j.blob = typeof Blob === 'function' ? new Blob(j.parts, { type: j.mime || 'application/octet-stream' }) : all; j.parts = null;
       j.state = 'done'; tick(have);

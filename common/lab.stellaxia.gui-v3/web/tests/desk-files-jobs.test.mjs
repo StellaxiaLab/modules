@@ -83,7 +83,7 @@ test('파일 실제 — 공유 폴더: 미리보기는 entries.read(앞부분 ·
     globalThis.URL.createObjectURL = () => 'blob:test'; globalThis.URL.revokeObjectURL = () => {};
     c.launch('files'); c.state.fmLoc = 'share:share-0'; c.renderVals(); await tick(5); c.renderVals(); await tick(5);
     let w = win('files'); assert.equal(w.path, 'share-0:/'); assert.deepEqual(w.items.map((i) => i.name), ['notes.md', 'pic.png']);
-    assert.equal(w.fx.upLock, false); assert.match(w.fx.upTip, /share-0:\/ 에 올린다/);
+    assert.equal(w.fx.upLock, false); assert.match(w.fx.upTip, /^올리기 : share-0:\//);
     w.items[0].open(); await tick(20); w = win('files');
     assert.equal(w.pv.on, true); assert.equal(w.pv.isText, true); assert.equal(w.pv.text, '# 노트\n한 줄\n'); assert.match(w.pv.note, /^전체 · /);
     assert.ok(t.calls.some(([n, op, i]) => n === 'L' && op === 'io.terra.file.entries.read' && i.root === 'share-0' && i.path === 'notes.md' && i.length === fileTransfer.PREVIEW.text));
@@ -95,7 +95,7 @@ test('파일 실제 — 공유 폴더: 미리보기는 entries.read(앞부분 ·
     const ops = t.calls.filter(([, op]) => op.startsWith('io.terra.file.transfers')).map(([, op, i]) => op.replace('io.terra.file.transfers.', '') + (i.offset !== undefined ? '@' + i.offset : ''));
     assert.deepEqual(ops, ['create', 'chunks.put@0', 'chunks.put@4', 'chunks.put@8', 'complete']);
     assert.deepEqual([...t.files.get('up.txt')], [...body]);
-    w = win('files'); assert.equal(w.fx.tx[0].stat, '끝 · 10 B'); assert.equal(w.fx.tx[0].arrow, '↑');
+    w = win('files'); assert.equal(w.fx.tx[0].stat, '끝 · 10B'); assert.equal(w.fx.tx[0].arrow, '↑');
     assert.ok(t.calls.filter(([, op]) => op === 'io.terra.file.entries.list').length >= 2, '올린 뒤 목록을 다시 읽는다');
     c._tx.push({ node: 'L', sample: true, where: 'x', job: { dir: 'up', name: '시안', size: 1, done: 1, state: 'done' } });
     assert.ok(!win('files').fx.tx.some((r) => r.name === '시안'), '실제 모드에 시안 전송이 새지 않는다');
@@ -108,8 +108,8 @@ test('파일 실제 — 바탕화면 · 로컬 탐색은 내용 · 전송 단추
     assert.equal(w.fx.upLock, true); assert.match(w.fx.upTip, /화면 전용/);
     assert.ok(w.fx.btns.every((b) => b.lock && b.dis === 'disabled' && /화면 전용/.test(b.tip)));
     assert.match(w.fx.dragT, /^🔒 /);
-    const lfs = c.fxGate({ share: false, lockWhy: '로컬 탐색은 읽기 op 가 없다(Daemon local-fs 는 목록만) — 내용 · 전송은 공유 폴더에서' }, 'down'); assert.equal(lfs.open, false); assert.match(lfs.why, /읽기 op 가 없다/);
-    assert.match(src, /lockWhy: loc\.locked \? loc\.reason : share \? '' : '로컬 탐색은 읽기 op 가 없다/);
+    const lfs = c.fxGate({ share: false, lockWhy: '로컬 탐색 : 읽기 op 없음 (Daemon local-fs 는 목록만) — 내용 · 전송은 공유 폴더에서' }, 'down'); assert.equal(lfs.open, false); assert.match(lfs.why, /읽기 op 없음/);
+    assert.match(src, /lockWhy: loc\.locked \? loc\.reason : share \? '' : '로컬 탐색 : 읽기 op 없음/);
   } finally { done(); }
 });
 
@@ -154,11 +154,11 @@ test('Master 작업 — 목록 · 상세 · 취소는 확인 단계(무엇을 ·
     assert.ok(!t.calls.some(([, op]) => op.endsWith('cancel.post')), '확인 전에는 부르지 않는다');
     w.jb.ask.yes(); await tick(5);
     assert.deepEqual(t.calls.filter(([, op]) => op.endsWith('cancel.post')).map(([, , i]) => i), [{ job_id: 'job_a' }]);
-    assert.match(c.state.jbMsg, /노드에 취소를 전달했다/);
+    assert.match(c.state.jbMsg, /^취소 전달 \(노드\)/);
   } finally { done(); }
-  const R = await realDesk({ gate: (op) => (op === 'terra.master.jobs.get' ? { open: false, why: '코어 — 시험으로 닫음' } : { open: true, why: '' }) }); try {
+  const R = await realDesk({ gate: (op) => (op === 'terra.master.jobs.get' ? { open: false, why: '잠김 : 위임 없음 — terra.master.jobs.get' } : { open: true, why: '' }) }); try {
     R.c.launch('jobs'); R.c.state.jbTab = 'master'; const w = R.win('jobs');
-    assert.equal(w.jb.mLock, true); assert.equal(w.jb.mWhy, '코어 — 시험으로 닫음'); assert.equal(w.jb.tabs[1].n, '🔒');
+    assert.equal(w.jb.mLock, true); assert.equal(w.jb.mWhy, '잠김 : 위임 없음 — terra.master.jobs.get'); assert.equal(w.jb.tabs[1].n, '🔒');
     assert.ok(!R.t.calls.some(([, op]) => op === 'terra.master.jobs.get'), '닫힌 문은 부르지 않는다');
   } finally { R.done(); }
 });
@@ -168,10 +168,10 @@ test('시안 — 파일 미리보기는 내용을 지어내지 않고 시안이�
   try {
     const C = Desk(), c = new C({ nodeName: 'desk', winW: 1240, winH: 760 }); c.persist = () => {}; c.renderVals(); c.launch('files'); c.state.fmPick = 'home:notes.md';
     let w = c.renderVals().wins.find((x) => x.app === 'files'); w.fx.btns[0].run(); w = c.renderVals().wins.find((x) => x.app === 'files');
-    assert.match(w.pv.text, /^\(시안\) notes\.md — 실제 연결에서는/); assert.equal(w.pv.note, '시안 — 노드의 내용을 읽지 않았다');
+    assert.match(w.pv.text, /^\(시안\) notes\.md — 실제 연결 : /); assert.equal(w.pv.note, '시안 — 노드 내용 읽지 않음');
     w.fx.btns[1].run(); await tick(300); w = c.renderVals().wins.find((x) => x.app === 'files'); assert.match(w.fx.tx[0].stat, /시안$/);
     c.launch('jobs'); c.state.jbTab = 'master'; c.state.mjSel = MJ(c); let j = c.renderVals().wins.find((x) => x.app === 'jobs'); j.jb.d.btns[0].run(); j = c.renderVals().wins.find((x) => x.app === 'jobs'); j.jb.ask.yes();
-    assert.match(c.state.jbMsg, /^\(시안\) .*아무것도 바뀌지 않았다$/);
+    assert.match(c.state.jbMsg, /^\(시안\) .*변경 없음$/);
     for (const x of c._tx || []) clearTimeout(x.t); c.followStop();
   } finally { globalThis.window = prev; }
 });

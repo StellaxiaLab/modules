@@ -20,10 +20,10 @@ export function applyEvent(L0, ev) {
   const L = Object.assign({}, L0, { lines: L0.lines.slice() }), d = (ev && ev.data) || {};
   switch (ev && ev.event) {
     case 'output': { const seq = Number(ev.id) || 0; if (seq && seq <= L.last) return L0; if (seq) L.last = seq; push(L, { k: 'out', seq, stream: d.stream === 'stderr' ? 'stderr' : 'stdout', at: d.at || '', text: text(d.text), masked: !!d.masked, lossy: !!d.lossy }); return L; }
-    case 'gap': L.gaps++; push(L, { k: 'gap', text: '… 앞 ' + (Number(d.bytes) || 0) + '바이트는 보관 한도로 버려졌다' + (d.before_seq ? ' (#' + d.before_seq + ' 앞)' : '') }); return L;
+    case 'gap': L.gaps++; push(L, { k: 'gap', text: '… 앞 ' + (Number(d.bytes) || 0) + 'B 버림 (보관 한도' + (d.before_seq ? ' · #' + d.before_seq + ' 앞' : '') + ')' }); return L;
     case 'state': result(L, d); return L;
     case 'end': L.end = true; if (d.last_seq && Number(d.last_seq) > L.last) L.last = Number(d.last_seq); return L;
-    case 'overflow': L.overflow++; push(L, { k: 'note', text: '따라오지 못해 끊김 — 마지막 줄 뒤부터 다시 붙는다' }); return L;
+    case 'overflow': L.overflow++; push(L, { k: 'note', text: '끊김 : 따라가기 지연 — 마지막 줄 뒤부터 재연결' }); return L;
     default: return L0;
   }
 }
@@ -31,8 +31,8 @@ export function applyEvent(L0, ev) {
 /** output.get 응답 → 로그(새 값). after_seq 뒤 조각만 더한다 */
 export function applyPoll(L0, p) {
   const L = Object.assign({}, L0, { lines: L0.lines.slice() }), P = p || {};
-  if (!L0.lines.length && P.dropped && Number(P.dropped.bytes)) { L.gaps++; push(L, { k: 'gap', text: '… 앞 ' + Number(P.dropped.bytes) + '바이트는 보관 한도로 버려졌다' }); }
-  if (P.captured === false && !L0.lines.length) push(L, { k: 'note', text: '이 작업은 출력을 남기지 않는다(capture_output 꺼짐)' });
+  if (!L0.lines.length && P.dropped && Number(P.dropped.bytes)) { L.gaps++; push(L, { k: 'gap', text: '… 앞 ' + Number(P.dropped.bytes) + 'B 버림 (보관 한도)' }); }
+  if (P.captured === false && !L0.lines.length) push(L, { k: 'note', text: '출력 기록 없음 (capture_output 꺼짐)' });
   for (const c of Array.isArray(P.chunks) ? P.chunks : []) { const seq = Number(c.seq) || 0; if (seq && seq <= L.last) continue; if (seq) L.last = seq; push(L, { k: 'out', seq, stream: c.stream === 'stderr' ? 'stderr' : 'stdout', at: c.at || '', text: text(c.text), masked: !!c.masked, lossy: !!c.lossy }); }
   if (Number(P.last_seq) > L.last && !P.more) L.last = Number(P.last_seq);
   result(L, P.result); if (P.state && !L.state) L.state = String(P.state);
@@ -65,16 +65,16 @@ export function followTask(o) {
   const poll = () => {
     if (stopped) return; mode = 'poll';
     o.poll(L.last ? { task_id: o.taskId, after_seq: String(L.last) } : { task_id: o.taskId, tail: '400' }).then((p) => { L = applyPoll(L, p); up(); if (!L.end) timer = st(poll, pollMs); },
-      (e) => { why = '출력을 못 받음 · ' + ((e && e.code) || '오류'); up(); if (!stopped && !L.end) timer = st(poll, pollMs * 2); });
+      (e) => { why = '출력 못 받음 · ' + ((e && e.code) || '오류'); up(); if (!stopped && !L.end) timer = st(poll, pollMs * 2); });
   };
   const open = () => {
     if (stopped) return; mode = 'opening';
     o.sse('terra.daemon.tasks.by-task-id.output.events.get', L.last ? { task_id: o.taskId, last_event_id: String(L.last) } : { task_id: o.taskId }, {
       onEvent: (ev) => { tries = 0; mode = 'live'; L = applyEvent(L, ev); up(); },
-      onClose: () => { close = null; if (stopped || L.end) return; if (++tries > 5) { why = '스트림이 자꾸 끊김 — 폴링으로'; return poll(); } mode = 'again'; up(); timer = st(open, retryMs * tries); },
+      onClose: () => { close = null; if (stopped || L.end) return; if (++tries > 5) { why = '스트림 반복 끊김 — 폴링으로'; return poll(); } mode = 'again'; up(); timer = st(open, retryMs * tries); },
     }).then((c) => { if (stopped) c(); else { close = c; mode = 'live'; up(); } },
-      (e) => { why = (e && e.code) === 'TOO_MANY_STREAMS' ? '구독 한도(task 4 · 노드 32) — 폴링으로' : '스트림을 못 엶 · ' + ((e && e.code) || '오류') + ' — 폴링으로'; poll(); });
+      (e) => { why = (e && e.code) === 'TOO_MANY_STREAMS' ? '구독 한도(task 4 · 노드 32) — 폴링으로' : '스트림 열기 실패 · ' + ((e && e.code) || '오류') + ' — 폴링으로'; poll(); });
   };
-  if (o.sse) open(); else { why = '다른 노드 — 스트림은 이 노드에서만(relay 는 스트림을 나르지 못한다) · ' + Math.round(pollMs / 1000) + '초마다 읽기'; poll(); }
+  if (o.sse) open(); else { why = '다른 노드 — 스트림은 이 노드에서만 (relay 미지원) · 갱신 : ' + Math.round(pollMs / 1000) + 's'; poll(); }
   return { stop() { stopped = true; ct(timer); if (close) close(); close = null; }, mode: () => mode, log: () => L };
 }

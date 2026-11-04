@@ -20,7 +20,7 @@ test('applyEvent — output · gap · state · end · overflow, 다시 붙어 �
   L = applyEvent(L, { id: '2', event: 'output', data: { stream: 'stderr', text: 'b' } });
   L = applyEvent(L, { id: '2', event: 'output', data: { stream: 'stderr', text: 'b' } });
   L = applyEvent(L, { event: 'gap', data: { before_seq: 5, bytes: 900 } });
-  assert.deepEqual(L.lines.map((x) => [x.k, x.stream, x.text]), [['out', 'stdout', 'a'], ['out', 'stderr', 'b'], ['gap', undefined, '… 앞 900바이트는 보관 한도로 버려졌다 (#5 앞)']]);
+  assert.deepEqual(L.lines.map((x) => [x.k, x.stream, x.text]), [['out', 'stdout', 'a'], ['out', 'stderr', 'b'], ['gap', undefined, '… 앞 900B 버림 (보관 한도 · #5 앞)']]);
   assert.equal(L.last, 2); assert.equal(endLine(L), null);
   L = applyEvent(L, { event: 'state', data: { state: 'failed', exit_code: 2 } }); L = applyEvent(L, { event: 'end', data: { last_seq: 2 } });
   assert.deepEqual(endLine(L), { text: '끝 · 실패 · exit 2', tone: 'err' });
@@ -30,7 +30,7 @@ test('applyEvent — output · gap · state · end · overflow, 다시 붙어 �
 
 test('applyPoll — after_seq 뒤만, 버려진 앞 · 끝 · 결과', () => {
   let L = applyPoll(emptyLog(), { chunks: [{ seq: 4, stream: 'stdout', text: 'x' }, { seq: 5, stream: 'stderr', text: 'y' }], last_seq: 5, dropped: { bytes: 10 } });
-  assert.deepEqual(L.lines.map((x) => x.k + ':' + (x.text || '')), ['gap:… 앞 10바이트는 보관 한도로 버려졌다', 'out:x', 'out:y']);
+  assert.deepEqual(L.lines.map((x) => x.k + ':' + (x.text || '')), ['gap:… 앞 10B 버림 (보관 한도)', 'out:x', 'out:y']);
   L = applyPoll(L, { chunks: [{ seq: 5, text: 'y' }, { seq: 6, text: 'z' }], last_seq: 6, complete: true, result: { state: 'succeeded', exit_code: 0 } });
   assert.deepEqual(L.lines.slice(-1).map((x) => x.text), ['z']); assert.equal(L.end, true); assert.equal(endLine(L).text, '끝 · 성공 · exit 0');
 });

@@ -29,7 +29,7 @@ test('노드 터미널 — 잠김: 입력 줄 대신 이유 · 대신 할 곳 ·
   const { c, done } = make({ TerraShells: shells }); try {
     c.liveRec = () => ({});
     c.runCmd('ls -la'); assert.equal(ran.length, 0, '노드 셸은 실행하지 않는다');
-    assert.deepEqual(texts(c, 'term').slice(-3), ['잠김 이유 — 실행하지 않았다', '  · 가', '  · 나']);
+    assert.deepEqual(texts(c, 'term').slice(-3), ['잠김 이유 · 실행 안 함', '  · 가', '  · 나']);
     c.runCmd('clear'); assert.deepEqual(c.state.term, []);
   } finally { done(); }
 });
@@ -37,7 +37,7 @@ test('노드 터미널 — 잠김: 입력 줄 대신 이유 · 대신 할 곳 ·
 test('노드 터미널 창 — 잠금 판만, 입력 줄 없음(시안도) · Terra 터미널 창은 입력 줄', () => {
   const { c, done } = make({}); try {
     assert.equal(c.nodeShell().locked, true);
-    c.runCmd('uname -a'); assert.ok(texts(c, 'term').some((t) => /잠겨 있다 — .*설계가 먼저다 — 실행하지 않았다/.test(t)));
+    c.runCmd('uname -a'); assert.ok(texts(c, 'term').some((t) => /^잠김 : 설계 필요 — .* · 실행 안 함$/.test(t)));
     assert.ok(!texts(c, 'term').some((t) => /Linux|192\.168|inet /.test(t)), '시안에서도 셸 출력을 지어내지 않는다');
   } finally { done(); }
   const m = /<sc-if value="\{\{w\.locked\}\}"[\s\S]*?<\/sc-if>/.exec(src); assert.ok(m, '잠금 판'); assert.ok(!/<input/.test(m[0]), '잠금 판에 입력 칸 없음');
@@ -63,12 +63,12 @@ test('Terra 터미널 — TerraShells.terra.run 결과 · use · !! · 히스토
 test('시안(실제 연결 없음) — 노드 셸은 잠금, Terra 터미널은 예시라고 밝히고 셸 문법은 거절', () => {
   const { c, done } = make({}); try {
     c.liveRec = () => null;
-    c.runCmd('terra status'); assert.ok(texts(c, 'term').some((t) => /잠겨 있다 — .*실행하지 않았다/.test(t)));
+    c.runCmd('terra status'); assert.ok(texts(c, 'term').some((t) => /^잠김 : 설계 필요 — .* · 실행 안 함$/.test(t)));
     c.runTerra('frob'); assert.match(texts(c, 'tterm').pop(), /^\(시안\) frob/);
     c.runTerra('status; ls'); assert.match(texts(c, 'tterm').pop(), /^SHELL_SYNTAX/);
-    c.runTerra('terra module start io.terra.agent'); assert.match(texts(c, 'tterm').pop(), /^NOT_HERE — .*여기서 못 함/);
+    c.runTerra('terra module start io.terra.agent'); assert.match(texts(c, 'tterm').pop(), /^NOT_HERE — .*여기서 불가/);
     c.runTerra('node list'); assert.doesNotMatch(texts(c, 'tterm').pop(), /^NOT_HERE/);
-    c.runTerra('help'); assert.ok(texts(c, 'tterm').some((t) => /terra shell 과 같은 낱말/.test(t)));
+    c.runTerra('help'); assert.ok(texts(c, 'tterm').some((t) => /terra shell 낱말/.test(t)));
   } finally { done(); }
 });
 
