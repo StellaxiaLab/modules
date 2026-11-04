@@ -28,7 +28,7 @@ import (
 	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
-const moduleVersion = "0.2.0"
+const moduleVersion = "0.2.1"
 
 // unknownNodeID is what status.get reports when the host wires no Core
 // capability plane. The module must still serve — a host without core ops is a
