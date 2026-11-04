@@ -63,6 +63,8 @@ export function buildTopology(nodes, o = {}) {
     master: o.master || null,
     /** Master 의 노드 기록 그대로(상태 · resource · last_heartbeat_at) — 없으면 null */
     node(rid) { return (rid && byId.get(rid)) || null; },
+    /** Master 노드 기록 전부(세운 이름 없는 트리는 빼고) — 자원 추이(metrics.js)가 받을 때마다 쌓는다 */
+    records() { return [...byId.values()].filter((n) => !n.synthetic); },
   };
 }
 

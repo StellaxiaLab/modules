@@ -18,6 +18,7 @@ import { pickMode, connectApp } from '../api/mode.js';
 import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems } from '../api/host-secret.js';
 import * as deskAdapt from '../api/desk-adapt.js';
 import { startAlarms } from '../api/alarms.js';
+import { createMetrics } from '../api/metrics.js';
 import * as netRead from '../api/net-read.js';
 import { createNodeInfo } from '../api/node-info.js';
 import { createNetProps } from '../api/net-props.js';
@@ -177,21 +178,25 @@ if (MODE !== 'demo') {
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; })
     .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = []; }));   // 자원화 유형을 내놓는 모듈(contributions.svi.types)
-  // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50). 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
-  const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; };
+  // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50), 읽음 · 지우기는 window.TerraAlarmBook(src/api/alarms.js).
+  //   바뀌면 'terra-alarms' 신호 — 알림 창 · 전역 틀 배지가 다시 그린다. 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
+  const alarmSig = () => { try { window.dispatchEvent(new Event('terra-alarms')); } catch {} };
+  const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; window.TerraAlarmBook = null; if (window.TerraMetrics) window.TerraMetrics.clear(); alarmSig(); };
   // 노드 기록(상태 · 하트비트 · 자원)은 로그인 때 한 번만 받으면 낡는다 — 30초마다 다시(보일 때만). 노드 목록이 같으면(rev 같음) 기록만 바꿔 끼우고 씬은 다시 짓지 않는다
   //   window.TerraTopologyState = { state: 'ok'|'empty'|'error', error?, at } — 못 받았을 때 화면이 시안 지도를 실제처럼 두지 않고 "받지 못함 / 노드 없음"을 보일 신호('terra-topology-state' 이벤트도)
   const refreshTopology = () => loadTopologyState(terra).then((r) => {
     window.TerraTopologyState = { state: r.state, error: r.error || '', at: r.at }; try { window.dispatchEvent(new Event('terra-topology-state')); } catch {}
-    const t = r.topo; if (!t) return; const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t);
+    const t = r.topo; if (!t) return; if (t.records) { window.TerraMetrics.ingest(t.records(), r.at); try { window.dispatchEvent(new Event('terra-metrics')); } catch {} }   // 자원 추이 — 받은 하트비트 스냅샷을 노드마다 쌓는다(같은 하트비트는 하나로)
+    const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t);
   }, () => {});
   const TOPO_MS = 30000;   // 지도 · 대상 표 갱신 주기 — 탭이 보일 때만(숨겨진 탭은 Master 를 두드리지 않고, 다시 보이면 바로 한 번)
+  window.TerraMetrics = createMetrics({ pollMs: TOPO_MS });   // 전역 틀 대상 표의 그래프 — 하트비트 스냅샷 점열(src/api/metrics.js). 실시간 지표 op 는 코어에 없다
   const topoTick = () => { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') refreshTopology(); };
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (topoTimer && document.visibilityState === 'visible') refreshTopology(); });
   const afterLogin = () => {
     transport.ready(); loadRoutes(); loadApps(); stopLive();
     terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { window.TerraWho = w; }, () => { window.TerraWho = null; });   // 계정 탭 — principal · 권한 · Terra ID 연결의 사용자 id
-    alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m) }); window.TerraAlarms = alarms.list;
+    alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m), onChange: alarmSig }); window.TerraAlarms = alarms.list; window.TerraAlarmBook = alarms.book; alarmSig();
     topoTimer = setInterval(topoTick, TOPO_MS); refreshTopology();
     push = startPush({ terra, store: () => window.TerraNodes, onEvent: () => alarms && alarms.poke() });
   };

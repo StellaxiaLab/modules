@@ -152,6 +152,11 @@ body{margin:0;background:#040614}
 //     나눔 원칙: 노드 **안**의 일(자원 캡슐화 · 공유 폴더 · 실행 · 제어)은 노드 데스크톱에서, 노드 **사이**의 일(어떤 노드 · 범위에 어떤 자원을 주고, 무엇을 받아 올지)은 자원 창에서
 //     키마다 소유자(편집 = operator · 읽기 = installer/derived)와 재시작 필요 여부를 함께 보인다. 비밀 키 · 효과 없는 키 · 포트 편집은 두지 않는다
 //   시안 — 노드 설정 값은 이 창 안에서만 (적용하면 기준값이 바뀐다)
+//   실제(앱이 Terra 에 붙음 — window.TerraTransport) — 나눈다: 노드 설정 **편집은 한 곳(제어기 › 설정 › 노드 설정)**.
+//     GUI 구역(이 브라우저의 표시 · 프로필 · 스킨 · 뷰 · Tree 로그인)은 그대로 동작한다.
+//     Terra · Tree 구역은 읽기 요약(노드 이름 · 역할 · 노드 ID · 부모 · 상태 · 코어 버전 · Master 주소 · 등록 — Master 노드 기록 TerraTopology ·
+//     로컬 Daemon 등록 상태)과 '제어기 › 설정 열기'(onOpen('ctl', 'set:node') — 제어기가 설정 › 노드 설정 탭으로 뜬다). Leaf › 자원은 길 안내 그대로.
+//     시안 설정 값 · '(시안)' 적용 · 다시 시작은 실제 모드에 없다
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { sec: 'show', v: null, base: null, draft: {}, msg: '', arm: null, needRestart: 0 };
     try { window.addEventListener('terra-help', () => this.setState({})); window.addEventListener('terra-sess', () => this.setState({})); } catch (e) {} }
@@ -233,7 +238,10 @@ class Component extends DCLogic {
     if (!this.state.v) { const d = this.defaults(); this.state.v = JSON.parse(JSON.stringify(d)); this.state.base = JSON.parse(JSON.stringify(d)); } return this.state.v; }
   set(k, val) { const v = Object.assign({}, this.V(), { [k]: val }); this.setState({ v, msg: '' }); }
   dirty() { const v = this.V(), b = this.state.base; return Object.keys(v).filter((k) => JSON.stringify(v[k]) !== JSON.stringify(b[k])); }
-  SECS() { const etc = ['기타', [['etc', '도움말']]]; if (!this.isNode()) return [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['ident', '노드 설정']]], etc];
+  SECS() { const etc = ['기타', [['etc', '도움말']]];
+    if (this.real() && this.isNode()) { const g = [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['sum', '노드 요약']]]];   // 실제 — 노드 설정은 읽기 요약 + 제어기 › 설정으로
+      if (this.isTree()) g.push(['Tree', [['tsum', 'Tree 요약']]]); if (this.isLeaf()) g.push(['Leaf', [['res', '자원']]]); g.push(etc); return g; }
+    if (!this.isNode()) return [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['ident', '노드 설정']]], etc];
     const g = [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['ident', '노드 정보'], ['conn', '연결'], ['net', '네트워크'], ['upd', '업데이트'], ['log', '로그'], ['danger', '노드 관리']]]];
     if (this.isTree()) g.push(['Tree', [['cluster', '클러스터'], ['users', '사용자'], ['enroll', '노드 등록'], ['deploy', '배포'], ['alerts', '경보']]]);
     if (this.isLeaf()) g.push(['Leaf', [['res', '자원'], ['mods', '모듈']]]);
@@ -241,9 +249,28 @@ class Component extends DCLogic {
   KEYS() { return { show: ['label', 'orbit', 'color', 'proj'], skin: ['skin'], prof: ['profile'], view: ['view', 'dbl', 'badge'],
     ident: ['daemon.device_name'], conn: ['master.url', 'heartbeat.interval_sec'], net: ['wireguard.enabled', 'wireguard.listen_port', 'wireguard.advertise_endpoint', 'direct_tcp.enabled', 'webrtc.enabled'],
     upd: ['core_distribution.hold', 'core_distribution.hold_reason', 'core_distribution.allow_apply', 'core_distribution.maintenance_window', 'core_distribution.disk_quota_mb'], log: ['logging.level', 'logging.max_size_mb', 'logging.max_backups'], danger: [],
-    cluster: [], users: ['users'], enroll: ['codes'], deploy: [], alerts: ['alerts'], res: [], etc: [], tlog: [], mods: ['module_distribution.enabled', 'module_distribution.disk_quota_mb'] }; }
+    sum: [], tsum: [], cluster: [], users: ['users'], enroll: ['codes'], deploy: [], alerts: ['alerts'], res: [], etc: [], tlog: [], mods: ['module_distribution.enabled', 'module_distribution.disk_quota_mb'] }; }
   // 노드 설정 줄의 머리표 — 키 이름 · 편집/읽기 · 재시작
   meta(k) { const D = this.DKEYS()[k]; if (!D) return {}; const ro = D[0] !== 'O' || this.remote(); return { keyT: k, tagT: ro ? '읽기' : '편집', tagCls: ro ? 'ro' : 'ed', rsT: D[1] && !ro ? '재시작 필요' : D[0] === 'O' && !D[1] && !ro ? '즉시' : '', isMeta: true }; }
+  // ── 실제 모드 — 읽기 요약 (Master 노드 기록 · 로컬 Daemon 등록 상태). 지어내지 않는다: 없는 칸은 '보고 없음' · '—' 와 까닭 ──
+  toCtl() { return () => (this.props.onOpen ? this.props.onOpen('ctl', 'set:node') : null); }
+  realSum(sec) {
+    const TP = window.TerraTopology, rid = this.props.nodeRid || '', rec = rid && TP && TP.node ? TP.node(rid) : null, NS = rec && window.TerraNodeStats ? window.TerraNodeStats(rec) : null, NO = '보고 없음', D = '—';
+    const R = (label, val, key) => ({ label, sub: key ? '' : '', isText: true, val: val == null || val === '' ? NO : String(val), ro: 'readonly', input: null, keyT: key || 'terra.master.nodes.get', tagT: '읽기', tagCls: 'ro', rsT: '', isMeta: true });
+    const loc = !!(TP && rid && TP.localId === rid), M = loc && TP.master ? TP.master : null, rm = this.remote();
+    const go = this.noteRow('노드 설정 편집 — 제어기 › 설정', rm ? '원격 노드는 읽기 — 설정 쓰기(config.patch)는 그 노드에서만' : 'Daemon 설정(config.get · schema · patch)은 한 곳에서 편집', this.props.onOpen ? { t: '제어기 › 설정 열기', run: this.toCtl() } : null);
+    if (!rec) return [go, this.noteRow('Terra 노드 목록에 없는 노드', rid ? '노드 기록을 아직 받지 못함' : '시안 지도의 노드 — 값 없음')];
+    const nm = (id) => { const n = id && TP.node(id); return n ? n.display_name || id.slice(0, 10) : id ? id.slice(0, 10) : ''; }, RL = { tree: 'Tree', leaf: 'Leaf', master: 'Master' };
+    if (sec === 'tsum') { const kids = TP.records ? TP.records().filter((n) => n.node_id !== rid && (n.parent_node_id === rid || (!n.parent_node_id && TP.masterId === rid))) : [];   // 부모가 빈 노드는 Master 바로 아래
+      return [this.noteRow('Tree 관리 — Tree 웹 콘솔', 'Master 설정 · 사용자 · 등록 코드 · 배포 · 경보는 앱 자격(위임 표) 밖 — 여기서 쓰지 않는다'),
+        R('Master 노드', TP.masterId ? (TP.masterId === rid ? '예 — 이 노드에서 Master 가 돈다' : '아니오 · Master ' + nm(TP.masterId)) : NO),
+        R('바로 아래 노드', kids.length + '개' + (kids.length ? ' · ' + kids.slice(0, 6).map((n) => n.display_name || n.node_id.slice(0, 10)).join(', ') + (kids.length > 6 ? ' …' : '') : ''))]; }
+    return [go,
+      R('표시 이름', rec.display_name || this.props.nodeName), R('역할', (rec.roles || []).map((x) => RL[x] || x).join(' · ')), R('노드 ID', rid),
+      R('부모', rec.parent_node_id ? nm(rec.parent_node_id) : D + ' (Master 바로 아래)'), R('상태', NS ? NS.status + (NS.seen ? ' · 하트비트 ' + NS.seen : '') : NO), R('코어 버전', NS && NS.version),
+      R('Master 주소', loc ? M && M.url : D + ' · 이 GUI 노드의 등록만 읽는다', loc ? 'terra.daemon.enrollment.status.get' : ''),
+      R('등록', loc ? (!M || M.registered == null ? NO : M.registered ? '등록됨' + (M.registeredAt ? ' · ' + String(M.registeredAt).slice(0, 10) : '') : '등록 안 됨') : D, loc ? 'terra.daemon.enrollment.status.get' : '')];
+  }
   // 노드가 아닌 것 · 원격 노드 — 안내 줄
   noteRow(t, sub, act) { return { label: t, sub, isNote: true, noteAct: act || null, hasAct: !!act, actT: act ? act.t : '' }; }
   rows(sec) {
@@ -265,8 +292,9 @@ class Component extends DCLogic {
         skinEmpty: files.length ? '' : 'star 폴더 비어 있음' }]; }
     if (sec === 'view') return [G('view', '시작 뷰', '', ['트리 뷰', '리프 뷰', '리소스 뷰']), T('dbl', '더블클릭 진입', '끄면 우클릭 › 진입'), T('badge', '알림 배지', '')];
     // ── 노드 설정 (Daemon) ──
+    if (this.real() && (sec === 'sum' || sec === 'tsum')) return this.realSum(sec);
     if (!this.isNode() && !['show', 'prof', 'skin', 'view', 'etc'].includes(sec)) return [this.noteRow('노드 설정 없음', this.props.nodeKind === '계정' ? '계정 · 권한은 트리 › 사용자' : '자원 공유는 부모 리프 › 자원')];
-    const head = this.remote() ? [this.noteRow('원격 노드 · 읽기 전용', '노드 설정 쓰기는 그 노드에서만 (terra.daemon.config.patch)', { t: '그 노드에서 열기', run: () => this.setState({ msg: '그 노드의 GUI 를 엽니다 (시안)' }) })] : [];
+    const head = this.remote() && !this.real() ? [this.noteRow('원격 노드 · 읽기 전용', '노드 설정 쓰기는 그 노드에서만 (terra.daemon.config.patch)', { t: '그 노드에서 열기', run: () => this.setState({ msg: '그 노드의 GUI 를 엽니다 (시안)' }) })] : [];
     if (sec === 'ident') return head.concat([X('daemon.device_name', '표시 이름', '지도 · 목록의 이름', 'lab-ws-02'), X('daemon.roles', '역할', '변경은 인스톨러로'), X('registration.parent', '부모 트리', ''), X('registration.node_id', '노드 ID', '등록 때 정해짐'),
       this.noteRow('사용자 권한', '트리 › 사용자에서 관리')]);
     if (sec === 'net') return head.concat([T('wireguard.enabled', 'WireGuard 메시', '끄면 Master 중계'), N('wireguard.listen_port', '수신 포트', 'WireGuard UDP', 1024, 65535, 1, ''), X('wireguard.advertise_endpoint', '공개 주소', 'host:port · 비우면 자동', 'host:51820'),

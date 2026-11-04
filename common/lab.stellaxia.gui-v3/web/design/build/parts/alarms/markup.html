@@ -1,0 +1,33 @@
+<div class="al" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
+  <div class="al-row"><span class="al-p">&gt;</span><span>alarms</span><b class="al-v al-cut">{{name}}</b><span class="al-k">로컬 Daemon</span><span style="flex: 1;"></span><span style="color: {{unCol}};">● 안 읽음 {{unread}}</span><span class="al-k">· 전체 {{total}}</span></div>
+  <div class="al-row al-k">{{srcT}}</div>
+  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="al-note">{{note}}</div></sc-if>
+
+  <h3 class="al-h"><span class="al-hl"></span>거르기<span class="al-hr"></span></h3>
+  <div class="al-bar">
+    <span class="al-seg" role="group" aria-label="종류별 거르기"><sc-for list="{{filters}}" as="f" hint-placeholder-count="5"><button type="button" aria-pressed="{{f.on}}" class="{{f.cls}}" onClick="{{f.pick}}">{{f.name}} <span class="al-n">{{f.n}}</span></button></sc-for></span>
+    <span style="flex: 1;"></span>
+    <button type="button" class="al-btn" disabled="{{readOff}}" onClick="{{readAll}}" title="{{readTip}}">{{readT}}</button>
+    <button type="button" class="al-btn al-danger {{clrCls}}" disabled="{{clrOff}}" onClick="{{clearAll}}" title="{{clrTip}}">{{clrT}}</button>
+  </div>
+  <sc-if value="{{armOn}}" hint-placeholder-val="{{ false }}"><div class="al-arm">{{armT}}</div></sc-if>
+
+  <h3 class="al-h"><span class="al-hl"></span>목록<span class="al-hr"></span><span class="al-k">{{listSum}}</span></h3>
+  <div class="al-it al-dim" style="cursor: default;"><span></span><span>시각</span><span></span><span>종류</span><span>내용</span><span>대상</span><span></span></div>
+  <sc-for list="{{items}}" as="a" hint-placeholder-count="6">
+    <div class="al-it {{a.cls}}">
+      <span class="al-dot" style="color: {{a.dotCol}};">{{a.dot}}</span>
+      <span class="al-k" title="{{a.full}}">{{a.t}}</span>
+      <span style="color: {{a.c}}; font-weight: 700;">{{a.g}}</span>
+      <span class="al-tag {{a.kindCls}}">{{a.kindT}}</span>
+      <button type="button" class="al-go al-cut" onClick="{{a.go}}" title="{{a.goTip}}">{{a.m}}</button>
+      <span class="al-k al-cut" title="{{a.id}}">{{a.tgt}}</span>
+      <span class="al-acts"><button type="button" class="al-x" disabled="{{a.readOff}}" onClick="{{a.read}}" aria-label="읽음" title="읽음">✓</button><button type="button" class="al-x" onClick="{{a.clear}}" aria-label="지우기" title="이 알림 지우기">×</button></span>
+    </div>
+  </sc-for>
+  <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="al-k al-empty">{{emptyT}}</div></sc-if>
+
+  <h3 class="al-h"><span class="al-hl"></span>알림이 다루지 않는 것<span class="al-hr"></span></h3>
+  <sc-for list="{{gaps}}" as="g" hint-placeholder-count="3"><div class="al-gap">· {{g.t}}</div></sc-for>
+  <div class="al-row" style="margin-top: 6px;"><span class="al-p">&gt;</span><span class="al-cur"></span></div>
+</div>

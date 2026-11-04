@@ -891,7 +891,7 @@ button{font-family:inherit}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"lab-ws-02"},"catalog":{"editor":null},"winW":{"editor":null,"default":1240},"zoom":{"editor":null},"onZoom":{"editor":null},"onClose":{"editor":null},"onFull":{"editor":null},"chrome":{"editor":"enum","options":["own","none"],"default":"own"},"winH":{"editor":null,"default":760},"remote":{"editor":"boolean","default":false},"onOpen":{"editor":null},"nodeKey":{"editor":"text","default":""},"parentName":{"editor":"text","default":""},"$preview":{"width":1240,"height":760}}'>
+<script type="text/x-dc" data-dc-script data-props='{"nodeName":{"editor":"text","default":"lab-ws-02"},"catalog":{"editor":null},"winW":{"editor":null,"default":1240},"zoom":{"editor":null},"onZoom":{"editor":null},"onClose":{"editor":null},"onFull":{"editor":null},"chrome":{"editor":"enum","options":["own","none"],"default":"own"},"winH":{"editor":null,"default":760},"remote":{"editor":"boolean","default":false},"onOpen":{"editor":null},"nodeKey":{"editor":"text","default":""},"parentName":{"editor":"text","default":""},"launch":{"editor":"text","default":""},"$preview":{"width":1240,"height":760}}'>
 const D = {
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   doc: 'M6 3h9l3 3v15H6z M9 9h6 M9 13h6 M9 17h4',
@@ -2162,6 +2162,9 @@ class Component extends DCLogic {
 
   renderVals() {
     this.bind(); this.viewWatch();
+    // 바로 띄울 앱 — 바깥(전역 틀)이 launch="앱:세부@번호" 로 준다. 'set:node' 설정 › 노드 설정(설정 창의 '노드 설정 편집') · 'jobs:<작업 id>' 작업 관리자(알림 줄). 번호가 바뀔 때마다 한 번
+    { const L = this.props.launch || ''; if (L && L !== this._lau0 && !this.idle()) { this._lau0 = L; const [app, sub] = L.split('@')[0].split(':');
+      if (APPS[app]) setTimeout(() => { this.launch(app); const o = {}; if (app === 'set' && sub) o.setTab = sub; if (app === 'jobs' && sub) o.jobSel = sub; if (Object.keys(o).length) this.setState(o); }, 0); } }
     const s = this.state, p = s.prefs;
     const dark = p.dark;
     const t = dark

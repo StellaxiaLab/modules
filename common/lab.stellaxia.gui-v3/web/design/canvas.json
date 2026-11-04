@@ -193,6 +193,14 @@
       "w": 900,
       "x": 13860,
       "y": 1820
+    },
+    "Alarms.dc.html": {
+      "h": 560,
+      "is_interactive": true,
+      "title": "알림 창 — 로컬 Daemon 작업 · 모듈 알림 · 읽음 · 지우기 · 거르기 (전역 틀 설정 › 알림)",
+      "w": 640,
+      "x": 14800,
+      "y": 1820
     }
   },
   "createdOnFiles": {
@@ -251,6 +259,7 @@
     "NodeStatus.dc.html",
     "NodeNet.dc.html",
     "NodeSvi.dc.html",
+    "Alarms.dc.html",
     "NodeConf.dc.html",
     "NodeShare.dc.html",
     "ResStatus.dc.html",
