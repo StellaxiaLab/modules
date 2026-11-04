@@ -11,7 +11,7 @@ test('ndSet — 실모드 · operation 없음 · 초안 아님이면 거절(fals
   assert.ok(i > 0);
   assert.match(body, /!op && T\.t && T\.t\.kind !== 'mock'/);
   assert.match(body, /o && o\.draft\) \{ T\.draft\(/);
-  assert.match(body, /적용하지 않았다'\); return false;/);
+  assert.match(body, /적용 안 함 : 노드에 보낼 operation 없음'\); return false;/);
   assert.ok(nodes.includes('  draft(n, res, apply)'));
 });
 

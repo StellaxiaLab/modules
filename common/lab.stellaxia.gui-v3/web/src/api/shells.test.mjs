@@ -46,8 +46,8 @@ test('위임 밖 · 쓰기 명령 — 부르지 않고 "여기서 못 함 + 대�
   const T = fake({});
   const S = createShells(T, topo);
   for (const [line, where] of [['module install a.tpkg', /모듈 창/], ['module start io.terra.agent', /모듈 창/], ['task cancel t-1', /작업 관리자/], ['task output t-1', /작업 관리자/], ['config set logging.level debug', /설정 창/], ['daemon restart', /terra CLI/],
-    ['wg up', /네트워크 창/], ['svi grant x', /자원 관리/], ['login', /로그인 화면/], ['exec ls', /노드 셸 — 잠김/], ['terra sudo ls', /노드 셸 — 잠김/], ['bash', /노드 셸/], ['set var N desk', /변수가 없다/]])
-    await assert.rejects(S.terra.run(line), (e) => e.code === 'NOT_HERE' && /여기서 못 함\. 대신: /.test(e.message) && where.test(e.message), line);
+    ['wg up', /네트워크 창/], ['svi grant x', /자원 관리/], ['login', /로그인 화면/], ['exec ls', /노드 셸 — 잠김/], ['terra sudo ls', /노드 셸 — 잠김/], ['bash', /노드 셸/], ['set var N desk', /변수 없음/]])
+    await assert.rejects(S.terra.run(line), (e) => e.code === 'NOT_HERE' && /여기서 불가 · 대신 : /.test(e.message) && where.test(e.message), line);
   assert.equal(T.calls.length, 0, '아무것도 부르지 않았다');
   assert.ok(ELSEWHERE.every(([, , w]) => typeof w === 'string' && w.length > 0));
 });
@@ -56,7 +56,7 @@ test('노드 터미널 — 잠김: 실행 길이 없고(commands.execute 를 부
   const T = fake({ 'terra.daemon.commands.execute.post': { task_id: 't-1' } });
   const S = createShells(T, topo);
   assert.equal(NODE_SHELL.locked, true); assert.equal(S.NODE_SHELL, NODE_SHELL); assert.equal(S.node.locked, true);
-  assert.match(NODE_SHELL.reason, /잠겨/); assert.equal(NODE_SHELL.design, 'docs/design/node-shell.md'); assert.ok(NODE_SHELL.instead.length >= 2);
+  assert.match(NODE_SHELL.reason, /^잠김 : /); assert.equal(NODE_SHELL.design, 'docs/design/node-shell.md'); assert.ok(NODE_SHELL.instead.length >= 2);
   assert.equal(S.node.can(''), false); assert.equal(S.node.can('n-desk-0001'), false);
   await assert.rejects(S.node.run('', 'ls'), (e) => e.code === 'LOCKED'); await assert.rejects(S.node.cd('', '/'), (e) => e.code === 'LOCKED');
   assert.equal(T.calls.length, 0);
@@ -69,7 +69,7 @@ test('Terra 터미널 — node list · node get(이름 · .terra · id 앞부분
   const L = await S.terra.run('terra node list'); assert.match(L.lines[0].t, /^이름\s+node_id/); assert.match(L.lines[1].t, /desk\s+n-desk-0001/);
   const G = await S.terra.run('node get desk.terra'); assert.match(G.lines.map((l) => l.t).join('\n'), /부모\s+server[\s\S]*100\.80\.0\.11\s+desk\.terra/);
   const U = await S.terra.run('use n-srv'); assert.equal(U.cur, 'n-srv-0002'); assert.equal(U.curName, 'server');
-  await assert.rejects(S.terra.run('node get nope'), /Master 노드 목록에 없다/);
+  await assert.rejects(S.terra.run('node get nope'), /Master 노드 목록에 없음/);
   await assert.rejects(S.terra.run('frobnicate'), /모르는 명령/);
 });
 
@@ -95,7 +95,7 @@ test('Terra 터미널 api — 위임표의 읽기만(이름=값 입력), 쓰기 
   for (const [op, code, where] of [['terra.daemon.commands.execute.post', 'NOT_HERE', /노드 셸 — 잠김/], ['terra.daemon.tasks.by-task-id.output.get', 'NOT_HERE', /작업 관리자/], ['terra.daemon.modules.by-module-id.stop.post', 'NOT_HERE', /모듈 창/], ['terra.daemon.config.apply.post', 'NOT_HERE', /설정 창/],
     ['terra.master.svi.grants.post', 'NOT_HERE', /자원 관리/], ['terra.master.crossboundary.login-routes.get', 'DELEGATION_NOT_OPEN', /B 모드/], ['lab.stellaxia.gui-v3.status.get', 'NOT_DELEGATED', /terra CLI/]]) {
     assert.equal(apiAllowed(op).ok, false, op);
-    await assert.rejects(S.terra.run('api ' + op), (e) => e.code === code && /여기서 못 함/.test(e.message) && where.test(e.message), op);
+    await assert.rejects(S.terra.run('api ' + op), (e) => e.code === code && /여기서 불가/.test(e.message) && where.test(e.message), op);
   }
   assert.equal(T.calls.length, n0, '거절한 op 는 부르지 않았다');
   await assert.rejects(S.terra.run('api terra.daemon.live.get', { cur: 'n-srv-0002' }), (e) => e.code === 'LOCAL_ONLY');

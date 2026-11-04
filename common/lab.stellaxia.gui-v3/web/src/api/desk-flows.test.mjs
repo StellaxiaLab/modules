@@ -24,8 +24,8 @@ test('등록 코드 — tnc_ · 주소를 품은 꼴 · tjc_ 거절 · 깨진 �
 test('등록 결과 — 202 응답(재시작 · 종료 코드 75 · 주소 못 적음)과 오류 문장', () => {
   const L = enrollResult({ status: { registered: true, node_id: 'nd_1' }, master_url: 'https://t', master_url_persisted: false, restarting: true, service_manager: 'systemd-user', exit_code: 75 });
   assert.deepEqual(L.map((x) => x[0]), ['등록', 'Master', '다시 시작']);
-  assert.match(L[0][1], /nd_1/); assert.match(L[1][1], /설정에 못 적음/); assert.match(L[2][1], /종료 코드 75/);
-  assert.match(enrollResult({ status: {}, restarting: false })[2][1], /직접 다시 시작/);
+  assert.match(L[0][1], /nd_1/); assert.match(L[1][1], /설정 저장 실패/); assert.match(L[2][1], /종료 코드 75/);
+  assert.match(enrollResult({ status: {}, restarting: false })[2][1], /직접 재시작/);
   for (const k of ['ENROLL_CODE_USED', 'ENROLL_CODE_EXPIRED', 'ENROLL_MASTER_URL_REQUIRED', 'LOCAL_API_CONFLICT']) assert.ok(ENROLL_ERR[k], k);
 });
 
@@ -53,7 +53,7 @@ test('.tmod — 압축된 module.json 을 브라우저 방식(DecompressionStrea
   assert.equal(v.signed, true); assert.equal(v.key, 'k-lab-1 · tree:lab'); assert.equal(v.exists, '설치됨 1.1.0 → 1.2.0'); assert.equal(v.files, 2);
   assert.deepEqual(v.perms.map((p) => p.t), ['terra.daemon.commands.execute.post', 'node.read', 'storage:module-data', 'native:gpio']);
   assert.equal(v.perms[0].cls, 'warn'); assert.equal(v.perms[3].cls, 'err');
-  assert.ok(v.warns.some((w) => /검증하지 않는다/.test(w.t))); assert.ok(v.warns.some((w) => /native/.test(w.t)));
+  assert.ok(v.warns.some((w) => /검증 안 함/.test(w.t))); assert.ok(v.warns.some((w) => /native/.test(w.t)));
 });
 
 test('.tmod — 서명 없음 · 첫 엔트리 아님 · 다른 OS · zip 아님 · module.json 없음', async () => {
@@ -61,16 +61,16 @@ test('.tmod — 서명 없음 · 첫 엔트리 아님 · 다른 OS · zip 아님
   const r = await readTmod(zip([['README', 'hi', false], ['module.json', JSON.stringify(m), false]]));
   const v = tmodView(r, null, { os: 'windows' });
   assert.equal(v.signed, false); assert.equal(v.exists, '새 모듈');
-  assert.ok(v.warns.some((w) => /서명 없음 — 노드는 개발 모드/.test(w.t))); assert.ok(v.warns.some((w) => /첫 엔트리가 아니다/.test(w.t))); assert.ok(v.warns.some((w) => /호환 목록/.test(w.t) && w.cls === 'err'));
-  await assert.rejects(readTmod(new Uint8Array([1, 2, 3, 4])), /zip 이 아니다/);
-  await assert.rejects(readTmod(zip([['x.txt', 'a', false]])), /module\.json 이 없다/);
+  assert.ok(v.warns.some((w) => /서명 없음 — 개발 모드/.test(w.t))); assert.ok(v.warns.some((w) => /첫 엔트리 아님/.test(w.t))); assert.ok(v.warns.some((w) => /호환 목록/.test(w.t) && w.cls === 'err'));
+  await assert.rejects(readTmod(new Uint8Array([1, 2, 3, 4])), /zip 아님/);
+  await assert.rejects(readTmod(zip([['x.txt', 'a', false]])), /module\.json 없음 — 모듈 패키지 아님/);
   assert.deepEqual(tmodPerms({ permissions: ['node.read'] }).map((p) => p.t), ['node.read']);
 });
 
 test('배정 진행 — 단계 · 막대 · 실패 안내', () => {
   const t0 = 1e6;
   let r = asgSteps({ post: { st: 'err', code: 'MODULE_NOT_FOUND' } }, t0);
-  assert.deepEqual(r.steps.map((s) => s.st), ['fail', 'fail', 'wait', 'wait', 'wait']); assert.match(r.fix, /게시본이 없다/); assert.equal(r.end, true);
+  assert.deepEqual(r.steps.map((s) => s.st), ['fail', 'fail', 'wait', 'wait', 'wait']); assert.match(r.fix, /게시본 없음/); assert.equal(r.end, true);
   r = asgSteps({ post: { st: 'err', code: 403 } }, t0); assert.match(r.fix, /module\.manage/); assert.equal(r.steps[0].st, 'unknown');
   r = asgSteps({ post: { st: 'ok', at: t0 } }, t0 + 1000); assert.deepEqual(r.steps.map((s) => s.st), ['done', 'done', 'now', 'wait', 'wait']); assert.equal(r.pct, 40); assert.equal(r.fix, '');
   r = asgSteps({ post: { st: 'ok', at: t0 } }, t0 + 61000); assert.match(r.fix, /하트비트/);
@@ -91,7 +91,7 @@ test('네트워크 쓰기 — op 이름은 Master 계약 꼴 · 입력 모양', 
   for (const w of NET_WRITES) { assert.ok(!M.operations[w.op], w.op + ' 는 아직 위임 밖이다 — 열렸으면 이 시험을 고친다(화면은 저절로 열린다)'); assert.ok(w.undo && w.what, w.id); }
   const by = Object.fromEntries(NET_WRITES.map((w) => [w.id, w]));
   assert.deepEqual(by.plan.input({ nodes: 'a, b', cidr: '10.0.0.0/24', listen_port: '51820' }), { nodes: [{ node_id: 'a' }, { node_id: 'b' }], cidr: '10.0.0.0/24', listen_port: 51820 });
-  assert.equal(by.plan.check({ nodes: 'a' }), '노드가 둘 이상 필요');
+  assert.equal(by.plan.check({ nodes: 'a' }), '노드 둘 이상 필요');
   assert.deepEqual(by.revoke.input({ source_node_id: 'a', target_node_id: 'b' }), { source_node_id: 'a', target_node_id: 'b', bidirectional: true });
   assert.deepEqual(by.probe.input({ source_node_id: 'a', target_node_id: 'b', adapter: '' }), { source_node_id: 'a', target_node_id: 'b' });
   assert.deepEqual(by.policyPut.input({ target_node_id: 'b', mode: 'prefer', prefer: 'mesh_direct,master_relay' }), { scope: { target_node_id: 'b' }, policy: { mode: 'prefer', prefer: ['mesh_direct', 'master_relay'] } });
@@ -108,5 +108,5 @@ test('서비스 터널 열기 — Master serviceTunnelPlanInput 꼴, loopback �
 
 test('결정 표 · 계약 이유 — 파일 설치는 결정 전까지 닫힘', () => {
   assert.equal(DECIDE.tmodInstall.locked, true); assert.match(DECIDE.tmodInstall.why, /^결정 필요 — process\.execute 경로/);
-  assert.match(CONTRACT_WHY['terra.master.users.by-user-id.external-identities.post'], /위임 세션\(앱 토큰\)에는 열지 않는다/);
+  assert.match(CONTRACT_WHY['terra.master.users.by-user-id.external-identities.post'], /위임 세션\(앱 토큰\) 닫힘/);
 });
