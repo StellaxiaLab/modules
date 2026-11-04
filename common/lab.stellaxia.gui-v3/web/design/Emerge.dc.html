@@ -42,7 +42,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <canvas data-comp-text="1" role="img" aria-label="{{comp.text}}" style="display: {{comp.textDisp}}; position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none"></canvas>
 <div style="display: {{comp.rectDisp}}; flex-direction: column; gap: 6px">
 <span style="font-size: 16px; font-weight: 500">사각형 컴포넌트</span>
-<span style="font-size: 13px; color: #9ba6c9">글자 장 아래에서 솟아오른다</span>
+<span style="font-size: 13px; color: #9ba6c9">글자 장 아래에서 융기</span>
 </div>
 <span style="display: {{comp.labelDisp}}; font-family: GmarketSans, 'Geist Mono', monospace; font-size: 12px; color: #7682ab">{{comp.label}}</span>
 </div>
@@ -55,7 +55,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <div data-lens-hit="1" role="region" tabindex="0" aria-label="{{lens.aria}}" aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Plus Minus Escape" onPointerDown="{{lens.down}}" onPointerMove="{{lens.move}}" onPointerUp="{{lens.up}}" onPointerCancel="{{lens.up}}" onWheel="{{lens.wheel}}" onKeyDown="{{lens.key}}" onDoubleClick="{{lens.dbl}}" onFocus="{{lens.focus}}" onBlur="{{lens.blur}}" style="display: {{lens.disp}}; position: absolute; left: {{lens.left}}; top: {{lens.top}}; width: {{lens.w}}; height: {{lens.h}}; z-index: 3; clip-path: {{lens.clip}}; cursor: {{lens.cursor}}; touch-action: none; outline: none"></div>
 <div data-lens-size="1" aria-hidden="true" onPointerDown="{{lens.down}}" onPointerMove="{{lens.move}}" onPointerUp="{{lens.up}}" onPointerCancel="{{lens.up}}" style="display: {{lens.disp}}; position: absolute; left: {{lens.hx}}; top: {{lens.hy}}; width: 20px; height: 20px; z-index: 3; cursor: nwse-resize; touch-action: none"></div>
 <div data-lens-bind="1" aria-hidden="true" onPointerDown="{{dragStart}}" onPointerMove="{{dragMove}}" onPointerUp="{{dragEnd}}" onPointerCancel="{{dragEnd}}" style="display: none; position: absolute; z-index: 3; cursor: grab; touch-action: none"></div>
-<div data-lens-draw="1" role="application" tabindex="0" aria-label="돋보기 형태 그리기 — 닫힌 선을 그린다 · Esc 취소" onPointerDown="{{ldraw.down}}" onPointerMove="{{ldraw.move}}" onPointerUp="{{ldraw.up}}" onPointerCancel="{{ldraw.up}}" onKeyDown="{{ldraw.esc}}" style="display: {{ldraw.disp}}; position: absolute; inset: 0; z-index: 3; cursor: crosshair; touch-action: none"></div>
+<div data-lens-draw="1" role="application" tabindex="0" aria-label="돋보기 형태 그리기 — 닫힌 선 · Esc 취소" onPointerDown="{{ldraw.down}}" onPointerMove="{{ldraw.move}}" onPointerUp="{{ldraw.up}}" onPointerCancel="{{ldraw.up}}" onKeyDown="{{ldraw.esc}}" style="display: {{ldraw.disp}}; position: absolute; inset: 0; z-index: 3; cursor: crosshair; touch-action: none"></div>
 
 <section aria-label="융기 단계" onPointerDown="{{stopProp}}" style="position: absolute; left: 32px; bottom: 32px; z-index: 4; width: 320px; box-sizing: border-box; padding: 16px; border-radius: 10px; background: #040614; border: 1px solid #1c2442; display: flex; flex-direction: column; gap: 12px; cursor: default">
 <div style="display: flex; align-items: baseline; justify-content: space-between">
@@ -97,7 +97,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <sc-for list="{{lp.bleed}}" as="lb" hint-placeholder-count="3"><button class="type {{lb.cls}}" type="button" aria-pressed="{{lb.pressed}}" onClick="{{lb.pick}}" style="padding: 0 4px">{{lb.name}}</button></sc-for>
 </div>
 <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px">
-<span style="font-size: 12px; line-height: 1.5; color: #7682ab; white-space: pre-line">{{lp.note}}</span>
+<span style="font-size: 12px; line-height: 1.5; color: #7682ab; white-space: pre-line; word-break: keep-all">{{lp.note}}</span>
 <button class="replay" type="button" onClick="{{lp.open}}" style="white-space: nowrap; flex: none">{{lp.openT}}</button>
 </div>
 </div>
@@ -141,7 +141,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
 </sc-for>
 </ol>
 <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
-<span style="font-size: 12px; line-height: 1.5; color: #7682ab">끌어 옮기기<br>빈 곳을 누르면 새로</span>
+<span style="font-size: 12px; line-height: 1.5; color: #7682ab; word-break: keep-all">끌기 : 이동<br>빈 곳 : 새로</span>
 <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px">
 <button class="replay" type="button" onClick="{{replay}}">솟기</button>
 <button class="replay" type="button" onClick="{{sinkIt}}">들어가기</button>
@@ -177,7 +177,7 @@ class Component extends DCLogic {
       { key: 'stage1_create', no: '1', name: '생성 — 배경 뒤', back: '제거 — 컴포넌트가 사라짐', ms: 120 },
       { key: 'stage2_dissolve', no: '2', name: '소거 — 글자가 빛난 뒤 사라짐', back: '메움 — 글자가 빛나며 다시 채움', ms: 600 },
       { key: 'stage3_rise', no: '3', name: '부상 — 밝아진 뒤 맨 위로', back: '하강 — 배경 뒤로, 어두워짐', ms: 180 },
-      { key: 'stage4_restore', no: '4', name: '복원 — 소거와 같은 속도로', back: '다시 비움 — 복원의 거울', ms: 600 }
+      { key: 'stage4_restore', no: '4', name: '복원 — 소거와 같은 속도', back: '다시 비움 — 복원의 거울', ms: 600 }
     ];
   }
   // 컴포넌트 종류 2개
@@ -252,7 +252,7 @@ class Component extends DCLogic {
       const K = '"Noto Sans KR", system-ui, sans-serif';
       Sh.parts = [
         { id: 'title', text: '사각형 컴포넌트', font: '500 16px GmarketSans, Geist, ' + K, color: '#e6eaf7', tx: 24, ty: 22 },
-        { id: 'sub', text: '글자 장 아래에서 솟아오른다', font: '400 13px GmarketSans, Geist, ' + K, color: '#9ba6c9', tx: 24, ty: 50 },
+        { id: 'sub', text: '글자 장 아래에서 융기', font: '400 13px GmarketSans, Geist, ' + K, color: '#9ba6c9', tx: 24, ty: 50 },
         { id: 'meta', text: '데이터 — 레거시', font: '400 12px GmarketSans, "Geist Mono", monospace', color: '#7682ab', tx: 24, ty: h - 34 }
       ].map((p) => { const T = this.textShape(p.text, p.font); return Object.assign(T, p, { x: p.tx - 4, y: p.ty - 4 }); });
       this._shape = Sh; this._maskCache = null;
@@ -575,7 +575,7 @@ class Component extends DCLogic {
     if (Sh.src === '카드') {
       c.fillStyle = '#0b1128'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#e6eaf7'; c.font = '500 16px GmarketSans, Geist, "Noto Sans KR", sans-serif'; c.textBaseline = 'top'; c.fillText('마스크 컴포넌트', 24, 22);
-      c.fillStyle = '#9ba6c9'; c.font = '400 13px GmarketSans, Geist, "Noto Sans KR", sans-serif'; c.fillText('배경 뒤에서 글자 장에 투영된다', 24, 48);
+      c.fillStyle = '#9ba6c9'; c.font = '400 13px GmarketSans, Geist, "Noto Sans KR", sans-serif'; c.fillText('배경 뒤 → 글자 장 투영', 24, 48);
       c.fillStyle = '#7682ab'; c.font = '400 12px GmarketSans, "Geist Mono", monospace'; c.fillText('투영', 24, h - 34);
       c.restore(); c.strokeStyle = '#2b3666'; c.lineWidth = 1; c.beginPath(); c.roundRect(0.5, 0.5, w - 1, h - 1, 10); c.stroke();
       return;
@@ -1156,7 +1156,7 @@ class Component extends DCLogic {
     if (e > 0.9 && !BIND && (!SEAM || this._lensFocus || this._lensDrag)) {   // 융기 외곽 — 손잡이는 잡았을 때만
       const hx = cx + hw, hy = cy + hh; c.fillStyle = HI; c.beginPath(); c.moveTo(hx + 2, hy - 8); c.lineTo(hx + 2, hy + 2); c.lineTo(hx - 8, hy + 2); c.closePath(); c.fill(); }
     // 정보 — 머리: '돋보기 ×z · 광각 · 빛번짐' · 보는 칸(열 · 행)
-    if (L.info && e > 0.6) { c.font = '500 11px GmarketSans, "Geist Mono", monospace'; c.textBaseline = 'alphabetic'; const ty = cy - hh - 7, WN = ['', ' · 광각 약', ' · 광각 강'][L.wide || 0], BN = ['', ' · 빛번짐 약', ' · 빛번짐 강'][L.bleed || 0];
+    if (L.info && e > 0.6) { c.font = '500 11px GmarketSans, "Geist Mono", monospace'; c.textBaseline = 'alphabetic'; const ty = cy - hh - 7, WN = ['', ' · 광각 : 약', ' · 광각 : 강'][L.wide || 0], BN = ['', ' · 빛번짐 : 약', ' · 빛번짐 : 강'][L.bleed || 0];
       c.fillStyle = HI; c.fillText('돋보기 ×' + (+z.toFixed(1)) + WN + BN, cx - hw, ty);
       const t2 = 'c ' + Math.round(vx / cw) + ' · r ' + Math.round(vy / ch); c.fillStyle = 'rgba(118,130,171,' + e.toFixed(3) + ')'; c.fillText(t2, cx + hw - c.measureText(t2).width, ty); }
     if (reuse) this._lensFast = { L, sig: fastSig() };
@@ -1186,7 +1186,7 @@ class Component extends DCLogic {
       lens: { disp: L.on && !drawing && !L.bind ? 'block' : 'none', left: 'calc(' + (L.x * 100).toFixed(3) + '% - ' + L.w / 2 + 'px)', top: 'calc(' + (L.y * 100).toFixed(3) + '% - ' + L.h / 2 + 'px)', w: L.w + 'px', h: L.h + 'px',
         clip: "path('" + this.lensSvg(sh, L.w, L.h) + "')", cursor: this._lensDrag ? 'grabbing' : 'grab',
         hx: 'calc(' + (L.x * 100).toFixed(3) + '% + ' + (L.w / 2 - 10) + 'px)', hy: 'calc(' + (L.y * 100).toFixed(3) + '% + ' + (L.h / 2 - 10) + 'px)',
-        aria: '돋보기 ×' + L.z + ' — 끌어 옮기기 · 휠 또는 + − 로 배율 · 화살표로 옮기기 · Esc 닫기',
+        aria: '돋보기 ×' + L.z + ' — 끌기 : 이동 · 휠 · + − : 배율 · 화살표 : 이동 · Esc : 닫기',
         down: (e) => { e.stopPropagation(); const [px, py] = at(e); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} if (e.currentTarget.focus) e.currentTarget.focus();
           this._lensDrag = { px, py, x: L.x, y: L.y, w: L.w, h: L.h, size: !!e.currentTarget.dataset.lensSize }; this.setState({}); },
         move: (e) => { const D = this._lensDrag; if (!D) return; const [px, py] = at(e), dx = px - D.px, dy = py - D.py;
@@ -1218,7 +1218,7 @@ class Component extends DCLogic {
         wide: seg([[0, '끔'], [1, '약'], [2, '강']], L.wide || 0, (v) => this.setLens({ wide: v })),
         bleed: seg([[0, '끔'], [1, '약'], [2, '강']], L.bleed || 0, (v) => this.setLens({ bleed: v })),
         seam: seg([[false, '있음'], [true, '융기 외곽']], !!L.seam, (v) => this.setLens({ seam: v })), seamDisp: L.wide && !L.bind ? 'flex' : 'none',
-        shapeDisp: L.bind ? 'none' : 'flex', openT: L.on ? '닫기' : '열기', open: () => this.lensToggle(), note: drawing ? '화면에 닫힌 선을 그린다\n손을 떼면 처음 점과 잇는다 · Esc 취소' : L.bind ? '컴포넌트 자리에 그 확대 모습만\n끌면 함께 · 바탕은 담지 않는다' : L.seam && L.wide ? '융기 외곽 — 가운데는 크게, 가장자리에서\n급히 줄어 바탕과 이어진다(테두리 없음)' : '끌어 옮김 · 모서리로 크기 · 휠 배율\n빈 곳을 누르면 그 자리로' },
+        shapeDisp: L.bind ? 'none' : 'flex', openT: L.on ? '닫기' : '열기', open: () => this.lensToggle(), note: drawing ? '그리기 : 닫힌 선 · Esc : 취소\n손 뗌 : 첫 점과 이음' : L.bind ? '보임 : 컴포넌트 자리 확대만\n끌기 : 함께 이동 · 바탕 : 제외' : L.seam && L.wide ? '융기 외곽 : 테두리 없음\n가운데 확대 · 가장자리 급감 → 바탕' : '끌기 : 이동 · 모서리 : 크기\n휠 : 배율 · 빈 곳 : 그 자리로' },
     };
   }
 
@@ -1235,36 +1235,36 @@ class Component extends DCLogic {
     return {
       lens: LV.lens, lp: LV.lp,
       stages: DT ? (() => { const Dp = this.dataPlan(); return [
-        { no: '1', name: (out ? '삭제 — ' : '생성 — ') + ({ '랜덤 갱신': out ? '갱신하다 빈칸으로' : '갱신하다 데이터로', '명도 번짐': out ? '명도를 낮춰 빈칸으로' : '명도만 HSV 로 (발광 없음)', '발광': out ? '빛난 뒤 빈칸으로' : '빛난 뒤 데이터로' })[this.TMOTION()], ms: Math.round(Dp.spread) + 'ms', cls: S.cur === 0 ? 'now' : 'on' },
-        { no: '·', name: '글자 하나' + (this.TMOTION() === '랜덤 갱신' ? ' (HSV · 갱신 ' + this.TCURVE() + ')' : this.TMOTION() === '발광' ? ' (발광)' : ' (HSV)'), ms: Math.round(Dp.cellDur) + 'ms', cls: 'on' }]; })()
+        { no: '1', name: (out ? '삭제 — ' : '생성 — ') + ({ '랜덤 갱신': out ? '갱신 → 빈칸' : '갱신 → 데이터', '명도 번짐': out ? '명도 낮춤 → 빈칸' : '명도만 HSV (발광 없음)', '발광': out ? '발광 → 빈칸' : '발광 → 데이터' })[this.TMOTION()], ms: Math.round(Dp.spread) + 'ms', cls: S.cur === 0 ? 'now' : 'on' },
+        { no: '·', name: '글자당' + (this.TMOTION() === '랜덤 갱신' ? ' (HSV · 갱신 ' + this.TCURVE() + ')' : this.TMOTION() === '발광' ? ' (발광)' : ' (HSV)'), ms: Math.round(Dp.cellDur) + 'ms', cls: 'on' }]; })()
         : MIX ? [{ no: 'M', name: out ? '바탕 걷힘 (마스크)' : '바탕 투영 (마스크)', ms: Math.round(this.maskPlan().endAll) + 'ms', cls: 'on' }].concat(out ? stages.slice().reverse() : stages)
         : MV ? (() => { const M = this.maskPlan(); const run = S.cur === 0; return [
-        { no: '1', name: out ? '걷힘 — 바깥부터 원래 색으로' : '투영 — 중심에서 바깥으로 번짐', ms: Math.round(M.spread) + 'ms', cls: run ? 'now' : 'on' },
-        { no: '·', name: '글자 하나가 바뀌는 시간 (HSV)', ms: Math.round(M.cellDur) + 'ms', cls: 'on' }]; })()
+        { no: '1', name: out ? '걷힘 — 바깥부터 원래 색' : '투영 — 중심 → 바깥 번짐', ms: Math.round(M.spread) + 'ms', cls: run ? 'now' : 'on' },
+        { no: '·', name: '글자당 바뀜 (HSV)', ms: Math.round(M.cellDur) + 'ms', cls: 'on' }]; })()
         : out ? stages.slice().reverse() : stages, total: totalMs + 'ms',
-      heading: DT ? (out ? '텍스트 — 글자 장으로 돌아가는 중' : S.hidden ? '텍스트 — 글자 장이 데이터로' : '텍스트 — 데이터') : MIX ? (out ? '혼합 — 들어가는 중' : S.hidden ? '혼합 — 바탕 마스크 · 데이터 레거시' : '혼합 — 솟음') : MV ? (out ? '마스크 — 걷히는 중' : S.hidden ? '마스크 투영' : '마스크 투영 — 비침') : out ? '컴포넌트 침강 — 들어가는 중' : S.hidden ? '컴포넌트 융기' : '컴포넌트 융기 — 솟음',
+      heading: DT ? (out ? '텍스트 — 글자 장으로 복귀 중' : S.hidden ? '텍스트 — 글자 장이 데이터로' : '텍스트 — 데이터') : MIX ? (out ? '혼합 — 침강 중' : S.hidden ? '혼합 — 바탕 마스크 · 데이터 레거시' : '혼합 — 솟음') : MV ? (out ? '마스크 — 걷힘 중' : S.hidden ? '마스크 투영' : '마스크 투영 — 비침') : out ? '컴포넌트 침강 중' : S.hidden ? '컴포넌트 융기' : '컴포넌트 융기 — 솟음',
       sinkIt: () => this.sink(),
       switchIt: () => this.switchMode(),
       // 혼합: 데이터 글자가 비울 때 그 자리에 보일 것 — 배경 뒤의 원본 컴포넌트(카드 면) 또는 바탕(검은 배경)
       ex: { disp: DT ? 'none' : 'flex', label: MV ? '번짐' : '확장', opts: [['중', '중앙'], ['상', '위'], ['하', '아래'], ['좌', '왼쪽'], ['우', '오른쪽']].map(([name, val]) => {
         const sel = this.EXPAND() === val;
-        return { name, label: val + '에서 확장', cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false',
+        return { name, label: '확장 : ' + val, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false',
           pick: () => { if (sel) return; this.endDrag(); this.setState({ expand: val }); setTimeout(() => { if (this._live) this.play(); }, 30); } };
       }) },
       mb: { disp: MIX ? 'flex' : 'none', opts: ['원본 컴포넌트', '배경'].map((name) => {
         const sel = this.MIXBACK() === name;
         return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => { if (!sel) this.setState({ mixBack: name }); } };
       }) },
-      gl: { disp: DT ? 'none' : 'block', cls: this.GLOW() ? 'sel' : '', pressed: this.GLOW() ? 'true' : 'false', label: '발광 생성 — ' + (this.GLOW() ? '켬' : '끔'),
+      gl: { disp: DT ? 'none' : 'block', cls: this.GLOW() ? 'sel' : '', pressed: this.GLOW() ? 'true' : 'false', label: '발광 생성 : ' + (this.GLOW() ? '켬' : '끔'),
         toggle: () => { const o = Object.assign({}, this.state.glowBy || {}); o[this.KIND()] = !this.GLOW(); this.endDrag(); this.setState({ glowBy: o }); setTimeout(() => { if (this._live) this.play(); }, 30); } },
       tm: { disp: DT ? 'flex' : 'none', opts: ['랜덤 갱신', '명도 번짐', '발광'].map((name) => { const sel = this.TMOTION() === name;
         return { name, cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => { if (sel) return; this.endDrag(); this._seq = null; this.setState({ tmotion: name, hidden: true, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); } }; }) },
       tc: { disp: DT && this.TMOTION() === '랜덤 갱신' ? 'flex' : 'none', opts: ['가속', '감속'].map((name) => { const sel = this.TCURVE() === name;
-        return { name: name + (name === '가속' ? ' — 주기 줄임' : ' — 주기 늘림'), cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => { if (sel) return; this.endDrag(); this._seq = null; this.setState({ tcurve: name, hidden: true, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); } }; }) },
-      tr: { disp: MV || DT ? 'none' : 'block', cls: this.TRAIL() ? 'sel' : '', pressed: this.TRAIL() ? 'true' : 'false', label: '잔상 — ' + (this.TRAIL() ? '켬' : '끔'), toggle: () => this.setState({ trail: !this.TRAIL() }) },
-      hb: { disp: MV || DT ? 'none' : 'block', cls: this.HOLEBACK() === '어둡게' ? 'sel' : '', pressed: this.HOLEBACK() === '어둡게' ? 'true' : 'false', label: '레거시 배경 — ' + (this.HOLEBACK() === '어둡게' ? '어둡게' : '비움'),
+        return { name: name + (name === '가속' ? ' · 주기 ↓' : ' · 주기 ↑'), cls: sel ? 'sel' : '', pressed: sel ? 'true' : 'false', pick: () => { if (sel) return; this.endDrag(); this._seq = null; this.setState({ tcurve: name, hidden: true, cur: -1, dir: '' }); setTimeout(() => { if (this._live) this.play(); }, 30); } }; }) },
+      tr: { disp: MV || DT ? 'none' : 'block', cls: this.TRAIL() ? 'sel' : '', pressed: this.TRAIL() ? 'true' : 'false', label: '잔상 : ' + (this.TRAIL() ? '켬' : '끔'), toggle: () => this.setState({ trail: !this.TRAIL() }) },
+      hb: { disp: MV || DT ? 'none' : 'block', cls: this.HOLEBACK() === '어둡게' ? 'sel' : '', pressed: this.HOLEBACK() === '어둡게' ? 'true' : 'false', label: '레거시 배경 : ' + (this.HOLEBACK() === '어둡게' ? '어둡게' : '비움'),
         toggle: () => this.setState({ holeBack: this.HOLEBACK() === '어둡게' ? '비움' : '어둡게' }) },
-      rs: { disp: MV || DT ? 'none' : 'block', cls: this.RESTORE() ? 'sel' : '', pressed: this.RESTORE() ? 'true' : 'false', label: '배경 복원 — ' + (this.RESTORE() ? '켬' : '끔'),
+      rs: { disp: MV || DT ? 'none' : 'block', cls: this.RESTORE() ? 'sel' : '', pressed: this.RESTORE() ? 'true' : 'false', label: '배경 복원 : ' + (this.RESTORE() ? '켬' : '끔'),
         toggle: () => { const on = !this.RESTORE(); this.endDrag(); this.setState({ restore: on }); setTimeout(() => { if (this._live && this.KIND() !== 'mask') this.play(); }, 30); } },
       parts: MIX && this.shape().parts ? this.shape().parts.map((p, k) => ({
         id: p.id, text: p.text, w: p.w + 'px', h: p.h + 'px',
