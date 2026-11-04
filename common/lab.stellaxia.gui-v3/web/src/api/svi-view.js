@@ -148,9 +148,10 @@ export function createSviWatch(terra, o = {}) {
             on({ kind: 'conn', conn: 'opening', handle }); if (h.state) on({ kind: 'status', handle_id: handle, state: h.state });
           }
           if (dead) return;
-          close = await terra.stream('terra.master.svi.handles.by-handle-id.events.get', { handle_id: handle }, (raw) => {
-            const m = streamMsg(raw); if (!m) return; tries = 0; if (m.kind === 'status' && TERMINAL.has(m.state)) ended = true; on(m);
-          }, () => { close = null; retry(); });
+          const got = (raw) => { const m = streamMsg(raw); if (!m) return; tries = 0; if (m.kind === 'status' && TERMINAL.has(m.state)) ended = true; on(m); }, lost = () => { close = null; retry(); };
+          // events.get 은 SSE — 스트림 티켓(WebSocket)은 SSE 를 잇지 못한다(sse.js). sse 가 없는 시험 전송만 stream 으로
+          close = terra.sse ? await terra.sse('terra.master.svi.handles.by-handle-id.events.get', { handle_id: handle }, { onEvent: (e) => got(e && e.data !== undefined ? e.data : e), onClose: lost })
+            : await terra.stream('terra.master.svi.handles.by-handle-id.events.get', { handle_id: handle }, got, lost);
         } catch (e) {
           const st = (e && e.status) || 0;
           if (st === 404 && handle) { handle = ''; retry(); return; }
