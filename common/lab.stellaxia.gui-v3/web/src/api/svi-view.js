@@ -70,7 +70,7 @@ export function frameValue(msg, kind) {
   const bytes = b64bytes(msg && msg.data), enc = String((msg && msg.encoding) || '').toLowerCase();
   if (kind === 'number') { const t = utf8(bytes).trim(); let v = Number(t); if (!t || Number.isNaN(v)) { try { const j = JSON.parse(t); v = typeof j === 'number' ? j : j && typeof j.value === 'number' ? j.value : NaN; } catch (e) { v = NaN; } } return { n: Number.isFinite(v) ? v : null, size: bytes.length }; }
   if (kind === 'text') return { lines: utf8(bytes).replace(/\r\n?/g, '\n').split('\n').filter((x, i, a) => x !== '' || i < a.length - 1), size: bytes.length };
-  if (kind === 'image' || kind === 'video') { const mime = IMG_ENC[enc]; return { src: mime ? 'data:' + mime + ';base64,' + msg.data : '', note: mime ? '' : (enc || '인코딩 모름') + ' — 브라우저에서 바로 풀 수 없는 인코딩', size: bytes.length, enc }; }
+  if (kind === 'image' || kind === 'video') { const mime = IMG_ENC[enc]; return { src: mime ? 'data:' + mime + ';base64,' + msg.data : '', note: mime ? '' : (enc || '인코딩 모름') + ' — 브라우저 미지원 인코딩', size: bytes.length, enc }; }
   if (kind === 'event') { const t = utf8(bytes).trim(); let j = null; try { j = JSON.parse(t); } catch (e) { j = null; }
     const sum = j && typeof j === 'object' ? Object.entries(j).slice(0, 6).map(([k, v]) => k + '=' + (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(' · ') : t;
     return { type: (j && (j.type || j.kind || j.event || j.state)) || '', text: sum.slice(0, 160), size: bytes.length }; }
@@ -112,7 +112,7 @@ export const fpsOf = (st, now = Date.now()) => { const T = st.times.filter((t) =
 export function connLabel(st) {
   if (st.conn === 'idle' || st.conn === 'stopped') return { label: '멈춤', cls: 'dim' };
   if (st.conn === 'error') return { label: '못 엶' + (st.why ? ' · ' + st.why : ''), cls: 'err' };
-  if (st.conn === 'lost') return { label: '끊김 · 다시 붙는 중' + (st.tries > 1 ? ' (' + st.tries + '번째)' : ''), cls: 'warn' };
+  if (st.conn === 'lost') return { label: '끊김 · 재연결 중' + (st.tries > 1 ? ' (' + st.tries + '번째)' : ''), cls: 'warn' };
   if (st.conn === 'opening' || (st.conn === 'live' && OPENING.has(st.state))) return { label: '여는 중', cls: 'busy' };
   if (st.conn === 'ended' || TERMINAL.has(st.state)) return { label: { closed: '닫힘', denied: '거절', failed: '실패', expired: '만료' }[st.state] + (st.reason ? ' · ' + st.reason : ''), cls: st.state === 'closed' || st.state === 'expired' ? 'dim' : 'err' };
   if (st.state === 'degraded') return { label: '끊김 · 원천 쪽 복구 중' + (st.reason ? ' · ' + st.reason : ''), cls: 'warn' };

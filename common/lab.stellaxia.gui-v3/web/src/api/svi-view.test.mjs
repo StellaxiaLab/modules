@@ -34,7 +34,7 @@ test('frameValue — 수치 · 글 · 그림(jpeg 는 data URL, h264 는 이유)
   assert.equal(frameValue(F(1, ' 41.5\n'), 'number').n, 41.5); assert.equal(frameValue(F(1, '{"value":3}'), 'number').n, 3); assert.equal(frameValue(F(1, 'x'), 'number').n, null);
   assert.deepEqual(frameValue(F(1, 'a\nb\n'), 'text').lines, ['a', 'b']);
   assert.match(frameValue(F(1, 'jpg', { encoding: 'jpeg' }), 'video').src, /^data:image\/jpeg;base64,/);
-  const h = frameValue(F(1, 'nal', { encoding: 'h264' }), 'video'); assert.equal(h.src, ''); assert.match(h.note, /h264 — 브라우저에서 바로 풀 수 없는/);
+  const h = frameValue(F(1, 'nal', { encoding: 'h264' }), 'video'); assert.equal(h.src, ''); assert.match(h.note, /h264 — 브라우저 미지원 인코딩/);
   const e = frameValue(F(1, '{"type":"press","button":"a"}'), 'event'); assert.equal(e.type, 'press'); assert.match(e.text, /button=a/);
 });
 
@@ -48,7 +48,7 @@ test('reduceView — 셈 · 빠진 순번 · hold(꼬리 멈춤) · 상태', () 
   let ev = reduceView(viewInit('event'), F(1, '{"state":"running"}'), { now: 5 }); ev = reduceView(ev, F(2, '{"state":"exited"}'), { now: 6 }); assert.equal(ev.events[0].type, 'exited');
   assert.equal(connLabel(reduceView(s, { kind: 'status', state: 'degraded', reason: 'participant_disconnected' })).cls, 'warn');
   assert.equal(connLabel(reduceView(s, { kind: 'status', state: 'closed', reason: 'source_completed' })).label, '닫힘 · source_completed');
-  assert.equal(connLabel(reduceView(s, { kind: 'conn', conn: 'lost', tries: 3 })).label, '끊김 · 다시 붙는 중 (3번째)');
+  assert.equal(connLabel(reduceView(s, { kind: 'conn', conn: 'lost', tries: 3 })).label, '끊김 · 재연결 중 (3번째)');
   assert.equal(connLabel(viewInit('bytes')).label, '멈춤'); assert.equal(connLabel(reduceView(viewInit('bytes'), { kind: 'status', state: 'opening' })).label, '여는 중');
   assert.ok(Math.abs(fpsOf({ times: [0, 500, 1000] }, 1000) - 2) < 1e-9);
 });

@@ -20,7 +20,7 @@ export const PERMS = {
   '연결 원천': ['read', 'subscribe', 'bind.source']
 };
 /** 기한 — 위임 허가는 기한이 있어야 하고 90일 이하 */
-export const TTLS = { '1시간': 3600, '1일': 86400, '7일': 604800, '30일': 2592000, '90일': 7776000 };
+export const TTLS = { '1h': 3600, '1d': 86400, '7d': 604800, '30d': 2592000, '90d': 7776000 };
 /** operations → 권한 낱말(이미 있는 허가를 보일 때 — 다른 길로 준 넓은 허가도 이름은 붙인다) */
 export function permOf(ops) {
   const s = new Set(ops || []);
@@ -39,7 +39,7 @@ export function resources(d) {
     eps: arr(r.endpoints).map((e) => ({ id: e.endpoint_id, dir: e.direction || '', interaction: e.interaction || '', schema: (e.direction === 'sink' ? e.input_schema || e.output_schema : e.output_schema || e.input_schema) || '' })) }));
 }
 
-const ttlText = (iso, now) => { const t = Date.parse(iso || ''); if (Number.isNaN(t)) return '없음'; const h = (t - now) / 3600000; return h <= 0 ? '만료' : h < 24 ? Math.ceil(h) + '시간 남음' : Math.ceil(h / 24) + '일 남음'; };
+const ttlText = (iso, now) => { const t = Date.parse(iso || ''); if (Number.isNaN(t)) return '없음'; const h = (t - now) / 3600000; return h <= 0 ? '만료' : h < 24 ? Math.ceil(h) + 'h 남음' : Math.ceil(h / 24) + 'd 남음'; };
 /** 허가 목록 → 그 자원의 줄. names: node_id → 이름, parent: 부모 Tree 의 node_id @returns {{ id: string, who: string, type: string, perm: string, ops: string, ttl: string, subject: { type: string, id: string } }[]} */
 //   주체가 사람이면 type '사람', 이 계정(selfId)이면 who '나'
 export function grantRows(d, resourceId, names = new Map(), parent = '', now = Date.now(), selfId = '') {

@@ -30,7 +30,7 @@ class Component extends DCLogic {
     const ev = [['heartbeat · 온라인', 'info', 40], ['session ← ' + peers[0] + ' · open', 'info', 95], ['probe ' + peers[1] + ' · wireguard ' + (bad ? '닿지 않음 · TIMEOUT' : 'ok'), bad ? 'warn' : 'info', 240], ['network.plan · ok', 'info', 1900], ['peer.connect · ok', 'info', 7400]];
     if (!this._net.length || this._net.t !== t) { this._net.push({ i: Math.max(0, (0.4 + r(6) + wob(7, 0.6)) * 1048576), o: Math.max(0, (0.1 + r(8) * 0.6 + wob(9, 0.1)) * 1048576) }); if (this._net.length > 22) this._net.shift(); this._net.t = t; }
     return {
-      real: false, miss: [], name: nm, status: bad ? '◐ 저하' : '● 온라인', online: true, seen: Math.floor(r(30) * 50 + 5) + '초 전',
+      real: false, miss: [], name: nm, status: bad ? '◐ 저하' : '● 온라인', online: true, seen: Math.floor(r(30) * 50 + 5) + 's 전',
       ident: { nodeId: 'nd_' + hex(50, 4) + '-' + hex(60, 12), deviceId: 'dev_' + hex(80, 10), roles: { '계정': 'Master', '트리': 'Tree', '리프': 'Leaf', '리소스': '자원' }[kind] || kind, parent: this.props.parentName || '— (맨 위)', depth: kind === '트리' ? '0' : '1',
         address: '10.80.' + Math.floor(r(70) * 9) + '.' + Math.floor(r(71) * 200 + 10), dns: nm.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.terra', version: '1.7.' + Math.floor(r(23) * 4), created: '10-0' + (1 + Math.floor(r(24) * 8)) + ' 09:12:40', tags: 'lab', caps: 'exec, files, svi' },
       comm: { via: bad ? 'relay' : 'direct', relay: true, net: 'lab-mesh', desired: 'wireguard', observed: bad ? 'relay' : 'direct', gen: String(3 + Math.floor(r(72) * 6)),
@@ -44,7 +44,7 @@ class Component extends DCLogic {
     const R = this.real(), rid = this.props.nodeRid || '', I = R ? this.state.info : this.sample(), kind = this.props.nodeKind || '리프';
     const col = (p) => p > 0.85 ? '#ff9c8c' : p > 0.75 ? '#ffd27a' : '#60e28c', D = '—';
     const tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
-    const rate = (v) => v >= 1048576 ? (v / 1048576).toFixed(1) + ' MB/s' : v >= 1024 ? Math.round(v / 1024) + ' KB/s' : Math.round(v) + ' B/s';
+    const rate = (v) => v >= 1048576 ? (v / 1048576).toFixed(1) + 'MB/s' : v >= 1024 ? Math.round(v / 1024) + 'KB/s' : Math.round(v) + 'B/s';
     const note = R && !rid ? 'Terra 노드 목록에 없는 노드(시안 지도) — 값 없음' : R && !I ? '불러오는 중…' : I && I.miss && I.miss.length ? '읽지 못함 · ' + I.miss.join(' · ') + ' — 그 칸은 —' : '';
     const id = (I && I.ident) || {}, cm = (I && I.comm) || {}, rs = (I && I.res) || {}, net = this._net, S = '▁▂▃▄▅▆▇', mx = Math.max(1, ...net.map((x) => x.i)), last = net[net.length - 1];
     const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : /^마지막 보고/.test(note2) ? '#709c80' : col(p), note: note2 });
@@ -64,7 +64,7 @@ class Component extends DCLogic {
       // 총량은 Master 가 실어 준 것만(지어내지 않는다), 꺼진 노드는 '마지막 보고 · N 전' — 지금 값처럼 보이지 않게
       bars: (() => { const fb = (typeof window !== 'undefined' && window.TerraFmtBytes) || (() => ''), sz = (u, t) => (t && fb(t) ? (fb(u) || '?') + ' / ' + fb(t) : R && I ? '총량 보고 없음' : ''), old = R && rs.stale ? '마지막 보고 · ' + ((I && I.seen) || '') : '';
         return [bar('CPU', rs.cpu, old), bar('MEM', rs.mem, old || sz(rs.memUsed, rs.memTotal)), bar('DISK', rs.disk, old || sz(rs.diskUsed, rs.diskTotal))]; })(),
-      spark: net.length ? net.map((x) => S[Math.min(6, Math.round(x.i / mx * 6))]).join('') : R ? '하트비트 두 번 뒤부터' : '', netIn: last ? rate(last.i) : D, netOut: last ? rate(last.o) : (rs.txT && rs.txT !== D ? '누적 ' + rs.txT : D),
+      spark: net.length ? net.map((x) => S[Math.min(6, Math.round(x.i / mx * 6))]).join('') : R ? '하트비트 2회 후 표시' : '', netIn: last ? rate(last.i) : D, netOut: last ? rate(last.o) : (rs.txT && rs.txT !== D ? '누적 ' + rs.txT : D),
       hb: (I && I.recent && I.recent.heartbeat) || D, events: evs, noEv: !!I && evs.length === 0,
     };
   }

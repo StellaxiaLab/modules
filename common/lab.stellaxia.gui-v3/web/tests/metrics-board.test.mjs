@@ -18,8 +18,8 @@ test('ModStatus 실제 — CPU · MEM 은 까닭과 함께 —, 가동은 starte
   const reads = [], L = { data: { module_id: MOD.id, lines: [{ at: '2026-11-04T01:02:03Z', stream: 'stdout', text: 'listening :7000' }, { at: '2026-11-04T01:02:04Z', stream: 'stderr', text: 'ERROR dial failed' }] }, at: Date.now() };
   const { done } = mount({ TerraNodes: store(reads, L), TerraDesk: { logLines } }); try {
     const c = new ModStatus({ mod: MOD }); const v = c.renderVals(), txt = JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : x));
-    assert.equal(v.cpuT, '—'); assert.equal(v.memT, '—'); assert.match(v.cpuS, /코어: 모듈별 CPU op 없음/); assert.match(v.memN, /모듈별 메모리 op 없음/);
-    assert.match(v.up, /^2시간 5분 · pid 4242 · 다시 시작 1회$/);
+    assert.equal(v.cpuT, '—'); assert.equal(v.memT, '—'); assert.match(v.cpuS, /코어 : 모듈별 CPU op 없음/); assert.match(v.memN, /모듈별 메모리 op 없음/);
+    assert.match(v.up, /^2h 5m · pid 4242 · 재시작 1회$/);
     assert.deepEqual(v.logs.map((l) => [l.lv, l.msg]), [['error', 'ERROR dial failed'], ['info', 'listening :7000']]);
     assert.deepEqual(reads.find((r) => r[1].endsWith('logs.get')), ['n1', 'terra.daemon.modules.by-module-id.logs.get', { module_id: 'io.terra.agent', tail: 40 }]);
     assert.doesNotMatch(txt, /RSS|MB"|manifest 검사|health ok/);   // 시안 줄 · 시안 사용량이 새지 않는다
@@ -31,7 +31,7 @@ test('ModStatus 실제 — 시작 시각이 없으면 까닭, 로그를 못 받�
   const S = store(reads, { data: null, err: { code: 'NODE_OFFLINE' } }); S.read = ((f) => (n, res, o) => (res === 'modules' ? { data: [M2] } : f(n, res, o)))(S.read);
   const { done } = mount({ TerraNodes: S, TerraDesk: { logLines } }); try {
     const v = new ModStatus({ mod: M2 }).renderVals();
-    assert.equal(v.up, '— · 모듈 상태에 시작 시각 없음'); assert.equal(v.logs[0].msg, '로그를 못 받음 · NODE_OFFLINE');
+    assert.equal(v.up, '— · 모듈 상태에 시작 시각 없음'); assert.equal(v.logs[0].msg, '로그 미수신 · NODE_OFFLINE');
   } finally { done(); }
 });
 

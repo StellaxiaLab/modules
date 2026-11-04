@@ -73,7 +73,7 @@ test('NodeConf 실제 — 노드 설정은 읽기 요약 + 제어기 › 설정�
   assert.doesNotMatch(JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : x)), /시안|terra\.local|1\.7\.|TR-7Q2K/);
   // 원격 노드 — Master 주소 · 등록은 이 GUI 노드 것만 안다
   const r = new C({ nodeName: 'hanium', nodeKind: '리프', nodeRid: 'n-rdk', remote: true, onOpen: () => {} }); r.skinOf = () => ''; r.profOf = () => ''; r.setState({ sec: 'sum' });
-  const rv = r.renderVals().rows; assert.match(rv.find((x) => x.label === 'Master 주소').val, /이 GUI 노드의 등록만/); 
+  const rv = r.renderVals().rows; assert.match(rv.find((x) => x.label === 'Master 주소').val, /이 GUI 노드 등록만/); 
   // Tree — Tree 요약(바로 아래 노드 · Master 노드)
   const t = new C({ nodeName: 'marui-server', nodeKind: '트리', nodeRid: 'n-server' }); t.skinOf = () => ''; t.profOf = () => ''; t.setState({ sec: 'tsum' });
   const tv = t.renderVals().rows; assert.match(tv.find((x) => x.label === 'Master 노드').val, /^예/); assert.match(tv.find((x) => x.label === '바로 아래 노드').val, /^2개/);

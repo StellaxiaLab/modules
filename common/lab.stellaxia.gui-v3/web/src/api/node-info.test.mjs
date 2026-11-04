@@ -38,7 +38,7 @@ test('최근 활동 — 하트비트 · 세션 · probe · 이 노드의 조작�
   const v = nodeInfo(REC, D, { now: NOW });
   assert.deepEqual(v.recent.events.map((e) => e.msg.split(' ')[0]), ['session', 'heartbeat', 'probe', 'peer.revoke']);
   assert.equal(v.recent.events.find((e) => /peer.revoke/.test(e.msg)).lv, 'warn');
-  assert.equal(v.res.rxT, '5.0 MB'); assert.equal(v.res.mem, 0.635);
+  assert.equal(v.res.rxT, '5.0MB'); assert.equal(v.res.mem, 0.635);
 });
 
 test('읽기가 비어도 — 노드 기록만으로 그리고, 없는 칸은 —', () => {

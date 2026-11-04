@@ -13,12 +13,12 @@ test('subjectRule — 노드는 read · subscribe · bind.source, 사람(나)은
   assert.ok(n.ok); assert.ok(u.ok);
   assert.deepEqual(n.ops.filter((o) => o.ok).map((o) => o.op), ['read', 'subscribe', 'bind.source']);
   assert.deepEqual(u.ops.filter((o) => o.ok).map((o) => o.op), ['inspect', 'read', 'subscribe', 'bind.source', 'bind.target']);
-  for (const r of [n, u]) for (const o of r.ops) if (o.op === 'write' || o.op === 'invoke') { assert.equal(o.ok, false); assert.match(o.why, /줄 수 없다/); }
+  for (const r of [n, u]) for (const o of r.ops) if (o.op === 'write' || o.op === 'invoke') { assert.equal(o.ok, false); assert.match(o.why, /불가$/); }
   assert.equal(n.ops.find((o) => o.op === 'bind.target').ok, false);
   assert.deepEqual(GRANT_OPS.length, n.ops.length);
   for (const [, s] of n.ttls) assert.ok(s > 0 && s <= GUARD_MAX_TTL);
-  const other = subjectRule('user', 'u2', 'u1'); assert.equal(other.ok, false); assert.match(other.why, /나 자신에게만/);
-  assert.match(subjectRule('user', 'u1', '').why, /사용자를 알 수 없다/); assert.equal(subjectRule('application', 'a', 'u1').ok, false);
+  const other = subjectRule('user', 'u2', 'u1'); assert.equal(other.ok, false); assert.match(other.why, /나 자신만/);
+  assert.match(subjectRule('user', 'u1', '').why, /로그인 사용자 모름/); assert.equal(subjectRule('application', 'a', 'u1').ok, false);
 });
 
 test('allowedOps · toggleOp — 못 주는 작업은 켜지지 않는다', () => {
@@ -31,8 +31,8 @@ test('checkGrant — 가드와 같은 거절(남 · 작업 · 기한)', () => {
   const ok = (g) => checkGrant(Object.assign({ subject_type: 'node', subject_id: 'n1', operations: ['read'], ttl_seconds: 86400 }, g), 'u1');
   assert.ok(ok({}).ok); assert.ok(ok({ subject_type: 'user', subject_id: 'u1', operations: GUARD_OPS.user }).ok);
   assert.match(ok({ subject_type: 'user', subject_id: 'u2' }).why, /나 자신/); assert.match(ok({ subject_type: 'application' }).why, /위임 가드/);
-  assert.match(ok({ operations: ['inspect'] }).why, /노드에게 inspect/); assert.match(ok({ operations: [] }).why, /하나 이상/);
-  assert.match(ok({ ttl_seconds: 0 }).why, /기한이 있어야/); assert.match(ok({ ttl_seconds: GUARD_MAX_TTL + 1 }).why, /90일까지/);
+  assert.match(ok({ operations: ['inspect'] }).why, /노드 : inspect 불가/); assert.match(ok({ operations: [] }).why, /1개 이상/);
+  assert.match(ok({ ttl_seconds: 0 }).why, /기한 필요/); assert.match(ok({ ttl_seconds: GUARD_MAX_TTL + 1 }).why, /90d 까지/);
   assert.ok(ok({ ttl_seconds: GRANT_TTLS.at(-1)[1] }).ok);
   assert.equal(opsText(['read', 'bind.source']), '읽기 · 연결 원천'); assert.equal(opsText([]), '—');
 });

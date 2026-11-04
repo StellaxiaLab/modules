@@ -42,7 +42,7 @@ test('시안 — 멈춤 · 꼬리 멈춤 · 끊김 뒤 다시 붙기', () => {
     const c = new lib.Component({ resName: 'syslog' }); for (let i = 0; i < 20; i++) c.tick();
     c.state.hold = true; const n = c.renderVals().lines.length; for (let i = 0; i < 20; i++) c.tick(); assert.equal(c.renderVals().lines.length, n, '꼬리 멈춤이면 줄이 늘지 않는다');
     c.state.hold = false; c.state.sub = false; c.tick(); assert.equal(c.renderVals().connT, '멈춤'); assert.equal(c.renderVals().subT, '구독 시작');
-    c.state.sub = true; for (let i = 0; i < 85; i++) c.tick(); assert.match(c.renderVals().connT, /끊김 · 다시 붙는 중/);
+    c.state.sub = true; for (let i = 0; i < 85; i++) c.tick(); assert.match(c.renderVals().connT, /끊김 · 재연결 중/);
     for (let i = 0; i < 14; i++) c.tick(); assert.equal(c.renderVals().connT, '받는 중');
   } finally { globalThis.window = prev; }
 });
@@ -60,7 +60,7 @@ const real = (gateOpen, fn) => { const prev = globalThis.window, opened = []; gl
 
 test('실제 — 문이 닫혀 있으면 값 뷰어 자리에 잠금 + why, 대체는 쓰는 곳(handles.get), 핸들을 열지 않는다', () => real(false, (c, opened) => {
   const v = c.renderVals();
-  assert.equal(v.locked, true); assert.equal(v.unlocked, false); assert.match(v.lockWhy, /코어 — Master 계약이 terra\.master\.svi\.handles\.post 를 앱 위임/); assert.match(v.lockAlt, /svi\.handles\.get/);
+  assert.equal(v.locked, true); assert.equal(v.unlocked, false); assert.match(v.lockWhy, /terra\.master\.svi\.handles\.post/); assert.match(v.lockAlt, /svi\.handles\.get/);
   assert.equal(v.subOff, 'disabled'); assert.equal(v.connT, '잠김'); assert.match(v.vMeta, /terra\.video\.frame@1 · 영상/);
   assert.equal(v.evH, '쓰는 곳 · 최근 사건'); assert.match(v.events[0].msg, /subscribe · video — active/);
   assert.equal(v.eps.find((e) => e.id === 'video').schema, 'stream · terra.video.frame@1');

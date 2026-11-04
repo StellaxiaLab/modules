@@ -35,7 +35,7 @@ test('실제 — 시안 값이 새지 않고, 모듈 유형이 없으면 그 까
   const { c, done } = mount(real([])); try {
     const v = c.renderVals(), txt = JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : x));
     assert.doesNotMatch(txt, /cam-front|meter-log|io\.lab\.camera|\/srv\/share/);
-    assert.equal(v.src, 'Terra'); assert.match(v.typeGroups[1].emptyT, /Terra 에 아직 없다/); assert.equal(v.env[0].v, '/data');
+    assert.equal(v.src, 'Terra'); assert.match(v.typeGroups[1].emptyT, /Terra 미지원/); assert.equal(v.env[0].v, '/data');
     assert.equal(v.binds[0].label, '끊김'); assert.equal(v.binds[0].reason, '한쪽 노드 연결 끊김');
   } finally { done(); }
 });
