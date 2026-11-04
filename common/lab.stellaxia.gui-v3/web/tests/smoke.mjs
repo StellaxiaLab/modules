@@ -92,7 +92,7 @@ ok(await page.evaluate(() => !!document.querySelector('[data-ctlwin][data-slot="
   await page.locator('input[name=admin]').fill('admin'); await page.locator('input[name=password]').fill('nope'); await page.keyboard.press('Enter');
   await page.waitForFunction(() => { const L = window.__terra.login(); return L && L.state.msg && L.state.msg !== '확인 중…'; }, null, { timeout: 8000 }).catch(() => {});
   const msg = await page.evaluate(() => { const L = window.__terra.login(); return L && L.state.msg; });
-  ok(/맞지 않아요/.test(msg || ''), 'B 모드 · 틀린 비밀번호 → ' + msg);
+  ok(/불일치/.test(msg || ''), 'B 모드 · 틀린 비밀번호 → ' + msg);
   await page.locator('input[name=password]').fill('pw'); await page.keyboard.press('Enter');
   await page.waitForFunction(() => window.__terra.scene.state.loginOn === false, null, { timeout: 40000 });
   ok(await page.evaluate(() => window.__terra.session.authorization() === 'Handle h-smoke'), 'B 모드 · 로그인 → 자격 핸들');

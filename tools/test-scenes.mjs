@@ -33,7 +33,7 @@ const SCENE_TESTS = [
   // custom component 는 이름을 대며 선다 — §8.3 격리 때문에 그 요소가 **중첩**
   // 이면 루트가 멀쩡히 남아 마운트 단언은 통과하므로, 그 가드가 따로 있다.
   join('tests', 'shipped-scenes.test.ts'),
-  // io.terra.scene.login-demo 의 출하 바이트를 실 로더에 먹인다.
+  // lab.stellaxia.scene.login-demo 의 출하 바이트를 실 로더에 먹인다.
   join('tests', 'login-demo-scene.test.ts')
 ];
 

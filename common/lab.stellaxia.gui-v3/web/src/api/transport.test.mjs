@@ -14,7 +14,7 @@ test('session — 핸들만 받고(토큰 아님), 실패는 화면 말로, 로�
     if (init.method === 'DELETE') return J(200, { status: 'ok', data: { revoked: true } });
     const b = JSON.parse(init.body); return b.password === 'pw' ? J(200, { status: 'ok', data: { handle: 'h-1', session: { principal: 'u1', displayName: '나' } } }) : J(401, { status: 'error', error: { code: 'CREDENTIAL_REJECTED', message: 'rejected' } }); };
   const st = mem(), S = createSession({ fetch, storage: st });
-  await assert.rejects(S.login('a@b', 'no'), (e) => e instanceof TerraError && e.code === 'CREDENTIAL_REJECTED' && /맞지 않아요/.test(e.message));
+  await assert.rejects(S.login('a@b', 'no'), (e) => e instanceof TerraError && e.code === 'CREDENTIAL_REJECTED' && /불일치/.test(e.message));
   assert.equal(S.authorization(), null);
   await S.login('a@b', 'pw');
   assert.equal(S.authorization(), 'Handle h-1'); assert.equal(S.who.displayName, '나');

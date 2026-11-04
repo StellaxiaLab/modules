@@ -1,5 +1,5 @@
 // Gateway 응답 → 화면 데이터 모양(src/model/types.js). 앱마다 한 함수.
-// 필드 이름은 실제 응답(Daemon local API · io.terra.file 계약 · 게이트웨이)으로 맞췄다 — 모듈 README "실데이터 확인".
+// 필드 이름은 실제 응답(Daemon local API · lab.stellaxia.file 계약 · 게이트웨이)으로 맞췄다 — 모듈 README "실데이터 확인".
 //
 // 화면(src/screens/node.js hbVals)은 상태 값마다 표(ST)를 두고 ST[state][0] 을 읽는다. 표에 없는 값이 오면
 // 렌더 전체가 멈춘다. 그래서 상태는 여기서 화면의 낱말로 옮기고, 원래 값은 note · raw 에 남긴다.

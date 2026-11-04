@@ -55,7 +55,7 @@ body{margin:0;background:transparent}
   <div class="nn-row nn-k">세대 {{gen}} · 경로 그래프 {{epoch}} · WireGuard 보고 {{reported}} · {{src}}</div>
   <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="nn-note">{{note}}</div></sc-if>
 
-  <h3 class="nn-h"><span class="nn-hl"></span>주소<span class="nn-hr"></span><span class="nn-k">값 · 어디서 왔나</span></h3>
+  <h3 class="nn-h"><span class="nn-hl"></span>주소<span class="nn-hr"></span><span class="nn-k">값 · 출처</span></h3>
   <sc-for list="{{addrs}}" as="a" hint-placeholder-count="9">
     <div class="nn-addr" title="{{a.hint}}"><span class="nn-k">{{a.k}}</span><span class="nn-v nn-cut nn-sel" style="color: {{a.col}};">{{a.v}}</span><span class="nn-k nn-cut" title="{{a.src}}">{{a.src}}</span></div>
   </sc-for>
@@ -74,7 +74,7 @@ body{margin:0;background:transparent}
   </sc-for>
 
   <h3 class="nn-h"><span class="nn-hl"></span>다른 노드와의 연결<span class="nn-hr"></span><span class="nn-k">{{linkSum}}</span></h3>
-  <div class="nn-legend">고르는 순서 — mesh 직결(WireGuard) → LAN 직결(TCP) → WebRTC P2P → Master 중계(정책이 허용할 때). 줄을 누르면 자세히</div>
+  <div class="nn-legend">우선순위 : mesh 직결(WireGuard) → LAN 직결(TCP) → WebRTC P2P → Master 중계(정책 허용 시) · 줄 누르기 : 자세히</div>
   <div class="nn-link nn-dim" style="cursor: default;"><span></span><span>노드</span><span>지금 경로</span><span>adapter</span><span>지연</span><span>근거</span></div>
   <sc-for list="{{links}}" as="l" hint-placeholder-count="3">
     <button type="button" class="nn-link" aria-expanded="{{l.exp}}" onClick="{{l.toggle}}"><span style="color: {{l.col}}; font-weight: 700;">{{l.mark}}</span><span class="nn-cut">{{l.peer}}</span><b style="color: {{l.col}};">{{l.rt}}</b><span class="nn-k">{{l.ad}}</span><span>{{l.lat}}</span><span class="nn-k nn-cut">{{l.from}}</span></button>
@@ -90,7 +90,7 @@ body{margin:0;background:transparent}
       </div>
     </sc-if>
   </sc-for>
-  <sc-if value="{{noLinks}}" hint-placeholder-val="{{ false }}"><div class="nn-k">연결 기록 없음 — 경로 그래프 · WireGuard 쌍 · 세션 어디에도 이 노드가 없다</div></sc-if>
+  <sc-if value="{{noLinks}}" hint-placeholder-val="{{ false }}"><div class="nn-k">연결 기록 없음 — 경로 그래프 · WireGuard 쌍 · 세션에 이 노드 없음</div></sc-if>
 
   <h3 class="nn-h"><span class="nn-hl"></span>Terra 가 보고하지 않는 것<span class="nn-hr"></span></h3>
   <sc-for list="{{gaps}}" as="g" hint-placeholder-count="3"><div class="nn-gap">· {{g.t}}</div></sc-for>
@@ -135,21 +135,21 @@ class Component extends DCLogic {
     const L = (peer, rtT, ad, ok, lat, from, extra) => Object.assign({ peerId: 'nd_' + peer, peer, via: { rtT, ad, from }, ok, lat, denied: 0, out: null, inn: null, wg: null, hs: null, probe: null, sess: [] }, extra || {});
     return {
       real: false, miss: [], id: 'nd_' + nm, name: nm, status: 'online', relay: true, gen: String(3 + Math.floor(r(8) * 5)), epoch: String(10 + Math.floor(r(9) * 30)), reported: '11-02 13:58:20',
-      addrs: [A('Terra 주소', '100.80.0.' + (10 + Math.floor(r(10) * 40)), '클러스터 안 노드 주소 · Master 배정', 'Terra 전용 — 경로가 아니라 이름'), A('.terra 이름', nm.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.terra', 'Terra DNS'),
+      addrs: [A('Terra 주소', '100.80.0.' + (10 + Math.floor(r(10) * 40)), '클러스터 안 노드 주소 · Master 배정', 'Terra 전용 — 경로 아닌 이름'), A('.terra 이름', nm.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.terra', 'Terra DNS'),
         A('사설망 IP', '10.40.2.' + b, 'home-mesh · 10.40.0.0/16', 'WireGuard 인터페이스 주소 · 상대의 AllowedIPs'), A('mesh 인터페이스', '10.40.2.' + b + '/16', 'WireGuard wg0'),
-        A('로컬(LAN)', lan + ':51820', 'WireGuard 보고'), A('공인 IP', pub, 'STUN', '나가는 공인 IPv4 — 같으면 같은 NAT 뒤'),
-        A('공인 endpoint', behind ? '' : pub + ':51820', behind ? '' : 'UPnP', 'NAT 밖 상대가 거는 주소'), A('WG 수신 포트', '51820', 'WireGuard 보고'), A('WG 공개키', 'Qm3x' + Math.floor(r(11) * 1e6).toString(36) + '…', '')],
+        A('로컬(LAN)', lan + ':51820', 'WireGuard 보고'), A('공인 IP', pub, 'STUN', '나가는 공인 IPv4 — 같음 : 같은 NAT 뒤'),
+        A('공인 endpoint', behind ? '' : pub + ':51820', behind ? '' : 'UPnP', 'NAT 밖 상대의 접속 주소'), A('WG 수신 포트', '51820', 'WireGuard 보고'), A('WG 공개키', 'Qm3x' + Math.floor(r(11) * 1e6).toString(36) + '…', '')],
       nat: 'auto · pcp/nat_pmp/upnp', stun: 'stun.l.google.com:19302 (default)',
       nets: [{ name: 'home-mesh', cidr: '10.40.0.0/16', gw: '10.40.0.1', dns: '10.40.0.1', ip: '10.40.2.' + b }],
       caps: [{ ad: 'tcp', reach: 'LAN', ep: lan + ':17322', relay: false, on: true, healthy: true, lat: '2ms', from: '광고' }, { ad: 'wireguard', reach: 'mesh', ep: '10.40.2.' + b + ':17323', relay: false, on: true, healthy: true, lat: '', from: '광고' },
         { ad: 'webrtc', reach: '인터넷', ep: 'peer pc-' + nm.slice(0, 8), relay: true, on: true, healthy: undefined, lat: '', from: '광고' }, { ad: 'websocket', reach: '인터넷', ep: 'Master 중계', relay: true, on: true, healthy: true, lat: '', from: 'relay 연결' }],
       links: [
-        L(peers[0], 'mesh 직결', 'wireguard', true, Math.round(3 + r(12) * 8) + 'ms', '고를 경로', { wg: { ep: '192.168.0.' + (lanB + 7) + ':51820', src: 'LAN', ok: true, fresh: true, err: '', at: '11-02 13:57:40' }, hs: { ago: Math.round(10 + r(13) * 90) + '초 전', healthy: true, stale: false, never: false, rx: '48 MB', tx: '12 MB' }, out: { rtT: 'mesh 직결', ad: 'wireguard', healthy: true, lat: '4ms' }, inn: { rtT: 'mesh 직결', ad: 'wireguard', healthy: true, lat: '' } }),
+        L(peers[0], 'mesh 직결', 'wireguard', true, Math.round(3 + r(12) * 8) + 'ms', '고를 경로', { wg: { ep: '192.168.0.' + (lanB + 7) + ':51820', src: 'LAN', ok: true, fresh: true, err: '', at: '11-02 13:57:40' }, hs: { ago: Math.round(10 + r(13) * 90) + 's 전', healthy: true, stale: false, never: false, rx: '48MiB', tx: '12MiB' }, out: { rtT: 'mesh 직결', ad: 'wireguard', healthy: true, lat: '4ms' }, inn: { rtT: 'mesh 직결', ad: 'wireguard', healthy: true, lat: '' } }),
         L(peers[1], 'LAN 직결', 'tcp', true, Math.round(1 + r(14) * 3) + 'ms', '고를 경로', { probe: { ad: 'tcp', ok: true, fresh: true, lat: '2ms', err: '', at: '11-02 13:50:02' }, denied: 1, out: { rtT: 'LAN 직결', ad: 'tcp', healthy: true, lat: '2ms' } }),
-        L(peers[2], 'Master 중계', 'websocket', true, '', '열린 세션', { sess: [{ dir: '←', ch: 'service.tunnel', rt: 'Master 중계', ad: 'websocket', state: 'active', err: '', sent: '2.0 KB', recv: '18 KB', at: '11-02 13:59:01' }] }),
-        L(peers[3], 'WebRTC P2P', 'webrtc', false, '', '후보(건강하지 않음)', { wg: { ep: pub + ':51820', src: '공인', ok: false, fresh: false, err: 'WIREGUARD_HANDSHAKE_UNHEALTHY', at: '11-01 22:10:12' }, hs: { ago: '3일 전', healthy: false, stale: true, never: false, rx: '0 B', tx: '1.2 KB' } }),
+        L(peers[2], 'Master 중계', 'websocket', true, '', '열린 세션', { sess: [{ dir: '←', ch: 'service.tunnel', rt: 'Master 중계', ad: 'websocket', state: 'active', err: '', sent: '2.0KiB', recv: '18KiB', at: '11-02 13:59:01' }] }),
+        L(peers[3], 'WebRTC P2P', 'webrtc', false, '', '후보(건강하지 않음)', { wg: { ep: pub + ':51820', src: '공인', ok: false, fresh: false, err: 'WIREGUARD_HANDSHAKE_UNHEALTHY', at: '11-01 22:10:12' }, hs: { ago: '3d 전', healthy: false, stale: true, never: false, rx: '0B', tx: '1.2KiB' } }),
       ],
-      notReported: ['모든 IP · 인터페이스 목록 · 서브넷 — Daemon 이 보고에 싣지만 Master 가 LAN 주소 하나만 남긴다', 'WebRTC ICE 후보 · 고른 경로 쌍 · 연결 상태 — Terra 가 내놓지 않는다', '연결 진단(probe) 새로 실행 — 앱 자격에 열리지 않음(network.probes.post)'],
+      notReported: ['모든 IP · 인터페이스 목록 · 서브넷 — Daemon 보고에 있음 · Master 는 LAN 주소 하나만 보관', 'WebRTC ICE 후보 · 고른 경로 쌍 · 연결 상태 — Terra 미제공', '연결 진단(probe) 새로 실행 — 위임 없음 (network.probes.post)'],
     };
   }
   samplePair(peerId) {
@@ -166,12 +166,12 @@ class Component extends DCLogic {
       const rows = [];
       if (l.out) rows.push({ k: '→ 보낼 때', v: l.out.rtT + ' · ' + (l.out.ad || D) + (l.out.lat ? ' · ' + l.out.lat : '') + (l.out.healthy ? '' : ' · 건강하지 않음'), col: l.out.healthy ? '' : WARN });
       if (l.inn) rows.push({ k: '← 받을 때', v: l.inn.rtT + ' · ' + (l.inn.ad || D) + (l.inn.lat ? ' · ' + l.inn.lat : '') + (l.inn.healthy ? '' : ' · 건강하지 않음'), col: l.inn.healthy ? '' : WARN });
-      if (l.denied) rows.push({ k: '거부된 후보', v: l.denied + '개 — [후보 보기] 로 사유', col: DIM });
+      if (l.denied) rows.push({ k: '거부된 후보', v: l.denied + '개 — 사유 : [후보 보기]', col: DIM });
       if (l.wg) rows.push({ k: 'WireGuard', v: l.wg.ep + (l.wg.src ? ' (' + l.wg.src + ')' : '') + ' · ' + (l.wg.ok ? '닿음' : '닿지 않음') + (l.wg.err ? ' · ' + l.wg.err : '') + (l.wg.fresh === false ? ' · 오래됨' : ''), col: l.wg.ok ? '' : WARN });
       if (l.hs) rows.push({ k: 'handshake', v: (l.hs.never ? '한 번도 없음' : l.hs.ago || D) + ' · ↓ ' + l.hs.rx + ' ↑ ' + l.hs.tx + (l.hs.stale ? ' · 오래됨' : ''), col: l.hs.healthy ? '' : WARN });
       if (l.probe) rows.push({ k: '진단(probe)', v: l.probe.ad + ' · ' + (l.probe.ok ? '닿음' : '닿지 않음') + (l.probe.lat ? ' · ' + l.probe.lat : '') + (l.probe.err ? ' · ' + l.probe.err : '') + ' · ' + l.probe.at + (l.probe.fresh ? '' : ' · 오래됨'), col: l.probe.ok ? '' : WARN });
       for (const s of l.sess || []) rows.push({ k: '세션 ' + s.dir, v: s.ch + ' · ' + s.rt + (s.ad ? '/' + s.ad : '') + ' · ' + s.state + ' · ↑ ' + s.sent + ' ↓ ' + s.recv + (s.err ? ' · ' + s.err : ''), col: s.err ? WARN : '' });
-      if (!rows.length) rows.push({ k: '기록', v: '이 쌍의 경로 · WireGuard · 세션 기록이 없다', col: DIM });
+      if (!rows.length) rows.push({ k: '기록', v: '이 쌍의 경로 · WireGuard · 세션 기록 없음', col: DIM });
       const cands = P && !P.busy && !P.err ? P.cands.map((q) => ({ mark: q.healthy ? '✓' : '!', col: q.healthy ? OK : WARN, rt: q.rtT, ad: q.ad, lat: q.lat, why: (q.from || q.to ? (q.from || '?') + ' → ' + (q.to || '?') + ' · ' : '') + q.reason }))
         .concat(P.denied.map((q) => ({ mark: '×', col: BAD, rt: q.rtT, ad: q.ad, lat: '', why: '거부 · ' + (q.reason || '사유 없음') }))) : [];
       return { peer: l.peer, mark: l.ok ? '●' : l.via.rtT === D ? '○' : '◐', col, rt: l.via.rtT, ad: l.via.ad || D, lat: l.lat || D, from: l.via.from, exp: open ? 'true' : 'false', open,

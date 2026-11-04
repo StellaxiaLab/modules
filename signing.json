@@ -1,5 +1,5 @@
 {
-  "$comment": "릴리스가 어느 키로 어느 모듈을 서명하는지 (Terra ADR-MD-005). 접두사는 <prefix>. 경계로 맞추고, 가장 긴 것이 이긴다. 맞는 키가 없는 모듈이 있으면 포장이 실패한다 — 미서명으로 조용히 나가지 않는다. keyId 는 `terra module keygen` 이 쓴 .keyring.json 의 값이고 Terra builtin_keys.json 의 항목과 같아야 한다. 비어 있으면 릴리스가 선다. 2026-10-31 발급분: terra-modules-builtin-2026, stellaxia-modules-2026. secret 은 release.yml 이 환경 module-signing 에서 넘기는 시크릿 이름이다. 비밀키는 이 파일에도 저장소에도 두지 않는다.",
+  "$comment": "릴리스가 어느 키로 어느 모듈을 서명하는지 (Terra ADR-MD-005). 접두사는 <prefix>. 경계로 맞추고, 가장 긴 것이 이긴다. 맞는 키가 없는 모듈이 있으면 포장이 실패한다 — 미서명으로 조용히 나가지 않는다. keyId 는 `terra module keygen` 이 쓴 .keyring.json 의 값이고 Terra builtin_keys.json 의 항목과 같아야 한다. 비어 있으면 릴리스가 선다. 2026-10-31 발급분: terra-modules-builtin-2026, stellaxia-modules-2026. secret 은 release.yml 이 환경 module-signing 에서 넘기는 시크릿 이름이다. 비밀키는 이 파일에도 저장소에도 두지 않는다. 2026-11-02 ADR-MD-002 v1.2: 이 조직 모듈은 io.terra.* 에서 lab.stellaxia.* 로 개명됐다. 개명 전 io.terra 아래 있던 9개는 built-in 등급(공유 루트 등)을 그대로 지니도록 builtin 키에 id 를 하나씩 적는다 — 가장 긴 접두사가 이기므로 lab.stellaxia 의 다른 모듈은 계속 stellaxia 키로 간다. 새 모듈을 이 목록에 더하지 않는다.",
   "schemaVersion": 1,
   "keys": [
     {
@@ -8,7 +8,16 @@
       "keyId": "IUjrzmXOwebwKrEi",
       "issuer": "Terra",
       "tier": "built-in",
-      "prefixes": ["io.terra"]
+      "prefixes": ["io.terra",
+        "lab.stellaxia.agent",
+        "lab.stellaxia.nodetalk",
+        "lab.stellaxia.sample.window",
+        "lab.stellaxia.scene.login-demo",
+        "lab.stellaxia.file",
+        "lab.stellaxia.io-inventory",
+        "lab.stellaxia.io-weave",
+        "lab.stellaxia.fleet",
+        "lab.stellaxia.treebench"]
     },
     {
       "name": "stellaxia-modules",

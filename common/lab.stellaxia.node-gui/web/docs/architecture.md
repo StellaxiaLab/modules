@@ -135,7 +135,7 @@ flowchart LR
 | `this.NET` | 노드 관계 — 원본은 예시, 실데이터 층은 이 노드 · 부모 tree · `agent/nodes` | 상태 밖 — 바꾼 뒤 `setState({})`([[node-screen-data-model\|데이터 모델]] §2.1) |
 | `this._hx` · `this._hxRes` | 조타륜 내부 · 앱 목록 | 렌더 밖 루프 전용 |
 | `this._mapGoal` | 가는 중인 맵 | 맵 전환 중 판단(`onLocalMap` · `hbNode`)에 쓴다 |
-| `this.FBDATA()` | 폴더 보관함 트리 — 원본은 예시, 실데이터 층은 `io.terra.file` 의 공유 폴더 | [[helm-apps-integration\|조타륜 앱 연동]] §4 · [[real-data-layer\|실데이터 층]] §2.1 |
+| `this.FBDATA()` | 폴더 보관함 트리 — 원본은 예시, 실데이터 층은 `lab.stellaxia.file` 의 공유 폴더 | [[helm-apps-integration\|조타륜 앱 연동]] §4 · [[real-data-layer\|실데이터 층]] §2.1 |
 | `this.roads` · `this.buildings` | 도로 · 건물 설계 — 기본 라이브러리 + 편집기에서 내보낸 것(`localStorage` `terra.gui.roads` · `terra.gui.buildings`) | 편집기가 내보내면 `storage` 이벤트로 다시 읽고 굽는다([[road-editor-spec\|도로 편집기]] §2) |
 | LayoutStore (`localStorage`) | 맵 배치 · 노드 모습 · 노드 자원 · 연결 · 표시 설정 · 메모 · 창 자리 | 노드 · 주체마다. 로그인한 동안만 저장한다([[module-profile\|모듈 프로필]] §4) |
 
@@ -183,7 +183,7 @@ flowchart LR
 | 맵 · 세션 띠 · 속성 창 · 유틸 카드 · 알림 | 이 노드(`terra.daemon.node.get`) · 부모 tree(등록 정보의 Master 주소) · `agent/nodes` · 자원 개수 · Daemon 작업 폴링 |
 | 조타륜 앱 중 **Daemon operation**(L) — I/O 장치 · 선언 · 폴더 · 터널 · WireGuard · 작업 · 모듈 | 실데이터 — 처음 맵이 이 노드의 맵이고, 조타륜은 진짜 로컬 노드 이름으로 붙는다 |
 | 자원 추가 · 수정 · 삭제(앱 전체 화면 · 상태 화면) | 실제 서버의 입력으로 부른다 — 서버에 길이 없으면 항목을 지어 넣지 않고 말한다([[real-data-layer\|실데이터 층]] §2.4) |
-| 모듈 namespace operation(M) — 폴더 항목 · 전송 | 실데이터(`io.terra.file`) |
+| 모듈 namespace operation(M) — 폴더 항목 · 전송 | 실데이터(`lab.stellaxia.file`) |
 | **Master operation**(T) — SVI 자원 · 허가 · mesh · 라우트 · 클러스터 | `쓸 수 없다` · "닿지 않음" — 첫 401 뒤로 다시 부르지 않는다 |
 | 맵 배치 · 노드 모습 · 설치한 노드 자원 · 연결 · 표시 설정 · 메모 | LayoutStore — 이 브라우저(앱 origin)에 노드 · 주체마다. 처음엔 비어 있고 사용자가 만든 것만 쌓인다 |
 | 설치한 노드 자원의 상태 점 · 이벤트 · 모니터링 값 | 그 자원의 원본 앱 목록 — 조타륜에서 그 앱이 닫혀 있어도 `pollSec`마다 다시 받는다 |

@@ -1,6 +1,6 @@
 // 모듈이 없는 노드에서 그 모듈의 operation 을 부르지 않는다 (MD-38).
 //
-// io.devices.get 은 io.terra.io-inventory, files.list.get 은 io.terra.file 이 뒤에서 답한다. 그 모듈이 설치되지 않은 노드에서는
+// io.devices.get 은 lab.stellaxia.io-inventory, files.list.get 은 lab.stellaxia.file 이 뒤에서 답한다. 그 모듈이 설치되지 않은 노드에서는
 // Daemon 이 503 LOCAL_API_UNAVAILABLE 로 답하고, 브라우저 콘솔에 "Failed to load resource"가 남는다 — 오류가 아니라 "없다"인데도.
 // 먼저 modules.get 으로 설치 여부를 보고, 없으면 부르지 않고 { kind: 'unavailable', reason: 'no-module' } 을 준다.
 // modules.get 을 못 받으면 막지 않는다(그때는 그냥 부르고 서버가 판정한다).
@@ -33,4 +33,4 @@ export async function invokeIfModule(client, moduleId, op, input) {
 }
 
 /** 이 operation 이 기대는 모듈 */
-export const MODULE_OF = { 'terra.daemon.io.devices.get': 'io.terra.io-inventory', 'terra.daemon.files.list.get': 'io.terra.file' };
+export const MODULE_OF = { 'terra.daemon.io.devices.get': 'lab.stellaxia.io-inventory', 'terra.daemon.files.list.get': 'lab.stellaxia.file' };

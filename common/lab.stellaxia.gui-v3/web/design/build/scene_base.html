@@ -1967,7 +1967,7 @@ class Component extends DCLogic {
       // 지금 어디인지 — 범위 경로 (계정 › … › 트리 › 행성)
       stageName: { tree: '트리 뷰', leaf: '리프 뷰', res: '리소스 뷰' }[S.resIn ? 'res' : this._lv ? 'leaf' : 'tree'],
       path: (() => { const fid = this._lv ? this._leafId : (this._focus ? this._focus.id : 0), parts = []; for (let n = sys.nodes[fid]; n; n = n.parent) parts.unshift(n.depth === 0 ? '계정' : n.label); if (S.resIn && S.resName) parts.push(S.resName); return parts.join(' › '); })(),
-      hint: S.resIn ? 'ESC — 리프 뷰로 · 우클릭 — 속성' : this._lv ? '행성을 누르면 리소스 뷰로 · ESC — 트리 뷰로 (진입을 거꾸로)' : '트리를 누르면 그 계로 · 포커싱된 트리를 한 번 더 누르면 리프 뷰로 · ESC — 직전 초점으로',
+      hint: S.resIn ? 'ESC : 리프 뷰 · 우클릭 : 속성' : this._lv ? '행성 : 리소스 뷰 · ESC : 트리 뷰' : '트리 : 그 계로 · 다시 누름 : 리프 뷰 · ESC : 직전 초점',
       bgm: ['없음', '상', '하', '좌', '우'].map((name) => { const on = this.BGMOVE() === name; return { name, cls: on ? 'sel' : '', pressed: on ? 'true' : 'false', pick: () => { if (!on) this.setState({ bgMove: name }); } }; }),
       res: { disp: S.resIn ? 'flex' : 'none', name: S.resName || '', back: () => this.exitRes() },
       stars: Object.keys(this.STAR_TYPES()).map((name) => { const on = this.STAR() === name; return { name, cls: on ? 'sel' : '', pressed: on ? 'true' : 'false', pick: () => { if (!on) this.setState({ star: name }); } }; }),

@@ -54,7 +54,7 @@ export function fromB64(s) {
   return out;
 }
 
-/** 바이트 → base64 (io.terra.file 조각의 data) — 큰 배열을 한 번에 String.fromCharCode 에 넘기지 않는다 */
+/** 바이트 → base64 (lab.stellaxia.file 조각의 data) — 큰 배열을 한 번에 String.fromCharCode 에 넘기지 않는다 */
 export function toB64(bytes) {
   let s = '';
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));

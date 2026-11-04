@@ -15,9 +15,9 @@ const T = (op) => 'terra.master.' + op;
 const G = (op) => 'terra.gateway.' + op;
 /** 작업 출력 한 번에 읽는 양 — task-output.js OUTPUT_PAGE 와 같다(Daemon TaskOutputMaxPage) */
 const OUTPUT_PAGE = 256 * 1024;
-const FILE = (op) => 'io.terra.file.' + op;   // 모듈 op — scopes local · node 라 노드 주소 호출(B-1)이 아니라 원격 모듈 경로로(client.invokeModuleAt)
+const FILE = (op) => 'lab.stellaxia.file.' + op;   // 모듈 op — scopes local · node 라 노드 주소 호출(B-1)이 아니라 원격 모듈 경로로(client.invokeModuleAt)
 
-/** io.terra.file 계약의 bindings — 이 노드에 io.terra.file 이 없어 카탈로그에 bindings 가 없을 때 원격 모듈 경로를 만든다(maingui FILE_BINDINGS 와 같다) */
+/** lab.stellaxia.file 계약의 bindings — 이 노드에 lab.stellaxia.file 이 없어 카탈로그에 bindings 가 없을 때 원격 모듈 경로를 만든다(maingui FILE_BINDINGS 와 같다) */
 const FILE_BINDINGS = {
   'roots.list': ['GET', '/roots'], 'entries.list': ['GET', '/entries'], 'entries.stat': ['GET', '/entries/stat'], 'entries.read': ['GET', '/entries/read'],
   'entries.write': ['PUT', '/entries/write'], 'entries.truncate': ['POST', '/entries/truncate'], 'entries.mkdir': ['POST', '/entries/mkdir'], 'entries.rename': ['POST', '/entries/rename'],
@@ -26,8 +26,8 @@ const FILE_BINDINGS = {
   'transfers.complete': ['POST', '/transfers/{transfer_id}/complete'], 'transfers.abort': ['POST', '/transfers/{transfer_id}/abort'],
   'transfers.pulls.create': ['POST', '/transfers/pulls'], 'transfers.pulls.complete': ['POST', '/transfers/pulls/{transfer_id}/complete'], 'transfers.pulls.abort': ['POST', '/transfers/pulls/{transfer_id}/abort']
 };
-/** io.terra.file op → { method, path } (모듈 경로). 모르는 op 이면 null */
-export const fileBinding = (op) => { const k = String(op || '').replace(/^io\.terra\.file\./, ''), b = FILE_BINDINGS[k]; return b && k !== op ? { method: b[0], path: '/api/modules/io.terra.file/v1' + b[1] } : null; };
+/** lab.stellaxia.file op → { method, path } (모듈 경로). 모르는 op 이면 null */
+export const fileBinding = (op) => { const k = String(op || '').replace(/^lab\.stellaxia\.file\./, ''), b = FILE_BINDINGS[k]; return b && k !== op ? { method: b[0], path: '/api/modules/lab.stellaxia.file/v1' + b[1] } : null; };
 
 /** 조타륜 앱 10개 — 목록(list) · 동작(acts). acts의 키는 화면 hbAct(app, id, op)의 op와 같다 */
 export const HELM_APPS = {
@@ -86,7 +86,7 @@ export const HELM_APPS = {
     list: { op: L('files.list.get'), where: 'L', perm: 'file.read', resp: 'now', note: '루트 목록 · 항목 목록. 그 밖의 동작은 모듈 namespace' },
     acts: {
       open: { op: FILE('entries.list'), where: 'M', perm: 'file.read', resp: 'now', note: '들어가기는 화면 이동 — 목록은 source.js 가 지금 경로까지 읽는다' },
-      // 받기 = transfers.pulls.create → chunks.get(eof 까지 · 조각마다 SHA-256) → 전체 SHA-256 → pulls.complete → 브라우저 저장 (source.js download · wire.js). io.terra.file 0.2.0
+      // 받기 = transfers.pulls.create → chunks.get(eof 까지 · 조각마다 SHA-256) → 전체 SHA-256 → pulls.complete → 브라우저 저장 (source.js download · wire.js). lab.stellaxia.file 0.2.0
       get: { op: FILE('transfers.pulls.create'), where: 'M', perm: 'file.read', resp: 'now', download: true },
       del: { op: FILE('entries.remove'), where: 'M', perm: 'file.write', resp: 'now', in: (id, item) => ({ root: item.share, path: item.rel, recursive: !!item.dir }), note: '모듈 op는 권한을 선언하지 않는다 — 화면이 file.write로 잠근다' },
       mkdir: { op: FILE('entries.mkdir'), where: 'M', perm: 'file.write', resp: 'now', in: (id, item, ctx) => newFolder(ctx && ctx.path) }
@@ -359,8 +359,8 @@ export const CRUD_TEXT = {
   svi: { list: 'terra.master.svi.resources.get (node_id)', add: '⚠ SVI 자원은 선언에서 생긴다 — 자원 선언 앱', edit: '⚠ 자원을 고치는 op 없음 — 같은 이름으로 다시 선언', del: '⚠ 선언 철회로 사라진다 — 자원 선언 앱' },
   decl: { list: 'terra.daemon.svi.declarations.get', add: 'terra.daemon.svi.declarations.post', edit: 'terra.daemon.svi.declarations.post {replace · 퇴역이면 reuse_name}', del: 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post' },
   grant: { list: 'terra.master.svi.grants.get + svi.bindings.get', add: 'terra.master.svi.grants.post', edit: 'terra.master.svi.grants.by-grant-id.patch {operations · ttl_seconds} — 줄이면 그 operation 으로 연 핸들이 닫힌다 · 바인딩은 고치는 op 가 없다(끊고 새로 연결)', del: 'terra.master.svi.grants.by-grant-id.delete · 바인딩은 svi.bindings.by-binding-id.delete' },
-  folder: { list: 'io.terra.file.roots.list · io.terra.file.entries.list', add: 'io.terra.file.entries.mkdir · 파일은 io.terra.file.entries.write (빈 파일)', edit: 'io.terra.file.entries.rename', del: 'io.terra.file.entries.remove' },
-  xfer: { list: 'io.terra.file.transfers.list', add: '↑ 올리기 — io.terra.file.transfers.create → transfers.chunks.put → transfers.complete · 받기는 폴더 앱 — transfers.pulls.create → transfers.chunks.get → transfers.pulls.complete', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시 · 멈춘 전송은 카드의 이어서(resume_id · 이 브라우저에 받아 둔 조각)', del: 'io.terra.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
+  folder: { list: 'lab.stellaxia.file.roots.list · lab.stellaxia.file.entries.list', add: 'lab.stellaxia.file.entries.mkdir · 파일은 lab.stellaxia.file.entries.write (빈 파일)', edit: 'lab.stellaxia.file.entries.rename', del: 'lab.stellaxia.file.entries.remove' },
+  xfer: { list: 'lab.stellaxia.file.transfers.list', add: '↑ 올리기 — lab.stellaxia.file.transfers.create → transfers.chunks.put → transfers.complete · 받기는 폴더 앱 — transfers.pulls.create → transfers.chunks.get → transfers.pulls.complete', edit: '⚠ 전송을 고치는 op 없음 — 중단 뒤 다시 · 멈춘 전송은 카드의 이어서(resume_id · 이 브라우저에 받아 둔 조각)', del: 'lab.stellaxia.file.transfers.abort · 끝난 전송은 화면에서만 치운다' },
   tunnel: { list: 'terra.daemon.service-tunnels.get + terra.master.service-tunnels.declarations.get', add: '선언 terra.master.service-tunnels.declarations.post · 즉석 terra.master.service-tunnels.open.post', edit: '⚠ 고치는 op 없음 — 지우고 다시', del: 'terra.daemon.service-tunnels.by-tunnel-id.close.post · 선언은 terra.master.service-tunnels.declarations.by-declaration-id.delete' },
   wg: { list: 'terra.daemon.wireguard.peers.get · wireguard.status.get', add: '⚠ 피어는 mesh 가입으로 생긴다', edit: '⚠ 피어를 고치는 op 없음 — 동기화(wireguard.sync.post)', del: 'terra.master.network.mesh.wireguard.peers.revoke.post {source_node_id · target_node_id} (되돌릴 수 없다)' },
   job: { list: 'terra.daemon.tasks.get · tree: terra.master.jobs.get', add: 'terra.daemon.commands.execute.post · tree: terra.master.commands.post', edit: '⚠ 작업은 고칠 수 없다 — 다시 실행(terra.daemon.tasks.by-task-id.rerun.post {confirmed} · 출력은 tasks.by-task-id.output.get)', del: 'terra.daemon.tasks.by-task-id.cancel.post · tree: terra.master.jobs.by-job-id.cancel.post' },

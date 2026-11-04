@@ -51,13 +51,13 @@ export function createGatewayTransport(o) {
       if (n !== sceneLocal) return tp.realId(n);
       if (meta[n] && meta[n].rid) return meta[n].rid;
       if (!localRid) localRid = T.invoke('terra.daemon.status.get', {}).then((d) => (d && ((d.enrollment && d.enrollment.node_id) || (d.daemon && d.daemon.node_id))) || '', (e) => { localRid = null; throw e; });
-      const id = await localRid; if (!id) throw new TerraError('NODE_NOT_ENROLLED', '이 노드는 아직 Tree 에 등록되지 않았어요', 409);
+      const id = await localRid; if (!id) throw new TerraError('NODE_NOT_ENROLLED', 'Tree 미등록 노드', 409);
       return id;
     },
 
     async invoke(n, op, input) {
       if (o.authed && !o.authed()) throw new TerraError('UNAUTHENTICATED', '로그인 전', 401);
-      if (op.startsWith('gui-v3.')) throw new TerraError('OP_UNSUPPORTED', op + ' — 노드에 보낼 operation 이 없다(화면 안 초안은 성공으로 치지 않는다)', 501);   // 모르는 gui-v3.* 쓰기는 가짜 성공 대신 거절
+      if (op.startsWith('gui-v3.')) throw new TerraError('OP_UNSUPPORTED', op + ' — 노드 operation 없음 (화면 초안 · 성공 아님)', 501);   // 모르는 gui-v3.* 쓰기는 가짜 성공 대신 거절
       if (op.startsWith('terra.master.')) { const inp = Object.assign({}, input); if (!inp.node_id && /\.by-node-id\./.test(op)) inp.node_id = await tp.masterId(n); return T.invoke(op, inp); }   // Master 는 로컬 Gateway 가 잇는다
       const id = await tp.realId(n);
       return T.invoke(op, input || {}, id ? { node: id } : {});

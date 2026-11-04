@@ -55,6 +55,10 @@ for n in sorted(KEEP,key=len,reverse=True):
 SHARED={'mouse','perm','glyphs','live'}
 G=re.sub(r'this\._([A-Za-z0-9_]+)',lambda m:'this._'+m.group(1) if m.group(1) in SHARED else 'this._q_'+m.group(1),G)
 G=G.replace('this.gf_lerpHsv','this.lerpHsv')
+# 씬에만 있는 노드 기록(TOPO · build) — 역할 칸은 Master 기록 roles, 로컬 노드는 실제 지도면 첫 리프로 떨어지지 않는다(65d5364 · 다시 구워도 남게)
+rep("['역할', { root: '계정', tree: '트리', leaf: '리프' }[curN.kind]]","['역할', this.gf_rolesText(curN)]")
+rep("MD.all.find((n) => n.local) || MD.all.find((n) => n.kind === 'leaf') || MD.root); }   // 실제 지도면 이 GUI 를 띄운 노드(local), 시안이면 첫 리프","MD.all.find((n) => n.local) || (this.TOPO() ? null : MD.all.find((n) => n.kind === 'leaf')) || MD.root); }   // 실제 지도면 이 GUI 를 띄운 노드(local) — 못 찾으면 계정(첫 리프로 떨어지면 이름순 첫 노드를 로컬로 착각했다: BOOK-… 의 값이 '로컬'로 보였다), 시안이면 첫 리프")
+rep('  // 이 GUI 가 떠 있는 노드(로컬) — 노드 설정 쓰기는 여기만 된다(terra.daemon.config.patch 는 로컬 전용). 시안: 지도의 첫 리프\n',"  // 역할 칸 — 실제 지도면 그 노드의 Master 기록 roles(Tree 이면서 Leaf 인 노드는 '트리 · 리프', Master 가 도는 노드는 'Master' 도), 시안이면 씬 노드 종류\n  gf_rolesText(n) { const K = { root: '계정', tree: '트리', leaf: '리프' }, TP = this.TOPO(); if (!n) return '—';\n    const bn = TP && n.kind === 'tree' ? this.build().nodes[n.ref] : null, rec = TP && n.kind === 'leaf' && n.rid && TP.node ? TP.node(n.rid) : null;\n    const R = bn && bn.tpath && TP.roles ? TP.roles(bn.tpath) : rec ? (rec.roles || []).map((x) => String(x).toLowerCase()) : null;\n    if (!R || !R.length) return K[n.kind] || '—'; const L = { master: 'Master', tree: '트리', leaf: '리프' }; return ['master', 'tree', 'leaf'].filter((r) => R.includes(r)).map((r) => L[r]).concat(R.filter((r) => !L[r])).join(' · '); }\n  // 이 GUI 가 떠 있는 노드(로컬) — 노드 설정 쓰기는 여기만 된다(terra.daemon.config.patch 는 로컬 전용). 시안: 지도의 첫 리프\n")
 # ── 씬 쪽
 def srep(a,b,cnt=1):
     global S
@@ -139,6 +143,7 @@ _extra=[l.replace('data-ctlwin="field"','data-ctlwin="scene"').replace('data-ctl
 S=re.sub(r'on-open="\{\{ctlOpenFn(\d)\}\}"(?! catalog)', r'on-open="{{ctlOpenFn\1}}" catalog="{{ctlCat\1}}"', S)
 S=re.sub(r'catalog="\{\{ctlCat(\d)\}\}"(?! node-key)', r'catalog="{{ctlCat\1}}" node-key="{{ctlKey\1}}"', S)
 S=re.sub(r'node-key="\{\{ctlKey(\d)\}\}"(?! parent-name)', r'node-key="{{ctlKey\1}}" parent-name="{{ctlPar\1}}"', S)   # 상단 바의 '부모'   # 제어기 — 노드 키(노드 데이터 층 · 노드별 화면 상태)
+S=re.sub(r'parent-name="\{\{ctlPar(\d)\}\}"(?! launch)', r'parent-name="{{ctlPar\1}}" launch="{{ctlLaunch\1}}"', S)   # 제어기 — 바로 띄울 앱(설정 › 노드 설정 · 작업 관리자)
 if '<dc-import name="TerraNodes"' not in S: S=S.replace('<div data-ctlwin="scene" data-slot="0"','<dc-import name="TerraNodes" quiet="1" hint-size="1px,1px"></dc-import>\n<div data-ctlwin="scene" data-slot="0"',1)   # 노드 데이터 층(PA/EL)   # 제어기 — 그 노드의 모듈 화면 목록(웹 브라우저 앱의 시작 페이지)
 _i=S.index('<div data-ctlwin="scene" data-slot="15"'); _j=S.index('\n',_i)
 S=S[:_j]+''.join('\n'+l for l in _extra)+S[_j:]

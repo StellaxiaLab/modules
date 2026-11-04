@@ -81,7 +81,7 @@ export function createNodeData(request, opts = {}) {
     async put(path, bytes, mime, onProgress) {
       const L = await api.limits();
       if (!bytes.length) throw new NodeDataError('TYPE_DENIED', '빈 파일');
-      if (bytes.length > L.maxFileBytes) throw new NodeDataError('TOO_LARGE', `파일 하나 한도 ${L.maxFileBytes} 바이트를 넘는다`);
+      if (bytes.length > L.maxFileBytes) throw new NodeDataError('TOO_LARGE', `한도 초과 — 파일당 ${L.maxFileBytes}B`);
       const step = L.maxChunkBytes || 640 * 1024, total = bytes.length;
       let offset = 0, retried = false, last = null;
       while (offset < total) {

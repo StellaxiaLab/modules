@@ -63,6 +63,8 @@ export function buildTopology(nodes, o = {}) {
     master: o.master || null,
     /** Master 의 노드 기록 그대로(상태 · resource · last_heartbeat_at) — 없으면 null */
     node(rid) { return (rid && byId.get(rid)) || null; },
+    /** Master 노드 기록 전부(세운 이름 없는 트리는 빼고) — 자원 추이(metrics.js)가 받을 때마다 쌓는다 */
+    records() { return [...byId.values()].filter((n) => !n.synthetic); },
   };
 }
 
@@ -84,17 +86,17 @@ export function nodeStats(n, now = Date.now()) {
   let s = STATUS[String((n && n.status) || '').toLowerCase()] || [n && n.status ? '◇ ' + n.status : '—', false];
   if (s[1] && (sec < 0 || sec > STALE_SEC)) s = ['◌ 응답 없음', false];   // 하트비트가 없거나 낡은 'online' 은 연결로 치지 않는다
   const stale = !!(STATUS_ONLINE.has(String((n && n.status) || '').toLowerCase()) && s[1] === false);   // Master 는 online 이라는데 하트비트가 없거나 낡았다
-  const seen = sec < 0 ? '' : sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + '분 전' : sec < 86400 ? Math.round(sec / 3600) + '시간 전' : Math.round(sec / 86400) + '일 전';
+  const seen = sec < 0 ? '' : sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + 'm 전' : sec < 86400 ? Math.round(sec / 3600) + 'h 전' : Math.round(sec / 86400) + 'd 전';
   return { status: s[0], online: s[1], stale, ageSec: sec < 0 ? null : Math.round(sec), seenAt: sec < 0 ? null : hb, cpu: pct(r.cpu_percent), mem: pct(r.memory_percent), disk: pct(r.disk_percent), seen,
     version: (n && typeof n.daemon_version === 'string' && n.daemon_version.trim()) || '', relay: n && typeof n.relay_connected === 'boolean' ? n.relay_connected : null,
     memTotal: bytes(r.memory_total_bytes), memUsed: bytes(r.memory_used_bytes), diskTotal: bytes(r.disk_total_bytes), diskUsed: bytes(r.disk_used_bytes) };
 }
 
-/** 바이트 → '12.3 GB' 식. 없으면 '' */
+/** 바이트 → '12.3GiB' 식(IEC · 붙여 씀). 없으면 '' */
 export function fmtBytes(v) {
   if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) return '';
-  const U = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']; let i = 0; while (v >= 1024 && i < U.length - 1) { v /= 1024; i++; }
-  return (v >= 100 || i === 0 ? String(Math.round(v)) : v.toFixed(1).replace(/\.0$/, '')) + ' ' + U[i];
+  const U = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']; let i = 0; while (v >= 1024 && i < U.length - 1) { v /= 1024; i++; }
+  return (v >= 100 || i === 0 ? String(Math.round(v)) : v.toFixed(1).replace(/\.0$/, '')) + U[i];
 }
 
 /**

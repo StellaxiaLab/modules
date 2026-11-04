@@ -106,7 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # io.terra.file 이 os.Root 를 써서 go 1.25 를 요구한다(모듈 go.mod 의 go 줄).
+      # lab.stellaxia.file 이 os.Root 를 써서 go 1.25 를 요구한다(모듈 go.mod 의 go 줄).
       # 모듈마다 go 줄이 다르므로 가장 높은 쪽에 맞춘다. 캐시는 모듈마다 go.sum 이
       # 달라 setup-go 의 기본 캐시 키(루트 go.sum)가 맞지 않아 끈다.
       - uses: actions/setup-go@v5
@@ -123,7 +123,7 @@ jobs:
       # 만으로 서는지를 그대로 본다.
       #
       # `--terra` 를 주지 않는다. 그래서 Terra 의 Master 계약 파일을 읽는
-      # io.terra.treebench 시험 둘은 **이름이 로그에 찍히며** 빠진다
+      # lab.stellaxia.treebench 시험 둘은 **이름이 로그에 찍히며** 빠진다
       # (tools/test-modules.mjs 의 NEEDS_TERRA). 그 대조는 Terra 쪽 CI 몫이다.
       - name: Build modules that carry Go source
         run: node tools/build-modules.mjs

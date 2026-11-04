@@ -9,6 +9,7 @@
 // 표(op-scope.json)는 tools/gen-op-scope.mjs 가 Terra Daemon 계약에서 뽑는다.
 
 import SCOPE from './op-scope.json' with { type: 'json' };
+import { sseParser } from './sse.js';
 
 export class TerraError extends Error {
   constructor(code, message, status, retryable, details) { super(message || code); this.name = 'TerraError'; this.code = code; this.status = status; this.retryable = !!retryable; this.details = details || null; if (details && details.via) this.via = details.via; }
@@ -46,7 +47,7 @@ export function createTerra(o = {}) {
   return {
     /** @param {string} id operation id @param {object} [input] 평평한 입력 @param {{ node?: string }} [at] node 를 주면 그 노드에서 */
     async invoke(id, input = {}, at = {}) {
-      if (at.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' 은 그 노드에서만 부를 수 있다', 0);
+      if (at.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' — 이 노드에서만', 0);
       const path = at.node ? `/api/v1/nodes/${encodeURIComponent(at.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
       let res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input) });
       if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input) }); }
@@ -62,6 +63,22 @@ export function createTerra(o = {}) {
       ws.onmessage = (e) => { let v = e.data; try { v = JSON.parse(e.data); } catch {} onMessage(v); };
       ws.onclose = () => onClose && onClose();
       return () => ws.close();
+    },
+    /**
+     * SSE 스트림 — operation 호출을 Accept: text/event-stream 으로(Gateway 가 제공자의 SSE 를 흘려 준다 · sse.js). 응답이 열리면 닫는 함수를 돌려준다.
+     * 열리기 전 실패(429 TOO_MANY_STREAMS · 403 …)는 TerraError 로 던진다. onEvent({ id, event, data }) · onClose() — 끝 · 끊김 모두
+     * @param {string} id @param {object} input @param {{ onEvent: (e: object) => void, onClose?: () => void, node?: string }} h
+     */
+    async sse(id, input, h) {
+      if (h.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' — 이 노드에서만', 0);
+      const path = h.node ? `/api/v1/nodes/${encodeURIComponent(h.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
+      const ac = typeof AbortController === 'function' ? new AbortController() : null;
+      const res = await send(path, { method: 'POST', headers: Object.assign(headers(), { accept: 'text/event-stream' }), body: JSON.stringify(input || {}), signal: ac ? ac.signal : undefined });
+      if (!res.ok || !/event-stream/i.test((res.headers && res.headers.get && res.headers.get('content-type')) || '')) { await unwrap(res); throw new TerraError('BAD_RESPONSE', id + ' — SSE 가 아닌 응답', res.status); }
+      const P = sseParser(), rd = res.body.getReader(), dec = new TextDecoder(); let closed = false;
+      const done = () => { if (closed) return; closed = true; if (h.onClose) try { h.onClose(); } catch {} };
+      (async () => { try { for (;;) { const { value, done: end } = await rd.read(); if (end) break; for (const e of P.feed(dec.decode(value, { stream: true }))) { try { h.onEvent(e); } catch {} } } } catch {} done(); })();
+      return () => { if (ac) ac.abort(); else try { rd.cancel(); } catch {} done(); };
     }
   };
 }

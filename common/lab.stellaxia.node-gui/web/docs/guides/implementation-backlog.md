@@ -31,7 +31,7 @@ related:
 # 구현해야 할 것 — 새 GUI를 모듈로 올린 뒤
 
 2026-10-04, GUI 원본 저장소 [`StellaxiaLab/maingui`](https://github.com/StellaxiaLab/maingui) `f24c3bc`(service 판 = 저장소 뿌리 — 예시 데이터를 뺀 판)를
-바탕으로 모듈 `lab.stellaxia.node-gui` 0.2.0을 만들고 진짜 스택(Master · Daemon · 게이트웨이 · `io.terra.file` · `io.terra.io-inventory` · leaf UI 셸) 위에서
+바탕으로 모듈 `lab.stellaxia.node-gui` 0.2.0을 만들고 진짜 스택(Master · Daemon · 게이트웨이 · `lab.stellaxia.file` · `lab.stellaxia.io-inventory` · leaf UI 셸) 위에서
 끝까지 돌린 뒤 남은 일이다. 예시 데이터 판(maingui `examples/` · demo)은 참고로만 썼다.
 
 > [!NOTE] 처음 받은 압축 파일 → maingui 저장소
@@ -56,7 +56,7 @@ related:
 2026-10-08 — 레지스트리로 설치해 Terra 셸에서 열어 재 본 결과(맵 진입 20초+ · 지어낸 CPU · 메모리 · 디스크 값 · 빈 창)를 MD-35~MD-40(+ UP-33~UP-36 → MD로 흡수)으로 올렸다. 측정과 근거는 [[performance-and-fidelity-recommendations|맵 진입 지연과 가짜 값 — 개선 권고안]] — 어느 것부터 어떻게 하는지는 [[work-order-map-entry-and-fidelity|작업 지시서]].
 2026-10-11 — 위임 입구 화면 · 에이전트 실측([[real-data-layer|실데이터 층]] §5.12, Windows 한 기기 · Terra `832f8f2` · modules `8ab9e38` — ✅ 30 · ❌ 3 · ⏭ 2)에서 MD-51~MD-50 · PF-26~PF-29를 올렸다(PF-26은 Terra#185가 이미 고쳤다 — 재실측으로 확인. PF-28 · PF-29는 2026-10-12 Terra#196 · #197 · #198로 구현됐다).
 Terra G0~G6이 연 길(B-1 · B-5 · C-1 · B-11 · B-12 · B-14)은 이 모듈이 모두 옮겼다 — MD-11 · MD-12 · MD-15~MD-20.
-끊긴 뒤 이어서(MD-21)도 끝냈다 — 그 길에서 찾은 io.terra.file 문제(invoke로 보낸 중단이 늘 포기)를 0.2.1로 함께 고쳤다.
+끊긴 뒤 이어서(MD-21)도 끝냈다 — 그 길에서 찾은 lab.stellaxia.file 문제(invoke로 보낸 중단이 늘 포기)를 0.2.1로 함께 고쳤다.
 maingui `e669c03`(A-29 ~ A-33)도 따라갔다(MD-22) — 모듈 수정 폼이 모듈 설정이 됐다(Terra main의 설정 op 셋).
 maingui `1aa6340`(A-20 · A-28)도 따라갔다(MD-23) — SVI 자원 앱이 흐름도가 됐다. SVI · 네트워크 읽기는 Master op다 — 위임 입구 1차(PF-1, 2026-10-09)로 SVI 목록은 닿고, 흐름 이벤트(SSE)는 2차라 예시 흐름 이벤트는 돌리지 않는다.
 maingui `43a4e3a`(`07d5739` — maingui#1 병합 · `85e28ee` — A-28 흐름 칸 · 맵 도로)도 따라갔다(MD-24) — 상태 화면에 흐름 칸, 맵에 흐르는 도로. 앱 토큰으로는 열린 핸들이 없어 구독을 열지 않는다.
@@ -77,7 +77,7 @@ flowchart LR
     MD24["MD-24 maingui 43a4e3a — SVI 흐름 칸 · 맵 도로"]
   end
   CFG["Terra main 모듈 설정 op 셋 — 쓰기는 module.manage"] --> MD22
-  FILE021["io.terra.file 0.2.1 — 중단이 부분을 남긴다"] -->|"중단 뒤 다시 올리기"| MD21
+  FILE021["lab.stellaxia.file 0.2.1 — 중단이 부분을 남긴다"] -->|"중단 뒤 다시 올리기"| MD21
   MD21 -.->|"멈춤 칸 · 이어서"| UP22["UP-22 · UP-23 원본에 올릴 것"]
   MD23 -.->|"빈 목록의 이유"| UP24["UP-24 maingui PR 1에 올림"]
   UP24 -.->|"maingui 07d5739 병합"| MD24
@@ -116,7 +116,7 @@ flowchart LR
 | **PF-17** | 앱 토큰으로 받는 **사용자 문서 변경 신호** | 새로 찾았다 — 문서를 쓰면 Master가 그 사람에게만 `terra.documents.changed`를 낸다(`announceDocument`). 앱 토큰의 이벤트는 이 노드 Daemon 것(`terra.daemon.events.get`)이라 그 신호가 오지 않는다. Master 이벤트는 PF-1 경계 — ADR-GW-003은 Master SSE를 2차로 미뤘다(필터 주체와 함께) | 다른 창 · 기기가 바꾼 배치를 곧장 받지 못한다 — 다음 쓰기의 409 알림 · 새로 고침에 받는다(MD-15). 길: 게이트웨이가 앱 이름공간(`app:<appId>`)의 문서 신호만 그 앱 토큰의 SSE에 실어 준다 | 낮음 |
 | **PF-25** | 앱 토큰으로 읽는 **노드 사용량**(CPU · 메모리 · 디스크 %) | 없다 — leaf 게이트웨이 카탈로그(117개)에 사용량 op가 없고 `agent/nodes`도 주지 않는다. Master에는 `GET /api/v1/monitor/snapshot`(`cpu_percent` · `memory_percent` · `disk_percent` · `measured`)이 있으나 leaf 게이트웨이가 게시하지 않아 `terra.master.monitor.snapshot.get`이 `MODULE_ROUTE_NOT_FOUND`다. Daemon에도 procfs 모니터(`data_plane/monitoring`)가 있으나 op가 없다 | 노드 카드 사용량 막대(MD-36 — 받은 값만 그린다) | 중간 |
 | **PF-26** | 데몬의 **바인딩 준비 응답**이 relay에서 버려진다 | 2026-10-11 실측([[real-data-layer\|실데이터 층]] §5.12 B2) — 같은 노드 위 호환 쌍(마우스 → io-weave 포인터)의 바인딩이 `preparing` · `target_prepare_failed: context deadline exceeded`에 멈춘다. 데몬 로그 `master_relay_inbound_rejected … svi.binding.prepare.request … invalid communication envelope`. 원인 추정(코드 읽기): `binding_executor.go:784` `preparedResponse`가 `Source` 없는 봉투를 돌려주고 `Service.Send`의 `ValidateEnvelope`가 거절한다  **고쳐짐 — [Terra#185](https://github.com/StellaxiaLab/Terra/pull/185)(`dfbd1f9`, 원인 같음). Terra main `361efe8`로 다시 재니 봉투 거절 0 · 바인딩이 소스 준비까지 가서 `source_prepare_failed: backend_unavailable`(MD-55)** | 입출력 연결이 `active`가 되지 않는다 | ~~높음~~ 끝 |
-| **PF-27** | Master 계약 입력 스키마(`{query:{…}}`)와 Gateway invoke(평평한 입력)가 어긋난다 | 2026-10-11 실측(§5.12 D8) — `route.candidates.get`을 계약대로 `{query:{…}}`로 부르면 `query=<JSON>`이 되어 404 `NODE_NOT_FOUND`, 평평하게 부르면 200. 화면은 평평하게 부르므로 괜찮지만 계약을 읽는 에이전트는 틀린다 | `io.terra.agent`의 Master 읽기(계약대로 지은 입력) | 중간 |
+| **PF-27** | Master 계약 입력 스키마(`{query:{…}}`)와 Gateway invoke(평평한 입력)가 어긋난다 | 2026-10-11 실측(§5.12 D8) — `route.candidates.get`을 계약대로 `{query:{…}}`로 부르면 `query=<JSON>`이 되어 404 `NODE_NOT_FOUND`, 평평하게 부르면 200. 화면은 평평하게 부르므로 괜찮지만 계약을 읽는 에이전트는 틀린다 | `lab.stellaxia.agent`의 Master 읽기(계약대로 지은 입력) | 중간 |
 | **PF-28** | `/api/v1/agent/nodes`가 **다른 클러스터 노드**를 보인다 | 2026-10-11 실측(§5.12 E3) — 관리자의 앱 토큰 · fleet 에이전트(tree · leaf 둘 다)에게 다른 사용자의 노드가 나온다. 위임 입구의 `nodes.get`은 거른다. 결정: 이 목록도 강등할지. **구현됨 — [Terra#197](https://github.com/StellaxiaLab/Terra/pull/197)(2026-10-12)**: Gateway가 중계에 `X-Terra-Delegate`를 싣고 Master가 관리자를 자기 클러스터로 낮춘다 | 에이전트 `terra_nodes` · 노드 주소 호출의 후보 | ~~중간~~ 끝 |
 | **PF-29** | 죽은 위임 자격 · 도달 범위 거절이 403 `MODULE_PERMISSION_DENIED`로 온다 | 2026-10-11 실측(§5.12) — Gateway 재시작 뒤 `tsa_`가 `anonymous`(401이 아니라 403 "권한이 없습니다"), readonly(`node.read` 있음)의 도달 범위 거절도 같은 글. 429에 `Retry-After` 없음, 위임 입구가 거절한 호출은 감사 행 없음. **구현됨 — [Terra#196](https://github.com/StellaxiaLab/Terra/pull/196) · [Terra#198](https://github.com/StellaxiaLab/Terra/pull/198)(2026-10-12)**: 죽은 `tsa_`는 401, 도달 범위 거절은 reach를 밝힌 403, 429에 `Retry-After`, 거절된 위임 호출은 `master.delegated.refused` 감사 | 화면 · 에이전트가 "다시 받기"를 알 수 없다 | ~~낮음~~ 끝 |
 
@@ -130,7 +130,7 @@ flowchart LR
 | PF-5 | 앱 토큰으로 받는 이벤트 | B-5 SSE | invoke + `Accept: text/event-stream` → 200 `text/event-stream`. 스캔하자 `terra.io.devices.changed`가 왔다 | MD-11 |
 | PF-11 | leaf 게이트웨이의 모듈 로그 | B-14 | `terra.gateway.modules.by-id.logs.get` 200 · `terra.daemon.modules.by-module-id.logs.get` 200 | MD-16 |
 | PF-12 | `storage.shared_dirs` 스키마 타입 | B-15 ① | `config.schema.get` → `object_list` | — |
-| PF-6 | 파일 받기 · 올리기 | (Terra 몫이 아니었다) | `io.terra.file.transfers.*`는 원래 있다 — 조각 루프는 화면 일이다. maingui A-2가 지었다 | MD-17 |
+| PF-6 | 파일 받기 · 올리기 | (Terra 몫이 아니었다) | `lab.stellaxia.file.transfers.*`는 원래 있다 — 조각 루프는 화면 일이다. maingui A-2가 지었다 | MD-17 |
 | PF-7 | 명령 출력 · 다시 실행 | Terra PF-7 — [Terra#140](https://github.com/StellaxiaLab/Terra/pull/140)(출력 쪽 읽기 `tasks.by-task-id.output.get` · 출력 SSE `output.events.get` · 다시 실행 `rerun.post` · 가리기 · 감사) · [Terra#144](https://github.com/StellaxiaLab/Terra/pull/144)(실행 중 등록 · Master 작업 env 가리기 · 확인 승인) | **앱 토큰 실측 (2026-10-09)** — Terra main `1e13d75` 스택에서 이 앱 토큰으로 실행 중 읽기 · SSE 따라가기 · 비밀 가림 · 다시 실행 · 노드 주소 호출 읽기 · Master가 보낸 작업의 409를 확인했다(`web/tools/live-taskout.mjs` 15개 — [[real-data-layer\|실데이터 층]] §5.7). Gateway를 지나는 SSE가 15초 넘게 사는 것은 Terra#144가 실측했다 | MD-34 |
 | PF-13 | 선언 쓰기 op | **진단 정정** | 선언 op 셋(`svi.declarations.post` · `undeclare` · `forget`)은 Daemon 계약에 처음부터 있었다. 카탈로그는 호출자가 쥔 권한으로 거른다(`narrowList`). `node.config`★는 기본 권한 밖이라 **관리자 토큰에도** 안 보인다(관리자 143 · 앱 142 / 전체 156) | Q-10 |
 
@@ -150,7 +150,7 @@ flowchart LR
 | **MD-52** | 연결 적용의 **내 신원이 이메일**이다 | 2026-10-11 실측(§5.12 B2 · B3) — 셸(Scene) 로그인 화면에서 [나에게 허가 주기]가 `subject_id: "admin@stack.local"`을 보내 위임 입구 403, 서버에 허가가 있어도 `허가 필요`에 머문다. `src/api/wire.js:465`가 frame 세션 값의 `principal`을 whoami보다 앞세운다. 연결 적용에는 whoami principal을 넘긴다. 단위 시험은 frame 값이 없는 경우만 본다. **고침 — [modules#83](https://github.com/StellaxiaLab/modules/pull/83)**(`linkPrincipal`) | — | ~~높음~~ 끝 |
 | **MD-53** | 입출력 설정 화면 다듬기 | 2026-10-11 실측(§5.12 B) — 쪽마다 엔드포인트가 하나여도 자동으로 고르지 않는다(설계 Q-27과 다름) · 적용 전 형식이 "모름 → 모름" · 허가 기한에 위임 입구가 늘 거절하는 "기한 없음"이 있다 · tree 보드 서비스 터널의 "앱 토큰은 Master에 닿지 않습니다"는 1차 이전 글 · 전체 화면 보드 위로 세션 캡슐이 겹친다 | — | 낮음 |
 | **MD-54** | 진짜 스택 실측 절차를 도구로 | 2026-10-11 — leaf · tree 셸로 보려면 base Scene(`io.terra.scene.terra`) · `VITE_TERRA_GATEWAY_URL` · UI 패키지 빌드가 필요했다(§5.12 막혔던 곳). 이번 Playwright 스크립트(보드 · 연결 · 끊김)를 `web/tools/`에 정리하면 MD-6의 발판이 된다 | MD-6 | 낮음 |
-| **MD-55** | `io.terra.io-inventory`가 **프레임을 내지 않는다** | 2026-10-11 — 장치를 SVI 자원으로 선언만 하고 `SVISource`가 없다. 실제 장치 → 싱크 바인딩이 서도 신호가 흐를 길이 없다(§5.12 B1). 같은 저장소의 다른 모듈 일이다 | PF-26 | 중간 |
+| **MD-55** | `lab.stellaxia.io-inventory`가 **프레임을 내지 않는다** | 2026-10-11 — 장치를 SVI 자원으로 선언만 하고 `SVISource`가 없다. 실제 장치 → 싱크 바인딩이 서도 신호가 흐를 길이 없다(§5.12 B1). 같은 저장소의 다른 모듈 일이다 | PF-26 | 중간 |
 | **MD-50** | 끊은 뒤 **같은 쌍을 다시 이으면 닫힌 바인딩이 돌아온다** | 2026-10-11 재실측(Terra `361efe8`) — 멱등 키(`idempotencyKey(treeId, 쌍)`)가 tree와 쌍만으로 정해져, 닫은 바인딩과 같은 쌍을 다시 적용하면 Master가 그 닫힌 바인딩(`desired: closed` · `observed: requested`)을 돌려주고 상태 맞추기는 `binding`에 머문다. 끊기 때 키를 바꾸거나(연결 id · 세대를 섞기) 닫힌 바인딩이 오면 새 키로 다시 만든다 **고쳐짐 — [modules#98](https://github.com/StellaxiaLab/modules/pull/98)**(앞 바인딩 id를 키에 섞는다) | — | ~~중간~~ 끝 |
 | **MD-42** | 노드 화면 마운트의 동기 작업 약 2초 | 맵 굽기를 걷어낸 뒤 남은 첫 롱태스크(1.7~2.1초). 스킨 · 타일 벡터 생성(`ensureBake` · `bakeTile`)으로 보이나 프로파일로 쪼개지 않았다. 편집기 보드 4종(건물 · 도로 · 필드 · 자재)의 굽기(`getImageData`)도 같이 잰다 | — | 중간 |
 
@@ -161,7 +161,7 @@ flowchart LR
 | **MD-35** | 맵 진입 굽기 — 쓰이는 것만 · 한 장씩 · 비동기 PNG | `design/Artboard-qcfu.dc.html` — `needTile` · `needBld` · `roadImgOf(…, low)` · `bakeEnq`/`bakePump`(`requestIdleCallback`) · `pngUrl`(`toBlob` + `FileReader` — CSP가 `blob:`을 막는다). 마운트 때 굽던 151장(SVG 38MB · `toDataURL` 318회 36.6MB)을 쓰일 때만 굽는다. 로그인 → 맵 평균 20.1초 → 7.3초 · catalog 7.5~9.5초 → 0.2초([[work-order-map-entry-and-fidelity\|작업 지시서]] §6). UP-33 흡수 · 2026-10-09 · 0.4.2 |
 | **MD-36** | 노드 카드의 지어낸 CPU · 메모리 · 디스크 제거 | 이름 해시 계산을 지우고 `nodeMeters(nd)`(`__real.meters[노드 이름] = { cpu, mem, disk }` — 받은 값만) · 없으면 "사용량 — 이 노드의 게이트웨이가 아직 알려 주지 않는다". leaf 게이트웨이에 사용량 op가 없어 **PF-25**. 시험 1개. UP-34 흡수 · 2026-10-09 · 0.4.2 |
 | **MD-37** | 데이터 요청을 굽기보다 먼저 | **효과가 없어 하지 않았다** — 요청을 0.2초에 시작해 봐도 조타륜 앱 첫 요청이 14~15.7초로 그대로였다(메인 스레드가 굽기에 잡혀 있었다). 코드는 되돌리고 결과를 [[performance-and-fidelity-recommendations\|권고안]] §1.3에 남겼다 · 2026-10-09 |
-| **MD-38** | 모듈 없음과 오류 구분 | `src/api/module-gate.js` — `modules.get`(15초 캐시)로 설치 여부를 보고 없으면 `io.devices.get`(`io.terra.io-inventory`) · `files.list.get`(`io.terra.file`)을 부르지 않는다. 이유 글 `no-module` · `LOCAL_API_UNAVAILABLE`. 로그인 → 맵 구간 503 두 건 제거 · 시험 5개 · 2026-10-09 · 0.4.2 |
+| **MD-38** | 모듈 없음과 오류 구분 | `src/api/module-gate.js` — `modules.get`(15초 캐시)로 설치 여부를 보고 없으면 `io.devices.get`(`lab.stellaxia.io-inventory`) · `files.list.get`(`lab.stellaxia.file`)을 부르지 않는다. 이유 글 `no-module` · `LOCAL_API_UNAVAILABLE`. 로그인 → 맵 구간 503 두 건 제거 · 시험 5개 · 2026-10-09 · 0.4.2 |
 | **MD-39** | 굽기 결과 캐시 | **불필요** — MD-35로 런타임 굽기가 1~11장이 됐다 · 2026-10-09 |
 | **MD-40** | 모듈 · 사용자 · 설정 창 본문 | 보드가 있는 창은 [전체 화면으로 열기](`fsToggle` — 누르면 진짜 보드가 열린다), 없는 창은 "이 앱에 아직 없다". **"보드에서 열기 →" 링크 제거**(srcdoc 안에서 누르면 CSP 오류 페이지로 바뀌어 노드 화면이 깨졌다). 모듈 요약에 scene 모듈이 "실행"으로 세어지지 않는 이유 · 사용자 요약은 "이 화면이 받은 권한 N개". 조타륜 "속성" 메뉴는 정상. 시험 2개. UP-36 흡수 · 2026-10-09 · 0.4.2 |
 | **MD-43** | 진입 연출 | 연출은 이미 구름에서 맵을 기다리고 있었다 — 고정 지연만 줄였다: 미리 읽기 1200 → 250ms · 준비 판정 load+900ms → 노드 화면의 liveHub 값 확인(최대 3.5초) · `autoMs` 1400 → 900. 7.8~8.0 → 7.1~7.2초. UP-35 흡수 · 2026-10-09 · 0.4.2 |
@@ -175,7 +175,7 @@ flowchart LR
 | **MD-12** | 다른 노드의 자원 | 노드 주소 호출 `/api/v1/nodes/{node_id}/operations/{id}/invoke`(`client.invokeAt`). 그 노드 카탈로그(60초)로 누르기 전에 잠그고(`lockFor`), 권한은 `관리자 · 중계`. 모듈 로그는 그 Daemon 것(`remote`), 다른 노드의 작업도 그 Daemon 목록(`daemonView` — 앱 토큰은 Master에 닿지 않는다), 명령 실행만 Master 경로(`localOnly`) · 2026-10-05 |
 | **MD-15** | 맵 배치 · 자산 서버 저장 | `src/store/docs.js` — 이름공간 `app:<whoami delegate>` · 키 `layout/<node_id>` · `assets`. 브라우저에는 바로, 서버에는 3초 모아서. 새 쪽(`savedAt` · `_savedAt`)이 이기고, 쓰기마다 `base_revision` · 409면 한 번 알리고 다시 쓴다. 바뀐 것이 있을 때만 쓴다. 서버가 없거나 막히면 브라우저만. `config.json` `layoutStore: server`(기본) · `local` · `none` · 2026-10-05 |
 | **MD-16** | 모듈 로그 · 폴더 탐색기 · 열기 | 로그 → 상태 화면 출력 칸(게이트웨이 `logs` · Daemon `lines` 둘 다). 폴더 탐색기 = `local-fs.roots` · `entries`(🔒 + 이유). 파일 = `desktop.open {open}`, `파일 관리자로` = 지금 폴더 `{reveal}` — 그 컴퓨터에서 볼 때만(`*.localhost`). Daemon 오류 코드는 화면 글로 · 2026-10-05 |
-| **MD-17** | 파일 올리기 · 받기 | 올리기 — `↑ 올리기` → 파일 고르기 → `transfers.create`(SHA-256) → 조각 → 409면 서버 offset부터 → 완료 검사(maingui A-2를 옮겼다). **받기** — 폴더 앱 `받기` → `transfers.pulls.create` → `chunks.get`(조각마다 SHA-256) → 전체 검사 → `pulls.complete` → 브라우저 저장. 받기는 io.terra.file 0.2.0(#24)부터 — 원본에는 아직 없다(UP-20) · 2026-10-05 |
+| **MD-17** | 파일 올리기 · 받기 | 올리기 — `↑ 올리기` → 파일 고르기 → `transfers.create`(SHA-256) → 조각 → 409면 서버 offset부터 → 완료 검사(maingui A-2를 옮겼다). **받기** — 폴더 앱 `받기` → `transfers.pulls.create` → `chunks.get`(조각마다 SHA-256) → 전체 검사 → `pulls.complete` → 브라우저 저장. 받기는 lab.stellaxia.file 0.2.0(#24)부터 — 원본에는 아직 없다(UP-20) · 2026-10-05 |
 | **MD-44** | 입출력 설정 창 — UP-25 최소판(2026-10-08) — 예전 번호 MD-41(maingui 따라가기와 겹쳐 2026-10-10에 바꿨다) | 자원 설정 창(`rcfg`)의 입력 · 출력 줄마다 **[설정]**이 생겼다 — 펼치면 종류 배지(바인딩 · 공유 · 화면 전용) · 보내는 · 받는 엔드포인트 고르기 · 형식 판정 · 호환 정책 · QoS(두 끝이 함께 내는 것만, `reliable_ordered`는 이어서 만들 수 있을 때만) · 허가 상태 + [나에게 허가 주기](기한 고르기, Q-23) · 상태 줄 · [연결 적용] · [바인딩 닫기] · 잠금 이유(E-12) · 화면 전용 안내(E-13). 연결 `io`(MD-27)를 읽고 쓰고, 적용은 `linkApply` · `linkGrantSelf`(MD-28 · `link-wire.js`)를 부른다. **디자인 원본**(`design/Artboard-qcfu.dc.html`)에 예시 구현이 있고 — 모듈은 엔드포인트를 그 자원의 실제 목록(`flow.eps`)으로 덮고(`fixes.js` `IOEPS`), 서버에 닿기 전에는 적용을 지어내지 않고 이유를 말한다(UP-14 원칙). 최소판 밖: E-6 · E-8 · E-9 · [다시 시도] · [경로 철거로 가기] · [흐름 열기] 시험은 `tests/smoke.mjs`(패널 · 고름 · 잠금 · 디자인 예시 흐름). |
 | **MD-45** | 허가 만들기 — 받는 이의 종류 | 조타륜 "허가 · 연결"의 [+ 허가]가 본문에 `subject_type`을 안 실어 Master가 `user`로 읽었고, 위임 입구(Terra ADR-GW-004 D-3: 자기 자신 · 같은 클러스터 노드만)가 노드 ID도 `403 FORBIDDEN`으로 거절했다. 받는 이가 `node:<id>` · `node_…`면 `node`, 아니면 `user`로 보낸다(`operations.js grantSubject`). 진짜 스택(위임 입구)에서 `POST` 201 · `PATCH` 200 · `DELETE` 200 | 완료 (0.4.3) | 높음 |
 | **MD-46** | 닫기 직전 변경이 서버 문서에 안 가던 것 | 서버(사용자 문서)에는 3초 모아 쓰는데 페이지를 닫을 때(`pagehide`)는 브라우저 저장만 하고 모아 둔 쓰기를 비우지 않았다 — 변경 3초 안에 닫으면 다른 기기 · 브라우저에서 안 보였다. `DocStore.flush`(`keepalive` PUT) · `watchHide`로 닫힐 때 비운다 | 완료 (0.4.3) | 중간 |
@@ -183,7 +183,7 @@ flowchart LR
 | **MD-48** | 작업 카드 제목 | 목록에는 명령이 없어(`terra.daemon.tasks.get`) 카드 제목이 `process.execute.request`로 보였다. 알아볼 수 있는 종류(명령 실행 · 작업 취소)만 우리말로, 모르는 종류는 그대로(`adapters.js TASK_TYPE_LABEL`). 명령 자체를 보이려면 Daemon 목록에 명령이 있어야 한다 | 완료 (0.4.3) · 명령 표시는 Terra | 낮음 |
 | **MD-49** | 진입 연출 준비 판정을 시험 가능하게 | `Intro.dc.html`의 판정을 순수 함수 `decideReady({ok, live, need, waited})`로 뺐다 — 시험 1개(250ms · 3500ms · 2000ms · 어떤 입력이든 6초 안에 끝난다). `need`(토큰 있음)를 load 때 한 번 굳히지 않고 볼 때마다 읽는다. 도달 불가였던 6000ms 분기는 정리. **하지 않은 것**: 값이 상한 안에 안 올 때 "로그인 전"으로 보이는 안내 문구 — 토큰은 있는데 값을 받는 중이라는 상태 신호가 따로 필요하다 | 완료 (0.4.3) · 문구는 열어 둠 | 낮음 |
 | **MD-18** | 장치 손 등록 | I/O 앱 `＋ 추가` 폼 = 이름 · 주소. 주소 scheme → `manual.rtsp` · `manual.http-camera` → `terra.daemon.io.devices.post {kind: camera, name, adapter_id, address}`. 비우면 스캔 · 모르는 scheme은 부르지 않는다. io-inventory 0.2.0(#26) · 2026-10-05 |
-| **MD-21** | 받기 · 올리기를 끊긴 뒤 이어서 | **올리기** — 같은 자리에 같은 파일(크기 · SHA-256)을 보내다 멈춘 전송을 `transfers.list`에서 찾아 `resume_id`로 다시 연다(새로 만들기가 부분 파일 때문에 `FILE_TARGET_EXISTS`일 때 · 방금까지 움직인 것은 3초 뒤 다시 본다 · 기한이 지나도). **받기** — 받은 조각을 이 브라우저 IndexedDB(`src/store/parts.js`)에 두고, SHA-256 · 크기가 같으면 둔 곳부터 · 앞선 받기는 닫는다. **전송 앱** — 멈춘 전송(보내던 화면이 닫혔다)은 `어긋남` 칸 + 이어서(파일 고르기 · 이름은 달라도 된다) · 중단(부분 남김) · 치우기(부분도 버림). **io.terra.file 0.2.1** — 중단의 `keep_partial` · `reason`을 invoke 본문에서도 읽는다(0.2.0은 query만 읽어 앱의 중단이 늘 포기였다) · 기한 지난 받기도 받기 전용 문으로 닫는다. 진짜 스택에서 4 MB 올리기 · 받기를 31%에서 끊고 이었다([[real-data-layer\|실데이터 층]] §5.4) · 2026-10-05 |
+| **MD-21** | 받기 · 올리기를 끊긴 뒤 이어서 | **올리기** — 같은 자리에 같은 파일(크기 · SHA-256)을 보내다 멈춘 전송을 `transfers.list`에서 찾아 `resume_id`로 다시 연다(새로 만들기가 부분 파일 때문에 `FILE_TARGET_EXISTS`일 때 · 방금까지 움직인 것은 3초 뒤 다시 본다 · 기한이 지나도). **받기** — 받은 조각을 이 브라우저 IndexedDB(`src/store/parts.js`)에 두고, SHA-256 · 크기가 같으면 둔 곳부터 · 앞선 받기는 닫는다. **전송 앱** — 멈춘 전송(보내던 화면이 닫혔다)은 `어긋남` 칸 + 이어서(파일 고르기 · 이름은 달라도 된다) · 중단(부분 남김) · 치우기(부분도 버림). **lab.stellaxia.file 0.2.1** — 중단의 `keep_partial` · `reason`을 invoke 본문에서도 읽는다(0.2.0은 query만 읽어 앱의 중단이 늘 포기였다) · 기한 지난 받기도 받기 전용 문으로 닫는다. 진짜 스택에서 4 MB 올리기 · 받기를 31%에서 끊고 이었다([[real-data-layer\|실데이터 층]] §5.4) · 2026-10-05 |
 | **MD-22** | maingui `e669c03` 따라가기 — 모듈 설정 폼 | `design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **모듈 수정 = 모듈 설정**(maingui A-29): 폼을 열기 전에 `config.schema.get` · `config.get`으로 칸 · 값을 받아 항목에 붙이고(`cfgForm`), 저장은 바뀐 키만 `config.patch {values, unset, base_revision}`(`cfgPatch`). 거절한 키(`detail.keys`) · 409 겹침 · 설정 없는 모듈을 글로. 다른 노드는 노드 주소 호출. I/O 장치를 고칠 때는 원본의 새 주소 칸을 뺀다(주소를 바꾸는 op 가 없다). 진짜 스택(Terra main)에서 시험 모듈로 거절 · 저장 · 다시 열기 · 겹침 · 비우기를 확인했다([[real-data-layer\|실데이터 층]] §5.5) · 2026-10-05 |
 | **MD-23** | maingui `1aa6340` 따라가기 — SVI 흐름도 · 흐름 이벤트 | `design/Artboard-qcfu.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **SVI 자원 앱 창 = 흐름도**(maingui A-28 — 제공 노드 → 자원 → 엔드포인트 → 핸들 · 바인딩 · 허가, 카드 보기와 바꾼다). 연동 층: `ADAPT.svi`가 `flow` · `handle`을 채운다(없으면 화면이 카메라에 `frames` · `snapshot` 엔드포인트를 지어낸다), svi 앱이 `svi.handles.get` · `svi.bindings.get`도 받고, `wire.js`가 고른 자원의 열린 핸들 SSE(`svi.handles.by-handle-id.events.get`)를 `state.sviEv`에 넣는다. `ADAPT.grant`를 Master의 답 모양(`items` · `subject{type, id}` · `source{resource_id}`)으로 고쳤다. 예시 흐름 이벤트(`sviDemoTick`)는 끈다. 보고 있는 앱의 목록을 받지 못하면 그 이유를 남긴다(UP-24). 네트워크 읽기(A-20)는 Master라 보드는 그대로 "닿지 않음". SVI는 전부 Master op라 앱 토큰으로는 빈 흐름도 + 이유다(PF-1 · [[real-data-layer\|실데이터 층]] §5.6) · 2026-10-05 |
 | **MD-26** | maingui `4ec0685` 따라가기 — 사용자 관리 · 등록 상태 · 온보딩 | `design/Intro` · `design/Settings`를 그 커밋 그대로 복사하고 다시 만들었다(치환 패치는 그대로 맞았다). 새 설정 디자인의 예시 사용자 · 예시 등록 상태를 비우고, 사용자 관리(Master op)는 "닿지 않는다"(Q-2) · 등록 상태(Daemon `enrollment.status.get`)는 진짜 값. 원본이 옮긴 알림 글자색을 모듈의 같은 자리에 적용. 시험: 단위 127 · 연기 36 통과 | 반영 |
@@ -195,7 +195,7 @@ flowchart LR
 | **MD-28** | 연결 적용 — 엔드포인트 다시 읽기 → 미리 검사 → 내 허가 확인 → `svi.bindings.post` · 공유는 `svi.grants.post {subject_type: node}` — [[io-link-svi-binding-design|입출력 연결 설계]] §4.1 · §4.4 · §5.4 | `src/api/link-apply.js`(`applyLink` · `precheck` · `grantCovers` · `grantSelf` · `lacksOf`) · `src/api/link-wire.js`가 `screen.linkApply(연결 id)` · `screen.linkGrantSelf(연결 id)`를 단다(`wire.js`) · `source.principal`(whoami) · `link-io.js`에 사람이 고른 엔드포인트(`io.endpoints`)를 더했다. 호출은 `client.invoke` 직접(본문에 `node_id` 없음 — UP-13) · 이미 바인딩이 있는 쌍은 다시 만들지 않는다 · 서버에 닿지 않으면(카탈로그에 없음 · 401 · 503) 아무것도 바꾸지 않는다 · 단추는 UP-25(설정 화면)가 온 뒤 · 시험 `tests/linkapply.test.mjs` 23개(Master 계약 모양의 가짜 클라이언트) · 2026-10-07 |
 | **MD-27** | 연결 판정 · 쌍 풀기 · `links[].io` 저장 — [[io-link-svi-binding-design\|입출력 연결 설계]] §2 · §3 · §5 | `src/model/link-io.js`(순수 — `classifyLink` · `pairsOf` · `buildIO` · `readLinkIO` · `sanitizeIO` · `reviveLinks` · `rebuildLinks`) · `src/boot/fixes.js`가 `connEnd`(새 연결) · `nodeSelToggle`(그 연결)에 `io`를 붙인다 · `src/store/layout.js` `reviveMaps`가 어긋난 `io`를 뗀다. 서버 호출 없음 · 예전 저장본은 그대로(화면 전용으로 읽힌다) · 시험 `tests/linkio.test.mjs` 24개 · 2026-10-07 |
 | **MD-24** | maingui `43a4e3a` 따라가기 — SVI 흐름 칸 · 맵 도로 애니메이션 | `design/Artboard-qcfu.dc.html` · `design/Intro.dc.html`을 그 커밋 그대로 복사하고 다시 만들었다(나머지 디자인 파일은 같다). **흐름 칸**(maingui `85e28ee` A-28): 상태 화면(SVI 자원) 아래 — 상태 · QoS · seq · fps · 받은 양 · 버린 프레임, `schema_ref`별 본문(글자 꼬리 · hex · 그림 최신 1장 · 메타), 멈춤 · 지우기 · 닫기 · 저장. **맵 도로**: 흐르는 자원의 연결에 움직이는 점선 + fps. 연동 층: `src/api/svi-stream.js`(StreamView — 꼬리 500줄/1 MB · 끝 64 KiB만 디코딩 · 8 ms 조각)는 원본 그대로, `src/api/svi-live.js`는 이 모듈의 `openEvents`(op를 opts로) · `HELM_APPS.svi.events`에 맞춰 옮겼다 — 예전 `wire.js` §8의 `state.sviEv`를 걷었다. 열기 본문을 채웠다(`sviOpenOp` — stream 엔드포인트가 `subscribe`를 열면 subscribe, 아니면 read · 전에는 빈 본문), 닫기는 카드 id가 아니라 열린 핸들(`item.handle`)을, `ADAPT.svi`가 `epInter` · `epOps` · `handleOp` · `handleQos`를 채운다. 원본에 올라간 것(`07d5739` — maingui#1): 시작 화면 알약의 누름 끄기(UP-15) 생성기 패치를 걷었고, 메모 경로 글(UP-18 — 원본이 `memos/`)도 `메모/`로 바꾼다. SVI는 Master op라 앱 토큰으로는 구독을 열지 않는다(PF-1). 가짜 서버(`sviflow.test.mjs`) · 연기 시험으로만 확인했다 — 진짜 스택은 아직 · 2026-10-05 |
-| **MD-20** | 다른 노드의 공유 폴더 안 · 전송 | `io.terra.file`(scopes local · node)은 노드 카탈로그에 없어 원격 모듈 경로 `/api/nodes/{node_id}/modules/io.terra.file/v1/…`로 부른다(`client.invokeModuleAt` · `fillRoute` · 카탈로그 `bindings`, 없으면 `fileBinding`). 앱 토큰으로 진짜 게이트웨이에서 목록 · 올리기 · 받기 · 지우기가 그 길로 갔다 · 2026-10-05 |
+| **MD-20** | 다른 노드의 공유 폴더 안 · 전송 | `lab.stellaxia.file`(scopes local · node)은 노드 카탈로그에 없어 원격 모듈 경로 `/api/nodes/{node_id}/modules/lab.stellaxia.file/v1/…`로 부른다(`client.invokeModuleAt` · `fillRoute` · 카탈로그 `bindings`, 없으면 `fileBinding`). 앱 토큰으로 진짜 게이트웨이에서 목록 · 올리기 · 받기 · 지우기가 그 길로 갔다 · 2026-10-05 |
 | **MD-19** | maingui `2ced429` 따라가기 | `design/`(Artboard · Settings)을 그 커밋 그대로 복사하고 다시 만들었다 — 파일 단위로 같다. 연동 층은 필요한 것만 옮겼다(이벤트 · 노드 주소 호출 · 사용자 문서 · local-fs · desktop.open · 올리기 · 노드 관리 폼은 Master에 닿지 않으니 잠금 · 설정 재시작 `doRestart`). 생성기의 낡은 설정 패치 둘을 뺐다 · 2026-10-05 |
 
 그 밖에 maingui 기준으로 다시 맞추며(2026-10-04) 자원 추가 · 수정 · 삭제를 실제 호출로(지어내지 않기) · 값을 적어야 하는 앱 바 동작의 폼 · 상태 화면 · 모듈 GUI 창 · `ovhHide` 저장 — [[real-data-layer|실데이터 층]] §2.4 · §2.5 · §5.2.
@@ -231,14 +231,14 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 새로 찾아 원본에 올린 것(MD-16 · MD-17을 진짜 스택에서 돌리며 — maingui#1 둘째 커밋 `43d547a`):
 
 - **UP-19** — 모듈 로그의 두 모양. Daemon(`modules.by-module-id.logs.get` — 다른 노드 · 대체 경로)은 줄이 `{at, stream, text}` 객체라 원본 `wire.js`의 `d.lines.join('\n')`이 `[object Object]`를 찍는다. 게이트웨이(`modules.by-id.logs.get`)는 `{module, logs: [글]}`인데 원본은 `logs`를 보지 않아 JSON이 그대로 나온다. 원본의 가짜 Gateway가 둘 다 `lines: [글]`로 답해 가려졌다 — 모듈은 `logLines`로 둘 다 글로 옮긴다
-- **UP-20** — 받기(내려받기). io.terra.file 0.2.0(modules #24)이 `transfers.pulls.*`를 냈다. 원본에 받기가 없었다 — 원본이 `e669c03`(A-30)으로 따로 지었다. maingui#1은 main을 합치며 이 줄을 뺐다
+- **UP-20** — 받기(내려받기). lab.stellaxia.file 0.2.0(modules #24)이 `transfers.pulls.*`를 냈다. 원본에 받기가 없었다 — 원본이 `e669c03`(A-30)으로 따로 지었다. maingui#1은 main을 합치며 이 줄을 뺐다
 - **UP-21** — `desktop.open`의 실행 파일 거절 코드는 `DESKTOP_OPEN_EXECUTABLE`이다. 원본은 `r.code === 'DESKTOP_EXECUTABLE'`을 본다(409로도 견주어 글은 맞게 나온다). 그 밖의 코드(`DESKTOP_SESSION_UNAVAILABLE` 503 · `DESKTOP_LAUNCHER_UNAVAILABLE` 503 · `LOCAL_FS_DENIED` …)는 `지금은 볼 수 없다 (모듈 멈춤)` 같은 머리말로 나온다 — 모듈은 코드마다 화면 글(`reasonText`)
 
 새로 찾은 것(MD-21 — 끊긴 뒤 이어서를 진짜 스택에서 돌리며 · 아직 원본에 올리지 않았다):
 
 - **UP-22** — 디자인의 전송 상태에 **멈춤**(보내던 · 받던 화면이 닫혔다 — 이어서 할 수 있다)이 없다. 칸은 `transferring` · `verifying` · `completed` · `aborted` · 그 밖(`어긋남`)뿐이라
   모듈은 멈춘 전송을 `어긋남` 칸에 두고 이유 줄로 말한다(`멈췄다 · 31%에서 보내던 화면이 닫혔다 — …`). 멈춤 칩이 있으면 낫다
-- **UP-23** — 원본에는 끊긴 뒤 이어서가 없다. 원본의 중단(`keep_partial: true`)은 io.terra.file 0.2.0에서 늘 포기였다 — 0.2.1이 고쳤으니 원본 코드는 그대로 둬도 된다.
+- **UP-23** — 원본에는 끊긴 뒤 이어서가 없다. 원본의 중단(`keep_partial: true`)은 lab.stellaxia.file 0.2.0에서 늘 포기였다 — 0.2.1이 고쳤으니 원본 코드는 그대로 둬도 된다.
   모듈의 `markStalled` · `stalledPush` · `upload {resume}` · `download` + `src/store/parts.js`를 옮길 수 있다
 
 새로 찾은 것(MD-34 — 작업 출력 · 다시 실행 · 아직 원본에 올리지 않았다):
@@ -284,7 +284,7 @@ UP-1~UP-11은 압축 판에서, UP-12~UP-18은 maingui `f24c3bc`에서 찾았다
 | **UP-17** | 모듈 GUI 창 | GUI 제공 여부를 제안 필드(`gui` · `ui`)로 읽는다 — 공개 경로 `GET /api/v1/gui/apps`가 `moduleId` · `route` · `origin`을 이미 준다. 창은 "이 창 안에 뜬다 (iframe)"라고 그리지만 다른 모듈의 앱은 띄울 수 없다(PF-15) | `/api/v1/gui/apps`로 알고, 띄울 수 없다고 적는다 | 중간 |
 | **UP-18** | 메모장 경로 글 `~/.terra/memos/` | 실제 메모는 LayoutStore(이 브라우저)에 있다 — 경로가 사실과 다르다 | `메모/` | 낮음 |
 | **UP-19** | 모듈 로그 글 | Daemon 로그 줄 = `{at, stream, text}` → `[object Object]`. 게이트웨이 것은 `{module, logs: [글]}`인데 원본은 `lines`만 봐 JSON 그대로 찍힌다. 원본의 가짜 Gateway도 두 모양이 실제와 달라 가려졌다(계약 · 진짜 스택) | `logLines` — 두 모양 다 · 흐름이 섞이면 stderr에 `! ` | 중간 |
-| **UP-20** | 받기가 없다 | io.terra.file 0.2.0 `transfers.pulls.create` → `chunks.get` → `pulls.complete`(modules #24) | `source.download` · `saveBlob` — 300 KB 받아 내용이 같다(실측) | 중간 |
+| **UP-20** | 받기가 없다 | lab.stellaxia.file 0.2.0 `transfers.pulls.create` → `chunks.get` → `pulls.complete`(modules #24) | `source.download` · `saveBlob` — 300 KB 받아 내용이 같다(실측) | 중간 |
 | **UP-21** | 바탕화면 · 로컬 탐색 오류 글 | 실제 코드 `DESKTOP_OPEN_EXECUTABLE` · 503 두 가지 · `LOCAL_FS_*` | `reasonText` — 머리말 없이 | 낮음 |
 | **UP-22** | 전송 카드에 멈춤 상태가 없다 | 페이지를 닫은 올리기는 서버에 `transferring`으로 남는다 — 보내는 쪽이 없다(실측 `offset 1310720` 그대로) | `어긋남` 칸 + 이유 줄 · 이어서 · 중단 | 낮음 |
 | **UP-23** | 끊긴 뒤 이어서가 없다 | 다시 올리면 부분 파일 때문에 `FILE_TARGET_EXISTS` · 다시 받으면 처음부터 | `resume_id` · IndexedDB 조각 — 31%부터 이었다(실측) | 낮음 |
@@ -369,7 +369,7 @@ MD-1을 풀려고 쓴 [[io-link-svi-binding-design|입출력 연결 ↔ SVI 바�
 - PF-1 → PF-17: 문서 변경 신호는 Master 이벤트라 앱 토큰에 오지 않는다 — ADR-GW-003도 SSE를 2차로 미뤘다
 - MD-16 · MD-17 → UP-19 · UP-20 · UP-21: 모듈이 진짜 스택에서 찾은 것을 원본에 올렸다(maingui#1)
 - MD-17 → MD-21: 한 세션 안의 이어 보내기(409 → 서버 offset) → 페이지를 닫은 뒤에도(서버 checkpoint · 이 브라우저의 조각)
-- io.terra.file 0.2.1 → MD-21: 중단이 부분을 남겨야 다시 올릴 때 잇는다 — 0.2.0은 invoke로 보낸 중단을 늘 포기로 들었다
+- lab.stellaxia.file 0.2.1 → MD-21: 중단이 부분을 남겨야 다시 올릴 때 잇는다 — 0.2.0은 invoke로 보낸 중단을 늘 포기로 들었다
 - MD-21 → UP-22 · UP-23: 멈춤 칸과 이어서를 원본에도
 - 2026-10-08 맵 진입 측정 → MD-35 · MD-36 · MD-37 · MD-38 · MD-39 · MD-40 · MD-43(UP-33~UP-36을 흡수): 굽기(MD-35) · 지어낸 미터(MD-36) · 요청 순서(MD-37) · 연출(MD-43) · 빈 창(MD-40) — [[performance-and-fidelity-recommendations|개선 권고안]] · [[work-order-map-entry-and-fidelity|작업 지시서]]
 - maingui `e669c03` → MD-22: 원본이 모듈 수정 폼을 모듈 설정으로 바꿨다 — 모듈은 디자인을 복사하고 연동 층(받기 · 저장)을 지었다. 저장은 `module.manage`★(Q-16)

@@ -54,7 +54,7 @@ last_updated: "2026-10-09"
 `go.mod`는 모듈 디렉터리가 아니라 그 안의 `src/`에 있고, 경로는 `src/` 한 겹을 적지 않는다
 (Terra의 `module/<tier>/<id>` 모양에서 `github.com/terra-project/terra/module` 접두사만
 `github.com/StellaxiaLab/modules`로 바뀌었다). 같은 모듈의 하위 패키지는 그 뒤에 이어 적는다
-(예: `.../leaf/io.terra.file/store`).
+(예: `.../leaf/lab.stellaxia.file/store`).
 
 저장소만으로 빌드되게 하는 전환(설계 [`module-independent-repos`](design/module-independent-repos.md) M-1~M-8)의 현재 단계:
 
@@ -62,8 +62,8 @@ last_updated: "2026-10-09"
 | --- | --- | --- |
 | M-1 | Go 모듈 경로 개명 | 완료 |
 | M-2 | 모듈이 `terra-sdk` `v0.1.0`을 버전으로 require, SDK 대상 `replace` 제거 | 완료 (시험 보조는 `internal/testkit`) |
-| M-3 | `io.terra.agent`가 `terra-agent`를 require | 완료 |
-| M-4 | `io.terra.io-weave`에 `terra-io-weave` 내재화 | 완료 |
+| M-3 | `lab.stellaxia.agent`가 `terra-agent`를 require | 완료 |
+| M-4 | `lab.stellaxia.io-weave`에 `terra-io-weave` 내재화 | 완료 |
 | M-5·M-6 | CI에서 Terra SSH 키 의존 제거, 스키마 대조가 건너뛰지 못하게 | 완료 (릴리스만 아직 Terra 체크아웃 필요) |
 
 Go 빌드·시험은 이제 Terra 없이 돈다. 포장·Scene 마운트·스키마 원본 대조는 Terra 체크아웃이 필요해 Terra 쪽
@@ -186,12 +186,12 @@ scene/
 > 그래서 저장소가 아니라 코어가 그 셸을 소유한다).
 >
 > 승격의 실제 근거는 그 사정이 끝난 것이 아니라 **경고가 막지 못했다는 것**이다.
-> 이 절을 쓴 뒤 `io.terra.scene.login-demo` 가 **평면 배치로 머지됐고**, 경고
+> 이 절을 쓴 뒤 `io.terra.scene.login-demo`(현 lab.stellaxia.scene.login-demo) 가 **평면 배치로 머지됐고**, 경고
 > 셋(`functions` · `stores` · `fragments`)이 그것을 세우지 못했다. 그 셋을
 > 계층형으로 옮겨 0으로 돌린 뒤([modules#19](https://github.com/StellaxiaLab/modules/pull/19)),
 > 같은 일이 또 조용히 들어오지 않도록 등급을 올렸다.
 >
-> 지금 Scene 모듈은 셋이고(`io.terra.scene.login-demo` · `lab.stellaxia.node-gui`
+> 지금 Scene 모듈은 셋이고(`lab.stellaxia.scene.login-demo` · `lab.stellaxia.node-gui`
 > · `lab.stellaxia.scene.hello`) 전부 이 모양이라 승격은 **지금 상태를 바꾸지
 > 않는다** — 오류 0 · 경고 1(판단으로 남긴 `treebench/tools` L-8)은 그대로다.
 > 바뀌는 것은 다음에 평면 배치가 들어올 때다. 실측: `scene/contract/functions/`

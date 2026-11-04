@@ -13,7 +13,7 @@
   </sc-if>
 
   <h3 class="ns-h"><span class="ns-hl"></span>GUI<span class="ns-hr"></span><span class="ns-k">{{apiG}}</span></h3>
-  <sc-if value="{{noGui}}" hint-placeholder-val="{{ false }}"><div class="ns-k">화면 없음 — contributions.gui.apps 가 비어 있어요</div></sc-if>
+  <sc-if value="{{noGui}}" hint-placeholder-val="{{ false }}"><div class="ns-k">화면 없음 — contributions.gui.apps 비어 있음</div></sc-if>
   <sc-for list="{{apps}}" as="a" hint-placeholder-count="1">
     <div class="ms-app">
       <span class="ms-mode {{a.modeCls}}">{{a.mode}}</span>

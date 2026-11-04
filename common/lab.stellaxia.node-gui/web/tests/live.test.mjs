@@ -1,6 +1,6 @@
 // 실데이터 층 — 진짜 응답 모양으로 화면이 서는지, 예시가 다시 새어 나오지 않는지.
 //   npm test
-// 응답 모양은 실제 스택(Master + Daemon + 게이트웨이 + io.terra.file · io-inventory)에서 받은 것을 줄였다.
+// 응답 모양은 실제 스택(Master + Daemon + 게이트웨이 + lab.stellaxia.file · io-inventory)에서 받은 것을 줄였다.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -63,11 +63,11 @@ test('Master 목록은 화면 이름이 아니라 진짜 node_id 를 싣는다',
   assert.equal(f.calls[0].body.node_id, 'node_1');
 });
 
-test('폴더 지우기는 io.terra.file 이 받는 키(root · path · recursive)만 보낸다', async () => {
+test('폴더 지우기는 lab.stellaxia.file 이 받는 키(root · path · recursive)만 보낸다', async () => {
   const f = fakeFetch(() => json(200, { removed: true }));
   const source = new LiveSource(new TerraClient('', { fetch: f }), { localNode: 'n' });
   await source.act('n', 'folder', 'share-0/docs', 'del', { id: 'share-0/docs', share: 'share-0', rel: 'docs', dir: true });
-  assert.equal(opOf(f.calls[0].url), 'io.terra.file.entries.remove');
+  assert.equal(opOf(f.calls[0].url), 'lab.stellaxia.file.entries.remove');
   assert.deepEqual(f.calls[0].body, { root: 'share-0', path: 'docs', recursive: true });
 });
 
@@ -75,8 +75,8 @@ test('폴더 앱은 들어간 경로까지 단계마다 읽는다 — 지금 경
   const f = fakeFetch((url, init) => {
     const op = opOf(url), body = JSON.parse(init.body);
     if (op === 'terra.daemon.files.list.get') return json(200, { status: 'ok', data: { count: 1, roots: [{ name: 'share-0', path: '/srv/share' }] } });
-    if (op === 'io.terra.file.entries.list' && !body.path) return json(200, { entries: [{ path: 'docs', name: 'docs', size: 0, is_dir: true }], count: 1 });
-    if (op === 'io.terra.file.entries.list' && body.path === 'docs') return json(200, { entries: [{ path: 'docs/a.md', name: 'a.md', size: 5, is_dir: false }], count: 1 });
+    if (op === 'lab.stellaxia.file.entries.list' && !body.path) return json(200, { entries: [{ path: 'docs', name: 'docs', size: 0, is_dir: true }], count: 1 });
+    if (op === 'lab.stellaxia.file.entries.list' && body.path === 'docs') return json(200, { entries: [{ path: 'docs/a.md', name: 'a.md', size: 5, is_dir: false }], count: 1 });
     return json(404, {});
   });
   const source = new LiveSource(new TerraClient('', { fetch: f }), { localNode: 'n' });

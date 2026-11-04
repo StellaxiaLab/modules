@@ -1,7 +1,7 @@
-// 이 노드의 손 동작 — 모듈 로그 · 로컬 탐색(local-fs) · 바탕화면에서 열기(desktop.open) · 파일 올리기(io.terra.file 전송) · 장치 손 등록.
+// 이 노드의 손 동작 — 모듈 로그 · 로컬 탐색(local-fs) · 바탕화면에서 열기(desktop.open) · 파일 올리기(lab.stellaxia.file 전송) · 장치 손 등록.
 //   npm test
 // 입력 모양은 서버 계약에서 확인했다: Daemon local-fs.entries.get { root, path?, limit } · desktop.open.post { root, path?, action } ·
-// io.terra.file transfers.create { direction, path, size_bytes, checksum_sha256, mode, root? } → chunks.put { transfer_id, offset, data(base64) } → complete ·
+// lab.stellaxia.file transfers.create { direction, path, size_bytes, checksum_sha256, mode, root? } → chunks.put { transfer_id, offset, data(base64) } → complete ·
 // io.devices.post { kind, name, adapter_id: manual.rtsp | manual.http-camera, address }
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -40,13 +40,13 @@ test('올리기 — 만들기(크기 · SHA-256) → 조각 → 409 면 서버�
   let rejected = false;
   const f = fakeFetch((url, init, calls) => {
     const c = calls.at(-1);
-    if (c.op === 'io.terra.file.transfers.create') return json(202, { status: 'accepted', data: { transfer: { transfer_id: 'tr-1', chunk_size: 4, offset: 0 } } });
-    if (c.op === 'io.terra.file.transfers.chunks.put') {
+    if (c.op === 'lab.stellaxia.file.transfers.create') return json(202, { status: 'accepted', data: { transfer: { transfer_id: 'tr-1', chunk_size: 4, offset: 0 } } });
+    if (c.op === 'lab.stellaxia.file.transfers.chunks.put') {
       if (c.body.offset === 4 && !rejected) { rejected = true; return json(409, { error: { code: 'TRANSFER_OFFSET_MISMATCH' } }); }
       return json(200, { status: 'ok', data: { next_offset: c.body.offset + atob(c.body.data).length } });
     }
-    if (c.op === 'io.terra.file.transfers.get') return json(200, { status: 'ok', data: { transfer: { transfer_id: 'tr-1', offset: 2 } } });
-    if (c.op === 'io.terra.file.transfers.complete') return json(200, { status: 'ok', data: { transfer: { transfer_id: 'tr-1', state: 'completed' }, verified: true } });
+    if (c.op === 'lab.stellaxia.file.transfers.get') return json(200, { status: 'ok', data: { transfer: { transfer_id: 'tr-1', offset: 2 } } });
+    if (c.op === 'lab.stellaxia.file.transfers.complete') return json(200, { status: 'ok', data: { transfer: { transfer_id: 'tr-1', state: 'completed' }, verified: true } });
     return json(404, {});
   });
   const source = new LiveSource(new TerraClient('', { fetch: f }), { localNode: 'leaf-a', localId: 'node_a' });
@@ -55,10 +55,10 @@ test('올리기 — 만들기(크기 · SHA-256) → 조각 → 409 면 서버�
   assert.equal(r.kind, 'ok');
   const cr = f.calls[0];
   assert.deepEqual(cr.body, { direction: 'push', path: 'docs/note.txt', size_bytes: 10, checksum_sha256: await sha256Blob(new Blob([data])), mode: 'create', root: 'share-0' });
-  const puts = f.calls.filter((c) => c.op === 'io.terra.file.transfers.chunks.put').map((c) => c.body.offset);
+  const puts = f.calls.filter((c) => c.op === 'lab.stellaxia.file.transfers.chunks.put').map((c) => c.body.offset);
   assert.deepEqual(puts, [0, 4, 2, 6], '409 뒤 서버가 받은 곳(2)부터 다시');
-  assert.ok(f.calls.some((c) => c.op === 'io.terra.file.transfers.get'));
-  assert.equal(f.calls.at(-1).op, 'io.terra.file.transfers.complete');
+  assert.ok(f.calls.some((c) => c.op === 'lab.stellaxia.file.transfers.get'));
+  assert.equal(f.calls.at(-1).op, 'lab.stellaxia.file.transfers.complete');
   assert.deepEqual(f.calls.at(-1).body, { transfer_id: 'tr-1' });
   assert.equal(seen.at(-1), 10);
   // 공유 폴더를 고르지 않았으면 root 를 싣지 않는다(share-0 맨 위)
@@ -70,13 +70,13 @@ test('올리기 — 만들기(크기 · SHA-256) → 조각 → 409 면 서버�
 test('올리기 — 409 가 계속되면 다섯 번에서 멈춘다(무한히 돌지 않는다)', async () => {
   const f = fakeFetch((url, init, calls) => {
     const c = calls.at(-1);
-    if (c.op === 'io.terra.file.transfers.create') return json(202, { status: 'accepted', data: { transfer: { transfer_id: 't', chunk_size: 4 } } });
-    if (c.op === 'io.terra.file.transfers.get') return json(200, { status: 'ok', data: { transfer: { offset: 0 } } });
+    if (c.op === 'lab.stellaxia.file.transfers.create') return json(202, { status: 'accepted', data: { transfer: { transfer_id: 't', chunk_size: 4 } } });
+    if (c.op === 'lab.stellaxia.file.transfers.get') return json(200, { status: 'ok', data: { transfer: { offset: 0 } } });
     return json(409, { error: { code: 'TRANSFER_OFFSET_MISMATCH' } });
   });
   const r = await new LiveSource(new TerraClient('', { fetch: f }), { localNode: 'n' }).upload('n', new File(['abcdefgh'], 'a.bin'), '');
   assert.deepEqual([r.kind, r.status], ['error', 409]);
-  assert.equal(f.calls.filter((c) => c.op === 'io.terra.file.transfers.chunks.put').length, 6);
+  assert.equal(f.calls.filter((c) => c.op === 'lab.stellaxia.file.transfers.chunks.put').length, 6);
 });
 
 test('받기 — pulls.create → chunks.get(eof 까지 · 조각 SHA-256) → 전체 SHA-256 → pulls.complete. 어긋나면 pulls.abort 로 닫고 저장하지 않는다', async () => {
@@ -84,10 +84,10 @@ test('받기 — pulls.create → chunks.get(eof 까지 · 조각 SHA-256) → �
   const chunk = (off, n, eof, bad) => { const b = new TextEncoder().encode(body.slice(off, off + n)); return { offset: off, data: toB64(b), sha256: bad ? '00' : new Sha256().update(b).hex(), eof }; };
   const server = (opts = {}) => fakeFetch((url, init, calls) => {
     const c = calls.at(-1);
-    if (c.op === 'io.terra.file.transfers.pulls.create') return json(200, { status: 'ok', data: { transfer: { transfer_id: 'p1', direction: 'pull', root: c.body.root, path: c.body.path, size_bytes: body.length, checksum_sha256: opts.sum || sum, chunk_size: 5, offset: 0, state: 'prepared' } } });
-    if (c.op === 'io.terra.file.transfers.chunks.get') return json(200, { status: 'ok', data: chunk(c.body.offset, 5, c.body.offset + 5 >= body.length, opts.badChunk && c.body.offset === 5) });
-    if (c.op === 'io.terra.file.transfers.pulls.complete') return json(200, { status: 'ok', data: { transfer_id: 'p1', bytes: body.length, checksum_sha256: sum, verified: true } });
-    if (c.op === 'io.terra.file.transfers.pulls.abort') return json(200, { status: 'ok', data: { transfer_id: 'p1', state: 'aborted' } });
+    if (c.op === 'lab.stellaxia.file.transfers.pulls.create') return json(200, { status: 'ok', data: { transfer: { transfer_id: 'p1', direction: 'pull', root: c.body.root, path: c.body.path, size_bytes: body.length, checksum_sha256: opts.sum || sum, chunk_size: 5, offset: 0, state: 'prepared' } } });
+    if (c.op === 'lab.stellaxia.file.transfers.chunks.get') return json(200, { status: 'ok', data: chunk(c.body.offset, 5, c.body.offset + 5 >= body.length, opts.badChunk && c.body.offset === 5) });
+    if (c.op === 'lab.stellaxia.file.transfers.pulls.complete') return json(200, { status: 'ok', data: { transfer_id: 'p1', bytes: body.length, checksum_sha256: sum, verified: true } });
+    if (c.op === 'lab.stellaxia.file.transfers.pulls.abort') return json(200, { status: 'ok', data: { transfer_id: 'p1', state: 'aborted' } });
     return json(404, {});
   });
   const f = server();
@@ -98,17 +98,17 @@ test('받기 — pulls.create → chunks.get(eof 까지 · 조각 SHA-256) → �
   assert.equal(r.name, 'hello.txt');
   assert.equal(await r.blob.text(), body);
   assert.deepEqual(f.calls[0].body, { root: 'share-0', path: 'docs/hello.txt' });
-  assert.deepEqual(f.calls.filter((c) => c.op === 'io.terra.file.transfers.chunks.get').map((c) => c.body.offset), [0, 5, 10]);
+  assert.deepEqual(f.calls.filter((c) => c.op === 'lab.stellaxia.file.transfers.chunks.get').map((c) => c.body.offset), [0, 5, 10]);
   assert.deepEqual(seen, ['5/12', '10/12', '12/12']);
-  assert.equal(f.calls.at(-1).op, 'io.terra.file.transfers.pulls.complete');
+  assert.equal(f.calls.at(-1).op, 'lab.stellaxia.file.transfers.pulls.complete');
   // 조각이 상했다 → 닫는다
   const g = server({ badChunk: true });
   const bad = await new LiveSource(new TerraClient('', { fetch: g }), { localNode: 'leaf-a' }).download('leaf-a', 'share-0/hello.txt');
-  assert.deepEqual([bad.kind, bad.reason, g.calls.at(-1).op], ['error', 'chunk-checksum', 'io.terra.file.transfers.pulls.abort']);
+  assert.deepEqual([bad.kind, bad.reason, g.calls.at(-1).op], ['error', 'chunk-checksum', 'lab.stellaxia.file.transfers.pulls.abort']);
   // 전체 검사값이 다르다 → 닫고 저장하지 않는다
   const h = server({ sum: 'f'.repeat(64) });
   const wrong = await new LiveSource(new TerraClient('', { fetch: h }), { localNode: 'leaf-a' }).download('leaf-a', 'share-0/hello.txt');
-  assert.deepEqual([wrong.kind, wrong.reason, wrong.blob, h.calls.at(-1).op], ['error', 'checksum', undefined, 'io.terra.file.transfers.pulls.abort']);
+  assert.deepEqual([wrong.kind, wrong.reason, wrong.blob, h.calls.at(-1).op], ['error', 'checksum', undefined, 'lab.stellaxia.file.transfers.pulls.abort']);
   // 공유 폴더(맨 위 칸) 자체는 받지 않는다
   assert.equal((await source.download('leaf-a', 'share-0')).reason, 'share-root');
   // 폴더 앱의 받기는 누르기 전에 잠그지 않는다(카탈로그를 못 받았으면) · act 로 부르면 이유만

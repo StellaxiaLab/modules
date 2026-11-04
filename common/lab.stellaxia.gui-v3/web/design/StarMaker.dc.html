@@ -136,7 +136,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
     </div>
     <div data-smstage="1" style="position: relative; flex: 1; min-height: 0;">
       <canvas data-smprev="1" aria-label="구 미리보기" role="img" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block;"></canvas>
-      <sc-if value="{{dropOn}}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 12px; border: 1px dashed rgba(110,236,156,0.7); display: flex; align-items: center; justify-content: center; color: #d0ff96; background: rgba(4,6,20,0.6); pointer-events: none;">놓으면 불러와요 — 이미지 · GIF · 구 데이터(.json)</div></sc-if>
+      <sc-if value="{{dropOn}}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 12px; border: 1px dashed rgba(110,236,156,0.7); display: flex; align-items: center; justify-content: center; color: #d0ff96; background: rgba(4,6,20,0.6); pointer-events: none;">놓기 : 불러오기 — 이미지 · GIF · 구 데이터(.json)</div></sc-if>
     </div>
     <!-- 표면 지도 — 구 형성 방법을 지도 위에 띄운다. 지도는 지구본 고어(오렌지 껍질처럼 자른 조각)로 — 펴진 표면이 어떻게 구를 감싸는지 그대로 보인다 -->
     <section aria-label="구 형성 · 표면 지도" style="position: relative; border-top: 1px solid rgba(70,160,108,0.22); height: 196px; flex: none;">
@@ -188,10 +188,10 @@ class Component extends DCLogic {
   // ───── 원본 → 표면 지도(등장방형) ─────
   ALGOS() { return [
     ['equirect', '등장방형', '원본을 그대로 경위도 지도로 — 가로 360° · 세로 180° (2 : 1 원본에 맞음)'],
-    ['mirror', '거울 감싸기', '원본을 반 바퀴에 펴고 나머지 반은 거울로 — 이음매 없이 감김'],
+    ['mirror', '거울 감싸기', '원본을 반 바퀴에 펴고 나머지 반은 거울로 — 이음매 없음'],
     ['disc', '원판 펴기', '사진 속 둥근 천체(가운데 원)를 정사영으로 되돌려 앞 반구에, 뒤 반구는 거울로'],
     ['polar', '극 투영', '원본 가운데 = 북극, 바깥으로 갈수록 남쪽 — 한 장으로 구 전체'],
-    ['billboard', '원판 (바라보기)', '구로 감싸지 않고 원으로 — 어디에 있든 늘 나를 바라봐 원본이 일그러지지 않음. 음영(가장자리 · 빛)으로 구처럼 보이게, 자전 = 원판 안에서 돌기']]; }
+    ['billboard', '원판 (바라보기)', '감싸기 없이 원으로 — 늘 정면 · 원본 왜곡 없음 · 음영(가장자리 · 빛)으로 구 느낌 · 자전 = 원판 안 회전']]; }
   // 기본 무늬 — 원본이 없을 때: 값 노이즈 두 겹(파랑 → 하늘 → 흰빛, 씬의 항성과 같은 계열)
   buildDefault() {
     const W = 256, H = 128, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const c = cv.getContext('2d'), im = c.createImageData(W, H), P = new Uint8Array(512);
@@ -210,8 +210,8 @@ class Component extends DCLogic {
   // 원본 불러오기 — 이미지 · GIF(ImageDecoder 로 프레임마다, 최대 48장) / 구 데이터(JSON)
   async loadFile(f) {
     if (!f) return;
-    if (/json$/i.test(f.type) || /\.json$/i.test(f.name)) { try { this.loadSphere(JSON.parse(await f.text()), null); } catch (e) { this.say('구 데이터를 읽지 못했어요 — ' + e.message, true); } return; }
-    if (!/^image\//.test(f.type)) { this.say('이미지 · GIF · 구 데이터(.json)만 불러올 수 있어요', true); return; }
+    if (/json$/i.test(f.type) || /\.json$/i.test(f.name)) { try { this.loadSphere(JSON.parse(await f.text()), null); } catch (e) { this.say('구 데이터 읽기 실패 — ' + e.message, true); } return; }
+    if (!/^image\//.test(f.type)) { this.say('이미지 · GIF · 구 데이터(.json)만', true); return; }
     const frames = [];
     try {
       if (/gif$/i.test(f.type) && window.ImageDecoder) {
@@ -219,7 +219,7 @@ class Component extends DCLogic {
         for (let i = 0; i < n; i++) { const r = await dec.decode({ frameIndex: i }), vf = r.image, cv = document.createElement('canvas'); cv.width = vf.displayWidth; cv.height = vf.displayHeight; cv.getContext('2d').drawImage(vf, 0, 0); frames.push({ cv, d: Math.max(20, (vf.duration || 100000) / 1000) }); vf.close(); }
       }
     } catch (e) { frames.length = 0; }
-    if (!frames.length) { const url = URL.createObjectURL(f), img = new Image(); await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; }).catch(() => {}); if (!img.naturalWidth) { this.say('이미지를 열지 못했어요', true); return; } const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight; cv.getContext('2d').drawImage(img, 0, 0); URL.revokeObjectURL(url); frames.push({ cv, d: 100 }); }
+    if (!frames.length) { const url = URL.createObjectURL(f), img = new Image(); await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; }).catch(() => {}); if (!img.naturalWidth) { this.say('이미지 열기 실패', true); return; } const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight; cv.getContext('2d').drawImage(img, 0, 0); URL.revokeObjectURL(url); frames.push({ cv, d: 100 }); }
     this._src = { name: f.name, frames, w: frames[0].cv.width, h: frames[0].cv.height, type: frames.length > 1 ? 'gif' : 'image' };
     const avg = frames.reduce((a, q) => a + q.d, 0) / frames.length;
     this.setState({ srcType: this._src.type, nFrames: frames.length, fps: frames.length > 1 ? Math.max(2, Math.min(30, Math.round(1000 / avg))) : this.state.fps, name: this.state.name || f.name.replace(/\.[^.]+$/, ''), cur: null,
@@ -251,15 +251,15 @@ class Component extends DCLogic {
   built(W) { if (this._live) this.setState({ texW: W, rev: (this.state.rev || 0) + 1 }); else Object.assign(this.state, { texW: W, rev: (this.state.rev || 0) + 1 }); }   // 생성자에서도 부른다(기본 무늬)
   // 구 데이터 받아오기 — terra.sphere v1. 표면 프레임 이미지를 그대로 쓰고(형성 단계 건너뜀), 렌더 값을 따른다
   async loadSphere(J, id) {
-    if (!J || J.format !== 'terra.sphere') { this.say('terra.sphere 형식이 아니에요', true); return; }
+    if (!J || J.format !== 'terra.sphere') { this.say('terra.sphere 형식 아님', true); return; }
     const fr = (J.surface && J.surface.frames) || [], out = [];
     for (const src of fr) { const img = new Image(); await new Promise((res) => { img.onload = res; img.onerror = res; img.src = src.data || src; }); if (!img.naturalWidth) continue; const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight; const c = cv.getContext('2d'); c.drawImage(img, 0, 0); out.push({ cv, im: c.getImageData(0, 0, cv.width, cv.height), d: src.d || 1000 / ((J.surface && J.surface.fps) || 12) }); }
-    if (!out.length) { this.say('표면 이미지가 없어요', true); return; }
+    if (!out.length) { this.say('표면 이미지 없음', true); return; }
     const Rn = J.render || {};
     this._src = null; this._tex = out; this._texSrc = 'sphere'; this._proj = J.surface && J.surface.projection === 'billboard' ? 'billboard' : 'equirect';
     this.setState({ srcType: 'sphere', nFrames: out.length, texW: out[0].cv.width, name: J.name || '', kind: J.kind === 'planet' ? 'planet' : 'star', spin: Rn.spin ?? 0.06, tilt: Rn.tilt ?? 12, limb: Rn.limb ?? 0.55, light: Rn.light ?? 225, gain: Rn.gain ?? 1, fps: (J.surface && J.surface.fps) || 12, cur: id,
       srcLabel: '구 데이터 · ' + (J.name || '이름 없음') + ' · ' + out[0].cv.width + '×' + out[0].cv.height + (out.length > 1 ? ' · ' + out.length + '프레임' : ''), rev: this.state.rev + 1 });
-    this.say(id ? '보관함에서 불러왔어요' : '구 데이터를 불러왔어요');
+    this.say(id ? '보관함에서 불러옴' : '구 데이터 불러옴');
   }
   // 구 데이터 만들기 — 확장 가능한 JSON (모르는 키는 무시하고 ext 에 덧붙여 나간다)
   sphereData() {
@@ -278,19 +278,19 @@ class Component extends DCLogic {
   save() {
     const S = this.state; if (!this._tex) return;
     const nm = (S.name || '이름 없는 구').trim(), path = S.folder || 'star', L0 = this.lib(), dup = L0.files.find((f) => f.path === path && f.name === nm), now = Date.now();
-    if (dup && !(S.saveWarn && S.saveWarn.id === dup.id && now - S.saveWarn.at < 6000)) { this.setState({ saveWarn: { id: dup.id, at: now } }); this.say(path + '/' + nm + ' 이(가) 이미 있어요 — 한 번 더 누르면 덮어써요', true); clearTimeout(this._swT); this._swT = setTimeout(() => this.setState({ saveWarn: null }), 6000); return; }
+    if (dup && !(S.saveWarn && S.saveWarn.id === dup.id && now - S.saveWarn.at < 6000)) { this.setState({ saveWarn: { id: dup.id, at: now } }); this.say(path + '/' + nm + ' 이미 있음 — 한 번 더 : 덮어쓰기', true); clearTimeout(this._swT); this._swT = setTimeout(() => this.setState({ saveWarn: null }), 6000); return; }
     this.setState({ saveWarn: null, cur: dup ? dup.id : null });
     this.state = Object.assign({}, this.state, { cur: dup ? dup.id : null });
     const J = this.sphereData(), txt = JSON.stringify(J), L = this.lib();
     const meta = { id: J.id, name: J.name, path: S.folder || 'star', kind: J.kind, bytes: txt.length, frames: J.surface.frames.length, thumb: J.thumb, at: Date.now() };
     try { localStorage.setItem('terra.star.f.' + J.id, txt); L.files = L.files.filter((f) => f.id !== J.id).concat([meta]); if (!L.folders.includes(meta.path)) L.folders.push(meta.path); this.libPut(L); }
-    catch (e) { this.say('저장 공간이 모자라요 (' + Math.round(txt.length / 1024) + 'KB) — 해상도를 낮추거나 내보내기로 파일로 받으세요', true); return; }
+    catch (e) { this.say('저장 공간 부족 (' + Math.round(txt.length / 1024) + 'KB) — 해상도 낮추기 또는 내보내기', true); return; }
     this.setState({ cur: J.id }); this.say(meta.path + '/' + J.name + (dup ? ' 덮어씀 · ' : ' 저장 · ') + Math.round(txt.length / 1024) + 'KB');
     if (this.props.onSaved) this.props.onSaved(J.id);
   }
   exportFile() { if (!this._tex) return; const J = this.sphereData(), b = new Blob([JSON.stringify(J, null, 1)], { type: 'application/json' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = (J.name || 'sphere').replace(/[\\/:*?"<>|]+/g, '_') + '.sphere.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); this.say('내보냈어요 — ' + a.download); }
-  openLib(id) { let J = null; try { J = JSON.parse(localStorage.getItem('terra.star.f.' + id) || 'null'); } catch (e) {} if (!J) { this.say('보관함에서 찾지 못했어요', true); return; } const m = this.lib().files.find((f) => f.id === id); this.setState({ folder: m ? m.path : 'star' }); this.loadSphere(J, id); }
-  delLib(id) { const L = this.lib(); L.files = L.files.filter((f) => f.id !== id); try { localStorage.removeItem('terra.star.f.' + id); this.libPut(L); } catch (e) {} if (this.state.cur === id) this.setState({ cur: null }); this.say('지웠어요'); if (this.props.onSaved) this.props.onSaved(null); }
+  openLib(id) { let J = null; try { J = JSON.parse(localStorage.getItem('terra.star.f.' + id) || 'null'); } catch (e) {} if (!J) { this.say('보관함에 없음', true); return; } const m = this.lib().files.find((f) => f.id === id); this.setState({ folder: m ? m.path : 'star' }); this.loadSphere(J, id); }
+  delLib(id) { const L = this.lib(); L.files = L.files.filter((f) => f.id !== id); try { localStorage.removeItem('terra.star.f.' + id); this.libPut(L); } catch (e) {} if (this.state.cur === id) this.setState({ cur: null }); this.say('지움'); if (this.props.onSaved) this.props.onSaved(null); }
   addFolder() { const nm = (this.state.newFolder || '').trim().replace(/[\\/]+/g, '-'); if (!nm) return; const p = (this.state.folder || 'star') + '/' + nm, L = this.lib(); if (!L.folders.includes(p)) L.folders.push(p); try { this.libPut(L); } catch (e) {} this.setState({ folder: p, newFolder: '' }); if (this.props.onSaved) this.props.onSaved(null); }
   say(t, err) { this.setState({ msg: t, msgErr: !!err }); }
 
@@ -405,8 +405,8 @@ class Component extends DCLogic {
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh',
       help: S.help, helpOn: on(S.help), helpCls: S.help ? 'on' : '', helpDot: S.help ? '●' : '○', helpT: S.help ? '켬' : '끔', toggleHelp: () => this.setState({ help: !S.help }),
-      srcLabel: S.help ? (S.srcLabel ? S.srcLabel + ' — 다른 원본은 단추나 미리보기에 끌어 놓기로' : '원본이 없어 기본 무늬로 미리 봐요 — 이미지 · GIF(프레임마다) · 구 데이터(.json)를 불러오거나 미리보기에 끌어 놓으세요') : (S.srcLabel || '원본 없음 · 기본 무늬'),
-      nfHolder: S.help ? '새 폴더 (지금 폴더 아래) — Enter' : '새 폴더', libEmptyT: S.help ? '아직 없어요 — 만든 구를 저장하면 여기와 전역 제어 › 유틸 › 스타메이커 › star 에 보여요' : '비어 있음',
+      srcLabel: S.help ? (S.srcLabel ? S.srcLabel + ' — 다른 원본 : 단추 · 미리보기에 끌어 놓기' : '원본 없음 · 기본 무늬 — 이미지 · GIF(프레임마다) · 구 데이터(.json) 불러오기 또는 끌어 놓기') : (S.srcLabel || '원본 없음 · 기본 무늬'),
+      nfHolder: S.help ? '새 폴더 (지금 폴더 아래) — Enter' : '새 폴더', libEmptyT: S.help ? '없음 — 저장한 구 : 여기 · 전역 제어 › 유틸 › 스타메이커 › star' : '비어 있음',
       tiltIc: -S.tilt, spinDir: S.spin < 0 ? -1 : 1, lightIc: -S.light,
       saveT: S.saveWarn ? '덮어쓰기 → ' + S.folder : '저장 → ' + S.folder, saveCls: S.saveWarn ? 'sm-warn' : '',
       algos: this.ALGOS().map(([id, name, desc]) => ({ name, desc, on: on(S.algo === id), cls: S.algo === id ? 'on' : '', dot: S.algo === id ? '●' : '○', pick: () => this.setState({ algo: id }, () => this.build()) })),
@@ -426,7 +426,7 @@ class Component extends DCLogic {
       libN: files.length + '', libEmpty: !files.length,
       prevNote: (S.kind === 'star' ? '항성' : '행성') + ' · ' + ({ none: '기본 무늬', image: '이미지', gif: 'GIF', sphere: '구 데이터' }[S.srcType] || '') + ((this._tex || []).length > 1 ? ' · ' + this._tex.length + '프레임' : ''),
       texNote: '표면 ' + (this._tex && this._tex[0] ? this._tex[0].cv.width + ' × ' + this._tex[0].cv.height : '') + (this._proj === 'billboard' ? ' · 원판(바라보기)' : ' · 등장방형') + ((this._tex || []).length > 1 ? ' · ' + this._tex.length + '프레임' : ''),
-      algoDesc: this._texSrc === 'sphere' ? '구 데이터 — 형성 없이 그대로 (방법을 고르려면 이미지 · GIF 를 불러오세요)' : !this._src ? '원본을 불러오면 이 방법으로 구를 만들어요 · ' + ((this.ALGOS().find((a) => a[0] === S.algo) || [])[2] || '') : (this.ALGOS().find((a) => a[0] === S.algo) || [])[2] || '',
+      algoDesc: this._texSrc === 'sphere' ? '구 데이터 — 형성 없이 그대로 (방법 선택 : 이미지 · GIF 필요)' : !this._src ? '원본 불러오기 시 이 방법으로 구 형성 · ' + ((this.ALGOS().find((a) => a[0] === S.algo) || [])[2] || '') : (this.ALGOS().find((a) => a[0] === S.algo) || [])[2] || '',
       maps: [['gore12', '고어 12'], ['gore8', '고어 8'], ['flat', '펼침']].map(([id, name]) => ({ name, on: on(S.map === id), cls: S.map === id ? 'on' : '', pick: () => this.setState({ map: id }) })),
       views: [['px', '픽셀'], ['glyph', '글자 장']].map(([id, name]) => ({ name, on: on(S.view === id), cls: S.view === id ? 'on' : '', pick: () => this.setState({ view: id }) })),
       togglePlay: () => this.setState({ play: !S.play }), playT: S.play ? '멈춤' : '돌리기', playLabel: S.play ? '자전 멈춤' : '자전 시작',

@@ -134,6 +134,8 @@ Terra ADR-MD-002 v1.2와 개명 계획은 `io.terra.nodetalk` → `lab.stellaxia
 
 또한 데이터 이주: `module-data/<id>/`가 개명으로 빈 디렉터리가 되면 Terra 계획 §16의 결함 경로가 그대로 열린다. nodetalk은 **자기 줄을 피어에게서 복구할 수 없으므로**(§2-1) 이주가 빠지면 영구 손실이다. 개명 계획은 디렉터리를 옮기기로 했으나, 개명 릴리스 전에 nodetalk 대화 디렉터리 이주를 실측으로 확인할 것을 권한다.
 
+> 갱신(2026-11-04): 개명은 main에 병합됐고(modules #157) `v2026.11.04`·Terra 0.6.14로 나갔다. 이 PC 업데이트에서 마이그레이터가 nodetalk 데이터 디렉터리를 새 id로 옮긴 것을 확인했다. 이 PR은 main을 합쳐 `syncpool*.go`를 `common/lab.stellaxia.nodetalk/src/`로 옮겼다.
+
 ## 8. 보강 결과 (2026-11-02)
 
 | ID | 결과 |

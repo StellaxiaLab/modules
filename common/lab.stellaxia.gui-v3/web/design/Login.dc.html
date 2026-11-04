@@ -21,7 +21,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <div data-loginroot="1" style="position: relative; min-height: 100vh; background: radial-gradient(42% 70% at 62% 58%, rgba(150, 110, 200, 0.08), transparent 70%), linear-gradient(118deg, transparent 22%, rgba(110, 130, 220, 0.05) 42%, rgba(170, 120, 210, 0.06) 56%, rgba(230, 150, 150, 0.04) 70%, transparent 84%), linear-gradient(178deg, #060a1d 0%, #040614 46%, #020308 100%); font-family: GmarketSans, Geist, 'Noto Sans KR', system-ui, sans-serif; color: #e6eaf7; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end" onPointerMove="{{pmove}}" onPointerLeave="{{pleave}}" onKeyDown="{{key}}">
 <canvas data-field="login" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none"></canvas>
 <h1 style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0">Terra 로그인</h1>
-<button type="button" aria-label="로그인 열기 — 화면을 누르면 로고가 올라가고 로그인이 나타난다" onClick="{{openFn}}" style="position: absolute; inset: 0; display: {{openD}}; opacity: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: pointer;"></button>
+<button type="button" aria-label="로그인 열기" onClick="{{openFn}}" style="position: absolute; inset: 0; display: {{openD}}; opacity: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: pointer;"></button>
 <form aria-label="Terra 로그인" onSubmit="{{submit}}" style="position: absolute; inset: 0; margin: 0; pointer-events: none;">
 <input type="text" name="admin" aria-label="admin" autocomplete="username" spellcheck="false" onInput="{{inA}}" onFocus="{{focA}}" onBlur="{{blur}}" style="position: absolute; left: {{pos.ia.x}}px; top: {{pos.ia.y}}px; width: {{pos.ia.w}}px; height: {{pos.ia.h}}px; pointer-events: {{pe}}; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; color: transparent; caret-color: transparent; background: transparent; cursor: text;">
 <input type="password" name="password" aria-label="password" autocomplete="current-password" onInput="{{inP}}" onFocus="{{focP}}" onBlur="{{blur}}" style="position: absolute; left: {{pos.ip.x}}px; top: {{pos.ip.y}}px; width: {{pos.ip.w}}px; height: {{pos.ip.h}}px; pointer-events: {{pe}}; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; color: transparent; caret-color: transparent; background: transparent; cursor: text;">
@@ -77,13 +77,15 @@ class Component extends DCLogic {
       hit: { auto: { c0: c0, c1: c0 + 7, r: rD }, login: { c0: c0 + PW - 7, c1: c0 + PW - 1, r: rD }, nt: { c0: c0, c1: c0 + 17, r: rE } } };
     const px = (o) => ({ x: Math.round(o.c0 * cw - 4), y: Math.round(o.r * ch - 4), w: Math.round((o.c1 - o.c0 + 1) * cw + 8), h: ch + 8 }), H = this._L.hit;
     const pos = { ia: fld(rA), ip: fld(rB), ab: px(H.auto), lb: px(H.login), nb: px(H.nt) };
-    if (JSON.stringify(pos) !== JSON.stringify((this.state || {}).pos)) this.setState({ pos });
+    this._posRaw = pos; this.lensPos(this._lensZ || 1);   // 융기 외곽이 펼쳐져 있으면 누르는 자리도 보이는 자리로
   }
   // 열림 정도 — 로고 이동(0 → 1) · 컴포넌트가 나타나기 시작하는 시각
   openVals(now) {
     // 로고 이동 — 등가속 → 등감속 (가속 구간 40% · 감속 구간 60% — 감속이 더 완만하게 길다). 속도는 0 에서 시작해 0 으로 멈춘다
     const S = this.state || {}, T = this.LT(), F = 0.4, ss = (x) => { x = Math.min(1, Math.max(0, x)); return x < F ? x * x / F : 1 - (1 - x) * (1 - x) / (1 - F); };
-    if (S.open) return { e: ss((now - (this._openAt || now)) / T.move), showAt: (this._openAt || now) + T.move + T.after, open: true };
+    // 융기 외곽이 먼저 — 로고가 다 올라가면 돋보기가 펼쳐지고(inMs), 다 펼쳐진 뒤 로그인 줄이 나타나기 시작한다
+    const t0 = (this._openAt || now) + T.move + T.after, LI = this.LENS_CFG().inMs;
+    if (S.open) return { e: ss((now - (this._openAt || now)) / T.move), lensAt: t0, showAt: t0 + LI, open: true };
     const t = now - (this._closeAt || -1e9), n = this._outN || 0, outEnd = n * 20 + T.out;   // 닫기: 글자가 먼저 사라지고(오른쪽부터), 그다음 로고가 내려온다
     return { e: 1 - ss((t - outEnd) / T.move), out: t, open: false };
   }
@@ -153,14 +155,14 @@ class Component extends DCLogic {
   brightBg(c) { const m = Math.max(c[0], c[1], c[2]) || 1, k = 236 / m; return [Math.min(255, c[0] * k), Math.min(255, c[1] * k), Math.min(255, c[2] * k)]; }
   // 랜덤 갱신 — p 0 → 1: 갱신 주기가 점점 길어지며(16 → 536ms) 제 글자로 멈춘다
   rnd(st, j, p, now) { const G = this._glyphs; if (!st.g[j] || now >= (st.nx[j] || 0)) { st.g[j] = G[(Math.random() * G.length) | 0]; st.nx[j] = now + (16 + 520 * p * p) * (0.6 + Math.random() * 0.8); } return st.g[j]; }
-  openLogin() { const S = this.state || {}; if (S.open) return; this._openAt = performance.now(); this._gen = (this._gen || 0) + 1; this._MS = new Map(); this._modeAt = 0; this.setState({ open: true, msg: null }); }
+  openLogin() { const S = this.state || {}; if (S.open) return; this._lensAt = 0; this._lensOut = null; this._openAt = performance.now(); this._gen = (this._gen || 0) + 1; this._MS = new Map(); this._modeAt = 0; this.setState({ open: true, msg: null }); }
   setMode(v) { if (this.INSTALLED() && v === ((this.state || {}).inst ?? this.props.installed ?? 'Leaf')) return; this._wFrom = this._wCur; this._modeAt = performance.now(); this.setState({ inst: v }); }
   closeLogin() { const S = this.state || {}; if (!S.open) return; this._hov = null; this._closeAt = performance.now(); this._outN = 32; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); this.setState({ open: false, ready: false, foc: null }); }
-  hovAt(x, y) { const LL = this._L; if (!LL || !(this.state || {}).open) return null; const c = Math.floor(x / this._cw), r = Math.floor(y / this._ch); for (const k in LL.hit) { const h = LL.hit[k]; if (r === h.r && c >= h.c0 && c <= h.c1) return k; } return null; }
+  hovAt(x, y) { const LL = this._L; if (!LL || !(this.state || {}).open) return null; [x, y] = this.lensInv(x, y); /* 융기 외곽 — 보이는 자리 → 그 칸 */ const c = Math.floor(x / this._cw), r = Math.floor(y / this._ch); for (const k in LL.hit) { const h = LL.hit[k]; if (r === h.r && c >= h.c0 && c <= h.c1) return k; } return null; }
   ripAt(k, rgb) { const h = this._L && this._L.hit[k]; if (h) this._rip.push({ x: (h.c0 + h.c1) / 2, y: h.r, t0: performance.now(), amp: 1, rgb }); }
   login() {
     const S = this.state || {};
-    if (!S.va || !S.vp) { this.setState({ msg: !S.va ? 'admin 을 입력하세요' : 'password 를 입력하세요' }); this.ripAt('login', [242, 244, 252]); return; }
+    if (!S.va || !S.vp) { this.setState({ msg: !S.va ? 'admin 입력 필요' : 'password 입력 필요' }); this.ripAt('login', [242, 244, 252]); return; }
     this.warpStart();   // 전환 땐 물결을 띄우지 않는다 — 배경은 그대로
   }
   // ───── 로그인 → 트리 뷰 전환 (워프 전환을 줄여 쓴다) ─────
@@ -307,7 +309,7 @@ class Component extends DCLogic {
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
     this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (this._ov) { this._ov.width = cv.width; this._ov.height = cv.height; this._ovx.setTransform(dpr, 0, 0, dpr, 0, 0); }
-    this._fullRedraw = true; this._lgA = null; this._rec = null;   // 크기 · 칸이 바뀌면 다음 그리기는 통째로, 글자 타일도 새로
+    this._fullRedraw = true; this._lgA = null; this._lgZ = null; this._lgBg = null; this._lensSig = ''; this._rec = null;   // 크기 · 칸이 바뀌면 다음 그리기는 통째로, 글자 타일도 새로
     const cs = Math.max(9, Math.min(24, this.CELL()));
     this._cw = Math.round(cs * 0.66); this._ch = Math.round(cs * 1.2); this._cs = cs;
     this._cols = Math.ceil(w / this._cw) + 1; this._rows = Math.ceil(h / this._ch) + 1;
@@ -406,7 +408,7 @@ class Component extends DCLogic {
     if (this._loSeen === undefined) this._loSeen = this.props.logout ?? 0;
     if ((this.props.logout ?? 0) !== this._loSeen) { this._loSeen = this.props.logout ?? 0; this.warpBack(); }   // 통합 화면의 로그아웃 — 전환을 거꾸로
     if ((this.props.reset ?? 0) !== this._rsSeen) { this._rsSeen = this.props.reset ?? 0; this.warpReset(); }   // 통합 화면의 '로그인부터' — 메인 화면부터 다시
-    if (this._WP && this._WP.done) return;   // 트리 뷰가 화면을 다 덮으면 쉰다
+    if (this._WP && this._WP.done) { this.lensClear(); return; }   // 트리 뷰가 화면을 다 덮으면 쉰다
     if (now - this._calmAt > 400) { this.markCalm(); this._calmAt = now; }
     const P = (this.PALETTES()[this.props.palette] || this.PALETTES()['은하수']).map((h) => this.hex(h));
     // 통합 화면에 붙었을 때 — 바탕 글자 장은 통합 화면의 것을 그대로 읽어 그린다(같은 칸 · 같은 글자 · 같은 별 · 같은 무늬 · 같은 시간). 그래서 로그인 층이 걷혀도 바탕이 바뀌지 않는다
@@ -416,6 +418,7 @@ class Component extends DCLogic {
     const SIX = SH && SH._scr ? SH._scr.ox : 0, SIY = SH && SH._scr ? SH._scr.oy : 0;
     // 로그인 — 열림 정도(OV) · 로고를 올린 줄 수(dy) · 칸에 놓인 글자(TX) · 특수 칸(SP: 글자 · TREE LEAF 마스크)
     const OV = this.openVals(now), S0 = this.state || {}, LT = this.LT(), LL = this._L, TXM = new Map(), SP = [];
+    if (OV.open && now >= OV.lensAt && !this._lensAt && !this._lensOut && !this._WP) this._lensAt = now - OV.lensAt < 200 ? OV.lensAt : now;   // 융기 외곽 시작(로그아웃으로 돌아온 때처럼 늦게 알면 지금부터)
     if (OV.open) { this.syncItems(now, OV); if (!S0.ready && now >= OV.showAt + 900) this.setState({ ready: true }, () => { const el = document.querySelector('form[aria-label="Terra 로그인"] input[name="admin"]'); if (el && (this.state || {}).open) el.focus({ preventScroll: true }); }); }
     const offPx = LL ? OV.e * (LL.logoY1 - LL.logoY0) : 0, LA = this._logoA, LW = this._logoW, LH = this._logoH, PXC = this._pxc, QZ = LL && LL.zone, sm = (v) => { v = Math.min(1, Math.max(0, v)); return v * v * (3 - 2 * v); };
     // 전환 — 첫 프레임은 평소대로 그리며 로고 · 별 · 글자 칸을 그 색 · 그 글자 그대로 담아 두고(SNAP), 다음 프레임부터 그것들이 날아간다(WV)
@@ -508,6 +511,7 @@ class Component extends DCLogic {
     if (WV) { const FN = '500 ' + Math.round(this._cs * 0.86) + 'px GmarketSans, "Geist Mono", monospace', FB = FN.replace(/^500 /, '700 ');
       OCC.forEach(([i, gl, css, al, bold]) => { cell(i, this.withA(css, Math.min(1, al)), gl, bold ? 1 : 0); }); }
     this.lgFlush(RC);
+    this.lensDraw(now);
   }
   // 로그인 — 특수 칸(볼드) · 레거시(입력 칸 틀 · 커서 · New Tree Connect · 호버 밑줄)
   // ───── 글자 장 그리기 — 바뀐 칸만 · 글자 타일 (통합 화면 글자 장과 같은 방식) ─────
@@ -520,11 +524,11 @@ class Component extends DCLogic {
     const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) { M.set(c, c); return c; } const v = m[1].split(',').map(Number), r = (x) => Math.min(255, Math.round(x / 6) * 6);
     q = v.length > 3 ? 'rgba(' + r(v[0]) + ',' + r(v[1]) + ',' + r(v[2]) + ',' + (Math.round(v[3] * 50) / 50) + ')' : 'rgb(' + r(v[0]) + ',' + r(v[1]) + ',' + r(v[2]) + ')'; M.set(c, q); return q; }
   withA(c, a) { if (a >= 0.999) return this.lq(c); const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) return c; const v = m[1].split(',').map(Number); return this.lq('rgba(' + v[0] + ',' + v[1] + ',' + v[2] + ',' + ((v.length > 3 ? v[3] : 1) * a) + ')'); }
-  lgAtlas(dpr) {
+  lgAtlas(dpr, slot = '_lgA') {
     const cw = this._cw, ch = this._ch, cwD = Math.ceil(cw * dpr), chD = Math.ceil(ch * dpr), key = cwD + 'x' + chD + '|' + this._cs + '|' + dpr;
-    let A = this._lgA; if (A && A.key === key) return A;
+    let A = this[slot]; if (A && A.key === key) return A;
     const PG = 1024, perRow = Math.floor(PG / (cwD * 2)), perPage = perRow * Math.floor(PG / chD), FS = Math.round(this._cs * 0.86), FAM = 'px GmarketSans, "Geist Mono", monospace';
-    A = this._lgA = { key, map: new Map(), pages: [], slot: 0 };
+    A = this[slot] = { key, map: new Map(), pages: [], slot: 0 };
     A.tile = (g, css, st) => {
       const k = st + css + '\u0001' + g; let t = A.map.get(k); if (t) return t;
       if (A.slot >= perPage * 12) { A.map.clear(); A.slot = 0; }
@@ -559,6 +563,7 @@ class Component extends DCLogic {
     }
     // 두 번에 나눈다 — 타일을 먼저 다 만들고, 그다음 한꺼번에 붙인다
     const A = this.lgAtlas(dpr), TL = [];
+    { const Z = this.lensBox(); if (Z) for (const i of dirty) { const c = i % cols, r = (i / cols) | 0; if (c >= Z.c0 && c <= Z.c1 && r >= Z.r0 && r <= Z.r1) { this._zoneDirty = true; break; } } }   // 융기 외곽 — 로그인 창 칸이 바뀌었나
     for (const i of dirty) { const g = R.gl[i], st = R.st[i]; if (!g || st === 9 || R.css[i] === '#bg') continue; TL.push(i, A.tile(g, R.css[i], st)); }
     for (let k = 0; k < TL.length; k += 2) { const i = TL[k], t = TL[k + 1], c0 = i % cols, r0 = (i / cols) | 0, x0 = X(c0), y0 = Y(r0);
       const w = Math.min(t.w, X(c0 + (t.wide ? 2 : 1)) - x0), h = Math.min(t.h, Y(r0 + 1) - y0); if (w > 0 && h > 0) RC.drawImage(t.cv, t.x, t.y, w, h, x0, y0, w, h); }
@@ -587,12 +592,97 @@ class Component extends DCLogic {
       const wide = tx && tx.wide && p >= 1, sty = tx ? (tx.it.thin ? (wide ? 4 : 0) : wide ? 2 : 1) : (cv0 == null || cv0 > 0.55 ? 1 : 0);
       cell(i, cc, glyph, sty); if (wide) cell(i + 1, cc, '', 9);
     }
+    let ovSig = '';
     // 커서 — 입력 중인 칸의 다음 자리에 깜박이는 블록 (점 자리를 덮는다)
     if (S.ready && S.open) for (const [key, r, v] of [['a', LL.rA, S.va || ''], ['p', LL.rB, S.vp || '']]) {
-      if (S.foc === key && ((now - (S.focAt || 0)) / 530 | 0) % 2 === 0) { const cc = LL.c0 + 11 + Math.min(LL.room - 1, v.length); ctx.fillStyle = 'rgba(242,244,252,0.85)'; ctx.fillRect(cc * cw + 1, r * ch + 2, cw - 2, ch - 4); }
+      if (S.foc === key && ((now - (S.focAt || 0)) / 530 | 0) % 2 === 0) { const cc = LL.c0 + 11 + Math.min(LL.room - 1, v.length); ctx.fillStyle = 'rgba(242,244,252,0.85)'; ctx.fillRect(cc * cw + 1, r * ch + 2, cw - 2, ch - 4); ovSig += key + cc; }
     }
     // 호버 — 누를 수 있는 것(auto · Login · New Tree Connect) 밑에 짧은 밑줄
-    if (this._hov && S.ready) { const hb = LL.hit[this._hov]; if (hb) { ctx.fillStyle = this._hov === 'nt' ? 'rgba(104,156,255,0.8)' : 'rgba(242,244,252,0.7)'; ctx.fillRect(hb.c0 * cw, (hb.r + 1) * ch - 2, (hb.c1 - hb.c0 + 1) * cw, 1.5); } }
+    if (this._hov && S.ready) { const hb = LL.hit[this._hov]; if (hb) { ctx.fillStyle = this._hov === 'nt' ? 'rgba(104,156,255,0.8)' : 'rgba(242,244,252,0.7)'; ctx.fillRect(hb.c0 * cw, (hb.r + 1) * ch - 2, (hb.c1 - hb.c0 + 1) * cw, 1.5); ovSig += 'h' + this._hov; } }
+    this._ovSig = ovSig;
+  }
+
+  // ───── 융기 외곽 — 로그인 창 영역을 돋보기로(컴포넌트 생성 씬의 돋보기 · 테두리 '융기 외곽'과 같은 식) ─────
+  //   영역 = 로그인 창 틀(zone)의 1.4 배 · 형태 둥근 사각(초타원 p 9) · 배율 ×1.4 · 광각 약(n 2.5) · 빛번짐 약. 렌즈 점 p 는 p·g 를 본다, g = 1/z + (1 − 1/z)·min(1, u/0.86)ⁿ, u = (|x/hw|ᵖ + |y/hh|ᵖ)^(1/p)
+  //   가운데는 z 배, 가장자리에서 급히 1 배로 줄어 바깥 글자 장과 그대로 이어진다(테두리 없음). 글자는 비트맵을 늘리지 않고 이번 박자의 칸(글자 · 색 · 모양)을 z 배 타일로 다시 붙인다
+  //   생성 — 돋보기가 먼저: 로고가 다 올라가면 배율 1 → 1.4 를 700ms 사다리꼴 속도(처음 · 끝 속도 0, 가운데 일정), 다 펼친 뒤 로그인 줄이 나타난다. 닫기는 거꾸로(줄이 다 사라진 뒤 350ms), 로그인 성공(전환)은 120ms
+  //   누르는 자리(입력 칸 · 단추)와 호버도 보이는 자리로 옮긴다
+  LENS_CFG() { return { z: 1.4, n: 2.5, bleed: 0.55, inMs: 700, outMs: 350, warpMs: 120, area: 1.4, p: 9, info: false, frame: false }; }   // area = 로그인 창 틀의 몇 배 · p = 둥근 사각(초타원 지수)
+  easeTrap(t) { const r = 0.3, v = 1 / (1 - r); t = Math.max(0, Math.min(1, t)); return t < r ? v * t * t / (2 * r) : t > 1 - r ? 1 - v * (1 - t) * (1 - t) / (2 * r) : v * (t - r / 2); }
+  // 영역 — 로그인 창 틀(zone)을 가운데 그대로 area 배 · 그 영역이 걸친 칸
+  lensBox() { const Z = this._L && this._L.zone; if (!Z) return null; const C = this.LENS_CFG(), cw = this._cw, ch = this._ch, zw = (Z.c1 + 1 - Z.c0) * cw, zh = (Z.r1 + 1 - Z.r0) * ch, W = zw * C.area, H = zh * C.area, cx = Z.c0 * cw + zw / 2, cy = Z.r0 * ch + zh / 2;
+    return { x0: cx - W / 2, y0: cy - H / 2, W, H, cx, cy, c0: Math.floor((cx - W / 2) / cw), c1: Math.ceil((cx + W / 2) / cw), r0: Math.floor((cy - H / 2) / ch), r1: Math.ceil((cy + H / 2) / ch) }; }
+  lensGeo(z) { const B = this.lensBox(); if (!B || z <= 1.0005) return null; const C = this.LENS_CFG();
+    return Object.assign({}, B, { hw: B.W / 2, hh: B.H / 2, z, n: C.n, p: C.p }); }
+  // u = 둥근 사각(초타원 |x|ᵖ + |y|ᵖ = 1)까지의 비
+  lensG(G, x, y) { const u = Math.pow(Math.pow(Math.abs(x) / G.hw, G.p) + Math.pow(Math.abs(y) / G.hh, G.p), 1 / G.p); return [1 / G.z + (1 - 1 / G.z) * Math.pow(Math.min(1, u / 0.86), G.n), u]; }
+  // 보이는 자리 → 원래 자리(칸)
+  lensInv(x, y) { const G = this.lensGeo(this._lensZ || 1); if (!G) return [x, y]; const dx = x - G.cx, dy = y - G.cy, [g, u] = this.lensG(G, dx, dy); return u > 1 ? [x, y] : [G.cx + dx * g, G.cy + dy * g]; }
+  // 원래 자리 → 보이는 자리 — 같은 반직선 위에서 λ·g(λ·s) = 1 인 λ(1 … z)를 반으로 나눠 찾는다
+  lensFwd(x, y, G) { const dx = x - G.cx, dy = y - G.cy; if (this.lensG(G, dx, dy)[1] > 1) return [x, y];
+    let lo = 1, hi = G.z; for (let k = 0; k < 28; k++) { const m = (lo + hi) / 2; if (m * this.lensG(G, dx * m, dy * m)[0] < 1) lo = m; else hi = m; } const m = (lo + hi) / 2; return [G.cx + dx * m, G.cy + dy * m]; }
+  lensPos(z) { const raw = this._posRaw; if (!raw) return; const G = this.lensGeo(z), pos = {};
+    for (const k in raw) { const r = raw[k]; if (!G) { pos[k] = r; continue; } const a = this.lensFwd(r.x, r.y, G), b = this.lensFwd(r.x + r.w, r.y + r.h, G); pos[k] = { x: Math.round(a[0]), y: Math.round(a[1]), w: Math.round(b[0] - a[0]), h: Math.round(b[1] - a[1]) }; }
+    if (JSON.stringify(pos) !== JSON.stringify((this.state || {}).pos)) this.setState({ pos }); }
+  lensClear() { if (this._lensShown && this._lcx) { this._lcx.setTransform(1, 0, 0, 1, 0, 0); this._lcx.clearRect(0, 0, this._lcv.width, this._lcv.height); } this._lensShown = false; this._lensSig = ''; }
+  // 바탕 — 로그인 뿌리의 CSS 바탕 세 겹과 같은 그림(글자 없이)
+  lensBg() { const w = Math.max(1, Math.round(this._w)), h = Math.max(1, Math.round(this._h)); if (this._lgBg && this._lgBg.width === w && this._lgBg.height === h) return this._lgBg;
+    const oc = document.createElement('canvas'); oc.width = w; oc.height = h; const o = oc.getContext('2d');
+    const g0 = o.createLinearGradient(0, 0, 0, h); g0.addColorStop(0, '#060a1d'); g0.addColorStop(0.46, '#040614'); g0.addColorStop(1, '#020308'); o.fillStyle = g0; o.fillRect(0, 0, w, h);
+    const a = 118 * Math.PI / 180, dx = Math.sin(a), dy = -Math.cos(a), L = Math.abs(w * dx) + Math.abs(h * dy), x0 = w / 2 - dx * L / 2, y0 = h / 2 - dy * L / 2, g1 = o.createLinearGradient(x0, y0, x0 + dx * L, y0 + dy * L);
+    g1.addColorStop(0.22, 'rgba(110,130,220,0)'); g1.addColorStop(0.42, 'rgba(110,130,220,0.05)'); g1.addColorStop(0.56, 'rgba(170,120,210,0.06)'); g1.addColorStop(0.70, 'rgba(230,150,150,0.04)'); g1.addColorStop(0.84, 'rgba(230,150,150,0)'); o.fillStyle = g1; o.fillRect(0, 0, w, h);
+    const rx = w * 0.42, ry = h * 0.70, cx = w * 0.62, cy = h * 0.58; o.save(); o.translate(cx, cy); o.scale(rx, ry); const g2 = o.createRadialGradient(0, 0, 0, 0, 0, 1); g2.addColorStop(0, 'rgba(150,110,200,0.08)'); g2.addColorStop(0.7, 'rgba(150,110,200,0)'); o.fillStyle = g2; o.fillRect(-cx / rx, -cy / ry, w / rx, h / ry); o.restore();
+    return (this._lgBg = oc); }
+  lensOff(k, w, h) { const M = this._lOff || (this._lOff = {}); let o = M[k]; if (!o) { const cv = document.createElement('canvas'); o = M[k] = { cv, c: cv.getContext('2d') }; } if (o.cv.width !== w || o.cv.height !== h) { o.cv.width = w; o.cv.height = h; } o.c.setTransform(1, 0, 0, 1, 0, 0); o.c.globalAlpha = 1; o.c.globalCompositeOperation = 'source-over'; o.c.filter = 'none'; o.c.clearRect(0, 0, w, h); return o; }
+  lensDraw(now) {
+    const C = this.LENS_CFG(), S = this.state || {}, R = this._rec;
+    // 닫기는 거꾸로 — 로그인 줄이 다 사라진 뒤 돋보기가 접힌다. 로그인 성공(전환)은 바로
+    const goneAt = (this._closeAt || 0) + (this._outN || 0) * 20 + this.LT().out;
+    if (this._lensAt && !this._lensOut && (this._WP || (!S.open && now >= goneAt))) this._lensOut = { t0: now, from: this._lensZ || 1, ms: this._WP ? C.warpMs : C.outMs };
+    let z = 1;
+    if (this._lensOut) { const q = (now - this._lensOut.t0) / this._lensOut.ms; z = 1 + (this._lensOut.from - 1) * (1 - this.easeTrap(q)); if (q >= 1) { this._lensAt = 0; this._lensOut = null; z = 1; } }
+    else if (this._lensAt) z = 1 + (C.z - 1) * this.easeTrap((now - this._lensAt) / C.inMs);
+    const zc = Math.abs(z - (this._lensZ || 1)) > 1e-4; this._lensZ = z; if (zc) this.lensPos(z);
+    const G = this.lensGeo(z); if (!G || !R || !R.pgl) { this.lensClear(); return; }
+    let cv = this._lcv; if (!cv || !cv.isConnected) { cv = this._lcv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true'); cv.setAttribute('data-lens', 'login'); cv.style.cssText = this._cv.style.cssText; (this._ov || this._cv).after(cv); this._lcx = cv.getContext('2d'); }
+    if (cv.width !== this._cv.width || cv.height !== this._cv.height) { cv.width = this._cv.width; cv.height = this._cv.height; this._lensSig = ''; }
+    // 같은 배율 · 창 칸 그대로 · 덧그림(커서 · 호버) 그대로면 지난 그림 그대로
+    const sig = z.toFixed(4) + '|' + this._ovSig; if (sig === this._lensSig && !this._zoneDirty) return; this._lensSig = sig; this._zoneDirty = false;
+    const dpr = cv.width / Math.max(1, this._w), Zo = C.z, K = dpr * Zo, cw = this._cw, ch = this._ch, cols = this._cols, rows = this._rows;
+    // ① 곧은 확대 O — 영역을 목표 배율 해상도로: 바탕 그림 · 칸 타일(그 배율로 새로 그린 것 — 또렷) · 덧그림
+    const O = this.lensOff('O', Math.ceil(G.W * K), Math.ceil(G.H * K)), o = O.c; o.setTransform(K, 0, 0, K, -G.x0 * K, -G.y0 * K); o.imageSmoothingEnabled = true;
+    o.drawImage(this.lensBg(), 0, 0, this._w, this._h);
+    const A = this.lgAtlas(K, '_lgZ'), Z = G;
+    for (let r = Math.max(0, Z.r0); r <= Math.min(rows - 1, Z.r1); r++) for (let c = Math.max(0, Z.c0 - 1); c <= Math.min(cols - 1, Z.c1); c++) { const i = r * cols + c, g = R.pgl[i], st = R.pst[i], css = R.pcss[i];
+      if (!g || st === 9 || css === '#bg') continue; const t = A.tile(g, css, st); o.drawImage(t.cv, t.x, t.y, t.w, t.h, c * cw, r * ch, t.w / K, t.h / K); }
+    if (this._ov) o.drawImage(this._ov, 0, 0, this._w, this._h);
+    // ② 융기 — 조각마다 렌즈 점 → O 의 점, 네 변 가운데를 옮겨 본 넓이 · 높이로 담는다. 끝 10% 는 흐려 바깥(같은 그림)과 섞인다
+    const F = this.lensOff('F', Math.ceil(G.W * dpr), Math.ceil(G.H * dpr)), f = F.c, T = 5;
+    const MP = (x, y) => { const [g, u] = this.lensG(G, x, y); return [(G.cx + x * g - G.x0) * K, (G.cy + y * g - G.y0) * K, u]; };
+    f.setTransform(dpr, 0, 0, dpr, 0, 0); f.imageSmoothingEnabled = true;
+    for (let ty = 0; ty < G.H; ty += T) for (let tx = 0; tx < G.W; tx += T) { const px = tx + T / 2 - G.hw, py = ty + T / 2 - G.hh, c0 = MP(px, py);
+      const l = MP(px - T / 2, py), rr = MP(px + T / 2, py), t0 = MP(px, py - T / 2), b0 = MP(px, py + T / 2), sw = Math.max(0.5, rr[0] - l[0]), sh = Math.max(0.5, b0[1] - t0[1]);
+      if (c0[2] > 1.02) continue; f.globalAlpha = Math.max(0, Math.min(1, (1 - c0[2]) / 0.1)); f.drawImage(O.cv, c0[0] - sw / 2, c0[1] - sh / 2, sw, sh, tx, ty, T + 0.6, T + 0.6); }
+    f.globalAlpha = 1;
+    // ③ 빛번짐 약 — 레트로 모니터처럼 RGB 가 갈라진다: 빨강 · 초록 · 파랑을 떼어 채널마다 배율을 조금 달리해(빨강 바깥 · 파랑 안쪽) 다시 더한다. 가운데 0 · 바깥으로 갈수록 크게, 가장자리(0.74~0.88)에서 0 으로 — 이음 유지
+    const bl = C.bleed * Math.min(1, (z - 1) / (C.z - 1));
+    if (bl > 0.01) { const Wd = F.cv.width, Hd = F.cv.height, B = this.lensOff('B', Wd, Hd), b = B.c, Cc = this.lensOff('C', Wd, Hd), cc = Cc.c, sd = 0.006 + 0.014 * bl;
+      b.globalCompositeOperation = 'lighter';
+      for (const [col, dir] of [['#ff0000', 1], ['#00ff00', 0], ['#0000ff', -1]]) { cc.globalCompositeOperation = 'source-over'; cc.clearRect(0, 0, Wd, Hd); cc.drawImage(F.cv, 0, 0); cc.globalCompositeOperation = 'multiply'; cc.fillStyle = col; cc.fillRect(0, 0, Wd, Hd); cc.globalCompositeOperation = 'destination-in'; cc.drawImage(F.cv, 0, 0);
+        const sc = 1 + dir * sd; b.drawImage(Cc.cv, Wd / 2 * (1 - sc), Hd / 2 * (1 - sc), Wd * sc, Hd * sc); }
+      b.globalCompositeOperation = 'destination-in'; b.save(); b.translate(Wd / 2, Hd / 2); b.scale(Wd / 2, Hd / 2); const m = b.createRadialGradient(0, 0, 0, 0, 0, 1); m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop(0.74, 'rgba(0,0,0,1)'); m.addColorStop(0.88, 'rgba(0,0,0,0)'); b.fillStyle = m; b.fillRect(-1.2, -1.2, 2.4, 2.4); b.restore();
+      f.setTransform(1, 0, 0, 1, 0, 0); f.globalCompositeOperation = 'source-over'; f.globalAlpha = 1; f.drawImage(B.cv, 0, 0); }
+    // ④ 화면에 — 둥근 사각 영역에만(테두리 없음 — 밖은 투명, 끝은 흐려 이음)
+    const L = this._lcx; L.setTransform(1, 0, 0, 1, 0, 0); L.clearRect(0, 0, cv.width, cv.height); L.drawImage(F.cv, Math.round(G.x0 * dpr), Math.round(G.y0 * dpr)); this._lensShown = true;
+    // 정보 — 머리: '돋보기 ×z · 광각 약 · 빛번짐 약' · 보는 칸(열 · 행). 컴포넌트 생성 씬 돋보기의 정보와 같은 글꼴 · 색, 배율이 오르는 만큼 나타난다
+    const kA = Math.min(1, (z - 1) / (C.z - 1)); L.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // 테두리 — 레거시 1px 선을 둥근 사각(초타원) 따라. 배율이 오르는 만큼 나타난다
+    if (C.frame) { L.beginPath(); for (let j = 0; j <= 160; j++) { const a = j / 160 * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a), x = G.cx + (G.hw - 0.5) * Math.sign(ca) * Math.pow(Math.abs(ca), 2 / G.p), y = G.cy + (G.hh - 0.5) * Math.sign(sa) * Math.pow(Math.abs(sa), 2 / G.p); j ? L.lineTo(x, y) : L.moveTo(x, y); }
+      L.closePath(); L.lineWidth = 1; L.strokeStyle = 'rgba(155,166,201,' + (0.6 * kA).toFixed(3) + ')'; L.stroke(); }
+    if (C.info) { const ix = G.x0 + G.W * 0.05, ty = G.y0 - 7, t1 = '돋보기 ×' + (+z.toFixed(2)) + ' · 광각 약 · 빛번짐 약 · 융기 외곽', t2 = 'c ' + Math.round(G.cx / cw) + ' · r ' + Math.round(G.cy / ch);
+      L.font = '500 11px GmarketSans, "Geist Mono", monospace'; L.textBaseline = 'alphabetic'; const w1 = L.measureText(t1).width, w2 = L.measureText(t2).width, x2 = G.x0 + G.W * 0.95 - w2;
+      L.fillStyle = 'rgba(4,6,20,' + (0.82 * kA).toFixed(3) + ')'; L.fillRect(ix - 4, ty - 11, w1 + 8, 15); L.fillRect(x2 - 4, ty - 11, w2 + 8, 15);   // 바탕 글자 위에서도 읽히게 — 글자 뒤만 어둡게
+      L.fillStyle = 'rgba(230,234,247,' + (0.9 * kA).toFixed(3) + ')'; L.fillText(t1, ix, ty); L.fillStyle = 'rgba(118,130,171,' + kA.toFixed(3) + ')'; L.fillText(t2, x2, ty); }
   }
 
   renderVals() {
@@ -612,7 +702,7 @@ class Component extends DCLogic {
       auto: () => this.setState({ autoOn: !S.autoOn }),
       submit: (e) => { if (e && e.preventDefault) e.preventDefault(); this.login(); },
       loginFn: (e) => { if (e && e.preventDefault) e.preventDefault(); this.login(); },
-      newTree: () => { this.setState({ msg: '새 Tree 연결 — 주소 · 등록 코드 창이 이어질 자리' }); this.ripAt('nt', [104, 156, 255]); },
+      newTree: () => { this.setState({ msg: '새 Tree 연결 — 주소 · 등록 코드 (준비 중)' }); this.ripAt('nt', [104, 156, 255]); },
       pmove: (e) => { if (!e || !this._cv) return; const rc = this._cv.getBoundingClientRect(); this._hov = this.hovAt(e.clientX - rc.left, e.clientY - rc.top); },
       pleave: () => { this._hov = null; }
     };

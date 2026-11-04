@@ -27,17 +27,24 @@ Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 
 바뀌지 않게. 규약 전문과 규칙 번호는 [`docs/layout.md`](docs/layout.md)에 있다.
 
 > [!IMPORTANT]
-> **접두사는 `lab.stellaxia.*` 다** (2026-09-23 확정). 경계는 저장소도 소유자도 아니라
-> **배포 경로**다(Terra `docs/architecture/ADR-MD-002-module-id-prefix-ownership.md` §2-6):
+> **이 저장소의 접두사는 `lab.stellaxia.*` 다** — 제품에 동봉되든 tree 로 나가든
+> (Terra `docs/architecture/ADR-MD-002-module-id-prefix-ownership.md` §2-6, v1.2 2026-11-02).
+> 이름은 배포 경로가 아니라 **소유자**를 말한다:
 >
-> | 배포 경로 | 접두사 |
+> | 무엇 | 접두사 |
 > | --- | --- |
-> | 제품 동봉 (`build-release` → 설치기) | `io.terra.*` |
-> | **tree 레지스트리** (`pack` → `publish` → 설치) | **자기 도메인 역순** — 이 조직은 `lab.stellaxia` |
+> | Terra 플랫폼 구성 요소 (Terra 저장소에서 빌드 — `io.terra.player` · `io.terra.scene.terra` …) | `io.terra.*` |
+> | **이 조직의 모듈** — 이 저장소 전부 | **`lab.stellaxia.*`** |
+> | 다른 조직의 모듈 | 자기 도메인 역순 (`dev.terrallo` · `com.acme.*`) |
 >
-> 이 저장소의 모듈은 tree 로 나가는 쪽이므로 `lab.stellaxia.*` 다. `io.terra.*` 는 허용
-> 목록이 아니라 **예약어**여서, 그 접두사로 tree 배포를 하려는 주체는 Terra 프로젝트
-> 자신을 포함해 전부 거부된다 — `GrantPrefix` 와 publish 양쪽에서 `PREFIX_RESERVED`.
+> `io.terra.*` 는 허용 목록이 아니라 **예약어**여서, 그 접두사로 tree 배포를 하려는 주체는
+> Terra 프로젝트 자신을 포함해 전부 거부된다 — `GrantPrefix` 와 publish 양쪽에서
+> `PREFIX_RESERVED`.
+>
+> 2026-11-02에 `io.terra.*` 로 있던 9개(agent · nodetalk · sample.window · scene.login-demo
+> · file · io-inventory · io-weave · fleet · treebench)를 같은 이름의 `lab.stellaxia.*` 로
+> 개명했다. 신뢰 등급은 접두사가 아니라 **서명 키**가 정하므로 이 9개는 `signing.json` 에서
+> 계속 Terra builtin 키로 서명된다.
 >
 > 접두사를 발급받지 않고 `publish` 하면 `PREFIX_NOT_OWNED`(exit 20)로 선다.
 
@@ -59,13 +66,15 @@ Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 
 
 ## 접두사 — 어떤 id를 쓰나
 
-**배포 경로가 정한다.** 누가 만들었는지가 아니다
-(Terra `docs/architecture/ADR-MD-002-module-id-prefix-ownership.md` §2-6).
+**누가 소유하는 구성 요소인가가 정한다.** 배포 경로가 아니다
+(Terra `docs/architecture/ADR-MD-002-module-id-prefix-ownership.md` §2-6, v1.2 — v1.1까지는
+배포 경로가 갈랐다).
 
-| 어떻게 나가나 | 접두사 |
+| 무엇 | 접두사 |
 | --- | --- |
-| **제품 동봉** — 릴리스 빌드가 번들에 싣고 설치기가 깐다 | `io.terra.*` |
-| **tree 레지스트리** — `pack` → `publish` → 노드가 설치 | **자기 도메인 역순** |
+| **Terra 플랫폼 구성 요소** — Terra 저장소에서 빌드되어 Terra 릴리스로 나간다 | `io.terra.*` |
+| **이 조직의 모듈** — 제품에 동봉되든(`bundled-modules.json` → 설치기) tree로 나가든 | `lab.stellaxia.*` |
+| **다른 조직의 모듈** | **자기 도메인 역순** |
 
 `io.terra.*`는 허용 목록이 아니라 **예약어**다. 외부 조직이 막혀 있는 것이 아니라, 그 접두사로
 tree 배포를 하려는 **모든 주체**가 막힌다 — Terra 프로젝트 자신을 포함해서.
@@ -93,8 +102,8 @@ id를 바꾸지 않는다 — 바꾸면 digest와 서명이 깨지기 때문이�
 
 ### 이 저장소의 접두사는 `lab.stellaxia`다
 
-StellaxiaLab이 **tree로 배포할** 새 모듈은 `lab.stellaxia.*`를 쓴다. 우리가 만든 것이어도
-`io.terra.*`를 쓸 수 없다 — 예약은 만든 사람이 아니라 배포 경로를 보기 때문이다.
+StellaxiaLab이 만드는 새 모듈은 제품 동봉이든 tree 배포든 `lab.stellaxia.*`를 쓴다.
+`io.terra.*`는 Terra 플랫폼 구성 요소의 이름이다.
 
 > [!NOTE] 예약 접두사를 단 모듈은 이제 여기 없다 (2026-09-23)
 > 둘이 있었고 둘 다 정리됐다. 길이 서로 달랐던 것이 §2-6을 그대로 보여 준다.
@@ -122,6 +131,10 @@ StellaxiaLab이 **tree로 배포할** 새 모듈은 `lab.stellaxia.*`를 쓴다.
 > `publish`는 여전히 `io.terra.*`를 `PREFIX_RESERVED`로 거절하고, **그것이 맞다** — 동봉
 > 모듈은 publish로 나가지 않는다. 새로 만드는 모듈이 어느 접두사를 쓸지는 위 표가 그대로
 > 정한다: tree로 배포할 것이면 `lab.stellaxia.*`다.
+>
+> **2026-11-02 (ADR-MD-002 v1.2)**: 규칙이 "배포 경로"에서 "소유자"로 바뀌어, 위 11개 중
+> 남아 있던 `io.terra.*` 9개를 `lab.stellaxia.*`로 개명했다. 이제 이 저장소에 `io.terra.*`는
+> 없다. 이미 깔린 노드의 설정·데이터는 Terra 설치기가 업데이트 때 새 id로 옮긴다.
 
 ### 셸만은 제3자가 가져갈 수 없다
 
@@ -185,7 +198,7 @@ Go 의존은 0으로도 된다.
 ### Go 모듈 경로
 
 모듈의 Go 경로는 디렉터리 구조 그대로다: `github.com/StellaxiaLab/modules/<common|leaf|tree>/<module-id>`
-(예: `github.com/StellaxiaLab/modules/leaf/io.terra.file`). `go.mod`는 각 모듈의 `src/`에 있다.
+(예: `github.com/StellaxiaLab/modules/leaf/lab.stellaxia.file`). `go.mod`는 각 모듈의 `src/`에 있다.
 이 경로는 모듈끼리 서로의 패키지를 부를 때와 `go.mod`의 `module` 줄에만 쓰이고, 어디에서도 내려받지 않는다.
 
 ### 클론 한 번으로 (M-2 ~ M-6 이후)
@@ -250,7 +263,7 @@ npm run build:web && npm run test:web       # 웹 화면을 가진 모듈
 Terra 안에 있을 때는 Terra의 CI가 `git ls-files '*go.mod'`로 저장소의 모든 Go 모듈을 훑어
 시험을 돌리고 있었고, 모듈이 여기로 오면 그 훑기에서 **말없이 빠진다** — 없어진 경로를 세지
 않으므로 코어 CI는 그대로 초록이다. `npm run build`로는 대신할 수 없다: 컴파일이 되는지만
-본다. 첫 실행이 바로 하나를 잡았다 — `io.terra.treebench`가 Master의 계약을 Terra 트리
+본다. 첫 실행이 바로 하나를 잡았다 — `io.terra.treebench`(현 `lab.stellaxia.treebench`)가 Master의 계약을 Terra 트리
 기준 상대경로로 읽고 있었다(G-15). 그래서 시험 환경에는 `--terra`를 주면 `TERRA_CHECKOUT`이 함께 간다.
 
 > 옛 처분(참고): `pack` 잡은 시크릿이 없을 때 PR·수동 실행에서는 warning으로 건너뛰고 `main` 푸시에서는 실패했다.

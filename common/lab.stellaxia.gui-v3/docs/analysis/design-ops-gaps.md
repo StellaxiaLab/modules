@@ -7,14 +7,16 @@ doc_type: "analysis"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "active"
-version: "0.1.0"
-last_updated: "2026-11-01"
+version: "0.2.0"
+last_updated: "2026-11-04"
 language: "ko-KR"
 related:
   - "[[replacement-readiness|node-gui 대체 준비도]]"
   - "[[web-architecture|GUI v3 웹 구조]]"
   - "[[node-data|노드 데이터와 분할 — PA/EL]]"
   - "[[main-scene|main Scene — 껍데기와 로그인]]"
+  - "[[global-windows|전역 틀의 창]]"
+  - "[[desk-flows|제어기 쓰기 흐름]]"
 ---
 
 # 시안 ↔ 실제 운영 격차
@@ -39,8 +41,8 @@ related:
 | H3 | A/B | NodeDesktopEmbed 터미널(`runCmd`, 첫 줄) | `whoami` → stk, `node` → 'tree-home · 코어 0.9.4', `net` → 10.40.2.17 등 **고정 출력** | 보드 — 실제 모드에선 숨기거나 `TerraWho` · status 로 받은 것만 | **고침** #151 — 두 터미널로 나눔, 이어서 노드 터미널은 잠금(설계 [[node-shell\|노드 셸]]) · Terra 터미널은 위임표 읽기만 · 셸 문법 거절([[terminals\|두 터미널]]) |
 | H4 | A | Scene `RESOURCES()` · `sceneMap` | 실제 리프마다 **없는 ssh · tty · gpio 위성**. 자원 뷰 · 공유 자원 폴더 · NodeConf 자원 목록 · 자원 상태 창으로 퍼지고, 누르면 'SVI 목록에 없다' | 보드(Field) — 실제 지도면 `svi.resources.get` 의 그 노드 자원으로 | 열림 |
 | H5 | A | api `topology.loadTopology` → Scene `build()` | `nodes.get` 실패 · 빈 목록이면 **시안 지도(01 · 02 · 03 · 04)로 조용히** — 그 위의 TreeLogin 은 아무 비밀번호나 통과 | main · 보드 — 실제 모드면 '노드 없음 / 못 받음' 빈 지도 | 열림 |
-| H6 | A/B | NodeConf 전체(`window.Terra*` 분기 없음) | 기능 › 설정 · 우클릭 › 설정으로 **시안 설정 창**(master.url · 사용자 admin · 등록 코드 · 경보) — 적용은 '(시안)' | 보드 — 실제 모드면 Terra/Tree 구역을 숨기거나 노드 데스크톱 › 설정(실제)으로 보냄 | 열림 |
-| H7 | A | ModStatus `renderVals` | CPU · MEM · 스파크라인 · 가동 시간 · **최근 로그가 지어낸 값**, 경로 · 소유도 고정 | 보드 — 수치는 '—', 로그는 `modules.by-module-id.logs.get`(데스크톱이 이미 씀) | 열림 |
+| H6 | A/B | NodeConf 전체(`window.Terra*` 분기 없음) | 기능 › 설정 · 우클릭 › 설정으로 **시안 설정 창**(master.url · 사용자 admin · 등록 코드 · 경보) — 적용은 '(시안)' | 보드 — 실제 모드면 Terra/Tree 구역을 숨기거나 노드 데스크톱 › 설정(실제)으로 보냄 | **고침** 0.5.0 — 나눔: 실제 모드는 GUI 구역 + 노드 · Tree 읽기 요약 + '제어기 › 설정 열기'([[global-windows\|전역 틀의 창]]) |
+| H7 | A | ModStatus `renderVals` | CPU · MEM · 스파크라인 · 가동 시간 · **최근 로그가 지어낸 값**, 경로 · 소유도 고정 | 보드 — 수치는 '—', 로그는 `modules.by-module-id.logs.get`(데스크톱이 이미 씀) | **고침** 0.5.0 — CPU · MEM '—' + 코어 op 없음, 가동 = started_at, 로그 = logs.get. 전역 틀 그래프 = 하트비트 스냅샷 점열 + 갱신 주기 |
 | H8 | A/C | WebBrowser `page()` + Field `T.shapes.modules`(MODPOOL) | 'GUI ↗' · 웹 브라우저로 열면 **미리 만든 가짜 화면**. 앱 목록이 시안 상수에서 와서 풀에 없는 모듈은 GUI 없음. 반면 데스크톱 모듈 › 앱 '열기'는 실제 — 같은 기능이 두 갈래 | 보드 — 원천을 `TerraGuiApps`, 열기를 `TerraLaunch` 로 합침 | 열림 |
 | M1 | A | Field 전역 틀 윗줄 | '연결됨 · Terra 코어 1.7.0' · '로그인 admin · 관리자' · NET 1.2 MB/s 고정 | 보드 — `TerraWho` · status | 열림 |
 | M2 | A/E | Field 대상 표 ← `TerraTopology`(로그인 때 한 번) | 상태 · 자원이 **로그인 순간에 멈춤**, '하트비트 n분 전'만 늘어남, 새 노드는 다시 로그인해야 보임 | main — 주기 · push 로 지도 다시 읽기 | 열림 |
@@ -53,7 +55,7 @@ related:
 | L1 | A/C | Login `installed` 기본 'Leaf' · 'New Tree Connect' · auto | Tree 에 깔아도 LEAF 표시, 자리 문구 | 보드 · main | 열림 |
 | L2 | C | Field ResStatus 마크업에 `node-key` 없음 | 로컬 rid 가 없으면 시안 그래프로 | 보드 | 열림 |
 | L3 | A | TreeLogin 프롬프트 'admin' · 서비스 선언 포트 22/8080/5432 · 터널 상대 고정 | 고정 이름 | 보드 | 열림 |
-| L4 | C/E | `window.TerraAlarms` 읽는 보드 없음 · 전역 › 설정 › 알림 동작 없음 | — | 보드 | 열림 |
+| L4 | C/E | `window.TerraAlarms` 읽는 보드 없음 · 전역 › 설정 › 알림 동작 없음 | — | 보드 | **고침** 0.5.0 — 알림 창(자리 24) · 설정 › 알림 · 안 읽은 수 배지 |
 
 ### 처리된 것
 
@@ -91,3 +93,4 @@ Leaf · Resource · Tree 보드는 Scene 이 불러오지 않는다(Tree 는 Log
 4. **실제 응답의 모든 상태로 그려 본다.** 시험 픽스처에 상태 열거값 전부(failed · unknown 포함) · 긴 이름 · 많은 항목(리프 13+ · 드라이브 10+)을 넣어 보드를 그리고, `renderVals` 예외면 실패.
 5. **'됨'은 화면 단위로.** 대체 준비도에 '됨'을 적을 때 그 기능이 보이는 창을 모두 적는다 — 한 진입로만 실제고 다른 진입로가 시안으로 남지 않게.
 6. **새 창 · 칸은 시안과 실제가 같은 모양.** 시안 값은 실제 어댑터(`src/api/*`)의 반환 모양을 그대로 흉내 낸다 — 상태 창(NodeStatus ↔ `node-info.js`)이 첫 예.
+7. **코어가 열지 않은 단추는 문(gate)으로.** 화면은 다 짓고, 단추마다 `window.TerraGate(op)`(src/api/gates.js — 위임 표 · 계약 표 · 앱 권한 · 사람 권한)로 판정해 닫혔으면 why 를 그대로 보인다. 보드에 op 이름을 박은 '잠금' 플래그를 따로 두지 않는다 — 표만 다시 뽑으면 저절로 열린다. 위임 밖 op 를 부르는 곳은 tests/master-delegated.test.mjs 의 `GATED` 에 이유와 함께 적는다. 결과표는 [[replacement-readiness\|대체 준비도]] §3-2.

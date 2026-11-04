@@ -24,7 +24,7 @@ test('식별 — node id · 장치 · 역할 · 부모(이름) · 주소 · DNS 
   assert.equal(v.ident.nodeId, 'lf-a'); assert.equal(v.ident.deviceId, 'dev-9'); assert.equal(v.ident.roles, 'Leaf');
   assert.equal(v.ident.parent, 'home'); assert.equal(v.ident.parentId, 'tr-root'); assert.equal(v.ident.depth, '1');
   assert.equal(v.ident.address, '10.80.0.5'); assert.equal(v.ident.dns, 'ws-a.terra'); assert.equal(v.ident.version, '1.7.2');
-  assert.equal(v.seen, '2분 전'); assert.equal(v.online, true);
+  assert.equal(v.seen, '2m 전'); assert.equal(v.online, true);
 });
 
 test('통신 — 관측 전송이 연결 방식 · 이 노드가 낀 경로 · 세션만', () => {
@@ -38,7 +38,7 @@ test('최근 활동 — 하트비트 · 세션 · probe · 이 노드의 조작�
   const v = nodeInfo(REC, D, { now: NOW });
   assert.deepEqual(v.recent.events.map((e) => e.msg.split(' ')[0]), ['session', 'heartbeat', 'probe', 'peer.revoke']);
   assert.equal(v.recent.events.find((e) => /peer.revoke/.test(e.msg)).lv, 'warn');
-  assert.equal(v.res.rxT, '5.0 MB'); assert.equal(v.res.mem, 0.635);
+  assert.equal(v.res.rxT, '5.0MiB'); assert.equal(v.res.mem, 0.635);
 });
 
 test('읽기가 비어도 — 노드 기록만으로 그리고, 없는 칸은 —', () => {

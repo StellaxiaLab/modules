@@ -82,7 +82,7 @@ class NodeStore {
   /** 쓰기 — 끊겼으면 하지 않는다(PA: 몰래 쌓지 않음). 평소엔 사본에 먼저(낙관), 실패하면 되돌림. o.apply(data) → 새 사본 */
   write(n, opId, input, o = {}) {
     const L = this.link(n);
-    if (L.state === 'offline' || L.state === 'far' || L.state === 'none') return Promise.reject({ code: 'PARTITIONED', message: (L.state === 'far' ? '직접 닿지 않는 노드' : '노드와 끊김') + ' — 돌아오면 다시' });
+    if (L.state === 'offline' || L.state === 'far' || L.state === 'none') return Promise.reject({ code: 'PARTITIONED', message: (L.state === 'far' ? '직접 닿지 않는 노드' : '노드와 끊김') + ' — 재연결 후 재시도' });
     const k = o.res ? this.key(n, o.res) : null, prev = k ? this.cache.get(k) : null;
     if (k && o.apply && prev) { this.cache.set(k, Object.assign({}, prev, { data: o.apply(prev.data), pending: true })); this.emit(n); }
     return this.t.invoke(n, opId, input, o).then((r) => { if (k) { const e = this.cache.get(k); if (e) { e.pending = false; e.at = Date.now(); } this.persist(); this.emit(n); if (o.refresh !== false) this.refresh(n, o.res); } return r; },
@@ -99,7 +99,7 @@ class NodeStore {
 
   /** 링크 문구 — 화면 머리줄에 */
   linkText(n, at) {
-    const L = this.link(n), ago = (ms) => { const s = Math.max(0, (Date.now() - ms) / 1000); return s < 10 ? '방금' : s < 60 ? Math.round(s) + '초 전' : s < 3600 ? Math.round(s / 60) + '분 전' : Math.round(s / 3600) + '시간 전'; };
+    const L = this.link(n), ago = (ms) => { const s = Math.max(0, (Date.now() - ms) / 1000); return s < 10 ? '방금' : s < 60 ? Math.round(s) + 's 전' : s < 3600 ? Math.round(s / 60) + 'm 전' : Math.round(s / 3600) + 'h 전'; };
     if (L.state === 'local') return { t: '로컬', cls: 'local', ro: false };
     if (L.state === 'offline') return { t: '끊김 · ' + (at ? ago(at) + ' 사본' : '사본 없음') + ' · 읽기 전용', cls: 'off', ro: true };
     if (L.state === 'far') return { t: '직접 닿지 않음' + (L.via ? ' · ' + L.via + ' 경유 필요' : '') + ' · 읽기 전용', cls: 'off', ro: true };
@@ -149,7 +149,7 @@ class Component extends DCLogic {
     if (this.props.quiet) return { disp: 'none', rows: [], emptyD: 'none', kind: '', local: '', clear: null };
     const T = typeof window !== 'undefined' ? window.TerraNodes : null; if (!T) return { disp: 'block', rows: [], emptyD: 'block', kind: '—', local: '—', clear: null };
     const rows = [...T.cache.entries()].map(([k, e]) => { const [n, res] = k.split('|'), L = T.linkText(n, e.at), M = T.t.meta && T.t.meta[n];
-      return { node: (M && M.name) || n, res, age: e.at ? Math.round((Date.now() - e.at) / 1000) + '초' : '—', src: e.src || '', link: L.t, col: L.cls === 'off' ? '#ffd27a' : L.cls === 'local' ? '#709c80' : '#96f0aa' }; });
+      return { node: (M && M.name) || n, res, age: e.at ? Math.round((Date.now() - e.at) / 1000) + 's' : '—', src: e.src || '', link: L.t, col: L.cls === 'off' ? '#ffd27a' : L.cls === 'local' ? '#709c80' : '#96f0aa' }; });
     return { disp: 'block', rows, emptyD: rows.length ? 'none' : 'block', kind: T.t.kind || '?', local: (T.t.meta && T.t.meta[T.t.localId()] && T.t.meta[T.t.localId()].name) || T.t.localId() || '—', clear: () => T.clear() };
   }
 }

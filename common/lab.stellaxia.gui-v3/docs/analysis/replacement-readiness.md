@@ -7,8 +7,8 @@ doc_type: "analysis"
 scope: "module"
 target: "lab.stellaxia.gui-v3"
 status: "draft"
-version: "0.2.0"
-last_updated: "2026-10-31"
+version: "0.3.0"
+last_updated: "2026-11-04"
 language: "ko-KR"
 based_on: "Terra origin/main 5c6ace6c · modules origin/main 19d713d(2026-10-31). 0.2.0 .tmod 검사(코어 세션, Terra 1f0b569b)와 0.3.0 격리 스택 실측(이 문서 §5)을 합쳤다"
 related:
@@ -59,28 +59,28 @@ related:
 | --- | --- | --- | --- | --- |
 | 로그인/로그아웃(껍데기) | 0.3.0 에서 됨 | §5 | — | — |
 | 시작 화면 · 지도(topology) | **됨** — 부모가 없는 리프(단독 리프)는 이름 없는 'Tree'(Master 자신, rid 없음) 아래로 모은다. 지도에 'Tree' 궤도와 자기 노드가 보이고, 제어기가 로컬 노드에 스스로 묶인다 | 실측(격리 Master 의 단독 리프) | — | — |
-| 노드 자원(CPU 등) | **부분** — 전역 틀 대상 표의 상태 · 하트비트 · CPU · MEM · 디스크를 Master 하트비트 자원 스냅샷(`resource`)으로. 자원 수 · NET 그래프 · 모듈 상태 창의 CPU/MEM 은 아직 시안(노드별 실시간 지표 op 가 없다) | 시험 | 小 | 없음(실시간 지표는 코어) |
+| 노드 자원(CPU 등) | **부분→됨(스냅샷)** — 전역 틀 대상 표 = Master 하트비트 자원 스냅샷. 0.5.0: 스냅샷을 노드마다 쌓아 **자원 추이 점열**(CPU)과 **갱신 주기**('하트비트 스냅샷 · 30초마다 · n초 전')를 보인다 — 실시간인 척하지 않는다([[global-windows\|전역 틀의 창]]). NET 처리량 · 모듈별 CPU/MEM 은 '—' + 이유(모듈 상태 창의 가동 = started_at, 로그 = logs.get) | 시험 · 시안 브라우저 | 小 | **있음** — 노드별 실시간 지표 op · 모듈별 자원 op · Daemon 하트비트의 network_rx/tx_bytes 채우기 |
 | 모듈 목록·상태·시작/정지/재시작·제거 | 됨 | 실측(목록) | — | — |
 | 모듈 로그 | **됨** — 모듈 › 로그 = `modules.by-module-id.logs.get`(탭을 볼 때만) | 실측(200 · 줄 0) | — | — |
 | 모듈 설정 편집 | **됨** — 스키마 폼(`config.schema.get` + `config.get`, enum · boolean · 수 · JSON · 비밀 제외 · 재시작 표시), 저장은 형 변환 + `base_revision` | 실측(maxFileMB 8→9→8, revision 0→1) | — | — |
 | 노드 설정 | **됨** — 행 = Daemon `config.schema.get`(이 Terra 에서 140키 · 23묶음). 시안 25키는 한국어 이름 · 고르기 · 검사를 그대로, 운영자 키만 쓰기 · 설치기/파생은 읽기 · 비밀은 숨김. 저장은 스키마 형(int · bool · string_list · object_list)으로 `config.patch {set, save}` | 실측 — 묶음 · 실제 값 · 형 검사('port — 정수를 적어야 해요') · 저장(`daemon.device_name` → daemon.json 반영) | — | — |
 | 제안 수락(offers consent/withdraw) | **됨** — 실제 노드의 제안을 매핑하지 않아 'Tree 지정' 탭이 늘 비어 있던 결함을 고침(offered · accepted · stale · managed · pinned → 세 칸) | 시험(격리 노드에 제안 0건) | — | — |
-| 모듈 배정(master assignments) | **됨** — 설치 › 'Tree 에 지정'(module id · 버전) = `assignments.post`, 제안 › '지정 해제' = delete. 전송이 Master id 를 스스로 찾는다 | 실측 — 앱 토큰으로 위임 통과, Master 가 `MODULE_NOT_FOUND`(이 격리 Tree 에 게시본 없음). **끝까지(게시 → 제안 → 동의 → 설치)는 못 봤다** | — | 없음 |
-| 모듈 설치(파일) | 실제 노드에서 **잠그고 이유를 적는다** — `.tmod` 파일 설치는 `commands.execute`(process.execute · 이 노드만)로 `terra module install` 을 돌려야 하는데 위험이 커 하지 않았다. 대신 Tree 지정 | 시험 | 中 | 없음(결정 필요) |
-| 설정 창(NodeConf) | 시안 | — | 中 | 없음 |
-| 파일(io.terra.file · local-fs · desktop.open) | **됨** — 위치 = 공유 폴더(io.terra.file roots) · 로컬 루트(local-fs, 이 노드만 · 읽기만) · 바탕화면 바로가기. 폴더 들어가기 · '..', 공유 폴더에 새 폴더(mkdir) · 지우기(remove), 로컬은 '노드에서 열기 / 노드 파일 관리자로'(desktop.open). 읽을 수 없는 뿌리는 🔒 와 이유. 파일 내용 열기 · 올리기 · 내려받기(entries.read · transfers.*)는 아직 | 실측 — 공유 목록 · 새 폴더 · 지우기 · 들어가기 · 잠긴 뿌리. **desktop.open 은 실행하지 않았다**(격리 데몬이라도 이 PC 화면에 창을 연다) | 中(전송) | 없음 |
-| 작업 · 출력 | **부분→됨(읽기)** — 작업 관리자 줄을 누르면 `tasks.by-task-id.output.get`(도는 동안 3초 폴링). SSE 따라가기 · master jobs 는 없음 | 시험(격리 노드에 작업 0건) | 小 | 없음 |
+| 모듈 배정(master assignments) | **됨** — 설치 › 'Tree 에 지정'(module id · 버전) = `assignments.post`, 제안 › '지정 해제' = delete. 전송이 Master id 를 스스로 찾는다 0.5.0: **배정 진행 화면** — 게시본 → Master 배정 → 제안 도착 → 동의 → 설치 · 기동을 막대 · 단계 칩으로(5초마다 다시 읽기), 단계별 실패 안내(MODULE_NOT_FOUND · 403 · 60초 넘게 제안 없음 · stale · last_error) | 실측 — 앱 토큰으로 위임 통과, Master 가 `MODULE_NOT_FOUND`(이 격리 Tree 에 게시본 없음). **끝까지(게시 → 제안 → 동의 → 설치)는 못 봤다** | — | 없음 |
+| 모듈 설치(파일) | 0.5.0: **위험 확인 흐름** — 브라우저가 .tmod(zip) 의 module.json 을 풀어 id · 버전 · 요구 권한 · 서명(signature) · 게시자 키 · 경고를 보이고 승인 체크. 마지막 '설치'는 `DECIDE.tmodInstall` 한 곳에서 잠금 — process.execute(commands.execute 로 `terra module install`) 경로를 열지 **사용자 결정 대기**. 대신 'Tree 에 지정 ›' 으로 넘김([[desk-flows\|제어기 쓰기 흐름]]) | 시안 브라우저(실제 .tmod 읽기) | 小 | 없음(결정 필요) |
+| 설정 창(NodeConf) | **나눔(0.5.0)** — 편집은 한 곳(제어기 › 설정). 실제 모드의 설정 창 = GUI 구역(이 브라우저) + 노드 · Tree 읽기 요약 + '제어기 › 설정 열기'(노드 설정 탭으로). 시안 값 · '(시안)' 적용은 실제 모드에서 사라짐 | 시험 · 대역 브라우저 | — | 없음 |
+| 파일(io.terra.file · local-fs · desktop.open) | **됨** — 위치 · 폴더 · 새 폴더 · 지우기에 더해 0.5.0: **미리보기**(entries.read — 글 64 KiB · 그림 4 MiB 상한, 그 밖은 정보 + 내려받기) · **올리기**(transfers.create → chunks.put → complete, sha256 · 끌어다 놓기) · **내려받기**(transfers.pulls.*) · 전송 줄(진행 · 속도 · 취소=abort · 다시=resume) · 덮어쓰기 확인. 공유 폴더에서만 — 로컬 탐색은 읽기 op 가 없어 잠금. 브라우저 전송 상한 256 MiB(전체 sha256 을 메모리에서) ([[controller-files-jobs\|제어기 파일 · 작업]]) | 시험(가짜 전송) · 시안 브라우저. 실제 전송은 못 봤다 | — | 없음 |
+| 작업 · 출력 | **됨** — 0.5.0: 이 노드는 `tasks.by-task-id.output.events.get`(SSE, Last-Event-ID 재개 · gap · overflow), 다른 노드 · 429 는 output.get 폴링. 로그 창(stdout/stderr 색 · 시각 · 끝 상태 exit code) · **따라가기/멈춤**(위로 올리면 멈춤 · 새 줄 배지). '이 노드 작업 / Master 작업' 탭 — jobs.get · 상세 · 취소 · 다시(확인 단계) | 시험 · 시안 브라우저 | — | 없음 |
 | WireGuard | **됨** — 올리기/다시 적용 = `apply.post`, 내리기 = `down.post`, 동기화 = `sync.post`. managed-key/config 는 아직 | 실측(sync 202, 앱 토큰). apply/down 은 실행하지 않음 | 小 | 없음 |
 | 네트워크 보기(mesh · 피어 · 네트워크 · 경로 그래프 · 세션 · 정책 · probe · 조작 이력) | **됨(읽기 전용)** — 노드 데스크톱 '네트워크' 앱. Master 위임 표의 읽기만, 창에 '보기만' 문장. node-gui 의 network-master.js 순수 함수와 시험을 옮겼다 | 실측(노드 · 메시 행 · 네트워크 행 · 빈 피어/경로 — 이 격리 Tree 의 실제 값) | — | — |
-| 네트워크 쓰기(조정 · 계획 · 피어 철회 · probe 실행 · 정책 저장 · 세션 닫기 · 연결 그룹 닫기) | **하지 않음** — 위임 밖. node-gui 도 A 모드에서 하지 못한다(보기만) — **대체로 잃는 기능이 아니다**. §3-1 | 실측(앱 토큰 · 사람 세션 모두 리프 Gateway 에서 404) | — | **있음** — §3-1 |
-| 서비스 터널 | **목록 · 닫기 됨**, 열기는 잠금 — 여는 것은 Master `service-tunnels.open.post` 인데 앱 위임 밖 | 실측(목록 200 · 0건) | — | 열기는 코어(위임) |
-| SVI — 자원 창(NodeShare) · 자원 상태 창(ResStatus) | **됨** — 자원 공유 = 이 노드의 SVI 자원마다 허가 목록 · 주기 · 지우기, 외부 자원 등록 = 이 노드를 지명한 허가 + 바인딩 만들기 · 끊기, 자원 상태 = 정보 · 끝점 · 연결 · 쓰는 곳(열린 핸들 10초 조회). 허가는 Master 위임 가드에 맞춰 노드에게 '읽기'(read · subscribe) · '연결 원천'(+ bind.source)만, 기한 1시간~90일. **값(스트림) 보기는 없다** — 핸들 열기 · stream · events 가 위임 밖(§3-1). 계정 주체도 없다(사용자 목록이 위임 밖) | 실측 — 자원 · 끝점 · 빈 허가/바인딩/핸들 화면, 허가 만들기 · 좁히기 · 지우기(앱 토큰), 가드 거절 규칙. **화면으로 허가 · 바인딩을 만드는 것은 못 봤다**(단독 리프라 줄 노드 · 받는 끝점이 없다) | — | 값 보기는 코어(위임) |
+| 네트워크 쓰기(조정 · 계획 · 피어 철회 · probe 실행 · 정책 저장/지우기 · 세션 닫기 · 연결 그룹 닫기) | 0.5.0: **화면 완성 · 문으로 잠금** — 네트워크 앱의 탭마다 단추 → 확인(위험 · 무엇 · 되돌리기) → 결과. 8 op 모두 Master 위임 밖이라 마지막 단추가 why 와 함께 잠김, 위임 표가 열리면 저절로 열림(입력 모양은 routes_network.go 대로) | 시안 브라우저 · 시험 | — | **있음** — §3-1 |
+| 서비스 터널 | **목록 · 닫기 됨**, 0.5.0: **열기 양식**(대상 노드 · 대상 포트 · 서비스 · 로컬 포트 · 최대 연결) + 확인 — Master `service-tunnels.open.post` 위임 대기라 잠김. Daemon `service-tunnels.post` 는 대안이 아님(Provider OpenRequest 가 Master 경로 표(ticket)를 요구 — 'route ticket is required'). 기한 칸은 계약에 없음 | 시안 브라우저 | — | 열기는 코어(위임) |
+| SVI — 자원 창(NodeShare) · 자원 상태 창(ResStatus) | **됨** — 자원 공유 = 이 노드의 SVI 자원마다 허가 목록 · 주기 · 지우기, 외부 자원 등록 = 이 노드를 지명한 허가 + 바인딩 만들기 · 끊기, 자원 상태 = 정보 · 끝점 · 연결 · 쓰는 곳(열린 핸들 10초 조회). 허가는 Master 위임 가드에 맞춰 노드에게 '읽기'(read · subscribe) · '연결 원천'(+ bind.source)만, 기한 1시간~90일. **값(스트림) 보기는 없다** — 핸들 열기 · stream · events 가 위임 밖(§3-1). 계정 주체도 없다(사용자 목록이 위임 밖) 0.5.0: **허가 주체 사람** — 노드/사람 토글, '나(이 계정)'는 위임 가드가 허용해 지금 실제로(inspect · read · subscribe · bind.source/target), 다른 사람은 사용자 목록(admin.users.get)이 위임 밖 · 가드상 금지라 잠금. **값 보기** — 자원 상태 창의 형식별 뷰어(수치 · 글 꼬리 · 바이트 · 그림/영상 프레임 · 사건) · 구독/멈춤 · 다시 붙기, 실제로는 handles.post · events.get(SSE) · delete 가 위임 밖이라 잠금 + '쓰는 곳' 조회가 대체([[svi-view\|값 보기]]) | 실측 — 자원 · 끝점 · 빈 허가/바인딩/핸들 화면, 허가 만들기 · 좁히기 · 지우기(앱 토큰), 가드 거절 규칙. **화면으로 허가 · 바인딩을 만드는 것은 못 봤다**(단독 리프라 줄 노드 · 받는 끝점이 없다) | — | 값 보기는 코어(위임) |
 | 다른 모듈 앱 열기 | **됨** — 모듈 › 앱 = Gateway 앱 목록(embed 앱 제외), '열기' = `emit('launch')` → Scene `gui-v3.app.launch` → `terra.app:launch` | 실측(목록 · B 모드에서 '셸 안에서만' 경로). **A 모드에서 창이 뜨는 것은 못 봤다**(iframe 안을 누를 수 없음) | — | — |
-| 알림(alarms) | **부분** — 작업 · 모듈 상태 변화를 알림 한 줄로(상태 줄 · `window.TerraAlarms`), 밀어 받기 이벤트에 바로 다시 읽음. **목록 화면은 없다**(전역 틀 '알림' 메뉴 자리만) | 시험 | 小 | 없음 |
+| 알림(alarms) | **됨** — 0.5.0: 전역 틀 설정 › 알림 = **알림 창**(자리 24) — 시각 · 종류 · 내용 · 대상, 읽음 · 지우기(하나 · 거른 것 모두, 지우기 확인), 거르기(전체 · 작업 · 모듈 · 실패만 · 안 읽음), 줄 → 작업 관리자/모듈 상태, 안 읽은 수 배지. 읽음 상태는 이 브라우저 메모리(Terra 에 알림 상태가 없다) | 시험 · 시안 브라우저(Scene) | — | (선택) 알림 읽음 상태 서버 저장 |
 | 편집기(건물·재료·도로·지면·필드) | **대체 범위 밖(사용자 결정 11/1)** — gui-v3 는 Field · StarMaker 만 두고 node-gui 의 편집기를 옮기지 않는다 | — | — | — |
-| 등록 상태(enrollment) | **됨(읽기)** — 등록 여부 · Master 주소 · 노드 id · 등록일 · 자격. 등록 코드는 잠금(`node.enroll` 이 앱 권한에 없다) | 실측 | — | — |
-| Terra ID 신뢰 카드 · external identities | **읽기 됨** — 설정 › 계정: whoami(principal · 권한) + 내 외부 신원 연결(`users.by-user-id.external-identities.get`), '연결 없음'과 '못 봤음'을 가른다. **한계를 화면에 적었다**: 연결 · 해제와 Tree 의 신뢰 발급자(admin.external-issuers.*)는 앱 위임 밖이라 여기서 하지 않는다(Tree 의 웹 콘솔에서) | 실측(B 모드 — '연결 없음', 권한 목록) | — | 쓰기는 코어(위임) |
-| 밀어 받기(events) | 됨(거칠게) | — | — | — |
+| 등록 상태(enrollment) | **됨(읽기)** — 0.5.0: 미등록 노드에 **등록 마법사**(코드 tnc_… → 품은 Master 주소 풀기 · tjc_ 거절 → 장치 이름 → 확인 → 결과 · 재시작(종료 코드 75) 안내 · 오류별 할 일). 마지막 단계는 앱 권한에 `node.enroll` 이 없어 잠김(문의 why) | 시안 브라우저 · 시험 | — | **있음** — 앱 권한 node.enroll(module.json + Terra 앱 권한 승인) |
+| Terra ID 신뢰 카드 · external identities | **읽기 됨** — 0.5.0: 설정 › 계정에 **연결 흐름**(발급자 → 이 Tree 용 토큰 → 확인) · **해제 확인** · 신뢰 발급자 목록 · 더하기 · 빼기 화면. 계약이 연결을 위임 세션에 일부러 닫았고(앱이 남의 계정을 붙이는 뒷문 방지) 발급자는 master.admin — 문이 잠그고 why | 시안 브라우저 | — | 쓰기는 코어(위임 — 설계상 닫힘) |
+| 밀어 받기(events) | **됨** — 0.5.0: `/events` 를 **SSE 로**(Gateway 스트림 티켓은 WebSocket 만 잇는다 — 전에는 실제 모드에서 이벤트가 오지 않았다), last_event_id 재개 · reset 이면 사본 전부 다시. 다시 읽은 뒤 **바뀐 줄 표시**(작업 · Master 작업 · 파일 · 모듈 — 1.2초 깜박임 + '새로'/'바뀜' 배지) | 시험 · 시안 브라우저. 실제 SSE 는 못 봤다 | — | — |
 | 보기 상태 문서(node-gui 배치 넘겨받기) | **대체 범위 밖(사용자 결정 11/1)**. 참고로 기술적으로도 막혀 있다 — Gateway 가 앱 토큰을 `app:<자기 앱 id>` 로 고정하고(`documents.go` 18~21행, 시험 `TestDocumentAppTokenCannotReachAnotherNamespace` 가 node-gui 이름공간을 예로 거절), 사람 세션은 `app:` 이름공간을 못 쓴다. 게다가 node-gui 가 둔 것(`layout/<node_id>` 육각 맵 배치 · 노드 모습 · 연결 · 메모 · 창 자리, `assets` 건물 · 도로)은 gui-v3 에 대응 모델이 거의 없다(창 자리 · 메모 정도) | 코드 확인 | — | **있음** — 결정 필요 |
 | Master 위임 표(Terra CI 스텝 대응) | **됨** — `web/tools/gen-master-delegated.mjs --terra … --check`(§4-3) | 시험 · 생성 확인(38 op) | — | ci.yml 경로 교체만 |
 | 권한 | gui-v3 앱은 node.config(설정 patch · 재시작) · module.manage(배정) · node.control(WireGuard · 터널 닫기) · process.execute(작업 출력)를 쓴다. 격리 Master 의 부트스트랩 관리자는 `DefaultPermissions()` 라 **module.manage · node.config 가 없어** 쓰기가 403 이었다 — 실제 Tree 의 역할 구성도 확인해야 한다 | 실측 | — | — |
@@ -97,6 +97,30 @@ related:
 | SVI | **됨** — §3. 허가 · 바인딩은 위임 표에 있다. Master 의 위임 가드(`api/delegated_grant_guard.go`, ADR-GW-004 2b)가 앱 자격의 허가를 노드에게 read · subscribe · bind.source, 사람 자신에게 inspect · read · subscribe · bind.source/target 으로, 기한 90일 이하로 묶는다 — 화면이 그 안에서만 고르게 했다 | — |
 | SVI 값(흐름) | **하지 않음.** `svi.handles.post`(핸들 열기) · `handles.by-handle-id.stream.get` · `.events.get`(SSE) · `.write.get` 이 위임 밖(실측 404). **대체**: 자원 상태 창이 `svi.handles.get {resource_id}` 를 10초마다 불러 '이 자원을 누가 열어 쓰는지'를 보인다 — 값 대신 사용 현황. SSE 를 앱 iframe 에서 받으려 해도 위임 입구가 스트림을 잇지 않으므로 조회가 유일한 길이다 | 값을 보이려면 `svi.handles.post`(subscribe 만이라도)와 `handles.by-handle-id.events.get`(또는 stream)을 위임 입구에 열고, Gateway 가 앱 토큰으로 스트림을 잇게 해야 한다 |
 | 편집기 · 배치 이전 | **대체 범위 밖(사용자 결정 11/1)** | — |
+
+### 3-2. 디자인 → 구현 결손표(11/4) — 0.5.0 결과
+
+화면이 없거나 시안뿐이던 것(A)은 모두 화면을 지었고, 코어가 앱 토큰에 열어 줘야 하는 것(B)은 화면을 짓고 **문(gate)** 으로 잠갔다 —
+`src/api/gates.js` 가 위임 표(master-delegated.json) · Daemon 계약 표(op-scope.json) · 앱 권한(module.json) · 사람 권한(whoami)으로 단추마다 판정하고, 닫혔으면 why 를 그대로 보인다.
+**코어가 위임을 열면 표만 다시 뽑아(gen-master-delegated.mjs · gen-op-scope.mjs) 화면은 고치지 않고 저절로 열린다.**
+
+| # | 기능 | 결과 | 남은 것 |
+| --- | --- | --- | --- |
+| A1 | 알림 목록 | 알림 창 — 읽음 · 지우기 · 거르기 · 대상으로 가기 · 배지 | — |
+| A2 | 실시간 자원 그래프 | 하트비트 스냅샷 점열 + 갱신 주기 표시, 없는 값은 '—' + 이유 | 코어: 노드별 실시간 지표 op · 모듈별 자원 op · network_rx/tx 채우기 |
+| A3 | 설정 창 | 나눔 — 편집은 제어기 › 설정 한 곳, 설정 창은 GUI + 읽기 요약 | — |
+| A4 | 파일 열기 · 올리기 · 내려받기 | 미리보기 · 전송(진행 · 취소 · 다시) · 끌어다 올리기 | 실제 전송 실측 |
+| A5 | 작업 출력 따라가기 · Master 작업 | SSE 따라가기/멈춤 · Master 작업 목록 · 취소 · 다시 | — |
+| A6 | 노드 터미널 | 열기 확인 3단계 · 권한 경고 · 두 터미널 표지, 셸 열기만 잠금 | [[node-shell\|노드 셸]] 설계 결정 |
+| A7 | .tmod 설치 | 매니페스트 · 서명 · 권한 읽기 · 승인, 설치만 잠금(`DECIDE.tmodInstall`) | **결정**: process.execute 경로를 열지 |
+| A8 | 배정 끝까지 | 단계 표시 · 실패 안내 | 게시본이 있는 Tree 에서 실측 |
+| A9 | 밀어 받기 반영 | 바뀐 줄 깜박임 · 배지, `/events` 를 SSE 로 고침 | 실제 SSE 실측 |
+| B1 | 네트워크 쓰기 | 8 단추 · 확인 · 결과 — 잠금 | 코어: Master 위임 + 리프 Gateway 중계 |
+| B2 | 서비스 터널 열기 | 열기 양식 · 확인 — 잠금 | 코어: service-tunnels.open.post 위임 |
+| B3 | SVI 값 보기 | 형식별 뷰어 · 구독 — 잠금, 대체 = 쓰는 곳 조회 | 코어: handles.post · events.get · delete 위임(subscribe 한정 가드 권장) |
+| B4 | 외부 신원 · 신뢰 발급자 | 연결 · 해제 · 발급자 화면 — 잠금 | 계약이 일부러 닫음(연결) · master.admin(발급자) — 열지 말지 코어 결정 |
+| B5 | 등록 코드 | 등록 마법사 — 마지막 단계 잠금 | 앱 권한 node.enroll |
+| B6 | 허가에 계정 주체 | 노드 · 사람 토글 — '나'는 지금 실제로, 다른 사람은 잠금 | 사용자 목록 위임(가드상 남에게 주는 것은 설계상 막힘) |
 
 ## 4. 대체하는 날 Terra 쪽에서 같이 바꿀 것 (Terra 는 고치지 않았다)
 

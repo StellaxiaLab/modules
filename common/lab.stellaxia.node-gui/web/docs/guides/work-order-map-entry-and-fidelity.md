@@ -142,7 +142,7 @@ related:
 
 ### W6. MD-38 — 모듈 없음과 오류 구분
 
-- 현상: `io.terra.io-inventory` · `io.terra.file`이 없는 노드에서 `terra.daemon.io.devices.get` · `terra.daemon.files.list.get`이 503이고 콘솔에 오류가 남는다. `me/documents/.../layout/<node>` · `.../assets`가 404(저장된 맵 없음으로 보이나 확인하지 못했다).
+- 현상: `lab.stellaxia.io-inventory` · `lab.stellaxia.file`이 없는 노드에서 `terra.daemon.io.devices.get` · `terra.daemon.files.list.get`이 503이고 콘솔에 오류가 남는다. `me/documents/.../layout/<node>` · `.../assets`가 404(저장된 맵 없음으로 보이나 확인하지 못했다).
 - 해라: 503 사유를 읽어 "이 노드에 입출력 모듈이 없다"로 구분해 보이고, 첫 호출 전에 `modules.get`으로 건너뛴다. 404가 빈 맵으로 자연스럽게 처리되는지 확인해 사실로 적는다. 시험: 가짜 Gateway가 503 · 404를 줄 때 화면 상태.
 - 완료 기준: 모듈이 없는 노드에서 정상 흐름의 콘솔 오류가 없고 화면이 이유를 말한다.
 

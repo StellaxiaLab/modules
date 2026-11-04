@@ -7,7 +7,7 @@
     </sc-for>
     <div class="nc-gh"><span class="nc-hl"></span>이 노드의 울타리<span class="nc-hr"></span></div>
     <sc-for list="{{env}}" as="e" hint-placeholder-count="3"><div class="sv-env"><span class="nc-k">{{e.k}}</span><span title="{{e.v}}">{{e.v}}</span></div></sc-for>
-    <div class="nc-k sv-envnote">울타리는 노드 설정 파일 + 재시작으로만 넓힌다(svi.runtime)</div>
+    <div class="nc-k sv-envnote">울타리 확장 : 노드 설정 파일 + 재시작 (svi.runtime)</div>
   </nav>
 
   <main class="nc-main" aria-live="polite">
@@ -37,7 +37,7 @@
             </div>
           </sc-for>
           <sc-if value="{{envBad}}" hint-placeholder-val="{{ false }}"><div class="sv-warn">울타리 밖 — {{envWhy}}</div></sc-if>
-          <sc-if value="{{exists}}" hint-placeholder-val="{{ false }}"><label class="sv-rep"><input type="checkbox" checked="{{replace}}" onChange="{{onReplace}}"> 같은 이름의 자원을 바꾼다 — 그 위의 연결은 끝난다</label></sc-if>
+          <sc-if value="{{exists}}" hint-placeholder-val="{{ false }}"><label class="sv-rep"><input type="checkbox" checked="{{replace}}" onChange="{{onReplace}}"> 같은 이름 자원 교체 — 그 위 연결 종료</label></sc-if>
           <div class="sv-act"><button type="submit" class="nc-btn nc-pri" disabled="{{makeOff}}">{{makeT}}</button><span class="nc-k">{{makeApi}}</span></div>
         </form>
       </div>
@@ -45,23 +45,29 @@
 
     <!-- 자원 · 허가 -->
     <sc-if value="{{isRes}}" hint-placeholder-val="{{ false }}">
-      <h3 class="nc-h">이 노드의 자원<span class="nc-hr"></span><span class="nc-k">허가 기한 <span class="nc-seg"><sc-for list="{{ttls}}" as="tt" hint-placeholder-count="3"><button type="button" class="{{tt.cls}}" onClick="{{tt.pick}}">{{tt.label}}</button></sc-for></span></span></h3>
+      <h3 class="nc-h">이 노드의 자원<span class="nc-hr"></span></h3>
+      <div class="sv-gbar">
+        <span class="nc-k">허가 주체</span><span class="nc-seg" role="radiogroup" aria-label="허가 주체"><sc-for list="{{subjOpts}}" as="so" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{so.on}}" class="{{so.cls}}" onClick="{{so.pick}}">{{so.label}}</button></sc-for></span>
+        <span class="nc-k">기한</span><span class="nc-seg"><sc-for list="{{ttls}}" as="tt" hint-placeholder-count="4"><button type="button" class="{{tt.cls}}" onClick="{{tt.pick}}">{{tt.label}}</button></sc-for></span>
+      </div>
+      <div class="sv-gbar"><span class="nc-k">작업</span><span class="sv-ops" role="group" aria-label="줄 작업"><sc-for list="{{opChips}}" as="oc" hint-placeholder-count="7"><button type="button" class="sv-op {{oc.cls}}" aria-pressed="{{oc.on}}" onClick="{{oc.pick}}" disabled="{{oc.off}}" title="{{oc.tip}}">{{oc.label}}</button></sc-for></span></div>
+      <div class="nc-k sv-gnote">{{grantNote}}</div>
       <sc-for list="{{decls}}" as="d" hint-placeholder-count="2">
         <div class="sv-res">
           <div class="sh-row"><b class="sh-res">{{d.name}}</b><span class="sv-chip {{d.stCls}}">{{d.st}}</span><span class="sv-sub">{{d.fam}} · {{d.dir}}</span><span class="sv-sub sv-cut" title="{{d.detail}}">{{d.detail}}</span><span style="flex: 1;"></span><button type="button" class="nc-btn" onClick="{{d.undeclare}}" disabled="{{d.off}}">해제</button></div>
           <sc-if value="{{d.hasReason}}" hint-placeholder-val="{{ false }}"><div class="sv-warn">{{d.reason}}</div></sc-if>
-          <div class="sv-grants"><span class="nc-k">허가한 노드</span>
+          <div class="sv-grants"><span class="nc-k">{{d.gLabel}}</span>
             <sc-for list="{{d.nodes}}" as="g" hint-placeholder-count="3"><button type="button" class="sv-gn {{g.cls}}" aria-pressed="{{g.on}}" onClick="{{g.toggle}}" title="{{g.tip}}" disabled="{{g.off}}">{{g.name}}<span class="sv-sub">{{g.perm}}</span></button></sc-for>
-            <sc-if value="{{d.noNodes}}" hint-placeholder-val="{{ false }}"><span class="sv-sub">허가할 다른 노드 없음</span></sc-if>
+            <sc-if value="{{d.noNodes}}" hint-placeholder-val="{{ false }}"><span class="sv-sub">{{d.noNodesT}}</span></sc-if>
           </div>
         </div>
       </sc-for>
-      <sc-if value="{{noDecls}}" hint-placeholder-val="{{ false }}"><div class="sh-empty">이 노드에 선언한 자원이 없다 — 만들기에서</div></sc-if>
+      <sc-if value="{{noDecls}}" hint-placeholder-val="{{ false }}"><div class="sh-empty">선언한 자원 없음 — 만들기 탭</div></sc-if>
     </sc-if>
 
     <!-- 연결 — 원천을 대상에 끌어다 놓는다(또는 원천을 누르고 대상을 누른다) -->
     <sc-if value="{{isLink}}" hint-placeholder-val="{{ false }}">
-      <h3 class="nc-h">연결<span class="nc-hr"></span><span class="nc-k">원천을 대상에 끌어다 놓기 · 또는 원천 누르고 대상 누르기</span></h3>
+      <h3 class="nc-h">연결<span class="nc-hr"></span><span class="nc-k">끌기 : 원천 → 대상 · 누르기 : 원천 › 대상</span></h3>
       <div class="sv-cols">
         <div><div class="sv-colh">원천 — 내보내는 끝 <span class="sv-sub">{{srcN}}</span></div>
           <sc-for list="{{srcs}}" as="e" hint-placeholder-count="3">

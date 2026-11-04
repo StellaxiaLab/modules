@@ -1,8 +1,8 @@
-// 폴더 보관함의 "Terra 저장소" — 이 노드의 진짜 공유 폴더(io.terra.file).
+// 폴더 보관함의 "Terra 저장소" — 이 노드의 진짜 공유 폴더(lab.stellaxia.file).
 //
 // 화면은 항목을 { id, parent, name, dir, size?, info } 로 읽고, 폴더에 들어가면 그 id 를 fb.path 로 둔다.
 // 여기서는 공유 폴더 이름을 맨 위 칸으로, 그 안의 경로를 '<공유 폴더>/<상대 경로>' 로 이어 붙인다.
-// share · rel 은 io.terra.file op 에 그대로 싣는 값(root · path)이다. 'root' 라는 이름은 쓰지 않는다 —
+// share · rel 은 lab.stellaxia.file op 에 그대로 싣는 값(root · path)이다. 'root' 라는 이름은 쓰지 않는다 —
 // 조타륜 폴더 앱은 root 가 참인 칸을 공유 폴더 줄(지우기 없음)로 그린다.
 
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];

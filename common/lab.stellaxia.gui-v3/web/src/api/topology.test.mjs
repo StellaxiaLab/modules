@@ -39,7 +39,7 @@ test('nodeStats — 하트비트 자원 스냅샷 · 상태 · 마지막 하트�
   const now = Date.parse('2026-10-31T12:00:00Z');
   const E = { stale: false, version: '', relay: null, memTotal: null, memUsed: null, diskTotal: null, diskUsed: null };
   assert.deepEqual(nodeStats({ status: 'online', resource: { cpu_percent: 42, memory_percent: 61.5 }, last_heartbeat_at: '2026-10-31T11:59:50Z' }, now), { status: '● 온라인', online: true, ageSec: 10, seenAt: Date.parse('2026-10-31T11:59:50Z'), cpu: 0.42, mem: 0.615, disk: null, seen: '방금', ...E });
-  assert.equal(nodeStats({ status: 'offline', last_heartbeat_at: '2026-10-31T09:00:00Z' }, now).seen, '3시간 전');
+  assert.equal(nodeStats({ status: 'offline', last_heartbeat_at: '2026-10-31T09:00:00Z' }, now).seen, '3h 전');
   assert.deepEqual(nodeStats(null, now), { status: '—', online: false, ageSec: null, seenAt: null, cpu: null, mem: null, disk: null, seen: '', ...E });
   const T = buildTopology([{ node_id: 't', roles: ['tree'], display_name: 'home' }, { node_id: 'l', parent_node_id: 't', resource: { cpu_percent: 5 } }]);
   assert.equal(T.node('l').resource.cpu_percent, 5); assert.equal(T.node('x'), null);
@@ -126,7 +126,7 @@ test('nodeStats — 지어내지 않는다: 낡은 online 은 응답 없음, 총
 });
 
 test('fmtBytes — 바이트를 읽을 수 있게, 없으면 빈 글자', () => {
-  assert.equal(fmtBytes(512 * 2 ** 30), '512 GB'); assert.equal(fmtBytes(15.5 * 2 ** 30), '15.5 GB'); assert.equal(fmtBytes(1.5 * 2 ** 40), '1.5 TB');
+  assert.equal(fmtBytes(512 * 2 ** 30), '512GiB'); assert.equal(fmtBytes(15.5 * 2 ** 30), '15.5GiB'); assert.equal(fmtBytes(1.5 * 2 ** 40), '1.5TiB');
   assert.equal(fmtBytes(0), ''); assert.equal(fmtBytes(null), ''); assert.equal(fmtBytes(undefined), '');
 });
 
@@ -157,4 +157,9 @@ test('loadTopologyState — 실패 · 빈 목록을 가르고, Master 는 등록
   const ok = await loadTopologyState(mk([{ node_id: 'lf', display_name: 'a', parent_node_id: 'tr' }]));
   assert.equal(ok.state, 'ok'); assert.deepEqual(ok.topo.master, { url: 'https://m', registered: true, registeredAt: '2026-10-01' }); assert.equal(ok.topo.localId, 'lf');
   assert.equal(await loadTopology(mk([], true)), null);
+});
+
+test('records — Master 노드 기록 전부, 세운 트리는 빼고', () => {
+  const T = buildTopology([{ node_id: 'l1', parent_node_id: 'gone', display_name: 'a' }, { node_id: 'm', master_host: true }]);
+  assert.deepEqual(T.records().map((n) => n.node_id).sort(), ['l1', 'm']);
 });
