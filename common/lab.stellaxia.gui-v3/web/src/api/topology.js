@@ -92,11 +92,11 @@ export function nodeStats(n, now = Date.now()) {
     memTotal: bytes(r.memory_total_bytes), memUsed: bytes(r.memory_used_bytes), diskTotal: bytes(r.disk_total_bytes), diskUsed: bytes(r.disk_used_bytes) };
 }
 
-/** 바이트 → '12.3 GB' 식. 없으면 '' */
+/** 바이트 → '12.3GiB' 식(IEC · 붙여 씀). 없으면 '' */
 export function fmtBytes(v) {
   if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) return '';
-  const U = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']; let i = 0; while (v >= 1024 && i < U.length - 1) { v /= 1024; i++; }
-  return (v >= 100 || i === 0 ? String(Math.round(v)) : v.toFixed(1).replace(/\.0$/, '')) + ' ' + U[i];
+  const U = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']; let i = 0; while (v >= 1024 && i < U.length - 1) { v /= 1024; i++; }
+  return (v >= 100 || i === 0 ? String(Math.round(v)) : v.toFixed(1).replace(/\.0$/, '')) + U[i];
 }
 
 /**

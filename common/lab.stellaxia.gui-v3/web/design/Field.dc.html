@@ -212,7 +212,7 @@ class Component extends DCLogic {
     //   NET — 스냅샷에 네트워크 처리량이 없고 코어에 노드별 실시간 지표 op 도 없다 → '—' 와 까닭. 시안이면 예시 그래프(움직임)
     const MT = !SMP && RN && typeof window !== 'undefined' && window.TerraMetrics ? window.TerraMetrics : null, mSp = MT ? MT.spark(RN.node_id, 'cpu', 17) : '';
     if (!SMP) add('c', [[this.pad('추이', 5), C.key], [mSp || this.pad('—', 17), mSp ? C.ok : C.hint], [mSp ? '  CPU' : '  보고 없음', C.hint]]);
-    const sparkRow = rows.length; add('c', [[this.pad('NET', 5), C.key], [SMP ? this.spark(17) : '—', SMP ? C.ok : C.hint], [SMP ? '  1.2 MB/s' : '  코어 : 실시간 지표 op 없음', SMP ? C.val : C.hint]], SMP ? 2 : 1);
+    const sparkRow = rows.length; add('c', [[this.pad('NET', 5), C.key], [SMP ? this.spark(17) : '—', SMP ? C.ok : C.hint], [SMP ? '  1.2MiB/s' : '  코어 : 실시간 지표 op 없음', SMP ? C.val : C.hint]], SMP ? 2 : 1);
     if (!SMP) add('c', [[MT ? MT.cadence(RN.node_id).text : '갱신 : — · Master 노드 기록 밖', C.hint]], 2);   // 갱신 주기 — 실시간인 척하지 않는다
     const rb = this._rows - 2;
     // 지도 — 우주 지도. 노드는 모두 궤도에(형제는 같은 궤도), 지도 뷰는 세 가지 — 트리 · 리프 · 리소스. 각 지도 뷰에선 그 뷰의 노드만 보이고(다른 뷰의 노드는 빼고) 궤도는 모두 보인다

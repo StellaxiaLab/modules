@@ -308,7 +308,7 @@ class Component extends DCLogic {
     const S = this.state, v = viewerOf(epCur ? epCur.schema : '', epCur ? epCur.enc : ''), C = connLabel(st), now = Date.now(), H = this.help();
     const T = st.times.filter((t) => now - t <= 3000), fps = T.length < 2 ? 0 : (T.length - 1) / Math.max(0.001, (T[T.length - 1] - T[0]) / 1000);
     const m = epCur && epCur.m, fmtN = (x) => (x == null ? '—' : m && m[4] === 2 ? (x ? 'HIGH' : 'LOW') : (+x).toFixed(m ? m[4] : Math.abs(x) < 10 ? 2 : 1)), N = numStats(st.num.hist);
-    const kb = (b) => (b < 1024 ? b + 'B' : b < 1048576 ? (b / 1024).toFixed(1) + 'KB' : (b / 1048576).toFixed(1) + 'MB');
+    const kb = (b) => (b < 1024 ? b + 'B' : b < 1048576 ? (b / 1024).toFixed(1) + 'KiB' : (b / 1048576).toFixed(1) + 'MiB');
     const meta = [epCur && epCur.schema ? epCur.schema + (epCur.enc ? ' · ' + epCur.enc : '') : '형식 모름', v.label, st.frames ? '프레임 ' + st.frames : '', st.seq ? '#' + st.seq : '', v.kind === 'video' && fps ? fps.toFixed(1) + ' fps' : '', st.bytes ? kb(st.bytes) : '', st.gaps ? '빠짐 ' + st.gaps : ''].filter(Boolean).join(' · ');
     return {
       vEps: eps.map((e) => { const on = epCur && e.id === epCur.id; return { name: e.id, k: viewerOf(e.schema, e.enc).label, cls: on ? 'on' : '', on: on ? 'true' : 'false', pick: () => { this.setState({ ep: e.id }); } }; }), hasVEps: eps.length > 1,

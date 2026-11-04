@@ -43,7 +43,7 @@ const src = (s) => (s ? SRC[s] || s : '');
 const rt = (r) => (r && ROUTE[r] ? ROUTE[r].t : r || '—');
 const ts = (iso) => { const t = Date.parse(iso || ''); return Number.isNaN(t) || /^0001-/.test(String(iso)) ? 0 : t; };
 const agoT = (sec) => (sec == null || sec < 0 ? '' : sec < 60 ? Math.round(sec) + 's 전' : sec < 3600 ? Math.round(sec / 60) + 'm 전' : sec < 86400 ? Math.round(sec / 3600) + 'h 전' : Math.round(sec / 86400) + 'd 전');
-const bytes = (n) => { let v = Number(n) || 0, i = 0; const U = ['B', 'KB', 'MB', 'GB', 'TB']; while (v >= 1024 && i < U.length - 1) { v /= 1024; i += 1; } return (i ? v.toFixed(v < 10 ? 1 : 0) : String(v)) + U[i]; };
+const bytes = (n) => { let v = Number(n) || 0, i = 0; const U = ['B', 'KiB', 'MiB', 'GiB', 'TiB']; while (v >= 1024 && i < U.length - 1) { v /= 1024; i += 1; } return (i ? v.toFixed(v < 10 ? 1 : 0) : String(v)) + U[i]; };
 /** 후보 하나 → 화면 줄 */
 const cand = (c) => ({ rt: c.route_type || '', rtT: rt(c.route_type), ad: c.adapter || '', healthy: !!c.healthy, lat: c.latency_ms != null ? c.latency_ms + 'ms' : '', reason: c.reason || '',
   from: ep(c.source && c.source.endpoint), to: ep(c.target && c.target.endpoint), probe: when(c.last_probe_at) });

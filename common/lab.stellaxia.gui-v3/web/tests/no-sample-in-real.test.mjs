@@ -32,9 +32,9 @@ test('NodeStatus 실제 — Master 기록 그대로, 200 GB · 1.7.x 없음, 총
   assert.equal(v.stText, '● 온라인'); assert.equal(v.src, 'Master 노드 기록');
   assert.equal(v.ident.find((x) => x.k === '버전').v, '0.6.10');
   const disk = v.bars.find((b) => b.name === 'DISK');
-  assert.equal(disk.pctT, '81%'); assert.equal(disk.note, '829 GB / 1 TB');
+  assert.equal(disk.pctT, '81%'); assert.equal(disk.note, '829GiB / 1TiB');
   assert.equal(v.bars.find((b) => b.name === 'MEM').note, '총량 보고 없음');   // Master 가 총량을 안 실었으면 만들지 않는다
-  assert.doesNotMatch(text(v), /200 GB|8\.0 GB|1\.7\./);
+  assert.doesNotMatch(text(v), /200 ?Gi?B|8\.0 ?Gi?B|1\.7\./);
 });
 
 test('NodeStatus 실제 — 9/24 이후 끊긴 노드는 온라인이 아니고, 자원은 마지막 보고', () => {
@@ -46,7 +46,7 @@ test('NodeStatus 실제 — 9/24 이후 끊긴 노드는 온라인이 아니고,
 test('NodeStatus 실제 — Master 목록에 없는 노드(시안 지도 · rid 없음)는 값 없이', () => {
   const v = render({ nodeName: 'lab-ws-02', nodeKind: '리프', nodeRid: '' });
   assert.match(v.note, /노드 목록에 없는 노드/); assert.equal(v.stText, '—');
-  assert.doesNotMatch(text(v), /온라인|200 GB|1\.7\./);
+  assert.doesNotMatch(text(v), /온라인|200 ?Gi?B|1\.7\./);
 });
 
 test('NodeConf 실제 — 코어 1.7.0 · 지어낸 노드 id · 사용자 · 경보 대신 Master 기록 · 빈 값', () => withWindow(() => {

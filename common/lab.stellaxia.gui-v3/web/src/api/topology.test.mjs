@@ -126,7 +126,7 @@ test('nodeStats — 지어내지 않는다: 낡은 online 은 응답 없음, 총
 });
 
 test('fmtBytes — 바이트를 읽을 수 있게, 없으면 빈 글자', () => {
-  assert.equal(fmtBytes(512 * 2 ** 30), '512 GB'); assert.equal(fmtBytes(15.5 * 2 ** 30), '15.5 GB'); assert.equal(fmtBytes(1.5 * 2 ** 40), '1.5 TB');
+  assert.equal(fmtBytes(512 * 2 ** 30), '512GiB'); assert.equal(fmtBytes(15.5 * 2 ** 30), '15.5GiB'); assert.equal(fmtBytes(1.5 * 2 ** 40), '1.5TiB');
   assert.equal(fmtBytes(0), ''); assert.equal(fmtBytes(null), ''); assert.equal(fmtBytes(undefined), '');
 });
 

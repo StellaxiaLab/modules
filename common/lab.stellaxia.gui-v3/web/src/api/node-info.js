@@ -16,7 +16,7 @@ import { nodeStats } from './topology.js';
 export const INFO_READS = ['status', 'state', 'graph', 'sessions', 'probes', 'logs'];
 const arr = (v) => (Array.isArray(v) ? v : []);
 const ROLE = { tree: 'Tree', leaf: 'Leaf', master: 'Master', relay: '중계', gateway: 'Gateway' };
-const bytes = (n) => { let v = Number(n) || 0, i = 0; const U = ['B', 'KB', 'MB', 'GB', 'TB']; while (v >= 1024 && i < U.length - 1) { v /= 1024; i += 1; } return (i ? v.toFixed(v < 10 ? 1 : 0) : String(v)) + U[i]; };
+const bytes = (n) => { let v = Number(n) || 0, i = 0; const U = ['B', 'KiB', 'MiB', 'GiB', 'TiB']; while (v >= 1024 && i < U.length - 1) { v /= 1024; i += 1; } return (i ? v.toFixed(v < 10 ? 1 : 0) : String(v)) + U[i]; };
 const ts = (iso) => { const t = Date.parse(iso || ''); return Number.isNaN(t) || /^0001-/.test(String(iso)) ? 0 : t; };
 
 /**

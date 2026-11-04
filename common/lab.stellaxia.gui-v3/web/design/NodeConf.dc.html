@@ -216,7 +216,7 @@ class Component extends DCLogic {
   profData(path) { const id = this.props.nodeKey || '', rel = this.relOf(path); if (!rel) return ''; try { return localStorage.getItem('terra.fs.f.' + id + ':' + rel) || ''; } catch (e) { return ''; } }
   profPick(f) {
     if (!f) return; if (!/^image\//.test(f.type)) { this.setState({ msg: '이미지 · GIF 파일만' }); return; }
-    if (f.size > 2.5 * 1024 * 1024) { this.setState({ msg: '2.5MB 이하만 — 브라우저 저장소 한계 (' + (f.size / 1048576).toFixed(1) + 'MB)' }); return; }
+    if (f.size > 2.5 * 1024 * 1024) { this.setState({ msg: '2.5MiB 이하만 — 브라우저 저장소 한계 (' + (f.size / 1048576).toFixed(1) + 'MB)' }); return; }
     const rd = new FileReader(); rd.onload = () => { const nm = (f.name || 'profile').replace(/[\\/:*?"<>|]+/g, '_'); this._pend = { name: nm, mime: f.type, size: f.size, data: rd.result }; this.set('profile', '(새 파일) ' + nm + ' · ' + Date.now()); }; rd.readAsDataURL(f);
   }
   profApply(v) {
@@ -282,7 +282,7 @@ class Component extends DCLogic {
     const D = (id, label, sub, t1, t2, off) => ({ label, sub, isDanger: true, dOff: off ? 'disabled' : null, dCls: S.arm === id ? 'arm' : '', dT: off ? t1 : S.arm === id ? t2 : t1, act: () => { if (off) return; if (S.arm === id) { this.setState({ arm: null, needRestart: 0, msg: label + ' — 요청 보냄 (시안 · POST /restart)' }); } else { this.setState({ arm: id }); clearTimeout(this._armT); this._armT = setTimeout(() => this.setState({ arm: null }), 4000); } } });
     if (sec === 'show') return [T('label', '이름표', '항상 표시'), T('orbit', '궤도 선', ''), G('color', '노드 색', '', ['기본', '파랑', '초록', '주황']), G('proj', '표시 방식', '', ['마스크', '레거시', '혼합'])];
     if (sec === 'prof') { const cur = v.profile, pend = cur && cur.startsWith('(새 파일) ') && this._pend, img = pend ? this._pend.data : this.profData(cur);
-      return [{ label: '프로필 사진', sub: '이미지 · GIF · 2.5MB 이하', isProf: true, pImg: img || '', hasImg: !!img, noImg: !img,
+      return [{ label: '프로필 사진', sub: '이미지 · GIF · 2.5MiB 이하', isProf: true, pImg: img || '', hasImg: !!img, noImg: !img,
         pPath: pend ? '적용하면 → ' + this.nodeBase() + '/데이터/profile/image/' + this._pend.name : cur ? (cur.startsWith('/데이터/') ? this.nodeBase() + cur : cur) : '없음', pProps: this.nodeBase() + '/데이터/properties.json › profile.image',
         pick: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.profPick(f); }, clear: () => { this._pend = null; this.set('profile', ''); } }]; }
     if (sec === 'skin') { const L = this.starIdx(), planet = (this.props.nodeKind || '리프') === '리프', pick = (id) => () => this.set('skin', id), C = (id) => (v.skin === id ? 'on' : '');

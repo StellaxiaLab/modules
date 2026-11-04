@@ -47,7 +47,7 @@ export function createTerra(o = {}) {
   return {
     /** @param {string} id operation id @param {object} [input] 평평한 입력 @param {{ node?: string }} [at] node 를 주면 그 노드에서 */
     async invoke(id, input = {}, at = {}) {
-      if (at.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' 은 그 노드에서만 부를 수 있다', 0);
+      if (at.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' — 이 노드에서만', 0);
       const path = at.node ? `/api/v1/nodes/${encodeURIComponent(at.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
       let res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input) });
       if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input) }); }
@@ -70,7 +70,7 @@ export function createTerra(o = {}) {
      * @param {string} id @param {object} input @param {{ onEvent: (e: object) => void, onClose?: () => void, node?: string }} h
      */
     async sse(id, input, h) {
-      if (h.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' 은 그 노드에서만 부를 수 있다', 0);
+      if (h.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' — 이 노드에서만', 0);
       const path = h.node ? `/api/v1/nodes/${encodeURIComponent(h.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
       const ac = typeof AbortController === 'function' ? new AbortController() : null;
       const res = await send(path, { method: 'POST', headers: Object.assign(headers(), { accept: 'text/event-stream' }), body: JSON.stringify(input || {}), signal: ac ? ac.signal : undefined });
