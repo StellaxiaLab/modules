@@ -45,14 +45,20 @@
 
     <!-- 자원 · 허가 -->
     <sc-if value="{{isRes}}" hint-placeholder-val="{{ false }}">
-      <h3 class="nc-h">이 노드의 자원<span class="nc-hr"></span><span class="nc-k">허가 기한 <span class="nc-seg"><sc-for list="{{ttls}}" as="tt" hint-placeholder-count="3"><button type="button" class="{{tt.cls}}" onClick="{{tt.pick}}">{{tt.label}}</button></sc-for></span></span></h3>
+      <h3 class="nc-h">이 노드의 자원<span class="nc-hr"></span></h3>
+      <div class="sv-gbar">
+        <span class="nc-k">허가 주체</span><span class="nc-seg" role="radiogroup" aria-label="허가 주체"><sc-for list="{{subjOpts}}" as="so" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{so.on}}" class="{{so.cls}}" onClick="{{so.pick}}">{{so.label}}</button></sc-for></span>
+        <span class="nc-k">기한</span><span class="nc-seg"><sc-for list="{{ttls}}" as="tt" hint-placeholder-count="4"><button type="button" class="{{tt.cls}}" onClick="{{tt.pick}}">{{tt.label}}</button></sc-for></span>
+      </div>
+      <div class="sv-gbar"><span class="nc-k">작업</span><span class="sv-ops" role="group" aria-label="줄 작업"><sc-for list="{{opChips}}" as="oc" hint-placeholder-count="7"><button type="button" class="sv-op {{oc.cls}}" aria-pressed="{{oc.on}}" onClick="{{oc.pick}}" disabled="{{oc.off}}" title="{{oc.tip}}">{{oc.label}}</button></sc-for></span></div>
+      <div class="nc-k sv-gnote">{{grantNote}}</div>
       <sc-for list="{{decls}}" as="d" hint-placeholder-count="2">
         <div class="sv-res">
           <div class="sh-row"><b class="sh-res">{{d.name}}</b><span class="sv-chip {{d.stCls}}">{{d.st}}</span><span class="sv-sub">{{d.fam}} · {{d.dir}}</span><span class="sv-sub sv-cut" title="{{d.detail}}">{{d.detail}}</span><span style="flex: 1;"></span><button type="button" class="nc-btn" onClick="{{d.undeclare}}" disabled="{{d.off}}">해제</button></div>
           <sc-if value="{{d.hasReason}}" hint-placeholder-val="{{ false }}"><div class="sv-warn">{{d.reason}}</div></sc-if>
-          <div class="sv-grants"><span class="nc-k">허가한 노드</span>
+          <div class="sv-grants"><span class="nc-k">{{d.gLabel}}</span>
             <sc-for list="{{d.nodes}}" as="g" hint-placeholder-count="3"><button type="button" class="sv-gn {{g.cls}}" aria-pressed="{{g.on}}" onClick="{{g.toggle}}" title="{{g.tip}}" disabled="{{g.off}}">{{g.name}}<span class="sv-sub">{{g.perm}}</span></button></sc-for>
-            <sc-if value="{{d.noNodes}}" hint-placeholder-val="{{ false }}"><span class="sv-sub">허가할 다른 노드 없음</span></sc-if>
+            <sc-if value="{{d.noNodes}}" hint-placeholder-val="{{ false }}"><span class="sv-sub">{{d.noNodesT}}</span></sc-if>
           </div>
         </div>
       </sc-for>

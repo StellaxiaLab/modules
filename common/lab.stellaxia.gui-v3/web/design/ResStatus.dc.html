@@ -94,7 +94,7 @@ body{margin:0;background:transparent}
   <sc-if value="{{hasVEps}}" hint-placeholder-val="{{ true }}"><div class="rs-seg" role="tablist" aria-label="끝점"><sc-for list="{{vEps}}" as="e" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{e.on}}" class="{{e.cls}}" onClick="{{e.pick}}">{{e.name}}<span class="rs-sk">{{e.k}}</span></button></sc-for></div></sc-if>
   <div class="rs-vmeta ns-k">{{vMeta}}</div>
   <sc-if value="{{noEp}}" hint-placeholder-val="{{ false }}"><div class="ns-k">내보내는 끝점이 없다 — 볼 값이 없다</div></sc-if>
-  <sc-if value="{{locked}}" hint-placeholder-val="{{ false }}"><div class="rs-lock"><div class="rs-lock-h"><span class="rs-lk" aria-hidden="true">⊘</span><b>값 보기 잠김</b><span class="ns-k">{{vMeta}}</span></div><div class="rs-why">{{lockWhy}}</div><div class="ns-k">{{lockAlt}}</div></div></sc-if>
+  <sc-if value="{{locked}}" hint-placeholder-val="{{ false }}"><div class="rs-lock"><div class="rs-lock-h"><span class="rs-lk" aria-hidden="true">⊘</span><b>값 보기 잠김</b></div><div class="rs-why">{{lockWhy}}</div><div class="ns-k">{{lockAlt}}</div></div></sc-if>
   <sc-if value="{{unlocked}}" hint-placeholder-val="{{ true }}">
     <sc-if value="{{isNum}}" hint-placeholder-val="{{ true }}">
       <div class="rs-now"><b>{{nowT}}</b><span class="ns-k">{{unitT}}</span><span style="flex: 1;"></span><span class="ns-k">최소</span><span>{{minT}}</span><span class="ns-k">평균</span><span>{{avgT}}</span><span class="ns-k">최대</span><span>{{maxT}}</span></div>

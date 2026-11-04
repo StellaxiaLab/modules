@@ -28,10 +28,18 @@
         </div>
       </sc-for>
       <sc-if value="{{hasRes}}" hint-placeholder-val="{{ true }}"><div class="sh-compose">
-        <div class="sh-c-row"><span class="sh-lab">대상</span><span class="nc-seg"><sc-for list="{{whoOpts}}" as="o" hint-placeholder-count="4"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span class="nc-k">{{whoNote}}</span></div>
-        <sc-if value="{{hasPicks}}" hint-placeholder-val="{{ false }}"><div class="sh-c-row"><span class="sh-lab"></span><span class="sh-picks"><sc-for list="{{picks}}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{p.on}}" class="sh-pick {{p.cls}}" onClick="{{p.pick}}">{{p.name}}</button></sc-for></span></div></sc-if>
-        <div class="sh-c-row"><span class="sh-lab">권한</span><span class="nc-seg"><sc-for list="{{permOpts}}" as="o" hint-placeholder-count="5"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span class="nc-k sh-ops">{{permOps}}</span></div>
-        <div class="sh-c-row"><span class="sh-lab">기한</span><span class="nc-seg"><sc-for list="{{ttlOpts}}" as="o" hint-placeholder-count="4"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span style="flex: 1;"></span><button type="button" class="nc-btn nc-pri" onClick="{{give}}">공유</button></div>
+        <div class="sh-c-row"><span class="sh-lab">주체</span><span class="nc-seg" role="radiogroup" aria-label="주체 종류"><sc-for list="{{kindOpts}}" as="o" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span class="nc-k">{{kindNote}}</span></div>
+        <sc-if value="{{isNodeKind}}" hint-placeholder-val="{{ true }}">
+          <div class="sh-c-row"><span class="sh-lab">대상</span><span class="nc-seg"><sc-for list="{{whoOpts}}" as="o" hint-placeholder-count="3"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span class="nc-k">{{whoNote}}</span></div>
+          <sc-if value="{{hasPicks}}" hint-placeholder-val="{{ false }}"><div class="sh-c-row"><span class="sh-lab"></span><span class="sh-picks"><sc-for list="{{picks}}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{p.on}}" class="sh-pick {{p.cls}}" onClick="{{p.pick}}">{{p.name}}</button></sc-for></span></div></sc-if>
+        </sc-if>
+        <sc-if value="{{isUserKind}}" hint-placeholder-val="{{ false }}">
+          <div class="sh-c-row"><span class="sh-lab">대상</span><span class="sh-picks"><sc-for list="{{people}}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{p.on}}" class="sh-pick {{p.cls}}" onClick="{{p.pick}}" disabled="{{p.off}}" title="{{p.tip}}">{{p.name}}</button></sc-for></span></div>
+          <div class="sh-c-row"><span class="sh-lab"></span><span class="sh-lock"><span aria-hidden="true">⊘</span> {{peopleWhy}}</span></div>
+        </sc-if>
+        <div class="sh-c-row"><span class="sh-lab">작업</span><span class="sh-picks" role="group" aria-label="줄 작업"><sc-for list="{{opChips}}" as="c" hint-placeholder-count="7"><button type="button" aria-pressed="{{c.on}}" class="sh-pick sh-op {{c.cls}}" onClick="{{c.pick}}" disabled="{{c.off}}" title="{{c.tip}}">{{c.name}}</button></sc-for></span></div>
+        <div class="sh-c-row"><span class="sh-lab">기한</span><span class="nc-seg"><sc-for list="{{ttlOpts}}" as="o" hint-placeholder-count="5"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span style="flex: 1;"></span><button type="button" class="nc-btn nc-pri" onClick="{{give}}" disabled="{{giveOff}}">공유</button></div>
+        <div class="sh-c-row"><span class="sh-lab"></span><span class="nc-k sh-ops">{{permOps}}</span></div>
       </div></sc-if>
     </sc-if>
     <sc-if value="{{isReg}}" hint-placeholder-val="{{ false }}">

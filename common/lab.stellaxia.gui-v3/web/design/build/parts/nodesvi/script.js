@@ -63,12 +63,57 @@ const ST = { active: ['연결됨', 'ok'], degraded: ['끊김', 'warn'], failed: 
 const DST = { applied: ['적용됨', 'ok'], shadowed: ['가려짐', 'warn'], refused_by_policy: ['울타리가 거절', 'err'] };
 const FAM = { file: '파일', process: '프로그램', net: '네트워크' };
 const TTLS = [['1일', 86400], ['7일', 604800], ['30일', 2592000], ['90일', 7776000]];
+// 허가 주체(노드 · 사람) — Master 위임 가드 규칙. 아래는 src/api/svi-grant.js 의 사본(시안용) — tests/svi-grant-boards.test.mjs 가 같은지 본다
+const GRANT_OPS = ['inspect', 'read', 'subscribe', 'bind.source', 'bind.target', 'write', 'invoke'];
+const GUARD_OPS = { user: ['inspect', 'read', 'subscribe', 'bind.source', 'bind.target'], node: ['read', 'subscribe', 'bind.source'] };
+const GRANT_DEFAULTS = { user: ['inspect', 'read', 'subscribe'], node: ['read', 'subscribe', 'bind.source'] };
+const GUARD_MAX_TTL = 90 * 86400;
+const GRANT_TTLS = [['1시간', 3600], ['1일', 86400], ['7일', 604800], ['30일', 2592000], ['90일', 7776000]];
+const OP_KO = { discover: '찾기', inspect: '살펴보기', read: '읽기', list: '목록', watch: '지켜보기', subscribe: '구독', 'bind.source': '연결 원천', 'bind.target': '연결 대상', write: '쓰기', invoke: '호출' };
+const KIND_KO = { user: '사람', node: '노드' };
+function selfIdOf(who) {
+  const p = String((who && who.principal) || '').split(/\s+via\s+/)[0].replace(/^user:/, '').trim();
+  return p && p !== 'anonymous' ? p : '';
+}
+function subjectRule(type, id, selfId) {
+  const allow = GUARD_OPS[type] || [];
+  let why = '';
+  if (!allow.length) why = '위임 가드 — 앱 자격으로는 나 자신 또는 같은 클러스터의 노드에게만';
+  else if (type === 'user' && !selfId) why = '로그인한 사용자를 알 수 없다';
+  else if (type === 'user' && id !== selfId) why = '위임 가드 — 앱 자격으로는 사람 가운데 나 자신에게만 줄 수 있다(ADR-GW-004 D-3)';
+  return { ok: !why, why,
+    ops: GRANT_OPS.map((op) => { const ok = allow.includes(op); return { op, label: OP_KO[op] || op, ok, why: ok ? '' : '앱 자격으로는 ' + (KIND_KO[type] || type) + '에게 ' + op + ' 를 줄 수 없다' }; }),
+    defaults: (GRANT_DEFAULTS[type] || []).slice(), ttls: GRANT_TTLS.slice() };
+}
+function allowedOps(type, picked) {
+  const allow = GUARD_OPS[type] || [], s = new Set(picked || []);
+  return GRANT_OPS.filter((op) => allow.includes(op) && s.has(op));
+}
+function toggleOp(type, picked, op) {
+  if (!(GUARD_OPS[type] || []).includes(op)) return allowedOps(type, picked);
+  const s = new Set(picked || []); if (s.has(op)) s.delete(op); else s.add(op);
+  return allowedOps(type, [...s]);
+}
+function checkGrant(g, selfId) {
+  const no = (why) => ({ ok: false, why });
+  const type = (g && g.subject_type) || 'user', allow = GUARD_OPS[type];
+  if (!allow) return no('위임 가드 — 앱 자격으로는 나 자신 또는 같은 클러스터의 노드에게만');
+  if (!g.subject_id) return no('받는 이가 없다');
+  if (type === 'user' && g.subject_id !== selfId) return no(selfId ? '위임 가드 — 사람 가운데 나 자신에게만' : '로그인한 사용자를 알 수 없다');
+  const ops = Array.isArray(g.operations) ? g.operations : [];
+  if (!ops.length) return no('작업을 하나 이상 고른다');
+  const bad = ops.find((o) => !allow.includes(o)); if (bad) return no('앱 자격으로는 ' + KIND_KO[type] + '에게 ' + bad + ' 를 줄 수 없다');
+  if (!(g.ttl_seconds > 0)) return no('위임 허가는 기한이 있어야 한다(90일 이하)');
+  if (g.ttl_seconds > GUARD_MAX_TTL) return no('위임 허가는 90일까지');
+  return { ok: true, why: '' };
+}
+const opsText = (ops) => (ops && ops.length ? ops.map((o) => OP_KO[o] || o).join(' · ') : '—');
 
 class Component extends DCLogic {
   constructor(props) {
     super(props);
     let pre = {}; try { pre = props.pre ? JSON.parse(props.pre) : {}; } catch (e) { pre = {}; }
-    this.state = { tab: pre.tab || 'make', typeId: pre.type || 'file', vals: pre.values || {}, fname: pre.name || '', replace: false, data: null, msg: '', busy: false, pick: null, hot: '', ttl: 604800, t: 0 };
+    this.state = { tab: pre.tab || 'make', typeId: pre.type || 'file', vals: pre.values || {}, fname: pre.name || '', replace: false, data: null, msg: '', busy: false, pick: null, hot: '', ttl: 604800, t: 0, subj: 'node', gops: { node: GRANT_DEFAULTS.node.slice(), user: GRANT_DEFAULTS.user.slice() } };
     this._drag = null;
   }
   componentDidMount() { this._live = true; this.pull(); this._iv = setInterval(() => { if (this._live && this.real()) this.pull(); }, 10000); }
@@ -96,6 +141,8 @@ class Component extends DCLogic {
     return { builtin: BUILTIN, mods };
   }
   rid() { return this.props.nodeRid || ''; }
+  /** 이 계정의 사용자 id — 실제는 whoami(TerraSviMake.selfNow), 시안은 admin */
+  selfId() { return this.real() ? (window.TerraSviMake.selfNow ? window.TerraSviMake.selfNow() : '') : 'admin'; }
   nodeName(id) { const D = this.state.data; const n = D && D.nodes && D.nodes.find((x) => x.id === id); return n ? n.name : id ? String(id).slice(0, 10) : '—'; }
 
   /** 시안 — load() 와 같은 모양 */
@@ -108,7 +155,7 @@ class Component extends DCLogic {
       retired: [], nodes: [{ id: mid, name: me }, { id: 'nd_02', name: '02' }, { id: 'nd_nas', name: 'nas-01' }],
       eps: [E('r-log', 'meter-log', mid, 'out', 'source', 'stream', 'terra.bytes@1'), E('r-cam', 'cam-front', 'nd_02', 'video', 'source', 'stream', 'terra.video@1'), E('r-mic', 'mic', 'nd_02', 'out', 'source', 'stream', 'terra.bytes@1'),
         E('r-store', 'archive', 'nd_nas', 'in', 'sink', 'stream', 'terra.bytes@1'), E('r-rec', 'recorder', 'nd_nas', 'in', 'sink', 'stream', 'terra.video@1'), E('r-cmd', 'relay-switch', mid, 'cmd', 'sink', 'command', 'terra.bytes@1')],
-      grants: [{ id: 'g1', type: 'node', subject: 'nd_02', resId: 'r-log', ops: ['read', 'subscribe'], expires: '' }],
+      grants: [{ id: 'g1', type: 'node', subject: 'nd_02', resId: 'r-log', ops: ['read', 'subscribe'], expires: '' }, { id: 'g2', type: 'user', subject: 'admin', resId: 'r-log', ops: ['inspect', 'read', 'subscribe', 'bind.source'], expires: '' }],
       bindings: [{ id: 'b1', src: { resource_id: 'r-cam', endpoint_id: 'video' }, dst: { resource_id: 'r-rec', endpoint_id: 'in' }, srcNode: 'nd_02', dstNode: 'nd_nas', st: { label: '연결됨', cls: 'ok', reason: '' } },
         { id: 'b2', src: { resource_id: 'r-mic', endpoint_id: 'out' }, dst: { resource_id: 'r-store', endpoint_id: 'in' }, srcNode: 'nd_02', dstNode: 'nd_nas', st: { label: '끊김', cls: 'warn', reason: '한쪽 노드 연결 끊김' } },
         { id: 'b3', src: { resource_id: 'r-log', endpoint_id: 'out' }, dst: { resource_id: 'r-store', endpoint_id: 'in' }, srcNode: mid, dstNode: 'nd_nas', st: { label: '닫힘', cls: 'dim', reason: '원천이 끝남(파일 끝 등)' } }] };
@@ -155,16 +202,28 @@ class Component extends DCLogic {
         if (!o.envBad) d.eps.push({ resId: 'r-' + nm, resName: nm, node: 'nd_' + (this.props.nodeName || 'desk'), epId: inp.direction === 'sink' ? 'in' : 'out', dir: inp.direction, interaction: 'stream', schema: 'terra.bytes@1', status: 'available', ops: [] }); return d; });
       set({ fname: '', vals: {}, tried: false, replace: false }); };
 
-    // ── 자원 · 허가 ──
-    const me = this.rid() || ((D && D.nodes && D.nodes[0]) || {}).id, others = ((D && D.nodes) || []).filter((n) => n.id !== me);
+    // ── 자원 · 허가 — 주체(노드 · 사람)마다 고를 수 있는 작업 · 기한은 위임 가드대로(svi-grant.js) ──
+    const me = this.rid() || ((D && D.nodes && D.nodes[0]) || {}).id, others = ((D && D.nodes) || []).filter((n) => n.id !== me), K = s.subj, self = this.selfId();
+    const RU = subjectRule(K, K === 'user' ? self : 'n', self), gops = allowedOps(K, s.gops[K]), ttlT = (TTLS.find((t) => t[1] === s.ttl) || TTLS[1])[0];
+    const UG = R && window.TerraGate ? window.TerraGate('terra.master.admin.users.get') : { open: true, why: '' };
     o.ttls = TTLS.map(([l, v]) => ({ label: l, cls: s.ttl === v ? 'on' : '', pick: () => set({ ttl: v }) }));
-    o.decls = decls.map((d) => { const st = DST[d.state] || [d.state || '—', 'dim'];
-      return { name: d.name, fam: FAM[d.family] || d.family, dir: d.dir === 'sink' ? '받음' : '내보냄', detail: d.detail, st: st[0], stCls: st[1], hasReason: !!d.reason, reason: d.reason, off: s.busy,
+    o.subjOpts = [['node', '노드'], ['user', '사람']].map(([id, nm]) => ({ label: nm, cls: K === id ? 'on' : '', on: K === id ? 'true' : 'false', pick: () => set({ subj: id }) }));
+    o.opChips = RU.ops.map((c) => { const on = gops.includes(c.op); return { label: c.label, on: on ? 'true' : 'false', cls: (on ? 'on' : '') + (c.ok ? '' : ' lock'), off: c.ok ? null : 'disabled', tip: c.ok ? c.op : c.why, pick: () => set({ gops: Object.assign({}, s.gops, { [K]: toggleOp(K, s.gops[K], c.op) }) }) }; });
+    o.grantNote = K === 'user' ? (UG.open ? '' : '사람 목록 잠김 — ' + UG.why + ' · ') + '사람에게는 나 자신에게만(위임 가드) — inspect · read · subscribe · bind.source · bind.target, 90일 이하'
+      : '노드에게 read · subscribe · bind.source, 90일 이하(위임 가드) — 같은 클러스터의 노드만';
+    const opsShort = (ops) => (ops.includes('bind.source') || ops.includes('bind.target') ? '연결' + (ops.includes('read') ? ' · 읽기' : '') : ops.includes('read') || ops.includes('subscribe') ? '읽기' : ops.includes('inspect') ? '살펴보기' : opsText(ops));
+    o.decls = decls.map((d) => { const st = DST[d.state] || [d.state || '—', 'dim'], G = (D && D.grants) || [], blocked = s.busy || !d.resId || d.state !== 'applied';
+      const subs = K === 'user' ? [{ id: self, name: '나' + (self ? ' · ' + self : ''), self: true }] : others;
+      return { name: d.name, fam: FAM[d.family] || d.family, dir: d.dir === 'sink' ? '받음' : '내보냄', detail: d.detail, st: st[0], stCls: st[1], hasReason: !!d.reason, reason: d.reason, off: s.busy, gLabel: K === 'user' ? '허가한 사람' : '허가한 노드',
         undeclare: () => this.act(d.name + ' 해제 — 그 위의 연결은 끝난다', () => window.TerraSviMake.undeclare(this.rid(), d.family, d.name), (x) => { x.decls = x.decls.filter((y) => y.name !== d.name); x.eps = x.eps.filter((y) => y.resId !== d.resId); return x; }),
-        noNodes: !others.length, nodes: others.map((n) => { const g = ((D && D.grants) || []).find((x) => x.type === 'node' && x.subject === n.id && x.resId === d.resId), on = !!g;
-          return { name: n.name, on: on ? 'true' : 'false', cls: on ? 'on' : '', perm: on ? (g.ops.includes('bind.source') ? '연결 원천' : '읽기') : '', off: s.busy || !d.resId || d.state !== 'applied', tip: on ? '눌러 회수' : '눌러 허가 — 읽기 · 연결 원천(' + TTLS.find((t) => t[1] === s.ttl)[0] + ')',
-            toggle: () => on ? this.act(n.name + ' 허가 회수', () => window.TerraSviMake.revoke(g.id), (x) => { x.grants = x.grants.filter((y) => y.id !== g.id); return x; })
-              : this.act(n.name + ' 에 허가', () => window.TerraSviMake.grant(d.resId, n.id, ['read', 'subscribe', 'bind.source'], s.ttl), (x) => { x.grants.push({ id: 'g' + Date.now(), type: 'node', subject: n.id, resId: d.resId, ops: ['read', 'subscribe', 'bind.source'] }); return x; }) }; }) }; });
+        noNodes: K === 'node' && !others.length, noNodesT: '허가할 다른 노드 없음',
+        nodes: subs.map((n) => { const g = G.find((x) => x.type === K && x.subject === n.id && x.resId === d.resId), on = !!g, rule = K === 'user' ? subjectRule('user', n.id, self) : { ok: true, why: '' };
+          const chk = checkGrant({ subject_type: K, subject_id: n.id, operations: gops, ttl_seconds: s.ttl }, self);
+          return { name: n.name, on: on ? 'true' : 'false', cls: on ? 'on' : '', perm: on ? opsShort(g.ops) : '', off: blocked || (!on && !chk.ok) ? 'disabled' : null,
+            tip: on ? '눌러 회수 — ' + opsText(g.ops) : !rule.ok ? rule.why : !chk.ok ? chk.why : '눌러 허가 — ' + opsText(gops) + '(' + ttlT + ')',
+            toggle: () => on ? this.act((K === 'user' ? '나' : n.name) + ' 허가 회수', () => window.TerraSviMake.revoke(g.id), (x) => { x.grants = x.grants.filter((y) => y.id !== g.id); return x; })
+              : !chk.ok ? set({ msg: chk.why }) : K === 'user' ? this.act('나에게 허가', () => window.TerraSviMake.grantTo('user', n.id, d.resId, gops, s.ttl), (x) => { x.grants.push({ id: 'g' + Date.now(), type: 'user', subject: n.id, resId: d.resId, ops: gops }); return x; })
+                : this.act(n.name + ' 에 허가', () => window.TerraSviMake.grant(d.resId, n.id, gops, s.ttl), (x) => { x.grants.push({ id: 'g' + Date.now(), type: 'node', subject: n.id, resId: d.resId, ops: gops }); return x; }) }; }) }; });
     o.noDecls = !!D && !decls.length;
 
     // ── 연결 ──
