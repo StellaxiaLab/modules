@@ -14,6 +14,17 @@ const B_ONLY = {
   'terra.master.crossboundary.login-routes.get': '다른 Tree 로그인 길 — 위임 밖(terra-reach §5)',
   'terra.master.crossboundary.login-routes.by-node-id.resolve.post': '자식 Tree 주소 묻기 — 위임 밖'
 };
+// 위임 밖이라 문(window.TerraGate)이 잠근 단추로만 그리는 것 — 확인 단계까지는 보이고 마지막 단추가 why 와 함께 잠긴다(src/api/desk-flows.js).
+//   코어가 위임을 열면 master-delegated.json 만 다시 뽑아 저절로 열린다 — 그때 여기서 빼도 되고 안 빼도 시험은 통과한다
+const GATED = {
+  'terra.master.network.mesh.wireguard.reconcile.post': '네트워크 › 자동 조정', 'terra.master.network.mesh.wireguard.plan.post': '네트워크 › 수동 계획',
+  'terra.master.network.mesh.wireguard.peers.revoke.post': '네트워크 › 피어 철회', 'terra.master.network.probes.post': '네트워크 › probe 실행',
+  'terra.master.route.policies.put': '네트워크 › 정책 저장', 'terra.master.route.policies.by-policy-id.delete': '네트워크 › 정책 지우기',
+  'terra.master.route.sessions.by-session-id.close.post': '네트워크 › 세션 닫기', 'terra.master.connection-groups.by-group-id.close.post': '네트워크 › 연결 그룹 닫기',
+  'terra.master.service-tunnels.open.post': '자원 관리 › 서비스 터널 열기',
+  'terra.master.users.by-user-id.external-identities.post': '설정 › 계정 › 외부 신원 연결', 'terra.master.users.by-user-id.external-identities.delete': '설정 › 계정 › 외부 신원 해제',
+  'terra.master.admin.external-issuers.get': '설정 › 계정 › 신뢰 발급자 목록', 'terra.master.admin.external-issuers.post': '설정 › 계정 › 신뢰 발급자 더하기', 'terra.master.admin.external-issuers.delete': '설정 › 계정 › 신뢰 발급자 빼기'
+};
 const files = (dir, ext) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name), ext) : ext.test(e.name) && !/\.test\.mjs$/.test(e.name) ? [join(dir, e.name)] : []));
 
 test('표 — 계약에서 뽑은 모양(op id → method · path · permissions)', () => {
@@ -26,6 +37,6 @@ test('gui-v3 가 부르는 Master op — 모두 위임 표에 있거나 B 모드
   const used = new Set();
   for (const f of [...files(join(web, 'src'), /\.js$/), ...files(join(web, 'design'), /\.dc\.html$/)]) for (const m of readFileSync(f, 'utf8').matchAll(/'(terra\.master\.[a-z0-9.-]+)'/g)) used.add(m[1]);
   assert.ok(used.size > 0);
-  const out = [...used].filter((id) => !table.operations[id] && !B_ONLY[id]);
-  assert.deepEqual(out, [], '위임 밖인데 B 모드 전용으로 적히지 않은 Master op');
+  const out = [...used].filter((id) => !table.operations[id] && !B_ONLY[id] && !GATED[id]);
+  assert.deepEqual(out, [], '위임 밖인데 B 모드 전용 · 문(gate)으로 잠근 단추로 적히지 않은 Master op');
 });
