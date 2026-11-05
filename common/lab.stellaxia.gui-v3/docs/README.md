@@ -36,6 +36,7 @@ related:
   - "[[controller-files-jobs|제어기 파일 · 작업 · 밀어 받기]]"
   - "[[desk-flows|제어기 쓰기 흐름]]"
   - "[[svi-view|자원 상태 창의 값 보기]]"
+  - "[[module-gui-widgets|제안 — 모듈 위젯]]"
 ---
 
 # Terra GUI v3 문서 MOC
@@ -84,6 +85,7 @@ flowchart LR
 | 자원 상태 창의 값 보기(형식별 뷰어 · 구독) · 허가 주체(노드 · 사람) | [[svi-view\|자원 상태 창의 값 보기]] |
 | node-gui 를 대체하려면 — 현황 점검(2026-10-31) · 기능 격차 · Terra 쪽 같이 바꿀 것 | [[replacement-readiness\|node-gui 대체 준비도]] |
 | 보드가 실제 화면에서 의도대로 안 되는 곳 — 창마다 실제냐 시안이냐 · 고칠 곳 · 어긋나지 않게 하는 절차 | [[design-ops-gaps\|시안 ↔ 실제 운영 격차]] |
+| 모듈이 GUI 의 자리(정보 칸 · 상태 카드 · 우클릭 · 바탕화면 · 값 뷰어)에 컴포넌트를 넣는 길 — 코어가 할 일 C1–C7 | [[module-gui-widgets\|제안 — 모듈 위젯]] |
 
 ## 폴더
 
@@ -92,6 +94,7 @@ flowchart LR
 | `docs/` | 이 MOC |
 | `docs/analysis/` | [[legacy-node-gui-overview\|전체 분석]] · [[legacy-app-layer\|기능 층 분석]] · [[settings-inventory\|설정 종합]] · [[settings-terra-core\|코어 설정 전수표]] · [[settings-modules\|modules 설정 전수표]] · [[terra-reach\|Terra 도달 분석]] · [[design-ops-gaps\|시안 ↔ 운영 격차]] |
 | `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] · [[node-data\|노드 데이터와 분할]] · [[main-scene\|main Scene]] · [[net-props\|네트워크 속성 창]] · [[terminals\|두 터미널]] · [[svi-make\|자원화 창]] · [[node-shell\|노드 셸]] |
+| `docs/proposals/` | 코어(Terra)가 구현할 제안 — [[module-gui-widgets\|모듈 위젯]] |
 
 ## 기준
 
