@@ -1,0 +1,220 @@
+{
+  "$comment": "위험 영역 확인 화면(웹 앱 명령 실행). 내장 엘리먼트로 그린다 — 이 Fragment 에는 terra.web/frame 이 없다. 웹 페이지가 이 화면 위에 겹쳐 그리거나 단추를 대신 누를 수 없게 하려는 것이다(/login 카드와 같은 구조, Terra ADR-GW-012 §6.1). 문구는 모두 고정이다 — 웹이 보낸 값은 한 글자도 여기 닿지 않는다. 켜기 · 끄기 단추는 입력이 상수로 고정된 Function(gui-v3.danger.allow · block)을 부르고, 그 호출은 이 Scene 이 쥔 Credential Handle(사람 세션)로 나간다.",
+  "schemaVersion": "0.1.0",
+  "id": "gui-v3.danger",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Terra — 위험 영역",
+  "stores": [
+    "danger"
+  ],
+  "functions": [
+    "gui-v3.danger.allow",
+    "gui-v3.danger.block",
+    "gui-v3.danger.close"
+  ],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "align": "center",
+    "justify": "center",
+    "gap": "lg",
+    "children": [
+      {
+        "type": "card",
+        "id": "card",
+        "children": [
+          {
+            "type": "text",
+            "id": "title",
+            "variant": "mono",
+            "text": "⚠ 위험 영역 — 웹 앱 명령 실행"
+          },
+          {
+            "type": "divider",
+            "id": "ruleTop"
+          },
+          {
+            "type": "text",
+            "id": "what",
+            "text": "허용하면 : 이 노드에서 웹 앱(GUI 페이지)이 임의 명령을 실행할 수 있음"
+          },
+          {
+            "type": "text",
+            "id": "elevated",
+            "text": "Daemon 이 승격(관리자 권한)으로 돌면 : 그 명령도 관리자 권한으로 실행됨"
+          },
+          {
+            "type": "text",
+            "id": "audit",
+            "text": "기록 : 켜기 · 끄기 · 허용 중 앱이 낸 실행 · 막힌 실행이 Daemon audit.log 에 남음"
+          },
+          {
+            "type": "text",
+            "id": "scope",
+            "variant": "caption",
+            "text": "이 노드에서만 바꿀 수 있음 · CLI · Agent · 사람 세션의 실행에는 영향 없음 · 기본 꺼짐"
+          },
+          {
+            "type": "divider",
+            "id": "ruleState"
+          },
+          {
+            "type": "text",
+            "id": "stateOn",
+            "variant": "mono",
+            "text": "현재 : 허용 중",
+            "visible": {
+              "store": "danger",
+              "path": "/allow",
+              "is": {
+                "const": true
+              }
+            }
+          },
+          {
+            "type": "text",
+            "id": "stateOff",
+            "variant": "mono",
+            "text": "현재 : 꺼짐",
+            "visible": {
+              "allOf": [
+                {
+                  "not": {
+                    "store": "danger",
+                    "path": "/allow",
+                    "is": {
+                      "const": true
+                    }
+                  }
+                },
+                {
+                  "store": "danger",
+                  "path": "/state",
+                  "is": {
+                    "const": "read"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "type": "text",
+            "id": "stateUnreadable",
+            "variant": "mono",
+            "text": "현재 : 읽지 못함 — 이 Terra 판에 스위치가 없거나 Daemon 응답 없음",
+            "visible": {
+              "store": "danger",
+              "path": "/state",
+              "is": {
+                "const": "unreadable"
+              }
+            }
+          },
+          {
+            "type": "text",
+            "id": "unavailable",
+            "variant": "caption",
+            "text": "스위치 파일 읽기 불가 — 꺼진 것으로 처리",
+            "visible": {
+              "store": "danger",
+              "path": "/unavailable",
+              "is": {
+                "anyOf": [
+                  {
+                    "const": true
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": "text",
+            "id": "changedAt",
+            "variant": "caption",
+            "bind": {
+              "store": "danger",
+              "path": "/changedAt"
+            },
+            "empty": ""
+          },
+          {
+            "type": "text",
+            "id": "changedBy",
+            "variant": "caption",
+            "bind": {
+              "store": "danger",
+              "path": "/changedBy"
+            },
+            "empty": ""
+          },
+          {
+            "type": "divider",
+            "id": "ruleActions"
+          },
+          {
+            "type": "column",
+            "id": "actions",
+            "layout": "row",
+            "align": "center",
+            "justify": "between",
+            "gap": "sm",
+            "children": [
+              {
+                "type": "button",
+                "id": "cancel",
+                "text": "← 돌아가기",
+                "onClick": {
+                  "function": "gui-v3.danger.close"
+                },
+                "a11y": {
+                  "label": "바꾸지 않고 돌아가기"
+                }
+              },
+              {
+                "type": "button",
+                "id": "block",
+                "text": "끄기",
+                "onClick": {
+                  "function": "gui-v3.danger.block"
+                },
+                "a11y": {
+                  "label": "웹 앱 명령 실행 끄기"
+                }
+              },
+              {
+                "type": "button",
+                "id": "allow",
+                "text": "허용 켜기",
+                "onClick": {
+                  "function": "gui-v3.danger.allow"
+                },
+                "a11y": {
+                  "label": "웹 앱 명령 실행 허용 켜기"
+                }
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "id": "message",
+            "variant": "mono",
+            "bind": {
+              "store": "danger",
+              "path": "/message"
+            },
+            "empty": "",
+            "a11y": {
+              "role": "status",
+              "live": "polite"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
