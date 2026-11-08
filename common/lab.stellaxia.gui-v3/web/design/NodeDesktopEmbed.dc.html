@@ -1521,7 +1521,7 @@ class Component extends DCLogic {
       this.say('적용 안 함 : 노드에 보낼 operation 없음'); return false;
     }
     return T.write(this.nodeKey(), op || 'gui-v3.desk.patch', input || {}, { res: 'desk', refresh: !!op, apply: (d) => { const c = JSON.parse(JSON.stringify(d || base)); fn(c); return c; } })
-      .catch((e) => this.say('못 함 · ' + ((e && e.message) || (e && e.code) || '오류')));
+      .catch((e) => { const H = typeof window !== 'undefined' && window.TerraDenyHint, h = H && H(op, e); this.say(h ? '못 함 · ' + h : '못 함 · ' + ((e && e.message) || (e && e.code) || '오류')); });
   }
   ndSeed(nm) {
     const cfg = {}; CFG.forEach((c) => { cfg[c[1]] = c[4]; }); cfg['daemon.device_name'] = nm.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'node';
@@ -1581,14 +1581,14 @@ class Component extends DCLogic {
     };
   }
   modBtns(m, i) {
-    const set = (p, msg, op) => { if (this.ndSet((d) => Object.assign(d.mods[i], p), op && 'terra.daemon.modules.by-module-id.' + op + '.post', op && { module_id: m.id }) !== false) this.say(msg); }, job = (name, op) => this.addJob(name, op);
+    const set = (p, msg, op) => { if (this.ndSet((d) => Object.assign(d.mods[i], p), op && 'terra.daemon.modules.by-module-id.' + op + '.post', op && { module_id: m.id }) !== false) this.say(msg); }, job = (name, op) => this.addJob(name, op), rmG = this.gateOf('terra.daemon.modules.by-module-id.uninstall.post');
     if (m.core) return [this.btn('다시 시작', () => { set({ st: 'restart' }, m.name + ' 다시 시작', 'restart'); }), this.btn('코어 묶음 — 고정', null, { off: true })];
     return [
       m.st === 'run' ? this.btn('멈춤', () => set({ st: 'stop' }, m.name + ' 멈춤', 'stop')) : this.btn('시작', () => set({ st: 'run', en: true }, m.name + ' 시작', 'start'), { off: !m.en, pri: m.en }),   // modules.by-module-id.start · stop
       this.btn('다시 시작', () => { set({ st: 'restart' }, m.name + ' 다시 시작', 'restart'); }, { off: m.st === 'stop' }),
       this.btn(m.en ? '끄기' : '켜기', () => set(m.en ? { en: false, st: 'stop' } : { en: true }, m.name + (m.en ? ' 끔' : ' 켬')), { local: true }),   // gateway modules.by-id.disable · enable (이 노드)
       this.btn('되돌리기 ' + (m.prev || ''), () => set({ ver: m.prev, prev: m.ver }, m.name + ' ' + m.prev + '로 되돌림'), { off: !m.prev, local: true }),   // gateway modules.by-id.rollback
-      this.btn('제거', () => { this.ndSet((d) => { d.mods.splice(i, 1); }, 'terra.daemon.modules.by-module-id.uninstall.post', { module_id: m.id }); this.setState({ modSel: 0 }); this.say(m.name + ' 제거'); }, { dan: true })   // modules.by-module-id.uninstall
+      this.actBtn('제거', rmG, () => { this.ndSet((d) => { d.mods.splice(i, 1); }, 'terra.daemon.modules.by-module-id.uninstall.post', { module_id: m.id }); this.setState({ modSel: 0 }); this.say(m.name + ' 제거'); }, { dan: true, off: !rmG.open })   // modules.by-module-id.uninstall
     ];
   }
   addJob(name, op) { const n = 1042 + (this._jobN = (this._jobN || 0) + 1), id = 'j-' + n + '-' + (Date.now() % 1000); if (this.ndSet((d) => { d.jobs = [{ id, name, op, pct: 0, st: 'run' }].concat(d.jobs || []); }) === false) return false; setTimeout(() => this.ndSet((d) => { d.jobs = (d.jobs || []).map((j) => j.id === id ? { ...j, pct: 100, st: 'ok' } : j); }), 1600); }

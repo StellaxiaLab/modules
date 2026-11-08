@@ -48,3 +48,20 @@ export function gateAll(ops, o = {}) {
 
 /** 위험도 — 확인 단계의 문구를 고를 때(read · write · dangerous). 표에 없으면 '' */
 export const riskOf = (op) => (SCOPE.operations[op] && SCOPE.operations[op].risk) || (MD.operations[op] && MD.operations[op].risk) || '';
+
+/**
+ * 거부 사유 한 줄 — Gateway 가 403 / DELEGATION_NOT_OPEN 으로 답했을 때 화면이 이유를 말하게 한다.
+ * 필요한 권한을 표(op-scope → master-delegated)에서 못 찾으면 지어내지 않고 '' (호출한 쪽이 서버 문장을 그대로 쓴다).
+ * @param {string} op
+ * @param {{ code?: string, status?: number } | null | undefined} err
+ * @returns {string}
+ */
+export function denyHint(op, err) {
+  const code = err && err.code;
+  if (code === 'DELEGATION_NOT_OPEN') return '앱에 위임 안 됨 — 터미널(terra CLI)에서 가능';
+  if (code === 'MODULE_PERMISSION_DENIED' || code === 'FORBIDDEN' || (err && err.status === 403)) {
+    const row = (SCOPE.operations[op] && SCOPE.operations[op].permissions) || (MD.operations[op] && MD.operations[op].permissions) || [];
+    if (row.length) return '계정 권한 없음 : ' + row.join(' · ') + ' — Tree 관리자에게 요청';
+  }
+  return '';
+}
