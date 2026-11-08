@@ -7,7 +7,13 @@
     </sc-for>
     <div class="nc-gh"><span class="nc-hl"></span>이 노드의 울타리<span class="nc-hr"></span></div>
     <sc-for list="{{env}}" as="e" hint-placeholder-count="3"><div class="sv-env"><span class="nc-k">{{e.k}}</span><span title="{{e.v}}">{{e.v}}</span></div></sc-for>
-    <div class="nc-k sv-envnote">울타리 확장 : 노드 설정 파일 + 재시작 (svi.runtime)</div>
+    <sc-for list="{{roots}}" as="r" hint-placeholder-count="2">
+      <div class="sv-root" title="{{r.why}}"><span class="sv-rp" title="{{r.path}}">{{r.path}}</span><span class="sv-chip {{r.oCls}}">{{r.origin}}</span>
+        <sc-if value="{{r.canRemove}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn sv-rm" onClick="{{r.remove}}" disabled="{{r.off}}" aria-label="{{r.path}} 해제">해제</button></sc-if></div>
+    </sc-for>
+    <sc-if value="{{noRoots}}" hint-placeholder-val="{{ false }}"><div class="nc-k sv-envnote">허용된 폴더 없음 — 파일 자원 닫힘</div></sc-if>
+    <sc-if value="{{envLocal}}" hint-placeholder-val="{{ true }}"><div class="sv-envnote"><button type="button" class="nc-btn" onClick="{{allow}}" disabled="{{allowOff}}">폴더 허용</button></div></sc-if>
+    <sc-if value="{{envRemote}}" hint-placeholder-val="{{ false }}"><div class="nc-k sv-envnote">{{envRemoteT}}</div></sc-if>
   </nav>
 
   <main class="nc-main" aria-live="polite">
@@ -89,4 +95,36 @@
   </main>
 
   <footer class="nc-foot" style="grid-column: 1 / span 2;"><span class="nc-msg" role="status">{{msg}}</span><span style="flex: 1;"></span><span class="nc-k" style="color: #ffd27a;">{{miss}}</span></footer>
+  <sc-if value="{{dlgOn}}" hint-placeholder-val="{{ false }}">
+    <div class="sv-dlg" role="dialog" aria-modal="true" aria-label="{{dlgTitle}}"><div class="sv-dbox">
+      <div class="sv-fh"><b>{{dlgTitle}}</b><span class="sv-sub">svi.runtime.file_roots · 재시작 없이 적용</span></div>
+      <sc-if value="{{dlgPick}}" hint-placeholder-val="{{ true }}">
+        <label class="sv-f"><span class="sv-fl">폴더 경로</span><span class="nc-in"><input type="text" value="{{dlgPath}}" onInput="{{onDlgPath}}" placeholder="/절대/경로 또는 C:\폴더" spellcheck="false" autocomplete="off" aria-label="허용할 폴더 경로"></span></label>
+        <div class="sv-br"><span class="nc-k">이 노드에서 고르기 (읽기 전용)</span>
+          <div class="sv-brr"><sc-for list="{{brRoots}}" as="b" hint-placeholder-count="2"><button type="button" class="sv-gn {{b.cls}}" onClick="{{b.pick}}">{{b.label}}</button></sc-for></div>
+          <sc-if value="{{brHas}}" hint-placeholder-val="{{ false }}"><div class="sv-brl">
+            <sc-if value="{{brCanUp}}" hint-placeholder-val="{{ false }}"><button type="button" class="sv-brd" onClick="{{brUp}}">.. 위로</button></sc-if>
+            <sc-for list="{{brItems}}" as="it" hint-placeholder-count="3"><button type="button" class="sv-brd" onClick="{{it.pick}}">{{it.name}}</button></sc-for></div></sc-if>
+          <div class="nc-k">{{brNote}}</div></div>
+      </sc-if>
+      <sc-if value="{{dlgConfirm}}" hint-placeholder-val="{{ false }}">
+        <div class="sv-rp">{{dlgPath}}</div>
+        <div class="sv-warn">이 폴더 안의 파일을 자원으로 만들 수 있고, 허가받은 다른 사용자가 읽거나 쓸 수 있습니다.</div>
+        <sc-if value="{{hasSens}}" hint-placeholder-val="{{ false }}"><div class="sv-warn sv-danger">⚠ {{dlgSens}}</div></sc-if>
+      </sc-if>
+      <sc-if value="{{dlgRemove}}" hint-placeholder-val="{{ false }}">
+        <div class="sv-rp">{{dlgPath}}</div>
+        <sc-if value="{{hasAffected}}" hint-placeholder-val="{{ false }}"><div class="sv-warn">해제하면 이 폴더 안의 자원이 멈추고, 그 위의 연결이 끊깁니다.
+          <sc-for list="{{affected}}" as="a" hint-placeholder-count="2"><div class="sv-aff"><b>{{a.name}}</b> <span class="sv-sub">{{a.detail}}</span></div></sc-for></div></sc-if>
+        <sc-if value="{{noAffected}}" hint-placeholder-val="{{ false }}"><div class="nc-k">이 폴더 안에서 쓰이는 자원이 없습니다.</div></sc-if>
+      </sc-if>
+      <div class="sv-err sv-derr" role="alert">{{dlgErr}}</div>
+      <div class="sv-act">
+        <sc-if value="{{dlgPick}}" hint-placeholder-val="{{ true }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgNext}}" disabled="{{dlgNextOff}}">다음 — 확인</button></sc-if>
+        <sc-if value="{{dlgConfirm}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn" onClick="{{dlgBack}}" disabled="{{dlgBusy}}">뒤로</button><button type="button" class="nc-btn nc-pri" onClick="{{dlgGo}}" disabled="{{dlgBusy}}">허용</button></sc-if>
+        <sc-if value="{{dlgRemove}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgDel}}" disabled="{{dlgBusy}}">해제</button></sc-if>
+        <button type="button" class="nc-btn" onClick="{{dlgClose}}" disabled="{{dlgBusy}}">취소</button>
+      </div>
+    </div></div>
+  </sc-if>
 </div>

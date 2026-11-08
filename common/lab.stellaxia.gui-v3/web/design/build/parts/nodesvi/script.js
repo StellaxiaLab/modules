@@ -62,6 +62,61 @@ function linkable(src, dst) {
 const ST = { active: ['연결됨', 'ok'], degraded: ['끊김', 'warn'], failed: ['실패', 'err'], closing: ['닫는 중', 'dim'], closed: ['닫힘', 'dim'], requested: ['연결 중', 'busy'], validating: ['연결 중', 'busy'], planning: ['연결 중', 'busy'], preparing: ['연결 중', 'busy'] };
 const DST = { applied: ['적용됨', 'ok'], shadowed: ['가려짐', 'warn'], refused_by_policy: ['울타리 거절', 'err'] };
 const FAM = { file: '파일', process: '프로그램', net: '네트워크' };
+// ── 울타리 확장(ADR-GW-011 E3) — src/api/svi-envelope.js 의 사본(시안용) · tests/nodesvi.test.mjs 가 같은지 본다 ──
+const norm = (p) => String(p || '').replace(/\\/g, '/').replace(/\/+$/, '');
+const winLike = (p) => /^[A-Za-z]:/.test(p);
+/** p 가 root 와 같거나 그 안인가(Windows 경로는 대소문자 무시) */
+function under(p, root) {
+  let a = norm(p), b = norm(root); if (!a || !b) return false;
+  if (winLike(a) || winLike(b)) { a = a.toLowerCase(); b = b.toLowerCase(); }
+  return a === b || a.startsWith(b + '/');
+}
+
+/** envelope → 줄. file_root_sources 가 없으면(옛 Terra) 전부 설정 파일 것으로 보고 해제를 닫는다 @returns {{ path: string, mode: string, origin: 'config'|'runtime', removable: boolean }[]} */
+function rootRows(env) {
+  if (!env) return [];
+  const A = (x) => (Array.isArray(x) ? x : []), src = new Map(A(env.file_root_sources).filter((s) => s && s.path).map((s) => [norm(s.path), s.origin]));
+  return A(env.file_roots).map((r) => { const path = r.path || r, origin = src.get(norm(path)) === 'runtime' ? 'runtime' : 'config'; return { path, mode: r.mode || '', origin, removable: origin === 'runtime' }; });
+}
+
+/** 이 root 를 해제하면 울타리 밖이 되어 멈추는 파일 자원(남는 다른 root 가 품는 것은 제외) @returns {object[]} */
+function affectedBy(decls, rootPath, roots) {
+  const rest = (roots || []).map((r) => r.path || r).filter((p) => norm(p) !== norm(rootPath));
+  return (decls || []).filter((d) => d.family === 'file' && d.state === 'applied' && d.detail && under(d.detail, rootPath) && !rest.some((p) => under(d.detail, p)));
+}
+
+/** 홈 폴더(또는 그 위)를 고르면 강한 경고 — 모르면 '' */
+function sensitiveWhy(path) {
+  const p = norm(path);
+  if (/^[A-Za-z]:\/Users\/[^/]+$/i.test(p) || /^\/home\/[^/]+$/.test(p) || /^\/Users\/[^/]+$/.test(p) || p === '/root' || /^[A-Za-z]:\/Users$/i.test(p) || p === '/home' || p === '/Users')
+    return '홈 폴더입니다. .ssh 키, 브라우저 프로필(저장된 로그인), 문서 같은 민감한 파일이 들어 있습니다. 가능하면 자원으로 쓸 하위 폴더만 고르세요.';
+  return '';
+}
+
+const ROOT_WHY = {
+  not_absolute: '절대 경로여야 합니다. (예: C:\\공유 또는 /srv/share)',
+  not_found: '이 노드에 그런 폴더가 없습니다. 경로를 확인하세요.',
+  not_directory: '폴더가 아니라 파일입니다. 폴더를 고르세요.',
+  filesystem_root: '드라이브나 / 전체는 허용할 수 없습니다. 더 좁은 폴더를 고르세요.',
+  protected: 'Terra 의 데이터·설정 폴더(또는 그 안)는 허용할 수 없습니다.',
+};
+/** 오류 → 한국어 한 문장. 코드·reason 별 */
+function envelopeError(e) {
+  const code = e && e.code, st = e && e.status, d = (e && (e.details || e.detail)) || {};
+  if (code === 'SVI_ENVELOPE_ROOT_REFUSED') return ROOT_WHY[d.reason] || '이 폴더는 허용할 수 없습니다' + (d.reason ? ' (' + d.reason + ')' : '') + '.';
+  if (code === 'SVI_ENVELOPE_ROOT_FROM_CONFIG') return '노드 설정 파일에서 온 폴더라 GUI 에서 해제할 수 없습니다. 설정 파일에서 지우고 재시작하세요.';
+  if (code === 'SVI_ENVELOPE_ROOT_NOT_FOUND') return '이미 울타리에 없는 폴더입니다.';
+  if (st === 429 || code === 'RATE_LIMITED' || code === 'HTTP_429') return '짧은 시간에 너무 자주 바꿨습니다(분당 5회). 잠시 뒤 다시 하세요.';
+  if (code === 'FORBIDDEN' || st === 403) return '권한이 없습니다. 울타리를 바꾸려면 node.control 권한이 필요합니다.';
+  if (code === 'LOCAL_ONLY' || code === 'OPERATION_NOT_REMOTE') return '이 노드에서만 바꿀 수 있습니다.';
+  return (code || '오류') + (e && e.message ? ' — ' + e.message : '');
+}
+
+/** 로컬 폴더 탐색(local-fs, 읽기 전용) 결과 → 폴더만. 뿌리 + 상대 경로 → 절대 경로 */
+function joinRoot(rootPath, rel) {
+  const base = String(rootPath || ''), sep = base.includes('\\') && !base.includes('/') ? '\\' : '/', r = String(rel || '').replace(/^\/+|\/+$/g, '');
+  return r ? base.replace(/[\\/]+$/, '') + sep + r.split('/').join(sep) : base;
+}
 const TTLS = [['1d', 86400], ['7d', 604800], ['30d', 2592000], ['90d', 7776000]];
 // 허가 주체(노드 · 사람) — Master 위임 가드 규칙. 아래는 src/api/svi-grant.js 의 사본(시안용) — tests/svi-grant-boards.test.mjs 가 같은지 본다
 const GRANT_OPS = ['inspect', 'read', 'subscribe', 'bind.source', 'bind.target', 'write', 'invoke'];
@@ -113,20 +168,20 @@ class Component extends DCLogic {
   constructor(props) {
     super(props);
     let pre = {}; try { pre = props.pre ? JSON.parse(props.pre) : {}; } catch (e) { pre = {}; }
-    this.state = { tab: pre.tab || 'make', typeId: pre.type || 'file', vals: pre.values || {}, fname: pre.name || '', replace: false, data: null, msg: '', busy: false, pick: null, hot: '', ttl: 604800, t: 0, subj: 'node', gops: { node: GRANT_DEFAULTS.node.slice(), user: GRANT_DEFAULTS.user.slice() } };
+    this.state = { tab: pre.tab || 'make', typeId: pre.type || 'file', vals: pre.values || {}, fname: pre.name || '', replace: false, data: null, msg: '', busy: false, pick: null, hot: '', ttl: 604800, t: 0, subj: 'node', envDlg: null, gops: { node: GRANT_DEFAULTS.node.slice(), user: GRANT_DEFAULTS.user.slice() } };
     this._drag = null;
   }
   componentDidMount() { this._live = true; this.pull(); this._iv = setInterval(() => { if (this._live && this.real()) this.pull(); }, 10000); }
   componentWillUnmount() { this._live = false; clearInterval(this._iv); }
   componentDidUpdate(prev) {
     if (prev && prev.pre !== this.props.pre && this.props.pre) { try { const p = JSON.parse(this.props.pre); this.setState({ tab: p.tab || 'make', typeId: p.type || this.state.typeId, vals: p.values || {}, fname: p.name || '' }); } catch (e) {} }
-    if (prev && prev.nodeRid !== this.props.nodeRid) { this.setState({ data: null }); this.pull(); }
+    if (prev && prev.nodeRid !== this.props.nodeRid) { this.setState({ data: null, msg: '', pick: null, envDlg: null }); this.pull(); }
   }
   real() { return typeof window !== 'undefined' && !!window.TerraSviMake; }
   pull() {
     if (!this.real()) { if (!this.state.data) this.setState({ data: this.sample() }); return; }
     const rid = this.props.nodeRid; if (!rid) return;
-    window.TerraSviMake.load(rid).then((data) => this._live && this.props.nodeRid === rid && this.setState({ data }), (e) => this._live && this.setState({ msg: '읽지 못함 · ' + ((e && e.code) || '') }));
+    window.TerraSviMake.load(rid).then((data) => this._live && this.props.nodeRid === rid && this.setState({ data }), (e) => this._live && this.props.nodeRid === rid && this.setState({ msg: '읽지 못함 · ' + ((e && e.code) || '') }));
   }
   say(m) { this.setState({ msg: m }); }
   /** 실제 부르기 — 시안이면 사본만 고친다 */
@@ -145,11 +200,74 @@ class Component extends DCLogic {
   selfId() { return this.real() ? (window.TerraSviMake.selfNow ? window.TerraSviMake.selfNow() : '') : 'admin'; }
   nodeName(id) { const D = this.state.data; const n = D && D.nodes && D.nodes.find((x) => x.id === id); return n ? n.name : id ? String(id).slice(0, 10) : '—'; }
 
+  /** 울타리를 바꿀 수 있는 노드인가 — 이 노드(로컬)만. 시안은 로컬로 본다 */
+  envLocal() { return this.real() ? !!(window.TerraSviEnvelope && window.TerraSviEnvelope.isLocal(this.rid())) : true; }
+  envOpen(mode, path) {
+    this.setState({ envDlg: { mode, stage: 'pick', path: path || '', err: '', busy: false, br: { roots: [], root: null, rel: '', items: [], note: '' } } });
+    if (mode === 'add') this.envRoots();
+  }
+  envClose() { this.setState({ envDlg: null }); }
+  envPatch(p) { this.setState((s) => (s.envDlg ? { envDlg: Object.assign({}, s.envDlg, p) } : null)); }
+  /** 폴더 고르기 — 이 노드의 local-fs 뿌리(읽기 전용) */
+  envRoots() {
+    const set = (roots, note) => this.setState((s) => (s.envDlg ? { envDlg: Object.assign({}, s.envDlg, { br: Object.assign({}, s.envDlg.br, { roots, note }) }) } : null));
+    if (!this.real()) { set([{ root: 'home', label: '로컬 · home', path: '/home/demo' }, { root: 'srv', label: '로컬 · srv', path: '/srv' }], ''); return; }
+    window.TerraSviEnvelope.fsRoots().then((d) => set(window.TerraDesk.fileRoots(d, 'lfs').filter((r) => !r.locked), ''), (e) => set([], '폴더 목록을 못 읽음 · ' + ((e && e.code) || '') + ' — 경로를 직접 입력하세요'));
+  }
+  envBrowse(root, rel) {
+    const d = this.state.envDlg, R = d && d.br.roots.find((x) => x.root === root); if (!R) return;
+    const done = (items, note) => this.setState((s) => (s.envDlg && s.envDlg.br.root === root && s.envDlg.br.rel === rel ? { envDlg: Object.assign({}, s.envDlg, { br: Object.assign({}, s.envDlg.br, { items, note }) }) } : null));
+    this.envPatch({ path: R.path ? joinRoot(R.path, rel) : d.path, err: '', br: Object.assign({}, d.br, { root, rel, items: [], note: '불러오는 중…' }) });
+    if (!this.real()) { done(['data', 'media', 'docs', '.ssh'].map((n) => ({ name: n, path: rel ? rel + '/' + n : n, dir: true })), ''); return; }
+    window.TerraSviEnvelope.fsEntries(root, rel).then((x) => done(window.TerraDesk.fileEntries(x, rel).filter((e) => e.dir && !e.locked), ''), (e) => done([], '못 읽음 · ' + ((e && e.code) || '')));
+  }
+  /** 성공 뒤 화면 값 — 울타리 · 그 안에 있던 선언의 상태. 곧이어 다시 읽어 Terra 값으로 덮는다 */
+  envApply(data, kind, path) {
+    const x = JSON.parse(JSON.stringify(data || {})), E = x.envelope = x.envelope || {}, roots = rootRows(E).concat(), before = roots.map((r) => r.path);
+    const rest = kind === 'add' ? before.concat(path) : before.filter((p) => norm(p) !== norm(path));
+    const aff = kind === 'remove' ? affectedBy(x.decls, path, roots).map((d) => d.name) : [];
+    const srcs = rootRows(E).filter((r) => kind === 'add' || norm(r.path) !== norm(path)).map((r) => ({ path: r.path, origin: r.origin })).concat(kind === 'add' ? [{ path, origin: 'runtime' }] : []);
+    E.file_roots = rest.map((p) => ({ path: p, mode: ((E.file_roots || []).find((r) => (r.path || r) === p) || {}).mode || 'rw' })); E.file_root_sources = srcs;
+    x.decls = (x.decls || []).map((d) => (kind === 'add' && d.family === 'file' && d.state === 'refused_by_policy' && under(d.detail, path) ? Object.assign({}, d, { state: 'applied', reason: '' })
+      : aff.includes(d.name) ? Object.assign({}, d, { state: 'refused_by_policy', reason: 'SVI_DECLARATION_OUTSIDE_ENVELOPE — 울타리에서 뺀 폴더' }) : d));
+    return x;
+  }
+  envRun(kind, path) {
+    const d = this.state.envDlg; if (!d || d.busy) return; const label = kind === 'add' ? '폴더 허용' : '폴더 해제';
+    const ok = () => { this.setState((s) => ({ data: this.envApply(s.data, kind, path), envDlg: null, msg: label + ' — 완료 · ' + path })); };
+    if (!this.real()) { ok(); return; }
+    this.envPatch({ busy: true, err: '' });
+    const Env = window.TerraSviEnvelope, rid = this.rid();
+    (kind === 'add' ? Env.add(rid, path) : Env.remove(rid, path)).then(() => { ok(); this.pull(); }, (e) => { this.envPatch({ busy: false, err: envelopeError(e) }); this.pull(); });
+  }
+  /** 울타리 — 출처별 root 목록 · 폴더 허용 · 해제 · 확인 창 (ADR-GW-011 §2.7) */
+  envVals(o, D, decls) {
+    const s = this.state, e = D && D.envelope, L = this.envLocal(), roots = rootRows(e), dlg = s.envDlg;
+    o.roots = roots.map((r) => ({ path: r.path, origin: r.origin === 'runtime' ? 'GUI' : '설정 파일', oCls: r.origin === 'runtime' ? 'ok' : 'dim', canRemove: L && r.removable, why: r.removable ? '' : '설정 파일에서 온 폴더 — GUI 에서 해제할 수 없음', off: !!s.busy, remove: () => this.envOpen('remove', r.path) }));
+    o.noRoots = !!e && !roots.length; o.envLocal = L; o.envRemote = !L; o.envRemoteT = '다른 노드의 울타리는 아직 그 노드에서만 바꿀 수 있습니다';
+    o.allowOff = !e || (this.real() && !this.rid()); o.allow = () => this.envOpen('add', '');
+    o.dlgOn = !!dlg; if (!dlg) return;
+    const add = dlg.mode === 'add', br = dlg.br, path = dlg.path.trim(), sens = sensitiveWhy(path);
+    o.dlgAdd = add; o.dlgRemove = !add; o.dlgPick = add && dlg.stage === 'pick'; o.dlgConfirm = add && dlg.stage === 'confirm'; o.dlgBusy = !!dlg.busy;
+    o.dlgTitle = add ? '폴더 허용' : '폴더 해제'; o.dlgPath = dlg.path; o.dlgErr = dlg.err; o.dlgClose = () => this.envClose();
+    o.onDlgPath = (ev) => this.envPatch({ path: ev.target.value, err: '' });
+    o.brRoots = br.roots.map((r) => ({ label: r.label, cls: br.root === r.root ? 'on' : '', pick: () => this.envBrowse(r.root, '') }));
+    o.brNote = br.note; o.brHas = !!br.root; o.brUp = br.rel ? () => this.envBrowse(br.root, br.rel.split('/').slice(0, -1).join('/')) : null; o.brCanUp = !!br.rel;
+    o.brItems = br.items.map((it) => ({ name: it.name, pick: () => this.envBrowse(br.root, it.path) }));
+    o.dlgNextOff = !path || !new RegExp(ABS).test(path);
+    o.dlgNext = () => { if (o.dlgNextOff) { this.envPatch({ err: envelopeError({ code: 'SVI_ENVELOPE_ROOT_REFUSED', details: { reason: 'not_absolute' } }) }); return; } this.envPatch({ stage: 'confirm', err: '' }); };
+    o.dlgBack = () => this.envPatch({ stage: 'pick', err: '' });
+    o.dlgSens = sens; o.hasSens = !!sens; o.dlgGo = () => this.envRun('add', path);
+    const aff = add ? [] : affectedBy(decls, path, roots);
+    o.affected = aff.map((d) => ({ name: d.name, detail: d.detail })); o.hasAffected = aff.length > 0; o.noAffected = !add && !aff.length;
+    o.dlgDel = () => this.envRun('remove', path);
+  }
+
   /** 시안 — load() 와 같은 모양 */
   sample() {
     const me = this.props.nodeName || 'desk', mid = 'nd_' + me;
     const E = (resId, resName, node, epId, dir, interaction, schema) => ({ resId, resName, node, kind: '', epId, dir, interaction, schema, status: 'available', ops: [] });
-    return { miss: [], envelope: { file_roots: [{ path: '/srv/share', mode: 'rw' }], process: 'allowlist', process_commands: ['/usr/bin/ffmpeg'], net: true, net_endpoints: [{ address: 'tcp://127.0.0.1:8554' }], max_declarations: 32 },
+    return { miss: [], envelope: { file_roots: [{ path: '/srv/share', mode: 'rw' }, { path: '/srv/drop', mode: 'rw' }], file_root_sources: [{ path: '/srv/share', origin: 'config' }, { path: '/srv/drop', origin: 'runtime' }], process: 'allowlist', process_commands: ['/usr/bin/ffmpeg'], net: true, net_endpoints: [{ address: 'tcp://127.0.0.1:8554' }], max_declarations: 32 },
       decls: [{ family: 'file', name: 'meter-log', dir: 'source', resId: 'r-log', origin: 'runtime', state: 'applied', reason: '', detail: '/srv/share/meter.log' },
         { family: 'process', name: 'encoder', dir: 'sink', resId: 'r-enc', origin: 'runtime', state: 'refused_by_policy', reason: 'SVI_DECLARATION_OUTSIDE_ENVELOPE — /usr/local/bin/enc : 허용 목록 밖', detail: '/usr/local/bin/enc' }],
       retired: [], nodes: [{ id: mid, name: me }, { id: 'nd_02', name: '02' }, { id: 'nd_nas', name: 'nas-01' }],
@@ -246,6 +364,7 @@ class Component extends DCLogic {
       unlink: () => this.act('연결 끊기', () => window.TerraSviMake.unlink(b.id), (x) => { const y = x.bindings.find((z) => z.id === b.id); if (y) y.st = { label: '닫힘', cls: 'dim', reason: '사용자 닫음' }; return x; }) }));
     o.noBinds = !!D && !binds.length;
     { const c = (k) => binds.filter((b) => b.st.cls === k).length; o.bindSum = '연결됨 ' + c('ok') + ' · 끊김 ' + c('warn') + ' · 실패 ' + c('err'); }
+    this.envVals(o, D, decls);
     return o;
   }
 }
