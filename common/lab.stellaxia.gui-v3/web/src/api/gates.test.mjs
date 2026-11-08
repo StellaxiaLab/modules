@@ -36,20 +36,25 @@ test('모듈 op 는 막지 않는다 · gateAll 은 처음 닫힌 이유', () =>
 });
 
 test('denyHint — 계정 권한 없음(module.manage), Master 표 조회', () => {
-  const up = 'terra.daemon.modules.by-module-id.uninstall.post';
-  assert.equal(denyHint(up, { code: 'MODULE_PERMISSION_DENIED' }), '계정 권한 없음 : module.manage — Tree 관리자에게 요청');
-  assert.equal(denyHint(up, { status: 403 }), '계정 권한 없음 : module.manage — Tree 관리자에게 요청');
-  assert.equal(denyHint(up, { code: 'FORBIDDEN' }), '계정 권한 없음 : module.manage — Tree 관리자에게 요청');
-  const mop = Object.keys(JSON.parse(readFileSync(fileURLToPath(new URL('./master-delegated.json', import.meta.url)), 'utf8')).operations).find((o) => !o.startsWith('terra.daemon.'));
-  const perms = JSON.parse(readFileSync(fileURLToPath(new URL('./master-delegated.json', import.meta.url)), 'utf8')).operations[mop].permissions || [];
-  if (perms.length) assert.equal(denyHint(mop, { code: 'FORBIDDEN' }), '계정 권한 없음 : ' + perms.join(' · ') + ' — Tree 관리자에게 요청');
+  const up = 'terra.daemon.modules.by-module-id.uninstall.post', W = '계정 권한 없음 : module.manage — Tree 관리자에게 요청';
+  assert.equal(denyHint(up, { code: 'MODULE_PERMISSION_DENIED' }), W);
+  assert.equal(denyHint(up, { code: 'FORBIDDEN', message: 'permission module.manage is required' }), W);
+  assert.equal(denyHint(up, { code: 'HTTP_403', status: 403 }), W);
+  assert.equal(denyHint(up, { status: 403 }), W);
+  const ops = JSON.parse(readFileSync(fileURLToPath(new URL('./master-delegated.json', import.meta.url)), 'utf8')).operations;
+  const mop = Object.keys(ops).find((o) => o.startsWith('terra.master.') && (ops[o].permissions || []).length);
+  assert.ok(mop, 'permissions 가 있는 Master op');
+  assert.equal(denyHint(mop, { code: 'MODULE_PERMISSION_DENIED' }), '계정 권한 없음 : ' + ops[mop].permissions.join(' · ') + ' — Tree 관리자에게 요청');
 });
 
-test('denyHint — 위임 안 됨 / 표에 없는 403 / 그 밖은 비어 있다', () => {
+test('denyHint — 위임 안 됨 / 정책·소유권 거부 / 표에 없는 403 / 그 밖은 비어 있다', () => {
+  const up = 'terra.daemon.modules.by-module-id.uninstall.post';
   assert.equal(denyHint('terra.master.network.probes.post', { code: 'DELEGATION_NOT_OPEN' }), '앱에 위임 안 됨 — 터미널(terra CLI)에서 가능');
+  assert.equal(denyHint(up, { code: 'FORBIDDEN', message: 'master administrator access is required' }), '');
+  assert.equal(denyHint(up, { code: 'SVI_DECLARATION_OUTSIDE_ENVELOPE', status: 403 }), '');
   assert.equal(denyHint('io.terra.unknown.op', { code: 'MODULE_PERMISSION_DENIED' }), '');
   assert.equal(denyHint('io.terra.unknown.op', { status: 403 }), '');
-  assert.equal(denyHint('terra.daemon.modules.by-module-id.uninstall.post', { code: 'MODULE_NOT_FOUND' }), '');
-  assert.equal(denyHint('terra.daemon.modules.by-module-id.uninstall.post', null), '');
-  assert.equal(denyHint('terra.daemon.modules.by-module-id.uninstall.post', new Error('x')), '');
+  assert.equal(denyHint(up, { code: 'MODULE_NOT_FOUND' }), '');
+  assert.equal(denyHint(up, null), '');
+  assert.equal(denyHint(up, new Error('x')), '');
 });

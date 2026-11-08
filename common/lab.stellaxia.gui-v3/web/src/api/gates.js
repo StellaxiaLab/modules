@@ -59,7 +59,9 @@ export const riskOf = (op) => (SCOPE.operations[op] && SCOPE.operations[op].risk
 export function denyHint(op, err) {
   const code = err && err.code;
   if (code === 'DELEGATION_NOT_OPEN') return '앱에 위임 안 됨 — 터미널(terra CLI)에서 가능';
-  if (code === 'MODULE_PERMISSION_DENIED' || code === 'FORBIDDEN' || (err && err.status === 403)) {
+  const msg = (err && typeof err.message === 'string') ? err.message : '';
+  const account = code === 'MODULE_PERMISSION_DENIED' || (code === 'FORBIDDEN' && msg.startsWith('permission ')) || (err && err.status === 403 && (!code || String(code).startsWith('HTTP_')));
+  if (account) {
     const row = (SCOPE.operations[op] && SCOPE.operations[op].permissions) || (MD.operations[op] && MD.operations[op].permissions) || [];
     if (row.length) return '계정 권한 없음 : ' + row.join(' · ') + ' — Tree 관리자에게 요청';
   }
