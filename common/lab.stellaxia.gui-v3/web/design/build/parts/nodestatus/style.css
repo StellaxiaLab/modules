@@ -26,6 +26,8 @@ body{margin:0;background:transparent}
 .ns-btn:disabled{opacity:.4;cursor:default}
 .ns-sub{margin:8px 0 2px;color:#78e89c}
 .ns-rt{display:grid;grid-template-columns:14px minmax(0,1fr) 70px 80px 54px;gap:10px;min-height:20px;white-space:nowrap}
+.ns-rt-s{grid-template-columns:14px minmax(0,1fr) 100px 112px minmax(54px,auto)}
+.ns-rt-r{grid-template-columns:14px 14px minmax(0,1fr) 112px 76px 54px}
 .ns-cur{display:inline-block;width:7px;height:13px;background:#96f0aa;animation:nsb 1.06s steps(1) infinite}
 @keyframes nsb{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.ns-cur{animation:none}.ns-fill,.ns-lat span{transition:none}}

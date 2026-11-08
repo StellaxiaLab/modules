@@ -15,11 +15,11 @@
   </div>
   <div class="ns-sub">경로 <span class="ns-k">{{routeSum}}</span></div>
   <sc-for list="{{routes}}" as="r" hint-placeholder-count="2">
-    <div class="ns-rt"><span style="color: {{r.col}}; font-weight: 700;">{{r.mark}}</span><span class="ns-cut">{{r.peer}}</span><span>{{r.rt}}</span><span class="ns-k">{{r.ad}}</span><span class="ns-k" style="text-align: right;">{{r.lat}}</span></div>
+    <div class="ns-rt ns-rt-r"><span style="color: {{r.col}}; font-weight: 700;">{{r.mark}}</span><span class="ns-k" title="→ 이 노드에서 나가는 경로 · ← 이 노드로 들어오는 경로">{{r.dir}}</span><span class="ns-cut">{{r.peer}}</span><span class="ns-cut">{{r.rt}}</span><span class="ns-k ns-cut">{{r.ad}}</span><span class="ns-k" style="text-align: right;">{{r.lat}}</span></div>
   </sc-for>
   <div class="ns-sub">세션 <span class="ns-k">{{sessSum}}</span></div>
   <sc-for list="{{sessions}}" as="s" hint-placeholder-count="2">
-    <div class="ns-rt"><span class="ns-k">{{s.dir}}</span><span class="ns-cut">{{s.peer}}</span><span>{{s.channel}}</span><span class="ns-k">{{s.rt}}</span><span style="text-align: right; color: {{s.col}};">{{s.state}}</span></div>
+    <div class="ns-rt ns-rt-s"><span class="ns-k">{{s.dir}}</span><span class="ns-cut">{{s.peer}}</span><span class="ns-cut">{{s.channel}}</span><span class="ns-k ns-cut">{{s.rt}}</span><span style="text-align: right; color: {{s.col}};">{{s.state}}</span></div>
   </sc-for>
 
   <h3 class="ns-h"><span class="ns-hl"></span>자원<span class="ns-hr"></span><span class="ns-k">하트비트 스냅샷</span></h3>

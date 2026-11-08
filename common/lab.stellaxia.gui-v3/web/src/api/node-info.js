@@ -33,10 +33,10 @@ export function nodeInfo(rec, D = {}, o = {}) {
   const stRow = arr(D.status && D.status.nodes).find((n) => n.node_id === id) || {};
   const relay = typeof r.relay_connected === 'boolean' ? r.relay_connected : !!stRow.relay_connected;
 
-  // 이 노드가 낀 경로 — 상대마다 가장 좋은 건강한 후보
+  // 이 노드가 낀 경로 — Master 경로 그래프는 방향 있는 간선(A→B 와 B→A 가 따로)이라 상대 한 노드가 두 줄로 온다. 합치지 않고 dir(→ 나가는 · ← 들어오는)로 구분해 싣는다. 줄마다 가장 좋은 건강한 후보
   const routes = arr(D.graph && D.graph.edges).filter((e) => e.source_node_id === id || e.target_node_id === id).map((e) => {
     const best = arr(e.candidates).find((c) => c.healthy) || arr(e.candidates)[0] || {};
-    return { peer: nm(e.source_node_id === id ? e.target_node_id : e.source_node_id), rt: best.route_type || '—', ad: best.adapter || '', healthy: !!best.healthy, lat: best.latency_ms != null ? best.latency_ms + 'ms' : '' };
+    return { peer: nm(e.source_node_id === id ? e.target_node_id : e.source_node_id), dir: e.source_node_id === id ? '→' : '←', rt: best.route_type || '—', ad: best.adapter || '', healthy: !!best.healthy, lat: best.latency_ms != null ? best.latency_ms + 'ms' : '' };
   });
   const mine = (x) => x.source_node_id === id || x.target_node_id === id;
   const sessions = arr(D.sessions && D.sessions.sessions).filter(mine).map((s) => ({ peer: nm(s.source_node_id === id ? s.target_node_id : s.source_node_id), dir: s.source_node_id === id ? '→' : '←', channel: s.channel || '—', rt: s.route_type || '—', state: s.state || '—', err: (s.health && s.health.last_error) || '', at: s.updated_at }));
