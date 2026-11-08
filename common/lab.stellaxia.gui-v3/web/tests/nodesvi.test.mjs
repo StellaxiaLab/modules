@@ -42,7 +42,7 @@ test('실제 — 시안 값이 새지 않고, 모듈 유형이 없으면 그 까
 
 test('실제 — 양식 제출은 declarations 입력 그대로, 울타리 밖이면 미리 알림', async () => {
   const calls = [], { c, done } = mount(real(calls), { pre: JSON.stringify({ type: 'file', name: 'log2', values: { path: '/etc/x' } }) }); try {
-    let v = c.renderVals(); assert.equal(v.envBad, true); assert.match(v.envWhy, /열린 폴더 밖 — \/data/);
+    let v = c.renderVals(); assert.equal(v.envBad, true); assert.match(v.envWhy, /허용된 폴더 밖입니다.* — \/data/); assert.equal(v.makeOff, true, '실패할 게 뻔하면 제출을 막는다');
     c.setState({ vals: { path: '/data/a.csv', direction: 'source' } }); c.renderVals().submit(); await new Promise((r) => setTimeout(r, 0));
     assert.deepEqual(calls[0], ['declare', 'n1', { family: 'file', name: 'log2', direction: 'source', path: '/data/a.csv' }]);
   } finally { done(); }

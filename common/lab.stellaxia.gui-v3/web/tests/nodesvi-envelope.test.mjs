@@ -94,3 +94,32 @@ test('오류 — reason 별 한국어 문장, 대화상자는 열려 있다', as
   assert.match(envelopeError({ code: 'HTTP_429', status: 429 }), /분당 5회/);
   assert.match(envelopeError({ code: 'FORBIDDEN', status: 403 }), /node\.control/);
 });
+
+test('울타리 밖이면 만들기를 막고, 다음 할 일(폴더 허용…)을 위 폴더 미리 채워 열어 준다', async () => {
+  const { c, calls, done } = mk(); try {
+    c.setState({ vals: { path: 'C:\\test\\test.txt' }, fname: 'n' }); let v = c.renderVals();
+    assert.equal(v.envBad, true); assert.equal(v.makeOff, true); assert.equal(v.envFix, true); assert.match(v.envWhy, /허용된 폴더 밖/);
+    v.envFixGo(); await tick(); v = c.renderVals(); assert.equal(v.dlgOn, true); assert.equal(v.dlgPath, 'C:\\test','파일의 위 폴더');
+    assert.equal(calls.length, 0, '확인 없이 넓히지 않는다'); v.dlgNext(); v = c.renderVals(); assert.equal(v.dlgConfirm, true);
+  } finally { done(); }
+});
+
+test('허용된 폴더가 하나도 없으면 그 이유와 버튼을 보인다 · 프로그램·네트워크 닫힘은 설정 파일 안내(버튼 없음)', () => {
+  const { c, data, done } = mk(); try {
+    data.envelope.file_roots = []; data.envelope.file_root_sources = [];
+    c.setState({ vals: { path: '/x/a.txt' }, fname: 'n' }); let v = c.renderVals(); assert.match(v.envWhy, /허용된 폴더가 없어/); assert.equal(v.envFix, true); assert.equal(v.makeOff, true);
+    c.setState({ typeId: 'process', vals: { command: '/bin/x' } }); v = c.renderVals(); assert.match(v.envWhy, /svi\.runtime\.process/); assert.equal(v.envFix, false); assert.equal(v.makeOff, true);
+    c.setState({ typeId: 'net', vals: { address: 'tcp://1.2.3.4:5' } }); v = c.renderVals(); assert.match(v.envWhy, /svi\.runtime\.net/); assert.equal(v.envFix, false);
+  } finally { done(); }
+});
+
+test('파일 고르기 — 폴더+파일을 보이고, 파일을 고르면 경로 칸이 채워진다. 다른 노드는 찾아보기 막힘', async () => {
+  let t = mk(true); try {
+    const { c } = t; c.setState({ vals: {}, fname: 'n' }); let v = c.renderVals(); const f = v.fields.find((x) => x.isPath); assert.ok(f, '파일 유형의 경로 칸에 찾아보기'); assert.equal(f.browseOff, false);
+    f.browse(); await tick(); v = c.renderVals(); assert.equal(v.dlgFile, true); assert.equal(v.dlgTitle, '파일 고르기');
+    v.brRoots[0].pick(); await tick(); v = c.renderVals(); assert.deepEqual(v.brItems.map((i) => i.name), ['proj/', 'a.txt'], '파일도 보인다');
+    v.brItems[1].pick(); v = c.renderVals(); assert.equal(v.dlgPath, '/home/u/a.txt'); assert.equal(v.dlgNextOff, false);
+    v.dlgUse(); v = c.renderVals(); assert.equal(v.dlgOn, false); assert.equal(c.state.vals.path, '/home/u/a.txt'); assert.equal(t.calls.length, 0, '고르기는 울타리를 바꾸지 않는다');
+  } finally { t.done(); }
+  t = mk(false); try { t.c.setState({ vals: {}, fname: 'n' }); assert.equal(t.c.renderVals().fields.find((x) => x.isPath).browseOff, true); } finally { t.done(); }
+});

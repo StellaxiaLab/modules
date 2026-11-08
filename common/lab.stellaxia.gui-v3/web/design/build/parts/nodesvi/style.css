@@ -104,3 +104,4 @@ body{margin:0;background:#040614}
 .sv-danger{border-left-color:#ff9c8c;color:#ff9c8c;font-weight:700}
 .sv-aff{margin-top:3px;font-family:'Geist Mono',GmarketSans,monospace}
 .sv-derr{margin:0}
+.sv-fence{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.sv-fence span{flex:1;min-width:0}.sv-pk{min-height:22px;padding:0 8px;font-size:11px;flex:none}
