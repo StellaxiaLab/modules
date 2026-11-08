@@ -430,19 +430,21 @@ class Component extends DCLogic {
         big[q] = fbm(x * 2.5 + 5, y * 6, z * 2.5, 4); fine[q] = fbm(x * 9 + 1, y * 9, z * 9, 3); cloud[q] = fbm(x * 4 + 9, y * 7, z * 4, 4); } }
     return (this._ptx = { TW, TH, big, fine, cloud });
   }
-  // 행성 스킨 — 설정 창이 localStorage 'terra.skin' { 지도 노드 id: 구 id } 에 쓴 것을 읽어, 그 구 파일(terra.star.f.<id>, terra.sphere v1)의 표면 지도로 겉면을 그린다
+  // 행성 스킨 — 그 노드의 속성표 skin.file 이 가리키는, 그 노드에 저장된 구 파일(terra.sphere v1)의 표면 지도로 겉면을 그린다
   //   지도는 1초마다 (또는 'terra-skin' 알림에 바로) 다시 읽고, 구 파일은 처음 한 번 그림 단위로 풀어 둔다 (움직이는 구는 프레임을 돌림)
   skinFor(key) {
     const now = performance.now();
     if (!this._skin || now - this._skin.at > 1000) {
       if (!this._skinEv) { this._skinEv = () => { if (this._skin) this._skin.at = -1e9; if (this._pcv) for (const c of this._pcv.values()) c._at = -1e9; }; try { window.addEventListener('terra-skin', this._skinEv); } catch (e) {} }
-      let m = {}; try { m = JSON.parse(localStorage.getItem('terra.skin') || '{}') || {}; } catch (e) {}
-      this._skin = { at: now, map: m, tex: (this._skin && this._skin.tex) || new Map() };
+      this._skin = { at: now, map: {}, T: this.gf_TN ? this.gf_TN() : null, tex: (this._skin && this._skin.tex) || new Map() };
     }
-    const sid = this._skin.map[key]; if (!sid) return null;
-    const TX = this._skin.tex; let e = TX.get(sid);
-    if (!e) { e = { ready: false, frames: [] }; TX.set(sid, e);
-      let J = null; try { J = JSON.parse(localStorage.getItem('terra.star.f.' + sid) || 'null'); } catch (er) {}
+    const Q = this._skin, T = Q.T; if (!T) return null;
+    if (!(key in Q.map)) { const P = T.nodeProps(key).props, f = P && P.skin && P.skin.file; Q.map[key] = f && f.startsWith('/데이터/') ? f.slice(5) : ''; }
+    const sid = Q.map[key]; if (!sid) return null;
+    const TX = Q.tex; let e = TX.get(sid);
+    if (!e) { const txt = T.blobText(key, sid); if (!txt) return null;
+      e = { ready: false, frames: [] }; TX.set(sid, e);
+      let J = null; try { J = JSON.parse(txt); } catch (er) {}
       const sf = J && J.surface; if (!sf || !sf.frames || !sf.frames.length) { e.bad = true; return null; }
       e.proj = sf.projection || 'equirect'; e.fps = sf.fps || 0; e.render = J.render || {}; let left = sf.frames.length;
       sf.frames.forEach((fr, k) => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0);
@@ -1202,22 +1204,21 @@ class Component extends DCLogic {
     return { t, sys, S, sp, spRaw, shiftAt, cx0, cy0, zs, SZ, scr, w, h, rOf, enter: this.enterNow(now) };
   }
   // 그리기 — part: structure(눈금 고리 · 궤도) · edges(가지) · nodes(항성 · 행성) · labels(이름표). LW: 선 굵기 배율 (히트 박스 층은 크게 — 선을 면처럼)
-  // ───── 프로필 사진 — 설정 창이 노드의 /데이터/profile/image/ 에 저장하고 /데이터/properties.json 의 profile.image 에 경로를 적은 것 ─────
-  //   'terra.fs' 를 1초마다(또는 'terra-fs' 알림에 바로) 다시 읽는다. GIF 는 ImageDecoder 가 있으면 프레임마다 풀어 시간에 맞춰 돌리고, 없으면 첫 프레임만
+  // ───── 프로필 사진 — 그 노드의 /데이터/profile/image/ 에 저장되고 /데이터/properties.json 의 profile.image 가 가리키는 것 ─────
+  //   그 노드의 속성표를 1초마다(또는 'terra-fs' 알림에 바로) 다시 본다. GIF 는 ImageDecoder 가 있으면 프레임마다 풀어 시간에 맞춰 돌리고, 없으면 첫 프레임만
   profileFor(id) {
     const now = performance.now();
     if (!this._prof || now - this._prof.at > 1000) {
       if (!this._profEv) { this._profEv = () => { if (this._prof) this._prof.at = -1e9; }; try { window.addEventListener('terra-fs', this._profEv); } catch (e) {} }
-      let F = { nodes: {} }; try { const v = JSON.parse(localStorage.getItem('terra.fs') || 'null'); if (v && v.nodes) F = v; } catch (e) {}
-      this._prof = { at: now, F, cache: (this._prof && this._prof.cache) || new Map() };
+      this._prof = { at: now, ref: {}, T: this.gf_TN ? this.gf_TN() : null, cache: (this._prof && this._prof.cache) || new Map() };
     }
-    const N = this._prof.F.nodes[id], p = N && N.props && N.props.profile && N.props.profile.image; if (!p) return null;
-    const rel = Object.keys(N.files || {}).find((r) => p.endsWith('/데이터/' + r)); if (!rel) return null;
-    const meta = N.files[rel], ck = id + ':' + rel + ':' + meta.at, C = this._prof.cache; let e = C.get(ck);
-    if (!e) { if (C.size > 24) C.clear(); e = { ready: false }; C.set(ck, e);
-      let data = ''; try { data = localStorage.getItem('terra.fs.f.' + id + ':' + rel) || ''; } catch (er) {}
-      if (!data) e.bad = true;
-      else if (/gif/.test(meta.mime || '') && !window.ImageDecoder) {   // ImageDecoder 가 없는 브라우저 — GIF 는 직접 풀어 프레임으로 (캔버스 drawImage 는 움직이는 GIF 의 첫 프레임만 그린다)
+    const Q0 = this._prof, T0 = Q0.T; if (!T0) return null;
+    if (!(id in Q0.ref)) { const P = T0.nodeProps(id).props, p = P && P.profile && P.profile.image; Q0.ref[id] = p && p.startsWith('/데이터/') ? p.slice(5) : ''; }
+    const rel = Q0.ref[id]; if (!rel) return null;
+    const ck = id + ':' + rel, C = Q0.cache; let e = C.get(ck);
+    if (!e) { const B0 = T0.blob(id, rel); if (!B0) return null; if (C.size > 24) C.clear(); e = { ready: false }; C.set(ck, e);
+      const data = B0.url, meta = { mime: B0.mime };
+      if (/gif/.test(meta.mime || '') && !window.ImageDecoder) {   // ImageDecoder 가 없는 브라우저 — GIF 는 직접 풀어 프레임으로 (캔버스 drawImage 는 움직이는 GIF 의 첫 프레임만 그린다)
         try { const bin = atob(data.slice(data.indexOf(',') + 1)), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
           const fr = this.gifFrames(u8); if (fr && fr.length) { e.frames = fr; e.tot = fr.reduce((a, f) => a + f.d, 0); e.ready = true; } else throw 0;
         } catch (er) { const im = new Image(); im.onload = () => { e.img = im; e.ready = true; }; im.src = data; }
@@ -2691,9 +2692,10 @@ class Component extends DCLogic {
   //   기능 — 실행 파일(exec: 'ctl' 제어기 · 'starmaker' …) · 심볼릭 링크(link: '@go' 이동 · '@map' 지도에서 보기 · '@stat' 상태 · '@net' 네트워크 속성 · '@conf' 설정 · '@node:<id>' 다른 노드)
   //   파일 내용으로 종류를 안다 — { type: 'terra.sphere' } = 구 데이터(◍). mount 디렉토리는 바깥 저장소를 그대로 비춘다(star = 스타메이커 보관함)
   gf_vfs() {
-    // 노드가 저장한 파일(프로필 등 — 설정 창이 'terra.fs' 에 쓴다)도 트리에 얹는다. 그 내용이 바뀌면 다시 만든다
-    let FS = { nodes: {} }, fsRaw = ''; try { fsRaw = localStorage.getItem('terra.fs') || ''; const v = JSON.parse(fsRaw || 'null'); if (v && v.nodes) FS = v; } catch (e) {}
-    const MD = this.sceneMap(), key = MD.all.length + ':' + (MD.root && MD.root.name) + ':' + fsRaw.length + ':' + fsRaw.slice(-40);
+    // 노드가 저장한 파일(프로필 · 스킨)도 트리에 얹는다 — 받아 둔 그 노드의 속성표로(여기서 노드를 두드리지 않는다). 그 내용이 바뀌면 다시 만든다
+    const MD = this.sceneMap(), TF = this.gf_TN(), FS = { nodes: {} };
+    if (TF) for (const n of MD.all) { const props = TF.peekProps(n.id); if (!props) continue; const files = {}; for (const r of [props.profile && props.profile.image, props.skin && props.skin.file]) if (r && r.startsWith('/데이터/')) files[r.slice(5)] = {}; FS.nodes[n.id] = { props, files }; }
+    const fsRaw = JSON.stringify(FS.nodes), key = MD.all.length + ':' + (MD.root && MD.root.name) + ':' + fsRaw.length + ':' + fsRaw.slice(-40);
     if (!this._q_fsEv) { this._q_fsEv = () => { this._q_vfs = null; this._q_ctlTree = null; this.gf_layout(); }; try { window.addEventListener('terra-fs', this._q_fsEv); } catch (e) {} }   // 설정 창이 파일을 저장하면 목록을 바로 다시
     if (this._q_vfs && this._q_vfs.key === key) return this._q_vfs;
     const dir = (name, kids, extra) => Object.assign({ name, type: 'dir', kids: kids || [] }, extra || {}), file = (name, data) => ({ name, type: 'file', data: data || null });
@@ -2740,7 +2742,7 @@ class Component extends DCLogic {
     const MD = this.sceneMap();
     return this.gf_vfsList(it.ent).map((e) => { const nd = this.gf_vfsNodeOf(e), node = nd ? MD.byId[nd.id] || it.node : it.node, sph = e.type === 'file' && e.data && e.data.type === 'terra.sphere';
       return { id: it.id + '/' + e.name, name: e.name, type: e.type, ent: e, node, isNode: !!nd, sid: sph ? e.data.id : null, sph,
-        more: sph ? (e.data.kind === 'planet' ? '행성' : '항성') : e.data && e.data.type === 'terra.file' ? Math.max(1, Math.round((e.data.size || 0) / 1024)) + 'KB' : e.data && e.data.type === 'terra.props' ? '속성' : e.type === 'link' && e.target.startsWith('@node:') ? '→ 자원' : e.type === 'mod' ? this.gf_modMore(e.mod) : e.modsNode ? this.gf_modsMore(e.modsNode) : '' }; });
+        more: sph ? (e.data.kind === 'planet' ? '행성' : '항성') : e.data && e.data.type === 'terra.file' ? '파일' : e.data && e.data.type === 'terra.props' ? '속성' : e.type === 'link' && e.target.startsWith('@node:') ? '→ 자원' : e.type === 'mod' ? this.gf_modMore(e.mod) : e.modsNode ? this.gf_modsMore(e.modsNode) : '' }; });
   }
   // ───── 모듈 자원화 — 노드 폴더 › 모듈 ─────
   //   노드마다 설치된 모듈(terra.daemon.modules.get · 다른 노드는 cluster 범위). 화면이 있는 모듈은 contributions.gui.apps(static · proxied · window)

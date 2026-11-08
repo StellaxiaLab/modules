@@ -2,7 +2,7 @@
 //   GUI(사람마다 · 노드마다 보이는 모습) — 표시 · 프로필 · 스킨 · 뷰
 //     표시 · 뷰 · 스킨 → 사용자 문서 me/documents (app:lab.stellaxia.gui-v3/…) — 어느 기기에서든 같다
 //     프로필 → v3 모듈 백엔드(노드의 모듈 데이터 영역 · lab.stellaxia.gui-v3.node-files.*) — 그 노드를 보는 모든 사람에게 같다
-//     (시안에서는 셋 다 localStorage 로 흉내: 'terra.skin' · 'terra.fs' · 'terra.fs.f.<노드 id>:<상대 경로>')
+//     프로필 · 스킨은 그 노드가 원본 — TerraNodes 를 거쳐 그 노드에 쓰고 읽는다(시안은 목업 전송). 끊긴 노드는 표시만, 바꾸기는 잠근다
 //   Terra(공통 — 모든 노드의 Daemon 설정 config.json, 실제 키 이름 그대로) — 정체 · 연결 · 네트워크 · 업데이트 · 로그 · 위험
 //     읽기 terra.daemon.config.get(+schema.get) · 쓰기 terra.daemon.config.patch {set, save:true} — 쓰기는 로컬 노드만(권한 node.config)
 //     원격 노드(remote)면 전부 읽기 + "그 노드에서 열기". 계정 · 리소스는 노드가 아니라 노드 설정이 없다
@@ -66,36 +66,37 @@ class Component extends DCLogic {
   }
   // 스킨 — 노드 id 로 저장한 구 id ('' = 기본 무늬). 보관함은 스타메이커와 같은 terra.star.index
   // ── 노드 파일 (프로필) ──
-  fsAll() { try { const v = JSON.parse(localStorage.getItem('terra.fs') || 'null'); if (v && v.nodes) return v; } catch (e) {} return { nodes: {} }; }
-  fsNode(F, id) { return F.nodes[id] || (F.nodes[id] = { files: {}, props: {} }); }
-  profOf() { const N = this.fsAll().nodes[this.props.nodeKey || '']; return (N && N.props && N.props.profile && N.props.profile.image) || ''; }
+  TN() { return typeof window !== 'undefined' ? window.TerraNodes : null; }
+  nodeProps() { const T = this.TN(), k = this.props.nodeKey || ''; if (!T || !k) return { props: null, at: 0 }; this.live(); return T.nodeProps(k); }
+  live() { const T = this.TN(); if (this._un || !T) return; this._un = T.subscribe((n) => { if ((n === '' || n === (this.props.nodeKey || '')) && !this._tick) { this._tick = true; Promise.resolve().then(() => { this._tick = false; if (this._un) this.setState({}); }); } }); }
+  componentWillUnmount() { if (this._un) this._un(); this._un = null; }
+  locked() { const T = this.TN(), k = this.props.nodeKey || ''; if (!T || !k) return null; const L = T.linkText(k, this.nodeProps().at); return L.ro ? L : null; }
+  lockRow() { const L = this.locked(); return L ? [this.noteRow('읽기 전용 — ' + L.t, '표시는 그 노드의 마지막 값 · 바꾸기는 그 노드에 닿을 때만')] : []; }
+  profOf() { const P = this.nodeProps().props; return (P && P.profile && P.profile.image) || ''; }
   nodeBase() { return this.props.nodePath || '/' + (this.props.nodeName || 'node'); }
   // 속성에 적는 경로는 노드 상대 '/데이터/…' (백엔드 lab.stellaxia.gui-v3.node-props 와 같은 꼴) — 화면엔 노드 경로를 앞에 붙여 보인다. 예전 꼴(노드 경로 포함)도 읽는다
   relOf(path) { if (!path) return ''; const a = '/데이터/', b = this.nodeBase() + '/데이터/'; return path.startsWith(a) ? path.slice(a.length) : path.startsWith(b) ? path.slice(b.length) : ''; }
-  profData(path) { const id = this.props.nodeKey || '', rel = this.relOf(path); if (!rel) return ''; try { return localStorage.getItem('terra.fs.f.' + id + ':' + rel) || ''; } catch (e) { return ''; } }
+  profData(path) { const T = this.TN(), rel = this.relOf(path), B = T && rel ? T.blob(this.props.nodeKey || '', rel) : null; return B ? B.url : ''; }
   profPick(f) {
     if (!f) return; if (!/^image\//.test(f.type)) { this.setState({ msg: '이미지 · GIF 파일만' }); return; }
-    if (f.size > 2.5 * 1024 * 1024) { this.setState({ msg: '2.5MiB 이하만 — 브라우저 저장소 한계 (' + (f.size / 1048576).toFixed(1) + 'MB)' }); return; }
+    if (this.locked()) { this.setState({ msg: '끊긴 노드 — 바꿀 수 없음' }); return; }
+    if (f.size > 8 * 1024 * 1024) { this.setState({ msg: '8MiB 이하만 (' + (f.size / 1048576).toFixed(1) + 'MB)' }); return; }
     const rd = new FileReader(); rd.onload = () => { const nm = (f.name || 'profile').replace(/[\\/:*?"<>|]+/g, '_'); this._pend = { name: nm, mime: f.type, size: f.size, data: rd.result }; this.set('profile', '(새 파일) ' + nm + ' · ' + Date.now()); }; rd.readAsDataURL(f);
   }
-  profApply(v) {
-    const id = this.props.nodeKey || '', F = this.fsAll(), N = this.fsNode(F, id), old = N.props.profile && N.props.profile.image;
-    // 지난 프로필 파일은 지운다 (프로필 폴더엔 지금 것 하나만)
-    if (this.relOf(old)) { const rel = this.relOf(old); delete N.files[rel]; try { localStorage.removeItem('terra.fs.f.' + id + ':' + rel); } catch (e) {} }
-    if (v.profile && this._pend) { const P = this._pend, rel = 'profile/image/' + P.name;
-      try { localStorage.setItem('terra.fs.f.' + id + ':' + rel, P.data); } catch (e) { this.setState({ msg: '저장 공간 부족 — 더 작은 파일 필요' }); return false; }
-      N.files[rel] = { mime: P.mime, size: P.size, at: Date.now() }; N.props.profile = { image: '/데이터/' + rel }; this._pend = null; }
-    else delete N.props.profile;
-    try { localStorage.setItem('terra.fs', JSON.stringify(F)); } catch (e) {}
-    try { window.dispatchEvent(new Event('terra-fs')); } catch (e) {}
-    return true;
+  // 프로필 · 스킨 적용 — 그 노드에 먼저 쓴다. 스킨은 보관함의 구 파일을 그 노드로 복사한다(다른 PC 에서도, 보관함에서 지워도 그대로)
+  async nodeApply(dk, v) {
+    const T = this.TN(), n = this.props.nodeKey || '';
+    if (dk.includes('profile')) { if (v.profile && this._pend) await T.setProfile(n, this._pend); else if (!v.profile) await T.setProfile(n, null); this._pend = null; try { window.dispatchEvent(new Event('terra-fs')); } catch (e) {} }
+    if (dk.includes('skin')) { let text = ''; if (v.skin) { try { text = localStorage.getItem('terra.star.f.' + v.skin) || ''; } catch (e) {} if (!text) throw { code: 'NOT_FOUND', message: '보관함에 그 구 파일이 없음' }; }
+      await T.setSkin(n, v.skin ? { id: v.skin, text } : null); if (this.props.onSkin) this.props.onSkin(n, v.skin); }
   }
-  skinMap() { try { return JSON.parse(localStorage.getItem('terra.skin') || '{}') || {}; } catch (e) { return {}; } }
-  skinOf() { return this.skinMap()[this.props.nodeKey || ''] || ''; }
+  skinOf() { const P = this.nodeProps().props, f = P && P.skin && P.skin.file; if (!f) return ''; const s = f.slice(f.lastIndexOf('/') + 1), i = s.lastIndexOf('-'); return i > 0 ? s.slice(0, i) : s; }   // 'skin/<구 id>-<시각>.json' → 구 id
   starIdx() { try { const v = JSON.parse(localStorage.getItem('terra.star.index') || 'null'); if (v && Array.isArray(v.files)) return v; } catch (e) {} return { folders: ['star'], files: [] }; }
   V() { const nk = (this.props.nodeKey || '') + '|' + (this.props.nodeName || ''); if (this._vk !== nk) { this._vk = nk; this.state.v = null; this._pend = null; }   // 다른 노드로 열리면 처음부터
-    if (!this.state.v) { const d = this.defaults(); this.state.v = JSON.parse(JSON.stringify(d)); this.state.base = JSON.parse(JSON.stringify(d)); } return this.state.v; }
-  set(k, val) { const v = Object.assign({}, this.V(), { [k]: val }); this.setState({ v, msg: '' }); }
+    if (!this.state.v) { const d = this.defaults(); this.state.v = JSON.parse(JSON.stringify(d)); this.state.base = JSON.parse(JSON.stringify(d)); }
+    { const b = this.state.base, v = this.state.v; for (const [k, now] of [['profile', this.profOf()], ['skin', this.skinOf()]]) if (b[k] !== now) { if (v[k] === b[k]) v[k] = now; b[k] = now; } }   // 그 노드의 값이 오면(늦게 도착 · 다른 곳에서 바뀜) 고치던 것이 없는 칸은 따라간다
+    return this.state.v; }
+  set(k, val) { if ((k === 'profile' || k === 'skin') && this.locked()) { this.setState({ msg: '끊긴 노드 — 바꿀 수 없음' }); return; } const v = Object.assign({}, this.V(), { [k]: val }); this.setState({ v, msg: '' }); }
   dirty() { const v = this.V(), b = this.state.base; return Object.keys(v).filter((k) => JSON.stringify(v[k]) !== JSON.stringify(b[k])); }
   SECS() { const etc = ['기타', [['etc', '도움말']]];
     if (this.real() && this.isNode()) { const g = [['GUI', [['show', '표시'], ['prof', '프로필'], ['skin', '스킨'], ['view', '뷰'], ['tlog', 'Tree 로그인']]], ['Terra', [['sum', '노드 요약']]]];   // 실제 — 노드 설정은 읽기 요약 + 제어기 › 설정으로
@@ -141,14 +142,15 @@ class Component extends DCLogic {
     const D = (id, label, sub, t1, t2, off) => ({ label, sub, isDanger: true, dOff: off ? 'disabled' : null, dCls: S.arm === id ? 'arm' : '', dT: off ? t1 : S.arm === id ? t2 : t1, act: () => { if (off) return; if (S.arm === id) { this.setState({ arm: null, needRestart: 0, msg: label + ' — 요청 보냄 (시안 · POST /restart)' }); } else { this.setState({ arm: id }); clearTimeout(this._armT); this._armT = setTimeout(() => this.setState({ arm: null }), 4000); } } });
     if (sec === 'show') return [T('label', '이름표', '항상 표시'), T('orbit', '궤도 선', ''), G('color', '노드 색', '', ['기본', '파랑', '초록', '주황']), G('proj', '표시 방식', '', ['마스크', '레거시', '혼합'])];
     if (sec === 'prof') { const cur = v.profile, pend = cur && cur.startsWith('(새 파일) ') && this._pend, img = pend ? this._pend.data : this.profData(cur);
-      return [{ label: '프로필 사진', sub: '이미지 · GIF · 2.5MiB 이하', isProf: true, pImg: img || '', hasImg: !!img, noImg: !img,
+      return this.lockRow().concat([{ label: '프로필 사진', sub: '이미지 · GIF · 8MiB 이하', isProf: true, pImg: img || '', hasImg: !!img, noImg: !img,
         pPath: pend ? '적용하면 → ' + this.nodeBase() + '/데이터/profile/image/' + this._pend.name : cur ? (cur.startsWith('/데이터/') ? this.nodeBase() + cur : cur) : '없음', pProps: this.nodeBase() + '/데이터/properties.json › profile.image',
-        pick: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.profPick(f); }, clear: () => { this._pend = null; this.set('profile', ''); } }]; }
+        pick: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.profPick(f); }, clear: () => { this._pend = null; this.set('profile', ''); } }]); }
     if (sec === 'skin') { const L = this.starIdx(), planet = (this.props.nodeKind || '리프') === '리프', pick = (id) => () => this.set('skin', id), C = (id) => (v.skin === id ? 'on' : '');
       const files = L.files.slice().sort((a, b) => (a.path + '/' + a.name).localeCompare(b.path + '/' + b.name));
-      return [{ label: '행성 스킨', sub: '유틸/스타메이커/star · ' + (planet ? '행성 겉면' : '리프 뷰 가운데 항성'), isSkin: true,
-        skins: [{ name: '기본', path: '타입 무늬', thumb: '', noThumb: true, hasThumb: false, cls: C(''), on: v.skin === '' ? 'true' : 'false', pick: pick('') }].concat(files.map((f) => ({ name: f.name, path: f.path + ' · ' + (f.kind === 'planet' ? '행성' : '항성'), thumb: f.thumb || '', noThumb: !f.thumb, hasThumb: !!f.thumb, cls: C(f.id), on: v.skin === f.id ? 'true' : 'false', pick: pick(f.id) }))),
-        skinEmpty: files.length ? '' : 'star 폴더 비어 있음' }]; }
+      const onNode = v.skin && !files.some((f) => f.id === v.skin) ? [{ name: '이 노드의 스킨', path: '노드에 저장됨 · 이 PC 보관함엔 없음', thumb: '', noThumb: true, hasThumb: false, cls: 'on', on: 'true', pick: pick(v.skin) }] : [];
+      return this.lockRow().concat([{ label: '행성 스킨', sub: '유틸/스타메이커/star · ' + (planet ? '행성 겉면' : '리프 뷰 가운데 항성'), isSkin: true,
+        skins: [{ name: '기본', path: '타입 무늬', thumb: '', noThumb: true, hasThumb: false, cls: C(''), on: v.skin === '' ? 'true' : 'false', pick: pick('') }].concat(onNode, files.map((f) => ({ name: f.name, path: f.path + ' · ' + (f.kind === 'planet' ? '행성' : '항성'), thumb: f.thumb || '', noThumb: !f.thumb, hasThumb: !!f.thumb, cls: C(f.id), on: v.skin === f.id ? 'true' : 'false', pick: pick(f.id) }))),
+        skinEmpty: files.length ? '' : 'star 폴더 비어 있음' }]); }
     if (sec === 'view') return [G('view', '시작 뷰', '', ['트리 뷰', '리프 뷰', '리소스 뷰']), T('dbl', '더블클릭 진입', '끔 : 우클릭 › 진입'), T('badge', '알림 배지', '')];
     // ── 노드 설정 (Daemon) ──
     if (this.real() && (sec === 'sum' || sec === 'tsum')) return this.realSum(sec);
@@ -208,7 +210,8 @@ class Component extends DCLogic {
       rows: this.rows(sec).map(filled).map((r) => (r.items ? Object.assign(r, { items: r.items.map((it) => Object.assign({}, it, { hasRun: !!it.run, noRun: !it.run, run: it.run || null })) }) : r)).map((r) => (this.help() ? Object.assign(r, { help: true }) : Object.assign(r, { sub: '', isMeta: false, help: false }))).map((r) => (r.isNote && r.noteAct ? Object.assign(r, { noteRun: r.noteAct.run }) : Object.assign(r, { noteRun: null }))),
       dirtyT: dk.length ? '바뀐 항목 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음', clean: dk.length ? null : 'disabled', msg: S.msg,
       restartD: S.needRestart ? 'inline-flex' : 'none', restartNow: () => this.setState({ needRestart: 0, msg: '다시 시작 요청 보냄 (시안 · POST /restart)' }),
-      apply: () => { if (dk.includes('profile') && !this.profApply(v)) return; if (dk.includes('skin')) { const m = this.skinMap(), key = this.props.nodeKey || ''; if (v.skin) m[key] = v.skin; else delete m[key]; try { localStorage.setItem('terra.skin', JSON.stringify(m)); } catch (e) {} if (this.props.onSkin) this.props.onSkin(key, v.skin); }
+      apply: async () => { if (this._saving) return;
+        if (dk.includes('profile') || dk.includes('skin')) { this._saving = true; this.setState({ msg: '그 노드에 저장 중…' }); try { await this.nodeApply(dk, v); } catch (e) { this.setState({ msg: '저장 못 함 — ' + ((e && e.message) || (e && e.code) || '오류') }); return; } finally { this._saving = false; } }
         // 노드 설정 — 실제로는 바뀐 키만 terra.daemon.config.patch {set:{…}, save:true} 한 번 (전부 적용되거나 전부 안 됨, 키별 오류는 그 줄에). path 인자는 넘기지 않는다
         const nd = dk.filter((k) => DK[k]);
         this.setState({ base: JSON.parse(JSON.stringify(v)), needRestart: (S.needRestart || 0) + rsN, msg: '적용 완료 — ' + dk.length + '개' + (nd.length ? ' (노드 설정 ' + nd.length + '개 · 시안)' : '') + (rsN ? ' · 재시작 필요 ' + rsN + '개' : '') }); },
