@@ -34,7 +34,7 @@ class Component extends DCLogic {
       ident: { nodeId: 'nd_' + hex(50, 4) + '-' + hex(60, 12), deviceId: 'dev_' + hex(80, 10), roles: { '계정': 'Master', '트리': 'Tree', '리프': 'Leaf', '리소스': '자원' }[kind] || kind, parent: this.props.parentName || '— (맨 위)', depth: kind === '트리' ? '0' : '1',
         address: '10.80.' + Math.floor(r(70) * 9) + '.' + Math.floor(r(71) * 200 + 10), dns: nm.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.terra', version: '1.7.' + Math.floor(r(23) * 4), created: '10-0' + (1 + Math.floor(r(24) * 8)) + ' 09:12:40', tags: 'lab', caps: 'exec, files, svi' },
       comm: { via: bad ? 'relay' : 'direct', relay: true, net: 'lab-mesh', desired: 'wireguard', observed: bad ? 'relay' : 'direct', gen: String(3 + Math.floor(r(72) * 6)),
-        routes: peers.slice(0, 2).map((p, i) => ({ peer: p, rt: bad && i === 1 ? 'relay' : 'direct', ad: 'wireguard', healthy: !(bad && i === 1), lat: Math.round(3 + r(73 + i) * 20 + wob(74 + i, 2)) + 'ms' })),
+        routes: peers.slice(0, 2).map((p, i) => ({ dir: '→', peer: p, rt: bad && i === 1 ? 'relay' : 'direct', ad: 'wireguard', healthy: !(bad && i === 1), lat: Math.round(3 + r(73 + i) * 20 + wob(74 + i, 2)) + 'ms' })),
         sessions: [{ peer: peers[0], dir: '←', channel: 'svi', rt: 'direct', state: 'open', err: '' }] },
       res: { cpu: Math.max(0.02, Math.min(0.99, 0.2 + r(1) * 0.55 + wob(2, 0.08))), mem: Math.max(0.05, Math.min(0.99, 0.3 + r(3) * 0.5 + wob(4, 0.03))), disk: 0.15 + r(5) * 0.6 },
       recent: { heartbeat: '방금', events: ev.map(([msg, lv, ago]) => ({ at: now - ago * 1000, lv, msg })) },
@@ -59,7 +59,7 @@ class Component extends DCLogic {
       ident: [['장치', id.deviceId], ['역할', id.roles], ['부모', id.parent], ['깊이', id.depth], ['주소', id.address], ['DNS', id.dns], ['버전', id.version], ['등록', id.created]].map(([k, v]) => ({ k, v: v || D })),
       via: cm.via || D, viaCol: cm.via === 'direct' ? '#60e28c' : cm.via && cm.via !== D ? '#ffd27a' : '#709c80', relayT: I ? (cm.relay ? '연결됨' : '끊김') : D, relayCol: cm.relay ? '#60e28c' : '#ff9c8c', gen: cm.gen || D,
       comm: [['네트워크', cm.net], ['원하는', cm.desired], ['관측', cm.observed], ['태그', id.tags]].map(([k, v]) => ({ k, v: v || D })),
-      routes: routes.map((x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? '#60e28c' : '#ffd27a', peer: x.peer, rt: x.rt, ad: x.ad, lat: x.lat })), routeSum: routes.length ? routes.length + '개' : '없음',
+      routes: routes.map((x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? '#60e28c' : '#ffd27a', dir: x.dir || '', peer: x.peer, rt: x.rt, ad: x.ad, lat: x.lat })), routeSum: (() => { const np = new Set(routes.map((x) => x.peer)).size; return !routes.length ? '없음' : np === routes.length ? routes.length + '개' : '상대 ' + np + '개 · 방향별 ' + routes.length + '개'; })(),
       sessions: sess.map((x) => ({ dir: x.dir, peer: x.peer, channel: x.channel, rt: x.rt, state: x.state + (x.err ? ' · ' + x.err : ''), col: x.err ? '#ffd27a' : '#d6f4de' })), sessSum: sess.length ? sess.length + '개' : '없음',
       // 총량은 Master 가 실어 준 것만(지어내지 않는다), 꺼진 노드는 '마지막 보고 · N 전' — 지금 값처럼 보이지 않게
       bars: (() => { const fb = (typeof window !== 'undefined' && window.TerraFmtBytes) || (() => ''), sz = (u, t) => (t && fb(t) ? (fb(u) || '?') + ' / ' + fb(t) : R && I ? '총량 보고 없음' : ''), old = R && rs.stale ? '마지막 보고 · ' + ((I && I.seen) || '') : '';

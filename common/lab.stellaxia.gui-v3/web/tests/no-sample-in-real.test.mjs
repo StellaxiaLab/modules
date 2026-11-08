@@ -78,3 +78,21 @@ test('NodeConf 실제 — 노드 설정은 읽기 요약 + 제어기 › 설정�
   const t = new C({ nodeName: 'marui-server', nodeKind: '트리', nodeRid: 'n-server' }); t.skinOf = () => ''; t.profOf = () => ''; t.setState({ sec: 'tsum' });
   const tv = t.renderVals().rows; assert.match(tv.find((x) => x.label === 'Master 노드').val, /^예/); assert.match(tv.find((x) => x.label === '바로 아래 노드').val, /^2개/);
 }));
+
+// 2026-11-08 실측: 노드 4개인데 '경로 6개'. Master 경로 그래프는 방향 있는 간선(N×(N−1)=12)이라 상대 한 노드가 → ← 두 줄로 온다 — 데이터 중복이 아니라 방향이 다른 경로다
+test('NodeStatus 실제 — 경로는 방향별 줄이고, 요약은 상대 수와 방향별 수를 함께, 방향이 줄에 보인다', () => {
+  const ids = ['n-server', 'n-desk', 'n-rdk', 'n-sub'], names = { 'n-server': 'marui-server', 'n-desk': 'MARUI-NANO-DESK', 'n-rdk': 'hanium', 'n-sub': 'marui-sub2' };
+  const mesh = [{ route_type: 'mesh_vpn_direct', adapter: 'wireguard', healthy: true }], relay = [{ route_type: 'cloud_relay', adapter: 'websocket', healthy: true }];
+  const edges = ids.flatMap((a) => ids.filter((b) => b !== a).map((b) => ({ source_node_id: a, target_node_id: b, candidates: a === 'n-desk' && b === 'n-sub' ? relay : mesh })));
+  assert.equal(edges.length, 12);
+  const info = nodeInfo({ node_id: 'n-desk', display_name: names['n-desk'], status: 'online' }, { graph: { edges }, status: { nodes: ids.map((n) => ({ node_id: n, display_name: names[n] })) } }, { id: 'n-desk' });
+  assert.deepEqual(info.comm.routes.map((r) => r.dir + r.peer).sort(), ['←hanium', '←marui-server', '←marui-sub2', '→hanium', '→marui-server', '→marui-sub2']);
+  const C = board('NodeStatus'), c = new C({ nodeName: names['n-desk'], nodeKind: '리프', nodeRid: '' });
+  c.state.info = info;
+  const v = withWindow(() => c.renderVals());
+  assert.equal(v.routeSum, '상대 3개 · 방향별 6개');
+  assert.equal(v.routes.filter((r) => r.peer === 'marui-sub2').map((r) => r.dir).sort().join(''), '←→');
+  // 한 방향뿐이면 예전처럼 개수만
+  const one = nodeInfo({ node_id: 'n-desk', display_name: 'x', status: 'online' }, { graph: { edges: [edges[0]] } }, { id: edges[0].source_node_id });
+  c.state.info = one; assert.match(withWindow(() => c.renderVals()).routeSum, /^1개$/);
+});
