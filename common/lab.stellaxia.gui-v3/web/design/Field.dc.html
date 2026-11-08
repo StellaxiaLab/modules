@@ -699,7 +699,7 @@ class Component extends DCLogic {
     let R = Rr ? { ...Rr } : ent && ent.R ? { ...ent.R } : null;
     if (!R && Rr === undefined && this._popAt) { R = { w: BW, h: BH, x: Math.min(w - BW - 12, Math.max(vx0 + 12, this._popAt[0] + 40)), y: Math.min(h - BH - 12, Math.max(12, this._popAt[1] - 60)) }; }   // 우클릭에서 연 창 — 그 노드 가까이
     if (!R) { const sc = Math.min(1, (w - vx0) * 0.8 / BW, h * 0.84 / BH); R = { w: BW * sc, h: BH * sc }; R.x = vx0 + (w - vx0 - R.w) / 2 + nOpen * 28; R.y = (h - R.h) / 2 + nOpen * 24; }   // 새 창은 계단식으로 조금씩 비켜 놓는다
-    Object.assign(wrap.style, { display: 'block', position: 'absolute', overflow: 'hidden', boxSizing: 'border-box', background: SEE ? 'rgba(4,6,20,0.32)' : '#040614', border: '1px solid rgba(70,160,108,0.75)', borderRadius: '0', boxShadow: '0 0 0 1px rgba(2,3,10,.7), 0 22px 64px rgba(0,0,0,.6)', clipPath: 'inset(50%)', filter: 'brightness(0.38)', touchAction: 'none' });
+    Object.assign(wrap.style, { display: 'block', position: 'absolute', overflow: 'hidden', boxSizing: 'border-box', background: SEE ? 'rgba(4,6,20,0.32)' : '#040614', backdropFilter: SEE ? 'brightness(0.32)' : 'none', webkitBackdropFilter: SEE ? 'brightness(0.32)' : 'none', border: '1px solid rgba(70,160,108,0.75)', borderRadius: '0', boxShadow: '0 0 0 1px rgba(2,3,10,.7), 0 22px 64px rgba(0,0,0,.6)', clipPath: 'inset(50%)', filter: 'brightness(0.38)', touchAction: 'none' });
     Object.assign(body.style, { position: 'absolute', left: 0, top: T.TB + 'px', transformOrigin: '0 0' });
     const W = { slot: k, node, kind, arg: wArg, wrap, fr: body, body, R, tau: 0, dir: 1, raf: 0, max: null, z: 0 };
     WS[k] = W; wrap._W = W;
