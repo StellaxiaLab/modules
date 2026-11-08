@@ -63,7 +63,7 @@ related:
 | 2. 그 유형으로 자원 만들기 | 선언 API 는 `family` 셋 고정 · `additionalProperties:false` — 모듈로 넘어가지 않음. 모듈이 원천(source)이 되는 데이터 길도 없음(sink 만) | 선언을 모듈 어댑터로 넘기는 길(예: 선언 `family: module` + `module_id` · `type` · `config` → 모듈 `POST /terra/svi/declare`), 모듈 원천 데이터 길 | 모듈 유형은 **만들기 — 코어 대기**로 잠금 |
 | 창 우클릭 "자원으로 만들기" | window kind 어댑터가 없다 | 프로그램 창 어댑터(모듈) + 위 길 | 시안의 "프로그램 창" 유형 |
 | 3. "유휴" 구분 | binding 에 마지막 프레임 시각 · 수가 없다 | binding 관측에 `last_frame_at` · 프레임 수(또는 idle 상태) | 연결됨 줄의 '흐름'은 **보고 없음** |
-| 울타리를 GUI 에서 넓히기 | 의도적으로 없음 — 설정 파일 + 재시작 | — | 창 왼쪽에 울타리 요약 · 그 한 줄 안내 |
+| 울타리를 GUI 에서 넓히기 | 같은 노드에서만 — 폴더 허용 · GUI 에서 넣은 폴더 해제 (ADR-GW-011 E3, `terra.daemon.svi.envelope.file-roots.*`, node.control). 다른 노드는 그 노드에서만 | 창 왼쪽 울타리 목록(출처: 설정 파일 / GUI) + 폴더 허용 버튼 · 확인 창 |
 
 ## 4. 허가 주체 — 노드 · 사람 (2026-11-04)
 

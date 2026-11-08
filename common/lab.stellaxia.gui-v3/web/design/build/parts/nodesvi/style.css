@@ -91,3 +91,16 @@ body{margin:0;background:#040614}
 .sv-op.on{border-color:rgba(110,236,156,.9);background:rgba(70,170,110,.2);color:#d0ff96}
 .sv-op[disabled]{opacity:.42;cursor:not-allowed;text-decoration:line-through;text-decoration-color:rgba(255,178,166,.6)}
 .sv-gnote{font-size:10px;margin:0 0 10px}
+.sv-root{display:flex;align-items:center;gap:6px;padding:3px 6px;min-width:0}
+.sv-rp{flex:1;min-width:0;font:500 11px 'Geist Mono',GmarketSans,monospace;color:#9cc4a8;word-break:break-all}
+.sv-rm{min-height:22px;padding:0 8px;font-size:11px}
+.sv-dlg{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(4,6,20,.82)}
+.sv-dbox{display:flex;flex-direction:column;gap:10px;width:min(520px,100%);max-height:100%;overflow:auto;padding:14px;border:1px solid rgba(110,236,156,.6);background:#060a1c}
+.sv-br{display:flex;flex-direction:column;gap:6px}
+.sv-brr,.sv-brl{display:flex;flex-wrap:wrap;gap:4px}
+.sv-brl{max-height:140px;overflow:auto}
+.sv-brd{padding:2px 8px;border:1px solid rgba(70,160,108,.35);background:transparent;color:#d6f4de;font:500 11px 'Geist Mono',GmarketSans,monospace;cursor:pointer}
+.sv-brd:hover{border-color:rgba(110,236,156,.85)}
+.sv-danger{border-left-color:#ff9c8c;color:#ff9c8c;font-weight:700}
+.sv-aff{margin-top:3px;font-family:'Geist Mono',GmarketSans,monospace}
+.sv-derr{margin:0}
