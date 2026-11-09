@@ -8,6 +8,7 @@
 //     공유 — terra.master.svi.grants.post { subject_type: node|user, subject_id, resource_id, operations[], ttl_seconds? } · grants.delete
 //       전체 · Leaf · Tree → 노드 주체 허가(흐름 허용 목록, SVI 계약 §12.10). 전체는 Terra 에 클러스터 주체가 없어 지금 있는 노드로 펼친다(이후 추가 노드 제외)
 //       계정 → 사용자 주체 허가
+//       고치기 — terra.master.svi.grants.by-grant-id.patch { grant_id, operations?, endpoint_id?, ttl_seconds? } — 받는 이 고정, 작업 · 끝점 · 기한만(좁히기는 통과 · 넓히기는 위임 가드)
 //     등록 가능 — terra.master.svi.grants.list (subject_type=node · subject_id=이 노드) + 카탈로그
 //     등록 — terra.master.svi.bindings.post { source_resource_id/endpoint_id, target_resource_id/endpoint_id, qos_profile } · bindings.delete
 //     클러스터 밖 자원(외부) — Terra 코어에 아직 길이 없다(SVI 허가 · 바인딩은 클러스터 안) — 시안
@@ -59,9 +60,51 @@ function checkGrant(g, selfId) {
   return { ok: true, why: '' };
 }
 const opsText = (ops) => (ops && ops.length ? ops.map((o) => OP_KO[o] || o).join(' · ') : '—');
+// 허가 고치기 — grantNarrows · checkGrantEdit · grantPatch 도 src/api/svi-grant.js 의 사본(tests/grant-edit.test.mjs)
+/**
+ * 고친 허가가 좁히기만인가 — Master grantOnlyNarrows 와 같은 규칙
+ * @param {{ operations?: string[], endpoint_id?: string, expires_at?: string|number|null }} before
+ * @param {{ operations: string[], endpoint_id: string, ttl_seconds?: number|null }} after ttl_seconds 없음(null) = 기한 그대로
+ */
+function grantNarrows(before, after, now = Date.now()) {
+  const had = new Set(before.operations || []);
+  if ((after.operations || []).some((o) => !had.has(o))) return false;
+  const be = before.endpoint_id || '', ae = after.endpoint_id || '';
+  if (ae !== be && be !== '') return false;
+  const bx = before.expires_at == null || before.expires_at === '' ? NaN : typeof before.expires_at === 'number' ? before.expires_at : Date.parse(before.expires_at);
+  if (after.ttl_seconds != null && !Number.isNaN(bx) && (!(after.ttl_seconds > 0) || now + after.ttl_seconds * 1000 > bx)) return false;
+  return true;
+}
+
+/**
+ * 고치기를 가드처럼 미리 본다 — 좁히기면 통과, 넓히기면 고친 뒤의 허가에 checkGrant
+ * @param {{ subject_type: string, subject_id: string, operations?: string[], endpoint_id?: string, expires_at?: string|number|null }} before
+ * @param {{ operations: string[], endpoint_id: string, ttl_seconds?: number|null }} after
+ * @returns {{ ok: boolean, why: string, narrows: boolean }}
+ */
+function checkGrantEdit(before, after, selfId, now = Date.now()) {
+  const ops = after.operations || [];
+  if (!ops.length) return { ok: false, why: '작업 1개 이상 선택', narrows: false };
+  const p = grantPatch(before, after);
+  if (!Object.keys(p).length) return { ok: false, why: '바뀐 것 없음', narrows: true };
+  if (grantNarrows(before, after, now)) return { ok: true, why: '', narrows: true };
+  const bx = before.expires_at == null || before.expires_at === '' ? NaN : typeof before.expires_at === 'number' ? before.expires_at : Date.parse(before.expires_at);
+  const ttl = after.ttl_seconds != null ? after.ttl_seconds : Number.isNaN(bx) ? 0 : Math.ceil((bx - now) / 1000);
+  const c = checkGrant({ subject_type: before.subject_type, subject_id: before.subject_id, operations: ops, ttl_seconds: ttl }, selfId);
+  return { ok: c.ok, why: c.ok ? '' : '넓히기 · ' + c.why, narrows: false };
+}
+
+/** patch 입력 — 바뀐 칸만(operations · endpoint_id · ttl_seconds). 끝점 '전체' = '' */
+function grantPatch(before, after) {
+  const p = {}, a = (after.operations || []).slice().sort(), b = (before.operations || []).slice().sort();
+  if (JSON.stringify(a) !== JSON.stringify(b)) p.operations = GRANT_OPS.filter((o) => a.includes(o)).concat(a.filter((o) => !GRANT_OPS.includes(o)));
+  if ((after.endpoint_id || '') !== (before.endpoint_id || '')) p.endpoint_id = after.endpoint_id || '';
+  if (after.ttl_seconds != null) p.ttl_seconds = after.ttl_seconds;
+  return p;
+}
 
 class Component extends DCLogic {
-  constructor(props) { super(props); try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} this.state = { tab: 'share', res: null, base: null, cur: null, draft: { kind: 'node', who: '전체', picks: [], ops: { node: GRANT_DEFAULTS.node.slice(), user: GRANT_DEFAULTS.user.slice() }, me: true, ttl: '7d', target: '', qos: '신뢰 순서' }, msg: '', open: null }; }
+  constructor(props) { super(props); try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} this.state = { tab: 'share', res: null, base: null, cur: null, draft: { kind: 'node', who: '전체', picks: [], ops: { node: GRANT_DEFAULTS.node.slice(), user: GRANT_DEFAULTS.user.slice() }, me: true, ttl: '7d', target: '', qos: '신뢰 순서' }, msg: '', open: null, edit: null }; }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }   // 설정 › 기타 › 도움말
   TTL() { const o = {}; for (const [k, v] of GRANT_TTLS) o[k] = v; return o; }
   QOS() { return { '실시간 최신': 'realtime_latest', '실시간 순서': 'realtime_ordered', '신뢰 순서': 'reliable_ordered', '대용량 재개': 'bulk_resumable' }; }
@@ -72,6 +115,8 @@ class Component extends DCLogic {
   resList() { const r = this.props.resList; return Array.isArray(r) ? r : typeof r === 'string' && r ? r.split(',') : ['ssh:22', 'tty0', 'gpio']; }
   peers() { const p = this.props.peers; if (Array.isArray(p) && p.length) return p;
     return [['01', '트리', ''], ['02', '트리', ''], ['01·a', '리프', '01'], ['02·a', '리프', '02'], ['02·b', '리프', '02'], ['02·c', '리프', '02'], ['03·b', '리프', '03']].map(([name, kind, parent]) => ({ id: name, name, kind, parent })); }
+  // 시안 끝점 — 자원마다(실제는 svi.resources.get 의 endpoints)
+  EPS(r) { return ({ 'ssh:22': ['stream'], tty0: ['out', 'in'], gpio: ['pins', 'irq'] })[r] || ['out']; }
   sinks() { const k = this.props.sinkList; return Array.isArray(k) && k.length ? k : ['store/data', 'display/sink', 'log/in']; }
   me() { return this.props.nodeName || '02·b'; }
   // 소속 클러스터 — 부모 Tree 와 그 아래 리프
@@ -100,6 +145,23 @@ class Component extends DCLogic {
     const c = checkGrant({ subject_type: D.kind, subject_id: D.kind === 'user' ? this.SELF() : 'n', operations: ops, ttl_seconds: ttl }, this.SELF()); if (!c.ok) { this.setState({ msg: c.why }); return; }
     this.set((v) => { const g = v.shares[res] || (v.shares[res] = []); for (const x of list) { const i = g.findIndex((y) => y.who === x.who && y.type === x.type); if (i >= 0) g[i] = x; else g.push(x); } });
     this.setState({ draft: Object.assign({}, D, { picks: [] }), msg: D.kind === 'node' && D.who === '전체' && this.help() ? '전체 · 지금 ' + this.clusterN() + '곳 (이후 추가 노드 제외)' : '' });
+  }
+  // 허가 줄 고치기 — b: { id, stype, sid, ops[], ep, exp }, eps: 끝점 id 목록, save(patch, after) — 받는 이는 고정
+  editRow(b, eps, selfId, save) {
+    const E = this.state.edit && this.state.edit.id === b.id ? this.state.edit : null, up = (p) => this.setState({ edit: Object.assign({}, E, p), msg: '' });
+    if (!E) return { editing: false, edit: () => this.setState({ edit: { id: b.id, ops: b.ops.slice(), ep: b.ep || '', ttl: '유지' }, msg: '' }) };
+    const allow = GUARD_OPS[b.stype] || [], ttlS = E.ttl === '유지' ? null : this.TTL()[E.ttl], after = { operations: E.ops, endpoint_id: E.ep, ttl_seconds: ttlS };
+    const C = checkGrantEdit({ subject_type: b.stype, subject_id: b.sid, operations: b.ops, endpoint_id: b.ep, expires_at: b.exp }, after, selfId), P = grantPatch({ operations: b.ops, endpoint_id: b.ep }, after);
+    const ops = GRANT_OPS.concat(b.ops.filter((o) => !GRANT_OPS.includes(o)));
+    const epL = [['', '전체']].concat((eps || []).map((e) => [e, e])); if (b.ep && !(eps || []).includes(b.ep)) epL.push([b.ep, b.ep]);
+    return { editing: true, edit: () => this.setState({ edit: null }),
+      eOps: ops.map((op) => { const on = E.ops.includes(op), had = b.ops.includes(op), ok = allow.includes(op) || had;
+        return { name: OP_KO[op] || op, on: on ? 'true' : 'false', cls: on ? 'on' : '', off: ok ? null : 'disabled', tip: ok ? op + (allow.includes(op) ? '' : ' — 빼기만 (위임 가드 밖)') : '위임 가드 — ' + (KIND_KO[b.stype] || b.stype) + ' : ' + op + ' 불가',
+          pick: () => up({ ops: on ? E.ops.filter((x) => x !== op) : ops.filter((x) => x === op || E.ops.includes(x)) }) }; }),
+      eEps: epL.map(([id, nm]) => ({ name: nm, on: E.ep === id ? 'true' : 'false', cls: E.ep === id ? 'on' : '', pick: () => up({ ep: id }) })),
+      eTtls: ['유지'].concat(GRANT_TTLS.map((t) => t[0])).map((x) => ({ name: x, on: E.ttl === x ? 'true' : 'false', cls: E.ttl === x ? 'on' : '', pick: () => up({ ttl: x }) })),
+      eNote: C.ok ? (C.narrows ? '좁히기 — 위임 가드 통과' : '넓히기 — 위임 가드 : 받는 이 · 작업 · 기한 90d 이하') + ' · 바뀜 : ' + Object.keys(P).join(' · ') : C.why,
+      eOff: C.ok ? null : 'disabled', eCancel: () => this.setState({ edit: null }), eSave: () => { if (!C.ok) { this.setState({ msg: C.why }); return; } save(P, after); this.setState({ edit: null }); } };
   }
   /** 주체 · 작업 · 기한 칸(시안 · 실제 공통) — o: { selfId, others[], peopleWhy, ttlCur } */
   compose(o) {
@@ -165,8 +227,10 @@ class Component extends DCLogic {
       isShare: S.tab === 'share', isReg: S.tab === 'reg', apiG: H ? 'svi.grants' : '', apiB: H ? 'svi.bindings' : '', apiV: H ? '이 노드를 지명한 허가' : '',
       resItems: mine.map((r) => ({ name: r.name, n: '', cls: cur && r.id === cur.id ? 'on' : '', pick: () => this.setState({ res: r.name }) })),
       openRes: cur ? openRs(cur.name, '', '') : () => {}, res: cur ? cur.name : '', hasRes: !!cur, noRes: !cur, noGrants: !!cur && G.length === 0,
-      grants: G.map((g) => ({ who: g.who, type: g.type, typeCls: TC[g.type] || 'nd', perm: opsText(String(g.ops || '').split(' · ').filter(Boolean)), ops: g.ops, ttl: g.ttl === '없음' ? '기한 없음' : g.ttl,
-        del: () => W('terra.master.svi.grants.by-grant-id.delete', { grant_id: g.id }, 'terra.master.svi.grants.get') })),
+      grants: G.map((g) => Object.assign({ who: g.who, type: g.type, typeCls: TC[g.type] || 'nd', perm: opsText(String(g.ops || '').split(' · ').filter(Boolean)), ops: g.ops, ttl: g.ttl === '없음' ? '기한 없음' : g.ttl, epT: g.ep ? '끝점 : ' + g.ep : '',
+        del: () => W('terra.master.svi.grants.by-grant-id.delete', { grant_id: g.id }, 'terra.master.svi.grants.get') },
+        this.editRow({ id: g.id, stype: (g.subject && g.subject.type) || 'user', sid: (g.subject && g.subject.id) || '', ops: g.opList || [], ep: g.ep || '', exp: g.exp }, (cur ? cur.eps : []).map((e) => e.id), me,
+          (P) => C.TN.write(C.key, 'terra.master.svi.grants.by-grant-id.patch', Object.assign({ grant_id: g.id }, P)).then(() => { say('고침 — ' + g.who + ' · ' + Object.keys(P).join(' · ')); C.TN.refresh(C.key, 'terra.master.svi.grants.get'); }, fail)))),
       whoOpts: sg(['전체', 'Tree', 'Leaf'], who, (o) => this.setState({ draft: Object.assign({}, D, { who: o, picks: [] }) })),
       whoNote: who === '전체' ? '부모 Tree 와 지금 보이는 노드 ' + (leaves.length + (C.parent ? 1 : 0)) + '곳(이후 추가 노드 제외)' : who === 'Tree' ? (C.names.get(C.parent) || C.parent || '부모 없음') : '',
       hasPicks: who === 'Leaf' && leaves.length > 0,
@@ -203,8 +267,10 @@ class Component extends DCLogic {
       apiG: H ? 'svi.grants' : '', apiB: H ? 'svi.bindings' : '', apiV: H ? '지명 · 전체 · Tree 외부' : '',
       resItems: R.map((r) => ({ name: r, n: (v.shares[r] || []).length ? '' + (v.shares[r] || []).length : '', cls: r === res ? 'on' : '', pick: () => this.setState({ res: r }) })),
       openRes: openRs(res, '', ''), res, hasRes: R.length > 0, noRes: R.length === 0, noGrants: R.length > 0 && G.length === 0,
-      grants: G.map((g, j) => ({ who: g.who, type: g.type, typeCls: TC[g.type] || 'nd', perm: opsText(g.ops), ops: (g.ops || []).join(' · '), ttl: g.ttl === '없음' ? '기한 없음' : g.ttl,
-        del: () => this.set((c) => { c.shares[res] = (c.shares[res] || []).filter((x, q) => q !== j); }) })),
+      grants: G.map((g, j) => Object.assign({ who: g.who, type: g.type, typeCls: TC[g.type] || 'nd', perm: opsText(g.ops), ops: (g.ops || []).join(' · '), ttl: g.ttl === '없음' ? '기한 없음' : g.ttl, epT: g.ep ? '끝점 : ' + g.ep : '',
+        del: () => this.set((c) => { c.shares[res] = (c.shares[res] || []).filter((x, q) => q !== j); }) },
+        this.editRow({ id: res + '#' + j, stype: g.type === '사람' ? 'user' : 'node', sid: g.type === '사람' ? this.SELF() : g.who, ops: g.ops || [], ep: g.ep || '', exp: g.exp || null }, this.EPS(res), this.SELF(),
+          (P, A) => this.set((c) => { const x = c.shares[res][j]; if (P.operations) x.ops = P.operations; if ('endpoint_id' in P) x.ep = P.endpoint_id; if (P.ttl_seconds) { x.ttl = (GRANT_TTLS.find((t) => t[1] === P.ttl_seconds) || [''])[0]; x.exp = Date.now() + P.ttl_seconds * 1000; } })))),
       whoOpts: sg(['전체', 'Tree', 'Leaf'], D.who, (o) => this.setState({ draft: Object.assign({}, D, { who: o, picks: [] }) })),
       whoNote: D.who === '전체' ? (H ? '소속 클러스터 전체 · ' + this.clusterN() + '곳' : '소속 클러스터') : D.who === 'Tree' ? this.par() + (H ? ' — 클러스터 밖 : Tree 전달' : '') : '',
       hasPicks: pickOpts.length > 0,

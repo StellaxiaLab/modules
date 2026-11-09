@@ -496,7 +496,7 @@ class Component extends DCLogic {
       else {
         const share = n.kind === 'leaf' ? n.kids.filter((c) => c.kind === 'res').map((c) => link(c.name, '@node:' + c.id)) : ['mcp:7000', 'store/data', 'logs-agg', 'backup', 'relay:9443'].slice(0, 2 + (h % 3)).map((t) => file(t));
         kids.push(exec('제어기', 'ctl'), dir('공유 자원', share), dir('모듈', [], { modsNode: n }),   /* 안은 펼칠 때 — 노드 데이터 층에서 그 노드의 모듈 사본 (모든 노드를 한꺼번에 묻지 않는다) */ dataDir(n, n.kind === 'tree' ? ['config.toml', 'state.db', 'logs', 'snapshots'] : ['config.toml', 'state.db', 'logs']),
-          dir('기능', [link('이동', '@go'), link('지도에서 보기', '@map'), link('상태', '@stat'), link('네트워크', '@net'), link('자원화', '@svi'), link('설정', '@conf')].concat(n.kind === 'leaf' ? [link('자원', '@share')] : [])));
+          dir('기능', [link('이동', '@go'), link('지도에서 보기', '@map'), link('상태', '@stat'), link('네트워크', '@net'), link('SVI', '@svi'), link('설정', '@conf')].concat(n.kind === 'leaf' ? [link('자원', '@share')] : [])));
       }
       for (const c of n.kids) if (c.kind === 'tree' || c.kind === 'leaf') kids.push(nodeDir(c));
       const d = dir(n.name, kids); byNode.set(n.id, d); return d;
@@ -524,7 +524,7 @@ class Component extends DCLogic {
       return { id: it.id + '/' + e.name, name: e.name, type: e.type, ent: e, node, isNode: !!nd, sid: sph ? e.data.id : null, sph,
         more: sph ? (e.data.kind === 'planet' ? '행성' : '항성') : e.data && e.data.type === 'terra.file' ? Math.max(1, Math.round((e.data.size || 0) / 1024)) + 'KB' : e.data && e.data.type === 'terra.props' ? '속성' : e.type === 'link' && e.target.startsWith('@node:') ? '→ 자원' : e.type === 'mod' ? this.modMore(e.mod) : e.modsNode ? this.modsMore(e.modsNode) : '' }; });
   }
-  // ───── 모듈 자원화 — 노드 폴더 › 모듈 ─────
+  // ───── 모듈 SVI — 노드 폴더 › 모듈 ─────
   //   노드마다 설치된 모듈(terra.daemon.modules.get · 다른 노드는 cluster 범위). 화면이 있는 모듈은 contributions.gui.apps(static · proxied · window)
   //   시안 — 실제 모듈 저장소(modules · terra/module)의 모듈과 앱 선언을 쓰고, 노드마다 몇 개를 고정해 둔다. 시작 · 멈춤은 모듈 상태 창이 terra.mod.st 에
   MODPOOL() { return [
@@ -684,7 +684,7 @@ class Component extends DCLogic {
     if (kind === 'web') { const a = String(arg || 'terra://start'); wArg = a; if (a.startsWith('mod|')) { const nn = this.mapData().byId[a.split('|')[1]]; if (nn) node = nn; } }   // 브라우저 — 모듈 화면이면 그 모듈의 노드 · 같은 화면이면 그 창을 앞으로
     if (kind === 'mod') wArg = String(arg || '');
     const ctLaunch = !kind || kind === 'ctl' ? String(arg || '') : '';   // 제어기 — arg 는 바로 띄울 앱('set:node' 설정 › 노드 설정 · 'jobs:<작업 id>' 작업 관리자)
-    let svPre = ''; if (kind === 'svi') { svPre = String(arg || ''); if (node && node.kind === 'res' && node.parent) node = node.parent; }   // 자원화 — arg 는 미리 채울 값(JSON: { tab, type, values, name }) · 창은 노드마다 하나
+    let svPre = ''; if (kind === 'svi') { svPre = String(arg || ''); if (node && node.kind === 'res' && node.parent) node = node.parent; }   // SVI — arg 는 미리 채울 값(JSON: { tab, type, values, name }) · 창은 노드마다 하나
     kind = kind || 'ctl';
     const host = this._cv && this._cv.parentElement; if (!host || !node) return;
     const T = this.CTLW(), vx0 = this._ctrlX || 0, w = this._w, h = this._h, WS = this._ctlWs || (this._ctlWs = []);
@@ -844,7 +844,7 @@ class Component extends DCLogic {
       o['openFn' + k] = F['o' + k] || (F['o' + k] = (kind, arg) => { const n = this['_wNode' + k]; if (!n) return; if (kind === 'ctl') return this.ctlOpenWin(n); this.ctlOpenWin(n, undefined, kind, arg); }); }   // 모듈 상태(16–18) — GUI ↗ · 자원 · 제어기
     { const k = 24; o.wNode24 = S.wNode24 || 'lab-ws-02'; o.ctlW24 = S['ctlW' + k] || this.WSIZE('alarm')[0]; o.ctlH24 = S['ctlH' + k] || this.WSIZE('alarm')[1];
       o.openFn24 = F.o24 || (F.o24 = (kind, arg) => { const n = this['_wNode' + k] || this.localNode(); if (n) this.ctlOpenWin(n, undefined, kind, arg); }); }   // 알림(24) — 줄 → 제어기 › 작업 관리자 · 모듈 상태 창
-    { const k = 23; o.wNode23 = S.wNode23 || 'lab-ws-02'; o.wKind23 = S.wKind23 || '리프'; o.wRid23 = S.wRid23 || ''; o.wPre23 = S.wPre23 || ''; o.ctlW23 = S['ctlW' + k] || this.WSIZE('svi')[0]; o.ctlH23 = S['ctlH' + k] || this.WSIZE('svi')[1]; }   // 자원화(23) — 만들기 · 허가 · 연결
+    { const k = 23; o.wNode23 = S.wNode23 || 'lab-ws-02'; o.wKind23 = S.wKind23 || '리프'; o.wRid23 = S.wRid23 || ''; o.wPre23 = S.wPre23 || ''; o.ctlW23 = S['ctlW' + k] || this.WSIZE('svi')[0]; o.ctlH23 = S['ctlH' + k] || this.WSIZE('svi')[1]; }   // SVI(23) — 만들기 · 허가 · 연결
     for (const k of [21, 22]) { o['wNode' + k] = S['wNode' + k] || 'lab-ws-02'; o['wKind' + k] = S['wKind' + k] || '리프'; o['wRid' + k] = S['wRid' + k] || ''; o['ctlW' + k] = S['ctlW' + k] || this.WSIZE('net')[0]; o['ctlH' + k] = S['ctlH' + k] || this.WSIZE('net')[1]; }   // 네트워크 속성(21 · 22) — 주소 · 전송 · 노드 간 연결
     for (const k of [19, 20]) { o['wWeb' + k] = S['wWeb' + k] || 'terra://start'; o['wCat' + k] = S['wCat' + k] || []; o['wNode' + k] = S['wNode' + k] || ''; o['ctlW' + k] = S['ctlW' + k] || this.WSIZE('web')[0]; o['ctlH' + k] = S['ctlH' + k] || this.WSIZE('web')[1]; }   // 브라우저(19 · 20)
     const k6 = this.CTLN(); o.smW = S['ctlW' + k6] || 1100; o.smH = S['ctlH' + k6] || 720; o.smLoad = S.smLoad || ''; o.skinFn = F.sk || (F.sk = () => { try { window.dispatchEvent(new Event('terra-skin')); } catch (e) {} });   /* 스킨 적용 → 장면이 바로 다시 읽음 */ o.smSavedFn = F.sm || (F.sm = () => { this._ctlTree = null; this.layout(); });   // 스타메이커 — 저장 · 지우기 · 새 폴더 → 전역 제어의 star 폴더를 다시
@@ -856,7 +856,7 @@ class Component extends DCLogic {
   cssGlow(c, a) { const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) return c; const v = m[1].split(',').map(Number), g = (x) => Math.round(x + (255 - x) * a); return this.qcss('rgb(' + g(v[0]) + ',' + g(v[1]) + ',' + g(v[2]) + ')'); }
   // ───── 창 목록 — 지금 떠 있는 창 · 최소화한 창 (전역: 모든 노드의 창). 종류: 제어기 (앞으로 더 늘어남) ─────
   //   { id, node, kind, R, st: 'open' | 'min', at }. 같은 노드 · 같은 종류의 창은 하나
-  WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인', mod: '모듈', web: '브라우저', net: '네트워크', svi: '자원화', alarm: '알림' }; }
+  WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인', mod: '모듈', web: '브라우저', net: '네트워크', svi: 'SVI', alarm: '알림' }; }
   // 창 종류마다의 자리 · 기본 크기 · 바탕 — 상태 창은 CLI 처럼 바탕이 비친다(글자 장 구멍 없음)
   // 이 GUI 가 떠 있는 노드(로컬) — 노드 설정 쓰기는 여기만 된다(terra.daemon.config.patch 는 로컬 전용). 시안: 지도의 첫 리프
   // 알림 창 — 전역 하나(이 GUI 를 띄운 노드의 Daemon 알림). 안 읽은 수는 알림 책에서 — 실제 window.TerraAlarmBook(src/api/alarms.js) · 시안 window.TerraAlarmDemo(알림 창이 만든다)

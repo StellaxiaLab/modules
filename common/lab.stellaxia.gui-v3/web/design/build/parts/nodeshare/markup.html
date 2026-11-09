@@ -23,9 +23,18 @@
           <span class="sh-type {{g.typeCls}}">{{g.type}}</span>
           <span class="sh-who">{{g.who}}</span>
           <span class="sh-perm" title="{{g.ops}}">{{g.perm}}</span>
+          <span class="nc-k sh-ep">{{g.epT}}</span>
           <span class="nc-k sh-via">{{g.ttl}}</span>
+          <button type="button" class="nc-btn sh-ed" aria-pressed="{{g.editing}}" aria-label="{{g.who}} 허가 수정" onClick="{{g.edit}}">수정</button>
           <button type="button" class="nc-x" aria-label="{{g.who}} 공유 해제" onClick="{{g.del}}">×</button>
         </div>
+        <sc-if value="{{g.editing}}" hint-placeholder-val="{{ false }}"><div class="sh-compose sh-edit">
+          <div class="sh-c-row"><span class="sh-lab">대상</span><span class="sh-fix">{{g.type}} · {{g.who}}</span><span class="nc-k">고정</span></div>
+          <div class="sh-c-row"><span class="sh-lab">작업</span><span class="sh-picks" role="group" aria-label="허가 작업"><sc-for list="{{g.eOps}}" as="c" hint-placeholder-count="7"><button type="button" aria-pressed="{{c.on}}" class="sh-pick sh-op {{c.cls}}" onClick="{{c.pick}}" disabled="{{c.off}}" title="{{c.tip}}">{{c.name}}</button></sc-for></span></div>
+          <div class="sh-c-row"><span class="sh-lab">끝점</span><span class="nc-seg"><sc-for list="{{g.eEps}}" as="o" hint-placeholder-count="2"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span></div>
+          <div class="sh-c-row"><span class="sh-lab">기한</span><span class="nc-seg"><sc-for list="{{g.eTtls}}" as="o" hint-placeholder-count="6"><button type="button" aria-pressed="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span style="flex: 1;"></span><button type="button" class="nc-btn" onClick="{{g.eCancel}}">취소</button><button type="button" class="nc-btn nc-pri" onClick="{{g.eSave}}" disabled="{{g.eOff}}">저장</button></div>
+          <div class="sh-c-row"><span class="sh-lab"></span><span class="nc-k sh-ops">{{g.eNote}}</span></div>
+        </div></sc-if>
       </sc-for>
       <sc-if value="{{hasRes}}" hint-placeholder-val="{{ true }}"><div class="sh-compose">
         <div class="sh-c-row"><span class="sh-lab">주체</span><span class="nc-seg" role="radiogroup" aria-label="주체 종류"><sc-for list="{{kindOpts}}" as="o" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{o.on}}" class="{{o.cls}}" onClick="{{o.pick}}">{{o.name}}</button></sc-for></span><span class="nc-k">{{kindNote}}</span></div>

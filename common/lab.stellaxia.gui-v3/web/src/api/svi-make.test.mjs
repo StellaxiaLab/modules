@@ -1,4 +1,4 @@
-// node --test — 자원화 틀: 스키마 → 칸 · 검사 · 선언 입력 · 울타리 · 이을 수 있나 · 연결 상태 · 끌어다 놓기의 본인 허가
+// node --test — SVI 틀: 스키마 → 칸 · 검사 · 선언 입력 · 울타리 · 이을 수 있나 · 연결 상태 · 끌어다 놓기의 본인 허가
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BUILTIN_TYPES, moduleTypes, formFields, validate, toDeclaration, envelopeCheck, envelopeLines, canLink, bindingState, createSviMake } from './svi-make.js';
