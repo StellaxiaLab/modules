@@ -1,6 +1,6 @@
 {
  "$comment": "tools/gen-op-scope.mjs 가 Terra Daemon 계약에서 뽑은 표 — 손으로 고치지 않는다",
- "contractVersion": "1.1.0",
+ "contractVersion": "1.2.0",
  "operations": {
   "terra.daemon.capabilities.get": {
    "scopes": [
@@ -475,6 +475,51 @@
    ],
    "risk": "read"
   },
+  "terra.daemon.modules.market.by-module-id.delete": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.modules.market.install.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.modules.market.offer.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.market.search.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.market.status.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
   "terra.daemon.modules.offers.by-module-id.consent.post": {
    "scopes": [
     "local",
@@ -631,6 +676,34 @@
     "node.config"
    ],
    "risk": "write"
+  },
+  "terra.daemon.svi.envelope.file-roots.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.svi.envelope.file-roots.remove.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.svi.resourcizers.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
   },
   "terra.daemon.tasks.by-task-id.cancel.post": {
    "scopes": [

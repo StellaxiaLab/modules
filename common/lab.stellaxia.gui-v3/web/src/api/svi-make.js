@@ -10,10 +10,10 @@
 //   허가   terra.master.svi.grants.* — 앱 자격: 본인에게 inspect · read · subscribe · bind.source · bind.target, 같은 클러스터 노드에게 read · subscribe · bind.source, 기한 90일 이하
 //   연결   terra.master.svi.bindings.post — 만든 사람이 원천에 bind.source · 대상에 bind.target 본인 허가를 가져야(소유자도). 202 비동기
 //          observed_state requested · validating · planning · preparing · active · degraded · failed · closing · closed + reason
-// Terra 에 아직 없는 것(코어 몫) — 이 틀은 자리만 둔다:
-//   모듈이 유형 + 설정 스키마를 내놓는 길(contributions.svi 는 불리언 둘), 유형 목록 operation, 선언을 모듈 어댑터로 넘기는 길
-//   → 모듈 유형은 module.json contributions.svi.types[{ id, title, schema, … }](제안)을 읽어 보이기만 하고 '만들기'는 잠근다
-//   "유휴"(이어졌지만 흐르지 않음) — binding 에 마지막 프레임 시각 · 수가 없다
+// 유형 목록 — terra.daemon.svi.resourcizers.get(scope local · cluster, node.read): 내장 file · process · net + 모듈 유형(contributions.svi.resourcizers).
+//   화면은 이 목록과 config_schema 로 양식을 그린다. 못 받으면 아래 BUILTIN_TYPES(고정) + module.json types(옛 제안)로 물러난다
+//   모듈 유형(family module) 만들기는 잠금 — 'Terra 미지원'(GUI 가 모듈 어댑터 선언을 아직 보내지 않는다)
+// "유휴"(이어졌지만 흐르지 않음) — binding 에 마지막 프레임 시각 · 수가 없다
 
 import { TerraError } from './terra.js';
 import { checkGrant, selfIdOf } from './svi-grant.js';
@@ -46,6 +46,37 @@ export function moduleTypes(mods) {
     for (const t of Array.isArray(T) ? T : []) if (t && t.id && t.schema) out.push({ id: (m.id || m.module_id) + '/' + t.id, module: m.id || m.module_id, moduleName: m.name || m.id, title: t.title || t.id, desc: t.description || '', icon: t.icon || 'puzzle', schema: t.schema, family: null });
   }
   return out;
+}
+
+// ── 노드가 알려 주는 유형(terra.daemon.svi.resourcizers.get, Terra SVI 틀 R1 · R2) ──
+//   { etag, types[{ id: <module_id>/<type>, module_id, type, family, title, description, config_schema, endpoints, accepts, availability{ state open|closed, reason } }] }
+//   내장(module_id terra.daemon · family file|process|net)은 선언 입력과 같은 칸 — 양식을 그대로 그린다.
+//   모듈 유형(family module)은 목록에 보이되 만들기를 잠근다 — 'Terra 미지원'(GUI 가 모듈 어댑터 선언을 아직 보내지 않는다)
+export const RESOURCIZERS_OP = 'terra.daemon.svi.resourcizers.get';
+export const TYPE_CLOSED_KO = { envelope_no_file_roots: '울타리 : 허용 폴더 없음', envelope_process_off: '울타리 : 프로그램 닫힘', envelope_net_off: '울타리 : 네트워크 닫힘', module_not_running: '모듈 : 멈춤', module_unavailable: '모듈 : 응답 없음' };
+/** config_schema → 양식 스키마. x-terra-enum-titles → x-labels, x-terra-ref(file · command) → 경로 칸(찾아보기), examples 첫 값 → 자리 글 */
+export function formSchema(cs) {
+  const P = (cs && cs.properties) || {}, out = {};
+  for (const k of Object.keys(P)) {
+    const p = Object.assign({}, P[k]);
+    if (p['x-terra-enum-titles'] && !p['x-labels']) p['x-labels'] = p['x-terra-enum-titles'];
+    if ((p['x-terra-ref'] === 'file' || p['x-terra-ref'] === 'command') && !p.format) { p.format = 'path'; if (!p.pattern && !p.enum) p.pattern = ABS; }
+    out[k] = p;
+  }
+  return { type: 'object', required: (cs && cs.required) || [], properties: out };
+}
+/** 유형 목록 → 화면 유형 { builtin, mods }. 내장 id 는 type(file · process · net) 그대로 — 고른 유형이 바뀌지 않게 */
+export function typesFromListing(d) {
+  const L = d && Array.isArray(d.types) ? d.types : Array.isArray(d) ? d : null; if (!L) return null;
+  const builtin = [], mods = [];
+  for (const t of L) {
+    if (!t || !t.id) continue;
+    const av = t.availability || {}, closed = av.state === 'closed' ? (TYPE_CLOSED_KO[av.reason] || av.reason || '닫힘') : '';
+    const x = { id: t.module_id === 'terra.daemon' ? t.type : t.id, family: t.family === 'module' ? null : t.family, title: t.title || t.type || t.id, desc: t.description || '', icon: t.icon || '',
+      schema: formSchema(t.config_schema), module: t.module_id || '', moduleName: t.module_id || '', closed, eps: Array.isArray(t.endpoints) ? t.endpoints : [], fromNode: true };
+    (t.module_id === 'terra.daemon' && x.family ? builtin : mods).push(x);
+  }
+  return { builtin, mods, etag: (d && d.etag) || '' };
 }
 
 // ── 양식 ──
@@ -163,16 +194,19 @@ export function createSviMake(terra, topo, who) {
   const api = {
     /** 그 노드의 선언 · 울타리 + 클러스터의 자원(끝) · 허가 · 연결 */
     async load(rid) {
-      const [dec, res, gr, bd, ns] = await Promise.all([
+      const [dec, res, gr, bd, ns, ty] = await Promise.all([
         terra.invoke('terra.daemon.svi.declarations.get', {}, at(rid)).then((d) => ({ ok: true, d }), (e) => ({ ok: false, e })),
         terra.invoke('terra.master.svi.resources.get', { limit: 200 }).then((d) => ({ ok: true, d }), (e) => ({ ok: false, e })),
         terra.invoke('terra.master.svi.grants.get', { limit: 200 }).then((d) => ({ ok: true, d }), (e) => ({ ok: false, e })),
         terra.invoke('terra.master.svi.bindings.get', {}).then((d) => ({ ok: true, d }), (e) => ({ ok: false, e })),
         terra.invoke('terra.master.nodes.get', {}).then((d) => ({ ok: true, d }), (e) => ({ ok: false, e })),
+        terra.invoke(RESOURCIZERS_OP, {}, at(rid)).then((d) => ({ ok: true, d }), (e) => ({ ok: false, e })),
       ]);
       const miss = [['선언', dec], ['자원', res], ['허가', gr], ['연결', bd]].filter(([, x]) => !x.ok).map(([k, x]) => k + ' ' + ((x.e && x.e.code) || ''));
       const D = dec.ok ? dec.d || {} : {}, R = res.ok ? A(res.d, 'items', 'resources') : [];
-      return { miss, envelope: D.envelope || null, storeError: D.store_error || '',
+      // 유형 — 노드가 알려 준 것. 못 받으면(옛 Terra · 오류) null → 화면은 내장 고정 목록으로 · 이유 표시
+      const types = ty.ok ? typesFromListing(ty.d) : null, typesWhy = ty.ok ? (types ? '' : '유형 목록 모양 다름') : (ty.e && ty.e.code) || '오류';
+      return { miss, envelope: D.envelope || null, storeError: D.store_error || '', types, typesWhy,
         decls: A(D.declarations).map((x) => ({ family: x.family, name: x.name, dir: x.direction, resId: x.resource_id || '', origin: x.origin || '', state: x.state || '', reason: x.reason || '', at: x.declared_at || '', detail: x.path || x.command || x.address || '' })),
         retired: A(D.retired).map((x) => ({ family: x.family, name: x.name })),
         nodes: ns.ok ? A(ns.d, 'nodes').map((n) => ({ id: n.node_id, name: n.display_name || String(n.node_id).slice(0, 10) })) : [],

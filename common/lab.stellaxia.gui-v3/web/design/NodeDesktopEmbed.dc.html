@@ -1888,8 +1888,8 @@ class Component extends DCLogic {
     o.newFolder = () => { if (!share) { this.say('로컬 탐색 : 읽기 전용 — 폴더 만들기는 공유 폴더에서'); return; } const nm = '새 폴더 ' + (Date.now() % 10000), path = rel ? rel + '/' + nm : nm;
       T.write(n, 'io.terra.file.entries.mkdir', { root: loc.root, path, parents: false }).then(() => { this.say(nm + ' 만듦'); after(); }, (e) => this.say('못 만듦 · ' + ((e && e.code) || '오류'))); };
     { const abs = (i) => { const b = String(loc.path || ''); return /^(\/|[A-Za-z]:[\\/])/.test(b) ? b.replace(/[\\/]+$/, '') + (b.includes('\\') && !b.includes('/') ? '\\' : '/') + i.path.replace(/^\/+/, '') : ''; };
-      const mk = (i) => { const p = abs(i); if (!p || i.dir) { this.say(i.dir ? '폴더 자원화 불가 — 파일 선택' : '자원화 불가 — 이 뿌리의 절대 경로 모름'); return; } this.openOut('svi', JSON.stringify({ tab: 'make', type: 'file', name: i.name.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40), values: { path: p, direction: 'source' } })); };
-      o.mkResOn = true; o.mkResOff = !pick || pick.dir || !abs(pick); o.mkResTip = !pick ? '파일 선택' : pick.dir ? '폴더 자원화 불가' : !abs(pick) ? '이 뿌리의 절대 경로 모름' : '자원화 창 › 파일 자원 — ' + abs(pick); o.mkRes = () => pick && mk(pick);
+      const mk = (i) => { const p = abs(i); if (!p || i.dir) { this.say(i.dir ? '폴더 SVI 불가 — 파일 선택' : 'SVI 불가 — 이 뿌리의 절대 경로 모름'); return; } this.openOut('svi', JSON.stringify({ tab: 'make', type: 'file', name: i.name.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40), values: { path: p, direction: 'source' } })); };
+      o.mkResOn = true; o.mkResOff = !pick || pick.dir || !abs(pick); o.mkResTip = !pick ? '파일 선택' : pick.dir ? '폴더 SVI 불가' : !abs(pick) ? '이 뿌리의 절대 경로 모름' : 'SVI 창 › 파일 자원 — ' + abs(pick); o.mkRes = () => pick && mk(pick);
       o.items.forEach((it, j) => { const i = items[j]; it.ctx = (e) => { if (!i || i.up) return; e.preventDefault(); e.stopPropagation(); this.setState({ fmPick: i.path }); mk(i); }; }); }
     { const raw = L && L.data ? (Array.isArray(L.data) ? L.data : L.data.entries || []) : [], rawOf = (p) => raw.find((e) => e && (e.path ? String(e.path).replace(/^\/+/, '') : (rel ? rel + '/' + e.name : e.name)) === p);   // 파일 내용 · 전송 — 고른 줄의 바이트 크기(미리보기 상한)
       const P = pick && !pick.dir ? Object.assign({}, pick, { bytes: Number((rawOf(pick.path) || {}).size), sizeT: pick.size }) : null;
@@ -2274,9 +2274,9 @@ class Component extends DCLogic {
             ctx: (e) => { if (i.k !== 'file') return; e.preventDefault(); e.stopPropagation(); this.setState({ fmPick: i.key }); mkS(i); }
           };
         });
-        // 시안 — 파일을 자원화 창(파일 유형)으로. 경로는 시안의 공유 폴더(/srv/share) 아래로 친다
+        // 시안 — 파일을 SVI 창(파일 유형)으로. 경로는 시안의 공유 폴더(/srv/share) 아래로 친다
         const mkS = (i) => this.openOut('svi', JSON.stringify({ tab: 'make', type: 'file', name: i.name.toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), values: { path: '/srv/share/' + i.name, direction: 'source' } }));
-        o.mkResOn = true; o.mkResOff = !pick || pick.k !== 'file'; o.mkResTip = pick && pick.k === 'file' ? '자원화 창 › 파일 자원' : '파일 선택'; o.mkRes = () => pick && pick.k === 'file' && mkS(pick);
+        o.mkResOn = true; o.mkResOff = !pick || pick.k !== 'file'; o.mkResTip = pick && pick.k === 'file' ? 'SVI 창 › 파일 자원' : '파일 선택'; o.mkRes = () => pick && pick.k === 'file' && mkS(pick);
         o.detail = !pick ? '설명 : 항목 선택'
           : pick.k === 'short' ? pick.name + ' — 화면 전용 바로가기(' + pick.src + ') · 지워도 앱 · 파일 유지'
           : pick.name + ' — 노드의 실제 ' + (pick.k === 'dir' ? '폴더' : '파일') + ' · 지우면 노드에서 삭제';

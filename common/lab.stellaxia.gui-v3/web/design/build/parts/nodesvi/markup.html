@@ -1,7 +1,7 @@
 <div class="sv" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; display: grid; grid-template-columns: 176px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; background: #040614; color: #d6f4de; font: 500 12px GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif;">
-  <nav aria-label="자원화 분류" class="nc-nav">
+  <nav aria-label="SVI 분류" class="nc-nav">
     <div class="nc-id"><b>{{name}}</b><span class="nc-k">{{kind}} · {{src}}</span></div>
-    <div class="nc-gh"><span class="nc-hl"></span>자원화<span class="nc-hr"></span></div>
+    <div class="nc-gh"><span class="nc-hl"></span>SVI<span class="nc-hr"></span></div>
     <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
       <button type="button" class="nc-ni {{t.cls}}" aria-current="{{t.cur}}" onClick="{{t.pick}}">{{t.name}}<span class="nc-badge sv-sub">{{t.n}}</span></button>
     </sc-for>
@@ -21,7 +21,7 @@
     <sc-if value="{{isMake}}" hint-placeholder-val="{{ true }}">
       <h3 class="nc-h">자원 만들기<span class="nc-hr"></span><span class="nc-k">유형 → 값 → 만들기</span></h3>
       <div class="sv-make">
-        <div class="sv-types" role="listbox" aria-label="자원화 유형">
+        <div class="sv-types" role="listbox" aria-label="SVI 유형">
           <sc-for list="{{typeGroups}}" as="g" hint-placeholder-count="2">
             <div class="sv-tg">{{g.title}}<span class="sv-sub">{{g.note}}</span></div>
             <sc-for list="{{g.items}}" as="ty" hint-placeholder-count="3">
