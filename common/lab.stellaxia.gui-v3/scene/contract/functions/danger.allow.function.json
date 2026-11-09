@@ -1,0 +1,53 @@
+{
+  "$comment": "웹 앱 명령 실행 허용 켜기. 보낼 값은 이 Function 에 고정되어 있다 — 입력(input)을 참조하지 않으므로 웹 페이지가 값을 바꿀 수 없다. 호출은 Scene 이 쥔 Credential Handle(사람 세션)로 나간다. 실패하면 이유를 danger Store 에 적고 이 화면에 머문다. 성공하면 / 로 돌아간다.",
+  "schemaVersion": "1.0.0",
+  "id": "gui-v3.danger.allow",
+  "version": "0.1.0",
+  "timeoutMs": 10000,
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "pending",
+        "type": "store.write",
+        "storeId": "danger",
+        "path": "/message",
+        "value": "적용 중…"
+      },
+      {
+        "id": "set",
+        "type": "call",
+        "operationId": "terra.daemon.danger-zone.app-command-execution.post",
+        "input": {
+          "allow": true
+        },
+        "onError": [
+          {
+            "id": "markFailed",
+            "type": "store.write",
+            "storeId": "danger",
+            "path": "/message",
+            "value": "$set.error.message"
+          },
+          {
+            "id": "bail",
+            "type": "return",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "back",
+        "type": "navigate",
+        "route": "/"
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}

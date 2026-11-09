@@ -77,6 +77,25 @@
    ],
    "risk": "write"
   },
+  "terra.daemon.danger-zone.app-command-execution.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.danger-zone.app-command-execution.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
   "terra.daemon.debug.config.get": {
    "scopes": [
     "local"

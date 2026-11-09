@@ -1,0 +1,23 @@
+{
+  "$comment": "스위치를 바꾸지 않고 GUI(/)로 돌아간다.",
+  "schemaVersion": "1.0.0",
+  "id": "gui-v3.danger.close",
+  "version": "0.1.0",
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "go",
+        "type": "navigate",
+        "route": "/"
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}

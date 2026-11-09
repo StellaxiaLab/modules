@@ -1,0 +1,81 @@
+{
+  "$comment": "웹이 위험 영역 확인 화면을 열어 달라고 알렸다(terra.frame.emit('danger')). 이벤트에 실린 값은 쓰지 않는다 — 이 Function 은 입력(input)을 참조하지 않는다. 스위치의 지금 값을 Daemon 에서 읽어 danger Store 에 적고 /danger 로 간다. 읽기가 실패하면(이 op 를 모르는 이전 Terra 등) 이유를 적고 화면은 그대로 연다. 쓰기는 danger.allow · danger.block 만 한다 (Terra ADR-GW-012 §6.1).",
+  "schemaVersion": "1.0.0",
+  "id": "gui-v3.danger.open",
+  "version": "0.1.0",
+  "timeoutMs": 10000,
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "reading",
+        "type": "store.write",
+        "storeId": "danger",
+        "value": {
+          "allow": false,
+          "state": "reading",
+          "changedAt": "",
+          "changedBy": "",
+          "unavailable": "",
+          "message": ""
+        }
+      },
+      {
+        "id": "read",
+        "type": "call",
+        "operationId": "terra.daemon.danger-zone.app-command-execution.get",
+        "input": {},
+        "onError": [
+          {
+            "id": "markUnreadable",
+            "type": "store.write",
+            "storeId": "danger",
+            "value": {
+              "allow": false,
+              "state": "unreadable",
+              "changedAt": "",
+              "changedBy": "",
+              "unavailable": "",
+              "message": "$read.error.message"
+            }
+          },
+          {
+            "id": "showUnreadable",
+            "type": "navigate",
+            "route": "/danger"
+          },
+          {
+            "id": "bail",
+            "type": "return",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "keep",
+        "type": "store.write",
+        "storeId": "danger",
+        "value": {
+          "allow": "$read.output.allow",
+          "state": "read",
+          "changedAt": "$read.output.changed_at",
+          "changedBy": "$read.output.changed_by",
+          "unavailable": "$read.output.unavailable",
+          "message": ""
+        }
+      },
+      {
+        "id": "go",
+        "type": "navigate",
+        "route": "/danger"
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}

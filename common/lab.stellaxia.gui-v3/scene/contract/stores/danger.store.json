@@ -1,0 +1,14 @@
+{
+  "$comment": "위험 영역 확인 화면(/danger)의 상태. allow 는 Daemon 이 알려 준 스위치 값, state 는 기계가 읽고(reading · read · unreadable) message 는 사람이 읽는다. view lifetime 이라 화면을 떠나면 사라진다.",
+  "schemaVersion": "0.1.0",
+  "id": "danger",
+  "kind": "view",
+  "initial": {
+    "allow": false,
+    "state": "reading",
+    "changedAt": "",
+    "changedBy": "",
+    "unavailable": "",
+    "message": ""
+  }
+}
