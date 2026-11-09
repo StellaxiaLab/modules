@@ -1,0 +1,3 @@
+# Build output. The release build compiles src/ into these paths and
+# stamps the digests into module.json integrity.
+bin/

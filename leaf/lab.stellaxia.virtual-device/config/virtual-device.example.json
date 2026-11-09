@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "module_id": "lab.stellaxia.virtual-device",
+  "daemon": {
+    "endpoint": "auto",
+    "connect_timeout_sec": 5,
+    "reconnect_initial_backoff_ms": 500,
+    "reconnect_max_backoff_ms": 30000
+  },
+  "projection": {
+    "default_lifecycle": "persistent",
+    "handle_renew_before_sec": 30
+  },
+  "video": {
+    "max_queue_frames": 3,
+    "max_frame_bytes": 16777216,
+    "fallback": "black",
+    "stale_frame_after_ms": 500
+  },
+  "audio": {
+    "underflow": "silence",
+    "max_latency_ms": 100
+  },
+  "security": {
+    "external_listen": false,
+    "allow_unsigned_adapter": false
+  },
+  "diagnostics": {
+    "persist_frame_payload": false
+  },
+  "linux": {
+    "devices": {}
+  }
+}
