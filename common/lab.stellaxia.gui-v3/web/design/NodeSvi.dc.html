@@ -226,7 +226,7 @@ body{margin:0;background:#040614}
       <div class="sv-fh"><b>{{dlgTitle}}</b><span class="sv-sub">{{dlgSub}}</span></div>
       <sc-if value="{{dlgPick}}" hint-placeholder-val="{{ true }}">
         <label class="sv-f"><span class="sv-fl">{{dlgPathLabel}}</span><span class="nc-in"><input type="text" value="{{dlgPath}}" onInput="{{onDlgPath}}" placeholder="/절대/경로 또는 C:\폴더" spellcheck="false" autocomplete="off" aria-label="허용할 폴더 경로"></span></label>
-        <div class="sv-br"><span class="nc-k">이 노드에서 고르기 (읽기 전용)</span>
+        <div class="sv-br"><span class="nc-k">{{brHead}}</span>
           <div class="sv-brr"><sc-for list="{{brRoots}}" as="b" hint-placeholder-count="2"><button type="button" class="sv-gn {{b.cls}}" onClick="{{b.pick}}">{{b.label}}</button></sc-for></div>
           <sc-if value="{{brHas}}" hint-placeholder-val="{{ false }}"><div class="sv-brl">
             <sc-if value="{{brCanUp}}" hint-placeholder-val="{{ false }}"><button type="button" class="sv-brd" onClick="{{brUp}}">.. 위로</button></sc-if>
@@ -533,6 +533,7 @@ class Component extends DCLogic {
     o.dlgTitle = add ? '폴더 허용' : fileMode ? '파일 고르기' : '폴더 해제'; o.dlgPath = dlg.path; o.dlgErr = dlg.err; o.dlgClose = () => this.envClose();
     o.onDlgPath = (ev) => this.envPatch({ path: ev.target.value, err: '' });
     o.brRoots = br.roots.map((r) => ({ label: r.label, cls: br.root === r.id ? 'on' : '', pick: () => this.envBrowse(r.id, '') }));
+    o.brHead = (fileMode && !this.envLocal() ? this.nodeName(this.rid()) + ' 에서' : '이 노드에서') + ' 고르기 (읽기 전용)';
     o.brNote = br.note; o.brHas = !!br.root; o.brUp = br.rel ? () => this.envBrowse(br.root, br.rel.split('/').slice(0, -1).join('/')) : null; o.brCanUp = !!br.rel;
     o.brItems = br.items.map((it) => ({ name: it.dir && fileMode ? it.name + '/' : it.name, pick: () => (it.dir ? this.envBrowse(br.root, it.path) : this.envPatch({ path: joinRoot((br.roots.find((x) => x.id === br.root) || {}).path, it.path), err: '' })) }));
     o.dlgNextOff = !path || !new RegExp(ABS).test(path);

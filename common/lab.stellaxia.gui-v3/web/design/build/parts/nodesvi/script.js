@@ -274,6 +274,7 @@ class Component extends DCLogic {
     o.dlgTitle = add ? '폴더 허용' : fileMode ? '파일 고르기' : '폴더 해제'; o.dlgPath = dlg.path; o.dlgErr = dlg.err; o.dlgClose = () => this.envClose();
     o.onDlgPath = (ev) => this.envPatch({ path: ev.target.value, err: '' });
     o.brRoots = br.roots.map((r) => ({ label: r.label, cls: br.root === r.id ? 'on' : '', pick: () => this.envBrowse(r.id, '') }));
+    o.brHead = (fileMode && !this.envLocal() ? this.nodeName(this.rid()) + ' 에서' : '이 노드에서') + ' 고르기 (읽기 전용)';
     o.brNote = br.note; o.brHas = !!br.root; o.brUp = br.rel ? () => this.envBrowse(br.root, br.rel.split('/').slice(0, -1).join('/')) : null; o.brCanUp = !!br.rel;
     o.brItems = br.items.map((it) => ({ name: it.dir && fileMode ? it.name + '/' : it.name, pick: () => (it.dir ? this.envBrowse(br.root, it.path) : this.envPatch({ path: joinRoot((br.roots.find((x) => x.id === br.root) || {}).path, it.path), err: '' })) }));
     o.dlgNextOff = !path || !new RegExp(ABS).test(path);
