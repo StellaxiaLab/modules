@@ -7,7 +7,8 @@
 //
 //	<root>/
 //	├─ properties.json   ← Props / Patch
-//	└─ profile/image/…   ← Put / Get / Delete / List
+//	├─ profile/image/…   ← Put / Get / Delete / List
+//	└─ skin/….json       ← the sphere file the node's skin points at
 package nodedata
 
 import (
@@ -36,7 +37,8 @@ var (
 	ErrPathDenied = errors.New("path is not allowed")
 	// ErrNotFound — nothing is stored at the path.
 	ErrNotFound = errors.New("not found")
-	// ErrTypeDenied — the content is not one of the image types the store keeps.
+	// ErrTypeDenied — the content is not an image type the store keeps, nor a
+	// sphere file under skin/.
 	ErrTypeDenied = errors.New("content type is not allowed")
 	// ErrTooLarge — one file, or the store as a whole, would exceed its limit.
 	ErrTooLarge = errors.New("too large")
@@ -77,6 +79,15 @@ const (
 // the bytes, not taken from the caller: a declared type that disagrees with the
 // content is refused.
 var AllowedTypes = map[string]bool{"image/png": true, "image/jpeg": true, "image/gif": true, "image/webp": true}
+
+// SkinDir holds the sphere files a node's skin points at. A skin belongs to the
+// node, so the file travels with it: viewers on other machines read it from here.
+const SkinDir = "skin"
+
+const (
+	jsonMime   = "application/json"
+	sphereType = "terra.sphere"
+)
 
 var propKey = regexp.MustCompile(`^[a-z][a-z0-9_.-]{0,63}$`)
 
@@ -189,6 +200,25 @@ func Sniff(data []byte) (string, bool) {
 	return mime, AllowedTypes[mime]
 }
 
+func isSkinFile(rel string) bool {
+	return strings.HasPrefix(rel, SkinDir+"/") && strings.HasSuffix(rel, ".json")
+}
+
+// typeOf is Sniff plus the one place JSON is kept: a .json file under skin/ must
+// be a sphere file.
+func typeOf(rel string, data []byte) (string, bool) {
+	if !isSkinFile(rel) {
+		return Sniff(data)
+	}
+	var head struct {
+		Type string `json:"type"`
+	}
+	if json.Unmarshal(data, &head) != nil || head.Type != sphereType {
+		return jsonMime, false
+	}
+	return jsonMime, true
+}
+
 // Put stores data at rel. declared, when not empty, must agree with the sniffed
 // type. An existing file at rel is replaced atomically.
 func (s *Store) Put(rel string, data []byte, declared string) (Entry, error) {
@@ -196,7 +226,7 @@ func (s *Store) Put(rel string, data []byte, declared string) (Entry, error) {
 	if err != nil {
 		return Entry{}, err
 	}
-	mime, ok := Sniff(data)
+	mime, ok := typeOf(rel, data)
 	if !ok || (declared != "" && !strings.EqualFold(strings.TrimSpace(declared), mime)) {
 		return Entry{}, ErrTypeDenied
 	}
@@ -344,7 +374,7 @@ func (s *Store) Get(rel string) ([]byte, Entry, error) {
 	if err != nil {
 		return nil, Entry{}, err
 	}
-	mime, _ := Sniff(data)
+	mime, _ := typeOf(rel, data)
 	return data, Entry{Path: rel, Size: info.Size(), Mime: mime, Modified: info.ModTime().UTC()}, nil
 }
 
@@ -427,7 +457,9 @@ func (s *Store) List(dir string) ([]Entry, error) {
 		}
 		head := make([]byte, 512)
 		mime := ""
-		if f, err := os.Open(p); err == nil {
+		if isSkinFile(rel) {
+			mime = jsonMime
+		} else if f, err := os.Open(p); err == nil {
 			n, _ := f.Read(head)
 			_ = f.Close()
 			mime, _ = Sniff(head[:n])
@@ -494,8 +526,8 @@ func (s *Store) props() (map[string]any, error) {
 
 // Patch applies set to the property sheet: a key with a nil value is removed,
 // any other value replaces the key's value. Either every key applies or none.
-// Values that name a stored file (profile.image) must point inside this node's
-// data and at a file that exists.
+// Values that name a stored file (profile.image, skin.file) must point inside
+// this node's data and at a file that exists.
 func (s *Store) Patch(set map[string]any, base string) (map[string]any, error) {
 	if len(set) == 0 {
 		return nil, fmt.Errorf("%w: nothing to set", ErrInvalidProps)
@@ -519,7 +551,12 @@ func (s *Store) Patch(set map[string]any, base string) (map[string]any, error) {
 			continue
 		}
 		if k == "profile" {
-			if err := s.checkProfile(v, base); err != nil {
+			if err := s.checkFileRef(v, base, k, "image"); err != nil {
+				return nil, err
+			}
+		}
+		if k == "skin" {
+			if err := s.checkFileRef(v, base, k, "file"); err != nil {
 				return nil, err
 			}
 		}
@@ -538,41 +575,45 @@ func (s *Store) Patch(set map[string]any, base string) (map[string]any, error) {
 	return next, nil
 }
 
-// checkProfile: {"image": "<base>/<relative path of a stored image>"}. base is
+// checkFileRef: {"<field>": "<base>/<relative path of a stored file>"}. base is
 // how the GUI names this node's data folder ("/<노드>/데이터"); the stored value
-// keeps the GUI's absolute form, and must resolve to a file in this store.
-func (s *Store) checkProfile(v any, base string) error {
+// keeps the GUI's absolute form, and must resolve to a file in this store. A
+// skin must point at a sphere file.
+func (s *Store) checkFileRef(v any, base, key, field string) error {
 	m, ok := v.(map[string]any)
 	if !ok {
-		return fmt.Errorf("%w: profile must be an object", ErrInvalidProps)
+		return fmt.Errorf("%w: %s must be an object", ErrInvalidProps, key)
 	}
 	for k := range m {
-		if k != "image" {
-			return fmt.Errorf("%w: profile.%s is not known", ErrInvalidProps, k)
+		if k != field {
+			return fmt.Errorf("%w: %s.%s is not known", ErrInvalidProps, key, k)
 		}
 	}
-	img, ok := m["image"].(string)
+	img, ok := m[field].(string)
 	if !ok || img == "" {
-		return fmt.Errorf("%w: profile.image must be a path", ErrInvalidProps)
+		return fmt.Errorf("%w: %s.%s must be a path", ErrInvalidProps, key, field)
 	}
 	rel := img
 	if base != "" {
 		prefix := strings.TrimRight(base, "/") + "/"
 		if !strings.HasPrefix(img, prefix) {
-			return fmt.Errorf("%w: profile.image must be under %s", ErrInvalidProps, prefix)
+			return fmt.Errorf("%w: %s.%s must be under %s", ErrInvalidProps, key, field, prefix)
 		}
 		rel = strings.TrimPrefix(img, prefix)
 	}
 	rel, err := clean(rel, false)
 	if err != nil {
-		return fmt.Errorf("%w: profile.image path", ErrInvalidProps)
+		return fmt.Errorf("%w: %s.%s path", ErrInvalidProps, key, field)
+	}
+	if key == "skin" && !isSkinFile(rel) {
+		return fmt.Errorf("%w: skin.file must be under %s/", ErrInvalidProps, SkinDir)
 	}
 	full, err := s.resolve(rel)
 	if err != nil {
 		return err
 	}
 	if info, err := os.Stat(full); err != nil || !info.Mode().IsRegular() {
-		return fmt.Errorf("%w: profile.image names no stored file", ErrInvalidProps)
+		return fmt.Errorf("%w: %s.%s names no stored file", ErrInvalidProps, key, field)
 	}
 	return nil
 }

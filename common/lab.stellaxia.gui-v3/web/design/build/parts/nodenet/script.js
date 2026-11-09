@@ -20,7 +20,7 @@ class Component extends DCLogic {
     window.TerraNetProps(rid).then((info) => { if (this._live && this.props.nodeRid === rid && info) this.setState({ info }); }, () => {});
   }
   loadPair(peerId) {
-    const rid = this.props.nodeRid, put = (v) => this._live && this.setState({ pair: Object.assign({}, this.state.pair, { [peerId]: v }) });
+    const rid = this.props.nodeRid, put = (v) => this._live && this.props.nodeRid === rid && this.setState({ pair: Object.assign({}, this.state.pair, { [peerId]: v }) });
     put({ busy: true });
     if (!this.real()) { setTimeout(() => put(this.samplePair(peerId)), 400); return; }
     window.TerraNetProps.pair(rid, peerId).then((v) => put(v), (e) => put({ err: (e && (e.code || e.message)) || '못 받음' }));

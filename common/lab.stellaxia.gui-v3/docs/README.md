@@ -30,7 +30,7 @@ related:
   - "[[design-ops-gaps|시안 ↔ 실제 운영 격차]]"
   - "[[net-props|네트워크 속성 창]]"
   - "[[terminals|제어기의 두 터미널]]"
-  - "[[svi-make|자원화 창]]"
+  - "[[svi-make|SVI 창]]"
   - "[[node-shell|노드 셸 설계]]"
   - "[[global-windows|전역 틀의 창 — 알림 · 자원 추이 · 설정 창]]"
   - "[[controller-files-jobs|제어기 파일 · 작업 · 밀어 받기]]"
@@ -77,7 +77,7 @@ flowchart LR
 | main GUI 로 실리는 법 — 얇은 껍데기 · 로그인 · A 모드 | [[main-scene\|main Scene]] |
 | 노드가 가진 주소 · 광고 전송 · 다른 노드와 어떤 경로로 붙었는지 — 근거 Terra 문서 · 읽기 · 보고 안 되는 것 | [[net-props\|네트워크 속성 창]] |
 | 제어기의 노드 터미널(OS 셸) · Terra 터미널(terra shell) — 부르는 것 · 어느 노드 · 코어에 남은 것 | [[terminals\|제어기의 두 터미널]] |
-| 자원화 — 유형 스키마로 양식 · 선언 · 허가 · 끌어다 연결 · 연결 상태, 코어에 필요한 것(모듈 유형 · 유휴) | [[svi-make\|자원화 창]] |
+| SVI — 유형 스키마로 양식 · 선언 · 허가 · 끌어다 연결 · 연결 상태, 코어에 필요한 것(모듈 유형 · 유휴) | [[svi-make\|SVI 창]] |
 | 노드 셸(실제 터미널, 잠김) — 누가 · 원격 · 감사 · PTY 전송 · 수명, 결정할 것 | [[node-shell\|노드 셸 설계]] |
 | 전역 틀의 알림 창(읽음 · 지우기 · 거르기) · 하트비트 스냅샷 자원 추이 · 설정 창을 나눈 까닭 | [[global-windows\|전역 틀의 창]] |
 | 제어기 파일 미리보기 · 올리기 · 내려받기(io.terra.file 전송) · 작업 출력 따라가기(SSE) · Master 작업 · 밀어 받기 바뀐 줄 표시 | [[controller-files-jobs\|제어기 파일 · 작업 · 밀어 받기]] |
@@ -93,7 +93,7 @@ flowchart LR
 | --- | --- |
 | `docs/` | 이 MOC |
 | `docs/analysis/` | [[legacy-node-gui-overview\|전체 분석]] · [[legacy-app-layer\|기능 층 분석]] · [[settings-inventory\|설정 종합]] · [[settings-terra-core\|코어 설정 전수표]] · [[settings-modules\|modules 설정 전수표]] · [[terra-reach\|Terra 도달 분석]] · [[design-ops-gaps\|시안 ↔ 운영 격차]] |
-| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] · [[node-data\|노드 데이터와 분할]] · [[main-scene\|main Scene]] · [[net-props\|네트워크 속성 창]] · [[terminals\|두 터미널]] · [[svi-make\|자원화 창]] · [[node-shell\|노드 셸]] |
+| `docs/design/` | [[menu-hierarchy\|메뉴 계층 설계]] · [[backend\|v3 모듈 백엔드 설계]] · [[web-architecture\|웹 구조]] · [[node-data\|노드 데이터와 분할]] · [[main-scene\|main Scene]] · [[net-props\|네트워크 속성 창]] · [[terminals\|두 터미널]] · [[svi-make\|SVI 창]] · [[node-shell\|노드 셸]] |
 | `docs/proposals/` | 코어(Terra)가 구현할 제안 — [[module-gui-widgets\|모듈 위젯]] |
 
 ## 기준

@@ -36,13 +36,13 @@
           <sc-for list="{{fields}}" as="f" hint-placeholder-count="3">
             <div class="sv-f">
               <span class="sv-fl">{{f.title}} <i>{{f.req}}</i></span>
-              <sc-if value="{{f.isText}}" hint-placeholder-val="{{ true }}"><span class="nc-in"><input type="{{f.itype}}" value="{{f.value}}" onInput="{{f.onInput}}" placeholder="{{f.ph}}" spellcheck="false" autocomplete="off" aria-label="{{f.title}}" aria-invalid="{{f.bad}}"></span></sc-if>
+              <sc-if value="{{f.isText}}" hint-placeholder-val="{{ true }}"><span class="nc-in"><input type="{{f.itype}}" value="{{f.value}}" onInput="{{f.onInput}}" placeholder="{{f.ph}}" spellcheck="false" autocomplete="off" aria-label="{{f.title}}" aria-invalid="{{f.bad}}"><sc-if value="{{f.isPath}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn sv-pk" onClick="{{f.browse}}" disabled="{{f.browseOff}}" title="{{f.browseTip}}">찾아보기</button></sc-if></span></sc-if>
               <sc-if value="{{f.isEnum}}" hint-placeholder-val="{{ false }}"><span class="nc-seg" role="radiogroup" aria-label="{{f.title}}"><sc-for list="{{f.opts}}" as="op" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{op.on}}" class="{{op.cls}}" onClick="{{op.pick}}">{{op.label}}</button></sc-for></span></sc-if>
               <sc-if value="{{f.isBool}}" hint-placeholder-val="{{ false }}"><button type="button" role="switch" aria-checked="{{f.on}}" class="sv-sw {{f.swCls}}" onClick="{{f.toggle}}" aria-label="{{f.title}}">{{f.swT}}</button></sc-if>
               <span class="sv-fd">{{f.desc}}</span><span class="sv-err">{{f.err}}</span>
             </div>
           </sc-for>
-          <sc-if value="{{envBad}}" hint-placeholder-val="{{ false }}"><div class="sv-warn">울타리 밖 — {{envWhy}}</div></sc-if>
+          <sc-if value="{{envBad}}" hint-placeholder-val="{{ false }}"><div class="sv-warn sv-fence"><span>{{envWhy}}</span><sc-if value="{{envFix}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn" onClick="{{envFixGo}}">{{envFixT}}</button></sc-if></div></sc-if>
           <sc-if value="{{exists}}" hint-placeholder-val="{{ false }}"><label class="sv-rep"><input type="checkbox" checked="{{replace}}" onChange="{{onReplace}}"> 같은 이름 자원 교체 — 그 위 연결 종료</label></sc-if>
           <div class="sv-act"><button type="submit" class="nc-btn nc-pri" disabled="{{makeOff}}">{{makeT}}</button><span class="nc-k">{{makeApi}}</span></div>
         </form>
@@ -97,9 +97,9 @@
   <footer class="nc-foot" style="grid-column: 1 / span 2;"><span class="nc-msg" role="status">{{msg}}</span><span style="flex: 1;"></span><span class="nc-k" style="color: #ffd27a;">{{miss}}</span></footer>
   <sc-if value="{{dlgOn}}" hint-placeholder-val="{{ false }}">
     <div class="sv-dlg" role="dialog" aria-modal="true" aria-label="{{dlgTitle}}"><div class="sv-dbox">
-      <div class="sv-fh"><b>{{dlgTitle}}</b><span class="sv-sub">svi.runtime.file_roots · 재시작 없이 적용</span></div>
+      <div class="sv-fh"><b>{{dlgTitle}}</b><span class="sv-sub">{{dlgSub}}</span></div>
       <sc-if value="{{dlgPick}}" hint-placeholder-val="{{ true }}">
-        <label class="sv-f"><span class="sv-fl">폴더 경로</span><span class="nc-in"><input type="text" value="{{dlgPath}}" onInput="{{onDlgPath}}" placeholder="/절대/경로 또는 C:\폴더" spellcheck="false" autocomplete="off" aria-label="허용할 폴더 경로"></span></label>
+        <label class="sv-f"><span class="sv-fl">{{dlgPathLabel}}</span><span class="nc-in"><input type="text" value="{{dlgPath}}" onInput="{{onDlgPath}}" placeholder="/절대/경로 또는 C:\폴더" spellcheck="false" autocomplete="off" aria-label="허용할 폴더 경로"></span></label>
         <div class="sv-br"><span class="nc-k">이 노드에서 고르기 (읽기 전용)</span>
           <div class="sv-brr"><sc-for list="{{brRoots}}" as="b" hint-placeholder-count="2"><button type="button" class="sv-gn {{b.cls}}" onClick="{{b.pick}}">{{b.label}}</button></sc-for></div>
           <sc-if value="{{brHas}}" hint-placeholder-val="{{ false }}"><div class="sv-brl">
@@ -120,7 +120,8 @@
       </sc-if>
       <div class="sv-err sv-derr" role="alert">{{dlgErr}}</div>
       <div class="sv-act">
-        <sc-if value="{{dlgPick}}" hint-placeholder-val="{{ true }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgNext}}" disabled="{{dlgNextOff}}">다음 — 확인</button></sc-if>
+        <sc-if value="{{dlgPickAdd}}" hint-placeholder-val="{{ true }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgNext}}" disabled="{{dlgNextOff}}">다음 — 확인</button></sc-if>
+        <sc-if value="{{dlgFile}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgUse}}" disabled="{{dlgNextOff}}">이 경로 쓰기</button></sc-if>
         <sc-if value="{{dlgConfirm}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn" onClick="{{dlgBack}}" disabled="{{dlgBusy}}">뒤로</button><button type="button" class="nc-btn nc-pri" onClick="{{dlgGo}}" disabled="{{dlgBusy}}">허용</button></sc-if>
         <sc-if value="{{dlgRemove}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgDel}}" disabled="{{dlgBusy}}">해제</button></sc-if>
         <button type="button" class="nc-btn" onClick="{{dlgClose}}" disabled="{{dlgBusy}}">취소</button>

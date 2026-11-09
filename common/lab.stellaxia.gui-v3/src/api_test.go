@@ -107,3 +107,24 @@ func mustJSON(v any) string {
 	b, _ := json.Marshal(v)
 	return string(b)
 }
+
+func TestFileReadInPieces(t *testing.T) {
+	h := newTestAPI(t)
+	if status, body := call(t, h, http.MethodPut, "/node/files/content", map[string]any{"path": "profile/image/a.gif", "data": gif1x1}); status != http.StatusOK {
+		t.Fatalf("put: %d %v", status, body)
+	}
+	raw, _ := base64.StdEncoding.DecodeString(gif1x1)
+	status, body := call(t, h, http.MethodGet, "/node/files/content?path=profile/image/a.gif&offset=6&limit=3", nil)
+	if status != http.StatusOK {
+		t.Fatalf("get: %d %v", status, body)
+	}
+	if got := body["data"].(string); got != base64.StdEncoding.EncodeToString(raw[6:9]) {
+		t.Fatalf("piece: %s", got)
+	}
+	if size := int(body["size"].(float64)); size != len(raw) {
+		t.Fatalf("size must stay the whole file: %d", size)
+	}
+	if status, _ := call(t, h, http.MethodGet, "/node/files/content?path=profile/image/a.gif&limit=x", nil); status != http.StatusBadRequest {
+		t.Fatalf("bad limit: %d", status)
+	}
+}

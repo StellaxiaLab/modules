@@ -73,3 +73,7 @@ body{margin:0;background:#040614}
 .sh-pick[disabled]{opacity:.42;cursor:not-allowed;text-decoration:line-through;text-decoration-color:rgba(255,178,166,.6)}
 .sh-op{font-family:GmarketSans,'Geist Mono',sans-serif}
 .sh-lock{font-size:11px;color:#ffd27a;white-space:normal}
+.sh-ep{flex:none;white-space:nowrap}
+.sh-ed[aria-pressed="true"]{background:rgba(70,160,108,.22);color:#d6f4de}
+.sh-fix{color:#d6f4de;font-weight:700}
+.sh-edit{margin:0 0 8px;border-top:0}

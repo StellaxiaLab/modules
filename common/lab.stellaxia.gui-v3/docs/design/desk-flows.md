@@ -78,6 +78,10 @@ Daemon 계약은 입력이 열려 있지만(`additionalProperties`), Provider DT
 | 동의 | 제안이 accepted · managed · pinned | 동의 대기 — 그 행의 동의 |
 | 설치 · 기동 | `modules.get` 의 상태 running | failed — `last_error` · 로그 · 설치 용량 / 설치됨 · 멈춤 — 모듈 창에서 시작 |
 
+## 위험 영역 — 웹 앱 명령 실행
+
+설정 › 노드 설정 맨 아래. 읽기(`danger-zone.app-command-execution.get`)만 이 페이지가 부르고, 쓰기는 부르지 않는다 — 단추는 Scene 에 `emit('danger')`(`window.TerraDangerAsk`)만 보내고, Scene 의 `/danger` 내장 엘리먼트 확인 화면이 상수 입력 Function 으로 켜기 · 끄기를 한다(Terra ADR-GW-012 §6.1). 원격 제어기 · 시안 · `TerraDangerAsk` 없음 : 단추 비활성 + `terra module call terra.daemon.danger-zone.app-command-execution.post --input '{"allow":true}'` 안내. 켜진 동안 제어기 상단 바에 빨강 표시. 표시 로직 : `src/api/danger-zone.js`.
+
 ## 3. 시안(캔버스)
 
 - 문이 없으니 열린 것으로 그리고 결과는 '(시안)'. 설계 결정으로 닫은 것(노드 셸 · 파일 설치)은 시안에서도 닫힘.

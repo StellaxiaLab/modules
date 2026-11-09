@@ -12,7 +12,7 @@ version: "0.1.0"
 last_updated: "2026-11-04"
 language: "ko-KR"
 related:
-  - "[[svi-make|자원화 창]]"
+  - "[[svi-make|SVI 창]]"
   - "[[design-ops-gaps|시안 ↔ 실제 운영 격차]]"
   - "[[node-data|노드 데이터와 분할 — PA/EL]]"
 ---

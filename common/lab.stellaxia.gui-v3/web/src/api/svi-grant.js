@@ -77,3 +77,51 @@ export function checkGrant(g, selfId) {
 
 /** 이미 있는 허가의 작업 → 짧은 이름('읽기 · 구독 · 연결 원천') */
 export const opsText = (ops) => (ops && ops.length ? ops.map((o) => OP_KO[o] || o).join(' · ') : '—');
+
+// ── 허가 고치기(grants.by-grant-id.patch) — 받는 이는 그대로, 작업 · 끝점 · 기한만 ──
+//   Master(routes_svi_grants.go patchSVIGrant · delegated_grant_guard.go grantOnlyNarrows, ADR-GW-004 D-4a):
+//     좁히기(작업 부분집합 · 끝점 같음 또는 '전체' → 하나 · 만료 같거나 이르게)는 앱 자격으로도 그대로 통과
+//     넓히기는 고친 뒤의 허가에 만들 때와 같은 가드(checkGrant)를 건다 — CLI 로 남에게 준 허가를 앱으로 넓히지 못한다
+//     준 사람(grantor) · 관리자만 고친다 — 목록에는 grantor 가 없어 화면이 미리 막지 못한다(403 은 그대로 보인다)
+
+/**
+ * 고친 허가가 좁히기만인가 — Master grantOnlyNarrows 와 같은 규칙
+ * @param {{ operations?: string[], endpoint_id?: string, expires_at?: string|number|null }} before
+ * @param {{ operations: string[], endpoint_id: string, ttl_seconds?: number|null }} after ttl_seconds 없음(null) = 기한 그대로
+ */
+export function grantNarrows(before, after, now = Date.now()) {
+  const had = new Set(before.operations || []);
+  if ((after.operations || []).some((o) => !had.has(o))) return false;
+  const be = before.endpoint_id || '', ae = after.endpoint_id || '';
+  if (ae !== be && be !== '') return false;
+  const bx = before.expires_at == null || before.expires_at === '' ? NaN : typeof before.expires_at === 'number' ? before.expires_at : Date.parse(before.expires_at);
+  if (after.ttl_seconds != null && !Number.isNaN(bx) && (!(after.ttl_seconds > 0) || now + after.ttl_seconds * 1000 > bx)) return false;
+  return true;
+}
+
+/**
+ * 고치기를 가드처럼 미리 본다 — 좁히기면 통과, 넓히기면 고친 뒤의 허가에 checkGrant
+ * @param {{ subject_type: string, subject_id: string, operations?: string[], endpoint_id?: string, expires_at?: string|number|null }} before
+ * @param {{ operations: string[], endpoint_id: string, ttl_seconds?: number|null }} after
+ * @returns {{ ok: boolean, why: string, narrows: boolean }}
+ */
+export function checkGrantEdit(before, after, selfId, now = Date.now()) {
+  const ops = after.operations || [];
+  if (!ops.length) return { ok: false, why: '작업 1개 이상 선택', narrows: false };
+  const p = grantPatch(before, after);
+  if (!Object.keys(p).length) return { ok: false, why: '바뀐 것 없음', narrows: true };
+  if (grantNarrows(before, after, now)) return { ok: true, why: '', narrows: true };
+  const bx = before.expires_at == null || before.expires_at === '' ? NaN : typeof before.expires_at === 'number' ? before.expires_at : Date.parse(before.expires_at);
+  const ttl = after.ttl_seconds != null ? after.ttl_seconds : Number.isNaN(bx) ? 0 : Math.ceil((bx - now) / 1000);
+  const c = checkGrant({ subject_type: before.subject_type, subject_id: before.subject_id, operations: ops, ttl_seconds: ttl }, selfId);
+  return { ok: c.ok, why: c.ok ? '' : '넓히기 · ' + c.why, narrows: false };
+}
+
+/** patch 입력 — 바뀐 칸만(operations · endpoint_id · ttl_seconds). 끝점 '전체' = '' */
+export function grantPatch(before, after) {
+  const p = {}, a = (after.operations || []).slice().sort(), b = (before.operations || []).slice().sort();
+  if (JSON.stringify(a) !== JSON.stringify(b)) p.operations = GRANT_OPS.filter((o) => a.includes(o)).concat(a.filter((o) => !GRANT_OPS.includes(o)));
+  if ((after.endpoint_id || '') !== (before.endpoint_id || '')) p.endpoint_id = after.endpoint_id || '';
+  if (after.ttl_seconds != null) p.ttl_seconds = after.ttl_seconds;
+  return p;
+}

@@ -50,9 +50,12 @@ Terra의 `module/` 계층을 그대로 미러한다 — 모듈이 두 저장소 
 
 > [!NOTE]
 > 플랫폼이 소유하는 **kind 둘**(`application` · `runtime`)은 여기 오지 않는다. 오늘 그
-> kind 로 출하된 것이 `io.terra.player` · `io.terra.scene-runtime` ·
-> `io.terra.virtual-device` 셋이고, `terra module new --kind application|runtime` 이
-> 이유를 말하며 거절한다.
+> kind 로 출하된 것이 `io.terra.player` · `io.terra.scene-runtime` 둘이고,
+> `terra module new --kind application|runtime` 이 이유를 말하며 거절한다.
+>
+> `io.terra.virtual-device` 는 2026-11-09 사용자 결정으로 이 규칙의 예외가 아니게 됐다 —
+> 플랫폼 소유에서 빠져 `lab.stellaxia.virtual-device`(kind `service`)로 이 저장소에 산다
+> ([`leaf/lab.stellaxia.virtual-device/README.md`](leaf/lab.stellaxia.virtual-device/README.md)).
 >
 > 거절하는 것은 **kind 이지 이름이 아니다** — `terra module new io.terra.player` 는
 > 그냥 통과한다. 경계는 도구가 아니라 사람이 지킨다.

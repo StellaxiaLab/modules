@@ -66,7 +66,7 @@ Terra의 내부 `terra-module-sdk`·`terra-agent-core`·`terra-io-weave` 패키�
 
 | ID | 결정 |
 | --- | --- |
-| D-1 | 플랫폼 소유 모듈 6개(`io.terra.scene-runtime` · `player` · `scene-studio` · `scene.terra` · `ext.metrics` · `virtual-device`)는 Terra `module/`에 **잔류**한다. |
+| D-1 | 플랫폼 소유 모듈 5개(`io.terra.scene-runtime` · `player` · `scene-studio` · `scene.terra` · `ext.metrics`)는 Terra `module/`에 **잔류**한다. (개정 2026-11-09: `virtual-device`는 사용자 결정으로 플랫폼 소유에서 빠져 `lab.stellaxia.virtual-device`로 이 저장소에 있다. 원래 6개였다.) |
 | D-2 | 모듈이 쓰는 Go SDK는 **공개 얇은 SDK** `StellaxiaLab/terra-sdk`로 새로 정의한다. 코어 내부 패키지를 그대로 공개하지 않는다. |
 | D-3 | **원본은 공개 SDK 한 곳**이다. Terra의 `modulert` 등은 `type X = sdk.X` 별칭으로 바꾼다(호출부 무변경). 코어가 자기 복사본을 따로 유지하지 않는다. |
 | D-4 | Go 모듈 경로는 `github.com/StellaxiaLab/...`. |

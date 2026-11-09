@@ -61,6 +61,8 @@ button{font-family:inherit}
 .nx-row.bad{box-shadow:inset 2px 0 0 #ff6b6b}
 .nx-lab{flex-grow:1;min-width:120px;display:flex;flex-direction:column;line-height:1.35}
 .nx-err{color:#ff6b6b}
+.nx-dz{margin-top:10px;padding:8px;border:1px solid rgba(255,107,107,.45);border-radius:9px;background:rgba(255,107,107,.05);display:flex;flex-direction:column;gap:6px}
+.nx-dzh{font-size:11.5px;font-weight:600;color:#ff6b6b}
 .nx-grid{display:grid;grid-template-columns:92px minmax(0,1fr);gap:6px 12px;align-items:center}
 .nx-in{height:26px;box-sizing:border-box;min-width:0;flex:1;max-width:340px;padding:0 8px;border:1px solid var(--line2);border-radius:7px;background:transparent;color:var(--ink);font-size:12px;outline:none}
 .nx-in:focus{border-color:var(--acc)}
@@ -406,6 +408,14 @@ button{font-family:inherit}
                           <span class="nx-chip {{ky.tagCls}}">{{ky.tag}}</span>
                         </div>
                       </sc-for>
+                      <div class="nx-dz" role="group" aria-label="위험 영역">
+                        <div class="nx-dzh">위험 영역</div>
+                        <div class="nx-row">
+                          <span class="nx-lab">{{w.nx.dz.label}}<span class="nx-k">{{w.nx.dz.sub}}</span><span class="nx-k">{{w.nx.dz.changed}}</span><span class="nx-k nx-err">{{w.nx.dz.note}}</span><span class="nx-k">{{w.nx.dz.why}}</span></span>
+                          <span class="nx-chip {{w.nx.dz.cls}}">{{w.nx.dz.status}}</span>
+                          <button type="button" class="nx-btn" onClick="{{w.nx.dz.ask}}" disabled="{{w.nx.dz.dis}}" title="{{w.nx.dz.why}}">{{w.nx.dz.btn}}</button>
+                        </div>
+                      </div>
                       <div class="nx-btns nx-sticky"><span class="nx-k">{{w.nx.dirtyT}}</span><span class="nx-fill"></span><span class="nx-msg">{{w.nx.msg}}</span><sc-for list="{{w.nx.cfgBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
                     </div>
                   </sc-if>
@@ -802,6 +812,7 @@ button{font-family:inherit}
         <span style="display: inline-flex; align-items: center; gap: 6px; color: {{t.ink}};"><span style="color: {{lk.c}};">●</span><span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">{{node.name}}</span></span>
         <span style="color: {{t.dim}};">부모 {{node.parent}}</span>
         <span title="{{lk.tip}}" style="display: {{lk.d}}; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 9px; border: 1px solid {{lk.bd}}; color: {{lk.c}}; background: {{lk.bg}}; font-size: 11px;"><span>{{lk.dot}}</span>{{lk.t}}</span>
+        <span role="alert" title="{{dgr.tip}}" style="display: {{dgr.d}}; align-items: center; padding: 1px 8px; border-radius: 9px; border: 1px solid rgba(255,107,107,.55); color: #ff6b6b; background: rgba(255,107,107,.12); font-size: 11px; font-weight: 600;">{{dgr.banner}}</span>
         <span style="flex-grow: 1; text-align: center; color: {{t.ink}}; font-weight: 600;">{{focusTitle}}</span>
         <span style="display: inline-flex; align-items: center; gap: 6px; color: {{save.c}};"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="{{save.d}}"/></svg>{{save.text}}</span>
         <span style="display: inline-flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4z M10 21h4"/></svg>2</span>
@@ -1340,6 +1351,12 @@ class Component extends DCLogic {
     return g.open || !CONTRACT_WHY[op] ? g : Object.assign({}, g, { why: g.why + ' · ' + CONTRACT_WHY[op] });
   }
   riskOf(op, d) { const R = typeof window !== 'undefined' && window.TerraRisk; return (R && op && R(op)) || d || 'write'; }
+  // 위험 영역 — 웹 앱 명령 실행 스위치 읽기(.get 만). 쓰기는 이 화면이 부르지 않는다 : 단추는 Scene 에 'danger' 이벤트만(window.TerraDangerAsk), 켜기 · 끄기는 Scene 의 /danger 확인 화면(ADR-GW-012 §6.1)
+  dz() {
+    const W = typeof window !== 'undefined' ? window : {}, T = this.TN(), rd = this.real() && T ? T.read(this.nodeKey(), 'terra.daemon.danger-zone.app-command-execution.get', { ttl: 5000 }) : null;
+    return W.TerraDangerView ? W.TerraDangerView(rd, { remote: this.remote(), canAsk: typeof W.TerraDangerAsk === 'function' })
+      : { state: 'sim', on: false, banner: '', status: '꺼짐 (시안)', statusCls: '', note: '', changed: '', btn: '변경 ›', btnOff: true, why: '시안(캔버스) — 실제 Terra 에서만' };
+  }
   sim() { return !this.real(); }   // 시안 — 캔버스 · 목업 전송(실제 Terra 가 없다)
   rid() { const T = this.TN(), m = T && T.t && T.t.meta && T.t.meta[this.nodeKey()]; return (m && m.rid) || (this.real() ? '' : 'nd_' + this.nodeNameQ()); }   // 이 노드의 Master id
   nodeChoices() {   // 다른 노드 고르기 — 실제는 TerraNodes 가 아는 노드(Master id 가 있는 것), 시안은 피어 이름
@@ -2462,6 +2479,8 @@ class Component extends DCLogic {
           const rsN = dk.filter((k) => rowOf(k)[7]).length;
           X.dirtyT = (dk.length ? '바뀐 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음') + (N.needRestart ? ' · 다시 시작 대기 ' + N.needRestart : '') + (this.help() ? ' — validate → patch{save} → apply · restart' : '');
           const check = () => { const E = {}; dk.forEach((k) => { const f = CFG_RULE[k]; let m = f ? f(String(N.cfg[k])) : ''; if (!m && rowOf(k)[8] && A0) try { A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]); } catch (e) { m = e.message; } if (m) E[k] = m; }); this.ndSet((d) => { d.cfgErr = E; }, null, null, { draft: true }); return E; };
+          { const Z = this.dz(), W2 = typeof window !== 'undefined' ? window : {};
+            X.dz = { label: '웹 앱 명령 실행', sub: '이 노드에서 웹 앱이 임의 명령을 실행하도록 허용 · 기본 꺼짐', changed: Z.changed, note: Z.note, why: Z.btnOff ? Z.why : '', status: Z.status, cls: Z.statusCls, btn: Z.btn, dis: Z.btnOff ? 'disabled' : null, ask: Z.btnOff ? null : () => { if (typeof W2.TerraDangerAsk === 'function') W2.TerraDangerAsk(); } }; }
           X.cfgBtns = [this.btn('되돌리기', () => this.ndSet((d) => { d.cfg = JSON.parse(JSON.stringify(d.cfgBase)); d.cfgErr = {}; }, null, null, { draft: true }), { off: !dk.length, local: true }),
             this.btn('검사', () => { const E = check(); this.say(Object.keys(E).length ? '고칠 곳 ' + Object.keys(E).length : '검사 통과'); }, { off: !dk.length, local: true }),
             this.btn('저장', () => { const E = check(); if (Object.keys(E).length) { this.say('고칠 곳 ' + Object.keys(E).length + ' — 저장 안 함'); return; } const set = {}; dk.forEach((k) => { set[k] = rowOf(k)[8] && A0 ? A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]) : N.cfg[k]; }); this.ndSet((d) => { d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); d.needRestart += rsN; }, 'terra.daemon.config.patch', { set, save: true }); this.say('저장 ' + dk.length + (rsN ? ' · 재시작 후 반영' : ' · 즉시 반영')); }, { off: !dk.length, pri: !!dk.length, local: true }),
@@ -2563,7 +2582,7 @@ class Component extends DCLogic {
     return {
       headD: this.props.chrome === 'none' ? 'none' : 'flex',
       catalog: Array.isArray(this.props.catalog) ? this.props.catalog : [], nodeNameV: this.nodeNameQ(),
-      t, frame, wall, icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, zoomK: this.zoom(), cv: this.cfmView(t, dark),
+      t, frame, wall, icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, dgr: (() => { const Z = this.dz(); return { d: Z.on ? 'inline-flex' : 'none', banner: Z.banner, tip: '웹 앱이 이 노드에서 임의 명령을 실행할 수 있음 — 설정 › 노드 설정 › 위험 영역에서 끄기' }; })(), zoomK: this.zoom(), cv: this.cfmView(t, dark),
       node: { name: this.nodeNameQ(), acct: this.acct(), parent: this.props.parentName || (this.props.chrome === 'none' ? '—' : 'tree-home') },
       focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
       toggleFull: () => { const on = !this.state.full; this.setState({ full: on }); if (this.props.onFull) this.props.onFull(on); },   // 전체화면 — 바깥 창(통합 화면 · 전역 틀)이 뷰 자리를 채운다

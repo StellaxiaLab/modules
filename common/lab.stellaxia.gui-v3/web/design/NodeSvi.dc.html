@@ -121,6 +121,7 @@ body{margin:0;background:#040614}
 .sv-danger{border-left-color:#ff9c8c;color:#ff9c8c;font-weight:700}
 .sv-aff{margin-top:3px;font-family:'Geist Mono',GmarketSans,monospace}
 .sv-derr{margin:0}
+.sv-fence{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.sv-fence span{flex:1;min-width:0}.sv-pk{min-height:22px;padding:0 8px;font-size:11px;flex:none}
 </style>
 </helmet>
 <div class="sv" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; display: grid; grid-template-columns: 176px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; background: #040614; color: #d6f4de; font: 500 12px GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif;">
@@ -161,13 +162,13 @@ body{margin:0;background:#040614}
           <sc-for list="{{fields}}" as="f" hint-placeholder-count="3">
             <div class="sv-f">
               <span class="sv-fl">{{f.title}} <i>{{f.req}}</i></span>
-              <sc-if value="{{f.isText}}" hint-placeholder-val="{{ true }}"><span class="nc-in"><input type="{{f.itype}}" value="{{f.value}}" onInput="{{f.onInput}}" placeholder="{{f.ph}}" spellcheck="false" autocomplete="off" aria-label="{{f.title}}" aria-invalid="{{f.bad}}"></span></sc-if>
+              <sc-if value="{{f.isText}}" hint-placeholder-val="{{ true }}"><span class="nc-in"><input type="{{f.itype}}" value="{{f.value}}" onInput="{{f.onInput}}" placeholder="{{f.ph}}" spellcheck="false" autocomplete="off" aria-label="{{f.title}}" aria-invalid="{{f.bad}}"><sc-if value="{{f.isPath}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn sv-pk" onClick="{{f.browse}}" disabled="{{f.browseOff}}" title="{{f.browseTip}}">찾아보기</button></sc-if></span></sc-if>
               <sc-if value="{{f.isEnum}}" hint-placeholder-val="{{ false }}"><span class="nc-seg" role="radiogroup" aria-label="{{f.title}}"><sc-for list="{{f.opts}}" as="op" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{op.on}}" class="{{op.cls}}" onClick="{{op.pick}}">{{op.label}}</button></sc-for></span></sc-if>
               <sc-if value="{{f.isBool}}" hint-placeholder-val="{{ false }}"><button type="button" role="switch" aria-checked="{{f.on}}" class="sv-sw {{f.swCls}}" onClick="{{f.toggle}}" aria-label="{{f.title}}">{{f.swT}}</button></sc-if>
               <span class="sv-fd">{{f.desc}}</span><span class="sv-err">{{f.err}}</span>
             </div>
           </sc-for>
-          <sc-if value="{{envBad}}" hint-placeholder-val="{{ false }}"><div class="sv-warn">울타리 밖 — {{envWhy}}</div></sc-if>
+          <sc-if value="{{envBad}}" hint-placeholder-val="{{ false }}"><div class="sv-warn sv-fence"><span>{{envWhy}}</span><sc-if value="{{envFix}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn" onClick="{{envFixGo}}">{{envFixT}}</button></sc-if></div></sc-if>
           <sc-if value="{{exists}}" hint-placeholder-val="{{ false }}"><label class="sv-rep"><input type="checkbox" checked="{{replace}}" onChange="{{onReplace}}"> 같은 이름 자원 교체 — 그 위 연결 종료</label></sc-if>
           <div class="sv-act"><button type="submit" class="nc-btn nc-pri" disabled="{{makeOff}}">{{makeT}}</button><span class="nc-k">{{makeApi}}</span></div>
         </form>
@@ -222,9 +223,9 @@ body{margin:0;background:#040614}
   <footer class="nc-foot" style="grid-column: 1 / span 2;"><span class="nc-msg" role="status">{{msg}}</span><span style="flex: 1;"></span><span class="nc-k" style="color: #ffd27a;">{{miss}}</span></footer>
   <sc-if value="{{dlgOn}}" hint-placeholder-val="{{ false }}">
     <div class="sv-dlg" role="dialog" aria-modal="true" aria-label="{{dlgTitle}}"><div class="sv-dbox">
-      <div class="sv-fh"><b>{{dlgTitle}}</b><span class="sv-sub">svi.runtime.file_roots · 재시작 없이 적용</span></div>
+      <div class="sv-fh"><b>{{dlgTitle}}</b><span class="sv-sub">{{dlgSub}}</span></div>
       <sc-if value="{{dlgPick}}" hint-placeholder-val="{{ true }}">
-        <label class="sv-f"><span class="sv-fl">폴더 경로</span><span class="nc-in"><input type="text" value="{{dlgPath}}" onInput="{{onDlgPath}}" placeholder="/절대/경로 또는 C:\폴더" spellcheck="false" autocomplete="off" aria-label="허용할 폴더 경로"></span></label>
+        <label class="sv-f"><span class="sv-fl">{{dlgPathLabel}}</span><span class="nc-in"><input type="text" value="{{dlgPath}}" onInput="{{onDlgPath}}" placeholder="/절대/경로 또는 C:\폴더" spellcheck="false" autocomplete="off" aria-label="허용할 폴더 경로"></span></label>
         <div class="sv-br"><span class="nc-k">이 노드에서 고르기 (읽기 전용)</span>
           <div class="sv-brr"><sc-for list="{{brRoots}}" as="b" hint-placeholder-count="2"><button type="button" class="sv-gn {{b.cls}}" onClick="{{b.pick}}">{{b.label}}</button></sc-for></div>
           <sc-if value="{{brHas}}" hint-placeholder-val="{{ false }}"><div class="sv-brl">
@@ -245,7 +246,8 @@ body{margin:0;background:#040614}
       </sc-if>
       <div class="sv-err sv-derr" role="alert">{{dlgErr}}</div>
       <div class="sv-act">
-        <sc-if value="{{dlgPick}}" hint-placeholder-val="{{ true }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgNext}}" disabled="{{dlgNextOff}}">다음 — 확인</button></sc-if>
+        <sc-if value="{{dlgPickAdd}}" hint-placeholder-val="{{ true }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgNext}}" disabled="{{dlgNextOff}}">다음 — 확인</button></sc-if>
+        <sc-if value="{{dlgFile}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgUse}}" disabled="{{dlgNextOff}}">이 경로 쓰기</button></sc-if>
         <sc-if value="{{dlgConfirm}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn" onClick="{{dlgBack}}" disabled="{{dlgBusy}}">뒤로</button><button type="button" class="nc-btn nc-pri" onClick="{{dlgGo}}" disabled="{{dlgBusy}}">허용</button></sc-if>
         <sc-if value="{{dlgRemove}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn nc-pri" onClick="{{dlgDel}}" disabled="{{dlgBusy}}">해제</button></sc-if>
         <button type="button" class="nc-btn" onClick="{{dlgClose}}" disabled="{{dlgBusy}}">취소</button>
@@ -261,6 +263,18 @@ body{margin:0;background:#040614}
 //   시안(캔버스): 같은 모양의 예시 값. 모듈 유형(카메라 · 프로그램 창)은 '시안 · 코어 대기' — Terra 에 모듈이 유형 + 스키마를 내놓는 길이 아직 없다
 //   아래 BUILTIN · fieldsOf · check · linkable · bstate 는 src/api/svi-make.js 의 사본(시안용) — tests/nodesvi.test.mjs 가 같은지 본다
 const ABS = '^(/|[A-Za-z]:[\\\\/])';
+/** 경로의 위 폴더 — 폴더 허용 창에 미리 채울 값. 위가 드라이브 뿌리 · / 이거나 절대 경로가 아니면 '' */
+function dirOf(p) {
+  const q = String(p || '').trim().replace(/[\\/]+$/, ''), k = Math.max(q.lastIndexOf('/'), q.lastIndexOf('\\')); if (k < 0) return '';
+  const d = q.slice(0, k); return !d || /^[A-Za-z]:$/.test(d) || !new RegExp(ABS).test(d) ? '' : d;
+}
+/** 선언 오류 → 한국어 안내. 코드는 뒤에 붙인다 */
+function declareError(e) {
+  const code = (e && e.code) || '', m = e && e.message ? ' ' + e.message : '';
+  if (code === 'SVI_DECLARATION_OUTSIDE_ENVELOPE') return '허용된 폴더 밖이거나 이 종류가 닫혀 있습니다 — 왼쪽 "이 노드의 울타리"를 확인하세요. (' + code + ')';
+  if (code === 'FORBIDDEN' || e && e.status === 403) return '권한이 없습니다. (' + code + ')';
+  return code + m;
+}
 const BUILTIN = [
   { id: 'file', family: 'file', title: '파일', desc: '파일 하나를 자원으로 — 읽기(처음부터 끝까지 한 번 흘림) 또는 쓰기', schema: { required: ['path'], properties: {
     path: { type: 'string', title: '경로', description: '절대 경로 — 울타리(file_roots) 안', pattern: ABS, format: 'path' },
@@ -446,7 +460,7 @@ class Component extends DCLogic {
     if (!this.real()) { if (fake) this.setState({ data: fake(JSON.parse(JSON.stringify(this.state.data))) }); this.say('(시안) ' + label); return; }
     this.setState({ busy: true, msg: label + ' …' });
     run().then(() => { this.setState({ busy: false, msg: label + ' — 완료' }); this.pull(); },
-      (e) => { this.setState({ busy: false, msg: label + ' — 실패 · ' + ((e && e.code) || '') + (e && e.message ? ' ' + e.message : '') }); this.pull(); });
+      (e) => { this.setState({ busy: false, msg: label + ' — 실패 · ' + declareError(e) }); this.pull(); });
   }
   types() {
     const mods = this.real() ? (window.TerraSviTypes ? window.TerraSviTypes() : []) : SAMPLE_MOD_TYPES;
@@ -461,7 +475,7 @@ class Component extends DCLogic {
   envLocal() { return this.real() ? !!(window.TerraSviEnvelope && window.TerraSviEnvelope.isLocal(this.rid())) : true; }
   envOpen(mode, path) {
     this.setState({ envDlg: { mode, stage: 'pick', path: path || '', err: '', busy: false, br: { roots: [], root: null, rel: '', items: [], note: '' } } });
-    if (mode === 'add') this.envRoots();
+    if (mode === 'add' || mode === 'file') this.envRoots();
   }
   envClose() { this.setState({ envDlg: null }); }
   envPatch(p) { this.setState((s) => (s.envDlg ? { envDlg: Object.assign({}, s.envDlg, p) } : null)); }
@@ -475,8 +489,8 @@ class Component extends DCLogic {
     const d = this.state.envDlg, R = d && d.br.roots.find((x) => x.root === root); if (!R) return;
     const done = (items, note) => this.setState((s) => (s.envDlg && s.envDlg.br.root === root && s.envDlg.br.rel === rel ? { envDlg: Object.assign({}, s.envDlg, { br: Object.assign({}, s.envDlg.br, { items, note }) }) } : null));
     this.envPatch({ path: R.path ? joinRoot(R.path, rel) : d.path, err: '', br: Object.assign({}, d.br, { root, rel, items: [], note: '불러오는 중…' }) });
-    if (!this.real()) { done(['data', 'media', 'docs', '.ssh'].map((n) => ({ name: n, path: rel ? rel + '/' + n : n, dir: true })), ''); return; }
-    window.TerraSviEnvelope.fsEntries(root, rel).then((x) => done(window.TerraDesk.fileEntries(x, rel).filter((e) => e.dir && !e.locked), ''), (e) => done([], '못 읽음 · ' + ((e && e.code) || '')));
+    if (!this.real()) { done(['data', 'media', 'docs', '.ssh'].map((n) => ({ name: n, path: rel ? rel + '/' + n : n, dir: true })).concat(d.mode === 'file' ? [{ name: 'cam.log', path: rel ? rel + '/cam.log' : 'cam.log', dir: false }] : []), ''); return; }
+    window.TerraSviEnvelope.fsEntries(root, rel).then((x) => done(window.TerraDesk.fileEntries(x, rel).filter((e) => (e.dir || d.mode === 'file') && !e.locked), ''), (e) => done([], '못 읽음 · ' + ((e && e.code) || '')));
   }
   /** 성공 뒤 화면 값 — 울타리 · 그 안에 있던 선언의 상태. 곧이어 다시 읽어 Terra 값으로 덮는다 */
   envApply(data, kind, path) {
@@ -504,13 +518,15 @@ class Component extends DCLogic {
     o.noRoots = !!e && !roots.length; o.envLocal = L; o.envRemote = !L; o.envRemoteT = '다른 노드의 울타리는 아직 그 노드에서만 바꿀 수 있습니다';
     o.allowOff = !e || (this.real() && !this.rid()); o.allow = () => this.envOpen('add', '');
     o.dlgOn = !!dlg; if (!dlg) return;
-    const add = dlg.mode === 'add', br = dlg.br, path = dlg.path.trim(), sens = sensitiveWhy(path);
-    o.dlgAdd = add; o.dlgRemove = !add; o.dlgPick = add && dlg.stage === 'pick'; o.dlgConfirm = add && dlg.stage === 'confirm'; o.dlgBusy = !!dlg.busy;
-    o.dlgTitle = add ? '폴더 허용' : '폴더 해제'; o.dlgPath = dlg.path; o.dlgErr = dlg.err; o.dlgClose = () => this.envClose();
+    const add = dlg.mode === 'add', fileMode = dlg.mode === 'file', br = dlg.br, path = dlg.path.trim(), sens = sensitiveWhy(path);
+    o.dlgAdd = add; o.dlgRemove = !add && !fileMode; o.dlgFile = fileMode; o.dlgPickAdd = add && dlg.stage === 'pick'; o.dlgPick = (add || fileMode) && dlg.stage === 'pick';
+    o.dlgPathLabel = fileMode ? '파일 경로' : '폴더 경로'; o.dlgSub = fileMode ? '이 노드의 파일 — 읽기 전용 탐색 · 고르기만 하고 아무것도 바꾸지 않음' : 'svi.runtime.file_roots · 재시작 없이 적용';
+    o.dlgUse = () => { if (o.dlgNextOff) { this.envPatch({ err: '절대 경로여야 합니다. (예: C:\\공유\\a.txt 또는 /srv/share/a.txt)' }); return; } this.setState((s2) => ({ vals: Object.assign({}, s2.vals, { path }), envDlg: null, msg: '경로 고름 — ' + path })); }; o.dlgConfirm = add && dlg.stage === 'confirm'; o.dlgBusy = !!dlg.busy;
+    o.dlgTitle = add ? '폴더 허용' : fileMode ? '파일 고르기' : '폴더 해제'; o.dlgPath = dlg.path; o.dlgErr = dlg.err; o.dlgClose = () => this.envClose();
     o.onDlgPath = (ev) => this.envPatch({ path: ev.target.value, err: '' });
     o.brRoots = br.roots.map((r) => ({ label: r.label, cls: br.root === r.root ? 'on' : '', pick: () => this.envBrowse(r.root, '') }));
     o.brNote = br.note; o.brHas = !!br.root; o.brUp = br.rel ? () => this.envBrowse(br.root, br.rel.split('/').slice(0, -1).join('/')) : null; o.brCanUp = !!br.rel;
-    o.brItems = br.items.map((it) => ({ name: it.name, pick: () => this.envBrowse(br.root, it.path) }));
+    o.brItems = br.items.map((it) => ({ name: it.dir && fileMode ? it.name + '/' : it.name, pick: () => (it.dir ? this.envBrowse(br.root, it.path) : this.envPatch({ path: joinRoot((br.roots.find((x) => x.root === br.root) || {}).path, it.path), err: '' })) }));
     o.dlgNextOff = !path || !new RegExp(ABS).test(path);
     o.dlgNext = () => { if (o.dlgNextOff) { this.envPatch({ err: envelopeError({ code: 'SVI_ENVELOPE_ROOT_REFUSED', details: { reason: 'not_absolute' } }) }); return; } this.envPatch({ stage: 'confirm', err: '' }); };
     o.dlgBack = () => this.envPatch({ stage: 'pick', err: '' });
@@ -558,18 +574,20 @@ class Component extends DCLogic {
     o.fname = s.fname; o.onName = (e) => set({ fname: e.target.value }); o.nameErr = errs.name || ''; o.nameBad = errs.name ? 'true' : 'false';
     o.fields = fieldsOf(ty.schema, s.vals).map((f) => { const up = (v) => set({ vals: Object.assign({}, s.vals, { [f.key]: v }) });
       return { title: f.title, req: f.required ? '*' : '', desc: f.desc, err: errs[f.key] || '', bad: errs[f.key] ? 'true' : 'false', isText: f.kind === 'text' || f.kind === 'path' || f.kind === 'list' || f.kind === 'number', isEnum: f.kind === 'enum', isBool: f.kind === 'bool',
+        isPath: f.kind === 'path' && ty.family === 'file', browse: () => this.envOpen('file', String(f.value || '')), browseOff: !this.envLocal() || !!s.busy, browseTip: this.envLocal() ? '이 노드의 파일을 찾아 고릅니다 (읽기 전용)' : '다른 노드의 파일은 찾아볼 수 없습니다 — 경로를 직접 입력하세요',
         itype: f.kind === 'number' ? 'number' : 'text', value: f.value, ph: f.kind === 'path' ? '/절대/경로' : f.kind === 'list' ? '값 값 …' : '', onInput: (e) => up(e.target.value),
         opts: (f.options || []).map((op) => ({ label: op.label, on: op.v === f.value ? 'true' : 'false', cls: op.v === f.value ? 'on' : '', pick: () => up(op.v) })),
         on: f.value === true ? 'true' : 'false', swCls: f.value === true ? 'on' : '', swT: f.value === true ? '켬' : '끔', toggle: () => up(!(f.value === true)) }; });
-    { const e = D && D.envelope, v = castOf(ty.schema, s.vals), A = (x) => (Array.isArray(x) ? x : []); let why = '';
-      if (e && ty.family === 'file') { const roots = A(e.file_roots), p = v.path; if (!roots.length) why = '파일 자원 닫힘'; else if (p && !roots.some((r) => { const q = String(r.path || r).replace(/[\\/]+$/, ''); return p === q || p.startsWith(q + '/') || p.startsWith(q + '\\'); })) why = '열린 폴더 밖 — ' + roots.map((r) => r.path || r).join(', '); }
-      if (e && ty.family === 'process') { const m = e.process || 'off'; if (m === 'off') why = '프로그램 자원 닫힘'; else if (m === 'allowlist' && v.command && !A(e.process_commands).includes(v.command)) why = '허용 목록 밖 프로그램'; }
-      if (e && ty.family === 'net') { if (e.net === false || e.net === 'off') why = '네트워크 자원 닫힘'; else if (A(e.net_endpoints).length && v.address && !A(e.net_endpoints).some((x) => String(x.address || x) === v.address)) why = '허용 목록 밖 주소'; }
-      o.envBad = !!why; o.envWhy = why; }
+    { const e = D && D.envelope, v = castOf(ty.schema, s.vals), A = (x) => (Array.isArray(x) ? x : []), L0 = this.envLocal(); let why = '';
+      if (e && ty.family === 'file') { const roots = A(e.file_roots), p = v.path; if (!roots.length) why = L0 ? '이 노드에 허용된 폴더가 없어 파일 자원을 만들 수 없습니다. 먼저 폴더를 허용하세요.' : '이 노드에 허용된 폴더가 없습니다. 그 노드의 자원화 창에서 폴더를 허용해야 합니다.'; else if (p && !roots.some((r) => { const q = String(r.path || r).replace(/[\\/]+$/, ''); return p === q || p.startsWith(q + '/') || p.startsWith(q + '\\'); })) why = (L0 ? '허용된 폴더 밖입니다 — ' : '허용된 폴더 밖입니다(그 노드에서 허용해야 함) — ') + roots.map((r) => r.path || r).join(', '); }
+      if (e && ty.family === 'process') { const m = e.process || 'off'; if (m === 'off') why = '프로그램 자원은 닫혀 있습니다. 노드 설정 파일(svi.runtime.process)에서만 열 수 있고 재시작이 필요합니다 — 이 화면에서는 열지 않습니다.'; else if (m === 'allowlist' && v.command && !A(e.process_commands).includes(v.command)) why = '허용 목록 밖 프로그램입니다. 노드 설정 파일(svi.runtime.process_commands)에 추가해야 합니다.'; }
+      if (e && ty.family === 'net') { if (e.net === false || e.net === 'off') why = '네트워크 자원은 닫혀 있습니다. 노드 설정 파일(svi.runtime.net)에서만 열 수 있고 재시작이 필요합니다 — 이 화면에서는 열지 않습니다.'; else if (A(e.net_endpoints).length && v.address && !A(e.net_endpoints).some((x) => String(x.address || x) === v.address)) why = '허용 목록 밖 주소입니다. 노드 설정 파일(svi.runtime.net_endpoints)에 추가해야 합니다.'; }
+      o.envBad = !!why; o.envWhy = why;
+      o.envFix = !!why && ty.family === 'file' && L0 && !this.state.envDlg; o.envFixT = '폴더 허용…'; o.envFixGo = () => this.envOpen('add', dirOf(v.path)); }
     o.exists = !!decls.find((d) => d.name === s.fname.trim()); o.replace = !!s.replace; o.onReplace = (e) => set({ replace: e.target.checked });
-    o.makeOff = s.busy || lockMod || (R && !this.rid()); o.makeT = lockMod ? '만들기 — 코어 대기' : s.busy ? '만드는 중…' : '자원 만들기';
+    o.makeOff = s.busy || lockMod || (R && !this.rid()) || (R && o.envBad); o.makeT = lockMod ? '만들기 — 코어 대기' : s.busy ? '만드는 중…' : o.envBad && R ? '만들 수 없음 — 울타리 밖' : '자원 만들기';
     o.makeApi = lockMod ? '모듈 유형 → 모듈 어댑터 경로 : Terra 미지원' : 'svi.declarations.post · ' + (this.props.nodeName || '');
-    o.submit = (e) => { if (e && e.preventDefault) e.preventDefault(); if (lockMod) return; const nm = s.fname.trim(), er = check(ty.schema, nm, s.vals); if (Object.keys(er).length) { set({ tried: true, msg: '값 확인 — ' + Object.values(er)[0] }); return; }
+    o.submit = (e) => { if (e && e.preventDefault) e.preventDefault(); if (lockMod || (R && o.envBad)) return; const nm = s.fname.trim(), er = check(ty.schema, nm, s.vals); if (Object.keys(er).length) { set({ tried: true, msg: '값 확인 — ' + Object.values(er)[0] }); return; }
       if (o.exists && !s.replace) { set({ msg: nm + ' — 같은 이름 있음 · 교체 : 아래 칸 켬' }); return; }
       const v = castOf(ty.schema, s.vals), inp = { family: ty.family, name: nm, direction: v.direction || 'source' };
       if (ty.family === 'file') inp.path = v.path; if (ty.family === 'process') { inp.command = v.command; if (v.args && v.args.length) inp.args = v.args; } if (ty.family === 'net') { inp.address = v.address; inp.mode = v.mode || 'connect'; inp.framing = v.framing || 'chunk'; } if (s.replace) inp.replace = true;
