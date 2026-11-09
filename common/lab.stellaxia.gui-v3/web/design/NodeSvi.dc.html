@@ -226,7 +226,7 @@ body{margin:0;background:#040614}
       <div class="sv-fh"><b>{{dlgTitle}}</b><span class="sv-sub">{{dlgSub}}</span></div>
       <sc-if value="{{dlgPick}}" hint-placeholder-val="{{ true }}">
         <label class="sv-f"><span class="sv-fl">{{dlgPathLabel}}</span><span class="nc-in"><input type="text" value="{{dlgPath}}" onInput="{{onDlgPath}}" placeholder="/절대/경로 또는 C:\폴더" spellcheck="false" autocomplete="off" aria-label="허용할 폴더 경로"></span></label>
-        <div class="sv-br"><span class="nc-k">이 노드에서 고르기 (읽기 전용)</span>
+        <div class="sv-br"><span class="nc-k">{{brHead}}</span>
           <div class="sv-brr"><sc-for list="{{brRoots}}" as="b" hint-placeholder-count="2"><button type="button" class="sv-gn {{b.cls}}" onClick="{{b.pick}}">{{b.label}}</button></sc-for></div>
           <sc-if value="{{brHas}}" hint-placeholder-val="{{ false }}"><div class="sv-brl">
             <sc-if value="{{brCanUp}}" hint-placeholder-val="{{ false }}"><button type="button" class="sv-brd" onClick="{{brUp}}">.. 위로</button></sc-if>
@@ -479,18 +479,26 @@ class Component extends DCLogic {
   }
   envClose() { this.setState({ envDlg: null }); }
   envPatch(p) { this.setState((s) => (s.envDlg ? { envDlg: Object.assign({}, s.envDlg, p) } : null)); }
-  /** 폴더 고르기 — 이 노드의 local-fs 뿌리(읽기 전용) */
+  /** 고를 곳 — 폴더 허용(add): 이 노드의 local-fs 뿌리. 파일 고르기(file): 그 노드의 파일 탐색기와 같게 — 로컬 탐색(이 노드만) + 공유 폴더(io.terra.file, 다른 노드도) */
   envRoots() {
+    const fileMode = this.state.envDlg && this.state.envDlg.mode === 'file', L = this.envLocal();
     const set = (roots, note) => this.setState((s) => (s.envDlg ? { envDlg: Object.assign({}, s.envDlg, { br: Object.assign({}, s.envDlg.br, { roots, note }) }) } : null));
-    if (!this.real()) { set([{ root: 'home', label: '로컬 · home', path: '/home/demo' }, { root: 'srv', label: '로컬 · srv', path: '/srv' }], ''); return; }
-    window.TerraSviEnvelope.fsRoots().then((d) => set(window.TerraDesk.fileRoots(d, 'lfs').filter((r) => !r.locked), ''), (e) => set([], '폴더 목록을 못 읽음 · ' + ((e && e.code) || '') + ' — 경로를 직접 입력하세요'));
+    if (!this.real()) { set((L ? [{ id: 'lfs:home', kind: 'lfs', root: 'home', label: '로컬 · home', path: '/home/demo' }, { id: 'lfs:srv', kind: 'lfs', root: 'srv', label: '로컬 · srv', path: '/srv' }] : [])
+      .concat(fileMode ? [{ id: 'share:media', kind: 'share', root: 'media', label: '공유 · media', path: '/srv/share/media' }] : []), ''); return; }
+    const Env = window.TerraSviEnvelope, A = window.TerraDesk, rid = this.rid(), notes = [];
+    const lfs = L ? Env.fsRoots().then((d) => A.fileRoots(d, 'lfs'), (e) => { notes.push('로컬 탐색 못 읽음 · ' + ((e && e.code) || '')); return []; }) : Promise.resolve([]);
+    const sh = fileMode && Env.shareRoots ? Env.shareRoots(rid).then((d) => A.fileRoots(d, 'share'), (e) => { notes.push('공유 폴더 못 읽음 · ' + ((e && e.code) || '') + (e && e.code === 'MODULE_ROUTE_NOT_FOUND' ? ' (io.terra.file 없는 노드)' : '')); return []; }) : Promise.resolve([]);
+    Promise.all([lfs, sh]).then(([a, b]) => { const roots = a.concat(b).filter((r) => !r.locked);
+      set(roots, notes.concat(!roots.length ? ['고를 폴더 없음 — 경로를 직접 입력'] : [], fileMode && !L ? ['로컬 탐색 : 이 노드만 · 다른 노드는 공유 폴더만'] : []).join(' · ')); });
   }
-  envBrowse(root, rel) {
-    const d = this.state.envDlg, R = d && d.br.roots.find((x) => x.root === root); if (!R) return;
-    const done = (items, note) => this.setState((s) => (s.envDlg && s.envDlg.br.root === root && s.envDlg.br.rel === rel ? { envDlg: Object.assign({}, s.envDlg, { br: Object.assign({}, s.envDlg.br, { items, note }) }) } : null));
-    this.envPatch({ path: R.path ? joinRoot(R.path, rel) : d.path, err: '', br: Object.assign({}, d.br, { root, rel, items: [], note: '불러오는 중…' }) });
-    if (!this.real()) { done(['data', 'media', 'docs', '.ssh'].map((n) => ({ name: n, path: rel ? rel + '/' + n : n, dir: true })).concat(d.mode === 'file' ? [{ name: 'cam.log', path: rel ? rel + '/cam.log' : 'cam.log', dir: false }] : []), ''); return; }
-    window.TerraSviEnvelope.fsEntries(root, rel).then((x) => done(window.TerraDesk.fileEntries(x, rel).filter((e) => (e.dir || d.mode === 'file') && !e.locked), ''), (e) => done([], '못 읽음 · ' + ((e && e.code) || '')));
+  envBrowse(id, rel) {
+    const d = this.state.envDlg, R = d && d.br.roots.find((x) => x.id === id); if (!R) return;
+    const done = (items, note) => this.setState((s) => (s.envDlg && s.envDlg.br.root === id && s.envDlg.br.rel === rel ? { envDlg: Object.assign({}, s.envDlg, { br: Object.assign({}, s.envDlg.br, { items, note }) }) } : null));
+    this.envPatch({ path: R.path ? joinRoot(R.path, rel) : d.path, err: '', br: Object.assign({}, d.br, { root: id, rel, items: [], note: '불러오는 중…' }) });
+    const keep = (e) => (e.dir || d.mode === 'file') && !e.locked, noPath = R.path ? '' : '이 폴더는 절대 경로를 알려 주지 않음 — 경로를 직접 입력';
+    if (!this.real()) { done(['data', 'media', 'docs', '.ssh'].map((n) => ({ name: n, path: rel ? rel + '/' + n : n, dir: true })).concat(d.mode === 'file' ? [{ name: 'cam.log', path: rel ? rel + '/cam.log' : 'cam.log', dir: false }] : []), noPath); return; }
+    const Env = window.TerraSviEnvelope, q = R.kind === 'share' ? Env.shareEntries(this.rid(), R.root, rel) : Env.fsEntries(R.root, rel);
+    q.then((x) => done(window.TerraDesk.fileEntries(x, rel).filter(keep), noPath), (e) => done([], '못 읽음 · ' + ((e && e.code) || '')));
   }
   /** 성공 뒤 화면 값 — 울타리 · 그 안에 있던 선언의 상태. 곧이어 다시 읽어 Terra 값으로 덮는다 */
   envApply(data, kind, path) {
@@ -520,13 +528,14 @@ class Component extends DCLogic {
     o.dlgOn = !!dlg; if (!dlg) return;
     const add = dlg.mode === 'add', fileMode = dlg.mode === 'file', br = dlg.br, path = dlg.path.trim(), sens = sensitiveWhy(path);
     o.dlgAdd = add; o.dlgRemove = !add && !fileMode; o.dlgFile = fileMode; o.dlgPickAdd = add && dlg.stage === 'pick'; o.dlgPick = (add || fileMode) && dlg.stage === 'pick';
-    o.dlgPathLabel = fileMode ? '파일 경로' : '폴더 경로'; o.dlgSub = fileMode ? '이 노드의 파일 — 읽기 전용 탐색 · 고르기만 하고 아무것도 바꾸지 않음' : 'svi.runtime.file_roots · 재시작 없이 적용';
+    o.dlgPathLabel = fileMode ? '파일 경로' : '폴더 경로'; o.dlgSub = fileMode ? (this.rid() ? this.nodeName(this.rid()) : '이 노드') + ' 파일 탐색기 — 읽기 전용 · 고르기만 하고 아무것도 바꾸지 않음' : 'svi.runtime.file_roots · 재시작 없이 적용';
     o.dlgUse = () => { if (o.dlgNextOff) { this.envPatch({ err: '절대 경로여야 합니다. (예: C:\\공유\\a.txt 또는 /srv/share/a.txt)' }); return; } this.setState((s2) => ({ vals: Object.assign({}, s2.vals, { path }), envDlg: null, msg: '경로 고름 — ' + path })); }; o.dlgConfirm = add && dlg.stage === 'confirm'; o.dlgBusy = !!dlg.busy;
     o.dlgTitle = add ? '폴더 허용' : fileMode ? '파일 고르기' : '폴더 해제'; o.dlgPath = dlg.path; o.dlgErr = dlg.err; o.dlgClose = () => this.envClose();
     o.onDlgPath = (ev) => this.envPatch({ path: ev.target.value, err: '' });
-    o.brRoots = br.roots.map((r) => ({ label: r.label, cls: br.root === r.root ? 'on' : '', pick: () => this.envBrowse(r.root, '') }));
+    o.brRoots = br.roots.map((r) => ({ label: r.label, cls: br.root === r.id ? 'on' : '', pick: () => this.envBrowse(r.id, '') }));
+    o.brHead = (fileMode && !this.envLocal() ? this.nodeName(this.rid()) + ' 에서' : '이 노드에서') + ' 고르기 (읽기 전용)';
     o.brNote = br.note; o.brHas = !!br.root; o.brUp = br.rel ? () => this.envBrowse(br.root, br.rel.split('/').slice(0, -1).join('/')) : null; o.brCanUp = !!br.rel;
-    o.brItems = br.items.map((it) => ({ name: it.dir && fileMode ? it.name + '/' : it.name, pick: () => (it.dir ? this.envBrowse(br.root, it.path) : this.envPatch({ path: joinRoot((br.roots.find((x) => x.root === br.root) || {}).path, it.path), err: '' })) }));
+    o.brItems = br.items.map((it) => ({ name: it.dir && fileMode ? it.name + '/' : it.name, pick: () => (it.dir ? this.envBrowse(br.root, it.path) : this.envPatch({ path: joinRoot((br.roots.find((x) => x.id === br.root) || {}).path, it.path), err: '' })) }));
     o.dlgNextOff = !path || !new RegExp(ABS).test(path);
     o.dlgNext = () => { if (o.dlgNextOff) { this.envPatch({ err: envelopeError({ code: 'SVI_ENVELOPE_ROOT_REFUSED', details: { reason: 'not_absolute' } }) }); return; } this.envPatch({ stage: 'confirm', err: '' }); };
     o.dlgBack = () => this.envPatch({ stage: 'pick', err: '' });
@@ -574,7 +583,7 @@ class Component extends DCLogic {
     o.fname = s.fname; o.onName = (e) => set({ fname: e.target.value }); o.nameErr = errs.name || ''; o.nameBad = errs.name ? 'true' : 'false';
     o.fields = fieldsOf(ty.schema, s.vals).map((f) => { const up = (v) => set({ vals: Object.assign({}, s.vals, { [f.key]: v }) });
       return { title: f.title, req: f.required ? '*' : '', desc: f.desc, err: errs[f.key] || '', bad: errs[f.key] ? 'true' : 'false', isText: f.kind === 'text' || f.kind === 'path' || f.kind === 'list' || f.kind === 'number', isEnum: f.kind === 'enum', isBool: f.kind === 'bool',
-        isPath: f.kind === 'path' && ty.family === 'file', browse: () => this.envOpen('file', String(f.value || '')), browseOff: !this.envLocal() || !!s.busy, browseTip: this.envLocal() ? '이 노드의 파일을 찾아 고릅니다 (읽기 전용)' : '다른 노드의 파일은 찾아볼 수 없습니다 — 경로를 직접 입력하세요',
+        isPath: f.kind === 'path' && ty.family === 'file', browse: () => this.envOpen('file', String(f.value || '')), browseOff: !!s.busy, browseTip: this.envLocal() ? '이 노드의 파일 탐색기 — 로컬 · 공유 폴더에서 고르기 (읽기 전용)' : '그 노드의 파일 탐색기 — 공유 폴더에서 고르기 (읽기 전용 · 로컬 탐색은 이 노드만)',
         itype: f.kind === 'number' ? 'number' : 'text', value: f.value, ph: f.kind === 'path' ? '/절대/경로' : f.kind === 'list' ? '값 값 …' : '', onInput: (e) => up(e.target.value),
         opts: (f.options || []).map((op) => ({ label: op.label, on: op.v === f.value ? 'true' : 'false', cls: op.v === f.value ? 'on' : '', pick: () => up(op.v) })),
         on: f.value === true ? 'true' : 'false', swCls: f.value === true ? 'on' : '', swT: f.value === true ? '켬' : '끔', toggle: () => up(!(f.value === true)) }; });
