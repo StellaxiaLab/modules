@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 2,
+  "id": "lab.stellaxia.virtual-device",
+  "name": "Terra Virtual Device Bridge",
+  "version": "0.2.0",
+  "kind": "service",
+  "description": "Projects an SVI endpoint as an operating-system virtual camera device. Phase 1: control API, one SVI sink resource per Slot, frames delivered to the Slot's adapter. Linux v4l2loopback adapter (raw YUY2 only); Windows and macOS adapters are not built.",
+  "compatibility": {
+    "products": [
+      "leaf"
+    ],
+    "hostRoles": [
+      "leaf-node"
+    ],
+    "os": [
+      "linux",
+      "windows"
+    ]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-virtual-device",
+      "linux-arm64": "bin/linux-arm64/terra-virtual-device",
+      "windows-amd64": "bin/windows-amd64/terra-virtual-device.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "lab.stellaxia.virtual-device",
+        "version": "0.2.0"
+      }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "svi": {
+      "resources": true,
+      "sink": true
+    }
+  },
+  "permissions": {
+    "storage": [
+      "module-data"
+    ]
+  },
+  "readiness": {
+    "operationId": "lab.stellaxia.virtual-device.status.get",
+    "versionRange": ">=0.2.0 <1.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  }
+}

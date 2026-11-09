@@ -1,0 +1,4442 @@
+{
+  "$schema": "../../../../../docs/contracts/api/schemas/terra-api-contract-v1.schema.json",
+  "authentication": {
+    "workload-identity": {
+      "description": "Module Runtime이 실행 instance에 발급한 단기 Workload Identity를 사용합니다. 이 Application은 외부 Network Interface에 직접 listen하지 않습니다(§16.1, §18).",
+      "type": "workload-identity"
+    }
+  },
+  "contractId": "lab.stellaxia.virtual-device.api",
+  "contractVersion": "0.1.0",
+  "defaultLocale": "ko-KR",
+  "description": "이 계약이 Gateway route의 단일 원본입니다. operation의 bindings에 적은 method·path가 그대로 게시되고 security.permissions가 route 권한이 되므로, 표면을 바꿀 때는 코드가 아니라 이 파일을 먼저 고칩니다. Phase 1의 범위는 읽기 표면과 Slot·Projection의 PUT·DELETE이며, frame 경로는 이 API가 아니라 Slot마다 게시되는 SVI sink 자원(vdevice.<slot_id>, endpoint input)으로 들어옵니다 — POST /adapters/{adapter_id}/driver-plan과 GET /events(SSE)는 설계 §16.2에 있으나 아직 선언하지 않습니다. 짓지 않은 것을 계약에 적으면 게시된 route가 404로 답합니다.",
+  "errors": {
+    "VDEV_ADAPTER_UNAVAILABLE": {
+      "description": "이 빌드에 해당 OS Adapter가 없습니다. In-memory Fake Adapter 외의 실 Adapter는 Linux(v4l2loopback)에만 있고, Windows·macOS Adapter는 아직 없습니다.",
+      "httpStatus": 503,
+      "retryable": false,
+      "title": "Adapter 없음",
+      "userAction": "GET /adapters로 이 빌드에 있는 Adapter를 확인하십시오. Linux에서는 linux.v4l2loopback이 실 Adapter이고(장치 매핑 필요), Windows·macOS용은 아직 없습니다."
+    },
+    "VDEV_DRIVER_INSTALL_REQUIRED": {
+      "description": "Driver 또는 Extension 설치가 필요합니다. 설치는 서명된 Setup 경로만 수행하며 이 모듈은 설치 코드를 갖지 않습니다(§4.3).",
+      "httpStatus": 409,
+      "retryable": true,
+      "title": "Driver 설치 필요",
+      "userAction": "Setup의 유지관리 Action으로 Driver를 설치한 뒤 다시 시도하십시오. 이 모듈은 설치를 수행하지 않습니다."
+    },
+    "VDEV_FORMAT_INCOMPATIBLE": {
+      "description": "변환할 수 있는 Format이 없습니다. 지원 Format은 명시적이며 암묵적 추론을 하지 않습니다(§4.9).",
+      "httpStatus": 409,
+      "retryable": false,
+      "title": "Format 불일치",
+      "userAction": "GET /adapters/{adapter_id}의 supported_formats에 있는 Format으로 요청하십시오."
+    },
+    "VDEV_FRAME_INVALID": {
+      "description": "frame이 계약을 어겼습니다.",
+      "httpStatus": 422,
+      "retryable": false,
+      "title": "frame 계약 위반",
+      "userAction": "source가 계약대로 frame을 보내는지 확인하십시오."
+    },
+    "VDEV_HANDLE_OPEN_FAILED": {
+      "description": "Slot의 장치 handle을 열지 못했습니다. SVI sink를 열 때 Adapter가 장치를 열지 못하면 binding 상태에 이 코드가 실립니다. Source가 없어서 degraded인 Projection은 VDEV_SOURCE_UNAVAILABLE을 보고합니다.",
+      "httpStatus": 503,
+      "retryable": true,
+      "title": "Handle 열기 실패",
+      "userAction": "Daemon 연결 상태를 GET /status로 확인하십시오."
+    },
+    "VDEV_INVALID_REQUEST": {
+      "description": "요청 본문이나 식별자가 계약에 맞지 않습니다. §21의 도메인 오류와 구분합니다 — 잘못된 JSON에 VDEV_SLOT_NOT_FOUND로 답하면 있지도 않은 Slot을 찾으러 보내게 됩니다.",
+      "httpStatus": 400,
+      "retryable": false,
+      "title": "요청이 올바르지 않음",
+      "userAction": "계약의 input schema와 식별자 규칙을 확인하십시오."
+    },
+    "VDEV_LEASE_EXPIRED": {
+      "description": "Handle Lease가 만료되었습니다. 새 Grant를 받을 수 있으면 다시 시도합니다.",
+      "httpStatus": 409,
+      "retryable": true,
+      "title": "Lease 만료",
+      "userAction": "Grant를 다시 받아 Projection을 재적용하십시오."
+    },
+    "VDEV_NOT_IMPLEMENTED": {
+      "description": "이 Phase가 선언만 하고 아직 제공하지 않는 표면입니다. 요청이 잘못되었다는 뜻이 아닙니다.",
+      "httpStatus": 501,
+      "retryable": false,
+      "title": "아직 구현되지 않음",
+      "userAction": "설계 §25의 해당 Phase를 기다리십시오. 요청을 바꿀 필요는 없습니다."
+    },
+    "VDEV_OS_PERMISSION_DENIED": {
+      "description": "운영체제 권한 또는 ACL이 거부했습니다.",
+      "httpStatus": 403,
+      "retryable": true,
+      "title": "OS 권한 거부",
+      "userAction": "장치 노드의 권한·그룹 또는 ACL을 확인하십시오."
+    },
+    "VDEV_REBOOT_REQUIRED": {
+      "description": "재부팅 뒤에 완료할 수 있습니다.",
+      "httpStatus": 409,
+      "retryable": true,
+      "title": "재부팅 필요",
+      "userAction": "재부팅한 뒤 다시 시도하십시오."
+    },
+    "VDEV_SLOT_BUSY": {
+      "description": "다른 Projection이 그 Slot을 점유하고 있습니다. 한 Slot에 동시에 붙는 active Projection은 하나입니다(§9.2).",
+      "httpStatus": 409,
+      "retryable": true,
+      "title": "Slot 사용 중",
+      "userAction": "그 Slot의 기존 Projection을 stopped로 두거나 삭제한 뒤 다시 시도하십시오."
+    },
+    "VDEV_SLOT_NOT_FOUND": {
+      "description": "그 이름의 Slot 또는 Projection이 없습니다.",
+      "httpStatus": 404,
+      "retryable": false,
+      "title": "Slot 없음",
+      "userAction": "GET /slots 또는 GET /projections로 이름을 확인하십시오."
+    },
+    "VDEV_SOURCE_UNAVAILABLE": {
+      "description": "Resource 또는 Endpoint를 쓸 수 없습니다.",
+      "httpStatus": 503,
+      "retryable": true,
+      "title": "Source 사용 불가",
+      "userAction": "Resource와 Endpoint가 살아 있는지 확인한 뒤 다시 시도하십시오."
+    },
+    "VDEV_STALE_GENERATION": {
+      "description": "더 새로운 desired state가 이미 적용되어 있습니다. 최신 상태를 조회한 뒤 generation을 올려 다시 보냅니다(§16.4).",
+      "httpStatus": 409,
+      "retryable": true,
+      "title": "오래된 세대",
+      "userAction": "GET /projections/{projection_id}로 현재 generation을 읽고 그보다 큰 값으로 다시 보내십시오."
+    },
+    "VDEV_USER_ACTION_REQUIRED": {
+      "description": "운영체제 승인이나 보안 설정 변경이 필요합니다.",
+      "httpStatus": 409,
+      "retryable": true,
+      "title": "사용자 승인 필요",
+      "userAction": "운영체제의 승인 대화상자나 보안 설정을 처리한 뒤 다시 시도하십시오."
+    }
+  },
+  "operations": {
+    "lab.stellaxia.virtual-device.adapters.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "adapter",
+          "어댑터"
+        ],
+        "outputPorts": [],
+        "recommendedLabel": "Adapter 조회",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/adapters/{adapter_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "query",
+      "description": "이 빌드에 없는 adapter_id는 VDEV_ADAPTER_UNAVAILABLE입니다. Adapter는 빌드 시 allowlist된 구현만 로드하며 임의 경로에서 검색하지 않습니다(§9.1).",
+      "errors": [
+        "VDEV_ADAPTER_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "Fake Adapter",
+            "value": {
+              "adapter_id": "fake.in-memory",
+              "capabilities": [
+                "slot.register",
+                "slot.remove",
+                "frame.write"
+              ],
+              "detail": "In-memory adapter. It registers slots and counts the frames written to them inside this process only: no operating-system device is created and no driver is installed. Use it to exercise the control API and the frame path, never to check whether a camera works.",
+              "health": "simulated",
+              "install_state": "ready",
+              "kind": "camera",
+              "os": "any",
+              "simulated": true,
+              "supported_formats": [
+                {
+                  "fps": 30,
+                  "height": 480,
+                  "pixel_format": "YUY2",
+                  "width": 640
+                }
+              ],
+              "version": "0.1.0"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "description": "설계 §9.1의 Virtual Device Adapter.",
+          "properties": {
+            "adapter_id": {
+              "description": "이 빌드가 가진 Adapter의 식별자.",
+              "title": "Adapter ID",
+              "type": "string"
+            },
+            "capabilities": {
+              "description": "이 Adapter가 할 수 있는 일.",
+              "items": {
+                "type": "string"
+              },
+              "title": "기능",
+              "type": "array"
+            },
+            "detail": {
+              "description": "운영자에게 하는 말 — 무엇이 없고 어느 Phase가 그것을 가져오는지.",
+              "title": "설명",
+              "type": "string"
+            },
+            "health": {
+              "description": "Adapter self-test 결과. Fake Adapter는 simulated입니다.",
+              "title": "건강 상태",
+              "type": "string"
+            },
+            "install_state": {
+              "description": "설계 §10.1의 상태.",
+              "enum": [
+                "not_installed",
+                "install_required",
+                "installing",
+                "user_action_required",
+                "reboot_required",
+                "ready",
+                "disabled",
+                "failed",
+                "uninstalling"
+              ],
+              "title": "설치 상태",
+              "type": "string"
+            },
+            "kind": {
+              "description": "camera 또는 audio.",
+              "enum": [
+                "camera",
+                "audio"
+              ],
+              "title": "종류",
+              "type": "string"
+            },
+            "os": {
+              "description": "이 Adapter가 대상으로 하는 운영체제. Fake는 any입니다.",
+              "title": "운영체제",
+              "type": "string"
+            },
+            "simulated": {
+              "description": "참이면 이 Adapter는 OS 장치를 만들지 않습니다. 설계 §9.1의 field 목록에는 없는 추가 field이고, 없으면 존재하지 않는 장치가 존재하는 장치와 같게 보입니다.",
+              "title": "모의 여부",
+              "type": "boolean"
+            },
+            "supported_formats": {
+              "description": "이 Adapter가 받아들이는 Format.",
+              "items": {
+                "additionalProperties": false,
+                "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                "properties": {
+                  "channels": {
+                    "description": "audio 채널 수.",
+                    "title": "채널 수",
+                    "type": "integer"
+                  },
+                  "fps": {
+                    "description": "초당 frame 수.",
+                    "title": "초당 frame",
+                    "type": "integer"
+                  },
+                  "height": {
+                    "description": "video frame 세로 픽셀.",
+                    "title": "세로",
+                    "type": "integer"
+                  },
+                  "pixel_format": {
+                    "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                    "title": "픽셀 형식",
+                    "type": "string"
+                  },
+                  "sample_rate": {
+                    "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                    "title": "표본율",
+                    "type": "integer"
+                  },
+                  "sample_type": {
+                    "description": "audio 표본 형식.",
+                    "title": "표본 형식",
+                    "type": "string"
+                  },
+                  "width": {
+                    "description": "video frame 가로 픽셀.",
+                    "title": "가로",
+                    "type": "integer"
+                  }
+                },
+                "title": "Format",
+                "type": "object"
+              },
+              "title": "지원 Format",
+              "type": "array"
+            },
+            "version": {
+              "description": "Adapter 구현 버전.",
+              "title": "버전",
+              "type": "string"
+            }
+          },
+          "required": [
+            "adapter_id",
+            "kind",
+            "os",
+            "install_state",
+            "health",
+            "simulated"
+          ],
+          "title": "Adapter",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "adapter_id로 Adapter를 찾습니다.",
+            "id": "get-adapter",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "Adapter 하나의 capability와 진단을 조회합니다.",
+      "tags": [
+        "adapter",
+        "read"
+      ],
+      "title": "Adapter 조회",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.adapters.list": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "adapter",
+          "driver",
+          "어댑터"
+        ],
+        "outputPorts": [
+          {
+            "name": "adapters",
+            "pointer": "/adapters"
+          }
+        ],
+        "recommendedLabel": "Adapter 목록",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/adapters",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "query",
+      "description": "Fake Adapter는 simulated=true로 보고합니다. 지어지지 않은 실 Adapter도 목록에 나오고 install_state는 not_installed입니다 — 지원하지 않는 OS와 아직 짓지 않은 Adapter는 답이 다르고 고치는 사람도 다릅니다.",
+      "errors": [],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "Linux 빌드, 장치 매핑 없음",
+            "value": {
+              "adapters": [
+                {
+                  "adapter_id": "fake.in-memory",
+                  "capabilities": [
+                    "slot.register",
+                    "slot.remove",
+                    "frame.write"
+                  ],
+                  "detail": "In-memory adapter. It registers slots and counts the frames written to them inside this process only: no operating-system device is created and no driver is installed. Use it to exercise the control API and the frame path, never to check whether a camera works.",
+                  "health": "simulated",
+                  "install_state": "ready",
+                  "kind": "camera",
+                  "os": "any",
+                  "simulated": true,
+                  "supported_formats": [
+                    {
+                      "fps": 30,
+                      "height": 480,
+                      "pixel_format": "YUY2",
+                      "width": 640
+                    }
+                  ],
+                  "version": "0.1.0"
+                },
+                {
+                  "adapter_id": "linux.v4l2loopback",
+                  "capabilities": [
+                    "slot.register",
+                    "slot.remove",
+                    "frame.write"
+                  ],
+                  "detail": "No slot has a /dev/videoN device mapped in the module configuration. Create a node with `modprobe v4l2loopback exclusive_caps=1` (as root) and map slot ids to it.",
+                  "health": "not_configured",
+                  "install_state": "not_installed",
+                  "kind": "camera",
+                  "os": "linux",
+                  "simulated": false,
+                  "supported_formats": [
+                    {
+                      "fps": 30,
+                      "height": 480,
+                      "pixel_format": "YUY2",
+                      "width": 640
+                    }
+                  ],
+                  "version": "0.1.0"
+                }
+              ]
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "adapters": {
+              "description": "adapter_id 순으로 정렬합니다.",
+              "items": {
+                "additionalProperties": false,
+                "description": "설계 §9.1의 Virtual Device Adapter.",
+                "properties": {
+                  "adapter_id": {
+                    "description": "이 빌드가 가진 Adapter의 식별자.",
+                    "title": "Adapter ID",
+                    "type": "string"
+                  },
+                  "capabilities": {
+                    "description": "이 Adapter가 할 수 있는 일.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "title": "기능",
+                    "type": "array"
+                  },
+                  "detail": {
+                    "description": "운영자에게 하는 말 — 무엇이 없고 어느 Phase가 그것을 가져오는지.",
+                    "title": "설명",
+                    "type": "string"
+                  },
+                  "health": {
+                    "description": "Adapter self-test 결과. Fake Adapter는 simulated입니다.",
+                    "title": "건강 상태",
+                    "type": "string"
+                  },
+                  "install_state": {
+                    "description": "설계 §10.1의 상태.",
+                    "enum": [
+                      "not_installed",
+                      "install_required",
+                      "installing",
+                      "user_action_required",
+                      "reboot_required",
+                      "ready",
+                      "disabled",
+                      "failed",
+                      "uninstalling"
+                    ],
+                    "title": "설치 상태",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "description": "camera 또는 audio.",
+                    "enum": [
+                      "camera",
+                      "audio"
+                    ],
+                    "title": "종류",
+                    "type": "string"
+                  },
+                  "os": {
+                    "description": "이 Adapter가 대상으로 하는 운영체제. Fake는 any입니다.",
+                    "title": "운영체제",
+                    "type": "string"
+                  },
+                  "simulated": {
+                    "description": "참이면 이 Adapter는 OS 장치를 만들지 않습니다. 설계 §9.1의 field 목록에는 없는 추가 field이고, 없으면 존재하지 않는 장치가 존재하는 장치와 같게 보입니다.",
+                    "title": "모의 여부",
+                    "type": "boolean"
+                  },
+                  "supported_formats": {
+                    "description": "이 Adapter가 받아들이는 Format.",
+                    "items": {
+                      "additionalProperties": false,
+                      "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                      "properties": {
+                        "channels": {
+                          "description": "audio 채널 수.",
+                          "title": "채널 수",
+                          "type": "integer"
+                        },
+                        "fps": {
+                          "description": "초당 frame 수.",
+                          "title": "초당 frame",
+                          "type": "integer"
+                        },
+                        "height": {
+                          "description": "video frame 세로 픽셀.",
+                          "title": "세로",
+                          "type": "integer"
+                        },
+                        "pixel_format": {
+                          "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                          "title": "픽셀 형식",
+                          "type": "string"
+                        },
+                        "sample_rate": {
+                          "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                          "title": "표본율",
+                          "type": "integer"
+                        },
+                        "sample_type": {
+                          "description": "audio 표본 형식.",
+                          "title": "표본 형식",
+                          "type": "string"
+                        },
+                        "width": {
+                          "description": "video frame 가로 픽셀.",
+                          "title": "가로",
+                          "type": "integer"
+                        }
+                      },
+                      "title": "Format",
+                      "type": "object"
+                    },
+                    "title": "지원 Format",
+                    "type": "array"
+                  },
+                  "version": {
+                    "description": "Adapter 구현 버전.",
+                    "title": "버전",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "adapter_id",
+                  "kind",
+                  "os",
+                  "install_state",
+                  "health",
+                  "simulated"
+                ],
+                "title": "Adapter",
+                "type": "object"
+              },
+              "title": "Adapter 목록",
+              "type": "array"
+            }
+          },
+          "required": [
+            "adapters"
+          ],
+          "title": "Adapter 목록",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "빌드 시 allowlist된 Adapter를 나열합니다.",
+            "id": "list-adapters",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "이 빌드가 가진 OS Adapter와 설치·Health 상태를 조회합니다.",
+      "tags": [
+        "adapter",
+        "read"
+      ],
+      "title": "Adapter 목록",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.diagnostics.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Status/Health",
+        "keywords": [
+          "diagnostics",
+          "진단"
+        ],
+        "outputPorts": [
+          {
+            "name": "slotStates",
+            "pointer": "/slot_states"
+          },
+          {
+            "name": "projectionStates",
+            "pointer": "/projection_states"
+          }
+        ],
+        "recommendedLabel": "진단 조회",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/diagnostics",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "status",
+      "description": "가장 많이 복사되는 산출물입니다. resource id·owner subject·credential·frame payload를 싣지 않습니다(§20.4). 대신 Adapter 목록, 적용된 설정 값, 상태 분포, 그리고 이 빌드가 하지 않는 일을 적습니다.",
+      "errors": [],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "Linux 빌드, 장치 매핑 없음",
+            "value": {
+              "adapters": [
+                {
+                  "adapter_id": "fake.in-memory",
+                  "capabilities": [
+                    "slot.register",
+                    "slot.remove",
+                    "frame.write"
+                  ],
+                  "detail": "In-memory adapter. It registers slots and counts the frames written to them inside this process only: no operating-system device is created and no driver is installed. Use it to exercise the control API and the frame path, never to check whether a camera works.",
+                  "health": "simulated",
+                  "install_state": "ready",
+                  "kind": "camera",
+                  "os": "any",
+                  "simulated": true,
+                  "supported_formats": [
+                    {
+                      "fps": 30,
+                      "height": 480,
+                      "pixel_format": "YUY2",
+                      "width": 640
+                    }
+                  ],
+                  "version": "0.1.0"
+                },
+                {
+                  "adapter_id": "linux.v4l2loopback",
+                  "capabilities": [
+                    "slot.register",
+                    "slot.remove",
+                    "frame.write"
+                  ],
+                  "detail": "No slot has a /dev/videoN device mapped in the module configuration. Create a node with `modprobe v4l2loopback exclusive_caps=1` (as root) and map slot ids to it.",
+                  "health": "not_configured",
+                  "install_state": "not_installed",
+                  "kind": "camera",
+                  "os": "linux",
+                  "simulated": false,
+                  "supported_formats": [
+                    {
+                      "fps": 30,
+                      "height": 480,
+                      "pixel_format": "YUY2",
+                      "width": 640
+                    }
+                  ],
+                  "version": "0.1.0"
+                }
+              ],
+              "config": {
+                "allow_unsigned_adapter": false,
+                "audio_underflow": "silence",
+                "daemon_endpoint": "auto",
+                "default_lifecycle": "persistent",
+                "external_listen": false,
+                "max_frame_bytes": 16777216,
+                "max_queue_frames": 3,
+                "persist_frame_payload": false,
+                "schema_version": 1,
+                "video_fallback": "black"
+              },
+              "notes": [
+                "Phase 1 build plus the Linux adapter: control API, one SVI sink resource per Slot, and frame delivery to the Slot's adapter (raw YUY2, at most 780 KB per frame). The Fake adapter creates no operating-system device; this module installs no driver."
+              ],
+              "projection_states": {
+                "degraded": 1
+              },
+              "slot_states": {
+                "ready": 1
+              },
+              "status": {
+                "adapters": {
+                  "ready": 0,
+                  "simulated": 1,
+                  "total": 2,
+                  "unbuilt": 1
+                },
+                "daemon": {
+                  "connected": false,
+                  "detail": "No direct Daemon connection. Frames arrive through the SVI sink seam: each Slot is published as a sink resource and the Daemon opens it when an operator creates a binding to it. Declaring a projection does not create that binding yet.",
+                  "endpoint": "auto"
+                },
+                "module_id": "lab.stellaxia.virtual-device",
+                "phase": "phase-1+linux-adapter",
+                "projections": 1,
+                "slots": 1,
+                "status": "degraded",
+                "storage": {
+                  "path": "/var/lib/terra/leaf/modules/lab.stellaxia.virtual-device/virtual-device-state.json",
+                  "state": "ok"
+                },
+                "uptime_sec": 42,
+                "version": "0.2.0"
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "description": "설계 §16.2 GET /diagnostics — redacted 진단 요약. resource id·owner subject·credential·frame payload를 싣지 않습니다(§20.4).",
+          "properties": {
+            "adapters": {
+              "description": "이 빌드가 가진 Adapter 전부.",
+              "items": {
+                "additionalProperties": false,
+                "description": "설계 §9.1의 Virtual Device Adapter.",
+                "properties": {
+                  "adapter_id": {
+                    "description": "이 빌드가 가진 Adapter의 식별자.",
+                    "title": "Adapter ID",
+                    "type": "string"
+                  },
+                  "capabilities": {
+                    "description": "이 Adapter가 할 수 있는 일.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "title": "기능",
+                    "type": "array"
+                  },
+                  "detail": {
+                    "description": "운영자에게 하는 말 — 무엇이 없고 어느 Phase가 그것을 가져오는지.",
+                    "title": "설명",
+                    "type": "string"
+                  },
+                  "health": {
+                    "description": "Adapter self-test 결과. Fake Adapter는 simulated입니다.",
+                    "title": "건강 상태",
+                    "type": "string"
+                  },
+                  "install_state": {
+                    "description": "설계 §10.1의 상태.",
+                    "enum": [
+                      "not_installed",
+                      "install_required",
+                      "installing",
+                      "user_action_required",
+                      "reboot_required",
+                      "ready",
+                      "disabled",
+                      "failed",
+                      "uninstalling"
+                    ],
+                    "title": "설치 상태",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "description": "camera 또는 audio.",
+                    "enum": [
+                      "camera",
+                      "audio"
+                    ],
+                    "title": "종류",
+                    "type": "string"
+                  },
+                  "os": {
+                    "description": "이 Adapter가 대상으로 하는 운영체제. Fake는 any입니다.",
+                    "title": "운영체제",
+                    "type": "string"
+                  },
+                  "simulated": {
+                    "description": "참이면 이 Adapter는 OS 장치를 만들지 않습니다. 설계 §9.1의 field 목록에는 없는 추가 field이고, 없으면 존재하지 않는 장치가 존재하는 장치와 같게 보입니다.",
+                    "title": "모의 여부",
+                    "type": "boolean"
+                  },
+                  "supported_formats": {
+                    "description": "이 Adapter가 받아들이는 Format.",
+                    "items": {
+                      "additionalProperties": false,
+                      "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                      "properties": {
+                        "channels": {
+                          "description": "audio 채널 수.",
+                          "title": "채널 수",
+                          "type": "integer"
+                        },
+                        "fps": {
+                          "description": "초당 frame 수.",
+                          "title": "초당 frame",
+                          "type": "integer"
+                        },
+                        "height": {
+                          "description": "video frame 세로 픽셀.",
+                          "title": "세로",
+                          "type": "integer"
+                        },
+                        "pixel_format": {
+                          "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                          "title": "픽셀 형식",
+                          "type": "string"
+                        },
+                        "sample_rate": {
+                          "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                          "title": "표본율",
+                          "type": "integer"
+                        },
+                        "sample_type": {
+                          "description": "audio 표본 형식.",
+                          "title": "표본 형식",
+                          "type": "string"
+                        },
+                        "width": {
+                          "description": "video frame 가로 픽셀.",
+                          "title": "가로",
+                          "type": "integer"
+                        }
+                      },
+                      "title": "Format",
+                      "type": "object"
+                    },
+                    "title": "지원 Format",
+                    "type": "array"
+                  },
+                  "version": {
+                    "description": "Adapter 구현 버전.",
+                    "title": "버전",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "adapter_id",
+                  "kind",
+                  "os",
+                  "install_state",
+                  "health",
+                  "simulated"
+                ],
+                "title": "Adapter",
+                "type": "object"
+              },
+              "title": "Adapter 목록",
+              "type": "array"
+            },
+            "config": {
+              "additionalProperties": false,
+              "description": "실제로 적용된 설정. 경로는 싣지 않습니다.",
+              "properties": {
+                "allow_unsigned_adapter": {
+                  "description": "설계 §18의 보안 불변값. 언제나 false입니다.",
+                  "title": "미서명 Adapter 허용",
+                  "type": "boolean"
+                },
+                "audio_underflow": {
+                  "description": "audio 공급이 모자랄 때의 처리(§14.2).",
+                  "title": "audio underflow",
+                  "type": "string"
+                },
+                "daemon_endpoint": {
+                  "description": "설정된 Daemon endpoint.",
+                  "title": "Daemon endpoint",
+                  "type": "string"
+                },
+                "default_lifecycle": {
+                  "description": "projection.default_lifecycle.",
+                  "title": "기본 수명",
+                  "type": "string"
+                },
+                "external_listen": {
+                  "description": "설계 §18의 보안 불변값. 언제나 false입니다.",
+                  "title": "외부 listen",
+                  "type": "boolean"
+                },
+                "max_frame_bytes": {
+                  "description": "video.max_frame_bytes.",
+                  "title": "최대 frame 크기",
+                  "type": "integer"
+                },
+                "max_queue_frames": {
+                  "description": "video.max_queue_frames.",
+                  "title": "최대 queue 길이",
+                  "type": "integer"
+                },
+                "persist_frame_payload": {
+                  "description": "설계 §18의 보안 불변값. 언제나 false입니다.",
+                  "title": "frame 저장",
+                  "type": "boolean"
+                },
+                "schema_version": {
+                  "description": "읽은 설정 파일의 schema_version.",
+                  "title": "설정 schema 버전",
+                  "type": "integer"
+                },
+                "video_fallback": {
+                  "description": "source가 끊겼을 때 무엇을 내보내는가(§14.3).",
+                  "title": "video fallback",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "schema_version",
+                "external_listen",
+                "allow_unsigned_adapter",
+                "persist_frame_payload"
+              ],
+              "title": "설정 요약",
+              "type": "object"
+            },
+            "notes": {
+              "description": "이 빌드가 하지 않는 일.",
+              "items": {
+                "type": "string"
+              },
+              "title": "비고",
+              "type": "array"
+            },
+            "projection_states": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "description": "관측 상태별 Projection 수.",
+              "title": "Projection 상태 분포",
+              "type": "object"
+            },
+            "slot_states": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "description": "설치 상태별 Slot 수.",
+              "title": "Slot 상태 분포",
+              "type": "object"
+            },
+            "status": {
+              "additionalProperties": false,
+              "description": "설계 §16.2 GET /status.",
+              "properties": {
+                "adapters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "ready": {
+                      "description": "실제로 OS 장치를 만들 수 있는 Adapter 수.",
+                      "title": "사용 가능",
+                      "type": "integer"
+                    },
+                    "simulated": {
+                      "description": "Fake Adapter 수. ready와 합치지 않습니다 — 합치면 가상 카메라가 하나도 없는 기계가 ready 1을 보고합니다.",
+                      "title": "모의",
+                      "type": "integer"
+                    },
+                    "total": {
+                      "description": "이 빌드가 아는 Adapter 수.",
+                      "title": "전체",
+                      "type": "integer"
+                    },
+                    "unbuilt": {
+                      "description": "선언되었으나 아직 지어지지 않은 Adapter 수.",
+                      "title": "미구현",
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "ready",
+                    "simulated",
+                    "unbuilt"
+                  ],
+                  "title": "Adapter 요약",
+                  "type": "object"
+                },
+                "daemon": {
+                  "additionalProperties": false,
+                  "description": "Daemon이 없어도 이 API는 살아 있고 degraded를 반환합니다(§26).",
+                  "properties": {
+                    "connected": {
+                      "description": "Daemon Local SVI Broker에 붙어 있는가.",
+                      "title": "연결됨",
+                      "type": "boolean"
+                    },
+                    "detail": {
+                      "description": "붙어 있지 않다면 왜인가.",
+                      "title": "사유",
+                      "type": "string"
+                    },
+                    "endpoint": {
+                      "description": "설정된 Daemon endpoint.",
+                      "title": "Endpoint",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "connected",
+                    "detail"
+                  ],
+                  "title": "Daemon 연결",
+                  "type": "object"
+                },
+                "module_id": {
+                  "description": "lab.stellaxia.virtual-device.",
+                  "title": "Module ID",
+                  "type": "string"
+                },
+                "phase": {
+                  "description": "설계 §25의 몇 단계까지 지어졌는가. 없는 기능을 운영자가 추측으로 알아내게 두지 않습니다.",
+                  "title": "구현 단계",
+                  "type": "string"
+                },
+                "projections": {
+                  "description": "선언된 Projection 수.",
+                  "title": "Projection 수",
+                  "type": "integer"
+                },
+                "slots": {
+                  "description": "선언된 Slot 수.",
+                  "title": "Slot 수",
+                  "type": "integer"
+                },
+                "status": {
+                  "description": "실 Adapter(Fake가 아닌 것)가 ready일 때만 ok이고, Fake만 있으면 degraded입니다. 가짜 장치만 있는 모듈을 ok라고 하면 정작 필요한 날에 그 단어가 아무 뜻도 없습니다.",
+                  "enum": [
+                    "ok",
+                    "degraded"
+                  ],
+                  "title": "상태",
+                  "type": "string"
+                },
+                "storage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "detail": {
+                      "description": "실패했다면 왜인가.",
+                      "title": "사유",
+                      "type": "string"
+                    },
+                    "path": {
+                      "description": "선언 상태가 저장되는 경로(§19).",
+                      "title": "경로",
+                      "type": "string"
+                    },
+                    "state": {
+                      "description": "ok·failed·unverified. 아무도 써 본 적 없는 저장소는 동작이 확인된 저장소가 아닙니다.",
+                      "enum": [
+                        "ok",
+                        "failed",
+                        "unverified"
+                      ],
+                      "title": "상태",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "state"
+                  ],
+                  "title": "저장소",
+                  "type": "object"
+                },
+                "uptime_sec": {
+                  "description": "이 프로세스가 뜬 뒤 지난 초.",
+                  "title": "가동 시간",
+                  "type": "integer"
+                },
+                "version": {
+                  "description": "모듈의 semantic 버전.",
+                  "title": "버전",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "status",
+                "module_id",
+                "version",
+                "phase",
+                "uptime_sec",
+                "daemon",
+                "adapters",
+                "storage",
+                "slots",
+                "projections"
+              ],
+              "title": "상태",
+              "type": "object"
+            }
+          },
+          "required": [
+            "status",
+            "adapters",
+            "config",
+            "slot_states",
+            "projection_states",
+            "notes"
+          ],
+          "title": "진단",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "상태·Adapter·설정 요약을 모읍니다.",
+            "id": "collect",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "redacted 진단 요약을 조회합니다.",
+      "tags": [
+        "diagnostics",
+        "read"
+      ],
+      "title": "진단 조회",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.projections.delete": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "projection",
+          "delete",
+          "삭제"
+        ],
+        "outputPorts": [],
+        "recommendedLabel": "Projection 삭제",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "DELETE",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/projections/{projection_id}",
+          "successStatus": 204,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "command",
+      "description": "선언이 사라지면 재시작 뒤 복구하지 않습니다. 잠시 끊고 싶을 뿐이라면 desired_state를 stopped로 두는 PUT을 씁니다.",
+      "errors": [
+        "VDEV_SLOT_NOT_FOUND"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "serial"
+        },
+        "confirmation": {
+          "mode": "required"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "dangerous",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "빈 응답",
+            "value": {}
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "선언을 지웁니다.",
+            "id": "persist",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "delete",
+            "description": "Projection 선언을 지웁니다. 재시작 뒤 복구하지 않습니다.",
+            "resourceId": "lab.stellaxia.virtual-device.projection"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "Projection을 중지하고 선언을 삭제합니다.",
+      "tags": [
+        "projection",
+        "write"
+      ],
+      "title": "Projection 삭제",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.projections.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "projection",
+          "투영"
+        ],
+        "outputPorts": [],
+        "recommendedLabel": "Projection 조회",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/projections/{projection_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "query",
+      "description": "Declaration과 Runtime을 나눠 두어 Daemon이나 source가 일시적으로 없어도 사용자가 요청한 연결 의도를 잃지 않습니다(§9.4).",
+      "errors": [
+        "VDEV_SLOT_NOT_FOUND"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "proj-camera-main",
+            "value": {
+              "declaration": {
+                "created_at": "2026-09-15T09:00:00Z",
+                "desired_state": "active",
+                "generation": 1,
+                "lifecycle": "persistent",
+                "projection_id": "proj-camera-main",
+                "slot_id": "camera-main",
+                "source": {
+                  "endpoint_id": "video",
+                  "resource_id": "io.camera.usb-7"
+                },
+                "updated_at": "2026-09-15T09:00:00Z"
+              },
+              "runtime": {
+                "frames_dropped": 0,
+                "frames_in": 0,
+                "frames_out": 0,
+                "observed_state": "degraded",
+                "queue_depth": 0,
+                "reason_code": "VDEV_SOURCE_UNAVAILABLE",
+                "reason_detail": "no source is delivering frames: the Slot's SVI sink (resource *.vdevice.camera-main, endpoint input) is not open. The device shows black. Declaring a projection does not create the binding; an operator binds a source to that sink.",
+                "reconnect_count": 0,
+                "updated_at": "2026-09-15T09:00:42Z"
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "description": "선언과 런타임을 나란히 — 합치지 않습니다(§9.4).",
+          "properties": {
+            "declaration": {
+              "additionalProperties": false,
+              "description": "설계 §9.3의 Projection Declaration — 사용자가 요청한 연결 의도.",
+              "properties": {
+                "created_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "생성 시각",
+                  "type": "string"
+                },
+                "desired_state": {
+                  "description": "active 또는 stopped.",
+                  "enum": [
+                    "active",
+                    "stopped"
+                  ],
+                  "title": "요청 상태",
+                  "type": "string"
+                },
+                "generation": {
+                  "description": "source 전환은 이 값을 올린 PUT으로 합니다. 낮은 세대는 VDEV_STALE_GENERATION으로 거절합니다(§16.4).",
+                  "title": "세대",
+                  "type": "integer"
+                },
+                "idempotency_key": {
+                  "description": "같은 요청을 다시 보냈는지 구분하는 키.",
+                  "title": "멱등 키",
+                  "type": "string"
+                },
+                "lifecycle": {
+                  "description": "persistent는 재시작을 넘겨 복구하고, session은 소유 Session 종료와 함께 닫힙니다.",
+                  "enum": [
+                    "persistent",
+                    "session"
+                  ],
+                  "title": "수명",
+                  "type": "string"
+                },
+                "owner_subject": {
+                  "description": "이 Projection을 선언한 주체.",
+                  "title": "소유 주체",
+                  "type": "string"
+                },
+                "projection_id": {
+                  "description": "Projection 식별자.",
+                  "title": "Projection ID",
+                  "type": "string"
+                },
+                "qos": {
+                  "additionalProperties": false,
+                  "description": "설계 §14의 queue·backpressure 정책.",
+                  "properties": {
+                    "max_latency_ms": {
+                      "description": "허용 지연(ms).",
+                      "title": "최대 지연",
+                      "type": "integer"
+                    },
+                    "max_queue_frames": {
+                      "description": "느린 소비자가 Daemon을 막지 않도록 하는 짧은 bounded queue(§4.7).",
+                      "title": "최대 queue 길이",
+                      "type": "integer"
+                    },
+                    "mode": {
+                      "description": "realtime_latest 같은 queue 정책(§14).",
+                      "title": "모드",
+                      "type": "string"
+                    }
+                  },
+                  "title": "QoS",
+                  "type": "object"
+                },
+                "requested_format": {
+                  "additionalProperties": false,
+                  "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                  "properties": {
+                    "channels": {
+                      "description": "audio 채널 수.",
+                      "title": "채널 수",
+                      "type": "integer"
+                    },
+                    "fps": {
+                      "description": "초당 frame 수.",
+                      "title": "초당 frame",
+                      "type": "integer"
+                    },
+                    "height": {
+                      "description": "video frame 세로 픽셀.",
+                      "title": "세로",
+                      "type": "integer"
+                    },
+                    "pixel_format": {
+                      "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                      "title": "픽셀 형식",
+                      "type": "string"
+                    },
+                    "sample_rate": {
+                      "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                      "title": "표본율",
+                      "type": "integer"
+                    },
+                    "sample_type": {
+                      "description": "audio 표본 형식.",
+                      "title": "표본 형식",
+                      "type": "string"
+                    },
+                    "width": {
+                      "description": "video frame 가로 픽셀.",
+                      "title": "가로",
+                      "type": "integer"
+                    }
+                  },
+                  "title": "Format",
+                  "type": "object"
+                },
+                "slot_id": {
+                  "description": "공급 대상 Slot.",
+                  "title": "Slot ID",
+                  "type": "string"
+                },
+                "source": {
+                  "additionalProperties": false,
+                  "description": "Slot에 공급하는 SVI Endpoint.",
+                  "properties": {
+                    "endpoint_id": {
+                      "description": "Resource Endpoint 식별자.",
+                      "title": "Endpoint ID",
+                      "type": "string"
+                    },
+                    "resource_id": {
+                      "description": "SVI Resource 식별자.",
+                      "title": "Resource ID",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "resource_id",
+                    "endpoint_id"
+                  ],
+                  "title": "Source",
+                  "type": "object"
+                },
+                "ttl": {
+                  "description": "Handle Lease 상한(초). 0이면 서버 기본값.",
+                  "title": "TTL",
+                  "type": "integer"
+                },
+                "updated_at": {
+                  "description": "UTC. 같은 세대의 재요청은 이 값을 움직이지 않습니다.",
+                  "format": "date-time",
+                  "title": "갱신 시각",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "projection_id",
+                "slot_id",
+                "source",
+                "lifecycle",
+                "desired_state",
+                "generation",
+                "created_at",
+                "updated_at"
+              ],
+              "title": "Projection 선언",
+              "type": "object"
+            },
+            "runtime": {
+              "additionalProperties": false,
+              "description": "설계 §9.4의 Projection Runtime — 실제로 일어나고 있는 일. 선언과 나눠 두어 source가 한 번 끊겼다고 의도를 잃지 않습니다.",
+              "properties": {
+                "frames_dropped": {
+                  "description": "queue 정책으로 버린 frame 누계.",
+                  "title": "버린 frame",
+                  "type": "integer"
+                },
+                "frames_in": {
+                  "description": "SVI에서 받은 frame 누계.",
+                  "title": "수신 frame",
+                  "type": "integer"
+                },
+                "frames_out": {
+                  "description": "Adapter로 보낸 frame 누계.",
+                  "title": "송출 frame",
+                  "type": "integer"
+                },
+                "handle_id": {
+                  "description": "현재 열려 있는 SVI Handle. 이 모듈은 Daemon handle이 아니라 SVI sink로 frame을 받으므로 비어 있습니다.",
+                  "title": "Handle ID",
+                  "type": "string"
+                },
+                "last_frame_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "마지막 frame 시각",
+                  "type": "string"
+                },
+                "lease_expires_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "Lease 만료",
+                  "type": "string"
+                },
+                "negotiated_format": {
+                  "additionalProperties": false,
+                  "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                  "properties": {
+                    "channels": {
+                      "description": "audio 채널 수.",
+                      "title": "채널 수",
+                      "type": "integer"
+                    },
+                    "fps": {
+                      "description": "초당 frame 수.",
+                      "title": "초당 frame",
+                      "type": "integer"
+                    },
+                    "height": {
+                      "description": "video frame 세로 픽셀.",
+                      "title": "세로",
+                      "type": "integer"
+                    },
+                    "pixel_format": {
+                      "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                      "title": "픽셀 형식",
+                      "type": "string"
+                    },
+                    "sample_rate": {
+                      "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                      "title": "표본율",
+                      "type": "integer"
+                    },
+                    "sample_type": {
+                      "description": "audio 표본 형식.",
+                      "title": "표본 형식",
+                      "type": "string"
+                    },
+                    "width": {
+                      "description": "video frame 가로 픽셀.",
+                      "title": "가로",
+                      "type": "integer"
+                    }
+                  },
+                  "title": "Format",
+                  "type": "object"
+                },
+                "observed_state": {
+                  "description": "설계 §10.2의 상태. 해당 Slot의 SVI sink가 열려 있고 frame이 하나 이상 장치에 전달된 동안만 active이고, sink가 열려 있으나 아직 frame이 없으면 priming, sink가 없으면 degraded(VDEV_SOURCE_UNAVAILABLE)입니다.",
+                  "enum": [
+                    "requested",
+                    "validating",
+                    "waiting_driver",
+                    "opening_handle",
+                    "priming",
+                    "active",
+                    "degraded",
+                    "denied",
+                    "expired",
+                    "failed",
+                    "closing",
+                    "closed"
+                  ],
+                  "title": "관측 상태",
+                  "type": "string"
+                },
+                "queue_depth": {
+                  "description": "현재 대기 중인 frame 수.",
+                  "title": "queue 길이",
+                  "type": "integer"
+                },
+                "reason_code": {
+                  "description": "설계 §21의 오류 코드.",
+                  "title": "사유 코드",
+                  "type": "string"
+                },
+                "reason_detail": {
+                  "description": "무엇이 막고 있는지 — 고칠 사람에게 하는 말.",
+                  "title": "사유",
+                  "type": "string"
+                },
+                "reconnect_count": {
+                  "description": "source 재연결 누계.",
+                  "title": "재연결 횟수",
+                  "type": "integer"
+                },
+                "started_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "시작 시각",
+                  "type": "string"
+                },
+                "updated_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "갱신 시각",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "observed_state",
+                "queue_depth",
+                "frames_in",
+                "frames_out",
+                "frames_dropped",
+                "reconnect_count",
+                "updated_at"
+              ],
+              "title": "Projection 런타임",
+              "type": "object"
+            }
+          },
+          "required": [
+            "declaration",
+            "runtime"
+          ],
+          "title": "Projection",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "projection_id로 선언을 찾고 런타임을 계산합니다.",
+            "id": "get-projection",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "Projection 하나의 선언과 런타임을 조회합니다.",
+      "tags": [
+        "projection",
+        "read"
+      ],
+      "title": "Projection 조회",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.projections.list": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "projection",
+          "투영"
+        ],
+        "outputPorts": [
+          {
+            "name": "projections",
+            "pointer": "/projections"
+          }
+        ],
+        "recommendedLabel": "Projection 목록",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/projections",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "query",
+      "description": "선언과 런타임을 나란히 반환하고 합치지 않습니다(§9.4). 선언만으로는 active가 나오지 않고, Slot의 SVI sink로 frame이 실제로 들어오는 동안만 active입니다.",
+      "errors": [],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "sink가 열리지 않은 상태",
+            "value": {
+              "projections": [
+                {
+                  "declaration": {
+                    "created_at": "2026-09-15T09:00:00Z",
+                    "desired_state": "active",
+                    "generation": 1,
+                    "lifecycle": "persistent",
+                    "projection_id": "proj-camera-main",
+                    "slot_id": "camera-main",
+                    "source": {
+                      "endpoint_id": "video",
+                      "resource_id": "io.camera.usb-7"
+                    },
+                    "updated_at": "2026-09-15T09:00:00Z"
+                  },
+                  "runtime": {
+                    "frames_dropped": 0,
+                    "frames_in": 0,
+                    "frames_out": 0,
+                    "observed_state": "degraded",
+                    "queue_depth": 0,
+                    "reason_code": "VDEV_SOURCE_UNAVAILABLE",
+                    "reason_detail": "no source is delivering frames: the Slot's SVI sink (resource *.vdevice.camera-main, endpoint input) is not open. The device shows black. Declaring a projection does not create the binding; an operator binds a source to that sink.",
+                    "reconnect_count": 0,
+                    "updated_at": "2026-09-15T09:00:42Z"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "projections": {
+              "description": "projection_id 순으로 정렬합니다.",
+              "items": {
+                "additionalProperties": false,
+                "description": "선언과 런타임을 나란히 — 합치지 않습니다(§9.4).",
+                "properties": {
+                  "declaration": {
+                    "additionalProperties": false,
+                    "description": "설계 §9.3의 Projection Declaration — 사용자가 요청한 연결 의도.",
+                    "properties": {
+                      "created_at": {
+                        "description": "UTC.",
+                        "format": "date-time",
+                        "title": "생성 시각",
+                        "type": "string"
+                      },
+                      "desired_state": {
+                        "description": "active 또는 stopped.",
+                        "enum": [
+                          "active",
+                          "stopped"
+                        ],
+                        "title": "요청 상태",
+                        "type": "string"
+                      },
+                      "generation": {
+                        "description": "source 전환은 이 값을 올린 PUT으로 합니다. 낮은 세대는 VDEV_STALE_GENERATION으로 거절합니다(§16.4).",
+                        "title": "세대",
+                        "type": "integer"
+                      },
+                      "idempotency_key": {
+                        "description": "같은 요청을 다시 보냈는지 구분하는 키.",
+                        "title": "멱등 키",
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "description": "persistent는 재시작을 넘겨 복구하고, session은 소유 Session 종료와 함께 닫힙니다.",
+                        "enum": [
+                          "persistent",
+                          "session"
+                        ],
+                        "title": "수명",
+                        "type": "string"
+                      },
+                      "owner_subject": {
+                        "description": "이 Projection을 선언한 주체.",
+                        "title": "소유 주체",
+                        "type": "string"
+                      },
+                      "projection_id": {
+                        "description": "Projection 식별자.",
+                        "title": "Projection ID",
+                        "type": "string"
+                      },
+                      "qos": {
+                        "additionalProperties": false,
+                        "description": "설계 §14의 queue·backpressure 정책.",
+                        "properties": {
+                          "max_latency_ms": {
+                            "description": "허용 지연(ms).",
+                            "title": "최대 지연",
+                            "type": "integer"
+                          },
+                          "max_queue_frames": {
+                            "description": "느린 소비자가 Daemon을 막지 않도록 하는 짧은 bounded queue(§4.7).",
+                            "title": "최대 queue 길이",
+                            "type": "integer"
+                          },
+                          "mode": {
+                            "description": "realtime_latest 같은 queue 정책(§14).",
+                            "title": "모드",
+                            "type": "string"
+                          }
+                        },
+                        "title": "QoS",
+                        "type": "object"
+                      },
+                      "requested_format": {
+                        "additionalProperties": false,
+                        "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                        "properties": {
+                          "channels": {
+                            "description": "audio 채널 수.",
+                            "title": "채널 수",
+                            "type": "integer"
+                          },
+                          "fps": {
+                            "description": "초당 frame 수.",
+                            "title": "초당 frame",
+                            "type": "integer"
+                          },
+                          "height": {
+                            "description": "video frame 세로 픽셀.",
+                            "title": "세로",
+                            "type": "integer"
+                          },
+                          "pixel_format": {
+                            "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                            "title": "픽셀 형식",
+                            "type": "string"
+                          },
+                          "sample_rate": {
+                            "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                            "title": "표본율",
+                            "type": "integer"
+                          },
+                          "sample_type": {
+                            "description": "audio 표본 형식.",
+                            "title": "표본 형식",
+                            "type": "string"
+                          },
+                          "width": {
+                            "description": "video frame 가로 픽셀.",
+                            "title": "가로",
+                            "type": "integer"
+                          }
+                        },
+                        "title": "Format",
+                        "type": "object"
+                      },
+                      "slot_id": {
+                        "description": "공급 대상 Slot.",
+                        "title": "Slot ID",
+                        "type": "string"
+                      },
+                      "source": {
+                        "additionalProperties": false,
+                        "description": "Slot에 공급하는 SVI Endpoint.",
+                        "properties": {
+                          "endpoint_id": {
+                            "description": "Resource Endpoint 식별자.",
+                            "title": "Endpoint ID",
+                            "type": "string"
+                          },
+                          "resource_id": {
+                            "description": "SVI Resource 식별자.",
+                            "title": "Resource ID",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "resource_id",
+                          "endpoint_id"
+                        ],
+                        "title": "Source",
+                        "type": "object"
+                      },
+                      "ttl": {
+                        "description": "Handle Lease 상한(초). 0이면 서버 기본값.",
+                        "title": "TTL",
+                        "type": "integer"
+                      },
+                      "updated_at": {
+                        "description": "UTC. 같은 세대의 재요청은 이 값을 움직이지 않습니다.",
+                        "format": "date-time",
+                        "title": "갱신 시각",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "projection_id",
+                      "slot_id",
+                      "source",
+                      "lifecycle",
+                      "desired_state",
+                      "generation",
+                      "created_at",
+                      "updated_at"
+                    ],
+                    "title": "Projection 선언",
+                    "type": "object"
+                  },
+                  "runtime": {
+                    "additionalProperties": false,
+                    "description": "설계 §9.4의 Projection Runtime — 실제로 일어나고 있는 일. 선언과 나눠 두어 source가 한 번 끊겼다고 의도를 잃지 않습니다.",
+                    "properties": {
+                      "frames_dropped": {
+                        "description": "queue 정책으로 버린 frame 누계.",
+                        "title": "버린 frame",
+                        "type": "integer"
+                      },
+                      "frames_in": {
+                        "description": "SVI에서 받은 frame 누계.",
+                        "title": "수신 frame",
+                        "type": "integer"
+                      },
+                      "frames_out": {
+                        "description": "Adapter로 보낸 frame 누계.",
+                        "title": "송출 frame",
+                        "type": "integer"
+                      },
+                      "handle_id": {
+                        "description": "현재 열려 있는 SVI Handle. 이 모듈은 Daemon handle이 아니라 SVI sink로 frame을 받으므로 비어 있습니다.",
+                        "title": "Handle ID",
+                        "type": "string"
+                      },
+                      "last_frame_at": {
+                        "description": "UTC.",
+                        "format": "date-time",
+                        "title": "마지막 frame 시각",
+                        "type": "string"
+                      },
+                      "lease_expires_at": {
+                        "description": "UTC.",
+                        "format": "date-time",
+                        "title": "Lease 만료",
+                        "type": "string"
+                      },
+                      "negotiated_format": {
+                        "additionalProperties": false,
+                        "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                        "properties": {
+                          "channels": {
+                            "description": "audio 채널 수.",
+                            "title": "채널 수",
+                            "type": "integer"
+                          },
+                          "fps": {
+                            "description": "초당 frame 수.",
+                            "title": "초당 frame",
+                            "type": "integer"
+                          },
+                          "height": {
+                            "description": "video frame 세로 픽셀.",
+                            "title": "세로",
+                            "type": "integer"
+                          },
+                          "pixel_format": {
+                            "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                            "title": "픽셀 형식",
+                            "type": "string"
+                          },
+                          "sample_rate": {
+                            "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                            "title": "표본율",
+                            "type": "integer"
+                          },
+                          "sample_type": {
+                            "description": "audio 표본 형식.",
+                            "title": "표본 형식",
+                            "type": "string"
+                          },
+                          "width": {
+                            "description": "video frame 가로 픽셀.",
+                            "title": "가로",
+                            "type": "integer"
+                          }
+                        },
+                        "title": "Format",
+                        "type": "object"
+                      },
+                      "observed_state": {
+                        "description": "설계 §10.2의 상태. 해당 Slot의 SVI sink가 열려 있고 frame이 하나 이상 장치에 전달된 동안만 active이고, sink가 열려 있으나 아직 frame이 없으면 priming, sink가 없으면 degraded(VDEV_SOURCE_UNAVAILABLE)입니다.",
+                        "enum": [
+                          "requested",
+                          "validating",
+                          "waiting_driver",
+                          "opening_handle",
+                          "priming",
+                          "active",
+                          "degraded",
+                          "denied",
+                          "expired",
+                          "failed",
+                          "closing",
+                          "closed"
+                        ],
+                        "title": "관측 상태",
+                        "type": "string"
+                      },
+                      "queue_depth": {
+                        "description": "현재 대기 중인 frame 수.",
+                        "title": "queue 길이",
+                        "type": "integer"
+                      },
+                      "reason_code": {
+                        "description": "설계 §21의 오류 코드.",
+                        "title": "사유 코드",
+                        "type": "string"
+                      },
+                      "reason_detail": {
+                        "description": "무엇이 막고 있는지 — 고칠 사람에게 하는 말.",
+                        "title": "사유",
+                        "type": "string"
+                      },
+                      "reconnect_count": {
+                        "description": "source 재연결 누계.",
+                        "title": "재연결 횟수",
+                        "type": "integer"
+                      },
+                      "started_at": {
+                        "description": "UTC.",
+                        "format": "date-time",
+                        "title": "시작 시각",
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "description": "UTC.",
+                        "format": "date-time",
+                        "title": "갱신 시각",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "observed_state",
+                      "queue_depth",
+                      "frames_in",
+                      "frames_out",
+                      "frames_dropped",
+                      "reconnect_count",
+                      "updated_at"
+                    ],
+                    "title": "Projection 런타임",
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "declaration",
+                  "runtime"
+                ],
+                "title": "Projection",
+                "type": "object"
+              },
+              "title": "Projection 목록",
+              "type": "array"
+            }
+          },
+          "required": [
+            "projections"
+          ],
+          "title": "Projection 목록",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "선언을 나열하고 각각의 런타임을 계산합니다.",
+            "id": "list-projections",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "선언된 Projection과 그 런타임을 조회합니다.",
+      "tags": [
+        "projection",
+        "read"
+      ],
+      "title": "Projection 목록",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.projections.set": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "projection",
+          "source",
+          "투영",
+          "연결"
+        ],
+        "outputPorts": [],
+        "recommendedLabel": "Projection 적용",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "PUT",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/projections/{projection_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "command",
+      "description": "같은 projection_id와 generation의 요청은 같은 결과를 반환하고 updated_at도 움직이지 않습니다 — 재시도가 변경처럼 보이면 안 됩니다. source 변경은 generation을 올린 PUT으로 하고, 오래된 generation은 VDEV_STALE_GENERATION으로 거절합니다. 한 Slot에 동시에 붙는 active Projection은 하나입니다(§9.2).",
+      "errors": [
+        "VDEV_INVALID_REQUEST",
+        "VDEV_SLOT_NOT_FOUND",
+        "VDEV_SLOT_BUSY",
+        "VDEV_STALE_GENERATION",
+        "VDEV_SOURCE_UNAVAILABLE",
+        "VDEV_HANDLE_OPEN_FAILED",
+        "VDEV_FORMAT_INCOMPATIBLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "serial"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "write",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "name": "카메라 Endpoint를 Slot에 연결",
+            "value": {
+              "desired_state": "active",
+              "generation": 1,
+              "lifecycle": "persistent",
+              "qos": {
+                "max_latency_ms": 150,
+                "max_queue_frames": 3,
+                "mode": "realtime_latest"
+              },
+              "slot_id": "camera-main",
+              "source": {
+                "endpoint_id": "video",
+                "resource_id": "io.camera.usb-7"
+              }
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "설계 §16.4의 Projection desired state.",
+          "properties": {
+            "desired_state": {
+              "description": "active 또는 stopped. 기본값은 active입니다.",
+              "enum": [
+                "active",
+                "stopped"
+              ],
+              "title": "요청 상태",
+              "type": "string"
+            },
+            "generation": {
+              "description": "1 이상. source 전환은 이 값을 올려서 합니다.",
+              "minimum": 1,
+              "title": "세대",
+              "type": "integer"
+            },
+            "lifecycle": {
+              "description": "persistent 또는 session. 기본값은 persistent입니다.",
+              "enum": [
+                "persistent",
+                "session"
+              ],
+              "title": "수명",
+              "type": "string"
+            },
+            "owner_subject": {
+              "description": "이 Projection을 선언하는 주체.",
+              "title": "소유 주체",
+              "type": "string"
+            },
+            "qos": {
+              "additionalProperties": false,
+              "description": "설계 §14의 queue·backpressure 정책.",
+              "properties": {
+                "max_latency_ms": {
+                  "description": "허용 지연(ms).",
+                  "title": "최대 지연",
+                  "type": "integer"
+                },
+                "max_queue_frames": {
+                  "description": "느린 소비자가 Daemon을 막지 않도록 하는 짧은 bounded queue(§4.7).",
+                  "title": "최대 queue 길이",
+                  "type": "integer"
+                },
+                "mode": {
+                  "description": "realtime_latest 같은 queue 정책(§14).",
+                  "title": "모드",
+                  "type": "string"
+                }
+              },
+              "title": "QoS",
+              "type": "object"
+            },
+            "requested_format": {
+              "additionalProperties": false,
+              "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+              "properties": {
+                "channels": {
+                  "description": "audio 채널 수.",
+                  "title": "채널 수",
+                  "type": "integer"
+                },
+                "fps": {
+                  "description": "초당 frame 수.",
+                  "title": "초당 frame",
+                  "type": "integer"
+                },
+                "height": {
+                  "description": "video frame 세로 픽셀.",
+                  "title": "세로",
+                  "type": "integer"
+                },
+                "pixel_format": {
+                  "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                  "title": "픽셀 형식",
+                  "type": "string"
+                },
+                "sample_rate": {
+                  "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                  "title": "표본율",
+                  "type": "integer"
+                },
+                "sample_type": {
+                  "description": "audio 표본 형식.",
+                  "title": "표본 형식",
+                  "type": "string"
+                },
+                "width": {
+                  "description": "video frame 가로 픽셀.",
+                  "title": "가로",
+                  "type": "integer"
+                }
+              },
+              "title": "Format",
+              "type": "object"
+            },
+            "slot_id": {
+              "description": "공급 대상 Slot.",
+              "title": "Slot ID",
+              "type": "string"
+            },
+            "source": {
+              "additionalProperties": false,
+              "description": "Slot에 공급하는 SVI Endpoint.",
+              "properties": {
+                "endpoint_id": {
+                  "description": "Resource Endpoint 식별자.",
+                  "title": "Endpoint ID",
+                  "type": "string"
+                },
+                "resource_id": {
+                  "description": "SVI Resource 식별자.",
+                  "title": "Resource ID",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "resource_id",
+                "endpoint_id"
+              ],
+              "title": "Source",
+              "type": "object"
+            },
+            "ttl": {
+              "description": "Handle Lease 상한(초). 0이면 서버 기본값.",
+              "title": "TTL",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "slot_id",
+            "source",
+            "generation"
+          ],
+          "title": "Projection 요청",
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "sink가 열리지 않은 상태",
+            "value": {
+              "declaration": {
+                "created_at": "2026-09-15T09:00:00Z",
+                "desired_state": "active",
+                "generation": 1,
+                "lifecycle": "persistent",
+                "projection_id": "proj-camera-main",
+                "slot_id": "camera-main",
+                "source": {
+                  "endpoint_id": "video",
+                  "resource_id": "io.camera.usb-7"
+                },
+                "updated_at": "2026-09-15T09:00:00Z"
+              },
+              "runtime": {
+                "frames_dropped": 0,
+                "frames_in": 0,
+                "frames_out": 0,
+                "observed_state": "degraded",
+                "queue_depth": 0,
+                "reason_code": "VDEV_SOURCE_UNAVAILABLE",
+                "reason_detail": "no source is delivering frames: the Slot's SVI sink (resource *.vdevice.camera-main, endpoint input) is not open. The device shows black. Declaring a projection does not create the binding; an operator binds a source to that sink.",
+                "reconnect_count": 0,
+                "updated_at": "2026-09-15T09:00:42Z"
+              }
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "description": "선언과 런타임을 나란히 — 합치지 않습니다(§9.4).",
+          "properties": {
+            "declaration": {
+              "additionalProperties": false,
+              "description": "설계 §9.3의 Projection Declaration — 사용자가 요청한 연결 의도.",
+              "properties": {
+                "created_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "생성 시각",
+                  "type": "string"
+                },
+                "desired_state": {
+                  "description": "active 또는 stopped.",
+                  "enum": [
+                    "active",
+                    "stopped"
+                  ],
+                  "title": "요청 상태",
+                  "type": "string"
+                },
+                "generation": {
+                  "description": "source 전환은 이 값을 올린 PUT으로 합니다. 낮은 세대는 VDEV_STALE_GENERATION으로 거절합니다(§16.4).",
+                  "title": "세대",
+                  "type": "integer"
+                },
+                "idempotency_key": {
+                  "description": "같은 요청을 다시 보냈는지 구분하는 키.",
+                  "title": "멱등 키",
+                  "type": "string"
+                },
+                "lifecycle": {
+                  "description": "persistent는 재시작을 넘겨 복구하고, session은 소유 Session 종료와 함께 닫힙니다.",
+                  "enum": [
+                    "persistent",
+                    "session"
+                  ],
+                  "title": "수명",
+                  "type": "string"
+                },
+                "owner_subject": {
+                  "description": "이 Projection을 선언한 주체.",
+                  "title": "소유 주체",
+                  "type": "string"
+                },
+                "projection_id": {
+                  "description": "Projection 식별자.",
+                  "title": "Projection ID",
+                  "type": "string"
+                },
+                "qos": {
+                  "additionalProperties": false,
+                  "description": "설계 §14의 queue·backpressure 정책.",
+                  "properties": {
+                    "max_latency_ms": {
+                      "description": "허용 지연(ms).",
+                      "title": "최대 지연",
+                      "type": "integer"
+                    },
+                    "max_queue_frames": {
+                      "description": "느린 소비자가 Daemon을 막지 않도록 하는 짧은 bounded queue(§4.7).",
+                      "title": "최대 queue 길이",
+                      "type": "integer"
+                    },
+                    "mode": {
+                      "description": "realtime_latest 같은 queue 정책(§14).",
+                      "title": "모드",
+                      "type": "string"
+                    }
+                  },
+                  "title": "QoS",
+                  "type": "object"
+                },
+                "requested_format": {
+                  "additionalProperties": false,
+                  "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                  "properties": {
+                    "channels": {
+                      "description": "audio 채널 수.",
+                      "title": "채널 수",
+                      "type": "integer"
+                    },
+                    "fps": {
+                      "description": "초당 frame 수.",
+                      "title": "초당 frame",
+                      "type": "integer"
+                    },
+                    "height": {
+                      "description": "video frame 세로 픽셀.",
+                      "title": "세로",
+                      "type": "integer"
+                    },
+                    "pixel_format": {
+                      "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                      "title": "픽셀 형식",
+                      "type": "string"
+                    },
+                    "sample_rate": {
+                      "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                      "title": "표본율",
+                      "type": "integer"
+                    },
+                    "sample_type": {
+                      "description": "audio 표본 형식.",
+                      "title": "표본 형식",
+                      "type": "string"
+                    },
+                    "width": {
+                      "description": "video frame 가로 픽셀.",
+                      "title": "가로",
+                      "type": "integer"
+                    }
+                  },
+                  "title": "Format",
+                  "type": "object"
+                },
+                "slot_id": {
+                  "description": "공급 대상 Slot.",
+                  "title": "Slot ID",
+                  "type": "string"
+                },
+                "source": {
+                  "additionalProperties": false,
+                  "description": "Slot에 공급하는 SVI Endpoint.",
+                  "properties": {
+                    "endpoint_id": {
+                      "description": "Resource Endpoint 식별자.",
+                      "title": "Endpoint ID",
+                      "type": "string"
+                    },
+                    "resource_id": {
+                      "description": "SVI Resource 식별자.",
+                      "title": "Resource ID",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "resource_id",
+                    "endpoint_id"
+                  ],
+                  "title": "Source",
+                  "type": "object"
+                },
+                "ttl": {
+                  "description": "Handle Lease 상한(초). 0이면 서버 기본값.",
+                  "title": "TTL",
+                  "type": "integer"
+                },
+                "updated_at": {
+                  "description": "UTC. 같은 세대의 재요청은 이 값을 움직이지 않습니다.",
+                  "format": "date-time",
+                  "title": "갱신 시각",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "projection_id",
+                "slot_id",
+                "source",
+                "lifecycle",
+                "desired_state",
+                "generation",
+                "created_at",
+                "updated_at"
+              ],
+              "title": "Projection 선언",
+              "type": "object"
+            },
+            "runtime": {
+              "additionalProperties": false,
+              "description": "설계 §9.4의 Projection Runtime — 실제로 일어나고 있는 일. 선언과 나눠 두어 source가 한 번 끊겼다고 의도를 잃지 않습니다.",
+              "properties": {
+                "frames_dropped": {
+                  "description": "queue 정책으로 버린 frame 누계.",
+                  "title": "버린 frame",
+                  "type": "integer"
+                },
+                "frames_in": {
+                  "description": "SVI에서 받은 frame 누계.",
+                  "title": "수신 frame",
+                  "type": "integer"
+                },
+                "frames_out": {
+                  "description": "Adapter로 보낸 frame 누계.",
+                  "title": "송출 frame",
+                  "type": "integer"
+                },
+                "handle_id": {
+                  "description": "현재 열려 있는 SVI Handle. 이 모듈은 Daemon handle이 아니라 SVI sink로 frame을 받으므로 비어 있습니다.",
+                  "title": "Handle ID",
+                  "type": "string"
+                },
+                "last_frame_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "마지막 frame 시각",
+                  "type": "string"
+                },
+                "lease_expires_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "Lease 만료",
+                  "type": "string"
+                },
+                "negotiated_format": {
+                  "additionalProperties": false,
+                  "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                  "properties": {
+                    "channels": {
+                      "description": "audio 채널 수.",
+                      "title": "채널 수",
+                      "type": "integer"
+                    },
+                    "fps": {
+                      "description": "초당 frame 수.",
+                      "title": "초당 frame",
+                      "type": "integer"
+                    },
+                    "height": {
+                      "description": "video frame 세로 픽셀.",
+                      "title": "세로",
+                      "type": "integer"
+                    },
+                    "pixel_format": {
+                      "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                      "title": "픽셀 형식",
+                      "type": "string"
+                    },
+                    "sample_rate": {
+                      "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                      "title": "표본율",
+                      "type": "integer"
+                    },
+                    "sample_type": {
+                      "description": "audio 표본 형식.",
+                      "title": "표본 형식",
+                      "type": "string"
+                    },
+                    "width": {
+                      "description": "video frame 가로 픽셀.",
+                      "title": "가로",
+                      "type": "integer"
+                    }
+                  },
+                  "title": "Format",
+                  "type": "object"
+                },
+                "observed_state": {
+                  "description": "설계 §10.2의 상태. 해당 Slot의 SVI sink가 열려 있고 frame이 하나 이상 장치에 전달된 동안만 active이고, sink가 열려 있으나 아직 frame이 없으면 priming, sink가 없으면 degraded(VDEV_SOURCE_UNAVAILABLE)입니다.",
+                  "enum": [
+                    "requested",
+                    "validating",
+                    "waiting_driver",
+                    "opening_handle",
+                    "priming",
+                    "active",
+                    "degraded",
+                    "denied",
+                    "expired",
+                    "failed",
+                    "closing",
+                    "closed"
+                  ],
+                  "title": "관측 상태",
+                  "type": "string"
+                },
+                "queue_depth": {
+                  "description": "현재 대기 중인 frame 수.",
+                  "title": "queue 길이",
+                  "type": "integer"
+                },
+                "reason_code": {
+                  "description": "설계 §21의 오류 코드.",
+                  "title": "사유 코드",
+                  "type": "string"
+                },
+                "reason_detail": {
+                  "description": "무엇이 막고 있는지 — 고칠 사람에게 하는 말.",
+                  "title": "사유",
+                  "type": "string"
+                },
+                "reconnect_count": {
+                  "description": "source 재연결 누계.",
+                  "title": "재연결 횟수",
+                  "type": "integer"
+                },
+                "started_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "시작 시각",
+                  "type": "string"
+                },
+                "updated_at": {
+                  "description": "UTC.",
+                  "format": "date-time",
+                  "title": "갱신 시각",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "observed_state",
+                "queue_depth",
+                "frames_in",
+                "frames_out",
+                "frames_dropped",
+                "reconnect_count",
+                "updated_at"
+              ],
+              "title": "Projection 런타임",
+              "type": "object"
+            }
+          },
+          "required": [
+            "declaration",
+            "runtime"
+          ],
+          "title": "Projection",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "요청을 검증하고 Slot과 generation을 확인합니다.",
+            "id": "validate",
+            "transaction": "none"
+          },
+          {
+            "description": "선언을 저장합니다.",
+            "id": "persist",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "update",
+            "description": "Projection 선언을 저장합니다. 선언은 binding을 만들지 않습니다 — Source를 Slot의 SVI sink에 잇는 binding은 운영자가 만듭니다.",
+            "resourceId": "lab.stellaxia.virtual-device.projection"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "Projection의 desired state를 적용합니다.",
+      "tags": [
+        "projection",
+        "write"
+      ],
+      "title": "Projection 적용",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.slots.delete": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "slot",
+          "delete",
+          "삭제"
+        ],
+        "outputPorts": [],
+        "recommendedLabel": "Slot 삭제",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "DELETE",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/slots/{slot_id}",
+          "successStatus": 204,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "command",
+      "description": "active Projection이 붙어 있으면 VDEV_SLOT_BUSY로 거절합니다(§9.2). 조용히 끊지 않는 이유는, 통화 중인 장치를 뺄지는 부른 쪽이 판단할 일이기 때문입니다.",
+      "errors": [
+        "VDEV_SLOT_NOT_FOUND",
+        "VDEV_SLOT_BUSY"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "serial"
+        },
+        "confirmation": {
+          "mode": "required"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "dangerous",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "빈 응답",
+            "value": {}
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "active Projection이 있는지 확인합니다.",
+            "id": "check-busy",
+            "transaction": "none"
+          },
+          {
+            "description": "Adapter에서 OS 장치를 제거합니다.",
+            "id": "remove-slot",
+            "transaction": "none"
+          },
+          {
+            "description": "선언을 지웁니다.",
+            "id": "persist",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "delete",
+            "description": "Slot과 그 Slot의 Projection 선언을 지우고 Adapter에서 OS 장치를 제거합니다. 운영체제 장치 목록에서 이름이 사라집니다.",
+            "resourceId": "lab.stellaxia.virtual-device.slot"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "Slot을 제거합니다.",
+      "tags": [
+        "slot",
+        "write"
+      ],
+      "title": "Slot 삭제",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.slots.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "slot",
+          "장치"
+        ],
+        "outputPorts": [],
+        "recommendedLabel": "Slot 조회",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/slots/{slot_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "query",
+      "description": "os_device_id는 진단 목적으로만 제공하며 SVI ID로 쓰지 않습니다(§9.2).",
+      "errors": [
+        "VDEV_SLOT_NOT_FOUND"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "camera-main",
+            "value": {
+              "accepted_formats": [
+                {
+                  "fps": 30,
+                  "height": 480,
+                  "pixel_format": "YUY2",
+                  "width": 640
+                }
+              ],
+              "adapter_id": "fake.in-memory",
+              "created_at": "2026-09-15T09:00:00Z",
+              "display_name": "Terra Virtual Camera",
+              "enabled": true,
+              "install_state": "ready",
+              "kind": "camera",
+              "os_device_id": "fake:camera-main",
+              "scope": "machine",
+              "slot_id": "camera-main",
+              "updated_at": "2026-09-15T09:00:00Z"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "description": "설계 §9.2의 Virtual Device Slot — 운영체제에 보이는 안정적인 가상 장치.",
+          "properties": {
+            "accepted_formats": {
+              "description": "이 Slot이 받아들이는 Format.",
+              "items": {
+                "additionalProperties": false,
+                "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                "properties": {
+                  "channels": {
+                    "description": "audio 채널 수.",
+                    "title": "채널 수",
+                    "type": "integer"
+                  },
+                  "fps": {
+                    "description": "초당 frame 수.",
+                    "title": "초당 frame",
+                    "type": "integer"
+                  },
+                  "height": {
+                    "description": "video frame 세로 픽셀.",
+                    "title": "세로",
+                    "type": "integer"
+                  },
+                  "pixel_format": {
+                    "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                    "title": "픽셀 형식",
+                    "type": "string"
+                  },
+                  "sample_rate": {
+                    "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                    "title": "표본율",
+                    "type": "integer"
+                  },
+                  "sample_type": {
+                    "description": "audio 표본 형식.",
+                    "title": "표본 형식",
+                    "type": "string"
+                  },
+                  "width": {
+                    "description": "video frame 가로 픽셀.",
+                    "title": "가로",
+                    "type": "integer"
+                  }
+                },
+                "title": "Format",
+                "type": "object"
+              },
+              "title": "허용 Format",
+              "type": "array"
+            },
+            "adapter_id": {
+              "description": "이 Slot을 제공하는 Adapter.",
+              "title": "Adapter ID",
+              "type": "string"
+            },
+            "created_at": {
+              "description": "UTC.",
+              "format": "date-time",
+              "title": "생성 시각",
+              "type": "string"
+            },
+            "display_name": {
+              "description": "Terra에서 이 Slot을 부르는 이름(SVI 카탈로그 이름). source가 바뀌어도 유지됩니다(§4.8). 운영체제 장치 목록의 이름과는 같지 않을 수 있습니다: Linux에서는 v4l2loopback 노드를 만들 때 정한 card_label이 보이고 이 모듈은 그것을 바꾸지 못합니다.",
+              "title": "표시 이름",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "desired_state가 ready인가.",
+              "title": "활성",
+              "type": "boolean"
+            },
+            "install_state": {
+              "description": "설계 §10.1의 상태.",
+              "title": "설치 상태",
+              "type": "string"
+            },
+            "kind": {
+              "description": "camera 또는 audio.",
+              "enum": [
+                "camera",
+                "audio"
+              ],
+              "title": "종류",
+              "type": "string"
+            },
+            "os_device_id": {
+              "description": "진단 목적으로만 제공합니다. SVI ID로 쓰지 않습니다(§9.2).",
+              "title": "OS 장치 ID",
+              "type": "string"
+            },
+            "owner_subject": {
+              "description": "이 Slot을 선언한 주체.",
+              "title": "소유 주체",
+              "type": "string"
+            },
+            "scope": {
+              "description": "machine 또는 user.",
+              "enum": [
+                "machine",
+                "user"
+              ],
+              "title": "범위",
+              "type": "string"
+            },
+            "slot_id": {
+              "description": "운영체제에 보이는 장치의 안정적인 식별자.",
+              "title": "Slot ID",
+              "type": "string"
+            },
+            "updated_at": {
+              "description": "UTC.",
+              "format": "date-time",
+              "title": "갱신 시각",
+              "type": "string"
+            }
+          },
+          "required": [
+            "slot_id",
+            "kind",
+            "display_name",
+            "scope",
+            "adapter_id",
+            "install_state",
+            "enabled",
+            "created_at",
+            "updated_at"
+          ],
+          "title": "Slot",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "slot_id로 Slot을 찾습니다.",
+            "id": "get-slot",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "Slot 하나의 상세를 조회합니다.",
+      "tags": [
+        "slot",
+        "read"
+      ],
+      "title": "Slot 조회",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.slots.list": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "slot",
+          "device",
+          "장치"
+        ],
+        "outputPorts": [
+          {
+            "name": "slots",
+            "pointer": "/slots"
+          }
+        ],
+        "recommendedLabel": "Slot 목록",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/slots",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "query",
+      "description": "Slot은 운영체제에 보이는 안정적인 가상 장치입니다(§9.2). source가 바뀌어도 slot_id·display_name·os_device_id는 유지됩니다.",
+      "errors": [],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "Slot 하나",
+            "value": {
+              "slots": [
+                {
+                  "accepted_formats": [
+                    {
+                      "fps": 30,
+                      "height": 480,
+                      "pixel_format": "YUY2",
+                      "width": 640
+                    }
+                  ],
+                  "adapter_id": "fake.in-memory",
+                  "created_at": "2026-09-15T09:00:00Z",
+                  "display_name": "Terra Virtual Camera",
+                  "enabled": true,
+                  "install_state": "ready",
+                  "kind": "camera",
+                  "os_device_id": "fake:camera-main",
+                  "scope": "machine",
+                  "slot_id": "camera-main",
+                  "updated_at": "2026-09-15T09:00:00Z"
+                }
+              ]
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "slots": {
+              "description": "slot_id 순으로 정렬합니다.",
+              "items": {
+                "additionalProperties": false,
+                "description": "설계 §9.2의 Virtual Device Slot — 운영체제에 보이는 안정적인 가상 장치.",
+                "properties": {
+                  "accepted_formats": {
+                    "description": "이 Slot이 받아들이는 Format.",
+                    "items": {
+                      "additionalProperties": false,
+                      "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                      "properties": {
+                        "channels": {
+                          "description": "audio 채널 수.",
+                          "title": "채널 수",
+                          "type": "integer"
+                        },
+                        "fps": {
+                          "description": "초당 frame 수.",
+                          "title": "초당 frame",
+                          "type": "integer"
+                        },
+                        "height": {
+                          "description": "video frame 세로 픽셀.",
+                          "title": "세로",
+                          "type": "integer"
+                        },
+                        "pixel_format": {
+                          "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                          "title": "픽셀 형식",
+                          "type": "string"
+                        },
+                        "sample_rate": {
+                          "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                          "title": "표본율",
+                          "type": "integer"
+                        },
+                        "sample_type": {
+                          "description": "audio 표본 형식.",
+                          "title": "표본 형식",
+                          "type": "string"
+                        },
+                        "width": {
+                          "description": "video frame 가로 픽셀.",
+                          "title": "가로",
+                          "type": "integer"
+                        }
+                      },
+                      "title": "Format",
+                      "type": "object"
+                    },
+                    "title": "허용 Format",
+                    "type": "array"
+                  },
+                  "adapter_id": {
+                    "description": "이 Slot을 제공하는 Adapter.",
+                    "title": "Adapter ID",
+                    "type": "string"
+                  },
+                  "created_at": {
+                    "description": "UTC.",
+                    "format": "date-time",
+                    "title": "생성 시각",
+                    "type": "string"
+                  },
+                  "display_name": {
+                    "description": "Terra에서 이 Slot을 부르는 이름(SVI 카탈로그 이름). source가 바뀌어도 유지됩니다(§4.8). 운영체제 장치 목록의 이름과는 같지 않을 수 있습니다: Linux에서는 v4l2loopback 노드를 만들 때 정한 card_label이 보이고 이 모듈은 그것을 바꾸지 못합니다.",
+                    "title": "표시 이름",
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "description": "desired_state가 ready인가.",
+                    "title": "활성",
+                    "type": "boolean"
+                  },
+                  "install_state": {
+                    "description": "설계 §10.1의 상태.",
+                    "title": "설치 상태",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "description": "camera 또는 audio.",
+                    "enum": [
+                      "camera",
+                      "audio"
+                    ],
+                    "title": "종류",
+                    "type": "string"
+                  },
+                  "os_device_id": {
+                    "description": "진단 목적으로만 제공합니다. SVI ID로 쓰지 않습니다(§9.2).",
+                    "title": "OS 장치 ID",
+                    "type": "string"
+                  },
+                  "owner_subject": {
+                    "description": "이 Slot을 선언한 주체.",
+                    "title": "소유 주체",
+                    "type": "string"
+                  },
+                  "scope": {
+                    "description": "machine 또는 user.",
+                    "enum": [
+                      "machine",
+                      "user"
+                    ],
+                    "title": "범위",
+                    "type": "string"
+                  },
+                  "slot_id": {
+                    "description": "운영체제에 보이는 장치의 안정적인 식별자.",
+                    "title": "Slot ID",
+                    "type": "string"
+                  },
+                  "updated_at": {
+                    "description": "UTC.",
+                    "format": "date-time",
+                    "title": "갱신 시각",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "slot_id",
+                  "kind",
+                  "display_name",
+                  "scope",
+                  "adapter_id",
+                  "install_state",
+                  "enabled",
+                  "created_at",
+                  "updated_at"
+                ],
+                "title": "Slot",
+                "type": "object"
+              },
+              "title": "Slot 목록",
+              "type": "array"
+            }
+          },
+          "required": [
+            "slots"
+          ],
+          "title": "Slot 목록",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "선언된 Slot을 나열합니다.",
+            "id": "list-slots",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "선언된 Virtual Device Slot을 조회합니다.",
+      "tags": [
+        "slot",
+        "read"
+      ],
+      "title": "Slot 목록",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.slots.set": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Virtual Device",
+        "keywords": [
+          "slot",
+          "create",
+          "장치",
+          "선언"
+        ],
+        "outputPorts": [],
+        "recommendedLabel": "Slot 선언",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "PUT",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/slots/{slot_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "command",
+      "description": "갱신은 OS 장치를 다시 만들지 않습니다 — 외부 프로그램이 장치 목록에서 고른 것이 그 장치이고, 설계 원칙 §4.8이 이름을 유지하라고 합니다. Adapter를 바꾸는 것은 다른 OS 장치이므로 갱신이 아니라 거절이고, 부른 쪽이 삭제 후 다시 만들면서 장치가 바뀐다는 것을 봅니다.",
+      "errors": [
+        "VDEV_INVALID_REQUEST",
+        "VDEV_ADAPTER_UNAVAILABLE",
+        "VDEV_DRIVER_INSTALL_REQUIRED",
+        "VDEV_USER_ACTION_REQUIRED",
+        "VDEV_REBOOT_REQUIRED",
+        "VDEV_OS_PERMISSION_DENIED",
+        "VDEV_FORMAT_INCOMPATIBLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "serial"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "idempotent"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "write",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 15000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "name": "Fake Adapter 위의 카메라 Slot",
+            "value": {
+              "adapter_id": "fake.in-memory",
+              "desired_state": "ready",
+              "display_name": "Terra Virtual Camera",
+              "format": {
+                "fps": 30,
+                "height": 480,
+                "pixel_format": "YUY2",
+                "width": 640
+              },
+              "kind": "camera",
+              "scope": "machine"
+            }
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "description": "설계 §16.3의 Slot desired state.",
+          "properties": {
+            "accepted_formats": {
+              "description": "format과 함께 쓸 수 있고, 둘 다 없으면 Format을 만들어 내지 않습니다(§4.9).",
+              "items": {
+                "additionalProperties": false,
+                "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                "properties": {
+                  "channels": {
+                    "description": "audio 채널 수.",
+                    "title": "채널 수",
+                    "type": "integer"
+                  },
+                  "fps": {
+                    "description": "초당 frame 수.",
+                    "title": "초당 frame",
+                    "type": "integer"
+                  },
+                  "height": {
+                    "description": "video frame 세로 픽셀.",
+                    "title": "세로",
+                    "type": "integer"
+                  },
+                  "pixel_format": {
+                    "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                    "title": "픽셀 형식",
+                    "type": "string"
+                  },
+                  "sample_rate": {
+                    "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                    "title": "표본율",
+                    "type": "integer"
+                  },
+                  "sample_type": {
+                    "description": "audio 표본 형식.",
+                    "title": "표본 형식",
+                    "type": "string"
+                  },
+                  "width": {
+                    "description": "video frame 가로 픽셀.",
+                    "title": "가로",
+                    "type": "integer"
+                  }
+                },
+                "title": "Format",
+                "type": "object"
+              },
+              "title": "허용 Format",
+              "type": "array"
+            },
+            "adapter_id": {
+              "description": "이 Slot을 제공할 Adapter. GET /adapters가 이 빌드에 있는 것을 알려 줍니다.",
+              "title": "Adapter ID",
+              "type": "string"
+            },
+            "desired_state": {
+              "description": "ready 또는 stopped. 기본값은 ready입니다.",
+              "enum": [
+                "ready",
+                "stopped"
+              ],
+              "title": "요청 상태",
+              "type": "string"
+            },
+            "display_name": {
+              "description": "운영체제 장치 목록에 나타나는 이름.",
+              "title": "표시 이름",
+              "type": "string"
+            },
+            "format": {
+              "additionalProperties": false,
+              "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+              "properties": {
+                "channels": {
+                  "description": "audio 채널 수.",
+                  "title": "채널 수",
+                  "type": "integer"
+                },
+                "fps": {
+                  "description": "초당 frame 수.",
+                  "title": "초당 frame",
+                  "type": "integer"
+                },
+                "height": {
+                  "description": "video frame 세로 픽셀.",
+                  "title": "세로",
+                  "type": "integer"
+                },
+                "pixel_format": {
+                  "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                  "title": "픽셀 형식",
+                  "type": "string"
+                },
+                "sample_rate": {
+                  "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                  "title": "표본율",
+                  "type": "integer"
+                },
+                "sample_type": {
+                  "description": "audio 표본 형식.",
+                  "title": "표본 형식",
+                  "type": "string"
+                },
+                "width": {
+                  "description": "video frame 가로 픽셀.",
+                  "title": "가로",
+                  "type": "integer"
+                }
+              },
+              "title": "Format",
+              "type": "object"
+            },
+            "kind": {
+              "description": "camera. audio Slot은 Phase 5의 Virtual Audio Adapter와 함께 옵니다.",
+              "enum": [
+                "camera",
+                "audio"
+              ],
+              "title": "종류",
+              "type": "string"
+            },
+            "owner_subject": {
+              "description": "이 Slot을 선언하는 주체.",
+              "title": "소유 주체",
+              "type": "string"
+            },
+            "scope": {
+              "description": "machine 또는 user. 기본값은 machine입니다.",
+              "enum": [
+                "machine",
+                "user"
+              ],
+              "title": "범위",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "display_name",
+            "adapter_id"
+          ],
+          "title": "Slot 요청",
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "생성된 Slot",
+            "value": {
+              "accepted_formats": [
+                {
+                  "fps": 30,
+                  "height": 480,
+                  "pixel_format": "YUY2",
+                  "width": 640
+                }
+              ],
+              "adapter_id": "fake.in-memory",
+              "created_at": "2026-09-15T09:00:00Z",
+              "display_name": "Terra Virtual Camera",
+              "enabled": true,
+              "install_state": "ready",
+              "kind": "camera",
+              "os_device_id": "fake:camera-main",
+              "scope": "machine",
+              "slot_id": "camera-main",
+              "updated_at": "2026-09-15T09:00:00Z"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "description": "설계 §9.2의 Virtual Device Slot — 운영체제에 보이는 안정적인 가상 장치.",
+          "properties": {
+            "accepted_formats": {
+              "description": "이 Slot이 받아들이는 Format.",
+              "items": {
+                "additionalProperties": false,
+                "description": "설계 §13의 명시적 Format. 비어 있는 field는 비어 있는 채로 둡니다 — 색 공간·sample rate를 암묵적으로 추론하지 않습니다(§4.9).",
+                "properties": {
+                  "channels": {
+                    "description": "audio 채널 수.",
+                    "title": "채널 수",
+                    "type": "integer"
+                  },
+                  "fps": {
+                    "description": "초당 frame 수.",
+                    "title": "초당 frame",
+                    "type": "integer"
+                  },
+                  "height": {
+                    "description": "video frame 세로 픽셀.",
+                    "title": "세로",
+                    "type": "integer"
+                  },
+                  "pixel_format": {
+                    "description": "YUY2 같은 명시적 픽셀 형식. 추론하지 않습니다(§4.9).",
+                    "title": "픽셀 형식",
+                    "type": "string"
+                  },
+                  "sample_rate": {
+                    "description": "audio 표본율(Hz). Phase 5의 Virtual Audio용입니다.",
+                    "title": "표본율",
+                    "type": "integer"
+                  },
+                  "sample_type": {
+                    "description": "audio 표본 형식.",
+                    "title": "표본 형식",
+                    "type": "string"
+                  },
+                  "width": {
+                    "description": "video frame 가로 픽셀.",
+                    "title": "가로",
+                    "type": "integer"
+                  }
+                },
+                "title": "Format",
+                "type": "object"
+              },
+              "title": "허용 Format",
+              "type": "array"
+            },
+            "adapter_id": {
+              "description": "이 Slot을 제공하는 Adapter.",
+              "title": "Adapter ID",
+              "type": "string"
+            },
+            "created_at": {
+              "description": "UTC.",
+              "format": "date-time",
+              "title": "생성 시각",
+              "type": "string"
+            },
+            "display_name": {
+              "description": "Terra에서 이 Slot을 부르는 이름(SVI 카탈로그 이름). source가 바뀌어도 유지됩니다(§4.8). 운영체제 장치 목록의 이름과는 같지 않을 수 있습니다: Linux에서는 v4l2loopback 노드를 만들 때 정한 card_label이 보이고 이 모듈은 그것을 바꾸지 못합니다.",
+              "title": "표시 이름",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "desired_state가 ready인가.",
+              "title": "활성",
+              "type": "boolean"
+            },
+            "install_state": {
+              "description": "설계 §10.1의 상태.",
+              "title": "설치 상태",
+              "type": "string"
+            },
+            "kind": {
+              "description": "camera 또는 audio.",
+              "enum": [
+                "camera",
+                "audio"
+              ],
+              "title": "종류",
+              "type": "string"
+            },
+            "os_device_id": {
+              "description": "진단 목적으로만 제공합니다. SVI ID로 쓰지 않습니다(§9.2).",
+              "title": "OS 장치 ID",
+              "type": "string"
+            },
+            "owner_subject": {
+              "description": "이 Slot을 선언한 주체.",
+              "title": "소유 주체",
+              "type": "string"
+            },
+            "scope": {
+              "description": "machine 또는 user.",
+              "enum": [
+                "machine",
+                "user"
+              ],
+              "title": "범위",
+              "type": "string"
+            },
+            "slot_id": {
+              "description": "운영체제에 보이는 장치의 안정적인 식별자.",
+              "title": "Slot ID",
+              "type": "string"
+            },
+            "updated_at": {
+              "description": "UTC.",
+              "format": "date-time",
+              "title": "갱신 시각",
+              "type": "string"
+            }
+          },
+          "required": [
+            "slot_id",
+            "kind",
+            "display_name",
+            "scope",
+            "adapter_id",
+            "install_state",
+            "enabled",
+            "created_at",
+            "updated_at"
+          ],
+          "title": "Slot",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "요청을 검증하고 Adapter를 찾습니다.",
+            "id": "validate",
+            "transaction": "none"
+          },
+          {
+            "description": "Adapter에 Slot의 OS 장치를 있게 합니다. 이미 있으면 그대로 둡니다.",
+            "id": "ensure-slot",
+            "transaction": "none"
+          },
+          {
+            "description": "Slot 선언을 저장합니다.",
+            "id": "persist",
+            "transaction": "required"
+          }
+        ],
+        "sideEffects": [
+          {
+            "action": "create",
+            "description": "Slot desired state를 저장하고 Adapter에 OS 장치를 있게 합니다. 이미 있는 Slot의 갱신은 OS 장치를 다시 만들지 않습니다(§4.8).",
+            "resourceId": "lab.stellaxia.virtual-device.slot"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "Slot의 desired state를 생성하거나 갱신합니다.",
+      "tags": [
+        "slot",
+        "write"
+      ],
+      "title": "Slot 선언",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.virtual-device.status.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Status/Health",
+        "keywords": [
+          "status",
+          "health",
+          "상태"
+        ],
+        "outputPorts": [
+          {
+            "name": "status",
+            "pointer": "/status"
+          },
+          {
+            "name": "daemonConnected",
+            "pointer": "/daemon/connected"
+          },
+          {
+            "name": "readyAdapters",
+            "pointer": "/adapters/ready"
+          }
+        ],
+        "recommendedLabel": "상태 조회",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node"
+        ],
+        "products": [
+          "leaf"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.virtual-device/v1/status",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "status",
+      "description": "read-only Operation입니다. 실 Adapter가 ready가 아니면(Fake만 있으면) status는 degraded이고, daemon.detail은 이 모듈이 Daemon에 직접 연결하지 않고 SVI sink로 frame을 받는다는 점을 적습니다. Daemon이 없어도 이 API가 살아 있고 degraded를 반환하는 것이 설계 §26의 완료 기준 중 하나입니다.",
+      "errors": [
+        "VDEV_NOT_IMPLEMENTED"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "examples": [
+          {
+            "description": "조회에는 입력이 없습니다.",
+            "name": "빈 요청",
+            "value": {}
+          }
+        ],
+        "schema": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      },
+      "output": {
+        "examples": [
+          {
+            "name": "Fake만 있는 기본값",
+            "value": {
+              "adapters": {
+                "ready": 0,
+                "simulated": 1,
+                "total": 2,
+                "unbuilt": 1
+              },
+              "daemon": {
+                "connected": false,
+                "detail": "No direct Daemon connection. Frames arrive through the SVI sink seam: each Slot is published as a sink resource and the Daemon opens it when an operator creates a binding to it. Declaring a projection does not create that binding yet.",
+                "endpoint": "auto"
+              },
+              "module_id": "lab.stellaxia.virtual-device",
+              "phase": "phase-1+linux-adapter",
+              "projections": 1,
+              "slots": 1,
+              "status": "degraded",
+              "storage": {
+                "path": "/var/lib/terra/leaf/modules/lab.stellaxia.virtual-device/virtual-device-state.json",
+                "state": "ok"
+              },
+              "uptime_sec": 42,
+              "version": "0.2.0"
+            }
+          }
+        ],
+        "mode": "immediate",
+        "schema": {
+          "additionalProperties": false,
+          "description": "설계 §16.2 GET /status.",
+          "properties": {
+            "adapters": {
+              "additionalProperties": false,
+              "properties": {
+                "ready": {
+                  "description": "실제로 OS 장치를 만들 수 있는 Adapter 수.",
+                  "title": "사용 가능",
+                  "type": "integer"
+                },
+                "simulated": {
+                  "description": "Fake Adapter 수. ready와 합치지 않습니다 — 합치면 가상 카메라가 하나도 없는 기계가 ready 1을 보고합니다.",
+                  "title": "모의",
+                  "type": "integer"
+                },
+                "total": {
+                  "description": "이 빌드가 아는 Adapter 수.",
+                  "title": "전체",
+                  "type": "integer"
+                },
+                "unbuilt": {
+                  "description": "선언되었으나 아직 지어지지 않은 Adapter 수.",
+                  "title": "미구현",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "total",
+                "ready",
+                "simulated",
+                "unbuilt"
+              ],
+              "title": "Adapter 요약",
+              "type": "object"
+            },
+            "daemon": {
+              "additionalProperties": false,
+              "description": "Daemon이 없어도 이 API는 살아 있고 degraded를 반환합니다(§26).",
+              "properties": {
+                "connected": {
+                  "description": "Daemon Local SVI Broker에 붙어 있는가.",
+                  "title": "연결됨",
+                  "type": "boolean"
+                },
+                "detail": {
+                  "description": "붙어 있지 않다면 왜인가.",
+                  "title": "사유",
+                  "type": "string"
+                },
+                "endpoint": {
+                  "description": "설정된 Daemon endpoint.",
+                  "title": "Endpoint",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "connected",
+                "detail"
+              ],
+              "title": "Daemon 연결",
+              "type": "object"
+            },
+            "module_id": {
+              "description": "lab.stellaxia.virtual-device.",
+              "title": "Module ID",
+              "type": "string"
+            },
+            "phase": {
+              "description": "설계 §25의 몇 단계까지 지어졌는가. 없는 기능을 운영자가 추측으로 알아내게 두지 않습니다.",
+              "title": "구현 단계",
+              "type": "string"
+            },
+            "projections": {
+              "description": "선언된 Projection 수.",
+              "title": "Projection 수",
+              "type": "integer"
+            },
+            "slots": {
+              "description": "선언된 Slot 수.",
+              "title": "Slot 수",
+              "type": "integer"
+            },
+            "status": {
+              "description": "실 Adapter(Fake가 아닌 것)가 ready일 때만 ok이고, Fake만 있으면 degraded입니다. 가짜 장치만 있는 모듈을 ok라고 하면 정작 필요한 날에 그 단어가 아무 뜻도 없습니다.",
+              "enum": [
+                "ok",
+                "degraded"
+              ],
+              "title": "상태",
+              "type": "string"
+            },
+            "storage": {
+              "additionalProperties": false,
+              "properties": {
+                "detail": {
+                  "description": "실패했다면 왜인가.",
+                  "title": "사유",
+                  "type": "string"
+                },
+                "path": {
+                  "description": "선언 상태가 저장되는 경로(§19).",
+                  "title": "경로",
+                  "type": "string"
+                },
+                "state": {
+                  "description": "ok·failed·unverified. 아무도 써 본 적 없는 저장소는 동작이 확인된 저장소가 아닙니다.",
+                  "enum": [
+                    "ok",
+                    "failed",
+                    "unverified"
+                  ],
+                  "title": "상태",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "state"
+              ],
+              "title": "저장소",
+              "type": "object"
+            },
+            "uptime_sec": {
+              "description": "이 프로세스가 뜬 뒤 지난 초.",
+              "title": "가동 시간",
+              "type": "integer"
+            },
+            "version": {
+              "description": "모듈의 semantic 버전.",
+              "title": "버전",
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "module_id",
+            "version",
+            "phase",
+            "uptime_sec",
+            "daemon",
+            "adapters",
+            "storage",
+            "slots",
+            "projections"
+          ],
+          "title": "상태",
+          "type": "object"
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "processing": [
+          {
+            "description": "모듈 상태·Adapter 요약·저장소 상태를 읽습니다.",
+            "id": "read-status",
+            "transaction": "none"
+          }
+        ],
+        "sideEffects": []
+      },
+      "status": "stable",
+      "summary": "모듈 상태, Daemon 연결, Adapter와 저장소 요약을 조회합니다.",
+      "tags": [
+        "status",
+        "health",
+        "read"
+      ],
+      "title": "상태 조회",
+      "version": "1.0.0"
+    }
+  },
+  "provider": {
+    "hostRoles": [
+      "leaf-node"
+    ],
+    "id": "lab.stellaxia.virtual-device",
+    "kind": "module",
+    "moduleId": "lab.stellaxia.virtual-device",
+    "name": "Terra Virtual Device Bridge",
+    "ownership": {
+      "source": "leaf/lab.stellaxia.virtual-device"
+    },
+    "products": [
+      "leaf"
+    ],
+    "version": "0.2.0"
+  },
+  "schemaVersion": "1.0.0",
+  "summary": "lab.stellaxia.virtual-device가 제공하는 Operation 계약입니다 — SVI Endpoint를 운영체제 가상 장치로 내보내는 Slot과 Projection.",
+  "title": "Terra Virtual Device Bridge API"
+}
