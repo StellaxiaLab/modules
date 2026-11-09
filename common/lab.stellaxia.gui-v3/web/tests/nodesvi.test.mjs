@@ -1,10 +1,11 @@
-// node --test — 자원화 창(NodeSvi): 보드의 시안 사본이 src/api/svi-make.js 와 같은지, 실제 모드에서 선언 · 허가 · 연결을 부르는지
+// node --test — SVI 창(NodeSvi): 보드의 시안 사본이 src/api/svi-make.js 와 같은지, 실제 모드에서 선언 · 허가 · 연결을 부르는지
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseBoard } from '../tools/dc-board.mjs';
 import { BUILTIN_TYPES, formFields, validate, canLink, bindingState } from '../src/api/svi-make.js';
+import * as sviMake from '../src/api/svi-make.js';
 
 const src = readFileSync(fileURLToPath(new URL('../design/NodeSvi.dc.html', import.meta.url)), 'utf8');
 class DCLogic { constructor(p) { this.props = p || {}; this.state = {}; } setState(p) { Object.assign(this.state, typeof p === 'function' ? p(this.state, this.props) : p); } }
@@ -52,8 +53,40 @@ test('실제 — 모듈이 내놓은 유형은 양식만 그리고 만들기는 
   const T = [{ id: 'io.x/cam', module: 'io.x', moduleName: 'X', title: '카메라', schema: { required: ['url'], properties: { url: { type: 'string', title: 'RTSP 주소' } } } }];
   const { c, done } = mount(real([], T)); try {
     c.setState({ typeId: 'io.x/cam' }); const v = c.renderVals();
-    assert.deepEqual(v.fields.map((f) => f.title), ['RTSP 주소']); assert.equal(v.makeOff, true); assert.equal(v.makeT, '만들기 — 코어 대기');
+    assert.deepEqual(v.fields.map((f) => f.title), ['RTSP 주소']); assert.equal(v.makeOff, true); assert.equal(v.makeT, '만들기 — Terra 미지원');
   } finally { done(); }
+});
+
+// 노드가 알려 준 유형(svi.resourcizers.get) — Terra svideclare/resourcizers.go 의 모양
+const LISTING = { etag: 'e1', types: [
+  { id: 'terra.daemon/file', module_id: 'terra.daemon', type: 'file', family: 'file', title: '파일', description: '파일을 원천이나 대상으로', availability: { state: 'open' },
+    config_schema: { type: 'object', required: ['direction', 'path'], properties: { direction: { type: 'string', title: '방향', enum: ['source', 'sink'], 'x-terra-enum-titles': ['읽기', '덧붙이기'], default: 'source' }, path: { type: 'string', title: '경로', 'x-terra-ref': 'file', examples: ['/data'] } } } },
+  { id: 'terra.daemon/process', module_id: 'terra.daemon', type: 'process', family: 'process', title: '프로그램', availability: { state: 'closed', reason: 'envelope_process_off' }, config_schema: { type: 'object', properties: { command: { type: 'string', title: '실행 파일' } } } },
+  { id: 'io.x/cam', module_id: 'io.x', type: 'cam', family: 'module', title: '카메라', availability: { state: 'open' }, config_schema: { type: 'object', required: ['url'], properties: { url: { type: 'string', title: 'RTSP 주소' } } } }] };
+
+test('유형 목록 → 화면 유형: 내장 id 는 type, 모듈은 family 없음(잠금), 닫힘은 사유, x-terra-* → 양식', () => {
+  const T = sviMake.typesFromListing(LISTING);
+  assert.deepEqual(T.builtin.map((t) => [t.id, t.family, t.closed]), [['file', 'file', ''], ['process', 'process', '울타리 : 프로그램 닫힘']]);
+  assert.deepEqual(T.mods.map((t) => [t.id, t.family]), [['io.x/cam', null]]);
+  const P = T.builtin[0].schema.properties; assert.deepEqual(P.direction['x-labels'], ['읽기', '덧붙이기']); assert.equal(P.path.format, 'path'); assert.ok(P.path.pattern);
+  assert.equal(sviMake.typesFromListing({}), null);
+});
+
+test('실제 — 노드 유형 목록으로 양식, 닫힌 유형 · 모듈 유형은 만들기 잠금, 제출은 칸 그대로 평평하게', async () => {
+  const calls = [], { c, done } = mount(real(calls)); try {
+    c.state.data = Object.assign({}, DATA, { types: sviMake.typesFromListing(LISTING) });
+    let v = c.renderVals(); assert.match(v.typeGroups[0].note, /이 노드 유형 목록/); assert.equal(v.typeGroups[1].items[0].title, '카메라');
+    assert.deepEqual(v.fields.map((f) => f.title), ['방향', '경로']); assert.equal(v.fields[1].isPath, true);
+    c.setState({ typeId: 'process' }); v = c.renderVals(); assert.equal(v.makeOff, true); assert.equal(v.makeT, '만들 수 없음 — 울타리 : 프로그램 닫힘'); assert.match(v.typeGroups[0].items[1].desc, /^잠김 : /);
+    c.setState({ typeId: 'io.x/cam' }); v = c.renderVals(); assert.equal(v.makeT, '만들기 — Terra 미지원'); assert.match(v.typeFrom, /Terra 미지원/);
+    c.setState({ typeId: 'file', fname: 'log3', vals: { path: '/data/b.csv', direction: 'sink' } }); c.renderVals().submit(); await new Promise((r) => setTimeout(r, 0));
+    assert.deepEqual(calls[0], ['declare', 'n1', { family: 'file', name: 'log3', direction: 'sink', path: '/data/b.csv' }]);
+  } finally { done(); }
+});
+
+test('실제 — 유형 목록을 못 받으면 고정 내장으로 물러나고 이유를 적는다', () => {
+  const { c, done } = mount(real([])); try { c.state.data = Object.assign({}, DATA, { types: null, typesWhy: 'OPERATION_NOT_FOUND' });
+    const v = c.renderVals(); assert.match(v.typeGroups[0].note, /고정 목록 \(유형 목록 못 받음 · OPERATION_NOT_FOUND\)/); assert.equal(v.typeGroups[0].items.length, 3); } finally { done(); }
 });
 
 test('실제 — 원천 누르고 대상 누르면 link, 허가 칩은 grant(읽기 · 연결 원천 · 기한)', async () => {

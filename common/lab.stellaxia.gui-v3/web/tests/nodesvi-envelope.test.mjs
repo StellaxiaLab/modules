@@ -1,4 +1,4 @@
-// node --test — 자원화 창의 울타리 확장(ADR-GW-011 E3): 로컬/원격 분기 · 출처별 해제 · 확인 문구 · 오류 문구 · 만들기 양식의 "울타리 밖" 갱신
+// node --test — SVI 창의 울타리 확장(ADR-GW-011 E3): 로컬/원격 분기 · 출처별 해제 · 확인 문구 · 오류 문구 · 만들기 양식의 "울타리 밖" 갱신
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

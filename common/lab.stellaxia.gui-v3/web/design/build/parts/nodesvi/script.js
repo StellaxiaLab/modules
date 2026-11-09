@@ -1,7 +1,7 @@
-// 자원화 창 — 유형을 고르고 값을 넣어 자원을 만들고(선언), 다른 노드에 허가하고, 원천을 대상에 끌어다 놓아 잇는다. 연결 상태는 끊김 · 사유를 가른다
-//   틀의 약속: 새 자원화 유형이 내놓을 것은 어댑터 하나와 그 설정 스키마뿐 — 양식 · 수명 · 허가 · 연결 화면은 이 창이 공통으로(docs/design/svi-make.md)
+// SVI 창 — 유형을 고르고 값을 넣어 자원을 만들고(선언), 다른 노드에 허가하고, 원천을 대상에 끌어다 놓아 잇는다. 연결 상태는 끊김 · 사유를 가른다
+//   틀의 약속: 새 SVI 유형이 내놓을 것은 어댑터 하나와 그 설정 스키마뿐 — 양식 · 수명 · 허가 · 연결 화면은 이 창이 공통으로(docs/design/svi-make.md)
 //   실제(웹 빌드): window.TerraSviMake — src/api/svi-make.js(선언 = Daemon svi.declarations · 허가 = Master svi.grants · 연결 = Master svi.bindings). 10초마다 다시 읽는다
-//   시안(캔버스): 같은 모양의 예시 값. 모듈 유형(카메라 · 프로그램 창)은 '시안 · 코어 대기' — Terra 에 모듈이 유형 + 스키마를 내놓는 길이 아직 없다
+//   시안(캔버스): 같은 모양의 예시 값. 모듈 유형(카메라 · 프로그램 창)은 '시안 · 만들기 : Terra 미지원' — 실제는 노드가 알려 준 유형 목록(svi.resourcizers.get)
 //   아래 BUILTIN · fieldsOf · check · linkable · bstate 는 src/api/svi-make.js 의 사본(시안용) — tests/nodesvi.test.mjs 가 같은지 본다
 const ABS = '^(/|[A-Za-z]:[\\\\/])';
 /** 경로의 위 폴더 — 폴더 허용 창에 미리 채울 값. 위가 드라이브 뿌리 · / 이거나 절대 경로가 아니면 '' */
@@ -203,9 +203,12 @@ class Component extends DCLogic {
     run().then(() => { this.setState({ busy: false, msg: label + ' — 완료' }); this.pull(); },
       (e) => { this.setState({ busy: false, msg: label + ' — 실패 · ' + declareError(e) }); this.pull(); });
   }
+  /** 유형 — 실제: 노드가 알려 준 목록(svi.resourcizers.get · TerraSviMake.load 의 types). 못 받으면 고정 내장 + module.json 유형(옛 제안). 시안: 고정 + 예시 모듈 유형 */
   types() {
+    const D = this.state.data;
+    if (this.real() && D && D.types && D.types.builtin.length) return { builtin: D.types.builtin, mods: D.types.mods, fromNode: true, why: '' };
     const mods = this.real() ? (window.TerraSviTypes ? window.TerraSviTypes() : []) : SAMPLE_MOD_TYPES;
-    return { builtin: BUILTIN, mods };
+    return { builtin: BUILTIN, mods, fromNode: false, why: this.real() && D ? D.typesWhy || '' : '' };
   }
   rid() { return this.props.nodeRid || ''; }
   /** 이 계정의 사용자 id — 실제는 whoami(TerraSviMake.selfNow), 시안은 admin */
@@ -308,7 +311,7 @@ class Component extends DCLogic {
     const set = (p) => this.setState(p), tabOf = (id, name, n) => ({ name, n: n == null ? '' : String(n), cls: s.tab === id ? 'on' : '', cur: s.tab === id ? 'page' : 'false', pick: () => set({ tab: id, msg: '' }) });
     const o = { rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.props.nodeName || '—', kind: this.props.nodeKind || '노드', src: R ? 'Terra' : '시안',
       tabs: [tabOf('make', '만들기'), tabOf('res', '자원 · 허가', decls.length), tabOf('link', '연결', binds.length)], isMake: s.tab === 'make', isRes: s.tab === 'res', isLink: s.tab === 'link',
-      env: [], msg: s.msg || (R && !this.rid() ? 'Terra 노드 목록에 없는 노드 — 자원화 불가' : R && !D ? '불러오는 중…' : ''), miss: D && D.miss && D.miss.length ? '읽지 못함 · ' + D.miss.join(' · ') : '' };
+      env: [], msg: s.msg || (R && !this.rid() ? 'Terra 노드 목록에 없는 노드 — SVI 불가' : R && !D ? '불러오는 중…' : ''), miss: D && D.miss && D.miss.length ? '읽지 못함 · ' + D.miss.join(' · ') : '' };
     // 울타리
     { const e = D && D.envelope, A = (x) => (Array.isArray(x) ? x : []);
       o.env = !e ? [{ k: '—', v: R ? '읽지 못함' : '' }] : [['파일', A(e.file_roots).length ? A(e.file_roots).map((r) => (r.path || r) + (r.mode ? ' (' + r.mode + ')' : '')).join(', ') : '닫힘'],
@@ -317,10 +320,10 @@ class Component extends DCLogic {
 
     // ── 만들기 ──
     const lockMod = !ty.family, errs = s.tried ? check(ty.schema, s.fname.trim(), s.vals) : {};
-    const tyItem = (t, from) => ({ title: t.title, desc: t.desc, from, on: t.id === ty.id ? 'true' : 'false', cls: (t.id === ty.id ? 'on' : '') + (t.family ? '' : ' lock'), pick: () => set({ typeId: t.id, vals: {}, tried: false, msg: '' }) });
-    o.typeGroups = [{ title: '내장', note: 'Terra Daemon', items: T.builtin.map((t) => tyItem(t, '')), empty: false, emptyT: '' },
-      { title: '모듈 제공 유형', note: R ? '' : '시안 · 코어 대기', items: T.mods.map((t) => tyItem(t, t.moduleName || t.module)), empty: !T.mods.length, emptyT: '모듈 유형 없음 — 모듈 어댑터 · 설정 스키마 경로 : Terra 미지원 (contributions.svi)' }];
-    o.typeTitle = ty.title; o.typeFrom = ty.family ? '내장 · ' + FAM[ty.family] : (ty.moduleName || ty.module) + ' 모듈 — 만들기 : 코어 대기';
+    const tyItem = (t, from) => ({ title: t.title, desc: t.closed ? '잠김 : ' + t.closed : t.desc, from, on: t.id === ty.id ? 'true' : 'false', cls: (t.id === ty.id ? 'on' : '') + (t.family && !t.closed ? '' : ' lock'), pick: () => set({ typeId: t.id, vals: {}, tried: false, msg: '' }) });
+    o.typeGroups = [{ title: '내장', note: 'Terra Daemon' + (T.fromNode ? ' · 이 노드 유형 목록' : R && T.why ? ' · 고정 목록 (유형 목록 못 받음 · ' + T.why + ')' : ''), items: T.builtin.map((t) => tyItem(t, '')), empty: false, emptyT: '' },
+      { title: '모듈 제공 유형', note: R ? (T.fromNode ? '만들기 : Terra 미지원' : '') : '시안 · 만들기 : Terra 미지원', items: T.mods.map((t) => tyItem(t, t.moduleName || t.module)), empty: !T.mods.length, emptyT: T.fromNode ? '모듈 유형 없음 — contributions.svi.resourcizers 를 낸 모듈 없음' : '모듈 유형 없음 — 모듈 어댑터 · 설정 스키마 경로 : Terra 미지원 (contributions.svi)' }];
+    o.typeTitle = ty.title; o.typeFrom = ty.family ? '내장 · ' + FAM[ty.family] + (ty.closed ? ' · 잠김 : ' + ty.closed : '') : (ty.moduleName || ty.module) + ' 모듈 — 만들기 : Terra 미지원';
     o.fname = s.fname; o.onName = (e) => set({ fname: e.target.value }); o.nameErr = errs.name || ''; o.nameBad = errs.name ? 'true' : 'false';
     o.fields = fieldsOf(ty.schema, s.vals).map((f) => { const up = (v) => set({ vals: Object.assign({}, s.vals, { [f.key]: v }) });
       return { title: f.title, req: f.required ? '*' : '', desc: f.desc, err: errs[f.key] || '', bad: errs[f.key] ? 'true' : 'false', isText: f.kind === 'text' || f.kind === 'path' || f.kind === 'list' || f.kind === 'number', isEnum: f.kind === 'enum', isBool: f.kind === 'bool',
@@ -329,18 +332,19 @@ class Component extends DCLogic {
         opts: (f.options || []).map((op) => ({ label: op.label, on: op.v === f.value ? 'true' : 'false', cls: op.v === f.value ? 'on' : '', pick: () => up(op.v) })),
         on: f.value === true ? 'true' : 'false', swCls: f.value === true ? 'on' : '', swT: f.value === true ? '켬' : '끔', toggle: () => up(!(f.value === true)) }; });
     { const e = D && D.envelope, v = castOf(ty.schema, s.vals), A = (x) => (Array.isArray(x) ? x : []), L0 = this.envLocal(); let why = '';
-      if (e && ty.family === 'file') { const roots = A(e.file_roots), p = v.path; if (!roots.length) why = L0 ? '이 노드에 허용된 폴더가 없어 파일 자원을 만들 수 없습니다. 먼저 폴더를 허용하세요.' : '이 노드에 허용된 폴더가 없습니다. 그 노드의 자원화 창에서 폴더를 허용해야 합니다.'; else if (p && !roots.some((r) => { const q = String(r.path || r).replace(/[\\/]+$/, ''); return p === q || p.startsWith(q + '/') || p.startsWith(q + '\\'); })) why = (L0 ? '허용된 폴더 밖입니다 — ' : '허용된 폴더 밖입니다(그 노드에서 허용해야 함) — ') + roots.map((r) => r.path || r).join(', '); }
+      if (e && ty.family === 'file') { const roots = A(e.file_roots), p = v.path; if (!roots.length) why = L0 ? '이 노드에 허용된 폴더가 없어 파일 자원을 만들 수 없습니다. 먼저 폴더를 허용하세요.' : '이 노드에 허용된 폴더가 없습니다. 그 노드의 SVI 창에서 폴더를 허용해야 합니다.'; else if (p && !roots.some((r) => { const q = String(r.path || r).replace(/[\\/]+$/, ''); return p === q || p.startsWith(q + '/') || p.startsWith(q + '\\'); })) why = (L0 ? '허용된 폴더 밖입니다 — ' : '허용된 폴더 밖입니다(그 노드에서 허용해야 함) — ') + roots.map((r) => r.path || r).join(', '); }
       if (e && ty.family === 'process') { const m = e.process || 'off'; if (m === 'off') why = '프로그램 자원은 닫혀 있습니다. 노드 설정 파일(svi.runtime.process)에서만 열 수 있고 재시작이 필요합니다 — 이 화면에서는 열지 않습니다.'; else if (m === 'allowlist' && v.command && !A(e.process_commands).includes(v.command)) why = '허용 목록 밖 프로그램입니다. 노드 설정 파일(svi.runtime.process_commands)에 추가해야 합니다.'; }
       if (e && ty.family === 'net') { if (e.net === false || e.net === 'off') why = '네트워크 자원은 닫혀 있습니다. 노드 설정 파일(svi.runtime.net)에서만 열 수 있고 재시작이 필요합니다 — 이 화면에서는 열지 않습니다.'; else if (A(e.net_endpoints).length && v.address && !A(e.net_endpoints).some((x) => String(x.address || x) === v.address)) why = '허용 목록 밖 주소입니다. 노드 설정 파일(svi.runtime.net_endpoints)에 추가해야 합니다.'; }
       o.envBad = !!why; o.envWhy = why;
       o.envFix = !!why && ty.family === 'file' && L0 && !this.state.envDlg; o.envFixT = '폴더 허용…'; o.envFixGo = () => this.envOpen('add', dirOf(v.path)); }
     o.exists = !!decls.find((d) => d.name === s.fname.trim()); o.replace = !!s.replace; o.onReplace = (e) => set({ replace: e.target.checked });
-    o.makeOff = s.busy || lockMod || (R && !this.rid()) || (R && o.envBad); o.makeT = lockMod ? '만들기 — 코어 대기' : s.busy ? '만드는 중…' : o.envBad && R ? '만들 수 없음 — 울타리 밖' : '자원 만들기';
+    o.makeOff = s.busy || lockMod || !!ty.closed || (R && !this.rid()) || (R && o.envBad); o.makeT = lockMod ? '만들기 — Terra 미지원' : ty.closed ? '만들 수 없음 — ' + ty.closed : s.busy ? '만드는 중…' : o.envBad && R ? '만들 수 없음 — 울타리 밖' : '자원 만들기';
     o.makeApi = lockMod ? '모듈 유형 → 모듈 어댑터 경로 : Terra 미지원' : 'svi.declarations.post · ' + (this.props.nodeName || '');
-    o.submit = (e) => { if (e && e.preventDefault) e.preventDefault(); if (lockMod || (R && o.envBad)) return; const nm = s.fname.trim(), er = check(ty.schema, nm, s.vals); if (Object.keys(er).length) { set({ tried: true, msg: '값 확인 — ' + Object.values(er)[0] }); return; }
+    o.submit = (e) => { if (e && e.preventDefault) e.preventDefault(); if (lockMod || ty.closed || (R && o.envBad)) return; const nm = s.fname.trim(), er = check(ty.schema, nm, s.vals); if (Object.keys(er).length) { set({ tried: true, msg: '값 확인 — ' + Object.values(er)[0] }); return; }
       if (o.exists && !s.replace) { set({ msg: nm + ' — 같은 이름 있음 · 교체 : 아래 칸 켬' }); return; }
       const v = castOf(ty.schema, s.vals), inp = { family: ty.family, name: nm, direction: v.direction || 'source' };
-      if (ty.family === 'file') inp.path = v.path; if (ty.family === 'process') { inp.command = v.command; if (v.args && v.args.length) inp.args = v.args; } if (ty.family === 'net') { inp.address = v.address; inp.mode = v.mode || 'connect'; inp.framing = v.framing || 'chunk'; } if (s.replace) inp.replace = true;
+      if (ty.fromNode) Object.assign(inp, v);   // 노드가 알려 준 내장 유형 — 칸이 선언 입력 그대로(평평하게)
+      else if (ty.family === 'file') inp.path = v.path; if (!ty.fromNode && ty.family === 'process') { inp.command = v.command; if (v.args && v.args.length) inp.args = v.args; } if (!ty.fromNode && ty.family === 'net') { inp.address = v.address; inp.mode = v.mode || 'connect'; inp.framing = v.framing || 'chunk'; } if (s.replace) inp.replace = true;
       this.act(nm + ' 만들기', () => window.TerraSviMake.declare(this.rid(), inp), (d) => { d.decls = d.decls.filter((x) => x.name !== nm).concat({ family: ty.family, name: nm, dir: inp.direction, resId: 'r-' + nm, origin: 'runtime', state: o.envBad ? 'refused_by_policy' : 'applied', reason: o.envBad ? 'SVI_DECLARATION_OUTSIDE_ENVELOPE — ' + o.envWhy : '', detail: inp.path || inp.command || inp.address });
         if (!o.envBad) d.eps.push({ resId: 'r-' + nm, resName: nm, node: 'nd_' + (this.props.nodeName || 'desk'), epId: inp.direction === 'sink' ? 'in' : 'out', dir: inp.direction, interaction: 'stream', schema: 'terra.bytes@1', status: 'available', ops: [] }); return d; });
       set({ fname: '', vals: {}, tried: false, replace: false }); };
