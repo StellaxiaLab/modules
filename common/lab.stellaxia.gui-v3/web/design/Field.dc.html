@@ -473,9 +473,10 @@ class Component extends DCLogic {
   //   기능 — 실행 파일(exec: 'ctl' 제어기 · 'starmaker' …) · 심볼릭 링크(link: '@go' 이동 · '@map' 지도에서 보기 · '@stat' 상태 · '@net' 네트워크 속성 · '@conf' 설정 · '@node:<id>' 다른 노드)
   //   파일 내용으로 종류를 안다 — { type: 'terra.sphere' } = 구 데이터(◍). mount 디렉토리는 바깥 저장소를 그대로 비춘다(star = 스타메이커 보관함)
   vfs() {
-    // 노드가 저장한 파일(프로필 등 — 설정 창이 'terra.fs' 에 쓴다)도 트리에 얹는다. 그 내용이 바뀌면 다시 만든다
-    let FS = { nodes: {} }, fsRaw = ''; try { fsRaw = localStorage.getItem('terra.fs') || ''; const v = JSON.parse(fsRaw || 'null'); if (v && v.nodes) FS = v; } catch (e) {}
-    const MD = this.mapData(), key = MD.all.length + ':' + (MD.root && MD.root.name) + ':' + fsRaw.length + ':' + fsRaw.slice(-40);
+    // 노드가 저장한 파일(프로필 · 스킨)도 트리에 얹는다 — 받아 둔 그 노드의 속성표로(여기서 노드를 두드리지 않는다). 그 내용이 바뀌면 다시 만든다
+    const MD = this.mapData(), TF = this.TN(), FS = { nodes: {} };
+    if (TF) for (const n of MD.all) { const props = TF.peekProps(n.id); if (!props) continue; const files = {}; for (const r of [props.profile && props.profile.image, props.skin && props.skin.file]) if (r && r.startsWith('/데이터/')) files[r.slice(5)] = {}; FS.nodes[n.id] = { props, files }; }
+    const fsRaw = JSON.stringify(FS.nodes), key = MD.all.length + ':' + (MD.root && MD.root.name) + ':' + fsRaw.length + ':' + fsRaw.slice(-40);
     if (!this._fsEv) { this._fsEv = () => { this._vfs = null; this._ctlTree = null; this.layout(); }; try { window.addEventListener('terra-fs', this._fsEv); } catch (e) {} }   // 설정 창이 파일을 저장하면 목록을 바로 다시
     if (this._vfs && this._vfs.key === key) return this._vfs;
     const dir = (name, kids, extra) => Object.assign({ name, type: 'dir', kids: kids || [] }, extra || {}), file = (name, data) => ({ name, type: 'file', data: data || null });
@@ -522,7 +523,7 @@ class Component extends DCLogic {
     const MD = this.mapData();
     return this.vfsList(it.ent).map((e) => { const nd = this.vfsNodeOf(e), node = nd ? MD.byId[nd.id] || it.node : it.node, sph = e.type === 'file' && e.data && e.data.type === 'terra.sphere';
       return { id: it.id + '/' + e.name, name: e.name, type: e.type, ent: e, node, isNode: !!nd, sid: sph ? e.data.id : null, sph,
-        more: sph ? (e.data.kind === 'planet' ? '행성' : '항성') : e.data && e.data.type === 'terra.file' ? Math.max(1, Math.round((e.data.size || 0) / 1024)) + 'KB' : e.data && e.data.type === 'terra.props' ? '속성' : e.type === 'link' && e.target.startsWith('@node:') ? '→ 자원' : e.type === 'mod' ? this.modMore(e.mod) : e.modsNode ? this.modsMore(e.modsNode) : '' }; });
+        more: sph ? (e.data.kind === 'planet' ? '행성' : '항성') : e.data && e.data.type === 'terra.file' ? '파일' : e.data && e.data.type === 'terra.props' ? '속성' : e.type === 'link' && e.target.startsWith('@node:') ? '→ 자원' : e.type === 'mod' ? this.modMore(e.mod) : e.modsNode ? this.modsMore(e.modsNode) : '' }; });
   }
   // ───── 모듈 자원화 — 노드 폴더 › 모듈 ─────
   //   노드마다 설치된 모듈(terra.daemon.modules.get · 다른 노드는 cluster 범위). 화면이 있는 모듈은 contributions.gui.apps(static · proxied · window)

@@ -11,6 +11,22 @@
 // 전송(transport)은 갈아 끼운다: window.TerraTransport 가 있으면 그것(웹 빌드 — Gateway), 없으면 목업(캔버스 — 노드 쪽 값을 이 브라우저에 두고 지연 · 끊김을 흉내).
 //   transport = { kind, localId(), bindScene?(장면 로컬 id, 노드 메타들), meta?, invoke(nodeId, opId, input) → Promise<data> (실패: { code, status, retryable }), loadView?(key), saveView?(key, v), master?(nodeId, res) → Promise<data> }
 
+// 노드의 GUI 데이터(프로필 그림 · 스킨 구 파일 · 그 경로를 적은 속성표)도 그 노드가 원본이다 — lab.stellaxia.gui-v3 백엔드가 그 노드의 모듈 데이터에 둔다.
+//   쓰기: 그 노드를 먼저 고치고, 성공해야 사본을 바꾼다(낙관 없음). 끊겼으면 하지 않는다. 읽기: 속성표는 자원 props, 파일은 blob() — 경로에 시각이 들어 있어 내용이 바뀌지 않으므로 한 번 받으면 끝(IndexedDB 에 남아 끊겨도 보인다)
+const NODE_OP = 'lab.stellaxia.gui-v3.node-', OP_PATCH = NODE_OP + 'props.patch', OP_GET = NODE_OP + 'files.get', OP_PUT = NODE_OP + 'files.put', OP_DEL = NODE_OP + 'files.delete';
+const DATA_DIR = '/데이터/', READ_STEP = 480 * 1024, WRITE_STEP = 640 * 1024, BLOB_KEEP = 24, BLOB_RETRY = 30000;   // 읽기 조각 — 다른 노드 응답 상한(768 KiB) 안, 3 의 배수라 base64 를 그대로 잇는다
+const safeFile = (s, d) => String(s || d).replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '_').replace(/^\.+/, '_').slice(0, 100) || d;
+const bytesOf = (b64) => { const bin = atob(b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; };
+const b64Of = (u8) => { let bin = ''; for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(bin); };
+const IDB = {   // 파일 사본 — localStorage 에는 너무 크다. 안 되는 환경이면 조용히 메모리만
+  db: null,
+  open() { if (this.db) return this.db; return (this.db = new Promise((ok, no) => { const q = indexedDB.open('terra.node-blobs', 1); q.onupgradeneeded = () => q.result.createObjectStore('f'); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); })); },
+  async run(mode, f) { const db = await this.open(); return new Promise((ok, no) => { const tx = db.transaction('f', mode), q = f(tx.objectStore('f')); tx.oncomplete = () => ok(q.result); tx.onerror = () => no(tx.error); }); },
+  get(k) { return this.run('readonly', (s) => s.get(k)).catch(() => null); },
+  async put(k, v) { try { if (await this.run('readonly', (s) => s.count()) > 64) await this.run('readwrite', (s) => s.clear()); await this.run('readwrite', (s) => s.put(v, k)); } catch (e) {} },
+  clear() { return this.run('readwrite', (s) => s.clear()).catch(() => {}); },
+};
+
 const RES = {   // 자원 이름 → 읽기 operation · TTL(ms) · 끊겼을 때 Master 의 관측으로 대신할 길
   status:  { op: 'terra.daemon.status.get', ttl: 5000, master: 'terra.master.nodes.by-node-id.get' },
   config:  { op: 'terra.daemon.config.get', ttl: 60000 },
@@ -22,6 +38,7 @@ const RES = {   // 자원 이름 → 읽기 operation · TTL(ms) · 끊겼을 �
   wg:      { op: 'terra.daemon.wireguard.status.get', ttl: 15000 },
   tunnels: { op: 'terra.daemon.service-tunnels.get', ttl: 15000 },
   enroll:  { op: 'terra.daemon.enrollment.status.get', ttl: 60000 },
+  props:   { op: 'lab.stellaxia.gui-v3.node-props.get', ttl: 60000, retry: 60000 },   // 속성표 — 지도가 노드마다 읽으므로 드물게(끊긴 노드는 1분에 한 번)
   // 제어기(노드 데스크톱) 묶음 — 위 자원들을 한 화면 모양으로. 목업은 보드 씨앗, 웹 빌드 전송은 operation 여럿을 불러 묶는다(desk.js)
   desk:    { op: 'gui-v3.desk', ttl: 15000, compose: ['config', 'modules', 'offers', 'devices', 'tasks', 'svi', 'wg', 'tunnels', 'enroll'] }
 };
@@ -33,6 +50,7 @@ class NodeStore {
     this.t = transport; this.shapes = {}; this.subs = new Set(); this.inflight = new Map(); this.links = new Map(); this.views = new Map();
     this.cache = new Map(Object.entries(LS.get('terra.cache') || {}));   // 새로 띄워도 마지막 사본이 남는다(끊긴 채 시작해도 보인다)
     this._saveT = 0;
+    this.blobs = new Map(); this.gen = 0;
   }
   key(n, r, inp) { return n + '|' + r + (inp ? '|' + JSON.stringify(inp) : ''); }   // 입력이 있는 읽기(모듈 로그 · 모듈 설정 스키마)는 입력마다 따로
   emit(n) { for (const f of this.subs) { try { f(n); } catch (e) {} } }
@@ -45,7 +63,7 @@ class NodeStore {
   /** 읽기 — 사본을 바로(EL). 없거나 낡았으면 뒤에서 받는다. 끊겼으면 사본(PA). o.input — 그 operation 의 입력(자원 이름 대신 op id 를 줄 때) */
   read(n, res, o = {}) {
     const R = RES[res] || { op: res, ttl: 15000 }, k = this.key(n, res, o.input), e = this.cache.get(k), now = Date.now(), age = e ? now - e.at : Infinity, L = this.link(n);
-    const wait = !o.force && ((L.state === 'offline' && L.retryAt > now) || (e && e.err && now - (e.errAt || 0) < 5000));   // 끊긴 노드 · 실패한 자원은 5초에 한 번만 다시 두드린다(그리기마다 부르지 않게)
+    const wait = !o.force && ((L.state === 'offline' && L.retryAt > now) || (e && e.err && now - (e.errAt || 0) < (e.err.code === 'UNAUTHENTICATED' ? 5000 : R.retry || 5000)));   // 끊긴 노드 · 실패한 자원은 5초에 한 번만 다시 두드린다(그리기마다 부르지 않게)
     if ((age > (o.ttl ?? R.ttl) || o.force) && !wait && !this.inflight.has(k)) this.refresh(n, res, o.input);
     return { data: e ? e.data : null, at: e ? e.at : 0, age, src: e ? e.src : '', stale: age > (o.ttl ?? R.ttl), loading: this.inflight.has(k), link: L, err: e && e.err };
   }
@@ -91,8 +109,71 @@ class NodeStore {
 
   /** 보낼 operation 이 없는 저장 전 초안 — 사본만 고친다(노드로 보내지 않는다 · 다음 받기에 노드 값으로 돌아온다) */
   draft(n, res, apply) { const k = this.key(n, res), e = this.cache.get(k); if (!e) return false; this.cache.set(k, Object.assign({}, e, { data: apply(e.data) })); this.emit(n); return true; }
+  /** 그 노드의 속성표 — 사본을 바로, 낡았으면 뒤에서 받는다. props 는 아직 모르면 null */
+  nodeProps(n) { const r = this.read(n, 'props'); return { props: (r.data && r.data.props) || null, at: r.at, link: r.link, loading: r.loading, err: r.err }; }
+  /** 받아 둔 속성표만 — 묻지 않는다(목록을 그릴 때 모든 노드를 두드리지 않게) */
+  peekProps(n) { const e = this.cache.get(this.key(n, 'props')); return (e && e.data && e.data.props) || null; }
+  /** 노드 파일 사본 { url(data:), mime } — 없으면 뒤에서 받고 null. 다 받으면 emit */
+  blob(n, rel) {
+    const k = n + '|' + rel, e = this.blobs.get(k);
+    if (e && e.url) return e;
+    if (!e || (!e.busy && Date.now() - e.errAt > BLOB_RETRY)) this.loadBlob(n, rel, k);
+    return null;
+  }
+  /** 파일을 글자로 (스킨 구 파일) */
+  blobText(n, rel) { const B = this.blob(n, rel); return B ? new TextDecoder().decode(bytesOf(B.url.slice(B.url.indexOf(',') + 1))) : ''; }
+  remember(k, mime, b64) { this.blobs.delete(k); this.blobs.set(k, { url: 'data:' + mime + ';base64,' + b64, mime }); for (const q of this.blobs.keys()) { if (this.blobs.size <= BLOB_KEEP) break; if (this.blobs.get(q).url) this.blobs.delete(q); else break; } }
+  async loadBlob(n, rel, k) {
+    const gen = this.gen; this.blobs.set(k, { busy: true, errAt: 0 });
+    try {
+      let v = await IDB.get(k);
+      if (!v) { v = await this.fetchBlob(n, rel); IDB.put(k, v); }
+      if (gen !== this.gen) return;
+      this.remember(k, v.mime, v.b64); this.emit(n);
+    } catch (err) { if (gen === this.gen) this.blobs.set(k, { busy: false, errAt: Date.now() }); }
+  }
+  async fetchBlob(n, rel) {
+    let off = 0, b64 = '', mime = '';
+    for (;;) {
+      const d = await this.t.invoke(n, OP_GET, { path: rel, offset: off, limit: READ_STEP }), s = d.data || '', pad = s.endsWith('==') ? 2 : s.endsWith('=') ? 1 : 0, got = s.length * 3 / 4 - pad;
+      b64 += s; mime = d.mime || mime; off += got;
+      if (!got || off >= d.size) return { mime, b64 };
+    }
+  }
+  /** 바꿀 수 있나 — 끊겼거나 닿지 않는 노드는 표시만 한다 */
+  canWrite(n) { const s = this.link(n).state; return s !== 'offline' && s !== 'far' && s !== 'none'; }
+  async putNodeFile(n, rel, u8, mime) {
+    let off = 0, retried = false;
+    while (off < u8.length) {
+      const chunk = u8.subarray(off, Math.min(u8.length, off + WRITE_STEP));
+      try { off = (await this.t.invoke(n, OP_PUT, { path: rel, mime, data: b64Of(chunk), offset: off, total: u8.length })).received; }
+      catch (e) { if (e && e.code === 'CHUNK_OUT_OF_ORDER' && !retried) { retried = true; off = 0; continue; } throw e; }
+    }
+  }
+  /** 속성 key 를 그 노드의 파일 하나로(file 이 null 이면 지운다) — 그 노드의 지금 값을 읽고 → 파일 → 속성표 → 사본 → 지난 파일. 어디서 실패하든 사본은 그대로 */
+  async setNodeFile(n, key, field, file) {
+    if (!this.canWrite(n)) throw { code: 'PARTITIONED', message: '노드와 끊김 — 표시만 되고 바꿀 수 없음' };
+    try {
+      const got = await this.t.invoke(n, RES.props.op, {}), cur = got && got.props && got.props[key], oldV = (cur && cur[field]) || '', old = oldV.startsWith(DATA_DIR) ? oldV.slice(DATA_DIR.length) : '';
+      if (file) await this.putNodeFile(n, file.rel, file.bytes, file.mime);
+      const r = await this.t.invoke(n, OP_PATCH, { set: { [key]: file ? { [field]: DATA_DIR + file.rel } : null } });
+      this.cache.set(this.key(n, 'props'), { data: r, at: Date.now(), src: this.isLocal(n) ? '로컬' : '노드' });
+      if (file) { const k = n + '|' + file.rel, v = { mime: file.mime, b64: b64Of(file.bytes) }; IDB.put(k, v); this.remember(k, v.mime, v.b64); }
+      if (old && (!file || old !== file.rel)) await this.t.invoke(n, OP_DEL, { path: old }).catch(() => {});
+      this.persist(); this.emit(n);
+      return r.props;
+    } catch (err) {
+      if (PARTITION.has(err && err.code)) this.setLink(n, { state: 'offline', code: err.code, retryAt: Date.now() + 5000 });
+      throw err;
+    }
+  }
+  /** 프로필 — f: { name, mime, data(data: URL) } · null = 지우기 */
+  setProfile(n, f) { return this.setNodeFile(n, 'profile', 'image', f ? { rel: 'profile/image/' + Date.now().toString(36) + '-' + safeFile(f.name, 'profile'), mime: f.mime, bytes: bytesOf(f.data.slice(f.data.indexOf(',') + 1)) } : null); }
+  /** 스킨 — 보관함의 구 파일을 그 노드로 복사한다. s: { id, text } · null = 기본 무늬 */
+  setSkin(n, s) { return this.setNodeFile(n, 'skin', 'file', s ? { rel: 'skin/' + safeFile(s.id, 'skin') + '-' + Date.now().toString(36) + '.json', mime: 'application/json', bytes: new TextEncoder().encode(s.text) } : null); }
+
   /** 비우기 — 로그아웃 때(다음 사람이 앞 사람의 사본을 보지 않게) */
-  clear() { this.cache.clear(); this.links.clear(); this.views.clear(); this.inflight.clear(); try { localStorage.removeItem('terra.cache'); } catch (e) {} for (const f of this.subs) { try { f(''); } catch (e) {} } }
+  clear() { this.cache.clear(); this.links.clear(); this.views.clear(); this.inflight.clear(); this.blobs.clear(); this.gen++; IDB.clear(); try { localStorage.removeItem('terra.cache'); } catch (e) {} for (const f of this.subs) { try { f(''); } catch (e) {} } }
   /** GUI 보기 상태 — 노드 키마다 (노드 데이터가 아니다) */
   view(key) { if (!this.views.has(key)) this.views.set(key, (this.t.loadView && this.t.loadView(key)) || LS.get('terra.view.' + key) || null); return this.views.get(key); }
   setView(key, v) { this.views.set(key, v); if (this.t.saveView) this.t.saveView(key, v); else LS.set('terra.view.' + key, v); }
@@ -118,13 +199,17 @@ class MockTransport {
   cut() { return new Set(LS.get('terra.mock.cut') || []); }
   setCut(n, on) { const s = this.cut(); if (on) s.add(n); else s.delete(n); LS.set('terra.mock.cut', [...s]); }
   resOf(op) { for (const r in RES) if (RES[r].op === op) return r; return null; }
-  nodeData(n, res) { const k = 'terra.mock.' + n + '.' + res; let v = LS.get(k); if (v == null && this.seeds[res]) { v = this.seeds[res](this.meta[n] || { id: n, name: n }); LS.set(k, v); } return v; }
+  nodeData(n, res) { const k = 'terra.mock.' + n + '.' + res; let v = LS.get(k); if (v == null && res === 'props') v = { props: {} }; if (v == null && this.seeds[res]) { v = this.seeds[res](this.meta[n] || { id: n, name: n }); LS.set(k, v); } return v; }
   invoke(n, op, input, o = {}) {
     const local = n === this._local, ms = local ? 40 + Math.random() * 50 : 160 + Math.random() * 360;
     return new Promise((ok, no) => setTimeout(() => {
       if (!local && this.cut().has(n)) return no({ code: 'NODE_OFFLINE', status: 409, retryable: true, message: 'target node is offline' });
-      const res = this.resOf(op);
+      const res = this.resOf(op), fk = 'terra.mock.' + n + '.file.' + (input && input.path);
       if (res) return ok(this.nodeData(n, res));
+      if (op === OP_PATCH) { const v = this.nodeData(n, 'props'); for (const k in input.set) { if (input.set[k] == null) delete v.props[k]; else v.props[k] = input.set[k]; } LS.set('terra.mock.' + n + '.props', v); return ok(v); }
+      if (op === OP_PUT) { const bin = (input.offset ? this._up || '' : '') + atob(input.data); this._up = bin; if (bin.length >= input.total) { this._up = ''; if (!LS.set(fk, { mime: input.mime, b64: btoa(bin) })) return no({ code: 'TOO_LARGE', message: '브라우저 저장 공간 부족' }); } return ok({ done: bin.length >= input.total, received: bin.length, total: input.total }); }
+      if (op === OP_GET) { const f = LS.get(fk); if (!f) return no({ code: 'NOT_FOUND', message: 'not found' }); return ok({ path: input.path, size: atob(f.b64).length, mime: f.mime, data: f.b64 }); }
+      if (op === OP_DEL) { try { localStorage.removeItem(fk); } catch (e) {} return ok({}); }
       // 쓰기 — 목업은 o.res 의 노드 쪽 값에 o.apply 를 그대로
       if (o.res && o.apply) { const k = 'terra.mock.' + n + '.' + o.res; LS.set(k, o.apply(this.nodeData(n, o.res))); }
       ok({ ok: true });

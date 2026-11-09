@@ -203,3 +203,28 @@ func TestFilesArePrivate(t *testing.T) {
 		t.Fatalf("mode = %v %v", err, info.Mode())
 	}
 }
+
+func TestSkinFile(t *testing.T) {
+	s := open(t, Limits{})
+	sphere := []byte(`{"type":"terra.sphere","surface":{"frames":[]}}`)
+	if _, err := s.Put("skin/mars-1.json", []byte(`{"type":"other"}`), ""); !errors.Is(err, ErrTypeDenied) {
+		t.Fatalf("not a sphere: %v", err)
+	}
+	if _, err := s.Put("profile/image/a.json", sphere, ""); !errors.Is(err, ErrTypeDenied) {
+		t.Fatalf("json outside skin/: %v", err)
+	}
+	e, err := s.Put("skin/mars-1.json", sphere, "application/json")
+	if err != nil || e.Mime != "application/json" {
+		t.Fatalf("put: %v %+v", err, e)
+	}
+	if _, err := s.Patch(map[string]any{"skin": map[string]any{"file": "/데이터/skin/none.json"}}, "/데이터"); !errors.Is(err, ErrInvalidProps) {
+		t.Fatalf("missing file: %v", err)
+	}
+	if _, err := s.Patch(map[string]any{"skin": map[string]any{"file": "/데이터/skin/mars-1.json"}}, "/데이터"); err != nil {
+		t.Fatal(err)
+	}
+	list, err := s.List(SkinDir)
+	if err != nil || len(list) != 1 || list[0].Mime != "application/json" {
+		t.Fatalf("list: %v %+v", err, list)
+	}
+}

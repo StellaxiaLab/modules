@@ -83,8 +83,8 @@ npm run gen:op-scope -- --terra <Terra 체크아웃> [--check]   # 원격 잠금
 
 | 시안 (localStorage) | 실제 | 클라이언트 |
 | --- | --- | --- |
-| `terra.fs` · `terra.fs.f.<노드 id>:<경로>` (프로필 · 노드 속성) | v3 백엔드 `lab.stellaxia.gui-v3.node-props.*` · `node-files.*` | `src/api/node-data.js` — `createNodeData(request, { nodeId })` |
-| `terra.skin` · `terra.star.index` · `terra.star.f.<id>` | 사용자 문서 `app:lab.stellaxia.gui-v3/{skin, star/…}` | (다음) |
+| 프로필 · 스킨 (노드의 값) | v3 백엔드 `lab.stellaxia.gui-v3.node-props.*` · `node-files.*` — 그 노드에 | 보드 `TerraNodes`(`nodeProps` · `blob` · `setProfile` · `setSkin`). 시안은 목업 전송 — `docs/design/node-owned-data.md` |
+| `terra.star.index` · `terra.star.f.<id>` (스타메이커 보관함) | (아직 이 브라우저) 스킨을 적용하면 구 파일이 그 노드로 복사된다 | (다음) |
 | 설정 창의 노드 설정 값 (창 안에서만) | `terra.daemon.config.{get, schema.get, patch}` · `POST /restart` | `src/api/terra.js` — `createTerra().invoke(id, input, { node })` |
 | 제어기 · 자원 창의 버튼 (시안 데이터) | Daemon · Master operation, 원격이면 `nodes/{node}/operations` | 같은 클라이언트 — 원격 잠금은 `canRemote(id)`(`op-scope.json`) |
 

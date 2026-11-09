@@ -67,9 +67,9 @@ flowchart LR
 | 일 | 맡는 곳 | 이유 |
 | --- | --- | --- |
 | 노드 설정 읽기 · 쓰기 | 화면 → 코어 `terra.daemon.config.*` | 권한(`node.config`)이 사람에게 붙어 있어야 한다. 백엔드가 대신 쓰면 v3 operation 권한만 가진 사람이 노드 설정을 바꾸게 된다(권한 세탁) |
-| 사용자 취향 (표시 · 뷰 · 스킨 · 스타메이커 보관함) | 화면 → 사용자 문서 `app:lab.stellaxia.gui-v3/…` | 사람을 따라가야 한다. 노드에 둘 이유가 없다 |
+| 사용자 취향 (표시 · 뷰 · 스타메이커 보관함) | 화면 → 사용자 문서 `app:lab.stellaxia.gui-v3/…` | 사람을 따라가야 한다. 노드에 둘 이유가 없다 |
 | 이 기기 설정 (성능 · 글자 크기 · 도움말) | 화면 → localStorage | 기기마다 다르다 |
-| **노드에 붙는 GUI 데이터 (프로필 · 노드 속성)** | **v3 백엔드 → 모듈 데이터 영역** | 그 노드를 보는 모두에게 같아야 하고, 코어에는 GUI가 노드에 파일을 쓰는 길이 없다 |
+| **노드에 붙는 GUI 데이터 (프로필 · 스킨 · 노드 속성) — [[node-owned-data]]** | **v3 백엔드 → 모듈 데이터 영역** | 그 노드를 보는 모두에게 같아야 하고, 코어에는 GUI가 노드에 파일을 쓰는 길이 없다 |
 | 상태 창 집계 (2차) | v3 백엔드 (코어 읽기 op를 모아 한 번에) | 화면이 여러 op를 매초 부르는 대신 한 번 — 단, 읽기 op만 `coreOperations`에 선언 |
 
 ## 4. 매니페스트 변경안
@@ -103,7 +103,7 @@ flowchart LR
 ```
 
 - `coreOperations`는 1차에 두지 않는다. 상태 집계(2차)를 할 때 읽기 op만 더한다.
-- GUI 앱 기여(`contributions.gui.apps[]`)를 만들 때 `permissions`에 화면이 직접 부르는 것(`node.read` · `node.config` · `session.identity`)과 v3 계약 권한(`gui-v3.view` · `gui-v3.customize`)을 함께 적는다.
+- GUI 앱 기여(`contributions.gui.apps[]`)를 만들 때 `permissions`에 화면이 직접 부르는 것(`node.read` · `node.config` · `session.identity`)과 v3 계약 권한(`node.read` · `node.control`)을 함께 적는다.
 - 1차에서 적용했다 — 실제 내용은 모듈의 `module.json`(위 안에 `configuration.schema`(`maxFileMB` · `maxTotalMB`)와 `update`가 더해졌다). 바이너리는 `tools/build-modules.mjs`가 `bin/<타깃>/`에 굽는다.
 
 ## 5. API 계약 초안 (`lab.stellaxia.gui-v3.api`)
@@ -113,12 +113,12 @@ flowchart LR
 | operation | 바인딩 | 권한 | 위험 | 내용 |
 | --- | --- | --- | --- | --- |
 | `lab.stellaxia.gui-v3.status.get` | `GET /status` | — | read | readiness · 버전 · 사용량 · 한도(파일 · 전체 · 청크) |
-| `lab.stellaxia.gui-v3.node-props.get` | `GET /node/props` | `gui-v3.view` | read | `properties.json` 전체 (예: `{profile:{image:"/데이터/profile/image/me.gif"}}`) |
-| `lab.stellaxia.gui-v3.node-props.patch` | `PATCH /node/props` `{set}` | `gui-v3.customize` | write | 키 단위로 바꾸기 · 지우기(`null`). 전부 적용되거나 전부 안 됨. `profile.image`는 저장된 그림을 가리켜야 한다 |
-| `lab.stellaxia.gui-v3.node-files.list` | `GET /node/files?dir=` | `gui-v3.view` | read | 상대 경로 · 크기 · 형식 · 시각 |
-| `lab.stellaxia.gui-v3.node-files.get` | `GET /node/files/content?path=` | `gui-v3.view` | read | 파일 내용 (base64) |
-| `lab.stellaxia.gui-v3.node-files.put` | `PUT /node/files/content` `{path, mime, data, offset, total}` | `gui-v3.customize` | write | 올리기 — 청크 한 개는 원시 640 KiB까지(Gateway가 본문을 1 MiB에서 자른다), 더 크면 `offset`을 이어 가며 여러 번. 마지막 청크에서 형식을 판별해 저장 |
-| `lab.stellaxia.gui-v3.node-files.delete` | `DELETE /node/files/content?path=` | `gui-v3.customize` | write | 지우기 |
+| `lab.stellaxia.gui-v3.node-props.get` | `GET /node/props` | `node.read` | read | `properties.json` 전체 (예: `{profile:{image:"/데이터/profile/image/me.gif"}}`) |
+| `lab.stellaxia.gui-v3.node-props.patch` | `PATCH /node/props` `{set}` | `node.control` | write | 키 단위로 바꾸기 · 지우기(`null`). 전부 적용되거나 전부 안 됨. `profile.image`는 저장된 그림을 가리켜야 한다 |
+| `lab.stellaxia.gui-v3.node-files.list` | `GET /node/files?dir=` | `node.read` | read | 상대 경로 · 크기 · 형식 · 시각 |
+| `lab.stellaxia.gui-v3.node-files.get` | `GET /node/files/content?path=` | `node.read` | read | 파일 내용 (base64) |
+| `lab.stellaxia.gui-v3.node-files.put` | `PUT /node/files/content` `{path, mime, data, offset, total}` | `node.control` | write | 올리기 — 청크 한 개는 원시 640 KiB까지(Gateway가 본문을 1 MiB에서 자른다), 더 크면 `offset`을 이어 가며 여러 번. 마지막 청크에서 형식을 판별해 저장 |
+| `lab.stellaxia.gui-v3.node-files.delete` | `DELETE /node/files/content?path=` | `node.control` | write | 지우기 |
 
 경로는 쿼리 · 본문으로 받는다(`io.terra.file`과 같은 방식) — 경로 안의 `/`가 바인딩 경로와 섞이지 않게.
 
@@ -126,8 +126,8 @@ flowchart LR
 
 | 권한 | 위험 | 뜻 |
 | --- | --- | --- |
-| `gui-v3.view` | read | 이 노드의 GUI 데이터(프로필 · 속성)를 본다 — 기본 권한 |
-| `gui-v3.customize` | write | 이 노드의 GUI 데이터를 바꾼다 — 노드 관리자에게 |
+| `node.read` | read | 이 노드의 GUI 데이터(프로필 · 속성)를 본다 — 기본 권한 |
+| `node.control` | write | 이 노드의 GUI 데이터를 바꾼다 — 다른 노드에서도 부른다 |
 
 프로필 바꾸기는 화면에서 두 번 부른다: `node-files.put profile/image/<파일>` → `node-props.patch {profile:{image:…}}` → 지난 파일 `node-files.delete`. 원자성이 필요하면 3차에 `profile.put` 하나로 묶는다.
 
@@ -159,7 +159,7 @@ $TERRA_MODULE_DATA_DIR/
 | --- | --- |
 | Q-B1 | `kind: scene` 그대로 프로세스 진입점을 더해도 되나, `service`로 바꿔야 하나 — 호스트 코드상 막는 곳은 없지만 선례가 없다. base Scene · Player 쪽이 `scene` kind만 Scene 후보로 보는지 확인 필요 |
 | Q-B2 | 백엔드 언어 — 참조 모듈은 모두 Go + `terra-sdk/modulesdk`. v3도 Go로 할지 |
-| Q-B3 | `gui-v3.customize`를 누구에게 주나 — 노드 관리자(`node.config`를 가진 사람)와 같게 할지, 따로 둘지 |
+| Q-B3 | 닫힘(2026-11-08) — 읽기 `node.read`, 쓰기 `node.control`. 까닭은 [[node-owned-data]] §2 |
 | Q-B4 | 2차 상태 집계에 쓸 코어 읽기 op 목록 (health · 이벤트 · 모듈 상태) |
 | Q-B5 | 사용자 문서 한 개의 크기 한도 — 스타메이커 구 파일(표면 그림)이 들어가는지. 안 되면 보관함도 v3 백엔드(사용자별 디렉터리)로 |
 

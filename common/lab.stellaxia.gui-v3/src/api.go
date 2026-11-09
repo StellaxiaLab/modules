@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/StellaxiaLab/modules/common/lab.stellaxia.gui-v3/nodedata"
@@ -26,6 +28,11 @@ const DataPrefix = "/데이터"
 // maxBodyBytes bounds a request body: one chunk, base64-encoded, plus room for
 // the JSON around it. The Gateway already cuts bodies at 1 MiB.
 const maxBodyBytes = nodedata.MaxChunkBytes*4/3 + 64<<10
+
+// maxReadBytes bounds one read of a file. The relay caps a remote answer at 768
+// KiB and base64 grows bytes by 4/3; it is a multiple of 3 so the pieces of a
+// long file join into one base64 string.
+const maxReadBytes = 480 << 10
 
 type apiError struct {
 	Code    string `json:"code"`
@@ -87,6 +94,35 @@ func decodeBody(w http.ResponseWriter, r *http.Request, limit int64, target any)
 		return false
 	}
 	return true
+}
+
+// readRange cuts data to the offset and limit the query asks for. Without a
+// limit it returns the whole file. Size in the answer stays the file's full
+// size, which is how a caller knows there is more.
+func readRange(q url.Values, data []byte) ([]byte, bool) {
+	if q.Get("limit") == "" {
+		return data, true
+	}
+	limit, err := strconv.Atoi(q.Get("limit"))
+	if err != nil || limit <= 0 {
+		return nil, false
+	}
+	offset := 0
+	if v := q.Get("offset"); v != "" {
+		if offset, err = strconv.Atoi(v); err != nil || offset < 0 {
+			return nil, false
+		}
+	}
+	if limit > maxReadBytes {
+		limit = maxReadBytes
+	}
+	if offset >= len(data) {
+		return []byte{}, true
+	}
+	if limit > len(data)-offset {
+		limit = len(data) - offset
+	}
+	return data[offset : offset+limit], true
 }
 
 func method(w http.ResponseWriter, r *http.Request, allowed ...string) bool {
@@ -195,6 +231,11 @@ func newAPI(store *nodedata.Store, version string) http.Handler {
 			data, entry, err := store.Get(r.URL.Query().Get("path"))
 			if err != nil {
 				writeStoreError(w, err)
+				return
+			}
+			var ok bool
+			if data, ok = readRange(r.URL.Query(), data); !ok {
+				writeAPIError(w, http.StatusBadRequest, "INVALID_REQUEST", "offset and limit must be whole numbers")
 				return
 			}
 			writeJSON(w, http.StatusOK, fileContent{Entry: entry, Data: base64.StdEncoding.EncodeToString(data)})
