@@ -28,7 +28,7 @@ import { createSviMake, moduleTypes } from '../api/svi-make.js';
 import { createSviEnvelope } from '../api/svi-envelope.js';
 import * as sviRead from '../api/svi-read.js';
 import * as sviView from '../api/svi-view.js';
-import { gate, gateAll, riskOf } from '../api/gates.js';
+import { gate, gateAll, riskOf, denyHint } from '../api/gates.js';
 import { dangerView } from '../api/danger-zone.js';
 import * as fileTransfer from '../api/file-transfer.js';
 import * as taskFollow from '../api/task-follow.js';
@@ -173,9 +173,9 @@ if (MODE !== 'demo') {
   }
   // 로그인 뒤 한 번 — 지도 · Tree 길 · 보기 상태 · 밀어 받기
   // 노드 데스크톱이 쓰는 것 — 실제 응답 → 보드 모양(desk-adapt) · 이 Gateway 의 앱 목록(모듈 › 앱 탭) · 다른 모듈 앱 열기(셸에 부탁)
-  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraCanRemote = canRemote; window.TerraPermissionsOf = permissionsOf; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology); window.TerraNetProps = createNetProps(terra, () => window.TerraTopology); window.TerraShells = createShells(terra, () => window.TerraTopology); window.TerraSviMake = createSviMake(terra, () => window.TerraTopology, () => window.TerraWho); window.TerraSviEnvelope = createSviEnvelope(terra, () => window.TerraTopology); window.TerraSviTypes = () => moduleTypes(window.TerraSviMods || []); window.TerraSviView = sviView; window.TerraSviWatch = sviView.createSviWatch(terra);   // 자원 상태 창 값 보기 — 형식 → 뷰어 · 구독(핸들 열기 → events, 지금은 위임 밖이라 문이 잠근다)   // 자원화 창 — 선언 · 허가 · 연결, 모듈이 내놓은 유형(contributions.svi.types — 코어 대기)   // 제어기의 노드 터미널(commands.execute · 이 노드에서만) · Terra 터미널(terra shell 낱말 → operation)   // 네트워크 속성 창 — 주소 · 광고 전송 · 노드 간 연결   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
+  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraCanRemote = canRemote; window.TerraPermissionsOf = permissionsOf; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology); window.TerraNetProps = createNetProps(terra, () => window.TerraTopology); window.TerraShells = createShells(terra, () => window.TerraTopology); window.TerraSviMake = createSviMake(terra, () => window.TerraTopology, () => window.TerraWho); window.TerraSviEnvelope = createSviEnvelope(terra, () => window.TerraTopology); window.TerraSviTypes = () => moduleTypes(window.TerraSviMods || []); window.TerraSviView = sviView; window.TerraSviWatch = sviView.createSviWatch(terra);   // 자원 상태 창 값 보기 — 형식 → 뷰어 · 구독(핸들 열기 → events, 지금은 위임 밖이라 문이 잠근다)   // SVI 창 — 선언 · 허가 · 연결, 모듈이 내놓은 유형(contributions.svi.types — 코어 대기)   // 제어기의 노드 터미널(commands.execute · 이 노드에서만) · Terra 터미널(terra shell 낱말 → operation)   // 네트워크 속성 창 — 주소 · 광고 전송 · 노드 간 연결   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
   // 문 — 코어가 앱 토큰에 열지 않은 단추를 잠그고 이유를 적는다(src/api/gates.js). 사람 권한은 whoami 로. 보드는 window.TerraGate 가 없으면(시안) 연다
-  window.TerraGate = (op, o = {}) => gate(op, Object.assign({ who: window.TerraWho }, o)); window.TerraGateAll = (ops, o = {}) => gateAll(ops, Object.assign({ who: window.TerraWho }, o)); window.TerraRisk = riskOf;
+  window.TerraGate = (op, o = {}) => gate(op, Object.assign({ who: window.TerraWho }, o)); window.TerraGateAll = (ops, o = {}) => gateAll(ops, Object.assign({ who: window.TerraWho }, o)); window.TerraRisk = riskOf; window.TerraDenyHint = denyHint;
   // 제어기의 파일 · 작업 · 밀어 받기 — 공유 폴더 내용 · 전송(io.terra.file), 작업 출력 따라가기(이 노드 SSE · 다른 노드 폴링), 바뀐 줄 찾기
   window.TerraFileTransfer = Object.assign({ create: (invoke) => fileTransfer.createFileTransfer({ invoke }) }, fileTransfer);
   window.TerraTaskFollow = Object.assign((n, taskId, onUpdate) => taskFollow.followTask({ taskId, onUpdate, sse: n === transport.localId() ? (op, i, h) => terra.sse(op, i, h) : null, poll: (i) => transport.invoke(n, 'terra.daemon.tasks.by-task-id.output.get', i) }), taskFollow);
@@ -184,7 +184,7 @@ if (MODE !== 'demo') {
   // 위험 영역 — 설정창 단추는 Scene 에 'danger' 이벤트만 보낸다(값을 싣지 않는다). 켜기 · 끄기는 Scene 의 /danger 확인 화면이 한다 — 이 페이지는 스위치 쓰기를 부르지 않는다(ADR-GW-012 §6.1)
   window.TerraDangerView = dangerView; if (MODE === 'app' && frame) window.TerraDangerAsk = () => { frame.emit('danger'); return true; };
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; })
-    .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = []; }));   // 자원화 유형을 내놓는 모듈(contributions.svi.types)
+    .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = []; }));   // SVI 유형을 내놓는 모듈(contributions.svi.types)
   // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50), 읽음 · 지우기는 window.TerraAlarmBook(src/api/alarms.js).
   //   바뀌면 'terra-alarms' 신호 — 알림 창 · 전역 틀 배지가 다시 그린다. 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
   const alarmSig = () => { try { window.dispatchEvent(new Event('terra-alarms')); } catch {} };

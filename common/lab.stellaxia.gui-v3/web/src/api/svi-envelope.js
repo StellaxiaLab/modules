@@ -78,5 +78,8 @@ export function createSviEnvelope(terra, topo) {
     remove: (rid, path) => { if (!local(rid)) return Promise.reject(Object.assign(new Error('이 노드에서만'), { code: 'LOCAL_ONLY' })); return terra.invoke(ENVELOPE_REMOVE_OP, { path }); },
     fsRoots: () => terra.invoke('terra.daemon.local-fs.roots.get', {}),
     fsEntries: (root, rel) => terra.invoke('terra.daemon.local-fs.entries.get', rel ? { root, path: rel, limit: 500 } : { root, limit: 500 }),
+    /** 그 노드의 공유 폴더(io.terra.file — 노드 데스크톱 파일 탐색기와 같은 길). 다른 노드면 Master 중계로 */
+    shareRoots: (rid) => terra.invoke('io.terra.file.roots.list', {}, local(rid) ? {} : { node: rid }),
+    shareEntries: (rid, root, rel) => terra.invoke('io.terra.file.entries.list', rel ? { root, path: rel } : { root }, local(rid) ? {} : { node: rid }),
   };
 }

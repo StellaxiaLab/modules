@@ -1,4 +1,4 @@
-// node --test — 자원화 창의 울타리 확장(ADR-GW-011 E3): 로컬/원격 분기 · 출처별 해제 · 확인 문구 · 오류 문구 · 만들기 양식의 "울타리 밖" 갱신
+// node --test — SVI 창의 울타리 확장(ADR-GW-011 E3): 로컬/원격 분기 · 출처별 해제 · 확인 문구 · 오류 문구 · 만들기 양식의 "울타리 밖" 갱신
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -16,7 +16,8 @@ const DECLS = [{ family: 'file', name: 'drop-log', dir: 'source', resId: 'r1', s
 const mk = (local = true, o = {}) => {
   const calls = [], data = { miss: [], envelope: ENV(), decls: DECLS.map((d) => ({ ...d })), retired: [], nodes: [], eps: [], grants: [], bindings: [] };
   const Env = { isLocal: () => local, add: async (rid, p) => { calls.push(['add', rid, p]); if (o.fail) throw o.fail; }, remove: async (rid, p) => { calls.push(['remove', rid, p]); if (o.fail) throw o.fail; },
-    fsRoots: async () => ({ roots: [{ name: 'home', path: '/home/u', readable: true }] }), fsEntries: async () => ({ entries: [{ name: 'proj', is_dir: true }, { name: 'a.txt', is_dir: false }] }) };
+    fsRoots: async () => ({ roots: [{ name: 'home', path: '/home/u', readable: true }] }), fsEntries: async () => ({ entries: [{ name: 'proj', is_dir: true }, { name: 'a.txt', is_dir: false }] }),
+    shareRoots: async (rid) => { calls.push(['shareRoots', rid]); return { roots: [{ name: 'media', path: '/srv/media', readable: true }] }; }, shareEntries: async (rid, root, rel) => { calls.push(['shareEntries', rid, root, rel]); return { entries: [{ name: 'cam.mp4', is_dir: false }] }; } };
   const win = { TerraSviMake: { load: async () => data }, TerraSviTypes: () => [], TerraSviEnvelope: Env,
     TerraDesk: { fileRoots: (d, k) => d.roots.map((r) => ({ id: k + ':' + r.name, kind: k, root: r.name, label: '로컬 · ' + r.name, path: r.path, locked: false })),
       fileEntries: (d, rel) => d.entries.map((e) => ({ name: e.name, path: rel ? rel + '/' + e.name : e.name, dir: !!e.is_dir, locked: false })) } };
@@ -113,13 +114,20 @@ test('허용된 폴더가 하나도 없으면 그 이유와 버튼을 보인다 
   } finally { done(); }
 });
 
-test('파일 고르기 — 폴더+파일을 보이고, 파일을 고르면 경로 칸이 채워진다. 다른 노드는 찾아보기 막힘', async () => {
+test('파일 고르기 — 폴더+파일을 보이고, 파일을 고르면 경로 칸이 채워진다. 다른 노드는 그 노드의 공유 폴더에서', async () => {
   let t = mk(true); try {
     const { c } = t; c.setState({ vals: {}, fname: 'n' }); let v = c.renderVals(); const f = v.fields.find((x) => x.isPath); assert.ok(f, '파일 유형의 경로 칸에 찾아보기'); assert.equal(f.browseOff, false);
     f.browse(); await tick(); v = c.renderVals(); assert.equal(v.dlgFile, true); assert.equal(v.dlgTitle, '파일 고르기');
     v.brRoots[0].pick(); await tick(); v = c.renderVals(); assert.deepEqual(v.brItems.map((i) => i.name), ['proj/', 'a.txt'], '파일도 보인다');
     v.brItems[1].pick(); v = c.renderVals(); assert.equal(v.dlgPath, '/home/u/a.txt'); assert.equal(v.dlgNextOff, false);
-    v.dlgUse(); v = c.renderVals(); assert.equal(v.dlgOn, false); assert.equal(c.state.vals.path, '/home/u/a.txt'); assert.equal(t.calls.length, 0, '고르기는 울타리를 바꾸지 않는다');
+    v.dlgUse(); v = c.renderVals(); assert.equal(v.dlgOn, false); assert.equal(c.state.vals.path, '/home/u/a.txt'); assert.equal(t.calls.filter((x) => x[0] === 'add' || x[0] === 'remove').length, 0, '고르기는 울타리를 바꾸지 않는다');
   } finally { t.done(); }
-  t = mk(false); try { t.c.setState({ vals: {}, fname: 'n' }); assert.equal(t.c.renderVals().fields.find((x) => x.isPath).browseOff, true); } finally { t.done(); }
+  t = mk(false); try {
+    const { c } = t; c.setState({ vals: {}, fname: 'n' }); let v = c.renderVals(); const f = v.fields.find((x) => x.isPath); assert.equal(f.browseOff, false, '다른 노드도 찾아보기');
+    f.browse(); await tick(); v = c.renderVals(); assert.deepEqual(v.brRoots.map((r) => r.label), ['로컬 · media'], '로컬 탐색 없이 공유 폴더만 (시험 모의는 같은 라벨 함수)');
+    assert.match(v.brNote, /로컬 탐색 : 이 노드만/);
+    v.brRoots[0].pick(); await tick(); v = c.renderVals(); assert.deepEqual(v.brItems.map((i) => i.name), ['cam.mp4']);
+    v.brItems[0].pick(); v = c.renderVals(); assert.equal(v.dlgPath, '/srv/media/cam.mp4');
+    assert.deepEqual(t.calls.filter((x) => x[0].startsWith('share')).map((x) => x[0]), ['shareRoots', 'shareEntries']);
+  } finally { t.done(); }
 });
