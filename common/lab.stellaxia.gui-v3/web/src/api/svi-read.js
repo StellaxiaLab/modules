@@ -46,7 +46,7 @@ export function grantRows(d, resourceId, names = new Map(), parent = '', now = D
   return arr(d, 'items', 'grants').filter((g) => g.resource_id === resourceId).map((g) => {
     const s = g.subject || { type: g.subject_type, id: g.subject_id }, node = s.type === 'node', me = !node && !!selfId && s.id === selfId;
     return { id: g.grant_id, who: node ? names.get(s.id) || s.id : me ? '나 · ' + s.id : s.id, type: node ? (s.id === parent ? 'Tree' : 'Leaf') : s.type === 'user' || !s.type ? '사람' : s.type, self: me,
-      perm: permOf(g.operations), ops: (g.operations || []).join(' · '), ttl: ttlText(g.expires_at, now), subject: s };
+      perm: permOf(g.operations), ops: (g.operations || []).join(' · '), ttl: ttlText(g.expires_at, now), subject: s, opList: (g.operations || []).slice(), ep: g.endpoint_id || '', exp: g.expires_at || null };
   });
 }
 
