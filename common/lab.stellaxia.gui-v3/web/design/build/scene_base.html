@@ -558,14 +558,16 @@ class Component extends DCLogic {
     const label = (o) => {
       const VW = Fr.w, VH = Fr.h, MG = 14;
       ctx.font = '500 10.5px GmarketSans, "Geist Mono", monospace'; ctx.textBaseline = 'middle';
-      let txt = o.p.name + ' ⁄', lx = o.x + o.r + 6, ly = o.y - o.r - 3;
+      const NM = this.nodeMark ? this.nodeMark(this.leafRids().get(o.p.name)) : null;   // 문제가 있는 리프 — 상태 글자까지
+      const sfx = NM ? ' ' + NM.t : '';
+      let txt = o.p.name + ' ⁄' + sfx, lx = o.x + o.r + 6, ly = o.y - o.r - 3;
       const outR = o.x - o.r > VW, outL = o.x + o.r < 0;
-      if (outR) txt = o.p.name + ' ▸'; else if (outL) txt = '◂ ' + o.p.name;
+      if (outR) txt = o.p.name + sfx + ' ▸'; else if (outL) txt = '◂ ' + o.p.name + sfx;
       const tw = ctx.measureText(txt).width;
       if (outR) lx = VW - MG - tw; else if (outL) lx = MG;
       lx = Math.min(VW - MG - tw, Math.max(MG, lx));
       ly = (outR || outL) ? Math.min(VH - MG, Math.max(MG, o.y)) : Math.min(VH - MG, Math.max(MG, ly));
-      ctx.fillStyle = tint || ('rgba(' + INK + ',' + (outR || outL ? 0.85 : 0.7) + ')');
+      ctx.fillStyle = tint || (NM ? 'rgba(' + NM.c + ',0.95)' : 'rgba(' + INK + ',' + (outR || outL ? 0.85 : 0.7) + ')');
       if (LW > 1) { ctx.save(); ctx.font = '700 12px GmarketSans, "Geist Mono", monospace'; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.min(8, LW * 0.5); ctx.lineJoin = 'round'; ctx.strokeText(txt, lx, ly); }
       ctx.fillText(txt, lx, ly);
       if (LW > 1) ctx.restore();
@@ -1348,9 +1350,10 @@ class Component extends DCLogic {
         }
       }
       if (part.labels && n.depth > 0 && (n.depth === 1 || r >= 4.5) && !entering) {
-        ctx.fillStyle = part.tint || ('rgba(' + INK + ',' + (n.depth === 1 ? 0.75 : 0.5) + ')');
-        if (LW > 1) { ctx.save(); ctx.font = '700 12px GmarketSans, "Geist Mono", monospace'; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.min(8, LW * 0.5); ctx.lineJoin = 'round'; ctx.strokeText(n.label + ' ⁄', q[0] + r + 7, q[1] - r - 4); }
-        ctx.fillText(n.label + ' ⁄', q[0] + r + 7, q[1] - r - 4);
+        const NM = this.nodeMark ? this.nodeMark(n.rid) : null, lbT = n.label + ' ⁄' + (NM ? ' ' + NM.t : '');   // 문제가 있는 노드는 상태 글자까지
+        ctx.fillStyle = part.tint || (NM ? 'rgba(' + NM.c + ',0.95)' : 'rgba(' + INK + ',' + (n.depth === 1 ? 0.75 : 0.5) + ')');
+        if (LW > 1) { ctx.save(); ctx.font = '700 12px GmarketSans, "Geist Mono", monospace'; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.min(8, LW * 0.5); ctx.lineJoin = 'round'; ctx.strokeText(lbT, q[0] + r + 7, q[1] - r - 4); }
+        ctx.fillText(lbT, q[0] + r + 7, q[1] - r - 4);
         if (LW > 1) ctx.restore();
       }
     }

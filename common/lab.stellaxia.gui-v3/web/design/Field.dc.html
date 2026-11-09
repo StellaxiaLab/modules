@@ -672,7 +672,7 @@ class Component extends DCLogic {
   ctlSync() { this._ctlWin = this.ctlTopW(); this._ctlAnim = this.ctlWins().some((W) => W.raf) || !!this._ctlDrag; }
   ctlFront(W) {
     W.z = this._ctlZ = (this._ctlZ || 0) + 1; W.wrap.style.zIndex = String(5 + W.z);
-    for (const V of this.ctlWins()) { const on = V === W, CH = V.wrap._chrome; V.wrap.style.borderColor = on ? 'rgba(70,160,108,0.75)' : 'rgba(70,160,108,0.3)'; if (CH) { CH.bar.style.background = V.see ? (on ? 'rgba(6,14,18,0.55)' : 'rgba(4,6,20,0.4)') : on ? 'rgba(6,14,18,0.98)' : 'rgba(4,6,20,0.98)'; CH.name.style.color = on ? 'rgb(214,244,222)' : 'rgb(140,170,150)'; CH.pr.style.color = on ? 'rgb(120,232,156)' : 'rgb(84,128,100)'; } }
+    for (const V of this.ctlWins()) { const on = V === W, CH = V.wrap._chrome; V.wrap.style.borderColor = on ? 'rgba(var(--t-line-rgb,70,160,108),0.75)' : 'rgba(var(--t-line-rgb,70,160,108),0.3)'; if (CH) { CH.bar.style.background = V.see ? (on ? 'rgba(var(--t-bg-rgb,6,14,18),0.55)' : 'rgba(var(--t-bg-rgb,4,6,20),0.4)') : on ? 'rgba(var(--t-bg-rgb,6,14,18),0.98)' : 'rgba(var(--t-bg-rgb,4,6,20),0.98)'; CH.name.style.color = on ? 'var(--t-text,rgb(214,244,222))' : 'var(--t-key,rgb(140,170,150))'; CH.pr.style.color = on ? 'var(--t-acc,rgb(120,232,156))' : 'var(--t-hint,rgb(134,171,149))'; } }
     this.ctlSync();
   }
   ctlOpenWin(node, Rr, kind, arg) {
@@ -700,7 +700,7 @@ class Component extends DCLogic {
     let R = Rr ? { ...Rr } : ent && ent.R ? { ...ent.R } : null;
     if (!R && Rr === undefined && this._popAt) { R = { w: BW, h: BH, x: Math.min(w - BW - 12, Math.max(vx0 + 12, this._popAt[0] + 40)), y: Math.min(h - BH - 12, Math.max(12, this._popAt[1] - 60)) }; }   // 우클릭에서 연 창 — 그 노드 가까이
     if (!R) { const sc = Math.min(1, (w - vx0) * 0.8 / BW, h * 0.84 / BH); R = { w: BW * sc, h: BH * sc }; R.x = vx0 + (w - vx0 - R.w) / 2 + nOpen * 28; R.y = (h - R.h) / 2 + nOpen * 24; }   // 새 창은 계단식으로 조금씩 비켜 놓는다
-    Object.assign(wrap.style, { display: 'block', position: 'absolute', overflow: 'hidden', boxSizing: 'border-box', background: SEE ? 'rgba(4,6,20,0.32)' : '#040614', backdropFilter: SEE ? 'brightness(0.32)' : 'none', webkitBackdropFilter: SEE ? 'brightness(0.32)' : 'none', border: '1px solid rgba(70,160,108,0.75)', borderRadius: '0', boxShadow: '0 0 0 1px rgba(2,3,10,.7), 0 22px 64px rgba(0,0,0,.6)', clipPath: 'inset(50%)', filter: 'brightness(0.38)', touchAction: 'none' });
+    Object.assign(wrap.style, { display: 'block', position: 'absolute', overflow: 'hidden', boxSizing: 'border-box', background: SEE ? 'rgba(var(--t-bg-rgb,4,6,20),var(--t-see-a,0.32))' : 'var(--t-bg,#040614)', backdropFilter: SEE ? 'var(--t-see-fx,brightness(0.32))' : 'none', webkitBackdropFilter: SEE ? 'var(--t-see-fx,brightness(0.32))' : 'none', border: '1px solid rgba(var(--t-line-rgb,70,160,108),0.75)', borderRadius: '0', boxShadow: '0 0 0 1px rgba(var(--t-halo-rgb,2,3,10),.7), 0 22px 64px rgba(0,0,0,.6)', clipPath: 'inset(50%)', filter: 'brightness(0.38)', touchAction: 'none' });
     Object.assign(body.style, { position: 'absolute', left: 0, top: T.TB + 'px', transformOrigin: '0 0' });
     const W = { slot: k, node, kind, arg: wArg, wrap, fr: body, body, R, tau: 0, dir: 1, raf: 0, max: null, z: 0 };
     WS[k] = W; wrap._W = W;
@@ -725,16 +725,16 @@ class Component extends DCLogic {
     const mk = (tag, st, txt) => { const el = document.createElement(tag); Object.assign(el.style, st || {}); if (txt != null) el.textContent = txt; return el; };
     const MONO = "'Geist Mono', GmarketSans, monospace", KR = "GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif";
     // 머리줄 — 전역 틀의 줄과 같은 말씨: '>_' · 노드 이름(볼드) · 종류 · 흐려지는 레거시 선 · 배율 · 글자 단추(_ 최소화 · □ 최대화 · × 닫기)
-    const bar = mk('div', { position: 'absolute', left: 0, right: 0, top: 0, height: T.TB + 'px', zIndex: 2, display: 'flex', alignItems: 'center', gap: '9px', padding: '0 4px 0 12px', boxSizing: 'border-box', background: 'rgba(4,6,20,0.98)', borderBottom: '1px solid rgba(70,160,108,0.32)', font: '500 12px ' + KR, color: 'rgb(112,156,128)', cursor: 'move', userSelect: 'none', whiteSpace: 'nowrap' });
+    const bar = mk('div', { position: 'absolute', left: 0, right: 0, top: 0, height: T.TB + 'px', zIndex: 2, display: 'flex', alignItems: 'center', gap: '9px', padding: '0 4px 0 12px', boxSizing: 'border-box', background: 'rgba(var(--t-bg-rgb,4,6,20),0.98)', borderBottom: '1px solid rgba(var(--t-line-rgb,70,160,108),0.32)', font: '500 12px ' + KR, color: 'var(--t-key,rgb(112,156,128))', cursor: 'move', userSelect: 'none', whiteSpace: 'nowrap' });
     bar.setAttribute('data-ctltitle', '1');
-    CH.pr = mk('span', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' }, '>_'); bar.appendChild(CH.pr);
-    CH.name = mk('span', { fontWeight: '700', color: 'rgb(214,244,222)', letterSpacing: '0.02em' }); bar.appendChild(CH.name);
-    CH.kind = mk('span', { color: 'rgb(112,156,128)' }, '제어기'); bar.appendChild(CH.kind);
-    bar.appendChild(mk('span', { flex: '1', minWidth: '12px', height: '1px', background: 'linear-gradient(90deg, rgba(70,160,108,0.5), rgba(70,160,108,0.06))' }));
-    const btn = (txt, label, fn, danger) => { const b = mk('button', { width: '28px', height: '22px', border: '0', padding: '0', background: 'transparent', color: 'rgb(112,156,128)', font: '600 13px ' + MONO, lineHeight: '22px', cursor: 'pointer', textAlign: 'center' }, txt);
+    CH.pr = mk('span', { font: '700 12px ' + MONO, color: 'var(--t-acc,rgb(120,232,156))' }, '>_'); bar.appendChild(CH.pr);
+    CH.name = mk('span', { fontWeight: '700', color: 'var(--t-text,rgb(214,244,222))', letterSpacing: '0.02em' }); bar.appendChild(CH.name);
+    CH.kind = mk('span', { color: 'var(--t-key,rgb(112,156,128))' }, '제어기'); bar.appendChild(CH.kind);
+    bar.appendChild(mk('span', { flex: '1', minWidth: '12px', height: '1px', background: 'linear-gradient(90deg, rgba(var(--t-line-rgb,70,160,108),0.5), rgba(var(--t-line-rgb,70,160,108),0.06))' }));
+    const btn = (txt, label, fn, danger) => { const b = mk('button', { width: '28px', height: '22px', border: '0', padding: '0', background: 'transparent', color: 'var(--t-key,rgb(112,156,128))', font: '600 13px ' + MONO, lineHeight: '22px', cursor: 'pointer', textAlign: 'center' }, txt);
       b.type = 'button'; b.setAttribute('aria-label', label); b.title = label;
-      b.addEventListener('pointerenter', () => { b.style.color = danger ? 'rgb(255,178,166)' : 'rgb(208,255,150)'; b.style.background = danger ? 'rgba(220,90,80,0.2)' : 'rgba(70,170,110,0.2)'; });
-      b.addEventListener('pointerleave', () => { b.style.color = 'rgb(112,156,128)'; b.style.background = 'transparent'; });
+      b.addEventListener('pointerenter', () => { b.style.color = danger ? 'var(--t-err2,rgb(255,178,166))' : 'var(--t-hi,rgb(208,255,150))'; b.style.background = danger ? 'rgba(var(--t-err-rgb,220,90,80),0.2)' : 'rgba(var(--t-tint-rgb,70,170,110),0.2)'; });
+      b.addEventListener('pointerleave', () => { b.style.color = 'var(--t-key,rgb(112,156,128))'; b.style.background = 'transparent'; });
       b.addEventListener('click', (e) => { e.stopPropagation(); const W = Wof(); if (W) fn(W); }); return b; };
     CH.zoom = btn('100%', '화면 배율 — 100% 로', (W) => this.ctlZoom(1, 0, W)); Object.assign(CH.zoom.style, { width: 'auto', padding: '0 6px', font: '500 11px ' + MONO, display: 'none' }); bar.appendChild(CH.zoom);
     bar.appendChild(btn('_', '최소화', (W) => this.ctlMin(W)));
@@ -742,7 +742,7 @@ class Component extends DCLogic {
     bar.appendChild(btn('×', '닫기', (W) => this.ctlX(W), true));
     wrap.appendChild(bar); CH.bar = bar;
     // 모서리 괄호 — 로고 강조와 같은 레거시 코너 (틀 선보다 밝게)
-    for (const [x, y] of [['left', 'top'], ['right', 'top'], ['left', 'bottom'], ['right', 'bottom']]) { const c = mk('div', { position: 'absolute', width: '10px', height: '10px', zIndex: 4, pointerEvents: 'none' }); c.style[x] = '-1px'; c.style[y] = '-1px'; const B = '1.5px solid rgb(110,236,156)'; c.style['border' + (y === 'top' ? 'Top' : 'Bottom')] = B; c.style['border' + (x === 'left' ? 'Left' : 'Right')] = B; wrap.appendChild(c); }
+    for (const [x, y] of [['left', 'top'], ['right', 'top'], ['left', 'bottom'], ['right', 'bottom']]) { const c = mk('div', { position: 'absolute', width: '10px', height: '10px', zIndex: 4, pointerEvents: 'none' }); c.style[x] = '-1px'; c.style[y] = '-1px'; const B = '1.5px solid var(--t-acc,rgb(110,236,156))'; c.style['border' + (y === 'top' ? 'Top' : 'Bottom')] = B; c.style['border' + (x === 'left' ? 'Left' : 'Right')] = B; wrap.appendChild(c); }
     // 끌기 — 머리줄(단추 빼고): 이동 · 가장자리 8곳: 크기(비율). 끄는 동안엔 화면(씬)의 마우스 피드백을 끈다
     CH.drag = (e, mode) => { const W2 = Wof(); if (!W2 || e.button !== 0) return; e.preventDefault(); this.ctlFront(W2); const sx = e.clientX, sy = e.clientY, R0 = { ...W2.R }; W2.body.style.pointerEvents = 'none'; this._ctlDrag = true; this._mouse = null; this.ctlSync();
       const mv = (ev) => { this._mouse = null; const dx = ev.clientX - sx, dy = ev.clientY - sy, A = this._w, B = this._h, v0 = this._ctrlX || 0, Rn = { ...R0 };
@@ -939,25 +939,25 @@ class Component extends DCLogic {
     if (!F) {
       const mk = (tag, st, txt) => { const el = document.createElement(tag); Object.assign(el.style, st || {}); if (txt != null) el.textContent = txt; return el; };
       const MONO = "'Geist Mono', GmarketSans, monospace", KR = "GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif";
-      const el = mk('div', { position: 'absolute', zIndex: 6, width: '360px', boxSizing: 'border-box', padding: '10px 12px 10px', background: 'rgba(4,6,20,0.96)', backdropFilter: 'brightness(0.32)', webkitBackdropFilter: 'brightness(0.32)', border: '1px solid rgba(70,160,108,0.5)', boxShadow: '0 18px 50px rgba(0,0,0,.55)', font: '500 12px ' + KR, color: 'rgb(112,156,128)', clipPath: 'inset(0 100% 0 0)', opacity: '0', transition: 'clip-path 220ms cubic-bezier(.2,.8,.2,1), opacity 160ms linear', pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '8px' });
+      const el = mk('div', { position: 'absolute', zIndex: 6, width: '360px', boxSizing: 'border-box', padding: '10px 12px 10px', background: 'rgba(var(--t-bg-rgb,4,6,20),0.96)', backdropFilter: 'brightness(0.32)', webkitBackdropFilter: 'brightness(0.32)', border: '1px solid rgba(var(--t-line-rgb,70,160,108),0.5)', boxShadow: '0 18px 50px rgba(0,0,0,.55)', font: '500 12px ' + KR, color: 'var(--t-key,rgb(112,156,128))', clipPath: 'inset(0 100% 0 0)', opacity: '0', transition: 'clip-path 220ms cubic-bezier(.2,.8,.2,1), opacity 160ms linear', pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '8px' });
       el.setAttribute('data-minfly', '1'); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '최소화 창 찾기');
       // 모서리 괄호 — 로고 강조와 같은 레거시 코너
-      for (const [l, t, b1, b2] of [['-1px', '-1px', 'Top', 'Left'], [null, '-1px', 'Top', 'Right'], ['-1px', null, 'Bottom', 'Left'], [null, null, 'Bottom', 'Right']]) { const c = mk('div', { position: 'absolute', width: '9px', height: '9px', pointerEvents: 'none' }); if (l) c.style.left = l; else c.style.right = '-1px'; if (t) c.style.top = t; else c.style.bottom = '-1px'; c.style['border' + b1] = '1.5px solid rgb(110,236,156)'; c.style['border' + b2] = '1.5px solid rgb(110,236,156)'; el.appendChild(c); }
+      for (const [l, t, b1, b2] of [['-1px', '-1px', 'Top', 'Left'], [null, '-1px', 'Top', 'Right'], ['-1px', null, 'Bottom', 'Left'], [null, null, 'Bottom', 'Right']]) { const c = mk('div', { position: 'absolute', width: '9px', height: '9px', pointerEvents: 'none' }); if (l) c.style.left = l; else c.style.right = '-1px'; if (t) c.style.top = t; else c.style.bottom = '-1px'; c.style['border' + b1] = '1.5px solid var(--t-acc,rgb(110,236,156))'; c.style['border' + b2] = '1.5px solid var(--t-acc,rgb(110,236,156))'; el.appendChild(c); }
       // 머리 — 구역 머리와 같은 꼴: 짧은 선 · 이름 · 남은 선 · 개수
       const hd = mk('div', { display: 'flex', alignItems: 'center', gap: '8px' });
-      hd.appendChild(mk('span', { width: '14px', height: '1px', background: 'rgba(70,160,108,0.85)' }));
-      hd.appendChild(mk('span', { color: 'rgb(120,232,156)', fontWeight: '700' }, '최소화 창'));
-      hd.appendChild(mk('span', { flex: '1', height: '1px', background: 'rgba(70,160,108,0.5)' }));
-      const cnt = mk('span', { font: '500 11px ' + MONO, color: 'rgb(84,128,100)' }); hd.appendChild(cnt);
-      const pin = mk('span', { font: '700 11px ' + MONO, color: 'rgb(208,255,150)', display: 'none' }, '고정'); hd.appendChild(pin);
+      hd.appendChild(mk('span', { width: '14px', height: '1px', background: 'rgba(var(--t-line-rgb,70,160,108),0.85)' }));
+      hd.appendChild(mk('span', { color: 'var(--t-acc,rgb(120,232,156))', fontWeight: '700' }, '최소화 창'));
+      hd.appendChild(mk('span', { flex: '1', height: '1px', background: 'rgba(var(--t-line-rgb,70,160,108),0.5)' }));
+      const cnt = mk('span', { font: '500 11px ' + MONO, color: 'var(--t-hint,rgb(134,171,149))' }); hd.appendChild(cnt);
+      const pin = mk('span', { font: '700 11px ' + MONO, color: 'var(--t-hi,rgb(208,255,150))', display: 'none' }, '고정'); hd.appendChild(pin);
       // 입력 칸 — 전역 틀 입력 줄과 같은 CLI 프롬프트: '>' + 글자 + 밑줄
-      const ir = mk('label', { display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(56,128,88,0.5)', padding: '2px 0 4px', cursor: 'text' });
-      ir.appendChild(mk('span', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' }, '>'));
-      const inp = mk('input', { flex: '1', minWidth: '0', border: '0', outline: 'none', background: 'transparent', font: '500 12px ' + KR, color: 'rgb(214,244,222)', caretColor: 'rgb(150,240,170)', padding: '0' });
+      const ir = mk('label', { display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(var(--t-line2-rgb,56,128,88),0.5)', padding: '2px 0 4px', cursor: 'text' });
+      ir.appendChild(mk('span', { font: '700 12px ' + MONO, color: 'var(--t-acc,rgb(120,232,156))' }, '>'));
+      const inp = mk('input', { flex: '1', minWidth: '0', border: '0', outline: 'none', background: 'transparent', font: '500 12px ' + KR, color: 'var(--t-text,rgb(214,244,222))', caretColor: 'var(--t-acc2,rgb(150,240,170))', padding: '0' });
       inp.type = 'text'; inp.placeholder = '노드 · 종류로 찾기'; inp.spellcheck = false; inp.autocomplete = 'off'; inp.setAttribute('aria-label', '최소화 창 찾기');
       ir.appendChild(inp);
       const list = mk('div', { display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: '320px', margin: '0 -6px' }); list.setAttribute('role', 'listbox');
-      const foot = mk('div', { font: '500 11px ' + MONO, color: 'rgb(84,128,100)' }, '↑↓ 고르기 · Enter 열기 · Esc 닫기'); foot.style.whiteSpace = 'nowrap';
+      const foot = mk('div', { font: '500 11px ' + MONO, color: 'var(--t-hint,rgb(134,171,149))' }, '↑↓ 고르기 · Enter 열기 · Esc 닫기'); foot.style.whiteSpace = 'nowrap';
       el.appendChild(hd); el.appendChild(ir); el.appendChild(list); el.appendChild(foot);
       F = this._fly = { el, inp, list, cnt, pin, open: false, sel: 0, hov: false, items: [] };
       el.addEventListener('pointerenter', () => { F.hov = true; }); el.addEventListener('pointerleave', () => { F.hov = false; F.leftAt = performance.now(); });
@@ -979,10 +979,10 @@ class Component extends DCLogic {
     const MONO = "'Geist Mono', GmarketSans, monospace", items = this.winFind(F.inp.value, 'min'), all = this.winFind('', 'min').length;
     F.items = items; F.sel = Math.max(0, Math.min(items.length - 1, F.sel)); F.cnt.textContent = items.length + ' / ' + all; F.pin.style.display = this._flyPin ? 'inline' : 'none';
     F.list.textContent = '';
-    if (!items.length) { const em = document.createElement('div'); Object.assign(em.style, { padding: '10px 6px', color: 'rgb(84,128,100)' }); em.textContent = all ? '맞는 창 없음' : '최소화 창 없음 — 머리줄 _ : 최소화'; F.list.appendChild(em); return; }
+    if (!items.length) { const em = document.createElement('div'); Object.assign(em.style, { padding: '10px 6px', color: 'var(--t-hint,rgb(134,171,149))' }); em.textContent = all ? '맞는 창 없음' : '최소화 창 없음 — 머리줄 _ : 최소화'; F.list.appendChild(em); return; }
     items.forEach((e, k) => {
       const row = document.createElement('div'), on = k === F.sel; row.setAttribute('role', 'option'); row.setAttribute('aria-selected', on ? 'true' : 'false');
-      Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 6px', cursor: 'pointer', background: on ? 'rgba(70,170,110,0.2)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 rgba(70,160,108,0.95)' : 'none' });
+      Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 6px', cursor: 'pointer', background: on ? 'rgba(var(--t-tint-rgb,70,170,110),0.2)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 rgba(var(--t-line-rgb,70,160,108),0.95)' : 'none' });
       const sp = (t, st) => { const s2 = document.createElement('span'); s2.textContent = t; Object.assign(s2.style, st); row.appendChild(s2); };
       sp('>_', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' });
       sp(e.node.name, { fontWeight: '700', color: on ? 'rgb(208,255,150)' : 'rgb(214,244,222)' });
@@ -1115,7 +1115,7 @@ class Component extends DCLogic {
   // 레거시 GUI 의 앞선(px) — 생성: 왼쪽 끝에서 오른쪽으로 legRate px/ms · 지우기: 오른쪽 끝에서 왼쪽으로 1.5배 빠르게
   legFront(e, now) { const L = this.TL(); if (!e.st) return -1e9; const el = now - e.st.at; if (e.st.dir === 'in') return el < 0 ? -1e9 : e.x0 + el * L.legRate; return e.x1 + 30 - el * L.legRate * 1.5; }
   // 초안 색 — 초록 바탕
-  COL() { return { head: [120, 232, 156], rule: [40, 96, 66], key: [112, 156, 128], val: [214, 244, 222], ok: [96, 226, 140], info: [140, 214, 196], mName: [214, 244, 222], mSign: [96, 226, 140], path: [168, 240, 186], sel: [208, 255, 150], hint: [84, 128, 100], lineC: 'rgba(70,160,108,0.85)', lineF: 'rgba(56,128,88,0.5)', lineFF: 'rgba(56,128,88,0.22)', dot: 'rgba(120,190,146,0.8)', fillB: 'rgb(208,255,150)', lineB: 'rgba(110,236,156,0.95)', fill: 'rgba(96,226,140,0.85)' }; }
+  COL() { return { head: [120, 232, 156], rule: [40, 96, 66], key: [112, 156, 128], val: [214, 244, 222], ok: [96, 226, 140], info: [140, 214, 196], mName: [214, 244, 222], mSign: [96, 226, 140], path: [168, 240, 186], sel: [208, 255, 150], hint: [134, 171, 149], lineC: 'rgba(70,160,108,0.85)', lineF: 'rgba(56,128,88,0.5)', lineFF: 'rgba(56,128,88,0.22)', dot: 'rgba(120,190,146,0.8)', fillB: 'rgb(208,255,150)', lineB: 'rgba(110,236,156,0.95)', fill: 'rgba(96,226,140,0.85)' }; }
   // 화면 너비(칸) — 넓은 글자는 2 · 맞춤 채우기
   dw(t) { return this.cellsOf(t).length; }
   pad(t, n) { const d = this.dw(t); return d >= n ? t : t + ' '.repeat(n - d); }

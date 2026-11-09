@@ -59,8 +59,8 @@ class Component extends DCLogic {
   }
   renderVals() {
     const R = this.real(), rid = this.props.nodeRid || '', I = R ? this.state.info : this.sample(), D = '—', S = this.state, kind = this.props.nodeKind || '노드';
-    const OK = '#60e28c', WARN = '#ffd27a', BAD = '#ff9c8c', DIM = '#709c80';
-    const note = R && !rid ? 'Terra 노드 목록에 없는 노드(시안 지도) — 값 없음' : R && !I ? '불러오는 중…' : I && I.miss && I.miss.length ? '읽지 못함 · ' + I.miss.join(' · ') + ' — 그 칸은 —' : '';
+    const OK = 'var(--t-ok,#60e28c)', WARN = 'var(--t-warn,#ffd27a)', BAD = 'var(--t-err2,#ff9c8c)', DIM = 'var(--t-key,#709c80)';
+    const note = R && !rid ? 'Terra 노드 목록에 없는 노드' : R && !I ? '이 노드 기록을 받는 중' : I && I.miss && I.miss.length ? I.miss.join(' · ') : '', bandK = R && !rid ? 'none' : R && !I ? 'load' : 'fail', bandSub = bandK === 'fail' ? '읽지 못한 칸은 — 로 표시' : '';
     const links = ((I && I.links) || []).map((l) => {
       const open = S.open === l.peerId, P = S.pair[l.peerId], col = l.ok ? OK : l.via.rtT === D ? DIM : WARN;
       const rows = [];
@@ -85,8 +85,8 @@ class Component extends DCLogic {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh',
       name: (I && I.name) || this.props.nodeName || D, kind, status: I ? I.status : D, stCol: I && /online/i.test(I.status) ? OK : I ? WARN : DIM,
       relayT: I ? (I.relay ? '연결됨' : '끊김') : D, relayCol: I && I.relay ? OK : BAD, gen: (I && I.gen) || D, epoch: (I && I.epoch) || D, reported: (I && I.reported) || D,
-      src: R ? 'Master · Daemon 보고' : '시안 값', noteOn: !!note, note,
-      addrs: ((I && I.addrs) || []).map((a) => ({ k: a.k, v: a.v, src: a.src || '', hint: a.hint || '', col: a.v === D ? '#4f6e5a' : '' })),
+      src: R ? 'Master · Daemon 보고' : '시안 값', noteOn: !!note, note, bandK, bandSub,
+      addrs: ((I && I.addrs) || []).map((a) => ({ k: a.k, v: a.v, src: a.src || '', hint: a.hint || '', col: a.v === D ? 'var(--t-key,#709c80)' : '' })),
       nat: (I && I.nat) || D, stun: (I && I.stun) || D,
       nets: (I && I.nets) || [], netSum: I && I.nets && I.nets.length ? I.nets.length + '개' : '배정 없음',
       caps, capSum: caps.length ? caps.length + '개' : '광고 없음',

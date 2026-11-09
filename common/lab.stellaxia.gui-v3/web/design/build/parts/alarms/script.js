@@ -79,16 +79,16 @@ class Component extends DCLogic {
     const fName = (ALARM_FILTERS.find((x) => x[0] === f) || [0, '전체'])[1], keys = shown.map(alarmKey), unShown = shown.filter((a) => !a.read).map(alarmKey);
     const note = R && !B ? '로그인 뒤에 수신 — 이 노드 Daemon 아직 안 읽음' : '';
     const items = shown.map((a) => ({
-      cls: a.read ? 'rd' : '', dot: a.read ? '○' : '●', dotCol: a.read ? '#4f6e5a' : a.sev === 'bad' ? '#ff9c8c' : '#96f0aa',
+      cls: a.read ? 'rd' : '', dot: a.read ? '○' : '●', dotCol: a.read ? 'var(--t-key,#709c80)' : a.sev === 'bad' ? 'var(--t-err2,#ff9c8c)' : 'var(--t-acc2,#96f0aa)',
       t: now - a.at < 86400000 ? hms(a.at) : ago(a.at), full: new Date(a.at).toLocaleString() + ' · ' + ago(a.at), g: a.g, c: a.c,
       kindT: a.kind === 'task' ? '작업' : a.kind === 'module' ? '모듈' : a.kind, kindCls: a.kind === 'module' ? 'md' : '', m: a.m, id: a.id || D,
       tgt: (a.kind === 'task' ? a.id : a.name || a.id) || D, goTip: a.kind === 'task' ? '읽음 · 제어기 › 작업 관리자 — ' + a.id : '읽음 · 모듈 상태 창 — ' + (a.name || a.id),
       go: () => this.go(a), readOff: a.read ? 'disabled' : null, read: () => B && B.read(a.key), clear: () => B && B.clear(a.key) }));
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.props.nodeName || D,
-      unread: C.unread, total: C.all, unCol: C.unread ? '#96f0aa' : '#4f6e5a',
+      unread: C.unread, total: C.all, unCol: C.unread ? 'var(--t-acc2,#96f0aa)' : 'var(--t-key,#709c80)',
       srcT: R ? '출처 : terra.daemon.tasks.get · modules.get · 갱신 : 10s + 밀어 받기 · 최근 50 · 읽음 : 이 브라우저만' : '시안 값 · diff() 모양 · 갱신 : 40s',
-      noteOn: !!note, note,
+      noteOn: !!note, note, bandK: 'load', bandSub: '',
       filters: ALARM_FILTERS.map(([k, nm]) => ({ name: nm, n: C[k], on: f === k ? 'true' : 'false', cls: f === k ? 'on' : '', pick: () => this.setState({ f: k, arm: false }) })),
       readT: f === 'all' ? '모두 읽음' : fName + ' 읽음', readOff: unShown.length ? null : 'disabled', readTip: '읽음 : ' + unShown.length + '개',
       readAll: () => B && B.read(f === 'all' ? '*' : unShown),

@@ -38,7 +38,7 @@ test('NodeNet 실제 — 줄을 펼치면 방향별 경로 · 거부 수, 후보
 test('NodeNet 실제 — Master 목록 밖 노드 · 아직 못 받음', () => real(() => {
   const C = Board();
   assert.match(new C({ nodeName: 'x' }).renderVals().note, /Terra 노드 목록에 없는 노드/);
-  const v = new C({ nodeName: 'desk', nodeRid: 'n-desk' }).renderVals(); assert.equal(v.note, '불러오는 중…'); assert.equal(v.addrs.length, 0);
+  const v = new C({ nodeName: 'desk', nodeRid: 'n-desk' }).renderVals(); assert.equal(v.note, '이 노드 기록을 받는 중'); assert.equal(v.addrs.length, 0);
 }));
 
 test('NodeNet 시안 — 실제 netProps 와 같은 칸 · 순서', () => {

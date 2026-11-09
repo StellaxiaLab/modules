@@ -11,49 +11,48 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
 <style>
-::selection{background:#e6eaf7;color:#070b1c}
+::selection{background:#e6eaf7;color:var(--t-sf,#070b1c)}
 @font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
 @font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
 @font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
 body{margin:0;background:transparent}
-.nn{scrollbar-width:thin;scrollbar-color:rgba(70,160,108,.4) transparent}
+.nn{scrollbar-width:thin;scrollbar-color:rgba(var(--t-line-rgb,70,160,108),.4) transparent}
 .nn-row{display:flex;align-items:center;gap:8px;min-height:20px;white-space:nowrap}
-.nn-p{color:#78e89c;font-weight:700}
-.nn-k{color:#709c80}
-.nn-v{color:#d6f4de;font-weight:700}
+.nn-p{color:var(--t-acc,#78e89c);font-weight:700}
+.nn-k{color:var(--t-key,#709c80)}
+.nn-v{color:var(--t-text,#d6f4de);font-weight:700}
 .nn-cut{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .nn-sel{user-select:all}
-.nn-h{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:#78e89c}
-.nn-hl{display:inline-block;width:14px;height:1px;background:rgba(70,160,108,.85);flex:none}
-.nn-hr{flex:1;height:1px;background:rgba(70,160,108,.45)}
-.nn-note{margin:6px 0 0;padding:3px 8px;border-left:2px solid #ffd27a;color:#ffd27a;white-space:normal}
+.nn-h{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:var(--t-acc,#78e89c)}
+.nn-hl{display:inline-block;width:14px;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.85);flex:none}
+.nn-hr{flex:1;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.45)}
 .nn-addr{display:grid;grid-template-columns:112px minmax(0,1fr) minmax(0,1.1fr);gap:10px;min-height:21px;align-items:center}
 .nn-addr .nn-v{font-weight:600}
-.nn-dim{color:#4f6e5a}
+.nn-dim{color:var(--t-key,#709c80)}
 .nn-net{display:grid;grid-template-columns:minmax(0,1fr) 110px 96px minmax(0,1fr) 96px;gap:10px;min-height:20px}
 .nn-cap{display:grid;grid-template-columns:76px 52px minmax(0,1fr) 54px 120px;gap:10px;min-height:20px;align-items:center}
-.nn-legend{color:#4f6e5a;margin:-2px 0 6px;white-space:normal}
+.nn-legend{color:var(--t-key,#709c80);margin:-2px 0 6px;white-space:normal}
 .nn-link{display:grid;grid-template-columns:14px minmax(0,1fr) 92px 74px 50px 88px;gap:10px;min-height:22px;align-items:center;width:100%;padding:0 4px;margin:0 -4px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.nn-link:hover{background:rgba(70,160,108,.12)}
-.nn-link:focus-visible{outline:1px solid #96f0aa;outline-offset:-1px}
-.nn-link[aria-expanded="true"]{background:rgba(70,160,108,.16)}
-.nn-det{margin:2px 0 8px 18px;padding:4px 0 4px 10px;border-left:1px solid rgba(70,160,108,.45)}
+.nn-link:hover{background:rgba(var(--t-line-rgb,70,160,108),.12)}
+.nn-link:focus-visible{outline:1px solid var(--t-acc2,#96f0aa);outline-offset:-1px}
+.nn-link[aria-expanded="true"]{background:rgba(var(--t-line-rgb,70,160,108),.16)}
+.nn-det{margin:2px 0 8px 18px;padding:4px 0 4px 10px;border-left:1px solid rgba(var(--t-line-rgb,70,160,108),.45)}
 .nn-dl{display:grid;grid-template-columns:86px minmax(0,1fr);gap:2px 10px}
 .nn-cand{display:grid;grid-template-columns:14px 92px 74px 50px minmax(0,1fr);gap:10px;min-height:20px}
-.nn-btn{padding:1px 8px;border:1px solid rgba(70,160,108,.6);background:transparent;color:#78e89c;font:inherit;cursor:pointer}
-.nn-btn:hover:not(:disabled){background:rgba(70,160,108,.18)}
-.nn-btn:focus-visible{outline:1px solid #96f0aa;outline-offset:1px}
+.nn-btn{padding:1px 8px;border:1px solid rgba(var(--t-line-rgb,70,160,108),.6);background:transparent;color:var(--t-acc,#78e89c);font:inherit;cursor:pointer}
+.nn-btn:hover:not(:disabled){background:rgba(var(--t-line-rgb,70,160,108),.18)}
+.nn-btn:focus-visible{outline:1px solid var(--t-acc2,#96f0aa);outline-offset:1px}
 .nn-btn:disabled{opacity:.4;cursor:default}
-.nn-gap{color:#709c80;white-space:normal;padding-left:12px;text-indent:-12px}
-.nn-cur{display:inline-block;width:7px;height:13px;background:#96f0aa;animation:nnb 1.06s steps(1) infinite}
+.nn-gap{color:var(--t-key,#709c80);white-space:normal;padding-left:12px;text-indent:-12px}
+.nn-cur{display:inline-block;width:7px;height:13px;background:var(--t-acc2,#96f0aa);animation:nnb 1.06s steps(1) infinite}
 @keyframes nnb{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.nn-cur{animation:none}}
 </style>
 </helmet>
-<div class="nn" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
+<div class="nn" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: var(--t-text,#d6f4de); font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
   <div class="nn-row"><span class="nn-p">&gt;</span><span>netprops</span><b class="nn-v nn-cut">{{name}}</b><span class="nn-k">{{kind}}</span><span style="flex: 1;"></span><span style="color: {{stCol}};">● {{status}}</span><span class="nn-k">·</span><span class="nn-k">중계</span><span style="color: {{relayCol}};">{{relayT}}</span></div>
   <div class="nn-row nn-k">세대 {{gen}} · 경로 그래프 {{epoch}} · WireGuard 보고 {{reported}} · {{src}}</div>
-  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="nn-note">{{note}}</div></sc-if>
+  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><dc-import name="StateBand" kind="{{bandK}}" head="{{note}}" sub="{{bandSub}}" hint-size="100%,32px"></dc-import></sc-if>
 
   <h3 class="nn-h"><span class="nn-hl"></span>주소<span class="nn-hr"></span><span class="nn-k">값 · 출처</span></h3>
   <sc-for list="{{addrs}}" as="a" hint-placeholder-count="9">
@@ -159,8 +158,8 @@ class Component extends DCLogic {
   }
   renderVals() {
     const R = this.real(), rid = this.props.nodeRid || '', I = R ? this.state.info : this.sample(), D = '—', S = this.state, kind = this.props.nodeKind || '노드';
-    const OK = '#60e28c', WARN = '#ffd27a', BAD = '#ff9c8c', DIM = '#709c80';
-    const note = R && !rid ? 'Terra 노드 목록에 없는 노드(시안 지도) — 값 없음' : R && !I ? '불러오는 중…' : I && I.miss && I.miss.length ? '읽지 못함 · ' + I.miss.join(' · ') + ' — 그 칸은 —' : '';
+    const OK = 'var(--t-ok,#60e28c)', WARN = 'var(--t-warn,#ffd27a)', BAD = 'var(--t-err2,#ff9c8c)', DIM = 'var(--t-key,#709c80)';
+    const note = R && !rid ? 'Terra 노드 목록에 없는 노드' : R && !I ? '이 노드 기록을 받는 중' : I && I.miss && I.miss.length ? I.miss.join(' · ') : '', bandK = R && !rid ? 'none' : R && !I ? 'load' : 'fail', bandSub = bandK === 'fail' ? '읽지 못한 칸은 — 로 표시' : '';
     const links = ((I && I.links) || []).map((l) => {
       const open = S.open === l.peerId, P = S.pair[l.peerId], col = l.ok ? OK : l.via.rtT === D ? DIM : WARN;
       const rows = [];
@@ -185,8 +184,8 @@ class Component extends DCLogic {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh',
       name: (I && I.name) || this.props.nodeName || D, kind, status: I ? I.status : D, stCol: I && /online/i.test(I.status) ? OK : I ? WARN : DIM,
       relayT: I ? (I.relay ? '연결됨' : '끊김') : D, relayCol: I && I.relay ? OK : BAD, gen: (I && I.gen) || D, epoch: (I && I.epoch) || D, reported: (I && I.reported) || D,
-      src: R ? 'Master · Daemon 보고' : '시안 값', noteOn: !!note, note,
-      addrs: ((I && I.addrs) || []).map((a) => ({ k: a.k, v: a.v, src: a.src || '', hint: a.hint || '', col: a.v === D ? '#4f6e5a' : '' })),
+      src: R ? 'Master · Daemon 보고' : '시안 값', noteOn: !!note, note, bandK, bandSub,
+      addrs: ((I && I.addrs) || []).map((a) => ({ k: a.k, v: a.v, src: a.src || '', hint: a.hint || '', col: a.v === D ? 'var(--t-key,#709c80)' : '' })),
       nat: (I && I.nat) || D, stun: (I && I.stun) || D,
       nets: (I && I.nets) || [], netSum: I && I.nets && I.nets.length ? I.nets.length + '개' : '배정 없음',
       caps, capSum: caps.length ? caps.length + '개' : '광고 없음',

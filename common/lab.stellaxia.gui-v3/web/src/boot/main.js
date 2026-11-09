@@ -12,7 +12,8 @@ import { useGpuField } from '../scene/scene-bridge.js';
 import { createTerra, canRemote, permissionsOf } from '../api/terra.js';
 import { createSession } from '../api/session.js';
 import { createGatewayTransport } from '../api/transport.js';
-import { loadTopology, loadTopologyState, nodeStats, fmtBytes } from '../api/topology.js';
+import { buildTopology, loadTopology, loadTopologyState, nodeStats, fmtBytes } from '../api/topology.js';
+import { createTheme } from '../ui/theme.js';
 import { startPush } from '../api/push.js';
 import { pickMode, connectApp } from '../api/mode.js';
 import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems } from '../api/host-secret.js';
@@ -33,6 +34,7 @@ import * as fileTransfer from '../api/file-transfer.js';
 import * as taskFollow from '../api/task-follow.js';
 import * as changes from '../api/changes.js';
 
+window.TerraTheme = createTheme({ root: document.documentElement, storage: (() => { try { return window.localStorage; } catch { return null; } })(), emit: () => window.dispatchEvent(new Event('terra-theme')) });   // 다크 · 라이트 — 이 브라우저의 보기 설정
 const q = new URLSearchParams(location.search), status = document.getElementById('status'), MODE = pickMode(q);
 const appReady = MODE === 'app' ? connectApp() : Promise.resolve(null);   // A 모드 — hello 는 가장 먼저(마운트가 이벤트 루프를 붙잡기 전에)
 let frame = null;
@@ -47,6 +49,7 @@ if (MODE !== 'demo') {
   session = createSession();
   // 자격 — B: 자격 핸들(Handle) · A: 셸이 준 앱 토큰(Bearer), 401 이면 셸에게 새로 받아 한 번 더
   terra = createTerra({ authorization: () => (MODE === 'shell' ? session.authorization() : null), token: () => (frame ? frame.token() : null), refresh: () => (frame ? frame.refresh() : Promise.resolve(undefined)) });
+  window.TerraTopology = buildTopology([], { rev: 'none' });   // 실제 모드의 첫 지도는 빈 지도 — 시안 지도(01 · 02 …)를 실제처럼 보이지 않는다. 받으면 바뀌고, 못 받으면 상단 줄이 '못 봤음'을 보인다
   transport = window.TerraTransport = createGatewayTransport({ terra, authed: () => (MODE === 'shell' ? !!session.handle : !!(frame && frame.token())), ns: () => (MODE === 'app' ? (frame && frame.appId) || 'lab.stellaxia.gui-v3.web' : 'gui-v3') });
   const L = boardDef('Login');
   if (L && !L.Logic.__terra) {
@@ -64,7 +67,7 @@ if (MODE !== 'demo') {
         if (!S.va || !S.vp || this._busy) return super.login();   // 빈 칸 안내는 시안 그대로
         this._busy = true; this.setState({ msg: '확인 중…' });
         session.login(S.va, S.vp)
-          .then(() => Promise.race([loadTopology(terra), new Promise((r) => setTimeout(() => r(null), 4000))]))   // 실제 지도 — 전환(워프) 전에 받아 둔다(4초 넘으면 시안 지도로 들어가고 오면 바꾼다)
+          .then(() => Promise.race([loadTopology(terra), new Promise((r) => setTimeout(() => r(null), 4000))]))   // 실제 지도 — 전환(워프) 전에 받아 둔다(4초 넘으면 빈 지도로 들어가고 오면 바꾼다)
           .then((topo) => { this._busy = false; if (window.TerraNodes) window.TerraNodes.clear(); if (topo) setTopology(topo); else loadTopology(terra).then((t) => t && setTopology(t)); afterLogin(); super.login(); },   // 로그인 전의 '로그인 전' 답은 지우고 새로   // 됐으면 시안의 전환(워프)
           (e) => { this._busy = false; this.setState({ msg: e.message || '로그인 실패' }); this.ripAt('login', [255, 120, 110]); });
       }
@@ -190,9 +193,11 @@ if (MODE !== 'demo') {
   //   window.TerraTopologyState = { state: 'ok'|'empty'|'error', error?, at } — 못 받았을 때 화면이 시안 지도를 실제처럼 두지 않고 "받지 못함 / 노드 없음"을 보일 신호('terra-topology-state' 이벤트도)
   const refreshTopology = () => loadTopologyState(terra).then((r) => {
     window.TerraTopologyState = { state: r.state, error: r.error || '', at: r.at }; try { window.dispatchEvent(new Event('terra-topology-state')); } catch {}
-    const t = r.topo; if (!t) return; if (t.records && window.TerraMetrics.ingest(t.records(), r.at) > 0) { try { window.dispatchEvent(new Event('terra-metrics')); } catch {} }   // 자원 추이 — 받은 하트비트 스냅샷을 노드마다 쌓는다(같은 하트비트는 하나로). 새 점이 없으면 알리지 않는다(다시 그릴 것이 없다)
+    const t = r.topo; if (!t) { if (r.state === 'empty' && window.TerraTopology.count) setTopology(buildTopology([], { rev: 'none' })); return; }   // 받았고 비었다 — 옛 노드를 지운다(못 받음이면 마지막 사본을 둔다)
+    if (t.records && window.TerraMetrics.ingest(t.records(), r.at) > 0) { try { window.dispatchEvent(new Event('terra-metrics')); } catch {} }   // 자원 추이 — 받은 하트비트 스냅샷을 노드마다 쌓는다(같은 하트비트는 하나로). 새 점이 없으면 알리지 않는다(다시 그릴 것이 없다)
     const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t);
   }, () => {});
+  window.TerraTopologyRetry = refreshTopology;   // 상단 줄의 '다시 시도'
   const TOPO_MS = 30000;   // 지도 · 대상 표 갱신 주기 — 탭이 보일 때만(숨겨진 탭은 Master 를 두드리지 않고, 다시 보이면 바로 한 번)
   window.TerraMetrics = createMetrics({ pollMs: TOPO_MS });   // 전역 틀 대상 표의 그래프 — 하트비트 스냅샷 점열(src/api/metrics.js). 실시간 지표 op 는 코어에 없다
   const topoTick = () => { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') refreshTopology(); };

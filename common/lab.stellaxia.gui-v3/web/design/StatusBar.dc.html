@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 상단 상태 줄</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.sb-btn{height:32px;min-width:32px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;background:transparent;color:var(--t-text,#d6f4de);border:1px solid rgba(var(--t-line-rgb,70,160,108),.6);font:inherit;cursor:pointer;white-space:nowrap}
+.sb-btn:hover{background:rgba(var(--t-tint-rgb,70,170,110),.18)}
+.sb-crumb{height:32px;padding:0 4px;background:transparent;border:0;color:var(--t-mut,#9cc4a8);font:inherit;cursor:pointer;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.sb-crumb:hover{color:var(--t-hi,#d0ff96)}
+.sb-crumb[aria-current]{color:var(--t-text,#d6f4de);font-weight:700;cursor:default}
+</style>
+</helmet>
+<sc-if value="{{on}}" hint-placeholder-val="{{ true }}">
+<div data-sb style="position: absolute; left: {{left}}px; right: 0; top: 0; height: 44px; box-sizing: border-box; padding: 0 12px; display: flex; align-items: center; gap: 12px; pointer-events: auto; background: rgba(var(--t-bg-rgb,4,6,20),.88); border-bottom: 1px solid rgba(var(--t-line-rgb,70,160,108),.6); color: var(--t-text,#d6f4de); font: 500 13px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace;">
+  <nav aria-label="지금 위치" style="display: flex; align-items: center; gap: 2px; min-width: 0; flex: 0 1 auto; overflow: hidden;">
+    <sc-for list="{{crumbs}}" as="c" hint-placeholder-count="2">
+      <sc-if value="{{c.sep}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="color: var(--t-key,#709c80);">›</span></sc-if>
+      <button type="button" class="sb-crumb" aria-current="{{c.cur}}" onClick="{{c.go}}" title="{{c.name}}">{{c.name}}</button>
+    </sc-for>
+  </nav>
+  <span role="status" style="display: inline-flex; align-items: center; gap: 6px; min-width: 0; flex: 0 1 auto; overflow: hidden; white-space: nowrap; color: var(--t-mut,#9cc4a8);"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; flex: none; background: {{dot}};"></span><span style="overflow: hidden; text-overflow: ellipsis;" title="{{stat}}">{{stat}}</span></span>
+  <sc-if value="{{barRetry}}" hint-placeholder-val="{{ false }}"><button type="button" class="sb-btn" onClick="{{retry}}">다시 시도</button></sc-if>
+  <span style="flex: 1 1 8px;"></span>
+  <button type="button" class="sb-btn" onClick="{{alarm}}" aria-label="{{alarmAria}}">알림<sc-if value="{{hasUnread}}" hint-placeholder-val="{{ false }}"><b style="color: var(--t-warn,#ffd27a);">{{unread}}</b></sc-if></button>
+  <button type="button" class="sb-btn" onClick="{{fly}}" aria-label="{{winAria}}">창<sc-if value="{{hasWins}}" hint-placeholder-val="{{ false }}"><b>{{wins}}</b></sc-if></button>
+  <button type="button" class="sb-btn" onClick="{{toggleTheme}}" aria-label="{{themeAria}}">{{themeT}}</button>
+  <span style="flex: none; white-space: nowrap; color: var(--t-mut,#9cc4a8);">{{who}}</span>
+  <button type="button" class="sb-btn" onClick="{{logout}}">로그아웃</button>
+</div>
+</sc-if>
+<sc-if value="{{cardOn}}" hint-placeholder-val="{{ false }}">
+  <div role="alert" data-sb style="position: fixed; left: {{left}}px; right: 0; top: 44px; bottom: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+    <div style="box-sizing: border-box; width: 400px; max-width: calc(100% - 32px); padding: 16px 18px; pointer-events: auto; background: var(--t-bg,#040614); border: 1px solid {{cardEdge}}; color: var(--t-text,#d6f4de); font: 500 13px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
+      <b style="color: {{cardEdge}}; display: block; margin-bottom: 4px;">{{head}}</b>
+      <span style="color: var(--t-mut,#9cc4a8); display: block; margin-bottom: 12px;">{{sub}}</span>
+      <sc-if value="{{canRetry}}" hint-placeholder-val="{{ false }}"><button type="button" class="sb-btn" onClick="{{retry}}">다시 시도</button></sc-if>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"on":{"editor":null,"default":true},"bar":{"editor":null},"$preview":{"width":1440,"height":44}}'>
+// 상단 상태 줄 — 전역 틀(왼쪽 1/4) 오른쪽 윗줄의 DOM. 글자 장 안의 전역 틀과 달리 눈에 늘 보이고 키보드로 닿는다
+//   real(window.TerraTopologyState · TerraTopology · TerraWho · TerraAlarms) · 시안(?demo · 캔버스) = '시안 데이터'
+//   지도를 못 받았을 때 빈 지도와 구분 — state 'error' 는 못 봤음, 'empty' 는 정말 없음
+//   다시 그리는 것은 글자가 바뀌었을 때만(폴링에 깜박이지 않게 setState 를 건너뛴다)
+const EVENTS = ['terra-topology-state', 'terra-alarms', 'terra-theme'];
+class Component extends DCLogic {
+  componentDidMount() {
+    this._redraw = () => { const v = this.readAll(), k = JSON.stringify(v); if (k !== this._k) { this._k = k; this.setState({ v }); } };
+    this._t = setInterval(() => { if (document.visibilityState !== 'hidden') this._redraw(); }, 1000);
+    for (const ev of EVENTS) window.addEventListener(ev, this._redraw);
+    this._redraw();
+  }
+  componentWillUnmount() { clearInterval(this._t); for (const ev of EVENTS) window.removeEventListener(ev, this._redraw); }
+  ago(at) { return window.TerraDesk ? window.TerraDesk.ago(new Date(at).toISOString()) : ''; }
+  readAll() {
+    const W = window, B = this.props.bar, real = !!W.TerraTransport, TS = W.TerraTopologyState || null, TP = W.TerraTopology || null;
+    if (TS && TS.state === 'ok') this._okAt = TS.at;
+    const recs = TP && TP.records ? TP.records() : [], n = recs.length, down = W.TerraNodeStats ? recs.filter((r) => W.TerraNodeStats(r).level === 'down').length : 0;
+    let stat, tone, card = '', head = '', sub = '';
+    if (!real) { stat = '시안 데이터'; tone = 'off'; }
+    else if (!TS) { stat = '지도 받는 중…'; tone = 'off'; }
+    else if (TS.state === 'error') { tone = 'err'; stat = '노드 목록 못 봤음' + (this._okAt ? ' · ' + this.ago(this._okAt) + ' 사본' : '');
+      if (!n) { card = 'err'; head = '노드 목록을 받지 못함'; sub = '빈 지도가 아니라 못 본 상태입니다. Master 연결과 권한을 확인한 뒤 다시 시도하세요. ' + (TS.error ? '(' + TS.error + ')' : ''); } }
+    else if (TS.state === 'empty') { tone = 'off'; stat = '노드 없음'; card = 'empty'; head = '이 Tree 에 노드 없음'; sub = '노드를 등록하면 여기에 나타납니다.'; }
+    else { tone = 'ok'; stat = '노드 ' + n + (down ? ' · 연결 안 됨 ' + down : '') + ' · ' + this.ago(TS.at); if (down) tone = 'warn'; }
+    return { crumbs: B ? B.crumbs() : [], left: B ? B.left() : 0, unread: B ? B.unread() : 0, wins: B ? B.wins() : 0, stat, tone, card, head, sub, who: real ? (W.TerraWho && W.TerraWho.principal) || '계정' : 'admin', canRetry: real && !!TS && TS.state === 'error', theme: W.TerraTheme ? W.TerraTheme.get() : 'dark' };
+  }
+  renderVals() {
+    const v = this.state.v || this.readAll(), B = this.props.bar, on = this.props.on ?? true, TN = { ok: 'var(--t-ok,#60e28c)', warn: 'var(--t-warn,#ffd27a)', err: 'var(--t-err2,#ff9c8c)', off: 'var(--t-off,#a6adb8)' };
+    const last = v.crumbs.length - 1, light = v.theme === 'light';
+    return Object.assign({}, v, { on, dot: TN[v.tone], cardOn: !!v.card && on, barRetry: v.canRetry && !v.card, cardEdge: v.card === 'err' ? TN.err : 'var(--t-line-c,#3f8f66)',
+      crumbs: v.crumbs.map((c, i) => ({ name: c.name, sep: i > 0, cur: i === last ? 'location' : undefined, go: () => { if (B && i !== last) B.go(c.id); } })),
+      hasUnread: v.unread > 0, hasWins: v.wins > 0, alarmAria: '알림 — 안 읽음 ' + v.unread, winAria: '최소화한 창 — ' + v.wins + '개',
+      themeT: light ? '다크' : '라이트', themeAria: light ? '다크 테마로' : '라이트 테마로',
+      alarm: () => B && B.alarm(), fly: () => B && B.fly(), logout: () => B && B.logout(),
+      retry: () => { if (window.TerraTopologyRetry) window.TerraTopologyRetry(); },
+      toggleTheme: () => { if (window.TerraTheme) window.TerraTheme.toggle(); } });
+  }
+}
+</script>
+</body>
+</html>

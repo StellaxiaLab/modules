@@ -82,7 +82,7 @@ class Component extends DCLogic {
     const S = this.state, R = this.route(), H = this.help(), busy = S.phase === 'send' || S.phase === 'ask';
     const DIR = { parent: ['부모 Tree', 'up'], child: ['자식 Tree', 'down'], sibling: ['형제 Tree', 'side'], far: ['다른 Tree', ''] }[R.dir] || ['Tree', ''];
     const state = R.needs ? 'resolve' : !R.reach ? 'unreach' : S.phase === 'done' ? 'done' : 'form';
-    const ST = { resolve: ['주소 모름', '#ffd27a'], unreach: ['닿지 않음', '#ff9c8c'], form: ['닿음', 'rgb(176,236,96)'], done: ['로그인됨', 'rgb(176,236,96)'] }[state];
+    const ST = { resolve: ['주소 모름', 'var(--t-warn,#ffd27a)'], unreach: ['닿지 않음', 'var(--t-err2,#ff9c8c)'], form: ['닿음', 'rgb(176,236,96)'], done: ['로그인됨', 'rgb(176,236,96)'] }[state];
     const O = {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', rootW: this.props.winW ? this.props.winW + 'px' : '100%', name: this.name(), wordCls: '', dirT: DIR[0], dirCls: DIR[1], stT: ST[0], stCol: ST[1],
       urlT: R.url || (R.needs ? '— 그 Tree 에 물어야 함' : '— 알려진 주소 없음'), apiT: H ? 'login-routes · ' + (R.dir === 'child' ? 'resolve' : 'listing') : '',
@@ -107,7 +107,7 @@ class Component extends DCLogic {
       testT: 'TEST · email 아무거나(@ 포함) + password 아무거나 → 로그인 · 실패 보기: wrong · novault · offline · 500 · nogw',
       who: (this.props.user || 'admin') + '@' + (this.props.current || '01'), bigT: this.name(), subT: DIR[0] + ' · ' + (R.dir === 'child' ? 'resolve required' : R.dir === 'parent' ? 'upward · direct' : R.dir === 'sibling' ? 'named by parent' : 'remembered address'),
       stripeCls: state === 'unreach' ? 'bad' : state === 'resolve' ? 'warn' : state === 'done' ? 'ok' : '', codeA: 'RT-' + ({ parent: 'UP', child: 'DN', sibling: 'SB', far: 'XT' }[R.dir] || 'XT') + ' / ' + (R.tunnel ? 'TUN ' + R.tunnel : 'DIRECT'), codeB: String(this.name()).replace(/[^\w]/g, '').slice(-3).toUpperCase() || 'T',
-      dirCol: { parent: 'rgb(104,156,255)', child: 'rgb(110,236,156)', sibling: '#ffd27a' }[R.dir] || '#848eb4', dirNote: R.dir === 'child' ? '· 주소 : 자식이 응답' : R.dir === 'far' ? '· 계정이 기억한 주소' : '',
+      dirCol: { parent: 'rgb(104,156,255)', child: 'rgb(110,236,156)', sibling: 'var(--t-warn,#ffd27a)' }[R.dir] || '#848eb4', dirNote: R.dir === 'child' ? '· 주소 : 자식이 응답' : R.dir === 'far' ? '· 계정이 기억한 주소' : '',
       sessDot: state === 'done' ? '●' : '○', sessCol: state === 'done' ? 'rgb(176,236,96)' : '#5a6488', sessLine: state === 'done' ? (S.keep ? '유지' : '이번만') + ' · ' + S.email : '없음 — 로그인 필요',
       formCls: busy ? 'busy' : '', footT: 'TERRA // ' + (this.props.current || '01') + ' → ' + this.name(),
       key: (e) => { if (e && e.key === 'Escape') { e.preventDefault(); clearTimeout(this._t); if (this.props.onCancel) this.props.onCancel(); } },

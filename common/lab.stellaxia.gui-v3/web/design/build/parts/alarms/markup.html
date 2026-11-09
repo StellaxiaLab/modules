@@ -1,7 +1,7 @@
-<div class="al" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
+<div class="al" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: var(--t-text,#d6f4de); font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
   <div class="al-row"><span class="al-p">&gt;</span><span>alarms</span><b class="al-v al-cut">{{name}}</b><span class="al-k">로컬 Daemon</span><span style="flex: 1;"></span><span style="color: {{unCol}};">● 안 읽음 {{unread}}</span><span class="al-k">· 전체 {{total}}</span></div>
   <div class="al-row al-k">{{srcT}}</div>
-  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="al-note">{{note}}</div></sc-if>
+  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><dc-import name="StateBand" kind="{{bandK}}" head="{{note}}" sub="{{bandSub}}" hint-size="100%,32px"></dc-import></sc-if>
 
   <h3 class="al-h"><span class="al-hl"></span>거르기<span class="al-hr"></span></h3>
   <div class="al-bar">

@@ -11,69 +11,70 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
 <style>
-::selection{background:#e6eaf7;color:#070b1c}
+::selection{background:#e6eaf7;color:var(--t-sf,#070b1c)}
 @font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
 @font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
 @font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
 body{margin:0;background:transparent}
-.ns{scrollbar-width:thin;scrollbar-color:rgba(70,160,108,.4) transparent;text-shadow:0 0 3px #02030a,0 0 6px rgba(2,3,10,.8)}
+.ns{scrollbar-width:thin;scrollbar-color:rgba(var(--t-line-rgb,70,160,108),.4) transparent;text-shadow:0 0 3px var(--t-halo,#02030a),0 0 6px rgba(var(--t-halo-rgb,2,3,10),.8)}
 .ns-row{display:flex;align-items:center;gap:8px;min-height:20px;white-space:nowrap}
-.ns-p{color:#78e89c;font-weight:700}
-.ns-k{color:#709c80}
-.ns-v{color:#d6f4de;font-weight:700}
-.ns-h{display:flex;align-items:center;gap:8px;margin:12px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:#78e89c}
-.ns-hl{display:inline-block;width:14px;height:1px;background:rgba(70,160,108,.85);flex:none}
-.ns-hr{flex:1;height:1px;background:rgba(70,160,108,.45)}
+.ns-p{color:var(--t-acc,#78e89c);font-weight:700}
+.ns-k{color:var(--t-key,#709c80)}
+.ns-v{color:var(--t-text,#d6f4de);font-weight:700}
+.ns-h{display:flex;align-items:center;gap:8px;margin:12px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:var(--t-acc,#78e89c)}
+.ns-hl{display:inline-block;width:14px;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.85);flex:none}
+.ns-hr{flex:1;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.45)}
 .ns-grid{display:grid;grid-template-columns:52px minmax(0,1fr) 52px minmax(0,1fr);gap:2px 10px}
 .ns-bar{display:grid;grid-template-columns:40px minmax(0,1fr) 44px 150px;align-items:center;gap:10px;min-height:22px;white-space:nowrap}
-.ns-track{position:relative;height:9px;border:1px solid rgba(70,160,108,.6)}
+.ns-track{position:relative;height:9px;border:1px solid rgba(var(--t-line-rgb,70,160,108),.6)}
 .ns-fill{position:absolute;left:1px;top:1px;bottom:1px;max-width:calc(100% - 2px);transition:width .6s ease}
 .ns-tick{position:absolute;top:-3px;bottom:-3px;width:1px;background:rgba(255,190,150,.55)}
-.ns-spark{color:#60e28c;letter-spacing:-1px;overflow:hidden}
+.ns-spark{color:var(--t-ok,#60e28c);letter-spacing:-1px;overflow:hidden}
 .ns-hc{display:grid;grid-template-columns:14px 92px minmax(0,1fr) 54px 50px;align-items:center;gap:10px;min-height:21px;white-space:nowrap}
-.ns-lat{position:relative;height:1px;background:rgba(70,160,108,.3)}
+.ns-lat{position:relative;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.3)}
 .ns-lat span{position:absolute;left:0;top:-1px;height:3px;transition:width .6s ease}
 .ns-ev{display:grid;grid-template-columns:64px 40px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap;overflow:hidden}
-.ns-cur{display:inline-block;width:7px;height:13px;background:#96f0aa;animation:nsb 1.06s steps(1) infinite}
+.ns-cur{display:inline-block;width:7px;height:13px;background:var(--t-acc2,#96f0aa);animation:nsb 1.06s steps(1) infinite}
 @keyframes nsb{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.ns-cur{animation:none}.ns-fill,.ns-lat span{transition:none}}
-.rs-tag{font:600 10px GmarketSans,'Geist Mono',sans-serif;padding:0 5px;border:1px solid;color:#d0ff96;border-color:rgba(208,255,150,.6)}
-.rs-tag.nd{color:#96f0aa;border-color:rgba(110,236,156,.55)}
-.rs-tag.sc{color:#ffd27a;border-color:rgba(255,210,122,.55)}
-.rs-tag.ex{color:#ffb2a6;border-color:rgba(255,178,166,.55)}
-.rs-btn{border:1px solid rgba(70,160,108,.5);background:rgba(4,6,20,.6);color:#d6f4de;font:600 11px GmarketSans,'Geist Mono',sans-serif;padding:1px 8px;cursor:pointer}
-.rs-btn:hover{border-color:rgba(110,236,156,.85)}
-.rs-seg{display:inline-flex;border:1px solid rgba(70,160,108,.45);margin:0 0 6px;background:rgba(4,6,20,.5)}
-.rs-seg button{border:0;background:transparent;color:#709c80;font:600 11px GmarketSans,'Geist Mono',sans-serif;padding:2px 10px;cursor:pointer}
-.rs-seg button.on{background:rgba(70,170,110,.25);color:#d0ff96}
+.rs-tag{font:600 10px GmarketSans,'Geist Mono',sans-serif;padding:0 5px;border:1px solid;color:var(--t-hi,#d0ff96);border-color:rgba(var(--t-hi-rgb,208,255,150),.6)}
+.rs-tag.nd{color:var(--t-acc2,#96f0aa);border-color:rgba(var(--t-acc-rgb,110,236,156),.55)}
+.rs-tag.sc{color:var(--t-warn,#ffd27a);border-color:rgba(var(--t-warn-rgb,255,210,122),.55)}
+.rs-tag.ex{color:var(--t-err2,#ffb2a6);border-color:rgba(var(--t-err2-rgb,255,178,166),.55)}
+.rs-btn{border:1px solid rgba(var(--t-line-rgb,70,160,108),.5);background:rgba(var(--t-bg-rgb,4,6,20),.6);color:var(--t-text,#d6f4de);font:600 11px GmarketSans,'Geist Mono',sans-serif;padding:1px 8px;cursor:pointer}
+.rs-btn:hover{border-color:rgba(var(--t-acc-rgb,110,236,156),.85)}
+.rs-seg{display:inline-flex;border:1px solid rgba(var(--t-line-rgb,70,160,108),.45);margin:0 0 6px;background:rgba(var(--t-bg-rgb,4,6,20),.5)}
+.rs-seg button{border:0;background:transparent;color:var(--t-key,#709c80);font:600 11px GmarketSans,'Geist Mono',sans-serif;padding:2px 10px;cursor:pointer}
+.rs-seg button.on{background:rgba(var(--t-tint-rgb,70,170,110),.25);color:var(--t-hi,#d0ff96)}
 .rs-now{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
-.rs-now b{font:700 20px 'Geist Mono',monospace;color:#d0ff96}
-.rs-graph{display:flex;align-items:flex-end;gap:1px;height:72px;margin-top:4px;border-bottom:1px solid rgba(70,160,108,.6);border-left:1px solid rgba(70,160,108,.3)}
+.rs-now b{font:700 20px 'Geist Mono',monospace;color:var(--t-hi,#d0ff96)}
+.rs-graph{display:flex;align-items:flex-end;gap:1px;height:72px;margin-top:4px;border-bottom:1px solid rgba(var(--t-line-rgb,70,160,108),.6);border-left:1px solid rgba(var(--t-line-rgb,70,160,108),.3)}
 .rs-graph span{flex:1;min-width:1px;opacity:.85;transition:height .4s ease}
 .rs-axis{display:flex;justify-content:space-between;font-size:10px}
 .rs-ep{display:grid;grid-template-columns:minmax(90px,auto) 110px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap;overflow:hidden}
-.rs button:focus-visible{outline:1px solid #d0ff96;outline-offset:2px}
+.rs button:focus-visible{outline:1px solid var(--t-hi,#d0ff96);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.rs-graph span{transition:none}}
-.ms-tag{font:600 10px GmarketSans,'Geist Mono',sans-serif;padding:0 5px;border:1px solid rgba(110,236,156,.55);color:#96f0aa}
+.ms-tag{font:600 10px GmarketSans,'Geist Mono',sans-serif;padding:0 5px;border:1px solid rgba(var(--t-acc-rgb,110,236,156),.55);color:var(--t-acc2,#96f0aa)}
 .ms-path{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ms-app{display:grid;grid-template-columns:62px minmax(0,1fr) auto auto;align-items:center;gap:10px;min-height:26px;white-space:nowrap}
-.ms-an{display:flex;flex-direction:column;line-height:1.3;overflow:hidden}.ms-an b{color:#d6f4de}.ms-an .ns-k{overflow:hidden;text-overflow:ellipsis;font-size:11px}
-.ms-mode{font:600 10px GmarketSans,'Geist Mono',sans-serif;text-align:center;padding:0 4px;border:1px solid rgba(208,255,150,.6);color:#d0ff96}
-.ms-mode.px{color:#9cc0ff;border-color:rgba(156,192,255,.6)}.ms-mode.wd{color:#ffd27a;border-color:rgba(255,210,122,.6)}
-.ms-gui{border:1px solid rgba(208,255,150,.7);background:rgba(70,170,110,.18);color:#d0ff96;font:700 11px 'Geist Mono',monospace;padding:2px 10px;cursor:pointer}
-.ms-gui:hover:not([disabled]){background:rgba(70,170,110,.34)}.ms-gui[disabled]{opacity:.4;cursor:default}
+.ms-an{display:flex;flex-direction:column;line-height:1.3;overflow:hidden}.ms-an b{color:var(--t-text,#d6f4de)}.ms-an .ns-k{overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.ms-mode{font:600 10px GmarketSans,'Geist Mono',sans-serif;text-align:center;padding:0 4px;border:1px solid rgba(var(--t-hi-rgb,208,255,150),.6);color:var(--t-hi,#d0ff96)}
+.ms-mode.px{color:#9cc0ff;border-color:rgba(156,192,255,.6)}.ms-mode.wd{color:var(--t-warn,#ffd27a);border-color:rgba(var(--t-warn-rgb,255,210,122),.6)}
+.ms-gui{border:1px solid rgba(var(--t-hi-rgb,208,255,150),.7);background:rgba(var(--t-tint-rgb,70,170,110),.18);color:var(--t-hi,#d0ff96);font:700 11px 'Geist Mono',monospace;padding:2px 10px;cursor:pointer}
+.ms-gui:hover:not([disabled]){background:rgba(var(--t-tint-rgb,70,170,110),.34)}.ms-gui[disabled]{opacity:.4;cursor:default}
 .rs-btn[disabled]{opacity:.45;cursor:default}
 .ms-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ms-chips{display:flex;flex-wrap:wrap;gap:6px}
-.ms-perm{font:600 11px 'Geist Mono',monospace;padding:0 6px;border:1px solid rgba(70,160,108,.5);color:#b6e8c6}
-.ms-res{border:0;border-bottom:1px dashed rgba(110,236,156,.6);background:transparent;color:#d6f4de;font:600 12px 'Geist Mono',monospace;padding:0;cursor:pointer}
-.ms-res:hover{color:#d0ff96;border-bottom-color:#d0ff96}
-.ms button:focus-visible{outline:1px solid #d0ff96;outline-offset:2px}
+.ms-perm{font:600 11px 'Geist Mono',monospace;padding:0 6px;border:1px solid rgba(var(--t-line-rgb,70,160,108),.5);color:var(--t-mut,#b6e8c6)}
+.ms-res{border:0;border-bottom:1px dashed rgba(var(--t-acc-rgb,110,236,156),.6);background:transparent;color:var(--t-text,#d6f4de);font:600 12px 'Geist Mono',monospace;padding:0;cursor:pointer}
+.ms-res:hover{color:var(--t-hi,#d0ff96);border-bottom-color:var(--t-hi,#d0ff96)}
+.ms button:focus-visible{outline:1px solid var(--t-hi,#d0ff96);outline-offset:2px}
 </style>
 </helmet>
-<div class="ns ms" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
+<div class="ns ms" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: var(--t-text,#d6f4de); font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
   <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>module</span><b class="ns-v">{{name}}</b><span class="ns-k">{{id}}</span><span style="flex: 1;"></span><span style="color: {{linkCol}};">{{linkT}}</span><span style="color: {{stCol}};">● {{stT}}</span></div>
 
+  <sc-if value="{{cutOn}}" hint-placeholder-val="{{ false }}"><dc-import name="StateBand" kind="cut" head="{{cutH}}" sub="재연결 뒤에 동작할 수 있음 (대기열 없음)" hint-size="100%,32px"></dc-import></sc-if>
   <h3 class="ns-h"><span class="ns-hl"></span>상태<span class="ns-hr"></span><span class="ns-k">{{apiS}}</span></h3>
   <div class="ns-grid">
     <span class="ns-k">노드</span><span class="ns-v">{{node}}</span><span class="ns-k">버전</span><span>{{ver}}</span>
@@ -82,7 +83,7 @@ body{margin:0;background:transparent}
   </div>
   <sc-if value="{{running}}" hint-placeholder-val="{{ true }}">
     <div class="ns-bar" style="margin-top: 6px;"><span class="ns-k">CPU</span><span class="ns-track"><span class="ns-fill" style="width: {{cpuP}}%; background: {{cpuCol}};"></span></span><span>{{cpuT}}</span><span class="ns-spark">{{cpuS}}</span></div>
-    <div class="ns-bar"><span class="ns-k">MEM</span><span class="ns-track"><span class="ns-fill" style="width: {{memP}}%; background: #60e28c;"></span></span><span>{{memT}}</span><span class="ns-k">{{memN}}</span></div>
+    <div class="ns-bar"><span class="ns-k">MEM</span><span class="ns-track"><span class="ns-fill" style="width: {{memP}}%; background: var(--t-ok,#60e28c);"></span></span><span>{{memT}}</span><span class="ns-k">{{memN}}</span></div>
   </sc-if>
 
   <h3 class="ns-h"><span class="ns-hl"></span>GUI<span class="ns-hr"></span><span class="ns-k">{{apiG}}</span></h3>
@@ -162,10 +163,10 @@ class Component extends DCLogic {
   // 실제 로그 — 노드 데이터 층으로 logs.get(입력마다 따로 · 5초 TTL). [{ t, lv, col, msg }] 또는 null(시안)
   realLogs(m) {
     const T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null; if (!this.real() || !T || !m.id || m.id === '—' || !m.nodeId) return null;
-    const r = T.read(m.nodeId, 'terra.daemon.modules.by-module-id.logs.get', { input: { module_id: m.id, tail: 40 }, ttl: 5000 }), CL = { err: ['error', '#ff9c8c'], warn: ['warn', '#ffd27a'], info: ['info', '#709c80'] };
-    const rows = r.data && A && A.logLines ? A.logLines(r.data).slice(-12).reverse().map((x) => ({ t: x.t, lv: CL[x.cls] ? CL[x.cls][0] : 'info', col: CL[x.cls] ? CL[x.cls][1] : '#709c80', msg: x.msg })) : [];
+    const r = T.read(m.nodeId, 'terra.daemon.modules.by-module-id.logs.get', { input: { module_id: m.id, tail: 40 }, ttl: 5000 }), CL = { err: ['error', 'var(--t-err2,#ff9c8c)'], warn: ['warn', 'var(--t-warn,#ffd27a)'], info: ['info', 'var(--t-key,#709c80)'] };
+    const rows = r.data && A && A.logLines ? A.logLines(r.data).slice(-12).reverse().map((x) => ({ t: x.t, lv: CL[x.cls] ? CL[x.cls][0] : 'info', col: CL[x.cls] ? CL[x.cls][1] : 'var(--t-key,#709c80)', msg: x.msg })) : [];
     if (rows.length) return rows;
-    return [{ t: '', lv: '', col: r.err ? '#ffd27a' : '#709c80', msg: r.err ? '로그 미수신 · ' + r.err.code : r.loading || !r.data ? '받는 중…' : '로그 없음 — 모듈 출력 없음' }];
+    return [{ t: '', lv: '', col: r.err ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)', msg: r.err ? '로그 미수신 · ' + r.err.code : r.loading || !r.data ? '받는 중…' : '로그 없음 — 모듈 출력 없음' }];
   }
   upOf(m, run) {   // 가동 — 모듈 상태의 started_at 부터. 없으면 '—' 와 까닭
     const t0 = Date.parse(m.startedAt || ''); if (!run) return { t: '—', why: '' }; if (Number.isNaN(t0) || t0 <= 0) return { t: '—', why: '모듈 상태에 시작 시각 없음' };
@@ -180,7 +181,7 @@ class Component extends DCLogic {
     const cpu = run && !RL ? Math.max(0.3, (2 + r(1) * 18) * (0.8 + 0.4 * Math.abs(Math.sin(t * (0.4 + r(2)) + r(3) * 6)))) : 0, mem = run && !RL ? Math.round(40 + r(4) * 220 + Math.sin(t * 0.2 + r(5)) * 6) : 0;
     const C = this._cpu || (this._cpu = []); if (C.t !== t) { C.push(cpu); if (C.length > 22) C.shift(); C.t = t; }
     const sp = '▁▂▃▄▅▆▇█', spark = C.map((v) => sp[Math.min(7, Math.floor(v / 25 * 7))]).join('');
-    const ST = { run: ['실행', '#60e28c'], stop: ['멈춤', '#709c80'], restart: ['다시 시작 중', '#ffd27a'], fail: ['실패', '#ff9c8c'] }[st] || ['—', '#709c80'];
+    const ST = { run: ['실행', 'var(--t-ok,#60e28c)'], stop: ['멈춤', 'var(--t-key,#709c80)'], restart: ['다시 시작 중', 'var(--t-warn,#ffd27a)'], fail: ['실패', 'var(--t-err2,#ff9c8c)'] }[st] || ['—', 'var(--t-key,#709c80)'];
     const UP = RL ? this.upOf(m, run) : null, upS = Math.floor(r(6) * 90000) + t, up = RL ? UP.t + (UP.why ? ' · ' + UP.why : '') + (run && m.pid ? ' · pid ' + m.pid : '') + (m.restarts ? ' · 재시작 ' + m.restarts + '회' : '') : run ? (upS > 86400 ? Math.floor(upS / 86400) + 'd ' : '') + Math.floor(upS % 86400 / 3600) + 'h ' + Math.floor(upS % 3600 / 60) + 'm' : '—';
     const KIND = { service: '서비스', scene: '씬', runtime: '런타임', extension: '확장', tool: '도구', core: '코어' };
     const apps = (m.apps || []).map((a) => {
@@ -196,14 +197,15 @@ class Component extends DCLogic {
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: m.name, id: m.id, stT: ST[0], stCol: ST[1], node: m.node + (m.remote ? ' (원격)' : ''), ver: m.ver, kind: KIND[m.kind] || m.kind, up,
       path: (m.core ? '코어 내장 · ' : '~/.terra/module/') + (m.core ? m.id : m.id + '/' + m.ver), owner: m.core ? '코어 (지울 수 없음)' : m.dist ? 'Tree 배포' : '직접 설치',
-      running: run, cpuP: Math.min(100, Math.round(cpu * 4)), cpuCol: cpu > 18 ? '#ffd27a' : '#60e28c', cpuT: RL ? '—' : cpu.toFixed(1) + '%', cpuS: RL ? '코어 : 모듈별 CPU op 없음' : spark, memP: Math.min(100, Math.round(mem / 4)), memT: RL ? '—' : mem + 'MB', memN: RL ? '코어 : 모듈별 메모리 op 없음' : 'RSS',
+      running: run, cpuP: Math.min(100, Math.round(cpu * 4)), cpuCol: cpu > 18 ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)', cpuT: RL ? '—' : cpu.toFixed(1) + '%', cpuS: RL ? '코어 : 모듈별 CPU op 없음' : spark, memP: Math.min(100, Math.round(mem / 4)), memT: RL ? '—' : mem + 'MB', memN: RL ? '코어 : 모듈별 메모리 op 없음' : 'RSS',
       apps, noGui: !apps.length, guiNote: !!apps.length && !run, guiNoteT: 'GUI 열기 불가 : 모듈 ' + ST[0] + ' — 시작 후 가능',
-      linkT: LK.t ? '[' + LK.t + ']' : '', linkCol: LK.cls === 'off' ? '#ffd27a' : LK.cls === 'local' ? '#709c80' : '#96f0aa',
+      cutOn: ro, cutH: LK.t.replace(/^끊김 · /, ''),
+      linkT: LK.t ? '[' + LK.t + ']' : '', linkCol: LK.cls === 'off' ? 'var(--t-warn,#ffd27a)' : LK.cls === 'local' ? 'var(--t-key,#709c80)' : 'var(--t-acc2,#96f0aa)',
       busyD: busy ? 'disabled' : null, togD: busy || (run && m.core) ? 'disabled' : null, restart: () => this.act('restart'), toggle: () => this.act(run ? 'stop' : 'start'), toggleT: run ? (m.core ? '멈춤 불가 (코어)' : '멈춤') : '시작',
-      ctl: () => { if (this.props.onOpen) this.props.onOpen('ctl', m.id); }, actNote: ro ? '노드와 끊김 — 재연결 후 재시도 (대기열 없음)' : S.busy ? (S.busy === 'restart' ? '다시 시작 중…' : '요청 중…') : S.err ? '실패 · ' + S.err : m.remote ? '원격 노드 · node.control' : '',
+      ctl: () => { if (this.props.onOpen) this.props.onOpen('ctl', m.id); }, actNote: S.busy ? (S.busy === 'restart' ? '다시 시작 중…' : '요청 중…') : S.err ? '실패 · ' + S.err : m.remote ? '원격 노드 · node.control' : '',
       svi: (m.svi || []).map((n) => ({ name: n, open: () => { if (this.props.onOpen) this.props.onOpen('res', n + '|내 자원|' + m.node); } })), noSvi: !(m.svi || []).length,
       perms: m.perms || [], noPerm: !(m.perms || []).length,
-      logs: this._log.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? '#ffd27a' : e.lv === 'error' ? '#ff9c8c' : '#709c80', msg: e.msg })).concat(this.realLogs(m) || []),   // 이 창에서 한 요청 · 그 아래 Daemon 모듈 로그(실제)
+      logs: this._log.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? 'var(--t-warn,#ffd27a)' : e.lv === 'error' ? 'var(--t-err2,#ff9c8c)' : 'var(--t-key,#709c80)', msg: e.msg })).concat(this.realLogs(m) || []),   // 이 창에서 한 요청 · 그 아래 Daemon 모듈 로그(실제)
       apiS: H ? 'modules.by-module-id.get' : '', apiG: H ? (m.remote ? 'gui/remote/{node}/apps' : 'gui/apps') : '', apiA: H ? 'restart · stop · start .post' : '', apiL: H ? '….logs.get' : RL ? 'Daemon 모듈 로그 · 최근 12줄 · 갱신 : 5s' : ''
     };
   }

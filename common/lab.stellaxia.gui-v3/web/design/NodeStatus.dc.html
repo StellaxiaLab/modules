@@ -11,48 +11,47 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
 <style>
-::selection{background:#e6eaf7;color:#070b1c}
+::selection{background:#e6eaf7;color:var(--t-sf,#070b1c)}
 @font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
 @font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
 @font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
 body{margin:0;background:transparent}
-.ns{scrollbar-width:thin;scrollbar-color:rgba(70,160,108,.4) transparent;text-shadow:0 0 3px #02030a,0 0 6px rgba(2,3,10,.8)}
+.ns{scrollbar-width:thin;scrollbar-color:rgba(var(--t-line-rgb,70,160,108),.4) transparent;text-shadow:0 0 3px var(--t-halo,#02030a),0 0 6px rgba(var(--t-halo-rgb,2,3,10),.8)}
 .ns-row{display:flex;align-items:center;gap:8px;min-height:20px;white-space:nowrap}
-.ns-p{color:#78e89c;font-weight:700}
-.ns-k{color:#709c80}
-.ns-v{color:#d6f4de;font-weight:700}
-.ns-h{display:flex;align-items:center;gap:8px;margin:12px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:#78e89c}
-.ns-hl{display:inline-block;width:14px;height:1px;background:rgba(70,160,108,.85);flex:none}
-.ns-hr{flex:1;height:1px;background:rgba(70,160,108,.45)}
+.ns-p{color:var(--t-acc,#78e89c);font-weight:700}
+.ns-k{color:var(--t-key,#709c80)}
+.ns-v{color:var(--t-text,#d6f4de);font-weight:700}
+.ns-h{display:flex;align-items:center;gap:8px;margin:12px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:var(--t-acc,#78e89c)}
+.ns-hl{display:inline-block;width:14px;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.85);flex:none}
+.ns-hr{flex:1;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.45)}
 .ns-grid{display:grid;grid-template-columns:52px minmax(0,1fr) 52px minmax(0,1fr);gap:2px 10px}
 .ns-bar{display:grid;grid-template-columns:40px minmax(0,1fr) 44px 150px;align-items:center;gap:10px;min-height:22px;white-space:nowrap}
-.ns-track{position:relative;height:9px;border:1px solid rgba(70,160,108,.6)}
+.ns-track{position:relative;height:9px;border:1px solid rgba(var(--t-line-rgb,70,160,108),.6)}
 .ns-fill{position:absolute;left:1px;top:1px;bottom:1px;max-width:calc(100% - 2px);transition:width .6s ease}
 .ns-tick{position:absolute;top:-3px;bottom:-3px;width:1px;background:rgba(255,190,150,.55)}
-.ns-spark{color:#60e28c;letter-spacing:-1px;overflow:hidden}
+.ns-spark{color:var(--t-ok,#60e28c);letter-spacing:-1px;overflow:hidden}
 .ns-hc{display:grid;grid-template-columns:14px 92px minmax(0,1fr) 54px 50px;align-items:center;gap:10px;min-height:21px;white-space:nowrap}
-.ns-lat{position:relative;height:1px;background:rgba(70,160,108,.3)}
+.ns-lat{position:relative;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.3)}
 .ns-lat span{position:absolute;left:0;top:-1px;height:3px;transition:width .6s ease}
 .ns-ev{display:grid;grid-template-columns:64px 40px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap;overflow:hidden}
 .ns-cut{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .ns-sel{user-select:all;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.ns-note{margin:4px 0 0;padding:3px 8px;border-left:2px solid #ffd27a;color:#ffd27a;white-space:normal}
-.ns-btn{flex:none;margin-left:auto;padding:1px 8px;border:1px solid rgba(70,160,108,.6);background:transparent;color:#78e89c;font:inherit;cursor:pointer}
-.ns-btn:hover:not(:disabled){background:rgba(70,160,108,.18)}
-.ns-btn:focus-visible{outline:1px solid #96f0aa;outline-offset:1px}
+.ns-btn{flex:none;margin-left:auto;padding:1px 8px;border:1px solid rgba(var(--t-line-rgb,70,160,108),.6);background:transparent;color:var(--t-acc,#78e89c);font:inherit;cursor:pointer}
+.ns-btn:hover:not(:disabled){background:rgba(var(--t-line-rgb,70,160,108),.18)}
+.ns-btn:focus-visible{outline:1px solid var(--t-acc2,#96f0aa);outline-offset:1px}
 .ns-btn:disabled{opacity:.4;cursor:default}
-.ns-sub{margin:8px 0 2px;color:#78e89c}
+.ns-sub{margin:8px 0 2px;color:var(--t-acc,#78e89c)}
 .ns-rt{display:grid;grid-template-columns:14px minmax(0,1fr) 70px 80px 54px;gap:10px;min-height:20px;white-space:nowrap}
 .ns-rt-s{grid-template-columns:14px minmax(0,1fr) 100px 112px minmax(54px,auto)}
 .ns-rt-r{grid-template-columns:14px 14px minmax(0,1fr) 112px 76px 54px}
-.ns-cur{display:inline-block;width:7px;height:13px;background:#96f0aa;animation:nsb 1.06s steps(1) infinite}
+.ns-cur{display:inline-block;width:7px;height:13px;background:var(--t-acc2,#96f0aa);animation:nsb 1.06s steps(1) infinite}
 @keyframes nsb{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.ns-cur{animation:none}.ns-fill,.ns-lat span{transition:none}}
 </style>
 </helmet>
-<div class="ns" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
+<div class="ns" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: var(--t-text,#d6f4de); font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
   <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>status</span><b class="ns-v ns-cut">{{name}}</b><span class="ns-k">{{kind}}</span><span style="flex: 1;"></span><span style="color: {{stCol}};">{{stText}}</span><span class="ns-k">{{seen}}</span></div>
-  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="ns-note">{{note}}</div></sc-if>
+  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><dc-import name="StateBand" kind="{{bandK}}" head="{{note}}" sub="{{bandSub}}" hint-size="100%,32px"></dc-import></sc-if>
 
   <h3 class="ns-h"><span class="ns-hl"></span>식별<span class="ns-hr"></span><span class="ns-k">{{src}}</span></h3>
   <div class="ns-row ns-id"><span class="ns-k" style="width: 52px; flex: none;">node id</span><b class="ns-v ns-sel" title="{{nodeId}}">{{nodeId}}</b><button type="button" class="ns-btn" disabled="{{copyOff}}" onClick="{{copyId}}" aria-label="node id 복사">{{copyT}}</button></div>
@@ -133,25 +132,25 @@ class Component extends DCLogic {
   }
   renderVals() {
     const R = this.real(), rid = this.props.nodeRid || '', I = R ? this.state.info : this.sample(), kind = this.props.nodeKind || '리프';
-    const col = (p) => p > 0.85 ? '#ff9c8c' : p > 0.75 ? '#ffd27a' : '#60e28c', D = '—';
+    const col = (p) => p > 0.85 ? 'var(--t-err2,#ff9c8c)' : p > 0.75 ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)', D = '—';
     const tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
     const rate = (v) => v >= 1048576 ? (v / 1048576).toFixed(1) + 'MB/s' : v >= 1024 ? Math.round(v / 1024) + 'KB/s' : Math.round(v) + 'B/s';
-    const note = R && !rid ? 'Terra 노드 목록에 없는 노드(시안 지도) — 값 없음' : R && !I ? '불러오는 중…' : I && I.miss && I.miss.length ? '읽지 못함 · ' + I.miss.join(' · ') + ' — 그 칸은 —' : '';
+    const note = R && !rid ? 'Terra 노드 목록에 없는 노드' : R && !I ? '이 노드 기록을 받는 중' : I && I.miss && I.miss.length ? I.miss.join(' · ') : '', bandK = R && !rid ? 'none' : R && !I ? 'load' : 'fail', bandSub = bandK === 'fail' ? '읽지 못한 칸은 — 로 표시' : '';
     const id = (I && I.ident) || {}, cm = (I && I.comm) || {}, rs = (I && I.res) || {}, net = this._net, S = '▁▂▃▄▅▆▇', mx = Math.max(1, ...net.map((x) => x.i)), last = net[net.length - 1];
-    const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : /^마지막 보고/.test(note2) ? '#709c80' : col(p), note: note2 });
-    const evs = ((I && I.recent && I.recent.events) || []).map((e) => ({ t: e.at ? tm(e.at) : D, lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? '#ffd27a' : '#709c80' }));
+    const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : /^마지막 보고/.test(note2) ? 'var(--t-key,#709c80)' : col(p), note: note2 });
+    const evs = ((I && I.recent && I.recent.events) || []).map((e) => ({ t: e.at ? tm(e.at) : D, lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)' }));
     const routes = (cm.routes || []), sess = (cm.sessions || []);
     const copyId = () => { const v = id.nodeId; if (!v || v === D) return; try { navigator.clipboard.writeText(v).then(() => { this.setState({ copied: true }); setTimeout(() => this._live && this.setState({ copied: false }), 1500); }, () => {}); } catch (e) {} };
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh',
-      name: (I && I.name) || this.props.nodeName || D, kind, stText: I ? I.status : D, stCol: I && I.online ? (/저하/.test(I.status) ? '#ffd27a' : '#60e28c') : '#ff9c8c', seen: I && I.seen ? I.seen : '',
-      noteOn: !!note, note, src: R ? 'Master 노드 기록' : '시안 값',
+      name: (I && I.name) || this.props.nodeName || D, kind, stText: I ? I.status : D, stCol: I && I.online ? (/저하/.test(I.status) ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)') : 'var(--t-err2,#ff9c8c)', seen: I && I.seen ? I.seen : '',
+      noteOn: !!note, note, bandK, bandSub, src: R ? 'Master 노드 기록' : '시안 값',
       nodeId: id.nodeId || D, copyT: this.state.copied ? '복사됨' : '복사', copyOff: !id.nodeId || id.nodeId === D, copyId,
       ident: [['장치', id.deviceId], ['역할', id.roles], ['부모', id.parent], ['깊이', id.depth], ['주소', id.address], ['DNS', id.dns], ['버전', id.version], ['등록', id.created]].map(([k, v]) => ({ k, v: v || D })),
-      via: cm.via || D, viaCol: cm.via === 'direct' ? '#60e28c' : cm.via && cm.via !== D ? '#ffd27a' : '#709c80', relayT: I ? (cm.relay ? '연결됨' : '끊김') : D, relayCol: cm.relay ? '#60e28c' : '#ff9c8c', gen: cm.gen || D,
+      via: cm.via || D, viaCol: cm.via === 'direct' ? 'var(--t-ok,#60e28c)' : cm.via && cm.via !== D ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)', relayT: I ? (cm.relay ? '연결됨' : '끊김') : D, relayCol: cm.relay ? 'var(--t-ok,#60e28c)' : 'var(--t-err2,#ff9c8c)', gen: cm.gen || D,
       comm: [['네트워크', cm.net], ['원하는', cm.desired], ['관측', cm.observed], ['태그', id.tags]].map(([k, v]) => ({ k, v: v || D })),
-      routes: routes.map((x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? '#60e28c' : '#ffd27a', dir: x.dir || '', peer: x.peer, rt: x.rt, ad: x.ad, lat: x.lat })), routeSum: (() => { const np = new Set(routes.map((x) => x.peer)).size; return !routes.length ? '없음' : np === routes.length ? routes.length + '개' : '상대 ' + np + '개 · 방향별 ' + routes.length + '개'; })(),
-      sessions: sess.map((x) => ({ dir: x.dir, peer: x.peer, channel: x.channel, rt: x.rt, state: x.state + (x.err ? ' · ' + x.err : ''), col: x.err ? '#ffd27a' : '#d6f4de' })), sessSum: sess.length ? sess.length + '개' : '없음',
+      routes: routes.map((x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? 'var(--t-ok,#60e28c)' : 'var(--t-warn,#ffd27a)', dir: x.dir || '', peer: x.peer, rt: x.rt, ad: x.ad, lat: x.lat })), routeSum: (() => { const np = new Set(routes.map((x) => x.peer)).size; return !routes.length ? '없음' : np === routes.length ? routes.length + '개' : '상대 ' + np + '개 · 방향별 ' + routes.length + '개'; })(),
+      sessions: sess.map((x) => ({ dir: x.dir, peer: x.peer, channel: x.channel, rt: x.rt, state: x.state + (x.err ? ' · ' + x.err : ''), col: x.err ? 'var(--t-warn,#ffd27a)' : 'var(--t-text,#d6f4de)' })), sessSum: sess.length ? sess.length + '개' : '없음',
       // 총량은 Master 가 실어 준 것만(지어내지 않는다), 꺼진 노드는 '마지막 보고 · N 전' — 지금 값처럼 보이지 않게
       bars: (() => { const fb = (typeof window !== 'undefined' && window.TerraFmtBytes) || (() => ''), sz = (u, t) => (t && fb(t) ? (fb(u) || '?') + ' / ' + fb(t) : R && I ? '총량 보고 없음' : ''), old = R && rs.stale ? '마지막 보고 · ' + ((I && I.seen) || '') : '';
         return [bar('CPU', rs.cpu, old), bar('MEM', rs.mem, old || sz(rs.memUsed, rs.memTotal)), bar('DISK', rs.disk, old || sz(rs.diskUsed, rs.diskTotal))]; })(),

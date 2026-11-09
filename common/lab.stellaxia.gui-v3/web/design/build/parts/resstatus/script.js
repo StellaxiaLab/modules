@@ -121,8 +121,8 @@ class Component extends DCLogic {
       return F(b64(JSON.stringify(E[Math.floor(r(6) * E.length)]))); }
     if (k === 'image' || k === 'video') { const x = 40 + Math.round(120 * (0.5 + 0.5 * Math.sin(q / 6))), y = 50 + Math.round(30 * Math.cos(q / 4)), hue = (q * 7) % 360;
       const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" fill="#07101c"/><path d="M0 140 L80 110 L150 128 L230 96 L320 120 L320 180 L0 180Z" fill="#12301f"/>'
-        + '<circle cx="' + x + '" cy="' + y + '" r="18" fill="hsl(' + hue + ',70%,60%)" opacity=".85"/><rect x="200" y="60" width="70" height="44" fill="none" stroke="#60e28c" stroke-width="1.5"/><text x="203" y="56" fill="#60e28c" font-size="10" font-family="monospace">person 0.9</text>'
-        + '<text x="8" y="172" fill="#9cc4a8" font-size="10" font-family="monospace">' + (k === 'video' ? 'frame ' + q : 'still') + ' · ' + tm() + '</text></svg>';
+        + '<circle cx="' + x + '" cy="' + y + '" r="18" fill="hsl(' + hue + ',70%,60%)" opacity=".85"/><rect x="200" y="60" width="70" height="44" fill="none" stroke="var(--t-ok,#60e28c)" stroke-width="1.5"/><text x="203" y="56" fill="var(--t-ok,#60e28c)" font-size="10" font-family="monospace">person 0.9</text>'
+        + '<text x="8" y="172" fill="var(--t-mut,#9cc4a8)" font-size="10" font-family="monospace">' + (k === 'video' ? 'frame ' + q : 'still') + ' · ' + tm() + '</text></svg>';
       return F(b64(svg), 'svg'); }
     const n = 24 + Math.floor(r(7) * 40), B = []; for (let i = 0; i < n; i++) B.push(i % 9 < 5 ? 97 + Math.floor(this.rnd(q + i) * 26) : Math.floor(this.rnd(q * 3 + i) * 256));
     return F(btoa(String.fromCharCode.apply(null, B)));
@@ -176,7 +176,7 @@ class Component extends DCLogic {
       holdT: S.hold ? '따라가기' : '꼬리 멈춤', toggleHold: () => this.setState({ hold: !S.hold }),
       isNum: v.kind === 'number', isText: v.kind === 'text', isBytes: v.kind === 'bytes', isImg: v.kind === 'image' || v.kind === 'video', isEvent: v.kind === 'event',
       nowT: fmtN(N.now), unitT: m ? m[0] + (m[1] ? ' · ' + m[1] : '') : '값', minT: fmtN(N.min), avgT: N.avg == null ? '—' : m && m[4] === 2 ? Math.round(N.avg * 100) + '% HIGH' : fmtN(N.avg), maxT: fmtN(N.max),
-      bars: N.bars.map((h) => ({ h, col: C.cls === 'warn' ? '#ffd27a' : '#60e28c' })),
+      bars: N.bars.map((h) => ({ h, col: C.cls === 'warn' ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)' })),
       lines: st.lines.slice(-14).map((x) => ({ t: x })), noLines: !st.lines.length,
       hex: hexRows(st.raw, 8), noHex: !st.raw.length,
       imgSrc: st.img || '', hasImg: !!st.img, imgNote: st.imgNote || (st.img ? '' : '프레임 대기'), imgCap: v.kind === 'video' ? (fps ? fps.toFixed(1) + ' fps · ' : '') + (st.imgSize ? kb(st.imgSize) + '/프레임' : '') : st.imgSize ? kb(st.imgSize) : '',
@@ -192,14 +192,14 @@ class Component extends DCLogic {
     const R = all.find((r) => r.name === this.name() && (!nodeRid || r.node === nodeRid[0])) || all.find((r) => r.name === this.name()) || null;
     const base = { rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.name(), src: this.props.src || '내 자원', srcCls: { 지명: 'nd', 전체: 'sc', 외부: 'ex' }[this.props.src] || 'tr',
       liveT: '', apiR: H ? 'svi.resources' : '', apiB: H ? 'svi.bindings' : '', apiE: H ? 'svi.handles.get · 갱신 : 10s' : '', evH: '쓰는 곳 · 최근 사건' };
-    if (!R) { this.unwatch(); return Object.assign(base, this.viewVals([], null, viewInit('bytes'), { lockWhy: '' }), { type: '—', stT: res.loading && !res.data ? '받는 중' : '없음', stCol: '#9aa1ab', node: this.props.nodeName || '—', approve: '—', presence: '—', seen: '—', lease: '—', eps: [], binds: [], noBinds: true,
-      events: [{ t: '', lv: 'warn', col: '#ffd27a', msg: res.err && !res.data ? 'svi.resources 미수신 · ' + res.err.code : 'Master SVI 목록에 이 이름 없음' }] }); }
+    if (!R) { this.unwatch(); const bandK = res.err && !res.data ? 'fail' : res.loading && !res.data ? 'load' : 'none'; return Object.assign(base, this.viewVals([], null, viewInit('bytes'), { lockWhy: '' }), { bandOn: true, bandK, bandH: bandK === 'fail' ? 'SVI 목록을 받지 못함' : bandK === 'load' ? 'SVI 목록을 받는 중' : 'Master SVI 목록에 이 이름 없음', bandSub: bandK === 'fail' ? res.err.code : '', type: '—', stT: res.loading && !res.data ? '받는 중' : '없음', stCol: 'var(--t-off,#9aa1ab)', node: this.props.nodeName || '—', approve: '—', presence: '—', seen: '—', lease: '—', eps: [], binds: [], noBinds: true,
+      events: [{ t: '', lv: 'warn', col: 'var(--t-warn,#ffd27a)', msg: res.err && !res.data ? 'svi.resources 미수신 · ' + res.err.code : 'Master SVI 목록에 이 이름 없음' }] }); }
     const bi = C.rd('terra.master.svi.bindings.get'), hd = C.rd('terra.master.svi.handles.get', { resource_id: R.id });
     const binds = SV.bindings(bi.data).filter((b) => b.srcRes === R.id || b.tgtRes === R.id);
     const ok = /available/.test(R.status), busy = binds.length > 0;
-    const evs = SV.handleRows(hd.data, R.id).map((e) => Object.assign(e, { col: e.lv === 'warn' ? '#ffd27a' : '#709c80' }));
-    if (hd.err && !hd.data) evs.push({ t: '', lv: 'warn', col: '#ffd27a', msg: '쓰는 곳 미수신 · ' + hd.err.code });
-    if (!evs.length) evs.push({ t: '', lv: 'info', col: '#709c80', msg: hd.loading && !hd.data ? '받는 중…' : '쓰는 곳 없음' });
+    const evs = SV.handleRows(hd.data, R.id).map((e) => Object.assign(e, { col: e.lv === 'warn' ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)' }));
+    if (hd.err && !hd.data) evs.push({ t: '', lv: 'warn', col: 'var(--t-warn,#ffd27a)', msg: '쓰는 곳 미수신 · ' + hd.err.code });
+    if (!evs.length) evs.push({ t: '', lv: 'info', col: 'var(--t-key,#709c80)', msg: hd.loading && !hd.data ? '받는 중…' : '쓰는 곳 없음' });
     // 값 — 내보내는 끝점만. 문이 닫혀 있으면 잠그고 이유 · 대체(쓰는 곳 조회)를 옆에
     const vis = R.eps.filter((e) => /source|duplex/.test(e.dir)).map((e) => ({ id: e.id, dir: e.dir, schema: e.schema || '', enc: '' }));
     const epCur = vis.find((e) => e.id === this.state.ep) || vis[0] || null, kind = viewerOf(epCur ? epCur.schema : '').kind;
@@ -209,7 +209,7 @@ class Component extends DCLogic {
     const st = (vkey && this._vs[vkey]) || viewInit(kind);
     const V = this.viewVals(vis, epCur, G.open ? st : viewInit(kind), { lockWhy: G.open ? '' : G.why, lockAlt: '대신 : 아래 ‘쓰는 곳’ (svi.handles.get · 갱신 : 10s)', toggleSub: () => this.setState({ rsub: !this.state.rsub }), sub: this.state.rsub });
     if (!G.open) { V.connT = '잠김'; V.connCls = 'dim'; V.subT = '구독 시작'; }
-    return Object.assign(base, V, { type: R.kind || 'resource', stT: !ok ? R.status || '알 수 없음' : busy ? '사용 중' : '사용 가능', stCol: !ok ? '#ff9c8c' : busy ? '#ffd27a' : '#60e28c',
+    return Object.assign(base, V, { type: R.kind || 'resource', stT: !ok ? R.status || '알 수 없음' : busy ? '사용 중' : '사용 가능', stCol: !ok ? 'var(--t-err2,#ff9c8c)' : busy ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)',
       node: C.names.get(R.node) || R.node || '—', approve: '—', presence: R.status || '—', seen: '—', lease: '—',
       eps: R.eps.map((e) => ({ id: e.id, dir: e.dir, schema: [e.interaction, e.schema].filter(Boolean).join(' · ') || '—' })),
       binds: binds.map((b) => ({ to: (b.srcRes === R.id ? '→ ' + (C.names.get(b.tgtNode) || b.tgtNode) + ' › ' + b.tgtRes + (b.tgtEp ? '#' + b.tgtEp : '') : '← ' + (C.names.get(b.srcNode) || b.srcNode) + ' › ' + b.srcRes), q: QOS_KO[b.qos] || b.qos, rate: b.state + (b.reason ? ' · ' + b.reason : '') })),
@@ -225,14 +225,14 @@ class Component extends DCLogic {
     const tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
     const peer = ['02·a', '02·c', '02', '01·a'][Math.floor(r(30) * 4)];
     const binds = down ? [] : busy ? [[peer, 'store/data', '신뢰 순서', Math.round(20 + r(31) * 80) + 'KB/s']] : [];
-    const stT = down ? '끊김' : binds.length ? '사용 중' : '사용 가능', stCol = down ? '#ff9c8c' : binds.length ? '#ffd27a' : '#60e28c';
+    const stT = down ? '끊김' : binds.length ? '사용 중' : '사용 가능', stCol = down ? 'var(--t-err2,#ff9c8c)' : binds.length ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)';
     const V = this.viewVals(vis, epCur, st, { lockWhy: '', toggleSub: () => this.setState({ sub: !S.sub }) });
     return Object.assign({
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.name(), type: P.type, stT, stCol, src, srcCls: { 지명: 'nd', 전체: 'sc', 외부: 'ex' }[src] || 'tr',
       node: this.props.nodeName || '02·b', approve: down ? '승인 · 없음' : '승인', presence: down ? 'missing' : 'present', seen: down ? Math.floor(40 + r(32) * 200) + 's 전' : '방금', lease: Math.floor(20 + r(33) * 40) + 'm 남음',
       liveT: '시안', eps: P.eps.map((e) => ({ id: e.id, dir: e.dir, schema: e.schema + (e.enc && H ? ' · ' + e.enc : '') })),
       binds: binds.map(([to, ep, q, rate]) => ({ to: to + ' › ' + ep, q, rate })), noBinds: binds.length === 0,
-      events: this._ev.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? '#ffd27a' : '#709c80', msg: e.msg })), evH: '최근 이벤트',
+      events: this._ev.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)', msg: e.msg })), evH: '최근 이벤트',
       apiR: H ? 'svi.resources' : '', apiB: H ? 'svi.bindings' : '', apiE: ''
     }, V);
   }

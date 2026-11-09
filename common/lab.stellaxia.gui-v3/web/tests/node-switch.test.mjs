@@ -53,7 +53,7 @@ test('상태 창 — 노드가 바뀌면 이전 값을 비우고, 늦은 이전 
   rd.q.length = 0;
   h.update({ nodeRid: 'B', nodeName: 'b' }); await tick();
   assert.equal(h.logic.state.info, null, 'B 로 바뀐 순간 A 값이 남아 있으면 안 된다');
-  assert.equal(h.logic.renderVals().note, '불러오는 중…');
+  assert.equal(h.logic.renderVals().note, '이 노드 기록을 받는 중');
   assert.ok(rd.q.some((x) => x.rid === 'B'), 'B 를 새로 읽는다');
 });
 

@@ -69,7 +69,7 @@ export function buildTopology(nodes, o = {}) {
 }
 
 const STATUS_ONLINE = new Set(['online', 'degraded']);
-const STATUS = { online: ['● 온라인', true], offline: ['○ 꺼짐', false], degraded: ['◐ 저하', true], pending: ['◇ 대기', false] };
+const STATUS = { online: ['● 온라인', true, 'ok'], offline: ['○ 꺼짐', false, 'down'], degraded: ['◐ 저하', true, 'warn'], pending: ['◇ 대기', false, 'wait'] };
 // Master 가 하트비트 2분(LivenessGrace)을 넘긴 노드를 offline 으로 읽어 준다. 지도는 주기적으로 다시 받지만 그 사이에 낡을 수 있어
 //   여기서도 같은 기준으로 한 번 더 — 'online' 인데 마지막 하트비트가 2분을 넘었으면 '응답 없음'
 export const STALE_SEC = 120;
@@ -83,11 +83,11 @@ export function nodeStats(n, now = Date.now()) {
   const r = (n && n.resource) || {}, pct = (v) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v / 100)) : null);
   const bytes = (v) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
   const hb = Date.parse((n && n.last_heartbeat_at) || ''), sec = Number.isNaN(hb) ? -1 : Math.max(0, (now - hb) / 1000);
-  let s = STATUS[String((n && n.status) || '').toLowerCase()] || [n && n.status ? '◇ ' + n.status : '—', false];
-  if (s[1] && (sec < 0 || sec > STALE_SEC)) s = ['◌ 응답 없음', false];   // 하트비트가 없거나 낡은 'online' 은 연결로 치지 않는다
+  let s = STATUS[String((n && n.status) || '').toLowerCase()] || [n && n.status ? '◇ ' + n.status : '—', false, 'wait'];
+  if (s[1] && (sec < 0 || sec > STALE_SEC)) s = ['◌ 응답 없음', false, 'down'];   // 하트비트가 없거나 낡은 'online' 은 연결로 치지 않는다
   const stale = !!(STATUS_ONLINE.has(String((n && n.status) || '').toLowerCase()) && s[1] === false);   // Master 는 online 이라는데 하트비트가 없거나 낡았다
   const seen = sec < 0 ? '' : sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + 'm 전' : sec < 86400 ? Math.round(sec / 3600) + 'h 전' : Math.round(sec / 86400) + 'd 전';
-  return { status: s[0], online: s[1], stale, ageSec: sec < 0 ? null : Math.round(sec), seenAt: sec < 0 ? null : hb, cpu: pct(r.cpu_percent), mem: pct(r.memory_percent), disk: pct(r.disk_percent), seen,
+  return { status: s[0], label: s[0].replace(/^\S+\s/, ''), level: s[2], online: s[1], stale, ageSec: sec < 0 ? null : Math.round(sec), seenAt: sec < 0 ? null : hb, cpu: pct(r.cpu_percent), mem: pct(r.memory_percent), disk: pct(r.disk_percent), seen,
     version: (n && typeof n.daemon_version === 'string' && n.daemon_version.trim()) || '', relay: n && typeof n.relay_connected === 'boolean' ? n.relay_connected : null,
     memTotal: bytes(r.memory_total_bytes), memUsed: bytes(r.memory_used_bytes), diskTotal: bytes(r.disk_total_bytes), diskUsed: bytes(r.disk_used_bytes) };
 }

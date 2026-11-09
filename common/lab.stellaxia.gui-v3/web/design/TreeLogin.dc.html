@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0;background:transparent}
-.tl{padding:14px 20px 12px;gap:8px;overflow:hidden;text-shadow:0 0 3px #02030a,0 0 6px rgba(2,3,10,.8)}
+.tl{padding:14px 20px 12px;gap:8px;overflow:hidden;text-shadow:0 0 3px var(--t-halo,#02030a),0 0 6px rgba(var(--t-halo-rgb,2,3,10),.8)}
 .tl button:focus-visible,.tl input:focus-visible{outline:1px solid #f2f4fc;outline-offset:2px}
 .tl-plus{position:absolute;font:400 12px 'Geist Mono',monospace;color:#5a6488;pointer-events:none}
 .tl-prompt{display:flex;gap:8px;align-items:baseline;color:#f2f4fc;white-space:nowrap;overflow:hidden}
@@ -24,14 +24,14 @@
 .tl-cn-bl{left:0;bottom:0;border-left-width:1px;border-bottom-width:1px}.tl-cn-br{right:0;bottom:0;border-right-width:1px;border-bottom-width:1px}
 .tl-p-left{min-width:0;display:flex;flex-direction:column;gap:4px}
 .tl-meta-row{display:flex;align-items:center;gap:10px}
-.tl-bar{background:#f2f4fc;color:#040614;font:800 11px 'Geist Mono',monospace;letter-spacing:.12em;padding:1px 8px}
+.tl-bar{background:#f2f4fc;color:var(--t-bg,#040614);font:800 11px 'Geist Mono',monospace;letter-spacing:.12em;padding:1px 8px}
 .tl-tiny{font:600 8.5px/1.25 'Geist Mono',monospace;letter-spacing:.08em;color:#b0b8d6;text-transform:uppercase}
 .tl-big{font:800 76px/0.95 'Geist Mono',GmarketSans,monospace;letter-spacing:-.02em;color:transparent;-webkit-text-stroke:2px #f2f4fc;white-space:nowrap;overflow:hidden;text-overflow:clip}
 .tl-sub{color:#848eb4}
 .tl-p-right{display:flex;flex-direction:column;gap:8px}
 .tl-stripe{flex:1;min-height:72px;background:repeating-linear-gradient(135deg,#f2f4fc 0 7px,transparent 7px 18px)}
-.tl-stripe.warn{background:repeating-linear-gradient(135deg,#ffd27a 0 7px,transparent 7px 18px)}
-.tl-stripe.bad{background:repeating-linear-gradient(135deg,#ff9c8c 0 7px,transparent 7px 18px)}
+.tl-stripe.warn{background:repeating-linear-gradient(135deg,var(--t-warn,#ffd27a) 0 7px,transparent 7px 18px)}
+.tl-stripe.bad{background:repeating-linear-gradient(135deg,var(--t-err2,#ff9c8c) 0 7px,transparent 7px 18px)}
 .tl-stripe.ok{background:repeating-linear-gradient(135deg,rgb(176,236,96) 0 7px,transparent 7px 18px)}
 .tl-codes{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .tl-box-n{border:1px solid #f2f4fc;padding:0 5px;font:700 11px 'Geist Mono',monospace;color:#f2f4fc}
@@ -52,11 +52,11 @@
 .tl-in{flex:1;min-width:0;border:0;padding:0;background:transparent;color:#f2f4fc;caret-color:#f2f4fc;font:600 13px 'Geist Mono',monospace;outline:none}
 .tl-in::placeholder{color:#3a446c}
 .tl-in[readonly]{color:#848eb4}
-.tl-il.bad .tl-key,.tl-il.bad .tl-gt{color:#ff9c8c}
+.tl-il.bad .tl-key,.tl-il.bad .tl-gt{color:var(--t-err2,#ff9c8c)}
 .tl-il-act{border-top:1px dashed #3a446c;margin-top:4px;padding-top:4px}
 .tl-auto{border:0;padding:2px 4px;background:transparent;color:#f2f4fc;font:600 12.5px 'Geist Mono',monospace;cursor:pointer;white-space:nowrap}
 .tl-auto:hover{background:rgba(242,244,252,.08)}
-.tl-login{border:0;padding:3px 12px;background:#f2f4fc;color:#040614;font:800 13px 'Geist Mono',monospace;letter-spacing:.04em;cursor:pointer}
+.tl-login{border:0;padding:3px 12px;background:#f2f4fc;color:var(--t-bg,#040614);font:800 13px 'Geist Mono',monospace;letter-spacing:.04em;cursor:pointer}
 .tl-login:hover:not([disabled]){background:rgb(176,236,96)}
 .tl-login[disabled]{background:#3a446c;color:#848eb4;cursor:default}
 .tl-key-btn{border:1px solid #5a6488;padding:1px 10px;background:transparent;color:#e6eaf7;font:600 12px 'Geist Mono',monospace;cursor:pointer}
@@ -65,13 +65,13 @@
 .tl-blue{color:rgb(104,156,255);border-color:rgba(104,156,255,.6)}
 .tl-fill{flex:1}
 .tl-msg{margin:0;min-height:16px;font:600 12px 'Geist Mono',GmarketSans,monospace;color:#848eb4}
-.tl-msg.err{color:#ff9c8c}.tl-msg.ok{color:rgb(176,236,96)}
+.tl-msg.err{color:var(--t-err2,#ff9c8c)}.tl-msg.ok{color:rgb(176,236,96)}
 .tl-help{margin:0;font:500 11px GmarketSans,'Geist Mono',sans-serif;color:#848eb4}
 .tl-keys{display:flex;align-items:center;gap:6px;color:#848eb4;font-size:11.5px}
 .tl-keys b{color:#f2f4fc;font-weight:700}
 .tl-keys span{margin-right:2px}
 .tl-tabs{display:flex;align-items:center;gap:10px;border-top:1px solid #3a446c;padding-top:6px}
-.tl-tab{background:#f2f4fc;color:#040614;font:800 10px 'Geist Mono',monospace;letter-spacing:.12em;padding:0 8px;min-width:64px}
+.tl-tab{background:#f2f4fc;color:var(--t-bg,#040614);font:800 10px 'Geist Mono',monospace;letter-spacing:.12em;padding:0 8px;min-width:64px}
 .tl-r{margin-left:auto;color:#5a6488}
 /* 채우기 — GUI 요소(코너 · 띠 · 사선 칸 · 테두리 · 단추 · 큰 글자)가 왼쪽에서 오른쪽으로 차오른다. 창이 열리거나 대상이 바뀔 때마다(g0 · g1 번갈아) 다시 */
 .tl .fx{animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.7,.2,1);animation-fill-mode:both}
@@ -81,9 +81,9 @@
 .tl .d0{animation-delay:0ms}.tl .d1{animation-delay:90ms}.tl .d2{animation-delay:160ms}.tl .d3{animation-delay:230ms}.tl .d4{animation-delay:300ms}.tl .d5{animation-delay:400ms}.tl .d6{animation-delay:500ms}.tl .d7{animation-delay:580ms}.tl .d8{animation-delay:660ms}
 @media (prefers-reduced-motion:reduce){.tl *{transition:none}.tl .fx{animation:none!important}}
 
-.tl-err{display:flex;flex-direction:column;gap:3px;padding:7px 10px;border:1px solid rgba(255,156,140,.45);border-left:3px solid #ff9c8c;border-radius:6px;background:rgba(40,10,14,.55);font:500 12px GmarketSans,'Geist Mono',sans-serif;color:#f2d4d0}
-.tl-err-h{display:flex;align-items:center;gap:8px}.tl-err-h b{font:700 12.5px 'Geist Mono',GmarketSans,monospace;color:#ff9c8c}
-.tl-err-h code{font:600 11px 'Geist Mono',monospace;color:#ffb8ac;border:1px solid rgba(255,156,140,.35);border-radius:3px;padding:0 5px}
+.tl-err{display:flex;flex-direction:column;gap:3px;padding:7px 10px;border:1px solid rgba(var(--t-err-rgb,255,156,140),.45);border-left:3px solid var(--t-err2,#ff9c8c);border-radius:6px;background:rgba(40,10,14,.55);font:500 12px GmarketSans,'Geist Mono',sans-serif;color:#f2d4d0}
+.tl-err-h{display:flex;align-items:center;gap:8px}.tl-err-h b{font:700 12.5px 'Geist Mono',GmarketSans,monospace;color:var(--t-err2,#ff9c8c)}
+.tl-err-h code{font:600 11px 'Geist Mono',monospace;color:#ffb8ac;border:1px solid rgba(var(--t-err-rgb,255,156,140),.35);border-radius:3px;padding:0 5px}
 .tl-err p{margin:0;color:#e6c4c0}.tl-err .tl-key-btn{align-self:flex-start;margin-top:2px}
 .tl-test{margin:0;font:500 10.5px 'Geist Mono',GmarketSans,monospace;color:#6c769c;border-top:1px dashed rgba(108,118,156,.35);padding-top:4px}
 </style>
@@ -236,7 +236,7 @@ class Component extends DCLogic {
     const S = this.state, R = this.route(), H = this.help(), busy = S.phase === 'send' || S.phase === 'ask';
     const DIR = { parent: ['부모 Tree', 'up'], child: ['자식 Tree', 'down'], sibling: ['형제 Tree', 'side'], far: ['다른 Tree', ''] }[R.dir] || ['Tree', ''];
     const state = R.needs ? 'resolve' : !R.reach ? 'unreach' : S.phase === 'done' ? 'done' : 'form';
-    const ST = { resolve: ['주소 모름', '#ffd27a'], unreach: ['닿지 않음', '#ff9c8c'], form: ['닿음', 'rgb(176,236,96)'], done: ['로그인됨', 'rgb(176,236,96)'] }[state];
+    const ST = { resolve: ['주소 모름', 'var(--t-warn,#ffd27a)'], unreach: ['닿지 않음', 'var(--t-err2,#ff9c8c)'], form: ['닿음', 'rgb(176,236,96)'], done: ['로그인됨', 'rgb(176,236,96)'] }[state];
     const O = {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', rootW: this.props.winW ? this.props.winW + 'px' : '100%', name: this.name(), wordCls: '', dirT: DIR[0], dirCls: DIR[1], stT: ST[0], stCol: ST[1],
       urlT: R.url || (R.needs ? '— 그 Tree 에 물어야 함' : '— 알려진 주소 없음'), apiT: H ? 'login-routes · ' + (R.dir === 'child' ? 'resolve' : 'listing') : '',
@@ -261,7 +261,7 @@ class Component extends DCLogic {
       testT: 'TEST · email 아무거나(@ 포함) + password 아무거나 → 로그인 · 실패 보기: wrong · novault · offline · 500 · nogw',
       who: (this.props.user || 'admin') + '@' + (this.props.current || '01'), bigT: this.name(), subT: DIR[0] + ' · ' + (R.dir === 'child' ? 'resolve required' : R.dir === 'parent' ? 'upward · direct' : R.dir === 'sibling' ? 'named by parent' : 'remembered address'),
       stripeCls: state === 'unreach' ? 'bad' : state === 'resolve' ? 'warn' : state === 'done' ? 'ok' : '', codeA: 'RT-' + ({ parent: 'UP', child: 'DN', sibling: 'SB', far: 'XT' }[R.dir] || 'XT') + ' / ' + (R.tunnel ? 'TUN ' + R.tunnel : 'DIRECT'), codeB: String(this.name()).replace(/[^\w]/g, '').slice(-3).toUpperCase() || 'T',
-      dirCol: { parent: 'rgb(104,156,255)', child: 'rgb(110,236,156)', sibling: '#ffd27a' }[R.dir] || '#848eb4', dirNote: R.dir === 'child' ? '· 주소 : 자식이 응답' : R.dir === 'far' ? '· 계정이 기억한 주소' : '',
+      dirCol: { parent: 'rgb(104,156,255)', child: 'rgb(110,236,156)', sibling: 'var(--t-warn,#ffd27a)' }[R.dir] || '#848eb4', dirNote: R.dir === 'child' ? '· 주소 : 자식이 응답' : R.dir === 'far' ? '· 계정이 기억한 주소' : '',
       sessDot: state === 'done' ? '●' : '○', sessCol: state === 'done' ? 'rgb(176,236,96)' : '#5a6488', sessLine: state === 'done' ? (S.keep ? '유지' : '이번만') + ' · ' + S.email : '없음 — 로그인 필요',
       formCls: busy ? 'busy' : '', footT: 'TERRA // ' + (this.props.current || '01') + ' → ' + this.name(),
       key: (e) => { if (e && e.key === 'Escape') { e.preventDefault(); clearTimeout(this._t); if (this.props.onCancel) this.props.onCancel(); } },

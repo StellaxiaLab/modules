@@ -1,33 +1,32 @@
 body{margin:0;background:transparent}
-.ns{scrollbar-width:thin;scrollbar-color:rgba(70,160,108,.4) transparent;text-shadow:0 0 3px #02030a,0 0 6px rgba(2,3,10,.8)}
+.ns{scrollbar-width:thin;scrollbar-color:rgba(var(--t-line-rgb,70,160,108),.4) transparent;text-shadow:0 0 3px var(--t-halo,#02030a),0 0 6px rgba(var(--t-halo-rgb,2,3,10),.8)}
 .ns-row{display:flex;align-items:center;gap:8px;min-height:20px;white-space:nowrap}
-.ns-p{color:#78e89c;font-weight:700}
-.ns-k{color:#709c80}
-.ns-v{color:#d6f4de;font-weight:700}
-.ns-h{display:flex;align-items:center;gap:8px;margin:12px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:#78e89c}
-.ns-hl{display:inline-block;width:14px;height:1px;background:rgba(70,160,108,.85);flex:none}
-.ns-hr{flex:1;height:1px;background:rgba(70,160,108,.45)}
+.ns-p{color:var(--t-acc,#78e89c);font-weight:700}
+.ns-k{color:var(--t-key,#709c80)}
+.ns-v{color:var(--t-text,#d6f4de);font-weight:700}
+.ns-h{display:flex;align-items:center;gap:8px;margin:12px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:var(--t-acc,#78e89c)}
+.ns-hl{display:inline-block;width:14px;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.85);flex:none}
+.ns-hr{flex:1;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.45)}
 .ns-grid{display:grid;grid-template-columns:52px minmax(0,1fr) 52px minmax(0,1fr);gap:2px 10px}
 .ns-bar{display:grid;grid-template-columns:40px minmax(0,1fr) 44px 150px;align-items:center;gap:10px;min-height:22px;white-space:nowrap}
-.ns-track{position:relative;height:9px;border:1px solid rgba(70,160,108,.6)}
+.ns-track{position:relative;height:9px;border:1px solid rgba(var(--t-line-rgb,70,160,108),.6)}
 .ns-fill{position:absolute;left:1px;top:1px;bottom:1px;max-width:calc(100% - 2px);transition:width .6s ease}
 .ns-tick{position:absolute;top:-3px;bottom:-3px;width:1px;background:rgba(255,190,150,.55)}
-.ns-spark{color:#60e28c;letter-spacing:-1px;overflow:hidden}
+.ns-spark{color:var(--t-ok,#60e28c);letter-spacing:-1px;overflow:hidden}
 .ns-hc{display:grid;grid-template-columns:14px 92px minmax(0,1fr) 54px 50px;align-items:center;gap:10px;min-height:21px;white-space:nowrap}
-.ns-lat{position:relative;height:1px;background:rgba(70,160,108,.3)}
+.ns-lat{position:relative;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.3)}
 .ns-lat span{position:absolute;left:0;top:-1px;height:3px;transition:width .6s ease}
 .ns-ev{display:grid;grid-template-columns:64px 40px minmax(0,1fr);gap:10px;min-height:20px;white-space:nowrap;overflow:hidden}
 .ns-cut{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .ns-sel{user-select:all;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.ns-note{margin:4px 0 0;padding:3px 8px;border-left:2px solid #ffd27a;color:#ffd27a;white-space:normal}
-.ns-btn{flex:none;margin-left:auto;padding:1px 8px;border:1px solid rgba(70,160,108,.6);background:transparent;color:#78e89c;font:inherit;cursor:pointer}
-.ns-btn:hover:not(:disabled){background:rgba(70,160,108,.18)}
-.ns-btn:focus-visible{outline:1px solid #96f0aa;outline-offset:1px}
+.ns-btn{flex:none;margin-left:auto;padding:1px 8px;border:1px solid rgba(var(--t-line-rgb,70,160,108),.6);background:transparent;color:var(--t-acc,#78e89c);font:inherit;cursor:pointer}
+.ns-btn:hover:not(:disabled){background:rgba(var(--t-line-rgb,70,160,108),.18)}
+.ns-btn:focus-visible{outline:1px solid var(--t-acc2,#96f0aa);outline-offset:1px}
 .ns-btn:disabled{opacity:.4;cursor:default}
-.ns-sub{margin:8px 0 2px;color:#78e89c}
+.ns-sub{margin:8px 0 2px;color:var(--t-acc,#78e89c)}
 .ns-rt{display:grid;grid-template-columns:14px minmax(0,1fr) 70px 80px 54px;gap:10px;min-height:20px;white-space:nowrap}
 .ns-rt-s{grid-template-columns:14px minmax(0,1fr) 100px 112px minmax(54px,auto)}
 .ns-rt-r{grid-template-columns:14px 14px minmax(0,1fr) 112px 76px 54px}
-.ns-cur{display:inline-block;width:7px;height:13px;background:#96f0aa;animation:nsb 1.06s steps(1) infinite}
+.ns-cur{display:inline-block;width:7px;height:13px;background:var(--t-acc2,#96f0aa);animation:nsb 1.06s steps(1) infinite}
 @keyframes nsb{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.ns-cur{animation:none}.ns-fill,.ns-lat span{transition:none}}
