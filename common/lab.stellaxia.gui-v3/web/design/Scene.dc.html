@@ -2012,7 +2012,6 @@ class Component extends DCLogic {
     for (let k = 0; k < holes.length; k++) { const i = holes[k]; ctx.clearRect((i % cols) * this._cw, ((i / cols) | 0) * this._ch, this._cw, this._ch); }
     { const GM = this._q_gfMap; if (GM) GM.forEach((v, i) => { if (i < ctx.n) { ctx.css[i] = v[1] ? this.qcss(v[1]) : '#bg'; ctx.gl[i] = v[0]; ctx.bd[i] = v[2] || 0; } }); }   // 전역 틀 — 텍스트 · 마스크 컴포넌트가 그 칸의 글자를 바꾼다
     this.gf_ctlFieldFx(ctx, cols, this._cw, this._ch);   // 제어기 창 — 중앙 생성 · 어두운 화면 복원 (칸 효과)
-    this.gf_popFieldFx(ctx, cols, this._cw, this._ch);   // 우클릭 메뉴 — 뒤 글자 장 어둡게
     this.fieldFlush(RC, ctx);   // 바뀐 칸만 실제 캔버스에
     // 인식 영역 표시 (확인용) — 고를 수 있는 트리마다 같은 영역(regionOf)의 안·바깥 원 (켜 두면 다음 프레임은 통째로 다시 그린다)
     if (this.props.showRegion && this._hits) {
@@ -3024,12 +3023,6 @@ class Component extends DCLogic {
   }
   gf_ctlCloseAll() { for (const W of this.gf_ctlWins()) this.gf_ctlClose(W, true); }
   // 글자 장 효과 (씬) — 창마다: 칸 가운데의 부호 거리 sd(창 가장자리 기준, 안쪽 음수): sd < er = 빈칸(구멍) · er ≤ sd < er + 26px = 발광 / 복원 중: rer ≤ sd < M = 어둡게 다시 채운 칸(holeDim 배)
-  // 우클릭 메뉴 뒤 글자 장 — 메뉴 글자(전역 틀 텍스트 칸)를 뺀 둘레 칸의 명도를 낮춘다(바탕 글자가 메뉴 글자와 겹쳐 안 읽혀서). 상태 창의 바탕 명도(0.32)와 같게
-  gf_popFieldFx(ctx, cols, cw, ch) {
-    const Q = this._q_pop, G = Q && Q.geo; if (!ctx || !G || !cw || !ch) return; const gw = this._q_cw || cw, gh = this._q_ch || ch, GM = this._q_gfMap;
-    const c0 = Math.max(0, Math.floor((G.x0 - gw * 1.5) / cw)), c1 = Math.min(cols - 1, Math.ceil((G.x1 + gw * 1.5) / cw)), r0 = Math.max(0, Math.floor(((G.r0 - 2) * gh - 4) / ch)), r1 = Math.ceil((G.r1 * gh + 4) / ch);
-    for (let y = r0; y <= r1; y++) for (let x = c0; x <= c1; x++) { const i = y * cols + x; if (i >= ctx.n || (GM && GM.has(i))) continue; const c = ctx.css[i]; if (c && c[0] === 'r') ctx.css[i] = this.gf_cssMul(c, 0.32); }
-  }
   gf_ctlFieldFx(ctx, cols, cw, ch) {
     if (!ctx) return; const T = this.gf_CTLW(), dim = this.props.holeDim ?? 0.6;
     for (const W of this.gf_ctlWins().sort((a, b) => a.z - b.z)) { if (W.see) continue;   // 상태 창 — 바탕이 비친다 (구멍 없음)
