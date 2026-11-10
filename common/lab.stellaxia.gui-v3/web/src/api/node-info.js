@@ -18,6 +18,33 @@ const arr = (v) => (Array.isArray(v) ? v : []);
 const ROLE = { tree: 'Tree', leaf: 'Leaf', master: 'Master', relay: '중계', gateway: 'Gateway' };
 const bytes = (n) => { let v = Number(n) || 0, i = 0; const U = ['B', 'KiB', 'MiB', 'GiB', 'TiB']; while (v >= 1024 && i < U.length - 1) { v /= 1024; i += 1; } return (i ? v.toFixed(v < 10 ? 1 : 0) : String(v)) + U[i]; };
 const ts = (iso) => { const t = Date.parse(iso || ''); return Number.isNaN(t) || /^0001-/.test(String(iso)) ? 0 : t; };
+const sameRoute = (a, b) => a.rt === b.rt && a.ad === b.ad && a.healthy === b.healthy;   // 지연은 뺀다 — 같은 경로도 잴 때마다 다르다
+const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
+/**
+ * 방향별 경로 → 상대 노드별 묶음. 순수(시험: node-info.test.mjs)
+ * 순서는 이름 → node id 로만 정한다 — 건강 · 간선 순서가 바뀌어도 줄이 뛰지 않게.
+ * 묶음 하나의 모양 : 두 방향이 같으면 dir '⇄' 한 줄 · 한 방향뿐이면 그 dir 한 줄(oneWay) · 다르면 dir '' 에 legs(→ 먼저)
+ * @param {Array<{ peerId?: string, peer: string, dir: string, rt: string, ad: string, healthy: boolean, lat: string }>} routes
+ */
+export function groupRoutes(routes) {
+  const G = new Map();
+  for (const x of arr(routes)) {
+    const k = x.peerId || x.peer;
+    if (!G.has(k)) G.set(k, { peerId: k, peer: x.peer, legs: [] });
+    const g = G.get(k);
+    if (!g.legs.some((y) => y.dir === x.dir && sameRoute(y, x))) g.legs.push(x);   // 같은 방향의 똑같은 경로만 하나로 — 다른 경로는 줄로 남긴다
+  }
+  return [...G.values()].sort((a, b) => a.peer.localeCompare(b.peer) || cmp(a.peerId, b.peerId)).map(({ peerId, peer, legs }) => {
+    const L = legs.slice().sort((a, b) => cmp(b.dir, a.dir) || cmp(a.rt, b.rt) || cmp(a.ad, b.ad)), [a, b] = L;   // '→' 가 '←' 보다 코드값이 커서 내림차순이면 → 먼저
+    if (L.length === 1) return { peerId, peer, dir: a.dir, rt: a.rt, ad: a.ad, healthy: a.healthy, lat: a.lat, latTip: '', oneWay: true, legs: [] };
+    if (L.length === 2 && a.dir !== b.dir && sameRoute(a, b)) {
+      const slow = (parseFloat(b.lat) || 0) > (parseFloat(a.lat) || 0) ? b.lat : a.lat;   // 두 값이 다르면 느린 쪽 — 둘 다는 칸의 말풍선에
+      return { peerId, peer, dir: '⇄', rt: a.rt, ad: a.ad, healthy: a.healthy, lat: slow || b.lat, latTip: a.lat && b.lat && a.lat !== b.lat ? a.dir + ' ' + a.lat + ' · ' + b.dir + ' ' + b.lat : '', oneWay: false, legs: [] };
+    }
+    return { peerId, peer, dir: '', rt: '', ad: '', healthy: L.every((x) => x.healthy), lat: '', latTip: '', oneWay: false, legs: L.map(({ dir, rt, ad, healthy, lat }) => ({ dir, rt, ad, healthy, lat })) };
+  });
+}
 
 /**
  * 노드 기록 + Master 읽기 → 상태 창 값. 순수 함수(시험: node-info.test.mjs)
@@ -33,10 +60,11 @@ export function nodeInfo(rec, D = {}, o = {}) {
   const stRow = arr(D.status && D.status.nodes).find((n) => n.node_id === id) || {};
   const relay = typeof r.relay_connected === 'boolean' ? r.relay_connected : !!stRow.relay_connected;
 
-  // 이 노드가 낀 경로 — Master 경로 그래프는 방향 있는 간선(A→B 와 B→A 가 따로)이라 상대 한 노드가 두 줄로 온다. 합치지 않고 dir(→ 나가는 · ← 들어오는)로 구분해 싣는다. 줄마다 가장 좋은 건강한 후보
+  // 이 노드가 낀 경로 — Master 경로 그래프는 방향 있는 간선(A→B 와 B→A 가 따로)이라 상대 한 노드가 두 줄로 온다. routes 는 방향별 그대로(dir → 나가는 · ← 들어오는), 화면은 routeGroups(상대 노드별)를 그린다. 줄마다 가장 좋은 건강한 후보
   const routes = arr(D.graph && D.graph.edges).filter((e) => e.source_node_id === id || e.target_node_id === id).map((e) => {
     const best = arr(e.candidates).find((c) => c.healthy) || arr(e.candidates)[0] || {};
-    return { peer: nm(e.source_node_id === id ? e.target_node_id : e.source_node_id), dir: e.source_node_id === id ? '→' : '←', rt: best.route_type || '—', ad: best.adapter || '', healthy: !!best.healthy, lat: best.latency_ms != null ? best.latency_ms + 'ms' : '' };
+    const peerId = e.source_node_id === id ? e.target_node_id : e.source_node_id;
+    return { peerId, peer: nm(peerId), dir: e.source_node_id === id ? '→' : '←', rt: best.route_type || '—', ad: best.adapter || '', healthy: !!best.healthy, lat: best.latency_ms != null ? best.latency_ms + 'ms' : '' };
   });
   const mine = (x) => x.source_node_id === id || x.target_node_id === id;
   const sessions = arr(D.sessions && D.sessions.sessions).filter(mine).map((s) => ({ peer: nm(s.source_node_id === id ? s.target_node_id : s.source_node_id), dir: s.source_node_id === id ? '→' : '←', channel: s.channel || '—', rt: s.route_type || '—', state: s.state || '—', err: (s.health && s.health.last_error) || '', at: s.updated_at }));
@@ -70,7 +98,7 @@ export function nodeInfo(rec, D = {}, o = {}) {
     comm: {
       via: via || '—', relay, net: mesh ? mesh.net : '—', desired: mesh ? mesh.desired : '—', observed: (mesh && mesh.observed) || '—',
       gen: mesh && mesh.gen != null ? String(mesh.gen) : stRow.network_generation != null ? String(stRow.network_generation) : '—',
-      routes, sessions: sessions.map((s) => ({ ...s, at: when(s.at) })),
+      routes, routeGroups: groupRoutes(routes), sessions: sessions.map((s) => ({ ...s, at: when(s.at) })),
     },
     res: { cpu: st.cpu, mem: st.mem, disk: st.disk, memUsed: st.memUsed, memTotal: st.memTotal, diskUsed: st.diskUsed, diskTotal: st.diskTotal,   // 총량 — Master 가 실어 준 바이트만(없으면 null)
       stale: !st.online && !!st.seen,   // 꺼진 · 응답 없는 노드 — 자원 값은 마지막 보고

@@ -80,7 +80,8 @@ test('NodeConf 실제 — 노드 설정은 읽기 요약 + 제어기 › 설정�
 }));
 
 // 2026-11-08 실측: 노드 4개인데 '경로 6개'. Master 경로 그래프는 방향 있는 간선(N×(N−1)=12)이라 상대 한 노드가 → ← 두 줄로 온다 — 데이터 중복이 아니라 방향이 다른 경로다
-test('NodeStatus 실제 — 경로는 방향별 줄이고, 요약은 상대 수와 방향별 수를 함께, 방향이 줄에 보인다', () => {
+// 2026-11-10 사용자: 방향별 6줄이 섞여 나와 정리가 안 됐다 — 같은 노드는 하나로
+test('NodeStatus 실제 — 경로는 상대 노드별 묶음이고, 같으면 ⇄ 한 줄 · 다르면 머리줄 아래 방향 줄 · 실패와 한쪽만은 표시', () => {
   const ids = ['n-server', 'n-desk', 'n-rdk', 'n-sub'], names = { 'n-server': 'marui-server', 'n-desk': 'MARUI-NANO-DESK', 'n-rdk': 'hanium', 'n-sub': 'marui-sub2' };
   const mesh = [{ route_type: 'mesh_vpn_direct', adapter: 'wireguard', healthy: true }], relay = [{ route_type: 'cloud_relay', adapter: 'websocket', healthy: true }];
   const edges = ids.flatMap((a) => ids.filter((b) => b !== a).map((b) => ({ source_node_id: a, target_node_id: b, candidates: a === 'n-desk' && b === 'n-sub' ? relay : mesh })));
@@ -90,9 +91,15 @@ test('NodeStatus 실제 — 경로는 방향별 줄이고, 요약은 상대 수�
   const C = board('NodeStatus'), c = new C({ nodeName: names['n-desk'], nodeKind: '리프', nodeRid: '' });
   c.state.info = info;
   const v = withWindow(() => c.renderVals());
-  assert.equal(v.routeSum, '상대 3개 · 방향별 6개');
-  assert.equal(v.routes.filter((r) => r.peer === 'marui-sub2').map((r) => r.dir).sort().join(''), '←→');
-  // 한 방향뿐이면 예전처럼 개수만
-  const one = nodeInfo({ node_id: 'n-desk', display_name: 'x', status: 'online' }, { graph: { edges: [edges[0]] } }, { id: edges[0].source_node_id });
-  c.state.info = one; assert.match(withWindow(() => c.renderVals()).routeSum, /^1개$/);
+  assert.equal(v.routeSum, '상대 3개');
+  // n-desk→n-sub 만 중계라 marui-sub2 는 머리줄 + 방향 두 줄, 나머지는 ⇄ 한 줄
+  assert.deepEqual(v.routes.map((r) => [r.dir, r.peer, r.rt]), [
+    ['⇄', 'hanium', 'mesh_vpn_direct'], ['⇄', 'marui-server', 'mesh_vpn_direct'],
+    ['', 'marui-sub2', '방향별 다름'], ['→', '보낼 때', 'cloud_relay'], ['←', '받을 때', 'mesh_vpn_direct'],
+  ]);
+  // 실패 · 한쪽만 — 줄이 남고 글로 구분된다
+  const bad = nodeInfo({ node_id: 'n-desk', display_name: 'x', status: 'online' }, { graph: { edges: [{ source_node_id: 'n-desk', target_node_id: 'n-sub', candidates: [{ route_type: 'cloud_relay', adapter: 'websocket', healthy: false }] }] }, status: { nodes: [{ node_id: 'n-sub', display_name: 'marui-sub2' }] } }, { id: 'n-desk' });
+  c.state.info = bad; const w = withWindow(() => c.renderVals());
+  assert.equal(w.routeSum, '상대 1개 · 실패 1개');
+  assert.deepEqual([w.routes[0].mark, w.routes[0].dir, w.routes[0].tag], ['!', '→', '한쪽만 · 실패']);
 });
