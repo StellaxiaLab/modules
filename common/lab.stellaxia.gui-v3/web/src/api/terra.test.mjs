@@ -34,3 +34,15 @@ test('shellArg · moduleInstallCommand — 빈칸 든 경로를 셸에 맞게 �
   assert.equal(c.command, 'terra');
   assert.deepEqual(c.args, ['module', 'install', "'/home/u/모듈 a.tmod'", '--grant-reviewed', 'sha256:ab', '--dev', '--start']);
 });
+
+test('invoke — at.signal 을 fetch 로(401 재시도 포함), 끊기면 TIMEOUT(NETWORK 로 뭉개지 않는다)', async () => {
+  const signals = []; let n = 0;
+  const fetch = async (path, init) => { signals.push(init.signal); if (++n === 1) return new Response('{}', { status: 401 }); return new Response(JSON.stringify({ status: 'ok', data: { ok: 1 } }), { status: 200 }); };
+  const ac = new AbortController(), T = createTerra({ fetch, token: () => 'tk', refresh: async () => 'tk2' });
+  assert.deepEqual(await T.invoke('lab.x.get', {}, { signal: ac.signal }), { ok: 1 });
+  assert.deepEqual(signals, [ac.signal, ac.signal]);
+  const abortable = async (path, init) => new Promise((_, no) => init.signal.addEventListener('abort', () => no(Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }))));
+  const ac2 = new AbortController(), p = createTerra({ fetch: abortable }).invoke('lab.x.get', {}, { node: 'n', signal: ac2.signal }); ac2.abort();
+  await assert.rejects(p, (e) => e instanceof TerraError && e.code === 'TIMEOUT' && e.retryable === true);
+  await assert.rejects(createTerra({ fetch: async () => { throw new TypeError('down'); } }).invoke('x'), { code: 'NETWORK' });   // 다른 실패는 그대로 NETWORK
+});

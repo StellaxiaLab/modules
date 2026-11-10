@@ -34,7 +34,7 @@ export const permissionsOf = (id) => (SCOPE.operations[id] && SCOPE.operations[i
 export function createTerra(o = {}) {
   const f = o.fetch || globalThis.fetch.bind(globalThis);
   const headers = () => { const h = { 'content-type': 'application/json' }, a = o.authorization && o.authorization(), t = !a && o.token && o.token(); if (a) h.authorization = a; else if (t) h.authorization = 'Bearer ' + t; return h; };
-  const send = async (path, init) => { try { return await f(path, init); } catch (e) { throw new TerraError('NETWORK', 'Gateway 에 닿지 못함 — ' + ((e && e.message) || e), 0, true); } };
+  const send = async (path, init) => { try { return await f(path, init); } catch (e) { if (e && e.name === 'AbortError') throw new TerraError('TIMEOUT', '호출이 시간 안에 끝나지 않아 멈춤', 0, true); throw new TerraError('NETWORK', 'Gateway 에 닿지 못함 — ' + ((e && e.message) || e), 0, true); } };
   const unwrap = async (res) => {
     const text = await res.text(); let body = null;
     try { body = text ? JSON.parse(text) : null; } catch { throw new TerraError(res.ok ? 'BAD_RESPONSE' : STATUS_CODE[res.status] || 'HTTP_' + res.status, text.slice(0, 200), res.status, res.status >= 502); }
@@ -45,12 +45,13 @@ export function createTerra(o = {}) {
     return body && 'data' in body ? body.data : body;   // Daemon · Gateway 공통 봉투 {status, data, meta}
   };
   return {
-    /** @param {string} id operation id @param {object} [input] 평평한 입력 @param {{ node?: string }} [at] node 를 주면 그 노드에서 */
+    /** @param {string} id operation id @param {object} [input] 평평한 입력 @param {{ node?: string, signal?: AbortSignal }} [at] node 를 주면 그 노드에서 · signal 은 fetch 로(401 재시도 포함) — 끊으면 TIMEOUT */
     async invoke(id, input = {}, at = {}) {
       if (at.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' — 이 노드에서만', 0);
       const path = at.node ? `/api/v1/nodes/${encodeURIComponent(at.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
-      let res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input) });
-      if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input) }); }
+      const sg = at.signal || undefined;
+      let res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input), signal: sg });
+      if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input), signal: sg }); }
       return unwrap(res);
     },
     /** Gateway 자기 길(HTTP 바인딩) — me/documents 따위 @param {string} method @param {string} path @param {object} [body] */

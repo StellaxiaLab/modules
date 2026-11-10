@@ -102,3 +102,12 @@ test('오류 — 실패한 자원은 그리기마다 다시 부르지 않는다(
   for (let i = 0; i < 20; i++) S.read('R', 'modules');
   assert.equal(n, 1); assert.equal(S.read('R', 'modules').err.code, 'UNAUTHENTICATED');
 });
+
+test('분할 판정 — 망이 끊긴 PC 에서 실제로 오는 코드(UPSTREAM_UNREACHABLE · MODULE_INVOCATION_TIMEOUT · RELAY_SEND_FAILED)도 끊김으로 본다', async () => {
+  for (const code of ['UPSTREAM_UNREACHABLE', 'MODULE_INVOCATION_TIMEOUT', 'RELAY_SEND_FAILED']) {
+    const t = fake(), S = await loadStore(t); S.read('R', 'modules'); await tick(5);
+    t.invoke = () => Promise.reject({ code }); S.refresh('R', 'modules'); await tick(5);
+    assert.equal(S.link('R').state, 'offline', code); assert.equal(S.read('R', 'modules').data[0].st, 'run');
+    await assert.rejects(S.write('R', 'x.post', {}, {}), { code: 'PARTITIONED' });
+  }
+});

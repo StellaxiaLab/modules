@@ -16,7 +16,8 @@ import { TerraError } from './terra.js';
 export const VIEW_NS = 'gui-v3';
 
 /**
- * @param {{ terra: ReturnType<import('./terra.js').createTerra>, authed?: () => boolean, storage?: Storage, saveMs?: number, ns?: string | (() => string) }} o
+ * @param {{ terra: ReturnType<import('./terra.js').createTerra>, authed?: () => boolean, localRid?: () => string, storage?: Storage, saveMs?: number, ns?: string | (() => string) }} o
+ *   localRid — invokeRid 의 로컬 판정: 이 GUI 를 낸 노드의 node_id(지도 localId). 비면(Tree Gateway) 노드 길
  *   ns — 보기 상태 문서의 이름공간. B 모드(자격 핸들)는 'gui-v3', A 모드(앱 토큰)는 Gateway 가 app:<앱 id> 로 고정하므로 앱 id
  *   authed — 로그인 전이면 false: 아무 데도 부르지 않고 UNAUTHENTICATED 로 답한다(로그인 화면 뒤에서 노드를 두드리지 않게)
  */
@@ -61,6 +62,19 @@ export function createGatewayTransport(o) {
       if (op.startsWith('terra.master.')) { const inp = Object.assign({}, input); if (!inp.node_id && /\.by-node-id\./.test(op)) inp.node_id = await tp.masterId(n); return T.invoke(op, inp); }   // Master 는 로컬 Gateway 가 잇는다
       const id = await tp.realId(n);
       return T.invoke(op, input || {}, id ? { node: id } : {});
+    },
+
+    /**
+     * 노드 id(rid = Terra node_id)로 직접 — 장면 id 를 거치지 않는다(바탕 구성 · 설계 §9.1).
+     * 로컬 판정은 localRid(): 이 GUI 를 낸 노드면 로컬 길(그 Gateway 의 인스턴스), 아니면 노드 주소 호출.
+     * Tree Gateway 는 localId 가 비어(자기 Daemon status 가 없다) 노드 길로 가는 것이 맞다.
+     * @param {string} rid @param {string} op @param {object} [input] @param {{ signal?: AbortSignal }} [opts]
+     */
+    async invokeRid(rid, op, input, opts = {}) {
+      if (o.authed && !o.authed()) throw new TerraError('UNAUTHENTICATED', '로그인 전', 401);
+      if (!rid) throw new TerraError('NO_NODE', '노드 id 가 없음 — 부르지 않음', 0);
+      const here = (o.localRid && o.localRid()) || '', signal = opts.signal || undefined;
+      return T.invoke(op, input || {}, here && rid === here ? { signal } : { node: rid, signal });
     },
 
     async master(n, op) { if (o.authed && !o.authed()) throw new TerraError('UNAUTHENTICATED', '로그인 전', 401);

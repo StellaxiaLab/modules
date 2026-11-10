@@ -90,3 +90,27 @@ test('transport — 로컬 노드의 Master id 는 Daemon status 에서, 등록 
   nid = ''; const tp2 = createGatewayTransport({ terra: T, storage: mem() }); tp2.bindScene('A', []);
   await assert.rejects(tp2.invoke('A', 'terra.master.nodes.by-node-id.modules.assignments.post', { module_id: 'm' }), { code: 'NODE_NOT_ENROLLED' });
 });
+
+test('transport.invokeRid — localRid 와 같으면 로컬 길, 다르면 노드 길, signal 을 싣는다', async () => {
+  const calls = [], fetch = async (path, init) => { calls.push([path, init.signal, JSON.parse(init.body)]); return J(200, { status: 'ok', data: { path } }); };
+  const T = createTerra({ fetch, authorization: () => 'Handle h' }), ac = new AbortController();
+  const tp = createGatewayTransport({ terra: T, storage: mem(), localRid: () => 'nd_local' });
+  await tp.invokeRid('nd_local', 'lab.stellaxia.gui-v3.node-desk.get', { since_revision: 3 }, { signal: ac.signal });
+  assert.deepEqual(calls.at(-1), ['/api/v1/operations/lab.stellaxia.gui-v3.node-desk.get/invoke', ac.signal, { since_revision: 3 }]);
+  await tp.invokeRid('nd_far', 'lab.stellaxia.gui-v3.node-desk.get', {}, { signal: ac.signal });
+  assert.deepEqual(calls.at(-1).slice(0, 2), ['/api/v1/nodes/nd_far/operations/lab.stellaxia.gui-v3.node-desk.get/invoke', ac.signal]);
+  await tp.invokeRid('nd_far', 'lab.stellaxia.gui-v3.node-desk.patch');   // 입력 · opts 없어도
+  assert.deepEqual(calls.at(-1)[2], {});
+});
+
+test('transport.invokeRid — Tree Gateway(localRid 가 빈 문자열)는 노드 길 · rid 가 비면 NO_NODE · 로그인 전이면 부르지 않는다', async () => {
+  const calls = [], fetch = async (path) => { calls.push(path); return J(200, { status: 'ok', data: {} }); }, T = createTerra({ fetch, authorization: () => 'Handle h' });
+  const tree = createGatewayTransport({ terra: T, storage: mem(), localRid: () => '' });   // Tree Gateway — 지도 localId 가 비어 있다
+  await tree.invokeRid('nd_server', 'lab.stellaxia.gui-v3.node-desk.get', {});
+  assert.deepEqual(calls, ['/api/v1/nodes/nd_server/operations/lab.stellaxia.gui-v3.node-desk.get/invoke'], 'Daemon 인스턴스로 간다');
+  await assert.rejects(tree.invokeRid('', 'lab.stellaxia.gui-v3.node-desk.get', {}), (e) => e instanceof TerraError && e.code === 'NO_NODE');
+  const none = createGatewayTransport({ terra: T, storage: mem() });   // localRid 옵션이 없어도 같다 — 로컬로 착각하지 않는다
+  await none.invokeRid('nd_x', 'lab.stellaxia.gui-v3.node-desk.get', {}); assert.match(calls.at(-1), /^\/api\/v1\/nodes\/nd_x\//);
+  const n = calls.length, off = createGatewayTransport({ terra: T, authed: () => false, storage: mem(), localRid: () => 'a' });
+  await assert.rejects(off.invokeRid('a', 'x', {}), { code: 'UNAUTHENTICATED' }); assert.equal(calls.length, n);
+});

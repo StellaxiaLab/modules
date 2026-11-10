@@ -50,7 +50,7 @@ if (MODE !== 'demo') {
   // 자격 — B: 자격 핸들(Handle) · A: 셸이 준 앱 토큰(Bearer), 401 이면 셸에게 새로 받아 한 번 더
   terra = createTerra({ authorization: () => (MODE === 'shell' ? session.authorization() : null), token: () => (frame ? frame.token() : null), refresh: () => (frame ? frame.refresh() : Promise.resolve(undefined)) });
   window.TerraTopology = buildTopology([], { rev: 'none' });   // 실제 모드의 첫 지도는 빈 지도 — 시안 지도(01 · 02 …)를 실제처럼 보이지 않는다. 받으면 바뀌고, 못 받으면 상단 줄이 '못 봤음'을 보인다
-  transport = window.TerraTransport = createGatewayTransport({ terra, authed: () => (MODE === 'shell' ? !!session.handle : !!(frame && frame.token())), ns: () => (MODE === 'app' ? (frame && frame.appId) || 'lab.stellaxia.gui-v3.web' : 'gui-v3') });
+  transport = window.TerraTransport = createGatewayTransport({ terra, localRid: () => (window.TerraTopology && window.TerraTopology.localId) || '', authed: () => (MODE === 'shell' ? !!session.handle : !!(frame && frame.token())), ns: () => (MODE === 'app' ? (frame && frame.appId) || 'lab.stellaxia.gui-v3.web' : 'gui-v3') });
   const L = boardDef('Login');
   if (L && !L.Logic.__terra) {
     class TerraLogin extends L.Logic {
