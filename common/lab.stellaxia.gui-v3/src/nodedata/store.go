@@ -130,7 +130,7 @@ func (s *Store) Limits() Limits { return s.limits }
 // clean turns a caller's relative path into a canonical slash path inside the
 // root, or refuses it. Rules: relative, no "..", no empty or dot segments, no
 // characters that are illegal on Windows, no control characters, bounded depth
-// and segment length, and never the reserved property sheet.
+// and segment length, and never a reserved sheet (properties.json, desk.json).
 func clean(rel string, allowEmpty bool) (string, error) {
 	rel = strings.TrimSpace(rel)
 	if rel == "" || rel == "." || rel == "/" {
@@ -157,10 +157,18 @@ func clean(rel string, allowEmpty bool) (string, error) {
 		}
 	}
 	out := path.Clean(rel)
-	if out == PropsFile {
+	if isReserved(out) {
 		return "", ErrPathDenied
 	}
 	return out, nil
+}
+
+// isReserved reports whether rel names one of the sheets only Patch and
+// DeskPatch may write. The comparison ignores case and trailing dots and spaces,
+// which Windows drops, so "Desk.JSON" and "desk.json." reach the same file.
+func isReserved(rel string) bool {
+	name := strings.TrimRight(rel, ". ")
+	return strings.EqualFold(name, PropsFile) || strings.EqualFold(name, DeskFile)
 }
 
 // resolve maps a clean relative path onto disk and refuses any symbolic link on
@@ -448,7 +456,7 @@ func (s *Store) List(dir string) ([]Entry, error) {
 			return err
 		}
 		rel = filepath.ToSlash(rel)
-		if rel == PropsFile {
+		if isReserved(rel) {
 			return nil
 		}
 		info, err := d.Info()
