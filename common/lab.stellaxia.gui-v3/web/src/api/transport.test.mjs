@@ -23,7 +23,7 @@ test('session — 핸들만 받고(토큰 아님), 실패는 화면 말로, 로�
   await S.logout();
   assert.equal(S.authorization(), null); assert.equal(st.getItem('terra.handle'), null);
   assert.deepEqual(calls.at(-1).slice(0, 3), ['DELETE', '/api/v1/auth/credentials', 'Handle h-1']);
-  const N = createSession({ fetch: async () => { throw new TypeError('fail'); }, storage: mem() });
+  const N = createSession({ fetch: async () => { throw new TypeError('fail'); } });
   await assert.rejects(N.login('a', 'b'), { code: 'NETWORK' });
 });
 
@@ -46,9 +46,8 @@ test('transport — 장면 노드 묶기: 로컬은 로컬 길, 나머지는 Mas
   const calls = [];
   const fetch = async (path, init) => { calls.push([init.method, path, init.body ? JSON.parse(init.body) : null]);
     if (path.endsWith('/terra.master.nodes.get/invoke')) return J(200, { status: 'ok', data: { nodes: [{ node_id: 'nd_b', display_name: '01.01·b' }] } });
-    if (path.startsWith('/api/v1/me/documents')) return J(200, { status: 'ok', data: init.method === 'GET' ? { documents: [{ key: 'view/desk.A', value: { wins: { term: {} } } }] } : { revision: 1 } });
     return J(200, { status: 'ok', data: { path } }); };
-  const T = createTerra({ fetch, authorization: () => 'Handle h' }), tp = createGatewayTransport({ terra: T, storage: mem(), saveMs: 0 });
+  const T = createTerra({ fetch, authorization: () => 'Handle h' }), tp = createGatewayTransport({ terra: T });
   tp.bindScene('A', [{ id: 'A', name: '01.01·a' }, { id: 'B', name: '01.01·b' }, { id: 'C', name: '01.01·c' }]);
   assert.equal(tp.localId(), 'A');
   assert.deepEqual(await tp.invoke('A', 'terra.daemon.modules.get', {}), { path: '/api/v1/operations/terra.daemon.modules.get/invoke' });
@@ -61,16 +60,14 @@ test('transport — 장면 노드 묶기: 로컬은 로컬 길, 나머지는 Mas
   // Master 쓰기는 노드로 중계하지 않는다 — 로컬 Gateway 로, 그 노드의 Master id 를 실어
   await tp.invoke('B', 'terra.master.nodes.by-node-id.modules.assignments.post', { module_id: 'io.terra.agent', version: '0.6.2' });
   assert.deepEqual(calls.at(-1).slice(1), ['/api/v1/operations/terra.master.nodes.by-node-id.modules.assignments.post/invoke', { module_id: 'io.terra.agent', version: '0.6.2', node_id: 'nd_b' }]);
-    // 보기 상태 — 계정 문서에서 미리 받고, 쓰면 계정에 덮어 쓴다
-  assert.equal(await tp.ready(), true);
-  assert.deepEqual(tp.loadView('desk.A'), { wins: { term: {} } });
-  tp.saveView('desk.B', { wins: {} }); await new Promise((r) => setTimeout(r, 10));
-  assert.deepEqual(calls.at(-1), ['PUT', '/api/v1/me/documents/gui-v3/view/desk.B', { value: { wins: {} }, force: true }]);
+  // 보기 상태는 계정 문서로 가지 않는다 — 저장 · 미리 받기 · 보기 읽기 함수가 전송에 없다(제어기의 PC 상태는 이 브라우저, 바탕 구성은 invokeRid 로 그 노드에)
+  for (const f of ['saveView', 'loadView', 'ready']) assert.equal(tp[f], undefined, f + ' 가 남아 있다');
+  assert.ok(!calls.some((c) => c[1].includes('/me/documents')), '계정 문서를 부르면 안 된다');
 });
 
 test('transport — 로그인 전이면 부르지 않는다', async () => {
   let n = 0; const T = createTerra({ fetch: async () => { n++; return J(200, { status: 'ok', data: {} }); } });
-  const tp = createGatewayTransport({ terra: T, authed: () => false, storage: mem() }); tp.bindScene('A', []);
+  const tp = createGatewayTransport({ terra: T, authed: () => false }); tp.bindScene('A', []);
   await assert.rejects(tp.invoke('A', 'terra.daemon.modules.get', {}), { code: 'UNAUTHENTICATED' });
   await assert.rejects(tp.master('B', 'terra.master.nodes.by-node-id.get'), { code: 'UNAUTHENTICATED' });
   assert.equal(n, 0);
@@ -81,20 +78,20 @@ test('transport — 로컬 노드의 Master id 는 Daemon status 에서, 등록 
   const fetch = async (path, init) => { calls.push([path, init.body ? JSON.parse(init.body) : null]);
     if (path.endsWith('/terra.daemon.status.get/invoke')) return J(200, { status: 'ok', data: { daemon: { node_id: nid } } });
     return J(200, { ok: true, data: {} }); };
-  const T = createTerra({ fetch, authorization: () => 'Handle h' }), tp = createGatewayTransport({ terra: T, storage: mem() });
+  const T = createTerra({ fetch, authorization: () => 'Handle h' }), tp = createGatewayTransport({ terra: T });
   tp.bindScene('A', [{ id: 'A', name: 'a' }]);
   await tp.invoke('A', 'terra.master.nodes.by-node-id.modules.assignments.by-module-id.delete', { module_id: 'm' });
   assert.deepEqual(calls.at(-1), ['/api/v1/operations/terra.master.nodes.by-node-id.modules.assignments.by-module-id.delete/invoke', { module_id: 'm', node_id: 'nd_a' }]);
   await tp.invoke('A', 'terra.master.nodes.get', {});   // by-node-id 가 아닌 Master op 에는 싣지 않는다
   assert.deepEqual(calls.at(-1), ['/api/v1/operations/terra.master.nodes.get/invoke', {}]);
-  nid = ''; const tp2 = createGatewayTransport({ terra: T, storage: mem() }); tp2.bindScene('A', []);
+  nid = ''; const tp2 = createGatewayTransport({ terra: T }); tp2.bindScene('A', []);
   await assert.rejects(tp2.invoke('A', 'terra.master.nodes.by-node-id.modules.assignments.post', { module_id: 'm' }), { code: 'NODE_NOT_ENROLLED' });
 });
 
 test('transport.invokeRid — localRid 와 같으면 로컬 길, 다르면 노드 길, signal 을 싣는다', async () => {
   const calls = [], fetch = async (path, init) => { calls.push([path, init.signal, JSON.parse(init.body)]); return J(200, { status: 'ok', data: { path } }); };
   const T = createTerra({ fetch, authorization: () => 'Handle h' }), ac = new AbortController();
-  const tp = createGatewayTransport({ terra: T, storage: mem(), localRid: () => 'nd_local' });
+  const tp = createGatewayTransport({ terra: T, localRid: () => 'nd_local' });
   await tp.invokeRid('nd_local', 'lab.stellaxia.gui-v3.node-desk.get', { since_revision: 3 }, { signal: ac.signal });
   assert.deepEqual(calls.at(-1), ['/api/v1/operations/lab.stellaxia.gui-v3.node-desk.get/invoke', ac.signal, { since_revision: 3 }]);
   await tp.invokeRid('nd_far', 'lab.stellaxia.gui-v3.node-desk.get', {}, { signal: ac.signal });
@@ -105,12 +102,12 @@ test('transport.invokeRid — localRid 와 같으면 로컬 길, 다르면 노�
 
 test('transport.invokeRid — Tree Gateway(localRid 가 빈 문자열)는 노드 길 · rid 가 비면 NO_NODE · 로그인 전이면 부르지 않는다', async () => {
   const calls = [], fetch = async (path) => { calls.push(path); return J(200, { status: 'ok', data: {} }); }, T = createTerra({ fetch, authorization: () => 'Handle h' });
-  const tree = createGatewayTransport({ terra: T, storage: mem(), localRid: () => '' });   // Tree Gateway — 지도 localId 가 비어 있다
+  const tree = createGatewayTransport({ terra: T, localRid: () => '' });   // Tree Gateway — 지도 localId 가 비어 있다
   await tree.invokeRid('nd_server', 'lab.stellaxia.gui-v3.node-desk.get', {});
   assert.deepEqual(calls, ['/api/v1/nodes/nd_server/operations/lab.stellaxia.gui-v3.node-desk.get/invoke'], 'Daemon 인스턴스로 간다');
   await assert.rejects(tree.invokeRid('', 'lab.stellaxia.gui-v3.node-desk.get', {}), (e) => e instanceof TerraError && e.code === 'NO_NODE');
-  const none = createGatewayTransport({ terra: T, storage: mem() });   // localRid 옵션이 없어도 같다 — 로컬로 착각하지 않는다
+  const none = createGatewayTransport({ terra: T });   // localRid 옵션이 없어도 같다 — 로컬로 착각하지 않는다
   await none.invokeRid('nd_x', 'lab.stellaxia.gui-v3.node-desk.get', {}); assert.match(calls.at(-1), /^\/api\/v1\/nodes\/nd_x\//);
-  const n = calls.length, off = createGatewayTransport({ terra: T, authed: () => false, storage: mem(), localRid: () => 'a' });
+  const n = calls.length, off = createGatewayTransport({ terra: T, authed: () => false, localRid: () => 'a' });
   await assert.rejects(off.invokeRid('a', 'x', {}), { code: 'UNAUTHENTICATED' }); assert.equal(calls.length, n);
 });

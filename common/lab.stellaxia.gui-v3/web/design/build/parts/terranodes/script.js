@@ -6,10 +6,10 @@
 //      단, Master 가 원하는 상태(desired)로 받는 것(모듈 배포 지정)은 노드가 없어도 Master 에 적는다 — 노드가 돌아오면 스스로 맞춘다.
 //   E(평소): 지연 우선. 사본을 즉시 돌려주고, 나이가 TTL 을 넘었으면 뒤에서 새로 받는다(stale-while-revalidate). 쓰기는 사본에 먼저 반영(낙관)하고 실패하면 되돌린다.
 // 로컬 노드(이 GUI 를 띄운 노드)는 로컬 Gateway 로 바로, 다른 노드는 Gateway 의 노드 주소 호출(Master 중계, 직계 자식만 — 아니면 DELEGATION_REQUIRED · via)로 간다.
-// GUI 가 노드마다 따로 두는 보기 상태(제어기 창 배치 · 바탕화면 · 열린 앱 · 아이콘)는 노드 데이터가 아니다 — view() 로 노드 키마다 따로 저장한다.
+// 제어기의 바탕 구성(아이콘 · 배경 · 독 · 모양)은 그 노드가 원본이다(desk* 메서드 — 아래). 창 배치 · 열린 앱 같은 PC 상태만 view() 로 이 브라우저(terra.pc.*)에 둔다 — 계정 문서로 올리지 않는다.
 //
 // 전송(transport)은 갈아 끼운다: window.TerraTransport 가 있으면 그것(웹 빌드 — Gateway), 없으면 목업(캔버스 — 노드 쪽 값을 이 브라우저에 두고 지연 · 끊김을 흉내).
-//   transport = { kind, localId(), bindScene?(장면 로컬 id, 노드 메타들), meta?, invoke(nodeId, opId, input) → Promise<data> (실패: { code, status, retryable }), loadView?(key), saveView?(key, v), master?(nodeId, res) → Promise<data> }
+//   transport = { kind, localId(), bindScene?(장면 로컬 id, 노드 메타들), meta?, invoke(nodeId, opId, input) → Promise<data> (실패: { code, status, retryable }), invokeRid?(rid, opId, input, { signal }) → Promise<data>, master?(nodeId, res) → Promise<data> }
 
 // 노드의 GUI 데이터(프로필 그림 · 스킨 구 파일 · 그 경로를 적은 속성표)도 그 노드가 원본이다 — lab.stellaxia.gui-v3 백엔드가 그 노드의 모듈 데이터에 둔다.
 //   쓰기: 그 노드를 먼저 고치고, 성공해야 사본을 바꾼다(낙관 없음). 끊겼으면 하지 않는다. 읽기: 속성표는 자원 props, 파일은 blob() — 경로에 시각이 들어 있어 내용이 바뀌지 않으므로 한 번 받으면 끝(IndexedDB 에 남아 끊겨도 보인다)
@@ -44,7 +44,9 @@ const RES = {   // 자원 이름 → 읽기 operation · TTL(ms) · 끊겼을 �
 };
 const PARTITION = new Set(['NODE_OFFLINE', 'RELAY_NOT_CONNECTED', 'NETWORK', 'TIMEOUT', 'GATEWAY_UNREACHABLE', 'UPSTREAM_UNREACHABLE', 'MODULE_INVOCATION_TIMEOUT', 'RELAY_SEND_FAILED']);   // 이 코드면 분할로 본다
 // 바탕 구성(desk) — 노드가 원본. 키는 전부 Terra node_id(rid). 설계 docs/design/node-owned-desk.md §7 · §8 · §10 · §12 · §13
-const OP_DESK_GET = NODE_OP + 'desk.get', OP_DESK_PATCH = NODE_OP + 'desk.patch';
+const OP_DESK_GET = NODE_OP + 'desk.get', OP_DESK_PATCH = NODE_OP + 'desk.patch', OP_LIST = NODE_OP + 'files.list';
+const WALL_DIR = 'desk/wall', WALL_MAX = 2.5 * 1024 * 1024, WALL_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };   // 배경 그림 — 서버 허용 형식 · 2.5 MiB(§6.3)
+const clipBytes = (s, n) => { let out = '', b = 0; for (const ch of String(s == null ? '' : s)) { const w = new TextEncoder().encode(ch).length; if (b + w > n) break; out += ch; b += w; } return out; };   // UTF-8 바이트 기준 자르기(서버 이름 상한)
 const DESK_POLL = 5000, DESK_OLD = 60000, DESK_ABORT = 8000, PROPS_EVERY = 30000, DESK_WAKE_GAP = 500, DESK_STALE = DESK_POLL + DESK_ABORT;   // 폴링 · 옛 버전 재시도 · 읽기 상한 · 프로필 주기 · 연속 깨움 무시 · 낡음(5초 + 폴링 제한 8초 = 13초)
 const DESK_SAVE0 = () => ({ state: 'idle', at: 0, code: '', msg: '', lost: [] });
 const deskStateOf = (code) => (code === 'OPERATION_NOT_REMOTE' || code === 'MODULE_ROUTE_NOT_FOUND' ? 'old' : code === 'MODULE_UNAVAILABLE' ? 'down' : code === 'MODULE_PERMISSION_DENIED' ? 'denied' : code === 'DELEGATION_REQUIRED' ? 'far' : code === 'NODE_NOT_FOUND' || code === 'NODE_UNMAPPED' ? 'none' : code === 'NO_NODE' ? 'norid' : PARTITION.has(code) ? 'offline' : 'error');   // HTTP 상태는 보지 않는다 — 코드만(§13)
@@ -343,12 +345,89 @@ class NodeStore {
     for (const rid of this.watched.keys()) { const D = this.deskMeta(rid); if (now - D.lastStart >= DESK_WAKE_GAP) this.deskFetch(rid); }
   }
 
+  // ───────────── 배경 그림(§6.3) — node-files 의 desk/wall/<시각>.<확장자>, 이름 · 형식은 wall 에 ─────────────
+  /** 청크로 올린다 — invokeRid. 순서가 어긋나면 한 번만 처음부터 */
+  async deskPutFile(rid, rel, u8, mime) {
+    let off = 0, retried = false;
+    while (off < u8.length) {
+      const chunk = u8.subarray(off, Math.min(u8.length, off + WRITE_STEP));
+      try { off = (await this.t.invokeRid(rid, OP_PUT, { path: rel, mime, data: b64Of(chunk), offset: off, total: u8.length }, {})).received; }
+      catch (e) { if (e && e.code === 'CHUNK_OUT_OF_ORDER' && !retried) { retried = true; off = 0; continue; } throw e; }
+    }
+  }
+  /** 그림을 올리고 가리킨다 — f: { name, type, bytes(Uint8Array) }. 올리기 → 패치({wall, prefs.wall:'img'}) → 지난 파일 정리. 어디서 실패해도 지금 바탕은 그대로 */
+  async deskWallPut(rid, f) {
+    const ext = WALL_EXT[f && f.type], u8 = f && f.bytes;
+    if (!ext) throw { code: 'WALL_TYPE', message: 'png · jpeg · gif · webp 만 올릴 수 있음' };
+    if (!u8 || !u8.length) throw { code: 'WALL_EMPTY', message: '빈 파일' };
+    if (u8.length > WALL_MAX) throw { code: 'WALL_TOO_LARGE', message: '상한 2.5MiB · 이 파일 ' + (u8.length / 1048576).toFixed(1) + 'MiB' };
+    const s = this.deskRead(rid);
+    if (s.state === 'loading') throw { code: 'DESK_NOT_READY', state: s.state, message: '바탕 구성을 아직 받지 못함' };
+    if (s.ro) throw { code: 'PARTITIONED', state: s.state, message: (DESK_MSG[s.state] || '읽기 전용') + ' — 바꿀 수 없음' };
+    const gen = this.gen, file = WALL_DIR + '/' + Date.now() + '.' + ext;
+    await this.deskPutFile(rid, file, u8, f.type);
+    if (gen !== this.gen) throw { code: 'CLEARED', message: '로그아웃으로 비워짐' };
+    await this.deskPatch(rid, { wall: { file, name: clipBytes(f.name, 256) || 'wallpaper', type: f.type, at: Date.now() }, 'prefs.wall': 'img' });
+    if (gen !== this.gen) return;
+    const k = rid + '|' + file, v = { mime: f.type, b64: b64Of(u8) }; IDB.put(k, v); this.remember(k, v.mime, v.b64); this.emit(rid);   // 방금 올린 것은 다시 받지 않는다
+    await this.deskWallSweep(rid, file);
+  }
+  /** 그림을 지우고 노을로 */
+  async deskWallClear(rid) {
+    const gen = this.gen;
+    await this.deskPatch(rid, { wall: null, 'prefs.wall': 'dusk' });
+    if (gen === this.gen) await this.deskWallSweep(rid, '');
+  }
+  /** 패치가 성공한 뒤 desk/wall/ 의 나머지를 지운다(실패 무시 — 못 지운 잔재는 다음 정리 때). 그 사이 다른 PC 가 가리킨 파일은 남긴다 */
+  async deskWallSweep(rid, keep) {
+    const gen = this.gen;
+    try {
+      await this.deskFetch(rid, { force: true });
+      const cur = this.deskRead(rid).doc, now = cur && cur.wall && cur.wall.file;
+      const list = await this.t.invokeRid(rid, OP_LIST, { dir: WALL_DIR }, {});
+      for (const e of (list && list.entries) || []) {
+        if (gen !== this.gen) return;
+        if (!e || !e.path || e.path === keep || e.path === now) continue;
+        try { await this.t.invokeRid(rid, OP_DEL, { path: e.path }, {}); } catch (x) { /* 실패 무시 */ }
+      }
+    } catch (x) { /* 정리는 덤 — 실패해도 바탕은 바뀐 뒤다 */ }
+  }
+  /** 배경 그림 사본 { url(data:), mime } — 없으면 뒤에서 받고 null(받는 동안 노을로 떨어뜨리지 않는다). 키 rid|file, 경로에 시각이 있어 사본이 낡지 않는다. 다 받으면 emit(rid) */
+  deskWallBlob(rid, file) {
+    const k = rid + '|' + file, e = this.blobs.get(k);
+    if (e && e.url) return e;
+    if (!e || (!e.busy && Date.now() - e.errAt > BLOB_RETRY)) this.loadWall(rid, file, k);
+    return null;
+  }
+  /** 그림을 못 받았나(마지막 시도가 실패) — "받는 중"이 영원히 가지 않게 화면이 구분한다 */
+  deskWallFailed(rid, file) { const e = this.blobs.get(rid + '|' + file); return !!e && !e.busy && !e.url; }
+  async loadWall(rid, file, k) {
+    const gen = this.gen; this.blobs.set(k, { busy: true, errAt: 0 });
+    try {
+      let v = await IDB.get(k);
+      if (!v) { v = await this.fetchWall(rid, file); IDB.put(k, v); }
+      if (gen !== this.gen) return;
+      this.remember(k, v.mime, v.b64); this.emit(rid);
+    } catch (err) { if (gen === this.gen) { this.blobs.set(k, { busy: false, errAt: Date.now() }); this.emit(rid); } }
+  }
+  async fetchWall(rid, file) {
+    let off = 0, b64 = '', mime = '';
+    for (;;) {
+      const d = await this.t.invokeRid(rid, OP_GET, { path: file, offset: off, limit: READ_STEP }, {}), s = d.data || '', pad = s.endsWith('==') ? 2 : s.endsWith('=') ? 1 : 0, got = s.length * 3 / 4 - pad;
+      b64 += s; mime = d.mime || mime; off += got;
+      if (!got || off >= d.size) return { mime, b64 };
+    }
+  }
+
   /** 비우기 — 로그아웃 때(다음 사람이 앞 사람의 사본을 보지 않게) */
   clear() { for (const S of this.deskSends.values()) for (const w of S.waiters) w.no({ code: 'CLEARED', message: '로그아웃으로 비워짐' }); this.pendingDesk.clear(); this.deskSends.clear(); this.desks.clear();   // 바탕 구성의 표시층 · 대기열 · 상태 — watch 목록과 타이머는 남긴다(토큰 갱신도 clear 를 부른다)
     this.cache.clear(); this.links.clear(); this.views.clear(); this.inflight.clear(); this.blobs.clear(); this.gen++; IDB.clear(); try { localStorage.removeItem('terra.cache'); } catch (e) {} for (const f of this.subs) { try { f(''); } catch (e) {} } }
   /** GUI 보기 상태 — 노드 키마다 (노드 데이터가 아니다) */
-  view(key) { if (!this.views.has(key)) this.views.set(key, (this.t.loadView && this.t.loadView(key)) || LS.get('terra.view.' + key) || null); return this.views.get(key); }
-  setView(key, v) { this.views.set(key, v); if (this.t.saveView) this.t.saveView(key, v); else LS.set('terra.view.' + key, v); }
+  view(key) { if (!this.views.has(key)) this.views.set(key, LS.get('terra.pc.' + key) || null); return this.views.get(key); }
+  setView(key, v) { this.views.set(key, v); LS.set('terra.pc.' + key, v); }   // 이 브라우저에만 — 계정 문서 · 노드로 보내지 않는다
+  /** PC 상태 키(view · setView 에 넘긴다 → terra.pc.<키>) — src/api/pc-state.js 와 같은 모양 */
+  pcDesk(rid) { return 'desk.' + rid; }
+  pcTerm(principal, rid) { return 'term.' + encodeURIComponent(String(principal)).replace(/\./g, '%2E') + '.' + rid; }
 
   /** 링크 문구 — 화면 머리줄에 */
   linkText(n, at) {

@@ -5,7 +5,7 @@
 //   다른 노드                         POST /api/v1/nodes/{node}/operations/{op}/invoke   (Master 중계 · 직계 자식만)
 //   Master 가 마지막으로 관측한 값    terra.master.nodes.by-node-id(.modules).get        (끊겼을 때 사본이 없으면)
 //   Master 에 쓰는 것(모듈 배정 …)    terra.master.* 는 노드로 중계하지 않고 로컬 Gateway 로 — 입력에 그 노드의 Master id(node_id)를 싣는다
-//   GUI 보기 상태(제어기 창 배치 …)   /api/v1/me/documents/gui-v3/view/<키>            (계정에 — 다른 브라우저에서도 같은 배치)
+//   바탕 구성(아이콘 · 배경 · 독 · 모양)  invokeRid — 노드 id(rid)로 그 노드의 gui-v3 에 저장(node-desk.*). 창 배치 · 터미널 기록은 이 브라우저(terra.pc.*)에만 — 계정 문서로는 보내지 않는다
 // 실패는 TerraError(code) 로 — 보드가 code 로 분할(NODE_OFFLINE · RELAY_NOT_CONNECTED · NETWORK · TIMEOUT · GATEWAY_UNREACHABLE)인지 가른다.
 //
 // 장면의 노드 id 는 시안의 것이다(지도 · 항성계를 그리는 자리). 그래서 묶는다: 장면의 로컬 노드 = 이 Gateway 의 노드,
@@ -13,22 +13,16 @@
 
 import { TerraError } from './terra.js';
 
-export const VIEW_NS = 'gui-v3';
-
 /**
- * @param {{ terra: ReturnType<import('./terra.js').createTerra>, authed?: () => boolean, localRid?: () => string, storage?: Storage, saveMs?: number, ns?: string | (() => string) }} o
+ * @param {{ terra: ReturnType<import('./terra.js').createTerra>, authed?: () => boolean, localRid?: () => string }} o
  *   localRid — invokeRid 의 로컬 판정: 이 GUI 를 낸 노드의 node_id(지도 localId). 비면(Tree Gateway) 노드 길
- *   ns — 보기 상태 문서의 이름공간. B 모드(자격 핸들)는 'gui-v3', A 모드(앱 토큰)는 Gateway 가 app:<앱 id> 로 고정하므로 앱 id
  *   authed — 로그인 전이면 false: 아무 데도 부르지 않고 UNAUTHENTICATED 로 답한다(로그인 화면 뒤에서 노드를 두드리지 않게)
  */
 export function createGatewayTransport(o) {
-  const T = o.terra, LS = o.storage || globalThis.localStorage, saveMs = o.saveMs ?? 800;
-  const meta = {}, real = new Map(), views = new Map(), saveT = new Map();
+  const T = o.terra;
+  const meta = {}, real = new Map();
   let sceneLocal = '', nodesP = null, localRid = null;
   const nodes = () => nodesP || (nodesP = T.invoke('terra.master.nodes.get', {}).then((d) => (Array.isArray(d) ? d : (d && d.nodes) || []), (e) => { nodesP = null; throw e; }));
-  const lsGet = (k) => { try { return JSON.parse(LS.getItem('terra.view.' + k) || 'null'); } catch { return null; } };
-  const lsSet = (k, v) => { try { LS.setItem('terra.view.' + k, JSON.stringify(v)); } catch {} };
-  const NS = () => (typeof o.ns === 'function' ? o.ns() : o.ns) || VIEW_NS, docPath = (k) => '/api/v1/me/documents/' + encodeURIComponent(NS()) + '/view/' + k.split('/').map(encodeURIComponent).join('/');
 
   const tp = {
     kind: 'gateway', meta,
@@ -79,26 +73,6 @@ export function createGatewayTransport(o) {
 
     async master(n, op) { if (o.authed && !o.authed()) throw new TerraError('UNAUTHENTICATED', '로그인 전', 401);
       const id = await tp.realId(n); return T.invoke(op, { node_id: id }); },
-
-    // 보기 상태 — 보드는 동기로 읽는다: 미리 받아 둔 것(ready) · 없으면 이 브라우저 사본
-    loadView(key) { return views.has(key) ? views.get(key) : lsGet(key); },
-    saveView(key, v) {
-      views.set(key, v); lsSet(key, v);
-      clearTimeout(saveT.get(key));
-      saveT.set(key, setTimeout(() => { T.http('PUT', docPath(key), { value: v, force: true }).catch(() => {}); }, saveMs));   // 계정 문서 — 실패해도 이 브라우저 사본은 남는다
-    },
-    /** 계정에 둔 보기 상태를 미리 받는다(로그인 뒤 한 번) */
-    async ready() {
-      try {
-        const d = await T.http('GET', '/api/v1/me/documents/' + encodeURIComponent(NS()));
-        const items = (d && (d.documents || d.items)) || (Array.isArray(d) ? d : []);
-        await Promise.all(items.filter((x) => String(x.key || '').startsWith('view/')).map(async (x) => {
-          const k = x.key.slice(5), v = 'value' in x ? x.value : (await T.http('GET', docPath(k))).value;
-          if (v != null) { views.set(k, v); lsSet(k, v); }
-        }));
-        return true;
-      } catch { return false; }
-    },
   };
   return tp;
 }

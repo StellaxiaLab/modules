@@ -84,6 +84,8 @@ npm run gen:op-scope -- --terra <Terra 체크아웃> [--check]   # 원격 잠금
 | 시안 (localStorage) | 실제 | 클라이언트 |
 | --- | --- | --- |
 | 프로필 · 스킨 (노드의 값) | v3 백엔드 `lab.stellaxia.gui-v3.node-props.*` · `node-files.*` — 그 노드에 | 보드 `TerraNodes`(`nodeProps` · `blob` · `setProfile` · `setSkin`). 시안은 목업 전송 — `docs/design/node-owned-data.md` |
+| 제어기 바탕 구성 — 아이콘 · 배경 그림 · 독 · 모양(`terra.view.desk.*` · `terra.wall.*`) | v3 백엔드 `node-desk.get`/`patch`(키마다 revision · 충돌 409) + 배경 그림은 `node-files` 의 `desk/wall/` — 그 노드에. 5초 갱신, 응답 전에는 반투명 표시층, 저장 표시는 응답 뒤에만 | 보드 `TerraNodes`(`deskRead` · `deskPatch` · `watch` · `deskWallPut`), 제어기 `NodeDesktopEmbed`, 전송 `invokeRid`. 설계 `docs/design/node-owned-desk.md` |
+| 제어기 창 배치 · 터미널 기록(PC 상태) | 이 브라우저에만 — `terra.pc.desk.<node_id>` · `terra.pc.term.<principal>.<node_id>`(로그아웃 때 지움). 계정 문서(`me/documents`)로 올리지 않는다 | `src/api/pc-state.js` · 보드 `TerraNodes.view`/`setView` |
 | `terra.star.index` · `terra.star.f.<id>` (스타메이커 보관함) | (아직 이 브라우저) 스킨을 적용하면 구 파일이 그 노드로 복사된다 | (다음) |
 | 설정 창의 노드 설정 값 (창 안에서만) | `terra.daemon.config.{get, schema.get, patch}` · `POST /restart` | `src/api/terra.js` — `createTerra().invoke(id, input, { node })` |
 | 제어기 · 자원 창의 버튼 (시안 데이터) | Daemon · Master operation, 원격이면 `nodes/{node}/operations` | 같은 클라이언트 — 원격 잠금은 `canRemote(id)`(`op-scope.json`) |
