@@ -58,3 +58,24 @@ test('denyHint — 위임 안 됨 / 정책·소유권 거부 / 표에 없는 403
   assert.equal(denyHint(up, null), '');
   assert.equal(denyHint(up, new Error('x')), '');
 });
+
+test('Terra 에 구현 없는 op · 앱 토큰에 닫힌 위임 문 · 없는 권한 — 잠금 + 이유(호출하지 않는다)', () => {
+  for (const [op, re] of [['enable', /구현 없음/], ['disable', /구현 없음/], ['rollback', /구현 없음/]]) { const g = gate('terra.gateway.modules.by-id.' + op + '.post'); assert.equal(g.open, false); assert.match(g.why, re); }
+  assert.match(gate('terra.gateway.modules.by-id.disable.post').why, /멈춤/);
+  assert.equal(gate('terra.daemon.svi.declarations.apply.post').open, false);
+  assert.equal(gate('terra.daemon.svi.declarations.retired.by-family.by-name.forget.post').open, false);
+  assert.equal(gate('terra.daemon.svi.declarations.post', { family: 'file' }).open, true);
+  assert.equal(gate('terra.daemon.svi.declarations.post', { family: 'net' }).open, false);
+  assert.equal(gate('terra.daemon.svi.declarations.post', { family: 'file', remote: true }).open, false);
+  const r = gate('terra.master.jobs.by-job-id.rerun.post'); assert.equal(r.open, false); assert.match(r.why, /앱 토큰에 없는 권한 — process\.execute\.delegated/);
+});
+
+test('AUD-81 — 사람 권한(whoami)을 모르면 쓰기는 닫는다(who 키를 준 호출만 · 읽기는 연다)', () => {
+  assert.equal(gate('terra.daemon.config.patch', { who: null }).open, false);
+  assert.equal(gate('terra.daemon.config.patch', { who: {} }).open, false);
+  assert.match(gate('terra.daemon.config.patch', { who: null }).why, /whoami/);
+  assert.equal(gate('terra.daemon.tasks.get', { who: null }).open, true);
+  assert.equal(gate('terra.master.nodes.by-node-id.modules.assignments.post', { who: null }).open, false);
+  assert.equal(gate('terra.daemon.config.patch', { who: { permissions: ['node.config'] } }).open, true);
+  assert.equal(gate('terra.daemon.config.patch').open, true, 'who 키가 없으면(시안 · 시험) 조회하지 않는다');
+});

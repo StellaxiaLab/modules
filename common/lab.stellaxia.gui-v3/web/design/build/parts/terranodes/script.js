@@ -40,7 +40,8 @@ const RES = {   // 자원 이름 → 읽기 operation · TTL(ms) · 끊겼을 �
   enroll:  { op: 'terra.daemon.enrollment.status.get', ttl: 60000 },
   props:   { op: 'lab.stellaxia.gui-v3.node-props.get', ttl: 60000, retry: 60000 },   // 속성표 — 지도가 노드마다 읽으므로 드물게(끊긴 노드는 1분에 한 번)
   // 제어기(노드 데스크톱) 묶음 — 위 자원들을 한 화면 모양으로. 목업은 보드 씨앗, 웹 빌드 전송은 operation 여럿을 불러 묶는다(desk.js)
-  desk:    { op: 'gui-v3.desk', ttl: 15000, compose: ['config', 'modules', 'offers', 'devices', 'tasks', 'svi', 'wg', 'tunnels', 'enroll'] }
+  tombs:   { op: 'terra.daemon.io.tombstones.get', ttl: 15000 },   // 지운 장치 기록 — 지운 기록 목록(계약 입력 없음 · node.read · local + cluster)
+  desk:    { op: 'gui-v3.desk', ttl: 15000, compose: ['config', 'modules', 'offers', 'devices', 'tombs', 'tasks', 'svi', 'wg', 'tunnels', 'enroll'] }
 };
 const PARTITION = new Set(['NODE_OFFLINE', 'RELAY_NOT_CONNECTED', 'NETWORK', 'TIMEOUT', 'GATEWAY_UNREACHABLE', 'UPSTREAM_UNREACHABLE', 'MODULE_INVOCATION_TIMEOUT', 'RELAY_SEND_FAILED']);   // 이 코드면 분할로 본다
 // 바탕 구성(desk) — 노드가 원본. 키는 전부 Terra node_id(rid). 설계 docs/design/node-owned-desk.md §7 · §8 · §10 · §12 · §13

@@ -76,7 +76,7 @@ test('묶음 자원(desk) · 모양 — 실제 전송이면 operation 여럿을 
   const t = fake(); t.invoke = (n, op) => op === 'terra.daemon.tasks.get' ? Promise.reject({ code: 'FORBIDDEN' }) : Promise.resolve({ op });
   const S = await loadStore(t); S.shapes.desk = (P) => ({ got: Object.keys(P).sort() });
   await S.refresh('L', 'desk');
-  assert.deepEqual(S.read('L', 'desk').data.got, ['config', 'devices', 'enroll', 'modules', 'offers', 'svi', 'tunnels', 'wg']);
+  assert.deepEqual(S.read('L', 'desk').data.got, ['config', 'devices', 'enroll', 'modules', 'offers', 'svi', 'tombs', 'tunnels', 'wg']);
   S.clear(); assert.equal(S.read('L', 'desk').data, null);   // 로그아웃 — 앞 사람의 사본을 남기지 않는다
 });
 

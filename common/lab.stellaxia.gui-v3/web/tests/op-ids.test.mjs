@@ -16,7 +16,7 @@ for (const grp of ['leaf', 'tree', 'common']) {
 for (const k of Object.keys(json(join(web, 'src/api/op-scope.json')).operations)) known.add(k);
 for (const k of Object.keys(json(join(web, 'src/api/master-delegated.json')).operations)) known.add(k);
 // Gateway 가 앱 토큰(app-scope-token)으로 내놓는 것 · Terra 계약에서 옮긴 고정 목록(저장소 밖이라 손으로 — 늘리면 이유를 적는다)
-const GATEWAY = ['terra.gateway.agent.whoami.get', 'terra.gateway.agent.nodes.get', 'terra.master.nodes.get'];
+const GATEWAY = ['terra.gateway.agent.whoami.get', 'terra.gateway.agent.nodes.get', 'terra.master.nodes.get', 'terra.gateway.modules.by-id.disable.post', 'terra.gateway.modules.by-id.enable.post', 'terra.gateway.modules.by-id.rollback.post'];   // 마지막 셋은 게시만 있고 Daemon 이 늘 501 — gates.js 가 잠금(부르지 않는다)
 for (const k of GATEWAY) known.add(k);
 // 화면에 단추는 있으나 앱 토큰으로는 못 부르는 Master op — 위임 표(master-delegated.json) 밖이라 gate 가 "위임 없음"으로 잠근다(잠금 + 이유가 맞는 상태). 손으로 둔 고정 목록
 const LOCKED_MASTER = ['terra.master.admin.external-issuers.', 'terra.master.users.by-user-id.external-identities.', 'terra.master.connection-groups.', 'terra.master.network.mesh.wireguard.', 'terra.master.network.probes.', 'terra.master.route.', 'terra.master.service-tunnels.open.', 'terra.master.admin.users.get', 'terra.master.svi.handles.', 'terra.master.crossboundary.login-routes.'];
