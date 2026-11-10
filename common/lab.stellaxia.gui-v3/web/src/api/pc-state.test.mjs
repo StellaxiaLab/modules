@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
-import { PC, deskKey, termPrefix, encPrincipal, clearTerm, migratePc, pcLogout } from './pc-state.js';
+import { PC, deskKey, termPrefix, encPrincipal, clearTerm, migratePc, pcLogout, setWho } from './pc-state.js';
 import { boardModule } from '../../tools/dc-board.mjs';
 
 const mem = (init = {}) => { const m = new Map(Object.entries(init)); return { m, get length() { return m.size; }, key: (i) => [...m.keys()][i] ?? null, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
@@ -57,4 +57,15 @@ test('키 모양 — TerraNodes.pcDesk · pcTerm 이 pc-state 와 같다(terra.p
   assert.deepEqual(JSON.parse(localStorage.getItem('terra.pc.desk.n1')), { wins: { a: 1 } }, '이 브라우저에만 — terra.pc.* 에 쓴다');
   assert.equal(localStorage.getItem('terra.view.desk.n1'), null, '옛 키에는 쓰지 않는다');
   assert.equal(window.TerraTransport.saveView, undefined);
+});
+
+test('whoami — 계정이 바뀌면 새 값을 넣기 전에 pcLogout(앞 계정 기록 삭제 · 신호 때 TerraWho 는 아직 비어 있다) · principal 을 처음 얻으면 clear', () => {
+  const st = mem({ [termPrefix('u1') + 'n1']: 'x' }), seen = [];
+  const win = { TerraWho: { principal: 'u1' }, dispatchEvent: (e) => { seen.push(e.type + ':' + (win.TerraWho ? 'who' : 'none')); return true; } };
+  let cleared = 0; setWho(win, st, { principal: 'u2' }, () => cleared++);
+  assert.deepEqual(seen, ['terra-pc-logout:who'], '새 값을 넣기 전에 pcLogout'); assert.equal(st.m.has(termPrefix('u1') + 'n1'), false); assert.equal(win.TerraWho.principal, 'u2'); assert.equal(cleared, 0, '이미 계정이 있던 교체는 clear 하지 않는다(pcLogout 이 처리)');
+  setWho(win, st, { principal: 'u2' }, () => cleared++); assert.equal(seen.length, 1, '같은 계정은 아무 일 없음');
+  const w2 = { TerraWho: null, dispatchEvent: () => true }; setWho(w2, st, { principal: 'u3' }, () => cleared++);
+  assert.equal(cleared, 1, 'principal 을 몰랐다가 얻으면 clear'); assert.equal(w2.TerraWho.principal, 'u3');
+  setWho(w2, st, null, () => cleared++); assert.equal(cleared, 1); assert.equal(w2.TerraWho, null);
 });

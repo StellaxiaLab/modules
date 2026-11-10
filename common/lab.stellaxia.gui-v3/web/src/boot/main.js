@@ -33,7 +33,7 @@ import { dangerView } from '../api/danger-zone.js';
 import * as fileTransfer from '../api/file-transfer.js';
 import * as taskFollow from '../api/task-follow.js';
 import * as changes from '../api/changes.js';
-import { migratePc, pcLogout as pcLogout0 } from '../api/pc-state.js';
+import { migratePc, pcLogout as pcLogout0, setWho } from '../api/pc-state.js';
 
 window.TerraTheme = createTheme({ root: document.documentElement, storage: (() => { try { return window.localStorage; } catch { return null; } })(), emit: () => window.dispatchEvent(new Event('terra-theme')) });   // 다크 · 라이트 — 이 브라우저의 보기 설정
 const q = new URLSearchParams(location.search), status = document.getElementById('status'), MODE = pickMode(q);
@@ -207,7 +207,7 @@ if (MODE !== 'demo') {
   const pcLogout = () => { try { pcLogout0(window, window.localStorage); } catch {} };   // 로그아웃 세 길 공용 — 타이머 취소 신호 → 터미널 기록 삭제 → TerraWho = null (토큰 갱신은 부르지 않는다)
   const afterLogin = () => {
     loadRoutes(); loadApps(); stopLive();
-    terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { window.TerraWho = w; }, () => { window.TerraWho = null; });   // 계정 탭 — principal · 권한 · Terra ID 연결의 사용자 id
+    terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { try { setWho(window, window.localStorage, w, () => window.TerraNodes && window.TerraNodes.clear && window.TerraNodes.clear()); } catch { window.TerraWho = w; } }, () => { window.TerraWho = null; });   // 계정 탭 — principal · 권한 · Terra ID 연결의 사용자 id
     alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m), onChange: alarmSig }); window.TerraAlarms = alarms.list; window.TerraAlarmBook = alarms.book; alarmSig();
     topoTimer = setInterval(topoTick, TOPO_MS); refreshTopology();
     push = startPush({ terra, store: () => window.TerraNodes, onEvent: () => alarms && alarms.poke() });

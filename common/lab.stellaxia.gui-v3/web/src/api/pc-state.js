@@ -31,6 +31,19 @@ export function migratePc(storage) {
 }
 
 /**
+ * whoami 응답을 받았다 — window.TerraWho 를 바꾼다.
+ *  - 다른 계정으로 바뀌었으면(앞 principal 이 있고 새 것과 다름) 새 값을 넣기 전에 pcLogout 을 먼저 — 앞 계정의 타이머 · 터미널 기록이 새 계정 이름으로 새지 않게
+ *  - 앞 principal 이 없다가 새 principal 을 얻었으면 clearNodes() — principal 을 모르던 동안 받은 사본을 비운다
+ * @param {{ TerraWho?: any, dispatchEvent?: Function }} win @param {Storage} storage @param {any} who @param {() => void} [clearNodes]
+ */
+export function setWho(win, storage, who, clearNodes) {
+  const prev = win.TerraWho && win.TerraWho.principal, next = who && who.principal;
+  if (prev && next && prev !== next) pcLogout(win, storage);
+  win.TerraWho = who;
+  if (!prev && next && clearNodes) clearNodes();
+}
+
+/**
  * 로그아웃 공용 — 세 길(sceneLogout · appLogout · onToken(null))이 이것을 부른다. 순서가 중요하다:
  *  1) 'terra-pc-logout' — 제어기가 저장 타이머를 취소하고 메모리의 터미널 기록을 초기값으로 되돌린다(삭제보다 먼저 — 지운 뒤 타이머가 다시 쓰지 않게)
  *  2) 지금 계정의 터미널 기록 삭제
