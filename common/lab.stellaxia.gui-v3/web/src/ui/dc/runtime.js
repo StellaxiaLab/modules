@@ -70,12 +70,17 @@ function compileNode(n) {
   }
   const attrs = [], events = [], stat = [];
   for (const a of n.attributes) {
-    if (a.name.startsWith('on') && a.name.length > 2) { const p = parseText(a.value); if (p) { const ev = a.name.slice(2); events.push([EVENT[ev] || ev, p]); } continue; }
+    if (a.name.startsWith(HOLD) || (a.name.startsWith('on') && a.name.length > 2 && !a.name.startsWith('on-'))) { const p = parseText(a.value); if (p) { const ev = a.name.startsWith(HOLD) ? a.name.slice(HOLD.length) : a.name.slice(2); events.push([EVENT[ev] || ev, p]); } continue; }
     const p = parseText(a.value);
     if (p) attrs.push([a.name, p]); else stat.push([a.name, a.value]);
   }
   return { kind: 'el', ns: n.namespaceURI, tag, stat, attrs, events, kids: compileNodes(tag === 'template' ? n.content.childNodes : n.childNodes) };
 }
+
+// 이벤트 속성(onClick="{{…}}")은 파서가 보기 전에 data-dcon-* 로 바꿔 둔다 — 앱 CSP(script-src 'self')에서 브라우저가 인라인 핸들러 속성으로 보고 위반을 내던 것(보드마다 수백 건)을 없앤다.
+//   바뀐 이름은 compileNodes 가 이벤트 바인딩으로 읽는다(속성 이름은 파서가 소문자로 만든다 — EVENT 표도 소문자 키). dc-import 의 on-close 같은 속성은 하이픈이라 건드리지 않는다
+const HOLD = 'data-dcon-';
+export const holdHandlers = (markup) => String(markup).replace(/(\s)on([A-Za-z]+)(\s*=)/g, (m, a, n, e) => a + HOLD + n.toLowerCase() + e);
 
 function setAttr(el, name, v) {
   if (name === 'value' && 'value' in el && el.type !== 'file') { const s = v == null ? '' : String(v); if (el.value !== s) el.value = s; return; }
@@ -93,7 +98,7 @@ export class BoardHost {
     const def = boardDef(name);
     if (!def) throw new Error('보드가 없음: ' + name);
     this.def = def; this.name = name; this.rawProps = props || {}; this.alive = true; this.pending = null;
-    if (!def.compiled) { const t = document.createElement('template'); t.innerHTML = def.markup; def.compiled = compileNodes(t.content.childNodes); }
+    if (!def.compiled) { const t = document.createElement('template'); t.innerHTML = holdHandlers(def.markup); def.compiled = compileNodes(t.content.childNodes); }
     if (def.css && !document.querySelector('style[data-board="' + name + '"]')) { const st = document.createElement('style'); st.dataset.board = name; st.textContent = def.css; document.head.appendChild(st); }
     this.el = document.createElement('div'); this.el.className = 'sc-host'; this.el.dataset.scName = name;
     this.logic = new def.Logic(this.props()); this.logic.__host = this; this.logic.__name = name;
