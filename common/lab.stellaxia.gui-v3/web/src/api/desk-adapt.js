@@ -52,6 +52,11 @@ export function moduleApps(list, moduleId, running) {
   return arr(list, 'apps').filter((a) => a && a.moduleId === moduleId && !a.embed).map((a) => ({ id: a.id, name: a.name || a.id, health: running ? '정상' : '멈춤', full: true }));
 }
 
+/** 모듈 상태 창 · 브라우저 창의 앱 줄 — Daemon 모듈 목록에는 GUI 가 없어 Gateway 앱 목록에서 그 모듈 것을 고른다. embed 앱은 뺀다 @returns {{ id: string, name: string, mode: string, entry: string }[]} */
+export function webApps(list, moduleId) {
+  return arr(list, 'apps').filter((a) => a && a.moduleId === moduleId && !a.embed).map((a) => ({ id: a.id, name: a.name || a.id, mode: a.mode, entry: a.entry || '' }));
+}
+
 // 동의 상태 → 보드의 세 칸(동의 대기 · 받는 중 · 설치됨). managed · pinned 는 정책이 이미 정했다(동의 단추 없음)
 const OFFER_ST = { offered: 'wait', stale: 'wait', accepted: 'consent', managed: 'done', pinned: 'done' };
 /** @returns {{ id: string, name: string, ver: string, size: string, by: string, perms: string[], st: 'wait'|'consent'|'done', state: string }[]} */

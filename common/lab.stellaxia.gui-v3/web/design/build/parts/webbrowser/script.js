@@ -4,12 +4,14 @@
 //     static · proxied 앱 — POST /api/v1/gui/apps/{id}/token(앱 스코프 토큰) → GET /api/v1/gui/apps/{id}/files/{entry} — 늘 sandbox iframe, 인라인 스크립트 금지 CSP
 //     다른 노드의 앱 — GET /api/v1/gui/remote/{node}/apps(Master 카탈로그 · 자산 cached|stale|absent) → stale · absent 면 POST …/{node}/{module}/{app}/sync → …/files/{entry}
 //     window 앱 — 자산을 내주지 않는다. GET /api/v1/gui/apps/{id}/window/health 뒤 그 앱의 자기 origin(런처가 띄운 창)
+//   실제 (window.TerraLaunch 가 있을 때) — 이 창은 앱을 품지 않는다. 앱은 셸이 자기 권한으로 띄우고(토큰 · 격리는 셸 몫), 여기는 연 결과만 보인다. gui-v3 의 앱 토큰은 다른 앱에 빌려주면 안 된다
 //   시안 — 모듈 화면은 앱마다 정해 둔 예시 화면(스크립트 없는 HTML), http(s) 는 실제 iframe (사이트가 창 안 표시를 막으면 비어 보인다 → ↗ 새 탭)
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { hist: [], idx: -1, input: '', t0: 0, synced: {}, fr: 0 }; this._u0 = null;
     try { window.addEventListener('terra-help', () => this.setState({})); window.addEventListener('terra-mod', () => this.setState({})); } catch (e) {} }
   componentWillUnmount() { cancelAnimationFrame(this._raf); this._raf = 0; }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
+  launcher() { return typeof window !== 'undefined' && typeof window.TerraLaunch === 'function' ? window.TerraLaunch : null; }
   GW() { return 'http://127.0.0.1:8787'; }
   cat() { return Array.isArray(this.props.catalog) ? this.props.catalog : []; }
   stOf(e) { const T = typeof window !== 'undefined' ? window.TerraNodes : null; if (T) { const d = T.read(e.nodeId, 'modules').data, m = d && d.find((q) => q.id === e.modId); return (m && m.st) || e.st || 'run'; } try { const o = (JSON.parse(localStorage.getItem('terra.mod.st') || '{}') || {})[e.nodeId + '|' + e.modId]; return o || e.st || 'run'; } catch (x) { return e.st || 'run'; } }
@@ -43,7 +45,7 @@ class Component extends DCLogic {
     const P = this.props, S = this.state, H = this.help();
     if (this._u0 !== (P.url || '')) { this._u0 = P.url || ''; S.hist = [this._u0 || 'terra://start']; S.idx = 0; S.t0 = performance.now(); S.input = ''; S.typing = false; }
     const cur = S.hist[S.idx] || 'terra://start', R = this.resolve(cur), now = performance.now(), el = now - S.t0;
-    const O = { rootW: P.winW ? P.winW + 'px' : '100%', rootH: P.winH ? P.winH + 'px' : '100vh', isStart: false, isLoad: false, isSync: false, isErr: false, isDoc: false, isWeb: false, steps: [], cards: [], chips: [], extD: 'none', extHref: '#' };
+    const O = { rootW: P.winW ? P.winW + 'px' : '100%', rootH: P.winH ? P.winH + 'px' : '100vh', isStart: false, isLaunch: false, isLoad: false, isSync: false, isErr: false, isDoc: false, isWeb: false, steps: [], cards: [], chips: [], extD: 'none', extHref: '#' };
     O.input = S.typing ? S.input : R.url; O.inp = (ev) => this.setState({ input: ev.target.value, typing: true }); O.selAll = (ev) => { try { ev.target.select(); } catch (x) {} };
     O.go = (ev) => { if (ev && ev.preventDefault) ev.preventDefault(); const v = (this.state.typing ? this.state.input : O.input).trim(); if (v) this.nav(v); };
     O.backD = S.idx > 0 ? null : 'disabled'; O.fwdD = S.idx < S.hist.length - 1 ? null : 'disabled';
@@ -65,6 +67,14 @@ class Component extends DCLogic {
       O.chips = [{ t: MD[0], cls: MD[1] }, { t: e.mode === 'window' ? '자기 origin' : 'sandbox · CSP', cls: 'sb' }, { t: e.node + (e.remote ? ' · 원격' : ''), cls: '' }, { t: e.modId + ' ' + (e.ver || ''), cls: '' }];
       const st = this.steps(R);
       if (st.err) { O.isErr = true; O.errT = st.err; O.errNote = st.note; O.statusT = 'GUI_APP_UNAVAILABLE'; }
+      else if (this.launcher() && !e.remote) {
+        // 탐색 · 새로고침 한 번에 한 번만 연다(그리는 동안 부르지 않는다)
+        const key = S.idx + '|' + S.t0 + '|' + e.arg, L = S.lau && S.lau.k === key ? S.lau : null;
+        if (this._lauK !== key) { this._lauK = key; setTimeout(() => { const go = this.launcher(); this.setState({ lau: { k: key, ok: !!(go && go(e.appId)) } }); }, 0); }
+        O.isLaunch = true; O.launchMark = !L ? '›' : L.ok ? '✓' : '✕'; O.launchCls = !L ? 'on' : L.ok ? 'ok' : 'err';
+        O.launchT = !L ? e.appName + ' 여는 중' : L.ok ? e.appName + ' · 셸 창으로 열림' : e.appName + ' 열지 못함';
+        O.launchNote = L && !L.ok ? '다른 앱 열기 : 셸(main Scene) 안에서만' : '앱은 자기 선언 권한으로 셸 창에서 돈다'; O.statusT = '셸 창'; O.noteT = 'Gateway 가 내준 화면 · 셸 sandbox';
+      }
       else if (st.sync) { O.isSync = true; O.syncT = e.node + ' 자산 : ' + (e.asset === 'absent' ? '없음 (absent)' : '오래됨 (stale)'); O.syncNote = '다른 노드 화면 : 버전마다 1회 이 Gateway 로 동기화 필요 — POST /api/v1/gui/remote/' + e.nodeId + '/' + e.modId + '/' + e.appId + '/sync';
         O.sync = () => this.setState({ synced: { ...this.state.synced, [e.arg]: true }, t0: performance.now() }); O.statusT = '동기화 필요'; }
       else { const STEP = 230, k = Math.floor(el / STEP);

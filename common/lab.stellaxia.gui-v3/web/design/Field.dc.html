@@ -546,7 +546,7 @@ class Component extends DCLogic {
       T.shapes.modules = (snap) => { const P = this.MODPOOL(), M = (snap && (snap.modules || snap)) || [], S = { running: 'run', starting: 'restart', stopping: 'restart', failed: 'fail', unavailable: 'fail', unsupported: 'fail', config_invalid: 'fail' };   // 실제 응답(modulehost Snapshot) → 모듈 목록 모양
         return Array.isArray(M) ? M.map((m) => { const k = P.find((q) => q.id === m.id); return { id: m.id, name: m.name || m.id, ver: m.version || '', kind: m.kind || '', core: false, apps: k ? k.apps : [], perms: k ? k.perms : [], svi: k ? k.svi : [], st: S[m.state] || 'stop', err: m.last_error || '', startedAt: m.started_at || '', pid: m.pid || 0, restarts: typeof m.restart_count === 'number' ? m.restart_count : null }; }) : []; };   // 가동 시각 · pid · 다시 시작 수 — 모듈 상태 창(modulehost Status)
       if (tp.kind === 'mock') { tp.seeds.modules = (meta) => { const n = this.mapData().byId[meta.id]; return n ? this.modSeed(n).map((m) => { const o = Object.assign({}, m); delete o.node; delete o.nodeId; delete o.remote; return o; }) : []; }; }
-      if (first) T.subscribe(() => { this._vfs = null; this._ctlTree = null; if (this._live !== false) this.dataLayout(); }); }
+      if (first) T.subscribe(() => { this._vfs = null; this._ctlTree = null; if (this._live !== false) this.dataLayout(); this.catalogSync(); }); }
     return T;
   }
   // 모듈 목록 — 그 노드의 사본(EL: 바로, 낡으면 뒤에서 · PA: 끊기면 마지막 사본). 사본이 없으면 빈 목록(받는 중)
@@ -554,7 +554,10 @@ class Component extends DCLogic {
     if (!n || (n.kind !== 'tree' && n.kind !== 'leaf')) return [];
     const T = this.TN(); if (!T) return this.modSeed(n);
     const r = T.read(n.id, 'modules'), loc = this.localNode();
-    return (r.data || []).map((m) => Object.assign({}, m, { node: n.name, nodeId: n.id, remote: n !== loc }));
+    // 실제 앱 줄은 Gateway 앱 목록에서 온다(Daemon 모듈 목록에는 GUI 가 없다). 다른 노드의 앱을 여는 길은 아직 없어 빈 칸이다
+    const A = typeof window !== 'undefined' ? window.TerraDesk : null, G = typeof window !== 'undefined' ? window.TerraGuiApps : null;
+    const appsOf = (m) => (A && Array.isArray(G) ? { apps: n === loc ? A.webApps(G, m.id) : [] } : null);
+    return (r.data || []).map((m) => Object.assign({}, m, { node: n.name, nodeId: n.id, remote: n !== loc }, appsOf(m)));
   }
   // 모듈 폴더 옆 글 — 개수 · 받는 중 · 끊김(사본 나이)
   modsMore(n) {
@@ -576,6 +579,8 @@ class Component extends DCLogic {
   }
   modSt(m) { return m.st; }   // 상태는 사본에 (모듈 상태 창의 시작 · 멈춤이 노드 데이터 층으로 쓴다)
   modMore(m) { const st = this.modSt(m), T = { run: '● 실행', stop: '○ 멈춤', fail: '✕ 실패', restart: '◌ 다시 시작' }[st] || st; return T + (m.apps && m.apps.length ? ' · GUI' : ''); }
+  // 창을 열 때는 아직 모듈 목록이 비어 있을 수 있다 — 목록 개수가 바뀌면 창을 다시 그린다
+  catalogSync() { if (this._live === false) return; const K = []; for (const k of [0, 1, 2, 3, 4, 5]) if (this['_ctlNode' + k]) K.push(this.modCatalog(this['_ctlNode' + k]).length); for (const k of [19, 20]) if (this['_wNode' + k]) K.push(this.modCatalog(this['_wNode' + k]).length); const s = K.join(','); if (s !== this._catK) { this._catK = s; this.setState({ catTick: (this.state.catTick || 0) + 1 }); } }
   // 브라우저 창이 여는 모듈 화면 목록 — 노드 하나(그 노드의 화면 있는 모듈)
   modCatalog(n) { const out = []; for (const m of this.modsOf(n)) for (const a of m.apps || []) out.push({ arg: 'mod|' + m.nodeId + '|' + m.id + '|' + a.id, modId: m.id, modName: m.name, ver: m.ver, appId: a.id, appName: a.name, mode: a.mode, entry: a.entry, port: a.port, node: m.node, nodeId: m.nodeId, remote: m.remote, st: m.st,
     asset: m.remote ? ((m.id.length + m.nodeId.length) % 4 === 0 ? 'stale' : 'cached') : '' }); return out; }
@@ -827,7 +832,7 @@ class Component extends DCLogic {
       o['ctlCloseFn' + k] = F['c' + k] || (F['c' + k] = () => { const W = Wk(); if (W) this.ctlX(W); });
       o['ctlFullFn' + k] = F['f' + k] || (F['f' + k] = () => { const W = Wk(); if (W) this.ctlMax(W); });
       o['ctlZoomFn' + k] = F['z' + k] || (F['z' + k] = (v) => { const W = Wk(); if (W) this.ctlZoom(v, 0, W); });
-      o['ctlCat' + k] = S['ctlCat' + k] || []; o['ctlKey' + k] = S['ctlKey' + k] || ''; o['ctlPar' + k] = S['ctlPar' + k] || '';
+      o['ctlCat' + k] = this.TN() && this['_ctlNode' + k] ? this.modCatalog(this['_ctlNode' + k]) : (S['ctlCat' + k] || []); o['ctlKey' + k] = S['ctlKey' + k] || ''; o['ctlPar' + k] = S['ctlPar' + k] || '';
       o['ctlRemote' + k] = !!S['ctlRemote' + k]; o['ctlLaunch' + k] = S['ctlLaunch' + k] || ''; o['ctlOpenFn' + k] = F['n' + k] || (F['n' + k] = (kind, arg) => { const n = this['_ctlNode' + k]; if (!n) return; if (kind === 'share' && n.kind !== 'leaf') return; this.ctlOpenWin(n, undefined, kind, arg); });   // 제어기 → 자원 창 · 자원 상태 창
     }
     for (const k of [7, 8, 9, 10, 11, 12, 13, 14]) { o['wSrc' + k] = S['wSrc' + k] || ''; o['wNode' + k] = S['wNode' + k] || 'lab-ws-02'; o['wKind' + k] = S['wKind' + k] || '리프'; o['wPar' + k] = S['wPar' + k] || '—'; o['wId' + k] = S['wId' + k] || ''; o['wRid' + k] = S['wRid' + k] || ''; o['wPath' + k] = S['wPath' + k] || ''; o['wRemote' + k] = !!S['wRemote' + k]; o['wRes' + k] = S['wRes' + k] || []; o['wFocus' + k] = S['wFocus' + k] || ''; o['wPeers' + k] = S['wPeers' + k] || [];
@@ -841,7 +846,7 @@ class Component extends DCLogic {
       o.openFn24 = F.o24 || (F.o24 = (kind, arg) => { const n = this['_wNode' + k] || this.localNode(); if (n) this.ctlOpenWin(n, undefined, kind, arg); }); }   // 알림(24) — 줄 → 제어기 › 작업 관리자 · 모듈 상태 창
     { const k = 23; o.wNode23 = S.wNode23 || 'lab-ws-02'; o.wKind23 = S.wKind23 || '리프'; o.wRid23 = S.wRid23 || ''; o.wPre23 = S.wPre23 || ''; o.ctlW23 = S['ctlW' + k] || this.WSIZE('svi')[0]; o.ctlH23 = S['ctlH' + k] || this.WSIZE('svi')[1]; }   // SVI(23) — 만들기 · 허가 · 연결
     for (const k of [21, 22]) { o['wNode' + k] = S['wNode' + k] || 'lab-ws-02'; o['wKind' + k] = S['wKind' + k] || '리프'; o['wRid' + k] = S['wRid' + k] || ''; o['ctlW' + k] = S['ctlW' + k] || this.WSIZE('net')[0]; o['ctlH' + k] = S['ctlH' + k] || this.WSIZE('net')[1]; }   // 네트워크 속성(21 · 22) — 주소 · 전송 · 노드 간 연결
-    for (const k of [19, 20]) { o['wWeb' + k] = S['wWeb' + k] || 'terra://start'; o['wCat' + k] = S['wCat' + k] || []; o['wNode' + k] = S['wNode' + k] || ''; o['ctlW' + k] = S['ctlW' + k] || this.WSIZE('web')[0]; o['ctlH' + k] = S['ctlH' + k] || this.WSIZE('web')[1]; }   // 브라우저(19 · 20)
+    for (const k of [19, 20]) { o['wWeb' + k] = S['wWeb' + k] || 'terra://start'; o['wCat' + k] = this.TN() && this['_wNode' + k] ? this.modCatalog(this['_wNode' + k]) : (S['wCat' + k] || []); o['wNode' + k] = S['wNode' + k] || ''; o['ctlW' + k] = S['ctlW' + k] || this.WSIZE('web')[0]; o['ctlH' + k] = S['ctlH' + k] || this.WSIZE('web')[1]; }   // 브라우저(19 · 20)
     const k6 = this.CTLN(); o.smW = S['ctlW' + k6] || 1100; o.smH = S['ctlH' + k6] || 720; o.smLoad = S.smLoad || ''; o.skinFn = F.sk || (F.sk = () => { try { window.dispatchEvent(new Event('terra-skin')); } catch (e) {} });   /* 스킨 적용 → 장면이 바로 다시 읽음 */ o.smSavedFn = F.sm || (F.sm = () => { this._ctlTree = null; this.layout(); });   // 스타메이커 — 저장 · 지우기 · 새 폴더 → 전역 제어의 star 폴더를 다시
     return o;
   }
