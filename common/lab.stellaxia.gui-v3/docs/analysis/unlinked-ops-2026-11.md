@@ -75,3 +75,21 @@ language: "ko-KR"
 ## 4. 진단: 인라인 이벤트 핸들러 CSP 오류
 
 실제 빌드에서 `Executing inline event handler violates … script-src 'self'`가 보드를 마운트할 때마다 났다. 원인은 `src/ui/dc/runtime.js`가 보드 마크업을 `template.innerHTML`로 파싱하는 순간, 마크업의 `onClick="{{…}}"` 같은 속성을 브라우저가 인라인 핸들러 속성으로 보고 CSP 위반으로 보고하는 것이다(컴파일러는 그 속성을 이벤트 바인딩으로 읽고 버리므로 DOM에는 남지 않는다). 파싱 전에 `on*` 속성을 `data-dcon-*`로 바꿔(`holdHandlers`) 위반이 나지 않게 고쳤다. 죽어 있던 버튼은 없다 — 핸들러는 `addEventListener`로 붙어 CSP와 무관했다(오류 로그만 났다).
+
+## 격리 실측 (2026-11-11)
+
+Terra `origin/main` 278ff85e로 빌드한 격리 Master + Daemon A/B + Gateway + 실제 셸·gui-v3, 로컬 노드 B에서 버튼을 눌러 요청과 결과를 봤다. 시험 계정에 격리 Master에서 `module.manage`, `node.config`를 줬다.
+
+| 조작 | 결과 |
+| --- | --- |
+| 다시 찾기 | `terra.daemon.io.scan.post` 200 (단추가 독에 가려 DOM click으로 눌렀다) |
+| 별칭 | 칸을 떠나면 `alias.post` 200 |
+| 지운 기록 | `terra.daemon.io.tombstones.get` 200 |
+| 공유 폴더 | 노드 실제 값 표시, 추가 후 저장 시 `config.patch` 200, `config.get`에 실제 반영. 권한 없으면 저장 잠금 |
+| 다시 점검 | `health`, `ready`, `live` 200 |
+| 앱 목록 런처 | 열리고 닫힌다 (AUD-75) |
+| 끄기·켜기 | 잠금과 이유. `disable.post` 직접 호출은 501 `MODULE_MANAGEMENT_UNAVAILABLE` |
+| 파일 관리자 | `lab.stellaxia.file.roots.list` 200, 옛 id 호출 0 |
+| CSP 인라인 핸들러 오류 | 0 |
+
+**확인 못 한 것:** 격리 스택의 file 모듈은 서명되지 않아 공유 뿌리가 0개다. 파일 올리기, 내려받기, 새 폴더, 지우기는 op id와 입력을 계약으로 대조했을 뿐 실제로 돌리지 못했다. 원격 노드의 파일 op, Tree 지정, 서비스 터널 닫기, 설치도 이번에 누르지 않았다. 나머지 보드(NodeSvi, NodeShare, ResStatus, NodeNet, NodeStatus, TreeLogin, StarMaker, WebBrowser, NodeConf, Scene, Login)의 조사는 op 문자열 대조 수준이다.
