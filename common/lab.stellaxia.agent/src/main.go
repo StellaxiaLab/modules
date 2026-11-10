@@ -22,7 +22,7 @@ import (
 
 // moduleVersion mirrors module.json "version" (TestModuleVersionMatchesManifest
 // fails when they drift) — bump both in the same change.
-const moduleVersion = "0.4.0"
+const moduleVersion = "0.4.1"
 
 // envDataDir lets a bench assembly (a hand-launched process, no host) keep its
 // data out of the real module home. A hosted run needs it not: the data home

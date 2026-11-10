@@ -7,7 +7,7 @@
     }
   },
   "contractId": "lab.stellaxia.agent.api",
-  "contractVersion": "0.1.0",
+  "contractVersion": "0.1.1",
   "defaultLocale": "ko-KR",
   "description": "이 계약이 Gateway route의 단일 원본이다. operation의 bindings에 적은 method·path가 그대로 게시되고 security.permissions가 route 권한이 되므로, 표면을 바꿀 때는 코드가 아니라 이 파일을 먼저 고친다. 에이전트는 상시 권한이 0인 모듈이다(설계 §11.4): 사람이 맡긴 위임 자격으로만 Gateway를 부르고, 판정은 Gateway가 한다. 자격 발급(/api/v1/agent/grants)은 Gateway의 것이지 이 계약의 것이 아니다.",
   "errors": {
@@ -133,7 +133,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -330,7 +331,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -471,7 +473,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -673,7 +676,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -884,7 +888,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -1053,7 +1058,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -1285,7 +1291,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -1580,7 +1587,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -1927,7 +1935,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -2254,7 +2263,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -2563,7 +2573,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -2725,7 +2736,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -2920,7 +2932,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -3132,7 +3145,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -3616,7 +3630,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -3793,7 +3808,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -4259,7 +4275,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -4703,7 +4720,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -4988,7 +5006,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
