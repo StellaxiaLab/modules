@@ -45,17 +45,17 @@
   // this module's declared permissions) and renews it the same way. The token
   // stays in memory only.
   var frameOrigin = '';
-  var frameRefresh = null;
+  var frameWaiters = [];
 
   function setFrameToken(data) {
     state.token = (data && typeof data.token === 'string') ? data.token : '';
-    if (frameRefresh) { frameRefresh(); frameRefresh = null; }
+    frameWaiters.splice(0).forEach(function (wake) { wake(); });
   }
 
   function connectFrame() {
     if (state.token || window.parent === window) return Promise.resolve();
     return new Promise(function (done) {
-      var timer = setTimeout(done, 3000);
+      var timer = setTimeout(done, 10000);
       window.addEventListener('message', function (event) {
         if (event.source !== window.parent) return;
         if (frameOrigin && event.origin !== frameOrigin) return;
@@ -76,7 +76,7 @@
   function renewFrameToken() {
     return new Promise(function (done) {
       var timer = setTimeout(done, 5000);
-      frameRefresh = function () { clearTimeout(timer); done(); };
+      frameWaiters.push(function () { clearTimeout(timer); done(); });
       window.parent.postMessage({ type: 'terra.frame.refresh' }, frameOrigin);
     });
   }

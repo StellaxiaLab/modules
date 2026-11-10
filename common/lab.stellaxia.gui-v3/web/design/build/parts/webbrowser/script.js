@@ -70,9 +70,11 @@ class Component extends DCLogic {
       else if (this.launcher() && !e.remote) {
         // 탐색 · 새로고침 한 번에 한 번만 연다(그리는 동안 부르지 않는다)
         const key = S.idx + '|' + S.t0 + '|' + e.arg, L = S.lau && S.lau.k === key ? S.lau : null;
-        if (this._lauK !== key) { this._lauK = key; setTimeout(() => { const go = this.launcher(); this.setState({ lau: { k: key, ok: !!(go && go(e.appId)) } }); }, 0); }
-        O.isLaunch = true; O.launchMark = !L ? '›' : L.ok ? '✓' : '✕'; O.launchCls = !L ? 'on' : L.ok ? 'ok' : 'err';
-        O.launchT = !L ? e.appName + ' 여는 중' : L.ok ? e.appName + ' · 셸 창으로 열림' : e.appName + ' 열지 못함';
+        // 숨은 창이 나중에 저절로 열지 않게 — 여는 것은 방금 탐색 · 새로고침한 때만
+        const fresh = now - S.t0 < 15000;
+        if (this._lauK !== key && fresh) { this._lauK = key; setTimeout(() => { const go = this.launcher(); this.setState({ lau: { k: key, ok: !!(go && go(e.appId)) } }); }, 0); }
+        O.isLaunch = true; O.launchMark = !L ? (fresh ? '›' : '·') : L.ok ? '✓' : '✕'; O.launchCls = !L ? (fresh ? 'on' : '') : L.ok ? 'ok' : 'err';
+        O.launchT = !L ? (fresh ? e.appName + ' 여는 중' : e.appName + ' · 열려면 다시 열기') : L.ok ? e.appName + ' · 셸에 열기 요청함' : e.appName + ' 열지 못함';
         O.launchNote = L && !L.ok ? '다른 앱 열기 : 셸(main Scene) 안에서만' : '앱은 자기 선언 권한으로 셸 창에서 돈다'; O.statusT = '셸 창'; O.noteT = 'Gateway 가 내준 화면 · 셸 sandbox';
       }
       else if (st.sync) { O.isSync = true; O.syncT = e.node + ' 자산 : ' + (e.asset === 'absent' ? '없음 (absent)' : '오래됨 (stale)'); O.syncNote = '다른 노드 화면 : 버전마다 1회 이 Gateway 로 동기화 필요 — POST /api/v1/gui/remote/' + e.nodeId + '/' + e.modId + '/' + e.appId + '/sync';
