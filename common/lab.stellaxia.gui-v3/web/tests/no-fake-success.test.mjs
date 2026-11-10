@@ -16,8 +16,8 @@ test('ndSet — 실모드 · operation 없음 · 초안 아님이면 거절(fals
 });
 
 test('성공 문구는 ndSet 이 거절하지 않았을 때만 — 모듈 끄기 · 켜기 · 되돌리기 · 선언 적용 · 작업', () => {
-  assert.match(desk, /\.post', op && \{ module_id: m\.id \}\) !== false\) this\.say\(msg\)/);
-  assert.match(desk, /x\.st = 'applied'; \}\)\) !== false\) this\.say\(/);
+  assert.match(desk, /\.post', op && \{ module_id: m\.id \}, \{ ok: \(\) => this\.say\(msg\) \}\)/);   // S4 — 성공 문구는 응답 뒤(o.ok)에만
+  assert.match(desk, /x\.st = 'applied'; \}\), undefined, undefined, \{ ok: \(\) => this\.say\(/);
   assert.match(desk, /\}\) === false\) return false; setTimeout/);
 });
 

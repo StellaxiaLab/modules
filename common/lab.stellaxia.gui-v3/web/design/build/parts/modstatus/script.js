@@ -17,7 +17,7 @@ class Component extends DCLogic {
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   // 실제 모드(Gateway 전송) — 모듈 목록 · 상태 · 버전 · 가동 시각(started_at) · pid 는 실제다. CPU · 메모리는 코어에 모듈별 op 가 없어 '—'(지어내지 않는다)
   real() { const T = this.TN(); return !!(T && T.t && T.t.kind !== 'mock'); }
-  M() { const m0 = this.props.mod, T = this.TN(); if (m0 && m0.id && T) { const d = T.read(m0.nodeId, 'modules').data, live = d && d.find((q) => q.id === m0.id); if (live) return Object.assign({}, m0, live); } const m = m0; if (!(m && m.id) && this.real()) return { id: '—', name: '모듈 정보 없음', ver: '—', kind: '', apps: [], perms: [], svi: [], node: '—', nodeId: '', st: 'stop' }; return m && m.id ? m : { id: 'io.terra.agent', name: 'Terra Agent', ver: '0.3.0', kind: 'service', apps: [{ id: 'io.terra.agent', name: 'Terra Agent', mode: 'static', entry: 'ui/index.html' }], perms: ['coreOperations', 'storage', 'network'], svi: ['ctl/log'], st: 'run', node: '01·a', nodeId: 'L1', remote: false }; }
+  M() { const m0 = this.props.mod, T = this.TN(); if (m0 && m0.id && T) { const d = T.read(m0.nodeId, 'modules').view, live = d && d.find((q) => q.id === m0.id); if (live) return Object.assign({}, m0, live); } const m = m0; if (!(m && m.id) && this.real()) return { id: '—', name: '모듈 정보 없음', ver: '—', kind: '', apps: [], perms: [], svi: [], node: '—', nodeId: '', st: 'stop' }; return m && m.id ? m : { id: 'io.terra.agent', name: 'Terra Agent', ver: '0.3.0', kind: 'service', apps: [{ id: 'io.terra.agent', name: 'Terra Agent', mode: 'static', entry: 'ui/index.html' }], perms: ['coreOperations', 'storage', 'network'], svi: ['ctl/log'], st: 'run', node: '01·a', nodeId: 'L1', remote: false }; }
   stMap() { try { return JSON.parse(localStorage.getItem('terra.mod.st') || '{}') || {}; } catch (e) { return {}; } }
   st() { const m = this.M(); if (this.TN()) return m.st || 'run'; const o = this.stMap()[m.nodeId + '|' + m.id]; return o || m.st || 'run'; }
   setSt(v) { const m = this.M(), map = this.stMap(); map[m.nodeId + '|' + m.id] = v; try { localStorage.setItem('terra.mod.st', JSON.stringify(map)); window.dispatchEvent(new Event('terra-mod')); } catch (e) {} }
@@ -31,7 +31,7 @@ class Component extends DCLogic {
     const T = this.TN();
     if (T) {   // 노드 데이터 층으로 — daemon modules.by-module-id.{restart|stop|start}.post (cluster 범위라 원격도), 사본에 먼저 반영
       const op = 'terra.daemon.modules.by-module-id.' + kind + '.post', id = m.id;
-      T.write(m.nodeId, op, { module_id: id }, { res: 'modules', apply: (d) => (d || []).map((q) => (q.id === id ? Object.assign({}, q, { st: to }) : q)) })
+      T.write(m.nodeId, op, { module_id: id }, { res: 'modules', mark: 'mod:' + id, apply: (d) => (d || []).map((q) => (q.id === id ? Object.assign({}, q, { st: to }) : q)) })
         .then(() => { this.log(to === 'run' ? 'info' : 'warn', to === 'run' ? '실행 중' : '멈춤'); this.setState({ busy: null, err: null }); },
           (e) => { this.log('warn', verb + ' 실패 — ' + ((e && e.message) || (e && e.code) || '오류')); this.setState({ busy: null, err: (e && e.code) || 'ERROR' }); });
       return; }
@@ -79,7 +79,7 @@ class Component extends DCLogic {
       cutOn: ro, cutH: LK.t.replace(/^끊김 · /, ''),
       linkT: LK.t ? '[' + LK.t + ']' : '', linkCol: LK.cls === 'off' ? 'var(--t-warn,#ffd27a)' : LK.cls === 'local' ? 'var(--t-key,#709c80)' : 'var(--t-acc2,#96f0aa)',
       busyD: busy ? 'disabled' : null, togD: busy || (run && m.core) ? 'disabled' : null, restart: () => this.act('restart'), toggle: () => this.act(run ? 'stop' : 'start'), toggleT: run ? (m.core ? '멈춤 불가 (코어)' : '멈춤') : '시작',
-      ctl: () => { if (this.props.onOpen) this.props.onOpen('ctl', m.id); }, actNote: S.busy ? (S.busy === 'restart' ? '다시 시작 중…' : '요청 중…') : S.err ? '실패 · ' + S.err : m.remote ? '원격 노드 · node.control' : '',
+      ctl: () => { if (this.props.onOpen) this.props.onOpen('ctl', m.id); }, actNote: S.busy ? (S.busy === 'restart' ? '다시 시작 중…' : '요청 중…') : RD && RD.pending && RD.pending.has('mod:' + m.id) ? '적용 중…' : S.err ? '실패 · ' + S.err : m.remote ? '원격 노드 · node.control' : '',
       svi: (m.svi || []).map((n) => ({ name: n, open: () => { if (this.props.onOpen) this.props.onOpen('res', n + '|내 자원|' + m.node); } })), noSvi: !(m.svi || []).length,
       perms: m.perms || [], noPerm: !(m.perms || []).length,
       logs: this._log.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? 'var(--t-warn,#ffd27a)' : e.lv === 'error' ? 'var(--t-err2,#ff9c8c)' : 'var(--t-key,#709c80)', msg: e.msg })).concat(this.realLogs(m) || []),   // 이 창에서 한 요청 · 그 아래 Daemon 모듈 로그(실제)
