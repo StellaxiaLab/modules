@@ -10,7 +10,7 @@ test('ndSet — 실모드 · operation 없음 · 초안 아님이면 거절(fals
   const i = desk.indexOf('  ndSet(fn, op, input, o) {'), body = desk.slice(i, desk.indexOf('  ndSeed(', i));
   assert.ok(i > 0);
   assert.match(body, /!op && T\.t && T\.t\.kind !== 'mock'/);
-  assert.match(body, /o && o\.draft\) \{ T\.draft\(/);
+  assert.match(body, /o && o\.draft\) \{[\s\S]*?T\.draft\(/);   // 공유 폴더 초안은 this._ov(사본 밖) — 그 밖의 초안만 사본에서
   assert.match(body, /적용 안 함 : 노드에 보낼 operation 없음'\); return false;/);
   assert.ok(nodes.includes('  draft(n, res, apply)'));
 });

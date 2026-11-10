@@ -48,11 +48,12 @@ export function gate(op, o = {}) {
     if (o.family && !DECLARE_FAMILIES.includes(o.family)) return shut('core', '잠김 : 앱 토큰은 module · file 패밀리만 선언 — ' + o.family + ' 는 터미널에서');
   }
   // 사람의 권한을 모르면(whoami 실패 · 아직 못 받음) 열지 않는다 — who 키를 준 호출만(없으면 권한 조회를 하지 않는 시안 · 시험)
-  const whoUnknown = 'who' in o && !(o.who && Array.isArray(o.who.permissions));
+  const whoAll = !!(o.who && o.who.allPermissions);   // 전체 권한 계정 — 사람 권한 검사를 건너뛴다(권한 목록이 없어도)
+  const whoUnknown = !whoAll && 'who' in o && !(o.who && Array.isArray(o.who.permissions));
   if (op.startsWith('terra.master.')) {
     if (!MD.operations[op]) return shut('core', '잠김 : 위임 없음 — ' + op);
     if (whoUnknown && (MD.operations[op].permissions || []).length) return shut('user-perm', '잠김 : 계정 권한을 알 수 없음 — whoami 못 받음');
-    const need = (MD.operations[op].permissions || []).filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
+    const need = whoAll ? [] : (MD.operations[op].permissions || []).filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
     if (need.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + need.join(' · '));
     return { open: true, needs: '', why: '', op };
   }
@@ -62,7 +63,7 @@ export function gate(op, o = {}) {
   if (app.length) return shut('app-perm', '잠김 : 앱 권한 없음 — ' + app.join(' · '));
   if (o.remote && !S.scopes.includes('cluster')) return shut('local', '잠김 : 이 노드에서만');
   if (whoUnknown && S.permissions.some((p) => p !== 'node.read')) return shut('user-perm', '잠김 : 계정 권한을 알 수 없음 — whoami 못 받음');   // 읽기는 열어 둔다(서버가 가른다) · 쓰기는 닫는다
-  const user = S.permissions.filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
+  const user = whoAll ? [] : S.permissions.filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
   if (user.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + user.join(' · '));
   return { open: true, needs: '', why: '', op };
 }
