@@ -122,7 +122,7 @@ test('합본 — 전송은 하나, 전송 중 변경은 키별 최신값으로 �
   assert.deepEqual(T.deskRead('n1').view.icons.b, { c: 3, r: 3 });
   w.hold = false; w.release(); await p1; await flush();
   const ps = sets(w, 'patch'); assert.equal(ps.length, 2, '합본 한 번');
-  assert.deepEqual(ps[1].input, { base_revision: 2, set: { 'icons.b': { c: 3, r: 3 }, 'prefs.dark': false } });
+  assert.deepEqual(ps[1].input, { base_revision: 1, set: { 'icons.b': { c: 3, r: 3 }, 'prefs.dark': false } });
   await Promise.all([p2, p3]);
   const d = T.deskRead('n1'); assert.deepEqual(d.doc.icons.b, { c: 3, r: 3 }); assert.equal(d.doc.prefs.dark, false); assert.equal(d.pending.size, 0); assert.equal(d.save.state, 'saved');
 });
@@ -138,7 +138,7 @@ test('실패 — 표시층 · 대기열을 비우고 사본 그대로, save fail
   assert.equal(r.pending.size, 0); assert.equal(JSON.stringify(r.doc), before); assert.deepEqual(r.view, r.doc); assert.equal(r.state, 'ok', '쓰기 거절은 읽기 상태를 바꾸지 않는다');
   assert.equal(sets(w, 'patch').length, 1, '대기분은 나가지 않았다');
   mock.timers.tick(120000); await flush(); assert.equal(T.deskRead('n1').save.state, 'failed', '저절로 사라지지 않는다');
-  await T.deskRetry('n1'); assert.deepEqual(sets(w, 'patch')[1].input.set, { 'icons.a': { c: 7, r: 7 } });
+  await T.deskRetry('n1'); assert.deepEqual(sets(w, 'patch')[1].input.set, { 'icons.a': { c: 7, r: 7 }, 'icons.b': { c: 8, r: 8 } }, '전송분 + 그때 대기분');
   r = T.deskRead('n1'); assert.equal(r.save.state, 'saved'); assert.deepEqual(r.doc.icons.a, { c: 7, r: 7 });
   w.fail.patch = { code: 'MODULE_UNAVAILABLE' }; await assert.rejects(T.deskPatch('n1', { 'prefs.snap': false }), { code: 'MODULE_UNAVAILABLE' });
   T.deskClearSave('n1'); assert.equal(T.deskRead('n1').save.state, 'idle'); await assert.rejects(T.deskRetry('n1'), { code: 'NOTHING_TO_RETRY' });
@@ -158,11 +158,11 @@ test('충돌 + 다른 키 — 충돌 키만 잃고 나머지는 새 revision 으
   const w = world(), T = store(w); await ready(w, T);
   w.other('n1', { 'icons.a': { c: 4, r: 4 } });
   await T.deskPatch('n1', { 'icons.b': { c: 6, r: 6 } });   // 선행 쓰기(아직 알려진 revision 이 낡은 사본 · b 는 충돌 아님)
-  w.other('n1', { 'icons.a': { c: 5, r: 5 } });
+  w.other('n1', { 'icons.a': { c: 5, r: 5 } }); const base0 = T.deskRead('n1').revision;
   const r = await Promise.allSettled([T.deskPatch('n1', { 'icons.a': { c: 9, r: 9 }, 'icons.b': { c: 7, r: 7 } })]);
   assert.equal(r[0].status, 'rejected'); assert.deepEqual(r[0].reason.lost, ['icons.a']);
-  const ps = sets(w, 'patch'); assert.equal(ps.length, 3, 'b 선행 1 + 충돌 1 + 자동 재전송 1');
-  assert.deepEqual(ps[2].input, { base_revision: w.db.n1.revision - 1, set: { 'icons.b': { c: 7, r: 7 } } });
+  const ps = sets(w, 'patch'); assert.equal(ps.length, 3, 'b 선행 1 + 충돌 1 + 자동 재전송 1(원래 base 그대로)');
+  assert.deepEqual(ps[2].input, { base_revision: base0, set: { 'icons.b': { c: 7, r: 7 } } });
   const d = T.deskRead('n1'); assert.deepEqual(d.doc.icons.b, { c: 7, r: 7 }); assert.deepEqual(d.doc.icons.a, { c: 5, r: 5 });
   assert.equal(d.save.state, 'failed'); assert.deepEqual(d.save.lost, ['icons.a']); assert.ok(d.save.at > 0); assert.equal(d.pending.size, 0);
 });
@@ -188,13 +188,13 @@ test('충돌 — details.keys 가 없으면(Gateway 가 안 넘김) 보낸 키 �
 test('분할 — 읽기 전용 · 대기열 없음 · PARTITIONED 즉시 거절(표시층 없음) · 재연결 때 몰래 보내지 않는다', async () => {
   const w = world(), T = store(w); await ready(w, T); w.hold = true;
   const p = T.deskPatch('n1', { 'icons.a': { c: 2, r: 2 } }), q = T.deskPatch('n1', { 'icons.b': { c: 3, r: 3 } });   // q 는 대기
-  w.held[0].fail({ code: 'UPSTREAM_UNREACHABLE', message: 'cut' }); w.hold = false;
+  w.held[0].fail({ code: 'UPSTREAM_UNREACHABLE', message: 'cut' }); w.fail.get = { code: 'UPSTREAM_UNREACHABLE', message: 'cut' }; w.hold = false;   // 끊김은 계속 — 실패 뒤 다시 읽어도 끊겨 있다
   await assert.rejects(p, { code: 'UPSTREAM_UNREACHABLE' }); await assert.rejects(q, { code: 'UPSTREAM_UNREACHABLE' });
   const r = T.deskRead('n1'); assert.equal(r.state, 'offline'); assert.equal(r.ro, true); assert.equal(r.save.state, 'failed'); assert.equal(r.pending.size, 0); assert.ok(r.doc, '마지막 사본은 남는다');
   const n = w.calls.length;
   await assert.rejects(T.deskPatch('n1', { 'icons.a': { c: 8, r: 8 } }), { code: 'PARTITIONED' });
   assert.equal(T.deskRead('n1').pending.size, 0); assert.equal(w.calls.length, n, '나가지 않았다');
-  await T.deskFetch('n1'); assert.equal(T.deskRead('n1').state, 'ok');   // 재연결
+  delete w.fail.get; await T.deskFetch('n1'); assert.equal(T.deskRead('n1').state, 'ok');   // 재연결
   await flush(); assert.equal(sets(w, 'patch').length, 1, '재연결해도 낡은 의도를 보내지 않는다'); assert.deepEqual(T.deskRead('n1').doc.icons.a, { c: 0, r: 0 });
 });
 
@@ -311,4 +311,114 @@ test('MockTransport(캔버스 시안) — 같은 규칙: 첫 쓰기 · 충돌 40
   await T.deskFetch('B'); assert.equal(T.deskRead('B').doc.icons.a.c, 4);   // unchanged
   const mock0 = JSON.parse(localStorage.getItem('terra.mock.B.desk')); mock0.revision = 2; mock0.revs['icons.a'] = 2; mock0.doc.icons.a = { c: 0, r: 0 }; localStorage.setItem('terra.mock.B.desk', JSON.stringify(mock0));
   await assert.rejects(T.deskPatch('B', { 'icons.a': { c: 9, r: 9 } }), { code: 'REVISION_CONFLICT' }); assert.deepEqual(T.deskRead('B').doc.icons.a, { c: 0, r: 0 });
+});
+
+// ───────────── S2 리뷰에서 재현된 결함의 회귀 시험 ─────────────
+test('리뷰 1 — 충돌로 잃은 키는 뒤따른 저장 성공이 덮지 않는다(deskClearSave 로 닫기 전까지 failed · lost 유지)', async () => {
+  const w = world(), T = store(w); await ready(w, T);
+  w.other('n1', { 'icons.a': { c: 4, r: 4 } }); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 9, r: 9 } }).catch((e) => e.code), q = T.deskPatch('n1', { 'icons.b': { c: 7, r: 7 } });
+  w.hold = false; w.release(); assert.equal(await p, 'REVISION_CONFLICT'); await q; await flush();
+  let r = T.deskRead('n1'); assert.equal(r.save.state, 'failed'); assert.deepEqual(r.save.lost, ['icons.a']); assert.equal(r.save.code, 'REVISION_CONFLICT'); assert.ok(r.save.at > 0, '성공한 저장 시각은 갱신'); assert.deepEqual(r.doc.icons.b, { c: 7, r: 7 });
+  await T.deskPatch('n1', { 'prefs.dark': false }); assert.equal(T.deskRead('n1').save.state, 'failed', '다음 저장이 성공해도 잃은 표시는 남는다');
+  T.deskClearSave('n1'); r = T.deskRead('n1'); assert.equal(r.save.state, 'idle'); assert.deepEqual(r.save.lost, []);
+});
+
+test('리뷰 1b — 부분 충돌 재전송이 성공하고 대기분이 이어 나가도 lost 가 남는다', async () => {
+  const w = world(), T = store(w); await ready(w, T);
+  w.other('n1', { 'icons.a': { c: 4, r: 4 } }); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 9, r: 9 }, 'icons.b': { c: 8, r: 8 } }).catch((e) => e.lost), q = T.deskPatch('n1', { 'prefs.dark': false });
+  w.hold = false; w.release(); assert.deepEqual(await p, ['icons.a']); await q; await flush();
+  const r = T.deskRead('n1'); assert.equal(r.save.state, 'failed'); assert.deepEqual(r.save.lost, ['icons.a']); assert.deepEqual(r.doc.icons.b, { c: 8, r: 8 }); assert.equal(r.doc.prefs.dark, false);
+});
+
+test('리뷰 2 — 같은 키의 대기분도 충돌로 함께 잃는다(새 base 로 나가 다른 PC 값을 덮지 않는다)', async () => {
+  const w = world(), T = store(w); await ready(w, T);
+  w.other('n1', { 'icons.a': { c: 4, r: 4 } }); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 9, r: 9 } }).catch((e) => e.code), q = T.deskPatch('n1', { 'icons.a': { c: 8, r: 8 } }).catch((e) => e.code);
+  w.hold = false; w.release(); assert.equal(await p, 'REVISION_CONFLICT'); assert.equal(await q, 'REVISION_CONFLICT'); await flush();
+  assert.deepEqual(w.db.n1.doc.icons.a, { c: 4, r: 4 }, '다른 PC 값 그대로'); assert.equal(sets(w, 'patch').length, 1); assert.equal(T.deskRead('n1').pending.size, 0);
+});
+
+test('리뷰 2b — 대기 키의 base 는 처음 적은 revision 을 지킨다: 다른 키 전송 중 다른 PC 가 바꾼 키는 409', async () => {
+  const w = world(), T = store(w); await ready(w, T); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.b': { c: 7, r: 7 } }), q = T.deskPatch('n1', { 'icons.a': { c: 9, r: 9 } }).catch((e) => e.code);
+  w.other('n1', { 'icons.a': { c: 4, r: 4 } });
+  w.hold = false; w.release(); await p; assert.equal(await q, 'REVISION_CONFLICT'); await flush();
+  assert.deepEqual(w.db.n1.doc.icons.a, { c: 4, r: 4 }); assert.deepEqual(sets(w, 'patch').map((c) => c.input.base_revision), [1, 1], '대기 키는 낮은 base 그대로');
+  assert.deepEqual(T.deskRead('n1').save.lost, ['icons.a']);
+});
+
+test('리뷰 2c — 같은 키를 이어 옮기면 자기 응답 revision 을 base 로 삼아 자기 자신과 충돌하지 않는다', async () => {
+  const w = world(), T = store(w); await ready(w, T); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 1, r: 1 } }), q = T.deskPatch('n1', { 'icons.a': { c: 2, r: 2 } });
+  w.hold = false; w.release(); await p; await q;
+  assert.deepEqual(sets(w, 'patch').map((c) => c.input.base_revision), [1, 2]); assert.deepEqual(T.deskRead('n1').doc.icons.a, { c: 2, r: 2 }); assert.equal(T.deskRead('n1').save.state, 'saved');
+});
+
+test('리뷰 2d — 첫 쓰기 펼치기는 사본이 비었을 때만(배치 base 가 아니라)', async () => {
+  const w = world(), T = store(w); await ready(w, T); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 1, r: 1 } }), q = T.deskPatch('n1', { 'icons.b': { c: 2, r: 2 } });
+  w.hold = false; w.release(); await p; await q;
+  for (const c of sets(w, 'patch')) assert.equal(Object.keys(c.input.set).some((k) => k.startsWith('prefs.')), false);
+});
+
+test('리뷰 4 — 충돌 뒤 다시 읽기가 끊기면 대기분은 나가지 않고 실패 처리된다', async () => {
+  const w = world(), T = store(w); await ready(w, T);
+  w.other('n1', { 'icons.a': { c: 4, r: 4 } }); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 9, r: 9 } }).catch((e) => e.code), q = T.deskPatch('n1', { 'icons.b': { c: 7, r: 7 } }).catch((e) => e.code);
+  w.fail.get = { code: 'NODE_OFFLINE', message: 'cut' }; w.hold = false; w.release();
+  assert.equal(await p, 'REVISION_CONFLICT'); assert.equal(await q, 'NODE_OFFLINE'); await flush();
+  const r = T.deskRead('n1'); assert.equal(r.state, 'offline'); assert.equal(sets(w, 'patch').length, 1, '몰래 나가지 않았다'); assert.equal(w.db.n1.doc.icons.b.c, 1); assert.equal(r.pending.size, 0); assert.equal(r.save.state, 'failed');
+});
+
+test('리뷰 4b — 충돌 + 다시 읽기 끊김: 충돌 아닌 키도 재전송하지 않고 실패(deskRetry 로 되살릴 수 있다)', async () => {
+  const w = world(), T = store(w); await ready(w, T);
+  w.other('n1', { 'icons.a': { c: 4, r: 4 } }); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 9, r: 9 }, 'icons.b': { c: 8, r: 8 } }).catch((e) => e.code);
+  w.fail.get = { code: 'NODE_OFFLINE', message: 'cut' }; w.hold = false; w.release(); await p; await flush();
+  assert.equal(sets(w, 'patch').length, 1); assert.equal(T.deskRead('n1').state, 'offline'); assert.equal(T.deskRead('n1').pending.size, 0);
+  delete w.fail.get; await T.deskFetch('n1'); await T.deskRetry('n1'); assert.deepEqual(w.db.n1.doc.icons.b, { c: 8, r: 8 });
+});
+
+test('리뷰 5 — 실패 + 대기분: deskRetry 는 전송분과 대기분 모두 다시 보낸다', async () => {
+  const w = world(), T = store(w); await ready(w, T); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 7, r: 7 } }).catch((e) => e.code), q = T.deskPatch('n1', { 'icons.b': { c: 8, r: 8 } }).catch((e) => e.code);
+  w.held[0].fail({ code: 'MODULE_UNAVAILABLE', message: 'x' }); w.hold = false; await p; await q;
+  await T.deskRetry('n1'); assert.deepEqual(w.db.n1.doc.icons.a, { c: 7, r: 7 }); assert.deepEqual(w.db.n1.doc.icons.b, { c: 8, r: 8 }); assert.equal(T.deskRead('n1').save.state, 'saved');
+});
+
+test('리뷰 8 — 응답 본문이 비어도(null · revision 없음) 전송이 멈추지 않고 BAD_RESPONSE 로 실패, 사본은 그대로', async () => {
+  for (const body of [null, { ok: true }, { revision: 'x', doc: {} }]) {
+    const w = world(), T = store(w); await ready(w, T);
+    const orig = w.t.invokeRid; w.t.invokeRid = (rid, op, input, o) => (op === P + 'patch' ? Promise.resolve(body) : orig(rid, op, input, o));
+    await assert.rejects(T.deskPatch('n1', { 'icons.a': { c: 7, r: 7 } }), { code: 'BAD_RESPONSE' });
+    const r = T.deskRead('n1'); assert.equal(T.deskSends.get('n1').sending, false); assert.equal(r.save.state, 'failed'); assert.equal(r.save.code, 'BAD_RESPONSE'); assert.equal(r.pending.size, 0); assert.equal(r.revision, 1); assert.ok(r.doc);
+    assert.equal(sets(w, 'get').length, 2, '결과를 모르니 노드 값을 다시 읽는다');
+  }
+});
+
+test('리뷰 8b — 전송이 동기로 던져도 전송 중 표시가 남지 않는다', async () => {
+  const w = world(), T = store(w); await ready(w, T);
+  const orig = w.t.invokeRid; let boom = true; w.t.invokeRid = (rid, op, input, o) => { if (boom && op === P + 'patch') throw new Error('sync boom'); return orig(rid, op, input, o); };
+  await assert.rejects(T.deskPatch('n1', { 'icons.a': { c: 7, r: 7 } }), { message: 'sync boom' }); assert.equal(T.deskSends.get('n1').sending, false); assert.equal(T.deskRead('n1').save.code, 'ERROR');
+  boom = false; await T.deskPatch('n1', { 'icons.a': { c: 8, r: 8 } }); assert.deepEqual(T.deskRead('n1').doc.icons.a, { c: 8, r: 8 });
+});
+
+test('리뷰 8c — 쓰기도 25초 abort(signal 을 무시하는 전송에도), 끊긴 뒤 노드 값을 다시 읽는다', async () => {
+  mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: 10000 });
+  const w = world(), T = store(w); await ready(w, T); w.hold = true; w.ignoreSignal = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 7, r: 7 } }).then(() => 'ok', (e) => e.code);
+  mock.timers.tick(24999); await flush(); assert.equal(T.deskRead('n1').save.state, 'saving'); mock.timers.tick(1);
+  assert.equal(await p, 'TIMEOUT'); await flush(); const r = T.deskRead('n1');
+  assert.equal(w.signals.at(-2).aborted, true); assert.equal(r.save.code, 'TIMEOUT'); assert.equal(r.state, 'offline'); assert.equal(w.calls.at(-1).op, 'get'); assert.equal(r.pending.size, 0);
+});
+
+test('리뷰 9 — 폴이 끊김으로 판정한 사이 전송 중 패치가 성공하면 상태가 ok 로 돌아오고 대기분이 나간다', async () => {
+  const w = world(), T = store(w); await ready(w, T); w.hold = true;
+  const p = T.deskPatch('n1', { 'icons.a': { c: 2, r: 2 } }), q = T.deskPatch('n1', { 'icons.b': { c: 3, r: 3 } });
+  const g = T.deskFetch('n1', { force: true }); w.held[1].fail({ code: 'NODE_OFFLINE', message: 'cut' }); await g; w.held.splice(1, 1);
+  assert.equal(T.deskRead('n1').state, 'offline');
+  w.hold = false; w.release(); await p; await q; await flush();
+  assert.equal(T.deskRead('n1').state, 'ok'); assert.equal(sets(w, 'patch').length, 2); assert.deepEqual(w.db.n1.doc.icons.b, { c: 3, r: 3 });
 });

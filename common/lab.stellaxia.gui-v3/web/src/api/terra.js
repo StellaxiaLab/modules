@@ -42,7 +42,7 @@ export function createTerra(o = {}) {
       const e = (body && (body.error || body)) || {};
       throw new TerraError(e.code || STATUS_CODE[res.status] || 'HTTP_' + res.status, e.message || res.statusText, res.status, e.retryable ?? res.status >= 502, e.details);
     }
-    return body && 'data' in body ? body.data : body;   // Daemon · Gateway 공통 봉투 {status, data, meta}
+    return body && typeof body === 'object' && 'status' in body && 'data' in body ? body.data : body;   // Daemon · Gateway 공통 봉투 {status, data, meta} — status 가 있어야 봉투다. 봉투 없이 오는 응답(node-files.get = {path,size,mime,modified,data:base64})의 data 는 필드이지 봉투가 아니다
   };
   return {
     /** @param {string} id operation id @param {object} [input] 평평한 입력 @param {{ node?: string, signal?: AbortSignal }} [at] node 를 주면 그 노드에서 · signal 은 fetch 로(401 재시도 포함) — 끊으면 TIMEOUT */

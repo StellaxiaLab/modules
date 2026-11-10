@@ -46,3 +46,11 @@ test('invoke — at.signal 을 fetch 로(401 재시도 포함), 끊기면 TIMEOU
   await assert.rejects(p, (e) => e instanceof TerraError && e.code === 'TIMEOUT' && e.retryable === true);
   await assert.rejects(createTerra({ fetch: async () => { throw new TypeError('down'); } }).invoke('x'), { code: 'NETWORK' });   // 다른 실패는 그대로 NETWORK
 });
+
+test('invoke — 봉투는 status 와 data 가 함께 있을 때만: node-files.get 처럼 봉투 없이 오는 {path,size,mime,modified,data} 는 통째로 돌려준다', async () => {
+  const FILE = { path: 'p.png', size: 3, mime: 'image/png', modified: '2026-11-10T00:00:00Z', data: 'AQID' };
+  const T = createTerra({ fetch: async (path) => new Response(JSON.stringify(path.includes('env') ? { status: 'ok', data: FILE, meta: {} } : FILE), { status: 200 }) });
+  assert.deepEqual(await T.invoke('lab.stellaxia.gui-v3.node-files.get', { path: 'p.png' }), FILE, '봉투 없음 — base64 문자열이 아니라 객체');
+  assert.deepEqual(await T.invoke('env.op'), FILE, '봉투 {status, data, meta} 는 그대로 풀린다');
+  assert.deepEqual(await T.invoke('lab.stellaxia.gui-v3.node-files.get', { path: 'p.png' }, { node: 'n' }), FILE, '노드 길도 같다');
+});

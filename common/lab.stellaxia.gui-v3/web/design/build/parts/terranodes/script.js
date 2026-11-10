@@ -47,7 +47,8 @@ const PARTITION = new Set(['NODE_OFFLINE', 'RELAY_NOT_CONNECTED', 'NETWORK', 'TI
 const OP_DESK_GET = NODE_OP + 'desk.get', OP_DESK_PATCH = NODE_OP + 'desk.patch', OP_LIST = NODE_OP + 'files.list';
 const WALL_DIR = 'desk/wall', WALL_MAX = 2.5 * 1024 * 1024, WALL_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };   // 배경 그림 — 서버 허용 형식 · 2.5 MiB(§6.3)
 const clipBytes = (s, n) => { let out = '', b = 0; for (const ch of String(s == null ? '' : s)) { const w = new TextEncoder().encode(ch).length; if (b + w > n) break; out += ch; b += w; } return out; };   // UTF-8 바이트 기준 자르기(서버 이름 상한)
-const DESK_POLL = 5000, DESK_OLD = 60000, DESK_ABORT = 8000, PROPS_EVERY = 30000, DESK_WAKE_GAP = 500, DESK_STALE = DESK_POLL + DESK_ABORT;   // 폴링 · 옛 버전 재시도 · 읽기 상한 · 프로필 주기 · 연속 깨움 무시 · 낡음(5초 + 폴링 제한 8초 = 13초)
+const DESK_POLL = 5000, DESK_OLD = 60000, DESK_ABORT = 8000, PROPS_EVERY = 30000, DESK_WAKE_GAP = 500, DESK_PATCH_ABORT = 25000, DESK_STALE = DESK_POLL + DESK_ABORT;   // 폴링 · 옛 버전 재시도 · 읽기 상한 · 프로필 주기 · 연속 깨움 무시 · 낡음(5초 + 폴링 제한 8초 = 13초)
+const DESK_CONFLICT_MSG = '다른 곳에서 먼저 바뀌었습니다';
 const DESK_SAVE0 = () => ({ state: 'idle', at: 0, code: '', msg: '', lost: [] });
 const deskStateOf = (code) => (code === 'OPERATION_NOT_REMOTE' || code === 'MODULE_ROUTE_NOT_FOUND' ? 'old' : code === 'MODULE_UNAVAILABLE' ? 'down' : code === 'MODULE_PERMISSION_DENIED' ? 'denied' : code === 'DELEGATION_REQUIRED' ? 'far' : code === 'NODE_NOT_FOUND' || code === 'NODE_UNMAPPED' ? 'none' : code === 'NO_NODE' ? 'norid' : PARTITION.has(code) ? 'offline' : 'error');   // HTTP 상태는 보지 않는다 — 코드만(§13)
 const DESK_MSG = { old: '이 노드의 gui-v3가 옛 버전이라 바탕 구성을 읽고 쓸 수 없습니다', down: '그 노드의 gui-v3가 꺼져 있음', denied: '바탕 구성을 읽을 권한이 없음', far: '직접 닿지 않는 노드', none: 'Terra 에 없는 노드', norid: '노드 id 가 없음', offline: '노드와 끊김', error: '바탕 구성을 읽지 못함' };
@@ -188,14 +189,15 @@ class NodeStore {
   // ───────────── 바탕 구성(desk) — 메서드 이름은 desk 로 시작 ─────────────
   deskKey(rid) { return rid + '|nodedesk'; }   // 입력을 키에 넣지 않는다(revision 마다 항목이 늘지 않게)
   deskMeta(rid) { let D = this.desks.get(rid); if (!D) this.desks.set(rid, D = { seq: 0, applied: 0, fetching: 0, cur: null, lastStart: 0, nextAt: 0, st: '', code: '', msg: '' }); return D; }
-  deskSend(rid) { let S = this.deskSends.get(rid); if (!S) this.deskSends.set(rid, S = { sending: false, queue: new Map(), waiters: [], retry: null, failed: null, save: DESK_SAVE0() }); return S; }
+  deskSend(rid) { let S = this.deskSends.get(rid); if (!S) this.deskSends.set(rid, S = { sending: false, queue: new Map(), waiters: [], retry: null, failed: null, lost: new Set(), ver: 0, save: DESK_SAVE0() }); return S; }
   deskIsOk(rid) { const D = this.desks.get(rid); return !!D && (D.st === 'ok' || D.st === 'empty'); }
   /** 사본(노드가 준 값) · 표시층 · 상태 — 동기, 요청을 일으키지 않는다 */
   deskRead(rid) {
     const e = rid ? this.cache.get(this.deskKey(rid)) : null, D = rid ? this.desks.get(rid) : null, S = rid ? this.deskSends.get(rid) : null, pm = rid ? this.pendingDesk.get(rid) : null, now = Date.now();
     const state = !rid ? 'norid' : (D && D.st) || 'loading', code = !rid ? 'NO_NODE' : (D && D.code) || '', msg = !rid ? DESK_MSG.norid : (D && D.msg) || '';
     const doc = (e && e.data && e.data.doc) || null, age = e && e.at ? now - e.at : Infinity;
-    const sv = S ? S.save : DESK_SAVE0();
+    let sv = S ? S.save : DESK_SAVE0();
+    if (S && S.lost.size) { const own = sv.state === 'failed' && sv.code; sv = { state: 'failed', at: sv.at, code: own ? sv.code : 'REVISION_CONFLICT', msg: own ? sv.msg : DESK_CONFLICT_MSG, lost: [...S.lost] }; }   // 잃은 키는 사용자가 닫을 때까지 failed — 뒤따른 성공이 덮지 않는다
     return { rid, revision: (e && e.data && e.data.revision) | 0, doc, view: this.deskView(doc, pm), pending: new Set(pm ? pm.keys() : []), at: e ? e.at : 0, age, state, code, msg,
       save: { state: sv.state, at: sv.at, code: sv.code, msg: sv.msg, lost: sv.lost.slice() }, ro: state !== 'ok' && state !== 'empty', stale: age > DESK_STALE };
   }
@@ -236,7 +238,9 @@ class NodeStore {
     D.cur = p; return p;
   }
   /**
-   * 바탕 구성 쓰기 — 사본은 응답 전까지 그대로, 표시층(pendingDesk)에만. rid 마다 전송은 하나, 그동안의 변경은 키별 최신값 합본으로 다음 한 번(타이머 없음).
+   * 바탕 구성 쓰기 — 사본은 응답 전까지 그대로, 표시층(pendingDesk)에만. rid 마다 전송은 하나.
+   * 키마다 "그 시점 사본의 revision" 을 base 로 적어 두고(대기 키는 처음 적은 낮은 base 를 지킨다), 전송은 같은 base 끼리 묶은 그룹을 낮은 base 부터 하나씩 —
+   * 합본이 서버의 충돌 판정을 우회하지 못하게(다른 PC 가 그 키를 바꿨으면 409). 타이머 없음.
    * set: { 'icons.<id>' | 'prefs.<f>' | 'wall': 값 | null }. 읽기 전용(분할 · 옛 버전 …)이면 PARTITIONED 로 즉시 거절 — 표시층도 대기열도 없다
    */
   deskPatch(rid, set) {
@@ -246,15 +250,32 @@ class NodeStore {
     if (!keys.length) return Promise.resolve({ revision: s.revision, doc: s.doc });
     const S = this.deskSend(rid); let pm = this.pendingDesk.get(rid); if (!pm) this.pendingDesk.set(rid, pm = new Map());
     S.failed = null; S.save = { state: 'saving', at: S.save.at, code: '', msg: '', lost: [] };
-    for (const k of keys) { pm.set(k, set[k]); S.queue.set(k, set[k]); }
-    return new Promise((ok, no) => { S.waiters.push({ ok, no, keys: new Set(keys) }); this.emit(rid); this.deskPump(rid); });
+    const ver = ++S.ver, w = { ok: null, no: null, pend: new Map(), lost: [], res: null };
+    for (const k of keys) { pm.set(k, set[k]); const q = S.queue.get(k); S.queue.set(k, { v: set[k], base: q ? Math.min(q.base, s.revision) : s.revision, ver }); w.pend.set(k, ver); }
+    return new Promise((ok, no) => { w.ok = ok; w.no = no; S.waiters.push(w); this.emit(rid); this.deskPump(rid); });
+  }
+  /** 키가 다 정해진 waiter 를 끝낸다 — 잃은 키가 있으면 reject, 아니면 마지막 응답으로 resolve */
+  deskSettleWaiters(S) {
+    S.waiters = S.waiters.filter((w) => { if (w.pend.size) return true; if (w.lost.length) w.no({ code: 'REVISION_CONFLICT', message: DESK_CONFLICT_MSG, lost: w.lost.slice() }); else w.ok(w.res); return false; });
+  }
+  /** 충돌로 잃은 키 — 같은 키의 대기분도 함께(노드 값이 바뀐 것을 모르고 덮지 않게). S.lost 에 쌓아 사용자가 닫을 때까지 */
+  deskLose(rid, S, keys) {
+    const pm = this.pendingDesk.get(rid);
+    for (const k of keys) { S.lost.add(k); S.queue.delete(k); if (S.retry) S.retry.entries.delete(k); if (pm) pm.delete(k); for (const w of S.waiters) if (w.pend.has(k)) { w.pend.delete(k); w.lost.push(k); } }
+    this.deskSettleWaiters(S);
   }
   deskPump(rid) {
     const S = this.deskSends.get(rid); if (!S || S.sending) return;
+    if (!S.retry && !S.queue.size) return;
+    if (!this.deskIsOk(rid)) { const D = this.deskMeta(rid); return this.deskFail(rid, S, null, { code: D.code || 'PARTITIONED', message: D.msg || DESK_MSG[D.st] || '읽기 전용 — 보내지 못함' }, false); }   // 나갈 수 없는 상태 — 낡은 의도를 쌓아 두지 않는다
     let batch;
     if (S.retry) { batch = S.retry; S.retry = null; }
-    else if (S.queue.size) { batch = { set: S.queue, waiters: S.waiters, retried: false, lost: [] }; S.queue = new Map(); S.waiters = []; }
-    else return;
+    else {
+      const lo = Math.min(...[...S.queue.values()].map((q) => q.base)), entries = new Map();
+      for (const [k, q] of S.queue) if (q.base === lo) entries.set(k, q);
+      for (const k of entries.keys()) S.queue.delete(k);
+      batch = { entries, base: lo, retried: false };
+    }
     S.sending = true; this.deskTransmit(rid, S, batch);
   }
   /** 사본이 비었으면(revision 0) 첫 쓰기 — 기본값 전체(prefs 6칸 · icons)를 펼치고 사용자 변경을 위에 얹는다 */
@@ -266,46 +287,66 @@ class NodeStore {
     return Object.assign(out, set);
   }
   async deskTransmit(rid, S, batch) {
-    const gen = this.gen, k = this.deskKey(rid), e = this.cache.get(k), base = e && e.data ? e.data.revision | 0 : 0, sent = [...batch.set.keys()];
-    let set = Object.fromEntries(batch.set); if (base === 0) set = this.deskFirst(set);
-    const drop = (list, err) => { for (const w of list) w.no(err); };
-    let res = null, err = null;
-    try { res = await this.t.invokeRid(rid, OP_DESK_PATCH, { base_revision: base, set }, {}); } catch (x) { err = x || { code: 'ERROR' }; }
-    if (gen !== this.gen) return drop(batch.waiters, { code: 'CLEARED', message: '로그아웃으로 비워짐' });
-    const D = this.deskMeta(rid), pm = this.pendingDesk.get(rid), settle = () => { S.sending = false; this.persist(); this.emit(rid); this.deskPump(rid); };
-    const unpend = (keys) => { if (pm) for (const x of keys) if (!S.queue.has(x)) pm.delete(x); };
+    const gen = this.gen;
+    try { await this.deskSendOnce(rid, S, batch, gen); }
+    catch (x) { if (gen === this.gen) { try { this.deskFail(rid, S, batch, x && x.code ? x : { code: 'ERROR', message: String((x && x.message) || x) }, true); } catch (y) { /* 아래 finally 가 전송을 풀어 준다 */ } } }
+    finally { if (gen === this.gen) { S.sending = false; this.persist(); this.emit(rid); this.deskPump(rid); } }   // 어떤 경우에도 전송 중 표시가 남지 않는다
+  }
+  async deskSendOnce(rid, S, batch, gen) {
+    const k = this.deskKey(rid), e = this.cache.get(k), rev0 = e && e.data ? e.data.revision | 0 : 0, sent = [...batch.entries.keys()], base = rev0 === 0 ? 0 : batch.base;   // 첫 쓰기는 사본이 비었을 때만(배치 base 가 아니라)
+    let set = {}; for (const [x, q] of batch.entries) set[x] = q.v; if (rev0 === 0) set = this.deskFirst(set);
+    const ac = typeof AbortController === 'function' ? new AbortController() : null; let res = null, err = null, timer = 0, onAbort = null;
+    const abort = new Promise((_, no) => { if (ac) { onAbort = () => no({ code: 'TIMEOUT', message: '그 노드가 ' + DESK_PATCH_ABORT / 1000 + '초 안에 답하지 않음' }); ac.signal.addEventListener('abort', onAbort); timer = setTimeout(() => ac.abort(), DESK_PATCH_ABORT); } });
+    try { res = await Promise.race([this.t.invokeRid(rid, OP_DESK_PATCH, { base_revision: base, set }, { signal: ac ? ac.signal : undefined }), abort]); }
+    catch (x) { err = x || { code: 'ERROR' }; }
+    finally { clearTimeout(timer); if (ac && onAbort) ac.signal.removeEventListener('abort', onAbort); }
+    if (gen !== this.gen) return;
+    if (!err && !(res && Number.isInteger(res.revision) && 'doc' in res)) err = { code: 'BAD_RESPONSE', message: '바탕 구성 쓰기 응답이 이상함' };
     if (!err) {   // 응답은 항상 반영한다 — 그 전에 출발한 읽기는 버린다
-      const now = Date.now(); D.applied = ++D.seq;
-      this.cache.set(k, { data: { revision: res.revision | 0, doc: res.doc == null ? null : res.doc }, at: now, src: this.isLocal(rid) ? '로컬' : '노드' });
-      D.st = 'ok'; D.code = ''; D.msg = ''; D.nextAt = now + DESK_POLL; unpend(sent);
-      const lost = batch.lost;
-      S.save = lost.length ? { state: 'failed', at: now, code: 'REVISION_CONFLICT', msg: '다른 곳에서 먼저 바뀌었습니다', lost } : { state: S.queue.size || S.retry ? 'saving' : 'saved', at: now, code: '', msg: '', lost: [] };
-      for (const w of batch.waiters) { if (lost.some((x) => w.keys.has(x))) w.no({ code: 'REVISION_CONFLICT', message: '다른 곳에서 먼저 바뀌었습니다', lost: lost.slice() }); else w.ok({ revision: res.revision | 0, doc: res.doc == null ? null : res.doc }); }
-      return settle();
+      const now = Date.now(), D = this.deskMeta(rid), pm = this.pendingDesk.get(rid), R = res.revision, doc = res.doc == null ? null : res.doc;
+      D.applied = ++D.seq; this.cache.set(k, { data: { revision: R, doc }, at: now, src: this.isLocal(rid) ? '로컬' : '노드' });
+      D.st = 'ok'; D.code = ''; D.msg = ''; D.nextAt = now + DESK_POLL;
+      for (const [x, q] of batch.entries) {
+        const nq = S.queue.get(x); if (nq) nq.base = R; else if (pm) pm.delete(x);   // 같은 키 대기분의 base 는 내 응답 revision 으로 — 자기 자신과 충돌하지 않게(안 보낸 키의 base 는 그대로)
+        for (const w of S.waiters) { const v = w.pend.get(x); if (v != null && v <= q.ver) { w.pend.delete(x); w.res = { revision: R, doc }; } }
+      }
+      S.save = { state: S.queue.size || S.retry ? 'saving' : 'saved', at: now, code: '', msg: '', lost: [] };   // 잃은 키(S.lost)는 deskRead 가 failed 로 계속 보인다
+      return this.deskSettleWaiters(S);
     }
     if (err.code === 'REVISION_CONFLICT') {
-      const dk = err.details && Array.isArray(err.details.keys) ? err.details.keys.filter((x) => batch.set.has(x)) : [];
-      const conflict = new Set(batch.retried || !dk.length ? sent : dk), rest = sent.filter((x) => !conflict.has(x)), lost = batch.lost.concat([...conflict]);
-      unpend(conflict);
-      await this.deskFetch(rid, { force: true });   // 노드 값으로 돌아간다 · 새 revision 도 여기서
-      if (gen !== this.gen) return drop(batch.waiters, { code: 'CLEARED', message: '로그아웃으로 비워짐' });
-      if (rest.length && !batch.retried && this.deskIsOk(rid)) { S.retry = { set: new Map(rest.map((x) => [x, batch.set.get(x)])), waiters: batch.waiters, retried: true, lost }; return settle(); }   // 충돌 아닌 키는 한 번만 자동 재전송
-      unpend(rest); const all = lost.concat(rest);
-      S.save = { state: 'failed', at: S.save.at, code: 'REVISION_CONFLICT', msg: '다른 곳에서 먼저 바뀌었습니다', lost: all }; S.failed = null;
-      drop(batch.waiters, { code: 'REVISION_CONFLICT', message: '다른 곳에서 먼저 바뀌었습니다', lost: all.slice() });
-      return settle();
+      const dk = err.details && Array.isArray(err.details.keys) ? err.details.keys.filter((x) => batch.entries.has(x)) : [];
+      const conflict = batch.retried || !dk.length ? sent : dk, rest = sent.filter((x) => !conflict.includes(x));
+      await this.deskFetch(rid, { force: true });   // 노드 값을 먼저 받고 — 그 뒤에 잃음을 알린다(reject 를 받은 호출자가 이미 노드 값을 본다)
+      if (gen !== this.gen) return;
+      this.deskLose(rid, S, conflict);
+      if (!rest.length) return;
+      if (!this.deskIsOk(rid)) { const D = this.deskMeta(rid); return this.deskFail(rid, S, { entries: new Map(rest.map((x) => [x, batch.entries.get(x)])) }, { code: D.code || 'ERROR', message: D.msg }, false); }
+      // 충돌 아닌 키는 한 번만 자동 재전송 — 원래 base 그대로. 새 revision 으로 바꾸면 그 사이 다른 PC 가 그 키를 바꿨는지 알 수 없다(설계 §7 은 "새 revision" 이라 적었으나 충돌 감지를 지키려 다르게 한다. 바뀌었으면 다시 409 → 잃음)
+      S.retry = { entries: new Map(rest.map((x) => [x, batch.entries.get(x)])), base: batch.base, retried: true };
+      return;
     }
-    // 그 외 실패 — 표시층과 대기열 전부 비우고 사본은 그대로. 실패한 set 은 deskRetry 용으로 둔다(저절로 다시 보내지 않는다)
-    const code = (err.name === 'AbortError' ? 'TIMEOUT' : err.code) || 'ERROR', q = S.waiters; S.queue = new Map(); S.waiters = []; this.pendingDesk.delete(rid);
-    S.failed = new Map(batch.set); S.save = { state: 'failed', at: S.save.at, code, msg: err.message || '', lost: batch.lost.slice() };
+    this.deskFail(rid, S, batch, err, true);   // 그 외 실패
+  }
+  /**
+   * 실패 — 표시층과 대기열(전송분 · 재전송 대기 · 대기분) 전부 비우고 사본은 그대로. 실패한 set 은 전송분 + 그때 대기분을 합쳐 deskRetry 용으로 둔다(저절로 다시 보내지 않는다).
+   * recheck: 전송했는데 결과를 모르는 경우(끊김 · 시간 초과 · 이상한 응답) 노드 값을 다시 읽어 확인
+   */
+  deskFail(rid, S, batch, err, recheck) {
+    const D = this.deskMeta(rid), code = (err.name === 'AbortError' ? 'TIMEOUT' : err.code) || 'ERROR', failed = new Map();
+    if (batch) for (const [x, q] of batch.entries) failed.set(x, q.v);
+    if (S.retry) for (const [x, q] of S.retry.entries) failed.set(x, q.v);
+    for (const [x, q] of S.queue) failed.set(x, q.v);
+    S.queue = new Map(); S.retry = null; this.pendingDesk.delete(rid);
+    const ws = S.waiters; S.waiters = [];
+    S.failed = failed.size ? failed : null; S.save = { state: 'failed', at: S.save.at, code, msg: err.message || '', lost: [] };
     if (PARTITION.has(code)) { D.st = 'offline'; D.code = code; D.msg = err.message || DESK_MSG.offline; D.nextAt = Date.now() + DESK_POLL; }
-    drop(batch.waiters.concat(q), err);
-    return settle();
+    for (const w of ws) w.no(err);
+    if (recheck) this.deskFetch(rid, { force: true });
   }
   /** 실패한 저장을 같은 흐름으로 다시 — 보관한 set 그대로 */
   deskRetry(rid) { const S = this.deskSends.get(rid); if (!S || !S.failed) return Promise.reject({ code: 'NOTHING_TO_RETRY', message: '다시 보낼 것이 없음' }); return this.deskPatch(rid, Object.fromEntries(S.failed)); }
-  /** 실패 표시를 닫는다(사용자가 닫을 때만 — 저절로 사라지지 않는다) */
-  deskClearSave(rid) { const S = this.deskSends.get(rid); if (!S || S.save.state !== 'failed') return; S.failed = null; S.save = { state: 'idle', at: S.save.at, code: '', msg: '', lost: [] }; this.emit(rid); }
+  /** 실패 표시를 닫는다(사용자가 닫을 때만 — 저절로 사라지지 않는다). 잃은 키 목록도 여기서 비운다 */
+  deskClearSave(rid) { const S = this.deskSends.get(rid); if (!S || this.deskRead(rid).save.state !== 'failed') return; S.failed = null; S.lost.clear(); S.save = { state: 'idle', at: S.save.at, code: '', msg: '', lost: [] }; this.emit(rid); }
 
   // 갱신 타이머 — store 에 하나. 제어기를 연 쪽이 watch/unwatch(같은 rid 를 여러 창이 열어도 합쳐서 한 번)
   deskHidden() { return typeof document !== 'undefined' && !!document && document.visibilityState === 'hidden'; }

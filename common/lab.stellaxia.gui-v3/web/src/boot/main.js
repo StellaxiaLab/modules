@@ -240,7 +240,14 @@ if (MODE !== 'demo') {
     const sec = hostSecretOf(f);
     if (sec) bindHostSecret({ secret: sec, login: () => window.__terra && window.__terra.login(), scene: () => window.__terra && window.__terra.scene, wanted: () => { const lg = window.__terra && window.__terra.login(); return !f.token() && !rememberedMode(f, lg && lg.state); } });   // 토큰이 있으면(이미 로그인) · 기억으로 들어갈 자리면 칸을 두지 않는다
     let had = !!f.token();
-    if (f.onToken) f.onToken((tok) => {   // 토큰이 바뀌면(다른 사용자 · 로그인 · 로그아웃) 앞의 사본을 버린다
+    if (f.onToken) f.onToken((tok) => {   // 토큰이 바뀌면 — 로그아웃 · 처음 로그인은 앞의 사본을 버린다. 같은 사람의 갱신은 버리지 않는다(저장 중인 바탕 구성이 사라지지 않게): 사람이 달라졌을 때만
+      if (tok && had) {
+        const prev = window.TerraWho && window.TerraWho.principal, v = f.value && f.value(), vp = v && typeof v.principal === 'string' ? v.principal : '';
+        const swap = () => { if (window.TerraNodes) window.TerraNodes.clear(); };
+        if (vp) { if (prev && vp !== prev) { swap(); terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { window.TerraWho = w; }, () => {}); } }
+        else terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { if (!w) return; if (prev && w.principal && w.principal !== prev) swap(); window.TerraWho = w; }, () => {});   // 못 물으면 지우지 않는다
+        return;
+      }
       if (window.TerraNodes) window.TerraNodes.clear();
       if (tok && !had) { appSignedIn(); if (!sec) autoWarp(); }   // 셸 칸으로 한 로그인은 hostLogin 이 워프한다
       else if (!tok) { pcLogout(); stopLive(); showLogin(); }
