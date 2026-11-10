@@ -203,12 +203,12 @@ test('아직 모르면 쓰기는 DESK_NOT_READY(표시층 없음)', async () => 
   await assert.rejects(T.deskPatch('n1', { 'icons.a': null }), { code: 'DESK_NOT_READY' }); assert.equal(T.deskRead('n1').pending.size, 0); assert.equal(w.calls.length, 0);
 });
 
-const TABLE = [['OPERATION_NOT_REMOTE', 'old'], ['MODULE_ROUTE_NOT_FOUND', 'old'], ['MODULE_UNAVAILABLE', 'down'], ['MODULE_PERMISSION_DENIED', 'denied'], ['DELEGATION_REQUIRED', 'far'], ['NODE_NOT_FOUND', 'none'], ['NODE_UNMAPPED', 'none'], ['NO_NODE', 'norid'],
+const TABLE = [['OPERATION_NOT_REMOTE', 'old'], ['MODULE_ROUTE_NOT_FOUND', 'down'], ['MODULE_UNAVAILABLE', 'down'], ['MODULE_PERMISSION_DENIED', 'denied'], ['DELEGATION_REQUIRED', 'far'], ['NODE_NOT_FOUND', 'none'], ['NODE_UNMAPPED', 'none'], ['NO_NODE', 'norid'],
   ['NODE_OFFLINE', 'offline'], ['RELAY_NOT_CONNECTED', 'offline'], ['NETWORK', 'offline'], ['TIMEOUT', 'offline'], ['GATEWAY_UNREACHABLE', 'offline'], ['UPSTREAM_UNREACHABLE', 'offline'], ['MODULE_INVOCATION_TIMEOUT', 'offline'], ['RELAY_SEND_FAILED', 'offline'], ['SOMETHING_ELSE', 'error']];
 test('코드별 판정 표 — 코드만 본다(HTTP 상태는 무시), 읽기 전용, 사본은 남는다', async () => {
   for (const [code, state] of TABLE) for (const status of [403, 404, 502]) {
     const w = world(), T = store(w); await ready(w, T); w.fail.get = { code, status, message: 'm' };
-    await T.deskFetch('n1'); const r = T.deskRead('n1');
+    await T.deskFetch('n1'); if (code === 'TIMEOUT') await T.deskFetch('n1'); const r = T.deskRead('n1');   // TIMEOUT 은 연속 2번째부터 분할
     assert.equal(r.state, state, code + '/' + status); assert.equal(r.code, code); assert.equal(r.ro, true); assert.ok(r.doc, '사본은 그대로');
   }
   const w = world(), T = store(w); w.fail.get = { code: 'OPERATION_NOT_REMOTE' }; await T.deskFetch('n1'); assert.equal(T.deskRead('n1').doc, null); assert.equal(T.deskRead('n1').state, 'old');
@@ -251,15 +251,46 @@ test('타이머 — scene 을 주면 같은 타이머로 30초마다 props 를 �
   await adv(29); assert.deepEqual(got, []); await adv(1); assert.deepEqual(got, ['S1|props']); await adv(30); assert.equal(got.length, 2);
 });
 
-test('8초 abort — 응답 없는 노드는 TIMEOUT(분할)로, signal 이 끊긴다. signal 을 무시하는 전송도 마찬가지', async () => {
+test('8초 abort — 첫 TIMEOUT 은 상태 · ro 불변, 연속 2번째부터 offline(TIMEOUT). signal 을 무시하는 전송도 마찬가지', async () => {
   for (const ignore of [false, true]) {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: 10000 });
-    const w = world(), T = store(w); w.hold = true; w.ignoreSignal = ignore; w.seed('n1');
-    const p = T.deskFetch('n1'); mock.timers.tick(7999); await flush(); assert.equal(T.deskRead('n1').state, 'loading');
-    mock.timers.tick(1); assert.equal(await p, false); const r = T.deskRead('n1');
-    assert.equal(r.state, 'offline'); assert.equal(r.code, 'TIMEOUT'); assert.equal(w.signals[0].aborted, true);
+    const w = world(), T = store(w); await ready(w, T); w.hold = true; w.ignoreSignal = ignore;
+    const p = T.deskFetch('n1', { force: true }); mock.timers.tick(7999); await flush(); assert.equal(T.deskRead('n1').state, 'ok');
+    mock.timers.tick(1); assert.equal(await p, false); let r = T.deskRead('n1');
+    assert.equal(r.state, 'ok', '첫 번째는 분할이 아니다'); assert.equal(r.ro, false); assert.equal(w.signals.at(-1).aborted, true);
+    const p2 = T.deskFetch('n1', { force: true }); mock.timers.tick(8000); await p2; r = T.deskRead('n1');
+    assert.equal(r.state, 'offline'); assert.equal(r.code, 'TIMEOUT'); assert.equal(r.ro, true);
     mock.timers.reset();
   }
+});
+
+test('TIMEOUT 연속 카운터 — 중간에 응답(성공 · 다른 코드)이 있으면 0 부터, 실제 분할 코드는 즉시 offline, TerraError TIMEOUT 도 같다', async () => {
+  const w = world(), T = store(w); await ready(w, T);
+  w.fail.get = { code: 'TIMEOUT', message: 'late' }; await T.deskFetch('n1'); assert.equal(T.deskRead('n1').state, 'ok');
+  delete w.fail.get; await T.deskFetch('n1');   // 성공 — 리셋
+  w.fail.get = { code: 'TIMEOUT' }; await T.deskFetch('n1'); assert.equal(T.deskRead('n1').state, 'ok', '다시 첫 번째');
+  w.fail.get = { code: 'MODULE_UNAVAILABLE' }; await T.deskFetch('n1'); assert.equal(T.deskRead('n1').state, 'down');   // 다른 코드 — 리셋
+  w.fail.get = { code: 'TIMEOUT' }; await T.deskFetch('n1'); assert.equal(T.deskRead('n1').state, 'down', '리셋된 첫 TIMEOUT 은 상태를 바꾸지 않는다');
+  await T.deskFetch('n1'); assert.equal(T.deskRead('n1').state, 'offline');
+  const w2 = world(), T2 = store(w2); await ready(w2, T2); w2.fail.get = { code: 'NODE_OFFLINE' }; await T2.deskFetch('n1'); assert.equal(T2.deskRead('n1').state, 'offline', '실제 분할 코드는 즉시');
+});
+
+test('폴링 주기는 시작 기준 — 느린 응답이 간격을 늘리지 않는다(tick 500ms)', async () => {
+  mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: 10000 });
+  const w = world(), T = store(w); w.seed('n1'); w.hold = true;
+  T.watch('n1'); await flush(); assert.equal(w.calls.length, 1);
+  mock.timers.tick(3000); w.hold = false; w.release(); await flush(); assert.equal(w.calls.length, 1, '3초 걸려 받았다');
+  mock.timers.tick(1999); await flush(); assert.equal(w.calls.length, 1); mock.timers.tick(500); await flush(); assert.equal(w.calls.length, 2, '끝난 뒤 5초가 아니라 시작 뒤 5초(+tick)');
+  w.fail.get = { code: 'OPERATION_NOT_REMOTE' }; mock.timers.tick(5000); await flush(); assert.equal(T.deskRead('n1').state, 'old'); const n = w.calls.length;
+  mock.timers.tick(58500); await flush(); assert.equal(w.calls.length, n); mock.timers.tick(1500); await flush(); assert.equal(w.calls.length, n + 1, '옛 버전 60초도 시작 기준');
+});
+
+test('MODULE_ROUTE_NOT_FOUND — 받은 적이 있으면 down(5초 · down 문구), 처음부터 없으면 old(60초)', async () => {
+  const w = world(), T = store(w); await ready(w, T); w.fail.get = { code: 'MODULE_ROUTE_NOT_FOUND', message: 'route' };
+  await T.deskFetch('n1'); let r = T.deskRead('n1'); assert.equal(r.state, 'down'); assert.match(r.msg, /꺼져 있음/); assert.equal(T.desks.get('n1').nextAt - T.desks.get('n1').lastStart, 5000);
+  const w2 = world(), T2 = store(w2); w2.fail.get = { code: 'MODULE_ROUTE_NOT_FOUND' }; await T2.deskFetch('n2'); r = T2.deskRead('n2');
+  assert.equal(r.state, 'old'); assert.equal(T2.desks.get('n2').nextAt - T2.desks.get('n2').lastStart, 60000);
+  const w3 = world(), T3 = store(w3); w3.other('n3', { 'icons.a': { c: 1, r: 1 } }); await T3.deskFetch('n3'); w3.fail.get = { code: 'MODULE_ROUTE_NOT_FOUND' }; await T3.deskFetch('n3'); assert.equal(T3.deskRead('n3').state, 'down');
 });
 
 test('늦은 응답 — 요청 순번으로 거른다(revision 이 줄어도 새 응답은 반영)', async () => {

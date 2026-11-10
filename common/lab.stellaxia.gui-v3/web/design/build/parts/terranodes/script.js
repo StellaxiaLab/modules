@@ -47,7 +47,7 @@ const PARTITION = new Set(['NODE_OFFLINE', 'RELAY_NOT_CONNECTED', 'NETWORK', 'TI
 const OP_DESK_GET = NODE_OP + 'desk.get', OP_DESK_PATCH = NODE_OP + 'desk.patch', OP_LIST = NODE_OP + 'files.list';
 const WALL_DIR = 'desk/wall', WALL_MAX = 2.5 * 1024 * 1024, WALL_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };   // 배경 그림 — 서버 허용 형식 · 2.5 MiB(§6.3)
 const clipBytes = (s, n) => { let out = '', b = 0; for (const ch of String(s == null ? '' : s)) { const w = new TextEncoder().encode(ch).length; if (b + w > n) break; out += ch; b += w; } return out; };   // UTF-8 바이트 기준 자르기(서버 이름 상한)
-const DESK_POLL = 5000, DESK_OLD = 60000, DESK_ABORT = 8000, PROPS_EVERY = 30000, DESK_WAKE_GAP = 500, DESK_PATCH_ABORT = 25000, DESK_STALE = DESK_POLL + DESK_ABORT;   // 폴링 · 옛 버전 재시도 · 읽기 상한 · 프로필 주기 · 연속 깨움 무시 · 낡음(5초 + 폴링 제한 8초 = 13초)
+const DESK_POLL = 5000, DESK_OLD = 60000, DESK_ABORT = 8000, PROPS_EVERY = 30000, DESK_WAKE_GAP = 500, DESK_TICK = 500, DESK_PATCH_ABORT = 25000, DESK_STALE = DESK_POLL + DESK_ABORT;   // 폴링 · 옛 버전 재시도 · 읽기 상한 · 프로필 주기 · 연속 깨움 무시 · 낡음(5초 + 폴링 제한 8초 = 13초)
 const DESK_CONFLICT_MSG = '다른 곳에서 먼저 바뀌었습니다';
 const DESK_SAVE0 = () => ({ state: 'idle', at: 0, code: '', msg: '', lost: [] });
 const deskStateOf = (code) => (code === 'OPERATION_NOT_REMOTE' || code === 'MODULE_ROUTE_NOT_FOUND' ? 'old' : code === 'MODULE_UNAVAILABLE' ? 'down' : code === 'MODULE_PERMISSION_DENIED' ? 'denied' : code === 'DELEGATION_REQUIRED' ? 'far' : code === 'NODE_NOT_FOUND' || code === 'NODE_UNMAPPED' ? 'none' : code === 'NO_NODE' ? 'norid' : PARTITION.has(code) ? 'offline' : 'error');   // HTTP 상태는 보지 않는다 — 코드만(§13)
@@ -188,7 +188,7 @@ class NodeStore {
 
   // ───────────── 바탕 구성(desk) — 메서드 이름은 desk 로 시작 ─────────────
   deskKey(rid) { return rid + '|nodedesk'; }   // 입력을 키에 넣지 않는다(revision 마다 항목이 늘지 않게)
-  deskMeta(rid) { let D = this.desks.get(rid); if (!D) this.desks.set(rid, D = { seq: 0, applied: 0, fetching: 0, cur: null, lastStart: 0, nextAt: 0, st: '', code: '', msg: '' }); return D; }
+  deskMeta(rid) { let D = this.desks.get(rid); if (!D) this.desks.set(rid, D = { seq: 0, applied: 0, fetching: 0, cur: null, lastStart: 0, nextAt: 0, tmo: 0, got: false, st: '', code: '', msg: '' }); return D; }
   deskSend(rid) { let S = this.deskSends.get(rid); if (!S) this.deskSends.set(rid, S = { sending: false, queue: new Map(), waiters: [], retry: null, failed: null, lost: new Set(), ver: 0, save: DESK_SAVE0() }); return S; }
   deskIsOk(rid) { const D = this.desks.get(rid); return !!D && (D.st === 'ok' || D.st === 'empty'); }
   /** 사본(노드가 준 값) · 표시층 · 상태 — 동기, 요청을 일으키지 않는다 */
@@ -220,7 +220,7 @@ class NodeStore {
     if (e && e.data && typeof e.data.revision === 'number') input.since_revision = e.data.revision;
     const ac = typeof AbortController === 'function' ? new AbortController() : null; let timer = 0, onAbort = null;
     const abort = new Promise((_, no) => { if (ac) { onAbort = () => no({ code: 'TIMEOUT', message: '그 노드가 ' + DESK_ABORT / 1000 + '초 안에 답하지 않음' }); ac.signal.addEventListener('abort', onAbort); timer = setTimeout(() => ac.abort(), DESK_ABORT); } });
-    D.fetching++; D.lastStart = Date.now();
+    D.fetching++; const started = D.lastStart = Date.now();
     const call = typeof this.t.invokeRid === 'function' ? this.t.invokeRid(rid, OP_DESK_GET, input, { signal: ac ? ac.signal : undefined }) : Promise.reject({ code: 'NO_TRANSPORT', message: '이 전송은 노드 id 호출을 지원하지 않음' });
     const p = Promise.race([call, abort]).then((res) => {
       if (gen !== this.gen || my < D.applied) return false;   // 늦은 응답 — 요청 순번으로 거른다(revision 비교는 복원 때 영구히 낡는다)
@@ -228,12 +228,16 @@ class NodeStore {
       if (res && res.unchanged && prev && prev.data) this.cache.set(k, Object.assign({}, prev, { at: now }));
       else if (res && typeof res.revision === 'number' && !res.unchanged) this.cache.set(k, { data: { revision: res.revision, doc: res.doc == null ? null : res.doc }, at: now, src: this.isLocal(rid) ? '로컬' : '노드' });
       else throw { code: 'BAD_RESPONSE', message: '바탕 구성 응답이 이상함' };
-      D.applied = my; const c = this.cache.get(k).data; D.st = c.revision === 0 || !c.doc ? 'empty' : 'ok'; D.code = ''; D.msg = ''; D.nextAt = now + DESK_POLL;
-      this.persist(); return true;
+      D.applied = my; const c = this.cache.get(k).data; D.st = c.revision === 0 || !c.doc ? 'empty' : 'ok'; D.code = ''; D.msg = ''; D.tmo = 0; D.nextAt = started + DESK_POLL;   // 주기는 시작 기준(느린 응답이 간격을 늘리지 않게 · 이미 지났으면 다음 tick)
+      if (c.revision > 0) D.got = true; this.persist(); return true;
     }).catch((err) => {
       if (gen !== this.gen || my < D.applied) return false;
-      const code = (err && err.name === 'AbortError' ? 'TIMEOUT' : err && err.code) || 'ERROR'; D.st = deskStateOf(code); D.code = code; D.msg = (err && err.message) || DESK_MSG[D.st] || '';
-      D.nextAt = Date.now() + (D.st === 'old' ? DESK_OLD : DESK_POLL); return false;   // 사본은 그대로 — 상태만 단다
+      const code = (err && err.name === 'AbortError' ? 'TIMEOUT' : err && err.code) || 'ERROR', cp = this.cache.get(k);
+      if (code === 'TIMEOUT' && ++D.tmo < 2) { D.nextAt = started + DESK_POLL; return false; }   // 자기 abort 의 첫 TIMEOUT 은 분할이 아니다(relay 가 몰리면 정상 노드도 8초를 넘긴다) — 상태 · ro 그대로. 연속 2번째부터 offline
+      if (code !== 'TIMEOUT') D.tmo = 0;   // 답을 받았다(다른 코드) — 연속이 끊긴다
+      D.st = deskStateOf(code); D.code = code; D.msg = (err && err.message) || DESK_MSG[D.st] || '';
+      if (code === 'MODULE_ROUTE_NOT_FOUND' && (D.got || (cp && cp.data && cp.data.revision > 0))) { D.st = 'down'; D.msg = DESK_MSG.down; }   // 받은 적이 있으면 옛 버전이 아니라 모듈 재시작 직후다 — 5초 재시도(60초 기다리지 않는다)
+      D.nextAt = started + (D.st === 'old' ? DESK_OLD : DESK_POLL); return false;   // 사본은 그대로 — 상태만 단다
     }).then((ok) => { clearTimeout(timer); if (ac && onAbort) ac.signal.removeEventListener('abort', onAbort); D.fetching--; if (D.cur === p) D.cur = null; if (gen === this.gen) this.emit(rid); return ok; });
     D.cur = p; return p;
   }
@@ -359,7 +363,7 @@ class NodeStore {
   }
   unwatch(rid) { const w = this.watched.get(rid); if (!w) return; if (--w.n <= 0) this.watched.delete(rid); if (!this.watched.size) this.deskStop(); }
   deskStart() {
-    if (!this._deskT) { this._deskT = setInterval(() => this.deskTick(), 1000); if (this._deskT && this._deskT.unref) this._deskT.unref(); }
+    if (!this._deskT) { this._deskT = setInterval(() => this.deskTick(), DESK_TICK); if (this._deskT && this._deskT.unref) this._deskT.unref(); }
     if (this._deskOn) return; this._deskOn = true;
     if (typeof document !== 'undefined' && document && typeof document.addEventListener === 'function') document.addEventListener('visibilitychange', this._deskWake);
     if (typeof window !== 'undefined' && window && typeof window.addEventListener === 'function') window.addEventListener('focus', this._deskWake);
