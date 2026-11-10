@@ -482,7 +482,7 @@ class Component extends DCLogic {
   }
   envClose() { this.setState({ envDlg: null }); }
   envPatch(p) { this.setState((s) => (s.envDlg ? { envDlg: Object.assign({}, s.envDlg, p) } : null)); }
-  /** 고를 곳 — 폴더 허용(add): 이 노드의 local-fs 뿌리. 파일 고르기(file): 그 노드의 파일 탐색기와 같게 — 로컬 탐색(이 노드만) + 공유 폴더(io.terra.file, 다른 노드도) */
+  /** 고를 곳 — 폴더 허용(add): 이 노드의 local-fs 뿌리. 파일 고르기(file): 그 노드의 파일 탐색기와 같게 — 로컬 탐색(이 노드만) + 공유 폴더(lab.stellaxia.file, 다른 노드도) */
   envRoots() {
     const fileMode = this.state.envDlg && this.state.envDlg.mode === 'file', L = this.envLocal();
     const set = (roots, note) => this.setState((s) => (s.envDlg ? { envDlg: Object.assign({}, s.envDlg, { br: Object.assign({}, s.envDlg.br, { roots, note }) }) } : null));
@@ -490,7 +490,7 @@ class Component extends DCLogic {
       .concat(fileMode ? [{ id: 'share:media', kind: 'share', root: 'media', label: '공유 · media', path: '/srv/share/media' }] : []), ''); return; }
     const Env = window.TerraSviEnvelope, A = window.TerraDesk, rid = this.rid(), notes = [];
     const lfs = L ? Env.fsRoots().then((d) => A.fileRoots(d, 'lfs'), (e) => { notes.push('로컬 탐색 못 읽음 · ' + ((e && e.code) || '')); return []; }) : Promise.resolve([]);
-    const sh = fileMode && Env.shareRoots ? Env.shareRoots(rid).then((d) => A.fileRoots(d, 'share'), (e) => { notes.push('공유 폴더 못 읽음 · ' + ((e && e.code) || '') + (e && e.code === 'MODULE_ROUTE_NOT_FOUND' ? ' (io.terra.file 없는 노드)' : '')); return []; }) : Promise.resolve([]);
+    const sh = fileMode && Env.shareRoots ? Env.shareRoots(rid).then((d) => A.fileRoots(d, 'share'), (e) => { notes.push('공유 폴더 못 읽음 · ' + ((e && e.code) || '') + (e && e.code === 'MODULE_ROUTE_NOT_FOUND' ? ' (lab.stellaxia.file 없는 노드)' : '')); return []; }) : Promise.resolve([]);
     Promise.all([lfs, sh]).then(([a, b]) => { const roots = a.concat(b).filter((r) => !r.locked);
       set(roots, notes.concat(!roots.length ? ['고를 폴더 없음 — 경로를 직접 입력'] : [], fileMode && !L ? ['로컬 탐색 : 이 노드만 · 다른 노드는 공유 폴더만'] : []).join(' · ')); });
   }

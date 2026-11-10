@@ -1,6 +1,6 @@
-// 파일 내용 · 전송 — 공유 폴더(io.terra.file)에서 내용 열기(미리보기) · 올리기 · 내려받기. 제어기(NodeDesktopEmbed)의 파일 관리자가 쓴다.
+// 파일 내용 · 전송 — 공유 폴더(lab.stellaxia.file)에서 내용 열기(미리보기) · 올리기 · 내려받기. 제어기(NodeDesktopEmbed)의 파일 관리자가 쓴다.
 //
-// 계약(io.terra.file contracts/api/terra-api.json · 설계 docs/modules/terra-file/design/terra-file-transfer-design.md §5):
+// 계약(lab.stellaxia.file contracts/api/terra-api.json · 설계 docs/modules/terra-file/design/terra-file-transfer-design.md §5):
 //   entries.read           { root, path, offset, length ≤ 1 MiB }        → { offset, length, data(base64), sha256, eof, size }   file.read · 전송 기록 없음
 //   transfers.create       { direction: push, root, path, size_bytes, checksum_sha256, mode: create|overwrite, resume_id? }
 //                                                                       → { transfer: { transfer_id, chunk_size, offset(재개 지점), state, expires_at … } }   file.write
@@ -73,7 +73,7 @@ const retryOffsetOf = (e) => { const v = e && ((e.details && e.details.retry_off
 /**
  * @param {{ invoke: (op: string, input: object) => Promise<any>, subtle?: SubtleCrypto, now?: () => number }} o
  *   invoke — 그 노드의 operation 호출(제어기는 TerraNodes 전송의 invoke(노드, op, 입력)를 묶어 준다 — 다른 노드는 Master 중계).
- *   io.terra.file 이 그 노드에 없으면 Gateway 의 MODULE_NOT_FOUND · MODULE_ROUTE_NOT_FOUND 를 그대로 job.err 에 옮긴다
+ *   lab.stellaxia.file 이 그 노드에 없으면 Gateway 의 MODULE_NOT_FOUND · MODULE_ROUTE_NOT_FOUND 를 그대로 job.err 에 옮긴다
  */
 export function createFileTransfer(o) {
   const inv = o.invoke, now = o.now || Date.now, sub = o.subtle;
@@ -84,7 +84,7 @@ export function createFileTransfer(o) {
   async function readHead({ root, path, max }) {
     const parts = []; let have = 0, size = 0, eof = false;
     while (have < max) {
-      const r = await inv('io.terra.file.entries.read', { root, path, offset: have, length: Math.min(PREVIEW.piece, max - have) });
+      const r = await inv('lab.stellaxia.file.entries.read', { root, path, offset: have, length: Math.min(PREVIEW.piece, max - have) });
       const d = unb64(r && r.data); size = Number(r && r.size) || size; eof = !!(r && r.eof);
       if (!d.length && !eof) throw fail('TRANSFER_STALLED', '빈 조각 · 끝 아님 — 노드 응답 오류');
       parts.push(d); have += d.length; if (eof) break;
@@ -111,7 +111,7 @@ export function createFileTransfer(o) {
       if (j.size > BROWSER_MAX) throw fail('TOO_LARGE_FOR_BROWSER', '브라우저 올리기 상한 : ' + fmtBytes(BROWSER_MAX) + ' — 더 큰 파일은 terra file send');
       if (!j.bytes) { j.note = '체크섬 계산 중…'; emit(); j.bytes = new Uint8Array(await j.file.arrayBuffer()); j.sum = await sha(j.bytes); j.note = ''; }
       if (j._cancel) { j.state = 'cancel'; j.note = ''; return emit(); }
-      const r = await inv('io.terra.file.transfers.create', Object.assign({ direction: 'push', root: j.root, path: j.path, size_bytes: j.size, checksum_sha256: j.sum, mode: j.mode || 'create' }, j.tid ? { resume_id: j.tid } : {}));
+      const r = await inv('lab.stellaxia.file.transfers.create', Object.assign({ direction: 'push', root: j.root, path: j.path, size_bytes: j.size, checksum_sha256: j.sum, mode: j.mode || 'create' }, j.tid ? { resume_id: j.tid } : {}));
       const T = (r && r.transfer) || r || {}; j.tid = T.transfer_id || ''; const cs = Number(T.chunk_size) || 0;
       if (!j.tid || !cs) throw fail('TRANSFER_FAILED', '모듈 응답에 전송 id · 청크 크기 없음');
       let off = Number(T.offset ?? T.resume_offset ?? 0) || 0, tries = 0; j.chunk = cs; j.resumed = off > 0; j.state = 'run'; tick(off);
@@ -119,20 +119,20 @@ export function createFileTransfer(o) {
         if (j._cancel) break;
         const slice = j.bytes.subarray(off, Math.min(j.size, off + cs));
         try {
-          const a = await inv('io.terra.file.transfers.chunks.put', { transfer_id: j.tid, offset: off, data: b64(slice), sha256: await sha(slice) });
+          const a = await inv('lab.stellaxia.file.transfers.chunks.put', { transfer_id: j.tid, offset: off, data: b64(slice), sha256: await sha(slice) });
           const next = Number(a && a.next_offset);
-          if (!(next > off)) { await stop('io.terra.file.transfers.abort', 'stalled'); throw fail('TRANSFER_STALLED', 'offset ' + off + ' 에서 진행 없음'); }
+          if (!(next > off)) { await stop('lab.stellaxia.file.transfers.abort', 'stalled'); throw fail('TRANSFER_STALLED', 'offset ' + off + ' 에서 진행 없음'); }
           off = next; tries = 0; tick(off);
         } catch (e) {
           if ((e.code === 'CHUNK_OUT_OF_ORDER' || e.code === 'CHUNK_CHECKSUM_MISMATCH') && ++tries <= RETRIES) {
-            const ro = retryOffsetOf(e); off = ro !== null ? ro : Number(((await inv('io.terra.file.transfers.get', { transfer_id: j.tid })).transfer || {}).offset) || 0; tick(off); continue;
+            const ro = retryOffsetOf(e); off = ro !== null ? ro : Number(((await inv('lab.stellaxia.file.transfers.get', { transfer_id: j.tid })).transfer || {}).offset) || 0; tick(off); continue;
           }
           throw e;
         }
       }
-      if (j._cancel) { await stop('io.terra.file.transfers.abort', 'cancelled'); j.state = 'cancel'; j.note = ''; return emit(); }
+      if (j._cancel) { await stop('lab.stellaxia.file.transfers.abort', 'cancelled'); j.state = 'cancel'; j.note = ''; return emit(); }
       j.state = 'verify'; emit();
-      const c = await inv('io.terra.file.transfers.complete', { transfer_id: j.tid });
+      const c = await inv('lab.stellaxia.file.transfers.complete', { transfer_id: j.tid });
       if (!c || c.verified !== true) throw fail('CHECKSUM_MISMATCH', '체크섬 불일치 (노드) — 부분 파일 삭제됨');
       j.state = 'done'; j.bytes = null; tick(j.size);
     } catch (e) { j.state = 'fail'; j.err = why(e); j.note = ''; if (e.code === 'CHECKSUM_MISMATCH' || e.code === 'TRANSFER_STALLED') j.tid = ''; emit(); }
@@ -141,26 +141,26 @@ export function createFileTransfer(o) {
   async function down(j, emit, tick, stop) {
     try {
       emit();
-      const r = await inv('io.terra.file.transfers.pulls.create', Object.assign({ root: j.root, path: j.path }, j.tid ? { resume_id: j.tid } : {}));
+      const r = await inv('lab.stellaxia.file.transfers.pulls.create', Object.assign({ root: j.root, path: j.path }, j.tid ? { resume_id: j.tid } : {}));
       const T = (r && r.transfer) || r || {}; j.tid = T.transfer_id || ''; j.size = Number(T.size_bytes) || 0; j.sum = T.checksum_sha256 || '';
       if (!j.tid) throw fail('TRANSFER_FAILED', '모듈 응답에 전송 id 없음');
-      if (j.size > BROWSER_MAX) { await stop('io.terra.file.transfers.pulls.abort', 'too large for browser'); j.tid = ''; throw fail('TOO_LARGE_FOR_BROWSER', '브라우저 받기 상한 : ' + fmtBytes(BROWSER_MAX) + ' — 더 큰 파일은 terra file get'); }
+      if (j.size > BROWSER_MAX) { await stop('lab.stellaxia.file.transfers.pulls.abort', 'too large for browser'); j.tid = ''; throw fail('TOO_LARGE_FOR_BROWSER', '브라우저 받기 상한 : ' + fmtBytes(BROWSER_MAX) + ' — 더 큰 파일은 terra file get'); }
       if (!j.parts) j.parts = [];
       let have = j.parts.reduce((s, x) => s + x.length, 0), tries = 0; j.resumed = have > 0; j.state = 'run'; tick(have);
       for (;;) {
         if (j._cancel) break;
-        const g = await inv('io.terra.file.transfers.chunks.get', { transfer_id: j.tid, offset: have });
+        const g = await inv('lab.stellaxia.file.transfers.chunks.get', { transfer_id: j.tid, offset: have });
         const d = unb64(g && g.data), eof = !!(g && g.eof);
         if (g && g.sha256 && d.length && (await sha(d)) !== g.sha256) { if (++tries <= RETRIES) continue; throw fail('CHUNK_CHECKSUM_MISMATCH', 'offset ' + have + ' 청크 다이제스트 불일치'); }
-        if (!d.length && !eof) { await stop('io.terra.file.transfers.pulls.abort', 'stalled'); j.tid = ''; j.parts = null; throw fail('TRANSFER_STALLED', 'offset ' + have + ' 빈 청크 · 끝 아님 — 노드 응답 오류'); }
+        if (!d.length && !eof) { await stop('lab.stellaxia.file.transfers.pulls.abort', 'stalled'); j.tid = ''; j.parts = null; throw fail('TRANSFER_STALLED', 'offset ' + have + ' 빈 청크 · 끝 아님 — 노드 응답 오류'); }
         tries = 0; if (d.length) { j.parts.push(d); have += d.length; tick(have); }
         if (eof) break;
       }
-      if (j._cancel) { await stop('io.terra.file.transfers.pulls.abort', 'cancelled'); j.state = 'cancel'; j.note = ''; return emit(); }
+      if (j._cancel) { await stop('lab.stellaxia.file.transfers.pulls.abort', 'cancelled'); j.state = 'cancel'; j.note = ''; return emit(); }
       j.state = 'verify'; emit();
       const all = new Uint8Array(have); let p = 0; for (const x of j.parts) { all.set(x, p); p += x.length; }
       if (j.sum && (await sha(all)) !== j.sum) { j.parts = null; j.tid = ''; throw fail('CHECKSUM_MISMATCH', '체크섬 불일치 (받은 파일) — 버림'); }
-      try { await inv('io.terra.file.transfers.pulls.complete', { transfer_id: j.tid }); } catch {}
+      try { await inv('lab.stellaxia.file.transfers.pulls.complete', { transfer_id: j.tid }); } catch {}
       j.blob = typeof Blob === 'function' ? new Blob(j.parts, { type: j.mime || 'application/octet-stream' }) : all; j.parts = null;
       j.state = 'done'; tick(have);
     } catch (e) { j.state = 'fail'; j.err = why(e); j.note = ''; emit(); }

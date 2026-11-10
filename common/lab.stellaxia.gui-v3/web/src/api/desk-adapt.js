@@ -142,7 +142,7 @@ export function nodeCfgWire(type, v, label) {
   return String(v == null ? '' : v);
 }
 
-// ── 파일 — 공유 폴더(io.terra.file roots.list · entries.list, file.read/write)와 로컬 탐색(Daemon local-fs, 읽기만 · 이 노드만) ──
+// ── 파일 — 공유 폴더(lab.stellaxia.file roots.list · entries.list, file.read/write)와 로컬 탐색(Daemon local-fs, 읽기만 · 이 노드만) ──
 const UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
 export function fmtSize(bytes) { let n = Number(bytes) || 0, i = 0; while (n >= 1024 && i < UNITS.length - 1) { n /= 1024; i += 1; } return (i === 0 ? String(n) : n.toFixed(n < 10 ? 1 : 0)) + UNITS[i]; }
 function fmtTime(iso) { const d = new Date(iso || ''); return Number.isNaN(d.getTime()) ? '' : d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }

@@ -29,7 +29,7 @@ test('Daemon — 앱 권한 · 이 노드에서만 · 사람 권한', () => {
 });
 
 test('모듈 op 는 막지 않는다 · gateAll 은 처음 닫힌 이유', () => {
-  assert.equal(gate('io.terra.file.transfers.create').open, true);
+  assert.equal(gate('lab.stellaxia.file.transfers.create').open, true);
   assert.equal(gateAll(['terra.master.jobs.get', 'terra.master.svi.handles.post']).op, 'terra.master.svi.handles.post');
   assert.equal(gateAll(['terra.master.jobs.get']).open, true);
   assert.equal(riskOf('terra.daemon.commands.execute.post'), 'dangerous');

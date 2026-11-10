@@ -30,7 +30,7 @@ async function loadStore(transport) {
   return globalThis.window.TerraNodes;
 }
 
-/** 시험 전송 — 이 노드(L)의 Daemon · io.terra.file · Master 를 흉내 */
+/** 시험 전송 — 이 노드(L)의 Daemon · lab.stellaxia.file · Master 를 흉내 */
 function fakeGateway() {
   const calls = [], files = new Map([['notes.md', new TextEncoder().encode('# 노트\n한 줄\n')], ['pic.png', new Uint8Array([137, 80, 78, 71, 1, 2, 3])]]), tx = new Map(); let n = 0;
   const S = { mods: [{ id: 'io.terra.file', name: '파일', state: 'running', enabled: true, version: '0.2.1' }], tasks: [{ id: 't-1', type: 'process.execute', state: 'running' }, { id: 't-2', type: 'process.execute', state: 'succeeded' }],
@@ -42,13 +42,13 @@ function fakeGateway() {
       if (op === 'terra.daemon.tasks.get') return ok({ tasks: S.tasks });
       if (op === 'terra.daemon.modules.get') return ok({ modules: S.mods });
       if (op.startsWith('terra.daemon.')) return ok({});
-      if (op === 'io.terra.file.roots.list') return ok({ roots: [{ name: 'share-0', path: '/srv/share' }] });
+      if (op === 'lab.stellaxia.file.roots.list') return ok({ roots: [{ name: 'share-0', path: '/srv/share' }] });
       if (op === 'terra.daemon.local-fs.roots.get') return ok({ roots: [] });
-      if (op === 'io.terra.file.entries.list') return ok({ entries: [...files].map(([name, b]) => ({ name, size: b.length, is_dir: false, modified_at: '2026-11-04T01:00:00Z' })) });
-      if (op === 'io.terra.file.entries.read') { const f = files.get(i.path), d = f.subarray(i.offset, i.offset + i.length); return ok({ offset: i.offset, length: d.length, data: Buffer.from(d).toString('base64'), sha256: hex(d), eof: i.offset + d.length >= f.length, size: f.length }); }
-      if (op === 'io.terra.file.transfers.create') { const id = 'tr-' + (++n); tx.set(id, { path: i.path, buf: new Uint8Array(i.size_bytes), off: 0, sum: i.checksum_sha256 }); return ok({ transfer: { transfer_id: id, chunk_size: 4, offset: 0, state: 'prepared' } }); }
-      if (op === 'io.terra.file.transfers.chunks.put') { const T = tx.get(i.transfer_id), d = Buffer.from(i.data, 'base64'); T.buf.set(d, T.off); T.off += d.length; return ok({ next_offset: T.off }); }
-      if (op === 'io.terra.file.transfers.complete') { const T = tx.get(i.transfer_id); files.set(T.path, T.buf); return ok({ transfer_id: i.transfer_id, bytes: T.off, verified: hex(T.buf) === T.sum }); }
+      if (op === 'lab.stellaxia.file.entries.list') return ok({ entries: [...files].map(([name, b]) => ({ name, size: b.length, is_dir: false, modified_at: '2026-11-04T01:00:00Z' })) });
+      if (op === 'lab.stellaxia.file.entries.read') { const f = files.get(i.path), d = f.subarray(i.offset, i.offset + i.length); return ok({ offset: i.offset, length: d.length, data: Buffer.from(d).toString('base64'), sha256: hex(d), eof: i.offset + d.length >= f.length, size: f.length }); }
+      if (op === 'lab.stellaxia.file.transfers.create') { const id = 'tr-' + (++n); tx.set(id, { path: i.path, buf: new Uint8Array(i.size_bytes), off: 0, sum: i.checksum_sha256 }); return ok({ transfer: { transfer_id: id, chunk_size: 4, offset: 0, state: 'prepared' } }); }
+      if (op === 'lab.stellaxia.file.transfers.chunks.put') { const T = tx.get(i.transfer_id), d = Buffer.from(i.data, 'base64'); T.buf.set(d, T.off); T.off += d.length; return ok({ next_offset: T.off }); }
+      if (op === 'lab.stellaxia.file.transfers.complete') { const T = tx.get(i.transfer_id); files.set(T.path, T.buf); return ok({ transfer_id: i.transfer_id, bytes: T.off, verified: hex(T.buf) === T.sum }); }
       if (op === 'terra.master.jobs.get') return ok({ jobs: S.jobs, count: S.jobs.length });
       if (op === 'terra.master.jobs.by-job-id.get') return ok(S.jobs.find((j) => j.job_id === i.job_id));
       if (op === 'terra.master.jobs.by-job-id.cancel.post') return ok({ job_id: i.job_id, status: 'cancel_sent', cancel_job_id: 'job_c' });
@@ -86,17 +86,17 @@ test('파일 실제 — 공유 폴더: 미리보기는 entries.read(앞부분 ·
     assert.equal(w.fx.upLock, false); assert.match(w.fx.upTip, /^올리기 : share-0:\//);
     w.items[0].open(); await tick(20); w = win('files');
     assert.equal(w.pv.on, true); assert.equal(w.pv.isText, true); assert.equal(w.pv.text, '# 노트\n한 줄\n'); assert.match(w.pv.note, /^전체 · /);
-    assert.ok(t.calls.some(([n, op, i]) => n === 'L' && op === 'io.terra.file.entries.read' && i.root === 'share-0' && i.path === 'notes.md' && i.length === fileTransfer.PREVIEW.text));
+    assert.ok(t.calls.some(([n, op, i]) => n === 'L' && op === 'lab.stellaxia.file.entries.read' && i.root === 'share-0' && i.path === 'notes.md' && i.length === fileTransfer.PREVIEW.text));
     w.items[1].open(); await tick(20); w = win('files'); assert.equal(w.pv.isImg, true); assert.equal(w.pv.url, 'blob:test');
     const body = new TextEncoder().encode('0123456789');
     c.upStart([{ name: 'up.txt', size: body.length, arrayBuffer: async () => body.buffer }], { share: true, root: 'share-0', rel: '' });
     for (let k = 0; k < 100 && c._tx.some((x) => x.job.state !== 'done' && x.job.state !== 'fail'); k++) await tick(10);
     await tick(5);
-    const ops = t.calls.filter(([, op]) => op.startsWith('io.terra.file.transfers')).map(([, op, i]) => op.replace('io.terra.file.transfers.', '') + (i.offset !== undefined ? '@' + i.offset : ''));
+    const ops = t.calls.filter(([, op]) => op.startsWith('lab.stellaxia.file.transfers')).map(([, op, i]) => op.replace('lab.stellaxia.file.transfers.', '') + (i.offset !== undefined ? '@' + i.offset : ''));
     assert.deepEqual(ops, ['create', 'chunks.put@0', 'chunks.put@4', 'chunks.put@8', 'complete']);
     assert.deepEqual([...t.files.get('up.txt')], [...body]);
     w = win('files'); assert.equal(w.fx.tx[0].stat, '끝 · 10B'); assert.equal(w.fx.tx[0].arrow, '↑');
-    assert.ok(t.calls.filter(([, op]) => op === 'io.terra.file.entries.list').length >= 2, '올린 뒤 목록을 다시 읽는다');
+    assert.ok(t.calls.filter(([, op]) => op === 'lab.stellaxia.file.entries.list').length >= 2, '올린 뒤 목록을 다시 읽는다');
     c._tx.push({ node: 'L', sample: true, where: 'x', job: { dir: 'up', name: '시안', size: 1, done: 1, state: 'done' } });
     assert.ok(!win('files').fx.tx.some((r) => r.name === '시안'), '실제 모드에 시안 전송이 새지 않는다');
   } finally { done(); }
