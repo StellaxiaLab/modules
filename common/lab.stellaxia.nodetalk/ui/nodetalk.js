@@ -38,6 +38,62 @@
     }
   }
 
+  // ---- shell window handover (terra.frame) ----------------------------------
+
+  // Inside a shell window there is no launch fragment. The shell answers
+  // terra.frame.hello with a scope token (the person's grants intersected with
+  // this module's declared permissions) and renews it the same way. The token
+  // stays in memory only.
+  var frameOrigin = '';
+  var frameWaiters = [];
+
+  function setFrameToken(data) {
+    state.token = (data && typeof data.token === 'string') ? data.token : '';
+    frameWaiters.splice(0).forEach(function (wake) { wake(); });
+  }
+
+  function connectFrame() {
+    if (state.token || window.parent === window) return Promise.resolve();
+    return new Promise(function (done) {
+      var timer = setTimeout(done, 10000);
+      window.addEventListener('message', function (event) {
+        if (event.source !== window.parent) return;
+        if (frameOrigin && event.origin !== frameOrigin) return;
+        var data = event.data || {};
+        if (data.type === 'terra.frame.init') {
+          frameOrigin = event.origin;
+          setFrameToken(data);
+          clearTimeout(timer);
+          done();
+        } else if (data.type === 'terra.frame.token' || data.type === 'terra.frame.signedOut') {
+          setFrameToken(data);
+        }
+      });
+      window.parent.postMessage({ type: 'terra.frame.hello', protocol: 1 }, '*');
+    });
+  }
+
+  function renewFrameToken() {
+    return new Promise(function (done) {
+      var timer = setTimeout(done, 5000);
+      frameWaiters.push(function () { clearTimeout(timer); done(); });
+      window.parent.postMessage({ type: 'terra.frame.refresh' }, frameOrigin);
+    });
+  }
+
+  // frameFetch retries once with a fresh token when the shell gave the one that
+  // just stopped working (a Gateway restart forgets every scope token).
+  function frameFetch(url, init) {
+    return fetch(url, init).then(function (response) {
+      if (response.status !== 401 || !frameOrigin) return response;
+      return renewFrameToken().then(function () {
+        if (!state.token) return response;
+        init.headers.Authorization = 'Bearer ' + state.token;
+        return fetch(url, init);
+      });
+    });
+  }
+
   function authHeaders() {
     var headers = { Accept: 'application/json' };
     if (state.token) headers.Authorization = 'Bearer ' + state.token;
@@ -67,7 +123,7 @@
     init.headers['Content-Type'] = 'application/json';
     var url = '/api/v1/operations/' + encodeURIComponent(operationId) + '/invoke';
     var started = performance.now();
-    return fetch(url, init).then(function (response) {
+    return frameFetch(url, init).then(function (response) {
       var rttMs = Math.round(performance.now() - started);
       return response.json().catch(function () { return {}; }).then(function (payload) {
         state.lastEnvelope = JSON.stringify({
@@ -105,7 +161,7 @@
     }
     var url = base(node) + path;
     var started = performance.now();
-    return fetch(url, init).then(function (response) {
+    return frameFetch(url, init).then(function (response) {
       var rttMs = Math.round(performance.now() - started);
       var isJSON = (response.headers.get('Content-Type') || '').indexOf('json') >= 0;
       return (isJSON ? response.json() : response.text()).then(function (payload) {
@@ -629,5 +685,7 @@
   readLaunchFragment();
   // Order matters: status names this node, which the cluster list needs in
   // order to leave it out of the peer rows.
-  loadStatus().then(loadClusterNodes).then(loadConversations);
+  connectFrame().then(function () {
+    return loadStatus().then(loadClusterNodes).then(loadConversations);
+  });
 })();

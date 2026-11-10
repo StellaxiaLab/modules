@@ -1,7 +1,7 @@
 // node --test — 노드 데스크톱의 실제 응답 → 보드 모양(터널 · 등록 · 모듈 로그 · 모듈 앱)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tunnels, enroll, logLines, moduleApps, offers, cfgFields, castCfg, taskOutput, nodeCfgRows, nodeCfgValues, nodeCfgWire, fileRoots, fileEntries, parentRel, fmtSize, ago } from './desk-adapt.js';
+import { tunnels, enroll, logLines, moduleApps, webApps, offers, cfgFields, castCfg, taskOutput, nodeCfgRows, nodeCfgValues, nodeCfgWire, fileRoots, fileEntries, parentRel, fmtSize, ago } from './desk-adapt.js';
 
 const NOW = Date.parse('2026-10-31T12:00:00Z');
 
@@ -33,6 +33,14 @@ test('moduleApps — 그 모듈의 앱만, embed 앱(Scene 안에서만)은 뺀�
   assert.deepEqual(moduleApps(list, 'io.terra.agent', true), [{ id: 'io.terra.agent.chat', name: '대화', health: '정상', full: true }]);
   assert.deepEqual(moduleApps(list, 'lab.stellaxia.gui-v3', true), []);
   assert.equal(moduleApps(list, 'io.terra.agent', false)[0].health, '멈춤');
+});
+
+test('webApps — 모듈 상태 창 앱 줄은 Gateway 앱 목록에서, embed 앱은 뺀다', () => {
+  const list = { apps: [{ id: 'lab.stellaxia.agent', moduleId: 'lab.stellaxia.agent', name: 'Agent', mode: 'static', entry: 'ui/index.html' }, { id: 'lab.stellaxia.sample.window', moduleId: 'lab.stellaxia.sample.window', mode: 'window' }, { id: 'lab.stellaxia.gui-v3.web', moduleId: 'lab.stellaxia.gui-v3', mode: 'static', embed: 'scene' }] };
+  assert.deepEqual(webApps(list, 'lab.stellaxia.agent'), [{ id: 'lab.stellaxia.agent', name: 'Agent', mode: 'static', entry: 'ui/index.html' }]);
+  assert.deepEqual(webApps(list, 'lab.stellaxia.sample.window'), [{ id: 'lab.stellaxia.sample.window', name: 'lab.stellaxia.sample.window', mode: 'window', entry: '' }]);
+  assert.deepEqual(webApps(list, 'lab.stellaxia.gui-v3'), []);
+  assert.deepEqual(webApps(null, 'x'), []);
 });
 
 test('ago', () => { assert.equal(ago('2026-10-31T11:59:30Z', NOW), '방금'); assert.equal(ago('2026-10-29T12:00:00Z', NOW), '2d 전'); assert.equal(ago('', NOW), ''); });
