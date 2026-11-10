@@ -9,12 +9,13 @@ def rep(a,b,cnt=1):
 rep('\n</div>\n</x-dc>','''
 <button type="button" onPointerUp="{{stopProp}}" onClick="{{loginAgain}}" style="display: {{loginAgainD}}; position: absolute; right: 20px; bottom: 18px; z-index: 5; font: 600 12px 'Geist Mono', monospace; padding: 4px 9px; border-radius: 4px; border: 1px solid rgba(108,118,156,0.35); background: #040614; color: #9aa4c8; cursor: pointer;">TEST · 로그인부터</button>
 <div data-loginwrap="scene" aria-hidden="{{loginHid}}" style="position: absolute; inset: 0; z-index: 60; display: {{loginD}};"><dc-import name="Login" embed="true" reset="{{loginKey}}" on-done="{{loginDoneFn}}" hint-size="1440px,900px"></dc-import></div>
+<div data-statusbar="scene" style="position: absolute; inset: 0; z-index: 5; pointer-events: none;"><dc-import name="StatusBar" on="{{barOn}}" bar="{{barApi}}" hint-size="100%,44px"></dc-import></div>
 </div>
 </x-dc>''')
-rep("closest('[data-ctlwin]')","closest('[data-ctlwin],[data-loginwrap],[data-minfly]')",2)
+rep("closest('[data-ctlwin]')","closest('[data-ctlwin],[data-loginwrap],[data-minfly],[data-sb]')",2)
 # 창을 끄는 동안 · 창 · 최소화 찾기 판 · 로그인 층 위에선 씬의 마우스 피드백(호버 · 시차)을 끈다
 rep("      pmove: (e) => { if (!e || !this._cv) return; const rc = this._cv.getBoundingClientRect(); this._mouse = { x: e.clientX - rc.left, y: e.clientY - rc.top }; },",
-    "      pmove: (e) => { if (!e || !this._cv) return; if (this._q_ctlDrag || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-minfly],[data-loginwrap]'))) { this._mouse = null; return; } const rc = this._cv.getBoundingClientRect(); this._mouse = { x: e.clientX - rc.left, y: e.clientY - rc.top }; },")
+    "      pmove: (e) => { if (!e || !this._cv) return; if (this._q_ctlDrag || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-minfly],[data-loginwrap],[data-sb]'))) { this._mouse = null; return; } const rc = this._cv.getBoundingClientRect(); this._mouse = { x: e.clientX - rc.left, y: e.clientY - rc.top }; },")
 rep("      if (e.key !== 'Escape') return;\n","      if (e.key !== 'Escape' || this.loginOn()) return;   // 로그인 중엔 로그인 씬이 ESC 를 쓴다\n")
 rep("this._q_cmdKey = (e) => { if (!this._live) return this.gf_cmdDispose();","this._q_cmdKey = (e) => { if (!this._live) return this.gf_cmdDispose(); if (this.loginOn && this.loginOn()) return;")
 rep("  renderVals() {\n    const S = this.state, sys = this.build()","""  // 로그인 — 처음엔 로그인 씬이 맨 위(패널 '로그인'), 전환이 끝나면 걷힌다. TEST · 로그인부터 = 다시 메인 화면부터
@@ -25,7 +26,7 @@ rep("  renderVals() {\n    const S = this.state, sys = this.build()","""  // 로
     const S = this.state, sys = this.build()""")
 rep("    return {\n      ...this.gf_ctlProps(),","""    const LON = this.loginOn();
     return {
-      loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON || (typeof window !== 'undefined' && window.TerraTransport) ? 'none' : 'block',   /* 'TEST · 로그인부터' 는 시안(캔버스 · ?demo)에서만 — 실제 Terra 에 붙은 화면엔 없다 */ loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
+      barOn: !LON, barApi: this.barApi(), loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON || (typeof window !== 'undefined' && window.TerraTransport) ? 'none' : 'block',   /* 'TEST · 로그인부터' 는 시안(캔버스 · ?demo)에서만 — 실제 Terra 에 붙은 화면엔 없다 */ loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
       loginDoneFn: this._lgDF || (this._lgDF = () => this.setState({ loginOn: false })),
       loginAgain: () => this.setState({ loginOn: true, loginKey: (S.loginKey || 0) + 1 }),
       ...this.gf_ctlProps(),""")
@@ -43,9 +44,9 @@ rep('on-zoom="{{loginZoomFn}}"','on-zoom="{{loginZoomFn}}" logout="{{logoutKey}}
 # 우클릭 — 노드(트리 뷰: 트리 · 계정 / 리프 뷰: 항성 · 행성 / 리소스 뷰: 위성 · 행성) 이름 · 종류 · 속성을 지도 마커 꼴로 (전역 틀 popShow). 빈 곳 우클릭 · 다른 곳 누르기 · ESC = 닫기
 rep('<div onPointerDown="{{pdown}}"','<div onContextMenu="{{ctxMenu}}" onPointerDown="{{pdown}}"')
 rep("      if (e.key !== 'Escape' || this.loginOn()) return;   // 로그인 중엔 로그인 씬이 ESC 를 쓴다\n","      if (e.key !== 'Escape' || this.loginOn()) return;   // 로그인 중엔 로그인 씬이 ESC 를 쓴다\n      if (this._q_pop) { e.preventDefault(); this.gf_popHide(); return; }   // 우클릭 속성부터 닫는다\n")
-rep("e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return;   // 제어기 창 안의 누르기는 창이 받는다","e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return;   // 제어기 창 안의 누르기는 창이 받는다\n        if (this._q_pop) { const rc0 = this._cv.getBoundingClientRect(); if (this.gf_popTap(e.clientX - rc0.left, e.clientY - rc0.top)) return; this.gf_popHide(); }   // 우클릭 할 일 누르기 · 다른 곳을 누르면 닫기")
+rep("e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly],[data-sb]'))) return;   // 제어기 창 안의 누르기는 창이 받는다","e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly],[data-sb]'))) return;   // 제어기 창 안의 누르기는 창이 받는다\n        if (this._q_pop) { const rc0 = this._cv.getBoundingClientRect(); if (this.gf_popTap(e.clientX - rc0.left, e.clientY - rc0.top)) return; this.gf_popHide(); }   // 우클릭 할 일 누르기 · 다른 곳을 누르면 닫기")
 rep("  loginOn() {","""  sceneCtx(e) {
-    if (!e) return; if (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]')) return; e.preventDefault(); if (this.loginOn() || !this._cv) return;
+    if (!e) return; if (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly],[data-sb]')) return; e.preventDefault(); if (this.loginOn() || !this._cv) return;
     // 우클릭 = 속성 — 누른 자리에 객체(씬 노드 · 전역 틀 지도 노드)가 있으면 그 속성(할 일 목록), 없으면 뒤로(ESC 와 같다: 속성이 열려 있으면 닫기부터)
     const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
     let T = null; const mh = this.gf_mapHitAt(mx, my);

@@ -42,25 +42,25 @@ class Component extends DCLogic {
   }
   renderVals() {
     const R = this.real(), rid = this.props.nodeRid || '', I = R ? this.state.info : this.sample(), kind = this.props.nodeKind || '리프';
-    const col = (p) => p > 0.85 ? '#ff9c8c' : p > 0.75 ? '#ffd27a' : '#60e28c', D = '—';
+    const col = (p) => p > 0.85 ? 'var(--t-err2,#ff9c8c)' : p > 0.75 ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)', D = '—';
     const tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
     const rate = (v) => v >= 1048576 ? (v / 1048576).toFixed(1) + 'MB/s' : v >= 1024 ? Math.round(v / 1024) + 'KB/s' : Math.round(v) + 'B/s';
-    const note = R && !rid ? 'Terra 노드 목록에 없는 노드(시안 지도) — 값 없음' : R && !I ? '불러오는 중…' : I && I.miss && I.miss.length ? '읽지 못함 · ' + I.miss.join(' · ') + ' — 그 칸은 —' : '';
+    const note = R && !rid ? 'Terra 노드 목록에 없는 노드' : R && !I ? '이 노드 기록을 받는 중' : I && I.miss && I.miss.length ? I.miss.join(' · ') : '', bandK = R && !rid ? 'none' : R && !I ? 'load' : 'fail', bandSub = bandK === 'fail' ? '읽지 못한 칸은 — 로 표시' : '';
     const id = (I && I.ident) || {}, cm = (I && I.comm) || {}, rs = (I && I.res) || {}, net = this._net, S = '▁▂▃▄▅▆▇', mx = Math.max(1, ...net.map((x) => x.i)), last = net[net.length - 1];
-    const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : /^마지막 보고/.test(note2) ? '#709c80' : col(p), note: note2 });
-    const evs = ((I && I.recent && I.recent.events) || []).map((e) => ({ t: e.at ? tm(e.at) : D, lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? '#ffd27a' : '#709c80' }));
+    const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : /^마지막 보고/.test(note2) ? 'var(--t-key,#709c80)' : col(p), note: note2 });
+    const evs = ((I && I.recent && I.recent.events) || []).map((e) => ({ t: e.at ? tm(e.at) : D, lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)' }));
     const routes = (cm.routes || []), sess = (cm.sessions || []);
     const copyId = () => { const v = id.nodeId; if (!v || v === D) return; try { navigator.clipboard.writeText(v).then(() => { this.setState({ copied: true }); setTimeout(() => this._live && this.setState({ copied: false }), 1500); }, () => {}); } catch (e) {} };
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh',
-      name: (I && I.name) || this.props.nodeName || D, kind, stText: I ? I.status : D, stCol: I && I.online ? (/저하/.test(I.status) ? '#ffd27a' : '#60e28c') : '#ff9c8c', seen: I && I.seen ? I.seen : '',
-      noteOn: !!note, note, src: R ? 'Master 노드 기록' : '시안 값',
+      name: (I && I.name) || this.props.nodeName || D, kind, stText: I ? I.status : D, stCol: I && I.online ? (/저하/.test(I.status) ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)') : 'var(--t-err2,#ff9c8c)', seen: I && I.seen ? I.seen : '',
+      noteOn: !!note, note, bandK, bandSub, src: R ? 'Master 노드 기록' : '시안 값',
       nodeId: id.nodeId || D, copyT: this.state.copied ? '복사됨' : '복사', copyOff: !id.nodeId || id.nodeId === D, copyId,
       ident: [['장치', id.deviceId], ['역할', id.roles], ['부모', id.parent], ['깊이', id.depth], ['주소', id.address], ['DNS', id.dns], ['버전', id.version], ['등록', id.created]].map(([k, v]) => ({ k, v: v || D })),
-      via: cm.via || D, viaCol: cm.via === 'direct' ? '#60e28c' : cm.via && cm.via !== D ? '#ffd27a' : '#709c80', relayT: I ? (cm.relay ? '연결됨' : '끊김') : D, relayCol: cm.relay ? '#60e28c' : '#ff9c8c', gen: cm.gen || D,
+      via: cm.via || D, viaCol: cm.via === 'direct' ? 'var(--t-ok,#60e28c)' : cm.via && cm.via !== D ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)', relayT: I ? (cm.relay ? '연결됨' : '끊김') : D, relayCol: cm.relay ? 'var(--t-ok,#60e28c)' : 'var(--t-err2,#ff9c8c)', gen: cm.gen || D,
       comm: [['네트워크', cm.net], ['원하는', cm.desired], ['관측', cm.observed], ['태그', id.tags]].map(([k, v]) => ({ k, v: v || D })),
-      routes: routes.map((x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? '#60e28c' : '#ffd27a', dir: x.dir || '', peer: x.peer, rt: x.rt, ad: x.ad, lat: x.lat })), routeSum: (() => { const np = new Set(routes.map((x) => x.peer)).size; return !routes.length ? '없음' : np === routes.length ? routes.length + '개' : '상대 ' + np + '개 · 방향별 ' + routes.length + '개'; })(),
-      sessions: sess.map((x) => ({ dir: x.dir, peer: x.peer, channel: x.channel, rt: x.rt, state: x.state + (x.err ? ' · ' + x.err : ''), col: x.err ? '#ffd27a' : '#d6f4de' })), sessSum: sess.length ? sess.length + '개' : '없음',
+      routes: routes.map((x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? 'var(--t-ok,#60e28c)' : 'var(--t-warn,#ffd27a)', dir: x.dir || '', peer: x.peer, rt: x.rt, ad: x.ad, lat: x.lat })), routeSum: (() => { const np = new Set(routes.map((x) => x.peer)).size; return !routes.length ? '없음' : np === routes.length ? routes.length + '개' : '상대 ' + np + '개 · 방향별 ' + routes.length + '개'; })(),
+      sessions: sess.map((x) => ({ dir: x.dir, peer: x.peer, channel: x.channel, rt: x.rt, state: x.state + (x.err ? ' · ' + x.err : ''), col: x.err ? 'var(--t-warn,#ffd27a)' : 'var(--t-text,#d6f4de)' })), sessSum: sess.length ? sess.length + '개' : '없음',
       // 총량은 Master 가 실어 준 것만(지어내지 않는다), 꺼진 노드는 '마지막 보고 · N 전' — 지금 값처럼 보이지 않게
       bars: (() => { const fb = (typeof window !== 'undefined' && window.TerraFmtBytes) || (() => ''), sz = (u, t) => (t && fb(t) ? (fb(u) || '?') + ' / ' + fb(t) : R && I ? '총량 보고 없음' : ''), old = R && rs.stale ? '마지막 보고 · ' + ((I && I.seen) || '') : '';
         return [bar('CPU', rs.cpu, old), bar('MEM', rs.mem, old || sz(rs.memUsed, rs.memTotal)), bar('DISK', rs.disk, old || sz(rs.diskUsed, rs.diskTotal))]; })(),

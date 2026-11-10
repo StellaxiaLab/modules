@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 창 상태 띠</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="status" style="display: flex; align-items: flex-start; gap: 10px; margin: 6px 0 2px; padding: 6px 10px; white-space: normal; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.5; color: var(--t-text,#d6f4de); background: {{bg}}; border-left: 2px solid {{c}};">
+  <b style="flex: none; color: {{c}};">{{tag}}</b>
+  <span style="min-width: 0; flex: 1 1 auto;"><span style="display: block;">{{head}}</span><sc-if value="{{sub}}" hint-placeholder-val="{{ true }}"><span style="display: block; color: var(--t-key,#709c80);">{{sub}}</span></sc-if></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["load","none","fail","cut"],"default":"cut"},"head":{"editor":"text","default":"14분 전 사본 · 읽기 전용"},"sub":{"editor":"text","default":"바꾸기는 다시 연결된 뒤에"},"$preview":{"width":560,"height":56}}'>
+// 창 공통 상태 띠 — 받는 중 · 없음 · 못 봤음 · 끊김을 같은 모양으로. "없음"과 "못 봤음"을 글자로 가른다
+class Component extends DCLogic {
+  renderVals() {
+    const MUT = 'var(--t-mut,#9cc4a8)', K = { load: { tag: '받는 중', c: MUT, bg: 'transparent' }, none: { tag: '없음', c: MUT, bg: 'transparent' }, fail: { tag: '못 봤음', c: 'var(--t-err2,#ff9c8c)', bg: 'rgba(var(--t-err-rgb,220,90,80),.12)' }, cut: { tag: '끊김', c: 'var(--t-warn,#ffd27a)', bg: 'rgba(var(--t-warn-rgb,255,210,122),.09)' } }[this.props.kind ?? 'cut'];
+    return Object.assign({ head: this.props.head ?? '', sub: this.props.sub ?? '' }, K);
+  }
+}
+</script>
+</body>
+</html>

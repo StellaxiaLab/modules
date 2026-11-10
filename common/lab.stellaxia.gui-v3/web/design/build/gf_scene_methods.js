@@ -49,6 +49,22 @@
     return (this._smap = { key, root, all, byId });
   }
   // 지금 위치 — 리소스 뷰: 그 행성(리프) · 리프 뷰: 들어간 트리 · 트리 뷰: 초점 트리(처음엔 계정)
+  // 상단 상태 줄(보드 StatusBar)이 부르는 것 — 지금 위치 · 전역 틀 너비 · 알림 · 최소화 창 · 로그아웃
+  barApi() { return this._barA || (this._barA = {
+    crumbs: () => { const out = []; for (let n = this.sceneCur(); n; n = n.parent) out.unshift({ id: n.id, name: n.name }); return out; },
+    go: (id) => { const n = this.sceneMap().byId[id]; if (n) this.navStart(n); },
+    left: () => this.viewX0(), unread: () => (this.gf_alarmUnread ? this.gf_alarmUnread() : 0), wins: () => (this._q_wins || []).length,
+    alarm: () => this.gf_alarmOpen(), fly: () => { this._q_flyPin = !this._q_flyPin; this.gf_minFly(this._q_flyPin); }, logout: () => this.sceneLogout()
+  }); }
+  // 지도 이름표의 상태 — 실제 지도의 노드만(Master 기록). 온라인은 표시하지 않는다: 문제가 있는 노드만 글자와 색으로 드러낸다
+  nodeMark(rid) {
+    const TP = this.TOPO ? this.TOPO() : null, st = typeof window !== 'undefined' ? window.TerraNodeStats : null, rec = TP && TP.node && rid ? TP.node(rid) : null; if (!rec || !st) return null;
+    const M = this._nmk || (this._nmk = new Map()), now = performance.now(), e = M.get(rid); if (e && now - e.at < 5000) return e.v;
+    const s = st(rec), v = s.level === 'ok' ? null : { t: s.label, c: { warn: '255,210,122', wait: '166,173,184', down: '255,156,140' }[s.level] };
+    M.set(rid, { at: now, v }); return v;
+  }
+  // 이 항성계 리프의 이름 → 노드 id (이름표가 프레임마다 찾는다 — 지도가 바뀔 때만 다시 만든다)
+  leafRids() { const TP = this.TOPO ? this.TOPO() : null, k = TP ? TP.rev + ':' + this._leafId : ''; if (this._lrK !== k) { this._lrK = k; this._lrM = new Map((this.topoLeaves(this._leafId) || []).map((r) => [r.name, r.id])); } return this._lrM; }
   sceneCur() { const M = this.sceneMap(); if (this._lv && this._leafId != null) { if (this._res && this._res.dir === 'in' && this._res.name) { const p = M.byId['P' + this._leafId + ':' + this._res.name]; if (p) return p; } return M.byId['T' + this._leafId] || M.root; } return M.byId['T' + (this._focus ? this._focus.id : 0)] || M.root; }
   sceneLevel() { return this._res && this._res.dir === 'in' ? 'res' : this._lv ? 'leaf' : 'tree'; }   // 지도 뷰 — 지금 뷰를 따른다
   sceneView() { return this._res && this._res.dir === 'in' ? '리소스 뷰' : this._lv ? '리프 뷰' : '트리 뷰'; }

@@ -1,5 +1,24 @@
 /* 앱 바탕 — 글꼴은 fonts.css(앱 안에서). 씬 보드가 화면 전체를 쓴다 */
-html, body { margin: 0; height: 100%; background: #040614; color: #d6f4de; font: 500 12px "Geist Mono", GmarketSans, "Noto Sans KR", ui-monospace, monospace; overflow: hidden; }
+/* 디자인 토큰 — 창 보드 · 전역 틀 DOM · 상단 줄이 var(--t-*, 다크값) 으로 읽는다. 캔버스(시안)에서는 토큰이 없어 다크값 그대로 */
+:root {
+  --t-bg: #040614; --t-bg-rgb: 4,6,20; --t-sf: #0a1022; --t-text: #d6f4de; --t-mut: #9cc4a8; --t-key: #709c80; --t-hint: #86ab95; --t-off: #a6adb8;
+  --t-acc: #78e89c; --t-acc-rgb: 110,236,156; --t-acc2: #96f0aa; --t-hi: #d0ff96; --t-hi-rgb: 208,255,150; --t-ok: #60e28c; --t-info: #7aa7ff; --t-info-rgb: 122,167,255; --t-off-rgb: 166,173,184;
+  --t-warn: #ffd27a; --t-warn-rgb: 255,210,122; --t-err: #ff6b6b; --t-err-rgb: 220,90,80; --t-err2: #ff9c8c; --t-err2-rgb: 230,150,150;
+  --t-line-rgb: 70,160,108; --t-line2-rgb: 56,128,88; --t-tint-rgb: 70,170,110; --t-line-c: #3f8f66; --t-halo: #02030a; --t-halo-rgb: 2,3,10;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --t-bg: #f3f5ee; --t-bg-rgb: 243,245,238; --t-sf: #fcfdf9; --t-text: #14281e; --t-mut: #39574a; --t-key: #4d6a5b; --t-hint: #4d6a5b; --t-off: #59616e;
+  --t-acc: #0f6a3b; --t-acc-rgb: 15,106,59; --t-acc2: #0f6a3b; --t-hi: #0b5a30; --t-hi-rgb: 11,90,48; --t-ok: #0f6a3b; --t-info: #1f55c4; --t-info-rgb: 31,85,196; --t-off-rgb: 89,97,110;
+  --t-warn: #7f5300; --t-warn-rgb: 127,83,0; --t-err: #b0261b; --t-err-rgb: 176,38,27; --t-err2: #b0261b; --t-err2-rgb: 176,38,27;
+  --t-line-rgb: 60,112,86; --t-line2-rgb: 60,112,86; --t-tint-rgb: 40,120,80; --t-line-c: #6d8f7c; --t-halo: #f3f5ee; --t-halo-rgb: 243,245,238; --t-see-a: 1; --t-see-fx: none;
+  color-scheme: light;
+}
+/* 라이트 — 창 · 상단 줄만 밝아진다. 글자 장 · 지도는 어두운 화면 그대로(뒤집으면 궤도 · 구멍 칸이 무너진다). 비침 창은 --t-see-* 로 불투명 */
+/* 키보드 초점 · 누를 자리 최소 크기(WCAG 2.5.8) */
+:focus-visible { outline: 2px solid var(--t-hi); outline-offset: 1px; }
+[data-ctlwin] button { min-height: 24px; min-width: 24px; }
+html, body { margin: 0; height: 100%; background: var(--t-bg); color: var(--t-text); font: 500 12px "Geist Mono", GmarketSans, "Noto Sans KR", ui-monospace, monospace; overflow: hidden; }
 #app { position: relative; width: 100%; height: 100%; }
 #app > .sc-host { height: 100%; }
 .sc-host { position: relative; }

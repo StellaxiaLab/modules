@@ -11,65 +11,64 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
 <style>
-::selection{background:#e6eaf7;color:#070b1c}
+::selection{background:#e6eaf7;color:var(--t-sf,#070b1c)}
 @font-face{font-family:GmarketSans;font-weight:300;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/4d9a12c31d0dc860dfda9402c6a1081a") format("truetype")}
 @font-face{font-family:GmarketSans;font-weight:500;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/6f9581f507168432b9814a59b66b9ae8") format("truetype")}
 @font-face{font-family:GmarketSans;font-weight:700;font-display:swap;unicode-range:U+1100-11FF,U+3130-318F,U+A960-A97F,U+AC00-D7A3,U+D7B0-D7FF;src:url("/_blob/d17b297ecdc8a118884e4708e4dbfcf4") format("truetype")}
 body{margin:0;background:transparent}
-.al{scrollbar-width:thin;scrollbar-color:rgba(70,160,108,.4) transparent}
+.al{scrollbar-width:thin;scrollbar-color:rgba(var(--t-line-rgb,70,160,108),.4) transparent}
 .al-row{display:flex;align-items:center;gap:8px;min-height:20px;white-space:nowrap}
-.al-p{color:#78e89c;font-weight:700}
-.al-k{color:#709c80}
-.al-v{color:#d6f4de;font-weight:700}
-.al-dim{color:#4f6e5a}
+.al-p{color:var(--t-acc,#78e89c);font-weight:700}
+.al-k{color:var(--t-key,#709c80)}
+.al-v{color:var(--t-text,#d6f4de);font-weight:700}
+.al-dim{color:var(--t-key,#709c80)}
 .al-cut{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.al-h{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:#78e89c}
-.al-hl{display:inline-block;width:14px;height:1px;background:rgba(70,160,108,.85);flex:none}
-.al-hr{flex:1;height:1px;background:rgba(70,160,108,.45)}
-.al-note{margin:6px 0 0;padding:3px 8px;border-left:2px solid #ffd27a;color:#ffd27a;white-space:normal}
+.al-h{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font:700 12px GmarketSans,'Geist Mono',sans-serif;color:var(--t-acc,#78e89c)}
+.al-hl{display:inline-block;width:14px;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.85);flex:none}
+.al-hr{flex:1;height:1px;background:rgba(var(--t-line-rgb,70,160,108),.45)}
 .al-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.al-seg{display:inline-flex;border:1px solid rgba(70,160,108,.5)}
-.al-seg button{padding:1px 9px;border:0;border-right:1px solid rgba(70,160,108,.3);background:transparent;color:#709c80;font:inherit;cursor:pointer}
+.al-seg{display:inline-flex;border:1px solid rgba(var(--t-line-rgb,70,160,108),.5)}
+.al-seg button{padding:1px 9px;border:0;border-right:1px solid rgba(var(--t-line-rgb,70,160,108),.3);background:transparent;color:var(--t-key,#709c80);font:inherit;cursor:pointer}
 .al-seg button:last-child{border-right:0}
-.al-seg button:hover{background:rgba(70,160,108,.12);color:#d6f4de}
-.al-seg button.on{background:rgba(70,160,108,.22);color:#d6f4de;font-weight:700}
-.al-seg button:focus-visible{outline:1px solid #96f0aa;outline-offset:-1px}
-.al-n{color:#4f6e5a;font-weight:500}
-.al-seg button.on .al-n{color:#96f0aa}
-.al-btn{padding:1px 8px;border:1px solid rgba(70,160,108,.6);background:transparent;color:#78e89c;font:inherit;cursor:pointer}
-.al-btn:hover:not(:disabled){background:rgba(70,160,108,.18)}
-.al-btn:focus-visible{outline:1px solid #96f0aa;outline-offset:1px}
+.al-seg button:hover{background:rgba(var(--t-line-rgb,70,160,108),.12);color:var(--t-text,#d6f4de)}
+.al-seg button.on{background:rgba(var(--t-line-rgb,70,160,108),.22);color:var(--t-text,#d6f4de);font-weight:700}
+.al-seg button:focus-visible{outline:1px solid var(--t-acc2,#96f0aa);outline-offset:-1px}
+.al-n{color:var(--t-key,#709c80);font-weight:500}
+.al-seg button.on .al-n{color:var(--t-acc2,#96f0aa)}
+.al-btn{padding:1px 8px;border:1px solid rgba(var(--t-line-rgb,70,160,108),.6);background:transparent;color:var(--t-acc,#78e89c);font:inherit;cursor:pointer}
+.al-btn:hover:not(:disabled){background:rgba(var(--t-line-rgb,70,160,108),.18)}
+.al-btn:focus-visible{outline:1px solid var(--t-acc2,#96f0aa);outline-offset:1px}
 .al-btn:disabled{opacity:.4;cursor:default}
-.al-danger{border-color:rgba(255,156,140,.5);color:#ff9c8c}
-.al-danger:hover:not(:disabled){background:rgba(220,90,80,.18)}
-.al-danger.arm{background:rgba(220,90,80,.28);color:#ffd2c8;border-color:#ff9c8c}
-.al-arm{margin:6px 0 0;padding:3px 8px;border-left:2px solid #ff9c8c;color:#ffb2a6;white-space:normal}
+.al-danger{border-color:rgba(var(--t-err-rgb,255,156,140),.5);color:var(--t-err2,#ff9c8c)}
+.al-danger:hover:not(:disabled){background:rgba(var(--t-err-rgb,220,90,80),.18)}
+.al-danger.arm{background:rgba(var(--t-err-rgb,220,90,80),.28);color:#ffd2c8;border-color:var(--t-err2,#ff9c8c)}
+.al-arm{margin:6px 0 0;padding:3px 8px;border-left:2px solid var(--t-err2,#ff9c8c);color:var(--t-err2,#ffb2a6);white-space:normal}
 .al-it{display:grid;grid-template-columns:12px 62px 12px 34px minmax(0,1fr) minmax(0,.55fr) 44px;gap:8px;min-height:22px;align-items:center;padding:0 4px;margin:0 -4px}
-.al-it:hover{background:rgba(70,160,108,.10)}
-.al-it.rd{color:#8fb39b}
-.al-it.rd .al-go{color:#8fb39b;font-weight:500}
+.al-it:hover{background:rgba(var(--t-line-rgb,70,160,108),.10)}
+.al-it.rd{color:var(--t-mut,#8fb39b)}
+.al-it.rd .al-go{color:var(--t-mut,#8fb39b);font-weight:500}
 .al-dot{font-size:9px;text-align:center}
-.al-tag{display:inline-block;padding:0 4px;border:1px solid rgba(70,160,108,.4);color:#96f0aa;font-size:11px;line-height:15px;text-align:center}
-.al-tag.md{border-color:rgba(150,170,255,.4);color:#b6c2ff}
-.al-go{padding:0;border:0;background:transparent;color:#d6f4de;font:inherit;font-weight:700;text-align:left;cursor:pointer}
-.al-go:hover{text-decoration:underline;text-decoration-color:rgba(150,240,170,.6);text-underline-offset:3px}
-.al-go:focus-visible{outline:1px solid #96f0aa;outline-offset:1px}
+.al-tag{display:inline-block;padding:0 4px;border:1px solid rgba(var(--t-line-rgb,70,160,108),.4);color:var(--t-acc2,#96f0aa);font-size:11px;line-height:15px;text-align:center}
+.al-tag.md{border-color:rgba(var(--t-info-rgb,150,170,255),.4);color:var(--t-info,#b6c2ff)}
+.al-go{padding:0;border:0;background:transparent;color:var(--t-text,#d6f4de);font:inherit;font-weight:700;text-align:left;cursor:pointer}
+.al-go:hover{text-decoration:underline;text-decoration-color:rgba(var(--t-acc-rgb,150,240,170),.6);text-underline-offset:3px}
+.al-go:focus-visible{outline:1px solid var(--t-acc2,#96f0aa);outline-offset:1px}
 .al-acts{display:inline-flex;gap:2px;justify-content:flex-end}
-.al-x{width:20px;height:18px;padding:0;border:0;background:transparent;color:#709c80;font:600 12px 'Geist Mono',monospace;cursor:pointer}
-.al-x:hover:not(:disabled){color:#d0ff96;background:rgba(70,170,110,.2)}
+.al-x{width:20px;height:18px;padding:0;border:0;background:transparent;color:var(--t-key,#709c80);font:600 12px 'Geist Mono',monospace;cursor:pointer}
+.al-x:hover:not(:disabled){color:var(--t-hi,#d0ff96);background:rgba(var(--t-tint-rgb,70,170,110),.2)}
 .al-x:disabled{opacity:.25;cursor:default}
-.al-x:focus-visible{outline:1px solid #96f0aa;outline-offset:-1px}
+.al-x:focus-visible{outline:1px solid var(--t-acc2,#96f0aa);outline-offset:-1px}
 .al-empty{padding:6px 0 2px;white-space:normal}
-.al-gap{color:#709c80;white-space:normal;padding-left:12px;text-indent:-12px}
-.al-cur{display:inline-block;width:7px;height:13px;background:#96f0aa;animation:alb 1.06s steps(1) infinite}
+.al-gap{color:var(--t-key,#709c80);white-space:normal;padding-left:12px;text-indent:-12px}
+.al-cur{display:inline-block;width:7px;height:13px;background:var(--t-acc2,#96f0aa);animation:alb 1.06s steps(1) infinite}
 @keyframes alb{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.al-cur{animation:none}}
 </style>
 </helmet>
-<div class="al" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
+<div class="al" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: var(--t-text,#d6f4de); font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
   <div class="al-row"><span class="al-p">&gt;</span><span>alarms</span><b class="al-v al-cut">{{name}}</b><span class="al-k">로컬 Daemon</span><span style="flex: 1;"></span><span style="color: {{unCol}};">● 안 읽음 {{unread}}</span><span class="al-k">· 전체 {{total}}</span></div>
   <div class="al-row al-k">{{srcT}}</div>
-  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="al-note">{{note}}</div></sc-if>
+  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><dc-import name="StateBand" kind="{{bandK}}" head="{{note}}" sub="{{bandSub}}" hint-size="100%,32px"></dc-import></sc-if>
 
   <h3 class="al-h"><span class="al-hl"></span>거르기<span class="al-hr"></span></h3>
   <div class="al-bar">
@@ -182,16 +181,16 @@ class Component extends DCLogic {
     const fName = (ALARM_FILTERS.find((x) => x[0] === f) || [0, '전체'])[1], keys = shown.map(alarmKey), unShown = shown.filter((a) => !a.read).map(alarmKey);
     const note = R && !B ? '로그인 뒤에 수신 — 이 노드 Daemon 아직 안 읽음' : '';
     const items = shown.map((a) => ({
-      cls: a.read ? 'rd' : '', dot: a.read ? '○' : '●', dotCol: a.read ? '#4f6e5a' : a.sev === 'bad' ? '#ff9c8c' : '#96f0aa',
+      cls: a.read ? 'rd' : '', dot: a.read ? '○' : '●', dotCol: a.read ? 'var(--t-key,#709c80)' : a.sev === 'bad' ? 'var(--t-err2,#ff9c8c)' : 'var(--t-acc2,#96f0aa)',
       t: now - a.at < 86400000 ? hms(a.at) : ago(a.at), full: new Date(a.at).toLocaleString() + ' · ' + ago(a.at), g: a.g, c: a.c,
       kindT: a.kind === 'task' ? '작업' : a.kind === 'module' ? '모듈' : a.kind, kindCls: a.kind === 'module' ? 'md' : '', m: a.m, id: a.id || D,
       tgt: (a.kind === 'task' ? a.id : a.name || a.id) || D, goTip: a.kind === 'task' ? '읽음 · 제어기 › 작업 관리자 — ' + a.id : '읽음 · 모듈 상태 창 — ' + (a.name || a.id),
       go: () => this.go(a), readOff: a.read ? 'disabled' : null, read: () => B && B.read(a.key), clear: () => B && B.clear(a.key) }));
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: this.props.nodeName || D,
-      unread: C.unread, total: C.all, unCol: C.unread ? '#96f0aa' : '#4f6e5a',
+      unread: C.unread, total: C.all, unCol: C.unread ? 'var(--t-acc2,#96f0aa)' : 'var(--t-key,#709c80)',
       srcT: R ? '출처 : terra.daemon.tasks.get · modules.get · 갱신 : 10s + 밀어 받기 · 최근 50 · 읽음 : 이 브라우저만' : '시안 값 · diff() 모양 · 갱신 : 40s',
-      noteOn: !!note, note,
+      noteOn: !!note, note, bandK: 'load', bandSub: '',
       filters: ALARM_FILTERS.map(([k, nm]) => ({ name: nm, n: C[k], on: f === k ? 'true' : 'false', cls: f === k ? 'on' : '', pick: () => this.setState({ f: k, arm: false }) })),
       readT: f === 'all' ? '모두 읽음' : fName + ' 읽음', readOff: unShown.length ? null : 'disabled', readTip: '읽음 : ' + unShown.length + '개',
       readAll: () => B && B.read(f === 'all' ? '*' : unShown),

@@ -40,10 +40,10 @@ class Component extends DCLogic {
   // 실제 로그 — 노드 데이터 층으로 logs.get(입력마다 따로 · 5초 TTL). [{ t, lv, col, msg }] 또는 null(시안)
   realLogs(m) {
     const T = this.TN(), A = typeof window !== 'undefined' ? window.TerraDesk : null; if (!this.real() || !T || !m.id || m.id === '—' || !m.nodeId) return null;
-    const r = T.read(m.nodeId, 'terra.daemon.modules.by-module-id.logs.get', { input: { module_id: m.id, tail: 40 }, ttl: 5000 }), CL = { err: ['error', '#ff9c8c'], warn: ['warn', '#ffd27a'], info: ['info', '#709c80'] };
-    const rows = r.data && A && A.logLines ? A.logLines(r.data).slice(-12).reverse().map((x) => ({ t: x.t, lv: CL[x.cls] ? CL[x.cls][0] : 'info', col: CL[x.cls] ? CL[x.cls][1] : '#709c80', msg: x.msg })) : [];
+    const r = T.read(m.nodeId, 'terra.daemon.modules.by-module-id.logs.get', { input: { module_id: m.id, tail: 40 }, ttl: 5000 }), CL = { err: ['error', 'var(--t-err2,#ff9c8c)'], warn: ['warn', 'var(--t-warn,#ffd27a)'], info: ['info', 'var(--t-key,#709c80)'] };
+    const rows = r.data && A && A.logLines ? A.logLines(r.data).slice(-12).reverse().map((x) => ({ t: x.t, lv: CL[x.cls] ? CL[x.cls][0] : 'info', col: CL[x.cls] ? CL[x.cls][1] : 'var(--t-key,#709c80)', msg: x.msg })) : [];
     if (rows.length) return rows;
-    return [{ t: '', lv: '', col: r.err ? '#ffd27a' : '#709c80', msg: r.err ? '로그 미수신 · ' + r.err.code : r.loading || !r.data ? '받는 중…' : '로그 없음 — 모듈 출력 없음' }];
+    return [{ t: '', lv: '', col: r.err ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)', msg: r.err ? '로그 미수신 · ' + r.err.code : r.loading || !r.data ? '받는 중…' : '로그 없음 — 모듈 출력 없음' }];
   }
   upOf(m, run) {   // 가동 — 모듈 상태의 started_at 부터. 없으면 '—' 와 까닭
     const t0 = Date.parse(m.startedAt || ''); if (!run) return { t: '—', why: '' }; if (Number.isNaN(t0) || t0 <= 0) return { t: '—', why: '모듈 상태에 시작 시각 없음' };
@@ -58,7 +58,7 @@ class Component extends DCLogic {
     const cpu = run && !RL ? Math.max(0.3, (2 + r(1) * 18) * (0.8 + 0.4 * Math.abs(Math.sin(t * (0.4 + r(2)) + r(3) * 6)))) : 0, mem = run && !RL ? Math.round(40 + r(4) * 220 + Math.sin(t * 0.2 + r(5)) * 6) : 0;
     const C = this._cpu || (this._cpu = []); if (C.t !== t) { C.push(cpu); if (C.length > 22) C.shift(); C.t = t; }
     const sp = '▁▂▃▄▅▆▇█', spark = C.map((v) => sp[Math.min(7, Math.floor(v / 25 * 7))]).join('');
-    const ST = { run: ['실행', '#60e28c'], stop: ['멈춤', '#709c80'], restart: ['다시 시작 중', '#ffd27a'], fail: ['실패', '#ff9c8c'] }[st] || ['—', '#709c80'];
+    const ST = { run: ['실행', 'var(--t-ok,#60e28c)'], stop: ['멈춤', 'var(--t-key,#709c80)'], restart: ['다시 시작 중', 'var(--t-warn,#ffd27a)'], fail: ['실패', 'var(--t-err2,#ff9c8c)'] }[st] || ['—', 'var(--t-key,#709c80)'];
     const UP = RL ? this.upOf(m, run) : null, upS = Math.floor(r(6) * 90000) + t, up = RL ? UP.t + (UP.why ? ' · ' + UP.why : '') + (run && m.pid ? ' · pid ' + m.pid : '') + (m.restarts ? ' · 재시작 ' + m.restarts + '회' : '') : run ? (upS > 86400 ? Math.floor(upS / 86400) + 'd ' : '') + Math.floor(upS % 86400 / 3600) + 'h ' + Math.floor(upS % 3600 / 60) + 'm' : '—';
     const KIND = { service: '서비스', scene: '씬', runtime: '런타임', extension: '확장', tool: '도구', core: '코어' };
     const apps = (m.apps || []).map((a) => {
@@ -74,14 +74,15 @@ class Component extends DCLogic {
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: m.name, id: m.id, stT: ST[0], stCol: ST[1], node: m.node + (m.remote ? ' (원격)' : ''), ver: m.ver, kind: KIND[m.kind] || m.kind, up,
       path: (m.core ? '코어 내장 · ' : '~/.terra/module/') + (m.core ? m.id : m.id + '/' + m.ver), owner: m.core ? '코어 (지울 수 없음)' : m.dist ? 'Tree 배포' : '직접 설치',
-      running: run, cpuP: Math.min(100, Math.round(cpu * 4)), cpuCol: cpu > 18 ? '#ffd27a' : '#60e28c', cpuT: RL ? '—' : cpu.toFixed(1) + '%', cpuS: RL ? '코어 : 모듈별 CPU op 없음' : spark, memP: Math.min(100, Math.round(mem / 4)), memT: RL ? '—' : mem + 'MB', memN: RL ? '코어 : 모듈별 메모리 op 없음' : 'RSS',
+      running: run, cpuP: Math.min(100, Math.round(cpu * 4)), cpuCol: cpu > 18 ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)', cpuT: RL ? '—' : cpu.toFixed(1) + '%', cpuS: RL ? '코어 : 모듈별 CPU op 없음' : spark, memP: Math.min(100, Math.round(mem / 4)), memT: RL ? '—' : mem + 'MB', memN: RL ? '코어 : 모듈별 메모리 op 없음' : 'RSS',
       apps, noGui: !apps.length, guiNote: !!apps.length && !run, guiNoteT: 'GUI 열기 불가 : 모듈 ' + ST[0] + ' — 시작 후 가능',
-      linkT: LK.t ? '[' + LK.t + ']' : '', linkCol: LK.cls === 'off' ? '#ffd27a' : LK.cls === 'local' ? '#709c80' : '#96f0aa',
+      cutOn: ro, cutH: LK.t.replace(/^끊김 · /, ''),
+      linkT: LK.t ? '[' + LK.t + ']' : '', linkCol: LK.cls === 'off' ? 'var(--t-warn,#ffd27a)' : LK.cls === 'local' ? 'var(--t-key,#709c80)' : 'var(--t-acc2,#96f0aa)',
       busyD: busy ? 'disabled' : null, togD: busy || (run && m.core) ? 'disabled' : null, restart: () => this.act('restart'), toggle: () => this.act(run ? 'stop' : 'start'), toggleT: run ? (m.core ? '멈춤 불가 (코어)' : '멈춤') : '시작',
-      ctl: () => { if (this.props.onOpen) this.props.onOpen('ctl', m.id); }, actNote: ro ? '노드와 끊김 — 재연결 후 재시도 (대기열 없음)' : S.busy ? (S.busy === 'restart' ? '다시 시작 중…' : '요청 중…') : S.err ? '실패 · ' + S.err : m.remote ? '원격 노드 · node.control' : '',
+      ctl: () => { if (this.props.onOpen) this.props.onOpen('ctl', m.id); }, actNote: S.busy ? (S.busy === 'restart' ? '다시 시작 중…' : '요청 중…') : S.err ? '실패 · ' + S.err : m.remote ? '원격 노드 · node.control' : '',
       svi: (m.svi || []).map((n) => ({ name: n, open: () => { if (this.props.onOpen) this.props.onOpen('res', n + '|내 자원|' + m.node); } })), noSvi: !(m.svi || []).length,
       perms: m.perms || [], noPerm: !(m.perms || []).length,
-      logs: this._log.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? '#ffd27a' : e.lv === 'error' ? '#ff9c8c' : '#709c80', msg: e.msg })).concat(this.realLogs(m) || []),   // 이 창에서 한 요청 · 그 아래 Daemon 모듈 로그(실제)
+      logs: this._log.slice().reverse().map((e) => ({ t: tm(e.at), lv: e.lv, col: e.lv === 'warn' ? 'var(--t-warn,#ffd27a)' : e.lv === 'error' ? 'var(--t-err2,#ff9c8c)' : 'var(--t-key,#709c80)', msg: e.msg })).concat(this.realLogs(m) || []),   // 이 창에서 한 요청 · 그 아래 Daemon 모듈 로그(실제)
       apiS: H ? 'modules.by-module-id.get' : '', apiG: H ? (m.remote ? 'gui/remote/{node}/apps' : 'gui/apps') : '', apiA: H ? 'restart · stop · start .post' : '', apiL: H ? '….logs.get' : RL ? 'Daemon 모듈 로그 · 최근 12줄 · 갱신 : 5s' : ''
     };
   }

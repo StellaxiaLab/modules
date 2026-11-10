@@ -1,6 +1,7 @@
-<div class="ns ms" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: #d6f4de; font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
+<div class="ns ms" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: auto; color: var(--t-text,#d6f4de); font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55; background: transparent;">
   <div class="ns-row" style="gap: 8px;"><span class="ns-p">&gt;</span><span>module</span><b class="ns-v">{{name}}</b><span class="ns-k">{{id}}</span><span style="flex: 1;"></span><span style="color: {{linkCol}};">{{linkT}}</span><span style="color: {{stCol}};">● {{stT}}</span></div>
 
+  <sc-if value="{{cutOn}}" hint-placeholder-val="{{ false }}"><dc-import name="StateBand" kind="cut" head="{{cutH}}" sub="재연결 뒤에 동작할 수 있음 (대기열 없음)" hint-size="100%,32px"></dc-import></sc-if>
   <h3 class="ns-h"><span class="ns-hl"></span>상태<span class="ns-hr"></span><span class="ns-k">{{apiS}}</span></h3>
   <div class="ns-grid">
     <span class="ns-k">노드</span><span class="ns-v">{{node}}</span><span class="ns-k">버전</span><span>{{ver}}</span>
@@ -9,7 +10,7 @@
   </div>
   <sc-if value="{{running}}" hint-placeholder-val="{{ true }}">
     <div class="ns-bar" style="margin-top: 6px;"><span class="ns-k">CPU</span><span class="ns-track"><span class="ns-fill" style="width: {{cpuP}}%; background: {{cpuCol}};"></span></span><span>{{cpuT}}</span><span class="ns-spark">{{cpuS}}</span></div>
-    <div class="ns-bar"><span class="ns-k">MEM</span><span class="ns-track"><span class="ns-fill" style="width: {{memP}}%; background: #60e28c;"></span></span><span>{{memT}}</span><span class="ns-k">{{memN}}</span></div>
+    <div class="ns-bar"><span class="ns-k">MEM</span><span class="ns-track"><span class="ns-fill" style="width: {{memP}}%; background: var(--t-ok,#60e28c);"></span></span><span>{{memT}}</span><span class="ns-k">{{memN}}</span></div>
   </sc-if>
 
   <h3 class="ns-h"><span class="ns-hl"></span>GUI<span class="ns-hr"></span><span class="ns-k">{{apiG}}</span></h3>

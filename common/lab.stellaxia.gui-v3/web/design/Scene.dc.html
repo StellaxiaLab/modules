@@ -70,6 +70,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
 
 <button type="button" onPointerUp="{{stopProp}}" onClick="{{loginAgain}}" style="display: {{loginAgainD}}; position: absolute; right: 20px; bottom: 18px; z-index: 5; font: 600 12px 'Geist Mono', monospace; padding: 4px 9px; border-radius: 4px; border: 1px solid rgba(108,118,156,0.35); background: #040614; color: #9aa4c8; cursor: pointer;">TEST · 로그인부터</button>
 <div data-loginwrap="scene" aria-hidden="{{loginHid}}" style="position: absolute; inset: 0; z-index: 60; display: {{loginD}};"><dc-import name="Login" embed="true" reset="{{loginKey}}" on-done="{{loginDoneFn}}" on-zoom="{{loginZoomFn}}" logout="{{logoutKey}}" hint-size="1440px,900px"></dc-import></div>
+<div data-statusbar="scene" style="position: absolute; inset: 0; z-index: 5; pointer-events: none;"><dc-import name="StatusBar" on="{{barOn}}" bar="{{barApi}}" hint-size="100%,44px"></dc-import></div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;login&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;로그인&quot;},&quot;renderScale&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;자동&quot;,&quot;1.5&quot;,&quot;1&quot;],&quot;default&quot;:&quot;자동&quot;,&quot;section&quot;:&quot;성능&quot;},&quot;underTiles&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;section&quot;:&quot;성능&quot;},&quot;stage1_create&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;단계&quot;},&quot;stage2_dissolve&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;단계&quot;},&quot;stage3_rise&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;단계&quot;},&quot;holeDim&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.1,&quot;max&quot;:0.9,&quot;step&quot;:0.05,&quot;default&quot;:0.6,&quot;section&quot;:&quot;단계&quot;},&quot;hitBand&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:4,&quot;max&quot;:28,&quot;step&quot;:1,&quot;default&quot;:12,&quot;unit&quot;:&quot;px&quot;,&quot;section&quot;:&quot;단계&quot;},&quot;overlap&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:0.85,&quot;step&quot;:0.05,&quot;default&quot;:0.5,&quot;section&quot;:&quot;재생&quot;},&quot;tempo&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.25,&quot;max&quot;:2,&quot;step&quot;:0.05,&quot;default&quot;:1,&quot;section&quot;:&quot;재생&quot;},&quot;glowMs&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:50,&quot;max&quot;:1500,&quot;step&quot;:10,&quot;default&quot;:200,&quot;unit&quot;:&quot;ms&quot;,&quot;section&quot;:&quot;재생&quot;},&quot;preset&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;자식 2&quot;,&quot;자식 3&quot;,&quot;자식 5&quot;,&quot;깊이 3&quot;],&quot;default&quot;:&quot;깊이 3&quot;,&quot;section&quot;:&quot;트리&quot;},&quot;speed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:4,&quot;step&quot;:0.1,&quot;default&quot;:1,&quot;section&quot;:&quot;트리&quot;},&quot;palette&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;은하수&quot;,&quot;성운&quot;,&quot;단색&quot;],&quot;default&quot;:&quot;은하수&quot;,&quot;section&quot;:&quot;글자 장&quot;},&quot;cell&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:9,&quot;max&quot;:24,&quot;default&quot;:11,&quot;unit&quot;:&quot;px&quot;,&quot;section&quot;:&quot;글자 장&quot;},&quot;bgMove&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;없음&quot;,&quot;상&quot;,&quot;하&quot;,&quot;좌&quot;,&quot;우&quot;],&quot;default&quot;:&quot;없음&quot;,&quot;section&quot;:&quot;글자 장&quot;},&quot;bgSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.5,&quot;max&quot;:12,&quot;step&quot;:0.5,&quot;default&quot;:3,&quot;unit&quot;:&quot;칸/초&quot;,&quot;section&quot;:&quot;글자 장&quot;},&quot;motion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;글자 장&quot;},&quot;regionFocus&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:2,&quot;max&quot;:12,&quot;step&quot;:0.5,&quot;default&quot;:4,&quot;section&quot;:&quot;인식 영역&quot;},&quot;regionLeaf&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:1,&quot;max&quot;:3,&quot;step&quot;:0.1,&quot;default&quot;:2.3,&quot;section&quot;:&quot;인식 영역&quot;},&quot;regionPlanet&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:4,&quot;max&quot;:24,&quot;step&quot;:0.5,&quot;default&quot;:16,&quot;section&quot;:&quot;인식 영역&quot;},&quot;regionChild&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:2,&quot;max&quot;:20,&quot;step&quot;:0.5,&quot;default&quot;:8,&quot;section&quot;:&quot;인식 영역&quot;},&quot;showRegion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;section&quot;:&quot;인식 영역&quot;},&quot;parallaxCenter&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:1,&quot;max&quot;:4,&quot;step&quot;:0.1,&quot;default&quot;:2,&quot;section&quot;:&quot;트리&quot;},&quot;leaf&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;01&quot;,&quot;02&quot;,&quot;03&quot;,&quot;04&quot;,&quot;01.02&quot;,&quot;03.01&quot;],&quot;default&quot;:&quot;01&quot;,&quot;section&quot;:&quot;리프&quot;},&quot;star&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;청백 거성&quot;,&quot;태양&quot;,&quot;청록 왜성&quot;,&quot;백색 별&quot;],&quot;default&quot;:&quot;청백 거성&quot;,&quot;section&quot;:&quot;리프&quot;},&quot;glowGap&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:0.6,&quot;step&quot;:0.05,&quot;default&quot;:0.2,&quot;section&quot;:&quot;리프&quot;},&quot;starMix&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:1,&quot;step&quot;:0.05,&quot;default&quot;:0.5,&quot;section&quot;:&quot;리프&quot;},&quot;planets&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:12,&quot;default&quot;:6,&quot;section&quot;:&quot;항성계&quot;},&quot;viewTilt&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:85,&quot;step&quot;:1,&quot;default&quot;:68,&quot;unit&quot;:&quot;°&quot;,&quot;section&quot;:&quot;항성계&quot;},&quot;orbitSpread&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:8,&quot;step&quot;:0.5,&quot;default&quot;:4,&quot;unit&quot;:&quot;°&quot;,&quot;section&quot;:&quot;항성계&quot;},&quot;trailScale&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.25,&quot;max&quot;:3,&quot;step&quot;:0.05,&quot;default&quot;:1.5,&quot;section&quot;:&quot;항성계&quot;},&quot;leafSat&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:1,&quot;step&quot;:0.05,&quot;default&quot;:0.55,&quot;section&quot;:&quot;항성계&quot;},&quot;orbitScale&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.5,&quot;max&quot;:2.5,&quot;step&quot;:0.05,&quot;default&quot;:1.5,&quot;section&quot;:&quot;항성계&quot;},&quot;planetSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.01,&quot;max&quot;:0.08,&quot;step&quot;:0.005,&quot;default&quot;:0.0225,&quot;section&quot;:&quot;항성계&quot;},&quot;trails&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;항성계&quot;},&quot;starMask&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;리프&quot;},&quot;satRestore&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;어두운 화면 복원&quot;,&quot;어두운 배경 복원&quot;,&quot;배경 복원&quot;,&quot;복원 안 함&quot;],&quot;default&quot;:&quot;어두운 화면 복원&quot;,&quot;section&quot;:&quot;리소스&quot;},&quot;logoWidth&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.1,&quot;max&quot;:0.25,&quot;step&quot;:0.01,&quot;default&quot;:0.2,&quot;section&quot;:&quot;전역 틀&quot;},&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
@@ -605,14 +606,16 @@ class Component extends DCLogic {
       if ((this._orb || (this._navZ && (this._navZ.k > 1.15 || this._navZ.k < 0.85))) && (o.x + o.r < 0 || o.y + o.r < 0 || o.x - o.r > Fr.w || o.y - o.r > Fr.h)) return;   // 노드 이동 중 — 화면 밖 행성의 이름표는 가장자리에 붙이지 않는다
       const VW = Fr.w, VH = Fr.h, MG = 14;
       ctx.font = '500 10.5px GmarketSans, "Geist Mono", monospace'; ctx.textBaseline = 'middle';
-      let txt = o.p.name + ' ⁄', lx = o.x + o.r + 6, ly = o.y - o.r - 3;
+      const NM = this.nodeMark ? this.nodeMark(this.leafRids().get(o.p.name)) : null;   // 문제가 있는 리프 — 상태 글자까지
+      const sfx = NM ? ' ' + NM.t : '';
+      let txt = o.p.name + ' ⁄' + sfx, lx = o.x + o.r + 6, ly = o.y - o.r - 3;
       const outR = o.x - o.r > VW, outL = o.x + o.r < 0;
-      if (outR) txt = o.p.name + ' ▸'; else if (outL) txt = '◂ ' + o.p.name;
+      if (outR) txt = o.p.name + sfx + ' ▸'; else if (outL) txt = '◂ ' + o.p.name + sfx;
       const tw = ctx.measureText(txt).width;
       if (outR) lx = VW - MG - tw; else if (outL) lx = MG;
       lx = Math.min(VW - MG - tw, Math.max(MG, lx));
       ly = (outR || outL) ? Math.min(VH - MG, Math.max(MG, o.y)) : Math.min(VH - MG, Math.max(MG, ly));
-      ctx.fillStyle = tint || ('rgba(' + INK + ',' + (outR || outL ? 0.85 : 0.7) + ')');
+      ctx.fillStyle = tint || (NM ? 'rgba(' + NM.c + ',0.95)' : 'rgba(' + INK + ',' + (outR || outL ? 0.85 : 0.7) + ')');
       if (LW > 1) { ctx.save(); ctx.font = '700 12px GmarketSans, "Geist Mono", monospace'; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.min(8, LW * 0.5); ctx.lineJoin = 'round'; ctx.strokeText(txt, lx, ly); }
       ctx.fillText(txt, lx, ly);
       if (LW > 1) ctx.restore();
@@ -1402,9 +1405,10 @@ class Component extends DCLogic {
         }
       }
       if (part.labels && n.depth > 0 && (n.depth === 1 || r >= 4.5) && !entering) {
-        ctx.fillStyle = part.tint || ('rgba(' + INK + ',' + (n.depth === 1 ? 0.75 : 0.5) + ')');
-        if (LW > 1) { ctx.save(); ctx.font = '700 12px GmarketSans, "Geist Mono", monospace'; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.min(8, LW * 0.5); ctx.lineJoin = 'round'; ctx.strokeText(n.label + ' ⁄', q[0] + r + 7, q[1] - r - 4); }
-        ctx.fillText(n.label + ' ⁄', q[0] + r + 7, q[1] - r - 4);
+        const NM = this.nodeMark ? this.nodeMark(n.rid) : null, lbT = n.label + ' ⁄' + (NM ? ' ' + NM.t : '');   // 문제가 있는 노드는 상태 글자까지
+        ctx.fillStyle = part.tint || (NM ? 'rgba(' + NM.c + ',0.95)' : 'rgba(' + INK + ',' + (n.depth === 1 ? 0.75 : 0.5) + ')');
+        if (LW > 1) { ctx.save(); ctx.font = '700 12px GmarketSans, "Geist Mono", monospace'; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.min(8, LW * 0.5); ctx.lineJoin = 'round'; ctx.strokeText(lbT, q[0] + r + 7, q[1] - r - 4); }
+        ctx.fillText(lbT, q[0] + r + 7, q[1] - r - 4);
         if (LW > 1) ctx.restore();
       }
     }
@@ -2093,6 +2097,22 @@ class Component extends DCLogic {
     return (this._smap = { key, root, all, byId });
   }
   // 지금 위치 — 리소스 뷰: 그 행성(리프) · 리프 뷰: 들어간 트리 · 트리 뷰: 초점 트리(처음엔 계정)
+  // 상단 상태 줄(보드 StatusBar)이 부르는 것 — 지금 위치 · 전역 틀 너비 · 알림 · 최소화 창 · 로그아웃
+  barApi() { return this._barA || (this._barA = {
+    crumbs: () => { const out = []; for (let n = this.sceneCur(); n; n = n.parent) out.unshift({ id: n.id, name: n.name }); return out; },
+    go: (id) => { const n = this.sceneMap().byId[id]; if (n) this.navStart(n); },
+    left: () => this.viewX0(), unread: () => (this.gf_alarmUnread ? this.gf_alarmUnread() : 0), wins: () => (this._q_wins || []).length,
+    alarm: () => this.gf_alarmOpen(), fly: () => { this._q_flyPin = !this._q_flyPin; this.gf_minFly(this._q_flyPin); }, logout: () => this.sceneLogout()
+  }); }
+  // 지도 이름표의 상태 — 실제 지도의 노드만(Master 기록). 온라인은 표시하지 않는다: 문제가 있는 노드만 글자와 색으로 드러낸다
+  nodeMark(rid) {
+    const TP = this.TOPO ? this.TOPO() : null, st = typeof window !== 'undefined' ? window.TerraNodeStats : null, rec = TP && TP.node && rid ? TP.node(rid) : null; if (!rec || !st) return null;
+    const M = this._nmk || (this._nmk = new Map()), now = performance.now(), e = M.get(rid); if (e && now - e.at < 5000) return e.v;
+    const s = st(rec), v = s.level === 'ok' ? null : { t: s.label, c: { warn: '255,210,122', wait: '166,173,184', down: '255,156,140' }[s.level] };
+    M.set(rid, { at: now, v }); return v;
+  }
+  // 이 항성계 리프의 이름 → 노드 id (이름표가 프레임마다 찾는다 — 지도가 바뀔 때만 다시 만든다)
+  leafRids() { const TP = this.TOPO ? this.TOPO() : null, k = TP ? TP.rev + ':' + this._leafId : ''; if (this._lrK !== k) { this._lrK = k; this._lrM = new Map((this.topoLeaves(this._leafId) || []).map((r) => [r.name, r.id])); } return this._lrM; }
   sceneCur() { const M = this.sceneMap(); if (this._lv && this._leafId != null) { if (this._res && this._res.dir === 'in' && this._res.name) { const p = M.byId['P' + this._leafId + ':' + this._res.name]; if (p) return p; } return M.byId['T' + this._leafId] || M.root; } return M.byId['T' + (this._focus ? this._focus.id : 0)] || M.root; }
   sceneLevel() { return this._res && this._res.dir === 'in' ? 'res' : this._lv ? 'leaf' : 'tree'; }   // 지도 뷰 — 지금 뷰를 따른다
   sceneView() { return this._res && this._res.dir === 'in' ? '리소스 뷰' : this._lv ? '리프 뷰' : '트리 뷰'; }
@@ -2891,7 +2911,7 @@ class Component extends DCLogic {
   gf_ctlSync() { this._q_ctlWin = this.gf_ctlTopW(); this._q_ctlAnim = this.gf_ctlWins().some((W) => W.raf) || !!this._q_ctlDrag; }
   gf_ctlFront(W) {
     W.z = this._q_ctlZ = (this._q_ctlZ || 0) + 1; W.wrap.style.zIndex = String(5 + W.z);
-    for (const V of this.gf_ctlWins()) { const on = V === W, CH = V.wrap._chrome; V.wrap.style.borderColor = on ? 'rgba(70,160,108,0.75)' : 'rgba(70,160,108,0.3)'; if (CH) { CH.bar.style.background = V.see ? (on ? 'rgba(6,14,18,0.55)' : 'rgba(4,6,20,0.4)') : on ? 'rgba(6,14,18,0.98)' : 'rgba(4,6,20,0.98)'; CH.name.style.color = on ? 'rgb(214,244,222)' : 'rgb(140,170,150)'; CH.pr.style.color = on ? 'rgb(120,232,156)' : 'rgb(84,128,100)'; } }
+    for (const V of this.gf_ctlWins()) { const on = V === W, CH = V.wrap._chrome; V.wrap.style.borderColor = on ? 'rgba(var(--t-line-rgb,70,160,108),0.75)' : 'rgba(var(--t-line-rgb,70,160,108),0.3)'; if (CH) { CH.bar.style.background = V.see ? (on ? 'rgba(var(--t-bg-rgb,6,14,18),0.55)' : 'rgba(var(--t-bg-rgb,4,6,20),0.4)') : on ? 'rgba(var(--t-bg-rgb,6,14,18),0.98)' : 'rgba(var(--t-bg-rgb,4,6,20),0.98)'; CH.name.style.color = on ? 'var(--t-text,rgb(214,244,222))' : 'var(--t-key,rgb(140,170,150))'; CH.pr.style.color = on ? 'var(--t-acc,rgb(120,232,156))' : 'var(--t-hint,rgb(134,171,149))'; } }
     this.gf_ctlSync();
   }
   gf_ctlOpenWin(node, Rr, kind, arg) {
@@ -2919,7 +2939,7 @@ class Component extends DCLogic {
     let R = Rr ? { ...Rr } : ent && ent.R ? { ...ent.R } : null;
     if (!R && Rr === undefined && this._q_popAt) { R = { w: BW, h: BH, x: Math.min(w - BW - 12, Math.max(vx0 + 12, this._q_popAt[0] + 40)), y: Math.min(h - BH - 12, Math.max(12, this._q_popAt[1] - 60)) }; }   // 우클릭에서 연 창 — 그 노드 가까이
     if (!R) { const sc = Math.min(1, (w - vx0) * 0.8 / BW, h * 0.84 / BH); R = { w: BW * sc, h: BH * sc }; R.x = vx0 + (w - vx0 - R.w) / 2 + nOpen * 28; R.y = (h - R.h) / 2 + nOpen * 24; }   // 새 창은 계단식으로 조금씩 비켜 놓는다
-    Object.assign(wrap.style, { display: 'block', position: 'absolute', overflow: 'hidden', boxSizing: 'border-box', background: SEE ? 'rgba(4,6,20,0.32)' : '#040614', backdropFilter: SEE ? 'brightness(0.32)' : 'none', webkitBackdropFilter: SEE ? 'brightness(0.32)' : 'none', border: '1px solid rgba(70,160,108,0.75)', borderRadius: '0', boxShadow: '0 0 0 1px rgba(2,3,10,.7), 0 22px 64px rgba(0,0,0,.6)', clipPath: 'inset(50%)', filter: 'brightness(0.38)', touchAction: 'none' });
+    Object.assign(wrap.style, { display: 'block', position: 'absolute', overflow: 'hidden', boxSizing: 'border-box', background: SEE ? 'rgba(var(--t-bg-rgb,4,6,20),var(--t-see-a,0.32))' : 'var(--t-bg,#040614)', backdropFilter: SEE ? 'var(--t-see-fx,brightness(0.32))' : 'none', webkitBackdropFilter: SEE ? 'var(--t-see-fx,brightness(0.32))' : 'none', border: '1px solid rgba(var(--t-line-rgb,70,160,108),0.75)', borderRadius: '0', boxShadow: '0 0 0 1px rgba(var(--t-halo-rgb,2,3,10),.7), 0 22px 64px rgba(0,0,0,.6)', clipPath: 'inset(50%)', filter: 'brightness(0.38)', touchAction: 'none' });
     Object.assign(body.style, { position: 'absolute', left: 0, top: T.TB + 'px', transformOrigin: '0 0' });
     const W = { slot: k, node, kind, arg: wArg, wrap, fr: body, body, R, tau: 0, dir: 1, raf: 0, max: null, z: 0 };
     WS[k] = W; wrap._W = W;
@@ -2944,16 +2964,16 @@ class Component extends DCLogic {
     const mk = (tag, st, txt) => { const el = document.createElement(tag); Object.assign(el.style, st || {}); if (txt != null) el.textContent = txt; return el; };
     const MONO = "'Geist Mono', GmarketSans, monospace", KR = "GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif";
     // 머리줄 — 전역 틀의 줄과 같은 말씨: '>_' · 노드 이름(볼드) · 종류 · 흐려지는 레거시 선 · 배율 · 글자 단추(_ 최소화 · □ 최대화 · × 닫기)
-    const bar = mk('div', { position: 'absolute', left: 0, right: 0, top: 0, height: T.TB + 'px', zIndex: 2, display: 'flex', alignItems: 'center', gap: '9px', padding: '0 4px 0 12px', boxSizing: 'border-box', background: 'rgba(4,6,20,0.98)', borderBottom: '1px solid rgba(70,160,108,0.32)', font: '500 12px ' + KR, color: 'rgb(112,156,128)', cursor: 'move', userSelect: 'none', whiteSpace: 'nowrap' });
+    const bar = mk('div', { position: 'absolute', left: 0, right: 0, top: 0, height: T.TB + 'px', zIndex: 2, display: 'flex', alignItems: 'center', gap: '9px', padding: '0 4px 0 12px', boxSizing: 'border-box', background: 'rgba(var(--t-bg-rgb,4,6,20),0.98)', borderBottom: '1px solid rgba(var(--t-line-rgb,70,160,108),0.32)', font: '500 12px ' + KR, color: 'var(--t-key,rgb(112,156,128))', cursor: 'move', userSelect: 'none', whiteSpace: 'nowrap' });
     bar.setAttribute('data-ctltitle', '1');
-    CH.pr = mk('span', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' }, '>_'); bar.appendChild(CH.pr);
-    CH.name = mk('span', { fontWeight: '700', color: 'rgb(214,244,222)', letterSpacing: '0.02em' }); bar.appendChild(CH.name);
-    CH.kind = mk('span', { color: 'rgb(112,156,128)' }, '제어기'); bar.appendChild(CH.kind);
-    bar.appendChild(mk('span', { flex: '1', minWidth: '12px', height: '1px', background: 'linear-gradient(90deg, rgba(70,160,108,0.5), rgba(70,160,108,0.06))' }));
-    const btn = (txt, label, fn, danger) => { const b = mk('button', { width: '28px', height: '22px', border: '0', padding: '0', background: 'transparent', color: 'rgb(112,156,128)', font: '600 13px ' + MONO, lineHeight: '22px', cursor: 'pointer', textAlign: 'center' }, txt);
+    CH.pr = mk('span', { font: '700 12px ' + MONO, color: 'var(--t-acc,rgb(120,232,156))' }, '>_'); bar.appendChild(CH.pr);
+    CH.name = mk('span', { fontWeight: '700', color: 'var(--t-text,rgb(214,244,222))', letterSpacing: '0.02em' }); bar.appendChild(CH.name);
+    CH.kind = mk('span', { color: 'var(--t-key,rgb(112,156,128))' }, '제어기'); bar.appendChild(CH.kind);
+    bar.appendChild(mk('span', { flex: '1', minWidth: '12px', height: '1px', background: 'linear-gradient(90deg, rgba(var(--t-line-rgb,70,160,108),0.5), rgba(var(--t-line-rgb,70,160,108),0.06))' }));
+    const btn = (txt, label, fn, danger) => { const b = mk('button', { width: '28px', height: '22px', border: '0', padding: '0', background: 'transparent', color: 'var(--t-key,rgb(112,156,128))', font: '600 13px ' + MONO, lineHeight: '22px', cursor: 'pointer', textAlign: 'center' }, txt);
       b.type = 'button'; b.setAttribute('aria-label', label); b.title = label;
-      b.addEventListener('pointerenter', () => { b.style.color = danger ? 'rgb(255,178,166)' : 'rgb(208,255,150)'; b.style.background = danger ? 'rgba(220,90,80,0.2)' : 'rgba(70,170,110,0.2)'; });
-      b.addEventListener('pointerleave', () => { b.style.color = 'rgb(112,156,128)'; b.style.background = 'transparent'; });
+      b.addEventListener('pointerenter', () => { b.style.color = danger ? 'var(--t-err2,rgb(255,178,166))' : 'var(--t-hi,rgb(208,255,150))'; b.style.background = danger ? 'rgba(var(--t-err-rgb,220,90,80),0.2)' : 'rgba(var(--t-tint-rgb,70,170,110),0.2)'; });
+      b.addEventListener('pointerleave', () => { b.style.color = 'var(--t-key,rgb(112,156,128))'; b.style.background = 'transparent'; });
       b.addEventListener('click', (e) => { e.stopPropagation(); const W = Wof(); if (W) fn(W); }); return b; };
     CH.zoom = btn('100%', '화면 배율 — 100% 로', (W) => this.gf_ctlZoom(1, 0, W)); Object.assign(CH.zoom.style, { width: 'auto', padding: '0 6px', font: '500 11px ' + MONO, display: 'none' }); bar.appendChild(CH.zoom);
     bar.appendChild(btn('_', '최소화', (W) => this.gf_ctlMin(W)));
@@ -2961,7 +2981,7 @@ class Component extends DCLogic {
     bar.appendChild(btn('×', '닫기', (W) => this.gf_ctlX(W), true));
     wrap.appendChild(bar); CH.bar = bar;
     // 모서리 괄호 — 로고 강조와 같은 레거시 코너 (틀 선보다 밝게)
-    for (const [x, y] of [['left', 'top'], ['right', 'top'], ['left', 'bottom'], ['right', 'bottom']]) { const c = mk('div', { position: 'absolute', width: '10px', height: '10px', zIndex: 4, pointerEvents: 'none' }); c.style[x] = '-1px'; c.style[y] = '-1px'; const B = '1.5px solid rgb(110,236,156)'; c.style['border' + (y === 'top' ? 'Top' : 'Bottom')] = B; c.style['border' + (x === 'left' ? 'Left' : 'Right')] = B; wrap.appendChild(c); }
+    for (const [x, y] of [['left', 'top'], ['right', 'top'], ['left', 'bottom'], ['right', 'bottom']]) { const c = mk('div', { position: 'absolute', width: '10px', height: '10px', zIndex: 4, pointerEvents: 'none' }); c.style[x] = '-1px'; c.style[y] = '-1px'; const B = '1.5px solid var(--t-acc,rgb(110,236,156))'; c.style['border' + (y === 'top' ? 'Top' : 'Bottom')] = B; c.style['border' + (x === 'left' ? 'Left' : 'Right')] = B; wrap.appendChild(c); }
     // 끌기 — 머리줄(단추 빼고): 이동 · 가장자리 8곳: 크기(비율). 끄는 동안엔 화면(씬)의 마우스 피드백을 끈다
     CH.drag = (e, mode) => { const W2 = Wof(); if (!W2 || e.button !== 0) return; e.preventDefault(); this.gf_ctlFront(W2); const sx = e.clientX, sy = e.clientY, R0 = { ...W2.R }; W2.body.style.pointerEvents = 'none'; this._q_ctlDrag = true; this._mouse = null; this.gf_ctlSync();
       const mv = (ev) => { this._mouse = null; const dx = ev.clientX - sx, dy = ev.clientY - sy, A = this._q_w, B = this._q_h, v0 = this._q_ctrlX || 0, Rn = { ...R0 };
@@ -3163,25 +3183,25 @@ class Component extends DCLogic {
     if (!F) {
       const mk = (tag, st, txt) => { const el = document.createElement(tag); Object.assign(el.style, st || {}); if (txt != null) el.textContent = txt; return el; };
       const MONO = "'Geist Mono', GmarketSans, monospace", KR = "GmarketSans, 'Geist Mono', 'Noto Sans KR', sans-serif";
-      const el = mk('div', { position: 'absolute', zIndex: 6, width: '360px', boxSizing: 'border-box', padding: '10px 12px 10px', background: 'rgba(4,6,20,0.96)', backdropFilter: 'brightness(0.32)', webkitBackdropFilter: 'brightness(0.32)', border: '1px solid rgba(70,160,108,0.5)', boxShadow: '0 18px 50px rgba(0,0,0,.55)', font: '500 12px ' + KR, color: 'rgb(112,156,128)', clipPath: 'inset(0 100% 0 0)', opacity: '0', transition: 'clip-path 220ms cubic-bezier(.2,.8,.2,1), opacity 160ms linear', pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '8px' });
+      const el = mk('div', { position: 'absolute', zIndex: 6, width: '360px', boxSizing: 'border-box', padding: '10px 12px 10px', background: 'rgba(var(--t-bg-rgb,4,6,20),0.96)', backdropFilter: 'brightness(0.32)', webkitBackdropFilter: 'brightness(0.32)', border: '1px solid rgba(var(--t-line-rgb,70,160,108),0.5)', boxShadow: '0 18px 50px rgba(0,0,0,.55)', font: '500 12px ' + KR, color: 'var(--t-key,rgb(112,156,128))', clipPath: 'inset(0 100% 0 0)', opacity: '0', transition: 'clip-path 220ms cubic-bezier(.2,.8,.2,1), opacity 160ms linear', pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '8px' });
       el.setAttribute('data-minfly', '1'); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '최소화 창 찾기');
       // 모서리 괄호 — 로고 강조와 같은 레거시 코너
-      for (const [l, t, b1, b2] of [['-1px', '-1px', 'Top', 'Left'], [null, '-1px', 'Top', 'Right'], ['-1px', null, 'Bottom', 'Left'], [null, null, 'Bottom', 'Right']]) { const c = mk('div', { position: 'absolute', width: '9px', height: '9px', pointerEvents: 'none' }); if (l) c.style.left = l; else c.style.right = '-1px'; if (t) c.style.top = t; else c.style.bottom = '-1px'; c.style['border' + b1] = '1.5px solid rgb(110,236,156)'; c.style['border' + b2] = '1.5px solid rgb(110,236,156)'; el.appendChild(c); }
+      for (const [l, t, b1, b2] of [['-1px', '-1px', 'Top', 'Left'], [null, '-1px', 'Top', 'Right'], ['-1px', null, 'Bottom', 'Left'], [null, null, 'Bottom', 'Right']]) { const c = mk('div', { position: 'absolute', width: '9px', height: '9px', pointerEvents: 'none' }); if (l) c.style.left = l; else c.style.right = '-1px'; if (t) c.style.top = t; else c.style.bottom = '-1px'; c.style['border' + b1] = '1.5px solid var(--t-acc,rgb(110,236,156))'; c.style['border' + b2] = '1.5px solid var(--t-acc,rgb(110,236,156))'; el.appendChild(c); }
       // 머리 — 구역 머리와 같은 꼴: 짧은 선 · 이름 · 남은 선 · 개수
       const hd = mk('div', { display: 'flex', alignItems: 'center', gap: '8px' });
-      hd.appendChild(mk('span', { width: '14px', height: '1px', background: 'rgba(70,160,108,0.85)' }));
-      hd.appendChild(mk('span', { color: 'rgb(120,232,156)', fontWeight: '700' }, '최소화 창'));
-      hd.appendChild(mk('span', { flex: '1', height: '1px', background: 'rgba(70,160,108,0.5)' }));
-      const cnt = mk('span', { font: '500 11px ' + MONO, color: 'rgb(84,128,100)' }); hd.appendChild(cnt);
-      const pin = mk('span', { font: '700 11px ' + MONO, color: 'rgb(208,255,150)', display: 'none' }, '고정'); hd.appendChild(pin);
+      hd.appendChild(mk('span', { width: '14px', height: '1px', background: 'rgba(var(--t-line-rgb,70,160,108),0.85)' }));
+      hd.appendChild(mk('span', { color: 'var(--t-acc,rgb(120,232,156))', fontWeight: '700' }, '최소화 창'));
+      hd.appendChild(mk('span', { flex: '1', height: '1px', background: 'rgba(var(--t-line-rgb,70,160,108),0.5)' }));
+      const cnt = mk('span', { font: '500 11px ' + MONO, color: 'var(--t-hint,rgb(134,171,149))' }); hd.appendChild(cnt);
+      const pin = mk('span', { font: '700 11px ' + MONO, color: 'var(--t-hi,rgb(208,255,150))', display: 'none' }, '고정'); hd.appendChild(pin);
       // 입력 칸 — 전역 틀 입력 줄과 같은 CLI 프롬프트: '>' + 글자 + 밑줄
-      const ir = mk('label', { display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(56,128,88,0.5)', padding: '2px 0 4px', cursor: 'text' });
-      ir.appendChild(mk('span', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' }, '>'));
-      const inp = mk('input', { flex: '1', minWidth: '0', border: '0', outline: 'none', background: 'transparent', font: '500 12px ' + KR, color: 'rgb(214,244,222)', caretColor: 'rgb(150,240,170)', padding: '0' });
+      const ir = mk('label', { display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(var(--t-line2-rgb,56,128,88),0.5)', padding: '2px 0 4px', cursor: 'text' });
+      ir.appendChild(mk('span', { font: '700 12px ' + MONO, color: 'var(--t-acc,rgb(120,232,156))' }, '>'));
+      const inp = mk('input', { flex: '1', minWidth: '0', border: '0', outline: 'none', background: 'transparent', font: '500 12px ' + KR, color: 'var(--t-text,rgb(214,244,222))', caretColor: 'var(--t-acc2,rgb(150,240,170))', padding: '0' });
       inp.type = 'text'; inp.placeholder = '노드 · 종류로 찾기'; inp.spellcheck = false; inp.autocomplete = 'off'; inp.setAttribute('aria-label', '최소화 창 찾기');
       ir.appendChild(inp);
       const list = mk('div', { display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: '320px', margin: '0 -6px' }); list.setAttribute('role', 'listbox');
-      const foot = mk('div', { font: '500 11px ' + MONO, color: 'rgb(84,128,100)' }, '↑↓ 고르기 · Enter 열기 · Esc 닫기'); foot.style.whiteSpace = 'nowrap';
+      const foot = mk('div', { font: '500 11px ' + MONO, color: 'var(--t-hint,rgb(134,171,149))' }, '↑↓ 고르기 · Enter 열기 · Esc 닫기'); foot.style.whiteSpace = 'nowrap';
       el.appendChild(hd); el.appendChild(ir); el.appendChild(list); el.appendChild(foot);
       F = this._q_fly = { el, inp, list, cnt, pin, open: false, sel: 0, hov: false, items: [] };
       el.addEventListener('pointerenter', () => { F.hov = true; }); el.addEventListener('pointerleave', () => { F.hov = false; F.leftAt = performance.now(); });
@@ -3203,10 +3223,10 @@ class Component extends DCLogic {
     const MONO = "'Geist Mono', GmarketSans, monospace", items = this.gf_winFind(F.inp.value, 'min'), all = this.gf_winFind('', 'min').length;
     F.items = items; F.sel = Math.max(0, Math.min(items.length - 1, F.sel)); F.cnt.textContent = items.length + ' / ' + all; F.pin.style.display = this._q_flyPin ? 'inline' : 'none';
     F.list.textContent = '';
-    if (!items.length) { const em = document.createElement('div'); Object.assign(em.style, { padding: '10px 6px', color: 'rgb(84,128,100)' }); em.textContent = all ? '맞는 창 없음' : '최소화 창 없음 — 머리줄 _ : 최소화'; F.list.appendChild(em); return; }
+    if (!items.length) { const em = document.createElement('div'); Object.assign(em.style, { padding: '10px 6px', color: 'var(--t-hint,rgb(134,171,149))' }); em.textContent = all ? '맞는 창 없음' : '최소화 창 없음 — 머리줄 _ : 최소화'; F.list.appendChild(em); return; }
     items.forEach((e, k) => {
       const row = document.createElement('div'), on = k === F.sel; row.setAttribute('role', 'option'); row.setAttribute('aria-selected', on ? 'true' : 'false');
-      Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 6px', cursor: 'pointer', background: on ? 'rgba(70,170,110,0.2)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 rgba(70,160,108,0.95)' : 'none' });
+      Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 6px', cursor: 'pointer', background: on ? 'rgba(var(--t-tint-rgb,70,170,110),0.2)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 rgba(var(--t-line-rgb,70,160,108),0.95)' : 'none' });
       const sp = (t, st) => { const s2 = document.createElement('span'); s2.textContent = t; Object.assign(s2.style, st); row.appendChild(s2); };
       sp('>_', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' });
       sp(e.node.name, { fontWeight: '700', color: on ? 'rgb(208,255,150)' : 'rgb(214,244,222)' });
@@ -3276,7 +3296,7 @@ class Component extends DCLogic {
   // 레거시 GUI 의 앞선(px) — 생성: 왼쪽 끝에서 오른쪽으로 legRate px/ms · 지우기: 오른쪽 끝에서 왼쪽으로 1.5배 빠르게
   gf_legFront(e, now) { const L = this.gf_TL(); if (!e.st) return -1e9; const el = now - e.st.at; if (e.st.dir === 'in') return el < 0 ? -1e9 : e.x0 + el * L.legRate; return e.x1 + 30 - el * L.legRate * 1.5; }
   // 초안 색 — 초록 바탕
-  gf_COL() { return { head: [120, 232, 156], rule: [40, 96, 66], key: [112, 156, 128], val: [214, 244, 222], ok: [96, 226, 140], info: [140, 214, 196], mName: [214, 244, 222], mSign: [96, 226, 140], path: [168, 240, 186], sel: [208, 255, 150], hint: [84, 128, 100], lineC: 'rgba(70,160,108,0.85)', lineF: 'rgba(56,128,88,0.5)', lineFF: 'rgba(56,128,88,0.22)', dot: 'rgba(120,190,146,0.8)', fillB: 'rgb(208,255,150)', lineB: 'rgba(110,236,156,0.95)', fill: 'rgba(96,226,140,0.85)' }; }
+  gf_COL() { return { head: [120, 232, 156], rule: [40, 96, 66], key: [112, 156, 128], val: [214, 244, 222], ok: [96, 226, 140], info: [140, 214, 196], mName: [214, 244, 222], mSign: [96, 226, 140], path: [168, 240, 186], sel: [208, 255, 150], hint: [134, 171, 149], lineC: 'rgba(70,160,108,0.85)', lineF: 'rgba(56,128,88,0.5)', lineFF: 'rgba(56,128,88,0.22)', dot: 'rgba(120,190,146,0.8)', fillB: 'rgb(208,255,150)', lineB: 'rgba(110,236,156,0.95)', fill: 'rgba(96,226,140,0.85)' }; }
   // 화면 너비(칸) — 넓은 글자는 2 · 맞춤 채우기
   gf_dw(t) { return this.gf_cellsOf(t).length; }
   gf_pad(t, n) { const d = this.gf_dw(t); return d >= n ? t : t + ' '.repeat(n - d); }
@@ -3613,7 +3633,7 @@ class Component extends DCLogic {
 
   // 로그인 — 처음엔 로그인 씬이 맨 위(패널 '로그인'), 전환이 끝나면 걷힌다. TEST · 로그인부터 = 다시 메인 화면부터
   sceneCtx(e) {
-    if (!e) return; if (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]')) return; e.preventDefault(); if (this.loginOn() || !this._cv) return;
+    if (!e) return; if (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly],[data-sb]')) return; e.preventDefault(); if (this.loginOn() || !this._cv) return;
     // 우클릭 = 속성 — 누른 자리에 객체(씬 노드 · 전역 틀 지도 노드)가 있으면 그 속성(할 일 목록), 없으면 뒤로(ESC 와 같다: 속성이 열려 있으면 닫기부터)
     const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
     let T = null; const mh = this.gf_mapHitAt(mx, my);
@@ -3690,7 +3710,7 @@ class Component extends DCLogic {
     const heading = { legacy: '레거시', mask: S.mode === 'legacy' ? '마스크 → 레거시' : '마스크', mix: '혼합 — 궤도 마스크 · 행성 레거시', data: '텍스트 — 궤도 마스크 · 이름표 텍스트' }[K];
     const LON = this.loginOn();
     return {
-      loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON || (typeof window !== 'undefined' && window.TerraTransport) ? 'none' : 'block',   /* 'TEST · 로그인부터' 는 시안(캔버스 · ?demo)에서만 — 실제 Terra 에 붙은 화면엔 없다 */ loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
+      barOn: !LON, barApi: this.barApi(), loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON || (typeof window !== 'undefined' && window.TerraTransport) ? 'none' : 'block',   /* 'TEST · 로그인부터' 는 시안(캔버스 · ?demo)에서만 — 실제 Terra 에 붙은 화면엔 없다 */ loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
       ctxMenu: this._ctxF || (this._ctxF = (e) => this.sceneCtx(e)),
       loginDoneFn: this._lgDF || (this._lgDF = () => { this._introS = 1; this.setState({ loginOn: false }); }), loginZoomFn: this._lgZF || (this._lgZF = (s) => { this._introS = s; }),
       loginAgain: () => this.setState({ loginOn: true, loginKey: (S.loginKey || 0) + 1 }),
@@ -3736,11 +3756,11 @@ class Component extends DCLogic {
         pick: () => { if (name !== cur) this.setState({ preset: name, focus: 0 }); }
       })),
       stopProp: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
-      pmove: (e) => { if (!e || !this._cv) return; if (this._q_ctlDrag || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-minfly],[data-loginwrap]'))) { this._mouse = null; return; } const rc = this._cv.getBoundingClientRect(); this._mouse = { x: e.clientX - rc.left, y: e.clientY - rc.top }; },
+      pmove: (e) => { if (!e || !this._cv) return; if (this._q_ctlDrag || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-minfly],[data-loginwrap],[data-sb]'))) { this._mouse = null; return; } const rc = this._cv.getBoundingClientRect(); this._mouse = { x: e.clientX - rc.left, y: e.clientY - rc.top }; },
       pleave: () => { this._mouse = null; },
-      pdown: (e) => { if (!e || e.button !== 0 || !this._cv || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return; const rc = this._cv.getBoundingClientRect(); this.gfDown(e.clientX - rc.left, e.clientY - rc.top); },   // 지도 노드 — 길게 누르기를 잰다
+      pdown: (e) => { if (!e || e.button !== 0 || !this._cv || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly],[data-sb]'))) return; const rc = this._cv.getBoundingClientRect(); this.gfDown(e.clientX - rc.left, e.clientY - rc.top); },   // 지도 노드 — 길게 누르기를 잰다
       tap: (e) => {
-        if (!e || e.button !== 0 || !this._cv || !this._hits || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly]'))) return;   // 제어기 창 안의 누르기는 창이 받는다
+        if (!e || e.button !== 0 || !this._cv || !this._hits || (e.target && e.target.closest && e.target.closest('[data-ctlwin],[data-loginwrap],[data-minfly],[data-sb]'))) return;   // 제어기 창 안의 누르기는 창이 받는다
         if (this._q_pop) { const rc0 = this._cv.getBoundingClientRect(); if (this.gf_popTap(e.clientX - rc0.left, e.clientY - rc0.top)) return; this.gf_popHide(); }   // 우클릭 할 일 누르기 · 다른 곳을 누르면 닫기
         const rc = this._cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
         if (this.gfHit(mx, my) || this._q_hold || this.gfOver(mx, my)) { this.gfTap(mx, my); return; }   // 전역 틀이 받는 자리만 (지도 노드를 누르고 있었으면 떼는 자리와 상관없이)

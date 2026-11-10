@@ -201,6 +201,20 @@
       "w": 640,
       "x": 14800,
       "y": 1820
+    },
+    "StatusBar.dc.html": {
+      "h": 44,
+      "title": "상단 상태 줄 — 위치 · 연결 · 알림 · 창 · 테마 · 계정 (씬 윗줄)",
+      "w": 1080,
+      "x": 15520,
+      "y": 1820
+    },
+    "StateBand.dc.html": {
+      "h": 56,
+      "title": "창 상태 띠 — 받는 중 · 없음 · 못 봤음 · 끊김",
+      "w": 560,
+      "x": 15520,
+      "y": 1980
     }
   },
   "createdOnFiles": {
@@ -266,7 +280,9 @@
     "TreeLogin.dc.html",
     "ModStatus.dc.html",
     "WebBrowser.dc.html",
-    "TerraNodes.dc.html"
+    "TerraNodes.dc.html",
+    "StatusBar.dc.html",
+    "StateBand.dc.html"
   ],
   "pages": [],
   "title": "Terra GUI v3 베이스"
