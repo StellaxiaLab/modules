@@ -146,6 +146,9 @@ func clean(rel string, allowEmpty bool) (string, error) {
 	if len(parts) > maxDepth {
 		return "", ErrPathDenied
 	}
+	if isReserved(parts[0]) {
+		return "", ErrPathDenied
+	}
 	for _, p := range parts {
 		if p == "" || p == "." || p == ".." || len(p) > maxSegment || strings.HasPrefix(p, ".") {
 			return "", ErrPathDenied
@@ -195,8 +198,27 @@ func (s *Store) resolve(rel string) (string, error) {
 		if info.Mode()&fs.ModeSymlink != 0 {
 			return "", ErrPathDenied
 		}
+		if s.isReservedFile(info) {
+			return "", ErrPathDenied
+		}
 	}
 	return full, nil
+}
+
+// isReservedFile reports whether info is the properties sheet or the desk
+// document under another name (a Windows 8.3 short name, a hard link). Names
+// cannot catch those, so the files themselves are compared. A sheet that does
+// not exist yet cannot be aliased.
+func (s *Store) isReservedFile(info fs.FileInfo) bool {
+	if !info.Mode().IsRegular() {
+		return false
+	}
+	for _, name := range []string{PropsFile, DeskFile} {
+		if ref, err := os.Stat(filepath.Join(s.root, name)); err == nil && os.SameFile(info, ref) {
+			return true
+		}
+	}
+	return false
 }
 
 // Sniff returns the content type of data and whether the store accepts it.

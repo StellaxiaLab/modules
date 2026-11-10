@@ -460,3 +460,103 @@ func TestDeskPersistsAcrossOpen(t *testing.T) {
 	_, err = again.DeskPatch(i64(1), map[string]any{"icons.a": icon(1, 1, "A")})
 	conflictKeys(t, err) // the tombstone survived the reopen
 }
+
+// A reserved name used as a directory would make desk.json a directory and
+// break the sheet before it is ever written.
+func TestReservedNameAsDirectoryIsRefused(t *testing.T) {
+	s := open(t, Limits{})
+	for _, p := range []string{"desk.json/x.png", "Desk.JSON/x.png", "desk.json./x.png", "properties.json/x.png", "PROPERTIES.json /x.png"} {
+		if _, err := s.Put(p, png1x1, ""); !errors.Is(err, ErrPathDenied) {
+			t.Errorf("Put(%q) = %v", p, err)
+		}
+		if _, err := s.List(p); !errors.Is(err, ErrPathDenied) {
+			t.Errorf("List(%q) = %v", p, err)
+		}
+	}
+	if _, err := s.DeskGet(nil); err != nil {
+		t.Fatalf("DeskGet: %v", err)
+	}
+	if _, err := s.DeskPatch(i64(0), merge(prefsAll(), map[string]any{"icons.a": icon(0, 0, "A")})); err != nil {
+		t.Fatalf("DeskPatch: %v", err)
+	}
+	if _, err := s.Props(); err != nil {
+		t.Fatalf("Props: %v", err)
+	}
+}
+
+// refuseAlias checks every operation that resolves a path refuses name.
+func refuseAlias(t *testing.T, s *Store, name string) {
+	t.Helper()
+	if _, _, err := s.Get(name); !errors.Is(err, ErrPathDenied) {
+		t.Errorf("Get(%q) = %v", name, err)
+	}
+	if _, err := s.Put(name, gif1x1, ""); !errors.Is(err, ErrPathDenied) {
+		t.Errorf("Put(%q) = %v", name, err)
+	}
+	if _, _, _, err := s.PutChunk(name, 0, int64(len(gif1x1)), gif1x1, ""); !errors.Is(err, ErrPathDenied) {
+		t.Errorf("PutChunk(%q) = %v", name, err)
+	}
+	if err := s.Delete(name); !errors.Is(err, ErrPathDenied) {
+		t.Errorf("Delete(%q) = %v", name, err)
+	}
+	if _, err := s.List(name); !errors.Is(err, ErrPathDenied) {
+		t.Errorf("List(%q) = %v", name, err)
+	}
+}
+
+func TestReservedFileAliasByHardLink(t *testing.T) {
+	s := open(t, Limits{})
+	// Before the sheets exist, resolving ordinary paths must not fail.
+	if _, err := s.Put("desk/wall/a.gif", gif1x1, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DeskPatch(i64(0), merge(prefsAll(), map[string]any{"icons.a": icon(0, 0, "A")})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Patch(map[string]any{"note": "x"}, ""); err != nil {
+		t.Fatal(err)
+	}
+	for sheet, alias := range map[string]string{DeskFile: "alias-desk.gif", PropsFile: "desk/wall/alias-props.gif"} {
+		if err := os.Link(filepath.Join(s.root, sheet), filepath.Join(s.root, filepath.FromSlash(alias))); err != nil {
+			t.Skipf("hard links unavailable here: %v", err)
+		}
+		refuseAlias(t, s, alias)
+	}
+	// The alias is also no wallpaper.
+	_, err := s.DeskPatch(i64(1), map[string]any{"wall": map[string]any{"file": "desk/wall/alias-props.gif", "name": "a", "type": "image/gif", "at": 1}})
+	if !errors.Is(err, ErrInvalidProps) && !errors.Is(err, ErrPathDenied) {
+		t.Errorf("wall alias = %v", err)
+	}
+	// Both sheets are intact.
+	if v, err := s.DeskGet(nil); err != nil || v.Doc == nil {
+		t.Fatalf("desk damaged: %v", err)
+	}
+	if p, err := s.Props(); err != nil || p["note"] != "x" {
+		t.Fatalf("props damaged: %v %v", p, err)
+	}
+}
+
+func TestReservedFileAliasByShortName(t *testing.T) {
+	s := open(t, Limits{})
+	if _, err := s.DeskPatch(i64(0), merge(prefsAll(), map[string]any{"icons.a": icon(0, 0, "A")})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Patch(map[string]any{"note": "x"}, ""); err != nil {
+		t.Fatal(err)
+	}
+	checked := 0
+	for _, short := range []string{"DESK~1.JSO", "PROPER~1.JSO"} {
+		if _, err := os.Stat(filepath.Join(s.root, short)); err != nil {
+			t.Logf("skip %s: no 8.3 short name on this volume (%v)", short, err)
+			continue
+		}
+		checked++
+		refuseAlias(t, s, short)
+	}
+	if checked == 0 {
+		t.Skip("8.3 short names are not available on this system or volume")
+	}
+	if v, err := s.DeskGet(nil); err != nil || v.Doc == nil {
+		t.Fatalf("desk damaged: %v", err)
+	}
+}
