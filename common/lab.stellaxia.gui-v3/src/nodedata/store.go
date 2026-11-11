@@ -130,7 +130,7 @@ func (s *Store) Limits() Limits { return s.limits }
 // clean turns a caller's relative path into a canonical slash path inside the
 // root, or refuses it. Rules: relative, no "..", no empty or dot segments, no
 // characters that are illegal on Windows, no control characters, bounded depth
-// and segment length, and never the reserved property sheet.
+// and segment length, and never a reserved sheet (properties.json, desk.json).
 func clean(rel string, allowEmpty bool) (string, error) {
 	rel = strings.TrimSpace(rel)
 	if rel == "" || rel == "." || rel == "/" {
@@ -146,6 +146,9 @@ func clean(rel string, allowEmpty bool) (string, error) {
 	if len(parts) > maxDepth {
 		return "", ErrPathDenied
 	}
+	if isReserved(parts[0]) {
+		return "", ErrPathDenied
+	}
 	for _, p := range parts {
 		if p == "" || p == "." || p == ".." || len(p) > maxSegment || strings.HasPrefix(p, ".") {
 			return "", ErrPathDenied
@@ -157,10 +160,18 @@ func clean(rel string, allowEmpty bool) (string, error) {
 		}
 	}
 	out := path.Clean(rel)
-	if out == PropsFile {
+	if isReserved(out) {
 		return "", ErrPathDenied
 	}
 	return out, nil
+}
+
+// isReserved reports whether rel names one of the sheets only Patch and
+// DeskPatch may write. The comparison ignores case and trailing dots and spaces,
+// which Windows drops, so "Desk.JSON" and "desk.json." reach the same file.
+func isReserved(rel string) bool {
+	name := strings.TrimRight(rel, ". ")
+	return strings.EqualFold(name, PropsFile) || strings.EqualFold(name, DeskFile)
 }
 
 // resolve maps a clean relative path onto disk and refuses any symbolic link on
@@ -187,8 +198,27 @@ func (s *Store) resolve(rel string) (string, error) {
 		if info.Mode()&fs.ModeSymlink != 0 {
 			return "", ErrPathDenied
 		}
+		if s.isReservedFile(info) {
+			return "", ErrPathDenied
+		}
 	}
 	return full, nil
+}
+
+// isReservedFile reports whether info is the properties sheet or the desk
+// document under another name (a Windows 8.3 short name, a hard link). Names
+// cannot catch those, so the files themselves are compared. A sheet that does
+// not exist yet cannot be aliased.
+func (s *Store) isReservedFile(info fs.FileInfo) bool {
+	if !info.Mode().IsRegular() {
+		return false
+	}
+	for _, name := range []string{PropsFile, DeskFile} {
+		if ref, err := os.Stat(filepath.Join(s.root, name)); err == nil && os.SameFile(info, ref) {
+			return true
+		}
+	}
+	return false
 }
 
 // Sniff returns the content type of data and whether the store accepts it.
@@ -448,7 +478,7 @@ func (s *Store) List(dir string) ([]Entry, error) {
 			return err
 		}
 		rel = filepath.ToSlash(rel)
-		if rel == PropsFile {
+		if isReserved(rel) {
 			return nil
 		}
 		info, err := d.Info()
