@@ -119,6 +119,8 @@ flowchart LR
 | `lab.stellaxia.gui-v3.node-files.get` | `GET /node/files/content?path=` | `node.read` | read | 파일 내용 (base64) |
 | `lab.stellaxia.gui-v3.node-files.put` | `PUT /node/files/content` `{path, mime, data, offset, total}` | `node.control` | write | 올리기 — 청크 한 개는 원시 640 KiB까지(Gateway가 본문을 1 MiB에서 자른다), 더 크면 `offset`을 이어 가며 여러 번. 마지막 청크에서 형식을 판별해 저장 |
 | `lab.stellaxia.gui-v3.node-files.delete` | `DELETE /node/files/content?path=` | `node.control` | write | 지우기 |
+| `lab.stellaxia.gui-v3.node-desk.get` | `GET /node/desk?since_revision=` | `node.read` | read | 제어기 바탕 구성 `{revision, doc}`. `since_revision`이 같으면 `{revision, unchanged:true}`, 없으면 `{revision:0, doc:null}` ([[node-owned-desk]]) |
+| `lab.stellaxia.gui-v3.node-desk.patch` | `PATCH /node/desk` `{base_revision, set}` | `node.control` | write | 경로(`icons.<id>` · `prefs.<필드>` · `wall`) 단위로 바꾸기. 키별 revision으로 충돌을 판정해 `409 REVISION_CONFLICT`(`details.keys`). 재시도하면 자기 쓰기가 충돌하므로 재시도 없음 |
 
 경로는 쿼리 · 본문으로 받는다(`io.terra.file`과 같은 방식) — 경로 안의 `/`가 바인딩 경로와 섞이지 않게.
 
@@ -136,7 +138,9 @@ flowchart LR
 ```text
 $TERRA_MODULE_DATA_DIR/
 └─ node-data/                ← 화면에서 보이는 "/<노드>/데이터/" 의 v3 부분
-   ├─ properties.json        ← node-props
+   ├─ properties.json        ← node-props (예약 — 파일 operation 으로 닿지 않는다)
+   ├─ desk.json              ← node-desk (예약 · 제어기 바탕 구성 · revision)
+   ├─ desk/wall/<시각>.<확장자> ← 배경 그림 하나 (바꾸면 지난 것은 지운다)
    └─ profile/
       └─ image/<파일>         ← 프로필 하나만 (바꾸면 지난 것은 지운다)
 ```
