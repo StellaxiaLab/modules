@@ -21,7 +21,7 @@ rep("this._q_cmdKey = (e) => { if (!this._live) return this.gf_cmdDispose();","t
 rep("  renderVals() {\n    const S = this.state, sys = this.build()","""  // 로그인 — 처음엔 로그인 씬이 맨 위(패널 '로그인'), 전환이 끝나면 걷힌다. TEST · 로그인부터 = 다시 메인 화면부터
   loginOn() { const S = this.state || {}; return (S.loginOn ?? (this.props.login ?? true)) !== false; }
   // 로그아웃 — 전역 틀의 '로그아웃' 에서. 창을 모두 닫고(최소화 목록도 비움) 로그인 층을 다시 올린다 → 로그인 씬이 전환을 거꾸로
-  sceneLogout() { if (this.loginOn()) return; this.gf_ctlCloseAll(); this._q_wins = []; this._q_flyPin = false; if (this._q_fly) this.gf_minFly(false); if (this._q_lg) this._q_lg.open = false; this.setState({ loginOn: true, logoutKey: ((this.state || {}).logoutKey || 0) + 1 }); }
+  sceneLogout() { if (this.loginOn()) return; this.gf_ctlCloseAll(); this.gf_ctlWatchAll(); this._q_wins = []; this._q_flyPin = false; if (this._q_fly) this.gf_minFly(false); if (this._q_lg) this._q_lg.open = false; this.setState({ loginOn: true, logoutKey: ((this.state || {}).logoutKey || 0) + 1 }); }
   renderVals() {
     const S = this.state, sys = this.build()""")
 rep("    return {\n      ...this.gf_ctlProps(),","""    const LON = this.loginOn();
