@@ -7,7 +7,7 @@
     }
   },
   "contractId": "lab.stellaxia.nodetalk.api",
-  "contractVersion": "0.3.0",
+  "contractVersion": "0.3.1",
   "defaultLocale": "ko-KR",
   "description": "이 계약이 Gateway route의 단일 원본입니다. operation의 bindings에 적은 method·path가 그대로 게시되고 security.permissions가 route 권한이 되므로, 표면을 바꿀 때는 코드가 아니라 이 파일을 먼저 고칩니다. 설계 결정 D-1(메인은 순서·보존 권한자)과 D-3(방의 이름은 conversation)이 이 계약의 모양을 정합니다 — docs/ideas/node-comms-test-module-ideas.md 참조.",
   "errors": {
@@ -604,7 +604,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -901,7 +902,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -1194,7 +1196,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -2012,7 +2015,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -2309,7 +2313,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -2597,7 +2602,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [
@@ -3744,7 +3750,8 @@
         "requiresProviderState": "ready",
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ]
       },
       "bindings": [

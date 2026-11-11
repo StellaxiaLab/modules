@@ -3,7 +3,7 @@
   "$id": "https://contracts.terra.dev/modules/lab.stellaxia.file/0.1.0/terra-api.json",
   "schemaVersion": "1.0.0",
   "contractId": "lab.stellaxia.file.api",
-  "contractVersion": "0.2.0",
+  "contractVersion": "0.2.1",
   "defaultLocale": "ko-KR",
   "title": "Terra File API",
   "summary": "노드의 공유 폴더를 나열하고 관리합니다.",
@@ -176,7 +176,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -345,7 +346,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -567,7 +569,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -803,7 +806,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -1031,7 +1035,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -1286,7 +1291,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -1491,7 +1497,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -1696,7 +1703,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -1893,7 +1901,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -2087,7 +2096,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -2332,7 +2342,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -2577,7 +2588,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -2884,7 +2896,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -3078,7 +3091,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -3256,7 +3270,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -3438,7 +3453,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -3629,7 +3645,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -3892,7 +3909,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
@@ -4066,7 +4084,8 @@
         ],
         "scopes": [
           "local",
-          "node"
+          "node",
+          "cluster"
         ],
         "requiresProviderState": "ready"
       },
