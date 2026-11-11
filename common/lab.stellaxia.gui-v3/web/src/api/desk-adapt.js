@@ -52,6 +52,11 @@ export function moduleApps(list, moduleId, running) {
   return arr(list, 'apps').filter((a) => a && a.moduleId === moduleId && !a.embed).map((a) => ({ id: a.id, name: a.name || a.id, health: running ? '정상' : '멈춤', full: true }));
 }
 
+/** 모듈 상태 창 · 브라우저 창의 앱 줄 — Daemon 모듈 목록에는 GUI 가 없어 Gateway 앱 목록에서 그 모듈 것을 고른다. embed 앱은 뺀다 @returns {{ id: string, name: string, mode: string, entry: string }[]} */
+export function webApps(list, moduleId) {
+  return arr(list, 'apps').filter((a) => a && a.moduleId === moduleId && !a.embed).map((a) => ({ id: a.id, name: a.name || a.id, mode: a.mode, entry: a.entry || '' }));
+}
+
 // 동의 상태 → 보드의 세 칸(동의 대기 · 받는 중 · 설치됨). managed · pinned 는 정책이 이미 정했다(동의 단추 없음)
 const OFFER_ST = { offered: 'wait', stale: 'wait', accepted: 'consent', managed: 'done', pinned: 'done' };
 /** @returns {{ id: string, name: string, ver: string, size: string, by: string, perms: string[], st: 'wait'|'consent'|'done', state: string }[]} */
@@ -137,7 +142,7 @@ export function nodeCfgWire(type, v, label) {
   return String(v == null ? '' : v);
 }
 
-// ── 파일 — 공유 폴더(io.terra.file roots.list · entries.list, file.read/write)와 로컬 탐색(Daemon local-fs, 읽기만 · 이 노드만) ──
+// ── 파일 — 공유 폴더(lab.stellaxia.file roots.list · entries.list, file.read/write)와 로컬 탐색(Daemon local-fs, 읽기만 · 이 노드만) ──
 const UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
 export function fmtSize(bytes) { let n = Number(bytes) || 0, i = 0; while (n >= 1024 && i < UNITS.length - 1) { n /= 1024; i += 1; } return (i === 0 ? String(n) : n.toFixed(n < 10 ? 1 : 0)) + UNITS[i]; }
 function fmtTime(iso) { const d = new Date(iso || ''); return Number.isNaN(d.getTime()) ? '' : d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -37,6 +38,7 @@ const maxReadBytes = 480 << 10
 type apiError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+	Details any    `json:"details,omitempty"`
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -46,6 +48,10 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 
+func writeAPIErrorDetails(w http.ResponseWriter, status int, code, message string, details any) {
+	writeJSON(w, status, map[string]apiError{"error": {Code: code, Message: message, Details: details}})
+}
+
 func writeAPIError(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, map[string]apiError{"error": {Code: code, Message: message}})
 }
@@ -53,7 +59,14 @@ func writeAPIError(w http.ResponseWriter, status int, code, message string) {
 // writeStoreError keeps the store's vocabulary across HTTP — the codes are the
 // contract's errors list.
 func writeStoreError(w http.ResponseWriter, err error) {
+	var conflict *nodedata.RevisionConflict
 	switch {
+	case errors.As(err, &conflict):
+		keys := conflict.Keys
+		if keys == nil {
+			keys = []string{}
+		}
+		writeAPIErrorDetails(w, http.StatusConflict, "REVISION_CONFLICT", err.Error(), map[string]any{"keys": keys})
 	case errors.Is(err, nodedata.ErrPathDenied):
 		writeAPIError(w, http.StatusBadRequest, "PATH_DENIED", err.Error())
 	case errors.Is(err, nodedata.ErrNotFound):
@@ -150,6 +163,11 @@ type propsPatch struct {
 	Set map[string]any `json:"set"`
 }
 
+type deskPatch struct {
+	BaseRevision *int64         `json:"base_revision"`
+	Set          map[string]any `json:"set"`
+}
+
 type filePut struct {
 	Path   string `json:"path"`
 	Mime   string `json:"mime"`
@@ -208,6 +226,47 @@ func newAPI(store *nodedata.Store, version string) http.Handler {
 		}
 		log.Printf("gui-v3: audit props.patch by=%s keys=%s", caller(r), strings.Join(keys, ","))
 		writeJSON(w, http.StatusOK, map[string]any{"props": props})
+	})
+
+	mux.HandleFunc(apiPrefix+"/node/desk", func(w http.ResponseWriter, r *http.Request) {
+		if !method(w, r, http.MethodGet, http.MethodPatch) {
+			return
+		}
+		if r.Method == http.MethodGet {
+			var since *int64
+			if v := r.URL.Query().Get("since_revision"); v != "" {
+				n, err := strconv.ParseInt(v, 10, 64)
+				if err != nil {
+					writeAPIError(w, http.StatusBadRequest, "INVALID_REQUEST", "since_revision must be a whole number")
+					return
+				}
+				since = &n
+			}
+			view, err := store.DeskGet(since)
+			if err != nil {
+				writeStoreError(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, view)
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 128<<10)
+		var in deskPatch
+		if !decodeBody(w, r, 128<<10, &in) {
+			return
+		}
+		view, err := store.DeskPatch(in.BaseRevision, in.Set)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		keys := make([]string, 0, len(in.Set))
+		for k := range in.Set {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		log.Printf("gui-v3: audit desk.patch by=%s revision=%d keys=%s", caller(r), view.Revision, strings.Join(keys, ","))
+		writeJSON(w, http.StatusOK, view)
 	})
 
 	mux.HandleFunc(apiPrefix+"/node/files", func(w http.ResponseWriter, r *http.Request) {

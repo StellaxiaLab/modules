@@ -10,14 +10,14 @@ test('ndSet — 실모드 · operation 없음 · 초안 아님이면 거절(fals
   const i = desk.indexOf('  ndSet(fn, op, input, o) {'), body = desk.slice(i, desk.indexOf('  ndSeed(', i));
   assert.ok(i > 0);
   assert.match(body, /!op && T\.t && T\.t\.kind !== 'mock'/);
-  assert.match(body, /o && o\.draft\) \{ T\.draft\(/);
+  assert.match(body, /o && o\.draft\) \{[\s\S]*?T\.draft\(/);   // 공유 폴더 초안은 this._ov(사본 밖) — 그 밖의 초안만 사본에서
   assert.match(body, /적용 안 함 : 노드에 보낼 operation 없음'\); return false;/);
   assert.ok(nodes.includes('  draft(n, res, apply)'));
 });
 
 test('성공 문구는 ndSet 이 거절하지 않았을 때만 — 모듈 끄기 · 켜기 · 되돌리기 · 선언 적용 · 작업', () => {
-  assert.match(desk, /\.post', op && \{ module_id: m\.id \}\) !== false\) this\.say\(msg\)/);
-  assert.match(desk, /x\.st = 'applied'; \}\)\) !== false\) this\.say\(/);
+  assert.match(desk, /\.post', op && \{ module_id: m\.id \}, \{ ok: \(\) => this\.say\(msg\) \}\)/);   // S4 — 성공 문구는 응답 뒤(o.ok)에만
+  assert.match(desk, /x\.st = 'applied'; \}\), undefined, undefined, \{ ok: \(\) => this\.say\(/);
   assert.match(desk, /\}\) === false\) return false; setTimeout/);
 });
 

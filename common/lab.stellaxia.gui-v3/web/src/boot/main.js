@@ -33,6 +33,7 @@ import { dangerView } from '../api/danger-zone.js';
 import * as fileTransfer from '../api/file-transfer.js';
 import * as taskFollow from '../api/task-follow.js';
 import * as changes from '../api/changes.js';
+import { migratePc, pcLogout as pcLogout0, setWho } from '../api/pc-state.js';
 
 window.TerraTheme = createTheme({ root: document.documentElement, storage: (() => { try { return window.localStorage; } catch { return null; } })(), emit: () => window.dispatchEvent(new Event('terra-theme')) });   // 다크 · 라이트 — 이 브라우저의 보기 설정
 const q = new URLSearchParams(location.search), status = document.getElementById('status'), MODE = pickMode(q);
@@ -47,10 +48,11 @@ else say('글자 장 : 시안 2D');
 let terra = null, session = null, transport = null, push = null, alarms = null, topoTimer = 0;
 if (MODE !== 'demo') {
   session = createSession();
+  try { migratePc(window.localStorage); } catch {}   // 처음 한 번 — 옛 제어기 키(terra.view.desk.* · terra.wall.*)를 지운다(바탕 구성은 이제 그 노드가 원본 — 설계 node-owned-desk.md §14)
   // 자격 — B: 자격 핸들(Handle) · A: 셸이 준 앱 토큰(Bearer), 401 이면 셸에게 새로 받아 한 번 더
   terra = createTerra({ authorization: () => (MODE === 'shell' ? session.authorization() : null), token: () => (frame ? frame.token() : null), refresh: () => (frame ? frame.refresh() : Promise.resolve(undefined)) });
   window.TerraTopology = buildTopology([], { rev: 'none' });   // 실제 모드의 첫 지도는 빈 지도 — 시안 지도(01 · 02 …)를 실제처럼 보이지 않는다. 받으면 바뀌고, 못 받으면 상단 줄이 '못 봤음'을 보인다
-  transport = window.TerraTransport = createGatewayTransport({ terra, authed: () => (MODE === 'shell' ? !!session.handle : !!(frame && frame.token())), ns: () => (MODE === 'app' ? (frame && frame.appId) || 'lab.stellaxia.gui-v3.web' : 'gui-v3') });
+  transport = window.TerraTransport = createGatewayTransport({ terra, localRid: () => (window.TerraTopology && window.TerraTopology.localId) || '', authed: () => (MODE === 'shell' ? !!session.handle : !!(frame && frame.token())) });
   const L = boardDef('Login');
   if (L && !L.Logic.__terra) {
     class TerraLogin extends L.Logic {
@@ -176,19 +178,19 @@ if (MODE !== 'demo') {
   window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraCanRemote = canRemote; window.TerraPermissionsOf = permissionsOf; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology); window.TerraNetProps = createNetProps(terra, () => window.TerraTopology); window.TerraShells = createShells(terra, () => window.TerraTopology); window.TerraSviMake = createSviMake(terra, () => window.TerraTopology, () => window.TerraWho); window.TerraSviEnvelope = createSviEnvelope(terra, () => window.TerraTopology); window.TerraSviTypes = () => moduleTypes(window.TerraSviMods || []); window.TerraSviView = sviView; window.TerraSviWatch = sviView.createSviWatch(terra);   // 자원 상태 창 값 보기 — 형식 → 뷰어 · 구독(핸들 열기 → events, 지금은 위임 밖이라 문이 잠근다)   // SVI 창 — 선언 · 허가 · 연결, 모듈이 내놓은 유형(contributions.svi.types — 코어 대기)   // 제어기의 노드 터미널(commands.execute · 이 노드에서만) · Terra 터미널(terra shell 낱말 → operation)   // 네트워크 속성 창 — 주소 · 광고 전송 · 노드 간 연결   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
   // 문 — 코어가 앱 토큰에 열지 않은 단추를 잠그고 이유를 적는다(src/api/gates.js). 사람 권한은 whoami 로. 보드는 window.TerraGate 가 없으면(시안) 연다
   window.TerraGate = (op, o = {}) => gate(op, Object.assign({ who: window.TerraWho }, o)); window.TerraGateAll = (ops, o = {}) => gateAll(ops, Object.assign({ who: window.TerraWho }, o)); window.TerraRisk = riskOf; window.TerraDenyHint = denyHint;
-  // 제어기의 파일 · 작업 · 밀어 받기 — 공유 폴더 내용 · 전송(io.terra.file), 작업 출력 따라가기(이 노드 SSE · 다른 노드 폴링), 바뀐 줄 찾기
+  // 제어기의 파일 · 작업 · 밀어 받기 — 공유 폴더 내용 · 전송(lab.stellaxia.file), 작업 출력 따라가기(이 노드 SSE · 다른 노드 폴링), 바뀐 줄 찾기
   window.TerraFileTransfer = Object.assign({ create: (invoke) => fileTransfer.createFileTransfer({ invoke }) }, fileTransfer);
   window.TerraTaskFollow = Object.assign((n, taskId, onUpdate) => taskFollow.followTask({ taskId, onUpdate, sse: n === transport.localId() ? (op, i, h) => terra.sse(op, i, h) : null, poll: (i) => transport.invoke(n, 'terra.daemon.tasks.by-task-id.output.get', i) }), taskFollow);
   window.TerraChanges = changes;
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
   // 위험 영역 — 설정창 단추는 Scene 에 'danger' 이벤트만 보낸다(값을 싣지 않는다). 켜기 · 끄기는 Scene 의 /danger 확인 화면이 한다 — 이 페이지는 스위치 쓰기를 부르지 않는다(ADR-GW-012 §6.1)
-  window.TerraDangerView = dangerView; if (MODE === 'app' && frame) window.TerraDangerAsk = () => { frame.emit('danger'); return true; };
-  const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = []; })
+  window.TerraDangerView = dangerView; window.TerraDangerAsk = () => { if (!(MODE === 'app' && frame)) return false; frame.emit('danger'); return true; }; window.TerraDangerAsk.can = () => MODE === 'app' && !!frame;   // 늘 정의 — frame 은 호출 때 본다(앱 모드의 frame 은 나중에 선다)
+  const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = null; })
     .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = []; }));   // SVI 유형을 내놓는 모듈(contributions.svi.types)
   // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50), 읽음 · 지우기는 window.TerraAlarmBook(src/api/alarms.js).
   //   바뀌면 'terra-alarms' 신호 — 알림 창 · 전역 틀 배지가 다시 그린다. 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
   const alarmSig = () => { try { window.dispatchEvent(new Event('terra-alarms')); } catch {} };
-  const stopLive = () => { if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; window.TerraAlarmBook = null; if (window.TerraMetrics) window.TerraMetrics.clear(); alarmSig(); };
+  const stopLive = () => { whoSeq++; clearTimeout(whoT); if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; window.TerraAlarmBook = null; if (window.TerraMetrics) window.TerraMetrics.clear(); alarmSig(); };
   // 노드 기록(상태 · 하트비트 · 자원)은 로그인 때 한 번만 받으면 낡는다 — 30초마다 다시(보일 때만). 노드 목록이 같으면(rev 같음) 기록만 바꿔 끼우고 씬은 다시 짓지 않는다
   //   window.TerraTopologyState = { state: 'ok'|'empty'|'error', error?, at } — 못 받았을 때 화면이 시안 지도를 실제처럼 두지 않고 "받지 못함 / 노드 없음"을 보일 신호('terra-topology-state' 이벤트도)
   const refreshTopology = () => loadTopologyState(terra).then((r) => {
@@ -202,23 +204,31 @@ if (MODE !== 'demo') {
   window.TerraMetrics = createMetrics({ pollMs: TOPO_MS });   // 전역 틀 대상 표의 그래프 — 하트비트 스냅샷 점열(src/api/metrics.js). 실시간 지표 op 는 코어에 없다
   const topoTick = () => { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') refreshTopology(); };
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (topoTimer && document.visibilityState === 'visible') refreshTopology(); });
+  const pcLogout = () => { try { pcLogout0(window, window.localStorage); } catch {} };   // 로그아웃 세 길 공용 — 타이머 취소 신호 → 터미널 기록 삭제 → TerraWho = null (토큰 갱신은 부르지 않는다)
+  // whoami — 일시 실패하면 쓰기 단추가 세션 내내 잠기므로(권한을 모르면 닫는다) 3 · 10 · 30초 뒤 다시 묻고, 받으면 'terra-who' 로 화면을 다시 그리게 한다
+  const WHO_RETRY = [3000, 10000, 30000]; let whoT = 0, whoSeq = 0;
+  const askWho = (n) => {
+    clearTimeout(whoT); const my = ++whoSeq;
+    terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { if (my !== whoSeq) return; try { setWho(window, window.localStorage, w, () => window.TerraNodes && window.TerraNodes.clear && window.TerraNodes.clear()); } catch { window.TerraWho = w; } try { window.dispatchEvent(new Event('terra-who')); } catch {} },
+      () => { if (my !== whoSeq) return; window.TerraWho = null; if (n < WHO_RETRY.length) whoT = setTimeout(() => askWho(n + 1), WHO_RETRY[n]); });
+  };
   const afterLogin = () => {
-    transport.ready(); loadRoutes(); loadApps(); stopLive();
-    terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { window.TerraWho = w; }, () => { window.TerraWho = null; });   // 계정 탭 — principal · 권한 · Terra ID 연결의 사용자 id
+    loadRoutes(); loadApps(); stopLive();
+    askWho(0);   // 계정 탭 — principal · 권한 · Terra ID 연결의 사용자 id
     alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m), onChange: alarmSig }); window.TerraAlarms = alarms.list; window.TerraAlarmBook = alarms.book; alarmSig();
     topoTimer = setInterval(topoTick, TOPO_MS); refreshTopology();
     push = startPush({ terra, store: () => window.TerraNodes, onEvent: () => alarms && alarms.poke() });
   };
   const SC = boardDef('Scene');
   let sceneOut = null;   // 보드의 원래 로그아웃(로그인 층을 전환을 거꾸로 해 다시 올린다)
-  if (SC && SC.Logic.prototype.sceneLogout && !SC.Logic.__terraOut) { const out = sceneOut = SC.Logic.prototype.sceneLogout; SC.Logic.prototype.sceneLogout = function (...a) { if (MODE === 'app') { const back = signedIn(); appLogout(); return back ? out.apply(this, a) : undefined; } if (MODE === 'shell') session.logout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive(); return out.apply(this, a); }; SC.Logic.__terraOut = true; }
+  if (SC && SC.Logic.prototype.sceneLogout && !SC.Logic.__terraOut) { const out = sceneOut = SC.Logic.prototype.sceneLogout; SC.Logic.prototype.sceneLogout = function (...a) { if (MODE === 'app') { const back = signedIn(); appLogout(); return back ? out.apply(this, a) : undefined; } if (MODE === 'shell') session.logout(); pcLogout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive(); return out.apply(this, a); }; SC.Logic.__terraOut = true; }
   // A 모드의 로그인 · 로그아웃 — 웹은 비밀번호를 받지 않는다. 첫 화면은 B 와 같은 로그인 보드(TERRA 연출)다:
   //   셸 칸이 있으면 보드의 폼 + 셸 칸으로 로그인(§1-2) · 없으면(이전 Terra) TERRA 를 누르면 emit('login') → Scene 의 /login 카드 → / 로 돌아와 frame 이 새로 서고 토큰이 든 init
   //   토큰이 있으면(셸 세션 · 이미 로그인) 연출을 잠깐 보인 뒤 폼 없이 워프로 트리 뷰
   //   로그아웃 → emit('logout') — 그 Scene 이 쥔 Handle 이 있을 때만(session.state, node-gui 와 같은 규칙) — 그리고 로그인 층을 거꾸로. 셸 세션의 토큰이면 셸에서 로그아웃한다
   const signedIn = () => { const v = frame && frame.value && frame.value(); return !!(v && v.state === 'signedIn'); };
   const appLogout = () => {
-    if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive();
+    pcLogout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive();
     if (frame && signedIn()) { frame.emit('logout'); if (rememberedOf(frame)) frame.remember.forget(); }   // 로그아웃은 기억도 지운다(Gateway 는 그 세션의 기억을 이미 지운다 — 여기는 이 웹이 쥔 id 사본)
     else say('셸 로그인 세션 — 로그아웃 : 셸에서');
   };
@@ -237,10 +247,18 @@ if (MODE !== 'demo') {
     const sec = hostSecretOf(f);
     if (sec) bindHostSecret({ secret: sec, login: () => window.__terra && window.__terra.login(), scene: () => window.__terra && window.__terra.scene, wanted: () => { const lg = window.__terra && window.__terra.login(); return !f.token() && !rememberedMode(f, lg && lg.state); } });   // 토큰이 있으면(이미 로그인) · 기억으로 들어갈 자리면 칸을 두지 않는다
     let had = !!f.token();
-    if (f.onToken) f.onToken((tok) => {   // 토큰이 바뀌면(다른 사용자 · 로그인 · 로그아웃) 앞의 사본을 버린다
+    if (f.onToken) f.onToken((tok) => {   // 토큰이 바뀌면 — 로그아웃 · 처음 로그인은 앞의 사본을 버린다. 같은 사람의 갱신은 버리지 않는다(저장 중인 바탕 구성이 사라지지 않게): 사람이 달라졌을 때만
+      if (tok && had) {
+        const prev = window.TerraWho && window.TerraWho.principal, v = f.value && f.value(), vp = v && typeof v.principal === 'string' ? v.principal : '';
+        const swap = () => { if (window.TerraNodes) window.TerraNodes.clear(); };
+        if (vp) { if (prev && vp !== prev) { swap(); terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { window.TerraWho = w; }, () => {}); } }
+        else terra.invoke('terra.gateway.agent.whoami.get', {}).then((w) => { if (!w) return; if (prev && w.principal && w.principal !== prev) swap(); window.TerraWho = w; }, () => {});   // 못 물으면 지우지 않는다
+        return;
+      }
       if (window.TerraNodes) window.TerraNodes.clear();
-      if (tok && !had) { appSignedIn(); if (!sec) autoWarp(); }   // 셸 칸으로 한 로그인은 hostLogin 이 워프한다
-      else if (!tok) { stopLive(); showLogin(); }
+      if (tok && !had) { appSignedIn(); if (!sec) autoWarp(); }
+      else if (tok && !window.TerraWho) askWho(0);   // 토큰 갱신 때 TerraWho 가 비어 있으면 다시 묻는다   // 셸 칸으로 한 로그인은 hostLogin 이 워프한다
+      else if (!tok) { pcLogout(); stopLive(); showLogin(); }
       had = !!tok;
     });
     if (had) { appSignedIn(); autoWarp(); say('앱 모드 · 셸 앱 토큰'); }

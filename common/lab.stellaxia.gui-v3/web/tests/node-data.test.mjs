@@ -59,14 +59,15 @@ test('PA — 사본이 없으면 Master 가 마지막으로 관측한 값으로'
   const r = S.read('R', 'modules'); assert.equal(r.src, 'Master 관측'); assert.equal(r.data[0].st, 'observed');
 });
 
-test('쓰기 — 사본에 먼저(낙관) · 실패하면 되돌림 · 성공하면 다시 받는다', async () => {
+test('쓰기 — 표시층에 먼저(사본은 응답 전까지 그대로) · 실패하면 걷음 · 성공하면 다시 받는다', async () => {
   const t = fake(), S = await loadStore(t);
   S.read('R', 'modules'); await tick(5);
   const stop = (d) => d.map((m) => ({ ...m, st: 'stop' }));
   const p = S.write('R', 'x.fail', {}, { res: 'modules', apply: stop });
-  assert.equal(S.read('R', 'modules').data[0].st, 'stop');   // 바로 보인다
+  assert.equal(S.read('R', 'modules').view[0].st, 'stop');   // 바로 보인다 — 표시층(view)에만
+  assert.equal(S.read('R', 'modules').data[0].st, 'run');   // 사본은 노드가 준 값 그대로(S4)
   await assert.rejects(p, { code: 'MODULE_BUSY' });
-  assert.equal(S.read('R', 'modules').data[0].st, 'run');   // 되돌림
+  assert.equal(S.read('R', 'modules').view[0].st, 'run');   // 표시층을 걷었다
   await S.write('R', 'terra.daemon.modules.by-module-id.stop.post', { module_id: 'm' }, { res: 'modules', apply: stop });
   assert.ok(t.calls.some((c) => c[1] === 'terra.daemon.modules.by-module-id.stop.post'));
 });
@@ -75,7 +76,7 @@ test('묶음 자원(desk) · 모양 — 실제 전송이면 operation 여럿을 
   const t = fake(); t.invoke = (n, op) => op === 'terra.daemon.tasks.get' ? Promise.reject({ code: 'FORBIDDEN' }) : Promise.resolve({ op });
   const S = await loadStore(t); S.shapes.desk = (P) => ({ got: Object.keys(P).sort() });
   await S.refresh('L', 'desk');
-  assert.deepEqual(S.read('L', 'desk').data.got, ['config', 'devices', 'enroll', 'modules', 'offers', 'svi', 'tunnels', 'wg']);
+  assert.deepEqual(S.read('L', 'desk').data.got, ['config', 'devices', 'enroll', 'modules', 'offers', 'svi', 'tombs', 'tunnels', 'wg']);
   S.clear(); assert.equal(S.read('L', 'desk').data, null);   // 로그아웃 — 앞 사람의 사본을 남기지 않는다
 });
 
@@ -101,4 +102,13 @@ test('오류 — 실패한 자원은 그리기마다 다시 부르지 않는다(
   S.read('R', 'modules'); await tick(2);
   for (let i = 0; i < 20; i++) S.read('R', 'modules');
   assert.equal(n, 1); assert.equal(S.read('R', 'modules').err.code, 'UNAUTHENTICATED');
+});
+
+test('분할 판정 — 망이 끊긴 PC 에서 실제로 오는 코드(UPSTREAM_UNREACHABLE · MODULE_INVOCATION_TIMEOUT · RELAY_SEND_FAILED)도 끊김으로 본다', async () => {
+  for (const code of ['UPSTREAM_UNREACHABLE', 'MODULE_INVOCATION_TIMEOUT', 'RELAY_SEND_FAILED']) {
+    const t = fake(), S = await loadStore(t); S.read('R', 'modules'); await tick(5);
+    t.invoke = () => Promise.reject({ code }); S.refresh('R', 'modules'); await tick(5);
+    assert.equal(S.link('R').state, 'offline', code); assert.equal(S.read('R', 'modules').data[0].st, 'run');
+    await assert.rejects(S.write('R', 'x.post', {}, {}), { code: 'PARTITIONED' });
+  }
 });

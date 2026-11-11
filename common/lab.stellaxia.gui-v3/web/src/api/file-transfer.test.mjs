@@ -1,4 +1,4 @@
-// node --test — 파일 전송(io.terra.file transfers.*): 청크 순서 · offset · 재개 · 취소 · 거절 뒤 다시 · stall · 미리보기 읽기
+// node --test — 파일 전송(lab.stellaxia.file transfers.*): 청크 순서 · offset · 재개 · 취소 · 거절 뒤 다시 · stall · 미리보기 읽기
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -9,12 +9,12 @@ const bytes = (n) => { const u = new Uint8Array(n); for (let i = 0; i < n; i++) 
 const blob = (u, name = 'a.bin') => ({ name, size: u.length, arrayBuffer: async () => u.buffer.slice(u.byteOffset, u.byteOffset + u.length) });
 const err = (code, extra) => Object.assign(new Error(code), { code }, extra || {});
 
-/** 가짜 io.terra.file — 노드 쪽 파일 · 전송 기록. calls 에 (op, 입력 요약) */
+/** 가짜 lab.stellaxia.file — 노드 쪽 파일 · 전송 기록. calls 에 (op, 입력 요약) */
 function fakeNode(o = {}) {
   const files = new Map(Object.entries(o.files || {})), tx = new Map(), calls = []; let n = 0;
   const chunk = o.chunk || 4;
   const invoke = async (op, i) => {
-    calls.push([op.replace('io.terra.file.', ''), i.offset ?? '', i.resume_id || '']);
+    calls.push([op.replace('lab.stellaxia.file.', ''), i.offset ?? '', i.resume_id || '']);
     if (o.hook) { const r = await o.hook(op, i, { tx, files }); if (r !== undefined) return r; }
     if (op.endsWith('transfers.create')) {
       if (i.resume_id && tx.has(i.resume_id)) { const t = tx.get(i.resume_id); return { transfer: { transfer_id: t.id, chunk_size: chunk, offset: t.off, state: 'transferring' } }; }

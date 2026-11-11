@@ -24,6 +24,9 @@
         <p class="wb-dim">주소창 : http(s) 주소 · 모듈 이름 · 모듈 GUI : Gateway 제공 sandbox 화면</p>
       </div>
     </sc-if>
+    <sc-if value="{{isLaunch}}" hint-placeholder-val="{{ false }}">
+      <div class="wb-load"><div class="wb-step {{launchCls}}"><span>{{launchMark}}</span><span>{{launchT}}</span></div><p class="wb-dim">{{launchNote}}</p><button type="button" class="wb-btn" onClick="{{reload}}">다시 열기</button></div>
+    </sc-if>
     <sc-if value="{{isLoad}}" hint-placeholder-val="{{ false }}">
       <div class="wb-load"><sc-for list="{{steps}}" as="s" hint-placeholder-count="3"><div class="wb-step {{s.cls}}"><span>{{s.mark}}</span><span>{{s.t}}</span><span class="wb-dim">{{s.api}}</span></div></sc-for></div>
     </sc-if>
