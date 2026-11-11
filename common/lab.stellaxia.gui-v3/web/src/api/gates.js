@@ -16,6 +16,22 @@ import MD from './master-delegated.json' with { type: 'json' };
 /** 이 앱(lab.stellaxia.gui-v3.web)이 module.json 에 선언한 권한 — tests 가 module.json 과 같은지 본다 */
 export const APP_PERMS = ['session.identity', 'node.read', 'node.control', 'node.config', 'file.read', 'file.write', 'process.execute', 'module.manage'];
 
+/** 앱 토큰에 닫힌 Daemon 위임 문(daemon_delegation.go) — 선언 적용 · 은퇴 잊기는 위임 호출자에게 닫혀 있다. 호출하지 않고 잠근다 */
+const DAEMON_CLOSED = {
+  'terra.daemon.svi.declarations.apply.post': '잠김 : 앱 토큰에 닫힘 — 선언 적용은 터미널(terra svi apply)에서',
+  'terra.daemon.svi.declarations.retired.by-family.by-name.forget.post': '잠김 : 앱 토큰에 닫힘 — 은퇴 선언 잊기는 터미널에서',
+};
+/** 선언 계열(declare · undeclare)은 앱 토큰에 module · file 패밀리만 열려 있고, 다른 노드로는 전부 닫힌다 */
+const DECLARE_OPS = new Set(['terra.daemon.svi.declarations.post', 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post']);
+const DECLARE_FAMILIES = ['module', 'file'];
+/** Gateway 에 게시만 되어 있고 Daemon 백엔드가 늘 501 인 op — Terra 에 구현 없음(영구 끄기 · 켜기 · 롤백). 프로세스 정지는 modules.by-module-id.stop */
+const NOT_IMPLEMENTED = {
+  'terra.gateway.modules.by-id.disable.post': '잠김 : Terra 에 구현 없음 — 영구 끄기 필요(Daemon). 프로세스 정지는 멈춤 단추로',
+  'terra.gateway.modules.by-id.enable.post': '잠김 : Terra 에 구현 없음 — 영구 켜기 필요(Daemon). 프로세스 시작은 시작 단추로',
+  'terra.gateway.modules.by-id.rollback.post': '잠김 : Terra 에 구현 없음 — 롤백 필요(Daemon)',
+};
+/** 위임 표에는 있으나 Master 가 앱 선언에 없는 권한을 요구하는 op(rerun 은 process.execute.delegated) */
+const APP_LACKS = { 'terra.master.jobs.by-job-id.rerun.post': 'process.execute.delegated' };
 
 /**
  * @param {string} op
@@ -24,9 +40,20 @@ export const APP_PERMS = ['session.identity', 'node.read', 'node.control', 'node
  */
 export function gate(op, o = {}) {
   const shut = (needs, why) => ({ open: false, needs, why, op });
+  if (NOT_IMPLEMENTED[op]) return shut('core', NOT_IMPLEMENTED[op]);
+  if (APP_LACKS[op]) return shut('app-perm', '잠김 : 앱 토큰에 없는 권한 — ' + APP_LACKS[op]);
+  if (DAEMON_CLOSED[op]) return shut('core', DAEMON_CLOSED[op]);
+  if (DECLARE_OPS.has(op)) {
+    if (o.remote) return shut('local', '잠김 : 다른 노드의 선언은 앱 토큰에 닫힘 — 이 노드에서만');
+    if (o.family && !DECLARE_FAMILIES.includes(o.family)) return shut('core', '잠김 : 앱 토큰은 module · file 패밀리만 선언 — ' + o.family + ' 는 터미널에서');
+  }
+  // 사람의 권한을 모르면(whoami 실패 · 아직 못 받음) 열지 않는다 — who 키를 준 호출만(없으면 권한 조회를 하지 않는 시안 · 시험)
+  const whoAll = !!(o.who && o.who.allPermissions);   // 전체 권한 계정 — 사람 권한 검사를 건너뛴다(권한 목록이 없어도)
+  const whoUnknown = !whoAll && 'who' in o && !(o.who && Array.isArray(o.who.permissions));
   if (op.startsWith('terra.master.')) {
     if (!MD.operations[op]) return shut('core', '잠김 : 위임 없음 — ' + op);
-    const need = (MD.operations[op].permissions || []).filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
+    if (whoUnknown && (MD.operations[op].permissions || []).length) return shut('user-perm', '잠김 : 계정 권한을 알 수 없음 — whoami 못 받음');
+    const need = whoAll ? [] : (MD.operations[op].permissions || []).filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
     if (need.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + need.join(' · '));
     return { open: true, needs: '', why: '', op };
   }
@@ -35,7 +62,8 @@ export function gate(op, o = {}) {
   const app = S.permissions.filter((p) => !APP_PERMS.includes(p));
   if (app.length) return shut('app-perm', '잠김 : 앱 권한 없음 — ' + app.join(' · '));
   if (o.remote && !S.scopes.includes('cluster')) return shut('local', '잠김 : 이 노드에서만');
-  const user = S.permissions.filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
+  if (whoUnknown && S.permissions.some((p) => p !== 'node.read')) return shut('user-perm', '잠김 : 계정 권한을 알 수 없음 — whoami 못 받음');   // 읽기는 열어 둔다(서버가 가른다) · 쓰기는 닫는다
+  const user = whoAll ? [] : S.permissions.filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
   if (user.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + user.join(' · '));
   return { open: true, needs: '', why: '', op };
 }

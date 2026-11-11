@@ -68,7 +68,8 @@ test('web 코드 — 스위치 쓰기(.post)를 부르지 않는다 (안내 문�
 
 test('설정창 · 입구 — TerraDangerAsk 는 emit(danger) 만, 값을 싣지 않는다', () => {
   const main = fs.readFileSync(path.join(root, 'web/src/boot/main.js'), 'utf8');
-  assert.match(main, /window\.TerraDangerAsk = \(\) => \{ frame\.emit\('danger'\); return true; \}/);
+  assert.match(main, /window\.TerraDangerAsk = \(\) => \{ if \(!\(MODE === 'app' && frame\)\) return false; frame\.emit\('danger'\); return true; \}/, '호출 시점에 frame 을 본다(AUD-79)');
+  assert.ok(!/if \(MODE === 'app' && frame\) window\.TerraDangerAsk/.test(main), '대입 시점 판정 없음');
   const dc = fs.readFileSync(path.join(root, 'web/design/NodeDesktopEmbed.dc.html'), 'utf8');
   assert.match(dc, /W2\.TerraDangerAsk\(\)/);
   assert.ok(!/TerraDangerAsk\([^)]/.test(dc));

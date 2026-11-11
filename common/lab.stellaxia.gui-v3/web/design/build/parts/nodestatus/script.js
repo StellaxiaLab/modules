@@ -50,12 +50,13 @@ class Component extends DCLogic {
     const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : /^마지막 보고/.test(note2) ? 'var(--t-key,#709c80)' : col(p), note: note2 });
     const evs = ((I && I.recent && I.recent.events) || []).map((e) => ({ t: e.at ? tm(e.at) : D, lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)' }));
     const routes = (cm.routes || []), sess = (cm.sessions || []);
-    const copyId = () => { const v = id.nodeId; if (!v || v === D) return; try { navigator.clipboard.writeText(v).then(() => { this.setState({ copied: true }); setTimeout(() => this._live && this.setState({ copied: false }), 1500); }, () => {}); } catch (e) {} };
+    const copyId = () => { const v = id.nodeId; if (!v || v === D) return; try { navigator.clipboard.writeText(v).then(() => { this.setState({ copied: true }); setTimeout(() => this._live && this.setState({ copied: false }), 1500); }, () => failCopy()); } catch (e) { failCopy(); } };
+    const failCopy = () => { this.setState({ copyFail: true }); setTimeout(() => this._live && this.setState({ copyFail: false }), 4000); };   // 복사 권한이 없으면(iframe 정책) 조용히 넘기지 않고 알린다
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh',
       name: (I && I.name) || this.props.nodeName || D, kind, stText: I ? I.status : D, stCol: I && I.online ? (/저하/.test(I.status) ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)') : 'var(--t-err2,#ff9c8c)', seen: I && I.seen ? I.seen : '',
       noteOn: !!note, note, bandK, bandSub, src: R ? 'Master 노드 기록' : '시안 값',
-      nodeId: id.nodeId || D, copyT: this.state.copied ? '복사됨' : '복사', copyOff: !id.nodeId || id.nodeId === D, copyId,
+      nodeId: id.nodeId || D, copyT: this.state.copied ? '복사됨' : this.state.copyFail ? '복사 못 함 — 직접 선택' : '복사', copyOff: !id.nodeId || id.nodeId === D, copyId,
       ident: [['장치', id.deviceId], ['역할', id.roles], ['부모', id.parent], ['깊이', id.depth], ['주소', id.address], ['DNS', id.dns], ['버전', id.version], ['등록', id.created]].map(([k, v]) => ({ k, v: v || D })),
       via: cm.via || D, viaCol: cm.via === 'direct' ? 'var(--t-ok,#60e28c)' : cm.via && cm.via !== D ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)', relayT: I ? (cm.relay ? '연결됨' : '끊김') : D, relayCol: cm.relay ? 'var(--t-ok,#60e28c)' : 'var(--t-err2,#ff9c8c)', gen: cm.gen || D,
       comm: [['네트워크', cm.net], ['원하는', cm.desired], ['관측', cm.observed], ['태그', id.tags]].map(([k, v]) => ({ k, v: v || D })),

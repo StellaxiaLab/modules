@@ -94,7 +94,7 @@ test('1 일반 실패 표시 — 다른 키의 저장 성공이 지우지 못한
 });
 
 test('2 공유 폴더 설정 저장의 성공 문구는 ndSet 의 ok 콜백으로(실패하면 말하지 않는다)', () => {
-  assert.ok(embedSrc.includes("save: true }, { ok: () => this.say('저장 — 재시작 후 반영 (설정 › 노드 설정)') }); }"));
+  assert.ok(embedSrc.includes("this.say('저장 — 재시작 후 반영 (설정 › 노드 설정)'); } }); }"));
   assert.ok(!/save: true \}\); this\.say\('저장 — 재시작/.test(embedSrc));
 });
 

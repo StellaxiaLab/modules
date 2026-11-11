@@ -21,5 +21,5 @@ test('경로 도우미', () => {
 test('공유 폴더 — 로컬은 그대로, 다른 노드는 Master 중계(at.node)', async () => {
   const calls = [], E = createSviEnvelope({ invoke: async (op, inp, at) => { calls.push([op, inp, at]); return {}; } }, () => ({ localId: 'n1' }));
   await E.shareRoots('n1'); await E.shareRoots('n2'); await E.shareEntries('n2', 'media', 'a/b');
-  assert.deepEqual(calls, [['io.terra.file.roots.list', {}, {}], ['io.terra.file.roots.list', {}, { node: 'n2' }], ['io.terra.file.entries.list', { root: 'media', path: 'a/b' }, { node: 'n2' }]]);
+  assert.deepEqual(calls, [['lab.stellaxia.file.roots.list', {}, {}], ['lab.stellaxia.file.roots.list', {}, { node: 'n2' }], ['lab.stellaxia.file.entries.list', { root: 'media', path: 'a/b' }, { node: 'n2' }]]);
 });
