@@ -30,7 +30,7 @@ Terra 노드 GUI의 3판이다. 화면 원본은 캔버스 보드(`web/design/`)
 
 ```text
 common/lab.stellaxia.gui-v3/
-├─ module.json        kind=service · 0.6.0 · gui.scenes(main, 얇은 껍데기) · gui.apps(웹 앱, embed=scene) · process(terra-gui-v3) + scene · module-data · configuration(maxFileMB · maxTotalMB) · readiness
+├─ module.json        kind=service · 0.6.1 · gui.scenes(main, 얇은 껍데기) · gui.apps(웹 앱, embed=scene) · process(terra-gui-v3) + scene · module-data · configuration(maxFileMB · maxTotalMB) · readiness
 ├─ contracts/api/     terra-api.json — status · node-props.get/patch · node-files.list/get/put/delete · node-desk.get/patch, 권한 node.read · node.control
 ├─ src/               백엔드 (Go, terra-sdk/modulesdk) — main.go · api.go · nodedata/ (+ 시험)
 ├─ scene/             main Scene — 얇은 껍데기(terra.web/frame 이 웹 앱을 감싼다 · /login 카드). 화면은 웹 앱

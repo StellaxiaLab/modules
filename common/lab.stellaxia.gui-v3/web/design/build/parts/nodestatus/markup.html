@@ -15,7 +15,7 @@
   </div>
   <div class="ns-sub">경로 <span class="ns-k">{{routeSum}}</span></div>
   <sc-for list="{{routes}}" as="r" hint-placeholder-count="2">
-    <div class="ns-rt ns-rt-r"><span style="color: {{r.col}}; font-weight: 700;">{{r.mark}}</span><span class="ns-k" title="→ 이 노드에서 나가는 경로 · ← 이 노드로 들어오는 경로">{{r.dir}}</span><span class="ns-cut">{{r.peer}}</span><span class="ns-cut">{{r.rt}}</span><span class="ns-k ns-cut">{{r.ad}}</span><span class="ns-k" style="text-align: right;">{{r.lat}}</span></div>
+    <div class="ns-rt ns-rt-r"><span style="color: {{r.col}}; font-weight: 700;">{{r.mark}}</span><span class="ns-k" title="⇄ 두 방향이 같은 경로 · → 이 노드에서 나가는 경로 · ← 이 노드로 들어오는 경로">{{r.dir}}</span><span class="ns-rt-p" style="padding-left: {{r.pad}}px;"><span class="ns-cut" title="{{r.tip}}" style="color: {{r.peerCol}};">{{r.peer}}</span><span style="flex: none; color: {{r.tagCol}};">{{r.tag}}</span></span><span class="ns-cut" style="color: {{r.rtCol}};">{{r.rt}}</span><span class="ns-k ns-cut">{{r.ad}}</span><span class="ns-k" title="{{r.latTip}}" style="text-align: right;">{{r.lat}}</span></div>
   </sc-for>
   <div class="ns-sub">세션 <span class="ns-k">{{sessSum}}</span></div>
   <sc-for list="{{sessions}}" as="s" hint-placeholder-count="2">

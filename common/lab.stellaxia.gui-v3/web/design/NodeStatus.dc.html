@@ -44,6 +44,7 @@ body{margin:0;background:transparent}
 .ns-rt{display:grid;grid-template-columns:14px minmax(0,1fr) 70px 80px 54px;gap:10px;min-height:20px;white-space:nowrap}
 .ns-rt-s{grid-template-columns:14px minmax(0,1fr) 100px 112px minmax(54px,auto)}
 .ns-rt-r{grid-template-columns:14px 14px minmax(0,1fr) 112px 76px 54px}
+.ns-rt-p{display:flex;gap:6px;min-width:0}
 .ns-cur{display:inline-block;width:7px;height:13px;background:var(--t-acc2,#96f0aa);animation:nsb 1.06s steps(1) infinite}
 @keyframes nsb{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.ns-cur{animation:none}.ns-fill,.ns-lat span{transition:none}}
@@ -66,7 +67,7 @@ body{margin:0;background:transparent}
   </div>
   <div class="ns-sub">경로 <span class="ns-k">{{routeSum}}</span></div>
   <sc-for list="{{routes}}" as="r" hint-placeholder-count="2">
-    <div class="ns-rt ns-rt-r"><span style="color: {{r.col}}; font-weight: 700;">{{r.mark}}</span><span class="ns-k" title="→ 이 노드에서 나가는 경로 · ← 이 노드로 들어오는 경로">{{r.dir}}</span><span class="ns-cut">{{r.peer}}</span><span class="ns-cut">{{r.rt}}</span><span class="ns-k ns-cut">{{r.ad}}</span><span class="ns-k" style="text-align: right;">{{r.lat}}</span></div>
+    <div class="ns-rt ns-rt-r"><span style="color: {{r.col}}; font-weight: 700;">{{r.mark}}</span><span class="ns-k" title="⇄ 두 방향이 같은 경로 · → 이 노드에서 나가는 경로 · ← 이 노드로 들어오는 경로">{{r.dir}}</span><span class="ns-rt-p" style="padding-left: {{r.pad}}px;"><span class="ns-cut" title="{{r.tip}}" style="color: {{r.peerCol}};">{{r.peer}}</span><span style="flex: none; color: {{r.tagCol}};">{{r.tag}}</span></span><span class="ns-cut" style="color: {{r.rtCol}};">{{r.rt}}</span><span class="ns-k ns-cut">{{r.ad}}</span><span class="ns-k" title="{{r.latTip}}" style="text-align: right;">{{r.lat}}</span></div>
   </sc-for>
   <div class="ns-sub">세션 <span class="ns-k">{{sessSum}}</span></div>
   <sc-for list="{{sessions}}" as="s" hint-placeholder-count="2">
@@ -124,7 +125,8 @@ class Component extends DCLogic {
       ident: { nodeId: 'nd_' + hex(50, 4) + '-' + hex(60, 12), deviceId: 'dev_' + hex(80, 10), roles: { '계정': 'Master', '트리': 'Tree', '리프': 'Leaf', '리소스': '자원' }[kind] || kind, parent: this.props.parentName || '— (맨 위)', depth: kind === '트리' ? '0' : '1',
         address: '10.80.' + Math.floor(r(70) * 9) + '.' + Math.floor(r(71) * 200 + 10), dns: nm.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.terra', version: '1.7.' + Math.floor(r(23) * 4), created: '10-0' + (1 + Math.floor(r(24) * 8)) + ' 09:12:40', tags: 'lab', caps: 'exec, files, svi' },
       comm: { via: bad ? 'relay' : 'direct', relay: true, net: 'lab-mesh', desired: 'wireguard', observed: bad ? 'relay' : 'direct', gen: String(3 + Math.floor(r(72) * 6)),
-        routes: peers.slice(0, 2).map((p, i) => ({ dir: '→', peer: p, rt: bad && i === 1 ? 'relay' : 'direct', ad: 'wireguard', healthy: !(bad && i === 1), lat: Math.round(3 + r(73 + i) * 20 + wob(74 + i, 2)) + 'ms' })),
+        routeGroups: (() => { const ms = (i) => Math.round(3 + r(73 + i) * 20 + wob(74 + i, 2)) + 'ms', G = (p, i, x) => ({ peerId: p, peer: p, dir: '⇄', rt: 'direct', ad: 'wireguard', healthy: true, lat: ms(i), latTip: '', oneWay: false, legs: [], ...x });   // 묶음 모양은 groupRoutes(src/api/node-info.js) 와 같다
+          return [G(peers[0], 0), G(peers[1], 1, { dir: '', rt: '', ad: '', healthy: !bad, lat: '', legs: [{ dir: '→', rt: 'direct', ad: 'wireguard', healthy: true, lat: ms(1) }, { dir: '←', rt: 'relay', ad: 'websocket', healthy: !bad, lat: ms(2) }] }), G(peers[2], 3, { dir: '→', oneWay: true })]; })(),
         sessions: [{ peer: peers[0], dir: '←', channel: 'svi', rt: 'direct', state: 'open', err: '' }] },
       res: { cpu: Math.max(0.02, Math.min(0.99, 0.2 + r(1) * 0.55 + wob(2, 0.08))), mem: Math.max(0.05, Math.min(0.99, 0.3 + r(3) * 0.5 + wob(4, 0.03))), disk: 0.15 + r(5) * 0.6 },
       recent: { heartbeat: '방금', events: ev.map(([msg, lv, ago]) => ({ at: now - ago * 1000, lv, msg })) },
@@ -139,7 +141,15 @@ class Component extends DCLogic {
     const id = (I && I.ident) || {}, cm = (I && I.comm) || {}, rs = (I && I.res) || {}, net = this._net, S = '▁▂▃▄▅▆▇', mx = Math.max(1, ...net.map((x) => x.i)), last = net[net.length - 1];
     const bar = (n, p, note2) => ({ name: n, pct: p == null ? '0' : (p * 100).toFixed(1), pctT: p == null ? D : Math.round(p * 100) + '%', col: p == null ? 'transparent' : /^마지막 보고/.test(note2) ? 'var(--t-key,#709c80)' : col(p), note: note2 });
     const evs = ((I && I.recent && I.recent.events) || []).map((e) => ({ t: e.at ? tm(e.at) : D, lv: e.lv, msg: e.msg, col: e.lv === 'warn' ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)' }));
-    const routes = (cm.routes || []), sess = (cm.sessions || []);
+    const groups = (cm.routeGroups || []), sess = (cm.sessions || []), OKC = 'var(--t-ok,#60e28c)', WARN = 'var(--t-warn,#ffd27a)', KEY = 'var(--t-key,#709c80)', TEXT = 'var(--t-text,#d6f4de)';
+    // 경로 줄 — 노드 하나가 한 묶음. 두 방향이 다른 노드만 머리줄 아래에 → · ← 줄이 붙는다
+    const mk = (x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? OKC : WARN });
+    const routes = groups.flatMap((g) => {
+      const tag = g.legs.length ? '' : [g.oneWay ? '한쪽만' : '', g.healthy ? '' : '실패'].filter(Boolean).join(' · ');
+      const head = { ...mk(g), dir: g.dir, peer: g.peer, tip: g.peer, peerCol: TEXT, pad: 0, tag, tagCol: g.healthy ? KEY : WARN, bad: !g.legs.length && !g.healthy, rt: g.legs.length ? '방향별 다름' : g.rt, rtCol: g.legs.length ? KEY : TEXT, ad: g.ad, lat: g.lat, latTip: g.latTip };
+      return [head, ...g.legs.map((x) => ({ ...mk(x), dir: x.dir, peer: x.dir === '→' ? '보낼 때' : '받을 때', tip: g.peer + ' ' + x.dir, peerCol: KEY, pad: 10, tag: x.healthy ? '' : '실패', tagCol: WARN, bad: !x.healthy, rt: x.rt, rtCol: TEXT, ad: x.ad, lat: x.lat, latTip: '' }))];
+    });
+    const nBad = routes.filter((x) => x.bad).length;
     const copyId = () => { const v = id.nodeId; if (!v || v === D) return; try { navigator.clipboard.writeText(v).then(() => { this.setState({ copied: true }); setTimeout(() => this._live && this.setState({ copied: false }), 1500); }, () => failCopy()); } catch (e) { failCopy(); } };
     const failCopy = () => { this.setState({ copyFail: true }); setTimeout(() => this._live && this.setState({ copyFail: false }), 4000); };   // 복사 권한이 없으면(iframe 정책) 조용히 넘기지 않고 알린다
     return {
@@ -150,7 +160,7 @@ class Component extends DCLogic {
       ident: [['장치', id.deviceId], ['역할', id.roles], ['부모', id.parent], ['깊이', id.depth], ['주소', id.address], ['DNS', id.dns], ['버전', id.version], ['등록', id.created]].map(([k, v]) => ({ k, v: v || D })),
       via: cm.via || D, viaCol: cm.via === 'direct' ? 'var(--t-ok,#60e28c)' : cm.via && cm.via !== D ? 'var(--t-warn,#ffd27a)' : 'var(--t-key,#709c80)', relayT: I ? (cm.relay ? '연결됨' : '끊김') : D, relayCol: cm.relay ? 'var(--t-ok,#60e28c)' : 'var(--t-err2,#ff9c8c)', gen: cm.gen || D,
       comm: [['네트워크', cm.net], ['원하는', cm.desired], ['관측', cm.observed], ['태그', id.tags]].map(([k, v]) => ({ k, v: v || D })),
-      routes: routes.map((x) => ({ mark: x.healthy ? '✓' : '!', col: x.healthy ? 'var(--t-ok,#60e28c)' : 'var(--t-warn,#ffd27a)', dir: x.dir || '', peer: x.peer, rt: x.rt, ad: x.ad, lat: x.lat })), routeSum: (() => { const np = new Set(routes.map((x) => x.peer)).size; return !routes.length ? '없음' : np === routes.length ? routes.length + '개' : '상대 ' + np + '개 · 방향별 ' + routes.length + '개'; })(),
+      routes, routeSum: !groups.length ? '없음' : '상대 ' + groups.length + '개' + (nBad ? ' · 실패 ' + nBad + '개' : ''),
       sessions: sess.map((x) => ({ dir: x.dir, peer: x.peer, channel: x.channel, rt: x.rt, state: x.state + (x.err ? ' · ' + x.err : ''), col: x.err ? 'var(--t-warn,#ffd27a)' : 'var(--t-text,#d6f4de)' })), sessSum: sess.length ? sess.length + '개' : '없음',
       // 총량은 Master 가 실어 준 것만(지어내지 않는다), 꺼진 노드는 '마지막 보고 · N 전' — 지금 값처럼 보이지 않게
       bars: (() => { const fb = (typeof window !== 'undefined' && window.TerraFmtBytes) || (() => ''), sz = (u, t) => (t && fb(t) ? (fb(u) || '?') + ' / ' + fb(t) : R && I ? '총량 보고 없음' : ''), old = R && rs.stale ? '마지막 보고 · ' + ((I && I.seen) || '') : '';
