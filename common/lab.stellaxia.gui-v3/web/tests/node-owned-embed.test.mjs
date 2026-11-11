@@ -279,10 +279,10 @@ test('로그아웃 신호 — 저장 타이머가 삭제보다 먼저 취소되�
 test('배경 그림 — 전용 메서드로 올리고(노드 id 로) 노드 값에서 읽는다: 받는 동안은 "배경 불러오는 중", 노을로 떨어지지 않는다', async () => {
   const w = world(), { T, c } = await ready(w);
   const bytes = new Uint8Array(1500 * 1024).fill(7);
-  const files = new Map(); w.t.invokeRid = ((orig) => (rid, op, input) => {   // 파일 연산 흉내(받기 조각 480KiB)
-    if (op.endsWith('node-files.put')) { const cur = files.get(input.path) || { chunks: [], size: input.total }; cur.chunks[input.offset] = input.data; files.set(input.path, cur); w.calls.push({ rid, op: 'put', input: { path: input.path, offset: input.offset, total: input.total, mime: input.mime } });
+  let tick = 0; const files = new Map(); w.t.invokeRid = ((orig) => (rid, op, input) => {   // 파일 연산 흉내(받기 조각 480KiB)
+    if (op.endsWith('node-files.put')) { const cur = files.get(input.path) || { chunks: [], size: input.total, mod: ++tick }; cur.chunks[input.offset] = input.data; files.set(input.path, cur); w.calls.push({ rid, op: 'put', input: { path: input.path, offset: input.offset, total: input.total, mime: input.mime } });
       const got = Object.entries(cur.chunks).reduce((a, [, d]) => a + Buffer.from(d, 'base64').length, 0); return Promise.resolve({ done: got >= input.total, received: got, total: input.total }); }
-    if (op.endsWith('node-files.list')) { w.calls.push({ rid, op: 'list', input }); return Promise.resolve({ entries: [...files.keys()].map((p) => ({ path: p, size: 1, mime: 'image/png', modified: '' })) }); }
+    if (op.endsWith('node-files.list')) { w.calls.push({ rid, op: 'list', input }); return Promise.resolve({ entries: [...files].map(([p, f]) => ({ path: p, size: 1, mime: 'image/png', modified: new Date(1.7e12 + f.mod * 1000).toISOString() })) }); }
     if (op.endsWith('node-files.delete')) { w.calls.push({ rid, op: 'delete', input }); files.delete(input.path); return Promise.resolve({ deleted: true }); }
     if (op.endsWith('node-files.get')) { const cur = files.get(input.path); const all = Buffer.concat(Object.keys(cur.chunks).map(Number).sort((a, b) => a - b).map((o) => Buffer.from(cur.chunks[o], 'base64'))); const part = all.subarray(input.offset, input.offset + input.limit); return Promise.resolve({ path: input.path, size: all.length, mime: 'image/png', data: part.toString('base64') }); }
     return orig(rid, op, input); })(w.t.invokeRid);
@@ -302,7 +302,7 @@ test('배경 그림 — 전용 메서드로 올리고(노드 id 로) 노드 값�
   // 화면 — 이미 받은 그림은 바로(방금 올린 것은 사본에 있다)
   let v = c.renderVals(); assert.match(v.wall.bg, /^url\('data:image\/png;base64,/);
   // 다른 PC 가 올린 그림(우리 쪽 사본 없음) — 받는 동안 노을로 떨어지지 않는다
-  const f2 = 'desk/wall/9999999999999.png'; files.set(f2, { chunks: { 0: Buffer.from(new Uint8Array(900).fill(9)).toString('base64') }, size: 900 });
+  const f2 = 'desk/wall/9999999999999.png'; files.set(f2, { chunks: { 0: Buffer.from(new Uint8Array(900).fill(9)).toString('base64') }, size: 900, mod: ++tick });
   w.other('n1', { wall: { file: f2, name: '다른 PC.png', type: 'image/png', at: 1 }, 'prefs.wall': 'img' }); await T.deskFetch('n1', { force: true });
   v = c.renderVals(); assert.equal(v.wallWait, 'flex', '"배경 불러오는 중" 표시'); assert.equal(v.wall.id, 'img-wait'); assert.doesNotMatch(v.wall.bg, /linear-gradient/, '노을로 떨어지지 않는다');
   await flush(); v = c.renderVals(); assert.match(v.wall.bg, /^url\('data:image\/png;base64,/); assert.equal(v.wallWait, 'none');

@@ -60,7 +60,8 @@ class NodeStore {
     this.t = transport; this.shapes = {}; this.subs = new Set(); this.inflight = new Map(); this.links = new Map(); this.views = new Map();
     this.cache = new Map(Object.entries(LS.get('terra.cache') || {}));   // 새로 띄워도 마지막 사본이 남는다(끊긴 채 시작해도 보인다)
     this._saveT = 0;
-    this.blobs = new Map(); this.gen = 0;
+    this.blobs = new Map(); this.gen = 0; this.rbg = new Map();   // rbg — 장면 id 가 다른 노드로 다시 묶인 횟수(늦은 응답을 거른다)
+    this.pendingRes = new Map();   // 진행 중인 쓰기의 표시층 — 자원 키 → Set({ apply, mark }). 저장하지 않는다(cache 밖). 사본(e.data)은 노드가 준 값만
     // 바탕 구성 — 사본은 this.cache 의 rid|nodedesk 한 항목({revision, doc}). 아래는 저장하지 않는다(표시층 · 전송 · 상태 · watch)
     this.deskDefaults = { icons: {}, prefs: {} };   // Embed 가 등록 — 표시와 첫 쓰기에만
     this.pendingDesk = new Map(); this.desks = new Map(); this.deskSends = new Map(); this.watched = new Map(); this._deskT = null; this._deskOn = false;
@@ -79,14 +80,20 @@ class NodeStore {
     const R = RES[res] || { op: res, ttl: 15000 }, k = this.key(n, res, o.input), e = this.cache.get(k), now = Date.now(), age = e ? now - e.at : Infinity, L = this.link(n);
     const wait = !o.force && ((L.state === 'offline' && L.retryAt > now) || (e && e.err && now - (e.errAt || 0) < (e.err.code === 'UNAUTHENTICATED' ? 5000 : R.retry || 5000)));   // 끊긴 노드 · 실패한 자원은 5초에 한 번만 다시 두드린다(그리기마다 부르지 않게)
     if ((age > (o.ttl ?? R.ttl) || o.force) && !wait && !this.inflight.has(k)) this.refresh(n, res, o.input);
-    return { data: e ? e.data : null, at: e ? e.at : 0, age, src: e ? e.src : '', stale: age > (o.ttl ?? R.ttl), loading: this.inflight.has(k), link: L, err: e && e.err };
+    const ov = this.pendingRes.get(k), data = e ? e.data : null;
+    return { data, view: ov && ov.size && data != null ? this.applyView(data, ov) : data, pending: new Set(ov ? [...ov].map((x) => x.mark).filter(Boolean) : []), busy: ov ? ov.size : 0, at: e ? e.at : 0, age, src: e ? e.src : '', stale: age > (o.ttl ?? R.ttl), loading: this.inflight.has(k), link: L, err: e && e.err };
   }
+  /** 노드 값(data)에 진행 중인 쓰기의 apply 를 차례로 얹은 표시용 값 — data 는 건드리지 않는다(복제해서) */
+  applyView(data, ov) { let v = jclone(data); for (const x of ov) { try { v = x.apply(v); } catch (err) { /* 표시층 오류는 노드 값으로 */ } } return v; }
   refresh(n, res, input) {
     const R = RES[res] || { op: res }, k = this.key(n, res, input);
     if (this.inflight.has(k)) return this.inflight.get(k);
+    const rb = this.rbg.get(n) | 0, stale = () => (this.rbg.get(n) | 0) !== rb;   // 그 사이 장면 id 가 다른 노드로 묶였으면 이 응답은 옛 노드 것이다
     const p = this.fetchRes(n, res, R, input).then((data) => {
+      if (stale()) return;
       this.cache.set(k, { data, at: Date.now(), src: this.isLocal(n) ? '로컬' : '노드' }); if (!this.isLocal(n)) this.setLink(n, { state: 'online' });   // 받았으면 지난 오류는 지운다
     }, (err) => {
+      if (stale()) return;
       const code = (err && err.code) || 'ERROR', e0 = this.cache.get(k);
       this.cache.set(k, Object.assign({}, e0 || { data: null, at: 0 }, { err: { code, msg: err && err.message }, errAt: Date.now() }));   // 사본은 그대로 두고 오류만 단다(5초 동안 다시 안 부름)
       if (PARTITION.has(code)) {
@@ -95,7 +102,7 @@ class NodeStore {
         if (!(e0 && e0.data) && R.master && this.t.master) return this.t.master(n, R.master).then((data) => { this.cache.set(k, { data, at: Date.now(), src: 'Master 관측', observed: true, err: { code }, errAt: Date.now() }); }, () => {});
       } else if (code === 'DELEGATION_REQUIRED') this.setLink(n, { state: 'far', code, via: err.via || '' });
       else if (code === 'NODE_NOT_FOUND' || code === 'NODE_UNMAPPED') this.setLink(n, { state: 'none', code });
-    }).finally(() => { this.inflight.delete(k); this.persist(); this.emit(n); });
+    }).finally(() => { if (this.inflight.get(k) === p) this.inflight.delete(k); this.persist(); this.emit(n); });
     this.inflight.set(k, p); this.emit(n);
     return p;
   }
@@ -111,16 +118,37 @@ class NodeStore {
       return this.shapes[res](P, meta);
     });
   }
-  /** 쓰기 — 끊겼으면 하지 않는다(PA: 몰래 쌓지 않음). 평소엔 사본에 먼저(낙관), 실패하면 되돌림. o.apply(data) → 새 사본 */
+  /**
+   * 쓰기 — 끊겼으면 하지 않는다(PA: 몰래 쌓지 않음). o.apply(data) → 새 값은 사본이 아니라 표시층(pendingRes)에만: read().view 에 보이고 data 는 노드가 준 값 그대로.
+   *   성공해도 사본의 at 을 바꾸지 않는다 — 노드에서 다시 읽은 값만 사본이 된다. 다시 읽기가 끝나면(실패해도) 표시층을 걷는다(낙관 값이 사본으로 남지 않는다). 실패하면 바로 걷는다.
+   *   o.mark — read().pending 에 실릴 이름(진행 중 행 표시: 'mod:<id>' 따위). o.refresh === false 면 다시 읽지 않고 바로 걷는다
+   */
   write(n, opId, input, o = {}) {
     const L = this.link(n);
     if (L.state === 'offline' || L.state === 'far' || L.state === 'none') return Promise.reject({ code: 'PARTITIONED', message: (L.state === 'far' ? '직접 닿지 않는 노드' : '노드와 끊김') + ' — 재연결 후 재시도' });
-    const k = o.res ? this.key(n, o.res) : null, prev = k ? this.cache.get(k) : null;
-    if (k && o.apply && prev) { this.cache.set(k, Object.assign({}, prev, { data: o.apply(prev.data), pending: true })); this.emit(n); }
-    return this.t.invoke(n, opId, input, o).then((r) => { if (k) { const e = this.cache.get(k); if (e) { e.pending = false; e.at = Date.now(); } this.persist(); this.emit(n); if (o.refresh !== false) this.refresh(n, o.res); } return r; },
-      (err) => { if (k && prev) this.cache.set(k, prev); if (PARTITION.has(err && err.code)) this.setLink(n, { state: 'offline', code: err.code }); this.emit(n); throw err; });
+    const k = o.res ? this.key(n, o.res) : null, gen = this.gen; let ov = null;
+    if (k && o.apply) { ov = { apply: o.apply, mark: o.mark || '' }; let m = this.pendingRes.get(k); if (!m) this.pendingRes.set(k, m = new Set()); m.add(ov); this.emit(n); }
+    const drop = () => { if (ov && gen === this.gen) { const m = this.pendingRes.get(k); if (m) { m.delete(ov); if (!m.size) this.pendingRes.delete(k); } this.emit(n); } };
+    return this.t.invoke(n, opId, input, o).then((r) => {
+      if (gen !== this.gen) return r;
+      if (k && o.refresh !== false) this.refreshAfter(n, o.res).then(drop, drop); else drop();
+      return r;
+    }, (err) => { drop(); if (gen === this.gen && PARTITION.has(err && err.code)) { this.setLink(n, { state: 'offline', code: err.code }); this.emit(n); } throw err; });
   }
+  /** 진행 중인 읽기가 있으면 그것이 끝난 뒤(그건 쓰기 전 값일 수 있다) 새로 한 번 읽는다 */
+  refreshAfter(n, res) { const cur = this.inflight.get(this.key(n, res)); return Promise.resolve(cur).catch(() => {}).then(() => this.refresh(n, res)); }
 
+  /** 장면 id 가 다른 노드(rid)로 다시 묶였다(지도가 바뀌어 순번이 밀림) — 그 id 의 사본 · 링크 · 받는 중 표시를 지운다. 옛 노드 값이 새 노드 화면에 보이지 않게(§9.2) */
+  rebound(ids) {
+    for (const id of ids || []) {
+      const pre = id + '|';
+      for (const k of [...this.cache.keys()]) if (k.startsWith(pre)) this.cache.delete(k);
+      for (const k of [...this.inflight.keys()]) if (k.startsWith(pre)) this.inflight.delete(k);
+      for (const k of [...this.blobs.keys()]) if (k.startsWith(pre)) this.blobs.delete(k);
+      this.links.delete(id); this.rbg.set(id, (this.rbg.get(id) | 0) + 1);
+    }
+    this.persist(); for (const id of ids || []) this.emit(id);
+  }
   /** 보낼 operation 이 없는 저장 전 초안 — 사본만 고친다(노드로 보내지 않는다 · 다음 받기에 노드 값으로 돌아온다) */
   draft(n, res, apply) { const k = this.key(n, res), e = this.cache.get(k); if (!e) return false; this.cache.set(k, Object.assign({}, e, { data: apply(e.data) })); this.emit(n); return true; }
   /** 그 노드의 속성표 — 사본을 바로, 낡았으면 뒤에서 받는다. props 는 아직 모르면 null */
@@ -253,7 +281,7 @@ class NodeStore {
     if (s.ro) return Promise.reject({ code: 'PARTITIONED', state: s.state, message: (DESK_MSG[s.state] || '읽기 전용') + ' — 바꿀 수 없음' });
     if (!keys.length) return Promise.resolve({ revision: s.revision, doc: s.doc });
     const S = this.deskSend(rid); let pm = this.pendingDesk.get(rid); if (!pm) this.pendingDesk.set(rid, pm = new Map());
-    S.failed = null; S.save = { state: 'saving', at: S.save.at, code: '', msg: '', lost: [] };
+    if (!(S.failed && S.failed.size && S.save.state === 'failed')) S.save = { state: 'saving', at: S.save.at, code: '', msg: '', lost: [] };   // 실패 표시가 남아 있으면 새 저장이 나가도 그대로(키별로 성공해야 풀린다)
     const ver = ++S.ver, w = { ok: null, no: null, pend: new Map(), lost: [], res: null };
     for (const k of keys) { pm.set(k, set[k]); const q = S.queue.get(k); S.queue.set(k, { v: set[k], base: q ? Math.min(q.base, s.revision) : s.revision, ver }); w.pend.set(k, ver); }
     return new Promise((ok, no) => { w.ok = ok; w.no = no; S.waiters.push(w); this.emit(rid); this.deskPump(rid); });
@@ -265,7 +293,7 @@ class NodeStore {
   /** 충돌로 잃은 키 — 같은 키의 대기분도 함께(노드 값이 바뀐 것을 모르고 덮지 않게). S.lost 에 쌓아 사용자가 닫을 때까지 */
   deskLose(rid, S, keys) {
     const pm = this.pendingDesk.get(rid);
-    for (const k of keys) { S.lost.add(k); S.queue.delete(k); if (S.retry) S.retry.entries.delete(k); if (pm) pm.delete(k); for (const w of S.waiters) if (w.pend.has(k)) { w.pend.delete(k); w.lost.push(k); } }
+    for (const k of keys) { S.lost.add(k); if (S.failed) S.failed.delete(k); S.queue.delete(k); if (S.retry) S.retry.entries.delete(k); if (pm) pm.delete(k); for (const w of S.waiters) if (w.pend.has(k)) { w.pend.delete(k); w.lost.push(k); } }
     this.deskSettleWaiters(S);
   }
   deskPump(rid) {
@@ -310,11 +338,15 @@ class NodeStore {
       const now = Date.now(), D = this.deskMeta(rid), pm = this.pendingDesk.get(rid), R = res.revision, doc = res.doc == null ? null : res.doc;
       D.applied = ++D.seq; this.cache.set(k, { data: { revision: R, doc }, at: now, src: this.isLocal(rid) ? '로컬' : '노드' });
       D.st = 'ok'; D.code = ''; D.msg = ''; D.nextAt = now + DESK_POLL;
+      if (rev0 === 0) { for (const q of S.queue.values()) q.base = R; if (S.retry) S.retry.base = R; }   // 첫 쓰기는 모든 키를 새로 적었다 — 그 사이 쌓인 대기분이 내 첫 쓰기와 충돌하지 않게 base 를 올린다
       for (const [x, q] of batch.entries) {
+        if (S.failed) S.failed.delete(x);   // 그 키가 저장에 성공했으니 실패 기록에서 뺀다
         const nq = S.queue.get(x); if (nq) nq.base = R; else if (pm) pm.delete(x);   // 같은 키 대기분의 base 는 내 응답 revision 으로 — 자기 자신과 충돌하지 않게(안 보낸 키의 base 는 그대로)
         for (const w of S.waiters) { const v = w.pend.get(x); if (v != null && v <= q.ver) { w.pend.delete(x); w.res = { revision: R, doc }; } }
       }
-      S.save = { state: S.queue.size || S.retry ? 'saving' : 'saved', at: now, code: '', msg: '', lost: [] };   // 잃은 키(S.lost)는 deskRead 가 failed 로 계속 보인다
+      if (S.failed && !S.failed.size) S.failed = null;
+      if (S.failed && S.save.state === 'failed') S.save = Object.assign({}, S.save, { at: now });   // 다른 키의 실패가 남아 있으면 failed 를 지키고 시각만
+      else S.save = { state: S.queue.size || S.retry ? 'saving' : 'saved', at: now, code: '', msg: '', lost: [] };   // 잃은 키(S.lost)는 deskRead 가 failed 로 계속 보인다
       return this.deskSettleWaiters(S);
     }
     if (err.code === 'REVISION_CONFLICT') {
@@ -336,7 +368,7 @@ class NodeStore {
    * recheck: 전송했는데 결과를 모르는 경우(끊김 · 시간 초과 · 이상한 응답) 노드 값을 다시 읽어 확인
    */
   deskFail(rid, S, batch, err, recheck) {
-    const D = this.deskMeta(rid), code = (err.name === 'AbortError' ? 'TIMEOUT' : err.code) || 'ERROR', failed = new Map();
+    const D = this.deskMeta(rid), code = (err.name === 'AbortError' ? 'TIMEOUT' : err.code) || 'ERROR', failed = new Map(S.failed || []);   // 앞선 실패 기록에 쌓는다
     if (batch) for (const [x, q] of batch.entries) failed.set(x, q.v);
     if (S.retry) for (const [x, q] of S.retry.entries) failed.set(x, q.v);
     for (const [x, q] of S.queue) failed.set(x, q.v);
@@ -429,10 +461,14 @@ class NodeStore {
     try {
       await this.deskFetch(rid, { force: true });
       const cur = this.deskRead(rid).doc, now = cur && cur.wall && cur.wall.file;
-      const list = await this.t.invokeRid(rid, OP_LIST, { dir: WALL_DIR }, {});
-      for (const e of (list && list.entries) || []) {
+      const list = await this.t.invokeRid(rid, OP_LIST, { dir: WALL_DIR }, {}), ents = (list && list.entries) || [];
+      // 서버가 준 modified 로만 견준다(이 PC 시계를 쓰지 않는다) — 지금 가리키는 파일보다 오래된 것만 지운다. 다른 PC 가 막 올린 더 새 파일은 남는다. 가리키는 파일이 없으면(지우기) 전부
+      const refE = ents.find((e) => e && e.path === now) || ents.find((e) => e && e.path === keep), ref = refE ? Date.parse(refE.modified) : NaN;
+      if ((now || keep) && Number.isNaN(ref)) return;
+      for (const e of ents) {
         if (gen !== this.gen) return;
         if (!e || !e.path || e.path === keep || e.path === now) continue;
+        if (!Number.isNaN(ref) && !(Date.parse(e.modified) < ref)) continue;
         try { await this.t.invokeRid(rid, OP_DEL, { path: e.path }, {}); } catch (x) { /* 실패 무시 */ }
       }
     } catch (x) { /* 정리는 덤 — 실패해도 바탕은 바뀐 뒤다 */ }
@@ -465,7 +501,7 @@ class NodeStore {
   }
 
   /** 비우기 — 로그아웃 때(다음 사람이 앞 사람의 사본을 보지 않게) */
-  clear() { for (const S of this.deskSends.values()) for (const w of S.waiters) w.no({ code: 'CLEARED', message: '로그아웃으로 비워짐' }); this.pendingDesk.clear(); this.deskSends.clear(); this.desks.clear();   // 바탕 구성의 표시층 · 대기열 · 상태 — watch 목록과 타이머는 남긴다(토큰 갱신도 clear 를 부른다)
+  clear() { this.pendingRes.clear(); for (const S of this.deskSends.values()) for (const w of S.waiters) w.no({ code: 'CLEARED', message: '로그아웃으로 비워짐' }); this.pendingDesk.clear(); this.deskSends.clear(); this.desks.clear();   // 바탕 구성의 표시층 · 대기열 · 상태 — watch 목록과 타이머는 남긴다(토큰 갱신도 clear 를 부른다)
     this.cache.clear(); this.links.clear(); this.views.clear(); this.inflight.clear(); this.blobs.clear(); this.gen++; IDB.clear(); try { localStorage.removeItem('terra.cache'); } catch (e) {} for (const f of this.subs) { try { f(''); } catch (e) {} } }
   /** GUI 보기 상태 — 노드 키마다 (노드 데이터가 아니다) */
   view(key) { if (!this.views.has(key)) this.views.set(key, LS.get('terra.pc.' + key) || null); return this.views.get(key); }

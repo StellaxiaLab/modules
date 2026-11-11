@@ -2781,7 +2781,10 @@ class Component extends DCLogic {
   gf_TN() {
     const T = typeof window !== 'undefined' ? window.TerraNodes : null; if (!T) return null;
     const MD0 = this.sceneMap(); if (this._q_tnFor !== T || this._q_tnMap !== MD0) { const first = this._q_tnFor !== T; this._q_tnFor = T; this._q_tnMap = MD0; this._q_locN = null; const tp = T.t, MD = MD0;
-      if (tp.bindScene) tp.bindScene(this.gf_localNode().id, MD.all.map((n) => ({ id: n.id, name: n.name, kind: n.kind, path: n.path, rid: n.rid || '' })));   // 장면 노드 ↔ 전송의 노드(목업: 그대로 · Gateway: 이 노드 = 로컬, 나머지는 이름으로 Master 노드에)
+      if (tp.bindScene) { const was = tp.meta || {}, moved = MD.all.filter((n) => was[n.id] && (was[n.id].rid || '') !== (n.rid || '')).map((n) => n.id);   // 같은 장면 id 가 다른 노드로 다시 묶였다(지도가 다시 만들어져 순번이 밀림)
+        tp.bindScene(this.gf_localNode().id, MD.all.map((n) => ({ id: n.id, name: n.name, kind: n.kind, path: n.path, rid: n.rid || '' })));
+        if (moved.length && T.rebound) T.rebound(moved);   // 옛 노드의 사본 · 링크를 지운다
+        this.gf_ctlRepin(MD); }   // 장면 노드 ↔ 전송의 노드(목업: 그대로 · Gateway: 이 노드 = 로컬, 나머지는 이름으로 Master 노드에)
       T.shapes.modules = (snap) => { const P = this.gf_MODPOOL(), M = (snap && (snap.modules || snap)) || [], S = { running: 'run', starting: 'restart', stopping: 'restart', failed: 'fail', unavailable: 'fail', unsupported: 'fail', config_invalid: 'fail' };   // 실제 응답(modulehost Snapshot) → 모듈 목록 모양
         return Array.isArray(M) ? M.map((m) => { const k = P.find((q) => q.id === m.id); return { id: m.id, name: m.name || m.id, ver: m.version || '', kind: m.kind || '', core: false, apps: k ? k.apps : [], perms: k ? k.perms : [], svi: k ? k.svi : [], st: S[m.state] || 'stop', err: m.last_error || '', startedAt: m.started_at || '', pid: m.pid || 0, restarts: typeof m.restart_count === 'number' ? m.restart_count : null }; }) : []; };   // 가동 시각 · pid · 다시 시작 수 — 모듈 상태 창(modulehost Status)
       if (tp.kind === 'mock') { tp.seeds.modules = (meta) => { const n = this.sceneMap().byId[meta.id]; return n ? this.gf_modSeed(n).map((m) => { const o = Object.assign({}, m); delete o.node; delete o.nodeId; delete o.remote; return o; }) : []; }; }
@@ -3167,6 +3170,22 @@ class Component extends DCLogic {
     const T = typeof window !== 'undefined' ? window.TerraNodes : null, M = this._q_ctlWatched || (this._q_ctlWatched = new Map());
     if (on) { if (!node || !node.rid || M.has(node) || !T || !T.watch) return; M.set(node, node.rid); T.watch(node.rid, { scene: node.id }); return; }
     if (!M.has(node)) return; const rid = M.get(node); M.delete(node); if (T && T.unwatch) T.unwatch(rid);
+  }
+  // 지도가 다시 만들어지면 열린 제어기 창(최소화 포함)이 쥔 노드를 창을 열 때 고정한 rid 로 다시 찾아 장면 id 를 갱신한다(§9.2) — 안 그러면 순번이 밀린 뒤 설정 · 모듈 · 작업 호출이 다른 노드로 간다.
+  //   지도에서 사라진 노드의 창은 닫는다(watch 짝 유지). 그리는 도중에 불리므로 닫기는 한 박자 뒤
+  gf_ctlRepin(MD) {
+    const by = new Map(); for (const n of MD.all) if (n.rid && n.kind !== 'res' && !by.has(n.rid)) by.set(n.rid, n);
+    const T = typeof window !== 'undefined' ? window.TerraNodes : null, M = this._q_ctlWatched, WS = this._q_ctlWs || [], gone = [];
+    for (const e of (this._q_wins || []).slice()) {
+      if (e.kind !== 'ctl' || !e.node || !e.node.rid) continue;
+      const old = e.node, nn = by.get(old.rid), W = WS.find((q) => q && q.kind === 'ctl' && q.node === old);
+      if (!nn) { gone.push([old, W]); continue; }
+      if (nn === old) continue;
+      e.node = nn;
+      if (M && M.has(old)) { const rid = M.get(old); M.delete(old); M.set(nn, rid); if (T && T.unwatch && T.watch) { T.unwatch(rid); T.watch(rid, { scene: nn.id }); } }
+      if (W) { const k = W.slot; W.node = nn; this['_ctlNode' + k] = nn; Object.assign(this.state || {}, { ['ctlKey' + k]: nn.id, ['ctlNode' + k]: nn.name, ['ctlPar' + k]: nn.parent ? nn.parent.name : '', ['ctlRemote' + k]: !!nn.parent && nn !== this.gf_localNode() }); }
+    }
+    if (gone.length) setTimeout(() => { for (const [old, W] of gone) { this.gf_winDrop(old, 'ctl'); if (W) this.gf_ctlClose(W, true); } this.gf_layout(); }, 0);
   }
   gf_ctlWatchAll() { for (const n of [...(this._q_ctlWatched || new Map()).keys()]) this.gf_ctlWatch(n, false); }
   gf_winTitle(e) { const m = e.kind === 'mod' ? this.gf_modsOf(e.node).find((q) => q.id === e.arg) : null, a = e.kind === 'web' && (e.arg || '').startsWith('mod|') ? this.gf_modCatalog(e.node).find((q) => q.arg === e.arg) : null; return (m ? m.name + ' · ' : a ? a.appName + ' · ' : '') + e.node.name + ' ' + this.gf_WINKIND()[e.kind]; }
