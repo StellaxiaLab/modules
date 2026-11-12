@@ -10,10 +10,8 @@ import { fileURLToPath } from 'node:url';
 const web = fileURLToPath(new URL('..', import.meta.url));
 const table = JSON.parse(readFileSync(join(web, 'src/api/master-delegated.json'), 'utf8'));
 // 앱 자격으로는 닿지 않는 것 — B 모드(단독 · 자격 핸들)에서만 쓴다. 이유를 적어 둔다
-const B_ONLY = {
-  'terra.master.crossboundary.login-routes.get': '다른 Tree 로그인 길 — 위임 밖(terra-reach §5)',
-  'terra.master.crossboundary.login-routes.by-node-id.resolve.post': '자식 Tree 주소 묻기 — 위임 밖'
-};
+// AUD-23: Tree 로그인 길(login-routes.get · resolve.post)은 Terra가 위임에 열어 표에 들어왔다 — 여기엔 이제 없다
+const B_ONLY = {};
 // 위임 밖이지만 문(window.TerraGate · TerraGateAll) 뒤에서만 부르는 것 — 화면은 잠그고 why 를 보인다. 코어가 열면 표만 다시 뽑아 저절로 열린다
 const GATED = {
   'terra.master.svi.handles.post': '자원 상태 창 값 보기 — 핸들 열기(svi-view.js WATCH_OPS)',
@@ -40,6 +38,7 @@ test('gui-v3 가 부르는 Master op — 모두 위임 표에 있거나 B 모드
   const used = new Set();
   for (const f of [...files(join(web, 'src'), /\.js$/), ...files(join(web, 'design'), /\.dc\.html$/)]) for (const m of readFileSync(f, 'utf8').matchAll(/'(terra\.master\.[a-z0-9.-]+)'/g)) used.add(m[1]);
   assert.ok(used.size > 0);
+  for (const id of ['terra.master.crossboundary.login-routes.get', 'terra.master.crossboundary.login-routes.by-node-id.resolve.post']) assert.ok(table.operations[id], 'AUD-23 위임에 열림: ' + id);
   const out = [...used].filter((id) => !table.operations[id] && !B_ONLY[id] && !GATED[id]);
   for (const id of Object.keys(GATED)) assert.ok(!table.operations[id], id + ' 가 위임 표에 생겼다 — GATED 에서 빼라(화면은 저절로 열린다)');
   assert.deepEqual(out, [], '위임 밖인데 B 모드 전용 · 문(gate)으로 잠근 단추로 적히지 않은 Master op');

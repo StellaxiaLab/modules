@@ -93,11 +93,12 @@ test('Terra 터미널 api — 위임표의 읽기만(이름=값 입력), 쓰기 
   await assert.rejects(S.terra.run('api terra.daemon.status.get junk'), (e) => e.code === 'BAD_INPUT');
   const n0 = T.calls.length;
   for (const [op, code, where] of [['terra.daemon.commands.execute.post', 'NOT_HERE', /노드 셸 — 잠김/], ['terra.daemon.tasks.by-task-id.output.get', 'NOT_HERE', /작업 관리자/], ['terra.daemon.modules.by-module-id.stop.post', 'NOT_HERE', /모듈 창/], ['terra.daemon.config.apply.post', 'NOT_HERE', /설정 창/],
-    ['terra.master.svi.grants.post', 'NOT_HERE', /자원 관리/], ['terra.master.crossboundary.login-routes.get', 'DELEGATION_NOT_OPEN', /B 모드/], ['lab.stellaxia.gui-v3.status.get', 'NOT_DELEGATED', /terra CLI/]]) {
+    ['terra.master.svi.grants.post', 'NOT_HERE', /자원 관리/], ['terra.master.admin.users.get', 'DELEGATION_NOT_OPEN', /B 모드/], ['lab.stellaxia.gui-v3.status.get', 'NOT_DELEGATED', /terra CLI/]]) {
     assert.equal(apiAllowed(op).ok, false, op);
     await assert.rejects(S.terra.run('api ' + op), (e) => e.code === code && /여기서 불가/.test(e.message) && where.test(e.message), op);
   }
   assert.equal(T.calls.length, n0, '거절한 op 는 부르지 않았다');
+  assert.equal(apiAllowed('terra.master.crossboundary.login-routes.get').ok, true, 'AUD-23: 위임에 열렸다');
   await assert.rejects(S.terra.run('api terra.daemon.live.get', { cur: 'n-srv-0002' }), (e) => e.code === 'LOCAL_ONLY');
 });
 

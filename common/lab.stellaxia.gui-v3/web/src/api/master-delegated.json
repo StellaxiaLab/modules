@@ -2,6 +2,20 @@
  "$comment": "tools/gen-master-delegated.mjs 가 Terra Master 계약에서 뽑은 표 — 손으로 고치지 않는다",
  "contractVersion": "1.7.0",
  "operations": {
+  "terra.master.crossboundary.login-routes.by-node-id.resolve.post": {
+   "method": "POST",
+   "path": "/api/v1/crossboundary/login-routes/{node_id}/resolve",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.crossboundary.login-routes.get": {
+   "method": "GET",
+   "path": "/api/v1/crossboundary/login-routes",
+   "permissions": [
+    "node.read"
+   ]
+  },
   "terra.master.jobs.by-job-id.cancel.post": {
    "method": "POST",
    "path": "/api/v1/jobs/{job_id}/cancel",

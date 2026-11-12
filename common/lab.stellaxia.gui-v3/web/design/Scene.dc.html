@@ -2064,7 +2064,7 @@ class Component extends DCLogic {
   // 전역 틀이 받는 자리 — 글자 말고는 투명이라 영역으로 막지 않는다: 펼치기 전엔 '>_' 칸만, 펼친 뒤엔 로고 구역 · 지도 노드 · 맨 아래 'ESC 뒤로'
   gfLogoZone() { const on = this._q_lg && this._q_lg.on; return on ? this._q_zones && this._q_zones.logo : this._q_pz || (this._q_zones && this._q_zones.logo); }
   // 전역 틀을 펼친 동안 — 컨트롤 구역(왼쪽 1/4) 위의 누르기는 전역 틀만 받는다 (그 아래 뷰 · 다른 컴포넌트로 넘기지 않음). 마우스 위치(호버)는 그대로
-  gfOver(x, y) { const L = this._q_lg; return !!(L && (L.on || L.open)) && x < this.viewX0(); }
+  gfOver(x, y) { const L = this._q_lg; return !!(L && (L.on || L.open)) && (x < this.viewX0() || this.gf_ctlOwns(x, y)); }   // 로그아웃 라벨 · 로컬 위치 라벨은 좁은 창에서 컨트롤 구역 밖 — 그 자리도 전역 틀이 받는다
   gfHit(x, y) {
     const Z = this.gfLogoZone(), cw = this._q_cw, ch = this._q_ch; if (!Z || !cw) return false;
     if (x >= Z.c0 * cw - cw && x <= Z.c1 * cw + cw && y >= Z.r0 * ch - ch && y <= Z.r1 * ch + ch) return true;
@@ -2386,6 +2386,9 @@ class Component extends DCLogic {
     this._q_dataT = raf(() => { this._q_dataT = 0; if (this._live === false) return; this._q_quiet = true; try { this.gf_layout(); } finally { this._q_quiet = false; } });
   }
 
+  // 계정 이름(principal) 표시 — 24칸 안으로 줄인다. 앱 토큰의 whoami 에는 표시 이름이 없어 긴 principal 이 로그아웃 라벨을 구역 밖으로 밀었다(AUD-21)
+  gf_whoShort(p, max = 24) { p = String(p || ''); if (this.gf_dw(p) <= max) return p; let t = p; while (t.length && this.gf_dw(t + '…') > max) t = t.slice(0, -1); return t + '…'; }
+
   // ───── 구역 ─────
   // 컨트롤 구역 = 화면 왼쪽 1/4. 구역은 위에서 아래로 쌓인다 (칸 단위). 여백 = 왼쪽 3칸 · 위 2줄
   gf_layout() {
@@ -2433,9 +2436,9 @@ class Component extends DCLogic {
     const RL = typeof window !== 'undefined' && !!window.TerraTransport, TPl = RL && this.TOPO ? this.TOPO() : null, LR = TPl && TPl.localId && TPl.node ? TPl.node(TPl.localId) : null, LS = LR && window.TerraNodeStats ? window.TerraNodeStats(LR) : null, WHO = RL ? window.TerraWho : null;
     const cTxt = !RL ? '연결됨' : LS ? (LS.online ? '연결됨' : LS.status.replace(/^[●○◐◇◌]\s*/, '')) : '연결 보고 없음', cVer = !RL ? '  Terra 코어 1.7.0' : LS && LS.version ? '  Terra 코어 ' + LS.version : '  코어 버전 보고 없음';
     add('b', [['● ', !RL || (LS && LS.online) ? C.ok : C.hint], [cTxt, C.key], [cVer, C.val]]);
-    { const wTxt = !RL ? '  admin · 관리자' : '  ' + ((WHO && WHO.principal) || '받는 중…'), lr = r, lt = '● 로그인' + wTxt, lc = x0 + this.gf_dw(lt) + 3, LT = '로그아웃 ⏻', o = add('b', [['● ', C.info], ['로그인', C.key], [wTxt, C.val]]);
+    { const wTxt = !RL ? '  admin · 관리자' : '  ' + (WHO && WHO.principal ? this.gf_whoShort(WHO.principal) : '받는 중…'), lr = r, lt = '● 로그인' + wTxt, lc = x0 + this.gf_dw(lt) + 3, LT = '로그아웃 ⏻', o = add('b', [['● ', C.info], ['로그인', C.key], [wTxt, C.val]]);
       // 로그아웃 — 계정 이름 옆. 누르면 로그인 전환을 거꾸로(통합 화면: 항성계가 소실점으로 줄며 로그인 층이 닫히고, 글자 · 별이 바깥에서 날아와 로그인 화면 → 메인 화면)
-      line('b', lr, [[LT, C.key]], lc, o, 'mzLogout'); this._q_lo = { row: lr, x0: lc * cw, x1: (lc + this.gf_dw(LT)) * cw };
+      line('b', lr, [[LT, C.key]], lc, o, 'mzLogout'); this._q_lo = { row: lr, x0: lc * cw, x1: (lc + this.gf_dw(LT)) * cw, c1: lc + this.gf_dw(LT) + 1 };   // c1 — 호버 구역이 라벨까지 닿게
       leg('b', o, lc * cw, (lc + this.gf_dw(LT)) * cw, new Set(), (g) => { const Q = this._q_lo; if (!Q || !this._q_loHov) return; g.fillStyle = 'rgba(255,170,150,0.85)'; g.fillRect(Q.x0, (Q.row + 1) * ch - 2, Q.x1 - Q.x0, 1); g.fillStyle = 'rgba(220,90,80,0.12)'; g.fillRect(Q.x0 - 3, Q.row * ch + 1, Q.x1 - Q.x0 + 6, ch - 2); }, 'loBar', ''); }
     add('b', [[names[0] || '계정', C.mName], [' > ', C.mSign], [names.slice(1).join('/') || '·', C.path]]);
     // 로컬 위치 — 이 GUI 를 띄운 노드가 어디인가. 누르면 거기로(같은 클러스터면 장면 안 비행 · 다른 클러스터면 워프 — 씬이 고른다)
@@ -2657,7 +2660,7 @@ class Component extends DCLogic {
     const Z = {
       ctrl: { c0: 0, c1: ctrlCols, r0: 0, r1: this._q_rows },
       logo: { c0: zL, c1: ctrlCols - 1, r0: lr0, r1: lr1 },
-      info: { c0: x0, c1: x0 + wCol, r0: lr1 + 2, r1: lr1 + 5 },
+      info: { c0: x0, c1: Math.max(x0 + wCol, this._q_lo ? this._q_lo.c1 : 0), r0: lr1 + 2, r1: lr1 + 5 },   // 로고에서 로그아웃 라벨로 가는 길이 구역 밖으로 나가지 않게
       content: { c0: x0, c1: x0 + wCol, r0: lr1 + 6, r1: r },
       cmd: { c0: x0, c1: x0 + wCol, r0: rb - 4, r1: rb }
     };
@@ -2879,6 +2882,8 @@ class Component extends DCLogic {
     this.gf_layout();
   }
   gf_ctlHitRow(x, y) { const K = this._q_ctl; if (x == null || !K || !K.rows || !(this._q_lg && this._q_lg.open)) return null; const rr = Math.floor(y / this._q_ch); if (x < K.x0 - this._q_cw || x > K.x1 + this._q_cw) return null; const R = K.rows.find((q) => q.row === rr); return R ? R.id : null; }
+  // 컨트롤 구역 밖에 놓인 누르기 자리(로그아웃 라벨 · 로컬 위치) — 좁은 창에선 컨트롤 구역(왼쪽 1/4) 오른쪽으로 삐져나가, 씬이 이 좌표를 전역 틀로 넘겨야 한다(AUD-21)
+  gf_ctlOwns(x, y) { for (const Q of [this._q_lo, this._q_here]) if (Q && this._q_lg && this._q_lg.on && Math.floor(y / this._q_ch) === Q.row && x >= Q.x0 - 4 && x <= Q.x1 + 4) return true; return false; }
   gf_ctlTap(x, y) {
     { const Q = this._q_lo; if (Q && this._q_lg && this._q_lg.on && Math.floor(y / this._q_ch) === Q.row && x >= Q.x0 - 4 && x <= Q.x1 + 4) { this.gf_doLogout(); return true; } }   // 로그아웃
     { const Q = this._q_here; if (Q && this._q_lg && this._q_lg.on && Math.floor(y / this._q_ch) === Q.row && x >= Q.x0 - 4 && x <= Q.x1 + 4) { this.gf_goHere(); return true; } }   // 로컬 위치로
@@ -3451,7 +3456,9 @@ class Component extends DCLogic {
     const M = this._mouse, Z = LG.on ? this._q_zones.logo : this._q_pz || this._q_zones.logo, cw = this._q_cw, ch = this._q_ch;   // 펼치기 전엔 '>_' 칸만
     const inZ = (A) => !!(M && A && M.x >= A.c0 * cw - cw && M.x <= A.c1 * cw + cw && M.y >= A.r0 * ch - ch && M.y <= A.r1 * ch + ch);
     // 켜진 동안은 기본 정보 줄(로그인 · 로그아웃 · 로컬)도 호버 자리다 — 로고만 보면 로그아웃 줄로 내려가는 순간 꺼져 그 누르기를 버린다
-    const hov = inZ(Z) || (LG.on && inZ(this._q_zones.info));
+    // 켜진 뒤엔 로고 구역과 info 구역을 감싸는 복도 안에서 호버를 유지한다 — 로고에서 로그아웃 라벨로 대각선으로 가도 도중에 꺼지지 않게 (켜는 건 여전히 로고/info 구역 진입)
+    const corr = (() => { const I = this._q_zones.info; if (!Z || !I) return null; return { c0: Math.min(Z.c0, I.c0), c1: Math.max(Z.c1, I.c1), r0: Math.min(Z.r0, I.r0), r1: Math.max(Z.r1, I.r1) }; })();
+    const hov = inZ(Z) || (LG.on && (inZ(this._q_zones.info) || inZ(corr)));
     // TERRA 누르기 — 열기 / 닫기. 바로 누르면 TERRA 가 먼저 생기고 그 다음 내용, 호버로 이미 TERRA 가 떠 있으면 곧바로 내용
     if (this._q_tapLogo) { this._q_tapLogo = false; if (LG.mp >= Tm) { LG.open = !LG.open; LG.cAt = 0; } }
     const want = (hov || LG.open) && LG.mp >= Tm;
