@@ -131,6 +131,9 @@ class Component extends DCLogic {
     this._dataT = raf(() => { this._dataT = 0; if (this._live === false) return; this._quiet = true; try { this.layout(); } finally { this._quiet = false; } });
   }
 
+  // 계정 이름(principal) 표시 — 24칸 안으로 줄인다. 앱 토큰의 whoami 에는 표시 이름이 없어 긴 principal 이 로그아웃 라벨을 구역 밖으로 밀었다(AUD-21)
+  whoShort(p, max = 24) { p = String(p || ''); if (this.dw(p) <= max) return p; let t = p; while (t.length && this.dw(t + '…') > max) t = t.slice(0, -1); return t + '…'; }
+
   // ───── 구역 ─────
   // 컨트롤 구역 = 화면 왼쪽 1/4. 구역은 위에서 아래로 쌓인다 (칸 단위). 여백 = 왼쪽 3칸 · 위 2줄
   layout() {
@@ -177,9 +180,9 @@ class Component extends DCLogic {
     const RL = typeof window !== 'undefined' && !!window.TerraTransport, TPl = RL && this.TOPO ? this.TOPO() : null, LR = TPl && TPl.localId && TPl.node ? TPl.node(TPl.localId) : null, LS = LR && window.TerraNodeStats ? window.TerraNodeStats(LR) : null, WHO = RL ? window.TerraWho : null;
     const cTxt = !RL ? '연결됨' : LS ? (LS.online ? '연결됨' : LS.status.replace(/^[●○◐◇◌]\s*/, '')) : '연결 보고 없음', cVer = !RL ? '  Terra 코어 1.7.0' : LS && LS.version ? '  Terra 코어 ' + LS.version : '  코어 버전 보고 없음';
     add('b', [['● ', !RL || (LS && LS.online) ? C.ok : C.hint], [cTxt, C.key], [cVer, C.val]]);
-    { const wTxt = !RL ? '  admin · 관리자' : '  ' + ((WHO && WHO.principal) || '받는 중…'), lr = r, lt = '● 로그인' + wTxt, lc = x0 + this.dw(lt) + 3, LT = '로그아웃 ⏻', o = add('b', [['● ', C.info], ['로그인', C.key], [wTxt, C.val]]);
+    { const wTxt = !RL ? '  admin · 관리자' : '  ' + (WHO && WHO.principal ? this.whoShort(WHO.principal) : '받는 중…'), lr = r, lt = '● 로그인' + wTxt, lc = x0 + this.dw(lt) + 3, LT = '로그아웃 ⏻', o = add('b', [['● ', C.info], ['로그인', C.key], [wTxt, C.val]]);
       // 로그아웃 — 계정 이름 옆. 누르면 로그인 전환을 거꾸로(통합 화면: 항성계가 소실점으로 줄며 로그인 층이 닫히고, 글자 · 별이 바깥에서 날아와 로그인 화면 → 메인 화면)
-      line('b', lr, [[LT, C.key]], lc, o, 'mzLogout'); this._lo = { row: lr, x0: lc * cw, x1: (lc + this.dw(LT)) * cw };
+      line('b', lr, [[LT, C.key]], lc, o, 'mzLogout'); this._lo = { row: lr, x0: lc * cw, x1: (lc + this.dw(LT)) * cw, c1: lc + this.dw(LT) + 1 };   // c1 — 호버 구역이 라벨까지 닿게
       leg('b', o, lc * cw, (lc + this.dw(LT)) * cw, new Set(), (g) => { const Q = this._lo; if (!Q || !this._loHov) return; g.fillStyle = 'rgba(255,170,150,0.85)'; g.fillRect(Q.x0, (Q.row + 1) * ch - 2, Q.x1 - Q.x0, 1); g.fillStyle = 'rgba(220,90,80,0.12)'; g.fillRect(Q.x0 - 3, Q.row * ch + 1, Q.x1 - Q.x0 + 6, ch - 2); }, 'loBar', ''); }
     add('b', [[names[0] || '계정', C.mName], [' > ', C.mSign], [names.slice(1).join('/') || '·', C.path]]);
     // 로컬 위치 — 이 GUI 를 띄운 노드가 어디인가. 누르면 거기로(같은 클러스터면 장면 안 비행 · 다른 클러스터면 워프 — 씬이 고른다)
@@ -401,7 +404,7 @@ class Component extends DCLogic {
     const Z = {
       ctrl: { c0: 0, c1: ctrlCols, r0: 0, r1: this._rows },
       logo: { c0: zL, c1: ctrlCols - 1, r0: lr0, r1: lr1 },
-      info: { c0: x0, c1: x0 + wCol, r0: lr1 + 2, r1: lr1 + 5 },
+      info: { c0: x0, c1: Math.max(x0 + wCol, this._lo ? this._lo.c1 : 0), r0: lr1 + 2, r1: lr1 + 5 },   // 로고에서 로그아웃 라벨로 가는 길이 구역 밖으로 나가지 않게
       content: { c0: x0, c1: x0 + wCol, r0: lr1 + 6, r1: r },
       cmd: { c0: x0, c1: x0 + wCol, r0: rb - 4, r1: rb }
     };
