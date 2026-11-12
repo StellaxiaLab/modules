@@ -281,7 +281,7 @@ class Component extends DCLogic {
     O.gen = 'g' + this._g;
     if (now < this._need && !this._raf && typeof requestAnimationFrame !== 'undefined') this._raf = requestAnimationFrame(() => { this._raf = 0; this.setState({ fr: performance.now() }); });
     // 실제 연결에서 길 조회(login-routes.get)가 실패했으면 지어낸 주소 대신 '알 수 없음' + 오류 코드 — 주소 묻기(resolve)는 그대로 남긴다(AUD-23)
-    { const RE = typeof window !== 'undefined' && window.TerraTransport && !window.TerraLoginRoutes ? window.TerraLoginRoutesErr : ''; if (RE && state === 'resolve') { O.stT = '알 수 없음'; O.urlT = '— 길 조회 실패 · ' + RE; } }
+    { const RE = typeof window !== 'undefined' && window.TerraTransport && !window.TerraLoginRoutes ? window.TerraLoginRoutesErr : ''; if (RE && state === 'resolve') { O.stT = '알 수 없음'; O.urlT = '알 수 없음 · ' + RE; } }
     return O;
   }
 }

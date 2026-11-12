@@ -46,7 +46,7 @@ test('TreeLogin — 길 조회 실패: 알 수 없음 + 오류 코드, 주소 �
   real(() => {
     window.TerraLoginRoutes = null; window.TerraLoginRoutesErr = 'DELEGATION_NOT_OPEN';
     const v = o.renderVals();
-    assert.equal(v.stT, '알 수 없음'); assert.match(v.urlT, /DELEGATION_NOT_OPEN/);
+    assert.equal(v.stT, '알 수 없음'); assert.match(v.urlT, /^알 수 없음 · DELEGATION_NOT_OPEN$/);
     assert.equal(v.isResolve, true, '주소 묻기가 남는다'); assert.ok(!v.urlT.includes('terra.local'));
     window.TerraLoginRoutesErr = '';   // 오류가 없으면(길은 왔는데 이 Tree 만 없음) 지금 표시 그대로
     assert.notEqual(o.renderVals().stT, '알 수 없음');
@@ -56,5 +56,5 @@ test('TreeLogin — 길 조회 실패: 알 수 없음 + 오류 코드, 주소 �
 test('main.js — 조회 실패 코드를 남기고, 주소 요청 실패는 코드를 보이며 다시 물을 수 있다(조용한 실패 없음)', () => {
   const M = rd('../src/boot/main.js');
   assert.match(M, /\(e\) => \{ window\.TerraLoginRoutes = null; window\.TerraLoginRoutesErr = /);
-  assert.match(M, /resolved: false, url: null, msg: '주소 요청 실패 · '/);
+  assert.match(rd('../src/boot/tree-login.js'), /resolved: false, url: null, msg: '알 수 없음 · '/);
 });

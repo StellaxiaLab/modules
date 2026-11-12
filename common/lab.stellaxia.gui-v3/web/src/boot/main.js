@@ -33,6 +33,7 @@ import { dangerView } from '../api/danger-zone.js';
 import * as fileTransfer from '../api/file-transfer.js';
 import * as taskFollow from '../api/task-follow.js';
 import * as changes from '../api/changes.js';
+import { makeTerraTreeLogin } from './tree-login.js';
 import { migratePc, pcLogout as pcLogout0, setWho } from '../api/pc-state.js';
 
 window.TerraTheme = createTheme({ root: document.documentElement, storage: (() => { try { return window.localStorage; } catch { return null; } })(), emit: () => window.dispatchEvent(new Event('terra-theme')) });   // 다크 · 라이트 — 이 브라우저의 보기 설정
@@ -154,23 +155,7 @@ if (MODE !== 'demo') {
   const TL = boardDef('TreeLogin');
   if (TL && !TL.Logic.__terra) {
     const ridOf = (key) => { const sc = window.__terra && window.__terra.scene, n = sc && sc.sceneMap && sc.sceneMap().byId[key]; return (n && n.rid) || ''; };
-    class TerraTreeLogin extends TL.Logic {
-      login() {
-        const R = this.route(), rid = ridOf(this.props.treeKey);
-        if (!rid) return super.login();   // 시안 노드(실제 지도 밖) — 시안 그대로
-        if (!R.url) { this.fail(null, { http: '', code: 'NO_ROUTE', title: '로그인 주소가 없음', hint: R.needs ? '[주소 묻기] — 그 Tree 에 주소 요청' : 'Master 에 이 Tree 경로 없음 — 운영자에게 주소 받아 --url', act: '' }); return; }
-        try { localStorage.setItem('terra.login.email', (this.state.email || '').trim()); } catch (e) {}
-        this.setState({ phase: 'send', msg: '이동 중 : ' + R.url, bad: false, err: null });
-        setTimeout(() => window.location.assign(R.url), 300);   // 그 Tree 의 GUI 에서 로그인 — 비밀번호는 그 Gateway 만 받는다
-      }
-      renderVals() {
-        const v = super.renderVals(), rid = ridOf(this.props.treeKey);
-        if (rid) v.resolve = () => { this.setState({ phase: 'ask' }); terra.invoke('terra.master.crossboundary.login-routes.by-node-id.resolve.post', { node_id: rid })
-          .then((r) => { const url = r && (r.login_url || (r.route && r.route.login_url)); this.setState({ phase: null, resolved: true, url: url || null, msg: url ? '' : '주소 없음 (이 Tree)' }); },
-            (e) => this.setState({ phase: null, resolved: false, url: null, msg: '주소 요청 실패 · ' + ((e && (e.code || e.status)) || 'UNKNOWN') })); };
-        return v;
-      }
-    }
+    const TerraTreeLogin = makeTerraTreeLogin(TL.Logic, { terra, ridOf });
     TerraTreeLogin.__terra = true; TL.Logic = TerraTreeLogin;
   }
   // 로그인 뒤 한 번 — 지도 · Tree 길 · 보기 상태 · 밀어 받기
