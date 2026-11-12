@@ -148,9 +148,9 @@ if (MODE !== 'demo') {
   // 다른 Tree 로그인 — 앱 CSP(connect-src 'self') 라 그 Tree 의 Gateway 를 여기서 부를 수 없다: 그 Tree 의 GUI(login_url)로 옮겨 가 거기서 로그인
   //   길은 이 Master 의 crossboundary login-routes(부모 · 형제 · 자식, 자식은 resolve 로 주소를 묻는다)
   const loadRoutes = () => terra.invoke('terra.master.crossboundary.login-routes.get', {}).then((d) => {
-    const list = Array.isArray(d) ? d : (d && (d.routes || d.items)) || [], m = {}; for (const r of list) if (r && r.node_id) m[r.node_id] = r; window.TerraLoginRoutes = m;
+    const list = Array.isArray(d) ? d : (d && (d.routes || d.items)) || [], m = {}; for (const r of list) if (r && r.node_id) m[r.node_id] = r; window.TerraLoginRoutes = m; window.TerraLoginRoutesErr = '';
     const sc = window.__terra && window.__terra.scene; if (sc && sc.gf_layout) sc.gf_layout();
-  }, () => { window.TerraLoginRoutes = null; });
+  }, (e) => { window.TerraLoginRoutes = null; window.TerraLoginRoutesErr = (e && (e.code || e.status)) || 'UNKNOWN'; });   // 못 받은 것은 '알 수 없음' + 코드(지어낸 주소 없음)
   const TL = boardDef('TreeLogin');
   if (TL && !TL.Logic.__terra) {
     const ridOf = (key) => { const sc = window.__terra && window.__terra.scene, n = sc && sc.sceneMap && sc.sceneMap().byId[key]; return (n && n.rid) || ''; };
@@ -167,7 +167,7 @@ if (MODE !== 'demo') {
         const v = super.renderVals(), rid = ridOf(this.props.treeKey);
         if (rid) v.resolve = () => { this.setState({ phase: 'ask' }); terra.invoke('terra.master.crossboundary.login-routes.by-node-id.resolve.post', { node_id: rid })
           .then((r) => { const url = r && (r.login_url || (r.route && r.route.login_url)); this.setState({ phase: null, resolved: true, url: url || null, msg: url ? '' : '주소 없음 (이 Tree)' }); },
-            (e) => this.setState({ phase: null, resolved: true, url: null, msg: '주소 요청 실패 · ' + (e.code || '') })); };
+            (e) => this.setState({ phase: null, resolved: false, url: null, msg: '주소 요청 실패 · ' + ((e && (e.code || e.status)) || 'UNKNOWN') })); };
         return v;
       }
     }
@@ -221,14 +221,14 @@ if (MODE !== 'demo') {
   };
   const SC = boardDef('Scene');
   let sceneOut = null;   // 보드의 원래 로그아웃(로그인 층을 전환을 거꾸로 해 다시 올린다)
-  if (SC && SC.Logic.prototype.sceneLogout && !SC.Logic.__terraOut) { const out = sceneOut = SC.Logic.prototype.sceneLogout; SC.Logic.prototype.sceneLogout = function (...a) { if (MODE === 'app') { const back = signedIn(); appLogout(); return back ? out.apply(this, a) : undefined; } if (MODE === 'shell') session.logout(); pcLogout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive(); return out.apply(this, a); }; SC.Logic.__terraOut = true; }
+  if (SC && SC.Logic.prototype.sceneLogout && !SC.Logic.__terraOut) { const out = sceneOut = SC.Logic.prototype.sceneLogout; SC.Logic.prototype.sceneLogout = function (...a) { if (MODE === 'app') { const back = signedIn(); appLogout(); return back ? out.apply(this, a) : undefined; } if (MODE === 'shell') session.logout(); pcLogout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; window.TerraLoginRoutesErr = ''; stopLive(); return out.apply(this, a); }; SC.Logic.__terraOut = true; }
   // A 모드의 로그인 · 로그아웃 — 웹은 비밀번호를 받지 않는다. 첫 화면은 B 와 같은 로그인 보드(TERRA 연출)다:
   //   셸 칸이 있으면 보드의 폼 + 셸 칸으로 로그인(§1-2) · 없으면(이전 Terra) TERRA 를 누르면 emit('login') → Scene 의 /login 카드 → / 로 돌아와 frame 이 새로 서고 토큰이 든 init
   //   토큰이 있으면(셸 세션 · 이미 로그인) 연출을 잠깐 보인 뒤 폼 없이 워프로 트리 뷰
   //   로그아웃 → emit('logout') — 그 Scene 이 쥔 Handle 이 있을 때만(session.state, node-gui 와 같은 규칙) — 그리고 로그인 층을 거꾸로. 셸 세션의 토큰이면 셸에서 로그아웃한다
   const signedIn = () => { const v = frame && frame.value && frame.value(); return !!(v && v.state === 'signedIn'); };
   const appLogout = () => {
-    pcLogout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; stopLive();
+    pcLogout(); if (window.TerraNodes && window.TerraNodes.clear) window.TerraNodes.clear(); window.TerraTopology = null; window.TerraLoginRoutes = null; window.TerraLoginRoutesErr = ''; stopLive();
     if (frame && signedIn()) { frame.emit('logout'); if (rememberedOf(frame)) frame.remember.forget(); }   // 로그아웃은 기억도 지운다(Gateway 는 그 세션의 기억을 이미 지운다 — 여기는 이 웹이 쥔 id 사본)
     else say('셸 로그인 세션 — 로그아웃 : 셸에서');
   };
