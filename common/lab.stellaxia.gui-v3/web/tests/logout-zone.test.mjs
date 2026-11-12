@@ -63,3 +63,35 @@ test('whoShort — 24칸 이하는 그대로, 넘으면 … 로', async () => {
   const s = o.whoShort(PRINCIPAL);
   assert.ok(o.dw(s) <= 24 && s.endsWith('…'), s);
 });
+
+// AUD-21 재점검 — 실제 누르기 경로(Scene 의 tap 핸들러 → gfOver/gfHit → gfTap → ctlTap)를 720px 배치로 구동.
+//   라벨 x 는 컨트롤 구역(viewX0) 밖이라 예전엔 gfTap 까지 가지 못해 로그아웃이 불리지 않았다.
+test('Scene — 720px 실제 tap 경로: 로그아웃 라벨 누르기가 로그아웃에 닿고, 그 밖 누르기는 씬으로', async () => {
+  const C = await logic('Scene'), o = Object.create(C.prototype);
+  window.TerraTransport = {}; window.TerraWho = { principal: PRINCIPAL };
+  const cw = 8, ch = 16, W = 720;
+  Object.assign(o, { props: {}, state: {}, _q_cw: cw, _q_ch: ch, _q_w: W, _q_h: 600, _q_cols: 90, _q_rows: 37 });
+  o.gf_logoShape = () => ({ w: 160, h: 60, key: 'k', idx: new Map() });
+  try {
+    o.gf_layout();
+    const Q = o._q_lo; assert.ok(Q);
+    assert.ok(Q.x0 > o.viewX0(), `전제: 라벨(${Q.x0}px)이 컨트롤 구역 오른쪽 끝(${o.viewX0()}px) 밖`);
+    let lo = 0, scene = 0, tapped = 0;
+    o.gf_doLogout = () => { lo++; };
+    o.sceneLogout = () => { lo++; };
+    o._q_lg = { on: true, open: false, m: 0, mp: 0 };
+    o._cv = { getBoundingClientRect: () => ({ left: 0, top: 0 }) };
+    o._hits = [{}];
+    o.pickHit = () => { scene++; return null; };
+    const gt = o.gfTap.bind(o); o.gfTap = (x, y) => { tapped++; return gt(x, y); };
+    const tap = o.renderVals().tap, ev = (x, y) => ({ button: 0, clientX: x, clientY: y, target: null });
+    tap(ev((Q.x0 + Q.x1) / 2, Q.row * ch + ch / 2));
+    assert.equal(tapped, 1, '라벨 누르기가 전역 틀(gfTap)에 닿는다');
+    assert.equal(lo, 1, '로그아웃 호출');
+    // 라벨 밖(같은 줄 오른쪽 · 화면 가운데)은 씬이 받는다
+    tap(ev(W - 20, Q.row * ch + ch / 2)); tap(ev(W / 2, 400));
+    assert.equal(tapped, 1, '라벨 밖은 gfTap 으로 가지 않는다');
+    assert.equal(scene, 2, '라벨 밖은 씬(pickHit)으로');
+    assert.equal(lo, 1);
+  } finally { delete window.TerraTransport; delete window.TerraWho; }
+});

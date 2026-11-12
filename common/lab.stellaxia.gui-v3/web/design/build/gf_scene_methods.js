@@ -16,7 +16,7 @@
   // 전역 틀이 받는 자리 — 글자 말고는 투명이라 영역으로 막지 않는다: 펼치기 전엔 '>_' 칸만, 펼친 뒤엔 로고 구역 · 지도 노드 · 맨 아래 'ESC 뒤로'
   gfLogoZone() { const on = this._q_lg && this._q_lg.on; return on ? this._q_zones && this._q_zones.logo : this._q_pz || (this._q_zones && this._q_zones.logo); }
   // 전역 틀을 펼친 동안 — 컨트롤 구역(왼쪽 1/4) 위의 누르기는 전역 틀만 받는다 (그 아래 뷰 · 다른 컴포넌트로 넘기지 않음). 마우스 위치(호버)는 그대로
-  gfOver(x, y) { const L = this._q_lg; return !!(L && (L.on || L.open)) && x < this.viewX0(); }
+  gfOver(x, y) { const L = this._q_lg; return !!(L && (L.on || L.open)) && (x < this.viewX0() || this.gf_ctlOwns(x, y)); }   // 로그아웃 라벨 · 로컬 위치 라벨은 좁은 창에서 컨트롤 구역 밖 — 그 자리도 전역 틀이 받는다
   gfHit(x, y) {
     const Z = this.gfLogoZone(), cw = this._q_cw, ch = this._q_ch; if (!Z || !cw) return false;
     if (x >= Z.c0 * cw - cw && x <= Z.c1 * cw + cw && y >= Z.r0 * ch - ch && y <= Z.r1 * ch + ch) return true;

@@ -643,6 +643,8 @@ class Component extends DCLogic {
     this.layout();
   }
   ctlHitRow(x, y) { const K = this._ctl; if (x == null || !K || !K.rows || !(this._lg && this._lg.open)) return null; const rr = Math.floor(y / this._ch); if (x < K.x0 - this._cw || x > K.x1 + this._cw) return null; const R = K.rows.find((q) => q.row === rr); return R ? R.id : null; }
+  // 컨트롤 구역 밖에 놓인 누르기 자리(로그아웃 라벨 · 로컬 위치) — 좁은 창에선 컨트롤 구역(왼쪽 1/4) 오른쪽으로 삐져나가, 씬이 이 좌표를 전역 틀로 넘겨야 한다(AUD-21)
+  ctlOwns(x, y) { for (const Q of [this._lo, this._here]) if (Q && this._lg && this._lg.on && Math.floor(y / this._ch) === Q.row && x >= Q.x0 - 4 && x <= Q.x1 + 4) return true; return false; }
   ctlTap(x, y) {
     { const Q = this._lo; if (Q && this._lg && this._lg.on && Math.floor(y / this._ch) === Q.row && x >= Q.x0 - 4 && x <= Q.x1 + 4) { this.doLogout(); return true; } }   // 로그아웃
     { const Q = this._here; if (Q && this._lg && this._lg.on && Math.floor(y / this._ch) === Q.row && x >= Q.x0 - 4 && x <= Q.x1 + 4) { this.goHere(); return true; } }   // 로컬 위치로
