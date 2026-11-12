@@ -95,3 +95,34 @@ test('Scene — 720px 실제 tap 경로: 로그아웃 라벨 누르기가 로그
     assert.equal(lo, 1);
   } finally { delete window.TerraTransport; delete window.TerraWho; }
 });
+
+// AUD-21 3차 — 로고에서 로그아웃 라벨로 '대각선'으로 가도 호버가 유지된다(로고 구역과 info 구역 사이 빈 칸을 지난다).
+//   실제 프레임 갱신(gf_step)과 실제 tap 경로로 구동: 켜진 뒤엔 로고~info 를 감싸는 복도 안에서 유지, 복도를 벗어나면 꺼진다.
+test('Scene — 720px · 65칸: 로고 중심 → 로그아웃 라벨 중심 직선 경로에서 호버 유지, 마지막 누르기가 로그아웃', async () => {
+  const C = await logic('Scene'), o = Object.create(C.prototype);
+  window.TerraTransport = {}; window.TerraWho = { principal: PRINCIPAL };
+  const cw = 8, ch = 16, W = 720;
+  Object.assign(o, { props: {}, state: {}, _q_cw: cw, _q_ch: ch, _q_w: W, _q_h: 600, _q_cols: 90, _q_rows: 37 });
+  o.gf_logoShape = () => ({ w: 160, h: 60, key: 'k', idx: new Map() });
+  try {
+    o.gf_layout();
+    const Q = o._q_lo, Zl = o._q_zones.logo, Zi = o._q_zones.info;
+    assert.ok(Q && Zl && Zi);
+    const L = o.gf_TL(), Tm = L.mSpread + L.mCell + L.G;
+    o._q_lg = { mp: Tm, m: 0, on: false, onAt: 0, open: false, cAt: 0, ring: 0 };
+    o._q_boot = -1e6; o._cv = { getBoundingClientRect: () => ({ left: 0, top: 0 }), parentElement: null };
+    let now = 1e6; const frame = (x, y) => { o._mouse = { x, y }; now += 16; o.gf_step(now, 16); };
+    const A = { x: (Zl.c0 + Zl.c1) / 2 * cw, y: (Zl.r0 + Zl.r1) / 2 * ch }, B = { x: (Q.x0 + Q.x1) / 2, y: Q.row * ch + ch / 2 };
+    frame(A.x, A.y); assert.equal(o._q_lg.on, true, '로고 위에서 켜진다');
+    const N = 60; for (let i = 0; i <= N; i++) { const t = i / N; frame(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t); assert.equal(o._q_lg.on, true, `경로 ${i}/${N} 에서 호버 유지`); }
+    let lo = 0; o.gf_doLogout = () => { lo++; }; o.sceneLogout = () => { lo++; };
+    o._hits = [{}]; o.pickHit = () => null;
+    o.renderVals().tap({ button: 0, clientX: B.x, clientY: B.y, target: null });
+    assert.equal(lo, 1, '마지막 누르기 → 로그아웃');
+    // 복도 밖으로 나가면 꺼진다 (아래쪽 info 구역 밑 · 복도 오른쪽 밖)
+    const out = (x, y) => { frame(x, y); for (let i = 0; i < 40; i++) frame(x, y); return o._q_lg.on; };
+    assert.equal(out(B.x, (Math.max(Zl.r1, Zi.r1) + 4) * ch), false, '복도 아래로 벗어나면 꺼짐');
+    frame(A.x, A.y); assert.equal(o._q_lg.on, true);
+    assert.equal(out(Math.max(Zl.c1, Zi.c1) * cw + 4 * cw, A.y), false, '복도 오른쪽으로 벗어나면 꺼짐');
+  } finally { delete window.TerraTransport; delete window.TerraWho; }
+});
