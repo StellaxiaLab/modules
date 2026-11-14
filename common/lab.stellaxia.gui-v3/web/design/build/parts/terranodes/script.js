@@ -71,7 +71,7 @@ class NodeStore {
   key(n, r, inp) { return n + '|' + r + (inp ? '|' + JSON.stringify(inp) : ''); }   // 입력이 있는 읽기(모듈 로그 · 모듈 설정 스키마)는 입력마다 따로
   emit(n) { for (const f of this.subs) { try { f(n); } catch (e) {} } }
   subscribe(f) { this.subs.add(f); return () => this.subs.delete(f); }
-  persist() { clearTimeout(this._saveT); this._saveT = setTimeout(() => { const o = {}; for (const [k, v] of this.cache) o[k] = v; if (!LS.set('terra.cache', o)) LS.set('terra.cache', {}); }, 400); }
+  persist() { clearTimeout(this._saveT); this._saveT = setTimeout(() => { if (!this.cache.size) { try { localStorage.removeItem('terra.cache'); } catch (e) {} return; } const o = {}; for (const [k, v] of this.cache) o[k] = v; if (!LS.set('terra.cache', o)) LS.set('terra.cache', {}); }, 400); }
   isLocal(n) { return n === this.t.localId(); }
   link(n) { if (this.isLocal(n)) return { state: 'local' }; return this.links.get(n) || { state: 'unknown' }; }
   setLink(n, L) { const o = this.links.get(n); this.links.set(n, Object.assign({}, L, { at: Date.now() })); if (!o || o.state !== L.state || o.code !== L.code) this.emit(n); }
@@ -502,7 +502,7 @@ class NodeStore {
   }
 
   /** 비우기 — 로그아웃 때(다음 사람이 앞 사람의 사본을 보지 않게) */
-  clear() { this.pendingRes.clear(); for (const S of this.deskSends.values()) for (const w of S.waiters) w.no({ code: 'CLEARED', message: '로그아웃으로 비워짐' }); this.pendingDesk.clear(); this.deskSends.clear(); this.desks.clear();   // 바탕 구성의 표시층 · 대기열 · 상태 — watch 목록과 타이머는 남긴다(토큰 갱신도 clear 를 부른다)
+  clear() { clearTimeout(this._saveT); this.pendingRes.clear(); for (const S of this.deskSends.values()) for (const w of S.waiters) w.no({ code: 'CLEARED', message: '로그아웃으로 비워짐' }); this.pendingDesk.clear(); this.deskSends.clear(); this.desks.clear();   // 바탕 구성의 표시층 · 대기열 · 상태 — watch 목록과 타이머는 남긴다(토큰 갱신도 clear 를 부른다)
     this.cache.clear(); this.links.clear(); this.views.clear(); this.inflight.clear(); this.blobs.clear(); this.gen++; IDB.clear(); try { localStorage.removeItem('terra.cache'); } catch (e) {} for (const f of this.subs) { try { f(''); } catch (e) {} } }
   /** GUI 보기 상태 — 노드 키마다 (노드 데이터가 아니다) */
   view(key) { if (!this.views.has(key)) this.views.set(key, LS.get('terra.pc.' + key) || null); return this.views.get(key); }
