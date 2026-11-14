@@ -1220,6 +1220,7 @@
       "errors": [
         "FAULTS_NOT_AVAILABLE",
         "INVALID_REQUEST",
+        "NODE_NOT_FOUND",
         "NODETALK_UNAVAILABLE"
       ],
       "execution": {
@@ -1622,6 +1623,7 @@
         "EPOCH_STALE",
         "INVALID_REQUEST",
         "NODE_NOT_FOUND",
+        "NODE_UNREACHABLE",
         "NOT_MAIN",
         "NODETALK_UNAVAILABLE"
       ],
@@ -1835,6 +1837,7 @@
         "CONVERSATION_NOT_FOUND",
         "EPOCH_STALE",
         "MEMBER_NOT_FOUND",
+        "NODE_NOT_FOUND",
         "NOT_MAIN",
         "NODETALK_UNAVAILABLE"
       ],
@@ -2925,6 +2928,7 @@
       "description": "대화 없이도 두 노드 사이 통신을 잴 수 있는 표면이다. 페이로드를 나르지 않고 왕복만 하며, 칸마다 성공 여부·왕복시간·실패 코드를 따로 답한다. 이 모듈이 채팅이 아니라 계측기인 이유가 이 오퍼레이션이다. 상태를 바꾸지 않는다.",
       "errors": [
         "INVALID_REQUEST",
+        "NODE_NOT_FOUND",
         "NODE_UNREACHABLE",
         "NODETALK_UNAVAILABLE"
       ],

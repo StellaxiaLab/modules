@@ -29,6 +29,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -167,8 +168,15 @@ func (s *apiServer) confirmNodeExists(ctx context.Context, nodeID string) error 
 	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
 	if _, err := s.deps.Door(ctx, nodeID, "GET", apiPrefix+"/status", nil); err != nil {
-		return fmt.Errorf("%w: %s에 닿지 못했다 — 없는 노드이거나 꺼져 있다 (%v)",
-			talk.ErrNodeNotFound, nodeID, err)
+		// Only the Master's own "no such node" is a definite answer. A timeout,
+		// an offline node or a missing relay says nothing about existence, so
+		// it is reported as unreachable and stays retryable.
+		var coded *doorError
+		if errors.As(err, &coded) && coded.Code == "NODE_NOT_FOUND" {
+			return fmt.Errorf("%w: %s는 Terra에 없는 노드다 (%v)", talk.ErrNodeNotFound, nodeID, err)
+		}
+		return fmt.Errorf("%w: %s에 닿지 못했다 — 꺼져 있거나 경로가 끊겼다 (%v)",
+			talk.ErrNodeUnreachable, nodeID, err)
 	}
 	return nil
 }

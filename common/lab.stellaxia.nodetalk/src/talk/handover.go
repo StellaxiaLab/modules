@@ -44,6 +44,10 @@ var (
 	// ErrNodeNotFound is returned when a node a caller named is unknown or does
 	// not answer. The conversation is fine; it is the node that is not there.
 	ErrNodeNotFound = errors.New("talk: node not found")
+	// ErrNodeUnreachable: a named node could not be asked (timeout, offline,
+	// no relay). It says nothing about whether the node exists, so it is
+	// retryable where ErrNodeNotFound is not.
+	ErrNodeUnreachable = errors.New("talk: node unreachable")
 )
 
 // HandoverResult is a successful claim's answer.

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/StellaxiaLab/modules/common/lab.stellaxia.nodetalk/talk"
@@ -28,9 +31,21 @@ func resolvingNode(t *testing.T, nodeID string, reachable map[string]*httptest.S
 	names := newDirectory(root)
 	handler := newOperationsHandler(serverDeps{
 		ResolveNodeID: staticNodeID(nodeID), Store: store, Names: names,
-		DisplayName: "이 노드", Door: httpDoor(t, nodeID, reachable),
+		DisplayName: "이 노드", Door: masterDoor(httpDoor(t, nodeID, reachable), reachable),
 	})
 	return store, handler, names
+}
+
+// masterDoor stands in for the Master: a node it has no record of is answered
+// with the definite NODE_NOT_FOUND, as the real relay does. A node that is
+// known but fails to answer keeps whatever error the inner door produced.
+func masterDoor(inner doorFunc, known map[string]*httptest.Server) doorFunc {
+	return func(ctx context.Context, node, method, path string, body []byte) (json.RawMessage, error) {
+		if _, ok := known[node]; !ok {
+			return nil, &doorError{Code: "NODE_NOT_FOUND", Message: "node was not found"}
+		}
+		return inner(ctx, node, method, path, body)
+	}
 }
 
 // A name typed where an id belongs is refused, because the node it names does
@@ -247,4 +262,71 @@ func TestUnknownNodeAndMissingConversationAreDifferentErrors(t *testing.T) {
 	if status != http.StatusNotFound || code != "CONVERSATION_NOT_FOUND" {
 		t.Fatalf("missing conversation: got %d %q, want 404 CONVERSATION_NOT_FOUND", status, code)
 	}
+}
+
+// AUD-68 review: only a definite "no such node" is NODE_NOT_FOUND. A transport
+// failure or an offline node says nothing about existence and must be a
+// retryable NODE_UNREACHABLE (503), not a permanent 404.
+func TestAnOfflineNodeIsUnreachableNotMissing(t *testing.T) {
+	store, _, _ := resolvingNode(t, "node-a", nil)
+	conversation, _ := store.Create("오프라인", nil, "")
+	failures := map[string]error{
+		"relay down": &doorError{Code: "MODULE_UNAVAILABLE", Message: "no relay session"},
+		"offline":    &doorError{Code: "NODE_OFFLINE", Message: "node offline"},
+		"timeout":    context.DeadlineExceeded,
+	}
+	for name, failure := range failures {
+		failure := failure
+		handler := newOperationsHandler(serverDeps{
+			ResolveNodeID: staticNodeID("node-a"), Store: store, Names: newDirectory(t.TempDir()),
+			DisplayName: "이 노드",
+			Door: func(context.Context, string, string, string, []byte) (json.RawMessage, error) {
+				return nil, failure
+			},
+		})
+		recorder := doJSON(t, handler, "POST",
+			apiPrefix+"/conversations/"+conversation.ConversationID+"/members",
+			map[string]any{"node_id": "node-b"})
+		var envelope struct {
+			Error apiError `json:"error"`
+		}
+		decodeInto(t, recorder, &envelope)
+		if recorder.Code != http.StatusServiceUnavailable || envelope.Error.Code != "NODE_UNREACHABLE" {
+			t.Fatalf("%s: got %d %q, want 503 NODE_UNREACHABLE", name, recorder.Code, envelope.Error.Code)
+		}
+	}
+}
+
+// members.remove with an unknown node name answers NODE_NOT_FOUND, which its
+// contract lists.
+func TestRemovingByUnknownNameIsNodeNotFound(t *testing.T) {
+	store, handler, _ := resolvingNode(t, "node-a", nil)
+	conversation, _ := store.Create("제거", nil, "")
+	recorder := doJSON(t, handler, "DELETE",
+		apiPrefix+"/conversations/"+conversation.ConversationID+"/members/없는이름?node_by_name=true", nil)
+	var envelope struct {
+		Error apiError `json:"error"`
+	}
+	decodeInto(t, recorder, &envelope)
+	if recorder.Code != http.StatusNotFound || envelope.Error.Code != "NODE_NOT_FOUND" {
+		t.Fatalf("got %d %q", recorder.Code, envelope.Error.Code)
+	}
+	contract, err := os.ReadFile(filepath.Join("..", "contracts", "api", "terra-api.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsed struct {
+		Operations map[string]struct {
+			Errors []string `json:"errors"`
+		} `json:"operations"`
+	}
+	if err := json.Unmarshal(contract, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	for _, code := range parsed.Operations["lab.stellaxia.nodetalk.members.remove"].Errors {
+		if code == "NODE_NOT_FOUND" {
+			return
+		}
+	}
+	t.Fatal("members.remove's contract error list lacks NODE_NOT_FOUND")
 }
