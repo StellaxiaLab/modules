@@ -55,7 +55,7 @@ class Component extends DCLogic {
     O.lockT = R.kind === 'mod' ? 'TERRA' : R.kind === 'web' ? (/^https:/i.test(R.url) ? 'https' : 'http') : R.kind === 'start' ? '⌂' : '?'; O.lockTip = R.kind === 'mod' ? 'Gateway 가 내준 모듈 화면' : '';
     O.addrCls = R.kind === 'mod' ? 'mod' : ''; O.apiT = ''; O.noteT = ''; O.statusT = '';
     if (R.kind === 'start') {
-      const C = this.cat(); O.isStart = true; O.startNote = (P.nodeName || '이 노드') + ' — 화면이 있는 모듈 ' + C.length + '개'; O.noCards = !C.length;
+      const C = this.cat(); O.isStart = true; O.startNote = (P.nodeName || '이 노드') + (C.why && !C.length ? ' — 못 봤음 · ' + C.why : ' — 화면이 있는 모듈 ' + C.length + '개'); O.noCards = !C.length; O.noCardsT = C.why ? '못 봤음 — ' + C.why + '(화면 있는 모듈 없음이 아님)' : '화면 있는 모듈 없음';
       O.cards = C.map((e) => { const st = this.stOf(e), on = st === 'run', MD = { static: '', proxied: 'px', window: 'wd' }[e.mode] || '';
         return { app: e.appName, mod: e.modName, mode: e.mode, modeCls: MD, node: e.node + (e.remote ? ' · 원격' : ''), st: on ? '● 실행' : '○ ' + ({ stop: '멈춤', fail: '실패', restart: '다시 시작 중' }[st] || st), cls: on ? '' : 'off', off: on ? null : 'disabled', open: () => this.nav(e.arg) }; });
       O.statusT = '시작 페이지'; O.chips = [{ t: 'terra://start', cls: '' }];

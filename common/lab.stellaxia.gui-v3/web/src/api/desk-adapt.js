@@ -57,6 +57,19 @@ export function webApps(list, moduleId) {
   return arr(list, 'apps').filter((a) => a && a.moduleId === moduleId && !a.embed).map((a) => ({ id: a.id, name: a.name || a.id, mode: a.mode, entry: a.entry || '' }));
 }
 
+/**
+ * 모듈 하나의 앱 줄 + "몰랐음" 표시 — 목록을 못 읽은 것(null) 과 정말 비어 있는 것([])을 가른다(AUD-82 · AUD-89).
+ *   이 노드: 목록이 배열이면 그 모듈 것(0개도 사실), 아니면 못 봤음. 다른 노드: 앱 목록을 요청하지 않으므로(앱 토큰으로 못 받음) 늘 못 봤음
+ * @returns {{ apps: any[], appsUnknown: boolean, appsWhy: string }}
+ */
+export const APPS_WHY_REMOTE = '원격 노드의 앱 목록은 앱 토큰으로 받지 못함';
+export const APPS_WHY_FAIL = '앱 목록을 읽지 못함';
+export function appsView(list, moduleId, local) {
+  if (!local) return { apps: [], appsUnknown: true, appsWhy: APPS_WHY_REMOTE };
+  if (!Array.isArray(list)) return { apps: [], appsUnknown: true, appsWhy: list === undefined ? '앱 목록 받는 중' : APPS_WHY_FAIL };
+  return { apps: webApps(list, moduleId), appsUnknown: false, appsWhy: '' };
+}
+
 // 동의 상태 → 보드의 세 칸(동의 대기 · 받는 중 · 설치됨). managed · pinned 는 정책이 이미 정했다(동의 단추 없음)
 const OFFER_ST = { offered: 'wait', stale: 'wait', accepted: 'consent', managed: 'done', pinned: 'done' };
 /** @returns {{ id: string, name: string, ver: string, size: string, by: string, perms: string[], st: 'wait'|'consent'|'done', state: string }[]} */
