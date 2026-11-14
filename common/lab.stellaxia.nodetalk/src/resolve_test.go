@@ -211,3 +211,40 @@ func TestConversationsResolveByName(t *testing.T) {
 		}
 	}
 }
+
+// AUD-68: an unknown node is not a missing conversation. The room exists; the
+// node does not. Each gets its own code so a caller can tell which to fix.
+func TestUnknownNodeAndMissingConversationAreDifferentErrors(t *testing.T) {
+	_, peer := newNode(t, "node-b", t.TempDir())
+	store, handler, _ := resolvingNode(t, "node-a", map[string]*httptest.Server{"node-b": peer})
+	conversation, err := store.Create("분류", nil, "")
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	codeOf := func(path string, body map[string]any) (int, string) {
+		recorder := doJSON(t, handler, "POST", path, body)
+		var envelope struct {
+			Error apiError `json:"error"`
+		}
+		decodeInto(t, recorder, &envelope)
+		return recorder.Code, envelope.Error.Code
+	}
+
+	// Existing conversation, node nobody answers for.
+	status, code := codeOf(apiPrefix+"/conversations/"+conversation.ConversationID+"/members",
+		map[string]any{"node_id": "node-ghost"})
+	if status != http.StatusNotFound || code != "NODE_NOT_FOUND" {
+		t.Fatalf("unknown node: got %d %q, want 404 NODE_NOT_FOUND", status, code)
+	}
+	// Unknown name, same class.
+	status, code = codeOf(apiPrefix+"/conversations/"+conversation.ConversationID+"/members",
+		map[string]any{"node_id": "들어본 적 없음", "node_by_name": true})
+	if status != http.StatusNotFound || code != "NODE_NOT_FOUND" {
+		t.Fatalf("unknown node name: got %d %q, want 404 NODE_NOT_FOUND", status, code)
+	}
+	// Truly missing conversation keeps its own code.
+	status, code = codeOf(apiPrefix+"/conversations/cv-none/members", map[string]any{"node_id": "node-b"})
+	if status != http.StatusNotFound || code != "CONVERSATION_NOT_FOUND" {
+		t.Fatalf("missing conversation: got %d %q, want 404 CONVERSATION_NOT_FOUND", status, code)
+	}
+}

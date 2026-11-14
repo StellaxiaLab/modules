@@ -149,7 +149,7 @@ func (s *apiServer) nodeByName(name, self string) (string, error) {
 		return matches[0], nil
 	case 0:
 		return "", fmt.Errorf("%w: %q라는 이름의 노드를 이 노드가 모른다 — 이름은 이야기해 본 적 있는 노드만 안다",
-			talk.ErrNotFound, name)
+			talk.ErrNodeNotFound, name)
 	default:
 		return "", fmt.Errorf("%w: %q라는 이름의 노드가 %d개다 — id로 지정해야 한다",
 			talk.ErrInvalid, name, len(matches))
@@ -168,7 +168,7 @@ func (s *apiServer) confirmNodeExists(ctx context.Context, nodeID string) error 
 	defer cancel()
 	if _, err := s.deps.Door(ctx, nodeID, "GET", apiPrefix+"/status", nil); err != nil {
 		return fmt.Errorf("%w: %s에 닿지 못했다 — 없는 노드이거나 꺼져 있다 (%v)",
-			talk.ErrNotFound, nodeID, err)
+			talk.ErrNodeNotFound, nodeID, err)
 	}
 	return nil
 }

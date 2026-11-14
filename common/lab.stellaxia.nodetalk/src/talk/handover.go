@@ -41,6 +41,9 @@ var (
 	// ErrMemberNotFound is returned when the addressed member is not in the
 	// conversation.
 	ErrMemberNotFound = errors.New("talk: member not found")
+	// ErrNodeNotFound is returned when a node a caller named is unknown or does
+	// not answer. The conversation is fine; it is the node that is not there.
+	ErrNodeNotFound = errors.New("talk: node not found")
 )
 
 // HandoverResult is a successful claim's answer.
