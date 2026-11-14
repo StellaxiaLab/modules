@@ -83,3 +83,22 @@ test('main.js — 모듈 목록을 못 읽은 것이 [] 로 둔갑하지 않는�
   const s = readFileSync(fileURLToPath(new URL('../src/boot/main.js', import.meta.url)), 'utf8');
   assert.doesNotMatch(s, /TerraSviMods = \[\]/); assert.match(s, /\(\) => \{ window\.TerraSviMods = null; \}/);
 });
+
+// AUD-82(실측 s3-gui): 장면 키('P1:iso-B')가 아니라 실제 node id(rid)로 /gui/remote/{node}/apps 를 받는다 — 403 GUI_REMOTE_DENIED 의 원인
+test('원격 앱 목록은 장면 키가 아니라 node id(rid) 로 받는다 — Field · Scene', () => {
+  const NODE = { id: 'P1:iso-B', rid: 'real-node-B', kind: 'leaf', name: 'iso-B' };
+  const asked = [];
+  const R = { get: (id) => { asked.push(id); return id === 'real-node-B' ? { state: 'ok', apps: RAPPS.apps.map((a) => ({ ...a, nodeId: 'real-node-B' })) } : { state: 'err', why: '권한 없음 (GUI_REMOTE_DENIED)' }; } };
+  const mods = [{ id: 'm1', name: '모듈', ver: '1', st: 'run' }];
+  try {
+    for (const [name, pre] of [['Field', ''], ['Scene', 'gf_']]) {
+      asked.length = 0;
+      const C = load(name), c = new C({});
+      c[pre + 'TN'] = c.TN = () => ({ read: () => ({ data: mods }) }); c[pre + 'localNode'] = c.localNode = () => LOC;
+      globalThis.window = { TerraDesk: A, TerraGuiApps: [], TerraRemoteApps: R };
+      const m = c[pre + 'modsOf'](NODE)[0], cat = c[pre + 'liveCat'](NODE);
+      assert.ok(asked.length >= 1 && asked.every((id) => id === 'real-node-B'), name + ': ' + JSON.stringify(asked));
+      assert.equal(m.appsUnknown, false, name); assert.equal(m.apps.length, 1, name); assert.equal(cat.why, '', name); assert.equal(cat.length, 1, name);
+    }
+  } finally { delete globalThis.window; }
+});

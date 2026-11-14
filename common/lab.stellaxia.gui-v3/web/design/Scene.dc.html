@@ -2802,7 +2802,7 @@ class Component extends DCLogic {
     const r = T.read(n.id, 'modules'), loc = this.gf_localNode();
     // 실제 앱 줄은 Gateway 앱 목록에서 온다(Daemon 모듈 목록에는 GUI 가 없다). 다른 노드의 앱 목록은 아직 못 받는다 — appsUnknown 으로 '못 봤음'을 낸다
     const A = typeof window !== 'undefined' ? window.TerraDesk : null, G = typeof window !== 'undefined' ? window.TerraGuiApps : null;
-    const local = !!loc && n.id === loc.id, RA = !local ? this.gf_remoteApps(n.id) : undefined, appsOf = (m) => (A ? (A.appsView ? A.appsView(G, m.id, local, RA) : { apps: local && Array.isArray(G) ? A.webApps(G, m.id) : [] }) : null);   // 못 읽은 것(null)·원격은 appsUnknown — 0개로 보이지 않게(AUD-82 · AUD-89)   // 지도가 바뀌면 창이 쥔 노드는 옛 객체다 — id 로 견준다
+    const local = !!loc && n.id === loc.id, RA = !local ? this.gf_remoteApps(n.rid || n.id) : undefined, appsOf = (m) => (A ? (A.appsView ? A.appsView(G, m.id, local, RA) : { apps: local && Array.isArray(G) ? A.webApps(G, m.id) : [] }) : null);   // 못 읽은 것(null)·원격은 appsUnknown — 0개로 보이지 않게(AUD-82 · AUD-89)   // 지도가 바뀌면 창이 쥔 노드는 옛 객체다 — id 로 견준다
     return (r.data || []).map((m) => Object.assign({}, m, { node: n.name, nodeId: n.id, remote: !local }, appsOf(m)));
   }
   // 모듈 폴더 옆 글 — 개수 · 받는 중 · 끊김(사본 나이)
@@ -2832,7 +2832,7 @@ class Component extends DCLogic {
   gf_catKey(c) { return c.length + (c.why ? '!' : ''); }   // 개수 + '못 봤음' 여부 — 바뀌면 다시 그린다
   // 그 노드의 앱 목록을 못 봤으면 이유, 읽었으면 ''(0개여도 사실) — 브라우저 창 시작 페이지가 "0개"로 거짓말하지 않게(AUD-82 · AUD-89)
   gf_remoteApps(id) { const R = typeof window !== 'undefined' ? window.TerraRemoteApps : null; return R ? R.get(id) : undefined; }   // 다른 노드의 앱 목록 사본(없으면 뒤에서 받는다 · 받으면 terra-apps 신호) — 시안 · 전송이 없으면 undefined
-  gf_appsWhy(n) { const A = typeof window !== 'undefined' ? window.TerraDesk : null; if (!A || !A.appsView || !n) return ''; const loc = this.gf_localNode(), lc = !!loc && n.id === loc.id, v = A.appsView(window.TerraGuiApps, '', lc, lc ? undefined : this.gf_remoteApps(n.id)); return v.appsUnknown ? v.appsWhy : ''; }
+  gf_appsWhy(n) { const A = typeof window !== 'undefined' ? window.TerraDesk : null; if (!A || !A.appsView || !n) return ''; const loc = this.gf_localNode(), lc = !!loc && n.id === loc.id, v = A.appsView(window.TerraGuiApps, '', lc, lc ? undefined : this.gf_remoteApps(n.rid || n.id)); return v.appsUnknown ? v.appsWhy : ''; }
   gf_catalogSync() { if (this._live === false) return; const K = []; for (const k of [0, 1, 2, 3, 4, 5]) if (this['_ctlNode' + k]) K.push(this.gf_catKey(this.gf_liveCat(this['_ctlNode' + k]))); for (const k of [16, 17, 18, 19, 20]) if (this['_wNode' + k]) K.push(this.gf_catKey(this.gf_liveCat(this['_wNode' + k]))); const s = K.join(','); if (s !== this._q_catK) { this._q_catK = s; this.setState({ catTick: (this.state.catTick || 0) + 1 }); } }
   // 브라우저 창이 여는 모듈 화면 목록 — 노드 하나(그 노드의 화면 있는 모듈)
   gf_modCatalog(n) { const out = []; out.why = this.gf_appsWhy(n); for (const m of this.gf_modsOf(n)) for (const a of m.apps || []) out.push({ arg: 'mod|' + m.nodeId + '|' + m.id + '|' + a.id, modId: m.id, modName: m.name, ver: m.ver, appId: a.id, appName: a.name, mode: a.mode, entry: a.entry, port: a.port, node: m.node, nodeId: m.nodeId, remote: m.remote, st: m.st,
