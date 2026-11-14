@@ -52,6 +52,9 @@
           "entry": "ui/index.html",
           "isolation": "sandboxed",
           "embed": "scene",
+          "capabilities": [
+            "blob-images"
+          ],
           "permissions": [
             "session.identity",
             "node.read",
