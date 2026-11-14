@@ -76,3 +76,15 @@ test('AUD-30 — TerraNodes.clear: 대기 중인 저장 타이머가 로그아�
   T.persist(); await new Promise((r) => setTimeout(r, 600));            // 늦은 응답의 finally 가 부르는 persist — 비어 있으면 키를 만들지 않는다
   assert.equal(localStorage.getItem('terra.cache'), null);
 });
+
+test('AUD-30 — 읽기가 비행 중일 때 로그아웃하면 늦은 응답이 앞 사람의 사본을 되살리지 않는다', async () => {
+  globalThis.localStorage = mem();
+  const C = await logic('TerraNodes');
+  delete window.TerraNodes; let release; const gate = new Promise((r) => { release = r; });
+  window.TerraTransport = { kind: 'gateway', localId: () => 'n1', invoke: async () => { await gate; return { secret: 'prev-user' }; }, master: async () => ({ secret: 'm' }) };
+  new C({}); const T = window.TerraNodes;
+  T.refresh('n1', 'props'); T.clear();                                  // 읽기 중 로그아웃
+  release(); await new Promise((r) => setTimeout(r, 700));
+  assert.equal(T.cache.size, 0, '늦은 응답이 사본을 쓰지 않는다');
+  assert.equal(localStorage.getItem('terra.cache'), null, 'terra.cache 도 다시 생기지 않는다');
+});

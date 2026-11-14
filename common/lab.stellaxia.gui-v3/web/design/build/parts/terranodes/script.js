@@ -89,7 +89,7 @@ class NodeStore {
   refresh(n, res, input) {
     const R = RES[res] || { op: res }, k = this.key(n, res, input);
     if (this.inflight.has(k)) return this.inflight.get(k);
-    const rb = this.rbg.get(n) | 0, stale = () => (this.rbg.get(n) | 0) !== rb;   // 그 사이 장면 id 가 다른 노드로 묶였으면 이 응답은 옛 노드 것이다
+    const rb = this.rbg.get(n) | 0, g0 = this.gen, stale = () => (this.rbg.get(n) | 0) !== rb || this.gen !== g0;   // gen — 로그아웃(clear)이 그 사이 있었으면 앞 사람의 응답이다   // 그 사이 장면 id 가 다른 노드로 묶였으면 이 응답은 옛 노드 것이다
     const p = this.fetchRes(n, res, R, input).then((data) => {
       if (stale()) return;
       this.cache.set(k, { data, at: Date.now(), src: this.isLocal(n) ? '로컬' : '노드' }); if (!this.isLocal(n)) this.setLink(n, { state: 'online' });   // 받았으면 지난 오류는 지운다
@@ -100,10 +100,10 @@ class NodeStore {
       if (PARTITION.has(code)) {
         this.setLink(n, { state: 'offline', code, retryAt: Date.now() + 5000 });
         // 사본이 없으면 Master 가 마지막으로 관측한 값으로 (가능한 자원만)
-        if (!(e0 && e0.data) && R.master && this.t.master) return this.t.master(n, R.master).then((data) => { this.cache.set(k, { data, at: Date.now(), src: 'Master 관측', observed: true, err: { code }, errAt: Date.now() }); }, () => {});
+        if (!(e0 && e0.data) && R.master && this.t.master) return this.t.master(n, R.master).then((data) => { if (stale()) return; this.cache.set(k, { data, at: Date.now(), src: 'Master 관측', observed: true, err: { code }, errAt: Date.now() }); }, () => {});
       } else if (code === 'DELEGATION_REQUIRED') this.setLink(n, { state: 'far', code, via: err.via || '' });
       else if (code === 'NODE_NOT_FOUND' || code === 'NODE_UNMAPPED') this.setLink(n, { state: 'none', code });
-    }).finally(() => { if (this.inflight.get(k) === p) this.inflight.delete(k); this.persist(); this.emit(n); });
+    }).finally(() => { if (this.inflight.get(k) === p) this.inflight.delete(k); if (this.gen === g0) this.persist(); this.emit(n); });
     this.inflight.set(k, p); this.emit(n);
     return p;
   }
@@ -196,10 +196,12 @@ class NodeStore {
   /** 속성 key 를 그 노드의 파일 하나로(file 이 null 이면 지운다) — 그 노드의 지금 값을 읽고 → 파일 → 속성표 → 사본 → 지난 파일. 어디서 실패하든 사본은 그대로 */
   async setNodeFile(n, key, field, file) {
     if (!this.canWrite(n)) throw { code: 'PARTITIONED', message: '노드와 끊김 — 표시만 되고 바꿀 수 없음' };
+    const g0 = this.gen;
     try {
       const got = await this.t.invoke(n, RES.props.op, {}), cur = got && got.props && got.props[key], oldV = (cur && cur[field]) || '', old = oldV.startsWith(DATA_DIR) ? oldV.slice(DATA_DIR.length) : '';
       if (file) await this.putNodeFile(n, file.rel, file.bytes, file.mime);
       const r = await this.t.invoke(n, OP_PATCH, { set: { [key]: file ? { [field]: DATA_DIR + file.rel } : null } });
+      if (g0 !== this.gen) return r.props;
       this.cache.set(this.key(n, 'props'), { data: r, at: Date.now(), src: this.isLocal(n) ? '로컬' : '노드' });
       if (file) { const k = n + '|' + file.rel, v = { mime: file.mime, b64: b64Of(file.bytes) }; IDB.put(k, v); this.remember(k, v.mime, v.b64); }
       if (old && (!file || old !== file.rel)) await this.t.invoke(n, OP_DEL, { path: old }).catch(() => {});
