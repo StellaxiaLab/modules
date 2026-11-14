@@ -53,6 +53,7 @@ const MODULE_BLOCK_CODE: Partial<Record<ReadinessBlock, string>> = {
   'module-error': 'AGENT_UNAVAILABLE',
   'bridge-no-permissions': 'BRIDGE_NO_PERMISSIONS',
   'module-permission-denied': 'MODULE_PERMISSION_DENIED',
+  'module-reach-denied': 'MODULE_REACH_DENIED',
 };
 
 function toneOf(status: StepStatus): Tone {
@@ -79,6 +80,7 @@ function present(step: ReadinessStep, r: Readiness): StepPresentation {
         : out('에이전트 모듈이 답합니다', r.version ? `lab.stellaxia.agent ${r.version}` : '');
     }
     case 'permission':
+      if (step.status === 'fail' && step.block === 'reach-denied') return out('이 자격은 도달 범위 밖입니다', describeCode('MODULE_REACH_DENIED').message);
       return step.status === 'fail'
         ? out('이 계정에 agent.use 권한이 없습니다', describeCode('MODULE_PERMISSION_DENIED').message)
         : out('agent.use 권한이 있습니다');

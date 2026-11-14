@@ -37,10 +37,11 @@ export const MODULE_ERROR_CODES = [
 ] as const;
 export type ModuleErrorCode = (typeof MODULE_ERROR_CODES)[number];
 
-/** Gateway·브리지 오류 8개(요구 §6.4). `MODULE_PERMISSION_DENIED` 가 403 으로 온다. */
+/** Gateway·브리지 오류 9개(요구 §6.4). `MODULE_PERMISSION_DENIED` 가 403 으로 온다. */
 export const GATEWAY_ERROR_CODES = [
   'MODULE_UNAVAILABLE',
   'MODULE_PERMISSION_DENIED',
+  'MODULE_REACH_DENIED',
   'MODULE_INVOCATION_TIMEOUT',
   'UNAUTHORIZED',
   'QUOTA_EXCEEDED',

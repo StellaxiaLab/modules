@@ -118,7 +118,7 @@ node e2e/serve.mjs --root ../ui --shell-origin http://127.0.0.1:4021   # 앱 정
 | effect | 일어나는 일 |
 | --- | --- |
 | `{module_error:{code, message?, status?}}` | 모듈 오류 봉투 `{error:{code,message}}` — 15개 코드 어느 것이든 |
-| `{gateway_error:{code, status?, retryable?, details?}}` | Gateway 봉투 `{error:{code,message,traceId[,details,retryable]}}` — 7개 코드(`MODULE_UNAVAILABLE`·`MODULE_PERMISSION_DENIED`·`MODULE_INVOCATION_TIMEOUT`·`UNAUTHORIZED`·`QUOTA_EXCEEDED`·`REQUEST_TOO_LARGE`·`SCOPE_TOKEN_DENIED`) |
+| `{gateway_error:{code, status?, retryable?, details?}}` | Gateway 봉투 `{error:{code,message,traceId[,details,retryable]}}` — 8개 코드(`MODULE_UNAVAILABLE`·`MODULE_PERMISSION_DENIED`·`MODULE_REACH_DENIED`·`MODULE_INVOCATION_TIMEOUT`·`UNAUTHORIZED`·`QUOTA_EXCEEDED`·`REQUEST_TOO_LARGE`·`SCOPE_TOKEN_DENIED`) |
 | `{status:502, body:'<html>…', content_type?}` | 봉투가 아닌 본문(UNKNOWN 으로 읽혀야 한다) |
 | `{delay_ms}` | 응답을 늦춘다(시간 초과 시험) |
 | `{hang:true}` | 응답하지 않는다 |

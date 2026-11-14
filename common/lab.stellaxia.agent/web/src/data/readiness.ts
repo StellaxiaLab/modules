@@ -7,6 +7,7 @@
 // 단계 6(폐기·Gateway 재시작)은 알 수 없다(R-10) — 준비가 돼도 caveat 로 그렇게 적는다.
 
 import type { CallResult } from '../api/client';
+import { classifyDenial } from './errors';
 import type { CredentialFacts, ModelsListResponse, ModuleStatus } from '../api/types';
 
 export interface ReadinessInput {
@@ -25,6 +26,8 @@ export type ReadinessBlock =
   | 'bridge-no-permissions'
   | 'module-permission-denied'
   | 'no-permission'
+  | 'reach-denied'
+  | 'module-reach-denied'
   | 'no-door'
   | 'no-model'
   | 'models-check-failed'
@@ -55,7 +58,7 @@ export interface Readiness {
   nodeName: string | null;
 }
 
-const PERMISSION_CODES: ReadonlySet<string> = new Set(['MODULE_PERMISSION_DENIED', 'BRIDGE_NO_PERMISSIONS']);
+const PERMISSION_CODES: ReadonlySet<string> = new Set(['MODULE_PERMISSION_DENIED', 'MODULE_REACH_DENIED', 'BRIDGE_NO_PERMISSIONS']);
 export const CREDENTIAL_CAVEAT = '만료 시각 전 — 폐기 여부는 확인하지 못함';
 
 const isPermissionDenied = (r: CallResult<unknown> | undefined): boolean => r !== undefined && !r.ok && r.code !== undefined && PERMISSION_CODES.has(r.code);
@@ -66,6 +69,7 @@ function moduleBlock(status: Extract<CallResult<ModuleStatus>, { ok: false }>): 
   if (status.status === 0 || status.code === undefined) return 'unreachable';
   // 403 은 코드가 가른다 — 사전(errors.ts)이 둘 다 request-permission 이지만 문구가 다르다. 모듈이 못 처리한 것(module-error)이 아니다.
   if (status.code === 'BRIDGE_NO_PERMISSIONS') return 'bridge-no-permissions';
+  if (classifyDenial(status.code, status.message) === 'reach') return 'module-reach-denied';
   if (status.code === 'MODULE_PERMISSION_DENIED') return 'module-permission-denied';
   return 'module-error';
 }
@@ -92,7 +96,9 @@ export function composeReadiness(input: ReadinessInput): Readiness {
 
   // GAP-2. 권한 — models.list·credentials.get 이 agent.use 를 요구한다.
   const denied = isPermissionDenied(models) || isPermissionDenied(credentials);
-  if (denied) push('permission', 'fail', 'no-permission');
+  // 도달 범위 밖(MODULE_REACH_DENIED, 옛 Gateway 는 "도달 범위" 문구)은 계정 권한 부족과 다른 말을 한다.
+  const reach = [models, credentials].some((r) => r !== undefined && !r.ok && classifyDenial(r.code, r.message) === 'reach');
+  if (denied) push('permission', 'fail', reach ? 'reach-denied' : 'no-permission');
   else if (!models && !credentials) push('permission', 'pending');
   else push('permission', 'ok');
 
