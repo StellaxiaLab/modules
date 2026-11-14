@@ -82,7 +82,7 @@ class Component extends DCLogic {
         const key = S.idx + '|' + S.t0 + '|' + e.arg, L = S.lau && S.lau.k === key ? S.lau : null;
         // 숨은 창이 나중에 저절로 열지 않게 — 여는 것은 방금 탐색 · 새로고침한 때만
         const fresh = now - S.t0 < 15000;
-        if (this._lauK !== key && fresh) { this._lauK = key; setTimeout(() => { const go = this.launcher(); this.setState({ lau: { k: key, ok: !!(go && go(e.appId, e.remote ? { moduleId: e.modId, nodeId: e.nodeId, nodeName: e.node } : undefined)) } }); }, 0); }
+        if (this._lauK !== key && fresh) { this._lauK = key; setTimeout(() => { const go = this.launcher(); this.setState({ lau: { k: key, ok: !!(go && go(e.appId, e.remote ? { moduleId: e.modId, nodeId: e.nodeRid || e.nodeId, nodeName: e.node } : undefined)) } }); }, 0); }
         O.isLaunch = true; O.launchMark = !L ? (fresh ? '›' : '·') : L.ok ? '✓' : '✕'; O.launchCls = !L ? (fresh ? 'on' : '') : L.ok ? 'ok' : 'err';
         O.launchT = !L ? (fresh ? e.appName + ' 여는 중' : e.appName + ' · 열려면 다시 열기') : L.ok ? e.appName + ' · 셸에 열기 요청함' : e.appName + ' 열지 못함';
         O.launchNote = L && !L.ok ? '다른 앱 열기 : 셸(main Scene) 안에서만' : '앱은 자기 선언 권한으로 셸 창에서 돈다'; O.statusT = '셸 창'; O.noteT = 'Gateway 가 내준 화면 · 셸 sandbox';

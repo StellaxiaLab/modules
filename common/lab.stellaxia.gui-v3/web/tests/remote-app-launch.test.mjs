@@ -90,3 +90,31 @@ test('Scene — gui-v3.app.launch 는 입력 전체를 terra.app:launch 로 올�
   assert.deepEqual(read(ev(emit.payload, { value: remote })), remote, '원격: 객체 그대로');
   assert.deepEqual(read(ev(emit.payload, { value: 'io.terra.agent.web' })), { appId: 'io.terra.agent.web' }, '이 노드: appId 문자열');
 });
+
+// 코디네이터 지시: 원격 열기 payload 의 nodeId 는 어느 입구에서든 장면 키가 아니라 실제 node id(rid)
+const LD = (name) => new Function('DCLogic', parseBoard(readFileSync(join(D, name + '.dc.html'), 'utf8')).script + '\nreturn Component;')(DCLogic);
+const SKEY = 'P1:iso-B', RID = 'nd_real_B', GOT = [{ id: 'io.terra.agent.web', moduleId: 'io.terra.agent', name: '에이전트', mode: 'static', entry: 'index.html' }];
+const rapps = { get: (id) => (id === RID ? { state: 'ok', apps: GOT.map((a) => ({ ...a, nodeId: RID, assets: { state: 'cached' } })) } : { state: 'err', why: 'GUI_REMOTE_DENIED' }) };
+const scNode = { id: SKEY, rid: RID, kind: 'leaf', name: 'iso-B' }, locNode = { id: 'L', rid: 'nd_L', kind: 'leaf', name: 'desk' };
+async function withWin(launched, fn) {
+  globalThis.window = { TerraDesk: deskAdapt, TerraGuiApps: [], TerraRemoteApps: rapps, TerraLaunch: (...a) => { launched.push(a); return true; }, addEventListener() {}, dispatchEvent() {} };
+  globalThis.localStorage = mem();
+  try { return await fn(); } finally { delete globalThis.window; delete globalThis.localStorage; }
+}
+for (const [name, pre] of [['Scene', 'gf_'], ['Field', '']]) {
+  test(name + ' 모듈 카탈로그 → 브라우저 · 모듈 상태 창 — 원격 열기 nodeId 는 rid', async () => {
+    const launched = [];
+    await withWin(launched, async () => {
+      const S = LD(name), s = new S({}); s[pre + 'TN'] = s.TN = () => ({ read: () => ({ data: [{ id: 'io.terra.agent', name: '에이전트', ver: '1', st: 'run' }] }) }); s[pre + 'localNode'] = s.localNode = () => locNode;
+      const mod = s[pre + 'modsOf'](scNode)[0], cat = s[pre + 'modCatalog'](scNode);
+      assert.equal(mod.nodeId, SKEY, '내부 조회용 장면 키는 그대로'); assert.equal(mod.nodeRid, RID); assert.equal(cat.length, 1); assert.equal(cat[0].nodeRid, RID);
+      // 모듈 상태 창
+      const MS = LD('ModStatus'), ms = new MS({ mod, onOpen() {} }); ms.TN = () => null; ms.real = () => false;
+      const v = ms.renderVals(); (v.apps || v.apps0 || []).find((a) => a.open).open();
+      assert.deepEqual(launched.pop(), ['io.terra.agent.web', { moduleId: 'io.terra.agent', nodeId: RID, nodeName: 'iso-B' }], 'ModStatus');
+      // 브라우저(카탈로그)
+      const WB = LD('WebBrowser'), wb = new WB({ catalog: cat }); wb.renderVals(); wb.nav(cat[0].arg); const wv = wb.renderVals(); await tick(10);
+      assert.deepEqual(launched.pop(), ['io.terra.agent.web', { moduleId: 'io.terra.agent', nodeId: RID, nodeName: 'iso-B' }], 'WebBrowser');
+    });
+  });
+}
