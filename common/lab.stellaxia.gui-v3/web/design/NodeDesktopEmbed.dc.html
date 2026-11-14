@@ -1326,7 +1326,31 @@ class Component extends DCLogic {
     if (T && T.deskRead) return (this._dk = T.deskRead(this.deskRid()));
     return (this._dk = { rid: '', revision: 0, doc: null, view: JSON.parse(JSON.stringify(DESK_DEFAULTS)), pending: new Set(), at: 0, age: Infinity, state: 'norid', code: 'NO_NODE', msg: '', save: { state: 'idle', at: 0, code: '', msg: '', lost: [] }, ro: true, stale: false });
   }
-  ics() { return this.desk().view.icons || {}; }   // 아이콘 — 노드 값(없으면 기본값) + 표시층
+  // 아이콘 — 노드 값(없으면 기본값) + 표시층. 모듈 앱 바로가기(mod)는 그 노드에 모듈이 있을 때만 보인다:
+  //   기본값(노드에 저장된 적 없음)은 모듈 목록이 없거나 몰라도 숨기고, 노드에 저장돼 있던 것은 지우지 않고 '설치 안 됨'(회색)으로 보인다
+  ics() {
+    const I = this.desk().view.icons || {}, saved = (this.desk().doc && this.desk().doc.icons) || {}; let out = I;
+    for (const id of Object.keys(I)) {
+      const ic = I[id]; if (ic.k !== 'short' || !ic.mod) continue;
+      const inst = this.modInst(ic.mod); if (inst === true) continue;
+      if (out === I) out = Object.assign({}, I);
+      if (saved[id]) out[id] = Object.assign({}, ic, { off: inst === false ? '설치 안 됨' : '설치 여부 못 봤음' }); else delete out[id];
+    }
+    return out;
+  }
+  // 이 노드에 그 모듈(앱)이 있는가 — true · false · null(목록을 못 봤음). ref: 'id' | 'moduleId/appId' (옛 기본 아이콘은 'agent' 처럼 id 끝 낱말)
+  modInst(ref) {
+    const N = this.nd(); if (!N || !Array.isArray(N.mods) || (this.real() && !N.real)) return null;
+    const [mid, aid] = String(ref || '').split('/'), M = N.mods.find((m) => m.id === mid || String(m.id).endsWith('.' + mid));
+    if (!M) return false;
+    if (aid) { const L = this.modAppList(M); if (L && !L.some((a) => a.id === aid)) return false; }
+    return true;
+  }
+  modAppList(M) {   // 그 모듈의 앱 줄 — 목록을 아는 때만(모르면 null)
+    if (!this.nd().real) return this.modApps(M);
+    if (this.remote()) { const e = this.remoteEnt(); return e && e.state === 'ok' ? this.modApps(M) : null; }
+    return Array.isArray(typeof window !== 'undefined' ? window.TerraGuiApps : null) ? this.modApps(M) : null;
+  }
   prf() { return this.desk().view.prefs || DESK_DEFAULTS.prefs; }
   /** 같은 칸의 아이콘 둘은 id 순으로 다음 빈 칸으로 밀어 그린다 — 저장값은 바꾸지 않는다(§7) */
   cells() {
@@ -1921,6 +1945,14 @@ class Component extends DCLogic {
   }
   iconOpen(id) {
     const ic = this.ics()[id]; if (!ic) return;
+    if (ic.k === 'short' && ic.mod) {   // 모듈 앱 바로가기 — 모듈 관리 창이 아니라 그 앱을 연다(독 · 앱 목록과 같은 길). 없으면 이유
+      const inst = this.modInst(ic.mod);
+      if (inst === false) { this.say('이 노드에 설치되지 않음'); return; }
+      if (inst === null) { this.say('못 봤음 — 이 노드의 모듈 목록을 읽지 못해 설치 여부를 알 수 없음'); return; }
+      const [mid, aid] = String(ic.mod).split('/'), M = this.nd().mods.find((m) => m.id === mid || String(m.id).endsWith('.' + mid)), L = this.modAppList(M) || [], a = aid ? L.find((x) => x.id === aid) : L[0];
+      if (!a) { this.say(M.name + ' — 열 화면이 있는 앱이 없음'); return; }
+      this.openApp(a); return;
+    }
     if (ic.k === 'short') { this.launch(ic.app); return; }
     this.setState({ fmLoc: ic.loc || 'desk', fmPick: null });
     this.launch('files');
@@ -2355,7 +2387,7 @@ class Component extends DCLogic {
       const tint = ic.k === 'dir' ? 'rgba(240,166,58,.30)' : ic.k === 'file' ? 'rgba(255,255,255,.18)' : 'rgba(90,168,255,.28)';
       const fg = ic.k === 'dir' ? '#ffd29a' : ic.k === 'file' ? '#f3f1ea' : '#bcd8ff';
       return {
-        name: ic.name, x: ov && ov.id === id ? ov.x : at.c * CW + 4, y: ov && ov.id === id ? ov.y : at.r * CH + 4, z: ov && ov.id === id ? 5 : 1, op: DK.pending.has('icons.' + id) ? 0.5 : 1,   // 진행 중(응답 전)은 반투명
+        name: ic.off ? ic.name + ' · ' + ic.off : ic.name, x: ov && ov.id === id ? ov.x : at.c * CW + 4, y: ov && ov.id === id ? ov.y : at.r * CH + 4, z: ov && ov.id === id ? 5 : 1, op: ic.off ? 0.4 : DK.pending.has('icons.' + id) ? 0.5 : 1,   // 진행 중(응답 전)은 반투명
         d, tint, fg, isShort, tile: TILE, glyph: GLYPH,
         bg: sel ? 'rgba(255,255,255,.20)' : 'transparent', bd: sel ? 'rgba(255,255,255,.32)' : 'transparent',
         down: (e) => this.iconDown(e, id), move: (e) => this.iconMove(e, id), up: () => this.end(),
