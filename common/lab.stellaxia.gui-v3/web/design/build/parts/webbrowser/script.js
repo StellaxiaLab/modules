@@ -77,13 +77,12 @@ class Component extends DCLogic {
       O.chips = [{ t: MD[0], cls: MD[1] }, { t: e.mode === 'window' ? '자기 origin' : 'sandbox · CSP', cls: 'sb' }, { t: e.node + (e.remote ? ' · 원격' : ''), cls: '' }, { t: e.modId + ' ' + (e.ver || ''), cls: '' }];
       const st = this.steps(R);
       if (st.err) { O.isErr = true; O.errT = st.err; O.errNote = st.note; O.statusT = 'GUI_APP_UNAVAILABLE'; }
-      else if (this.launcher() && e.remote) { O.isErr = true; O.errT = '원격 노드의 앱은 이 셸이 아직 열 수 없음'; O.errNote = e.node + ' · ' + e.appName + ' — 셸의 앱 실행 요청(terra.app:launch)이 원격 앱을 받지 않는다'; O.statusT = '열지 못함'; }
-      else if (this.launcher() && !e.remote) {
+      else if (this.launcher()) {   // 이 노드와 다른 노드 모두 셸에 연다(다른 노드는 { appId, moduleId, nodeId, nodeName })
         // 탐색 · 새로고침 한 번에 한 번만 연다(그리는 동안 부르지 않는다)
         const key = S.idx + '|' + S.t0 + '|' + e.arg, L = S.lau && S.lau.k === key ? S.lau : null;
         // 숨은 창이 나중에 저절로 열지 않게 — 여는 것은 방금 탐색 · 새로고침한 때만
         const fresh = now - S.t0 < 15000;
-        if (this._lauK !== key && fresh) { this._lauK = key; setTimeout(() => { const go = this.launcher(); this.setState({ lau: { k: key, ok: !!(go && go(e.appId)) } }); }, 0); }
+        if (this._lauK !== key && fresh) { this._lauK = key; setTimeout(() => { const go = this.launcher(); this.setState({ lau: { k: key, ok: !!(go && go(e.appId, e.remote ? { moduleId: e.modId, nodeId: e.nodeId, nodeName: e.node } : undefined)) } }); }, 0); }
         O.isLaunch = true; O.launchMark = !L ? (fresh ? '›' : '·') : L.ok ? '✓' : '✕'; O.launchCls = !L ? (fresh ? 'on' : '') : L.ok ? 'ok' : 'err';
         O.launchT = !L ? (fresh ? e.appName + ' 여는 중' : e.appName + ' · 열려면 다시 열기') : L.ok ? e.appName + ' · 셸에 열기 요청함' : e.appName + ' 열지 못함';
         O.launchNote = L && !L.ok ? '다른 앱 열기 : 셸(main Scene) 안에서만' : '앱은 자기 선언 권한으로 셸 창에서 돈다'; O.statusT = '셸 창'; O.noteT = 'Gateway 가 내준 화면 · 셸 sandbox';

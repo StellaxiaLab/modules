@@ -1685,9 +1685,11 @@ class Component extends DCLogic {
   // 이 제어기가 쥔 원격 노드의 앱 목록 사본(window.TerraRemoteApps — remote-apps.js). 없으면 undefined
   remoteEnt() { const R = typeof window !== 'undefined' ? window.TerraRemoteApps : null, id = this.props.nodeRid || ''; return R && id ? R.get(id) : undefined; }
   remoteWhy() { const e = this.remoteEnt(); return !e ? '원격 노드의 앱 목록은 앱 토큰으로 받지 못함' : e.state === 'loading' ? '원격 앱 목록 받는 중' : e.state === 'err' ? e.why : ''; }
-  openApp(a) {
-    if (this.nd().real && this.remote()) { this.say(a.name + ' — 원격 노드의 앱은 이 셸이 아직 열 수 없음 (셸이 원격 앱 열기를 받지 않음)'); return; }
+  openApp(a, M) {
     const go = typeof window !== 'undefined' && window.TerraLaunch;
+    if (this.nd().real && this.remote()) {   // 다른 노드의 앱 — 셸에 { appId, moduleId, nodeId, nodeName } 로 부탁한다(셸이 못 받으면 셸의 오류가 창에 보인다)
+      this.say(go && go(a.id, { moduleId: a.moduleId || (M && M.id) || '', nodeId: this.props.nodeRid || '', nodeName: this.nodeNameQ() }) ? a.name + ' 여는 중… (셸 창 · ' + this.nodeNameQ() + ')' : '다른 앱 열기 : 셸(main Scene) 안에서만'); return;
+    }
     if (!a.full) { this.say(a.name + ' 앱 창 (시안)'); return; }
     this.say(go && go(a.id) ? a.name + ' 여는 중… (셸 창)' : '다른 앱 열기 : 셸(main Scene) 안에서만');
   }
@@ -1989,7 +1991,7 @@ class Component extends DCLogic {
       if (inst === null) { this.say('못 봤음 — 이 노드의 모듈 목록을 읽지 못해 설치 여부를 알 수 없음'); return; }
       const [mid, aid] = String(ic.mod).split('/'), M = this.nd().mods.find((m) => m.id === mid || String(m.id).endsWith('.' + mid)), L = this.modAppList(M) || [], a = aid ? L.find((x) => x.id === aid) : L[0];
       if (!a) { this.say(M.name + ' — 열 화면이 있는 앱이 없음'); return; }
-      this.openApp(a); return;
+      this.openApp(a, M); return;
     }
     if (ic.k === 'short') { this.launch(ic.app); return; }
     this.setState({ fmLoc: ic.loc || 'desk', fmPick: null });
@@ -2635,7 +2637,7 @@ class Component extends DCLogic {
             logs: this.modLogs(M, mt === 'log') || [['09:12:03', 'info', 'started · pid 4182'], ['09:12:03', 'info', 'readiness ok'], ['10:40:17', 'info', 'config reloaded'], ['10:58:42', M.st === 'restart' ? 'warn' : 'info', M.st === 'restart' ? 'health check failed — restarting' : 'lease renewed'], ['11:02:10', 'info', M.ops[0] + ' 200 · 12ms']].map(([tt, lv, msg]) => ({ t: tt, cls: lv, msg })),
             perms: M.perms, opsN: M.ops.length, ops: M.ops.map((x) => ({ id: M.id + '.' + x, perm: /list|get|status/.test(x) ? 'node.read' : M.perms[M.perms.length - 1] })),
             noApps: !this.modApps(M).length, noAppsT: this.nd().real && this.remote() ? (this.remoteWhy() ? '못 봤음 — ' + this.remoteWhy() : 'GUI 앱 없음') : this.nd().real && !Array.isArray(typeof window !== 'undefined' ? window.TerraGuiApps : null) ? '못 봤음 — 앱 목록을 읽지 못함' : 'GUI 앱 없음', apps: this.modApps(M).map((a) => ({ name: a.name, id: a.full ? a.id : M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
-              btns: [this.btn('열기', () => this.openApp(a), { off: M.st !== 'run' }), this.btn('바탕화면에 추가', () => this.addShortcut(M, a), { off: RO || !!Object.values(I).find((ic) => ic.mod === this.modRef(M, a)), tip: RO ? '바탕 구성 읽기 전용 — ' + this.deskLine().text : '' })] })) };
+              btns: [this.btn('열기', () => this.openApp(a, M), { off: M.st !== 'run' }), this.btn('바탕화면에 추가', () => this.addShortcut(M, a), { off: RO || !!Object.values(I).find((ic) => ic.mod === this.modRef(M, a)), tip: RO ? '바탕 구성 읽기 전용 — ' + this.deskLine().text : '' })] })) };
         }
         // 설치 — 파일(.tmod): 고르기 → 노드로 올리기(진행 · 취소) → 노드가 살핀 결과(신뢰 · 호환 · 권한 · 동작) → 확인(권한 묶음 · 동작) → 설치 → 결과(시작 실패면 이전 버전으로). 대신 Tree 에 지정
         const TM = s.tm, Tm = typeof window !== 'undefined' ? window.TerraTmod : null, setTm = (pp) => this.setState({ tm: Object.assign({}, this.state.tm, pp) });

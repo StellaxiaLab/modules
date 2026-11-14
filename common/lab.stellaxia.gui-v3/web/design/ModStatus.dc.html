@@ -191,7 +191,7 @@ class Component extends DCLogic {
       const asset = m.remote && a.mode !== 'window' && !RL ? (r(20 + a.id.length) < 0.25 ? 'stale' : 'cached') : '';
       return { mode: MODE[0], modeCls: MODE[1], name: a.name || a.id, where, state: asset ? '자산 ' + asset : a.mode === 'window' ? (run ? 'health ok' : '') : 'sandbox',
         off: run ? null : 'disabled', tip: run ? a.name + ' — 브라우저 창 열기' : '모듈 ' + ST[0] + ' — 시작 후 가능',
-        open: () => { if (!run) return; const go = typeof window !== 'undefined' && window.TerraLaunch; if (go && !m.remote && go(a.id)) return; if (this.props.onOpen) this.props.onOpen('web', 'mod|' + m.nodeId + '|' + m.id + '|' + a.id); } };
+        open: () => { if (!run) return; const go = typeof window !== 'undefined' && window.TerraLaunch; if (go && go(a.id, m.remote ? { moduleId: m.id, nodeId: m.nodeId, nodeName: m.node } : undefined)) return; if (this.props.onOpen) this.props.onOpen('web', 'mod|' + m.nodeId + '|' + m.id + '|' + a.id); } };
     });
     const T = this.TN(), RD = T ? T.read(m.nodeId, 'modules') : null, LK = T ? T.linkText(m.nodeId, RD && RD.at) : { t: '', cls: '', ro: false }, ro = !!LK.ro;
     const busy = !!S.busy || ro, tm = (ms) => { const d = new Date(ms); return [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join(':'); };
