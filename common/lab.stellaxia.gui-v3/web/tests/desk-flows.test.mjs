@@ -46,14 +46,11 @@ test('노드 셸 — 열기 확인 단계를 끝까지 걸어도 셸 열기는 n
   assert.ok(!/commands\.execute\.post'/.test(parseBoard(src).script), '보드가 commands.execute 를 부르지 않는다');
 });
 
-test('.tmod 설치 — 마지막 단추는 결정 표(DECIDE.tmodInstall)가 잠근다, 시안에서도', () => {
+test('.tmod 설치 — 결정 표 잠금 없음: 시안(예시) 연결은 올리지 않고 이유만 보인다(꾸며낸 성공 없음)', () => {
   const { c, done } = make({}); try {
-    c.state.tm = { name: 'x.tmod', size: 10, ck: { perm: true, unsigned: true }, r: { manifest: { id: 'lab.x', version: '1.0.0', kind: 'service', permissions: { storage: ['d'] } }, entries: ['module.json'], first: true } };
+    c.tmodPick({ name: 'x.tmod', size: 10 });
     c.state.modView = 'add'; c.state.wins = { mods: { fx: 0, fy: 0, fw: .5, fh: .5 } }; c.state.order = ['mods'];
-    const X = render(c).wins[0].nx; assert.equal(X.add.hasV, true);
-    const ins = X.add.btns.find((b) => b.label === '설치 ›'); assert.equal(ins.lock, true); assert.match(ins.tip, /^결정 필요 — process\.execute 경로/);
-    ins.run(); assert.equal(c.state.cfm.spec.final.gate.open, false); assert.match(c.state.cfm.spec.final.gate.why, /^결정 필요/);
-    assert.deepEqual(X.add.steps.map((s) => s.cls), ['done', 'done', 'done', 'done', 'lock']);
+    const X = render(c).wins[0].nx; assert.equal(X.add.hasV, false); assert.match(X.add.err, /시안.*올릴 수 없음/);
   } finally { done(); }
 });
 

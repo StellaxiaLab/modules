@@ -580,6 +580,56 @@
    ],
    "risk": "read"
   },
+  "terra.daemon.modules.packages.uploads.by-upload-id.chunk.put": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.modules.packages.uploads.by-upload-id.delete": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.modules.packages.uploads.by-upload-id.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.modules.packages.uploads.by-upload-id.install.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.modules.packages.uploads.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "risk": "write"
+  },
   "terra.daemon.modules.scan.post": {
    "scopes": [
     "local",

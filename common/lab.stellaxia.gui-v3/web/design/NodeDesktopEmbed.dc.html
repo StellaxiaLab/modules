@@ -752,22 +752,23 @@ button{font-family:inherit}
                   <div class="nx-main">
                     <div class="nx-h">파일에서 설치<span class="nx-fill"></span><span class="nx-k">{{w.nx.add.api}}</span></div>
                     <div class="nx-steps"><sc-for list="{{w.nx.add.steps}}" as="sp" hint-placeholder-count="5"><span class="nx-step {{sp.cls}}">{{sp.label}}</span></sc-for></div>
-                    <div class="nx-row"><span class="nx-lab">꾸러미<span class="nx-k">.tmod — 브라우저가 module.json 만 읽기 (올리지 않음)</span></span><input class="nx-pick" type="file" accept=".tmod,application/zip" onChange="{{w.nx.add.file}}" disabled="{{w.nx.add.ro}}" aria-label=".tmod 꾸러미 고르기"><span class="nx-k nx-mono">{{w.nx.add.fileT}}</span></div>
+                    <div class="nx-row"><span class="nx-lab">꾸러미<span class="nx-k">.tmod — 이 노드로 올려 노드가 검사 · 설치 (module.manage)</span></span><input class="nx-pick" type="file" accept=".tmod,application/zip" onChange="{{w.nx.add.file}}" disabled="{{w.nx.add.ro}}" aria-label=".tmod 꾸러미 고르기"><span class="nx-k nx-mono">{{w.nx.add.fileT}}</span></div>
                     <sc-if value="{{w.nx.add.err}}" hint-placeholder-val="{{ false }}"><div class="nx-wn err">{{w.nx.add.err}}</div></sc-if>
+                    <sc-if value="{{w.nx.add.up.on}}" hint-placeholder-val="{{ false }}"><div class="nx-row"><div class="nx-prog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{w.nx.add.up.pct}}" aria-label="올리는 중"><span style="width: {{w.nx.add.up.pct}}%; background: var(--acc);"></span></div><span class="nx-k nx-mono">{{w.nx.add.up.t}}</span><sc-for list="{{w.nx.add.up.btns}}" as="bt" hint-placeholder-count="1"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}">{{bt.label}}</button></sc-for></div></sc-if>
+                    <sc-if value="{{w.nx.add.res.on}}" hint-placeholder-val="{{ false }}">
+                      <div class="nx-card">
+                        <div class="nx-h">{{w.nx.add.res.title}}<span class="nx-fill"></span><span class="nx-chip {{w.nx.add.res.cls}}">{{w.nx.add.res.chip}}</span></div>
+                        <div class="nx-grid"><sc-for list="{{w.nx.add.res.lines}}" as="ln" hint-placeholder-count="3"><span class="nx-k">{{ln.k}}</span><span class="nx-mono">{{ln.v}}</span></sc-for></div>
+                        <sc-if value="{{w.nx.add.res.warn}}" hint-placeholder-val="{{ false }}"><div class="nx-wn err">{{w.nx.add.res.warn}}</div></sc-if>
+                        <div class="nx-btns"><span class="nx-fill"></span><sc-for list="{{w.nx.add.res.btns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}">{{bt.label}}</button></sc-for></div>
+                      </div>
+                    </sc-if>
                     <sc-if value="{{w.nx.add.hasV}}" hint-placeholder-val="{{ false }}">
                       <div class="nx-card">
                         <div class="nx-h">{{w.nx.add.v.name}}<span class="nx-k nx-mono">{{w.nx.add.v.id}} · {{w.nx.add.v.ver}}</span><span class="nx-fill"></span><span class="nx-chip {{w.nx.add.v.sigCls}}">{{w.nx.add.v.sigChip}}</span></div>
-                        <div class="nx-grid">
-                          <span class="nx-k">종류</span><span>{{w.nx.add.v.kind}} · 매니페스트 v{{w.nx.add.v.schema}} · 파일 {{w.nx.add.v.files}}개</span>
-                          <span class="nx-k">설치 상태</span><span>{{w.nx.add.v.exists}}</span>
-                          <span class="nx-k">호환</span><span>{{w.nx.add.v.compat}}</span>
-                          <span class="nx-k">서명</span><span class="nx-mono">{{w.nx.add.v.sigT}}</span>
-                          <span class="nx-k">게시자 키</span><span class="nx-mono">{{w.nx.add.v.key}}</span>
-                          <span class="nx-k">요구 권한</span><span class="nx-chips"><sc-for list="{{w.nx.add.v.perms}}" as="pm" hint-placeholder-count="2"><span class="nx-chip {{pm.cls}}">{{pm.t}}</span></sc-for></span>
-                        </div>
+                        <div class="nx-grid"><sc-for list="{{w.nx.add.v.rows}}" as="rw" hint-placeholder-count="5"><span class="nx-k">{{rw.k}}</span><span class="nx-mono">{{rw.v}}</span></sc-for></div>
                         <sc-for list="{{w.nx.add.v.warns}}" as="wn" hint-placeholder-count="2"><div class="nx-wn {{wn.cls}}">{{wn.t}}</div></sc-for>
                         <div class="nx-opts"><sc-for list="{{w.nx.add.checks}}" as="ck" hint-placeholder-count="2"><label class="nx-ck"><input type="checkbox" checked="{{ck.on}}" onChange="{{ck.flip}}">{{ck.label}}</label></sc-for></div>
-                        <div class="nx-lockbox" role="note"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" class="nx-lk" style="margin-top: 2px;"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>설치 · {{w.nx.add.lockWhy}} · 대신 : Tree 에 지정 › (게시본 필요)</span></div>
                         <div class="nx-btns"><span class="nx-fill"></span><sc-for list="{{w.nx.add.btns}}" as="bt" hint-placeholder-count="3"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
                       </div>
                     </sc-if>
@@ -1021,9 +1022,7 @@ const NODE_SHELL_LOCK = { locked: true, reason: '잠김 : 설계 필요 — 열 
 // 쓰기 흐름 — src/api/desk-flows.js 의 @flows 구간 사본(원본은 그 파일 · tools/sync-desk-flows.mjs 로 옮긴다 · tests/desk-flows.test.mjs 가 같은지 본다)
 /* @flows:begin */
 // 설계 결정으로 닫은 마지막 단추 — locked 를 false 로 바꾸면 그 단추가 문(gate)만 보고 열린다
-const DECIDE = {
-  tmodInstall: { locked: true, why: '결정 필요 — process.execute 경로 (commands.execute 로 terra module install · 사람 명령과 같은 권한 — node-shell.md §1)', doc: 'docs/design/desk-flows.md' },
-};
+const DECIDE = {};
 // 계약이 위임을 닫은 까닭을 계약 설명에서 그대로 옮긴 것 — 문(gate)의 why 뒤에 붙인다(잠금 판정은 문이 한다)
 const CONTRACT_WHY = {
   'terra.master.users.by-user-id.external-identities.post': 'Master 계약 : 위임 세션(앱 토큰) 닫힘 — 영구 로그인 뒷문 방지',
@@ -1799,13 +1798,32 @@ class Component extends DCLogic {
   }
   lockBtn(label, why) { const b = this.btn(label, null, { off: true, tip: why }); b.lock = true; return b; }   // 잠금 + 이유(누를 수 없다 · 호출하지 않는다)
   addJob(name, op) { if (this.real()) { this.say('실제 연결 — 작업은 노드가 만든다(가짜 진행을 만들지 않음)'); return false; } const n = 1042 + (this._jobN = (this._jobN || 0) + 1), id = 'j-' + n + '-' + (Date.now() % 1000); if (this.ndSet((d) => { d.jobs = [{ id, name, op, pct: 0, st: 'run' }].concat(d.jobs || []); }) === false) return false; setTimeout(() => this.ndSet((d) => { d.jobs = (d.jobs || []).map((j) => j.id === id ? { ...j, pct: 100, st: 'ok' } : j); }), 1600); }
-  // 파일에서 설치(.tmod) — 브라우저가 꾸러미의 module.json 만 읽어 보인다(readTmod: zip 목록 → module.json 만 풀기 · 서명은 검증하지 않는다 — 노드의 keyring 이 설치 때)
-  //   마지막 '설치'는 결정 전(DECIDE.tmodInstall — process.execute 경로) — 대신 'Tree 에 지정'(그 Tree 에 게시본이 있어야 한다)
+  // 파일에서 설치(.tmod) — 노드로 올려(조각 · base64 JSON) 노드가 검사한 결과를 보고, 권한 묶음(digest)을 확인해 설치한다(terra.daemon.modules.packages.uploads.*, module.manage · 다른 노드도 같은 길)
+  //   브라우저는 꾸러미를 해석하지 않는다 — 신뢰 · 호환 · 권한은 노드가 낸 값. 설치가 끝나면 모듈 목록을 다시 읽고, 시작에 실패했으면 이전 버전으로(rollback)를 낸다
+  tmodInv(mark) { const T = this.TN(), n = this.nodeKey(); return (op, input) => T.write(n, op, input, mark ? { res: 'desk', mark } : {}); }
   tmodPick(f) {
     if (!f) return;
-    if (f.size > 64 * 1048576) { this.setState({ tm: { name: f.name, size: f.size, err: '상한 초과 : 64MiB — 여기서 읽지 않음', ck: {} } }); return; }
-    this.setState({ tm: { name: f.name, size: f.size, busy: true, ck: {} } });
-    f.arrayBuffer().then(readTmod).then((r) => this.setState({ tm: { name: f.name, size: f.size, r, ck: {} } }), (e) => this.setState({ tm: { name: f.name, size: f.size, err: (e && e.message) || String(e), ck: {} } }));
+    const Tm = typeof window !== 'undefined' ? window.TerraTmod : null, T = this.TN();
+    if (!Tm || !T || this.sim()) { this.setState({ tm: { name: f.name, size: f.size, phase: 'err', err: '시안(예시) 연결 — 노드가 없어 올릴 수 없음', ck: {} } }); return; }
+    if (this.link().ro) { this.say('끊김 · 읽기 전용 · 재연결 후 재시도'); return; }
+    if (f.size > Tm.TMOD_MAX) { this.setState({ tm: { name: f.name, size: f.size, phase: 'err', err: '상한 초과 : 256MiB — 올리지 않음', ck: {} } }); return; }
+    const ctl = { aborted: false }, at = (p) => { if (this.state.tm && this.state.tm.ctl === ctl) this.setState({ tm: Object.assign({}, this.state.tm, p) }); };
+    this.setState({ tm: { name: f.name, size: f.size, phase: 'upload', sent: 0, total: f.size, sub: 'hash', ctl, ck: {} } });
+    Tm.uploadTmod({ invoke: this.tmodInv(), file: f, signal: ctl, onProgress: (p) => at({ sent: p.sent, total: p.total, sub: p.phase }) })
+      .then((r) => at({ phase: 'ready', upload_id: r.upload_id, insp: r.insp, sent: f.size }), (e) => { const w = Tm.tmodErr(e); if (e && e.code === 'CANCELLED') { if (this.state.tm && this.state.tm.ctl === ctl) this.setState({ tm: null }); return; } at({ phase: 'err', err: w.text }); });
+  }
+  tmodCancel() { const Tm = typeof window !== 'undefined' ? window.TerraTmod : null, t = this.state.tm; if (!t) return; if (t.ctl) t.ctl.aborted = true; if (t.phase === 'ready' && t.upload_id && Tm && this.TN()) Tm.cancelTmod(this.tmodInv(), t.upload_id); this.setState({ tm: null }); }
+  tmodInstall() {
+    const Tm = typeof window !== 'undefined' ? window.TerraTmod : null, t = this.state.tm; if (!Tm || !t || t.phase !== 'ready') return;
+    const ctl = t.ctl, at = (p) => { if (this.state.tm && this.state.tm.ctl === ctl) this.setState({ tm: Object.assign({}, this.state.tm, p) }); };
+    this.setState({ tm: Object.assign({}, t, { phase: 'installing', err: '' }) });
+    Tm.installTmod({ invoke: this.tmodInv('mod:' + t.insp.module_id), upload_id: t.upload_id, insp: t.insp })
+      .then((r) => { const R = Tm.installResult(r); at({ phase: 'done', res: R, modId: t.insp.module_id }); if (!R.failed) this.say(t.insp.module_id + ' ' + t.insp.version + ' 설치됨'); },
+        (e) => { const w = Tm.tmodErr(e); at({ phase: 'ready', err: w.text }); });
+  }
+  tmodRollbackFailed() {
+    const t = this.state.tm, N = this.nd(), i = (N.mods || []).findIndex((m) => m.id === (t && t.modId)); if (i < 0) { this.say('모듈 목록에 아직 없음 — 목록을 다시 읽은 뒤'); return; }
+    this.modRollback(Object.assign({}, N.mods[i], { prev: N.mods[i].prev || (t.res && t.res.prev) || '' }), i);
   }
   // Tree 에 지정 — Master 배정(assignments.post)을 보내고 진행 목록(asgTrack)에 올린다. 결과(성공 · MODULE_NOT_FOUND · 403 …)는 진행 단계가 보인다
   //   시안: 'missing' 이 들어간 id 는 게시본 없음(MODULE_NOT_FOUND)으로, 나머지는 2.5초 뒤 제안이 온다 — 동의하면 2.5초 뒤 설치됨
@@ -2619,22 +2637,23 @@ class Component extends DCLogic {
             noApps: !this.modApps(M).length, noAppsT: this.nd().real && this.remote() ? (this.remoteWhy() ? '못 봤음 — ' + this.remoteWhy() : 'GUI 앱 없음') : this.nd().real && !Array.isArray(typeof window !== 'undefined' ? window.TerraGuiApps : null) ? '못 봤음 — 앱 목록을 읽지 못함' : 'GUI 앱 없음', apps: this.modApps(M).map((a) => ({ name: a.name, id: a.full ? a.id : M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
               btns: [this.btn('열기', () => this.openApp(a), { off: M.st !== 'run' }), this.btn('바탕화면에 추가', () => this.addShortcut(M, a), { off: RO || !!Object.values(I).find((ic) => ic.mod === this.modRef(M, a)), tip: RO ? '바탕 구성 읽기 전용 — ' + this.deskLine().text : '' })] })) };
         }
-        // 설치 — 파일(.tmod): 고르기 → 매니페스트(브라우저가 module.json 만 읽는다) → 권한 · 서명 경고 → 승인 → 설치(결정 전 — DECIDE.tmodInstall 이 잠근다). 대신 Tree 에 지정
-        const TM = s.tm, D0 = DECIDE.tmodInstall, setTm = (pp) => this.setState({ tm: Object.assign({}, this.state.tm, pp) });
-        const V = TM && TM.r ? tmodView(TM.r, (N.mods || []).find((m) => m.id === TM.r.manifest.id) || null, null) : null;
-        const tck = V ? [['perm', '요구 권한 ' + V.perms.length + '개 — 확인']].concat(V.signed ? [] : [['unsigned', '서명 없음 · 개발 모드에서만 설치 — 확인']], V.warns.some((w) => w.cls === 'err') ? [['err', '빨간 경고 — 확인']] : []) : [];
-        const ckOk = !!V && tck.every(([k]) => TM.ck && TM.ck[k]), SZ = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1) + 'MiB' : Math.max(1, Math.round(b / 1024)) + 'KiB');
-        X.add = { api: this.api('브라우저 : .tmod 의 module.json 읽기 · 설치 : 결정 전'), root: (N.cfg['modules.root'] || '~/.terra/module'), has: !!TM, ro: R ? 'disabled' : null,
-          file: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.tmodPick(f); }, fileT: TM ? TM.name + ' · ' + SZ(TM.size || 0) + (TM.busy ? ' · 읽는 중…' : '') : '', err: TM && TM.err ? '못 읽음 — ' + TM.err : '',
-          steps: [['파일', TM ? 'done' : 'now'], ['매니페스트', !TM ? 'wait' : TM.err ? 'fail' : V ? 'done' : 'now'], ['권한 · 서명', !V ? 'wait' : ckOk ? 'done' : 'now'], ['승인', ckOk ? 'done' : 'wait'], ['설치', D0.locked ? 'lock' : 'wait']].map(([label, cls], k) => ({ label: (k + 1) + ' ' + label, cls })),
-          v: V ? Object.assign({}, V, { sigCls: V.signed ? 'info' : 'warn', sigChip: V.signed ? '서명 있음 · 노드가 검증' : '서명 없음' }) : null, hasV: !!V, checks: tck.map(([k, label]) => ({ label, on: TM.ck && TM.ck[k] ? 'checked' : null, flip: () => setTm({ ck: Object.assign({}, this.state.tm.ck, { [k]: !(this.state.tm.ck || {})[k] }) }) })),
-          lockWhy: D0.locked ? LOCKED(D0.why) : '',
+        // 설치 — 파일(.tmod): 고르기 → 노드로 올리기(진행 · 취소) → 노드가 살핀 결과(신뢰 · 호환 · 권한 · 동작) → 확인(권한 묶음 · 동작) → 설치 → 결과(시작 실패면 이전 버전으로). 대신 Tree 에 지정
+        const TM = s.tm, Tm = typeof window !== 'undefined' ? window.TerraTmod : null, setTm = (pp) => this.setState({ tm: Object.assign({}, this.state.tm, pp) });
+        const V = TM && TM.insp && Tm ? Tm.inspectView(TM.insp) : null, tck = V ? V.checks : [], busy = !!TM && (TM.phase === 'upload' || TM.phase === 'installing');
+        const ckOk = !!V && !V.refusal && tck.every(([k]) => TM.ck && TM.ck[k]), SZ = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1) + 'MiB' : Math.max(1, Math.round(b / 1024)) + 'KiB');
+        const ph = TM ? TM.phase : '', pct = TM && TM.total ? Math.min(100, Math.round(100 * (TM.sent || 0) / TM.total)) : 0;
+        X.add = { api: this.api('terra.daemon.modules.packages.uploads.* · module.manage'), root: (N.cfg['modules.root'] || '~/.terra/module'), has: !!TM, ro: R || busy ? 'disabled' : null,
+          file: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.tmodPick(f); }, fileT: TM ? TM.name + ' · ' + SZ(TM.size || 0) : '', err: TM && (ph === 'err' || (ph === 'ready' && TM.err)) ? TM.err : '',
+          up: { on: ph === 'upload' || ph === 'installing', pct: ph === 'installing' ? 100 : pct, t: ph === 'installing' ? '설치 중…' : TM && TM.sub === 'hash' ? '해시 계산 중…' : TM && TM.sub === 'inspect' ? '노드가 검사 중…' : pct + '% · ' + SZ((TM && TM.sent) || 0) + ' / ' + SZ((TM && TM.total) || 0),
+            btns: ph === 'upload' ? [this.btn('올리기 멈춤', () => this.tmodCancel(), { view: true })] : [] },
+          steps: [['파일', TM ? 'done' : 'now'], ['올리기', !TM ? 'wait' : ph === 'upload' ? 'now' : ph === 'err' && !V ? 'fail' : 'done'], ['검사 · 권한', !V ? 'wait' : ph === 'done' || ckOk ? 'done' : 'now'], ['설치', ph === 'installing' ? 'now' : ph === 'done' ? (TM.res && TM.res.failed ? 'fail' : 'done') : 'wait']].map(([label, cls], k) => ({ label: (k + 1) + ' ' + label, cls })),
+          v: V && ph !== 'done' ? Object.assign({ name: TM.insp.module_id || '—', id: TM.insp.version || '—', sigCls: V.refusal ? 'err' : /dev/i.test((TM.insp.trust || {}).tier || '') ? 'warn' : 'info', sigChip: (TM.insp.trust || {}).tier || '—' }, V) : null, hasV: !!V && ph !== 'done',
+          res: ph === 'done' && TM.res ? { on: true, title: TM.insp.module_id + ' ' + TM.insp.version, chip: TM.res.failed ? '시작 실패' : '설치됨', cls: TM.res.failed ? 'err' : 'ok', lines: TM.res.lines.map(([k, x]) => ({ k, v: x })), warn: TM.res.failed ? '새 버전이 시작하지 못했습니다 — 설치는 그대로 남아 있습니다. 이전 버전으로 되돌릴 수 있습니다.' : '',
+            btns: (TM.res.failed ? [this.btn('이전 버전으로', () => this.tmodRollbackFailed(), { pri: true })] : []).concat([this.btn('닫기', () => this.setState({ tm: null }), { view: true })]) } : { on: false, lines: [], btns: [] },
+          checks: tck.map(([k, label]) => ({ label, on: TM.ck && TM.ck[k] ? 'checked' : null, flip: () => setTm({ ck: Object.assign({}, this.state.tm.ck, { [k]: !(this.state.tm.ck || {})[k] }) }) })),
           scanBtns: [this.btn('다시 읽기', () => { if (this.real()) { const T = this.TN(); if (T && !this.link().ro) T.write(this.nodeKey(), 'terra.daemon.modules.scan.post', {}, { res: 'modules' }).then(() => this.say('모듈 폴더를 다시 읽음'), (e) => this.say('못 읽음 · ' + ((e && e.code) || '오류'))); else this.say('끊김 · 읽기 전용'); return; } this.say('모듈 폴더를 다시 읽음 — modules.scan'); this.addJob('모듈 폴더 다시 읽기', 'module.scan'); })] };
-        if (V) X.add.btns = [this.btn('취소', () => this.setState({ tm: null }), { view: true }), this.btn('Tree 에 지정 ›', () => this.setState({ asg: { id: V.id === '—' ? '' : V.id, ver: V.ver === '—' ? '' : V.ver, from: TM.name } }), { off: V.id === '—', view: true }),
-          Object.assign(this.btn('설치 ›', () => this.ask({ title: V.name + ' ' + V.ver + ' 설치', sub: this.nodeNameQ() + ' 에 파일에서 — ' + TM.name, risk: 'dangerous',
-            steps: [{ label: '확인', rows: [['모듈', V.id + ' · ' + V.ver + ' · ' + V.kind], ['설치 상태', V.exists], ['서명', V.sigT + ' · 키 ' + V.key], ['권한', V.perms.map((p) => p.t).join(' · ') || '없음'], ['어디에', '이 노드에서만 (파일 : 이 브라우저 — 노드로 올리는 길도 결정 대상)'],
-                ['기록', '노드 audit.log 의 module install · 신뢰 등급(서명 없으면 development)'], ['되돌리기', '모듈 창의 제거 · 이전 버전 : 되돌리기']], warns: V.warns }],
-            final: { label: '설치', gate: D0.locked ? { open: false, why: D0.why } : { open: false, why: '실행 길 없음 — ' + D0.doc }, run: null }, undo: '모듈 창의 제거' }), { off: !ckOk, pri: ckOk }), { lock: D0.locked, tip: D0.locked ? D0.why : '' })];
+        if (V && ph !== 'done') X.add.btns = [this.btn('취소', () => this.tmodCancel(), { view: true }), this.btn('Tree 에 지정 ›', () => this.setState({ asg: { id: TM.insp.module_id || '', ver: TM.insp.version || '', from: TM.name } }), { off: !TM.insp.module_id, view: true }),
+          this.actBtn(ph === 'installing' ? '설치 중…' : '설치 ›', this.gateOf('terra.daemon.modules.packages.uploads.by-upload-id.install.post'), () => this.tmodInstall(), { off: !ckOk || busy, pri: ckOk && !busy })];
         // Tree 지정 — Master 의 이 노드 배정에 적는다(terra.master.nodes.by-node-id.modules.assignments.post · module.manage · 위임 표에 있다).
         //   Daemon 이 그 배정을 '제안'으로 받고(Tree 지정 탭), 동의하면 받아 설치한다. 진행은 Tree 지정 탭의 '배정 진행'이 단계로 보인다
         const ag = s.asg || { id: '', ver: '' }, setG = (pp) => this.setState({ asg: Object.assign({}, this.state.asg || ag, pp) }), aop = 'terra.master.nodes.by-node-id.modules.assignments.post', ag0 = this.gateOf(aop);
