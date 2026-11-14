@@ -1,0 +1,27 @@
+{
+  "$comment": "얇은 껍데기다(웹 프로그램 감싸기 설계 §3.3). 화면은 같은 모듈의 embed 앱(lab.stellaxia.file.web)이 그리고, 웹의 호출은 Scene Function을 거치지 않으므로 requiredOperations는 비어 있다. 로그인은 이 껍데기가 맡는다(§3.3.1). credentials Store의 /session에 둔 Handle을 호스트가 따라가 frame에 토큰을 준다.",
+  "schemaVersion": "0.1.0",
+  "id": "lab.stellaxia.file.ui",
+  "version": "0.1.0",
+  "name": "Terra File",
+  "entryRoute": "/",
+  "routes": [
+    {
+      "path": "/",
+      "fragment": "file.main"
+    }
+  ],
+  "functions": [
+    "contract/functions/signin.field.function.json",
+    "contract/functions/signin.submit.function.json",
+    "contract/functions/signout.function.json"
+  ],
+  "stores": [
+    "contract/stores/credentials.store.json",
+    "contract/stores/signin.store.json"
+  ],
+  "fragments": [
+    "surface/fragments/main.fragment.json"
+  ],
+  "requiredOperations": []
+}

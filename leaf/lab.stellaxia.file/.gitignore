@@ -2,3 +2,5 @@
 # compiles src/ into bin/<target>/ at release time, and the bundle ships that copy.
 # The source of truth is src/ + module.json + contracts/, never the built binary.
 /bin/
+/ui/
+web/node_modules/
