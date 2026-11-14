@@ -60,6 +60,13 @@
       "title": "멤버 없음",
       "userAction": "conversations.get으로 멤버 목록을 확인하십시오."
     },
+    "NODE_NOT_FOUND": {
+      "description": "지정한 노드(id 또는 이름)를 이 노드가 모르거나 응답하지 않는다. 대화는 있으나 초대하려는 노드가 없다.",
+      "httpStatus": 404,
+      "retryable": false,
+      "title": "노드 없음",
+      "userAction": "노드 id나 이름을 확인하십시오. 꺼져 있는 노드는 초대할 수 없습니다."
+    },
     "NODETALK_UNAVAILABLE": {
       "description": "모듈이 아직 준비되지 않았거나 내부 상태가 손상되어 요청을 처리할 수 없습니다.",
       "httpStatus": 503,
@@ -1213,6 +1220,7 @@
       "errors": [
         "FAULTS_NOT_AVAILABLE",
         "INVALID_REQUEST",
+        "NODE_NOT_FOUND",
         "NODETALK_UNAVAILABLE"
       ],
       "execution": {
@@ -1614,6 +1622,8 @@
         "CONVERSATION_NOT_FOUND",
         "EPOCH_STALE",
         "INVALID_REQUEST",
+        "NODE_NOT_FOUND",
+        "NODE_UNREACHABLE",
         "NOT_MAIN",
         "NODETALK_UNAVAILABLE"
       ],
@@ -1827,6 +1837,7 @@
         "CONVERSATION_NOT_FOUND",
         "EPOCH_STALE",
         "MEMBER_NOT_FOUND",
+        "NODE_NOT_FOUND",
         "NOT_MAIN",
         "NODETALK_UNAVAILABLE"
       ],
@@ -2917,6 +2928,7 @@
       "description": "대화 없이도 두 노드 사이 통신을 잴 수 있는 표면이다. 페이로드를 나르지 않고 왕복만 하며, 칸마다 성공 여부·왕복시간·실패 코드를 따로 답한다. 이 모듈이 채팅이 아니라 계측기인 이유가 이 오퍼레이션이다. 상태를 바꾸지 않는다.",
       "errors": [
         "INVALID_REQUEST",
+        "NODE_NOT_FOUND",
         "NODE_UNREACHABLE",
         "NODETALK_UNAVAILABLE"
       ],

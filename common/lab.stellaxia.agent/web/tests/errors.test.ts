@@ -26,8 +26,8 @@ describe('오류 사전 완전성', () => {
       expect(info?.http, code).toBe(spec?.httpStatus);
     }
   });
-  it('Gateway·브리지 오류 8개(MODULE_PERMISSION_DENIED 포함)를 모두 덮는다', () => {
-    expect(GATEWAY_ERROR_CODES).toHaveLength(8);
+  it('Gateway·브리지 오류 9개(MODULE_PERMISSION_DENIED·MODULE_REACH_DENIED 포함)를 모두 덮는다', () => {
+    expect(GATEWAY_ERROR_CODES).toHaveLength(9);
     expect(GATEWAY_ERROR_CODES).toContain('MODULE_PERMISSION_DENIED');
     for (const code of GATEWAY_ERROR_CODES) {
       expect(ERROR_DICTIONARY[code], code).toBeDefined();
@@ -40,7 +40,10 @@ describe('오류 사전 완전성', () => {
   it('실제 스택에서 만난 코드(OBSERVED)를 모두 덮는다 — 문구와 행동이 있고 알려진 코드다', () => {
     expect([...OBSERVED_ERROR_CODES].sort()).toEqual(
       [
+        'AGENT_GRANT_DENIED',
         'DELEGATION_NOT_OPEN',
+        'NODE_OFFLINE',
+        'OPERATION_NOT_REMOTE',
         'GATEWAY_MALFORMED_RESPONSE',
         'MODULE_ROUTE_NOT_FOUND',
         'OPERATION_NOT_FOUND',

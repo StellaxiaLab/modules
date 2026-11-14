@@ -88,6 +88,7 @@ body{margin:0;background:transparent}
 
   <h3 class="ns-h"><span class="ns-hl"></span>GUI<span class="ns-hr"></span><span class="ns-k">{{apiG}}</span></h3>
   <sc-if value="{{noGui}}" hint-placeholder-val="{{ false }}"><div class="ns-k">화면 없음 — contributions.gui.apps 비어 있음</div></sc-if>
+  <sc-if value="{{guiUnk}}" hint-placeholder-val="{{ false }}"><div class="ns-k" style="color: var(--t-err2,#ff9c8c);">{{guiUnkT}}</div></sc-if>
   <sc-for list="{{apps}}" as="a" hint-placeholder-count="1">
     <div class="ms-app">
       <span class="ms-mode {{a.modeCls}}">{{a.mode}}</span>
@@ -140,7 +141,7 @@ class Component extends DCLogic {
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   // 실제 모드(Gateway 전송) — 모듈 목록 · 상태 · 버전 · 가동 시각(started_at) · pid 는 실제다. CPU · 메모리는 코어에 모듈별 op 가 없어 '—'(지어내지 않는다)
   real() { const T = this.TN(); return !!(T && T.t && T.t.kind !== 'mock'); }
-  M() { const m0 = this.props.mod, T = this.TN(); if (m0 && m0.id && T) { const d = T.read(m0.nodeId, 'modules').view, live = d && d.find((q) => q.id === m0.id); if (live) return Object.assign({}, m0, live); } const m = m0; if (!(m && m.id) && this.real()) return { id: '—', name: '모듈 정보 없음', ver: '—', kind: '', apps: [], perms: [], svi: [], node: '—', nodeId: '', st: 'stop' }; return m && m.id ? m : { id: 'io.terra.agent', name: 'Terra Agent', ver: '0.3.0', kind: 'service', apps: [{ id: 'io.terra.agent', name: 'Terra Agent', mode: 'static', entry: 'ui/index.html' }], perms: ['coreOperations', 'storage', 'network'], svi: ['ctl/log'], st: 'run', node: '01·a', nodeId: 'L1', remote: false }; }
+  M() { const m0 = this.props.mod, T = this.TN(); if (m0 && m0.id && T) { const d = T.read(m0.nodeId, 'modules').view, live = d && d.find((q) => q.id === m0.id); if (live) return Object.assign({}, m0, live, 'appsUnknown' in m0 ? { apps: m0.apps, appsUnknown: m0.appsUnknown, appsWhy: m0.appsWhy } : null); } const m = m0; if (!(m && m.id) && this.real()) return { id: '—', name: '모듈 정보 없음', ver: '—', kind: '', apps: [], perms: [], svi: [], node: '—', nodeId: '', st: 'stop' }; return m && m.id ? m : { id: 'io.terra.agent', name: 'Terra Agent', ver: '0.3.0', kind: 'service', apps: [{ id: 'io.terra.agent', name: 'Terra Agent', mode: 'static', entry: 'ui/index.html' }], perms: ['coreOperations', 'storage', 'network'], svi: ['ctl/log'], st: 'run', node: '01·a', nodeId: 'L1', remote: false }; }
   stMap() { try { return JSON.parse(localStorage.getItem('terra.mod.st') || '{}') || {}; } catch (e) { return {}; } }
   st() { const m = this.M(); if (this.TN()) return m.st || 'run'; const o = this.stMap()[m.nodeId + '|' + m.id]; return o || m.st || 'run'; }
   setSt(v) { const m = this.M(), map = this.stMap(); map[m.nodeId + '|' + m.id] = v; try { localStorage.setItem('terra.mod.st', JSON.stringify(map)); window.dispatchEvent(new Event('terra-mod')); } catch (e) {} }
@@ -198,7 +199,7 @@ class Component extends DCLogic {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh', name: m.name, id: m.id, stT: ST[0], stCol: ST[1], node: m.node + (m.remote ? ' (원격)' : ''), ver: m.ver, kind: KIND[m.kind] || m.kind, up,
       path: (m.core ? '코어 내장 · ' : '~/.terra/module/') + (m.core ? m.id : m.id + '/' + m.ver), owner: m.core ? '코어 (지울 수 없음)' : m.dist ? 'Tree 배포' : '직접 설치',
       running: run, cpuP: Math.min(100, Math.round(cpu * 4)), cpuCol: cpu > 18 ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)', cpuT: RL ? '—' : cpu.toFixed(1) + '%', cpuS: RL ? '코어 : 모듈별 CPU op 없음' : spark, memP: Math.min(100, Math.round(mem / 4)), memT: RL ? '—' : mem + 'MB', memN: RL ? '코어 : 모듈별 메모리 op 없음' : 'RSS',
-      apps, noGui: !apps.length, guiNote: !!apps.length && !run, guiNoteT: 'GUI 열기 불가 : 모듈 ' + ST[0] + ' — 시작 후 가능',
+      apps, noGui: !apps.length && !m.appsUnknown, guiUnk: !!m.appsUnknown && !apps.length, guiUnkT: '못 봤음 — ' + (m.appsWhy || '앱 목록을 읽지 못함') + '(화면 없음이 아님)', guiNote: !!apps.length && !run, guiNoteT: 'GUI 열기 불가 : 모듈 ' + ST[0] + ' — 시작 후 가능',
       cutOn: ro, cutH: LK.t.replace(/^끊김 · /, ''),
       linkT: LK.t ? '[' + LK.t + ']' : '', linkCol: LK.cls === 'off' ? 'var(--t-warn,#ffd27a)' : LK.cls === 'local' ? 'var(--t-key,#709c80)' : 'var(--t-acc2,#96f0aa)',
       busyD: busy ? 'disabled' : null, togD: busy || (run && m.core) ? 'disabled' : null, restart: () => this.act('restart'), toggle: () => this.act(run ? 'stop' : 'start'), toggleT: run ? (m.core ? '멈춤 불가 (코어)' : '멈춤') : '시작',

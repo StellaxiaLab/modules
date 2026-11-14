@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "lab.stellaxia.nodetalk",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "kind": "service",
   "name": "Node Talk",
   "description": "Node-to-node communication test bench shaped as a chat. Conversations replicate as per-author append-only logs, so every member may append at any time and a main handover never loses transcript; the main is the ordering and retention authority, not the write authority. Every entry carries the transport rung, round-trip time and attempt count it arrived over -- the chat is the payload, the instrument is the point.",

@@ -2791,6 +2791,7 @@ class Component extends DCLogic {
       T.shapes.modules = (snap) => { const P = this.gf_MODPOOL(), M = (snap && (snap.modules || snap)) || [], S = { running: 'run', starting: 'restart', stopping: 'restart', failed: 'fail', unavailable: 'fail', unsupported: 'fail', config_invalid: 'fail' };   // 실제 응답(modulehost Snapshot) → 모듈 목록 모양
         return Array.isArray(M) ? M.map((m) => { const k = P.find((q) => q.id === m.id); return { id: m.id, name: m.name || m.id, ver: m.version || '', kind: m.kind || '', core: false, apps: k ? k.apps : [], perms: k ? k.perms : [], svi: k ? k.svi : [], st: S[m.state] || 'stop', err: m.last_error || '', startedAt: m.started_at || '', pid: m.pid || 0, restarts: typeof m.restart_count === 'number' ? m.restart_count : null }; }) : []; };   // 가동 시각 · pid · 다시 시작 수 — 모듈 상태 창(modulehost Status)
       if (tp.kind === 'mock') { tp.seeds.modules = (meta) => { const n = this.sceneMap().byId[meta.id]; return n ? this.gf_modSeed(n).map((m) => { const o = Object.assign({}, m); delete o.node; delete o.nodeId; delete o.remote; return o; }) : []; }; }
+      if (first && typeof window !== 'undefined' && window.addEventListener) window.addEventListener('terra-apps', () => this.gf_catalogSync());   // 앱 목록(Gateway)이 모듈 목록보다 늦게 와도 다시 그린다
       if (first) T.subscribe(() => { this._q_vfs = null; this._q_ctlTree = null; if (this._live !== false) this.gf_dataLayout(); this.gf_catalogSync(); }); }
     return T;
   }
@@ -2799,9 +2800,9 @@ class Component extends DCLogic {
     if (!n || (n.kind !== 'tree' && n.kind !== 'leaf')) return [];
     const T = this.gf_TN(); if (!T) return this.gf_modSeed(n);
     const r = T.read(n.id, 'modules'), loc = this.gf_localNode();
-    // 실제 앱 줄은 Gateway 앱 목록에서 온다(Daemon 모듈 목록에는 GUI 가 없다). 다른 노드의 앱을 여는 길은 아직 없어 빈 칸이다
+    // 실제 앱 줄은 Gateway 앱 목록에서 온다(Daemon 모듈 목록에는 GUI 가 없다). 다른 노드의 앱 목록은 아직 못 받는다 — appsUnknown 으로 '못 봤음'을 낸다
     const A = typeof window !== 'undefined' ? window.TerraDesk : null, G = typeof window !== 'undefined' ? window.TerraGuiApps : null;
-    const local = !!loc && n.id === loc.id, appsOf = (m) => (A ? { apps: local && Array.isArray(G) ? A.webApps(G, m.id) : [] } : null);   // 지도가 바뀌면 창이 쥔 노드는 옛 객체다 — id 로 견준다
+    const local = !!loc && n.id === loc.id, RA = !local ? this.gf_remoteApps(n.rid || n.id) : undefined, appsOf = (m) => (A ? (A.appsView ? A.appsView(G, m.id, local, RA) : { apps: local && Array.isArray(G) ? A.webApps(G, m.id) : [] }) : null);   // 못 읽은 것(null)·원격은 appsUnknown — 0개로 보이지 않게(AUD-82 · AUD-89)   // 지도가 바뀌면 창이 쥔 노드는 옛 객체다 — id 로 견준다
     return (r.data || []).map((m) => Object.assign({}, m, { node: n.name, nodeId: n.id, remote: !local }, appsOf(m)));
   }
   // 모듈 폴더 옆 글 — 개수 · 받는 중 · 끊김(사본 나이)
@@ -2825,11 +2826,17 @@ class Component extends DCLogic {
   gf_modSt(m) { return m.st; }   // 상태는 사본에 (모듈 상태 창의 시작 · 멈춤이 노드 데이터 층으로 쓴다)
   gf_modMore(m) { const st = this.gf_modSt(m), T = { run: '● 실행', stop: '○ 멈춤', fail: '✕ 실패', restart: '◌ 다시 시작' }[st] || st; return T + (m.apps && m.apps.length ? ' · GUI' : ''); }
   // 창을 열 때는 아직 모듈 목록이 비어 있을 수 있다 — 목록 개수가 바뀌면 창을 다시 그린다
-  gf_liveCat(n) { const loc = this.gf_localNode(); return loc && n && n.id === loc.id ? this.gf_modCatalog(n) : []; }   // 이 노드만 읽는다 — 닫힌 창이 쥔 다른 노드를 계속 조회하지 않게
-  gf_catalogSync() { if (this._live === false) return; const K = []; for (const k of [0, 1, 2, 3, 4, 5]) if (this['_ctlNode' + k]) K.push(this.gf_liveCat(this['_ctlNode' + k]).length); for (const k of [19, 20]) if (this['_wNode' + k]) K.push(this.gf_liveCat(this['_wNode' + k]).length); const s = K.join(','); if (s !== this._q_catK) { this._q_catK = s; this.setState({ catTick: (this.state.catTick || 0) + 1 }); } }
+  gf_liveCat(n) { return this.gf_modCatalog(n); }   // 다른 노드의 앱 목록은 노드마다 캐시(remote-apps.js · TTL)라 열린 창이 쥔 노드만 TTL 간격으로 읽는다
+  // 모듈 상태 창이 쥔 행 — 열 때의 사본은 앱 목록이 늦게 오면 낡는다. 노드가 있으면 지금 행으로(앱 줄 · 못 봤음 표시가 따라온다)
+  gf_freshMod(k, m0) { const n = this['_wNode' + k]; if (!m0 || !n || !this.gf_TN()) return m0; return this.gf_modsOf(n).find((q) => q.id === m0.id) || m0; }
+  gf_catKey(c) { return c.length + (c.why ? '!' : ''); }   // 개수 + '못 봤음' 여부 — 바뀌면 다시 그린다
+  // 그 노드의 앱 목록을 못 봤으면 이유, 읽었으면 ''(0개여도 사실) — 브라우저 창 시작 페이지가 "0개"로 거짓말하지 않게(AUD-82 · AUD-89)
+  gf_remoteApps(id) { const R = typeof window !== 'undefined' ? window.TerraRemoteApps : null; return R ? R.get(id) : undefined; }   // 다른 노드의 앱 목록 사본(없으면 뒤에서 받는다 · 받으면 terra-apps 신호) — 시안 · 전송이 없으면 undefined
+  gf_appsWhy(n) { const A = typeof window !== 'undefined' ? window.TerraDesk : null; if (!A || !A.appsView || !n) return ''; const loc = this.gf_localNode(), lc = !!loc && n.id === loc.id, v = A.appsView(window.TerraGuiApps, '', lc, lc ? undefined : this.gf_remoteApps(n.rid || n.id)); return v.appsUnknown ? v.appsWhy : ''; }
+  gf_catalogSync() { if (this._live === false) return; const K = []; for (const k of [0, 1, 2, 3, 4, 5]) if (this['_ctlNode' + k]) K.push(this.gf_catKey(this.gf_liveCat(this['_ctlNode' + k]))); for (const k of [16, 17, 18, 19, 20]) if (this['_wNode' + k]) K.push(this.gf_catKey(this.gf_liveCat(this['_wNode' + k]))); const s = K.join(','); if (s !== this._q_catK) { this._q_catK = s; this.setState({ catTick: (this.state.catTick || 0) + 1 }); } }
   // 브라우저 창이 여는 모듈 화면 목록 — 노드 하나(그 노드의 화면 있는 모듈)
-  gf_modCatalog(n) { const out = []; for (const m of this.gf_modsOf(n)) for (const a of m.apps || []) out.push({ arg: 'mod|' + m.nodeId + '|' + m.id + '|' + a.id, modId: m.id, modName: m.name, ver: m.ver, appId: a.id, appName: a.name, mode: a.mode, entry: a.entry, port: a.port, node: m.node, nodeId: m.nodeId, remote: m.remote, st: m.st,
-    asset: m.remote ? ((m.id.length + m.nodeId.length) % 4 === 0 ? 'stale' : 'cached') : '' }); return out; }
+  gf_modCatalog(n) { const out = []; out.why = this.gf_appsWhy(n); for (const m of this.gf_modsOf(n)) for (const a of m.apps || []) out.push({ arg: 'mod|' + m.nodeId + '|' + m.id + '|' + a.id, modId: m.id, modName: m.name, ver: m.ver, appId: a.id, appName: a.name, mode: a.mode, entry: a.entry, port: a.port, node: m.node, nodeId: m.nodeId, remote: m.remote, st: m.st,
+    asset: m.remote ? (a.asset != null ? a.asset : (m.id.length + m.nodeId.length) % 4 === 0 ? 'stale' : 'cached') : '' }); return out; }
   gf_isDirItem(it) { return it.type === 'dir' || it.type === 'wdir'; }
   // 잠긴 노드 폴더 — 세션 없는 Tree(또는 그 아래 리프)의 노드 폴더. 펼치지 않고, 찾기로도 안을 보여 주지 않는다(이름만). 열려고 하면 로그인 창부터
   gf_ctlLocked(it) { return !!(it && it.isNode && it.node && it.node.kind !== 'root' && this.gf_needLogin(it.node)); }
@@ -3088,7 +3095,7 @@ class Component extends DCLogic {
     { const k = 15; o.wNode15 = S.wNode15 || '02'; o.wId15 = S.wId15 || ''; o.wDir15 = S.wDir15 || 'sibling'; o.wUrl15 = S.wUrl15 || ''; o.wReach15 = S.wReach15 !== false; o.wNeed15 = !!S.wNeed15; o.wTun15 = S.wTun15 || 0; o.wCur15 = S.wCur15 || '';
       o.ctlW15 = S.ctlW15 || this.gf_WSIZE('login')[0]; o.ctlH15 = S.ctlH15 || this.gf_WSIZE('login')[1];
       o.treeLoginDoneFn = F.ld || (F.ld = (key, keep, email) => this.gf_loginDone(key, keep, email)); o.treeLoginCancelFn = F.lc || (F.lc = () => { const W = (this._q_ctlWs || [])[k]; this._q_loginDest = null; this._q_loginAfter = null; if (W) this.gf_ctlX(W); }); }   // Tree 로그인(15)
-    for (const k of [16, 17, 18]) { o['wMod' + k] = S['wMod' + k] || null; o['ctlW' + k] = S['ctlW' + k] || this.gf_WSIZE('mod')[0]; o['ctlH' + k] = S['ctlH' + k] || this.gf_WSIZE('mod')[1];
+    for (const k of [16, 17, 18]) { o['wMod' + k] = this.gf_freshMod(k, S['wMod' + k]) || null; o['ctlW' + k] = S['ctlW' + k] || this.gf_WSIZE('mod')[0]; o['ctlH' + k] = S['ctlH' + k] || this.gf_WSIZE('mod')[1];
       o['openFn' + k] = F['o' + k] || (F['o' + k] = (kind, arg) => { const n = this['_wNode' + k]; if (!n) return; if (kind === 'ctl') return this.gf_ctlOpenWin(n); this.gf_ctlOpenWin(n, undefined, kind, arg); }); }   // 모듈 상태(16–18) — GUI ↗ · 자원 · 제어기
     { const k = 24; o.wNode24 = S.wNode24 || 'lab-ws-02'; o.ctlW24 = S['ctlW' + k] || this.gf_WSIZE('alarm')[0]; o.ctlH24 = S['ctlH' + k] || this.gf_WSIZE('alarm')[1];
       o.openFn24 = F.o24 || (F.o24 = (kind, arg) => { const n = this['_wNode' + k] || this.gf_localNode(); if (n) this.gf_ctlOpenWin(n, undefined, kind, arg); }); }   // 알림(24) — 줄 → 제어기 › 작업 관리자 · 모듈 상태 창

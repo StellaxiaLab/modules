@@ -56,6 +56,31 @@ function info(code: string, source: ErrorSource, message: string, action: ErrorA
   return out;
 }
 
+/** 권한(agent.use 등) 부족 — 이 계정에 권한이 없다. 도달 범위 밖(REACH_TEXT)과 다른 문구다. */
+const PERMISSION_TEXT = '이 계정에 agent.use(또는 필요한) 권한이 없습니다 — 관리자에게 부여를 요청하세요';
+const REACH_TEXT = '이 자격의 도달 범위(노드·위임 범위) 밖입니다 — 더 넓은 범위의 자격으로 다시 시도하세요';
+const LOGIN_TEXT = '다시 로그인해 주세요';
+
+export type PermissionDenial = 'login' | 'reach' | 'permission';
+
+/**
+ * 403 MODULE_PERMISSION_DENIED·MODULE_REACH_DENIED 를 가른다. MODULE_REACH_DENIED 를 내기 전의 Gateway 는 reach 밖도
+ * MODULE_PERMISSION_DENIED 로 보내므로 문구의 "도달 범위"로도 알아본다.
+ */
+export function classifyDenial(code: string | undefined, message: string | undefined): PermissionDenial | null {
+  if (code === 'MODULE_REACH_DENIED') return 'reach';
+  if (code !== 'MODULE_PERMISSION_DENIED') return null;
+  const m = message ?? '';
+  if (m.includes('로그인한 호출자')) return 'login';
+  if (m.includes('도달 범위')) return 'reach';
+  return 'permission';
+}
+
+function permissionText(message: string | undefined): string {
+  const name = message === undefined ? null : /필요한 권한\s*[:：]\s*([A-Za-z0-9_.*-]+)/.exec(message);
+  return name ? `이 계정에 ${name[1]} 권한이 없습니다 — 관리자에게 부여를 요청하세요` : PERMISSION_TEXT;
+}
+
 const entries: ErrorInfo[] = [
   // ── 모듈 HTTP 오류 15 (계약) ───────────────────────────────────────────
   info('INVALID_REQUEST', 'contract', '요청 형식이 맞지 않습니다. 입력을 확인해 주세요. (Gateway 를 거치지 않은 호출이면 개발 환경입니다.)', 'fix-form', { http: 400 }),
@@ -75,8 +100,9 @@ const entries: ErrorInfo[] = [
   info('AGENT_UNAVAILABLE', 'contract', '에이전트 모듈이 지금 처리할 수 없습니다. 잠시 뒤 다시 시도합니다.', 'banner-backoff', { http: 503 }),
 
   // ── Gateway·브리지 오류 8 ──────────────────────────────────────────────
-  info('MODULE_UNAVAILABLE', 'gateway', '에이전트 모듈이 꺼져 있습니다. 코어 GUI 의 모듈 화면에서 시작해 주세요.', 'module-down', { http: 503 }),
-  info('MODULE_PERMISSION_DENIED', 'gateway', '이 계정에 agent.use 권한이 없거나 도달 범위 밖입니다. (권한 부족과 범위 밖은 같은 문구로 옵니다 — 관리자에게 agent.use 부여를 요청해 주세요. 권한이 필요한 호출은 로그인이 만료됐을 때도 Gateway 가 같은 코드·문구로 답합니다 — 권한이 있는 계정인데 막히면 다시 로그인해 보세요.)', 'request-permission', { http: 403 }),
+  info('MODULE_UNAVAILABLE', 'gateway', '모듈이 꺼져 있거나 닿지 않습니다', 'module-down', { http: 503 }),
+  info('MODULE_PERMISSION_DENIED', 'gateway', PERMISSION_TEXT, 'request-permission', { http: 403 }),
+  info('MODULE_REACH_DENIED', 'gateway', REACH_TEXT, 'inform', { http: 403, severity: 'warn' }),
   info('MODULE_INVOCATION_TIMEOUT', 'gateway', '모듈이 제때 답하지 않았습니다. 요청이 처리됐는지 확인한 뒤 다시 시도해 주세요.', 'verify-outcome', { http: 504, severity: 'warn' }),
   info('UNAUTHORIZED', 'gateway', '로그인 세션이 끝났습니다. 다시 로그인해 주세요.', 'session-ended', { http: 401 }),
   info('QUOTA_EXCEEDED', 'gateway', '요청이 너무 많습니다. 잠시 뒤 다시 시도해 주세요.', 'retry-later', { http: 429, severity: 'warn' }),
@@ -103,7 +129,10 @@ const entries: ErrorInfo[] = [
   // ── 실제 스택에서 만난 코드 (OBSERVED_ERROR_CODES) ──────────────────────
   info('OPERATION_NOT_FOUND', 'gateway', 'Gateway 카탈로그에 없는 operation 입니다. 이름이 틀렸거나 그 모듈이 이 노드에 없습니다.', 'inform', { http: 404, severity: 'warn' }),
   info('MODULE_ROUTE_NOT_FOUND', 'gateway', '모듈의 경로를 지금 찾지 못했습니다. 모듈이 다시 시작되는 중이면 잠시 뒤(1초 안팎) 다시 시도해 주세요.', 'retry-later', { http: 404, severity: 'warn' }),
-  info('DELEGATION_NOT_OPEN', 'gateway', '이 Master operation 은 위임 자격에 열려 있지 않습니다. 에이전트는 읽기만 부를 수 있습니다.', 'inform', { http: 403, severity: 'warn' }),
+  info('DELEGATION_NOT_OPEN', 'gateway', '위임 자격에는 열려 있지 않은 operation입니다', 'inform', { http: 403, severity: 'warn' }),
+  info('AGENT_GRANT_DENIED', 'gateway', '이 세션에는 노드를 조회·호출할 수 있는 권한이 없습니다', 'inform', { http: 403, severity: 'warn' }),
+  info('OPERATION_NOT_REMOTE', 'gateway', '대상 노드가 원격으로 열지 않은 operation입니다', 'inform', { http: 403, severity: 'warn' }),
+  info('NODE_OFFLINE', 'gateway', '노드가 오프라인입니다', 'inform', { severity: 'warn' }),
   info('TERRA_UNKNOWN_TOOL', 'call', '에이전트가 모르는 도구 이름이라 부르지 않았습니다. 허용 목록에 없는 외부 서버의 도구일 수 있습니다.', 'inform', { severity: 'warn' }),
   info('TERRA_INVALID_ARGUMENTS', 'call', '도구 인자가 맞지 않아 부르지 않았습니다. (operationId 가 없거나 형식이 틀렸습니다.)', 'inform', { severity: 'warn' }),
   info('TERRA_INTERNAL', 'call', '에이전트 안쪽에서 예기치 않은 오류가 났습니다. 원문을 확인해 주세요.', 'inform', { severity: 'error' }),
@@ -172,6 +201,10 @@ export function describeFailure(failure: Pick<CallFailure, 'status' | 'code' | '
   let base: ErrorInfo;
   if (failure.code !== undefined && failure.code !== '') {
     base = describeCode(failure.code);
+    const denial = classifyDenial(failure.code, failure.message);
+    if (denial === 'reach') base = describeCode('MODULE_REACH_DENIED');
+    else if (denial === 'login') base = { ...base, message: LOGIN_TEXT };
+    else if (denial === 'permission') base = { ...base, message: permissionText(failure.message) };
     if (failure.code === 'CREDENTIAL_MISSING' && context.credentialExpired === true) {
       base = { ...base, action: 'renew-credential', message: '맡겨 둔 위임 자격이 만료되었습니다. 다시 맡겨 주세요.' };
     }

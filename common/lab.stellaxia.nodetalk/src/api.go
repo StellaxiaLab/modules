@@ -119,6 +119,10 @@ func writeStoreErrorOn(w http.ResponseWriter, here string, err error) {
 	case errors.Is(err, talk.ErrDeleted):
 		writeAPIError(w, http.StatusGone, "CONVERSATION_DELETED",
 			"삭제된 대화다 — 묘비가 보존 창 안에 있다: "+here+" 기준")
+	case errors.Is(err, talk.ErrNodeNotFound):
+		writeAPIError(w, http.StatusNotFound, "NODE_NOT_FOUND", err.Error())
+	case errors.Is(err, talk.ErrNodeUnreachable):
+		writeAPIError(w, http.StatusServiceUnavailable, "NODE_UNREACHABLE", err.Error())
 	case errors.Is(err, talk.ErrNotFound):
 		writeAPIError(w, http.StatusNotFound, "CONVERSATION_NOT_FOUND",
 			"지정한 대화를 이 노드가 모른다: "+here)

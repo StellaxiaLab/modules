@@ -22,6 +22,7 @@ const MODULE_HTTP: Record<string, number> = {
 const GATEWAY_HTTP: Record<string, number> = {
   MODULE_UNAVAILABLE: 503,
   MODULE_PERMISSION_DENIED: 403,
+  MODULE_REACH_DENIED: 403,
   MODULE_INVOCATION_TIMEOUT: 504,
   UNAUTHORIZED: 401,
   QUOTA_EXCEEDED: 429,
@@ -82,10 +83,10 @@ describe('모듈 오류 15개', () => {
   });
 });
 
-describe('Gateway·브리지 오류 8개', () => {
-  it('표가 요구 §6.4 의 8개와 같다', () => {
+describe('Gateway·브리지 오류 9개', () => {
+  it('표가 요구 §6.4 의 8개 + MODULE_REACH_DENIED 와 같다', () => {
     expect(Object.keys(GATEWAY_HTTP).sort()).toEqual([...GATEWAY_ERROR_CODES].sort());
-    expect(GATEWAY_ERROR_CODES).toHaveLength(8);
+    expect(GATEWAY_ERROR_CODES).toHaveLength(9);
   });
   for (const code of GATEWAY_ERROR_CODES) {
     it(`${code} (Gateway 봉투)`, () => {

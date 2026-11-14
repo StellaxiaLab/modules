@@ -31,6 +31,7 @@ export const MODULE_ERRORS = {
 export const GATEWAY_ERRORS = {
   MODULE_UNAVAILABLE: { status: 503, retryable: true },
   MODULE_PERMISSION_DENIED: { status: 403, retryable: false },
+  MODULE_REACH_DENIED: { status: 403, retryable: false },
   MODULE_INVOCATION_TIMEOUT: { status: 504, retryable: true },
   UNAUTHORIZED: { status: 401, retryable: false },
   QUOTA_EXCEEDED: { status: 429, retryable: true },

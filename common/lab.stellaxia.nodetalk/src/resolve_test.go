@@ -1,10 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/StellaxiaLab/modules/common/lab.stellaxia.nodetalk/talk"
@@ -28,9 +32,22 @@ func resolvingNode(t *testing.T, nodeID string, reachable map[string]*httptest.S
 	names := newDirectory(root)
 	handler := newOperationsHandler(serverDeps{
 		ResolveNodeID: staticNodeID(nodeID), Store: store, Names: names,
-		DisplayName: "이 노드", Door: httpDoor(t, nodeID, reachable),
+		DisplayName: "이 노드", Door: masterDoor(httpDoor(t, nodeID, reachable), reachable),
 	})
 	return store, handler, names
+}
+
+// masterDoor stands in for the Master: a node it has no record of is answered
+// from the module catalog exactly as the real Master does (live-checked on
+// 0.6.20: MODULE_UNAVAILABLE "node %q hosts no module %q"). A node that is
+// known but fails to answer keeps whatever error the inner door produced.
+func masterDoor(inner doorFunc, known map[string]*httptest.Server) doorFunc {
+	return func(ctx context.Context, node, method, path string, body []byte) (json.RawMessage, error) {
+		if _, ok := known[node]; !ok {
+			return nil, &doorError{Code: "MODULE_UNAVAILABLE", Message: fmt.Sprintf("node %q hosts no module %q", node, "lab.stellaxia.nodetalk")}
+		}
+		return inner(ctx, node, method, path, body)
+	}
 }
 
 // A name typed where an id belongs is refused, because the node it names does
@@ -210,4 +227,108 @@ func TestConversationsResolveByName(t *testing.T) {
 			t.Fatalf("an ambiguous room name resolved anyway (%s): %d %s", path, recorder.Code, recorder.Body.String())
 		}
 	}
+}
+
+// AUD-68: an unknown node is not a missing conversation. The room exists; the
+// node does not. Each gets its own code so a caller can tell which to fix.
+func TestUnknownNodeAndMissingConversationAreDifferentErrors(t *testing.T) {
+	_, peer := newNode(t, "node-b", t.TempDir())
+	store, handler, _ := resolvingNode(t, "node-a", map[string]*httptest.Server{"node-b": peer})
+	conversation, err := store.Create("분류", nil, "")
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	codeOf := func(path string, body map[string]any) (int, string) {
+		recorder := doJSON(t, handler, "POST", path, body)
+		var envelope struct {
+			Error apiError `json:"error"`
+		}
+		decodeInto(t, recorder, &envelope)
+		return recorder.Code, envelope.Error.Code
+	}
+
+	// Existing conversation, node nobody answers for.
+	status, code := codeOf(apiPrefix+"/conversations/"+conversation.ConversationID+"/members",
+		map[string]any{"node_id": "node-ghost"})
+	if status != http.StatusNotFound || code != "NODE_NOT_FOUND" {
+		t.Fatalf("unknown node: got %d %q, want 404 NODE_NOT_FOUND", status, code)
+	}
+	// Unknown name, same class.
+	status, code = codeOf(apiPrefix+"/conversations/"+conversation.ConversationID+"/members",
+		map[string]any{"node_id": "들어본 적 없음", "node_by_name": true})
+	if status != http.StatusNotFound || code != "NODE_NOT_FOUND" {
+		t.Fatalf("unknown node name: got %d %q, want 404 NODE_NOT_FOUND", status, code)
+	}
+	// Truly missing conversation keeps its own code.
+	status, code = codeOf(apiPrefix+"/conversations/cv-none/members", map[string]any{"node_id": "node-b"})
+	if status != http.StatusNotFound || code != "CONVERSATION_NOT_FOUND" {
+		t.Fatalf("missing conversation: got %d %q, want 404 CONVERSATION_NOT_FOUND", status, code)
+	}
+}
+
+// AUD-68 review: only a definite "no such node" is NODE_NOT_FOUND. A transport
+// failure or an offline node says nothing about existence and must be a
+// retryable NODE_UNREACHABLE (503), not a permanent 404.
+func TestAnOfflineNodeIsUnreachableNotMissing(t *testing.T) {
+	store, _, _ := resolvingNode(t, "node-a", nil)
+	conversation, _ := store.Create("오프라인", nil, "")
+	failures := map[string]error{
+		"relay down": &doorError{Code: "MODULE_UNAVAILABLE", Message: "node is not connected to relay"},
+		"offline":    &doorError{Code: "NODE_OFFLINE", Message: "node offline"},
+		"timeout":    context.DeadlineExceeded,
+	}
+	for name, failure := range failures {
+		failure := failure
+		handler := newOperationsHandler(serverDeps{
+			ResolveNodeID: staticNodeID("node-a"), Store: store, Names: newDirectory(t.TempDir()),
+			DisplayName: "이 노드",
+			Door: func(context.Context, string, string, string, []byte) (json.RawMessage, error) {
+				return nil, failure
+			},
+		})
+		recorder := doJSON(t, handler, "POST",
+			apiPrefix+"/conversations/"+conversation.ConversationID+"/members",
+			map[string]any{"node_id": "node-b"})
+		var envelope struct {
+			Error apiError `json:"error"`
+		}
+		decodeInto(t, recorder, &envelope)
+		if recorder.Code != http.StatusServiceUnavailable || envelope.Error.Code != "NODE_UNREACHABLE" {
+			t.Fatalf("%s: got %d %q, want 503 NODE_UNREACHABLE", name, recorder.Code, envelope.Error.Code)
+		}
+	}
+}
+
+// members.remove with an unknown node name answers NODE_NOT_FOUND, which its
+// contract lists.
+func TestRemovingByUnknownNameIsNodeNotFound(t *testing.T) {
+	store, handler, _ := resolvingNode(t, "node-a", nil)
+	conversation, _ := store.Create("제거", nil, "")
+	recorder := doJSON(t, handler, "DELETE",
+		apiPrefix+"/conversations/"+conversation.ConversationID+"/members/없는이름?node_by_name=true", nil)
+	var envelope struct {
+		Error apiError `json:"error"`
+	}
+	decodeInto(t, recorder, &envelope)
+	if recorder.Code != http.StatusNotFound || envelope.Error.Code != "NODE_NOT_FOUND" {
+		t.Fatalf("got %d %q", recorder.Code, envelope.Error.Code)
+	}
+	contract, err := os.ReadFile(filepath.Join("..", "contracts", "api", "terra-api.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsed struct {
+		Operations map[string]struct {
+			Errors []string `json:"errors"`
+		} `json:"operations"`
+	}
+	if err := json.Unmarshal(contract, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	for _, code := range parsed.Operations["lab.stellaxia.nodetalk.members.remove"].Errors {
+		if code == "NODE_NOT_FOUND" {
+			return
+		}
+	}
+	t.Fatal("members.remove's contract error list lacks NODE_NOT_FOUND")
 }

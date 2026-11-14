@@ -275,7 +275,7 @@ describe('설정 — 읽기 실패는 구역마다 따로, role=alert 로', () =
       w.credentialsReply = reply.gatewayFail(403, 'MODULE_PERMISSION_DENIED', 'permission denied RAW');
     });
     const alert = app.q('[data-role=settings-credential] [role=alert]');
-    expect(alert.textContent).toContain('agent.use 권한이 없거나');
+    expect(alert.textContent).toContain('agent.use(또는 필요한) 권한이 없습니다');
     const details = alert.querySelector('details');
     expect(details?.hasAttribute('open')).toBe(false);
     expect(details?.textContent).toContain('permission denied RAW');
@@ -576,7 +576,7 @@ describe('자격 거두기 — 3단계 삭제', () => {
     await app.settle();
     const alert = app.q('[data-role=revoke-error]');
     expect(alert.getAttribute('role')).toBe('alert');
-    expect(alert.textContent).toContain('agent.use 권한이 없거나');
+    expect(alert.textContent).toContain('agent.use(또는 필요한) 권한이 없습니다');
     expect(alert.querySelector('details')?.hasAttribute('open')).toBe(false);
     expect(alert.querySelector('details')?.textContent).toContain('RAW english denial');
     expect(app.q('[data-role=revoke-overlay]').hidden).toBe(false);

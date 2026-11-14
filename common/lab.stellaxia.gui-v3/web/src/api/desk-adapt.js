@@ -54,7 +54,24 @@ export function moduleApps(list, moduleId, running) {
 
 /** 모듈 상태 창 · 브라우저 창의 앱 줄 — Daemon 모듈 목록에는 GUI 가 없어 Gateway 앱 목록에서 그 모듈 것을 고른다. embed 앱은 뺀다 @returns {{ id: string, name: string, mode: string, entry: string }[]} */
 export function webApps(list, moduleId) {
-  return arr(list, 'apps').filter((a) => a && a.moduleId === moduleId && !a.embed).map((a) => ({ id: a.id, name: a.name || a.id, mode: a.mode, entry: a.entry || '' }));
+  return arr(list, 'apps').filter((a) => a && a.moduleId === moduleId && !a.embed).map((a) => ({ id: a.id, name: a.name || a.id, mode: a.mode, entry: a.entry || ''}));
+}
+
+/**
+ * (원격: window.TerraRemoteApps.get(node) 의 항목을 remote 로 — remote-apps.js) 모듈 하나의 앱 줄 + "몰랐음" 표시 — 목록을 못 읽은 것(null) 과 정말 비어 있는 것([])을 가른다(AUD-82 · AUD-89).
+ *   이 노드: 목록이 배열이면 그 모듈 것(0개도 사실), 아니면 못 봤음. 다른 노드: 앱 목록을 요청하지 않으므로(앱 토큰으로 못 받음) 늘 못 봤음
+ * @returns {{ apps: any[], appsUnknown: boolean, appsWhy: string }}
+ */
+export const APPS_WHY_REMOTE = '원격 노드의 앱 목록은 앱 토큰으로 받지 못함';
+export const APPS_WHY_FAIL = '앱 목록을 읽지 못함';
+export function appsView(list, moduleId, local, remote) {
+  if (!local) {   // 다른 노드: 그 노드의 목록 사본(window.TerraRemoteApps.get)이 있으면 그것 — 읽었으면 사실, 받는 중 · 못 읽음은 몰랐음 + 이유
+    if (!remote) return { apps: [], appsUnknown: true, appsWhy: APPS_WHY_REMOTE };
+    if (remote.state === 'ok') return { apps: webApps(remote.apps, moduleId).map((w) => { const r = remote.apps.find((a) => a && a.moduleId === moduleId && a.id === w.id); return Object.assign(w, { asset: r && r.assets && r.assets.state ? r.assets.state : undefined, origin: (r && r.origin) || '' }); }), appsUnknown: false, appsWhy: '' };
+    return { apps: [], appsUnknown: true, appsWhy: remote.state === 'loading' ? '원격 앱 목록 받는 중' : remote.why || APPS_WHY_FAIL };
+  }
+  if (!Array.isArray(list)) return { apps: [], appsUnknown: true, appsWhy: list === undefined ? '앱 목록 받는 중' : APPS_WHY_FAIL };
+  return { apps: webApps(list, moduleId), appsUnknown: false, appsWhy: '' };
 }
 
 // 동의 상태 → 보드의 세 칸(동의 대기 · 받는 중 · 설치됨). managed · pinned 는 정책이 이미 정했다(동의 단추 없음)
