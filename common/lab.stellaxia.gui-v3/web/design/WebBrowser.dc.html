@@ -177,6 +177,7 @@ class Component extends DCLogic {
       O.chips = [{ t: MD[0], cls: MD[1] }, { t: e.mode === 'window' ? '자기 origin' : 'sandbox · CSP', cls: 'sb' }, { t: e.node + (e.remote ? ' · 원격' : ''), cls: '' }, { t: e.modId + ' ' + (e.ver || ''), cls: '' }];
       const st = this.steps(R);
       if (st.err) { O.isErr = true; O.errT = st.err; O.errNote = st.note; O.statusT = 'GUI_APP_UNAVAILABLE'; }
+      else if (this.launcher() && e.remote) { O.isErr = true; O.errT = '원격 노드의 앱은 이 셸이 아직 열 수 없음'; O.errNote = e.node + ' · ' + e.appName + ' — 셸의 앱 실행 요청(terra.app:launch)이 원격 앱을 받지 않는다'; O.statusT = '열지 못함'; }
       else if (this.launcher() && !e.remote) {
         // 탐색 · 새로고침 한 번에 한 번만 연다(그리는 동안 부르지 않는다)
         const key = S.idx + '|' + S.t0 + '|' + e.arg, L = S.lau && S.lau.k === key ? S.lau : null;

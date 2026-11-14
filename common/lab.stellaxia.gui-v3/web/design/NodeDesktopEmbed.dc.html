@@ -1650,10 +1650,15 @@ class Component extends DCLogic {
   modApps(M) {
     const N = this.nd(), A = typeof window !== 'undefined' ? window.TerraDesk : null;
     if (!N.real || !A) return M.apps;
-    return this.remote() ? [] : A.moduleApps(window.TerraGuiApps || [], M.id, M.st === 'run');
+    if (this.remote()) { const e = this.remoteEnt(); return e && e.state === 'ok' ? A.moduleApps(e.apps, M.id, M.st === 'run') : []; }   // 다른 노드: 그 노드 목록 사본(받았을 때만) — 못 받은 것은 아래 noAppsT 가 '못 봤음 + 이유'
+    return A.moduleApps(window.TerraGuiApps || [], M.id, M.st === 'run');
   }
   // 다른 모듈 앱 열기 — 감싼 셸(Scene)에 terra.app:launch 를 부탁한다(emit('launch')). 셸이 화면 안 창으로 연다
+  // 이 제어기가 쥔 원격 노드의 앱 목록 사본(window.TerraRemoteApps — remote-apps.js). 없으면 undefined
+  remoteEnt() { const R = typeof window !== 'undefined' ? window.TerraRemoteApps : null, id = this.props.nodeRid || ''; return R && id ? R.get(id) : undefined; }
+  remoteWhy() { const e = this.remoteEnt(); return !e ? '원격 노드의 앱 목록은 앱 토큰으로 받지 못함' : e.state === 'loading' ? '원격 앱 목록 받는 중' : e.state === 'err' ? e.why : ''; }
   openApp(a) {
+    if (this.nd().real && this.remote()) { this.say(a.name + ' — 원격 노드의 앱은 이 셸이 아직 열 수 없음 (셸이 원격 앱 열기를 받지 않음)'); return; }
     const go = typeof window !== 'undefined' && window.TerraLaunch;
     if (!a.full) { this.say(a.name + ' 앱 창 (시안)'); return; }
     this.say(go && go(a.id) ? a.name + ' 여는 중… (셸 창)' : '다른 앱 열기 : 셸(main Scene) 안에서만');
@@ -2557,7 +2562,7 @@ class Component extends DCLogic {
             cfgBtns: [this.btn('되돌리기', () => this.setState({ modCfg: null }), { off: !cfgDirty.length }), this.btn('저장', () => { const vals = {}; try { cfgDirty.forEach((k) => { vals[k] = this.castCfg(M, k, cd[k]); }); } catch (e) { this.say(e.message); return; } const inp = { module_id: M.id, values: vals }; if (M.cfgRev != null) inp.base_revision = M.cfgRev; const sent = this.ndSet((d) => { const mm = d.mods[ms]; mm.cfg.forEach((c) => { if (cd && c[0] in cd) c[3] = cd[c[0]]; }); }, 'terra.daemon.modules.by-module-id.config.patch', inp, { ok: () => { this.setState({ modCfg: null }); this.say(M.name + ' 설정 저장 (module.manage)'); } }); if (M.cfgReal && sent && sent.then) sent.then(() => this.TN().refresh(this.nodeKey(), 'terra.daemon.modules.by-module-id.config.get', { module_id: M.id })); }, { off: !cfgDirty.length, pri: !!cfgDirty.length })],
             logs: this.modLogs(M, mt === 'log') || [['09:12:03', 'info', 'started · pid 4182'], ['09:12:03', 'info', 'readiness ok'], ['10:40:17', 'info', 'config reloaded'], ['10:58:42', M.st === 'restart' ? 'warn' : 'info', M.st === 'restart' ? 'health check failed — restarting' : 'lease renewed'], ['11:02:10', 'info', M.ops[0] + ' 200 · 12ms']].map(([tt, lv, msg]) => ({ t: tt, cls: lv, msg })),
             perms: M.perms, opsN: M.ops.length, ops: M.ops.map((x) => ({ id: M.id + '.' + x, perm: /list|get|status/.test(x) ? 'node.read' : M.perms[M.perms.length - 1] })),
-            noApps: !this.modApps(M).length, noAppsT: this.nd().real && this.remote() ? '못 봤음 — 원격 노드의 앱 목록은 앱 토큰으로 받지 못함' : this.nd().real && !Array.isArray(typeof window !== 'undefined' ? window.TerraGuiApps : null) ? '못 봤음 — 앱 목록을 읽지 못함' : 'GUI 앱 없음', apps: this.modApps(M).map((a) => ({ name: a.name, id: a.full ? a.id : M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
+            noApps: !this.modApps(M).length, noAppsT: this.nd().real && this.remote() ? (this.remoteWhy() ? '못 봤음 — ' + this.remoteWhy() : 'GUI 앱 없음') : this.nd().real && !Array.isArray(typeof window !== 'undefined' ? window.TerraGuiApps : null) ? '못 봤음 — 앱 목록을 읽지 못함' : 'GUI 앱 없음', apps: this.modApps(M).map((a) => ({ name: a.name, id: a.full ? a.id : M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
               btns: [this.btn('열기', () => this.openApp(a), { off: M.st !== 'run' }), this.btn('바탕화면에 추가', () => this.addShortcut(M, a), { off: RO || !!Object.values(I).find((ic) => ic.mod === this.modRef(M, a)), tip: RO ? '바탕 구성 읽기 전용 — ' + this.deskLine().text : '' })] })) };
         }
         // 설치 — 파일(.tmod): 고르기 → 매니페스트(브라우저가 module.json 만 읽는다) → 권한 · 서명 경고 → 승인 → 설치(결정 전 — DECIDE.tmodInstall 이 잠근다). 대신 Tree 에 지정
