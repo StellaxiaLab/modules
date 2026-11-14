@@ -75,3 +75,18 @@ test('main.js — TerraLaunch 는 원격이면 { appId, moduleId, nodeId, nodeNa
   assert.equal(fn('a1'), true); assert.equal(fn('a2', { moduleId: 'm', nodeId: 'n', nodeName: 'far' }), true);
   assert.deepEqual(frame.got, [['launch', 'a1'], ['launch', { appId: 'a2', moduleId: 'm', nodeId: 'n', nodeName: 'far' }]]);
 });
+
+// AUD-82(실측 s3-gui): gui-v3.app.launch 의 payload 가 {"appId":"$input.value"} 라 객체 입력이
+// { appId: {appId,moduleId,nodeId,nodeName} } 로 감싸져 셸이 읽지 못했다. 입력 전체를 그대로 올린다.
+test('Scene — gui-v3.app.launch 는 입력 전체를 terra.app:launch 로 올린다(문자열 · 객체 둘 다 셸이 읽는 모양)', () => {
+  const fn = JSON.parse(readFileSync(fileURLToPath(new URL('../../scene/contract/functions/app.launch.function.json', import.meta.url)), 'utf8'));
+  const emit = fn.graph.nodes.find((n) => n.type === 'emit'); assert.equal(emit.signal, 'terra.app:launch');
+  const ev = (x, input) => (typeof x === 'string' ? (x === '$input.value' ? input.value : x) : Object.fromEntries(Object.entries(x).map(([k, v]) => [k, ev(v, input)])));
+  // Terra runtime-core ScenePlayerSurface.readLaunchTarget 와 같은 규칙(문자열 또는 { appId, moduleId?, nodeId?, nodeName? })
+  const read = (p) => { const t = (v) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+    if (typeof p === 'string') return t(p) ? { appId: t(p) } : undefined;
+    if (p && typeof p === 'object') { const a = t(p.appId); return a ? { appId: a, ...(t(p.moduleId) ? { moduleId: t(p.moduleId) } : {}), ...(t(p.nodeId) ? { nodeId: t(p.nodeId) } : {}), ...(t(p.nodeName) ? { nodeName: t(p.nodeName) } : {}) } : undefined; } return undefined; };
+  const remote = { appId: 'io.terra.agent.web', moduleId: 'io.terra.agent', nodeId: 'nd_R', nodeName: 'far' };
+  assert.deepEqual(read(ev(emit.payload, { value: remote })), remote, '원격: 객체 그대로');
+  assert.deepEqual(read(ev(emit.payload, { value: 'io.terra.agent.web' })), { appId: 'io.terra.agent.web' }, '이 노드: appId 문자열');
+});
