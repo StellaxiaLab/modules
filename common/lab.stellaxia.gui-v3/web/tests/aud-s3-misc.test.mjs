@@ -88,3 +88,23 @@ test('AUD-30 — 읽기가 비행 중일 때 로그아웃하면 늦은 응답이
   assert.equal(T.cache.size, 0, '늦은 응답이 사본을 쓰지 않는다');
   assert.equal(localStorage.getItem('terra.cache'), null, 'terra.cache 도 다시 생기지 않는다');
 });
+
+// 로그아웃 뒤에도 남은 창 · 타이머가 읽기를 계속 부른다 — 어느 자원이든(desk · danger-zone · props · modules) terra.cache 를 디스크에 되살리지 않는다
+const ev = () => { const L = {}; window.addEventListener = (t, f) => { (L[t] = L[t] || []).push(f); }; window.dispatchEvent = (e) => { for (const f of L[e.type] || []) f(e); return true; }; return L; };
+test('AUD-30 — 로그아웃 뒤 늦은 읽기(props · danger-zone · modules · desk)가 성공해도 terra.cache 는 다시 생기지 않고, 다음 로그인 뒤에는 저장된다', async () => {
+  globalThis.localStorage = mem(); ev();
+  globalThis.Event = globalThis.Event || class { constructor(t) { this.type = t; } };
+  const C = await logic('TerraNodes');
+  delete window.TerraNodes;
+  window.TerraTransport = { kind: 'gateway', localId: () => 'n1', invoke: async () => ({ ok: 1 }), invokeRid: async () => ({ revision: 3, doc: { a: 1 } }), master: async () => ({ m: 1 }) };
+  new C({}); const T = window.TerraNodes;
+  T.cache.set('n1|props', { data: { old: 1 }, at: 1 }); T.persist();
+  window.dispatchEvent(new Event('terra-pc-logout')); T.clear();         // 로그아웃(세 길 공용 순서)
+  for (const res of ['props', 'modules', 'terra.daemon.danger-zone.app-command-execution.get']) T.refresh('n1', res);   // 남은 창이 부르는 읽기
+  try { await T.deskFetch("n1"); } catch (e) {}
+  await new Promise((r) => setTimeout(r, 800));
+  assert.equal(localStorage.getItem('terra.cache'), null, '로그아웃 뒤 늦은 읽기가 terra.cache 를 쓰지 않는다');
+  window.dispatchEvent(new Event('terra-who'));                           // 다음 로그인
+  T.persist(); await new Promise((r) => setTimeout(r, 600));
+  assert.ok(localStorage.getItem('terra.cache'), '다음 로그인 뒤에는 다시 저장된다');
+});

@@ -103,7 +103,8 @@ class NodeStore {
   constructor(transport) {
     this.t = transport; this.shapes = {}; this.subs = new Set(); this.inflight = new Map(); this.links = new Map(); this.views = new Map();
     this.cache = new Map(Object.entries(LS.get('terra.cache') || {}));   // 새로 띄워도 마지막 사본이 남는다(끊긴 채 시작해도 보인다)
-    this._saveT = 0;
+    this._saveT = 0; this.out = false;   // out — 로그아웃 뒤 다음 로그인(whoami 도착)까지: 로그아웃 뒤 남은 화면 · 타이머가 부르는 읽기가 사본을 디스크(terra.cache)에 되살리지 않게 persist 를 막는다(AUD-30)
+    if (typeof window !== 'undefined' && window.addEventListener) { window.addEventListener('terra-pc-logout', () => { this.out = true; clearTimeout(this._saveT); try { localStorage.removeItem('terra.cache'); } catch (e) {} }); window.addEventListener('terra-who', () => { this.out = false; }); }
     this.blobs = new Map(); this.gen = 0; this.rbg = new Map();   // rbg — 장면 id 가 다른 노드로 다시 묶인 횟수(늦은 응답을 거른다)
     this.pendingRes = new Map();   // 진행 중인 쓰기의 표시층 — 자원 키 → Set({ apply, mark }). 저장하지 않는다(cache 밖). 사본(e.data)은 노드가 준 값만
     // 바탕 구성 — 사본은 this.cache 의 rid|nodedesk 한 항목({revision, doc}). 아래는 저장하지 않는다(표시층 · 전송 · 상태 · watch)
@@ -114,7 +115,7 @@ class NodeStore {
   key(n, r, inp) { return n + '|' + r + (inp ? '|' + JSON.stringify(inp) : ''); }   // 입력이 있는 읽기(모듈 로그 · 모듈 설정 스키마)는 입력마다 따로
   emit(n) { for (const f of this.subs) { try { f(n); } catch (e) {} } }
   subscribe(f) { this.subs.add(f); return () => this.subs.delete(f); }
-  persist() { clearTimeout(this._saveT); this._saveT = setTimeout(() => { if (!this.cache.size) { try { localStorage.removeItem('terra.cache'); } catch (e) {} return; } const o = {}; for (const [k, v] of this.cache) o[k] = v; if (!LS.set('terra.cache', o)) LS.set('terra.cache', {}); }, 400); }
+  persist() { clearTimeout(this._saveT); if (this.out) return; this._saveT = setTimeout(() => { if (this.out) return; if (!this.cache.size) { try { localStorage.removeItem('terra.cache'); } catch (e) {} return; } const o = {}; for (const [k, v] of this.cache) o[k] = v; if (!LS.set('terra.cache', o)) LS.set('terra.cache', {}); }, 400); }
   isLocal(n) { return n === this.t.localId(); }
   link(n) { if (this.isLocal(n)) return { state: 'local' }; return this.links.get(n) || { state: 'unknown' }; }
   setLink(n, L) { const o = this.links.get(n); this.links.set(n, Object.assign({}, L, { at: Date.now() })); if (!o || o.state !== L.state || o.code !== L.code) this.emit(n); }

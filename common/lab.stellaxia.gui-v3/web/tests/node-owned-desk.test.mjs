@@ -221,7 +221,7 @@ test('타이머 — watch 즉시 1회, 5초 주기, 같은 노드 두 창은 합
   await adv(4); assert.equal(w.calls.length, 1); await adv(1); assert.equal(w.calls.length, 2, '5초'); assert.equal(w.calls[1].input.since_revision, 1);
   await adv(5); assert.equal(w.calls.length, 3);
   T.unwatch('n1'); await adv(10); assert.equal(w.calls.length, 5, '한 창이 남아 있으면 계속'); T.unwatch('n1'); assert.equal(T._deskT, null); await adv(20); assert.equal(w.calls.length, 5);
-  assert.equal(Object.keys(handlers).length, 0, '구독도 걷는다');
+  assert.equal(Object.keys(handlers).filter((k) => k !== 'terra-pc-logout' && k !== 'terra-who').length, 0, '구독도 걷는다');
 });
 
 test('타이머 — 숨은 탭은 묻지 않고, 보이면 · 포커스가 오면 바로(직전 500ms 안이면 건너뜀)', async () => {
