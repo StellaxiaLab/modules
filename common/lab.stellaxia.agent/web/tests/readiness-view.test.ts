@@ -37,7 +37,7 @@ describe('화면 1 — 준비 상태 모델', () => {
     expect(p.headline).toContain('이 앱에 선언된 권한이 없어 셸이 요청을 막았습니다');
     expect(p.headline).not.toContain('지금 처리할 수 없습니다');
     const d = presentReadiness(composeReadiness({ ...READY, status: fail(403, 'MODULE_PERMISSION_DENIED') }));
-    expect(d.headline).toContain('agent.use 권한이 없거나 도달 범위 밖');
+    expect(d.headline).toContain('agent.use(또는 필요한) 권한이 없습니다');
     const m = presentReadiness(composeReadiness({ ...READY, status: fail(403, 'SOMETHING_ELSE') }));
     expect(m.headline).toContain('에이전트 모듈이 지금 처리할 수 없습니다');
   });
@@ -68,7 +68,7 @@ describe('화면 1 — 준비 상태 모델', () => {
 
   it('모듈이 꺼졌거나 로그인이 끝났거나 연결이 안 되면 각각 다른 말을 한다', () => {
     const down = presentReadiness(composeReadiness({ status: fail(503, 'MODULE_UNAVAILABLE') }));
-    expect(down.headline).toContain('꺼져 있습니다');
+    expect(down.headline).toContain('꺼져 있거나 닿지 않습니다');
     const ended = presentReadiness(composeReadiness({ status: fail(401, 'UNAUTHORIZED') }));
     expect(ended.headline).toContain('로그인 세션이 끝났습니다');
     const net = presentReadiness(composeReadiness({ status: fail(0) }));

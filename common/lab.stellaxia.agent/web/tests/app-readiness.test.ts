@@ -31,7 +31,7 @@ describe('화면 1 — 준비 상태 (앱 통합)', () => {
     });
     const guide = app.text('[data-role=readiness-guide]');
     expect(guide).toContain('이 계정에 agent.use 권한이 없습니다');
-    expect(guide).toContain('관리자에게 agent.use 부여를 요청');
+    expect(guide).toContain('관리자에게 부여를 요청');
     expect(app.text('[data-role=readiness-chip]')).toContain('준비 안 됨');
     expect(app.q('[data-role=new-session]').getAttribute('aria-disabled')).toBe('true');
     // 권한이 없으면 뒤 단계는 판정하지 않는다
@@ -89,7 +89,7 @@ describe('화면 1 — 준비 상태 (앱 통합)', () => {
     const app = await open((w) => {
       w.statusReply = reply.gatewayFail(503, 'MODULE_UNAVAILABLE', 'module stopped');
     });
-    expect(app.text('[data-role=readiness-guide]')).toContain('에이전트 모듈이 꺼져 있습니다');
+    expect(app.text('[data-role=readiness-guide]')).toContain('모듈이 꺼져 있거나 닿지 않습니다');
   });
 
   it('위임 관문이 없으면 읽기만 한다', async () => {

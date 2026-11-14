@@ -33,7 +33,7 @@ const MODULE_PHRASES = {
   AGENT_UNAVAILABLE: /에이전트 모듈이 지금 처리할 수 없습니다/,
 };
 const GATEWAY_PHRASES = {
-  MODULE_UNAVAILABLE: /에이전트 모듈이 꺼져 있습니다/,
+  MODULE_UNAVAILABLE: /모듈이 꺼져 있거나 닿지 않습니다/,
   MODULE_PERMISSION_DENIED: /agent\.use 권한이 없거나 도달 범위 밖/,
   MODULE_INVOCATION_TIMEOUT: /모듈이 제때 답하지 않았습니다/,
   UNAUTHORIZED: /로그인 세션이 끝났습니다/,
@@ -193,7 +193,7 @@ check('오류가 서는 자리(승인 답): 이미 답한 승인(APPROVAL_NOT_FO
 const guide = (app) => app.$('[data-role="readiness-guide"]');
 
 for (const [label, effect, phrase] of [
-  ['MODULE_UNAVAILABLE(모듈 정지)', { gateway_error: { code: 'MODULE_UNAVAILABLE', message: 'RAW english: module is stopped' } }, /에이전트 모듈이 꺼져 있습니다/],
+  ['MODULE_UNAVAILABLE(모듈 정지)', { gateway_error: { code: 'MODULE_UNAVAILABLE', message: 'RAW english: module is stopped' } }, /모듈이 꺼져 있거나 닿지 않습니다/],
   ['UNAUTHORIZED(로그인 세션 끝)', { gateway_error: { code: 'UNAUTHORIZED', message: 'RAW english: session ended' } }, /로그인 세션이 끝났습니다/],
   ['MODULE_PERMISSION_DENIED(권한 부족 또는 도달 범위 밖)', { gateway_error: { code: 'MODULE_PERMISSION_DENIED', message: 'RAW english: permission denied' } }, /agent\.use 권한이 없거나 도달 범위 밖/],
   ['AGENT_UNAVAILABLE(모듈이 처리하지 못함)', { module_error: { code: 'AGENT_UNAVAILABLE', message: 'RAW english: store failed' } }, /에이전트 모듈이 지금 처리할 수 없습니다/],
