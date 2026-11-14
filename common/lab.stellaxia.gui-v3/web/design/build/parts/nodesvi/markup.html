@@ -43,7 +43,7 @@
             </div>
           </sc-for>
           <sc-if value="{{envBad}}" hint-placeholder-val="{{ false }}"><div class="sv-warn sv-fence"><span>{{envWhy}}</span><sc-if value="{{envFix}}" hint-placeholder-val="{{ false }}"><button type="button" class="nc-btn" onClick="{{envFixGo}}">{{envFixT}}</button></sc-if></div></sc-if>
-          <sc-if value="{{exists}}" hint-placeholder-val="{{ false }}"><label class="sv-rep"><input type="checkbox" checked="{{replace}}" onChange="{{onReplace}}"> 같은 이름 자원 교체 — 그 위 연결 종료</label></sc-if>
+          <sc-if value="{{exists}}" hint-placeholder-val="{{ false }}"><label class="sv-rep" title="{{repWhy}}"><input type="checkbox" checked="{{replace}}" onChange="{{onReplace}}" disabled="{{repDis}}"> 같은 이름 자원 교체 — 그 위 연결 종료<span>{{repWhy}}</span></label></sc-if>
           <div class="sv-act"><button type="submit" class="nc-btn nc-pri" disabled="{{makeOff}}">{{makeT}}</button><span class="nc-k">{{makeApi}}</span></div>
         </form>
       </div>

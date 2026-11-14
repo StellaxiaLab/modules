@@ -21,6 +21,8 @@ export function clearTerm(storage, principal) {
 }
 
 const OLD = ['terra.view.desk.', 'terra.wall.'];
+/** 옛 키(terra.view.desk.* · terra.wall.*)를 모두 지운다 */
+export function clearOld(storage) { if (!storage) return 0; let n = 0; for (const k of keysOf(storage)) if (OLD.some((p) => k.startsWith(p))) { try { storage.removeItem(k); n++; } catch { /* 무시 */ } } return n; }
 /** 새 GUI 가 처음 돌 때 한 번 — 옛 키를 지우고 표시한다(§14). 이미 했으면 false */
 export function migratePc(storage) {
   if (!storage) return false;
@@ -53,5 +55,6 @@ export function setWho(win, storage, who, clearNodes) {
 export function pcLogout(win, storage) {
   try { win.dispatchEvent(new Event('terra-pc-logout')); } catch { /* 이벤트 없는 환경 */ }
   clearTerm(storage, win.TerraWho && win.TerraWho.principal);
+  clearOld(storage);   // 옛 제어기 키(terra.view.desk.*)가 남아 있으면 다음 사람이 보지 않게 지운다(principal 을 몰라도)
   win.TerraWho = null;
 }
