@@ -98,12 +98,14 @@ func newHotplug(status discovery.WatchStatus) *Hotplug {
 func (h *Hotplug) State() HotplugState {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	events := make([]DeviceEvent, len(h.events))
+	copy(events, h.events)
 	state := HotplugState{
 		Watch:     h.status,
 		Scans:     h.scans,
 		Failures:  h.failures,
 		LastError: h.lastErr,
-		Events:    append([]DeviceEvent(nil), h.events...),
+		Events:    events,
 	}
 	if !h.lastScan.IsZero() {
 		state.LastScan = h.lastScan.Format(time.RFC3339)

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/StellaxiaLab/modules/leaf/lab.stellaxia.io-inventory/discovery"
@@ -198,5 +200,17 @@ func TestHotplugStateDoesNotShareTheWindow(t *testing.T) {
 	}
 	if fresh.Events[0].DeviceID != "dev-1" {
 		t.Fatalf("device id = %q, want dev-1 — a caller wrote into the window", fresh.Events[0].DeviceID)
+	}
+}
+
+// AUD-57: an empty window must marshal as an empty array, not null.
+func TestStateEventsMarshalAsEmptyArray(t *testing.T) {
+	h := newHotplug(discovery.WatchStatus{})
+	raw, err := json.Marshal(h.State())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"events":[]`) {
+		t.Fatalf("fresh state must carry an empty events array, got %s", raw)
 	}
 }
