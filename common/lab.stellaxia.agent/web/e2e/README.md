@@ -190,7 +190,6 @@ export default {
 
 | 곳 | 계약 | 소스(= 가짜) |
 | --- | --- | --- |
-| `runs.post` 응답 | `answer`·`last_error` 는 string | 비면 키가 없어 `null` (`api.go` `view["answer"]`). `last_error_code` 도 없다 |
 | `messages.list` `limit` | 1~5000 | 0 이상 아무 수. **0 은 "제한 없음"**. 기본 500 |
 | `max_steps`·`max_seconds`·`token_budget` | 최소 1 | 0 은 "기본값"(`token_budget` 0 = 무제한) |
 | `messages.post.text`·`runs.post.prompt` | 최대 20000자 | 길이를 막지 않는다 — 20001자 차단은 **앱의 몫** |
