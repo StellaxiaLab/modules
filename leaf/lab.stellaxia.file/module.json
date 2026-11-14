@@ -14,7 +14,8 @@
       "linux-amd64": "bin/linux-amd64/terra-file",
       "linux-arm64": "bin/linux-arm64/terra-file",
       "windows-amd64": "bin/windows-amd64/terra-file.exe"
-    }
+    },
+    "scene": "scene/scene.json"
   },
   "provides": {
     "capabilities": [
@@ -23,6 +24,24 @@
   },
   "contracts": {
     "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "gui": {
+      "scenes": [
+        { "id": "lab.stellaxia.file.ui", "entry": "scene/scene.json", "role": "application", "branch": "dev" }
+      ],
+      "apps": [
+        {
+          "id": "lab.stellaxia.file.web",
+          "name": "Terra File",
+          "mode": "static",
+          "entry": "ui/index.html",
+          "isolation": "sandboxed",
+          "embed": "scene",
+          "permissions": ["session.identity", "node.read", "file.read", "file.write"]
+        }
+      ]
+    }
   },
   "permissions": {
     "storage": ["module-data", "shared-roots"]

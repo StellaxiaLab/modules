@@ -1,0 +1,16 @@
+{
+  "name": "lab.stellaxia.file-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "lab.stellaxia.file 의 화면. 모듈 Scene이 terra.web/frame으로 감싸는 웹 프로그램이다. npm run build가 ../ui에 쓰고, 패키지는 그것을 싣는다.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test src/lib/*.test.mjs"
+  },
+  "devDependencies": {
+    "vite": "^8.1.4"
+  }
+}

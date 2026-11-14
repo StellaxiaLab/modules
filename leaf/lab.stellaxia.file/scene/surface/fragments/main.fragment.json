@@ -1,0 +1,146 @@
+{
+  "$comment": "로그인 카드와 frame. frame은 로그인 전에도 떠 있다. 로그인 전에는 토큰 없이 init이 가고, 로그인하면 terra.frame.token이 간다(설계 §4.3-8). 카드는 내장 엘리먼트로 그린다 — 웹이 비밀번호를 받으면 모듈 코드가 사용자의 Terra 비밀번호를 보게 된다.",
+  "schemaVersion": "0.1.0",
+  "id": "file.main",
+  "version": "0.1.0",
+  "renderer": "dom.basic",
+  "title": "Terra File",
+  "stores": [
+    "signin"
+  ],
+  "functions": [
+    "file.signin.field",
+    "file.signin.submit",
+    "file.signout"
+  ],
+  "root": {
+    "type": "column",
+    "id": "root",
+    "children": [
+      {
+        "type": "card",
+        "id": "signin",
+        "title": "Terra 로그인",
+        "visible": {
+          "not": {
+            "store": "signin",
+            "path": "/state",
+            "is": {
+              "const": "signedIn"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "text",
+            "id": "signinHint",
+            "text": "이 화면은 Terra 로그인이 필요합니다. 비밀번호는 게이트웨이의 Credential Service로만 가고, 화면이 받는 것은 그것을 가리키는 이름뿐입니다."
+          },
+          {
+            "type": "input",
+            "id": "email",
+            "placeholder": "아이디",
+            "bind": {
+              "store": "signin",
+              "path": "/email"
+            },
+            "onChange": {
+              "function": "file.signin.field",
+              "input": {
+                "field": "email"
+              }
+            },
+            "a11y": {
+              "label": "아이디"
+            }
+          },
+          {
+            "type": "input",
+            "id": "password",
+            "inputType": "secret",
+            "placeholder": "비밀번호",
+            "bind": {
+              "store": "signin",
+              "path": "/password"
+            },
+            "onChange": {
+              "function": "file.signin.field",
+              "input": {
+                "field": "password"
+              }
+            },
+            "onSubmit": {
+              "function": "file.signin.submit"
+            },
+            "a11y": {
+              "label": "비밀번호"
+            }
+          },
+          {
+            "type": "button",
+            "id": "submit",
+            "text": "로그인",
+            "onClick": {
+              "function": "file.signin.submit"
+            }
+          },
+          {
+            "type": "text",
+            "id": "signinMessage",
+            "bind": {
+              "store": "signin",
+              "path": "/message"
+            },
+            "empty": "",
+            "a11y": {
+              "role": "status",
+              "live": "polite"
+            }
+          }
+        ]
+      },
+      {
+        "type": "column",
+        "id": "session",
+        "direction": "horizontal",
+        "visible": {
+          "store": "signin",
+          "path": "/state",
+          "is": {
+            "const": "signedIn"
+          }
+        },
+        "children": [
+          {
+            "type": "text",
+            "id": "principal",
+            "bind": {
+              "store": "signin",
+              "path": "/message"
+            },
+            "empty": ""
+          },
+          {
+            "type": "button",
+            "id": "signout",
+            "text": "로그아웃",
+            "onClick": {
+              "function": "file.signout"
+            }
+          }
+        ]
+      },
+      {
+        "type": "custom",
+        "id": "frame",
+        "component": "terra.web/frame",
+        "props": {
+          "app": "lab.stellaxia.file.web"
+        },
+        "a11y": {
+          "label": "Terra File"
+        }
+      }
+    ]
+  }
+}
