@@ -24,6 +24,14 @@ writeFileSync(f, boardModule(src('TerraNodes'), 'TerraNodes', RT));
 await import(pathToFileURL(f).href);
 const P = 'lab.stellaxia.gui-v3.node-';
 
+// 스타메이커가 실제로 만든 구 파일(terra.sphere v1 · GIF 원본 · 128px · 두 프레임으로 줄임). 서버 시험(store_test.go)도 같은 파일을 쓴다.
+//   전에는 { type: 'terra.sphere' } 가짜 파일이라, 실제 파일(format 키)을 거부하던 서버 판별(type 만 봄)을 놓쳤다.
+const SPHERE = readFileSync(fileURLToPath(new URL('./fixtures/starmaker-gif.sphere.json', import.meta.url)), 'utf8');
+/** 서버(nodedata.typeOf)와 같은 판별 — skin/*.json 은 format(정본) 또는 type(호환)이 terra.sphere 인 구 파일만. 바이트는 latin1 문자열 */
+function sphereOk(path, bin) {
+  if (!/^skin\/.+\.json$/.test(path)) return true;
+  try { const J = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)))); return J.format === 'terra.sphere' || J.type === 'terra.sphere'; } catch (e) { return false; }
+}
 /** 노드마다 저장소를 가진 가짜 전송 — 호출 순서를 적고, down 인 노드는 끊김으로 답한다 */
 function nodes() {
   const db = {}, calls = [], down = new Set();
@@ -36,7 +44,7 @@ function nodes() {
       const N = at(n);
       if (op === P + 'props.get') return { props: { ...N.props } };
       if (op === P + 'props.patch') { for (const k in input.set) { if (input.set[k] === null) delete N.props[k]; else N.props[k] = input.set[k]; } return { props: { ...N.props } }; }
-      if (op === P + 'files.put') { const b = (input.offset ? N.files[input.path] || '' : '') + atob(input.data); N.files[input.path] = b; return { received: b.length, total: input.total, done: b.length >= input.total }; }
+      if (op === P + 'files.put') { const b = (input.offset ? N.files[input.path] || '' : '') + atob(input.data); if (b.length >= input.total && !sphereOk(input.path, b)) throw { code: 'TYPE_DENIED', message: 'content type is not allowed' }; N.files[input.path] = b; return { received: b.length, total: input.total, done: b.length >= input.total }; }
       if (op === P + 'files.get') { const b = N.files[input.path]; if (b == null) throw { code: 'NOT_FOUND' }; return { size: b.length, mime: 'image/gif', data: btoa(b.slice(input.offset, input.offset + input.limit)) }; }
       if (op === P + 'files.delete') { delete N.files[input.path]; return {}; }
       throw new Error('op ' + op);
@@ -64,8 +72,8 @@ test('프로필 — 그 노드에 파일 → 속성 순으로 쓰고, 다른 PC(
   assert.equal(B.url, gif);
 });
 
-test('스킨 — 구 파일을 그 노드로 복사하고 속성이 그것을 가리킨다, 지난 파일은 지운다', async () => {
-  const t = nodes(), T = store(t), J = JSON.stringify({ type: 'terra.sphere', surface: { frames: [] } });
+test('스킨 — 스타메이커 구 파일을 그 노드로 복사하고 속성이 그것을 가리킨다, 지난 파일은 지운다', async () => {
+  const t = nodes(), T = store(t), J = SPHERE;
   await T.setSkin('server', { id: 'mars', text: J });
   const rel = t.db.server.props.skin.file.slice(5); assert.match(rel, /^skin\/mars-.+\.json$/);
   assert.equal(new TextDecoder().decode(Uint8Array.from(t.db.server.files[rel], (c) => c.charCodeAt(0))), J);
@@ -75,6 +83,12 @@ test('스킨 — 구 파일을 그 노드로 복사하고 속성이 그것을 �
   await T.setSkin('server', null);
   assert.equal(t.db.server.props.skin, undefined);
   assert.deepEqual(Object.keys(t.db.server.files), []);
+});
+
+test('스킨 — 구 파일이 아닌 JSON 은 그 노드가 거부하고 속성은 그대로', async () => {
+  const t = nodes(), T = store(t);
+  await assert.rejects(T.setSkin('server', { id: 'x', text: JSON.stringify({ format: 'other', surface: { frames: [] } }) }), (e) => e.code === 'TYPE_DENIED');
+  assert.equal(t.db.server.props.skin, undefined);
 });
 
 test('끊긴 노드 — 쓰기를 거부하고 사본은 그대로, 값은 계속 보인다', async () => {
@@ -136,4 +150,19 @@ test('계약 — 프로필 · 스킨은 다른 노드에서 부를 수 있고, �
     assert.ok(o.availability.scopes.includes('cluster'), op + ': cluster');
     for (const p of o.security.permissions) assert.ok(app.includes(p), op + ': 앱 권한 ' + p);
   }
+});
+
+// 맨 끝에 둔다 — 2.6 MB 를 사본(IndexedDB 흉내 · 메모리)에 담는 뒷일이 다음 시험의 짧은 기다림(settle)을 밀지 않게
+test('스킨 — 긴 GIF 처럼 큰 구 파일(여러 조각)도 그 노드에 쓰이고, 다른 PC(새 사본)가 그 노드에서 읽어 그린다', async () => {
+  const J0 = JSON.parse(SPHERE), fr = J0.surface.frames; J0.surface.frames = Array.from({ length: 400 }, (_, i) => fr[i % fr.length]);
+  const big = JSON.stringify(J0); assert.ok(big.length > 3 * 640 * 1024, '조각 셋 넘게 — ' + big.length);
+  const t = nodes(), T = store(t);
+  await T.setSkin('server', { id: J0.id, text: big });
+  const puts = t.calls.filter((c) => c[1] === 'files.put'); assert.ok(puts.length >= 4, '조각 ' + puts.length + '개');
+  const rel = t.db.server.props.skin.file.slice(5);
+  mem.clear(); const T2 = store(t); T2.nodeProps('server');   // 다른 PC — 사본 없음, 그 노드에서 읽는다
+  const got = await settle(() => T2.peekProps('server')); assert.equal(got.skin.file, '/데이터/' + rel);
+  const txt = await settle(() => T2.blobText('server', rel));
+  assert.equal(txt, big);
+  const R = JSON.parse(txt); assert.equal(R.format, 'terra.sphere'); assert.equal(R.surface.frames.length, 400); assert.match(R.surface.frames[0].data, /^data:image\/(webp|png);base64,/);
 });

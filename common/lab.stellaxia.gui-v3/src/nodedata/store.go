@@ -235,15 +235,19 @@ func isSkinFile(rel string) bool {
 }
 
 // typeOf is Sniff plus the one place JSON is kept: a .json file under skin/ must
-// be a sphere file.
+// be a sphere file. The sphere format (terra.sphere v1, what StarMaker writes)
+// names itself in "format"; "type" is accepted too for files written by the
+// first version of this check, which looked only there and so refused every
+// real StarMaker file.
 func typeOf(rel string, data []byte) (string, bool) {
 	if !isSkinFile(rel) {
 		return Sniff(data)
 	}
 	var head struct {
-		Type string `json:"type"`
+		Format string `json:"format"`
+		Type   string `json:"type"`
 	}
-	if json.Unmarshal(data, &head) != nil || head.Type != sphereType {
+	if json.Unmarshal(data, &head) != nil || (head.Format != sphereType && head.Type != sphereType) {
 		return jsonMime, false
 	}
 	return jsonMime, true
