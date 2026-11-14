@@ -31,7 +31,7 @@ related:
 | 원격 공개 | operation의 `availability.scopes`에 `cluster`가 없으면 대상 노드가 `OPERATION_NOT_REMOTE`로 거절한다 | 속성 · 파일 operation에 `cluster` 추가 |
 | 권한 | 계약의 `gui-v3.view` · `gui-v3.customize`는 앱 선언에도 기본 사용자 권한에도 없다 | 읽기 `node.read`, 쓰기 `node.control` (nodetalk · fleet와 같은 어휘, 앱이 이미 가진 권한) |
 | 응답 크기 | 다른 노드 응답은 768 KiB로 잘린다 | `node-files.get`에 `offset` · `limit` — 480 KiB씩 읽는다 |
-| 형식 | 저장소는 이미지만 받는다 | `skin/*.json`은 `type: terra.sphere`인 구 파일만 받는다 |
+| 형식 | 저장소는 이미지만 받는다 | `skin/*.json`은 `format: terra.sphere`인 구 파일(스타메이커 출력, Sheet 명세 terra.sphere v1)만 받는다. 첫 판이 보던 `type: terra.sphere`도 호환으로 받는다 |
 
 쓰기를 `node.config`로 하지 않은 까닭: `node.config`는 소유권을 정하는 권한이라 기본 사용자에게 없고, 다른 노드로 부를 수 있어야 하는 이 값에는 무겁다. 값의 영향은 그 노드의 GUI 표시까지다.
 
