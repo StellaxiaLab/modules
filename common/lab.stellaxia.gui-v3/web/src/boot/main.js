@@ -18,6 +18,7 @@ import { startPush } from '../api/push.js';
 import { pickMode, connectApp } from '../api/mode.js';
 import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems } from '../api/host-secret.js';
 import * as deskAdapt from '../api/desk-adapt.js';
+import { createRemoteApps } from '../api/remote-apps.js';
 import { startAlarms } from '../api/alarms.js';
 import { createMetrics } from '../api/metrics.js';
 import * as netRead from '../api/net-read.js';
@@ -168,14 +169,17 @@ if (MODE !== 'demo') {
   window.TerraTaskFollow = Object.assign((n, taskId, onUpdate) => taskFollow.followTask({ taskId, onUpdate, sse: n === transport.localId() ? (op, i, h) => terra.sse(op, i, h) : null, poll: (i) => transport.invoke(n, 'terra.daemon.tasks.by-task-id.output.get', i) }), taskFollow);
   window.TerraChanges = changes;
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
+  window.TerraOpenExternal = (url) => { if (MODE !== 'app' || !frame || !/^https?:\/\/\S+$/i.test(String(url || ''))) return false; frame.emit('openExternal', String(url)); return true; };   // 외부 사이트 — 창 안에 못 띄운다(CSP). 셸이 http(s) 를 다시 걸러 확인 창을 띄운 뒤 기본 브라우저로 연다(Scene gui-v3.app.openExternal → terra.app:open-external). allow-popups 는 쓰지 않는다
   // 위험 영역 — 설정창 단추는 Scene 에 'danger' 이벤트만 보낸다(값을 싣지 않는다). 켜기 · 끄기는 Scene 의 /danger 확인 화면이 한다 — 이 페이지는 스위치 쓰기를 부르지 않는다(ADR-GW-012 §6.1)
   window.TerraDangerView = dangerView; window.TerraDangerAsk = () => { if (!(MODE === 'app' && frame)) return false; frame.emit('danger'); return true; }; window.TerraDangerAsk.can = () => MODE === 'app' && !!frame;   // 늘 정의 — frame 은 호출 때 본다(앱 모드의 frame 은 나중에 선다)
+  window.TerraRemoteApps = createRemoteApps({ http: (m, p) => terra.http(m, p), onChange: () => { try { window.dispatchEvent(new Event('terra-apps')); } catch {} } });   // 다른 노드의 앱 목록 — 그 노드 창이 필요로 할 때만 받는다(노드마다 캐시 · TTL, remote-apps.js)
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = null; })
-    .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = []; }));   // SVI 유형을 내놓는 모듈(contributions.svi.types)
+    .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = null; }))
+    .then(() => { try { window.dispatchEvent(new Event('terra-apps')); } catch {} });   // 앱 목록이 모듈 목록보다 늦게 와도 화면이 다시 그린다(AUD-89)   // SVI 유형을 내놓는 모듈(contributions.svi.types)
   // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50), 읽음 · 지우기는 window.TerraAlarmBook(src/api/alarms.js).
   //   바뀌면 'terra-alarms' 신호 — 알림 창 · 전역 틀 배지가 다시 그린다. 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
   const alarmSig = () => { try { window.dispatchEvent(new Event('terra-alarms')); } catch {} };
-  const stopLive = () => { whoSeq++; clearTimeout(whoT); if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; window.TerraAlarmBook = null; if (window.TerraMetrics) window.TerraMetrics.clear(); alarmSig(); };
+  const stopLive = () => { whoSeq++; clearTimeout(whoT); if (window.TerraRemoteApps) window.TerraRemoteApps.clear(); if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; window.TerraAlarmBook = null; if (window.TerraMetrics) window.TerraMetrics.clear(); alarmSig(); };
   // 노드 기록(상태 · 하트비트 · 자원)은 로그인 때 한 번만 받으면 낡는다 — 30초마다 다시(보일 때만). 노드 목록이 같으면(rev 같음) 기록만 바꿔 끼우고 씬은 다시 짓지 않는다
   //   window.TerraTopologyState = { state: 'ok'|'empty'|'error', error?, at } — 못 받았을 때 화면이 시안 지도를 실제처럼 두지 않고 "받지 못함 / 노드 없음"을 보일 신호('terra-topology-state' 이벤트도)
   const refreshTopology = () => loadTopologyState(terra).then((r) => {

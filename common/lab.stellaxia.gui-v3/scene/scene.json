@@ -27,6 +27,7 @@
     "contract/functions/login.open.function.json",
     "contract/functions/login.close.function.json",
     "contract/functions/app.launch.function.json",
+    "contract/functions/app.openExternal.function.json",
     "contract/functions/danger.open.function.json",
     "contract/functions/danger.allow.function.json",
     "contract/functions/danger.block.function.json",

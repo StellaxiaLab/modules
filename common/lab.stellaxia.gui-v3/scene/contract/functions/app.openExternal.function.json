@@ -1,0 +1,26 @@
+{
+  "$comment": "웹이 외부 사이트(http/https)를 시스템 기본 브라우저로 열고 싶다(terra.frame.emit('openExternal', url)). 창 안 브라우저는 CSP 로 외부 사이트를 띄울 수 없다. Scene 은 창도 브라우저도 열 수 없어 호스트가 듣는 terra.app:open-external 신호로 올릴 뿐이다 — 호스트(셸)가 http/https 만 걸러 자체 확인 창을 거친 뒤 연다. 값이 주소가 아니어도 이 Function 은 판단하지 않는다(호스트가 버린다).",
+  "schemaVersion": "1.0.0",
+  "id": "gui-v3.app.openExternal",
+  "version": "0.1.0",
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "ask",
+        "type": "emit",
+        "signal": "terra.app:open-external",
+        "payload": {
+          "url": "$input.value"
+        }
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}

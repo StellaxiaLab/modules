@@ -55,7 +55,12 @@ export function createTerra(o = {}) {
       return unwrap(res);
     },
     /** Gateway 자기 길(HTTP 바인딩) — me/documents 따위 @param {string} method @param {string} path @param {object} [body] */
-    async http(method, path, body) { return unwrap(await send(path, { method, headers: headers(), body: body === undefined ? undefined : JSON.stringify(body) })); },
+    async http(method, path, body) {
+      const go = () => send(path, { method, headers: headers(), body: body === undefined ? undefined : JSON.stringify(body) });
+      let res = await go();
+      if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await go(); }   // invoke 와 같다 — 앱 토큰이 낡았으면 새로 받아 한 번만 다시
+      return unwrap(res);
+    },
     /** 스트림을 연다 — onMessage(데이터) · onClose. 돌려준 함수로 닫는다 */
     async stream(id, input, onMessage, onClose) {
       const t = await unwrap(await send('/api/v1/streams/tickets', { method: 'POST', headers: headers(), body: JSON.stringify({ operationId: id, input }) }));

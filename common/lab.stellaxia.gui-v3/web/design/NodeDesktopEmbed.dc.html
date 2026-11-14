@@ -859,7 +859,7 @@ button{font-family:inherit}
 
       <!-- 우클릭 메뉴 -->
       <sc-if value="{{menu.on}}" hint-placeholder-val="{{ false }}">
-        <div role="menu" style="position: absolute; z-index: 1100; left: {{menu.x}}px; top: {{menu.y}}px; width: 190px; box-sizing: border-box; padding: 5px; background: {{t.menu}}; border: 1px solid {{t.line2}}; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.40); backdrop-filter: blur(14px);">
+        <div role="menu" onClick="{{menu.stop}}" style="position: absolute; z-index: 1100; left: {{menu.x}}px; top: {{menu.y}}px; width: 190px; box-sizing: border-box; padding: 5px; background: {{t.menu}}; border: 1px solid {{t.line2}}; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.40); backdrop-filter: blur(14px);">
           <sc-for list="{{menu.items}}" as="mi" hint-placeholder-count="4">
             <button type="button" role="menuitem" onClick="{{mi.run}}" style="display: block; width: 100%; box-sizing: border-box; padding: 6px 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">{{mi.label}}</button>
           </sc-for>
@@ -1246,11 +1246,12 @@ const VIEW_BTN = new Set(['바탕화면에 추가', '자원 창 ›', '열기', 
 const PC_KEYS = ['full', 'wins', 'order', 'setTab', 'fmLoc', 'modView', 'modSel', 'modTab', 'resTab', 'devSel', 'cfgGrp'];   // terra.pc.desk.<node_id>
 const TERM_KEYS = ['tterm', 'ttHist'];   // terra.pc.term.<principal>.<node_id> — 계정 구분 · 로그아웃 때 지움
 // 노드에 값이 아직 없을 때 보여 주고 첫 쓰기에 통째로 보내는 기본값(§6.4). 시안 아이콘 backup.tar 는 뺐다
+const LEGACY_MOD_IDS = { agent: 'lab.stellaxia.agent' };
 const DESK_DEFAULTS = {
   icons: {
     home:   { c: 0, r: 0, name: '내 폴더',     k: 'dir',   loc: 'home' },
     vault:  { c: 0, r: 1, name: '공유 폴더',   k: 'dir',   loc: 'vault' },
-    agent:  { c: 1, r: 0, name: '에이전트',   k: 'short', app: 'mods', mod: 'agent', src: '모듈 · 에이전트' },
+    agent:  { c: 1, r: 0, name: '에이전트',   k: 'short', app: 'mods', mod: 'lab.stellaxia.agent', src: '모듈 · 에이전트' },
     jobs:   { c: 1, r: 1, name: '작업 관리자', k: 'short', app: 'jobs', src: 'Terra 기능' },
     shell:  { c: 1, r: 2, name: '노드 터미널', k: 'short', app: 'term', src: 'Terra 기능' },
     tshell: { c: 1, r: 3, name: 'Terra 터미널', k: 'short', app: 'tterm', src: 'Terra 기능' }
@@ -1326,7 +1327,33 @@ class Component extends DCLogic {
     if (T && T.deskRead) return (this._dk = T.deskRead(this.deskRid()));
     return (this._dk = { rid: '', revision: 0, doc: null, view: JSON.parse(JSON.stringify(DESK_DEFAULTS)), pending: new Set(), at: 0, age: Infinity, state: 'norid', code: 'NO_NODE', msg: '', save: { state: 'idle', at: 0, code: '', msg: '', lost: [] }, ro: true, stale: false });
   }
-  ics() { return this.desk().view.icons || {}; }   // 아이콘 — 노드 값(없으면 기본값) + 표시층
+  // 아이콘 — 노드 값(없으면 기본값) + 표시층. 모듈 앱 바로가기(mod)는 그 노드에 모듈이 있을 때만 보인다:
+  //   기본값(노드에 저장된 적 없음)은 모듈 목록이 없거나 몰라도 숨기고, 노드에 저장돼 있던 것은 지우지 않고 '설치 안 됨'(회색)으로 보인다
+  ics() {
+    const I = this.desk().view.icons || {}, saved = (this.desk().doc && this.desk().doc.icons) || {}; let out = I;
+    for (const id of Object.keys(I)) {
+      const ic = I[id]; if (ic.k !== 'short' || !ic.mod) continue;
+      const inst = this.modInst(ic.mod); if (inst === true) continue;
+      if (out === I) out = Object.assign({}, I);
+      if (saved[id]) out[id] = Object.assign({}, ic, { off: inst === false ? '설치 안 됨' : '설치 여부 못 봤음' }); else delete out[id];
+    }
+    return out;
+  }
+  // 이 노드에 그 모듈(앱)이 있는가 — true · false · null(목록을 못 봤음). ref: 'id' | 'moduleId/appId' (옛 기본 아이콘의 'agent' 는 lab.stellaxia.agent 로만 옮긴다)
+  // 모듈 id는 정확히 일치해야 한다 — 끝 낱말로 맞추면 남의 x.y.agent 가 바로가기를 가로챈다. 노드에 저장된 옛 아이콘의 'agent' 만 알려진 id 로 옮긴다
+  modFind(N, mid) { const id = LEGACY_MOD_IDS[mid] || mid; return N.mods.find((m) => m.id === id); }
+  modInst(ref) {
+    const N = this.nd(); if (!N || !Array.isArray(N.mods) || (this.real() && !N.real)) return null;
+    const [mid, aid] = String(ref || '').split('/'), M = this.modFind(N, mid);
+    if (!M) return false;
+    if (aid) { const L = this.modAppList(M); if (L && !L.some((a) => a.id === aid)) return false; }
+    return true;
+  }
+  modAppList(M) {   // 그 모듈의 앱 줄 — 목록을 아는 때만(모르면 null)
+    if (!this.nd().real) return this.modApps(M);
+    if (this.remote()) { const e = this.remoteEnt(); return e && e.state === 'ok' ? this.modApps(M) : null; }
+    return Array.isArray(typeof window !== 'undefined' ? window.TerraGuiApps : null) ? this.modApps(M) : null;
+  }
   prf() { return this.desk().view.prefs || DESK_DEFAULTS.prefs; }
   /** 같은 칸의 아이콘 둘은 id 순으로 다음 빈 칸으로 밀어 그린다 — 저장값은 바꾸지 않는다(§7) */
   cells() {
@@ -1650,10 +1677,15 @@ class Component extends DCLogic {
   modApps(M) {
     const N = this.nd(), A = typeof window !== 'undefined' ? window.TerraDesk : null;
     if (!N.real || !A) return M.apps;
-    return this.remote() ? [] : A.moduleApps(window.TerraGuiApps || [], M.id, M.st === 'run');
+    if (this.remote()) { const e = this.remoteEnt(); return e && e.state === 'ok' ? A.moduleApps(e.apps, M.id, M.st === 'run') : []; }   // 다른 노드: 그 노드 목록 사본(받았을 때만) — 못 받은 것은 아래 noAppsT 가 '못 봤음 + 이유'
+    return A.moduleApps(window.TerraGuiApps || [], M.id, M.st === 'run');
   }
   // 다른 모듈 앱 열기 — 감싼 셸(Scene)에 terra.app:launch 를 부탁한다(emit('launch')). 셸이 화면 안 창으로 연다
+  // 이 제어기가 쥔 원격 노드의 앱 목록 사본(window.TerraRemoteApps — remote-apps.js). 없으면 undefined
+  remoteEnt() { const R = typeof window !== 'undefined' ? window.TerraRemoteApps : null, id = this.props.nodeRid || ''; return R && id ? R.get(id) : undefined; }
+  remoteWhy() { const e = this.remoteEnt(); return !e ? '원격 노드의 앱 목록은 앱 토큰으로 받지 못함' : e.state === 'loading' ? '원격 앱 목록 받는 중' : e.state === 'err' ? e.why : ''; }
   openApp(a) {
+    if (this.nd().real && this.remote()) { this.say(a.name + ' — 원격 노드의 앱은 이 셸이 아직 열 수 없음 (셸이 원격 앱 열기를 받지 않음)'); return; }
     const go = typeof window !== 'undefined' && window.TerraLaunch;
     if (!a.full) { this.say(a.name + ' 앱 창 (시안)'); return; }
     this.say(go && go(a.id) ? a.name + ' 여는 중… (셸 창)' : '다른 앱 열기 : 셸(main Scene) 안에서만');
@@ -1916,6 +1948,14 @@ class Component extends DCLogic {
   }
   iconOpen(id) {
     const ic = this.ics()[id]; if (!ic) return;
+    if (ic.k === 'short' && ic.mod) {   // 모듈 앱 바로가기 — 모듈 관리 창이 아니라 그 앱을 연다(독 · 앱 목록과 같은 길). 없으면 이유
+      const inst = this.modInst(ic.mod);
+      if (inst === false) { this.say('이 노드에 설치되지 않음'); return; }
+      if (inst === null) { this.say('못 봤음 — 이 노드의 모듈 목록을 읽지 못해 설치 여부를 알 수 없음'); return; }
+      const [mid, aid] = String(ic.mod).split('/'), M = this.modFind(this.nd(), mid), L = this.modAppList(M) || [], a = aid ? L.find((x) => x.id === aid) : L[0];
+      if (!a) { this.say(M.name + ' — 열 화면이 있는 앱이 없음'); return; }
+      this.openApp(a); return;
+    }
     if (ic.k === 'short') { this.launch(ic.app); return; }
     this.setState({ fmLoc: ic.loc || 'desk', fmPick: null });
     this.launch('files');
@@ -2350,7 +2390,7 @@ class Component extends DCLogic {
       const tint = ic.k === 'dir' ? 'rgba(240,166,58,.30)' : ic.k === 'file' ? 'rgba(255,255,255,.18)' : 'rgba(90,168,255,.28)';
       const fg = ic.k === 'dir' ? '#ffd29a' : ic.k === 'file' ? '#f3f1ea' : '#bcd8ff';
       return {
-        name: ic.name, x: ov && ov.id === id ? ov.x : at.c * CW + 4, y: ov && ov.id === id ? ov.y : at.r * CH + 4, z: ov && ov.id === id ? 5 : 1, op: DK.pending.has('icons.' + id) ? 0.5 : 1,   // 진행 중(응답 전)은 반투명
+        name: ic.off ? ic.name + ' · ' + ic.off : ic.name, x: ov && ov.id === id ? ov.x : at.c * CW + 4, y: ov && ov.id === id ? ov.y : at.r * CH + 4, z: ov && ov.id === id ? 5 : 1, op: ic.off ? 0.4 : DK.pending.has('icons.' + id) ? 0.5 : 1,   // 진행 중(응답 전)은 반투명
         d, tint, fg, isShort, tile: TILE, glyph: GLYPH,
         bg: sel ? 'rgba(255,255,255,.20)' : 'transparent', bd: sel ? 'rgba(255,255,255,.32)' : 'transparent',
         down: (e) => this.iconDown(e, id), move: (e) => this.iconMove(e, id), up: () => this.end(),
@@ -2401,9 +2441,11 @@ class Component extends DCLogic {
       if (id === 'files') { if (!this.fmRealView(o, t, s)) {
         const loc = LOCS.find((l) => l.id === s.fmLoc);
         o.locs = LOCS.map((l) => ({ label: l.label, d: l.d, bg: l.id === s.fmLoc ? t.raiseH : 'transparent', fg: l.id === s.fmLoc ? t.ink : t.sub, pick: () => this.setState({ fmLoc: l.id, fmPick: null }) }));
-        o.locNote = loc.note;
-        o.path = loc.path;
-        const items = this.fmItems();
+        const RL = this.real();   // 실제 전송인데 노드 값이 아직 없다(받는 중 · 못 봤음) — 시안 폴더 · 파일(backup.tar · /home/stk)을 보이지 않는다(AUD-46)
+        if (RL) o.locs = [];
+        o.locNote = RL ? '노드 파일 목록 — 아직 못 봤음(받는 중이거나 노드에 닿지 못함)' : loc.note;
+        o.path = RL ? '—' : loc.path;
+        const items = RL ? [] : this.fmItems();
         const pick = items.find((i) => i.key === s.fmPick) || null;
         o.items = items.map((i) => {
           const short = i.k === 'short';
@@ -2557,7 +2599,7 @@ class Component extends DCLogic {
             cfgBtns: [this.btn('되돌리기', () => this.setState({ modCfg: null }), { off: !cfgDirty.length }), this.btn('저장', () => { const vals = {}; try { cfgDirty.forEach((k) => { vals[k] = this.castCfg(M, k, cd[k]); }); } catch (e) { this.say(e.message); return; } const inp = { module_id: M.id, values: vals }; if (M.cfgRev != null) inp.base_revision = M.cfgRev; const sent = this.ndSet((d) => { const mm = d.mods[ms]; mm.cfg.forEach((c) => { if (cd && c[0] in cd) c[3] = cd[c[0]]; }); }, 'terra.daemon.modules.by-module-id.config.patch', inp, { ok: () => { this.setState({ modCfg: null }); this.say(M.name + ' 설정 저장 (module.manage)'); } }); if (M.cfgReal && sent && sent.then) sent.then(() => this.TN().refresh(this.nodeKey(), 'terra.daemon.modules.by-module-id.config.get', { module_id: M.id })); }, { off: !cfgDirty.length, pri: !!cfgDirty.length })],
             logs: this.modLogs(M, mt === 'log') || [['09:12:03', 'info', 'started · pid 4182'], ['09:12:03', 'info', 'readiness ok'], ['10:40:17', 'info', 'config reloaded'], ['10:58:42', M.st === 'restart' ? 'warn' : 'info', M.st === 'restart' ? 'health check failed — restarting' : 'lease renewed'], ['11:02:10', 'info', M.ops[0] + ' 200 · 12ms']].map(([tt, lv, msg]) => ({ t: tt, cls: lv, msg })),
             perms: M.perms, opsN: M.ops.length, ops: M.ops.map((x) => ({ id: M.id + '.' + x, perm: /list|get|status/.test(x) ? 'node.read' : M.perms[M.perms.length - 1] })),
-            noApps: !this.modApps(M).length, noAppsT: this.nd().real && this.remote() ? '못 봤음 — 원격 노드의 앱 목록은 앱 토큰으로 받지 못함' : this.nd().real && !Array.isArray(typeof window !== 'undefined' ? window.TerraGuiApps : null) ? '못 봤음 — 앱 목록을 읽지 못함' : 'GUI 앱 없음', apps: this.modApps(M).map((a) => ({ name: a.name, id: a.full ? a.id : M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
+            noApps: !this.modApps(M).length, noAppsT: this.nd().real && this.remote() ? (this.remoteWhy() ? '못 봤음 — ' + this.remoteWhy() : 'GUI 앱 없음') : this.nd().real && !Array.isArray(typeof window !== 'undefined' ? window.TerraGuiApps : null) ? '못 봤음 — 앱 목록을 읽지 못함' : 'GUI 앱 없음', apps: this.modApps(M).map((a) => ({ name: a.name, id: a.full ? a.id : M.id + '/' + a.id, health: a.health, hCls: a.health === '정상' ? 'ok' : a.health === '멈춤' ? 'off' : 'warn',
               btns: [this.btn('열기', () => this.openApp(a), { off: M.st !== 'run' }), this.btn('바탕화면에 추가', () => this.addShortcut(M, a), { off: RO || !!Object.values(I).find((ic) => ic.mod === this.modRef(M, a)), tip: RO ? '바탕 구성 읽기 전용 — ' + this.deskLine().text : '' })] })) };
         }
         // 설치 — 파일(.tmod): 고르기 → 매니페스트(브라우저가 module.json 만 읽는다) → 권한 · 서명 경고 → 승인 → 설치(결정 전 — DECIDE.tmodInstall 이 잠근다). 대신 Tree 에 지정
@@ -2705,7 +2747,7 @@ class Component extends DCLogic {
       pos: left ? 'left: ' + (db.th + 16) + 'px; top: 40px' : 'left: ' + Math.max(8, Math.min(db.x, this.deskDims().w - 388)) + 'px; bottom: ' + (db.th + 16) + 'px' };   // 바 바로 위(옆) — 바 크기를 따라
 
     /* 우클릭 메뉴 */
-    const menu = { on: !!s.menu, x: s.menu ? s.menu.x : 0, y: s.menu ? s.menu.y : 0, items: [] };
+    const menu = { on: !!s.menu, x: s.menu ? s.menu.x : 0, y: s.menu ? s.menu.y : 0, items: [], stop: (e) => { if (e && e.stopPropagation) e.stopPropagation(); } };   // 메뉴 클릭이 바탕(deskClick → lau:false)으로 번지면 앱 목록이 열리자마자 닫힌다 (AUD-75)
     if (s.menu) {
       const close = () => this.setState({ menu: null });
       menu.items = [

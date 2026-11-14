@@ -81,7 +81,7 @@ test('노드 식별 — 실제 전송: nodeRid 가 없으면 rid 비움 · 호�
   assert.equal(S.c.deskRid(), '', '실제 전송은 장면 id(nodeKey)가 아니라 nodeRid 만 쓴다');
   assert.equal(w.calls.length, 0, '어떤 호출도 하지 않는다');
   assert.equal(S.c.desk().state, 'norid'); assert.equal(S.c.desk().ro, true);
-  assert.deepEqual(v.icons.map((i) => i.name).sort(), Object.values(S.T.deskDefaults.icons).map((i) => i.name).sort(), '기본값은 보인다');
+  assert.deepEqual(v.icons.map((i) => i.name).sort(), Object.values(S.T.deskDefaults.icons).filter((i) => !i.mod).map((i) => i.name).sort(), '기본값은 보인다 — 모듈 앱 바로가기(agent)는 그 노드의 모듈 목록을 모르면 내지 않는다');
   assert.ok(!v.icons.some((i) => i.name === 'backup.tar'), '시안 아이콘은 기본값에서 뺐다');
   assert.match(v.save.text, /노드 id 가 없어/);
   S.c.dropIcon('home'); S.c.setPref('dark', false); await flush(); assert.equal(w.calls.length, 0, '쓰기도 호출 없이 거절');

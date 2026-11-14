@@ -20,7 +20,7 @@
             <button type="button" class="wb-card {{k.cls}}" onClick="{{k.open}}" disabled="{{k.off}}"><b>{{k.app}}</b><span>{{k.mod}}</span><span class="wb-cm"><i class="{{k.modeCls}}">{{k.mode}}</i>{{k.node}}</span><span class="wb-cst">{{k.st}}</span></button>
           </sc-for>
         </div>
-        <sc-if value="{{noCards}}" hint-placeholder-val="{{ false }}"><p class="wb-dim">화면 있는 모듈 없음</p></sc-if>
+        <sc-if value="{{noCards}}" hint-placeholder-val="{{ false }}"><p class="wb-dim">{{noCardsT}}</p></sc-if>
         <p class="wb-dim">주소창 : http(s) 주소 · 모듈 이름 · 모듈 GUI : Gateway 제공 sandbox 화면</p>
       </div>
     </sc-if>
@@ -39,8 +39,11 @@
     <sc-if value="{{isDoc}}" hint-placeholder-val="{{ false }}">
       <iframe class="wb-frame" title="{{frameTitle}}" srcdoc="{{doc}}" sandbox="" referrerpolicy="no-referrer"></iframe>
     </sc-if>
+    <sc-if value="{{isExt}}" hint-placeholder-val="{{ false }}">
+      <div class="wb-load"><div class="wb-step warn"><span>!</span><span>{{extT}}</span></div><p class="wb-dim">{{extNote}}</p><button type="button" class="wb-btn" onClick="{{extOpen}}">기본 브라우저로 다시 열기</button></div>
+    </sc-if>
     <sc-if value="{{isWeb}}" hint-placeholder-val="{{ false }}">
-      <iframe class="wb-frame wb-white" title="{{frameTitle}}" src="{{src}}" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" referrerpolicy="no-referrer"></iframe>
+      <iframe class="wb-frame wb-white" title="{{frameTitle}}" src="{{src}}" sandbox="allow-scripts allow-forms allow-same-origin" referrerpolicy="no-referrer"></iframe>
     </sc-if>
   </div>
   <div class="wb-st"><span>{{statusT}}</span><span style="flex: 1;"></span><span class="wb-dim">{{noteT}}</span></div>
