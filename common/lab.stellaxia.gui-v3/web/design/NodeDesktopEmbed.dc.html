@@ -38,6 +38,10 @@ button{font-family:inherit}
 .nx-li.on{background:var(--raiseH)}
 .nx-li-t{flex-grow:1;min-width:0;display:flex;flex-direction:column;line-height:1.3;overflow:hidden}
 .nx-li-t .nx-k{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 이름이 길어도 한 줄 — 접히면 아래 id 줄 · 다음 행과 겹쳤다. 전체 이름은 행 title. 점 · 버전 · 칩은 이름 줄에 맞춘다.
+   목록은 세로 flex 라 행이 내용보다 줄어(flex-shrink) 줄끼리 겹쳤다 — 행은 줄지 않는다(넘치면 목록이 스크롤) */
+.nx-li-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nx-li{align-items:flex-start;flex-shrink:0}.nx-li>.nx-dot{margin-top:4.6px}.nx-li>.nx-k,.nx-li>.nx-chip{flex-shrink:0;white-space:nowrap;line-height:16px}
 .nx-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#9aa1ab}
 .nx-dot.ok{background:#3ecf8e}.nx-dot.warn{background:#f5b83d}.nx-dot.err{background:#ff6b6b}.nx-dot.off{background:#6b7280}
 .nx-main{flex-grow:1;min-width:0;min-height:0;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
@@ -612,7 +616,7 @@ button{font-family:inherit}
                   <div class="nx-body">
                     <div class="nx-list" role="listbox" aria-label="장치">
                       <sc-for list="{{w.nx.devs}}" as="dv" hint-placeholder-count="5">
-                        <button type="button" role="option" aria-selected="{{dv.on}}" class="nx-li {{dv.cls}}" onClick="{{dv.pick}}"><span class="nx-dot {{dv.stCls}}"></span><span class="nx-li-t">{{dv.name}}<span class="nx-k">{{dv.sub}}</span></span><span class="nx-chip {{dv.apCls}}">{{dv.apT}}</span></button>
+                        <button type="button" role="option" aria-selected="{{dv.on}}" class="nx-li {{dv.cls}}" onClick="{{dv.pick}}" title="{{dv.name}}"><span class="nx-dot {{dv.stCls}}"></span><span class="nx-li-t"><span class="nx-li-n">{{dv.name}}</span><span class="nx-k">{{dv.sub}}</span></span><span class="nx-chip {{dv.apCls}}">{{dv.apT}}</span></button>
                       </sc-for>
                       <div class="nx-list-foot"><sc-for list="{{w.nx.devTop}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
                     </div>
@@ -702,7 +706,7 @@ button{font-family:inherit}
                   <div class="nx-body">
                     <div class="nx-list" role="listbox" aria-label="설치된 모듈">
                       <sc-for list="{{w.nx.mods}}" as="md" hint-placeholder-count="5">
-                        <button type="button" role="option" aria-selected="{{md.on}}" class="nx-li {{md.cls}}" onClick="{{md.pick}}"><span class="nx-dot {{md.stCls}}"></span><span class="nx-li-t">{{md.name}}<span class="nx-k nx-mono">{{md.id}}</span></span><span class="nx-k">{{md.ver}}</span></button>
+                        <button type="button" role="option" aria-selected="{{md.on}}" class="nx-li {{md.cls}}" onClick="{{md.pick}}" title="{{md.name}}"><span class="nx-dot {{md.stCls}}"></span><span class="nx-li-t"><span class="nx-li-n">{{md.name}}</span><span class="nx-k nx-mono">{{md.id}}</span></span><span class="nx-k">{{md.ver}}</span></button>
                       </sc-for>
                     </div>
                     <div class="nx-main">
