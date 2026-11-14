@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -37,12 +38,13 @@ func resolvingNode(t *testing.T, nodeID string, reachable map[string]*httptest.S
 }
 
 // masterDoor stands in for the Master: a node it has no record of is answered
-// with the definite NODE_NOT_FOUND, as the real relay does. A node that is
+// from the module catalog exactly as the real Master does (live-checked on
+// 0.6.20: MODULE_UNAVAILABLE "node %q hosts no module %q"). A node that is
 // known but fails to answer keeps whatever error the inner door produced.
 func masterDoor(inner doorFunc, known map[string]*httptest.Server) doorFunc {
 	return func(ctx context.Context, node, method, path string, body []byte) (json.RawMessage, error) {
 		if _, ok := known[node]; !ok {
-			return nil, &doorError{Code: "NODE_NOT_FOUND", Message: "node was not found"}
+			return nil, &doorError{Code: "MODULE_UNAVAILABLE", Message: fmt.Sprintf("node %q hosts no module %q", node, "lab.stellaxia.nodetalk")}
 		}
 		return inner(ctx, node, method, path, body)
 	}
@@ -271,7 +273,7 @@ func TestAnOfflineNodeIsUnreachableNotMissing(t *testing.T) {
 	store, _, _ := resolvingNode(t, "node-a", nil)
 	conversation, _ := store.Create("오프라인", nil, "")
 	failures := map[string]error{
-		"relay down": &doorError{Code: "MODULE_UNAVAILABLE", Message: "no relay session"},
+		"relay down": &doorError{Code: "MODULE_UNAVAILABLE", Message: "node is not connected to relay"},
 		"offline":    &doorError{Code: "NODE_OFFLINE", Message: "node offline"},
 		"timeout":    context.DeadlineExceeded,
 	}

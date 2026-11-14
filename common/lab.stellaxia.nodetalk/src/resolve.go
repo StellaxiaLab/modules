@@ -172,13 +172,28 @@ func (s *apiServer) confirmNodeExists(ctx context.Context, nodeID string) error 
 		// an offline node or a missing relay says nothing about existence, so
 		// it is reported as unreachable and stays retryable.
 		var coded *doorError
-		if errors.As(err, &coded) && coded.Code == "NODE_NOT_FOUND" {
-			return fmt.Errorf("%w: %s는 Terra에 없는 노드다 (%v)", talk.ErrNodeNotFound, nodeID, err)
+		if errors.As(err, &coded) && doorSaysNoSuchMember(coded) {
+			return fmt.Errorf("%w: %s는 Terra에 없거나 nodetalk가 없는 노드다 (%v)", talk.ErrNodeNotFound, nodeID, err)
 		}
 		return fmt.Errorf("%w: %s에 닿지 못했다 — 꺼져 있거나 경로가 끊겼다 (%v)",
 			talk.ErrNodeUnreachable, nodeID, err)
 	}
 	return nil
+}
+
+// doorSaysNoSuchMember reports a definite "this node cannot be a member"
+// answer. The Master answers an unknown node id — and a node that does not
+// host nodetalk — from its module catalog with MODULE_UNAVAILABLE "node %q
+// hosts no module %q" (terra_master/modulecatalog/catalog.go). That is decided
+// without reaching the node, so it is not retryable. An offline node with
+// nodetalk is still in the catalog and fails later at the relay ("not
+// connected to relay") or by timeout, which stays NODE_UNREACHABLE.
+// NODE_NOT_FOUND is accepted too, should the door ever answer it directly.
+func doorSaysNoSuchMember(e *doorError) bool {
+	if e.Code == "NODE_NOT_FOUND" {
+		return true
+	}
+	return e.Code == "MODULE_UNAVAILABLE" && strings.Contains(e.Message, "hosts no module")
 }
 
 // nodeReference decides whether what was typed is an id or a name, and answers
