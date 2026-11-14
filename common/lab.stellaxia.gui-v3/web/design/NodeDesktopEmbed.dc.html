@@ -2406,9 +2406,11 @@ class Component extends DCLogic {
       if (id === 'files') { if (!this.fmRealView(o, t, s)) {
         const loc = LOCS.find((l) => l.id === s.fmLoc);
         o.locs = LOCS.map((l) => ({ label: l.label, d: l.d, bg: l.id === s.fmLoc ? t.raiseH : 'transparent', fg: l.id === s.fmLoc ? t.ink : t.sub, pick: () => this.setState({ fmLoc: l.id, fmPick: null }) }));
-        o.locNote = loc.note;
-        o.path = loc.path;
-        const items = this.fmItems();
+        const RL = this.real();   // 실제 전송인데 노드 값이 아직 없다(받는 중 · 못 봤음) — 시안 폴더 · 파일(backup.tar · /home/stk)을 보이지 않는다(AUD-46)
+        if (RL) o.locs = [];
+        o.locNote = RL ? '노드 파일 목록 — 아직 못 봤음(받는 중이거나 노드에 닿지 못함)' : loc.note;
+        o.path = RL ? '—' : loc.path;
+        const items = RL ? [] : this.fmItems();
         const pick = items.find((i) => i.key === s.fmPick) || null;
         o.items = items.map((i) => {
           const short = i.k === 'short';
