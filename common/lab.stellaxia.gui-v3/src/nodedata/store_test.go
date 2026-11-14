@@ -2,7 +2,9 @@ package nodedata
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -204,9 +206,26 @@ func TestFilesArePrivate(t *testing.T) {
 	}
 }
 
+// starMakerSphere is a real StarMaker file (sphereData(): terra.sphere v1, a GIF
+// source at 128 px), cut to two frames to keep the repository small. The sphere
+// names itself in "format" — the first version of the check looked for "type"
+// and refused every file StarMaker writes.
+func starMakerSphere(t *testing.T) []byte {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "web", "tests", "fixtures", "starmaker-gif.sphere.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var head map[string]any
+	if json.Unmarshal(data, &head) != nil || head["format"] != "terra.sphere" || head["type"] != nil {
+		t.Fatalf("fixture is not a StarMaker sphere: %.80s", data)
+	}
+	return data
+}
+
 func TestSkinFile(t *testing.T) {
 	s := open(t, Limits{})
-	sphere := []byte(`{"type":"terra.sphere","surface":{"frames":[]}}`)
+	sphere := starMakerSphere(t)
 	if _, err := s.Put("skin/mars-1.json", []byte(`{"type":"other"}`), ""); !errors.Is(err, ErrTypeDenied) {
 		t.Fatalf("not a sphere: %v", err)
 	}
@@ -226,5 +245,109 @@ func TestSkinFile(t *testing.T) {
 	list, err := s.List(SkinDir)
 	if err != nil || len(list) != 1 || list[0].Mime != "application/json" {
 		t.Fatalf("list: %v %+v", err, list)
+	}
+}
+
+// TestSkinFileLegacyType keeps files written while the check read "type".
+func TestSkinFileLegacyType(t *testing.T) {
+	s := open(t, Limits{})
+	if _, err := s.Put("skin/old-1.json", []byte(`{"type":"terra.sphere","surface":{"frames":[]}}`), "application/json"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Put("skin/bad-1.json", []byte(`{"format":"terra.other","type":"other"}`), ""); !errors.Is(err, ErrTypeDenied) {
+		t.Fatalf("neither key names a sphere: %v", err)
+	}
+}
+
+// bigStarMakerSphere grows the real file to n frames by repeating its frames:
+// a long GIF makes a file of several MB, which arrives in 640 KiB chunks.
+func bigStarMakerSphere(t *testing.T, n int) []byte {
+	t.Helper()
+	var J map[string]any
+	if err := json.Unmarshal(starMakerSphere(t), &J); err != nil {
+		t.Fatal(err)
+	}
+	surface := J["surface"].(map[string]any)
+	src := surface["frames"].([]any)
+	frames := make([]any, n)
+	for i := range frames {
+		frames[i] = src[i%len(src)]
+	}
+	surface["frames"] = frames
+	data, err := json.Marshal(J)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func putInChunks(t *testing.T, s *Store, rel string, data []byte) Entry {
+	t.Helper()
+	total := int64(len(data))
+	for off := int64(0); off < total; {
+		end := off + MaxChunkBytes
+		if end > total {
+			end = total
+		}
+		e, have, done, err := s.PutChunk(rel, off, total, data[off:end], "application/json")
+		if err != nil {
+			t.Fatalf("chunk at %d: %v", off, err)
+		}
+		if done {
+			return e
+		}
+		off = have
+	}
+	t.Fatal("upload never finished")
+	return Entry{}
+}
+
+func TestSkinFileChunkedStarMaker(t *testing.T) {
+	s := open(t, Limits{})
+	data := bigStarMakerSphere(t, 400)
+	if len(data) < 3*MaxChunkBytes {
+		t.Fatalf("want a file over three chunks, got %d bytes", len(data))
+	}
+	e := putInChunks(t, s, "skin/long-1.json", data)
+	if e.Mime != "application/json" || e.Size != int64(len(data)) {
+		t.Fatalf("entry = %+v", e)
+	}
+	got, _, err := s.Get("skin/long-1.json")
+	if err != nil || string(got) != string(data) {
+		t.Fatalf("read back %d of %d bytes: %v", len(got), len(data), err)
+	}
+	if _, err := s.Patch(map[string]any{"skin": map[string]any{"file": "/데이터/skin/long-1.json"}}, "/데이터"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestSkinFileCapturedSamples stores every *.sphere.json in TERRA_SPHERE_SAMPLES
+// — full-size files saved from StarMaker in a browser — the way the GUI does.
+// It is skipped when the variable is not set.
+func TestSkinFileCapturedSamples(t *testing.T) {
+	dir := os.Getenv("TERRA_SPHERE_SAMPLES")
+	if dir == "" {
+		t.Skip("TERRA_SPHERE_SAMPLES not set")
+	}
+	paths, _ := filepath.Glob(filepath.Join(dir, "*.sphere.json"))
+	if len(paths) == 0 {
+		t.Fatalf("no samples in %s", dir)
+	}
+	s := open(t, Limits{})
+	for i, p := range paths {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rel := fmt.Sprintf("skin/sample-%d.json", i)
+		e := putInChunks(t, s, rel, data)
+		got, _, err := s.Get(rel)
+		if err != nil || string(got) != string(data) {
+			t.Fatalf("%s: read back %d of %d bytes: %v", filepath.Base(p), len(got), len(data), err)
+		}
+		t.Logf("%s: %d bytes stored", filepath.Base(p), e.Size)
+		if err := s.Delete(rel); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
