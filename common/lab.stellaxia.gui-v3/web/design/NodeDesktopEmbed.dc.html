@@ -859,7 +859,7 @@ button{font-family:inherit}
 
       <!-- 우클릭 메뉴 -->
       <sc-if value="{{menu.on}}" hint-placeholder-val="{{ false }}">
-        <div role="menu" style="position: absolute; z-index: 1100; left: {{menu.x}}px; top: {{menu.y}}px; width: 190px; box-sizing: border-box; padding: 5px; background: {{t.menu}}; border: 1px solid {{t.line2}}; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.40); backdrop-filter: blur(14px);">
+        <div role="menu" onClick="{{menu.stop}}" style="position: absolute; z-index: 1100; left: {{menu.x}}px; top: {{menu.y}}px; width: 190px; box-sizing: border-box; padding: 5px; background: {{t.menu}}; border: 1px solid {{t.line2}}; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.40); backdrop-filter: blur(14px);">
           <sc-for list="{{menu.items}}" as="mi" hint-placeholder-count="4">
             <button type="button" role="menuitem" onClick="{{mi.run}}" style="display: block; width: 100%; box-sizing: border-box; padding: 6px 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.ink}}; font-size: 12.5px; text-align: left; cursor: pointer;">{{mi.label}}</button>
           </sc-for>
@@ -2705,7 +2705,7 @@ class Component extends DCLogic {
       pos: left ? 'left: ' + (db.th + 16) + 'px; top: 40px' : 'left: ' + Math.max(8, Math.min(db.x, this.deskDims().w - 388)) + 'px; bottom: ' + (db.th + 16) + 'px' };   // 바 바로 위(옆) — 바 크기를 따라
 
     /* 우클릭 메뉴 */
-    const menu = { on: !!s.menu, x: s.menu ? s.menu.x : 0, y: s.menu ? s.menu.y : 0, items: [] };
+    const menu = { on: !!s.menu, x: s.menu ? s.menu.x : 0, y: s.menu ? s.menu.y : 0, items: [], stop: (e) => { if (e && e.stopPropagation) e.stopPropagation(); } };   // 메뉴 클릭이 바탕(deskClick → lau:false)으로 번지면 앱 목록이 열리자마자 닫힌다 (AUD-75)
     if (s.menu) {
       const close = () => this.setState({ menu: null });
       menu.items = [
