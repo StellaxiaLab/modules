@@ -87,8 +87,11 @@ body{margin:0;background:#0a0e1c}
     <sc-if value="{{isDoc}}" hint-placeholder-val="{{ false }}">
       <iframe class="wb-frame" title="{{frameTitle}}" srcdoc="{{doc}}" sandbox="" referrerpolicy="no-referrer"></iframe>
     </sc-if>
+    <sc-if value="{{isExt}}" hint-placeholder-val="{{ false }}">
+      <div class="wb-load"><div class="wb-step warn"><span>!</span><span>{{extT}}</span></div><p class="wb-dim">{{extNote}}</p><button type="button" class="wb-btn" onClick="{{extOpen}}">기본 브라우저로 다시 열기</button></div>
+    </sc-if>
     <sc-if value="{{isWeb}}" hint-placeholder-val="{{ false }}">
-      <iframe class="wb-frame wb-white" title="{{frameTitle}}" src="{{src}}" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" referrerpolicy="no-referrer"></iframe>
+      <iframe class="wb-frame wb-white" title="{{frameTitle}}" src="{{src}}" sandbox="allow-scripts allow-forms allow-same-origin" referrerpolicy="no-referrer"></iframe>
     </sc-if>
   </div>
   <div class="wb-st"><span>{{statusT}}</span><span style="flex: 1;"></span><span class="wb-dim">{{noteT}}</span></div>
@@ -108,6 +111,8 @@ class Component extends DCLogic {
     try { window.addEventListener('terra-help', () => this.setState({})); window.addEventListener('terra-mod', () => this.setState({})); } catch (e) {} }
   componentWillUnmount() { cancelAnimationFrame(this._raf); this._raf = 0; }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
+  // 외부 사이트는 창 안에 못 띄운다(앱 CSP 에 frame-src 없음) — 셸(실제)에서는 호스트에 기본 브라우저 열기를 부탁한다. 시안에는 없다(iframe 그대로)
+  opener() { return typeof window !== 'undefined' && typeof window.TerraOpenExternal === 'function' ? window.TerraOpenExternal : null; }
   launcher() { return typeof window !== 'undefined' && typeof window.TerraLaunch === 'function' ? window.TerraLaunch : null; }
   GW() { return 'http://127.0.0.1:8787'; }
   cat() { return Array.isArray(this.props.catalog) ? this.props.catalog : []; }
@@ -142,7 +147,7 @@ class Component extends DCLogic {
     const P = this.props, S = this.state, H = this.help();
     if (this._u0 !== (P.url || '')) { this._u0 = P.url || ''; S.hist = [this._u0 || 'terra://start']; S.idx = 0; S.t0 = performance.now(); S.input = ''; S.typing = false; }
     const cur = S.hist[S.idx] || 'terra://start', R = this.resolve(cur), now = performance.now(), el = now - S.t0;
-    const O = { rootW: P.winW ? P.winW + 'px' : '100%', rootH: P.winH ? P.winH + 'px' : '100vh', isStart: false, isLaunch: false, isLoad: false, isSync: false, isErr: false, isDoc: false, isWeb: false, steps: [], cards: [], chips: [], extD: 'none', extHref: '#' };
+    const O = { rootW: P.winW ? P.winW + 'px' : '100%', rootH: P.winH ? P.winH + 'px' : '100vh', isStart: false, isLaunch: false, isLoad: false, isSync: false, isErr: false, isDoc: false, isWeb: false, isExt: false, steps: [], cards: [], chips: [], extD: 'none', extHref: '#' };
     O.input = S.typing ? S.input : R.url; O.inp = (ev) => this.setState({ input: ev.target.value, typing: true }); O.selAll = (ev) => { try { ev.target.select(); } catch (x) {} };
     O.go = (ev) => { if (ev && ev.preventDefault) ev.preventDefault(); const v = (this.state.typing ? this.state.input : O.input).trim(); if (v) this.nav(v); };
     O.backD = S.idx > 0 ? null : 'disabled'; O.fwdD = S.idx < S.hist.length - 1 ? null : 'disabled';
@@ -157,6 +162,14 @@ class Component extends DCLogic {
         return { app: e.appName, mod: e.modName, mode: e.mode, modeCls: MD, node: e.node + (e.remote ? ' · 원격' : ''), st: on ? '● 실행' : '○ ' + ({ stop: '멈춤', fail: '실패', restart: '다시 시작 중' }[st] || st), cls: on ? '' : 'off', off: on ? null : 'disabled', open: () => this.nav(e.arg) }; });
       O.statusT = '시작 페이지'; O.chips = [{ t: 'terra://start', cls: '' }];
     } else if (R.kind === 'err') { O.isErr = true; O.errT = R.err; O.errNote = R.note; O.statusT = '열지 못함'; }
+    else if (R.kind === 'web' && this.opener()) {
+      // 탐색 · 새로고침 한 번에 한 번만 부탁한다(그리는 동안 반복 호출 금지) — 숨은 창이 나중에 열지 않게 방금 탐색한 때만
+      const key = S.idx + '|' + S.t0 + '|' + R.url, L = S.ext && S.ext.k === key ? S.ext : null, fresh = now - S.t0 < 15000;
+      if (this._extK !== key && fresh) { this._extK = key; setTimeout(() => { const go = this.opener(); this.setState({ ext: { k: key, ok: !!(go && go(R.url)) } }); }, 0); }
+      O.isExt = true; O.extT = '이 사이트는 Terra 안에서 열 수 없습니다 — 기본 브라우저로 엽니다'; O.chips = [{ t: /^https:/i.test(R.url) ? 'https' : 'http', cls: '' }, { t: '외부 사이트', cls: '' }];
+      O.extNote = !L ? (fresh ? R.url + ' — 열기를 요청하는 중' : R.url + ' — 열려면 아래 단추') : L.ok ? R.url + ' — 열기를 요청함. 확인 창에서 허용하면 기본 브라우저가 열립니다' : R.url + ' — 열지 못함 : 셸(main Scene) 안에서만 가능';
+      O.extOpen = () => { const go = this.opener(); this.setState({ ext: { k: key, ok: !!(go && go(R.url)) } }); }; O.statusT = '외부 사이트 — 창 밖'; O.noteT = '확인은 셸이 묻는다';
+    }
     else if (R.kind === 'web') { O.isWeb = true; O.src = R.url; O.frameTitle = R.url; O.extD = 'inline-flex'; O.extHref = R.url; O.chips = [{ t: 'web', cls: '' }, { t: 'sandbox', cls: 'sb' }];
       O.statusT = '외부 사이트'; O.noteT = '창 안 표시 차단 사이트 : 빈 화면 — ↗ 새 탭'; }
     else {

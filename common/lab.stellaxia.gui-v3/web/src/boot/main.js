@@ -168,6 +168,7 @@ if (MODE !== 'demo') {
   window.TerraTaskFollow = Object.assign((n, taskId, onUpdate) => taskFollow.followTask({ taskId, onUpdate, sse: n === transport.localId() ? (op, i, h) => terra.sse(op, i, h) : null, poll: (i) => transport.invoke(n, 'terra.daemon.tasks.by-task-id.output.get', i) }), taskFollow);
   window.TerraChanges = changes;
   window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
+  window.TerraOpenExternal = (url) => { if (MODE !== 'app' || !frame || !/^https?:\/\/\S+$/i.test(String(url || ''))) return false; frame.emit('openExternal', String(url)); return true; };   // 외부 사이트 — 창 안에 못 띄운다(CSP). 셸이 http(s) 를 다시 걸러 확인 창을 띄운 뒤 기본 브라우저로 연다(Scene gui-v3.app.openExternal → terra.app:open-external). allow-popups 는 쓰지 않는다
   // 위험 영역 — 설정창 단추는 Scene 에 'danger' 이벤트만 보낸다(값을 싣지 않는다). 켜기 · 끄기는 Scene 의 /danger 확인 화면이 한다 — 이 페이지는 스위치 쓰기를 부르지 않는다(ADR-GW-012 §6.1)
   window.TerraDangerView = dangerView; window.TerraDangerAsk = () => { if (!(MODE === 'app' && frame)) return false; frame.emit('danger'); return true; }; window.TerraDangerAsk.can = () => MODE === 'app' && !!frame;   // 늘 정의 — frame 은 호출 때 본다(앱 모드의 frame 은 나중에 선다)
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = null; })

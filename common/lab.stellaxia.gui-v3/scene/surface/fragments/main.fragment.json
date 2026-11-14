@@ -13,7 +13,8 @@
     "gui-v3.login.open",
     "gui-v3.danger.open",
     "gui-v3.signout",
-    "gui-v3.app.launch"
+    "gui-v3.app.launch",
+    "gui-v3.app.openExternal"
   ],
   "root": {
     "type": "custom",
@@ -44,6 +45,9 @@
       },
       "launch": {
         "function": "gui-v3.app.launch"
+      },
+      "openExternal": {
+        "function": "gui-v3.app.openExternal"
       }
     },
     "a11y": {
