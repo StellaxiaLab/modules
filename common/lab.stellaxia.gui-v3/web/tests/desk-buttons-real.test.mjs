@@ -144,3 +144,11 @@ test('AUD-84 다시 시작 — 저장 응답이 재시작 불필요(restart_requ
   assert.equal(calls('terra.daemon.config.patch').length, 1);
   assert.equal(btn(win('set').nx.cfgBtns, '다시 시작').dis, 'disabled');
 });
+
+test('AUD-84 다시 시작 — 공유 폴더 저장도 재시작 대기를 다시 읽기 뒤까지 남긴다', async () => {
+  const { c, win, calls } = await realDesk({ setup: (S) => { S.restart = true; } }); open(c, 'svi', { resTab: 'dir' });
+  btn(win('svi').nx.dirAdd, '+ 공유 폴더').run(); await tick(5);
+  btn(win('svi').nx.dirBtns, '저장').run(); await tick(60);
+  assert.equal(calls('terra.daemon.config.patch').length, 1);
+  open(c, 'set', { setTab: 'node' }); assert.equal(btn(win('set').nx.cfgBtns, '다시 시작').dis, null);
+});

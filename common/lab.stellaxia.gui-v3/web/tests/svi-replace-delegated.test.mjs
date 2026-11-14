@@ -19,13 +19,14 @@ const mount = (win) => {
 };
 
 test('gate — 앱 토큰으로 선언 replace 는 늘 닫힘(다른 선언은 그대로)', () => {
-  const g = gate('terra.daemon.svi.declarations.post', { replace: true });
+  const g = gate('terra.daemon.svi.declarations.post', { replace: true, app: true });
   assert.equal(g.open, false); assert.match(g.why, /^잠김 : 앱 토큰에 닫힘 — 같은 이름 자원 교체/);
   assert.equal(gate('terra.daemon.svi.declarations.post', { family: 'file' }).open, true);
+  assert.equal(gate('terra.daemon.svi.declarations.post', { replace: true }).open, true, '셸(B) 모드는 위임이 아니라 열려 있다');
 });
 
 test('실제 · 앱 토큰 — 같은 이름이 있으면 교체 칸이 잠기고 이유, 켜져 있어도 replace 를 보내지 않는다', async () => {
-  const calls = [], { c, done } = mount(real(calls, (op, o) => gate(op, o))); try {
+  const calls = [], { c, done } = mount(real(calls, (op, o) => gate(op, Object.assign({ app: true }, o)))); try {
     let v = c.renderVals(); assert.equal(v.exists, true);
     assert.equal(v.repDis, 'disabled'); assert.match(v.repWhy, /앱 토큰에 닫힘/); assert.equal(v.onReplace, null);
     c.setState({ replace: true });   // 옛 상태가 남아 있어도
@@ -37,5 +38,13 @@ test('실제 · 앱 토큰 — 같은 이름이 있으면 교체 칸이 잠기�
 test('시안(문 없음) — 교체 칸은 그대로 켤 수 있다', () => {
   const { c, done } = mount(real([], null)); try {
     const v = c.renderVals(); assert.equal(v.exists, true); assert.equal(v.repDis, null); assert.equal(typeof v.onReplace, 'function');
+  } finally { done(); }
+});
+
+test('실제 · 셸(B) 모드 — 교체 칸이 열려 있고 켜면 replace 를 보낸다', async () => {
+  const calls = [], { c, done } = mount(real(calls, (op, o) => gate(op, Object.assign({ app: false }, o)))); try {
+    let v = c.renderVals(); assert.equal(v.repDis, null); assert.equal(typeof v.onReplace, 'function');
+    c.setState({ replace: true }); c.renderVals().submit(); await new Promise((r) => setTimeout(r, 0));
+    assert.equal(calls[0][2].replace, true);
   } finally { done(); }
 });
