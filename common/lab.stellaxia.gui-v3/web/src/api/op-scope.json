@@ -395,6 +395,26 @@
    ],
    "risk": "read"
   },
+  "terra.daemon.modules.by-module-id.disable.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.modules.by-module-id.enable.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "risk": "dangerous"
+  },
   "terra.daemon.modules.by-module-id.get": {
    "scopes": [
     "local",
@@ -422,6 +442,16 @@
    ],
    "permissions": [
     "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.modules.by-module-id.rollback.post": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "module.manage"
    ],
    "risk": "dangerous"
   },
