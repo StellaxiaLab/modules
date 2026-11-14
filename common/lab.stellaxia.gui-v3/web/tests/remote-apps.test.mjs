@@ -72,10 +72,11 @@ test('전역 틀 — 원격 노드의 모듈 · 브라우저 카탈로그가 받
   } finally { delete globalThis.window; }
 });
 
-test('WebBrowser — 실제(셸)에서 원격 앱은 예시 화면을 지어내지 않는다', () => {
-  const WB = load('WebBrowser'), e = { arg: 'mod|R|m1|a1', modId: 'm1', modName: '모듈', appId: 'a1', appName: '원격 앱', mode: 'static', node: 'far', nodeId: 'R', remote: true, st: 'run', asset: 'cached' };
-  globalThis.window = { TerraLaunch: () => true, addEventListener() {} };
-  try { const c = new WB({ catalog: [e] }); c.renderVals(); c.nav('mod|R|m1|a1'); const v = c.renderVals(); assert.equal(v.isErr, true); assert.equal(v.isDoc, false); assert.match(v.errT, /원격/); } finally { delete globalThis.window; }
+test('WebBrowser — 실제(셸)에서 원격 앱은 예시 화면을 지어내지 않고 셸에 { appId, moduleId, nodeId, nodeName } 로 연다', async () => {
+  const WB = load('WebBrowser'), e = { arg: 'mod|R|m1|a1', modId: 'm1', modName: '모듈', appId: 'a1', appName: '원격 앱', mode: 'static', node: 'far', nodeId: 'R', remote: true, st: 'run', asset: 'cached' }, calls = [];
+  globalThis.window = { TerraLaunch: (...a) => { calls.push(a); return true; }, addEventListener() {} };
+  try { const c = new WB({ catalog: [e] }); c.renderVals(); c.nav('mod|R|m1|a1'); const v = c.renderVals(); assert.equal(v.isDoc, false); assert.equal(v.isLaunch, true); assert.doesNotMatch(String(v.errT || ''), /아직 열 수 없음/);
+    await new Promise((r) => setTimeout(r, 5)); assert.deepEqual(calls, [['a1', { moduleId: 'm1', nodeId: 'R', nodeName: 'far' }]]); } finally { delete globalThis.window; }
 });
 
 test('main.js — 모듈 목록을 못 읽은 것이 [] 로 둔갑하지 않는다(TerraSviMods)', () => {
