@@ -1246,11 +1246,12 @@ const VIEW_BTN = new Set(['바탕화면에 추가', '자원 창 ›', '열기', 
 const PC_KEYS = ['full', 'wins', 'order', 'setTab', 'fmLoc', 'modView', 'modSel', 'modTab', 'resTab', 'devSel', 'cfgGrp'];   // terra.pc.desk.<node_id>
 const TERM_KEYS = ['tterm', 'ttHist'];   // terra.pc.term.<principal>.<node_id> — 계정 구분 · 로그아웃 때 지움
 // 노드에 값이 아직 없을 때 보여 주고 첫 쓰기에 통째로 보내는 기본값(§6.4). 시안 아이콘 backup.tar 는 뺐다
+const LEGACY_MOD_IDS = { agent: 'lab.stellaxia.agent' };
 const DESK_DEFAULTS = {
   icons: {
     home:   { c: 0, r: 0, name: '내 폴더',     k: 'dir',   loc: 'home' },
     vault:  { c: 0, r: 1, name: '공유 폴더',   k: 'dir',   loc: 'vault' },
-    agent:  { c: 1, r: 0, name: '에이전트',   k: 'short', app: 'mods', mod: 'agent', src: '모듈 · 에이전트' },
+    agent:  { c: 1, r: 0, name: '에이전트',   k: 'short', app: 'mods', mod: 'lab.stellaxia.agent', src: '모듈 · 에이전트' },
     jobs:   { c: 1, r: 1, name: '작업 관리자', k: 'short', app: 'jobs', src: 'Terra 기능' },
     shell:  { c: 1, r: 2, name: '노드 터미널', k: 'short', app: 'term', src: 'Terra 기능' },
     tshell: { c: 1, r: 3, name: 'Terra 터미널', k: 'short', app: 'tterm', src: 'Terra 기능' }
@@ -1338,10 +1339,12 @@ class Component extends DCLogic {
     }
     return out;
   }
-  // 이 노드에 그 모듈(앱)이 있는가 — true · false · null(목록을 못 봤음). ref: 'id' | 'moduleId/appId' (옛 기본 아이콘은 'agent' 처럼 id 끝 낱말)
+  // 이 노드에 그 모듈(앱)이 있는가 — true · false · null(목록을 못 봤음). ref: 'id' | 'moduleId/appId' (옛 기본 아이콘의 'agent' 는 lab.stellaxia.agent 로만 옮긴다)
+  // 모듈 id는 정확히 일치해야 한다 — 끝 낱말로 맞추면 남의 x.y.agent 가 바로가기를 가로챈다. 노드에 저장된 옛 아이콘의 'agent' 만 알려진 id 로 옮긴다
+  modFind(N, mid) { const id = LEGACY_MOD_IDS[mid] || mid; return N.mods.find((m) => m.id === id); }
   modInst(ref) {
     const N = this.nd(); if (!N || !Array.isArray(N.mods) || (this.real() && !N.real)) return null;
-    const [mid, aid] = String(ref || '').split('/'), M = N.mods.find((m) => m.id === mid || String(m.id).endsWith('.' + mid));
+    const [mid, aid] = String(ref || '').split('/'), M = this.modFind(N, mid);
     if (!M) return false;
     if (aid) { const L = this.modAppList(M); if (L && !L.some((a) => a.id === aid)) return false; }
     return true;
@@ -1949,7 +1952,7 @@ class Component extends DCLogic {
       const inst = this.modInst(ic.mod);
       if (inst === false) { this.say('이 노드에 설치되지 않음'); return; }
       if (inst === null) { this.say('못 봤음 — 이 노드의 모듈 목록을 읽지 못해 설치 여부를 알 수 없음'); return; }
-      const [mid, aid] = String(ic.mod).split('/'), M = this.nd().mods.find((m) => m.id === mid || String(m.id).endsWith('.' + mid)), L = this.modAppList(M) || [], a = aid ? L.find((x) => x.id === aid) : L[0];
+      const [mid, aid] = String(ic.mod).split('/'), M = this.modFind(this.nd(), mid), L = this.modAppList(M) || [], a = aid ? L.find((x) => x.id === aid) : L[0];
       if (!a) { this.say(M.name + ' — 열 화면이 있는 앱이 없음'); return; }
       this.openApp(a); return;
     }

@@ -45,8 +45,8 @@ async function desk(opts) {
   c.renderVals(); await tick(10); c.renderVals(); await tick(10); c.renderVals();
   return { c, launched, said };
 }
-const AGENT = { id: 'io.terra.agent', name: '에이전트', state: 'running', enabled: true, version: '0.4.1' };
-const APPS = [{ id: 'io.terra.agent.web', moduleId: 'io.terra.agent', name: '에이전트', mode: 'static', entry: 'index.html' }];
+const AGENT = { id: 'lab.stellaxia.agent', name: '에이전트', state: 'running', enabled: true, version: '0.4.1' };
+const APPS = [{ id: 'lab.stellaxia.agent.web', moduleId: 'lab.stellaxia.agent', name: '에이전트', mode: 'static', entry: 'index.html' }];
 
 test('에이전트 모듈이 없는 노드 — 기본 agent 바로가기가 없다', async () => {
   const { c } = await desk({ mods: [], apps: [] });
@@ -62,7 +62,7 @@ test('에이전트가 있는 노드 — 바로가기를 누르면 모듈 관리 
   const { c, launched } = await desk({ mods: [AGENT], apps: APPS });
   assert.ok(c.ics().agent, '모듈이 있으면 보인다');
   c.iconOpen('agent');
-  assert.deepEqual(launched, ['io.terra.agent.web']); assert.ok(!c.state.wins.mods, '모듈 관리 창이 열리지 않는다');
+  assert.deepEqual(launched, ['lab.stellaxia.agent.web']); assert.ok(!c.state.wins.mods, '모듈 관리 창이 열리지 않는다');
 });
 
 test('노드에 저장된 옛 agent 아이콘 — 설치 안 됨이면 회색으로 남고 누르면 안내', async () => {
@@ -74,8 +74,25 @@ test('노드에 저장된 옛 agent 아이콘 — 설치 안 됨이면 회색으
 });
 
 test('사용자가 고정한 모듈 앱 바로가기(moduleId/appId) — 같은 길 · 같은 안내', async () => {
-  const saved = { 'm-x': { c: 2, r: 0, name: '에이전트 웹', k: 'short', app: 'mods', mod: 'io.terra.agent/io.terra.agent.web' }, 'm-y': { c: 2, r: 1, name: '없는 앱', k: 'short', app: 'mods', mod: 'io.terra.gone/x' } };
+  const saved = { 'm-x': { c: 2, r: 0, name: '에이전트 웹', k: 'short', app: 'mods', mod: 'lab.stellaxia.agent/lab.stellaxia.agent.web' }, 'm-y': { c: 2, r: 1, name: '없는 앱', k: 'short', app: 'mods', mod: 'io.terra.gone/x' } };
   const { c, launched, said } = await desk({ mods: [AGENT], apps: APPS, saved });
-  c.iconOpen('m-x'); assert.deepEqual(launched, ['io.terra.agent.web']);
+  c.iconOpen('m-x'); assert.deepEqual(launched, ['lab.stellaxia.agent.web']);
   said.length = 0; c.iconOpen('m-y'); assert.deepEqual(said, ['이 노드에 설치되지 않음']);
+});
+
+test('남의 x.y.agent 모듈은 agent 바로가기를 채우지도 가로채지도 못한다 (id 끝 낱말 일치 금지)', async () => {
+  const other = { id: 'x.y.agent', name: 'Other', state: 'running', enabled: true, version: '1.0.0' };
+  const otherApps = [{ id: 'x.y.agent.web', moduleId: 'x.y.agent', name: 'Other', mode: 'static', entry: 'index.html' }];
+  const { c } = await desk({ mods: [other], apps: otherApps });
+  assert.ok(!c.ics().agent, '남의 모듈로 기본 agent 아이콘이 보인다');
+  // 둘 다 있으면 정확한 id 쪽이 열린다
+  const both = await desk({ mods: [other, AGENT], apps: [...otherApps, ...APPS] });
+  both.c.iconOpen('agent'); assert.deepEqual(both.launched, ['lab.stellaxia.agent.web']);
+  // 저장된 옛 'agent' 아이콘도 같다 — 남의 모듈에는 닿지 않는다
+  const saved = { 'm-old': { c: 2, r: 0, name: '옛', k: 'short', app: 'mods', mod: 'agent' } };
+  const old = await desk({ mods: [other], apps: otherApps, saved });
+  old.said.length = 0; old.c.iconOpen('m-old'); assert.deepEqual(old.said, ['이 노드에 설치되지 않음']); assert.deepEqual(old.launched, []);
+  // 고정한 moduleId 는 정확히 일치해야 한다
+  const pinned = await desk({ mods: [other], apps: otherApps, saved: { 'm-p': { c: 2, r: 0, name: 'p', k: 'short', app: 'mods', mod: 'agent/x' } } });
+  pinned.said.length = 0; pinned.c.iconOpen('m-p'); assert.deepEqual(pinned.said, ['이 노드에 설치되지 않음']);
 });
