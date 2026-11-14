@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "lab.stellaxia.io-inventory",
   "name": "Terra I/O Inventory",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "kind": "service",
   "description": "Node-local I/O device inventory and approval policy, extracted from the daemon as the core-slimming pilot.",
   "compatibility": {
@@ -18,7 +18,7 @@
   },
   "provides": {
     "capabilities": [
-      { "id": "lab.stellaxia.io-inventory", "version": "0.3.0" }
+      { "id": "lab.stellaxia.io-inventory", "version": "0.3.1" }
     ]
   },
   "contracts": {

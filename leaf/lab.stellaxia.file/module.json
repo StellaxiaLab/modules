@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "lab.stellaxia.file",
   "name": "Terra File",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "kind": "service",
   "description": "Shared-folder listing and, from F3, resumable chunked file transfer. The second core-slimming extraction after lab.stellaxia.io-inventory.",
   "compatibility": {

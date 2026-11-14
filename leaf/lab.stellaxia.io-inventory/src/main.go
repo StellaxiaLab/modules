@@ -22,7 +22,7 @@ import (
 	coresvi "github.com/StellaxiaLab/terra-sdk/svi"
 )
 
-const moduleVersion = "0.3.0"
+const moduleVersion = "0.3.1"
 
 // statePath is where user-managed device policy persists. It lives in the
 // module's own data home (permissions.storage: module-data), never inside the
