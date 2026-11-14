@@ -78,7 +78,7 @@ export function inspectView(insp) {
 }
 function quarantineWhy(tr, dev) {
   const t = (tr && (tr.code || tr.tier || '')) + ' ' + ((tr && tr.reason) || '');
-  if (/unsigned|unknown|서명 없|알 수 없는 키|development/i.test(t) && dev !== true) return UNSIGNED + (tr && tr.reason ? ' (' + tr.reason + ')' : '');
+  if (/unsigned|unknown|signature-missing|서명이? 없|알 수 없는 키|development/i.test(t) && dev !== true) return UNSIGNED + (tr && tr.reason ? ' (' + tr.reason + ')' : '');
   return '격리된 패키지 — ' + ((tr && tr.reason) || '서명을 믿을 수 없음');
 }
 

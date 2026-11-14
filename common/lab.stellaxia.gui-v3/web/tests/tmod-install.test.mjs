@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 import { boardModule, parseBoard } from '../tools/dc-board.mjs';
 import * as deskAdapt from '../src/api/desk-adapt.js';
+import { tmodErr } from '../src/api/tmod-install.js';
 import * as changes from '../src/api/changes.js';
 import * as Tmod from '../src/api/tmod-install.js';
 import { gate } from '../src/api/gates.js';
@@ -178,4 +179,15 @@ test('상한 256MiB — 넘으면 노드로 올리지 않고 이유', async () =
 
 test('commands.execute 길 · 결정 표 잠금이 없다', () => {
   assert.ok(!/commands\.execute\.post'/.test(parseBoard(src).script)); assert.ok(!/DECIDE\.tmodInstall/.test(src)); assert.ok(!/tmodInstall: \{ locked/.test(src));
+});
+
+// GUI-TMOD(실측 s3-gui): Daemon 의 실제 값(trust.code 'signature-missing', tier 'quarantined', reason 한글)도 설계 문구로 — Daemon 문장은 덧말
+test('서명 없는 패키지 — Daemon 실제 코드(signature-missing)도 "서명 없는 패키지 — 개발 모드 노드에서만" + 덧말', async () => {
+  const REAL = '서명이 없고 dev mode가 아니므로 격리합니다';
+  const a = api((op) => (op === OP.inspect ? INSP({ trust: { tier: 'quarantined', code: 'signature-missing', reason: REAL, quarantined: true }, install_refusal: 'PACKAGE_QUARANTINED', dev_install_allowed: false }) : undefined)), { c, X } = await desk(a);
+  c.tmodPick(file(10)); await settle(c);
+  const w = X().v.warns.map((q) => q.t).join('|');
+  assert.match(w, /^서명 없는 패키지 — 개발 모드 노드에서만/); assert.ok(w.includes(REAL), 'Daemon 문장은 덧말로 남는다'); assert.doesNotMatch(w, /^격리된 패키지/); assert.ok(!btn(X().btns, '설치').run);
+  assert.match(tmodErr(err('PACKAGE_QUARANTINED', 403, 'x', { trust_code: 'signature-missing', reason: REAL })).text, /^서명 없는 패키지 — 개발 모드 노드에서만/);
+  assert.match(tmodErr(err('PACKAGE_QUARANTINED', 403, 'x', { trust_code: 'signature-invalid', reason: '서명이 맞지 않음' })).text, /^격리된 패키지/, '서명이 틀린 것은 그대로 격리');
 });
