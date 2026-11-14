@@ -30,7 +30,6 @@ after(async () => ctx?.close());
 
 /** 소스(api.go)가 계약과 다르게 답하는 곳 — 소스를 정본으로 따른다. 항목마다 한 번은 실제로 관찰되어야 한다. */
 const KNOWN_DIVERGENCES = [
-  { op: 'runs.post', at: /^\/(answer|last_error)$/, kind: 'type', why: 'api.go runPost 가 view["answer"]·view["last_error"] 를 그대로 옮겨, 비어 있으면 키가 없어 null 이 된다(계약은 string)' },
 ];
 
 test('계약의 operation 19개가 모두 구현되어 있고 경로·메서드·권한이 계약과 같다', () => {

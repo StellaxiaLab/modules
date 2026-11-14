@@ -560,3 +560,21 @@ func TestStatusAsksOnceOnceItHasAName(t *testing.T) {
 		t.Fatalf("identity asked %d times, want 1", *calls)
 	}
 }
+
+// AUD-57: the contract types answer, last_error and last_error_code as string,
+// so a run that stopped with nothing to say answers "" rather than null.
+func TestRunAnswersStringsEvenWhenThereIsNoError(t *testing.T) {
+	s := newSurface(t, always(textResponse("all good")))
+	status, body := s.call(t, testPrincipal, "POST", "/runs", map[string]any{"prompt": "hi"})
+	if status != 200 {
+		t.Fatalf("run: %d %v", status, body)
+	}
+	for _, key := range []string{"answer", "last_error", "last_error_code"} {
+		if _, isString := body[key].(string); !isString {
+			t.Errorf("%s must be a string, got %#v", key, body[key])
+		}
+	}
+	if body["last_error"] != "" || body["last_error_code"] != "" {
+		t.Errorf("no error expected: %v", body)
+	}
+}

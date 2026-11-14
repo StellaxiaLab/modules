@@ -481,9 +481,12 @@ func (s *apiServer) runPost(w http.ResponseWriter, r *http.Request) {
 	}
 	s.engine.run(r.Context(), current, input.Prompt, provider)
 	view := current.snapshot()
+	// answer and last_error are omitempty in the stored record, so the view
+	// lacks the key when they are empty; the contract types all three as string.
 	writeJSON(w, http.StatusOK, map[string]any{
-		"session_id": current.meta.ID, "state": view["state"], "answer": view["answer"], "steps": view["steps"],
-		"entries": current.entriesAfter(0, 0), "usage": view["usage"], "last_error": view["last_error"],
+		"session_id": current.meta.ID, "state": view["state"], "answer": viewString(view, "answer"), "steps": view["steps"],
+		"entries": current.entriesAfter(0, 0), "usage": view["usage"], "last_error": viewString(view, "last_error"),
+		"last_error_code": viewString(view, "last_error_code"),
 	})
 }
 
@@ -716,4 +719,10 @@ func (s *apiServer) approvalPost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"request_id": requestID, "session_id": current.meta.ID, "operation_id": request.OperationID, "decision": decision,
 	})
+}
+
+// viewString reads a string field of a session view, "" when the record omitted it.
+func viewString(view map[string]any, key string) string {
+	text, _ := view[key].(string)
+	return text
 }

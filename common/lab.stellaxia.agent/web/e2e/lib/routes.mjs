@@ -194,10 +194,10 @@ export function createHandlers(engine) {
       const { session } = engine.openSession(options, owner);
       await engine.run(session, input.prompt, provider);
       const view = engine.snapshot(session);
-      // 소스는 view["answer"]·view["last_error"] 를 그대로 옮긴다 — 키가 없으면 null 이다(계약은 string).
+      // 계약은 answer·last_error·last_error_code 를 string 으로 둔다 — 비어 있어도 "" 로 답한다(소스 viewString).
       return ok({
-        session_id: session.meta.id, state: view.state, answer: view.answer ?? null, steps: view.steps,
-        entries: engine.entriesAfter(session, 0, 0), usage: view.usage, last_error: view.last_error ?? null,
+        session_id: session.meta.id, state: view.state, answer: view.answer ?? '', steps: view.steps,
+        entries: engine.entriesAfter(session, 0, 0), usage: view.usage, last_error: view.last_error ?? '', last_error_code: view.last_error_code ?? session.meta.last_error_code ?? '',
       });
     },
 
