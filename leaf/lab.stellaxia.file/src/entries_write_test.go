@@ -238,6 +238,8 @@ func TestAWriteRefusesWhatItCannotAnswer(t *testing.T) {
 			http.StatusBadRequest, "FILE_INVALID_REQUEST"},
 		{"negative offset", map[string]any{"path": "logs/a.txt", "offset": -1, "data": b64("x")},
 			http.StatusBadRequest, "FILE_INVALID_REQUEST"},
+		{"data missing", map[string]any{"path": "logs/a.txt"},
+			http.StatusBadRequest, "FILE_INVALID_REQUEST"},
 		{"data that is not base64", map[string]any{"path": "logs/a.txt", "data": "not base64!"},
 			http.StatusBadRequest, "FILE_INVALID_REQUEST"},
 		{"over the body ceiling", map[string]any{"path": "logs/a.txt", "data": b64(strings.Repeat("x", maxWriteLength+1))},

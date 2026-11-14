@@ -224,18 +224,24 @@ func newOperationsHandler(manager *store.Manager, transfers *transfer.Manager) h
 	// make in AcceptChunk.
 	mux.HandleFunc("PUT "+apiPrefix+"/entries/write", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Root      string `json:"root"`
-			Path      string `json:"path"`
-			Offset    int64  `json:"offset"`
-			Data      string `json:"data"`
-			SHA256    string `json:"sha256"`
-			Exclusive bool   `json:"exclusive"`
+			Root      string  `json:"root"`
+			Path      string  `json:"path"`
+			Offset    int64   `json:"offset"`
+			Data      *string `json:"data"`
+			SHA256    string  `json:"sha256"`
+			Exclusive bool    `json:"exclusive"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			writeAPIError(w, http.StatusBadRequest, "FILE_INVALID_REQUEST", "the request body must be a write object")
 			return
 		}
-		data, err := base64.StdEncoding.DecodeString(body.Data)
+		// data is required by the contract: a missing field is not an empty
+		// write, though an explicit "" is (it only creates the file).
+		if body.Data == nil {
+			writeAPIError(w, http.StatusBadRequest, "FILE_INVALID_REQUEST", "data is required")
+			return
+		}
+		data, err := base64.StdEncoding.DecodeString(*body.Data)
 		if err != nil {
 			writeAPIError(w, http.StatusBadRequest, "FILE_INVALID_REQUEST", "data must be base64")
 			return
