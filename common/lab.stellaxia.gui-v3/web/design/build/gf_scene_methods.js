@@ -48,6 +48,8 @@
     if (TP && TP.localId) { const me = all.find((n) => n.rid === TP.localId); if (me) me.local = true; }   // 이 GUI 를 띄운 노드
     return (this._smap = { key, root, all, byId });
   }
+  // 장면 가운데 카드(보드 MapCard)가 부르는 것 — 전역 틀 너비(카드는 그 오른쪽 가운데에 뜬다)
+  cardApi() { return this._cardA || (this._cardA = { left: () => this.viewX0() }); }
   // 지금 위치 — 리소스 뷰: 그 행성(리프) · 리프 뷰: 들어간 트리 · 트리 뷰: 초점 트리(처음엔 계정)
   // 지도 이름표의 상태 — 실제 지도의 노드만(Master 기록). 온라인은 표시하지 않는다: 문제가 있는 노드만 글자와 색으로 드러낸다
   nodeMark(rid) {

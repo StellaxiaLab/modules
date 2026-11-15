@@ -59,7 +59,8 @@ test('비었다 — 없다고 말하고 다시 시도는 없다', () => withWind
   const g = c.guiTab(T); assert.equal(g.map.stat, '노드 없음'); assert.equal(g.map.head, '이 Tree 에 노드 없음'); assert.equal(g.map.retryOn, false);
 }));
 
-test('장면에 상단 상태 줄이 없다', () => {
+test('장면에 상단 상태 줄이 없다 — 가운데 카드(MapCard)만 있다', () => {
   const scene = read('Scene');
   assert.doesNotMatch(scene, /StatusBar|data-statusbar|barApi/);
+  assert.match(scene, /<dc-import name="MapCard" on="\{\{cardOn\}\}" bar="\{\{cardApi\}\}"/);
 });

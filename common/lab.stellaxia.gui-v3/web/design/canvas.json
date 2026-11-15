@@ -202,6 +202,13 @@
       "x": 14800,
       "y": 1820
     },
+    "MapCard.dc.html": {
+      "h": 300,
+      "title": "지도 못 받음 · 노드 없음 카드 — 장면 가운데(전역 틀 오른쪽)",
+      "w": 1080,
+      "x": 15520,
+      "y": 1820
+    },
     "StateBand.dc.html": {
       "h": 56,
       "title": "창 상태 띠 — 받는 중 · 없음 · 못 봤음 · 끊김",
@@ -274,6 +281,7 @@
     "ModStatus.dc.html",
     "WebBrowser.dc.html",
     "TerraNodes.dc.html",
+    "MapCard.dc.html",
     "StateBand.dc.html"
   ],
   "pages": [],
