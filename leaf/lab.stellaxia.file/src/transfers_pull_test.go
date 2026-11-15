@@ -51,8 +51,8 @@ func TestAReadOnlyCallerCanTakeAFileOut(t *testing.T) {
 	}
 
 	status, closed, raw := call(t, handler, http.MethodPost, "/transfers/pulls/"+id+"/complete", nil)
-	// The module does not compare a pull's bytes (the caller does), so verified is false.
-	if status != http.StatusOK || closed["verified"] != false {
+	// The module does not compare a pull's bytes (the caller does), so verified stays true for compatibility with existing clients (node-gui reads verified===false as an error).
+	if status != http.StatusOK || closed["verified"] != true {
 		t.Fatalf("complete pull = %d %s", status, raw)
 	}
 }

@@ -3998,7 +3998,7 @@
             "verified": {
               "type": "boolean",
               "title": "검증됨",
-              "description": "노드가 파일 전체 체크섬을 실제로 대조해 일치했을 때만 true입니다. 체크섬 없이 prepare한 push와 pull은 노드가 대조하지 않으므로 false이며(pull의 대조는 호출자가 합니다), false는 검증 실패가 아니라 검증하지 않았다는 뜻입니다."
+              "description": "pull은 노드가 바이트를 대조하지 않고 prepare 때 알린 원본 체크섬을 호출자가 대조합니다. 이 응답의 verified는 기존 클라이언트와 호환되도록 항상 true이며 노드의 대조 결과가 아닙니다."
             }
           }
         },
