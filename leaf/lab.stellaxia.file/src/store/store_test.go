@@ -348,3 +348,132 @@ func TestWriteTruncateMkdirRenameStayInsideTheSharedFolder(t *testing.T) {
 		}
 	}
 }
+
+func symlinkOrSkip(t *testing.T, target, link string) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation needs privilege on Windows")
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertExists(t *testing.T, p string) {
+	t.Helper()
+	if _, err := os.Lstat(p); err != nil {
+		t.Errorf("%s should still exist: %v", p, err)
+	}
+}
+
+func assertGone(t *testing.T, p string) {
+	t.Helper()
+	if _, err := os.Lstat(p); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("%s should be gone, Lstat err = %v", p, err)
+	}
+}
+
+// A relative link to a directory inside the same shared folder: recursive
+// removal deletes the link, never the directory it points at.
+func TestRecursiveRemoveOfARelativeLinkKeepsTheTarget(t *testing.T) {
+	manager, dir := newTestManager(t)
+	if err := os.MkdirAll(filepath.Join(dir, "real"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "real", "keep.txt"), []byte("keep"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	symlinkOrSkip(t, "real", filepath.Join(dir, "link"))
+	if err := manager.Remove("share-0", "link", true); err != nil {
+		t.Fatalf("Remove(link, recursive) = %v", err)
+	}
+	assertGone(t, filepath.Join(dir, "link"))
+	assertExists(t, filepath.Join(dir, "real", "keep.txt"))
+}
+
+// A link below a removed directory is unlinked, not followed into.
+func TestRecursiveRemoveDoesNotFollowLinksInsideTheTree(t *testing.T) {
+	manager, dir := newTestManager(t)
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "secret"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "real"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "real", "keep.txt"), []byte("keep"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "tree"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	symlinkOrSkip(t, "../real", filepath.Join(dir, "tree", "rel"))
+	symlinkOrSkip(t, outside, filepath.Join(dir, "tree", "abs"))
+	if err := manager.Remove("share-0", "tree", true); err != nil {
+		t.Fatalf("Remove(tree, recursive) = %v", err)
+	}
+	assertGone(t, filepath.Join(dir, "tree"))
+	assertExists(t, filepath.Join(dir, "real", "keep.txt"))
+	assertExists(t, filepath.Join(outside, "secret"))
+}
+
+// An absolute link (to a directory or file) that lives inside the root can be
+// removed itself; what it points at is untouched, with or without recursive.
+func TestRemovingAnAbsoluteLinkLeavesItsTarget(t *testing.T) {
+	for _, recursive := range []bool{false, true} {
+		manager, dir := newTestManager(t)
+		outside := t.TempDir()
+		if err := os.WriteFile(filepath.Join(outside, "secret"), []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		symlinkOrSkip(t, outside, filepath.Join(dir, "outdir"))
+		symlinkOrSkip(t, filepath.Join(outside, "secret"), filepath.Join(dir, "outfile"))
+		for _, name := range []string{"outdir", "outfile"} {
+			if err := manager.Remove("share-0", name, recursive); err != nil {
+				t.Fatalf("Remove(%s, recursive=%v) = %v", name, recursive, err)
+			}
+			assertGone(t, filepath.Join(dir, name))
+		}
+		assertExists(t, filepath.Join(outside, "secret"))
+	}
+}
+
+// Linux allows ':' in names; the same name is still reachable through the
+// manager, not just listed.
+func TestColonNameIsReachableOnLinux(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("':' is not a legal file name character on Windows")
+	}
+	manager, dir := newTestManager(t)
+	if err := os.WriteFile(filepath.Join(dir, "a:b.txt"), []byte("hi"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manager.Stat("share-0", "a:b.txt"); err != nil {
+		t.Fatalf("Stat(a:b.txt) = %v", err)
+	}
+	chunk, err := manager.ReadChunk("share-0", "a:b.txt", 0, 16)
+	if err != nil || string(chunk.Data) != "hi" {
+		t.Fatalf("ReadChunk(a:b.txt) = %q, %v", chunk.Data, err)
+	}
+}
+
+func TestCleanRelativeForHostRules(t *testing.T) {
+	for _, p := range []string{"a:b.txt", "C:foo", "C:/foo", "x/y:z"} {
+		if _, err := cleanRelativeFor(p, true); !errors.Is(err, ErrPathDenied) {
+			t.Errorf("windows: cleanRelativeFor(%q) = %v, want ErrPathDenied", p, err)
+		}
+	}
+	for _, p := range []string{"a:b.txt", "C:foo", "x/y:z"} {
+		got, err := cleanRelativeFor(p, false)
+		if err != nil || got != p {
+			t.Errorf("non-windows: cleanRelativeFor(%q) = %q, %v", p, got, err)
+		}
+	}
+	for _, windows := range []bool{true, false} {
+		for _, p := range []string{"/etc/passwd", "../x", "a/../../x", ".."} {
+			if _, err := cleanRelativeFor(p, windows); !errors.Is(err, ErrPathDenied) {
+				t.Errorf("windows=%v: cleanRelativeFor(%q) = %v, want ErrPathDenied", windows, p, err)
+			}
+		}
+	}
+}
