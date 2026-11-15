@@ -27,7 +27,7 @@ test('1 공유 폴더 초안은 15초 재읽기(사본 교체)에 지워지지 �
   // 되돌리기 — dirsBase 를 비우면 초안 전체가 사라진다
   c.ndSet((d) => { Object.assign(d, { dirs: c.nd().dirsBase.dirs, memos: '', localFs: false, dirsBase: null }); }, null, null, { draft: true });
   assert.deepEqual(c.nd().dirs.map((x) => x.name), ['node']); assert.equal(c.nd().dirsBase, null); assert.equal(c._ov.T1, undefined);
-  assert.match(src, /delete this\._ov\[this\.nodeKey\(\)\]; this\.say\('저장 — 재시작/, '저장 성공 때도 비운다');
+  assert.match(src, /delete this\._ov\[nk\];[^]*this\.say\('저장 — 재시작/, '저장 성공 때도 비운다');
 });
 
 test('1 별칭 입력 초안은 사본 밖(this._ali)에 두고, 칸을 떠날 때 노드로 · 성공하면 비운다', () => {

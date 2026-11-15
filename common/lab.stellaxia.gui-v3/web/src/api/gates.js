@@ -44,6 +44,7 @@ export function gate(op, o = {}) {
   if (APP_LACKS[op]) return shut('app-perm', '잠김 : 앱 토큰에 없는 권한 — ' + APP_LACKS[op]);
   if (DAEMON_CLOSED[op]) return shut('core', DAEMON_CLOSED[op]);
   if (DECLARE_OPS.has(op)) {
+    if (o.replace && o.app) return shut('core', '잠김 : 앱 토큰에 닫힘 — 같은 이름 자원 교체(replace)는 터미널에서');   // daemon_delegation.go — 앱(스코프) 토큰 호출자의 replace 는 늘 DELEGATION_NOT_OPEN — 셸(B) 모드의 핸들 로그인은 위임이 아니라 열려 있다(o.app 은 A 모드만)
     if (o.remote) return shut('local', '잠김 : 다른 노드의 선언은 앱 토큰에 닫힘 — 이 노드에서만');
     if (o.family && !DECLARE_FAMILIES.includes(o.family)) return shut('core', '잠김 : 앱 토큰은 module · file 패밀리만 선언 — ' + o.family + ' 는 터미널에서');
   }

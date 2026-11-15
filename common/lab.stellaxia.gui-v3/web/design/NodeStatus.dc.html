@@ -150,7 +150,9 @@ class Component extends DCLogic {
       return [head, ...g.legs.map((x) => ({ ...mk(x), dir: x.dir, peer: x.dir === '→' ? '보낼 때' : '받을 때', tip: g.peer + ' ' + x.dir, peerCol: KEY, pad: 10, tag: x.healthy ? '' : '실패', tagCol: WARN, bad: !x.healthy, rt: x.rt, rtCol: TEXT, ad: x.ad, lat: x.lat, latTip: '' }))];
     });
     const nBad = routes.filter((x) => x.bad).length;
-    const copyId = () => { const v = id.nodeId; if (!v || v === D) return; try { navigator.clipboard.writeText(v).then(() => { this.setState({ copied: true }); setTimeout(() => this._live && this.setState({ copied: false }), 1500); }, () => failCopy()); } catch (e) { failCopy(); } };
+    const okCopy = () => { this.setState({ copied: true }); setTimeout(() => this._live && this.setState({ copied: false }), 1500); };
+    const legacyCopy = (v) => { try { const ta = document.createElement('textarea'); ta.value = v; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.focus(); ta.select(); if (ta.setSelectionRange) ta.setSelectionRange(0, v.length); const ok = document.execCommand('copy'); document.body.removeChild(ta); return !!ok; } catch (e) { return false; } };   // 비동기 clipboard 가 iframe 정책으로 막혀도 사용자 클릭 안의 execCommand 는 되는 경우가 있다
+    const copyId = () => { const v = id.nodeId; if (!v || v === D) return; const fall = () => (legacyCopy(v) ? okCopy() : failCopy()); try { navigator.clipboard.writeText(v).then(okCopy, fall); } catch (e) { fall(); } };
     const failCopy = () => { this.setState({ copyFail: true }); setTimeout(() => this._live && this.setState({ copyFail: false }), 4000); };   // 복사 권한이 없으면(iframe 정책) 조용히 넘기지 않고 알린다
     return {
       rootH: this.props.winH ? this.props.winH + 'px' : '100vh',

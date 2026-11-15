@@ -60,7 +60,8 @@ class NodeStore {
   constructor(transport) {
     this.t = transport; this.shapes = {}; this.subs = new Set(); this.inflight = new Map(); this.links = new Map(); this.views = new Map();
     this.cache = new Map(Object.entries(LS.get('terra.cache') || {}));   // 새로 띄워도 마지막 사본이 남는다(끊긴 채 시작해도 보인다)
-    this._saveT = 0;
+    this._saveT = 0; this.out = false;   // out — 로그아웃 뒤 다음 로그인(whoami 도착)까지: 로그아웃 뒤 남은 화면 · 타이머가 부르는 읽기가 사본을 디스크(terra.cache)에 되살리지 않게 persist 를 막는다(AUD-30)
+    if (typeof window !== 'undefined' && window.addEventListener) { window.addEventListener('terra-pc-logout', () => { this.out = true; clearTimeout(this._saveT); try { localStorage.removeItem('terra.cache'); } catch (e) {} }); window.addEventListener('terra-who', () => { this.out = false; }); }
     this.blobs = new Map(); this.gen = 0; this.rbg = new Map();   // rbg — 장면 id 가 다른 노드로 다시 묶인 횟수(늦은 응답을 거른다)
     this.pendingRes = new Map();   // 진행 중인 쓰기의 표시층 — 자원 키 → Set({ apply, mark }). 저장하지 않는다(cache 밖). 사본(e.data)은 노드가 준 값만
     // 바탕 구성 — 사본은 this.cache 의 rid|nodedesk 한 항목({revision, doc}). 아래는 저장하지 않는다(표시층 · 전송 · 상태 · watch)
@@ -71,7 +72,7 @@ class NodeStore {
   key(n, r, inp) { return n + '|' + r + (inp ? '|' + JSON.stringify(inp) : ''); }   // 입력이 있는 읽기(모듈 로그 · 모듈 설정 스키마)는 입력마다 따로
   emit(n) { for (const f of this.subs) { try { f(n); } catch (e) {} } }
   subscribe(f) { this.subs.add(f); return () => this.subs.delete(f); }
-  persist() { clearTimeout(this._saveT); this._saveT = setTimeout(() => { const o = {}; for (const [k, v] of this.cache) o[k] = v; if (!LS.set('terra.cache', o)) LS.set('terra.cache', {}); }, 400); }
+  persist() { clearTimeout(this._saveT); if (this.out) return; this._saveT = setTimeout(() => { if (this.out) return; if (!this.cache.size) { try { localStorage.removeItem('terra.cache'); } catch (e) {} return; } const o = {}; for (const [k, v] of this.cache) o[k] = v; if (!LS.set('terra.cache', o)) LS.set('terra.cache', {}); }, 400); }
   isLocal(n) { return n === this.t.localId(); }
   link(n) { if (this.isLocal(n)) return { state: 'local' }; return this.links.get(n) || { state: 'unknown' }; }
   setLink(n, L) { const o = this.links.get(n); this.links.set(n, Object.assign({}, L, { at: Date.now() })); if (!o || o.state !== L.state || o.code !== L.code) this.emit(n); }
@@ -89,7 +90,7 @@ class NodeStore {
   refresh(n, res, input) {
     const R = RES[res] || { op: res }, k = this.key(n, res, input);
     if (this.inflight.has(k)) return this.inflight.get(k);
-    const rb = this.rbg.get(n) | 0, stale = () => (this.rbg.get(n) | 0) !== rb;   // 그 사이 장면 id 가 다른 노드로 묶였으면 이 응답은 옛 노드 것이다
+    const rb = this.rbg.get(n) | 0, g0 = this.gen, stale = () => (this.rbg.get(n) | 0) !== rb || this.gen !== g0;   // gen — 로그아웃(clear)이 그 사이 있었으면 앞 사람의 응답이다   // 그 사이 장면 id 가 다른 노드로 묶였으면 이 응답은 옛 노드 것이다
     const p = this.fetchRes(n, res, R, input).then((data) => {
       if (stale()) return;
       this.cache.set(k, { data, at: Date.now(), src: this.isLocal(n) ? '로컬' : '노드' }); if (!this.isLocal(n)) this.setLink(n, { state: 'online' });   // 받았으면 지난 오류는 지운다
@@ -100,10 +101,10 @@ class NodeStore {
       if (PARTITION.has(code)) {
         this.setLink(n, { state: 'offline', code, retryAt: Date.now() + 5000 });
         // 사본이 없으면 Master 가 마지막으로 관측한 값으로 (가능한 자원만)
-        if (!(e0 && e0.data) && R.master && this.t.master) return this.t.master(n, R.master).then((data) => { this.cache.set(k, { data, at: Date.now(), src: 'Master 관측', observed: true, err: { code }, errAt: Date.now() }); }, () => {});
+        if (!(e0 && e0.data) && R.master && this.t.master) return this.t.master(n, R.master).then((data) => { if (stale()) return; this.cache.set(k, { data, at: Date.now(), src: 'Master 관측', observed: true, err: { code }, errAt: Date.now() }); }, () => {});
       } else if (code === 'DELEGATION_REQUIRED') this.setLink(n, { state: 'far', code, via: err.via || '' });
       else if (code === 'NODE_NOT_FOUND' || code === 'NODE_UNMAPPED') this.setLink(n, { state: 'none', code });
-    }).finally(() => { if (this.inflight.get(k) === p) this.inflight.delete(k); this.persist(); this.emit(n); });
+    }).finally(() => { if (this.inflight.get(k) === p) this.inflight.delete(k); if (this.gen === g0) this.persist(); this.emit(n); });
     this.inflight.set(k, p); this.emit(n);
     return p;
   }
@@ -196,10 +197,12 @@ class NodeStore {
   /** 속성 key 를 그 노드의 파일 하나로(file 이 null 이면 지운다) — 그 노드의 지금 값을 읽고 → 파일 → 속성표 → 사본 → 지난 파일. 어디서 실패하든 사본은 그대로 */
   async setNodeFile(n, key, field, file) {
     if (!this.canWrite(n)) throw { code: 'PARTITIONED', message: '노드와 끊김 — 표시만 되고 바꿀 수 없음' };
+    const g0 = this.gen;
     try {
       const got = await this.t.invoke(n, RES.props.op, {}), cur = got && got.props && got.props[key], oldV = (cur && cur[field]) || '', old = oldV.startsWith(DATA_DIR) ? oldV.slice(DATA_DIR.length) : '';
       if (file) await this.putNodeFile(n, file.rel, file.bytes, file.mime);
       const r = await this.t.invoke(n, OP_PATCH, { set: { [key]: file ? { [field]: DATA_DIR + file.rel } : null } });
+      if (g0 !== this.gen) return r.props;
       this.cache.set(this.key(n, 'props'), { data: r, at: Date.now(), src: this.isLocal(n) ? '로컬' : '노드' });
       if (file) { const k = n + '|' + file.rel, v = { mime: file.mime, b64: b64Of(file.bytes) }; IDB.put(k, v); this.remember(k, v.mime, v.b64); }
       if (old && (!file || old !== file.rel)) await this.t.invoke(n, OP_DEL, { path: old }).catch(() => {});
@@ -502,7 +505,7 @@ class NodeStore {
   }
 
   /** 비우기 — 로그아웃 때(다음 사람이 앞 사람의 사본을 보지 않게) */
-  clear() { this.pendingRes.clear(); for (const S of this.deskSends.values()) for (const w of S.waiters) w.no({ code: 'CLEARED', message: '로그아웃으로 비워짐' }); this.pendingDesk.clear(); this.deskSends.clear(); this.desks.clear();   // 바탕 구성의 표시층 · 대기열 · 상태 — watch 목록과 타이머는 남긴다(토큰 갱신도 clear 를 부른다)
+  clear() { clearTimeout(this._saveT); this.pendingRes.clear(); for (const S of this.deskSends.values()) for (const w of S.waiters) w.no({ code: 'CLEARED', message: '로그아웃으로 비워짐' }); this.pendingDesk.clear(); this.deskSends.clear(); this.desks.clear();   // 바탕 구성의 표시층 · 대기열 · 상태 — watch 목록과 타이머는 남긴다(토큰 갱신도 clear 를 부른다)
     this.cache.clear(); this.links.clear(); this.views.clear(); this.inflight.clear(); this.blobs.clear(); this.gen++; IDB.clear(); try { localStorage.removeItem('terra.cache'); } catch (e) {} for (const f of this.subs) { try { f(''); } catch (e) {} } }
   /** GUI 보기 상태 — 노드 키마다 (노드 데이터가 아니다) */
   view(key) { if (!this.views.has(key)) this.views.set(key, LS.get('terra.pc.' + key) || null); return this.views.get(key); }

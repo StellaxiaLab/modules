@@ -337,14 +337,17 @@ class Component extends DCLogic {
       if (e && ty.family === 'net') { if (e.net === false || e.net === 'off') why = '네트워크 자원은 닫혀 있습니다. 노드 설정 파일(svi.runtime.net)에서만 열 수 있고 재시작이 필요합니다 — 이 화면에서는 열지 않습니다.'; else if (A(e.net_endpoints).length && v.address && !A(e.net_endpoints).some((x) => String(x.address || x) === v.address)) why = '허용 목록 밖 주소입니다. 노드 설정 파일(svi.runtime.net_endpoints)에 추가해야 합니다.'; }
       o.envBad = !!why; o.envWhy = why;
       o.envFix = !!why && ty.family === 'file' && L0 && !this.state.envDlg; o.envFixT = '폴더 허용…'; o.envFixGo = () => this.envOpen('add', dirOf(v.path)); }
-    o.exists = !!decls.find((d) => d.name === s.fname.trim()); o.replace = !!s.replace; o.onReplace = (e) => set({ replace: e.target.checked });
+    o.exists = !!decls.find((d) => d.name === s.fname.trim());
+    const RG = R && window.TerraGate ? window.TerraGate('terra.daemon.svi.declarations.post', { replace: true }) : { open: true, why: '' };   // 앱(위임) 토큰은 replace 가 늘 거절 — 잠근다
+    o.repLock = !RG.open; o.repWhy = RG.open ? '' : RG.why; o.repDis = RG.open ? null : 'disabled'; o.replace = !!s.replace && RG.open; o.onReplace = RG.open ? (e) => set({ replace: e.target.checked }) : null;
     o.makeOff = s.busy || lockMod || !!ty.closed || (R && !this.rid()) || (R && o.envBad); o.makeT = lockMod ? '만들기 — Terra 미지원' : ty.closed ? '만들 수 없음 — ' + ty.closed : s.busy ? '만드는 중…' : o.envBad && R ? '만들 수 없음 — 울타리 밖' : '자원 만들기';
     o.makeApi = lockMod ? '모듈 유형 → 모듈 어댑터 경로 : Terra 미지원' : 'svi.declarations.post · ' + (this.props.nodeName || '');
     o.submit = (e) => { if (e && e.preventDefault) e.preventDefault(); if (lockMod || ty.closed || (R && o.envBad)) return; const nm = s.fname.trim(), er = check(ty.schema, nm, s.vals); if (Object.keys(er).length) { set({ tried: true, msg: '값 확인 — ' + Object.values(er)[0] }); return; }
+      if (o.exists && o.repLock) { set({ msg: nm + ' — 같은 이름 있음 — 교체는 앱 토큰에 닫힘 · 이름을 바꾸거나 터미널에서' }); return; }
       if (o.exists && !s.replace) { set({ msg: nm + ' — 같은 이름 있음 · 교체 : 아래 칸 켬' }); return; }
       const v = castOf(ty.schema, s.vals), inp = { family: ty.family, name: nm, direction: v.direction || 'source' };
       if (ty.fromNode) Object.assign(inp, v);   // 노드가 알려 준 내장 유형 — 칸이 선언 입력 그대로(평평하게)
-      else if (ty.family === 'file') inp.path = v.path; if (!ty.fromNode && ty.family === 'process') { inp.command = v.command; if (v.args && v.args.length) inp.args = v.args; } if (!ty.fromNode && ty.family === 'net') { inp.address = v.address; inp.mode = v.mode || 'connect'; inp.framing = v.framing || 'chunk'; } if (s.replace) inp.replace = true;
+      else if (ty.family === 'file') inp.path = v.path; if (!ty.fromNode && ty.family === 'process') { inp.command = v.command; if (v.args && v.args.length) inp.args = v.args; } if (!ty.fromNode && ty.family === 'net') { inp.address = v.address; inp.mode = v.mode || 'connect'; inp.framing = v.framing || 'chunk'; } if (s.replace && !o.repLock) inp.replace = true;
       this.act(nm + ' 만들기', () => window.TerraSviMake.declare(this.rid(), inp), (d) => { d.decls = d.decls.filter((x) => x.name !== nm).concat({ family: ty.family, name: nm, dir: inp.direction, resId: 'r-' + nm, origin: 'runtime', state: o.envBad ? 'refused_by_policy' : 'applied', reason: o.envBad ? 'SVI_DECLARATION_OUTSIDE_ENVELOPE — ' + o.envWhy : '', detail: inp.path || inp.command || inp.address });
         if (!o.envBad) d.eps.push({ resId: 'r-' + nm, resName: nm, node: 'nd_' + (this.props.nodeName || 'desk'), epId: inp.direction === 'sink' ? 'in' : 'out', dir: inp.direction, interaction: 'stream', schema: 'terra.bytes@1', status: 'available', ops: [] }); return d; });
       set({ fname: '', vals: {}, tried: false, replace: false }); };
