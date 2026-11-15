@@ -2,6 +2,41 @@
  "$comment": "tools/gen-master-delegated.mjs 가 Terra Master 계약에서 뽑은 표 — 손으로 고치지 않는다",
  "contractVersion": "1.7.0",
  "operations": {
+  "terra.master.confirmations.by-confirmation-id.get": {
+   "method": "GET",
+   "path": "/api/v1/confirmations/{confirmation_id}",
+   "permissions": [
+    "process.execute"
+   ]
+  },
+  "terra.master.connection-groups.by-group-id.get": {
+   "method": "GET",
+   "path": "/api/v1/connection-groups/{group_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.connection-groups.get": {
+   "method": "GET",
+   "path": "/api/v1/connection-groups",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.core.bundles.by-digest.get": {
+   "method": "GET",
+   "path": "/api/v1/core/bundles/{digest}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.core.releases.get": {
+   "method": "GET",
+   "path": "/api/v1/core/releases",
+   "permissions": [
+    "node.read"
+   ]
+  },
   "terra.master.crossboundary.login-routes.by-node-id.resolve.post": {
    "method": "POST",
    "path": "/api/v1/crossboundary/login-routes/{node_id}/resolve",
@@ -12,6 +47,48 @@
   "terra.master.crossboundary.login-routes.get": {
    "method": "GET",
    "path": "/api/v1/crossboundary/login-routes",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.crossboundary.peer-grants.get": {
+   "method": "GET",
+   "path": "/api/v1/crossboundary/peer-grants",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.crossboundary.sessions.by-session-id.get": {
+   "method": "GET",
+   "path": "/api/v1/crossboundary/sessions/{session_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.codes.get": {
+   "method": "GET",
+   "path": "/api/v1/fleets/{fleet_id}/codes",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.get": {
+   "method": "GET",
+   "path": "/api/v1/fleets/{fleet_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.releases.get": {
+   "method": "GET",
+   "path": "/api/v1/fleets/{fleet_id}/releases",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.fleets.get": {
+   "method": "GET",
+   "path": "/api/v1/fleets",
    "permissions": [
     "node.read"
    ]
@@ -44,6 +121,100 @@
     "node.read"
    ]
   },
+  "terra.master.modules.approval-ceiling.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/approval-ceiling",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.market.revocations.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/market/revocations",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.mirror-blocks.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/mirror-blocks",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.packages.by-digest.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/packages/{digest}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.prefixes.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/prefixes",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.promotions.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/promotions",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.promotions.outbox.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/promotions/outbox",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.publications.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/publications",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.trust-anchor.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/trust-anchor",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.upstreams.by-id.adoptions.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/upstreams/{id}/adoptions",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.upstreams.by-id.conflicts.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/upstreams/{id}/conflicts",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.modules.upstreams.get": {
+   "method": "GET",
+   "path": "/api/v1/modules/upstreams",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.monitor.alerts.get": {
+   "method": "GET",
+   "path": "/api/v1/monitor/alerts",
+   "permissions": []
+  },
+  "terra.master.monitor.snapshot.get": {
+   "method": "GET",
+   "path": "/api/v1/monitor/snapshot",
+   "permissions": []
+  },
   "terra.master.network.logs.get": {
    "method": "GET",
    "path": "/api/v1/network/logs",
@@ -68,6 +239,13 @@
   "terra.master.network.nodes.by-node-id.get": {
    "method": "GET",
    "path": "/api/v1/network/nodes/{node_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.probe-history.get": {
+   "method": "GET",
+   "path": "/api/v1/network/probe-history",
    "permissions": [
     "node.read"
    ]
@@ -121,6 +299,13 @@
     "module.manage"
    ]
   },
+  "terra.master.nodes.by-node-id.modules.assignments.get": {
+   "method": "GET",
+   "path": "/api/v1/nodes/{node_id}/modules/assignments",
+   "permissions": [
+    "module.manage"
+   ]
+  },
   "terra.master.nodes.by-node-id.modules.assignments.post": {
    "method": "POST",
    "path": "/api/v1/nodes/{node_id}/modules/assignments",
@@ -128,11 +313,32 @@
     "module.manage"
    ]
   },
+  "terra.master.nodes.by-node-id.modules.desired.get": {
+   "method": "GET",
+   "path": "/api/v1/nodes/{node_id}/modules/desired",
+   "permissions": [
+    "node.read"
+   ]
+  },
   "terra.master.nodes.by-node-id.modules.get": {
    "method": "GET",
    "path": "/api/v1/nodes/{node_id}/modules",
    "permissions": [
     "node.read"
+   ]
+  },
+  "terra.master.nodes.by-node-id.operations.get": {
+   "method": "GET",
+   "path": "/api/v1/nodes/{node_id}/operations",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.nodes.enroll-codes.get": {
+   "method": "GET",
+   "path": "/api/v1/nodes/enroll-codes",
+   "permissions": [
+    "node.control"
    ]
   },
   "terra.master.nodes.get": {
@@ -180,6 +386,20 @@
   "terra.master.route.sessions.get": {
    "method": "GET",
    "path": "/api/v1/route/sessions",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.service-tunnels.audits.get": {
+   "method": "GET",
+   "path": "/api/v1/service-tunnels/audits",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.service-tunnels.declarations.get": {
+   "method": "GET",
+   "path": "/api/v1/service-tunnels/declarations",
    "permissions": [
     "node.read"
    ]
