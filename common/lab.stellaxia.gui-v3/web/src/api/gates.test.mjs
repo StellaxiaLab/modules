@@ -13,7 +13,8 @@ test('APP_PERMS = module.json 의 앱 권한', () => {
 
 test('Master — 위임 표에 있으면 열림, 없으면 코어', () => {
   assert.equal(gate('terra.master.jobs.get').open, true);
-  const g = gate('terra.master.network.probes.post'); assert.equal(g.open, false); assert.equal(g.needs, 'core'); assert.equal(g.why, '잠김 : 위임 없음 — terra.master.network.probes.post');
+  assert.equal(gate('terra.master.network.probes.post').open, true);
+  const g = gate('terra.master.route.policies.put'); assert.equal(g.open, false); assert.equal(g.needs, 'core'); assert.equal(g.why, '잠김 : 위임 없음 — terra.master.route.policies.put');
   assert.equal(gate('terra.master.service-tunnels.open.post').needs, 'core');
   assert.equal(gate('terra.master.svi.handles.post').needs, 'core');
 });

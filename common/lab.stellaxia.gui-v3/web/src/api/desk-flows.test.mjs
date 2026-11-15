@@ -88,7 +88,9 @@ test('네트워크 쓰기 — op 이름은 Master 계약 꼴 · 입력 모양', 
   const ids = NET_WRITES.map((w) => w.op);
   assert.deepEqual(ids, ['terra.master.network.mesh.wireguard.reconcile.post', 'terra.master.network.mesh.wireguard.plan.post', 'terra.master.network.mesh.wireguard.peers.revoke.post', 'terra.master.network.probes.post',
     'terra.master.route.policies.put', 'terra.master.route.policies.by-policy-id.delete', 'terra.master.route.sessions.by-session-id.close.post', 'terra.master.connection-groups.by-group-id.close.post']);
-  for (const w of NET_WRITES) { assert.ok(!M.operations[w.op], w.op + ' 는 아직 위임 밖이다 — 열렸으면 이 시험을 고친다(화면은 저절로 열린다)'); assert.ok(w.undo && w.what, w.id); }
+  // P11-2 가 연 것(탐침 · 메시 계획 · 세션 닫기 · 연결 그룹 닫기)은 표에 있고, 나머지는 아직 위임 밖이다 — 열렸으면 여기를 고친다(화면은 저절로 열린다)
+  const OPENED = new Set(['terra.master.network.mesh.wireguard.plan.post', 'terra.master.network.probes.post', 'terra.master.route.sessions.by-session-id.close.post', 'terra.master.connection-groups.by-group-id.close.post']);
+  for (const w of NET_WRITES) { assert.equal(!!M.operations[w.op], OPENED.has(w.op), w.op + (OPENED.has(w.op) ? ' 는 위임 표에 있어야 한다(P11-2)' : ' 는 아직 위임 밖이다')); assert.ok(w.undo && w.what, w.id); }
   const by = Object.fromEntries(NET_WRITES.map((w) => [w.id, w]));
   assert.deepEqual(by.plan.input({ nodes: 'a, b', cidr: '10.0.0.0/24', listen_port: '51820' }), { nodes: [{ node_id: 'a' }, { node_id: 'b' }], cidr: '10.0.0.0/24', listen_port: 51820 });
   assert.equal(by.plan.check({ nodes: 'a' }), '노드 둘 이상 필요');

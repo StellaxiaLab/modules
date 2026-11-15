@@ -18,10 +18,10 @@ const GATED = {
   'terra.master.svi.handles.by-handle-id.events.get': '자원 상태 창 값 보기 — SSE 구독',
   'terra.master.svi.handles.by-handle-id.delete': '자원 상태 창 값 보기 — 핸들 닫기',
   'terra.master.admin.users.get': '허가 주체 — 사람 목록(나 말고는 위임 가드도 막는다)',
-  'terra.master.network.mesh.wireguard.reconcile.post': '네트워크 › 자동 조정', 'terra.master.network.mesh.wireguard.plan.post': '네트워크 › 수동 계획',
-  'terra.master.network.mesh.wireguard.peers.revoke.post': '네트워크 › 피어 철회', 'terra.master.network.probes.post': '네트워크 › probe 실행',
+  'terra.master.network.mesh.wireguard.reconcile.post': '네트워크 › 자동 조정', 
+  'terra.master.network.mesh.wireguard.peers.revoke.post': '네트워크 › 피어 철회', 
   'terra.master.route.policies.put': '네트워크 › 정책 저장', 'terra.master.route.policies.by-policy-id.delete': '네트워크 › 정책 지우기',
-  'terra.master.route.sessions.by-session-id.close.post': '네트워크 › 세션 닫기', 'terra.master.connection-groups.by-group-id.close.post': '네트워크 › 연결 그룹 닫기',
+  
   'terra.master.service-tunnels.open.post': '자원 관리 › 서비스 터널 열기',
   'terra.master.users.by-user-id.external-identities.post': '설정 › 계정 › 외부 신원 연결', 'terra.master.users.by-user-id.external-identities.delete': '설정 › 계정 › 외부 신원 해제',
   'terra.master.admin.external-issuers.get': '설정 › 계정 › 신뢰 발급자 목록', 'terra.master.admin.external-issuers.post': '설정 › 계정 › 신뢰 발급자 더하기', 'terra.master.admin.external-issuers.delete': '설정 › 계정 › 신뢰 발급자 빼기'
