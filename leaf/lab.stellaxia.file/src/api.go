@@ -473,7 +473,7 @@ func newOperationsHandler(manager *store.Manager, transfers *transfer.Manager) h
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"transfer_id": record.ID, "bytes": record.Offset,
-			"checksum_sha256": record.Checksum, "verified": true,
+			"checksum_sha256": record.Checksum, "verified": record.Verified,
 		})
 	})
 
@@ -538,7 +538,7 @@ func newOperationsHandler(manager *store.Manager, transfers *transfer.Manager) h
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"transfer_id": record.ID, "bytes": record.Offset,
-			"checksum_sha256": record.Checksum, "verified": true,
+			"checksum_sha256": record.Checksum, "verified": record.Verified,
 		})
 	})
 

@@ -123,7 +123,7 @@
     },
     "TRANSFER_TOO_LARGE": {
       "title": "상한 초과",
-      "description": "전송 크기가 이 노드가 받는 상한을 넘는다.",
+      "description": "전송 크기가 이 노드가 받는 상한을 넘거나, 청크가 prepare에서 선언한 size_bytes를 넘어 쓰려 한다.",
       "retryable": false,
       "httpStatus": 413,
       "userAction": "파일을 나누거나 노드의 상한을 조정하십시오."
@@ -144,7 +144,7 @@
     },
     "CHECKSUM_MISMATCH": {
       "title": "파일 체크섬 불일치",
-      "description": "완료된 파일이 prepare에서 합의한 것과 다르다. 부분 파일과 checkpoint를 지웠다.",
+      "description": "완료된 파일이 prepare에서 합의한 것과 다르다. 부분 파일과 checkpoint를 지웠다. overwrite였다면 기존 대상 파일은 그대로 남아 있다.",
       "retryable": false,
       "httpStatus": 409,
       "userAction": "전송을 처음부터 다시 하십시오."
@@ -3019,6 +3019,8 @@
       "errors": [
         "CHUNK_CHECKSUM_MISMATCH",
         "CHUNK_OUT_OF_ORDER",
+        "TRANSFER_TOO_LARGE",
+        "FILE_TARGET_EXISTS",
         "TRANSFER_NOT_FOUND",
         "TRANSFER_EXPIRED",
         "TRANSFER_WRONG_STATE",
@@ -3317,7 +3319,7 @@
         "processing": [
           {
             "id": "verify",
-            "description": "push면 파일 전체 체크섬을 대조합니다.",
+            "description": "push면 받은 바이트가 선언한 크기(size_bytes)에 이르렀는지 확인하고, 체크섬이 있으면 파일 전체를 대조합니다. overwrite는 임시 파일에 받았다가 검증을 통과해야 대상 위로 바꿉니다.",
             "transaction": "none"
           },
           {
@@ -3331,7 +3333,7 @@
           {
             "resourceId": "lab.stellaxia.file.entry",
             "action": "update",
-            "description": "검증에 실패하면 부분 파일이 삭제됩니다."
+            "description": "검증에 실패하면 부분 파일이 삭제됩니다. overwrite에서는 임시 파일만 삭제되고 기존 대상 파일은 그대로 남습니다."
           }
         ]
       },
@@ -3363,7 +3365,7 @@
             "verified": {
               "type": "boolean",
               "title": "검증됨",
-              "description": "체크섬이 일치했는지입니다."
+              "description": "노드가 파일 전체 체크섬을 실제로 대조해 일치했을 때만 true입니다. 체크섬 없이 prepare한 push와 pull은 노드가 대조하지 않으므로 false이며(pull의 대조는 호출자가 합니다), false는 검증 실패가 아니라 검증하지 않았다는 뜻입니다."
             }
           }
         },
@@ -3996,7 +3998,7 @@
             "verified": {
               "type": "boolean",
               "title": "검증됨",
-              "description": "체크섬이 일치했는지입니다."
+              "description": "노드가 파일 전체 체크섬을 실제로 대조해 일치했을 때만 true입니다. 체크섬 없이 prepare한 push와 pull은 노드가 대조하지 않으므로 false이며(pull의 대조는 호출자가 합니다), false는 검증 실패가 아니라 검증하지 않았다는 뜻입니다."
             }
           }
         },

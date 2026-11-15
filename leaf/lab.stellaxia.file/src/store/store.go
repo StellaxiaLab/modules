@@ -84,6 +84,9 @@ type Chunk struct {
 	// where the end was, so reporting it costs nothing and saves the caller a
 	// second round trip to ask — which on the mount path is the expensive part.
 	Size int64 `json:"size"`
+	// Exclusive makes WriteChunk refuse a path that already exists (O_EXCL).
+	// It is a request-side flag and is never set on a chunk that was read.
+	Exclusive bool `json:"-"`
 }
 
 // Manager owns one confined handle per shared folder.
@@ -423,8 +426,15 @@ func (m *Manager) WriteChunk(rootName, requested string, chunk Chunk) error {
 	if err := m.mkdirAll(r, path.Dir(cleaned)); err != nil {
 		return err
 	}
-	handle, err := r.handle.OpenFile(cleaned, os.O_CREATE|os.O_WRONLY, 0o600)
+	flags := os.O_CREATE | os.O_WRONLY
+	if chunk.Exclusive {
+		flags |= os.O_EXCL
+	}
+	handle, err := r.handle.OpenFile(cleaned, flags, 0o600)
 	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("%w: %s", ErrTargetExists, cleaned)
+		}
 		return translate(err)
 	}
 	defer handle.Close()
