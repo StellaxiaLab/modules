@@ -9,6 +9,20 @@
     "process.execute"
    ]
   },
+  "terra.master.confirmations.by-confirmation-id.reject.post": {
+   "method": "POST",
+   "path": "/api/v1/confirmations/{confirmation_id}/reject",
+   "permissions": [
+    "process.execute"
+   ]
+  },
+  "terra.master.connection-groups.by-group-id.close.post": {
+   "method": "POST",
+   "path": "/api/v1/connection-groups/{group_id}/close",
+   "permissions": [
+    "node.control"
+   ]
+  },
   "terra.master.connection-groups.by-group-id.get": {
    "method": "GET",
    "path": "/api/v1/connection-groups/{group_id}",
@@ -21,6 +35,13 @@
    "path": "/api/v1/connection-groups",
    "permissions": [
     "node.read"
+   ]
+  },
+  "terra.master.connection-groups.post": {
+   "method": "POST",
+   "path": "/api/v1/connection-groups",
+   "permissions": [
+    "node.control"
    ]
   },
   "terra.master.core.bundles.by-digest.get": {
@@ -51,6 +72,13 @@
     "node.read"
    ]
   },
+  "terra.master.crossboundary.peer-grants.by-grant-id.revoke.post": {
+   "method": "POST",
+   "path": "/api/v1/crossboundary/peer-grants/{grant_id}/revoke",
+   "permissions": [
+    "node.control"
+   ]
+  },
   "terra.master.crossboundary.peer-grants.get": {
    "method": "GET",
    "path": "/api/v1/crossboundary/peer-grants",
@@ -63,6 +91,14 @@
    "path": "/api/v1/crossboundary/sessions/{session_id}",
    "permissions": [
     "node.read"
+   ]
+  },
+  "terra.master.files.transfers.post": {
+   "method": "POST",
+   "path": "/api/v1/files/transfers",
+   "permissions": [
+    "file.read",
+    "file.write"
    ]
   },
   "terra.master.fleets.by-fleet-id.codes.get": {
@@ -86,11 +122,39 @@
     "node.read"
    ]
   },
+  "terra.master.fleets.by-fleet-id.slots.by-slot-id.start.post": {
+   "method": "POST",
+   "path": "/api/v1/fleets/{fleet_id}/slots/{slot_id}/start",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.slots.by-slot-id.stop.post": {
+   "method": "POST",
+   "path": "/api/v1/fleets/{fleet_id}/slots/{slot_id}/stop",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.slots.post": {
+   "method": "POST",
+   "path": "/api/v1/fleets/{fleet_id}/slots",
+   "permissions": [
+    "node.control"
+   ]
+  },
   "terra.master.fleets.get": {
    "method": "GET",
    "path": "/api/v1/fleets",
    "permissions": [
     "node.read"
+   ]
+  },
+  "terra.master.fleets.post": {
+   "method": "POST",
+   "path": "/api/v1/fleets",
+   "permissions": [
+    "node.control"
    ]
   },
   "terra.master.jobs.by-job-id.cancel.post": {
@@ -205,6 +269,11 @@
     "node.read"
    ]
   },
+  "terra.master.monitor.alerts.ack.post": {
+   "method": "POST",
+   "path": "/api/v1/monitor/alerts/{alert_id}/ack",
+   "permissions": []
+  },
   "terra.master.monitor.alerts.get": {
    "method": "GET",
    "path": "/api/v1/monitor/alerts",
@@ -227,6 +296,13 @@
    "path": "/api/v1/network/mesh/wireguard/peers",
    "permissions": [
     "node.read"
+   ]
+  },
+  "terra.master.network.mesh.wireguard.plan.post": {
+   "method": "POST",
+   "path": "/api/v1/network/mesh/wireguard/plan",
+   "permissions": [
+    "node.control"
    ]
   },
   "terra.master.network.networks.get": {
@@ -262,6 +338,13 @@
    "path": "/api/v1/network/probes",
    "permissions": [
     "node.read"
+   ]
+  },
+  "terra.master.network.probes.post": {
+   "method": "POST",
+   "path": "/api/v1/network/probes",
+   "permissions": [
+    "node.control"
    ]
   },
   "terra.master.network.state.get": {
@@ -327,11 +410,32 @@
     "node.read"
    ]
   },
+  "terra.master.nodes.by-node-id.modules.pins.by-module-id.delete": {
+   "method": "DELETE",
+   "path": "/api/v1/nodes/{node_id}/modules/pins/{module_id}",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.nodes.by-node-id.modules.pins.post": {
+   "method": "POST",
+   "path": "/api/v1/nodes/{node_id}/modules/pins",
+   "permissions": [
+    "node.control"
+   ]
+  },
   "terra.master.nodes.by-node-id.operations.get": {
    "method": "GET",
    "path": "/api/v1/nodes/{node_id}/operations",
    "permissions": [
     "node.read"
+   ]
+  },
+  "terra.master.nodes.by-node-id.patch": {
+   "method": "PATCH",
+   "path": "/api/v1/nodes/{node_id}",
+   "permissions": [
+    "node.control"
    ]
   },
   "terra.master.nodes.enroll-codes.get": {
@@ -374,6 +478,13 @@
    "path": "/api/v1/route/policies",
    "permissions": [
     "node.read"
+   ]
+  },
+  "terra.master.route.sessions.by-session-id.close.post": {
+   "method": "POST",
+   "path": "/api/v1/route/sessions/{session_id}/close",
+   "permissions": [
+    "node.control"
    ]
   },
   "terra.master.route.sessions.by-session-id.get": {
