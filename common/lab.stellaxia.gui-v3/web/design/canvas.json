@@ -202,9 +202,9 @@
       "x": 14800,
       "y": 1820
     },
-    "StatusBar.dc.html": {
-      "h": 44,
-      "title": "상단 상태 줄 — 위치 · 연결 · 알림 · 창 · 테마 · 계정 (씬 윗줄)",
+    "MapCard.dc.html": {
+      "h": 300,
+      "title": "지도 못 받음 · 노드 없음 카드 — 장면 가운데(전역 틀 오른쪽)",
       "w": 1080,
       "x": 15520,
       "y": 1820
@@ -281,7 +281,7 @@
     "ModStatus.dc.html",
     "WebBrowser.dc.html",
     "TerraNodes.dc.html",
-    "StatusBar.dc.html",
+    "MapCard.dc.html",
     "StateBand.dc.html"
   ],
   "pages": [],

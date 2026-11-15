@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terra — 지도 못 받음 · 노드 없음 카드</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.mc-btn{height:32px;min-width:32px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;background:transparent;color:var(--t-text,#d6f4de);border:1px solid rgba(var(--t-line-rgb,70,160,108),.6);font:inherit;cursor:pointer}
+.mc-btn:hover:not([disabled]){background:rgba(var(--t-tint-rgb,70,170,110),.18)}
+.mc-btn[disabled]{opacity:.55;cursor:default}
+.mc-btn:focus-visible{outline:1px solid var(--t-hi,#d0ff96);outline-offset:2px}
+</style>
+</helmet>
+<sc-if value="{{cardOn}}" hint-placeholder-val="{{ false }}">
+  <div role="alert" data-sb style="position: fixed; left: {{left}}px; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+    <div style="box-sizing: border-box; width: 400px; max-width: calc(100% - 32px); padding: 16px 18px; pointer-events: auto; background: var(--t-bg,#040614); border: 1px solid {{cardEdge}}; color: var(--t-text,#d6f4de); font: 500 13px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
+      <b style="color: {{cardEdge}}; display: block; margin-bottom: 4px;">{{head}}</b>
+      <span style="color: var(--t-mut,#9cc4a8); display: block; margin-bottom: 12px;">{{sub}}</span>
+      <sc-if value="{{canRetry}}" hint-placeholder-val="{{ false }}"><button type="button" class="mc-btn" disabled="{{retryOff}}" onClick="{{retry}}">{{retryT}}</button></sc-if>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"on":{"editor":null,"default":true},"bar":{"editor":null},"$preview":{"width":1440,"height":300}}'>
+// 지도 못 받음 · 노드 없음 카드 — 장면 가운데(전역 틀 오른쪽)에 뜨는 카드. 상단 상태 줄(0.6.6까지)에 있던 것을 줄 없이 남겼다(11/15 사용자 결정 "가운데 카드 남겨").
+//   언제: 노드 목록을 한 번도 못 받았거나(error · 지도 비어 있음) 받았는데 정말 없을 때(empty). 사본이 있는 채 실패하면 카드는 없고 지도는 마지막 사본 그대로(설정 › GUI 에만 말한다)
+//   글 · 판정은 src/api/map-state.js(window.TerraMapState) — 설정 › GUI 의 지도 상태와 같은 것. 시안(?demo · 캔버스)에서는 뜨지 않는다
+//   다시 그리는 것은 값이 바뀌었을 때만(폴링에 깜박이지 않게 setState 를 건너뛴다)
+const EVENTS = ['terra-topology-state', 'terra-theme'];
+class Component extends DCLogic {
+  componentDidMount() {
+    this._redraw = () => { const v = this.readAll(), k = JSON.stringify(v); if (k !== this._k) { this._k = k; this.setState({ v }); } };
+    this._t = setInterval(() => { if (document.visibilityState !== 'hidden') this._redraw(); }, 1000);
+    for (const ev of EVENTS) window.addEventListener(ev, this._redraw);
+    this._redraw();
+  }
+  componentWillUnmount() { clearInterval(this._t); for (const ev of EVENTS) window.removeEventListener(ev, this._redraw); }
+  readAll() {
+    const W = window, B = this.props.bar, TP = W.TerraTopology || null, recs = TP && TP.records ? TP.records() : [];
+    const M = W.TerraMapState ? W.TerraMapState({ real: !!W.TerraTransport, state: W.TerraTopologyState || null, records: recs, nodeStats: W.TerraNodeStats, okAt: this._okAt || 0, ago: (at) => (W.TerraDesk ? W.TerraDesk.ago(new Date(at).toISOString()) : '') }) : { card: '', head: '', sub: '', canRetry: false, okAt: 0 };
+    this._okAt = M.okAt;
+    return { left: B && B.left ? B.left() : 0, card: M.card, head: M.head, sub: M.sub, canRetry: M.canRetry, busy: !!this._busy };
+  }
+  renderVals() {
+    const v = this.state.v || this.readAll(), on = this.props.on ?? true;
+    return Object.assign({}, v, { cardOn: !!v.card && on, cardEdge: v.card === 'err' ? 'var(--t-err2,#ff9c8c)' : 'var(--t-line-c,#3f8f66)', retryOff: v.busy ? 'disabled' : null, retryT: v.busy ? '받는 중…' : '다시 시도',
+      retry: () => { if (this._busy || !window.TerraTopologyRetry) return; this._busy = true; this._redraw(); Promise.resolve(window.TerraTopologyRetry()).finally(() => { this._busy = false; this._redraw(); }); } });
+  }
+}
+</script>
+</body>
+</html>

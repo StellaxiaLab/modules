@@ -398,6 +398,27 @@ button{font-family:inherit}
                     </div>
                   </sc-if>
 
+                  <sc-if value="{{w.sGui}}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="flex-grow: 1;">
+                          <div style="font-size: 13px;">{{w.gui.theme.label}}</div>
+                          <div style="font-size: 11.5px; color: {{t.dim}};">{{w.gui.theme.note}}</div>
+                        </div>
+                        <button type="button" role="switch" aria-checked="{{w.gui.theme.on}}" aria-label="{{w.gui.theme.label}}" disabled="{{w.gui.theme.off}}" onClick="{{w.gui.theme.flip}}" style="position: relative; width: 38px; height: 22px; border: 0; border-radius: 11px; background: {{w.gui.theme.bg}}; cursor: pointer;"><span style="position: absolute; top: 3px; left: {{w.gui.theme.knob}}px; width: 16px; height: 16px; border-radius: 8px; background: #fff;"></span></button>
+                      </div>
+                      <div role="status" aria-label="지도 상태" style="display: flex; align-items: flex-start; gap: 12px;">
+                        <div style="flex-grow: 1; min-width: 0;">
+                          <div style="font-size: 13px;">지도 상태</div>
+                          <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; margin-top: 2px;"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{w.gui.map.dot}}; flex-shrink: 0;"></span><span>{{w.gui.map.stat}}</span></div>
+                          <sc-if value="{{w.gui.map.hasHead}}" hint-placeholder-val="{{ false }}"><div style="font-size: 12px; font-weight: 600; margin-top: 6px; color: {{w.gui.map.dot}};">{{w.gui.map.head}}</div></sc-if>
+                          <sc-if value="{{w.gui.map.hasSub}}" hint-placeholder-val="{{ false }}"><div style="font-size: 11.5px; color: {{t.dim}}; margin-top: 2px;">{{w.gui.map.sub}}</div></sc-if>
+                        </div>
+                        <sc-if value="{{w.gui.map.retryOn}}" hint-placeholder-val="{{ false }}"><button type="button" disabled="{{w.gui.map.retryOff}}" onClick="{{w.gui.map.retry}}" style="height: 28px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer; flex-shrink: 0;">{{w.gui.map.retryT}}</button></sc-if>
+                      </div>
+                    </div>
+                  </sc-if>
+
                   <sc-if value="{{w.sNode}}" hint-placeholder-val="{{ false }}">
                     <div class="nx nx-in-set {{w.nx.theme}}">
                       <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 노드 설정 읽기 전용 (쓰기 : 그 노드에서만)</div></sc-if>
@@ -1002,6 +1023,7 @@ const CFG_RULE = {
 const TABS = [
   { id: 'wall',   label: '바탕화면',  d: D.palette, scope: 'desk' },
   { id: 'look',   label: '모양',      d: D.window,  scope: 'desk' },
+  { id: 'gui',    label: 'GUI',       d: D.globe,   scope: 'browser' },   // 이 브라우저의 GUI — 테마 · 지도 상태(전에는 상단 상태 줄에 있었다, 11/15 줄 없앰)
   { id: 'node',   label: '노드 설정', d: D.gear,    scope: 'node' },
   { id: 'net',    label: '네트워크',  d: D.net,     scope: 'node' },
   { id: 'enroll', label: '등록',      d: D.tree,    scope: 'node' },
@@ -1449,12 +1471,25 @@ class Component extends DCLogic {
     Object.assign(this.state, JSON.parse(JSON.stringify(this.termPick(this._v0))), { ttermIn: '', ttBusy: false });
     this._vj = this.pcSig(); this.setState({});
   }
-  componentDidMount() { this._clk = setInterval(() => this.setState({}), 30000); if (this._clk && this._clk.unref) this._clk.unref(); if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') { this._onLo = () => this.onPcLogout(); window.addEventListener('terra-pc-logout', this._onLo); this._onWho = () => { this._dk = null; this.setState({}); }; window.addEventListener('terra-who', this._onWho); } }
+  componentDidMount() { this._clk = setInterval(() => this.setState({}), 30000); if (this._clk && this._clk.unref) this._clk.unref(); if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') { this._onLo = () => this.onPcLogout(); window.addEventListener('terra-pc-logout', this._onLo); this._onWho = () => { this._dk = null; this.setState({}); }; window.addEventListener('terra-who', this._onWho); this._onGui = () => { if (this.state.setTab === 'gui') this.setState({}); }; for (const ev of ['terra-theme', 'terra-topology-state']) window.addEventListener(ev, this._onGui); } }
+  // 설정 › GUI — 이 브라우저의 보기(라이트 · 다크)와 지도 상태(받음 · 없음 · 못 봤음 + 다시 시도). 지도 상태 글은 src/api/map-state.js(window.TerraMapState)
+  guiTab(t) {
+    const W = typeof window !== 'undefined' ? window : {}, TH = W.TerraTheme, light = TH ? TH.get() === 'light' : false;
+    const TP = W.TerraTopology, recs = TP && TP.records ? TP.records() : [];
+    const M = W.TerraMapState ? W.TerraMapState({ real: !!W.TerraTransport, state: W.TerraTopologyState, records: recs, nodeStats: W.TerraNodeStats, okAt: this._mapOkAt || 0, ago: (at) => (W.TerraDesk ? W.TerraDesk.ago(new Date(at).toISOString()) : '') }) : { tone: 'off', stat: '시안 데이터', head: '', sub: '', canRetry: false, okAt: 0 };
+    this._mapOkAt = M.okAt;
+    const TONE = { ok: '#3ecf8e', warn: '#f5b83d', err: '#ff6b6b', off: '#9aa1ab' }, busy = !!this._mapBusy;
+    return {
+      theme: { label: '라이트 테마', note: '창만 밝게 · 글자 장 · 지도는 그대로 어둡다 · 이 브라우저에만', on: light ? 'true' : 'false', off: TH ? null : 'disabled', bg: light ? '#3ecf8e' : 'rgba(128,128,128,.45)', knob: light ? 19 : 3, flip: () => { if (TH) TH.toggle(); } },
+      map: { stat: M.stat, dot: TONE[M.tone] || TONE.off, head: M.head, hasHead: !!M.head, sub: M.sub, hasSub: !!M.sub, retryOn: M.canRetry, retryT: busy ? '받는 중…' : '다시 시도', retryOff: busy ? 'disabled' : null,
+        retry: () => { if (!W.TerraTopologyRetry || this._mapBusy) return; this._mapBusy = true; this.setState({}); Promise.resolve(W.TerraTopologyRetry()).finally(() => { this._mapBusy = false; this.setState({}); }); } }
+    };
+  }
   real() { const T = this.TN(); return !!(T && T.t && T.t.kind !== 'mock'); }
   link() { const T = this.TN(); if (!T) return { t: '', cls: '', ro: false }; const r = T.read(this.nodeKey(), 'desk'); return Object.assign(T.linkText(this.nodeKey(), r.at), { src: r.src, loading: r.loading && !r.data }); }
   ro() { return !!this.link().ro; }
 
-  componentWillUnmount() { clearInterval(this._clk); if (this._asgT) clearInterval(this._asgT); this.followStop(); this.pvDrop(); for (const x of this._tx || []) { if (x.t) clearTimeout(x.t); if (x.job && x.job.cancel && !x.sample) x.job.cancel(); } if (this._bound && this._vt) { clearTimeout(this._vt); this.viewSave(this._boundRid); } if (this._onLo) window.removeEventListener('terra-pc-logout', this._onLo); if (this._onWho) window.removeEventListener('terra-who', this._onWho); if (this._un) this._un(); if (this.timer) clearTimeout(this.timer); if (this._onRs) window.removeEventListener('resize', this._onRs); }
+  componentWillUnmount() { clearInterval(this._clk); if (this._asgT) clearInterval(this._asgT); this.followStop(); this.pvDrop(); for (const x of this._tx || []) { if (x.t) clearTimeout(x.t); if (x.job && x.job.cancel && !x.sample) x.job.cancel(); } if (this._bound && this._vt) { clearTimeout(this._vt); this.viewSave(this._boundRid); } if (this._onLo) window.removeEventListener('terra-pc-logout', this._onLo); if (this._onWho) window.removeEventListener('terra-who', this._onWho); if (this._onGui) for (const ev of ['terra-theme', 'terra-topology-state']) window.removeEventListener(ev, this._onGui); if (this._un) this._un(); if (this.timer) clearTimeout(this.timer); if (this._onRs) window.removeEventListener('resize', this._onRs); }
   rsWatch() { if (this._onRs) return; this._onRs = () => this.setState({ vwTick: (this.state.vwTick || 0) + 1 }); window.addEventListener('resize', this._onRs); }
 
   /* ---- 저장: 노드 계정에 ---- */
@@ -2527,7 +2562,7 @@ class Component extends DCLogic {
         o.tabTitle = tab.label;
         const sc = { browser: ['이 브라우저에서만', '#9aa1ab'], desk: ['그 노드에 저장', '#7aa7ff'], node: this.remote() ? ['원격 · 읽기', '#f5b83d'] : ['노드에 적용', '#7aa7ff'], acct: ['노드 계정 ' + this.acct(), '#3ecf8e'] }[tab.scope];
         o.scope = sc[0]; o.scopeFg = sc[1]; o.scopeBd = sc[1] + '80'; o.scopeBg = sc[1] + '1a';
-        o.sWall = s.setTab === 'wall'; o.sLook = s.setTab === 'look';
+        o.sWall = s.setTab === 'wall'; o.sLook = s.setTab === 'look'; o.sGui = s.setTab === 'gui'; o.gui = this.guiTab(t);
         o.sNode = s.setTab === 'node'; o.sNet = s.setTab === 'net'; o.sEnroll = s.setTab === 'enroll'; o.sAbout = s.setTab === 'about'; o.sAcct = s.setTab === 'acct'; o.tid = s.setTab === 'acct' ? this.terraId() : { on: false };
         o.walls = WALLS.filter((wl) => wl.id !== 'img').map((wl) => ({ label: wl.label, bg: wl.bg, ink: wl.ink, on: p.wall === wl.id, bd: p.wall === wl.id ? '#ffd84d' : t.line2, off: RO ? 'disabled' : null, pick: () => this.setPref('wall', wl.id) }));
         { const im = WI.url, on = WI.on;

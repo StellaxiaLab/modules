@@ -1,5 +1,5 @@
 /* 앱 바탕 — 글꼴은 fonts.css(앱 안에서). 씬 보드가 화면 전체를 쓴다 */
-/* 디자인 토큰 — 창 보드 · 전역 틀 DOM · 상단 줄이 var(--t-*, 다크값) 으로 읽는다. 캔버스(시안)에서는 토큰이 없어 다크값 그대로 */
+/* 디자인 토큰 — 창 보드 · 전역 틀 DOM 이 var(--t-*, 다크값) 으로 읽는다. 캔버스(시안)에서는 토큰이 없어 다크값 그대로 */
 :root {
   --t-bg: #040614; --t-bg-rgb: 4,6,20; --t-sf: #0a1022; --t-text: #d6f4de; --t-mut: #9cc4a8; --t-key: #709c80; --t-hint: #86ab95; --t-off: #a6adb8;
   --t-acc: #78e89c; --t-acc-rgb: 110,236,156; --t-acc2: #96f0aa; --t-hi: #d0ff96; --t-hi-rgb: 208,255,150; --t-ok: #60e28c; --t-info: #7aa7ff; --t-info-rgb: 122,167,255; --t-off-rgb: 166,173,184;
@@ -14,7 +14,7 @@
   --t-line-rgb: 60,112,86; --t-line2-rgb: 60,112,86; --t-tint-rgb: 40,120,80; --t-line-c: #6d8f7c; --t-halo: #f3f5ee; --t-halo-rgb: 243,245,238; --t-see-a: 1; --t-see-fx: none;
   color-scheme: light;
 }
-/* 라이트 — 창 · 상단 줄만 밝아진다. 글자 장 · 지도는 어두운 화면 그대로(뒤집으면 궤도 · 구멍 칸이 무너진다). 비침 창은 --t-see-* 로 불투명 */
+/* 라이트 — 창만 밝아진다. 글자 장 · 지도는 어두운 화면 그대로(뒤집으면 궤도 · 구멍 칸이 무너진다). 비침 창은 --t-see-* 로 불투명 */
 /* 키보드 초점 · 누를 자리 최소 크기(WCAG 2.5.8) */
 :focus-visible { outline: 2px solid var(--t-hi); outline-offset: 1px; }
 [data-ctlwin] button { min-height: 24px; min-width: 24px; }
