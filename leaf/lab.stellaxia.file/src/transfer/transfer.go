@@ -96,6 +96,10 @@ type Record struct {
 	ExpiresAt time.Time `json:"expires_at"`
 	// Reason explains an aborted transfer. Empty otherwise.
 	Reason string `json:"reason,omitempty"`
+	// Verified is true only when this module compared the whole file against
+	// the checksum agreed at prepare. A push without a checksum and a pull
+	// (whose caller does the comparison) are never verified here.
+	Verified bool `json:"verified,omitempty"`
 }
 
 // Options configure a Manager.
@@ -153,6 +157,18 @@ func NewManager(options Options) (*Manager, error) {
 	}
 	return &Manager{dir: dir, store: options.Store, chunk: options.ChunkSize,
 		maxByte: options.MaxBytes, ttl: ttl, now: now}, nil
+}
+
+// writePath is where a push's bytes are written. Create writes the target
+// itself. Overwrite writes a sidecar next to it and renames it over the target
+// once the transfer is complete and verified, so a failed or abandoned
+// overwrite never costs the user the file that was already there, and no old
+// tail can survive behind shorter content.
+func writePath(record Record) string {
+	if record.Direction == Push && record.Mode == Overwrite {
+		return record.Path + "." + record.ID + ".part"
+	}
+	return record.Path
 }
 
 // ChunkSize is what callers should send.
@@ -377,6 +393,16 @@ func (m *Manager) resume(request PrepareRequest) (Record, error) {
 		return Record{}, fmt.Errorf("%w: transfer %s is %s %s/%s", ErrWrongState, record.ID,
 			record.Direction, record.Root, record.Path)
 	}
+	if record.Direction == Push && record.Offset > 0 {
+		// The checkpoint says bytes are there. If the partial file is gone
+		// (cleaned up by hand), continuing would write past a hole of zeroes.
+		if _, err := m.store.Stat(record.Root, writePath(record)); err != nil {
+			if !errors.Is(err, store.ErrNotFound) {
+				return Record{}, err
+			}
+			record.Offset = 0
+		}
+	}
 	now := m.now()
 	record.State = Prepared
 	record.Reason = ""
@@ -413,13 +439,29 @@ func (m *Manager) AcceptChunk(id string, offset int64, data []byte, digest strin
 	if offset != record.Offset {
 		return record, fmt.Errorf("%w: expected offset %d", ErrOutOfOrder, record.Offset)
 	}
+	end := offset + int64(len(data))
+	if end > record.SizeBytes {
+		return record, fmt.Errorf("%w: chunk ends at byte %d, prepare declared %d bytes",
+			ErrTooLarge, end, record.SizeBytes)
+	}
+	if m.maxByte > 0 && end > m.maxByte {
+		return record, fmt.Errorf("%w: chunk ends at byte %d, ceiling is %d", ErrTooLarge, end, m.maxByte)
+	}
 	if want := strings.ToLower(strings.TrimSpace(digest)); want != "" && want != store.Checksum(data) {
 		return record, ErrChunkMismatch
 	}
-	if err := m.store.WriteChunk(record.Root, record.Path, store.Chunk{Offset: offset, Data: data}); err != nil {
+	// Create writes the target itself and must not replace a file that appeared
+	// after prepare, so the first chunk is exclusive; a later chunk continues a
+	// partial file this transfer made, which is expected to exist. Overwrite
+	// writes a sidecar, so the original is untouched until verification passes.
+	chunk := store.Chunk{Offset: offset, Data: data, Exclusive: record.Mode != Overwrite && offset == 0}
+	if err := m.store.WriteChunk(record.Root, writePath(record), chunk); err != nil {
+		if errors.Is(err, store.ErrTargetExists) {
+			return record, fmt.Errorf("%w: %s", ErrTargetExists, record.Path)
+		}
 		return record, err
 	}
-	record.Offset = offset + int64(len(data))
+	record.Offset = end
 	record.State = Transferring
 	if err := m.save(record); err != nil {
 		return record, err
@@ -473,24 +515,49 @@ func (m *Manager) Complete(id string) (Record, error) {
 	if record.State == Aborted {
 		return record, fmt.Errorf("%w: %s was aborted", ErrWrongState, id)
 	}
+	if record.Direction == Push && record.Offset != record.SizeBytes {
+		// Nothing is changed: the sender can resume from the offset and try again.
+		return record, fmt.Errorf("%w: %s has %d of %d bytes", ErrWrongState, id, record.Offset, record.SizeBytes)
+	}
 	record.State = Verifying
 	_ = m.save(record)
 
-	if record.Direction == Push && record.Checksum != "" {
-		digest, err := m.store.ChecksumFile(record.Root, record.Path)
-		if err != nil {
-			return record, err
+	if record.Direction == Push {
+		scratch := writePath(record)
+		if record.SizeBytes == 0 {
+			// No chunk ever creates an empty file, so create it here.
+			err := m.store.WriteChunk(record.Root, scratch, store.Chunk{Exclusive: record.Mode != Overwrite})
+			if err != nil {
+				if errors.Is(err, store.ErrTargetExists) {
+					return record, fmt.Errorf("%w: %s", ErrTargetExists, record.Path)
+				}
+				return record, err
+			}
 		}
-		if digest != record.Checksum {
-			// The partial file goes. Leaving a file that says it is a report
-			// and is not is worse than leaving nothing, and the checkpoint goes
-			// with it: resuming would append to bytes already known bad.
-			_ = m.store.Remove(record.Root, record.Path, false)
-			record.State = Aborted
-			record.Reason = "checksum mismatch"
-			_ = m.save(record)
-			m.forget(id)
-			return record, ErrChecksumMismatch
+		if record.Checksum != "" {
+			digest, err := m.store.ChecksumFile(record.Root, scratch)
+			if err != nil {
+				return record, err
+			}
+			if digest != record.Checksum {
+				// The partial file goes. Leaving a file that says it is a
+				// report and is not is worse than leaving nothing, and the
+				// checkpoint goes with it: resuming would append to bytes
+				// already known bad. In overwrite mode the partial is the
+				// sidecar, so the file that was there before is still there.
+				_ = m.store.Remove(record.Root, scratch, false)
+				record.State = Aborted
+				record.Reason = "checksum mismatch"
+				_ = m.save(record)
+				m.forget(id)
+				return record, ErrChecksumMismatch
+			}
+			record.Verified = true
+		}
+		if scratch != record.Path {
+			if err := m.store.Rename(record.Root, scratch, record.Path); err != nil {
+				return record, err
+			}
 		}
 	}
 	record.State = Completed
@@ -512,7 +579,7 @@ func (m *Manager) Abort(id, reason string, deletePartial bool) (Record, error) {
 		return Record{}, err
 	}
 	if record.Direction == Push && deletePartial {
-		_ = m.store.Remove(record.Root, record.Path, false)
+		_ = m.store.Remove(record.Root, writePath(record), false)
 	}
 	record.State = Aborted
 	record.Reason = strings.TrimSpace(reason)

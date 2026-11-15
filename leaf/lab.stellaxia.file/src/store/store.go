@@ -24,6 +24,8 @@ import (
 	"io"
 	"os"
 	"path"
+	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -84,6 +86,9 @@ type Chunk struct {
 	// where the end was, so reporting it costs nothing and saves the caller a
 	// second round trip to ask — which on the mount path is the expensive part.
 	Size int64 `json:"size"`
+	// Exclusive makes WriteChunk refuse a path that already exists (O_EXCL).
+	// It is a request-side flag and is never set on a chunk that was read.
+	Exclusive bool `json:"-"`
 }
 
 // Manager owns one confined handle per shared folder.
@@ -166,12 +171,28 @@ func (m *Manager) lookup(name string) (*root, error) {
 // a shared folder. Everything else must be relative, must not climb, and is
 // slash-separated — os.Root takes the same shape on every host.
 func cleanRelative(requested string) (string, error) {
+	return cleanRelativeFor(requested, runtime.GOOS == "windows")
+}
+
+// windowsDrivePrefix matches a drive-letter path such as "C:foo" or "C:/foo".
+var windowsDrivePrefix = regexp.MustCompile(`^[A-Za-z]:`)
+
+// cleanRelativeFor is cleanRelative with the host rule injected so both hosts
+// can be tested from one machine.
+//
+// A leading "/" and ".." are refused on every host. Drive-letter forms and any
+// ":" are refused only when windows is true: there ":" means a drive or an NTFS
+// alternate data stream, while on Linux "a:b.txt" is an ordinary name that
+// List already shows, so refusing it made it visible but unreachable. The
+// Windows rules are unchanged and unverified here (the suite runs on Linux).
+func cleanRelativeFor(requested string, windows bool) (string, error) {
 	normalized := strings.ReplaceAll(strings.TrimSpace(requested), "\\", "/")
 	normalized = strings.Trim(normalized, "/")
 	if normalized == "" || normalized == "." {
 		return ".", nil
 	}
-	if strings.HasPrefix(requested, "/") || strings.Contains(requested, ":") {
+	if strings.HasPrefix(requested, "/") ||
+		(windows && (strings.Contains(requested, ":") || windowsDrivePrefix.MatchString(normalized))) {
 		return "", fmt.Errorf("%w: absolute paths are not accepted", ErrPathDenied)
 	}
 	cleaned := path.Clean(normalized)
@@ -309,7 +330,12 @@ func (m *Manager) Remove(rootName, requested string, recursive bool) error {
 	if cleaned == "." {
 		return fmt.Errorf("%w: the shared folder itself cannot be removed", ErrPathDenied)
 	}
-	stat, err := r.handle.Stat(cleaned)
+	// Lstat, not Stat: a symlink is judged as the link itself, so recursive
+	// removal unlinks it instead of walking into (and deleting) its target, and
+	// an absolute link pointing outside the root can still be removed.
+	// Windows junctions / reparse points are UNVERIFIED (the suite runs on
+	// Linux); they may report as directories here.
+	stat, err := r.handle.Lstat(cleaned)
 	if err != nil {
 		return translate(err)
 	}
@@ -423,8 +449,15 @@ func (m *Manager) WriteChunk(rootName, requested string, chunk Chunk) error {
 	if err := m.mkdirAll(r, path.Dir(cleaned)); err != nil {
 		return err
 	}
-	handle, err := r.handle.OpenFile(cleaned, os.O_CREATE|os.O_WRONLY, 0o600)
+	flags := os.O_CREATE | os.O_WRONLY
+	if chunk.Exclusive {
+		flags |= os.O_EXCL
+	}
+	handle, err := r.handle.OpenFile(cleaned, flags, 0o600)
 	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("%w: %s", ErrTargetExists, cleaned)
+		}
 		return translate(err)
 	}
 	defer handle.Close()
