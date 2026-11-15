@@ -106,7 +106,7 @@ test('서비스 터널 열기 — Master serviceTunnelPlanInput 꼴, loopback �
   assert.match(tunnelInput({ target_port: '22' }, '').err, /Master id/);
 });
 
-test('결정 표 · 계약 이유 — 파일 설치는 결정 전까지 닫힘', () => {
-  assert.equal(DECIDE.tmodInstall.locked, true); assert.match(DECIDE.tmodInstall.why, /^결정 필요 — process\.execute 경로/);
+test('결정 표 · 계약 이유 — 파일 설치 잠금(process.execute 경로)은 없어졌다', () => {
+  assert.equal(DECIDE.tmodInstall, undefined, '파일 설치는 노드 올리기 길(module.manage)이라 결정 표에 없다');
   assert.match(CONTRACT_WHY['terra.master.users.by-user-id.external-identities.post'], /위임 세션\(앱 토큰\) 닫힘/);
 });

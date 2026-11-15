@@ -12,9 +12,7 @@
         "id": "ask",
         "type": "emit",
         "signal": "terra.app:launch",
-        "payload": {
-          "appId": "$input.value"
-        }
+        "payload": "$input.value"
       },
       {
         "id": "done",

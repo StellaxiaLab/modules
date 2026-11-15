@@ -34,6 +34,7 @@ import { dangerView } from '../api/danger-zone.js';
 import * as fileTransfer from '../api/file-transfer.js';
 import * as taskFollow from '../api/task-follow.js';
 import * as changes from '../api/changes.js';
+import * as tmodInstall from '../api/tmod-install.js';
 import { makeTerraTreeLogin } from './tree-login.js';
 import { migratePc, pcLogout as pcLogout0, setWho } from '../api/pc-state.js';
 
@@ -167,8 +168,8 @@ if (MODE !== 'demo') {
   // 제어기의 파일 · 작업 · 밀어 받기 — 공유 폴더 내용 · 전송(lab.stellaxia.file), 작업 출력 따라가기(이 노드 SSE · 다른 노드 폴링), 바뀐 줄 찾기
   window.TerraFileTransfer = Object.assign({ create: (invoke) => fileTransfer.createFileTransfer({ invoke }) }, fileTransfer);
   window.TerraTaskFollow = Object.assign((n, taskId, onUpdate) => taskFollow.followTask({ taskId, onUpdate, sse: n === transport.localId() ? (op, i, h) => terra.sse(op, i, h) : null, poll: (i) => transport.invoke(n, 'terra.daemon.tasks.by-task-id.output.get', i) }), taskFollow);
-  window.TerraChanges = changes;
-  window.TerraLaunch = (appId) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', appId); return true; };   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
+  window.TerraChanges = changes; window.TerraTmod = tmodInstall;
+  window.TerraLaunch = (appId, at) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', at && at.nodeId ? { appId, moduleId: String(at.moduleId || ''), nodeId: String(at.nodeId), nodeName: String(at.nodeName || '') } : appId); return true; };   // 원격 앱은 { appId, moduleId, nodeId, nodeName } — 셸이 못 받으면(옛 Terra) 셸의 오류 그대로   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
   window.TerraOpenExternal = (url) => { if (MODE !== 'app' || !frame || !/^https?:\/\/\S+$/i.test(String(url || ''))) return false; frame.emit('openExternal', String(url)); return true; };   // 외부 사이트 — 창 안에 못 띄운다(CSP). 셸이 http(s) 를 다시 걸러 확인 창을 띄운 뒤 기본 브라우저로 연다(Scene gui-v3.app.openExternal → terra.app:open-external). allow-popups 는 쓰지 않는다
   // 위험 영역 — 설정창 단추는 Scene 에 'danger' 이벤트만 보낸다(값을 싣지 않는다). 켜기 · 끄기는 Scene 의 /danger 확인 화면이 한다 — 이 페이지는 스위치 쓰기를 부르지 않는다(ADR-GW-012 §6.1)
   window.TerraDangerView = dangerView; window.TerraDangerAsk = () => { if (!(MODE === 'app' && frame)) return false; frame.emit('danger'); return true; }; window.TerraDangerAsk.can = () => MODE === 'app' && !!frame;   // 늘 정의 — frame 은 호출 때 본다(앱 모드의 frame 은 나중에 선다)

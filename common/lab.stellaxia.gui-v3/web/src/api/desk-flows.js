@@ -10,9 +10,7 @@
 
 /* @flows:begin */
 // 설계 결정으로 닫은 마지막 단추 — locked 를 false 로 바꾸면 그 단추가 문(gate)만 보고 열린다
-const DECIDE = {
-  tmodInstall: { locked: true, why: '결정 필요 — process.execute 경로 (commands.execute 로 terra module install · 사람 명령과 같은 권한 — node-shell.md §1)', doc: 'docs/design/desk-flows.md' },
-};
+const DECIDE = {};
 // 계약이 위임을 닫은 까닭을 계약 설명에서 그대로 옮긴 것 — 문(gate)의 why 뒤에 붙인다(잠금 판정은 문이 한다)
 const CONTRACT_WHY = {
   'terra.master.users.by-user-id.external-identities.post': 'Master 계약 : 위임 세션(앱 토큰) 닫힘 — 영구 로그인 뒷문 방지',
