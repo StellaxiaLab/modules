@@ -49,13 +49,6 @@
     return (this._smap = { key, root, all, byId });
   }
   // 지금 위치 — 리소스 뷰: 그 행성(리프) · 리프 뷰: 들어간 트리 · 트리 뷰: 초점 트리(처음엔 계정)
-  // 상단 상태 줄(보드 StatusBar)이 부르는 것 — 지금 위치 · 전역 틀 너비 · 알림 · 최소화 창 · 로그아웃
-  barApi() { return this._barA || (this._barA = {
-    crumbs: () => { const out = []; for (let n = this.sceneCur(); n; n = n.parent) out.unshift({ id: n.id, name: n.name }); return out; },
-    go: (id) => { const n = this.sceneMap().byId[id]; if (n) this.navStart(n); },
-    left: () => this.viewX0(), unread: () => (this.gf_alarmUnread ? this.gf_alarmUnread() : 0), wins: () => (this._q_wins || []).length,
-    alarm: () => this.gf_alarmOpen(), fly: () => { this._q_flyPin = !this._q_flyPin; this.gf_minFly(this._q_flyPin); }, logout: () => this.sceneLogout()
-  }); }
   // 지도 이름표의 상태 — 실제 지도의 노드만(Master 기록). 온라인은 표시하지 않는다: 문제가 있는 노드만 글자와 색으로 드러낸다
   nodeMark(rid) {
     const TP = this.TOPO ? this.TOPO() : null, st = typeof window !== 'undefined' ? window.TerraNodeStats : null, rec = TP && TP.node && rid ? TP.node(rid) : null; if (!rec || !st) return null;

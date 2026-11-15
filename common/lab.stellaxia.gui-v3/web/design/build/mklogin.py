@@ -9,7 +9,6 @@ def rep(a,b,cnt=1):
 rep('\n</div>\n</x-dc>','''
 <button type="button" onPointerUp="{{stopProp}}" onClick="{{loginAgain}}" style="display: {{loginAgainD}}; position: absolute; right: 20px; bottom: 18px; z-index: 5; font: 600 12px 'Geist Mono', monospace; padding: 4px 9px; border-radius: 4px; border: 1px solid rgba(108,118,156,0.35); background: #040614; color: #9aa4c8; cursor: pointer;">TEST · 로그인부터</button>
 <div data-loginwrap="scene" aria-hidden="{{loginHid}}" style="position: absolute; inset: 0; z-index: 60; display: {{loginD}};"><dc-import name="Login" embed="true" reset="{{loginKey}}" on-done="{{loginDoneFn}}" hint-size="1440px,900px"></dc-import></div>
-<div data-statusbar="scene" style="position: absolute; inset: 0; z-index: 5; pointer-events: none;"><dc-import name="StatusBar" on="{{barOn}}" bar="{{barApi}}" hint-size="100%,44px"></dc-import></div>
 </div>
 </x-dc>''')
 rep("closest('[data-ctlwin]')","closest('[data-ctlwin],[data-loginwrap],[data-minfly],[data-sb]')",2)
@@ -26,7 +25,7 @@ rep("  renderVals() {\n    const S = this.state, sys = this.build()","""  // 로
     const S = this.state, sys = this.build()""")
 rep("    return {\n      ...this.gf_ctlProps(),","""    const LON = this.loginOn();
     return {
-      barOn: !LON, barApi: this.barApi(), loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON || (typeof window !== 'undefined' && window.TerraTransport) ? 'none' : 'block',   /* 'TEST · 로그인부터' 는 시안(캔버스 · ?demo)에서만 — 실제 Terra 에 붙은 화면엔 없다 */ loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
+      loginD: LON ? 'block' : 'none', loginHid: LON ? 'false' : 'true', loginAgainD: LON || (typeof window !== 'undefined' && window.TerraTransport) ? 'none' : 'block',   /* 'TEST · 로그인부터' 는 시안(캔버스 · ?demo)에서만 — 실제 Terra 에 붙은 화면엔 없다 */ loginKey: S.loginKey || 0, logoutKey: S.logoutKey || 0,
       loginDoneFn: this._lgDF || (this._lgDF = () => this.setState({ loginOn: false })),
       loginAgain: () => this.setState({ loginOn: true, loginKey: (S.loginKey || 0) + 1 }),
       ...this.gf_ctlProps(),""")

@@ -37,8 +37,10 @@ import * as changes from '../api/changes.js';
 import * as tmodInstall from '../api/tmod-install.js';
 import { makeTerraTreeLogin } from './tree-login.js';
 import { migratePc, pcLogout as pcLogout0, setWho } from '../api/pc-state.js';
+import { mapState } from '../api/map-state.js';
 
 window.TerraTheme = createTheme({ root: document.documentElement, storage: (() => { try { return window.localStorage; } catch { return null; } })(), emit: () => window.dispatchEvent(new Event('terra-theme')) });   // 다크 · 라이트 — 이 브라우저의 보기 설정
+window.TerraMapState = mapState;   // 지도 상태 한 줄(받음 · 없음 · 못 봤음) — 제어기 › 설정 › GUI 가 읽는다
 const q = new URLSearchParams(location.search), status = document.getElementById('status'), MODE = pickMode(q);
 const appReady = MODE === 'app' ? connectApp() : Promise.resolve(null);   // A 모드 — hello 는 가장 먼저(마운트가 이벤트 루프를 붙잡기 전에)
 let frame = null;
@@ -189,7 +191,7 @@ if (MODE !== 'demo') {
     if (t.records && window.TerraMetrics.ingest(t.records(), r.at) > 0) { try { window.dispatchEvent(new Event('terra-metrics')); } catch {} }   // 자원 추이 — 받은 하트비트 스냅샷을 노드마다 쌓는다(같은 하트비트는 하나로). 새 점이 없으면 알리지 않는다(다시 그릴 것이 없다)
     const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t);
   }, () => {});
-  window.TerraTopologyRetry = refreshTopology;   // 상단 줄의 '다시 시도'
+  window.TerraTopologyRetry = refreshTopology;   // 제어기 › 설정 › GUI 의 '다시 시도'
   const TOPO_MS = 30000;   // 지도 · 대상 표 갱신 주기 — 탭이 보일 때만(숨겨진 탭은 Master 를 두드리지 않고, 다시 보이면 바로 한 번)
   window.TerraMetrics = createMetrics({ pollMs: TOPO_MS });   // 전역 틀 대상 표의 그래프 — 하트비트 스냅샷 점열(src/api/metrics.js). 실시간 지표 op 는 코어에 없다
   const topoTick = () => { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') refreshTopology(); };
