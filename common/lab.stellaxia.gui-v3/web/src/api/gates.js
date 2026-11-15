@@ -24,7 +24,7 @@ const DAEMON_CLOSED = {
 /** 선언 계열(declare · undeclare)은 앱 토큰에 module · file 패밀리만 열려 있고, 다른 노드로는 전부 닫힌다 */
 const DECLARE_OPS = new Set(['terra.daemon.svi.declarations.post', 'terra.daemon.svi.declarations.by-family.by-name.undeclare.post']);
 const DECLARE_FAMILIES = ['module', 'file'];
-/** Gateway 에 게시만 되어 있고 Daemon 백엔드가 늘 501 인 op — Terra 에 구현 없음(영구 끄기 · 켜기 · 롤백). 프로세스 정지는 modules.by-module-id.stop */
+/** Gateway 쪽 별칭(terra.gateway.modules.by-id.*)은 게시만 되어 있고 늘 501 — 부르지 않는다. 모듈 창의 끄기 · 켜기 · 이전 버전으로는 Daemon op terra.daemon.modules.by-module-id.{disable,enable,rollback}.post(Terra #389, module.manage)를 부른다(AUD-69). 프로세스 정지는 modules.by-module-id.stop */
 const NOT_IMPLEMENTED = {
   'terra.gateway.modules.by-id.disable.post': '잠김 : Terra 에 구현 없음 — 영구 끄기 필요(Daemon). 프로세스 정지는 멈춤 단추로',
   'terra.gateway.modules.by-id.enable.post': '잠김 : Terra 에 구현 없음 — 영구 켜기 필요(Daemon). 프로세스 시작은 시작 단추로',
