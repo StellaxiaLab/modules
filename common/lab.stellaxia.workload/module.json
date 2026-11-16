@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 2,
+  "id": "lab.stellaxia.workload",
+  "version": "0.1.0",
+  "kind": "service",
+  "name": "Terra Workload",
+  "description": "Terra가 Terra를 모르는 프로그램을 맡는다 — 실행 파일을 경로로 참조 등록하고 시작·정지·로그를 본다 (Workload M1: 참조 등록 · exec 드라이버 · 한 노드).",
+  "compatibility": {
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "os": [
+      "linux",
+      "windows"
+    ]
+  },
+  "entrypoints": {
+    "process": {
+      "linux-amd64": "bin/linux-amd64/terra-workload",
+      "linux-arm64": "bin/linux-arm64/terra-workload",
+      "windows-amd64": "bin/windows-amd64/terra-workload.exe"
+    }
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "lab.stellaxia.workload",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  "contracts": {
+    "api": "contracts/api/terra-api.json"
+  },
+  "contributions": {
+    "cli": {
+      "commands": [
+        {
+          "name": "workload register",
+          "operationId": "lab.stellaxia.workload.workloads.register",
+          "summary": "실행 파일을 참조 등록한다 (복사하지 않는다)",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ],
+          "flags": [
+            {
+              "name": "exec",
+              "pointer": "/exec_path",
+              "summary": "실행 파일 절대경로",
+              "required": true
+            },
+            {
+              "name": "name",
+              "pointer": "/display_name",
+              "summary": "표시 이름"
+            },
+            {
+              "name": "dir",
+              "pointer": "/working_dir",
+              "summary": "작업 디렉터리 (기본: 실행 파일 폴더)"
+            },
+            {
+              "name": "arg",
+              "pointer": "/args",
+              "summary": "실행 인자 (여러 번 또는 쉼표)",
+              "type": "string-list"
+            },
+            {
+              "name": "env",
+              "pointer": "/env",
+              "summary": "KEY=VALUE 환경 선언값 (여러 번)",
+              "type": "string-list"
+            },
+            {
+              "name": "no-env-snapshot",
+              "pointer": "/no_env_snapshot",
+              "summary": "셸 스냅샷 없이 안전 키+선언값만",
+              "type": "boolean"
+            },
+            {
+              "name": "restart",
+              "pointer": "/restart",
+              "summary": "never | on-failure | always"
+            },
+            {
+              "name": "max-restarts",
+              "pointer": "/max_restarts",
+              "summary": "연속 실패 재시작 상한",
+              "type": "integer"
+            },
+            {
+              "name": "backoff-ms",
+              "pointer": "/backoff_ms",
+              "summary": "재시작 전 대기(ms)",
+              "type": "integer"
+            },
+            {
+              "name": "auto-start",
+              "pointer": "/auto_start",
+              "summary": "모듈이 뜰 때 자동 시작",
+              "type": "boolean"
+            },
+            {
+              "name": "force",
+              "pointer": "/force",
+              "summary": "같은 id가 있으면 교체",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "name": "workload list",
+          "operationId": "lab.stellaxia.workload.workloads.list",
+          "summary": "이 노드의 workload 목록"
+        },
+        {
+          "name": "workload get",
+          "operationId": "lab.stellaxia.workload.workloads.get",
+          "summary": "workload 상세 (파일 drift 포함)",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ]
+        },
+        {
+          "name": "workload set",
+          "operationId": "lab.stellaxia.workload.workloads.update",
+          "summary": "인자·작업 디렉터리·환경·재시작 정책 수정 (다음 시작부터)",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ],
+          "flags": [
+            {
+              "name": "name",
+              "pointer": "/display_name",
+              "summary": "표시 이름"
+            },
+            {
+              "name": "dir",
+              "pointer": "/working_dir",
+              "summary": "작업 디렉터리"
+            },
+            {
+              "name": "arg",
+              "pointer": "/args",
+              "summary": "실행 인자 (통째로 교체)",
+              "type": "string-list"
+            },
+            {
+              "name": "env",
+              "pointer": "/env",
+              "summary": "KEY=VALUE 환경 선언값 (통째로 교체)",
+              "type": "string-list"
+            },
+            {
+              "name": "restart",
+              "pointer": "/restart",
+              "summary": "never | on-failure | always"
+            },
+            {
+              "name": "max-restarts",
+              "pointer": "/max_restarts",
+              "summary": "연속 실패 재시작 상한",
+              "type": "integer"
+            },
+            {
+              "name": "backoff-ms",
+              "pointer": "/backoff_ms",
+              "summary": "재시작 전 대기(ms)",
+              "type": "integer"
+            },
+            {
+              "name": "auto-start",
+              "pointer": "/auto_start",
+              "summary": "자동 시작 켜기",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "name": "workload rm",
+          "operationId": "lab.stellaxia.workload.workloads.delete",
+          "summary": "등록 해제",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ],
+          "flags": [
+            {
+              "name": "force",
+              "pointer": "/force",
+              "summary": "실행 중이면 정지 후 해제",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "name": "workload start",
+          "operationId": "lab.stellaxia.workload.workloads.start",
+          "summary": "시작 (이미 실행 중이면 현재 상태)",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ]
+        },
+        {
+          "name": "workload stop",
+          "operationId": "lab.stellaxia.workload.workloads.stop",
+          "summary": "정지 (graceful 후 강제; 응답이 forced를 말한다)",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ],
+          "flags": [
+            {
+              "name": "timeout",
+              "pointer": "/timeout_seconds",
+              "summary": "graceful 대기(초)",
+              "type": "integer"
+            }
+          ]
+        },
+        {
+          "name": "workload restart",
+          "operationId": "lab.stellaxia.workload.workloads.restart",
+          "summary": "재시작",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ]
+        },
+        {
+          "name": "workload status",
+          "operationId": "lab.stellaxia.workload.workloads.status.get",
+          "summary": "상태와 마지막 종료",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ]
+        },
+        {
+          "name": "workload logs",
+          "operationId": "lab.stellaxia.workload.workloads.logs.read",
+          "summary": "전용 로그 읽기 (--after <cursor>로 이어 읽기)",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ],
+          "flags": [
+            {
+              "name": "tail",
+              "pointer": "/tail",
+              "summary": "마지막 n줄",
+              "type": "integer"
+            },
+            {
+              "name": "after",
+              "pointer": "/after",
+              "summary": "이 커서 이후",
+              "type": "integer"
+            }
+          ]
+        },
+        {
+          "name": "workload events",
+          "operationId": "lab.stellaxia.workload.workloads.events.list",
+          "summary": "시작·종료·재시작 이력",
+          "args": [
+            {
+              "name": "id",
+              "pointer": "/workload_id",
+              "required": true,
+              "summary": "workload id (local.…)"
+            }
+          ],
+          "flags": [
+            {
+              "name": "limit",
+              "pointer": "/limit",
+              "summary": "최근 n건",
+              "type": "integer"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "readiness": {
+    "operationId": "lab.stellaxia.workload.health.get",
+    "versionRange": ">=1.0.0 <2.0.0",
+    "timeoutMs": 15000
+  },
+  "update": {
+    "strategy": "start-before-stop",
+    "drainTimeoutMs": 30000,
+    "rollback": true
+  },
+  "permissions": {
+    "storage": [
+      "module-data"
+    ]
+  }
+}
