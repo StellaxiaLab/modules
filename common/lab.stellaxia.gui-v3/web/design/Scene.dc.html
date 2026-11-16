@@ -2104,7 +2104,10 @@ class Component extends DCLogic {
   nodeMark(rid) {
     const TP = this.TOPO ? this.TOPO() : null, st = typeof window !== 'undefined' ? window.TerraNodeStats : null, rec = TP && TP.node && rid ? TP.node(rid) : null; if (!rec || !st) return null;
     const M = this._nmk || (this._nmk = new Map()), now = performance.now(), e = M.get(rid); if (e && now - e.at < 5000) return e.v;
-    const s = st(rec), v = s.level === 'ok' ? null : { t: s.label, c: { warn: '255,210,122', wait: '166,173,184', down: '255,156,140' }[s.level] };
+    const s = st(rec), v0 = s.level === 'ok' ? null : { t: s.label, c: { warn: '255,210,122', wait: '166,173,184', down: '255,156,140' }[s.level] };
+    // 원격 관리가 켜진 노드(ADR-GW-014 P15) — 다른 노드의 사람이 승인 문으로 쓸 수 있는 위험 스위치라 작은 표시. 연결이 끊긴 노드는 묻지 않고, 모르는 것(못 읽음 · 받는 중)은 표시하지 않는다
+    const RM = typeof window !== 'undefined' ? window.TerraRemoteMgmtMap : null, rmOn = !!(RM && s.level !== 'down' && RM.on(rid));
+    const v = rmOn ? { t: (v0 ? v0.t + ' · ' : '') + '⚠ 원격 관리', c: v0 ? v0.c : '255,190,90' } : v0;
     M.set(rid, { at: now, v }); return v;
   }
   // 이 항성계 리프의 이름 → 노드 id (이름표가 프레임마다 찾는다 — 지도가 바뀔 때만 다시 만든다)

@@ -421,7 +421,7 @@ button{font-family:inherit}
 
                   <sc-if value="{{w.sNode}}" hint-placeholder-val="{{ false }}">
                     <div class="nx nx-in-set {{w.nx.theme}}">
-                      <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 노드 설정 읽기 전용 (쓰기 : 그 노드에서만)</div></sc-if>
+                      <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 노드 설정 읽기 전용 (쓰기 : 그 노드에서만)<sc-if value="{{w.nx.rmc.on}}" hint-placeholder-val="{{ false }}"><span class="nx-chip {{w.nx.rmc.cls}}" title="{{w.nx.rmc.why}}">{{w.nx.rmc.chip}}</span></sc-if></div></sc-if>
                       <div class="nx-bar nx-bar-flat">
                         <sc-for list="{{w.nx.grps}}" as="gp" hint-placeholder-count="6"><button type="button" class="nx-tab {{gp.cls}}" onClick="{{gp.pick}}">{{gp.label}}<span class="nx-n">{{gp.n}}</span></button></sc-for>
                         <span class="nx-fill"></span><input class="nx-in nx-in-s" type="search" value="{{w.nx.q}}" placeholder="키 · 이름 찾기" onInput="{{w.nx.qIn}}" aria-label="설정 찾기" spellcheck="false">
@@ -446,6 +446,11 @@ button{font-family:inherit}
                           <span class="nx-lab">{{w.nx.dzT.label}}<span class="nx-k">{{w.nx.dzT.sub}}</span><span class="nx-k">{{w.nx.dzT.changed}}</span><span class="nx-k nx-err">{{w.nx.dzT.note}}</span><span class="nx-k">{{w.nx.dzT.why}}</span></span>
                           <span class="nx-chip {{w.nx.dzT.cls}}">{{w.nx.dzT.status}}</span>
                           <button type="button" class="nx-btn" onClick="{{w.nx.dzT.ask}}" disabled="{{w.nx.dzT.dis}}" title="{{w.nx.dzT.why}}">{{w.nx.dzT.btn}}</button>
+                        </div>
+                        <div class="nx-row">
+                          <span class="nx-lab">{{w.nx.dzR.label}}<span class="nx-k">{{w.nx.dzR.sub}}</span><span class="nx-k">{{w.nx.dzR.changed}}</span><span class="nx-k nx-err">{{w.nx.dzR.note}}</span><span class="nx-k">{{w.nx.dzR.why}}</span></span>
+                          <span class="nx-chip {{w.nx.dzR.cls}}">{{w.nx.dzR.status}}</span>
+                          <button type="button" class="nx-btn" onClick="{{w.nx.dzR.ask}}" disabled="{{w.nx.dzR.dis}}" title="{{w.nx.dzR.why}}">{{w.nx.dzR.btn}}</button>
                         </div>
                       </div>
                       <div class="nx-btns nx-sticky"><span class="nx-k">{{w.nx.dirtyT}}</span><span class="nx-fill"></span><span class="nx-msg">{{w.nx.msg}}</span><sc-for list="{{w.nx.cfgBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
@@ -637,7 +642,7 @@ button{font-family:inherit}
                   <sc-for list="{{w.nx.views}}" as="vw" hint-placeholder-count="4"><button type="button" class="nx-tab {{vw.cls}}" onClick="{{vw.pick}}">{{vw.label}}<span class="nx-n">{{vw.n}}</span></button></sc-for>
                   <span class="nx-fill"></span><span class="nx-k">{{w.nx.api}}</span>
                 </div>
-                <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 잠금 표시 : 그 노드에서만</div></sc-if>
+                <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 잠금 표시 : 그 노드에서만<sc-if value="{{w.nx.rmc.on}}" hint-placeholder-val="{{ false }}"><span class="nx-chip {{w.nx.rmc.cls}}" title="{{w.nx.rmc.why}}">{{w.nx.rmc.chip}}</span></sc-if></div></sc-if>
 
                 <sc-if value="{{w.nx.vDev}}" hint-placeholder-val="{{ true }}">
                   <div class="nx-body">
@@ -727,7 +732,7 @@ button{font-family:inherit}
                   <sc-for list="{{w.nx.views}}" as="vw" hint-placeholder-count="3"><button type="button" class="nx-tab {{vw.cls}}" onClick="{{vw.pick}}">{{vw.label}}<span class="nx-n">{{vw.n}}</span></button></sc-for>
                   <span class="nx-fill"></span><span class="nx-k">{{w.nx.api}}</span>
                 </div>
-                <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 잠금 표시 : 그 노드에서만</div></sc-if>
+                <sc-if value="{{w.nx.remote}}" hint-placeholder-val="{{ false }}"><div class="nx-rm"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg>원격 노드 · 잠금 표시 : 그 노드에서만<sc-if value="{{w.nx.rmc.on}}" hint-placeholder-val="{{ false }}"><span class="nx-chip {{w.nx.rmc.cls}}" title="{{w.nx.rmc.why}}">{{w.nx.rmc.chip}}</span></sc-if></div></sc-if>
 
                 <sc-if value="{{w.nx.vInst}}" hint-placeholder-val="{{ true }}">
                   <div class="nx-body">
@@ -1541,8 +1546,8 @@ class Component extends DCLogic {
   newFolder(extra) { const id = 'new' + Date.now() % 100000, f = this.firstCell(); this.setState(Object.assign({ menu: null }, extra || {})); return this.dset({ ['icons.' + id]: { c: f.c, r: f.r, name: '새 폴더', k: 'dir', loc: 'desk' } }); }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   api(t) { return this.help() ? t : ''; }
-  btn(label, run, o) { o = o || {}; const lock = !!o.local && this.remote(), cut = !o.view && !VIEW_BTN.has(label) && this.ro(), off = !!o.off || lock || cut;
-    return { label, run: off ? null : run, dis: off ? 'disabled' : null, lock: lock || cut, cls: 'nx-btn' + (o.pri ? ' pri' : '') + (o.dan ? ' dan' : '') + (o.on ? ' on' : ''), tip: lock ? '잠김 : 이 노드에서만 (원격 제어기)' : cut ? '끊김 · 읽기 전용 · 재연결 시 갱신' : (o.tip || '') }; }
+  btn(label, run, o) { o = o || {}; const og = o.op && this.remote() ? this.gateOf(o.op) : null, lock = !!o.local && this.remote() && !(og && og.open), cut = !o.view && !VIEW_BTN.has(label) && this.ro(), off = !!o.off || lock || cut;
+    return { label, run: off ? null : run, dis: off ? 'disabled' : null, lock: lock || cut, cls: 'nx-btn' + (o.pri ? ' pri' : '') + (o.dan ? ' dan' : '') + (o.on ? ' on' : ''), tip: lock ? (og && !og.open ? LOCKED(og.why) : '잠김 : 이 노드에서만 (원격 제어기)') : cut ? '끊김 · 읽기 전용 · 재연결 시 갱신' : (o.tip || '') }; }
   seg(list, cur, pick) { return list.map((v) => { const id = Array.isArray(v) ? v[0] : v, label = Array.isArray(v) ? v[1] : v; return { label, cls: id === cur ? 'on' : '', on: id === cur ? 'true' : 'false', pick: () => pick(id) }; }); }
   say(msg) { this.setState({ nxMsg: msg }); clearTimeout(this._nxT); this._nxT = setTimeout(() => this.setState({ nxMsg: '' }), 4000); }
 
@@ -1553,7 +1558,8 @@ class Component extends DCLogic {
              spec = { title, sub, op, risk, steps: [{ label, rows: [[k, v]], warns: [{t, cls}], checks: [[id, 글]], fields: [[id, 이름, 자리글, 'text'|'secret'|'node'|'bool']], preview }],
                       values, nodes, check(v) → 고칠 것, final: { label, gate?, run(v) → 결과 줄 [[k, v]] | Promise, fail(code) → 할 일 }, undo } */
   gateOf(op, o) {
-    const G = typeof window !== 'undefined' && window.TerraGate, g = G ? G(op, Object.assign({ remote: this.remote() }, o || {})) : { open: true, needs: '', why: '', op };
+    const G = typeof window !== 'undefined' && window.TerraGate, rm = this.remote() && !(o && o.remoteSwitch) ? this.rmView() : null,
+      g = G ? G(op, Object.assign({ remote: this.remote(), node: this.nodeNameQ() }, rm && rm.known ? { remoteSwitch: rm.on ? 'on' : 'off' } : {}, o || {})) : { open: true, needs: '', why: '', op };
     return g.open || !CONTRACT_WHY[op] ? g : Object.assign({}, g, { why: g.why + ' · ' + CONTRACT_WHY[op] });
   }
   riskOf(op, d) { const R = typeof window !== 'undefined' && window.TerraRisk; return (R && op && R(op)) || d || 'write'; }
@@ -1565,6 +1571,13 @@ class Component extends DCLogic {
     return W.TerraDangerView ? W.TerraDangerView(rd, { which: k, remote: this.remote(), canAsk: typeof W.TerraDangerAsk === 'function' && (typeof W.TerraDangerAsk.can !== 'function' || W.TerraDangerAsk.can()) })
       : { state: 'sim', on: false, banner: '', status: '꺼짐 (시안)', statusCls: '', note: '', changed: '', btn: '변경 ›', btnOff: true, why: '시안(캔버스) — 실제 Terra 에서만' };
   }
+  // 원격 관리 스위치(P15) — .get 만 읽는다(다른 노드에서도 읽힘). 켜기 · 끄기 · 기간 고르기는 Scene 호스트의 확인 화면(P15-1 짝) — 이 화면은 쓰기를 부르지 않는다
+  rmView() {
+    const W = typeof window !== 'undefined' ? window : {}, T = this.TN(), RM = W.TerraRemoteMgmt, rd = this.real() && T ? T.read(this.nodeKey(), 'terra.daemon.danger-zone.remote-management.get', { ttl: 5000 }) : null;
+    return RM ? RM.view(rd, { remote: this.remote(), canAsk: typeof RM.canAsk === 'function' && RM.canAsk() })
+      : { state: 'sim', known: false, on: false, off: false, banner: '', status: '꺼짐 (시안)', statusCls: '', remain: '', note: '', changed: '', btn: '변경 ›', btnOff: true, why: '시안(캔버스) — 실제 Terra 에서만', label: '원격 관리', sub: '' };
+  }
+  remoteOpen(op) { return !this.remote() || (!!op && this.gateOf(op).open); }   // 원격 제어기에서 이 쓰기가 열려 있나(cluster · 원격 관리 스위치 · 승인 문) — 열려 있으면 'local' 잠금을 풀고 승인 문으로 보낸다
   sim() { return !this.real(); }   // 시안 — 캔버스 · 목업 전송(실제 Terra 가 없다)
   rid() { const T = this.TN(), m = T && T.t && T.t.meta && T.t.meta[this.nodeKey()]; return (m && m.rid) || (this.real() ? '' : 'nd_' + this.nodeNameQ()); }   // 이 노드의 Master id
   nodeChoices() {   // 다른 노드 고르기 — 실제는 TerraNodes 가 아는 노드(Master id 가 있는 것), 시안은 피어 이름
@@ -1761,7 +1774,7 @@ class Component extends DCLogic {
     }
     const mark = input && input.module_id ? 'mod:' + input.module_id : input && input.device_id ? 'dev:' + input.device_id : '';
     return T.write(this.nodeKey(), op || 'gui-v3.desk.patch', input || {}, { res: 'desk', mark, apply: (d) => { const c = JSON.parse(JSON.stringify(d || base)); fn(c); return c; } })
-      .then((r) => { if (o && o.ok) o.ok(r); return true; }, (e) => { const H = typeof window !== 'undefined' && window.TerraDenyHint, mw = MOD_OP_RE.test(op || '') && modOpWhy(e), h = mw || (H && H(op, e)); if (typeof window !== 'undefined' && window.TerraErrorSilent && window.TerraErrorSilent(e)) return false; this.say(h ? '못 함 · ' + h : '못 함 · ' + ((e && e.message) || (e && e.code) || '오류')); return false; });
+      .then((r) => { if (o && o.ok) o.ok(r); return true; }, (e) => { const H = typeof window !== 'undefined' && window.TerraDenyHint, mw = MOD_OP_RE.test(op || '') && modOpWhy(e), h = mw || (H && H(op, e, { node: this.remote() ? this.nodeNameQ() : '' })); if (typeof window !== 'undefined' && window.TerraErrorSilent && window.TerraErrorSilent(e)) return false; this.say(h ? '못 함 · ' + h : '못 함 · ' + ((e && e.message) || (e && e.code) || '오류')); return false; });
   }
   ndSeed(nm) {
     const cfg = {}; CFG.forEach((c) => { cfg[c[1]] = c[4]; }); cfg['daemon.device_name'] = nm.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'node';
@@ -2592,7 +2605,7 @@ class Component extends DCLogic {
       }
       if (id === 'net') o.net = this.netView(t, s);
       if (id === 'jobs') this.jobsView(o, t, s);
-      o.nx = { theme: dark ? 'nx-dark' : 'nx-light', remote: this.remote(), msg: s.nxMsg || '' };
+      o.nx = { theme: dark ? 'nx-dark' : 'nx-light', remote: this.remote(), msg: s.nxMsg || '', rmc: (() => { const RM = typeof window !== 'undefined' ? window.TerraRemoteMgmt : null, c = this.remote() && RM ? RM.chip(this.rmView(), this.nodeNameQ()) : null; return c && c.chip ? { on: true, cls: c.cls, chip: c.chip, why: c.lock ? c.why : '다른 노드의 사람이 승인 문으로 쓸 수 있음' } : { on: false, cls: '', chip: '', why: '' }; })() };
       // ── 자원 관리 — 장치(io-inventory) · 자원 선언(SVI) · 공유 폴더(config) · 서비스 터널 ──
       if (id === 'svi') {
         const N = this.nd(), X = o.nx, v = s.resTab || 'dev', R = this.remote();
@@ -2742,24 +2755,25 @@ class Component extends DCLogic {
           const cfgMiss = N.real ? !(N.parts || []).includes('config') : !!N.empty;   // 노드 설정을 못 읽었으면(config.get 만 실패 · 받는 중) 시안 값을 보이지 않고 저장을 잠근다
           // 실제 노드면 행 = Daemon 설정 스키마(config.schema.get, 140키 — 시안 25키는 이름 · 고르기 · 검사를 그대로), 시안이면 CFG
           const TNs = this.TN(), A0 = typeof window !== 'undefined' ? window.TerraDesk : null, sch = N.real && TNs && A0 ? TNs.read(this.nodeKey(), 'terra.daemon.config.schema.get', { ttl: 300000 }) : null;
-          const ROWS = sch && sch.data ? A0.nodeCfgRows(sch.data, CFG) : CFG, rowOf = (k) => ROWS.find((c) => c[1] === k) || [];
+          const cfgOpen = R && this.remoteOpen('terra.daemon.config.patch'), ROWS = sch && sch.data ? A0.nodeCfgRows(sch.data, CFG) : CFG, rowOf = (k) => ROWS.find((c) => c[1] === k) || [];
           const G = [...new Set(ROWS.map((c) => c[0]))], g = s.cfgGrp && G.includes(s.cfgGrp) ? s.cfgGrp : G[0], q = (s.cfgQ || '').trim().toLowerCase(), dk = Object.keys(N.cfg).filter((k) => JSON.stringify(N.cfg[k]) !== JSON.stringify(N.cfgBase[k]));
           X.grps = G.map((x) => { const n = ROWS.filter((c) => c[0] === x && dk.includes(c[1])).length; return { label: x, n: n ? '●' + n : '', cls: x === g && !q ? 'on' : '', pick: () => this.setState({ cfgGrp: x, cfgQ: '' }) }; });
           X.q = s.cfgQ || ''; X.qIn = (e) => this.setState({ cfgQ: e.target.value });
           const setK = (k, val) => this.ndSet((d) => { d.cfg[k] = val; delete d.cfgErr[k]; }, null, null, { draft: true });
-          X.keys = ROWS.filter((c) => (q ? (c[1] + ' ' + c[2]).toLowerCase().includes(q) : c[0] === g)).map(([gg, k, label, type, def, opt, own, rs]) => { const val = N.cfg[k], ro = own !== 'O' || R || cfgMiss, err = N.cfgErr[k] || '';
+          X.keys = ROWS.filter((c) => (q ? (c[1] + ' ' + c[2]).toLowerCase().includes(q) : c[0] === g)).map(([gg, k, label, type, def, opt, own, rs]) => { const val = N.cfg[k], ro = own !== 'O' || (R && !cfgOpen) || cfgMiss, err = N.cfgErr[k] || '';
             return { k, label, err, errCls: err ? 'bad' : '', isBool: type === 'bool' && !ro, isSel: type === 'sel' && !ro, isText: type === 'text' || ro, on: val ? 'true' : 'false', swCls: val ? 'on' : '', dis: ro ? 'disabled' : null, flip: () => setK(k, !val),
               opts: Array.isArray(opt) ? this.seg(opt, val, (x) => setK(k, x)) : [], v: typeof val === 'boolean' ? (val ? '켬' : '끔') : val == null ? '' : String(val), ph: typeof opt === 'string' ? opt : '', ro: ro ? 'readonly' : null, input: (e) => setK(k, e.target.value),
-              tag: own !== 'O' ? '읽기 · 파생' : R ? '읽기 · 원격' : rs ? '재시작' : '즉시', tagCls: own !== 'O' || R ? '' : rs ? 'warn' : 'ok' }; });
+              tag: own !== 'O' ? '읽기 · 파생' : R && !cfgOpen ? '읽기 · 원격' : rs ? '재시작' : '즉시', tagCls: own !== 'O' || (R && !cfgOpen) ? '' : rs ? 'warn' : 'ok' }; });
           const rsN = dk.filter((k) => rowOf(k)[7]).length;
           X.dirtyT = cfgMiss ? (N.empty ? '받는 중' : '못 봤음 — 노드 설정을 읽지 못함(저장 잠금)') : ((dk.length ? '바뀐 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음') + (N.needRestart ? ' · 다시 시작 대기 ' + N.needRestart : '') + (this.help() ? ' — validate → patch{save} → apply · restart' : ''));
           const check = () => { const E = {}; dk.forEach((k) => { const f = CFG_RULE[k]; let m = f ? f(String(N.cfg[k])) : ''; if (!m && rowOf(k)[8] && A0) try { A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]); } catch (e) { m = e.message; } if (m) E[k] = m; }); this.ndSet((d) => { d.cfgErr = E; }, null, null, { draft: true }); return E; };
           { const W2 = typeof window !== 'undefined' ? window : {}, row = (k) => { const Z = this.dz(k); return { label: Z.label || '웹 앱 명령 실행', sub: Z.sub || '', changed: Z.changed, note: Z.note, why: Z.btnOff ? Z.why : '', status: Z.status, cls: Z.statusCls, btn: Z.btn, dis: Z.btnOff ? 'disabled' : null, ask: Z.btnOff ? null : () => { if (typeof W2.TerraDangerAsk !== 'function' || !W2.TerraDangerAsk(k)) this.say('Scene 확인 화면을 열 수 없음 — 앱 모드(셸 안)에서만'); } }; };
-            X.dz = row('appCommand'); X.dzT = row('serviceTunnel'); }
-          X.cfgBtns = [this.btn('되돌리기', () => this.ndSet((d) => { d.cfg = JSON.parse(JSON.stringify(d.cfgBase)); d.cfgErr = {}; }, null, null, { draft: true }), { off: !dk.length, local: true }),
-            this.btn('검사', () => { const E = check(); this.say(Object.keys(E).length ? '고칠 곳 ' + Object.keys(E).length : '검사 통과'); }, { off: !dk.length, local: true }),
-            this.btn('저장', () => { const E = check(); if (Object.keys(E).length) { this.say('고칠 곳 ' + Object.keys(E).length + ' — 저장 안 함'); return; } const set = {}; dk.forEach((k) => { set[k] = rowOf(k)[8] && A0 ? A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]) : N.cfg[k]; }); this.ndSet((d) => { d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); d.needRestart += rsN; }, 'terra.daemon.config.patch', { set, save: true }, { ok: (r) => { const need = r && r.restart_required != null ? !!r.restart_required : rsN > 0, nk = this.nodeKey(); if (need) { (this._nr = this._nr || {})[nk] = (this._nr[nk] | 0) + (rsN || 1); } this.say('저장 ' + dk.length + (need ? ' · 재시작 후 반영' : ' · 즉시 반영')); } }); }, { off: !dk.length || cfgMiss, pri: !!dk.length && !cfgMiss, local: true }),
-            this.btn('다시 시작', () => { this.ndSet((d) => { d.needRestart = 0; }, 'terra.daemon.restart.post', {}, { ok: () => { if (this._nr) delete this._nr[this.nodeKey()]; this.say('노드 다시 시작 — 잠깐 끊김'); } }); }, { off: !N.needRestart, local: true, dan: !!N.needRestart })];
+            X.dz = row('appCommand'); X.dzT = row('serviceTunnel');
+            const Zr = this.rmView(); X.dzR = { label: Zr.label, sub: Zr.sub, changed: Zr.changed, note: Zr.note, why: Zr.btnOff ? Zr.why : '', status: Zr.status, cls: Zr.statusCls, btn: Zr.btn, dis: Zr.btnOff ? 'disabled' : null, ask: Zr.btnOff ? null : () => { const RM = W2.TerraRemoteMgmt; if (!RM || !RM.ask || !RM.ask()) this.say('확인 화면을 열 수 없음 — 앱 모드(셸 안)에서만'); } }; }
+          X.cfgBtns = [this.btn('되돌리기', () => this.ndSet((d) => { d.cfg = JSON.parse(JSON.stringify(d.cfgBase)); d.cfgErr = {}; }, null, null, { draft: true }), { off: !dk.length, local: true, op: 'terra.daemon.config.patch' }),
+            this.btn('검사', () => { const E = check(); this.say(Object.keys(E).length ? '고칠 곳 ' + Object.keys(E).length : '검사 통과'); }, { off: !dk.length, local: true, op: 'terra.daemon.config.patch' }),
+            this.btn('저장', () => { const E = check(); if (Object.keys(E).length) { this.say('고칠 곳 ' + Object.keys(E).length + ' — 저장 안 함'); return; } const set = {}; dk.forEach((k) => { set[k] = rowOf(k)[8] && A0 ? A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]) : N.cfg[k]; }); this.ndSet((d) => { d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); d.needRestart += rsN; }, 'terra.daemon.config.patch', { set, save: true }, { ok: (r) => { const need = r && r.restart_required != null ? !!r.restart_required : rsN > 0, nk = this.nodeKey(); if (need) { (this._nr = this._nr || {})[nk] = (this._nr[nk] | 0) + (rsN || 1); } this.say('저장 ' + dk.length + (need ? ' · 재시작 후 반영' : ' · 즉시 반영')); } }); }, { off: !dk.length || cfgMiss, pri: !!dk.length && !cfgMiss, local: true, op: 'terra.daemon.config.patch' }),
+            this.btn('다시 시작', () => { this.ndSet((d) => { d.needRestart = 0; }, 'terra.daemon.restart.post', {}, { ok: () => { if (this._nr) delete this._nr[this.nodeKey()]; this.say('노드 다시 시작 — 잠깐 끊김'); } }); }, { off: !N.needRestart, local: true, dan: !!N.needRestart, op: 'terra.daemon.restart.post' })];
         }
         if (s.setTab === 'net') {
           const W = N.wg; X.wg = { iface: W.iface, st: W.up ? '켜짐' : '꺼짐', stCls: W.up ? 'ok' : 'off', addr: W.addr, port: W.port, key: W.key, plan: W.plan };
@@ -2768,7 +2782,7 @@ class Component extends DCLogic {
           X.wgBtns = [this.btn('동기화', () => this.say('Master 와 피어 동기화 — wireguard.sync')), this.btn(W.up ? '내리기' : '올리기', () => this.ndSet((d) => { d.wg.up = !d.wg.up; }), { local: true, dan: W.up }), this.btn('다시 적용', () => this.say('wg0 다시 적용'), { local: true })];
           if (N.real) {   // 실제 노드 — Daemon 의 WireGuard op(node.control). 올리기 · 다시 적용 = apply, 내리기 = down, 동기화 = Master 와 피어 맞추기(sync)
             const wi = W.iface ? { interface_name: W.iface } : {};
-            X.wgBtns = [this.btn('동기화', () => { this.ndSet(() => {}, 'terra.daemon.wireguard.sync.post', {}, { ok: () => this.say('Master 와 피어 동기화 요청') }); }, { local: true }),
+            X.wgBtns = [this.btn('동기화', () => { this.ndSet(() => {}, 'terra.daemon.wireguard.sync.post', {}, { ok: () => this.say('Master 와 피어 동기화 요청') }); }, { local: true, op: 'terra.daemon.wireguard.sync.post' }),
               this.btn(W.up ? '내리기' : '올리기', () => { this.ndSet((d) => { d.wg.up = !d.wg.up; }, W.up ? 'terra.daemon.wireguard.down.post' : 'terra.daemon.wireguard.apply.post', wi, { ok: () => this.say((W.iface || 'wg') + (W.up ? ' 내림' : ' 올림')) }); }, { local: true, dan: W.up }),
               this.btn('다시 적용', () => { this.ndSet(() => {}, 'terra.daemon.wireguard.apply.post', wi, { ok: () => this.say((W.iface || 'wg') + ' 다시 적용') }); }, { local: true, off: !W.up })];
           }
@@ -2859,7 +2873,7 @@ class Component extends DCLogic {
     return {
       headD: this.props.chrome === 'none' ? 'none' : 'flex',
       catalog: Array.isArray(this.props.catalog) ? this.props.catalog : [], nodeNameV: this.nodeNameQ(),
-      t, frame, wall, wallWait: wallWait ? 'flex' : 'none', icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, dgr: (() => { const A = this.dz('appCommand'), B = this.dz('serviceTunnel'), on = [A, B].filter((z) => z.on); return { d: on.length ? 'inline-flex' : 'none', banner: on.length === 2 ? '⚠ 웹 앱 명령 실행 · 서비스 터널 열기 허용 중 — 위험 영역' : on.length ? on[0].banner : '', tip: (A.on ? '웹 앱이 이 노드에서 임의 명령을 실행할 수 있음 · ' : '') + (B.on ? '웹 앱이 이 노드를 출발로 서비스 터널을 열 수 있음 · ' : '') + '설정 › 노드 설정 › 위험 영역에서 끄기' }; })(), zoomK: this.zoom(), cv: this.cfmView(t, dark),
+      t, frame, wall, wallWait: wallWait ? 'flex' : 'none', icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, dgr: (() => { const A = this.dz('appCommand'), B = this.dz('serviceTunnel'), C = this.rmView(), on = [[A, '웹 앱 명령 실행'], [B, '서비스 터널 열기'], [C, '원격 관리']].filter((z) => z[0].on); return { d: on.length ? 'inline-flex' : 'none', banner: on.length === 1 ? on[0][0].banner : on.length ? '⚠ ' + on.map((z) => z[1]).join(' · ') + ' 허용 중 — 위험 영역' : '', tip: (A.on ? '웹 앱이 이 노드에서 임의 명령을 실행할 수 있음 · ' : '') + (B.on ? '웹 앱이 이 노드를 출발로 서비스 터널을 열 수 있음 · ' : '') + (C.on ? '다른 노드의 사람이 승인 문으로 이 노드의 설정 · 재시작 · WireGuard · 장치를 쓸 수 있음' + (C.remain ? ' (' + C.remain + ') · ' : ' · ') : '') + '설정 › 노드 설정 › 위험 영역에서 끄기' }; })(), zoomK: this.zoom(), cv: this.cfmView(t, dark),
       node: { name: this.nodeNameQ(), acct: this.acct(), parent: this.props.parentName || (this.props.chrome === 'none' ? '—' : 'tree-home') },
       focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
       toggleFull: () => { const on = !this.state.full; this.setState({ full: on }); if (this.props.onFull) this.props.onFull(on); },   // 전체화면 — 바깥 창(통합 화면 · 전역 틀)이 뷰 자리를 채운다
