@@ -1,5 +1,5 @@
 {
-  "$comment": "main GUI 의 얇은 껍데기(웹 프로그램 감싸기 설계 §3.3 · base 분기 설계 — contributions.gui.scenes[].branch \"main\"). 화면은 같은 모듈의 embed 앱(lab.stellaxia.gui-v3.web)이 그린다. 웹은 셸 안(다른 origin 부모)이라 A 모드로 돈다 — 앱 스코프 토큰만 쓰고 비밀번호를 받지 않는다. 로그인 화면은 호스트 비밀번호 칸을 갖춘 Terra(PR #301 이후)면 웹의 Login 보드가 그린다 — frame 의 호스트 비밀번호 칸(props.secret, §4.9)이 비밀번호만 호스트 문서에서 받아 signin 이벤트(gui-v3.signin.host → credential.login)로 넘긴다. 칸을 모르는 이전 Terra 에서는 껍데기가 맡는다(§3.3.1): 토큰이 없으면 웹이 terra.frame.emit('login') → /login 의 내장 엘리먼트 카드가 credential.login 으로 Handle 을 credentials /session 에 두고, 호스트가 그 Handle 로 frame 에 새 토큰을 준다. 로그아웃은 emit('logout'), 다른 모듈 앱 열기는 emit('launch', appId) → terra.app:launch. 구조는 lab.stellaxia.node-gui 의 껍데기와 같다(id 만 gui-v3). 웹의 호출은 Scene Function 을 거치지 않는다. 예외 하나 — 위험 영역(웹 앱 명령 실행): 설정창 단추는 emit('danger') 만 보내고, /danger 의 내장 엘리먼트 확인 화면이 상수 입력 Function(gui-v3.danger.allow · block)으로 스위치를 쓴다(Terra ADR-GW-012 §6.1). 같은 구조로 서비스 터널 열기 스위치(ADR-GW-014 P10-6): emit('dangerTunnel') → /danger/tunnel → gui-v3.dangerTunnel.allow · block. call 은 requiredOperations 에 선언해야 적재되므로 그 op 들만 선언한다 — 적재 시 op 존재는 검사하지 않아 이 op 를 모르는 이전 Terra 에서도 Scene 은 뜨고, 확인 화면의 읽기 · 쓰기만 실패 메시지를 낸다.",
+  "$comment": "main GUI 의 얇은 껍데기(웹 프로그램 감싸기 설계 §3.3 · base 분기 설계 — contributions.gui.scenes[].branch \"main\"). 화면은 같은 모듈의 embed 앱(lab.stellaxia.gui-v3.web)이 그린다. 웹은 셸 안(다른 origin 부모)이라 A 모드로 돈다 — 앱 스코프 토큰만 쓰고 비밀번호를 받지 않는다. 로그인 화면은 호스트 비밀번호 칸을 갖춘 Terra(PR #301 이후)면 웹의 Login 보드가 그린다 — frame 의 호스트 비밀번호 칸(props.secret, §4.9)이 비밀번호만 호스트 문서에서 받아 signin 이벤트(gui-v3.signin.host → credential.login)로 넘긴다. 칸을 모르는 이전 Terra 에서는 껍데기가 맡는다(§3.3.1): 토큰이 없으면 웹이 terra.frame.emit('login') → /login 의 내장 엘리먼트 카드가 credential.login 으로 Handle 을 credentials /session 에 두고, 호스트가 그 Handle 로 frame 에 새 토큰을 준다. 로그아웃은 emit('logout'), 다른 모듈 앱 열기는 emit('launch', appId) → terra.app:launch. 구조는 lab.stellaxia.node-gui 의 껍데기와 같다(id 만 gui-v3). 웹의 호출은 Scene Function 을 거치지 않는다. 예외 하나 — 위험 영역(웹 앱 명령 실행): 설정창 단추는 emit('danger') 만 보내고, /danger 의 내장 엘리먼트 확인 화면이 상수 입력 Function(gui-v3.danger.allow · block)으로 스위치를 쓴다(Terra ADR-GW-012 §6.1). 같은 구조로 서비스 터널 열기 스위치(ADR-GW-014 P10-6): emit('dangerTunnel') → /danger/tunnel → gui-v3.dangerTunnel.allow · block. call 은 requiredOperations 에 선언해야 적재되므로 그 op 들만 선언한다 — 적재 시 op 존재는 검사하지 않아 이 op 를 모르는 이전 Terra 에서도 Scene 은 뜨고, 확인 화면의 읽기 · 쓰기만 실패 메시지를 낸다. 관리 화면 스위치(ADR-GW-014 P13-4): emit('dangerAdmin') → /danger/admin → gui-v3.dangerAdmin.allow · block.",
   "schemaVersion": "0.1.0",
   "id": "lab.stellaxia.gui-v3.ui",
   "version": "0.5.0",
@@ -21,6 +21,10 @@
     {
       "path": "/danger/tunnel",
       "fragment": "gui-v3.dangerTunnel"
+    },
+    {
+      "path": "/danger/admin",
+      "fragment": "gui-v3.dangerAdmin"
     }
   ],
   "functions": [
@@ -39,20 +43,26 @@
     "contract/functions/dangerTunnel.open.function.json",
     "contract/functions/dangerTunnel.allow.function.json",
     "contract/functions/dangerTunnel.block.function.json",
-    "contract/functions/dangerTunnel.close.function.json"
+    "contract/functions/dangerTunnel.close.function.json",
+    "contract/functions/dangerAdmin.open.function.json",
+    "contract/functions/dangerAdmin.allow.function.json",
+    "contract/functions/dangerAdmin.block.function.json",
+    "contract/functions/dangerAdmin.close.function.json"
   ],
   "stores": [
     "contract/stores/credentials.store.json",
     "contract/stores/signin.store.json",
     "contract/stores/session.store.json",
     "contract/stores/danger.store.json",
-    "contract/stores/dangerTunnel.store.json"
+    "contract/stores/dangerTunnel.store.json",
+    "contract/stores/dangerAdmin.store.json"
   ],
   "fragments": [
     "surface/fragments/main.fragment.json",
     "surface/fragments/login.fragment.json",
     "surface/fragments/danger.fragment.json",
-    "surface/fragments/dangerTunnel.fragment.json"
+    "surface/fragments/dangerTunnel.fragment.json",
+    "surface/fragments/dangerAdmin.fragment.json"
   ],
   "requiredOperations": [
     {
@@ -66,6 +76,12 @@
     },
     {
       "operationId": "terra.daemon.danger-zone.service-tunnel.post"
+    },
+    {
+      "operationId": "terra.daemon.danger-zone.admin-screen.get"
+    },
+    {
+      "operationId": "terra.daemon.danger-zone.admin-screen.post"
     }
   ]
 }

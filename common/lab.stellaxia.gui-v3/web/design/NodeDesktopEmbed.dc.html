@@ -448,6 +448,11 @@ button{font-family:inherit}
                           <button type="button" class="nx-btn" onClick="{{w.nx.dzT.ask}}" disabled="{{w.nx.dzT.dis}}" title="{{w.nx.dzT.why}}">{{w.nx.dzT.btn}}</button>
                         </div>
                         <div class="nx-row">
+                          <span class="nx-lab">{{w.nx.dzA.label}}<span class="nx-k">{{w.nx.dzA.sub}}</span><span class="nx-k">{{w.nx.dzA.changed}}</span><span class="nx-k nx-err">{{w.nx.dzA.note}}</span><span class="nx-k">{{w.nx.dzA.why}}</span></span>
+                          <span class="nx-chip {{w.nx.dzA.cls}}">{{w.nx.dzA.status}}</span>
+                          <button type="button" class="nx-btn" onClick="{{w.nx.dzA.ask}}" disabled="{{w.nx.dzA.dis}}" title="{{w.nx.dzA.why}}">{{w.nx.dzA.btn}}</button>
+                        </div>
+                        <div class="nx-row">
                           <span class="nx-lab">{{w.nx.dzR.label}}<span class="nx-k">{{w.nx.dzR.sub}}</span><span class="nx-k">{{w.nx.dzR.changed}}</span><span class="nx-k nx-err">{{w.nx.dzR.note}}</span><span class="nx-k">{{w.nx.dzR.why}}</span></span>
                           <span class="nx-chip {{w.nx.dzR.cls}}">{{w.nx.dzR.status}}</span>
                           <button type="button" class="nx-btn" onClick="{{w.nx.dzR.ask}}" disabled="{{w.nx.dzR.dis}}" title="{{w.nx.dzR.why}}">{{w.nx.dzR.btn}}</button>
@@ -629,6 +634,30 @@ button{font-family:inherit}
                         <span style="font-size: 11px; color: {{t.dim}};">{{w.jb.d.note}}</span>
                       </div>
                     </sc-if>
+                  </div>
+                </sc-if>
+                <sc-if value="{{w.jb.vCmd}}" hint-placeholder-val="{{ false }}">
+                  <div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding: 8px 10px; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: {{t.sub}};"><b>{{w.jb.cm.targetT}}</b><span style="height: 18px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid {{w.jb.cm.tierC}}; border-radius: 9px; color: {{w.jb.cm.tierC}}; font-size: 10.5px;">{{w.jb.cm.tierT}}</span></div>
+                    <div style="display: flex; gap: 6px; align-items: center;"><input type="text" value="{{w.jb.cm.line}}" onInput="{{w.jb.cm.lineIn}}" aria-label="실행할 명령" placeholder="명령 한 줄 — 예: hostname · 공백이 든 인자는 따옴표로" style="flex-grow: 1; height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{t.term}}; color: {{t.ink}}; font: 12px 'JetBrains Mono',ui-monospace,monospace;" /><button type="button" onClick="{{w.jb.cm.run}}" disabled="{{w.jb.cm.dis}}" style="height: 28px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 12px; cursor: pointer;">{{w.jb.cm.runT}}</button></div>
+                    <sc-if value="{{w.jb.cm.holdOn}}" hint-placeholder-val="{{ false }}"><label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: {{t.sub}};"><input type="checkbox" checked="{{w.jb.cm.hold}}" onChange="{{w.jb.cm.holdPick}}" />Master 가 먼저 붙잡기 (require_confirmation) — 아래 확인 대기에서 승인해야 실행</label></sc-if>
+                    <sc-if value="{{w.jb.cm.whyOn}}" hint-placeholder-val="{{ false }}"><div role="status" style="padding: 7px 10px; border-radius: 8px; background: rgba(245,184,61,.08); color: #f5b83d; font-size: 12px;">잠김 : {{w.jb.cm.why}}</div></sc-if>
+                    <sc-if value="{{w.jb.cm.ask.on}}" hint-placeholder-val="{{ false }}">
+                      <div role="alertdialog" aria-label="{{w.jb.cm.ask.title}}" style="padding: 10px 12px; border: 1px solid #ff6b6b80; border-radius: 9px; background: #ff6b6b12; display: flex; flex-direction: column; gap: 6px;">
+                        <b>{{w.jb.cm.ask.title}}</b>
+                        <div style="display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 3px 10px; font-size: 11.5px;"><sc-for list="{{w.jb.cm.ask.rows}}" as="cr" hint-placeholder-count="3"><span style="color: {{t.dim}};">{{cr.k}}</span><span style="min-width: 0; overflow-wrap: anywhere;">{{cr.v}}</span></sc-for></div>
+                        <div style="display: flex; gap: 6px; justify-content: flex-end;"><button type="button" onClick="{{w.jb.cm.ask.no}}" style="height: 26px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: transparent; color: {{t.ink}}; font-size: 11.5px; cursor: pointer;">그만두기</button><button type="button" onClick="{{w.jb.cm.ask.yes}}" style="height: 26px; padding: 0 12px; border: 1px solid #ff6b6b; border-radius: 8px; background: #ff6b6b22; color: #ff8f8f; font-size: 11.5px; cursor: pointer;">실행하기</button></div>
+                      </div>
+                    </sc-if>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11.5px; color: {{t.sub}};"><b>확인 대기</b><span style="flex-grow: 1;"></span><input type="text" value="{{w.jb.cm.addId}}" onInput="{{w.jb.cm.addIn}}" aria-label="확인 id 추가" placeholder="확인 id 붙여 넣기" style="width: 150px; height: 24px; padding: 0 8px; border: 1px solid {{t.line2}}; border-radius: 6px; background: {{t.term}}; color: {{t.ink}}; font: 11px 'JetBrains Mono',ui-monospace,monospace;" /><button type="button" onClick="{{w.jb.cm.add}}" style="height: 24px; padding: 0 9px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font-size: 11px; cursor: pointer;">추가</button><button type="button" onClick="{{w.jb.cm.refresh}}" style="height: 24px; padding: 0 9px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font-size: 11px; cursor: pointer;">새로 읽기</button></div>
+                    <sc-for list="{{w.jb.cm.pend}}" as="pc" hint-placeholder-count="2">
+                      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 90px auto; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid {{t.line}}; border-radius: 7px; font-size: 12px; opacity: {{pc.dim}};">
+                        <span style="min-width: 0; overflow-wrap: anywhere;"><span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">{{pc.summary}}</span><span style="display: block; font-size: 10.5px; color: {{t.dim}};">{{pc.id}} · 대상 {{pc.node}}</span></span>
+                        <span style="font-size: 11px; color: {{t.sub}};">{{pc.text}}</span>
+                        <span style="display: inline-flex; gap: 4px;"><sc-if value="{{pc.openOn}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{pc.approve}}" style="height: 24px; padding: 0 9px; border: 1px solid #3ecf8e; border-radius: 7px; background: transparent; color: #3ecf8e; font-size: 11px; cursor: pointer;">승인 문으로</button><button type="button" onClick="{{pc.reject}}" style="height: 24px; padding: 0 9px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font-size: 11px; cursor: pointer;">거절</button></sc-if><button type="button" onClick="{{pc.drop}}" aria-label="목록에서 빼기" style="height: 24px; padding: 0 7px; border: 0; background: transparent; color: {{t.dim}}; font-size: 11px; cursor: pointer;">✕</button></span>
+                      </div>
+                    </sc-for>
+                    <p style="margin: 2px 4px; font-size: 12px; color: {{t.dim}};">{{w.jb.cm.empty}}</p>
                   </div>
                 </sc-if>
                 <div style="flex-shrink: 0; min-height: 20px; display: flex; align-items: center; padding: 0 12px; border-top: 1px solid {{t.line}}; font-size: 11.5px; color: #3ecf8e;">{{w.jb.msg}}</div>
@@ -1566,7 +1595,7 @@ class Component extends DCLogic {
   // 위험 영역 — 웹 앱 명령 실행 스위치 읽기(.get 만). 쓰기는 이 화면이 부르지 않는다 : 단추는 Scene 에 'danger' 이벤트만(window.TerraDangerAsk), 켜기 · 끄기는 Scene 의 /danger 확인 화면(ADR-GW-012 §6.1)
   //   which : 'appCommand'(웹 앱 명령 실행) | 'serviceTunnel'(서비스 터널 열기 · P10-6 — 이 노드를 출발로 앱이 터널 열기). 둘 다 같은 흐름 : .get 으로 읽고 · 단추는 Scene 에 이벤트만
   dz(which) {
-    const k = which || 'appCommand', GET = { appCommand: 'terra.daemon.danger-zone.app-command-execution.get', serviceTunnel: 'terra.daemon.danger-zone.service-tunnel.get' }[k];
+    const k = which || 'appCommand', GET = { appCommand: 'terra.daemon.danger-zone.app-command-execution.get', serviceTunnel: 'terra.daemon.danger-zone.service-tunnel.get', adminScreen: 'terra.daemon.danger-zone.admin-screen.get' }[k];
     const W = typeof window !== 'undefined' ? window : {}, T = this.TN(), rd = this.real() && T ? T.read(this.nodeKey(), GET, { ttl: 5000 }) : null;
     return W.TerraDangerView ? W.TerraDangerView(rd, { which: k, remote: this.remote(), canAsk: typeof W.TerraDangerAsk === 'function' && (typeof W.TerraDangerAsk.can !== 'function' || W.TerraDangerAsk.can()) })
       : { state: 'sim', on: false, banner: '', status: '꺼짐 (시안)', statusCls: '', note: '', changed: '', btn: '변경 ›', btnOff: true, why: '시안(캔버스) — 실제 Terra 에서만' };
@@ -2343,8 +2372,9 @@ class Component extends DCLogic {
      Master    terra.master.jobs.get · jobs.by-job-id.get · .cancel.post · .rerun.post — 위임 표(master-delegated.json)에 있다. 문(TerraGate)이 닫으면 잠그고 이유. 취소 · 다시는 확인 단계 */
   jobsView(o, t, s) {
     const N = this.nd(), tab = s.jbTab || 'node', M = this.masterJobs(t, s);
-    o.jb = { tabs: [['node', '이 노드 작업', String((N.jobs || []).length)], ['master', 'Master 작업', M.n]].map(([id, label, n]) => ({ label, n, on: id === tab ? 'true' : 'false', bg: id === tab ? t.raiseH : 'transparent', fg: id === tab ? t.ink : t.sub, fw: id === tab ? 600 : 400, pick: () => this.setState({ jbTab: id, mjAsk: null }) })),
-      vNode: tab === 'node', vMaster: tab === 'master', note: tab === 'node' ? this.api('terra.daemon.tasks.*') : this.api('terra.master.jobs.*'), msg: s.jbMsg || '' };
+    o.jb = { tabs: [['node', '이 노드 작업', String((N.jobs || []).length)], ['master', 'Master 작업', M.n], ['cmd', '새 명령 · 확인 대기', this.cmCount()]].map(([id, label, n]) => ({ label, n, on: id === tab ? 'true' : 'false', bg: id === tab ? t.raiseH : 'transparent', fg: id === tab ? t.ink : t.sub, fw: id === tab ? 600 : 400, pick: () => { this.setState({ jbTab: id, mjAsk: null, cmAsk: false }); if (id === 'cmd') this.cmOpen(); } })),
+      vNode: tab === 'node', vMaster: tab === 'master', vCmd: tab === 'cmd', note: tab === 'node' ? this.api('terra.daemon.tasks.*') : tab === 'cmd' ? this.api('terra.daemon.commands.execute.post · terra.master.commands.post · terra.master.confirmations.*') : this.api('terra.master.jobs.*'), msg: s.jbMsg || '' };
+    if (tab === 'cmd') { Object.assign(o.jb, this.cmdView(t, s)); o.out = { on: false }; o.jobs = []; return; }
     if (tab !== 'node') { Object.assign(o.jb, M.view); o.out = { on: false }; o.jobs = []; return; }
     o.out = this.jobLog(s.jobSel, t, s);
     const jobs = N.jobs || [], mk = this.marks('jobs', jobs, (j) => j.id, (j) => j.st);
@@ -2393,6 +2423,47 @@ class Component extends DCLogic {
     if (/cancel/.test(st)) return { text: '끝 · 취소됨' + code, tone: 'dim' };
     if (/fail|error/.test(st) || (L.exit !== null && L.exit !== undefined && L.exit !== 0)) return { text: '끝 · 실패' + code + (L.error ? ' · ' + L.error : ''), tone: 'err' };
     return { text: '끝 · 성공' + code, tone: 'ok' };
+  }
+  // ==== 새 명령 · 확인 대기 (P13-4) — 계획은 window.TerraCommandRun(command-run.js), 목록은 window.TerraConfirmations(confirmations.js)
+  //   이 노드 : 확인 창(T2) 뒤 terra.daemon.commands.execute.post · 다른 노드 : 승인 문(T3) 뒤 terra.master.commands.post — 호출은 T.write 가 승인 문 길(approveFor)로 보낸다.
+  //   스위치 '웹 앱 명령 실행' 이 꺼져 있으면 잠금. 붙잡힌 명령(확인 id)은 아래 확인 대기 목록에서 승인 · 거절
+  cmBook() { return typeof window !== 'undefined' && window.TerraConfirmations ? window.TerraConfirmations : null; }
+  cmCount() { const B = this.cmBook(); return B ? String(B.pending().length) : '—'; }
+  cmOpen() { const B = this.cmBook(); if (!B) return; if (!this._cmUn) this._cmUn = B.onChange(() => this.setState({ cmTick: (this.state.cmTick || 0) + 1 })); B.refresh(); }
+  cmSay(m) { this.setState({ jbMsg: m }); clearTimeout(this._jbT); this._jbT = setTimeout(() => this.setState({ jbMsg: '' }), 6000); }
+  cmErr(op, e) { const W = typeof window !== 'undefined' ? window : {}; if (W.TerraErrorSilent && W.TerraErrorSilent(e)) return '거절됨 — 실행하지 않음'; const h = W.TerraDenyHint && W.TerraDenyHint(op, e, { node: this.remote() ? this.nodeNameQ() : '' }); return '못 함 · ' + (h || (e && e.message) || (e && e.code) || '오류'); }
+  cmPlan(s) {
+    const W = typeof window !== 'undefined' ? window : {}, CR = W.TerraCommandRun; if (!CR) return null;
+    const Z = this.dz('appCommand'), sw = Z.state === 'ok' ? (Z.on ? 'on' : 'off') : Z.state === 'unsupported' ? 'on' : 'unknown';
+    return CR.plan({ line: s.cmLine || '', local: !this.remote(), nodeName: this.nodeNameQ(), nodeId: this.rid(), switchState: sw, hold: !!s.cmHold });
+  }
+  cmRun(plan) {
+    const T = this.TN(); this.setState({ cmAsk: false });
+    if (!this.real() || !T) { this.cmSay('(시안) 실행 — 실제 연결에서만 · 변경 없음'); return; }
+    this.cmSay('보내는 중…');
+    T.write(this.nodeKey(), plan.op, plan.input).then((r) => {
+      const x = (r && r.data && typeof r.data === 'object' ? r.data : r) || {}, B = this.cmBook();
+      if (x.status === 'confirmation_required' && x.confirmation_id) { if (B) { B.add(x.confirmation_id); B.refresh(); } this.cmSay('확인 필요 (정책) — 아래 확인 대기 목록에서 승인 · 거절 : ' + x.confirmation_id); }
+      else this.cmSay(plan.kind === 'confirm' ? '실행 시작' + (x.task_id || x.id ? ' · 작업 ' + (x.task_id || x.id) + ' — 이 노드 작업 탭에서 출력' : '') : '명령 보냄' + (x.job_id ? ' · 작업 ' + x.job_id + ' — Master 작업 탭' : ''));
+    }, (e) => this.cmSay(this.cmErr(plan.op, e)));
+  }
+  cmdView(t, s) {
+    const B = this.cmBook(), plan = this.cmPlan(s), real = this.real(), remote = this.remote();
+    const TIER = { T2: ['T2 · 이 노드 — 실행 전 확인 창', '#f5b83d'], T3: ['T3 · 다른 노드 — 승인 문(호스트 화면)', '#ff6b6b'] };
+    const tr = plan ? TIER[plan.tier] : ['시안 — 실제 Terra 에서만', '#9aa4b2'];
+    const canRun = !!plan && plan.kind !== 'locked' && real && !this.ro();
+    const cm = { line: s.cmLine || '', lineIn: (e) => this.setState({ cmLine: e.target.value }), holdOn: remote, hold: !!s.cmHold, holdPick: () => this.setState({ cmHold: !s.cmHold }),
+      targetT: remote ? '대상 : ' + this.nodeNameQ() + ' (다른 노드)' : '대상 : 이 노드 (' + this.nodeNameQ() + ')', tierT: tr[0], tierC: tr[1],
+      whyOn: !!(plan && plan.kind === 'locked' && (s.cmLine || '').trim()), why: plan ? plan.why : '', dis: canRun ? null : 'disabled', runT: plan && plan.kind === 'approve' ? '승인 문으로 보내기' : '실행 …',
+      run: () => { if (!canRun) return; if (plan.kind === 'confirm') this.setState({ cmAsk: true }); else this.cmRun(plan); },
+      ask: { on: !!(s.cmAsk && plan && plan.kind === 'confirm'), title: '명령 실행 · 확인', no: () => this.setState({ cmAsk: false }), yes: () => plan && plan.kind === 'confirm' && this.cmRun(plan),
+        rows: plan ? [['무엇을', plan.summary], ['어디에', plan.where + ' — 이 노드의 OS 셸에서'], ['되돌리기', plan.reversible]].map(([k, v]) => ({ k, v })) : [] },
+      addId: s.cmAddId || '', addIn: (e) => this.setState({ cmAddId: e.target.value }), add: () => { if (B && B.add(s.cmAddId)) { this.setState({ cmAddId: '' }); B.refresh(); } },
+      refresh: () => B && B.refresh(), empty: !B ? '시안 — 확인 대기는 실제 Terra 에서만' : B.list().length ? '' : '대기 중인 확인 없음 — 다른 노드 명령에 "먼저 붙잡기"를 켜면 여기에 오른다',
+      pend: B ? B.list().map((r) => ({ id: r.id, summary: r.summary, node: r.node || '—', text: r.text, openOn: r.open, dim: r.open ? '1' : '.6',
+        approve: () => B.approve(r.id).then((x) => this.cmSay(x.ok ? '승인함 — 실행 시작' : x.code === 'APPROVAL_DECLINED' ? '거절됨 — 승인하지 않음' : '못 함 · ' + (x.message || x.code))),
+        reject: () => B.reject(r.id).then((x) => this.cmSay(x.ok ? '거절함 — 실행하지 않음' : '못 함 · ' + (x.message || x.code))), drop: () => B.remove(r.id) })) : [] };
+    return { cm };
   }
   jbSay(m) { this.setState({ jbMsg: m }); clearTimeout(this._jbT); this._jbT = setTimeout(() => this.setState({ jbMsg: '' }), 5000); }
   masterJobs(t, s) {
@@ -2453,7 +2524,7 @@ class Component extends DCLogic {
       this.jbSay(kind === 'cancel' ? (st === 'cancel_sent' ? '취소 전달 (노드) — 진행 : 상세' : st === 'cancelled' ? '취소 완료 (Master)' : '취소 요청 · ' + (st || '응답'))
         : st === 'confirmation_required' ? '확인 필요 (정책) — 확인 id ' + (r.confirmation_id || '—') + ' · 이 화면에서는 확인 안 함' : '새 작업 보냄 : ' + ((r && (r.job_id || (r.job && r.job.job_id))) || '—'));
       T.refresh(n, 'terra.master.jobs.get', (this.state.mjScope || 'node') === 'node' && (T.t.meta[n] || {}).rid ? { node_id: T.t.meta[n].rid, limit: 50 } : { limit: 50 }); T.refresh(n, 'terra.master.jobs.by-job-id.get', { job_id: J.job_id });
-    }, (e) => this.jbSay('못 함 · ' + ((e && e.code) || '오류') + (e && e.message && e.message !== e.code ? ' — ' + e.message : '')));
+    }, (e) => this.jbSay(this.cmErr(op, e)));
   }
   ago(iso) { const A = typeof window !== 'undefined' && window.TerraDesk; if (A && A.ago) return A.ago(iso); const ts = Date.parse(iso || ''); if (Number.isNaN(ts)) return ''; const sec = Math.max(0, (Date.now() - ts) / 1000); return sec < 60 ? '방금' : sec < 3600 ? Math.round(sec / 60) + 'm 전' : sec < 86400 ? Math.round(sec / 3600) + 'h 전' : Math.round(sec / 86400) + 'd 전'; }
 
@@ -2768,7 +2839,7 @@ class Component extends DCLogic {
           X.dirtyT = cfgMiss ? (N.empty ? '받는 중' : '못 봤음 — 노드 설정을 읽지 못함(저장 잠금)') : ((dk.length ? '바뀐 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음') + (N.needRestart ? ' · 다시 시작 대기 ' + N.needRestart : '') + (this.help() ? ' — validate → patch{save} → apply · restart' : ''));
           const check = () => { const E = {}; dk.forEach((k) => { const f = CFG_RULE[k]; let m = f ? f(String(N.cfg[k])) : ''; if (!m && rowOf(k)[8] && A0) try { A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]); } catch (e) { m = e.message; } if (m) E[k] = m; }); this.ndSet((d) => { d.cfgErr = E; }, null, null, { draft: true }); return E; };
           { const W2 = typeof window !== 'undefined' ? window : {}, row = (k) => { const Z = this.dz(k); return { label: Z.label || '웹 앱 명령 실행', sub: Z.sub || '', changed: Z.changed, note: Z.note, why: Z.btnOff ? Z.why : '', status: Z.status, cls: Z.statusCls, btn: Z.btn, dis: Z.btnOff ? 'disabled' : null, ask: Z.btnOff ? null : () => { if (typeof W2.TerraDangerAsk !== 'function' || !W2.TerraDangerAsk(k)) this.say('Scene 확인 화면을 열 수 없음 — 앱 모드(셸 안)에서만'); } }; };
-            X.dz = row('appCommand'); X.dzT = row('serviceTunnel');
+            X.dz = row('appCommand'); X.dzT = row('serviceTunnel'); X.dzA = row('adminScreen');
             const Zr = this.rmView(); X.dzR = { label: Zr.label, sub: Zr.sub, changed: Zr.changed, note: Zr.note, why: Zr.btnOff ? Zr.why : '', status: Zr.status, cls: Zr.statusCls, btn: Zr.btn, dis: Zr.btnOff ? 'disabled' : null, ask: Zr.btnOff ? null : () => { const RM = W2.TerraRemoteMgmt; if (!RM || !RM.ask || !RM.ask()) this.say('확인 화면을 열 수 없음 — 앱 모드(셸 안)에서만'); } }; }
           X.cfgBtns = [this.btn('되돌리기', () => this.ndSet((d) => { d.cfg = JSON.parse(JSON.stringify(d.cfgBase)); d.cfgErr = {}; }, null, null, { draft: true }), { off: !dk.length, local: true, op: 'terra.daemon.config.patch' }),
             this.btn('검사', () => { const E = check(); this.say(Object.keys(E).length ? '고칠 곳 ' + Object.keys(E).length : '검사 통과'); }, { off: !dk.length, local: true, op: 'terra.daemon.config.patch' }),
@@ -2873,7 +2944,7 @@ class Component extends DCLogic {
     return {
       headD: this.props.chrome === 'none' ? 'none' : 'flex',
       catalog: Array.isArray(this.props.catalog) ? this.props.catalog : [], nodeNameV: this.nodeNameQ(),
-      t, frame, wall, wallWait: wallWait ? 'flex' : 'none', icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, dgr: (() => { const A = this.dz('appCommand'), B = this.dz('serviceTunnel'), C = this.rmView(), on = [[A, '웹 앱 명령 실행'], [B, '서비스 터널 열기'], [C, '원격 관리']].filter((z) => z[0].on); return { d: on.length ? 'inline-flex' : 'none', banner: on.length === 1 ? on[0][0].banner : on.length ? '⚠ ' + on.map((z) => z[1]).join(' · ') + ' 허용 중 — 위험 영역' : '', tip: (A.on ? '웹 앱이 이 노드에서 임의 명령을 실행할 수 있음 · ' : '') + (B.on ? '웹 앱이 이 노드를 출발로 서비스 터널을 열 수 있음 · ' : '') + (C.on ? '다른 노드의 사람이 승인 문으로 이 노드의 설정 · 재시작 · WireGuard · 장치를 쓸 수 있음' + (C.remain ? ' (' + C.remain + ') · ' : ' · ') : '') + '설정 › 노드 설정 › 위험 영역에서 끄기' }; })(), zoomK: this.zoom(), cv: this.cfmView(t, dark),
+      t, frame, wall, wallWait: wallWait ? 'flex' : 'none', icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, dgr: (() => { const A = this.dz('appCommand'), B = this.dz('serviceTunnel'), D = this.dz('adminScreen'), C = this.rmView(), on = [[A, '웹 앱 명령 실행'], [B, '서비스 터널 열기'], [D, '관리 화면'], [C, '원격 관리']].filter((z) => z[0].on); return { d: on.length ? 'inline-flex' : 'none', banner: on.length === 1 ? on[0][0].banner : on.length ? '⚠ ' + on.map((z) => z[1]).join(' · ') + ' 허용 중 — 위험 영역' : '', tip: (A.on ? '웹 앱이 이 노드에서 임의 명령을 실행할 수 있음 · ' : '') + (B.on ? '웹 앱이 이 노드를 출발로 서비스 터널을 열 수 있음 · ' : '') + (D.on ? '이 노드의 GUI 에서 관리 화면(사용자 · 권한 · 클러스터 · 외부 발급자)을 열 수 있음 · ' : '') + (C.on ? '다른 노드의 사람이 승인 문으로 이 노드의 설정 · 재시작 · WireGuard · 장치를 쓸 수 있음' + (C.remain ? ' (' + C.remain + ') · ' : ' · ') : '') + '설정 › 노드 설정 › 위험 영역에서 끄기' }; })(), zoomK: this.zoom(), cv: this.cfmView(t, dark),
       node: { name: this.nodeNameQ(), acct: this.acct(), parent: this.props.parentName || (this.props.chrome === 'none' ? '—' : 'tree-home') },
       focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
       toggleFull: () => { const on = !this.state.full; this.setState({ full: on }); if (this.props.onFull) this.props.onFull(on); },   // 전체화면 — 바깥 창(통합 화면 · 전역 틀)이 뷰 자리를 채운다

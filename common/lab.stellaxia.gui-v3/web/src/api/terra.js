@@ -29,6 +29,7 @@ export const permissionsOf = (id) => (SCOPE.operations[id] && SCOPE.operations[i
 /**
  * @param {{ fetch?: typeof fetch, token?: () => string|null, authorization?: () => string|null, refresh?: () => Promise<string|undefined> }} [o]
  *   refresh — A 모드: 앱 토큰으로 401 을 맞으면 셸에게 새 토큰을 받아 한 번 다시 보낸다
+ *   approveFor — (op, input, at) → Promise<{ok,data}|{ok:false,code,…}> | null : 승인 문으로 보낼 op 면 약속을, 아니면 null(approval-door.js)
  *   token 은 frame 이 준 앱 토큰(상대 경로에만 Bearer — frame 규칙, A 모드) · authorization 은 그대로 실을 Authorization 값(B 모드: 'Handle <id>')
  */
 export function createTerra(o = {}) {
@@ -48,6 +49,8 @@ export function createTerra(o = {}) {
     /** @param {string} id operation id @param {object} [input] 평평한 입력 @param {{ node?: string, signal?: AbortSignal }} [at] node 를 주면 그 노드에서 · signal 은 fetch 로(401 재시도 포함) — 끊으면 TIMEOUT */
     async invoke(id, input = {}, at = {}) {
       if (at.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' — 이 노드에서만', 0);
+      const door = o.approveFor ? o.approveFor(id, input, at) : null;   // 승인 문 대상 — 앱 토큰으로 보내지 않고 사람이 호스트 화면에서 승인해야 나간다(approval-door.js). 거절 · 만료 · 문 없음은 TerraError(code)
+      if (door) { const r = await door; if (r && r.ok) return r.data; throw new TerraError((r && r.code) || 'APPROVAL_FAILED', (r && r.message) || '', (r && r.status) || 0); }
       const path = at.node ? `/api/v1/nodes/${encodeURIComponent(at.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
       const sg = at.signal || undefined;
       let res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input), signal: sg });

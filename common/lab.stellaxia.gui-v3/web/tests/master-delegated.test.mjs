@@ -29,6 +29,8 @@ const GATED = {
   'terra.master.users.by-user-id.external-identities.post': '설정 › 계정 › 외부 신원 연결', 'terra.master.users.by-user-id.external-identities.delete': '설정 › 계정 › 외부 신원 해제',
   'terra.master.admin.external-issuers.get': '설정 › 계정 › 신뢰 발급자 목록', 'terra.master.admin.external-issuers.post': '설정 › 계정 › 신뢰 발급자 더하기', 'terra.master.admin.external-issuers.delete': '설정 › 계정 › 신뢰 발급자 빼기'
 };
+// 승인 문으로 나가는 Master op(P13-4) — 앱 토큰이 아니라 사람이 호스트 화면에서 승인해야 나가므로 위임 표에 없어도 된다(src/api/approval-ops.json)
+const DOOR = new Set(Object.keys(JSON.parse(readFileSync(join(web, 'src/api/approval-ops.json'), 'utf8')).operations));
 const files = (dir, ext) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name), ext) : ext.test(e.name) && !/\.test\.mjs$/.test(e.name) ? [join(dir, e.name)] : []));
 
 test('표 — 계약에서 뽑은 모양(op id → method · path · permissions)', () => {
@@ -42,7 +44,7 @@ test('gui-v3 가 부르는 Master op — 모두 위임 표에 있거나 B 모드
   for (const f of [...files(join(web, 'src'), /\.js$/), ...files(join(web, 'design'), /\.dc\.html$/)]) for (const m of readFileSync(f, 'utf8').matchAll(/'(terra\.master\.[a-z0-9.-]+)'/g)) used.add(m[1]);
   assert.ok(used.size > 0);
   for (const id of ['terra.master.crossboundary.login-routes.get', 'terra.master.crossboundary.login-routes.by-node-id.resolve.post']) assert.ok(table.operations[id], 'AUD-23 위임에 열림: ' + id);
-  const out = [...used].filter((id) => !table.operations[id] && !B_ONLY[id] && !GATED[id]);
+  const out = [...used].filter((id) => !table.operations[id] && !B_ONLY[id] && !GATED[id] && !DOOR.has(id));
   for (const id of Object.keys(GATED)) assert.ok(!table.operations[id], id + ' 가 위임 표에 생겼다 — GATED 에서 빼라(화면은 저절로 열린다)');
   assert.deepEqual(out, [], '위임 밖인데 B 모드 전용 · 문(gate)으로 잠근 단추로 적히지 않은 Master op');
 });
