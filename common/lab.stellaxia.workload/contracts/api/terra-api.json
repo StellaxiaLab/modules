@@ -1,0 +1,3079 @@
+{
+  "$schema": "../../../../../docs/contracts/api/schemas/terra-api-contract-v1.schema.json",
+  "authentication": {
+    "workload-identity": {
+      "description": "Module Runtime이 실행 instance에 발급한 단기 Workload Identity를 사용합니다.",
+      "type": "workload-identity"
+    }
+  },
+  "contractId": "lab.stellaxia.workload.api",
+  "contractVersion": "0.1.0",
+  "defaultLocale": "ko-KR",
+  "description": "이 계약이 Gateway route의 단일 원본입니다. Terra가 Terra를 모르는 프로그램을 맡는 Workload M1(참조 등록 · exec 드라이버 · 한 노드) 표면입니다. 설계: terra-docs docs/modules/terra-workload/.",
+  "errors": {
+    "WORKLOAD_UNAVAILABLE": {
+      "description": "모듈이 아직 준비되지 않았거나 내부 상태가 손상되어 요청을 처리할 수 없다.",
+      "httpStatus": 503,
+      "retryable": true,
+      "title": "모듈 사용 불가"
+    },
+    "WORKLOAD_NOT_FOUND": {
+      "description": "이 노드에 그런 등록이 없다. 참조 등록은 등록한 노드에서만 유효하므로 다른 노드에는 있을 수 있다.",
+      "httpStatus": 404,
+      "retryable": false,
+      "title": "등록 없음"
+    },
+    "WORKLOAD_ALREADY_EXISTS": {
+      "description": "같은 id가 이미 등록돼 있다. 다른 id를 쓰거나 force로 교체한다.",
+      "httpStatus": 409,
+      "retryable": false,
+      "title": "이미 있음"
+    },
+    "WORKLOAD_ID_INVALID": {
+      "description": "id 규칙(local. 접두) 또는 입력 값이 맞지 않는다.",
+      "httpStatus": 400,
+      "retryable": false,
+      "title": "입력 오류"
+    },
+    "WORKLOAD_EXEC_NOT_FOUND": {
+      "description": "등록하려는 경로에 파일이 없거나 절대경로가 아니다.",
+      "httpStatus": 400,
+      "retryable": false,
+      "title": "실행 파일 없음"
+    },
+    "WORKLOAD_EXEC_NOT_EXECUTABLE": {
+      "description": "파일은 있는데 실행할 수 없다(권한 또는 실행 형식).",
+      "httpStatus": 400,
+      "retryable": false,
+      "title": "실행 불가"
+    },
+    "WORKLOAD_EXEC_MISSING": {
+      "description": "등록 뒤 실행 파일이 사라졌다. 재등록하거나 파일을 되돌린다.",
+      "httpStatus": 409,
+      "retryable": false,
+      "title": "원본 사라짐"
+    },
+    "WORKLOAD_RUNNING": {
+      "description": "실행 중이라 그 조작을 못 한다. 정지 후 다시 하거나 --force를 쓴다.",
+      "httpStatus": 409,
+      "retryable": false,
+      "title": "실행 중"
+    },
+    "WORKLOAD_PERMISSION_DENIED": {
+      "description": "권한이 없다. 존재 여부는 말하지 않는다.",
+      "httpStatus": 403,
+      "retryable": false,
+      "title": "권한 없음"
+    },
+    "WORKLOAD_DAEMON_ELEVATED": {
+      "description": "Terra Daemon이 노드 사용자보다 높은 권한(Windows 승격 · Linux root)으로 돌고 있다. workload는 사용자 권한을 넘으면 안 되므로 등록·수정·시작을 거부한다. 데몬 비승격화 뒤 다시 시도한다 (D-27).",
+      "httpStatus": 403,
+      "retryable": false,
+      "title": "데몬 승격 상태"
+    }
+  },
+  "operations": {
+    "lab.stellaxia.workload.health.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "health.get",
+          "workload"
+        ],
+        "recommendedLabel": "모듈 상태 조회",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.workload/v1/health",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "readiness probe와 Gateway 라우팅을 확인하는 read-only Operation.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 2000,
+          "maximum": 5000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {}
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "모듈 상태.",
+              "title": "상태",
+              "enum": [
+                "ok",
+                "degraded"
+              ]
+            },
+            "version": {
+              "type": "string",
+              "description": "모듈 버전.",
+              "title": "버전",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "version"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "모듈 상태 조회",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "모듈 상태 조회",
+      "tags": [
+        "workload"
+      ],
+      "title": "모듈 상태 조회",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.list": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.list",
+          "workload"
+        ],
+        "recommendedLabel": "이 노드의 workload 목록",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "이 노드에 참조 등록된 workload를 상태와 함께 나열한다. 항목마다 이 노드 귀속(scope=node-local)을 답한다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {}
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "type": "array",
+              "description": "등록 목록.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "workload_id": {
+                    "type": "string",
+                    "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+                    "title": "workload id",
+                    "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "description": "표시 이름.",
+                    "title": "이름"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "description": "참조 등록은 항상 node-local — 그 노드에서만 유효하다.",
+                    "title": "범위",
+                    "enum": [
+                      "node-local"
+                    ]
+                  },
+                  "driver": {
+                    "type": "string",
+                    "description": "M1은 exec뿐.",
+                    "title": "드라이버",
+                    "enum": [
+                      "exec"
+                    ]
+                  },
+                  "source": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "description": "참조 등록은 link.",
+                        "title": "원천",
+                        "enum": [
+                          "link"
+                        ]
+                      },
+                      "exec_path": {
+                        "type": "string",
+                        "description": "등록한 실행 파일의 절대경로.",
+                        "title": "실행 파일"
+                      },
+                      "digest_at_register": {
+                        "type": "string",
+                        "description": "등록 시점 sha256.",
+                        "title": "등록 시 해시"
+                      },
+                      "digest_now": {
+                        "type": "string",
+                        "description": "지금 파일의 sha256. 파일이 없으면 비어 있다. get에서만 계산한다.",
+                        "title": "현재 해시"
+                      },
+                      "drift": {
+                        "type": "boolean",
+                        "description": "등록 뒤 파일이 바뀌었는가. 오류가 아니라 표시다 (D-16).",
+                        "title": "drift"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "exec_path",
+                      "digest_at_register",
+                      "drift"
+                    ]
+                  },
+                  "spec": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "args": {
+                        "type": "array",
+                        "description": "실행 인자.",
+                        "items": {
+                          "type": "string"
+                        },
+                        "title": "인자"
+                      },
+                      "working_dir": {
+                        "type": "string",
+                        "description": "작업 디렉터리. 미지정이면 실행 파일의 디렉터리.",
+                        "title": "작업 디렉터리"
+                      },
+                      "env": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "description": "shell-snapshot: 등록 셸 스냅샷을 재생. declared: 안전 키 + 선언값.",
+                            "title": "환경 방식",
+                            "enum": [
+                              "shell-snapshot",
+                              "declared"
+                            ]
+                          },
+                          "keys": {
+                            "type": "array",
+                            "description": "스냅샷에 담긴 키 이름. 값은 어떤 응답에도 나오지 않는다 (NFR-13).",
+                            "items": {
+                              "type": "string"
+                            },
+                            "title": "스냅샷 키"
+                          },
+                          "overrides": {
+                            "type": "object",
+                            "title": "선언값",
+                            "description": "등록자가 직접 준 값. 비밀은 넣지 않는다.",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "keys"
+                        ]
+                      },
+                      "restart": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "policy": {
+                            "type": "string",
+                            "description": "never | on-failure | always",
+                            "title": "정책",
+                            "enum": [
+                              "never",
+                              "on-failure",
+                              "always"
+                            ]
+                          },
+                          "max_restarts": {
+                            "type": "integer",
+                            "description": "연속 실패 재시작 상한.",
+                            "title": "최대 재시작",
+                            "minimum": 0
+                          },
+                          "backoff_ms": {
+                            "type": "integer",
+                            "description": "첫 재시작 전 대기(ms). 연속할수록 두 배, 30초 상한.",
+                            "title": "backoff",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "policy",
+                          "max_restarts",
+                          "backoff_ms"
+                        ]
+                      },
+                      "auto_start": {
+                        "type": "boolean",
+                        "description": "Terra(모듈)가 뜰 때 자동 시작.",
+                        "title": "자동 시작"
+                      }
+                    },
+                    "required": [
+                      "args",
+                      "working_dir",
+                      "env",
+                      "restart",
+                      "auto_start"
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "modulehost 운영 상태 어휘. unavailable은 등록한 파일이 사라졌다는 뜻.",
+                    "title": "상태",
+                    "enum": [
+                      "stopped",
+                      "starting",
+                      "running",
+                      "stopping",
+                      "failed",
+                      "unavailable"
+                    ]
+                  },
+                  "instance": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "pid": {
+                        "type": "integer",
+                        "description": "프로세스 id.",
+                        "title": "pid"
+                      },
+                      "started_at": {
+                        "type": "string",
+                        "description": "RFC3339 UTC.",
+                        "title": "시작 시각"
+                      },
+                      "restart_count": {
+                        "type": "integer",
+                        "description": "이 실행 사이클의 재시작 횟수.",
+                        "title": "재시작 횟수"
+                      }
+                    },
+                    "required": [
+                      "pid",
+                      "started_at",
+                      "restart_count"
+                    ]
+                  },
+                  "last_exit": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "종료 코드. 그대로 전달한다.",
+                        "title": "종료 코드"
+                      },
+                      "forced": {
+                        "type": "boolean",
+                        "description": "graceful이 아니라 강제 종료였는가.",
+                        "title": "강제"
+                      },
+                      "at": {
+                        "type": "string",
+                        "description": "RFC3339 UTC.",
+                        "title": "종료 시각"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "forced",
+                      "at"
+                    ]
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "description": "RFC3339 UTC.",
+                    "title": "등록 시각"
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "description": "RFC3339 UTC.",
+                    "title": "수정 시각"
+                  }
+                },
+                "required": [
+                  "workload_id",
+                  "display_name",
+                  "scope",
+                  "driver",
+                  "source",
+                  "spec",
+                  "status",
+                  "created_at",
+                  "updated_at"
+                ]
+              },
+              "title": "목록"
+            },
+            "scope": {
+              "type": "string",
+              "description": "이 목록이 비추는 범위.",
+              "title": "범위",
+              "enum": [
+                "node-local"
+              ]
+            }
+          },
+          "required": [
+            "items",
+            "scope"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.read"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "이 노드의 workload 목록",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "이 노드의 workload 목록",
+      "tags": [
+        "workload"
+      ],
+      "title": "이 노드의 workload 목록",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.register": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.register",
+          "workload"
+        ],
+        "recommendedLabel": "프로그램 참조 등록",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads",
+          "successStatus": 201,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "실행 파일 경로로 참조 등록한다. 복사하지 않고 manifest도 거치지 않는다. Daemon이 승격(관리자/root)이면 WORKLOAD_DAEMON_ELEVATED로 거부한다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_ID_INVALID",
+        "WORKLOAD_EXEC_NOT_FOUND",
+        "WORKLOAD_EXEC_NOT_EXECUTABLE",
+        "WORKLOAD_ALREADY_EXISTS",
+        "WORKLOAD_RUNNING",
+        "WORKLOAD_DAEMON_ELEVATED",
+        "WORKLOAD_PERMISSION_DENIED"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "none"
+        },
+        "retry": {
+          "backoff": "none",
+          "maximumAttempts": 1,
+          "mode": "never"
+        },
+        "risk": "dangerous",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "display_name": {
+              "type": "string",
+              "description": "표시 이름. 미지정이면 id에서 local.을 뗀 것.",
+              "title": "이름"
+            },
+            "exec_path": {
+              "type": "string",
+              "description": "실행 파일의 절대경로. 복사하지 않고 그 자리를 가리킨다.",
+              "title": "실행 파일"
+            },
+            "args": {
+              "type": "array",
+              "description": "실행 인자.",
+              "items": {
+                "type": "string"
+              },
+              "title": "인자"
+            },
+            "working_dir": {
+              "type": "string",
+              "description": "작업 디렉터리. 미지정이면 실행 파일의 디렉터리.",
+              "title": "작업 디렉터리"
+            },
+            "env": {
+              "type": "array",
+              "description": "KEY=VALUE 선언값. 여러 번 줄 수 있다. TERRA_ 접두 키는 버린다.",
+              "items": {
+                "type": "string"
+              },
+              "title": "환경 선언값"
+            },
+            "env_snapshot": {
+              "type": "object",
+              "title": "셸 환경 스냅샷",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "등록한 셸의 환경변수. 값은 사용자 전용 파일에만 저장되고 어떤 응답에도 돌아오지 않는다. TERRA_ 접두 키는 버린다."
+            },
+            "no_env_snapshot": {
+              "type": "boolean",
+              "description": "스냅샷을 쓰지 않고 안전 키 + 선언값만으로 실행한다.",
+              "title": "스냅샷 없음"
+            },
+            "restart": {
+              "type": "string",
+              "description": "never | on-failure | always. 기본 never.",
+              "title": "재시작 정책",
+              "enum": [
+                "never",
+                "on-failure",
+                "always"
+              ]
+            },
+            "max_restarts": {
+              "type": "integer",
+              "description": "연속 실패 재시작 상한. 기본 3.",
+              "title": "최대 재시작",
+              "minimum": 0
+            },
+            "backoff_ms": {
+              "type": "integer",
+              "description": "첫 재시작 전 대기(ms). 기본 1000.",
+              "title": "backoff",
+              "minimum": 0
+            },
+            "auto_start": {
+              "type": "boolean",
+              "description": "모듈이 뜰 때 자동 시작.",
+              "title": "자동 시작"
+            },
+            "force": {
+              "type": "boolean",
+              "description": "같은 id가 있으면 (실행 중이 아닐 때) 교체한다.",
+              "title": "교체"
+            }
+          },
+          "required": [
+            "workload_id",
+            "exec_path"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "display_name": {
+              "type": "string",
+              "description": "표시 이름.",
+              "title": "이름"
+            },
+            "scope": {
+              "type": "string",
+              "description": "참조 등록은 항상 node-local — 그 노드에서만 유효하다.",
+              "title": "범위",
+              "enum": [
+                "node-local"
+              ]
+            },
+            "driver": {
+              "type": "string",
+              "description": "M1은 exec뿐.",
+              "title": "드라이버",
+              "enum": [
+                "exec"
+              ]
+            },
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "description": "참조 등록은 link.",
+                  "title": "원천",
+                  "enum": [
+                    "link"
+                  ]
+                },
+                "exec_path": {
+                  "type": "string",
+                  "description": "등록한 실행 파일의 절대경로.",
+                  "title": "실행 파일"
+                },
+                "digest_at_register": {
+                  "type": "string",
+                  "description": "등록 시점 sha256.",
+                  "title": "등록 시 해시"
+                },
+                "digest_now": {
+                  "type": "string",
+                  "description": "지금 파일의 sha256. 파일이 없으면 비어 있다. get에서만 계산한다.",
+                  "title": "현재 해시"
+                },
+                "drift": {
+                  "type": "boolean",
+                  "description": "등록 뒤 파일이 바뀌었는가. 오류가 아니라 표시다 (D-16).",
+                  "title": "drift"
+                }
+              },
+              "required": [
+                "mode",
+                "exec_path",
+                "digest_at_register",
+                "drift"
+              ]
+            },
+            "spec": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "args": {
+                  "type": "array",
+                  "description": "실행 인자.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "인자"
+                },
+                "working_dir": {
+                  "type": "string",
+                  "description": "작업 디렉터리. 미지정이면 실행 파일의 디렉터리.",
+                  "title": "작업 디렉터리"
+                },
+                "env": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "description": "shell-snapshot: 등록 셸 스냅샷을 재생. declared: 안전 키 + 선언값.",
+                      "title": "환경 방식",
+                      "enum": [
+                        "shell-snapshot",
+                        "declared"
+                      ]
+                    },
+                    "keys": {
+                      "type": "array",
+                      "description": "스냅샷에 담긴 키 이름. 값은 어떤 응답에도 나오지 않는다 (NFR-13).",
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "스냅샷 키"
+                    },
+                    "overrides": {
+                      "type": "object",
+                      "title": "선언값",
+                      "description": "등록자가 직접 준 값. 비밀은 넣지 않는다.",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "keys"
+                  ]
+                },
+                "restart": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "policy": {
+                      "type": "string",
+                      "description": "never | on-failure | always",
+                      "title": "정책",
+                      "enum": [
+                        "never",
+                        "on-failure",
+                        "always"
+                      ]
+                    },
+                    "max_restarts": {
+                      "type": "integer",
+                      "description": "연속 실패 재시작 상한.",
+                      "title": "최대 재시작",
+                      "minimum": 0
+                    },
+                    "backoff_ms": {
+                      "type": "integer",
+                      "description": "첫 재시작 전 대기(ms). 연속할수록 두 배, 30초 상한.",
+                      "title": "backoff",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "policy",
+                    "max_restarts",
+                    "backoff_ms"
+                  ]
+                },
+                "auto_start": {
+                  "type": "boolean",
+                  "description": "Terra(모듈)가 뜰 때 자동 시작.",
+                  "title": "자동 시작"
+                }
+              },
+              "required": [
+                "args",
+                "working_dir",
+                "env",
+                "restart",
+                "auto_start"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "description": "modulehost 운영 상태 어휘. unavailable은 등록한 파일이 사라졌다는 뜻.",
+              "title": "상태",
+              "enum": [
+                "stopped",
+                "starting",
+                "running",
+                "stopping",
+                "failed",
+                "unavailable"
+              ]
+            },
+            "instance": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "pid": {
+                  "type": "integer",
+                  "description": "프로세스 id.",
+                  "title": "pid"
+                },
+                "started_at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "시작 시각"
+                },
+                "restart_count": {
+                  "type": "integer",
+                  "description": "이 실행 사이클의 재시작 횟수.",
+                  "title": "재시작 횟수"
+                }
+              },
+              "required": [
+                "pid",
+                "started_at",
+                "restart_count"
+              ]
+            },
+            "last_exit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "integer",
+                  "description": "종료 코드. 그대로 전달한다.",
+                  "title": "종료 코드"
+                },
+                "forced": {
+                  "type": "boolean",
+                  "description": "graceful이 아니라 강제 종료였는가.",
+                  "title": "강제"
+                },
+                "at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "종료 시각"
+                }
+              },
+              "required": [
+                "code",
+                "forced",
+                "at"
+              ]
+            },
+            "created_at": {
+              "type": "string",
+              "description": "RFC3339 UTC.",
+              "title": "등록 시각"
+            },
+            "updated_at": {
+              "type": "string",
+              "description": "RFC3339 UTC.",
+              "title": "수정 시각"
+            }
+          },
+          "required": [
+            "workload_id",
+            "display_name",
+            "scope",
+            "driver",
+            "source",
+            "spec",
+            "status",
+            "created_at",
+            "updated_at"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.manage"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "프로그램 참조 등록",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "프로그램 참조 등록",
+      "tags": [
+        "workload"
+      ],
+      "title": "프로그램 참조 등록",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.get",
+          "workload"
+        ],
+        "recommendedLabel": "workload 상세",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads/{workload_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "등록 하나의 상세. 파일 해시를 다시 계산해 drift를 보인다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_NOT_FOUND"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            }
+          },
+          "required": [
+            "workload_id"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "display_name": {
+              "type": "string",
+              "description": "표시 이름.",
+              "title": "이름"
+            },
+            "scope": {
+              "type": "string",
+              "description": "참조 등록은 항상 node-local — 그 노드에서만 유효하다.",
+              "title": "범위",
+              "enum": [
+                "node-local"
+              ]
+            },
+            "driver": {
+              "type": "string",
+              "description": "M1은 exec뿐.",
+              "title": "드라이버",
+              "enum": [
+                "exec"
+              ]
+            },
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "description": "참조 등록은 link.",
+                  "title": "원천",
+                  "enum": [
+                    "link"
+                  ]
+                },
+                "exec_path": {
+                  "type": "string",
+                  "description": "등록한 실행 파일의 절대경로.",
+                  "title": "실행 파일"
+                },
+                "digest_at_register": {
+                  "type": "string",
+                  "description": "등록 시점 sha256.",
+                  "title": "등록 시 해시"
+                },
+                "digest_now": {
+                  "type": "string",
+                  "description": "지금 파일의 sha256. 파일이 없으면 비어 있다. get에서만 계산한다.",
+                  "title": "현재 해시"
+                },
+                "drift": {
+                  "type": "boolean",
+                  "description": "등록 뒤 파일이 바뀌었는가. 오류가 아니라 표시다 (D-16).",
+                  "title": "drift"
+                }
+              },
+              "required": [
+                "mode",
+                "exec_path",
+                "digest_at_register",
+                "drift"
+              ]
+            },
+            "spec": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "args": {
+                  "type": "array",
+                  "description": "실행 인자.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "인자"
+                },
+                "working_dir": {
+                  "type": "string",
+                  "description": "작업 디렉터리. 미지정이면 실행 파일의 디렉터리.",
+                  "title": "작업 디렉터리"
+                },
+                "env": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "description": "shell-snapshot: 등록 셸 스냅샷을 재생. declared: 안전 키 + 선언값.",
+                      "title": "환경 방식",
+                      "enum": [
+                        "shell-snapshot",
+                        "declared"
+                      ]
+                    },
+                    "keys": {
+                      "type": "array",
+                      "description": "스냅샷에 담긴 키 이름. 값은 어떤 응답에도 나오지 않는다 (NFR-13).",
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "스냅샷 키"
+                    },
+                    "overrides": {
+                      "type": "object",
+                      "title": "선언값",
+                      "description": "등록자가 직접 준 값. 비밀은 넣지 않는다.",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "keys"
+                  ]
+                },
+                "restart": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "policy": {
+                      "type": "string",
+                      "description": "never | on-failure | always",
+                      "title": "정책",
+                      "enum": [
+                        "never",
+                        "on-failure",
+                        "always"
+                      ]
+                    },
+                    "max_restarts": {
+                      "type": "integer",
+                      "description": "연속 실패 재시작 상한.",
+                      "title": "최대 재시작",
+                      "minimum": 0
+                    },
+                    "backoff_ms": {
+                      "type": "integer",
+                      "description": "첫 재시작 전 대기(ms). 연속할수록 두 배, 30초 상한.",
+                      "title": "backoff",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "policy",
+                    "max_restarts",
+                    "backoff_ms"
+                  ]
+                },
+                "auto_start": {
+                  "type": "boolean",
+                  "description": "Terra(모듈)가 뜰 때 자동 시작.",
+                  "title": "자동 시작"
+                }
+              },
+              "required": [
+                "args",
+                "working_dir",
+                "env",
+                "restart",
+                "auto_start"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "description": "modulehost 운영 상태 어휘. unavailable은 등록한 파일이 사라졌다는 뜻.",
+              "title": "상태",
+              "enum": [
+                "stopped",
+                "starting",
+                "running",
+                "stopping",
+                "failed",
+                "unavailable"
+              ]
+            },
+            "instance": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "pid": {
+                  "type": "integer",
+                  "description": "프로세스 id.",
+                  "title": "pid"
+                },
+                "started_at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "시작 시각"
+                },
+                "restart_count": {
+                  "type": "integer",
+                  "description": "이 실행 사이클의 재시작 횟수.",
+                  "title": "재시작 횟수"
+                }
+              },
+              "required": [
+                "pid",
+                "started_at",
+                "restart_count"
+              ]
+            },
+            "last_exit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "integer",
+                  "description": "종료 코드. 그대로 전달한다.",
+                  "title": "종료 코드"
+                },
+                "forced": {
+                  "type": "boolean",
+                  "description": "graceful이 아니라 강제 종료였는가.",
+                  "title": "강제"
+                },
+                "at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "종료 시각"
+                }
+              },
+              "required": [
+                "code",
+                "forced",
+                "at"
+              ]
+            },
+            "created_at": {
+              "type": "string",
+              "description": "RFC3339 UTC.",
+              "title": "등록 시각"
+            },
+            "updated_at": {
+              "type": "string",
+              "description": "RFC3339 UTC.",
+              "title": "수정 시각"
+            }
+          },
+          "required": [
+            "workload_id",
+            "display_name",
+            "scope",
+            "driver",
+            "source",
+            "spec",
+            "status",
+            "created_at",
+            "updated_at"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.read"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "workload 상세",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "workload 상세",
+      "tags": [
+        "workload"
+      ],
+      "title": "workload 상세",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.update": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.update",
+          "workload"
+        ],
+        "recommendedLabel": "workload 수정",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "PATCH",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads/{workload_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "인자·작업 디렉터리·환경·재시작 정책을 고친다. 다음 시작부터 적용된다. 등록과 같은 승격 가드를 받는다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_NOT_FOUND",
+        "WORKLOAD_ID_INVALID",
+        "WORKLOAD_DAEMON_ELEVATED",
+        "WORKLOAD_PERMISSION_DENIED"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "none"
+        },
+        "retry": {
+          "backoff": "none",
+          "maximumAttempts": 1,
+          "mode": "never"
+        },
+        "risk": "dangerous",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "display_name": {
+              "type": "string",
+              "description": "표시 이름. 미지정이면 id에서 local.을 뗀 것.",
+              "title": "이름"
+            },
+            "args": {
+              "type": "array",
+              "description": "실행 인자.",
+              "items": {
+                "type": "string"
+              },
+              "title": "인자"
+            },
+            "working_dir": {
+              "type": "string",
+              "description": "작업 디렉터리. 미지정이면 실행 파일의 디렉터리.",
+              "title": "작업 디렉터리"
+            },
+            "env": {
+              "type": "array",
+              "description": "KEY=VALUE 선언값. 여러 번 줄 수 있다. TERRA_ 접두 키는 버린다.",
+              "items": {
+                "type": "string"
+              },
+              "title": "환경 선언값"
+            },
+            "env_snapshot": {
+              "type": "object",
+              "title": "셸 환경 스냅샷",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "등록한 셸의 환경변수. 값은 사용자 전용 파일에만 저장되고 어떤 응답에도 돌아오지 않는다. TERRA_ 접두 키는 버린다."
+            },
+            "restart": {
+              "type": "string",
+              "description": "never | on-failure | always. 기본 never.",
+              "title": "재시작 정책",
+              "enum": [
+                "never",
+                "on-failure",
+                "always"
+              ]
+            },
+            "max_restarts": {
+              "type": "integer",
+              "description": "연속 실패 재시작 상한. 기본 3.",
+              "title": "최대 재시작",
+              "minimum": 0
+            },
+            "backoff_ms": {
+              "type": "integer",
+              "description": "첫 재시작 전 대기(ms). 기본 1000.",
+              "title": "backoff",
+              "minimum": 0
+            },
+            "auto_start": {
+              "type": "boolean",
+              "description": "모듈이 뜰 때 자동 시작.",
+              "title": "자동 시작"
+            }
+          },
+          "required": [
+            "workload_id"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "display_name": {
+              "type": "string",
+              "description": "표시 이름.",
+              "title": "이름"
+            },
+            "scope": {
+              "type": "string",
+              "description": "참조 등록은 항상 node-local — 그 노드에서만 유효하다.",
+              "title": "범위",
+              "enum": [
+                "node-local"
+              ]
+            },
+            "driver": {
+              "type": "string",
+              "description": "M1은 exec뿐.",
+              "title": "드라이버",
+              "enum": [
+                "exec"
+              ]
+            },
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "description": "참조 등록은 link.",
+                  "title": "원천",
+                  "enum": [
+                    "link"
+                  ]
+                },
+                "exec_path": {
+                  "type": "string",
+                  "description": "등록한 실행 파일의 절대경로.",
+                  "title": "실행 파일"
+                },
+                "digest_at_register": {
+                  "type": "string",
+                  "description": "등록 시점 sha256.",
+                  "title": "등록 시 해시"
+                },
+                "digest_now": {
+                  "type": "string",
+                  "description": "지금 파일의 sha256. 파일이 없으면 비어 있다. get에서만 계산한다.",
+                  "title": "현재 해시"
+                },
+                "drift": {
+                  "type": "boolean",
+                  "description": "등록 뒤 파일이 바뀌었는가. 오류가 아니라 표시다 (D-16).",
+                  "title": "drift"
+                }
+              },
+              "required": [
+                "mode",
+                "exec_path",
+                "digest_at_register",
+                "drift"
+              ]
+            },
+            "spec": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "args": {
+                  "type": "array",
+                  "description": "실행 인자.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "인자"
+                },
+                "working_dir": {
+                  "type": "string",
+                  "description": "작업 디렉터리. 미지정이면 실행 파일의 디렉터리.",
+                  "title": "작업 디렉터리"
+                },
+                "env": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "description": "shell-snapshot: 등록 셸 스냅샷을 재생. declared: 안전 키 + 선언값.",
+                      "title": "환경 방식",
+                      "enum": [
+                        "shell-snapshot",
+                        "declared"
+                      ]
+                    },
+                    "keys": {
+                      "type": "array",
+                      "description": "스냅샷에 담긴 키 이름. 값은 어떤 응답에도 나오지 않는다 (NFR-13).",
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "스냅샷 키"
+                    },
+                    "overrides": {
+                      "type": "object",
+                      "title": "선언값",
+                      "description": "등록자가 직접 준 값. 비밀은 넣지 않는다.",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "keys"
+                  ]
+                },
+                "restart": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "policy": {
+                      "type": "string",
+                      "description": "never | on-failure | always",
+                      "title": "정책",
+                      "enum": [
+                        "never",
+                        "on-failure",
+                        "always"
+                      ]
+                    },
+                    "max_restarts": {
+                      "type": "integer",
+                      "description": "연속 실패 재시작 상한.",
+                      "title": "최대 재시작",
+                      "minimum": 0
+                    },
+                    "backoff_ms": {
+                      "type": "integer",
+                      "description": "첫 재시작 전 대기(ms). 연속할수록 두 배, 30초 상한.",
+                      "title": "backoff",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "policy",
+                    "max_restarts",
+                    "backoff_ms"
+                  ]
+                },
+                "auto_start": {
+                  "type": "boolean",
+                  "description": "Terra(모듈)가 뜰 때 자동 시작.",
+                  "title": "자동 시작"
+                }
+              },
+              "required": [
+                "args",
+                "working_dir",
+                "env",
+                "restart",
+                "auto_start"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "description": "modulehost 운영 상태 어휘. unavailable은 등록한 파일이 사라졌다는 뜻.",
+              "title": "상태",
+              "enum": [
+                "stopped",
+                "starting",
+                "running",
+                "stopping",
+                "failed",
+                "unavailable"
+              ]
+            },
+            "instance": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "pid": {
+                  "type": "integer",
+                  "description": "프로세스 id.",
+                  "title": "pid"
+                },
+                "started_at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "시작 시각"
+                },
+                "restart_count": {
+                  "type": "integer",
+                  "description": "이 실행 사이클의 재시작 횟수.",
+                  "title": "재시작 횟수"
+                }
+              },
+              "required": [
+                "pid",
+                "started_at",
+                "restart_count"
+              ]
+            },
+            "last_exit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "integer",
+                  "description": "종료 코드. 그대로 전달한다.",
+                  "title": "종료 코드"
+                },
+                "forced": {
+                  "type": "boolean",
+                  "description": "graceful이 아니라 강제 종료였는가.",
+                  "title": "강제"
+                },
+                "at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "종료 시각"
+                }
+              },
+              "required": [
+                "code",
+                "forced",
+                "at"
+              ]
+            },
+            "created_at": {
+              "type": "string",
+              "description": "RFC3339 UTC.",
+              "title": "등록 시각"
+            },
+            "updated_at": {
+              "type": "string",
+              "description": "RFC3339 UTC.",
+              "title": "수정 시각"
+            }
+          },
+          "required": [
+            "workload_id",
+            "display_name",
+            "scope",
+            "driver",
+            "source",
+            "spec",
+            "status",
+            "created_at",
+            "updated_at"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.manage"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "workload 수정",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "workload 수정",
+      "tags": [
+        "workload"
+      ],
+      "title": "workload 수정",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.delete": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.delete",
+          "workload"
+        ],
+        "recommendedLabel": "workload 해제",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "DELETE",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads/{workload_id}",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "등록을 해제한다. 실행 중이면 거부하고, force면 정지한 뒤 해제한다. 로그와 이력도 지운다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_NOT_FOUND",
+        "WORKLOAD_RUNNING",
+        "WORKLOAD_PERMISSION_DENIED"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "none"
+        },
+        "retry": {
+          "backoff": "none",
+          "maximumAttempts": 1,
+          "mode": "never"
+        },
+        "risk": "dangerous",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "force": {
+              "type": "boolean",
+              "description": "실행 중이면 정지 후 해제.",
+              "title": "강제"
+            }
+          },
+          "required": [
+            "workload_id"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "removed": {
+              "type": "boolean",
+              "description": "해제됨.",
+              "title": "해제"
+            }
+          },
+          "required": [
+            "workload_id",
+            "removed"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.manage"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "workload 해제",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "workload 해제",
+      "tags": [
+        "workload"
+      ],
+      "title": "workload 해제",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.start": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.start",
+          "workload"
+        ],
+        "recommendedLabel": "workload 시작",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads/{workload_id}/start",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "프로그램을 시작한다. 이미 실행 중이면 현재 상태를 그대로 답한다. Daemon이 승격이면 거부한다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_NOT_FOUND",
+        "WORKLOAD_EXEC_MISSING",
+        "WORKLOAD_EXEC_NOT_EXECUTABLE",
+        "WORKLOAD_DAEMON_ELEVATED",
+        "WORKLOAD_PERMISSION_DENIED"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "none",
+          "maximumAttempts": 1,
+          "mode": "never"
+        },
+        "risk": "dangerous",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            }
+          },
+          "required": [
+            "workload_id"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "status": {
+              "type": "string",
+              "description": "modulehost 운영 상태 어휘. unavailable은 등록한 파일이 사라졌다는 뜻.",
+              "title": "상태",
+              "enum": [
+                "stopped",
+                "starting",
+                "running",
+                "stopping",
+                "failed",
+                "unavailable"
+              ]
+            },
+            "instance": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "pid": {
+                  "type": "integer",
+                  "description": "프로세스 id.",
+                  "title": "pid"
+                },
+                "started_at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "시작 시각"
+                },
+                "restart_count": {
+                  "type": "integer",
+                  "description": "이 실행 사이클의 재시작 횟수.",
+                  "title": "재시작 횟수"
+                }
+              },
+              "required": [
+                "pid",
+                "started_at",
+                "restart_count"
+              ]
+            }
+          },
+          "required": [
+            "workload_id",
+            "status"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.manage"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "workload 시작",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "workload 시작",
+      "tags": [
+        "workload"
+      ],
+      "title": "workload 시작",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.stop": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.stop",
+          "workload"
+        ],
+        "recommendedLabel": "workload 정지",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads/{workload_id}/stop",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "graceful 요청 후 예산을 넘기면 강제 종료한다. 응답이 강제 여부(forced)를 말한다. 이미 멈춰 있으면 그대로 성공한다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_NOT_FOUND",
+        "WORKLOAD_PERMISSION_DENIED"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "none",
+          "maximumAttempts": 1,
+          "mode": "never"
+        },
+        "risk": "write",
+        "timeoutMs": {
+          "default": 15000,
+          "maximum": 310000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "timeout_seconds": {
+              "type": "integer",
+              "description": "graceful 대기 예산(초). 기본 10.",
+              "title": "대기",
+              "minimum": 1,
+              "maximum": 300
+            }
+          },
+          "required": [
+            "workload_id"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "status": {
+              "type": "string",
+              "description": "modulehost 운영 상태 어휘. unavailable은 등록한 파일이 사라졌다는 뜻.",
+              "title": "상태",
+              "enum": [
+                "stopped",
+                "starting",
+                "running",
+                "stopping",
+                "failed",
+                "unavailable"
+              ]
+            },
+            "exit_code": {
+              "type": "integer",
+              "description": "종료 코드.",
+              "title": "종료 코드"
+            },
+            "forced": {
+              "type": "boolean",
+              "description": "강제 종료였는가. graceful로 끝났는지 운영자가 알아야 한다.",
+              "title": "강제"
+            },
+            "duration_ms": {
+              "type": "integer",
+              "description": "정지에 걸린 시간(ms).",
+              "title": "소요"
+            }
+          },
+          "required": [
+            "workload_id",
+            "status",
+            "exit_code",
+            "forced",
+            "duration_ms"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.manage"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "workload 정지",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "workload 정지",
+      "tags": [
+        "workload"
+      ],
+      "title": "workload 정지",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.restart": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.restart",
+          "workload"
+        ],
+        "recommendedLabel": "workload 재시작",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "POST",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads/{workload_id}/restart",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "정지 뒤 다시 시작한다. Daemon이 승격이면 거부한다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_NOT_FOUND",
+        "WORKLOAD_EXEC_MISSING",
+        "WORKLOAD_EXEC_NOT_EXECUTABLE",
+        "WORKLOAD_DAEMON_ELEVATED",
+        "WORKLOAD_PERMISSION_DENIED"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "none"
+        },
+        "retry": {
+          "backoff": "none",
+          "maximumAttempts": 1,
+          "mode": "never"
+        },
+        "risk": "dangerous",
+        "timeoutMs": {
+          "default": 30000,
+          "maximum": 60000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            }
+          },
+          "required": [
+            "workload_id"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "status": {
+              "type": "string",
+              "description": "modulehost 운영 상태 어휘. unavailable은 등록한 파일이 사라졌다는 뜻.",
+              "title": "상태",
+              "enum": [
+                "stopped",
+                "starting",
+                "running",
+                "stopping",
+                "failed",
+                "unavailable"
+              ]
+            },
+            "instance": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "pid": {
+                  "type": "integer",
+                  "description": "프로세스 id.",
+                  "title": "pid"
+                },
+                "started_at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "시작 시각"
+                },
+                "restart_count": {
+                  "type": "integer",
+                  "description": "이 실행 사이클의 재시작 횟수.",
+                  "title": "재시작 횟수"
+                }
+              },
+              "required": [
+                "pid",
+                "started_at",
+                "restart_count"
+              ]
+            }
+          },
+          "required": [
+            "workload_id",
+            "status"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": true
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.manage"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "workload 재시작",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "workload 재시작",
+      "tags": [
+        "workload"
+      ],
+      "title": "workload 재시작",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.status.get": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.status.get",
+          "workload"
+        ],
+        "recommendedLabel": "workload 상태",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads/{workload_id}/status",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "상태와 마지막 종료(코드·강제 여부)를 compact하게 답한다. 쓸 수 없음·멈춰 있음·도는 중을 구분한다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_NOT_FOUND"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            }
+          },
+          "required": [
+            "workload_id"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "status": {
+              "type": "string",
+              "description": "modulehost 운영 상태 어휘. unavailable은 등록한 파일이 사라졌다는 뜻.",
+              "title": "상태",
+              "enum": [
+                "stopped",
+                "starting",
+                "running",
+                "stopping",
+                "failed",
+                "unavailable"
+              ]
+            },
+            "instance": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "pid": {
+                  "type": "integer",
+                  "description": "프로세스 id.",
+                  "title": "pid"
+                },
+                "started_at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "시작 시각"
+                },
+                "restart_count": {
+                  "type": "integer",
+                  "description": "이 실행 사이클의 재시작 횟수.",
+                  "title": "재시작 횟수"
+                }
+              },
+              "required": [
+                "pid",
+                "started_at",
+                "restart_count"
+              ]
+            },
+            "last_exit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "integer",
+                  "description": "종료 코드. 그대로 전달한다.",
+                  "title": "종료 코드"
+                },
+                "forced": {
+                  "type": "boolean",
+                  "description": "graceful이 아니라 강제 종료였는가.",
+                  "title": "강제"
+                },
+                "at": {
+                  "type": "string",
+                  "description": "RFC3339 UTC.",
+                  "title": "종료 시각"
+                }
+              },
+              "required": [
+                "code",
+                "forced",
+                "at"
+              ]
+            },
+            "drift": {
+              "type": "boolean",
+              "description": "등록 뒤 파일이 바뀌었는가.",
+              "title": "drift"
+            }
+          },
+          "required": [
+            "workload_id",
+            "status",
+            "drift"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.read"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "workload 상태",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "workload 상태",
+      "tags": [
+        "workload"
+      ],
+      "title": "workload 상태",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.logs.read": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.logs.read",
+          "workload"
+        ],
+        "recommendedLabel": "workload 로그 읽기",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads/{workload_id}/logs",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "workload 전용 로그를 읽는다. tail이면 마지막 n줄, after면 그 커서 이후(follow). 커서가 파일 끝을 넘으면 회전된 것이므로 처음부터 읽고 rotated=true로 알린다.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_NOT_FOUND"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "tail": {
+              "type": "integer",
+              "description": "마지막 n줄. 둘 다 없으면 200줄.",
+              "title": "tail",
+              "minimum": 0
+            },
+            "after": {
+              "type": "integer",
+              "description": "이 바이트 커서 이후만.",
+              "title": "커서",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "workload_id"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "text": {
+              "type": "string",
+              "description": "로그 본문.",
+              "title": "본문"
+            },
+            "cursor": {
+              "type": "integer",
+              "description": "다음 읽기에 줄 커서.",
+              "title": "커서"
+            },
+            "rotated": {
+              "type": "boolean",
+              "description": "커서가 회전 때문에 무효가 돼 처음부터 읽었다.",
+              "title": "회전"
+            }
+          },
+          "required": [
+            "workload_id",
+            "text",
+            "cursor",
+            "rotated"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.read"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "workload 로그 읽기",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "workload 로그 읽기",
+      "tags": [
+        "workload"
+      ],
+      "title": "workload 로그 읽기",
+      "version": "1.0.0"
+    },
+    "lab.stellaxia.workload.workloads.events.list": {
+      "authoring": {
+        "functionNode": false,
+        "group": "Workload",
+        "keywords": [
+          "workloads.events.list",
+          "workload"
+        ],
+        "recommendedLabel": "workload 이력",
+        "studioVisible": false
+      },
+      "availability": {
+        "hostRoles": [
+          "leaf-node",
+          "tree-control"
+        ],
+        "products": [
+          "leaf",
+          "tree"
+        ],
+        "requiresProviderState": "ready",
+        "scopes": [
+          "local",
+          "node"
+        ]
+      },
+      "bindings": [
+        {
+          "method": "GET",
+          "path": "/api/modules/lab.stellaxia.workload/v1/workloads/{workload_id}/events",
+          "successStatus": 200,
+          "type": "gateway-http"
+        }
+      ],
+      "category": "workload",
+      "description": "시작·종료·재시작·재시작 폭풍 이력.",
+      "errors": [
+        "WORKLOAD_UNAVAILABLE",
+        "WORKLOAD_NOT_FOUND"
+      ],
+      "execution": {
+        "cancellation": "before-dispatch",
+        "concurrency": {
+          "mode": "unlimited"
+        },
+        "confirmation": {
+          "mode": "none"
+        },
+        "idempotency": {
+          "mode": "safe"
+        },
+        "retry": {
+          "backoff": "exponential",
+          "maximumAttempts": 3,
+          "mode": "safe-only"
+        },
+        "risk": "read",
+        "timeoutMs": {
+          "default": 5000,
+          "maximum": 30000
+        }
+      },
+      "input": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "limit": {
+              "type": "integer",
+              "description": "최근 n건. 기본 100.",
+              "title": "건수",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          },
+          "required": [
+            "workload_id"
+          ]
+        }
+      },
+      "output": {
+        "mode": "immediate",
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "workload_id": {
+              "type": "string",
+              "description": "참조 등록 id. 반드시 local.로 시작한다 (트리 배포 id와 충돌하지 않게).",
+              "title": "workload id",
+              "pattern": "^local\\.[a-z0-9][a-z0-9._-]{0,120}$"
+            },
+            "items": {
+              "type": "array",
+              "description": "오래된 것부터.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "at": {
+                    "type": "string",
+                    "description": "RFC3339 UTC.",
+                    "title": "시각"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "description": "started | exited | stopped | restart_storm | registered | updated …",
+                    "title": "종류"
+                  },
+                  "detail": {
+                    "type": "object",
+                    "title": "상세",
+                    "additionalProperties": true
+                  }
+                },
+                "required": [
+                  "at",
+                  "kind"
+                ]
+              },
+              "title": "이력"
+            }
+          },
+          "required": [
+            "workload_id",
+            "items"
+          ]
+        }
+      },
+      "security": {
+        "audit": {
+          "required": false
+        },
+        "authentication": [
+          "workload-identity"
+        ],
+        "dataClassification": "internal",
+        "permissions": [
+          "workload.read"
+        ],
+        "workloadPermissions": []
+      },
+      "semantics": {
+        "postconditions": [],
+        "preconditions": [],
+        "sideEffects": [],
+        "processing": [
+          {
+            "description": "workload 이력",
+            "id": "do",
+            "transaction": "none"
+          }
+        ]
+      },
+      "status": "stable",
+      "summary": "workload 이력",
+      "tags": [
+        "workload"
+      ],
+      "title": "workload 이력",
+      "version": "1.0.0"
+    }
+  },
+  "permissions": {
+    "workload.read": {
+      "description": "이 노드에 등록된 workload의 목록·상태·로그·이력을 읽는다.",
+      "risk": "read",
+      "title": "workload 읽기"
+    },
+    "workload.manage": {
+      "description": "프로그램을 참조 등록하고 시작·정지·수정·해제한다. 등록은 이 노드에 프로그램 하나를 실행할 권한을 주는 일이므로 명시적으로 부여한다.",
+      "risk": "dangerous",
+      "title": "workload 관리"
+    }
+  },
+  "provider": {
+    "hostRoles": [
+      "leaf-node",
+      "tree-control"
+    ],
+    "id": "lab.stellaxia.workload",
+    "kind": "module",
+    "moduleId": "lab.stellaxia.workload",
+    "name": "Terra Workload",
+    "ownership": {
+      "source": "module/common/lab.stellaxia.workload"
+    },
+    "products": [
+      "leaf",
+      "tree"
+    ],
+    "version": "0.1.0"
+  },
+  "schemaVersion": "1.0.0",
+  "summary": "Terra Workload 모듈이 제공하는 Operation 계약입니다.",
+  "title": "Terra Workload API"
+}
