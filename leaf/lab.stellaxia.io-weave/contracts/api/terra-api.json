@@ -27,6 +27,13 @@
       "title": "모듈 사용 불가"
     }
   },
+  "permissions": {
+    "node.config": {
+      "title": "노드 설정 변경",
+      "description": "이 노드의 설정을 바꾼다. io-weave 설정 쓰기(settings.set)가 요구하며 감사 기록을 남긴다.",
+      "risk": "write"
+    }
+  },
   "operations": {
     "lab.stellaxia.io-weave.pointer.get": {
       "authoring": {
