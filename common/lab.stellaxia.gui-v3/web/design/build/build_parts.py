@@ -14,6 +14,7 @@ BOARDS = {
     'nodesvi':    ('NodeSvi.dc.html',    '<div class="sv"'),
     'alarms':     ('Alarms.dc.html',     '<div class="al"'),
     'opconsole':  ('OpConsole.dc.html',  '<div class="oc"'),
+    'treeadmin':  ('TreeAdmin.dc.html',  '<div class="ta"'),
     'starmaker':  ('StarMaker.dc.html',  '<div data-smroot="1"'),
     'nodeshare':  ('NodeShare.dc.html',  '<div class="sh"'),
     'resstatus':  ('ResStatus.dc.html',  '<div class="ns'),
