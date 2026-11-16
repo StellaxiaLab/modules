@@ -179,6 +179,9 @@ if (MODE !== 'demo') {
   // 위험 영역 — 설정창 단추는 Scene 에 'danger' 이벤트만 보낸다(값을 싣지 않는다). 켜기 · 끄기는 Scene 의 /danger 확인 화면이 한다 — 이 페이지는 스위치 쓰기를 부르지 않는다(ADR-GW-012 §6.1)
   window.TerraDangerView = dangerView; window.TerraDangerAsk = (which) => { if (!(MODE === 'app' && frame)) return false; frame.emit(which === 'serviceTunnel' ? 'dangerTunnel' : 'danger'); return true; }; window.TerraDangerAsk.can = () => MODE === 'app' && !!frame;   // 늘 정의 — frame 은 호출 때 본다(앱 모드의 frame 은 나중에 선다)
   window.TerraApprove = (op, inputs) => approveOp(MODE === 'app' ? frame : null, op, inputs);   // 승인 문(P10-5) — 사람이 호스트 화면에서 승인해야 나간다. 쓰기는 페이지가 아니라 호스트가 부른다
+  // op 콘솔(P17-1) — 카탈로그는 이 Gateway 가 이 계정에 보여 주는 것만(앱 토큰이면 앱 범위). 목록은 스키마 없이 · 스키마는 고른 것 하나만(describe)
+  window.TerraCatalog = { list: () => terra.http('GET', '/api/v1/catalog'), describe: (id) => terra.http('GET', '/api/v1/catalog/operations/' + encodeURIComponent(id)) };
+  window.TerraCanApprove = () => MODE === 'app' && !!frame && typeof frame.features === 'function' && frame.features().includes('approve');   // 셸이 승인 문을 실어 준 때만
   window.TerraRemoteApps = createRemoteApps({ http: (m, p) => terra.http(m, p), onChange: () => { try { window.dispatchEvent(new Event('terra-apps')); } catch {} } });   // 다른 노드의 앱 목록 — 그 노드 창이 필요로 할 때만 받는다(노드마다 캐시 · TTL, remote-apps.js)
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = null; })
     .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = null; }))
