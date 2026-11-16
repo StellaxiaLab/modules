@@ -22,7 +22,6 @@ const GATED = {
   'terra.master.network.mesh.wireguard.peers.revoke.post': '네트워크 › 피어 철회', 
   'terra.master.route.policies.put': '네트워크 › 정책 저장', 'terra.master.route.policies.by-policy-id.delete': '네트워크 › 정책 지우기',
   
-  'terra.master.service-tunnels.open.post': '자원 관리 › 서비스 터널 열기',
   'terra.master.users.by-user-id.external-identities.post': '설정 › 계정 › 외부 신원 연결', 'terra.master.users.by-user-id.external-identities.delete': '설정 › 계정 › 외부 신원 해제',
   'terra.master.admin.external-issuers.get': '설정 › 계정 › 신뢰 발급자 목록', 'terra.master.admin.external-issuers.post': '설정 › 계정 › 신뢰 발급자 더하기', 'terra.master.admin.external-issuers.delete': '설정 › 계정 › 신뢰 발급자 빼기'
 };

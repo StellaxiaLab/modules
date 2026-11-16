@@ -15,7 +15,7 @@ test('Master — 위임 표에 있으면 열림, 없으면 코어', () => {
   assert.equal(gate('terra.master.jobs.get').open, true);
   assert.equal(gate('terra.master.network.probes.post').open, true);
   const g = gate('terra.master.route.policies.put'); assert.equal(g.open, false); assert.equal(g.needs, 'core'); assert.equal(g.why, '잠김 : 위임 없음 — terra.master.route.policies.put');
-  assert.equal(gate('terra.master.service-tunnels.open.post').needs, 'core');
+  assert.equal(gate('terra.master.service-tunnels.open.post').open, true);   // P10-6 위임으로 열림
   assert.equal(gate('terra.master.svi.handles.post').needs, 'core');
 });
 

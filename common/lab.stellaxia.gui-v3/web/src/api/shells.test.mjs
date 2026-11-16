@@ -99,6 +99,6 @@ test('Terra 터미널 api — 위임표의 읽기만(이름=값 입력), 쓰기 
   }
   assert.equal(T.calls.length, n0, '거절한 op 는 부르지 않았다');
   assert.equal(apiAllowed('terra.master.crossboundary.login-routes.get').ok, true, 'AUD-23: 위임에 열렸다');
-  await assert.rejects(S.terra.run('api terra.daemon.live.get', { cur: 'n-srv-0002' }), (e) => e.code === 'LOCAL_ONLY');
+  await assert.rejects(S.terra.run('api terra.daemon.events.get', { cur: 'n-srv-0002' }), (e) => e.code === 'LOCAL_ONLY');
 });
 
