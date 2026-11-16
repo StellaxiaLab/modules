@@ -5,7 +5,6 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseBoard } from '../tools/dc-board.mjs';
 import { region } from '../tools/sync-desk-flows.mjs';
-import { NODE_SHELL } from '../src/api/shells.js';
 
 const src = readFileSync(fileURLToPath(new URL('../design/NodeDesktopEmbed.dc.html', import.meta.url)), 'utf8');
 const flows = readFileSync(fileURLToPath(new URL('../src/api/desk-flows.js', import.meta.url)), 'utf8');
@@ -35,15 +34,19 @@ test('확인 단계 — 체크 전엔 다음이 잠기고, 문이 닫히면 마�
   } finally { done(); }
 });
 
-test('노드 셸 — 열기 확인 단계를 끝까지 걸어도 셸 열기는 node-shell.md 결정까지 잠김(시안도)', () => {
-  const { c, done } = make({}); try {
+test('노드 셸 — 열기 확인 단계 둘 · 마지막 단추는 승인 문 op(T3)의 문을 따른다 · commands.execute 는 부르지 않는다', () => {
+  const gate = (op) => ({ open: op === 'terra.daemon.terminal.sessions.post', why: '', op });
+  const { c, done } = make({ TerraGate: gate }); try {
     c.shellAsk(); const S = c.state.cfm.spec;
-    assert.deepEqual(S.steps.map((s) => s.label), ['무엇이 되는가', '권한 경고', '두 터미널 구분']);
-    assert.equal(S.final.gate.open, false); assert.equal(S.final.gate.why, NODE_SHELL.reason + ' — ' + NODE_SHELL.design);
+    assert.equal(S.op, 'terra.daemon.terminal.sessions.post');
+    assert.deepEqual(S.steps.map((s) => s.label), ['무엇이 되는가', '권한 경고']);
+    assert.equal(S.final.gate.open, true); assert.equal(typeof S.final.run, 'function');
     assert.ok(S.steps[1].rows.some(([k, v]) => k === '위험도' && /dangerous/.test(v)));
-    assert.equal(S.steps[2].preview, 'shell');
+    assert.ok(S.steps[1].rows.some(([k, v]) => k === '스위치' && /꺼짐/.test(v)));
+    assert.ok(S.steps[0].rows.some(([k, v]) => k === '승인' && /승인 화면/.test(v)));
   } finally { done(); }
   assert.ok(!/commands\.execute\.post'/.test(parseBoard(src).script), '보드가 commands.execute 를 부르지 않는다');
+  assert.ok(!/계약에 없는 op/.test(flows), 'desk-flows 에 낡은 "계약에 없는 op" 표시가 없다');
 });
 
 test('.tmod 설치 — 결정 표 잠금 없음: 시안(예시) 연결은 올리지 않고 이유만 보인다(꾸며낸 성공 없음)', () => {

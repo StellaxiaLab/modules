@@ -75,16 +75,17 @@ export function createTerra(o = {}) {
     },
     /**
      * 양방향 스트림 — 티켓으로 WebSocket 을 열고(열릴 때까지 기다린다) send 로 올린다. write 소켓(svi.handles.*.write.get)용.
-     * 티켓 발급 실패(429 · 403 DELEGATION_NOT_OPEN …)는 TerraError 로 던진다. @returns {{ send: (v: any) => void, close: () => void }}
+     * 티켓 발급 실패(429 · 403 DELEGATION_NOT_OPEN …)는 TerraError 로 던진다. h.binary : 바이너리 프레임을 ArrayBuffer 로 받고 Uint8Array 를 그대로 보낸다(노드 셸) · onClose 에는 { code, reason }. @returns {{ send: (v: any) => void, close: () => void }}
      */
     async streamIO(id, input, h = {}) {
       const t = await unwrap(await send('/api/v1/streams/tickets', { method: 'POST', headers: headers(), body: JSON.stringify({ operationId: id, input }) }));
       const url = new URL('/api/v1/streams/' + encodeURIComponent(t.ticket), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
       const ws = new WebSocket(url);
       await new Promise((ok, no) => { ws.onopen = () => ok(); ws.onerror = () => no(new TerraError('NETWORK', id + ' — 소켓을 열지 못함', 0, true)); ws.onclose = () => no(new TerraError('NETWORK', id + ' — 소켓이 열리기 전에 닫힘', 0, true)); });
-      ws.onerror = null; ws.onmessage = (e) => { let v = e.data; try { v = JSON.parse(e.data); } catch {} if (h.onMessage) h.onMessage(v); };
-      ws.onclose = () => { if (h.onClose) h.onClose(); };
-      return { send: (v) => ws.send(typeof v === 'string' ? v : JSON.stringify(v)), close: () => ws.close() };
+      if (h.binary) ws.binaryType = 'arraybuffer';   // 노드 셸(P16-4a) — 바이너리 프레임은 ArrayBuffer 그대로, 글자 프레임은 JSON 으로 풀지 않는다
+      ws.onerror = null; ws.onmessage = (e) => { let v = e.data; if (!h.binary) { try { v = JSON.parse(e.data); } catch {} } if (h.onMessage) h.onMessage(v); };
+      ws.onclose = (e) => { if (h.onClose) h.onClose({ code: e && e.code, reason: e && e.reason }); };
+      return { send: (v) => ws.send(typeof v === 'string' || v instanceof ArrayBuffer || ArrayBuffer.isView(v) ? v : JSON.stringify(v)), close: () => ws.close() };
     },
     /**
      * SSE 스트림 — operation 호출을 Accept: text/event-stream 으로(Gateway 가 제공자의 SSE 를 흘려 준다 · sse.js). 응답이 열리면 닫는 함수를 돌려준다.

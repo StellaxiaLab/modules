@@ -13,6 +13,7 @@
     "gui-v3.login.open",
     "gui-v3.danger.open",
     "gui-v3.dangerTunnel.open",
+    "gui-v3.dangerShell.open",
     "gui-v3.dangerAdmin.open",
     "gui-v3.signout",
     "gui-v3.app.launch",
@@ -44,6 +45,9 @@
       },
       "dangerTunnel": {
         "function": "gui-v3.dangerTunnel.open"
+      },
+      "dangerShell": {
+        "function": "gui-v3.dangerShell.open"
       },
       "dangerAdmin": {
         "function": "gui-v3.dangerAdmin.open"
