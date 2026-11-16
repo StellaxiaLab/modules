@@ -907,6 +907,13 @@
         "AGENT_UNAVAILABLE"
       ],
       "execution": {
+        "approval": {
+          "tier": "T3",
+          "impact": "node",
+          "inputs": [
+            "server"
+          ]
+        },
         "cancellation": "before-dispatch",
         "concurrency": {
           "mode": "unlimited"
@@ -1311,6 +1318,16 @@
         "AGENT_UNAVAILABLE"
       ],
       "execution": {
+        "approval": {
+          "tier": "T3",
+          "impact": "node",
+          "inputs": [
+            "server",
+            "command",
+            "args",
+            "read_only"
+          ]
+        },
         "cancellation": "before-dispatch",
         "concurrency": {
           "mode": "unlimited"
