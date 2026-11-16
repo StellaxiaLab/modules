@@ -272,17 +272,23 @@
   "terra.master.monitor.alerts.ack.post": {
    "method": "POST",
    "path": "/api/v1/monitor/alerts/{alert_id}/ack",
-   "permissions": []
+   "permissions": [
+    "node.read"
+   ]
   },
   "terra.master.monitor.alerts.get": {
    "method": "GET",
    "path": "/api/v1/monitor/alerts",
-   "permissions": []
+   "permissions": [
+    "node.read"
+   ]
   },
   "terra.master.monitor.snapshot.get": {
    "method": "GET",
    "path": "/api/v1/monitor/snapshot",
-   "permissions": []
+   "permissions": [
+    "node.read"
+   ]
   },
   "terra.master.network.logs.get": {
    "method": "GET",
@@ -508,11 +514,39 @@
     "node.read"
    ]
   },
+  "terra.master.service-tunnels.declarations.by-declaration-id.delete": {
+   "method": "DELETE",
+   "path": "/api/v1/service-tunnels/declarations/{declaration_id}",
+   "permissions": [
+    "node.control"
+   ]
+  },
   "terra.master.service-tunnels.declarations.get": {
    "method": "GET",
    "path": "/api/v1/service-tunnels/declarations",
    "permissions": [
     "node.read"
+   ]
+  },
+  "terra.master.service-tunnels.declarations.post": {
+   "method": "POST",
+   "path": "/api/v1/service-tunnels/declarations",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.service-tunnels.open.post": {
+   "method": "POST",
+   "path": "/api/v1/service-tunnels/open",
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.service-tunnels.plan.post": {
+   "method": "POST",
+   "path": "/api/v1/service-tunnels/plan",
+   "permissions": [
+    "node.control"
    ]
   },
   "terra.master.svi.bindings.by-binding-id.delete": {

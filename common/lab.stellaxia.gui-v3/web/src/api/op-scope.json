@@ -1,6 +1,6 @@
 {
  "$comment": "tools/gen-op-scope.mjs 가 Terra Daemon 계약에서 뽑은 표 — 손으로 고치지 않는다",
- "contractVersion": "1.2.0",
+ "contractVersion": "1.4.0",
  "operations": {
   "terra.daemon.capabilities.get": {
    "scopes": [
@@ -49,6 +49,15 @@
    ],
    "risk": "write"
   },
+  "terra.daemon.config.rollback.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "dangerous"
+  },
   "terra.daemon.config.save.post": {
    "scopes": [
     "local"
@@ -70,7 +79,8 @@
   },
   "terra.daemon.config.validate.post": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.read"
@@ -96,9 +106,48 @@
    ],
    "risk": "dangerous"
   },
-  "terra.daemon.debug.config.get": {
+  "terra.daemon.danger-zone.remote-management.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.danger-zone.remote-management.post": {
    "scopes": [
     "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.danger-zone.service-tunnel.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.danger-zone.service-tunnel.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.debug.config.get": {
+   "scopes": [
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.read"
@@ -107,7 +156,8 @@
   },
   "terra.daemon.debug.routes.get": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.read"
@@ -150,6 +200,24 @@
     "node.read"
    ],
    "risk": "read"
+  },
+  "terra.daemon.enrollment.sync.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.enrollment.unenroll.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.enroll"
+   ],
+   "risk": "dangerous"
   },
   "terra.daemon.events.get": {
    "scopes": [
@@ -322,7 +390,8 @@
   },
   "terra.daemon.io.watch.events.get": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.read"
@@ -331,7 +400,8 @@
   },
   "terra.daemon.io.watch.get": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.read"
@@ -340,7 +410,8 @@
   },
   "terra.daemon.live.get": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.read"
@@ -349,7 +420,8 @@
   },
   "terra.daemon.local-fs.entries.get": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "file.read"
@@ -358,10 +430,30 @@
   },
   "terra.daemon.local-fs.roots.get": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "file.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.logs.events.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.logs.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
    ],
    "risk": "read"
   },
@@ -652,7 +744,8 @@
   },
   "terra.daemon.ready.get": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.read"
@@ -678,6 +771,36 @@
    ],
    "risk": "dangerous"
   },
+  "terra.daemon.service-tunnels.by-tunnel-id.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.service-tunnels.by-tunnel-id.logs.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.service-tunnels.by-tunnel-id.metrics.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
   "terra.daemon.service-tunnels.get": {
    "scopes": [
     "local",
@@ -696,6 +819,25 @@
     "node.control"
    ],
    "risk": "write"
+  },
+  "terra.daemon.service.status.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.service.stop.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "risk": "dangerous"
   },
   "terra.daemon.status.get": {
    "scopes": [
@@ -842,6 +984,25 @@
     "node.read"
    ],
    "risk": "read"
+  },
+  "terra.daemon.transports.get": {
+   "scopes": [
+    "local",
+    "cluster"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.transports.probe.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "write"
   },
   "terra.daemon.wireguard.apply.post": {
    "scopes": [
