@@ -93,6 +93,13 @@
     "node.read"
    ]
   },
+  "terra.master.events.get": {
+   "method": "GET",
+   "path": "/api/v1/events",
+   "permissions": [
+    "node.read"
+   ]
+  },
   "terra.master.files.transfers.post": {
    "method": "POST",
    "path": "/api/v1/files/transfers",
@@ -293,6 +300,13 @@
   "terra.master.network.logs.get": {
    "method": "GET",
    "path": "/api/v1/network/logs",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.network.logs.stream.get": {
+   "method": "GET",
+   "path": "/api/v1/network/logs/stream",
    "permissions": [
     "node.read"
    ]
@@ -603,6 +617,13 @@
    "path": "/api/v1/svi/grants",
    "permissions": [
     "node.control"
+   ]
+  },
+  "terra.master.svi.handles.by-handle-id.events.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/handles/{handle_id}/events",
+   "permissions": [
+    "node.read"
    ]
   },
   "terra.master.svi.handles.by-handle-id.get": {

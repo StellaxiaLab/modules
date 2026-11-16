@@ -12,7 +12,8 @@ const c = JSON.parse(await readFile(src, 'utf8'));
 const ops = {};
 for (const id of Object.keys(c.operations).sort()) {
   const o = c.operations[id];
-  ops[id] = { scopes: (o.availability && o.availability.scopes) || ['local'], permissions: (o.security && o.security.permissions) || [], risk: (o.execution && o.execution.risk) || '' };
+  const ap = o.execution && o.execution.approval;   // 승인 문 대상(T3 · T4) — switch 는 다른 노드의 쓰기가 기대는 스위치('remote-manage' = 원격 관리, P15)
+  ops[id] = { scopes: (o.availability && o.availability.scopes) || ['local'], permissions: (o.security && o.security.permissions) || [], risk: (o.execution && o.execution.risk) || '', ...(ap && ap.switch ? { switch: ap.switch } : {}) };
 }
 const out = { $comment: 'tools/gen-op-scope.mjs 가 Terra Daemon 계약에서 뽑은 표 — 손으로 고치지 않는다', contractVersion: c.contractVersion || '', operations: ops };
 const target = new URL('../src/api/op-scope.json', import.meta.url);

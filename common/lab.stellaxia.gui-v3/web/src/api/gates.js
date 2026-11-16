@@ -35,8 +35,8 @@ const APP_LACKS = { 'terra.master.jobs.by-job-id.rerun.post': 'process.execute.d
 
 /**
  * @param {string} op
- * @param {{ remote?: boolean, who?: { permissions?: string[] } | null }} [o]
- * @returns {{ open: boolean, needs: '' | 'core' | 'app-perm' | 'user-perm' | 'local', why: string, op: string }}
+ * @param {{ remote?: boolean, who?: { permissions?: string[] } | null, remoteSwitch?: 'on'|'off', approveNode?: boolean, node?: string }} [o]  remoteSwitch : 그 원격 노드의 원격 관리 스위치(모르면 생략) · approveNode : 승인 문이 다른 노드를 가리킬 수 있나(false 면 잠금) · node : 문구용 노드 이름
+ * @returns {{ open: boolean, needs: '' | 'core' | 'app-perm' | 'user-perm' | 'local' | 'switch', why: string, op: string }}
  */
 export function gate(op, o = {}) {
   const shut = (needs, why) => ({ open: false, needs, why, op });
@@ -63,6 +63,11 @@ export function gate(op, o = {}) {
   const app = S.permissions.filter((p) => !APP_PERMS.includes(p));
   if (app.length) return shut('app-perm', '잠김 : 앱 권한 없음 — ' + app.join(' · '));
   if (o.remote && !S.scopes.includes('cluster')) return shut('local', '잠김 : 이 노드에서만');
+  // 원격 관리 스위치 뒤의 쓰기(P15) — 그 노드의 스위치가 꺼져 있으면 잠그고(칩), 켜져 있어도 앱 토큰은 거절되니 승인 문이 그 노드를 가리킬 수 있어야 한다
+  if (o.remote && S.switch === 'remote-manage') {
+    if (o.remoteSwitch === 'off') return shut('switch', '잠김 : ' + (o.node ? o.node + ' 의' : '이 노드의') + ' 원격 관리가 꺼져 있음 — 그 노드의 위험 영역에서 켜기');
+    if (o.approveNode === false) return shut('core', '잠김 : 이 Terra 셸의 승인 문이 다른 노드를 가리키지 못함 — 터미널(terra CLI)에서');
+  }
   if (whoUnknown && S.permissions.some((p) => p !== 'node.read')) return shut('user-perm', '잠김 : 계정 권한을 알 수 없음 — whoami 못 받음');   // 읽기는 열어 둔다(서버가 가른다) · 쓰기는 닫는다
   const user = whoAll ? [] : S.permissions.filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
   if (user.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + user.join(' · '));

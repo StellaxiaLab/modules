@@ -12,10 +12,12 @@
 // 나머지는 Master 노드 목록에서 이름(display_name · device_name)이 같은 노드로. 못 찾으면 NODE_UNMAPPED — 보드는 "Terra 에 없는 노드"로 읽기 전용.
 
 import { TerraError } from './terra.js';
+import { needsRemoteManage } from './remote-management.js';
 
 /**
  * @param {{ terra: ReturnType<import('./terra.js').createTerra>, authed?: () => boolean, localRid?: () => string }} o
  *   localRid — invokeRid 의 로컬 판정: 이 GUI 를 낸 노드의 node_id(지도 localId). 비면(Tree Gateway) 노드 길
+ *   approveRemote — 승인 문(frame.approve)으로 다른 노드에 쓰기를 한다(원격 관리 스위치 뒤의 op · P15). (op, input, nodeId) → { ok, data } | { ok:false, code, message, status }. 없으면 앱 토큰으로 그대로 보낸다(Gateway 가 REMOTE_MANAGEMENT_APP_REFUSED)
  *   authed — 로그인 전이면 false: 아무 데도 부르지 않고 UNAUTHENTICATED 로 답한다(로그인 화면 뒤에서 노드를 두드리지 않게)
  */
 export function createGatewayTransport(o) {
@@ -55,6 +57,11 @@ export function createGatewayTransport(o) {
       if (op.startsWith('gui-v3.')) throw new TerraError('OP_UNSUPPORTED', op + ' — 노드 operation 없음 (화면 초안 · 성공 아님)', 501);   // 모르는 gui-v3.* 쓰기는 가짜 성공 대신 거절
       if (op.startsWith('terra.master.')) { const inp = Object.assign({}, input); if (!inp.node_id && /\.by-node-id\./.test(op)) inp.node_id = await tp.masterId(n); return T.invoke(op, inp); }   // Master 는 로컬 Gateway 가 잇는다
       const id = await tp.realId(n);
+      if (id && o.approveRemote && needsRemoteManage(op)) {   // 원격 관리 쓰기 — 앱 토큰이 아니라 사람이 호스트 승인 화면에서 승인해야 나간다. 거절 · 만료 · 문 없음은 TerraError(code)로 — 화면이 §2.5 문구로 말한다
+        const r = await o.approveRemote(op, input || {}, id);
+        if (r && r.ok) return r.data;
+        throw new TerraError((r && r.code) || 'APPROVAL_FAILED', (r && r.message) || '', (r && r.status) || 0);
+      }
       return T.invoke(op, input || {}, id ? { node: id } : {});
     },
 
