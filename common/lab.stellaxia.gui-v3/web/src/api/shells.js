@@ -7,13 +7,18 @@
 //               !! · !<n> · use(현재 노드) 와 node · network · route · session · probe · module · task · daemon · api.
 //               CLI 프로세스를 띄우지 않고 같은 이름의 operation 을 Gateway 로 부른다 — 그래서 어느 노드에서나(다른 노드는 Master 중계) 쓴다.
 //               셸이 아니다: 따옴표 · $변수 · ; | & < > ` \ ( ) { } * ? ! ~ 따위는 받지 않는다(낱말은 SAFE_WORD 만).
-//               부르는 operation 은 모두 읽기이고, 위임표(op-scope.json · master-delegated.json)에 있는 것뿐이다(TERRA_OPS).
+//               손으로 만든 낱말(node · network · route …)이 부르는 operation 은 모두 읽기이고 위임표(op-scope.json · master-delegated.json)에 있는 것뿐이다(TERRA_OPS).
+//               P17-2 : 그 밖의 CLI 명령 중 O · A · R 분류(terra-words.json — CLI 표면 지도에서 생성)는 낱말 표로 operation 에 잇는다(terra-words.js).
+//                 등급대로 — T0 · T1 곧장 · T2 터미널 안 확인(yes) · T3 · T4 승인 문(approve). 앱 토큰에 닫힌 것은 이유와 CLI 줄로 거절. 호출 길은 op 콘솔의 runOp · lockOf 그대로.
+//                 set · vars · echo · unset 과 $이름(줄을 가르기 전에 펼침), set output table|json.
 //               `api <operation-id> [이름=값 …]` 도 그 표에서 risk read(Master 는 GET)인 것만 — 쓰기 · 위험 operation 은 "여기서 못 함 + 대신 할 곳"으로 답한다.
 
 import { TerraError, canRemote } from './terra.js';
 import { netProps, ROUTE } from './net-props.js';
 import SCOPE from './op-scope.json' with { type: 'json' };
 import MASTER from './master-delegated.json' with { type: 'json' };
+import { lockOf, runOp, formFields, buildInput, CHIP_TEXT, cliLine, tierName } from './op-console.js';
+import { TERRA_WORDS, HAND_PATHS, lookup, parseArgs, coerce, expandVars, formatResult, inputLine, refusal, usageOf, VAR_NAME, VAR_VALUE } from './terra-words.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const pad = (s, n) => { s = String(s ?? '—'); let w = 0; for (const ch of s) w += /[ᄀ-ᇿ㄰-㆏가-힣一-鿿]/.test(ch) ? 2 : 1; return s + ' '.repeat(Math.max(1, n - w)); };
@@ -83,7 +88,6 @@ export const ELSEWHERE = Object.freeze([
   ['login', null, '셸의 로그인 화면 — 웹은 비밀번호 받지 않음'], ['logout', null, '전역 틀의 로그아웃'],
   ['exec', null, LOCKED_SHELL], ['run', null, LOCKED_SHELL], ['shell', null, LOCKED_SHELL],
   ['sh', null, LOCKED_SHELL], ['bash', null, LOCKED_SHELL], ['cmd', null, LOCKED_SHELL], ['powershell', null, LOCKED_SHELL], ['sudo', null, LOCKED_SHELL],
-  ['set', null, '변수 없음 — 값 그대로 입력'], ['vars', null, '변수 없음'],
 ]);
 const elsewhere = (cmd, sub) => { const r = ELSEWHERE.find(([a, b]) => a === cmd && (!b || b.test(sub || ''))); return r ? r[2] : null; };
 
@@ -106,7 +110,7 @@ export function apiAllowed(op) {
 const notHere = (why, where, code) => new TerraError(code || 'NOT_HERE', why + ' — 여기서 불가 · 대신 : ' + where, 0);
 
 export const TERRA_HELP = [
-  'Terra 터미널 — terra shell 낱말 · 읽기 전용 · 앞의 terra 생략 가능 · 셸 문법 불가',
+  'Terra 터미널 — terra shell 낱말 · 앞의 terra 생략 가능 · 셸 문법 불가 · 쓰기는 등급대로(확인 · 승인 문)',
   '  help · clear · history · !! · !<번호>         셸',
   '  use <노드>                                    현재 노드(노드 이름 · node_id 앞부분 · .terra · 클러스터 주소)',
   '  status · whoami                               연결 · 로그인 주체와 권한',
@@ -117,14 +121,18 @@ export const TERRA_HELP = [
   '  module list [노드] · task list [노드]          그 노드의 모듈 · 작업(Daemon — 다른 노드는 중계)',
   '  task get <id> · daemon status [노드]',
   '  api <operation-id> [이름=값 …]                위임표의 읽기 operation · 현재 노드 (terra api)',
-  '  쓰기(모듈 시작 · 설정 · 작업 취소 …) : 각 창 · 노드 셸 : 잠김',
+  '  help <낱말>                                    그 낱말로 시작하는 CLI 명령 · 등급 · operation (예 help module · help daemon io)',
+  '  <CLI 명령> [위치 인자] [이름=값 …]             O · A · R 분류 CLI 명령 — T0 · T1 곧장 · T2 yes 로 확인 · T3 · T4 승인 문 (예 module start <id> · file rm …)',
+  '  set <이름>=<값> · unset <이름> · vars · echo …  변수($이름은 줄 안에서 펼침) · set output table|json',
+  '  노드 지정 : node=<노드> (없으면 use 한 노드) · 비밀 값 · 스트림 · 여러 op 를 엮는 명령 : 각 창 · op 콘솔 · 노드 셸 : 잠김',
 ];
 
 /**
  * @param {{ invoke: (op: string, input?: object, at?: { node?: string }) => Promise<any> }} terra
  * @param {() => any} topo 지금 지도(window.TerraTopology) — localId · node(rid)
+ * @param {{ approve?: Function, canApprove?: () => boolean, gate?: Function, describe?: (id: string) => Promise<any>, catalog?: Function, textOf?: Function }} [deps]  승인 문 · 문(gate) · 카탈로그 — 모두 늦게 읽는다(window.* 가 나중에 생겨도 된다)
  */
-export function createShells(terra, topo) {
+export function createShells(terra, topo, deps = {}) {
   let nodesP = null, nodesT = 0;
   const nodes = () => { if (!nodesP || Date.now() - nodesT > 10000) { nodesT = Date.now(); nodesP = terra.invoke('terra.master.nodes.get', {}).then((d) => (Array.isArray(d) ? d : (d && d.nodes) || []), (e) => { nodesP = null; throw e; }); } return nodesP; };
   const localId = () => { const T = topo(); return (T && T.localId) || ''; };
@@ -208,6 +216,40 @@ export function createShells(terra, topo) {
   };
   terraCmd.sessions = terraCmd.session; terraCmd.probes = terraCmd.probe; terraCmd.modules = terraCmd.module; terraCmd.tasks = terraCmd.task; terraCmd.nodes = terraCmd.node;
 
+  // ── P17-2 : 변수 · 출력 · 확인 대기 · 낱말 표 호출 ──
+  const vars = {}; let output = 'table', pending = null;
+  const PENDING_MS = 60000;
+  const d = (k) => (typeof deps[k] === 'function' ? deps[k] : null);
+  const schemaOf = async (id) => { const f = d('describe'); if (!f) return null; try { const r = await f(id); const x = r && r.input; return typeof x === 'string' ? JSON.parse(x) : x || null; } catch { return null; } };
+  const doRun = async (w, item, input, nodeRid) => {
+    const r = await runOp({ item, input, node: nodeRid }, { invoke: (rid, op, inp) => terra.invoke(op, inp, { node: rid }), invokeLocal: (op, inp) => terra.invoke(op, inp), approve: d('approve') || undefined, textOf: d('textOf') || undefined });
+    const head = say(['↳ ' + w.op + ' · ' + item.tier + ' ' + tierName(item.tier) + (nodeRid ? ' · 노드 ' + nodeRid : '') + (r.via === 'door' ? ' · 승인 문' : '')], 'dim');
+    if (r.ok) return head.concat(say(r.data === undefined ? ['완료'] : formatResult(r.data, output)), r.withheld && r.withheld.length ? say(['숨김 : ' + r.withheld.join(' ') + ' (승인 문 화면에만)'], 'dim') : []);
+    if (r.silent) return head.concat(say(['승인 거절됨 · 실행 안 함'], 'warn'));
+    throw new TerraError(r.code || 'ERROR', r.text || (r.code || 'ERROR'), 0);
+  };
+  /** 낱말 표의 명령 하나 — 거절 · 입력 만들기 · 문 · 등급별 길 */
+  const callWord = async (w, rest, cx) => {
+    const bad = refusal(w); if (bad) throw notHere(bad.why, bad.where, bad.code);
+    const P = parseArgs(w, rest); if (P.errors.length) throw new TerraError('BAD_INPUT', P.errors.join(' · '), 0);
+    let nodeRid = ''; if (w.node) { nodeRid = P.node ? await resolve(P.node) : (cx.cur || ''); if (nodeRid === localId()) nodeRid = ''; } else if (P.node) throw new TerraError('BAD_INPUT', w.cmd + ' — 노드 지정 없는 operation(' + w.op + ')', 0);
+    const C = coerce(P.input, await schemaOf(w.op), { formFields, buildInput });
+    if (C.secret.length) throw notHere(w.cmd + ' — 비밀 값 칸(' + C.secret.join(' ') + ')은 터미널 기록에 남음', 'op 콘솔 · 해당 창(승인 문)');
+    if (!C.ok) throw new TerraError('BAD_INPUT', C.errors.join(' · '), 0);
+    const item = { id: w.op, tier: w.tier || 'T1' }, L = lockOf(item, { gate: d('gate'), canApprove: d('canApprove') ? !!deps.canApprove() : false, remote: !!nodeRid });
+    if (L.locked) throw notHere(w.cmd + ' — ' + (CHIP_TEXT[L.chip] || '잠김'), L.why.replace(/ · 터미널 : .*$/, '') + ' · CLI : ' + cliLine(w.op, C.input), 'LOCKED_OP');
+    if (item.tier === 'T2') {
+      pending = { at: Date.now(), run: () => doRun(w, item, C.input, nodeRid) };
+      return say(['확인 — ' + w.op + ' (' + item.tier + ' ' + tierName(item.tier) + ')' + (nodeRid ? ' · 노드 ' + nodeRid : ''), '  ' + inputLine(C.input), '  실행하려면 yes · 그만두려면 no (60초)'], 'warn');
+    }
+    return doRun(w, item, C.input, nodeRid);
+  };
+  const helpFor = (a) => {
+    const q = a.join(' '), hit = TERRA_WORDS.filter((w) => w.cmd.startsWith(q));
+    if (!hit.length) return say([q + ' — 그 낱말로 시작하는 명령 없음 (help)'], 'warn');
+    return say(table(['명령', '등급', '쓰임', 'operation'], hit.map((w) => [w.cmd, w.tier, w.kind === 'op' ? (w.usage ? w.usage.slice(0, 26) : '') : '(' + w.kind + ')', w.op || (w.ops || []).join(' ')])), 'dim');
+  };
+
   /**
    * Terra 터미널 한 줄. 셸 낱말(help · clear · history · use)은 화면이 상태를 들고 있어 여기서는 결과만 돌려준다
    * @param {string} line
@@ -215,12 +257,34 @@ export function createShells(terra, topo) {
    * @returns {Promise<{ lines: { t: string, c: string }[], clear?: boolean, cur?: string, curName?: string }>}
    */
   const terraRun = async (line, cx = {}) => {
-    const words = tokenize(line); if (words[0] === 'terra') words.shift();
+    const words = tokenize(expandVars(line, vars)); if (words[0] === 'terra') words.shift();
     const [cmd, ...a] = words;
     if (!cmd) return { lines: [] };
-    if (cmd === 'help' || cmd === '?') return { lines: say(TERRA_HELP, 'dim') };
+    // 확인 대기 — yes · no 가 아니면 대기를 버리고 그 줄을 그대로 처리한다
+    if (pending) {
+      const p = pending; pending = null;
+      if (/^(yes|y|no|n)$/.test(cmd) && !a.length) {
+        if (Date.now() - p.at > PENDING_MS) return { lines: say(['확인 시간 지남 — 명령을 다시 입력'], 'warn') };
+        if (/^(yes|y)$/.test(cmd)) return { lines: await p.run() };
+        return { lines: say(['취소함 · 실행 안 함'], 'dim') };
+      }
+    }
+    if (cmd === 'help' || cmd === '?') return { lines: a.length ? helpFor(a) : say(TERRA_HELP, 'dim') };
     if (cmd === 'clear') return { lines: [], clear: true };
     if (cmd === 'history') return { lines: say((cx.hist || []).map((h, i) => String(i + 1).padStart(4) + '  ' + h), 'dim') };
+    if (cmd === 'echo') return { lines: say([a.join(' ')]) };
+    if (cmd === 'vars') return { lines: say(['output = ' + output].concat(Object.entries(vars).map(([k, v]) => k + ' = ' + v)), 'dim') };
+    if (cmd === 'unset') { if (!a[0] || !Object.hasOwn(vars, a[0])) throw new TerraError('BAD_INPUT', 'unset <이름> — 없는 변수 (vars)', 0); delete vars[a[0]]; return { lines: say(['지움 : ' + a[0]], 'dim') }; }
+    if (cmd === 'set') {
+      if (!a.length) return { lines: say(['output = ' + output].concat(Object.entries(vars).map(([k, v]) => k + ' = ' + v)), 'dim') };
+      const m = /^([^=]+)=(.*)$/.exec(a[0]), name = m ? m[1] : a[0], val = m ? m[2] : a[1];
+      if (name === 'output') { if (!['table', 'json'].includes(val) || a.length > (m ? 1 : 2)) throw new TerraError('BAD_INPUT', 'set output table|json', 0); output = val; return { lines: say(['output = ' + output], 'dim') }; }
+      if (!VAR_NAME.test(name) || val === undefined || a.length > (m ? 1 : 2) || !VAR_VALUE.test(val)) throw new TerraError('BAD_INPUT', 'set <이름>=<값> — 이름은 영문 · 숫자 · _ , 값은 낱말 하나(셸 문법 불가) · set output table|json', 0);
+      if (!Object.hasOwn(vars, name) && Object.keys(vars).length >= 64) throw new TerraError('BAD_INPUT', '변수는 64개까지', 0);
+      vars[name] = val; return { lines: say([name + ' = ' + val], 'dim') };
+    }
+    const hit = lookup(words, deps.words), generic = hit && !HAND_PATHS.has(hit.word.cmd) ? hit : null;
+    if (generic) { if (generic.word.kind !== 'op') { const w2 = elsewhere(cmd, a[0]); if (w2) throw notHere(words.join(' '), w2); } return { lines: await callWord(generic.word, generic.rest, cx) }; }
     const away = elsewhere(cmd, a[0]); if (away) throw notHere(words.join(' '), away);
     if (cmd === 'use') { if (!a[0] || a[0] === '.' || a[0] === 'self') return { lines: say(['현재 노드 = 이 노드'], 'dim'), cur: '', curName: '' }; const id = await resolve(a[0]), list = await nodes(); return { lines: say(['현재 노드 = ' + nameOf(list, id) + ' (' + id + ')'], 'dim'), cur: id, curName: nameOf(list, id) }; }
     const f = terraCmd[cmd];

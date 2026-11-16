@@ -1,0 +1,2496 @@
+{
+ "_comment": "tools/gen-terra-words.mjs 가 terra-docs 의 gui-coverage-cli.csv · cli-commands.csv 에서 만든다 — 손으로 고치지 않는다",
+ "words": [
+  {
+   "cmd": "agent levels",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "발급 가능한 등급과 이 세션에서 실제로 남는 권한 나열",
+   "kind": "direct",
+   "op": "terra.gateway.agent.levels.get"
+  },
+  {
+   "cmd": "agent nodes",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "이 자격이 부를 수 있는 노드 목록",
+   "kind": "direct",
+   "op": "terra.gateway.agent.nodes.get"
+  },
+  {
+   "cmd": "agent whoami",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "자격(세션 또는 TERRA_AGENT_TOKEN)이 실제로 할 수 있는 것을 표시",
+   "usage": "[--agent]",
+   "kind": "direct",
+   "op": "terra.gateway.agent.whoami.get"
+  },
+  {
+   "cmd": "auth login",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "계정 로그인(비밀번호) 후 토큰 저장",
+   "usage": "--username <u> --password <p> | --token <t>",
+   "kind": "direct",
+   "op": "terra.gateway.auth.login.post"
+  },
+  {
+   "cmd": "auth login --to-tree",
+   "cls": "A",
+   "tier": "T2",
+   "effect": "write",
+   "sum": "다른 Tree에 로그인(그 Tree의 Master로 직접)",
+   "usage": "--to-tree <tree_ref|self> --username --password",
+   "kind": "multi",
+   "ops": [
+    "terra.master.crossboundary.login-routes.get",
+    "terra.master.crossboundary.login-routes.by-node-id.resolve.post",
+    "terra.master.crossboundary.login-routes.introductions.post",
+    "terra.master.service-tunnels.plan.post",
+    "terra.master.auth.login.post"
+   ]
+  },
+  {
+   "cmd": "auth trees",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "로그인을 보낼 수 있는 Tree 목록",
+   "kind": "op",
+   "op": "terra.master.crossboundary.login-routes.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "auth whoami",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "저장 토큰 클레임을 보여주고, Gateway whoami로 Master가 아직 토큰을 인정하는지 확인",
+   "usage": "[--offline]",
+   "kind": "op",
+   "op": "terra.gateway.agent.whoami.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "complete",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "셸 자동완성 후보 출력(내부용)",
+   "usage": "<words...>",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.get",
+    "terra.daemon.node.get"
+   ]
+  },
+  {
+   "cmd": "connection group close",
+   "cls": "A",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "연결 그룹 닫기",
+   "usage": "<group_id>",
+   "kind": "op",
+   "op": "terra.master.connection-groups.by-group-id.close.post",
+   "pos": [
+    "group_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "connection group create",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "연결 그룹 생성(세션 묶음)",
+   "usage": "--name <n> --session <id>[,<id>...] (반복 가능; 위치 인자도 세션 id로 취급)",
+   "kind": "op",
+   "op": "terra.master.connection-groups.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "connection group get",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "연결 그룹 상세",
+   "usage": "<group_id>",
+   "kind": "op",
+   "op": "terra.master.connection-groups.by-group-id.get",
+   "pos": [
+    "group_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "connection group list",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "연결 그룹 목록",
+   "kind": "op",
+   "op": "terra.master.connection-groups.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "core catalog",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "트리의 코어 릴리스 목록",
+   "usage": "[--role <role>]",
+   "kind": "op",
+   "op": "terra.master.core.releases.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "core fetch",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "코어 번들을 다이제스트로 받아 로컬 파일에 저장(해시 재검증)",
+   "usage": "<digest> <output-path>",
+   "kind": "op",
+   "op": "terra.master.core.bundles.by-digest.get",
+   "pos": [
+    "digest"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "daemon config get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "설정 키 하나의 값 조회(점 표기)",
+   "usage": "<key> [--daemon-config <path>]",
+   "kind": "op",
+   "op": "terra.daemon.config.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon config schema",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon 설정 스키마 조회",
+   "usage": "[--daemon-config <path>]",
+   "kind": "op",
+   "op": "terra.daemon.config.schema.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon config show",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon 설정 조회(비밀 값은 가림, 기준선 편차 표시)",
+   "usage": "[--daemon-config <path>] [--online]",
+   "kind": "op",
+   "op": "terra.daemon.config.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon config validate",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "설정 검증",
+   "usage": "[--daemon-config <path>]",
+   "kind": "op",
+   "op": "terra.daemon.config.validate.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon debug config",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon 설정 덤프(디버그)",
+   "kind": "op",
+   "op": "terra.daemon.config.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon debug routes",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon이 노출한 라우트 목록(디버그)",
+   "kind": "op",
+   "op": "terra.daemon.debug.routes.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon enrollment status",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드 등록(enrollment) 상태 조회",
+   "kind": "op",
+   "op": "terra.daemon.enrollment.status.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon health",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon 상태(health) 조회",
+   "kind": "op",
+   "op": "terra.daemon.health.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon io adapter",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "열거 어댑터 상태(= watch 상태와 같은 라우트)",
+   "kind": "stream",
+   "op": "terra.daemon.io.watch.get"
+  },
+  {
+   "cmd": "daemon io device alias",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "장치 별칭 지정",
+   "usage": "<device_id> <alias>",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.by-device-id.alias.post",
+   "pos": [
+    "device_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon io device approve",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "장치 사용 승인",
+   "usage": "<device_id>",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.by-device-id.approve.post",
+   "pos": [
+    "device_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon io device deny",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "장치 사용 거부",
+   "usage": "<device_id>",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.by-device-id.deny.post",
+   "pos": [
+    "device_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon io device disable",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "장치 비활성화",
+   "usage": "<device_id>",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.by-device-id.disable.post",
+   "pos": [
+    "device_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon io device enable",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "장치 활성화",
+   "usage": "<device_id>",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.by-device-id.enable.post",
+   "pos": [
+    "device_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon io device forget",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "장치 기록을 지움(tombstone 남김)",
+   "usage": "<device_id>",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.by-device-id.forget.post",
+   "pos": [
+    "device_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon io device get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "장치 하나 조회",
+   "usage": "<device_id>",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.by-device-id.get",
+   "pos": [
+    "device_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon io device list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "I/O 장치 목록",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon io device probe",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "장치를 직접 찔러 상태 확인",
+   "usage": "<device_id>",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.by-device-id.probe.post",
+   "pos": [
+    "device_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon io device usage",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "장치 사용 현황",
+   "usage": "<device_id>",
+   "kind": "op",
+   "op": "terra.daemon.io.devices.by-device-id.usage.get",
+   "pos": [
+    "device_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon io scan",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "하드웨어 장치를 다시 스캔",
+   "kind": "op",
+   "op": "terra.daemon.io.scan.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon io tombstones",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "forget으로 지운 장치 기록(최신순)",
+   "kind": "op",
+   "op": "terra.daemon.io.tombstones.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon io watch",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "하드웨어 변경 감시 방식·상태",
+   "kind": "stream",
+   "op": "terra.daemon.io.watch.get"
+  },
+  {
+   "cmd": "daemon io watch events",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "장치 추가·사라짐 사건을 순번 이후로 조회",
+   "usage": "[--since <sequence>]",
+   "kind": "stream",
+   "op": "terra.daemon.io.watch.events.get"
+  },
+  {
+   "cmd": "daemon live",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon 생존(live) 검사",
+   "kind": "op",
+   "op": "terra.daemon.live.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon logs",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon 자체 로그를 읽거나(--follow) 스트리밍",
+   "usage": "[--tail <n>] [--level <level>] [--module <module>] [--follow|-f]",
+   "kind": "multi",
+   "ops": [
+    "terra.daemon.logs.get",
+    "terra.daemon.logs.events.get"
+   ]
+  },
+  {
+   "cmd": "daemon module get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "모듈 하나의 Daemon 상태 조회",
+   "usage": "<module_id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.get",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon module list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon이 아는 모듈 목록(실제 구동 상태; 설치 기록 원장과 다름)",
+   "kind": "op",
+   "op": "terra.daemon.modules.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon module scan",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "모듈 루트를 다시 스캔해 모듈을 목록에 올림(시작은 안 함)",
+   "kind": "op",
+   "op": "terra.daemon.modules.scan.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon ready",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon 준비(ready) 검사",
+   "kind": "op",
+   "op": "terra.daemon.ready.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon status",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon 상태 요약 조회",
+   "kind": "op",
+   "op": "terra.daemon.status.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon svi allow",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "danger",
+   "sum": "파일 울타리에 폴더(절대 경로)를 추가",
+   "usage": "<absolute folder path>",
+   "kind": "op",
+   "op": "terra.daemon.svi.envelope.file-roots.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon svi declare",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "SVI 자원(process/file/net) 하나를 재시작 없이 선언",
+   "usage": "<process|file|net> <name> (--source|--sink) (--path <abs>|--command <abs> [-- <args>...]|(--connect|--listen) <tcp|udp://ip:port> [--framing chunk|line]) [--replace] [--reuse-name]",
+   "kind": "op",
+   "op": "terra.daemon.svi.declarations.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon svi disallow",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "danger",
+   "sum": "파일 울타리에서 폴더 제거",
+   "usage": "<absolute folder path>",
+   "kind": "op",
+   "op": "terra.daemon.svi.envelope.file-roots.remove.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon svi list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "런타임 SVI 선언과 울타리 조회",
+   "kind": "op",
+   "op": "terra.daemon.svi.declarations.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon svi types",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "선언 가능한 resourcizer(자원 종류) 목록",
+   "kind": "op",
+   "op": "terra.daemon.svi.resourcizers.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon svi undeclare",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "선언 철회(실행 중 핸들·바인딩 종료)",
+   "usage": "<process|file> <name>",
+   "kind": "op",
+   "op": "terra.daemon.svi.declarations.by-family.by-name.undeclare.post",
+   "pos": [
+    "family",
+    "name"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "daemon sync",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "이 노드의 등록 정보를 Master에 다시 전송",
+   "kind": "op",
+   "op": "terra.daemon.enrollment.sync.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon validate-config",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Daemon 설정 검증(`config validate`의 온라인 단축형)",
+   "kind": "op",
+   "op": "terra.daemon.config.validate.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon wireguard install-plan",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "WireGuard 설치 계획 조회",
+   "kind": "op",
+   "op": "terra.daemon.wireguard.install-plan.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon wireguard peers",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "WireGuard 피어 목록",
+   "kind": "op",
+   "op": "terra.daemon.wireguard.peers.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon wireguard status",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "WireGuard 인터페이스 상태",
+   "kind": "op",
+   "op": "terra.daemon.wireguard.status.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "daemon wireguard sync",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "Master의 desired 설정을 받아 동기화(선택적 적용)",
+   "usage": "[--apply] [--dry-run] [--out <p>] [--auto-up|--no-auto-up] [--skip-unchanged]",
+   "kind": "op",
+   "op": "terra.daemon.wireguard.sync.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "drive cat",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "드라이브 경로의 파일 바이트를 표준 출력으로 그대로 씀",
+   "usage": "<path>",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.get",
+    "lab.stellaxia.file.entries.read"
+   ]
+  },
+  {
+   "cmd": "drive ls",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "모든 노드의 공유 폴더를 하나의 트리로 보고 디렉터리 하나를 나열",
+   "usage": "[path]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.get",
+    "lab.stellaxia.file.roots.list",
+    "lab.stellaxia.file.entries.list",
+    "lab.stellaxia.file.entries.stat"
+   ]
+  },
+  {
+   "cmd": "drive mount",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "드라이브를 실제 파일시스템(WinFsp/FUSE)으로 마운트(중단 시 해제)",
+   "usage": "<mountpoint>",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.get",
+    "lab.stellaxia.file.entries.write",
+    "lab.stellaxia.file.entries.mkdir",
+    "lab.stellaxia.file.entries.rename",
+    "lab.stellaxia.file.entries.remove",
+    "lab.stellaxia.file.entries.truncate",
+    "lab.stellaxia.file.entries.read",
+    "lab.stellaxia.file.entries.list"
+   ]
+  },
+  {
+   "cmd": "file get",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "노드 파일을 로컬 경로로 청크 다운로드(체크섬 검증)",
+   "usage": "<node_ref:root/path> <local_path>",
+   "kind": "multi",
+   "ops": [
+    "lab.stellaxia.file.transfers.create",
+    "lab.stellaxia.file.transfers.chunks.get",
+    "lab.stellaxia.file.transfers.complete"
+   ]
+  },
+  {
+   "cmd": "file ls",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드 공유 폴더의 디렉터리 항목 나열",
+   "usage": "<node_ref:root/path>",
+   "kind": "shape",
+   "op": "lab.stellaxia.file.entries.list"
+  },
+  {
+   "cmd": "file rm",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "노드 공유 폴더의 파일/디렉터리를 삭제",
+   "usage": "<node_ref:root/path> [--recursive]",
+   "kind": "shape",
+   "op": "lab.stellaxia.file.entries.remove"
+  },
+  {
+   "cmd": "file roots",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드의 공유 폴더(root) 목록",
+   "usage": "<node_ref>",
+   "kind": "op",
+   "op": "lab.stellaxia.file.roots.list",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "file send",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "로컬 파일을 노드 공유 폴더로 청크 전송(재개·체크섬 검증)",
+   "usage": "<local_path> <node_ref:root/path> [--resume <transfer_id>] [--overwrite]",
+   "kind": "multi",
+   "ops": [
+    "lab.stellaxia.file.transfers.create",
+    "lab.stellaxia.file.transfers.chunks.put",
+    "lab.stellaxia.file.transfers.complete"
+   ]
+  },
+  {
+   "cmd": "file stat",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드 파일/디렉터리의 메타데이터(선택적 체크섬)",
+   "usage": "<node_ref:root/path> [--checksum]",
+   "kind": "shape",
+   "op": "lab.stellaxia.file.entries.stat"
+  },
+  {
+   "cmd": "file sync",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "write",
+   "sum": "로컬 디렉터리를 노드 공유 폴더에 단방향 미러(--delete로 원격 잉여 삭제)",
+   "usage": "<local_dir> <node_ref:root/path> [--delete] [--checksum]",
+   "kind": "multi",
+   "ops": [
+    "lab.stellaxia.file.entries.list",
+    "lab.stellaxia.file.entries.stat",
+    "lab.stellaxia.file.transfers.create",
+    "lab.stellaxia.file.transfers.chunks.put",
+    "lab.stellaxia.file.transfers.complete",
+    "lab.stellaxia.file.entries.remove"
+   ]
+  },
+  {
+   "cmd": "file transfers",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드의 파일 전송 기록 목록",
+   "usage": "<node_ref>",
+   "kind": "op",
+   "op": "lab.stellaxia.file.transfers.list",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "gateway status",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "연결된 Gateway가 앞에 세운 것과 상위 Master 요약",
+   "kind": "direct",
+   "op": "terra.gateway.health.get"
+  },
+  {
+   "cmd": "gui scan",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "Gateway가 모듈 루트에서 GUI 기여(Scene)를 다시 읽게 하고 진단을 반환",
+   "kind": "direct",
+   "op": "terra.gateway.gui.scenes.scan.post"
+  },
+  {
+   "cmd": "master fleet code list",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "플릿 합류 코드 목록",
+   "usage": "<fleet_ref>",
+   "kind": "op",
+   "op": "terra.master.fleets.by-fleet-id.codes.get",
+   "pos": [
+    "fleet_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master fleet create",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "플릿 생성",
+   "usage": "--slug <s>, --image, --max-nodes <n>, --profile node|app|tree, --leaf-image, --leaf-count <n>, --role, --tag, --module <id>",
+   "kind": "op",
+   "op": "terra.master.fleets.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "master fleet get",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "플릿 상세",
+   "usage": "<fleet_ref>",
+   "kind": "op",
+   "op": "terra.master.fleets.by-fleet-id.get",
+   "pos": [
+    "fleet_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master fleet list",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "플릿(컨테이너 노드 묶음) 목록",
+   "kind": "op",
+   "op": "terra.master.fleets.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "master fleet release list",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "플릿 릴리스 목록",
+   "usage": "<fleet_ref>",
+   "kind": "op",
+   "op": "terra.master.fleets.by-fleet-id.releases.get",
+   "pos": [
+    "fleet_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master fleet slot add",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "플릿 슬롯 추가",
+   "usage": "<fleet_ref> --host <node_ref>, --count <n>",
+   "kind": "op",
+   "op": "terra.master.fleets.by-fleet-id.slots.post",
+   "pos": [
+    "fleet_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master fleet slot start",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "슬롯(컨테이너 노드) 시작",
+   "usage": "<fleet_ref> <slot_id> --host <node_ref>",
+   "kind": "op",
+   "op": "terra.master.fleets.by-fleet-id.slots.by-slot-id.start.post",
+   "pos": [
+    "fleet_id",
+    "slot_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master fleet slot stop",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "슬롯 정지(등록은 유지)",
+   "usage": "<fleet_ref> <slot_id>",
+   "kind": "op",
+   "op": "terra.master.fleets.by-fleet-id.slots.by-slot-id.stop.post",
+   "pos": [
+    "fleet_id",
+    "slot_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master job get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Master 작업(job) 한 개 조회",
+   "usage": "<job_id>",
+   "kind": "op",
+   "op": "terra.master.jobs.by-job-id.get",
+   "pos": [
+    "job_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master node get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드 한 개 상세",
+   "usage": "<node_ref>",
+   "kind": "op",
+   "op": "terra.master.nodes.by-node-id.get",
+   "pos": [
+    "node_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master node list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Master 노드 목록",
+   "kind": "op",
+   "op": "terra.master.nodes.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "master node modules",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드에 설치된 모듈 목록",
+   "usage": "<node_ref|tree-host>",
+   "kind": "op",
+   "op": "terra.master.nodes.by-node-id.modules.get",
+   "pos": [
+    "node_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master node update",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "노드 이름·역할·능력·태그·부모 변경",
+   "usage": "<node_ref> --name, --role, --capability, --tag, --parent <node_ref>, --detach-parent",
+   "kind": "op",
+   "op": "terra.master.nodes.by-node-id.patch",
+   "pos": [
+    "node_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master relay events",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Master 이벤트 스트림(/ws/events)을 JSON 줄로 계속 출력",
+   "usage": "[--signal <signal>]...",
+   "kind": "multi",
+   "ops": [
+    "terra.master.ws.events.get",
+    "terra.gateway.health.get"
+   ]
+  },
+  {
+   "cmd": "master route delete",
+   "cls": "A",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "경로 세션 닫기(이름은 delete, 실제는 close 호출)",
+   "usage": "<session_id> --yes",
+   "kind": "op",
+   "op": "terra.master.route.sessions.by-session-id.close.post",
+   "pos": [
+    "session_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master route get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "경로 세션 하나 조회",
+   "usage": "<session_id>",
+   "kind": "op",
+   "op": "terra.master.route.sessions.by-session-id.get",
+   "pos": [
+    "session_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "master route list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Master가 보유한 경로 세션 목록",
+   "usage": "[--source <node_ref>] [--target <node_ref>] [--state <state>]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.route.sessions.get",
+    "terra.master.nodes.get"
+   ]
+  },
+  {
+   "cmd": "master route service-tunnel-open",
+   "cls": "A",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "서비스 터널 열기 요청",
+   "usage": "<service_id> --source <node_ref> --local <port> [--node, --bind, --target-host, --target-port, --prefer-route, --only-route, --deny-route, --route-policy]",
+   "kind": "op",
+   "op": "terra.master.service-tunnels.open.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "master route service-tunnel-plan",
+   "cls": "A",
+   "tier": "T2",
+   "effect": "write",
+   "sum": "서비스 터널 경로 계획(후보 판정만)",
+   "usage": "<service_id> --source <node_ref> --local <port> [--node, --bind, --target-host, --target-port, --prefer-route, --only-route, --deny-route, --route-policy]",
+   "kind": "op",
+   "op": "terra.master.service-tunnels.plan.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "module call",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "게시된 operation을 id로 호출(입력 JSON)",
+   "usage": "<operation-id> [--input <json>|--input-file <path>|-]",
+   "kind": "op",
+   "op": "terra.gateway.operations.by-id.invoke.post",
+   "pos": [
+    "id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "module catalog",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "이 트리에 게시된 모듈 게시 목록 조회",
+   "usage": "[--module <module-id>]",
+   "kind": "op",
+   "op": "terra.master.modules.publications.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "module ceiling",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "트리의 모듈 승인 권한 천장 조회",
+   "kind": "op",
+   "op": "terra.master.modules.approval-ceiling.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "module commands",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "설치된 모듈이 기여한 CLI 명령 목록 조회",
+   "usage": "[--module <module-id>]",
+   "kind": "direct",
+   "op": "terra.gateway.cli.commands.get"
+  },
+  {
+   "cmd": "module config get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "aliases": [
+    "daemon module config get"
+   ],
+   "sum": "설정 키 하나의 값을 조회",
+   "usage": "<module_id> <key>",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.config.get",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module config schema",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "aliases": [
+    "daemon module config schema"
+   ],
+   "sum": "모듈 설정 스키마 조회",
+   "usage": "<module_id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.config.schema.get",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module config set",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "aliases": [
+    "daemon module config set"
+   ],
+   "sum": "모듈 설정 값을 바꿈(key=value, 비밀은 --stdin JSON)",
+   "usage": "<module_id> key=value... [--stdin] [--base-revision <n>]",
+   "kind": "shape",
+   "op": "terra.daemon.modules.by-module-id.config.patch"
+  },
+  {
+   "cmd": "module config show",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "aliases": [
+    "daemon module config show"
+   ],
+   "sum": "모듈 설정 값·비밀 설정 여부·리비전 조회",
+   "usage": "<module_id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.config.get",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module config unset",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "aliases": [
+    "daemon module config unset"
+   ],
+   "sum": "모듈 설정 키를 제거",
+   "usage": "<module_id> <key>... [--base-revision <n>]",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.config.patch",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module consent",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "트리가 제안한 모듈 설치에 이 노드 주인으로서 동의(설치·기동)",
+   "usage": "<module-id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.offers.by-module-id.consent.post",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module describe",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "operation 하나의 정형 서술 조회",
+   "usage": "<operation-id>",
+   "kind": "direct",
+   "op": "terra.gateway.catalog.operations.by-id.get"
+  },
+  {
+   "cmd": "module desired",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드가 받아야 할(desired) 모듈 목록 조회",
+   "usage": "<node_ref> [--target <target>]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.get",
+    "terra.master.nodes.by-node-id.modules.desired.get"
+   ]
+  },
+  {
+   "cmd": "module disable",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "aliases": [
+    "daemon module disable"
+   ],
+   "sum": "모듈을 비활성화(Daemon 모듈 상태 전환)",
+   "usage": "<module_id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.disable.post",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module enable",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "aliases": [
+    "daemon module enable"
+   ],
+   "sum": "모듈을 활성화(Daemon 모듈 상태 전환)",
+   "usage": "<module_id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.enable.post",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module example",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "operation의 입력·출력 예시 조회",
+   "usage": "<operation-id>",
+   "kind": "direct",
+   "op": "terra.gateway.catalog.operations.by-id.example.get"
+  },
+  {
+   "cmd": "module explain",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "모듈 신뢰 등급/도달 이유 설명: --node 없으면 이 노드 설치본, 있으면 그 노드의 desired/observed",
+   "usage": "<module-id> [--node <node_ref> [--target <target>]]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.get",
+    "terra.master.nodes.by-node-id.modules.desired.get",
+    "terra.daemon.modules.market.status.get"
+   ]
+  },
+  {
+   "cmd": "module export",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "게시본을 에어갭용 번들(.tbundle)로 묶어 로컬 파일로 저장",
+   "usage": "<module-id> [--version <v>] [--out <file>]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.modules.publications.get",
+    "terra.master.modules.packages.by-digest.get",
+    "terra.master.modules.market.revocations.get"
+   ]
+  },
+  {
+   "cmd": "module fetch",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "게시된 모듈 패키지를 받아 로컬 .tmod 파일로 저장(다이제스트 재검증)",
+   "usage": "<module-id> [--version <v>] [--target <t>] [--out <file.tmod>]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.modules.publications.get",
+    "terra.master.modules.packages.by-digest.get"
+   ]
+  },
+  {
+   "cmd": "module info",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "마켓 모듈의 권한·출처·이 노드에서 설치 가능 여부를 표시",
+   "usage": "<module-id>[@<version>] [--version <v>] [--market]",
+   "kind": "op",
+   "op": "terra.daemon.modules.market.offer.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "module logs",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "aliases": [
+    "daemon module logs"
+   ],
+   "sum": "모듈의 최근 stdout·stderr 로그 줄을 읽음",
+   "usage": "<module_id> [--tail <n>]",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.logs.get",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module mirror list",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "마켓 미러 차단 패턴 목록",
+   "kind": "op",
+   "op": "terra.master.modules.mirror-blocks.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "module offers",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "이 노드에 온 모듈 제안(트리 제공)과 동의 상태 조회",
+   "kind": "op",
+   "op": "terra.daemon.modules.offers.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "module ops",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "게시된 operation 카탈로그를 호출자 권한으로 좁혀 나열",
+   "usage": "[--permission P]... [--category C] [--tag T] [--search S]",
+   "kind": "direct",
+   "op": "terra.gateway.catalog.get"
+  },
+  {
+   "cmd": "module outbox",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "승격 아웃박스(내가 올린 승격 요청) 상태 조회",
+   "usage": "[--state pending_forward|forwarded|approved|rejected]",
+   "kind": "op",
+   "op": "terra.master.modules.promotions.outbox.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "module pin",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "특정 노드에 모듈 버전을 고정(규칙보다 핀이 우선)",
+   "usage": "<node_ref> <module-id> <version>",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.get",
+    "terra.master.nodes.by-node-id.modules.pins.post"
+   ]
+  },
+  {
+   "cmd": "module prefix list",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "부여된 모듈 id 접두사 목록",
+   "kind": "op",
+   "op": "terra.master.modules.prefixes.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "module promotions",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "내 트리가 받은 승격 요청(검토 대기열) 조회",
+   "usage": "[--state pending|approved|rejected|rolled_back]",
+   "kind": "op",
+   "op": "terra.master.modules.promotions.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "module restart",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "aliases": [
+    "daemon module restart"
+   ],
+   "sum": "모듈 프로세스를 재시작",
+   "usage": "<module_id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.restart.post",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module search",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "공개 마켓 카탈로그 검색(Daemon 경유)",
+   "usage": "<query> [--prefix <p>] [--limit <n>] [--cursor <c>] [--market]",
+   "kind": "op",
+   "op": "terra.daemon.modules.market.search.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "module start",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "aliases": [
+    "daemon module start"
+   ],
+   "sum": "모듈을 시작(Daemon이 프로세스 기동)",
+   "usage": "<module_id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.start.post",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module stop",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "aliases": [
+    "daemon module stop"
+   ],
+   "sum": "모듈 프로세스를 정지",
+   "usage": "<module_id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.by-module-id.stop.post",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "module unpin",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "노드의 모듈 버전 고정 해제",
+   "usage": "<node_ref> <module-id>",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.get",
+    "terra.master.nodes.by-node-id.modules.pins.by-module-id.delete"
+   ]
+  },
+  {
+   "cmd": "module withdraw",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "danger",
+   "sum": "모듈 동의를 철회(모듈 중지·payload 제거)",
+   "usage": "<module-id>",
+   "kind": "op",
+   "op": "terra.daemon.modules.offers.by-module-id.withdraw.post",
+   "pos": [
+    "module_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "monitor alerts",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Master가 판정한 경보 목록을 본다.",
+   "kind": "op",
+   "op": "terra.master.monitor.alerts.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "monitor alerts ack",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "경보 1건을 확인(acknowledge)했다고 표시한다.",
+   "usage": "<alert_id>",
+   "kind": "op",
+   "op": "terra.master.monitor.alerts.ack.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "monitor snapshot",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "클러스터 자원 스냅샷을 본다. --local이면 이 PC Daemon의 health·status·tasks.",
+   "usage": "--local",
+   "kind": "multi",
+   "ops": [
+    "terra.master.monitor.snapshot.get",
+    "terra.daemon.health.get",
+    "terra.daemon.status.get",
+    "terra.daemon.tasks.get"
+   ]
+  },
+  {
+   "cmd": "monitor watch",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "이벤트 스트림을 JSON 줄로 계속 출력(원격=Master /ws/events, --local=Daemon /events)",
+   "usage": "[--signal <signal>]... ; --local",
+   "kind": "multi",
+   "ops": [
+    "terra.master.ws.events.get",
+    "terra.gateway.health.get",
+    "terra.daemon.events.get"
+   ]
+  },
+  {
+   "cmd": "network cidr list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "클러스터 네트워크(CIDR) 목록을 본다.",
+   "kind": "op",
+   "op": "terra.master.network.networks.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "network graph",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "라우트 그래프를 본다(`terra route graph`와 같은 호출).",
+   "kind": "op",
+   "op": "terra.master.route.graph.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "network logs",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "네트워크 이벤트 로그를 조회한다.",
+   "usage": "[--node <node_ref>] [--action <a>] [--result <r>] [--limit <n>]",
+   "kind": "op",
+   "op": "terra.master.network.logs.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "network mesh deliveries",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "WireGuard push 배달 기록(최신순, retry_in·backoff 계산 포함)",
+   "usage": "[--node <node_ref>] [--status <status>]",
+   "kind": "op",
+   "op": "terra.master.network.state.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "network mesh status",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "WireGuard 메시 노드별 상태(할당 IP·desired/observed·최신 push 배달·재시도)",
+   "usage": "[--node <node_ref>]",
+   "kind": "op",
+   "op": "terra.master.network.state.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "network mesh wireguard plan",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "관리형 WireGuard 메시 구성을 계획만 한다(적용 안 함).",
+   "usage": "<node_ref> <node_ref>... --public-key <node_ref=key>... [--cluster <id>] [--network <id>] [--name <n>] [--cidr <c>] [--interface <if>] [--listen-port <p>] [--mtu <n>] [--keepalive <s>] [--endpoint <node=host:port>] [--assigned-ip <node=ip>] [--node-listen-port <node=port>]",
+   "kind": "op",
+   "op": "terra.master.network.mesh.wireguard.plan.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "network node",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드 1대의 네트워크 정보(할당·전송·상태)를 본다.",
+   "usage": "<node_ref>",
+   "kind": "op",
+   "op": "terra.master.network.nodes.by-node-id.get",
+   "pos": [
+    "node_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "network probe",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "두 노드 사이 연결 프로브를 실행한다(`terra probe route`와 같은 호출).",
+   "usage": "<source_node_ref> <target_node_ref> [--adapter <a>] [--route-type <t>]",
+   "kind": "op",
+   "op": "terra.master.network.probes.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "network state",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "네트워크 전체 상태(할당·전송 등)를 본다.",
+   "usage": "--include-expired",
+   "kind": "op",
+   "op": "terra.master.network.state.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "network status",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "클러스터 네트워크 상태 요약을 본다.",
+   "kind": "op",
+   "op": "terra.master.network.status.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "node capability",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드 능력(capability)을 본다(get과 동일 호출). --local이면 로컬 Daemon /capabilities.",
+   "usage": "<node_ref> | --local",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.by-node-id.get",
+    "terra.daemon.capabilities.get"
+   ]
+  },
+  {
+   "cmd": "node get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드 1대 상세를 본다.",
+   "usage": "<node_ref>",
+   "kind": "op",
+   "op": "terra.master.nodes.by-node-id.get",
+   "pos": [
+    "node_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "node list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Master가 아는 노드 목록을 본다. --local이면 이 PC 데몬 자신(/node)만.",
+   "usage": "--local",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.get",
+    "terra.daemon.node.get"
+   ]
+  },
+  {
+   "cmd": "node role set",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "노드 역할(roles)을 1개로 설정한다.",
+   "usage": "<node_ref> <role>",
+   "kind": "op",
+   "op": "terra.master.nodes.by-node-id.patch",
+   "pos": [
+    "node_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "node self",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "이 PC 로컬 Daemon의 노드 정보를 본다.",
+   "kind": "op",
+   "op": "terra.daemon.node.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "node status",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드 상태를 본다(get과 동일 호출). --local이면 로컬 Daemon /status.",
+   "usage": "<node_ref> | --local",
+   "kind": "multi",
+   "ops": [
+    "terra.master.nodes.by-node-id.get",
+    "terra.daemon.status.get"
+   ]
+  },
+  {
+   "cmd": "probe get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "프로브 결과 1건을 본다.",
+   "usage": "<probe_id>",
+   "kind": "op",
+   "op": "terra.master.network.probes.by-probe-id.get",
+   "pos": [
+    "probe_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "probe list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "저장된 네트워크 프로브 결과 목록을 본다.",
+   "usage": "[--source <node_ref>] [--target <node_ref>] [--adapter <a>]",
+   "kind": "op",
+   "op": "terra.master.network.probes.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "probe route",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "두 노드 사이 프로브를 새로 실행한다(`network probe`와 동일).",
+   "usage": "<source_node_ref> <target_node_ref> [--adapter <a>] [--route-type <t>]",
+   "kind": "op",
+   "op": "terra.master.network.probes.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "route candidates",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "두 노드 사이 후보 경로 목록을 본다.",
+   "usage": "<source_node_ref> <target_node_ref> [--channel <c>] [--resource <id>]",
+   "kind": "op",
+   "op": "terra.master.route.candidates.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "route diagnose",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "프로브를 실행하고 후보 경로를 함께 보여준다.",
+   "usage": "<source_node_ref> <target_node_ref> [--adapter <a>] [--route-type <t>] [--channel <c>] [--resource <id>]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.network.probes.post",
+    "terra.master.route.candidates.get"
+   ]
+  },
+  {
+   "cmd": "route explain",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "후보 경로와 선택 이유를 설명한다(`route candidates`와 동일 호출).",
+   "usage": "<source_node_ref> <target_node_ref> [--channel <c>] [--resource <id>]",
+   "kind": "op",
+   "op": "terra.master.route.candidates.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "route graph",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "라우트 그래프를 본다.",
+   "kind": "op",
+   "op": "terra.master.route.graph.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "route policy explain",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "정책 적용 결과를 후보 경로로 설명한다(`route candidates`와 동일).",
+   "usage": "<source_node_ref> <target_node_ref> [--channel <c>] [--resource <id>]",
+   "kind": "op",
+   "op": "terra.master.route.candidates.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "route policy get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "라우트 정책 1건을 본다.",
+   "usage": "<policy_id>",
+   "kind": "op",
+   "op": "terra.master.route.policies.by-policy-id.get",
+   "pos": [
+    "policy_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "route policy list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "라우트 정책 목록을 본다.",
+   "kind": "op",
+   "op": "terra.master.route.policies.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "service tunnel close",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "열린 서비스 터널을 닫는다.",
+   "usage": "<tunnel_id>",
+   "kind": "op",
+   "op": "terra.daemon.service-tunnels.by-tunnel-id.close.post",
+   "pos": [
+    "tunnel_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "service tunnel declarations",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "선언된 터널 목록을 본다.",
+   "usage": "[--source <node_ref>] (별칭 --node)",
+   "kind": "op",
+   "op": "terra.master.service-tunnels.declarations.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "service tunnel declare",
+   "cls": "A",
+   "tier": "T2",
+   "effect": "write",
+   "sum": "노드가 계속 열어 둘 터널을 선언(영속)한다.",
+   "usage": "<service_id> --local <port> [--node <node_ref>] [--source <node_ref>] [--target-host <h>] [--target-port <p>] [--route-policy <name>]",
+   "kind": "op",
+   "op": "terra.master.service-tunnels.declarations.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "service tunnel list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "이 PC Daemon에 열린 서비스 터널 목록을 본다.",
+   "kind": "op",
+   "op": "terra.daemon.service-tunnels.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "service tunnel logs",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "로컬 서비스 터널 이벤트 로그(닫힌 터널 포함)",
+   "usage": "<tunnel_id> [--limit <n>]",
+   "kind": "op",
+   "op": "terra.daemon.service-tunnels.by-tunnel-id.logs.get",
+   "pos": [
+    "tunnel_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "service tunnel metrics",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "로컬 서비스 터널 트래픽 집계",
+   "usage": "<tunnel_id>",
+   "kind": "op",
+   "op": "terra.daemon.service-tunnels.by-tunnel-id.metrics.get",
+   "pos": [
+    "tunnel_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "service tunnel open",
+   "cls": "A",
+   "tier": "T2",
+   "effect": "write",
+   "sum": "서비스 터널을 연다: Master에 계획을 받고 로컬 Daemon에 열기를 요청한다.",
+   "usage": "<service_id> --local <port> [--node <node_ref>] [--source <node_ref>] [--bind <host>] [--target-host <h>] [--target-port <p>] [--prefer-route|--only-route|--deny-route <r>] [--route-policy <name>]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.service-tunnels.plan.post",
+    "terra.daemon.service-tunnels.post",
+    "terra.daemon.node.get"
+   ]
+  },
+  {
+   "cmd": "service tunnel status",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "로컬 서비스 터널 하나의 상태(세션 포함)",
+   "usage": "<tunnel_id>",
+   "kind": "op",
+   "op": "terra.daemon.service-tunnels.by-tunnel-id.get",
+   "pos": [
+    "tunnel_id"
+   ],
+   "node": true
+  },
+  {
+   "cmd": "service tunnel undeclare",
+   "cls": "A",
+   "tier": "T2",
+   "effect": "write",
+   "sum": "터널 선언을 제거한다.",
+   "usage": "<declaration_id>",
+   "kind": "op",
+   "op": "terra.master.service-tunnels.declarations.by-declaration-id.delete",
+   "pos": [
+    "declaration_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "session close",
+   "cls": "A",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "라우트 세션 닫기",
+   "usage": "<session_id>",
+   "kind": "op",
+   "op": "terra.master.route.sessions.by-session-id.close.post",
+   "pos": [
+    "session_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "session get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "라우트 세션 상세",
+   "usage": "<session_id>",
+   "kind": "op",
+   "op": "terra.master.route.sessions.by-session-id.get",
+   "pos": [
+    "session_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "session list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "라우트 세션 목록",
+   "kind": "op",
+   "op": "terra.master.route.sessions.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "status",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "프로필·토큰 상태·로컬 Daemon 상태 요약",
+   "kind": "op",
+   "op": "terra.daemon.status.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "svi binding create",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "두 SVI endpoint 사이 바인딩을 만든다.",
+   "usage": "<src_resource> <src_endpoint> <dst_resource> <dst_endpoint> [--qos <p>] [--policy <p>]",
+   "kind": "op",
+   "op": "terra.master.svi.bindings.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "svi binding delete",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "danger",
+   "sum": "바인딩을 닫는다(삭제).",
+   "usage": "<binding_id> --yes",
+   "kind": "op",
+   "op": "terra.master.svi.bindings.by-binding-id.delete",
+   "pos": [
+    "binding_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "svi binding get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "바인딩 1건을 본다.",
+   "usage": "<binding_id>",
+   "kind": "op",
+   "op": "terra.master.svi.bindings.by-binding-id.get",
+   "pos": [
+    "binding_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "svi binding list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "바인딩 목록을 본다.",
+   "kind": "op",
+   "op": "terra.master.svi.bindings.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "svi cat",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "read",
+   "sum": "가상 파일 하나의 스냅샷 내용을 stdout으로 쓴다.",
+   "usage": "<node_id>/<resource_id>/<endpoint_id>",
+   "kind": "multi",
+   "ops": [
+    "terra.master.svi.resources.get",
+    "terra.master.svi.handles.post",
+    "terra.master.svi.handles.by-handle-id.stream.get",
+    "terra.master.svi.handles.by-handle-id.delete"
+   ]
+  },
+  {
+   "cmd": "svi endpoint list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "리소스의 endpoint 목록을 본다.",
+   "usage": "<resource_id>",
+   "kind": "op",
+   "op": "terra.master.svi.resources.by-resource-id.endpoints.get",
+   "pos": [
+    "resource_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "svi grant create",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "danger",
+   "sum": "리소스에 대한 SVI 접근 권한(grant)을 부여한다.",
+   "usage": "<resource_id> [<endpoint_id>] --subject <id> [--subject-type user|node|service-account] --operations <op,...> [--ttl <s>]",
+   "kind": "op",
+   "op": "terra.master.svi.grants.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "svi grant list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "SVI 접근 권한(grant) 목록을 본다(만료 숨김, 로컬 필터).",
+   "usage": "[--resource <id>] [--subject <id>] [--include-expired]",
+   "kind": "op",
+   "op": "terra.master.svi.grants.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "svi grant revoke",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "danger",
+   "sum": "SVI grant를 회수한다(이 grant로 열린 핸들·바인딩이 끊김).",
+   "usage": "<grant_id> --yes",
+   "kind": "op",
+   "op": "terra.master.svi.grants.by-grant-id.delete",
+   "pos": [
+    "grant_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "svi handle close",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "SVI 핸들을 닫는다.",
+   "usage": "<handle_id>",
+   "kind": "op",
+   "op": "terra.master.svi.handles.by-handle-id.delete",
+   "pos": [
+    "handle_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "svi handle get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "SVI 핸들 상태를 본다.",
+   "usage": "<handle_id>",
+   "kind": "op",
+   "op": "terra.master.svi.handles.by-handle-id.get",
+   "pos": [
+    "handle_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "svi handle open",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "리소스 endpoint에 대한 SVI 핸들을 연다.",
+   "usage": "<resource_id> <endpoint_id> [--operation inspect|read|subscribe] [--ttl <s>]",
+   "kind": "op",
+   "op": "terra.master.svi.handles.post",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "svi handle stream",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "핸들의 프레임 스트림을 받아 줄 단위로 출력한다.",
+   "usage": "<handle_id> [--max <frames>]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.svi.handles.by-handle-id.stream.get"
+   ]
+  },
+  {
+   "cmd": "svi link create",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "바인딩 생성 별칭. 포트를 resource:endpoint 형태로 받는다.",
+   "usage": "<src_resource:endpoint> <dst_resource:endpoint>",
+   "kind": "shape",
+   "op": "terra.master.svi.bindings.post"
+  },
+  {
+   "cmd": "svi link delete",
+   "cls": "O",
+   "tier": "T1",
+   "effect": "danger",
+   "sum": "바인딩 삭제(link 별칭).",
+   "usage": "<binding_id> --yes",
+   "kind": "op",
+   "op": "terra.master.svi.bindings.by-binding-id.delete",
+   "pos": [
+    "binding_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "svi link list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "바인딩 목록(link 별칭).",
+   "kind": "op",
+   "op": "terra.master.svi.bindings.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "svi ls",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "SVI 가상 트리 한 디렉터리를 나열한다(/{node_id}/{resource_id}/{endpoint_id}).",
+   "usage": "[path]",
+   "kind": "op",
+   "op": "terra.master.svi.resources.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "svi mount",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "SVI 가상 트리를 읽기 전용 파일시스템으로 마운트한다(중단할 때까지).",
+   "usage": "<mountpoint>",
+   "kind": "multi",
+   "ops": [
+    "terra.master.svi.resources.get",
+    "terra.master.svi.handles.post",
+    "terra.master.svi.handles.by-handle-id.stream.get"
+   ]
+  },
+  {
+   "cmd": "svi pipe",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "SVI endpoint 하나를 표준출력(또는 소켓/http 표면)으로 연결한다. --access write면 stdin을 핸들로 쓴다.",
+   "usage": "<resource_id>:<endpoint_id> [--as <kind>] [--access read|write] [--encoding <e>] [--target <path>] [--name <l>] [--ttl <s>] [--max-bytes <n>]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.svi.handles.post",
+    "terra.master.svi.handles.by-handle-id.stream.get",
+    "terra.master.svi.handles.by-handle-id.write.get",
+    "terra.master.svi.handles.by-handle-id.delete"
+   ]
+  },
+  {
+   "cmd": "svi port list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "노드의 SVI 리소스(포트)를 본다(`resource list --node`와 동일).",
+   "usage": "<node_ref>",
+   "kind": "op",
+   "op": "terra.master.svi.resources.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "svi resource get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "SVI 리소스 1건을 본다.",
+   "usage": "<resource_id>",
+   "kind": "op",
+   "op": "terra.master.svi.resources.by-resource-id.get",
+   "pos": [
+    "resource_id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "svi resource list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "SVI 리소스 카탈로그를 필터로 조회한다.",
+   "usage": "[--node <node_ref>] [--kind <k>] [--status <s>] [--operation <op>] [--schema-ref <ref>] [--cursor <c>] [--page-size 1..500]",
+   "kind": "op",
+   "op": "terra.master.svi.resources.get",
+   "pos": [],
+   "node": false
+  },
+  {
+   "cmd": "svi run",
+   "cls": "A",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "원격 SVI 리소스를 로컬 인터페이스(pipe/소켓/디렉터리/http)로 붙이고 SVI를 모르는 프로그램을 실행한다.",
+   "usage": "--attach <name>=<res>:<endpoint> [--as <name>=<pipe|unix_socket|named_pipe|directory|http>] [--access <name>=<read|write>] [--target <name>=<path>] [--encoding <name>=<enc>] [--ttl <s>] -- <program> [args...]",
+   "kind": "multi",
+   "ops": [
+    "terra.master.svi.resources.get",
+    "terra.master.svi.handles.post",
+    "terra.master.svi.handles.by-handle-id.stream.get",
+    "terra.master.svi.handles.by-handle-id.write.get",
+    "terra.master.svi.handles.by-handle-id.delete"
+   ]
+  },
+  {
+   "cmd": "task cancel",
+   "cls": "O",
+   "tier": "T2",
+   "effect": "danger",
+   "sum": "실행 중 job(작업)을 취소한다. --local이면 Daemon task.",
+   "usage": "<task_id> ; --local",
+   "kind": "multi",
+   "ops": [
+    "terra.master.jobs.by-job-id.cancel.post",
+    "terra.daemon.tasks.by-task-id.cancel.post"
+   ]
+  },
+  {
+   "cmd": "task get",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "job 1건 상세(출력 포함)를 본다. --local이면 Daemon task.",
+   "usage": "<task_id> ; --local",
+   "kind": "multi",
+   "ops": [
+    "terra.master.jobs.by-job-id.get",
+    "terra.daemon.tasks.by-task-id.get"
+   ]
+  },
+  {
+   "cmd": "task list",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "Master job 목록을 본다. --local이면 이 PC Daemon의 task 목록.",
+   "usage": "[--node <node_ref>] [--status <s>] [--limit <n>] ; --local",
+   "kind": "multi",
+   "ops": [
+    "terra.master.jobs.get",
+    "terra.daemon.tasks.get"
+   ]
+  },
+  {
+   "cmd": "task watch",
+   "cls": "O",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "작업이 끝날 때까지 폴링하며 변화를 출력하고 작업 종료 코드로 종료",
+   "usage": "<task_id> [--interval <sec>] [--timeout <sec>] ; --local",
+   "kind": "multi",
+   "ops": [
+    "terra.master.jobs.by-job-id.get",
+    "terra.daemon.tasks.by-task-id.get"
+   ]
+  },
+  {
+   "cmd": "transport list",
+   "cls": "R",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "이 노드 Daemon의 전송(transport) 어댑터 목록",
+   "usage": "--local",
+   "kind": "op",
+   "op": "terra.daemon.transports.get",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "transport probe",
+   "cls": "R",
+   "tier": "T1",
+   "effect": "write",
+   "sum": "이 노드 Daemon에서 전송 어댑터로 호스트:포트 탐침",
+   "usage": "--local --adapter <adapter> --host <host> --port <1-65535> [--tls-name <name>]",
+   "kind": "op",
+   "op": "terra.daemon.transports.probe.post",
+   "pos": [],
+   "node": true
+  },
+  {
+   "cmd": "tree module upstream adoptions",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "소스별 채택 목록",
+   "usage": "<id>",
+   "kind": "op",
+   "op": "terra.master.modules.upstreams.by-id.adoptions.get",
+   "pos": [
+    "id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "tree module upstream conflicts",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "소스 충돌(접두사 등) 목록",
+   "usage": "<id>",
+   "kind": "op",
+   "op": "terra.master.modules.upstreams.by-id.conflicts.get",
+   "pos": [
+    "id"
+   ],
+   "node": false
+  },
+  {
+   "cmd": "tree module upstream list",
+   "cls": "A",
+   "tier": "T0",
+   "effect": "read",
+   "sum": "상위 모듈 소스(마켓 등) 목록",
+   "kind": "op",
+   "op": "terra.master.modules.upstreams.get",
+   "pos": [],
+   "node": false
+  }
+ ]
+}
