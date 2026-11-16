@@ -762,13 +762,15 @@
       },
       "security": {
         "audit": {
-          "required": false
+          "required": true
         },
         "authentication": [
           "workload-identity"
         ],
-        "dataClassification": "internal",
-        "permissions": [],
+        "dataClassification": "restricted",
+        "permissions": [
+          "node.config"
+        ],
         "workloadPermissions": []
       },
       "semantics": {
