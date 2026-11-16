@@ -37,6 +37,10 @@ func newAnthropicProvider(config providerConfig, httpClient *http.Client) (Provi
 	if strings.TrimSpace(config.APIKey) == "" {
 		return nil, errors.New("anthropic: an api key is required")
 	}
+	// A stored file can be edited by hand; the registration check is not the only door.
+	if err := validateBaseURL("anthropic", config.BaseURL); err != nil {
+		return nil, fmt.Errorf("anthropic: %w", err)
+	}
 	options := []option.RequestOption{option.WithAPIKey(config.APIKey), option.WithMaxRetries(2)}
 	if base := strings.TrimSpace(config.BaseURL); base != "" {
 		options = append(options, option.WithBaseURL(base))

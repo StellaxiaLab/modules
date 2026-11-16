@@ -294,6 +294,10 @@ func (s *apiServer) modelPut(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusBadRequest, "INVALID_REQUEST", "api_key is required; give it on standard input (--api-key-stdin), never as an argument")
 		return
 	}
+	if err := validateBaseURL(name, input.BaseURL); err != nil {
+		writeAPIError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+		return
+	}
 	config := providerConfig{Provider: name, APIKey: strings.TrimSpace(input.APIKey), Model: strings.TrimSpace(input.Model), BaseURL: strings.TrimSpace(input.BaseURL)}
 	isDefault, err := s.engine.providers.put(config, input.Default)
 	if err != nil {
