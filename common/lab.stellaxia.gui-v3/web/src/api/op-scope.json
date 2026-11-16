@@ -95,6 +95,24 @@
    ],
    "risk": "write"
   },
+  "terra.daemon.danger-zone.admin-screen.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.danger-zone.admin-screen.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
   "terra.daemon.danger-zone.app-command-execution.get": {
    "scopes": [
     "local",
