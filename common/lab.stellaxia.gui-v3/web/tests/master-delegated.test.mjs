@@ -14,6 +14,11 @@ const table = JSON.parse(readFileSync(join(web, 'src/api/master-delegated.json')
 const B_ONLY = {};
 // 위임 밖이지만 문(window.TerraGate · TerraGateAll) 뒤에서만 부르는 것 — 화면은 잠그고 why 를 보인다. 코어가 열면 표만 다시 뽑아 저절로 열린다
 const GATED = {
+  // P14-4 Tree 관리 쓰기 · 설정 읽기 — 위임 표(지휘 세션이 따로 재생성)에 아직 없다. 열리면 이 줄들을 지운다(위 시험이 알려 준다)
+  'terra.master.config.get': 'Tree 관리 › Master 설정', 'terra.master.config.schema.get': 'Tree 관리 › Master 설정', 'terra.master.config.validate.post': 'Tree 관리 › Master 설정 › 검증', 'terra.master.config.patch': 'Tree 관리 › Master 설정 › 저장(T4)',
+  'terra.master.modules.publications.post': 'Tree 관리 › 모듈 게시', 'terra.master.modules.publications.by-publication-id.revoke.post': 'Tree 관리 › 모듈 회수', 'terra.master.modules.publications.by-publication-id.rollout.post': 'Tree 관리 › 모듈 롤아웃', 'terra.master.modules.publications.by-publication-id.promote.post': 'Tree 관리 › 모듈 승격',
+  'terra.master.modules.promotions.by-promotion-id.approve.post': 'Tree 관리 › 승격 승인', 'terra.master.modules.promotions.by-promotion-id.reject.post': 'Tree 관리 › 승격 거절', 'terra.master.modules.approval-ceiling.post': 'Tree 관리 › 승인 상한(T4)', 'terra.master.modules.mirror-blocks.post': 'Tree 관리 › 미러 거부 추가', 'terra.master.modules.mirror-blocks.by-pattern.delete': 'Tree 관리 › 미러 거부 풀기',
+  'terra.master.core.releases.post': 'Tree 관리 › 코어 릴리스 게시(T4)', 'terra.master.core.releases.by-release-id.revoke.post': 'Tree 관리 › 코어 회수(T4)', 'terra.master.core.releases.by-release-id.apply.post': 'Tree 관리 › 코어 적용 지시(T4)', 'terra.master.core.releases.by-release-id.rollout.post': 'Tree 관리 › 코어 롤아웃(T4)',
   'terra.master.svi.handles.post': '자원 상태 창 값 보기 — 핸들 열기(svi-view.js WATCH_OPS)',
   'terra.master.svi.handles.by-handle-id.delete': '자원 상태 창 값 보기 — 핸들 닫기',
   'terra.master.admin.users.get': '허가 주체 — 사람 목록(나 말고는 위임 가드도 막는다)',

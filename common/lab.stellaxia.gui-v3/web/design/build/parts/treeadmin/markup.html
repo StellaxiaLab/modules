@@ -1,0 +1,45 @@
+<div class="ta" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: hidden; display: flex; flex-direction: column; color: var(--t-text,#d6f4de); font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
+  <div class="ta-row"><span class="ta-p">&gt;</span><span>Tree 관리</span><b class="ta-v ta-cut">{{name}}</b><span style="flex: 1;"></span><span class="ta-k">{{kindT}}</span></div>
+  <div class="ta-row ta-k">{{srcT}}</div>
+  <sc-if value="{{blockedOn}}" hint-placeholder-val="{{ false }}"><div class="ta-note warn">{{blockedT}}</div></sc-if>
+  <sc-if value="{{noDoorOn}}" hint-placeholder-val="{{ false }}"><div class="ta-note">승인 문 없음 — 쓰기 단추는 Terra 셸 안에서만 열립니다(단독 실행에서는 터미널 terra CLI). 읽기는 그대로 보입니다</div></sc-if>
+  <sc-if value="{{openOn}}" hint-placeholder-val="{{ true }}">
+    <span class="ta-seg" role="tablist" aria-label="Tree 관리 탭"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="5"><button type="button" role="tab" aria-selected="{{t.on}}" class="{{t.cls}}" onClick="{{t.pick}}">{{t.name}}</button></sc-for></span>
+    <div class="ta-body">
+      <div class="ta-left">
+        <div class="ta-list" role="listbox" aria-label="{{listLabel}}">
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+            <div class="{{r.hdCls}}">
+              <sc-if value="{{r.isHead}}" hint-placeholder-val="{{ false }}">{{r.title}}</sc-if>
+              <sc-if value="{{r.isRow}}" hint-placeholder-val="{{ true }}"><button type="button" role="option" aria-selected="{{r.on}}" class="ta-it ta-it2 {{r.cls}}" onClick="{{r.pick}}" title="{{r.tip}}"><span class="ta-cut" style="max-width: 100%;"><b>{{r.title}}</b><sc-if value="{{r.tagOn}}" hint-placeholder-val="{{ false }}"><span class="ta-tag {{r.tagCls}}">{{r.tag}}</span></sc-if></span><span class="ta-sub ta-cut">{{r.sub}}</span></button></sc-if>
+            </div>
+          </sc-for>
+          <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="ta-k ta-empty">{{emptyT}}</div></sc-if>
+        </div>
+      </div>
+      <div class="ta-right">
+        <sc-if value="{{actOn}}" hint-placeholder-val="{{ true }}"><span class="ta-seg" role="group" aria-label="단추"><sc-for list="{{acts}}" as="a" hint-placeholder-count="4"><button type="button" aria-pressed="{{a.on}}" class="{{a.cls}}" onClick="{{a.pick}}" title="{{a.tip}}">{{a.name}}</button></sc-for></span></sc-if>
+        <div class="ta-detail">
+          <sc-if value="{{hintOn}}" hint-placeholder-val="{{ false }}"><div class="ta-hint">{{hint}}</div></sc-if>
+          <sc-if value="{{tierOn}}" hint-placeholder-val="{{ false }}"><div class="ta-row"><span class="ta-t ta-t-{{tier}}">{{tier}}</span><span class="ta-k">{{tierName}}</span></div></sc-if>
+          <sc-if value="{{impactOn}}" hint-placeholder-val="{{ false }}"><div class="ta-impact">영향 : {{impact}}</div></sc-if>
+          <sc-if value="{{lockOn}}" hint-placeholder-val="{{ false }}"><div class="ta-lock"><span class="ta-chip">🔒 {{chipT}}</span><span class="ta-why">{{why}}</span></div></sc-if>
+          <sc-if value="{{roOn}}" hint-placeholder-val="{{ false }}"><div class="ta-form"><sc-for list="{{roRows}}" as="q" hint-placeholder-count="2"><div class="ta-ro"><span class="ta-k">{{q.key}}</span><b class="ta-cut" title="{{q.value}}">{{q.value}}</b><span class="ta-tag mut">{{q.tag}}</span></div></sc-for></div></sc-if>
+          <div class="ta-form">
+            <sc-for list="{{fields}}" as="f" hint-placeholder-count="3">
+              <label class="ta-f"><span class="ta-fl">{{f.label}} <i>{{f.req}}</i><em class="ta-fd" title="{{f.desc}}">{{f.key}}</em></span>
+                <sc-if value="{{f.isText}}" hint-placeholder-val="{{ true }}"><span class="ta-in"><input type="text" value="{{f.value}}" onInput="{{f.onInput}}" placeholder="{{f.ph}}" spellcheck="false" autocomplete="off" aria-invalid="{{f.bad}}"></span></sc-if>
+                <sc-if value="{{f.isEnum}}" hint-placeholder-val="{{ false }}"><select class="ta-sel" onChange="{{f.onInput}}" aria-invalid="{{f.bad}}"><sc-for list="{{f.opts}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}" selected="{{o.sel}}">{{o.t}}</option></sc-for></select></sc-if>
+                <span class="ta-err">{{f.err}}</span></label>
+            </sc-for>
+          </div>
+          <div class="ta-bar">
+            <sc-for list="{{bar}}" as="b" hint-placeholder-count="2"><button type="button" class="ta-btn {{b.cls}}" disabled="{{b.off}}" onClick="{{b.run}}" title="{{b.tip}}">{{b.name}}</button></sc-for>
+            <span class="ta-k ta-cut">{{runSub}}</span>
+          </div>
+          <sc-if value="{{resOn}}" hint-placeholder-val="{{ false }}"><div class="ta-res {{resCls}}"><div class="ta-rh">{{resHead}}</div><sc-if value="{{resBodyOn}}" hint-placeholder-val="{{ false }}"><pre>{{resBody}}</pre></sc-if></div></sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
