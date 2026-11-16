@@ -5,7 +5,7 @@ import { createTerra, canRemote, permissionsOf, shellArg, moduleInstallCommand, 
 
 test('canRemote — 계약 scopes 에 cluster 가 없으면 그 노드에서만', () => {
   assert.equal(canRemote('terra.daemon.commands.execute.post'), false);
-  assert.equal(canRemote('terra.daemon.config.patch'), false);
+  assert.equal(canRemote('terra.daemon.config.patch'), true);   // P15-3 — 원격 관리 스위치 뒤(승인 문)로 열림
   assert.equal(canRemote('terra.daemon.modules.by-module-id.start.post'), true);
   assert.equal(canRemote('lab.stellaxia.gui-v3.status.get'), true);   // 표에 없는 것은 막지 않는다
   assert.deepEqual(permissionsOf('terra.daemon.commands.execute.post'), ['process.execute']);
@@ -22,7 +22,7 @@ test('invoke — 이 노드 · 다른 노드 경로, 봉투 풀기, 오류', asy
   assert.deepEqual(calls.map((c) => c[0]), ['/api/v1/operations/terra.daemon.modules.get/invoke', '/api/v1/nodes/nd%201/operations/terra.daemon.modules.get/invoke']);
   assert.equal(calls[0][2], 'Bearer tk');
   await assert.rejects(T.invoke('bad.op'), (e) => e instanceof TerraError && e.code === 'NOPE' && e.status === 403);
-  await assert.rejects(T.invoke('terra.daemon.config.patch', {}, { node: 'n' }), { code: 'LOCAL_ONLY' });
+  await assert.rejects(T.invoke('terra.daemon.commands.execute.post', {}, { node: 'n' }), { code: 'LOCAL_ONLY' });
   assert.equal(calls.length, 3);   // 잠긴 호출은 나가지 않는다
 });
 

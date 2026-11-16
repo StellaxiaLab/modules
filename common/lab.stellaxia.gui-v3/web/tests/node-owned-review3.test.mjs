@@ -42,7 +42,7 @@ test('3 config.get 만 실패 — ndEmpty 는 시안 설정값을 비우고, 설
   const d = c.ndEmpty('ws'); assert.deepEqual(d.cfg, {}); assert.deepEqual(d.cfgBase, {}); assert.deepEqual(d.cfgErr, {}); assert.equal(d.empty, true);
   assert.match(src, /const cfgMiss = N\.real \? !\(N\.parts \|\| \[\]\)\.includes\('config'\) : !!N\.empty;/);
   assert.match(src, /못 봤음 — 노드 설정을 읽지 못함\(저장 잠금\)/);
-  assert.match(src, /\{ off: !dk\.length \|\| cfgMiss, pri: !!dk\.length && !cfgMiss, local: true \}/);
+  assert.match(src, /\{ off: !dk\.length \|\| cfgMiss, pri: !!dk\.length && !cfgMiss, local: true, op: 'terra\.daemon\.config\.patch' \}/);
 });
 
 test('4 who.allPermissions 이면 사람 권한 검사를 건너뛴다(목록이 없어도 열림)', () => {

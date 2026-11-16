@@ -23,12 +23,14 @@
   },
   "terra.daemon.config.apply.post": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.config"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.config.get": {
    "scopes": [
@@ -42,30 +44,36 @@
   },
   "terra.daemon.config.patch": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.config"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.config.rollback.post": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.config"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.config.save.post": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.config"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.config.schema.get": {
    "scopes": [
@@ -256,7 +264,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.io.devices.by-device-id.approve.post": {
    "scopes": [
@@ -266,7 +275,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.io.devices.by-device-id.deny.post": {
    "scopes": [
@@ -276,7 +286,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.io.devices.by-device-id.disable.post": {
    "scopes": [
@@ -286,7 +297,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.io.devices.by-device-id.enable.post": {
    "scopes": [
@@ -296,7 +308,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.io.devices.by-device-id.forget.post": {
    "scopes": [
@@ -306,7 +319,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.io.devices.by-device-id.get": {
    "scopes": [
@@ -326,7 +340,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.io.devices.by-device-id.usage.get": {
    "scopes": [
@@ -356,7 +371,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.io.scan.post": {
    "scopes": [
@@ -366,7 +382,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.io.tombstones.get": {
    "scopes": [
@@ -475,7 +492,8 @@
    "permissions": [
     "module.manage"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.by-module-id.config.schema.get": {
    "scopes": [
@@ -495,7 +513,8 @@
    "permissions": [
     "module.manage"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.by-module-id.enable.post": {
    "scopes": [
@@ -505,7 +524,8 @@
    "permissions": [
     "module.manage"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.by-module-id.get": {
    "scopes": [
@@ -535,7 +555,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.by-module-id.rollback.post": {
    "scopes": [
@@ -545,7 +566,8 @@
    "permissions": [
     "module.manage"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.by-module-id.start.post": {
    "scopes": [
@@ -555,7 +577,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.by-module-id.stop.post": {
    "scopes": [
@@ -565,7 +588,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.by-module-id.uninstall.post": {
    "scopes": [
@@ -575,7 +599,8 @@
    "permissions": [
     "module.manage"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.catalog.get": {
    "scopes": [
@@ -650,7 +675,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.offers.by-module-id.withdraw.post": {
    "scopes": [
@@ -660,7 +686,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.offers.get": {
    "scopes": [
@@ -710,7 +737,8 @@
    "permissions": [
     "module.manage"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.modules.packages.uploads.post": {
    "scopes": [
@@ -730,7 +758,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.node.get": {
    "scopes": [
@@ -754,12 +783,14 @@
   },
   "terra.daemon.restart.post": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.config"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.service-tunnels.by-tunnel-id.close.post": {
    "scopes": [
@@ -769,7 +800,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.service-tunnels.by-tunnel-id.get": {
    "scopes": [
@@ -857,7 +889,8 @@
    "permissions": [
     "node.config"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.svi.declarations.by-family.by-name.undeclare.post": {
    "scopes": [
@@ -867,7 +900,8 @@
    "permissions": [
     "node.config"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.svi.declarations.get": {
    "scopes": [
@@ -887,7 +921,8 @@
    "permissions": [
     "node.config"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.svi.declarations.retired.by-family.by-name.forget.post": {
    "scopes": [
@@ -897,7 +932,8 @@
    "permissions": [
     "node.config"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.svi.envelope.file-roots.post": {
    "scopes": [
@@ -935,7 +971,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "dangerous"
+   "risk": "dangerous",
+   "switch": "remote-manage"
   },
   "terra.daemon.tasks.by-task-id.get": {
    "scopes": [
@@ -997,12 +1034,14 @@
   },
   "terra.daemon.transports.probe.post": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.wireguard.apply.post": {
    "scopes": [
@@ -1062,12 +1101,14 @@
   },
   "terra.daemon.wireguard.report.post": {
    "scopes": [
-    "local"
+    "local",
+    "cluster"
    ],
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   },
   "terra.daemon.wireguard.status.get": {
    "scopes": [
@@ -1087,7 +1128,8 @@
    "permissions": [
     "node.control"
    ],
-   "risk": "write"
+   "risk": "write",
+   "switch": "remote-manage"
   }
  }
 }

@@ -15,7 +15,6 @@ const B_ONLY = {};
 // 위임 밖이지만 문(window.TerraGate · TerraGateAll) 뒤에서만 부르는 것 — 화면은 잠그고 why 를 보인다. 코어가 열면 표만 다시 뽑아 저절로 열린다
 const GATED = {
   'terra.master.svi.handles.post': '자원 상태 창 값 보기 — 핸들 열기(svi-view.js WATCH_OPS)',
-  'terra.master.svi.handles.by-handle-id.events.get': '자원 상태 창 값 보기 — SSE 구독',
   'terra.master.svi.handles.by-handle-id.delete': '자원 상태 창 값 보기 — 핸들 닫기',
   'terra.master.admin.users.get': '허가 주체 — 사람 목록(나 말고는 위임 가드도 막는다)',
   'terra.master.network.mesh.wireguard.reconcile.post': '네트워크 › 자동 조정', 
