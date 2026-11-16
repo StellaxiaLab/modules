@@ -29,7 +29,7 @@ func TestModelPutRefusesForeignBaseURL(t *testing.T) {
 	if status != 400 || errorCode(body) != "INVALID_REQUEST" {
 		t.Fatalf("foreign base_url: %d %v", status, body)
 	}
-	if _, ok := s.engine.providers.resolve("anthropic"); ok {
+	if _, err := s.engine.providers.resolve("anthropic"); err == nil {
 		t.Fatal("a refused registration must store nothing")
 	}
 	if status, body = s.call(t, testPrincipal, "PUT", "/models/anthropic", map[string]any{"api_key": testAPIKey, "base_url": "http://127.0.0.1:9999"}); status != 200 {
