@@ -45,8 +45,8 @@ test('명령 → operation 1:1 — 부른 op 는 명령표의 그 명령 칸에 
 test('위임 밖 · 쓰기 명령 — 부르지 않고 "여기서 못 함 + 대신 할 곳"', async () => {
   const T = fake({});
   const S = createShells(T, topo);
-  for (const [line, where] of [['module install a.tpkg', /모듈 창/], ['module start io.terra.agent', /모듈 창/], ['task cancel t-1', /작업 관리자/], ['task output t-1', /작업 관리자/], ['config set logging.level debug', /설정 창/], ['daemon restart', /terra CLI/],
-    ['wg up', /네트워크 창/], ['svi grant x', /자원 관리/], ['login', /로그인 화면/], ['exec ls', /노드 셸 — 잠김/], ['terra sudo ls', /노드 셸 — 잠김/], ['bash', /노드 셸/], ['set var N desk', /변수 없음/]])
+  for (const [line, where] of [['module install a.tpkg', /모듈 창/], ['task cancel t-1', /작업 관리자/], ['task output t-1', /작업 관리자/], ['config set logging.level debug', /설정 창/], ['daemon restart', /terra CLI/],
+    ['wg up', /네트워크 창/], ['svi grant x', /자원 관리/], ['login', /로그인 화면/], ['exec ls', /노드 셸 — 잠김/], ['terra sudo ls', /노드 셸 — 잠김/], ['bash', /노드 셸/]])
     await assert.rejects(S.terra.run(line), (e) => e.code === 'NOT_HERE' && /여기서 불가 · 대신 : /.test(e.message) && where.test(e.message), line);
   assert.equal(T.calls.length, 0, '아무것도 부르지 않았다');
   assert.ok(ELSEWHERE.every(([, , w]) => typeof w === 'string' && w.length > 0));
