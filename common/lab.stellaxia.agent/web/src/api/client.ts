@@ -205,7 +205,10 @@ export function createAgentClient(call: CallFn, options: AgentClientOptions = {}
 
     // MCP — 앱은 목록만 읽는다(D-4). 등록·삭제는 agent.external 이 필요해 이 앱에 두지 않는다.
     mcpList: (opts?: CallOptions) => send<McpListResponse>('lab.stellaxia.agent.mcp.list', {}, {}, opts),
-    /** 이 앱의 화면은 쓰지 않는다(D-4). 재시도 never. */
+    /**
+     * 이 앱의 화면은 쓰지 않는다(D-4). 재시도 never. 계약이 execution.approval(T3)을 싣고 있어(P13-5) 부르는 화면이 생기면
+     * 직접 부르지 말고 호스트 승인 문(terra.frame.approve)에 제안해야 한다. 이 앱은 그 frame 규약이 아니라 브리지로 서 있다.
+     */
     mcpPut: (server: string, input: { command: string; args?: string[]; env?: Record<string, string>; read_only?: string[] }, opts?: CallOptions): Promise<CallResult<McpServerFacts>> =>
       send<McpServerFacts>('lab.stellaxia.agent.mcp.put', { server }, { body: input }, opts),
     mcpDelete: (server: string, opts?: CallOptions) => send<RemovedResponse>('lab.stellaxia.agent.mcp.delete', { server }, {}, opts),
