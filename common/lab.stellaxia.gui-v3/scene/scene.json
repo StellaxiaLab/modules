@@ -23,6 +23,10 @@
       "fragment": "gui-v3.dangerTunnel"
     },
     {
+      "path": "/danger/shell",
+      "fragment": "gui-v3.dangerShell"
+    },
+    {
       "path": "/danger/admin",
       "fragment": "gui-v3.dangerAdmin"
     }
@@ -44,6 +48,10 @@
     "contract/functions/dangerTunnel.allow.function.json",
     "contract/functions/dangerTunnel.block.function.json",
     "contract/functions/dangerTunnel.close.function.json",
+    "contract/functions/dangerShell.open.function.json",
+    "contract/functions/dangerShell.allow.function.json",
+    "contract/functions/dangerShell.block.function.json",
+    "contract/functions/dangerShell.close.function.json",
     "contract/functions/dangerAdmin.open.function.json",
     "contract/functions/dangerAdmin.allow.function.json",
     "contract/functions/dangerAdmin.block.function.json",
@@ -55,6 +63,7 @@
     "contract/stores/session.store.json",
     "contract/stores/danger.store.json",
     "contract/stores/dangerTunnel.store.json",
+    "contract/stores/dangerShell.store.json",
     "contract/stores/dangerAdmin.store.json"
   ],
   "fragments": [
@@ -62,6 +71,7 @@
     "surface/fragments/login.fragment.json",
     "surface/fragments/danger.fragment.json",
     "surface/fragments/dangerTunnel.fragment.json",
+    "surface/fragments/dangerShell.fragment.json",
     "surface/fragments/dangerAdmin.fragment.json"
   ],
   "requiredOperations": [
@@ -76,6 +86,12 @@
     },
     {
       "operationId": "terra.daemon.danger-zone.service-tunnel.post"
+    },
+    {
+      "operationId": "terra.daemon.danger-zone.node-shell.get"
+    },
+    {
+      "operationId": "terra.daemon.danger-zone.node-shell.post"
     },
     {
       "operationId": "terra.daemon.danger-zone.admin-screen.get"

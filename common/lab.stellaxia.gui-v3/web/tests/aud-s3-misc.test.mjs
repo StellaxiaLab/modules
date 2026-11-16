@@ -37,7 +37,7 @@ test('AUD-79 — 부팅 배선: TerraDangerAsk 는 frame 이 서기 전에도 �
   assert.equal(w.TerraDangerAsk.can(), false); assert.equal(w.TerraDangerAsk(), false);
   sandbox.__set({ emit: (e) => sent.push(e) });
   assert.equal(w.TerraDangerAsk.can(), true, 'frame 이 선 뒤에는 단추가 열린다');
-  assert.equal(w.TerraDangerAsk(), true); assert.equal(w.TerraDangerAsk('serviceTunnel'), true); assert.deepEqual(sent, ['danger', 'dangerTunnel']);
+  assert.equal(w.TerraDangerAsk(), true); assert.equal(w.TerraDangerAsk('serviceTunnel'), true); assert.equal(w.TerraDangerAsk('nodeShell'), true); assert.deepEqual(sent, ['danger', 'dangerTunnel', 'dangerShell']);
 });
 
 test('AUD-90 — 복사: clipboard 가 막히면 textarea + execCommand 로 대신하고, 둘 다 안 되면 실패를 보인다', async () => {

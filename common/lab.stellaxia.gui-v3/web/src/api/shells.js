@@ -1,4 +1,4 @@
-// 제어기의 두 터미널 — 노드 터미널(그 노드의 OS 셸, 잠김) · Terra 터미널(terra shell 을 닮은 Terra 명령 해석기).
+// 제어기의 두 터미널 — 노드 셸(그 노드의 OS 셸 · P16-4a 에서 열림 — src/api/node-shell.js · 이 파일의 node 는 Terra 터미널이 OS 셸을 돌리지 않는다는 표지뿐) · Terra 터미널(terra shell 을 닮은 Terra 명령 해석기).
 //
 // 노드 터미널   잠겼다(NODE_SHELL). 설계(docs/design/node-shell.md)가 정해지기 전까지 실행하지 않는다 — 명령 한 줄을 시스템 셸로 돌리는
 //               terra.daemon.commands.execute.post 를 웹에서 부르면 앱 토큰의 process.execute 하나로 그 노드의 임의 실행이 열리고,
@@ -25,10 +25,10 @@ const pad = (s, n) => { s = String(s ?? '—'); let w = 0; for (const ch of s) w
 const table = (cols, rows) => { const W = cols.map((c, i) => Math.min(28, Math.max(String(c[1] ?? c).length + 2, ...rows.map((r) => String(r[i] ?? '—').length + 2)))); return [cols.map((c, i) => pad(c, W[i])).join('').trimEnd(), ...rows.map((r) => r.map((v, i) => pad(v ?? '—', W[i])).join('').trimEnd())]; };
 const when = (iso) => { const t = Date.parse(iso || ''); if (Number.isNaN(t) || /^0001-/.test(String(iso))) return '—'; const d = new Date(t), p = (n) => String(n).padStart(2, '0'); return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()); };
 
-/** 노드 터미널 — 잠금과 그 이유. 설계가 정해지면 여기서 연다(보드는 이 값만 본다) */
+/** 노드 셸 — Terra 터미널은 OS 셸을 돌리지 않는다. 노드 셸은 따로 열린 창(P16-4a)에서 : 위험 영역 스위치 · 승인 문 */
 export const NODE_SHELL = Object.freeze({
-  locked: true,
-  reason: '잠김 : 설계 필요 — 열 사람 · 다른 노드 허용 · 감사 기록 · 대화형 전송(PTY)',
+  locked: false,
+  reason: '노드 셸 창(독의 노드 셸)에서 — 위험 영역 스위치 · 승인 문 · 이 노드에서만',
   design: 'docs/design/node-shell.md',
   instead: Object.freeze(['읽기 · 상태 : Terra 터미널(독의 >T)', '모듈 시작 · 멈춤 : 모듈 창', '작업 출력 · 취소 : 작업 관리자', '그 노드에서 직접 : terra CLI 또는 OS 터미널']),
 });
@@ -60,7 +60,7 @@ export function tokenize(line) {
   if (/[\r\n]/.test(line)) throw new TerraError('SHELL_SYNTAX', '여러 줄 불가 — 한 줄에 명령 하나', 0);
   const words = line.trim().split(/[ \t]+/).filter(Boolean);
   const bad = words.find((w) => !SAFE_WORD.test(w));
-  if (bad) { const ch = [...bad].find((c) => !SAFE_WORD.test(c)); throw new TerraError('SHELL_SYNTAX', '셸 문법 불가(' + JSON.stringify(ch) + ') — Terra 터미널은 셸 아님 · 노드 셸 잠김(' + NODE_SHELL.design + ')', 0); }
+  if (bad) { const ch = [...bad].find((c) => !SAFE_WORD.test(c)); throw new TerraError('SHELL_SYNTAX', '셸 문법 불가(' + JSON.stringify(ch) + ') — Terra 터미널은 셸 아님 · 노드 셸은 노드 셸 창', 0); }
   return words;
 }
 
@@ -72,7 +72,7 @@ export function expandHistory(line, hist) {
   return line;
 }
 
-const LOCKED_SHELL = '노드 셸 — 잠김(' + NODE_SHELL.design + ')';
+const LOCKED_SHELL = '노드 셸 창(독의 노드 셸) — 위험 영역 스위치 · 승인 문 · 이 노드에서만';
 /** 위임 밖 명령 — 여기서 못 하는 것과 대신 할 곳. [첫 낱말, 둘째 낱말(null 이면 무엇이든), 대신 할 곳] */
 export const ELSEWHERE = Object.freeze([
   ['module', /^(install|uninstall|start|stop|restart|enable|disable|config|scan|assign|unassign)$/, '모듈 창(독의 퍼즐) — 설치 : 검토 요약 확인 후'],
@@ -149,9 +149,9 @@ export function createShells(terra, topo, deps = {}) {
 
   // ── 노드 터미널 — 잠김(NODE_SHELL). 실행 길은 두지 않는다 ──
   const node = {
-    locked: NODE_SHELL.locked,
+    locked: true,   // 이 터미널은 OS 셸을 돌리지 않는다 — 노드 셸은 노드 셸 창
     can() { return false; },
-    async run() { throw new TerraError('LOCKED', NODE_SHELL.reason + ' (' + NODE_SHELL.design + ')', 0); },
+    async run() { throw new TerraError('LOCKED', NODE_SHELL.reason, 0); },
     async cd() { throw new TerraError('LOCKED', NODE_SHELL.reason, 0); },
   };
 

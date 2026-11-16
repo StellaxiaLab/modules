@@ -18,6 +18,9 @@ export const SWITCHES = {
     sub: '이 노드에서 웹 앱이 임의 명령을 실행하도록 허용 · 기본 꺼짐', offNote: '스위치 없음 — 이 Terra 에서는 웹 앱 명령 실행을 막지 않음' },
   serviceTunnel: { get: 'terra.daemon.danger-zone.service-tunnel.get', set: 'terra.daemon.danger-zone.service-tunnel.post', event: 'dangerTunnel', label: '서비스 터널 열기', banner: '⚠ 서비스 터널 열기 허용 중 — 위험 영역',
     sub: '이 노드를 출발로 웹 앱이 다른 노드의 서비스 터널을 열도록 허용 · 기본 꺼짐', offNote: '스위치 없음 — 이 Terra 에서는 터널 열기를 이 스위치로 막지 않음' },
+  //   nodeShell : 노드 셸(P16-4a · Terra P16-1) — 이 노드의 제어기에서 OS 셸(PTY)을 열 수 있게. 이벤트 'dangerShell' → Scene /danger/shell. 응답에 elevated · warning(관리자/root Daemon)
+  nodeShell: { get: 'terra.daemon.danger-zone.node-shell.get', set: 'terra.daemon.danger-zone.node-shell.post', event: 'dangerShell', label: '노드 셸', banner: '⚠ 노드 셸 허용 중 — 위험 영역',
+    sub: '이 노드의 제어기에서 이 노드의 OS 셸(PTY)을 열 수 있게 · 기본 꺼짐 · 열 때마다 승인(T3)', offNote: '스위치 없음 — 이 Terra 에서는 노드 셸을 이 스위치로 막지 않음' },
   //   adminScreen : 관리 화면(P13-3) — 이 노드의 GUI 에서 관리 자물쇠 화면(/admin)을 여는 스위치. 이벤트 'dangerAdmin' → Scene /danger/admin
   adminScreen: { get: 'terra.daemon.danger-zone.admin-screen.get', set: 'terra.daemon.danger-zone.admin-screen.post', event: 'dangerAdmin', label: '관리 화면', banner: '⚠ 관리 화면 허용 중 — 위험 영역',
     sub: '이 노드의 GUI 에서 사용자 · 권한 · 클러스터 · 외부 발급자를 관리하는 화면을 열 수 있게 · 기본 꺼짐 · 열 때마다 비밀번호(T4)', offNote: '스위치 없음 — 이 Terra 에서는 관리 화면을 이 스위치로 막지 않음' },
@@ -31,7 +34,7 @@ const body = (raw) => (raw && raw.data && typeof raw.data === 'object' && !Array
 
 /**
  * @param {{ data?: any, err?: { code?: string, msg?: string } | null, loading?: boolean } | null | undefined} rd  TerraNodes.read 의 답(없으면 시안)
- * @param {{ remote?: boolean, canAsk?: boolean, which?: 'appCommand'|'serviceTunnel'|'adminScreen' }} [o]  remote : 다른 노드의 제어기 · canAsk : window.TerraDangerAsk 가 있다 · which : 스위치(기본 appCommand)
+ * @param {{ remote?: boolean, canAsk?: boolean, which?: 'appCommand'|'serviceTunnel'|'nodeShell'|'adminScreen' }} [o]  remote : 다른 노드의 제어기 · canAsk : window.TerraDangerAsk 가 있다 · which : 스위치(기본 appCommand)
  * @returns {{ state: 'sim'|'loading'|'unsupported'|'error'|'ok', on: boolean, banner: string, status: string, statusCls: 'ok'|'warn'|'', note: string, changed: string, btn: string, btnOff: boolean, why: string, hint: string }}
  */
 export function dangerView(rd, o = {}) {
@@ -54,7 +57,8 @@ export function dangerView(rd, o = {}) {
   }
   const unavail = d.unavailable != null && d.unavailable !== false && d.unavailable !== '';
   const on = d.allow === true && !unavail;   // 읽을 수 없으면 꺼진 것으로 본다
-  const note = unavail ? '스위치 파일 읽기 불가 — 꺼진 것으로 처리' + (typeof d.unavailable === 'string' ? ' (' + d.unavailable + ')' : '') : '';
+  const elev = d.elevated === true ? '⚠ ' + (d.warning ? String(d.warning) : '이 노드의 Daemon 이 관리자 · root 로 돎 — 셸도 그 권한') : '';   // 노드 셸 스위치만 싣는다(P16-1)
+  const note = unavail ? '스위치 파일 읽기 불가 — 꺼진 것으로 처리' + (typeof d.unavailable === 'string' ? ' (' + d.unavailable + ')' : '') : elev;
   const by = d.changed_by ? String(d.changed_by) : '', at = d.changed_at ? String(d.changed_at) : '';
   const changed = at || by ? '마지막 변경 : ' + (at || '—') + (by ? ' · ' + by : '') : '마지막 변경 : 없음 (기본값)';
   return Object.assign(base, { state: 'ok', on, banner: on ? W.banner : '', status: on ? '허용 중' : '꺼짐', statusCls: on ? 'warn' : 'ok', note, changed }, btn('ok'));

@@ -38,6 +38,7 @@ import { remoteMgmtView, remoteChip, REMOTE_GET } from '../api/remote-management
 import { createRemoteMgmtMap } from '../api/remote-mgmt-map.js';
 import { errorHint, errorLine, errorSilent } from '../api/error-text.js';
 import { approveOp } from '../api/approve.js';
+import { createNodeShell, shellPanel, keyBytes } from '../api/node-shell.js';
 import { makeApproveFor, approvalPreview, viaDoor, tierOf } from '../api/approval-door.js';
 import * as commandRun from '../api/command-run.js';
 import { createConfirmationBook, GET_OP as CONFIRM_GET, APPROVE_OP as CONFIRM_APPROVE, REJECT_OP as CONFIRM_REJECT } from '../api/confirmations.js';
@@ -187,9 +188,11 @@ if (MODE !== 'demo') {
   window.TerraLaunch = (appId, at) => { if (MODE !== 'app' || !frame) return false; frame.emit('launch', at && at.nodeId ? { appId, moduleId: String(at.moduleId || ''), nodeId: String(at.nodeId), nodeName: String(at.nodeName || '') } : appId); return true; };   // 원격 앱은 { appId, moduleId, nodeId, nodeName } — 셸이 못 받으면(옛 Terra) 셸의 오류 그대로   // main Scene 의 gui-v3.app.launch → terra.app:launch → 셸이 화면 안 창으로
   window.TerraOpenExternal = (url) => { if (MODE !== 'app' || !frame || !/^https?:\/\/\S+$/i.test(String(url || ''))) return false; frame.emit('openExternal', String(url)); return true; };   // 외부 사이트 — 창 안에 못 띄운다(CSP). 셸이 http(s) 를 다시 걸러 확인 창을 띄운 뒤 기본 브라우저로 연다(Scene gui-v3.app.openExternal → terra.app:open-external). allow-popups 는 쓰지 않는다
   // 위험 영역 — 설정창 단추는 Scene 에 'danger' 이벤트만 보낸다(값을 싣지 않는다). 켜기 · 끄기는 Scene 의 /danger 확인 화면이 한다 — 이 페이지는 스위치 쓰기를 부르지 않는다(ADR-GW-012 §6.1)
-  window.TerraDangerView = dangerView; window.TerraDangerAsk = (which) => { if (!(MODE === 'app' && frame)) return false; frame.emit(which === 'serviceTunnel' ? 'dangerTunnel' : which === 'adminScreen' ? 'dangerAdmin' : 'danger'); return true; }; window.TerraDangerAsk.can = () => MODE === 'app' && !!frame;   // 늘 정의 — frame 은 호출 때 본다(앱 모드의 frame 은 나중에 선다)
+  window.TerraDangerView = dangerView; window.TerraDangerAsk = (which) => { if (!(MODE === 'app' && frame)) return false; frame.emit(which === 'serviceTunnel' ? 'dangerTunnel' : which === 'nodeShell' ? 'dangerShell' : which === 'adminScreen' ? 'dangerAdmin' : 'danger'); return true; }; window.TerraDangerAsk.can = () => MODE === 'app' && !!frame;   // 늘 정의 — frame 은 호출 때 본다(앱 모드의 frame 은 나중에 선다)
   window.TerraRemoteMgmtMap = createRemoteMgmtMap({ read: (rid) => transport.invokeRid(rid, REMOTE_GET, {}), onChange: () => { try { window.dispatchEvent(new Event('terra-remote-mgmt')); } catch {} } });   // Scene 지도의 '원격 관리 켜짐' 표시 — 노드마다 느리게 읽는다(remote-mgmt-map.js)
   window.TerraRemoteMgmt = { view: remoteMgmtView, chip: remoteChip, canAsk: () => false };   // 원격 관리 스위치 — 읽기만(.get). 켜기 · 끄기 · 기간은 Scene 호스트의 확인 화면(P15-1 짝)이 오면 canAsk 가 그 이벤트를 연다
+  // 노드 셸(P16-4a) — 세션 열기는 terra.invoke 가 승인 문(approveFor)으로 부른다. 붙기는 스트림 티켓(양방향 바이너리)
+  window.TerraNodeShell = Object.assign(createNodeShell({ invoke: (op, input) => terra.invoke(op, input), streamIO: (op, input, h) => terra.streamIO(op, input, h) }), { panel: shellPanel, keyBytes });   // 보드는 import 를 못 해 panel · keyBytes 를 같이 건넨다
   window.TerraApprove = (op, inputs) => approveOp(MODE === 'app' ? frame : null, op, inputs);   // 승인 문(P10-5) — 사람이 호스트 화면에서 승인해야 나간다. 쓰기는 페이지가 아니라 호스트가 부른다
   // op 콘솔(P17-1) — 카탈로그는 이 Gateway 가 이 계정에 보여 주는 것만(앱 토큰이면 앱 범위). 목록은 스키마 없이 · 스키마는 고른 것 하나만(describe)
   window.TerraCatalog = { list: () => terra.http('GET', '/api/v1/catalog'), describe: (id) => terra.http('GET', '/api/v1/catalog/operations/' + encodeURIComponent(id)) };

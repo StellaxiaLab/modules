@@ -44,11 +44,11 @@ test('main Fragment — danger 이벤트는 gui-v3.danger.open 으로, 목록에
   assert.equal(m.root.on.danger.input, undefined);
 });
 
-test('scene.json — 등록 · requiredOperations 는 스위치 셋의 읽기 · 쓰기 여섯 op 만', () => {
+test('scene.json — 등록 · requiredOperations 는 스위치 넷의 읽기 · 쓰기 여덟 op 만', () => {
   for (const f of ['danger.open', 'danger.allow', 'danger.block', 'danger.close']) assert.ok(scene.functions.includes('contract/functions/' + f + '.function.json'), f);
   assert.ok(scene.stores.includes('contract/stores/danger.store.json'));
   assert.ok(scene.fragments.includes('surface/fragments/danger.fragment.json'));
-  assert.deepEqual(scene.requiredOperations.map((o) => o.operationId).sort(), [GET, POST, TGET, TPOST, 'terra.daemon.danger-zone.admin-screen.get', 'terra.daemon.danger-zone.admin-screen.post'].sort());
+  assert.deepEqual(scene.requiredOperations.map((o) => o.operationId).sort(), [GET, POST, TGET, TPOST, 'terra.daemon.danger-zone.node-shell.get', 'terra.daemon.danger-zone.node-shell.post', 'terra.daemon.danger-zone.admin-screen.get', 'terra.daemon.danger-zone.admin-screen.post'].sort());
 });
 
 test('web 코드 — 스위치 쓰기(.post)를 부르지 않는다 (안내 문구 한 곳만)', () => {
@@ -69,7 +69,7 @@ test('web 코드 — 스위치 쓰기(.post)를 부르지 않는다 (안내 문�
 
 test('설정창 · 입구 — TerraDangerAsk 는 emit(danger) 만, 값을 싣지 않는다', () => {
   const main = fs.readFileSync(path.join(root, 'web/src/boot/main.js'), 'utf8');
-  assert.match(main, /window\.TerraDangerAsk = \(which\) => \{ if \(!\(MODE === 'app' && frame\)\) return false; frame\.emit\(which === 'serviceTunnel' \? 'dangerTunnel' : which === 'adminScreen' \? 'dangerAdmin' : 'danger'\); return true; }/, '호출 시점에 frame 을 본다(AUD-79) · 이벤트 이름만 다르고 값은 싣지 않는다');
+  assert.match(main, /window\.TerraDangerAsk = \(which\) => \{ if \(!\(MODE === 'app' && frame\)\) return false; frame\.emit\(which === 'serviceTunnel' \? 'dangerTunnel' : which === 'nodeShell' \? 'dangerShell' : which === 'adminScreen' \? 'dangerAdmin' : 'danger'\); return true; }/, '호출 시점에 frame 을 본다(AUD-79) · 이벤트 이름만 다르고 값은 싣지 않는다');
   assert.ok(!/if \(MODE === 'app' && frame\) window\.TerraDangerAsk/.test(main), '대입 시점 판정 없음');
   const dc = fs.readFileSync(path.join(root, 'web/design/NodeDesktopEmbed.dc.html'), 'utf8');
   assert.match(dc, /W2\.TerraDangerAsk\(k\)/);
@@ -120,6 +120,46 @@ test('main Fragment — dangerTunnel 이벤트는 gui-v3.dangerTunnel.open 으�
   assert.equal(m.root.on.dangerTunnel.function, 'gui-v3.dangerTunnel.open'); assert.equal(m.root.on.dangerTunnel.input, undefined);
   assert.ok(m.functions.includes('gui-v3.dangerTunnel.open'));
 });
+
+const SGET = 'terra.daemon.danger-zone.node-shell.get', SPOST = 'terra.daemon.danger-zone.node-shell.post';
+// ── 노드 셸 스위치(P16-4a · Terra P16-1) — 같은 구조의 확인 화면 ──
+const sfn = (n) => J('scene/contract/functions/dangerShell.' + n + '.function.json');
+test('/danger/shell Route — 내장 엘리먼트만, 전용 Store · Function', () => {
+  const r = scene.routes.find((x) => x.path === '/danger/shell');
+  assert.equal(r.fragment, 'gui-v3.dangerShell');
+  const frag = J('scene/surface/fragments/dangerShell.fragment.json');
+  assert.equal(frag.id, 'gui-v3.dangerShell'); assert.deepEqual(frag.stores, ['dangerShell']);
+  const types = [], comps = [];
+  walk(frag.root, (n) => { types.push(n.type); if (n.component) comps.push(n.component); });
+  assert.ok(!types.includes('custom')); assert.deepEqual(comps, []);
+  assert.ok(!JSON.stringify(frag.root).includes('terra.web/frame')); assert.ok(JSON.stringify(frag.root).includes('노드 셸'));
+  assert.ok(!JSON.stringify(frag.root).includes('웹 앱 명령'), '문구가 노드 셸 스위치 것이다');
+  for (const f of ['open', 'allow', 'block', 'close']) assert.ok(scene.functions.includes('contract/functions/dangerShell.' + f + '.function.json'), f);
+  assert.ok(scene.stores.includes('contract/stores/dangerShell.store.json'));
+  assert.ok(scene.fragments.includes('surface/fragments/dangerShell.fragment.json'));
+});
+
+test('dangerShell.* — 입력($input) 참조 없음 · allow · block 은 상수 · 쓰기는 이 둘뿐', () => {
+  for (const n of ['open', 'allow', 'block', 'close']) assert.ok(!JSON.stringify(sfn(n).graph).includes('$input'), n);
+  const call = (f) => f.graph.nodes.find((x) => x.type === 'call');
+  assert.equal(call(sfn('allow')).operationId, SPOST); assert.deepEqual(call(sfn('allow')).input, { allow: true });
+  assert.equal(call(sfn('block')).operationId, SPOST); assert.deepEqual(call(sfn('block')).input, { allow: false });
+  assert.equal(call(sfn('open')).operationId, SGET);
+  for (const n of ['open', 'close']) assert.ok(!JSON.stringify(sfn(n).graph).includes(SPOST), n);
+  for (const n of ['allow', 'block']) assert.ok(call(sfn(n)).onError, n + ' onError');
+  // 다른 스위치 op 를 건드리지 않는다
+  for (const n of ['open', 'allow', 'block', 'close']) assert.ok(!/app-command-execution|service-tunnel|admin-screen/.test(JSON.stringify(sfn(n))), n);
+  // 확인 화면 안에서 돌고 두 번째 Store 만 쓴다
+  for (const n of ['open', 'allow', 'block']) for (const x of sfn(n).graph.nodes) if (x.storeId) assert.equal(x.storeId, 'dangerShell');
+  assert.ok(JSON.stringify(sfn('open').graph).includes('"/danger/shell"'));
+});
+
+test('main Fragment — dangerShell 이벤트는 gui-v3.dangerShell.open 으로(값 없음)', () => {
+  const m = J('scene/surface/fragments/main.fragment.json');
+  assert.equal(m.root.on.dangerShell.function, 'gui-v3.dangerShell.open'); assert.equal(m.root.on.dangerShell.input, undefined);
+  assert.ok(m.functions.includes('gui-v3.dangerShell.open'));
+});
+
 
 test('web 코드 — 서비스 터널 스위치 쓰기(.post)도 부르지 않는다', () => {
   const hits = [];

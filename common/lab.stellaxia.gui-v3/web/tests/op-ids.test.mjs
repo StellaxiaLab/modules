@@ -21,9 +21,7 @@ for (const k of Object.keys(json(join(web, 'src/api/approval-ops.json')).operati
 for (const k of GATEWAY) known.add(k);
 // 화면에 단추는 있으나 앱 토큰으로는 못 부르는 Master op — 위임 표(master-delegated.json) 밖이라 gate 가 "위임 없음"으로 잠근다(잠금 + 이유가 맞는 상태). 손으로 둔 고정 목록
 const LOCKED_MASTER = ['terra.master.admin.external-issuers.', 'terra.master.users.by-user-id.external-identities.', 'terra.master.connection-groups.', 'terra.master.network.mesh.wireguard.', 'terra.master.network.probes.', 'terra.master.route.', 'terra.master.service-tunnels.open.', 'terra.master.admin.users.get', 'terra.master.svi.handles.', 'terra.master.crossboundary.login-routes.', 'terra.master.config.', 'terra.master.core.releases.', 'terra.master.modules.publications.', 'terra.master.modules.promotions.', 'terra.master.modules.approval-ceiling.', 'terra.master.modules.mirror-blocks.'];   // 끝 여섯 : P14-4 Tree 관리(승인 문 · T3 · T4) — 공용 위임 표가 재생성되면 저절로 표 쪽으로 옮겨 간다
-// Terra 계약에 없는 op — 설계 제안만 있다(node-shell.md §5.1). 단추는 잠겨 호출하지 않는다
-const NOT_IN_TERRA = ['terra.daemon.terminal.sessions.post'];
-const isKnown = (id) => known.has(id) || NOT_IN_TERRA.includes(id) || LOCKED_MASTER.some((p) => id.startsWith(p)) || [...known].some((k) => k.startsWith(id + '.'));   // 마지막은 조각(접두사)
+const isKnown = (id) => known.has(id) || LOCKED_MASTER.some((p) => id.startsWith(p)) || [...known].some((k) => k.startsWith(id + '.'));   // 마지막은 조각(접두사)
 
 const walk = (d, out = []) => { for (const n of readdirSync(d)) { if (n === 'node_modules') continue; const p = join(d, n); if (statSync(p).isDirectory()) walk(p, out); else out.push(p); } return out; };
 const srcFiles = [...walk(join(web, 'src')).filter((p) => /\.js$/.test(p) && !/\.test\./.test(p)), ...walk(join(web, 'design/build/parts')).filter((p) => p.endsWith('script.js')), join(web, 'design/NodeDesktopEmbed.dc.html')];

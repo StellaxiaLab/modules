@@ -154,3 +154,21 @@ Gateway 의 스트림 중계는 **이미 양방향**이다(`relayWebSocket` 이 
 
 창 자체도 같은 표지를 단다 — 제어기의 노드 터미널 창 머리에 노란 줄무늬 띠와 `OS 셸 · 이 노드`, Terra 터미널 창에 파란 띠와 `Terra API`.
 결정 뒤 바꿀 곳: `NODE_SHELL.locked`(shells.js · 보드 사본) · 셸 열기의 실행(스트림 · 터미널 그리기, §8).
+
+## 10. 구현(0.6.17 · P16-4a) — 결정 뒤 실제로 열린 모습
+
+Terra P16-1(Daemon 터미널 · 스위치 `danger-zone.node-shell`)이 §5 를 *다르게* 확정했다 — 이 모듈은 확정된 쪽을 따른다.
+
+| 설계 초안(§5) | 확정(Terra P16-1 · #435) |
+| --- | --- |
+| 새 권한 `process.terminal` | 앱 권한은 `process.execute` 그대로. 막는 것은 **스위치(기본 꺼짐) + T3 승인 문**(`X-Terra-Approval` 없으면 `APPROVAL_REQUIRED` · 앱 토큰 직접은 `DELEGATION_NOT_OPEN`) |
+| `…attach.get` + JSON 프레임 `{"t":"in"}` | `…by-session-id.stream.get` 양방향 **바이너리**(노드→창 = 터미널 출력, 창→노드 = 친 키) + 텍스트 제어 `{"type":"resize","cols","rows"}` |
+| Windows 는 W1 뒤 | ConPTY · Linux pty — 관리자/root Daemon 이면 응답 `elevated` · `warning` (창 머리 경고 띠) |
+| 수명 15분/8시간 | 붙지 않은 세션 60초 정리 · 스트림이 닫히면 세션도 닫힘(다시 붙기 없음) · 동시 8개 |
+
+- 창 : 독의 **노드 셸**(`term`). `열기 ›` → 확인 2단계 → 마지막 단추가 `terra.invoke(terminal.sessions.post)` — approval-ops 표에 있어 `frame.approve()` 승인 문(P10-5)으로 나간다. 승인 → 세션 → 스트림 티켓(`terra.streamIO({binary:true})`)으로 붙기.
+- 화면 : `src/api/vt-screen.js`(ANSI 색 · 커서 · 지우기 · 스크롤 영역 · 스크롤백 · 대체 화면 · 커서 위치 질의 응답) → 글자 격자 DOM. 키는 숨은 입력 칸(한글 조합 · 붙여넣기)과 `keyBytes`.
+- 스위치 : 설정 › 위험 영역 `노드 셸` 줄(읽기 `.get`) — 켜기 · 끄기는 Scene `/danger/shell` 확인 화면(`dangerShell.*` Function, 사람 세션). 꺼져 있으면 창이 이유와 `위험 영역에서 켜기 ›` 를 보인다.
+- 원격 : 세션 operation 의 scopes 가 `local` 뿐 — 다른 노드의 제어기에서는 열리지 않는다(원격 관리 스위치와 무관). 창이 그 노드의 제어기로 안내한다.
+- 로직 : `src/api/node-shell.js`(상태기계 · 키 변환 · 판 고르기), 시험 `node-shell.test.mjs` · `vt-screen.test.mjs` · `tests/terminals.test.mjs`.
+

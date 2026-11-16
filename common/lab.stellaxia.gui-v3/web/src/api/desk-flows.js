@@ -20,7 +20,6 @@ const CONTRACT_WHY = {
   'terra.master.admin.external-issuers.delete': 'Master 계약 : master.admin 권한 (앱 위임 없음)',
   'terra.master.service-tunnels.open.post': 'Daemon service-tunnels.post 단독 불가 — 입력 : Master 경로 결정(decision) · 경로 표(ticket · service_tunnel 채널) (Provider DTO OpenRequest) · 표 발급 : Master service-tunnels.open.post',
   'terra.daemon.enrollment.code.post': 'Daemon 계약 : node.enroll 권한 · 이 노드(loopback)만',
-  'terra.daemon.terminal.sessions.post': 'Daemon 계약에 없는 op — node-shell.md §5.1 제안',
 };
 
 // ── 등록 코드 ── Daemon registration.ParseNodeEnrollCode 와 같은 규칙: tnc_<비밀> · tnc_<비밀>.<base64url(origin)>
