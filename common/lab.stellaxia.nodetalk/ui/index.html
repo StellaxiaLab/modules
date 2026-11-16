@@ -8,52 +8,95 @@
 </head>
 <body>
 
-<header class="topbar">
-  <span class="brand">Node Talk</span>
-  <span id="module-pill" class="pill dim">모듈 확인 중…</span>
-  <span id="view-pill" class="pill dim" hidden></span>
-  <span class="spacer"></span>
-  <button id="refresh" class="btn" type="button">새로고침</button>
-</header>
+<div class="app">
 
-<div class="shell">
-  <nav class="side" aria-label="노드와 대화">
-    <section>
-      <h2>노드 <span class="hint">— 행을 고르면 그 노드의 저장소를, 체크는 새 대화 멤버</span></h2>
-      <div id="node-list" class="list"><p class="empty">읽는 중…</p></div>
-      <form id="add-node" class="inline-form">
-        <input id="add-node-id" type="text" placeholder="목록에 없는 node id 직접 추가" autocomplete="off">
-        <button class="btn small" type="submit">추가</button>
-      </form>
-    </section>
-    <section>
-      <h2>대화</h2>
-      <div id="conversation-list" class="list"><p class="empty">읽는 중…</p></div>
-      <form id="create-conversation" class="stack-form">
-        <input id="create-name" type="text" placeholder="대화 이름" autocomplete="off">
-        <p id="create-hint" class="empty">멤버를 고르지 않으면 나 혼자인 대화가 된다 (나중에 초대 가능).</p>
-        <button class="btn small" type="submit">대화 만들기</button>
-      </form>
-    </section>
-  </nav>
-
-  <main class="main">
-    <div id="transcript" class="transcript">
-      <p class="empty">대화를 선택하십시오.</p>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <circle cx="6" cy="12" r="2.6" fill="currentColor"/>
+        <circle cx="18" cy="6" r="2.6" fill="currentColor" opacity=".7"/>
+        <circle cx="18" cy="18" r="2.6" fill="currentColor" opacity=".7"/>
+        <path d="M8.3 11l7.4-4M8.3 13l7.4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+      </svg>
+      <span class="brand-name">Node Talk</span>
     </div>
-    <form id="composer" class="composer" hidden>
-      <input id="composer-text" type="text" placeholder="메시지" autocomplete="off">
-      <button class="btn primary" type="submit">보내기</button>
-      <button id="delete-conversation" class="btn danger" type="button" title="메인만 삭제를 확정할 수 있다">삭제</button>
-    </form>
-    <footer class="statusline" id="statusline">경로 — · main — · epoch —</footer>
-  </main>
-</div>
+    <span id="module-pill" class="pill dim" role="status">모듈 확인 중…</span>
+    <span id="view-pill" class="pill warn" hidden></span>
+    <span class="spacer"></span>
+    <button id="refresh" class="btn ghost" type="button" title="노드·대화·전사를 다시 읽는다">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      새로고침
+    </button>
+  </header>
 
-<details class="diag">
-  <summary>진단 — 마지막 응답 봉투</summary>
-  <pre id="diag-body">아직 없음</pre>
-</details>
+  <div id="banner" class="banner" role="alert" hidden></div>
+
+  <div class="shell">
+    <nav class="side" aria-label="노드와 대화">
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>노드</h2>
+          <span class="count" id="node-count"></span>
+        </div>
+        <p class="hint">행을 누르면 그 노드의 저장소를 봅니다. 체크한 노드가 새 대화의 멤버가 됩니다.</p>
+        <div id="node-list" class="list" aria-live="polite"><p class="empty">읽는 중…</p></div>
+        <form id="add-node" class="inline-form">
+          <input id="add-node-id" type="text" placeholder="목록에 없는 node id 직접 추가" autocomplete="off" aria-label="node id 직접 추가">
+          <button class="btn small" type="submit">추가</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>대화</h2>
+          <span class="count" id="conversation-count"></span>
+        </div>
+        <div id="conversation-list" class="list" aria-live="polite"><p class="empty">읽는 중…</p></div>
+        <form id="create-conversation" class="stack-form">
+          <input id="create-name" type="text" placeholder="새 대화 이름" autocomplete="off" aria-label="새 대화 이름">
+          <p id="create-hint" class="hint">멤버를 고르지 않으면 나 혼자인 대화가 됩니다. 나중에 초대할 수 있습니다.</p>
+          <button class="btn primary" type="submit">대화 만들기</button>
+        </form>
+      </section>
+
+    </nav>
+
+    <main class="main">
+      <div id="chat-head" class="chat-head" hidden>
+        <div class="chat-title">
+          <h1 id="chat-title">대화</h1>
+          <div id="chat-chips" class="chips"></div>
+        </div>
+        <button id="delete-conversation" class="btn danger small" type="button" title="메인만 삭제를 확정할 수 있다">삭제</button>
+      </div>
+
+      <div id="transcript" class="transcript" aria-live="polite">
+        <div class="placeholder">
+          <svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><path d="M8 12a4 4 0 0 1 4-4h24a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H20l-8 7v-7a4 4 0 0 1-4-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          <p>대화를 선택하세요</p>
+          <span class="hint">왼쪽에서 대화를 고르거나 새로 만들 수 있습니다.</span>
+        </div>
+      </div>
+
+      <form id="composer" class="composer" hidden>
+        <input id="composer-text" type="text" placeholder="메시지를 입력하세요" autocomplete="off" aria-label="메시지">
+        <button class="btn primary" type="submit">
+          보내기
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 12l16-8-6 16-3-7z" fill="currentColor"/></svg>
+        </button>
+      </form>
+
+      <footer class="statusline" id="statusline">경로 — · main — · epoch —</footer>
+    </main>
+  </div>
+
+  <details class="diag">
+    <summary>진단 — 마지막 응답 봉투</summary>
+    <pre id="diag-body">아직 없음</pre>
+  </details>
+
+</div>
 
 <script src="nodetalk.js"></script>
 </body>

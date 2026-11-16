@@ -244,6 +244,55 @@
     children.forEach(function (child) { node.appendChild(child); });
   }
 
+  // initialsOf / hueOf give every node a stable face — an id is unmemorable,
+  // a colour and two letters are not.
+  function initialsOf(text) {
+    var clean = String(text || '').replace(/^node[_-]?/i, '').trim();
+    if (!clean) return '·';
+    var words = clean.split(/[\s._-]+/).filter(Boolean);
+    var letters = words.length > 1 ? words[0][0] + words[1][0] : clean.slice(0, 2);
+    return letters.toUpperCase();
+  }
+
+  function hueOf(text) {
+    var hash = 0;
+    String(text || '').split('').forEach(function (ch) { hash = (hash * 31 + ch.charCodeAt(0)) >>> 0; });
+    return hash % 360;
+  }
+
+  function avatarFor(nodeId, dotKind) {
+    var face = el('span', 'avatar', initialsOf(labelFor(nodeId) || nodeId));
+    face.style.setProperty('--hue', String(hueOf(nodeId)));
+    if (dotKind) face.appendChild(el('span', 'dot ' + dotKind));
+    return face;
+  }
+
+  // Say WHY the bench is empty. A missing login, a missing permission and an
+  // unreachable Gateway are three different facts and three different fixes;
+  // an empty list that does not say which is the worst answer.
+  function showBanner(kind, html) {
+    var banner = document.getElementById('banner');
+    banner.className = 'banner ' + kind;
+    replaceChildren(banner, html);
+    banner.hidden = false;
+  }
+
+  function clearBanner() {
+    document.getElementById('banner').hidden = true;
+  }
+
+  function explainFailure(error) {
+    var code = error && (error.code || error.status || error.message) || '알 수 없음';
+    if (error && (error.status === 401 || error.status === 403 || code === 'MODULE_PERMISSION_DENIED')) {
+      return [el('strong', '', '로그인이 필요하거나 권한이 없습니다 (' + code + '). '),
+        document.createTextNode(state.token
+          ? '이 계정에 node.read·node.control 권한이 있는지 확인하세요.'
+          : 'Terra 셸에서 다시 로그인한 뒤 새로고침하세요. 이 창은 셸에서 받은 토큰 없이 열려 있습니다.')];
+    }
+    return [el('strong', '', '모듈에 닿지 못했습니다 (' + code + '). '),
+      document.createTextNode('Gateway와 nodetalk 모듈이 실행 중인지 확인하세요.')];
+  }
+
   function renderDiag() {
     document.getElementById('diag-body').textContent = state.lastEnvelope;
   }
@@ -291,6 +340,9 @@
 
     nodes.forEach(function (node) {
       var row = el('div', 'row selectable' + ((state.viewNode === node.id) ? ' selected' : ''));
+      var info = state.nodeInfo[node.peer] || {};
+      var reach = state.reach[node.peer || ''];
+      var dot = info.hasModule === false ? 'warn' : !reach ? '' : reach.error ? 'bad' : 'ok';
 
       // Selecting members for a new conversation happens right here, on the
       // node that is already on screen — nobody should type a node id.
@@ -299,6 +351,7 @@
         pick.type = 'checkbox';
         pick.checked = !!state.selectedMembers[node.peer];
         pick.title = '새 대화의 멤버로 선택';
+        pick.setAttribute('aria-label', '새 대화 멤버로 선택: ' + labelFor(node.peer));
         pick.addEventListener('click', function (click) { click.stopPropagation(); });
         pick.addEventListener('change', function () {
           if (pick.checked) state.selectedMembers[node.peer] = true;
@@ -308,19 +361,25 @@
         row.appendChild(pick);
       }
 
-      var name = el('span', 'name', labelFor(node.peer) || '(이 노드)');
-      name.title = node.peer || '';
-      row.appendChild(name);
-      if (node.self) row.appendChild(el('span', 'self', '(나)'));
+      row.appendChild(avatarFor(node.peer, dot));
 
-      var info = state.nodeInfo[node.peer] || {};
+      var body = el('div', 'body');
+      var name = el('span', 'name', labelFor(node.peer) || '(이 노드)');
+      if (node.self) name.appendChild(el('span', 'self', ' · 나'));
+      name.title = node.peer || '';
+      body.appendChild(name);
+      if (node.peer && labelFor(node.peer) !== node.peer) body.appendChild(el('span', 'sub', node.peer));
+      row.appendChild(body);
+
+      var tail = el('div', 'tail');
       if (info.hasModule === false) {
         var absent = el('span', 'badge warn', '모듈 없음');
         absent.title = 'nodetalk이 이 노드에 설치되어 있지 않다 — 그래서 통신이 안 된다';
-        row.appendChild(absent);
+        tail.appendChild(absent);
       } else {
-        row.appendChild(reachBadge(node.peer || ''));
+        tail.appendChild(reachBadge(node.peer || ''));
       }
+      row.appendChild(tail);
 
       row.addEventListener('click', function () { selectNode(node.id); });
       rows.push(row);
@@ -328,9 +387,11 @@
 
     if (state.peers.length === 0) {
       rows.push(el('p', 'empty', state.clusterError
-        ? '클러스터 노드 목록 실패: ' + state.clusterError + ' — 아래에 id를 직접 넣을 수 있다.'
-        : '다른 노드가 없다.'));
+        ? '다른 노드 목록을 가져오지 못했습니다 (' + state.clusterError + '). 아래에 node id를 직접 넣을 수 있습니다.'
+        : '다른 노드가 없습니다.'));
     }
+    var count = document.getElementById('node-count');
+    if (count) count.textContent = String(nodes.length);
     replaceChildren(document.getElementById('node-list'), rows);
   }
 
@@ -350,24 +411,67 @@
     state.conversations.forEach(function (summary) {
       var conversation = summary.conversation;
       var row = el('div', 'row selectable' + ((state.selected === conversation.conversation_id) ? ' selected' : ''));
-      row.appendChild(el('span', 'name', conversation.display_name));
-      row.appendChild(el('span', 'badge ' + (conversation.role === 'main' ? 'ok' : ''),
+      var body = el('div', 'body');
+      body.appendChild(el('span', 'name', conversation.display_name));
+      body.appendChild(el('span', 'sub', (conversation.members || []).length + '명 · epoch ' + conversation.epoch));
+      row.appendChild(body);
+      var tail = el('div', 'tail');
+      tail.appendChild(el('span', 'badge ' + (conversation.role === 'main' ? 'main' : ''),
         conversation.role === 'main' ? 'MAIN' : '백업'));
-      row.appendChild(el('span', 'badge', 'e' + conversation.epoch));
-      if (summary.behind > 0) row.appendChild(el('span', 'badge warn', '↑' + summary.behind));
+      if (summary.behind > 0) tail.appendChild(el('span', 'badge warn', '↑' + summary.behind));
+      row.appendChild(tail);
       row.addEventListener('click', function () { selectConversation(conversation.conversation_id); });
       rows.push(row);
     });
-    if (rows.length === 0) rows.push(el('p', 'empty', '대화 없음 — 아래에서 만들 수 있다.'));
+    if (rows.length === 0) rows.push(el('p', 'empty', '대화가 없습니다. 아래에서 만들 수 있습니다.'));
+    var count = document.getElementById('conversation-count');
+    if (count) count.textContent = state.conversations.length ? String(state.conversations.length) : '';
     replaceChildren(document.getElementById('conversation-list'), rows);
+    renderChatHead();
+  }
+
+  // The chat header names the open conversation and says who holds main.
+  function renderChatHead() {
+    var head = document.getElementById('chat-head');
+    var selected = null;
+    state.conversations.forEach(function (summary) {
+      if (summary.conversation.conversation_id === state.selected) selected = summary.conversation;
+    });
+    if (!selected) { head.hidden = true; return; }
+    head.hidden = false;
+    document.getElementById('chat-title').textContent = selected.display_name;
+    var chips = [
+      el('span', 'badge ' + (selected.role === 'main' ? 'main' : ''), selected.role === 'main' ? 'MAIN' : '백업'),
+      el('span', 'badge', 'epoch ' + selected.epoch),
+      el('span', 'badge', (selected.members || []).length + '명'),
+      el('span', 'badge', 'main: ' + labelFor(selected.main_node_id))
+    ];
+    replaceChildren(document.getElementById('chat-chips'), chips);
+  }
+
+  function placeholder(title, hint) {
+    var box = el('div', 'placeholder');
+    box.appendChild(el('p', '', title));
+    if (hint) box.appendChild(el('span', 'hint', hint));
+    return box;
   }
 
   function bubbleFor(entry) {
     var mine = entry.author_node_id === state.selfNode && !state.viewNode;
+    if (entry.kind && entry.kind !== 'message') {
+      var note = el('div', 'event');
+      note.dataset.key = entry.author_node_id + ':' + entry.seq;
+      if (entry.kind === 'member-added') note.textContent = '⊕ ' + labelFor(entry.member_node_id || '?') + ' 초대됨';
+      else if (entry.kind === 'member-removed') note.textContent = '⊖ ' + labelFor(entry.member_node_id || '?') + ' 나감';
+      else note.textContent = entry.kind;
+      return note;
+    }
     var bubble = el('div', 'bubble' + (mine ? ' mine' : ''));
     bubble.dataset.key = entry.author_node_id + ':' + entry.seq;
     var meta = el('div', 'meta');
-    meta.appendChild(el('span', 'author', entry.author_node_id));
+    var authorEl = el('span', 'author', mine ? '나' : labelFor(entry.author_node_id));
+    authorEl.title = entry.author_node_id;
+    meta.appendChild(authorEl);
     if (entry.wall_ms) {
       meta.appendChild(el('span', 'time', new Date(entry.wall_ms).toLocaleTimeString()));
     }
@@ -387,25 +491,21 @@
       meta.appendChild(el('span', 'badge ok', label));
     }
     bubble.appendChild(meta);
-    var text = entry.text;
-    if (entry.kind === 'member-added') text = '⊕ 멤버 초대: ' + (entry.member_node_id || '?');
-    else if (entry.kind === 'member-removed') text = '⊖ 멤버 제거: ' + (entry.member_node_id || '?');
-    else if (entry.kind !== 'message') text = '[' + entry.kind + ']';
-    bubble.appendChild(el('div', 'text', text));
+    bubble.appendChild(el('div', 'text', entry.text));
     return bubble;
   }
 
   function renderTranscript(entries) {
     var container = document.getElementById('transcript');
     var rows = entries.map(bubbleFor);
-    if (rows.length === 0) rows.push(el('p', 'empty', '아직 메시지가 없다.'));
+    if (rows.length === 0) rows.push(placeholder('아직 메시지가 없습니다', '첫 메시지를 보내 보세요.'));
     replaceChildren(container, rows);
     container.scrollTop = container.scrollHeight;
   }
 
   function appendBubble(entry) {
     var container = document.getElementById('transcript');
-    var emptyNote = container.querySelector('.empty');
+    var emptyNote = container.querySelector('.empty, .placeholder');
     if (emptyNote) emptyNote.remove();
     container.appendChild(bubbleFor(entry));
     container.scrollTop = container.scrollHeight;
@@ -434,8 +534,11 @@
       renderModulePill('ok', 'v' + result.payload.version + ' · ' + result.payload.status +
         ' · ' + result.payload.node_id);
       renderNodes();
+      clearBanner();
     }).catch(function (error) {
       renderModulePill('bad', '모듈 도달 실패 (' + (error.code || error.status || '네트워크') + ')');
+      showBanner('bad', explainFailure(error));
+      renderNodes();
     });
   }
 
@@ -468,6 +571,7 @@
       // The instrument says why rather than showing an empty pane: no cluster
       // (a bench with no Master) and no permission are different facts.
       state.clusterError = error.code || String(error.status || error.message);
+      if (document.getElementById('banner').hidden) showBanner('warn', explainFailure(error));
       renderNodes();
     });
   }
@@ -545,7 +649,7 @@
     state.selected = '';
     stopStream();
     document.getElementById('composer').hidden = true;
-    replaceChildren(document.getElementById('transcript'), [el('p', 'empty', '대화를 선택하십시오.')]);
+    replaceChildren(document.getElementById('transcript'), [placeholder('대화를 선택하세요', '왼쪽에서 대화를 고르거나 새로 만들 수 있습니다.')]);
     renderViewPill();
     renderNodes();
     renderStatusline();
@@ -572,7 +676,7 @@
             stopStream();
             document.getElementById('composer').hidden = true;
             replaceChildren(document.getElementById('transcript'),
-              [el('p', 'empty', '이 대화는 삭제되었다 (묘비 보존 창 안).')]);
+              [placeholder('이 대화는 삭제되었습니다', '묘비 보존 기간 안에는 다시 만들 수 없습니다.')]);
             loadConversations();
             return;
           }
@@ -668,7 +772,7 @@
         state.selected = '';
         stopStream();
         document.getElementById('composer').hidden = true;
-        replaceChildren(document.getElementById('transcript'), [el('p', 'empty', '삭제되었다.')]);
+        replaceChildren(document.getElementById('transcript'), [placeholder('삭제되었습니다')]);
         loadConversations();
       })
       .catch(function (error) {
