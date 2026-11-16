@@ -5,10 +5,11 @@
     <button type="button" class="wb-ic" aria-label="새로고침" onClick="{{reload}}">⟳</button>
     <button type="button" class="wb-ic" aria-label="시작 페이지" onClick="{{home}}">⌂</button>
     <form class="wb-addr {{addrCls}}" onSubmit="{{go}}">
-      <span class="wb-lock" title="{{lockTip}}">{{lockT}}</span>
+      <span class="wb-lock {{lockCls}}" title="{{lockTip}}">{{lockT}}</span>
       <input type="text" value="{{input}}" onInput="{{inp}}" onFocus="{{selAll}}" spellcheck="false" aria-label="주소" placeholder="주소 또는 모듈 이름">
     </form>
     <a class="wb-ic wb-out" href="{{extHref}}" target="_blank" rel="noopener noreferrer" aria-label="새 탭으로" style="display: {{extD}};">↗</a>
+    <button type="button" class="wb-ic wb-out" aria-label="기본 브라우저로" title="기본 브라우저로 (확인 창이 뜹니다)" onClick="{{outAsk}}" style="display: {{outD}};">↗</button>
   </div>
   <div class="wb-sub"><sc-for list="{{chips}}" as="c" hint-placeholder-count="3"><span class="wb-chip {{c.cls}}">{{c.t}}</span></sc-for><span style="flex: 1;"></span><span class="wb-api">{{apiT}}</span></div>
   <div class="wb-page">
@@ -40,10 +41,14 @@
       <iframe class="wb-frame" title="{{frameTitle}}" srcdoc="{{doc}}" sandbox="" referrerpolicy="no-referrer"></iframe>
     </sc-if>
     <sc-if value="{{isExt}}" hint-placeholder-val="{{ false }}">
-      <div class="wb-load"><div class="wb-step warn"><span>!</span><span>{{extT}}</span></div><p class="wb-dim">{{extNote}}</p><button type="button" class="wb-btn" onClick="{{extOpen}}">기본 브라우저로 다시 열기</button></div>
+      <div class="wb-load"><div class="wb-step warn"><span>!</span><span>{{extT}}</span></div><p class="wb-dim">{{extNote}}</p><div class="wb-row"><button type="button" class="wb-btn" onClick="{{extOpen}}">기본 브라우저로 다시 열기</button><button type="button" class="wb-btn wb-quiet" style="display: {{extForgetD}};" onClick="{{extForget}}">기억 지우기 — 이 사이트를 창 안에서 다시 열기</button></div></div>
     </sc-if>
     <sc-if value="{{isWeb}}" hint-placeholder-val="{{ false }}">
-      <iframe class="wb-frame wb-white" title="{{frameTitle}}" src="{{src}}" sandbox="allow-scripts allow-forms allow-same-origin" referrerpolicy="no-referrer"></iframe>
+      <div class="wb-webcol">
+        <div class="wb-band" role="note"><b>{{bandT}}</b><span class="wb-dim">{{bandNote}}</span><span style="flex: 1;"></span><button type="button" class="wb-btn wb-sm" style="display: {{rememberD}};" onClick="{{remember}}">이 사이트는 늘 밖에서</button></div>
+        <sc-if value="{{moved}}" hint-placeholder-val="{{ false }}"><div class="wb-moved">{{movedT}}</div></sc-if>
+        <iframe class="wb-frame wb-white" title="{{frameTitle}}" src="{{src}}" sandbox="allow-scripts allow-forms allow-same-origin" allow="" referrerpolicy="no-referrer" onLoad="{{onFrameLoad}}"></iframe>
+      </div>
     </sc-if>
   </div>
   <div class="wb-st"><span>{{statusT}}</span><span style="flex: 1;"></span><span class="wb-dim">{{noteT}}</span></div>

@@ -1,0 +1,12 @@
+{
+  "_": "ADR-GW-015 §5.2(d) — 창 안(iframe)에서 거의 늘 막히는 사이트의 호스트. 하위 도메인까지 맞는다. 힌트일 뿐이다: 이 목록에 없어도 ↗ 가 늘 있고, 있어도 사용자는 주소창에서 ↗ 로 열 수 있다. 외부 요청 없이 손으로 적은 목록이라 릴리스마다 고친다.",
+  "hosts": [
+    "google.com", "google.co.kr", "youtube.com", "gmail.com",
+    "github.com", "gitlab.com", "bitbucket.org", "stackoverflow.com",
+    "facebook.com", "instagram.com", "x.com", "twitter.com", "linkedin.com", "reddit.com", "discord.com",
+    "microsoft.com", "live.com", "office.com", "microsoftonline.com", "apple.com", "amazon.com", "paypal.com", "netflix.com",
+    "openai.com", "chatgpt.com", "claude.ai", "anthropic.com", "notion.so",
+    "naver.com", "daum.net", "kakao.com", "coupang.com",
+    "kbstar.com", "shinhan.com", "wooribank.com", "hanabank.com", "nhbank.com", "kakaobank.com", "toss.im", "tossbank.com"
+  ]
+}
