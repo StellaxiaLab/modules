@@ -155,6 +155,7 @@ export function createSviWatch(terra, o = {}) {
         } catch (e) {
           const st = (e && e.status) || 0;
           if (st === 404 && handle) { handle = ''; retry(); return; }
+          if (st === 429 || (e && e.code === 'RATE_LIMITED')) { ended = true; on({ kind: 'conn', conn: 'error', why: '요청 한도 초과(분당 30번) — 1분쯤 뒤 다시' }); return; }   // 한도는 곧바로 다시 부르면 더 막힌다 — 멈추고 안내(구독 시작 단추로 다시)
           if (st >= 400 && st < 500) { ended = true; on({ kind: 'conn', conn: 'error', why: (e && (e.code || e.message)) || String(st) }); return; }
           retry();
         }

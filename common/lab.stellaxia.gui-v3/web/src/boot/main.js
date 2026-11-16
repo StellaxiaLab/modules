@@ -15,6 +15,8 @@ import { createGatewayTransport } from '../api/transport.js';
 import { buildTopology, loadTopology, loadTopologyState, nodeStats, fmtBytes } from '../api/topology.js';
 import { createTheme } from '../ui/theme.js';
 import { startPush } from '../api/push.js';
+import { startLive, routeSignals, shouldPoll, liveText } from '../api/live-stream.js';
+import { createSviHandles } from '../api/svi-handles.js';
 import { pickMode, connectApp } from '../api/mode.js';
 import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems } from '../api/host-secret.js';
 import * as deskAdapt from '../api/desk-adapt.js';
@@ -57,7 +59,7 @@ if (q.get('gpu') !== 'off') useGpuField('Scene', { mode: q.get('render') === 'ma
 else say('글자 장 : 시안 2D');
 
 // 보드를 고치지 않고 몇 자리만 잇는다: 로그인(Login.login) · Tree 로그인 · 로그아웃(Scene.sceneLogout). 노드 데이터는 TerraNodes 가 window.TerraTransport 를 쓴다
-let terra = null, session = null, transport = null, push = null, alarms = null, topoTimer = 0;
+let terra = null, session = null, transport = null, push = null, live = null, alarms = null, topoTimer = 0;
 if (MODE !== 'demo') {
   session = createSession();
   try { migratePc(window.localStorage); } catch {}   // 처음 한 번 — 옛 제어기 키(terra.view.desk.* · terra.wall.*)를 지운다(바탕 구성은 이제 그 노드가 원본 — 설계 node-owned-desk.md §14)
@@ -172,7 +174,7 @@ if (MODE !== 'demo') {
   }
   // 로그인 뒤 한 번 — 지도 · Tree 길 · 보기 상태 · 밀어 받기
   // 노드 데스크톱이 쓰는 것 — 실제 응답 → 보드 모양(desk-adapt) · 이 Gateway 의 앱 목록(모듈 › 앱 탭) · 다른 모듈 앱 열기(셸에 부탁)
-  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraCanRemote = canRemote; window.TerraPermissionsOf = permissionsOf; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology); window.TerraNetProps = createNetProps(terra, () => window.TerraTopology); window.TerraTreeAdmin = createTreeAdmin(terra, () => window.TerraWho);   // Tree 관리 창(읽기) · 기록 창 · 핀 · 탐침 · 세션 닫기(P11-5) window.TerraShells = createShells(terra, () => window.TerraTopology, { approve: (op, inp) => window.TerraApprove(op, inp), canApprove: () => !!(window.TerraCanApprove && window.TerraCanApprove()), gate: (op, o) => (window.TerraGate ? window.TerraGate(op, o) : { open: true }), describe: (id) => window.TerraCatalog.describe(id), textOf: (op, e, c) => (window.TerraErrorLine ? window.TerraErrorLine(op, e, c) : String((e && e.message) || '')) }); window.TerraSviMake = createSviMake(terra, () => window.TerraTopology, () => window.TerraWho); window.TerraSviEnvelope = createSviEnvelope(terra, () => window.TerraTopology); window.TerraSviTypes = () => moduleTypes(window.TerraSviMods || []); window.TerraSviView = sviView; window.TerraSviWatch = sviView.createSviWatch(terra);   // 자원 상태 창 값 보기 — 형식 → 뷰어 · 구독(핸들 열기 → events, 지금은 위임 밖이라 문이 잠근다)   // SVI 창 — 선언 · 허가 · 연결, 모듈이 내놓은 유형(contributions.svi.types — 코어 대기)   // 제어기의 노드 터미널(commands.execute · 이 노드에서만) · Terra 터미널(terra shell 낱말 → operation)   // 네트워크 속성 창 — 주소 · 광고 전송 · 노드 간 연결   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
+  window.TerraDesk = deskAdapt; window.TerraNodeStats = nodeStats; window.TerraCanRemote = canRemote; window.TerraPermissionsOf = permissionsOf; window.TerraFmtBytes = fmtBytes; window.TerraNet = netRead; window.TerraSvi = sviRead; window.TerraNodeInfo = createNodeInfo(terra, () => window.TerraTopology); window.TerraNetProps = createNetProps(terra, () => window.TerraTopology); window.TerraTreeAdmin = createTreeAdmin(terra, () => window.TerraWho);   // Tree 관리 창(읽기) · 기록 창 · 핀 · 탐침 · 세션 닫기(P11-5) window.TerraShells = createShells(terra, () => window.TerraTopology, { approve: (op, inp) => window.TerraApprove(op, inp), canApprove: () => !!(window.TerraCanApprove && window.TerraCanApprove()), gate: (op, o) => (window.TerraGate ? window.TerraGate(op, o) : { open: true }), describe: (id) => window.TerraCatalog.describe(id), textOf: (op, e, c) => (window.TerraErrorLine ? window.TerraErrorLine(op, e, c) : String((e && e.message) || '')) }); window.TerraSviMake = createSviMake(terra, () => window.TerraTopology, () => window.TerraWho); window.TerraSviEnvelope = createSviEnvelope(terra, () => window.TerraTopology); window.TerraSviTypes = () => moduleTypes(window.TerraSviMods || []); window.TerraSviView = sviView; window.TerraSviWatch = sviView.createSviWatch(terra); window.TerraSviHandles = createSviHandles(terra);   // 자원 상태 창 값 보기 — 형식 → 뷰어 · 구독(핸들 열기 → events, 지금은 위임 밖이라 문이 잠근다)   // SVI 창 — 선언 · 허가 · 연결, 모듈이 내놓은 유형(contributions.svi.types — 코어 대기)   // 제어기의 노드 터미널(commands.execute · 이 노드에서만) · Terra 터미널(terra shell 낱말 → operation)   // 네트워크 속성 창 — 주소 · 광고 전송 · 노드 간 연결   // 노드 상태 창 — 식별 · 통信 · 최근 활동   // 네트워크 창 — Master 네트워크 · 경로 읽기   // 전역 틀 대상 표 — Master 하트비트 자원 스냅샷
   // 문 — 코어가 앱 토큰에 열지 않은 단추를 잠그고 이유를 적는다(src/api/gates.js). 사람 권한은 whoami 로. 보드는 window.TerraGate 가 없으면(시안) 연다
   window.TerraGate = (op, o = {}) => gate(op, Object.assign({ who: window.TerraWho, app: MODE === 'app', approveNode: MODE !== 'app' || approveNodeOk() }, o)); window.TerraGateAll = (ops, o = {}) => gateAll(ops, Object.assign({ who: window.TerraWho }, o)); window.TerraRisk = riskOf; window.TerraDenyHint = errorHint; window.TerraErrorLine = errorLine; window.TerraErrorSilent = errorSilent;   // §2.5 오류 문구 표 — 표에 없으면 ''(호출한 쪽이 서버 문장 + 코드)
   // 제어기의 파일 · 작업 · 밀어 받기 — 공유 폴더 내용 · 전송(lab.stellaxia.file), 작업 출력 따라가기(이 노드 SSE · 다른 노드 폴링), 바뀐 줄 찾기
@@ -196,11 +198,11 @@ if (MODE !== 'demo') {
   // 알림 — 작업 · 모듈 상태가 바뀌면 한 줄(아래 상태 줄). 목록은 window.TerraAlarms(최근 50), 읽음 · 지우기는 window.TerraAlarmBook(src/api/alarms.js).
   //   바뀌면 'terra-alarms' 신호 — 알림 창 · 전역 틀 배지가 다시 그린다. 밀어 받기가 이벤트를 받으면 바로 다시 읽는다
   const alarmSig = () => { try { window.dispatchEvent(new Event('terra-alarms')); } catch {} };
-  const stopLive = () => { whoSeq++; clearTimeout(whoT); if (window.TerraRemoteApps) window.TerraRemoteApps.clear(); if (push) { push.stop(); push = null; } if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; window.TerraAlarmBook = null; if (window.TerraMetrics) window.TerraMetrics.clear(); alarmSig(); };
+  const stopLive = () => { whoSeq++; clearTimeout(whoT); if (window.TerraRemoteApps) window.TerraRemoteApps.clear(); if (push) { push.stop(); push = null; } if (live) { live.stop(); live = null; } window.TerraLive = null; if (alarms) { alarms.stop(); alarms = null; } clearInterval(topoTimer); topoTimer = 0; window.TerraAlarms = []; window.TerraAlarmBook = null; if (window.TerraMetrics) window.TerraMetrics.clear(); alarmSig(); };
   // 노드 기록(상태 · 하트비트 · 자원)은 로그인 때 한 번만 받으면 낡는다 — 30초마다 다시(보일 때만). 노드 목록이 같으면(rev 같음) 기록만 바꿔 끼우고 씬은 다시 짓지 않는다
   //   window.TerraTopologyState = { state: 'ok'|'empty'|'error', error?, at } — 못 받았을 때 화면이 시안 지도를 실제처럼 두지 않고 "받지 못함 / 노드 없음"을 보일 신호('terra-topology-state' 이벤트도)
   const refreshTopology = () => loadTopologyState(terra).then((r) => {
-    window.TerraTopologyState = { state: r.state, error: r.error || '', at: r.at }; try { window.dispatchEvent(new Event('terra-topology-state')); } catch {}
+    window.TerraTopologyState = { state: r.state, error: r.error || '', at: r.at, live: window.TerraLive || null }; try { window.dispatchEvent(new Event('terra-topology-state')); } catch {}
     const t = r.topo; if (!t) { if (r.state === 'empty' && window.TerraTopology.count) setTopology(buildTopology([], { rev: 'none' })); return; }   // 받았고 비었다 — 옛 노드를 지운다(못 받음이면 마지막 사본을 둔다)
     if (t.records && window.TerraMetrics.ingest(t.records(), r.at) > 0) { try { window.dispatchEvent(new Event('terra-metrics')); } catch {} }   // 자원 추이 — 받은 하트비트 스냅샷을 노드마다 쌓는다(같은 하트비트는 하나로). 새 점이 없으면 알리지 않는다(다시 그릴 것이 없다)
     const cur = window.TerraTopology; if (cur && cur.rev === t.rev && cur.localId === t.localId) window.TerraTopology = t; else setTopology(t);
@@ -208,7 +210,16 @@ if (MODE !== 'demo') {
   window.TerraTopologyRetry = refreshTopology;   // 제어기 › 설정 › GUI 의 '다시 시도'
   const TOPO_MS = 30000;   // 지도 · 대상 표 갱신 주기 — 탭이 보일 때만(숨겨진 탭은 Master 를 두드리지 않고, 다시 보이면 바로 한 번)
   window.TerraMetrics = createMetrics({ pollMs: TOPO_MS });   // 전역 틀 대상 표의 그래프 — 하트비트 스냅샷 점열(src/api/metrics.js). 실시간 지표 op 는 코어에 없다
-  const topoTick = () => { if (typeof document === 'undefined' || document.visibilityState !== 'hidden') refreshTopology(); };
+  // 폴링은 이벤트 스트림이 끊겼을 때의 대비 — 스트림이 받는 중이면 5번에 한 번(안전 확인)만, 아니면 30초마다 그대로
+  let tickN = 0;
+  const topoTick = () => { tickN++; if (!shouldPoll(window.TerraLive && window.TerraLive.state, tickN)) return; if (typeof document === 'undefined' || document.visibilityState !== 'hidden') refreshTopology(); };
+  // 실시간 상태 — window.TerraLive = { state, reason, text, tries, lastAt, view: { live, cls, text } }. 바뀌면 'terra-live' · 지도 상태('terra-topology-state')로 알려 화면이 "없음"과 "못 봤음(스트림 끊김)"을 가른다
+  const liveChange = (st) => {
+    const prev = window.TerraLive && window.TerraLive.state; window.TerraLive = Object.assign({}, st, { view: liveText(st, TOPO_MS / 1000) });
+    if (window.TerraTopologyState) window.TerraTopologyState = Object.assign({}, window.TerraTopologyState, { live: window.TerraLive });
+    try { window.dispatchEvent(new Event('terra-live')); window.dispatchEvent(new Event('terra-topology-state')); } catch {}
+    if (st.state === 'live' && prev && prev !== 'live') refreshTopology();   // 끊겼다 다시 붙으면 그 사이를 한 번 다시 받는다(보관 범위 밖이면 reset 도 온다)
+  };
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (topoTimer && document.visibilityState === 'visible') refreshTopology(); });
   const pcLogout = () => { try { pcLogout0(window, window.localStorage); } catch {} };   // 로그아웃 세 길 공용 — 타이머 취소 신호 → 터미널 기록 삭제 → TerraWho = null (토큰 갱신은 부르지 않는다)
   // whoami — 일시 실패하면 쓰기 단추가 세션 내내 잠기므로(권한을 모르면 닫는다) 3 · 10 · 30초 뒤 다시 묻고, 받으면 'terra-who' 로 화면을 다시 그리게 한다
@@ -224,6 +235,7 @@ if (MODE !== 'demo') {
     alarms = startAlarms({ terra, onAlarm: (a) => say(a.g + ' ' + a.m), onChange: alarmSig }); window.TerraAlarms = alarms.list; window.TerraAlarmBook = alarms.book; alarmSig();
     topoTimer = setInterval(topoTick, TOPO_MS); refreshTopology();
     push = startPush({ terra, store: () => window.TerraNodes, onEvent: () => alarms && alarms.poke() });
+    tickN = 0; live = startLive({ terra, onState: liveChange, onSignal: routeSignals({ refreshTopology, poke: () => alarms && alarms.poke(), store: () => window.TerraNodes }) });   // Master 이벤트 스트림(위임 세션) — 닫히면(세션 만료 · 토큰 폐기 · 위임 밖) 다시 열지 않고 폴링 그대로
   };
   const SC = boardDef('Scene');
   let sceneOut = null;   // 보드의 원래 로그아웃(로그인 층을 전환을 거꾸로 해 다시 올린다)

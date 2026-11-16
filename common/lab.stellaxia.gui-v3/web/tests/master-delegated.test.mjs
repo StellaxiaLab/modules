@@ -16,6 +16,7 @@ const B_ONLY = {};
 const GATED = {
   'terra.master.svi.handles.post': '자원 상태 창 값 보기 — 핸들 열기(svi-view.js WATCH_OPS)',
   'terra.master.svi.handles.by-handle-id.delete': '자원 상태 창 값 보기 — 핸들 닫기',
+  'terra.master.svi.handles.by-handle-id.write.get': '자원 상태 창 쓰기 — write 소켓(P12-2, Terra #429 — 위임 표를 다시 뽑으면 이 줄을 뺀다)',
   'terra.master.admin.users.get': '허가 주체 — 사람 목록(나 말고는 위임 가드도 막는다)',
   'terra.master.network.mesh.wireguard.reconcile.post': '네트워크 › 자동 조정', 
   'terra.master.network.mesh.wireguard.peers.revoke.post': '네트워크 › 피어 철회', 

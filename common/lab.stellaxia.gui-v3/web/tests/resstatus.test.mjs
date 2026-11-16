@@ -7,10 +7,12 @@ import { parseBoard } from '../tools/dc-board.mjs';
 import * as SVV from '../src/api/svi-view.js';
 import * as sviRead from '../src/api/svi-read.js';
 import { gateAll } from '../src/api/gates.js';
+import { HANDLE_OPS, createSviHandles } from '../src/api/svi-handles.js';
+import MD from '../src/api/master-delegated.json' with { type: 'json' };
 
 const src = readFileSync(fileURLToPath(new URL('../design/ResStatus.dc.html', import.meta.url)), 'utf8');
 class DCLogic { constructor(p) { this.props = p || {}; this.state = {}; } setState(p) { Object.assign(this.state, typeof p === 'function' ? p(this.state, this.props) : p); } }
-const lib = new Function('DCLogic', parseBoard(src).script + '\nreturn { Component, WATCH_OPS, viewerOf, hexRows, frameValue, viewInit, reduceView, connLabel, numStats };')(DCLogic);
+const lib = new Function('DCLogic', parseBoard(src).script + '\nreturn { Component, WATCH_OPS, WRITE_OPS, viewerOf, hexRows, frameValue, viewInit, reduceView, connLabel, numStats };')(DCLogic);
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
 const txt = (v) => JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : x));
 
@@ -74,3 +76,25 @@ test('실제 — 코어가 열면(문 열림) 눌러서 핸들 열기 → 흐름
   v = c.renderVals(); assert.equal(v.isImg, true); assert.match(v.imgSrc, /^data:image\/jpeg;base64,/); assert.equal(v.connT, '받는 중');
   v.toggleSub(); c.renderVals(); assert.equal(opened.at(-1), 'stop');
 }));
+
+test('쓰기 칸(P12-3) — 문이 닫히면 잠그고, 열리면(위임 표 흉내) 핸들 만들기 → write 소켓 → 보내기 → 닫으면 지우고, 429 는 한도 안내', async () => {
+  assert.deepEqual(lib.WRITE_OPS, [HANDLE_OPS.create, HANDLE_OPS.write, HANDLE_OPS.delete]);
+  const calls = [], sent = []; let fail = null;
+  const H = createSviHandles({ invoke: async (op, inp) => { calls.push([op, inp]); if (fail) throw fail; return { handle_id: 'h1' }; }, streamIO: async () => ({ send: (v) => sent.push(v), close: () => calls.push(['sock-close']) }) });
+  const prev = globalThis.window, added = lib.WRITE_OPS.filter((op) => !MD.operations[op]);
+  globalThis.window = { TerraSviHandles: H, TerraGateAll: (ops) => gateAll(ops), addEventListener() {} };
+  const R = { id: 'r1', eps: [{ id: 'out', dir: 'source' }, { id: 'in', dir: 'sink' }] }, c = new lib.Component({ resName: 'x' }); c._live = true;
+  try {
+    assert.equal(c.writeVals({ id: 'r', eps: [{ id: 'out', dir: 'source' }] }).wOn, false, '받는 끝점이 없으면 칸이 없다');
+    if (added.length) { const v = c.writeVals(R); assert.equal(v.wOn, true); assert.equal(v.wLocked, true); assert.match(v.wWhy, /잠김/); }
+    for (const op of added) MD.operations[op] = { permissions: [] };
+    let v = c.writeVals(R); assert.equal(v.wLocked, false); assert.equal(v.wUnlocked, true); assert.equal(v.wSendOff, 'disabled'); assert.equal(v.wToggleT, '쓰기 열기');
+    v.wToggle(); await new Promise((r) => setTimeout(r, 10));
+    assert.equal(calls[0][0], HANDLE_OPS.create); assert.equal(calls[0][1].operation, 'write'); assert.equal(calls[0][1].endpoint_id, 'in');
+    v = c.writeVals(R); assert.equal(v.wChip, '열림'); assert.equal(v.wToggleT, '닫기'); assert.equal(v.wSendOff, null);
+    v.wInput({ target: { value: 'hello' } }); c.writeVals(R).wSend(); assert.equal(sent.length, 1); assert.equal(sent[0].sequence, 1); assert.equal(Buffer.from(sent[0].data, 'base64').toString(), 'hello' + String.fromCharCode(10));
+    c.writeVals(R).wToggle(); await new Promise((r) => setTimeout(r, 10)); assert.ok(calls.some((x) => x[0] === HANDLE_OPS.delete && x[1].handle_id === 'h1'), '닫으면 핸들을 지운다');
+    fail = Object.assign(new Error('x'), { status: 429, code: 'RATE_LIMITED' }); c.writeVals(R).wToggle(); await new Promise((r) => setTimeout(r, 10));
+    v = c.writeVals(R); assert.equal(v.wChip, '한도'); assert.match(v.wMsg, /분당 30번.*1분쯤 뒤/); assert.equal(v.wCls, 'warn');
+  } finally { for (const op of added) delete MD.operations[op]; globalThis.window = prev; }
+});

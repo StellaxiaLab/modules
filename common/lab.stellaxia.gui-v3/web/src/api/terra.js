@@ -71,6 +71,19 @@ export function createTerra(o = {}) {
       return () => ws.close();
     },
     /**
+     * 양방향 스트림 — 티켓으로 WebSocket 을 열고(열릴 때까지 기다린다) send 로 올린다. write 소켓(svi.handles.*.write.get)용.
+     * 티켓 발급 실패(429 · 403 DELEGATION_NOT_OPEN …)는 TerraError 로 던진다. @returns {{ send: (v: any) => void, close: () => void }}
+     */
+    async streamIO(id, input, h = {}) {
+      const t = await unwrap(await send('/api/v1/streams/tickets', { method: 'POST', headers: headers(), body: JSON.stringify({ operationId: id, input }) }));
+      const url = new URL('/api/v1/streams/' + encodeURIComponent(t.ticket), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(url);
+      await new Promise((ok, no) => { ws.onopen = () => ok(); ws.onerror = () => no(new TerraError('NETWORK', id + ' — 소켓을 열지 못함', 0, true)); ws.onclose = () => no(new TerraError('NETWORK', id + ' — 소켓이 열리기 전에 닫힘', 0, true)); });
+      ws.onerror = null; ws.onmessage = (e) => { let v = e.data; try { v = JSON.parse(e.data); } catch {} if (h.onMessage) h.onMessage(v); };
+      ws.onclose = () => { if (h.onClose) h.onClose(); };
+      return { send: (v) => ws.send(typeof v === 'string' ? v : JSON.stringify(v)), close: () => ws.close() };
+    },
+    /**
      * SSE 스트림 — operation 호출을 Accept: text/event-stream 으로(Gateway 가 제공자의 SSE 를 흘려 준다 · sse.js). 응답이 열리면 닫는 함수를 돌려준다.
      * 열리기 전 실패(429 TOO_MANY_STREAMS · 403 …)는 TerraError 로 던진다. onEvent({ id, event, data }) · onClose() — 끝 · 끊김 모두
      * @param {string} id @param {object} input @param {{ onEvent: (e: object) => void, onClose?: () => void, node?: string }} h
@@ -79,7 +92,9 @@ export function createTerra(o = {}) {
       if (h.node && !canRemote(id)) throw new TerraError('LOCAL_ONLY', id + ' — 이 노드에서만', 0);
       const path = h.node ? `/api/v1/nodes/${encodeURIComponent(h.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
       const ac = typeof AbortController === 'function' ? new AbortController() : null;
-      const res = await send(path, { method: 'POST', headers: Object.assign(headers(), { accept: 'text/event-stream' }), body: JSON.stringify(input || {}), signal: ac ? ac.signal : undefined });
+      const go = () => send(path, { method: 'POST', headers: Object.assign(headers(), { accept: 'text/event-stream' }), body: JSON.stringify(input || {}), signal: ac ? ac.signal : undefined });
+      let res = await go();
+      if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await go(); }   // invoke 와 같다 — 앱 토큰이 낡았으면 새로 받아 한 번만 다시. 그래도 401 이면 던진다(스트림은 '세션 만료'로 닫힌다)
       if (!res.ok || !/event-stream/i.test((res.headers && res.headers.get && res.headers.get('content-type')) || '')) { await unwrap(res); throw new TerraError('BAD_RESPONSE', id + ' — SSE 가 아닌 응답', res.status); }
       const P = sseParser(), rd = res.body.getReader(), dec = new TextDecoder(); let closed = false;
       const done = () => { if (closed) return; closed = true; if (h.onClose) try { h.onClose(); } catch {} };

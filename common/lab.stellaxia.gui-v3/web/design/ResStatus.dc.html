@@ -121,6 +121,15 @@ body{margin:0;background:transparent}
     </sc-if>
   </sc-if>
 
+  <sc-if value="{{wOn}}" hint-placeholder-val="{{ false }}">
+    <h3 class="ns-h"><span class="ns-hl"></span>쓰기<span class="ns-hr"></span><span class="ns-k">{{wApi}}</span><span class="rs-chip {{wCls}}" role="status">{{wChip}}</span></h3>
+    <sc-if value="{{wLocked}}" hint-placeholder-val="{{ false }}"><div class="rs-lock"><div class="rs-lock-h"><span class="rs-lk" aria-hidden="true">⊘</span><b>쓰기</b></div><div class="rs-why">{{wWhy}}</div></div></sc-if>
+    <sc-if value="{{wUnlocked}}" hint-placeholder-val="{{ true }}">
+      <div class="rs-tools"><input type="text" value="{{wText}}" onInput="{{wInput}}" placeholder="보낼 글" spellcheck="false" autocomplete="off" aria-label="보낼 글" disabled="{{wTextOff}}" style="flex: 1; min-width: 0;"><button type="button" class="rs-btn" onClick="{{wSend}}" disabled="{{wSendOff}}">보내기</button><button type="button" class="rs-btn" onClick="{{wToggle}}" disabled="{{wToggleOff}}">{{wToggleT}}</button></div>
+      <div class="ns-k" role="status">{{wMsg}}</div>
+    </sc-if>
+  </sc-if>
+
   <h3 class="ns-h"><span class="ns-hl"></span>끝점<span class="ns-hr"></span></h3>
   <sc-for list="{{eps}}" as="e" hint-placeholder-count="2">
     <div class="rs-ep"><span class="ns-v">{{e.id}}</span><span class="ns-k">{{e.dir}}</span><span class="ns-k">{{e.schema}}</span></div>
@@ -150,6 +159,8 @@ body{margin:0;background:transparent}
 //   아래 WATCH_OPS · viewerOf · b64bytes · utf8 · hexRows · frameValue · viewInit · reduceView · connLabel · numStats 는 src/api/svi-view.js 의 사본(시안용) — tests/resstatus.test.mjs 가 같은지 본다
 //   시안 — 끝점마다 가짜 흐름(같은 StreamMessage 모양 → 같은 reduceView). 40초마다 몇 초 끊겼다가 다시 붙는다. 실제 모드로는 새지 않는다
 const WATCH_OPS = ['terra.master.svi.handles.post', 'terra.master.svi.handles.by-handle-id.events.get', 'terra.master.svi.handles.by-handle-id.delete'];
+// 쓰기 — 핸들 만들기 · write 소켓 · 지우기(src/api/svi-handles.js HANDLE_OPS 와 같다 — tests/resstatus 가 본다). 분당 한도 30 · 30 · 60 은 429 안내에만
+const WRITE_OPS = ['terra.master.svi.handles.post', 'terra.master.svi.handles.by-handle-id.write.get', 'terra.master.svi.handles.by-handle-id.delete'];
 const KIND_LABEL = { number: '수치', text: '글 · 로그', bytes: '바이트', image: '그림', video: '영상', event: '사건' };
 const IMG_ENC = { jpeg: 'image/jpeg', jpg: 'image/jpeg', 'image/jpeg': 'image/jpeg', mjpeg: 'image/jpeg', png: 'image/png', 'image/png': 'image/png', webp: 'image/webp', 'image/webp': 'image/webp', gif: 'image/gif', svg: 'image/svg+xml', 'image/svg+xml': 'image/svg+xml' };
 function viewerOf(schema, encoding) {
@@ -229,7 +240,7 @@ class Component extends DCLogic {
   // state.sub — 시안은 열자마자 흐른다 · rsub — 실제는 눌러야 연다(핸들 열기는 감사되는 쓰기) · hold — 꼬리 멈춤(받기는 계속, 화면만 멈춤)
   constructor(props) { super(props); this.state = { q: 0, ep: '', sub: true, rsub: false, hold: false }; this._vs = {}; this._ev = []; this._w = null; try { window.addEventListener('terra-help', () => this.setState({})); } catch (e) {} }
   componentDidMount() { this._live = true; this._iv = setInterval(() => { if (this._live && !this.RT()) this.tick(); }, 250); }
-  componentWillUnmount() { this._live = false; clearInterval(this._iv); if (this._un) { this._un(); this._un = null; } this.unwatch(); }
+  componentWillUnmount() { this._live = false; clearInterval(this._iv); if (this._un) { this._un(); this._un = null; } this.unwatch(); this.wClose(true); }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
   name() { return this.props.resName || 'gpio'; }
   seed() { let h = 7; for (const ch of this.name() + (this.props.nodeName || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
@@ -304,6 +315,37 @@ class Component extends DCLogic {
     const h = W.TerraSviWatch.open({ resource_id: R.id, endpoint_id: ep.id, qos: 'realtime_latest' }, (m) => { if (!this._live && this._live !== undefined) return; this._vs[key] = reduceView(this._vs[key] || viewInit(kind), m, { hold: this.state.hold }); this.setState({}); });
     this._w = { key, h };
   }
+  // ── 쓰기 — window.TerraSviHandles(src/api/svi-handles.js): 핸들 만들기(operation write) → write 소켓 → 글 보내기, 닫으면 핸들을 지운다. 한도(429)면 기다릴 시간을 안내 ──
+  wSet(p) { this._wr = Object.assign(this._wr || {}, p); if (this._live !== false) this.setState({}); }
+  wOpen(R, ep) {
+    const H = window.TerraSviHandles; if (!H || (this._wr && (this._wr.busy || this._wr.writer))) return;
+    this.wSet({ busy: true, cls: 'busy', chip: '여는 중', msg: '핸들 만드는 중…', handle: '', writer: null });
+    H.create({ resource_id: R.id, endpoint_id: ep.id, operation: 'write', qos: 'reliable_ordered' }).then((h) => {
+      const id = (h && h.handle_id) || ''; if (!id) throw Object.assign(new Error('handle_id 없음'), { explain: { kind: 'error', text: '핸들 만들기 실패 — handle_id 없음' } });
+      this.wSet({ handle: id, msg: 'write 소켓 여는 중…' });
+      return H.openWriter(id, { onReject: (m) => this.wSet({ cls: 'err', chip: '거부', msg: '거부됨 — ' + (m.code || m.message || m.reason || '사유 없음') }), onClose: () => { if (this._wr && this._wr.writer) this.wSet({ writer: null, busy: false, cls: 'dim', chip: '닫힘', msg: 'write 소켓 닫힘 — 핸들 ' + id }); } }).then((w) => { this.wSet({ writer: w, busy: false, cls: 'ok', chip: '열림', msg: '열림 · 핸들 ' + id + ' · 보낸 프레임 0' }); }, (e) => { H.delete(id).catch(() => {}); throw e; });
+    }).catch((e) => { const x = e && e.explain || { kind: 'error', text: '실패 — ' + ((e && (e.code || e.message)) || '오류') }; this.wSet({ busy: false, writer: null, handle: '', cls: x.kind === 'limit' ? 'warn' : 'err', chip: x.kind === 'limit' ? '한도' : '못 엶', msg: x.text }); });
+  }
+  wClose(quiet) {
+    const w = this._wr; if (!w) return; const H = window.TerraSviHandles, id = w.handle, wr = w.writer; this._wr = {};
+    if (wr) { try { wr.close(); } catch (e) {} }
+    if (id && H) H.delete(id).then(() => { if (!quiet) this.wSet({ cls: 'dim', chip: '닫힘', msg: '닫음 — 핸들 ' + id + ' 지움' }); }, (e) => { if (!quiet) this.wSet({ cls: e && e.explain && e.explain.kind === 'limit' ? 'warn' : 'err', chip: '지우기 실패', msg: (e && e.explain && e.explain.text) || '핸들 지우기 실패 — 시간이 지나면 저절로 끝남' }); });
+    if (!quiet) this.wSet({ cls: 'dim', chip: '닫음', msg: '닫는 중…' });
+  }
+  wSend() {
+    const w = this._wr; if (!w || !w.writer) return; const t = w.text || ''; if (!t) return;
+    try { const q = w.writer.send(t + String.fromCharCode(10)); this.wSet({ text: '', cls: 'ok', chip: '열림', msg: '보냄 · 순번 ' + q + ' · 핸들 ' + w.handle }); } catch (e) { this.wSet({ cls: 'err', chip: '끊김', msg: '보내지 못함 — ' + ((e && e.message) || '소켓 닫힘'), writer: null }); }
+  }
+  /** 쓰기 칸 값 — 받는(sink · duplex) 끝점이 있을 때만 보인다. 문(핸들 만들기 · write · 지우기)이 닫혀 있으면 잠그고 이유 */
+  writeVals(R) {
+    const W = window, sinks = R.eps.filter((e) => /sink|duplex/.test(e.dir)); if (!sinks.length || !W.TerraSviHandles) return { wOn: false };
+    const ep = sinks.find((e) => e.id === this.state.wep) || sinks[0], G = W.TerraGateAll ? W.TerraGateAll(WRITE_OPS) : { open: false, why: '잠김 : 문 판정(TerraGate) 없음' }, w = this._wr || {};
+    if (!G.open) { if (w.writer || w.busy) this.wClose(true); return { wOn: true, wApi: '', wCls: 'dim', wChip: '잠김', wLocked: true, wWhy: G.why, wUnlocked: false }; }
+    const on = !!w.writer;
+    return { wOn: true, wApi: 'svi.handles.post · write · delete', wCls: w.cls || 'dim', wChip: w.chip || '닫힘', wLocked: false, wWhy: '', wUnlocked: true, wText: w.text || '', wInput: (e) => { this._wr = Object.assign(this._wr || {}, { text: e.target.value }); },
+      wTextOff: on ? null : 'disabled', wSend: () => this.wSend(), wSendOff: on ? null : 'disabled', wToggle: () => (on ? this.wClose() : this.wOpen(R, ep)), wToggleOff: w.busy ? 'disabled' : null, wToggleT: on ? '닫기' : '쓰기 열기',
+      wMsg: (w.msg || '닫힘') + ' · ' + ep.id + ' (' + (ep.dir || '') + ') · 분당 30번(만들기 · 열기) · 60번(지우기)' };
+  }
   /** 값 칸 — 뷰어 종류마다 같은 이름의 값(시안 · 실제 공통) */
   viewVals(eps, epCur, st, o) {
     const S = this.state, v = viewerOf(epCur ? epCur.schema : '', epCur ? epCur.enc : ''), C = connLabel(st), now = Date.now(), H = this.help();
@@ -351,7 +393,7 @@ class Component extends DCLogic {
     const st = (vkey && this._vs[vkey]) || viewInit(kind);
     const V = this.viewVals(vis, epCur, G.open ? st : viewInit(kind), { lockWhy: G.open ? '' : G.why, lockAlt: '대신 : 아래 ‘쓰는 곳’ (svi.handles.get · 갱신 : 10s)', toggleSub: () => this.setState({ rsub: !this.state.rsub }), sub: this.state.rsub });
     if (!G.open) { V.connT = '잠김'; V.connCls = 'dim'; V.subT = '구독 시작'; }
-    return Object.assign(base, V, { type: R.kind || 'resource', stT: !ok ? R.status || '알 수 없음' : busy ? '사용 중' : '사용 가능', stCol: !ok ? 'var(--t-err2,#ff9c8c)' : busy ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)',
+    return Object.assign(base, V, this.writeVals(R), { type: R.kind || 'resource', stT: !ok ? R.status || '알 수 없음' : busy ? '사용 중' : '사용 가능', stCol: !ok ? 'var(--t-err2,#ff9c8c)' : busy ? 'var(--t-warn,#ffd27a)' : 'var(--t-ok,#60e28c)',
       node: C.names.get(R.node) || R.node || '—', approve: '—', presence: R.status || '—', seen: '—', lease: '—',
       eps: R.eps.map((e) => ({ id: e.id, dir: e.dir, schema: [e.interaction, e.schema].filter(Boolean).join(' · ') || '—' })),
       binds: binds.map((b) => ({ to: (b.srcRes === R.id ? '→ ' + (C.names.get(b.tgtNode) || b.tgtNode) + ' › ' + b.tgtRes + (b.tgtEp ? '#' + b.tgtEp : '') : '← ' + (C.names.get(b.srcNode) || b.srcNode) + ' › ' + b.srcRes), q: QOS_KO[b.qos] || b.qos, rate: b.state + (b.reason ? ' · ' + b.reason : '') })),

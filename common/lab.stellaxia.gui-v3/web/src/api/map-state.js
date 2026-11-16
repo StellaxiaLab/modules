@@ -18,5 +18,13 @@ export function mapState({ real, state, records = [], nodeStats, okAt = 0, ago =
   }
   else if (TS.state === 'empty') { tone = 'off'; stat = '노드 없음'; card = 'empty'; head = '이 Tree 에 노드 없음'; sub = '노드를 등록하면 지도에 나타납니다.'; }
   else { tone = down ? 'warn' : 'ok'; stat = '노드 ' + n + (down ? ' · 연결 안 됨 ' + down : '') + ' · ' + ago(TS.at); }
+  // 실시간 스트림(TS.live — live-stream.js 상태)이 끊겼으면 받은 지도가 있어도 '지금 그대로'라고 하지 않는다 — 마지막으로 받은 시각만 믿을 수 있다
+  const L = TS && TS.live && TS.live.state;
+  if (real && TS && TS.state !== 'error' && (L === 'lost' || L === 'closed')) {
+    if (tone === 'ok') tone = 'warn';
+    stat += L === 'lost' ? ' · 실시간 끊김' : ' · 실시간 닫힘';
+    if (!head) head = L === 'lost' ? '실시간 스트림이 끊겨 30초마다 다시 받는 중' : (TS.live.text || '이벤트 스트림 닫힘') + ' — 30초마다 다시 받는 중';
+    if (!sub) sub = '스트림이 끊긴 동안의 변화는 보지 못했을 수 있습니다. 마지막으로 받은 시각 ' + (okAt ? ago(okAt) : '—') + '.';
+  }
   return { tone, stat, head, sub, card, canRetry: !!real && !!TS && TS.state === 'error', okAt };
 }
