@@ -14,6 +14,11 @@ const table = JSON.parse(readFileSync(join(web, 'src/api/master-delegated.json')
 const B_ONLY = {};
 // 위임 밖이지만 문(window.TerraGate · TerraGateAll) 뒤에서만 부르는 것 — 화면은 잠그고 why 를 보인다. 코어가 열면 표만 다시 뽑아 저절로 열린다
 const GATED = {
+  // P14-4 Tree 관리 쓰기 · 설정 읽기 — 위임 표(지휘 세션이 따로 재생성)에 아직 없다. 열리면 이 줄들을 지운다(위 시험이 알려 준다)
+  'terra.master.config.get': 'Tree 관리 › Master 설정', 'terra.master.config.schema.get': 'Tree 관리 › Master 설정', 'terra.master.config.validate.post': 'Tree 관리 › Master 설정 › 검증', 'terra.master.config.patch': 'Tree 관리 › Master 설정 › 저장(T4)',
+  'terra.master.modules.publications.post': 'Tree 관리 › 모듈 게시', 'terra.master.modules.publications.by-publication-id.revoke.post': 'Tree 관리 › 모듈 회수', 'terra.master.modules.publications.by-publication-id.rollout.post': 'Tree 관리 › 모듈 롤아웃', 'terra.master.modules.publications.by-publication-id.promote.post': 'Tree 관리 › 모듈 승격',
+  'terra.master.modules.promotions.by-promotion-id.approve.post': 'Tree 관리 › 승격 승인', 'terra.master.modules.promotions.by-promotion-id.reject.post': 'Tree 관리 › 승격 거절', 'terra.master.modules.approval-ceiling.post': 'Tree 관리 › 승인 상한(T4)', 'terra.master.modules.mirror-blocks.post': 'Tree 관리 › 미러 거부 추가', 'terra.master.modules.mirror-blocks.by-pattern.delete': 'Tree 관리 › 미러 거부 풀기',
+  'terra.master.core.releases.post': 'Tree 관리 › 코어 릴리스 게시(T4)', 'terra.master.core.releases.by-release-id.revoke.post': 'Tree 관리 › 코어 회수(T4)', 'terra.master.core.releases.by-release-id.apply.post': 'Tree 관리 › 코어 적용 지시(T4)', 'terra.master.core.releases.by-release-id.rollout.post': 'Tree 관리 › 코어 롤아웃(T4)',
   'terra.master.svi.handles.post': '자원 상태 창 값 보기 — 핸들 열기(svi-view.js WATCH_OPS)',
   'terra.master.svi.handles.by-handle-id.delete': '자원 상태 창 값 보기 — 핸들 닫기',
   'terra.master.svi.handles.by-handle-id.write.get': '자원 상태 창 쓰기 — write 소켓(P12-2, Terra #429 — 위임 표를 다시 뽑으면 이 줄을 뺀다)',
@@ -25,6 +30,8 @@ const GATED = {
   'terra.master.users.by-user-id.external-identities.post': '설정 › 계정 › 외부 신원 연결', 'terra.master.users.by-user-id.external-identities.delete': '설정 › 계정 › 외부 신원 해제',
   'terra.master.admin.external-issuers.get': '설정 › 계정 › 신뢰 발급자 목록', 'terra.master.admin.external-issuers.post': '설정 › 계정 › 신뢰 발급자 더하기', 'terra.master.admin.external-issuers.delete': '설정 › 계정 › 신뢰 발급자 빼기'
 };
+// 승인 문으로 나가는 Master op(P13-4) — 앱 토큰이 아니라 사람이 호스트 화면에서 승인해야 나가므로 위임 표에 없어도 된다(src/api/approval-ops.json)
+const DOOR = new Set(Object.keys(JSON.parse(readFileSync(join(web, 'src/api/approval-ops.json'), 'utf8')).operations));
 const files = (dir, ext) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name), ext) : ext.test(e.name) && !/\.test\.mjs$/.test(e.name) ? [join(dir, e.name)] : []));
 
 test('표 — 계약에서 뽑은 모양(op id → method · path · permissions)', () => {
@@ -38,7 +45,7 @@ test('gui-v3 가 부르는 Master op — 모두 위임 표에 있거나 B 모드
   for (const f of [...files(join(web, 'src'), /\.js$/), ...files(join(web, 'design'), /\.dc\.html$/)]) for (const m of readFileSync(f, 'utf8').matchAll(/'(terra\.master\.[a-z0-9.-]+)'/g)) used.add(m[1]);
   assert.ok(used.size > 0);
   for (const id of ['terra.master.crossboundary.login-routes.get', 'terra.master.crossboundary.login-routes.by-node-id.resolve.post']) assert.ok(table.operations[id], 'AUD-23 위임에 열림: ' + id);
-  const out = [...used].filter((id) => !table.operations[id] && !B_ONLY[id] && !GATED[id]);
+  const out = [...used].filter((id) => !table.operations[id] && !B_ONLY[id] && !GATED[id] && !DOOR.has(id));
   for (const id of Object.keys(GATED)) assert.ok(!table.operations[id], id + ' 가 위임 표에 생겼다 — GATED 에서 빼라(화면은 저절로 열린다)');
   assert.deepEqual(out, [], '위임 밖인데 B 모드 전용 · 문(gate)으로 잠근 단추로 적히지 않은 Master op');
 });

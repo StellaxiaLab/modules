@@ -210,6 +210,14 @@
       "x": 14800,
       "y": 2520
     },
+    "TreeAdmin.dc.html": {
+      "h": 640,
+      "is_interactive": true,
+      "title": "Tree 관리 — 모듈 게시 · 승격 심사 · 정책 · 코어 롤아웃 · Master 설정 (승인 문 · 전역 틀 설정 › Tree 관리)",
+      "w": 900,
+      "x": 14800,
+      "y": 3240
+    },
     "MapCard.dc.html": {
       "h": 300,
       "title": "지도 못 받음 · 노드 없음 카드 — 장면 가운데(전역 틀 오른쪽)",
@@ -283,6 +291,7 @@
     "NodeSvi.dc.html",
     "Alarms.dc.html",
     "OpConsole.dc.html",
+    "TreeAdmin.dc.html",
     "NodeConf.dc.html",
     "NodeShare.dc.html",
     "ResStatus.dc.html",
