@@ -27,3 +27,9 @@ body{margin:0;background:#0a0e1c}
 .wb-step.on{color:#e6eaf7}.wb-step.ok{color:var(--t-acc2,#96f0aa)}.wb-step.warn{color:var(--t-warn,#ffd27a)}.wb-step.err{color:var(--t-err2,#ff9c8c)}
 .wb-btn{align-self:flex-start;border:1px solid rgba(var(--t-hi-rgb,208,255,150),.6);background:rgba(var(--t-tint-rgb,70,170,110),.16);color:var(--t-hi,#d0ff96);font:700 12px 'Geist Mono',monospace;padding:4px 12px;cursor:pointer}
 .wb-st{display:flex;align-items:center;gap:8px;padding:3px 10px;border-top:1px solid #1f2742;background:#0d1224;color:#a8b2d6;font-size:11px;white-space:nowrap;overflow:hidden}
+.wb-lock.ext{color:#ffd27a}.wb-addr.ext{border-color:rgba(255,210,122,.55)}
+.wb-chip.ext{color:#ffd27a;border-color:rgba(255,210,122,.55)}.wb-chip.warn{color:#ffb38a;border-color:rgba(255,179,138,.55)}
+.wb-webcol{display:flex;flex-direction:column;width:100%;height:100%;min-height:0}.wb-webcol .wb-frame{flex:1;min-height:0}
+.wb-band{display:flex;align-items:center;gap:10px;padding:4px 10px;border-bottom:1px solid rgba(255,210,122,.4);background:rgba(255,210,122,.09);color:#ffd27a;font-size:11px;white-space:nowrap;overflow:hidden}.wb-band b{font-weight:700}.wb-band .wb-dim{overflow:hidden;text-overflow:ellipsis}
+.wb-moved{padding:3px 10px;border-bottom:1px solid #3a2f1a;background:#1d1708;color:#c9a85c;font-size:11px}
+.wb-sm{padding:1px 8px;font-size:11px;flex:none}.wb-row{display:flex;gap:8px;flex-wrap:wrap}.wb-quiet{border-color:#3a4468;background:transparent;color:#a8b2d6;font-weight:600}

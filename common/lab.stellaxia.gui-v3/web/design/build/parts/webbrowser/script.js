@@ -6,13 +6,16 @@
 //     window 앱 — 자산을 내주지 않는다. GET /api/v1/gui/apps/{id}/window/health 뒤 그 앱의 자기 origin(런처가 띄운 창)
 //   실제 (window.TerraLaunch 가 있을 때) — 이 창은 앱을 품지 않는다. 앱은 셸이 자기 권한으로 띄우고(토큰 · 격리는 셸 몫), 여기는 연 결과만 보인다. gui-v3 의 앱 토큰은 다른 앱에 빌려주면 안 된다
 //   시안 — 모듈 화면은 앱마다 정해 둔 예시 화면(스크립트 없는 HTML), http(s) 는 실제 iframe (사이트가 창 안 표시를 막으면 비어 보인다 → ↗ 새 탭)
+//   외부 http(s) (ADR-GW-015) — window.TerraExternalSites(src/api/external-sites.js)가 분기를 정한다: iframe 먼저(앱 capability external-frames) · 루프백은 거절 · 평문 http 는 사설/링크로컬만 iframe ·
+//     알려진 막힘 목록 · 사용자가 남긴 "늘 밖에서" 호스트는 기본 브라우저(TerraOpenExternal)로. iframe 일 때는 부모가 그리는 "외부 · 호스트" 칩과 접을 수 없는 외부 띠(비밀번호를 묻지 않는다) · ↗ 가 늘 있다
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { hist: [], idx: -1, input: '', t0: 0, synced: {}, fr: 0 }; this._u0 = null;
     try { window.addEventListener('terra-help', () => this.setState({})); window.addEventListener('terra-mod', () => this.setState({})); } catch (e) {} }
   componentWillUnmount() { cancelAnimationFrame(this._raf); this._raf = 0; }
   help() { try { return localStorage.getItem('terra.help') === '1'; } catch (e) { return false; } }
-  // 외부 사이트는 창 안에 못 띄운다(앱 CSP 에 frame-src 없음) — 셸(실제)에서는 호스트에 기본 브라우저 열기를 부탁한다. 시안에는 없다(iframe 그대로)
+  // 기본 브라우저 열기 — 막힌 사이트 · 사용자가 밖으로 고른 사이트 · 외부 평문 http. 셸(실제)에서만 있다(호스트에 부탁, 확인은 셸이)
   opener() { return typeof window !== 'undefined' && typeof window.TerraOpenExternal === 'function' ? window.TerraOpenExternal : null; }
+  sites() { return typeof window !== 'undefined' && window.TerraExternalSites ? window.TerraExternalSites : null; }
   launcher() { return typeof window !== 'undefined' && typeof window.TerraLaunch === 'function' ? window.TerraLaunch : null; }
   GW() { return 'http://127.0.0.1:8787'; }
   cat() { return Array.isArray(this.props.catalog) ? this.props.catalog : []; }
@@ -30,6 +33,10 @@ class Component extends DCLogic {
     if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(u)) return { kind: 'web', url: 'https://' + u };
     return { kind: 'err', url: u, err: '열 수 없는 주소', note: 'http(s):// 주소, terra://start, 또는 이 노드의 모듈 이름' };
   }
+  // 외부 주소 → { route: frame|out|reject, why, host, plain, local } — 정책 모듈이 없는 시안은 옛 동작(셸이면 밖으로, 아니면 iframe)
+  route(R) { const S = this.sites();
+    if (!S) return { route: this.opener() ? 'out' : 'frame', why: this.opener() ? 'no-policy' : 'frame', host: '', plain: !/^https:/i.test(R.url), local: false };
+    return S.classify(R.url, { memory: S.memory, apps: typeof window !== 'undefined' ? window.TerraGuiApps : null, shell: !!this.opener() }); }
   nav(u) { const S = this.state, H = S.hist.slice(0, S.idx + 1); H.push(u); this.setState({ hist: H, idx: H.length - 1, input: '', t0: performance.now(), typing: false }); }
   syncFrame() { if (!this._raf) this._raf = requestAnimationFrame(() => { this._raf = 0; this.setState({ fr: performance.now() }); }); }
   steps(R) {
@@ -54,24 +61,38 @@ class Component extends DCLogic {
     O.back = () => { if (this.state.idx > 0) this.setState({ idx: this.state.idx - 1, t0: performance.now(), typing: false }); };
     O.fwd = () => { if (this.state.idx < this.state.hist.length - 1) this.setState({ idx: this.state.idx + 1, t0: performance.now(), typing: false }); };
     O.reload = () => this.setState({ t0: performance.now(), typing: false }); O.home = () => this.nav('terra://start');
-    O.lockT = R.kind === 'mod' ? 'TERRA' : R.kind === 'web' ? (/^https:/i.test(R.url) ? 'https' : 'http') : R.kind === 'start' ? '⌂' : '?'; O.lockTip = R.kind === 'mod' ? 'Gateway 가 내준 모듈 화면' : '';
-    O.addrCls = R.kind === 'mod' ? 'mod' : ''; O.apiT = ''; O.noteT = ''; O.statusT = '';
+    const X = R.kind === 'web' ? this.route(R) : null; O.lockT = R.kind === 'mod' ? 'TERRA' : R.kind === 'web' ? (X && X.route === 'frame' && X.host ? '외부 · ' + X.host : (/^https:/i.test(R.url) ? 'https' : 'http')) : R.kind === 'start' ? '⌂' : '?'; O.lockTip = R.kind === 'mod' ? 'Gateway 가 내준 모듈 화면' : X && X.route === 'frame' ? '외부 사이트 — 호스트 이름은 Terra 가 직접 그린다(punycode)' : ''; O.lockCls = X && X.route === 'frame' ? 'ext' : '';
+    O.addrCls = R.kind === 'mod' ? 'mod' : (X && X.route === 'frame' ? 'ext' : ''); O.apiT = ''; O.noteT = ''; O.statusT = '';
     if (R.kind === 'start') {
       const C = this.cat(); O.isStart = true; O.startNote = (P.nodeName || '이 노드') + (C.why && !C.length ? ' — 못 봤음 · ' + C.why : ' — 화면이 있는 모듈 ' + C.length + '개'); O.noCards = !C.length; O.noCardsT = C.why ? '못 봤음 — ' + C.why + '(화면 있는 모듈 없음이 아님)' : '화면 있는 모듈 없음';
       O.cards = C.map((e) => { const st = this.stOf(e), on = st === 'run', MD = { static: '', proxied: 'px', window: 'wd' }[e.mode] || '';
         return { app: e.appName, mod: e.modName, mode: e.mode, modeCls: MD, node: e.node + (e.remote ? ' · 원격' : ''), st: on ? '● 실행' : '○ ' + ({ stop: '멈춤', fail: '실패', restart: '다시 시작 중' }[st] || st), cls: on ? '' : 'off', off: on ? null : 'disabled', open: () => this.nav(e.arg) }; });
       O.statusT = '시작 페이지'; O.chips = [{ t: 'terra://start', cls: '' }];
     } else if (R.kind === 'err') { O.isErr = true; O.errT = R.err; O.errNote = R.note; O.statusT = '열지 못함'; }
-    else if (R.kind === 'web' && this.opener()) {
+    else if (R.kind === 'web' && X.route === 'reject') { O.isErr = true; O.errT = X.why === 'loopback' ? 'Terra 화면은 시작 페이지에서 엽니다' : '열 수 없는 주소'; O.errNote = X.why === 'loopback' ? '이 기기 안의 주소(localhost · 127.0.0.1)는 외부 사이트 틀로 띄우지 않습니다 — terra://start 의 모듈 화면을 쓰세요' : 'http(s):// 주소만 외부 사이트로 열립니다'; O.statusT = '열지 못함'; }
+    else if (R.kind === 'web' && X.route === 'out') {
       // 탐색 · 새로고침 한 번에 한 번만 부탁한다(그리는 동안 반복 호출 금지) — 숨은 창이 나중에 열지 않게 방금 탐색한 때만
-      const key = S.idx + '|' + S.t0 + '|' + R.url, L = S.ext && S.ext.k === key ? S.ext : null, fresh = now - S.t0 < 15000;
-      if (this._extK !== key && fresh) { this._extK = key; setTimeout(() => { const go = this.opener(); this.setState({ ext: { k: key, ok: !!(go && go(R.url)) } }); }, 0); }
-      O.isExt = true; O.extT = '이 사이트는 Terra 안에서 열 수 없습니다 — 기본 브라우저로 엽니다'; O.chips = [{ t: /^https:/i.test(R.url) ? 'https' : 'http', cls: '' }, { t: '외부 사이트', cls: '' }];
-      O.extNote = !L ? (fresh ? R.url + ' — 열기를 요청하는 중' : R.url + ' — 열려면 아래 단추') : L.ok ? R.url + ' — 열기를 요청함. 확인 창에서 허용하면 기본 브라우저가 열립니다' : R.url + ' — 열지 못함 : 셸(main Scene) 안에서만 가능';
+      const key = S.idx + '|' + S.t0 + '|' + R.url, L = S.ext && S.ext.k === key ? S.ext : null, fresh = now - S.t0 < 15000, op = this.opener();
+      if (op && this._extK !== key && fresh) { this._extK = key; setTimeout(() => { const go = this.opener(); this.setState({ ext: { k: key, ok: !!(go && go(R.url)) } }); }, 0); }
+      const WHY = { 'remembered': '이 사이트는 늘 기본 브라우저로 열도록 기억해 두었습니다', 'known-blocked': '이 사이트는 창 안 표시를 막는 것으로 알려져 있습니다', 'plain-http': '암호화되지 않은 외부 주소(http)는 창 안에서 열지 않습니다', 'no-capability': '이 Gateway 는 아직 외부 사이트 창 안 표시를 열어 주지 않았습니다', 'credentials': '주소 안에 사용자 이름 · 비밀번호가 들어 있어 창 안에서 열지 않습니다', 'no-policy': '이 사이트는 Terra 안에서 열 수 없습니다' };
+      O.isExt = true; O.extT = (WHY[X.why] || '이 사이트는 창 안에서 열지 않습니다') + ' — 기본 브라우저로 엽니다'; O.chips = [{ t: /^https:/i.test(R.url) ? 'https' : 'http', cls: '' }, { t: '외부 사이트', cls: '' }];
+      O.extNote = !op ? R.url + ' — 열지 못함 : 기본 브라우저 열기는 셸(main Scene) 안에서만 가능' : !L ? (fresh ? R.url + ' — 열기를 요청하는 중' : R.url + ' — 열려면 아래 단추') : L.ok ? R.url + ' — 열기를 요청함. 확인 창에서 허용하면 기본 브라우저가 열립니다' : R.url + ' — 열지 못함 : 셸(main Scene) 안에서만 가능';
       O.extOpen = () => { const go = this.opener(); this.setState({ ext: { k: key, ok: !!(go && go(R.url)) } }); }; O.statusT = '외부 사이트 — 창 밖'; O.noteT = '확인은 셸이 묻는다';
+      const M = this.sites() && this.sites().memory; O.extForget = X.why === 'remembered' && M ? () => { M.remove(X.host); this.setState({ t0: performance.now() }); } : null; O.extForgetD = O.extForget ? 'inline-flex' : 'none';
     }
-    else if (R.kind === 'web') { O.isWeb = true; O.src = R.url; O.frameTitle = R.url; O.extD = 'inline-flex'; O.extHref = R.url; O.chips = [{ t: 'web', cls: '' }, { t: 'sandbox', cls: 'sb' }];
-      O.statusT = '외부 사이트'; O.noteT = '창 안 표시 차단 사이트 : 빈 화면 — ↗ 새 탭'; }
+    else if (R.kind === 'web') {   // iframe 먼저 — 속성은 ADR-GW-015 §4.1 그대로(allow-downloads · popups · top-navigation · modals 없음, 권한 위임 없음, referrer 없음)
+      const key = S.idx + '|' + S.t0 + '|' + R.url, loads = S.fl && S.fl.k === key ? S.fl.n : 0, remote = !!P.remote, M = this.sites() && this.sites().memory;
+      O.isWeb = true; O.src = R.url; O.frameTitle = '외부 사이트 ' + X.host; O.extD = this.opener() ? 'none' : 'inline-flex'; O.extHref = R.url;
+      O.onFrameLoad = () => { const c = this.state.fl && this.state.fl.k === key ? this.state.fl.n : 0; this.setState({ fl: { k: key, n: c + 1 } }); };
+      O.chips = [{ t: '외부', cls: 'ext' }, { t: X.plain ? 'http · 사설 주소' : 'https', cls: X.plain ? 'warn' : '' }, { t: 'sandbox', cls: 'sb' }];
+      O.bandT = '외부 사이트 — Terra 화면이 아닙니다. Terra는 여기서 비밀번호를 묻지 않습니다.';
+      O.bandNote = '로그인이 필요한 사이트는 ↗ 기본 브라우저가 낫습니다 · 새 창 링크는 이 창에서 열리지 않습니다 — ↗ 기본 브라우저로' + (remote ? ' · 이 기기에서 엽니다(' + (P.nodeName || '원격 노드') + ' 경유 아님)' : '');
+      O.moved = loads > 1; O.movedT = '페이지 안에서 이동함 — 지금 주소는 Terra 가 볼 수 없습니다 (마지막으로 확인한 주소: ' + X.host + ')';
+      // ↗ — 확인 창은 셸이. "이 사이트는 늘 밖에서" 는 이 호스트를 기억하고 이 창도 바로 밖으로 보낸다
+      O.outAsk = () => { const go = this.opener(); if (go) go(R.url); };
+      O.outD = this.opener() ? 'inline-flex' : 'none';
+      O.rememberD = M && this.opener() ? 'inline-flex' : 'none'; O.remember = () => { if (!M) return; M.add(X.host); this.setState({ t0: performance.now() }); };
+      O.statusT = '외부 사이트' + (loads > 1 ? ' · 이동함' : ''); O.noteT = '막힌 사이트는 빈 화면 · 오류 화면 — ↗ 기본 브라우저로'; }
     else {
       const e = R.e, MD = { static: ['static', 'ok'], proxied: ['proxied', 'px'], window: ['window', 'wd'] }[e.mode] || [e.mode, ''];
       O.chips = [{ t: MD[0], cls: MD[1] }, { t: e.mode === 'window' ? '자기 origin' : 'sandbox · CSP', cls: 'sb' }, { t: e.node + (e.remote ? ' · 원격' : ''), cls: '' }, { t: e.modId + ' ' + (e.ver || ''), cls: '' }];

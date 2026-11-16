@@ -10,5 +10,5 @@ const mod = JSON.parse(readFileSync(fileURLToPath(new URL('../../module.json', i
 test('gui-v3 웹 앱은 blob-images 를 선언한다 (다른 것은 열지 않는다)', () => {
   const app = mod.contributions.gui.apps.find((a) => a.id === 'lab.stellaxia.gui-v3.web');
   assert.ok(app, '웹 앱 선언');
-  assert.deepEqual(app.capabilities, ['blob-images']);   // workers · wasm 은 필요 없다 — 넓히지 않는다
+  assert.deepEqual(app.capabilities, ['blob-images', 'external-frames']);   // external-frames 는 ADR-GW-015(external-frames.test.mjs) · workers · wasm 은 필요 없다 — 넓히지 않는다
 });
