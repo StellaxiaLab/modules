@@ -1,0 +1,51 @@
+<div class="oc" style="position: relative; width: 100%; height: {{rootH}}; box-sizing: border-box; padding: 10px 14px 12px; overflow: hidden; display: flex; flex-direction: column; color: var(--t-text,#d6f4de); font: 500 12px 'Geist Mono', GmarketSans, 'Noto Sans KR', monospace; line-height: 1.55;">
+  <div class="oc-row"><span class="oc-p">&gt;</span><span>op 콘솔</span><b class="oc-v oc-cut">{{name}}</b><span style="flex: 1;"></span><span class="oc-k">{{countT}}</span></div>
+  <div class="oc-row oc-k">{{srcT}}</div>
+  <sc-if value="{{noteOn}}" hint-placeholder-val="{{ false }}"><div class="oc-note {{noteCls}}">{{note}}</div></sc-if>
+  <div class="oc-body">
+    <div class="oc-left">
+      <label class="oc-in"><span>&gt;</span><input type="text" value="{{q}}" onInput="{{onQ}}" placeholder="검색 — id · 제목 · 태그" spellcheck="false" autocomplete="off" aria-label="operation 검색"></label>
+      <span class="oc-seg" role="group" aria-label="등급별 거르기"><sc-for list="{{tierChips}}" as="t" hint-placeholder-count="6"><button type="button" aria-pressed="{{t.on}}" class="{{t.cls}}" onClick="{{t.pick}}" title="{{t.tip}}">{{t.name}}</button></sc-for></span>
+      <select class="oc-sel" onChange="{{onCat}}" aria-label="분류"><sc-for list="{{cats}}" as="c" hint-placeholder-count="4"><option value="{{c.v}}" selected="{{c.sel}}">{{c.t}}</option></sc-for></select>
+      <div class="oc-list" role="listbox" aria-label="operation 목록">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+          <button type="button" role="option" aria-selected="{{r.on}}" class="oc-it {{r.cls}}" onClick="{{r.pick}}" title="{{r.tip}}"><span class="oc-t oc-t-{{r.tier}}">{{r.tier}}</span><span class="oc-cut">{{r.id}}</span></button>
+        </sc-for>
+        <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="oc-k oc-empty">{{emptyT}}</div></sc-if>
+        <sc-if value="{{moreOn}}" hint-placeholder-val="{{ false }}"><div class="oc-k oc-empty">{{moreT}}</div></sc-if>
+      </div>
+    </div>
+    <div class="oc-right">
+      <sc-if value="{{noSel}}" hint-placeholder-val="{{ false }}"><div class="oc-k oc-empty">왼쪽에서 operation 을 고르세요 — 입력 폼이 계약 스키마로 만들어집니다</div></sc-if>
+      <sc-if value="{{hasSel}}" hint-placeholder-val="{{ true }}"><div class="oc-detail">
+        <div class="oc-row"><span class="oc-t oc-t-{{selTier}}">{{selTier}}</span><b class="oc-v oc-cut" title="{{selId}}">{{selId}}</b></div>
+        <div class="oc-row oc-k"><span>{{selTierName}}</span><span class="oc-cut">{{selTitle}}</span></div>
+        <sc-if value="{{selSumOn}}" hint-placeholder-val="{{ false }}"><div class="oc-sum">{{selSum}}</div></sc-if>
+        <sc-if value="{{impactOn}}" hint-placeholder-val="{{ false }}"><div class="oc-impact">영향 : {{impact}}</div></sc-if>
+        <sc-if value="{{lockOn}}" hint-placeholder-val="{{ false }}"><div class="oc-lock"><span class="oc-chip">🔒 {{chipT}}</span><span class="oc-why">{{why}}</span></div></sc-if>
+        <sc-if value="{{secretOn}}" hint-placeholder-val="{{ false }}"><div class="oc-k">결과의 {{secretT}} 는 승인 화면에만 보입니다 — 이 콘솔에는 안 옵니다</div></sc-if>
+        <sc-if value="{{descLoad}}" hint-placeholder-val="{{ false }}"><div class="oc-k">스키마 읽는 중…</div></sc-if>
+        <sc-if value="{{descErrOn}}" hint-placeholder-val="{{ false }}"><div class="oc-note warn">스키마를 못 읽음 : {{descErr}} — JSON 으로 직접 적을 수 있음</div></sc-if>
+        <div class="oc-form">
+          <sc-for list="{{fields}}" as="f" hint-placeholder-count="3">
+            <label class="oc-f"><span class="oc-fl">{{f.label}} <i>{{f.req}}</i><em class="oc-fd" title="{{f.desc}}">{{f.key}}</em></span>
+              <sc-if value="{{f.isText}}" hint-placeholder-val="{{ true }}"><span class="oc-in"><input type="{{f.itype}}" value="{{f.value}}" onInput="{{f.onInput}}" placeholder="{{f.ph}}" spellcheck="false" autocomplete="off" aria-invalid="{{f.bad}}"></span></sc-if>
+              <sc-if value="{{f.isEnum}}" hint-placeholder-val="{{ false }}"><select class="oc-sel" onChange="{{f.onInput}}" aria-invalid="{{f.bad}}"><sc-for list="{{f.opts}}" as="o" hint-placeholder-count="3"><option value="{{o.v}}" selected="{{o.sel}}">{{o.t}}</option></sc-for></select></sc-if>
+              <sc-if value="{{f.isJson}}" hint-placeholder-val="{{ false }}"><textarea class="oc-ta" rows="2" onInput="{{f.onInput}}" spellcheck="false" placeholder="{{f.ph}}" aria-invalid="{{f.bad}}">{{f.value}}</textarea></sc-if>
+              <span class="oc-err">{{f.err}}</span></label>
+          </sc-for>
+          <sc-if value="{{freeOn}}" hint-placeholder-val="{{ false }}"><label class="oc-f"><span class="oc-fl">입력 JSON <em class="oc-fd">객체</em></span><textarea class="oc-ta" rows="4" onInput="{{onFree}}" spellcheck="false" placeholder="{}" aria-invalid="{{freeBad}}">{{freeV}}</textarea><span class="oc-err">{{freeErr}}</span></label></sc-if>
+          <sc-if value="{{nodeOn}}" hint-placeholder-val="{{ false }}"><label class="oc-f"><span class="oc-fl">대상 노드 id <em class="oc-fd">비우면 이 노드</em></span><span class="oc-in"><input type="text" value="{{nodeV}}" onInput="{{onNode}}" spellcheck="false" autocomplete="off" placeholder="node id"></span></label></sc-if>
+        </div>
+        <div class="oc-bar">
+          <button type="button" class="oc-btn oc-b-{{selTier}} {{armCls}}" disabled="{{runOff}}" onClick="{{run}}" title="{{runTip}}">{{runT}}</button>
+          <sc-if value="{{armOn}}" hint-placeholder-val="{{ false }}"><button type="button" class="oc-btn" onClick="{{disarm}}">취소</button></sc-if>
+          <span class="oc-k oc-cut">{{runSub}}</span>
+        </div>
+        <sc-if value="{{armOn}}" hint-placeholder-val="{{ false }}"><div class="oc-arm">확인 — {{selId}} 를 {{nodeT}} 에 실행합니다 · 4초 안에 다시 누르기</div></sc-if>
+        <div class="oc-cli oc-k oc-cut" title="{{cli}}">CLI : {{cli}}</div>
+        <sc-if value="{{resOn}}" hint-placeholder-val="{{ false }}"><div class="oc-res {{resCls}}"><div class="oc-rh">{{resHead}}</div><sc-if value="{{resBodyOn}}" hint-placeholder-val="{{ false }}"><pre>{{resBody}}</pre></sc-if><sc-if value="{{withheldOn}}" hint-placeholder-val="{{ false }}"><div class="oc-k">숨김(승인 화면에만) : {{withheldT}}</div></sc-if></div></sc-if>
+      </div></sc-if>
+    </div>
+  </div>
+</div>

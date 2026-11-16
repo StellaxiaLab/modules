@@ -66,6 +66,7 @@ body{margin:0;background:#040614;color:#e6eaf7}
 <div data-ctlwin="scene" data-slot="22" style="display: none"><div data-ctlbody="scene"><dc-import name="NodeNet" node-name="{{wNode22}}" node-kind="{{wKind22}}" node-rid="{{wRid22}}" win-w="{{ctlW22}}" win-h="{{ctlH22}}" hint-size="680px,720px"></dc-import></div></div>
 <div data-ctlwin="scene" data-slot="23" style="display: none"><div data-ctlbody="scene"><dc-import name="NodeSvi" node-name="{{wNode23}}" node-kind="{{wKind23}}" node-rid="{{wRid23}}" pre="{{wPre23}}" win-w="{{ctlW23}}" win-h="{{ctlH23}}" hint-size="900px,640px"></dc-import></div></div>
 <div data-ctlwin="scene" data-slot="24" style="display: none"><div data-ctlbody="scene"><dc-import name="Alarms" node-name="{{wNode24}}" on-open="{{openFn24}}" win-w="{{ctlW24}}" win-h="{{ctlH24}}" hint-size="640px,560px"></dc-import></div></div>
+<div data-ctlwin="scene" data-slot="25" style="display: none"><div data-ctlbody="scene"><dc-import name="OpConsole" node-name="{{wNode25}}" win-w="{{ctlW25}}" win-h="{{ctlH25}}" hint-size="900px,640px"></dc-import></div></div>
 <button class="replay" type="button" aria-label="뒤로 (ESC)" onPointerUp="{{stopProp}}" onClick="{{back.go}}" style="display: none; position: absolute; z-index: 3; left: 32px; top: 32px; gap: 8px; opacity: {{back.op}}; cursor: {{back.cur}}; background: #040614"><span style="font-family: GmarketSans, 'Geist Mono', monospace; font-size: 11px; padding: 1px 6px; border: 1px solid #2c3558; border-radius: 4px">ESC</span>뒤로</button>
 
 <button type="button" onPointerUp="{{stopProp}}" onClick="{{loginAgain}}" style="display: {{loginAgainD}}; position: absolute; right: 20px; bottom: 18px; z-index: 5; font: 600 12px 'Geist Mono', monospace; padding: 4px 9px; border-radius: 4px; border: 1px solid rgba(108,118,156,0.35); background: #040614; color: #9aa4c8; cursor: pointer;">TEST · 로그인부터</button>
@@ -2732,7 +2733,7 @@ class Component extends DCLogic {
       const h = [...n.name].reduce((a, ch) => a + ch.charCodeAt(0), 0), kids = [file(n.name, { type: 'terra.node', id: n.id, kind: n.kind })];   // 노드 표지
       if (n.kind === 'root') kids.push(
         dir('유틸', [dir('스타메이커', [exec('스타메이커', 'starmaker'), dir('star', [], { mount: 'star', mpath: 'star' })])].concat(['터미널', '파일 전송', '네트워크 진단', '작업 관리자', '로그 보기', '모듈 배포'].map((t) => exec(t, 'tool')))),
-        dir('설정', ['계정 · 세션', '사용자 · 권한', '알림', '화면 · 테마', '단축키', 'Terra 코어'].map((t) => exec(t, t === '알림' ? 'alarms' : 'tool')), { alarmsDir: true }),   // 알림 — 알림 창(전역 하나 · 로컬 Daemon)
+        dir('설정', ['계정 · 세션', '사용자 · 권한', '알림', '화면 · 테마', '단축키', 'Terra 코어'].map((t) => exec(t, t === '알림' ? 'alarms' : 'tool')).concat([exec('op 콘솔', 'opconsole')]), { alarmsDir: true }),   // 알림 — 알림 창(전역 하나 · 로컬 Daemon)
         dataDir(n, ['accounts.db', 'audit', 'policy.toml']));
       else {
         const share = n.kind === 'leaf' ? n.kids.filter((c) => c.kind === 'res').map((c) => link(c.name, '@node:' + c.id)) : ['mcp:7000', 'store/data', 'logs-agg', 'backup', 'relay:9443'].slice(0, 2 + (h % 3)).map((t) => file(t));
@@ -2872,7 +2873,7 @@ class Component extends DCLogic {
       if (it.lock || this.gf_ctlLocked(it)) { const id = it.id, nd = it.node; this.gf_loginGate(nd, () => { if (q) K.qc[id] = true; else K.open[id] = true; this.gf_layout(); }); return; }
       if (q) K.qc[it.id] = !K.qc[it.id]; else K.open[it.id] = !K.open[it.id]; this.gf_layout(); return; }
     if (it.type === 'win') return this.gf_winOpen(it.win);
-    if (it.type === 'exec') { const x = it.ent.exec; if (x === 'ctl') return this.gf_ctlOpenWin(it.node); if (x === 'starmaker') return this.gf_smOpen(); if (x === 'alarms') return this.gf_alarmOpen(); return; }   // 'tool' — 화면은 아직 (자리만)
+    if (it.type === 'exec') { const x = it.ent.exec; if (x === 'ctl') return this.gf_ctlOpenWin(it.node); if (x === 'starmaker') return this.gf_smOpen(); if (x === 'alarms') return this.gf_alarmOpen(); if (x === 'opconsole') return this.gf_opconsoleOpen(); return; }   // 'tool' — 화면은 아직 (자리만)
     if (it.type === 'link') { const tg = it.ent.target, n = it.node;
       if (tg === '@go') return this.navStart(n); if (tg === '@map') return this.gf_mapShow(n); if (tg === '@stat') return this.gf_ctlOpenWin(n, undefined, 'stat'); if (tg === '@net') return this.gf_ctlOpenWin(n, undefined, 'net'); if (tg === '@svi') return this.gf_ctlOpenWin(n, undefined, 'svi'); if (tg === '@conf') return this.gf_ctlOpenWin(n, undefined, 'conf'); if (tg === '@share') return this.gf_ctlOpenWin(n, undefined, 'share');
       if (tg.startsWith('@node:')) { const m = this.sceneMap().byId[tg.slice(6)]; if (m) this.gf_mapShow(m); } return; }
@@ -2967,7 +2968,7 @@ class Component extends DCLogic {
     else if (kind === 'mod') { const m = this.gf_modsOf(node).find((q) => q.id === wArg) || this.gf_modsOf(node)[0]; this.setState({ ['wMod' + k]: m || null }); this['_wNode' + k] = node; }
     else if (kind === 'web') { this.setState({ ['wWeb' + k]: wArg, ['wCat' + k]: this.gf_modCatalog(node), ['wNode' + k]: node.name }); this['_wNode' + k] = node; }
     else if (kind === 'res') this.setState({ ['wNode' + k]: node.name, ['wPar' + k]: node.parent ? node.parent.name : '—', ['wSrc' + k]: rsSrc || node.src || '내 자원', ['wId' + k]: node.id });
-    else if (kind === 'alarm') { this.setState({ ['wNode' + k]: node.name }); this['_wNode' + k] = node; }   // 알림 — 이 GUI 를 띄운 노드(로컬 Daemon)
+    else if (kind === 'alarm' || kind === 'opconsole') { this.setState({ ['wNode' + k]: node.name }); this['_wNode' + k] = node; }   // 알림 — 이 GUI 를 띄운 노드(로컬 Daemon)
     else if (kind === 'svi') { const KN = { root: '계정', tree: '트리', leaf: '리프' }; this.setState({ ['wNode' + k]: node.name, ['wKind' + k]: KN[node.kind] || '노드', ['wRid' + k]: node.rid || '', ['wPre' + k]: svPre }); }
     else if (kind === 'conf' || kind === 'stat' || kind === 'share' || kind === 'net') { const KN = { root: '계정', tree: '트리', leaf: '리프', res: '리소스' }; this.setState({ ['wNode' + k]: node.name, ['wKind' + k]: KN[node.kind] || '노드', ['wPar' + k]: node.parent ? node.parent.name : '—', ['wId' + k]: node.id, ['wRid' + k]: node.rid || '', ['wPath' + k]: node.path || '/' + node.name, ['wRemote' + k]: !!node.parent && node !== this.gf_localNode(), ['wRes' + k]: (node.kids || []).filter((c) => c.kind === 'res').map((c) => c.name), ['wFocus' + k]: focusRes, ['wPeers' + k]: this.gf_peerList() }); this['_wNode' + k] = node; }
     this.gf_ctlChrome(wrap);
@@ -3096,6 +3097,7 @@ class Component extends DCLogic {
     for (const k of [16, 17, 18]) { o['wMod' + k] = this.gf_freshMod(k, S['wMod' + k]) || null; o['ctlW' + k] = S['ctlW' + k] || this.gf_WSIZE('mod')[0]; o['ctlH' + k] = S['ctlH' + k] || this.gf_WSIZE('mod')[1];
       o['openFn' + k] = F['o' + k] || (F['o' + k] = (kind, arg) => { const n = this['_wNode' + k]; if (!n) return; if (kind === 'ctl') return this.gf_ctlOpenWin(n); this.gf_ctlOpenWin(n, undefined, kind, arg); }); }   // 모듈 상태(16–18) — GUI ↗ · 자원 · 제어기
     { const k = 24; o.wNode24 = S.wNode24 || 'lab-ws-02'; o.ctlW24 = S['ctlW' + k] || this.gf_WSIZE('alarm')[0]; o.ctlH24 = S['ctlH' + k] || this.gf_WSIZE('alarm')[1];
+      o.wNode25 = S.wNode25 || 'lab-ws-02'; o.ctlW25 = S.ctlW25 || this.gf_WSIZE('opconsole')[0]; o.ctlH25 = S.ctlH25 || this.gf_WSIZE('opconsole')[1];
       o.openFn24 = F.o24 || (F.o24 = (kind, arg) => { const n = this['_wNode' + k] || this.gf_localNode(); if (n) this.gf_ctlOpenWin(n, undefined, kind, arg); }); }   // 알림(24) — 줄 → 제어기 › 작업 관리자 · 모듈 상태 창
     { const k = 23; o.wNode23 = S.wNode23 || 'lab-ws-02'; o.wKind23 = S.wKind23 || '리프'; o.wRid23 = S.wRid23 || ''; o.wPre23 = S.wPre23 || ''; o.ctlW23 = S['ctlW' + k] || this.gf_WSIZE('svi')[0]; o.ctlH23 = S['ctlH' + k] || this.gf_WSIZE('svi')[1]; }   // SVI(23) — 만들기 · 허가 · 연결
     for (const k of [21, 22]) { o['wNode' + k] = S['wNode' + k] || 'lab-ws-02'; o['wKind' + k] = S['wKind' + k] || '리프'; o['wRid' + k] = S['wRid' + k] || ''; o['ctlW' + k] = S['ctlW' + k] || this.gf_WSIZE('net')[0]; o['ctlH' + k] = S['ctlH' + k] || this.gf_WSIZE('net')[1]; }   // 네트워크 속성(21 · 22) — 주소 · 전송 · 노드 간 연결
@@ -3109,7 +3111,7 @@ class Component extends DCLogic {
   gf_cssGlow(c, a) { const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) return c; const v = m[1].split(',').map(Number), g = (x) => Math.round(x + (255 - x) * a); return this.qcss('rgb(' + g(v[0]) + ',' + g(v[1]) + ',' + g(v[2]) + ')'); }
   // ───── 창 목록 — 지금 떠 있는 창 · 최소화한 창 (전역: 모든 노드의 창). 종류: 제어기 (앞으로 더 늘어남) ─────
   //   { id, node, kind, R, st: 'open' | 'min', at }. 같은 노드 · 같은 종류의 창은 하나
-  gf_WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인', mod: '모듈', web: '브라우저', net: '네트워크', svi: 'SVI', alarm: '알림' }; }
+  gf_WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인', mod: '모듈', web: '브라우저', net: '네트워크', svi: 'SVI', alarm: '알림', opconsole: 'op 콘솔' }; }
   // 창 종류마다의 자리 · 기본 크기 · 바탕 — 상태 창은 CLI 처럼 바탕이 비친다(글자 장 구멍 없음)
   // 역할 칸 — 실제 지도면 그 노드의 Master 기록 roles(Tree 이면서 Leaf 인 노드는 '트리 · 리프', Master 가 도는 노드는 'Master' 도), 시안이면 씬 노드 종류
   gf_rolesText(n) { const K = { root: '계정', tree: '트리', leaf: '리프' }, TP = this.TOPO(); if (!n) return '—';
@@ -3119,6 +3121,7 @@ class Component extends DCLogic {
   // 이 GUI 가 떠 있는 노드(로컬) — 노드 설정 쓰기는 여기만 된다(terra.daemon.config.patch 는 로컬 전용). 시안: 지도의 첫 리프
   // 알림 창 — 전역 하나(이 GUI 를 띄운 노드의 Daemon 알림). 안 읽은 수는 알림 책에서 — 실제 window.TerraAlarmBook(src/api/alarms.js) · 시안 window.TerraAlarmDemo(알림 창이 만든다)
   //   'terra-alarms' 신호가 오면 다시 그린다(배지)
+  gf_opconsoleOpen() { const n = this.gf_localNode(); if (n) this.gf_ctlOpenWin(n, undefined, 'opconsole'); }   // op 콘솔 — 이 GUI 를 띄운 노드 · 전역 하나(설정 › op 콘솔)
   gf_alarmOpen() { const n = this.gf_localNode(); if (n) this.gf_ctlOpenWin(n, undefined, 'alarm'); }
   gf_alarmUnread() {
     if (typeof window === 'undefined') return 0;
@@ -3170,8 +3173,8 @@ class Component extends DCLogic {
     if (after) after(); else if (dest) { if (this.navStart) this.navStart(dest); else if (this.warpTo) this.navStart(dest); }
   }
   gf_peerList() { const KN = { tree: '트리', leaf: '리프' }; return this.sceneMap().all.filter((n) => n.kind === 'tree' || n.kind === 'leaf').map((n) => ({ id: n.id, name: n.name, kind: KN[n.kind], parent: n.parent ? n.parent.name : '' })); }
-  gf_WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14], login: [15], mod: [16, 17, 18], web: [19, 20], net: [21, 22], svi: [23], alarm: [24] }; }   // 네트워크 속성(21 · 22)
-  gf_WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540], share: [860, 600], res: [600, 600], login: [600, 540], mod: [600, 620], web: [1000, 680], net: [680, 720], svi: [900, 640], alarm: [640, 560] }[kind] || [900, 600]; }
+  gf_WSLOT() { return { ctl: [0, 1, 2, 3, 4, 5], star: [6], conf: [7], stat: [8, 9, 10], share: [11], res: [12, 13, 14], login: [15], mod: [16, 17, 18], web: [19, 20], net: [21, 22], svi: [23], alarm: [24], opconsole: [25] }; }   // 네트워크 속성(21 · 22)
+  gf_WSIZE(kind) { return { ctl: [1240, 760], star: [1100, 720], conf: [860, 600], stat: [560, 540], share: [860, 600], res: [600, 600], login: [600, 540], mod: [600, 620], web: [1000, 680], net: [680, 720], svi: [900, 640], alarm: [640, 560], opconsole: [900, 640] }[kind] || [900, 600]; }
   gf_WSEE(kind) { return kind === 'stat' || kind === 'res' || kind === 'login'; }   // 바탕이 비치는 창 — 모듈 상태 창은 제어기 창처럼 불투명(글자 장이 글 사이로 비쳐 읽기 어려웠다)
   gf_winGet(node, kind, arg) { const L = this._q_wins || (this._q_wins = []); return L.find((q) => q.node === node && q.kind === (kind || 'ctl') && (q.arg || '') === (arg || '')) || null; }
   gf_winPut(W, st) { const L = this._q_wins || (this._q_wins = []), kd = W.kind || 'ctl'; let e = this.gf_winGet(W.node, kd, W.arg); if (!e) { e = { id: 'w' + (this._q_winN = (this._q_winN || 0) + 1), node: W.node, kind: kd, arg: W.arg || '' }; L.push(e); } e.st = st; e.R = W.R ? { ...W.R } : e.R; e.at = performance.now(); return e; }

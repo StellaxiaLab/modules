@@ -186,6 +186,9 @@ if (MODE !== 'demo') {
   window.TerraRemoteMgmtMap = createRemoteMgmtMap({ read: (rid) => transport.invokeRid(rid, REMOTE_GET, {}), onChange: () => { try { window.dispatchEvent(new Event('terra-remote-mgmt')); } catch {} } });   // Scene 지도의 '원격 관리 켜짐' 표시 — 노드마다 느리게 읽는다(remote-mgmt-map.js)
   window.TerraRemoteMgmt = { view: remoteMgmtView, chip: remoteChip, canAsk: () => false };   // 원격 관리 스위치 — 읽기만(.get). 켜기 · 끄기 · 기간은 Scene 호스트의 확인 화면(P15-1 짝)이 오면 canAsk 가 그 이벤트를 연다
   window.TerraApprove = (op, inputs) => approveOp(MODE === 'app' ? frame : null, op, inputs);   // 승인 문(P10-5) — 사람이 호스트 화면에서 승인해야 나간다. 쓰기는 페이지가 아니라 호스트가 부른다
+  // op 콘솔(P17-1) — 카탈로그는 이 Gateway 가 이 계정에 보여 주는 것만(앱 토큰이면 앱 범위). 목록은 스키마 없이 · 스키마는 고른 것 하나만(describe)
+  window.TerraCatalog = { list: () => terra.http('GET', '/api/v1/catalog'), describe: (id) => terra.http('GET', '/api/v1/catalog/operations/' + encodeURIComponent(id)) };
+  window.TerraCanApprove = () => MODE === 'app' && !!frame && typeof frame.features === 'function' && frame.features().includes('approve');   // 셸이 승인 문을 실어 준 때만
   window.TerraRemoteApps = createRemoteApps({ http: (m, p) => terra.http(m, p), onChange: () => { try { window.dispatchEvent(new Event('terra-apps')); } catch {} } });   // 다른 노드의 앱 목록 — 그 노드 창이 필요로 할 때만 받는다(노드마다 캐시 · TTL, remote-apps.js)
   const loadApps = () => terra.http('GET', '/api/v1/gui/apps').then((d) => { window.TerraGuiApps = (d && d.apps) || []; }, () => { window.TerraGuiApps = null; })
     .then(() => terra.invoke('terra.daemon.modules.get', {}).then((d) => { window.TerraSviMods = Array.isArray(d) ? d : (d && (d.modules || d.items)) || []; }, () => { window.TerraSviMods = null; }))

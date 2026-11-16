@@ -13,6 +13,7 @@ BOARDS = {
     'nodenet':    ('NodeNet.dc.html',    '<div class="nn"'),
     'nodesvi':    ('NodeSvi.dc.html',    '<div class="sv"'),
     'alarms':     ('Alarms.dc.html',     '<div class="al"'),
+    'opconsole':  ('OpConsole.dc.html',  '<div class="oc"'),
     'starmaker':  ('StarMaker.dc.html',  '<div data-smroot="1"'),
     'nodeshare':  ('NodeShare.dc.html',  '<div class="sh"'),
     'resstatus':  ('ResStatus.dc.html',  '<div class="ns'),
