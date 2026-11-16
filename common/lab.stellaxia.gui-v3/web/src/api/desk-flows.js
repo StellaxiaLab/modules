@@ -185,12 +185,15 @@ const NET_WRITES = [
 ];
 
 // ── 서비스 터널 열기 — Master service-tunnels.open.post(serviceTunnelPlanInput) — 출발 = 이 노드. 받는 쪽 · 듣는 쪽 모두 loopback 만(Daemon validateOpenRequest)
+// Terra 자신의 Gateway · Daemon · Master 포트 — 앱이 여는 터널의 대상으로 못 쓴다(Master 가 400 으로 막는다 · 여기서는 입력 단계에서 먼저 막는다). Terra 기본 포트표 — 옮긴 배치는 Master 가 최종 판단
+const TERRA_OWN_PORTS = [8080, 8787, 8788, 17321, 17421, 17422];
 function tunnelInput(v, srcId) {
   const tp = Number(v.target_port), lp = v.local_port === '' || v.local_port == null ? 0 : Number(v.local_port), mc = v.max_connections === '' || v.max_connections == null ? 1 : Number(v.max_connections);
   if (!srcId) return { err: '이 노드의 Master id 모름' };
   if (!v.target_node_id) return { err: '대상 노드 선택' };
   if (v.target_node_id === srcId) return { err: '대상은 다른 노드' };
   if (!Number.isInteger(tp) || tp < 1 || tp > 65535) return { err: '대상 포트 1–65535' };
+  if (TERRA_OWN_PORTS.includes(tp)) return { err: '대상 포트 ' + tp + ' — Terra 자신의 포트(Gateway · Daemon · Master)는 터널로 못 연다' };
   if (!Number.isInteger(lp) || lp < 0 || lp > 65535) return { err: '로컬 포트 0(자동)–65535' };
   if (!Number.isInteger(mc) || mc < 1 || mc > 64) return { err: '최대 연결 1–64' };
   const input = { source_node_id: srcId, target_node_id: v.target_node_id, service_id: v.service_id || ('tcp-' + tp), target_host: '127.0.0.1', target_port: tp, local_bind_host: '127.0.0.1', local_port: lp, max_connections: mc };
@@ -198,4 +201,4 @@ function tunnelInput(v, srcId) {
 }
 /* @flows:end */
 
-export { DECIDE, CONTRACT_WHY, parseEnrollCode, ENROLL_ERR, enrollResult, readTmod, tmodPerms, tmodView, ASG_STEPS, ASG_FIX, asgSteps, NET_WRITES, tunnelInput };
+export { DECIDE, CONTRACT_WHY, parseEnrollCode, ENROLL_ERR, enrollResult, readTmod, tmodPerms, tmodView, ASG_STEPS, ASG_FIX, asgSteps, NET_WRITES, tunnelInput, TERRA_OWN_PORTS };

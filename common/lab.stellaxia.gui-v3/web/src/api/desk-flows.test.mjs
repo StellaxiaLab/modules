@@ -105,6 +105,7 @@ test('서비스 터널 열기 — Master serviceTunnelPlanInput 꼴, loopback �
     { source_node_id: 'nd_a', target_node_id: 'nd_b', service_id: 'tcp-22', target_host: '127.0.0.1', target_port: 22, local_bind_host: '127.0.0.1', local_port: 0, max_connections: 1 });
   assert.match(tunnelInput({ target_node_id: 'nd_b', target_port: '0' }, 'nd_a').err, /대상 포트/);
   assert.match(tunnelInput({ target_node_id: 'nd_a', target_port: '22' }, 'nd_a').err, /다른 노드/);
+  for (const port of ['8080', '17421', '8787']) assert.match(tunnelInput({ target_node_id: 'nd_b', target_port: port }, 'nd_a').err, /Terra 자신의 포트/);   // P10-6 가드와 같은 목록 — 입력 단계에서 막는다
   assert.match(tunnelInput({ target_port: '22' }, '').err, /Master id/);
 });
 

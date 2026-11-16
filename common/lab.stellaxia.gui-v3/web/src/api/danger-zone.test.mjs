@@ -55,3 +55,16 @@ test('다른 오류 · 읽는 중', () => {
 test('{ok,data} 봉투도 읽는다', () => {
   assert.equal(dangerView({ data: { ok: true, data: { allow: true } } }, { canAsk: true }).on, true);
 });
+
+test('서비스 터널 열기 스위치(P10-6) — 같은 모양의 답을 읽고, 이름 · 배너 · 터미널 안내가 터널 것이다', () => {
+  const ok = (allow) => ({ data: { allow, changed_at: '2026-11-16T01:00:00Z', changed_by: 'maru' } });
+  const off = dangerView(ok(false), { which: 'serviceTunnel', canAsk: true });
+  assert.equal(off.state, 'ok'); assert.equal(off.on, false); assert.equal(off.label, '서비스 터널 열기'); assert.equal(off.btnOff, false);
+  assert.match(off.hint, /danger-zone\.service-tunnel\.post/);
+  const on = dangerView(ok(true), { which: 'serviceTunnel', canAsk: true });
+  assert.equal(on.on, true); assert.match(on.banner, /서비스 터널 열기 허용 중/); assert.equal(on.statusCls, 'warn');
+  assert.equal(dangerView(ok(true)).label, '웹 앱 명령 실행');   // 기본은 앱 명령 스위치
+  const old = dangerView({ err: { code: 'NOT_FOUND' } }, { which: 'serviceTunnel' });
+  assert.equal(old.state, 'unsupported'); assert.match(old.note, /터널/);
+  assert.equal(dangerView(ok(true), { which: 'serviceTunnel', remote: true }).btnOff, true);   // 원격 제어기는 읽기만
+});

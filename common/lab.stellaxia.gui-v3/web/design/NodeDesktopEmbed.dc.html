@@ -442,6 +442,11 @@ button{font-family:inherit}
                           <span class="nx-chip {{w.nx.dz.cls}}">{{w.nx.dz.status}}</span>
                           <button type="button" class="nx-btn" onClick="{{w.nx.dz.ask}}" disabled="{{w.nx.dz.dis}}" title="{{w.nx.dz.why}}">{{w.nx.dz.btn}}</button>
                         </div>
+                        <div class="nx-row">
+                          <span class="nx-lab">{{w.nx.dzT.label}}<span class="nx-k">{{w.nx.dzT.sub}}</span><span class="nx-k">{{w.nx.dzT.changed}}</span><span class="nx-k nx-err">{{w.nx.dzT.note}}</span><span class="nx-k">{{w.nx.dzT.why}}</span></span>
+                          <span class="nx-chip {{w.nx.dzT.cls}}">{{w.nx.dzT.status}}</span>
+                          <button type="button" class="nx-btn" onClick="{{w.nx.dzT.ask}}" disabled="{{w.nx.dzT.dis}}" title="{{w.nx.dzT.why}}">{{w.nx.dzT.btn}}</button>
+                        </div>
                       </div>
                       <div class="nx-btns nx-sticky"><span class="nx-k">{{w.nx.dirtyT}}</span><span class="nx-fill"></span><span class="nx-msg">{{w.nx.msg}}</span><sc-for list="{{w.nx.cfgBtns}}" as="bt" hint-placeholder-count="2"><button type="button" class="{{bt.cls}}" onClick="{{bt.run}}" disabled="{{bt.dis}}" title="{{bt.tip}}"><sc-if value="{{bt.lock}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" class="nx-lk"><path d="M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>{{bt.label}}</button></sc-for></div>
                     </div>
@@ -1219,12 +1224,15 @@ const NET_WRITES = [
 ];
 
 // ── 서비스 터널 열기 — Master service-tunnels.open.post(serviceTunnelPlanInput) — 출발 = 이 노드. 받는 쪽 · 듣는 쪽 모두 loopback 만(Daemon validateOpenRequest)
+// Terra 자신의 Gateway · Daemon · Master 포트 — 앱이 여는 터널의 대상으로 못 쓴다(Master 가 400 으로 막는다 · 여기서는 입력 단계에서 먼저 막는다). Terra 기본 포트표 — 옮긴 배치는 Master 가 최종 판단
+const TERRA_OWN_PORTS = [8080, 8787, 8788, 17321, 17421, 17422];
 function tunnelInput(v, srcId) {
   const tp = Number(v.target_port), lp = v.local_port === '' || v.local_port == null ? 0 : Number(v.local_port), mc = v.max_connections === '' || v.max_connections == null ? 1 : Number(v.max_connections);
   if (!srcId) return { err: '이 노드의 Master id 모름' };
   if (!v.target_node_id) return { err: '대상 노드 선택' };
   if (v.target_node_id === srcId) return { err: '대상은 다른 노드' };
   if (!Number.isInteger(tp) || tp < 1 || tp > 65535) return { err: '대상 포트 1–65535' };
+  if (TERRA_OWN_PORTS.includes(tp)) return { err: '대상 포트 ' + tp + ' — Terra 자신의 포트(Gateway · Daemon · Master)는 터널로 못 연다' };
   if (!Number.isInteger(lp) || lp < 0 || lp > 65535) return { err: '로컬 포트 0(자동)–65535' };
   if (!Number.isInteger(mc) || mc < 1 || mc > 64) return { err: '최대 연결 1–64' };
   const input = { source_node_id: srcId, target_node_id: v.target_node_id, service_id: v.service_id || ('tcp-' + tp), target_host: '127.0.0.1', target_port: tp, local_bind_host: '127.0.0.1', local_port: lp, max_connections: mc };
@@ -1550,9 +1558,11 @@ class Component extends DCLogic {
   }
   riskOf(op, d) { const R = typeof window !== 'undefined' && window.TerraRisk; return (R && op && R(op)) || d || 'write'; }
   // 위험 영역 — 웹 앱 명령 실행 스위치 읽기(.get 만). 쓰기는 이 화면이 부르지 않는다 : 단추는 Scene 에 'danger' 이벤트만(window.TerraDangerAsk), 켜기 · 끄기는 Scene 의 /danger 확인 화면(ADR-GW-012 §6.1)
-  dz() {
-    const W = typeof window !== 'undefined' ? window : {}, T = this.TN(), rd = this.real() && T ? T.read(this.nodeKey(), 'terra.daemon.danger-zone.app-command-execution.get', { ttl: 5000 }) : null;
-    return W.TerraDangerView ? W.TerraDangerView(rd, { remote: this.remote(), canAsk: typeof W.TerraDangerAsk === 'function' && (typeof W.TerraDangerAsk.can !== 'function' || W.TerraDangerAsk.can()) })
+  //   which : 'appCommand'(웹 앱 명령 실행) | 'serviceTunnel'(서비스 터널 열기 · P10-6 — 이 노드를 출발로 앱이 터널 열기). 둘 다 같은 흐름 : .get 으로 읽고 · 단추는 Scene 에 이벤트만
+  dz(which) {
+    const k = which || 'appCommand', GET = { appCommand: 'terra.daemon.danger-zone.app-command-execution.get', serviceTunnel: 'terra.daemon.danger-zone.service-tunnel.get' }[k];
+    const W = typeof window !== 'undefined' ? window : {}, T = this.TN(), rd = this.real() && T ? T.read(this.nodeKey(), GET, { ttl: 5000 }) : null;
+    return W.TerraDangerView ? W.TerraDangerView(rd, { which: k, remote: this.remote(), canAsk: typeof W.TerraDangerAsk === 'function' && (typeof W.TerraDangerAsk.can !== 'function' || W.TerraDangerAsk.can()) })
       : { state: 'sim', on: false, banner: '', status: '꺼짐 (시안)', statusCls: '', note: '', changed: '', btn: '변경 ›', btnOff: true, why: '시안(캔버스) — 실제 Terra 에서만' };
   }
   sim() { return !this.real(); }   // 시안 — 캔버스 · 목업 전송(실제 Terra 가 없다)
@@ -1573,7 +1583,7 @@ class Component extends DCLogic {
     const choices = S.nodes || this.nodeChoices(), simT = this.sim() ? ' (시안)' : '';
     const run = () => { if (!g.open || need || ferr || C.busy || !S.final || !S.final.run) return; set({ busy: true });
       Promise.resolve().then(() => S.final.run(C.fv)).then((L) => set({ busy: false, res: { ok: true, lines: L || [] } }),
-        (e) => { const code = (e && (e.code || e.status)) || 'ERROR'; set({ busy: false, res: { ok: false, lines: [['오류', code + (e && e.message ? ' — ' + e.message : '')]].concat(S.final.fail && S.final.fail(code) ? [['할 일', S.final.fail(code)]] : []) } }); }); };
+        (e) => { const code = (e && (e.code || e.status)) || 'ERROR'; set({ busy: false, res: { ok: false, lines: [['오류', code + (e && e.message ? ' — ' + e.message : '')]].concat(S.final.fail && S.final.fail(code, e) ? [['할 일', S.final.fail(code, e)]] : []) } }); }); };
     const v = { on: true, theme: dark ? 'nx-dark' : 'nx-light', title: S.title, sub: S.sub || '', riskT: RK[0], riskCls: RK[1], band: RK[2], opT: this.api(S.op || ''), stop: (e) => e.stopPropagation(),
       steps: steps.map((x, j) => ({ label: (j + 1) + ' ' + (x.label || ''), cls: C.res ? 'done' : j < i ? 'done' : j === i ? 'now' : 'wait' })).concat(S.final ? [{ label: '결과', cls: C.res ? (C.res.ok ? 'done' : 'fail') : g.open ? 'wait' : 'lock' }] : []),
       lockOn: !g.open && !C.res, lockWhy: LOCKED(g.why), preview: st.preview === 'shell' && !C.res, pvNode: this.nodeNameQ(), pvUser: this.acct().replace(/^user:/, ''),
@@ -1751,7 +1761,7 @@ class Component extends DCLogic {
     }
     const mark = input && input.module_id ? 'mod:' + input.module_id : input && input.device_id ? 'dev:' + input.device_id : '';
     return T.write(this.nodeKey(), op || 'gui-v3.desk.patch', input || {}, { res: 'desk', mark, apply: (d) => { const c = JSON.parse(JSON.stringify(d || base)); fn(c); return c; } })
-      .then((r) => { if (o && o.ok) o.ok(r); return true; }, (e) => { const H = typeof window !== 'undefined' && window.TerraDenyHint, mw = MOD_OP_RE.test(op || '') && modOpWhy(e), h = mw || (H && H(op, e)); this.say(h ? '못 함 · ' + h : '못 함 · ' + ((e && e.message) || (e && e.code) || '오류')); return false; });
+      .then((r) => { if (o && o.ok) o.ok(r); return true; }, (e) => { const H = typeof window !== 'undefined' && window.TerraDenyHint, mw = MOD_OP_RE.test(op || '') && modOpWhy(e), h = mw || (H && H(op, e)); if (typeof window !== 'undefined' && window.TerraErrorSilent && window.TerraErrorSilent(e)) return false; this.say(h ? '못 함 · ' + h : '못 함 · ' + ((e && e.message) || (e && e.code) || '오류')); return false; });
   }
   ndSeed(nm) {
     const cfg = {}; CFG.forEach((c) => { cfg[c[1]] = c[4]; }); cfg['daemon.device_name'] = nm.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'node';
@@ -2637,7 +2647,9 @@ class Component extends DCLogic {
         // 새 터널 — Master service-tunnels.open.post(경로를 정하고 표를 내 출발 노드 = 이 노드의 Daemon 에 보낸다 → Daemon service-tunnels.post 가 듣기 시작).
         //   Daemon 의 service-tunnels.post 는 혼자 열지 못한다(입력에 Master 의 경로 결정 · 표가 있어야 한다 — Provider DTO OpenRequest) — 그래서 문은 Master open 하나로 본다
         const tf = s.tnF || { target: '', tport: '', svc: '', lport: '', max: '1' }, setT = (pp) => this.setState({ tnF: Object.assign({}, this.state.tnF || tf, pp) });
-        const top = 'terra.master.service-tunnels.open.post', tGate = this.gateOf(top), me = this.rid(), TI = tunnelInput({ target_node_id: tf.target, target_port: tf.tport, service_id: tf.svc, local_port: tf.lport, max_connections: tf.max }, me);
+        const top = 'terra.master.service-tunnels.open.post', tGate0 = this.gateOf(top), tSw = this.dz('serviceTunnel'),
+          // 이 노드의 '서비스 터널 열기' 스위치(P10-6)가 꺼져 있으면 [열기]는 §2.1 칩(자물쇠 + 이유) — 읽지 못했거나 이 Terra 에 스위치가 없으면 잠그지 않는다(서버가 SERVICE_TUNNEL_DISABLED 로 가른다)
+          tGate = tGate0.open && tSw.state === 'ok' && !tSw.on ? Object.assign({}, tGate0, { open: false, needs: 'switch', why: '잠김 : 이 노드의 \'서비스 터널 열기\'가 꺼져 있음 — 설정 › 노드 설정 › 위험 영역에서 켜기' }) : tGate0, me = this.rid(), TI = tunnelInput({ target_node_id: tf.target, target_port: tf.tport, service_id: tf.svc, local_port: tf.lport, max_connections: tf.max }, me);
         const tch = this.nodeChoices(), tname = (tch.find((x) => x[0] === tf.target) || [0, tf.target])[1];
         X.tn = { tport: tf.tport, tportIn: (e) => setT({ tport: e.target.value.trim() }), svc: tf.svc, svcIn: (e) => setT({ svc: e.target.value.trim() }), lport: tf.lport, lportIn: (e) => setT({ lport: e.target.value.trim() }), max: tf.max, maxIn: (e) => setT({ max: e.target.value.trim() }),
           peers: tch.length ? this.seg(tch, tf.target, (x) => setT({ target: x })) : [{ label: '고를 노드 없음', cls: '', on: 'false', pick: null }], err: (tf.target || tf.tport) && TI.err ? TI.err : '',
@@ -2647,7 +2659,7 @@ class Component extends DCLogic {
                 ['서비스', TI.input.service_id + ' · 최대 연결 ' + TI.input.max_connections], ['길', 'Master 가 경로(메시 직결 · 중계 …) 선택 · 표를 이 노드 Daemon 에 전송 — 202 : 접수 · 진행 : 경로 세션(rt_…) opening → active'],
                 ['기한', '닫을 때까지 (계약에 기한 없음)'], ['기록', 'Master 조작 이력 service.tunnel.open.requested (누가 · 출발 · 도착 · 포트)'], ['되돌리기', '이 목록의 닫기 — 그 터널 연결 모두 끊김']],
               warns: [{ t: '이 노드의 로컬 프로그램 누구나 그 포트로 ' + tname + ' 서비스 접근 — 다 쓰면 닫기', cls: 'warn' }] }],
-            final: { label: '열기', fail: (c) => ({ SOURCE_DAEMON_NOT_CONNECTED: '이 노드 Daemon · Master 연결 없음 — 하트비트 확인', TARGET_DAEMON_NOT_CONNECTED: '대상 노드 · Master 연결 없음' })[c] || '',
+            final: { label: '열기', gate: tGate, fail: (c, e) => ((typeof window !== 'undefined' && window.TerraDenyHint && window.TerraDenyHint(top, e || { code: c }, { node: this.nodeNameQ() })) || '') || ({ SOURCE_DAEMON_NOT_CONNECTED: '이 노드 Daemon · Master 연결 없음 — 하트비트 확인', TARGET_DAEMON_NOT_CONNECTED: '대상 노드 · Master 연결 없음' })[c] || '',
               run: () => { if (this.sim()) { this.ndSet((d) => { d.tuns.push({ id: 'tn-' + Date.now(), svc: TI.input.service_id, port: TI.input.local_port || 40000 + (Date.now() % 1000), peer: tname + ':' + TI.input.target_port, since: '방금' }); }); this.setState({ tnF: null }); return [['접수', '경로 세션 rt_시안'], ['듣는 곳', '127.0.0.1:' + (TI.input.local_port || '자동')]]; }
                 const T = this.TN(); return T.write(this.nodeKey(), top, TI.input).then((d) => { const x = (d && d.data) || d || {}, pl = x.plan || {}; T.refresh(this.nodeKey(), 'desk'); this.setState({ tnF: null }); return [['접수', x.accepted ? '됨 · ' + (x.message_id || '') : '—'], ['경로 세션', (pl.ticket && pl.ticket.id) || '—'], ['경로', (pl.decision && pl.decision.candidate && pl.decision.candidate.route_type) || '—']]; }); } },
             undo: '목록의 닫기(service-tunnels.by-tunnel-id.close)' }), { pri: !TI.err && tGate.open, off: !!TI.err })] };
@@ -2742,8 +2754,8 @@ class Component extends DCLogic {
           const rsN = dk.filter((k) => rowOf(k)[7]).length;
           X.dirtyT = cfgMiss ? (N.empty ? '받는 중' : '못 봤음 — 노드 설정을 읽지 못함(저장 잠금)') : ((dk.length ? '바뀐 ' + dk.length + (rsN ? ' · 재시작 필요 ' + rsN : '') : '바뀐 것 없음') + (N.needRestart ? ' · 다시 시작 대기 ' + N.needRestart : '') + (this.help() ? ' — validate → patch{save} → apply · restart' : ''));
           const check = () => { const E = {}; dk.forEach((k) => { const f = CFG_RULE[k]; let m = f ? f(String(N.cfg[k])) : ''; if (!m && rowOf(k)[8] && A0) try { A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]); } catch (e) { m = e.message; } if (m) E[k] = m; }); this.ndSet((d) => { d.cfgErr = E; }, null, null, { draft: true }); return E; };
-          { const Z = this.dz(), W2 = typeof window !== 'undefined' ? window : {};
-            X.dz = { label: '웹 앱 명령 실행', sub: '이 노드에서 웹 앱이 임의 명령을 실행하도록 허용 · 기본 꺼짐', changed: Z.changed, note: Z.note, why: Z.btnOff ? Z.why : '', status: Z.status, cls: Z.statusCls, btn: Z.btn, dis: Z.btnOff ? 'disabled' : null, ask: Z.btnOff ? null : () => { if (typeof W2.TerraDangerAsk !== 'function' || !W2.TerraDangerAsk()) this.say('Scene 확인 화면을 열 수 없음 — 앱 모드(셸 안)에서만'); } }; }
+          { const W2 = typeof window !== 'undefined' ? window : {}, row = (k) => { const Z = this.dz(k); return { label: Z.label || '웹 앱 명령 실행', sub: Z.sub || '', changed: Z.changed, note: Z.note, why: Z.btnOff ? Z.why : '', status: Z.status, cls: Z.statusCls, btn: Z.btn, dis: Z.btnOff ? 'disabled' : null, ask: Z.btnOff ? null : () => { if (typeof W2.TerraDangerAsk !== 'function' || !W2.TerraDangerAsk(k)) this.say('Scene 확인 화면을 열 수 없음 — 앱 모드(셸 안)에서만'); } }; };
+            X.dz = row('appCommand'); X.dzT = row('serviceTunnel'); }
           X.cfgBtns = [this.btn('되돌리기', () => this.ndSet((d) => { d.cfg = JSON.parse(JSON.stringify(d.cfgBase)); d.cfgErr = {}; }, null, null, { draft: true }), { off: !dk.length, local: true }),
             this.btn('검사', () => { const E = check(); this.say(Object.keys(E).length ? '고칠 곳 ' + Object.keys(E).length : '검사 통과'); }, { off: !dk.length, local: true }),
             this.btn('저장', () => { const E = check(); if (Object.keys(E).length) { this.say('고칠 곳 ' + Object.keys(E).length + ' — 저장 안 함'); return; } const set = {}; dk.forEach((k) => { set[k] = rowOf(k)[8] && A0 ? A0.nodeCfgWire(rowOf(k)[8], N.cfg[k], rowOf(k)[2]) : N.cfg[k]; }); this.ndSet((d) => { d.cfgBase = JSON.parse(JSON.stringify(d.cfg)); d.needRestart += rsN; }, 'terra.daemon.config.patch', { set, save: true }, { ok: (r) => { const need = r && r.restart_required != null ? !!r.restart_required : rsN > 0, nk = this.nodeKey(); if (need) { (this._nr = this._nr || {})[nk] = (this._nr[nk] | 0) + (rsN || 1); } this.say('저장 ' + dk.length + (need ? ' · 재시작 후 반영' : ' · 즉시 반영')); } }); }, { off: !dk.length || cfgMiss, pri: !!dk.length && !cfgMiss, local: true }),
@@ -2847,7 +2859,7 @@ class Component extends DCLogic {
     return {
       headD: this.props.chrome === 'none' ? 'none' : 'flex',
       catalog: Array.isArray(this.props.catalog) ? this.props.catalog : [], nodeNameV: this.nodeNameQ(),
-      t, frame, wall, wallWait: wallWait ? 'flex' : 'none', icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, dgr: (() => { const Z = this.dz(); return { d: Z.on ? 'inline-flex' : 'none', banner: Z.banner, tip: '웹 앱이 이 노드에서 임의 명령을 실행할 수 있음 — 설정 › 노드 설정 › 위험 영역에서 끄기' }; })(), zoomK: this.zoom(), cv: this.cfmView(t, dark),
+      t, frame, wall, wallWait: wallWait ? 'flex' : 'none', icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, dgr: (() => { const A = this.dz('appCommand'), B = this.dz('serviceTunnel'), on = [A, B].filter((z) => z.on); return { d: on.length ? 'inline-flex' : 'none', banner: on.length === 2 ? '⚠ 웹 앱 명령 실행 · 서비스 터널 열기 허용 중 — 위험 영역' : on.length ? on[0].banner : '', tip: (A.on ? '웹 앱이 이 노드에서 임의 명령을 실행할 수 있음 · ' : '') + (B.on ? '웹 앱이 이 노드를 출발로 서비스 터널을 열 수 있음 · ' : '') + '설정 › 노드 설정 › 위험 영역에서 끄기' }; })(), zoomK: this.zoom(), cv: this.cfmView(t, dark),
       node: { name: this.nodeNameQ(), acct: this.acct(), parent: this.props.parentName || (this.props.chrome === 'none' ? '—' : 'tree-home') },
       focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
       toggleFull: () => { const on = !this.state.full; this.setState({ full: on }); if (this.props.onFull) this.props.onFull(on); },   // 전체화면 — 바깥 창(통합 화면 · 전역 틀)이 뷰 자리를 채운다
