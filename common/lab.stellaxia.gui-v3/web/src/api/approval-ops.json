@@ -1,0 +1,1257 @@
+{
+ "$comment": "tools/gen-approval-ops.mjs 가 Terra 계약에서 뽑은 표 — 손으로 고치지 않는다",
+ "operations": {
+  "terra.daemon.config.apply.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "path",
+    "name"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.config.patch": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "set",
+    "save",
+    "path",
+    "name",
+    "force"
+   ],
+   "permissions": [
+    "node.config"
+   ]
+  },
+  "terra.daemon.config.rollback.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "backup"
+   ],
+   "permissions": [
+    "node.config"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.config.save.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "path",
+    "name"
+   ],
+   "permissions": [
+    "node.config"
+   ]
+  },
+  "terra.daemon.enrollment.code.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "code",
+    "device_name",
+    "master_url"
+   ],
+   "permissions": [
+    "node.enroll"
+   ]
+  },
+  "terra.daemon.enrollment.register.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "access_token",
+    "device_name"
+   ],
+   "permissions": [
+    "node.enroll"
+   ]
+  },
+  "terra.daemon.enrollment.unenroll.post": {
+   "tier": "T3",
+   "impact": "node",
+   "inputs": [
+    "confirmed"
+   ],
+   "permissions": [
+    "node.enroll"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.io.devices.by-device-id.alias.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "device_id",
+    "alias"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.io.devices.by-device-id.approve.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "device_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.io.devices.by-device-id.deny.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "device_id"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.io.devices.by-device-id.disable.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "device_id"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.io.devices.by-device-id.enable.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "device_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.io.devices.by-device-id.forget.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "device_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.io.devices.by-device-id.probe.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "device_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.io.devices.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "kind",
+    "name",
+    "adapter_id",
+    "address",
+    "capabilities",
+    "alias"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.io.scan.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.modules.by-module-id.config.patch": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id",
+    "values",
+    "unset",
+    "base_revision"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.modules.by-module-id.disable.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.modules.by-module-id.enable.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.modules.by-module-id.restart.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.modules.by-module-id.rollback.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.modules.by-module-id.start.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.modules.by-module-id.stop.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.modules.by-module-id.uninstall.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.modules.offers.by-module-id.consent.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.modules.offers.by-module-id.withdraw.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "module_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.modules.packages.uploads.by-upload-id.install.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "upload_id",
+    "permissions_digest",
+    "confirm_action"
+   ],
+   "permissions": [
+    "module.manage"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.modules.scan.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.restart.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [],
+   "permissions": [
+    "node.config"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.service-tunnels.by-tunnel-id.close.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "tunnel_id"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.svi.declarations.apply.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "declarations",
+    "prune",
+    "dry_run",
+    "replace",
+    "reuse_name"
+   ],
+   "permissions": [
+    "node.config"
+   ]
+  },
+  "terra.daemon.svi.declarations.by-family.by-name.undeclare.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "family",
+    "name"
+   ],
+   "permissions": [
+    "node.config"
+   ]
+  },
+  "terra.daemon.svi.declarations.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "family",
+    "name",
+    "direction",
+    "command",
+    "args",
+    "path",
+    "address",
+    "mode",
+    "framing",
+    "replace",
+    "reuse_name"
+   ],
+   "permissions": [
+    "node.config"
+   ]
+  },
+  "terra.daemon.svi.declarations.retired.by-family.by-name.forget.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "family",
+    "name"
+   ],
+   "permissions": [
+    "node.config"
+   ]
+  },
+  "terra.daemon.tasks.by-task-id.cancel.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "task_id"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.transports.probe.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [
+    "adapter",
+    "host",
+    "port",
+    "tls_name",
+    "peer_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.wireguard.apply.post": {
+   "tier": "T3",
+   "impact": "node",
+   "inputs": [
+    "config_path",
+    "interface_name",
+    "dry_run"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.wireguard.down.post": {
+   "tier": "T3",
+   "impact": "node",
+   "inputs": [
+    "config_path",
+    "interface_name",
+    "dry_run"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.wireguard.managed-config.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "management_source",
+    "network_id",
+    "network_cidr",
+    "mode",
+    "interface_name",
+    "address_cidr",
+    "listen_port",
+    "mtu",
+    "persistent_keepalive_sec",
+    "public_key",
+    "endpoint",
+    "config_path",
+    "auto_up",
+    "apply"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.wireguard.managed-key.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "rotate"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.daemon.wireguard.report.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.daemon.wireguard.sync.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "remote-manage",
+   "inputs": [],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.gateway.agent.grants.by-id.delete": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "id"
+   ],
+   "permissions": []
+  },
+  "terra.gateway.agent.grants.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "level",
+    "ttlMs",
+    "unattended",
+    "preApprove"
+   ],
+   "secretResult": [
+    "token"
+   ],
+   "permissions": [
+    "agent.grant"
+   ]
+  },
+  "terra.gateway.gui.diagnostics.get": {
+   "tier": "T3",
+   "impact": "node",
+   "inputs": [],
+   "permissions": []
+  },
+  "terra.master.admin.clusters.by-cluster-id.patch": {
+   "tier": "T4",
+   "impact": "cluster",
+   "inputs": [
+    "cluster_id",
+    "name",
+    "status",
+    "environment"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.admin.clusters.get": {
+   "tier": "T4",
+   "impact": "cluster",
+   "inputs": [],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.admin.external-issuers.delete": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "issuer"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.admin.external-issuers.get": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.admin.external-issuers.patch": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "issuer",
+    "display_name",
+    "jwks_uri",
+    "audience",
+    "pinned_jwks",
+    "enabled",
+    "require_mfa"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.admin.external-issuers.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "issuer",
+    "display_name",
+    "jwks_uri",
+    "audience",
+    "pinned_jwks",
+    "enabled",
+    "require_mfa"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.admin.users.by-user-id.delete": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "user_id"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.admin.users.by-user-id.password.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "user_id",
+    "password"
+   ],
+   "permissions": [
+    "master.admin"
+   ],
+   "confirm": true
+  },
+  "terra.master.admin.users.by-user-id.patch": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "user_id",
+    "display_name",
+    "user_type",
+    "status",
+    "permissions"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.admin.users.get": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.admin.users.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "email",
+    "password",
+    "display_name",
+    "user_type"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.commands.post": {
+   "tier": "T3",
+   "impact": "node",
+   "inputs": [
+    "target_node_id",
+    "type",
+    "payload",
+    "options"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "confirm": true
+  },
+  "terra.master.config.patch": {
+   "tier": "T4",
+   "impact": "cluster",
+   "inputs": [
+    "changes"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.confirmations.by-confirmation-id.approve.post": {
+   "tier": "T3",
+   "impact": "node",
+   "inputs": [
+    "confirmation_id"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "confirm": true
+  },
+  "terra.master.crossboundary.sessions.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "source_node_id",
+    "target_node_id",
+    "source_tags",
+    "target_tags",
+    "source",
+    "target",
+    "channels"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.delegations.outbound.cancel.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "child_node_id",
+    "idempotency_key"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.delegations.outbound.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "intent",
+    "scope",
+    "payload",
+    "constraints",
+    "hop_budget"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.devices.register.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "device_name",
+    "os",
+    "arch",
+    "capabilities",
+    "cluster_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.cleanup.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "fleet_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.codes.by-code-id.delete": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "fleet_id",
+    "code_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.codes.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "fleet_id",
+    "slot_id",
+    "expires_in_sec",
+    "max_uses"
+   ],
+   "secretResult": [
+    "code"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.delete": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "fleet_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.releases.by-release-id.promote.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "fleet_id",
+    "release_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.releases.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "fleet_id",
+    "builder_node_id",
+    "base_image"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.fleets.by-fleet-id.slots.by-slot-id.delete": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "fleet_id",
+    "slot_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.jobs.by-job-id.rerun.post": {
+   "tier": "T3",
+   "impact": "node",
+   "inputs": [
+    "job_id",
+    "confirmed"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.master.modules.approval-ceiling.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "permissions"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.modules.market.import.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "digest",
+    "accept_local_prefix"
+   ],
+   "permissions": [
+    "module.publish"
+   ]
+  },
+  "terra.master.modules.mirror-blocks.by-pattern.delete": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "pattern"
+   ],
+   "permissions": [
+    "module.publish"
+   ]
+  },
+  "terra.master.modules.mirror-blocks.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "pattern",
+    "reason"
+   ],
+   "permissions": [
+    "module.publish"
+   ]
+  },
+  "terra.master.modules.packages.by-digest.put": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "digest"
+   ],
+   "permissions": [
+    "module.publish"
+   ]
+  },
+  "terra.master.modules.prefixes.by-prefix.envelope.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "prefix",
+    "permissions",
+    "policy",
+    "key_id"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.modules.prefixes.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "prefix"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.modules.promotions.by-promotion-id.approve.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "promotion_id",
+    "policy",
+    "acknowledge_permissions"
+   ],
+   "permissions": [
+    "module.approve"
+   ]
+  },
+  "terra.master.modules.promotions.by-promotion-id.reject.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "promotion_id",
+    "reason"
+   ],
+   "permissions": [
+    "module.approve"
+   ]
+  },
+  "terra.master.modules.publications.by-publication-id.promote.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "publication_id",
+    "up",
+    "note"
+   ],
+   "permissions": [
+    "module.publish"
+   ]
+  },
+  "terra.master.modules.publications.by-publication-id.revoke.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "publication_id",
+    "reason",
+    "security"
+   ],
+   "permissions": [
+    "module.publish"
+   ]
+  },
+  "terra.master.modules.publications.by-publication-id.rollout.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "publication_id",
+    "stage",
+    "canary_node_id"
+   ],
+   "permissions": [
+    "module.publish"
+   ]
+  },
+  "terra.master.modules.publications.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "digest",
+    "policy"
+   ],
+   "permissions": [
+    "module.publish"
+   ]
+  },
+  "terra.master.modules.upstreams.by-id.adopt.by-module-id.delete": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "id",
+    "module_id"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.modules.upstreams.by-id.adopt.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "id",
+    "module_id",
+    "version",
+    "policy",
+    "accept_local_prefix"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.modules.upstreams.by-id.delete": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "id"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.modules.upstreams.by-id.put": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "id",
+    "kind",
+    "url",
+    "enabled",
+    "poll_sec",
+    "allow_direct_market_install"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.modules.upstreams.by-id.sync.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "id"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.network.assignments.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "node_id",
+    "network_id",
+    "assigned_ip",
+    "status"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.network.mesh.wireguard.peers.revoke.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "source_node_id",
+    "target_node_id",
+    "bidirectional"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.master.network.mesh.wireguard.reconcile.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "cluster_id"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "confirm": true
+  },
+  "terra.master.network.networks.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "id",
+    "cluster_id",
+    "name",
+    "cidr",
+    "gateway",
+    "dns",
+    "status"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.network.nodes.by-node-id.transports.by-adapter.desired.put": {
+   "tier": "T3",
+   "impact": "node",
+   "inputs": [
+    "node_id",
+    "adapter",
+    "enabled",
+    "config"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.nodes.by-node-id.delete": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "node_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.nodes.by-node-id.gateway-credential.revoke.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "node_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.nodes.enroll-codes.by-code-id.delete": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "code_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.nodes.enroll-codes.post": {
+   "tier": "T3",
+   "impact": "trust",
+   "inputs": [
+    "label",
+    "parent_node_id",
+    "expires_in_sec",
+    "master_url"
+   ],
+   "secretResult": [
+    "code"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.nodes.post": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "device_name",
+    "os",
+    "arch",
+    "capabilities",
+    "cluster_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.relay.usage.get": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "cluster_id",
+    "since",
+    "until"
+   ],
+   "permissions": [
+    "master.admin"
+   ]
+  },
+  "terra.master.route.policies.by-policy-id.delete": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "policy_id"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.route.policies.put": {
+   "tier": "T3",
+   "impact": "cluster",
+   "inputs": [
+    "scope",
+    "policy"
+   ],
+   "permissions": [
+    "node.control"
+   ]
+  },
+  "terra.master.users.by-user-id.external-identities.delete": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "user_id",
+    "issuer",
+    "subject"
+   ],
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.users.by-user-id.external-identities.post": {
+   "tier": "T4",
+   "impact": "trust",
+   "inputs": [
+    "user_id",
+    "token",
+    "issuer",
+    "subject"
+   ],
+   "permissions": [
+    "node.read"
+   ]
+  }
+ }
+}

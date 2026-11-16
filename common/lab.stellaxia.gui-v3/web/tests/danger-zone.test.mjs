@@ -44,11 +44,11 @@ test('main Fragment — danger 이벤트는 gui-v3.danger.open 으로, 목록에
   assert.equal(m.root.on.danger.input, undefined);
 });
 
-test('scene.json — 등록 · requiredOperations 는 스위치 둘의 읽기 · 쓰기 네 op 만', () => {
+test('scene.json — 등록 · requiredOperations 는 스위치 셋의 읽기 · 쓰기 여섯 op 만', () => {
   for (const f of ['danger.open', 'danger.allow', 'danger.block', 'danger.close']) assert.ok(scene.functions.includes('contract/functions/' + f + '.function.json'), f);
   assert.ok(scene.stores.includes('contract/stores/danger.store.json'));
   assert.ok(scene.fragments.includes('surface/fragments/danger.fragment.json'));
-  assert.deepEqual(scene.requiredOperations.map((o) => o.operationId).sort(), [GET, POST, TGET, TPOST]);
+  assert.deepEqual(scene.requiredOperations.map((o) => o.operationId).sort(), [GET, POST, TGET, TPOST, 'terra.daemon.danger-zone.admin-screen.get', 'terra.daemon.danger-zone.admin-screen.post'].sort());
 });
 
 test('web 코드 — 스위치 쓰기(.post)를 부르지 않는다 (안내 문구 한 곳만)', () => {
@@ -69,7 +69,7 @@ test('web 코드 — 스위치 쓰기(.post)를 부르지 않는다 (안내 문�
 
 test('설정창 · 입구 — TerraDangerAsk 는 emit(danger) 만, 값을 싣지 않는다', () => {
   const main = fs.readFileSync(path.join(root, 'web/src/boot/main.js'), 'utf8');
-  assert.match(main, /window\.TerraDangerAsk = \(which\) => \{ if \(!\(MODE === 'app' && frame\)\) return false; frame\.emit\(which === 'serviceTunnel' \? 'dangerTunnel' : 'danger'\); return true; }/, '호출 시점에 frame 을 본다(AUD-79) · 이벤트 이름만 다르고 값은 싣지 않는다');
+  assert.match(main, /window\.TerraDangerAsk = \(which\) => \{ if \(!\(MODE === 'app' && frame\)\) return false; frame\.emit\(which === 'serviceTunnel' \? 'dangerTunnel' : which === 'adminScreen' \? 'dangerAdmin' : 'danger'\); return true; }/, '호출 시점에 frame 을 본다(AUD-79) · 이벤트 이름만 다르고 값은 싣지 않는다');
   assert.ok(!/if \(MODE === 'app' && frame\) window\.TerraDangerAsk/.test(main), '대입 시점 판정 없음');
   const dc = fs.readFileSync(path.join(root, 'web/design/NodeDesktopEmbed.dc.html'), 'utf8');
   assert.match(dc, /W2\.TerraDangerAsk\(k\)/);
@@ -134,4 +134,19 @@ test('web 코드 — 서비스 터널 스위치 쓰기(.post)도 부르지 않�
     assert.ok(/^web\/src\/api\/(danger-zone|op-scope|master-delegated)/.test(h.f.replace(/^.*?(web\/)/, '$1')), '예상 밖 위치 ' + h.f);
     assert.ok(!/(invoke|write|http|sse|call|fetch)\(/.test(h.l), '호출로 쓰임 ' + h.f);
   }
+});
+
+// 관리 화면 스위치(P13-4) — 서비스 터널 스위치와 같은 구조: emit('dangerAdmin') → /danger/admin → 상수 입력 Function
+test('관리 화면 스위치 — Route · main 이벤트 · 상수 입력 Function 이 admin-screen 만 부른다', () => {
+  assert.equal(scene.routes.find((x) => x.path === '/danger/admin').fragment, 'gui-v3.dangerAdmin');
+  const m = J('scene/surface/fragments/main.fragment.json');
+  assert.equal(m.root.on.dangerAdmin.function, 'gui-v3.dangerAdmin.open'); assert.equal(m.root.on.dangerAdmin.input, undefined);
+  assert.ok(m.functions.includes('gui-v3.dangerAdmin.open'));
+  const frag = J('scene/surface/fragments/dangerAdmin.fragment.json'); let web = 0; walk(frag.root, (n) => { if (n.component === 'terra.web/frame') web++; });
+  assert.equal(web, 0, '내장 엘리먼트만');
+  const calls = [];
+  for (const k of ['open', 'allow', 'block', 'close']) { const f = J('scene/contract/functions/dangerAdmin.' + k + '.function.json'); assert.equal(f.id, 'gui-v3.dangerAdmin.' + k); JSON.stringify(f, (kk, v) => { if (kk === 'operationId') calls.push(v); return v; }); assert.ok(!/\$input/.test(JSON.stringify(f)), k + ' 가 입력을 참조'); }
+  assert.deepEqual([...new Set(calls)].sort(), ['terra.daemon.danger-zone.admin-screen.get', 'terra.daemon.danger-zone.admin-screen.post']);
+  assert.equal(J('scene/contract/functions/dangerAdmin.allow.function.json').graph.nodes.find((n) => n.id === 'set').input.allow, true);
+  assert.equal(J('scene/contract/functions/dangerAdmin.block.function.json').graph.nodes.find((n) => n.id === 'set').input.allow, false);
 });

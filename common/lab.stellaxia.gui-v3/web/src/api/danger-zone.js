@@ -18,6 +18,9 @@ export const SWITCHES = {
     sub: '이 노드에서 웹 앱이 임의 명령을 실행하도록 허용 · 기본 꺼짐', offNote: '스위치 없음 — 이 Terra 에서는 웹 앱 명령 실행을 막지 않음' },
   serviceTunnel: { get: 'terra.daemon.danger-zone.service-tunnel.get', set: 'terra.daemon.danger-zone.service-tunnel.post', event: 'dangerTunnel', label: '서비스 터널 열기', banner: '⚠ 서비스 터널 열기 허용 중 — 위험 영역',
     sub: '이 노드를 출발로 웹 앱이 다른 노드의 서비스 터널을 열도록 허용 · 기본 꺼짐', offNote: '스위치 없음 — 이 Terra 에서는 터널 열기를 이 스위치로 막지 않음' },
+  //   adminScreen : 관리 화면(P13-3) — 이 노드의 GUI 에서 관리 자물쇠 화면(/admin)을 여는 스위치. 이벤트 'dangerAdmin' → Scene /danger/admin
+  adminScreen: { get: 'terra.daemon.danger-zone.admin-screen.get', set: 'terra.daemon.danger-zone.admin-screen.post', event: 'dangerAdmin', label: '관리 화면', banner: '⚠ 관리 화면 허용 중 — 위험 영역',
+    sub: '이 노드의 GUI 에서 사용자 · 권한 · 클러스터 · 외부 발급자를 관리하는 화면을 열 수 있게 · 기본 꺼짐 · 열 때마다 비밀번호(T4)', offNote: '스위치 없음 — 이 Terra 에서는 관리 화면을 이 스위치로 막지 않음' },
 };
 const hintOf = (w) => "terra module call " + w.set + " --input '{\"allow\":true}'";
 
@@ -28,7 +31,7 @@ const body = (raw) => (raw && raw.data && typeof raw.data === 'object' && !Array
 
 /**
  * @param {{ data?: any, err?: { code?: string, msg?: string } | null, loading?: boolean } | null | undefined} rd  TerraNodes.read 의 답(없으면 시안)
- * @param {{ remote?: boolean, canAsk?: boolean, which?: 'appCommand'|'serviceTunnel' }} [o]  remote : 다른 노드의 제어기 · canAsk : window.TerraDangerAsk 가 있다 · which : 스위치(기본 appCommand)
+ * @param {{ remote?: boolean, canAsk?: boolean, which?: 'appCommand'|'serviceTunnel'|'adminScreen' }} [o]  remote : 다른 노드의 제어기 · canAsk : window.TerraDangerAsk 가 있다 · which : 스위치(기본 appCommand)
  * @returns {{ state: 'sim'|'loading'|'unsupported'|'error'|'ok', on: boolean, banner: string, status: string, statusCls: 'ok'|'warn'|'', note: string, changed: string, btn: string, btnOff: boolean, why: string, hint: string }}
  */
 export function dangerView(rd, o = {}) {
