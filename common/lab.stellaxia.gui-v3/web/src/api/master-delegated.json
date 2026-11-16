@@ -619,6 +619,13 @@
     "node.control"
    ]
   },
+  "terra.master.svi.handles.by-handle-id.delete": {
+   "method": "DELETE",
+   "path": "/api/v1/svi/handles/{handle_id}",
+   "permissions": [
+    "node.read"
+   ]
+  },
   "terra.master.svi.handles.by-handle-id.events.get": {
    "method": "GET",
    "path": "/api/v1/svi/handles/{handle_id}/events",
@@ -633,8 +640,22 @@
     "node.read"
    ]
   },
+  "terra.master.svi.handles.by-handle-id.write.get": {
+   "method": "GET",
+   "path": "/api/v1/svi/handles/{handle_id}/write",
+   "permissions": [
+    "node.control"
+   ]
+  },
   "terra.master.svi.handles.get": {
    "method": "GET",
+   "path": "/api/v1/svi/handles",
+   "permissions": [
+    "node.read"
+   ]
+  },
+  "terra.master.svi.handles.post": {
+   "method": "POST",
    "path": "/api/v1/svi/handles",
    "permissions": [
     "node.read"

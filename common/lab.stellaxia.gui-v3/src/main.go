@@ -21,7 +21,7 @@ import (
 
 const (
 	moduleID      = "lab.stellaxia.gui-v3"
-	moduleVersion = "0.6.15"
+	moduleVersion = "0.6.16"
 )
 
 // config is the manifest's configuration.schema — sizes in MiB.
