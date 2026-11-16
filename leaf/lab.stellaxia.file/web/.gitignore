@@ -1,0 +1,3 @@
+node_modules/
+# 개발용 토큰(VITE_TERRA_DEV_TOKEN)이 들어가는 자리다. 커밋하지 않는다.
+*.local

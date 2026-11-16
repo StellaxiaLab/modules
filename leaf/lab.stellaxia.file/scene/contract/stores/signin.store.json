@@ -1,0 +1,12 @@
+{
+  "$comment": "로그인 카드의 입력과 상태. state는 기계가 읽고(signedOut·signedIn) message는 사람이 읽는다. view lifetime이라 화면을 떠나면 사라진다.",
+  "schemaVersion": "0.1.0",
+  "id": "signin",
+  "kind": "view",
+  "initial": {
+    "email": "",
+    "password": "",
+    "state": "signedOut",
+    "message": ""
+  }
+}

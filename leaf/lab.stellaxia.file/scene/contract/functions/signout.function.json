@@ -1,0 +1,47 @@
+{
+  "$comment": "Store를 비우는 것만으로는 부족하다. Handle 뒤의 토큰은 스스로 만료할 때까지 살아 있으므로 credential.revoke로 폐기한다. Handle이 비면 frame이 웹에 signedOut을 보내고, 웹이 쥐던 스코프 토큰도 폐기한다.",
+  "schemaVersion": "1.0.0",
+  "id": "file.signout",
+  "version": "0.1.0",
+  "concurrency": {
+    "mode": "exhaust"
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "held",
+        "type": "store.read",
+        "storeId": "credentials",
+        "path": "/session"
+      },
+      {
+        "id": "drop",
+        "type": "credential.revoke",
+        "handle": "$held.output"
+      },
+      {
+        "id": "forget",
+        "type": "store.write",
+        "storeId": "credentials",
+        "path": "/session",
+        "value": null
+      },
+      {
+        "id": "reset",
+        "type": "store.write",
+        "storeId": "signin",
+        "value": {
+          "email": "",
+          "password": "",
+          "state": "signedOut",
+          "message": ""
+        }
+      },
+      {
+        "id": "done",
+        "type": "return",
+        "value": true
+      }
+    ]
+  }
+}
