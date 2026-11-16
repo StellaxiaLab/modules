@@ -53,8 +53,8 @@ test('reduceView — 셈 · 빠진 순번 · hold(꼬리 멈춤) · 상태', () 
   assert.ok(Math.abs(fpsOf({ times: [0, 500, 1000] }, 1000) - 2) < 1e-9);
 });
 
-test('WATCH_OPS — Master 계약에 있고, 핸들 열기 · 닫기는 아직 앱 위임 표 밖(events.get 은 P12-1 로 열림 — 코어가 나머지를 열면 표만 다시 뽑는다)', () => {
-  for (const op of WATCH_OPS) assert.equal(!!MD.operations[op], op.endsWith('events.get'), op + ' 가 위임 표에 생겼다 — 화면이 저절로 열린다(이 시험만 고친다)');
+test('WATCH_OPS — Master 계약에 있고, 핸들 열기 · 닫기는 모두 위임 표에 있다(events.get P12-1 · 열기 · 닫기 P12-2)', () => {
+  for (const op of WATCH_OPS) assert.ok(MD.operations[op], op + ' 가 위임 표에 없다');
 });
 
 test('createSviWatch — 핸들 열기 → events 스트림, 끊기면 다시 붙고, 멈추면 핸들을 닫는다', async () => {

@@ -16,7 +16,7 @@ test('Master — 위임 표에 있으면 열림, 없으면 코어', () => {
   assert.equal(gate('terra.master.network.probes.post').open, true);
   const g = gate('terra.master.route.policies.put'); assert.equal(g.open, false); assert.equal(g.needs, 'core'); assert.equal(g.why, '잠김 : 위임 없음 — terra.master.route.policies.put');
   assert.equal(gate('terra.master.service-tunnels.open.post').open, true);   // P10-6 위임으로 열림
-  assert.equal(gate('terra.master.svi.handles.post').needs, 'core');
+  assert.equal(gate('terra.master.svi.handles.post').open, true);   // P12-2 위임으로 열림(표 재생성)
 });
 
 test('Daemon — 앱 권한 · 이 노드에서만 · 사람 권한', () => {
@@ -31,7 +31,7 @@ test('Daemon — 앱 권한 · 이 노드에서만 · 사람 권한', () => {
 
 test('모듈 op 는 막지 않는다 · gateAll 은 처음 닫힌 이유', () => {
   assert.equal(gate('lab.stellaxia.file.transfers.create').open, true);
-  assert.equal(gateAll(['terra.master.jobs.get', 'terra.master.svi.handles.post']).op, 'terra.master.svi.handles.post');
+  assert.equal(gateAll(['terra.master.jobs.get', 'terra.master.route.policies.put']).op, 'terra.master.route.policies.put');
   assert.equal(gateAll(['terra.master.jobs.get']).open, true);
   assert.equal(riskOf('terra.daemon.commands.execute.post'), 'dangerous');
 });

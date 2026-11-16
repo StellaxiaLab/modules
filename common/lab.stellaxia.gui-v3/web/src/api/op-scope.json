@@ -132,6 +132,24 @@
    ],
    "risk": "dangerous"
   },
+  "terra.daemon.danger-zone.node-shell.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.read"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.danger-zone.node-shell.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "node.control"
+   ],
+   "risk": "dangerous"
+  },
   "terra.daemon.danger-zone.remote-management.get": {
    "scopes": [
     "local",
@@ -1039,6 +1057,52 @@
     "node.read"
    ],
    "risk": "read"
+  },
+  "terra.daemon.terminal.sessions.by-session-id.delete": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.terminal.sessions.by-session-id.resize.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "risk": "write"
+  },
+  "terra.daemon.terminal.sessions.by-session-id.stream.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "risk": "dangerous"
+  },
+  "terra.daemon.terminal.sessions.get": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "risk": "read"
+  },
+  "terra.daemon.terminal.sessions.post": {
+   "scopes": [
+    "local"
+   ],
+   "permissions": [
+    "process.execute"
+   ],
+   "risk": "dangerous",
+   "switch": "node-shell"
   },
   "terra.daemon.transports.get": {
    "scopes": [

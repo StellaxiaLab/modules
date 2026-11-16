@@ -429,6 +429,17 @@
    ],
    "confirm": true
   },
+  "terra.daemon.terminal.sessions.post": {
+   "tier": "T3",
+   "impact": "node",
+   "switch": "node-shell",
+   "inputs": [
+    "shell"
+   ],
+   "permissions": [
+    "process.execute"
+   ]
+  },
   "terra.daemon.transports.probe.post": {
    "tier": "T3",
    "impact": "node",
@@ -715,6 +726,53 @@
     "process.execute"
    ],
    "confirm": true
+  },
+  "terra.master.core.releases.by-release-id.apply.post": {
+   "tier": "T4",
+   "impact": "cluster",
+   "inputs": [
+    "release_id",
+    "apply"
+   ],
+   "permissions": [
+    "core.publish"
+   ]
+  },
+  "terra.master.core.releases.by-release-id.revoke.post": {
+   "tier": "T4",
+   "impact": "cluster",
+   "inputs": [
+    "release_id",
+    "reason"
+   ],
+   "permissions": [
+    "core.publish"
+   ]
+  },
+  "terra.master.core.releases.by-release-id.rollout.post": {
+   "tier": "T4",
+   "impact": "cluster",
+   "inputs": [
+    "release_id",
+    "stage",
+    "canary_node_id"
+   ],
+   "permissions": [
+    "core.publish"
+   ]
+  },
+  "terra.master.core.releases.post": {
+   "tier": "T4",
+   "impact": "cluster",
+   "inputs": [
+    "role",
+    "version",
+    "notes",
+    "digests"
+   ],
+   "permissions": [
+    "core.publish"
+   ]
   },
   "terra.master.crossboundary.sessions.post": {
    "tier": "T3",

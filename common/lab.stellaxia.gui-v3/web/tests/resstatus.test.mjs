@@ -55,7 +55,7 @@ const realWin = (gateOpen, opened) => ({
   TerraTransport: {}, TerraSvi: sviRead, TerraTopology: { node: () => ({}) },
   TerraNodes: { t: { kind: 'gateway', localId: () => 'k1', meta: { k1: { rid: 'n1', name: 'desk' } } }, subscribe: () => () => {},
     read: (k, op) => ({ data: op.endsWith('resources.get') ? RES : op.endsWith('handles.get') ? HD : { items: [] } }) },
-  TerraGateAll: gateOpen ? () => ({ open: true, why: '' }) : (ops) => gateAll(ops),
+  TerraGateAll: gateOpen ? () => ({ open: true, why: '' }) : () => ({ open: false, why: '잠김 : 위임 없음 — terra.master.svi.handles.post' }),   // 위임 표가 열린 뒤에도 '닫힘' 경로를 시험하려 가짜 문
   TerraSviWatch: { open: (req, on) => { opened.push(req); on({ kind: 'status', state: 'active', handle_id: 'h9' }); on({ kind: 'frame', sequence: 1, encoding: 'jpeg', data: b64('jpg') }); return { stop: () => opened.push('stop') }; } },
 });
 const real = (gateOpen, fn) => { const prev = globalThis.window, opened = []; globalThis.window = realWin(gateOpen, opened); try { const c = new lib.Component({ resName: 'cam-front', nodeName: 'desk' }); c._live = true; return fn(c, opened); } finally { globalThis.window = prev; } };
