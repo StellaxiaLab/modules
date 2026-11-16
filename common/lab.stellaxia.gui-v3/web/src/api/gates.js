@@ -12,6 +12,7 @@
 
 import SCOPE from './op-scope.json' with { type: 'json' };
 import MD from './master-delegated.json' with { type: 'json' };
+import { viaDoor, approvalOf, tierOf } from './approval-door.js';
 
 /** 이 앱(lab.stellaxia.gui-v3.web)이 module.json 에 선언한 권한 — tests 가 module.json 과 같은지 본다 */
 export const APP_PERMS = ['session.identity', 'node.read', 'node.control', 'node.config', 'file.read', 'file.write', 'process.execute', 'module.manage'];
@@ -35,11 +36,21 @@ const APP_LACKS = { 'terra.master.jobs.by-job-id.rerun.post': 'process.execute.d
 
 /**
  * @param {string} op
- * @param {{ remote?: boolean, who?: { permissions?: string[] } | null, remoteSwitch?: 'on'|'off', approveNode?: boolean, node?: string }} [o]  remoteSwitch : 그 원격 노드의 원격 관리 스위치(모르면 생략) · approveNode : 승인 문이 다른 노드를 가리킬 수 있나(false 면 잠금) · node : 문구용 노드 이름
+ * @param {{ remote?: boolean, door?: boolean, who?: { permissions?: string[] } | null, remoteSwitch?: 'on'|'off', approveNode?: boolean, node?: string }} [o]  remoteSwitch : 그 원격 노드의 원격 관리 스위치(모르면 생략) · approveNode : 승인 문이 다른 노드를 가리킬 수 있나(false 면 잠금) · node : 문구용 노드 이름
  * @returns {{ open: boolean, needs: '' | 'core' | 'app-perm' | 'user-perm' | 'local' | 'switch', why: string, op: string }}
  */
 export function gate(op, o = {}) {
   const shut = (needs, why) => ({ open: false, needs, why, op });
+  // 승인 문 길(P13-4) — 앱(A) 모드에서 계약이 승인 문을 요구하는 B 단추는 위임 표 · 앱 권한 · 앱 토큰 닫힘과 상관없이 사람의 승인으로 나간다.
+  //   o.door : 이 셸이 승인 문을 실어 줬다(main.js 가 frame.features 로 채움). 없으면 옛 길(위임 표 · 앱 권한)로 잠근다. 그래서 여기서는 사람의 권한(승인해도 거절될 단추를 미리 잠근다)과 승인 문이 닿을 수 있는지만 본다. 등급은 tier 로 돌려준다(단추 옆 표시)
+  if (o.app && o.door && viaDoor(op)) {
+    const a = approvalOf(op), tier = tierOf(op), all = !!(o.who && o.who.allPermissions);
+    if (o.remote && o.approveNode === false) return shut('core', '잠김 : 이 Terra 셸의 승인 문이 다른 노드를 가리키지 못함 — 터미널(terra CLI)에서');
+    if ('who' in o && !all && !(o.who && Array.isArray(o.who.permissions)) && a.permissions.length) return shut('user-perm', '잠김 : 계정 권한을 알 수 없음 — whoami 못 받음');
+    const need = all ? [] : a.permissions.filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
+    if (need.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + need.join(' · '));
+    return { open: true, needs: '', why: '', op, door: true, tier };
+  }
   if (NOT_IMPLEMENTED[op]) return shut('core', NOT_IMPLEMENTED[op]);
   if (APP_LACKS[op]) return shut('app-perm', '잠김 : 앱 토큰에 없는 권한 — ' + APP_LACKS[op]);
   if (DAEMON_CLOSED[op]) return shut('core', DAEMON_CLOSED[op]);
@@ -96,7 +107,7 @@ export function denyHint(op, err) {
   const msg = (err && typeof err.message === 'string') ? err.message : '';
   const account = code === 'MODULE_PERMISSION_DENIED' || (code === 'FORBIDDEN' && msg.startsWith('permission ')) || (err && err.status === 403 && (!code || String(code).startsWith('HTTP_')));
   if (account) {
-    const row = (SCOPE.operations[op] && SCOPE.operations[op].permissions) || (MD.operations[op] && MD.operations[op].permissions) || [];
+    const row = (SCOPE.operations[op] && SCOPE.operations[op].permissions) || (MD.operations[op] && MD.operations[op].permissions) || (approvalOf(op) && approvalOf(op).permissions) || [];
     if (row.length) return '계정 권한 없음 : ' + row.join(' · ') + ' — Tree 관리자에게 요청';
   }
   return '';
