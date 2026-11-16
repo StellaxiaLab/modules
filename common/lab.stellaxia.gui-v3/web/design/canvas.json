@@ -202,6 +202,14 @@
       "x": 14800,
       "y": 1820
     },
+    "OpConsole.dc.html": {
+      "h": 640,
+      "is_interactive": true,
+      "title": "op 콘솔 — 카탈로그 검색 · 스키마 폼 · 등급별 호출 · 잠금 칩 (전역 틀 설정 › op 콘솔)",
+      "w": 900,
+      "x": 14800,
+      "y": 2520
+    },
     "MapCard.dc.html": {
       "h": 300,
       "title": "지도 못 받음 · 노드 없음 카드 — 장면 가운데(전역 틀 오른쪽)",
@@ -274,6 +282,7 @@
     "NodeNet.dc.html",
     "NodeSvi.dc.html",
     "Alarms.dc.html",
+    "OpConsole.dc.html",
     "NodeConf.dc.html",
     "NodeShare.dc.html",
     "ResStatus.dc.html",
