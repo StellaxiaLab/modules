@@ -11,6 +11,16 @@ export const DANGER_SET_HINT = "terra module call terra.daemon.danger-zone.app-c
 export const DANGER_LABEL = '웹 앱 명령 실행';
 export const DANGER_BANNER = '⚠ 웹 앱 명령 실행 허용 중 — 위험 영역';
 
+// 스위치 표 — 같은 모양(.get → { allow, changed_at, changed_by, unavailable? }, .post { allow })이라 한 함수가 둘 다 그린다.
+//   serviceTunnel : 서비스 터널 열기(ADR-GW-014 P10-6) — 이 노드를 출발로 하는 웹 앱의 터널 열기. 이벤트 'dangerTunnel' → Scene /danger/tunnel
+export const SWITCHES = {
+  appCommand: { get: DANGER_GET, set: 'terra.daemon.danger-zone.app-command-execution.post', event: 'danger', label: DANGER_LABEL, banner: DANGER_BANNER,
+    sub: '이 노드에서 웹 앱이 임의 명령을 실행하도록 허용 · 기본 꺼짐', offNote: '스위치 없음 — 이 Terra 에서는 웹 앱 명령 실행을 막지 않음' },
+  serviceTunnel: { get: 'terra.daemon.danger-zone.service-tunnel.get', set: 'terra.daemon.danger-zone.service-tunnel.post', event: 'dangerTunnel', label: '서비스 터널 열기', banner: '⚠ 서비스 터널 열기 허용 중 — 위험 영역',
+    sub: '이 노드를 출발로 웹 앱이 다른 노드의 서비스 터널을 열도록 허용 · 기본 꺼짐', offNote: '스위치 없음 — 이 Terra 에서는 터널 열기를 이 스위치로 막지 않음' },
+};
+const hintOf = (w) => "terra module call " + w.set + " --input '{\"allow\":true}'";
+
 // 이 op 를 모르는 이전 Terra 의 답 — 화면을 깨지 않고 '이 Terra 판 미지원'으로
 const UNSUPPORTED = /NOT_FOUND|NOT_SUPPORTED|UNKNOWN_OP|NO_SUCH_OP/i;
 
@@ -18,24 +28,24 @@ const body = (raw) => (raw && raw.data && typeof raw.data === 'object' && !Array
 
 /**
  * @param {{ data?: any, err?: { code?: string, msg?: string } | null, loading?: boolean } | null | undefined} rd  TerraNodes.read 의 답(없으면 시안)
- * @param {{ remote?: boolean, canAsk?: boolean }} [o]  remote : 다른 노드의 제어기 · canAsk : window.TerraDangerAsk 가 있다
+ * @param {{ remote?: boolean, canAsk?: boolean, which?: 'appCommand'|'serviceTunnel' }} [o]  remote : 다른 노드의 제어기 · canAsk : window.TerraDangerAsk 가 있다 · which : 스위치(기본 appCommand)
  * @returns {{ state: 'sim'|'loading'|'unsupported'|'error'|'ok', on: boolean, banner: string, status: string, statusCls: 'ok'|'warn'|'', note: string, changed: string, btn: string, btnOff: boolean, why: string, hint: string }}
  */
 export function dangerView(rd, o = {}) {
-  const remote = !!o.remote, canAsk = !!o.canAsk;
-  const base = { on: false, banner: '', note: '', changed: '', hint: DANGER_SET_HINT };
+  const remote = !!o.remote, canAsk = !!o.canAsk, W = SWITCHES[o.which || 'appCommand'] || SWITCHES.appCommand, HINT = hintOf(W);
+  const base = { on: false, banner: '', note: '', changed: '', hint: HINT, label: W.label, sub: W.sub };
   const btn = (st) => {
     if (st === 'unsupported') return { btn: '변경 ›', btnOff: true, why: '이 Terra 판 미지원 — 스위치 없음' };
     if (remote) return { btn: '이 노드에서만 변경', btnOff: true, why: '잠김 : 이 노드에서만 (원격 제어기) · 그 노드의 제어기에서 변경' };
-    if (st === 'sim') return { btn: '변경 ›', btnOff: true, why: '시안(캔버스) — 실제 Terra 에서만 · 터미널 : ' + DANGER_SET_HINT };
-    if (!canAsk) return { btn: '변경 ›', btnOff: true, why: '이 화면에서는 확인 화면을 열 수 없음 (Terra 셸 안 앱에서만) · 터미널 : ' + DANGER_SET_HINT };
+    if (st === 'sim') return { btn: '변경 ›', btnOff: true, why: '시안(캔버스) — 실제 Terra 에서만 · 터미널 : ' + HINT };
+    if (!canAsk) return { btn: '변경 ›', btnOff: true, why: '이 화면에서는 확인 화면을 열 수 없음 (Terra 셸 안 앱에서만) · 터미널 : ' + HINT };
     return { btn: '변경 ›', btnOff: false, why: '확인 화면으로 이동 — 거기서 켜기 · 끄기' };
   };
   if (!rd) return Object.assign(base, { state: 'sim', status: '꺼짐 (시안)', statusCls: '' }, btn('sim'));
   const d = body(rd.data);
   if (!d || typeof d !== 'object') {
     const code = rd.err && rd.err.code;
-    if (code && UNSUPPORTED.test(code)) return Object.assign(base, { state: 'unsupported', status: '이 Terra 판 미지원', statusCls: '', note: '스위치 없음 — 이 Terra 에서는 웹 앱 명령 실행을 막지 않음' }, btn('unsupported'));
+    if (code && UNSUPPORTED.test(code)) return Object.assign(base, { state: 'unsupported', status: '이 Terra 판 미지원', statusCls: '', note: W.offNote }, btn('unsupported'));
     if (rd.err) return Object.assign(base, { state: 'error', status: '읽지 못함', statusCls: 'warn', note: '상태 읽기 실패 : ' + (code || 'ERROR') + (rd.err.msg ? ' — ' + rd.err.msg : '') }, btn('error'));
     return Object.assign(base, { state: 'loading', status: '읽는 중…', statusCls: '' }, btn('loading'));
   }
@@ -44,5 +54,5 @@ export function dangerView(rd, o = {}) {
   const note = unavail ? '스위치 파일 읽기 불가 — 꺼진 것으로 처리' + (typeof d.unavailable === 'string' ? ' (' + d.unavailable + ')' : '') : '';
   const by = d.changed_by ? String(d.changed_by) : '', at = d.changed_at ? String(d.changed_at) : '';
   const changed = at || by ? '마지막 변경 : ' + (at || '—') + (by ? ' · ' + by : '') : '마지막 변경 : 없음 (기본값)';
-  return Object.assign(base, { state: 'ok', on, banner: on ? DANGER_BANNER : '', status: on ? '허용 중' : '꺼짐', statusCls: on ? 'warn' : 'ok', note, changed }, btn('ok'));
+  return Object.assign(base, { state: 'ok', on, banner: on ? W.banner : '', status: on ? '허용 중' : '꺼짐', statusCls: on ? 'warn' : 'ok', note, changed }, btn('ok'));
 }
