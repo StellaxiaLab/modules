@@ -80,3 +80,14 @@ test('AUD-81 — 사람 권한(whoami)을 모르면 쓰기는 닫는다(who 키�
   assert.equal(gate('terra.daemon.config.patch', { who: { permissions: ['node.config'] } }).open, true);
   assert.equal(gate('terra.daemon.config.patch').open, true, 'who 키가 없으면(시안 · 시험) 조회하지 않는다');
 });
+
+test('승인 문 op — 앱 토큰 whoami(delegate)의 권한 목록은 사람 권한이 아니라 잠그지 않는다(D7)', () => {
+  const appWho = { delegate: 'lab.stellaxia.gui-v3.web', permissions: ['node.read', 'file.read'], allPermissions: false };
+  for (const op of ['terra.master.modules.publications.post', 'terra.master.config.patch']) {
+    const g = gate(op, { app: true, door: true, who: appWho });
+    assert.equal(g.open, true, op); assert.equal(g.door, true);
+  }
+  // 사람 세션 whoami(delegate 없음)는 그대로 권한을 본다
+  const human = gate('terra.master.modules.publications.post', { app: true, door: true, who: { permissions: ['node.read'] } });
+  assert.equal(human.open, false); assert.equal(human.needs, 'user-perm');
+});

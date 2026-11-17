@@ -12,7 +12,7 @@
 
 import SCOPE from './op-scope.json' with { type: 'json' };
 import MD from './master-delegated.json' with { type: 'json' };
-import { viaDoor, approvalOf, tierOf } from './approval-door.js';
+import { viaDoor, approvalOf, tierOf, humanWho } from './approval-door.js';
 
 /** 이 앱(lab.stellaxia.gui-v3.web)이 module.json 에 선언한 권한 — tests 가 module.json 과 같은지 본다 */
 export const APP_PERMS = ['session.identity', 'node.read', 'node.control', 'node.config', 'file.read', 'file.write', 'process.execute', 'module.manage'];
@@ -44,11 +44,13 @@ export function gate(op, o = {}) {
   // 승인 문 길(P13-4) — 앱(A) 모드에서 계약이 승인 문을 요구하는 B 단추는 위임 표 · 앱 권한 · 앱 토큰 닫힘과 상관없이 사람의 승인으로 나간다.
   //   o.door : 이 셸이 승인 문을 실어 줬다(main.js 가 frame.features 로 채움). 없으면 옛 길(위임 표 · 앱 권한)로 잠근다. 그래서 여기서는 사람의 권한(승인해도 거절될 단추를 미리 잠근다)과 승인 문이 닿을 수 있는지만 본다. 등급은 tier 로 돌려준다(단추 옆 표시)
   if (o.app && o.door && viaDoor(op)) {
-    const a = approvalOf(op), tier = tierOf(op), all = !!(o.who && o.who.allPermissions);
+    const a = approvalOf(op), tier = tierOf(op), hw = humanWho(o.who), all = !!(hw && hw.allPermissions);   // 앱 토큰 whoami 는 사람 권한이 아니다 — 승인 문 · Master 가 가린다(D7)
     if (o.remote && o.approveNode === false) return shut('core', '잠김 : 이 Terra 셸의 승인 문이 다른 노드를 가리키지 못함 — 터미널(terra CLI)에서');
-    if ('who' in o && !all && !(o.who && Array.isArray(o.who.permissions)) && a.permissions.length) return shut('user-perm', '잠김 : 계정 권한을 알 수 없음 — whoami 못 받음');
-    const need = all ? [] : a.permissions.filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
-    if (need.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + need.join(' · '));
+    if (!(o.who && o.who.delegate)) {
+      if ('who' in o && !all && !(o.who && Array.isArray(o.who.permissions)) && a.permissions.length) return shut('user-perm', '잠김 : 계정 권한을 알 수 없음 — whoami 못 받음');
+      const need = all ? [] : a.permissions.filter((p) => o.who && Array.isArray(o.who.permissions) && !o.who.permissions.includes(p));
+      if (need.length) return shut('user-perm', '잠김 : 계정 권한 없음 — ' + need.join(' · '));
+    }
     return { open: true, needs: '', why: '', op, door: true, tier };
   }
   if (NOT_IMPLEMENTED[op]) return shut('core', NOT_IMPLEMENTED[op]);
