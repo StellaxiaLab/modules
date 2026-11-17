@@ -909,7 +909,7 @@ button{font-family:inherit}
         <span style="display: inline-flex; align-items: center; gap: 6px; color: {{save.c}};"><span onClick="{{save.run}}" title="{{save.text}}" style="display: inline-flex; align-items: center; gap: 6px; cursor: {{save.cur}};"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="{{save.d}}"/></svg>{{save.text}}</span><span role="button" aria-label="저장 실패 표시 닫기" onClick="{{save.close}}" style="display: {{save.closeD}}; cursor: pointer; padding: 0 3px;">×</span></span>
         <span style="display: inline-flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4z M10 21h4"/></svg>2</span>
         <span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">{{clock}}</span>
-        <span style="display: inline-flex; align-items: center; gap: 5px; color: {{t.ink}};"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M16 8a4 4 0 1 0-8 0a4 4 0 1 0 8 0 M4 21a8 8 0 0 1 16 0"/></svg>stk</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px; color: {{t.ink}};"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M16 8a4 4 0 1 0-8 0a4 4 0 1 0 8 0 M4 21a8 8 0 0 1 16 0"/></svg>{{node.acctShort}}</span>
       </div>
 
       <!-- 독 -->
@@ -1971,6 +1971,8 @@ class Component extends DCLogic {
     const m = T.t.meta && T.t.meta[this.nodeKey()], rid = (m && m.rid) || '', TP = window.TerraTopology, rec = rid && TP && TP.node ? TP.node(rid) : null;
     return { rec, ns: rec && window.TerraNodeStats ? window.TerraNodeStats(rec) : null, who: window.TerraWho || null };
   }
+  // 머리 줄 계정 — 실제 연결은 로그인한 주체(' via 앱' 꼬리 · 긴 id 는 줄임), 시안은 stk
+  acctShort() { const a = String(this.acct()).replace(/\s+via\s+.*$/, ''); return a.length > 16 ? a.slice(0, 14) + '…' : a; }
   acct() { const L = this.liveRec(); return L ? (L.who && L.who.principal) || 'terra' : 'stk'; }
   tellParent(m) { try { if (window.parent && window.parent !== window) window.parent.postMessage(m, '*'); } catch (e) {} }
   // 제어기 창 — 통합 화면 · 전역 틀의 자식 컴포넌트(dc-import)로: 데스크톱이 창 크기(winW · winH)를 그대로 채운다(원본 그대로 머리줄 포함). 머리줄을 끌면 바깥 창이 이동, 전체화면 · 닫기는 onFull · onClose 로 바깥 창에
@@ -2158,6 +2160,7 @@ class Component extends DCLogic {
     const S = this.shells(), line = S ? null : line0;
     let L = line0; if (/^!(!|\d+)$/.test(line0)) { const m = line0 === '!!' ? hist[hist.length - 1] : hist[Number(line0.slice(1)) - 1]; if (m == null) { this.termPush('tterm', [{ t: prompt + raw, c: 'cmd' }, { t: line0 + ' : 히스토리에 없음', c: 'err' }]); return; } L = m; }
     this.termPush('tterm', [{ t: prompt + L, c: 'cmd' }]); this.setState({ ttHist: hist.concat(L).slice(-200) });
+    if (!S && this.liveRec()) { this.termPush('tterm', [{ t: 'UNSUPPORTED — 이 연결에는 Terra 터미널 명령 해석기가 없음 · 시안 값을 지어내지 않음 (Terra CLI 의 terra shell 로)', c: 'err' }]); return; }   // 실제 연결인데 해석기가 없으면 시안 값 대신 정직하게 거절
     if (!S) { const r = this.sampleTerra(L); if (r === 'clear') this.setState({ tterm: [] }); else this.termPush('tterm', r); return; }
     this.setState({ ttBusy: true }); const sig = this._ttSig = { stop: false };
     S.terra.run(L, { cur: s.ttCur, curName: s.ttCurName, hist: hist.concat(L) }).then((r) => {
@@ -2997,7 +3000,7 @@ class Component extends DCLogic {
       headD: this.props.chrome === 'none' ? 'none' : 'flex',
       catalog: Array.isArray(this.props.catalog) ? this.props.catalog : [], nodeNameV: this.nodeNameQ(),
       t, frame, wall, wallWait: wallWait ? 'flex' : 'none', icons, iconBox, wins, lau, dock, dockApps, menu, save: sv, lk, dgr: (() => { const A = this.dz('appCommand'), B = this.dz('serviceTunnel'), D = this.dz('adminScreen'), C = this.rmView(), on = [[A, '웹 앱 명령 실행'], [B, '서비스 터널 열기'], [D, '관리 화면'], [C, '원격 관리']].filter((z) => z[0].on); return { d: on.length ? 'inline-flex' : 'none', banner: on.length === 1 ? on[0][0].banner : on.length ? '⚠ ' + on.map((z) => z[1]).join(' · ') + ' 허용 중 — 위험 영역' : '', tip: (A.on ? '웹 앱이 이 노드에서 임의 명령을 실행할 수 있음 · ' : '') + (B.on ? '웹 앱이 이 노드를 출발로 서비스 터널을 열 수 있음 · ' : '') + (D.on ? '이 노드의 GUI 에서 관리 화면(사용자 · 권한 · 클러스터 · 외부 발급자)을 열 수 있음 · ' : '') + (C.on ? '다른 노드의 사람이 승인 문으로 이 노드의 설정 · 재시작 · WireGuard · 장치를 쓸 수 있음' + (C.remain ? ' (' + C.remain + ') · ' : ' · ') : '') + '설정 › 노드 설정 › 위험 영역에서 끄기' }; })(), zoomK: this.zoom(), cv: this.cfmView(t, dark),
-      node: { name: this.nodeNameQ(), acct: this.acct(), parent: this.props.parentName || (this.props.chrome === 'none' ? '—' : 'tree-home') },
+      node: { name: this.nodeNameQ(), acct: this.acct(), acctShort: this.acctShort(), parent: this.props.parentName || (this.props.chrome === 'none' ? '—' : 'tree-home') },
       focusTitle: focusWin && !focusWin.min ? APPS[topId].title : '',
       toggleFull: () => { const on = !this.state.full; this.setState({ full: on }); if (this.props.onFull) this.props.onFull(on); },   // 전체화면 — 바깥 창(통합 화면 · 전역 틀)이 뷰 자리를 채운다
       closeMe: () => { if (this.props.onClose) this.props.onClose(); },   // 닫기 — 바깥 창이 레거시 역순으로 닫는다

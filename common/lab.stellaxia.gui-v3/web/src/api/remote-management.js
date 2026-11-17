@@ -8,6 +8,7 @@
 //          그 노드의 스위치가 켜져 있어야 하고, 앱 토큰이 아니라 승인 문을 거친 사람 호출만 받는다(REMOTE_MANAGEMENT_APP_REFUSED).
 
 import SCOPE from './op-scope.json' with { type: 'json' };
+import { readFailNote } from './error-text.js';
 
 export const REMOTE_GET = 'terra.daemon.danger-zone.remote-management.get';
 export const REMOTE_SET = 'terra.daemon.danger-zone.remote-management.post';
@@ -63,7 +64,7 @@ export function remoteMgmtView(rd, o = {}) {
   if (!isSw(d)) {
     const code = rd.err && rd.err.code;
     if (code && UNSUPPORTED.test(code)) return Object.assign(base, { state: 'unsupported', status: '이 Terra 판 미지원', statusCls: '', note: '스위치 없음 — 이 Terra 는 원격 관리 스위치가 없어 다른 노드의 쓰기를 받지 않음' }, btn('unsupported'));
-    if (rd.err) return Object.assign(base, { state: 'error', status: '읽지 못함', statusCls: 'warn', note: '상태 읽기 실패 : ' + (code || 'ERROR') + (rd.err.msg ? ' — ' + rd.err.msg : '') }, btn('error'));
+    if (rd.err) return Object.assign(base, { state: 'error', status: '읽지 못함', statusCls: 'warn', note: readFailNote(rd.err) }, btn('error'));
     if (rd.data != null) return Object.assign(base, { state: 'error', status: '읽지 못함', statusCls: 'warn', note: '상태 읽기 실패 : 낯선 응답 (BAD_RESPONSE)' }, btn('error'));
     return Object.assign(base, { state: 'loading', status: '읽는 중…', statusCls: '' }, btn('loading'));
   }

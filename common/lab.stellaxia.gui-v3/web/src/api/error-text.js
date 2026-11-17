@@ -40,6 +40,7 @@ const TABLE = {
   STREAM_LIMIT: () => '실시간으로 볼 수 없음 — 새로 고침으로',
   SVI_DECLARATION_OUTSIDE_ENVELOPE: () => '파일 울타리 밖 — 그 노드에서 울타리를 넓혀야 함',
   COMMAND_NOT_AVAILABLE: () => '이 Terra에 없는 기능',
+  LOCAL_ONLY: () => '그 노드에서만 읽을 수 있음 — 원격 노드의 이 값은 그 노드의 제어기에서 확인',
 };
 
 /** 사람이 거절한 것 — 토스트를 띄우지 않는다 */
@@ -61,6 +62,12 @@ export function errorHint(op, err, ctx = {}) {
   if (err.status === 503 && retryAfterOf(err)) return 'Master에 닿지 않아 세션을 확인 못 함 — 잠시 뒤';   // "다시 로그인"이라 하지 않는다
   if (code === 'PACKAGE_INCOMPATIBLE') return '이 노드와 맞지 않는 패키지' + (err.message ? ' : ' + err.message : '');
   return denyHint(op, err);   // MODULE_PERMISSION_DENIED · 표 없는 403 — 필요 권한은 op-scope 표에서
+}
+
+/** 스위치 상태 읽기 실패 한 줄 — 표 문구가 있으면 그것(op 이름을 화면에 내지 않는다), 없으면 코드 + 서버 문장 */
+export function readFailNote(err) {
+  const code = (err && err.code) || '', msg = err && (err.msg || err.message) ? String(err.msg || err.message) : '', h = TABLE[code] ? TABLE[code]({}) : '';
+  return '상태 읽기 실패 : ' + (h || (code || 'ERROR') + (msg ? ' — ' + msg : ''));
 }
 
 /** 표 문구, 없으면 서버 문장 + 코드(표에 없는 코드 규칙). 조용한 오류는 '' */
