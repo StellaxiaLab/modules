@@ -36,6 +36,14 @@ export function createTerra(o = {}) {
   const f = o.fetch || globalThis.fetch.bind(globalThis);
   const headers = () => { const h = { 'content-type': 'application/json' }, a = o.authorization && o.authorization(), t = !a && o.token && o.token(); if (a) h.authorization = a; else if (t) h.authorization = 'Bearer ' + t; return h; };
   const send = async (path, init) => { try { return await f(path, init); } catch (e) { if (e && e.name === 'AbortError') throw new TerraError('TIMEOUT', '호출이 시간 안에 끝나지 않아 멈춤', 0, true); throw new TerraError('NETWORK', 'Gateway 에 닿지 못함 — ' + ((e && e.message) || e), 0, true); } };
+  // 앱 토큰이 낡아 401 이면 새로 받아 한 번만 다시 보낸다(세션 · 위임 인증은 새로 받지 않는다). 그래도 401 이면 그 응답을 그대로 돌려준다.
+  const retry401 = async (go) => { const res = await go(); return res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization()) && (await o.refresh()) ? go() : res; };
+  // 스트림 티켓을 받아 WebSocket 을 만든다(열리기 전).
+  const ticketSocket = async (id, input) => {
+    const t = await unwrap(await send('/api/v1/streams/tickets', { method: 'POST', headers: headers(), body: JSON.stringify({ operationId: id, input }) }));
+    const url = new URL('/api/v1/streams/' + encodeURIComponent(t.ticket), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    return new WebSocket(url);
+  };
   const unwrap = async (res) => {
     const text = await res.text(); let body = null;
     try { body = text ? JSON.parse(text) : null; } catch { throw new TerraError(res.ok ? 'BAD_RESPONSE' : STATUS_CODE[res.status] || 'HTTP_' + res.status, text.slice(0, 200), res.status, res.status >= 502); }
@@ -53,22 +61,16 @@ export function createTerra(o = {}) {
       if (door) { const r = await door; if (r && r.ok) return r.data; throw new TerraError((r && r.code) || 'APPROVAL_FAILED', (r && r.message) || '', (r && r.status) || 0); }
       const path = at.node ? `/api/v1/nodes/${encodeURIComponent(at.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
       const sg = at.signal || undefined;
-      let res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input), signal: sg });
-      if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input), signal: sg }); }
-      return unwrap(res);
+      return unwrap(await retry401(() => send(path, { method: 'POST', headers: headers(), body: JSON.stringify(input), signal: sg })));
     },
     /** Gateway 자기 길(HTTP 바인딩) — me/documents 따위 @param {string} method @param {string} path @param {object} [body] */
     async http(method, path, body) {
       const go = () => send(path, { method, headers: headers(), body: body === undefined ? undefined : JSON.stringify(body) });
-      let res = await go();
-      if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await go(); }   // invoke 와 같다 — 앱 토큰이 낡았으면 새로 받아 한 번만 다시
-      return unwrap(res);
+      return unwrap(await retry401(go));   // invoke 와 같다 — 앱 토큰이 낡았으면 새로 받아 한 번만 다시
     },
     /** 스트림을 연다 — onMessage(데이터) · onClose. 돌려준 함수로 닫는다 */
     async stream(id, input, onMessage, onClose) {
-      const t = await unwrap(await send('/api/v1/streams/tickets', { method: 'POST', headers: headers(), body: JSON.stringify({ operationId: id, input }) }));
-      const url = new URL('/api/v1/streams/' + encodeURIComponent(t.ticket), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(url);
+      const ws = await ticketSocket(id, input);
       ws.onmessage = (e) => { let v = e.data; try { v = JSON.parse(e.data); } catch {} onMessage(v); };
       ws.onclose = () => onClose && onClose();
       return () => ws.close();
@@ -78,9 +80,7 @@ export function createTerra(o = {}) {
      * 티켓 발급 실패(429 · 403 DELEGATION_NOT_OPEN …)는 TerraError 로 던진다. h.binary : 바이너리 프레임을 ArrayBuffer 로 받고 Uint8Array 를 그대로 보낸다(노드 셸) · onClose 에는 { code, reason }. @returns {{ send: (v: any) => void, close: () => void }}
      */
     async streamIO(id, input, h = {}) {
-      const t = await unwrap(await send('/api/v1/streams/tickets', { method: 'POST', headers: headers(), body: JSON.stringify({ operationId: id, input }) }));
-      const url = new URL('/api/v1/streams/' + encodeURIComponent(t.ticket), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(url);
+      const ws = await ticketSocket(id, input);
       await new Promise((ok, no) => { ws.onopen = () => ok(); ws.onerror = () => no(new TerraError('NETWORK', id + ' — 소켓을 열지 못함', 0, true)); ws.onclose = () => no(new TerraError('NETWORK', id + ' — 소켓이 열리기 전에 닫힘', 0, true)); });
       if (h.binary) ws.binaryType = 'arraybuffer';   // 노드 셸(P16-4a) — 바이너리 프레임은 ArrayBuffer 그대로, 글자 프레임은 JSON 으로 풀지 않는다
       ws.onerror = null; ws.onmessage = (e) => { let v = e.data; if (!h.binary) { try { v = JSON.parse(e.data); } catch {} } if (h.onMessage) h.onMessage(v); };
@@ -97,8 +97,7 @@ export function createTerra(o = {}) {
       const path = h.node ? `/api/v1/nodes/${encodeURIComponent(h.node)}/operations/${encodeURIComponent(id)}/invoke` : `/api/v1/operations/${encodeURIComponent(id)}/invoke`;
       const ac = typeof AbortController === 'function' ? new AbortController() : null;
       const go = () => send(path, { method: 'POST', headers: Object.assign(headers(), { accept: 'text/event-stream' }), body: JSON.stringify(input || {}), signal: ac ? ac.signal : undefined });
-      let res = await go();
-      if (res.status === 401 && o.refresh && o.token && o.token() && !(o.authorization && o.authorization())) { if (await o.refresh()) res = await go(); }   // invoke 와 같다 — 앱 토큰이 낡았으면 새로 받아 한 번만 다시. 그래도 401 이면 던진다(스트림은 '세션 만료'로 닫힌다)
+      const res = await retry401(go);   // invoke 와 같다 — 앱 토큰이 낡았으면 새로 받아 한 번만 다시. 그래도 401 이면 던진다(스트림은 '세션 만료'로 닫힌다)
       if (!res.ok || !/event-stream/i.test((res.headers && res.headers.get && res.headers.get('content-type')) || '')) { await unwrap(res); throw new TerraError('BAD_RESPONSE', id + ' — SSE 가 아닌 응답', res.status); }
       const P = sseParser(), rd = res.body.getReader(), dec = new TextDecoder(); let closed = false;
       const done = () => { if (closed) return; closed = true; if (h.onClose) try { h.onClose(); } catch {} };

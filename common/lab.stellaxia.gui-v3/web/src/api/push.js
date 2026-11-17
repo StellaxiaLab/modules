@@ -5,6 +5,8 @@
 //   다시 붙을 때 마지막 id(last_event_id)를 실어 그 사이 이벤트를 먼저 받는다. 보관 범위 밖이면 Daemon 이 'reset' 을 보낸다 → 사본 전부 다시.
 
 // 이벤트 이름 → 다시 받을 자원. 모르는 이벤트는 desk(제어기 묶음)만
+import { backoffMs } from './backoff.js';
+
 export function resourcesFor(ev) {
   const t = String((ev && (ev.type || ev.event || ev.signal || ev.kind)) || '').toLowerCase(), out = new Set(['desk']);
   if (/module/.test(t)) out.add('modules');
@@ -23,7 +25,7 @@ export function resourcesFor(ev) {
  * @returns {{ stop(): void, state(): string }}
  */
 export function startPush(o) {
-  let close = null, stopped = false, wait = 5000, timer = 0, flush = 0, st = 'idle', last = '', all = false;
+  let close = null, stopped = false, tries = 0, timer = 0, flush = 0, st = 'idle', last = '', all = false;
   const pend = new Set();
   const kick = (ev) => {
     if (ev && ev.event === 'reset') all = true;   // 그 사이 이벤트를 다 받지 못했다 — 사본을 전부 다시
@@ -34,7 +36,7 @@ export function startPush(o) {
       for (const r of pend) if (S.cache.has(n + '|' + r)) S.refresh(n, r); pend.clear();
     }, o.delayMs ?? 300);
   };
-  const got = (ev) => { st = 'open'; wait = 5000; if (ev && ev.id) last = String(ev.id); kick(ev); if (o.onEvent) try { o.onEvent(ev); } catch {} };
+  const got = (ev) => { st = 'open'; tries = 0; if (ev && ev.id) last = String(ev.id); kick(ev); if (o.onEvent) try { o.onEvent(ev); } catch {} };
   const lost = () => { close = null; st = 'closed'; again(); };
   const open = () => {
     if (stopped) return; st = 'opening';
@@ -42,7 +44,7 @@ export function startPush(o) {
       : o.terra.stream('terra.daemon.events.get', {}, got, lost);
     p.then((c) => { if (stopped) c(); else { close = c; st = 'open'; } }, () => { st = 'failed'; again(); });
   };
-  const again = () => { if (stopped) return; clearTimeout(timer); timer = setTimeout(open, wait); wait = Math.min(60000, wait * 2); };
+  const again = () => { if (stopped) return; clearTimeout(timer); timer = setTimeout(open, backoffMs(++tries, 5000, 60000)); };
   open();
   return { stop() { stopped = true; clearTimeout(timer); clearTimeout(flush); if (close) close(); close = null; st = 'stopped'; }, state: () => st };
 }
