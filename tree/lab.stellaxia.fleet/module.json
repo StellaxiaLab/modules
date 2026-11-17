@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "lab.stellaxia.fleet",
   "name": "Terra Fleet",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "kind": "service",
   "description": "Fleet management extension: declares container-node fleets, issues join codes, and ends member registrations. Enrolment validation itself stays in the Master core — this module manages, it never authenticates.",
   "compatibility": {
@@ -19,7 +19,7 @@
   },
   "provides": {
     "capabilities": [
-      { "id": "lab.stellaxia.fleet", "version": "0.2.0" }
+      { "id": "lab.stellaxia.fleet", "version": "0.2.1" }
     ]
   },
   "contracts": {
