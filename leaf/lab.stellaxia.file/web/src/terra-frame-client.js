@@ -18,6 +18,9 @@ export const FRAME_SIGNED_OUT = 'terra.frame.signedOut';
 export const FRAME_REFRESH = 'terra.frame.refresh';
 export const FRAME_VALUE = 'terra.frame.value';
 export const FRAME_EMIT = 'terra.frame.emit';
+/** 승인 문(P10-5). frame이 `init.features`에 `approve`를 실었을 때만 쓴다. */
+export const FRAME_APPROVE = 'terra.frame.approve';
+export const FRAME_APPROVAL = 'terra.frame.approval';
 /** 호스트 비밀번호 칸(설계 §4.9). frame이 `init.features`에 `secret`을 실었을 때만 쓴다. */
 export const FRAME_SECRET_PLACE = 'terra.frame.secret.place';
 export const FRAME_SECRET_HIDE = 'terra.frame.secret.hide';
@@ -106,6 +109,17 @@ export function connectTerra(options = {}) {
             onKey: (listener) => subscribe(secretKeyListeners, listener),
             onSent: (listener) => subscribe(secretSentListeners, listener)
         };
+        const pendingApprovals = new Map();
+        let approvalSeq = 0;
+        const approve = (request) => {
+            if (!features.includes('approve'))
+                return Promise.resolve(APPROVAL_UNAVAILABLE);
+            const id = request.id?.trim() || `a${++approvalSeq}-${Math.random().toString(36).slice(2, 10)}`;
+            return new Promise((done) => {
+                pendingApprovals.set(id, done);
+                post({ type: FRAME_APPROVE, id, operationId: request.operationId, inputs: { ...(request.inputs ?? {}) } });
+            });
+        };
         const remember = {
             remembered: () => (remembered ? { ...remembered } : undefined),
             resume: (fields = {}) => post({ type: FRAME_SECRET_RESUME, fields: { ...fields } }),
@@ -135,6 +149,7 @@ export function connectTerra(options = {}) {
             fetch: (path, init) => sendWithToken(doFetch, ids.apiBase, path, init, () => token, refresh),
             refresh,
             emit: (event, eventValue) => post({ type: FRAME_EMIT, event, value: eventValue }),
+            approve,
             features: () => features.slice(),
             get secret() {
                 return features.includes('secret') ? secret : undefined;
@@ -146,6 +161,9 @@ export function connectTerra(options = {}) {
             onValue: (listener) => subscribe(valueListeners, listener),
             close: () => {
                 win.removeEventListener('message', listener);
+                // 끝나지 않은 승인 제안은 답이 오지 않는다. 기다리는 쪽을 놓아 준다.
+                pendingApprovals.forEach((done) => done(APPROVAL_UNAVAILABLE));
+                pendingApprovals.clear();
                 tokenListeners.clear();
                 valueListeners.clear();
                 secretStateListeners.clear();
@@ -199,6 +217,15 @@ export function connectTerra(options = {}) {
                     if (connected)
                         setValue(data.value);
                     return;
+                case FRAME_APPROVAL: {
+                    const id = text(data.id);
+                    const done = pendingApprovals.get(id);
+                    if (!connected || !done)
+                        return;
+                    pendingApprovals.delete(id);
+                    done(readApproval(data));
+                    return;
+                }
                 case FRAME_SECRET_STATE:
                     if (!connected)
                         return;
@@ -256,6 +283,7 @@ function devFrame(options, doFetch) {
         fetch: (path, init) => sendWithToken(doFetch, apiBase, path, init, () => token, renewed),
         refresh: renewed,
         emit: () => undefined,
+        approve: () => Promise.resolve(APPROVAL_UNAVAILABLE),
         features: () => [],
         secret: undefined,
         remember: undefined,
@@ -329,6 +357,27 @@ function follow(element, send) {
             view?.removeEventListener('resize', schedule);
             view?.removeEventListener('scroll', schedule, true);
         }
+    };
+}
+const APPROVAL_UNAVAILABLE = {
+    ok: false,
+    code: 'APPROVAL_UNAVAILABLE',
+    message: '승인 문 없음 — Terra 셸 안에서 열기'
+};
+function readApproval(data) {
+    if (data.ok === true) {
+        return {
+            ok: true,
+            status: typeof data.status === 'number' ? data.status : 200,
+            data: data.data,
+            withheld: Array.isArray(data.withheld) ? data.withheld.filter((item) => typeof item === 'string') : []
+        };
+    }
+    return {
+        ok: false,
+        code: text(data.code) || 'APPROVAL_FAILED',
+        message: text(data.message),
+        ...(typeof data.status === 'number' ? { status: data.status } : {})
     };
 }
 function readRemembered(value) {

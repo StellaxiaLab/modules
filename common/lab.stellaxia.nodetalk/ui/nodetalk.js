@@ -4,6 +4,8 @@
 // Gateway's remote namespace (L1) — and every roundtrip is measured and shown.
 // The remote hop cannot carry the SSE stream (idea doc §11), so remote viewing
 // is fetch-based and says so on screen instead of pretending.
+import { connectTerra } from './terra-frame-client.js';
+
 (function () {
   'use strict';
 
@@ -43,55 +45,27 @@
   // Inside a shell window there is no launch fragment. The shell answers
   // terra.frame.hello with a scope token (the person's grants intersected with
   // this module's declared permissions) and renews it the same way. The token
-  // stays in memory only.
-  var frameOrigin = '';
-  var frameWaiters = [];
+  // stays in memory only. The handshake itself is the shared reference client
+  // (terra-frame-client.js, a byte copy checked by tools/check-frame-client.mjs).
+  var frame = null;
 
-  function setFrameToken(data) {
-    state.token = (data && typeof data.token === 'string') ? data.token : '';
-    frameWaiters.splice(0).forEach(function (wake) { wake(); });
+  function syncToken() {
+    state.token = (frame && frame.token()) || '';
   }
 
   function connectFrame() {
     if (state.token || window.parent === window) return Promise.resolve();
-    return new Promise(function (done) {
-      var timer = setTimeout(done, 10000);
-      window.addEventListener('message', function (event) {
-        if (event.source !== window.parent) return;
-        if (frameOrigin && event.origin !== frameOrigin) return;
-        var data = event.data || {};
-        if (data.type === 'terra.frame.init') {
-          frameOrigin = event.origin;
-          setFrameToken(data);
-          clearTimeout(timer);
-          done();
-        } else if (data.type === 'terra.frame.token' || data.type === 'terra.frame.signedOut') {
-          setFrameToken(data);
-        }
-      });
-      window.parent.postMessage({ type: 'terra.frame.hello', protocol: 1 }, '*');
-    });
-  }
-
-  function renewFrameToken() {
-    return new Promise(function (done) {
-      var timer = setTimeout(done, 5000);
-      frameWaiters.push(function () { clearTimeout(timer); done(); });
-      window.parent.postMessage({ type: 'terra.frame.refresh' }, frameOrigin);
-    });
+    return connectTerra({ timeoutMs: 10000 }).then(function (connected) {
+      frame = connected;
+      connected.onToken(syncToken);
+      syncToken();
+    }, function () {});
   }
 
   // frameFetch retries once with a fresh token when the shell gave the one that
   // just stopped working (a Gateway restart forgets every scope token).
   function frameFetch(url, init) {
-    return fetch(url, init).then(function (response) {
-      if (response.status !== 401 || !frameOrigin) return response;
-      return renewFrameToken().then(function () {
-        if (!state.token) return response;
-        init.headers.Authorization = 'Bearer ' + state.token;
-        return fetch(url, init);
-      });
-    });
+    return frame ? frame.fetch(url, init) : fetch(url, init);
   }
 
   function authHeaders() {

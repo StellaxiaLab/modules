@@ -18,6 +18,9 @@ export declare const FRAME_SIGNED_OUT = "terra.frame.signedOut";
 export declare const FRAME_REFRESH = "terra.frame.refresh";
 export declare const FRAME_VALUE = "terra.frame.value";
 export declare const FRAME_EMIT = "terra.frame.emit";
+/** 승인 문(P10-5). frame이 `init.features`에 `approve`를 실었을 때만 쓴다. */
+export declare const FRAME_APPROVE = "terra.frame.approve";
+export declare const FRAME_APPROVAL = "terra.frame.approval";
 /** 호스트 비밀번호 칸(설계 §4.9). frame이 `init.features`에 `secret`을 실었을 때만 쓴다. */
 export declare const FRAME_SECRET_PLACE = "terra.frame.secret.place";
 export declare const FRAME_SECRET_HIDE = "terra.frame.secret.hide";
@@ -112,6 +115,20 @@ export interface RememberedLoginAccess {
     /** 기억을 지운다(auto 해제). */
     forget(): void;
 }
+/** `approve()`의 결과. 사람이 거절하거나 만료하거나 호출이 실패하면 `ok: false`다(던지지 않는다). */
+export type ApprovalResult = {
+    ok: true;
+    status: number;
+    /** 응답에서 계약의 `secret_result` 칸을 뺀 것. 그 칸은 호스트 승인 화면에만 보인다. */
+    data: unknown;
+    /** 화면에만 보이고 이 응답에서 뺀 칸 이름. */
+    withheld: string[];
+} | {
+    ok: false;
+    code: string;
+    message: string;
+    status?: number;
+};
 export interface TerraFrame {
     readonly appId: string;
     readonly moduleId: string;
@@ -139,6 +156,18 @@ export interface TerraFrame {
     emit(event: string, value?: unknown): void;
     /** 호스트가 말한 기능(`init.features`). 이전 Terra는 비어 있다. */
     features(): string[];
+    /**
+     * 위험한 동작(T3·T4)을 사람의 승인 뒤에 하도록 호스트에 제안한다. 호스트 승인 화면이 계약에 따라 op와
+     * 입력을 사람에게 보이고, 승인하면 **호스트가** 호출한다. 웹은 자격도 비밀 결과도 받지 못한다.
+     * `inputs` 중 계약 `approval.inputs`에 선언된 칸만 화면에 보이고 실행된다. 같은 `id`를 다른 입력으로
+     * 다시 보내면 `APPROVAL_INPUT_MISMATCH`다. 호스트가 `approve` 기능을 말하지 않았거나(단독 웹, B 모드)
+     * 응답이 없으면 `APPROVAL_UNAVAILABLE`로 끝난다.
+     */
+    approve(request: {
+        operationId: string;
+        inputs?: Record<string, unknown>;
+        id?: string;
+    }): Promise<ApprovalResult>;
     /** 호스트 비밀번호 칸. 호스트가 `secret` 기능을 말하지 않았으면 undefined다 — 그때는 Scene의 로그인에 맡긴다. */
     readonly secret: SecretField | undefined;
     /** 기억된 로그인. 호스트가 `remember` 기능을 말하지 않았으면 undefined다. */
