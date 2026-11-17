@@ -117,7 +117,7 @@ body{margin:0;background:#0a0e1c}
 //     window 앱 — 자산을 내주지 않는다. GET /api/v1/gui/apps/{id}/window/health 뒤 그 앱의 자기 origin(런처가 띄운 창)
 //   실제 (window.TerraLaunch 가 있을 때) — 이 창은 앱을 품지 않는다. 앱은 셸이 자기 권한으로 띄우고(토큰 · 격리는 셸 몫), 여기는 연 결과만 보인다. gui-v3 의 앱 토큰은 다른 앱에 빌려주면 안 된다
 //   시안 — 모듈 화면은 앱마다 정해 둔 예시 화면(스크립트 없는 HTML), http(s) 는 실제 iframe (사이트가 창 안 표시를 막으면 비어 보인다 → ↗ 새 탭)
-//   외부 http(s) (ADR-GW-015) — window.TerraExternalSites(src/api/external-sites.js)가 분기를 정한다: iframe 먼저(앱 capability external-frames) · 루프백은 거절 · 평문 http 는 사설/링크로컬만 iframe ·
+//   외부 http(s) (ADR-GW-015) — window.TerraExternalSites(src/api/external-sites.js)가 분기를 정한다: iframe 먼저(앱 capability external-frames) · Terra 자신의 주소는 거절 · 그 밖 루프백은 '이 PC' 로 iframe · 평문 http 는 사설/링크로컬만 iframe ·
 //     알려진 막힘 목록 · 사용자가 남긴 "늘 밖에서" 호스트는 기본 브라우저(TerraOpenExternal)로. iframe 일 때는 부모가 그리는 "외부 · 호스트" 칩과 접을 수 없는 외부 띠(비밀번호를 묻지 않는다) · ↗ 가 늘 있다
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { hist: [], idx: -1, input: '', t0: 0, synced: {}, fr: 0 }; this._u0 = null;
@@ -180,7 +180,7 @@ class Component extends DCLogic {
         return { app: e.appName, mod: e.modName, mode: e.mode, modeCls: MD, node: e.node + (e.remote ? ' · 원격' : ''), st: on ? '● 실행' : '○ ' + ({ stop: '멈춤', fail: '실패', restart: '다시 시작 중' }[st] || st), cls: on ? '' : 'off', off: on ? null : 'disabled', open: () => this.nav(e.arg) }; });
       O.statusT = '시작 페이지'; O.chips = [{ t: 'terra://start', cls: '' }];
     } else if (R.kind === 'err') { O.isErr = true; O.errT = R.err; O.errNote = R.note; O.statusT = '열지 못함'; }
-    else if (R.kind === 'web' && X.route === 'reject') { O.isErr = true; O.errT = X.why === 'loopback' ? 'Terra 화면은 시작 페이지에서 엽니다' : '열 수 없는 주소'; O.errNote = X.why === 'loopback' ? '이 기기 안의 주소(localhost · 127.0.0.1)는 외부 사이트 틀로 띄우지 않습니다 — terra://start 의 모듈 화면을 쓰세요' : 'http(s):// 주소만 외부 사이트로 열립니다'; O.statusT = '열지 못함'; }
+    else if (R.kind === 'web' && X.route === 'reject') { O.isErr = true; O.errT = X.why === 'terra-own' ? 'Terra 화면은 시작 페이지에서 엽니다' : '열 수 없는 주소'; O.errNote = X.why === 'terra-own' ? 'Terra 자신의 주소(Gateway · 데스크톱 셸 · *.localhost 앱)는 외부 사이트 틀로 띄우지 않습니다 — terra://start 의 모듈 화면을 쓰세요. 이 PC 의 다른 주소(예: 127.0.0.1:8799)는 열립니다' : 'http(s):// 주소만 외부 사이트로 열립니다'; O.statusT = '열지 못함'; }
     else if (R.kind === 'web' && X.route === 'out') {
       // 탐색 · 새로고침 한 번에 한 번만 부탁한다(그리는 동안 반복 호출 금지) — 숨은 창이 나중에 열지 않게 방금 탐색한 때만
       const key = S.idx + '|' + S.t0 + '|' + R.url, L = S.ext && S.ext.k === key ? S.ext : null, fresh = now - S.t0 < 15000, op = this.opener();
@@ -195,7 +195,7 @@ class Component extends DCLogic {
       const key = S.idx + '|' + S.t0 + '|' + R.url, loads = S.fl && S.fl.k === key ? S.fl.n : 0, remote = !!P.remote, M = this.sites() && this.sites().memory;
       O.isWeb = true; O.src = R.url; O.frameTitle = '외부 사이트 ' + X.host; O.extD = this.opener() ? 'none' : 'inline-flex'; O.extHref = R.url;
       O.onFrameLoad = () => { const c = this.state.fl && this.state.fl.k === key ? this.state.fl.n : 0; this.setState({ fl: { k: key, n: c + 1 } }); };
-      O.chips = [{ t: '외부', cls: 'ext' }, { t: X.plain ? 'http · 사설 주소' : 'https', cls: X.plain ? 'warn' : '' }, { t: 'sandbox', cls: 'sb' }];
+      O.chips = [{ t: '외부', cls: 'ext' }, { t: X.thisPc ? (X.plain ? 'http' : 'https') + ' · 이 PC' : X.plain ? 'http · 사설 주소' : 'https', cls: X.plain ? 'warn' : '' }, { t: 'sandbox', cls: 'sb' }];
       O.bandT = '외부 사이트 — Terra 화면이 아닙니다. Terra는 여기서 비밀번호를 묻지 않습니다.';
       O.bandNote = '로그인이 필요한 사이트는 ↗ 기본 브라우저가 낫습니다 · 새 창 링크는 이 창에서 열리지 않습니다 — ↗ 기본 브라우저로' + (remote ? ' · 이 기기에서 엽니다(' + (P.nodeName || '원격 노드') + ' 경유 아님)' : '');
       O.moved = loads > 1; O.movedT = '페이지 안에서 이동함 — 지금 주소는 Terra 가 볼 수 없습니다 (마지막으로 확인한 주소: ' + X.host + ')';
