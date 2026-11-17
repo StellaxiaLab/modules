@@ -105,3 +105,11 @@ test('노드 셸 창(보드) — 열기 → 격자 · 경고 띠 · 입력 → �
   } finally { done(); }
   assert.match(src, /X\.dzS = row\('nodeShell'\)/); assert.match(src, /\{\{w\.nx\.dzS\.label\}\}/);
 });
+
+test('노드 셸 창 — 줄 간격: 템플릿 줄바꿈 글자가 빈 줄이 되지 않는다(칸 격자는 줄 div 안에서만 pre)', () => {
+  const live = /<sc-if value="\{\{w\.ns\.live\}\}"[\s\S]*?<\/textarea>/.exec(src); assert.ok(live, '노드 셸 격자');
+  const log = /<div role="log"[^>]*style="([^"]*)"/.exec(live[0]); assert.ok(log, '화면 영역');
+  assert.ok(!/white-space:\s*pre/.test(log[1]), 'role=log 에 white-space:pre 가 있으면 sc-for 사이의 공백 글자가 줄마다 빈 줄 하나(또는 둘)로 보인다');
+  const row = /<sc-for list="\{\{w\.ns\.rows\}\}"[^>]*>\s*<div style="([^"]*)"/.exec(live[0]); assert.ok(row, '줄 div');
+  assert.match(row[1], /white-space:\s*pre/); assert.match(row[1], /height:\s*19px/);   // 줄 높이 19px · 칸 안의 빈칸은 그대로
+});
