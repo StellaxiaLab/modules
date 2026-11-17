@@ -159,13 +159,15 @@ func NewManager(options Options) (*Manager, error) {
 		maxByte: options.MaxBytes, ttl: ttl, now: now}, nil
 }
 
-// writePath is where a push's bytes are written. Create writes the target
-// itself. Overwrite writes a sidecar next to it and renames it over the target
-// once the transfer is complete and verified, so a failed or abandoned
-// overwrite never costs the user the file that was already there, and no old
-// tail can survive behind shorter content.
+// writePath is where a push's bytes are written: always a sidecar next to the
+// target, renamed onto it once the transfer is complete and verified. A
+// transfer that is cut off therefore never leaves a half-written file under the
+// final name (D9) — the next create still sees "no such file", and the sidecar
+// stays for `--resume <id>` to continue. For overwrite it also means the file
+// that was already there survives a failed or abandoned push, and no old tail
+// can outlive shorter content.
 func writePath(record Record) string {
-	if record.Direction == Push && record.Mode == Overwrite {
+	if record.Direction == Push {
 		return record.Path + "." + record.ID + ".part"
 	}
 	return record.Path
@@ -450,11 +452,10 @@ func (m *Manager) AcceptChunk(id string, offset int64, data []byte, digest strin
 	if want := strings.ToLower(strings.TrimSpace(digest)); want != "" && want != store.Checksum(data) {
 		return record, ErrChunkMismatch
 	}
-	// Create writes the target itself and must not replace a file that appeared
-	// after prepare, so the first chunk is exclusive; a later chunk continues a
-	// partial file this transfer made, which is expected to exist. Overwrite
-	// writes a sidecar, so the original is untouched until verification passes.
-	chunk := store.Chunk{Offset: offset, Data: data, Exclusive: record.Mode != Overwrite && offset == 0}
+	// The sidecar is this transfer's own file: the first chunk creates it
+	// exclusively, a later chunk continues it. Whether the target may be
+	// replaced is decided at complete, when the sidecar is renamed onto it.
+	chunk := store.Chunk{Offset: offset, Data: data, Exclusive: offset == 0}
 	if err := m.store.WriteChunk(record.Root, writePath(record), chunk); err != nil {
 		if errors.Is(err, store.ErrTargetExists) {
 			return record, fmt.Errorf("%w: %s", ErrTargetExists, record.Path)
@@ -526,7 +527,7 @@ func (m *Manager) Complete(id string) (Record, error) {
 		scratch := writePath(record)
 		if record.SizeBytes == 0 {
 			// No chunk ever creates an empty file, so create it here.
-			err := m.store.WriteChunk(record.Root, scratch, store.Chunk{Exclusive: record.Mode != Overwrite})
+			err := m.store.WriteChunk(record.Root, scratch, store.Chunk{})
 			if err != nil {
 				if errors.Is(err, store.ErrTargetExists) {
 					return record, fmt.Errorf("%w: %s", ErrTargetExists, record.Path)
@@ -554,10 +555,17 @@ func (m *Manager) Complete(id string) (Record, error) {
 			}
 			record.Verified = true
 		}
-		if scratch != record.Path {
-			if err := m.store.Rename(record.Root, scratch, record.Path); err != nil {
+		if record.Mode == Create {
+			// Create must not replace a file that appeared after prepare. The
+			// sidecar stays so the bytes are not lost.
+			if _, err := m.store.Stat(record.Root, record.Path); err == nil {
+				return record, fmt.Errorf("%w: %s", ErrTargetExists, record.Path)
+			} else if !errors.Is(err, store.ErrNotFound) {
 				return record, err
 			}
+		}
+		if err := m.store.Rename(record.Root, scratch, record.Path); err != nil {
+			return record, err
 		}
 	}
 	record.State = Completed
