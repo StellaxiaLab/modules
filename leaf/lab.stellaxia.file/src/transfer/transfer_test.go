@@ -325,8 +325,11 @@ func TestAbortKeepsOrDropsThePartialAsAsked(t *testing.T) {
 	if _, err := h.manager.Abort(record.ID, "pausing", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(h.shared, "partial.bin")); err != nil {
+	if _, err := os.Stat(filepath.Join(h.shared, "partial.bin."+record.ID+".part")); err != nil {
 		t.Error("a pause deleted the partial file")
+	}
+	if _, err := os.Stat(filepath.Join(h.shared, "partial.bin")); !os.IsNotExist(err) {
+		t.Error("a paused push left a half-written file under the final name (D9)")
 	}
 	if _, err := h.manager.Get(record.ID); err != nil {
 		t.Errorf("a pause dropped the checkpoint: %v", err)
@@ -335,7 +338,7 @@ func TestAbortKeepsOrDropsThePartialAsAsked(t *testing.T) {
 	if _, err := h.manager.Abort(record.ID, "giving up", true); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(h.shared, "partial.bin")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(h.shared, "partial.bin."+record.ID+".part")); !os.IsNotExist(err) {
 		t.Error("giving up left the partial file behind")
 	}
 }

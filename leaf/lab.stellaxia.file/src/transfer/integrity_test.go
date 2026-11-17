@@ -204,7 +204,11 @@ func TestCreateModeRefusesAFileThatAppearedAfterPrepare(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(h.shared, "race.bin"), []byte("someone else"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := h.manager.AcceptChunk(record.ID, 0, payload, ""); !errors.Is(err, ErrTargetExists) {
+	// The bytes go to a sidecar; the collision is found when it is renamed.
+	if _, err := h.manager.AcceptChunk(record.ID, 0, payload, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.manager.Complete(record.ID); !errors.Is(err, ErrTargetExists) {
 		t.Fatalf("= %v, want ErrTargetExists", err)
 	}
 	if got := h.read(t, "race.bin"); got != "someone else" {

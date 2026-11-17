@@ -104,7 +104,7 @@ func TestThePullOnlyDoorDoesNotCloseAnUpload(t *testing.T) {
 	if state := got["transfer"].(map[string]any)["state"]; state != "transferring" {
 		t.Fatalf("upload state = %v, want transferring", state)
 	}
-	if _, err := os.Stat(filepath.Join(shared, "up.bin")); err != nil {
+	if _, err := os.Stat(filepath.Join(shared, "up.bin."+id+".part")); err != nil {
 		t.Fatalf("partial upload is gone: %v", err)
 	}
 }

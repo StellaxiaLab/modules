@@ -54,7 +54,7 @@ func TestAPauseSentThroughTheGatewayKeepsThePartial(t *testing.T) {
 	if record["state"] != "aborted" || record["reason"] != "paused" || record["offset"] != float64(2) {
 		t.Fatalf("paused record = %v, want aborted · paused · offset 2", record)
 	}
-	if _, err := os.Stat(filepath.Join(shared, "up.bin")); err != nil {
+	if _, err := os.Stat(filepath.Join(shared, "up.bin."+id+".part")); err != nil {
 		t.Fatalf("partial upload is gone: %v", err)
 	}
 	status, resumed, raw := call(t, handler, http.MethodPost, "/transfers", map[string]any{"direction": "push", "path": "up.bin", "resume_id": id})
@@ -93,7 +93,7 @@ func TestAHandWrittenAbortMayStillUseTheQuery(t *testing.T) {
 	if status != http.StatusOK || decoded["kept_partial"] != true {
 		t.Fatalf("pause by query = %d %s", status, raw)
 	}
-	if _, err := os.Stat(filepath.Join(shared, "up.bin")); err != nil {
+	if _, err := os.Stat(filepath.Join(shared, "up.bin."+id+".part")); err != nil {
 		t.Fatalf("partial upload is gone: %v", err)
 	}
 	_, got, _ := call(t, handler, http.MethodGet, "/transfers/"+id, nil)
@@ -133,7 +133,7 @@ func TestAMalformedAbortBodyIsRefused(t *testing.T) {
 	if !strings.Contains(raw, "abort") {
 		t.Fatalf("the refusal should say what it expected: %s", raw)
 	}
-	if _, err := os.Stat(filepath.Join(shared, "up.bin")); err != nil {
+	if _, err := os.Stat(filepath.Join(shared, "up.bin."+id+".part")); err != nil {
 		t.Fatalf("a refused abort deleted the partial: %v", err)
 	}
 }
