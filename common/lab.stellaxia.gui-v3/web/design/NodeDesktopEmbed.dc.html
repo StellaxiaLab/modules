@@ -219,9 +219,9 @@ button{font-family:inherit}
                       <div role="alert" style="flex-shrink: 0; height: 28px; box-sizing: border-box; display: flex; align-items: center; padding: 0 12px; background: rgba(255,107,107,.16); border-bottom: 1px solid rgba(255,107,107,.5); color: #ff6b6b; font-size: 12px;">{{w.ns.elevText}}</div>
                     </sc-if>
                     <div onClick="{{w.ns.focus}}" onWheel="{{w.ns.wheel}}" style="position: relative; flex-grow: 1; min-height: 0; overflow: hidden; background: #0b0e14; padding: 6px 8px; cursor: text;">
-                      <div role="log" aria-label="노드 셸 화면" style="font-family: 'JetBrains Mono',ui-monospace,Consolas,monospace; font-size: 13px; line-height: 19px; color: #d7dbe5; white-space: pre;">
+                      <div role="log" aria-label="노드 셸 화면" style="font-family: 'JetBrains Mono',ui-monospace,Consolas,monospace; font-size: 13px; line-height: 19px; color: #d7dbe5; white-space: normal;">
                         <sc-for list="{{w.ns.rows}}" as="rw" hint-placeholder-count="12">
-                          <div style="height: 19px; overflow: hidden;"><sc-for list="{{rw.runs}}" as="rn" hint-placeholder-count="2"><span style="{{rn.st}}">{{rn.t}}</span></sc-for></div>
+                          <div style="height: 19px; overflow: hidden; white-space: pre;"><sc-for list="{{rw.runs}}" as="rn" hint-placeholder-count="2"><span style="{{rn.st}}">{{rn.t}}</span></sc-for></div>
                         </sc-for>
                       </div>
                       <textarea aria-label="노드 셸 입력" autofocus spellcheck="false" autocomplete="off" autocapitalize="off" onKeyDown="{{w.ns.key}}" onInput="{{w.ns.input}}" onCompositionEnd="{{w.ns.compEnd}}" style="position: absolute; left: 0; bottom: 0; width: 8px; height: 8px; padding: 0; border: 0; outline: 0; resize: none; opacity: 0; overflow: hidden;"></textarea>
