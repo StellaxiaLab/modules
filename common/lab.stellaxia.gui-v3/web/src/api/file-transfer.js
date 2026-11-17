@@ -169,8 +169,8 @@ export function createFileTransfer(o) {
   return {
     readHead,
     /** @param {{ root: string, path: string, file: Blob & { name?: string }, mode?: 'create'|'overwrite', onChange?: (j: object) => void }} a */
-    upload: (a) => job('up', { root: a.root, path: a.path, name: a.name || (a.file && a.file.name) || a.path.split('/').pop(), file: a.file, size: Number(a.file && a.file.size) || 0, mode: a.mode, onChange: a.onChange }),
+    upload: (a) => job('up', { root: a.root, path: a.path, name: a.name || (a.file && a.file.name) || a.path.split('/').pop(), file: a.file, size: Number(a.file && a.file.size) || 0, mode: a.mode, tid: a.resume_id || '', onChange: a.onChange }),
     /** @param {{ root: string, path: string, name?: string, mime?: string, onChange?: (j: object) => void }} a */
-    download: (a) => job('down', { root: a.root, path: a.path, name: a.name || a.path.split('/').pop(), mime: a.mime, onChange: a.onChange }),
+    download: (a) => job('down', { root: a.root, path: a.path, name: a.name || a.path.split('/').pop(), mime: a.mime, tid: a.resume_id || '', onChange: a.onChange }),
   };
 }
