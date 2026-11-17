@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "lab.stellaxia.treebench",
   "name": "Treebench",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "kind": "service",
   "description": "A test console for the Tree control plane: every operation the Master contract declares gets a place to be called from, an envelope view of what came back, and a coverage ledger that knows which ones have never been run. The UI is a sandboxed static GUI app; this process is the half that reaches the machine-channel surfaces a browser session cannot address.",
   "compatibility": {
@@ -18,7 +18,7 @@
   },
   "provides": {
     "capabilities": [
-      { "id": "lab.stellaxia.treebench", "version": "0.2.0" }
+      { "id": "lab.stellaxia.treebench", "version": "0.2.1" }
     ]
   },
   "contracts": {
