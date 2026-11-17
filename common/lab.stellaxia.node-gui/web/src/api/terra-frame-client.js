@@ -18,6 +18,20 @@ export const FRAME_SIGNED_OUT = 'terra.frame.signedOut';
 export const FRAME_REFRESH = 'terra.frame.refresh';
 export const FRAME_VALUE = 'terra.frame.value';
 export const FRAME_EMIT = 'terra.frame.emit';
+/** 승인 문(P10-5). frame이 `init.features`에 `approve`를 실었을 때만 쓴다. */
+export const FRAME_APPROVE = 'terra.frame.approve';
+export const FRAME_APPROVAL = 'terra.frame.approval';
+/** 호스트 비밀번호 칸(설계 §4.9). frame이 `init.features`에 `secret`을 실었을 때만 쓴다. */
+export const FRAME_SECRET_PLACE = 'terra.frame.secret.place';
+export const FRAME_SECRET_HIDE = 'terra.frame.secret.hide';
+export const FRAME_SECRET_FOCUS = 'terra.frame.secret.focus';
+export const FRAME_SECRET_SUBMIT = 'terra.frame.secret.submit';
+export const FRAME_SECRET_STATE = 'terra.frame.secret.state';
+export const FRAME_SECRET_KEY = 'terra.frame.secret.key';
+export const FRAME_SECRET_SENT = 'terra.frame.secret.sent';
+/** 기억된 로그인(auto). frame이 `init.features`에 `remember`를 실었을 때만 쓴다. */
+export const FRAME_SECRET_RESUME = 'terra.frame.secret.resume';
+export const FRAME_SECRET_FORGET = 'terra.frame.secret.forget';
 const DEFAULT_TIMEOUT_MS = 5_000;
 /** frame에 `hello`를 보내고 `init`을 기다린다. */
 export function connectTerra(options = {}) {
@@ -39,8 +53,14 @@ export function connectTerra(options = {}) {
         let value;
         let ids = { appId: '', moduleId: '', sceneId: '', apiBase: '' };
         let waiting = [];
+        let features = [];
+        let remembered;
+        let secretState = { shown: false, focused: false, empty: true };
         const tokenListeners = new Set();
         const valueListeners = new Set();
+        const secretStateListeners = new Set();
+        const secretKeyListeners = new Set();
+        const secretSentListeners = new Set();
         const setToken = (next, nextPermissions, reason) => {
             token = typeof next === 'string' && next ? next : undefined;
             permissions = Array.isArray(nextPermissions)
@@ -71,6 +91,43 @@ export function connectTerra(options = {}) {
             waiting.push(finish);
             post({ type: FRAME_REFRESH });
         });
+        const place = (rect, placeOptions = {}) => post({
+            type: FRAME_SECRET_PLACE,
+            rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+            ...(placeOptions.style ? { style: { ...placeOptions.style } } : {}),
+            ...(placeOptions.label ? { label: placeOptions.label } : {}),
+            ...(placeOptions.placeholder ? { placeholder: placeOptions.placeholder } : {})
+        });
+        const secret = {
+            place,
+            follow: (element, placeOptions) => follow(element, (rect) => place(rect, placeOptions)),
+            hide: () => post({ type: FRAME_SECRET_HIDE }),
+            focus: () => post({ type: FRAME_SECRET_FOCUS }),
+            submit: (fields = {}) => post({ type: FRAME_SECRET_SUBMIT, fields: { ...fields } }),
+            state: () => ({ ...secretState }),
+            onState: (listener) => subscribe(secretStateListeners, listener),
+            onKey: (listener) => subscribe(secretKeyListeners, listener),
+            onSent: (listener) => subscribe(secretSentListeners, listener)
+        };
+        const pendingApprovals = new Map();
+        let approvalSeq = 0;
+        const approve = (request) => {
+            if (!features.includes('approve'))
+                return Promise.resolve(APPROVAL_UNAVAILABLE);
+            const id = request.id?.trim() || `a${++approvalSeq}-${Math.random().toString(36).slice(2, 10)}`;
+            return new Promise((done) => {
+                pendingApprovals.set(id, done);
+                post({ type: FRAME_APPROVE, id, operationId: request.operationId, inputs: { ...(request.inputs ?? {}) } });
+            });
+        };
+        const remember = {
+            remembered: () => (remembered ? { ...remembered } : undefined),
+            resume: (fields = {}) => post({ type: FRAME_SECRET_RESUME, fields: { ...fields } }),
+            forget: () => {
+                remembered = undefined;
+                post({ type: FRAME_SECRET_FORGET });
+            }
+        };
         const frame = {
             get appId() {
                 return ids.appId;
@@ -92,12 +149,26 @@ export function connectTerra(options = {}) {
             fetch: (path, init) => sendWithToken(doFetch, ids.apiBase, path, init, () => token, refresh),
             refresh,
             emit: (event, eventValue) => post({ type: FRAME_EMIT, event, value: eventValue }),
+            approve,
+            features: () => features.slice(),
+            get secret() {
+                return features.includes('secret') ? secret : undefined;
+            },
+            get remember() {
+                return features.includes('remember') ? remember : undefined;
+            },
             onToken: (listener) => subscribe(tokenListeners, listener),
             onValue: (listener) => subscribe(valueListeners, listener),
             close: () => {
                 win.removeEventListener('message', listener);
+                // 끝나지 않은 승인 제안은 답이 오지 않는다. 기다리는 쪽을 놓아 준다.
+                pendingApprovals.forEach((done) => done(APPROVAL_UNAVAILABLE));
+                pendingApprovals.clear();
                 tokenListeners.clear();
                 valueListeners.clear();
+                secretStateListeners.clear();
+                secretKeyListeners.clear();
+                secretSentListeners.clear();
             }
         };
         const listener = (event) => {
@@ -119,6 +190,10 @@ export function connectTerra(options = {}) {
                         sceneId: text(data.sceneId),
                         apiBase: text(data.apiBase)
                     };
+                    features = Array.isArray(data.features)
+                        ? data.features.filter((item) => typeof item === 'string')
+                        : [];
+                    remembered = readRemembered(data.remembered);
                     setToken(data.token, data.permissions, data.reason);
                     if (!connected) {
                         connected = true;
@@ -141,6 +216,31 @@ export function connectTerra(options = {}) {
                 case FRAME_VALUE:
                     if (connected)
                         setValue(data.value);
+                    return;
+                case FRAME_APPROVAL: {
+                    const id = text(data.id);
+                    const done = pendingApprovals.get(id);
+                    if (!connected || !done)
+                        return;
+                    pendingApprovals.delete(id);
+                    done(readApproval(data));
+                    return;
+                }
+                case FRAME_SECRET_STATE:
+                    if (!connected)
+                        return;
+                    secretState = { shown: data.shown === true, focused: data.focused === true, empty: data.empty !== false };
+                    secretStateListeners.forEach((listener) => listener({ ...secretState }));
+                    return;
+                case FRAME_SECRET_KEY:
+                    if (connected && isSecretKey(data.key)) {
+                        const key = data.key;
+                        secretKeyListeners.forEach((listener) => listener(key));
+                    }
+                    return;
+                case FRAME_SECRET_SENT:
+                    if (connected)
+                        secretSentListeners.forEach((listener) => listener());
                     return;
                 default:
                     return;
@@ -183,6 +283,10 @@ function devFrame(options, doFetch) {
         fetch: (path, init) => sendWithToken(doFetch, apiBase, path, init, () => token, renewed),
         refresh: renewed,
         emit: () => undefined,
+        approve: () => Promise.resolve(APPROVAL_UNAVAILABLE),
+        features: () => [],
+        secret: undefined,
+        remember: undefined,
         onToken: () => () => undefined,
         onValue: () => () => undefined,
         close: () => undefined
@@ -204,6 +308,84 @@ async function sendWithToken(doFetch, apiBase, path, init, current, refresh) {
     if (!renewed)
         return first;
     return attempt(renewed);
+}
+/**
+ * 요소의 자리를 재어 `place`로 보낸다. 창 크기·스크롤·요소 크기 변화는 한 프레임에 한 번으로 모은다.
+ * 자리가 같으면 보내지 않는다.
+ */
+function follow(element, send) {
+    const view = element.ownerDocument?.defaultView ?? undefined;
+    const raf = view?.requestAnimationFrame
+        ? view.requestAnimationFrame.bind(view)
+        : (run) => setTimeout(run, 16);
+    const caf = view?.cancelAnimationFrame ? view.cancelAnimationFrame.bind(view) : (id) => clearTimeout(id);
+    let last = '';
+    let pending = 0;
+    let stopped = false;
+    const measure = () => {
+        pending = 0;
+        if (stopped)
+            return;
+        const box = element.getBoundingClientRect();
+        const rect = { x: box.left, y: box.top, width: box.width, height: box.height };
+        const key = `${rect.x},${rect.y},${rect.width},${rect.height}`;
+        if (key === last)
+            return;
+        last = key;
+        send(rect);
+    };
+    const schedule = () => {
+        if (!pending && !stopped)
+            pending = raf(measure);
+    };
+    const Observer = view?.ResizeObserver;
+    const observer = Observer ? new Observer(schedule) : undefined;
+    observer?.observe(element);
+    view?.addEventListener('resize', schedule);
+    view?.addEventListener('scroll', schedule, true);
+    measure();
+    return {
+        update: () => {
+            last = '';
+            measure();
+        },
+        stop: () => {
+            stopped = true;
+            if (pending)
+                caf(pending);
+            observer?.disconnect();
+            view?.removeEventListener('resize', schedule);
+            view?.removeEventListener('scroll', schedule, true);
+        }
+    };
+}
+const APPROVAL_UNAVAILABLE = {
+    ok: false,
+    code: 'APPROVAL_UNAVAILABLE',
+    message: '승인 문 없음 — Terra 셸 안에서 열기'
+};
+function readApproval(data) {
+    if (data.ok === true) {
+        return {
+            ok: true,
+            status: typeof data.status === 'number' ? data.status : 200,
+            data: data.data,
+            withheld: Array.isArray(data.withheld) ? data.withheld.filter((item) => typeof item === 'string') : []
+        };
+    }
+    return {
+        ok: false,
+        code: text(data.code) || 'APPROVAL_FAILED',
+        message: text(data.message),
+        ...(typeof data.status === 'number' ? { status: data.status } : {})
+    };
+}
+function readRemembered(value) {
+    const email = value && typeof value === 'object' ? value.email : undefined;
+    return typeof email === 'string' && email.trim() ? { email: email.trim() } : undefined;
+}
+function isSecretKey(value) {
+    return value === 'Enter' || value === 'Tab' || value === 'ShiftTab' || value === 'Escape';
 }
 function subscribe(listeners, listener) {
     listeners.add(listener);

@@ -74,6 +74,11 @@ jobs:
       - name: Check the vendored schema against its recorded hash
         run: node tools/check-schema-drift.mjs --self-only
 
+      # terra-frame-client.js 사본이 모두 같은가(분석 G-1). 모듈마다 사본을 두는 것은 의도이고,
+      # 갈라지는 것을 여기서 잡는다.
+      - name: Check terra-frame-client.js copies are identical
+        run: node tools/check-frame-client.mjs
+
   web:
     name: Web UI build and test
     runs-on: [self-hosted, linux, x64, docker, homelab]
