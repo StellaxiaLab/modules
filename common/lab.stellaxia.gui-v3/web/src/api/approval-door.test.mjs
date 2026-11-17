@@ -53,8 +53,6 @@ const NOT_DOOR = [
   ['설정 저장(이 노드는 앱 토큰 · 원격은 transport 가 승인 문)', 'terra.daemon.config.patch'],
   ['모듈 끄기(스위치 뒤)', 'terra.daemon.modules.by-module-id.disable.post'],
   ['/admin 사용자(P13-3 호스트 화면)', 'terra.master.admin.users.post'],
-  ['모듈 승격(P14)', 'terra.master.modules.promotions.by-promotion-id.approve.post'],
-  ['Master 설정(P14)', 'terra.master.config.patch'],
 ];
 
 test('단추표 — 모두 계약에 approval 이 있고 등급이 맞고, 승인 문으로 나간다', () => {
@@ -68,6 +66,12 @@ test('단추표 — 모두 계약에 approval 이 있고 등급이 맞고, 승�
 test('승인 문으로 보내지 않는 것 — 이 노드 쓰기(스위치 뒤) · /admin · P14', () => {
   for (const [name, op] of NOT_DOOR) { assert.ok(hasApproval(op), name); assert.equal(viaDoor(op), false, name); }
   assert.equal(viaDoor('terra.master.nodes.get'), false);   // 표에 없으면 그냥
+});
+
+test('P14-4 — 모듈 배포 · 승격 · Master 설정 쓰기는 승인 문으로 나간다(위임 표로 떨어져 잠기지 않는다, D7)', () => {
+  for (const op of ['terra.master.modules.publications.post', 'terra.master.modules.promotions.by-promotion-id.approve.post', 'terra.master.config.patch']) {
+    assert.ok(hasApproval(op), op); assert.ok(viaDoor(op), op);
+  }
 });
 
 test('승인 표 전체 — 승인 문 대상은 스위치 없는 것 + 닫힌 둘, 원격 관리 스위치 뒤는 transport 몫', () => {

@@ -15,8 +15,15 @@ const CLOSED_LOCAL = new Set([
   'terra.daemon.svi.declarations.apply.post',
   'terra.daemon.svi.declarations.retired.by-family.by-name.forget.post',
 ]);
-/** 이 PR 의 몫이 아닌 접두 — /admin 은 호스트 화면(P13-3), 모듈 배포 · 승격 · Master 설정은 P14 */
-const OTHER_PHASE = ['admin', 'modules', 'config'].map((x) => 'terra.master.' + x + '.');
+/** 승인 문 밖 접두 — /admin 은 호스트 화면(P13-3). 모듈 배포 · 승격 · Master 설정은 P14-4(#226)로 이 문에 올라와 여기 없다(남겨 두면 gate() 가 위임 표로 떨어져 '위임 없음' 으로 잠겼다 — D7) */
+const OTHER_PHASE = ['admin'].map((x) => 'terra.master.' + x + '.');
+
+/**
+ * 승인 문 op 의 '사람 권한' — whoami 가 앱(위임) 토큰이면(delegate 가 있다) 그 permissions 는 앱 토큰의 교집합이지 승인하는 사람의 권한이 아니다.
+ * 그래서 module.publish · master.admin 을 가진 관리자도 whoami 로는 없어 보여 승인 문 단추가 '계정 권한 없음' 으로 잠겼다(D7). 앱 토큰 whoami 면 알 수 없음(null) —
+ * 승인해도 거절될지는 승인 문 · Master 가 가린다(미리보기가 '알 수 없음' 으로 알린다). 사람 세션 whoami(delegate 없음)만 그대로 쓴다.
+ */
+export const humanWho = (who) => (who && who.delegate ? null : who);
 
 /** 계약이 이 op 에 승인 문을 요구하나(표에 있나) */
 export const hasApproval = (op) => !!T[op];
@@ -46,11 +53,12 @@ export const IMPACT_TEXT = { node: '이 노드 하나', cluster: '클러스터 �
 export function approvalPreview(op, o = {}) {
   const a = T[op];
   if (!a || !viaDoor(op)) return { door: false, tier: '', tierText: '', impact: '', missing: [], ok: true, why: '' };
-  const who = o.who, all = !!(who && who.allPermissions);
+  const delegated = !!(o.who && o.who.delegate), who = humanWho(o.who), all = !!(who && who.allPermissions);
   const known = all || !!(who && Array.isArray(who.permissions));
   const missing = all || !known ? [] : a.permissions.filter((p) => !who.permissions.includes(p));
   let why = '';
   if (o.app && o.canApprove === false) why = '승인 문 없음 — Terra 셸 안에서 열기';
+  else if (delegated) why = '';   // 앱 토큰 whoami — 사람 권한은 승인 문이 가린다
   else if (!known) why = '계정 권한을 알 수 없음 — 승인해도 거절될 수 있음';
   else if (missing.length) why = '계정 권한 없음 : ' + missing.join(' · ') + ' — 승인해도 거절됩니다';
   return { door: true, tier: a.tier, tierText: TIER_TEXT[a.tier] || '승인 필요', impact: IMPACT_TEXT[a.impact] || a.impact, missing, ok: !why || !missing.length && known, why };

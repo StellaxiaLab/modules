@@ -152,8 +152,9 @@ const SAMPLE = { mod: [{ id: 'pub-1', module: 'io.terra.file', version: '0.4.0',
 class Component extends DCLogic {
   constructor(props) { super(props);
     this.state = { tab: 'mod', act: {}, vals: {}, data: {}, edits: {}, cv: null, errs: {}, running: false, res: null, touched: false }; }
-  componentDidMount() { this._live = true; this.load(this.state.tab); }
-  componentWillUnmount() { this._live = false; }
+  // whoami 가 로드보다 늦게 오면 '계정 권한을 알 수 없음' 으로 잠긴 채 남는다(D7) — 권한이 들어오면 잠긴 탭을 다시 읽는다
+  componentDidMount() { this._live = true; this.load(this.state.tab); if (typeof window !== 'undefined' && window.addEventListener) { this._onWho = () => { const d = this.state.data[this.state.tab]; if (d && d.st === 'locked') this.load(this.state.tab); }; window.addEventListener('terra-who', this._onWho); } }
+  componentWillUnmount() { this._live = false; if (this._onWho && typeof window !== 'undefined') window.removeEventListener('terra-who', this._onWho); }
   TA() { return typeof window !== 'undefined' && window.TerraTreeAdmin && window.TerraTreeAdmin.kit ? window.TerraTreeAdmin : null; }
   kit() { const t = this.TA(); return t ? t.kit : (this._sk || (this._sk = sampleKit())); }
   set(p) { if (this._live !== false) this.setState(p); }
