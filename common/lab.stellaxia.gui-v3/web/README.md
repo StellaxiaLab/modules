@@ -37,7 +37,7 @@ web/
 │  │  ├─ field-host.js           렌더러 고르기(Worker → 메인 WebGL2 → 2D)
 │  │  ├─ scene-bridge.js         씬 보드의 fieldFlush 를 GPU 렌더러로 (바탕 그림 포함)
 │  │  └─ workload.js             비교용 부하(idle · mask · labels)
-│  ├─ ui/                        dc/runtime.js(보드 실행기) · fonts.css · fonts/(Pretendard) · signals.js · dom.js · window-layer.js · base.css
+│  ├─ ui/                        dc/runtime.js(보드 실행기) · fonts.css · fonts/(Pretendard) · base.css
 │  └─ api/                       terra.js(operation invoke · stream · 원격 잠금) · op-scope.json · node-data.js(v3 백엔드)
 │                                 session.js(B 모드 로그인 — 자격 핸들) · transport.js(노드 데이터 층의 Gateway 전송)
 │                                 topology.js(Master 노드 목록 → 지도) · push.js(로컬 이벤트 → 사본 다시 받기)

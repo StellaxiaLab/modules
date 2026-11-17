@@ -12,6 +12,8 @@
 //   쓰지 않는 것  자동 조정 · 계획 · 피어 철회 · probe 실행 · 정책 저장 · 세션 닫기 · 연결 그룹 — Master 쓰기라 위임 입구 2차다
 //   부르는 길  tree 는 operation id, leaf 는 /api/upstream 경로(client.js invokeUpstream) — 이 파일은 모른다
 
+import { fmtBytes as bytes } from './file-transfer.js';
+
 /** 이 파일이 부르는 Master 읽기 */
 export const NET_OPS = {
   state: 'terra.master.network.state.get',
@@ -35,7 +37,6 @@ export function when(iso) {
   const p = (n) => String(n).padStart(2, '0');
   return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
 }
-const bytes = (n) => { let v = Number(n) || 0, i = 0; const U = ['B', 'KiB', 'MiB', 'GiB', 'TiB']; while (v >= 1024 && i < U.length - 1) { v /= 1024; i += 1; } return (i ? v.toFixed(v < 10 ? 1 : 0) : String(v)) + U[i]; };
 const bps = (n) => (n ? (n >= 1e9 ? (n / 1e9).toFixed(1) + ' Gbps' : n >= 1e6 ? Math.round(n / 1e6) + ' Mbps' : Math.round(n / 1e3) + ' kbps') : '—');
 
 /** network.status.get → node_id → 이름 */

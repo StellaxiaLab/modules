@@ -16,6 +16,8 @@
 //
 // 보드(ResStatus)의 시안 사본이 이 파일과 같은지 tests/resstatus.test.mjs 가 본다.
 
+import { backoffMs } from './backoff.js';
+
 export const WATCH_OPS = ['terra.master.svi.handles.post', 'terra.master.svi.handles.by-handle-id.events.get', 'terra.master.svi.handles.by-handle-id.delete'];
 
 const KIND_LABEL = { number: '수치', text: '글 · 로그', bytes: '바이트', image: '그림', video: '영상', event: '사건' };
@@ -137,7 +139,7 @@ export function createSviWatch(terra, o = {}) {
     open(req, on) {
       let handle = '', close = null, dead = false, ended = false, tries = 0, timer = null;
       const key = 'gui-v3-watch-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-      const retry = () => { if (dead || ended) return; tries++; on({ kind: 'conn', conn: 'lost', tries }); timer = T(attach, Math.min(30000, 1000 * 2 ** Math.min(tries - 1, 5))); };
+      const retry = () => { if (dead || ended) return; tries++; on({ kind: 'conn', conn: 'lost', tries }); timer = T(attach, backoffMs(tries, 1000, 30000)); };
       const attach = async () => {
         if (dead) return;
         if (!tries) on({ kind: 'conn', conn: 'opening' });

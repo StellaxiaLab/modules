@@ -10,6 +10,8 @@
 //   opening 여는 중 · live 받는 중 · lost 끊김(자동으로 다시 연다) · closed 닫힘(세션 만료 · 토큰 폐기 · 위임 밖 — 다시 열지 않는다) · stopped 멈춤(로그아웃)
 // "없음"과 "못 봤음"을 섞지 않는다 — 스트림이 끊겼으면 '조용함'은 '아무 일 없음'이 아니다. liveText 가 그 글을 만든다.
 
+import { backoffMs } from './backoff.js';
+
 export const LIVE_OP = 'terra.master.events.get';
 
 /** 신호 이름 → 다시 읽을 것. 모르는 신호는 지도(topology)만 */
@@ -56,7 +58,7 @@ export function startLive(o) {
   };
   const again = (slow) => {
     if (stopped) return; C(timer); tries++;
-    timer = T(open, Math.min(max, base * 2 ** Math.min(tries - 1, 5)) * (slow ? 2 : 1));
+    timer = T(open, backoffMs(tries, base, max) * (slow ? 2 : 1));
   };
   const open = () => {
     if (stopped) return; const my = ++gen; set(S.state === 'live' || S.state === 'lost' ? 'lost' : 'opening', S.reason, S.text);
