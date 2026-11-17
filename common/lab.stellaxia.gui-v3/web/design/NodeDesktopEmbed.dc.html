@@ -900,12 +900,12 @@ button{font-family:inherit}
       </sc-for>
 
       <!-- 상단 바 -->
-      <div role="status" style="position: absolute; left: 0; right: 0; top: 0; height: 32px; z-index: 1000; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: {{t.bar}}; backdrop-filter: blur(14px); border-bottom: 1px solid {{t.line}}; font-size: 12px; color: {{t.sub}};">
+      <div role="status" style="position: absolute; left: 0; right: 0; top: 0; height: 32px; z-index: 1000; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: {{t.bar}}; backdrop-filter: blur(14px); border-bottom: 1px solid {{t.line}}; font-size: 12px; color: {{t.sub}}; white-space: nowrap; overflow: hidden;">
         <span style="display: inline-flex; align-items: center; gap: 6px; color: {{t.ink}};"><span style="color: {{lk.c}};">●</span><span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">{{node.name}}</span></span>
         <span style="color: {{t.dim}};">부모 {{node.parent}}</span>
         <span title="{{lk.tip}}" style="display: {{lk.d}}; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 9px; border: 1px solid {{lk.bd}}; color: {{lk.c}}; background: {{lk.bg}}; font-size: 11px;"><span>{{lk.dot}}</span>{{lk.t}}</span>
         <span role="alert" title="{{dgr.tip}}" style="display: {{dgr.d}}; align-items: center; padding: 1px 8px; border-radius: 9px; border: 1px solid rgba(255,107,107,.55); color: #ff6b6b; background: rgba(255,107,107,.12); font-size: 11px; font-weight: 600;">{{dgr.banner}}</span>
-        <span style="flex-grow: 1; text-align: center; color: {{t.ink}}; font-weight: 600;">{{focusTitle}}</span>
+        <span style="flex-grow: 1; flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: center; color: {{t.ink}}; font-weight: 600;">{{focusTitle}}</span>
         <span style="display: inline-flex; align-items: center; gap: 6px; color: {{save.c}};"><span onClick="{{save.run}}" title="{{save.text}}" style="display: inline-flex; align-items: center; gap: 6px; cursor: {{save.cur}};"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="{{save.d}}"/></svg>{{save.text}}</span><span role="button" aria-label="저장 실패 표시 닫기" onClick="{{save.close}}" style="display: {{save.closeD}}; cursor: pointer; padding: 0 3px;">×</span></span>
         <span style="display: inline-flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4z M10 21h4"/></svg>2</span>
         <span style="font-family: 'JetBrains Mono',ui-monospace,monospace;">{{clock}}</span>
@@ -1446,6 +1446,8 @@ class Component extends DCLogic {
     return Array.isArray(typeof window !== 'undefined' ? window.TerraGuiApps : null) ? this.modApps(M) : null;
   }
   prf() { return this.desk().view.prefs || DESK_DEFAULTS.prefs; }
+  // 창 어둡기 — 설정 › GUI 의 '라이트 테마'(이 브라우저)가 켜져 있으면 제어기 안 창도 밝게(제목줄만 밝고 본문은 어두웠다, D9). 꺼져 있으면 제어기 자기 '모양' 설정
+  darkOn() { const TH = typeof window !== 'undefined' ? window.TerraTheme : null; return this.prf().dark !== false && !(TH && TH.get() === 'light'); }
   /** 같은 칸의 아이콘 둘은 id 순으로 다음 빈 칸으로 밀어 그린다 — 저장값은 바꾸지 않는다(§7) */
   cells() {
     const I = this.ics(), sig = JSON.stringify(Object.keys(I).sort().map((k) => [k, I[k].c, I[k].r]));
@@ -2027,11 +2029,12 @@ class Component extends DCLogic {
   patchWin(id, p) { this.setState({ wins: { ...this.state.wins, [id]: { ...this.state.wins[id], ...p } } }); }
   /* 비율 → 화소. 최소 크기 밑으로는 줄지 않고, 바탕화면보다 커지지도 않는다 */
   geom(id) {
-    const w = this.state.wins[id], a = APPS[id], D2 = this.deskDims(), B = this.baseDesk();
-    if (w.max) { const b = this.workBox(); return { x: b.x, y: b.y, w: b.w, h: b.h }; }
+    const w = this.state.wins[id], a = APPS[id], D2 = this.deskDims(), B = this.baseDesk(), K = this.workBox();
+    if (w.max) return { x: K.x, y: K.y, w: K.w, h: K.h };
+    // 앱 창은 바탕화면 작업 영역(독 위) 안에 통째로 들어온다 — 오른쪽으로 잘리거나 독이 아래를 가리지 않게(D8). 왼쪽으로는 140px 만 남기고 끌어낼 수 있다
     const pw = clamp(Math.round(w.fw * B.w), Math.min(a.minW, D2.w), D2.w);
-    const ph = clamp(Math.round(w.fh * B.h), Math.min(a.minH, D2.h - 32), D2.h - 32);
-    return { x: clamp(Math.round(w.fx * B.w), -(pw - 140), D2.w - 140), y: clamp(Math.round(w.fy * B.h), 32, D2.h - 60), w: pw, h: ph };
+    const ph = clamp(Math.round(w.fh * B.h), Math.min(a.minH, K.h), K.h);
+    return { x: clamp(Math.round(w.fx * B.w), Math.min(K.x, -(pw - 140)), Math.max(K.x, D2.w - pw)), y: clamp(Math.round(w.fy * B.h), K.y, Math.max(K.y, K.y + K.h - ph)), w: pw, h: ph };
   }
   begin(e, id, kind) {
     if (e.target && e.target.closest && e.target.closest('button')) return;
@@ -2045,15 +2048,15 @@ class Component extends DCLogic {
   step(e, id) {
     const d = this.drag;
     if (!d || d.id !== id) return;
-    const z = this.zoom(), dx = (e.clientX - d.sx) / z, dy = (e.clientY - d.sy) / z, D2 = this.deskDims(), B = this.baseDesk(), a = APPS[id];   // 화면 배율만큼 나눠 데스크톱 좌표로
+    const z = this.zoom(), dx = (e.clientX - d.sx) / z, dy = (e.clientY - d.sy) / z, D2 = this.deskDims(), B = this.baseDesk(), a = APPS[id], K = this.workBox();   // 화면 배율만큼 나눠 데스크톱 좌표로
     d.moved = true;
     if (d.kind === 'move') {
-      const x = clamp(d.ox + dx, -(d.ow - 140), D2.w - 140), y = clamp(d.oy + dy, 32, D2.h - 60);
+      const x = clamp(d.ox + dx, Math.min(K.x, -(d.ow - 140)), Math.max(K.x, D2.w - d.ow)), y = clamp(d.oy + dy, K.y, Math.max(K.y, K.y + K.h - d.oh));
       this.patchWin(id, { fx: x / B.w, fy: y / B.h });
     } else {
       const p = {};
       if (d.kind !== 'b') p.fw = clamp(d.ow + dx, a.minW, D2.w - d.ox) / B.w;
-      if (d.kind !== 'r') p.fh = clamp(d.oh + dy, a.minH, D2.h - d.oy) / B.h;
+      if (d.kind !== 'r') p.fh = clamp(d.oh + dy, a.minH, K.y + K.h - d.oy) / B.h;
       this.patchWin(id, p);
     }
   }
@@ -2374,7 +2377,7 @@ class Component extends DCLogic {
     const dg = this.fxGate(P.cx, 'down');
     const info = [['이름', P.name], ['위치', P.root + ':/' + P.path], ['크기', sz], ['수정', P.time || '—']];
     if (P.state === 'load') info.push(['상태', '받는 중…']); if (P.state === 'err') info.push(['상태', '못 읽음 · ' + P.err + (P.errMsg && P.errMsg !== P.err ? ' — ' + P.errMsg : '')]); if (ok && P.kind === 'other') info.push(['미리보기', P.why || '없음']);
-    return { on: true, bg: this.prf().dark === false ? '#faf9f6' : '#111318', name: P.name, sizeT: sz, kindT: P.kind === 'text' ? (P.cut ? '글 · 앞부분' : '글') : P.kind === 'image' ? '그림' : '정보', chipFg: KC, chipBd: KC + '80', chipBg: KC + '1a',
+    return { on: true, bg: this.darkOn() ? '#111318' : '#faf9f6', name: P.name, sizeT: sz, kindT: P.kind === 'text' ? (P.cut ? '글 · 앞부분' : '글') : P.kind === 'image' ? '그림' : '정보', chipFg: KC, chipBd: KC + '80', chipBg: KC + '1a',
       isText: ok && P.kind === 'text', isImg: ok && P.kind === 'image' && !!P.url, isInfo: !ok || P.kind === 'other' || (P.kind === 'image' && !P.url), text: P.text, url: P.url, info: info.map(([k, v]) => ({ k, v })),
       note: P.state === 'err' ? '못 읽음 · ' + P.err + (P.err === 'MODULE_NOT_FOUND' || P.err === 'MODULE_ROUTE_NOT_FOUND' ? ' — 그 노드에 lab.stellaxia.file 없음' : '') : P.sample ? '시안 — 노드 내용 읽지 않음' : P.kind === 'text' ? (P.cut ? '앞 ' + this.fmtB(PV_MAX.text) + ' 만 · 전체 ' + sz + ' — 나머지는 내려받기' : '전체 · ' + sz) : P.kind === 'image' ? '그림 그대로 · 미리보기 상한 ' + this.fmtB(PV_MAX.image) : P.why,
       noteC: P.state === 'err' ? '#ff6b6b' : t.dim, close: () => { this.pvDrop(); this.setState({}); },
@@ -2568,7 +2571,7 @@ class Component extends DCLogic {
     { const L = this.props.launch || ''; if (L && L !== this._lau0 && !this.idle()) { this._lau0 = L; const [app, sub] = L.split('@')[0].split(':');
       if (APPS[app]) setTimeout(() => { this.launch(app); const o = {}; if (app === 'set' && sub) o.setTab = sub; if (app === 'jobs' && sub) o.jobSel = sub; if (Object.keys(o).length) this.setState(o); }, 0); } }
     const s = this.state, DK = this.desk(), p = this.prf(), I = this.ics(), CL = this.cells(), RO = DK.ro;
-    const dark = p.dark;
+    const dark = this.darkOn();
     const t = dark
       ? { win: 'rgba(15,17,21,.94)', winHead: 'rgba(255,255,255,.04)', bar: 'rgba(10,12,16,.80)', menu: 'rgba(22,25,31,.96)', term: 'rgba(8,10,13,.88)', line: 'rgba(255,255,255,.10)', line2: 'rgba(255,255,255,.18)', ink: '#ede9e1', sub: '#b4bac3', dim: '#9aa1ab', raise: 'rgba(255,255,255,.05)', raiseH: 'rgba(255,255,255,.10)', accent: '#7aa7ff' }
       : { win: 'rgba(250,249,246,.97)', winHead: 'rgba(0,0,0,.04)', bar: 'rgba(250,249,246,.82)', menu: 'rgba(252,251,248,.98)', term: 'rgba(244,243,238,.98)', line: 'rgba(0,0,0,.10)', line2: 'rgba(0,0,0,.20)', ink: '#16191f', sub: '#3b424d', dim: '#5b6472', raise: 'rgba(0,0,0,.045)', raiseH: 'rgba(0,0,0,.09)', accent: '#2563eb' };

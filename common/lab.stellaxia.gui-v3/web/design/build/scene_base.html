@@ -1036,7 +1036,7 @@ class Component extends DCLogic {
   }
   hoverStep(now, dt) {
     const M = this._mouse, inLeaf = this._enter && this._enter.dir === 'in';
-    const hov = M && !this._res && (this._lv || !this._enter) ? this.pickHit(M.x, M.y) : null;   // 트리 → 리프 전환 중 · 리소스 뷰에선 호버 없음   // 리프 뷰는 늘 들어간 상태 — 그대로 호버를 받는다 (리소스 뷰로 가는 중 · 들어간 뒤엔 받지 않는다)
+    const hov = M && !this._res && (this._lv || !this._enter) ? this.pickHit(M.x, M.y) : null; this._aimHold = !!hov;   // 트리 → 리프 전환 중 · 리소스 뷰에선 호버 없음   // 리프 뷰는 늘 들어간 상태 — 그대로 호버를 받는다 (리소스 뷰로 가는 중 · 들어간 뒤엔 받지 않는다)
     const HS = this._hlS || (this._hlS = new Map());
     if (hov && !HS.has(hov.id)) HS.set(hov.id, { h: 0, burst: 0 });
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1061,7 +1061,8 @@ class Component extends DCLogic {
   // 이번 프레임의 위치·화면 좌표
   frame(now, dt) {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const moving = (this.props.motion ?? true) && !reduce;
+    // 사용자가 겨누는 중이면(호버 · 우클릭 속성 열림) 공전을 멈춘다 — 판정 반경이 ~18px 인데 행성이 2~28px/s 로 움직여 눌러도 빗나가고 속성이 행성과 같이 흘렀다(D1)
+    const moving = (this.props.motion ?? true) && !reduce && !this._q_pop && !this._aimHold;
     this._t = (this._t || 0) + (moving ? dt * (this.props.speed ?? 1) / 3 : 0);   // 공전·자전 모두 기본 1/3 빠르기
     const t = this._t, sys = this.build(), w = this._sw, h = this._sh;
     const F = this.focusNow(now, sys, t), S = Math.min(w, h) * 0.42 * F.Z;
