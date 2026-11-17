@@ -46,7 +46,7 @@ import { connectTerra } from './terra-frame-client.js';
   // terra.frame.hello with a scope token (the person's grants intersected with
   // this module's declared permissions) and renews it the same way. The token
   // stays in memory only. The handshake itself is the shared reference client
-  // (terra-frame-client.js, a byte copy checked by tools/check-frame-client.mjs).
+  // (terra-frame-client.js, a byte copy checked by tools/check-vendored-copies.mjs).
   var frame = null;
 
   function syncToken() {
