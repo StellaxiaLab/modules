@@ -58,11 +58,11 @@
         "type": "store.write",
         "storeId": "dangerTunnel",
         "value": {
-          "allow": "$read.output.allow",
+          "allow": "$read.output.data.allow",
           "state": "read",
-          "changedAt": "$read.output.changed_at",
-          "changedBy": "$read.output.changed_by",
-          "unavailable": "$read.output.unavailable",
+          "changedAt": "$read.output.data.changed_at",
+          "changedBy": "$read.output.data.changed_by",
+          "unavailable": "$read.output.data.unavailable",
           "message": ""
         }
       },

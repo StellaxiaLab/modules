@@ -40,3 +40,10 @@ test('권한 거부는 op-scope 표에서, 표에 없는 코드는 서버 문장
   assert.equal(errorLine(UP, { code: 'WEIRD' }), 'WEIRD');
   assert.equal(errorHint(UP, { code: 'WEIRD', message: 'x' }), '');
 });
+
+test('readFailNote — LOCAL_ONLY 는 op 이름 없이 쉬운 말로(D10)', async () => {
+  const { readFailNote } = await import('./error-text.js');
+  const t = readFailNote({ code: 'LOCAL_ONLY', msg: 'terra.daemon.danger-zone.node-shell.get — 이 노드에서만' });
+  assert.ok(!/terra\.daemon/.test(t) && /그 노드에서만/.test(t), t);
+  assert.equal(readFailNote({ code: 'X_FAIL', msg: '왜' }), '상태 읽기 실패 : X_FAIL — 왜');
+});

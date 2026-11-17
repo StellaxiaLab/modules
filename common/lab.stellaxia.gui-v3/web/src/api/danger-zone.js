@@ -6,6 +6,8 @@
 //          Scene 의 /danger 확인 화면이 상수 입력의 Scene Function 으로 .post 를 부른다 — 사람 세션으로 나간다.
 //          터미널 : 아래 DANGER_SET_HINT.
 
+import { readFailNote } from './error-text.js';
+
 export const DANGER_GET = 'terra.daemon.danger-zone.app-command-execution.get';
 export const DANGER_SET_HINT = "terra module call terra.daemon.danger-zone.app-command-execution.post --input '{\"allow\":true}'";
 export const DANGER_LABEL = '웹 앱 명령 실행';
@@ -52,7 +54,7 @@ export function dangerView(rd, o = {}) {
   if (!d || typeof d !== 'object') {
     const code = rd.err && rd.err.code;
     if (code && UNSUPPORTED.test(code)) return Object.assign(base, { state: 'unsupported', status: '이 Terra 판 미지원', statusCls: '', note: W.offNote }, btn('unsupported'));
-    if (rd.err) return Object.assign(base, { state: 'error', status: '읽지 못함', statusCls: 'warn', note: '상태 읽기 실패 : ' + (code || 'ERROR') + (rd.err.msg ? ' — ' + rd.err.msg : '') }, btn('error'));
+    if (rd.err) return Object.assign(base, { state: 'error', status: '읽지 못함', statusCls: 'warn', note: readFailNote(rd.err) }, btn('error'));
     return Object.assign(base, { state: 'loading', status: '읽는 중…', statusCls: '' }, btn('loading'));
   }
   const unavail = d.unavailable != null && d.unavailable !== false && d.unavailable !== '';
