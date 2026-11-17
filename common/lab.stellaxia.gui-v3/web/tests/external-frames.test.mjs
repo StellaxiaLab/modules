@@ -21,12 +21,38 @@ test('module.json — gui-v3 웹 앱이 external-frames 를 선언한다(blob-im
   assert.deepEqual(app.capabilities, ['blob-images', 'external-frames']);   // workers · wasm 은 넓히지 않는다
 });
 
-test('분기 — https 는 iframe, 루프백은 거절, 평문 외부 http 는 밖으로', () => {
+test('분기 — https 는 iframe, Terra 자신의 주소는 거절, 평문 외부 http 는 밖으로', () => {
   assert.equal(cls('https://example.com/a').route, 'frame');
-  for (const u of ['http://127.0.0.1:8787/', 'http://localhost/', 'https://app-x.localhost:8788/', 'http://[::1]/', 'http://0.0.0.0/', 'http://[::ffff:127.0.0.1]/', 'http://127.1.2.3/']) assert.deepEqual([u, cls(u).route, cls(u).why], [u, 'reject', 'loopback']);
+  // Gateway(8787) · 앱 origin(8788) · 셸(17421/17422/17321/8080) · *.localhost — 어느 루프백 꼴이어도
+  for (const u of ['http://127.0.0.1:8787/', 'http://localhost:8787/', 'http://[::1]:8787/', 'http://127.1.2.3:8788/', 'http://[::ffff:127.0.0.1]:17422/', 'http://127.0.0.1:17421/x', 'http://127.0.0.1:17321/', 'http://127.0.0.1:8080/', 'https://app-x.localhost:8788/', 'http://foo.localhost/', 'http://foo.localhost:5173/']) assert.deepEqual([u, cls(u).route, cls(u).why], [u, 'reject', 'terra-own']);
   assert.deepEqual([cls('http://example.com/').route, cls('http://example.com/').why], ['out', 'plain-http']);
   assert.equal(cls('ftp://example.com/').route, 'reject');
   assert.equal(cls('https://google.com@evil.example/').why, 'credentials');
+});
+
+test('분기 — 그 밖 루프백은 이 PC 로 iframe(평문이어도), 점 없는 localhost 는 *.localhost 와 다르다', () => {
+  for (const u of ['http://127.0.0.1:8799/', 'http://localhost:5173/', 'http://[::1]:8799/', 'http://0.0.0.0:9000/', 'http://[::ffff:127.0.0.1]:8799/', 'http://127.1.2.3/', 'http://localhost/', 'https://localhost:8443/']) {
+    const c = cls(u); assert.deepEqual([u, c.route, c.why, c.thisPc], [u, 'frame', 'frame', true]);
+  }
+  assert.equal(cls('https://example.com/').thisPc, false);
+  assert.equal(cls('http://localhost:8799/').route, 'frame'); assert.equal(cls('http://x.localhost:8799/').route, 'reject');
+  assert.ok(ES.isLocalhostSub('a.localhost') && !ES.isLocalhostSub('localhost'));
+  // 다른 호스트의 같은 번호는 Terra 가 아니다
+  assert.equal(cls('http://192.168.0.5:8787/').route, 'frame'); assert.equal(cls('https://example.com:8787/').route, 'frame');
+});
+
+test('분기 — 지금 페이지가 온 Gateway 포트(옮긴 배치)도 거절, 하드코딩이 아니다', () => {
+  assert.equal(cls('http://127.0.0.1:9911/').route, 'frame');
+  for (const g of ['127.0.0.1:9911', 'http://localhost:9911', ['x:1', '[::1]:9911']]) assert.deepEqual([cls('http://127.0.0.1:9911/', { gateway: g }).route, cls('http://127.0.0.1:9911/', { gateway: g }).why], ['reject', 'terra-own']);
+  assert.equal(cls('http://127.0.0.1:9912/', { gateway: '127.0.0.1:9911' }).route, 'frame');
+  assert.equal(cls('https://example.com:9911/', { gateway: '127.0.0.1:9911' }).route, 'frame');
+});
+
+test('분기 — 이 PC 주소도 막힘 목록 · 기억 · 자격 증명 규칙은 그대로', () => {
+  const m = mem(); m.add('127.0.0.1');
+  assert.deepEqual([cls('http://127.0.0.1:8799/', { memory: m }).route, cls('http://127.0.0.1:8799/', { memory: m }).why], ['out', 'remembered']);
+  assert.equal(cls('http://u:p@127.0.0.1:8799/').why, 'credentials');
+  assert.equal(cls('http://127.0.0.1:8799/', { apps: [{ id: 'lab.stellaxia.gui-v3.web', capabilities: [] }] }).why, 'no-capability');
 });
 
 test('http 는 사설 · 링크로컬 주소에만 iframe', () => {
@@ -97,13 +123,14 @@ test('보드 — 허용 주소는 iframe + 외부 칩 · 띠 · ↗, 기본 브�
   } finally { delete globalThis.window; }
 });
 
-test('보드 — punycode 칩 · 사설 http 는 iframe · 외부 http 는 밖으로 · 루프백은 거절', async () => {
+test('보드 — punycode 칩 · 사설 http 는 iframe · 외부 http 는 밖으로 · Terra 자신은 거절 · 이 PC 는 iframe', async () => {
   const asked = []; const c = board(withSites({ asked }));
   try {
     c.nav('https://аpple.com/'); assert.equal(c.renderVals().lockT, '외부 · xn--pple-43d.com');
     c.nav('http://192.168.0.10/admin'); let v = c.renderVals(); assert.equal(v.isWeb, true); assert.ok(v.chips.some((q) => /사설/.test(q.t)));
     c.nav('http://example.com/'); v = c.renderVals(); assert.equal(v.isWeb, false); assert.equal(v.isExt, true); assert.match(v.extT, /http/); await tick(); assert.deepEqual(asked, ['http://example.com/']);
-    c.nav('http://127.0.0.1:8787/'); v = c.renderVals(); assert.equal(v.isErr, true); assert.match(v.errT, /Terra 화면은 시작 페이지에서/); assert.equal(v.isWeb, false); await tick(); assert.equal(asked.length, 1, '루프백은 밖으로도 보내지 않는다');
+    c.nav('http://127.0.0.1:8787/'); v = c.renderVals(); assert.equal(v.isErr, true); assert.match(v.errT, /Terra 화면은 시작 페이지에서/); assert.equal(v.isWeb, false); await tick(); assert.equal(asked.length, 1, 'Terra 자신의 주소는 밖으로도 보내지 않는다');
+    c.nav('http://127.0.0.1:8799/'); v = c.renderVals(); assert.equal(v.isWeb, true); assert.equal(v.isErr, false); assert.equal(v.src, 'http://127.0.0.1:8799/'); assert.ok(v.chips.some((q) => /이 PC/.test(q.t))); await tick(); assert.equal(asked.length, 1, '이 PC 주소는 iframe — 밖으로 묻지 않는다');
   } finally { delete globalThis.window; }
 });
 
