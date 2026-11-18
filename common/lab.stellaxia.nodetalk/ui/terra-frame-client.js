@@ -32,6 +32,14 @@ export const FRAME_SECRET_SENT = 'terra.frame.secret.sent';
 /** 기억된 로그인(auto). frame이 `init.features`에 `remember`를 실었을 때만 쓴다. */
 export const FRAME_SECRET_RESUME = 'terra.frame.secret.resume';
 export const FRAME_SECRET_FORGET = 'terra.frame.secret.forget';
+/**
+ * 셸이 연 모듈 웹 앱 창의 최소화 목록(셸 트레이 대신 메인 GUI가 보이는 길). frame이 `init.features`에
+ * `minimize`를 실었을 때만 쓴다. 웹이 `take`로 "이 목록은 내가 보인다"고 선언해야 셸이 자기 트레이를 숨긴다.
+ */
+export const FRAME_MIN_LIST = 'terra.frame.minimized';
+export const FRAME_MIN_TAKE = 'terra.frame.minimized.take';
+export const FRAME_MIN_RESTORE = 'terra.frame.minimized.restore';
+export const FRAME_MIN_CLOSE = 'terra.frame.minimized.close';
 const DEFAULT_TIMEOUT_MS = 5_000;
 /** frame에 `hello`를 보내고 `init`을 기다린다. */
 export function connectTerra(options = {}) {
@@ -55,12 +63,14 @@ export function connectTerra(options = {}) {
         let waiting = [];
         let features = [];
         let remembered;
+        let minimizedList = [];
         let secretState = { shown: false, focused: false, empty: true };
         const tokenListeners = new Set();
         const valueListeners = new Set();
         const secretStateListeners = new Set();
         const secretKeyListeners = new Set();
         const secretSentListeners = new Set();
+        const minimizedListeners = new Set();
         const setToken = (next, nextPermissions, reason) => {
             token = typeof next === 'string' && next ? next : undefined;
             permissions = Array.isArray(nextPermissions)
@@ -128,6 +138,13 @@ export function connectTerra(options = {}) {
                 post({ type: FRAME_SECRET_FORGET });
             }
         };
+        const minimized = {
+            list: () => minimizedList.map((item) => ({ ...item })),
+            onChange: (next) => subscribe(minimizedListeners, next),
+            take: (on = true) => post({ type: FRAME_MIN_TAKE, on: on !== false }),
+            restore: (id) => post({ type: FRAME_MIN_RESTORE, id }),
+            close: (id) => post({ type: FRAME_MIN_CLOSE, id })
+        };
         const frame = {
             get appId() {
                 return ids.appId;
@@ -157,6 +174,9 @@ export function connectTerra(options = {}) {
             get remember() {
                 return features.includes('remember') ? remember : undefined;
             },
+            get minimized() {
+                return features.includes('minimize') ? minimized : undefined;
+            },
             onToken: (listener) => subscribe(tokenListeners, listener),
             onValue: (listener) => subscribe(valueListeners, listener),
             close: () => {
@@ -166,6 +186,7 @@ export function connectTerra(options = {}) {
                 pendingApprovals.clear();
                 tokenListeners.clear();
                 valueListeners.clear();
+                minimizedListeners.clear();
                 secretStateListeners.clear();
                 secretKeyListeners.clear();
                 secretSentListeners.clear();
@@ -216,6 +237,12 @@ export function connectTerra(options = {}) {
                 case FRAME_VALUE:
                     if (connected)
                         setValue(data.value);
+                    return;
+                case FRAME_MIN_LIST:
+                    if (!connected)
+                        return;
+                    minimizedList = readMinimized(data.windows);
+                    minimizedListeners.forEach((next) => next(minimizedList.map((item) => ({ ...item }))));
                     return;
                 case FRAME_APPROVAL: {
                     const id = text(data.id);
@@ -287,10 +314,26 @@ function devFrame(options, doFetch) {
         features: () => [],
         secret: undefined,
         remember: undefined,
+        minimized: undefined,
         onToken: () => () => undefined,
         onValue: () => () => undefined,
         close: () => undefined
     };
+}
+function readMinimized(raw) {
+    if (!Array.isArray(raw))
+        return [];
+    const out = [];
+    for (const item of raw) {
+        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !item.id)
+            continue;
+        out.push({
+            id: item.id,
+            title: typeof item.title === 'string' && item.title ? item.title : item.id,
+            ...(typeof item.nodeName === 'string' && item.nodeName ? { nodeName: item.nodeName } : {})
+        });
+    }
+    return out;
 }
 async function sendWithToken(doFetch, apiBase, path, init, current, refresh) {
     const relative = !/^[a-z][a-z0-9+.-]*:/i.test(path) && !path.startsWith('//');

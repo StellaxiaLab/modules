@@ -305,7 +305,7 @@ class Component extends DCLogic {
       MW.hr = r; head('최소화 창');
       const o = ords.c - 1;
       for (let k = 0; k < 2; k++) { const e = mins[k], row = r + k;
-        if (e) { line('c', row, [['>_ ', C.key], [e.node.name, C.val, true], ['  ' + this.WINKIND()[e.kind], C.key], ['  ' + this.winAgo(e), C.hint]], x0 + 1, o, 'mzmw' + k); MW.rows.push({ row, id: e.id }); }
+        if (e) { line('c', row, [['>_ ', C.key], [this.winName(e), C.val, true], ['  ' + this.WINKIND()[e.kind], C.key], ['  ' + this.winAgo(e), C.hint]], x0 + 1, o, 'mzmw' + k); MW.rows.push({ row, id: e.id }); }
         else if (k === 0) line('c', row, [['최소화 창 없음', C.hint]], x0 + 1, o, 'mzmw0'); }
       // 더보기 = 레벨바 — 최소화한 창이 얼마나 있는지(한계 50칸, 한 칸 = 창 하나). 50 을 넘으면 바 안 오른쪽 끝에 '+넘은 수'. 바 오른쪽 ▶ — 호버하면 찾기 판, 누르면 고정(다시 누를 때까지)
       MW.more = r + 2; const LB = 50, n = mins.length, over = Math.max(0, n - LB), bc0 = x0 + 1, bc1 = zR - 3, ovT = over ? '+' + over : '', ovC = bc1 - this.dw(ovT);
@@ -523,7 +523,7 @@ class Component extends DCLogic {
   ctlKids(it) {
     // 최소화 폴더 — 지금 떠 있거나 최소화한 창 (지역 모드면 그 노드 아래 창만). 늘 새로 (창이 열리고 닫히면 바로)
     if (it.type === 'wdir') { const sc = it.scope, under = (n) => { for (let a = n; a; a = a.parent) if (a === sc) return true; return false; };
-      return this.winFind('', null).filter((e) => !sc || under(e.node)).map((e) => ({ id: 'win:' + e.id, name: this.winTitle(e), type: 'win', win: e, node: e.node, more: e.st === 'min' ? '최소화' : '열림' })); }
+      return this.winFind('', null).filter((e) => !sc || (!e.shell && under(e.node))).map((e) => ({ id: 'win:' + e.id, name: this.winTitle(e), type: 'win', win: e, node: e.node || null, more: e.st === 'min' ? '최소화' : '열림' })); }
     if (it.type !== 'dir' || !it.ent) return [];
     const MD = this.mapData();
     return this.vfsList(it.ent).map((e) => { const nd = this.vfsNodeOf(e), node = nd ? MD.byId[nd.id] || it.node : it.node, sph = e.type === 'file' && e.data && e.data.type === 'terra.sphere';
@@ -659,7 +659,7 @@ class Component extends DCLogic {
     { const Q = this._here; if (Q && this._lg && this._lg.on && Math.floor(y / this._ch) === Q.row && x >= Q.x0 - 4 && x <= Q.x1 + 4) { this.goHere(); return true; } }   // 로컬 위치로
     const K = this._ctl; if (!K || !(this._lg && this._lg.open)) return false;
     const rr = Math.floor(y / this._ch); if (x < K.x0 - this._cw || x > K.x1 + this._cw) return false;
-    { const MW = this._mw; if (MW) { const mr = MW.rows.find((q) => q.row === rr); if (mr) { this.winOpen((this._wins || []).find((e) => e.id === mr.id)); return true; } if (rr === MW.more) { this._flyPin = !this._flyPin; this.minFly(this._flyPin); this._flyAt = performance.now(); this.layout(); return true; } } }   // 레벨바 누르기 = 찾기 판 고정 · 다시 누르면 풀고 닫기   // 최소화 창 — 줄 = 되살리기 · 더보기 = 찾기 판
+    { const MW = this._mw; if (MW) { const mr = MW.rows.find((q) => q.row === rr); if (mr) { this.winOpen(this.winFind('', 'min').find((e) => e.id === mr.id)); return true; } if (rr === MW.more) { this._flyPin = !this._flyPin; this.minFly(this._flyPin); this._flyAt = performance.now(); this.layout(); return true; } } }   // 레벨바 누르기 = 찾기 판 고정 · 다시 누르면 풀고 닫기   // 최소화 창 — 줄 = 되살리기 · 더보기 = 찾기 판
     if (rr === K.hr) { this.ctlMode(); return true; }
     const R = K.rows && K.rows.find((q) => q.row === rr); if (!R) return false;
     const it = K.list[R.k];
@@ -877,7 +877,7 @@ class Component extends DCLogic {
   cssGlow(c, a) { const m = /^rgba?\(([^)]+)\)$/.exec(c); if (!m) return c; const v = m[1].split(',').map(Number), g = (x) => Math.round(x + (255 - x) * a); return this.qcss('rgb(' + g(v[0]) + ',' + g(v[1]) + ',' + g(v[2]) + ')'); }
   // ───── 창 목록 — 지금 떠 있는 창 · 최소화한 창 (전역: 모든 노드의 창). 종류: 제어기 (앞으로 더 늘어남) ─────
   //   { id, node, kind, R, st: 'open' | 'min', at }. 같은 노드 · 같은 종류의 창은 하나
-  WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인', mod: '모듈', web: '브라우저', net: '네트워크', svi: 'SVI', alarm: '알림', opconsole: 'op 콘솔', treeadmin: 'Tree 관리' }; }
+  WINKIND() { return { ctl: '제어기', star: '스타메이커', conf: '설정', stat: '상태', share: '자원', res: '자원 상태', login: '로그인', mod: '모듈', web: '브라우저', net: '네트워크', svi: 'SVI', alarm: '알림', opconsole: 'op 콘솔', treeadmin: 'Tree 관리', shell: '앱' }; }
   // 창 종류마다의 자리 · 기본 크기 · 바탕 — 상태 창은 CLI 처럼 바탕이 비친다(글자 장 구멍 없음)
   // 이 GUI 가 떠 있는 노드(로컬) — 노드 설정 쓰기는 여기만 된다(terra.daemon.config.patch 는 로컬 전용). 시안: 지도의 첫 리프
   // 알림 창 — 전역 하나(이 GUI 를 띄운 노드의 Daemon 알림). 안 읽은 수는 알림 책에서 — 실제 window.TerraAlarmBook(src/api/alarms.js) · 시안 window.TerraAlarmDemo(알림 창이 만든다)
@@ -964,10 +964,17 @@ class Component extends DCLogic {
     if (gone.length) setTimeout(() => { for (const [old, W] of gone) { this.winDrop(old, 'ctl'); if (W) this.ctlClose(W, true); } this.layout(); }, 0);
   }
   ctlWatchAll() { for (const n of [...(this._ctlWatched || new Map()).keys()]) this.ctlWatch(n, false); }
-  winTitle(e) { const m = e.kind === 'mod' ? this.modsOf(e.node).find((q) => q.id === e.arg) : null, a = e.kind === 'web' && (e.arg || '').startsWith('mod|') ? this.modCatalog(e.node).find((q) => q.arg === e.arg) : null; return (m ? m.name + ' · ' : a ? a.appName + ' · ' : '') + e.node.name + ' ' + this.WINKIND()[e.kind]; }
+  winTitle(e) { if (e.shell) return (e.nodeName ? e.nodeName + ' · ' : '') + e.title; const m = e.kind === 'mod' ? this.modsOf(e.node).find((q) => q.id === e.arg) : null, a = e.kind === 'web' && (e.arg || '').startsWith('mod|') ? this.modCatalog(e.node).find((q) => q.arg === e.arg) : null; return (m ? m.name + ' · ' : a ? a.appName + ' · ' : '') + e.node.name + ' ' + this.WINKIND()[e.kind]; }
   winAgo(e) { const s = Math.max(0, (performance.now() - e.at) / 1000); return s < 60 ? '방금' : s < 3600 ? Math.floor(s / 60) + 'm 전' : Math.floor(s / 3600) + 'h 전'; }
   // 찾기 — 노드 이름 · 종류 · 상태 글자 어디든 맞으면
-  winFind(q, st) { q = (q || '').trim().toLowerCase(); return (this._wins || []).filter((e) => (!st || e.st === st) && (!q || (this.winTitle(e) + ' ' + (e.st === 'min' ? '최소화' : '열림')).toLowerCase().includes(q))).sort((a, b) => b.at - a.at); }
+  // 셸이 연 모듈 웹 앱 창(예: Node Talk)의 최소화 — 셸 트레이 대신 이 목록이 보인다. 항목 = { id, sid, kind: 'shell', shell, st: 'min', at, title, nodeName }. 되살리기 · 닫기는 셸에 되돌린다(window.TerraShellMin = main.js 가 frame.minimized 로 이음)
+  shellMins() {
+    const M = typeof window !== 'undefined' ? window.TerraShellMin : null; if (!M) return [];
+    if (!this._shellHook) { this._shellHook = () => { if (this._live === false) return; this.dataLayout(); if (this._fly && this._fly.open) this.minFlyList(); }; try { window.addEventListener('terra-shell-min', this._shellHook); } catch (e) {} }
+    return M.list().map((w) => ({ id: 'shell:' + w.id, sid: w.id, kind: 'shell', shell: true, st: 'min', at: w.at, title: w.title, nodeName: w.nodeName || '' }));
+  }
+  winName(e) { return e.shell ? e.title : e.node.name; }
+  winFind(q, st) { q = (q || '').trim().toLowerCase(); return (this._wins || []).concat(this.shellMins()).filter((e) => (!st || e.st === st) && (!q || (this.winTitle(e) + ' ' + (e.st === 'min' ? '최소화' : '열림')).toLowerCase().includes(q))).sort((a, b) => b.at - a.at); }
   // 우클릭 속성 — { x, y, r, name, kind, props: [[이름, 값]…], track: () => [x, y] | null } (씬이 노드를 골라 넘긴다). 다른 곳을 누르거나 ESC · 노드가 사라지면 닫힘
   popRow(x, y) { const Q = this._pop, G = Q && Q.geo; if (!G) return null; const rr = Math.floor(y / this._ch); if (rr < G.r0 || rr >= G.r1 || x < G.x0 - this._cw || x > G.x1 + this._cw) return null; return rr - G.r0; }
   popTap(x, y) { const j = this.popRow(x, y); if (j == null) return false; const a = (this._pop.acts || [])[j]; this._popAt = [this._pop.x, this._pop.y]; this.popHide(); if (a && a.run) a.run(); this._popAt = null; return true; }
@@ -982,7 +989,7 @@ class Component extends DCLogic {
   ctlMin(W) { W = W || this._ctlWin; if (!W) return; this.winPut(W, 'min'); this.ctlClose(W); this.layout(); }
   ctlX(W) { W = W || this._ctlWin; if (!W) return; this.winDrop(W.node, W.kind); this.ctlClose(W); this.layout(); }
   // 되살리기 — 최소화 창 · 최소화 폴더에서. 저장해 둔 자리 · 크기로 중앙 생성
-  winOpen(e) { if (!e) return; if (!this._flyPin) this.minFly(false); this.ctlOpenWin(e.node, e.R, e.kind, e.arg); if (this._fly && this._fly.open) this.minFlyList(); }
+  winOpen(e) { if (!e) return; if (!this._flyPin) this.minFly(false); if (e.shell) { if (window.TerraShellMin) window.TerraShellMin.restore(e.sid); if (this._fly && this._fly.open) this.minFlyList(); return; } this.ctlOpenWin(e.node, e.R, e.kind, e.arg); if (this._fly && this._fly.open) this.minFlyList(); }
   // ───── 더보기 ▶ — 오른쪽에 뜨는 최소화 창 찾기 판 (레거시 틀 + 입력 칸 + 목록). '더보기' 줄에 호버하면 열리고, 판과 줄을 모두 떠나면 0.25초 뒤 닫힌다 ─────
   minFly(on) {
     const host = this._cv && this._cv.parentElement; if (!host) return;
@@ -1037,10 +1044,11 @@ class Component extends DCLogic {
       Object.assign(row.style, { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 6px', cursor: 'pointer', background: on ? 'rgba(var(--t-tint-rgb,70,170,110),0.2)' : 'transparent', boxShadow: on ? 'inset 2px 0 0 rgba(var(--t-line-rgb,70,160,108),0.95)' : 'none' });
       const sp = (t, st) => { const s2 = document.createElement('span'); s2.textContent = t; Object.assign(s2.style, st); row.appendChild(s2); };
       sp('>_', { font: '700 12px ' + MONO, color: 'rgb(120,232,156)' });
-      sp(e.node.name, { fontWeight: '700', color: on ? 'rgb(208,255,150)' : 'rgb(214,244,222)' });
+      sp(this.winName(e), { fontWeight: '700', color: on ? 'rgb(208,255,150)' : 'rgb(214,244,222)' });
       sp(this.WINKIND()[e.kind], { color: 'rgb(112,156,128)' });
       sp('', { flex: '1' });
       sp(this.winAgo(e), { font: '500 11px ' + MONO, color: 'rgb(84,128,100)' });
+      if (e.shell) { const x = document.createElement('span'); x.textContent = '×'; x.title = '창 닫기'; x.setAttribute('role', 'button'); x.setAttribute('aria-label', e.title + ' 닫기'); Object.assign(x.style, { font: '700 13px ' + MONO, color: 'rgb(152,196,168)', padding: '0 4px', cursor: 'pointer' }); x.addEventListener('click', (ev) => { ev.stopPropagation(); if (window.TerraShellMin) window.TerraShellMin.close(e.sid); }); row.appendChild(x); }   // 셸 창은 × 로 닫는다(최소화 목록에서도 빠진다)
       row.addEventListener('pointerenter', () => { if (F.sel !== k) { F.sel = k; this.minFlyList(); } });
       row.addEventListener('click', () => this.winOpen(e));
       F.list.appendChild(row);

@@ -12,6 +12,7 @@ import { useGpuField } from '../scene/scene-bridge.js';
 import { createTerra, canRemote, permissionsOf } from '../api/terra.js';
 import { createSession } from '../api/session.js';
 import * as externalSites from '../api/external-sites.js';
+import { createShellMin } from '../api/shell-minimized.js';
 import { createGatewayTransport } from '../api/transport.js';
 import { buildTopology, loadTopology, loadTopologyState, nodeStats, fmtBytes } from '../api/topology.js';
 import { createTheme } from '../ui/theme.js';
@@ -280,6 +281,8 @@ if (MODE !== 'demo') {
   // A 모드 — 셸의 init 을 받으면 지도부터. 셸이 답하지 않으면(15초) 데이터 없이 연다(로그인 보드는 "셸이 응답하지 않아요")
   if (MODE === 'app') appReady.then((f) => {
     frame = f; if (!f) { say('셸 응답 없음 — Terra 데이터 없음'); return; }
+    // 셸이 연 웹 앱 창(Node Talk 등)의 최소화 — 셸 트레이 대신 이 GUI 의 '최소화 창'이 보인다(셸이 minimize 기능을 말할 때만)
+    window.TerraShellMin = createShellMin(f, { notify: () => window.dispatchEvent(new Event('terra-shell-min')) }) || undefined;
     const sec = hostSecretOf(f);
     if (sec) bindHostSecret({ secret: sec, login: () => window.__terra && window.__terra.login(), scene: () => window.__terra && window.__terra.scene, wanted: () => { const lg = window.__terra && window.__terra.login(); return !f.token() && !rememberedMode(f, lg && lg.state); } });   // 토큰이 있으면(이미 로그인) · 기억으로 들어갈 자리면 칸을 두지 않는다
     let had = !!f.token();
