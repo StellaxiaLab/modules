@@ -340,6 +340,10 @@ func (s *service) stop(id string, timeout time.Duration) (*StopResult, error) {
 			return nil, errf(500, "WORKLOAD_UNAVAILABLE", "%s did not exit after a forced kill", id)
 		}
 	}
+	if cont != nil {
+		// Descendants that left the process group outlive a graceful exit.
+		sweepAfterStop(cont)
+	}
 	s.st.appendEvent(id, "stopped", map[string]any{"forced": rs.forced})
 	s.mu.Lock()
 	defer s.mu.Unlock()
