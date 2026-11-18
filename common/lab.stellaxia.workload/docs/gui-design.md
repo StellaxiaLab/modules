@@ -11,7 +11,7 @@ version: "0.1.0"
 last_updated: "2026-11-18"
 language: "ko-KR"
 based_on:
-  contract: "common/lab.stellaxia.workload/contracts/api/terra-api.json (op 12 · 권한 2 · 오류 10)"
+  contract: "common/lab.stellaxia.workload/contracts/api/terra-api.json (op 12 · 권한 2 · 오류 11)"
   code: "common/lab.stellaxia.workload/src (model.go · service.go · supervisor.go · logs.go · elevation.go)"
   gui: "common/lab.stellaxia.gui-v3 (docs/design/visual-system.md · desk-flows.md · web/src/ui/base.css)"
 related:
@@ -54,7 +54,7 @@ Terra 를 모르는 프로그램을 경로로 참조 등록하고 시작 · 정�
 | D1 | **노드를 먼저 고르고** 그 노드의 workload 창을 연다 — 제어기(노드 데스크톱) 앱 `workload` **[제안]** | 참조 등록은 `scope: node-local`, 없는 id 는 "이 노드에 없다". 노드 범위 → 창이라는 [[menu-hierarchy]]의 방향과 같다 |
 | D2 | 창 하나에 **목록 ⇄ 상세 ⇄ 폼** 을 같은 창 안에서 바꾸고, **로그 · 이력은 상세의 탭**(+ 목록 행의 '로그' 바로가기) **[제안]** | 창 종류마다 자리 수가 한정된다(window-layer). 같은 대상은 창 하나 규칙 |
 | D3 | 보드 이름 `Workload.dc.html`, 기본 크기 860×640 **[제안]** | 설정 창 · 자원 창(860×600)과 같은 급 |
-| D4 | 환경 선언값은 **키만** 보인다. 입력 칸은 password 형, 저장 뒤엔 `키 + 값 숨김` | NFR-13 · 요구사항. 단 계약상 값이 응답으로 돌아옴 → 간극 G4 |
+| D4 | 환경 선언값은 **키만** 보인다. 입력 칸은 password 형, 저장 뒤엔 `키 + 값 숨김` | NFR-13 · 요구사항. 응답도 `env.override_keys`(키 이름만)로 바뀌었다 [확인함: 합친 코드] → 간극 G4 |
 | D5 | drift 는 **경고 칩(노랑)** 이지 오류가 아니다. 단추를 막지 않는다 | README "drift는 표시" (D-16) |
 | D6 | 승격 거부는 **창 위 띠 + 4개 단추 잠금**, 정지 · 해제 · 읽기는 열어 둠 | `elevation.go` 의 열린/닫힌 목록 그대로 |
 | D7 | 일괄 작업 · 스트리밍은 **만들지 않는다** (계약에 없음) | §8 |
@@ -192,7 +192,7 @@ stateDiagram-v2
 1. 등록 폼에서는 값을 password 형으로 받고 저장하면 화면에서 버린다. 상세 · 수정 폼에는 **키 칩 + "값 숨김 · 저장됨"** 만 둔다.
 2. [확인함] `update` 의 `env` 는 **선언값 전체를 통째로 바꾼다**(`Overrides = filterSecrets(o)`) — 부분 수정이 아니다. 그래서 수정 폼이 일부 키만 바꾸려면 안 바뀐 키의 값도 다시 보내야 한다. GUI 는 `get` 응답으로 받은 값을 **메모리에만** 쥐고(표시 안 함) 바뀐 키만 새 값으로 덮어 다시 보낸다. 값이 필요 없는 흐름(키 삭제 · 추가)은 이대로 됨.
 3. 셸 환경 스냅샷(`env_snapshot`)은 브라우저가 읽을 수 없어 **보내지 않는다.** 그래서 GUI 로 등록한 건 `env.mode = declared`. 칩으로 "환경 방식: declared (안전 키 + 선언값)"을 늘 보여 준다. 스냅샷이 있는 등록을 수정해도 스냅샷은 유지된다(`env_snapshot` 미전송 시 [확인함]: 기존 파일 그대로).
-4. 비밀을 넣지 말라는 안내를 칸 아래에 둔다 — 계약이 `overrides` 값을 응답에 돌려주기 때문(G4).
+4. 응답은 `override_keys`(키 이름만)라 값이 돌아오지 않는다. 다만 값은 서버의 `record.json`(0600)에 평문으로 저장되므로 비밀 취급 안내는 칸 아래에 유지한다(G4).
 
 저장 단추 행: `검사 보기`(시안 전용) · 취소 · 등록/저장. 수정 모드에서 실행 중이면 "다음 시작부터 적용됩니다. 저장 뒤 재시작해야 반영" 띠.
 
@@ -262,7 +262,8 @@ StateBand 네 가지에 맞춘다.
 | `WORKLOAD_UNAVAILABLE` | 503 | 가능 | 모든 호출 | 못 봤음 · "모듈이 아직 준비 중입니다" | "조금 뒤 자동으로 다시 시도합니다 (5 → 10 → 30초)" · 다시 시도 |
 | `WORKLOAD_NOT_FOUND` | 404 | 아님 | get · 조작 · 로그 · 이력 | 없음 · "이 노드에는 그런 등록이 없습니다" | "다른 노드에서 등록한 것이면 그 노드에서 보세요. 참조 등록은 등록한 노드에서만 유효합니다." · 목록으로 |
 | `WORKLOAD_ALREADY_EXISTS` | 409 | 아님 | register | 이미 있음 · "같은 id 가 이미 등록돼 있습니다" | "다른 id 를 쓰거나, 실행 중이 아니면 '교체' 를 켜서 다시 저장하세요." · 교체로 저장(체크 노출) |
-| `WORKLOAD_ID_INVALID` | 400 | 아님 | register · update | 입력 오류 · "id 는 local. 로 시작해야 합니다" | 규칙 안내, 칸으로 이동. 다른 입력값(restart 정책 · env 형식 `KEY=VALUE`)도 같은 코드라 message 를 덧붙임 |
+| `WORKLOAD_ID_INVALID` | 400 | 아님 | register · update | 입력 오류 · "id 는 local. 로 시작해야 합니다" | id 규칙 안내, 칸으로 이동 (id 규칙 전용으로 좁혀짐) |
+| `WORKLOAD_INPUT_INVALID` | 400 | 아님 | register · update · stop | 입력 오류 · "입력값이 올바르지 않습니다" | restart 정책 · env 형식 `KEY=VALUE` · 본문 형식 오류. 서버 message 를 덧붙이고 해당 칸으로 이동 |
 | `WORKLOAD_EXEC_NOT_FOUND` | 400 | 아님 | register | 실행 파일 없음 · "그 경로에 파일이 없습니다" | "절대경로인지, 디렉터리가 아닌 파일인지 확인하세요." · 칸으로 이동 |
 | `WORKLOAD_EXEC_NOT_EXECUTABLE` | 400 | 아님 | register · start · restart | 실행 불가 · "파일은 있지만 실행할 수 없습니다" | "실행 권한 또는 실행 형식을 확인하세요." |
 | `WORKLOAD_EXEC_MISSING` | 409 | 아님 | start · restart | 원본 사라짐 · "등록한 뒤 실행 파일이 사라졌습니다" | "파일을 되돌리거나 같은 id 로 다시 등록(교체)하세요. 상태는 unavailable." · 교체 등록 열기 |
@@ -321,7 +322,7 @@ StateBand 네 가지에 맞춘다.
 | G1 | 승격 여부를 **쓰기 전에** 앎 | `health.get` = `{status, version}` | 첫 거부 뒤에야 띠. 제안: `health.get` 에 `elevated: boolean` |
 | G2 | 목록의 **drift** | 목록은 해시를 계산하지 않아 `source.drift` 가 늘 저장값(false) [확인함] | 행마다 `status.get` N+1. 제안: list 가 drift 를 계산(비용: 파일 해시 N 개) 하거나 stat(mtime · size) 비교 필드 |
 | G3 | failed · 재시작 대기 · stopped 의 **재시작 횟수** | 프로세스가 끝나면 `instance` 가 비워짐 | 목록 `—`. 제안: `spec` 옆에 `restart_state{count, consecutive}` 또는 instance 를 남김 |
-| G4 | 환경 선언값의 **값 비노출** | `spec.env.overrides` 가 응답에 값째 돌아옴(계약 · 코드). README 는 "응답에는 키 이름만"이라 하나 이는 스냅샷 한정으로 읽힘 | GUI 는 표시하지 않지만 전송 · 로그에는 남음. 제안: 응답은 `override_keys` 만, `update.env` 는 키별 병합/삭제(`env_remove`)로 |
+| G4 | 환경 선언값의 **값 비노출** | 합친 코드에서 응답은 `env.override_keys`(키 이름만)다. 값은 `record.json`(0600)에 평문 저장. 단 `update.env` 는 여전히 **선언값 전체 교체**라 부분 수정이 안 된다 [확인함] | 일부 키만 바꾸려면 값을 다시 보내야 함. 제안: 키별 병합/삭제(`env_remove`) |
 | G5 | `app` 권한 | gui-v3 `module.json` 앱 권한에 `workload.*` 없음 | 그대로면 GUI 호출이 403. 제안: `gui.apps[0].permissions` 에 `workload.read · workload.manage` 추가(코어에 앱 권한 목록 · `APP_PERMS` 시험 동기화 포함) — gui-v3 쪽 작업 |
 | G6 | exec_path 변경 · 해시 재기준(re-baseline) | update 에 없음 | 교체 등록(정지 필요)만 가능. 제안: update 에 `exec_path` 또는 `rebaseline: true` |
 | G7 | 로그 회전 **누락 없이** 감지 | `after > size` 일 때만 `rotated` | 드문 무신호 누락. 제안: 응답에 파일 세대 번호(`generation`)를 담아 비교 |
