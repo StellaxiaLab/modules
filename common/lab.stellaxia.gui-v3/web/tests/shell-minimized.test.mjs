@@ -76,7 +76,8 @@ test('최소화 폴더 — 셸 항목은 전역 모드에만 보이고(지역 �
 
 test('Scene 은 Field 를 다시 구운 것이므로 같은 합침을 갖는다(gf_ 접두)', () => {
   const S = rd('Scene');
-  for (const m of ['gf_shellMins()', 'gf_winName(e)', "if (e.shell) { if (window.TerraShellMin) window.TerraShellMin.restore(e.sid)"]) assert.ok(S.includes(m), m);
+  // 줄 누르기는 gf_wins 가 아니라 winFind(셸 항목 포함)에서 찾는다 — 실기에서 셸 항목 줄이 안 눌리던 결함
+  for (const m of ['gf_shellMins()', 'gf_winName(e)', "if (e.shell) { if (window.TerraShellMin) window.TerraShellMin.restore(e.sid)", "this.gf_winOpen(this.gf_winFind('', 'min').find((e) => e.id === mr.id))"]) assert.ok(S.includes(m), m);
   const m = JSON.parse(readFileSync(fileURLToPath(new URL('../../module.json', import.meta.url)), 'utf8')), go = readFileSync(fileURLToPath(new URL('../../src/main.go', import.meta.url)), 'utf8');
   assert.ok(go.includes('moduleVersion = "' + m.version + '"'));
 });

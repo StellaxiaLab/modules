@@ -659,7 +659,7 @@ class Component extends DCLogic {
     { const Q = this._here; if (Q && this._lg && this._lg.on && Math.floor(y / this._ch) === Q.row && x >= Q.x0 - 4 && x <= Q.x1 + 4) { this.goHere(); return true; } }   // 로컬 위치로
     const K = this._ctl; if (!K || !(this._lg && this._lg.open)) return false;
     const rr = Math.floor(y / this._ch); if (x < K.x0 - this._cw || x > K.x1 + this._cw) return false;
-    { const MW = this._mw; if (MW) { const mr = MW.rows.find((q) => q.row === rr); if (mr) { this.winOpen((this._wins || []).find((e) => e.id === mr.id)); return true; } if (rr === MW.more) { this._flyPin = !this._flyPin; this.minFly(this._flyPin); this._flyAt = performance.now(); this.layout(); return true; } } }   // 레벨바 누르기 = 찾기 판 고정 · 다시 누르면 풀고 닫기   // 최소화 창 — 줄 = 되살리기 · 더보기 = 찾기 판
+    { const MW = this._mw; if (MW) { const mr = MW.rows.find((q) => q.row === rr); if (mr) { this.winOpen(this.winFind('', 'min').find((e) => e.id === mr.id)); return true; } if (rr === MW.more) { this._flyPin = !this._flyPin; this.minFly(this._flyPin); this._flyAt = performance.now(); this.layout(); return true; } } }   // 레벨바 누르기 = 찾기 판 고정 · 다시 누르면 풀고 닫기   // 최소화 창 — 줄 = 되살리기 · 더보기 = 찾기 판
     if (rr === K.hr) { this.ctlMode(); return true; }
     const R = K.rows && K.rows.find((q) => q.row === rr); if (!R) return false;
     const it = K.list[R.k];
