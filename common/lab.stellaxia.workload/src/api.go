@@ -79,6 +79,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, rec.WorkloadID, "register", true)
 		writeJSON(w, 201, rec)
 	})
 
@@ -103,6 +104,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, rec.WorkloadID, "update", true)
 		writeJSON(w, 200, rec)
 	})
 
@@ -113,6 +115,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, id, "delete", false)
 		writeJSON(w, 200, map[string]any{"workload_id": id, "removed": true})
 	})
 
@@ -134,6 +137,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, rec.WorkloadID, "start", true)
 		writeJSON(w, 200, map[string]any{"workload_id": rec.WorkloadID, "status": rec.Status, "instance": rec.Instance})
 	})
 
@@ -154,6 +158,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, r.PathValue("workload_id"), "stop", true)
 		writeJSON(w, 200, res)
 	})
 
@@ -163,6 +168,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, rec.WorkloadID, "restart", true)
 		writeJSON(w, 200, map[string]any{"workload_id": rec.WorkloadID, "status": rec.Status, "instance": rec.Instance})
 	})
 
