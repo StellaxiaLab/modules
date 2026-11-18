@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -43,9 +44,10 @@ var workloadIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{2,127}$`)
 
 const localPrefix = "local."
 
-// Workload is the record the module keeps for one registered program. It never
-// carries environment VALUES: the snapshot lives in its own user-only file and
-// only its key names appear here (NFR-13).
+// Workload is the record the module keeps for one registered program. The
+// shell snapshot's VALUES live in their own user-only file. The declared
+// overrides' values are kept in record.json (0600) because a launch needs them,
+// but no API response carries them: publicView swaps them for key names (NFR-13).
 type Workload struct {
 	WorkloadID  string    `json:"workload_id"`
 	DisplayName string    `json:"display_name"`
@@ -80,6 +82,24 @@ type EnvSpec struct {
 	Mode      string            `json:"mode"`
 	Keys      []string          `json:"keys"`
 	Overrides map[string]string `json:"overrides,omitempty"`
+	// OverrideKeys is only filled in API responses (see publicView); it is
+	// never stored.
+	OverrideKeys []string `json:"override_keys,omitempty"`
+}
+
+// publicView returns w as an API response shows it: declared override values
+// are replaced by their key names. It mutates w, so call it on a clone.
+func publicView(w *Workload) *Workload {
+	if len(w.Spec.Env.Overrides) > 0 {
+		keys := make([]string, 0, len(w.Spec.Env.Overrides))
+		for k := range w.Spec.Env.Overrides {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		w.Spec.Env.OverrideKeys = keys
+	}
+	w.Spec.Env.Overrides = nil
+	return w
 }
 
 type Restart struct {

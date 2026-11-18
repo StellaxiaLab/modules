@@ -57,6 +57,7 @@ func newService(st *store) (*service, error) {
 	if err != nil {
 		return nil, err
 	}
+	st.reportCorrupt()
 	for _, w := range list {
 		// A program cannot have survived this module's death (FR-H5), so
 		// whatever the record said, nothing is running now.
@@ -140,7 +141,7 @@ func parseEnvPairs(pairs []string) (map[string]string, error) {
 	for _, p := range pairs {
 		k, v, ok := strings.Cut(p, "=")
 		if !ok || k == "" {
-			return nil, errf(400, "WORKLOAD_ID_INVALID", "env entry %q must be KEY=VALUE", p)
+			return nil, errf(400, "WORKLOAD_INPUT_INVALID", "env entry %q must be KEY=VALUE", p)
 		}
 		out[k] = v
 	}
@@ -177,10 +178,10 @@ func validateRestart(r Restart) error {
 	switch r.Policy {
 	case RestartNever, RestartOnFailure, RestartAlways:
 	default:
-		return errf(400, "WORKLOAD_ID_INVALID", "restart policy %q must be never, on-failure or always", r.Policy)
+		return errf(400, "WORKLOAD_INPUT_INVALID", "restart policy %q must be never, on-failure or always", r.Policy)
 	}
 	if r.MaxRestarts < 0 || r.BackoffMs < 0 {
-		return errf(400, "WORKLOAD_ID_INVALID", "max_restarts and backoff_ms cannot be negative")
+		return errf(400, "WORKLOAD_INPUT_INVALID", "max_restarts and backoff_ms cannot be negative")
 	}
 	return nil
 }
@@ -269,7 +270,7 @@ func (s *service) register(in registerInput) (*Workload, error) {
 	}
 	s.entries[w.WorkloadID] = &entry{w: w}
 	s.st.appendEvent(w.WorkloadID, "registered", map[string]any{"exec_path": w.Source.ExecPath})
-	return clone(w), nil
+	return publicView(clone(w)), nil
 }
 
 func nonNil(a []string) []string {
@@ -306,7 +307,7 @@ func (s *service) list() []*Workload {
 	out := make([]*Workload, 0, len(s.entries))
 	for _, e := range s.entries {
 		s.refreshAvailability(e.w)
-		out = append(out, clone(e.w))
+		out = append(out, publicView(clone(e.w)))
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].WorkloadID < out[j].WorkloadID })
 	return out
@@ -325,7 +326,7 @@ func (s *service) get(id string) (*Workload, error) {
 		return nil, notFound(id)
 	}
 	s.refreshAvailability(e.w)
-	c := clone(e.w)
+	c := publicView(clone(e.w))
 	// drift is a report, not an error (D-16)
 	if now, err := fileDigest(c.Source.ExecPath); err == nil {
 		c.Source.DigestNow = now
@@ -407,7 +408,7 @@ func (s *service) update(in updateInput) (*Workload, error) {
 	}
 	e.w.DisplayName, e.w.Spec, e.w.UpdatedAt = w.DisplayName, w.Spec, w.UpdatedAt
 	s.st.appendEvent(w.WorkloadID, "updated", nil)
-	return clone(e.w), nil
+	return publicView(clone(e.w)), nil
 }
 
 func (s *service) remove(id string, force bool) error {
