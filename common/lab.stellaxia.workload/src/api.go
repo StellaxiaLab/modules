@@ -37,13 +37,13 @@ func writeAPIError(w http.ResponseWriter, err error) {
 func decodeBody(r *http.Request, v any) error {
 	data, err := io.ReadAll(http.MaxBytesReader(nil, r.Body, 1<<20))
 	if err != nil {
-		return errf(400, "WORKLOAD_ID_INVALID", "unreadable request body: %v", err)
+		return errf(400, "WORKLOAD_INPUT_INVALID", "unreadable request body: %v", err)
 	}
 	if len(data) == 0 {
 		return nil
 	}
 	if err := json.Unmarshal(data, v); err != nil {
-		return errf(400, "WORKLOAD_ID_INVALID", "request body is not valid JSON: %v", err)
+		return errf(400, "WORKLOAD_INPUT_INVALID", "request body is not valid JSON: %v", err)
 	}
 	return nil
 }
