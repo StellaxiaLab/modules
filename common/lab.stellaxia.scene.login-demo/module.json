@@ -3,7 +3,7 @@
   "schemaVersion": 2,
   "id": "lab.stellaxia.scene.login-demo",
   "name": "Terra 로그인 데모",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "kind": "scene",
   "description": "id·비밀번호를 받아 Gateway Credential Service로 인증하고 성공·실패를 표시하는 최소 Scene 모듈. Scene Function의 onError 실패 경로를 보여주는 참조 구현이다.",
   "compatibility": {
@@ -13,6 +13,7 @@
   "entrypoints": {
     "scene": "scene/scene.json"
   },
+  "permissions": {},
   "contributions": {
     "gui": {
       "scenes": [

@@ -3,7 +3,7 @@
   "schemaVersion": 2,
   "id": "lab.stellaxia.scene.hello",
   "name": "Hello Terra",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "kind": "scene",
   "description": "화면 한가운데에 Hello Terra 한 줄을 띄우는 최소 Scene 모듈. Store도 Function도 Operation도 없어서, 이것이 뜨지 않으면 원인은 Scene 내용이 아니라 로드·기여·포장 중 하나다.",
   "compatibility": {
@@ -13,6 +13,7 @@
   "entrypoints": {
     "scene": "scene/scene.json"
   },
+  "permissions": {},
   "contributions": {
     "gui": {
       "scenes": [

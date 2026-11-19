@@ -20,7 +20,7 @@ import (
 	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
-const moduleVersion = "0.2.1"
+const moduleVersion = "0.2.2"
 
 // defaultMasterURL matches the tree role's backend in the port table
 // (products/common/host/host/config.go). A node that moved its Master sets

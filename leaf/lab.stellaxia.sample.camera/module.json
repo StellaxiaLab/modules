@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "lab.stellaxia.sample.camera",
   "name": "Sample RTSP Camera",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "kind": "service",
   "description": "The reference resourcizer module (Terra resourcizer framework R4): one type, camera.rtsp, turns an RTSP address into an SVI source resource. A user fills its form (address, user, password) in the controller, the node declares the instance, and the module streams the camera's RTP packets as binding frames — to a file sink to record, or to any node a grant allows. It is the source seam's first consumer until remote-view takes that place.",
   "compatibility": {
@@ -25,13 +25,14 @@
     "capabilities": [
       {
         "id": "lab.stellaxia.sample.camera",
-        "version": "0.1.0"
+        "version": "0.1.1"
       }
     ]
   },
   "contracts": {
     "api": "contracts/api/terra-api.json"
   },
+  "permissions": {},
   "contributions": {
     "svi": {
       "resources": true,

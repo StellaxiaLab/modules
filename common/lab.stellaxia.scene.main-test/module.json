@@ -3,7 +3,7 @@
   "schemaVersion": 2,
   "id": "lab.stellaxia.scene.main-test",
   "name": "MAIN Test",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "kind": "scene",
   "description": "흰 바탕 한가운데에 MAIN Test를 크게 띄우는 main 분기 시험 모듈. 얇은 Scene이 같은 모듈의 웹(ui/index.html)을 terra.web/frame으로 감싼다. 웹은 호출을 하지 않으므로 권한을 선언하지 않는다.",
   "compatibility": {
@@ -13,6 +13,7 @@
   "entrypoints": {
     "scene": "scene/scene.json"
   },
+  "permissions": {},
   "contributions": {
     "gui": {
       "scenes": [

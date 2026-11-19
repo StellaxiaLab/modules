@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "lab.stellaxia.sample.window",
   "name": "Terra Sample Window App",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "kind": "service",
   "description": "The reference window-mode GUI app: a module that opens its own web server for its UI and reports that origin through the SDK handshake, so the launcher can health-gate it and open it as its own top-level window. The pattern any main program with an existing web-server GUI follows to become an extension module.",
   "compatibility": {
@@ -18,12 +18,13 @@
   },
   "provides": {
     "capabilities": [
-      { "id": "lab.stellaxia.sample.window", "version": "0.2.0" }
+      { "id": "lab.stellaxia.sample.window", "version": "0.2.1" }
     ]
   },
   "contracts": {
     "api": "contracts/api/terra-api.json"
   },
+  "permissions": {},
   "contributions": {
     "gui": {
       "apps": [
