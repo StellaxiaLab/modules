@@ -28,7 +28,7 @@ import (
 	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
-const moduleVersion = "0.1.0"
+const moduleVersion = "0.1.1"
 
 // greeting is what `terra hello` prints. Fixed on purpose: this module is a
 // probe, and a probe whose answer varies cannot tell you the pipeline worked.

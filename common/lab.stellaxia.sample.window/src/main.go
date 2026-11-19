@@ -25,7 +25,7 @@ import (
 	modulesdk "github.com/StellaxiaLab/terra-sdk/modulesdk"
 )
 
-const moduleVersion = "0.2.0"
+const moduleVersion = "0.2.1"
 
 //go:embed ui/index.html
 var indexHTML []byte
