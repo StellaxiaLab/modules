@@ -25,7 +25,7 @@ import (
 
 const (
 	moduleID      = "lab.stellaxia.sample.camera"
-	moduleVersion = "0.1.1"
+	moduleVersion = "0.1.0"
 )
 
 // cameraConfig is the camera.rtsp form.
