@@ -30,7 +30,13 @@
       "title": "이미 있음"
     },
     "WORKLOAD_ID_INVALID": {
-      "description": "id 규칙(local. 접두) 또는 입력 값이 맞지 않는다.",
+      "description": "id가 규칙(local. 접두, 허용 문자·길이)에 맞지 않는다.",
+      "httpStatus": 400,
+      "retryable": false,
+      "title": "id 오류"
+    },
+    "WORKLOAD_INPUT_INVALID": {
+      "description": "id 외의 입력이 맞지 않는다 — 읽을 수 없는 본문, JSON이 아닌 본문, KEY=VALUE가 아닌 환경 선언값, 허용되지 않는 재시작 정책, 음수 값.",
       "httpStatus": 400,
       "retryable": false,
       "title": "입력 오류"
@@ -386,11 +392,11 @@
                             },
                             "title": "스냅샷 키"
                           },
-                          "overrides": {
-                            "type": "object",
-                            "title": "선언값",
-                            "description": "등록자가 직접 준 값. 비밀은 넣지 않는다.",
-                            "additionalProperties": {
+                          "override_keys": {
+                            "type": "array",
+                            "title": "선언값 키",
+                            "description": "등록자가 직접 준 선언값의 키 이름. 값은 응답에 나오지 않는다 (NFR-13).",
+                            "items": {
                               "type": "string"
                             }
                           }
@@ -624,6 +630,7 @@
       "errors": [
         "WORKLOAD_UNAVAILABLE",
         "WORKLOAD_ID_INVALID",
+        "WORKLOAD_INPUT_INVALID",
         "WORKLOAD_EXEC_NOT_FOUND",
         "WORKLOAD_EXEC_NOT_EXECUTABLE",
         "WORKLOAD_ALREADY_EXISTS",
@@ -858,11 +865,11 @@
                       },
                       "title": "스냅샷 키"
                     },
-                    "overrides": {
-                      "type": "object",
-                      "title": "선언값",
-                      "description": "등록자가 직접 준 값. 비밀은 넣지 않는다.",
-                      "additionalProperties": {
+                    "override_keys": {
+                      "type": "array",
+                      "title": "선언값 키",
+                      "description": "등록자가 직접 준 선언값의 키 이름. 값은 응답에 나오지 않는다 (NFR-13).",
+                      "items": {
                         "type": "string"
                       }
                     }
@@ -1231,11 +1238,11 @@
                       },
                       "title": "스냅샷 키"
                     },
-                    "overrides": {
-                      "type": "object",
-                      "title": "선언값",
-                      "description": "등록자가 직접 준 값. 비밀은 넣지 않는다.",
-                      "additionalProperties": {
+                    "override_keys": {
+                      "type": "array",
+                      "title": "선언값 키",
+                      "description": "등록자가 직접 준 선언값의 키 이름. 값은 응답에 나오지 않는다 (NFR-13).",
+                      "items": {
                         "type": "string"
                       }
                     }
@@ -1454,6 +1461,7 @@
         "WORKLOAD_UNAVAILABLE",
         "WORKLOAD_NOT_FOUND",
         "WORKLOAD_ID_INVALID",
+        "WORKLOAD_INPUT_INVALID",
         "WORKLOAD_DAEMON_ELEVATED",
         "WORKLOAD_PERMISSION_DENIED"
       ],
@@ -1668,11 +1676,11 @@
                       },
                       "title": "스냅샷 키"
                     },
-                    "overrides": {
-                      "type": "object",
-                      "title": "선언값",
-                      "description": "등록자가 직접 준 값. 비밀은 넣지 않는다.",
-                      "additionalProperties": {
+                    "override_keys": {
+                      "type": "array",
+                      "title": "선언값 키",
+                      "description": "등록자가 직접 준 선언값의 키 이름. 값은 응답에 나오지 않는다 (NFR-13).",
+                      "items": {
                         "type": "string"
                       }
                     }
@@ -2207,6 +2215,7 @@
       "errors": [
         "WORKLOAD_UNAVAILABLE",
         "WORKLOAD_NOT_FOUND",
+        "WORKLOAD_INPUT_INVALID",
         "WORKLOAD_PERMISSION_DENIED"
       ],
       "execution": {

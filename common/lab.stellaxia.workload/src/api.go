@@ -37,13 +37,13 @@ func writeAPIError(w http.ResponseWriter, err error) {
 func decodeBody(r *http.Request, v any) error {
 	data, err := io.ReadAll(http.MaxBytesReader(nil, r.Body, 1<<20))
 	if err != nil {
-		return errf(400, "WORKLOAD_ID_INVALID", "unreadable request body: %v", err)
+		return errf(400, "WORKLOAD_INPUT_INVALID", "unreadable request body: %v", err)
 	}
 	if len(data) == 0 {
 		return nil
 	}
 	if err := json.Unmarshal(data, v); err != nil {
-		return errf(400, "WORKLOAD_ID_INVALID", "request body is not valid JSON: %v", err)
+		return errf(400, "WORKLOAD_INPUT_INVALID", "request body is not valid JSON: %v", err)
 	}
 	return nil
 }
@@ -79,6 +79,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, rec.WorkloadID, "register", true)
 		writeJSON(w, 201, rec)
 	})
 
@@ -103,6 +104,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, rec.WorkloadID, "update", true)
 		writeJSON(w, 200, rec)
 	})
 
@@ -113,6 +115,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, id, "delete", false)
 		writeJSON(w, 200, map[string]any{"workload_id": id, "removed": true})
 	})
 
@@ -134,6 +137,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, rec.WorkloadID, "start", true)
 		writeJSON(w, 200, map[string]any{"workload_id": rec.WorkloadID, "status": rec.Status, "instance": rec.Instance})
 	})
 
@@ -154,6 +158,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, r.PathValue("workload_id"), "stop", true)
 		writeJSON(w, 200, res)
 	})
 
@@ -163,6 +168,7 @@ func newOperationsHandler(s *service, version string) http.Handler {
 			writeAPIError(w, err)
 			return
 		}
+		s.recordAudit(r, rec.WorkloadID, "restart", true)
 		writeJSON(w, 200, map[string]any{"workload_id": rec.WorkloadID, "status": rec.Status, "instance": rec.Instance})
 	})
 

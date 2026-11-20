@@ -109,9 +109,19 @@ func (s *service) start(id string) (*Workload, error) {
 	return clone(e.w), nil
 }
 
+// persistLocked writes the record after a state change the supervisor made on
+// its own (start, exit, restart). Failure policy: the in-memory state stays
+// authoritative and the transition is NOT rolled back, because the program has
+// already started or exited and pretending otherwise would be worse than a
+// stale file. The failure is logged to stderr and recorded as a persist_failed
+// event so it is visible; after a module restart the older on-disk state wins
+// and is normalised by newService. Caller holds s.mu.
 func (s *service) persistLocked(e *entry) {
 	e.w.UpdatedAt = nowUTC()
-	_ = s.st.save(e.w)
+	if err := s.st.save(e.w); err != nil {
+		s.st.logf("workload %s: cannot save record.json: %v", e.w.WorkloadID, err)
+		s.st.appendEvent(e.w.WorkloadID, "persist_failed", map[string]any{"error": err.Error(), "status": e.w.Status})
+	}
 }
 
 // exitResult is what one run of the program ended with.
@@ -337,8 +347,12 @@ func (s *service) stop(id string, timeout time.Duration) (*StopResult, error) {
 		select {
 		case <-rs.loopDone:
 		case <-time.After(5 * time.Second):
-			return nil, errf(500, "WORKLOAD_UNAVAILABLE", "%s did not exit after a forced kill", id)
+			return nil, errf(503, "WORKLOAD_UNAVAILABLE", "%s did not exit after a forced kill", id)
 		}
+	}
+	if cont != nil {
+		// Descendants that left the process group outlive a graceful exit.
+		sweepAfterStop(cont)
 	}
 	s.st.appendEvent(id, "stopped", map[string]any{"forced": rs.forced})
 	s.mu.Lock()
