@@ -1,7 +1,7 @@
 // A 모드 디자인 로그인 — 셸 비밀번호 칸 잇기(host-secret.js). 셸(frame)은 가짜로 세운다.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, secretStyle, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems, REMEMBERED_DOTS } from './host-secret.js';
+import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, secretStyle, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems, REMEMBERED_DOTS, savedId, saveId, forgetId, loginPrefill, autoLoginPending, autoLoginFailMessage, withoutFormRows } from './host-secret.js';
 
 function fakeFrame() {
   const tokenL = new Set(), valueL = new Set();
@@ -135,4 +135,42 @@ test('bindHostSecret — 로그인이 열려 입력을 받을 때만 칸을 두�
 
   step(); b.stop();
   assert.deepEqual(sec.calls.at(-1), ['hide']);
+});
+
+// ── ID 기억 · 자동 로그인 분리 ──
+const memStore = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), m }; };
+const frameWith = (email, token) => ({ token: () => token || '', remember: { remembered: () => (email ? { email } : null) } });
+
+test('자동 로그인 — 유효한 기억이 있으면(토큰 없음) 폼 없이 확인할 자리 · 이미 토큰이 있거나 기억이 없으면 아니다', () => {
+  assert.equal(autoLoginPending(frameWith('admin@terra')), true);
+  assert.equal(autoLoginPending(frameWith('admin@terra', 'tsa_1')), false);
+  assert.equal(autoLoginPending(frameWith(null)), false);
+  assert.equal(autoLoginPending(null), false);
+});
+
+test('자동 로그인 중에는 id · password · 토글 · Login 줄을 그리지 않는다(Terra 화면만)', () => {
+  const rows = ['t0', 'b0', 'aV', 'pV', 'ib', 'iu', 'ab', 'au', 'an', 'lg', 'nt', 'so'].map((k) => ({ k }));
+  assert.deepEqual(withoutFormRows(rows).map((r) => r.k), ['t0', 'b0']);
+});
+
+test('자동 로그인이 안 되면(만료) 한 줄 이유 — 응답 지연과 만료를 가른다', () => {
+  assert.match(autoLoginFailMessage({ ok: false, message: '로그인 실패' }), /^자동 로그인 안 됨 — 로그인 만료$/);
+  assert.match(autoLoginFailMessage({ ok: false, message: '응답 지연 — 재시도' }), /응답 지연$/);
+});
+
+test('ID 기억만 켜져 있으면 id 만 채운다 — 기억된 로그인(auto)이 없고 두 칸 중 ID 기억만', () => {
+  const st = memStore(); saveId(st, 'admin@terra');
+  assert.deepEqual(loginPrefill(frameWith(null), st, {}), { va: 'admin@terra', idOn: true });
+  assert.equal(st.m.size, 1);   // 저장된 것은 id 한 줄뿐 — 비밀번호 · 토큰은 없다
+  assert.equal(loginPrefill(frameWith(null), st, { va: 'typed' }), null);   // 이미 친 id 는 건드리지 않는다
+  forgetId(st); assert.equal(savedId(st), ''); assert.equal(loginPrefill(frameWith(null), st, {}), null);
+});
+
+test('기억된 로그인(auto)이 있으면 id 와 두 칸이 켜진 채 채운다', () => {
+  assert.deepEqual(loginPrefill(frameWith('admin@terra'), memStore(), {}), { va: 'admin@terra', autoOn: true, idOn: true });
+});
+
+test('저장소가 막혀도 던지지 않는다', () => {
+  const bad = { getItem() { throw new Error('x'); }, setItem() { throw new Error('x'); }, removeItem() { throw new Error('x'); } };
+  assert.equal(savedId(bad), ''); saveId(bad, 'a'); forgetId(bad);
 });

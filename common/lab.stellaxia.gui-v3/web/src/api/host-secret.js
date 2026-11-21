@@ -61,6 +61,42 @@ export function rememberedMode(frame, state) {
   return !!(R && S.autoOn !== false && (S.va || '') === R.email && !(frame.token && frame.token()));
 }
 
+/**
+ * ID 기억 — 입력한 id 하나만 이 브라우저(이 웹 origin)의 localStorage 에 둔다. 비밀번호도 토큰도 아니다.
+ * 자동 로그인(auto)은 이것과 별개로 Gateway 가 봉해 둔 기억(rememberedOf)을 쓴다 — 그래서 새 비밀 저장은 없다.
+ */
+export const SAVED_ID_KEY = 'terra.login.id';
+export function savedId(storage) { try { return (storage && storage.getItem(SAVED_ID_KEY)) || ''; } catch { return ''; } }
+export function saveId(storage, id) { try { if (storage && id) storage.setItem(SAVED_ID_KEY, id); } catch {} }
+export function forgetId(storage) { try { if (storage) storage.removeItem(SAVED_ID_KEY); } catch {} }
+
+/**
+ * 로그인 화면을 열 때 채울 것 — 기억된 로그인(auto)이 있으면 그 id + 두 칸 켜짐, 아니면 저장된 id + ID 기억만 켜짐.
+ * 이미 입력한 id 가 있으면 건드리지 않는다. @returns {object|null} setState 에 줄 조각
+ */
+export function loginPrefill(frame, storage, state) {
+  if ((state && state.va)) return null;
+  const R = rememberedOf(frame);
+  if (R && R.email) return { va: R.email, autoOn: true, idOn: true };
+  const id = savedId(storage);
+  return id ? { va: id, idOn: true } : null;
+}
+
+/** 시작할 때 자동 로그인을 시도할 자리인가 — 기억된 로그인이 있고 아직 토큰이 없다 */
+export function autoLoginPending(frame) {
+  return !!(rememberedOf(frame) && !(frame.token && frame.token()));
+}
+
+/** 자동 로그인이 안 됐을 때 로그인 창에 적는 한 줄(왜 안 됐는지) */
+export function autoLoginFailMessage(result) {
+  const m = (result && result.message) || '';
+  return '자동 로그인 안 됨 — ' + (/지연/.test(m) ? '응답 지연' : '로그인 만료');
+}
+
+/** 자동 로그인이 기다리는 동안 보드가 그리지 않을 줄(id · password · 토글 · Login) — Terra 화면만 보인다 */
+export const AUTO_HIDDEN_ROWS = ['aL', 'aC', 'aV', 'aD', 'pL', 'pC', 'pV', 'pD', 'so', 'sd', 'ib', 'iu', 'ab', 'au', 'an', 'lg', 'nt'];
+export function withoutFormRows(items) { return items.filter((it) => !AUTO_HIDDEN_ROWS.includes(it.k)); }
+
 /** 기억으로 들어갈 때 보드의 password 줄 — 고정 점(길이는 실제 비밀번호와 상관없다). 셸 칸은 두지 않는다 */
 export const REMEMBERED_DOTS = '••••••••';
 export function rememberedRowItems(items) {
