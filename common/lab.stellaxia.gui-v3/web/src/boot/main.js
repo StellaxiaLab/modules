@@ -20,7 +20,7 @@ import { startPush } from '../api/push.js';
 import { startLive, routeSignals, shouldPoll, liveText } from '../api/live-stream.js';
 import { createSviHandles } from '../api/svi-handles.js';
 import { pickMode, connectApp } from '../api/mode.js';
-import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems } from '../api/host-secret.js';
+import { hostSecretOf, waitHostLogin, nextAttempt, passwordRowItems, bindHostSecret, rememberedOf, rememberedMode, rememberedRowItems, savedId, saveId, forgetId, loginPrefill, autoLoginPending, autoLoginFailMessage, withoutFormRows } from '../api/host-secret.js';
 import * as deskAdapt from '../api/desk-adapt.js';
 import { createRemoteApps } from '../api/remote-apps.js';
 import { startAlarms } from '../api/alarms.js';
@@ -74,6 +74,7 @@ if (MODE !== 'demo') {
   window.TerraTopology = buildTopology([], { rev: 'none' });   // 실제 모드의 첫 지도는 빈 지도 — 시안 지도(01 · 02 …)를 실제처럼 보이지 않는다. 받으면 바뀌고, 못 받으면 상단 줄이 '못 봤음'을 보인다
   transport = window.TerraTransport = createGatewayTransport({ terra, localRid: () => (window.TerraTopology && window.TerraTopology.localId) || '', authed: () => (MODE === 'shell' ? !!session.handle : !!(frame && frame.token())),
     approveRemote: (op, inputs, node) => (MODE === 'app' && frame && approveNodeOk() ? approveOp({ approve: (r) => frame.approve({ ...r, node }) }, op, inputs, {}) : Promise.resolve({ ok: false, code: 'APPROVAL_UNAVAILABLE', message: '' })) });   // 원격 관리 쓰기(P15) — 승인 문이 그 노드를 가리킬 수 있을 때만 나간다. 아니면 호출하지 않는다(승인 문이 노드를 못 가리키면 이 노드에 하게 된다)
+  const LS = (() => { try { return window.localStorage; } catch { return null; } })();   // ID 기억 — id 한 줄뿐
   const L = boardDef('Login');
   if (L && !L.Logic.__terra) {
     class TerraLogin extends L.Logic {
@@ -90,7 +91,7 @@ if (MODE !== 'demo') {
         if (!S.va || !S.vp || this._busy) return super.login();   // 빈 칸 안내는 시안 그대로
         this._busy = true; this.setState({ msg: '확인 중…' });
         session.login(S.va, S.vp)
-          .then(() => Promise.race([loadTopology(terra), new Promise((r) => setTimeout(() => r(null), 4000))]))   // 실제 지도 — 전환(워프) 전에 받아 둔다(4초 넘으면 빈 지도로 들어가고 오면 바꾼다)
+          .then(() => { if (S.idOn) saveId(LS, S.va); else forgetId(LS); return Promise.race([loadTopology(terra), new Promise((r) => setTimeout(() => r(null), 4000))]); })   // 실제 지도 — 전환(워프) 전에 받아 둔다(4초 넘으면 빈 지도로 들어가고 오면 바꾼다)
           .then((topo) => { this._busy = false; if (window.TerraNodes) window.TerraNodes.clear(); if (topo) setTopology(topo); else loadTopology(terra).then((t) => t && setTopology(t)); afterLogin(); super.login(); },   // 로그인 전의 '로그인 전' 답은 지우고 새로   // 됐으면 시안의 전환(워프)
           (e) => { this._busy = false; this.setState({ msg: e.message || '로그인 실패' }); this.ripAt('login', [255, 120, 110]); });
       }
@@ -104,7 +105,7 @@ if (MODE !== 'demo') {
         sec.submit({ email: S.va, auto: !!S.autoOn, node: String(S.inst ?? this.props.installed ?? 'Leaf'), attempt });
         answer.then((r) => {
           this._busy = false;
-          if (r.ok) { this.warpStart(); return; }   // 토큰이 왔다 — 지도 · 밀어 받기는 frame.onToken 이 시작한다(appSignedIn)
+          if (r.ok) { if (S.idOn) saveId(LS, S.va); else forgetId(LS); this.warpStart(); return; }   // 토큰이 왔다 — 지도 · 밀어 받기는 frame.onToken 이 시작한다(appSignedIn)
           this.setState({ msg: r.message }); this.ripAt('login', [255, 120, 110]); sec.focus();   // 다시 칠 자리로
         });
       }
@@ -129,10 +130,28 @@ if (MODE !== 'demo') {
         if (MODE === 'app') {
           if (frame && frame.token()) return this.enterSignedIn();
           if (!hostSecretOf(frame)) { if (frame) frame.emit('login'); return; }   // 이 보드의 폼은 웹이 비밀번호를 받는 칸이다 — 셸 칸 없이는 열지 않는다(§3.3.1)
-          const R = rememberedOf(frame), S = this.state || {};
-          if (R && !S.va) this.setState({ va: R.email, autoOn: true });   // auto — 기억된 id 를 채우고 고정 점으로
+          if (this._silent) return;   // 자동 로그인을 확인하는 동안에는 폼을 열지 않는다 — Terra 화면만
         }
+        this.prefill();
         return super.openLogin();
+      }
+      // 열 때 채우는 것 — 기억된 로그인(auto)이면 그 id 와 두 칸 켜짐, 아니면 ID 기억의 id(비밀번호는 어디에도 없다)
+      prefill() { const f = loginPrefill(MODE === 'app' ? frame : null, LS, this.state); if (f) this.setState(f); }
+      // 자동 로그인 — 시작할 때 기억된 로그인이 있으면 폼 없이 확인한다. 유효하면 토큰이 오고 그대로 워프(Terra 화면만 보인다),
+      //   아니면(만료 · 폐기 · 응답 없음) 기억을 지우고 로그인 창을 열어 id 를 채우고 왜 안 됐는지 한 줄을 적는다
+      autoLogin() {
+        if (this._busy || this._silent) return;
+        const R = rememberedOf(frame); if (!R) return;
+        const attempt = nextAttempt(); this._busy = true; this._silent = true;
+        const answer = waitHostLogin(frame, attempt);
+        frame.remember.resume({ email: R.email, attempt });
+        answer.then((r) => {
+          this._busy = false;
+          if (r.ok) { this._silent = false; autoWarp(); return; }   // 토큰은 onToken 이 이미 받았다 — 지도 · 밀어 받기는 거기서
+          this._silent = false; frame.remember.forget();
+          this.setState({ va: (this.state || {}).va || R.email, idOn: true, autoOn: false });   // 기억은 지워졌다 — id 는 채우고 auto 는 꺼진 채 다시 로그인
+          super.openLogin(); this.setState({ msg: autoLoginFailMessage(r) }); this.ripAt('login', [255, 120, 110]);
+        });
       }
       // 이미 로그인했다 — 시안의 여는 연출(로고가 오르고 줄이 차례로)을 그대로 보이고, 줄이 다 서면 폼을 받지 않고 워프한다.
       //   워프는 열린 로그인의 글자 · 로고를 날려 보내는 전환이라 닫힌 TERRA 화면에서는 시작하지 않는다
@@ -147,6 +166,7 @@ if (MODE !== 'demo') {
       }
       loginItems() {
         const it = super.loginItems();
+        if (this._silent || (MODE === 'app' && frame && frame.token() && !(this.state || {}).va)) return withoutFormRows(it);   // 자동 로그인 중 · 이미 로그인한 채 들어옴 — 폼 줄은 그리지 않는다
         if (MODE === 'app' && rememberedMode(frame, this.state)) return rememberedRowItems(it);
         const sec = MODE === 'app' && hostSecretOf(frame); return sec ? passwordRowItems(it, sec.state().empty) : it;
       }
@@ -157,7 +177,8 @@ if (MODE !== 'demo') {
           v.inP = () => {}; v.focP = (e) => { if (sec && !rememberedMode(frame, this.state)) sec.focus(); else if (e && e.target && e.target.blur) e.target.blur(); };
           // auto 를 끄면 기억을 지운다(Gateway 의 봉한 refresh token 까지) — 다음부터는 비밀번호로
           const S0 = this.state || {};
-          v.auto = () => { const on = !S0.autoOn; if (!on && rememberedOf(frame)) frame.remember.forget(); this.setState({ autoOn: on }); };
+          v.auto = () => { const on = !S0.autoOn; if (!on && rememberedOf(frame)) frame.remember.forget(); this.setState(on ? { autoOn: true, idOn: true } : { autoOn: false }); };
+          v.idm = () => { const on = !S0.idOn; if (!on) { forgetId(LS); if (rememberedOf(frame)) frame.remember.forget(); } this.setState(on ? { idOn: true } : { idOn: false, autoOn: false }); };   // ID 기억을 끄면 저장한 id 도 지우고 자동 로그인도 꺼진다
         }
         return v;
       }
@@ -284,7 +305,7 @@ if (MODE !== 'demo') {
     // 셸이 연 웹 앱 창(Node Talk 등)의 최소화 — 셸 트레이 대신 이 GUI 의 '최소화 창'이 보인다(셸이 minimize 기능을 말할 때만)
     window.TerraShellMin = createShellMin(f, { notify: () => window.dispatchEvent(new Event('terra-shell-min')) }) || undefined;
     const sec = hostSecretOf(f);
-    if (sec) bindHostSecret({ secret: sec, login: () => window.__terra && window.__terra.login(), scene: () => window.__terra && window.__terra.scene, wanted: () => { const lg = window.__terra && window.__terra.login(); return !f.token() && !rememberedMode(f, lg && lg.state); } });   // 토큰이 있으면(이미 로그인) · 기억으로 들어갈 자리면 칸을 두지 않는다
+    if (sec) bindHostSecret({ secret: sec, login: () => window.__terra && window.__terra.login(), scene: () => window.__terra && window.__terra.scene, wanted: () => { const lg = window.__terra && window.__terra.login(); return !f.token() && !(lg && lg._silent) && !rememberedMode(f, lg && lg.state); } });   // 토큰이 있으면(이미 로그인) · 기억으로 들어갈 자리면 칸을 두지 않는다
     let had = !!f.token();
     if (f.onToken) f.onToken((tok) => {   // 토큰이 바뀌면 — 로그아웃 · 처음 로그인은 앞의 사본을 버린다. 같은 사람의 갱신은 버리지 않는다(저장 중인 바탕 구성이 사라지지 않게): 사람이 달라졌을 때만
       if (tok && had) {
@@ -301,6 +322,9 @@ if (MODE !== 'demo') {
       had = !!tok;
     });
     if (had) { appSignedIn(); autoWarp(); say('앱 모드 · 셸 앱 토큰'); }
+    else if (autoLoginPending(f)) {   // 자동 로그인 — 로그인 보드가 서면 곧바로(폼 없이) 기억된 로그인을 확인한다
+      let n = 0; const t = setInterval(() => { const lg = window.__terra && window.__terra.login(); if (lg) { clearInterval(t); lg.autoLogin(); } else if (++n > 100) clearInterval(t); }, 50);
+    }
   });
 } else say('목업 · 시안 데이터 (Terra 없음)');
 
